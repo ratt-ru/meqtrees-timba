@@ -17,11 +17,11 @@ TDLCompileOption("pointing_dlm","Size of one pointing step, in arcmin",[2],more=
 TDLCompileOption("table_name","Weights table",TDLDirSelect("*.mep",default="weights.mep"));
 TDLCompileOption("acm_filename","Input ACM file",TDLFileSelect("*.bin"));
 
-      
+
 TDLCompileOption("out_filename","Output filename for sky image",
                   TDLFileSelect("*.fits",default="digestif-image.fits"));
 
-DEG = math.pi/180;  
+DEG = math.pi/180;
 ARCMIN = DEG/60;
 
 class WriteSkyImage (pynode.PyNode):
@@ -31,7 +31,7 @@ class WriteSkyImage (pynode.PyNode):
     mystate('file_name','sky.fits');
     mystate('start_channel',0);
     mystate('end_channel',-1);
-    
+
   def get_result (self,request,*children):
     result = children[0];
     # convert to 32 bits
@@ -92,19 +92,19 @@ def _define_forest (ns,**kwargs):
                     module_name='DigestifBeam',
                     in_axis_1='l',in_axis_2='m',
                     out_axis_1='time',out_axis_2='freq');
-    
+
   # acm node
   ns.acm << Meq.PyNode(class_name="DigestifAcmNode",module_name='DigestifACM',
                         file_name='acm.bin');
   # nodes to compute resulting image
   ns.image << Meq.MatrixMultiply(Meq.ConjTranspose(ns.weight),ns.acm,ns.weight);
-  try: os.remove(out_filename); 
+  try: os.remove(out_filename);
   except: pass;
   ns.image_real << Meq.Real(ns.image);
   ns.image_fits << Meq.PyNode(ns.image_real,class_name="WriteSkyImage",module_name=__file__,
                         file_name='digestif-sky.fits',
                         start_channel=0,end_channel=-1);
-    
+
   # make some bookmarks
   Meow.Bookmarks.make_node_folder("Beam weights",
         [ns.weight_tf(p) for p in ELEMS],nrow=2,ncol=2);
@@ -118,7 +118,7 @@ def compute_cells ():
   domain = meq.gen_domain(l=[-prad,prad],m=[-prad,prad]);
   cells = meq.gen_cells(domain,num_l=pn,num_m=pn);
   return cells;
-  
+
 
 def _tdl_job_1_compute_image (mqs,parent,**kwargs):
   from Timba.Meq import meq
@@ -126,4 +126,3 @@ def _tdl_job_1_compute_image (mqs,parent,**kwargs):
   request = meq.request(cells,rqtype='ev');
   mqs.execute('image_fits',request);
 
- 
