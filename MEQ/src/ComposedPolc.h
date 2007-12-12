@@ -154,7 +154,7 @@ namespace Meq
     for (int ai=0;ai<Axis::MaxAxis;ai++){
       if (f1->domain().isDefined(ai) && f2->domain().isDefined(ai))
 	{
-	  if(f1->domain().start(ai) != f2->domain().start(ai)) return (f1->domain().start(ai) < f2->domain().start(ai));
+	  if(fabs(f1->domain().start(ai)- f2->domain().start(ai))>1e-16) return (f1->domain().start(ai) < f2->domain().start(ai));
 
 
 
@@ -164,7 +164,7 @@ namespace Meq
     for (int ai=0;ai<Axis::MaxAxis;ai++){
       if (f1->domain().isDefined(ai) && f2->domain().isDefined(ai)){
 	//use the one with largest domain
-	if(f1->domain().end(ai) != f2->domain().end(ai))  return (f1->domain().end(ai) < f2->domain().end(ai)) ;
+	if(fabs(f1->domain().end(ai) - f2->domain().end(ai))>1e-16)  return (f1->domain().end(ai) < f2->domain().end(ai)) ;
       }  
     }
     //all the same...hmmm, let's return somtehing for the moment
