@@ -47,6 +47,7 @@ from Timba.TDL import *
 from Timba.Meq import meqds
 from Timba.Meq import meq
 from Meow import Bookmarks,Utils
+from handle_beams import *
 
 from numarray import *
 import os
@@ -122,28 +123,12 @@ def _define_forest(ns):
 
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
-  # number of beams is 30 or 90
-  if fpa_directory.find('30') >= 0:
-    num_beams = 30
-  else:
-    num_beams = 90
-# read in beam images
-  BEAMS = range(0,num_beams)
+  # get FPA beams
+  num_beams = read_in_FPA_beams(ns, fpa_directory)
   beam_solvables = []
   parm_solvers = []
-  # read in beam data: in my tests we have beam data with 101 x 101 pixels
-  # covering -0.15 to 0.15 radians in L and M
+  BEAMS = range(0,num_beams)
   for k in BEAMS:
-    # read in beam data - y dipoles
-    infile_name_re_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
-    infile_name_im_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Im_x.fits'
-    infile_name_re_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Re_y.fits'
-    infile_name_im_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Im_y.fits' 
-    ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
-    ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
-    ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
-    ns.image_im_yy(k) << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
-
     # it would be wonderful if a) the rationale for dep_masks was given and
     # b) why on earth are we using hex values - very un-user friendly!
     ns.resampler_image_re_yy(k) << Meq.Resampler(ns.image_re_yy(k),dep_mask = 0xff)
@@ -178,17 +163,6 @@ def _define_forest(ns):
     ns.beam_yy(k) << Meq.ToComplex(ns.image_re_yy(k), ns.image_im_yy(k))
     ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
-
-    # read in beam data - x dipole and form weights in a manner similar to
-    # y dipoles
-    infile_name_re_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Re_x.fits'
-    infile_name_im_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Im_x.fits'
-    infile_name_re_xy = fpa_directory + '/fpa_pat_' + str(k) + '_Re_y.fits'
-    infile_name_im_xy = fpa_directory + '/fpa_pat_' + str(k) + '_Im_y.fits' 
-    ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
-    ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
-    ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
-    ns.image_im_xx(k) << Meq.FITSImage(filename=infile_name_im_xx,cutoff=1.0,mode=2)
 
     ns.resampler_image_re_xx(k) << Meq.Resampler(ns.image_re_xx(k),dep_mask = 0xff)
     ns.resampler_image_im_xx(k) << Meq.Resampler(ns.image_im_xx(k),dep_mask = 0xff)
