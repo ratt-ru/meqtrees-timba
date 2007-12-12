@@ -388,8 +388,10 @@ namespace Meq {
 	funkletref <<= funklets.front();
 	    
 	//reset dbid if funklet domain not matching 
-	if(funkletref->domain().start(0)!=domain.start(0) || funkletref->domain().start(1)!=domain.start(1) ||
-	   funkletref->domain().end(0)!=domain.end(0) || funkletref->domain().end(1)!=domain.end(1))
+	if( (fabs(funkletref->domain().start(0)-domain.start(0))>1e-16) 
+	    || (fabs(funkletref->domain().start(1)-domain.start(1))>1e-16) 
+	    ||(fabs(funkletref->domain().end(0)-domain.end(0))>1e-16) 
+	    || (fabs(funkletref->domain().end(1)-domain.end(1))>1e-16))
 	  {
 	    cdebug(3)<<" resetting dbid" <<funkletref->domain().start(0)<<" == "<<domain.start(0)<<endl;
 	    cdebug(3)<<funkletref->domain().start(1)<<" == "<<domain.start(1)<<endl;
