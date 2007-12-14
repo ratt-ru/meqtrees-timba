@@ -306,7 +306,7 @@ class MeqMaker (object):
         if ParmGroup.num_solvejobs() == prev_num_solvejobs:
           parms = jt.base_node.search(tags="solvable");
           if parms:
-            pg = ParmGroup(jt.label,parms);
+            pg = ParmGroup.ParmGroup(jt.label,parms);
             ParmGroup.SolveJob("solve_%s"%jt.label,"Solve for %s"%jt.label,pg);
     return jt.base_node;
 
