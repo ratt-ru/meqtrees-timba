@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 1.1: 13 Dec 2007} % Date of Issue (
+theDOIssue}{Version 1.45: 31 Dec 2007} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {1.1} 
+theRevNR} {1.45} 
 \layout Standard
 
 \backslash 
@@ -268,6 +268,26 @@ hspace{0.5cm} E.
 hspace{0.5cm} H.R.
 \backslash 
  Kloeckner (HRK, Oxford) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} H.
+\backslash 
+ van der Marel (HMA, ASTRON) 
+\backslash 
+
+\backslash 
+
+\layout Standard
+
+\backslash 
+hspace{0.5cm} H.
+\backslash 
+ van der Marel (HMD, TUD) 
 \backslash 
 
 \backslash 
@@ -746,6 +766,108 @@ Since this is a working document, section
  the various participants in this collaboration will converge in the coming
  months.
  
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_VLA_VirgoA.eps
+	width 60col%
+
+\end_inset 
+
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap: How smooth is the ionosphere}
+
+\end_inset 
+
+
+\size footnotesize 
+\emph on 
+Is the ionosphere smooth( x,y,z,l,m,t) enough to make a MIM approach practical?
+ We may glean a sort of answer from these visiblity phases.
+ They represent 5 and 10 km baselines of the VLA, observing a bright point
+ source (Virgo A) @ 74 MHz (courtesy of Rick Perley and Gary Bust).
+ During the night, they illustrate three different modes of normal ionospheric
+ behaviour.
+ But after dawn, an unusually large Travelling Ionospheric Disturbance (TID)
+ caused the source to deviate from its nominal position by more than a degree.
+ We will discuss the various modes from right to left.
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+The sinuoidal TID phase variations are large, but smooth.
+ Assuming a TID velocity of 500 m/s (1800 km/hr), one 15 min wave has a
+ size of 450 km.
+ This is consistent with the observation that the phase scales linearly
+ with baselines <10 km.
+ Assuming a TID altitude of 300 km, a single wave would subtend 80-90 degr.
+ Thus, a MIM has to model only 1-2 wave periods, with parameters that evolve
+ in time.
+ This can be accomplished with ~6 time-dependent parameters per dimension,
+ or a total of ~30.
+ 
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+The 'quiescent activity' seems to have two components.
+ The slow, large-scale one scales with baseline length, and can be easily
+ modeled by a MIM.
+ The small-scale component is consistent with the theory (by Bill Erickson)
+ that the night-time ionosphere settles down and breaks up into small blobs.
+ The resulting phase variations are much too rapid to be modeled or tracked,
+ but as long as their amplitudes are less than a radian, they will not cause
+ troublesome 2
+\backslash 
+pi ambiguities.
+ If they vary rapidly enough, they will add noise to the final image, but
+ no systematic structure.
+ 
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+There is little we can do about scintillation, except perhaps switch to
+ a higher observing frequency.
+ Otherwise, we should just stop observing for a few hours.
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+The normal behaviour on the left has the same typical 15 min period as the
+ TID, and largely scales with baseline length.
+ This seems to indicate that it can be adequately modeled by a MIM with
+ the same number of parameters as the TID.
+\layout Standard
+
+
+\size footnotesize 
+\emph on 
+The other part of the 'Erickson proposition' is that the daytime ionosphere
+ has larger, smoother bubbles because of a variety of Solar effects.
+ This can be compared to the smooth 'cauliflower' tops of cumulus clouds,
+ which grow under Solar irradiation.
+ Thus, with the right software, daytime observations through the ionosphere
+ should be easier, because the large, smooth phase variations are easier
+ to track.
+\end_inset 
+
+
 \layout Section
 
 The MIM principle
@@ -1050,7 +1172,7 @@ collapsed false
 
 
 \layout Caption
-
+\added_space_top medskip 
 
 \emph on 
 
@@ -1058,6 +1180,8 @@ collapsed false
 
 \end_inset 
 
+
+\size footnotesize 
 This 
 \series bold 
 MIM diagram
@@ -1082,6 +1206,8 @@ collapsed true
 
 \layout Standard
 
+
+\size footnotesize 
 A bit like the Feynman diagram, which also has the three space dimensions
  (x,y,z) along the horizontal axis (and the time dimension along the vertical
  axis).
@@ -1102,8 +1228,9 @@ A bit like the Feynman diagram, which also has the three space dimensions
  sources and the FOV are stationary, while satellites move vertically.
  
 \layout Standard
+\added_space_top medskip 
 
-
+\size footnotesize 
 \emph on 
 The MIM function 
 \begin_inset Formula $M(\vec{x},\vec{l},t=t_{i})$
@@ -1127,8 +1254,9 @@ The MIM function
  within 100 km or so.
  
 \layout Standard
+\added_space_top medskip 
 
-
+\size footnotesize 
 \emph on 
 A horizontal group of samples associated with a particular astronomical
  source form a so-called 
@@ -1145,8 +1273,9 @@ Rigid Floating Group
 ing into a much larger Rigid Floating Tilting Group (RFTG).
  All these groups together constrain the MIM.
 \layout Standard
+\added_space_top medskip 
 
-
+\size footnotesize 
 \emph on 
 Ideally, the sampling function is sufficiently dense, so that 
 \begin_inset Formula $M$
@@ -1462,6 +1591,7 @@ collapsed false
 \end_inset 
 
 
+\size footnotesize 
 \emph on 
 A pictorial view of the least-squares fitting of MIM (and other) parameters.
  The solution matrix 
@@ -1510,6 +1640,7 @@ The matrix expression for this collection of equations is
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 If 
 \begin_inset Formula $A$
@@ -1735,6 +1866,8 @@ collapsed false
 
 \end_inset 
 
+
+\size footnotesize 
 A Rigid Floating Group (RFG) is a group of TEC values that share an unknown
  absolute offset, but whose values relative to each other are fixed.
  This is analogous to the parts of rigid body that has only one degree of
@@ -1748,6 +1881,7 @@ A Rigid Floating Group (RFG) is a group of TEC values that share an unknown
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 The RFG has two cousins, which are not shown here.
  The first is the Rigid Floating Tilting Group (RFTG), which has two degrees
@@ -2230,6 +2364,8 @@ collapsed false
 
 \end_inset 
 
+
+\size footnotesize 
 TEC measurements with one GPS satellite and multiple ground stations.
  The accuracy is limited to the measurement noise of 0.01 TECU, which corresponds
  to 1 rad @ 75 MHz.
@@ -2875,8 +3011,10 @@ collapsed false
 
 \end_inset 
 
- The picture shows the part played by the ionospheric phase (ZJones) in
- the prediction of a visibility value 
+ 
+\size footnotesize 
+The picture shows the part played by the ionospheric phase (ZJones) in the
+ prediction of a visibility value 
 \begin_inset Formula $V_{ij}$
 \end_inset 
 
@@ -2920,6 +3058,7 @@ collapsed false
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 These operations are allowed since the ZJones matrix reduces to a scalar
  phase factor, and can be placed anywhere in the Jones chain.
@@ -3314,7 +3453,9 @@ collapsed false
 
 
 \emph on 
-The proposed default procedure for the ionospheric calibration of LOFAR
+T
+\size footnotesize 
+he proposed default procedure for the ionospheric calibration of LOFAR
 \emph default 
  
 \emph on 
@@ -3326,6 +3467,7 @@ uses a bright Cat I source in the FOV to 'pin down' a pivotal (high-accuracy)
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 An array of GPS receivers is used to constrain the MIM further.
  In particular, it constrains the higher-order shape (i.e.
@@ -3358,6 +3500,7 @@ collapsed false
 \end_inset 
 
 
+\size footnotesize 
 \emph on 
 MeqTree solver diagram for the MIM, as discussed in the text.
  For each request (f,t), the solver collects a number of equations of the
@@ -3392,6 +3535,7 @@ MeqTree solver diagram for the MIM, as discussed in the text.
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 The solver gets three kinds of equations.
  Two of them compare the GPS TEC measurements or the astronomical visibilities
@@ -3413,6 +3557,7 @@ The solver gets three kinds of equations.
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 Normally, a separate solution is made for each request.
  In that case, the size of the domain, in both dimensions, determines its
@@ -3425,6 +3570,7 @@ et.
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 Note that this diagram does not show the trees for peeling, or source subtractio
 n, or preparing for facet imaging.
@@ -4076,81 +4222,6 @@ An ionospheric blob with a size of 250 km, and a travelling velocity of
 \end_inset 
 
  will change slowly in time.
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename MIM_VLA_VirgoA.eps
-	width 50col%
-
-\end_inset 
-
-
-\begin_inset Graphics
-	filename sin_in_noise.eps
-	width 50col%
-
-\end_inset 
-
-
-\layout Caption
-
-
-\begin_inset LatexCommand \label{cap: background: Kolmogorov-type}
-
-\end_inset 
-
-
-\emph on 
-The statistics of ionospheric phase variations.
- This is a schematic version of the (differential!) phase that was actually
- measured with a baseline of 10 km, in an observation of Virgo A by the
- VLA @ 74 Mhz.
- It should be noted that the ionospheric conditions were somewhat unusual.
- The variations shows a Kolmogorov-like bahaviour, in which larger ones
- (of hundreds of radians) have longer time-scales.
- So, somewhat paradoxically, we should worry more about the smaller phase
- variations, because they are too rapid to track.
- Large, smooth variations can (and must) be tracked, keeping in mind that
- a linear change of phase of one radian during the integration time causes
- a decorrelation (decrease in amplitude) of the signal of 4%.
- This can be corrected for, of course.
- The LOFAR calibration scheme assumes that phases will change by less than
- 1 radian in 10 s.
- This limit is exceeded only rarely, and mostly at low frequencies (<30
- MHz).
- 
-\layout Standard
-
-
-\emph on 
-The largest phase variations are caused by Travelling Ionospheric Disturbances
- (TID), which usually occur at sunrise.
- This is illustrated on the right.
- The left shows the quiescent ionosphere, which has small variations that
- mostly average out, and cause no systematic effects in the image (but they
- do increase the noise).
- Note that the quiescent variations are still present on top of the TID.
- 
-\layout Standard
-
-
-\emph on 
-Finally, scintillation causes rapid variations with an abnormally large
- amplitude.
- When that happens, observations should either be stopped, or shifted to
- higher frequencies (>100 MHz).
- 
-\end_inset 
-
-
 \layout Subsection
 
 Ionospheric delay
@@ -4457,6 +4528,8 @@ collapsed false
 
 \end_inset 
 
+
+\size footnotesize 
 Just to set the scene: Some typical ionospheric profiles and numbers, taken
  from
 \emph default 
@@ -4542,6 +4615,8 @@ collapsed false
 
 \end_inset 
 
+
+\size footnotesize 
 The interpolation error of the MIM.
  In one dimension, if we have 
 \begin_inset Formula $n$
@@ -4567,6 +4642,8 @@ The interpolation error of the MIM.
 \layout Standard
 
 
+\size footnotesize 
+
 \begin_inset Formula \[
 \frac{1}{\sigma}=\frac{1}{\sqrt{n}}\sum_{i=1}^{n}\frac{1}{\sigma_{i}(1+\alpha_{i}(x-x_{i})^{2})}\]
 
@@ -4576,6 +4653,7 @@ The interpolation error of the MIM.
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 in which the 
 \begin_inset Formula $\alpha_{i}$
@@ -4590,6 +4668,7 @@ in which the
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 In any case, the above formula reduces correctly to 
 \begin_inset Formula $\sigma=\frac{\sigma_{0}}{\sqrt{n}}$
@@ -4764,6 +4843,8 @@ collapsed false
 
 \end_inset 
 
+
+\size footnotesize 
 Various MIM base-functions.
 \end_inset 
 
@@ -4919,6 +5000,7 @@ collapsed false
 \end_inset 
 
 
+\size footnotesize 
 \emph on 
 A little bit of perspective.
  The orbits of GPS satellites have a radius of about 27000 km (21000+6378).
@@ -5144,6 +5226,7 @@ collapsed false
 \end_inset 
 
 
+\size footnotesize 
 \emph on 
 The MIM function 
 \begin_inset Formula $M$
@@ -5160,6 +5243,8 @@ The MIM function
 \layout Standard
 
 
+\size footnotesize 
+
 \begin_inset Formula \[
 \frac{\partial M}{\partial l}=\frac{\partial M}{\partial x}\times\frac{\partial x}{\partial l}\]
 
@@ -5169,6 +5254,7 @@ The MIM function
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 The assumptions about the ionosphere are in the function 
 \begin_inset Formula $\frac{\partial}{\partial}$
@@ -5217,6 +5303,8 @@ For a curved Earth with radius
  
 \layout Standard
 
+
+\size footnotesize 
 
 \begin_inset Formula \begin{equation}
 z\Rightarrow\arcsin(\frac{R\sin(z)}{R+h})\label{eq: H(z)}\end{equation}
@@ -5474,6 +5562,7 @@ collapsed false
 \end_inset 
 
 
+\size footnotesize 
 \emph on 
 Long-range parameters.
  How do we solve for MIM (and other) parameters that have a validity-domain
@@ -5488,6 +5577,7 @@ Long-range parameters.
 
 
 \series bold 
+\size footnotesize 
 \emph on 
 The following is a jargon-laced placeholder:
 \series default 
@@ -6072,6 +6162,8 @@ collapsed false
 
 \end_inset 
 
+
+\size footnotesize 
 Double-differencing.
  Using two GPS ground stations, and at least 4 satellites, it is possible
  to eliminate the 
@@ -6089,6 +6181,7 @@ relative
 \layout Standard
 
 
+\size footnotesize 
 \emph on 
 The size of the RFTG can be increased arbitrarily by using an array of GPS
  stations, provided that each station takes part in at least one baseline
@@ -6532,6 +6625,7 @@ collapsed false
 \end_inset 
 
 
+\size footnotesize 
 \emph on 
 Comparison of the results of field-based calibration (Cotton, left) and
  the MIM-based SPAM method (Intema, right).
