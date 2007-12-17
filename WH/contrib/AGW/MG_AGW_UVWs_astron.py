@@ -27,8 +27,9 @@
 # This script reads a MS and calculates UWV tracks in 'ASTRON' format,
 # which is opposite to that of the VLA. We store the UV tracks in
 # a meqlog.mql file. That file can then be read in by a python script
-# which reads the MS and replaces the UVWs calculated by the aips++
-# newsimulator with the 'ASTRON' UVW positions.
+# (see MG_AGW_insert_UVWs_astron.py) which reads the MS and replaces the 
+# UVWs calculated by the aips++ newsimulator with the 'ASTRON' UVW 
+# positions.
 
 from Timba.TDL import *
 from Timba.Meq import meq
