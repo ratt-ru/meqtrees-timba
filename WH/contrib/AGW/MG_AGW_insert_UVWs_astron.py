@@ -24,7 +24,7 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-# This script reads meqlog.mql file and insets the UVW locations
+# This script reads a meqlog.mql file and insets the UVW locations
 # stored in that file (created by script MG_AGW_UVWs_astron.py)
 # into a MS
 
@@ -34,8 +34,10 @@ from Timba.Plugins.VellsData import *
 from numarray import *
 from pyrap_tables import *
 
-boio = mequtils.open_boio("meqlog.mql")
+# Insert the name of your favourite MS in the following line
 t = table('TEST_XNTD_27_960.MS',readonly=False)
+
+boio = mequtils.open_boio("meqlog.mql")
 vells_data = VellsData()
 vells_data.setInitialSelection(False)
 row_number = -1
