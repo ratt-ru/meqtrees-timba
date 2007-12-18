@@ -800,8 +800,9 @@ Is the ionosphere smooth( x,y,z,l,m,t) enough to make a MIM approach practical?
  During the night, they illustrate three different modes of normal ionospheric
  behaviour.
  But after dawn, an unusually large Travelling Ionospheric Disturbance (TID)
- caused the source to deviate from its nominal position by more than a degree.
- We will discuss the various modes from right to left.
+ caused the source to oscillate w.r.t.
+ its nominal position with an amplitude of more than a degree.
+ We will discuss the various phaenomena from right to left.
 \layout Itemize
 
 
@@ -826,7 +827,7 @@ The sinuoidal TID phase variations are large, but smooth.
 The 'quiescent activity' seems to have two components.
  The slow, large-scale one scales with baseline length, and can be easily
  modeled by a MIM.
- The small-scale component is consistent with the theory (by Bill Erickson)
+ The small-scale component is consistent with the proposition (by Bill Erickson)
  that the night-time ionosphere settles down and breaks up into small blobs.
  The resulting phase variations are much too rapid to be modeled or tracked,
  but as long as their amplitudes are less than a radian, they will not cause
@@ -859,12 +860,11 @@ The normal behaviour on the left has the same typical 15 min period as the
 \size footnotesize 
 \emph on 
 The other part of the 'Erickson proposition' is that the daytime ionosphere
- has larger, smoother bubbles because of a variety of Solar effects.
+ has larger, smoother bubbles because the Sun supplies energy to it.
  This can be compared to the smooth 'cauliflower' tops of cumulus clouds,
  which grow under Solar irradiation.
- Thus, with the right software, daytime observations through the ionosphere
- should be easier, because the large, smooth phase variations are easier
- to track.
+ Thus, daytime observations through the ionosphere should be easier, because
+ the large, smooth phase variations are easier to track.
 \end_inset 
 
 
@@ -939,14 +939,6 @@ postulate the existence
  The smoothness implies that, if we change position, direction or time,
  the value of the MIM function may change considerably, but it will do so
  smoothly.
- For the moment, we will assume that such a function exists.
- Few people doubt this assertion, but the subject is discussed in more depth
- in appendix 
-\begin_inset LatexCommand \ref{sec: Does the MIM exist?}
-
-\end_inset 
-
-.
  
 \layout Standard
 
@@ -1311,6 +1303,14 @@ Solving for MIM (and other) parameters
 \end_inset 
 
 
+\layout Subsection
+
+The 
+\begin_inset LatexCommand \label{sub: Measurement Equation}
+
+\end_inset 
+
+Measurement Equation (M.E.)
 \layout Standard
 
 A 
@@ -1433,7 +1433,7 @@ The parameters of the M.E.
 \begin_inset Formula $\Delta_{rs}$
 \end_inset 
 
- between measured predicted values.
+ between measured and predicted values.
  Thus, each sample generates a (linear) equation of the form:
 \layout Standard
 
@@ -1446,31 +1446,6 @@ The parameters of the M.E.
 
 \layout Standard
 
-Note that we can construct the residuals 
-\begin_inset Formula $\Delta_{rs}$
-\end_inset 
-
- in different ways:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\Delta_{rs}=(M_{rs}+Q_{rs})-S_{rs}=Q_{rs}-(S_{rs}-M_{rs})\label{eq: ME_resid}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-so instead of 'corrupting' the predicted value, we can also 'correct' the
- measured value with the inverse of (part of) the M.E.
- This is used in section 
-\begin_inset LatexCommand \ref{sec: Making astroVis equations}
-
-\end_inset 
-
-, where the measured visibilities are corrected for the ionospheric phase,
- so they can be integrated without decorrelation.
 \layout Standard
 
 The 
@@ -1603,7 +1578,7 @@ A pictorial view of the least-squares fitting of MIM (and other) parameters.
 
 \end_inset 
 
-: gpsTEC equations, astroVis equations and constraint equations.
+: astroVis equations, GPS equations (3 kinds) and constraint equations.
  The vector 
 \begin_inset Formula $\vec{D}$
 \end_inset 
@@ -1894,6 +1869,40 @@ The RFG has two cousins, which are not shown here.
 
 \layout Subsection
 
+Using the frequency dependence
+\begin_inset LatexCommand \label{sub: using frequency dependence}
+
+\end_inset 
+
+
+\layout Standard
+
+Finally, The effectiveness of the separation of effects will improve linearly
+ with fractional bandwidth 
+\begin_inset Formula $\Delta\lambda/\lambda$
+\end_inset 
+
+, so we should endeavour to work with solve-domains that are as large as
+ possible in the frequency direction.
+ 
+\emph on 
+This means that we should process all (collapsed) LOFAR subbands simultaneously,
+ either by putting them together in a single spectral window, or by the
+ use of a 'super-solver'.
+ In addition, we might make additional measurements at 'outlier' frequencies
+ for calibration purposes only
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+This should be compared to the plan to use some extra 'calibration' dipoles
+ a little bit outside a regular LOFAR LBA station.
+\end_inset 
+
+.
+\layout Subsection
+
 Smoothing in time
 \begin_inset LatexCommand \label{sub: solve: smoothing in time}
 
@@ -1980,401 +1989,6 @@ Develop the capability for solving for long-range parameters, i.e.
 \end_inset 
 
 .
-\layout Section
-
-Making gpsTEC equations
-\begin_inset LatexCommand \label{sec: Making gpsTEC equations}
-
-\end_inset 
-
-
-\layout Standard
-
-GPS satellites move in roughly circular orbits around the Earth, with a
- radius of about 30.000 km (21000+6378), and with an inclination of 52 degrees
- w.r.t.
- the equator, which optimizes the combination of world coverage and relative
- velocity (see fig 
-\begin_inset LatexCommand \ref{cap: coord: GPS orbit}
-
-\end_inset 
-
-).
- At an arbitrary position on Earth, at least 6 satellites are visible at
- any time.
- A passage from horizon to horizon takes a few hours, depending on its maximum
- elevation.
- They all move with the Earth rotation, to minimize the velocity w.r.t.
- the Earth surface.
- Most satellites have low elevations, most of the time, and it is quite
- rare for one to be actually inside the LOFAR FOV (5-10 deg).
- In the future we also hope to use satellites of Galileo, Glonass etc.
- 
-\layout Subsection
-
-Preprocessing the Rinex data
-\begin_inset LatexCommand \label{sub: gpsTEC: preprocessing-Rinex-data}
-
-\end_inset 
-
-
-\layout Standard
-
-The GPS TEC measurements (usually) reach us in the form of so-called Rinex
- files.
- These are pre-processed and re-organized (by JMA), before being fed into
- Meqtrees.
- For instance, any cycle-slips (jumps by an integer number of carrier wavelength
-s) are removed.
- All this should be summarized here....
-\layout Subsection
-
-The gpsTEC Measurement Equation 
-\begin_inset LatexCommand \label{sub: gpsTEC M.E.}
-
-\end_inset 
-
-
-\layout Standard
-
-A sample 
-\begin_inset Formula $S_{rs}$
-\end_inset 
-
- represents the integrated TEC along the line-of-sight between a station
- 
-\begin_inset Formula $r$
-\end_inset 
-
- and satellite 
-\begin_inset Formula $s$
-\end_inset 
-
-.
- The station will have a fixed and accurately known Earth position 
-\begin_inset Formula $(x_{r},y_{r},z_{r})$
-\end_inset 
-
-, while the viewing direction 
-\begin_inset Formula $(l_{rs},m_{rs})$
-\end_inset 
-
- changes with time.
- Using a 2-frequency technique, a virtually instantaneous estimate 
-\begin_inset Formula $S_{rs}$
-\end_inset 
-
- of the integrated TEC may be made with a fundamental measurement 
-\begin_inset Formula $noise$
-\end_inset 
-
- of about 0.01 TECU (or 1 rad @ 74 MHz).
- Unfortunately, this is complicated by an unknown bias, which slowly drifts
- in time.
- Referring to equ 
-\begin_inset LatexCommand \ref{eq: ME_generic}
-
-\end_inset 
-
- above, the function 
-\begin_inset Formula $Q_{rs}$
-\end_inset 
-
- for the GPS M.E.
- can be expressed as: 
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-Q_{rs}(t)=(q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots)+\frac{\phi_{r}^{tropos}}{-25\lambda}+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-Expressions for the derivatives 
-\begin_inset Formula $\frac{\partial Q}{\partial q}$
-\end_inset 
-
- are readily determined from this.
- Of course, the slow bias drift may be expressed by other functions than
- these low-order polynomials.
- Note that the constant 
-\begin_inset Formula $q_{rs}$
-\end_inset 
-
- is associated with the station-satellite pair, while the drift parameters
- 
-\begin_inset Formula $q_{ir}$
-\end_inset 
-
- are associated with station 
-\begin_inset Formula $r$
-\end_inset 
-
-.
- The tropospheric phase 
-\begin_inset Formula $\phi_{r}^{tropos}$
-\end_inset 
-
- is right above station 
-\begin_inset Formula $r$
-\end_inset 
-
-, and easily distinguishable from the TEC since 
-\begin_inset Formula $\phi_{r}\propto1/\lambda$
-\end_inset 
-
-.
-\layout Standard
-
-It would be nice if we could associate a bias value with each station, and
- each satellite.
- With 
-\begin_inset Formula $n$
-\end_inset 
-
- satellites and 
-\begin_inset Formula $m$
-\end_inset 
-
- stations we would then have only 
-\begin_inset Formula $(n+m)$
-\end_inset 
-
- independent bias parameters in 
-\begin_inset Formula $(n\times m)$
-\end_inset 
-
- samples.
- Unfortunately, all the pair biases are different.
- But fortunately there is some commonality: the bias drifts are caused 
-\emph on 
-only
-\emph default 
- by the station
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-The bias drift are probably caused by relatively cheap electonics, operating
- in a relatively unstable environment.
- Both are better for the satellite.
- 
-\end_inset 
-
-, and they are the same for all TEC measurements made between a station
- and different satellites
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-This has been established on real data.
- It is another indication that the drifts are caused by environmental variations
- (temperature, humidity) in the station electronics.
-\end_inset 
-
-.
- This is a typical example of long-term parameters as discussed in section
- 
-\begin_inset LatexCommand \ref{sub: solve: smoothing in time}
-
-\end_inset 
-
-.
- 
-\layout Standard
-
-Referring to the MIM-diagrams in figs 
-\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
-
-\end_inset 
-
- and 
-\begin_inset LatexCommand \ref{cap: MIM diagram}
-
-\end_inset 
-
-, may consider the following possibilities:
-\layout Enumerate
-
-
-\series bold 
-One satellite-station pair:
-\series default 
- Probably useless for our purpose, since we cannot distinguish TEC from
- bias (unless 3-freq works).
- Troposphere?
-\layout Enumerate
-
-
-\series bold 
-One satellite and multiple stations:
-\series default 
- Still not very good, since all stations will have different bias drifts.
- However, the MIM will have a 
-\emph on 
-harmonizing
-\emph default 
- effect on these biases.
- MXM used this, together with the assumption of a thin layer, to separate
- TECs and biases.
- 
-\layout Enumerate
-
-
-\series bold 
-One station and multiple satellites:
-\series default 
- This sorts out the station drifts, better if we use large domains, or can
- solve for long-term parameters.
-\layout Enumerate
-
-
-\series bold 
-Multiple satellites and multiple stations:
-\series default 
- The more, the better, because the harmonizing effect of the MIM will be
- stronger.
- Also, the MIM sampling function is much wider.
- See also double-differencing.
-\layout Standard
-
-See also the MIM-diagram in figs 
-\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
-
-\end_inset 
-
- and 
-\begin_inset LatexCommand \ref{cap: MIM diagram}
-
-\end_inset 
-
-.
- Note that, if we solve the bias problem, GPS measurements yield 
-\emph on 
-absolute
-\emph default 
- TEC values.
- This is needed for the calibration of ionospheric Faraday rotation.
-\layout Subsection
-
-Using 3 frequencies (JMA, EXN)
-\begin_inset LatexCommand \label{sub: gpsTEC: using-3-frequencies}
-
-\end_inset 
-
-
-\layout Standard
-
-Jim has verified (see appendix 
-\begin_inset LatexCommand \ref{sec: Triple-frequency GPS}
-
-\end_inset 
-
-) that the bias problem will be much less (~ 0.035 TECU), even if the 3rd
- frequency is relatively close to one of the others.
- Galileo will use 3 frequencies, and we should do tests with the WSRT station.
- GPS will probably have them earlier, so we should be ready to use them
- to maximum advantage at the earliest opportunity.
- This will not require any great changes in the scheme that is being discussed
- in this document.
- If anything, it will simplify it, and produce more accurate results.
- In the meantime, we should just continue our present program.
- 
-\layout Subsection
-
-Double-differencing 
-\begin_inset LatexCommand \label{sub: gpsTEC: double-differencing}
-
-\end_inset 
-
-
-\layout Standard
-
-The promise of a very powerful constraint on the MIM is held out by a technique
- called double-differencing, which is widely used by the GPS community.
- It is treated in an appendix (see 
-\begin_inset LatexCommand \ref{sec: Double-differencing-GPS}
-
-\end_inset 
-
-), until it is clear what its limitations are.
- 
-\layout Subsection
-
-Dealing with satellite discontinuities
-\begin_inset LatexCommand \label{sub: satellite discontinuities}
-
-\end_inset 
-
-
-\layout Standard
-
-The passage of a GPS satellite over the sky takes a few hours, depending
- on its maximum elevation.
- During that time, a station-satellite bias is assumed to be more or less
- constant, but it will be completely different on the next passage.
- Thus, the number of satellites, and their associated biases, is changing
- constantly, and discontinuously.
- If we do not take any precautions, the estimated MIM parameters will also
- have discontinutities whenever a satellite is included or excluded.
- 
-\layout Subsection
-
-GPS Correlation (SVT)
-\begin_inset LatexCommand \label{sub: gpsTEC: correlation}
-
-\end_inset 
-
-
-\layout Standard
-
-
-\emph on 
-Here is a suggestion by Bas van der Tol, which might have merit: Treat the
- GPS signals from the same satellite, received at different stations, as
- astronomical signals.
- Mix them down, and feed them to the LOFAR or WSRT correlator....
- 
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-
-\end_inset 
-
-
-\layout Caption
-
-
-\emph on 
-
-\begin_inset LatexCommand \label{cap: gpsTEC measurements}
-
-\end_inset 
-
-
-\size footnotesize 
-TEC measurements with one GPS satellite and multiple ground stations.
- The accuracy is limited to the measurement noise of 0.01 TECU, which corresponds
- to 1 rad @ 75 MHz.
- 
-\series bold 
-...We need an image from Maaijke here....
-\end_inset 
-
-
 \layout Section
 
 Making astroVis equations
@@ -2539,7 +2153,7 @@ phase
 
 
 \begin_inset Formula \begin{equation}
-J_{is}\bigotimes J_{js}=J_{ijs}=G_{ij}E_{ijs}T_{ij}F_{ijs}Z_{ijs}K_{ijs}=G_{ij}E_{ijs}F_{ijs}K_{ijs}\; e^{i\phi_{ij}^{TJones}}e^{i\phi_{ijs}^{ZJones}}\label{eq: Jij}\end{equation}
+J_{is}\bigotimes J_{js}=J_{ijs}=G_{ij}E_{ijs}T_{ij}F_{ijs}Z_{ijs}K_{ijs}=G_{ij}E_{ijs}\; e^{i\phi_{ij}^{TJones}}F_{ijs}\; e^{i\phi_{ijs}^{ZJones}}K_{ijs}\label{eq: Jij}\end{equation}
 
 \end_inset 
 
@@ -2552,7 +2166,10 @@ In general, Jones matrices do not commute, so their order is important.
  Jones chain.
  This is the case for the TJones and ZJones, which also happen to be pure
  phase factors (to first order).
- For a single dominating source 
+ They have been replaced here.
+\layout Standard
+
+For a single dominating source 
 \begin_inset Formula $s$
 \end_inset 
 
@@ -2567,7 +2184,7 @@ In general, Jones matrices do not commute, so their order is important.
 phase
 \emph default 
  of a single visibility sample 
-\begin_inset Formula $V_{ijs}$
+\begin_inset Formula $V_{ijs}(\lambda)$
 \end_inset 
 
  is (see also fig 
@@ -2650,10 +2267,10 @@ The sensitivity and size of the LOFAR stations guarantees (even after the
 
 ), so adding them causes decorrelation.
  Fortunately, because the ZJones matrix reduces to a scalar phase factor,
- we are allowed to 'lign up' the subband visibilities prior to adding them,
+ we are allowed to 'align' the subband visibilities prior to adding them,
  by multiplying with the inverse factor:
 \begin_inset Formula \begin{equation}
-\phi_{ijs}=arg(\sum_{subbands}V_{ijs}(\lambda)\; e^{25\lambda i(M_{is}-M_{js})})\label{eq: argsumV}\end{equation}
+\phi_{ijs}^{corrmeas}=arg(\sum_{subbands}V_{ijs}(\lambda)\; e^{25\lambda i(M_{is}-M_{js})})\label{eq: argsumV}\end{equation}
 
 \end_inset 
 
@@ -2670,11 +2287,8 @@ phase-tracking
 \layout Standard
 
 ...
- produces a 
-\emph on 
-highly related
-\emph default 
- group of TEC measurements, from the position 
+ produces a Rigid Floating Group of TEC measurements, from the position
+ 
 \begin_inset Formula $(x,y,z)$
 \end_inset 
 
@@ -2749,79 +2363,6 @@ in which
 \end_inset 
 
 , which can be added to the solution matrix.
-\layout Standard
-
-Note that there is no longer a preprocessing step to get selfcal phases,
- like in SPAM (see appendix 
-\begin_inset LatexCommand \ref{sec: Field-based calibration}
-
-\end_inset 
-
-).
- We solve for the MIM parameters straight from the visibilities, as is the
- plan in SPAM.....
- 
-\layout Subsection
-
-The 
-\begin_inset LatexCommand \label{sub: astroVis: Rigid-Floating-Group}
-
-\end_inset 
-
-Rigid Floating Group (RFG)
-\layout Standard
-
-We propose to call the group of TEC samples obtained from an astronomical
- source a 
-\series bold 
-Rigid Floating Group (RFG)
-\series default 
-.
- Because visibilities measure phase differences, all the station TEC values
- 
-\begin_inset Formula $M_{is}$
-\end_inset 
-
- in the direction of source 
-\begin_inset Formula $s$
-\end_inset 
-
- will have an identical offset 
-\begin_inset Formula $M_{0s}$
-\end_inset 
-
-, but they will otherwise be quite accurate relative to each other.
- This means that they represent a strong constraint on the MIM, especially
- if the LOFAR array is large.
- In combination with GPS TEC measurements, which provide the absolute TEC,
- and more constraints.....
- 
-\layout Standard
-
-Finally, The effectiveness of the separation of effects will improve linearly
- with fractional bandwidth 
-\begin_inset Formula $\Delta\lambda/\lambda$
-\end_inset 
-
-, so we should endeavour to work with solve-domains that are as large as
- possible in the frequency direction.
- 
-\emph on 
-This means that we should process all (collapsed) LOFAR subbands simultaneously,
- either by putting them together in a single spectral window, or by the
- use of a 'super-solver'.
- In addition, we might make additional measurements at 'outlier' frequencies
- for calibration purposes only
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-This should be compared to the plan to use some extra 'calibration' dipoles
- a little bit outside a regular LOFAR LBA station.
-\end_inset 
-
-.
 \layout Standard
 
 Referring to the MIM-diagrams in figs 
@@ -3063,6 +2604,940 @@ The picture shows the part played by the ionospheric phase (ZJones) in the
 These operations are allowed since the ZJones matrix reduces to a scalar
  phase factor, and can be placed anywhere in the Jones chain.
  
+\end_inset 
+
+
+\layout Section
+
+Making GPS equations
+\layout Standard
+
+GPS satellites move in roughly circular orbits around the Earth, with a
+ radius of about 30.000 km (21000+6378), and with an inclination of 52 degrees
+ w.r.t.
+ the equator, which optimizes the combination of world coverage and relative
+ velocity (see fig 
+\begin_inset LatexCommand \ref{cap: coord: GPS orbit}
+
+\end_inset 
+
+).
+ At an arbitrary position on Earth, at least 6 satellites are visible at
+ any time.
+ A passage from horizon to horizon takes a few hours, depending on its maximum
+ elevation.
+ They all move with the Earth rotation, to minimize the velocity w.r.t.
+ the Earth surface.
+ Most satellites have low elevations, most of the time, and it is quite
+ rare for one to be actually inside the LOFAR FOV (5-10 deg).
+ In the future we also hope to use satellites of Galileo, Glonass etc.
+ 
+\layout Subsection
+
+Preprocessing the Rinex data
+\begin_inset LatexCommand \label{sub: gpsTEC: preprocessing-Rinex-data}
+
+\end_inset 
+
+
+\layout Standard
+
+The GPS TEC measurements (usually) reach us in the form of so-called Rinex
+ files.
+ These are pre-processed and re-organized (by JMA), before being fed into
+ Meqtrees.
+ For instance, any cycle-slips (jumps by an integer number of carrier wavelength
+s) are removed.
+ All this should be summarized here....
+\layout Standard
+
+L1, L2, L1-L2, etc, dual/triple frequency
+\layout Standard
+
+Making gpsTEC equations
+\begin_inset LatexCommand \label{sec: Making gpsTEC equations}
+
+\end_inset 
+
+
+\layout Subsection
+
+The gpsTEC Measurement Equation 
+\begin_inset LatexCommand \label{sub: gpsTEC M.E.}
+
+\end_inset 
+
+
+\layout Standard
+
+A sample 
+\begin_inset Formula $S_{rs}$
+\end_inset 
+
+ represents the integrated TEC along the line-of-sight between a station
+ 
+\begin_inset Formula $r$
+\end_inset 
+
+ and satellite 
+\begin_inset Formula $s$
+\end_inset 
+
+.
+ The station will have a fixed and accurately known Earth position 
+\begin_inset Formula $(x_{r},y_{r},z_{r})$
+\end_inset 
+
+, while the viewing direction 
+\begin_inset Formula $(l_{rs},m_{rs})$
+\end_inset 
+
+ changes with time.
+ Using a 2-frequency technique, a virtually instantaneous estimate 
+\begin_inset Formula $S_{rs}$
+\end_inset 
+
+ of the integrated TEC may be made with a fundamental measurement 
+\begin_inset Formula $noise$
+\end_inset 
+
+ of about 0.01 TECU (or 1 rad @ 74 MHz).
+ Unfortunately, this is complicated by an unknown bias, which slowly drifts
+ in time.
+ Referring to equ 
+\begin_inset LatexCommand \ref{eq: ME_generic}
+
+\end_inset 
+
+ above, the function 
+\begin_inset Formula $Q_{rs}$
+\end_inset 
+
+ for the GPS M.E.
+ can be expressed as: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+Q_{rs}(t)=(q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots)+\frac{\phi_{r}^{tropos}}{-25\lambda}+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+Expressions for the derivatives 
+\begin_inset Formula $\frac{\partial Q}{\partial q}$
+\end_inset 
+
+ are readily determined from this.
+ Of course, the slow bias drift may be expressed by other functions than
+ these low-order polynomials.
+ Note that the constant 
+\begin_inset Formula $q_{rs}$
+\end_inset 
+
+ is associated with the station-satellite pair, while the drift parameters
+ 
+\begin_inset Formula $q_{ir}$
+\end_inset 
+
+ are associated with station 
+\begin_inset Formula $r$
+\end_inset 
+
+.
+ The tropospheric phase 
+\begin_inset Formula $\phi_{r}^{tropos}$
+\end_inset 
+
+ is right above station 
+\begin_inset Formula $r$
+\end_inset 
+
+, and easily distinguishable from the TEC since 
+\begin_inset Formula $\phi_{r}\propto1/\lambda$
+\end_inset 
+
+.
+\layout Standard
+
+It would be nice if we could associate a bias value with each station, and
+ each satellite.
+ With 
+\begin_inset Formula $n$
+\end_inset 
+
+ satellites and 
+\begin_inset Formula $m$
+\end_inset 
+
+ stations we would then have only 
+\begin_inset Formula $(n+m)$
+\end_inset 
+
+ independent bias parameters in 
+\begin_inset Formula $(n\times m)$
+\end_inset 
+
+ samples.
+ Unfortunately, all the pair biases are different.
+ But fortunately there is some commonality: the bias drifts are caused 
+\emph on 
+only
+\emph default 
+ by the station
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+The bias drift are probably caused by relatively cheap electonics, operating
+ in a relatively unstable environment.
+ Both are better for the satellite.
+ 
+\end_inset 
+
+, and they are the same for all TEC measurements made between a station
+ and different satellites
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+This has been established on real data.
+ It is another indication that the drifts are caused by environmental variations
+ (temperature, humidity) in the station electronics.
+\end_inset 
+
+.
+ This is a typical example of long-term parameters as discussed in section
+ 
+\begin_inset LatexCommand \ref{sub: solve: smoothing in time}
+
+\end_inset 
+
+.
+ 
+\layout Subsection
+
+Zero Difference (ZD) equations
+\begin_inset LatexCommand \label{sub: Zero Difference (ZD)}
+
+\end_inset 
+
+
+\layout Standard
+
+The following has been adapted from 
+\begin_inset LatexCommand \cite{Bingley}
+
+\end_inset 
+
+.
+ We start from the 
+\series bold 
+basic carrier phase observation equation
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+I would have thought that measuring phases would require dual-frequency
+ measurements, but Bingley says that single-frequency can be used also,
+ albeit for shorter baselines (..?).
+ Moreover, in the case of dual-frequency, it is not clear what wavelength
+ 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ should be used.
+ Bingley discusses the combination of L1 (1575MHz, 19cm) and L2 (1227MHz,
+ 24cm) carrier phases in two different ways: wide-lane (phase 
+\begin_inset Formula $L_{wl}=L1-L2$
+\end_inset 
+
+), and ionosphere-free (phase 
+\begin_inset Formula $L_{if}=\frac{f_{1}^{2}L1-f_{2}^{2}L2}{f_{1}^{2}-f_{2}^{2}}$
+\end_inset 
+
+).
+ Can we get at these things? It is all a bit puzzling.
+\end_inset 
+
+ 
+\series default 
+for the phase 
+\begin_inset Formula $\Phi_{rs}$
+\end_inset 
+
+(as a fraction of the wavelength 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+) of the signal from satellite 
+\begin_inset Formula $s$
+\end_inset 
+
+, measured by receiver (station) 
+\begin_inset Formula $r$
+\end_inset 
+
+:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\lambda(N_{rs}+\Phi_{rs})=\rho_{rs}+c(\delta\tau_{r}-\delta t_{s})+d_{rs}^{trop}-d_{rs}^{ion}+v_{rs}\label{eq: cphase-obseq}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+ is the 
+\emph on 
+carrier phase ambiguity
+\emph default 
+ of an (unknown) integer nr of wavelengths 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+.
+ The range 
+\begin_inset Formula $\rho_{rs}$
+\end_inset 
+
+ is the actual distance between station and satellite, 
+\begin_inset Formula $\delta\tau_{r}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\delta t_{s}$
+\end_inset 
+
+ are clock errors, 
+\begin_inset Formula $d_{rs}^{ion}$
+\end_inset 
+
+ and 
+\begin_inset Formula $d_{rs}^{trop}$
+\end_inset 
+
+ are the ionospheric and tropospheric delays, and 
+\begin_inset Formula $v_{rs}$
+\end_inset 
+
+ is an 
+\emph on 
+observation residual
+\emph default 
+.
+ It will be assumed here that the latter corresponds to our GPS 
+\emph on 
+measurement noise,
+\emph default 
+ which is of the order of 0.01 TECU.
+ Note that the satellite-station pair bias that we used before is a combination
+ of 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+and clock errors.
+ In the following, the clock errors are eliminated by differencing, leaving
+ only 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+.
+ 
+\layout Subsection
+
+Single Difference (SD) equations
+\begin_inset LatexCommand \label{sub: Single Difference (SD)}
+
+\end_inset 
+
+
+\layout Standard
+
+For two stations 
+\begin_inset Formula $a$
+\end_inset 
+
+ and 
+\begin_inset Formula $b$
+\end_inset 
+
+, and a single satellite 
+\begin_inset Formula $s$
+\end_inset 
+
+, the measured phase difference is:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\lambda(\Phi_{as}-\Phi_{bs})=-\lambda(N_{as}-N_{bs})+\Delta\rho+c(\delta\tau_{a}-\delta\tau_{b})+\Delta d^{trop}-\Delta d^{ion}\label{eq: single-diff}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $\Delta d^{ion}=(d_{as}^{ion}-d_{bs}^{ion})$
+\end_inset 
+
+ etc, and the noise 
+\begin_inset Formula $\Delta v$
+\end_inset 
+
+ is ignored.
+ Note that the satellite clock offset 
+\begin_inset Formula $\delta t_{s}$
+\end_inset 
+
+ has been eliminated.
+ If the stations are 'close' to each other, we may assume that the signals
+ from the satellite pass through roughly the same ionosphere and troposphere,
+ so the 
+\begin_inset Formula $\Delta d$
+\end_inset 
+
+ are small.
+ The 
+\emph on 
+nominal
+\emph default 
+ range difference 
+\begin_inset Formula $\Delta\rho=(\rho_{as}-\rho_{bs})$
+\end_inset 
+
+ only depends on the viewing angle w.r.t.
+ the baseline 
+\begin_inset Formula $ab$
+\end_inset 
+
+, which is known.
+ This may be used as the 
+\emph on 
+actual
+\emph default 
+ value, since the error due to uncertainties 
+\begin_inset Formula $\Delta s$
+\end_inset 
+
+ (up to 20 m) in the satellite position is very small, and can be expressed
+ as: 
+\begin_inset Formula $\delta\rho=\frac{L_{ab}}{R_{s}}\Delta s$
+\end_inset 
+
+, in which 
+\begin_inset Formula $L_{ab}$
+\end_inset 
+
+ is the length of baseline 
+\begin_inset Formula $ab$
+\end_inset 
+
+, and 
+\begin_inset Formula $R_{s}=21000$
+\end_inset 
+
+ is the satellite altitude.
+\layout Subsection
+
+Double Difference (DD) equations
+\begin_inset LatexCommand \label{sub: Double Difference (DD)}
+
+\end_inset 
+
+
+\layout Standard
+
+With two satellites 
+\begin_inset Formula $i$
+\end_inset 
+
+ and 
+\begin_inset Formula $j$
+\end_inset 
+
+, we can eliminate the station clock errors 
+\begin_inset Formula $\delta\tau$
+\end_inset 
+
+ by taking the 
+\series bold 
+double-difference phase
+\series default 
+:
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Phi_{ij}^{ab}=(\Phi_{ai}-\Phi_{bi})-(\Phi_{aj}-\Phi_{bj})=(N_{aj}-N_{bj})-(N_{ai}-N_{bi})+\frac{1}{\lambda}(\Delta\Delta\rho+\Delta\Delta d^{trop}-\Delta\Delta d^{ion})\label{eq: double-diff}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+We assume for the moment that 
+\begin_inset Formula $\Delta\Delta d^{trop}\approx0$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta\Delta d^{ionos}\approx0$
+\end_inset 
+
+, and 
+\begin_inset Formula $\Delta\Delta\rho$
+\end_inset 
+
+ is known.
+ With 2 stations and 
+\begin_inset Formula $n$
+\end_inset 
+
+ satellites, we can form 
+\begin_inset Formula $n(n-1)/2$
+\end_inset 
+
+ double-difference equations, that share 
+\begin_inset Formula $2n$
+\end_inset 
+
+ unknowns 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+.
+ However, since each of the 2 differencing stages throws away information
+ about the 
+\emph on 
+absolute
+\emph default 
+ value of the 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+, we have to supply values (e.g.
+ zero) for two of them in order to get a solution
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Consider the analogy of selfcal.
+ Since visibilities measure phase 
+\emph on 
+differences
+\emph default 
+, it is impossible to solve for absolute phase, so we have to supply a value
+ for one of the unknown station phases.
+ This makes the selfcal phases a Rigid Floating Group.
+ In redundant spacing calibration (RSC) we also take the 
+\emph on 
+difference
+\emph default 
+ between visibilities, so we have supply the value of a second phase.
+ This makes the RSC phases into a Rigid Floating Tilting Group (RFTG), because
+ the second phase fixes the phase 
+\emph on 
+gradient
+\emph default 
+, and thus the position of the source.
+ 
+\end_inset 
+
+.
+ 
+\series bold 
+A little algebra reveals that a minimum of 4 satellites is needed for a
+ relative solution (with 2 stations)
+\series default 
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+It is encouraging that Bingley mentions the same minimum of 4 satellites,
+ albeit without further explanation.
+ This supports the 
+\emph on 
+educated guess
+\emph default 
+ that the number of solvable unknowns is indeed 
+\begin_inset Formula $2n-2$
+\end_inset 
+
+.
+ A number of 
+\begin_inset Formula $2n-1$
+\end_inset 
+
+ (or even 
+\begin_inset Formula $2n$
+\end_inset 
+
+) would require a minimum of 5 satellites, and a number of 
+\begin_inset Formula $2n-3$
+\end_inset 
+
+ would require 3.
+ 
+\end_inset 
+
+.
+ This produces a Rigid Floating Tilting Group (RFTG) of 
+\begin_inset Formula $2n$
+\end_inset 
+
+ related phases 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+, which share a single unknown offset.
+ The RFG noise will be of the order of 0.01 TECU (
+\begin_inset Formula $v_{rs})$
+\end_inset 
+
+.
+ 
+\layout Standard
+
+Now consider an array of 
+\begin_inset Formula $m$
+\end_inset 
+
+ GPS stations.
+ We a can form a 
+\emph on 
+maximum
+\emph default 
+ of 
+\begin_inset Formula $(m(m-1)/2)\times(n(n-1)/2)$
+\end_inset 
+
+ double-difference equations that share 
+\begin_inset Formula $n\times m$
+\end_inset 
+
+ unknowns 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+, of which 
+\begin_inset Formula $(nm-2)$
+\end_inset 
+
+ are solvable (
+\emph on 
+this must be verified
+\emph default 
+).
+ Not only does this increase the size, and thus the constraining power of
+ the RFTG, but it also requires fewer satellites
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+Fewer satellites is not necessarily better, since the group then covers
+ less of the sky.
+\end_inset 
+
+.
+ However, as the array size increases, it is unikely that all its baselines
+ will be short enough for double-differencing, so the number of equations
+ will be less than the maximum indicated above.
+ Until we have done a more detailed analysis, we will assume that 4 satellites
+ will always be needed.
+ 
+\series bold 
+But we may tentatively conclude that, by using an array of GPS stations
+ with a 'small enough' grid, we may solve for a single RFTG of arbitrary
+ size, covering the entire sky, and hundreds (thousands?) of kilometers.
+ 
+\series default 
+Now, 
+\emph on 
+that
+\emph default 
+ is a constraint! 
+\layout Standard
+
+In order to use double-differencing in practice, we first have to form a
+ 
+\series bold 
+double-difference M.E
+\series default 
+.
+ that contains the MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+, and measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+.
+ This is easily done by abandoning the rather limiting assumption that 
+\begin_inset Formula $\Delta\Delta d^{ion}\approx0$
+\end_inset 
+
+.
+ Note that this opens the way to using longer baselines for double-differencing!
+ Referring to equ 
+\begin_inset LatexCommand \ref{eq: Li}
+
+\end_inset 
+
+, we can write 
+\begin_inset Formula $d_{rs}^{ion}=-4\lambda^{2}M_{rs}(pp)$
+\end_inset 
+
+ for the 4 terms in the expression 
+\begin_inset Formula $\Delta\Delta d^{ion}$
+\end_inset 
+
+.
+ We can write the right-hand-side of equ 
+\begin_inset LatexCommand \ref{eq: double-diff}
+
+\end_inset 
+
+ as a double-difference version of equ 
+\begin_inset LatexCommand \ref{eq: ME_generic}
+
+\end_inset 
+
+:
+\begin_inset Formula \begin{equation}
+P_{ij}^{ab}(pp,qq)=M_{ij}^{ab}(pp)+Q_{ij}^{ab}(qq)\label{eq: ME_generic_dd}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+which then leads to double-difference version of equ 
+\begin_inset LatexCommand \ref{eq: ME_normal}
+
+\end_inset 
+
+ for the MIM solution matrix:
+\begin_inset Formula \begin{equation}
+\Delta_{ij}^{ab}=P_{ij}^{ab}(pp,qq)-\Phi_{ij}^{ab}=-4\lambda\sum_{k}\frac{\partial M_{ij}^{ab}}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{ij}^{ab}}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal_dd}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+in which 
+\begin_inset Formula $M_{ij}^{ab}=(M_{ai}-M_{bi})-(M_{aj}-M_{bj})$
+\end_inset 
+
+ and the expression 
+\begin_inset Formula $Q_{ij}^{ab}$
+\end_inset 
+
+ contains measurement parameters 
+\begin_inset Formula $N_{rs}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\phi^{trop}$
+\end_inset 
+
+.
+ The relation between the latter and 
+\begin_inset Formula $\Delta\Delta d^{trop}$
+\end_inset 
+
+ requires a little extra thought.
+ In any case it is the same tropospheric phase as in the 'regular' gpsTEC
+ equations.
+ The noise on the resulting MIM parameters would be of the order of 
+\begin_inset Formula $\frac{0.01\sqrt{n_{p}}}{\sqrt{nm}}$
+\end_inset 
+
+ TECU (or better? In any case, it decreases for larger arrays).
+\layout Standard
+
+Referring to the MIM-diagrams in figs 
+\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{cap: MIM diagram}
+
+\end_inset 
+
+, may consider the following possibilities:
+\layout Enumerate
+
+
+\series bold 
+One satellite-station pair:
+\series default 
+ Probably useless for our purpose, since we cannot distinguish TEC from
+ bias (unless 3-freq works).
+ Troposphere?
+\layout Enumerate
+
+
+\series bold 
+One satellite and multiple stations:
+\series default 
+ Still not very good, since all stations will have different bias drifts.
+ However, the MIM will have a 
+\emph on 
+harmonizing
+\emph default 
+ effect on these biases.
+ MXM used this, together with the assumption of a thin layer, to separate
+ TECs and biases.
+ 
+\layout Enumerate
+
+
+\series bold 
+One station and multiple satellites:
+\series default 
+ This sorts out the station drifts, better if we use large domains, or can
+ solve for long-term parameters.
+\layout Enumerate
+
+
+\series bold 
+Multiple satellites and multiple stations:
+\series default 
+ The more, the better, because the harmonizing effect of the MIM will be
+ stronger.
+ Also, the MIM sampling function is much wider.
+ See also double-differencing.
+\layout Standard
+
+See also the MIM-diagram in figs 
+\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{cap: MIM diagram}
+
+\end_inset 
+
+.
+ Note that, if we solve the bias problem, GPS measurements yield 
+\emph on 
+absolute
+\emph default 
+ TEC values.
+ This is needed for the calibration of ionospheric Faraday rotation.
+\layout Subsection
+
+Using 3 frequencies (JMA, EXN)
+\begin_inset LatexCommand \label{sub: gpsTEC: using-3-frequencies}
+
+\end_inset 
+
+
+\layout Standard
+
+Jim has verified (see appendix 
+\begin_inset LatexCommand \ref{sec: Triple-frequency GPS}
+
+\end_inset 
+
+) that the bias problem will be much less (~ 0.035 TECU), even if the 3rd
+ frequency is relatively close to one of the others.
+ Galileo will use 3 frequencies, and we should do tests with the WSRT station.
+ GPS will probably have them earlier, so we should be ready to use them
+ to maximum advantage at the earliest opportunity.
+ This will not require any great changes in the scheme that is being discussed
+ in this document.
+ If anything, it will simplify it, and produce more accurate results.
+ In the meantime, we should just continue our present program.
+ 
+\layout Subsection
+
+Dealing with satellite discontinuities
+\begin_inset LatexCommand \label{sub: satellite discontinuities}
+
+\end_inset 
+
+
+\layout Standard
+
+The passage of a GPS satellite over the sky takes a few hours, depending
+ on its maximum elevation.
+ During that time, a station-satellite bias is assumed to be more or less
+ constant, but it will be completely different on the next passage.
+ Thus, the number of satellites, and their associated biases, is changing
+ constantly, and discontinuously.
+ If we do not take any precautions, the estimated MIM parameters will also
+ have discontinutities whenever a satellite is included or excluded.
+ 
+\layout Subsection
+
+GPS Correlation (SVT)
+\begin_inset LatexCommand \label{sub: gpsTEC: correlation}
+
+\end_inset 
+
+
+\layout Standard
+
+
+\emph on 
+Here is a suggestion by Bas van der Tol, which might have merit: Treat the
+ GPS signals from the same satellite, received at different stations, as
+ astronomical signals.
+ Mix them down, and feed them to the LOFAR or WSRT correlator....
+ 
+\layout Standard
+
+
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+
+\end_inset 
+
+
+\layout Caption
+
+
+\emph on 
+
+\begin_inset LatexCommand \label{cap: gpsTEC measurements}
+
+\end_inset 
+
+
+\size footnotesize 
+TEC measurements with one GPS satellite and multiple ground stations.
+ The accuracy is limited to the measurement noise of 0.01 TECU, which corresponds
+ to 1 rad @ 75 MHz.
+ 
+\series bold 
+...We need an image from Maaijke here....
 \end_inset 
 
 
@@ -3417,7 +3892,13 @@ Important for the European LOFAR, starting with the station in Effelsberg
  (250 km from Exloo).
 \layout Subsection
 
-Variation: Faraday rotation
+Low frequencies (<50 MHz)
+\layout Standard
+
+Refraction
+\layout Subsection
+
+Faraday rotation
 \begin_inset LatexCommand \label{sub: LOFARproc: Faraday rotation}
 
 \end_inset 
@@ -4031,6 +4512,11 @@ T=\int N_{e}dl\quad m^{-2}\label{eq: TEC}\end{equation}
 
 \layout Standard
 
+
+\emph on 
+....40.3 (TMS and van der Marel)....
+\layout Standard
+
 It is measured in TEC units (TECU) of 
 \begin_inset Formula $10^{16}$
 \end_inset 
@@ -4475,6 +4961,33 @@ Ionospheric absorption
  So a smaller part of the sky may be observed.
 \layout Subsection
 
+Refraction
+\begin_inset LatexCommand \label{sub: background: refraction}
+
+\end_inset 
+
+
+\layout Standard
+
+Ionospheric and tropospheric....
+ (see also above)
+\layout Subsection
+
+Isoplanatic patch
+\begin_inset LatexCommand \label{sub: background: isoplanatic patch}
+
+\end_inset 
+
+
+\layout Standard
+
+Distinguish linear and higher order.
+ Linear can be dealt with by shift in facet position.
+\layout Standard
+
+Huib has 600 facets (0.5 deg)....!
+\layout Subsection
+
 Tropospheric effects
 \begin_inset LatexCommand \label{sub: background: tropospheric effects}
 
@@ -4542,53 +5055,6 @@ Just to set the scene: Some typical ionospheric profiles and numbers, taken
 \end_inset 
 
 
-\layout Section
-
-Does the MIM exist?
-\begin_inset LatexCommand \label{sec: Does the MIM exist?}
-
-\end_inset 
-
-
-\layout Standard
-
-In section 
-\begin_inset LatexCommand \ref{sec: The MIM principle}
-
-\end_inset 
-
- we postulated the existence of a MIM function.
- This will be investigated in some more detail here.
- 
-\series bold 
-(...
- to be filled in later, but everyone has a gut-feeling that the answer is
- yes ....)
-\layout Standard
-
-A minimum ionosphere model must meet the following criteria:
-\layout Enumerate
-
-It should be exact for the case of a 
-\emph on 
-uniform blanket
-\emph default 
-, i.e.
- an ionosphere of uniform thickness and electron distribution, at a constant
- altitude above the curved Earth surface.
-\layout Enumerate
-
-For increasingly complex situations, it should be possible to detect that
- the model is incomplete, e.g.
- by the increasing internal inconsistencies in the parameter solution.
-\layout Enumerate
-
-Depending on the nature of such inconsistencies, there must be algorithmic
- recipes to automatically extend (or reduce!) the model with extra parameters.
- 
-\layout Standard
-
-Use the Central Limit Theorem?
 \layout Standard
 
 
@@ -4617,35 +5083,37 @@ collapsed false
 
 
 \size footnotesize 
-The interpolation error of the MIM.
- In one dimension, if we have 
-\begin_inset Formula $n$
+The interpolation error of the MIM may be estimated.
+ Obviously, the variance 
+\begin_inset Formula $\sigma$
 \end_inset 
 
- TEC samples 
-\begin_inset Formula $i$
+ of the error at point 
+\begin_inset Formula $\vec{x}(x,y,z,l,m,t)$
 \end_inset 
 
- at positions 
-\begin_inset Formula $x_{i}$
+ will depend on the the distance of 
+\begin_inset Formula $\vec{x}$
 \end_inset 
 
-, each with a variance 
+ to the sample points 
+\begin_inset Formula $\vec{x}_{i}$
+\end_inset 
+
+, where we 'know' the TEC value with a variance 
 \begin_inset Formula $\sigma_{i}$
 \end_inset 
 
-, the variance at an arbitrary point 
-\begin_inset Formula $x$
-\end_inset 
-
- is
+.
+ So the error will be smaller if the MIM function is more densely sampled.
+ Tentatively, we may write
 \layout Standard
 
 
 \size footnotesize 
 
 \begin_inset Formula \[
-\frac{1}{\sigma}=\frac{1}{\sqrt{n}}\sum_{i=1}^{n}\frac{1}{\sigma_{i}(1+\alpha_{i}(x-x_{i})^{2})}\]
+\frac{1}{\sigma}=\frac{1}{\sqrt{n}}\sum_{i=1}^{n}\frac{1}{\sigma_{i}+\alpha(\vec{x}-\vec{x_{i}})^{2}}\]
 
 \end_inset 
 
@@ -4655,22 +5123,12 @@ The interpolation error of the MIM.
 
 \size footnotesize 
 \emph on 
-in which the 
-\begin_inset Formula $\alpha_{i}$
+in which 
+\begin_inset Formula $\alpha$
 \end_inset 
 
- are constants (or functions) that control the speed of divergence.
- Obviously, the 
-\begin_inset Formula $\alpha_{i}$
-\end_inset 
-
- are determined by the MIM function, but it is not clear how exactly....
-\layout Standard
-
-
-\size footnotesize 
-\emph on 
-In any case, the above formula reduces correctly to 
+ is a constant (or function) that controls the speed of divergence.
+ This formula reduces correctly to 
 \begin_inset Formula $\sigma=\frac{\sigma_{0}}{\sqrt{n}}$
 \end_inset 
 
@@ -4679,11 +5137,36 @@ In any case, the above formula reduces correctly to
 \end_inset 
 
  and 
-\begin_inset Formula $(x-x_{i})=0$
+\begin_inset Formula $(\vec{x}-\vec{x}_{i})^{2}=0$
 \end_inset 
 
 , i.e.
  when all samples have the same variance and are at the same point.
+\layout Standard
+
+
+\size footnotesize 
+\emph on 
+Obviously, 
+\begin_inset Formula $\alpha$
+\end_inset 
+
+ is determined by the MIM, but it is not clear how exactly.
+ Note that there is only a single 
+\begin_inset Formula $\alpha$
+\end_inset 
+
+ (overall, or per dimension?), and that is a kind of inverse 'MIM correlation
+ length': 
+\begin_inset Formula $\alpha=\frac{1}{s^{2}}$
+\end_inset 
+
+.
+ The correlation length 
+\begin_inset Formula $s$
+\end_inset 
+
+ will be larger for a smoother MIM.
 \end_inset 
 
 
@@ -4705,7 +5188,8 @@ The MIM function
 \begin_inset Formula $(x,y,z,l,m,t)$
 \end_inset 
 
-, but not too smooth to be consistent with the measured data.
+, but not so smooth that they are no longer consistent with the measured
+ data.
  It will probably consist of a set of base-functions (terms), whose coefficients
  are the MIM parameters 
 \begin_inset Formula $p_{k}$
@@ -4714,6 +5198,17 @@ The MIM function
 .
  The number of terms, and thus the smoothness, may be increased or decreased
  as the ionospheric conditions change.
+ 
+\layout Standard
+
+Of course the MIM may consist of a mixture of different kinds of base-functions.
+ It can also have other analytical functions like sin, cos, exp, log etc.
+ Each of these expressions can have its own parameters, which are regular
+ MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+.
  
 \layout Standard
 
@@ -4739,10 +5234,19 @@ An important requirement is that the MIM function can be differentiated,
  
 \layout Subsection
 
-Regular polynomials
-\layout Standard
+Polynomials
+\begin_inset LatexCommand \label{sub: base: polynomials}
 
-Easy to implement.
+\end_inset 
+
+
+\layout Itemize
+
+
+\series bold 
+Regular polynomials
+\series default 
+: Easy to implement.
  Efficient to calculate (and store).
  The higher order have poor interpolation properties, especially outside
  the sampling domain.
@@ -4752,12 +5256,13 @@ Easy to implement.
 \end_inset 
 
 ).
-\layout Subsection
+\layout Itemize
 
+
+\series bold 
 Zernike polynomials
-\layout Standard
-
-Used in optics because some of the terms represent useful phaenomena like
+\series default 
+: Used in optics because some of the terms represent useful phaenomena like
  tip-tilt etc.
  Used by Cotton for field-based calibration (see appendix 
 \begin_inset LatexCommand \ref{sec: Field-based calibration}
@@ -5592,550 +6097,6 @@ The following is a jargon-laced placeholder:
 \end_inset 
 
 
-\layout Section
-
-Double-differencing GPS
-\begin_inset LatexCommand \label{sec: Double-differencing-GPS}
-
-\end_inset 
-
-
-\layout Standard
-
-
-\emph on 
-Double-differencing holds the promise of a very large and very wide RFTG,
- and thus a very strong constraint on the MIM.
- Pending a slightly more thorough analysis, it is relegated to this appendix.
- 
-\layout Standard
-
-The following has been adapted from 
-\begin_inset LatexCommand \cite{Bingley}
-
-\end_inset 
-
-.
- We start from the 
-\series bold 
-basic carrier phase observation equation
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-I would have thought that measuring phases would require dual-frequency
- measurements, but Bingley says that single-frequency can be used also,
- albeit for shorter baselines (..?).
- Moreover, in the case of dual-frequency, it is not clear what wavelength
- 
-\begin_inset Formula $\lambda$
-\end_inset 
-
- should be used.
- Bingley discusses the combination of L1 (1575MHz, 19cm) and L2 (1227MHz,
- 24cm) carrier phases in two different ways: wide-lane (phase 
-\begin_inset Formula $L_{wl}=L1-L2$
-\end_inset 
-
-), and ionosphere-free (phase 
-\begin_inset Formula $L_{if}=\frac{f_{1}^{2}L1-f_{2}^{2}L2}{f_{1}^{2}-f_{2}^{2}}$
-\end_inset 
-
-).
- Can we get at these things? It is all a bit puzzling.
-\end_inset 
-
- 
-\series default 
-for the phase 
-\begin_inset Formula $\Phi_{rs}$
-\end_inset 
-
-(as a fraction of the wavelength 
-\begin_inset Formula $\lambda$
-\end_inset 
-
-) of the signal from satellite 
-\begin_inset Formula $s$
-\end_inset 
-
-, measured by receiver (station) 
-\begin_inset Formula $r$
-\end_inset 
-
-:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\lambda(N_{rs}+\Phi_{rs})=\rho_{rs}+c(\delta\tau_{r}-\delta t_{s})+d_{rs}^{trop}-d_{rs}^{ion}+v_{rs}\label{eq: cphase-obseq}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
- is the 
-\emph on 
-carrier phase ambiguity
-\emph default 
- of an (unknown) integer nr of wavelengths 
-\begin_inset Formula $\lambda$
-\end_inset 
-
-.
- The range 
-\begin_inset Formula $\rho_{rs}$
-\end_inset 
-
- is the actual distance between station and satellite, 
-\begin_inset Formula $\delta\tau_{r}$
-\end_inset 
-
- and 
-\begin_inset Formula $\delta t_{s}$
-\end_inset 
-
- are clock errors, 
-\begin_inset Formula $d_{rs}^{ion}$
-\end_inset 
-
- and 
-\begin_inset Formula $d_{rs}^{trop}$
-\end_inset 
-
- are the ionospheric and tropospheric delays, and 
-\begin_inset Formula $v_{rs}$
-\end_inset 
-
- is an 
-\emph on 
-observation residual
-\emph default 
-.
- It will be assumed here that the latter corresponds to our GPS 
-\emph on 
-measurement noise,
-\emph default 
- which is of the order of 0.01 TECU.
- Note that the satellite-station pair bias that we used before is a combination
- of 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
-and clock errors.
- In the following, the clock errors are eliminated by differencing, leaving
- only 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
-.
- 
-\layout Standard
-
-For two stations 
-\begin_inset Formula $a$
-\end_inset 
-
- and 
-\begin_inset Formula $b$
-\end_inset 
-
-, and a single satellite 
-\begin_inset Formula $s$
-\end_inset 
-
-, the measured phase difference is:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\lambda(\Phi_{as}-\Phi_{bs})=-\lambda(N_{as}-N_{bs})+\Delta\rho+c(\delta\tau_{a}-\delta\tau_{b})+\Delta d^{trop}-\Delta d^{ion}\label{eq: single-diff}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which 
-\begin_inset Formula $\Delta d^{ion}=(d_{as}^{ion}-d_{bs}^{ion})$
-\end_inset 
-
- etc, and the noise 
-\begin_inset Formula $\Delta v$
-\end_inset 
-
- is ignored.
- Note that the satellite clock offset 
-\begin_inset Formula $\delta t_{s}$
-\end_inset 
-
- has been eliminated.
- If the stations are 'close' to each other, we may assume that the signals
- from the satellite pass through roughly the same ionosphere and troposphere,
- so the 
-\begin_inset Formula $\Delta d$
-\end_inset 
-
- are small.
- The 
-\emph on 
-nominal
-\emph default 
- range difference 
-\begin_inset Formula $\Delta\rho=(\rho_{as}-\rho_{bs})$
-\end_inset 
-
- only depends on the viewing angle w.r.t.
- the baseline 
-\begin_inset Formula $ab$
-\end_inset 
-
-, which is known.
- This may be used as the 
-\emph on 
-actual
-\emph default 
- value, since the error due to uncertainties 
-\begin_inset Formula $\Delta s$
-\end_inset 
-
- (up to 20 m) in the satellite position is very small, and can be expressed
- as: 
-\begin_inset Formula $\delta\rho=\frac{L_{ab}}{R_{s}}\Delta s$
-\end_inset 
-
-, in which 
-\begin_inset Formula $L_{ab}$
-\end_inset 
-
- is the length of baseline 
-\begin_inset Formula $ab$
-\end_inset 
-
-, and 
-\begin_inset Formula $R_{s}=21000$
-\end_inset 
-
- is the satellite altitude.
-\layout Standard
-
-With two satellites 
-\begin_inset Formula $i$
-\end_inset 
-
- and 
-\begin_inset Formula $j$
-\end_inset 
-
-, we can eliminate the station clock errors 
-\begin_inset Formula $\delta\tau$
-\end_inset 
-
- by taking the 
-\series bold 
-double-difference phase
-\series default 
-:
-\layout Standard
-
-
-\begin_inset Formula \begin{equation}
-\Phi_{ij}^{ab}=(\Phi_{ai}-\Phi_{bi})-(\Phi_{aj}-\Phi_{bj})=(N_{aj}-N_{bj})-(N_{ai}-N_{bi})+\frac{1}{\lambda}(\Delta\Delta\rho+\Delta\Delta d^{trop}-\Delta\Delta d^{ion})\label{eq: double-diff}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-We assume for the moment that 
-\begin_inset Formula $\Delta\Delta d^{trop}\approx0$
-\end_inset 
-
- and 
-\begin_inset Formula $\Delta\Delta d^{ionos}\approx0$
-\end_inset 
-
-, and 
-\begin_inset Formula $\Delta\Delta\rho$
-\end_inset 
-
- is known.
- With 2 stations and 
-\begin_inset Formula $n$
-\end_inset 
-
- satellites, we can form 
-\begin_inset Formula $n(n-1)/2$
-\end_inset 
-
- double-difference equations, that share 
-\begin_inset Formula $2n$
-\end_inset 
-
- unknowns 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
-.
- However, since each of the 2 differencing stages throws away information
- about the 
-\emph on 
-absolute
-\emph default 
- value of the 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
-, we have to supply values (e.g.
- zero) for two of them in order to get a solution
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-Consider the analogy of selfcal.
- Since visibilities measure phase 
-\emph on 
-differences
-\emph default 
-, it is impossible to solve for absolute phase, so we have to supply a value
- for one of the unknown station phases.
- This makes the selfcal phases a Rigid Floating Group.
- In redundant spacing calibration (RSC) we also take the 
-\emph on 
-difference
-\emph default 
- between visibilities, so we have supply the value of a second phase.
- This makes the RSC phases into a Rigid Floating Tilting Group (RFTG), because
- the second phase fixes the phase 
-\emph on 
-gradient
-\emph default 
-, and thus the position of the source.
- 
-\end_inset 
-
-.
- 
-\series bold 
-A little algebra reveals that a minimum of 4 satellites is needed for a
- relative solution (with 2 stations)
-\series default 
-
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-It is encouraging that Bingley mentions the same minimum of 4 satellites,
- albeit without further explanation.
- This supports the 
-\emph on 
-educated guess
-\emph default 
- that the number of solvable unknowns is indeed 
-\begin_inset Formula $2n-2$
-\end_inset 
-
-.
- A number of 
-\begin_inset Formula $2n-1$
-\end_inset 
-
- (or even 
-\begin_inset Formula $2n$
-\end_inset 
-
-) would require a minimum of 5 satellites, and a number of 
-\begin_inset Formula $2n-3$
-\end_inset 
-
- would require 3.
- 
-\end_inset 
-
-.
- This produces a Rigid Floating Tilting Group (RFTG) of 
-\begin_inset Formula $2n$
-\end_inset 
-
- related phases 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
-, which share a single unknown offset.
- The RFG noise will be of the order of 0.01 TECU (
-\begin_inset Formula $v_{rs})$
-\end_inset 
-
-.
- 
-\layout Standard
-
-Now consider an array of 
-\begin_inset Formula $m$
-\end_inset 
-
- GPS stations.
- We a can form a 
-\emph on 
-maximum
-\emph default 
- of 
-\begin_inset Formula $(m(m-1)/2)\times(n(n-1)/2)$
-\end_inset 
-
- double-difference equations that share 
-\begin_inset Formula $n\times m$
-\end_inset 
-
- unknowns 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
-, of which 
-\begin_inset Formula $(nm-2)$
-\end_inset 
-
- are solvable (
-\emph on 
-this must be verified
-\emph default 
-).
- Not only does this increase the size, and thus the constraining power of
- the RFTG, but it also requires fewer satellites
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-Fewer satellites is not necessarily better, since the group then covers
- less of the sky.
-\end_inset 
-
-.
- However, as the array size increases, it is unikely that all its baselines
- will be short enough for double-differencing, so the number of equations
- will be less than the maximum indicated above.
- Until we have done a more detailed analysis, we will assume that 4 satellites
- will always be needed.
- 
-\series bold 
-But we may tentatively conclude that, by using an array of GPS stations
- with a 'small enough' grid, we may solve for a single RFTG of arbitrary
- size, covering the entire sky, and hundreds (thousands?) of kilometers.
- 
-\series default 
-Now, 
-\emph on 
-that
-\emph default 
- is a constraint! 
-\layout Standard
-
-In order to use double-differencing in practice, we first have to form a
- 
-\series bold 
-double-difference M.E
-\series default 
-.
- that contains the MIM parameters 
-\begin_inset Formula $p_{k}$
-\end_inset 
-
-, and measurement parameters 
-\begin_inset Formula $q_{m}$
-\end_inset 
-
-.
- This is easily done by abandoning the rather limiting assumption that 
-\begin_inset Formula $\Delta\Delta d^{ion}\approx0$
-\end_inset 
-
-.
- Note that this opens the way to using longer baselines for double-differencing!
- Referring to equ 
-\begin_inset LatexCommand \ref{eq: Li}
-
-\end_inset 
-
-, we can write 
-\begin_inset Formula $d_{rs}^{ion}=-4\lambda^{2}M_{rs}(pp)$
-\end_inset 
-
- for the 4 terms in the expression 
-\begin_inset Formula $\Delta\Delta d^{ion}$
-\end_inset 
-
-.
- We can write the right-hand-side of equ 
-\begin_inset LatexCommand \ref{eq: double-diff}
-
-\end_inset 
-
- as a double-difference version of equ 
-\begin_inset LatexCommand \ref{eq: ME_generic}
-
-\end_inset 
-
-:
-\begin_inset Formula \begin{equation}
-P_{ij}^{ab}(pp,qq)=M_{ij}^{ab}(pp)+Q_{ij}^{ab}(qq)\label{eq: ME_generic_dd}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-which then leads to double-difference version of equ 
-\begin_inset LatexCommand \ref{eq: ME_normal}
-
-\end_inset 
-
- for the MIM solution matrix:
-\begin_inset Formula \begin{equation}
-\Delta_{ij}^{ab}=P_{ij}^{ab}(pp,qq)-\Phi_{ij}^{ab}=-4\lambda\sum_{k}\frac{\partial M_{ij}^{ab}}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{ij}^{ab}}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal_dd}\end{equation}
-
-\end_inset 
-
-
-\layout Standard
-
-in which 
-\begin_inset Formula $M_{ij}^{ab}=(M_{ai}-M_{bi})-(M_{aj}-M_{bj})$
-\end_inset 
-
- and the expression 
-\begin_inset Formula $Q_{ij}^{ab}$
-\end_inset 
-
- contains measurement parameters 
-\begin_inset Formula $N_{rs}$
-\end_inset 
-
- and 
-\begin_inset Formula $\phi^{trop}$
-\end_inset 
-
-.
- The relation between the latter and 
-\begin_inset Formula $\Delta\Delta d^{trop}$
-\end_inset 
-
- requires a little extra thought.
- In any case it is the same tropospheric phase as in the 'regular' gpsTEC
- equations.
- The noise on the resulting MIM parameters would be of the order of 
-\begin_inset Formula $\frac{0.01\sqrt{n_{p}}}{\sqrt{nm}}$
-\end_inset 
-
- TECU (or better? In any case, it decreases for larger arrays).
 \layout Standard
 
 
