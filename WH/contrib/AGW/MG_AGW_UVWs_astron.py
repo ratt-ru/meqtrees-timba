@@ -37,9 +37,14 @@ import Meow
 from Meow import Utils
 import math
 
+# define ANTENNAS equal to number of antennas in the
+# array that you are processing
+ANTENNAS = 30
+
 def _define_forest (ns):
   Utils.include_ms_options(has_output=False)
-  array = Meow.IfrArray.VLA(ns);
+  antennas_list = [ str(i) for i in range(1,ANTENNAS+1) ];
+  array = Meow.IfrArray(ns,antennas_list);
   spigot = array.spigots()
 
   # nodes for phase center
