@@ -115,7 +115,7 @@ TDLOption('max_condnum',"Max condition number",[3,4],more=float,doc="Max conditi
 # correct for all baselines
 TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
 # number of stations
-TDLCompileOption('num_stations',"Number of stations",[16,24,15,3]);
+TDLCompileOption('num_stations',"Number of stations",[16,24,15,3],more=int);
 
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
@@ -520,7 +520,7 @@ def _do_calibrate(fname,mqs):
           selection_string='sumsqr(UVW[1:2]) > 10') # exclude only autocorrelations
       # update parmtablename 
       parmtablename=fname+"_1_"+str(spwid)+".mep";
-      if mytable !=None:
+      if mysave:
         for sname in solvables:
           set_node_state(mqs,sname,record(table_name=parmtablename))
 

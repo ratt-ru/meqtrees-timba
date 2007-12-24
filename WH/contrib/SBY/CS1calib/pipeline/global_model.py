@@ -450,7 +450,70 @@ def EJones_HBA(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False
         Yediag_phi = ns.Yediag_phi(dirname,station) << Meq.Compounder(children=[Meq.Composer(azY,el),By_phi[station]],common_axes=[hiid('l'),hiid('m')])
         Yediag_theta = ns.Yediag_theta(dirname,station) << Meq.Compounder(children=[Meq.Composer(azY,el),By_theta[station]],common_axes=[hiid('l'),hiid('m')])
         # create E matrix
-        Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/600
+        Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/600.00
+
+  return Ej0;
+
+def EJones_HBA_stat(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, name="E"):
+  Bx_phi={}
+  Bx_theta={}
+  By_phi={}
+  By_theta={}
+  
+  ## wich ones are beamformed
+  beam_formed=[5,6]
+ 
+  for station in array.stations():
+   Bx_phi[station] = makebeam_hba_phi(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   Bx_theta[station] = makebeam_hba_theta(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   By_phi[station] = makebeam_hba_phi(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   By_theta[station] = makebeam_hba_theta(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+
+  Ej0 = ns[name];
+
+  # get array xyz
+  xyz=array.xyz();
+
+  # station beam
+  if not ns.freq0.initialized():
+    ns.freq0<<Meq.Constant(159e6)
+  if not ns.freq1.initialized():
+    ns.freq1<<Meq.Constant(160e6)
+
+
+  # create per-direction, per-station E Jones matrices
+  for src in sources:
+    dirname = src.direction.name;
+    radec=src.direction.radec()
+    Ej = Ej0(dirname);
+
+    # create Az,El per source, using station 1
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    # make shifts
+    az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
+    azX=ns.azX(dirname)<<az-math.pi/4
+    azY=ns.azY(dirname)<<az-math.pi/4
+    el=ns.el(dirname)<<Meq.Selector(azelnode,multi=True,index=[1])
+   
+
+    for station in array.stations():
+        azelX =ns.azelX(dirname,station)<<Meq.Composer(azX,el)
+        azelY =ns.azelY(dirname,station)<<Meq.Composer(azY,el)
+        Xediag_phi = ns.Xediag_phi(dirname,station) << Meq.Compounder(children=[azelX,Bx_phi[station]],common_axes=[hiid('l'),hiid('m')])
+        Xediag_theta= ns.Xediag_theta(dirname,station) << Meq.Compounder(children=[azelX,Bx_theta[station]],common_axes=[hiid('l'),hiid('m')])
+        Yediag_phi = ns.Yediag_phi(dirname,station) << Meq.Compounder(children=[azelY,By_phi[station]],common_axes=[hiid('l'),hiid('m')])
+        Yediag_theta = ns.Yediag_theta(dirname,station) << Meq.Compounder(children=[azelY,By_theta[station]],common_axes=[hiid('l'),hiid('m')])
+        if station in beam_formed:
+          Xstatbeam=ns.Xstatbeam(dirname,station)<<Meq.StationBeam(filename=beampath+'/beams/AntennaCoords',radec=radec0,xyz=xyz(station),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+          Ystatbeam=ns.Ystatbeam(dirname,station)<<Meq.StationBeam(filename=beampath+'/beams/AntennaCoords',radec=radec0,xyz=xyz(station),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+
+          Xstatgain=ns.Xstatgain(dirname,station)<<Meq.Compounder(children=[azelX,Xstatbeam],common_axes=[hiid('l'),hiid('m')])
+          Ystatgain=ns.Ystatgain(dirname,station)<<Meq.Compounder(children=[azelY,Ystatbeam],common_axes=[hiid('l'),hiid('m')])
+          Ej(station) <<Meq.Matrix22(Xstatgain*Xediag_theta,Xstatgain*Xediag_phi,Ystatgain*Yediag_theta,Ystatgain*Yediag_phi)/600.00
+          #Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)
+        else:
+          Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/600.00
+        #Ej(station) <<Meq.Matrix22(el_S*az_S*Xediag_theta,az_C*Xediag_phi,Meq.Negate(el_S*az_S)*Yediag_theta,az_C*Yediag_phi)
 
   return Ej0;
 

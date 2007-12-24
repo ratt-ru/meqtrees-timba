@@ -117,7 +117,7 @@ TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True)
 
 
 # number of stations
-TDLCompileOption('num_stations',"Number of stations",[16,24,15,3]);
+TDLCompileOption('num_stations',"Number of stations",[16,24,15,3],more=int);
 
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
@@ -453,7 +453,7 @@ def _do_calibrate(fname,mqs):
           ddid_index=spwid,
           selection_string='sumsqr(UVW[1:2]) > 10')
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
-      if mytable !=None:
+      if mysave:
         for sname in solvables:
           set_node_state(mqs,sname,record(table_name=parmtablename))
       debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"

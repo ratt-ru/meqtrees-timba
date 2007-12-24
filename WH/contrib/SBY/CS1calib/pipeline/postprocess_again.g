@@ -56,7 +56,6 @@ msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > %d and sqrt(sumsqr(CORRECTED
 
 print spaste("Postprocessing:::",infile);
 
-
 spid:=minspwid;
 while(spid<=maxspwid) {
 

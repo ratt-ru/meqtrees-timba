@@ -47,12 +47,23 @@ af.done()
 
 
 ## special flags, depenging on the measurement set
-af:=autoflag(infile)
-af.setdata()
-af.setselect(ant=2)
-af.setselect(ant=5)
-af.run()
-af.done()
+#af:=autoflag(infile)
+#af.setdata()
+#af.setselect(ant=2)
+#af.setselect(ant=7)
+#af.run()
+#af.done()
+#af:=autoflag(infile)
+#af.setdata()
+#af.setselect(ant=[1,2,3,4],timerng="2007/12/10/22:11 2007/12/10/23:31")
+#af.setselect(ant=[1,2,3,4],timerng="2007/12/11/09:28 2007/12/11/11:35")
+#af.setselect(ant=[1,2,3,4],timerng="2007/12/12/06:10 2007/12/12/07:04")
+#af.setselect(ant=[1,2,3,4],timerng="2007/12/12/12:49 2007/12/12/14:03")
+#af.setselect(ant=[5,6],timerng="2007/12/10/22:03 2007/12/11/11:43")
+#af.setselect(ant=[5,6],timerng="2007/12/12/00:24 2007/12/12/13:58")
+#af.run()
+#af.done()
+
 
 
 ###################### compress
@@ -72,6 +83,16 @@ mm:=ms(infile,readonly=F)
 mm.split(newms,nchan=[4],start=[32],step=[48]);
 mm.done()
 }
+
+#### re-run median flagger on new MS
+af:=autoflag(newms)
+af.setdata()
+af.settimemed(thr=6,hw=5, expr='ABS XX')
+af.settimemed(thr=6,hw=5, expr='ABS XY')
+af.settimemed(thr=6,hw=5, expr='ABS YX')
+af.settimemed(thr=6,hw=5, expr='ABS YY')
+af.run()
+af.done()
 
 
 ## open with imager

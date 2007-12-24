@@ -91,9 +91,9 @@ myimager.setdata(mode='channel', fieldid=fid, spwid=spid,
              start=startch, msselect=msstr,
              step=1, async=F);
 #HBA
-myimager.setimage(nx=3456, ny=3456, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+#myimager.setimage(nx=3456, ny=3456, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
 #LBA
-#myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
 myimager.setoptions(ftmachine='wproject', wprojplanes=128, padding=1.2 , cache=500000000)
 myimager.makeimage(type="corrected",image=my_img,async=False);
 myimager.close()

@@ -94,6 +94,13 @@ TDLOption('abs_clipval',"Abs Cutoff",[1e4,1e5],more=float,doc="Clipping value"),
 TDLOption('max_condnum',"Max condition number",[3,4],more=float,doc="Max condition number"),
 );
 
+TDLCompileMenu("LSM",
+# which sky model
+ TDLOption("lsm_filename","LSM file",
+                   TDLFileSelect("*.lsm *.txt *.*",default="global.txt",exist=True),)
+);
+
+
 # correct for all baselines
 TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
 # number of stations
@@ -140,7 +147,7 @@ def _define_forest(ns, parent=None, **kw):
   observation = Observation(ns);
   
   lsm=LSM()
-  lsm.build_from_extlist("global_hba.txt",ns)
+  lsm.build_from_extlist(lsm_filename,ns)
 
   if parent:
     lsm.display()
@@ -364,9 +371,9 @@ def create_solver_defaults(num_iter=solver_maxiter,epsilon=1e-4,convergence_quot
   solver_defaults.balanced_equations = False
   solver_defaults.debug_level = solver_debug_level;
   #solver_defaults.save_funklets= True
-  solver_defaults.save_funklets= False
+  solver_defaults.save_funklets= mysave
   #solver_defaults.last_update  = True
-  solver_defaults.last_update  = False
+  solver_defaults.last_update  = mysave
   solver_defaults.debug_file = debug_file
 #See example in TDL/MeqClasses.py
   solver_defaults.solvable     = record(command_by_list=(record(name=solvable,
@@ -511,7 +518,7 @@ def _do_calibrate(fname,mqs):
           selection_string='sumsqr(UVW[1:2]) > 10') # exclude only autocorrelations
       parmtablename=fname+"_"+str(schan)+"_"+str(spwid)+".mep";
       # update parmtablename 
-      if mytable !=None:
+      if mysave:
         for sname in solvables:
           set_node_state(mqs,sname,record(table_name=parmtablename))
       debug_filename=fname+"_"+str(schan)+"_"+str(spwid)+".log"
