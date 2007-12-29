@@ -409,10 +409,13 @@ class VellsData:
        key =  "[" + str(self._active_plane) + tag + str(self._active_perturb) 
      else:
        key = "[" + str(self._active_plane) + "]" 
-     rank = self._plot_vells_dict[key].rank
-     shape = self._plot_vells_dict[key].shape
-     if rank != self.rank or shape != self.shape:
-       self.setInitialSelectedAxes (rank, shape)
+     try:
+       rank = self._plot_vells_dict[key].rank
+       shape = self._plot_vells_dict[key].shape
+       if rank != self.rank or shape != self.shape:
+         self.setInitialSelectedAxes (rank, shape)
+     except:
+       self.array_tuple = None
      if self.array_tuple is None:
        selected_array =  self._plot_vells_dict[key]
      else:
