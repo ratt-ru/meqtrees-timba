@@ -825,7 +825,9 @@ class ResultPlotter(GriddedPlugin):
 
       if not menu_data[4] is None and len(menu_data[4]) > 0:
         self._visu_plotter.setBigArrays(menu_data[4])
-     
+
+# reset color bar request - just in case
+      self._visu_plotter.reset_color_bar(True)
 
 # plot the appropriate plane / perturbed value
       plot_data = self._vells_data.getActiveData()
