@@ -1325,12 +1325,14 @@ class QwtImageDisplay(QwtPlot):
       """ create a GUI for user to modify plot parameters """
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self)
 
-    def setImageRange(self, min, max, colorbar=0):
+    def setImageRange(self, min, max, colorbar=0,image_lock=False):
       """ callback to set allowable range of array intensity display """
       _dprint(3, 'received request for min and max of ', min, ' ', max)
       if colorbar == 0:
+        self.plotImage.setLockImage(True, image_lock)
         self.plotImage.defineImageRange((min, max), True)
       else:
+        self.plotImage.setLockImage(False, image_lock)
         self.plotImage.defineImageRange((min, max), False)
       self.plotImage.updateImage(self.raw_image)
       self.replot()
