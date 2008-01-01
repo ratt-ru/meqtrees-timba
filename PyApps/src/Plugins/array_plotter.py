@@ -198,6 +198,10 @@ class ArrayPlotter(GriddedPlugin):
       self.twoD_plotter.set_original_array_rank(self.actual_rank)
       self.set_ND_controls()
 
+# reset colorbar just in case
+    if self.actual_rank >= 2:
+      self.twoD_plotter.reset_color_bar(True)
+
 # pass array to the plotter
     if self.array_rank > 2:
       if self.array_selector is None:
@@ -271,6 +275,8 @@ class ArrayPlotter(GriddedPlugin):
     self.array_selector = create_array_selector(self.twoD_plotter, self.array_rank, self.array_shape, first_axis,second_axis,third_axis)
     self.array_tuple = tuple(self.array_selector)
     if not self.twoD_plotter is None:
+      # reset color bar request - just in case
+      self.twoD_plotter.reset_color_bar(True)
       self.twoD_plotter.array_plot('data', self.data[self.array_tuple])
     else:
       if not self.ND_plotter is None:
@@ -289,6 +295,8 @@ class ArrayPlotter(GriddedPlugin):
     self.array_selector[lcd_number] = slider_value
     self.array_tuple = tuple(self.array_selector)
     if not self.twoD_plotter is None:
+      # reset color bar request - just in case
+      self.twoD_plotter.reset_color_bar(True)
       self.twoD_plotter.array_plot('data ', self.data[self.array_tuple])
     else:
       self.ND_plotter.array_plot('data ', self.data[self.array_tuple])
