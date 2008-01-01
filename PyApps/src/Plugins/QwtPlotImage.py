@@ -100,6 +100,8 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.log_y_scale = False
         self.transform_offset = 0.0
         self.flag_colour = 0
+        self.lock_image_real = False
+        self.lock_image_imag = False
     # __init__()
     
     def setDisplayType(self, display_type):
@@ -112,6 +114,12 @@ class QwtPlotImage(QwtPlotMappedItem):
 
     def setFlagColour(self, flag_colour):
       self.flag_colour = flag_colour
+
+    def setLockImage(self, real = True, lock_image=False):
+      if real:
+        self.lock_image_real = lock_image
+      else:
+        self.lock_image_imag = lock_image
 
     # When set to True, the log_scale parameter will cause
     # the displayed image to be scaled logarithmically.
@@ -157,11 +165,13 @@ class QwtPlotImage(QwtPlotMappedItem):
          max = min
          min = temp
        if real:
-         self.r_cmin = min
-         self.r_cmax = max
+         if not self.lock_image_real:
+           self.r_cmin = min
+           self.r_cmax = max
        else:
-         self.i_cmin = min
-         self.i_cmax = max
+         if not self.lock_image_imag:
+           self.i_cmin = min
+           self.i_cmax = max
 
     def setImageRange(self, image):
       if image.type() == Complex32 or image.type() == Complex64:
@@ -181,8 +191,9 @@ class QwtPlotImage(QwtPlotMappedItem):
           temp = max
           max = min
           min = temp
-        self.r_cmin = min
-        self.r_cmax = max
+        if not self.lock_image_real:
+          self.r_cmin = min
+          self.r_cmax = max
 
         min = imag_array.min()
         max = imag_array.max()
@@ -197,8 +208,9 @@ class QwtPlotImage(QwtPlotMappedItem):
           temp = max
           max = min
           min = temp
-        self.i_cmin = min
-        self.i_cmax = max
+        if not self.lock_image_imag:
+          self.i_cmin = min
+          self.i_cmax = max
       else:
         self.complex = False
         min = image.min()
@@ -214,8 +226,9 @@ class QwtPlotImage(QwtPlotMappedItem):
           temp = max
           max = min
           min = temp
-        self.r_cmin = min
-        self.r_cmax = max
+        if not self.lock_image_real:
+          self.r_cmin = min
+          self.r_cmax = max
     # setImageRange
 
     def updateImage(self, image):

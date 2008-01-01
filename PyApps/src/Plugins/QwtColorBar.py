@@ -44,6 +44,11 @@ Button 1 (Left): If you click the <b>left</b> mouse button on a location inside 
 Button 2 (Right):Clicking the <b>right</b> mouse button in the colorbar window will cause a context menu with the option to 'unzoom intensity range' to appear. If you click on this menu item, then the colorbar scale (and the image scale) is reset to the intrinsic range associated with the current image.'''
 
 class QwtColorBar(QwtPlot):
+    menu_table = {
+        'unzoom intensity range': 200,
+        'lock colorbar scale': 201,
+        'unlock colorbar scale': 202,
+        }
 
     def __init__(self, colorbar_number=0, parent=None):
         QwtPlot.__init__(self, parent)
@@ -105,14 +110,22 @@ class QwtColorBar(QwtPlot):
         # add intructions on how to use
         QWhatsThis.add(self, colorbar_instructions)
 
-        # create pull_down menu  - needed to over-ride Oleg's default
+        # create pull_down menu and add menu components
         if self._mainwin:
           self._menu = QPopupMenu(self._mainwin);
-          zoom = QAction(self);
-#         zoom.setIconSet(pixmaps.viewmag.iconset());
-          zoom.setText("unzoom intensity range");
-          zoom.addTo(self._menu);
-          QObject.connect(self._menu,SIGNAL("activated(int)"), self.unzoom)
+        else:
+          self._menu = QPopupMenu(None);
+
+        toggle_id = self.menu_table['unzoom intensity range']
+        self._menu.insertItem("unzoom intensity range", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['lock colorbar scale']
+        self._menu.insertItem(pixmaps.close_lock.iconset(),'lock colorbar scale ', toggle_id)
+        toggle_id = self.menu_table['unlock colorbar scale']
+        self._menu.insertItem(pixmaps.open_lock.iconset(),'unlock colorbar scale ', toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
+        QObject.connect(self._menu,SIGNAL("activated(int)"), self.handle_basic_menu_id)
+        self._lock_bar = False
         
 # for drag & drop stuff ...
         self.setAcceptDrops(True)
@@ -149,7 +162,16 @@ class QwtColorBar(QwtPlot):
           if str(command) == "copyColorRange":
             if event.source() != self:
               rng = event.source().get_data_range();
-              self.setRange(rng[0], rng[1], rng[2],rng[3])
+              if self.colorbar_number == rng[2] and not self._lock_bar:
+                self.zoomStack == []
+                self.zoomState = (
+                  self.axisScale(QwtPlot.yLeft).lBound(),
+                  self.axisScale(QwtPlot.yLeft).hBound(),
+                  )
+                self.zoomStack.append(self.zoomState)
+                toggle_id = self.menu_table['unzoom intensity range']
+                self._menu.setItemVisible(toggle_id, True)
+                self.setRange(rng[0], rng[1], rng[2],rng[3])
 #           else:
 #             print 'dropping into same widget'
 #       else:
@@ -183,7 +205,10 @@ class QwtColorBar(QwtPlot):
             max = 1.1 * max
         self.min = min * 1.0
         self.max = max * 1.0
-        self.emit(PYSIGNAL("set_image_range"),(self.min, self.max, self.colorbar_number))
+
+        # send event to display_image.py that range has changed
+        self.emit_range()
+
         if self.log_scale:
           max = log(self.max)
           min = log(self.min)
@@ -234,10 +259,11 @@ class QwtColorBar(QwtPlot):
           else:
             min = 0.9 * min
             max = 1.1 * max
-        self.image_min = min * 1.0
-        self.image_max = max * 1.0
-        self.min = self.image_min
-        self.max = self.image_max
+        if not self._lock_bar:
+          self.image_min = min * 1.0
+          self.image_max = max * 1.0
+          self.min = self.image_min
+          self.max = self.image_max
         if self.log_scale:
           if self.min <= 0.0:
             offset = -1.0 * self.min + 0.001
@@ -255,10 +281,11 @@ class QwtColorBar(QwtPlot):
           delta = (self.max - self.min) / 255.0
           for i in range (256):
             self.bar_array[0,i] = self.min + i * delta
-        self.y_scale = (self.min, self.max)
-        self.plotImage.setData(self.bar_array, None, self.y_scale)
-        self.show()
-        self.replot()
+        if not self._lock_bar:
+          self.y_scale = (self.min, self.max)
+          self.plotImage.setData(self.bar_array, None, self.y_scale)
+          self.show()
+          self.replot()
     # setMaxRange()
 
     def showDisplay(self, show_self, colorbar_number=0):
@@ -277,12 +304,60 @@ class QwtColorBar(QwtPlot):
       if self.is_active:
         self.show()
 
+    def handle_basic_menu_id(self, menuid):
+      """ callback to handle most common basic context menu selections """
+      if menuid < 0:
+# should not be any such menuid that we need to handle here
+        return True
+      if menuid == self.menu_table['unzoom intensity range']:
+        self.unzoom()
+        return 
+      if menuid == self.menu_table['lock colorbar scale']:
+        self._menu.setItemVisible(menuid, False)
+        toggle_id = self.menu_table['unlock colorbar scale']
+        self._menu.setItemVisible(toggle_id, True)
+        if len(self.zoomStack):
+          toggle_id = self.menu_table['unzoom intensity range']
+          self._menu.setItemVisible(toggle_id, False)
+        self._lock_bar = True
+        self.emit_range()
+        return 
+      if menuid == self.menu_table['unlock colorbar scale']:
+        self._menu.setItemVisible(menuid, False)
+        toggle_id = self.menu_table['lock colorbar scale']
+        self._menu.setItemVisible(toggle_id, True)
+        if len(self.zoomStack):
+          toggle_id = self.menu_table['unzoom intensity range']
+          self._menu.setItemVisible(toggle_id, True)
+        self._lock_bar = False
+        self.emit_range()
+        return 
+
+    def emit_range(self):
+      self.emit(PYSIGNAL("set_image_range"),(self.min, self.max, self.colorbar_number,self._lock_bar))
+
+    def setBarLock(self, set_lock=False):
+      self._lock_bar = set_lock  
+      if self._lock_bar:
+        toggle_id = self.menu_table['lock colorbar scale']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['unlock colorbar scale']
+        self._menu.setItemVisible(toggle_id, True)
+      else:
+        toggle_id == self.menu_table['unlock colorbar scale']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['lock colorbar scale']
+        self._menu.setItemVisible(toggle_id, True)
+      self.emit_range()
+
     def unzoom(self):
       """ callback to set range of this colorbar back to default """
       if len(self.zoomStack):
         while len(self.zoomStack):
-          xmin, xmax, ymin, ymax = self.zoomStack.pop()
-        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+          ymin, ymax = self.zoomStack.pop()
+
+        toggle_id = self.menu_table['unzoom intensity range']
+        self._menu.setItemVisible(toggle_id, False)
 
       self.setAxisScale(QwtPlot.yLeft, self.image_min, self.image_max)
       if self.image_min > self.image_max:
@@ -331,19 +406,18 @@ class QwtColorBar(QwtPlot):
         self.xpos = e.pos().x()
         self.ypos = e.pos().y()
         _dprint(3, 'self.xpos self.ypos ', self.xpos, ' ', self.ypos)
-        self.enableOutline(1)
-        self.setOutlinePen(QPen(Qt.black))
-        self.setOutlineStyle(Qwt.Rect)
-        self.zooming = 1
-        if self.zoomStack == []:
-          self.zoomState = (
-            self.axisScale(QwtPlot.xBottom).lBound(),
-            self.axisScale(QwtPlot.xBottom).hBound(),
-            self.axisScale(QwtPlot.yLeft).lBound(),
-            self.axisScale(QwtPlot.yLeft).hBound(),
-            )
-        # fake a mouse move to show the cursor position
-        self.onMouseMoved(e)
+        if not self._lock_bar:
+          self.enableOutline(1)
+          self.setOutlinePen(QPen(Qt.black))
+          self.setOutlineStyle(Qwt.Rect)
+          self.zooming = 1
+          if self.zoomStack == []:
+            self.zoomState = (
+              self.axisScale(QwtPlot.yLeft).lBound(),
+              self.axisScale(QwtPlot.yLeft).hBound(),
+              )
+          # fake a mouse move to show the cursor position
+          self.onMouseMoved(e)
       elif Qt.RightButton == e.button():
         e.accept()
         self._menu.popup(e.globalPos())
@@ -351,6 +425,11 @@ class QwtColorBar(QwtPlot):
 
     def onMouseReleased(self, e):
       """ handles mouse release event if we're not doing a drop """
+
+      # if color bar is locked, do nothing
+      if self._lock_bar:
+        return
+
       if Qt.LeftButton == e.button():
         xmin = min(self.xpos, e.pos().x())
         xmax = max(self.xpos, e.pos().x())
@@ -364,15 +443,17 @@ class QwtColorBar(QwtPlot):
         if xmin == xmax or ymin == ymax:
           return
         self.zoomStack.append(self.zoomState)
-        self.zoomState = (xmin, xmax, ymin, ymax)
+        self.zoomState = (ymin, ymax)
         self.enableOutline(0)
+        if len(self.zoomStack):
+          toggle_id = self.menu_table['unzoom intensity range']
+          self._menu.setItemVisible(toggle_id, True)
       elif Qt.RightButton == e.button():
         if len(self.zoomStack):
-          xmin, xmax, ymin, ymax = self.zoomStack.pop()
+          ymin, ymax = self.zoomStack.pop()
         else:
           return
 
-      self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
       self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
       if ymin > ymax:
         temp = ymax
@@ -388,8 +469,8 @@ class QwtColorBar(QwtPlot):
 # the following tests the QwtColorBar class
 def make():
     demo = QwtColorBar()
-    demo.setMaxRange((1.0e-11, 0.001),0,True)
-    demo.setMaxRange((1.0e-11, 0.001),0)
+#   demo.setMaxRange((1.0e-11, 0.001),0,True)
+    demo.setMaxRange((1.0e-11, 1.0),0)
 
     demo.resize(50, 200)
     demo.show()
