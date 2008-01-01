@@ -1051,6 +1051,7 @@ class ResultPlotter(GriddedPlugin):
       self._vells_data.updateArraySelector(lcd_number,slider_value)
       plot_array = self._vells_data.getActiveData()
       if not self._visu_plotter is None:
+        self._visu_plotter.reset_color_bar(True)
         self._visu_plotter.array_plot('data: '+ display_string, plot_array)
       else:
         if not self.ND_plotter is None:
