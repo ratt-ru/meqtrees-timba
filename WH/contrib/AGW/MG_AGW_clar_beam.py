@@ -25,6 +25,8 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Meq import meqds
+
+from make_multi_dim_request import *
  
 import Meow.Bookmarks
 
@@ -36,6 +38,15 @@ Settings.forest_state = record(bookmarks=[
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
 #Settings.forest_state.cache_policy = 100;
+
+# get position of field centre RA DEC
+TDLCompileMenu('Field Centre RA and DEC',
+  TDLOption('fc_ra','RA of field centre (radians)',[0,1,2,3],more=float),
+  TDLOption('fc_dec','DEC of field centre (radians)',[0,1,2,3],more=float),
+);
+
+# get telescope location for use in simulation
+TDLCompileOption('telescope','Telescope Site',['DRAO','VLA'])
 
 def _define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
@@ -54,15 +65,11 @@ def _define_forest (ns):
 # M_gain = (sin_factor * M * M ) / (width * width)
 # power pattern = exp(log16 * (L_gain + M_gain))
 
-# first define an RA and DEC (in radians)
-  ra = 0.0
-  dec = 0.0
-
-# then create a MeqComposer containing ra dec children
-  ns.RADec <<Meq.Composer(ra, dec)
+# create a MeqComposer containing ra dec position
+  ns.RADec <<Meq.Composer(fc_ra, fc_dec)
 
 # we create an AzEl node with an Observatory name
-  ns.AzEl << Meq.AzEl(radec=ns.RADec, observatory='VLA')
+  ns.AzEl << Meq.AzEl(radec=ns.RADec, observatory=telescope)
 
 # get the elevation
   ns.El << Meq.Selector(ns.AzEl, index=1)
@@ -95,7 +102,7 @@ def _define_forest (ns):
   ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
 
 # create a Parallactic angle node
-  pa = ns.ParAngle << Meq.ParAngle(radec=ns.RADec, observatory = 'VLA')
+  pa = ns.ParAngle << Meq.ParAngle(radec=ns.RADec, observatory = telescope)
 
 # rotation matrix to go from AzEl to Ra,Dec L,M  
   ns.P << Meq.Matrix22(Meq.Cos(pa),-Meq.Sin(pa),Meq.Sin(pa),Meq.Cos(pa))
@@ -107,7 +114,6 @@ def _define_forest (ns):
 
   ns.resampler << Meq.Resampler(ns.exp_gain,dep_mask = 0xff)
   ns.beam_rot << Meq.Compounder(children=[ns.lm_rot,ns.resampler],common_axes=[hiid('l'),hiid('m')])
-
 
 ##################################################
 def _test_forest (mqs,parent,wait=False):
@@ -135,55 +141,11 @@ def _test_forest (mqs,parent,wait=False):
   for i in range(12):
     t0 = t0 + delta_t
     t1 = t0 + delta_t
-    request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],l_range,m_range], nr_cells = [1,1,lm_num,lm_num])
+    request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],l_range,m_range], nr_cells = [1,1,lm_num,lm_num])
     counter = counter + 1
 # execute request
     mqs.meq('Node.Execute',record(name='beam_rot',request=request),wait=False);
-
-#####################################################################
-def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
-
-    """make multidimensional request, dom_range should have length 2 or be a list of
-    ranges with length Ndim, nr_cells should be scalar or list of scalars with length Ndim"""
-    forest_state=meqds.get_forest_state();
-    axis_map=forest_state.axis_map;
-    
-    range0 = [];
-    if is_scalar(dom_range[0]):
-        for i in range(Ndim):		
-            range0.append(dom_range);
-    else:
-        range0=dom_range;
-    nr_c=[];
-    if is_scalar(nr_cells):
-        for i in range(Ndim):		
-            nr_c.append(nr_cells);
-    else:
-        nr_c =nr_cells;
-    dom = meq.domain(range0[0][0],range0[0][1],range0[1][0],range0[1][1]); #f0,f1,t0,t1
-    cells = meq.cells(dom,num_freq=nr_c[0],num_time=nr_c[1]);
-    
-    # workaround to get domain with more axes running 
-
-    for dim in range(2,Ndim):
-        id = axis_map[dim].id;
-        if id:
-            dom[id] = [float(range0[dim][0]),float(range0[dim][1])];
-            step_size=float(range0[dim][1]-range0[dim][0])/nr_c[dim];
-            startgrid=0.5*step_size+range0[dim][0];
-            grid = [];
-            cell_size=[];
-        for i in range(nr_c[dim]):
-            grid.append(i*step_size+startgrid);
-            cell_size.append(step_size);
-            cells.cell_size[id]=array(cell_size);
-            cells.grid[id]=array(grid);
-            cells.segments[id]=record(start_index=0,end_index=nr_c[dim]-1);
-
-    cells.domain=dom;
-    rqid = meq.requestid(domain_id=counter)
-    request = meq.request(cells,rqtype='ev',rqid=rqid);
-    return request;
+##################################################
 
 if __name__=='__main__':
   ns=NodeScope()
