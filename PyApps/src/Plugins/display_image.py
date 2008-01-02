@@ -2081,9 +2081,15 @@ class QwtImageDisplay(QwtPlot):
           q_line_size = 1
           q_symbol_size = 3
           q_flag_size = 10
-#       self.x_array = zeros(shape[0], Float32)
-#       self.x_index = arange(shape[0])
-#       self.x_index = self.x_index + 0.5
+
+# create x_index defaults for array plots 
+        self.x_array = zeros(shape[0], Float32)
+        if self.complex_type:
+          self.x_index = arange(2* shape[0])
+        else:
+          self.x_index = arange(shape[0])
+        self.x_index = self.x_index + 0.5
+
         _dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
         try:
           x_values = []
@@ -2107,9 +2113,12 @@ class QwtImageDisplay(QwtPlot):
           self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
         else:
           self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
+
+# create x_index defaults for array plots 
         self.y_array = zeros(shape[1], Float32)
         self.y_index = arange(shape[1])
         self.y_index = self.y_index + 0.5
+
         _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
         try:
           for i in range(shape[1]):
@@ -2183,8 +2192,8 @@ class QwtImageDisplay(QwtPlot):
         if self.toggle_log_display:
           self.log_offset = self.plotImage.getTransformOffset()
         if self.complex_type:
-#         limit = shape[0] / 2
-          limit = len(x_indices) / 2
+          axis_shape = self.x_index.shape
+          limit = axis_shape[0] / 2
           if not self.xrCrossSection is None:
             self.setCurveData(self.xrCrossSection, self.x_index[:limit], self.x_array[:limit] + self.log_offset)
           if not self.xiCrossSection is None:
@@ -3630,16 +3639,26 @@ def make():
     demo.start_test_timer(5000, True, "hippo")
 
 # or
-# uncomment the following three lines
-#    try:
-#      import pyfits
-#      image = pyfits.open('./m51_32.fits')
-#   image = pyfits.open('./WN30080H.fits')
-#      demo.array_plot('M51', image[0].data)
-#    except:
-#      print 'Exception while importing pyfits module:'
-#      traceback.print_exc();
-#      return
+# uncomment the following lines 
+#   try:
+#     import pyfits
+#     image = pyfits.open('./xntd_diff.fits')
+#     image = pyfits.open('./m51_32.fits')
+#     selector = []
+#     for i in range(len(image[0].data.shape)):
+#       if image[0].data.shape[i] > 1:
+#         axis_slice = slice(0,image[0].data.shape[i])
+#         selector.append(axis_slice)
+#       else:
+#         selector.append(0)
+#     tuple_selector = tuple(selector)
+#     plot_array = image[0].data[tuple_selector]
+#     demo.array_plot('diff', plot_array)
+#   except:
+#     print 'Exception while importing pyfits module:'
+#     traceback.print_exc();
+#     return
+
 
     return demo
 
