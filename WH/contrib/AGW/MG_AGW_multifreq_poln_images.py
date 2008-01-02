@@ -34,6 +34,7 @@
 from Timba.TDL import * 
 from Timba.Meq import meqds
 from Timba.Meq import meq
+from make_multi_dim_request import *
 
 # setup a bookmark for display of results with a 'Results Plotter'
 Settings.forest_state = record(bookmarks=[
@@ -162,58 +163,10 @@ def _test_forest(mqs,parent):
   lm_range = [-0.04,0.04];
   lm_num = 50;
 # define request
-  request = make_request(counter=1, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
+  request = make_multi_dim_request(counter=1, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
   mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=True);
-
-
 #####################################################################
-def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
-
-    """make multidimensional request, dom_range should have length 2 or be a list of
-    ranges with length Ndim, nr_cells should be scalar or list of scalars with length Ndim"""
-    forest_state=meqds.get_forest_state();
-    axis_map=forest_state.axis_map;
-    
-    range0 = [];
-    if is_scalar(dom_range[0]):
-        for i in range(Ndim):		
-            range0.append(dom_range);
-    else:
-        range0=dom_range;
-    nr_c=[];
-    if is_scalar(nr_cells):
-        for i in range(Ndim):		
-            nr_c.append(nr_cells);
-    else:
-        nr_c =nr_cells;
-    dom = meq.domain(range0[0][0],range0[0][1],range0[1][0],range0[1][1]); #f0,f1,t0,t1
-    cells = meq.cells(dom,num_freq=nr_c[0],num_time=nr_c[1]);
-    
-    # workaround to get domain with more axes running 
-
-    for dim in range(2,Ndim):
-        id = axis_map[dim].id;
-        if id:
-            dom[id] = [float(range0[dim][0]),float(range0[dim][1])];
-            step_size=float(range0[dim][1]-range0[dim][0])/nr_c[dim];
-            startgrid=0.5*step_size+range0[dim][0];
-            grid = [];
-            cell_size=[];
-        for i in range(nr_c[dim]):
-            grid.append(i*step_size+startgrid);
-            cell_size.append(step_size);
-            cells.cell_size[id]=array(cell_size);
-            cells.grid[id]=array(grid);
-            cells.segments[id]=record(start_index=0,end_index=nr_c[dim]-1);
-
-    cells.domain=dom;
-    rqid = meq.requestid(domain_id=counter)
-    request = meq.request(cells,rqtype='ev',rqid=rqid);
-    return request;
-
-
-
 
 if __name__=='__main__':
   ns=NodeScope()
