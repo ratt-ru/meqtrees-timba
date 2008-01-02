@@ -41,6 +41,8 @@ from Timba.TDL import *
 from Timba.Meq import meqds
 from Timba.Meq import meq
 from Meow import Bookmarks,Utils
+from make_multi_dim_request import *
+from handle_beams import *
 
 import os
 
@@ -67,25 +69,11 @@ def _define_forest(ns):
   ns.m_beam_c << Meq.Constant(m_beam)
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
-  # read in beam data
 # number of beams is 30 or 90
-  if fpa_directory.find('30') >= 0:
-    num_beams = 30
-  else:
-    num_beams = 90
-# read in beam images
+  num_beams = read_in_FPA_beams(ns,fpa_directory)
   BEAMS = range(0,num_beams)
   for k in BEAMS:
-  # read in beam data - y dipole
-    infile_name_re_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) + '_Re_x.fits'
-    infile_name_im_yx = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Im_x.fits'
-    infile_name_re_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Re_y.fits'
-    infile_name_im_yy = fpa_directory + '/fpa_pat_' + str(k+num_beams) +'_Im_y.fits' 
-    ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
-    ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
-    ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
-    ns.image_im_yy(k) << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
-    # normalize
+    # normalize y dipoles
     ns.y_im_sq(k) << ns.image_re_yy(k) * ns.image_re_yy(k) + ns.image_im_yy(k) * ns.image_im_yy(k) +\
                   ns.image_re_yx(k) * ns.image_re_yx(k) + ns.image_im_yx(k) * ns.image_im_yx(k)
     ns.y_im(k) <<Meq.Sqrt(ns.y_im_sq(k))
@@ -108,17 +96,7 @@ def _define_forest(ns):
     ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
-  # read in beam data - x dipole
-    infile_name_re_xx = fpa_directory + '/fpa_pat_' + str(k) + '_Re_x.fits'
-    infile_name_im_xx = fpa_directory + '/fpa_pat_' + str(k) +'_Im_x.fits'
-    infile_name_re_xy = fpa_directory + '/fpa_pat_' + str(k) +'_Re_y.fits'
-    infile_name_im_xy = fpa_directory + '/fpa_pat_' + str(k) +'_Im_y.fits' 
-    ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
-    ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
-    ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
-    ns.image_im_xx(k) << Meq.FITSImage(filename=infile_name_im_xx,cutoff=1.0,mode=2)
-
-    # normalize
+    # normalize x dipoles
     ns.x_im_sq(k) << ns.image_re_xx(k) * ns.image_re_xx(k) + ns.image_im_xx(k) * ns.image_im_xx(k) +\
                   ns.image_re_xy(k) * ns.image_re_xy(k) + ns.image_im_xy(k) * ns.image_im_xy(k)
     ns.x_im(k) <<Meq.Sqrt(ns.x_im_sq(k))
@@ -236,56 +214,12 @@ def _test_forest(mqs,parent):
       change_rec = record(value = m)
       Utils.set_node_state(mqs,node_name,change_rec)
       mqs.clearcache('Ins_pol',recursive=True)
-      request = make_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
+      request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
       counter = counter + 1
 # execute request
       mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=True);
 #     os.system("sleep 2")
-
 #####################################################################
-def make_request(counter=0,Ndim=4,dom_range=[0.,1.],nr_cells=5):
-
-    """make multidimensional request, dom_range should have length 2 or be a list of
-    ranges with length Ndim, nr_cells should be scalar or list of scalars with length Ndim"""
-    forest_state=meqds.get_forest_state();
-    axis_map=forest_state.axis_map;
-    
-    range0 = [];
-    if is_scalar(dom_range[0]):
-        for i in range(Ndim):		
-            range0.append(dom_range);
-    else:
-        range0=dom_range;
-    nr_c=[];
-    if is_scalar(nr_cells):
-        for i in range(Ndim):		
-            nr_c.append(nr_cells);
-    else:
-        nr_c =nr_cells;
-    dom = meq.domain(range0[0][0],range0[0][1],range0[1][0],range0[1][1]); #f0,f1,t0,t1
-    cells = meq.cells(dom,num_freq=nr_c[0],num_time=nr_c[1]);
-    
-    # workaround to get domain with more axes running 
-
-    for dim in range(2,Ndim):
-        id = axis_map[dim].id;
-        if id:
-            dom[id] = [float(range0[dim][0]),float(range0[dim][1])];
-            step_size=float(range0[dim][1]-range0[dim][0])/nr_c[dim];
-            startgrid=0.5*step_size+range0[dim][0];
-            grid = [];
-            cell_size=[];
-        for i in range(nr_c[dim]):
-            grid.append(i*step_size+startgrid);
-            cell_size.append(step_size);
-            cells.cell_size[id]=array(cell_size);
-            cells.grid[id]=array(grid);
-            cells.segments[id]=record(start_index=0,end_index=nr_c[dim]-1);
-
-    cells.domain=dom;
-    rqid = meq.requestid(domain_id=counter)
-    request = meq.request(cells,rqtype='ev',rqid=rqid);
-    return request;
 
 if __name__=='__main__':
   ns=NodeScope()
