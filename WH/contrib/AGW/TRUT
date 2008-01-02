@@ -44,8 +44,6 @@ TDL MG_AGW_project5.py
  
 TDL MG_AGW_project6.py
  
-TDL MG_AGW_solve_720_beams.py
- 
 TDL MG_AGW_solve_FPA_beam.py
  
 TDL MG_AGW_store_beam_weights.py
