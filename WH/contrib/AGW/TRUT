@@ -28,8 +28,6 @@ TDL MG_AGW_LMRaDec.py
  
 TDL MG_AGW_LST.py
  
-TDL MG_AGW_make_polarization_images_veidt_fpa.py
- 
 TDL MG_AGW_modcal.py
  
 TDL MG_AGW_multifreq_poln_images.py
