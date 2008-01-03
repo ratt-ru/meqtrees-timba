@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 1.45: 31 Dec 2007} % Date of Issue (
+theDOIssue}{Version 1.66: 10 Jan 2008} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {1.45} 
+theRevNR} {1.66} 
 \layout Standard
 
 \backslash 
@@ -255,7 +255,7 @@ hspace{0.5cm} M.
 \layout Standard
 
 \backslash 
-hspace{0.5cm} E.
+hspace{0.5cm} ltz 3  E.
 \backslash 
  Noordam (EXN, NLDA) 
 \backslash 
@@ -601,16 +601,6 @@ Introduction
 \end_inset 
 
 
-\layout Standard
-
-
-\noun on 
-Note on version 1.1: I decided to vault over the singularity 1.0, and start
- the trek to 2.0.
- The concept of the Rigid Floating Group (RFG) and its cousins has moved
- to center stage, because MIM-enhanced double-differencing offers allows
- us to make RFTGs from GPS data as well.
- 
 \layout Standard
 
 
@@ -1303,6 +1293,63 @@ Solving for MIM (and other) parameters
 \end_inset 
 
 
+\layout Standard
+
+We solve for the MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ by comparing 
+\emph on 
+measured
+\emph default 
+ and 
+\emph on 
+predicted
+\emph default 
+ values of ionospheric observables.
+ The latter may be phases, or TEC values, or anything that depends on the
+ MIM, i.e.
+ on the integrated TEC 
+\begin_inset Formula $M_{rs}(x,y,z,l,m,t)$
+\end_inset 
+
+, as seen from the position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ of receiver 
+\begin_inset Formula $r$
+\end_inset 
+
+, in the direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ towards source 
+\begin_inset Formula $s$
+\end_inset 
+
+
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+This definition excludes measurements by ionosondes or chirp-sounders, which
+ deal with signals that are reflected by the bottom of the ionosphere.
+\end_inset 
+
+.
+ The direction is the 
+\emph on 
+apparent
+\emph default 
+ one, as seen from 
+\begin_inset Formula $r$
+\end_inset 
+
+, because the propagation path may be curved.
 \layout Subsection
 
 The 
@@ -1317,10 +1364,10 @@ A
 \emph on 
 Measurement Equation
 \emph default 
- (M.E.) is a mathematical description (model) of an observing istrument and
+ (M.E.) is a mathematical description (model) of an observing instrument and
  the thing it observes.
  We will use two different instruments to measure the ionospheric TEC: an
- array of gound stations with satellites, and an array of LOFAR stations
+ array of ground stations with satellites, and an array of LOFAR stations
  with astronomical radio sources.
  But although they are quite different, they both have an M.E.
  that contains the MIM with its parameters 
@@ -1331,44 +1378,13 @@ Measurement Equation
  
 \layout Standard
 
-In its simplest form, if we 
-\emph on 
-measure
-\emph default 
- a TEC sample 
-\begin_inset Formula $S_{rs}$
-\end_inset 
-
-, as seen from the position 
-\begin_inset Formula $(x,y,z)$
-\end_inset 
-
- receiver 
-\begin_inset Formula $r$
-\end_inset 
-
-, in the direction 
-\begin_inset Formula $(l,m)$
-\end_inset 
-
- of source 
-\begin_inset Formula $s$
-\end_inset 
-
-, its 
-\emph on 
-predicted
-\emph default 
- value 
-\begin_inset Formula $P_{rs}$
-\end_inset 
-
- is given by the M.E.: 
+The M.E.
+ is used to predict the values of actual measurements:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-P_{rs}(pp,qq)=M_{rs}(pp)+Q_{rs}(qq)\quad TECU\label{eq: ME_generic}\end{equation}
+P_{rs}(pp,qq)=P_{rs}(M_{rs}(pp),\: Q_{rs}(qq))\label{eq: ME_generic}\end{equation}
 
 \end_inset 
 
@@ -1439,12 +1455,10 @@ The parameters of the M.E.
 
 
 \begin_inset Formula \begin{equation}
-\Delta_{rs}=P_{rs}(pp,qq)-S_{rs}=\sum_{k}\frac{\partial M_{rs}}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial Q_{rs}}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal}\end{equation}
+\Delta_{rs}=P_{rs}(pp,qq)-S_{rs}=\sum_{k}\frac{\partial P_{rs}}{\partial M}\frac{\partial M}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial P_{rs}}{\partial q_{m}}\Delta q_{m}\label{eq: ME_normal}\end{equation}
 
 \end_inset 
 
-
-\layout Standard
 
 \layout Standard
 
@@ -1573,12 +1587,27 @@ A pictorial view of the least-squares fitting of MIM (and other) parameters.
 \begin_inset Formula $A$
 \end_inset 
 
- consists of three sets of linear equations of the form of equ 
+ represents a set of linear equations of the form of equ 
 \begin_inset LatexCommand \ref{eq: ME_normal}
 
 \end_inset 
 
-: astroVis equations, GPS equations (3 kinds) and constraint equations.
+: 
+\layout Standard
+
+
+\begin_inset Formula \begin{equation}
+\Delta_{rs}=P_{rs}(pp,qq)-S_{rs}=\sum_{k}\frac{\partial P_{rs}}{\partial M}\frac{\partial M}{\partial p_{k}}\Delta p_{k}+\sum_{m}\frac{\partial P_{rs}}{\partial q_{m}}\Delta q_{m}\end{equation}
+
+\end_inset 
+
+
+\layout Standard
+
+
+\size footnotesize 
+\emph on 
+These may be astroVis equations, GPS equations or constraint equations.
  The vector 
 \begin_inset Formula $\vec{D}$
 \end_inset 
@@ -1587,8 +1616,15 @@ A pictorial view of the least-squares fitting of MIM (and other) parameters.
 \begin_inset Formula $\Delta_{rs}$
 \end_inset 
 
-between predicted and measured GPS TEC values, idem between predicted and
- measured visibilities, and expected constraint values.
+between predicted values 
+\begin_inset Formula $P_{rs}$
+\end_inset 
+
+ of actual measurements (samples) 
+\begin_inset Formula $S_{rs}$
+\end_inset 
+
+.
  The variables of all equations are incremental improvements 
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
@@ -1603,21 +1639,52 @@ between predicted and measured GPS TEC values, idem between predicted and
 \end_inset 
 
  (of unknowns).
-
-\emph default 
  
-\emph on 
-The matrix expression for this collection of equations is 
-\begin_inset Formula $\vec{D}=A\times\vec{U}$
-\end_inset 
-
-.
 \layout Standard
 
 
 \size footnotesize 
 \emph on 
-If 
+The
+\emph default 
+ 
+\emph on 
+elements of matrix 
+\begin_inset Formula $A$
+\end_inset 
+
+ are the coefficients of the 
+\begin_inset Formula $\Delta p_{k}$
+\end_inset 
+
+ and 
+\begin_inset Formula $\Delta q_{m}$
+\end_inset 
+
+, i.e.
+ the partial derivatives of these variables w.r.t.
+ the Measurement Equation 
+\begin_inset Formula $P_{rs}$
+\end_inset 
+
+.
+ The partial derivatives may be approximated numerically by calculating
+ the predicted values for the nominal values of the parameters, and for
+ a small perturbation for each parameter.
+ The difference divided by the perturbation yields the desired derivative.
+ This is the approach taken by MeqTrees.
+ 
+\layout Standard
+
+
+\size footnotesize 
+\emph on 
+The corresponding matrix expression is 
+\begin_inset Formula $\vec{D}=A\times\vec{U}$
+\end_inset 
+
+.
+ If 
 \begin_inset Formula $A$
 \end_inset 
 
@@ -2015,7 +2082,7 @@ ation
 \emph default 
  for a radio receiver whose two signals are fed into the correlator.
  Thus a WSRT telescope and a VLA antenna are both stations, just like a
- LOFAR station, 
+ LOFAR station.
 \end_inset 
 
 .
@@ -2239,7 +2306,7 @@ where
 
  (with the possible exception of the ionospheric Faraday rotation, but that
  is a second-order effect).
- This 'orthogonality' will be important when we try to solve for the ionosphere
+ This 'orthogonality' will be important when we solve for the ionosphere
  and other parameters simultaneously.
 \layout Standard
 
@@ -2277,49 +2344,16 @@ The sensitivity and size of the LOFAR stations guarantees (even after the
  
 \layout Standard
 
-Such a correction of the visibilities for ionospheric phases is also important
- 
-\emph on 
-phase-tracking
-\emph default 
- well enough, to make sure that the phase-difference between the predicted
- and measured values are smaller than 1-2 radians for all visibilities.
-\layout Standard
-
-...
- produces a Rigid Floating Group of TEC measurements, from the position
- 
-\begin_inset Formula $(x,y,z)$
-\end_inset 
-
- of each LOFAR station 
-\begin_inset Formula $r$
-\end_inset 
-
-, in the direction 
-\begin_inset Formula $(l,m)$
-\end_inset 
-
- of the bright source 
-\begin_inset Formula $s$
-\end_inset 
-
-.
- 
-\layout Standard
-
 We are now ready to form equations like equ 
 \begin_inset LatexCommand \ref{eq: ME_normal}
 
 \end_inset 
 
-: For each visibility sample 
+ for each visibility sample 
 \begin_inset Formula $V_{ijs}(t)$
 \end_inset 
 
- we may compare its predicted and measured 
-\emph on 
-phases:
+:
 \layout Standard
 
 
@@ -2336,7 +2370,14 @@ in which
 \end_inset 
 
  is the 'half-predicted' phase, i.e.
- without the ionospheric phase, and 
+ predicted without the ionospheric phase, so it only depends on the measurement
+ parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+ (e.g.
+ tropospheric phase etc).
+ The 
 \begin_inset Formula $\phi_{ijs}^{corrmeas}$
 \end_inset 
 
@@ -2345,36 +2386,25 @@ in which
 
 \end_inset 
 
-, i.e.
- corrected for the ionospheric phase, and integrated over all subbands.
- Example of a measurement parameters 
-\begin_inset Formula $q_{m}$
+, corrected for the ionospheric phase, and integrated over all subbands.
+ It only depends on the MIM parameters 
+\begin_inset Formula $p_{k}$
 \end_inset 
 
- are the tropospheric phases.
- This equation looks a little more daunting than before, but it is just
- the chain-rule.
- The important thing is that we have again an equation in the 
-\begin_inset Formula $\Delta p_{k}$
+.
+ The integration will complicate the derivatives 
+\begin_inset Formula $\frac{\partial\phi^{corrmeas}}{\partial p_{k}}$
 \end_inset 
 
- and the 
-\begin_inset Formula $\Delta q_{m}$
-\end_inset 
-
-, which can be added to the solution matrix.
+ somewhat (...), of course.
 \layout Standard
 
-Referring to the MIM-diagrams in figs 
-\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
+Referring to the MIM-diagrams in fig 
+\begin_inset LatexCommand \ref{cap: MIM diagram}
 
 \end_inset 
 
- and 
-\begin_inset Formula $\ref{cap:MIMdiagram}$
-\end_inset 
-
-, may consider the following possibilities (the FOV is the field-of-view,
+, we may consider the following possibilities (the FOV is the field-of-view,
  i.e.
  the main lobe of the effective station beam):
 \layout Enumerate
@@ -2632,242 +2662,226 @@ GPS satellites move in roughly circular orbits around the Earth, with a
  rare for one to be actually inside the LOFAR FOV (5-10 deg).
  In the future we also hope to use satellites of Galileo, Glonass etc.
  
-\layout Subsection
-
-Preprocessing the Rinex data
-\begin_inset LatexCommand \label{sub: gpsTEC: preprocessing-Rinex-data}
-
-\end_inset 
-
-
 \layout Standard
 
-The GPS TEC measurements (usually) reach us in the form of so-called Rinex
- files.
- These are pre-processed and re-organized (by JMA), before being fed into
- Meqtrees.
- For instance, any cycle-slips (jumps by an integer number of carrier wavelength
-s) are removed.
- All this should be summarized here....
-\layout Standard
-
-L1, L2, L1-L2, etc, dual/triple frequency
-\layout Standard
-
-Making gpsTEC equations
-\begin_inset LatexCommand \label{sec: Making gpsTEC equations}
-
-\end_inset 
-
-
-\layout Subsection
-
-The gpsTEC Measurement Equation 
-\begin_inset LatexCommand \label{sub: gpsTEC M.E.}
-
-\end_inset 
-
-
-\layout Standard
-
-A sample 
-\begin_inset Formula $S_{rs}$
-\end_inset 
-
- represents the integrated TEC along the line-of-sight between a station
- 
-\begin_inset Formula $r$
-\end_inset 
-
- and satellite 
-\begin_inset Formula $s$
-\end_inset 
-
-.
- The station will have a fixed and accurately known Earth position 
+GPS signals are received (and partially processed) by stations.
+ The latter may be mobile, but for our purposes a station will have a fixed
+ and accurately known Earth position 
 \begin_inset Formula $(x_{r},y_{r},z_{r})$
 \end_inset 
 
-, while the viewing direction 
+.
+ The (apparent?) viewing direction 
 \begin_inset Formula $(l_{rs},m_{rs})$
 \end_inset 
 
- changes with time.
- Using a 2-frequency technique, a virtually instantaneous estimate 
-\begin_inset Formula $S_{rs}$
+ from station 
+\begin_inset Formula $r$
 \end_inset 
 
- of the integrated TEC may be made with a fundamental measurement 
-\begin_inset Formula $noise$
+ towards satellite 
+\begin_inset Formula $s$
 \end_inset 
 
- of about 0.01 TECU (or 1 rad @ 74 MHz).
- Unfortunately, this is complicated by an unknown bias, which slowly drifts
- in time.
- Referring to equ 
+ will change in time.
+ See section 
+\begin_inset LatexCommand \ref{sec: Coordinate systems}
+
+\end_inset 
+
+ for a discussion of coordinate systems.
+\layout Standard
+
+In order to facilitate simultaneous processing of GPS data from different
+ receiver types, a 
+\emph on 
+Receiver Independent Exchange Format (RINEX)
+\emph default 
+ has been adopted by the international community.
+ Most GPS stations make their data available (e.g.
+ by internet) in the form of RINEX files.
+ Detailed documentation is available via the IGS server.
+ 
+\layout Standard
+
+The Measurement Equations of the RINEX observables pseudorange and carrier
+ phase (see below) depend on ionospheric delay, which may be modeled by
+ the MIM.
+ Therefore, they may be used to make equations like eq 
 \begin_inset LatexCommand \ref{eq: ME_generic}
 
 \end_inset 
 
- above, the function 
-\begin_inset Formula $Q_{rs}$
+, to help solve for the MIM parameters.
+ This may be done in a rather bewildering number of ways, which will only
+ be hinted at below, but which are fully described in the literature (e.g.
+ 
+\begin_inset LatexCommand \cite{Seeber,Kaplan,Bingley}
+
 \end_inset 
 
- for the GPS M.E.
- can be expressed as: 
+).
+ The important thing is that we have a framework in which we can combine
+ (multiple) astronomical and GPS observations.
+ This not only gives us a flexible prototype system for ionospheric calibration,
+ but also a platform for experimentation.
+ In particular, it makes us ready to absorb the advances from the huge and
+ highly active GPS community.
+ So, while leaving specific strategies to be determined by the users of
+ our framework system, we will content ourselves by estimating the 
+\emph on 
+fundamental
+\emph default 
+ limits of using GPS data (see section ...).
+\layout Subsection
+
+The RINEX observables
+\begin_inset LatexCommand \label{sub: RINEX observables}
+
+\end_inset 
+
+
+\layout Standard
+
+Among other things 
+\begin_inset LatexCommand \cite{Seeber}
+
+\end_inset 
+
+, RINEX offers three fundamental quantities in the GPS observables: time,
+ (pseudo)range and (carrier) phase.
+ The 
+\series bold 
+time
+\series default 
+ of measurement is the receiver time of the 
+\emph on 
+received
+\emph default 
+ signals, expressed in GPS time (not UT).
+ It is identical for the phase and range measurements, and is identical
+ for all (GPS?) satellites observed at that epoch.
+\layout Standard
+
+The Measurement Equation of the RINEX 
+\series bold 
+pseudorange
+\series default 
+ (m) is:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-Q_{rs}(t)=(q_{rs}+q_{1r}t+q_{2r}t^{2}+\cdots)+\frac{\phi_{r}^{tropos}}{-25\lambda}+noise\quad TECU\label{eq: Srs_GPS}\end{equation}
+PR_{rs}=\rho_{rs}+c(\delta\tau_{r}-\delta t_{s})+(d_{rs}^{trop}-d_{rs}^{ion})+\epsilon_{rs}\label{eq: pseudorange-obseq}\end{equation}
 
 \end_inset 
 
 
-\layout Standard
+\layout Itemize
 
-Expressions for the derivatives 
-\begin_inset Formula $\frac{\partial Q}{\partial q}$
+The range 
+\begin_inset Formula $\rho_{rs}$
 \end_inset 
 
- are readily determined from this.
- Of course, the slow bias drift may be expressed by other functions than
- these low-order polynomials.
- Note that the constant 
-\begin_inset Formula $q_{rs}$
-\end_inset 
-
- is associated with the station-satellite pair, while the drift parameters
+ is the geometrical distance between station and satellite.
+ It is known to an accuracy of 30 m, due to uncertainties in the satellite
+ position.
+ This error may be eliminated by differencing, either in time or in frequency,
+ or by using multiple stations (see below).
  
-\begin_inset Formula $q_{ir}$
+\layout Itemize
+
+
+\begin_inset Formula $\delta\tau_{r}$
 \end_inset 
 
- are associated with station 
+ is the receiver clock error.
+ It will slowly drift in time.
+ This is described by (receiver-based!) measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+.
+ It may be eliminated by differencing signals received by the same station
+ 
 \begin_inset Formula $r$
 \end_inset 
 
 .
- The tropospheric phase 
-\begin_inset Formula $\phi_{r}^{tropos}$
+\layout Itemize
+
+
+\begin_inset Formula $\delta t_{s}$
 \end_inset 
 
- is right above station 
-\begin_inset Formula $r$
-\end_inset 
-
-, and easily distinguishable from the TEC since 
-\begin_inset Formula $\phi_{r}\propto1/\lambda$
-\end_inset 
-
-.
-\layout Standard
-
-It would be nice if we could associate a bias value with each station, and
- each satellite.
- With 
-\begin_inset Formula $n$
-\end_inset 
-
- satellites and 
-\begin_inset Formula $m$
-\end_inset 
-
- stations we would then have only 
-\begin_inset Formula $(n+m)$
-\end_inset 
-
- independent bias parameters in 
-\begin_inset Formula $(n\times m)$
-\end_inset 
-
- samples.
- Unfortunately, all the pair biases are different.
- But fortunately there is some commonality: the bias drifts are caused 
-\emph on 
-only
-\emph default 
- by the station
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-The bias drift are probably caused by relatively cheap electonics, operating
- in a relatively unstable environment.
- Both are better for the satellite.
- 
-\end_inset 
-
-, and they are the same for all TEC measurements made between a station
- and different satellites
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-This has been established on real data.
- It is another indication that the drifts are caused by environmental variations
- (temperature, humidity) in the station electronics.
+ is the satellite clock error.
+ It is constant in time.
+ It may be eliminated by differencing signals that are transmitted by the
+ same satellite 
+\begin_inset Formula $s$
 \end_inset 
 
 .
- This is a typical example of long-term parameters as discussed in section
- 
-\begin_inset LatexCommand \ref{sub: solve: smoothing in time}
+\layout Itemize
 
+
+\begin_inset Formula $d_{rs}^{ion}\approx-4\lambda^{2}T_{rs}$
+\end_inset 
+
+ is the ionospheric delay.
+ It depends on the integrated TEC 
+\begin_inset Formula $T_{rs}$
+\end_inset 
+
+ along the propagation path.
+ It may be modeled by the MIM function 
+\begin_inset Formula $M(pp)$
 \end_inset 
 
 .
  
-\layout Subsection
+\layout Itemize
 
-Zero Difference (ZD) equations
-\begin_inset LatexCommand \label{sub: Zero Difference (ZD)}
+
+\begin_inset Formula $d_{rs}^{trop}$
+\end_inset 
+
+ is the tropospheric delay.
+ Its biggest contribution depends on altitude, so it will be relatively
+ constant between GPS stations associated with the LOFAR array.
+ The residual varies on a time-scale of minutes, and will not be highly
+ correlated between stations.
+ Assuming that the troposphere is just above the station, 
+\begin_inset Formula $d^{trop}$
+\end_inset 
+
+ will not be very direction-dependent, so its measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+may be shared with those of the astroVis equations.
+\layout Itemize
+
+
+\begin_inset Formula $\epsilon_{rs}$
+\end_inset 
+
+ is the measurement noise, which is quite large (...
+ TECU?).
+ It may be reduced considerably by smoothing 
+\begin_inset LatexCommand \cite{Kaplan}
 
 \end_inset 
 
-
+, using the much less noisy (but non-absolute) carrier phases.
+ 
 \layout Standard
 
-The following has been adapted from 
-\begin_inset LatexCommand \cite{Bingley}
-
-\end_inset 
-
-.
- We start from the 
+The Measurement Equation of the RINEX 
 \series bold 
-basic carrier phase observation equation
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-I would have thought that measuring phases would require dual-frequency
- measurements, but Bingley says that single-frequency can be used also,
- albeit for shorter baselines (..?).
- Moreover, in the case of dual-frequency, it is not clear what wavelength
- 
-\begin_inset Formula $\lambda$
-\end_inset 
-
- should be used.
- Bingley discusses the combination of L1 (1575MHz, 19cm) and L2 (1227MHz,
- 24cm) carrier phases in two different ways: wide-lane (phase 
-\begin_inset Formula $L_{wl}=L1-L2$
-\end_inset 
-
-), and ionosphere-free (phase 
-\begin_inset Formula $L_{if}=\frac{f_{1}^{2}L1-f_{2}^{2}L2}{f_{1}^{2}-f_{2}^{2}}$
-\end_inset 
-
-).
- Can we get at these things? It is all a bit puzzling.
-\end_inset 
-
- 
+carrier phase
 \series default 
-for the phase 
+ 
 \begin_inset Formula $\Phi_{rs}$
 \end_inset 
 
@@ -2875,27 +2889,46 @@ for the phase
 \begin_inset Formula $\lambda$
 \end_inset 
 
-) of the signal from satellite 
-\begin_inset Formula $s$
-\end_inset 
-
-, measured by receiver (station) 
-\begin_inset Formula $r$
-\end_inset 
-
-:
+) is:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-\lambda(N_{rs}+\Phi_{rs})=\rho_{rs}+c(\delta\tau_{r}-\delta t_{s})+d_{rs}^{trop}-d_{rs}^{ion}+v_{rs}\label{eq: cphase-obseq}\end{equation}
+\lambda(N_{rs}+\Phi_{rs})=\rho_{rs}+c(\delta\tau_{r}-\delta t_{s})+(d_{rs}^{trop}-d_{rs}^{ion})+v_{rs}\label{eq: cphase-obseq}\end{equation}
 
 \end_inset 
 
 
 \layout Standard
 
-in which 
+in which
+\layout Itemize
+
+The wavelength 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ depends on the carrier.
+ Current GPS satellites transmit carriers L1 (1575 MHz, 
+\begin_inset Formula $\lambda=19$
+\end_inset 
+
+ cm) and L2 (1227 MHz, 
+\begin_inset Formula $\lambda=24$
+\end_inset 
+
+ cm), and there are RINEX phases for both.
+ These can be used in various ways to eliminate instrumental errors (see
+ section 
+\begin_inset LatexCommand \ref{sub: Dual-frequency GPS}
+
+\end_inset 
+
+below).
+ In the future, the number of carriers may increase.
+\layout Itemize
+
+
 \begin_inset Formula $N_{rs}$
 \end_inset 
 
@@ -2908,27 +2941,18 @@ carrier phase ambiguity
 \end_inset 
 
 .
- The range 
-\begin_inset Formula $\rho_{rs}$
+ After removing glitches, it may be assumed to be constant during a satellite
+ passage (hours).
+ Unfortunately, it is different for each station-satellite pair 
+\begin_inset Formula $rs$
 \end_inset 
 
- is the actual distance between station and satellite, 
-\begin_inset Formula $\delta\tau_{r}$
-\end_inset 
+.
+ The latter makes it comparable to ifr-based errors in interferometry.
+ It is a major headache.
+\layout Itemize
 
- and 
-\begin_inset Formula $\delta t_{s}$
-\end_inset 
 
- are clock errors, 
-\begin_inset Formula $d_{rs}^{ion}$
-\end_inset 
-
- and 
-\begin_inset Formula $d_{rs}^{trop}$
-\end_inset 
-
- are the ionospheric and tropospheric delays, and 
 \begin_inset Formula $v_{rs}$
 \end_inset 
 
@@ -2937,24 +2961,214 @@ carrier phase ambiguity
 observation residual
 \emph default 
 .
- It will be assumed here that the latter corresponds to our GPS 
-\emph on 
-measurement noise,
-\emph default 
- which is of the order of 0.01 TECU.
- Note that the satellite-station pair bias that we used before is a combination
- of 
-\begin_inset Formula $N_{rs}$
+ It is of the order of 0.01 TECU, which corresponds to a phase of 1 rad @
+ 75 MHz.
+\layout Standard
+
+So most of the other instrumental parameters of the two observables are
+ the same.
+ The greatest difference is that the 
+\begin_inset Formula $PR_{rs}$
 \end_inset 
 
-and clock errors.
- In the following, the clock errors are eliminated by differencing, leaving
- only 
+ is absolute but noisy, while 
+\begin_inset Formula $\Phi_{rs}$
+\end_inset 
+
+ is low-noise (0.01 TECU) but has an unknown ambiguity 
 \begin_inset Formula $N_{rs}$
 \end_inset 
 
 .
  
+\layout Subsection
+
+Dual-frequency GPS
+\begin_inset LatexCommand \label{sub: Dual-frequency GPS}
+
+\end_inset 
+
+
+\layout Standard
+
+Linear combinations 
+\begin_inset Formula $\Phi_{nm}=n\Phi_{L1}+m\Phi_{L2}$
+\end_inset 
+
+ of the L1 and L2 carrier phases produce new equations with desirable properties.
+ This is described rather well in 
+\begin_inset LatexCommand \cite{Seeber}
+
+\end_inset 
+
+ (pp 262, 310).
+ Some examples:
+\layout Itemize
+
+n=1, m=-1: The 
+\emph on 
+wide-lane
+\emph default 
+ phase (
+\begin_inset Formula $L_{\Delta}=L1-L2$
+\end_inset 
+
+).
+ Because the effective carrier wavelength 
+\begin_inset Formula $\lambda_{nm}=c/f_{nm}=c/(nf_{1}+mf_{2})$
+\end_inset 
+
+ is long (86.2 cm), the ambiguity 
+\begin_inset Formula $N$
+\end_inset 
+
+ is resolved more easily.
+ However, the noise is six times greater.
+ 
+\layout Itemize
+
+n=1, m=1: The 
+\emph on 
+narrow-lane
+\emph default 
+ phase (
+\begin_inset Formula $L_{\Sigma}=L1+L2$
+\end_inset 
+
+) has the lowest noise of all linear combinations, but 
+\begin_inset Formula $\lambda_{nm}$
+\end_inset 
+
+ is short (10 cm), the ambiguity is more difficult to resolve.
+ 
+\layout Itemize
+
+n=9, m=-7: Has a very low ionospheric amplification factor (
+\begin_inset Formula $V_{I}=0.004\ll1$
+\end_inset 
+
+).
+ 
+\layout Itemize
+
+Fractional (n,m): e.g.
+ 
+\begin_inset Formula $n=f_{1}^{2}/(f_{1}^{2}-f_{2}^{2})$
+\end_inset 
+
+ and 
+\begin_inset Formula $m=-f_{1}f_{2}/(f_{1}^{2}-f_{2}^{2})$
+\end_inset 
+
+, in which 
+\begin_inset Formula $f_{1}$
+\end_inset 
+
+and 
+\begin_inset Formula $f_{2}$
+\end_inset 
+
+ are the carrier frequencies.
+ This is called the 
+\emph on 
+ionosphere-free
+\emph default 
+ 
+\emph on 
+linear combination
+\emph default 
+, because (99% of) the ionosphere has been removed.
+ 
+\layout Itemize
+
+Combinations of the wide-lane and narrow-lane have interesting properties
+ too: 
+\begin_inset Formula $(L_{\Delta}-L_{\Sigma})$
+\end_inset 
+
+ is called the 
+\emph on 
+ionospheric free signal
+\emph default 
+, and 
+\begin_inset Formula $(L_{\Delta}+L_{\Sigma})$
+\end_inset 
+
+ is called the 
+\emph on 
+ionospheric signal
+\emph default 
+.
+ 
+\layout Standard
+
+There are many more.
+ We must learn to use them.
+ 
+\layout Standard
+
+The ambiguity of the linear combination is 
+\begin_inset Formula $N_{nm}=nN_{1}+mN_{2}$
+\end_inset 
+
+, which is still integer if 
+\begin_inset Formula $n$
+\end_inset 
+
+ and 
+\begin_inset Formula $m$
+\end_inset 
+
+ are integers.
+ This is important for ambiguity resolution schemes.
+ Finally, the standard deviation is propagated as 
+\begin_inset Formula $\sigma_{nm}=\sqrt{n^{2}+m^{2}}\sigma$
+\end_inset 
+
+.
+\layout Subsection
+
+Triple-frequency GPS
+\begin_inset LatexCommand \label{sub: Triple-frequency GPS}
+
+\end_inset 
+
+
+\layout Standard
+
+JMA has verified (see appendix 
+\begin_inset LatexCommand \ref{sec: Triple-frequency GPS}
+
+\end_inset 
+
+) that the bias problem will be much less (~ 0.035 TECU), even if the 3rd
+ frequency is relatively close to one of the others.
+ Galileo will use 3 frequencies, and we should do tests with the WSRT station.
+ GPS will probably have them earlier, so we should be ready to use them
+ to maximum advantage at the earliest opportunity.
+ This will not require any great changes in the scheme that is being discussed
+ in this document.
+ If anything, it will simplify it, and produce more accurate results.
+ In the meantime, we should just continue our present program.
+ 
+\layout Subsection
+
+Time Difference (TD) equations
+\begin_inset LatexCommand \label{sub: Time Difference (TD)}
+
+\end_inset 
+
+
+\layout Standard
+
+Taking the difference between successive (..) samples eliminates the constant
+ part of all parameters, and thus amplifies the time-dependent coefficients.
+ It may be applied to ZD, SD, DD etc.
+\layout Standard
+
+This might be the germ of a general approach to long-range parameters.
+ It requires a mechanism for keeping the last value, and an integrating
+ MeqParm...
 \layout Subsection
 
 Single Difference (SD) equations
@@ -3447,31 +3661,6 @@ absolute
  This is needed for the calibration of ionospheric Faraday rotation.
 \layout Subsection
 
-Using 3 frequencies (JMA, EXN)
-\begin_inset LatexCommand \label{sub: gpsTEC: using-3-frequencies}
-
-\end_inset 
-
-
-\layout Standard
-
-Jim has verified (see appendix 
-\begin_inset LatexCommand \ref{sec: Triple-frequency GPS}
-
-\end_inset 
-
-) that the bias problem will be much less (~ 0.035 TECU), even if the 3rd
- frequency is relatively close to one of the others.
- Galileo will use 3 frequencies, and we should do tests with the WSRT station.
- GPS will probably have them earlier, so we should be ready to use them
- to maximum advantage at the earliest opportunity.
- This will not require any great changes in the scheme that is being discussed
- in this document.
- If anything, it will simplify it, and produce more accurate results.
- In the meantime, we should just continue our present program.
- 
-\layout Subsection
-
 Dealing with satellite discontinuities
 \begin_inset LatexCommand \label{sub: satellite discontinuities}
 
@@ -3506,41 +3695,6 @@ Here is a suggestion by Bas van der Tol, which might have merit: Treat the
  astronomical signals.
  Mix them down, and feed them to the LOFAR or WSRT correlator....
  
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-
-\end_inset 
-
-
-\layout Caption
-
-
-\emph on 
-
-\begin_inset LatexCommand \label{cap: gpsTEC measurements}
-
-\end_inset 
-
-
-\size footnotesize 
-TEC measurements with one GPS satellite and multiple ground stations.
- The accuracy is limited to the measurement noise of 0.01 TECU, which corresponds
- to 1 rad @ 75 MHz.
- 
-\series bold 
-...We need an image from Maaijke here....
-\end_inset 
-
-
 \layout Section
 
 Proposed LOFAR procedure(s)
@@ -3920,7 +4074,17 @@ collapsed false
 
 \begin_inset Graphics
 	filename MIM_default_proc.eps
-	width 80col%
+	width 60col%
+
+\end_inset 
+
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_rapid_repointing.eps
+	width 60col%
 
 \end_inset 
 
@@ -3936,7 +4100,8 @@ collapsed false
 \emph on 
 T
 \size footnotesize 
-he proposed default procedure for the ionospheric calibration of LOFAR
+he top panel illustrates the proposed default procedure for the ionospheric
+ calibration of LOFAR
 \emph default 
  
 \emph on 
@@ -3945,14 +4110,20 @@ uses a bright Cat I source in the FOV to 'pin down' a pivotal (high-accuracy)
  Ideally, this point has absolute TEC, derived from the phase-slope as a
  function of frequency.
  At the very least, the TEC slope is accurately known at the pivotal point.
+ An array of GPS receivers is used to constrain the MIM further.
+ In particular, it constrains the higher-order shape (i.e.
+ curvature) of the MIM over the FOV.
 \layout Standard
 
 
-\size footnotesize 
+\size small 
 \emph on 
-An array of GPS receivers is used to constrain the MIM further.
- In particular, it constrains the higher-order shape (i.e.
- curvature) of the MIM over the FOV.
+The bottom panel illustrates the procedure for rapid repointing.
+ The MIM is constrained by the tight RFGs that are obtained by pointing
+ LOFAR to the brightest sources in the sky, for a small percentage of the
+ time (e.g.
+ using 1 minute every 10 minutes).
+ 
 \end_inset 
 
 
@@ -4310,6 +4481,14 @@ MIM
 \emph default 
 , LOFAR document (2004)
 \layout Bibliography
+\bibitem {Seeber}
+
+G.Seeber, 
+\emph on 
+Satellite Geodesy
+\emph default 
+ (2nd ed, 2003) Walter De Gruyter GmbH & Co (Berlin), ISBN 3-11-017549-5
+\layout Bibliography
 \bibitem {Anderson}
 
 J.M.
@@ -4357,6 +4536,14 @@ I.
 LIONS
 \emph default 
  (2007)
+\layout Bibliography
+\bibitem {Kaplan}
+
+Kaplan and Hegorty (eds), 
+\emph on 
+Understanding GPS, principles and applications
+\emph default 
+ (2nd ed, 2006), Artech House, Boston/London (artechhouse.com) 
 \layout Bibliography
 \bibitem {Bingley}
 
@@ -4515,6 +4702,12 @@ T=\int N_{e}dl\quad m^{-2}\label{eq: TEC}\end{equation}
 
 \emph on 
 ....40.3 (TMS and van der Marel)....
+\layout Standard
+
+
+\emph on 
+....
+ relation to plasma frequency ....
 \layout Standard
 
 It is measured in TEC units (TECU) of 
