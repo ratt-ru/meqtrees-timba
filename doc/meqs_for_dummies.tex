@@ -1,5 +1,5 @@
 \documentclass[10pt]{article}
-\usepackage{graphicx,heqn,makeidx,epsfig}
+\usepackage{graphicx,makeidx,epsfig}
 %\usepackage{lscape} 
 %\usepackage{ae,aecompl} 
 %\linespread{1.6}
@@ -81,7 +81,7 @@ coefficients array and the domain bounds - see  {\tt \#\#\#\# 4}.
 %\vspace{0.3cm}
 \begin{figure}
 {\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/tree}}
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/tree}}
 \par}
 \caption {A simple MeqTree consisting of a Solver, a CondEq
 and the CondEq's children. This tree is discussed in detail in the
@@ -94,10 +94,10 @@ script.}
 \begin{figure}
   \centering
   \begin{minipage}[c]{0.5\textwidth}
-     \centering \includegraphics[width=2.5in]{Figures/freq}
+     \centering \includegraphics[width=2.5in]{FiguresAndDiagrams/freq}
   \end{minipage}%
   \begin{minipage}[c]{0.5\textwidth}
-     \centering \includegraphics[width=2.5in]{Figures/time}
+     \centering \includegraphics[width=2.5in]{FiguresAndDiagrams/time}
   \end{minipage}
   \caption {The contents of the MeqFreq (left) and MeqTime (right) objects.
   They are simple one-dimensional arrays.} 
@@ -226,8 +226,8 @@ combined array.
 %\vspace{0.3cm}
 \begin{figure}
 {\par\centering
-%\resizebox*{1.0\columnwidth}{!}{\includegraphics{Figures/add}}
-\includegraphics[width=3.0in]{Figures/add}
+%\resizebox*{1.0\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/add}}
+\includegraphics[width=3.0in]{FiguresAndDiagrams/add}
 \par}
 \caption {The contents of the MeqAdd object. It is a two dimension array (to
 correspond to the `domain' specification) that consists of the `time' and
@@ -251,7 +251,7 @@ MeqParm coefficient using the information in the child results.
 %\vspace{0.3cm}
 \begin{figure}
 {\par\centering
-\resizebox*{0.9\columnwidth}{!}{\includegraphics{Figures/condeq}}
+\resizebox*{0.9\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/condeq}}
 \par}
 \caption {The contents of the CondEq object after the glish script
 has been run. These contents are discussed further 
@@ -281,7 +281,7 @@ defined.
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.9\columnwidth}{!}{\includegraphics{Figures/coeff}}
+\resizebox*{0.9\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/coeff}}
 \par}
 \caption {The contents of the MeqParm `coeff' object after the glish
 script has been run. These contents are discussed further in the text.}
@@ -290,7 +290,7 @@ script has been run. These contents are discussed further in the text.}
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.9\columnwidth}{!}{\includegraphics{Figures/coeff_polcs}}
+\resizebox*{0.9\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/coeff_polcs}}
 \par}
 \caption {The values of the Polcs array is shown in the top row of
 this subsection of the `coeff' state record after the glish tree script
@@ -313,7 +313,7 @@ objects could not yet contain an array.
 %\vspace{0.3cm}
 %\begin{figure}
 %{\par\centering
-%\resizebox*{1.0\columnwidth}{!}{\includegraphics{Figures/solver1}}
+%\resizebox*{1.0\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/solver1}}
 %\par}
 %\caption {The contents of the MeqSolver object after running the script. 
 %These contents are discussed further in the text.}
@@ -403,7 +403,7 @@ similar to that shown in Figure  ~\ref{fig:browser2}.
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/browser1}}
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/browser1}}
 \par}
 \caption {The initial appearance of the browser after the user has 
 started it with the meqbrowser.py script.}
@@ -412,7 +412,7 @@ started it with the meqbrowser.py script.}
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/browser2}}
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/browser2}}
 \par}
 \caption {The contents of the browser after the user has clicked on the
 `Trees' tab at the bottom of the screen, then clicked on the 
@@ -497,7 +497,7 @@ Figure  ~\ref{fig:condeq}.
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/browser3}}
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/browser3}}
 \par}
 \caption {The contents of the browser after the user has clicked on the
 `condeq' label in Figure ~\ref{fig:browser2}. }
@@ -506,7 +506,7 @@ Figure  ~\ref{fig:condeq}.
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/vells_0}}
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/vells_0}}
 \par}
 \caption {The PyQwt display that appears after the user
 left clicks on the `cache\_result' label that can be seen in
@@ -518,7 +518,7 @@ in the image with the middle mouse button.}
 
 \begin{figure}
 {\par\centering
-\resizebox*{1.0\columnwidth}{!}{\includegraphics{Figures/browser4}}
+\resizebox*{1.0\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/browser4}}
 \par}
 \caption {The HippoDraw display that appears after the user
 right clicks on the `cache\_result' label that can be seen in
@@ -558,10 +558,10 @@ plotted in Figure ~\ref{fig:add}.
 \begin{figure}
   \centering
   \begin{minipage}[c]{0.5\textwidth}
-     \centering \includegraphics[width=2.5in]{Figures/browser_small1}
+     \centering \includegraphics[width=2.5in]{FiguresAndDiagrams/browser_small1}
   \end{minipage}%
   \begin{minipage}[c]{0.5\textwidth}
-     \centering \includegraphics[width=2.5in]{Figures/browser_small2}
+     \centering \includegraphics[width=2.5in]{FiguresAndDiagrams/browser_small2}
   \end{minipage}
   \caption {The browser display of (left) a cache\_result node, and 
 (right) the expanded contents of this node after clicking on the
@@ -571,7 +571,7 @@ plotted in Figure ~\ref{fig:add}.
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/array_browser}}
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/array_browser}}
 \par}
 \caption {The numerical contents of an array that the browser shows
 when one selects the `Array Browser' option. 
@@ -753,26 +753,17 @@ the associated 'error' data. Figure ~\ref{fig:errors} gives an example
 of the resulting plot of data with the corresponding standard deviation
 error.
 
-Figure ~\ref{fig:realvsimag} shows a typical `realvsimag' plot. Here, data
-from different leaf nodes have been assigned different colors when each
-leaf node processed the attribute list it received. However all data
+Figure ~\ref{fig:realvsimag} shows a collection of typical `realvsimag' plots. 
+Here, data from different leaf nodes have been assigned different colors 
+when each leaf node processed the attribute list it received. However all data
 end up being inserted into a single plot. 
 
 \begin{figure}
 {\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics[angle=-90]{Figures/AGW_diperr.ps}}
+\resizebox*{0.8\columnwidth}{!}{\includegraphics{FiguresAndDiagrams/realvsimag.eps}}
 \par}
-\caption {A typical `realvsimag' plot. Data from different nodes have
-been assigned to the same plot.}
+\caption {A collection of typical realvsimag plots, including typical `errors' plots. }
 \label{fig:realvsimag}
-\end{figure}
-
-\begin{figure}
-{\par\centering
-\resizebox*{0.8\columnwidth}{!}{\includegraphics{Figures/errors.ps}}
-\par}
-\caption {A typical `errors' plot. }
-\label{fig:errors}
 \end{figure}
 
 
@@ -804,10 +795,10 @@ web page.
 \begin{figure}
   \centering
   \begin{minipage}[c]{0.5\textwidth}
-     \centering \includegraphics[width=2.2in]{Figures/inspector_top}
+     \centering \includegraphics[width=2.2in]{FiguresAndDiagrams/inspector_top}
   \end{minipage}%
   \begin{minipage}[c]{0.5\textwidth}
-     \centering \includegraphics[width=2.2in]{Figures/inspector_plot}
+     \centering \includegraphics[width=2.2in]{FiguresAndDiagrams/inspector_plot}
   \end{minipage}
   \caption {The HippoDraw Inspector GUI. The left picture shows the top
   level GUI. The right picture shows the contents of the `Plot' tab.}
@@ -833,8 +824,8 @@ shown in Figure ~\ref{fig:comparison}.
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=2in]{Figures/image_display}
-\includegraphics[width=2in]{Figures/contour_display}
+\includegraphics[width=2in]{FiguresAndDiagrams/image_display}
+\includegraphics[width=2in]{FiguresAndDiagrams/contour_display}
 \end{center}
 \caption {A comparison of array data displayed in image form (left) 
 and contour form (right) by HippoDraw.}
