@@ -126,6 +126,7 @@ LoShape StationBeam::getResultDims (const vector<const LoShape *> &input_dims)
 void StationBeam::evaluateTensors (std::vector<Vells> & out,   
                             const std::vector<std::vector<const Vells *> > &args)
 {
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // create a frame for an Observatory, or a telescope station
   MeasFrame Frame; // create default frame 
 
@@ -150,7 +151,6 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
   double f0_ =vf0.getScalar<double>();
  
 
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // thanks to checks in getResultDims(), we can expect all 
   // vectors to have the right sizes
   // Get RA and DEC, and station positions

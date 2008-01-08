@@ -29,6 +29,8 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
+#define AX1 "L"
+#define AX2 "M"
 
 //#define DEBUG 
 namespace Meq {
@@ -88,16 +90,16 @@ void ShapeletVisTf::computeResultCells (Cells::Ref &ref,const std::vector<Result
 	Domain::Ref domain(new Domain());
 	domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
 	domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
-	domain().defineAxis(Axis::axis("U"), old_dom.start(Axis::axis("U")), old_dom.end(Axis::axis("U")));
-	domain().defineAxis(Axis::axis("V"), old_dom.start(Axis::axis("V")), old_dom.end(Axis::axis("V")));
+	domain().defineAxis(Axis::axis(AX1), old_dom.start(Axis::axis(AX1)), old_dom.end(Axis::axis(AX1)));
+	domain().defineAxis(Axis::axis(AX2), old_dom.start(Axis::axis(AX2)), old_dom.end(Axis::axis(AX2)));
 	Cells::Ref outcells_ref;
 	Cells &outcells=outcells_ref<<=new Cells(*domain);
 
 	outcells.setCells(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME), 1);
 	outcells.setCells(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ), 1);
 
-	outcells.setCells(Axis::axis("U"), incells.center(Axis::axis("U")), incells.cellSize(Axis::axis("U")));
-	outcells.setCells(Axis::axis("V"), incells.center(Axis::axis("V")), incells.cellSize(Axis::axis("V")));
+	outcells.setCells(Axis::axis(AX1), incells.center(Axis::axis(AX1)), incells.cellSize(Axis::axis(AX1)));
+	outcells.setCells(Axis::axis(AX2), incells.center(Axis::axis(AX2)), incells.cellSize(Axis::axis(AX2)));
 
 
   ref.attach(outcells);
@@ -132,8 +134,8 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 
 	const Cells &incells=resultCells();
 	//get U,V axes
-	blitz::Array<double,1> uax=incells.center(Axis::axis("U"));
-	blitz::Array<double,1> vax=incells.center(Axis::axis("V"));
+	blitz::Array<double,1> uax=incells.center(Axis::axis(AX1));
+	blitz::Array<double,1> vax=incells.center(Axis::axis(AX2));
 	//note: we decompose f(-l,m) so the Fourier transform is F(-u,v)
 	//so negate the u grid
 	uax=-uax;
@@ -310,8 +312,8 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 	}
 	const Cells &incells=request.cells();
 	//get U,V axes
-	blitz::Array<double,1> uax=incells.center(Axis::axis("U"));
-	blitz::Array<double,1> vax=incells.center(Axis::axis("V"));
+	blitz::Array<double,1> uax=incells.center(Axis::axis(AX1));
+	blitz::Array<double,1> vax=incells.center(Axis::axis(AX2));
 	//note: we decompose f(-l,m) so the Fourier transform is F(-u,v)
 	//so negate the u grid
 	uax=-uax;
@@ -354,24 +356,24 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 	Domain::Ref domain(new Domain());
 	domain().defineAxis(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME));
 	domain().defineAxis(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ));
-	domain().defineAxis(Axis::axis("U"), old_dom.start(Axis::axis("U")), old_dom.end(Axis::axis("U")));
-	domain().defineAxis(Axis::axis("V"), old_dom.start(Axis::axis("V")), old_dom.end(Axis::axis("V")));
+	domain().defineAxis(Axis::axis(AX1), old_dom.start(Axis::axis(AX1)), old_dom.end(Axis::axis(AX1)));
+	domain().defineAxis(Axis::axis(AX2), old_dom.start(Axis::axis(AX2)), old_dom.end(Axis::axis(AX2)));
 	Cells::Ref outcells_ref;
 	Cells &outcells=outcells_ref<<=new Cells(*domain);
 
 	outcells.setCells(Axis::TIME, old_dom.start(Axis::TIME), old_dom.end(Axis::TIME), 1);
 	outcells.setCells(Axis::FREQ, old_dom.start(Axis::FREQ), old_dom.end(Axis::FREQ), 1);
 
-	outcells.setCells(Axis::axis("U"), incells.center(Axis::axis("U")), incells.cellSize(Axis::axis("U")));
-	outcells.setCells(Axis::axis("V"), incells.center(Axis::axis("V")), incells.cellSize(Axis::axis("V")));
+	outcells.setCells(Axis::axis(AX1), incells.center(Axis::axis(AX1)), incells.cellSize(Axis::axis(AX1)));
+	outcells.setCells(Axis::axis(AX2), incells.center(Axis::axis(AX2)), incells.cellSize(Axis::axis(AX2)));
 
 	VellSet::Ref vref;
 	VellSet &vs=vref<<= new VellSet(0,1);
 
 	Vells realv(0.0,outcells.shape());
 	Vells imagv(0.0,outcells.shape());
-	VellsSlicer<double,2> rlsl(realv,Axis::axis("U"),Axis::axis("V"));
-	VellsSlicer<double,2> imsl(imagv,Axis::axis("U"),Axis::axis("V"));
+	VellsSlicer<double,2> rlsl(realv,Axis::axis(AX1),Axis::axis(AX2));
+	VellsSlicer<double,2> imsl(imagv,Axis::axis(AX1),Axis::axis(AX2));
 	blitz::Array<double,2> realsum(Nu,Nv);
 	blitz::Array<double,2> imagsum(Nu,Nv);
 	realsum=0;
