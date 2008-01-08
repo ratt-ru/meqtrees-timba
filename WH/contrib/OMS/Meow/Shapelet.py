@@ -153,7 +153,7 @@ class Shapelet(PointSource):
 
       #shptf= shp(*ifr)<<Meq.PrivateFunction(children=self._children, lib_name="/home/sarod/shapelet/src/lib/shapeletpriv.so",function_name="test", dep_mask=0xff);
       shptf= shp(*ifr)<<Meq.ShapeletVisTf(modes=self._children,dep_mask=0xff);
-      gcoh(*ifr) << coherency * fscale * Meq.Compounder(children=[uv,shptf],common_axes=[hiid('U'),hiid('V')]);
+      gcoh(*ifr) << coherency * fscale * Meq.Compounder(children=[uv,shptf],common_axes=[hiid('L'),hiid('M')]);
 
     # phase shift to source position
     self.direction.make_phase_shift(nodes,gcoh,array,dir0);
