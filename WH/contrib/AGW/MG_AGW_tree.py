@@ -42,6 +42,16 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Meq import meqds
 from numarray import *
+
+# setup a bookmark for display of results.
+Settings.forest_state = record(bookmarks=[
+  record(name='Results',page=[
+    record(udi="/node/freq",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/time",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/coeff",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/add",viewer="Result Plotter",pos=(1,1)),
+    record(udi="/node/condeq",viewer="Result Plotter",pos=(2,0)),
+    record(udi="/node/solver",viewer="Result Plotter",pos=(2,1))])]);
  
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
@@ -68,11 +78,14 @@ def _define_forest (ns):
 # initially we guess the coefficients a=1, and b,c,d = 0
   polc_array[0,0] = 1.0
 
+# create the polc
+  polc = meq.polc(polc_array)
+
 # we now create a leaf called 'coeff' which is of type MeqParm and contains
 # the polc_array we created previously. 
-  ns['coeff'] << Meq.Parm(polc_array,node_groups='Parm')
+  ns['coeff'] << Meq.Parm(polc,node_groups='Parm')
 
-# now create a leaf MeqFreq node called 'freq' which has no children
+# create a leaf MeqFreq node called 'freq' which has no children
   ns['freq'] << Meq.Freq()
 
 # create a leaf MeqTime node called 'time' which has no children
@@ -80,7 +93,8 @@ def _define_forest (ns):
 
 # create a MeqAdd node called 'add' which has the children 'freq' and
 # 'time'. As its name indicates it will add the contents of 'freq' and
-# 'time' together.
+# 'time' together. Interestingly, the result of such an addition is a
+# 2-dimensional array!
   ns['add'] << Meq.Add(ns['freq'],ns['time'])
 
 # create a MeqCondeq node called 'condeq'. A MeqCondeq compares the
@@ -97,15 +111,15 @@ def _test_forest (mqs,parent,wait=False):
   this method is automatically called after define_forest() to run a 
   test on the forest. The 'mqs' argument is a meqserver proxy object.
   """;
-# we create a time-frequency 'domain' with range 0 to 2 in frequency and
-# 0 to 1 in time.
+# we create a time-frequency 'domain' with range 0 to 2 in 
+# frequency and 0 to 1 in time.
 # Split the domain into a 8 x 4 "cells' array in time and
 # frequency. The frequency range will be split into 8 increments,
-# while the time range will be split into 4 increments
-# time
+# while the time range will be split into 4 time increments
   cells = meq.cells(meq.domain(0,2,0,1),num_freq=8,num_time=4);
-  # execute request on solver
-  request = meq.request(cells,rqtype='e1')
+
+# now create and execute request on solver
+  request = meq.request(cells, rqtype='e1')
 #  mqs.meq('Node.Set.Breakpoint',record(name='solver'));
 #  mqs.meq('Debug.Set.Level',record(debug_level=100));
   a = mqs.meq('Node.Execute',record(name='solver',request=request),wait=wait);
