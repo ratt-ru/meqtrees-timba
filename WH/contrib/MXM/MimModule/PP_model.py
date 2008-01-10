@@ -37,11 +37,13 @@ meqmaker = MeqMaker.MeqMaker(solvable=do_solve and do_not_simulate);
 # specify available sky models
 # these will show up in the menu automatically
 from Timba.Contrib.OMS.Calico import central_point_source
+from Timba.Contrib.OMS.Siamese import gridded_sky
+
 
 
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
-meqmaker.add_sky_models([central_point_source,lsm]);
+meqmaker.add_sky_models([central_point_source,lsm,gridded_sky]);
 
 
 
@@ -59,6 +61,9 @@ def _define_forest(ns):
     # make a predict tree using the MeqMaker
     if do_solve or do_subtract or not do_not_simulate:
         outputs=predict = meqmaker.make_tree(ns);
+
+    #make a list of selected corrs
+    selected_corrs = cal_corr.split(" ");
 
     # make spigot nodes
     if do_not_simulate:
@@ -105,7 +110,7 @@ def _define_forest(ns):
 
     # very important -- insert meqmaker's runtime options properly
     # this should come last, since runtime options may be built up during compilation.
-    TDLRuntimeOptions(*meqmaker.runtime_options(nest=False));
+    #TDLRuntimeOptions(*meqmaker.runtime_options(nest=False));
     # and insert all solvejobs
     TDLRuntimeOptions(*ParmGroup.get_solvejob_options());
     # finally, setup imaging options
