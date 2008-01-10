@@ -57,7 +57,7 @@ theAuthor} {J.E.
 \backslash 
 renewcommand{
 \backslash 
-theDOIssue}{Version 1.66: 10 Jan 2008} % Date of Issue (
+theDOIssue}{Version 2.0: 15 Jan 2008} % Date of Issue (
 \backslash 
 today, 2004-Nov-25)
 \layout Standard
@@ -89,7 +89,7 @@ theStatus} {Draft} % Alternatives:
 \backslash 
 renewcommand{
 \backslash 
-theRevNR} {1.66} 
+theRevNR} {2.0} 
 \layout Standard
 
 \backslash 
@@ -603,45 +603,354 @@ Introduction
 
 \layout Standard
 
+A radio aperture synthesis array of 
+\begin_inset Formula $N$
+\end_inset 
 
-\series bold 
+ stations can form 
+\begin_inset Formula $N(N-1)/2$
+\end_inset 
+
+ different 2-station interferometers.
+ An interferometer between two stations 
+\begin_inset Formula $i$
+\end_inset 
+
+ and 
+\begin_inset Formula $j$
+\end_inset 
+
+ is defined by its baseline length and orientation, which define a position
+ 
+\begin_inset Formula $(u,v,[w])$
+\end_inset 
+
+ in the socalled 
 \emph on 
-This document is very much a work in progress.
- This draft should lead eventually to a classic joint MIM paper.
- For the moment, it merely aspires to provide a joint framework for our
- various efforts to use the idea of a MIM to tame the ionosphere for LOFAR
- (and other) observations, and other applications.
- In this stage, it still contains many blank spots, to be filled in by various
- members of our little MIM community.
+uv-plane
+\emph default 
+.
+ The latter varies in time as the Earth rotates.
+ The measurements of an intererometer are complex numbers called 
+\emph on 
+uv-data
+\emph default 
+ or 
+\emph on 
+visibilities
+\emph default 
+.
+ They sample the visibility function, which is the Fourier Transform of
+ the observed brightness distribution.
+ A visibility sample is the sum of the contributions from all the sources
+ in the field.
+\layout Standard
+
+The visibilities are corrupted by various instrumental errors, one of which
+ is a phase error caused by the ionosphere.
+ This error, as seen from the position 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ of a receiver 
+\begin_inset Formula $r$
+\end_inset 
+
+, in the direction 
+\begin_inset Formula $(l,m)$
+\end_inset 
+
+ of a radio source 
+\begin_inset Formula $s$
+\end_inset 
+
+ is given by
 \layout Standard
 
 
-\series bold 
-By its nature, this document is also a little complicated, with many ifs
- and buts, and new ideas in various stages of maturity.
- However, the many strands come together in section 
-\begin_inset LatexCommand \ref{sec: LOFAR procedures}
+\begin_inset Formula \[
+\phi_{rs}(x,y,z,l,m,t,\lambda)=-25\lambda T_{rs}(x,y,z,l,m,t)\quad rad\]
 
 \end_inset 
 
-, which describes the proposed LOFAR procedure(s) for ionospheric calibration.
+
+\layout Standard
+
+in which 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+ is the observing wavalength, and 
+\begin_inset Formula $T_{rs}$
+\end_inset 
+
+ is the Total Electron Content (TEC), i.e.
+ the electron density integrated along the propagation path 
+\begin_inset Formula $rs$
+\end_inset 
+
+ (which may be curved), given in TEC Units TECU (
+\begin_inset Formula $10^{16}m^{-2}$
+\end_inset 
+
+).
+ The corresponding ionospheric delay is 
+\begin_inset Formula $L=\lambda\frac{\phi}{2\pi}=-4\lambda^{2}T$
+\end_inset 
+
+ m.
+\layout Standard
+
+The ionospheric phase error 
+\begin_inset Formula $\Delta\phi_{ijs}$
+\end_inset 
+
+ on a visibility sample 
+\begin_inset Formula $V_{ijs}$
+\end_inset 
+
+ assuming a single soure 
+\begin_inset Formula $s$
+\end_inset 
+
+, is
+\layout Standard
+
+
+\begin_inset Formula \[
+\Delta\phi_{ijs}=-25\lambda\Delta T_{ijs}=-25\lambda(T_{is}-T_{js})\quad rad\]
+
+\end_inset 
+
+
+\layout Standard
+
+Thus the ionospheric phase error is proportional to 
+\begin_inset Formula $\lambda$
+\end_inset 
+
+.
+ It is also (to first order) proportional to the interferometer baseline
+ length if the latter is smaller than the ionospheric structure size (see
+ fig ...).
+ If the TEC-function 
+\begin_inset Formula $T$
+\end_inset 
+
+ is purely linear in 
+\begin_inset Formula $(x,y,z)$
+\end_inset 
+
+ over the entire array, the ionosphere will only cause a shift in source
+ position.
+ Higher-order terms will cause the image of the source to be distorted.
+ If there are multiple sources in the field, they will have different ionospheri
+c phase errors, unless the TEC-function is linear over the field (a 5-degr
+ LOFAR field covers about 30 km of ionosphere, assuming an effective altitude
+ of 300 km).
+ 
+\layout Standard
+
+Note that, since visibilities are corrupted by ionospheric phase 
+\emph on 
+differences
+\emph default 
+, the absolute TEC value is not required for imaging, or for any effect
+ that only depends on 
+\begin_inset Formula $\Delta T$
+\end_inset 
+
+ (see also below).
+ This includes the transfer of ionospheric phases from LOFAR HBA to LBA
+ observations: 
+\begin_inset Formula $\Delta\phi_{ij}^{LBA}=(\lambda_{LBA}/\lambda_{HBA})\phi_{ij}^{HBA}$
+\end_inset 
+
+.
+ The absolute TEC is only needed for the calibration of Faraday rotation
+ (see section ...).
+\layout Standard
+
+Instrumental parameters are estimated by minimizing the differences between
+ measured and predicted values of the visibility samples.
+ This is an iterative process, in which the differences decrease as the
+ estimated parameter values approach their correct values.
+ For phases, it is imperative that the 
+\emph on 
+residual
+\emph default 
+ phase errors 
+\begin_inset Formula $\Delta\phi_{ij}$
+\end_inset 
+
+ of all simultaneous visibilities are smaller (in an absolute sense) than
+ 
+\begin_inset Formula $\pi$
+\end_inset 
+
+ rad, so as to avoid phase ambiguity problems.
+ This is an issue at the start of observations with a considerable (how
+ much...?) TEC variation over the array, before the 
+\emph on 
+phase-locking
+\emph default 
+ process has found the initial ionospheric phases.
+\layout Standard
+
+
+\begin_inset Formula \[
+|25\lambda(T_{i}-T_{j})|<\pi\quad rad\]
+
+\end_inset 
+
+
+\layout Standard
+
+In a similar way, it is often necessary to integrate visibilities over a
+ largish bandwidth 
+\begin_inset Formula $\Delta\lambda$
+\end_inset 
+
+, in order to get sufficient S/N.
+ Because of the frequency dependence of the ionospheric phase, the channel
+ visibilities can only be added after they have been sufficiently 'lined-up'
+ by pre-correction with 
+\begin_inset Formula $~\Delta\phi_{ij}$
+\end_inset 
+
+, until the following condition is met:
+\layout Standard
+
+
+\begin_inset Formula \[
+|25(\lambda_{max}-\lambda_{min})(T_{i}-T_{j})|<1\quad rad\]
+
+\end_inset 
+
+
+\layout Standard
+
+Note that the criterion is determined by the fact that averaging vectors
+ whose phases vary over one radian produces an error of 4%.
+\layout Standard
+
+A MIM model is needed for interpolation (subtraction of Cat II sources,
+ and correction of residual uv-data for facet imaging), and to harmonize
+ the Rigid Floating Groups (RFG) of multiple calibrator sources.
+ The latter includes rapid re-pointing.
  
 \layout Standard
 
 
-\series bold 
-Note: Throughout, we use 
-\begin_inset Formula $\lambda$
+\begin_inset Float figure
+wide false
+collapsed false
+
+\layout Standard
+\align center 
+
+\begin_inset Graphics
+	filename MIM_VLA_VirgoA.eps
+	width 50col%
+
 \end_inset 
 
- for wavelength in the equations, while the text frequently refers to frequency.
- Perhaps this should be changed, also because the frequency is independent
- of the propagation medium.
- In any case, the relationship (in vacuum) is 
-\begin_inset Formula $\lambda=300/f_{MHz}$
+
+\begin_inset Graphics
+	filename MIM_scale.eps
+	width 50col%
+
 \end_inset 
 
-.
+
+\layout Caption
+
+
+\begin_inset LatexCommand \label{cap: How smooth is the ionosphere}
+
+\end_inset 
+
+
+\size footnotesize 
+\emph on 
+Is the ionosphere smooth( x,y,z,l,m,t) enough to make a MIM approach practical?
+ We may glean a sort of answer from these visiblity phases.
+ They represent 5 and 10 km baselines of the VLA, observing a bright point
+ source (Virgo A) @ 74 MHz (courtesy of Rick Perley and Gary Bust).
+ During the night, they illustrate three different modes of normal ionospheric
+ behaviour.
+ But after dawn, an unusually large Travelling Ionospheric Disturbance (TID)
+ caused the source to oscillate w.r.t.
+ its nominal position with an amplitude of more than a degree.
+ We will discuss the various phaenomena from right to left.
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+The sinuoidal TID phase variations are large, but smooth.
+ Assuming a TID velocity of 500 m/s (1800 km/hr), one 15 min wave has a
+ size of 450 km.
+ This is consistent with the observation that the phase scales linearly
+ with baselines <10 km.
+ Assuming a TID altitude of 300 km, a single wave would subtend 80-90 degr.
+ Thus, a MIM has to model only 1-2 wave periods, with parameters that evolve
+ in time.
+ This can be accomplished with ~6 time-dependent parameters per dimension,
+ or a total of ~30.
+ 
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+The 'quiescent activity' seems to have two components.
+ The slow, large-scale one scales with baseline length, and can be easily
+ modeled by a MIM.
+ The small-scale component is consistent with the proposition (by Bill Erickson)
+ that the night-time ionosphere settles down and breaks up into small blobs.
+ The resulting phase variations are much too rapid to be modeled or tracked,
+ but as long as their amplitudes are less than a radian, they will not cause
+ troublesome 2
+\backslash 
+pi ambiguities.
+ If they vary rapidly enough, they will add noise to the final image, but
+ no systematic structure.
+ 
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+There is little we can do about scintillation, except perhaps switch to
+ a higher observing frequency.
+ Otherwise, we should just stop observing for a few hours.
+\layout Itemize
+
+
+\size footnotesize 
+\emph on 
+The normal behaviour on the left has the same typical 15 min period as the
+ TID, and largely scales with baseline length.
+ This seems to indicate that it can be adequately modeled by a MIM with
+ the same number of parameters as the TID.
+\layout Standard
+
+
+\size footnotesize 
+\emph on 
+The other part of the 'Erickson proposition' is that the daytime ionosphere
+ has larger, smoother bubbles because the Sun supplies energy to it.
+ This can be compared to the smooth 'cauliflower' tops of cumulus clouds,
+ which grow under Solar irradiation.
+ Thus, daytime observations through the ionosphere should be easier, because
+ the large, smooth phase variations are easier to track.
+\end_inset 
+
+
+\layout Subsection
+
+The old introduction
 \layout Standard
 
 We describe a scheme for the calibration of the ionosphere for radio astronomy.
@@ -756,108 +1065,172 @@ Since this is a working document, section
  the various participants in this collaboration will converge in the coming
  months.
  
-\layout Standard
+\layout Section
 
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename MIM_VLA_VirgoA.eps
-	width 60col%
+Conclusions
+\begin_inset LatexCommand \label{sec: Conclusions}
 
 \end_inset 
 
 
-\layout Caption
+\layout Standard
 
+In this paper, we have postulated a 6D MIM function, which is smooth in
+ all its dimensions (and thus has a relatively small number of parameters).
+ This is used to interpolate (subtract, correct), and to harmonize multiple
+ RFG's.
+\layout Standard
 
-\begin_inset LatexCommand \label{cap: How smooth is the ionosphere}
-
-\end_inset 
-
-
-\size footnotesize 
-\emph on 
-Is the ionosphere smooth( x,y,z,l,m,t) enough to make a MIM approach practical?
- We may glean a sort of answer from these visiblity phases.
- They represent 5 and 10 km baselines of the VLA, observing a bright point
- source (Virgo A) @ 74 MHz (courtesy of Rick Perley and Gary Bust).
- During the night, they illustrate three different modes of normal ionospheric
- behaviour.
- But after dawn, an unusually large Travelling Ionospheric Disturbance (TID)
- caused the source to oscillate w.r.t.
- its nominal position with an amplitude of more than a degree.
- We will discuss the various phaenomena from right to left.
-\layout Itemize
-
-
-\size footnotesize 
-\emph on 
-The sinuoidal TID phase variations are large, but smooth.
- Assuming a TID velocity of 500 m/s (1800 km/hr), one 15 min wave has a
- size of 450 km.
- This is consistent with the observation that the phase scales linearly
- with baselines <10 km.
- Assuming a TID altitude of 300 km, a single wave would subtend 80-90 degr.
- Thus, a MIM has to model only 1-2 wave periods, with parameters that evolve
- in time.
- This can be accomplished with ~6 time-dependent parameters per dimension,
- or a total of ~30.
+We also have described a framework for combining astronomical and GPS observatio
+ns.
+ Since the latter can be used in any proportion, the framework is highly
+ suitable for experimentation.
+ If adopted (in some form) for the operational version for LOFAR calibration,
+ we will also be ready to absorb any advances made by the billion-dollar
+ GPS industry.
  
-\layout Itemize
-
-
-\size footnotesize 
-\emph on 
-The 'quiescent activity' seems to have two components.
- The slow, large-scale one scales with baseline length, and can be easily
- modeled by a MIM.
- The small-scale component is consistent with the proposition (by Bill Erickson)
- that the night-time ionosphere settles down and breaks up into small blobs.
- The resulting phase variations are much too rapid to be modeled or tracked,
- but as long as their amplitudes are less than a radian, they will not cause
- troublesome 2
-\backslash 
-pi ambiguities.
- If they vary rapidly enough, they will add noise to the final image, but
- no systematic structure.
- 
-\layout Itemize
-
-
-\size footnotesize 
-\emph on 
-There is little we can do about scintillation, except perhaps switch to
- a higher observing frequency.
- Otherwise, we should just stop observing for a few hours.
-\layout Itemize
-
-
-\size footnotesize 
-\emph on 
-The normal behaviour on the left has the same typical 15 min period as the
- TID, and largely scales with baseline length.
- This seems to indicate that it can be adequately modeled by a MIM with
- the same number of parameters as the TID.
 \layout Standard
 
-
-\size footnotesize 
-\emph on 
-The other part of the 'Erickson proposition' is that the daytime ionosphere
- has larger, smoother bubbles because the Sun supplies energy to it.
- This can be compared to the smooth 'cauliflower' tops of cumulus clouds,
- which grow under Solar irradiation.
- Thus, daytime observations through the ionosphere should be easier, because
- the large, smooth phase variations are easier to track.
+The framework takes the form of a common solution matrix in which Measurement
+ Equations of various types may be accumulated.
+ These equations all depend on the same MIM parameters 
+\begin_inset Formula $p_{k}$
 \end_inset 
 
+, but will usually depend on different (types of) measurement parameters
+ 
+\begin_inset Formula $q_{m}$
+\end_inset 
 
+.
+ The three main types of equations are:
+\layout Itemize
+
+
+\series bold 
+Astronomical equations:
+\series default 
+ These represent visibilities that are pre-corrected for ionospheric phases,
+ and integrated over frequ subbands for increased S/N.
+ 
+\begin_deeper 
+\layout Itemize
+
+Because the pre-correction is different for each source, simultaneous solutions
+ for more than one source are not possible.
+ Therefore, peeling is necessary, and there will be separate equations for
+ each peeling source.
+ Each peeling source will produce its own solution, i.e.
+ its own Rigid Floating Group (RFG) of 
+\emph on 
+low-noise
+\emph default 
+ (degrees) relative phases, which share a single unknown offset.
+ The different offsets multiple sources are harmonized (made consistent)
+ by the MIM.
+ This will require a phase-locking strategy.
+\layout Itemize
+
+A single astronomical source is sufficient if the TEC-function may be assumed
+ to be linear over the FOV footprint, or if the array is larger than this
+ footp
+\end_deeper 
+\layout Itemize
+
+
+\series bold 
+GPS equations: 
+\series default 
+These represent (linear combinations of) GPS carrier phase measurements.
+ The GPS industry has produced a veritable zoo of different linear combinations,
+ ranging from dual and triple frequency combinations to single, double and
+ triple differences between measurements involving different stations and
+ satellites.
+\layout Itemize
+
+
+\series bold 
+Constraint equations:
+\series default 
+ This is the 
+\emph on 
+only
+\emph default 
+ point where assumptions (other than smoothness) about the ionosphere may
+ be inserted, in the form of a 3D ionospheric model.
+ These equations are used to bridge the inevitable gaps in the MIM sampling
+ diagram, which are caused by a dearth of astronomical sources or GPS satellites.
+ These equations depend on the MIM parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+, and on any extra parameters of the ionospheric model, e.g.
+ the altitude 
+\begin_inset Formula $h(x,y,t)$
+\end_inset 
+
+ of a thin layer.
+\layout Standard
+
+Eventually, the matrix is inverted to give (incremental) improvements of
+ the various parameters (the 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ and 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+).
+ These are incremental because the process is iterative.
+ 
+\layout Standard
+
+Long-range parameters are still necessary, to impose constraints like constant
+ GPS phase ambiguity N, slow drift of station time bias, continuity of the
+ MIM, and of other M.E.
+ parameters.
+ Kalmann filtering.
+\layout Subsection
+
+The old conclusion
+\layout Standard
+
+We have outlined the MIM 
+\emph on 
+principle
+\emph default 
+, and proposed a procedure to use it to calibrate ionospheric observations
+ of LOFAR (and other radio telescopes).
+ The 6D MIM-function 
+\begin_inset Formula $M(x,y,z,l,m,t)$
+\end_inset 
+
+ is used as a smoothing agent to combine astronomical and GPS measurements
+ of the ionospheric TEC , and to separate them from instrumental effects.
+ The MIM function is then interpolated to subtract Cat II radio sources
+ from the uv-data, and to correct the residuals before (facet) imaging.
+ The MIM principle is quite general, so it has other applications as well.
+\layout Standard
+
+In this document we have tried to identify the possibilities and limitations
+ of the MIM method.
+ Now is the time to descend into the arena of actual experiments.
+ We propose to demonstrate the capabilities of the MIM in the context of
+ the MeqTree system, as a trail-blazer for the eventual LOFAR implementation
+ in BBS.
+ 
+\layout Standard
+
+One of the most urgent tasks is to develop the capability of solving for
+ long-range parameters, i.e.
+ parameters that have a validity domain that is greater (longer) than the
+ domain of a practical data-snippet.
+ This is needed to distinguish the ionospheric TEC from instrumental effects.
+ For the same reason, we must deal with the widest possible frequency-range.
+\layout Standard
+
+Let's get to work...
 \layout Section
 
 The MIM principle
@@ -2718,8 +3091,13 @@ The Measurement Equations of the RINEX observables pseudorange and carrier
 \end_inset 
 
 , to help solve for the MIM parameters.
- This may be done in a rather bewildering number of ways, which will only
- be hinted at below, but which are fully described in the literature (e.g.
+ This may be done in a large number of ways, which will only be hinted at
+ in appendix 
+\begin_inset LatexCommand \ref{sec: More on GPS equations}
+
+\end_inset 
+
+, but which are fully described in the literature (e.g.
  
 \begin_inset LatexCommand \cite{Seeber,Kaplan,Bingley}
 
@@ -2737,7 +3115,8 @@ The Measurement Equations of the RINEX observables pseudorange and carrier
 \emph on 
 fundamental
 \emph default 
- limits of using GPS data (see section ...).
+ limits of using GPS data (see section ...
+ below).
 \layout Subsection
 
 The RINEX observables
@@ -2792,7 +3171,7 @@ The range
  It is known to an accuracy of 30 m, due to uncertainties in the satellite
  position.
  This error may be eliminated by differencing, either in time or in frequency,
- or by using multiple stations (see below).
+ or by using multiple stations.
  
 \layout Itemize
 
@@ -2871,9 +3250,19 @@ may be shared with those of the astroVis equations.
 \begin_inset Formula $\epsilon_{rs}$
 \end_inset 
 
- is the measurement noise, which is quite large (...
- TECU?).
- It may be reduced considerably by smoothing 
+ is the measurement noise, which is about 300 times the measurement noise
+ 
+\begin_inset Formula $\nu_{rs}$
+\end_inset 
+
+ of the carrier phase 
+\begin_inset Formula $\Phi_{rs}$
+\end_inset 
+
+ (see below), becuse of the much lower code frequency.
+ Thus it corresponds to an uncertainty of 3 TECU, which is equivalent to
+ a phase noise of 300 rad @ 75 MHz.
+ Given time, it may be reduced considerably by smoothing 
 \begin_inset LatexCommand \cite{Kaplan}
 
 \end_inset 
@@ -2961,13 +3350,31 @@ carrier phase ambiguity
 \begin_inset Formula $v_{rs}$
 \end_inset 
 
- is an 
+ is the 
 \emph on 
-observation residual
+carrier phase measurement noise
 \emph default 
 .
- It is of the order of 0.01 TECU, which corresponds to a phase of 1 rad @
- 75 MHz.
+ It is about 
+\begin_inset Formula $\frac{1}{20}\, rad\;(0.05\, rad=2.5\, deg)$
+\end_inset 
+
+, consistent with 
+\begin_inset Formula $S/N\approx20$
+\end_inset 
+
+.
+ For a carrier wavelength of 
+\begin_inset Formula $\lambda=0.2\, m$
+\end_inset 
+
+, this corresponds to an uncertaintu of 0.01 TECU, which is what we have
+ measured in practice.
+ At the LOFAR frequency of 75 MHz (
+\begin_inset Formula $\lambda=4m$
+\end_inset 
+
+), this corresponds to a phase noise of 1 rad.
 \layout Standard
 
 So most of the other instrumental parameters of the two observables are
@@ -2986,6 +3393,55 @@ So most of the other instrumental parameters of the two observables are
 
 .
  
+\layout Subsection
+
+Fundamental limits of using GPS
+\layout Standard
+
+In section 
+\begin_inset LatexCommand \ref{sec: More on GPS equations}
+
+\end_inset 
+
+, we discuss the (largish) number of possible ways to form GPS equations
+ by taking linear combinations of the Measurement Equations of the RINEX
+ quantities above.
+ It will take some experimentation to determine the optimum choice, and
+ there is probably more than one optimum set, depending on the problem.
+ However, we 
+\emph on 
+can
+\emph default 
+ say something general about the fundamental limitations of using GPS informatio
+n to complement the astroVis solution(s).
+ 
+\layout Itemize
+
+Absolute TEC: Needed for Faraday rotation.
+ Obtained (constrained) from smoothed pseudo-range (PR).
+ 
+\layout Itemize
+
+Relative TEC: Needed for imaging.
+ 
+\layout Itemize
+
+RFG flexibility
+\layout Itemize
+
+Pivoting error ....
+\layout Itemize
+
+Phase locking: Even if an absolute TEC is not required, it may take quite
+ a lot of processing to harmonize the various astroVis and GPS measurements
+ with each other (...is this true...?)
+\layout Itemize
+
+Phase tracking: Once we have phase-lock, we should maintain it with a minimum
+ amount of processing.
+\layout Subsection
+
+GPS cases...
 \layout Standard
 
 Referring to the MIM-diagrams in figs 
@@ -3814,51 +4270,6 @@ Simulations (to be) done
 \layout Enumerate
 
 ..
-\layout Section
-
-Conclusions
-\begin_inset LatexCommand \label{sec: Conclusions}
-
-\end_inset 
-
-
-\layout Standard
-
-We have outlined the MIM 
-\emph on 
-principle
-\emph default 
-, and proposed a procedure to use it to calibrate ionospheric observations
- of LOFAR (and other radio telescopes).
- The 6D MIM-function 
-\begin_inset Formula $M(x,y,z,l,m,t)$
-\end_inset 
-
- is used as a smoothing agent to combine astronomical and GPS measurements
- of the ionospheric TEC , and to separate them from instrumental effects.
- The MIM function is then interpolated to subtract Cat II radio sources
- from the uv-data, and to correct the residuals before (facet) imaging.
- The MIM principle is quite general, so it has other applications as well.
-\layout Standard
-
-In this document we have tried to identify the possibilities and limitations
- of the MIM method.
- Now is the time to descend into the arena of actual experiments.
- We propose to demonstrate the capabilities of the MIM in the context of
- the MeqTree system, as a trail-blazer for the eventual LOFAR implementation
- in BBS.
- 
-\layout Standard
-
-One of the most urgent tasks is to develop the capability of solving for
- long-range parameters, i.e.
- parameters that have a validity domain that is greater (longer) than the
- domain of a practical data-snippet.
- This is needed to distinguish the ionospheric TEC from instrumental effects.
- For the same reason, we must deal with the widest possible frequency-range.
-\layout Standard
-
-Let's get to work...
 \layout Bibliography
 \bibitem {TMS}
 
@@ -3980,9 +4391,10 @@ LOFAR Calibration Framework, LOFAR document
 \emph default 
  (oct 2006)
 \layout Bibliography
-\bibitem {key-15}
+\bibitem {JEN longrange}
 
-..
+J.E.
+ Noordam, Solving for long-range parameters, MeqTree document (jan 2008)
 \layout Bibliography
 \bibitem {key-16}
 
@@ -6185,6 +6597,32 @@ The size of the RFTG can be increased arbitrarily by using an array of GPS
 \end_inset 
 
 
+\layout Subsection
+
+Forming the optimum set of GPS equations
+\begin_inset LatexCommand \label{sub: Optimum set of GPS equs}
+
+\end_inset 
+
+
+\layout Standard
+
+All linear combinations are implicit in the set of bare equations.
+ Using derived equations nevertheless has the following advantages:
+\layout Itemize
+
+It gives insight in the linear dependencies, and thus in the flexibility
+ of the resulting RFG.
+\layout Itemize
+
+It reduces the number of measurement parameters 
+\begin_inset Formula $q_{m}$
+\end_inset 
+
+ that has to be solved for.
+\layout Standard
+
+Probably the best is to use all SD equations, for all carrier freqiencies....?
 \layout Section
 
 Acquiring and maintaining phase-lock
@@ -6250,47 +6688,6 @@ Note that phase-tracking takes the shape of an approximate MIM, i.e.
  The values of all parameter values are then improved in to the required
  level the subsequent stages.
  
-\layout Section
-
-Long-range parameters
-\begin_inset LatexCommand \label{sec: Long-range parameters}
-
-\end_inset 
-
-
-\layout Standard
-
-How do we solve for MIM (and other) parameters that have a validity-domain
- that is longer in time than the solution-domain? 
-\layout Standard
-
-This is an important issue, since LOFAR can only be calibrated if we can
- make full use of our 
-\emph on 
-a priori
-\emph default 
- knowledge that certain parameters change only slowly, on a time-scale that
- is much longer (hours) than the domian size (minutes) of a practical data-snipp
-et
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-Even if the intermediate results are cached by the minimum number of nodes,
- their total size in a big reduction tree would quickly overwhelm the available
- memory if the request domain were greater than a few minutes.
-\end_inset 
-
-.
- Examples are the parameters of the station beamshapes.
- A proper estimation requires more sampling points than there are bright
- Cat I sources.
- We therefore have to promote some of the brighter Cat II sources to Cat
- I status, but that requires longer integration.
- Another example, which is more directly relevant here, is the GPS bias,
- which is assumed to be 'constant' in time.
- 
 \layout Standard
 
 First we attempt to separate various effects by taking the largest possible
@@ -6306,87 +6703,6 @@ The idea is for the MeqParm to remember the history of the values of its
 The limitations are that the new information cannot easiliy be translated
  back, so that there is a switch-on effect, or lag-effect (This converges
  to zero in a multi-pass scheme like the Major Cycle).
-\layout Standard
-
-Another problem is how to deal with (i.e.
- detect, incorporate) legitimate jumps in the MeqParm values.
- Etc.
-\layout Standard
-
-See fig 
-\begin_inset LatexCommand \ref{cap: long-range: MeqParm}
-
-\end_inset 
-
-.
-\layout Standard
-
-
-\begin_inset ERT
-status Collapsed
-
-\layout Standard
-{
-\backslash 
-tiny NB: This used to be called the 'intelligent MeqParm'. I have been going on about it for some years in the MeqTree group, but the problem was not perceived to be important enough to overcome the limitations of the proposed solutions. The latter are real enough, and perhaps fundamental, but if the problem is big enough even a partial solution is better than nothing at all. Perhaps its time has come now.}
-\end_inset 
-
-
-\layout Standard
-
-
-\begin_inset Float figure
-wide false
-collapsed false
-
-\layout Standard
-\align center 
-
-\begin_inset Graphics
-	filename MIM_longrange.eps
-	width 80col%
-
-\end_inset 
-
-
-\layout Caption
-
-
-\begin_inset LatexCommand \label{cap: long-range: MeqParm}
-
-\end_inset 
-
-
-\size footnotesize 
-\emph on 
-Long-range parameters.
- How do we solve for MIM (and other) parameters that have a validity-domain
- that is longer in time than the solution-domain? One solution is to build
- extra intelligence in the parameter object, so that it keeps track of its
- own history, and can take intelligent decisions.
- First of all it may extrapolate in time, giving a better starting value
- for the next snippet.
- This value may also be used to reject new values that are 'bad', i.e.
- that differ too much from the expected value.
-\layout Standard
-
-
-\series bold 
-\size footnotesize 
-\emph on 
-The following is a jargon-laced placeholder:
-\series default 
- The history that the object retains could be in the form of small solution
- matrices, one for each coefficient of the MeqParm polc.
- The matrices would solve for the coefficients of the time-function of each
- polc coefficient, e.g.
- a low-order polynomial.
- Accepted new values (increments) may be accumulated, and the matrices may
- be inverted each time a new expected value is needed.
- 
-\end_inset 
-
-
 \layout Standard
 
 
