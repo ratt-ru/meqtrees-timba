@@ -20,19 +20,10 @@ DIAG_CORRS = "XX YY";
 CROSS_CORRS = "YX XY";
 SINGLE_CORR = "XX";
 
-TDLCompileMenu("What do we want to do",
-  TDLMenu("Work with existing UV data (otherwise simulate)",
-          TDLOption('do_solve',"Calibrate",True),
-          TDLOption('cal_corr',"Use correlations",
-                    [ALL_CORRS,DIAG_CORRS,CROSS_CORRS,SINGLE_CORR]),
-          TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
-          toggle='do_not_simulate',open=True  ),
-
-);
 
 # now load optional modules for the ME maker
 from Meow import MeqMaker
-meqmaker = MeqMaker.MeqMaker(solvable=do_solve and do_not_simulate);
+meqmaker = MeqMaker.MeqMaker(solvable=True);
 
 # specify available sky models
 # these will show up in the menu automatically
@@ -51,6 +42,20 @@ meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
+TDLCompileMenu("What do we want to do",
+  TDLMenu("Work with existing UV data (otherwise simulate)",
+          TDLOption('do_solve',"Calibrate",True),
+          TDLOption('cal_corr',"Use correlations",
+                    [ALL_CORRS,DIAG_CORRS,CROSS_CORRS,SINGLE_CORR]),
+          TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
+          TDLMenu("Correct the data or residuals",
+                  TDLMenu("include sky-Jones correction",
+                          TDLOption('src_name',"name of the source (if None, first source in list is used)",[None,"S+0+0"],more=str),
+                          toggle='do_correct_sky',open=True),
+                  toggle='do_correct',open=True),
+          toggle='do_not_simulate',open=True  ),
+
+);
 
 def _define_forest(ns):
     #make pynodes, xyzcomponent for sources
@@ -78,6 +83,19 @@ def _define_forest(ns):
                 residuals(p,q) << spigots(p,q) - predict(p,q);
             outputs = residuals;
 
+        # and now we may need to correct the outputs
+        if do_correct:
+            if do_correct_sky:
+                if src_name:
+                    sky_correct = src_name;
+                else:
+                    srcs = meqmaker.get_source_list(ns);
+                    sky_correct = srcs and srcs[0];
+
+                
+            else:
+                sky_correct = None;
+            outputs = meqmaker.correct_uv_data(ns,outputs,sky_correct=sky_correct);
 
         # make solve trees
         if do_solve:
