@@ -83,27 +83,27 @@ def _define_forest (ns):
 
 # we now create a leaf called 'coeff' which is of type MeqParm and contains
 # the polc_array we created previously. 
-  ns['coeff'] << Meq.Parm(polc,node_groups='Parm')
+  ns.coeff << Meq.Parm(polc,node_groups='Parm')
 
 # create a leaf MeqFreq node called 'freq' which has no children
-  ns['freq'] << Meq.Freq()
+  ns.freq << Meq.Freq()
 
 # create a leaf MeqTime node called 'time' which has no children
-  ns['time'] << Meq.Time()
+  ns.time << Meq.Time()
 
 # create a MeqAdd node called 'add' which has the children 'freq' and
 # 'time'. As its name indicates it will add the contents of 'freq' and
 # 'time' together. Interestingly, the result of such an addition is a
 # 2-dimensional array!
-  ns['add'] << Meq.Add(ns['freq'],ns['time'])
+  ns.add << Meq.Add(ns.freq, ns.time)
 
 # create a MeqCondeq node called 'condeq'. A MeqCondeq compares the
 # contents of the 'add' and 'coeff' nodes
-  ns['condeq'] <<Meq.Condeq(ns['add'],ns['coeff'])
+  ns.condeq <<Meq.Condeq(ns.add, ns.coeff)
 
 # finally create a solver
-  ns['solver'] << Meq.Solver(
-      num_iter=3,debug_level=10,solvable="coeff", children = ns['condeq'])
+  ns.solver << Meq.Solver(
+      num_iter=3,debug_level=10,solvable="coeff", children = ns.condeq)
 
 def _test_forest (mqs,parent,wait=False):
   """test_forest() is a standard TDL name. When a forest script is
@@ -111,9 +111,9 @@ def _test_forest (mqs,parent,wait=False):
   this method is automatically called after define_forest() to run a 
   test on the forest. The 'mqs' argument is a meqserver proxy object.
   """;
-# we create a time-frequency 'domain' with range 0 to 2 in 
+# We create a time-frequency 'domain' with range 0 to 2 in 
 # frequency and 0 to 1 in time.
-# Split the domain into a 8 x 4 "cells' array in time and
+# We split the domain into a 8 x 4 "cells' array in time and
 # frequency. The frequency range will be split into 8 increments,
 # while the time range will be split into 4 time increments
   cells = meq.cells(meq.domain(0,2,0,1),num_freq=8,num_time=4);
