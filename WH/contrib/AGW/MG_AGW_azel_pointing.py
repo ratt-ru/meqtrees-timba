@@ -65,10 +65,13 @@ def ASKAP_voltage_response(E, lm):
   return E
 
 # get Azimuth / Elevation telescope structural errors
-TDLCompileMenu('Telescope Structural Errors - in arcsec',
+TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
   TDLOption('AN','Amount by which telescope azimuth axis is North of Vertical',[0,5,10,20],more=float),
   TDLOption('AE','Amount by which telescope azimuth axis is East of Vertical',[0,5,10,20],more=float),
+  TDLOption('AZ_EN','Azimuth encoder offset',[0,5,10,20],more=float),
   TDLOption('NPAE','Amount by which telescope elevation axis is not perpendicular to azimuth axis',[0,5,10,20],more=float),
+  TDLOption('GRAV','Gravitational deformation',[0,5,10,20],more=float),
+  TDLOption('randomize_axes','Randomize above extremes for each telescope?',[True,False]),
 );
 
 TDLCompileOption("max_tr_error","Max tracking error, arcsec",[0,1,2,5],more=float);
@@ -80,6 +83,8 @@ def _define_forest (ns):
   AN_rad = AN * ARCSEC
   AE_rad = AE * ARCSEC
   NPAE_rad = NPAE * ARCSEC
+  AZ_EN_rad = AZ_EN * ARCSEC
+  GRAV_rad = GRAV * ARCSEC
 
   # create an Array object
   num_antennas = 30
@@ -104,7 +109,7 @@ def _define_forest (ns):
     ns.daz(p) << ampl*Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
     ns.dell(p) << ampl*Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
 
-    # systematic variations
+    # systematic variations due to telescope axis errors
     ns.AzEl(p) << Meq.AzEl(observation.phase_centre.radec(), array.xyz(p)) 
     ns.Az(p) << Meq.Selector(ns.AzEl(p), index=0)
     ns.El(p) << Meq.Selector(ns.AzEl(p), index=1)
@@ -112,12 +117,24 @@ def _define_forest (ns):
     ns.CosAz(p) << Meq.Cos(ns.Az(p))
     ns.SinEl(p) << Meq.Sin(ns.El(p))
 #   ns.CosEl(p) << Meq.Cos(ns.El(p))
+    
+    if randomize_axes:
+      axis_offset_NPAE = random.uniform(-1.0,1.0)
+      axis_offset_AE = random.uniform(-1.0,1.0)
+      axis_offset_AN = random.uniform(-1.0,1.0)
+      axis_offset_AZ_EN = random.uniform(-1.0,1.0)
+      axis_offset_GRAV = random.uniform(-1.0,0.0)
+    else:
+      axis_offset_NPAE = 1.0
+      axis_offset_AE = 1.0
+      axis_offset_AN = 1.0
+      axis_offset_AZ_EN = 1.0
+      axis_offset_GRAV = -1.0
 
-    ns.AzCorr_sky(p) << NPAE_rad * ns.SinEl(p) + AE_rad * ns.SinEl(p) * ns.CosAz(p) + AN_rad * ns.SinAz(p) * ns.SinEl(p)
-#   ns.AzCorr(p) << ns.AzCorr_sky(p) * ns.CosEl(p) 
+    ns.AzCorr_sky(p) << axis_offset_AZ_EN * AZ_EN_rad + axis_offset_NPAE * NPAE_rad * ns.SinEl(p) + axis_offset_AE * AE_rad * ns.SinEl(p) * ns.CosAz(p) + axis_offset_AN * AN_rad * ns.SinAz(p) * ns.SinEl(p)
     ns.AzPoint(p) << ns.AzCorr_sky(p) + ns.daz(p)
 
-    ns.ElCorr(p) << AN_rad * ns.CosAz(p) + AE_rad * ns.SinAz(p) 
+    ns.ElCorr(p) << axis_offset_GRAV * GRAV_rad + axis_offset_AN * AN_rad * ns.CosAz(p) + axis_offset_AE * AE_rad * ns.SinAz(p) 
     ns.ElPoint(p) << ns.ElCorr(p) + ns.dell(p)
     ns.AzElPoint(p) << Meq.Composer(ns.AzPoint(p), ns.ElPoint(p))
 
