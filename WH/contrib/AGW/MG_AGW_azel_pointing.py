@@ -131,10 +131,10 @@ def _define_forest (ns):
       axis_offset_AZ_EN = 1.0
       axis_offset_GRAV = -1.0
 
-    ns.AzCorr_sky(p) << axis_offset_AZ_EN * AZ_EN_rad + axis_offset_NPAE * NPAE_rad * ns.SinEl(p) + axis_offset_AE * AE_rad * ns.SinEl(p) * ns.CosAz(p) + axis_offset_AN * AN_rad * ns.SinAz(p) * ns.SinEl(p)
+    ns.AzCorr_sky(p) << axis_offset_AZ_EN * AZ_EN_rad + axis_offset_NPAE * NPAE_rad * ns.SinEl(p) - axis_offset_AE * AE_rad * ns.SinEl(p) * ns.CosAz(p) - axis_offset_AN * AN_rad * ns.SinAz(p) * ns.SinEl(p)
     ns.AzPoint(p) << ns.AzCorr_sky(p) + ns.daz(p)
 
-    ns.ElCorr(p) << axis_offset_GRAV * GRAV_rad + axis_offset_AN * AN_rad * ns.CosAz(p) + axis_offset_AE * AE_rad * ns.SinAz(p) 
+    ns.ElCorr(p) << axis_offset_GRAV * GRAV_rad + axis_offset_AN * AN_rad * ns.CosAz(p) - axis_offset_AE * AE_rad * ns.SinAz(p) 
     ns.ElPoint(p) << ns.ElCorr(p) + ns.dell(p)
     ns.AzElPoint(p) << Meq.Composer(ns.AzPoint(p), ns.ElPoint(p))
 
