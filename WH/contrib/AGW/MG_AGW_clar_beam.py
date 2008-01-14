@@ -32,7 +32,7 @@ import Meow.Bookmarks
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("CLAR Beam",["exp_gain","beam_rot"],["AzEl"])
+  Meow.Bookmarks.PlotPage("CLAR Beam",["beam_rot"],["AzEl"])
 ]);
 
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
@@ -47,6 +47,9 @@ TDLCompileMenu('Field Centre RA and DEC',
 
 # get telescope location for use in simulation
 TDLCompileOption('telescope','Telescope Site',['DRAO','VLA'])
+
+# do fast or slow calculation
+TDLCompileOption('pre_rotate','Pre-Rotate L and M frame (fast method)',[True, False])
 
 def _define_forest (ns):
   """define_forest() is a standard TDL name. When a forest script is
@@ -65,11 +68,25 @@ def _define_forest (ns):
 # M_gain = (sin_factor * M * M ) / (width * width)
 # power pattern = exp(log16 * (L_gain + M_gain))
 
+# constant used in beam calculation
+  ns.ln_16 << Meq.Constant(-2.7725887)
+
+# CLAR HPBW of 3 arcmin at zenith = 0.00087266 radians 
+  ns.HPBW << Meq.Constant(0.00087266)
+
+# beam is centred in L,M grid
+  ns.centre << Meq.Constant(0.0)
+
 # create a MeqComposer containing ra dec position
   ns.RADec <<Meq.Composer(fc_ra, fc_dec)
 
 # we create an AzEl node with an Observatory name
   ns.AzEl << Meq.AzEl(radec=ns.RADec, observatory=telescope)
+
+# create a Parallactic angle node
+  pa = ns.ParAngle << Meq.ParAngle(radec=ns.RADec, observatory = telescope)
+# rotation matrix to go from AzEl to Ra,Dec L,M  
+  ns.P << Meq.Matrix22(Meq.Cos(pa),-Meq.Sin(pa),Meq.Sin(pa),Meq.Cos(pa))
 
 # get the elevation
   ns.El << Meq.Selector(ns.AzEl, index=1)
@@ -80,40 +97,45 @@ def _define_forest (ns):
   # square this sine value
   ns.sine_el_sq << Meq.Sqr(ns.sine_el)
 
-  ns.centre << Meq.Constant(0.0)
 # create L and M axis nodes
   laxis = ns.laxis << Meq.Grid(axis=2);
   maxis = ns.maxis << Meq.Grid(axis=3);
-  ns.l_sq << Meq.Sqr(laxis - ns.centre)
-  ns.m_sq << Meq.Sqr(maxis - ns.centre)
-  ns.m_sq_sin << Meq.Multiply(ns.m_sq, ns.sine_el_sq)
-
-# constant used in beam calculation
-  ns.ln_16 << Meq.Constant(-2.7725887)
-
-# CLAR HPBW of 3 arcmin at zenith = 0.00087266 radians 
-  ns.HPBW << Meq.Constant(0.00087266)
-
-# Add l and m gains
-  ns.l_and_m_sq << Meq.Add(ns.l_sq, ns.m_sq_sin)
-  ns.exp_gain << Meq.Exp((ns.l_and_m_sq * ns.ln_16) / Meq.Sqr(ns.HPBW))
 
 # attempt to de-rotate the beam in AzEl coordinates to sky coordinates
-  ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
+  if pre_rotate:
+    ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
 
-# create a Parallactic angle node
-  pa = ns.ParAngle << Meq.ParAngle(radec=ns.RADec, observatory = telescope)
+    ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
+    ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
+    ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
+  
+    ns.l_sq << Meq.Sqr(ns.l_rot - ns.centre)
+    ns.m_sq << Meq.Sqr(ns.m_rot - ns.centre)
+    ns.m_sq_sin << Meq.Multiply(ns.m_sq, ns.sine_el_sq)
 
-# rotation matrix to go from AzEl to Ra,Dec L,M  
-  ns.P << Meq.Matrix22(Meq.Cos(pa),-Meq.Sin(pa),Meq.Sin(pa),Meq.Cos(pa))
+# Add l and m gains
+    ns.l_and_m_sq << Meq.Add(ns.l_sq, ns.m_sq_sin)
+    ns.beam_rot << Meq.Exp((ns.l_and_m_sq * ns.ln_16) / Meq.Sqr(ns.HPBW))
 
-  ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
-  ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
-  ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
-  ns.lm_rot << Meq.Composer(Meq.Grid(axis=0),Meq.Grid(axis=1),ns.l_rot,ns.m_rot)
+  else:
+    ns.l_sq << Meq.Sqr(laxis - ns.centre)
+    ns.m_sq << Meq.Sqr(maxis - ns.centre)
+    ns.m_sq_sin << Meq.Multiply(ns.m_sq, ns.sine_el_sq)
 
-  ns.resampler << Meq.Resampler(ns.exp_gain,dep_mask = 0xff)
-  ns.beam_rot << Meq.Compounder(children=[ns.lm_rot,ns.resampler],common_axes=[hiid('l'),hiid('m')])
+# Add l and m gains
+    ns.l_and_m_sq << Meq.Add(ns.l_sq, ns.m_sq_sin)
+    ns.exp_gain << Meq.Exp((ns.l_and_m_sq * ns.ln_16) / Meq.Sqr(ns.HPBW))
+
+# attempt to de-rotate the beam in AzEl coordinates to sky coordinates
+    ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
+
+    ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
+    ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
+    ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
+    ns.lm_rot << Meq.Composer(Meq.Grid(axis=0),Meq.Grid(axis=1),ns.l_rot,ns.m_rot)
+
+    ns.resampler << Meq.Resampler(ns.exp_gain,dep_mask = 0xff)
+    ns.beam_rot << Meq.Compounder(children=[ns.lm_rot,ns.resampler],common_axes=[hiid('l'),hiid('m')])
 
 ##################################################
 def _test_forest (mqs,parent,wait=False):
