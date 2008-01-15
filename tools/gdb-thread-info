@@ -1,0 +1,67 @@
+#
+# Feed this to gdb to get a dump of all thread's stacks:
+#   gdb -x gdb-thread-info -batch <executable> <pid>  
+# Use >log or &>log to dump to file.
+#
+
+info thr
+thread 1
+info stack
+thread 2
+info stack
+thread 3
+info stack
+thread 4
+info stack
+thread 5
+info stack
+thread 6
+info stack
+thread 7
+info stack
+thread 8
+info stack
+thread 9
+info stack
+thread 10
+info stack
+thread 11
+info stack
+thread 12
+info stack
+thread 13
+info stack
+thread 14
+info stack
+thread 15
+info stack
+thread 16
+info stack
+thread 17
+info stack
+thread 18
+info stack
+thread 19
+info stack
+thread 20
+info stack
+thread 21
+info stack
+thread 22
+info stack
+thread 23
+info stack
+thread 24
+info stack
+thread 25
+info stack
+thread 26
+info stack
+thread 27
+info stack
+thread 28
+info stack
+thread 29
+info stack
+thread 30
+info stack
