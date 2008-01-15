@@ -37,7 +37,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Meq import meqds
  
-# setup a bookmark for display of results with a 'Collections Plotter'
+# setup a bookmark for display of results with a 'Result Plotter'
 Settings.forest_state = record(bookmarks=[
   record(name='LST',page=[
     record(udi="/node/LST",viewer="Result Plotter",pos=(0,0)),
@@ -54,8 +54,8 @@ def _define_forest (ns):
   define the forest. The 'ns' argument is a NodeScope object in which
   the forest is to be defined, usually this is simply the global scope.
   """;
-# ITRF station positions for one of the VLA telescopes - converted
-# to an aips++ MVDirection object in the AzEl node (units are metres) 
+# ITRF station positions for one of the VLA telescopes 
+# (units are metres) 
   X_pos = -1597262.96
   Y_pos = -5043205.54
   Z_pos = 3554901.34
@@ -103,6 +103,7 @@ def _test_forest (mqs,parent,wait=False):
 
 # execute request
   a = mqs.meq('Node.Execute',record(name='reqseq',request=request),wait=wait);
+# a = mqs.meq('Node.Execute',record(name='LST',request=request),wait=True);
 
 # The following is the testing branch, executed when the script is run directly
 # via 'python script.py'
