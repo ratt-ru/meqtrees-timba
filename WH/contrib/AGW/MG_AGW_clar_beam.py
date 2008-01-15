@@ -37,7 +37,7 @@ Settings.forest_state = record(bookmarks=[
 
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
 # This is a record passed to Set.Forest.State. 
-#Settings.forest_state.cache_policy = 100;
+Settings.forest_state.cache_policy = 100;
 
 # get position of field centre RA DEC
 TDLCompileMenu('Field Centre RA and DEC',
