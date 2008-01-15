@@ -87,17 +87,41 @@ class PiercePoints(MIM_model):
  
     def make_longlat_pp(self,ref_station=None):
         '''make longitude and lattitude of piercepoints'''
-        pp = self.make_pp(ref_station=ref_station);
+        pp = self.make_xyz_pp(ref_station=ref_station);
         for station in self.stations:
-            for src in self.src:
-                x = pp('x',src,station)<<Meq.Selector(pp(src,station),index=0);
-                y = pp('y',src,station)<<Meq.Selector(pp(src,station),index=1);
-                z = pp('z',src,station)<<Meq.Selector(pp(src,station),index=2);
-                
+            for src in self.src:                
+                x = pp('x',src,station);
+                y = pp('y',src,station);
+                z = pp('z',src,station);
                 pp('lon',src,station) << Meq.Atan(x/y);
                 pp('lat',src,station) << Meq.Asin(z/Meq.Sqrt(x*x+y*y+z*z));
 
-        
+
+    def make_xy_pp(self,ref_station=None):
+        '''make xy of piercepoints'''
+        pp = self.make_pp(ref_station=ref_station);
+        for station in self.stations:
+            for src in self.src:
+                x = pp('x',src,station);
+                y = pp('y',src,station);
+                if not x.initialized():
+                    x <<Meq.Selector(pp(src,station),index=0);
+                if not y.initialized():
+                    y <<Meq.Selector(pp(src,station),index=1);
+        return pp;
+
+    def make_xyz_pp(self,ref_station=None):
+        '''make xyz of piercepoints'''
+        pp = self.make_xy_pp(ref_station=ref_station);
+        for station in self.stations:
+            for src in self.src:
+                z = pp('z',src,station);
+                if not z.initialized():
+                    z <<Meq.Selector(pp(src,station),index=2);
+
+
+        return pp;
+
     
 def create_inproduct ( ns,a, b,length=0):
     """Computes the dot product of two vectors of arbitrary length""";
