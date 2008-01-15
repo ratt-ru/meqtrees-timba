@@ -42,7 +42,6 @@ class PiercePoints(MIM_model):
 
     def make_pp(self,ref_station=None):
         #returns xyz position of pierce point, assumes spherical earth, if elliptical some other method should be chosen. azel seems to be related to spherical earth plus alpha_prime and the last formula calculating the scale.
-        print "creating pp"
         ns=self.ns;
         if not ns.earth_radius.initialized():
              ns.earth_radius<< Meq.Constant(R_earth);
@@ -74,7 +73,7 @@ class PiercePoints(MIM_model):
                     
                     alpha_prime = Meq.Asin(cos_el*norm_xyz/(ns.earth_radius+ns.h*1000.));
                     sec = ns.sec(src,station)<<1./Meq.Cos(alpha_prime);
-                    sin_beta = ns.sin_beta(src,station)  << Meq.Sin((ns.pi - el) - alpha_prime); #angle at center earth
+                    sin_beta = ns.sin_beta(src,station)  << Meq.Sin((0.5*ns.pi - el) - alpha_prime); #angle at center earth
                     scale = ns.scale(src,station)<<(ns.earth_radius+ns.h*1000.)*sin_beta/cos_el;
                     if ref_station:
                         ns['pp'](src,station) << Meq.MatrixMultiply(rot_matrix,xyz(station) + diff_vector*scale);
