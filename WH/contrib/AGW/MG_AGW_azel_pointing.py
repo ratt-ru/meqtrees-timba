@@ -74,6 +74,7 @@ TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
   TDLOption('randomize_axes','Randomize above extremes for each telescope?',[True,False]),
 );
 
+# get Azimuth / Elevation telescope random tracking errors
 TDLCompileOption("max_tr_error","Max tracking error, arcsec",[0,1,2,5],more=float);
 TDLCompileOption("min_tr_period","Min time scale for tracking variation, hours",[0,1],more=float);
 TDLCompileOption("max_tr_period","Max time scale for tracking variation, hours",[2,4],more=float);
@@ -98,9 +99,8 @@ def _define_forest (ns):
   ampl = max_tr_error*DEG/3600; 
   # create nodes to compute tracking errors per antenna
   for p in array.stations():
-
     # to add random errors on top of systematic ones
-    # pick random periods of daz/del variation, in seconds
+    # convert random periods of daz/del variation from hours to seconds
     daz = random.uniform(min_tr_period*3600,max_tr_period*3600);
     dell = random.uniform(min_tr_period*3600,max_tr_period*3600);
     # pick a random starting phase for the variations
@@ -131,11 +131,9 @@ def _define_forest (ns):
       axis_offset_AZ_EN = 1.0
       axis_offset_GRAV = -1.0
 
-    ns.AzCorr_sky(p) << axis_offset_AZ_EN * AZ_EN_rad + axis_offset_NPAE * NPAE_rad * ns.SinEl(p) - axis_offset_AE * AE_rad * ns.SinEl(p) * ns.CosAz(p) - axis_offset_AN * AN_rad * ns.SinAz(p) * ns.SinEl(p)
-    ns.AzPoint(p) << ns.AzCorr_sky(p) + ns.daz(p)
+    ns.AzPoint(p) << ns.daz(p) + axis_offset_AZ_EN * AZ_EN_rad + axis_offset_NPAE * NPAE_rad * ns.SinEl(p) - axis_offset_AE * AE_rad * ns.SinEl(p) * ns.CosAz(p) - axis_offset_AN * AN_rad * ns.SinAz(p) * ns.SinEl(p)
 
-    ns.ElCorr(p) << axis_offset_GRAV * GRAV_rad + axis_offset_AN * AN_rad * ns.CosAz(p) - axis_offset_AE * AE_rad * ns.SinAz(p) 
-    ns.ElPoint(p) << ns.ElCorr(p) + ns.dell(p)
+    ns.ElPoint(p) << ns.dell(p) + axis_offset_GRAV * GRAV_rad + axis_offset_AN * AN_rad * ns.CosAz(p) - axis_offset_AE * AE_rad * ns.SinAz(p) 
     ns.AzElPoint(p) << Meq.Composer(ns.AzPoint(p), ns.ElPoint(p))
 
     # get Parallactic Angle for the station
@@ -190,9 +188,9 @@ def _tdl_job_1_simulate_MS (mqs,parent):
   # execute    
   mqs.execute('VisDataMux',req,wait=False);
   
-  
-# this is a useful thing to have at the bottom of the script, it allows us to check the tree for consistency
-# simply by running 'python script.tdl'
+# this is a useful thing to have at the bottom of the script,  
+# it allows us to check the tree for consistency simply by 
+# running 'python script.tdl'
 
 if __name__ == '__main__':
   ns = NodeScope();
