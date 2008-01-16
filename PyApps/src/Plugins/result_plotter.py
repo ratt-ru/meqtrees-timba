@@ -696,12 +696,16 @@ class ResultPlotter(GriddedPlugin):
 
 # add this data set to internal list for later replay
     if process_result:
-      label_found = False
-      if len(self.data_list_labels) > 0:
-        for i in range(len(self.data_list_labels)):
-          if self.data_list_labels[i] == self.label:
-            label_found = True
-      if not label_found and self.max_list_length > 0:
+# no longer check for label matching - this was an annoyance more than
+# anything as nothing would be added if we wanted to re-run for
+# some reason
+#     label_found = False
+#     if len(self.data_list_labels) > 0:
+#       for i in range(len(self.data_list_labels)):
+#         if self.data_list_labels[i] == self.label:
+#           label_found = True
+#     if not label_found and self.max_list_length > 0:
+      if self.max_list_length > 0:
         self.data_list.append(self._rec)
         self.data_list_labels.append(self.label)
         if len(self.data_list_labels) > self.max_list_length:
@@ -1062,6 +1066,7 @@ class ResultPlotter(GriddedPlugin):
     if self.results_selector is None:
       self.results_selector = ResultsRange(self.layout_parent)
       self.results_selector.setMaxValue(self.max_list_length)
+      self.results_selector.set_offset_index(0)
       self.layout.addWidget(self.results_selector, 3,1,Qt.AlignHCenter)
       self.results_selector.show()
       QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
@@ -1074,7 +1079,7 @@ class ResultPlotter(GriddedPlugin):
         if not self._visu_plotter is None:
           QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
     self.results_selector.set_emit(False)
-    self.results_selector.setRange(self.data_list_length)
+    self.results_selector.setRange(self.data_list_length-1)
     self.results_selector.setLabel(self.label)
     self.results_selector.set_emit(True)
 
