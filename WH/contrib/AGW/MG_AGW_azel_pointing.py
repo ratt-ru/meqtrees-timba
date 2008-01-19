@@ -32,10 +32,15 @@ from Timba.TDL import *
 from Timba.Meq import meq
 import math
 import random
+import numarray
 
 import Meow
+
+from Meow import Bookmarks
 import Meow.StdTrees
 import sky_models
+
+Settings.forest_state.cache_policy = 100
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
@@ -72,20 +77,37 @@ TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
   TDLOption('NPAE','Amount by which telescope elevation axis is not perpendicular to azimuth axis',[0,5,10,20],more=float),
   TDLOption('GRAV','Gravitational deformation',[0,5,10,20],more=float),
   TDLOption('randomize_axes','Randomize above extremes for each telescope?',[True,False]),
+  TDLOption('do_solve','Solve for Structure Parameters?',[True,False]),
 );
+
+mep_table = 'pointing_coeffs.mep'
+# first, make sure that any previous version of the mep table is
+# obliterated so nothing strange happens in succeeding steps
+if do_solve:
+  try:
+    os.system("rm -fr "+ mep_table);
+  except:   pass
+
 
 # get Azimuth / Elevation telescope random tracking errors
 TDLCompileOption("max_tr_error","Max tracking error, arcsec",[0,1,2,5],more=float);
 TDLCompileOption("min_tr_period","Min time scale for tracking variation, hours",[0,1],more=float);
 TDLCompileOption("max_tr_period","Max time scale for tracking variation, hours",[2,4],more=float);
   
+# support functions for polcs
+def create_polc(c00=0.0,degree_f=0,degree_t=0):
+  """helper function to create a t/f polc with the given c00 coefficient,
+  and with given order in t/f""";
+  polc = meq.polc(numarray.zeros((degree_t+1, degree_f+1))*0.0);
+  polc.coeff[0,0] = c00;
+  return polc;
+
+def tpolc (tdeg,c00=0.0):
+  return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
+                  node_groups='Parm',
+                  table_name=mep_table);
+
 def _define_forest (ns):
-  # convert telescope structure errors to radians
-  AN_rad = AN * ARCSEC
-  AE_rad = AE * ARCSEC
-  NPAE_rad = NPAE * ARCSEC
-  AZ_EN_rad = AZ_EN * ARCSEC
-  GRAV_rad = GRAV * ARCSEC
 
   # create an Array object
   num_antennas = 30
@@ -95,8 +117,10 @@ def _define_forest (ns):
   observation = Meow.Observation(ns);
   # set global context
   Meow.Context.set(array=array,observation=observation);
+
+  if do_solve:
+    solvables = []
  
-  ampl = max_tr_error*DEG/3600; 
   # create nodes to compute tracking errors per antenna
   for p in array.stations():
     # to add random errors on top of systematic ones
@@ -106,8 +130,8 @@ def _define_forest (ns):
     # pick a random starting phase for the variations
     daz_0 = random.uniform(0,2*math.pi); 
     del_0 = random.uniform(0,2*math.pi);
-    ns.daz(p) << ampl*Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
-    ns.dell(p) << ampl*Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
+    ns.daz(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
+    ns.dell(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
 
     # systematic variations due to telescope axis errors
     ns.AzEl(p) << Meq.AzEl(observation.phase_centre.radec(), array.xyz(p)) 
@@ -131,10 +155,40 @@ def _define_forest (ns):
       axis_offset_AZ_EN = 1.0
       axis_offset_GRAV = -1.0
 
-    ns.AzPoint(p) << ns.daz(p) + axis_offset_AZ_EN * AZ_EN_rad + axis_offset_NPAE * NPAE_rad * ns.SinEl(p) - axis_offset_AE * AE_rad * ns.SinEl(p) * ns.CosAz(p) - axis_offset_AN * AN_rad * ns.SinAz(p) * ns.SinEl(p)
+    ns.AZ_EN(p) << Meq.Constant(axis_offset_AZ_EN * AZ_EN)
+    ns.NPAE(p) << Meq.Constant(axis_offset_NPAE * NPAE)
+    ns.AE(p) << Meq.Constant(axis_offset_AE * AE)
+    ns.AN(p) << Meq.Constant(axis_offset_AN * AN)
+    ns.GRAV(p) << Meq.Constant(axis_offset_GRAV * GRAV)
+    ns.AzPoint(p) << ns.daz(p) + ns.AZ_EN(p) + ns.NPAE(p) *ns.SinEl(p)  - ns.AE(p) * ns.SinEl(p) * ns.CosAz(p) - ns.AN(p) * ns.SinAz(p) * ns.SinEl(p)
 
-    ns.ElPoint(p) << ns.dell(p) + axis_offset_GRAV * GRAV_rad + axis_offset_AN * AN_rad * ns.CosAz(p) - axis_offset_AE * AE_rad * ns.SinAz(p) 
-    ns.AzElPoint(p) << Meq.Composer(ns.AzPoint(p), ns.ElPoint(p))
+    ns.ElPoint(p) << ns.dell(p) + ns.GRAV(p) + ns.AN(p) * ns.CosAz(p) - ns.AE(p) * ns.SinAz(p) 
+
+    # combine azimuth and elevation errors into one node
+    # and convert to radians
+    ns.AzElPoint(p) << Meq.Composer(ns.AzPoint(p), ns.ElPoint(p)) * ARCSEC
+
+    if do_solve:
+      ns.solve_AZ_EN(p) << tpolc(0, axis_offset_AZ_EN * AZ_EN)
+      ns.solve_NPAE(p) << tpolc(0, axis_offset_NPAE * NPAE)
+      ns.solve_AE(p) << tpolc(0, axis_offset_AE * AE)
+      ns.solve_AN(p) << tpolc(0, axis_offset_AN * AN)
+      ns.solve_GRAV(p) << tpolc(0, axis_offset_GRAV * GRAV)
+
+      solvables.append(ns.solve_AZ_EN(p))
+      solvables.append(ns.solve_NPAE(p))
+      solvables.append(ns.solve_AE(p))
+      solvables.append(ns.solve_AN(p))
+      solvables.append(ns.solve_GRAV(p))
+
+      ns.solve_AzPoint(p) << ns.solve_AZ_EN(p) + ns.solve_NPAE(p) *ns.SinEl(p)  - ns.solve_AE(p) * ns.SinEl(p) * ns.CosAz(p) - ns.solve_AN(p) * ns.SinAz(p) * ns.SinEl(p)
+
+      ns.solve_ElPoint(p) << ns.solve_GRAV(p) + ns.solve_AN(p) * ns.CosAz(p) - ns.solve_AE(p) * ns.SinAz(p) 
+
+      # combine azimuth and elevation errors into one node
+      # and convert to radians
+      ns.solve_AzElPoint(p) << Meq.Composer(ns.solve_AzPoint(p), ns.solve_ElPoint(p)) * ARCSEC
+
 
     # get Parallactic Angle for the station
     pa= ns.ParAngle(p) << Meq.ParAngle(observation.phase_centre.radec(), array.xyz(p))
@@ -142,6 +196,8 @@ def _define_forest (ns):
  
   # create a source model and make list of corrupted sources
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
+  if do_solve:
+    solve_sky = Meow.Patch(ns,'solve',observation.phase_centre);
   sources = sky_models.make_model(ns,"S");
   for src in sources:
     lm = src.direction.lm();
@@ -153,35 +209,49 @@ def _define_forest (ns):
       # compute E for apparent position
       ASKAP_voltage_response(E(p),lm1);
     allsky.add(src.corrupt(E));
+    if do_solve:
+      solve_E = ns.solve_E(src.name);
+      for p in array.stations():
+        lm2 = ns.lm2(src.name,p) << ns.lm_rot(src.name,p) + ns.solve_AzElPoint(p)
+        # compute E for apparent position
+        ASKAP_voltage_response(solve_E(p),lm2);
+      solve_sky.add(src.corrupt(solve_E));
 
-  predict = allsky.visibilities();
+  observed = allsky.visibilities();
 
   # make some useful inspectors. Collect them into a list, since we need
   # to give a list of 'post' nodes to make_sinks() below
+  pg = Bookmarks.Page("Inspectors",1,2);
   inspectors = [];
   inspectors.append(
-    Meow.StdTrees.vis_inspector(ns.inspect_predict,predict) );
-  for src in sources[:5]:
-    inspectors.append( 
-      Meow.StdTrees.jones_inspector(ns.inspect_E(src.name),ns.E(src.name)) );
-    inspectors.append( 
-      Meow.StdTrees.jones_inspector(ns.inspect_lm1(src.name),ns.lm1(src.name)) );
-    
-  # make sinks and vdm. Note that we don't want to make any spigots...
-  # The list of inspectors comes in handy here
-  Meow.StdTrees.make_sinks(ns,predict,spigots=False,post=inspectors);
-  
-  # make a few more bookmarks
-  pg = Meow.Bookmarks.Page("K Jones",2,2);
-  for p in array.stations()[1:4]:      # use stations 1 through 3
-    for src in sources[:4]:            # use sources 0 through 3
-      pg.add(src.direction.KJones()(p));
-      
-  # make a few more bookmarks
-  pg = Meow.Bookmarks.Page("E Jones",2,2);
-  for p in array.stations()[1:4]:      # use stations 1 through 3
-    for src in sources[:4]:            # use sources 0 through 3
-      pg.add(ns.E(src.name,p));
+    Meow.StdTrees.vis_inspector(ns.inspect_observed,observed) );
+  pg.add(ns.inspect_observed,viewer="Collections Plotter");
+
+  if do_solve:
+    expected = solve_sky.visibilities()
+
+ # create spigots, condeqs, residuals
+  if do_solve:
+    for p,q in array.ifrs():
+      ns.ce(p,q) << Meq.Condeq(observed(p,q), expected(p,q));
+      ns.residual(p,q) << observed(p,q) - expected(p,q);
+
+    inspectors.append(
+      Meow.StdTrees.vis_inspector(ns.inspect_residuals,ns.reqseq) );
+    pg.add(ns.inspect_residuals,viewer="Collections Plotter");
+
+    # create solver
+    ns.solver << Meq.Solver(solvable=solvables, *[ns.ce(p,q) for p,q in array.ifrs()]);
+
+    # create sequencer
+    for p,q in array.ifrs():
+      ns.reqseq(p,q) << Meq.ReqSeq(ns.solver,ns.residual(p,q),result_index=1);
+    # make sinks and vdm. Note that we don't want to make any spigots...
+    # The list of inspectors comes in handy here
+    Meow.StdTrees.make_sinks(ns, ns.reqseq,spigots=False,post=inspectors);
+  else:
+    Meow.StdTrees.make_sinks(ns,observed,spigots=False,post=inspectors);
+
 
 def _tdl_job_1_simulate_MS (mqs,parent):
   req = Meow.Utils.create_io_request();
