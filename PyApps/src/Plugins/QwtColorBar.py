@@ -41,7 +41,7 @@ _dprintf = _dbg.dprintf;
 colorbar_instructions = \
 '''The colorbar displays the current range of intensities in the corresponding image display. You can interact with the colorbar to change the range of intensities displayed in the image.<br><br>
 Button 1 (Left): If you click the <b>left</b> mouse button on a location inside the colorbar and then drag it, a rectangular square will be seen. When you release the left mouse button, the range of intensity defined in the vertical (Y) direction will now specify the maximum range of intensity that will be shown in the image display. Image pixels with values greater or less than the selected range will be plotted with the maximum or minimum allowed values. The color rainbow or grayscale will always cover the specified range of pixels, so you can obtain increased detail by zooming in on an intensity range.<br><br>
-Button 2 (Right):Clicking the <b>right</b> mouse button in the colorbar window will cause a context menu with the option to 'unzoom intensity range' to appear. If you click on this menu item, then the colorbar scale (and the image scale) is reset to the intrinsic range associated with the current image.'''
+Button 2 (Right):Clicking the <b>right</b> mouse button in the colorbar window will cause a context menu with to appear. If you have already zoomed into the colorbar using the method described above, one of the options to appear will be 'unzoom intensity range '. If you click on this menu item, then the colorbar scale (and the image scale) is reset to the intrinsic range associated with the current image. The other option allows you to lock or unlock the colorbar. If you lock the colorbar, then the scale will be fixed; even if you load a new image, the scale will not change. Nor will you be able to reset the intensity scale to the default, if you had previously zoomed in. To enable the colorbar to change the intensity range, you must then unlock the colorbar.'''
 
 class QwtColorBar(QwtPlot):
     menu_table = {
@@ -196,7 +196,8 @@ class QwtColorBar(QwtPlot):
           temp = max
           max = min
           min = temp
-        if abs(max - min) < 0.00005:
+#       if abs(max - min) < 0.00005:
+        if abs(max - min) < 2.0e-8:
           if max == 0.0 or min == 0.0:
             min = -0.1
             max = 0.1
@@ -252,7 +253,8 @@ class QwtColorBar(QwtPlot):
             temp = max
             max = min
             min = temp
-        if abs(max - min) < 0.00005:
+#       if abs(max - min) < 0.00005:
+        if abs(max - min) < 2.0e-8:
           if max == 0.0 or min == 0.0:
             min = -0.1
             max = 0.1
