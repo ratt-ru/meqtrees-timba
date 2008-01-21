@@ -156,7 +156,7 @@ def _define_forest(ns):
   # gains of the individual antennas together for display as
   # a function of time by the Collections Plotter - see the
   # bookmark set up near the beginning of the script
-  ns.collector << Meq.Composer(log_policy=100, dims=[0], tab_label = 'XNTD',
+  ns.collector << Meq.Composer(dims=[0], tab_label = 'XNTD',
                   *[ns.G_n(p) for p in ANTENNAS]);
 
 
@@ -198,7 +198,7 @@ def _define_forest(ns):
 
 ########################################################################
 
-def _test_forest(mqs,parent,wait=False):
+def _test_forest(mqs,parent,wait=True):
 
 # now observe sources - tells the system which MS to use and
 # which column is to be used to write out our simulated observation
@@ -222,8 +222,8 @@ def _test_forest(mqs,parent,wait=False):
   # execute
   mqs.execute('vdm',req,wait);
 
-
-if __name__=='__main__':
+if __name__ == '__main__':
+ # run in batch mode?
  if '-run' in sys.argv:
    from Timba.Apps import meqserver
    from Timba.TDL import Compile
@@ -238,10 +238,11 @@ if __name__=='__main__':
 
    # this runs the _test_forest job.
    mod._test_forest(mqs,None,wait=True);
-
+   print 'finished'
  else:
   Timba.TDL._dbg.set_verbose(5);
   ns=NodeScope()
   _define_forest(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
+
