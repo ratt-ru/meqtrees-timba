@@ -238,7 +238,6 @@ class QwtImageDisplay(QwtPlot):
         self.axis_ymin = None
         self.axis_ymax = None
         self.previous_shape = None
-        self.refresh_all = True
 	self._menu = None
         self.menu_labels_big = None
         self._vells_menu = None
@@ -778,6 +777,8 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, True)
           toggle_id = self.menu_table['Toggle Plot Legend']
           self._menu.setItemVisible(toggle_id, True)
+          self.cleanup()
+          self.enable_axes()
         self.reset_zoom()
         self.array_plot(self.solver_title, self.solver_array)
         if not self.display_solution_distances: 
@@ -2521,7 +2522,10 @@ class QwtImageDisplay(QwtPlot):
           curve.setSymbolList(symbolList)
 
         # plot eigenvalues of the covariance matrix?
-        if not self.eigenvectors is None:
+        if self.eigenvectors is None:
+          self.enableAxis(QwtPlot.yLeft, False)
+          self.enableAxis(QwtPlot.xBottom, False)
+        else:
           self.enableAxis(QwtPlot.yLeft, True)
           self.enableAxis(QwtPlot.xBottom, True)
         
@@ -2770,16 +2774,18 @@ class QwtImageDisplay(QwtPlot):
       self._y_title = title
       self.setAxisTitle(QwtPlot.yLeft, self._y_title)
 
+    def enable_axes(self):
+      self.enableAxis(QwtPlot.yLeft)
+      self.enableAxis(QwtPlot.xBottom)
+      self.enableAxis(QwtPlot.yRight, False)
+      self.enableAxis(QwtPlot.xTop, False)
+
     def cleanup(self):
       self.removeCurves()
       self.xrCrossSection = None
       self.xrCrossSection_flag = None
       self.xiCrossSection = None
       self.yCrossSection = None
-      self.enableAxis(QwtPlot.yLeft)
-      self.enableAxis(QwtPlot.xBottom)
-      self.enableAxis(QwtPlot.yRight, False)
-      self.enableAxis(QwtPlot.xTop, False)
       self.myXScale = None
       self.myYScale = None
       self.split_axis = None
@@ -2795,17 +2801,13 @@ class QwtImageDisplay(QwtPlot):
       # test for shape change
       if incoming_plot_array.shape != self.previous_shape:
         self.previous_shape = incoming_plot_array.shape
-        self.refresh_all = True
         self.cleanup()
-      else:
-        self.refresh_all = False
+        self.enable_axes()
 
       if self.store_solver_array:
         self.solver_array = incoming_plot_array
         self.solver_title = data_label
          
-        
-
 # pop up menu for printing
       if self._menu is None:
         self._menu = QPopupMenu(self._mainwin);
@@ -3096,6 +3098,7 @@ class QwtImageDisplay(QwtPlot):
 # remove any markers and reset curves
         if not self.scalar_display:
           self.cleanup()
+          self.enable_axes()
           self.removeMarkers()
 # make sure color bar is hidden
         self.emit(PYSIGNAL("show_colorbar_display"),(0,0)) 
