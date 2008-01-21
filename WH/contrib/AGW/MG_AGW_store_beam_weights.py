@@ -125,7 +125,6 @@ def _define_forest(ns):
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
   num_beams = read_in_FPA_beams(ns,fpa_directory)
-  BEAMS = range(0,num_beams)
   beam_solvables = []
   parm_solvers = []
   BEAMS = range(0,num_beams)
@@ -267,7 +266,7 @@ def _define_forest(ns):
   # order I,U,V,Q!
 
 ########################################################################
-def _test_forest(mqs,parent):
+def _test_forest(mqs,parent,wait=False):
 
 # any large time and frequency range will do
   t0 = 0.0;
@@ -281,12 +280,30 @@ def _test_forest(mqs,parent):
   counter = 0
   request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=False);
+  mqs.meq('Node.Execute',record(name='req_seq',request=request),wait);
 ########################################################################
 
-if __name__=='__main__':
+if __name__ == '__main__':
+ # run in batch mode?
+ if '-run' in sys.argv:
+   from Timba.Apps import meqserver
+   from Timba.TDL import Compile
+
+   # this starts a kernel.
+   mqs = meqserver.default_mqs(wait_init=10);
+
+   # This compiles a script as a TDL module. Any errors will be thrown as
+   # an exception, so this always returns successfully. We pass in
+   # __file__ so as to compile ourselves.
+   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+
+   # this runs the _test_forest job.
+   mod._test_forest(mqs,None,wait=True);
+   print 'finished'
+ else:
+  Timba.TDL._dbg.set_verbose(5);
   ns=NodeScope()
   _define_forest(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
-  
+
