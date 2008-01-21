@@ -923,6 +923,9 @@ class ResultPlotter(GriddedPlugin):
 # store the data
     self._solver_data.StoreSolverData(self._rec,self.label)
 
+# refresh plotter in case of solver data
+    self._visu_plotter.cleanup()
+
 # try calculating condition numbers
     if self._solver_data.processCovarArray():
       self._visu_plotter.set_condition_numbers(self._solver_data.getConditionNumbers())
