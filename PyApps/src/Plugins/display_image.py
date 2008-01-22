@@ -1714,7 +1714,8 @@ class QwtImageDisplay(QwtPlot):
             message = self.reportCoordinates(xVal, yVal)
           else:
             message = self.formatCoordinates(xPos, yPos)
-          self.emit(PYSIGNAL("status_update"),(message,))
+          if not self.display_solution_distances:
+            self.emit(PYSIGNAL("status_update"),(message,))
       except:
         return
 
