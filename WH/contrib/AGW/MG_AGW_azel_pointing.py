@@ -27,6 +27,8 @@
 # This script uses a standard pointing model for AzEl mounted telescopes
 # to generate an observation which has been corrupted by pointing errors.
 # Adapted from Oleg's workshop script example10-tracking.py
+# The script includes the possibility of a parallactic angle track tilt - 
+# i.e we simulate a 'sky rotator' error.
 
 from Timba.TDL import *
 from Timba.Meq import meq
@@ -71,10 +73,15 @@ def ASKAP_voltage_response(E, lm):
 
 # get Azimuth / Elevation telescope structural errors
 TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
-  TDLOption('AN','Amount by which telescope azimuth axis is North of Vertical',[0,5,10,20],more=float),
-  TDLOption('AE','Amount by which telescope azimuth axis is East of Vertical',[0,5,10,20],more=float),
+  TDLOption('AS','Amount by which telescope azimuth axis is South of Vertical',[0,5,10,20],more=float),
+  TDLOption('AW','Amount by which telescope azimuth axis is West of Vertical',[0,5,10,20],more=float),
   TDLOption('AZ_EN','Azimuth encoder offset',[0,5,10,20],more=float),
+  TDLOption('EL_EN','Elevation encoder offset',[0,5,10,20],more=float),
   TDLOption('NPAE','Amount by which telescope elevation axis is not perpendicular to azimuth axis',[0,5,10,20],more=float),
+  TDLOption('CX','Beam Collimation Error X',[0,5,10,20],more=float),
+  TDLOption('CY','Beam Collimation Error Y',[0,5,10,20],more=float),
+  TDLOption('PX','Parallactic Angle Tilt X',[0,5,10,20],more=float),
+  TDLOption('PY','Parallactic Angle Tilt Y',[0,5,10,20],more=float),
   TDLOption('GRAV','Gravitational deformation',[0,5,10,20],more=float),
   TDLOption('randomize_axes','Randomize above extremes for each telescope?',[True,False]),
   TDLOption('do_solve','Solve for Structure Parameters?',[True,False]),
@@ -123,15 +130,19 @@ def _define_forest (ns):
  
   # create nodes to compute tracking errors per antenna
   for p in array.stations():
-    # to add random errors on top of systematic ones
-    # convert random periods of daz/del variation from hours to seconds
-    daz = random.uniform(min_tr_period*3600,max_tr_period*3600);
-    dell = random.uniform(min_tr_period*3600,max_tr_period*3600);
-    # pick a random starting phase for the variations
-    daz_0 = random.uniform(0,2*math.pi); 
-    del_0 = random.uniform(0,2*math.pi);
-    ns.daz(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
-    ns.dell(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
+    if max_tr_error > 0.0:
+      # to add random errors on top of systematic ones
+      # convert random periods of daz/del variation from hours to seconds
+      daz = random.uniform(min_tr_period*3600,max_tr_period*3600);
+      dell = random.uniform(min_tr_period*3600,max_tr_period*3600);
+      # pick a random starting phase for the variations
+      daz_0 = random.uniform(0,2*math.pi); 
+      del_0 = random.uniform(0,2*math.pi);
+      ns.daz(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
+      ns.dell(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
+    else:
+      ns.daz(p) << Meq.Constant(0.0)
+      ns.dell(p) << Meq.Constant(0.0)
 
     # systematic variations due to telescope axis errors
     ns.AzEl(p) << Meq.AzEl(observation.phase_centre.radec(), array.xyz(p)) 
@@ -140,50 +151,75 @@ def _define_forest (ns):
     ns.SinAz(p) << Meq.Sin(ns.Az(p))
     ns.CosAz(p) << Meq.Cos(ns.Az(p))
     ns.SinEl(p) << Meq.Sin(ns.El(p))
-#   ns.CosEl(p) << Meq.Cos(ns.El(p))
+    ns.CosEl(p) << Meq.Cos(ns.El(p))
     
     if randomize_axes:
       axis_offset_NPAE = random.uniform(-1.0,1.0)
-      axis_offset_AE = random.uniform(-1.0,1.0)
-      axis_offset_AN = random.uniform(-1.0,1.0)
+      axis_offset_AW = random.uniform(-1.0,1.0)
+      axis_offset_AS = random.uniform(-1.0,1.0)
       axis_offset_AZ_EN = random.uniform(-1.0,1.0)
+      axis_offset_EL_EN = random.uniform(-1.0,1.0)
+      axis_offset_CX = random.uniform(-1.0,1.0)
+      axis_offset_CY = random.uniform(-1.0,1.0)
+      axis_offset_PX = random.uniform(-1.0,1.0)
+      axis_offset_PY = random.uniform(-1.0,1.0)
       axis_offset_GRAV = random.uniform(-1.0,0.0)
     else:
       axis_offset_NPAE = 1.0
-      axis_offset_AE = 1.0
-      axis_offset_AN = 1.0
+      axis_offset_AW = 1.0
+      axis_offset_AS = 1.0
       axis_offset_AZ_EN = 1.0
+      axis_offset_EL_EN = 1.0
+      axis_offset_CX = 1.0
+      axis_offset_CY = 1.0
+      axis_offset_PX = 1.0
+      axis_offset_PY = 1.0
       axis_offset_GRAV = -1.0
 
     ns.AZ_EN(p) << Meq.Constant(axis_offset_AZ_EN * AZ_EN)
+    ns.EL_EN(p) << Meq.Constant(axis_offset_EL_EN * EL_EN)
     ns.NPAE(p) << Meq.Constant(axis_offset_NPAE * NPAE)
-    ns.AE(p) << Meq.Constant(axis_offset_AE * AE)
-    ns.AN(p) << Meq.Constant(axis_offset_AN * AN)
+    ns.AW(p) << Meq.Constant(axis_offset_AW * AW)
+    ns.AS(p) << Meq.Constant(axis_offset_AS * AS)
     ns.GRAV(p) << Meq.Constant(axis_offset_GRAV * GRAV)
-    ns.AzPoint(p) << ns.daz(p) + ns.AZ_EN(p) + ns.NPAE(p) *ns.SinEl(p)  - ns.AE(p) * ns.SinEl(p) * ns.CosAz(p) - ns.AN(p) * ns.SinAz(p) * ns.SinEl(p)
+    ns.CX(p) << Meq.Constant(axis_offset_CX * CX)
+    ns.CY(p) << Meq.Constant(axis_offset_CY * CY)
+    ns.PX(p) << Meq.Constant(axis_offset_PX * PX)
+    ns.PY(p) << Meq.Constant(axis_offset_PY * PY)
+    ns.AzPoint(p) << ns.daz(p) - ns.AZ_EN(p) * ns.CosEl(p) + ns.NPAE(p) *ns.SinEl(p)  + ns.AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.CX(p) + ns.PX(p)
 
-    ns.ElPoint(p) << ns.dell(p) + ns.GRAV(p) + ns.AN(p) * ns.CosAz(p) - ns.AE(p) * ns.SinAz(p) 
+    ns.ElPoint(p) << ns.dell(p) + ns.GRAV(p) - ns.AS(p) * ns.CosAz(p) - ns.AW(p) * ns.SinAz(p) - ns.EL_EN(p)  - ns.CY(p) - ns.PY(p)
 
     # combine azimuth and elevation errors into one node
     # and convert to radians
     ns.AzElPoint(p) << Meq.Composer(ns.AzPoint(p), ns.ElPoint(p)) * ARCSEC
 
     if do_solve:
-      ns.solve_AZ_EN(p) << tpolc(0, axis_offset_AZ_EN * AZ_EN)
-      ns.solve_NPAE(p) << tpolc(0, axis_offset_NPAE * NPAE)
-      ns.solve_AE(p) << tpolc(0, axis_offset_AE * AE)
-      ns.solve_AN(p) << tpolc(0, axis_offset_AN * AN)
-      ns.solve_GRAV(p) << tpolc(0, axis_offset_GRAV * GRAV)
+      # give initial guesses that are opposite of actual values for everything
+      ns.solve_AZ_EN(p) << tpolc(0, -1.0 * axis_offset_AZ_EN * AZ_EN)
+      ns.solve_EL_EN(p) << tpolc(0, -1.0 * axis_offset_EL_EN * EL_EN)
+      ns.solve_NPAE(p) << tpolc(0, -1.0 * axis_offset_NPAE * NPAE)
+      ns.solve_AW(p) << tpolc(0, -1.0 * axis_offset_AW * AW)
+      ns.solve_AS(p) << tpolc(0, -1.0 * axis_offset_AS * AS)
+      ns.solve_GRAV(p) << tpolc(0, -1.0 * axis_offset_GRAV * GRAV)
+      ns.solve_CX(p) << tpolc(0, -1.0 * axis_offset_CX * CX)
+      ns.solve_CY(p) << tpolc(0, -1.0 * axis_offset_CY * CY)
+      ns.solve_PX(p) << tpolc(0, -1.0 * axis_offset_PX * PX)
+      ns.solve_PY(p) << tpolc(0, -1.0 * axis_offset_PY * PY)
 
       solvables.append(ns.solve_AZ_EN(p))
+      solvables.append(ns.solve_EL_EN(p))
       solvables.append(ns.solve_NPAE(p))
-      solvables.append(ns.solve_AE(p))
-      solvables.append(ns.solve_AN(p))
+      solvables.append(ns.solve_AW(p))
+      solvables.append(ns.solve_AS(p))
       solvables.append(ns.solve_GRAV(p))
+      solvables.append(ns.solve_CX(p))
+      solvables.append(ns.solve_CY(p))
+      solvables.append(ns.solve_PX(p))
+      solvables.append(ns.solve_PY(p))
 
-      ns.solve_AzPoint(p) << ns.solve_AZ_EN(p) + ns.solve_NPAE(p) *ns.SinEl(p)  - ns.solve_AE(p) * ns.SinEl(p) * ns.CosAz(p) - ns.solve_AN(p) * ns.SinAz(p) * ns.SinEl(p)
-
-      ns.solve_ElPoint(p) << ns.solve_GRAV(p) + ns.solve_AN(p) * ns.CosAz(p) - ns.solve_AE(p) * ns.SinAz(p) 
+      ns.solve_AzPoint(p) << ns.solve_NPAE(p) *ns.SinEl(p)  - ns.solve_AZ_EN(p) * ns.CosEl(p) + ns.solve_AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.solve_AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.solve_CX(p) + ns.solve_PX(p)
+      ns.solve_ElPoint(p) << ns.solve_GRAV(p) - ns.solve_AS(p) * ns.CosAz(p) - ns.solve_AW(p) * ns.SinAz(p) - ns.solve_EL_EN(p) - ns.solve_CY(p) - ns.solve_PY(p) 
 
       # combine azimuth and elevation errors into one node
       # and convert to radians
@@ -232,16 +268,20 @@ def _define_forest (ns):
 
  # create spigots, condeqs, residuals
   if do_solve:
+    pg1= Bookmarks.Page("Solving",1,3);
     for p,q in array.ifrs():
       ns.ce(p,q) << Meq.Condeq(observed(p,q), expected(p,q));
       ns.residual(p,q) << observed(p,q) - expected(p,q);
+    pg1.add(ns.ce(1,2), viewer="Result Plotter")
+    pg1.add(ns.ce(10,20), viewer="Result Plotter")
 
     inspectors.append(
       Meow.StdTrees.vis_inspector(ns.inspect_residuals,ns.reqseq) );
     pg.add(ns.inspect_residuals,viewer="Collections Plotter");
 
     # create solver
-    ns.solver << Meq.Solver(solvable=solvables, *[ns.ce(p,q) for p,q in array.ifrs()]);
+    ns.solver << Meq.Solver(solvable=solvables,num_iter=5,epsilon=1e-4,save_funklets=True,*[ns.ce(p,q) for p,q in array.ifrs()]);
+    pg1.add(ns.solver, viewer="Result Plotter")
 
     # create sequencer
     for p,q in array.ifrs():
