@@ -125,8 +125,6 @@ def _define_forest(ns):
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
   num_beams = read_in_FPA_beams(ns,fpa_directory)
-  beam_solvables = []
-  parm_solvers = []
   BEAMS = range(0,num_beams)
   for k in BEAMS:
     # it would be wonderful if a) the rationale for dep_masks was given and
@@ -144,8 +142,6 @@ def _define_forest(ns):
     # I want to solve for these parameters
     ns.beam_wt_re_y(k) << tpolc(0)
     ns.beam_wt_im_y(k) << tpolc(0)
-    beam_solvables.append(ns.beam_wt_re_y(k))
-    beam_solvables.append(ns.beam_wt_im_y(k))
 
     # we need to assign the weights we've extracted as initial guesses
     # to the Parm - can only be done by solving according to Oleg
@@ -153,8 +149,6 @@ def _define_forest(ns):
     ns.condeq_wt_im_y(k) << Meq.Condeq(children=(ns.sample_wt_im_y(k), ns.beam_wt_im_y(k)))
     ns.solver_wt_re_y(k)<<Meq.Solver(ns.condeq_wt_re_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_y(k),save_funklets=True,last_update=True)
     ns.solver_wt_im_y(k)<<Meq.Solver(ns.condeq_wt_im_y(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_im_y(k),save_funklets=True,last_update=True)
-    parm_solvers.append(ns.solver_wt_re_y(k))
-    parm_solvers.append(ns.solver_wt_im_y(k))
     
     # now form the weights for the beam and multiply the beam by its weight
     ns.beam_weight_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
@@ -172,14 +166,10 @@ def _define_forest(ns):
     # I want to solve for these parameters
     ns.beam_wt_re_x(k) << tpolc(0)
     ns.beam_wt_im_x(k) << tpolc(0)
-    beam_solvables.append(ns.beam_wt_re_x(k))
-    beam_solvables.append(ns.beam_wt_im_x(k))
     ns.condeq_wt_re_x(k) << Meq.Condeq(children=(ns.sample_wt_re_x(k), ns.beam_wt_re_x(k)))
     ns.condeq_wt_im_x(k) << Meq.Condeq(children=(ns.sample_wt_im_x(k), ns.beam_wt_im_x(k)))
     ns.solver_wt_re_x(k)<<Meq.Solver(ns.condeq_wt_re_x(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_x(k),save_funklets=True,last_update=True)
     ns.solver_wt_im_x(k)<<Meq.Solver(ns.condeq_wt_im_x(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_im_x(k),save_funklets=True,last_update=True)
-    parm_solvers.append(ns.solver_wt_re_x(k))
-    parm_solvers.append(ns.solver_wt_im_x(k))
 
     ns.beam_weight_x(k) << Meq.ToComplex(ns.beam_wt_re_x(k), ns.beam_wt_im_x(k))
 
@@ -188,8 +178,20 @@ def _define_forest(ns):
     ns.wt_beam_xy(k) << ns.beam_xy(k) * ns.beam_weight_x(k)
     ns.wt_beam_xx(k) << ns.beam_xx(k) * ns.beam_weight_x(k)
 
-  # solver to 'copy' resampled beam locations to parms as
-  # first guess
+  # create lists of solvable parameters
+  parm_solvers = []
+  beam_solvables = []
+  for k in BEAMS:
+    parm_solvers.append(ns.solver_wt_re_x(k))
+    parm_solvers.append(ns.solver_wt_im_x(k))
+    beam_solvables.append(ns.beam_wt_re_x(k))
+    beam_solvables.append(ns.beam_wt_im_x(k))
+  for k in BEAMS:
+    parm_solvers.append(ns.solver_wt_re_y(k))
+    parm_solvers.append(ns.solver_wt_im_y(k))
+    beam_solvables.append(ns.beam_wt_re_y(k))
+    beam_solvables.append(ns.beam_wt_im_y(k))
+  # solver to 'copy' resampled beam locations to parms as first guess
   ns.parms_req_mux<<Meq.ReqMux(children=parm_solvers)
 
   # sum up the weights
