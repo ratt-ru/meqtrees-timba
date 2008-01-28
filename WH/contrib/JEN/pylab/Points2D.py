@@ -43,8 +43,8 @@
 #
 
 import pylab
-# import copy
-# from pylab import *
+import copy
+import random
 
 
 
@@ -54,8 +54,35 @@ class Points2D (object):
     """Encapsulation of a set of 2D points, for (pylab) plotting
     """
 
-    def __init__(self, yy=[0], name='Points2D', xx=None,
+    def __init__(self, yy=[0],
+                 name=None, xx=None,
+                 title=None, xlabel=None, ylabel=None, xunit=None, yunit=None,
+                 annot=None, annotpos='auto',
                  **kwargs):
+
+        #------------------------------------------------------------------
+
+        # Deal with the specified name (label):
+        self._name = name
+        if not isinstance(self._name,str): self._name = 'Points2D'
+
+        # Some placeholders (to be used for standalone plotting, or for
+        # automatic generation of labels etc when plotted in a subplot)
+        self._title = title
+        self._xlabel = xlabel
+        self._ylabel = ylabel
+        self._xunit = xunit
+        self._yunit = yunit
+
+        if not isinstance(self._title,str): self._title = self._name
+        if not isinstance(self._xlabel,str): self._xlabel = 'xx'
+        if not isinstance(self._ylabel,str): self._ylabel = self._name
+        if isinstance(self._xunit,str): self._xlabel += ' ('+self._xunit+')'
+        if isinstance(self._yunit,str): self._ylabel += ' ('+self._yunit+')'
+
+        #------------------------------------------------------------------
+
+        # print '\n** yy=',yy,type(yy),isinstance(yy, type(pylab.array([0]))),'\n'
 
         # Deal with the specified y-coordinates:
         is_complex = False
@@ -63,6 +90,10 @@ class Points2D (object):
             for y in yy:
                 if isinstance(y, complex): is_complex = True
             self._yy = pylab.array(yy)
+        elif isinstance(yy, type(pylab.array([0]))):
+            for y in yy.tolist():
+                if isinstance(y, complex): is_complex = True
+            self._yy = yy
         else:
             self._yy = pylab.array([yy])
             is_complex = isinstance(yy, complex)
@@ -71,14 +102,19 @@ class Points2D (object):
         if is_complex:
             self._xx = self._yy.real
             self._yy = self._yy.imag
+            self._xlabel = 'real part of '+self._ylabel
+            self._ylabel = 'imag part of '+self._ylabel
 
         # Deal with the specified x-coordinates (if any):
         elif xx==None:                                  # xx not specified: automatic
             # self._xx = range(self.len())            # start at x=0
             self._xx = range(1,1+self.len())          # start at x=1
             self._xx = pylab.array(self._xx)
+            self._xunit = None
         elif isinstance(xx, (list,tuple)):
             self._xx = pylab.array(xx)
+        elif isinstance(xx, type(pylab.array([0]))):
+            self._xx = xx
         else:
             self._xx = pylab.array([xx])
 
@@ -86,23 +122,35 @@ class Points2D (object):
             s = 'length mismatch between nyy='+str(self.len())+' and nxx='+str(len(self._xx))
             raise ValueError,s
 
-        # Deal with the specified name:
-        self._name = name
 
         #------------------------------------------------------------------
 
-        # Extra keyword arguments may be supplied to the constructor.
-        self._kwargs = kwargs
-        if not isinstance(self._kwargs, dict):
-            self._kwargs = dict()
+        # Deal with point annotations (optional):
+        self._annot = annot
+        self._annotpos = annotpos
+        if not self._annot==None:
+            if isinstance(self._annot, (str,int,float)):
+                self._annot = [self._annot]
+            if not isinstance(self._annot, list):
+                s = 'annot should be a list, but is: '+str(type(self._annot))
+                raise ValueError,s
+            elif not len(self._annot) in [1,self.len()]:
+                s = 'length mismatch between nyy='+str(self.len())+' and nannot='+str(len(self._annot))
+                raise ValueError,s
+            else:
+                for i,s in enumerate(self._annot):
+                    if not isinstance(s,str):
+                        self._annot[i] = str(s)
 
-        # Some special keyword arguments:
-        # self._kwargs.setdefault('defer_compile_options', False)
-        # self._kwargs.setdefault('inhibit_selection', False)
+        #------------------------------------------------------------------
+
+        # The PlotStyle specifications are via the kwargs
+        self.check_PlotStyle(**kwargs)
+
+        #------------------------------------------------------------------
 
         # Finished:
         return None
-
 
 
     #===============================================================
@@ -117,6 +165,10 @@ class Points2D (object):
         """Return the name (label?) of this set of points"""
         return self._name
 
+    def PlotStyle(self):
+        """Return the PlotStyle record (object?)"""
+        return self._ps
+    
     #------------------------------------------------
 
     def yy(self, tolist=False):
@@ -124,6 +176,12 @@ class Points2D (object):
         If new is specified, replace them."""
         if tolist: return self._yy.tolist()
         return self._yy
+
+    def __getitem__(self,index):
+        """Get value yy[index]"""
+        yy = self._yy.tolist()
+        return yy[index]
+        # return self.__yy[index]
 
     def mean(self, xalso=False, trace=False):
         """Return the mean of the y-coordinate(s).
@@ -143,13 +201,13 @@ class Points2D (object):
 
     def sum(self, xalso=False):
         """Return the sum of the y-coordinate(s).
-        If xalso=True, return [xsum,ysum]."""
-        # NB: Produces a funny result [15L, 12L]  .... ??
+        If xalso=True, return [xsum,ysum].
+        NB: This function returns a Python Long integer (e.g. 12L)"""
         if not xalso: return self.yy().sum()
         return [self.xx().sum(), self.yy().sum()]
 
     def yrange(self, margin=0.0, yrange=None):
-        """Return [min,max] of the x-coordinate(s)."""
+        """Return [min,max] of the y-coordinate(s)."""
         return self._range(self.yy(), margin=margin, vrange=yrange)
 
 
@@ -194,10 +252,10 @@ class Points2D (object):
         """Return a one-line summary of this object"""
         ss = '** <Points2D> '+self.name()+':'
         ss += ' n='+str(self.len())
-        ss += ' yrange='+str(self.yrange())
-        ss += ' xrange='+str(self.xrange())
+        ss += ' '+self.plot_style_summary()
+        ss += '  yrange='+str(self.yrange())
+        ss += '  xrange='+str(self.xrange())
         return ss
-
 
     #===============================================================
     # Modifying operations on the group of points
@@ -238,23 +296,169 @@ class Points2D (object):
             self._yy = yyr + y0
         return False
 
+    #===============================================================
+    # PlotStyle routines (separate class?):
+    #===============================================================
+
+    def check_PlotStyle(self, **kwargs):
+        """Check (and adjust) the self._ps (PlotStyle) record"""
+        
+        self._ps = copy.deepcopy(kwargs)
+        if not isinstance(self._ps, dict):
+            self._ps = dict()
+
+        # Generic (specifies line or marker):
+        self._ps.setdefault('color', 'red')
+        self._ps.setdefault('style', '-')
+
+        # Line style:
+        self._ps.setdefault('linestyle', None)
+        self._ps.setdefault('linewidth', 1)             # in points, non-zero float 
+
+        # Marker style:
+        self._ps.setdefault('marker', None)
+        self._ps.setdefault('markerfacecolor', self._ps['color'])
+        self._ps.setdefault('markeredgecolor', self._ps['color'])
+        self._ps.setdefault('markersize', 5)            # in points, non-zero float 
+        self._ps.setdefault('markeredgewidth', 1)       # in points, non-zero float 
+
+        # Miscellaneous:
+        self._ps.setdefault('alpha', 0.5)               # transparency (0.0<=alpha<=1.0)
+        # self._ps.setdefault('data_clipping', True)    # not recognised...?
+
+        # Finsihed:
+        self._check_styles()
+        if True:
+            for key in self._ps.keys():
+                print '-- self._ps[',key,'] =',self._ps[key]
+        return True
+
+    #-----------------------------------------------------
+
+    def _check_styles(self):
+        """Check the specified plot-styles"""
+        if self._ps['style'] in self.line_styles():
+            if not self._ps['linestyle']:
+                self._ps['linestyle'] = self._ps['style']
+        elif self._ps['style'] in self.marker_styles():
+            if not self._ps['marker']:
+                self._ps['marker'] = self._ps['style']
+        self._ps.__delitem__('style')
+
+        ls = self._ps['linestyle']
+        if ls=='solid': self._ps['linestyle'] = '-'
+        if ls=='dashed': self._ps['linestyle'] = '--'
+        if ls=='dotted': self._ps['linestyle'] = ':'
+        if ls=='dashdot': self._ps['linestyle'] = '-.'
+
+        ms = self._ps['marker']
+        if ms=='circle': self._ps['marker'] = 'o'
+        if ms=='triangle': self._ps['marker'] = '^'
+        if ms=='square': self._ps['marker'] = 's'
+        if ms=='plus': self._ps['marker'] = '+'
+        if ms=='cross': self._ps['marker'] = 'o'
+        if ms=='diamond': self._ps['marker'] = 'o'
+        if ms=='tripod': self._ps['marker'] = 'o'
+        if ms=='hexagon': self._ps['marker'] = 'o'
+        if ms=='pentagon': self._ps['marker'] = 'o'
+        return True
+
+    def line_styles(self):
+        """Return the available line-styles"""
+        ll = ['-','--',':','-.']
+        ll.extend(['solid','dashed','dotted','dashdot'])
+        return ll
+
+    def marker_styles(self):
+        """Return the available marker-styles"""
+        mm = list('o^v><s+xDd1234hp|_')
+        mm.append('steps')
+        mm.extend(['circle','triangle','square','plus','cross','diamond'])
+        mm.extend(['tripod','hexagon','pentagon'])
+        return mm
+
+    def plot_style_summary(self):
+        """Return a short string summarizing the plot-style"""
+        ss = ' ('+str(self._ps['color'])
+        if self._ps['marker']:
+            ss += ' '+str(self._ps['marker'])
+        if self._ps['linestyle']:
+            ss += ' '+str(self._ps['linestyle'])
+        ss += ')'
+        return ss
+        
 
     #===============================================================
-    # Plot standalone (testing only?)
+    # Plot:
     #===============================================================
 
-    def plot(self, figure=1, margin=0.2):
+    def plot(self, figure=1, margin=0.2, show=True):
         """Plot the group of points, using pylab"""
         pylab.figure(figure)
-        pylab.plot(self.xx(),self.yy())
+        pylab.plot(self.xx(), self.yy(), **self._ps)
         if margin>0.0:
             [xmin,xmax] = self.xrange(margin=margin)
             [ymin,ymax] = self.yrange(margin=margin)
-            print [xmin,xmax]
-            print [ymin,ymax]
+            print '** .plot(): xrange =',[xmin,xmax],'    yrange =',[ymin,ymax]
             pylab.axis([xmin, xmax, ymin, ymax])
-        pylab.show()
+        if isinstance(self._xlabel,str): pylab.xlabel(self._xlabel)
+        if isinstance(self._ylabel,str): pylab.ylabel(self._ylabel)
+        if isinstance(self._title,str): pylab.title(self._title)
+        if show: pylab.show()
         return True
+
+
+
+
+#========================================================================
+# Some test objects:
+#========================================================================
+
+
+def test_line (n=6, name='test_line', **kwargs):
+    """Points2D object for a straight line"""
+    kwargs.setdefault('color','magenta')
+    kwargs.setdefault('style','o')
+    yy = 0.3*pylab.array(range(n))
+    pts = Points2D (yy, name, **kwargs)
+    print pts.oneliner()
+    return pts
+
+def test_parabola (n=6, name='test_parabola', **kwargs):
+    """Points2D object for a parabola"""
+    kwargs.setdefault('color','blue')
+    kwargs.setdefault('style','-')
+    kwargs.setdefault('marker','+')
+    kwargs.setdefault('markersize',10)
+    yy = pylab.array(range(n))/2.0
+    yy = -3+yy+yy*yy
+    pts = Points2D (yy, name, **kwargs)
+    print pts.oneliner()
+    return pts
+
+def test_sine (n=10, name='test_sine', **kwargs):
+    """Points2D object for a parabola"""
+    kwargs.setdefault('color','red')
+    kwargs.setdefault('style','--')
+    yy = 0.6*pylab.array(range(n))
+    yy = pylab.sin(yy)
+    pts = Points2D (yy, name, **kwargs)
+    print pts.oneliner()
+    return pts
+
+def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
+    """Points2D object for a parabola"""
+    kwargs.setdefault('color','green')
+    kwargs.setdefault('style','cross')
+    # kwargs.setdefault('markersize',10)
+    yy = range(n)
+    xx = range(n)
+    for i,v in enumerate(yy):
+        yy[i] = random.gauss(mean,stddev)
+        xx[i] = random.gauss(mean,stddev)
+    pts = Points2D (yy, name, xx=xx, **kwargs)
+    print pts.oneliner()
+    return pts
 
 
 #========================================================================
@@ -265,17 +469,26 @@ class Points2D (object):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: Points2D.py:\n'
 
-    pts = Points2D(range(6), 'list')
-    # pts = Points2D(-2, 'scalar')
-    # pts = Points2D(3+5j, 'complex scalar')
-    # pts = Points2D([3,-2+1.5j], 'complex list')
-    # pts = Points2D([0,0,0,0], 'zeroes')
+    ps = dict()
+    ps = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
+
+    # pts = Points2D(range(6), 'list', annot=4, **ps)
+    # pts = Points2D(pylab.array(range(6)), 'numarray', **ps)
+    # pts = Points2D(-2, 'scalar', **ps)
+    # pts = Points2D(3+5j, 'complex scalar', **ps)
+    # pts = Points2D([3,-2+1.5j], 'complex list', **ps)
+    # pts = Points2D([0,0,0,0], 'zeroes', **ps)
+    pts = test_line()
+    # pts = test_sine()
+    # pts = test_parabola()
+    # pts = test_cloud()
     print pts.oneliner()
 
     if 1:
         pts.plot()
 
     if 0:
+        print '- pts[1] -> ',pts[1]
         print '- .yy() -> ',pts.yy(),type(pts.yy())
         print '- .yy(tolist=True) -> ',pts.yy(tolist=True),type(pts.yy(tolist=True))
         print '- .yrange(margin=0.1) -> ',pts.yrange(margin=0.1)
@@ -288,7 +501,7 @@ if __name__ == '__main__':
         print '- .shift(dy=-10, dx=100) -> ',pts.shift(dy=-10, dx=100), pts.oneliner()
         print '- .rotate(angle=0.2) -> ',pts.rotate(angle=0.2), pts.oneliner()
         print '- .rotate(angle=0.2, xy0=[-10,100]) -> ',pts.rotate(angle=0.2, xy0=[-10,100]), pts.oneliner()
-        pts.plot()
+        # pts.plot()
 
     print '\n** End of local test of: Points2D.py:\n'
 
