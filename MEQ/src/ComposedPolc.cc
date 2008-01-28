@@ -271,6 +271,9 @@ void ComposedPolc::validateContent (bool recursive)
 	if (!cell_dom.isDefined(axisi)){
 	  starti[axisi]=0;endi[axisi]=0;continue;
 	}
+	if (!polcdom.isDefined(axisi)){
+	  starti[axisi]=0;endi[axisi]=std::min(res_shape[axisi]-1,startgrid[axisi].size()-1);continue;
+	}
 	int maxk=std::min(res_shape[axisi],startgrid[axisi].size());
 	int k=0;
 	while(k<maxk  && centergrid[axisi](k)<polcdom.start(axisi)) k++;
