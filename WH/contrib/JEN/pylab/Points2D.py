@@ -327,6 +327,7 @@ class Points2D (object):
         # self._ps.setdefault('data_clipping', True)    # not recognised...?
 
         # Finsihed:
+        self._check_colors()
         self._check_styles()
         if True:
             for key in self._ps.keys():
@@ -364,19 +365,61 @@ class Points2D (object):
         return True
 
     def line_styles(self):
-        """Return the available line-styles"""
+        """Return a list of the available line-styles"""
         ll = ['-','--',':','-.']
         ll.extend(['solid','dashed','dotted','dashdot'])
         return ll
 
     def marker_styles(self):
-        """Return the available marker-styles"""
+        """Return a list of the available marker-styles"""
         mm = list('o^v><s+xDd1234hp|_')
         mm.append('steps')
         mm.extend(['circle','triangle','square','plus','cross','diamond'])
         mm.extend(['tripod','hexagon','pentagon'])
         return mm
 
+    #------------------------------------------------------------
+
+    def _check_colors(self):
+        """Check the specified colors"""
+        cc = self.colors()
+        for key in ['color','markerfacecolor','markeredgecolor']:
+            color = self._ps[key]
+            # Make sure that color is valid:
+            if not color in cc: self._ps[key] = 'yellow'
+            # Some have to be translated to pylab colors:
+            if color=='grey': self._ps[key] = 'gray'
+            if color in ['lightgrey','lightgray']: self._ps[key] = 0.5   # 0.0<grayscale<1.0
+        return True
+
+    def colors(self):
+        """Return a list of available plot colors"""
+        cc = list('bgrcmykw')
+        cc.extend(['blue','green','red','cyan','magenta','yellow','black','white','gray'])
+        cc.extend(['wheat'])
+        cc.extend(['grey','lightgrey','lightgray'])
+        return cc
+    
+    def print_colors(self):
+        print '\n** Available plot-colors:'
+        print ' Style 1:'
+        print '  b: blue'
+        print '  g: green'
+        print '  r: red'
+        print '  c: cyan'
+        print '  m: magenta'
+        print '  y: yellow'
+        print '  k: black'
+        print '  w: white'
+        print ' Style 2: standard color string, e.g. yellow, wheat, etc'
+        print ' Style 3: grayscale intensity (between 0. and 1., inclusive)'
+        print ' Style 4: RGB hex color triple, e.g. #2F4F4F'
+        print ' Style 5: RGB tuple, e.g. (0.18, 0.31, 0.31)'
+        print
+        return True
+
+    #------------------------------------------------------------
+    
     def plot_style_summary(self):
         """Return a short string summarizing the plot-style"""
         ss = ' ('+str(self._ps['color'])

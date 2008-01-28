@@ -5,8 +5,8 @@
 # Author: J.E.Noordam
 # 
 # Short description:
-#   Class that makes a pylab Figure, consisting of one or more Subplots,
-#   which each have a number of plottable units...
+#   Class that represents a pylab sholds a series
+#   of plottable objects like Points2D etc
 #
 # History:
 #    - 29 jan 2008: creation
@@ -45,58 +45,85 @@
 
 import pylab
 import copy
-# from pylab import *
-
+import Subplot
 
 
 #======================================================================================
 
-class Figure (object):
-    """Encapsulation of a set of 2D points, for (pylab) plotting
+class Figure (Subplot.Subplot):
+    """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, name=None):
-
-        #------------------------------------------------------------------
+    def __init__(self, figure=1, nrow=2, ncol=2, name=None): 
 
         # Deal with the specified name (label):
         self._name = name
         if not isinstance(self._name,str): self._name = 'Figure'
 
-        # Some placeholders (to be used for standalone plotting, or for
-        # automatic generation of labels etc when plotted in a subplot)
-        self._title = title
-        self._xlabel = xlabel
-        self._ylabel = ylabel
-        self._xunit = xunit
-        self._yunit = yunit
+        # ctrl.setdefault('figure', None)        # integer: 1,2,3,...
+        self._figure = figure
+        self._nrow = nrow                        # nr of rows (1-relative)                        
+        self._ncol = ncol                        # nr of cols (1-relative)
 
-        if not isinstance(self._title,str): self._title = self._name
-        if not isinstance(self._xlabel,str): self._xlabel = 'xx'
-        if not isinstance(self._ylabel,str): self._ylabel = self._name
-        if isinstance(self._xunit,str): self._xlabel += ' ('+self._xunit+')'
-        if isinstance(self._yunit,str): self._ylabel += ' ('+self._yunit+')'
-
-
-        #------------------------------------------------------------------
+        # The Subplot objects are kept in the named fields of a dict:
+        self._order = []
+        self._subplot = dict()
+        self._plopos = dict()
 
         # Finished:
         return None
 
 
     #===============================================================
+
+
+    def add(self, graphic, key=None):
+        """Add a named (key) plottable object to self._subplot"""
+        if not isinstance(key, str):
+            key = str(len(self._order))       # .....??
+        # ctrl.setdefault('subplot', None)       # integer: nrow*100+ncol*10+iplot (all 1-relative)
+        # ctrl.setdefault('plopos', dict(iplot=1, irow=1, icol=1, nrow=1, ncol=1))
+        self._subplot[key] = graphic
+        self._order.append(key)
+        return key
+
+    def remove(self, key):
+        """Remove a named object from self._subplot"""
+        if self.has_key(key):
+            self._grahic.__delitem__(key)
+            self._order.__delitem__(key)
+        return True
+
+
+    #===============================================================
     # Access routines:
     #===============================================================
 
+    def len(self):
+        """Return the number of its plottable objects"""
+        return len(self._order)
+
+    def order(self):
+        """Return a list of keys of its plottable objects"""
+        return self._order
+
     def name(self):
-        """Return the name (label?) of this set of points"""
+        """Return the name (label?) of this Figure"""
         return self._name
 
-    def __getitem__(self,index):
-        """Get value yy[index]"""
-        yy = self._yy.tolist()
-        return yy[index]
-        # return self.__yy[index]
+    def has_key(self, key):
+        """Check whether self._subplot has the specified key"""
+        return self._subplot.has_key(key)
+
+    def __getitem__(self, index):
+        """Get the specified plottable object (key or index)"""
+        key = None
+        if isinstance(index,str):
+            key = index
+        elif isinstance(index,int):
+            key = self._order[index]
+        return self._subplot[key]
+
 
     #===============================================================
     # Display of the contents of this object:
@@ -106,32 +133,29 @@ class Figure (object):
         """Return a one-line summary of this object"""
         ss = '** <Figure> '+self.name()+':'
         ss += ' n='+str(self.len())
-        ss += ' '+self.plot_style_summary()
-        ss += '  yrange='+str(self.yrange())
-        ss += '  xrange='+str(self.xrange())
+        ss += ' nrow='+str(self._nrow)
+        ss += ' ncol='+str(self._ncol)
         return ss
 
+    def oneliners(self):
+        """Print its own oneliner, and those of its subplots"""
+        print '\n',self.oneliner()
+        for key in self._order:
+            print '-',key,':',self._subplot[key].oneliner()
+        print
+        return True
 
     #===============================================================
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, margin=0.2):
-        """Plot the group of points, using pylab"""
+    def plot(self, figure=1, margin=0.1, show=True):
+        """Plot the pylab figure, with its Subplots"""
         pylab.figure(figure)
-        pylab.plot(self.xx(), self.yy(), **self._ps)
-        if margin>0.0:
-            [xmin,xmax] = self.xrange(margin=margin)
-            [ymin,ymax] = self.yrange(margin=margin)
-            print [xmin,xmax]
-            print [ymin,ymax]
-            pylab.axis([xmin, xmax, ymin, ymax])
-        if isinstance(self._xlabel,str): pylab.xlabel(self._xlabel)
-        if isinstance(self._ylabel,str): pylab.ylabel(self._ylabel)
-        if isinstance(self._title,str): pylab.title(self._title)
-        pylab.show()
+        for key in self._order:
+            self._subplot[key].plot(figure=figure, show=False)
+        if show: pylab.show()
         return True
-
 
 
 
@@ -143,35 +167,17 @@ class Figure (object):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: Figure.py:\n'
 
-    ps = dict()
-    ps = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
+    import Points2D
 
-    pts = Figure(range(6), 'list', annot=4, **ps)
-    # pts = Figure(pylab.array(range(6)), 'numarray', **ps)
-    # pts = Figure(-2, 'scalar', **ps)
-    # pts = Figure(3+5j, 'complex scalar', **ps)
-    # pts = Figure([3,-2+1.5j], 'complex list', **ps)
-    # pts = Figure([0,0,0,0], 'zeroes', **ps)
-    print pts.oneliner()
+    grs = Figure()
+    fig.add(Points2D.test_line())
+    fig.add(Points2D.test_parabola())
+    fig.add(Points2D.test_sine())
+    fig.add(Points2D.test_cloud())
+    fig.oneliners()
 
     if 1:
-        pts.plot()
-
-    if 0:
-        print '- pts[1] -> ',pts[1]
-        print '- .yy() -> ',pts.yy(),type(pts.yy())
-        print '- .yy(tolist=True) -> ',pts.yy(tolist=True),type(pts.yy(tolist=True))
-        print '- .yrange(margin=0.1) -> ',pts.yrange(margin=0.1)
-        print '- .xrange(margin=0.1, xrange=[-2,3]) -> ',pts.xrange(margin=0.1, xrange=[-2,3])
-        print '- .mean(xalso=True) -> ',pts.mean(xalso=True)
-        print '- .stddev(xalso=True) -> ',pts.stddev(xalso=True)
-        print '- .sum(xalso=True) -> ',pts.sum(xalso=True)
-
-    if 0:
-        print '- .shift(dy=-10, dx=100) -> ',pts.shift(dy=-10, dx=100), pts.oneliner()
-        print '- .rotate(angle=0.2) -> ',pts.rotate(angle=0.2), pts.oneliner()
-        print '- .rotate(angle=0.2, xy0=[-10,100]) -> ',pts.rotate(angle=0.2, xy0=[-10,100]), pts.oneliner()
-        # pts.plot()
+        fig.plot()
 
     print '\n** End of local test of: Figure.py:\n'
 

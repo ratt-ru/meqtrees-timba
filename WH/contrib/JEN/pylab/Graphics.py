@@ -164,39 +164,16 @@ class Graphics (Subplot.Subplot):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, margin=0.2, show=True):
+    def plot(self, figure=1, margin=0.1, show=True):
         """Plot the group of points, using pylab"""
         pylab.figure(figure)
         for key in self._order:
             self._graphic[key].plot(figure=figure, margin=0.0, show=False)
-        [xmin,xmax] = self._range(self.xrange(), margin=margin,
-                                  vmin=self._xmin, vmax=self._xmax)
-        [ymin,ymax] = self._range(self.yrange(), margin=margin,
-                                  vmin=self._ymin, vmax=self._ymax)
-        print '** .plot(): xrange =',[xmin,xmax],'    yrange =',[ymin,ymax]
-        pylab.axis([xmin, xmax, ymin, ymax])
-        if isinstance(self._xlabel,str): pylab.xlabel(self._xlabel)
-        if isinstance(self._ylabel,str): pylab.ylabel(self._ylabel)
-        if isinstance(self._title,str): pylab.title(self._title)
+        self.plot_axes(xaxis=True, yaxis=True)
+        self.pylab_window(margin=margin)
+        self.pylab_labels()
         if show: pylab.show()
         return True
-
-    #------------------------------------------------
-
-    def _range(self, vv, margin=0.0, vmin=None, vmax=None):
-        """Helper function to calculate [min,max] of the coordinate(s).
-        An extra margin (fraction of the span) may be specified."""
-        if margin>0.0:
-            dv2 = 0.5*(vv[1]-vv[0])*margin
-            if vv[1]==vv[0]:
-                dv2 = 0.0004
-                if not vv[1]==0.0:
-                    dv2 *= vv[1]
-            vv[0] -= dv2
-            vv[1] += dv2
-        if not vmin==None: vv[0] = vmin
-        if not vmax==None: vv[1] = vmax
-        return vv
 
 
 

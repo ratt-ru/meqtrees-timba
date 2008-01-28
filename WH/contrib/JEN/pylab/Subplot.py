@@ -135,23 +135,65 @@ class Subplot (object):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, margin=0.0):
+    def plot(self, figure=1, margin=0.1, show=True):
         """Plot the group of points, using pylab"""
         pylab.figure(figure)
-        pylab.plot(self.xx(), self.yy(), **self._ps)
-        if margin>0.0:
-            [xmin,xmax] = self.xrange(margin=margin)
-            [ymin,ymax] = self.yrange(margin=margin)
-            print [xmin,xmax]
-            print [ymin,ymax]
-            pylab.axis([xmin, xmax, ymin, ymax])
-        if isinstance(self._xlabel,str): pylab.xlabel(self._xlabel)
-        if isinstance(self._ylabel,str): pylab.ylabel(self._ylabel)
-        if isinstance(self._title,str): pylab.title(self._title)
-        pylab.show()
+        # pylab.plot(self.xx(), self.yy(), **self._ps)
+        self.pylab_window(margin=margin)
+        self.pylab_labels()
+        if show: pylab.show()
         return True
 
+    #------------------------------------------------
 
+    def pylab_labels(self):
+        """Helper function to make labels, using internal info"""
+        if isinstance(self._xlabel,str):
+            pylab.xlabel(self._xlabel)
+        if isinstance(self._ylabel,str):
+            pylab.ylabel(self._ylabel)
+        if isinstance(self._title,str):
+            pylab.title(self._title)
+        return True
+
+    #------------------------------------------------
+
+    def pylab_window(self, margin=0.1):
+        """Helper function to set the plot_window, using internal info"""
+        [xmin,xmax] = self._range(self.xrange(), margin=margin,
+                                  vmin=self._xmin, vmax=self._xmax)
+        [ymin,ymax] = self._range(self.yrange(), margin=margin,
+                                  vmin=self._ymin, vmax=self._ymax)
+        # print '** .pylab_window(): xrange =',[xmin,xmax],'    yrange =',[ymin,ymax]
+        pylab.axis([xmin, xmax, ymin, ymax])
+        return True
+
+    def _range(self, vv, margin=0.0, vmin=None, vmax=None):
+        """Helper function to calculate [min,max] of the coordinate(s).
+        An extra margin (fraction of the span) may be specified."""
+        if margin>0.0:
+            dv2 = 0.5*(vv[1]-vv[0])*margin
+            if vv[1]==vv[0]:
+                dv2 = 0.0004
+                if not vv[1]==0.0:
+                    dv2 *= vv[1]
+            vv[0] -= dv2
+            vv[1] += dv2
+        if not vmin==None: vv[0] = vmin
+        if not vmax==None: vv[1] = vmax
+        return vv
+
+    #------------------------------------------------
+
+    def plot_axes(self, xaxis=None, yaxis=None, color='lightgrey', linewidth=3):
+        """Helper function for plotting x and y axis"""
+        [xmin,xmax] = self.xrange()
+        [ymin,ymax] = self.yrange()
+        if xaxis and ((ymin*ymax)<=0.0):
+            pylab.plot([xmin,xmax], [0.0,0.0], color=color, linewidth=linewidth)
+        if yaxis and ((xmin*xmax)<=0.0):
+            pylab.plot([0.0,0.0], [ymin,ymax], color=color, linewidth=linewidth)
+        return True
 
 
 #========================================================================
