@@ -54,9 +54,7 @@ class Points2D (object):
     """Encapsulation of a set of 2D points, for (pylab) plotting
     """
 
-    def __init__(self, yy=[0],
-                 name=None, xx=None,
-                 title=None, xlabel=None, ylabel=None, xunit=None, yunit=None,
+    def __init__(self, yy=[0], name=None, xx=None,
                  annot=None, annotpos='auto',
                  **kwargs):
 
@@ -64,21 +62,7 @@ class Points2D (object):
 
         # Deal with the specified name (label):
         self._name = name
-        if not isinstance(self._name,str): self._name = 'Points2D'
-
-        # Some placeholders (to be used for standalone plotting, or for
-        # automatic generation of labels etc when plotted in a subplot)
-        self._title = title
-        self._xlabel = xlabel
-        self._ylabel = ylabel
-        self._xunit = xunit
-        self._yunit = yunit
-
-        if not isinstance(self._title,str): self._title = self._name
-        if not isinstance(self._xlabel,str): self._xlabel = 'xx'
-        if not isinstance(self._ylabel,str): self._ylabel = self._name
-        if isinstance(self._xunit,str): self._xlabel += ' ('+self._xunit+')'
-        if isinstance(self._yunit,str): self._ylabel += ' ('+self._yunit+')'
+        if not isinstance(self._name,str): self._name = '<Points2D>'
 
         #------------------------------------------------------------------
 
@@ -102,8 +86,6 @@ class Points2D (object):
         if is_complex:
             self._xx = self._yy.real
             self._yy = self._yy.imag
-            self._xlabel = 'real part of '+self._ylabel
-            self._ylabel = 'imag part of '+self._ylabel
 
         # Deal with the specified x-coordinates (if any):
         elif xx==None:                                  # xx not specified: automatic
@@ -257,6 +239,7 @@ class Points2D (object):
         ss += '  xrange='+str(self.xrange())
         return ss
 
+
     #===============================================================
     # Modifying operations on the group of points
     #===============================================================
@@ -295,6 +278,25 @@ class Points2D (object):
             self._xx = xxr + x0
             self._yy = yyr + y0
         return False
+
+    #===============================================================
+    # Plot:
+    #===============================================================
+
+    def plot(self, margin=0.2, show=True):
+        """Plot the group of points, using pylab"""
+        pylab.plot(self.xx(), self.yy(), **self._ps)
+        if margin>0.0:
+            [xmin,xmax] = self.xrange(margin=margin)
+            [ymin,ymax] = self.yrange(margin=margin)
+            pylab.axis([xmin, xmax, ymin, ymax])
+        if show: pylab.show()
+        return True
+
+
+
+
+
 
     #===============================================================
     # PlotStyle routines (separate class?):
@@ -430,25 +432,6 @@ class Points2D (object):
         ss += ')'
         return ss
         
-
-    #===============================================================
-    # Plot:
-    #===============================================================
-
-    def plot(self, figure=1, margin=0.2, show=True):
-        """Plot the group of points, using pylab"""
-        pylab.figure(figure)
-        pylab.plot(self.xx(), self.yy(), **self._ps)
-        if margin>0.0:
-            [xmin,xmax] = self.xrange(margin=margin)
-            [ymin,ymax] = self.yrange(margin=margin)
-            print '** .plot(): xrange =',[xmin,xmax],'    yrange =',[ymin,ymax]
-            pylab.axis([xmin, xmax, ymin, ymax])
-        if isinstance(self._xlabel,str): pylab.xlabel(self._xlabel)
-        if isinstance(self._ylabel,str): pylab.ylabel(self._ylabel)
-        if isinstance(self._title,str): pylab.title(self._title)
-        if show: pylab.show()
-        return True
 
 
 

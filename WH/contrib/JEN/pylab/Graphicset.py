@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-# file: ../contrib/JEN/pylab/Figure.py
+# file: ../contrib/JEN/pylab/Graphicset.py
 
 # Author: J.E.Noordam
 # 
 # Short description:
-#   Class that represents a pylab sholds a series
-#   of plottable objects like Points2D etc
+#   The Grapicset is derived from the Subplot class.
+#   It holds a series of Graphics objects.
 #
 # History:
 #    - 29 jan 2008: creation
@@ -50,25 +50,30 @@ import Subplot
 
 #======================================================================================
 
-class Figure (Subplot.Subplot):
-    """Encapsulation of a pylab subplot
-    """
+class Graphicset (Subplot.Subplot):
+    """The Grapicset is derived from the Subplot class.
+    It holds a series of Graphics objects."""
 
-    def __init__(self, figure=1, nrow=2, ncol=2, name=None): 
+    def __init__(self, name=None,
+                 title='<Graphicset>', xlabel=None, ylabel='<Graphicset>',
+                 xunit=None, yunit=None,
+                 xmin=None, xmax=None, ymin=None, ymax=None,
+                 **kwargs):
 
-        # Deal with the specified name (label):
-        self._name = name
-        if not isinstance(self._name,str): self._name = 'Figure'
+        Subplot.Subplot.__init__(self, name=name, title=title,
+                                 xlabel=xlabel, ylabel=ylabel,
+                                 xunit=xunit, yunit=yunit,
+                                 xmin=xmin, xmax=xmax,
+                                 ymin=ymin, ymax=ymax)
 
-        # ctrl.setdefault('figure', None)        # integer: 1,2,3,...
-        self._figure = figure
-        self._nrow = nrow                        # nr of rows (1-relative)                        
-        self._ncol = ncol                        # nr of cols (1-relative)
+        #------------------------------------------------------------------
 
-        # The Subplot objects are kept in the named fields of a dict:
+        # The Points2d objects are kept in the named fields of a dict:
         self._order = []
-        self._subplot = dict()
-        self._plopos = dict()
+        self._graphic = dict()
+
+
+        #------------------------------------------------------------------
 
         # Finished:
         return None
@@ -76,46 +81,21 @@ class Figure (Subplot.Subplot):
 
     #===============================================================
 
-    def make_plopos(self):
-        """Make the plopos (dict) of the next Subplot"""
-
-        # ctrl.setdefault('subplot', None)       # integer: nrow*100+ncol*10+iplot (all 1-relative)
-        # ctrl.setdefault('plopos', dict(iplot=1, irow=1, icol=1, nrow=1, ncol=1))
-        # k = ctrl['subplot']
-        # pp = ctrl['plopos']                # convenience
-        # pp['nrow'] = k/100
-        # pp['ncol'] = (k-100*pp['nrow'])/10
-        # pp['iplot'] = k-100*pp['nrow']-10*pp['ncol']
-        # pp['irow'] = 1+(pp['iplot']-1)/pp['ncol'] 
-        # pp['icol'] = pp['iplot']-pp['ncol']*(pp['irow']-1)
-
-        nrow = self._nrow
-        ncol = self._ncol
-        iplot = len(self._order)+1
-        subplot = nrow*100 + ncol*10 + iplot
-        irow = 1 + (iplot-1)/ncol 
-        icol = iplot - ncol*(irow-1)
-        plopos = dict(iplot=iplot, subplot=subplot,
-                      nrow=nrow, ncol=ncol, irow=irow, icol=icol)
-        return plopos
-        
 
     def add(self, graphic, key=None):
-        """Add a named (key) plottable object to self._subplot"""
+        """Add a named (key) plottable object to self._graphic"""
         if not isinstance(key, str):
             key = str(len(self._order))       # .....??
-        self._subplot[key] = graphic
-        self._plopos[key] = self.make_plopos()
+        self._graphic[key] = graphic
         self._order.append(key)
         return key
 
     def remove(self, key):
-        """Remove a named object from self._subplot"""
+        """Remove a named object from self._graphic"""
         if self.has_key(key):
             self._grahic.__delitem__(key)
             self._order.__delitem__(key)
         return True
-
 
     #===============================================================
     # Access routines:
@@ -130,12 +110,12 @@ class Figure (Subplot.Subplot):
         return self._order
 
     def name(self):
-        """Return the name (label?) of this Figure"""
+        """Return the name (label?) of this Graphicset"""
         return self._name
 
     def has_key(self, key):
-        """Check whether self._subplot has the specified key"""
-        return self._subplot.has_key(key)
+        """Check whether self._graphic has the specified key"""
+        return self._graphic.has_key(key)
 
     def __getitem__(self, index):
         """Get the specified plottable object (key or index)"""
@@ -144,7 +124,21 @@ class Figure (Subplot.Subplot):
             key = index
         elif isinstance(index,int):
             key = self._order[index]
-        return self._subplot[key]
+        return self._graphic[key]
+
+    def yrange(self, margin=0.0, yrange=None):
+        """Return [min,max] of all the y-coordinate(s)."""
+        yr = None
+        for key in self._order:
+            yr = self._graphic[key].yrange(margin=margin, yrange=yr)
+        return yr
+
+    def xrange(self, margin=0.0, xrange=None):
+        """Return [min,max] of all the x-coordinate(s)."""
+        xr = None
+        for key in self._order:
+            xr = self._graphic[key].xrange(margin=margin, xrange=xr)
+        return xr
 
 
     #===============================================================
@@ -153,21 +147,17 @@ class Figure (Subplot.Subplot):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = '** <Figure> '+self.name()+':'
+        ss = '** <Graphicset> '+self.name()+':'
         ss += ' n='+str(self.len())
-        ss += ' nrow='+str(self._nrow)
-        ss += ' ncol='+str(self._ncol)
+        ss += '  yrange='+str(self.yrange())
+        ss += '  xrange='+str(self.xrange())
         return ss
 
     def oneliners(self):
-        """Print its own oneliner, and those of its subplots"""
+        """Print its own oneliner, and those of its graphics"""
         print '\n',self.oneliner()
         for key in self._order:
-            subplot = self._plopos[key]['subplot']
-            print '-',key,'('+str(subplot)+'):',self._subplot[key].oneliner()
-        if True:
-            for key in self._order:
-                print '----',key,':',self._plopos[key]
+            print '-',key,':',self._graphic[key].oneliner()
         print
         return True
 
@@ -175,12 +165,15 @@ class Figure (Subplot.Subplot):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, margin=0.1, show=True):
-        """Plot the pylab figure, with its Subplots"""
+    def plot(self, figure=1, subplot=111, margin=0.1, show=True):
+        """Plot the group of points, using pylab"""
         pylab.figure(figure)
+        pylab.subplot(subplot)
+        self.plot_axes(xaxis=True, yaxis=True)
         for key in self._order:
-            subplot = self._plopos[key]['subplot']
-            self._subplot[key].plot(figure=figure, subplot=subplot, show=False)
+            self._graphic[key].plot(margin=0.0, show=False)
+        self.pylab_window(margin=margin)
+        self.pylab_labels()
         if show: pylab.show()
         return True
 
@@ -192,21 +185,21 @@ class Figure (Subplot.Subplot):
 
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of: Figure.py:\n'
+    print '\n*******************\n** Local test of: Graphicset.py:\n'
 
-    import Subplot
+    import Points2D
 
-    fig = Figure()
-    fig.add(Subplot.test_line())
-    fig.add(Subplot.test_parabola())
-    fig.add(Subplot.test_sine())
-    fig.add(Subplot.test_cloud())
-    fig.oneliners()
+    grs = Graphicset()
+    grs.add(Points2D.test_line())
+    grs.add(Points2D.test_parabola())
+    grs.add(Points2D.test_sine())
+    grs.add(Points2D.test_cloud())
+    grs.oneliners()
 
     if 1:
-        fig.plot()
+        grs.plot()
 
-    print '\n** End of local test of: Figure.py:\n'
+    print '\n** End of local test of: Graphicset.py:\n'
 
 
 

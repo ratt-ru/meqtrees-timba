@@ -51,8 +51,7 @@ import Subplot
 #======================================================================================
 
 class Graphics (Subplot.Subplot):
-    """Encapsulation of a pylab subplot
-    """
+    """Encapsulation of a pylab Graphics Subplot"""
 
     def __init__(self, name=None,
                  title=None, xlabel=None, ylabel=None, xunit=None, yunit=None,
