@@ -187,7 +187,7 @@ class Subplot (object):
 
     #------------------------------------------------
 
-    def plot_axes(self, xaxis=None, yaxis=None, color='black', linewidth=3):
+    def plot_axes(self, xaxis=None, yaxis=None, color='black', linewidth=1):
         """Helper function for plotting x and y axis"""
         [xmin,xmax] = self.xrange()
         [ymin,ymax] = self.yrange()
@@ -228,7 +228,7 @@ def test_sine (n=10, **kwargs):
     sub.add(Points2D.test_sine(n=n, **kwargs))
     return sub
 
-def test_cloud (n=10, mean=1.0, stddev=1.0, **kwargs):
+def test_cloud (n=10, mean=-1.0, stddev=3.0, **kwargs):
     """Graphicset (=Subplot) with Points2D object for a cloud of random points"""
     import Points2D
     import Graphicset

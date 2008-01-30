@@ -463,7 +463,7 @@ def test_parabola (n=6, name='test_parabola', **kwargs):
     return pts
 
 def test_sine (n=10, name='test_sine', **kwargs):
-    """Points2D object for a parabola"""
+    """Points2D object for a sine-wave"""
     kwargs.setdefault('color','red')
     kwargs.setdefault('style','--')
     yy = 0.6*pylab.array(range(n))
@@ -473,7 +473,7 @@ def test_sine (n=10, name='test_sine', **kwargs):
     return pts
 
 def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
-    """Points2D object for a parabola"""
+    """Points2D object for a cloud of random points"""
     kwargs.setdefault('color','green')
     kwargs.setdefault('style','cross')
     # kwargs.setdefault('markersize',10)
@@ -482,6 +482,7 @@ def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
     for i,v in enumerate(yy):
         yy[i] = random.gauss(mean,stddev)
         xx[i] = random.gauss(mean,stddev)
+        print '-',i,mean,stddev,':',xx[i],yy[i]
     pts = Points2D (yy, name, xx=xx, **kwargs)
     print pts.oneliner()
     return pts
