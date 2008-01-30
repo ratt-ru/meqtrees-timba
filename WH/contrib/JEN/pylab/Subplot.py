@@ -187,7 +187,7 @@ class Subplot (object):
 
     #------------------------------------------------
 
-    def plot_axes(self, xaxis=None, yaxis=None, color='lightgrey', linewidth=3):
+    def plot_axes(self, xaxis=None, yaxis=None, color='black', linewidth=3):
         """Helper function for plotting x and y axis"""
         [xmin,xmax] = self.xrange()
         [ymin,ymax] = self.yrange()

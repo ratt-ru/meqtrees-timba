@@ -391,7 +391,7 @@ class Points2D (object):
             if not color in cc: self._ps[key] = 'yellow'
             # Some have to be translated to pylab colors:
             if color=='grey': self._ps[key] = 'gray'
-            if color in ['lightgrey','lightgray']: self._ps[key] = 0.5   # 0.0<grayscale<1.0
+            if color in ['lightgrey','lightgray']: self._ps[key] = 0.1   # 0.0<grayscale<1.0
         return True
 
     def colors(self):

@@ -174,7 +174,13 @@ class Graphicset (Subplot.Subplot):
             self._graphic[key].plot(margin=0.0, show=False)
         self.pylab_window(margin=margin)
         self.pylab_labels()
-        if show: pylab.show()
+        pylab.grid(True)
+        if show:
+            # pylab.show._needmain = False
+            pylab.show()
+            # pylab.ion()
+            # pylab.draw()
+            # pylab.close()
         return True
 
 
