@@ -22,7 +22,7 @@ def compile_options():
 
 
 
-class TID_MIM(PiercePoints):
+class MIM(PiercePoints):
     """Create MIM_model with travelling waves as function of the pierc points"""
 
 
@@ -42,7 +42,7 @@ class TID_MIM(PiercePoints):
             self.ns['time'] << Meq.Time();
         return self.ns['time'];
 
-    def make_tec(self,tags=[]):
+    def make_tec(self):
         self.make_longlat_pp(ref_station=self.ref_station);
         time = self.make_time();
         ns = self.ns;
@@ -64,7 +64,8 @@ class TID_MIM(PiercePoints):
                 tec = ns['tec'](src,station);
                 sec = ns['sec'](src,station);
                 if not tec.initialized():
-                    tec<<ALo*Meq.Sin(lon(src,station)*FLo+TLo*time)+ALa*Meq.Sin(lat(src,station)*FLa+TLa*time)*sec;
+                    Mim = ALo*Meq.Sin(lon(src,station)*FLo+TLo*time)+ALa*Meq.Sin(lat(src,station)*FLa+TLa*time)*sec;
+                    tec<<Mim 
         
-
+        
         return  ns['tec'];

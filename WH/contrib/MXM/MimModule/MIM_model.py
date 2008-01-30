@@ -31,7 +31,6 @@ class MIM_model(Parameterization):
 
         self.stations=self.array.stations();
 
-
     def make_tec(self):
         """abstract method, creates nodes to compute the TEC-values""";
         raise TypeError,type(self).__name__+".make_tec() not defined"
@@ -86,7 +85,6 @@ class MIM_model(Parameterization):
                 if not Jones(src,station).initialized():
                          Jones(src,station)<< Meq.Matrix22(phase(src,station),0,0,phase(src,station));
 
-        print "made Jones",Jones;
         return Jones;
 
 ##    def make_solve_jobs(self,nodes,tags =["iono"],label=''):

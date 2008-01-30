@@ -17,7 +17,9 @@ class PiercePoints(MIM_model):
             self._height = Meow.Parm(height);
 
 	self.ns.h << self._height .make()
+        print "NS:::",self.ns;
 
+        
     def make_rot_matrix(self,ref_station=1):
         ns=self.ns;
         xyz = self.array.xyz();

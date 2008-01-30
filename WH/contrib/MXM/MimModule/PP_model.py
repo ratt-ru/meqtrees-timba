@@ -20,28 +20,6 @@ DIAG_CORRS = "XX YY";
 CROSS_CORRS = "YX XY";
 SINGLE_CORR = "XX";
 
-
-# now load optional modules for the ME maker
-from Meow import MeqMaker
-meqmaker = MeqMaker.MeqMaker(solvable=True);
-
-# specify available sky models
-# these will show up in the menu automatically
-from Timba.Contrib.OMS.Calico import central_point_source
-from Timba.Contrib.OMS.Siamese import gridded_sky
-
-
-
-import Meow.LSM
-lsm = Meow.LSM.MeowLSM(include_options=False);
-meqmaker.add_sky_models([central_point_source,lsm,gridded_sky]);
-
-
-
-meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
-# very important -- insert meqmaker's options properly
-TDLCompileOptions(*meqmaker.compile_options());
-
 TDLCompileMenu("What do we want to do",
   TDLMenu("Work with existing UV data (otherwise simulate)",
           TDLOption('do_solve',"Calibrate",True),
@@ -56,6 +34,30 @@ TDLCompileMenu("What do we want to do",
           toggle='do_not_simulate',open=True  ),
 
 );
+
+# now load optional modules for the ME maker
+from Meow import MeqMaker
+meqmaker = MeqMaker.MeqMaker(solvable=do_solve and do_not_simulate);
+
+# specify available sky models
+# these will show up in the menu automatically
+from Timba.Contrib.OMS.Calico import central_point_source
+from Timba.Contrib.OMS.Siamese import gridded_sky
+
+from Timba.Contrib.MXM.MimModule import gridded_sky_ivb
+
+
+
+import Meow.LSM
+lsm = Meow.LSM.MeowLSM(include_options=False);
+meqmaker.add_sky_models([central_point_source,lsm,gridded_sky,gridded_sky_ivb]);
+
+
+
+meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
+# very important -- insert meqmaker's options properly
+TDLCompileOptions(*meqmaker.compile_options());
+
 
 def _define_forest(ns):
     #make pynodes, xyzcomponent for sources

@@ -22,7 +22,7 @@ def compile_options():
 
 
 
-class Poly_MIM(PiercePoints):
+class MIM(PiercePoints):
     """A Poly_MIM is a PiercePoints that creates a polynomial as functrion of the pierc points"""
 
     def __init__(self,ns,name,sources,stations=None,height=300,ref_station=1,tags="iono"):
