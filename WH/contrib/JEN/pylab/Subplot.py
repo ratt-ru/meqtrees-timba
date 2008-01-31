@@ -223,34 +223,34 @@ class Subplot (object):
 #========================================================================
 
 def test_line (n=6, **kwargs):
-    """Graphicset (=Subplot) with Points2D object for a straight line"""
+    """Graphics (=Subplot) with Points2D object for a straight line"""
     import Points2D
-    import Graphicset
-    sub =  Graphicset.Graphicset(**kwargs)
+    import Graphics
+    sub =  Graphics.Graphics(**kwargs)
     sub.add(Points2D.test_line(n=n, **kwargs))
     return sub
 
 def test_parabola (n=6, **kwargs):
-    """Graphicset (=Subplot) with Points2D object for a parabola"""
+    """Graphics (=Subplot) with Points2D object for a parabola"""
     import Points2D
-    import Graphicset
-    sub =  Graphicset.Graphicset(**kwargs)
+    import Graphics
+    sub =  Graphics.Graphics(**kwargs)
     sub.add(Points2D.test_parabola(n=n, **kwargs))
     return sub
 
 def test_sine (n=10, **kwargs):
-    """Graphicset (=Subplot) with Points2D object for sine-wave"""
+    """Graphics (=Subplot) with Points2D object for sine-wave"""
     import Points2D
-    import Graphicset
-    sub =  Graphicset.Graphicset(**kwargs)
+    import Graphics
+    sub =  Graphics.Graphics(**kwargs)
     sub.add(Points2D.test_sine(n=n, **kwargs))
     return sub
 
 def test_cloud (n=10, mean=-1.0, stddev=3.0, **kwargs):
-    """Graphicset (=Subplot) with Points2D object for a cloud of random points"""
+    """Graphics (=Subplot) with Points2D object for a cloud of random points"""
     import Points2D
-    import Graphicset
-    sub =  Graphicset.Graphicset(**kwargs)
+    import Graphics
+    sub =  Graphics.Graphics(**kwargs)
     sub.add(Points2D.test_cloud(n=n, mean=mean, stddev=stddev, **kwargs))
     return sub
 
@@ -265,8 +265,8 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Subplot.py:\n'
 
     sub = Subplot()
-    # import Graphicset
-    # sub = Graphicset.test()
+    # import Graphics
+    # sub = Graphics.test()
     print sub.oneliner()
 
     if 0:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# file: ../contrib/JEN/pylab/Graphicset.py
+# file: ../contrib/JEN/pylab/Graphics.py
 
 # Author: J.E.Noordam
 # 
@@ -51,7 +51,7 @@ import Points2D
 
 #======================================================================================
 
-class Graphicset (Subplot.Subplot):
+class Graphics (Subplot.Subplot):
     """The Grapicset is derived from the Subplot class.
     It holds one or more Graphics objects."""
 
@@ -98,7 +98,7 @@ class Graphicset (Subplot.Subplot):
         return self._order
 
     def name(self):
-        """Return the name (label?) of this Graphicset"""
+        """Return the name (label?) of this Graphics"""
         return self._name
 
     def has_key(self, key):
@@ -137,7 +137,7 @@ class Graphicset (Subplot.Subplot):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = '** <Graphicset> '+self.name()+':'
+        ss = '** <Graphics> '+self.name()+':'
         ss += ' n='+str(self.len())
         ss += '  yrange='+str(self.yrange())
         ss += '  xrange='+str(self.xrange())
@@ -173,7 +173,7 @@ class Graphicset (Subplot.Subplot):
 # Some convenient 'standard' Graphics classes:
 #========================================================================
 
-class Circle (Graphicset):
+class Circle (Graphics):
     """The Grapicset is derived from the Subplot class.
     It holds a series of Graphics objects."""
 
@@ -184,7 +184,7 @@ class Circle (Graphicset):
         A circle segment may be specified by the start and stop
         angles a1(=0) and a2(=2pi)."""
 
-        Graphicset.__init__(self, name=name, **kwargs)
+        Graphics.__init__(self, name=name, **kwargs)
 
         if a2==None: a2 = 2*pylab.pi           # default 2pi
         na = max(3,int((a2-a1)/0.1))           # nr of points
@@ -221,9 +221,9 @@ class Circle (Graphicset):
 
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of: Graphicset.py:\n'
+    print '\n*******************\n** Local test of: Graphics.py:\n'
 
-    grs = Graphicset()
+    grs = Graphics()
         
     if 0:
         grs.add(Points2D.test_line())
@@ -244,7 +244,7 @@ if __name__ == '__main__':
     if 1:
         grs.plot()
 
-    print '\n** End of local test of: Graphicset.py:\n'
+    print '\n** End of local test of: Graphics.py:\n'
 
 
 
