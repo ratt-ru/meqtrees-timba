@@ -47,33 +47,21 @@ import pylab
 import copy
 import Subplot
 
+import Points2D
 
 #======================================================================================
 
 class Graphicset (Subplot.Subplot):
     """The Grapicset is derived from the Subplot class.
-    It holds a series of Graphics objects."""
+    It holds one or more Graphics objects."""
 
-    def __init__(self, name=None,
-                 title='<Graphicset>', xlabel=None, ylabel='<Graphicset>',
-                 xunit=None, yunit=None,
-                 xmin=None, xmax=None, ymin=None, ymax=None,
-                 **kwargs):
+    def __init__(self, name=None, **kwargs):
 
-        Subplot.Subplot.__init__(self, name=name, title=title,
-                                 xlabel=xlabel, ylabel=ylabel,
-                                 xunit=xunit, yunit=yunit,
-                                 xmin=xmin, xmax=xmax,
-                                 ymin=ymin, ymax=ymax)
+        Subplot.Subplot.__init__(self, name=name, **kwargs)
 
-        #------------------------------------------------------------------
-
-        # The Points2d objects are kept in the named fields of a dict:
+        # The objects are kept in the named fields of a dict:
         self._order = []
         self._graphic = dict()
-
-
-        #------------------------------------------------------------------
 
         # Finished:
         return None
@@ -126,6 +114,8 @@ class Graphicset (Subplot.Subplot):
             key = self._order[index]
         return self._graphic[key]
 
+    #-------------------------------------------------------------
+
     def yrange(self, margin=0.0, yrange=None):
         """Return [min,max] of all the y-coordinate(s)."""
         yr = None
@@ -161,27 +151,67 @@ class Graphicset (Subplot.Subplot):
         print
         return True
 
+
     #===============================================================
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, subplot=111, margin=0.1, show=True):
+    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show'):
         """Plot the group of points, using pylab"""
         pylab.figure(figure)
         pylab.subplot(subplot)
         self.plot_axes(xaxis=True, yaxis=True)
         for key in self._order:
-            self._graphic[key].plot(margin=0.0, show=False)
+            self._graphic[key].plot(margin=0.0, dispose=None)
         self.pylab_window(margin=margin)
         self.pylab_labels()
         pylab.grid(True)
-        if show:
-            # pylab.show._needmain = False
-            pylab.show()
-            # pylab.ion()
-            # pylab.draw()
-            # pylab.close()
-        return True
+        return self.dispose(dispose)
+
+
+#========================================================================
+# Some convenient 'standard' Graphics classes:
+#========================================================================
+
+class Circle (Graphicset):
+    """The Grapicset is derived from the Subplot class.
+    It holds a series of Graphics objects."""
+
+    def __init__(self, x0=0.0, y0=0.0, radius=1.0, name=None,
+                 a1=0.0, a2=None, close=False, centre=None,
+                 **kwargs):
+        """Make a circle with a given centre(x0,y0) and radius.
+        A circle segment may be specified by the start and stop
+        angles a1(=0) and a2(=2pi)."""
+
+        Graphicset.__init__(self, name=name, **kwargs)
+
+        if a2==None: a2 = 2*pylab.pi           # default 2pi
+        na = max(3,int((a2-a1)/0.1))           # nr of points
+        xx = []
+        yy = []
+        aa = a1+(a2-a1)*pylab.array(range(na))/float(na-1)
+        for a in aa:
+            xx.append(x0+radius*pylab.cos(a))
+            yy.append(y0+radius*pylab.sin(a))
+
+        # Optionally, close the segment by drawing end radii:
+        if close:
+            xx.insert(0,x0)
+            yy.insert(0,y0)
+            xx.append(x0)
+            yy.append(y0)
+            
+        # Make the Points2D object, and add it to the internal list:
+        self.add(Points2D.Points2D(yy, xx=xx, **kwargs))
+
+        # Optional: indicate the centre
+        if centre:
+            kwargs['marker'] = centre
+            self.add(Points2D.Points2D([y0], xx=[x0], **kwargs))
+
+        # Finished:
+        return None
 
 
 
@@ -193,13 +223,22 @@ class Graphicset (Subplot.Subplot):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: Graphicset.py:\n'
 
-    import Points2D
-
     grs = Graphicset()
-    grs.add(Points2D.test_line())
-    grs.add(Points2D.test_parabola())
-    grs.add(Points2D.test_sine())
-    grs.add(Points2D.test_cloud())
+        
+    if 0:
+        grs.add(Points2D.test_line())
+        grs.add(Points2D.test_parabola())
+        grs.add(Points2D.test_sine())
+        grs.add(Points2D.test_cloud())
+
+    if 1:
+        grs = Circle(1,3,5,
+                     a1=1, a2=2, close=True,
+                     centre='cross',
+                     linestyle='--', linewidth=3)
+
+    #------------------------------------
+        
     grs.oneliners()
 
     if 1:

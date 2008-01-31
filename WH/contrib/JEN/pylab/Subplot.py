@@ -53,40 +53,46 @@ class Subplot (object):
     """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, name=None,
-                 title=None, xlabel=None, ylabel=None,
-                 xunit=None, yunit=None,
-                 xmin=None, xmax=None, ymin=None, ymax=None):
-
-        #------------------------------------------------------------------
+    def __init__(self, name=None, **kwargs):
 
         # Deal with the specified name (label):
         self._name = name
-        if not isinstance(self._name,str): self._name = '<Subplot>'
+        if not isinstance(self._name,str): self._name = '<name>'
 
-        # Some placeholders (to be used for standalone plotting, or for
-        # automatic generation of labels etc when plotted in a subplot)
-        self._title = title
-        self._xlabel = xlabel
-        self._ylabel = ylabel
-        self._xunit = xunit
-        self._yunit = yunit
+        # Deal with the keyword arguments (kwargs)
+        self._kw = dict()
+        if isinstance(kwargs, dict):
+            keys = ['title','xlabel','ylabel','xunit','yunit',
+                    'xmin','xmax','ymin','ymax']
+            for key in keys:
+                if kwargs.has_key(key):
+                    self._kw[key] = kwargs[key]
+
+        self._kw.setdefault('title',None)
+        self._kw.setdefault('xlabel',None)
+        self._kw.setdefault('ylabel',None)
+        self._kw.setdefault('xunit',None)
+        self._kw.setdefault('yunit',None)
+        self._kw.setdefault('xmin',None)
+        self._kw.setdefault('xmax',None)
+        self._kw.setdefault('ymin',None)
+        self._kw.setdefault('ymax',None)
+
+        self._title = self._kw['title']
+        self._xlabel = self._kw['xlabel']
+        self._ylabel = self._kw['ylabel']
+        self._xunit = self._kw['xunit']
+        self._yunit = self._kw['yunit']
+        self._xmin = self._kw['xmin']
+        self._xmax = self._kw['xmax']
+        self._ymin = self._kw['ymin']
+        self._ymax = self._kw['ymax']
 
         if not isinstance(self._title,str): self._title = self._name
         if not isinstance(self._xlabel,str): self._xlabel = 'xx'
         if not isinstance(self._ylabel,str): self._ylabel = self._name
         if isinstance(self._xunit,str): self._xlabel += ' ('+self._xunit+')'
         if isinstance(self._yunit,str): self._ylabel += ' ('+self._yunit+')'
-
-        #------------------------------------------------------------------
-
-        # A window may be specified:
-        self._xmin = xmin
-        self._xmax = xmax
-        self._ymin = ymin
-        self._ymax = ymax
-
-        #------------------------------------------------------------------
 
         # Finished:
         return None
@@ -136,15 +142,27 @@ class Subplot (object):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, subplot=111, margin=0.1, show=True):
+    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show'):
         """Plot the group of points, using pylab"""
         pylab.figure(figure)
         pylab.subplot(subplot)
         self.plot_axes(xaxis=True, yaxis=True)
         self.pylab_window(margin=margin)
         self.pylab_labels()
-        if show: pylab.show()
+        return self.dispose(dispose)
+
+    #------------------------------------------------
+
+    def dispose(self, dispose='show'):
+        """Generic routine to dispose of the pylab figure"""
+        if dispose=='show':
+            # pylab.show._needmain = False
+            pylab.show()
+            # pylab.ion()
+            # pylab.draw()
+            # pylab.close()
         return True
+
 
     #------------------------------------------------
 
@@ -208,7 +226,7 @@ def test_line (n=6, **kwargs):
     """Graphicset (=Subplot) with Points2D object for a straight line"""
     import Points2D
     import Graphicset
-    sub =  Graphicset.Graphicset()
+    sub =  Graphicset.Graphicset(**kwargs)
     sub.add(Points2D.test_line(n=n, **kwargs))
     return sub
 
@@ -216,7 +234,7 @@ def test_parabola (n=6, **kwargs):
     """Graphicset (=Subplot) with Points2D object for a parabola"""
     import Points2D
     import Graphicset
-    sub =  Graphicset.Graphicset()
+    sub =  Graphicset.Graphicset(**kwargs)
     sub.add(Points2D.test_parabola(n=n, **kwargs))
     return sub
 
@@ -224,7 +242,7 @@ def test_sine (n=10, **kwargs):
     """Graphicset (=Subplot) with Points2D object for sine-wave"""
     import Points2D
     import Graphicset
-    sub =  Graphicset.Graphicset()
+    sub =  Graphicset.Graphicset(**kwargs)
     sub.add(Points2D.test_sine(n=n, **kwargs))
     return sub
 
@@ -232,7 +250,7 @@ def test_cloud (n=10, mean=-1.0, stddev=3.0, **kwargs):
     """Graphicset (=Subplot) with Points2D object for a cloud of random points"""
     import Points2D
     import Graphicset
-    sub =  Graphicset.Graphicset()
+    sub =  Graphicset.Graphicset(**kwargs)
     sub.add(Points2D.test_cloud(n=n, mean=mean, stddev=stddev, **kwargs))
     return sub
 

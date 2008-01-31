@@ -58,7 +58,7 @@ class Figure (Subplot.Subplot):
 
         # Deal with the specified name (label):
         self._name = name
-        if not isinstance(self._name,str): self._name = 'Figure'
+        if not isinstance(self._name,str): self._name = '<name>'
 
         # ctrl.setdefault('figure', None)        # integer: 1,2,3,...
         self._figure = figure
@@ -175,13 +175,26 @@ class Figure (Subplot.Subplot):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, margin=0.1, show=True):
+    def plot(self, figure=1, margin=0.1, dispose='show'):
         """Plot the pylab figure, with its Subplots"""
         pylab.figure(figure)
         for key in self._order:
             subplot = self._plopos[key]['subplot']
-            self._subplot[key].plot(figure=figure, subplot=subplot, show=False)
-        if show: pylab.show()
+            self._subplot[key].plot(figure=figure, subplot=subplot,
+                                    dispose=None)
+        # Finsished: dispose of the pylab figure:
+        return self.dispose(dispose)
+
+    #------------------------------------------------
+
+    def dispose(self, dispose='show'):
+        """Generic routine to dispose of the pylab figure"""
+        if dispose=='show':
+            # pylab.show._needmain = False
+            pylab.show()
+            # pylab.ion()
+            # pylab.draw()
+            # pylab.close()
         return True
 
 
@@ -200,7 +213,7 @@ if __name__ == '__main__':
     fig.add(Subplot.test_line())
     fig.add(Subplot.test_parabola())
     fig.add(Subplot.test_sine())
-    fig.add(Subplot.test_cloud())
+    fig.add(Subplot.test_cloud(xmin=-10))
     fig.oneliners()
 
     if 1:

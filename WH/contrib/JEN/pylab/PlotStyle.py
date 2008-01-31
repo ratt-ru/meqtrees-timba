@@ -69,13 +69,22 @@ class PlotStyle (object):
     def check_PlotStyle(self, **kwargs):
         """Check (and adjust) the self._ps (PlotStyle) record"""
         
-        self._ps = copy.deepcopy(kwargs)
-        if not isinstance(self._ps, dict):
-            self._ps = dict()
+        self._ps = dict()
+        if isinstance(kwargs, dict):
+            keys = ['color','style',
+                    'linewidth','linestyle',
+                    'marker','markerfacecolor','markeredgecolor',
+                    'markersize','markeredgewidth',
+                    'alpha']
+            for key in keys:
+                if kwargs.has_key(key):
+                    self._ps[key] = kwargs[key]
+
+        self.display('from kwargs')
 
         # Generic (specifies line or marker):
         self._ps.setdefault('color', 'red')
-        self._ps.setdefault('style', '-')
+        self._ps.setdefault('style', '-')               # must be removed again....
 
         # Line style:
         self._ps.setdefault('linestyle', None)
@@ -95,11 +104,17 @@ class PlotStyle (object):
         # Finsihed:
         self._check_colors()
         self._check_styles()
-        if True:
-            for key in self._ps.keys():
-                print '-- self._ps[',key,'] =',self._ps[key]
+        self.display('checked')
         return True
 
+
+    def display(self, txt=None):
+        """Display the contents of this obkect"""
+        print '\n** PlotStyle (',txt,'):'
+        for key in self._ps.keys():
+            print '-- self._ps[',key,'] =',self._ps[key]
+        print ' '
+        return True
 
 
 
@@ -107,7 +122,12 @@ class PlotStyle (object):
     # Access routines:
     #===============================================================
 
-
+    def kwargs(self, func='plot'):
+        """Return the keyword arguments to be used for a particular pylab function"""
+        if func=='plot':
+            return self._ps
+        return None
+    
 
     #===============================================================
     # Display of the contents of this object:
@@ -146,7 +166,7 @@ class PlotStyle (object):
         elif self._ps['style'] in self.marker_styles():
             if not self._ps['marker']:
                 self._ps['marker'] = self._ps['style']
-        self._ps.__delitem__('style')
+        self._ps.__delitem__('style')                    # <-------- !!
 
         ls = self._ps['linestyle']
         if ls=='solid': self._ps['linestyle'] = '-'
@@ -159,8 +179,8 @@ class PlotStyle (object):
         if ms=='triangle': self._ps['marker'] = '^'
         if ms=='square': self._ps['marker'] = 's'
         if ms=='plus': self._ps['marker'] = '+'
-        if ms=='cross': self._ps['marker'] = 'o'
-        if ms=='diamond': self._ps['marker'] = 'o'
+        if ms=='cross': self._ps['marker'] = 'x'
+        if ms=='diamond': self._ps['marker'] = 'D'
         if ms=='tripod': self._ps['marker'] = 'o'
         if ms=='hexagon': self._ps['marker'] = 'o'
         if ms=='pentagon': self._ps['marker'] = 'o'
@@ -245,8 +265,13 @@ class PlotStyle (object):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: PlotStyle.py:\n'
 
-    ps = dict()
-    ps = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
+    kw = dict()
+    kw = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
+
+    ps = PlotStyle(**kw)
+    print ps.oneliner()
+
+    print ps.kwargs()
 
     print '\n** End of local test of: PlotStyle.py:\n'
 
