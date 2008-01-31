@@ -185,7 +185,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.outline = vtk.vtkOutlineSource();
       self.outline.SetBounds(xMin, xMax, yMin, yMax, zMin, zMax)
     else:
-#     self.index_selector.init3DContextmenu()
+      self.index_selector.init3DContextmenu()
       self.outline = vtk.vtkOutlineFilter()
       self.outline.SetInput(self.image_array.GetOutput())
     outlineMapper = vtk.vtkPolyDataMapper();
@@ -608,8 +608,8 @@ class vtk_qt_3d_display(qt.QWidget):
   def define_sinx_image(self, iteration=1):
 # image is just a scaled sin(x) / x. (One could probably compute
 # this more quickly.)
-    num_ys = 100
-    num_xs = 100
+    num_ys = 300
+    num_xs = 300
     image_numarray = numarray.ones((1,num_ys,num_xs),type=numarray.Float32)
     for k in range(num_ys):
       k_dist = abs (k - num_ys/2)
