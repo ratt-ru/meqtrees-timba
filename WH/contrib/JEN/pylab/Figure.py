@@ -218,7 +218,7 @@ def pylab_dispose(dispose='show'):
         file.close()
         print '** svg:',filename,'->',type(result),len(result)
         # for s in result: print '-',s
-        if True:
+        if False:
             import os
             os.system("%s -size 640x480 %s" % ('display',filename))
             # -> error: "display: Opening and ending tag mismatch: name line 0 and text"

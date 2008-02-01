@@ -97,15 +97,18 @@ class ScatterPlot (pynode.PyNode):
 
     # Finished: dispose of the Figure:
     fig.oneliners()
-    svg = fig.plot(dispose=['show','svg'])
+    svg_list_of_strings = fig.plot(dispose=['show','svg'])
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
-    # This is a list of strings, which could be attached to the MeqResult of
-    # this pyNode (how do we do that?).
-    # It could then be used by Tony to recreate the SVG plot in the browser....
-    return None
+    # This is a list of strings, which is attached to the MeqResult of this pyNode.
+    # It should then be picked up by Tony to recreate the SVG plot in the browser....
+    result = meq.result()
+    result.svg_plot = svg_list_of_strings
+    return result
 
 
+#========================================================================
+# A version of ScatterPlot that uses pylab commands directly:
 #========================================================================
     
 class TheHardWay (pynode.PyNode):
@@ -118,15 +121,12 @@ class TheHardWay (pynode.PyNode):
                               
   def get_result (self, request, *children):
     import pylab                                 # kludge....!
-    # import PointsXY
 
     xlabel = 'x'
     ylabel = 'y'
-    make_plot = True
-    if make_plot:
-      pylab.figure(1)
-      pylab.subplot(111)
-      pylab.title('VisuNodes.ScatterPlot')
+    pylab.figure(1)
+    pylab.subplot(111)
+    pylab.title('VisuNodes.TheHardWay')
 
     xx = []
     yy = []
@@ -137,70 +137,74 @@ class TheHardWay (pynode.PyNode):
       if isinstance(v0,complex):
         xx.append(v0.real)
         yy.append(v0.imag)
-        if make_plot:
-          pylab.xlabel('real part')
-          pylab.ylabel('imag part')
+        pylab.xlabel('real part')
+        pylab.ylabel('imag part')
       else:
         xx.append(v0)
         yy.append(v0)
-        if make_plot:
-          pylab.xlabel(xlabel)
-          pylab.ylabel(ylabel)
+        pylab.xlabel(xlabel)
+        pylab.ylabel(ylabel)
 
-    if make_plot:
-      # Make pylab numarrays and plot axes:
-      xx = pylab.array(xx)
-      yy = pylab.array(yy)
-      [xmin,xmax] = [xx.min(),xx.max()]
-      [ymin,ymax] = [yy.min(),yy.max()]
-      pylab.plot([xmin,xmax], [0,0], color='black', linewidth=3)
-      pylab.plot([0,0],[ymin,ymax], color='black', linewidth=3)
-
-      # Plot the points themselves:
-      pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
-
-      # Indicate the mean position:
-      xmean = pylab.mean(xx)
-      ymean = pylab.mean(yy)
-      pylab.plot([xmean], [ymean], markeredgecolor='red',
-                 marker='+', markersize=30, linestyle=None)
-      pylab.text(xmean, ymean, ' mean', color='red', fontsize=20)
-
-      # Make the stddev circle:
-      stddev = (xx.stddev()**2+yy.stddev()**2)**0.5
-      pylab.text(xmean+0.7*stddev, ymean+0.7*stddev, ' stddev', color='red', fontsize=20)
-      # pylab.arrow([xmean,ymean], [xmean+stddev,ymean+stddev], color='red')
-      make_circle(x0=xmean, y0=ymean, radius=stddev,
-                  na=30, a1=0.0, a2=2*pylab.pi,
-                  plot=make_plot, color='red', linestyle='--') 
+    pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
+    pylab.grid()
 
     # Finished:
-    if make_plot:
-      pylab.grid()
-      pylab.show()
-    return None
+    svg_list_of_strings = pylab_dispose(dispose=['show','svg'])
+    # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
+    # If dispose contains 'svg', .plot() returns the contents of the .svg file.
+    # This is a list of strings, which is attached to the MeqResult of this pyNode.
+    # It should then be picked up by Tony to recreate the SVG plot in the browser....
+    result = meq.result()
+    result.svg_plot = svg_list_of_strings
+    return result
+
+#-------------------------------------------------------------------
     
+def pylab_dispose(dispose='show'):
+    """Generic routine to dispose of the pylab figure.
+    Dipose can be a string (show, svg), or a list of strings"""
+
+    import pylab                   
+    rootname = 'xxx'
+    print '** dispose(): ',dispose,rootname
+    if dispose==None:
+        return None
+    if isinstance(dispose,str):
+        dispose = [dispose]
+    result = None
+    svgname = None
+
+    file_extensions = ['png','PNG','svg','SVG']
+    for ext in file_extensions:
+        if ext in dispose:
+            filename = rootname+'.'+ext
+            if ext in ['svg','SVG']: svgname = filename
+            r = pylab.savefig(filename)
+            print '** dispose:',ext,filename,'->',r
+
+    if isinstance(svgname,str):
+        file = open(filename,'r')
+        result = file.readlines()
+        file.close()
+        print '** svg:',filename,'->',type(result),len(result)
+        # for s in result: print '-',s
+        if False:
+            import os
+            os.system("%s -size 640x480 %s" % ('display',filename))
+            # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
+        
+    if 'show' in dispose:
+        # pylab.show._needmain = False
+        pylab.show()
+        # pylab.ion()
+        # pylab.draw()
+        # pylab.close()
+        
+    # Finished: return the result (if any):
+    return result
 
 
-#=====================================================================================
-# Some helper functions:
-#=====================================================================================
 
-def make_circle(x0=0.0, y0=0.0, radius=1.0,
-                na=30, a1=0.0, a2=None,
-                plot=True, color='red', linestyle='--'):
-  """Make a circle with given centre(x0,y0) and radius"""
-  if plot:
-    import pylab
-    if a2==None: a2 = 2*pylab.pi
-    xx = []
-    yy = []
-    aa = 2*pylab.pi*pylab.array(range(na))/float(na-1)
-    for a in aa:
-      xx.append(x0+radius*pylab.cos(a))
-      yy.append(y0+radius*pylab.sin(a))
-    pylab.plot(xx, yy, color='red', linestyle='--')
-  return True
 
 #=====================================================================================
 # Make a test-forest:
@@ -217,7 +221,9 @@ def _define_forest (ns,**kwargs):
       value = random.gauss(0,1)
       value = complex(random.gauss(0,1),random.gauss(0,1))
       cc.append(ns[str(i)] << value)
-    ns.pynode << Meq.PyNode(children=cc, class_name="ScatterPlot", module_name=__file__)
+    classname = "ScatterPlot"
+    classname = "TheHardWay"
+    ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
                 
   return True
   
