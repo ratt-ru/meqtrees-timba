@@ -261,6 +261,7 @@ class PointsXY (object):
         """Rotate all points by the specified angle (rad),
         around the specified centre xy0=[x0,y0].
         If xy0 is complex, the real and imag parts are used."""
+        print '** .rotate(',angle,xy0,'):'
         if not angle==0.0:
             # Make xy0 the origin:
             if isinstance(xy0,complex):
@@ -269,16 +270,17 @@ class PointsXY (object):
             else:
                 x0 = xy0[0]
                 y0 = xy0[1]
-            xx = self.xx() - x0
-            yy = self.yy() - y0
+            print 'x0=',x0,'  y0=',y0
+            xx = self._xx - x0
+            yy = self._yy - y0
             # Rotate around the origin:
             sina = pylab.sin(angle)
             cosa = pylab.cos(angle)
-            xxr = xx*cosa - yy*sina
-            yyr = xx*sina + yy*cosa
+            self._xx = xx*cosa - yy*sina
+            self._yy = xx*sina + yy*cosa
             # Return to the original origin:
-            self._xx = xxr + x0
-            self._yy = yyr + y0
+            self._xx += x0
+            self._yy += y0
         return False
 
 

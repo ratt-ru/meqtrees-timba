@@ -55,9 +55,9 @@ class Graphics (Subplot.Subplot):
     """The Grapicset is derived from the Subplot class.
     It holds one or more Graphics objects."""
 
-    def __init__(self, name=None, **kwargs):
+    def __init__(self, **kwargs):
 
-        Subplot.Subplot.__init__(self, name=name, **kwargs)
+        Subplot.Subplot.__init__(self, **kwargs)
 
         # The objects are kept in the named fields of a dict:
         self._order = []
@@ -179,10 +179,10 @@ class Scatter (Graphics):
     (markers) of the specified yy [and xx] coordinates.
     """
 
-    def __init__(self, yy=None, name=None, xx=None,
+    def __init__(self, yy=None, xx=None,
                  **kwargs):
 
-        Graphics.__init__(self, name=name, **kwargs)
+        Graphics.__init__(self, **kwargs)
 
         # Make the PointsXY object, and add it to the internal list:
         kwargs.setdefault('marker','o')
@@ -196,6 +196,75 @@ class Scatter (Graphics):
 
 #------------------------------------------------------------------------
 
+def xy2pair(xy):
+    """Convert the given list/tuple or complex to [x,y]"""
+    if xy==None:
+        return None
+    elif isinstance(xy,(list,tuple)):
+        return [xy[0],xy[1]]
+    elif isinstance(xy,complex):
+        return [xy.real,xy.imag]
+    else:
+        s = 'xy has invalid type: '+str(type(xy))
+        raise ValueError,s
+    
+
+#------------------------------------------------------------------------
+class Arrow (Graphics):
+    """Class derived from Graphics. It represents an arrow
+    from xy1(=[x1,y1]) to xy2(=[x2,y2]) or xy1+dxy(=[dx,dy]).
+    """
+
+    def __init__(self, xy1=[0.0,0.0], xy2=None, dxy=None,
+                 **kwargs):
+
+        Graphics.__init__(self, **kwargs)
+
+        [x1,y1] = xy2pair(xy1)
+        xx = [x1]
+        yy = [y1]
+        if xy2:
+            [x2,y2] = xy2pair(xy2)
+            xx.append(x2)
+            yy.append(y2)
+        elif dxy:
+            [dx,dy] = xy2pair(dxy)
+            xx.append(x1+dx)
+            yy.append(y1+dx)
+        else:
+            raise ValueError,'either xy2 or dxy should be specified'
+
+        # Calculate the polar coordinates (r,a):
+        dx = (xx[1]-xx[0])
+        dy = (yy[1]-yy[0])
+        r = ((dx*dx)+(dy*dy))**0.5
+        if dx<0.0: r = -r
+        a = 0.0
+        if not dx==0:
+            a = pylab.arctan(dy/dx)
+
+        # Make a horizontal line of length r, and make the arrow-head:
+        yy[1] = yy[0]
+        xx[1] = xx[0]+r
+        ahlen = r/25.0          # arrow head length
+        ahwid = r/75.0          # arrow head width
+        xx.append(xx[1]-ahlen)
+        yy.append(yy[1]+ahwid)
+        xx.append(xx[2])
+        yy.append(yy[1]-ahwid)
+        xx.append(xx[1])
+        yy.append(yy[1])
+
+        # Make the PointsXY object and rotate it by angle a:
+        pxy = PointsXY.PointsXY(yy, xx=xx, **kwargs)
+        pxy.rotate(a, xy0=xy1)
+        self.add(pxy)
+
+        # Finished:
+        return None
+
+#------------------------------------------------------------------------
+
 class Circle (Graphics):
     """Class derived from Graphics. It represents a circle
     with a given centre(x0,y0) and radius.
@@ -203,12 +272,13 @@ class Circle (Graphics):
     angles a1(=0) and a2(=2pi).
     """
 
-    def __init__(self, x0=0.0, y0=0.0, radius=1.0, name=None,
+    def __init__(self, xy0=[0.0,0.0], radius=1.0, 
                  a1=0.0, a2=None, close=False, centre=None,
                  **kwargs):
 
-        Graphics.__init__(self, name=name, **kwargs)
+        Graphics.__init__(self, **kwargs)
 
+        [x0,y0] = xy2pair(xy0)
         if a2==None: a2 = 2*pylab.pi           # default 2pi
         na = max(3,int((a2-a1)/0.1))           # nr of points
         xx = []
@@ -218,7 +288,7 @@ class Circle (Graphics):
             xx.append(x0+radius*pylab.cos(a))
             yy.append(y0+radius*pylab.sin(a))
 
-        # Optionally, close the segment by drawing end radii:
+        # Optionally, close the segment by drawing the end radii:
         if close:
             xx.insert(0,x0)
             yy.insert(0,y0)
@@ -227,6 +297,41 @@ class Circle (Graphics):
             
         # Make the PointsXY object, and add it to the internal list:
         self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
+
+        # Optional: indicate the centre
+        if centre:
+            kwargs['marker'] = centre
+            self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
+
+        # Finished:
+        return None
+
+#------------------------------------------------------------------------
+
+class Ellipse (Graphics):
+    """Class derived from Graphics. It represents an ellipse
+    with a given centre(x0,y0) and half-axes a and b, and position angle.
+    """
+
+    def __init__(self, xy0=[0.0,0.0], a=2.0, b=1.0, angle=0.0, 
+                 centre='+', **kwargs):
+
+        Graphics.__init__(self, **kwargs)
+
+        [x0,y0] = xy2pair(xy0)
+        na = 30
+        xx = []
+        yy = []
+        gg = 2*pylab.pi*pylab.array(range(na))/float(na-1)
+        for g in gg:
+            xx.append(x0+a*pylab.cos(g))
+            yy.append(y0+b*pylab.sin(g))
+
+            
+        # Make the PointsXY object, and add it to the internal list:
+        pts = PointsXY.PointsXY(yy, xx=xx, **kwargs)
+        pts.rotate(angle, xy0=xy0)
+        self.add(pts)
 
         # Optional: indicate the centre
         if centre:
@@ -255,13 +360,23 @@ if __name__ == '__main__':
         grs.add(PointsXY.test_cloud())
 
     if 0:
-        grs = Circle(1,3,5,
+        grs = Circle([1,3],5,
                      a1=1, a2=2, close=True,
                      centre='cross',
                      linestyle='--', linewidth=3)
 
     if 1:
+        grs = Ellipse([1,3],2,1, angle=1.0,
+                      centre='cross',
+                      linestyle='--', linewidth=3)
+
+    if 0:
         grs = Scatter(range(6), marker='hexagon')
+
+    if 0:
+        # grs = Arrow(dxy=[1,1], linewidth=3)
+        # grs = Arrow(xy2=[1,1], linewidth=3)
+        grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
 
     #------------------------------------
         
