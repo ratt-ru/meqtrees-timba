@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# file: ../contrib/JEN/pylab/Points2D.py
+# file: ../contrib/JEN/pylab/PointsXY.py
 
 # Author: J.E.Noordam
 # 
@@ -52,7 +52,7 @@ import PlotStyle
 
 #======================================================================================
 
-class Points2D (object):
+class PointsXY (object):
     """Encapsulation of a set of 2D points, for (pylab) plotting
     """
 
@@ -161,38 +161,38 @@ class Points2D (object):
         if tolist: return self._yy.tolist()
         return self._yy
 
-    def __getitem__(self,index):
-        """Get value yy[index]"""
-        yy = self._yy.tolist()
-        return yy[index]
-        # return self.__yy[index]
-
-    def mean(self, xalso=False, trace=False):
-        """Return the mean of the y-coordinate(s).
-        If xalso=True, return [xmean,ymean]."""
-        if not xalso: return pylab.mean(self._yy)
-        return [pylab.mean(self.xx()),pylab.mean(self.yy())]
-
-    def stddev(self, xalso=False):
-        """Return the stddev of the y-coordinate(s).
-        If xalso=True, return [xstddev,ystddev]."""
-        ystddev = 0.0
-        if self.len()>1: ystddev = self.yy().stddev()
-        if not xalso: return ystddev
-        xstddev = 0.0
-        if self.len()>1: xstddev = self.xx().stddev()
-        return [xstddev, ystddev]
-
-    def sum(self, xalso=False):
-        """Return the sum of the y-coordinate(s).
-        If xalso=True, return [xsum,ysum].
-        NB: This function returns a Python Long integer (e.g. 12L)"""
-        if not xalso: return self.yy().sum()
-        return [self.xx().sum(), self.yy().sum()]
-
     def yrange(self, margin=0.0, yrange=None):
         """Return [min,max] of the y-coordinate(s)."""
         return self._range(self.yy(), margin=margin, vrange=yrange)
+
+    def __getitem__(self, index):
+        """Return the coordinates [x,y] of the specified (index) point"""
+        return [self._xx.tolist()[index],self._yy.tolist()[index]]
+
+    def mean(self, mode='y'):
+        """Return the mean of the specified coordinates:
+        - mode=y: -> mean(yy) (default)
+        - mode=x: -> mean(xx)
+        - mode=r: -> sqrt(mean(xx)**2+mean(yy)**2)
+        - mode=xy: -> [mean(xx),mean(yy)]"""
+        if mode=='y': return pylab.mean(self._yy)
+        if mode=='xy': return [pylab.mean(self._xx),pylab.mean(self._yy)]
+        if mode=='r': return (pylab.mean(self._xx)**2+pylab.mean(self._yy)**2)**0.5
+        if mode=='x': return pylab.mean(self._xx)
+        return None
+
+    def stddev(self, mode='y'):
+        """Return the stddev of the specified coordinates:
+        - mode=y: -> stddev(yy) (default)
+        - mode=x: -> stddev(xx)
+        - mode=xy: -> [stddev(xx),stddev(yy)]"""
+        if self.len()==1:
+            if mode=='xy': return [0.0,0.0]
+            return 0.0
+        if mode=='y': return self._yy.stddev()
+        if mode=='xy': return [self._xx.stddev(),self._yy.stddev()]
+        if mode=='x': return self._xx.stddev()
+        return None
 
 
     #------------------------------------------------
@@ -234,7 +234,7 @@ class Points2D (object):
 
     def oneliner(self):
         """Return a one-line summary of this object"""
-        ss = '** <Points2D> '+self.name()+':'
+        ss = '** <PointsXY> '+self.name()+':'
         ss += ' n='+str(self.len())
         ss += ' '+self._PlotStyle.summary()
         ss += '  yrange='+str(self.yrange())
@@ -281,21 +281,56 @@ class Points2D (object):
             self._yy = yyr + y0
         return False
 
+
     #===============================================================
     # Plot:
     #===============================================================
 
-    def plot(self, margin=0.2, dispose='show'):
+    def plot(self, margin=0.2, dispose='show',
+             plot_mean=False, plot_stddev=False):
         """Plot the group of points, using pylab"""
         pylab.plot(self.xx(), self.yy(), **self._PlotStyle.kwargs('plot'))
         if margin>0.0:
             [xmin,xmax] = self.xrange(margin=margin)
             [ymin,ymax] = self.yrange(margin=margin)
             pylab.axis([xmin, xmax, ymin, ymax])
+
+        # Optional extras:
+        color = self._PlotStyle.color()
+        if plot_mean:
+            self.plot_ellipse(x0=0.0, y0=0.0, a=self.mean('r'),
+                              color=color, linestyle='--')
+        if plot_stddev:
+            [xmean,ymean] = self.mean('xy')
+            [xstddev,ystddev] = self.stddev('xy')
+            self.plot_ellipse(x0=xmean, y0=ymean, a=xstddev, b=ystddev,
+                              color=color, linestyle='--')
+            pylab.plot([xmean], [ymean], marker='+',
+                       markeredgecolor=color, markersize=20)
+            pylab.plot([xmean], [ymean], marker='o',
+                       markeredgecolor=color, markerfacecolor=color)
         if dispose=='show':
             pylab.show()
         return True
 
+
+    #---------------------------------------------------------------
+
+    def plot_ellipse(self, x0=0.0, y0=0.0, a=1.0, b=None,
+                     color='red', linestyle='--'):
+        """Make an ellipse with given centre(x0,y0) and half-axes a and b.
+        If b==None (default), make a circle with radius a."""
+        print x0,y0,a,b,color,linestyle
+        xx = []
+        yy = []
+        if b==None: b = a                 # circle 
+        na = 30
+        angles = 2*pylab.pi*pylab.array(range(na))/float(na-1)
+        for angle in angles:
+            xx.append(x0+a*pylab.cos(angle))
+            yy.append(y0+b*pylab.sin(angle))
+        pylab.plot(xx, yy, color=color, linestyle=linestyle)
+        return True
 
 
 #========================================================================
@@ -304,38 +339,38 @@ class Points2D (object):
 
 
 def test_line (n=6, name='test_line', **kwargs):
-    """Points2D object for a straight line"""
+    """PointsXY object for a straight line"""
     kwargs.setdefault('color','magenta')
     kwargs.setdefault('style','o')
     yy = 0.3*pylab.array(range(n))
-    pts = Points2D (yy, name, **kwargs)
+    pts = PointsXY (yy, name, **kwargs)
     print pts.oneliner()
     return pts
 
 def test_parabola (n=6, name='test_parabola', **kwargs):
-    """Points2D object for a parabola"""
+    """PointsXY object for a parabola"""
     kwargs.setdefault('color','blue')
     kwargs.setdefault('style','-')
     kwargs.setdefault('marker','+')
     kwargs.setdefault('markersize',10)
     yy = pylab.array(range(n))/2.0
     yy = -3+yy+yy*yy
-    pts = Points2D (yy, name, **kwargs)
+    pts = PointsXY (yy, name, **kwargs)
     print pts.oneliner()
     return pts
 
 def test_sine (n=10, name='test_sine', **kwargs):
-    """Points2D object for a sine-wave"""
+    """PointsXY object for a sine-wave"""
     kwargs.setdefault('color','red')
     kwargs.setdefault('style','--')
     yy = 0.6*pylab.array(range(n))
     yy = pylab.sin(yy)
-    pts = Points2D (yy, name, **kwargs)
+    pts = PointsXY (yy, name, **kwargs)
     print pts.oneliner()
     return pts
 
 def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
-    """Points2D object for a cloud of random points"""
+    """PointsXY object for a cloud of random points"""
     kwargs.setdefault('color','green')
     kwargs.setdefault('style','cross')
     # kwargs.setdefault('markersize',10)
@@ -345,7 +380,7 @@ def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
         yy[i] = random.gauss(mean,stddev)
         xx[i] = random.gauss(mean,stddev)
         print '-',i,mean,stddev,':',xx[i],yy[i]
-    pts = Points2D (yy, name, xx=xx, **kwargs)
+    pts = PointsXY (yy, name, xx=xx, **kwargs)
     print pts.oneliner()
     return pts
 
@@ -356,43 +391,49 @@ def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
 
 
 if __name__ == '__main__':
-    print '\n*******************\n** Local test of: Points2D.py:\n'
+    print '\n*******************\n** Local test of: PointsXY.py:\n'
 
     ps = dict()
     ps = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
 
-    # pts = Points2D(range(6), 'list', annot=4, **ps)
-    # pts = Points2D(pylab.array(range(6)), 'numarray', **ps)
-    # pts = Points2D(-2, 'scalar', **ps)
-    # pts = Points2D(3+5j, 'complex scalar', **ps)
-    # pts = Points2D([3,-2+1.5j], 'complex list', **ps)
-    # pts = Points2D([0,0,0,0], 'zeroes', **ps)
-    pts = test_line()
+    pts = PointsXY(range(6), 'list', annot=4, **ps)
+    # pts = PointsXY(pylab.array(range(6)), 'numarray', **ps)
+    # pts = PointsXY(-2, 'scalar', **ps)
+    # pts = PointsXY(3+5j, 'complex scalar', **ps)
+    # pts = PointsXY([3,-2+1.5j], 'complex list', **ps)
+    # pts = PointsXY([0,0,0,0], 'zeroes', **ps)
+    # pts = test_line()
     # pts = test_sine()
     # pts = test_parabola()
     # pts = test_cloud()
     print pts.oneliner()
 
     if 1:
-        pts.plot()
-
-    if 0:
         print '- pts[1] -> ',pts[1]
+        print '- pts[2] -> ',pts[2]
         print '- .yy() -> ',pts.yy(),type(pts.yy())
         print '- .yy(tolist=True) -> ',pts.yy(tolist=True),type(pts.yy(tolist=True))
         print '- .yrange(margin=0.1) -> ',pts.yrange(margin=0.1)
         print '- .xrange(margin=0.1, xrange=[-2,3]) -> ',pts.xrange(margin=0.1, xrange=[-2,3])
-        print '- .mean(xalso=True) -> ',pts.mean(xalso=True)
-        print '- .stddev(xalso=True) -> ',pts.stddev(xalso=True)
-        print '- .sum(xalso=True) -> ',pts.sum(xalso=True)
+        print '- .mean() -> ',pts.mean()
+        print '- .mean(xy) -> ',pts.mean('xy')
+        print '- .mean(x) -> ',pts.mean('x')
+        print '- .mean(r) -> ',pts.mean('r')
+        print '- .mean(z) -> ',pts.mean('z')
+        print '- .stddev() -> ',pts.stddev()
+        print '- .stddev(xy) -> ',pts.stddev('xy')
+        print '- .stddev(x) -> ',pts.stddev('x')
 
     if 0:
         print '- .shift(dy=-10, dx=100) -> ',pts.shift(dy=-10, dx=100), pts.oneliner()
         print '- .rotate(angle=0.2) -> ',pts.rotate(angle=0.2), pts.oneliner()
         print '- .rotate(angle=0.2, xy0=[-10,100]) -> ',pts.rotate(angle=0.2, xy0=[-10,100]), pts.oneliner()
-        # pts.plot()
 
-    print '\n** End of local test of: Points2D.py:\n'
+    if 1:
+        pts.plot(plot_mean=True, plot_stddev=True)
+
+
+    print '\n** End of local test of: PointsXY.py:\n'
 
 
 

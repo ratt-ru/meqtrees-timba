@@ -47,7 +47,7 @@ import pylab
 import copy
 import Subplot
 
-import Points2D
+import PointsXY
 
 #======================================================================================
 
@@ -166,23 +166,46 @@ class Graphics (Subplot.Subplot):
         self.pylab_window(margin=margin)
         self.pylab_labels()
         pylab.grid(True)
-        return self.dispose(dispose)
+        import Figure
+        return Figure.pylab_dispose(dispose)
 
 
 #========================================================================
 # Some convenient 'standard' Graphics classes:
 #========================================================================
 
+class Scatter (Graphics):
+    """Class derived from Graphics. It represents a scatter-plot
+    (markers) of the specified yy [and xx] coordinates.
+    """
+
+    def __init__(self, yy=None, name=None, xx=None,
+                 **kwargs):
+
+        Graphics.__init__(self, name=name, **kwargs)
+
+        # Make the PointsXY object, and add it to the internal list:
+        kwargs.setdefault('marker','o')
+        kwargs.setdefault('markersize',20)
+        kwargs['style'] = kwargs['marker']
+        kwargs['linestyle'] = None
+        self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
+
+        # Finished:
+        return None
+
+#------------------------------------------------------------------------
+
 class Circle (Graphics):
-    """The Grapicset is derived from the Subplot class.
-    It holds a series of Graphics objects."""
+    """Class derived from Graphics. It represents a circle
+    with a given centre(x0,y0) and radius.
+    A segment may be specified by the start and stop
+    angles a1(=0) and a2(=2pi).
+    """
 
     def __init__(self, x0=0.0, y0=0.0, radius=1.0, name=None,
                  a1=0.0, a2=None, close=False, centre=None,
                  **kwargs):
-        """Make a circle with a given centre(x0,y0) and radius.
-        A circle segment may be specified by the start and stop
-        angles a1(=0) and a2(=2pi)."""
 
         Graphics.__init__(self, name=name, **kwargs)
 
@@ -202,13 +225,13 @@ class Circle (Graphics):
             xx.append(x0)
             yy.append(y0)
             
-        # Make the Points2D object, and add it to the internal list:
-        self.add(Points2D.Points2D(yy, xx=xx, **kwargs))
+        # Make the PointsXY object, and add it to the internal list:
+        self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
 
         # Optional: indicate the centre
         if centre:
             kwargs['marker'] = centre
-            self.add(Points2D.Points2D([y0], xx=[x0], **kwargs))
+            self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
 
         # Finished:
         return None
@@ -226,23 +249,27 @@ if __name__ == '__main__':
     grs = Graphics()
         
     if 0:
-        grs.add(Points2D.test_line())
-        grs.add(Points2D.test_parabola())
-        grs.add(Points2D.test_sine())
-        grs.add(Points2D.test_cloud())
+        grs.add(PointsXY.test_line())
+        grs.add(PointsXY.test_parabola())
+        grs.add(PointsXY.test_sine())
+        grs.add(PointsXY.test_cloud())
 
-    if 1:
+    if 0:
         grs = Circle(1,3,5,
                      a1=1, a2=2, close=True,
                      centre='cross',
                      linestyle='--', linewidth=3)
+
+    if 1:
+        grs = Scatter(range(6), marker='hexagon')
 
     #------------------------------------
         
     grs.oneliners()
 
     if 1:
-        grs.plot()
+        grs.plot(dispose='show')
+        # grs.plot(dispose=['PNG','SVG','show'])
 
     print '\n** End of local test of: Graphics.py:\n'
 

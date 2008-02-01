@@ -5,8 +5,8 @@
 # Author: J.E.Noordam
 # 
 # Short description:
-#   Class that represents a pylab sholds a series
-#   of plottable objects like Points2D etc
+#   Class that represents a pylab Figure. It holds a series
+#   of pylab Subplot objects.
 #
 # History:
 #    - 29 jan 2008: creation
@@ -54,7 +54,7 @@ class Figure (Subplot.Subplot):
     """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, figure=1, nrow=2, ncol=2, name=None): 
+    def __init__(self, figure=1, nrow=1, ncol=1, name=None): 
 
         # Deal with the specified name (label):
         self._name = name
@@ -183,19 +183,55 @@ class Figure (Subplot.Subplot):
             self._subplot[key].plot(figure=figure, subplot=subplot,
                                     dispose=None)
         # Finsished: dispose of the pylab figure:
-        return self.dispose(dispose)
+        return pylab_dispose(dispose)
 
-    #------------------------------------------------
 
-    def dispose(self, dispose='show'):
-        """Generic routine to dispose of the pylab figure"""
-        if dispose=='show':
-            # pylab.show._needmain = False
-            pylab.show()
-            # pylab.ion()
-            # pylab.draw()
-            # pylab.close()
-        return True
+
+#========================================================================
+# Some helper functions (also used externally)
+#========================================================================
+
+def pylab_dispose(dispose='show'):
+    """Generic routine to dispose of the pylab figure.
+    Dipose can be a string (show, svg), or a list of strings"""
+
+    rootname = 'xxx'
+    print '** dispose(): ',dispose,rootname
+    if dispose==None:
+        return None
+    if isinstance(dispose,str):
+        dispose = [dispose]
+    result = None
+    svgname = None
+
+    file_extensions = ['png','PNG','svg','SVG']
+    for ext in file_extensions:
+        if ext in dispose:
+            filename = rootname+'.'+ext
+            if ext in ['svg','SVG']: svgname = filename
+            r = pylab.savefig(filename)
+            print '** dispose:',ext,filename,'->',r
+
+    if isinstance(svgname,str):
+        file = open(filename,'r')
+        result = file.readlines()
+        file.close()
+        print '** svg:',filename,'->',type(result),len(result)
+        # for s in result: print '-',s
+        if True:
+            import os
+            os.system("%s -size 640x480 %s" % ('display',filename))
+            # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
+        
+    if 'show' in dispose:
+        # pylab.show._needmain = False
+        pylab.show()
+        # pylab.ion()
+        # pylab.draw()
+        # pylab.close()
+        
+    # Finished: return the result (if any):
+    return result
 
 
 
@@ -209,7 +245,7 @@ if __name__ == '__main__':
 
     import Subplot
 
-    fig = Figure()
+    fig = Figure(nrow=2, ncol=2)
     fig.add(Subplot.test_line())
     fig.add(Subplot.test_parabola())
     fig.add(Subplot.test_sine())

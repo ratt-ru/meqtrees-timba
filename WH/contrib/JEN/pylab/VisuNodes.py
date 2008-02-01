@@ -56,8 +56,69 @@ class ScatterPlot (pynode.PyNode):
     self.set_symdeps('domain','resolution');
                               
   def get_result (self, request, *children):
+
+    # First get the (mean) values of its child results in yy (and xx):
+    # NB: Here we need Tony's Result unpacking object...
+    xx = []
+    yy = []
+    for i,ch in enumerate(children):
+      _dprint(0,'- child',i,':',dmi.dmi_typename(ch),': ch =',ch)
+      v0 = ch.vellsets[0].value[0]
+      print '--- v0:',type(v0),'::',v0
+      if isinstance(v0,complex):
+        xx.append(v0.real)
+        yy.append(v0.imag)
+        xlabel = 'real part'
+        ylabel = 'imag part'
+      else:
+        xx.append(v0)
+        yy.append(v0)
+        xlabel = 'x'
+        ylabel = 'y'
+
+    # Then make the pylab figure (I could not resist the temptation to
+    # make some supporting classes to make things easy, albeit hidden):
+    import Graphics         # A collection of Graphics classes
+    import Figure           # A class that holds one or more Subplots
+
+    # First make an (empty) pylab figure:
+    fig = Figure.Figure()
+    
+    # A Graphics object is a Subplot object.
+    grs = Graphics.Scatter(yy=yy, xx=xx,
+                           title='VisuNodes.ScatterPlot',
+                           xlabel=xlabel, ylabel=ylabel,
+                           color='blue', style='o')
+    
+    # NB: Other Graphics object may be added to it, using grs.add(grs2)
+    # .............
+    # When complete, add the Subplot object to the Figure:
+    fig.add(grs)
+
+    # Finished: dispose of the Figure:
+    fig.oneliners()
+    svg = fig.plot(dispose=['show','svg'])
+    # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
+    # If dispose contains 'svg', .plot() returns the contents of the .svg file.
+    # This is a list of strings, which could be attached to the MeqResult of
+    # this pyNode (how do we do that?).
+    # It could then be used by Tony to recreate the SVG plot in the browser....
+    return None
+
+
+#========================================================================
+    
+class TheHardWay (pynode.PyNode):
+  """Make a scatter-plot of the means of the results of its children"""
+
+
+  def __init__ (self, *args):
+    pynode.PyNode.__init__(self,*args);
+    self.set_symdeps('domain','resolution');
+                              
+  def get_result (self, request, *children):
     import pylab                                 # kludge....!
-    # import Points2D
+    # import PointsXY
 
     xlabel = 'x'
     ylabel = 'y'

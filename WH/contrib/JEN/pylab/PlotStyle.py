@@ -102,6 +102,7 @@ class PlotStyle (object):
         # self._ps.setdefault('data_clipping', True)    # not recognised...?
 
         # Finsihed:
+        self.display('before checks')
         self._check_colors()
         self._check_styles()
         self.display('checked')
@@ -127,7 +128,10 @@ class PlotStyle (object):
         if func=='plot':
             return self._ps
         return None
-    
+
+    def color(self):
+        return self._ps['color']
+
 
     #===============================================================
     # Display of the contents of this object:
@@ -166,6 +170,7 @@ class PlotStyle (object):
         elif self._ps['style'] in self.marker_styles():
             if not self._ps['marker']:
                 self._ps['marker'] = self._ps['style']
+                self._ps['linestyle'] = None
         self._ps.__delitem__('style')                    # <-------- !!
 
         ls = self._ps['linestyle']
@@ -181,9 +186,15 @@ class PlotStyle (object):
         if ms=='plus': self._ps['marker'] = '+'
         if ms=='cross': self._ps['marker'] = 'x'
         if ms=='diamond': self._ps['marker'] = 'D'
-        if ms=='tripod': self._ps['marker'] = 'o'
-        if ms=='hexagon': self._ps['marker'] = 'o'
-        if ms=='pentagon': self._ps['marker'] = 'o'
+        if ms=='thindiamond': self._ps['marker'] = 'd'
+        if ms=='tripod': self._ps['marker'] = '1'
+        if ms=='tripod_down': self._ps['marker'] = '2'
+        if ms=='tripod_left': self._ps['marker'] = '3'
+        if ms=='tripod_right': self._ps['marker'] = '4'
+        if ms=='hexagon': self._ps['marker'] = 'h'
+        if ms=='pentagon': self._ps['marker'] = 'p'
+        if ms=='horizontal': self._ps['marker'] = '_'
+        if ms=='vertical': self._ps['marker'] = '|'
         return True
 
     #---------------------------------------------------------
