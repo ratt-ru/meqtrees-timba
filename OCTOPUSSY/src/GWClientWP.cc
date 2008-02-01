@@ -36,10 +36,9 @@ const Timeval ReconnectTimeout(.2),
               FailConnectTimeout(10.0),
 // how long to try connects() before giving up on a transient connection
               GiveUpTimeout(30.0);
-              
 
-GWClientWP::GWClientWP (const string &host, int port, int type)
-  : WorkProcess(AidGWClientWP)
+GWClientWP::GWClientWP (const string &host, int port, int type,bool proact)
+  : WorkProcess(AidGWClientWP),proactive(proact)
 {
   // add default connection, if specified
   if( host.length() )
@@ -106,18 +105,21 @@ void GWClientWP::init ()
   ld[GWNetworkServer].get(netserv,true);
   string locserv;
   ld[GWLocalServer].get(locserv,true);
-  // messages from server gateway tell us when it fails to bind
-  // to a port/when it binds/when it gives up
-  subscribe(MsgGWServer|AidWildcard,Message::LOCAL);
-  // subscribe to server advertisements
-  subscribe(MsgGWServerOpenNetwork,Message::GLOBAL);
-  subscribe(MsgGWServerOpenLocal,Message::HOST);
+  if( proactive )
+  {
+    // messages from server gateway tell us when it fails to bind
+    // to a port/when it binds/when it gives up
+    subscribe(MsgGWServer|AidWildcard,Message::LOCAL);
+    // subscribe to server advertisements
+    subscribe(MsgGWServerOpenNetwork,Message::GLOBAL);
+    subscribe(MsgGWServerOpenLocal,Message::HOST);
+    // Remote messages for remote node management
+    subscribe(MsgGWRemote|AidWildcard,Message::LOCAL);
+    subscribe(MsgGWRemoteUp|AidWildcard,Message::GLOBAL);
+  }
   // Bye messages from child gateways tell us when they have closed
   // (and thus need to be reopened)
   subscribe(MsgBye|AidGatewayWP|AidWildcard,Message::LOCAL);
-  // Remote messages for remote node management
-  subscribe(MsgGWRemote|AidWildcard,Message::LOCAL);
-  subscribe(MsgGWRemoteUp|AidWildcard,Message::GLOBAL);
 }
 
 //##ModelId=3C95A941008B
@@ -197,101 +199,104 @@ int GWClientWP::receive (Message::Ref& mref)
 {
   const Message &msg = mref.deref();
   const HIID &id = msg.id();
-  if( id == MsgGWServerBindError )
+  if( proactive )
   {
-    // server has failed to bind to a port -- assume a local peer has already
-    // bound to it, so add it to our connection list
-    int type = msg[AidType];
-    if( type == Socket::UNIX )
+    if( id == MsgGWServerBindError )
     {
-      string host = msg[AidHost];
-      int port = msg[AidPort];
-      Connection &cx = addConnection(host,port,type);
-      lprintf(2,AidLogNormal,"adding %s:%d to connection list",host.c_str(),port);
-      if( state() != STOPPED )
-        tryConnect(cx);
-    }
-  }
-  // a non-local server advertisement: see if we need to establish
-  // a connection to it
-  else if( id.matches(MsgGWServerOpen|AidWildcard) && !isLocal(msg) )
-  {
-    // ignore local server advertisements from non-local hosts
-    if( id == MsgGWServerOpenLocal && msg.from().host() != address().host() )
-      return Message::ACCEPT;
-    // ignore network server advertisements from local host
-    if( id == MsgGWServerOpenNetwork && msg.from().host() == address().host() )
-      return Message::ACCEPT;
-    HIID peerid = msg.from().peerid();
-    if( gatewayPeerList[peerid].exists() )
-    {
-      lprintf(3,"peer-adv %s: already connected (%s:%d %s), ignoring",
-          peerid.toString().c_str(),
-          gatewayPeerList[peerid][AidHost].as<string>().c_str(),
-          gatewayPeerList[peerid][AidPort].as<int>(),
-          gatewayPeerList[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
-    }
-    else
-    {
-      // initiate a connection only if (a) we don't have a server ourselves, 
-      // or (b) our peerid is < remote
-      // This ensures that only one peer of any given pair actually makes the 
-      // connection.
-      string host = msg[AidHost];
-      int port = msg[AidPort];
+      // server has failed to bind to a port -- assume a local peer has already
+      // bound to it, so add it to our connection list
       int type = msg[AidType];
-      // advertisement for a local connection?
       if( type == Socket::UNIX )
       {
-        if( dsp()->localData()[GWLocalServer].as<string>("").empty() )
-          lprintf(2,"peer-adv %s@%s:%d: no unix server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
-        else if( address().peerid() < peerid )
-          lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);
-        else
-        {
-          lprintf(2,"peer-adv %s@%s:%d: lower rank, ignoring and waiting for connection",peerid.toString().c_str(),host.c_str(),port);   
-          return Message::ACCEPT;
-        }
+        string host = msg[AidHost];
+        int port = msg[AidPort];
+        Connection &cx = addConnection(host,port,type);
+        lprintf(2,AidLogNormal,"adding %s:%d to connection list",host.c_str(),port);
+        if( state() != STOPPED )
+          tryConnect(cx);
       }
-      else // network connection
-      {
-        if( dsp()->localData()[GWNetworkServer].as<int>(-1) < 0 )
-          lprintf(2,"peer-adv %s@%s:%d: no network server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
-        else if( address().peerid() < peerid )
-          lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);
-        else
-        {
-          lprintf(2,"peer-adv %s@%s:%d: lower rank, ignoring and waiting for connection",peerid.toString().c_str(),host.c_str(),port);   
-          return Message::ACCEPT;
-        }
-        if( host == hostname )
-          host = "localhost";
-      }
-      // create the connection
-      Connection &cx = addConnection(host,port,type);
-      cx.give_up = Timestamp::now() + GiveUpTimeout;
-      if( state() != STOPPED )
-        tryConnect(cx);
     }
-  }
-  else if( id.prefixedBy(MsgGWRemoteDuplicate) )
-  {
-    // message from child gateway advises us of a duplicate connection -- better
-    // remove this from the connection list
-    if( msg[AidHost].exists() )
+    // a non-local server advertisement: see if we need to establish
+    // a connection to it
+    else if( id.matches(MsgGWServerOpen|AidWildcard) && !isLocal(msg) )
     {
-      const string &host = msg[AidHost];
-      int port = msg[AidPort];
-      if( removeConnection(host,port) )
-        lprintf(2,AidLogNormal,"removed duplicate connection %s:%d",host.c_str(),port);
-//      else
-//        lprintf(2,AidLogWarning,"%s:%d not known, ignoring [%s]",
-//            host.c_str(),port,msg.sdebug(1).c_str());
+      // ignore local server advertisements from non-local hosts
+      if( id == MsgGWServerOpenLocal && msg.from().host() != address().host() )
+        return Message::ACCEPT;
+      // ignore network server advertisements from local host
+      if( id == MsgGWServerOpenNetwork && msg.from().host() == address().host() )
+        return Message::ACCEPT;
+      HIID peerid = msg.from().peerid();
+      if( gatewayPeerList[peerid].exists() )
+      {
+        lprintf(3,"peer-adv %s: already connected (%s:%d %s), ignoring",
+            peerid.toString().c_str(),
+            gatewayPeerList[peerid][AidHost].as<string>().c_str(),
+            gatewayPeerList[peerid][AidPort].as<int>(),
+            gatewayPeerList[peerid][AidTimestamp].as<Timestamp>().toString("%T").c_str());
+      }
+      else
+      {
+        // initiate a connection only if (a) we don't have a server ourselves, 
+        // or (b) our peerid is < remote
+        // This ensures that only one peer of any given pair actually makes the 
+        // connection.
+        string host = msg[AidHost];
+        int port = msg[AidPort];
+        int type = msg[AidType];
+        // advertisement for a local connection?
+        if( type == Socket::UNIX )
+        {
+          if( dsp()->localData()[GWLocalServer].as<string>("").empty() )
+            lprintf(2,"peer-adv %s@%s:%d: no unix server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
+          else if( address().peerid() < peerid )
+            lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);
+          else
+          {
+            lprintf(2,"peer-adv %s@%s:%d: lower rank, ignoring and waiting for connection",peerid.toString().c_str(),host.c_str(),port);   
+            return Message::ACCEPT;
+          }
+        }
+        else // network connection
+        {
+          if( dsp()->localData()[GWNetworkServer].as<int>(-1) < 0 )
+            lprintf(2,"peer-adv %s@%s:%d: no network server here, initiating connection",peerid.toString().c_str(),host.c_str(),port); 
+          else if( address().peerid() < peerid )
+            lprintf(2,"peer-adv %s@%s:%d: higher rank, initiating connection",peerid.toString().c_str(),host.c_str(),port);
+          else
+          {
+            lprintf(2,"peer-adv %s@%s:%d: lower rank, ignoring and waiting for connection",peerid.toString().c_str(),host.c_str(),port);   
+            return Message::ACCEPT;
+          }
+          if( host == hostname )
+            host = "localhost";
+        }
+        // create the connection
+        Connection &cx = addConnection(host,port,type);
+        cx.give_up = Timestamp::now() + GiveUpTimeout;
+        if( state() != STOPPED )
+          tryConnect(cx);
+      }
+    }
+    else if( id.prefixedBy(MsgGWRemoteDuplicate) )
+    {
+      // message from child gateway advises us of a duplicate connection -- better
+      // remove this from the connection list
+      if( msg[AidHost].exists() )
+      {
+        const string &host = msg[AidHost];
+        int port = msg[AidPort];
+        if( removeConnection(host,port) )
+          lprintf(2,AidLogNormal,"removed duplicate connection %s:%d",host.c_str(),port);
+  //      else
+  //        lprintf(2,AidLogWarning,"%s:%d not known, ignoring [%s]",
+  //            host.c_str(),port,msg.sdebug(1).c_str());
+      }
     }
   }
   // bye message from child? Reopen its gateway then
   // (unless the connection has been removed by MsgGWRemoteDuplicate, above)
-  else if( id.prefixedBy(MsgBye|AidGatewayWP) )
+  if( id.prefixedBy(MsgBye|AidGatewayWP) )
   {
     Connection *cx = find(msg.from());
     if( cx )
@@ -446,10 +451,10 @@ void GWClientWP::tryConnect (Connection &cx)
 }
 
 
-void initGateways (Dispatcher &dsp)
+void initGateways (Dispatcher &dsp,int tcp_port,const std::string &sock)
 {
-  dsp.attach(new GWServerWP(-1),DMI::ANON);
-  dsp.attach(new GWServerWP("",-1),DMI::ANON);
+  dsp.attach(new GWServerWP(tcp_port),DMI::ANON);
+  dsp.attach(new GWServerWP(sock,-1),DMI::ANON);
   dsp.attach(new GWClientWP,DMI::ANON);
 }
 

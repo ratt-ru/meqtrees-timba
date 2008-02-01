@@ -33,14 +33,14 @@
 
 #pragma aidgroup MeqServer    
 #pragma aid MeqClient
-#pragma aid Node Name NodeIndex MeqServer Meq
+#pragma aid Node Name NodeIndex MeqServer Meq CWD
 #pragma aid Create Delete Get Set State Request Resolve Child Children List Batch
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive Forest Header Version 
 #pragma aid Publish Results Enable Disable Event Id Silent Idle Stream 
 #pragma aid Debug Breakpoint Single Shot Step Continue Until Stop Level
 #pragma aid Get Forest Status Stack Running Changed All Disabled Publishing
-#pragma aid Python Init TDL Script File Source Serial String
+#pragma aid Python Init TDL Script File Source Serial String Session
 #pragma aid Idle Executing Exec Debug Constructing Updating Sync Stopped
     
 namespace Meq
@@ -104,6 +104,10 @@ class MeqServer : public DMI::EventRecepient
     // halts the meqserver
     void halt (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
+    // sets current directory
+    void setCurrentDir (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    // sets session name
+    void setSessionName (DMI::Record::Ref &out,DMI::Record::Ref &in);
     // sets state
     void setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in);
     // gets status + state record
@@ -220,6 +224,11 @@ class MeqServer : public DMI::EventRecepient
     
     //##ModelId=3F5F218F02BD
     Forest forest;
+    
+    // current script name
+    string script_name_;
+    // current session name
+    string session_name_;
     
     int forest_serial;
     int incrementForestSerial ()

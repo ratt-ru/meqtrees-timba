@@ -329,6 +329,13 @@ void WPInterface::runWorker ()
 }
 
 //##ModelId=3DB937200087
+void WPInterface::awaitMainThreadStartup ()
+{
+  Thread::Mutex::Lock lock(startup_cond);
+  while( !started )
+    startup_cond.wait();
+}
+
 void * WPInterface::workerThread ()
 {
   Thread::signalMask(SIG_BLOCK,Dispatcher::validSignals());
@@ -347,11 +354,7 @@ void * WPInterface::workerThread ()
     // wait for main thread to complete startup
     stopwatch_reset;
     dprintf(2)("waiting for WP startup to complete\n");
-    lock.relock(startup_cond);
-    dprintf(3)("time spent waiting for startup_cond mutex: %s\n",stopwatch_dump);
-    while( !started )
-      startup_cond.wait();
-    lock.release();
+    awaitMainThreadStartup();
     dprintf(2)("WP startup complete, time: %s\n",stopwatch_dump);
     // exit if init was false
     if( !res )
@@ -381,14 +384,31 @@ void * WPInterface::workerThread ()
     lprintf(0,AidLogFatal,"worker thread %d terminated with exception: %s",(int)Thread::self(),
           exceptionToString(exc).c_str());
   }
+  catch( ... )
+  {
+    lprintf(0,AidLogFatal,"worker thread %d terminated with unknown exception",(int)Thread::self());
+  }
   return 0;
 }
 
+void WPInterface::killWorkers (int sig)   // sends given signal to all running workers
+{
+  Thread::Mutex::Lock lock(worker_cond);
+  for( int i=0; i < numWorkers(); i++ )
+    if( worker_threads[i].thr_id != Thread::self() && worker_threads[i].running )
+      worker_threads[i].thr_id.kill(sig);
+}
+      
 //##ModelId=3DB937210093
-void * WPInterface::start_workerThread (void *pwp)
+void * WPInterface::start_workerThread (void *pinfo)
 {
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,0);
-  return static_cast<WPInterface*>(pwp)->workerThread();
+  WorkerThreadInfo & info = *static_cast<WorkerThreadInfo*>(pinfo);
+  void *ret = info.self->workerThread();
+  // briefly lock the condition mutex to mark ourselves as not running
+  Thread::Mutex::Lock lock(info.self->worker_cond);
+  info.running = false;
+  return ret;
 }
 
 //##ModelId=3DB9370203A9
@@ -417,17 +437,24 @@ Thread::ThrID WPInterface::createWorker ()
   // launch worker thread
   Thread::Mutex::Lock lock(worker_cond);
   dprintf(3)("time to obtain worker_cond mutex: %s\n",stopwatch_dump);
-  Thread::ThrID thr = Thread::create(start_workerThread,this);
+  WorkerThreadInfo &info = worker_threads[num_worker_threads];
+  info.self = this;
+  info.running = true;
+  info.thr_id = Thread::create(start_workerThread,&info);
   dprintf(3)("time to create thread: %s\n",stopwatch_dump);
-  FailWhen(!thr,"Thread::create failed");
-  worker_threads[num_worker_threads++] = thr;
+  if( !info.thr_id )
+  {
+    info.running = false;
+    Throw("Thread::create failed");
+  }
+  num_worker_threads++;
   // wait for the worker thread to complete its startup
-  dprintf(2)("waiting for WT %d to complete initialization\n",(int)thr);
+  dprintf(2)("waiting for WT %d to complete initialization\n",(int)info.thr_id);
   stopwatch_reset;
   while( num_initialized_workers < num_worker_threads )
     worker_cond.wait();
-  dprintf(2)("WT %d startup complete after %s\n",(int)thr,stopwatch_dump);
-  return thr;
+  dprintf(2)("WT %d startup complete after %s\n",(int)info.thr_id,stopwatch_dump);
+  return info.thr_id;
 }
 #endif
 
@@ -560,8 +587,8 @@ void WPInterface::do_stop ()
     // join them
     for( int i=0; i<num_worker_threads; i++ )
     {
-      dprintf(2)("re-joining worker thread %d\n",(int)worker_threads[i]);
-      worker_threads[i].join();
+      dprintf(2)("re-joining worker thread %d\n",(int)worker_threads[i].thr_id);
+      worker_threads[i].thr_id.join();
     }
   }
 #endif

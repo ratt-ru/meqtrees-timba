@@ -128,6 +128,8 @@ MeqServer::MeqServer()
   sync_commands["Delete.Node"] = &MeqServer::deleteNode;
   sync_commands["Init.Node"] = &MeqServer::initNode;
   sync_commands["Init.Node.Batch"] = &MeqServer::initNodeBatch;
+  async_commands["Set.Cwd"] = &MeqServer::setCurrentDir;
+  async_commands["Set.Session.Name"] = &MeqServer::setSessionName;
   async_commands["Get.Node.List"] = &MeqServer::getNodeList;
   async_commands["Get.Forest.Status"] = &MeqServer::getForestStatus;
   async_commands["Get.NodeIndex"] = &MeqServer::getNodeIndex;
@@ -232,6 +234,35 @@ void MeqServer::getForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),2);
 }
 
+void MeqServer::setCurrentDir (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  cdebug(3)<<"setCurrentDir()"<<endl;
+  string dirname = in[AidCwd].as<string>("");
+  if( !dirname.empty() )
+  {
+    // get old WD
+    char buf[1024];
+    getcwd(buf,sizeof(buf)); buf[sizeof(buf)-1] = 0;
+    string old_wd(buf);
+    // change WD
+    chdir(dirname.c_str());
+    // compare to cwd, to see if anything has changed (do it the roundabout way to handle symlinks, etc.)
+    getcwd(buf,sizeof(buf)); buf[sizeof(buf)-1] = 0;
+    string new_wd(buf);
+    if( new_wd.compare(old_wd) )
+      out()[AidMessage] = "kernel working directory is now "+new_wd;
+  }
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
+}
+
+void MeqServer::setSessionName (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  cdebug(3)<<"setSessionName()"<<endl;
+  session_name_ = in[AidSession|AidName].as<string>("");
+  out()[AidMessage] = "kernel session renamed to '"+session_name_+"'";
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
+}
+
 void MeqServer::getForestStatus (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
@@ -258,6 +289,7 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
 void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   setState(AidConstructing);
+  script_name_ = in[AidScript|AidName].as<string>("");
   DMI::Container &batch = in[AidBatch].as_wr<DMI::Container>();
   int nn = batch.size();
   postMessage(ssprintf("creating %d nodes, please wait",nn));
@@ -785,6 +817,19 @@ void MeqServer::fillAppState (DMI::Record &rec)
     str += ssprintf(" (%d)",sz-1);
   rec[AidApp|AidState|AidString] = str;
   rec[AidApp|AidExec|AidQueue|AidSize] = sz;
+  char hostname[HOST_NAME_MAX];
+  gethostname(hostname,sizeof(hostname));
+  hostname[sizeof(hostname)-1] = 0;
+  rec[AidApp|AidHost] = hostname;
+  rec[AidForest|AidSize] = forest.maxNodeIndex();
+  rec[AidSession|AidName] = session_name_;
+  rec[AidScript|AidName] = script_name_;
+  // get cwd
+  static char buf[16384];
+  if( getcwd(buf,sizeof(buf)) )
+    rec[AidCwd] = buf;
+  else
+    rec[AidCwd] = '.';
 }
 
 void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
@@ -795,6 +840,7 @@ void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
     rec[AidForest|AidState] = forest.state();
   DMI::Record &fst = rec[AidForest|AidStatus] <<= new DMI::Record;
   fillAppState(rec);
+  // get other stuff
   fst[AidBreakpoint] = forest_breakpoint_;
   fst[AidExecuting] = executing_;
   fst[AidDebug|AidLevel] = forest.debugLevel();
@@ -1061,7 +1107,8 @@ void MeqServer::run ()
     // get an event from the control channel
     HIID cmdid;
     ObjRef cmd_data;
-    int state = control().getEvent(cmdid,cmd_data);
+    HIID event_source;
+    int state = control().getEvent(cmdid,cmd_data,event_source);
     if( state == AppEvent::CLOSED )
     {
       running_ = false;   // closed? break out

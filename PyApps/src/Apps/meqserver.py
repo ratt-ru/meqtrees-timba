@@ -59,7 +59,7 @@ import time
 from Timba import octopussy
 from Timba import mequtils
 from Timba.pretty_print import PrettyPrinter
-from Timba.Apps.app_proxy import app_proxy
+from Timba.Apps.multiapp_proxy import multiapp_proxy
 from Timba.dmi import *
 from Timba.utils import *
 from Timba.Meq import meq
@@ -70,15 +70,10 @@ default_spawn = ("meqserver");
 default_spawn_opt = ("meqserver-opt");
 default_launch = ();
 
-class meqserver (app_proxy):
-  "interface to MeqServer app";
-  def __init__(self,appid='meqserver',client_id='meqclient',launch=None,spawn=None,opt=False,**kwargs):
-    # if launch or spawn is just True, substitute default values
-    if launch:
-      if isinstance(launch,bool) and launch:
-        launch = default_launch;
-      elif len(launch) == 2:
-        launch = ('meqserver',) + launch;
+class meqserver (multiapp_proxy):
+  """interface to MeqServer app""";
+  def __init__(self,appid='meqserver',client_id='meqclient',
+               spawn=None,opt=False,**kwargs):
     if spawn and isinstance(spawn,bool):
       if opt:
         spawn = default_spawn_opt;
@@ -89,7 +84,7 @@ class meqserver (app_proxy):
       kwargs['gui'] = meqserver_gui;
     self._we_track_results = None;
     # init base class  
-    app_proxy.__init__(self,appid,client_id,launch=launch,spawn=spawn,**kwargs);
+    multiapp_proxy.__init__(self,appid,client_id,spawn=spawn,**kwargs);
     # setup own state
     self._pprint = PrettyPrinter(width=78,stream=sys.stderr);
     # track axis map changes
@@ -107,7 +102,7 @@ class meqserver (app_proxy):
     wait can be specified in seconds, or True to wait indefinitely.""";
     command = make_hiid(command);
     payload = record();
-    if not args is None:
+    if args is not None:
       payload.args = args;
     # send command and wait for reply
     if wait:
@@ -175,6 +170,10 @@ class meqserver (app_proxy):
     rec.recursive = recursive;
     rec.sync = sync;
     return self.meq('Node.Clear.Cache',rec,wait=wait);
+  
+  def change_wd (self,path):
+    rec = record(cwd=path);
+    return self.meq('Set.Cwd',rec,wait=False);
     
   def publish (self,node,wait=False):
     rec = self.makenodespec(node);
@@ -183,9 +182,11 @@ class meqserver (app_proxy):
     
   def _event_handler (self,msg):
     """Auguments app_proxy._event_handler(), to keep track of forest state""";
-    app_proxy._event_handler(self,msg);
+    multiapp_proxy._event_handler(self,msg);
     payload = msg.payload;
-    if isinstance(payload,record):
+    if self.current_server \
+       and getattr(msg,'from') == self.current_server.addr \
+       and isinstance(payload,record):
       # check if message includes update of forest state and/or status
       fstatus = getattr(payload,'forest_status',None);
       fstate  = getattr(payload,'forest_state',None);
@@ -210,7 +211,9 @@ class meqserver (app_proxy):
       
   def _axis_list_handler (self,msg):
     try:
-      mequtils.set_axis_list(msg.payload);
+      if self.current_server \
+            and getattr(msg,'from') == self.current_server.addr: \
+        mequtils.set_axis_list(msg.payload);
     except:
       print 'exception in meqserver._axis_list_handler: ',sys.exc_info();
       traceback.print_exc();
@@ -231,20 +234,26 @@ class meqserver (app_proxy):
 mqs = None;
 
 # inits a meqserver
-def default_mqs (debug={},nokill=False,**kwargs):
+def default_mqs (debug={},nokill=False,extra=None,**kwargs):
   global mqs;
   if not isinstance(mqs,meqserver):
+    # create a local tcp port
+    gwlocal = "=meqbatch-%d"%os.getpid();
     # start octopussy if needed
     if not octopussy.is_initialized():
-      octopussy.init(gw=True);
+      octopussy.init(gwclient=False,gwtcp=0,gwlocal=gwlocal+":1");
     if not octopussy.is_running():
       octopussy.start(wait=True);
     # start meqserver, overriding default args with any kwargs
-    args = app_defaults.args;
+    args = record(**app_defaults.args);
     args.update(kwargs);
-    # print 'meqserver args:',args;
+    # add gwpeer= argument
+    if isinstance(extra,str):
+      extra = args.extra + extra.split(' ');
+    extra = (extra or []) + ["-gw",gwlocal];
+    print 'meqserver args:',args;
     spawn = args.get('spawn',None);
-    mqs = meqserver(**args);
+    mqs = meqserver(extra=extra,**args);
     meqds.set_meqserver(mqs);
     if not nokill:
       atexit.register(stop_default_mqs);

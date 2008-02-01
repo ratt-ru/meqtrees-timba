@@ -30,6 +30,7 @@ if __name__ == "__main__":
   print "Please wait a second while the GUI starts up.";
 
 import sys
+import os
 
 # first things first: setup app defaults from here and from
 # command line (this has to go first, as other modules being imported
@@ -66,7 +67,7 @@ importPlugin('collections_plotter');
 importPlugin('history_plotter');
 importPlugin('parm_plotter');
 importPlugin('parmfiddler');
-importPlugin('TableInspector');
+# importPlugin('TableInspector');
 importPlugin('stream_control');
 
 #-------- update default debuglevels
@@ -83,10 +84,13 @@ app_defaults.debuglevels.update({
 });
 
 #-------- update default arguments
-app_defaults.args.update({'launch':None,'spawn':None,'threads':True,
+app_defaults.args.update({'spawn':None,'threads':True,
                          'verbose':2,'wp_verbose':0 });
 
 def meqbrowse (debug={},**kwargs):
+  # insert '' into sys.path, so that CWD is always in the search path
+  sys.path.insert(1,'');
+  # parse command line
   app_defaults.parse_argv(sys.argv[1:]);
   args = app_defaults.args;
   if debug is None:
@@ -97,7 +101,8 @@ def meqbrowse (debug={},**kwargs):
       octopussy.set_debug(debug);
   # start octopussy if needed
   if not octopussy.is_initialized():
-    octopussy.init(gw=True);
+    octopussy.init(gwclient=False,gwtcp=4000+os.getuid(),
+                   gwlocal=("=meqbrowser-%d:1"%os.getuid()));
   if not octopussy.is_running():
     octopussy.start(wait=True);
   # start meqserver

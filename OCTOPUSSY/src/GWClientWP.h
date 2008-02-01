@@ -59,7 +59,13 @@ class GWClientWP : public WorkProcess
 
   public:
       //##ModelId=3CD0167B021B
-      GWClientWP (const string &host = "", int port = 0, int type = Socket::TCP);
+      // creates client gateway which will attempt to connect to the given
+      // host/port (or unix socket, if type=Socket::UNIX)
+      // If proactive=true, the client will watch the system for messages
+      // about other open servers, and connect to them as appropriate (thus
+      // striving for an "everybody connected to everybody" topology)
+      GWClientWP (const string &host = "", int port = 0, int type = Socket::TCP,
+                  bool proactive_ = false);
 
     //##ModelId=3DB9367B00EA
       ~GWClientWP();
@@ -124,6 +130,8 @@ class GWClientWP : public WorkProcess
 
       //##ModelId=3DB958F20327
       std::list<Connection> conns;
+      
+      bool proactive;
 
     // Additional Implementation Declarations
     //##ModelId=3DB936500167

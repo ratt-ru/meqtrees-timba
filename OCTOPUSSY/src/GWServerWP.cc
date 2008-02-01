@@ -39,7 +39,9 @@ const int MaxOpenRetries = 10;
 // using LOFAR::num2str;  // defined in <TimBase/Debug.h>
 using Debug::ssprintf;
 
-
+int GWServerWP::gwserver_tcp_port = 0;
+Thread::Mutex GWServerWP::gwserver_unix_socket_mutex;
+std::string GWServerWP::gwserver_unix_socket;
 
 // Class GWServerWP 
 
@@ -47,7 +49,7 @@ GWServerWP::GWServerWP (int port1)
   : WorkProcess(AidGWServerWP),port(port1),sock(0),type(Socket::TCP)
 {
   // get port from config if not specified explicitly
-  if( port<0 )
+  if( port<=0 )
     config.get("gwport",port,4808);
   // get the local hostname
   char hname[1024];
@@ -61,30 +63,28 @@ GWServerWP::GWServerWP (const string &path, int port1)
   // get path from config, if not specified explicitly
   hostname = path;
   if( !hostname.length() )
-  {
     config.get("gwpath",hostname,"=octopussy-%U");
-    // check if port number is part of pathname --
-    //    find last segment after ":", and check that it is all digits
-    size_t pos0 = hostname.find_last_of(':');
-    if( pos0 != string::npos )
+  // check if port number is part of pathname --
+  //    find last segment after ":", and check that it is all digits
+  size_t pos0 = hostname.find_last_of(':');
+  if( pos0 != string::npos )
+  {
+    size_t pos = pos0+1;
+    for( ; pos < hostname.length(); pos++ )
+      if( !isdigit(hostname[pos]) )
+        break;
+    if( pos >= hostname.length() )
     {
-      size_t pos = pos0+1;
-      for( ; pos < hostname.length(); pos++ )
-        if( !isdigit(hostname[pos]) )
-          break;
-      if( pos >= hostname.length() )
-      {
-        port = atoi(hostname.substr(pos0+1).c_str());
-        hostname = hostname.substr(0,pos0);
-      }
+      port = atoi(hostname.substr(pos0+1).c_str());
+      hostname = hostname.substr(0,pos0);
     }
-    // if hostname contains a "@U" string, replace with uid
-    string uid = Debug::ssprintf("%d",(int)getuid());
-    while( (pos0 = hostname.find_first_of("%U")) != string::npos )
-      hostname = hostname.substr(0,pos0) + uid + hostname.substr(pos0+2);
   }
+  // if hostname contains a "@U" string, replace with uid
+  string uid = Debug::ssprintf("%d",(int)getuid());
+  while( (pos0 = hostname.find_first_of("%U")) != string::npos )
+    hostname = hostname.substr(0,pos0) + uid + hostname.substr(pos0+2);
   // get port from config if not specified
-  if( port<0 )
+  if( port<=0 )
     config.get("gwport",port,4808);
 }
 
@@ -267,9 +267,16 @@ void GWServerWP::tryOpen ()
 	sock->setBlocking(false);
     advertiseServer();
     if( type == Socket::TCP )
+    {
       dsp()->localData(GWNetworkServer)[0] = port;
+      setGlobalPort(port);
+    }
     else
-      dsp()->localData(GWLocalServer)[0] = ssprintf("%s:%d",hostname.c_str(),port);
+    {
+      std::string sock = ssprintf("%s:%d",hostname.c_str(),port);
+      setGlobalSocket(sock);
+      dsp()->localData(GWLocalServer)[0] = sock;
+    }
     // add an input on the socket
     addInput(sock->getSid(),EV_FDREAD);
 #if ADVERTISE_SERVERS

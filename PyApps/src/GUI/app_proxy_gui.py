@@ -416,7 +416,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self._qapp = mainapp();
     #------ init base classes
     verbosity.__init__(self,verbose,name=app.name()+"/gui");
-    self.dprint(1,"initializing");
+    _dprint(1,"initializing");
     QMainWindow.__init__(self,*args);
     self.app = app;
     self._connected = False;
@@ -434,17 +434,17 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     
     # events from remote application are emitted as PYSIGNALS taking
     # two arguments. Connect some standard handlers here
-    QObject.connect(self,PYSIGNAL("hello"),self._connected_event);
-    QObject.connect(self,PYSIGNAL("hello"),self.xcurry(self._update_app_state));
-    QObject.connect(self,PYSIGNAL("bye"),self._disconnected_event);
-    QObject.connect(self,PYSIGNAL("bye"),self.xcurry(self._update_app_state));
+    #QObject.connect(self,PYSIGNAL("hello"),self._attached_server_event);
+    #QObject.connect(self,PYSIGNAL("hello"),self.xcurry(self._update_app_state));
+    #QObject.connect(self,PYSIGNAL("bye"),self._detached_server_event);
+    #QObject.connect(self,PYSIGNAL("bye"),self.xcurry(self._update_app_state));
     QObject.connect(self,PYSIGNAL("app.notify.state"),self.xcurry(self._update_app_state));
       
     #------ start timer when in polling mode
     if poll_app:
       self.startTimer(poll_app);
       
-    self.dprint(2,"init complete");\
+    _dprint(2,"init complete");\
   
   class PanelizedWindow (QVBox):
     BackgroundMode = Qt.PaletteBackground;
@@ -652,7 +652,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     
   def show(self):
     #------ show the main window
-    self.dprint(2,"showing GUI"); 
+    _dprint(2,"showing GUI"); 
     self._update_app_state();
     QMainWindow.show(self);
     
@@ -727,12 +727,12 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     
 ##### event relay: reposts message as a Qt custom event for ourselves
   MessageEventType = QEvent.User+1;
-  def _relay_event (self,event,value):
-    self.dprint(5,'_relay_event:',event,value);
+  def _relay_event (self,event,value,server):
+    _dprint(5,'_relay_event:',event,value);
     ev = QCustomEvent(self.MessageEventType);
-    ev.setData((event,value));
+    ev.setData((event,value,server));
     QApplication.postEvent(self,ev);
-    self.dprint(5,'_relay_event: event posted');
+    _dprint(5,'_relay_event: event posted');
     
 ##### event handler for timer messages
   def timerEvent (self,event):
@@ -744,8 +744,21 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.handleAppEvent(*event.data());
 
 ##### event handler for app events from octopussy
-  def handleAppEvent (self,ev,value):
-    self.dprint(5,'appEvent:',ev,value);
+  def handleAppEvent (self,ev,value,server):
+    _dprint(5,'appEvent:',ev,value);
+    # process server attach/detach events
+    if ev == self.app.server_detach_event:
+      self._detached_server_event(ev,value,server);
+      return;
+    elif ev == self.app.server_attach_event:
+      self._attached_server_event(ev,value,server);
+      return;
+    # ignore events not from current server
+    if server is not self.app.current_server:
+      return;
+    # ignore server_state events: they are doubled up
+    if ev is self.app.server_state_event:
+      return;
     try:
       report = False;
       msgtext = None; 
@@ -799,45 +812,47 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
         ev0 = ev0[:-1];
       # emit event as a PYSIGNAL so that registered handlers can get it
       self.emit(PYSIGNAL(str(ev).lower()),(ev,value));
-      # finally, just in case we've somehow missed a Hello message,
-      # force a connected call signal
-      if not self._connected and ev0 != hiid('bye'):
-        self._connected_event(ev,value);
+      ## NB: 31/01/2008: removed this, since we always send an attach event
+      ## finally, just in case we've somehow missed a Hello message,
+      ## force a connected call signal
+      # if not self._connected and ev0 != hiid('bye'):
+      #   self._attached_server_event(ev,value,server);
     except:
       (exctype,excvalue) = sys.exc_info()[:2];
-      self.dprint(0,'exception',str(exctype),'while handling event ',ev);
+      _dprint(0,'exception',str(exctype),'while handling event ',ev);
       traceback.print_exc();
       
-  def _connected_event (self,ev,value):
+  def _attached_server_event (self,ev,value,server):
     if not self._connected:
       self._connected = True;
       self.emit(PYSIGNAL("connected()"),(value,));
       self.emit(PYSIGNAL("isConnected()"),(True,));
-      self.log_message("found kernel ("+str(self.app.app_addr)+")",category=Logger.Normal);
+      self.log_message("attached to server ("+str(server.addr)+")",category=Logger.Normal);
       self.gw.clear();
 
-  def _disconnected_event (self,ev,value):
+  def _detached_server_event (self,ev,value,server):
     if self._connected:
       self._connected = False;
       self.emit(PYSIGNAL("disconnected()"),(value,));
       self.emit(PYSIGNAL("isConnected()"),(False,));
-      self.log_message("kernel disconnected",category=Logger.Normal);
+      self.log_message("server detached",category=Logger.Normal);
     self._update_app_state();
       
 ##### updates status bar based on app state 
   StatePixmaps = { None: pixmaps.red_round_cross };
   StatePixmap_Default = pixmaps.grey_cross;
   def _update_app_state (self):
-    state = self.app.statestr.lower();
-    self.status_label.setText(' '+state+' '); 
-    _dprint(2,'app.state is',self.app.state,', setting pixmap');
-    pm = self.StatePixmaps.get(self.app.state,self.StatePixmap_Default);
-    self.status_icon.setPixmap(pm.pm());
-    # update window title        
-    if self.app.app_addr is None:
-      self.setCaption(self.app.name()+" - "+state);
-    else:
-      self.setCaption(str(self.app.app_addr)+" - "+state);
+    if self.app.current_server:
+      state = self.app.current_server.statestr.lower();
+      self.status_label.setText(' '+state+' '); 
+      _dprint(2,'app.state is',self.app.current_server.state,', setting pixmap');
+      pm = self.StatePixmaps.get(self.app.current_server.state,self.StatePixmap_Default);
+      self.status_icon.setPixmap(pm.pm());
+      # update window title        
+      if self.app.current_server.addr is None:
+        self.setCaption(self.app.name()+" - "+state);
+      else:
+        self.setCaption(str(self.app.current_server.addr)+" - "+state);
 ####### slot: pause button pressed
 ##  def _press_pause (self):
 ##    if self.pause_requested is None:

@@ -299,6 +299,13 @@ class WPInterface : public OctopussyDebugContext,
       int numWorkers() const;
     //##ModelId=3DB936F6032E
       Thread::ThrID workerID (int n) const;
+      
+      void killWorkers (int sig);  // sends given signal to all running workers
+
+      // Worker threads should call this to wait for the main thread to finish its start() routine.
+      // Normal worker threads (started via start_workerThread()) will do this automatically from
+      // within workerThread(). Any additional threads should include a call to this.
+      void awaitMainThreadStartup();
 #endif
       
     //##ModelId=3DB936F80042
@@ -439,21 +446,24 @@ class WPInterface : public OctopussyDebugContext,
 #ifdef USE_THREADS      
       // This is the entrypoint for every worker thread.
       // Runs a simple loop, waiting on the queue condition variable, and 
-      // exiting when stop_workerThreads is raised.
+      // exiting when running=False or stop_workers=True is raised.
     //##ModelId=3DB9371F00D6
       void runWorker ();
       
       // this is an mt-workprocess's worker thread
     //##ModelId=3DB937200087
       void * workerThread ();
-    //##ModelId=3DB937210093
-      static void * start_workerThread (void *pwp);
+      
+      static void * start_workerThread (void *pinfo);
       
       // a number of worker threads may be run
     //##ModelId=3DB936DE013C
       static const int MaxWorkerThreads=16;
-    //##ModelId=3E08EC00028B
-      Thread::ThrID worker_threads[MaxWorkerThreads];
+      // per-worker thread info structure
+      typedef struct { Thread::ThrID thr_id;
+                       WPInterface *self; 
+                       bool running; } WorkerThreadInfo;
+      WorkerThreadInfo worker_threads[MaxWorkerThreads];
     //##ModelId=3DB936DF006B
       int num_worker_threads,num_initialized_workers;
       // condition variables used to manage worker init & WP startup
@@ -706,8 +716,9 @@ inline int WPInterface::numWorkers () const
 //##ModelId=3DB936F6032E
 inline Thread::ThrID WPInterface::workerID (int i) const
 {
-  return worker_threads[i];
+  return worker_threads[i].thr_id;
 }
+
 #endif
 
 inline void WPInterface::enablePolling  ()

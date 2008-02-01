@@ -57,7 +57,7 @@ MTGatewayWP::MTGatewayWP (Socket* sk)
   setPeerState(INITIALIZING);
   rprocess = rhost = 0;
   reading_socket = first_message_read = false;
-  shutdown_done = false;
+  shutdown_done = shutting_down = false;
   statmon.time_not_reading.reset();
 }
 
@@ -161,15 +161,18 @@ bool MTGatewayWP::start ()
   for( int i=0; i<NumWriterThreads; i++ )
   {
     Thread::ThrID tid = createWorker();
-    dprintf(0)("created worker thread %d\n",(int)tid);
+    dprintf(1)("created worker thread %d\n",(int)tid);
   }
   
   // spawn several reader threads
   for( int i=0; i<NumReaderThreads; i++ )
   {
-    reader_threads[i] = Thread::create(start_readerThread,this);
-    FailWhen(!reader_threads[i],"failed to create reader thread");
-    dprintf(0)("created reader thread %d\n",(int)reader_threads[i]);
+    ReaderThreadInfo &info = reader_threads[i];
+    info.running = true;
+    info.self = this;
+    info.thr_id = Thread::create(start_readerThread,&info);
+    FailWhen(!info.thr_id,"failed to create reader thread");
+    dprintf(1)("created reader thread %d\n",(int)info.thr_id);
   }
   
   return false;
@@ -177,7 +180,10 @@ bool MTGatewayWP::start ()
 
 void MTGatewayWP::stop ()
 {
+  // this is the normal stop() entrypoint: by this stage, all worker
+  // threads will have been shut down
   dprintf(4)("stop\n");
+  // but we still call shutdown() to take care of reader threads
   shutdown();
   if( sock )
     delete sock;
@@ -253,6 +259,13 @@ bool MTGatewayWP::willForward (const Message &msg) const
 
 int MTGatewayWP::receive (Message::Ref& mref)
 {
+  // process shutdown event from ourselves (from a reader thread, presumably)
+  if( mref->id() == AidBye && mref->from() == address() )
+  {
+    shutdown();
+    return Message::ACCEPT;
+  }
+  
   // hold off while still initializing the connection
   if( peerState() == INITIALIZING )
     return Message::HOLD;
@@ -397,7 +410,7 @@ void MTGatewayWP::processIncoming (Message::Ref &ref)
     if( msg.id() != HIID(AidSubscriptions) )
     {
       lprintf(1,"error: unexpected init message\n");
-      shutdown();
+      shutdownReaderThread();
       return;
     }
     // catch all exceptions during processing of init message
@@ -424,7 +437,7 @@ void MTGatewayWP::processIncoming (Message::Ref &ref)
         (*msg1)[AidPort] = atoi(sock->port().c_str());
         publish(mref1,0,Message::LOCAL);
         setPeerState(CLOSING);
-        shutdown();
+        shutdownReaderThread();
         return;
       }
       // add this connection to the local peerlist
@@ -455,7 +468,7 @@ void MTGatewayWP::processIncoming (Message::Ref &ref)
     {
       lprintf(1,"error: processing init message: %s\n",
           exceptionToString(exc).c_str());
-      shutdown();
+      shutdownReaderThread();
       return;
     }
     // publish (locally only) fake Hello messages on behalf of all remote WPs
@@ -486,7 +499,7 @@ void MTGatewayWP::processIncoming (Message::Ref &ref)
   else
   {
     lprintf(1,"error: received remote message while in unexpected peer-state\n");
-    shutdown();
+    shutdownReaderThread();
   }
 }
 
@@ -525,6 +538,20 @@ int MTGatewayWP::processInitMessage (const void *block,size_t blocksize)
   return remote_subs.size();
 }
 
+// This is called from a reader thread to initiate a shutdown sequence
+// Since we hold a lock on the reader mutex when calling this, we can check for 
+// shutting_down to see if it has already been initiated
+void MTGatewayWP::shutdownReaderThread () 
+{
+  if( !shutting_down )
+  {
+    shutting_down = true;
+    // send a shutdown message to wake up a worker thread
+    send(AidBye,address(),0,Message::PRI_EVENT);
+  }
+}
+
+// this is called to initiate shutdownn() from the main thread
 void MTGatewayWP::shutdown () 
 {
   // shutdown called only once, and by any thread
@@ -532,9 +559,11 @@ void MTGatewayWP::shutdown ()
   if( shutdown_done )
     return;
   shutdown_done = true;
-  // release gwmutex now: now that the flag is set, only one thread
-  // will get this far
-  lock.release();
+  //// NB 19/12/07: this can cause a segfault if one worker/reader thread calls shutdown itself, then exits,
+  //// then this thread tries to send it a signal. So I have moved the mutex release down after
+  //// the reader threads have been interrupted
+  // // release gwmutex now: now that the flag is set, only one thread
+  // // will get this far
   if( peerState() == CONNECTED )     // publish a Remote.Down message
   {
     HIID peerid = rprocess|rhost;
@@ -545,12 +574,34 @@ void MTGatewayWP::shutdown ()
   }
   else
     lprintf(1,"shutting down");
-  dprintf(4)("shutdown: stopping worker threads\n");
-  stopWorkers();
-  dprintf(4)("shutdown: worker threads stopped\n");
   
+  dprintf(4)("shutdown: interrupting socket\n");
+  sock->interrupt();
   setPeerState(CLOSING); 
   detachMyself();
+  dprintf(4)("shutdown: WP detached\n");
+  // send interruption signals and rejoin the reader threads
+  dprintf(1)("shutdown: interrupting reader threads\n");
+  for( int i=0; i < NumReaderThreads; i++ )
+    if( reader_threads[i].thr_id != Thread::self() && reader_threads[i].running )
+      reader_threads[i].thr_id.kill(SIGPIPE);
+  // release lock: we must allow the reader threads to exit
+  lock.release();
+  // now wait .5 sec for any stray reader threads, then send the signal again
+  struct timeval timeout = {0,500000};
+  select(0,0,0,0,&timeout);
+  lock.relock(gwmutex);
+  dprintf(1)("shutdown: reinterrupting reader threads\n");
+  for( int i=0; i < NumReaderThreads; i++ )
+    if( reader_threads[i].thr_id != Thread::self() && reader_threads[i].running )
+      reader_threads[i].thr_id.kill(SIGPIPE);
+  // release lock so that reader threads can exit
+  lock.release();
+  // now rejoin them
+  dprintf(1)("shutdown: rejoining reader threads\n");
+  for( int i=0; i < NumReaderThreads; i++ )
+    if( reader_threads[i].thr_id != Thread::self() )
+      reader_threads[i].thr_id.join();
   dprintf(4)("shutdown completed\n");
 }
 
@@ -578,34 +629,19 @@ bool MTGatewayWP::mtStart (Thread::ThrID)
 
 void MTGatewayWP::stopWorkers ()
 {
-  sock->interrupt();
-  // send interruption signals and rejoin the reader threads
-  dprintf(1)("stopWorkers: interrupting and rejoining reader threads\n");
-  for( int i=0; i < NumReaderThreads; i++ )
-    if( reader_threads[i] != Thread::self() )
-    {
-//      reader_threads[i].cancel();
-      reader_threads[i].kill(SIGPIPE);
-    }
-  for( int i=0; i < NumReaderThreads; i++ )
-    if( reader_threads[i] != Thread::self() )
-      reader_threads[i].join();
   // send termination signals to interrupt the worker threads
   // (in case they're busy in a write() call)
   dprintf(1)("stopWorkers: interrupting worker threads\n");
-  for( int i=0; i < numWorkers(); i++ )
-    if( workerID(i) != Thread::self() )
-    {
-// WPInterface::do_stop() takes care of cleanly exiting the worker thread,
-// so don't cancel them -- just make sure the signal is sent to interrupt them
-//      workerID(i).cancel();
-      workerID(i).kill(SIGPIPE);
-    }
+  killWorkers(SIGPIPE);
 }
 
-void * MTGatewayWP::start_readerThread (void *pwp)
+void * MTGatewayWP::start_readerThread (void *pinfo)
 {
-  return static_cast<MTGatewayWP*>(pwp)->readerThread();
+  ReaderThreadInfo &info = *static_cast<ReaderThreadInfo*>(pinfo);
+  void *ret =  info.self->readerThread();
+  Thread::Mutex::Lock lock(info.self->gwmutex);
+  info.running = false;
+  return ret;
 }
 
 };

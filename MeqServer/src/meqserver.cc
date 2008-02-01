@@ -25,10 +25,13 @@
 
 #include <OCTOPUSSY/Octopussy.h>
 #include <OCTOPUSSY/StatusMonitorWP.h>
+#include <OCTOPUSSY/GWServerWP.h>
+#include <OCTOPUSSY/GWClientWP.h>
 #include <AppAgent/OctoEventMux.h>
 #include <MeqServer/MeqServer.h>
 #include <MeqServer/AID-MeqServer.h>
 #include <MEQ/MTPool.h>
+#include <unistd.h>
 
 typedef std::vector<string> StrVec;
 typedef StrVec::iterator SVI;
@@ -37,6 +40,7 @@ typedef StrVec::const_iterator SVCI;
 using namespace DebugMeq;
 using namespace DMI;
 using namespace AppAgent;
+using LOFAR::Socket;
 
 // define a local debug context
 namespace main_debug_context
@@ -47,6 +51,11 @@ namespace main_debug_context
     
 int main (int argc,const char *argv[])
 {
+  // begin by closing all open FDs -- this is necessary so that we don't inherit any
+  // GW sockets from a launching browser
+  for( int i=2; i<1024; i++ )
+    close(i);
+
   using main_debug_context::getDebugContext;
   try 
   {
@@ -80,21 +89,38 @@ int main (int argc,const char *argv[])
         Meq::MTPool::Brigade::startNewBrigade();
       }
     }
-    
-//     Debug::setLevel("VisRepeater",2);
-//     Debug::setLevel("MSVisAgent",2);
-//     Debug::setLevel("VisAgent",2);
-//     Debug::setLevel("OctoEventMux",2);
-//     Debug::setLevel("OctoEventSink",2);
-//     Debug::setLevel("BOIOSink",2);
-//     Debug::setLevel("AppControl",2);
-//     Debug::setLevel("Dsp",1);
-//     Debug::setLevel("Solver",3);
+    // "-gw" option
+    string local_gw;
+    iter = std::find(args.begin(),args.end(),string("-gw"));
+    if( iter != args.end() )
+    {
+      ++iter;
+      if( iter == args.end() )
+      {
+        cerr<<"-gw option must be followed by socket name\n";
+        return 1;
+      }
+      local_gw = *iter;
+    }
     Debug::initLevels(argc,argv);
     
     cdebug(0)<<"=================== initializing OCTOPUSSY =====================\n";
     Octopussy::OctopussyConfig::initGlobal(argc,argv);
-    Octopussy::init(start_gateways);
+    Octopussy::init(false);  // start_gateways=False, we start our own
+    // We open a local server called =meqserver-%U:1 (and increment port number as
+    // appropriate)
+    std::string sock = ssprintf("=meqserver-%d",(int)getuid());
+    Octopussy::dispatcher().attach(new Octopussy::GWServerWP(sock,1));
+    // We also open a client to connect to any local browsers, and to
+    // anything specified via gwpeer=.
+    sock = ssprintf("=meqbrowser-%d",(int)getuid());
+    Octopussy::dispatcher().attach(new
+              Octopussy::GWClientWP(sock,1,Octopussy::Socket::UNIX));
+    if( !local_gw.empty() )
+      Octopussy::dispatcher().attach(new
+                Octopussy::GWClientWP(local_gw,1,Octopussy::Socket::UNIX));
+    // Note that meqserver does not open a local TCP server. The connection
+    // is always initiated from server to browser!
     
     cdebug(0)<<"=================== starting StatusMonitor ====================\n";
     Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());

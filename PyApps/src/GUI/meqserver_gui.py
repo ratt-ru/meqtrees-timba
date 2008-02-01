@@ -36,7 +36,7 @@ from Timba.GUI import profiler
 from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
 from Timba.GUI import bookmarks 
-from Timba.GUI import connect_meqtimba_dialog 
+from Timba.GUI import servers_dialog
 from Timba.GUI import widgets 
 from Timba.GUI import VisProgressMeter 
 from Timba.GUI import SolverProgressMeter 
@@ -96,6 +96,7 @@ class meqserver_gui (app_proxy_gui):
     pixmaps.load_icons('treebrowser');
     
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
+    self.setCaption("MeqBrowser");
     self.setIcon(pixmaps.trees48x48.pm());
     self.set_verbose(self.get_verbose());
     
@@ -103,7 +104,7 @@ class meqserver_gui (app_proxy_gui):
     # This is meant to update relevant GUI elements, etc.
     QObject.connect(self,PYSIGNAL("isConnected()"),self._check_connection_status);
     
-    _dprint(2,"meqserver-specifc init"); 
+    _dprint(2,"meqserver-specific init"); 
     # size window if stored in config
     width = Config.getint('browser-window-width',0);
     height = Config.getint('browser-window-height',0);
@@ -270,22 +271,31 @@ class meqserver_gui (app_proxy_gui):
     menubar.setItemVisible(bookmarks_menu_id,False);
 
     # --- MeqTimba menu
-    connect = self._qa_connect = QAction("Connect to kernel...",0,self);
+    connect = self._qa_connect = QAction("Attach to a meqserver...",Qt.CTRL+Qt.Key_A,self);
     connect.addTo(kernel_menu);
-    stopkern = self._qa_stopkern = QAction(pixmaps.red_round_cross.iconset(),"&Stop kernel process",Qt.CTRL+Qt.Key_S,self);
+    stopkern = self._qa_stopkern = QAction(pixmaps.red_round_cross.iconset(),
+                                        "&Stop current meqserver",Qt.CTRL+Qt.Key_S,self);
     QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
     stopkern.setDisabled(True);
     stopkern.addTo(kernel_menu);
+    
+    renamekern = self._qa_renamekern = QAction("&Rename current meqserver",0,self);
+    QObject.connect(renamekern,SIGNAL("activated()"),self._rename_kernel);
+    renamekern.setDisabled(True);
+    QObject.connect(self,PYSIGNAL("isConnected()"),stopkern.setEnabled);
+    QObject.connect(self,PYSIGNAL("isConnected()"),renamekern.setEnabled);
+    renamekern.addTo(kernel_menu);
+    
     kernel_menu.insertSeparator();
     self.treebrowser._qa_refresh.addTo(kernel_menu);
-    self.treebrowser._qa_load.addTo(kernel_menu);
-    self.treebrowser._qa_save.addTo(kernel_menu);
-    self._connect_dialog = connect_meqtimba_dialog.ConnectMeqKernel(self,\
-        name="&Connect to MeqTimba kernel",modal=False);
-    self._connect_dialog.move(QPoint(100,100));
+    # self.treebrowser._qa_load.addTo(kernel_menu);
+    # self.treebrowser._qa_save.addTo(kernel_menu);
+    self._connect_dialog = servers_dialog.ServersDialog(self,\
+        name="&Attach to a meqserver",modal=False);
     QObject.connect(self,PYSIGNAL("isConnected()"),self._connect_dialog.setHidden);
     QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
     QObject.connect(self._connect_dialog,PYSIGNAL("startKernel()"),self._start_kernel);
+    QObject.connect(self._connect_dialog,PYSIGNAL("serverSelected()"),self._select_attach_kernel);
     # --- find path to kernel binary if not configured
     self._default_meqserver_path = Config.get('meqserver-path','meqserver');
     if self._default_meqserver_path.find('/') < 0: # need to search $PATH
@@ -296,7 +306,8 @@ class meqserver_gui (app_proxy_gui):
           break;
     self._connect_dialog.set_default_path(self._default_meqserver_path);
     self._connect_dialog.set_default_args(Config.get('meqserver-args',''));
-    self._connect_dialog.show();
+    ## NB: this shows the dialog BEFORE showing ourselves
+    # self._connect_dialog.show();
     
     # --- TDL menu
     syncedit = QAction("Sync to external editor",0,self);
@@ -455,6 +466,11 @@ class meqserver_gui (app_proxy_gui):
     # wait cursor object
     self._wait_cursor = None;
     
+  def show (self):
+    app_proxy_gui.show(self);
+    self._connect_dialog.show();
+    self._connect_dialog.move(self.mapToGlobal(QPoint(100,100)));
+    
   def moveEvent (self,ev):
     app_proxy_gui.moveEvent(self,ev);
     self._tdlgui_error_window.move_anchor();
@@ -491,11 +507,17 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   def _debug_kernel (self):
     pid = self._kernel_pid;
     if not pid:
-      if self.app.app_addr:
-        pid = self.app.app_addr[2];    
+      if self.app.current_server:
+        if self.app.current_server.remote:
+          QMessageBox.warning(self,"Can't debug remote meqserver",
+            """<p>It seems we're currently connected to a remote meqserver, so I 
+            can't attach a debugger.</p>""","Cancel");
+          return;
+        else:
+          pid = self.app.current_server.addr[2];
       else:
-        QMessageBox.warning(self,"No connection to MeqTimba kernel",
-          """<p>It seems we're not connected to a kernel, and we don't know a
+        QMessageBox.warning(self,"Not attached to a meqserver",
+          """<p>It seems we're not attached to a meqserver, and we don't know a
           PID for it, so I can't attach a debugger.</p>""","Cancel");
         return;
     pathname = self._kernel_pathname or ( "/proc/%d/exe"%(pid,) );
@@ -516,9 +538,13 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     """this method is called whenever we connect/disconnect to a kernel.
     The dum argument is provided to make it easy to connect single-argument
     signals to this slot""";
-    _dprint(1,"pid",self._kernel_pid,"addr",self.app.app_addr);
-    connected = bool(self._kernel_pid or self.app.app_addr);
-    if self.app.app_addr:
+    if self.app.current_server:
+      addr = self.app.current_server.addr;
+    else:
+      addr = None;
+    _dprint(1,"pid",self._kernel_pid,"addr",None);
+    connected = bool(self._kernel_pid or addr);
+    if addr:
       self._connect_timer.stop();
       try:
         self._timeout_dialog.hide();
@@ -526,8 +552,12 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         pass;
     _dprint(1,"connected is",connected);
     self._qa_stopkern.setEnabled(connected);
-    self._qa_connect.setDisabled(connected);
+    # self._qa_connect.setDisabled(connected);
     self._qa_attach_gdb.setEnabled(connected);
+    
+  def _select_attach_kernel (self,addr):
+    self._connect_dialog.hide();
+    self.app.attach_server(addr);
     
   def _start_kernel (self,pathname,args):
     _dprint(0,pathname,args);
@@ -545,6 +575,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self._kernel_pathname = pathname;
     self._connect_timer.start(8000,True);  # start an 8-second timer
     self._check_connection_status();
+    # tell the client to attach as soon as it sees this pid
+    self.app.auto_attach(pid=self._kernel_pid,host=None);
   
   def _connection_timeout (self):
     """called by connection timer when it expires""";
@@ -568,41 +600,52 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       timeout_dialog.setModal(False);
     timeout_dialog.show();
     
+  def _rename_kernel (self):
+    if not self.app.current_server:
+      return;
+    sname = self.app.current_server.session_name or '';
+    sname,ok = QInputDialog.getText("Renaming meqserver session",
+              "Enter a name for this meqserver session",QLineEdit.Normal,sname);
+    if ok:
+      self.app.meq('Set.Session.Name',record(session_name=str(sname)),wait=False);
+    
   def _stop_kernel (self):
     # check if we have a PID for the kernel 
     pid = self._kernel_pid;
-    if not pid and self.app.app_addr:
-      pid = self.app.app_addr[2];
+    addr = self.app.current_server and self.app.current_server.addr;
+    # if connected to local kernel, get PID from address
+    if not pid and self.app.current_server and not self.app.current_server.remote:
+      pid = addr[2];
     # show different dialogs depending on what we know about the meqserver
-    if pid and self.app.app_addr:
+    if pid and addr:
       buttons = ("HALT","KILL","Cancel",0,2);
-      res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
-        """<p>We are connected to a local kernel. The normal way to stop a MeqTimba kernel 
-        is by sending it a <tt>HALT</tt> command. If the kernel doesn't respond to this, 
+      res = QMessageBox.warning(self,"Stopping meqserver",
+        """<p>We are attached to a local meqserver. The normal way to stop it
+        is by sending it a <tt>HALT</tt> command. If the meqserver doesn't respond to this, 
         we can always brute-force it with a <tt>KILL</tt> signal. Which method do you want 
         to use?</p>""",
         *buttons);
       res = buttons[res];
     elif pid:
       buttons = ("KILL","Cancel",None,0,1);
-      res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
-        """<p>It seems there's a kernel running (pid %d) but we can't
+      res = QMessageBox.warning(self,"Stopping meqserver",
+        """<p>It seems there's a meqserver running (pid %d) but we can't
         establish a connection to it. Should we try to stop it with 
         a <tt>KILL</tt> signal?</p>""" % pid,
         *buttons);
       res = buttons[res];
-    elif self.app.app_addr:
+    elif addr:
       buttons = ("HALT","Cancel",None,0,1);
-      res = QMessageBox.warning(self,"Stopping MeqTimba kernel",
-        """<p>We are connected to a remote kernel (%s), or at least we don't
+      res = QMessageBox.warning(self,"Stopping meqserver",
+        """<p>We are connected to a remote meqserver (%s), or at least we don't
         have a local PID for it. Should we try to stop it with a <tt>HALT</tt> 
-        command?</p>""" % str(self.app.app_addr),
+        command?</p>""" % str(addr),
         *buttons);
       res = buttons[res];
     else:
       buttons = ("Cancel",);
-      QMessageBox.warning(self,"No connection to MeqTimba kernel",
-        """<p>It seems we're not connected to a kernel, and we don't know a
+      QMessageBox.warning(self,"No meqserver attached",
+        """<p>It seems we're not attached to a meqserver, and we don't know a
         PID for it, so there's nothing for me to stop. In this situation you 
         shouldn't have been able to get to this dialog in the first place,
         so you may want to report a bug!</p>""",
@@ -610,10 +653,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       res = "Cancel";
     # stop kernel in one of many possible ways
     if res == "HALT":
-      self.log_message('sending HALT command to kernel');
+      self.log_message('sending HALT command to meqserver');
       self.app.halt();
     elif res == "KILL":
-      self.log_message('sending KILL signal to kernel process '+str(pid));
+      self.log_message('sending KILL signal to meqserver process '+str(pid));
       os.kill(pid,signal.SIGKILL);
       
   def _sigchld_handler (self,sig,stackframe):
@@ -709,6 +752,9 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self.setMode(QFileDialog.ExistingFile);
       self.setFilters("TDL scripts (*.tdl *.py);;All files (*.*)");
       self.setViewMode(QFileDialog.Detail);
+      self._cwd = QCheckBox("working directory tracks follows script location",self);
+      self._cwd.setChecked(True);
+      self.addWidgets(None,self._cwd,None);
       self._replace = QCheckBox("close all currently loaded scripts first",self);
       self._replace.setChecked(True);
       self.addWidgets(None,self._replace,None);
@@ -716,6 +762,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._replace.setShown(visible);
     def get_replace (self):
       return self._replace.isOn();
+    def get_change_wd (self):
+      return self._cwd.isOn();
     
   def _load_tdl_script (self):
     try: dialog = self._run_tdl_dialog;
@@ -727,6 +775,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     dialog.set_replace_visible(bool(self._tdl_tabs));
     dialog.setCaption("Load TDL Script");
     if dialog.exec_loop() == QDialog.Accepted:
+      filename = str(dialog.selectedFile());
       # close all TDL tabs if requested
       for (path,tab) in self._tdl_tabs.items():
         self.maintab.showPage(tab);
@@ -734,8 +783,12 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
           del self._tdl_tabs[path];
           self.maintab.removePage(tab);
           tab.reparent(QWidget(),0,QPoint(0,0));
+      # change working directory
+      if dialog.get_change_wd():
+        # this potentially changes the dialog state, so we get filename above first
+        self.change_working_directory(str(dialog.dirPath()),browser=True,kernel=True);
       # show this file
-      self.show_tdl_file(str(dialog.selectedFile()),run=True);
+      self.show_tdl_file(filename,run=True);
       
   def _show_tdl_line_numbers (self,show):
     Config.set('tdl-show-line-numbers',show);
@@ -1108,9 +1161,27 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._qa_addbkmark.setMenuText("Add bookmark");
     self._qa_addpagemark.setEnabled(enable_pgmark);
         
-  def _connected_event (self,ev,value):  
+  def change_working_directory(self,path,browser=True,kernel=True):
+    """Changes the current WD of browser and/or kernel to the specified path.""";
+    if browser:
+      _dprint(1,'cwd',path);
+      # change TDL dialog path
+      dialog = getattr(self,'_run_tdl_dialog',None);
+      if dialog:
+        dialog.setDir(path);
+      # change browser path
+      curpath = os.getcwd();
+      os.chdir(path);
+      if not os.path.samefile(path,curpath):
+        self.log_message("browser working directory is now "+path);
+    if kernel and self.app.current_server:
+      _dprint(1,'kernel cwd',path);
+      self.app.change_wd(path);
+        
+  def _attached_server_event (self,ev,value,server):  
     self._wait_cursor = None;     # clear any wait-cursors
-    app_proxy_gui._connected_event(self,ev,value);
+    app_proxy_gui._attached_server_event(self,ev,value,server);
+    self._connect_dialog.attach_to_server(server.addr);
     self._wstat.show();
     self._wstat.emit(PYSIGNAL("shown()"),(True,));
     self.treebrowser.clear();
@@ -1121,9 +1192,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
     meqds.request_forest_state();
       
-  def _disconnected_event (self,ev,value):  
+  def _detached_server_event (self,ev,value,server):  
     self._wait_cursor = None;     # clear any wait-cursors
-    app_proxy_gui._disconnected_event(self,ev,value);
+    app_proxy_gui._detached_server_event(self,ev,value,server);
+    self._connect_dialog.attach_to_server(None);
     self._autoreq_timer.stop();
     self._autoreq_sent = False;
     self._wstat.hide();
@@ -1152,7 +1224,15 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   _prefix_NodeStatus = hiid('node.status');
   # override handleAppEvent to catch node state updates, whichever event they
   # may be in
-  def handleAppEvent (self,ev,value):
+  def handleAppEvent (self,ev,value,server):
+    # call top-level handler
+    app_proxy_gui.handleAppEvent(self,ev,value,server);
+    # state events are processed regardless of which server they came from
+    if ev is self.app.server_state_event:
+      self._connect_dialog.update_server_state(server,value);
+    # all other events are processed for the currently connected server only
+    if server is not self.app.current_server:
+      return;
     # check for node status
     if ev.startswith(self._prefix_NodeStatus):
       (ni,status,rqid) = (ev.get(2),ev.get(3),ev[4:]);
@@ -1160,8 +1240,6 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       try: node = meqds.nodelist[ni];
       except KeyError: pass;
       else: node.update_status(status,rqid);
-    # call top-level handler
-    app_proxy_gui.handleAppEvent(self,ev,value);
     # check for generic event contents
     if isinstance(value,record):
       # check if forest has changed
@@ -1177,6 +1255,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       fstatus = getattr(value,'forest_status',None);
       if fstatus is not None:
         self.treebrowser.update_forest_status(fstatus);
+      # check for change of working directory, make sure browser tracks that of kernel
+      cwd = getattr(value,'cwd',None);
+      if cwd and not os.path.samefile(cwd,os.getcwd()):
+        self.change_working_directory(cwd,browser=True,kernel=False);
     # auto-request mechanism:
     # if we're not up-to-date with a node list or forest state, start a timer as soon as we
     # reach idle mode or stopped mode. If this timer is allowed to expire, consider the 
@@ -1185,18 +1267,21 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       if self._connected:
         if self._have_nodelist and self._have_forest_state:
           self._autoreq_timer.stop();
-        elif self.app.state == treebrowser.AppState.Idle or self.app.state == treebrowser.AppState.Debug:
-          if not self._autoreq_disable_timer.isActive():
-            self._autoreq_sent = False;
-            self._autoreq_timer.start(800);
+        elif self.app.current_server:
+          state = self.app.current_server.state;
+          if state == treebrowser.AppState.Idle or state == treebrowser.AppState.Debug:
+            if not self._autoreq_disable_timer.isActive():
+              self._autoreq_sent = False;
+              self._autoreq_timer.start(800);
           
   def _auto_update_request (self):
-    if self._connected and \
-          self.app.state == treebrowser.AppState.Idle or self.app.state == treebrowser.AppState.Debug:
+    state = self.app.current_server and self.app.current_server.state;
+    if state == treebrowser.AppState.Idle or state == treebrowser.AppState.Debug:
       if self._autoreq_sent:  # refuse to send additional requests
         return;
       self._autoreq_sent = True;
-      if not self._have_nodelist:
+      # and, don't send nodelist requests if one was sent <1 second ago.
+      if not self._have_nodelist and meqds.age_nodelist_request() > 1:
         meqds.request_nodelist();
       if not self._have_forest_state:
         meqds.request_forest_state();
@@ -1277,9 +1362,14 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
 
   def _update_app_state (self):
     app_proxy_gui._update_app_state(self);
-    # if self.app.state == treebrowser.AppState.Stream:
-    #   self.ce_UpdateAppStatus(None,self.app.status);
-    self.treebrowser.update_app_state(self.app.state);
+    # update window title
+    caption = "MeqBrowser";
+    server = self.app.current_server;
+    if server:
+      caption = "%s: %s - %s"%(caption,str(server.session_name or server.addr),server.state);
+    self.setCaption(caption);
+    if self.app.current_server:
+      self.treebrowser.update_app_state(self.app.current_server.state);
 
 # register NodeBrowser at low priority for now (still experimental),
 # but eventually we'll make it the default viewer

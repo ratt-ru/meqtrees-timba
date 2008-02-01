@@ -102,7 +102,7 @@ void OctopussyConfig::init (int argc, const char **argv)
   // finally, merge in command line
   merge(args_,true);
   
-  dprintf(0)("%d entries configured\n",config().size());
+  dprintf(1)("%d entries configured\n",config().size());
   if( Debug(3) )
   {
     for( CCMI iter = config().begin(); iter != config().end(); iter++ )

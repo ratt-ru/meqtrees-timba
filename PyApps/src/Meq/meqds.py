@@ -527,6 +527,8 @@ def clear_forest ():
   nodelist.clear();
   nodelist.emit(PYSIGNAL("cleared()"),());
 
+_req_nodelist_time = 0;
+
 def request_nodelist (force=False,profiling_stats=False,sync=False):
   """Sends a request to the kernel to return a nodelist.""";
   rec = NodeList.RequestRecord;
@@ -542,8 +544,15 @@ def request_nodelist (force=False,profiling_stats=False,sync=False):
     rec.profiling_stats = True;
   nodelist.emit(PYSIGNAL("requested()"),());
   mqs().meq('Get.Node.List',rec,wait=False);
+  global _req_nodelist_time;
+  _req_nodelist_time = time.time();
   _dprint(2,"nodelist requested",rec);
+  ## uncomment this when trying to chase down spurious nodelist requests
   # traceback.print_stack();
+  
+def age_nodelist_request ():
+  """Returns 'age' in seconds of the last nodelist request""";
+  return time.time() - _req_nodelist_time;
   
 def subscribe_nodelist (callback):
   QObject.connect(nodelist,PYSIGNAL("loaded()"),callback);

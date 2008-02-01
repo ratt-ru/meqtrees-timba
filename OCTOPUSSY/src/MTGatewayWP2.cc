@@ -103,14 +103,19 @@ void * MTGatewayWP::readerThread ()
   // unblock SIGPIPE so that our system calls can be interrupted
   Thread::signalMask(SIG_UNBLOCK,SIGPIPE);
   BlockSet bset;
+  Thread::Mutex::Lock reader_lock;
+  dprintf(3)("waiting for main thread to finish startup\n");
+  awaitMainThreadStartup();
+  dprintf(3)("main thread has completed startup\n");
   try
   {
     int read_junk = 0,incoming_checksum = 0;
     // obtain a lock on the reader mutex, so that only one thread
-    // at a time may be reading data
-    Thread::Mutex::Lock reader_lock(reader_mutex);
+    // at a time may be reading data. We will hold this lock
+    // until return from this function
+    reader_lock.relock(reader_mutex);
     readyForHeader();
-    while( isRunning() && !shutdown_done )
+    while( isRunning() && !shutting_down )
     {
       // if we are not in a reading-socket state (i.e., after a message
       // has been sent off), then time how long we were in it
@@ -130,9 +135,9 @@ void * MTGatewayWP::readerThread ()
         dprintf(5)("readBlocking(buf+%d,%d)=%d\n",nread,read_buf_size-nread,n);
         if( n<0 )
           dprintf(5)("errno=%d (%s)\n",errno,strerror(errno));
-        if( !isRunning() || shutdown_done )
+        if( !isRunning() || shutting_down )
         {
-          dprintf(2)("readerThread: do_shutdown detected, exiting\n");
+          dprintf(2)("readerThread: shutdown detected, exiting\n");
           return 0; 
         }
         else if( n <= 0 )
@@ -140,8 +145,7 @@ void * MTGatewayWP::readerThread ()
           // on read error, just commit harakiri. GWClient/ServerWP will
           // take care of reopening a connection, eventually
           lprintf(1,AidLogError,"error on socket read(): %s. Aborting.\n",sock->errstr().c_str());
-          reader_lock.release();
-          shutdown();
+          shutdownReaderThread();
           return 0; 
         }
         else if( n > 0 )
@@ -324,9 +328,12 @@ void * MTGatewayWP::readerThread ()
   {
     lprintf(0,AidLogError,"Reader thread %d terminated with exception %s",(int)Thread::self(),
         exceptionToString(exc).c_str());
-    shutdown();
   }
-
+  catch( ... )
+  {
+    lprintf(0,AidLogError,"Reader thread %d terminated with unknown exception",(int)Thread::self());
+  }
+  shutdownReaderThread();
   dprintf(3)("readerThread: exiting\n");
   return 0;
 }

@@ -74,6 +74,20 @@ class GWServerWP : public WorkProcess
     //##ModelId=3DB9367E033E
       void advertiseServer();
       
+      // a process will typically have at most two GWServers up:
+      // one on a tcp port, one on a unix socket. Their addresses are available here.
+      
+      // Returns the TCP port bound to a GWServerWP. 0 if no server listening.
+      static int getGlobalPort ()
+      { return gwserver_tcp_port; }
+      
+      // Returns the unix socket bound to a GWServerWP. "" if no server listening.
+      static std::string getGlobalSocket ()
+      { 
+        Thread::Mutex::Lock lock(gwserver_unix_socket_mutex);
+        return std::string(gwserver_unix_socket); 
+      }
+      
   protected:
     // Additional Protected Declarations
       // tries to open server socket
@@ -87,6 +101,7 @@ class GWServerWP : public WorkProcess
       GWServerWP & operator=(const GWServerWP &right);
 
   private:
+      
     // Data Members for Class Attributes
 
       //##ModelId=3C90BE3503C7
@@ -107,6 +122,22 @@ class GWServerWP : public WorkProcess
       Message::Ref advertisement;
     //##ModelId=3DB9367E0110
       int open_retries;
+
+      // global tcp port/unix socket
+      
+      static int gwserver_tcp_port;
+      static Thread::Mutex gwserver_unix_socket_mutex;
+      static std::string gwserver_unix_socket;
+      
+      static void setGlobalSocket (const std::string &socket)
+      { 
+        Thread::Mutex::Lock lock(gwserver_unix_socket_mutex);
+        gwserver_unix_socket = socket;
+      }
+      
+      static void setGlobalPort   (int port)
+      { gwserver_tcp_port = port; }
+
 };
 
 // Class GWServerWP 

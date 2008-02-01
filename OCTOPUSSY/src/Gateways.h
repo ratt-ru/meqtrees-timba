@@ -91,10 +91,14 @@ const DMI::HIID
 // dummy const  
   GWNull();
   
-extern DMI::Record gatewayPeerList;  
+extern DMI::Record gatewayPeerList;
 
-// opens standard set of client/server gateways
-void initGateways (Dispatcher &dsp);
+// Opens standard set of client/server gateways
+// If tcp_port is 0, opens a GWServer on standard TCP port (as defined by config or args),
+//    else opens server on a specific port.
+// If !sock, opens GWServer on standard local socket (or as defined by config or args),
+//    else opens server on a specific socket.
+void initGateways (Dispatcher &dsp,int tcp_port=0,const std::string &sock="");
   
 };
 #endif

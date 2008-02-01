@@ -70,10 +70,15 @@ def is_initialized ():
 def is_running ():
   return _octopussy_running;
 
-def init (gw=False):
-  "Inits OCTOPUSSY subsystem. If gw=True (default False), also creates gateways."
+def init (gwclient=False,gwtcp=-1,gwlocal=''):
+  """Inits OCTOPUSSY subsystem. 
+  If gwclient=True (default False), creates a GWClient.
+  If tcp_port>0, attaches GWServer to specified tcp port. If =0, attaches to default port.
+      If <0, does not create a TCP gateway.
+  If local_sock is None, creates GWServer for specified local socket.
+  """;
   global _octopussy_running,_octopussy_init;
-  res = octopython.init(gw);
+  res = octopython.init(gwclient,gwtcp,gwlocal);
   _octopussy_init = True;
   return res;
   
@@ -94,6 +99,8 @@ def stop ():
   res = octopython.stop();
   _octopussy_running = False;
   return res;
+
+from octopython import get_server_ports
   
 #
 # proxy_wp

@@ -97,7 +97,7 @@ Dispatcher::Dispatcher (int hz)
   // check that required config items have been found
   int hostid = 0;
   if( !config.get("hostid",hostid) )
-    dprintf(0)("warning: hostid not configured, using 1\n");
+    dprintf(1)("warning: hostid not configured, using 1\n");
   // setup address
   address = MsgAddress(AidDispatcher,0,getpid(),hostid);
   init();
@@ -204,7 +204,7 @@ void Dispatcher::detach (const WPID &id, bool delay)
   rebuildSignals(pwp);
   // if asked to delay, then move WP ref to delay stack, it will be
   // detached later in poll() (together with the do_stop() call)
-  if( delay )   
+  if( delay )
     detached_wps.push(iter->second);
   else
   {
@@ -504,8 +504,22 @@ void Dispatcher::poll (int maxloops)
     if( maxwp )
     {
       dprintf(3)("poll: max priority %d in %s, repoll=%d\n",maxpri,maxwp->debug(1),(int)repoll);
-      if( maxwp->do_poll(tick) )
-        repoll = true;
+      bool do_detach = false;
+      try
+      {
+        if( maxwp->do_poll(tick) )
+          repoll = true;
+      }
+      catch ( std::exception &exc )
+      {
+        dprintf(0)("WP %s threw exception %s, detaching\n",maxwp->debug(1),exc.what());
+        detach(maxwp,true);
+      }
+      catch (...)
+      {
+        dprintf(0)("WP %s threw unknown exception, detaching\n",maxwp->debug(1));
+        detach(maxwp,true);
+      }
       dprintf(3)("poll done: repoll=%d\n",(int)repoll);
     }
   }

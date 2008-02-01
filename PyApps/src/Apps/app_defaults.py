@@ -35,11 +35,10 @@ debuglevels = {};
 
 # default arguments to app_proxy and derivatives
 args = dmi.record({
-  'launch':False,'spawn':True,'opt':False,
+  'spawn':True,'opt':False,
   'verbose':0,'wp_verbose':0,
   'threads':True,
-  'gui':False,'checkrefs':False,
-  'extra':(),
+  'gui':False,'checkrefs':False
 });
 
 # if this is false, then all gui definitions are omitted at startup, and

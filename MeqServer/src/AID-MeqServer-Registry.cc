@@ -1,28 +1,3 @@
-//
-//% $Id$ 
-//
-//
-// Copyright (C) 2002-2007
-// The MeqTree Foundation & 
-// ASTRON (Netherlands Foundation for Research in Astronomy)
-// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
-// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-
     // This file is generated automatically -- do not edit
     // Regenerate using "make aids"
     #include <DMI/AtomicID.h>
@@ -51,6 +26,7 @@ DMI::BObj * __construct_MeqPyTensorFuncNode (int n) { return n>0 ? new Meq::PyTe
         AtomicID::registerId(-1338,"NodeIndex")+
         AtomicID::registerId(-1462,"MeqServer")+
         AtomicID::registerId(-1622,"Meq")+
+        AtomicID::registerId(-1553,"CWD")+
         AtomicID::registerId(-1312,"Create")+
         AtomicID::registerId(-1336,"Delete")+
         AtomicID::registerId(-1467,"Get")+
@@ -113,6 +89,7 @@ DMI::BObj * __construct_MeqPyTensorFuncNode (int n) { return n>0 ? new Meq::PyTe
         AtomicID::registerId(-1162,"Source")+
         AtomicID::registerId(-1597,"Serial")+
         AtomicID::registerId(-48,"String")+
+        AtomicID::registerId(-1733,"Session")+
         AtomicID::registerId(-1623,"Executing")+
         AtomicID::registerId(-1651,"Exec")+
         AtomicID::registerId(-1645,"Constructing")+

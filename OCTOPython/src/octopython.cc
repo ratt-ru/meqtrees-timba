@@ -26,6 +26,8 @@
 #include <OCTOPUSSY/Octopussy.h>
 #include <DMI/Global-Registry.h>
 #include <OCTOPUSSY/OctopussyConfig.h>
+#include <OCTOPUSSY/GWClientWP.h>
+#include <OCTOPUSSY/GWServerWP.h>
 #include <OCTOPUSSY/ReflectorWP.h>
 #include "OctoPython.h"
 
@@ -122,9 +124,10 @@ static bool octopussy_initialized = false;
 // -----------------------------------------------------------------------
 static PyObject * init_octopussy (PyObject *, PyObject *args)
 {
-  int start_gateways;
+  int client = 0,tcp_port = -1;
+  char * local_sock = 0;
 
-  if( !PyArg_ParseTuple(args, "i", &start_gateways) )
+  if( !PyArg_ParseTuple(args,"|iis",&client,&tcp_port,&local_sock) )
     return NULL;
   if( octopussy_initialized )
     returnError(NULL,OctoPython,"octopussy already initialized");
@@ -134,7 +137,14 @@ static PyObject * init_octopussy (PyObject *, PyObject *args)
     cdebug(1)<<"=================== initializing OCTOPUSSY =====================\n";
     const char * argv[] = { "octopython" };
     OctopussyConfig::initGlobal(1,argv);
-    Octopussy::init(start_gateways);
+    Octopussy::init(false);  // start_gw=false, we init our own below:
+    if( client )
+      Octopussy::dispatcher().attach(new Octopussy::GWClientWP);
+    if( tcp_port >= 0 )
+      Octopussy::dispatcher().attach(new Octopussy::GWServerWP(tcp_port));
+    if( local_sock )
+      Octopussy::dispatcher().attach(new Octopussy::GWServerWP(local_sock,-1));
+    
   }
   catchStandardErrors(NULL);
   octopussy_initialized = true;
@@ -185,6 +195,23 @@ static PyObject * stop_octopussy (PyObject *, PyObject *args)
 };  
 
 // -----------------------------------------------------------------------
+// get_server_ports()
+// -----------------------------------------------------------------------
+static PyObject * get_server_ports (PyObject *, PyObject *)
+{
+  // catch all exceptions below
+  try 
+  {
+    int port = Octopussy::GWServerWP::getGlobalPort();
+    std::string sock = Octopussy::GWServerWP::getGlobalSocket();
+    return Py_BuildValue("(is)",port,sock.c_str());
+  }
+  catchStandardErrors(NULL);
+  
+  returnNone;
+}  
+
+// -----------------------------------------------------------------------
 // start_reflector ()
 // -----------------------------------------------------------------------
 static PyObject * start_reflector (PyObject *, PyObject *args)
@@ -221,6 +248,9 @@ static PyMethodDef OctoMethods[] = {
                     "starts OCTOPUSSY thread (and event loop)" },
     { "stop", stop_octopussy, METH_VARARGS, 
                     "stops current OCTOPUSSY thread" },
+    { "get_server_ports", get_server_ports, METH_NOARGS, 
+                "returns tuple of (port,socket), corresponding to the current OCTOPUSSY "
+                "TCP server port (0 if none) and local server socket ('' if none)." },
     { "str_to_hiid", string_to_hiid, METH_VARARGS, 
                     "converts string to hiid-compatible tuple" },
     { "hiid_to_str", hiid_to_string, METH_VARARGS, 

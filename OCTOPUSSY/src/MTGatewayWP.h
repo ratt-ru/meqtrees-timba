@@ -196,14 +196,27 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
     //##ModelId=3DB958F301EA
       // separate reader threads are run
     //##ModelId=3DB958F60246
-      static void * start_readerThread (void *pwp);
+      static void * start_readerThread (void *pinfo);
     //##ModelId=3DB958F602AB
       void * readerThread ();
+      
+      // Called when a reader thread asks for a shutdown
+      // This raises a flag and sends a message to a worker, it's up
+      // to a worker then to rejoin the reader thread and do a proper
+      // detachMyself()
+      void shutdownReaderThread ();
+      
+      bool shutting_down;
       
     //##ModelId=3DB958F301FE
       static const int NumWriterThreads = 2, NumReaderThreads = 2;
     //##ModelId=3DB958F3022F
-      Thread::ThrID reader_threads[NumReaderThreads];
+      typedef struct {
+        Thread::ThrID thr_id; 
+        MTGatewayWP *self; 
+        bool running; 
+      } ReaderThreadInfo;
+      ReaderThreadInfo reader_threads[NumReaderThreads];
       
       // mutex for global gateway states
     //##ModelId=3DB958F3024A

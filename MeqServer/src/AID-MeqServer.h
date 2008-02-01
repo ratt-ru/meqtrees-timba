@@ -1,28 +1,3 @@
-//
-//% $Id$ 
-//
-//
-// Copyright (C) 2002-2007
-// The MeqTree Foundation & 
-// ASTRON (Netherlands Foundation for Research in Astronomy)
-// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
-// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-
       #ifndef AID_MeqServer_h
       #define AID_MeqServer_h 1
       
@@ -62,6 +37,11 @@ const int AidBatch_int = -1563;
 #define _defined_id_AidBreakpoint 1
 const DMI::AtomicID AidBreakpoint(-1359);         // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
 const int AidBreakpoint_int = -1359;
+#endif
+#ifndef _defined_id_AidCWD
+#define _defined_id_AidCWD 1
+const DMI::AtomicID AidCWD(-1553);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
+const int AidCWD_int = -1553;
 #endif
 #ifndef _defined_id_AidCache
 #define _defined_id_AidCache 1
@@ -472,6 +452,11 @@ const int AidScript_int = -1565;
 #define _defined_id_AidSerial 1
 const DMI::AtomicID AidSerial(-1597);             // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
 const int AidSerial_int = -1597;
+#endif
+#ifndef _defined_id_AidSession
+#define _defined_id_AidSession 1
+const DMI::AtomicID AidSession(-1733);            // from /home/oms/Timba/MeqServer/src/MeqServer.h:43
+const int AidSession_int = -1733;
 #endif
 #ifndef _defined_id_AidSet
 #define _defined_id_AidSet 1
