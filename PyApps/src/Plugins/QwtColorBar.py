@@ -97,6 +97,7 @@ class QwtColorBar(QwtPlot):
         self.setMaximumWidth(self.sizeHint().width() * 1.5)
 
         self.zoomStack = []
+        self.enableOutline(0)
         self.connect(self,
                      SIGNAL('plotMouseMoved(const QMouseEvent&)'),
                      self.onMouseMoved)
@@ -396,6 +397,7 @@ class QwtColorBar(QwtPlot):
 
     def onMousePressed(self, e):
       """ callback to handle mouse pressed event """
+      self.enableOutline(0)
       if Qt.LeftButton == e.button():
         # get bounds of plot. Keep them around for later test if
         # we're initiating a drag operation
@@ -428,6 +430,7 @@ class QwtColorBar(QwtPlot):
     def onMouseReleased(self, e):
       """ handles mouse release event if we're not doing a drop """
 
+      self.enableOutline(0)
       # if color bar is locked, do nothing
       if self._lock_bar:
         return
@@ -446,7 +449,6 @@ class QwtColorBar(QwtPlot):
           return
         self.zoomStack.append(self.zoomState)
         self.zoomState = (ymin, ymax)
-        self.enableOutline(0)
         if len(self.zoomStack):
           toggle_id = self.menu_table['unzoom intensity range']
           self._menu.setItemVisible(toggle_id, True)

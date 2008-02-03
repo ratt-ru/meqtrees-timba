@@ -333,6 +333,7 @@ class QwtImageDisplay(QwtPlot):
         self.plotImage = QwtPlotImage(self)
 
         self.zoomStack = []
+        self.enableOutline(0)    # make sure outline is disabled
         self.connect(self,
                      SIGNAL('plotMouseMoved(const QMouseEvent&)'),
                      self.onMouseMoved)
@@ -1237,6 +1238,7 @@ class QwtImageDisplay(QwtPlot):
     def reset_zoom(self, replot=False, undo_last_zoom = False):
       """ resets data display so all data are visible """
       do_replot = False
+      self.enableOutline(0) # make sure outline is disabled
       if len(self.zoomStack):
         while len(self.zoomStack):
           axis_parms = self.zoomStack.pop()
@@ -1277,8 +1279,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, False)
           toggle_id = self.menu_table['Undo Last Zoom']
           self._menu.setItemVisible(toggle_id, False)
-# make sure outline is disabled
-      self.enableOutline(0)
+
 # do a complete replot in the following situation
 # as both axes will have changed even if nothing to unzoom.
       if do_replot:
@@ -1768,6 +1769,7 @@ class QwtImageDisplay(QwtPlot):
 
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
+        self.enableOutline(0)    # make sure outline is disabled by default
         if Qt.LeftButton == e.button():
             message = None
             self.mouse_pressed = True
@@ -1872,6 +1874,7 @@ class QwtImageDisplay(QwtPlot):
     # onMousePressed()
 
     def onMouseReleased(self, e):
+        self.enableOutline(0)
         if Qt.LeftButton == e.button():
             self.mouse_pressed = False
             if self._popup_text.isVisible():
@@ -1923,7 +1926,6 @@ class QwtImageDisplay(QwtPlot):
               if not self.zoomState is None:
                 self.zoomStack.append(self.zoomState)
               self.zoomState = (xmin, xmax, ymin, ymax)
-              self.enableOutline(0)
         
               self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
               self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
