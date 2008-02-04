@@ -56,10 +56,10 @@ try:
   import vtk
   has_vtk = True
 except:
-  print 'Exception while importing vtk module:'
-  traceback.print_exc();
+# print 'Exception while importing vtk module:'
+# traceback.print_exc();
   print ' '
-  print '*** VTK not found! ***'
+  print '*** VTK not imported! ***'
   print 'If you know that VTK has been installed on your system'
   print 'make sure that your LD_LIBRARY_PATH includes the VTK  '
   print 'libraries.'

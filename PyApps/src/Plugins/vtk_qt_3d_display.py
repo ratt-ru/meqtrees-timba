@@ -40,8 +40,10 @@ try:
   from Timba.Plugins.vtkImageImportFromNumarray import *
   has_vtk = True
 except:
-  print 'Exception while importing vtk module:'
-  traceback.print_exc();
+  print ' '
+  print '*** VTK not imported! ***'
+  print 'The system will assume that vtk is not present.'
+# traceback.print_exc();
 
 from Timba.dmi import *
 from Timba import utils
