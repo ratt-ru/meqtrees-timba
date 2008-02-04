@@ -350,13 +350,13 @@ class PointsXY (object):
         color = self._PlotStyle.color()
         [xmean,ymean] = self.mean('xy')
         if plot_mean:
-            self.plot_ellipse(x0=0.0, y0=0.0, a=self.mean('r'),
+            self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
                               color=color, linestyle='--')
             pylab.text(xmean, ymean, '  mean', color=color)
 
         if plot_stddev:
             [xstddev,ystddev] = self.stddev('xy')
-            self.plot_ellipse(x0=xmean, y0=ymean, a=xstddev, b=ystddev,
+            self.plot_ellipse(xy0=[xmean,ymean], a=xstddev, b=ystddev,
                               color=color, linestyle='--')
             pylab.plot([xmean], [ymean], marker='+',
                        markeredgecolor=color, markersize=20)
@@ -389,10 +389,11 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
-    def plot_ellipse(self, x0=0.0, y0=0.0, a=1.0, b=None,
+    def plot_ellipse(self, xy0=[0.0, 0.0], a=1.0, b=None,
                      color='red', linestyle='--'):
         """Make an ellipse with given centre(x0,y0) and half-axes a and b.
         If b==None (default), make a circle with radius a."""
+        [x0,y0] = xy2pair(xy0)
         print x0,y0,a,b,color,linestyle
         xx = []
         yy = []
