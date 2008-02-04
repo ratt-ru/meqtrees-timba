@@ -1015,8 +1015,6 @@ Finally, there are other applications of the MIM principle as well.
  
 \layout Standard
 
-\layout Standard
-
 
 \begin_inset Float figure
 wide false
@@ -1152,7 +1150,7 @@ apparent position
 \emph default 
 .
  However, this 2D screen approach would have required at least 3 parameters
- per station for a flat screen, and more to describe any curvature.
+ per station for a linear phase screen, and more to describe any curvature.
  This would need at least the same number of bright sources in the field,
  and our early calculations wrongly assumed that they would all have to
  be bright enough to yield a S/N>3 in 10 sec.
@@ -1161,7 +1159,7 @@ apparent position
  to similarly unattractive numbers.
 \layout Standard
 
-Fortunately, ionospheric phenomena are rather large-scale (i.e.
+Fortunately, ionospheric phaenomena are rather large-scale (i.e.
  smooth) in space and time.
  This means that we can get away with an all-sky ionospheric model with
  rather fewer parameters, and consequently with fewer bright sources to
@@ -1270,7 +1268,7 @@ It is a bit unfortunate that all the relevant concepts (station, satellite,
 \begin_inset Formula $r$
 \end_inset 
 
- toweards source 
+ towards source 
 \begin_inset Formula $s$
 \end_inset 
 
@@ -1302,8 +1300,13 @@ pheanomenological
 \emph default 
 , it is often necessary to make more specific assumptions about the ionosphere,
  if only to bridge the gaps in the MIM sampling function.
- Such assumptions are allowed, but they should be strictly interchangeable.
- No such assumptions should creep into the implementation.
+ Such assumptions are allowed, and even desirable, but they should be strictly
+ interchangeable, i.e.
+ 
+\emph on 
+no such assumptions should creep into the implementation
+\emph default 
+.
  In order to emphasize the difference between the general and the specific,
  all treatment of such assumptions has been relegated to the appendix (see
  appendix 
@@ -1330,12 +1333,12 @@ In principle, any set of smooth base functions will do for the MIM.
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
 
-, which usually will be the coefficients of its base functions:
+, which usually, but not always, will be the coefficients of its base functions:
 \layout Standard
 
 
 \begin_inset Formula \begin{equation}
-M=M(p_{0},p_{1},p_{2},\ldots,p_{n})\quad TECU\label{eq: M(p)}\end{equation}
+M(x,y,x,l,m,t)=M(p_{0},p_{1},p_{2},\ldots,p_{n})=M(pp)\quad TECU\label{eq: M(p)}\end{equation}
 
 \end_inset 
 
@@ -1368,8 +1371,8 @@ The
  The number of parameters is dynamic, i.e.
  it may be increased or decreased as the ionospheric conditions get worse
  or better.
- This will of course only be feasible if we are somehow able to detect when
- the number of parameters is no longer optimal.
+ (This will of course only be feasible if we are somehow able to detect
+ when the number of parameters is no longer optimal.)
 \layout Standard
 
 The general procedure will be to use the various TEC measurements to solve
@@ -1579,47 +1582,11 @@ predicted
 \emph default 
  values of ionospheric observables.
  The latter may be phases, or TEC values, or anything that depends on the
- MIM, i.e.
- on the integrated TEC 
-\begin_inset Formula $M_{rs}(x,y,z,l,m,t)$
-\end_inset 
-
-, as seen from the position 
-\begin_inset Formula $(x,y,z)$
-\end_inset 
-
- of receiver 
-\begin_inset Formula $r$
-\end_inset 
-
-, in the direction 
-\begin_inset Formula $(l,m)$
-\end_inset 
-
- towards source 
-\begin_inset Formula $s$
-\end_inset 
-
-
-\begin_inset Foot
-collapsed true
-
-\layout Standard
-
-This definition excludes measurements by ionosondes or chirp-sounders, which
- deal with signals that are reflected by the bottom of the ionosphere.
+ MIM, and thus on its parameters 
+\begin_inset Formula $p_{k}$
 \end_inset 
 
 .
- The direction is the 
-\emph on 
-apparent
-\emph default 
- one, as seen from 
-\begin_inset Formula $r$
-\end_inset 
-
-, because the propagation path may be curved.
 \layout Subsection
 
 The 
@@ -1634,11 +1601,11 @@ A
 \emph on 
 Measurement Equation
 \emph default 
- (M.E.) is a mathematical description (model) of an observing instrument and
- the thing it observes.
+ (M.E.) is a mathematical model of an observing instrument and the thing it
+ observes.
  We will use two different instruments to measure the ionospheric TEC: an
- array of ground stations with satellites, and an array of LOFAR stations
- with astronomical radio sources.
+ array ground stations looking at satellites, and an array of LOFAR stations
+ looking at astronomical radio sources.
  But although they are quite different, they both have an M.E.
  that contains the MIM with its parameters 
 \begin_inset Formula $p_{k}$
@@ -1687,21 +1654,6 @@ in which
 
  are satellite-station bias values, or phase errors introduced by the electronic
 s or the troposphere.
- In sections 
-\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
-
-\end_inset 
-
- and 
-\begin_inset LatexCommand \ref{sec: Making astroVis equations}
-
-\end_inset 
-
- below, specific expressions for 
-\begin_inset Formula $Q_{rs}$
-\end_inset 
-
- are given.
  
 \layout Standard
 
@@ -1720,7 +1672,11 @@ The parameters of the M.E.
 \end_inset 
 
  between measured and predicted values.
- Thus, each sample generates a (linear) equation of the form:
+ Thus, each sample 
+\begin_inset Formula $S_{rs}$
+\end_inset 
+
+ generates a (linear) equation of the form:
 \layout Standard
 
 
@@ -1757,7 +1713,7 @@ incremental
 \end_inset 
 
 .
- The equations are collected in a solution matrix, which is then 'inverted'
+ The equations are collected in a solution matrix, which is then inverted
  to yield the 
 \begin_inset Formula $\Delta p_{k}$
 \end_inset 
@@ -2031,7 +1987,7 @@ a priori
 \emph on 
 time
 \emph default 
- dimension by replacing the 'parameters' 
+ dimension by replacing the parameters 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
@@ -2040,7 +1996,7 @@ time
 \end_inset 
 
 ) by low-order polynomials (or other smooth functions) in time, and using
- the coefficients of these functions as the real parameters, to be solved
+ the coefficients of these functions as the actual parameters, to be solved
  for.
  
 \emph on 
@@ -2065,7 +2021,7 @@ There are various methods to measure the ionosphere, and each of them constrains
 Rigid Group
 \emph default 
 .
- This can be thought of as a group of TEC samples that have some relation
+ This can be thought of as a group of TEC values that have some relation
  w.r.t.
  each other.
  They are like the parts of a rigid body, which keep their relation to each
@@ -2084,39 +2040,39 @@ absolute
 \emph default 
  TEC.
  The prime example is the result of a selfcal solution on a single bright
- source (see section 
+ astronomical source (see section 
 \begin_inset LatexCommand \ref{sec: Making astroVis equations}
 
 \end_inset 
 
 ).
  The latter has very low noise (~0.001 TECU).
- But since there is only one direction, the size of the group is determined
- by the array of stations.
+ But since there is only one source direction, the size of the group is
+ determined by the extent of the array of stations.
  For the LOFAR core this will be only 3 km, i.e.
  much smaller than the station beam on the ionosphere (~30 km).
 \layout Itemize
 
 
 \series bold 
-Rigid Floating Tilting Group (RFTG)
+Rigid Tilting Group (RTG)
 \series default 
 : This is an RFG with 
 \emph on 
 two
 \emph default 
  free parameters, i.e.
- it that can also 'tilt'.
+ it can also 'tilt'.
  The prime example is the result of double-differencing with an array GPS
  stations, using sufficient satellites (see appendix 
-\begin_inset LatexCommand \ref{sec: Double-differencing-GPS}
+\begin_inset LatexCommand \ref{sub: Double Difference (DD)}
 
 \end_inset 
 
 ).
  The latter has a moderate noise (~0.01 TECU).
  Such a group can be very large and wide, providing a formidable constraint
- on the MIM, even at long baselines.
+ on the MIM.
 \layout Itemize
 
 
@@ -2124,22 +2080,13 @@ two
 Semi-Rigid Group (SRG)
 \series default 
 : This is a group with more than two free parameters, i.e.
- it can deform to a certain extent.
+ it can also deform to a certain extent.
  The prime example is the collection of TEC values measured between an array
- of GPS stations and a single satellite (see section 
-\begin_inset LatexCommand \ref{sec: Making gpsTEC equations}
-
-\end_inset 
-
-).
+ of GPS stations and a single satellite.
  For dual-frequency GPS it has a rather large instantaneous noise (~1 TECU),
  but this can be considerably reduced over longer periods (hours).
  Triple-frequency GPS holds a promise of (0.035 TECU).
- The great advantage of this group is that it constrains the 
-\emph on 
-absolute
-\emph default 
- TEC.
+ 
 \layout Standard
 
 All these groups together constrain the MIM, in a simultaneous solution
@@ -2214,12 +2161,13 @@ Using the frequency dependence
 
 \layout Standard
 
-Finally, The effectiveness of the separation of effects will improve linearly
- with fractional bandwidth 
+The effectiveness of the separation of instrumental effects in the solution
+ will improve linearly with the fractional bandwidth 
 \begin_inset Formula $\Delta\lambda/\lambda$
 \end_inset 
 
-, so we should endeavour to work with solve-domains that are as large as
+.
+ So we should endeavour to work with solve-domains that are as large as
  possible in the frequency direction.
  
 \emph on 
@@ -2235,6 +2183,20 @@ collapsed true
 
 This should be compared to the plan to use some extra 'calibration' dipoles
  a little bit outside a regular LOFAR LBA station.
+\end_inset 
+
+.
+ 
+\emph default 
+It also means that we have to pre-correct the astronomical visibilities
+ with the MIM phases, in order to avoid 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+ ambiguities.
+ See section 
+\begin_inset LatexCommand \ref{sec: phase-locking}
+
 \end_inset 
 
 .
@@ -2275,11 +2237,15 @@ This turns our te be not so easy, and is perhaps the greatest practical
  problem that is facing us.
 \layout Standard
 
-A data processing system like MeqTrees operates with a succession of requests,
- each of which has a domain, i.e.
+A data processing system like MeqTrees operates on a succession of data-
+\emph on 
+snippet
+\emph default 
+, each of which covers a smallish domain, i.e.
  a rectangular area in freq-time space.
- Usually, the freq-range is constant, while the time-range for successive
- requests advances with the size of the domain (see fig ...).
+ Usually, the freq-range of a domain is constant, while the time-range for
+ successive snippets is constant in size (a few minutes), but advances in
+ time.
  
 \layout Standard
 
@@ -2287,7 +2253,7 @@ Normally, a separate solution for the MIM parameters
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
 
- is made for each request.
+ is made for each snippet.
  This leads to a succession of MIMs, each with its own limited validity-domain,
  and possibly with continuity problems at the edges.
  In addition, the size of the domain, in both dimensions, limits the capability
@@ -2301,8 +2267,9 @@ shed from measurement effects (like GPS bias, or tropospheric phase) by
 \layout Itemize
 
 Use the largest practical domain size, determined by the available memory.
- This will often be enough, and the solver has the capability of detecting
- if we try to solve for more parameters than the available information allows.
+ This will sometimes be enough, and the solver has the capability of detecting
+ whether we are trying to solve for more parameters than the available informati
+on allows.
 \layout Itemize
 
 Use the motion of GPS satellites, or the ionosphere itself, to impose constraint
@@ -2315,17 +2282,15 @@ s that imply time-smoothness (appendix
  
 \layout Itemize
 
-Develop the capability for solving for long-range parameters, i.e.
+Develop a new capability for solving for 
+\emph on 
+long-range parameters
+\emph default 
+, i.e.
  parameters that have a larger/longer validity-domain (e.g.
  hours) than the size of a practical request domain (minutes).
  This is an essential capability, that has a wider importance for LOFAR
  than just the ionosphere.
- See appendix 
-\begin_inset LatexCommand \ref{sec: Long-range parameters}
-
-\end_inset 
-
-.
 \layout Section
 
 Making astro equations
@@ -3319,134 +3284,6 @@ a priori
  (SRFG) of phases, and their orthogonality to MIM parameters.
 \layout Subsection
 
-Fundamental limits of using GPS
-\begin_inset LatexCommand \label{sub: GPS: Fundamental limits}
-
-\end_inset 
-
-
-\layout Standard
-
-In section 
-\begin_inset LatexCommand \ref{sec: More on GPS equations}
-
-\end_inset 
-
-, we discuss the (largish) number of possible ways to form GPS equations
- by taking linear combinations of the Measurement Equations of the RINEX
- quantities above.
- It will take some experimentation to determine the optimum choice, and
- there is probably more than one optimum set, depending on the problem.
- However, we 
-\emph on 
-can
-\emph default 
- say something general about the fundamental limitations of using GPS informatio
-n to complement the astronomical solution(s).
- 
-\layout Itemize
-
-Absolute TEC: Needed for Faraday rotation.
- Obtained (constrained) from smoothed pseudo-range (PR).
- 
-\layout Itemize
-
-Relative TEC: Needed for imaging.
- 
-\layout Itemize
-
-RFG flexibility
-\layout Itemize
-
-Pivoting error ....
-\layout Itemize
-
-Phase locking: Even if an absolute TEC is not required, it may take quite
- a lot of processing to harmonize the various astroVis and GPS measurements
- with each other (...is this true...?)
-\layout Itemize
-
-Phase tracking: Once we have phase-lock, we should maintain it with a minimum
- amount of processing.
-\layout Subsection
-
-GPS cases...
-\layout Standard
-
-Referring to the MIM-diagrams in figs 
-\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
-
-\end_inset 
-
- and 
-\begin_inset LatexCommand \ref{cap: MIM diagram}
-
-\end_inset 
-
-, may consider the following possibilities:
-\layout Enumerate
-
-
-\series bold 
-One satellite-station pair:
-\series default 
- Probably useless for our purpose, since we cannot distinguish TEC from
- bias (unless 3-freq works).
- Troposphere?
-\layout Enumerate
-
-
-\series bold 
-One satellite and multiple stations:
-\series default 
- Still not very good, since all stations will have different bias drifts.
- However, the MIM will have a 
-\emph on 
-harmonizing
-\emph default 
- effect on these biases.
- MXM used this, together with the assumption of a thin layer, to separate
- TECs and biases.
- 
-\layout Enumerate
-
-
-\series bold 
-One station and multiple satellites:
-\series default 
- This sorts out the station drifts, better if we use large domains, or can
- solve for long-term parameters.
-\layout Enumerate
-
-
-\series bold 
-Multiple satellites and multiple stations:
-\series default 
- The more, the better, because the harmonizing effect of the MIM will be
- stronger.
- Also, the MIM sampling function is much wider.
- See also double-differencing.
-\layout Standard
-
-See also the MIM-diagram in figs 
-\begin_inset LatexCommand \ref{cap: MIM diagram: versions}
-
-\end_inset 
-
- and 
-\begin_inset LatexCommand \ref{cap: MIM diagram}
-
-\end_inset 
-
-.
- Note that, if we solve the bias problem, GPS measurements yield 
-\emph on 
-absolute
-\emph default 
- TEC values.
- This is needed for the calibration of ionospheric Faraday rotation.
-\layout Subsection
-
 Dealing with satellite discontinuities
 \begin_inset LatexCommand \label{sub: satellite discontinuities}
 
@@ -3532,7 +3369,8 @@ It works for a LOFAR with an array smaller than the FOV-footprint (~30km)
 It avoids the need for rapid repointing.
 \layout Itemize
 
-It requires minimum processing...
+It requires minimum processing (e.g.
+ it avoids peeling)
 \layout Subsection
 
 Default procedure
@@ -3576,9 +3414,10 @@ interferometer phase errors
 
 .
  This might be speeded with the help of GPS stations around the LOFAR array.
- The last step must always be the inclusion of the brightest Cat I source
- inside the FOV, since that is the only way to check whether the MIM is
- sufficently accurate for phase-tracking inside the FOV.
+ The last step of any phase-lock procedure must always be the inclusion
+ of the brightest Cat I source inside the FOV, since that is the only way
+ to check whether the MIM is sufficently accurate for phase-tracking inside
+ the FOV.
 \layout Enumerate
 
 
@@ -3587,7 +3426,8 @@ Phase-tracking:
 \series default 
  Make sure that the differential phase errors stay within one radian at
  all times.
- It continuously extrapolates and updates the MIM parameters 
+ The procedure continuously extrapolates and updates the MIM parameters
+ 
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
 
@@ -3632,24 +3472,14 @@ pivotal
 \emph default 
  source, i.e.
  the brightest astronomical (Cat I) source in the FOV.
- Use the widest possible frequency domain to get enough S/N, and to distinguish
- the contributions of the TEC (
-\begin_inset Formula $\propto\lambda$
-\end_inset 
+ This usually requires pre-correction with the MIM phases before integration
+ over subbands (to get a S/N>3 in 10 s).
+\begin_deeper 
+\layout Enumerate
 
-) from instrumental contributions (some, but not all, are 
-\begin_inset Formula $\propto1/\lambda$
-\end_inset 
-
-).
- This produces a Rigid Floating Group (RFG) of TEC measurements, i.e.
- they have an the same unknown offset, but the correct relative values.
- This is called a 
-\emph on 
-pivotal group
-\emph default 
-, since it is a strong constraint on the MIM.
- 
+Optionally, obtain solutions on other bright sources in the field.
+ This requires peeling.
+\end_deeper 
 \layout Enumerate
 
 
@@ -3663,12 +3493,6 @@ Obtain gpsTEC equations
 
 ) from a network of GPS stations around the LOFAR array, to constrain the
  MIM curvature.
- The limited accuracy (0.01 TEC, or 1 rad @ 75 MHz) is largely compensated
- by the number of GPS stations (
-\begin_inset Formula $1/\sqrt{n}$
-\end_inset 
-
-), and by the presence of the pivot.
  
 \layout Enumerate
 
@@ -3694,6 +3518,7 @@ Solve for the MIM function,
 \end_inset 
 
 ).
+ This is an iterative procedure.
  Solve/update the parameters 
 \begin_inset Formula $p_{k}(t)$
 \end_inset 
@@ -3703,6 +3528,17 @@ Solve for the MIM function,
 \end_inset 
 
 .
+ Use the widest possible frequency domain, to distinguish the contributions
+ of the TEC (
+\begin_inset Formula $\propto\lambda$
+\end_inset 
+
+) from instrumental contributions (some, but not all, are 
+\begin_inset Formula $\propto1/\lambda$
+\end_inset 
+
+).
+ 
 \layout Enumerate
 
 
@@ -4189,6 +4025,15 @@ Long baselines (>400 km):
  It is not necessary to cover all of Europe with a single complicated MIM.
  Multiple, non-contiguous MIM's are possible, as long as they share the
  same (unknown) TEC offset.
+\layout Standard
+
+
+\emph on 
+It should be emphasized again that it is assumed througout this document
+ that the ionosphere to be calibrated is large-scale and smooth.
+ Small-scale structure (5 km) is assumed to cause rapid phase variations
+ with an amplitude much less than one radian, which will hardly affect the
+ final image.
 \layout Standard
 
 Now is the time to descend into the arena of actual experiments.
@@ -6424,12 +6269,8 @@ gradient
 \end_inset 
 
 .
- 
-\series bold 
-A little algebra reveals that a minimum of 4 satellites is needed for a
+ A little algebra reveals that a minimum of 4 satellites is needed for a
  relative solution (with 2 stations)
-\series default 
-
 \begin_inset Foot
 collapsed true
 
@@ -6480,6 +6321,24 @@ educated guess
  
 \layout Standard
 
+
+\series bold 
+...
+ NB: This analysis is very nice, but Hans van de Marel (Delft) has pointed
+ out that there are only 
+\begin_inset Formula $n-1$
+\end_inset 
+
+ independent double-difference equations, not 
+\begin_inset Formula $n(n-1)/2$
+\end_inset 
+
+.
+ However, Hans also points out that there is a trick to bypass this problem.
+ So there may be hope yet, but until this is resolved we should be cautious
+ with the conclusions in this section....
+\layout Standard
+
 Now consider an array of 
 \begin_inset Formula $m$
 \end_inset 
@@ -6527,14 +6386,10 @@ Fewer satellites is not necessarily better, since the group then covers
  will be less than the maximum indicated above.
  Until we have done a more detailed analysis, we will assume that 4 satellites
  will always be needed.
- 
-\series bold 
-But we may tentatively conclude that, by using an array of GPS stations
+ But we may tentatively conclude that, by using an array of GPS stations
  with a 'small enough' grid, we may solve for a single RFTG of arbitrary
  size, covering the entire sky, and hundreds (thousands?) of kilometers.
- 
-\series default 
-Now, 
+ Now, 
 \emph on 
 that
 \emph default 
@@ -6542,11 +6397,11 @@ that
 \layout Standard
 
 In order to use double-differencing in practice, we first have to form a
- 
+ double-difference M.E
 \series bold 
-double-difference M.E
-\series default 
 .
+
+\series default 
  that contains the MIM parameters 
 \begin_inset Formula $p_{k}$
 \end_inset 
@@ -6730,6 +6585,13 @@ Acquiring and maintaining phase-lock
 \end_inset 
 
 
+\layout Standard
+
+
+\series bold 
+\emph on 
+...
+ to be cleaned up ...
 \layout Standard
 
 For imaging, only a relative TEC is needed, i.e.
