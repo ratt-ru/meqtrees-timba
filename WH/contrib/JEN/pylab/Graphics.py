@@ -66,9 +66,7 @@ class Graphics (Subplot.Subplot):
         # Finished:
         return None
 
-
-    #===============================================================
-
+    #-------------------------------------------------------------
 
     def add(self, graphic, key=None):
         """Add a named (key) plottable object to self._graphic"""
@@ -85,9 +83,9 @@ class Graphics (Subplot.Subplot):
             self._order.__delitem__(key)
         return True
 
-    #===============================================================
+    #-------------------------------------------------------------
     # Access routines:
-    #===============================================================
+    #-------------------------------------------------------------
 
     def len(self):
         """Return the number of its plottable objects"""
@@ -96,10 +94,6 @@ class Graphics (Subplot.Subplot):
     def order(self):
         """Return a list of keys of its plottable objects"""
         return self._order
-
-    def name(self):
-        """Return the name (label?) of this Graphics"""
-        return self._name
 
     def has_key(self, key):
         """Check whether self._graphic has the specified key"""
@@ -131,9 +125,9 @@ class Graphics (Subplot.Subplot):
         return xr
 
 
-    #===============================================================
+    #-------------------------------------------------------------
     # Display of the contents of this object:
-    #===============================================================
+    #-------------------------------------------------------------
 
     def oneliner(self):
         """Return a one-line summary of this object"""
@@ -152,9 +146,9 @@ class Graphics (Subplot.Subplot):
         return True
 
 
-    #===============================================================
+    #-------------------------------------------------------------
     # Plot standalone (testing only?)
-    #===============================================================
+    #-------------------------------------------------------------
 
     def plot(self, figure=1, subplot=111, margin=0.1, dispose='show'):
         """Plot the group of points, using pylab"""
@@ -168,6 +162,7 @@ class Graphics (Subplot.Subplot):
         pylab.grid(True)
         import Figure
         return Figure.pylab_dispose(dispose)
+
 
 
 #========================================================================
@@ -185,31 +180,49 @@ class Scatter (Graphics):
         Graphics.__init__(self, **kwargs)
 
         # Make the PointsXY object, and add it to the internal list:
-        kwargs.setdefault('marker','o')
-        kwargs.setdefault('markersize',20)
-        kwargs['style'] = kwargs['marker']
-        kwargs['linestyle'] = None
+        kwargs.setdefault('style','o')
+        kwargs.setdefault('markersize',5)
         self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
 
         # Finished:
         return None
 
-#------------------------------------------------------------------------
 
-def xy2pair(xy):
-    """Convert the given list/tuple or complex to [x,y]"""
-    if xy==None:
+#========================================================================
+
+class Rectangle (Graphics):
+    """Class derived from Graphics. It represents a rectangle
+    defined by centre and size (xy0, sxy) or corners (blc, trc).
+    """
+
+    def __init__(self, xy0=[0,0], sxy=[1,1],
+                 blc=None, trc=None,
+                 **kwargs):
+
+        Graphics.__init__(self, **kwargs)
+
+        if blc and trc:
+            [x1,y1] = PointsXY.xy2pair(blc)
+            [x2,y2] = PointsXY.xy2pair(trc)
+        else:
+            [x0,y0] = PointsXY.xy2pair(xy0)
+            [dx,dy] = PointsXY.xy2pair(sxy)
+            [x1,y1] = [x0-dx/2,y0-dy/2]
+            [x2,y2] = [x0+dx/2,y0+dy/2]
+
+        xx = [x1,x2,x2,x1,x1]
+        yy = [y1,y1,y2,y2,y1]
+        kwargs.setdefault('linewidth',2)
+
+        # Make the PointsXY object, and add it to the internal list:
+        self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
+
+        # Finished:
         return None
-    elif isinstance(xy,(list,tuple)):
-        return [xy[0],xy[1]]
-    elif isinstance(xy,complex):
-        return [xy.real,xy.imag]
-    else:
-        s = 'xy has invalid type: '+str(type(xy))
-        raise ValueError,s
-    
 
-#------------------------------------------------------------------------
+
+#========================================================================
+
 class Arrow (Graphics):
     """Class derived from Graphics. It represents an arrow
     from xy1(=[x1,y1]) to xy2(=[x2,y2]) or xy1+dxy(=[dx,dy]).
@@ -220,7 +233,7 @@ class Arrow (Graphics):
 
         Graphics.__init__(self, **kwargs)
 
-        [x1,y1] = xy2pair(xy1)
+        [x1,y1] = PointsXY.xy2pair(xy1)
         xx = [x1]
         yy = [y1]
         if xy2:
@@ -263,7 +276,7 @@ class Arrow (Graphics):
         # Finished:
         return None
 
-#------------------------------------------------------------------------
+#========================================================================
 
 class Circle (Graphics):
     """Class derived from Graphics. It represents a circle
@@ -273,14 +286,16 @@ class Circle (Graphics):
     """
 
     def __init__(self, xy0=[0.0,0.0], radius=1.0, 
-                 a1=0.0, a2=None, close=False, centre=None,
+                 a1=0.0, a2=None, na=None,
+                 angle=0.0, close=False, centre=None,
                  **kwargs):
 
         Graphics.__init__(self, **kwargs)
 
-        [x0,y0] = xy2pair(xy0)
+        [x0,y0] = PointsXY.xy2pair(xy0)
         if a2==None: a2 = 2*pylab.pi           # default 2pi
-        na = max(3,int((a2-a1)/0.1))           # nr of points
+        if not isinstance(na,int):
+            na = max(3,int((a2-a1)/0.1))       # nr of points
         xx = []
         yy = []
         aa = a1+(a2-a1)*pylab.array(range(na))/float(na-1)
@@ -296,17 +311,39 @@ class Circle (Graphics):
             yy.append(y0)
             
         # Make the PointsXY object, and add it to the internal list:
-        self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
+        pts = PointsXY.PointsXY(yy, xx=xx, **kwargs)
+        pts.rotate(angle, xy0=xy0)
+        self.add(pts)
 
         # Optional: indicate the centre
         if centre:
             kwargs['marker'] = centre
+            kwargs['markersize'] = 20
             self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
 
         # Finished:
         return None
 
-#------------------------------------------------------------------------
+
+#========================================================================
+
+class RegularPolygon (Circle):
+    """Class derived from Graphics. It represents a regular polygon
+    with a given centre(x0,y0) and within a given circumscribed radius.
+    """
+
+    def __init__(self, n=5, xy0=[0.0,0.0], radius=1.0, 
+                 angle=0.0, centre=None,
+                 **kwargs):
+
+        Circle.__init__(self, xy0=xy0, radius=radius,
+                        na=n+1, angle=angle+pylab.pi/2.0,
+                        centre=centre, **kwargs)
+
+        # Finished:
+        return None
+
+#========================================================================
 
 class Ellipse (Graphics):
     """Class derived from Graphics. It represents an ellipse
@@ -318,7 +355,7 @@ class Ellipse (Graphics):
 
         Graphics.__init__(self, **kwargs)
 
-        [x0,y0] = xy2pair(xy0)
+        [x0,y0] = PointsXY.xy2pair(xy0)
         na = 30
         xx = []
         yy = []
@@ -336,10 +373,13 @@ class Ellipse (Graphics):
         # Optional: indicate the centre
         if centre:
             kwargs['marker'] = centre
+            kwargs['markersize'] = 10
             self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
 
         # Finished:
         return None
+
+
 
 
 
@@ -365,13 +405,19 @@ if __name__ == '__main__':
                      centre='cross',
                      linestyle='--', linewidth=3)
 
-    if 1:
+    if 0:
         grs = Ellipse([1,3],2,1, angle=1.0,
                       centre='cross',
                       linestyle='--', linewidth=3)
 
     if 0:
-        grs = Scatter(range(6), marker='hexagon')
+        grs = Scatter(range(6), style='hexagon')
+
+    if 0:
+        grs = Rectangle(xy0=complex(2.5,3), sxy=complex(4,5))
+
+    if 1:
+        grs = RegularPolygon(n=5, xy0=complex(2.5,3), radius=3, centre='+')
 
     if 0:
         # grs = Arrow(dxy=[1,1], linewidth=3)

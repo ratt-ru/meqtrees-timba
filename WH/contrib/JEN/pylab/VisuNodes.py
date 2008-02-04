@@ -222,7 +222,7 @@ def _define_forest (ns,**kwargs):
       value = complex(random.gauss(0,1),random.gauss(0,1))
       cc.append(ns[str(i)] << value)
     classname = "ScatterPlot"
-    classname = "TheHardWay"
+    # classname = "TheHardWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
                 
   return True

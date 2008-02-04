@@ -53,77 +53,39 @@ class Subplot (object):
     """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, name=None, **kwargs):
+    def __init__(self, **kwargs):
 
-        # Deal with the specified name (label):
-        self._name = name
-        if not isinstance(self._name,str): self._name = '<name>'
-
-        # Deal with the keyword arguments (kwargs)
-        self._kw = dict()
+        # Extract the relevant keyword arguments from kwargs:
+        kw = dict()
         if isinstance(kwargs, dict):
-            keys = ['title','xlabel','ylabel','xunit','yunit',
+            keys = ['name',
+                    'title','xlabel','ylabel','xunit','yunit',
                     'xmin','xmax','ymin','ymax']
             for key in keys:
                 if kwargs.has_key(key):
-                    self._kw[key] = kwargs[key]
+                    kw[key] = kwargs[key]
 
-        self._kw.setdefault('title',None)
-        self._kw.setdefault('xlabel',None)
-        self._kw.setdefault('ylabel',None)
-        self._kw.setdefault('xunit',None)
-        self._kw.setdefault('yunit',None)
-        self._kw.setdefault('xmin',None)
-        self._kw.setdefault('xmax',None)
-        self._kw.setdefault('ymin',None)
-        self._kw.setdefault('ymax',None)
+        kw.setdefault('name',None)
+        kw.setdefault('title',None)
+        kw.setdefault('xlabel',None)
+        kw.setdefault('ylabel',None)
+        kw.setdefault('xunit',None)
+        kw.setdefault('yunit',None)
+        kw.setdefault('xmin',None)
+        kw.setdefault('xmax',None)
+        kw.setdefault('ymin',None)
+        kw.setdefault('ymax',None)
 
-        self._title = self._kw['title']
-        self._xlabel = self._kw['xlabel']
-        self._ylabel = self._kw['ylabel']
-        self._xunit = self._kw['xunit']
-        self._yunit = self._kw['yunit']
-        self._xmin = self._kw['xmin']
-        self._xmax = self._kw['xmax']
-        self._ymin = self._kw['ymin']
-        self._ymax = self._kw['ymax']
-
-        if not isinstance(self._title,str): self._title = self._name
-        if not isinstance(self._xlabel,str): self._xlabel = 'xx'
-        if not isinstance(self._ylabel,str): self._ylabel = self._name
-        if isinstance(self._xunit,str): self._xlabel += ' ('+self._xunit+')'
-        if isinstance(self._yunit,str): self._ylabel += ' ('+self._yunit+')'
+        if not isinstance(kw['name'],str): kw['name'] = '<name>'
+        if not isinstance(kw['xlabel'],str): kw['xlabel'] = 'xx'
+        if not isinstance(kw['ylabel'],str): kw['ylabel'] = kw['name']
+        if not isinstance(kw['title'],str): kw['title'] = str(type(self))
+        if isinstance(kw['xunit'],str): kw['xlabel'] += ' ('+kw['xunit']+')'
+        if isinstance(kw['yunit'],str): kw['ylabel'] += ' ('+kw['yunit']+')'
 
         # Finished:
+        self._kw = kw
         return None
-
-
-    #===============================================================
-    # Access routines (mostly placeholders, to be re-implemented):
-    #===============================================================
-
-    def name(self):
-        """Return the name (label?) of this Subplot"""
-        return self._name
-
-    def len(self):
-        """Placeholder for the number of internal objects"""
-        return 0
-
-    def yrange(self, margin=0.0, yrange=None):
-        """Placeholder: Return [min,max] of the y-coordinate(s)."""
-        return None
-
-    def xrange(self, margin=0.0, xrange=None):
-        """Placeholder: Return [min,max] of the x-coordinate(s)."""
-        return None
-
-    def title(self): return self._title
-    def xlabel(self): return self._xlabel
-    def ylabel(self): return self._ylabel
-    def xunit(self): return self._xunit
-    def yunit(self): return self._yunit
-
 
     #===============================================================
     # Display of the contents of this object:
@@ -136,6 +98,34 @@ class Subplot (object):
         ss += '  yrange='+str(self.yrange())
         ss += '  xrange='+str(self.xrange())
         return ss
+
+
+
+    #===============================================================
+    # Access routines (mostly placeholders, to be re-implemented):
+    #===============================================================
+
+    def name(self):
+        """Return the name (label?) of this Subplot"""
+        return self._kw['name']
+
+    def len(self):
+        """Return the number of internal objects"""
+        return 0
+
+    def yrange(self, margin=0.0, yrange=None):
+        """Placeholder: Return [min,max] of all y-coordinate(s)."""
+        return None
+
+    def xrange(self, margin=0.0, xrange=None):
+        """Placeholder: Return [min,max] of all x-coordinate(s)."""
+        return None
+
+    def title(self): return self._kw['title']
+    def xlabel(self): return self._kw['xlabel']
+    def ylabel(self): return self._kw['ylabel']
+    def xunit(self): return self._kw['xunit']
+    def yunit(self): return self._kw['yunit']
 
 
     #===============================================================
@@ -157,12 +147,12 @@ class Subplot (object):
 
     def pylab_labels(self):
         """Helper function to make labels, using internal info"""
-        if isinstance(self._xlabel,str):
-            pylab.xlabel(self._xlabel)
-        if isinstance(self._ylabel,str):
-            pylab.ylabel(self._ylabel)
-        if isinstance(self._title,str):
-            pylab.title(self._title)
+        if isinstance(self._kw['xlabel'],str):
+            pylab.xlabel(self._kw['xlabel'])
+        if isinstance(self._kw['ylabel'],str):
+            pylab.ylabel(self._kw['ylabel'])
+        if isinstance(self._kw['title'],str):
+            pylab.title(self._kw['title'])
         return True
 
     #------------------------------------------------
@@ -170,9 +160,11 @@ class Subplot (object):
     def pylab_window(self, margin=0.1):
         """Helper function to set the plot_window, using internal info"""
         [xmin,xmax] = self._range(self.xrange(), margin=margin,
-                                  vmin=self._xmin, vmax=self._xmax)
+                                  vmin=self._kw['xmin'],
+                                  vmax=self._kw['xmax'])
         [ymin,ymax] = self._range(self.yrange(), margin=margin,
-                                  vmin=self._ymin, vmax=self._ymax)
+                                  vmin=self._kw['ymin'],
+                                  vmax=self._kw['ymax'])
         # print '** .pylab_window(): xrange =',[xmin,xmax],'    yrange =',[ymin,ymax]
         pylab.axis([xmin, xmax, ymin, ymax])
         return True

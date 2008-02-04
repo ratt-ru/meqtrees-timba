@@ -58,62 +58,46 @@ class PlotStyle (object):
 
     def __init__(self, **kwargs):
 
-        # The PlotStyle specifications are via the kwargs
-        self.check_PlotStyle(**kwargs)
+        # The keyword arguments for the various plot-routines
+        # come from kwargs, and are held in separate dicts.
+
+        self._kw = dict(plot=dict(), text=dict()) 
+
+        # Some generic keywords:
+        if not isinstance(kwargs,dict):
+            kwargs = dict()
+        kwargs.setdefault('name','name')
+        self._name = kwargs['name']
+        
+        # Specific extraction functions:
+        self.extract_kw_plot(**kwargs)
+        self.extract_kw_text(**kwargs)
 
         # Finished:
         return None
 
-    #---------------------------------------------------------
 
-    def check_PlotStyle(self, **kwargs):
-        """Check (and adjust) the self._ps (PlotStyle) record"""
-        
-        self._ps = dict()
-        if isinstance(kwargs, dict):
-            keys = ['color','style',
-                    'linewidth','linestyle',
-                    'marker','markerfacecolor','markeredgecolor',
-                    'markersize','markeredgewidth',
-                    'alpha']
-            for key in keys:
-                if kwargs.has_key(key):
-                    self._ps[key] = kwargs[key]
+    #===============================================================
+    # Display of the contents of this object:
+    #===============================================================
 
-        self.display('from kwargs')
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = '** <PlotStyle> '+str(self._name)+': '
+        ss += self.summary() 
+        return ss
 
-        # Generic (specifies line or marker):
-        self._ps.setdefault('color', 'red')
-        self._ps.setdefault('style', '-')               # must be removed again....
-
-        # Line style:
-        self._ps.setdefault('linestyle', None)
-        self._ps.setdefault('linewidth', 1)             # in points, non-zero float 
-
-        # Marker style:
-        self._ps.setdefault('marker', None)
-        self._ps.setdefault('markerfacecolor', self._ps['color'])
-        self._ps.setdefault('markeredgecolor', self._ps['color'])
-        self._ps.setdefault('markersize', 5)            # in points, non-zero float 
-        self._ps.setdefault('markeredgewidth', 1)       # in points, non-zero float 
-
-        # Miscellaneous:
-        self._ps.setdefault('alpha', 0.5)               # transparency (0.0<=alpha<=1.0)
-        # self._ps.setdefault('data_clipping', True)    # not recognised...?
-
-        # Finsihed:
-        self.display('before checks')
-        self._check_colors()
-        self._check_styles()
-        self.display('checked')
-        return True
-
+    #------------------------------------------------------------
 
     def display(self, txt=None):
         """Display the contents of this obkect"""
-        print '\n** PlotStyle (',txt,'):'
-        for key in self._ps.keys():
-            print '-- self._ps[',key,'] =',self._ps[key]
+        print '\n**',self.oneliner()
+        if txt: print ' * (',txt,')'
+        for func in ['plot','text']:
+            print ' * keywords for:  pylab.'+str(func)+'():'
+            kw = self._kw[func]
+            for key in kw.keys():
+                print '   - '+str(func)+'['+str(key)+'] =',kw[key]
         print ' '
         return True
 
@@ -125,36 +109,123 @@ class PlotStyle (object):
 
     def kwargs(self, func='plot'):
         """Return the keyword arguments to be used for a particular pylab function"""
-        if func=='plot':
-            return self._ps
+        if self._kw.has_key(func):
+            return self._kw[func]
         return None
 
     def color(self):
-        return self._ps['color']
+        if self._kw['plot'].has_key('color'):
+            return self._kw['plot']['color']
+        return 'yellow'
+
+
+
 
 
     #===============================================================
-    # Display of the contents of this object:
+    # Start of specific part (for pylab). Make derived class....? 
     #===============================================================
 
-    def oneliner(self):
-        """Return a one-line summary of this object"""
-        ss = '** <PlotStyle>: '
-        ss += self.summary() 
-        return ss
+    def extract_kw_plot(self, **kwargs):
+        """Extract pylab.plot() keywords from kwargs"""
+
+        trace = True
+        # trace = False
+        
+        kw = dict()
+        if isinstance(kwargs, dict):
+            keys = ['color','style',
+                    'linewidth','linestyle',
+                    'marker','markerfacecolor','markeredgecolor',
+                    'markersize','markeredgewidth',
+                    'alpha']
+            for key in keys:
+                if kwargs.has_key(key):
+                    kw[key] = kwargs[key]
+        self._kw['plot'] = kw
+        if trace: self.display('from kwargs')
+
+        # Generic (specifies line or marker):
+        kw.setdefault('color', 'red')
+        kw.setdefault('style', None)              # must be removed again....
+
+        # See page 37 of the Greenfield manual:
+
+        # Line style:
+        kw.setdefault('linestyle', None)
+        kw.setdefault('linewidth', 1)             # in points, non-zero float 
+
+        # Marker style:
+        kw.setdefault('marker', None)
+        kw.setdefault('markerfacecolor', kw['color'])
+        kw.setdefault('markeredgecolor', kw['color'])
+        kw.setdefault('markersize', 5)            # in points, non-zero float 
+        kw.setdefault('markeredgewidth', 1)       # in points, non-zero float 
+
+        # Miscellaneous:
+        kw.setdefault('alpha', 0.5)               # transparency (0.0<=alpha<=1.0)
+        # kw.setdefault('data_clipping', True)    # not recognised...?
+
+        # Finsihed:
+        self._kw['plot'] = kw
+        # if trace: self.display('before checks')
+        self._check_colors()
+        self._check_styles()
+        if trace: self.display('checked')
+        return True
+
 
     #------------------------------------------------------------
     
     def summary(self):
         """Return a short string summarizing the plot-style"""
-        ss = ' ('+str(self._ps['color'])
-        if self._ps['marker']:
-            ss += ' '+str(self._ps['marker'])
-        if self._ps['linestyle']:
-            ss += ' '+str(self._ps['linestyle'])
+        kw = self._kw['plot']
+        ss = ' ('
+        if kw.has_key('color'):
+            ss += str(kw['color'])
+        if kw.has_key('marker') and kw['marker']:
+            ss += ' '+str(kw['marker'])
+        if kw.has_key('linestyle') and kw['linestyle']:
+            ss += ' '+str(kw['linestyle'])
         ss += ')'
         return ss
+
+
+    #---------------------------------------------------------
         
+    def extract_kw_text(self, **kwargs):
+        """Extract pylab.text() keywords from kwargs"""
+
+        trace = True
+        # trace = False
+        
+        kw = dict()
+        if isinstance(kwargs, dict):
+            keys = ['fontsize']
+            for key in keys:
+                if kwargs.has_key(key):
+                    kw[key] = kwargs[key]
+        self._kw['text'] = kw
+        if trace: self.display('from kwargs')
+
+        # See page 38 of the Greenfield manual:
+        kw.setdefault('color', self.color())
+        # kw.setdefault('family', 'normal')          # e.g. 'sans-serif','cursive','fantasy'
+        # kw.setdefault('variant', 'normal')         # e.g. 'normal','small-caps'
+        # kw.setdefault('fontangle', 'normal')           # 'normal','italic','oblique'
+        kw.setdefault('fontsize', 10)                  # in points 
+        kw.setdefault('rotation', 0)                  # degrees
+        # kw.setdefault('verticalalignment', 'top')      # 'top','bottom','center'
+        # kw.setdefault('horizontalalignment', 'left')  # 'left','right','center'
+
+        # Only for multi-line strings:
+        # kw.setdefault('multialignment', 'center')      # 'left','right','center'
+
+        # Finsihed:
+        self._kw['text'] = kw
+        if trace: self.display('checked')
+        return True
+    
 
 
 
@@ -164,37 +235,42 @@ class PlotStyle (object):
 
     def _check_styles(self):
         """Check the specified plot-styles"""
-        if self._ps['style'] in self.line_styles():
-            if not self._ps['linestyle']:
-                self._ps['linestyle'] = self._ps['style']
-        elif self._ps['style'] in self.marker_styles():
-            if not self._ps['marker']:
-                self._ps['marker'] = self._ps['style']
-                self._ps['linestyle'] = None
-        self._ps.__delitem__('style')                    # <-------- !!
+        kw = self._kw['plot']
 
-        ls = self._ps['linestyle']
-        if ls=='solid': self._ps['linestyle'] = '-'
-        if ls=='dashed': self._ps['linestyle'] = '--'
-        if ls=='dotted': self._ps['linestyle'] = ':'
-        if ls=='dashdot': self._ps['linestyle'] = '-.'
+        if not kw['style'] or kw['marker'] or kw['linestyle']:
+            kw['style'] = '-'
 
-        ms = self._ps['marker']
-        if ms=='circle': self._ps['marker'] = 'o'
-        if ms=='triangle': self._ps['marker'] = '^'
-        if ms=='square': self._ps['marker'] = 's'
-        if ms=='plus': self._ps['marker'] = '+'
-        if ms=='cross': self._ps['marker'] = 'x'
-        if ms=='diamond': self._ps['marker'] = 'D'
-        if ms=='thindiamond': self._ps['marker'] = 'd'
-        if ms=='tripod': self._ps['marker'] = '1'
-        if ms=='tripod_down': self._ps['marker'] = '2'
-        if ms=='tripod_left': self._ps['marker'] = '3'
-        if ms=='tripod_right': self._ps['marker'] = '4'
-        if ms=='hexagon': self._ps['marker'] = 'h'
-        if ms=='pentagon': self._ps['marker'] = 'p'
-        if ms=='horizontal': self._ps['marker'] = '_'
-        if ms=='vertical': self._ps['marker'] = '|'
+        if kw['style'] in self.line_styles():
+            if not kw['linestyle']:
+                kw['linestyle'] = kw['style']
+        elif kw['style'] in self.marker_styles():
+            if not kw['marker']:
+                kw['marker'] = kw['style']
+                kw['linestyle'] = None
+        kw.__delitem__('style')            # not recognized by pylab.plot(): delete
+
+        ls = kw['linestyle']
+        if ls=='solid': kw['linestyle'] = '-'
+        if ls=='dashed': kw['linestyle'] = '--'
+        if ls=='dotted': kw['linestyle'] = ':'
+        if ls=='dashdot': kw['linestyle'] = '-.'
+
+        ms = kw['marker']
+        if ms=='circle': kw['marker'] = 'o'
+        if ms=='triangle': kw['marker'] = '^'
+        if ms=='square': kw['marker'] = 's'
+        if ms=='plus': kw['marker'] = '+'
+        if ms=='cross': kw['marker'] = 'x'
+        if ms=='diamond': kw['marker'] = 'D'
+        if ms=='thindiamond': kw['marker'] = 'd'
+        if ms=='tripod': kw['marker'] = '1'
+        if ms=='tripod_down': kw['marker'] = '2'
+        if ms=='tripod_left': kw['marker'] = '3'
+        if ms=='tripod_right': kw['marker'] = '4'
+        if ms=='hexagon': kw['marker'] = 'h'
+        if ms=='pentagon': kw['marker'] = 'p'
+        if ms=='horizontal': kw['marker'] = '_'
+        if ms=='vertical': kw['marker'] = '|'
         return True
 
     #---------------------------------------------------------
@@ -223,13 +299,14 @@ class PlotStyle (object):
     def _check_colors(self):
         """Check the specified colors"""
         cc = self.colors()
+        kw = self._kw['plot']
         for key in ['color','markerfacecolor','markeredgecolor']:
-            color = self._ps[key]
+            color = kw[key]
             # Make sure that color is valid:
-            if not color in cc: self._ps[key] = 'yellow'
+            if not color in cc: kw[key] = 'yellow'
             # Some have to be translated to pylab colors:
-            if color=='grey': self._ps[key] = 'gray'
-            if color in ['lightgrey','lightgray']: self._ps[key] = 0.1   # 0.0<grayscale<1.0
+            if color=='grey': kw[key] = 'gray'
+            if color in ['lightgrey','lightgray']: kw[key] = 0.1   # 0.0<grayscale<1.0
         return True
 
     #---------------------------------------------------------

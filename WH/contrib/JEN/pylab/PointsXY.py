@@ -57,39 +57,56 @@ class PointsXY (object):
     """
 
     def __init__(self, yy=[0], name=None, xx=None,
+                 dyy=None, dxx=None,
                  annot=None, annotpos='auto',
                  plotmode='pylab',
                  **kwargs):
 
-        #------------------------------------------------------------------
 
         # Deal with the specified name (label):
         self._name = name
         if not isinstance(self._name,str): self._name = '<name>'
 
-        #------------------------------------------------------------------
-
         # The PlotStyle specifications are via the kwargs
         self._plotmode = plotmode
         self._PlotStyle = PlotStyle.PlotStyle(**kwargs)
-        print '** init:',self._PlotStyle.oneliner()
-        # self.check_PlotStyle(**kwargs)
 
-        #------------------------------------------------------------------
+        # Deal with the specified coordinates:
+        self.input_coordinates (xx, yy, dxx, dyy)
 
-        # print '\n** yy=',yy,type(yy),isinstance(yy, type(pylab.array([0]))),'\n'
+        # Deal with point annotations (optional):
+        self.input_annotation(annot, annotpos)
 
-        # Deal with the specified y-coordinates:
+        # Finished:
+        return None
+
+
+    #---------------------------------------------------------------
+
+    def input_coordinates (self, xx, yy, dxx, dyy, trace=False):
+        """Deal with the specified y-coordinates (if any)"""
+
+        if trace:
+            print '\n** yy=',yy,type(yy),'\n'
+
+        self._yy = None
+        self._xx = None
+        self._dxx = dxx
+        self._dyy = dyy
+
+        # First deal with the specified y-coordinates:
         is_complex = False
         if isinstance(yy, (list,tuple)):
             for y in yy:
                 if isinstance(y, complex): is_complex = True
             self._yy = pylab.array(yy)
-        elif isinstance(yy, type(pylab.array([0]))):
+
+        elif isinstance(yy, type(pylab.array([0]))): 
             for y in yy.tolist():
                 if isinstance(y, complex): is_complex = True
             self._yy = yy
-        else:
+
+        else:                                  # assume y is scalar 
             self._yy = pylab.array([yy])
             is_complex = isinstance(yy, complex)
 
@@ -98,48 +115,83 @@ class PointsXY (object):
             self._xx = self._yy.real
             self._yy = self._yy.imag
 
-        # Deal with the specified x-coordinates (if any):
-        elif xx==None:                                  # xx not specified: automatic
-            # self._xx = range(self.len())            # start at x=0
-            self._xx = range(1,1+self.len())          # start at x=1
-            self._xx = pylab.array(self._xx)
-            self._xunit = None
-        elif isinstance(xx, (list,tuple)):
-            self._xx = pylab.array(xx)
-        elif isinstance(xx, type(pylab.array([0]))):
-            self._xx = xx
-        else:
-            self._xx = pylab.array([xx])
+        # Then deal with the x-coord:
+        if self._xx==None:                                # not yet defined above
+            if xx==None:                                  # xx not specified: automatic
+                # self._xx = range(self.len())            # start at x=0
+                self._xx = range(1,1+self.len())          # start at x=1
+                self._xx = pylab.array(self._xx)
 
+            elif isinstance(xx, (list,tuple)):            # xx specified
+                self._xx = pylab.array(xx)
+
+            elif isinstance(xx, type(pylab.array([0]))):  # xx specified
+                self._xx = xx
+
+            else:                                         # assume scalar...
+                self._xx = pylab.array([xx])
+
+        # Finally, do some checks:
         if not len(self._xx)==self.len():             # xx and yy should have the same length
             s = 'length mismatch between nyy='+str(self.len())+' and nxx='+str(len(self._xx))
             raise ValueError,s
+        return True
 
 
-        #------------------------------------------------------------------
+    #---------------------------------------------------------------
 
-        # Deal with point annotations (optional):
+    def input_annotation(self, annot, annotpos):
+        """Deal with the annotation specifications (if any)"""
+
         self._annot = annot
         self._annotpos = annotpos
-        if not self._annot==None:
-            if isinstance(self._annot, (str,int,float)):
-                self._annot = [self._annot]
-            if not isinstance(self._annot, list):
-                s = 'annot should be a list, but is: '+str(type(self._annot))
-                raise ValueError,s
-            elif not len(self._annot) in [1,self.len()]:
-                s = 'length mismatch between nyy='+str(self.len())+' and nannot='+str(len(self._annot))
-                raise ValueError,s
-            else:
-                for i,s in enumerate(self._annot):
-                    if not isinstance(s,str):
-                        self._annot[i] = str(s)
+        if annot==None: return True                    # not specified
 
-        #------------------------------------------------------------------
+        if isinstance(annot, bool):                    # annot==True
+            if annot: self._annot = range(self.len())  # annotate with item numbers [0,1,2,...]
 
-        # Finished:
-        return None
+        elif isinstance(annot, (str,int,float)):       # a single annotation
+            self._annot = [annot]
+            
+        # Some checks:
+        if not isinstance(self._annot, list):
+            s = 'annot should be a list, but is: '+str(type(self._annot))
+            raise ValueError,s
+        elif not len(self._annot) in [1,self.len()]:
+            s = 'length mismatch between nyy='+str(self.len())+' and nannot='+str(len(self._annot))
+            raise ValueError,s
 
+        # OK, make sure that annotations are strings:
+        for i,s in enumerate(self._annot):
+            if not isinstance(s,str):
+                self._annot[i] = str(s)
+        return True
+
+    #===============================================================
+    # Display of the contents of this object:
+    #===============================================================
+
+    def oneliner(self):
+        """Return a one-line summary of this object"""
+        ss = '** <PointsXY> '+self.name()+':'
+        ss += ' n='+str(self.len())
+        ss += ' '+self._PlotStyle.summary()
+        ss += '  yrange='+str(self.yrange())
+        ss += '  xrange='+str(self.xrange())
+        return ss
+
+    def display(self, txt=None):
+        """Display the contents of this obkect"""
+        print '\n**',self.oneliner()
+        print ' * dyy:',type(self._dyy)
+        print ' * dxx:',type(self._dxx)
+        print ' * annot:',type(self._annot)
+        print ' * annotpos:',type(self._annotpos)
+        print ' * plotmode:',self._plotmode
+        print ' * ',self._PlotStyle.oneliner()
+        print '**\n'
+        return True
+    
 
     #===============================================================
     # Access routines:
@@ -229,25 +281,11 @@ class PointsXY (object):
 
 
     #===============================================================
-    # Display of the contents of this object:
-    #===============================================================
-
-    def oneliner(self):
-        """Return a one-line summary of this object"""
-        ss = '** <PointsXY> '+self.name()+':'
-        ss += ' n='+str(self.len())
-        ss += ' '+self._PlotStyle.summary()
-        ss += '  yrange='+str(self.yrange())
-        ss += '  xrange='+str(self.xrange())
-        return ss
-
-
-    #===============================================================
     # Modifying operations on the group of points
     #===============================================================
 
     def shift(self, dy=0.0, dx=0.0):
-        """Shift all points by the specified dx and/or dy"""
+        """Shift all points by the specified dy and/or (optional) dx"""
         if isinstance(dy,complex):
             dx = real(dy)
             dy = imag(dy)
@@ -257,20 +295,15 @@ class PointsXY (object):
             self._xx += dx
         return [dx,dy]
 
+    #------------------------------------------------
+
     def rotate(self, angle=0.0, xy0=[0.0,0.0]):
         """Rotate all points by the specified angle (rad),
         around the specified centre xy0=[x0,y0].
         If xy0 is complex, the real and imag parts are used."""
-        print '** .rotate(',angle,xy0,'):'
         if not angle==0.0:
             # Make xy0 the origin:
-            if isinstance(xy0,complex):
-                x0 = real(xy0)
-                y0 = imag(xy0)
-            else:
-                x0 = xy0[0]
-                y0 = xy0[1]
-            print 'x0=',x0,'  y0=',y0
+            [x0,y0] = xy2pair(xy0)
             xx = self._xx - x0
             yy = self._yy - y0
             # Rotate around the origin:
@@ -281,7 +314,19 @@ class PointsXY (object):
             # Return to the original origin:
             self._xx += x0
             self._yy += y0
-        return False
+        return True
+
+    #------------------------------------------------
+
+    def magnify(self, factor=1.0, xy0=[0.0,0.0]):
+        """Magnify all points by the specified factor,
+        w.r.t. the specified centre xy0=[x0,y0].
+        If xy0 is complex, the real and imag parts are used."""
+        if not factor==1.0:
+            [x0,y0] = xy2pair(xy0)
+            self._xx = x0 + (self._xx - x0)*factor
+            self._yy = y0 + (self._yy - y0)*factor
+        return True
 
 
     #===============================================================
@@ -291,19 +336,25 @@ class PointsXY (object):
     def plot(self, margin=0.2, dispose='show',
              plot_mean=False, plot_stddev=False):
         """Plot the group of points, using pylab"""
-        pylab.plot(self.xx(), self.yy(), **self._PlotStyle.kwargs('plot'))
+        pylab.plot(self.xx(), self.yy(),
+                   **self._PlotStyle.kwargs('plot'))
         if margin>0.0:
             [xmin,xmax] = self.xrange(margin=margin)
             [ymin,ymax] = self.yrange(margin=margin)
             pylab.axis([xmin, xmax, ymin, ymax])
 
+        # Annotations:
+        self.annotate()
+                
         # Optional extras:
         color = self._PlotStyle.color()
+        [xmean,ymean] = self.mean('xy')
         if plot_mean:
             self.plot_ellipse(x0=0.0, y0=0.0, a=self.mean('r'),
                               color=color, linestyle='--')
+            pylab.text(xmean, ymean, '  mean', color=color)
+
         if plot_stddev:
-            [xmean,ymean] = self.mean('xy')
             [xstddev,ystddev] = self.stddev('xy')
             self.plot_ellipse(x0=xmean, y0=ymean, a=xstddev, b=ystddev,
                               color=color, linestyle='--')
@@ -311,10 +362,30 @@ class PointsXY (object):
                        markeredgecolor=color, markersize=20)
             pylab.plot([xmean], [ymean], marker='o',
                        markeredgecolor=color, markerfacecolor=color)
+
+        # Finished:
         if dispose=='show':
             pylab.show()
         return True
 
+
+    #---------------------------------------------------------------
+
+    def annotate(self, trace=True):
+        """Annotate the points"""
+        if not isinstance(self._annot,list): return False
+        if not len(self._annot)==self.len(): return False
+        kwargs = self._PlotStyle.kwargs('text')
+        if trace: print '\n** annotate(): kwargs(text) =',kwargs
+        for i in range(self.len()):
+            x = self._xx[i]
+            y = self._yy[i]
+            s = '  '+self._annot[i]
+            if trace:
+                print '-',i,':',s,'  x,y =',x,y
+            pylab.text(x,y, s, **kwargs)
+        if trace: print
+        return True
 
     #---------------------------------------------------------------
 
@@ -333,6 +404,28 @@ class PointsXY (object):
             yy.append(y0+b*pylab.sin(angle))
         pylab.plot(xx, yy, color=color, linestyle=linestyle)
         return True
+
+
+#========================================================================
+# Some helper functions that are also available externally:
+#========================================================================
+
+
+def xy2pair(xy):
+    """Helper function to make sure that xy is a list [x,y]""" 
+    if xy==None:
+        return [None,None]
+    elif isinstance(xy,(list,tuple)):
+        if len(xy)==2: return xy
+        if len(xy)==1: return [xy[0],xy[0]]
+        if len(xy)>2: return [xy[0],xy[1]]
+        if len(xy)==0: return [None,None]
+    elif isinstance(xy,(int,float)):
+        return [xy,xy]
+    elif isinstance(xy,complex):
+        return [xy.real,xy.imag]
+    # Error?
+    return [None,None]
 
 
 #========================================================================
@@ -395,22 +488,23 @@ def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: PointsXY.py:\n'
 
-    ps = dict()
-    ps = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
+    kwargs = dict()
+    kwargs = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
 
-    pts = PointsXY(range(6), 'list', annot=4, **ps)
-    # pts = PointsXY(pylab.array(range(6)), 'numarray', **ps)
-    # pts = PointsXY(-2, 'scalar', **ps)
-    # pts = PointsXY(3+5j, 'complex scalar', **ps)
-    # pts = PointsXY([3,-2+1.5j], 'complex list', **ps)
-    # pts = PointsXY([0,0,0,0], 'zeroes', **ps)
+    pts = PointsXY(range(6), 'list', annot=True, **kwargs)
+    # pts = PointsXY(pylab.array(range(6)), 'numarray', **kwargs)
+    # pts = PointsXY(-2, 'scalar', **kwargs)
+    # pts = PointsXY(3+5j, 'complex scalar', **kwargs)
+    # pts = PointsXY([3,-2+1.5j], 'complex list', **kwargs)
+    # pts = PointsXY([0,0,0,0], 'zeroes', **kwargs)
     # pts = test_line()
     # pts = test_sine()
     # pts = test_parabola()
     # pts = test_cloud()
-    print pts.oneliner()
+    # print pts.oneliner()
+    pts.display()
 
-    if 1:
+    if 0:
         print '- pts[1] -> ',pts[1]
         print '- pts[2] -> ',pts[2]
         print '- .yy() -> ',pts.yy(),type(pts.yy())
@@ -427,13 +521,22 @@ if __name__ == '__main__':
         print '- .stddev(x) -> ',pts.stddev('x')
 
     if 0:
-        print '- .shift(dy=-10, dx=100) -> ',pts.shift(dy=-10, dx=100), pts.oneliner()
-        print '- .rotate(angle=0.2) -> ',pts.rotate(angle=0.2), pts.oneliner()
-        print '- .rotate(angle=0.2, xy0=[-10,100]) -> ',pts.rotate(angle=0.2, xy0=[-10,100]), pts.oneliner()
+        print '- .shift(dy=-10, dx=100) -> ',pts.shift(dy=-10, dx=100), '\n   ',pts.oneliner()
+        print '- .magnify(factor=2.0) -> ',pts.magnify(factor=2.0), '\n   ',pts.oneliner()
+        print '- .rotate(angle=0.2) -> ',pts.rotate(angle=0.2), '\n   ',pts.oneliner()
+        print '- .rotate(angle=0.2, xy0=[-10,100]) -> ',pts.rotate(angle=0.2, xy0=[-10,100]), '\n   ',pts.oneliner()
 
     if 1:
         pts.plot(plot_mean=True, plot_stddev=True)
 
+    if 0:
+        print '- .xy2pair([2,3]) -> ',xy2pair([2,3])
+        print '- .xy2pair(complex(4,5)) -> ',xy2pair(complex(4,5))
+        print '- .xy2pair(3.4) -> ',xy2pair(3.4)
+        print '- .xy2pair(None) -> ',xy2pair(None)
+        print '- .xy2pair(range(3)) -> ',xy2pair(range(3))
+        print '- .xy2pair([4]) -> ',xy2pair([4])
+        print '- .xy2pair([]) -> ',xy2pair([])
 
     print '\n** End of local test of: PointsXY.py:\n'
 
