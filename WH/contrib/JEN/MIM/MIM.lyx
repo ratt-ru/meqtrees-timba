@@ -2617,7 +2617,7 @@ where
 \layout Standard
 
 The sensitivity and size of the LOFAR stations guarantees (even after the
- recent re-scope) that there is always at least one Cat I source in the
+ recent 're-scope') that there is always at least one Cat I source in the
  FOV, i.e.
  a source that gives a 
 \begin_inset Formula $S/N>3$
@@ -2698,82 +2698,11 @@ in which
 \end_inset 
 
 .
- The integration will complicate the derivatives 
+ The integration will complicate the expressions for the derivatives 
 \begin_inset Formula $\frac{\partial\phi^{corrmeas}}{\partial p_{k}}$
 \end_inset 
 
  somewhat (...), of course.
-\layout Standard
-
-Referring to the MIM-diagrams in fig 
-\begin_inset LatexCommand \ref{cap: MIM diagram}
-
-\end_inset 
-
-, we may consider the following possibilities (the FOV is the field-of-view,
- i.e.
- the main lobe of the effective station beam):
-\layout Enumerate
-
-
-\series bold 
-One bright Cat I source in the FOV:
-\series default 
- This is sufficient for estimating a 'relative' MIM function if the size
- of the array is larger than the 'footprint' of the FOV on the ionosphere
- (5 degrees = 0.1 rad -> 0.1x300km = 30 km).
- This will not be the case for the LOFAR core (3 km).
- But if it is, we get away with only ONE bright Cat I source, and a minimum
- of parameters.
-\layout Enumerate
-
-
-\series bold 
-One bright Cat I source in the FOV, and a network of GPS stations.
-
-\series default 
- This might well be the preferred mode of operation for LOFAR.
- For each station, the rigid floating group (RFG) of astro TEC's represents
- a 'pivotal point' in its FOV.
- The (curved) phase screen across the rest of its FOV is constrained via
- the MIM by an arbitrarily dense pattern of GPS values outside the FOV.
- Although the GPS values have an (absolute!) accuracy of only 0.01 TECU (1
- rad @ 75 MHz), they constrain the phases inside the FOV to a much greater
- accuracy.
- This is partly due to the lever effect, and partly through a 
-\begin_inset Formula $\sqrt{n}$
-\end_inset 
-
- effect.
- (
-\emph on 
-This should be updated for double-differencing) 
-\layout Enumerate
-
-
-\series bold 
-Multiple sources inside the FOV:
-\series default 
- Simultanous solution, or peeling (contamination).
- Both approaches (!) give multiple RFGs, with independent offsets, which
- require a MIM to harmonize them.
- 
-\layout Enumerate
-
-
-\series bold 
-Multiple sources outside the FOV:
-\series default 
- Rapid repointing of the LOFAR station beam is needed for sensitivity.
- Since the selfcal solutions are independent, this introduces multiple independe
-nt offsets, which require a MIM to harmonize them.
-\layout Standard
-
-NB: In discussions about dynamic range, it sould be kept in mind that the
- bright Cat I sources are subtracted with their 'own' instrumental parameters.
- The MIM is only used (interpolated) to subtract the fainter Cat II sources,
- where any MIM errors will do less damage.
- 
 \layout Subsection
 
 Multiple sources
@@ -2784,21 +2713,16 @@ Multiple sources
 
 \layout Standard
 
-
-\series bold 
-NB: Simultaneous solutions are not possible, because we cannot pre-correct
- the visibilities for ionospheric phase.
- So, peeling is indispensible, once again.....
- 
-\layout Standard
-
 Only the bright Cat I sources are used to estimate instrumental parameters
  (because, by definition, they are the only ones that give sufficient S/N
  in the available integration time).
  When there is more than one Cat I source in the field, one has the choice
  between two approaches.
- The first is making a single simultanous selfcal solution for all the relevant
- parameters.
+ The first is making a single 
+\emph on 
+simultanous
+\emph default 
+ selfcal solution for all the relevant parameters.
  This is OK if there are only uv-plane effects, or if the number of direction-de
 pendent parameters is small.
  Otherwise, the solution may become unstable because the number of parameters
@@ -2824,6 +2748,18 @@ peeling
  Other advantages are smaller solution matrices (fewer parameters) and the
  possibility of shifting the phase centre of the uv-data to the position
  of the peeling source.
+ 
+\layout Standard
+
+
+\series bold 
+However, we can only pre-correct the visibilities for ionospheric phase
+ for one source at a time.
+ So, simultaneous solutions for multiple sources can only be considered
+ in the case of very bright sources, which do not have to be integrated
+ in frequency to get enough S/N.
+ In all other cases, peeling is the only choice.
+ 
 \layout Standard
 
 A potential problem with peeling is the contamination caused by the other
@@ -2840,28 +2776,47 @@ collective
 \emph default 
  contamination caused by the vector sum of many faint sources, that are
  distributed more or less homogeneoulsy, may be compensated by a gain factor
- (
-\series bold 
-called the Van der Tol factor, provided he comes up with an expression
-\series default 
-).
+ (called the Van der Tol factor, provided he comes up with an expression).
  Thus, at the cost of extra processing, the contamination can be reduced
  to an arbitrarily low level.
  
 \layout Standard
 
-Since each selfcal solution is independent, each solution will introduce
- a different selfcal offset.
- These have to be harmonized by the MIM.
- NB: A simultaneous solution for image-plane effects, i.e.
+Since each peeling solution is independent, each peeling source will introduce
+ a different RFG, with its own unknown phase offset
+\begin_inset Foot
+collapsed true
+
+\layout Standard
+
+A simultaneous solution for image-plane effects, i.e.
  independent phases in the direction of different sources, will also produce
- multiple independent offsets, just like peeling and rapid repointing.
+ multiple independent offsets, just like peeling.
  The reason is that, for each source direction, one may add an arbitrary
  phase offset to all the station phases.
  These will all cancel out in the differential phase of the measured visibility.
+ The author admits that he lost a bottle of wine on this point.
+\end_inset 
+
+.
+ These have to be harmonized by the MIM.
+ Note that the technique of rapid repointing, in which LOFAR is briefly
+ pointed at a small number of (very) bright sources outside the FOV, is
+ equivalent to peeling.
+ See also fig 
+\begin_inset LatexCommand \ref{cap: LOFARproc default}
+
+\end_inset 
+
+.
+\layout Standard
+
+The use of peeling introduces some operational problems, since the peeling
+ solutions all include the same MIM, but are are done sequentially.
+ This conflict may not be easily resolved.
+ Perhaps the best approach is to use only the brightest astronomical source,
+ in combination with GPS measurements...
  
-\series bold 
-...I admit that I lost a bottle of wine on this one....
 \layout Standard
 
 
@@ -3053,7 +3008,7 @@ fundamental
 \layout Subsection
 
 The RINEX observables
-\begin_inset LatexCommand \label{sub: RINEX observables}
+\begin_inset LatexCommand \label{sub: GPS: RINEX observables}
 
 \end_inset 
 
@@ -3328,7 +3283,84 @@ So most of the other instrumental parameters of the two observables are
  
 \layout Subsection
 
+Linear combinations of RINEX observables
+\begin_inset LatexCommand \label{sub: GPS: Linear combinations}
+
+\end_inset 
+
+
+\layout Standard
+
+GPS equations are made by making linear combinations of one or more RINEX
+ observables.
+ This can be done by combining the observables for different carrier frequencies
+ (L1, L2, L5) of the same station-satellite pair.
+ Or by combining observables at the same frequency for different station-satelli
+te pairs.
+ Usually, such combinations are chosen to eliminate one or more variables
+ from equ 
+\begin_inset LatexCommand \ref{eq: cphase-obseq}
+
+\end_inset 
+
+ or 
+\begin_inset LatexCommand \ref{eq: pseudorange-obseq}
+
+\end_inset 
+
+.
+\layout Standard
+
+The triple-frequency combination (see section 
+\begin_inset LatexCommand \ref{sub: Triple-frequency GPS}
+
+\end_inset 
+
+) is especially promising, because it offers a way to eliminate the troublesome
+ phase ambiguities, which stand between us and the absolute TEC.
+ Double-differencing combinations (see section 
+\begin_inset LatexCommand \ref{sub: Double Difference (DD)}
+
+\end_inset 
+
+) offers the same, but to a lesser extent.
+\layout Standard
+
+It is important to realize that, when solving a set of linear equations,
+ all linear combinations between them are implicit.
+ In that sense, it is sufficient to add all possible equations of the basic
+ forms of equ 
+\begin_inset LatexCommand \ref{eq: pseudorange-obseq}
+
+\end_inset 
+
+ and 
+\begin_inset LatexCommand \ref{eq: cphase-obseq}
+
+\end_inset 
+
+ to the solution equation.
+ Hoewever, using linear combinations has the advantage that the solution
+ matrix is smaller because it does not have to solve for the eliminated
+ unknowns.
+ On the other hand, using the basic equations allows us to impose 
+\emph on 
+a priori
+\emph default 
+ constraints on those unknowns, e.g.
+ that some of them are constant in time.
+ In any case, the study of the properties of sets of linear combinations
+ make it easier to understand the overall solution.
+ In particular, it allows us to think in terms of Semi Rigid Floating Groups
+ (SRFG) of phases, and their orthogonality to MIM parameters.
+\layout Subsection
+
 Fundamental limits of using GPS
+\begin_inset LatexCommand \label{sub: GPS: Fundamental limits}
+
+\end_inset 
+
+
 \layout Standard
 
 In section 
@@ -3346,7 +3378,7 @@ In section
 can
 \emph default 
  say something general about the fundamental limitations of using GPS informatio
-n to complement the astroVis solution(s).
+n to complement the astronomical solution(s).
  
 \layout Itemize
 
@@ -4094,23 +4126,72 @@ Conclusions
 
 \layout Standard
 
-In this paper, we have postulated a 6D MIM function, which is smooth in
- all its dimensions 
-\begin_inset Formula $(x,y,z,l,m,t)$
+In this paper, we have postulated a 6D function 
+\begin_inset Formula $M(x,y,z,l,m,t)$
 \end_inset 
 
-, and thus has a relatively small number of parameters.
- This is used to interpolate (subtract, correct), and to harmonize the multiple
- RFGs associated with different TEC measurements.
+, which is smooth (i.e.
+ large-scale) in all its dimensions.
+ This Minimum Ionospheric Model (MIM) has a minimum number of parameters,
+ and a minimum number of assumptions (other than smoothness) about the 3D
+ structure of the ionosphere.
+ It represents the integrated TEC along an arbitrary line of sight, and
+ is is expressed in TEC units (TECU).
+ The latter may be readily converted into ionospheric phase errors for a
+ particular observing frequency.
+ The MIM function may be interpolated, to subtract radio sources from the
+ visibility data, and to correct the residuals before transforming them
+ into an image of the radio sky.
+ 
 \layout Standard
 
-We also have described a framework for combining astronomical and GPS observatio
-ns.
- Since these observations can be used in any proportion, the framework is
- highly suitable for experimentation.
- If adopted (in some form) for the operational version for LOFAR calibration,
- we will also be ready to absorb any advances made by the billion-dollar
- GPS industry.
+Since radio aperture synthesis data deal with phase 
+\emph on 
+differences
+\emph default 
+, the absolute TEC is not needed for imaging.
+ However, the required accuracy of the relative TEC is very high, i.e.
+ of the order of 
+\begin_inset Formula $10^{-4}$
+\end_inset 
+
+ TECU for a dynamic range of 
+\begin_inset Formula $10^{4}$
+\end_inset 
+
+ at LOFAR frequencies.
+ This is easily achieved for a single source, but it is not yet clear whether
+ the ionosphere will be smooth enough over large scales.
+ The 
+\emph on 
+absolute
+\emph default 
+ TEC, albeit with less accuracy, is needed for the calibration of Faraday
+ rotation, which requires inversion of the MIM into a 3D ionosphere.
+ The latter may also be used for ionospheric research, of course.
+ 
+\layout Standard
+
+The parameters 
+\begin_inset Formula $p_{k}$
+\end_inset 
+
+ of the MIM function are estimated from TEC measurements in the direction
+ of bright radio sources, using a judicious mixture of astronomical and
+ GPS observations.
+ In this process, the MIM also serves to 
+\emph on 
+harmonize
+\emph default 
+ these measurements, by making any free parameters mutually consistent with
+ each other.
+ A flexible processing framework is described.
+ Since it allows the available observations to be used in any proportion
+ or combination, this framework is highly suitable for (rapid) experimentation.
+ If it is adopted for the operational version of LOFAR calibration, this
+ framework will allow us to make use any advances made by the billion-dollar
+ GPS industry (e.g.
+ triple-frequency operation).
  
 \layout Standard
 
@@ -4132,30 +4213,34 @@ The framework takes the form of a common solution matrix in which Measurement
 \series bold 
 Astronomical equations:
 \series default 
- These represent visibilities that are pre-corrected for ionospheric phases,
- and integrated over frequ subbands for increased S/N.
- 
+ Each represents the visibility phase of a bright (Cat I) radio source.
 \begin_deeper 
 \layout Itemize
 
-Because the pre-correction is different for each source, simultaneous solutions
- for more than one source are not possible.
- Therefore, peeling is necessary, and there will be separate equations for
- each peeling source.
- Each peeling source will produce its own solution, i.e.
- its own Rigid Floating Group (RFG) of 
+Usually, visibilities have to be integrated over multiple frequ subbands
+ to get sufficient S/N.
+ In that case they must be pre-corrected for ionospheric phases.
+ Because the pre-correction can only be applied for one source at a time,
+ each source must be dealt with separately, in order of decreasing brightness.
+ This is called 
 \emph on 
-low-noise
+peeling
 \emph default 
- (degrees) relative phases, which share a single unknown offset.
- The different offsets multiple sources are harmonized (made consistent)
- by the MIM.
- This will require a phase-locking strategy.
+.
+ 
 \layout Itemize
 
-A single astronomical source is sufficient if the TEC-function may be assumed
- to be linear over the FOV footprint, or if the array is larger than this
- footp
+Each peeling source will produce its own solution, i.e.
+ its own Rigid Floating Group (RFG) of highly accurate relative phases,
+ which share a single unknown offset.
+ The different offsets for multiple sources may be harmonized (made consistent)
+ by the MIM.
+ A phase-locking strategy will be required to determine initial phases without
+ 
+\begin_inset Formula $2\pi$
+\end_inset 
+
+ ambiguities.
 \end_deeper 
 \layout Itemize
 
@@ -4163,11 +4248,18 @@ A single astronomical source is sufficient if the TEC-function may be assumed
 \series bold 
 GPS equations: 
 \series default 
-These represent (linear combinations of) GPS carrier phase measurements.
+Each represents a (linear combination of) of GPS carrier phase and/or pseudo-ran
+ge measurements.
  The GPS industry has produced a veritable zoo of different linear combinations,
  ranging from dual and triple frequency combinations to single, double and
  triple differences between measurements involving different stations and
  satellites.
+ 
+\begin_deeper 
+\layout Itemize
+
+Like the RFG mentioned above, the 
+\end_deeper 
 \layout Itemize
 
 
@@ -4178,15 +4270,18 @@ Constraint equations:
 \emph on 
 only
 \emph default 
- point where assumptions (other than smoothness) about the ionosphere may
- be inserted, in the form of a 3D ionospheric model.
- These equations are used to bridge the inevitable gaps in the MIM sampling
- diagram, which are caused by a dearth of astronomical sources or GPS satellites.
+ point where assumptions (other than smoothness) about the 3D structure
+ of the ionosphere may be inserted.
+ These constraint equations take the form of partial derivatives of the
+ MIM function w.r.t.
+ its various dimensions.
+ They are used to bridge the inevitable gaps in the MIM sampling diagram,
+ which are caused by a dearth of astronomical sources or GPS satellites.
  These equations depend on the MIM parameters 
 \begin_inset Formula $p_{k}$
 \end_inset 
 
-, and on any extra parameters of the ionospheric model, e.g.
+ of course, but also on any extra parameters of the ionospheric model, e.g.
  the altitude 
 \begin_inset Formula $h(x,y,t)$
 \end_inset 
@@ -4205,14 +4300,24 @@ Eventually, the matrix is inverted to give (incremental) improvements of
 
 ).
  These are incremental because the process is iterative.
- 
-\layout Standard
-
-Long-range parameters are still necessary, to impose constraints like constant
+ Long-range parameters are still necessary, to impose constraints like constant
  GPS phase ambiguity N, slow drift of station time bias, continuity of the
  MIM, and of other M.E.
  parameters.
  Kalmann filtering.
+\layout Standard
+
+A single astronomical source is sufficient if the TEC-function may be assumed
+ to be linear over the FOV footprint, or if the array is larger than this
+ footprint.
+ Peeling causes certain operational complications, which are discussed in
+ section 
+\begin_inset LatexCommand \ref{sub: astroVis: multipe sources}
+
+\end_inset 
+
+.
+ 
 \layout Subsection
 
 The old conclusion
@@ -4280,7 +4385,7 @@ How do we work together? Do we adopt this document as a basis for concerted
 - Program of a European LLB (LOFAR Long Baseline) group?
 \layout Standard
 
-- Optimal GPS SRFG's
+- Optimal GPS SRFG's, and their orthogonality to each other and MIM parameters.
 \layout Standard
 
 - Visualization
