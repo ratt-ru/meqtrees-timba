@@ -54,6 +54,19 @@ class Subplot (object):
     """
 
     def __init__(self, **kwargs):
+        """
+        ** The Subplot class looks for the followin keywords in **kwargs:
+        - name  [='<name>']:
+        - title [=<type>]:
+        - xunit [=None]:
+        - yunit [=None]:
+        - xlabel[=xx[(xunit)]]:
+        - ylabel[=<name>[(yunit)]]:
+        - xmin  [=None]:
+        - xmax  [=None]:
+        - ymin  [=None]:
+        - ymax  [=None]:
+        """
 
         # Extract the relevant keyword arguments from kwargs:
         kw = dict()
@@ -99,6 +112,10 @@ class Subplot (object):
         ss += '  xrange='+str(self.xrange())
         return ss
 
+    def help(self):
+        """Return/print a help-string"""
+        print Subplot.__init__.__doc__
+        return True
 
 
     #===============================================================
@@ -251,6 +268,9 @@ if __name__ == '__main__':
     print sub.oneliner()
 
     if 1:
+        sub.help()
+
+    if 0:
         sub.plot()
 
     print '\n** End of local test of: Subplot.py:\n'

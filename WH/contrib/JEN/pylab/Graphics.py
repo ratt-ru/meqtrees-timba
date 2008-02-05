@@ -52,14 +52,40 @@ import PointsXY
 #======================================================================================
 
 class Graphics (Subplot.Subplot):
-    """The Grapicset is derived from the Subplot class.
-    It holds one or more Graphics objects."""
 
     def __init__(self, **kwargs):
+        """
+        ** The Grapics class is derived from the Subplot class.
+        It holds one or more Graphics objects.
+        All Graphics clsses share some common features:
+        - Input points xy may be specified in different ways:
+          -- a list [x,y] 
+          -- a tuple (x,y)         -> [x,y]
+          -- complex (x+yj)        -> [x,y]
+          -- a scalar (x)          -> [x,x]
+          -- a list [x1,x2,x3,...] -> [x1,x2]
+          -- a list [x]            -> [x,x]
+          -- any other             -> None (error)
+        - If centre_mark=<mark>, the centre/mean is indicated.
+        """
 
         Subplot.Subplot.__init__(self, **kwargs)
 
-        # The objects are kept in the named fields of a dict:
+        # Extract the keywords available to all Graphics classes,
+        # and add them to the Subplot keyword dict self._kw:
+
+        if isinstance(kwargs, dict):
+            keys = ['centre_mark']
+            for key in keys:
+                if kwargs.has_key(key):
+                    self._kw[key] = kwargs[key]
+
+        self._kw.setdefault('centre_mark', None)
+        if self._kw['centre_mark']==True: self._kw['centre_mark'] = '+'
+
+
+        # The Graphics objects are kept in the named fields of a dict:
+
         self._order = []
         self._graphic = dict()
 
@@ -145,6 +171,13 @@ class Graphics (Subplot.Subplot):
         print
         return True
 
+    def help(self):
+        """Help"""
+        Subplot.Subplot.help(self)
+        print Graphics.__init__.__doc__
+        print self.__init__.__doc__
+        return True
+
 
     #-------------------------------------------------------------
     # Plot standalone (testing only?)
@@ -164,25 +197,45 @@ class Graphics (Subplot.Subplot):
         return Figure.pylab_dispose(dispose)
 
 
+    def plot_centre_mark(self, xy0=[0,0], **kwargs):
+        """Optional: Indicate the centre of the graph"""
+        if self._kw['centre_mark']:
+            kwargs['marker'] = self._kw['centre_mark']
+            kwargs['markersize'] = 20
+            [x0,y0] = PointsXY.xy2pair(xy0)
+            self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
+        return True
+
+
+
+
 
 #========================================================================
 # Some convenient 'standard' Graphics classes:
 #========================================================================
 
 class Scatter (Graphics):
-    """Class derived from Graphics. It represents a scatter-plot
-    (markers) of the specified yy [and xx] coordinates.
-    """
 
-    def __init__(self, yy=None, xx=None,
-                 **kwargs):
-
+    def __init__(self, yy=None, xx=None, dxx=None, dyy=None,
+                 annot=None, annotpos=None, **kwargs):
+        """
+        The Scatter class is derived from the Graphics class.
+        It represents a scatter-plot (markers) of the specified
+        lists of yy [and xx] coordinates.
+        - If xx is not specified, xx=0,1,2,...,nyy-1 is used.
+        - If yy is complex, xx=real(yy) and yy=imag(yy).
+        - A single point may be specified as scalar(s).
+        - Any dyy and/or dxx are converted to error bars.
+        - Annotations are supplied via annot and annotpos.
+        """
         Graphics.__init__(self, **kwargs)
 
         # Make the PointsXY object, and add it to the internal list:
         kwargs.setdefault('style','o')
         kwargs.setdefault('markersize',5)
-        self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
+        self.add(PointsXY.PointsXY(yy, xx=xx, dxx=dxx, dyy=dyy,
+                                   annot=annot, annotpos=annotpos,
+                                   **kwargs))
 
         # Finished:
         return None
@@ -191,13 +244,17 @@ class Scatter (Graphics):
 #========================================================================
 
 class Rectangle (Graphics):
-    """Class derived from Graphics. It represents a rectangle
-    defined by centre and size (xy0, sxy) or corners (blc, trc).
-    """
 
     def __init__(self, xy0=[0,0], sxy=[1,1],
                  blc=None, trc=None,
                  **kwargs):
+        """
+        The Rectangle class is derived from the Graphics class.
+        It can be specified in different ways:
+        - by centre xy0(=[0,0]) and size sxy(=[1,1])
+        - by corners blc(=None) and trc(=None)
+        If blc and trc are specified, they take precedence.
+        """
 
         Graphics.__init__(self, **kwargs)
 
@@ -224,12 +281,15 @@ class Rectangle (Graphics):
 #========================================================================
 
 class Arrow (Graphics):
-    """Class derived from Graphics. It represents an arrow
-    from xy1(=[x1,y1]) to xy2(=[x2,y2]) or xy1+dxy(=[dx,dy]).
-    """
 
     def __init__(self, xy1=[0.0,0.0], xy2=None, dxy=None,
                  **kwargs):
+        """
+        The Arrow class is derived from the Graphics class.
+        It can be specified in different ways:
+        - from xy1(=[0,0]) to xy2(=None)
+        - from xy1(=[0,0]) to xy1+dxy(=None).
+        """
 
         Graphics.__init__(self, **kwargs)
 
@@ -237,11 +297,11 @@ class Arrow (Graphics):
         xx = [x1]
         yy = [y1]
         if xy2:
-            [x2,y2] = xy2pair(xy2)
+            [x2,y2] = PointsXY.xy2pair(xy2)
             xx.append(x2)
             yy.append(y2)
         elif dxy:
-            [dx,dy] = xy2pair(dxy)
+            [dx,dy] = PointsXY.xy2pair(dxy)
             xx.append(x1+dx)
             yy.append(y1+dx)
         else:
@@ -279,16 +339,20 @@ class Arrow (Graphics):
 #========================================================================
 
 class Circle (Graphics):
-    """Class derived from Graphics. It represents a circle
-    with a given centre(x0,y0) and radius.
-    A segment may be specified by the start and stop
-    angles a1(=0) and a2(=2pi).
-    """
 
     def __init__(self, xy0=[0.0,0.0], radius=1.0, 
                  a1=0.0, a2=None, na=None,
-                 angle=0.0, close=False, centre=None,
+                 angle=0.0, close=False,
                  **kwargs):
+        """
+        The Circle class is derived from the Graphics class.
+        It defines a circle with centre xy0(=[0,0]) and radius (=1.0).
+        - xy0 may be a list [x,y], a tuple (x,y) or complex (x+yj). 
+        - A segment may be specified by the start and stop angles
+        a1(=0) and a2(=2pi).
+        - The entire graph may be rotated by angle(=0) rad.
+        - If close==True, the end radii are drawn (useful for segment).
+        """
 
         Graphics.__init__(self, **kwargs)
 
@@ -316,10 +380,7 @@ class Circle (Graphics):
         self.add(pts)
 
         # Optional: indicate the centre
-        if centre:
-            kwargs['marker'] = centre
-            kwargs['markersize'] = 20
-            self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
+        self.plot_centre_mark(xy0, **kwargs)
 
         # Finished:
         return None
@@ -328,17 +389,18 @@ class Circle (Graphics):
 #========================================================================
 
 class RegularPolygon (Circle):
-    """Class derived from Graphics. It represents a regular polygon
-    with a given centre(x0,y0) and within a given circumscribed radius.
-    """
 
     def __init__(self, n=5, xy0=[0.0,0.0], radius=1.0, 
-                 angle=0.0, centre=None,
-                 **kwargs):
+                 angle=0.0, **kwargs):
+        """
+        The RegularPolygon class is derived from the Graphics class.
+        It is specified by n(=5), centre xy0(=[0,0]) and radius(=1.0).
+        - It may be rotated by an angle(=0) rad.
+        """
 
         Circle.__init__(self, xy0=xy0, radius=radius,
                         na=n+1, angle=angle+pylab.pi/2.0,
-                        centre=centre, **kwargs)
+                        **kwargs)
 
         # Finished:
         return None
@@ -346,12 +408,14 @@ class RegularPolygon (Circle):
 #========================================================================
 
 class Ellipse (Graphics):
-    """Class derived from Graphics. It represents an ellipse
-    with a given centre(x0,y0) and half-axes a and b, and position angle.
-    """
 
     def __init__(self, xy0=[0.0,0.0], a=2.0, b=1.0, angle=0.0, 
-                 centre='+', **kwargs):
+                 **kwargs):
+        """
+        The Ellipse class derived from the Graphics class.
+        It is specified by a centre xy0(=[0,0]),
+        half-axes a(=2) and b(=1), and (position) angle(=0).
+        """
 
         Graphics.__init__(self, **kwargs)
 
@@ -371,10 +435,7 @@ class Ellipse (Graphics):
         self.add(pts)
 
         # Optional: indicate the centre
-        if centre:
-            kwargs['marker'] = centre
-            kwargs['markersize'] = 10
-            self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
+        self.plot_centre_mark(xy0, **kwargs)
 
         # Finished:
         return None
@@ -392,6 +453,7 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Graphics.py:\n'
 
     grs = Graphics()
+
         
     if 0:
         grs.add(PointsXY.test_line())
@@ -402,12 +464,12 @@ if __name__ == '__main__':
     if 0:
         grs = Circle([1,3],5,
                      a1=1, a2=2, close=True,
-                     centre='cross',
+                     centre_mark='cross',
                      linestyle='--', linewidth=3)
 
     if 0:
         grs = Ellipse([1,3],2,1, angle=1.0,
-                      centre='cross',
+                      centre_mark='cross',
                       linestyle='--', linewidth=3)
 
     if 0:
@@ -417,12 +479,16 @@ if __name__ == '__main__':
         grs = Rectangle(xy0=complex(2.5,3), sxy=complex(4,5))
 
     if 1:
-        grs = RegularPolygon(n=5, xy0=complex(2.5,3), radius=3, centre='+')
+        grs = RegularPolygon(n=5, xy0=complex(2.5,3), radius=3,
+                             centre_mark='+')
 
     if 0:
         # grs = Arrow(dxy=[1,1], linewidth=3)
         # grs = Arrow(xy2=[1,1], linewidth=3)
         grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
+
+    if 1:
+        grs.help()
 
     #------------------------------------
         

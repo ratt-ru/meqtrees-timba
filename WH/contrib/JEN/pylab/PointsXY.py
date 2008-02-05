@@ -91,8 +91,8 @@ class PointsXY (object):
 
         self._yy = None
         self._xx = None
-        self._dxx = dxx
-        self._dyy = dyy
+        self._dxx = None
+        self._dyy = None
 
         # First deal with the specified y-coordinates:
         is_complex = False
@@ -100,12 +100,10 @@ class PointsXY (object):
             for y in yy:
                 if isinstance(y, complex): is_complex = True
             self._yy = pylab.array(yy)
-
         elif isinstance(yy, type(pylab.array([0]))): 
             for y in yy.tolist():
                 if isinstance(y, complex): is_complex = True
             self._yy = yy
-
         else:                                  # assume y is scalar 
             self._yy = pylab.array([yy])
             is_complex = isinstance(yy, complex)
@@ -121,20 +119,39 @@ class PointsXY (object):
                 # self._xx = range(self.len())            # start at x=0
                 self._xx = range(1,1+self.len())          # start at x=1
                 self._xx = pylab.array(self._xx)
-
             elif isinstance(xx, (list,tuple)):            # xx specified
                 self._xx = pylab.array(xx)
-
             elif isinstance(xx, type(pylab.array([0]))):  # xx specified
                 self._xx = xx
-
             else:                                         # assume scalar...
                 self._xx = pylab.array([xx])
+
+        # Deal with the error-bar information:
+        if dyy:
+            if isinstance(dyy, list):
+                if len(dyy)==len(self._yy):
+                    self._dyy = dyy
+            elif isinstance(dyy, complex):
+                self._dyy = dyy.imag
+                self._dxx = dyy.real
+            elif isinstance(dyy, (int,float)):
+                self._dyy = dyy
+
+        if dxx:
+            if self._dxx:
+                pass
+            elif isinstance(dxx, list):
+                if len(dxx)==len(self._yy):
+                    self._dxx = dxx
+            elif isinstance(dxx, (int,float)):
+                self._dxx = dxx
+
 
         # Finally, do some checks:
         if not len(self._xx)==self.len():             # xx and yy should have the same length
             s = 'length mismatch between nyy='+str(self.len())+' and nxx='+str(len(self._xx))
             raise ValueError,s
+
         return True
 
 
@@ -343,11 +360,13 @@ class PointsXY (object):
             [ymin,ymax] = self.yrange(margin=margin)
             pylab.axis([xmin, xmax, ymin, ymax])
 
-        # Annotations:
+        color = self._PlotStyle.color()
+
+        # Annotations and errorbars (if specified):
         self.annotate()
+        self.plot_error_bars(color=color)
                 
         # Optional extras:
-        color = self._PlotStyle.color()
         [xmean,ymean] = self.mean('xy')
         if plot_mean:
             self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
@@ -389,12 +408,29 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
+    def plot_error_bars(self, color='red'):
+        """Plot vertical and/or horizontal errorbars, if specified"""
+        for i,y in enumerate(self._yy):
+            x = self._xx[i]
+            if self._dyy:
+                dy = self._dyy
+                if isinstance(dy,list): dy = dy[i]
+                dy2 = dy/2
+                pylab.plot([x,x], [y-dy2,y+dy2], color=color, linestyle='-')
+            if self._dxx:
+                dx = self._dxx
+                if isinstance(dx,list): dx = dx[i]
+                dx2 = dx/2
+                pylab.plot([x-dx2,x+dx2], [y,y], color=color, linestyle='-')
+        return True
+
+    #---------------------------------------------------------------
+
     def plot_ellipse(self, xy0=[0.0, 0.0], a=1.0, b=None,
                      color='red', linestyle='--'):
         """Make an ellipse with given centre(x0,y0) and half-axes a and b.
         If b==None (default), make a circle with radius a."""
         [x0,y0] = xy2pair(xy0)
-        print x0,y0,a,b,color,linestyle
         xx = []
         yy = []
         if b==None: b = a                 # circle 
@@ -492,7 +528,7 @@ if __name__ == '__main__':
     kwargs = dict()
     kwargs = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
 
-    pts = PointsXY(range(6), 'list', annot=True, **kwargs)
+    pts = PointsXY(range(6), 'list', annot=True, dxx=2, dyy=1.0, **kwargs)
     # pts = PointsXY(pylab.array(range(6)), 'numarray', **kwargs)
     # pts = PointsXY(-2, 'scalar', **kwargs)
     # pts = PointsXY(3+5j, 'complex scalar', **kwargs)
