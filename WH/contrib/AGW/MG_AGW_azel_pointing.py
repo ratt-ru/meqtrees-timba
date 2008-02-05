@@ -78,10 +78,12 @@ TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
   TDLOption('AZ_EN','Azimuth encoder offset',[0,5,10,20],more=float),
   TDLOption('EL_EN','Elevation encoder offset',[0,5,10,20],more=float),
   TDLOption('NPAE','Amount by which telescope elevation axis is not perpendicular to azimuth axis',[0,5,10,20],more=float),
+  TDLOption('EX','Amount by which telescope elevation axis is decentered in X',[0,5,10,20],more=float),
+  TDLOption('EZ','Amount by which telescope elevation axis is decentered in Z',[0,5,10,20],more=float),
   TDLOption('CX','Beam Collimation Error X',[0,5,10,20],more=float),
   TDLOption('CY','Beam Collimation Error Y',[0,5,10,20],more=float),
-  TDLOption('PX','Parallactic Angle Tilt X',[0,5,10,20],more=float),
-  TDLOption('PY','Parallactic Angle Tilt Y',[0,5,10,20],more=float),
+  TDLOption('PW','Parallactic Angle Tilt W',[0,5,10,20],more=float),
+  TDLOption('PS','Parallactic Angle Tilt S',[0,5,10,20],more=float),
   TDLOption('GRAV','Gravitational deformation',[0,5,10,20],more=float),
   TDLOption('randomize_axes','Randomize above extremes for each telescope?',[True,False]),
   TDLOption('do_solve','Solve for Structure Parameters?',[True,False]),
@@ -144,6 +146,10 @@ def _define_forest (ns):
       ns.daz(p) << Meq.Constant(0.0)
       ns.dell(p) << Meq.Constant(0.0)
 
+    # get Parallactic Angle for the station
+    pa= ns.ParAngle(p) << Meq.ParAngle(observation.phase_centre.radec(), array.xyz(p))
+ 
+
     # systematic variations due to telescope axis errors
     ns.AzEl(p) << Meq.AzEl(observation.phase_centre.radec(), array.xyz(p)) 
     ns.Az(p) << Meq.Selector(ns.AzEl(p), index=0)
@@ -152,6 +158,10 @@ def _define_forest (ns):
     ns.CosAz(p) << Meq.Cos(ns.Az(p))
     ns.SinEl(p) << Meq.Sin(ns.El(p))
     ns.CosEl(p) << Meq.Cos(ns.El(p))
+    ns.CosPa(p) << Meq.Cos(pa)
+    ns.SinPa(p) << Meq.Sin(pa)
+
+    ns.rot_matrix(p) << Meq.Matrix22(ns.CosPa(p),-1.0 * ns.SinPa(p),ns.SinPa(p),ns.CosPa(p))
     
     if randomize_axes:
       axis_offset_NPAE = random.uniform(-1.0,1.0)
@@ -161,9 +171,11 @@ def _define_forest (ns):
       axis_offset_EL_EN = random.uniform(-1.0,1.0)
       axis_offset_CX = random.uniform(-1.0,1.0)
       axis_offset_CY = random.uniform(-1.0,1.0)
-      axis_offset_PX = random.uniform(-1.0,1.0)
-      axis_offset_PY = random.uniform(-1.0,1.0)
-      axis_offset_GRAV = random.uniform(-1.0,0.0)
+      axis_offset_PW = random.uniform(-1.0,1.0)
+      axis_offset_PS = random.uniform(-1.0,1.0)
+      axis_offset_EZ = random.uniform(-1.0,1.0)
+      axis_offset_EX = random.uniform(-1.0,1.0)
+      axis_offset_GRAV = random.uniform(0.0, 1.0)
     else:
       axis_offset_NPAE = 1.0
       axis_offset_AW = 1.0
@@ -172,9 +184,11 @@ def _define_forest (ns):
       axis_offset_EL_EN = 1.0
       axis_offset_CX = 1.0
       axis_offset_CY = 1.0
-      axis_offset_PX = 1.0
-      axis_offset_PY = 1.0
-      axis_offset_GRAV = -1.0
+      axis_offset_PW = 1.0
+      axis_offset_PS = 1.0
+      axis_offset_EX = 1.0
+      axis_offset_EZ = 1.0
+      axis_offset_GRAV = 1.0
 
     ns.AZ_EN(p) << Meq.Constant(axis_offset_AZ_EN * AZ_EN)
     ns.EL_EN(p) << Meq.Constant(axis_offset_EL_EN * EL_EN)
@@ -184,11 +198,15 @@ def _define_forest (ns):
     ns.GRAV(p) << Meq.Constant(axis_offset_GRAV * GRAV)
     ns.CX(p) << Meq.Constant(axis_offset_CX * CX)
     ns.CY(p) << Meq.Constant(axis_offset_CY * CY)
-    ns.PX(p) << Meq.Constant(axis_offset_PX * PX)
-    ns.PY(p) << Meq.Constant(axis_offset_PY * PY)
-    ns.AzPoint(p) << ns.daz(p) - ns.AZ_EN(p) * ns.CosEl(p) + ns.NPAE(p) *ns.SinEl(p)  + ns.AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.CX(p) + ns.PX(p)
+    ns.PW(p) << Meq.Constant(axis_offset_PW * PW)
+    ns.PS(p) << Meq.Constant(axis_offset_PS * PS)
+    ns.EX(p) << Meq.Constant(axis_offset_EX * EX)
+    ns.EZ(p) << Meq.Constant(axis_offset_EZ * EZ)
 
-    ns.ElPoint(p) << ns.dell(p) + ns.GRAV(p) - ns.AS(p) * ns.CosAz(p) - ns.AW(p) * ns.SinAz(p) - ns.EL_EN(p)  - ns.CY(p) - ns.PY(p)
+# here are the full pointing equations ...
+    ns.AzPoint(p) << ns.daz(p) - ns.AZ_EN(p) * ns.CosEl(p) + ns.NPAE(p) *ns.SinEl(p)  + ns.AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.CX(p) + ns.PS(p) * ns.SinPa(p) + ns.PW(p) * ns.CosPa(p)
+
+    ns.ElPoint(p) << ns.dell(p) - ns.AS(p) * ns.CosAz(p) - ns.AW(p) * ns.SinAz(p) - ns.EX(p) * ns.SinEl(p)  - (ns.EZ(p) + ns.GRAV(p)) * ns.CosEl(p) - ns.EL_EN(p)  - ns.CY(p) - ns.PS(p) * ns.CosPa(p) + ns.PW(p) * ns.SinPa(p)
 
     # combine azimuth and elevation errors into one node
     # and convert to radians
@@ -204,8 +222,10 @@ def _define_forest (ns):
       ns.solve_GRAV(p) << tpolc(0, -1.0 * axis_offset_GRAV * GRAV)
       ns.solve_CX(p) << tpolc(0, -1.0 * axis_offset_CX * CX)
       ns.solve_CY(p) << tpolc(0, -1.0 * axis_offset_CY * CY)
-      ns.solve_PX(p) << tpolc(0, -1.0 * axis_offset_PX * PX)
-      ns.solve_PY(p) << tpolc(0, -1.0 * axis_offset_PY * PY)
+      ns.solve_PW(p) << tpolc(0, -1.0 * axis_offset_PW * PW)
+      ns.solve_PS(p) << tpolc(0, -1.0 * axis_offset_PS * PS)
+      ns.solve_EX(p) << tpolc(0, -1.0 * axis_offset_EX * EX)
+      ns.solve_EZ(p) << tpolc(0, -1.0 * axis_offset_EZ * EZ)
 
       solvables.append(ns.solve_AZ_EN(p))
       solvables.append(ns.solve_EL_EN(p))
@@ -215,21 +235,18 @@ def _define_forest (ns):
       solvables.append(ns.solve_GRAV(p))
       solvables.append(ns.solve_CX(p))
       solvables.append(ns.solve_CY(p))
-      solvables.append(ns.solve_PX(p))
-      solvables.append(ns.solve_PY(p))
+      solvables.append(ns.solve_PW(p))
+      solvables.append(ns.solve_PS(p))
+      solvables.append(ns.solve_EX(p))
+      solvables.append(ns.solve_EZ(p))
 
-      ns.solve_AzPoint(p) << ns.solve_NPAE(p) *ns.SinEl(p)  - ns.solve_AZ_EN(p) * ns.CosEl(p) + ns.solve_AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.solve_AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.solve_CX(p) + ns.solve_PX(p)
-      ns.solve_ElPoint(p) << ns.solve_GRAV(p) - ns.solve_AS(p) * ns.CosAz(p) - ns.solve_AW(p) * ns.SinAz(p) - ns.solve_EL_EN(p) - ns.solve_CY(p) - ns.solve_PY(p) 
+      ns.solve_AzPoint(p) << ns.solve_NPAE(p) *ns.SinEl(p)  - ns.solve_AZ_EN(p) * ns.CosEl(p) + ns.solve_AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.solve_AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.solve_CX(p) + ns.solve_PW(p) * ns.SinPa(p) - ns.solve_PS(p) * ns.CosPa(p)
+      ns.solve_ElPoint(p) << ns.solve_PW(p) * ns.SinPa(p) - ns.solve_EX(p) * ns.SinEl(p) - (ns.solve_EZ(p) + ns.solve_GRAV(p)) * ns.CosEl(p) - ns.solve_AS(p) * ns.CosAz(p) - ns.solve_AW(p) * ns.SinAz(p) - ns.solve_EL_EN(p) - ns.solve_CY(p) - ns.solve_PS(p)  * ns.SinPa(p) 
 
       # combine azimuth and elevation errors into one node
       # and convert to radians
       ns.solve_AzElPoint(p) << Meq.Composer(ns.solve_AzPoint(p), ns.solve_ElPoint(p)) * ARCSEC
 
-
-    # get Parallactic Angle for the station
-    pa= ns.ParAngle(p) << Meq.ParAngle(observation.phase_centre.radec(), array.xyz(p))
-    ns.rot_matrix(p) << Meq.Matrix22(Meq.Cos(pa),-Meq.Sin(pa),Meq.Sin(pa),Meq.Cos(pa))
- 
   # create a source model and make list of corrupted sources
   allsky = Meow.Patch(ns,'all',observation.phase_centre);
   if do_solve:
