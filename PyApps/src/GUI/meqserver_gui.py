@@ -752,7 +752,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self.setMode(QFileDialog.ExistingFile);
       self.setFilters("TDL scripts (*.tdl *.py);;All files (*.*)");
       self.setViewMode(QFileDialog.Detail);
-      self._cwd = QCheckBox("working directory tracks follows script location",self);
+      self._cwd = QCheckBox("working directory tracks script location",self);
       self._cwd.setChecked(True);
       self.addWidgets(None,self._cwd,None);
       self._replace = QCheckBox("close all currently loaded scripts first",self);

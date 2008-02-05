@@ -250,9 +250,18 @@ PyObjectRef createPyNode (Meq::Node &pynode,const string &classname,const string
   PyObjectRef val = PyObject_CallObject(create_pynode,*args);
   if( !val )
   {
+    string err;
     if( PyErr_Occurred() )
+    {
+      PyObject *type,*value,*tb;
+      PyErr_Fetch(&type,&value,&tb);
+      PyObjectRef pystr = PyObject_Str(value); 
+      PyErr_Restore(type,value,tb);
       PyErr_Print();
-    Throw("failed to create PyNode of class "+classname+" ("+modulename+")");
+      // get string content
+      err = string(": ") + PyString_AsString(*pystr);
+    }
+    Throw("failed to create PyNode of class "+classname+" ("+modulename+")"+err);
   }
   return val;
 }

@@ -53,7 +53,7 @@ int main (int argc,const char *argv[])
 {
   // begin by closing all open FDs -- this is necessary so that we don't inherit any
   // GW sockets from a launching browser
-  for( int i=2; i<1024; i++ )
+  for( int i=3; i<1024; i++ )
     close(i);
 
   using main_debug_context::getDebugContext;
