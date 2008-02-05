@@ -29,6 +29,7 @@ from Timba import pynode
 from Timba import dmi
 from Timba import utils
 from Timba.Meq import meq
+from Timba.Meq import meqds
 
 import inspect
 import random
@@ -124,6 +125,7 @@ class TheHardWay (pynode.PyNode):
 
     xlabel = 'x'
     ylabel = 'y'
+    print 'TheHardWay *** I am hanging'
     pylab.figure(1)
     pylab.subplot(111)
     pylab.title('VisuNodes.TheHardWay')
@@ -149,7 +151,7 @@ class TheHardWay (pynode.PyNode):
     pylab.grid()
 
     # Finished:
-    svg_list_of_strings = pylab_dispose(dispose=['show','svg'])
+    svg_list_of_strings = pylab_dispose(dispose=['svg'])
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.
@@ -221,7 +223,7 @@ def _define_forest (ns,**kwargs):
       value = random.gauss(0,1)
       value = complex(random.gauss(0,1),random.gauss(0,1))
       cc.append(ns[str(i)] << value)
-    classname = "ScatterPlot"
+#   classname = "ScatterPlot"
     classname = "TheHardWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
                 
@@ -232,11 +234,12 @@ def _define_forest (ns,**kwargs):
 # Execute a test-forest:
 #=====================================================================================
 
-def _test_forest (mqs,parent,**kwargs):
+def _test_forest (mqs,parent,wait=False):
   from Timba.Meq import meq
   cells = meq.cells(meq.domain(0,1,0,1),num_freq=20,num_time=10);
-  request = meq.request(cells,rqtype='ev');
-  mqs.execute('pynode',request);
+  request = meq.request(cells,rqtype='e1');
+# mqs.execute('pynode',request,wait=wait);
+  a = mqs.meq('Node.Execute',record(name='pynode',request=request),wait=wait)
   return True
 
 
@@ -245,6 +248,23 @@ def _test_forest (mqs,parent,**kwargs):
 #=====================================================================================
 
 if __name__ == '__main__':
+ # run in batch mode?
+ if '-run' in sys.argv:
+   from Timba.Apps import meqserver
+   from Timba.TDL import Compile
+
+   # this starts a kernel.
+   mqs = meqserver.default_mqs(wait_init=10);
+
+   # This compiles a script as a TDL module. Any errors will be thrown as
+   # an exception, so this always returns successfully. We pass in
+   # __file__ so as to compile ourselves.
+   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+
+   # this runs the _test_forest job.
+   mod._test_forest(mqs,None,wait=True);
+
+ else:
 #  from Timba.Meq import meqds 
   Timba.TDL._dbg.set_verbose(5);
   ns = NodeScope();
