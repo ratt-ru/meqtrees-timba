@@ -98,7 +98,7 @@ class ScatterPlot (pynode.PyNode):
 
     # Finished: dispose of the Figure:
     fig.oneliners()
-    svg_list_of_strings = fig.plot(dispose=['show','svg'])
+    svg_list_of_strings = fig.plot(dispose=['svg'])
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.
@@ -115,12 +115,15 @@ class ScatterPlot (pynode.PyNode):
 class TheHardWay (pynode.PyNode):
   """Make a scatter-plot of the means of the results of its children"""
 
-
   def __init__ (self, *args):
     pynode.PyNode.__init__(self,*args);
     self.set_symdeps('domain','resolution');
                               
   def get_result (self, request, *children):
+    # we need the following two lines
+    import matplotlib
+    matplotlib.use('SVG')
+
     import pylab                                 # kludge....!
 
     xlabel = 'x'
@@ -147,7 +150,9 @@ class TheHardWay (pynode.PyNode):
         pylab.xlabel(xlabel)
         pylab.ylabel(ylabel)
 
-    pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
+#   can't have linestyle=None
+#   pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
+    pylab.plot(xx, yy, 'ro')
     pylab.grid()
 
     # Finished:
@@ -162,10 +167,12 @@ class TheHardWay (pynode.PyNode):
 
 #-------------------------------------------------------------------
     
-def pylab_dispose(dispose='show'):
+def pylab_dispose(dispose='svg'):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
+    import matplotlib
+    matplotlib.use('SVG')
     import pylab                   
     rootname = 'xxx'
     print '** dispose(): ',dispose,rootname
@@ -180,8 +187,10 @@ def pylab_dispose(dispose='show'):
     for ext in file_extensions:
         if ext in dispose:
             filename = rootname+'.'+ext
-            if ext in ['svg','SVG']: svgname = filename
-            r = pylab.savefig(filename)
+            svgname = rootname
+            # since we are using backend 'SVG', svg is
+            # automatically added to filename
+            r = pylab.savefig(svgname)
             print '** dispose:',ext,filename,'->',r
 
     if isinstance(svgname,str):
@@ -194,13 +203,6 @@ def pylab_dispose(dispose='show'):
             import os
             os.system("%s -size 640x480 %s" % ('display',filename))
             # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
-        
-    if 'show' in dispose:
-        # pylab.show._needmain = False
-        pylab.show()
-        # pylab.ion()
-        # pylab.draw()
-        # pylab.close()
         
     # Finished: return the result (if any):
     return result
