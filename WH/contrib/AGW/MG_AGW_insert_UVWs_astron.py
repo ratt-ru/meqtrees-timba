@@ -40,53 +40,64 @@ except:
   try:
     from pycasatable import *
   except:
-    print 'python interface to aips++ tables does not appear to be present'
     has_table_interface = False
 
-if has_table_interface:
-# Insert the name of your favourite MS in the following line
-  t = table('TEST_XNTD_60_480.MS',readonly=False)
+def usage( prog ):
+  print 'usage : python %s <MS to be corrected>' % prog
+  return 1
 
-  boio = mequtils.open_boio("meqlog.mql")
-  vells_data = VellsData()
-  vells_data.setInitialSelection(False)
-  row_number = -1
-  while True:
-    entry = mequtils.read_boio(boio);
-    if entry is None:
-      break;
-    for key,val in entry.iteritems():
-      if isinstance(val,dmi.record):
-        if key == 'result':
-          vells_data.StoreVellsData(val,key)
-          num_UVWs = vells_data.getNumPlanes() / 3
-          vells_data.setActivePlane(0)
-          num_tile_points = len(vells_data.getActiveData())
-          # for each point in time we have to read and process all baselines
-          for i in range(num_tile_points): 
-            k = -1
-            for j in range(num_UVWs):
-              k = k + 1
-              vells_data.setActivePlane(k)
-              plane = vells_data.getActiveData()
-              U = plane[i]
-              k = k + 1
-              vells_data.setActivePlane(k)
-              plane = vells_data.getActiveData()
-              V = plane[i]
-              k = k + 1
-              vells_data.setActivePlane(k)
-              plane = vells_data.getActiveData()
-              W = plane[i]
-              row_number = row_number + 1
-              uvw_group = t.getcell('UVW',row_number)
-              uvw_group[0] = U
-              uvw_group[1] = V
-              uvw_group[2] = W
-              t.putcell('UVW',row_number,uvw_group)
-  #   else:
-  #     print key,val;
-  
-  print 'number of rows processed ', row_number + 1
-t.flush()
-t.close()
+def main( argv ):
+  if has_table_interface:
+    print 'Inserting UVWs into MS ', argv[1]
+# first load data from table
+    t = table(argv[1],readonly=False)
+    boio = mequtils.open_boio("meqlog.mql")
+    vells_data = VellsData()
+    vells_data.setInitialSelection(False)
+    row_number = -1
+    while True:
+      entry = mequtils.read_boio(boio);
+      if entry is None:
+        break;
+      for key,val in entry.iteritems():
+        if isinstance(val,dmi.record):
+          if key == 'result':
+            vells_data.StoreVellsData(val,key)
+            num_UVWs = vells_data.getNumPlanes() / 3
+            vells_data.setActivePlane(0)
+            num_tile_points = len(vells_data.getActiveData())
+            # for each point in time we have to read and process all baselines
+            for i in range(num_tile_points): 
+              k = -1
+              for j in range(num_UVWs):
+                k = k + 1
+                vells_data.setActivePlane(k)
+                plane = vells_data.getActiveData()
+                U = plane[i]
+                k = k + 1
+                vells_data.setActivePlane(k)
+                plane = vells_data.getActiveData()
+                V = plane[i]
+                k = k + 1
+                vells_data.setActivePlane(k)
+                plane = vells_data.getActiveData()
+                W = plane[i]
+                row_number = row_number + 1
+                uvw_group = t.getcell('UVW',row_number)
+                uvw_group[0] = U
+                uvw_group[1] = V
+                uvw_group[2] = W
+                t.putcell('UVW',row_number,uvw_group)
+    print 'number of rows processed ', row_number + 1
+    t.flush()
+    t.close()
+  else:
+    print 'python interface to aips++ tables does not appear to be present'
+    print 'exiting'
+
+if __name__ == "__main__":
+  """ We need at least one argument: the name of the Measurement Set in which to insert UVWs """
+  if len(sys.argv) < 2:
+    usage(sys.argv[0])
+  else:
+    main(sys.argv)
