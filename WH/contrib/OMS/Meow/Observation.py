@@ -44,10 +44,6 @@ class Observation (object):
     self._kwquals = kwquals;
     self.phase_centre = self.phase_center = \
         Direction(ns,None,0,0,quals=quals,kwquals=kwquals);
-    if not ns.freq0.initialized():
-      self.freq0=ns.freq0<<Meq.Constant(59e6);
-    if not ns.freq1.initialized():
-      self.freq1=ns.freq1<<Meq.Constant(60e6);
 
   def circular (self):
     return self._circular;
@@ -58,8 +54,12 @@ class Observation (object):
 
   def freq0(self):
     """return start frequency """;
-    return self.freq0
+    if not self.ns.freq0.initialized():
+      self.ns.freq0 << Meq.Constant(59e6);
+    return self.ns.freq0;
 
   def freq1(self):
     """return end frequency """;
-    return self.freq1
+    if not self.ns.freq1.initialized():
+      self.ns.freq1 << Meq.Constant(60e6);
+    return self.ns.freq1;

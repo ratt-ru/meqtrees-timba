@@ -212,8 +212,11 @@ class IfrArray (object):
     MEP tables, according to whatever was specified in the constructor.
     For other directions, UVWs are always computed.
     If a station is supplied, returns UVW node for that station""";
-    radec0 = Context.get_dir0(dir0).radec();
-    uvw = self.ns.uvw.qadd(radec0);
+    if dir0 is not None:
+      radec0 = Context.get_dir0(dir0).radec();
+      uvw = self.ns.uvw.qadd(radec0);
+    else:
+      uvw = self.ns.uvw;
     if not uvw(self.stations()[0]).initialized():
       if self._ms_uvw:
         # read UVWs from MS
@@ -238,6 +241,7 @@ class IfrArray (object):
           );
       else:
         # compute UVWs via a UVW node
+        radec0 = Context.get_dir0(dir0).radec();
         xyz0 = self.xyz0();
         xyz = self.xyz();
         for station in self.stations():

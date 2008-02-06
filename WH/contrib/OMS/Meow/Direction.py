@@ -106,15 +106,15 @@ class Direction (Parameterization):
     Return value is an under-qualified node, which should be 
     qualified with a station index.
     """;
-    dir0 = Context.get_dir0(dir0);
-    array = Context.get_array(array);
     # if direction is same, K is identity for all stations
     if self is dir0:
       Kj = self.ns.K << 1;
       return lambda p: Kj;
     else:
-      radec0 = dir0.radec();
-      Kj = self.ns.K.qadd(radec0);
+      Kj = self.ns.K;
+      if dir0:
+        Kj = Kj.qadd(dir0.radec());
+      array = Context.get_array(array);
       stations = array.stations();
       if not Kj(stations[0]).initialized():
         # use L,M,(N-1) for lmn. NB: this could be made an option in the future
