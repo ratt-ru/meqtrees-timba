@@ -29,18 +29,40 @@ import Context
 _wsrt_list = [ str(i) for i in range(10)] + ['A','B','C','D','E','F'];
 _vla_list = [ str(i) for i in range(1,28) ];
 
+_uvw_from_ms = "from MS";
+_uvw_compute = "compute";
+_uvw_sign_ba = "B-A (VLA style)";
+_uvw_sign_ab = "A-B (WSRT style)";
+
+_options = [
+  TDLOption('uvw_source',"UVW coordinates",[_uvw_from_ms,_uvw_compute]),
+  TDLOption('uvw_sign',"UVW sign convention",[_uvw_sign_ba,_uvw_sign_ab])
+];
+
 class IfrArray (object):
-  def __init__(self,ns,station_list,station_index=None,uvw_table=None,mirror_uvw=False):
+  def compile_options ():
+    return _options;
+  compile_options = staticmethod(compile_options);
+
+  def __init__(self,ns,station_list,station_index=None,uvw_table=None,
+               ms_uvw=None,mirror_uvw=None):
     """Creates an IfrArray object, representing an interferometer array.
     'station_list' is a list of station IDs, not necessarily numeric.
     'station_index' is an optional list of numeric station indices. If not given,
       [0,...,N-1] will be used. If the array represents a subset of an MS,
       then correct indices indicating the subset should be given.
-    'uvw_table' is a path to a MEP table containing station UVWs. If not given,
-      UVWs will be computed explicitly with a Meq.UVW node.
-    'mirror_uvw' can be True to use the VLA UVW deifnition (sign flip)
+    'uvw_table' is a path to a MEP table containing station UVWs. 
+    'ms_uvw' if True, causes UVWs to be read from the MS. If False, causes UVWs to
+      be computed with a Meq.UVW node. If None, uses the global uvw_source TDLOption.
+    'mirror_uvw' is True to use the VLA UVW sign definition, False to use the WSRT one,
+      or None to use the global uvw_sign option.
     """;
     self.ns = ns;
+    # select UVW options
+    if ms_uvw is None:
+      ms_uvw = (uvw_source == _uvw_from_ms);
+    if mirror_uvw is None:
+      mirror_uvw = (uvw_sign == _uvw_sign_ba);
     # make list of station pairs: (0,p0),(1,p1),... etc.
     if station_index:
       if len(station_list) != len(station_index):
@@ -54,6 +76,7 @@ class IfrArray (object):
                                 for qx in self._station_index if px[0]<qx[0] ];
     self._ifrs = [ (px[1],qx[1]) for px,qx in self._ifr_index ];
     self._uvw_table = uvw_table;
+    self._ms_uvw = ms_uvw;
     self._mirror_uvw = mirror_uvw;
     self._jones = [];
     
@@ -119,7 +142,7 @@ class IfrArray (object):
       for (ip,p),(iq,q) in self.ifr_index():
         node(p,q) << Meq.Spigot(station_1_index=ip,station_2_index=iq,**kw);
     return node;
-    
+      
   def sinks (self,children,node=None,**kw):
     """Creates (if necessary) and returns sinks, as an unqualified node.
     The 'children' argument should be a list of child nodes, which
@@ -185,32 +208,46 @@ class IfrArray (object):
   def uvw (self,dir0=None,*quals):
     """returns station UVW node(s) for a given phase centre direction,
     or using the global phase center if None is given.
+    For the global phase center (dir0=None), can also use UVWs from the MS or from
+    MEP tables, according to whatever was specified in the constructor.
+    For other directions, UVWs are always computed.
     If a station is supplied, returns UVW node for that station""";
     radec0 = Context.get_dir0(dir0).radec();
     uvw = self.ns.uvw.qadd(radec0);
     if not uvw(self.stations()[0]).initialized():
-      if not self._uvw_table:
-        xyz0 = self.xyz0();
-        xyz = self.xyz();
-      for station in self.stations():
-        # create UVW nodess
-        # if a table is specified, UVW will be read in directly
-        if self._uvw_table:
-          uvw_def = Meq.Composer(
+      if self._ms_uvw:
+        # read UVWs from MS
+        # first station gets (0,0,0), the rest is via subtraction
+        p = self.stations()[0];
+        uvw(p) << Meq.Composer(0,0,0);
+        for iq,q in enumerate(self.stations()[1:]):
+          if not self._mirror_uvw:
+            uvw(q,'neg') << Meq.Spigot(station_1_index=0,station_2_index=iq+1,
+                                  input_col='UVW');
+            uvw(q) << -uvw(q,'neg');
+          else:
+            uvw(q) << Meq.Spigot(station_1_index=0,station_2_index=iq+1,
+                                  input_col='UVW');
+      elif self._uvw_table:
+        # read UVWs from MEP table
+        for station in self.stations():
+          uvw(station) << Meq.Composer(
             self.ns.u.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table),
             self.ns.v.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table),
             self.ns.w.qadd(radec0)(station) << Meq.Parm(table_name=self._uvw_table)
           );
-        # else create MeqUVW node to compute them
-        else:
+      else:
+        # compute UVWs via a UVW node
+        xyz0 = self.xyz0();
+        xyz = self.xyz();
+        for station in self.stations():
           uvw_def = Meq.UVW(radec = radec0,
                             xyz_0 = xyz0,
                             xyz   = xyz(station));
-        # do UVW need to be mirrored?
-        if self._mirror_uvw:
-          uvw(station) << Meq.Negate(self.ns.m_uvw(station) << uvw_def );
-        else:
-          uvw(station) << uvw_def;
+          if self._mirror_uvw:
+            uvw(station) << Meq.Negate(self.ns.m_uvw(station) << uvw_def );
+          else:
+            uvw(station) << uvw_def;
     return uvw(*quals);
   
   def uvw_ifr (self,dir0,*quals):

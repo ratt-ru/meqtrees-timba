@@ -40,8 +40,9 @@ TDLRuntimeOptions(*mssel.runtime_options());
 ## also possible:
 # TDLRuntimeMenu("MS selection options",open=True,*mssel.runtime_options());
 
-# mirror UVWs
-TDLCompileOption('mirror_uvw',"MS uses mirrored UVW coordinates",False);
+# UVW
+TDLCompileOptions(*Meow.IfrArray.compile_options());
+
 # simulation mode menu
 SIM_ONLY = "sim only";
 ADD_MS   = "add to MS";
@@ -93,7 +94,7 @@ TDLCompileOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float);
 
 def _define_forest (ns):
   ANTENNAS = mssel.get_antenna_set(range(1,28));
-  array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=mirror_uvw);
+  array = Meow.IfrArray(ns,ANTENNAS);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   stas = array.stations();

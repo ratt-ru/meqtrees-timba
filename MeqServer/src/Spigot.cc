@@ -76,15 +76,23 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     }
     icolumn_ = iter->second;
   }
-  // check output shapes and maps for consistency
-  bool reshaped = rec[FDims].get_vector(dims_,initializing);
-  reshaped |= rec[FCorrIndex].get_vector(corr_index_,initializing);
-  FailWhen(reshaped && dims_.product() != int(corr_index_.size()),
-           "length of "+FCorrIndex.toString()+" vector does not match dimensions given by "+FDims.toString());
-  rec[FFlagBit].get(flag_bit_,initializing);
-  rec[FFlagMask].get(flag_mask_,initializing);
-  rec[FRowFlagMask].get(row_flag_mask_,initializing);
-  rec[FIntegrated].get(integrated_,initializing);
+  if( colname_ == "UVW" )
+  {
+    dims_.resize(1);
+    dims_[0] = 3;
+  }
+  else
+  {
+    // check output shapes and maps for consistency
+    bool reshaped = rec[FDims].get_vector(dims_,initializing);
+    reshaped |= rec[FCorrIndex].get_vector(corr_index_,initializing);
+    FailWhen(reshaped && dims_.product() != int(corr_index_.size()),
+            "length of "+FCorrIndex.toString()+" vector does not match dimensions given by "+FDims.toString());
+    rec[FFlagBit].get(flag_bit_,initializing);
+    rec[FFlagMask].get(flag_mask_,initializing);
+    rec[FRowFlagMask].get(row_flag_mask_,initializing);
+    rec[FIntegrated].get(integrated_,initializing);
+  }
 }
 
 // template<typename TT,typename VT>
@@ -162,7 +170,19 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     // get array 
     if( coltype == Tpdouble )
     {
-      if( colshape.size() == 3 )
+      // UVW column is a special case
+      if( colname_ == "UVW" )
+      {
+        LoMat_double mat(static_cast<double*>(coldata),colshape,blitz::neverDeleteData);
+        LoShape shape = Axis::timeVector(nrows);
+        for( int i=0; i<3; i++ )
+        {
+          VellSet &vs = result.setNewVellSet(i);
+          vs.setReal(shape).getArray<double,1>() = mat(i,rowrange);
+        }
+      }
+      // else treat it as a standard corr/freq/time column
+      else if( colshape.size() == 3 )
       {
         LoCube_double cube(static_cast<double*>(coldata),colshape,blitz::neverDeleteData);
         // transpose into time-freq-corr order
