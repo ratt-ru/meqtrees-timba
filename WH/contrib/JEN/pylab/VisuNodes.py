@@ -30,6 +30,7 @@ from Timba import dmi
 from Timba import utils
 from Timba.Meq import meq
 from Timba.Meq import meqds
+import Meow.Bookmarks
 
 import inspect
 import random
@@ -128,7 +129,7 @@ class TheHardWay (pynode.PyNode):
 
     xlabel = 'x'
     ylabel = 'y'
-    print 'TheHardWay *** I am hanging'
+    print '\n** TheHardWay.get_result():\n'
     pylab.figure(1)
     pylab.subplot(111)
     pylab.title('VisuNodes.TheHardWay')
@@ -138,7 +139,7 @@ class TheHardWay (pynode.PyNode):
     for i,ch in enumerate(children):
       _dprint(0,'- child',i,':',dmi.dmi_typename(ch),': ch =',ch)
       v0 = ch.vellsets[0].value[0]
-      print '--- v0:',type(v0),'::',v0
+      print '\n--- v0:',type(v0),'::',v0
       if isinstance(v0,complex):
         xx.append(v0.real)
         yy.append(v0.imag)
@@ -219,16 +220,17 @@ def _define_forest (ns,**kwargs):
   cc = []
   
   if 1:
+    ns.offset << Meq.Mean(Meq.Time())
     for i in range(12):
       value = i
       value = complex(i,i)
       value = random.gauss(0,1)
       value = complex(random.gauss(0,1),random.gauss(0,1))
-      cc.append(ns[str(i)] << value)
+      cc.append(ns[str(i)] << value+ns.offset)
 #   classname = "ScatterPlot"
     classname = "TheHardWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
-                
+    Meow.Bookmarks.Page('bookmark').add(ns.pynode, viewer="Svg Plotter")                
   return True
   
 
@@ -238,10 +240,23 @@ def _define_forest (ns,**kwargs):
 
 def _test_forest (mqs,parent,wait=False):
   from Timba.Meq import meq
-  cells = meq.cells(meq.domain(0,1,0,1),num_freq=20,num_time=10);
+  i = 0
+  cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
+  print '\n--',i,': cells =',cells
   request = meq.request(cells,rqtype='e1');
-# mqs.execute('pynode',request,wait=wait);
+  # mqs.execute('pynode',request,wait=wait);
   a = mqs.meq('Node.Execute',record(name='pynode',request=request),wait=wait)
+  return True
+
+
+def _tdl_job_sequence (mqs,parent,wait=False):
+  from Timba.Meq import meq
+  for i in range(10):
+    cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
+    print '\n--',i,': cells =',cells
+    request = meq.request(cells,rqtype='e1');
+    # mqs.execute('pynode',request,wait=wait);
+    a = mqs.meq('Node.Execute',record(name='pynode',request=request),wait=wait)
   return True
 
 
