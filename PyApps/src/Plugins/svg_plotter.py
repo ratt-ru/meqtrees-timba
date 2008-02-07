@@ -236,7 +236,6 @@ class SvgPlotter(GriddedPlugin):
       return
 
     svg_plot = self._rec.svg_plot
-    print 'svg plot string ', svg_plot
     file_name = '/tmp/svg_descriptor.svg'
     file = open(file_name,'w')
     result = file.writelines(svg_plot)
