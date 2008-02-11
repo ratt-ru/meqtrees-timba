@@ -129,8 +129,8 @@ class PlotStyle (object):
     def extract_kw_plot(self, **kwargs):
         """Extract pylab.plot() keywords from kwargs"""
 
-        trace = True
-        # trace = False
+        # trace = True
+        trace = False
         
         kw = dict()
         if isinstance(kwargs, dict):
@@ -197,7 +197,7 @@ class PlotStyle (object):
         """Extract pylab.text() keywords from kwargs"""
 
         trace = True
-        # trace = False
+        trace = False
         
         kw = dict()
         if isinstance(kwargs, dict):

@@ -163,6 +163,9 @@ class Graphics (Subplot.Subplot):
         ss += '  xrange='+str(self.xrange())
         return ss
 
+    def display(txt):
+        return self.oneliners()
+
     def oneliners(self):
         """Print its own oneliner, and those of its graphics"""
         print '\n',self.oneliner()
@@ -216,8 +219,9 @@ class Graphics (Subplot.Subplot):
 
 class Scatter (Graphics):
 
-    def __init__(self, yy=None, xx=None, dxx=None, dyy=None,
-                 annot=None, annotpos=None, **kwargs):
+    def __init__(self, yy=None, annot=None,
+                 xx=None, dxx=None, dyy=None,
+                 **kwargs):
         """
         The Scatter class is derived from the Graphics class.
         It represents a scatter-plot (markers) of the specified
@@ -233,8 +237,8 @@ class Scatter (Graphics):
         # Make the PointsXY object, and add it to the internal list:
         kwargs.setdefault('style','o')
         kwargs.setdefault('markersize',5)
-        self.add(PointsXY.PointsXY(yy, xx=xx, dxx=dxx, dyy=dyy,
-                                   annot=annot, annotpos=annotpos,
+        self.add(PointsXY.PointsXY(yy=yy, annot=annot,
+                                   xx=xx, dxx=dxx, dyy=dyy,
                                    **kwargs))
 
         # Finished:

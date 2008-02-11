@@ -32,6 +32,8 @@ from Timba.Meq import meq
 from Timba.Meq import meqds
 import Meow.Bookmarks
 
+import ChildResult
+
 import inspect
 import random
 
@@ -100,6 +102,65 @@ class ScatterPlot (pynode.PyNode):
     # Finished: dispose of the Figure:
     fig.oneliners()
     svg_list_of_strings = fig.plot(dispose=['svg'])
+    # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
+    # If dispose contains 'svg', .plot() returns the contents of the .svg file.
+    # This is a list of strings, which is attached to the MeqResult of this pyNode.
+    # It should then be picked up by Tony to recreate the SVG plot in the browser....
+    result = meq.result()
+    result.svg_plot = svg_list_of_strings
+    return result
+
+
+#========================================================================
+# A version of ScatterPlot that uses the ChildResult class:
+#========================================================================
+
+
+class TheEasyWay (pynode.PyNode):
+  """Make a scatter-plot of the means of the results of its children"""
+
+
+  def __init__ (self, *args):
+    pynode.PyNode.__init__(self,*args);
+    self.set_symdeps('domain','resolution');
+                              
+  def get_result (self, request, *children):
+
+    # Make the pylab figure (I could not resist the temptation to
+    # make some supporting classes to make things easy, albeit hidden):
+    import Graphics         # A collection of Graphics classes
+    import Figure           # A class that holds one or more Subplots
+
+    # First make an (empty) pylab figure:
+    fig = Figure.Figure()
+    
+    # Make an empty Graphics object:
+    grs = Graphics.Scatter(title='VisuNodes.TheEasyWay',
+                           xlabel='x', ylabel='y',
+                           color='blue', style='o')
+    # grs.display('init')
+    
+
+    # Accumulate the point(s) representing the child result(s):
+    for i,ch in enumerate(children):
+      # _dprint(0,'- child',i,':',dmi.dmi_typename(ch))
+
+      # NB: We need access to the child name! (and other info?)
+
+      cr = ChildResult.Result(ch)             # ch is MeqResult class
+      # cr.display()
+      # print cr.oneliner()
+      Vells = cr[0]                           # (the first of) its internal Vells
+      print '--',i,': Vells:',Vells.oneliner()
+      grs[0].append(y=Vells.mean(), annot=i, dy=Vells.stddev(), trace=True)
+
+    # When complete, add the Subplot object to the Figure:
+    # grs.display('accumulated')
+    fig.add(grs)
+
+    # Finished: dispose of the Figure:
+    fig.oneliners()
+    svg_list_of_strings = fig.plot(dispose=['show'])
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.
@@ -217,18 +278,29 @@ def pylab_dispose(dispose='svg'):
 
 def _define_forest (ns,**kwargs):
   """Make trees with the various pyNodes"""
+
   cc = []
   
   if 1:
-    ns.offset << Meq.Mean(Meq.Time())
+    ns.time << Meq.Time()
+    ns.freq << Meq.Freq()
+    ns.freqtime << Meq.Add(ns.freq,ns.time)
+    ns.cx_freqtime << Meq.ToComplex(ns.freq,ns.time)
+    ns.tmean << Meq.Mean(ns.time)
+    ns.fmean << Meq.Mean(ns.freq)
+
     for i in range(12):
       value = i
       value = complex(i,i)
       value = random.gauss(0,1)
-      value = complex(random.gauss(0,1),random.gauss(0,1))
-      cc.append(ns[str(i)] << value+ns.offset)
-#   classname = "ScatterPlot"
-    classname = "TheHardWay"
+      # value = complex(random.gauss(0,1),random.gauss(0,1))
+      # cc.append(ns[str(i)] << value+ns.tmean)
+      cc.append(ns[str(i)] << value+ns.cx_freqtime)
+      # cc.append(ns[str(i)] << value+ns.freqtime)
+      
+    # classname = "ScatterPlot"
+    # classname = "TheHardWay"
+    classname = "TheEasyWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
     Meow.Bookmarks.Page('pynode').add(ns.pynode, viewer="Svg Plotter")                
   return True
