@@ -148,14 +148,25 @@ class BeamPhasePlot (pynode.PyNode):
 
 # first load data from table
     import pylab
-    import pyrap_tables
-    t = pyrap_tables.table(self.file_name)
+    try:
+      import pycasatable
+      t = pycasatable.table(self.file_name)
+    except:
+      try:
+        import pyrap_tables
+        t = pyrap_tables.table(self.file_name)
+      except:
+        print 'no python interface to aips++ tables was found'
+        result = meq.result()
+        return result
     num_rows = len(t.rownumbers(t))
     print 'number of rows ', num_rows
+    svg_list = []
 
 # read in and store weights in a list
 # first plot phase conjugate weights
-    pylab.subplot(211)
+#   pylab.subplot(211)
+    pylab.figure(1)
     row_number = -1
     self.weight_re = []
     self.weight_im = []
@@ -184,10 +195,17 @@ class BeamPhasePlot (pynode.PyNode):
           status = False
     max_abs = self.get_max_value()
     self.create_figure(max_abs)
-#   pylab.xlabel('X/I location of feed')
+    pylab.xlabel('X/I location of feed')
     pylab.ylabel('Y/J location of feed')
     pylab.grid(True)
     pylab.title('Amplitude and Phase of Conjugate Beam Weights')
+
+    svg_name = 'demo'
+    pylab.savefig(svg_name)
+    file_name = svg_name + '.svg' 
+    file = open(file_name,'r')
+    svg_list.append(file.readlines())
+    file.close()
 
 # try to plot gaussian fitted weights
     self.weight_re = []
@@ -218,23 +236,22 @@ class BeamPhasePlot (pynode.PyNode):
     t.close()
     if len(self.weight_re) > 0:
       print 'generating 2nd plot with num data points: ', len(self.weight_re)
-      pylab.subplot(212)
+#     pylab.subplot(212)
+      pylab.figure(2)
       max_abs = self.get_max_value()
       self.create_figure(max_abs)
       pylab.xlabel('X/I location of feed')
       pylab.ylabel('Y/J location of feed')
       pylab.grid(True)
       pylab.title('Amplitude and Phase of Beam Weights')
-    else:
-      pylab.xlabel('X/I location of feed')
+      svg_name = 'demo'
+      pylab.savefig(svg_name)
+      file_name = svg_name + '.svg' 
+      file = open(file_name,'r')
+      svg_list.append(file.readlines())
+      file.close()
 
     # save the file
     result = meq.result()
-
-    svg_name = 'demo'
-    pylab.savefig(svg_name)
-    file_name = svg_name + '.svg' 
-    file = open(file_name,'r')
-    result.svg_plot = file.readlines()
-    file.close()
+    result.svg_plot = svg_list
     return result
