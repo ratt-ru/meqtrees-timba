@@ -156,7 +156,7 @@ def source_list (ns,basename="S",l0=None,m0=None):
 
 # model options
 model_option = TDLCompileOption("model_func","Sky model type",
-      [single_grid_model,double_grid_model,cross_model,circ_grid_model,star8_model,lbar_model,mbar_model]);
+      [point_source,single_grid_model,double_grid_model,cross_model,circ_grid_model,star8_model,lbar_model,mbar_model]);
 
 TDLCompileOption("grid_size","Number of sources in each direction",
       [3,1,5,7],more=int);

@@ -1,9 +1,11 @@
+#import sys
+#sys.path.insert(0,'')
+
 from Timba.TDL import *
 import Meow
 from Meow import Context
 from Meow import ParmGroup,Bookmarks
-import myZJones
-import myZJones_solve
+import ZJones
 
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=[1,10,50],flags=False);
 
@@ -52,8 +54,7 @@ meqmaker.add_sky_models([lsm,mygridded_sky]);
 
 
 
-meqmaker.add_sky_jones('Z','iono',[myZJones.ZJones()]);
-meqmaker.add_sky_jones('Zs','solve',[myZJones_solve.ZJones()]);
+meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
@@ -61,7 +62,7 @@ TDLCompileOptions(*meqmaker.compile_options());
 def _define_forest(ns):
     #make pynodes, xyzcomponent for sources
     ANTENNAS = mssel.get_antenna_set(range(1,N_ANT+1));
-    array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
+    array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False,ms_uvw=True);
     observation = Meow.Observation(ns);
     Meow.Context.set(array,observation);
     # make a predict tree using the MeqMaker

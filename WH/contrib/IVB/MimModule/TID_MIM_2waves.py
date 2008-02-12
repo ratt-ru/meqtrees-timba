@@ -20,7 +20,7 @@ def compile_options():
             TDLCompileOption("Amp_2","Relative amplitude second wave",[0.0,0.01,0.02,0.05,0.1],more=float)];
 
     
-class TID_MIM(PiercePoints):
+class MIM(PiercePoints):
     """Create MIM_model with travelling waves as function of the pierc points"""
 
 
