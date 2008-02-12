@@ -51,6 +51,7 @@ class PictureDisplay(QWidget):
     QWidget.__init__(self, *args)
     self.pict = QPicture()
     self.name = None
+    self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
   def loadPicture(self,filename):
     self.name = filename
@@ -86,7 +87,6 @@ class SvgPlotter(GriddedPlugin):
     self.data_list_labels = []
     self.data_list_length = 0
     self.max_list_length = 50
-    self._window_controller = None
     self.layout_created = False
 
     self.reset_plot_stuff()
@@ -104,10 +104,6 @@ class SvgPlotter(GriddedPlugin):
     self.status_label = None
     self.layout_parent = None
     self.layout = None
-
-  def __del__(self):
-    if self._window_controller:
-      self._window_controller.closeAllWindows()
 
   def wtop (self):
     """ function needed by Oleg for reasons known only to him! """
@@ -220,7 +216,7 @@ class SvgPlotter(GriddedPlugin):
     return process_result
 
   def replay_data (self, data_index):
-    """ ca to redisplay contents of a result record stored in 
+    """ call to redisplay contents of a result record stored in 
         a results history buffer
     """
     if data_index < len(self.data_list):
@@ -252,9 +248,10 @@ class SvgPlotter(GriddedPlugin):
       self._svg_plotter = None
     if self._svg_plotter is None:
       self._svg_plotter = PictureDisplay(self.layout_parent)
-      self.layout.addWidget(self._svg_plotter, 1, 0)
+      self.layout.addWidget(self._svg_plotter, 0, 0)
     self._svg_plotter.loadPicture(file_name)
     self._svg_plotter.show()
+
     try:
       os.system("rm -fr "+ file_name);
     except:   pass
@@ -284,7 +281,8 @@ class SvgPlotter(GriddedPlugin):
       self.results_selector = ResultsRange(self.layout_parent)
       self.results_selector.setMaxValue(self.max_list_length)
       self.results_selector.set_offset_index(0)
-      self.layout.addWidget(self.results_selector, 0,0,Qt.AlignHCenter)
+      self.results_selector.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum)
+      self.layout.addWidget(self.results_selector, 1,0,Qt.AlignHCenter)
       self.results_selector.show()
       QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
       QObject.connect(self.results_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
