@@ -217,7 +217,7 @@ class SvgPlotter(GriddedPlugin):
     return process_result
 
   def replay_data (self, data_index):
-    """ callback to redisplay contents of a result record stored in 
+    """ ca to redisplay contents of a result record stored in 
         a results history buffer
     """
     if data_index < len(self.data_list):
@@ -236,14 +236,20 @@ class SvgPlotter(GriddedPlugin):
       return
 
     svg_plot = self._rec.svg_plot
+    print '***************************'
+    print 'handling svg_plot event - string has length ', len(svg_plot)
+    print '***************************'
     file_name = '/tmp/svg_descriptor.svg'
     file = open(file_name,'w')
     result = file.writelines(svg_plot)
     file.close()
 
+    if not self._svg_plotter is None:
+      self._svg_plotter.reparent(QWidget(), 0, QPoint())
+      self._svg_plotter = None
     if self._svg_plotter is None:
       self._svg_plotter = PictureDisplay(self.layout_parent)
-      self.layout.addWidget(self._svg_plotter, 0, 0)
+      self.layout.addWidget(self._svg_plotter, 1, 0)
     self._svg_plotter.loadPicture(file_name)
     self._svg_plotter.show()
     try:
@@ -267,7 +273,7 @@ class SvgPlotter(GriddedPlugin):
     if len(self.data_list) != self.data_list_length:
       self.data_list_length = len(self.data_list)
 
-    self.plot_vells_data(store_rec=False)
+    self.show_svg_plot(store_rec=False)
 
   def adjust_selector (self):
     """ instantiate and/or adjust contents of ResultsRange object """
@@ -275,23 +281,14 @@ class SvgPlotter(GriddedPlugin):
       self.results_selector = ResultsRange(self.layout_parent)
       self.results_selector.setMaxValue(self.max_list_length)
       self.results_selector.set_offset_index(0)
-      self.layout.addWidget(self.results_selector, 3,1,Qt.AlignHCenter)
+      self.layout.addWidget(self.results_selector, 0,0,Qt.AlignHCenter)
       self.results_selector.show()
       QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
       QObject.connect(self.results_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
-      if not self._svg_plotter is None:
-        self._svg_plotter.setResultsSelector()
     self.results_selector.set_emit(False)
     self.results_selector.setRange(self.data_list_length-1)
     self.results_selector.setLabel(self.label)
     self.results_selector.set_emit(True)
-
-  def show_selector (self, do_show_selector):
-    """ callback to show or hide a ResultsRange object """
-    if do_show_selector:
-      self.results_selector.show()
-    else:
-      self.results_selector.hide()
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),SvgPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass(),SvgPlotter,priority=22)
