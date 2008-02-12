@@ -67,6 +67,12 @@ class PictureDisplay(QWidget):
   def resizeEvent(self, ev):
     self.resize(ev.size())
 
+
+  def sizeHint(self):
+    hint = QSize(self.minimumSizeHint())
+    return hint;
+
+
 class SvgPlotter(GriddedPlugin):
   """ a class to visualize data from Scalable Vector Graphics files """
 
