@@ -151,8 +151,12 @@ class TheEasyWay (pynode.PyNode):
       # cr.display()
       # print cr.oneliner()
       Vells = cr[0]                           # (the first of) its internal Vells
-      print '--',i,': Vells:',Vells.oneliner()
-      grs[0].append(y=Vells.mean(), annot=i, dy=Vells.stddev(), trace=True)
+      # print '--',i,': Vells:',Vells.oneliner()
+      if i==0 and Vells.is_complex():
+        grs.kwupdate(xlabel='real part', ylabel='imag part')
+      grs[0].append(y=Vells.mean(), annot=i,
+                    dy=Vells.errorbar(),
+                    trace=False)
 
     # When complete, add the Subplot object to the Figure:
     # grs.display('accumulated')
@@ -160,7 +164,8 @@ class TheEasyWay (pynode.PyNode):
 
     # Finished: dispose of the Figure:
     fig.oneliners()
-    svg_list_of_strings = fig.plot(dispose=['show'])
+    # svg_list_of_strings = fig.plot(dispose=['show'])
+    svg_list_of_strings = fig.plot(dispose=['svg'])
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.
@@ -293,7 +298,7 @@ def _define_forest (ns,**kwargs):
       value = i
       value = complex(i,i)
       value = random.gauss(0,1)
-      # value = complex(random.gauss(0,1),random.gauss(0,1))
+      value = complex(random.gauss(0,1),random.gauss(0,1))
       # cc.append(ns[str(i)] << value+ns.tmean)
       cc.append(ns[str(i)] << value+ns.cx_freqtime)
       # cc.append(ns[str(i)] << value+ns.freqtime)
@@ -302,7 +307,8 @@ def _define_forest (ns,**kwargs):
     # classname = "TheHardWay"
     classname = "TheEasyWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
-    Meow.Bookmarks.Page('pynode').add(ns.pynode, viewer="Svg Plotter")                
+    Meow.Bookmarks.Page(classname).add(ns.pynode, viewer="Svg Plotter")                
+    Meow.Bookmarks.Page('cx_freqtime').add(ns.cx_freqtime, viewer="Result Plotter")                
   return True
   
 
@@ -314,7 +320,7 @@ def _test_forest (mqs,parent,wait=False):
   from Timba.Meq import meq
   i = 0
   cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
-  print '\n--',i,': cells =',cells
+  print '\n--',i,': cells =',cells,'\n'
   request = meq.request(cells,rqtype='e1');
   # mqs.execute('pynode',request,wait=wait);
   a = mqs.meq('Node.Execute',record(name='pynode',request=request),wait=wait)
@@ -323,12 +329,14 @@ def _test_forest (mqs,parent,wait=False):
 
 def _tdl_job_sequence (mqs,parent,wait=False):
   from Timba.Meq import meq
-  for i in range(10):
+  for i in range(5):
     cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
-    print '\n--',i,': cells =',cells
-    request = meq.request(cells,rqtype='e1');
+    rqid = meq.requestid(i)
+    print '\n--',i,rqid,': cells =',cells,'\n'
+    # request = meq.request(cells, rqtype='e1');
+    request = meq.request(cells, rqid=rqid);
     # mqs.execute('pynode',request,wait=wait);
-    a = mqs.meq('Node.Execute',record(name='pynode',request=request),wait=wait)
+    a = mqs.meq('Node.Execute',record(name='pynode',request=request), wait=wait)
   return True
 
 

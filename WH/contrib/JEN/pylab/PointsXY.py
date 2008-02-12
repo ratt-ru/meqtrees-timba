@@ -77,7 +77,7 @@ class PointsXY (object):
         self._dxx = []
         self._annot = []
         self._input = dict(annot=annot, dx=dxx, dy=dyy)          # used in .append()
-        self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy) 
+        self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy)     # if any specified 
         
         # Finished:
         return None
@@ -127,15 +127,19 @@ class PointsXY (object):
         self._yarr = None
         self._xarr = None
 
+        is_complex = False
+        xauto = False
         if isinstance(y, complex):
             self._yy.append(y.imag)
             self._xx.append(y.real)
+            is_complex = True
         elif isinstance(y, (float,int)):
             self._yy.append(float(y))
             if isinstance(x, (float,int)):
                 self._xx.append(float(x))
             else:
                 self._xx.append(float(len(self._yy)-1))
+                xauto = True
         else:
             s = '** .append(): type(y) not recognized: '+str(type(y))
             raise ValueError,s
@@ -144,6 +148,7 @@ class PointsXY (object):
         if isinstance(dy, complex):
             self._dyy.append(dy.imag)
             self._dxx.append(dy.real)
+
         else:
             dyin = self._input['dy']                   # see .__init__()
             if isinstance(dy, (float,int)):
@@ -152,13 +157,20 @@ class PointsXY (object):
                 self._dyy.append(float(dyin))
             else:
                 self._dyy.append(0.0)
+
             dxin = self._input['dx']                   # see .__init__()
-            if isinstance(dx, (float,int)):
+            if xauto:                                  # automatic x (0,1,2,...)
+                self._dxx.append(0.0)                  # no x-error-bar
+            elif isinstance(dx, (float,int)):
                 self._dxx.append(float(dx))
+            elif is_complex:
+                dylast = self._dyy[len(self._dyy)-1]
+                self._dxx.append(dylast)
             elif isinstance(dxin, (float,int)):
                 self._dxx.append(float(dxin))
             else:
                 self._dxx.append(0.0)
+
 
         # Point annotations: 
         if annot==None:
@@ -360,7 +372,7 @@ class PointsXY (object):
 
 
     #===============================================================
-    # Plot:
+    # Plotting:
     #===============================================================
 
     def plot(self, margin=0.2, dispose='show',
@@ -404,7 +416,7 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
-    def annotate(self, trace=True):
+    def annotate(self, trace=False):
         """Annotate the points"""
         if not isinstance(self._annot,list): return False
         if not len(self._annot)==self.len(): return False

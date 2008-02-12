@@ -62,10 +62,10 @@ class Subplot (object):
         - yunit [=None]:
         - xlabel[=xx[(xunit)]]:
         - ylabel[=<name>[(yunit)]]:
-        - xmin  [=None]:
-        - xmax  [=None]:
-        - ymin  [=None]:
-        - ymax  [=None]:
+        - xmin  [=None]: viewing window
+        - xmax  [=None]: viewing window
+        - ymin  [=None]: viewing window
+        - ymax  [=None]: viewing window
         """
 
         # Extract the relevant keyword arguments from kwargs:
@@ -99,6 +99,21 @@ class Subplot (object):
         # Finished:
         self._kw = kw
         return None
+
+    #---------------------------------------------------------------
+
+    def kwupdate (self, **kwargs):
+        """Update self._kw (see .__init__())."""
+        if isinstance(kwargs,dict):
+            for key in kwargs.keys():
+                if self._kw.has_key(key):
+                    was = self._kw[key]
+                    self._kw[key] = kwargs[key]
+                    print '** kwupdate():',key,':',was,'->',self._kw[key]
+                else:
+                    s = '** kwarg key not recognised: '+str(key)
+                    raise ValueError,s
+        return True
 
     #===============================================================
     # Display of the contents of this object:

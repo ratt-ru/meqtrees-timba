@@ -135,28 +135,70 @@ class Result (object):
 class Vells (object):
   """Helps to hold and unpack a child Vells"""
 
-  def __init__ (self, vells, cells):
+  def __init__ (self, vells, cells=None):
 
     self._vells = vells
     self._is_complex = isinstance(self.min(),complex)
     self._shape = list(vells.shape)
     self._len = 1
-    self._expanded_len = None
     for i,k in enumerate(self._shape):
       self._len *= k
     self._cells = cells
     return None
 
-  def len (self, expanded=False): return self._len
-  def shape (self, expanded=False): return self._shape
-  def min (self): return self._vells.min()
-  def max (self): return self._vells.max()
-  def mean (self): return self._vells.mean()
+  #-----------------------------------------------------------
+
+  def len (self, expanded=False):
+    """Return the nr of cells in the Cells, which may be collapsed.
+    If expanded==True, return the nr of cells in the expanded Cells.
+    """
+    if expanded:
+      return self._cells.len()
+    return self._len
+
+  def shape (self, expanded=False):
+    """Return the shape (list) of the Cells, which may be collapsed.
+    If expanded==True, return the shape of the expanded Cells."""
+    if expanded:
+      return self._cells.shape()
+    return self._shape
+
+  def axes (self):
+    """Return the axes (list) of the domain."""
+    return self._cells.axes()
+
+  def is_complex(self):
+    """Return True if the Vells values are complex"""
+    return self._is_complex
+
+  def min (self):
+    """Return the min value in the cells of the (unexpanded) domain. May be complex."""
+    return self._vells.min()
+
+  def max (self):
+    """Return the max value of the cells of the (unexpanded) domain. May be complex."""
+    return self._vells.max()
+
+  def mean (self):
+    """Return the mean over the cells of the (unexpanded) domain. May be complex."""
+    return self._vells.mean()
+
   def stddev (self):
+    """Return the stddev over the cells of the (unexpanded) domain"""
     if self._len==1: return 0.0
     if self._is_complex:
       return self._vells.__abs__().stddev()     # not entirely correct: expand first!
     return self._vells.stddev()                 # not entirely correct: expand first!
+
+  def errorbar (self):
+    """Return the length of the error-bar (stddev) around the mean.
+    If the Vells is complex, complex(stddev,stddev) is returned."""
+    stddev = self.stddev()
+    if self._is_complex:
+      return complex(stddev,stddev)
+    return stddev
+
+  #-----------------------------------------------------------
 
   def oneliner(self):
     ss = '** <Vells>: '
@@ -164,45 +206,19 @@ class Vells (object):
     ss += ' shape='+str(self.shape())
     if self._is_complex:
       ss += ' (complex)'
-    if False:
-      ss += ' min='+str(self.min())
-      ss += ' max='+str(self.max())
-      ss += ' mean='+str(self.mean())
-      ss += ' stddev='+str(self.stddev())
-    else:
-      ss += ' min='+format_float(self.min())
-      ss += ' max='+format_float(self.max())
-      ss += ' mean='+format_float(self.mean())
-      ss += ' stddev='+format_float(self.stddev())
+    ss += ' min='+format_float(self.min())
+    ss += ' max='+format_float(self.max())
+    ss += ' mean='+format_float(self.mean())
+    ss += ' stddev='+format_float(self.stddev())
     return ss
                               
   def show (self):
     show_value(self._vells)
     return True
 
-  def append_xy(self, yy=None, xx=None, dxx=None, dyy=None,
-                xlabel=None, ylabel=None):
-    """Helper function to defined a point (x,y) to be plotted,
-    by appending the relevant values to the given lists."""
-    v = self.mean()
-    dv = self.stddev()
-    if isinstance(v,complex):
-      if isinstance(xx, list): xx.append(v.real)
-      if isinstance(yy, list): yy.append(v.imag)
-      if isinstance(dxx, list): dxx.append(dv)
-      if isinstance(dyy, list): dyy.append(dv)
-      xlabel = 'real part'
-      ylabel = 'imag part'
-    else:
-      if isinstance(yy, list): yy.append(v)
-      if isinstance(dyy, list): dyy.append(dv)
-      # if isinstance(xx, list): xx.append(v)
-      # if isinstance(dxx, list): dxx = None
-      xlabel = 'x'
-      ylabel = 'y'
-    return True
 
-
+#-----------------------------------------------------------
+# Helper function:
 #-----------------------------------------------------------
 
 def format_float(v, name=None, n=2):
@@ -221,6 +237,7 @@ def format_float(v, name=None, n=2):
   return s
 
 
+
 #===========================================================
 #===========================================================
 
@@ -230,33 +247,49 @@ class Cells (object):
   def __init__ (self, cells):
 
     self._cells = cells
-    
+
+    # Extract the actual list of axes, in the correct order, e.g. ['freq','time']
     axes = list(cells['domain']['axis_map'])
     cs = cells['cell_size']
-    self._axis_map = []
+    self._axes = []
     for i,axis in enumerate(axes):
       axis = str(axis).lower()
       if cs.has_key(axis):
-        self._axis_map.append(axis)
+        self._axes.append(axis)
 
+    # Make the correct shape (list):
     self._shape = []
-    for key in self._axis_map:
+    for key in self._axes:
       self._shape.append(len(cs[key]))
 
+    # Count the number of cells:
     self._len = 1
     for i,k in enumerate(self._shape):
       self._len *= k
+      
     return None
 
+  #--------------------------------------
 
-  def len (self): return self._len
-  def shape (self): return self._shape
+  def len (self):
+    """Return the number of cells"""
+    return self._len
+  
+  def shape (self):
+    """Return the shape (list) of the cells"""
+    return self._shape
+
+  def axes (self):
+    """Return the (actual) list of domain axes."""
+    return self._axes
+
+  #--------------------------------------
 
   def oneliner(self):
     ss = '** <Cells>: '
     ss += ' n='+str(self.len())
     ss += ' shape='+str(self.shape())
-    ss += ' axis_map='+str(self._axis_map)
+    ss += ' axes='+str(self._axes)
     return ss
                               
   def show (self):
@@ -291,6 +324,8 @@ class OneChildPyNode (pynode.PyNode):
     for key in cr.order():
       print cr[key].oneliner()
     return result
+
+
 
 
 #=====================================================================================
