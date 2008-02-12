@@ -63,6 +63,9 @@ class PictureDisplay(QWidget):
     if self.pict:
       paint.drawPicture(self.pict)
 
+  def resizeEvent(self, ev):
+    self.resize(ev.size())
+
 class SvgPlotter(GriddedPlugin):
   """ a class to visualize data from Scalable Vector Graphics files """
 
@@ -123,15 +126,15 @@ class SvgPlotter(GriddedPlugin):
      if not status is None:
        self.status_label.setText(status)
 
-  def grab_display(self, title):
-    self.png_number = self.png_number + 1
-    png_str = str(self.png_number)
-    if title is None:
-      save_file = './meqbrowser' + png_str + '.png'
-    else:
-      save_file = title + png_str + '.png'
-    save_file_no_space= save_file.replace(' ','_')
-    result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
+# def grab_display(self, title):
+#   self.png_number = self.png_number + 1
+#   png_str = str(self.png_number)
+#   if title is None:
+#     save_file = './meqbrowser' + png_str + '.png'
+#   else:
+#     save_file = title + png_str + '.png'
+#   save_file_no_space= save_file.replace(' ','_')
+#   result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
     
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
@@ -236,9 +239,9 @@ class SvgPlotter(GriddedPlugin):
       return
 
     svg_plot = self._rec.svg_plot
-    print '***************************'
-    print 'handling svg_plot event - string has length ', len(svg_plot)
-    print '***************************'
+#   print '***************************'
+#   print 'handling svg_plot event - string has length ', len(svg_plot)
+#   print '***************************'
     file_name = '/tmp/svg_descriptor.svg'
     file = open(file_name,'w')
     result = file.writelines(svg_plot)
