@@ -407,6 +407,8 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
  */
 int read_fits_file(const char *filename,double cutoff, double**myarr, long int *new_naxis, double **lgrid, double **mgrid, double **lspace, double **mspace, 
 								double *ra0, double *dec0, double **fgrid, double **fspace, int mode) {
+    /* lock mutex */
+    Thread::Mutex::Lock lock(cfitsio_mutex);
     fitsfile *fptr;
     iteratorCol cols[3];  /* structure used by the iterator function */
     int n_cols;
@@ -428,8 +430,6 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		float *arr;
 		int null_flag=0;
 
-    /* lock mutex */
-    Thread::Mutex::Lock lock(cfitsio_mutex);
 
 		/* stuctures from WCSLIB */
 		struct wcsprm *wcs;
@@ -892,6 +892,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			long int *naxis, long int **naxes, int *is_complex) {
 
+       /* lock mutex */
+       Thread::Mutex::Lock lock(cfitsio_mutex);
+
        fitsfile *fptr;
 			 int status;
 
@@ -914,8 +917,6 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			 double *colarr=0;
 			 int has_cells;
 
-       /* lock mutex */
-       Thread::Mutex::Lock lock(cfitsio_mutex);
 
 
 			 status=0;
@@ -1168,6 +1169,7 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 int write_fits_file(const char *filename,  double **arr,  int nvells, double **cells,
 			long int naxis, long int *naxes, int is_complex) {
 
+    Thread::Mutex::Lock lock(cfitsio_mutex);
 				/* what do we do about axes with zero length: we do not consider them
 				 * to be present in the image but we store that information in the table
 				 * each table column will begin with the number in that axes
@@ -1445,6 +1447,8 @@ int write_fits_file(const char *filename,  double **arr,  int nvells, double **c
  */
 int mux_read_fits_file(const char *filename,double cutoff, double**myarr, long int *new_naxis, double **lgrid, double **mgrid, double **lspace, double **mspace, 
 								double *ra0, double *dec0, double **fgrid, double **fspace, io_buff *fbuff) {
+
+    Thread::Mutex::Lock lock(cfitsio_mutex);
     iteratorCol cols[3];  /* structure used by the iterator function */
     int n_cols;
     long rows_per_loop, offset;
@@ -1886,6 +1890,8 @@ int mux_read_fits_file(const char *filename,double cutoff, double**myarr, long i
 }
 
 int mux_write_fits_file(double *myarr, io_buff fbuff) {
+
+   Thread::Mutex::Lock lock(cfitsio_mutex);
    int status=0;
 	 long int totalpix;
 	 float *arr;
