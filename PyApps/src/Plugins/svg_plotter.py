@@ -245,6 +245,9 @@ class SvgPlotter(GriddedPlugin):
 #   print 'handling svg_plot event - string has length ', len(svg_plot)
 #   print '***************************'
     file_name = '/tmp/svg_descriptor.svg'
+    try:
+      os.system("rm -fr "+ file_name);
+    except:   pass
     file = open(file_name,'w')
     result = file.writelines(svg_plot)
     file.close()
@@ -258,9 +261,6 @@ class SvgPlotter(GriddedPlugin):
     self._svg_plotter.loadPicture(file_name)
     self._svg_plotter.show()
 
-    try:
-      os.system("rm -fr "+ file_name);
-    except:   pass
     # end show_svg_plot()
 
   def set_results_buffer (self, result_value):
