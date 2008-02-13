@@ -126,6 +126,10 @@ class TheEasyWay (pynode.PyNode):
                               
   def get_result (self, request, *children):
 
+    # needed to prevent hangup at 'executing' phase
+    import matplotlib
+    matplotlib.use('SVG')
+
     # Make the pylab figure (I could not resist the temptation to
     # make some supporting classes to make things easy, albeit hidden):
     import Graphics         # A collection of Graphics classes
