@@ -786,7 +786,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       # change working directory
       if dialog.get_change_wd():
         # this potentially changes the dialog state, so we get filename above first
-        self.change_working_directory(str(dialog.dirPath()),browser=True,kernel=True);
+        self.change_working_directory(os.path.dirname(filename),browser=True,kernel=True);
       # show this file
       self.show_tdl_file(filename,run=True);
       
