@@ -262,7 +262,7 @@ def _define_forest(ns):
 
   # create a pynode for display of weighting vectors
   classname = "BeamPhasePlot"
-  ns.pynode << Meq.PyNode(file_name = mep_beam_weights, class_name=classname,
+  ns.pynode << Meq.PyNode(children=beam_solvables, class_name=classname,
 module_name=__file__)
   Meow.Bookmarks.Page('BeamPlot').add(ns.pynode, viewer="Svg Plotter")
 
