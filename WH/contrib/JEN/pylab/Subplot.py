@@ -73,7 +73,8 @@ class Subplot (object):
         if isinstance(kwargs, dict):
             keys = ['name',
                     'title','xlabel','ylabel','xunit','yunit',
-                    'xmin','xmax','ymin','ymax']
+                    'xmin','xmax','ymin','ymax',
+                    'plot_legend','plot_labels']
             for key in keys:
                 if kwargs.has_key(key):
                     kw[key] = kwargs[key]
@@ -88,6 +89,8 @@ class Subplot (object):
         kw.setdefault('xmax',None)
         kw.setdefault('ymin',None)
         kw.setdefault('ymax',None)
+        kw.setdefault('plot_labels', True)
+        kw.setdefault('plot_legend', True)
 
         if not isinstance(kw['name'],str): kw['name'] = '<name>'
         if not isinstance(kw['xlabel'],str): kw['xlabel'] = 'xx'
@@ -202,10 +205,12 @@ class Subplot (object):
         """Plot the group of points, using pylab"""
         pylab.figure(figure)
         pylab.subplot(subplot)
-        self.plot_axes(xaxis=True, yaxis=True)
+        # self.plot_axes(xaxis=True, yaxis=True)
         self.pylab_window(margin=margin)
-        self.plot_legend()              
-        self.pylab_labels()
+        if self._kw['plot_legend']:
+            self.plot_legend()              
+        if self._kw['plot_labels']:
+            self.pylab_labels()
         import Figure
         return Figure.pylab_dispose(dispose)
 
@@ -251,22 +256,6 @@ class Subplot (object):
         if not vmax==None: vv[1] = vmax
         return vv
 
-    #------------------------------------------------
-
-    def plot_axes(self, xaxis=None, yaxis=None, color='black', linewidth=1):
-        """Helper function for plotting x and y axis"""
-        [xmin,xmax] = self.xrange()
-        [ymin,ymax] = self.yrange()
-        if xaxis and ((ymin*ymax)<=0.0):
-            pylab.plot([xmin,xmax], [0.0,0.0],
-                       label='_nolegend_',
-                       color=color, linewidth=linewidth)
-        if yaxis and ((xmin*xmax)<=0.0):
-            pylab.plot([0.0,0.0], [ymin,ymax],
-                       label='_nolegend_',
-                       color=color, linewidth=linewidth)
-        return True
-
     #---------------------------------------------------------------
 
     def plot_legend (self, ny=16, trace=True):
@@ -290,6 +279,37 @@ class Subplot (object):
             pylab.text(x,y,s)
         if trace: print
         return True
+
+
+#========================================================================
+# Derived classes:
+#========================================================================
+
+class Legend (Subplot):
+
+    def __init__(self, **kwargs):
+        """
+        The Legend class is derived from the Subplot class.
+        It provides an empty panel for text descriptions,
+        e.g. about the other Subplots in a figure.
+        """
+
+        Subplot.__init__(self, **kwargs)
+
+        self._kw['xmin'] = -1
+        self._kw['xmax'] = 1
+        self._kw['ymin'] = -1
+        self._kw['ymax'] = 1
+
+        self._kw['plot_legend'] = True
+
+        self._kw['plot_labels'] = True
+        self._kw['title'] = 'Legend'
+        self._kw['xlabel'] = ' '
+        self._kw['ylabel'] = ' '
+
+        # Finished:
+        return None
 
 
 
@@ -341,8 +361,10 @@ if __name__ == '__main__':
     print '\n*******************\n** Local test of: Subplot.py:\n'
 
     sub = Subplot(xmin=-1,xmax=1,ymin=-1,ymax=1)
-    # import Graphics
-    # sub = Graphics.test()
+
+    if 1:
+        sub = Legend()
+
     print sub.oneliner()
     sub.display('init')
 

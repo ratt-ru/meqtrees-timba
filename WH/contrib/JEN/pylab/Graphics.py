@@ -75,17 +75,15 @@ class Graphics (Subplot.Subplot):
         # and add them to the Subplot keyword dict self._kw:
 
         if isinstance(kwargs, dict):
-            keys = ['centre_mark','auto_legend','plot_legend',
-                    'plot_axes','plot_grid','plot_labels']
+            keys = ['centre_mark','auto_legend',
+                    'plot_axes','plot_grid']
             for key in keys:
                 if kwargs.has_key(key):
                     self._kw[key] = kwargs[key]
 
         self._kw.setdefault('plot_grid', True)
         self._kw.setdefault('plot_axes', True)
-        self._kw.setdefault('plot_labels', True)
         self._kw.setdefault('auto_legend', True)
-        self._kw.setdefault('plot_legend', True)
         self._kw.setdefault('centre_mark', None)
 
         if self._kw['centre_mark']==True: self._kw['centre_mark'] = '+'
@@ -217,6 +215,7 @@ class Graphics (Subplot.Subplot):
         import Figure
         return Figure.pylab_dispose(dispose)
 
+    #------------------------------------------------
 
     def plot_centre_mark(self, xy0=[0,0], **kwargs):
         """Optional: Indicate the centre of the graph"""
@@ -227,6 +226,22 @@ class Graphics (Subplot.Subplot):
             self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
         return True
 
+
+    #------------------------------------------------
+
+    def plot_axes(self, xaxis=None, yaxis=None, color='black', linewidth=1):
+        """Helper function for plotting x and y axis"""
+        [xmin,xmax] = self.xrange()
+        [ymin,ymax] = self.yrange()
+        if xaxis and ((ymin*ymax)<=0.0):
+            pylab.plot([xmin,xmax], [0.0,0.0],
+                       label='_nolegend_',
+                       color=color, linewidth=linewidth)
+        if yaxis and ((xmin*xmax)<=0.0):
+            pylab.plot([0.0,0.0], [ymin,ymax],
+                       label='_nolegend_',
+                       color=color, linewidth=linewidth)
+        return True
 
 
 
@@ -464,39 +479,6 @@ class Ellipse (Graphics):
         return None
 
 
-#========================================================================
-
-class Legend (Graphics):
-
-    def __init__(self, **kwargs):
-        """
-        The Legend class is derived from the Graphics class.
-        It provides an empty panel for text descriptions,
-        e.g. about the other Subplots in a figure.
-        """
-
-        Graphics.__init__(self, **kwargs)
-
-        self._kw['xmin'] = -1
-        self._kw['xmax'] = 1
-        self._kw['ymin'] = -1
-        self._kw['ymax'] = 1
-
-        self._kw['plot_grid'] = False
-        self._kw['plot_axes'] = False
-        self._kw['auto_legend'] = False
-
-        self._kw['plot_legend'] = True
-
-        self._kw['plot_labels'] = True
-        self._kw['title'] = 'Legend'
-        self._kw['xlabel'] = ' '
-        self._kw['ylabel'] = ' '
-
-        # Finished:
-        return None
-
-
 
 #========================================================================
 # Test routine:
@@ -536,9 +518,6 @@ if __name__ == '__main__':
         grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
 
     if 1:
-        grs = Legend()
-
-    if 0:
         grs.add(PointsXY.test_line())
         grs.add(PointsXY.test_parabola())
         grs.add(PointsXY.test_sine())
@@ -550,12 +529,6 @@ if __name__ == '__main__':
         grs.help()
 
     grs.oneliners()
-
-    if 1:
-        grs.legend('line 1')
-        grs.legend('line 2')
-        grs.legend('line 3')
-        # grs.display('legend')
 
     if 1:
         grs.plot(dispose='show')
