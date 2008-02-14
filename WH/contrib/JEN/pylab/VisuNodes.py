@@ -126,7 +126,7 @@ class TheEasyWay (pynode.PyNode):
                               
   def get_result (self, request, *children):
 
-    # needed to prevent hangup at 'executing' phase
+    # AWG: needed to prevent hangup at 'executing' phase
     import matplotlib
     matplotlib.use('SVG')
 
@@ -170,6 +170,7 @@ class TheEasyWay (pynode.PyNode):
     fig.oneliners()
     # svg_list_of_strings = fig.plot(dispose=['show'])
     svg_list_of_strings = fig.plot(dispose=['svg'])
+    # NB: Make it into one big string....? (OMS)
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.

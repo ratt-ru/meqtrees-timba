@@ -96,8 +96,12 @@ class Subplot (object):
         if isinstance(kw['xunit'],str): kw['xlabel'] += ' ('+kw['xunit']+')'
         if isinstance(kw['yunit'],str): kw['ylabel'] += ' ('+kw['yunit']+')'
 
-        # Finished:
         self._kw = kw
+
+        # Legend(s):
+        self.legend(init=True)
+
+        # Finished
         return None
 
     #---------------------------------------------------------------
@@ -115,6 +119,26 @@ class Subplot (object):
                     raise ValueError,s
         return True
 
+    #---------------------------------------------------------------
+
+    def legend (self, new=None, init=False):
+        """Legend control"""
+        if init:
+            self._legend = []
+        if new:
+            if isinstance(new, str):
+                ss = new.split('\n')
+                for s in ss:
+                    self._legend.append(s)
+            elif isinstance(new, list):
+                for s in new:
+                    self.legend(s)
+            else:
+                self._legend.append(str(new))
+        return self._legend
+                
+
+
     #===============================================================
     # Display of the contents of this object:
     #===============================================================
@@ -126,6 +150,16 @@ class Subplot (object):
         ss += '  yrange='+str(self.yrange())
         ss += '  xrange='+str(self.xrange())
         return ss
+
+    def display(self, txt=None):
+        print '\n** (',txt,')'
+        print ' * ',self.oneliner()
+        for key in self._kw:
+            print '   - kw['+str(key)+'] = '+str(self._kw[key])
+        print ' * legend ('+str(len(self._legend))+' lines):'
+        for s in self._legend:
+            print '   - '+str(s)
+        print '**\n'
 
     def help(self):
         """Return/print a help-string"""
@@ -147,11 +181,11 @@ class Subplot (object):
 
     def yrange(self, margin=0.0, yrange=None):
         """Placeholder: Return [min,max] of all y-coordinate(s)."""
-        return None
+        return [self._kw['ymin'],self._kw['ymax']]
 
     def xrange(self, margin=0.0, xrange=None):
         """Placeholder: Return [min,max] of all x-coordinate(s)."""
-        return None
+        return [self._kw['xmin'],self._kw['xmax']]
 
     def title(self): return self._kw['title']
     def xlabel(self): return self._kw['xlabel']
@@ -170,6 +204,7 @@ class Subplot (object):
         pylab.subplot(subplot)
         self.plot_axes(xaxis=True, yaxis=True)
         self.pylab_window(margin=margin)
+        self.plot_legend()              
         self.pylab_labels()
         import Figure
         return Figure.pylab_dispose(dispose)
@@ -178,7 +213,7 @@ class Subplot (object):
     #------------------------------------------------
 
     def pylab_labels(self):
-        """Helper function to make labels, using internal info"""
+        """Helper function to make axes labels, using internal info"""
         if isinstance(self._kw['xlabel'],str):
             pylab.xlabel(self._kw['xlabel'])
         if isinstance(self._kw['ylabel'],str):
@@ -223,9 +258,37 @@ class Subplot (object):
         [xmin,xmax] = self.xrange()
         [ymin,ymax] = self.yrange()
         if xaxis and ((ymin*ymax)<=0.0):
-            pylab.plot([xmin,xmax], [0.0,0.0], color=color, linewidth=linewidth)
+            pylab.plot([xmin,xmax], [0.0,0.0],
+                       label='_nolegend_',
+                       color=color, linewidth=linewidth)
         if yaxis and ((xmin*xmax)<=0.0):
-            pylab.plot([0.0,0.0], [ymin,ymax], color=color, linewidth=linewidth)
+            pylab.plot([0.0,0.0], [ymin,ymax],
+                       label='_nolegend_',
+                       color=color, linewidth=linewidth)
+        return True
+
+    #---------------------------------------------------------------
+
+    def plot_legend (self, ny=16, trace=True):
+        """Plot the accumulated legend-strings (if any).
+        The number ny(=16) determines the line-spacing,
+        by specifying the number of lines that fit on the plot.
+        """
+        if trace: print '\n** plot_legend():'
+        ss = self.legend()
+        [xmin,xmax] = self.xrange()
+        [ymin,ymax] = self.yrange()
+        print '- xx =',xmin,xmax
+        print '- yy =',ymin,ymax
+        x = xmin + abs(xmax-xmin)/20.0
+        dy = abs(ymax-ymin)/float(ny)
+        y = ymax
+        for i,s in enumerate(ss):
+            y -= dy
+            if trace:
+                print '-',i,'(',x,y,dy,'):',s
+            pylab.text(x,y,s)
+        if trace: print
         return True
 
 
@@ -277,15 +340,22 @@ def test_cloud (n=10, mean=-1.0, stddev=3.0, **kwargs):
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: Subplot.py:\n'
 
-    sub = Subplot()
+    sub = Subplot(xmin=-1,xmax=1,ymin=-1,ymax=1)
     # import Graphics
     # sub = Graphics.test()
     print sub.oneliner()
-
-    if 1:
-        sub.help()
+    sub.display('init')
 
     if 0:
+        sub.help()
+
+    if 1:
+        sub.legend('line 1')
+        sub.legend('line 2')
+        sub.legend('line 3')
+        sub.display('legend')
+
+    if 1:
         sub.plot()
 
     print '\n** End of local test of: Subplot.py:\n'

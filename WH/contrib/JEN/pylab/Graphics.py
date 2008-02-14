@@ -75,17 +75,22 @@ class Graphics (Subplot.Subplot):
         # and add them to the Subplot keyword dict self._kw:
 
         if isinstance(kwargs, dict):
-            keys = ['centre_mark']
+            keys = ['centre_mark','auto_legend','plot_legend',
+                    'plot_axes','plot_grid','plot_labels']
             for key in keys:
                 if kwargs.has_key(key):
                     self._kw[key] = kwargs[key]
 
+        self._kw.setdefault('plot_grid', True)
+        self._kw.setdefault('plot_axes', True)
+        self._kw.setdefault('plot_labels', True)
+        self._kw.setdefault('auto_legend', True)
+        self._kw.setdefault('plot_legend', True)
         self._kw.setdefault('centre_mark', None)
+
         if self._kw['centre_mark']==True: self._kw['centre_mark'] = '+'
 
-
         # The Graphics objects are kept in the named fields of a dict:
-
         self._order = []
         self._graphic = dict()
 
@@ -141,6 +146,9 @@ class Graphics (Subplot.Subplot):
         yr = None
         for key in self._order:
             yr = self._graphic[key].yrange(margin=margin, yrange=yr)
+        if not yr:
+            # yr = [self._kw['ymin'],self._kw['ymax']]
+            yr = [-1.0,1.0]
         return yr
 
     def xrange(self, margin=0.0, xrange=None):
@@ -148,6 +156,9 @@ class Graphics (Subplot.Subplot):
         xr = None
         for key in self._order:
             xr = self._graphic[key].xrange(margin=margin, xrange=xr)
+        if not xr:
+            # xr = [self._kw['xmin'],self._kw['xmax']]
+            xr = [-1.0,1.0]
         return xr
 
 
@@ -190,12 +201,19 @@ class Graphics (Subplot.Subplot):
         """Plot the group of points, using pylab"""
         pylab.figure(figure)
         pylab.subplot(subplot)
-        self.plot_axes(xaxis=True, yaxis=True)
+        if self._kw['plot_axes']:
+            self.plot_axes(xaxis=True, yaxis=True)
         for key in self._order:
             self._graphic[key].plot(margin=0.0, dispose=None)
         self.pylab_window(margin=margin)
-        self.pylab_labels()
-        pylab.grid(True)
+        if self._kw['plot_labels']:
+            self.pylab_labels()
+        if self._kw['plot_legend']:
+            self.plot_legend()
+        if self._kw['auto_legend']:
+            pylab.legend()
+        if self._kw['plot_grid']:
+            pylab.grid(True)
         import Figure
         return Figure.pylab_dispose(dispose)
 
@@ -409,6 +427,7 @@ class RegularPolygon (Circle):
         # Finished:
         return None
 
+
 #========================================================================
 
 class Ellipse (Graphics):
@@ -445,6 +464,37 @@ class Ellipse (Graphics):
         return None
 
 
+#========================================================================
+
+class Legend (Graphics):
+
+    def __init__(self, **kwargs):
+        """
+        The Legend class is derived from the Graphics class.
+        It provides an empty panel for text descriptions,
+        e.g. about the other Subplots in a figure.
+        """
+
+        Graphics.__init__(self, **kwargs)
+
+        self._kw['xmin'] = -1
+        self._kw['xmax'] = 1
+        self._kw['ymin'] = -1
+        self._kw['ymax'] = 1
+
+        self._kw['plot_grid'] = False
+        self._kw['plot_axes'] = False
+        self._kw['auto_legend'] = False
+
+        self._kw['plot_legend'] = True
+
+        self._kw['plot_labels'] = True
+        self._kw['title'] = 'Legend'
+        self._kw['xlabel'] = ' '
+        self._kw['ylabel'] = ' '
+
+        # Finished:
+        return None
 
 
 
@@ -459,12 +509,6 @@ if __name__ == '__main__':
     grs = Graphics()
 
         
-    if 0:
-        grs.add(PointsXY.test_line())
-        grs.add(PointsXY.test_parabola())
-        grs.add(PointsXY.test_sine())
-        grs.add(PointsXY.test_cloud())
-
     if 0:
         grs = Circle([1,3],5,
                      a1=1, a2=2, close=True,
@@ -482,7 +526,7 @@ if __name__ == '__main__':
     if 0:
         grs = Rectangle(xy0=complex(2.5,3), sxy=complex(4,5))
 
-    if 1:
+    if 0:
         grs = RegularPolygon(n=5, xy0=complex(2.5,3), radius=3,
                              centre_mark='+')
 
@@ -492,11 +536,26 @@ if __name__ == '__main__':
         grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
 
     if 1:
-        grs.help()
+        grs = Legend()
+
+    if 0:
+        grs.add(PointsXY.test_line())
+        grs.add(PointsXY.test_parabola())
+        grs.add(PointsXY.test_sine())
+        grs.add(PointsXY.test_cloud())
 
     #------------------------------------
-        
+
+    if 0:
+        grs.help()
+
     grs.oneliners()
+
+    if 1:
+        grs.legend('line 1')
+        grs.legend('line 2')
+        grs.legend('line 3')
+        # grs.display('legend')
 
     if 1:
         grs.plot(dispose='show')

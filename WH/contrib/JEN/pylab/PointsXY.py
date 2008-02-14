@@ -70,6 +70,20 @@ class PointsXY (object):
         self._plotmode = plotmode
         self._PlotStyle = PlotStyle.PlotStyle(**kwargs)
 
+        # Extract the relevant keyword arguments from kwargs:
+        kw = dict()
+        if isinstance(kwargs, dict):
+            keys = ['plot_circle_stddev','plot_circle_mean',
+                    'plot_legend','plot_standalone']
+            for key in keys:
+                if kwargs.has_key(key):
+                    kw[key] = kwargs[key]
+        kw.setdefault('plot_legend', True)
+        kw.setdefault('plot_standalone', False)
+        kw.setdefault('plot_circle_stddev', False)
+        kw.setdefault('plot_circle_mean', False)
+        self._kw = kw
+
         # Deal with the specified coordinates:
         self._yy = []
         self._xx = []
@@ -78,7 +92,7 @@ class PointsXY (object):
         self._annot = []
         self._input = dict(annot=annot, dx=dxx, dy=dyy)          # used in .append()
         self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy)     # if any specified 
-        
+
         # Finished:
         return None
 
@@ -175,16 +189,19 @@ class PointsXY (object):
         # Point annotations: 
         if annot==None:
             annin = self._input['annot']               # see .__init__()
-            if annin:
-                self._annot.append(str(annin))
+            if annin==None or annin==False:
+                self._annot.append(None)
+            elif isinstance(annin, bool):
+                self._annot.append(len(self._yy)-1)
             else:
-                self._annot.append(annot)
+                self._annot.append(str(annin))
         else:
             self._annot.append(str(annot))
 
         if trace:
             print '** PointsXY.append(',x,y,dx,dy,annot,')'
         return True
+
 
 
     #===============================================================
@@ -375,39 +392,59 @@ class PointsXY (object):
     # Plotting:
     #===============================================================
 
-    def plot(self, margin=0.2, dispose='show',
-             plot_mean=False, plot_stddev=False):
+    def plot(self, margin=0.2, dispose='show'):
         """Plot the group of points, using pylab"""
 
-        pylab.plot(self.xx(), self.yy(),
-                   **self._PlotStyle.kwargs('plot'))
-        if margin>0.0:
-            [xmin,xmax] = self.xrange(margin=margin)
-            [ymin,ymax] = self.yrange(margin=margin)
-            pylab.axis([xmin, xmax, ymin, ymax])
+        legend_label = '_nolegend_'
+        pleg = self._kw['plot_legend']
+        if pleg:
+            if isinstance(pleg,str):
+                legend_label = pleg
+            elif isinstance(pleg,bool):
+                legend_label = self.name()
+            else:
+                legend_label = str(pleg)
 
+        pylab.plot(self.xx(), self.yy(),
+                   label=legend_label,
+                   **self._PlotStyle.kwargs('plot'))
+        
         color = self._PlotStyle.color()
 
         # Annotations and errorbars (if specified):
         self.annotate()
         self.plot_error_bars(color=color)
                 
-        # Optional extras:
+        # Sme optional extras:
         [xmean,ymean] = self.mean('xy')
-        if plot_mean:
+        if self._kw['plot_circle_mean']:
             self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
+                              # label='circle_mean',
                               color=color, linestyle='--')
             pylab.text(xmean, ymean, '  mean', color=color)
 
-        if plot_stddev:
+        if self._kw['plot_circle_stddev']:
             [xstddev,ystddev] = self.stddev('xy')
             self.plot_ellipse(xy0=[xmean,ymean], a=xstddev, b=ystddev,
+                              # label='circle_stddev',
                               color=color, linestyle='--')
             pylab.plot([xmean], [ymean], marker='+',
+                       label='_nolegend_',
                        markeredgecolor=color, markersize=20)
             pylab.plot([xmean], [ymean], marker='o',
+                       label='_nolegend_',
                        markeredgecolor=color, markerfacecolor=color)
 
+        # Make the window, if required, but AFTER the circles:
+        if margin>0.0:
+            [xmin,xmax] = self.xrange(margin=margin)
+            [ymin,ymax] = self.yrange(margin=margin)
+            pylab.axis([xmin, xmax, ymin, ymax])
+
+        # Make the pylab legend, if required:
+        if self._kw['plot_standalone']:
+            pylab.legend()
+        
         # Finished:
         if dispose=='show':
             pylab.show()
@@ -423,7 +460,7 @@ class PointsXY (object):
         kwargs = self._PlotStyle.kwargs('text')
         if trace: print '\n** annotate(): kwargs(text) =',kwargs
         for i in range(self.len()):
-            if self._annot[i]:              # ignore if None
+            if not self._annot[i]==None:              # ignore if None
                 x = self._xx[i]
                 y = self._yy[i]
                 s = '  '+str(self._annot[i])
@@ -443,17 +480,22 @@ class PointsXY (object):
                 dy = self._dyy
                 if isinstance(dy,list): dy = dy[i]
                 dy2 = dy/2
-                pylab.plot([x,x], [y-dy2,y+dy2], color=color, linestyle='-')
+                pylab.plot([x,x], [y-dy2,y+dy2],
+                           label='_nolegend_',
+                           color=color, linestyle='-')
             if self._dxx:
                 dx = self._dxx
                 if isinstance(dx,list): dx = dx[i]
                 dx2 = dx/2
-                pylab.plot([x-dx2,x+dx2], [y,y], color=color, linestyle='-')
+                pylab.plot([x-dx2,x+dx2], [y,y],
+                           label='_nolegend_',
+                           color=color, linestyle='-')
         return True
 
     #---------------------------------------------------------------
 
     def plot_ellipse(self, xy0=[0.0, 0.0], a=1.0, b=None,
+                     label='_nolegend_',
                      color='red', linestyle='--'):
         """Make an ellipse with given centre(x0,y0) and half-axes a and b.
         If b==None (default), make a circle with radius a."""
@@ -466,7 +508,9 @@ class PointsXY (object):
         for angle in angles:
             xx.append(x0+a*pylab.cos(angle))
             yy.append(y0+b*pylab.sin(angle))
-        pylab.plot(xx, yy, color=color, linestyle=linestyle)
+        pylab.plot(xx, yy, color=color,
+                   label=label,
+                   linestyle=linestyle)
         return True
 
 
@@ -562,9 +606,13 @@ if __name__ == '__main__':
 
     kwargs = dict()
     kwargs = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
+    kwargs['plot_circle_stddev'] = True
+    kwargs['plot_circle_mean'] = True
+    kwargs['plot_legend'] = True
+    kwargs['plot_standalone'] = True
 
     pts = PointsXY(range(6), name='list', annot=True, dxx=2, dyy=1.0, **kwargs)
-    if True:
+    if False:
         pts = PointsXY(name='list', annot=True, dxx=1.3, dyy=1.0, **kwargs)
         for i in range(6):
             pts.append(i,str(i-10))
@@ -603,7 +651,7 @@ if __name__ == '__main__':
         print '- .rotate(angle=0.2, xy0=[-10,100]) -> ',pts.rotate(angle=0.2, xy0=[-10,100]), '\n   ',pts.oneliner()
 
     if 1:
-        pts.plot(plot_mean=True, plot_stddev=True)
+        pts.plot()
 
     if 0:
         print '- .xy2pair([2,3]) -> ',xy2pair([2,3])
