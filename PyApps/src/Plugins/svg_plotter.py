@@ -45,7 +45,12 @@ _dbg = verbosity(0,name='svg_plotter');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
+# The following class is a python translation and adaption of the
+# same C++ class in the picture.cpp program provided in the
+# QT Assistant documentation for Qt3
+
 class PictureDisplay(QWidget):
+  """ a class for handling data destined for display within a QPicture """
 
   menu_table = {
     'Save Display in PNG Format': 321,
