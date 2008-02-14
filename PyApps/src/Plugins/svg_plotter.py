@@ -34,10 +34,10 @@ from Timba import Grid
 from qt import *
 from numarray import *
 from Timba.Plugins.plotting_functions import *
+import plot_printer
 
 from ResultsRange import *
 from BufferSizeDialog import *
-from plot_printer import *
 import os
 
 from Timba.utils import verbosity
@@ -47,11 +47,55 @@ _dprintf = _dbg.dprintf;
 
 class PictureDisplay(QWidget):
 
-  def __init__( self, *args ):
-    QWidget.__init__(self, *args)
+  menu_table = {
+    'Save Display in PNG Format': 321,
+    }
+
+  def __init__( self, parent=None, name=None):
+#   fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
+#   fl = Qt.WType_TopLevel
+#    fl = Qt.WStyle_Customize;
+#    fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title; 
+#   QWidget.__init__(self, parent, name, fl)
+    QWidget.__init__(self, parent, name)
+  
     self.pict = QPicture()
     self.name = None
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
+    
+    #add a printer
+#   self.printer = QAction(self);
+#   self.printer.setIconSet(pixmaps.fileprint.iconset());
+#   self.printer.setText("Print plot");
+#   QObject.connect(self.printer,SIGNAL("activated()"),self.printplot);
+
+    # create basic menu
+    self._menu = QPopupMenu(self);
+    QObject.connect(self._menu,SIGNAL("activated(int)"),self.handle_menu_id);
+
+#   self.printer.addTo(self._menu);
+
+# add option to save in PNG format
+    toggle_id = self.menu_table['Save Display in PNG Format']
+    self._menu.insertItem("Save Display in PNG Format", toggle_id)
+    self._menu.setItemVisible(toggle_id, True)
+
+  def mousePressEvent(self, e):
+    if Qt.RightButton == e.button():            
+      e.accept()
+      self._menu.popup(e.globalPos());        
+      return              
+
+  def handle_menu_id(self, menuid):
+    if menuid == self.menu_table['Save Display in PNG Format']:
+        self._window_title = 'png_grab'
+        self.emit(PYSIGNAL("save_display"),(self._window_title,))
+        return True
+
+  def printplot(self):
+    """ make a hardcopy of current displayed plot """
+#   self.emit(PYSIGNAL("do_print"),(True,False))
+  # printplot()
 
   def loadPicture(self,filename):
     self.name = filename
@@ -71,6 +115,27 @@ class PictureDisplay(QWidget):
   def sizeHint(self):
     hint = QSize(self.minimumSizeHint())
     return hint;
+
+  def printPlot(self):
+        try:
+            printer = QPrinter(QPrinter.HighResolution)
+        except AttributeError:
+            printer = QPrinter()
+        printer.setOrientation(QPrinter.Landscape)
+        printer.setColorMode(QPrinter.Color)
+        printer.setOutputToFile(True)
+        printer.setOutputFileName('realvsimag.ps')
+        if printer.setup():
+            filter = PrintFilter()
+            if (QPrinter.GrayScale == printer.colorMode()):
+                filter.setOptions(QwtPlotPrintFilter.PrintAll
+                                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
+            try:
+              self.plot.print_(printer, filter)
+            except:
+              self.plot.printPlot(printer, filter)
+    # printPlot()
+
 
 
 class SvgPlotter(GriddedPlugin):
@@ -106,6 +171,7 @@ class SvgPlotter(GriddedPlugin):
         out a message about Cache not containing results, etc
     """
     self._svg_plotter = None
+    self.plotPrinter = None
     self.results_selector = None
     self.status_label = None
     self.layout_parent = None
@@ -128,15 +194,15 @@ class SvgPlotter(GriddedPlugin):
      if not status is None:
        self.status_label.setText(status)
 
-# def grab_display(self, title):
-#   self.png_number = self.png_number + 1
-#   png_str = str(self.png_number)
-#   if title is None:
-#     save_file = './meqbrowser' + png_str + '.png'
-#   else:
-#     save_file = title + png_str + '.png'
-#   save_file_no_space= save_file.replace(' ','_')
-#   result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
+  def grab_display(self, title=None):
+    self.png_number = self.png_number + 1
+    png_str = str(self.png_number)
+    if title is None:
+      save_file = './meqbrowser' + png_str + '.png'
+    else:
+      save_file = title + png_str + '.png'
+    save_file_no_space= save_file.replace(' ','_')
+    result = QPixmap.grabWidget(self._svg_plotter).save(save_file_no_space, "PNG")
     
   def set_data (self,dataitem,default_open=None,**opts):
     """ this callback receives data from the meqbrowser, when the
@@ -245,19 +311,29 @@ class SvgPlotter(GriddedPlugin):
 #   print 'handling svg_plot event - string has length ', len(svg_plot)
 #   print '***************************'
     file_name = '/tmp/svg_descriptor.svg'
-    try:
-      os.system("rm -fr "+ file_name);
-    except:   pass
+#   try:
+#     os.system("rm -fr "+ file_name);
+#   except:   pass
     file = open(file_name,'w')
-    result = file.writelines(svg_plot)
+    try:
+      result = file.writelines(svg_plot)
+    except:
+      try:
+        result = file.writelines(svg_plot[1])
+      except:
+        print 'There is nothing to plot!'
+        return
     file.close()
 
     if not self._svg_plotter is None:
       self._svg_plotter.reparent(QWidget(), 0, QPoint())
       self._svg_plotter = None
     if self._svg_plotter is None:
-      self._svg_plotter = PictureDisplay(self.layout_parent)
+      self._svg_plotter = PictureDisplay(parent=self.layout_parent)
       self.layout.addWidget(self._svg_plotter, 0, 0)
+      self.plotPrinter = plot_printer.plot_printer(self._svg_plotter)
+      QObject.connect(self._svg_plotter,PYSIGNAL('do_print'), self.plotPrinter.do_print)
+      QObject.connect(self._svg_plotter, PYSIGNAL('save_display'), self.grab_display)
     self._svg_plotter.loadPicture(file_name)
     self._svg_plotter.show()
 
@@ -299,4 +375,33 @@ class SvgPlotter(GriddedPlugin):
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),SvgPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass(),SvgPlotter,priority=22)
+
+#############  test stuff from here on #########
+def usage( prog ):
+  print 'usage : %s <svg_plotter input file>' % prog
+  return 1
+
+def main( argv ):
+  fileName = ""
+  if len(argv) > 1:
+    fileName = argv[1]
+  if not QFile.exists(fileName):
+    print "unable to plot - file not found "
+    return
+  else:
+    app = QApplication(argv)
+    plot = PictureDisplay()
+    app.setMainWidget(plot)
+    plot.loadPicture(fileName)
+    plot.setCaption("Qt Example - Picture")
+    plot.show()
+    app.exec_loop()
+
+# Admire
+if __name__ == '__main__':
+  """ We need at least one argument: the name of the svg file to plot """
+  if len(sys.argv) < 2:
+    usage(sys.argv[0])
+  else:
+    main(sys.argv)
 
