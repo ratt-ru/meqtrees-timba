@@ -44,7 +44,9 @@
 #
 
 import pylab
+import time
 import copy
+
 import Subplot
 
 
@@ -159,15 +161,17 @@ class Figure (Subplot.Subplot):
         ss += ' ncol='+str(self._ncol)
         return ss
 
-    def oneliners(self):
-        """Print its own oneliner, and those of its subplots"""
-        print '\n',self.oneliner()
+    def display(self, txt=None):
+        """Display a summary of this Figure"""
+        print '\n** (',txt,')'
+        print ' * ',self.oneliner()
         for key in self._order:
             subplot = self._plopos[key]['subplot']
-            print '-',key,'('+str(subplot)+'):',self._subplot[key].oneliner()
+            print '   -',key,'('+str(subplot)+'):',self._subplot[key].oneliner()
         if True:
+            print ' * plopos:'
             for key in self._order:
-                print '----',key,':',self._plopos[key]
+                print '   -',key,':',self._plopos[key]
         print
         return True
 
@@ -191,12 +195,12 @@ class Figure (Subplot.Subplot):
 # Some helper functions (also used externally)
 #========================================================================
 
-def pylab_dispose(dispose='show'):
+def pylab_dispose(dispose='show', trace=False):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
     rootname = 'xxx'
-    print '** dispose(): ',dispose,rootname
+    if trace: print '** dispose(): ',dispose,rootname
     if dispose==None:
         return None
     if isinstance(dispose,str):
@@ -208,15 +212,26 @@ def pylab_dispose(dispose='show'):
     for ext in file_extensions:
         if ext in dispose:
             filename = rootname+'.'+ext
-            if ext in ['svg','SVG']: svgname = filename
+            delay = 0.0
+            if ext in ['svg','SVG']:
+                svgname = filename
+                delay = 0.5
+            if delay>0.0:
+                if trace: print '** before sleep()'
+                time.sleep(delay)
+                if trace: print '** after sleep()'
             r = pylab.savefig(filename)
-            print '** dispose:',ext,filename,'->',r
+            if trace: print '** dispose:',ext,filename,'->',r
+            if delay>0.0:
+                if trace: print '** before sleep()'
+                time.sleep(delay)
+                if trace: print '** after sleep()'
 
     if isinstance(svgname,str):
         file = open(filename,'r')
         result = file.readlines()
         file.close()
-        print '** svg:',filename,'->',type(result),len(result)
+        if trace: print '** svg:',filename,'->',type(result),len(result)
         # for s in result: print '-',s
         if False:
             import os
@@ -250,7 +265,7 @@ if __name__ == '__main__':
     fig.add(Subplot.test_parabola())
     fig.add(Subplot.test_sine())
     fig.add(Subplot.test_cloud(xmin=-10))
-    fig.oneliners()
+    fig.display()
 
     if 1:
         fig.plot()

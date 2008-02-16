@@ -58,7 +58,7 @@ class PointsXY (object):
 
     def __init__(self, yy=None, annot=None, name=None, 
                  xx=None, dyy=None, dxx=None,
-                 plotmode='pylab',
+                 plotmode='pylab', plottype='plot',
                  **kwargs):
 
 
@@ -70,17 +70,20 @@ class PointsXY (object):
         self._plotmode = plotmode
         self._PlotStyle = PlotStyle.PlotStyle(**kwargs)
 
+        # Plot type (e.g. loglog, semilogx, semilogy, plot, etc):
+        self._plottype = plottype              
+
         # Extract the relevant keyword arguments from kwargs:
         kw = dict()
         if isinstance(kwargs, dict):
-            keys = ['plot_circle_stddev','plot_circle_mean',
-                    'plot_legend','plot_standalone']
+            keys = ['plot_ellipse_stddev','plot_circle_mean',
+                    'auto_legend','plot_standalone']
             for key in keys:
                 if kwargs.has_key(key):
                     kw[key] = kwargs[key]
-        kw.setdefault('plot_legend', True)
+        kw.setdefault('auto_legend', True)
         kw.setdefault('plot_standalone', False)
-        kw.setdefault('plot_circle_stddev', False)
+        kw.setdefault('plot_ellipse_stddev', False)
         kw.setdefault('plot_circle_mean', False)
         self._kw = kw
 
@@ -151,9 +154,10 @@ class PointsXY (object):
             self._yy.append(float(y))
             if isinstance(x, (float,int)):
                 self._xx.append(float(x))
-            else:
-                self._xx.append(float(len(self._yy)-1))
-                xauto = True
+            else:                                     
+                xauto = True                             # automatic x
+                self._xx.append(float(len(self._yy)))    # start at 1
+                # self._xx.append(float(len(self._yy)-1))  # start at 0
         else:
             s = '** .append(): type(y) not recognized: '+str(type(y))
             raise ValueError,s
@@ -395,8 +399,9 @@ class PointsXY (object):
     def plot(self, margin=0.2, dispose='show'):
         """Plot the group of points, using pylab"""
 
+        # Make the label (pleg) to be used for the pylab automatic legend:
         legend_label = '_nolegend_'
-        pleg = self._kw['plot_legend']
+        pleg = self._kw['auto_legend']
         if pleg:
             if isinstance(pleg,str):
                 legend_label = pleg
@@ -405,41 +410,33 @@ class PointsXY (object):
             else:
                 legend_label = str(pleg)
 
-        pylab.plot(self.xx(), self.yy(),
-                   label=legend_label,
-                   **self._PlotStyle.kwargs('plot'))
+        # Plot the actual points (xx,yy):
+        if self._plottype=='loglog':
+            pylab.loglog(self.xx(), self.yy(),
+                         label=legend_label,
+                         **self._PlotStyle.kwargs('plot'))
+            pylab.grid()
+        else:
+            pylab.plot(self.xx(), self.yy(),
+                       label=legend_label,
+                       **self._PlotStyle.kwargs('plot'))
         
-        color = self._PlotStyle.color()
-
         # Annotations and errorbars (if specified):
         self.annotate()
-        self.plot_error_bars(color=color)
+        self.plot_error_bars()
                 
-        # Sme optional extras:
-        [xmean,ymean] = self.mean('xy')
+        # Some optional extras:
         if self._kw['plot_circle_mean']:
-            self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
-                              # label='circle_mean',
-                              color=color, linestyle='--')
-            pylab.text(xmean, ymean, '  mean', color=color)
-
-        if self._kw['plot_circle_stddev']:
-            [xstddev,ystddev] = self.stddev('xy')
-            self.plot_ellipse(xy0=[xmean,ymean], a=xstddev, b=ystddev,
-                              # label='circle_stddev',
-                              color=color, linestyle='--')
-            pylab.plot([xmean], [ymean], marker='+',
-                       label='_nolegend_',
-                       markeredgecolor=color, markersize=20)
-            pylab.plot([xmean], [ymean], marker='o',
-                       label='_nolegend_',
-                       markeredgecolor=color, markerfacecolor=color)
+            self.plot_circle_mean()
+        if self._kw['plot_ellipse_stddev']:
+            self.plot_ellipse_stddev()
 
         # Make the window, if required, but AFTER the circles:
         if margin>0.0:
-            [xmin,xmax] = self.xrange(margin=margin)
-            [ymin,ymax] = self.yrange(margin=margin)
-            pylab.axis([xmin, xmax, ymin, ymax])
+            if self._plottype=='plot':
+                [xmin,xmax] = self.xrange(margin=margin)
+                [ymin,ymax] = self.yrange(margin=margin)
+                pylab.axis([xmin, xmax, ymin, ymax])
 
         # Make the pylab legend, if required:
         if self._kw['plot_standalone']:
@@ -472,27 +469,61 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
-    def plot_error_bars(self, color='red'):
+    def plot_error_bars(self):
         """Plot vertical and/or horizontal errorbars, if specified"""
-        for i,y in enumerate(self._yy):
-            x = self._xx[i]
-            if self._dyy:
-                dy = self._dyy
-                if isinstance(dy,list): dy = dy[i]
-                dy2 = dy/2
-                pylab.plot([x,x], [y-dy2,y+dy2],
-                           label='_nolegend_',
-                           color=color, linestyle='-')
-            if self._dxx:
-                dx = self._dxx
-                if isinstance(dx,list): dx = dx[i]
-                dx2 = dx/2
-                pylab.plot([x-dx2,x+dx2], [y,y],
-                           label='_nolegend_',
-                           color=color, linestyle='-')
+        if self._plottype=='plot':
+            color = self._PlotStyle.color()
+            for i,y in enumerate(self._yy):
+                x = self._xx[i]
+                if self._dyy:
+                    dy = self._dyy
+                    if isinstance(dy,list): dy = dy[i]
+                    dy2 = dy/2
+                    pylab.plot([x,x], [y-dy2,y+dy2],
+                               label='_nolegend_',
+                               color=color, linestyle='-')
+                if self._dxx:
+                    dx = self._dxx
+                    if isinstance(dx,list): dx = dx[i]
+                    dx2 = dx/2
+                    pylab.plot([x-dx2,x+dx2], [y,y],
+                               label='_nolegend_',
+                               color=color, linestyle='-')
         return True
 
     #---------------------------------------------------------------
+
+    def plot_circle_mean(self):
+        """Plot a circle around the origin, through [xmean,ymean]"""
+        if self._plottype=='plot':
+            color = self._PlotStyle.color()
+            self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
+                              label='_nolegend_',
+                              color=color, linestyle='--')
+            [xmean,ymean] = self.mean('xy')
+            pylab.text(xmean, ymean, '  mean', color=color)
+        return True
+
+    #..............................................................
+
+    def plot_ellipse_stddev(self):
+        """Plot an ellipse to mark the (x,y) sttdev"""
+        if self._plottype=='plot':
+            color = self._PlotStyle.color()
+            [xmean,ymean] = self.mean('xy')
+            [xstddev,ystddev] = self.stddev('xy')
+            self.plot_ellipse(xy0=[xmean,ymean], a=xstddev, b=ystddev,
+                              label='_nolegend_',
+                              color=color, linestyle='--')
+            pylab.plot([xmean], [ymean], marker='+',
+                       label='_nolegend_',
+                       markeredgecolor=color, markersize=20)
+            pylab.plot([xmean], [ymean], marker='o',
+                       label='_nolegend_',
+                       markeredgecolor=color, markerfacecolor=color)
+        return True
+
+    #..............................................................
 
     def plot_ellipse(self, xy0=[0.0, 0.0], a=1.0, b=None,
                      label='_nolegend_',
@@ -552,7 +583,7 @@ def xy2pair(xy):
 def test_line (n=6, name='test_line', **kwargs):
     """PointsXY object for a straight line"""
     kwargs.setdefault('color','magenta')
-    kwargs.setdefault('style','o')
+    kwargs.setdefault('style','-')
     yy = 0.3*pylab.array(range(n))
     pts = PointsXY (yy, name=name, **kwargs)
     print pts.oneliner()
@@ -584,13 +615,14 @@ def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
     """PointsXY object for a cloud of random points"""
     kwargs.setdefault('color','green')
     kwargs.setdefault('style','cross')
+    kwargs.setdefault('plot_ellipse_stddev',True)
+    kwargs.setdefault('plot_circle_mean',True)
     # kwargs.setdefault('markersize',10)
     yy = range(n)
     xx = range(n)
     for i,v in enumerate(yy):
         yy[i] = random.gauss(mean,stddev)
         xx[i] = random.gauss(mean,stddev)
-        print '-',i,mean,stddev,':',xx[i],yy[i]
     pts = PointsXY (yy, name=name, xx=xx, **kwargs)
     print pts.oneliner()
     return pts
@@ -606,9 +638,9 @@ if __name__ == '__main__':
 
     kwargs = dict()
     kwargs = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
-    kwargs['plot_circle_stddev'] = True
+    kwargs['plot_ellipse_stddev'] = True
     kwargs['plot_circle_mean'] = True
-    kwargs['plot_legend'] = True
+    kwargs['auto_legend'] = True
     kwargs['plot_standalone'] = True
 
     pts = PointsXY(range(6), name='list', annot=True, dxx=2, dyy=1.0, **kwargs)
@@ -616,6 +648,15 @@ if __name__ == '__main__':
         pts = PointsXY(name='list', annot=True, dxx=1.3, dyy=1.0, **kwargs)
         for i in range(6):
             pts.append(i,str(i-10))
+    if True:
+        yy = range(1,25)
+        xx = range(1,25)
+        plottype = 'loglog'
+        # plottype = 'semilogx'
+        # plottype = 'semilogy'
+        # plottype = 'plot'
+        pts = PointsXY(yy, xx=xx, name=plottype, plottype=plottype, **kwargs)
+        
     # pts = PointsXY(pylab.array(range(6)), name='numarray', **kwargs)
     # pts = PointsXY(-2, name='scalar', **kwargs)
     # pts = PointsXY(3+5j, name='complex scalar', **kwargs)
@@ -628,7 +669,7 @@ if __name__ == '__main__':
     # print pts.oneliner()
     pts.display()
 
-    if 1:
+    if 0:
         print '- pts[1] -> ',pts[1]
         print '- pts[2] -> ',pts[2]
         print '- .yy() -> ',pts.yy(),type(pts.yy())

@@ -100,7 +100,7 @@ class ScatterPlot (pynode.PyNode):
     fig.add(grs)
 
     # Finished: dispose of the Figure:
-    fig.oneliners()
+    fig.display()
     svg_list_of_strings = fig.plot(dispose=['svg'])
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
@@ -167,7 +167,7 @@ class TheEasyWay (pynode.PyNode):
     fig.add(grs)
 
     # Finished: dispose of the Figure:
-    fig.oneliners()
+    fig.display()
     # svg_list_of_strings = fig.plot(dispose=['show'])
     svg_list_of_strings = fig.plot(dispose=['svg'])
     # NB: Make it into one big string....? (OMS)
@@ -210,7 +210,7 @@ class TheHardWay (pynode.PyNode):
     for i,ch in enumerate(children):
       _dprint(0,'- child',i,':',dmi.dmi_typename(ch),': ch =',ch)
       v0 = ch.vellsets[0].value[0]
-      print '\n--- v0:',type(v0),'::',v0
+      # print '\n--- v0:',type(v0),'::',v0
       if isinstance(v0,complex):
         xx.append(v0.real)
         yy.append(v0.imag)
@@ -226,6 +226,7 @@ class TheHardWay (pynode.PyNode):
 #   pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
     pylab.plot(xx, yy, 'ro')
     pylab.grid()
+
 
     # Finished:
     svg_list_of_strings = pylab_dispose(dispose=['svg'])
@@ -246,35 +247,47 @@ def pylab_dispose(dispose='svg'):
     import matplotlib
     matplotlib.use('SVG')
     import pylab                   
+
     rootname = 'xxx'
     print '** dispose(): ',dispose,rootname
     if dispose==None:
-        return None
+      return None
     if isinstance(dispose,str):
-        dispose = [dispose]
+      dispose = [dispose]
     result = None
     svgname = None
 
     file_extensions = ['png','PNG','svg','SVG']
     for ext in file_extensions:
-        if ext in dispose:
-            filename = rootname+'.'+ext
-            svgname = rootname
-            # since we are using backend 'SVG', svg is
-            # automatically added to filename
-            r = pylab.savefig(svgname)
-            print '** dispose:',ext,filename,'->',r
+      if ext in dispose:
+        delay = 0.0
+        if delay>0.0:
+          print '** before sleep()'
+          import time
+          time.sleep(delay)
+          print '** after sleep()'
+        filename = rootname+'.'+ext
+        svgname = rootname
+        # since we are using backend 'SVG', svg is
+        # automatically added to filename
+        r = pylab.savefig(svgname)
+        if delay>0.0:
+          print '** before sleep()'
+          import time
+          time.sleep(delay)
+          print '** after sleep()'
+        print '** dispose:',ext,filename,'->',r
 
     if isinstance(svgname,str):
-        file = open(filename,'r')
-        result = file.readlines()
-        file.close()
-        print '** svg:',filename,'->',type(result),len(result)
-        # for s in result: print '-',s
-        if False:
-            import os
-            os.system("%s -size 640x480 %s" % ('display',filename))
-            # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
+      file = open(filename,'r')
+      result = file.readlines()
+      file.close()
+      print '** svg:',filename,'->',type(result),len(result)
+      # for s in result: print '-',s
+      if False:
+        import os
+        os.system("%s -size 640x480 %s" % ('display',filename))
+        # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
         
     # Finished: return the result (if any):
     return result
@@ -309,8 +322,8 @@ def _define_forest (ns,**kwargs):
       # cc.append(ns[str(i)] << value+ns.freqtime)
       
     # classname = "ScatterPlot"
-    # classname = "TheHardWay"
     classname = "TheEasyWay"
+    # classname = "TheHardWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
     Meow.Bookmarks.Page(classname).add(ns.pynode, viewer="Svg Plotter")                
     Meow.Bookmarks.Page('cx_freqtime').add(ns.cx_freqtime, viewer="Result Plotter")                

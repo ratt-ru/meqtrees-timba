@@ -74,7 +74,7 @@ class Subplot (object):
             keys = ['name',
                     'title','xlabel','ylabel','xunit','yunit',
                     'xmin','xmax','ymin','ymax',
-                    'plot_legend','plot_labels']
+                    'plot_legend','plot_axis_labels']
             for key in keys:
                 if kwargs.has_key(key):
                     kw[key] = kwargs[key]
@@ -89,7 +89,8 @@ class Subplot (object):
         kw.setdefault('xmax',None)
         kw.setdefault('ymin',None)
         kw.setdefault('ymax',None)
-        kw.setdefault('plot_labels', True)
+
+        kw.setdefault('plot_axis_labels', True)
         kw.setdefault('plot_legend', True)
 
         if not isinstance(kw['name'],str): kw['name'] = '<name>'
@@ -202,22 +203,21 @@ class Subplot (object):
     #===============================================================
 
     def plot(self, figure=1, subplot=111, margin=0.1, dispose='show'):
-        """Plot the group of points, using pylab"""
+        """Make the subplot"""
         pylab.figure(figure)
         pylab.subplot(subplot)
-        # self.plot_axes(xaxis=True, yaxis=True)
-        self.pylab_window(margin=margin)
+        self.set_plot_window(margin=margin)
         if self._kw['plot_legend']:
             self.plot_legend()              
-        if self._kw['plot_labels']:
-            self.pylab_labels()
+        if self._kw['plot_axis_labels']:
+            self.plot_axis_labels()
         import Figure
         return Figure.pylab_dispose(dispose)
 
 
     #------------------------------------------------
 
-    def pylab_labels(self):
+    def plot_axis_labels(self):
         """Helper function to make axes labels, using internal info"""
         if isinstance(self._kw['xlabel'],str):
             pylab.xlabel(self._kw['xlabel'])
@@ -229,7 +229,7 @@ class Subplot (object):
 
     #------------------------------------------------
 
-    def pylab_window(self, margin=0.1):
+    def set_plot_window(self, margin=0.1):
         """Helper function to set the plot_window, using internal info"""
         [xmin,xmax] = self._range(self.xrange(), margin=margin,
                                   vmin=self._kw['xmin'],
@@ -237,9 +237,9 @@ class Subplot (object):
         [ymin,ymax] = self._range(self.yrange(), margin=margin,
                                   vmin=self._kw['ymin'],
                                   vmax=self._kw['ymax'])
-        # print '** .pylab_window(): xrange =',[xmin,xmax],'    yrange =',[ymin,ymax]
         pylab.axis([xmin, xmax, ymin, ymax])
         return True
+
 
     def _range(self, vv, margin=0.0, vmin=None, vmax=None):
         """Helper function to calculate [min,max] of the coordinate(s).
@@ -258,7 +258,7 @@ class Subplot (object):
 
     #---------------------------------------------------------------
 
-    def plot_legend (self, ny=16, trace=True):
+    def plot_legend (self, ny=16, trace=False):
         """Plot the accumulated legend-strings (if any).
         The number ny(=16) determines the line-spacing,
         by specifying the number of lines that fit on the plot.
@@ -267,8 +267,8 @@ class Subplot (object):
         ss = self.legend()
         [xmin,xmax] = self.xrange()
         [ymin,ymax] = self.yrange()
-        print '- xx =',xmin,xmax
-        print '- yy =',ymin,ymax
+        if trace: print '- xx =',xmin,xmax
+        if trace: print '- yy =',ymin,ymax
         x = xmin + abs(xmax-xmin)/20.0
         dy = abs(ymax-ymin)/float(ny)
         y = ymax
@@ -303,7 +303,7 @@ class Legend (Subplot):
 
         self._kw['plot_legend'] = True
 
-        self._kw['plot_labels'] = True
+        self._kw['plot_axis_labels'] = True
         self._kw['title'] = 'Legend'
         self._kw['xlabel'] = ' '
         self._kw['ylabel'] = ' '

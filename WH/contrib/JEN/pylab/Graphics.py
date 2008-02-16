@@ -172,15 +172,15 @@ class Graphics (Subplot.Subplot):
         ss += '  xrange='+str(self.xrange())
         return ss
 
-    def display(txt):
-        return self.oneliners()
-
-    def oneliners(self):
-        """Print its own oneliner, and those of its graphics"""
-        print '\n',self.oneliner()
+    def display(self, txt=None):
+        print '\n** (',txt,')'
+        print ' * ',self.oneliner()
         for key in self._order:
             print '-',key,':',self._graphic[key].oneliner()
-        print
+        print ' * keyword arguments (kwargs):'
+        for key in self._kw:
+            print '   - kw['+str(key)+'] = '+str(self._kw[key])
+        print '**\n'
         return True
 
     def help(self):
@@ -203,9 +203,9 @@ class Graphics (Subplot.Subplot):
             self.plot_axes(xaxis=True, yaxis=True)
         for key in self._order:
             self._graphic[key].plot(margin=0.0, dispose=None)
-        self.pylab_window(margin=margin)
-        if self._kw['plot_labels']:
-            self.pylab_labels()
+        self.set_plot_window(margin=margin)
+        if self._kw['plot_axis_labels']:
+            self.plot_axis_labels()
         if self._kw['plot_legend']:
             self.plot_legend()
         if self._kw['auto_legend']:
@@ -225,7 +225,6 @@ class Graphics (Subplot.Subplot):
             [x0,y0] = PointsXY.xy2pair(xy0)
             self.add(PointsXY.PointsXY([y0], xx=[x0], **kwargs))
         return True
-
 
     #------------------------------------------------
 
@@ -528,7 +527,7 @@ if __name__ == '__main__':
     if 0:
         grs.help()
 
-    grs.oneliners()
+    grs.display()
 
     if 1:
         grs.plot(dispose='show')

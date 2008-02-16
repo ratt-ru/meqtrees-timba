@@ -235,11 +235,13 @@ class PlotStyle (object):
 
     def _check_styles(self):
         """Check the specified plot-styles"""
-        kw = self._kw['plot']
+        kw = self._kw['plot']                   # convenience
 
+        # If only lines or markers are required, their style may be
+        # specified via the 'style' keyword. If they are both required
+        # the more specific 'marker' and 'linestyle' must be used.
         if not kw['style'] or kw['marker'] or kw['linestyle']:
             kw['style'] = '-'
-
         if kw['style'] in self.line_styles():
             if not kw['linestyle']:
                 kw['linestyle'] = kw['style']
@@ -249,12 +251,14 @@ class PlotStyle (object):
                 kw['linestyle'] = None
         kw.__delitem__('style')            # not recognized by pylab.plot(): delete
 
+        # Some local extensions to the pylab linestyles:
         ls = kw['linestyle']
         if ls=='solid': kw['linestyle'] = '-'
         if ls=='dashed': kw['linestyle'] = '--'
         if ls=='dotted': kw['linestyle'] = ':'
         if ls=='dashdot': kw['linestyle'] = '-.'
 
+        # Some local extensions to the pylab marker styles:
         ms = kw['marker']
         if ms=='circle': kw['marker'] = 'o'
         if ms=='triangle': kw['marker'] = '^'
@@ -271,6 +275,15 @@ class PlotStyle (object):
         if ms=='pentagon': kw['marker'] = 'p'
         if ms=='horizontal': kw['marker'] = '_'
         if ms=='vertical': kw['marker'] = '|'
+
+        # Temporary kludge(s) to solve SVG poblems:
+        if False:
+            s = '\n** .PlotStyle: temporary SVG kludge: '
+            if kw['linestyle']==None:
+                print s,' avoided linestyle==None ...'
+                kw['linestyle'] = ':'  
+                # kw.__delitem__('linestyle') 
+
         return True
 
     #---------------------------------------------------------
