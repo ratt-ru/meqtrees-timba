@@ -1,0 +1,22 @@
+# The Config option specifies a config file
+Config = trut.conf
+
+TDL demo1-predict-nps.py
+
+TDL example2-nps-meow.py
+
+TDL example3-nps-corrupt-meow.py
+
+TDL example4-nps-ext-meow.py
+
+TDL example5-clar.py
+
+TDL example6-iono.py 
+
+TDL example7-smear.py
+
+TDL example8-smear-diff.py
+
+TDL example9-clar-shortcut.py
+
+TDL example10-tracking.py

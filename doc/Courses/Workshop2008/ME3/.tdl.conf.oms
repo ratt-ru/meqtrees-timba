@@ -1,0 +1,113 @@
+[/home/oms/Workshop2007/ME3/demo1-correct-gains.py]
+imaging_mode = channel
+imaging_weight = briggs
+imaging_stokes = IQUV
+imaging_column = CORRECTED_DATA
+
+[/home/oms/Workshop2007/ME3/ex3-3c343-phases.py]
+_solver_opts.balanced_equations = 1
+_solver_opts.epsilon = 1e-06
+msname = 3C343.MS
+output_column = CORRECTED_DATA
+
+[/home/oms/Workshop2007/ME3/me1-ex1.py]
+imaging_mode = channel
+imaging_weight = briggs
+imaging_stokes = IQUV
+
+[/home/oms/Workshop2007/ME3/me2-demo-iono.py]
+imaging_mode = channel
+tid_y_speed_kmh = 50
+iono_rotate = 0
+grid_size = 1
+tid_x_speed_kmh = 25
+tid_x_size_km = 100
+tec0 = 10
+tid_y_ampl_1hr = 0.002
+imaging_arcmin = 12.0
+grid_step = 5
+tid_y_size_km = 125
+output_column = DATA
+imaging_weight = briggs
+tid_x_ampl_1hr = 0.002
+msname = demo-lofar.MS
+tile_size = 32
+noise_stddev = 1e-06
+
+[/home/oms/Workshop2007/ME3/ex1-correct-pa.py]
+imaging_column = CORRECTED_DATA
+
+[/home/oms/Workshop2007/ME3/demo3-meow343.py]
+_solver_g_ampl.balanced_equations = 1
+tiling_g_phase = 15
+_solver_g_ampl.epsilon = 1e-06
+_solver_flux.epsilon = 0.001
+g_tiling = 1
+tiling_g_ampl = 12
+imaging_weight = briggs
+tiling_flux = 1500
+_solver_g_phase.num_iter = 50
+msname = 3C343.MS
+_solver_g_phase.balanced_equations = 1
+_solver_g_phase.epsilon = 1e-06
+
+[/home/oms/Workshop2007/ME3/demo4-meeeow343.py]
+tiling_g_phase = 15
+msname = 3C343.MS
+_solver_flux.epsilon = 0.001
+_solver_ge_ampl.epsilon = 1e-06
+g_tiling = 1
+e_tiling = 1
+_solver_ge_phase.balanced_equations = 1
+include_e_jones = 1
+_solver_ge_ampl.balanced_equations = 0
+tiling_ge_phase = 12
+tiling_ge_ampl = 12
+tiling_flux = 100
+_solver_ge_phase.epsilon = 1e-06
+_solver_g_phase.balanced_equations = 1
+_solver_g_phase.epsilon = 1e-06
+
+[/home/oms/Workshop2007/ME2/demo-iono.py]
+tid_y_speed_kmh = 200
+grid_size = 1
+tid_y_ampl_1hr = 0.002
+tid_x_size_km = 100
+tec0 = 10
+tid_x_speed_kmh = 100
+tid_x_ampl_1hr = 0.002
+grid_step = 5
+tid_y_size_km = 100
+
+[/home/oms/Workshop2007/ME3/demo2-3c343.py]
+output_column = CORRECTED_DATA
+_solver_opts.lm_factor = 0.001
+_solver_opts.epsilon = 0.001
+tile_size = 100
+msname = 3C343.MS
+
+[/home/oms/Workshop2007/ME3/ex2-correct-iono.py]
+imaging_mode = channel
+tid_x_ampl_1hr = 0.01
+tid_x_ampl_0 = 0.01
+tid_x_size_km = 100
+tec0 = 10
+tid_x_speed_kmh = 100
+imaging_arcmin = 25.0
+output_column = CORRECTED_DATA
+imaging_weight = briggs
+msname = demo-30-190.MS
+
+[/home/oms/Workshop2007/ME3/demo5-iono-cal.py]
+_solver_iono.epsilon = 0.001
+_solver_iono.num_iter = 50
+grid_size = 1
+mim_polc_degree = 3
+tec0 = 10
+iono_rotate = 0
+imaging_weight = briggs
+grid_step = 5
+polc_deg_time = 1
+msname = demo-lofar.MS
+tiling_iono = 2
+
