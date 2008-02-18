@@ -71,7 +71,7 @@ class Subplot (object):
         # Extract the relevant keyword arguments from kwargs:
         kw = dict()
         if isinstance(kwargs, dict):
-            keys = ['name',
+            keys = ['name','plot_mode','plot_type',
                     'title','xlabel','ylabel','xunit','yunit',
                     'xmin','xmax','ymin','ymax',
                     'plot_legend','plot_axis_labels']
@@ -90,15 +90,23 @@ class Subplot (object):
         kw.setdefault('ymin',None)
         kw.setdefault('ymax',None)
 
+        kw.setdefault('plot_mode', 'pylab')
+        kw.setdefault('plot_type', 'plot')
         kw.setdefault('plot_axis_labels', True)
         kw.setdefault('plot_legend', True)
 
         if not isinstance(kw['name'],str): kw['name'] = '<name>'
         if not isinstance(kw['xlabel'],str): kw['xlabel'] = 'xx'
-        if not isinstance(kw['ylabel'],str): kw['ylabel'] = kw['name']
+        if not isinstance(kw['ylabel'],str): kw['ylabel'] = 'yy'
         if not isinstance(kw['title'],str): kw['title'] = str(type(self))
         if isinstance(kw['xunit'],str): kw['xlabel'] += ' ('+kw['xunit']+')'
         if isinstance(kw['yunit'],str): kw['ylabel'] += ' ('+kw['yunit']+')'
+
+        if False:
+            if kw['plot_type'] in ['loglog','semilogy']:
+                kw['ylabel'] = 'log('+kw['ylabel']+')'
+            if kw['plot_type'] in ['loglog','semilogx']:
+                kw['xlabel'] = 'log('+kw['xlabel']+')'
 
         self._kw = kw
 
@@ -197,6 +205,15 @@ class Subplot (object):
     def xunit(self): return self._kw['xunit']
     def yunit(self): return self._kw['yunit']
 
+    #---------------------------------------------------------------
+    
+    def gca(self):
+        """Return the current axes subplot...."""
+        obj = pylab.gca()
+        print '\n** Subplot.gca() ->',type(obj),'\n'
+        # <matplotlib.axes.Subplot instance at 0xb7d0a66c>
+        return obj
+
 
     #===============================================================
     # Plot standalone (testing only?)
@@ -229,7 +246,7 @@ class Subplot (object):
 
     #------------------------------------------------
 
-    def set_plot_window(self, margin=0.1):
+    def set_plot_window(self, margin=0.1, trace=False):
         """Helper function to set the plot_window, using internal info"""
         [xmin,xmax] = self._range(self.xrange(), margin=margin,
                                   vmin=self._kw['xmin'],
@@ -238,6 +255,8 @@ class Subplot (object):
                                   vmin=self._kw['ymin'],
                                   vmax=self._kw['ymax'])
         pylab.axis([xmin, xmax, ymin, ymax])
+        if trace:
+            print '** set_plot_window(): xrange =',[xmin,xmax],'  yrange =',[ymin,ymax]
         return True
 
 
@@ -281,6 +300,15 @@ class Subplot (object):
         return True
 
 
+
+
+
+
+
+
+#========================================================================
+#========================================================================
+#========================================================================
 #========================================================================
 # Derived classes:
 #========================================================================
@@ -322,33 +350,33 @@ def test_line (n=6, **kwargs):
     """Graphics (=Subplot) with PointsXY object for a straight line"""
     import PointsXY
     import Graphics
-    sub =  Graphics.Graphics(**kwargs)
-    sub.add(PointsXY.test_line(n=n, **kwargs))
-    return sub
+    grs =  Graphics.Graphics(**kwargs)
+    grs.add(PointsXY.test_line(n=n, **kwargs))
+    return grs
 
 def test_parabola (n=6, **kwargs):
     """Graphics (=Subplot) with PointsXY object for a parabola"""
     import PointsXY
     import Graphics
-    sub =  Graphics.Graphics(**kwargs)
-    sub.add(PointsXY.test_parabola(n=n, **kwargs))
-    return sub
+    grs =  Graphics.Graphics(**kwargs)
+    grs.add(PointsXY.test_parabola(n=n, **kwargs))
+    return grs
 
 def test_sine (n=10, **kwargs):
     """Graphics (=Subplot) with PointsXY object for sine-wave"""
     import PointsXY
     import Graphics
-    sub =  Graphics.Graphics(**kwargs)
-    sub.add(PointsXY.test_sine(n=n, **kwargs))
-    return sub
+    grs =  Graphics.Graphics(**kwargs)
+    grs.add(PointsXY.test_sine(n=n, **kwargs))
+    return grs
 
 def test_cloud (n=10, mean=-1.0, stddev=3.0, **kwargs):
     """Graphics (=Subplot) with PointsXY object for a cloud of random points"""
     import PointsXY
     import Graphics
-    sub =  Graphics.Graphics(**kwargs)
-    sub.add(PointsXY.test_cloud(n=n, mean=mean, stddev=stddev, **kwargs))
-    return sub
+    grs =  Graphics.Graphics(**kwargs)
+    grs.add(PointsXY.test_cloud(n=n, mean=mean, stddev=stddev, **kwargs))
+    return grs
 
 
 

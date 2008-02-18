@@ -58,7 +58,6 @@ class PointsXY (object):
 
     def __init__(self, yy=None, annot=None, name=None, 
                  xx=None, dyy=None, dxx=None,
-                 plotmode='pylab', plottype='plot',
                  **kwargs):
 
 
@@ -67,20 +66,19 @@ class PointsXY (object):
         if not isinstance(self._name,str): self._name = '<name>'
 
         # The PlotStyle specifications are via the kwargs
-        self._plotmode = plotmode
         self._PlotStyle = PlotStyle.PlotStyle(**kwargs)
-
-        # Plot type (e.g. loglog, semilogx, semilogy, plot, etc):
-        self._plottype = plottype              
 
         # Extract the relevant keyword arguments from kwargs:
         kw = dict()
         if isinstance(kwargs, dict):
-            keys = ['plot_ellipse_stddev','plot_circle_mean',
+            keys = ['plot_type','plot_mode',
+                    'plot_ellipse_stddev','plot_circle_mean',
                     'auto_legend','plot_standalone']
             for key in keys:
                 if kwargs.has_key(key):
                     kw[key] = kwargs[key]
+        kw.setdefault('plot_mode', 'pylab')
+        kw.setdefault('plot_type', 'plot')
         kw.setdefault('auto_legend', True)
         kw.setdefault('plot_standalone', False)
         kw.setdefault('plot_ellipse_stddev', False)
@@ -99,17 +97,44 @@ class PointsXY (object):
         # Finished:
         return None
 
+    #---------------------------------------------------------------
+
+    def kwupdate (self, **kwargs):
+        """Update self._kw (see .__init__())."""
+        if isinstance(kwargs,dict):
+            print 'kwupdate(): ',self.oneliner()
+            for key in kwargs.keys():
+                if self._kw.has_key(key):
+                    was = self._kw[key]
+                    self._kw[key] = kwargs[key]
+                    print '** kwupdate():',key,':',was,'->',self._kw[key]
+                else:
+                    s = '** kwarg key not recognised: '+str(key)
+                    raise ValueError,s
+        return True
+
 
     #---------------------------------------------------------------
 
     def append (self, y, annot=None, x=None, dy=None, dx=None, trace=False):
         """Add a point (x,y) to the internal group"""
 
+        if trace:
+            print 'y =',y
+            print 'x =',x
+            print 'annot =',annot
+
         if y==None:
             return True
 
         if isinstance(y, type(pylab.array([]))):
             y = y.tolist()
+        if isinstance(x, type(pylab.array([]))):
+            x = x.tolist()
+        if isinstance(dx, type(pylab.array([]))):
+            dx = dx.tolist()
+        if isinstance(dy, type(pylab.array([]))):
+            dy = dy.tolist()
 
         if isinstance(y, list):
             # Recursive: append a list of points.
@@ -132,6 +157,8 @@ class PointsXY (object):
 
             # OK: append the points one by one:
             for i,y1 in enumerate(y):
+                if trace:
+                    print '-',i,': (x,y)=',x[i],y[i],annot[i],' (dx,dy)=',dx[i],dy[i]
                 self.append (y=y[i], annot=annot[i], 
                              x=x[i], dy=dy[i], dx=dx[i],
                              trace=trace)
@@ -155,9 +182,11 @@ class PointsXY (object):
             if isinstance(x, (float,int)):
                 self._xx.append(float(x))
             else:                                     
-                xauto = True                             # automatic x
-                self._xx.append(float(len(self._yy)))    # start at 1
-                # self._xx.append(float(len(self._yy)-1))  # start at 0
+                xauto = True                                 # automatic x
+                if False and self._kw['plot_type'] in ['plot','semilogy']:
+                    self._xx.append(float(len(self._yy)-1))  # start at 0 (better)
+                else:
+                    self._xx.append(float(len(self._yy)))    # start at 1 (safer)
         else:
             s = '** .append(): type(y) not recognized: '+str(type(y))
             raise ValueError,s
@@ -219,6 +248,7 @@ class PointsXY (object):
         ss += ' '+self._PlotStyle.summary()
         ss += '  yrange='+str(self.yrange())
         ss += '  xrange='+str(self.xrange())
+        ss += '  plot_type='+str(self._kw['plot_type'])
         return ss
 
     def display(self, txt=None):
@@ -232,7 +262,6 @@ class PointsXY (object):
         print ' * dyy:   ',self.sumarr(self._dyy)
         print ' * dxx:   ',self.sumarr(self._dxx)
         print ' * annot: ',self.sumarr(self._annot)
-        print ' * plotmode:',self._plotmode
         print ' * ',self._PlotStyle.oneliner()
         print '**\n'
         return True
@@ -269,7 +298,7 @@ class PointsXY (object):
 
     def yrange(self, margin=0.0, yrange=None):
         """Return [min,max] of the y-coordinate(s)."""
-        return self._range(self.yy(), margin=margin, vrange=yrange)
+        return self._range(self.yy(), self._dyy, margin=margin, vrange=yrange)
 
     def __getitem__(self, index):
         """Return the coordinates [x,y] of the specified (index) point"""
@@ -312,16 +341,20 @@ class PointsXY (object):
 
     def xrange(self, margin=0.0, xrange=None):
         """Return [min,max] of the x-coordinate(s)."""
-        return self._range(self.xx(), margin=margin, vrange=xrange)
+        return self._range(self.xx(), self._dxx, margin=margin, vrange=xrange)
 
     #------------------------------------------------
 
-    def _range(self, vv, margin=0.0, vrange=None):
+    def _range(self, vv, dvv=None, margin=0.0, vrange=None):
         """Return [min,max] of the y-coordinate(s).
+        Take any margin (error-bar or arrow) into account.
         An extra margin (fraction of the span) may be specified.
         If an existing range [min,max] is specified, take it into account."""
         vmin = min(vv)
         vmax = max(vv)
+        if isinstance(dvv,list):
+            vmin -= abs(min(dvv))
+            vmax += abs(max(dvv))
         if margin>0.0:
             dv2 = 0.5*(vmax-vmin)*margin
             if vmax==vmin:
@@ -393,7 +426,9 @@ class PointsXY (object):
 
 
     #===============================================================
+    #===============================================================
     # Plotting:
+    #===============================================================
     #===============================================================
 
     def plot(self, margin=0.2, dispose='show'):
@@ -411,15 +446,8 @@ class PointsXY (object):
                 legend_label = str(pleg)
 
         # Plot the actual points (xx,yy):
-        if self._plottype=='loglog':
-            pylab.loglog(self.xx(), self.yy(),
-                         label=legend_label,
-                         **self._PlotStyle.kwargs('plot'))
-            pylab.grid()
-        else:
-            pylab.plot(self.xx(), self.yy(),
-                       label=legend_label,
-                       **self._PlotStyle.kwargs('plot'))
+        self.plot_points (xx=self.xx(), yy=self.yy(),
+                          label=legend_label)
         
         # Annotations and errorbars (if specified):
         self.annotate()
@@ -433,20 +461,86 @@ class PointsXY (object):
 
         # Make the window, if required, but AFTER the circles:
         if margin>0.0:
-            if self._plottype=='plot':
+            if self._kw['plot_type']=='plot':
                 [xmin,xmax] = self.xrange(margin=margin)
                 [ymin,ymax] = self.yrange(margin=margin)
                 pylab.axis([xmin, xmax, ymin, ymax])
 
         # Make the pylab legend, if required:
         if self._kw['plot_standalone']:
-            pylab.legend()
+            if self._kw['plot_type']=='polar':
+                # pylab.thetagrids(True)                 # see also .rgrids()
+                pass
+            else:
+                pylab.legend()
+                pylab.grid()
         
         # Finished:
-        if dispose=='show':
+        if dispose=='show':              # standalone only?
             pylab.show()
         return True
 
+    #---------------------------------------------------------------
+
+    def plot_points(self, xx, yy, label='_nolegend_', **kwargs):
+        """Plot the specified points (xx,yy) with the relevant
+        pylab plot (plot, loglog, semilogy, semilogx etc).
+        """
+        ptype = self._kw['plot_type']
+        if ptype=='loglog':
+            pylab.loglog(xx, yy, label=label,
+                         **self._PlotStyle.kwargs(ptype))
+        elif ptype=='semilogy':
+            pylab.semilogy(xx, yy, label=label,
+                           **self._PlotStyle.kwargs(ptype))
+        elif ptype=='semilogx':
+            pylab.semilogx(xx, yy, label=label,
+                           **self._PlotStyle.kwargs(ptype))
+        elif ptype=='polar':
+            pylab.polar(xx, yy, label=label,
+                        **self._PlotStyle.kwargs(ptype))
+        elif ptype=='quiver':
+            self.plot_quiver(xx, yy, label=label,
+                             **self._PlotStyle.kwargs(ptype))
+        elif ptype=='scatter':
+            pylab.scatter(xx, yy, label=label,
+                          **self._PlotStyle.kwargs(ptype))
+        else:
+            pylab.plot(xx, yy, label=label,
+                       **self._PlotStyle.kwargs('plot'))
+        return True
+
+    #---------------------------------------------------------------
+
+    def plot_quiver(self, xx, yy, label='_nolegend_', **kwargs):
+        """Plot the specified arrow(s)
+        """
+        trace = False
+        # trace = True
+        if trace:
+            print '** plot_quiver(): ',self.oneliner()
+            # self.display('plot_quiver()')
+        n = len(yy)
+        X = pylab.array([xx,xx])
+        Y = pylab.array([yy,yy])
+        U = pylab.array([self._dxx,n*[0.0]])
+        V = pylab.array([self._dyy,n*[0.0]])
+        # U = pylab.array([self._dxx,self._dxx])
+        # V = pylab.array([self._dyy,self._dyy])
+        if trace:
+            print '  - X =',X
+            print '  - Y =',Y
+            print '  - U =',U
+            print '  - V =',V
+        S = 1.0
+        color = self._PlotStyle.color()
+        # pylab.quiver(X,Y,U,V,S)
+        pylab.quiver(X,Y,U,V, color=color)
+        if trace:
+            # pylab.plot(xx,yy,marker='o',color=color)
+            print '  - xrange =',self.xrange()
+            print '  - yrange =',self.yrange()
+        return True
 
     #---------------------------------------------------------------
 
@@ -471,7 +565,7 @@ class PointsXY (object):
 
     def plot_error_bars(self):
         """Plot vertical and/or horizontal errorbars, if specified"""
-        if self._plottype=='plot':
+        if self._kw['plot_type']=='plot':
             color = self._PlotStyle.color()
             for i,y in enumerate(self._yy):
                 x = self._xx[i]
@@ -495,20 +589,24 @@ class PointsXY (object):
 
     def plot_circle_mean(self):
         """Plot a circle around the origin, through [xmean,ymean]"""
-        if self._plottype=='plot':
+        if self._kw['plot_type']=='plot':
             color = self._PlotStyle.color()
             self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
                               label='_nolegend_',
                               color=color, linestyle='--')
             [xmean,ymean] = self.mean('xy')
             pylab.text(xmean, ymean, '  mean', color=color)
+            if False:
+                arr = pylab.Arrow(0,0,xmean,ymean, edgecolor='black',
+                                  facecolor=color, linewidth=1, alpha=0.05)
+                pylab.gca().add_patch(arr)
         return True
 
     #..............................................................
 
     def plot_ellipse_stddev(self):
         """Plot an ellipse to mark the (x,y) sttdev"""
-        if self._plottype=='plot':
+        if self._kw['plot_type']=='plot':
             color = self._PlotStyle.color()
             [xmean,ymean] = self.mean('xy')
             [xstddev,ystddev] = self.stddev('xy')
@@ -558,7 +656,7 @@ class PointsXY (object):
 #========================================================================
 
 
-def xy2pair(xy):
+def xy2pair(xy, trace=False):
     """Helper function to make sure that xy is a list [x,y]""" 
     if xy==None:
         return [None,None]
@@ -584,8 +682,10 @@ def test_line (n=6, name='test_line', **kwargs):
     """PointsXY object for a straight line"""
     kwargs.setdefault('color','magenta')
     kwargs.setdefault('style','-')
-    yy = 0.3*pylab.array(range(n))
-    pts = PointsXY (yy, name=name, **kwargs)
+    yy = 0.3*pylab.array(range(1,n))
+    # name += '_'+kwargs['plot_type']
+    print '\n** ',name,':',kwargs,'\n'
+    pts = PointsXY (yy, xx=yy, name=name, **kwargs)
     print pts.oneliner()
     return pts
 
@@ -611,7 +711,8 @@ def test_sine (n=10, name='test_sine', **kwargs):
     print pts.oneliner()
     return pts
 
-def test_cloud (n=10, mean=1.0, stddev=1.0, name='test_cloud', **kwargs):
+def test_cloud (n=10, mean=1.0, stddev=1.0,
+                name='test_cloud', **kwargs):
     """PointsXY object for a cloud of random points"""
     kwargs.setdefault('color','green')
     kwargs.setdefault('style','cross')
@@ -638,24 +739,36 @@ if __name__ == '__main__':
 
     kwargs = dict()
     kwargs = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
+    kwargs = dict(color='magenta', style='-', marker='o', markersize=5, markeredgecolor='blue')
+    # kwargs['linestyle'] = '-'
     kwargs['plot_ellipse_stddev'] = True
     kwargs['plot_circle_mean'] = True
     kwargs['auto_legend'] = True
     kwargs['plot_standalone'] = True
 
     pts = PointsXY(range(6), name='list', annot=True, dxx=2, dyy=1.0, **kwargs)
-    if False:
+    if 0:
         pts = PointsXY(name='list', annot=True, dxx=1.3, dyy=1.0, **kwargs)
         for i in range(6):
             pts.append(i,str(i-10))
-    if True:
+    if 0:
         yy = range(1,25)
         xx = range(1,25)
-        plottype = 'loglog'
-        # plottype = 'semilogx'
-        # plottype = 'semilogy'
-        # plottype = 'plot'
-        pts = PointsXY(yy, xx=xx, name=plottype, plottype=plottype, **kwargs)
+        plot_type = 'loglog'
+        plot_type = 'semilogx'
+        plot_type = 'semilogy'
+        plot_type = 'polar'
+        # plot_type = 'plot'
+        pts = PointsXY(yy, xx=xx, name=plot_type, plot_type=plot_type, **kwargs)
+        
+    if 0:
+        pts = PointsXY(3, xx=5, dxx=1, dyy=-1, name='arrow',
+                       plot_type='quiver', **kwargs)
+    if 1:
+        pts = PointsXY(range(5), xx=range(1,6),
+                       dxx=1.0, dyy=-1.0,
+                       # dxx=5*[1.0], dyy=5*[-1.0],
+                       name='quiver', plot_type='quiver', **kwargs)
         
     # pts = PointsXY(pylab.array(range(6)), name='numarray', **kwargs)
     # pts = PointsXY(-2, name='scalar', **kwargs)

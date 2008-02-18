@@ -72,6 +72,7 @@ class PlotStyle (object):
         # Specific extraction functions:
         self.extract_kw_plot(**kwargs)
         self.extract_kw_text(**kwargs)
+        self.extract_kw_scatter(**kwargs)
 
         # Finished:
         return None
@@ -108,14 +109,21 @@ class PlotStyle (object):
     #===============================================================
 
     def kwargs(self, func='plot'):
-        """Return the keyword arguments to be used for a particular pylab function"""
+        """Return the keyword arguments to be used for a particular
+        pylab function (e.g. plot, text, loglog, etc)"""
         if self._kw.has_key(func):
             return self._kw[func]
-        return None
+        elif func in ['loglog','semilogx','semilogy']:
+            return self._kw['plot']
+        # Always return something. It might work.
+        return self._kw['plot']
+
 
     def color(self):
+        """Return 'the' color (string)"""
         if self._kw['plot'].has_key('color'):
             return self._kw['plot']['color']
+        # Always return a color, albeit an unattractive one:
         return 'yellow'
 
 
@@ -142,8 +150,9 @@ class PlotStyle (object):
             for key in keys:
                 if kwargs.has_key(key):
                     kw[key] = kwargs[key]
-        self._kw['plot'] = kw
-        if trace: self.display('from kwargs')
+        if trace:
+            self._kw['plot'] = kw
+            self.display('from kwargs')
 
         # Generic (specifies line or marker):
         kw.setdefault('color', 'red')
@@ -168,9 +177,57 @@ class PlotStyle (object):
 
         # Finsihed:
         self._kw['plot'] = kw
+
         # if trace: self.display('before checks')
         self._check_colors()
         self._check_styles()
+        if trace: self.display('checked')
+        return True
+
+    #------------------------------------------------------------
+
+    def extract_kw_scatter(self, **kwargs):
+        """Extract pylab.scatter() keywords from kwargs"""
+
+        # trace = True
+        trace = False
+        
+        kw = dict()
+        if isinstance(kwargs, dict):
+            keys = ['color',
+                    # 'style',
+                    'linewidth',
+                    # 'facecolor','edgecolor',
+                    'alpha']
+            for key in keys:
+                if kwargs.has_key(key):
+                    kw[key] = kwargs[key]
+        if trace:
+            self._kw['scatter'] = kw
+            self.display('from kwargs')
+
+        # Generic (specifies line or marker):
+        kw.setdefault('color', 'red')
+        # kw.setdefault('style', None)              # must be removed again....
+
+        # See page 37 of the Greenfield manual:
+
+        # Line style:
+        kw.setdefault('linewidth', 1)             # in points, non-zero float 
+
+        # Marker style:
+        # kw.setdefault('facecolor', kw['color'])
+        # kw.setdefault('edgecolor', kw['color'])
+
+        # Miscellaneous:
+        kw.setdefault('alpha', 0.5)               # transparency (0.0<=alpha<=1.0)
+
+        # Finsihed:
+        self._kw['scatter'] = kw
+
+        # if trace: self.display('before checks')
+        # self._check_colors()
+        # self._check_styles()
         if trace: self.display('checked')
         return True
 
@@ -205,8 +262,9 @@ class PlotStyle (object):
             for key in keys:
                 if kwargs.has_key(key):
                     kw[key] = kwargs[key]
-        self._kw['text'] = kw
-        if trace: self.display('from kwargs')
+        if trace:
+            self._kw['text'] = kw
+            self.display('from kwargs')
 
         # See page 38 of the Greenfield manual:
         kw.setdefault('color', self.color())

@@ -103,7 +103,31 @@ class Graphics (Subplot.Subplot):
             key = str(len(self._order))       # .....??
         self._graphic[key] = graphic
         self._order.append(key)
+
+        # Transfer some keyword arguments to the new graphic:
+        # (All graphics objects in the same subplot should be
+        #  plotted in the same way, e.g. plot (linear), loglog etc)
+        kwargs = dict()
+        for key1 in ['plot_type','plot_mode']:
+            print '-- key1 =',key1,
+            if self._kw.has_key(key1):
+                kwargs[key1] = self._kw[key1]
+            print '-> kwargs =',kwargs
+        self.last().kwupdate(**kwargs)
+
+        # Finished:
         return key
+
+    #............................................................
+
+    def last (self):
+        """Return (a reference to) the last graphic in the list"""
+        if self.len()>0:
+            key = self._order[self.len()-1]
+            return self._graphic[key]
+        return None
+
+    #............................................................
 
     def remove(self, key):
         """Remove a named object from self._graphic"""
@@ -203,7 +227,7 @@ class Graphics (Subplot.Subplot):
             self.plot_axes(xaxis=True, yaxis=True)
         for key in self._order:
             self._graphic[key].plot(margin=0.0, dispose=None)
-        self.set_plot_window(margin=margin)
+        self.set_plot_window(margin=margin, trace=False)
         if self._kw['plot_axis_labels']:
             self.plot_axis_labels()
         if self._kw['plot_legend']:
@@ -211,7 +235,11 @@ class Graphics (Subplot.Subplot):
         if self._kw['auto_legend']:
             pylab.legend()
         if self._kw['plot_grid']:
-            pylab.grid(True)
+            if self._kw['plot_type']=='polar':
+                pass
+                pylab.thetagrids(True)                 # see also .rgrids()
+            else:
+                pylab.grid(True)
         import Figure
         return Figure.pylab_dispose(dispose)
 
@@ -251,7 +279,7 @@ class Graphics (Subplot.Subplot):
 
 class Scatter (Graphics):
 
-    def __init__(self, yy=None, annot=None,
+    def __init__(self, yy=range(3), annot=None,
                  xx=None, dxx=None, dyy=None,
                  **kwargs):
         """
@@ -269,6 +297,7 @@ class Scatter (Graphics):
         # Make the PointsXY object, and add it to the internal list:
         kwargs.setdefault('style','o')
         kwargs.setdefault('markersize',5)
+        # kwargs['linestyle'] = None
         self.add(PointsXY.PointsXY(yy=yy, annot=annot,
                                    xx=xx, dxx=dxx, dyy=dyy,
                                    **kwargs))
@@ -300,8 +329,8 @@ class Rectangle (Graphics):
         else:
             [x0,y0] = PointsXY.xy2pair(xy0)
             [dx,dy] = PointsXY.xy2pair(sxy)
-            [x1,y1] = [x0-dx/2,y0-dy/2]
-            [x2,y2] = [x0+dx/2,y0+dy/2]
+            [x1,y1] = [x0-dx/2.0,y0-dy/2.0]
+            [x2,y2] = [x0+dx/2.0,y0+dy/2.0]
 
         xx = [x1,x2,x2,x1,x1]
         yy = [y1,y1,y2,y2,y1]
@@ -317,6 +346,40 @@ class Rectangle (Graphics):
 #========================================================================
 
 class Arrow (Graphics):
+
+    def __init__(self, xy0=[0.0,0.0], xy1=None, dxy=[-1.0,-1.0],
+                 **kwargs):
+        """
+        The Arrow class is derived from the Graphics class.
+        It can be specified in different ways:
+        - from xy0(=[0,0]) to xy1(=None)
+        - from xy0(=[0,0]) to xy0+dxy(=None).
+        """
+
+        Graphics.__init__(self, **kwargs)
+
+        [x0,y0] = PointsXY.xy2pair(xy0)
+        if xy1:
+            [x1,y1] = PointsXY.xy2pair(xy1)
+            [dx,dy] = [x1-x0,y1-y0]
+        elif dxy:
+            [dx,dy] = PointsXY.xy2pair(dxy)
+        else:
+            raise ValueError,'either xy1 or dxy should be specified'
+
+
+        # Make the PointsXY object:
+        pxy = PointsXY.PointsXY(y0, xx=x0, dxx=dx, dyy=dy, **kwargs)
+        self.add(pxy)
+        self.last().kwupdate(**dict(plot_type='quiver'))
+
+        # Finished:
+        return None
+
+
+#========================================================================
+
+class Arrow_old (Graphics):
 
     def __init__(self, xy1=[0.0,0.0], xy2=None, dxy=None,
                  **kwargs):
@@ -371,6 +434,7 @@ class Arrow (Graphics):
 
         # Finished:
         return None
+
 
 #========================================================================
 
@@ -503,24 +567,37 @@ if __name__ == '__main__':
 
     if 0:
         grs = Scatter(range(6), style='hexagon')
+        # grs = Scatter(range(6), style='hexagon', plot_type='polar')
 
     if 0:
-        grs = Rectangle(xy0=complex(2.5,3), sxy=complex(4,5))
+        grs = Rectangle()
+        # grs = Rectangle(xy0=complex(2.5,3), sxy=complex(4,5))
 
     if 0:
         grs = RegularPolygon(n=5, xy0=complex(2.5,3), radius=3,
                              centre_mark='+')
 
-    if 0:
+    if 1:
         # grs = Arrow(dxy=[1,1], linewidth=3)
         # grs = Arrow(xy2=[1,1], linewidth=3)
         grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
 
-    if 1:
+    if 0:
         grs.add(PointsXY.test_line())
         grs.add(PointsXY.test_parabola())
         grs.add(PointsXY.test_sine())
         grs.add(PointsXY.test_cloud())
+
+    if 1:
+        import Figure
+        fig = Figure.Figure(nrow=2,ncol=3)
+        fig.add(Scatter())
+        fig.add(Rectangle())
+        fig.add(RegularPolygon())
+        fig.add(Circle())
+        fig.add(Ellipse())
+        fig.add(Arrow())
+        fig.plot(dispose='show')
 
     #------------------------------------
 
@@ -529,9 +606,42 @@ if __name__ == '__main__':
 
     grs.display()
 
-    if 1:
+    if 0:
         grs.plot(dispose='show')
         # grs.plot(dispose=['PNG','SVG','show'])
+
+    #------------------------------------
+
+    if 0:
+        print pylab.quiver.func_doc
+        if 1:
+            X = pylab.array([[1,2],[3,4]])
+            Y = pylab.array([[1,-2],[3,4]])
+            U = -pylab.array([[1,2],[3,4]])
+            V = 2*pylab.array([[1,2],[3,4]])
+        if 1:
+            X = pylab.array([[3],[3]])
+            Y = pylab.array([[10],[10]])
+            U = -pylab.array([[1],[0]])
+            V = 2*pylab.array([[1],[0]])
+        S = 0.0
+        S = 1.0
+        [dx,dy] = [1,1]
+        [xmin,xmax] = [X.min()-dx,X.max()+dx]
+        [ymin,ymax] = [Y.min()-dy,Y.max()+dy]
+        print '-- X =',X,[xmin,xmax]
+        print '-- Y =',Y,[ymin,ymax]
+        print '-- U =',U
+        print '-- V =',V
+        print '-- S =',S
+        # pylab.quiver(U,V)
+        # pylab.quiver(U,V,S)
+        pylab.quiver(X,Y,U,V, width=1.0, color='red')
+        # pylab.quiver(X,Y,U,V,S)
+        pylab.plot(X,Y, marker='o', linestyle=None)
+        pylab.axis([xmin,xmax,ymin,ymax])
+        pylab.grid()
+        pylab.show()
 
     print '\n** End of local test of: Graphics.py:\n'
 

@@ -261,10 +261,19 @@ if __name__ == '__main__':
     import Subplot
 
     fig = Figure(nrow=2, ncol=2)
-    fig.add(Subplot.test_line())
-    fig.add(Subplot.test_parabola())
-    fig.add(Subplot.test_sine())
-    fig.add(Subplot.test_cloud(xmin=-10))
+
+    if 0:
+        fig.add(Subplot.test_line())
+        fig.add(Subplot.test_parabola())
+        fig.add(Subplot.test_sine())
+        fig.add(Subplot.test_cloud(xmin=-10))
+
+    if 1:
+        plot_types = ['plot','loglog','semilogy','semilogx']
+        plot_types = ['plot','polar','scatter','quiver']
+        for plot_type in plot_types:
+            fig.add(Subplot.test_line(plot_type=plot_type, title=plot_type, marker='o'))
+        
     fig.display()
 
     if 1:
