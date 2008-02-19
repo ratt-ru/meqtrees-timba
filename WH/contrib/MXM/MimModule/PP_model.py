@@ -52,9 +52,17 @@ import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 meqmaker.add_sky_models([central_point_source,lsm,gridded_sky,gridded_sky_ivb]);
 
+from Timba.Contrib.OMS.Calico import solvable_jones;
+meqmaker.add_uv_jones('G','receiver gains/phases',
+  [ solvable_jones.DiagAmplPhase(),
+    solvable_jones.FullRealImag() ]);
 
 
 meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
+from Timba.Contrib.MXM.MimModule import solvable_sky_jones;
+meqmaker.add_sky_jones('GD','directional receiver gains/phases',
+  [ solvable_sky_jones.DiagAmplPhase(),
+    solvable_sky_jones.FullRealImag() ]);
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
