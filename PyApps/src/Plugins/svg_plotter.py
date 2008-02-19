@@ -39,6 +39,7 @@ import plot_printer
 from ResultsRange import *
 from BufferSizeDialog import *
 import os
+import tempfile
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='svg_plotter');
@@ -164,6 +165,7 @@ class SvgPlotter(GriddedPlugin):
     self.data_list_length = 0
     self.max_list_length = 50
     self.layout_created = False
+    self.counter = -1
 
     self.reset_plot_stuff()
 
@@ -312,13 +314,18 @@ class SvgPlotter(GriddedPlugin):
       return
 
     svg_plot = self._rec.svg_plot
+#   print 'incoming plot string is ', svg_plot
 #   print '***************************'
 #   print 'handling svg_plot event - string has length ', len(svg_plot)
 #   print '***************************'
-    file_name = '/tmp/svg_descriptor.svg'
+    self.counter = self.counter + 1
+#   file_name = '/tmp/svg_descriptor-' + str(self.counter) + '.svg'
+    file_name = 'yyy.svg'
 #   try:
 #     os.system("rm -fr "+ file_name);
 #   except:   pass
+#   file = os.tmpfile()
+#   file = tempfile.NamedTemporaryFile(mode='w',suffix='.svg',dir='./')
     file = open(file_name,'w')
     try:
       result = file.writelines(svg_plot)
