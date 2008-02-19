@@ -318,15 +318,12 @@ class SvgPlotter(GriddedPlugin):
 #   print '***************************'
 #   print 'handling svg_plot event - string has length ', len(svg_plot)
 #   print '***************************'
-    self.counter = self.counter + 1
+#   self.counter = self.counter + 1
 #   file_name = '/tmp/svg_descriptor-' + str(self.counter) + '.svg'
-    file_name = 'yyy.svg'
-#   try:
-#     os.system("rm -fr "+ file_name);
-#   except:   pass
-#   file = os.tmpfile()
-#   file = tempfile.NamedTemporaryFile(mode='w',suffix='.svg',dir='./')
-    file = open(file_name,'w')
+#   file_name = 'yyy.svg'
+
+    fd, file_name = tempfile.mkstemp(text='w',suffix='.svg',dir='/tmp')
+    file = os.fdopen(fd,"w")
     try:
       result = file.writelines(svg_plot)
     except:
@@ -348,6 +345,10 @@ class SvgPlotter(GriddedPlugin):
       QObject.connect(self._svg_plotter, PYSIGNAL('save_display'), self.grab_display)
     self._svg_plotter.loadPicture(file_name)
     self._svg_plotter.show()
+    # finally, get rid of the temporary file
+    try:
+      os.system("/bin/rm -fr "+ file_name);
+    except:   pass
 
     # end show_svg_plot()
 
