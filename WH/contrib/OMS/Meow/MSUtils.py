@@ -90,6 +90,7 @@ class MSContentSelector (object):
     self.taql_option = TDLOption('ms_taql_str',"Additional TaQL selection",
                                 [None],more=str,namespace=self)
     self._opts.append(self.taql_option);
+    self._nchan = None;
     # if pycasatable exists, set up interactivity for ddid/channels
     if pycasatable:
       if channels:
@@ -112,6 +113,11 @@ class MSContentSelector (object):
         return self.ms_channel_end,self.ms_channel_start,self.ms_channel_step;
     else:
       return None;
+    
+  def get_total_channels (self):
+    """Returns total # of channels in current spectral window, or None
+    if not known""";
+    return self._nchan;
 
   def get_spectral_window (self):
     """Returns the spw corresponding to the selected DDID. If pycasatable is n/a,
@@ -181,7 +187,7 @@ class MSContentSelector (object):
   def _select_ddid (self,value):
     """callback used when a new DDID is selected."""
     if self.ms_ddid_numchannels:
-      nchan = self.ms_ddid_numchannels[value];
+      nchan = self._nchan = self.ms_ddid_numchannels[value];
       self.channel_options[0].set_option_list([0,nchan-1]);
       self.channel_options[0].set_value(min(self.ms_channel_start,nchan-1),save=False);
       self.channel_options[0].set_doc("(max %d) select first channel"%(nchan-1));
@@ -562,26 +568,26 @@ class ImagingSelector (object):
         TDLOption('imaging_chanstart',"Starting at channel",[0],more=int,namespace=self),
         TDLOption('imaging_chanstep',"Stepped by",[1],more=int,namespace=self),
     );
+    docstr = """This selects the number of frequency channels in the output
+                image. If "all" is used, then every selected channel in the
+                MS is imaged independently. If "multi-freq synthesis" is selected, then
+                all channels are averaged together in MFS mode. Otherwise, supply a
+                number of output channels, the input channels will be averaged down
+                to this number."""
+    self.imaging_totchan = 1;
     if pycasatable:
       chan_opt = TDLOption('imaging_chanmode',"Frequency channels in image",
                     [CHANMODE_NOAVG,CHANMODE_ALL,CHANMODE_MFS,CHANMODE_MANUAL],
-                    more=int,namespace=self,
-                    doc="""This selects the number of frequency channels in the output
-                    image. If "all" is used, then every selected channel in the
-                    MS is imaged independently. If "multi-freq synth" is selected, then
-                    all channels are averaged together in MFS mode. Otherwise, supply a
-                    number of output channels, the input channels will be averaged down
-                    to this number.""");
+                    more=int,namespace=self,doc=docstr);
     else:
+      self._opts += [ TDLOption('imaging_totchan',"Frequency channels in input data",
+                               [1],more=int,namespace=self,\
+                      doc="""Since pycasatable is not available with your build of aips++,
+                      we don't know how many total channels there are in the MS. Please 
+                      supply the number here.""") ];
       chan_opt = TDLOption('imaging_chanmode',"Frequency channels in image",
                     [CHANMODE_ALL,CHANMODE_MFS,CHANMODE_MANUAL],
-                    namespace=self,
-                    doc="""This selects the number of frequency channels in the output
-                    image. If "all" is used, then every selected channel in the
-                    MS is imaged independently. If "multi-freq synth" is selected, then
-                    all channels are averaged together in MFS mode. Otherwise, supply a
-                    number of output channels, the input channels will be averaged down
-                    to this number.""");
+                    more=int,namespace=self,doc=docstr);
     # manual selection menu only shown in manual mode
     def show_chansel_menu (value):
       chan_menu.show(value == CHANMODE_MANUAL);
@@ -708,6 +714,7 @@ class ImagingSelector (object):
       args.append("wprojplanes=%d"%self.imaging_wprojplanes);
     # add channel arguments for setdata
     chans = selector.get_channels();
+    totchan = selector.get_total_channels() or self.imaging_totchan;
     if chans:
       nchan = chans[1]-chans[0]+1;
       chanstart = chans[0]+1;
@@ -722,7 +729,7 @@ class ImagingSelector (object):
                 'chanstep='+str(chanstep) ];
     else:
       args.append("chanmode=none");
-      chanstart,nchan,chanstep = 1,1,1;
+      chanstart,nchan,chanstep = 1,totchan,1;
     # add channel arguments for setimage
     if self.imaging_chanmode == CHANMODE_MANUAL:
       img_nchan     = self.imaging_nchan;
@@ -739,7 +746,7 @@ class ImagingSelector (object):
     elif self.imaging_chanmode == CHANMODE_MFS:
       img_nchan     = 1;
       img_chanstart = chanstart;
-      img_chanstep  = 1;
+      img_chanstep  = nchan;
     elif isinstance(self.imaging_chanmode,int):
       img_nchan     = self.imaging_chanmode;
       img_chanstart = chanstart;
