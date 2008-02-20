@@ -27,6 +27,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
+import random
 
 # define antenna list
 ANTENNAS = range(1,28);
@@ -52,10 +53,26 @@ def _define_forest (ns):
   # source l,m,n-1 vector
   ns.lmn_minus1 << Meq.Composer(L,M,N-1);
   
-  # define K-jones and G-Jones matrices
+  # define K-jones matrices
   for p in ANTENNAS:
     ns.K(p) << Meq.VisPhaseShift(lmn=ns.lmn_minus1,uvw=ns.uvw(p));
     ns.Kt(p) << Meq.ConjTranspose(ns.K(p));
+    
+    # create random time-dependent G variation
+    # ... for gx
+    a = random.uniform(math.pi/2,math.pi);   # amplitude of phase variation
+    b = 2*math.pi/random.uniform(3600,7200); # period of variation 
+    c = random.uniform(0,2*math.pi);         # initial phase of variation
+    gx = ns.gx(p) << Meq.Polar(1,a*Meq.Sin(Meq.Time()*b+c));
+
+    # ... for gy
+    a = random.uniform(math.pi/2,math.pi);   # amplitude of phase variation
+    b = 2*math.pi/random.uniform(3600,7200); # period of variation 
+    c = random.uniform(0,2*math.pi);        # initial phase of variation
+    gy = ns.gy(p) << Meq.Polar(1,a*Meq.Sin(Meq.Time()*b+c));
+
+    ns.G(p) << Meq.Matrix22(gx,0,0,gy);
+    ns.Gt(p) << Meq.ConjTranspose(ns.G(p));
   
   # define source brightness, B
   ns.B << 0.5 * Meq.Matrix22(I+Q,Meq.ToComplex(U,V),Meq.ToComplex(U,-V),I-Q);
@@ -63,10 +80,15 @@ def _define_forest (ns):
   # now define predicted visibilities, attach to sinks
   for p,q in IFRS:
     predict = ns.predict(p,q) << \
-      Meq.MatrixMultiply(ns.K(p),ns.B,ns.Kt(q));
+      Meq.MatrixMultiply(ns.G(p),ns.K(p),ns.B,ns.Kt(q),ns.Gt(q));
     ns.sink(p,q) << Meq.Sink(predict,station_1_index=p-1,station_2_index=q-1,output_col='DATA');
 
   # define a couple of inspector nodes
+  ns.inspect_G << Meq.Composer(
+    dims=[0],   # compose in tensor mode
+    plot_label=["%s"%(p) for p in ANTENNAS],
+    *[Meq.Mean(ns.G(p),reduction_axes="freq") for p in ANTENNAS]
+  );
   ns.inspect_K << Meq.Composer(
     dims=[0],   # compose in tensor mode
     plot_label=["%s"%(p) for p in ANTENNAS],
@@ -77,7 +99,7 @@ def _define_forest (ns):
     plot_label=["%s-%s"%(p,q) for p,q in IFRS],
     *[Meq.Mean(ns.predict(p,q),reduction_axes="freq") for p,q in IFRS]
   );
-  ns.inspectors = Meq.ReqMux(ns.inspect_K,ns.inspect_predict);
+  ns.inspectors = Meq.ReqMux(ns.inspect_K,ns.inspect_predict,ns.inspect_G);
   
   # create VDM and attach inspectors
   ns.vdm = Meq.VisDataMux(post=ns.inspectors);
@@ -123,7 +145,7 @@ Settings.forest_state = record(bookmarks=[
     record(udi="/node/K:26",viewer="Result Plotter",pos=(1,1)) \
   ]),
   record(name='Inspectors',page=[
-    record(udi="/node/inspect_K",viewer="Collections Plotter",pos=(0,0)),
+    record(udi="/node/inspect_G",viewer="Collections Plotter",pos=(0,0)),
     record(udi="/node/inspect_predict",viewer="Collections Plotter",pos=(1,0))
   ]),
 ]);
