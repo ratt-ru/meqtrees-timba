@@ -66,6 +66,7 @@ class Subplot (object):
         - xmax  [=None]: viewing window
         - ymin  [=None]: viewing window
         - ymax  [=None]: viewing window
+        - rmax  [=None]: viewing window (polar)
         """
 
         # Extract the relevant keyword arguments from kwargs:
@@ -73,7 +74,7 @@ class Subplot (object):
         if isinstance(kwargs, dict):
             keys = ['name','plot_mode','plot_type',
                     'title','xlabel','ylabel','xunit','yunit',
-                    'xmin','xmax','ymin','ymax',
+                    'xmin','xmax','ymin','ymax','rmax',
                     'plot_legend','plot_axis_labels']
             for key in keys:
                 if kwargs.has_key(key):
@@ -89,6 +90,7 @@ class Subplot (object):
         kw.setdefault('xmax',None)
         kw.setdefault('ymin',None)
         kw.setdefault('ymax',None)
+        kw.setdefault('rmax',None)
 
         kw.setdefault('plot_mode', 'pylab')
         kw.setdefault('plot_type', 'plot')
@@ -229,7 +231,7 @@ class Subplot (object):
         if self._kw['plot_axis_labels']:
             self.plot_axis_labels()
         import Figure
-        return Figure.pylab_dispose(dispose)
+        return Figure.pylab_dispose(dispose, origin='Subplot.plot()')
 
 
     #------------------------------------------------
@@ -248,17 +250,29 @@ class Subplot (object):
 
     def set_plot_window(self, margin=0.1, trace=False):
         """Helper function to set the plot_window, using internal info"""
-        [xmin,xmax] = self._range(self.xrange(), margin=margin,
-                                  vmin=self._kw['xmin'],
-                                  vmax=self._kw['xmax'])
-        [ymin,ymax] = self._range(self.yrange(), margin=margin,
-                                  vmin=self._kw['ymin'],
-                                  vmax=self._kw['ymax'])
-        pylab.axis([xmin, xmax, ymin, ymax])
-        if trace:
-            print '** set_plot_window(): xrange =',[xmin,xmax],'  yrange =',[ymin,ymax]
+        if self._kw['plot_type']=='polar':
+            [rmin,rmax] = self._range(self.yrange(), margin=margin,
+                                      vmax=self._kw['rmax'])
+            rr = pylab.array([0.25,0.5,0.75,1.0])*rmax
+            gridlabels = []
+            for r in rr:
+                gridlabels.append(str(int(r*100)/100.0))
+            # pylab.rgrids(rr, gridlabels, angle=-90.0)        # causes problems....
+            if trace:
+                print '** set_plot_window(polar): rrange =',[rmin,rmax]
+        else:
+            [xmin,xmax] = self._range(self.xrange(), margin=margin,
+                                      vmin=self._kw['xmin'],
+                                      vmax=self._kw['xmax'])
+            [ymin,ymax] = self._range(self.yrange(), margin=margin,
+                                      vmin=self._kw['ymin'],
+                                      vmax=self._kw['ymax'])
+            pylab.axis([xmin, xmax, ymin, ymax])
+            if trace:
+                print '** set_plot_window(): xrange =',[xmin,xmax],'  yrange =',[ymin,ymax]
         return True
 
+    #------------------------------------------------
 
     def _range(self, vv, margin=0.0, vmin=None, vmax=None):
         """Helper function to calculate [min,max] of the coordinate(s).

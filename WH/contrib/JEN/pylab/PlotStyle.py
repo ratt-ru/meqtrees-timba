@@ -335,7 +335,7 @@ class PlotStyle (object):
         if ms=='vertical': kw['marker'] = '|'
 
         # Temporary kludge(s) to solve SVG poblems:
-        if False:
+        if True:
             s = '\n** .PlotStyle: temporary SVG kludge: '
             if kw['linestyle']==None:
                 print s,' avoided linestyle==None ...'

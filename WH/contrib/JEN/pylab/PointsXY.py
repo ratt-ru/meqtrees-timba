@@ -73,6 +73,7 @@ class PointsXY (object):
         if isinstance(kwargs, dict):
             keys = ['plot_type','plot_mode',
                     'plot_ellipse_stddev','plot_circle_mean',
+                    'quiver_scale',
                     'auto_legend','plot_standalone']
             for key in keys:
                 if kwargs.has_key(key):
@@ -83,6 +84,7 @@ class PointsXY (object):
         kw.setdefault('plot_standalone', False)
         kw.setdefault('plot_ellipse_stddev', False)
         kw.setdefault('plot_circle_mean', False)
+        kw.setdefault('quiver_scale', None)
         self._kw = kw
 
         # Deal with the specified coordinates:
@@ -174,9 +176,15 @@ class PointsXY (object):
         is_complex = False
         xauto = False
         if isinstance(y, complex):
-            self._yy.append(y.imag)
-            self._xx.append(y.real)
-            is_complex = True
+            if self._kw['plot_type']=='polar':
+                self._yy.append(pylab.abs(y))                # amplitude
+                self._xx.append(pylab.angle(y))              # phase (rad)
+                n = len(self._yy)-1
+                print '--',n,':',y,'-> (x,y)',self._xx[n],self._yy[n]
+            else:
+                self._yy.append(y.imag)
+                self._xx.append(y.real)
+                is_complex = True
         elif isinstance(y, (float,int)):
             self._yy.append(float(y))
             if isinstance(x, (float,int)):
@@ -465,6 +473,16 @@ class PointsXY (object):
                 [xmin,xmax] = self.xrange(margin=margin)
                 [ymin,ymax] = self.yrange(margin=margin)
                 pylab.axis([xmin, xmax, ymin, ymax])
+            elif self._kw['plot_type']=='polar':
+                [rmin,rmax] = self.yrange(margin=margin)
+                rr = pylab.array([0.25,0.5,0.75,1.0])*rmax
+                labels = []
+                for r in rr:
+                    labels.append(str(int(r*100)/100.0))
+                # labels = ['0.25','0.5','0.75','rmax']
+                pylab.rgrids(rr, labels, angle=-90.0)
+                # pylab.axis([-rmin, rmax, -rmin, rmax])
+                # pylab.axis([0.5, 0.5, -rmax*2.0, rmax*2.0])
 
         # Make the pylab legend, if required:
         if self._kw['plot_standalone']:
@@ -518,6 +536,7 @@ class PointsXY (object):
         trace = False
         # trace = True
         if trace:
+            print pylab.quiver.func_doc
             print '** plot_quiver(): ',self.oneliner()
             # self.display('plot_quiver()')
         n = len(yy)
@@ -525,17 +544,29 @@ class PointsXY (object):
         Y = pylab.array([yy,yy])
         U = pylab.array([self._dxx,n*[0.0]])
         V = pylab.array([self._dyy,n*[0.0]])
+        # The following has no effect....
         # U = pylab.array([self._dxx,self._dxx])
         # V = pylab.array([self._dyy,self._dyy])
+        if self._kw['quiver_scale']==None:
+            S = pylab.sqrt((self._dxx[0]**2)+(self._dyy[0]**2))
+        elif isinstance(self._kw['quiver_scale'],(float,int)):
+            S = self._kw['quiver_scale']
+        elif self._kw['quiver_scale']=='disable':
+            # When the automatic scaling is disabled (S=0), there is no arrow-head.
+            S = 0.0 
+        else:
+            # With default scaling (S=1), the arrow is too short by sqrt(dx**2+dy**2)
+            S = 1.0
+        color = self._PlotStyle.color()
+        width = 1.0
         if trace:
+            print '  - S =',S,color,width
             print '  - X =',X
             print '  - Y =',Y
             print '  - U =',U
             print '  - V =',V
-        S = 1.0
-        color = self._PlotStyle.color()
-        # pylab.quiver(X,Y,U,V,S)
-        pylab.quiver(X,Y,U,V, color=color)
+        pylab.quiver(X,Y,U,V,S, color=color, width=width)
+        # pylab.quiver(X,Y,U,V, color=color)
         if trace:
             # pylab.plot(xx,yy,marker='o',color=color)
             print '  - xrange =',self.xrange()
@@ -739,8 +770,9 @@ if __name__ == '__main__':
 
     kwargs = dict()
     kwargs = dict(color='magenta', style='o', markersize=5, markeredgecolor='blue')
-    kwargs = dict(color='magenta', style='-', marker='o', markersize=5, markeredgecolor='blue')
+    # kwargs = dict(color='magenta', style='-', marker='o', markersize=5, markeredgecolor='blue')
     # kwargs['linestyle'] = '-'
+    kwargs['quiver_scale'] = None
     kwargs['plot_ellipse_stddev'] = True
     kwargs['plot_circle_mean'] = True
     kwargs['auto_legend'] = True
@@ -761,10 +793,16 @@ if __name__ == '__main__':
         # plot_type = 'plot'
         pts = PointsXY(yy, xx=xx, name=plot_type, plot_type=plot_type, **kwargs)
         
-    if 0:
-        pts = PointsXY(3, xx=5, dxx=1, dyy=-1, name='arrow',
-                       plot_type='quiver', **kwargs)
     if 1:
+        yy = []
+        for i in range(1,5):
+            yy.append(complex(0.1*i,0.1*i+0.1))
+        pts = PointsXY(yy, name='complex_polar', annot=True,
+                       plot_type='polar', **kwargs)
+    if 0:
+        pts = PointsXY(3, xx=25, dxx=10, dyy=-4, name='arrow',
+                       plot_type='quiver', **kwargs)
+    if 0:
         pts = PointsXY(range(5), xx=range(1,6),
                        dxx=1.0, dyy=-1.0,
                        # dxx=5*[1.0], dyy=5*[-1.0],

@@ -168,8 +168,12 @@ class TheEasyWay (pynode.PyNode):
 
     # Finished: dispose of the Figure:
     fig.display()
-    # svg_list_of_strings = fig.plot(dispose=['show'])
-    svg_list_of_strings = fig.plot(dispose=['svg'])
+    print 'before dispose()'
+    # svg_list_of_strings = fig.plot(dispose=['show','svg'], rootname='TheEasyWay', trace=True)
+    svg_list_of_strings = fig.plot(dispose=['svg'], rootname='TheEasyWay')
+    # svg_list_of_strings = pylab_dispose(dispose=['show'], rootname='TheEasyWay')
+    # svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname='TheEasyWay')
+    print 'after dispose()'
     # NB: Make it into one big string....? (OMS)
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
@@ -229,7 +233,7 @@ class TheHardWay (pynode.PyNode):
 
 
     # Finished:
-    svg_list_of_strings = pylab_dispose(dispose=['svg'])
+    svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname='TheHardWay')
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.
@@ -240,7 +244,7 @@ class TheHardWay (pynode.PyNode):
 
 #-------------------------------------------------------------------
     
-def pylab_dispose(dispose='svg'):
+def pylab_dispose(dispose='svg', rootname='xxx'):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
@@ -248,7 +252,7 @@ def pylab_dispose(dispose='svg'):
     matplotlib.use('SVG')
     import pylab                   
 
-    rootname = 'xxx'
+    # rootname = 'xxx'
     print '** dispose(): ',dispose,rootname
     if dispose==None:
       return None
@@ -277,6 +281,10 @@ def pylab_dispose(dispose='svg'):
           time.sleep(delay)
           print '** after sleep()'
         print '** dispose:',ext,filename,'->',r
+
+    if 'show' in dispose:
+      pylab.show()
+
 
     if isinstance(svgname,str):
       file = open(filename,'r')
@@ -323,7 +331,7 @@ def _define_forest (ns,**kwargs):
       
     # classname = "ScatterPlot"
     classname = "TheEasyWay"
-    # classname = "TheHardWay"
+    classname = "TheHardWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
     Meow.Bookmarks.Page(classname).add(ns.pynode, viewer="Svg Plotter")                
     Meow.Bookmarks.Page('cx_freqtime').add(ns.cx_freqtime, viewer="Result Plotter")                

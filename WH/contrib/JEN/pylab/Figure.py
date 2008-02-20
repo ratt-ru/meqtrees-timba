@@ -44,6 +44,10 @@
 #
 
 import pylab
+
+import matplotlib
+matplotlib.use('SVG')
+
 import time
 import copy
 
@@ -179,15 +183,21 @@ class Figure (Subplot.Subplot):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, margin=0.1, dispose='show'):
+    def plot(self, figure=1, margin=0.1, dispose='show', trace=False):
         """Plot the pylab figure, with its Subplots"""
         pylab.figure(figure)
+        if trace: print '\n** Figure.plot(',figure, margin,dispose,'):'
         for key in self._order:
             subplot = self._plopos[key]['subplot']
+            if trace:
+                print '  -',key,': subplot =',subplot,self._plopos[key]
+                print '  - before:', self._subplot[key].oneliner()
             self._subplot[key].plot(figure=figure, subplot=subplot,
                                     dispose=None)
+            if trace: print '  - after:', self._subplot[key].oneliner()
         # Finsished: dispose of the pylab figure:
-        return pylab_dispose(dispose)
+        if trace: print ' - before Figure.plot(dispose=',dispose,')'
+        return pylab_dispose(dispose, origin='Figure.plot()',trace=trace)
 
 
 
@@ -195,18 +205,20 @@ class Figure (Subplot.Subplot):
 # Some helper functions (also used externally)
 #========================================================================
 
-def pylab_dispose(dispose='show', trace=False):
+def pylab_dispose(dispose='show', rootname='ZZZ', origin='<unknown>', trace=True):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
-    rootname = 'xxx'
-    if trace: print '** dispose(): ',dispose,rootname
+    if trace: print '\n** Figure.dispose(',dispose,origin,') rootname=',rootname,
     if dispose==None:
+        if trace: print ' (done nothing)\n' 
         return None
     if isinstance(dispose,str):
         dispose = [dispose]
     result = None
     svgname = None
+    if trace: print dispose
+
 
     file_extensions = ['png','PNG','svg','SVG']
     for ext in file_extensions:
@@ -215,35 +227,41 @@ def pylab_dispose(dispose='show', trace=False):
             delay = 0.0
             if ext in ['svg','SVG']:
                 svgname = filename
-                delay = 0.5
+                delay = 1.0
             if delay>0.0:
-                if trace: print '** before sleep()'
                 time.sleep(delay)
-                if trace: print '** after sleep()'
+                if trace: print '  - sleep(',delay,') before savefig(',filename,')'
             r = pylab.savefig(filename)
-            if trace: print '** dispose:',ext,filename,'->',r
+            if trace: print '  - pylab.savefig(',filename,') ->',r
             if delay>0.0:
-                if trace: print '** before sleep()'
                 time.sleep(delay)
-                if trace: print '** after sleep()'
+                if trace: print '  - sleep(',delay,') after savefig(',filename,')'
 
-    if isinstance(svgname,str):
-        file = open(filename,'r')
-        result = file.readlines()
-        file.close()
-        if trace: print '** svg:',filename,'->',type(result),len(result)
-        # for s in result: print '-',s
-        if False:
-            import os
-            os.system("%s -size 640x480 %s" % ('display',filename))
-            # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
-        
     if 'show' in dispose:
+        if trace: print '  doing pylab.show()'
         # pylab.show._needmain = False
         pylab.show()
         # pylab.ion()
         # pylab.draw()
         # pylab.close()
+        
+    if isinstance(svgname,str):
+        file = open(filename,'r')
+        result = file.readlines()
+        file.close()
+        if trace:
+            n = len(result)
+            print '\n - read:',filename,'->',type(result),n,'\n'
+            for i in range(min(6,n-1)): print '  -',i,': ',result[i]
+            print '  ........'
+            print '  ........'
+            print
+            for i in range(max(0,n-5),n): print '  -',i,': ',result[i]
+            print
+        if False:
+            import os
+            os.system("%s -size 640x480 %s" % ('display',filename))
+            # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
         
     # Finished: return the result (if any):
     return result
@@ -262,13 +280,13 @@ if __name__ == '__main__':
 
     fig = Figure(nrow=2, ncol=2)
 
-    if 0:
+    if 1:
         fig.add(Subplot.test_line())
         fig.add(Subplot.test_parabola())
         fig.add(Subplot.test_sine())
         fig.add(Subplot.test_cloud(xmin=-10))
 
-    if 1:
+    if 0:
         plot_types = ['plot','loglog','semilogy','semilogx']
         plot_types = ['plot','polar','scatter','quiver']
         for plot_type in plot_types:
@@ -277,7 +295,10 @@ if __name__ == '__main__':
     fig.display()
 
     if 1:
-        fig.plot()
+        dispose = 'show'
+        dispose = 'svg'
+        # dispose = ['svg','show']
+        fig.plot(dispose=dispose, trace=True)
 
     print '\n** End of local test of: Figure.py:\n'
 

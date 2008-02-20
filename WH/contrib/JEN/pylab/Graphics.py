@@ -237,11 +237,11 @@ class Graphics (Subplot.Subplot):
         if self._kw['plot_grid']:
             if self._kw['plot_type']=='polar':
                 pass
-                pylab.thetagrids(True)                 # see also .rgrids()
+                # pylab.thetagrids(True)                 # see also .rgrids()
             else:
                 pylab.grid(True)
         import Figure
-        return Figure.pylab_dispose(dispose)
+        return Figure.pylab_dispose(dispose, origin='Graphics.plot()')
 
     #------------------------------------------------
 
