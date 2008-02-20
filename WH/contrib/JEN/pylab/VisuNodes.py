@@ -331,7 +331,7 @@ def _define_forest (ns,**kwargs):
       
     # classname = "ScatterPlot"
     classname = "TheEasyWay"
-    classname = "TheHardWay"
+    # classname = "TheHardWay"
     ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
     Meow.Bookmarks.Page(classname).add(ns.pynode, viewer="Svg Plotter")                
     Meow.Bookmarks.Page('cx_freqtime').add(ns.cx_freqtime, viewer="Result Plotter")                

@@ -45,9 +45,6 @@
 
 import pylab
 
-import matplotlib
-matplotlib.use('SVG')
-
 import time
 import copy
 
@@ -183,7 +180,8 @@ class Figure (Subplot.Subplot):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, margin=0.1, dispose='show', trace=False):
+    def plot(self, figure=1, margin=0.1, dispose='show',
+             rootname='Figure', trace=False):
         """Plot the pylab figure, with its Subplots"""
         pylab.figure(figure)
         if trace: print '\n** Figure.plot(',figure, margin,dispose,'):'
@@ -197,7 +195,8 @@ class Figure (Subplot.Subplot):
             if trace: print '  - after:', self._subplot[key].oneliner()
         # Finsished: dispose of the pylab figure:
         if trace: print ' - before Figure.plot(dispose=',dispose,')'
-        return pylab_dispose(dispose, origin='Figure.plot()',trace=trace)
+        return pylab_dispose(dispose, origin='Figure.plot()',
+                             rootname=rootname, trace=trace)
 
 
 
@@ -219,15 +218,16 @@ def pylab_dispose(dispose='show', rootname='ZZZ', origin='<unknown>', trace=True
     svgname = None
     if trace: print dispose
 
-
     file_extensions = ['png','PNG','svg','SVG']
     for ext in file_extensions:
         if ext in dispose:
             filename = rootname+'.'+ext
             delay = 0.0
             if ext in ['svg','SVG']:
+                import matplotlib
+                matplotlib.use('SVG')
                 svgname = filename
-                delay = 1.0
+                delay = 0.0
             if delay>0.0:
                 time.sleep(delay)
                 if trace: print '  - sleep(',delay,') before savefig(',filename,')'
