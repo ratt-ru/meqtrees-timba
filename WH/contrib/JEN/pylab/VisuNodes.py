@@ -127,8 +127,9 @@ class TheEasyWay (pynode.PyNode):
   def get_result (self, request, *children):
 
     # AWG: needed to prevent hangup at 'executing' phase
-    # import matplotlib
-    # matplotlib.use('SVG')
+    # JEN: Do NOT comment out these two lines!!
+    import matplotlib
+    matplotlib.use('SVG')
 
     # Make the pylab figure (I could not resist the temptation to
     # make some supporting classes to make things easy, albeit hidden):
@@ -197,8 +198,9 @@ class TheHardWay (pynode.PyNode):
                               
   def get_result (self, request, *children):
     # we need the following two lines
-    # import matplotlib
-    # matplotlib.use('SVG')
+    # JEN: Do NOT comment out these two lines!!
+    import matplotlib
+    matplotlib.use('SVG')
 
     import pylab                                 # kludge....!
 
