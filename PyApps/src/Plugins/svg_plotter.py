@@ -111,7 +111,7 @@ class PictureDisplay(QWidget):
     print '\n** sleep(',delay,') before pict.load(',self.name,')'
     if not self.pict.load(self.name, "svg"):
       self.pict = None
-      print '** pict.load(',self.name,'): Not able to load the fucking picture(!)\n'
+      print '** pict.load(',self.name,'): Not able to load the picture - fucking pylab!\n'
     else:
       print '** pict.load(',self.name,'): Success! \n'
 
@@ -353,7 +353,7 @@ class SvgPlotter(GriddedPlugin):
     self._svg_plotter.show()
     
     # finally, get rid of the temporary file
-    if False:                                 # temporarily disabled, for testing 
+    if False:       # presently disabled, for testing 
       try:
         os.system("/bin/rm -fr "+ file_name);
       except:   pass
