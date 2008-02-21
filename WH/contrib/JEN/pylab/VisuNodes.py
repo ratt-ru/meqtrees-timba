@@ -40,7 +40,7 @@ import random
 
 Settings.forest_state.cache_policy = 100;
 
-_dbg = utils.verbosity(0,name='test_pynode');
+_dbg = utils.verbosity(0,name='VisuNodes');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
@@ -127,8 +127,8 @@ class TheEasyWay (pynode.PyNode):
   def get_result (self, request, *children):
 
     # AWG: needed to prevent hangup at 'executing' phase
-    import matplotlib
-    matplotlib.use('SVG')
+    # import matplotlib
+    # matplotlib.use('SVG')
 
     # Make the pylab figure (I could not resist the temptation to
     # make some supporting classes to make things easy, albeit hidden):
@@ -147,7 +147,7 @@ class TheEasyWay (pynode.PyNode):
 
     # Accumulate the point(s) representing the child result(s):
     for i,ch in enumerate(children):
-      # _dprint(0,'- child',i,':',dmi.dmi_typename(ch))
+      _dprint(0,'- child',i,':',dmi.dmi_typename(ch))
 
       # NB: We need access to the child name! (and other info?)
 
@@ -168,12 +168,12 @@ class TheEasyWay (pynode.PyNode):
 
     # Finished: dispose of the Figure:
     fig.display()
-    print 'before dispose()'
+    print '** TheEasyWay: before dispose()'
     # svg_list_of_strings = fig.plot(dispose=['show','svg'], rootname='TheEasyWay', trace=True)
-    svg_list_of_strings = fig.plot(dispose=['svg'], rootname='TheEasyWay')
+    svg_list_of_strings = fig.plot(dispose=['svg'], rootname='TheEasyWay', trace=True)
     # svg_list_of_strings = pylab_dispose(dispose=['show'], rootname='TheEasyWay')
     # svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname='TheEasyWay')
-    print 'after dispose()'
+    print '** TheEasyWay: after dispose()'
     # NB: Make it into one big string....? (OMS)
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
@@ -197,8 +197,8 @@ class TheHardWay (pynode.PyNode):
                               
   def get_result (self, request, *children):
     # we need the following two lines
-    import matplotlib
-    matplotlib.use('SVG')
+    # import matplotlib
+    # matplotlib.use('SVG')
 
     import pylab                                 # kludge....!
 
@@ -212,7 +212,7 @@ class TheHardWay (pynode.PyNode):
     xx = []
     yy = []
     for i,ch in enumerate(children):
-      _dprint(0,'- child',i,':',dmi.dmi_typename(ch),': ch =',ch)
+      _dprint(0,'- child',i,':',dmi.dmi_typename(ch))
       v0 = ch.vellsets[0].value[0]
       # print '\n--- v0:',type(v0),'::',v0
       if isinstance(v0,complex):
@@ -298,6 +298,9 @@ def pylab_dispose(dispose='svg', rootname='xxx'):
         # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
         
     # Finished: return the result (if any):
+    print '** before pylab.close()',rootname
+    # pylab.close()
+    print '** after pylab.close()',rootname
     return result
 
 
@@ -312,7 +315,7 @@ def _define_forest (ns,**kwargs):
 
   cc = []
   
-  if 1:
+  if True:
     ns.time << Meq.Time()
     ns.freq << Meq.Freq()
     ns.freqtime << Meq.Add(ns.freq,ns.time)
@@ -328,13 +331,16 @@ def _define_forest (ns,**kwargs):
       # cc.append(ns[str(i)] << value+ns.tmean)
       cc.append(ns[str(i)] << value+ns.cx_freqtime)
       # cc.append(ns[str(i)] << value+ns.freqtime)
-      
-    # classname = "ScatterPlot"
-    classname = "TheEasyWay"
-    # classname = "TheHardWay"
-    ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
-    Meow.Bookmarks.Page(classname).add(ns.pynode, viewer="Svg Plotter")                
     Meow.Bookmarks.Page('cx_freqtime').add(ns.cx_freqtime, viewer="Result Plotter")                
+      
+    pn = []
+    for classname in ['TheHardWay','TheEasyWay']:
+      pynode = ns[classname] << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
+      pn.append(pynode)
+      Meow.Bookmarks.Page(classname).add(pynode, viewer="Svg Plotter")
+    ns.rootnode << Meq.Composer(*pn) 
+
+  # Finished:
   return True
   
 
@@ -348,8 +354,8 @@ def _test_forest (mqs,parent,wait=False):
   cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
   print '\n--',i,': cells =',cells,'\n'
   request = meq.request(cells,rqtype='e1');
-  # mqs.execute('pynode',request,wait=wait);
-  a = mqs.meq('Node.Execute',record(name='pynode',request=request),wait=wait)
+  # mqs.execute('rootnode',request,wait=wait);
+  a = mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
   return True
 
 
@@ -361,8 +367,8 @@ def _tdl_job_sequence (mqs,parent,wait=False):
     print '\n--',i,rqid,': cells =',cells,'\n'
     # request = meq.request(cells, rqtype='e1');
     request = meq.request(cells, rqid=rqid);
-    # mqs.execute('pynode',request,wait=wait);
-    a = mqs.meq('Node.Execute',record(name='pynode',request=request), wait=wait)
+    # mqs.execute('rootnode',request,wait=wait);
+    a = mqs.meq('Node.Execute',record(name='rootnode',request=request), wait=wait)
   return True
 
 

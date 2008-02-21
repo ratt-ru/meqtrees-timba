@@ -227,12 +227,18 @@ def pylab_dispose(dispose='show', rootname='ZZZ', origin='<unknown>', trace=True
                 import matplotlib
                 matplotlib.use('SVG')
                 svgname = filename
-                delay = 0.0
+                delay = 1.0
             if delay>0.0:
                 time.sleep(delay)
                 if trace: print '  - sleep(',delay,') before savefig(',filename,')'
-            r = pylab.savefig(filename)
-            if trace: print '  - pylab.savefig(',filename,') ->',r
+            if True:
+                # since we are using backend 'SVG', svg is
+                # automatically added to filename
+                r = pylab.savefig(rootname)
+                if trace: print '  - pylab.savefig(',rootname,') ->',r
+            else:
+                r = pylab.savefig(filename)
+                if trace: print '  - pylab.savefig(',filename,') ->',r
             if delay>0.0:
                 time.sleep(delay)
                 if trace: print '  - sleep(',delay,') after savefig(',filename,')'
@@ -264,6 +270,9 @@ def pylab_dispose(dispose='show', rootname='ZZZ', origin='<unknown>', trace=True
             # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
         
     # Finished: return the result (if any):
+    print '** Figure: before pylab.close()',rootname
+    # pylab.close()
+    print '** Figure: after pylab.close()',rootname
     return result
 
 
