@@ -105,9 +105,15 @@ class PictureDisplay(QWidget):
 
   def loadPicture(self,filename):
     self.name = filename
+    import time
+    delay = 0.0
+    time.sleep(delay)
+    print '\n** sleep(',delay,') before pict.load(',self.name,')'
     if not self.pict.load(self.name, "svg"):
       self.pict = None
-      print "Not able to load picture ", self.name
+      print '** pict.load(',self.name,'): Not able to load the fucking picture(!)\n'
+    else:
+      print '** pict.load(',self.name,'): Success! \n'
 
   def paintEvent(self, QPaintEvent):
     paint = QPainter(self)
@@ -345,10 +351,12 @@ class SvgPlotter(GriddedPlugin):
       QObject.connect(self._svg_plotter, PYSIGNAL('save_display'), self.grab_display)
     self._svg_plotter.loadPicture(file_name)
     self._svg_plotter.show()
+    
     # finally, get rid of the temporary file
-    try:
-      os.system("/bin/rm -fr "+ file_name);
-    except:   pass
+    if False:                                 # temporarily disabled, for testing 
+      try:
+        os.system("/bin/rm -fr "+ file_name);
+      except:   pass
 
     # end show_svg_plot()
 
