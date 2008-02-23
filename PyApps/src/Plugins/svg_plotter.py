@@ -65,8 +65,10 @@ class PictureDisplay(QWidget):
 #   QWidget.__init__(self, parent, name, fl)
     QWidget.__init__(self, parent, name)
   
+# set up to use QPicture by default - we need a default for the
+# paintEvent method
     self.pict = QPicture()
-    self.name = None
+    self.image_type = "Qicture"
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
     
     #add a printer
@@ -92,6 +94,16 @@ class PictureDisplay(QWidget):
       self._menu.popup(e.globalPos());        
       return              
 
+  def paintEvent(self, QPaintEvent):
+    paint = QPainter(self)
+    if self.pict:
+      if self.image_type == "Qicture":
+        paint.drawPicture(self.pict)
+        return
+      else:
+        if self.image_type == "Qpixmap":
+          paint.drawPixmap(0,0,self.pict)
+
   def handle_menu_id(self, menuid):
     if menuid == self.menu_table['Save Display in PNG Format']:
         self._window_title = 'png_grab'
@@ -104,25 +116,29 @@ class PictureDisplay(QWidget):
   # printplot()
 
   def loadPicture(self,filename):
-    self.name = filename
-    import time
-    delay = 0.0
-    time.sleep(delay)
-    print '\n** sleep(',delay,') before pict.load(',self.name,')'
-    if not self.pict.load(self.name, "svg"):
-      self.pict = None
-      print '** pict.load(',self.name,'): Not able to load the picture - fucking pylab!\n'
-    else:
-      print '** pict.load(',self.name,'): Success! \n'
-
-  def paintEvent(self, QPaintEvent):
-    paint = QPainter(self)
-    if self.pict:
-      paint.drawPicture(self.pict)
+    print 'loading file ', filename
+    try:
+      found = False
+      if filename.find(".svg") > -1:
+        self.pict.load(filename, "svg")
+        self.image_type = "Qicture"
+        found = True
+      else:
+        if filename.find(".png") > -1:
+          self.pict = None
+          self.pict = QPixmap()
+          self.image_type = "Qpixmap" 
+          self.pict.load(filename, "png")
+          found = True
+      if found:
+        print '** pict.load(',filename,'): Success! \n'
+      else:
+        print '** pict.load(',filename,'): Not able to load the picture!\n'
+    except:
+      print '** pict.load(',filename,'): Not able to load the picture - f*%&ing pylab!\n'
 
   def resizeEvent(self, ev):
     self.resize(ev.size())
-
 
   def sizeHint(self):
     hint = QSize(self.minimumSizeHint())
@@ -149,9 +165,8 @@ class PictureDisplay(QWidget):
     # printPlot()
 
 
-
 class SvgPlotter(GriddedPlugin):
-  """ a class to visualize data from Scalable Vector Graphics files """
+  """ a class to visualize data from external svg or png graphics files """
 
   _icon = pixmaps.bars3d
   viewer_name = "Svg Plotter";
@@ -324,9 +339,6 @@ class SvgPlotter(GriddedPlugin):
 #   print '***************************'
 #   print 'handling svg_plot event - string has length ', len(svg_plot)
 #   print '***************************'
-#   self.counter = self.counter + 1
-#   file_name = '/tmp/svg_descriptor-' + str(self.counter) + '.svg'
-#   file_name = 'yyy.svg'
 
     fd, file_name = tempfile.mkstemp(text='w',suffix='.svg',dir='/tmp')
     file = os.fdopen(fd,"w")
@@ -353,10 +365,10 @@ class SvgPlotter(GriddedPlugin):
     self._svg_plotter.show()
     
     # finally, get rid of the temporary file
-    if False:       # presently disabled, for testing 
-      try:
-        os.system("/bin/rm -fr "+ file_name);
-      except:   pass
+#   if False:       # presently disabled, for testing 
+    try:
+      os.system("/bin/rm -fr "+ file_name);
+    except:   pass
 
     # end show_svg_plot()
 
