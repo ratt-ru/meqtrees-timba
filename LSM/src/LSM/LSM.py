@@ -1885,7 +1885,7 @@ class LSM:
 
  ## build from a text file with extended sources
  ## format:
- ## RA(radians) DEC(radians) sI sQ sU sV SI eX eY eP
+ ## NAME RA(radians) DEC(radians) sI sQ sU sV SI eX eY eP
  def build_from_extlist_rad(self,infile_name,ns):
   infile=open(infile_name,'r')
   all=infile.readlines()
@@ -1893,21 +1893,21 @@ class LSM:
 
   # regexp pattern
   pp=re.compile(r"""
-   ^(?P<col1>[A-Za-z]\w+)  # column 1 name: must start with a character
+   ^(?P<col1>[A-Za-z0-9_.]+)  # column 1 name: must start with a character
    \s*             # skip white space
-   (?P<col2>(-)?\d+(\.\d+)?)   # RA angle - rad
+   (?P<col2>(-)?\d+(\.\d*)?)   # RA angle - rad
    \s*             # skip white space
-   (?P<col3>(-)?\d+(\.\d+)?)   # Dec angle - rad
+   (?P<col3>(-)?\d+(\.\d*)?)   # Dec angle - rad
    \s*             # skip white space
-   (?P<col4>(-)?\d+(\.\d+)?)   # Stokes I - Flux
+   (?P<col4>(-)?\d+(\.\d*)?)   # Stokes I - Flux
    \s*             # skip white space
-   (?P<col5>(-)?\d+(\.\d+)?)   # Stokes Q - Flux
+   (?P<col5>(-)?\d+(\.\d*)?)   # Stokes Q - Flux
    \s*             # skip white space
-   (?P<col6>(-)?\d+(\.\d+)?)   # Stokes U - Flux
+   (?P<col6>(-)?\d+(\.\d*)?)   # Stokes U - Flux
    \s*             # skip white space
-   (?P<col7>(-)?\d+(\.\d+)?)   # Stokes V - Flux
+   (?P<col7>(-)?\d+(\.\d*)?)   # Stokes V - Flux
    \s*             # skip white space
-   (?P<col8>(-)?\d+(\.\d+)?)   # Spectral index 
+   (?P<col8>(-)?\d+(\.\d*)?)   # Spectral index 
    \s*             # skip white space
    (?P<col9>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source major axis: rad
    \s*             # skip white space
@@ -1924,10 +1924,11 @@ class LSM:
     source_RA=float(v.group('col2'))
     source_Dec=float(v.group('col3'))
     sI=eval(v.group('col4'))
-    sQ=eval(v.group('col5'))*100/sI
-    sU=eval(v.group('col6'))*100/sI
-    sV=eval(v.group('col7'))*100/sI
+    sQ=eval(v.group('col5'))
+    sU=eval(v.group('col6'))
+    sV=eval(v.group('col7'))
     SI=eval(v.group('col8'))
+    print sI,sQ;
 
     eX=eval(v.group('col9'))
     eY=eval(v.group('col10'))
@@ -1942,9 +1943,9 @@ class LSM:
     if (SI==0 and sQ==0 and sU==0 and sV==0):
      my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     elif (SI==0):
-     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,stokesQ=sQ, stokesU=sU, stokesV=sV,trace=0)
     else :
-     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,stokesQ=sQ, stokesU=sU, stokesV=sV, SI=SI,trace=0)
  
    # first compose the sixpack before giving it to the LSM
     SourceRoot=my_sixpack.sixpack(ns)
@@ -1966,7 +1967,7 @@ class LSM:
 
   # regexp pattern
   pp=re.compile(r"""
-   ^(?P<col1>[A-Za-z]\w+)  # column 1 name: must start with a character
+   ^(?P<col1>[A-Za-z0-9_.]+)  # column 1 name: must start with a character
    \s*             # skip white space
    (?P<col2>[-+]?\d+(\.\d+)?)   # RA angle - hours 
    \s*             # skip white space
@@ -1990,7 +1991,7 @@ class LSM:
    \s*             # skip white space
    (?P<col12>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Spectral index
    \s*             # skip white space
-   (?P<col13>(-)?\d+(\.\d+)?)   # Rotation Measure
+   (?P<col13>(-)?\d+(\.\d*)?)   # Rotation Measure
    \s*             # skip white space
    (?P<col14>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source major axis: rad
    \s*             # skip white space
