@@ -51,7 +51,9 @@ _dprintf = _dbg.dprintf;
 # QT Assistant documentation for Qt3
 
 class PictureDisplay(QWidget):
-  """ a class for handling data destined for display within a QPicture """
+  """ a class for handling data destined for display within 
+      a QPicture or QPixmap 
+  """
 
   menu_table = {
     'Save Display in PNG Format': 321,
@@ -121,7 +123,6 @@ class PictureDisplay(QWidget):
       found = False
       if filename.find(".svg") > -1:
         self.pict.load(filename, "svg")
-        self.image_type = "Qicture"
         found = True
       else:
         if filename.find(".png") > -1:
@@ -166,7 +167,7 @@ class PictureDisplay(QWidget):
 
 
 class SvgPlotter(GriddedPlugin):
-  """ a class to visualize data from external svg or png graphics files """
+  """ a class to visualize data from external svg graphics files """
 
   _icon = pixmaps.bars3d
   viewer_name = "Svg Plotter";
