@@ -37,12 +37,21 @@ import random
 import numarray
 
 import Meow
-
-from Meow import Bookmarks
 import Meow.StdTrees
 import sky_models
 
 Settings.forest_state.cache_policy = 100
+
+# setup a bookmark for display of results.
+Settings.forest_state = record(bookmarks=[
+  record(name='Results',page=[
+    record(udi="/node/AzPoint:2",viewer="Result Plotter",pos=(0,0)),
+    record(udi="/node/ElPoint:2",viewer="Result Plotter",pos=(0,1)),
+    record(udi="/node/AzPoint:18",viewer="Result Plotter",pos=(1,0)),
+    record(udi="/node/ElPoint:18",viewer="Result Plotter",pos=(1,1)),
+    record(udi="/node/AzPoint:25",viewer="Result Plotter",pos=(2,0)),
+    record(udi="/node/ElPoint:25",viewer="Result Plotter",pos=(2,1))])]);
+
 
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
@@ -92,9 +101,8 @@ TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
 TDLCompileOption("max_tr_error","Max tracking error, arcsec",[0,1,2,5],more=float);
 TDLCompileOption("min_tr_period","Min time scale for tracking variation, hours",[0,1],more=float);
 TDLCompileOption("max_tr_period","Max time scale for tracking variation, hours",[2,4],more=float);
-TDLOption('subtract_perfect_obs','Subtract perfect observation from error observation?',[True,False]),
+TDLCompileOption('subtract_perfect_obs','Subtract perfect observation from error observation?',[True,False]),
 
-  
 def _define_forest (ns):
 
   # create an Array object
@@ -219,7 +227,7 @@ def _define_forest (ns):
   # make sinks and vdm. Note that we don't want to make any spigots...
     Meow.StdTrees.make_sinks(ns,ns.diff,spigots=False);
   else:
-    Meow.StdTrees.make_sinks(ns,ns.observed,spigots=False);
+    Meow.StdTrees.make_sinks(ns,observed,spigots=False);
 
 def _tdl_job_1_simulate_MS (mqs,parent):
   req = Meow.Utils.create_io_request();
