@@ -184,17 +184,16 @@ class Figure (Subplot.Subplot):
              rootname='Figure', trace=False):
         """Plot the pylab figure, with its Subplots"""
         pylab.figure(figure)
-        if trace: print '\n** Figure.plot(',figure, margin,dispose,'):'
+        if trace: print '\n** Figure.plot(',figure, margin, rootname, dispose,'):'
         for key in self._order:
             subplot = self._plopos[key]['subplot']
             if trace:
                 print '  -',key,': subplot =',subplot,self._plopos[key]
                 print '  - before:', self._subplot[key].oneliner()
             self._subplot[key].plot(figure=figure, subplot=subplot,
-                                    dispose=None)
+                                    dispose=None, trace=trace)
             if trace: print '  - after:', self._subplot[key].oneliner()
         # Finsished: dispose of the pylab figure:
-        if trace: print ' - before Figure.plot(dispose=',dispose,')'
         return pylab_dispose(dispose, origin='Figure.plot()',
                              rootname=rootname, trace=trace)
 
@@ -204,7 +203,8 @@ class Figure (Subplot.Subplot):
 # Some helper functions (also used externally)
 #========================================================================
 
-def pylab_dispose(dispose='show', rootname='ZZZ', origin='<unknown>', trace=True):
+def pylab_dispose(dispose='show', rootname='pylabFigure',
+                  origin='<unknown>', trace=True):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
@@ -218,39 +218,41 @@ def pylab_dispose(dispose='show', rootname='ZZZ', origin='<unknown>', trace=True
     svgname = None
     if trace: print dispose
 
+    # Save in a file:
     file_extensions = ['png','PNG','svg','SVG']
     for ext in file_extensions:
         if ext in dispose:
             filename = rootname+'.'+ext
             delay = 0.0
-            if ext in ['svg','SVG']:
-                import matplotlib
-                matplotlib.use('SVG')
-                svgname = filename
-                delay = 1.0
             if delay>0.0:
                 time.sleep(delay)
                 if trace: print '  - sleep(',delay,') before savefig(',filename,')'
-            if True:
+
+            if ext in ['png','PNG']:
+                result = filename             # filename for png-plotter...??
+
+            if ext in ['svg','SVG']:
+                import matplotlib             # ??
+                matplotlib.use('SVG')         # ??
+                svgname = filename            # used below...
                 # since we are using backend 'SVG', svg is
                 # automatically added to filename
-                r = pylab.savefig(rootname)
-                if trace: print '  - pylab.savefig(',rootname,') ->',r
-            else:
-                r = pylab.savefig(filename)
-                if trace: print '  - pylab.savefig(',filename,') ->',r
+                # r = pylab.savefig(rootname)
+                # if trace: print '  - pylab.savefig(',rootname,') ->',r
+
+            r = pylab.savefig(filename)
+            if trace: print '  - pylab.savefig(',filename,') ->',r
+
+            if True:
+                if trace: print '** Figure: before pylab.close()',rootname
+                pylab.close()
+                if trace: print '** Figure: after pylab.close()',rootname
+
             if delay>0.0:
                 time.sleep(delay)
                 if trace: print '  - sleep(',delay,') after savefig(',filename,')'
 
-    if 'show' in dispose:
-        if trace: print '  doing pylab.show()'
-        # pylab.show._needmain = False
-        pylab.show()
-        # pylab.ion()
-        # pylab.draw()
-        # pylab.close()
-        
+    # Get the XML string (result) from the .svg file: 
     if isinstance(svgname,str):
         file = open(filename,'r')
         result = file.readlines()
@@ -268,11 +270,14 @@ def pylab_dispose(dispose='show', rootname='ZZZ', origin='<unknown>', trace=True
             import os
             os.system("%s -size 640x480 %s" % ('display',filename))
             # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
-        
+
+    # Show the pylab figure (this freezes everything and closes the figure!)
+    if 'show' in dispose:
+        if trace: print '  doing pylab.show()'
+        pylab.show()
+
+
     # Finished: return the result (if any):
-    print '** Figure: before pylab.close()',rootname
-    # pylab.close()
-    print '** Figure: after pylab.close()',rootname
     return result
 
 

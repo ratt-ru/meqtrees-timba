@@ -59,14 +59,24 @@ class ScatterPlot (pynode.PyNode):
     pynode.PyNode.__init__(self,*args);
     self.set_symdeps('domain','resolution');
                               
+
   def get_result (self, request, *children):
+
+    rootname = 'ScatterPlot'
+    print '\n\n**********************************'
+    print '** get_result(',rootname,')'
+    print '************************************\n'
+
+    # we need the following two lines
+    import matplotlib
+    matplotlib.use('SVG')
 
     # First get the (mean) values of its child results in yy (and xx):
     # NB: Here we need Tony's Result unpacking object...
     xx = []
     yy = []
     for i,ch in enumerate(children):
-      _dprint(0,'- child',i,':',dmi.dmi_typename(ch),': ch =',ch)
+      _dprint(0,'- child',i,':',dmi.dmi_typename(ch))
       v0 = ch.vellsets[0].value[0]
       print '--- v0:',type(v0),'::',v0
       if isinstance(v0,complex):
@@ -83,25 +93,30 @@ class ScatterPlot (pynode.PyNode):
     # Then make the pylab figure (I could not resist the temptation to
     # make some supporting classes to make things easy, albeit hidden):
     import Graphics         # A collection of Graphics classes
-    import Figure           # A class that holds one or more Subplots
 
-    # First make an (empty) pylab figure:
-    fig = Figure.Figure()
+    useFigure = False
+    if useFigure:
+      import Figure           # A class that holds one or more Subplots
+      # First make an (empty) pylab figure:
+      fig = Figure.Figure()
     
     # A Graphics object is a Subplot object.
-    grs = Graphics.Scatter(yy=yy, xx=xx,
-                           title='VisuNodes.ScatterPlot',
+    grs = Graphics.Scatter(yy=yy, xx=xx, annot=True,
+                           dyy=0.5, dxx=0.2,
+                           title='VisuNodes.'+rootname,
                            xlabel=xlabel, ylabel=ylabel,
                            color='blue', style='o')
     
-    # NB: Other Graphics object may be added to it, using grs.add(grs2)
-    # .............
-    # When complete, add the Subplot object to the Figure:
-    fig.add(grs)
+    if useFigure:
+      # When complete, add the Subplot object to the Figure:
+      fig.add(grs)
+      # Finished: dispose of the Figure:
+      fig.display()
+      svg_list_of_strings = fig.plot(dispose=['svg'], rootname=rootname, trace=True)
+    else:
+      grs.plot(dispose=None)
+      svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname=rootname, trace=True)
 
-    # Finished: dispose of the Figure:
-    fig.display()
-    svg_list_of_strings = fig.plot(dispose=['svg'])
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.
@@ -120,14 +135,19 @@ class TheEasyWay (pynode.PyNode):
   """Make a scatter-plot of the means of the results of its children"""
 
 
-  def __init__ (self, *args):
+  def __init__ (self, *args, **kwargs):
     pynode.PyNode.__init__(self,*args);
     self.set_symdeps('domain','resolution');
+    return None
                               
   def get_result (self, request, *children):
 
+    rootname = 'TheEasyWay'
+    print '\n\n**********************************'
+    print '** get_result(',rootname,')'
+    print '************************************\n'
+
     # AWG: needed to prevent hangup at 'executing' phase
-    # JEN: Do NOT comment out these two lines!!
     import matplotlib
     matplotlib.use('SVG')
 
@@ -140,7 +160,10 @@ class TheEasyWay (pynode.PyNode):
     fig = Figure.Figure()
     
     # Make an empty Graphics object:
-    grs = Graphics.Scatter(title='VisuNodes.TheEasyWay',
+    grs = Graphics.Scatter(None,
+                           title='VisuNodes.'+rootname,
+                           xmin=-5, xmax=5,
+                           ymin=-5, ymax=5,
                            xlabel='x', ylabel='y',
                            color='blue', style='o')
     # grs.display('init')
@@ -169,12 +192,12 @@ class TheEasyWay (pynode.PyNode):
 
     # Finished: dispose of the Figure:
     fig.display()
-    print '** TheEasyWay: before dispose()'
-    # svg_list_of_strings = fig.plot(dispose=['show','svg'], rootname='TheEasyWay', trace=True)
-    svg_list_of_strings = fig.plot(dispose=['svg'], rootname='TheEasyWay', trace=True)
-    # svg_list_of_strings = pylab_dispose(dispose=['show'], rootname='TheEasyWay')
-    # svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname='TheEasyWay')
-    print '** TheEasyWay: after dispose()'
+    
+    print '**',rootname,': before dispose()'
+    svg_list_of_strings = fig.plot(dispose=['svg'], rootname=rootname, trace=True)
+    # svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname=rootname, trace=True)
+    print '**',rootname,': after dispose()'
+    
     # NB: Make it into one big string....? (OMS)
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
@@ -197,8 +220,13 @@ class TheHardWay (pynode.PyNode):
     self.set_symdeps('domain','resolution');
                               
   def get_result (self, request, *children):
+
+    rootname = 'TheHardWay'
+    print '\n\n**********************************'
+    print '** get_result(',rootname,')'
+    print '************************************\n'
+
     # we need the following two lines
-    # JEN: Do NOT comment out these two lines!!
     import matplotlib
     matplotlib.use('SVG')
 
@@ -206,7 +234,6 @@ class TheHardWay (pynode.PyNode):
 
     xlabel = 'x'
     ylabel = 'y'
-    print '\n** TheHardWay.get_result():\n'
     pylab.figure(1)
     pylab.subplot(111)
     pylab.title('VisuNodes.TheHardWay')
@@ -228,14 +255,23 @@ class TheHardWay (pynode.PyNode):
         pylab.xlabel(xlabel)
         pylab.ylabel(ylabel)
 
-#   can't have linestyle=None
-#   pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
-    pylab.plot(xx, yy, 'ro')
+    label = '_nolegend_'          # this is the culprit...!!!
+    label = 'llegendd'
+    # pylab.plot(xx, yy, 'ro', label=label)
+    # can't have linestyle=None
+    pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
+    pylab.plot(xx, yy, markerfacecolor='red', marker='o', linestyle=None)
     pylab.grid()
+    # pylab.legend()
 
 
-    # Finished:
-    svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname='TheHardWay')
+    if True:
+      import Figure           # A class that holds one or more Subplots
+      svg_list_of_strings = Figure.pylab_dispose(dispose=['svg'], rootname=rootname, trace=True)
+    else:
+      # Finished:
+      svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname=rootname, trace=True)
+
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
     # If dispose contains 'svg', .plot() returns the contents of the .svg file.
     # This is a list of strings, which is attached to the MeqResult of this pyNode.
@@ -246,45 +282,53 @@ class TheHardWay (pynode.PyNode):
 
 #-------------------------------------------------------------------
     
-def pylab_dispose(dispose='svg', rootname='xxx'):
+def pylab_dispose(dispose='svg', rootname='xxx', trace=True):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
-    import matplotlib
-    matplotlib.use('SVG')
-    import pylab                   
-
-    # rootname = 'xxx'
-    print '** dispose(): ',dispose,rootname
+    if trace: print '** dispose(): ',dispose,rootname,
     if dispose==None:
+      if trace: print ' (done nothing)'
       return None
+    if trace: print
+    
     if isinstance(dispose,str):
       dispose = [dispose]
     result = None
     svgname = None
 
+    import matplotlib
+    matplotlib.use('SVG')
+    import pylab                   
+
     file_extensions = ['png','PNG','svg','SVG']
     for ext in file_extensions:
       if ext in dispose:
+        import time
         delay = 0.0
         if delay>0.0:
-          print '** before sleep()'
-          import time
           time.sleep(delay)
-          print '** after sleep()'
+          if trace: print ' - after sleep(',delay,')'
         filename = rootname+'.'+ext
-        svgname = rootname
-        # since we are using backend 'SVG', svg is
-        # automatically added to filename
-        r = pylab.savefig(svgname)
+        if ext in ['svg','SVG']:
+          # since we are using backend 'SVG', svg is
+          # automatically added to rootname
+          svgname = rootname                    # also used below!!
+          r = pylab.savefig(svgname)
+          if trace: print ' - savefig(',svgname,') ->',r
+        else:
+          r = pylab.savefig(filename)
+          if trace: print ' - savefig(',filename,') ->',r
+        if trace: print ' - before pylab.close()',rootname
+        pylab.close()
+        if trace: print ' - after pylab.close()',rootname
         if delay>0.0:
-          print '** before sleep()'
-          import time
           time.sleep(delay)
-          print '** after sleep()'
-        print '** dispose:',ext,filename,'->',r
+          if trace: print ' - after sleep(',delay,')'
+
 
     if 'show' in dispose:
+      if trace: print '... doing show() ...'
       pylab.show()
 
 
@@ -292,17 +336,19 @@ def pylab_dispose(dispose='svg', rootname='xxx'):
       file = open(filename,'r')
       result = file.readlines()
       file.close()
-      print '** svg:',filename,'->',type(result),len(result)
+      if trace: print ' - read:',filename,'->',type(result),len(result)
       # for s in result: print '-',s
       if False:
         import os
         os.system("%s -size 640x480 %s" % ('display',filename))
         # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
         
+    if False:
+      if trace: print ' - before pylab.close()',rootname
+      pylab.close()
+      if trace: print ' -after pylab.close()',rootname
+
     # Finished: return the result (if any):
-    print '** before pylab.close()',rootname
-    # pylab.close()
-    print '** after pylab.close()',rootname
     return result
 
 
@@ -325,21 +371,24 @@ def _define_forest (ns,**kwargs):
     ns.tmean << Meq.Mean(ns.time)
     ns.fmean << Meq.Mean(ns.freq)
 
+
     for i in range(12):
       value = i
       value = complex(i,i)
       value = random.gauss(0,1)
       value = complex(random.gauss(0,1),random.gauss(0,1))
-      # cc.append(ns[str(i)] << value+ns.tmean)
-      cc.append(ns[str(i)] << value+ns.cx_freqtime)
+      cc.append(ns[str(i)] << value+ns.tmean)
       # cc.append(ns[str(i)] << value+ns.freqtime)
-    Meow.Bookmarks.Page('cx_freqtime').add(ns.cx_freqtime, viewer="Result Plotter")                
+      # cc.append(ns[str(i)] << value+ns.cx_freqtime)      # <--
       
+    bookpage = Meow.Bookmarks.Page('pynodes')
+    bookpage.add(ns.cx_freqtime, viewer="Result Plotter")                
     pn = []
-    for classname in ['TheHardWay','TheEasyWay']:
+    for classname in ['TheHardWay','TheEasyWay','ScatterPlot']:
       pynode = ns[classname] << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
       pn.append(pynode)
       Meow.Bookmarks.Page(classname).add(pynode, viewer="Svg Plotter")
+      bookpage.add(pynode, viewer="Svg Plotter")
     ns.rootnode << Meq.Composer(*pn) 
 
   # Finished:

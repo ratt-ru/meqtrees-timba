@@ -83,7 +83,7 @@ class Graphics (Subplot.Subplot):
 
         self._kw.setdefault('plot_grid', True)
         self._kw.setdefault('plot_axes', True)
-        self._kw.setdefault('auto_legend', True)
+        self._kw.setdefault('auto_legend', False)
         self._kw.setdefault('centre_mark', None)
 
         if self._kw['centre_mark']==True: self._kw['centre_mark'] = '+'
@@ -219,10 +219,14 @@ class Graphics (Subplot.Subplot):
     # Plot standalone (testing only?)
     #-------------------------------------------------------------
 
-    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show'):
+    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show', trace=True):
         """Plot the group of points, using pylab"""
-        pylab.figure(figure)
-        pylab.subplot(subplot)
+        if trace:
+            print '\n** Graphics.plot(',figure,subplot,margin,dispose,')'
+        fig = pylab.figure(figure)
+        if trace: print '  -',fig
+        sub= pylab.subplot(subplot)
+        if trace: print '  -',sub
         if self._kw['plot_axes']:
             self.plot_axes(xaxis=True, yaxis=True)
         for key in self._order:
@@ -233,7 +237,7 @@ class Graphics (Subplot.Subplot):
         if self._kw['plot_legend']:
             self.plot_legend()
         if self._kw['auto_legend']:
-            pylab.legend()
+            pylab.legend()             # NB: This causes problems with Qwt read svg...!!
         if self._kw['plot_grid']:
             if self._kw['plot_type']=='polar':
                 pass
@@ -241,7 +245,8 @@ class Graphics (Subplot.Subplot):
             else:
                 pylab.grid(True)
         import Figure
-        return Figure.pylab_dispose(dispose, origin='Graphics.plot()')
+        return Figure.pylab_dispose(dispose, origin='Graphics.plot()',
+                                    rootname=self.name(), trace=trace)
 
     #------------------------------------------------
 
@@ -565,8 +570,9 @@ if __name__ == '__main__':
                       centre_mark='cross',
                       linestyle='--', linewidth=3)
 
-    if 0:
-        grs = Scatter(range(6), style='hexagon')
+    if 1:
+        grs = Scatter(None, style='hexagon')
+        # grs = Scatter(range(6), style='hexagon')
         # grs = Scatter(range(6), style='hexagon', plot_type='polar')
 
     if 0:
@@ -577,7 +583,7 @@ if __name__ == '__main__':
         grs = RegularPolygon(n=5, xy0=complex(2.5,3), radius=3,
                              centre_mark='+')
 
-    if 1:
+    if 0:
         # grs = Arrow(dxy=[1,1], linewidth=3)
         # grs = Arrow(xy2=[1,1], linewidth=3)
         grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
@@ -588,7 +594,7 @@ if __name__ == '__main__':
         grs.add(PointsXY.test_sine())
         grs.add(PointsXY.test_cloud())
 
-    if 1:
+    if 0:
         import Figure
         fig = Figure.Figure(nrow=2,ncol=3)
         fig.add(Scatter())
@@ -606,7 +612,7 @@ if __name__ == '__main__':
 
     grs.display()
 
-    if 0:
+    if 1:
         grs.plot(dispose='show')
         # grs.plot(dispose=['PNG','SVG','show'])
 

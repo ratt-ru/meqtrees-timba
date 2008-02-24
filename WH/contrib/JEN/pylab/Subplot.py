@@ -221,7 +221,7 @@ class Subplot (object):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show'):
+    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show', trace=False):
         """Make the subplot"""
         pylab.figure(figure)
         pylab.subplot(subplot)
@@ -231,7 +231,8 @@ class Subplot (object):
         if self._kw['plot_axis_labels']:
             self.plot_axis_labels()
         import Figure
-        return Figure.pylab_dispose(dispose, origin='Subplot.plot()')
+        return Figure.pylab_dispose(dispose, origin='Subplot.plot()',
+                                    rootname=self.name(), trace=trace)
 
 
     #------------------------------------------------

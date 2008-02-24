@@ -71,7 +71,7 @@ class PointsXY (object):
         # Extract the relevant keyword arguments from kwargs:
         kw = dict()
         if isinstance(kwargs, dict):
-            keys = ['plot_type','plot_mode',
+            keys = ['plot_type','plot_mode','plot_naked',
                     'plot_ellipse_stddev','plot_circle_mean',
                     'quiver_scale',
                     'auto_legend','plot_standalone']
@@ -80,7 +80,9 @@ class PointsXY (object):
                     kw[key] = kwargs[key]
         kw.setdefault('plot_mode', 'pylab')
         kw.setdefault('plot_type', 'plot')
-        kw.setdefault('auto_legend', True)
+        kw.setdefault('plot_naked', False)
+        kw.setdefault('auto_legend', False)           # <--- !!
+        kw.setdefault('plot_grid', True)
         kw.setdefault('plot_standalone', False)
         kw.setdefault('plot_ellipse_stddev', False)
         kw.setdefault('plot_circle_mean', False)
@@ -90,6 +92,8 @@ class PointsXY (object):
         # Deal with the specified coordinates:
         self._yy = []
         self._xx = []
+        self._yarr = None
+        self._xarr = None
         self._dyy = []
         self._dxx = []
         self._annot = []
@@ -358,6 +362,8 @@ class PointsXY (object):
         Take any margin (error-bar or arrow) into account.
         An extra margin (fraction of the span) may be specified.
         If an existing range [min,max] is specified, take it into account."""
+        if vv==None or len(vv)==0:
+            return [-0.1,0.1]
         vmin = min(vv)
         vmax = max(vv)
         if isinstance(dvv,list):
@@ -444,6 +450,8 @@ class PointsXY (object):
 
         # Make the label (pleg) to be used for the pylab automatic legend:
         legend_label = '_nolegend_'
+        # NB: label=='_nolegend_' causes problems with Qt read SVG....!
+        legend_label = None
         pleg = self._kw['auto_legend']
         if pleg:
             if isinstance(pleg,str):
@@ -456,23 +464,25 @@ class PointsXY (object):
         # Plot the actual points (xx,yy):
         self.plot_points (xx=self.xx(), yy=self.yy(),
                           label=legend_label)
+
         
         # Annotations and errorbars (if specified):
         self.annotate()
-        self.plot_error_bars()
+        self.plot_error_bars()                   
                 
         # Some optional extras:
-        if self._kw['plot_circle_mean']:
-            self.plot_circle_mean()
-        if self._kw['plot_ellipse_stddev']:
-            self.plot_ellipse_stddev()
+        if False:                                 
+            if self._kw['plot_circle_mean']:
+                self.plot_circle_mean()
+            if self._kw['plot_ellipse_stddev']:
+                self.plot_ellipse_stddev()
 
         # Make the window, if required, but AFTER the circles:
         if margin>0.0:
             if self._kw['plot_type']=='plot':
                 [xmin,xmax] = self.xrange(margin=margin)
                 [ymin,ymax] = self.yrange(margin=margin)
-                pylab.axis([xmin, xmax, ymin, ymax])
+                pylab.axis([xmin, xmax, ymin, ymax])       # <----- !!
             elif self._kw['plot_type']=='polar':
                 [rmin,rmax] = self.yrange(margin=margin)
                 rr = pylab.array([0.25,0.5,0.75,1.0])*rmax
@@ -490,8 +500,9 @@ class PointsXY (object):
                 # pylab.thetagrids(True)                 # see also .rgrids()
                 pass
             else:
-                pylab.legend()
-                pylab.grid()
+                # NB: pylab.legend() causes problems with Qwt read svg...!
+                if self._kw['auto_legend']: pylab.legend()
+                if self._kw['plot_grid']: pylab.grid()  
         
         # Finished:
         if dispose=='show':              # standalone only?
@@ -500,7 +511,7 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
-    def plot_points(self, xx, yy, label='_nolegend_', **kwargs):
+    def plot_points(self, xx, yy, label=None, **kwargs):
         """Plot the specified points (xx,yy) with the relevant
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
@@ -523,8 +534,14 @@ class PointsXY (object):
         elif ptype=='scatter':
             pylab.scatter(xx, yy, label=label,
                           **self._PlotStyle.kwargs(ptype))
+        elif self._kw['plot_naked']:
+            pylab.plot(xx, yy)
+        elif not isinstance(label,str):
+            # NB: label=='_nolegend_' causes problems with Qt read SVG....
+            pylab.plot(xx, yy,
+                       **self._PlotStyle.kwargs('plot'))
         else:
-            pylab.plot(xx, yy, label=label,
+            pylab.plot(xx, yy, label=label,    
                        **self._PlotStyle.kwargs('plot'))
         return True
 
@@ -605,14 +622,14 @@ class PointsXY (object):
                     if isinstance(dy,list): dy = dy[i]
                     dy2 = dy/2
                     pylab.plot([x,x], [y-dy2,y+dy2],
-                               label='_nolegend_',
+                               # label='_nolegend_',
                                color=color, linestyle='-')
                 if self._dxx:
                     dx = self._dxx
                     if isinstance(dx,list): dx = dx[i]
                     dx2 = dx/2
                     pylab.plot([x-dx2,x+dx2], [y,y],
-                               label='_nolegend_',
+                               # label='_nolegend_',
                                color=color, linestyle='-')
         return True
 
@@ -623,7 +640,7 @@ class PointsXY (object):
         if self._kw['plot_type']=='plot':
             color = self._PlotStyle.color()
             self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
-                              label='_nolegend_',
+                              # label='_nolegend_',
                               color=color, linestyle='--')
             [xmean,ymean] = self.mean('xy')
             pylab.text(xmean, ymean, '  mean', color=color)
@@ -642,13 +659,13 @@ class PointsXY (object):
             [xmean,ymean] = self.mean('xy')
             [xstddev,ystddev] = self.stddev('xy')
             self.plot_ellipse(xy0=[xmean,ymean], a=xstddev, b=ystddev,
-                              label='_nolegend_',
+                              # label='_nolegend_',
                               color=color, linestyle='--')
             pylab.plot([xmean], [ymean], marker='+',
-                       label='_nolegend_',
+                       # label='_nolegend_',
                        markeredgecolor=color, markersize=20)
             pylab.plot([xmean], [ymean], marker='o',
-                       label='_nolegend_',
+                       # label='_nolegend_',
                        markeredgecolor=color, markerfacecolor=color)
         return True
 
@@ -669,7 +686,7 @@ class PointsXY (object):
             xx.append(x0+a*pylab.cos(angle))
             yy.append(y0+b*pylab.sin(angle))
         pylab.plot(xx, yy, color=color,
-                   label=label,
+                   # label=label,
                    linestyle=linestyle)
         return True
 
@@ -777,6 +794,7 @@ if __name__ == '__main__':
     kwargs['plot_circle_mean'] = True
     kwargs['auto_legend'] = True
     kwargs['plot_standalone'] = True
+    kwargs['plot_naked'] = True
 
     pts = PointsXY(range(6), name='list', annot=True, dxx=2, dyy=1.0, **kwargs)
     if 0:
@@ -793,7 +811,7 @@ if __name__ == '__main__':
         # plot_type = 'plot'
         pts = PointsXY(yy, xx=xx, name=plot_type, plot_type=plot_type, **kwargs)
         
-    if 1:
+    if 0:
         yy = []
         for i in range(1,5):
             yy.append(complex(0.1*i,0.1*i+0.1))
