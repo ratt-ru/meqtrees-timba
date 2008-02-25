@@ -1662,13 +1662,13 @@ class LSM:
 
        ### Q fraction
        sQ=struct.unpack('f',mdl[16:20])
-       sQ=sQ[0]
+       sQ=sQ[0]*sI/100
        ### U fraction
        sU=struct.unpack('f',mdl[20:24])
-       sU=sU[0]
+       sU=sU[0]*sI/100
        ### V fraction
        sV=struct.unpack('f',mdl[24:28])
-       sV=sV[0]
+       sV=sV[0]*sI/100
 
        ### extended source params: in arcsec, so multiply by ???
        eX=struct.unpack('f',mdl[28:32])
@@ -1739,9 +1739,9 @@ class LSM:
             elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
              my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
             elif (RM==0):
-             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,stokesQ=sQ, stokesU=sU, stokesV=sV, trace=0)
             else:
-             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,stokesQ=sQ, stokesU=sU, stokesV=sV, RM=RM,trace=0)
 
             # first compose the sixpack before giving it to the LSM
             my_sixpack.sixpack(ns)
@@ -1775,9 +1775,9 @@ class LSM:
             elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
              my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
             elif (RM==0):
-             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,stokesQ=sQ, stokesU=sU, stokesV=sV, trace=0)
             else:
-             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+             my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,stokesQ=sQ, stokesU=sU, stokesV=sV, RM=RM,trace=0)
 
             # first compose the sixpack before giving it to the LSM
             my_sixpack.sixpack(ns)
@@ -1807,9 +1807,9 @@ class LSM:
           elif SI==0 and sQ==0 and sU==0 and sV==0 and RM==0:
            my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,trace=0)
           elif (RM==0):
-           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, trace=0)
+           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,stokesQ=sQ, stokesU=sU, stokesV=sV, trace=0)
           else:
-           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM,trace=0)
+           my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,SI=SI,stokesQ=sQ, stokesU=sU, stokesV=sV, RM=RM,trace=0)
 
           # first compose the sixpack before giving it to the LSM
           my_sixpack.sixpack(ns)
@@ -1861,16 +1861,16 @@ class LSM:
     source_RA=float(v.group('col1'))*math.pi/180.0
     source_Dec=float(v.group('col2'))*math.pi/180.0
     sI=eval(v.group('col3'))
-    sQ=eval(v.group('col4'))*100/sI
-    sU=eval(v.group('col5'))*100/sI
-    sV=eval(v.group('col6'))*100/sI
+    sQ=eval(v.group('col4'))
+    sU=eval(v.group('col5'))
+    sV=eval(v.group('col6'))
 
     #print sI,sQ,sU,sV
     freq0=1e6
     if (sQ==0 and sU==0 and sV==0):
      my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     else:
-     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,stokesQ=sQ, stokesU=sU, stokesV=sV,trace=0)
    # first compose the sixpack before giving it to the LSM
     SourceRoot=my_sixpack.sixpack(ns)
     self.add_source(s,brightness=eval(v.group('col3')),
@@ -2013,9 +2013,9 @@ class LSM:
     sI=float(v.group('col8'))
     #convert to percentages
     if (sI > 0):
-     sQ=float(v.group('col9'))*100/sI
-     sU=float(v.group('col10'))*100/sI
-     sV=float(v.group('col11'))*100/sI
+     sQ=float(v.group('col9'))
+     sU=float(v.group('col10'))
+     sV=float(v.group('col11'))
     else:
      sQ=sU=sV=0
 
@@ -2040,11 +2040,11 @@ class LSM:
     if (ignore_pol==True or (sQ==0 and sU==0 and sV==0 and RM==0)):
      my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     elif (SI==0 and RM==0):
-     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV,trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,stokesQ=sQ, stokesU=sU, stokesV=sV,trace=0)
     elif (SI==0):
-     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, RM=RM, trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,stokesQ=sQ, stokesU=sU, stokesV=sV, RM=RM, trace=0)
     else :
-     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,Qpct=sQ, Upct=sU, Vpct=sV, SI=SI, RM=RM, trace=0)
+     my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, f0=freq0,RA=source_RA, Dec=source_Dec,stokesQ=sQ, stokesU=sU, stokesV=sV, SI=SI, RM=RM, trace=0)
  
    # first compose the sixpack before giving it to the LSM
     self.add_source(s,brightness=eval(v.group('col8')),
