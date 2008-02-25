@@ -47,8 +47,6 @@ from Timba.Meq import meq
 from Timba.Meq import meqds
 import Meow.Bookmarks
 
-import ChildResult
-
 import inspect
 import random
 
@@ -62,65 +60,204 @@ _dprintf = _dbg.dprintf;
 
 
 #=====================================================================================
-# The basic VisuVis22 pynode class:
+# The VisuVis22 base class:
 #=====================================================================================
-
-
 
 class VisuVis22 (pynode.PyNode):
   """Make a scatter-plot of the means of the results of its children"""
 
-
   def __init__ (self, *args, **kwargs):
     pynode.PyNode.__init__(self,*args);
-    self.set_symdeps('domain','resolution');
+    self.set_symdeps('domain','resolution')
+    self._count = -1
+    return None
+
+  def update_state (self, mystate):
+    # put the node-name into self.name
+    mystate('name')
+    mystate('class_name')
+    mystate('plot_labels')
     return None
                               
   def get_result (self, request, *children):
+    """Placeholder, to be re-implemented in derived classes"""
+    grs = self.on_entry()
+    return self.on_exit(grs)
 
-    classname = 'VisuVis22'
+  #-------------------------------------------------------------------
 
-    # AWG: needed to prevent hangup at 'executing' phase...??
-    import matplotlib
-    matplotlib.use('SVG')
-    
-    # Make an Graphics(=Subplot) object that has 4 Graphics objects:
+  def on_entry(self, trace=False):
+    """Called on entry of .get_result()"""
+    self._count += 1
+    self._title = 'VisuVis22.'+self.class_name+'_'+str(self._count)
+    self._xlabel = 'real part (Jy)'
+    self._ylabel= 'imag part (Jy)'
+    # Create a Graphics object:
     import Graphics
-    grs = Graphics.Scatter(None, name='allcors',
-                           title='VisuNodes.'+classname,
-                           xlabel='real part', ylabel='imag part',
-                           color='red', style='+')
-    grs.add(Graphics.Scatter(None, name='XY', color='green', style='x'))
-    grs.add(Graphics.Scatter(None, name='YX', color='magenta', style='x'))
-    grs.add(Graphics.Scatter(None, name='YY', color='blue', style='+'))
-    
+    grs = Graphics.Graphics(name=self.class_name,
+                            # plot_type='polar',     # does not work in svg...!
+                            title=self._title,
+                            xlabel=self._xlabel, ylabel=self._ylabel)
+    return grs
 
-    # Accumulate the point(s) representing the child result(s):
-    for i,child in enumerate(children):
-      # _dprint(0,'- child',i,':',dmi.dmi_typename(child))
-      chires = ChildResult.Result(child)     # child is MeqResult class
-      # chires.display()
-      print '--',i,':',chires.oneliner()
-      for icorr in range(grs.len()-1):
-        Vells = chires[icorr]                
-        print '---',i,icorr,':',Vells.oneliner()
-        grs[icorr][0].append(y=Vells.mean(), annot=i,
-                             dy=Vells.errorbar(),
-                             trace=False)
+  #-------------------------------------------------------------------
 
-    # When complete, add the Subplot object to a pylab Figure:
-    grs.display('accumulated')
-    import Figure        
+  def on_exit (self, grs, trace=False):
+    """Called on exit of .get_result().
+    Put the given pylab Graphics (grs) into a pylab Figure (fig).
+    Turn the Figure into an svg string, and attach it to a result"""
+    import Figure
     fig = Figure.Figure()
     fig.add(grs)
-    fig.display()
-
-    # Turn the Figure into an svg string, and attach it to the pynode result:
-    svg_list_of_strings = fig.plot(dispose=['svg'], rootname=classname, trace=False)
+    if trace:
+      s = str(self.class_name)+'.on_exit()'
+      grs.display(s)
+      fig.display(s)
+    svg_list_of_strings = fig.plot(dispose=['svg'],
+                                   rootname=self.class_name,
+                                   clear=False, trace=trace)
     result = meq.result()
     result.svg_plot = svg_list_of_strings
     return result
 
+  #-------------------------------------------------------------------
+
+  def read_children (self, grs, children, corrs=['XX','XY','YX','YY'],
+                     error_bars=True, trace=False):
+    """Accumulate the point(s) representing the child result(s)"""
+
+    # Fill the input Graphics object with a 'standard' Graphics object
+    # for each of the 1-4 specified correlations:
+    iicorr = []
+    for corr in corrs:
+      iicorr.append(corr_index(corr))
+      grs.add(corr_Graphics(corr))
+      grs.legend(corr, color=corr_color(corr))
+
+    # The plot-labels for the various children should have been
+    # attached to the pynode state-record when the pynode was defined
+    # (see _define_forest() below):
+    annot = self.plot_labels
+    if not isinstance(annot,(list,tuple)):
+      annot = range(len(children))
+    elif not len(annot)==len(children):
+      annot = range(len(children))
+
+    # Read the child results and fill the Graphics objects:
+    import ChildResult
+    for i,child in enumerate(children):
+      chires = ChildResult.Result(child)     # child is MeqResult class
+      if trace:
+        # chires.display()
+        print '--',i,':',chires.oneliner()
+      dy = None
+      for igrs,icorr in enumerate(iicorr):
+        Vells = chires[icorr]
+        if trace:
+          print '---',i,igrs,icorr,':',Vells.oneliner()
+        mean = Vells.mean()                  # complex number
+        if error_bars:
+          dy = Vells.errorbar()              # real
+        grs[igrs][0].append(y=mean, annot=annot[i], dy=dy)
+        
+    # Finished: Return the modified Graphics object
+    return grs
+
+
+
+#=====================================================================================
+# Classes derived from VisuVis22:
+#=====================================================================================
+
+
+class AllCorrs (VisuVis22):
+  """Make a scatter-plot of the means of the results of its children"""
+
+  def __init__ (self, *args, **kwargs):
+    VisuVis22.__init__(self,*args);
+    return None
+                              
+  def get_result (self, request, *children):
+    """Re-implementation of the VisuVis22 placeholder function"""
+    grs = self.on_entry()
+    grs = self.read_children(grs, children, corrs=['XX','XY','YX','YY'])
+    return self.on_exit(grs)
+
+
+#=====================================================================================
+
+class CrossCorrs (VisuVis22):
+  """Make a scatter-plot of the means of the results of its children"""
+
+  def __init__ (self, *args, **kwargs):
+    VisuVis22.__init__(self,*args);
+    return None
+                              
+  def get_result (self, request, *children):
+    """Re-implementation of the VisuVis22 placeholder function"""
+    grs = self.on_entry()
+    grs = self.read_children(grs, children, corrs=['XY','YX'])
+    return self.on_exit(grs)
+
+
+#=====================================================================================
+# Helper function(s): (May be called from other modules)
+#=====================================================================================
+
+def corr_index (corr):
+  """Convert the given corr (string) into a vells index"""
+  if corr in ['XX','RR']:
+    return 0
+  elif corr in ['XY','RL']:
+    return 1
+  elif corr in ['YX','LR']:
+    return 2
+  elif corr in ['YY','LL']:
+    return 3
+  else:
+    raise ValueError,'corr not recognized'
+  return None
+  
+def corr_color (corr):
+  """Convert the given corr (string) into a color"""
+  if corr in ['XX','RR']:
+    return 'red'
+  elif corr in ['XY','RL']:
+    return 'green'
+  elif corr in ['YX','LR']:
+    return 'magenta'
+  elif corr in ['YY','LL']:
+    return 'blue'
+  else:
+    raise ValueError,'corr not recognized'
+  return None
+  
+
+def corr_style (corr):
+  """Convert the given corr (string) into a plot-marker style"""
+  if corr in ['XX','RR']:
+    return '+'
+  elif corr in ['XY','RL']:
+    return 'x'
+  elif corr in ['YX','LR']:
+    return 'x'
+  elif corr in ['YY','LL']:
+    return '+'
+  else:
+    raise ValueError,'corr not recognized'
+  return None
+  
+
+def corr_Graphics (corr, trace=False):
+  """Create a standard Graphics object for the specified correlation.
+  This imposes uniformity on the rendering of the various correlations."""
+  import Graphics
+  grs = Graphics.Scatter(None, name=corr,
+                         color=corr_color(corr),
+                         style=corr_style(corr),
+                         plot_circle_mean=True,
+                         markersize=10)
+  return grs
 
 
 
@@ -135,28 +272,37 @@ def _define_forest (ns,**kwargs):
   cc = []
   
   if True:
-    ns.cx_freqtime << Meq.ToComplex(Meq.Time(),Meq.Freq())
+    ftx= ns.cx_freqtime << Meq.ToComplex(Meq.Time(),Meq.Freq())
 
-    nstat = 3
+    nstat = 5
+    rmsa = 0.01
+    labels = []
     for i in range(nstat-1):
       for j in range(i+1,nstat):
-        print '-- (i,j)=',i,j
-        XX = ns.XX(i)(j) << Meq.Polar(random.gauss(1.1,0.1),
+        label = str(i)+'.'+str(j)
+        labels.append(label)
+        # print '-- (i,j)=',i,j
+        XX = ns.XX(i)(j) << Meq.Polar(random.gauss(1.1,rmsa),
                                       random.gauss(0.0,1.0))
-        YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,0.1),
-                                      random.gauss(1.0,0.1))
-        XY = ns.XY(i)(j) << Meq.Polar(random.gauss(0.1,0.01),
+        YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa),
+                                      random.gauss(0.0,1.0))
+        XY = ns.XY(i)(j) << Meq.Polar(random.gauss(0.1,rmsa),
                                       random.gauss(0.5,0.1))
-        YX = ns.YX(i)(j) << Meq.Polar(random.gauss(0.1,0.01),
+        YX = ns.YX(i)(j) << Meq.Polar(random.gauss(0.1,rmsa),
                                       random.gauss(-0.5,0.1))
         vis22 = ns.vis22(i)(j) << Meq.Matrix22(XX,XY,YX,YY)
+        # vis22 = ns.vis22plus(i)(j) << Meq.Add(vis22, ftx)
         cc.append(vis22)
       
     bookpage = Meow.Bookmarks.Page('pynodes')
-    bookpage.add(ns.cx_freqtime, viewer="Result Plotter")                
+    # bookpage.add(ns.cx_freqtime, viewer="Result Plotter")                
     pn = []
-    for classname in ['VisuVis22']:
-      pynode = ns[classname] << Meq.PyNode(children=cc, class_name=classname,
+    for classname in ['AllCorrs','CrossCorrs']:
+    # for classname in ['AllCorrs']:
+    # for classname in ['CrossCorrs']:
+      pynode = ns[classname] << Meq.PyNode(children=cc,
+                                           class_name=classname,
+                                           plot_labels=labels,
                                            module_name=__file__)
       pn.append(pynode)
       Meow.Bookmarks.Page(classname).add(pynode, viewer="Svg Plotter")
@@ -178,7 +324,6 @@ def _test_forest (mqs,parent,wait=False):
   cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
   print '\n--',i,': cells =',cells,'\n'
   request = meq.request(cells,rqtype='e1');
-  # mqs.execute('rootnode',request,wait=wait);
   a = mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
   return True
 
@@ -189,9 +334,7 @@ def _tdl_job_sequence (mqs,parent,wait=False):
     cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
     rqid = meq.requestid(i)
     print '\n--',i,rqid,': cells =',cells,'\n'
-    # request = meq.request(cells, rqtype='e1');
     request = meq.request(cells, rqid=rqid);
-    # mqs.execute('rootnode',request,wait=wait);
     a = mqs.meq('Node.Execute',record(name='rootnode',request=request), wait=wait)
   return True
 

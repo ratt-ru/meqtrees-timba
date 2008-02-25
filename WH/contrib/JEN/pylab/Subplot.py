@@ -127,7 +127,7 @@ class Subplot (object):
                 if self._kw.has_key(key):
                     was = self._kw[key]
                     self._kw[key] = kwargs[key]
-                    print '** kwupdate():',key,':',was,'->',self._kw[key]
+                    # print '** kwupdate():',key,':',was,'->',self._kw[key]
                 else:
                     s = '** kwarg key not recognised: '+str(key)
                     raise ValueError,s
@@ -135,20 +135,25 @@ class Subplot (object):
 
     #---------------------------------------------------------------
 
-    def legend (self, new=None, init=False):
+    def legend (self, new=None, color=None, init=False):
         """Legend control"""
         if init:
             self._legend = []
+            self._legend_color = []
+        if not isinstance(color, str):
+            color = 'black'                   # gray?
         if new:
             if isinstance(new, str):
                 ss = new.split('\n')
                 for s in ss:
                     self._legend.append(s)
+                    self._legend_color.append(color)
             elif isinstance(new, list):
                 for s in new:
-                    self.legend(s)
+                    self.legend(s, color=color)
             else:
                 self._legend.append(str(new))
+                self._legend_color.append(str(new))
         return self._legend
                 
 
@@ -161,8 +166,8 @@ class Subplot (object):
         """Return a one-line summary of this object"""
         ss = '** <Subplot> '+self.name()+':'
         ss += ' n='+str(self.len())
-        ss += '  yrange='+str(self.yrange())
-        ss += '  xrange='+str(self.xrange())
+        ss += '  yrange='+format_float(self.yrange())
+        ss += '  xrange='+format_float(self.xrange())
         return ss
 
     def display(self, txt=None):
@@ -171,8 +176,8 @@ class Subplot (object):
         for key in self._kw:
             print '   - kw['+str(key)+'] = '+str(self._kw[key])
         print ' * legend ('+str(len(self._legend))+' lines):'
-        for s in self._legend:
-            print '   - '+str(s)
+        for i,s in enumerate(self._legend):
+            print '   - '+str(i)+' '+str(self._legend_color[i])+' : '+str(s)
         print '**\n'
 
     def help(self):
@@ -221,7 +226,8 @@ class Subplot (object):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show', trace=False):
+    def plot(self, figure=1, subplot=111, margin=0.1,
+             dispose='show', trace=False):
         """Make the subplot"""
         pylab.figure(figure)
         pylab.subplot(subplot)
@@ -299,6 +305,7 @@ class Subplot (object):
         """
         if trace: print '\n** plot_legend():'
         ss = self.legend()
+        color = self._legend_color
         [xmin,xmax] = self.xrange()
         [ymin,ymax] = self.yrange()
         if trace: print '- xx =',xmin,xmax
@@ -309,11 +316,39 @@ class Subplot (object):
         for i,s in enumerate(ss):
             y -= dy
             if trace:
-                print '-',i,'(',x,y,dy,'):',s
-            pylab.text(x,y,s)
+                print '-',i,'(',x,y,dy,color[i],'):',s
+            pylab.text(x,y,s, color=color[i])
         if trace: print
         return True
 
+
+
+
+
+#-----------------------------------------------------------
+# Helper function:
+#-----------------------------------------------------------
+
+def format_float(v, name=None, n=2):
+  """Helper function to format a float for printing"""
+  if isinstance(v, list):
+      s = '['
+      for i,v1 in enumerate(v):
+          if i>0: s += ', '
+          s += format_float(v1)
+      s += ']'
+  elif isinstance(v, complex):
+     s1 = format_float(v.real)
+     s2 = format_float(v.imag)
+     s = '('+s1+'+'+s2+'j)'
+  else:
+     q = 100.0
+     v1 = int(v*q)/q
+     s = str(v1)
+  if isinstance(name,str):
+    s = name+'='+s
+  # print '** format_float(',v,name,n,') ->',s
+  return s
 
 
 
@@ -415,9 +450,9 @@ if __name__ == '__main__':
         sub.help()
 
     if 1:
-        sub.legend('line 1')
+        sub.legend('line 1', color='red')
         sub.legend('line 2')
-        sub.legend('line 3')
+        sub.legend('line 3', color='blue')
         sub.display('legend')
 
     if 1:

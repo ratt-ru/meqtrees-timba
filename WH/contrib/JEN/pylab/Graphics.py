@@ -109,11 +109,11 @@ class Graphics (Subplot.Subplot):
         #  plotted in the same way, e.g. plot (linear), loglog etc)
         kwargs = dict()
         for key1 in ['plot_type','plot_mode']:
-            print '-- key1 =',key1,
             if self._kw.has_key(key1):
                 kwargs[key1] = self._kw[key1]
-            print '-> kwargs =',kwargs
         self.last().kwupdate(**kwargs)
+        # for i in range(self.last().len()):
+        #     self.last()[i].kwupdate(**kwargs)
 
         # Finished:
         return key
@@ -165,21 +165,19 @@ class Graphics (Subplot.Subplot):
 
     def yrange(self, margin=0.0, yrange=None):
         """Return [min,max] of all the y-coordinate(s)."""
-        yr = None
+        yr = yrange
         for key in self._order:
             yr = self._graphic[key].yrange(margin=margin, yrange=yr)
         if not yr:
-            # yr = [self._kw['ymin'],self._kw['ymax']]
             yr = [-1.0,1.0]
         return yr
 
     def xrange(self, margin=0.0, xrange=None):
         """Return [min,max] of all the x-coordinate(s)."""
-        xr = None
+        xr = xrange
         for key in self._order:
             xr = self._graphic[key].xrange(margin=margin, xrange=xr)
         if not xr:
-            # xr = [self._kw['xmin'],self._kw['xmax']]
             xr = [-1.0,1.0]
         return xr
 
@@ -192,15 +190,19 @@ class Graphics (Subplot.Subplot):
         """Return a one-line summary of this object"""
         ss = '** <Graphics> '+self.name()+':'
         ss += ' n='+str(self.len())
-        ss += '  yrange='+str(self.yrange())
-        ss += '  xrange='+str(self.xrange())
+        ss += '  yrange='+Subplot.format_float(self.yrange())
+        ss += '  xrange='+Subplot.format_float(self.xrange())
         return ss
 
     def display(self, txt=None):
         print '\n** (',txt,')'
         print ' * ',self.oneliner()
         for key in self._order:
-            print '-',key,':',self._graphic[key].oneliner()
+            gk = self._graphic[key]
+            print '   -',key,':',gk.oneliner()
+            if isinstance(gk, type(self)):
+                for key1 in gk.order():
+                    print '     -',key1,':',gk[key1].oneliner()
         print ' * keyword arguments (kwargs):'
         for key in self._kw:
             print '   - kw['+str(key)+'] = '+str(self._kw[key])
@@ -219,7 +221,8 @@ class Graphics (Subplot.Subplot):
     # Plot standalone (testing only?)
     #-------------------------------------------------------------
 
-    def plot(self, figure=1, subplot=111, margin=0.1, dispose='show', trace=True):
+    def plot(self, figure=1, subplot=111, margin=0.1,
+             dispose='show', trace=False):
         """Plot the group of points, using pylab"""
         if trace:
             print '\n** Graphics.plot(',figure,subplot,margin,dispose,')'
@@ -558,6 +561,11 @@ if __name__ == '__main__':
 
     grs = Graphics()
 
+    if 0:
+        print '** type(grs):',type(grs)
+        print '**',isinstance(grs,type(grs))
+        print '**',isinstance(grs,type(Graphics))
+        print '**',isinstance(grs,type(Subplot))
         
     if 0:
         grs = Circle([1,3],5,
@@ -570,9 +578,9 @@ if __name__ == '__main__':
                       centre_mark='cross',
                       linestyle='--', linewidth=3)
 
-    if 1:
-        grs = Scatter(None, style='hexagon')
-        # grs = Scatter(range(6), style='hexagon')
+    if 0:
+        # grs = Scatter(None, style='hexagon')
+        grs = Scatter(range(6), style='hexagon')
         # grs = Scatter(range(6), style='hexagon', plot_type='polar')
 
     if 0:
@@ -587,6 +595,10 @@ if __name__ == '__main__':
         # grs = Arrow(dxy=[1,1], linewidth=3)
         # grs = Arrow(xy2=[1,1], linewidth=3)
         grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
+
+    if 1:
+        grs.add(Scatter())
+        grs.add(Rectangle())
 
     if 0:
         grs.add(PointsXY.test_line())
@@ -612,7 +624,7 @@ if __name__ == '__main__':
 
     grs.display()
 
-    if 1:
+    if 0:
         grs.plot(dispose='show')
         # grs.plot(dispose=['PNG','SVG','show'])
 

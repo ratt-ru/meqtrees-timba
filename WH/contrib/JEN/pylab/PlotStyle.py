@@ -137,7 +137,7 @@ class PlotStyle (object):
     def extract_kw_plot(self, **kwargs):
         """Extract pylab.plot() keywords from kwargs"""
 
-        # trace = True
+        trace = True
         trace = False
         
         kw = dict()
@@ -189,7 +189,7 @@ class PlotStyle (object):
     def extract_kw_scatter(self, **kwargs):
         """Extract pylab.scatter() keywords from kwargs"""
 
-        # trace = True
+        trace = True
         trace = False
         
         kw = dict()
@@ -335,12 +335,11 @@ class PlotStyle (object):
         if ms=='vertical': kw['marker'] = '|'
 
         # Temporary kludge(s) to solve SVG poblems:
-        if False:
+        if True:
             s = '\n** .PlotStyle: temporary SVG kludge: '
             if kw['linestyle']==None:
-                print s,' avoided linestyle==None ...'
-                kw['linestyle'] = ':'  
-                # kw.__delitem__('linestyle') 
+                kw['linestyle'] = '.'             # not recognized, ignored...  
+                # print s,' avoided linestyle=None ->',kw['linestyle']
 
         return True
 

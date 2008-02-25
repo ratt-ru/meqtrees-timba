@@ -162,8 +162,8 @@ class TheEasyWay (pynode.PyNode):
     # Make an empty Graphics object:
     grs = Graphics.Scatter(None,
                            title='VisuNodes.'+rootname,
-                           xmin=-5, xmax=5,
-                           ymin=-5, ymax=5,
+                           # xmin=-5, xmax=5,
+                           # ymin=-5, ymax=5,
                            xlabel='x', ylabel='y',
                            color='blue', style='o')
     # grs.display('init')
@@ -193,10 +193,7 @@ class TheEasyWay (pynode.PyNode):
     # Finished: dispose of the Figure:
     fig.display()
     
-    print '**',rootname,': before dispose()'
     svg_list_of_strings = fig.plot(dispose=['svg'], rootname=rootname, trace=True)
-    # svg_list_of_strings = pylab_dispose(dispose=['svg'], rootname=rootname, trace=True)
-    print '**',rootname,': after dispose()'
     
     # NB: Make it into one big string....? (OMS)
     # NB: If the pylab plot is not needed, remove 'show' from the dispose list.
@@ -282,7 +279,7 @@ class TheHardWay (pynode.PyNode):
 
 #-------------------------------------------------------------------
     
-def pylab_dispose(dispose='svg', rootname='xxx', trace=True):
+def pylab_dispose(dispose='svg', rootname='xxx', clear=True, trace=True):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
@@ -343,10 +340,10 @@ def pylab_dispose(dispose='svg', rootname='xxx', trace=True):
         os.system("%s -size 640x480 %s" % ('display',filename))
         # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
         
-    if False:
-      if trace: print ' - before pylab.close()',rootname
-      pylab.close()
-      if trace: print ' -after pylab.close()',rootname
+    if clear:
+      if trace: print ' - before pylab.clf()',rootname
+      pylab.clf()
+      if trace: print ' -after pylab.clf()',rootname
 
     # Finished: return the result (if any):
     return result

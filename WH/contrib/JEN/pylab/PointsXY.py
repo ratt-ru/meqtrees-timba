@@ -90,6 +90,7 @@ class PointsXY (object):
         self._kw = kw
 
         # Deal with the specified coordinates:
+        self._is_complex = 0
         self._yy = []
         self._xx = []
         self._yarr = None
@@ -108,12 +109,12 @@ class PointsXY (object):
     def kwupdate (self, **kwargs):
         """Update self._kw (see .__init__())."""
         if isinstance(kwargs,dict):
-            print 'kwupdate(): ',self.oneliner()
+            # print 'kwupdate(): ',self.oneliner()
             for key in kwargs.keys():
                 if self._kw.has_key(key):
                     was = self._kw[key]
                     self._kw[key] = kwargs[key]
-                    print '** kwupdate():',key,':',was,'->',self._kw[key]
+                    # print '** kwupdate():',key,':',was,'->',self._kw[key]
                 else:
                     s = '** kwarg key not recognised: '+str(key)
                     raise ValueError,s
@@ -203,6 +204,10 @@ class PointsXY (object):
             s = '** .append(): type(y) not recognized: '+str(type(y))
             raise ValueError,s
 
+        # Count the number of complex points:
+        if is_complex:
+            self._is_complex += 1
+
         # Then the error-bars:
         if isinstance(dy, complex):
             self._dyy.append(dy.imag)
@@ -257,9 +262,14 @@ class PointsXY (object):
         """Return a one-line summary of this object"""
         ss = '** <PointsXY> '+self.name()+':'
         ss += ' n='+str(self.len())
+        if self._is_complex:
+            ss += ' (complex'
+            if not (self._is_complex==self.len()):
+                ss += ':'+str(self._is_complex)+'!'
+            ss += ')'
         ss += ' '+self._PlotStyle.summary()
-        ss += '  yrange='+str(self.yrange())
-        ss += '  xrange='+str(self.xrange())
+        ss += '  yrange='+format_float(self.yrange())
+        ss += '  xrange='+format_float(self.xrange())
         ss += '  plot_type='+str(self._kw['plot_type'])
         return ss
 
@@ -321,10 +331,13 @@ class PointsXY (object):
         - mode=y: -> mean(yy) (default)
         - mode=x: -> mean(xx)
         - mode=r: -> sqrt(mean(xx)**2+mean(yy)**2)
+        - mode=rr: -> mean(r)
         - mode=xy: -> [mean(xx),mean(yy)]"""
         if mode=='y': return pylab.mean(self._yy)
         if mode=='xy': return [pylab.mean(self._xx),pylab.mean(self._yy)]
         if mode=='r': return (pylab.mean(self._xx)**2+pylab.mean(self._yy)**2)**0.5
+        if mode=='rr':
+            return pylab.mean(((self.xx()**2)+(self.yy()**2))**0.5)
         if mode=='x': return pylab.mean(self._xx)
         return None
 
@@ -471,12 +484,11 @@ class PointsXY (object):
         self.plot_error_bars()                   
                 
         # Some optional extras:
-        if False:                                 
-            if self._kw['plot_circle_mean']:
-                self.plot_circle_mean()
-            if self._kw['plot_ellipse_stddev']:
-                self.plot_ellipse_stddev()
-
+        if self._kw['plot_circle_mean']:
+            self.plot_circle_mean()
+        if self._kw['plot_ellipse_stddev']:
+            self.plot_ellipse_stddev()
+                
         # Make the window, if required, but AFTER the circles:
         if margin>0.0:
             if self._kw['plot_type']=='plot':
@@ -639,13 +651,19 @@ class PointsXY (object):
         """Plot a circle around the origin, through [xmean,ymean]"""
         if self._kw['plot_type']=='plot':
             color = self._PlotStyle.color()
-            self.plot_ellipse(xy0=[0.0,0.0], a=self.mean('r'),
+            if self._is_complex:
+                radius = self.mean('rr')
+            else:
+                radius = self.mean('r')
+            self.plot_ellipse(xy0=[0.0,0.0], a=radius,
                               # label='_nolegend_',
                               color=color, linestyle='--')
             [xmean,ymean] = self.mean('xy')
-            pylab.text(xmean, ymean, '  mean', color=color)
+            if False:
+                pylab.text(xmean, ymean, '  mean', color=color)
             if False:
                 arr = pylab.Arrow(0,0,xmean,ymean, edgecolor='black',
+                                  # label='_nolegend_',
                                   facecolor=color, linewidth=1, alpha=0.05)
                 pylab.gca().add_patch(arr)
         return True
@@ -720,6 +738,32 @@ def xy2pair(xy, trace=False):
     # Error?
     return [None,None]
 
+#-----------------------------------------------------------
+# Helper function:
+#-----------------------------------------------------------
+
+def format_float(v, name=None, n=2):
+    """Helper function to format a float for printing"""
+    if isinstance(v, list):
+        s = '['
+        for i,v1 in enumerate(v):
+            if i>0: s += ', '
+            s += format_float(v1)
+        s += ']'
+    elif isinstance(v, complex):
+        s1 = format_float(v.real)
+        s2 = format_float(v.imag)
+        s = '('+s1+'+'+s2+'j)'
+    else:
+        q = 100.0
+        v1 = int(v*q)/q
+        s = str(v1)
+    if isinstance(name,str):
+        s = name+'='+s
+    # print '** format_float(',v,name,n,') ->',s
+    return s
+
+
 
 #========================================================================
 # Some test objects:
@@ -792,9 +836,9 @@ if __name__ == '__main__':
     kwargs['quiver_scale'] = None
     kwargs['plot_ellipse_stddev'] = True
     kwargs['plot_circle_mean'] = True
-    kwargs['auto_legend'] = True
+    # kwargs['auto_legend'] = True
     kwargs['plot_standalone'] = True
-    kwargs['plot_naked'] = True
+    # kwargs['plot_naked'] = True
 
     pts = PointsXY(range(6), name='list', annot=True, dxx=2, dyy=1.0, **kwargs)
     if 0:
@@ -829,7 +873,7 @@ if __name__ == '__main__':
     # pts = PointsXY(pylab.array(range(6)), name='numarray', **kwargs)
     # pts = PointsXY(-2, name='scalar', **kwargs)
     # pts = PointsXY(3+5j, name='complex scalar', **kwargs)
-    # pts = PointsXY([3,-2+1.5j], name='complex list', **kwargs)
+    pts = PointsXY([3,-2+1.5j], name='complex list', **kwargs)
     # pts = PointsXY([0,0,0,0], name='zeroes', **kwargs)
     # pts = test_line()
     # pts = test_sine()

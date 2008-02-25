@@ -43,12 +43,13 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+
+import Subplot
 import pylab
 
 import time
 import copy
 
-import Subplot
 
 
 #======================================================================================
@@ -57,7 +58,7 @@ class Figure (Subplot.Subplot):
     """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, figure=1, nrow=1, ncol=1, name=None): 
+    def __init__(self, figure=1, nrow=1, ncol=1, name=None, clear=True): 
 
         # Deal with the specified name (label):
         self._name = name
@@ -72,6 +73,10 @@ class Figure (Subplot.Subplot):
         self._order = []
         self._subplot = dict()
         self._plopos = dict()
+
+        # Clear any existing pylab figure (kludge?)
+        if clear:
+            pylab.clf()
 
         # Finished:
         return None
@@ -177,26 +182,28 @@ class Figure (Subplot.Subplot):
         return True
 
     #===============================================================
-    # Plot standalone (testing only?)
+    # Plot the specified figure, and dispose of it:
     #===============================================================
 
-    def plot(self, figure=1, margin=0.1, dispose='show',
-             rootname='Figure', trace=False):
+
+    def plot(self, figure=1, margin=0.1, dispose='show', rootname='Figure',
+             clear=True, trace=False):
         """Plot the pylab figure, with its Subplots"""
         pylab.figure(figure)
-        if trace: print '\n** Figure.plot(',figure, margin, rootname, dispose,'):'
+        if trace:
+            print '\n** Figure.plot(',figure, margin, rootname, dispose,'):'
         for key in self._order:
             subplot = self._plopos[key]['subplot']
             if trace:
                 print '  -',key,': subplot =',subplot,self._plopos[key]
-                print '  - before:', self._subplot[key].oneliner()
             self._subplot[key].plot(figure=figure, subplot=subplot,
                                     dispose=None, trace=trace)
-            if trace: print '  - after:', self._subplot[key].oneliner()
         # Finsished: dispose of the pylab figure:
-        return pylab_dispose(dispose, origin='Figure.plot()',
-                             rootname=rootname, trace=trace)
-
+        return pylab_dispose(dispose,
+                             rootname=rootname,
+                             origin='Figure.plot()',
+                             clear=clear,
+                             trace=trace)
 
 
 #========================================================================
@@ -204,11 +211,12 @@ class Figure (Subplot.Subplot):
 #========================================================================
 
 def pylab_dispose(dispose='show', rootname='pylabFigure',
-                  origin='<unknown>', trace=True):
+                  origin='<unknown>', clear=True, trace=False):
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
-    if trace: print '\n** Figure.dispose(',dispose,origin,') rootname=',rootname,
+    if trace:
+        print '\n** Figure.dispose(',dispose,origin,') rootname=',rootname,
     if dispose==None:
         if trace: print ' (done nothing)\n' 
         return None
@@ -224,7 +232,9 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
         if ext in dispose:
             filename = rootname+'.'+ext
             delay = 0.0
+
             if delay>0.0:
+                # Not necessary...
                 time.sleep(delay)
                 if trace: print '  - sleep(',delay,') before savefig(',filename,')'
 
@@ -232,8 +242,8 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
                 result = filename             # filename for png-plotter...??
 
             if ext in ['svg','SVG']:
-                import matplotlib             # ??
-                matplotlib.use('SVG')         # ??
+                import matplotlib             # Tony says...??
+                matplotlib.use('SVG')         # Tony says...??
                 svgname = filename            # used below...
                 # since we are using backend 'SVG', svg is
                 # automatically added to filename
@@ -243,12 +253,14 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
             r = pylab.savefig(filename)
             if trace: print '  - pylab.savefig(',filename,') ->',r
 
-            if True:
-                if trace: print '** Figure: before pylab.close()',rootname
-                pylab.close()
-                if trace: print '** Figure: after pylab.close()',rootname
+            if clear:
+                # Clear the current figure AFTER pylab.savefig()
+                if trace: print '** Figure: before pylab.clf()',rootname
+                pylab.clf()
+                if trace: print '** Figure: after pylab.clf()',rootname
 
             if delay>0.0:
+                # Not necessary...
                 time.sleep(delay)
                 if trace: print '  - sleep(',delay,') after savefig(',filename,')'
 
@@ -290,7 +302,7 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: Figure.py:\n'
 
-    import Subplot
+    # import Subplot
 
     fig = Figure(nrow=2, ncol=2)
 
