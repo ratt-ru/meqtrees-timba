@@ -92,6 +92,11 @@ class VisuVis22 (pynode.PyNode):
     self._title = 'VisuVis22.'+self.class_name+'_'+str(self._count)
     self._xlabel = 'real part (Jy)'
     self._ylabel= 'imag part (Jy)'
+
+    # we need the following two lines
+    import matplotlib
+    matplotlib.use('SVG')
+
     # Create a Graphics object:
     import Graphics
     grs = Graphics.Graphics(name=self.class_name,
