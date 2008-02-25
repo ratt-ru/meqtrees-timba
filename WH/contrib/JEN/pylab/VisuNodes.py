@@ -256,8 +256,8 @@ class TheHardWay (pynode.PyNode):
     label = 'llegendd'
     # pylab.plot(xx, yy, 'ro', label=label)
     # can't have linestyle=None
-    pylab.plot(xx, yy, color='red', marker='o', linestyle=None)
-    pylab.plot(xx, yy, markerfacecolor='red', marker='o', linestyle=None)
+    pylab.plot(xx, yy, color='red', marker='o', linestyle=':')
+    pylab.plot(xx, yy, markerfacecolor='red', marker='o', linestyle=':')
     pylab.grid()
     # pylab.legend()
 
