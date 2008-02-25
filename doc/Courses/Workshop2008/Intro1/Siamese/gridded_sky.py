@@ -45,7 +45,13 @@ def point_source (ns,name,l,m,I=1):
       freq0 = source_freq0 or Meow.Context.observation.freq0();
     else:
       freq0 = None;
-    return Meow.PointSource(ns,name,srcdir,I=I,spi=source_spi,freq0=freq0);
+    if source_pol:
+      Q = I*source_qi;
+      U = I*source_ui;
+      V = I*source_vi;
+    else:
+      Q = U = V = 0;
+    return Meow.PointSource(ns,name,srcdir,I=I,Q=Q,U=U,V=V,spi=source_spi,freq0=freq0);
   else:
     return None;
 
@@ -141,8 +147,15 @@ TDLCompileOption("grid_size","Number of sources in each direction",
       [1,3,5,7],more=int);
 TDLCompileOption("grid_step","Grid step, in arcmin",
       [.1,.5,1,2,5,10,15,20,30],more=float);
-TDLCompileOption("source_flux","Source flux, Jy",
+TDLCompileOption("source_flux","Source I flux, Jy",
       [1e-6,1e-3,1],more=float);
+TDLCompileMenu("Polarization",
+  TDLOption("source_qi","Q/I ratio",
+        [0,.1],more=float),
+  TDLOption("source_ui","U/I ratio",
+        [0,.1],more=float),
+  TDLOption("source_vi","V/I ratio",
+        [0,.1],more=float),toggle='source_pol');
 TDLCompileOption("grid_l0","Offset w.r.t. phase center (l), in arcmin",
       [0],more=float);
 TDLCompileOption("grid_m0","Offset w.r.t. phase center (m), in arcmin",
