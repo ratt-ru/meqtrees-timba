@@ -354,7 +354,7 @@ class MyCanvasView(QCanvasView):
        [ra,dec,sI]=extract_parms(punit.getSixpack(),self.lsm.getNodeScope())
        br=br+"<br/>Polarization I="+str(sI)
        if (qq!=0 or uu!=0 or vv !=0):
-         br=br+"<br/>Q(%)="+str(qq)+"<br/>U(%)="+str(uu)+"<br/>V(%)="+str(vv)
+         br=br+"<br/>Q="+str(qq)+"<br/>U="+str(uu)+"<br/>V="+str(vv)
       tmp_str+=br
       
       if punit._patch_name !=None:
