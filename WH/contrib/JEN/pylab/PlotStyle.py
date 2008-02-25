@@ -338,7 +338,7 @@ class PlotStyle (object):
         if True:
             s = '\n** .PlotStyle: temporary SVG kludge: '
             if kw['linestyle']==None:
-                kw['linestyle'] = '.'             # not recognized, ignored...  
+                kw['linestyle'] = ':'             # not recognized, ignored...  
                 # print s,' avoided linestyle=None ->',kw['linestyle']
 
         return True
