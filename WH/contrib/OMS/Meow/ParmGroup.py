@@ -268,8 +268,11 @@ class SolveJob (object):
 
   def runtime_options (self):
     if self._jobmenu is None:
-      opts = [ TDLOption('tile_size',"Solution interval (aka tile size), in timeslots",
-                                    [1,10,100],more=int,namespace=self) ];
+      opts = [ TDLOption('tile_size',"Tile size, in timeslots",[1,10,100],
+                    doc="""Input data is normally sliced by time, and processed in chunks of the 
+                    indicated size. This will also be the effective parameter solution interval 
+                    (in time), unless you specify a different (smaller) value for the "Solution subinterval (time)" option below.""",
+                    more=int,namespace=self) ];
       # add options from parmgroups
       global _all_parmgroups;
       self.pg_controllers = [];
