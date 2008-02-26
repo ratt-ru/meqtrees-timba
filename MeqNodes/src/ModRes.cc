@@ -194,6 +194,8 @@ int ModRes::pollChildren (Result::Ref &resref,
 
 			} else {
 				//X axis is not being changed
+				xax.resize(nx);
+				xsp.resize(nx);
 				xax=incells.center(0);
 				xsp=incells.cellSize(0);
 			}
@@ -251,6 +253,8 @@ int ModRes::pollChildren (Result::Ref &resref,
 
 			} else {
 				//Y axis is not being changed
+				yax.resize(ny);
+				ysp.resize(ny);
 				yax=incells.center(1);
 				ysp=incells.cellSize(1);
 			}
