@@ -45,10 +45,10 @@ class DiagAmplPhase (object):
     # make parmgroups for phases and gains
     self.pg_phase = ParmGroup.ParmGroup(label+"_phase",
                     nodes.search(tags="solvable phase"),
-                    table_name="%s_phase.mep"%label,bookmark=4);
+                    table_name="%s_phase.fmep"%label,bookmark=4);
     self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",
                     nodes.search(tags="solvable ampl"),
-                    table_name="%s_ampl.mep"%label,bookmark=4);
+                    table_name="%s_ampl.fmep"%label,bookmark=4);
 
     # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_phase","Calibrate %s phases"%label,self.pg_phase);
@@ -111,11 +111,11 @@ class FullRealImag (object):
     self.pg_diag  = ParmGroup.ParmGroup(label+"_diag",
             [ jones(src,p,zz) for src in sources for p in stations 
                               for zz in "rxx","ixx","ryy","iyy" ],
-            table_name="%s_diag.mep"%label,bookmark=False);
+            table_name="%s_diag.fmep"%label,bookmark=False);
     self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",
             [ jones(src,p,zz) for src in sources for p in stations 
                               for zz in "rxy","ixy","ryx","iyx" ],
-            table_name="%s_offdiag.mep"%label,bookmark=False);
+            table_name="%s_offdiag.fmep"%label,bookmark=False);
 
     # make bookmarks
     Bookmarks.make_node_folder("%s diagonal terms"%label,
@@ -128,5 +128,55 @@ class FullRealImag (object):
     # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_diag","Calibrate %s diagonal terms"%label,self.pg_diag);
     ParmGroup.SolveJob("cal_"+label+"_offdiag","Calibrate %s off-diagonal terms"%label,self.pg_offdiag);
+
+    return jones;
+
+      
+class IntrinsicFR (object):
+  def __init__ (self,label):
+    self.tdloption_namespace = label+".intrinsic_fr";
+    subset_opt = TDLOption('subset',"Apply this Jones term to a subset of sources",
+        [None],more=str,namespace=self,doc="""Selects a subset of sources to which this 
+        Jones term is applied. 'None' applies to all sources.
+        You may specify individual indices (0-based) separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive), or ":M" (0 to M), or "N:" (N to last).
+        Example subset: ":3 5 8 10:12 16:".""");
+    self._subset_parser = Meow.Utils.ListOptionParser(minval=0,name="sources");
+    subset_opt.set_validator(self._subset_parser.validator);
+    self.options = [ subset_opt ];
+    self.subset = None;
+
+  def compile_options (self):
+    return self.options;
+
+  def compute_jones (self,jones,sources,stations=None,tags=None,label='',**kw):
+    stations = stations or Context.array.stations();
+    # figure out which sources to apply to
+    if self.subset:
+      srclist = self._subset_parser.parse_list(self.subset);
+      sources = [ sources[i] for i in srclist ];
+    # create parm definitions for each jones element
+    tags = NodeTags(tags) + "solvable";
+    rm_parm = Meq.Parm(0,tags=tags+"rm");
+    # loop over sources
+    for src in sources:
+      jj = jones(src);
+      jj("RM") << rm_parm;
+      fr = jj("fr") << jj("RM") / Meq.Sqr(Meq.Freq());
+      cos_fr = jj("cos") << Meq.Cos(fr);
+      sin_fr = jj("sin") << Meq.Sin(fr);
+      jj << Meq.Matrix22(cos_fr,-sin_fr,sin_fr,cos_fr);
+      for p in stations:
+        jj(p) << Meq.Identity(jj);
+    # make parmgroups for diagonal and off-diagonal terms
+    self.pg_fr  = ParmGroup.ParmGroup(label+"_fr",
+            [ jones(src,"RM") for src in sources ],
+            table_name="%s_fr.fmep"%label,bookmark=False);
+
+    # make bookmarks
+    Bookmarks.make_node_folder("%s Faraday rotation"%label,
+      [ jones(src,"fr") for src in sources  ],sorted=True);
+
+    # make solvejobs
+    ParmGroup.SolveJob("cal_"+label+"_fr","Calibrate %s"%label,self.pg_fr);
 
     return jones;
