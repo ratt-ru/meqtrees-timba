@@ -1153,7 +1153,9 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
       else:
         # normalize filenames: eliminate CWD, leave just one path element
         fname = filename;
-        if os.path.samefile(os.path.dirname(fname),'.'):
+        try: is_cwd = os.path.samefile(os.path.dirname(fname),'.');
+        except: is_cwd = False;
+        if is_cwd:
           fname = os.path.basename(filename);
         else:
           dirname,fname = os.path.split(filename);
