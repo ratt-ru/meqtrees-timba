@@ -490,6 +490,9 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
       }
     }
     executing_ = false;
+    #ifndef HAVE_PARMDB
+    ParmTableUtils::flushTables();
+    #endif
     out[AidResult|AidCode] = flags;
     if( flags&Node::RES_FAIL )
     {
