@@ -29,6 +29,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <complex>
 
+//#define DEBUG
 namespace Meq {
 
 const HIID FFlagDensity = AidFlag|AidDensity;
@@ -326,6 +327,9 @@ Integrator::setup(const Cells &in, const Cells &out) {
 #ifdef DEBUG
  cout<<inxcellsize<<endl<<xaxs<<endl;
 #endif
+
+ blitz::Array<int,1> xxindex; 
+ if (nxs>1) {
  //array to be searched - input cells
  blitz::Array<double,1> xx(nxs-1); 
  for (int i=0; i<nxs-1;i++) {
@@ -344,10 +348,15 @@ Integrator::setup(const Cells &in, const Cells &out) {
 #ifdef DEBUG
  cout<<inxx<<endl;
 #endif
- blitz::Array<int,1> xxindex(nxs-1); 
  // do the search
+ xxindex.resize(nxs-1); 
  for (int i=0; i<nxs-1;i++)
 	  xxindex(i)=bin_search(inxx,xx(i),0,nx_+1);
+ } else {
+  xxindex.resize(1);
+  xxindex(0)=0;
+ }
+
 #ifdef DEBUG
  cout<<xxindex<<endl;
 #endif
@@ -375,10 +384,14 @@ Integrator::setup(const Cells &in, const Cells &out) {
  bx_[0].print();
 #endif
 
- blitz::Array<double,1> yy(nys-1); 
- for (int i=0; i<nys-1;i++) {
-		yy(i)=yaxs(i)+inycellsize(i)*0.5;
- }
+ blitz::Array<int,1> yyindex; 
+ if (nys>1) {
+  blitz::Array<double,1> yy;
+  yy.resize(nys-1);
+  for (int i=0; i<nys-1;i++) {
+  		yy(i)=yaxs(i)+inycellsize(i)*0.5;
+  }
+
 #ifdef DEBUG
  cout<<yy<<endl;
 #endif
@@ -392,13 +405,17 @@ Integrator::setup(const Cells &in, const Cells &out) {
 #ifdef DEBUG
  cout<<inyy<<endl;
 #endif
- blitz::Array<int,1> yyindex(nys-1); 
  // do the search
+ yyindex.resize(nys-1);
  for (int i=0; i<nys-1;i++)
 	  yyindex(i)=bin_search(inyy,yy(i),0,ny_+1);
 #ifdef DEBUG
  cout<<yyindex<<endl;
 #endif
+ } else {
+  yyindex.resize(1);
+  yyindex(0)=0;
+ }
 
  cli=0;
 #ifdef DEBUG
