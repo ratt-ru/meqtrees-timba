@@ -1928,7 +1928,6 @@ class LSM:
     sU=eval(v.group('col6'))
     sV=eval(v.group('col7'))
     SI=eval(v.group('col8'))
-    print sI,sQ;
 
     eX=eval(v.group('col9'))
     eY=eval(v.group('col10'))
@@ -1968,37 +1967,37 @@ class LSM:
   # regexp pattern
   pp=re.compile(r"""
    ^(?P<col1>[A-Za-z0-9_.]+)  # column 1 name: must start with a character
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col2>[-+]?\d+(\.\d+)?)   # RA angle - hours 
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col3>[-+]?\d+(\.\d+)?)   # RA angle - min 
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col4>[-+]?\d+(\.\d+)?)   # RA angle - sec 
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col5>[-+]?\d+(\.\d+)?)   # Dec angle - degrees
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col6>[-+]?\d+(\.\d+)?)   # Dec angle - min
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col7>[-+]?\d+(\.\d+)?)   # Dec angle - sec 
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col8>[-+]?\d+(\.\d+)?)   # Stokes I - Flux
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col9>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Stokes Q - Flux 
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col10>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Stokes U - Flux 
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col11>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Stokes V - Flux 
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col12>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Spectral index
-   \s*             # skip white space
-   (?P<col13>(-)?\d+(\.\d*)?)   # Rotation Measure
-   \s*             # skip white space
+   \s+             # skip white space
+   (?P<col13>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)  # Rotation measure
+   \s+             # skip white space
    (?P<col14>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source major axis: rad
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col15>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source minor axis: rad
-   \s*             # skip white space
+   \s+             # skip white space
    (?P<col16>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source position angle : rad
-   [\S\s]+""",re.VERBOSE)
+   [\S\s]*""",re.VERBOSE)
 
 
   kk=0
@@ -2032,7 +2031,7 @@ class LSM:
 
     kk=kk+1
 
-    #print sI,sQ,sU,sV
+    # print sI,sQ,sU,sV,SI,RM;
     if f0==None:
      freq0=1e6
     else:
