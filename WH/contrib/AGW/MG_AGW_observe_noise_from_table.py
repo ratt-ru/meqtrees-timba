@@ -141,13 +141,6 @@ random_seed = 154321
 ########################################################
 def _define_forest(ns):
 
-# direction of fake source
-  l = 0.00543675
-  m = 0.00543675
-
-  n = math.sqrt(1-l*l-m*m);
-  ns.lmn_minus1 << Meq.Composer(l,m,n-1);
-
 # read in beam weights
   num_beams = len(weight_re) / 2
   BEAMS = range(0,num_beams)
