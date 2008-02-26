@@ -133,7 +133,8 @@ def _define_forest(ns):
   for p in ANTENNAS:
     # set up individual positions and uvw
     ns.xyz(p) << Meq.Composer(ns.x(p)<<0,ns.y(p)<<0,ns.z(p)<<0);
-    ns.uvw(p) << Meq.Negate(Meq.UVW(radec=ns.radec0,xyz_0=ns.xyz0,xyz=ns.xyz(p)));
+    #note: make sure hat UVWs in MS are correct!
+    ns.uvw(p) << Meq.UVW(radec=ns.radec0,xyz_0=ns.xyz0,xyz=ns.xyz(p));
     # NOTE: in the above lines of code since the ns.radec0 = statement
     # we have been creating nodes with placeholder values of zero. These
     # get set to actual values when the statement 
@@ -205,7 +206,8 @@ def _test_forest(mqs,parent,wait=True):
   req = meq.request();
   req.input = record(
     ms = record(
-      ms_name          = 'TEST_XNTD_30_960.MS',
+#     ms_name          = 'TEST_XNTD_30_960.MS',
+      ms_name          = 'TEST_XNTD_60_480.MS',
       tile_size        = 200,
       selection = record(channel_start_index=0,
                              channel_end_index=0,
