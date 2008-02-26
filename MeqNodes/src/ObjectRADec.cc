@@ -89,6 +89,8 @@ int ObjectRADec::getResult (Result::Ref &resref,
 {
   // Get cells.
   const Cells& cells = request.cells();
+
+  FailWhen(!cells.isDefined(Axis::TIME),"Meq::ObjectRADec: no time axis in request, can't compute RA,Dec");
   Vells::Shape shape(cells.shape());
   //collapse all but time axis
   int ntime=shape[Axis::TIME];
