@@ -224,7 +224,7 @@ class IfrArray (object):
         p = self.stations()[0];
         uvw(p) << Meq.Composer(0,0,0);
         for iq,q in enumerate(self.stations()[1:]):
-          if not self._mirror_uvw:
+          if self._mirror_uvw:
             uvw(q,'neg') << Meq.Spigot(station_1_index=0,station_2_index=iq+1,
                                   input_col='UVW');
             uvw(q) << -uvw(q,'neg');
