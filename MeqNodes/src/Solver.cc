@@ -77,6 +77,7 @@ const HIID
     // FSavePolcs already defined above
     FLastUpdate      = AidLast|AidUpdate,
     FConvergenceQuota = AidConvergence|AidQuota,
+    FFlushTables     = AidFlush|AidTables,
     
     FInterruptSolution = AidInterrupt|AidSolution,
     
@@ -138,6 +139,7 @@ Solver::Solver()
   flag_mask_        (-1),
   do_save_funklets_ (false),
   do_last_update_   (false),
+  do_flush_tables_  (false),
   max_num_iter_     (3),
   conv_quota_       (0.8),
   debug_lvl_        (DefaultDebugLevel),
@@ -1124,7 +1126,8 @@ int Solver::getResult (Result::Ref &resref,
     timers().getresult.start();
 #ifndef HAVE_PARMDB
     ParmTableUtils::unlockTables();
-    ParmTableUtils::flushTables();
+    if( do_flush_tables_ )
+      ParmTableUtils::flushTables();
 #endif
   }
   if( forest().abortFlag() )
@@ -1403,6 +1406,7 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
   // get other solver parameters
   newst[FFlagMask].get(flag_mask_,initializing);
   newst[FSaveFunklets].get(do_save_funklets_,initializing);  
+  newst[FFlushTables].get(do_flush_tables_,initializing);  
   newst[FLastUpdate].get(do_last_update_,initializing);  
   newst[FNumIter].get(max_num_iter_,initializing);  
   newst[FConvergenceQuota].get(conv_quota_,initializing);

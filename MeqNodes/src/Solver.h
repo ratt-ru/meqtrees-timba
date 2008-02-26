@@ -36,7 +36,7 @@
 #pragma aid Converged Array Convergence Quota Tiling Tilings Super Size Stride
 #pragma aid Total SS Uk Unknown Unknowns Spid Set Stride Map Colin LM Factor MT 
 #pragma aid Begin End Deriv Balanced Equations Ready String 
-#pragma aid Debug File Interrupt Solution
+#pragma aid Debug File Interrupt Solution Flush Tables
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -62,6 +62,8 @@
 //  Send up a final update to parms after solve
 //field: save_funklets F
 //  Send up a Save.Funklets command after solve
+//field: flush_tables F
+//  Flush parmtables at end of every solution. Default is not to flush.
 //field: parm_group hiid('parm')
 //  HIID of the parameter group to use. 
 //field: solvable [=]
@@ -153,6 +155,7 @@ private:
   int             flag_mask_;         // flag mask applied during solve
   bool            do_save_funklets_;  // save funklets after solve?
   bool            do_last_update_;    // send up final update after solve?
+  bool            do_flush_tables_;   // flush parmtables at end of solution
   int             max_num_iter_;      // max # of iterations
   double          conv_quota_;        // convergence quota
   SolverSettings  settings_;

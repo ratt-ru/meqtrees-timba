@@ -203,6 +203,11 @@ const int AidFilename_int = -1576;
 const DMI::AtomicID AidFlag(-1134);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 const int AidFlag_int = -1134;
 #endif
+#ifndef _defined_id_AidFlush
+#define _defined_id_AidFlush 1
+const DMI::AtomicID AidFlush(-1736);              // from /home/oms/Timba/MeqNodes/src/Solver.h:39
+const int AidFlush_int = -1736;
+#endif
 #ifndef _defined_id_AidForce
 #define _defined_id_AidForce 1
 const DMI::AtomicID AidForce(-1498);              // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
@@ -1062,6 +1067,11 @@ const int AidStyle_int = -1406;
 #define _defined_id_AidSuper 1
 const DMI::AtomicID AidSuper(-1628);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:35
 const int AidSuper_int = -1628;
+#endif
+#ifndef _defined_id_AidTables
+#define _defined_id_AidTables 1
+const DMI::AtomicID AidTables(-1735);             // from /home/oms/Timba/MeqNodes/src/Solver.h:39
+const int AidTables_int = -1735;
 #endif
 #ifndef _defined_id_AidTile
 #define _defined_id_AidTile 1
