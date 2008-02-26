@@ -1,0 +1,4 @@
+#
+# name  RA                Dec                  I,Jy        Q,Jy         U,Jy       V,Jy       SpI    RM     eX     eY     ePA
+#
+3C286   13 31 08.29       30 30 32.96          7.462       0.4982      -0.6988     0.0        0.     0.     0.     0.     0.   
