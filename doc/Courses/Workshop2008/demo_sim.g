@@ -233,3 +233,5 @@ print '*** calling mkcomps ***'
 mkcomps('mymodel.cl',flux,ra,dec);
 print '*** calling simms ***'
 simms('demo.MS','mymodel.cl');
+
+exit
