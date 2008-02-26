@@ -97,12 +97,20 @@ TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
   TDLOption('randomize_axes','Randomize above extremes for each telescope?',[True,False]),
 );
 
-# get Azimuth / Elevation telescope random tracking errors
-TDLCompileOption("max_tr_error","Max tracking error, arcsec",[0,1,2,5],more=float);
-TDLCompileOption("min_tr_period","Min time scale for tracking variation, hours",[0,1],more=float);
-TDLCompileOption("max_tr_period","Max time scale for tracking variation, hours",[2,4],more=float);
-TDLCompileOption('subtract_perfect_obs','Subtract perfect observation from error observation?',[True,False]),
+# get Azimuth / Elevation telescope sinusoidal random tracking errors
+TDLCompileMenu('Telescope Tracking Errors',
+TDLOption("max_tr_error","Sinusoidal max tracking error, arcsec",[0,1,2,5],more=float),
+TDLOption("min_tr_period","Min time scale for tracking variation, hours",[0,1],more=float),
+TDLOption("max_tr_period","Max time scale for tracking variation, hours",[2,4],more=float),
+TDLOption('randomize_track_error','Randomize track error for each telescope?',[True,False]),
+# get Azimuth / Elevation telescope sawtooth random tracking errors
+TDLOption("saw_max_tr_error","Sawtooth max tracking error, arcsec",[0,1,2,5],more=float),
+TDLOption("saw_min_tr_period","Min time scale for tracking variation, hours",[0,1],more=float),
+TDLOption("saw_max_tr_period","Max time scale for tracking variation, hours",[2,4],more=float),
+TDLOption('saw_randomize_track_error','Randomize Sawtooth track error for each telescope?',[True,False]),
+);
 
+TDLCompileOption('subtract_perfect_obs','Subtract perfect observation from error observation?',[True,False]),
 def _define_forest (ns):
 
   # create an Array object
@@ -117,6 +125,10 @@ def _define_forest (ns):
   # create nodes to compute tracking errors per antenna
   for p in array.stations():
     if max_tr_error > 0.0:
+      if randomize_track_error:
+        ant_max_tr_error = (random.uniform(0, max_tr_error), random.uniform(0, max_tr_error))
+      else:
+        ant_max_tr_error = (max_tr_error,max_tr_error)
       # to add random errors on top of systematic ones
       # convert random periods of daz/del variation from hours to seconds
       daz = random.uniform(min_tr_period*3600,max_tr_period*3600);
@@ -124,11 +136,31 @@ def _define_forest (ns):
       # pick a random starting phase for the variations
       daz_0 = random.uniform(0,2*math.pi); 
       del_0 = random.uniform(0,2*math.pi);
-      ns.daz(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
-      ns.dell(p) << max_tr_error*Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
+      ns.daz(p) << ant_max_tr_error[0] *Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
+      ns.dell(p) << ant_max_tr_error[1] *Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
     else:
       ns.daz(p) << Meq.Constant(0.0)
       ns.dell(p) << Meq.Constant(0.0)
+
+    if saw_max_tr_error > 0.0:
+      if saw_randomize_track_error:
+        saw_ant_max_tr_error = (random.uniform(0, saw_max_tr_error),random.uniform(0, saw_max_tr_error))
+      else:
+        saw_ant_max_tr_error = (saw_max_tr_error, saw_max_tr_error)
+      # to add random errors on top of systematic ones
+      # convert random periods of daz/del variation from hours to seconds
+      saw_daz = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
+      saw_dell = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
+      # pick a random starting phase for the variations
+      saw_daz_0 = random.uniform(-43200, 43200)
+      saw_del_0 = random.uniform(-43200, 43200)
+      ns.saw_az(p) << ( Meq.Time() + saw_daz_0 ) / saw_daz
+      ns.saw_el(p) << ( Meq.Time() + saw_del_0 ) / saw_dell
+      ns.saw_daz(p) << 2.0 * saw_ant_max_tr_error[0] * (ns.saw_az(p) - Meq.Floor(ns.saw_az(p) + 0.5) )
+      ns.saw_dell(p) << 2.0 * saw_ant_max_tr_error[1] * (ns.saw_el(p) - Meq.Floor(ns.saw_el(p) + 0.5) )
+    else:
+      ns.saw_daz(p) << Meq.Constant(0.0)
+      ns.saw_dell(p) << Meq.Constant(0.0)
 
     # get Parallactic Angle for the station
     pa= ns.ParAngle(p) << Meq.ParAngle(observation.phase_centre.radec(), array.xyz(p))
@@ -188,9 +220,9 @@ def _define_forest (ns):
     ns.EZ(p) << Meq.Constant(axis_offset_EZ * EZ)
 
 # here are the full pointing equations ...
-    ns.AzPoint(p) << ns.daz(p) - ns.AZ_EN(p) * ns.CosEl(p) + ns.NPAE(p) *ns.SinEl(p)  + ns.AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.CX(p) + ns.PS(p) * ns.SinPa(p) + ns.PW(p) * ns.CosPa(p)
+    ns.AzPoint(p) << ns.saw_daz(p) + ns.daz(p) - ns.AZ_EN(p) * ns.CosEl(p) + ns.NPAE(p) *ns.SinEl(p)  + ns.AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.CX(p) + ns.PS(p) * ns.SinPa(p) + ns.PW(p) * ns.CosPa(p)
 
-    ns.ElPoint(p) << ns.dell(p) - ns.AS(p) * ns.CosAz(p) - ns.AW(p) * ns.SinAz(p) - ns.EX(p) * ns.SinEl(p)  - (ns.EZ(p) + ns.GRAV(p)) * ns.CosEl(p) - ns.EL_EN(p)  - ns.CY(p) - ns.PS(p) * ns.CosPa(p) + ns.PW(p) * ns.SinPa(p)
+    ns.ElPoint(p) << ns.saw_dell(p) + ns.dell(p) - ns.AS(p) * ns.CosAz(p) - ns.AW(p) * ns.SinAz(p) - ns.EX(p) * ns.SinEl(p)  - (ns.EZ(p) + ns.GRAV(p)) * ns.CosEl(p) - ns.EL_EN(p)  - ns.CY(p) - ns.PS(p) * ns.CosPa(p) + ns.PW(p) * ns.SinPa(p)
 
     # combine azimuth and elevation errors into one node
     # and convert to radians
