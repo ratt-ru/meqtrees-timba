@@ -73,8 +73,8 @@ IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 I = 1; Q = .0; U = .0; V = .0
 
 # input table with beam weights 
-#mep_beam_weights = 'beam_weights.mep'
-mep_beam_weights = 'beam_weights_0_0_conj.mep'
+mep_beam_weights = 'beam_weights.mep'
+#mep_beam_weights = 'beam_weights_0_0_conj.mep'
 
 # first load weights data from aips++ 'mep ' table
 # we read the values directly from the
@@ -100,14 +100,17 @@ if use_gauss:
       status = False
     if not add_weight:
       if name.find('I_parm_max') > -1:
-        I_parm_max = t.getcell('VALUES',row_number)[0][0]
         add_weight = True
     else:
       try: 
-        weight_re.append(t.getcell('VALUES',row_number)[0][0])
-        row_number = row_number + 1
-        name = t.getcell('NAME', row_number)
-        weight_im.append(t.getcell('VALUES',row_number)[0][0])
+        if name.find('I_parm_max_g') > -1:
+          I_parm_max = t.getcell('VALUES',row_number)[0][0]
+          status = False
+        else:
+          weight_re.append(t.getcell('VALUES',row_number)[0][0])
+          row_number = row_number + 1
+          name = t.getcell('NAME', row_number)
+          weight_im.append(t.getcell('VALUES',row_number)[0][0])
       except:
         status = False
 else:
