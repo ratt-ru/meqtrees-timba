@@ -1,11 +1,14 @@
 from pylab import *
-from pyrap_tables import *
+#from pyrap_tables import *
+from pycasatable import *
 from numarray import *
 
 # This script uses matplotlib (pylab) to plot beam weights that have been
 # stored in a 'mep' table by the script MG_AGW_store_beam_weights.py. 
 # We use the casacore pyrap python wrappers to get data from the aips++ 
 # formatted mep table.
+# We normalize relative to the mean value of the max absolute value
+# of each individual sub_plot
 
 # The following function to plot an arrow with amplitude and
 # direction was adapted from a plotting script of Walter Brisken
@@ -55,13 +58,18 @@ def main( argv ):
   print 'processing mep file ', argv[1]
 # first load data from table
   t = table(argv[1])
-  if len(argv) >= 3:
+  L = ""
+  M = ""
+  if len(argv) > 2:
+    L = str(argv[2])
+    M = str(argv[3])
+
+  if len(argv) > 4:
     plot_conj = True
   else:
     plot_conj = False
 
 # read in and store weights in a list
-  k =  -1
   row_number = -1
   weight_re = []
   weight_im = []
@@ -72,7 +80,6 @@ def main( argv ):
       row_number = row_number + 1
       try:
         name = t.getcell('NAME', row_number)
-#       print ' weight name ', name
       except:
         status = False
       if add_weight:
@@ -80,12 +87,10 @@ def main( argv ):
           add_weight = False
           status = False
         else:
-          k = k + 1
           try: 
             weight_re.append(t.getcell('VALUES',row_number)[0][0])
             row_number = row_number + 1
             name = t.getcell('NAME', row_number)
-#           print ' weight name ', name
             weight_im.append(t.getcell('VALUES',row_number)[0][0])
           except:
             status = False
@@ -95,19 +100,20 @@ def main( argv ):
       row_number = row_number + 1
       try:
         name = t.getcell('NAME', row_number)
-#       print ' weight name ', name
       except:
         status = False
       if not add_weight:
         if name.find('I_parm_max') > -1:
           add_weight = True
       else:
-        k = k + 1
         try: 
-          weight_re.append(t.getcell('VALUES',row_number)[0][0])
-          row_number = row_number + 1
-          name = t.getcell('NAME', row_number)
-          weight_im.append(t.getcell('VALUES',row_number)[0][0])
+          if name.find('I_parm_max_g') > -1:
+            status = False
+          else:
+            weight_re.append(t.getcell('VALUES',row_number)[0][0])
+            row_number = row_number + 1
+            name = t.getcell('NAME', row_number)
+            weight_im.append(t.getcell('VALUES',row_number)[0][0])
         except:
           status = False
   t.close()
@@ -118,6 +124,11 @@ def main( argv ):
     abs_value = math.sqrt(weight_re[k] * weight_re[k] + weight_im[k] * weight_im[k])
     if abs_value > max_abs:
       max_abs = abs_value
+  print 'max_abs is ', max_abs
+  if plot_conj:
+    max_abs = 106.28     # mean of absolute values in 8 conj weights files
+  else:
+    max_abs = 145.19     # mean of absolute values in 8 gauss weights files
 
 # do first group of weights
   counter = 0
@@ -154,12 +165,18 @@ def main( argv ):
   ylabel('Y/J location of feed')
   grid(True)
   if plot_conj:
-    title('Amplitude and Phase of Phase_Conjugate Beam Weights')
+    title_string = 'A/P of Beam Weights (Phase Conjugate) '
+  else:
+    title_string = 'A/P of Beam Weights (Gaussian Fit) '
+  if len(L) > 0:
+   title_string = title_string + 'L = ' + L + ' M = ' + M
+  title(title_string)
+  if plot_conj:
     savefig(argv[1] + '_plot_conj.png')
   else:
-    title('Amplitude and Phase of Beam Weights')
     savefig(argv[1] + '_plot.png')
-  show()
+#   savefig(argv[1] + '_plot.svg')
+# show()
 
 if __name__ == "__main__":
   """ We need at least one argument: the name of the mep table to plot """
