@@ -6,6 +6,14 @@ if (! $?TIMBA_PATH) then
   setenv TIMBA_PATH $HOME/Timba
 endif
 
+if (! $?PYTHONPATH) then
+  setenv PYTHONPATH ""
+endif
+
+if (! $?LD_LIBRARY_PATH) then
+  setenv LD_LIBRARY_PATH ""
+endif
+
 if (! -d $TIMBA_PATH/install) then
   echo "Warning: cannot find Timba install under $TIMBA_PATH"
   echo "If Timba is installed elsewhere, please set your TIMBA_PATH variable appropriately."
