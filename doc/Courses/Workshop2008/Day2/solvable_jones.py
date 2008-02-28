@@ -45,10 +45,10 @@ class DiagAmplPhase (object):
     # make parmgroups for phases and gains
     self.pg_phase = ParmGroup.ParmGroup(label+"_phase",
                     nodes.search(tags="solvable phase"),
-                    table_name="%s_phase.fmep"%label,bookmark=4);
+                    table_name="%s_phase.mep"%label,bookmark=4);
     self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",
                     nodes.search(tags="solvable ampl"),
-                    table_name="%s_ampl.fmep"%label,bookmark=4);
+                    table_name="%s_ampl.mep"%label,bookmark=4);
 
     # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_phase","Calibrate %s phases"%label,self.pg_phase);
@@ -94,10 +94,10 @@ class FullRealImag (object):
     # make parmgroups for diagonal and off-diagonal terms
     self.pg_diag  = ParmGroup.ParmGroup(label+"_diag",
             [ jones(p,zz) for p in stations for zz in "rxx","ixx","ryy","iyy" ],
-            table_name="%s_diag.fmep"%label,bookmark=False);
+            table_name="%s_diag.mep"%label,bookmark=False);
     self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",
             [ jones(p,zz) for p in stations for zz in "rxy","ixy","ryx","iyx" ],
-            table_name="%s_offdiag.fmep"%label,bookmark=False);
+            table_name="%s_offdiag.mep"%label,bookmark=False);
 
     # make bookmarks
     Bookmarks.make_node_folder("%s diagonal terms"%label,
