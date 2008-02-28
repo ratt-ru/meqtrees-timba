@@ -473,6 +473,10 @@ class _TDLFileOptionItem (_TDLOptionItem):
 
   def set (self,value,save=True,callback=True):
     value = str(value);
+    # strip off CWD from path
+    cwd = os.getcwd() + "/";
+    if value.startswith(cwd):
+      value = value[len(cwd):];
     if save:
       set_config(self.config_name,value);
     self._set(value,callback=callback);
