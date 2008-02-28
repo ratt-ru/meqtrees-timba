@@ -292,8 +292,9 @@ class PointsXY (object):
         """Helper function to format the summary of the given array"""
         s = str(len(arr))+'/'+str(self.len())
         s += ' '+str(type(arr))
-        s += ' [0]: '+str(type(arr[0]))
-        s += ' = '+str(arr[0])
+        if len(arr)>0:
+            s += ' elem[0] ('+str(type(arr[0]))+'):'
+            s += ' = '+str(arr[0])
         return s
     
 
@@ -614,7 +615,7 @@ class PointsXY (object):
             if not self._annot[i]==None:              # ignore if None
                 x = self._xx[i]
                 y = self._yy[i]
-                s = '  '+str(self._annot[i])
+                s = '.  '+str(self._annot[i])
                 if trace:
                     print '-',i,':',s,'  x,y =',x,y
                 pylab.text(x,y, s, **kwargs)
@@ -632,14 +633,14 @@ class PointsXY (object):
                 if self._dyy:
                     dy = self._dyy
                     if isinstance(dy,list): dy = dy[i]
-                    dy2 = dy/2
+                    dy2 = dy/2.0
                     pylab.plot([x,x], [y-dy2,y+dy2],
                                # label='_nolegend_',
                                color=color, linestyle='-')
                 if self._dxx:
                     dx = self._dxx
                     if isinstance(dx,list): dx = dx[i]
-                    dx2 = dx/2
+                    dx2 = dx/2.0
                     pylab.plot([x-dx2,x+dx2], [y,y],
                                # label='_nolegend_',
                                color=color, linestyle='-')

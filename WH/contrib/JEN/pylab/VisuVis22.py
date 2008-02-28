@@ -128,7 +128,7 @@ class VisuVis22 (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def read_children (self, grs, children, corrs=['XX','XY','YX','YY'],
-                     error_bars=True, trace=False):
+                     error_bars=True, annotate=True, trace=False):
     """Accumulate the point(s) representing the child result(s)"""
 
     # Fill the input Graphics object with a 'standard' Graphics object
@@ -142,11 +142,17 @@ class VisuVis22 (pynode.PyNode):
     # The plot-labels for the various children should have been
     # attached to the pynode state-record when the pynode was defined
     # (see _define_forest() below):
-    annot = self.plot_labels
-    if not isinstance(annot,(list,tuple)):
-      annot = range(len(children))
-    elif not len(annot)==len(children):
-      annot = range(len(children))
+
+    if annotate==True:
+      annotate = corrs
+    if not isinstance(annotate,(list,tuple)):
+      annotate = []
+    if len(annotate)>0:
+      annot = self.plot_labels
+      if not isinstance(annot,(list,tuple)):
+        annot = range(len(children))
+      elif not len(annot)==len(children):
+        annot = range(len(children))
 
     # Read the child results and fill the Graphics objects:
     import ChildResult
@@ -157,13 +163,17 @@ class VisuVis22 (pynode.PyNode):
         print '--',i,':',chires.oneliner()
       dy = None
       for igrs,icorr in enumerate(iicorr):
+        corr = corrs[icorr]
         Vells = chires[icorr]
         if trace:
-          print '---',i,igrs,icorr,':',Vells.oneliner()
+          print '---',i,igrs,icorr,corr,':',Vells.oneliner()
         mean = Vells.mean()                  # complex number
         if error_bars:
           dy = Vells.errorbar()              # real
-        grs[igrs][0].append(y=mean, annot=annot[i], dy=dy)
+        label = None
+        if corr in annotate:
+          label = annot[i]
+        grs[igrs][0].append(y=mean, annot=label, dy=dy)
         
     # Finished: Return the modified Graphics object
     return grs
@@ -185,7 +195,8 @@ class AllCorrs (VisuVis22):
   def get_result (self, request, *children):
     """Re-implementation of the VisuVis22 placeholder function"""
     grs = self.on_entry()
-    grs = self.read_children(grs, children, corrs=['XX','XY','YX','YY'])
+    grs = self.read_children(grs, children, corrs=['XX','XY','YX','YY'],
+                             annotate=['XX','YY'])
     return self.on_exit(grs)
 
 
