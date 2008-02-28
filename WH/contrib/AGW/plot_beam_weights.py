@@ -69,7 +69,8 @@ def main( argv ):
   else:
     plot_conj = False
 
-# read in and store weights in a list
+# Read in and store weights in a list
+# Note that I_parm_max and I_parm_max_g are merely used as delimiters
   row_number = -1
   weight_re = []
   weight_im = []
@@ -103,17 +104,14 @@ def main( argv ):
       except:
         status = False
       if not add_weight:
-        if name.find('I_parm_max') > -1:
+        if name.find('I_parm_max_g') > -1:
           add_weight = True
       else:
-        try: 
-          if name.find('I_parm_max_g') > -1:
-            status = False
-          else:
-            weight_re.append(t.getcell('VALUES',row_number)[0][0])
-            row_number = row_number + 1
-            name = t.getcell('NAME', row_number)
-            weight_im.append(t.getcell('VALUES',row_number)[0][0])
+        try:
+          weight_re.append(t.getcell('VALUES',row_number)[0][0])
+          row_number = row_number + 1
+          name = t.getcell('NAME', row_number)
+          weight_im.append(t.getcell('VALUES',row_number)[0][0])
         except:
           status = False
   t.close()
