@@ -60,31 +60,39 @@ TDLCompileMenu('L and M position of phased-up beam',
 );
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','gauss_array_pats_offset','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_noise','gauss_array_pats_defocus','gauss_array_pats_offset','veidt_fpa_180', 'veidt_fpa_30'],more=str)
 
 # Attempt to 'form' a Gaussian beam?
 TDLCompileOption('do_fit','make gaussian fit',[True, False])
 
 
-#setup a bookmark for display of results with a 'Collections Plotter'
-Settings.forest_state = record(bookmarks=[
-  record(name='Results',page=[
-    record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0)),
-    record(udi="/node/Q_real",viewer="Result Plotter",pos=(0,1)),
-    record(udi="/node/U_real",viewer="Result Plotter",pos=(1,0)),
-    record(udi="/node/solver",viewer="Result Plotter",pos=(1,1)),
-    record(udi="/node/gaussian",viewer="Result Plotter",pos=(2,0)),
-    record(udi="/node/condeq",viewer="Result Plotter",pos=(2,1))])]);
+#setup a bookmark for display of results with some 'Result' Plotters
+if do_fit:
+  Settings.forest_state = record(bookmarks=[
+    record(name='Results',page=[
+      record(udi="/node/I_real_g",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/Q_real",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/U_real",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/V_real",viewer="Result Plotter",pos=(1,1))]),
+    record(name='Fits',page=[
+      record(udi="/node/solver",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/gaussian",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/condeq",viewer="Result Plotter",pos=(0,1))])]);
+else:
+  Settings.forest_state = record(bookmarks=[
+    record(name='Results',page=[
+      record(udi="/node/I_real",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/Q_real",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/U_real",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/V_real",viewer="Result Plotter",pos=(1,1))])])
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
-mep_beam_weights = 'beam_weights.mep'
-# first, make sure that any previous version of the mep table is
-# obliterated so nothing strange happens in succeeding steps
-try:
-  os.system("rm -fr "+ mep_beam_weights);
-except:   pass
+if do_fit:
+  mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '.mep'
+else:
+  mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '_conj.mep'
 
 def create_polc(c00=0.0,degree_f=0,degree_t=0):
   """helper function to create a t/f polc with the given c00 coefficient,
@@ -101,6 +109,14 @@ def tpolc (tdeg,c00=0.0):
 
 ########################################################
 def _define_forest(ns):  
+# first, make sure that any previous version of the mep table is
+
+# obliterate any previous table so nothing strange happens in succeeding steps
+  try:
+    command = "rm -rf "+ mep_beam_weights
+    print 'issuing OS command ', command
+    os.system(command)
+  except:   pass
 
   # constant for half-intensity determination
   ns.ln_16 << Meq.Constant(-2.7725887)
@@ -115,14 +131,15 @@ def _define_forest(ns):
   ns.l_beam_c << ns.fwhm * l_beam
   ns.m_beam_c << ns.fwhm * m_beam
 
+  ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
+
+  # setup for fitting the phased up beam to a gaussian
   laxis = ns.laxis << Meq.Grid(axis=2);
   maxis = ns.maxis << Meq.Grid(axis=3);
 
   # gaussian to which we want to optimize beams
   ns.lm_x_sq << Meq.Sqr(laxis - ns.l_beam_c) + Meq.Sqr(maxis - ns.m_beam_c)
   ns.gaussian << Meq.Exp((ns.lm_x_sq * ns.ln_16)/Meq.Sqr(ns.width));
-
-  ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
   num_beams = read_in_FPA_beams(ns,fpa_directory)
   BEAMS = range(0,num_beams)
@@ -228,36 +245,58 @@ def _define_forest(ns):
 
   # extract I,Q,U,V etc
   ns.I_select << Meq.Real(ns.I)
-  ns.I_max << Meq.Max(ns.I_select)
+  ns.resampler_I_select << Meq.Resampler(ns.I_select,dep_mask = 0xff)
+  ns.I_max << Meq.Compounder(children=[ns.lm_beam,ns.resampler_I_select],common_axes=[hiid('l'),hiid('m')])
+# ns.I_max << Meq.Max(ns.I_select)
 
   # make sure that total intensity response is normalized to unity
   ns.I_parm_max << tpolc(0,1.0)
-  ns.I_real  << ns.I_select / ns.I_parm_max
-
-  ns.Q_real << Meq.Real(ns.Q) / ns.I_parm_max
-  ns.U_real << Meq.Real(ns.U) / ns.I_parm_max
-  ns.V_real << Meq.Real(ns.V) / ns.I_parm_max
-
-  ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real
-  ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real
-
 
   # solve for the normalization factor
-  beam_solvables.append(ns.I_parm_max)
   ns.condeq_I_max << Meq.Condeq(children=(ns.I_parm_max, ns.I_max))
   ns.solver_I_max <<Meq.Solver(ns.condeq_I_max,num_iter=50,epsilon=1e-4,solvable=ns.I_parm_max,save_funklets=True,last_update=True)
 
-  # setup for fitting the phased up beam to a gaussian
-  ns.resampler_I << Meq.Resampler(ns.I_real)
-  ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
-  
-  # I tell the solver to go for 20 iterations. It usually doesn't converge
-  # but the results of the fits seem fairly reasonable.
-  ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True,debug_level=10)
-
   if do_fit:
-    ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver_I_max, ns.solver, ns.Ins_pol)
+    # make sure that total intensity response is normalized to unity
+    ns.I_select_g << Meq.Real(ns.I)
+    ns.resampler_I_select_g << Meq.Resampler(ns.I_select_g,dep_mask = 0xff)
+    ns.I_max_g << Meq.Compounder(children=[ns.lm_beam,ns.resampler_I_select_g],common_axes=[hiid('l'),hiid('m')])
+#   ns.I_max_g << Meq.Max(ns.I_select_g)
+    ns.I_parm_max_g << tpolc(0,1.0)
+    ns.I_real_g  << ns.I_select_g / ns.I_parm_max_g
+    ns.condeq_I_max_g << Meq.Condeq(children=(ns.I_parm_max_g, ns.I_max_g))
+    ns.solver_I_max_g <<Meq.Solver(ns.condeq_I_max_g,num_iter=50,epsilon=1e-4,solvable=ns.I_parm_max_g,save_funklets=True,last_update=True)
+
+    # now solve for the normalization factor along with the gaussian parameters
+    beam_solvables.append(ns.I_parm_max_g)
+
+    ns.resampler_I << Meq.Resampler(ns.I_real_g)
+    ns.condeq<<Meq.Condeq(children=(ns.resampler_I, ns.gaussian))
+  
+    # I tell the solver to go for 20 iterations. It usually doesn't converge
+    # but the results of the fits seem fairly reasonable.
+    ns.solver<<Meq.Solver(ns.condeq,num_iter=20,mt_polling=False,epsilon=1e-4,solvable=beam_solvables,save_funklets=True,last_update=True,debug_level=10)
+
+    # solve for the (final) gaussian normalization factor
+    ns.I_real_g << ns.I_select_g / ns.I_parm_max_g
+
+    ns.Q_real << Meq.Real(ns.Q) / ns.I_parm_max_g
+    ns.U_real << Meq.Real(ns.U) / ns.I_parm_max_g
+    ns.V_real << Meq.Real(ns.V) / ns.I_parm_max_g
+
+    ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
+    ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real_g
+
+    ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver_I_max, ns.solver_I_max_g, ns.solver, ns.Ins_pol)
   else:
+    ns.I_real << ns.I_select / ns.I_parm_max
+    ns.Q_real << Meq.Real(ns.Q) / ns.I_parm_max
+    ns.U_real << Meq.Real(ns.U) / ns.I_parm_max
+    ns.V_real << Meq.Real(ns.V) / ns.I_parm_max
+
+    ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
+    ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real
+
     ns.req_seq<<Meq.ReqSeq(ns.parms_req_mux, ns.solver_I_max, ns.Ins_pol)
 
   # Note: we are observing with linearly-polarized dipoles. If we
@@ -303,7 +342,7 @@ if __name__ == '__main__':
    mod._test_forest(mqs,None,wait=True);
    print 'finished'
  else:
-  Timba.TDL._dbg.set_verbose(5);
+# Timba.TDL._dbg.set_verbose(5);
   ns=NodeScope()
   _define_forest(ns)
   ns.Resolve()
