@@ -84,8 +84,6 @@ class IfrArray (object):
     self._ms_uvw = ms_uvw;
     self._mirror_uvw = mirror_uvw;
     self._jones = [];
-    print "station index:",self._station_index;
-    print "ifrs:",self._ifrs;
     
   def WSRT (ns,stations=14,uvw_table=None,mirror_uvw=False):
     """Creates and returns an IfrArray for WSRT, i.e., with proper labels.

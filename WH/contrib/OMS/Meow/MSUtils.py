@@ -43,6 +43,20 @@ except:
 # queue size parameter for MS i/o record
 ms_queue_size = 500;
 
+def longest_prefix (*strings):
+  """helper function, returns longest common prefix of a set of strings""";
+  if not strings:
+    return '';
+  if len(strings) == 1:
+    return strings[0];
+  # sort by length
+  strings = [ pair[1] for pair in sorted([(len(s),s) for s in strings]) ];
+  for i,ch in enumerate(strings[0]):
+    for s1 in strings[1:]:
+      if s1[i] != ch:
+        return s1[:i];
+  return strings[0];
+
 class MSContentSelector (object):
   def __init__ (self,ddid=[0],field=None,channels=True,namespace='ms_sel'):
     """Creates options for selecting a subset of an MS.
@@ -382,15 +396,14 @@ class MSSelector (object):
   def get_antenna_set (self,default=None):
     """Returns the set of selected antenna indices from the current MS, or None
     if no selection info is available."""
-    if self.ms_antenna_sel:
-      subset = self._parse_antenna_subset(self.ms_antenna_sel);
-      print "subset is",subset;
+    subset = self.ms_antenna_sel and self._parse_antenna_subset(self.ms_antenna_sel);
+    if subset:
       if self.ms_antenna_names:
         return [(index,self.ms_antenna_names[index]) for index in subset];
       else:
         return subset;
     elif self.ms_antenna_names:
-      return enumerate(self.ms_antenna_names);
+      return list(enumerate(self.ms_antenna_names));
     else:
       return default;
 
@@ -419,8 +432,10 @@ class MSSelector (object):
       outcols = [ col for col in self.ms_data_columns if col not in self._forbid_output ];
       self.output_col_option.set_option_list(outcols);
       # antennas
-      self.ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA'),
-                                                lockoptions='autonoread').getcol('NAME');
+      antnames = pycasatable.table(ms.getkeyword('ANTENNA'),
+                                   lockoptions='autonoread').getcol('NAME');
+      prefix = len(longest_prefix(*antnames));
+      self.ms_antenna_names = [ name[prefix:] for name in antnames ];
       if self.antsel_option:
         self.antsel_option.set_option_list([None,"0:%d"%(len(self.ms_antenna_names)-1)]);
         self.antsel_option.show();
