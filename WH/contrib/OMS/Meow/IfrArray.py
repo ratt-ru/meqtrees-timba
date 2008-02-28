@@ -48,9 +48,11 @@ class IfrArray (object):
                ms_uvw=None,mirror_uvw=None):
     """Creates an IfrArray object, representing an interferometer array.
     'station_list' is a list of station IDs, not necessarily numeric.
+        It can also be a list of (index,ID) tuples, when a subset of antennas
+        is specified.
     'station_index' is an optional list of numeric station indices. If not given,
-      [0,...,N-1] will be used. If the array represents a subset of an MS,
-      then correct indices indicating the subset should be given.
+      [0,...,N-1] will be used. This is an alternative to passing in tuples
+      to station_list.
     'uvw_table' is a path to a MEP table containing station UVWs. 
     'ms_uvw' if True, causes UVWs to be read from the MS. If False, causes UVWs to
       be computed with a Meq.UVW node. If None, uses the global uvw_source TDLOption.
@@ -69,9 +71,12 @@ class IfrArray (object):
         raise ValueError,"'station_list' and 'station_index' must have the same length";
       self._station_index = zip(station_index,station_list);
     else:
-      self._station_index = list(enumerate(station_list));
+      if isinstance(station_list[0],(list,tuple)):
+        self._station_index = list(station_list);
+      else:
+        self._station_index = list(enumerate(station_list));
     # now make some other lists
-    self._stations = station_list;
+    self._stations = [ px[1] for px in self._station_index ];
     self._ifr_index = [ (px,qx) for px in self._station_index 
                                 for qx in self._station_index if px[0]<qx[0] ];
     self._ifrs = [ (px[1],qx[1]) for px,qx in self._ifr_index ];
@@ -79,6 +84,8 @@ class IfrArray (object):
     self._ms_uvw = ms_uvw;
     self._mirror_uvw = mirror_uvw;
     self._jones = [];
+    print "station index:",self._station_index;
+    print "ifrs:",self._ifrs;
     
   def WSRT (ns,stations=14,uvw_table=None,mirror_uvw=False):
     """Creates and returns an IfrArray for WSRT, i.e., with proper labels.

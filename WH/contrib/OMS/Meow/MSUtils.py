@@ -371,7 +371,11 @@ class MSSelector (object):
     """Returns the list of antenna names from the current MS. If pycasatable
     is not available, this will be empty""";
     if self.ms_antenna_sel:
-      return self._parse_antenna_subset(self.ms_antenna_sel);
+      subset = self._parse_antenna_subset(self.ms_antenna_sel);
+      if self.ms_antenna_names:
+        return [self.ms_antenna_names[index] for index in subset];
+      else:
+        return subset;
     else:
       return self.ms_antenna_names;
 
@@ -379,9 +383,14 @@ class MSSelector (object):
     """Returns the set of selected antenna indices from the current MS, or None
     if no selection info is available."""
     if self.ms_antenna_sel:
-      return self._parse_antenna_subset(self.ms_antenna_sel);
+      subset = self._parse_antenna_subset(self.ms_antenna_sel);
+      print "subset is",subset;
+      if self.ms_antenna_names:
+        return [(index,self.ms_antenna_names[index]) for index in subset];
+      else:
+        return subset;
     elif self.ms_antenna_names:
-      return range(1,len(self.ms_antenna_names)+1);
+      return enumerate(self.ms_antenna_names);
     else:
       return default;
 
@@ -413,7 +422,7 @@ class MSSelector (object):
       self.ms_antenna_names = pycasatable.table(ms.getkeyword('ANTENNA'),
                                                 lockoptions='autonoread').getcol('NAME');
       if self.antsel_option:
-        self.antsel_option.set_option_list([None,"1:%d"%len(self.ms_antenna_names)]);
+        self.antsel_option.set_option_list([None,"0:%d"%(len(self.ms_antenna_names)-1)]);
         self.antsel_option.show();
       # notify content selectors
       for sel in self._content_selectors:
@@ -444,8 +453,8 @@ class MSSelector (object):
           index = int(spec);
           # if antennas not known, accept any index
           if not self.ms_antenna_names:
-            nant = max(nant,index);
-          if index < 1 or index > nant:
+            nant = max(nant,index+1);
+          if index < 0 or index >= nant:
             raise ValueError,"illegal antenna specifier '%s'"%spec;
           subset.append(index);
           continue;
@@ -453,15 +462,15 @@ class MSSelector (object):
         match = re.match("^(\d+)?:(\d+)?$",spec);
         if not match:
           raise ValueError,"illegal antenna specifier '%s'"%spec;
-        index1 = 1;
-        index2 = nant;
+        index1 = 0;
+        index2 = nant-1;
         if match.group(1):
           index1 = int(match.group(1));
         if match.group(2):
           index2 = int(match.group(2));
         if not self.ms_antenna_names:
-          nant = max(nant,index1,index2);
-        if index1<1 or index2<1 or index1>nant or index2>nant or index1>index2:
+          nant = max(nant,index1+1,index2+1);
+        if index1<0 or index2<0 or index1>=nant or index2>=nant or index1>index2:
           raise ValueError,"illegal antenna specifier '%s'"%spec;
         # add to subset
         subset += range(index1,index2+1);
