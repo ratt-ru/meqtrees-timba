@@ -60,8 +60,15 @@ Settings.forest_state = record(bookmarks=[
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
+# get position of phase up point in L and M
+TDLCompileMenu('L and M position of phased-up beam',
+  TDLOption('l_beam','L position of beam (in units of FWHM)',[0,1,2,3],more=float),
+  TDLOption('m_beam','M position of beam (in units of FWHM)',[0,1,2,3],more=float),
+);
+
 # Attempt to 'form' a Gaussian beam?
 TDLCompileOption('use_gauss','Use Gaussian weights from mep table?',[False,True])
+
 
 # define antenna list
 ANTENNAS = range(1,31);
@@ -73,8 +80,7 @@ IFRS   = [ (p,q) for p in ANTENNAS for q in ANTENNAS if p<q ];
 I = 1; Q = .0; U = .0; V = .0
 
 # input table with beam weights 
-mep_beam_weights = 'beam_weights.mep'
-#mep_beam_weights = 'beam_weights_0_0_conj.mep'
+mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '.mep'
 
 # first load weights data from aips++ 'mep ' table
 # we read the values directly from the
@@ -83,8 +89,13 @@ mep_beam_weights = 'beam_weights.mep'
 # gaussian fitting is done.
 # The weights are stored in a list for further processing
 
-t = table(mep_beam_weights)
-print 'loading weights'
+try:
+  t = table(mep_beam_weights)
+except:
+  mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '_conj.mep'
+  t = table(mep_beam_weights)
+
+print 'loading weights from table ', mep_beam_weights
 row_number = -1
 weight_re = []
 weight_im = []
@@ -105,7 +116,6 @@ if use_gauss:
       try: 
         if name.find('I_parm_max_g') > -1:
           I_parm_max = t.getcell('VALUES',row_number)[0][0]
-          status = False
         else:
           weight_re.append(t.getcell('VALUES',row_number)[0][0])
           row_number = row_number + 1
@@ -135,6 +145,7 @@ else:
         except:
           status = False
 t.close()
+print ' normalizing factor: ', I_parm_max
 
 # random number seed value - used so we will generate the same
 # sequence of random numbers for each run of the script
