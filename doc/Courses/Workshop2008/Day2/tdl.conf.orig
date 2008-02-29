@@ -1,32 +1,3 @@
-[calico-view-ms]
-img_sel.imaging_chanmode = 1 (average all)
-ms_sel.msname = 3C286-10705290.MS/
-ms_sel.ms_channel_end = 63
-ms_sel.ms_antenna_sel = 1:14
-img_sel.imaging_weight = uniform
-do_invert_phase = 0
-img_sel.imaging_column = DATA
-ms_sel.ddid_index = 5
-ms_sel.tile_size = 100
-img_sel.imaging_padding = 1.2
-img_sel.imaging_stokes = IQUV
-ms_sel.output_column = CORRECTED_DATA
-
-[calico-flagger]
-ms_sel.ms_apply_hanning = 0
-ms_sel.input_column = CORRECTED_DATA
-ms_sel.msname = 3C343.MS/
-clear_ms_flags = 0
-ms_sel.select_channels = 1
-flag_abs = 0.2
-ms_sel.ms_write_flags = 1
-ms_sel.ms_channel_step = 2
-flag_xx_yy = 0
-ms_sel.ms_channel_end = 40
-ms_sel.ms_channel_start = 15
-flag_rms = 10.0
-ms_sel.ms_antenna_sel = 1:14
-
 [calico-286]
 cal_g_phase.b_phase.table_name = 3C286-10705290.MS/B_phase.mep
 cal_g_phase.g_phase.table_name = 3C286-10705290.MS/G_phase.mep
@@ -132,13 +103,27 @@ cal_b_diag.b_offdiag.freq_deg = 1
 cal_b_diag.b_diag.table_name = 3C286-10705290.MS/B_diag.mep
 cal_source.g_offdiag.table_name = 3C286-10705290.MS/G_offdiag.mep
 
+[calico-view-ms]
+img_sel.imaging_chanmode = 1 (average all)
+ms_sel.ms_antenna_sel = 1:14
+ms_sel.ms_channel_end = 63
+ms_sel.msname = 3C286-10705290.MS/
+img_sel.imaging_weight = uniform
+do_invert_phase = 0
+img_sel.imaging_column = DATA
+ms_sel.ddid_index = 5
+ms_sel.tile_size = 100
+img_sel.imaging_padding = 1.2
+img_sel.imaging_stokes = IQUV
+ms_sel.output_column = CORRECTED_DATA
+
 [calico-343]
 meowlsm = 0
 me.g_enable = 1
 cal_phase = 0
 img_sel.imaging_padding = 1.2
 cal_g_diag.b_offdiag.table_name = 3C343.MS/B_offdiag.mep
-ms_sel.ms_antenna_sel = 1:14
+ms_sel.ms_antenna_sel = 0:13
 me.e_enable = 1
 cal_b_diag.e_diag.solvable = 0
 cal_g_diag.source.table_name = 3C343.MS/sources.mep
@@ -258,4 +243,19 @@ cal_g_diag.g_diag.solvable = 1
 cal_b_diag.b_diag.table_name = 3C343.MS/B_diag.mep
 cal_sources.g_offdiag.table_name = 3C343.MS/G_offdiag.mep
 cal_g_diag.e_diag.subtile_freq = 1
+
+[calico-flagger]
+ms_sel.ms_apply_hanning = 0
+ms_sel.input_column = CORRECTED_DATA
+ms_sel.msname = 3C343.MS/
+clear_ms_flags = 0
+ms_sel.select_channels = 1
+flag_abs = 0.2
+ms_sel.ms_write_flags = 1
+ms_sel.ms_channel_step = 2
+flag_xx_yy = 0
+ms_sel.ms_channel_end = 40
+ms_sel.ms_channel_start = 15
+flag_rms = 10.0
+ms_sel.ms_antenna_sel = 1:14
 
