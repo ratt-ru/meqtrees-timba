@@ -98,8 +98,8 @@ class PointsXY (object):
         self._dyy = []
         self._dxx = []
         self._annot = []
-        self._input = dict(annot=annot, dx=dxx, dy=dyy)          # used in .append()
-        self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy)     # if any specified 
+        self._input = dict(annot=annot, dx=dxx, dy=dyy)                      # used in .append()
+        self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy, trace=False)     # if any specified 
 
         # Finished:
         return None
@@ -127,6 +127,7 @@ class PointsXY (object):
         """Add a point (x,y) to the internal group"""
 
         if trace:
+            print '\n** .append():'
             print 'y =',y
             print 'x =',x
             print 'annot =',annot
@@ -143,9 +144,14 @@ class PointsXY (object):
         if isinstance(dy, type(pylab.array([]))):
             dy = dy.tolist()
 
-        if isinstance(y, list):
+        if isinstance(y, (list,tuple)):
             # Recursive: append a list of points.
             # First make sure that all inputs are lists:
+            if isinstance(y,tuple): y = list(y)
+            if isinstance(x,tuple): x = list(x)
+            if isinstance(dx,tuple): dx = list(dx)
+            if isinstance(dy,tuple): dy = list(dy)
+            if isinstance(annot,tuple): annot = list(annot)
             nyy = len(self._yy)
             ny = len(y)
             if ny==0:

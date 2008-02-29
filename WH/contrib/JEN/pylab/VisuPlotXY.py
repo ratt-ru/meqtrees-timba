@@ -81,6 +81,8 @@ class VisuPlotXY (pynode.PyNode):
     mystate('child_indices')
     mystate('plotinfo')
     self.plotinfo.setdefault('labels',None) 
+    self.plotinfo.setdefault('color','red') 
+    self.plotinfo.setdefault('style','--') 
     return None
 
   #-------------------------------------------------------------------
@@ -93,15 +95,15 @@ class VisuPlotXY (pynode.PyNode):
     import matplotlib
     matplotlib.use('SVG')
 
-    # Create a Graphics object:
+    # Create an empty Graphics object:
     import Graphics
-    grs = Graphics.Scatter(None, name=self.class_name,
-                           # plot_type='polar',     # does not work in svg...!
-                           plot_grid=True,
-                           title=self.plotinfo.title,
-                           xlabel=self.plotinfo.xlabel,
-                           ylabel=self.plotinfo.ylabel)
-    grs.legend(self.name, color='red')
+    grs = Graphics.Graphics(name=self.class_name,
+                            # plot_type='polar',     # does not work in svg...!
+                            plot_grid=True,
+                            title=self.plotinfo.title,
+                            xlabel=self.plotinfo.xlabel,
+                            ylabel=self.plotinfo.ylabel)
+
     if trace:
       grs.display('empty')
       grs[0].display('filled')
@@ -132,25 +134,31 @@ class VisuPlotXY (pynode.PyNode):
 
   def get_result (self, request, *children):
     """Placeholder, to be re-implemented in derived classes"""
+    import Graphics
     grs = self.on_entry()
     xx = self.read_results(children, self.plotinfo.iix)
     yy = self.read_results(children, self.plotinfo.iiy, error_bars=True)
     labels = self.read_labels(self.plotinfo.iiy)
-    for i,y in enumerate(yy):
-      grs[0].append(y=yy[i], x=xx[i], annot=labels[i], dy=self._dvv[i])
-    return self.on_exit(grs)
-
+    grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
+                            dyy=self._dvv,
+                            style='o', markersize=10,
+                            color=self.plotinfo.color)
+    grs.add(grs1)
+    grs.legend(self.name, color=self.plotinfo.color)
+    return self.on_exit(grs, trace=True)
 
   #-------------------------------------------------------------------
 
-
-  def read_labels (self, ii=None, index=None, trace=True):
+  def read_labels (self, ii=None, trace=True):
     """Return a vector with a subset (ii) of labels (strings)
     selected from self.plotinfo.labels.
     """
 
     if trace:
-      print '\n** .read_labels(): index =',index,ii
+      print '\n** .read_labels(',ii,'):'
+
+    n = len(self.child_indices)               # nr of children
+    if ii==None: ii = range(n)
 
     labels = self.plotinfo.labels
     if labels==None:
@@ -158,50 +166,32 @@ class VisuPlotXY (pynode.PyNode):
     if not len(labels)==n:
       labels = n*'?'                          # vector of question marks
 
-    jj = self.check_indices(ii, index=index, trace=trace)
-
     # Select a vector of (string) labels:
     ss = []
-    for i in jj:
+    for i in ii:
       ss.append(labels[i])
 
     # Finished:
     if trace:
       print '  -> selected labels =',ss,'\n'
-    return labels
+    return ss
 
   #-------------------------------------------------------------------
 
-  def check_indices (self, ii=None, index=None, trace=True):
-    """Return a valid vector of indices into the list of children.
-    If index is specified (integer), assume that ii is a list of lists,
-    and use ii[index].
-    """
-    n = len(self.child_indices)               # nr of children
-    if ii==None:
-      return range(n)
-
-    if isinstance(index,int):
-      return ii[index]
-
-    return ii
-
-  #-------------------------------------------------------------------
-
-  def read_results (self, children, ii=None, index=None,
+  def read_results (self, children, ii=None, 
                     error_bars=True, trace=True):
     """Return a vector of numbers from the results of the specified (ii) children.
-    If index is integer, assume use ii[index].
     """
 
     if trace:
-      print '\n** .read_results(): index =',index,ii
+      print '\n** .read_results(',ii,'):'
 
-    jj = self.check_indices(ii, index=index, trace=trace)
+    n = len(self.child_indices)               # nr of children
+    if ii==None: ii = range(n)
 
     # Select a vector of child results:
     cc = []
-    for i in jj:
+    for i in ii:
       cc.append(children[i])
 
     # Read the child results and fill the vector(s):
@@ -246,12 +236,18 @@ class VisuPlotY (VisuPlotXY):
 
   def get_result (self, request, *children):
     """Re-implementation of the function in baseclass VisuPlotXY"""
+    import Graphics
     grs = self.on_entry()
     yy = self.read_results(children, error_bars=True)
+    xx = range(len(yy))
     labels = self.read_labels()
-    for i,y in enumerate(yy):
-      grs[0].append(y=y, x=i, annot=labels[i], dy=self._dvv[i])
-    return self.on_exit(grs)
+    grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
+                            dyy=self._dvv,
+                            style='o', markersize=10,
+                            color=self.plotinfo.color)
+    grs.add(grs1)
+    grs.legend(self.name, color=self.plotinfo.color)
+    return self.on_exit(grs, trace=True)
 
 
 #=====================================================================================
@@ -267,67 +263,70 @@ class VisuPlotY (VisuPlotXY):
 def _define_forest (ns,**kwargs):
   """Make trees with the various pyNodes"""
 
-  cc = []
+  children = dict()
+  rr = dict()
+  classname = []
+
+  ftx= ns.cx_freqtime << Meq.ToComplex(Meq.Time(),Meq.Freq())
+  ft= ns.freqtime << Meq.Add(Meq.Time(),Meq.Freq())
   
   if True:
-    ftx= ns.cx_freqtime << Meq.ToComplex(Meq.Time(),Meq.Freq())
-    ft= ns.freqtime << Meq.Add(Meq.Time(),Meq.Freq())
-
-    n = 5
-    ccXY = []
-    ccY = []
+    name = 'VisuPlotXY'
+    yname = 'y1'
+    xname = 'x1'
+    cc = []
     iix = []
     iiy = []
-    labelsXY = []
-    labelsY = []
+    labels = []
+    n = 5
     for i in range(n):
-      x = ns.x(i) << i
-      # y = ns.y(i) << random.gauss(i,0.5)
-      y = ns.y(i) << (ft + random.gauss(i,0.5))
-
-      # For VisuPlotXY (x and y children):
-      ccXY.append(x)
-      labelsXY.append(x.name)   
-      iix.append(len(ccXY)-1)
-
-      ccXY.append(y)
-      labelsXY.append(y.name)   
-      iiy.append(len(ccXY)-1)
+      x = ns[xname](i) << i/3.0
+      # y = ns[yname](i) << random.gauss(i,0.5)
+      y = ns[yname](i) << (ft + random.gauss(i,0.5))
+      cc.append(x)
+      labels.append(x.name)   
+      iix.append(len(cc)-1)
+      cc.append(y)
+      labels.append(y.name)   
+      iiy.append(len(cc)-1)
+    classname.append(name)
+    children[name] = cc
+    rr[name] = record(labels=labels, title=name,
+                      iix=iix, iiy=iiy,
+                      xlabel=xname, ylabel=yname)
       
-      # For VisuPlotY (y children only):
-      ccY.append(y)
-      labelsY.append(y.name)   
+  if True:
+    name = 'VisuPlotY'
+    cc = []
+    labels = []
+    n = 6
+    yname = 'y2'
+    xname = 'range(n)'
+    for i in range(n):
+      # y = ns[yname](i) << random.gauss(i,0.5)
+      y = ns[yname](i) << (ft + random.gauss(i,0.5))
+      cc.append(y)
+      labels.append(y.name)   
+    classname.append(name)
+    children[name] = cc
+    rr[name] = record(labels=labels, title=name,
+                      color='blue',
+                      xlabel=xname, ylabel=yname)
+      
 
+
+      
+    # Make the pynode(s):
     bookpage = Meow.Bookmarks.Page('pynodes')
     pn = []
-
-    #----------------------------
-    classname = 'VisuPlotXY'
-    plotinfo = record(labels=labelsXY, title='title',
-                      iix=iix, iiy=[iiy],
-                      xlabel='xlabel', ylabel='ylabel')
-    pynode = ns[classname] << Meq.PyNode(children=ccXY,
-                                         class_name=classname,
-                                         plotinfo=plotinfo,
-                                         module_name=__file__)
-    pn.append(pynode)
-    Meow.Bookmarks.Page(classname).add(pynode, viewer="Svg Plotter")
-    bookpage.add(pynode, viewer="Svg Plotter")
-
-    #----------------------------
-    classname = 'VisuPlotY'
-    plotinfo = record(labels=labelsY, title='title',
-                      xlabel='xlabel', ylabel='ylabel')
-    pynode = ns[classname] << Meq.PyNode(children=ccY,
-                                         class_name=classname,
-                                         plotinfo=plotinfo,
-                                         module_name=__file__)
-    pn.append(pynode)
-    Meow.Bookmarks.Page(classname).add(pynode, viewer="Svg Plotter")
-    bookpage.add(pynode, viewer="Svg Plotter")
-
-
-    #----------------------------
+    for name in classname:
+      pynode = ns[name] << Meq.PyNode(children=children[name],
+                                      class_name=name,
+                                      plotinfo=rr[name],
+                                      module_name=__file__)
+      pn.append(pynode)
+      Meow.Bookmarks.Page(name).add(pynode, viewer="Svg Plotter")
+      bookpage.add(pynode, viewer="Svg Plotter")
     ns.rootnode << Meq.Composer(*pn) 
 
   # Finished:

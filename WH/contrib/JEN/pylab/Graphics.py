@@ -287,7 +287,7 @@ class Graphics (Subplot.Subplot):
 
 class Scatter (Graphics):
 
-    def __init__(self, yy=range(3), annot=None,
+    def __init__(self, yy=None, annot=None,
                  xx=None, dxx=None, dyy=None,
                  **kwargs):
         """
@@ -579,7 +579,7 @@ if __name__ == '__main__':
                       linestyle='--', linewidth=3)
 
     if 0:
-        # grs = Scatter(None, style='hexagon')
+        # grs = Scatter(style='hexagon')
         grs = Scatter(range(6), style='hexagon')
         # grs = Scatter(range(6), style='hexagon', plot_type='polar')
 
@@ -597,7 +597,7 @@ if __name__ == '__main__':
         grs = Arrow([-4,-8], dxy=[-1,-1], linewidth=3)
 
     if 1:
-        grs.add(Scatter())
+        grs.add(Scatter(range(3)))
         grs.add(Rectangle())
 
     if 0:
@@ -609,7 +609,7 @@ if __name__ == '__main__':
     if 0:
         import Figure
         fig = Figure.Figure(nrow=2,ncol=3)
-        fig.add(Scatter())
+        fig.add(Scatter(range(3)))
         fig.add(Rectangle())
         fig.add(RegularPolygon())
         fig.add(Circle())
@@ -624,7 +624,7 @@ if __name__ == '__main__':
 
     grs.display()
 
-    if 0:
+    if 1:
         grs.plot(dispose='show')
         # grs.plot(dispose=['PNG','SVG','show'])
 
