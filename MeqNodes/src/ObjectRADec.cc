@@ -108,6 +108,7 @@ int ObjectRADec::getResult (Result::Ref &resref,
   resref().setCells(cells);
 
 
+  double tscale=1/(3600.0*24.0);
    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
 
 
@@ -115,7 +116,7 @@ int ObjectRADec::getResult (Result::Ref &resref,
     double *dec=(const_cast<Vells&>(vs1.getValue())).realStorage();
     const blitz::Array<double,1> arrtime=cells.center(Axis::TIME);
 
-    Quantum<double> qepoch(arrtime(0)/(3600*24.0), "d");
+    Quantum<double> qepoch(arrtime(0)*tscale, "d");
     MVEpoch dat(qepoch); //days
     MEpoch mdat(dat, MEpoch::Ref(MEpoch::UTC));
     MeasFrame frame;
@@ -125,7 +126,7 @@ int ObjectRADec::getResult (Result::Ref &resref,
     MDirection::Convert sc0(sn, MDirection::Ref(MDirection::JTRUE));
     //MDirection::Ref sunr(MDirection::MOON, frame);
     for (int ci=0; ci<ntime; ci++) {
-      qepoch.setValue(arrtime(ci)/(3600*24.0));
+      qepoch.setValue(arrtime(ci)*tscale);
       dat=qepoch;
       mdat.set(dat);
       frame.set(mdat);
