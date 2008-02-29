@@ -339,7 +339,7 @@ class PlotStyle (object):
             s = '\n** .PlotStyle: temporary SVG kludge: '
             if kw['linestyle']==None:
                 kw['linestyle'] = '.'             # not recognized, ignored...  
-                kw['linestyle'] = ':'             # dotted, safe for svg-Qt  
+                # kw['linestyle'] = ':'             # dotted, safe for svg-Qt  
                 # kw.__delitem__('linestyle')       # remove entirely (gives solid lines...)
                 # print s,' avoided linestyle=None ->',kw['linestyle']
 

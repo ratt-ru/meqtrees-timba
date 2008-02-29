@@ -77,22 +77,40 @@ class VisuPlotXY (pynode.PyNode):
   def update_state (self, mystate):
     """Read information from the pynode state record"""
     trace = False
-    trace = True
+    # trace = True
+    
     mystate('name')
     mystate('class_name')
     mystate('child_indices')
     nc = len(self.child_indices)       # nr of children
+
+    # Read the plotinfo record, and set defaults:
     mystate('plotinfo')
     print '\n** update_state(): self.plotinfo:',self.plotinfo,'\n'
+    self.plotinfo.setdefault('title', self.name) 
+    self.plotinfo.setdefault('xlabel', 'x') 
+    self.plotinfo.setdefault('ylabel', 'y') 
+    self.plotinfo.setdefault('xoffset', 0.0) 
+    self.plotinfo.setdefault('yoffset', 0.0) 
+    self.plotinfo.setdefault('labels', nc*[None]) 
+
+    # Transfer the subplot definition(s), and set defaults:
     self._subplot = []
     if self.plotinfo.has_key('subplot'):
-      for rr in self.plotinfo.subplot:
+      for i,rr in enumerate(self.plotinfo.subplot):
         if trace: print '\n-- subplot:',rr
         rr.setdefault('iix', range(nc)) 
         rr.setdefault('iiy', range(nc)) 
-        rr.setdefault('labels', nc*[None]) 
-        rr.setdefault('color','red') 
-        # rr.setdefault('style','--')
+        rr.setdefault('legend', str(i))
+        rr.xoffset = i*self.plotinfo.xoffset
+        rr.yoffset = i*self.plotinfo.yoffset
+        rr.legend = str(rr.legend)
+        if rr.yoffset>0.0:
+          rr.legend += ' (+'+str(rr.yoffset)+')'
+        elif rr.yoffset<0.0:
+          rr.legend += ' ('+str(rr.yoffset)+')'
+        rr.setdefault('color', 'red') 
+        # rr.setdefault('style', '--')
         if trace:
           for key in rr.keys():
             print '  -',key,':',rr[key]
@@ -152,22 +170,22 @@ class VisuPlotXY (pynode.PyNode):
     import Graphics
     grs = self.on_entry()
     # Make separate Graphics/Subplot objects for the various subplots:
-    for rr in self._subplot:
-      xx = self.read_results(children, rr.iix)
-      yy = self.read_results(children, rr.iiy, error_bars=True)
-      labels = self.read_labels(rr.labels, rr.iiy)
+    for i,rr in enumerate(self._subplot):
+      xx = self.read_results(children, rr.iix, offset=rr.xoffset)
+      yy = self.read_results(children, rr.iiy, offset=rr.yoffset, error_bars=True)
+      labels = self.read_labels(rr.iiy)
       grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
                               dyy=self._dvv,
                               style='o', markersize=10,
                               color=rr.color)
       grs.add(grs1)
-      grs.legend(self.name, color=rr.color)
+      grs.legend(rr.legend, color=rr.color)
     # Finished:
     return self.on_exit(grs, trace=True)
 
   #-------------------------------------------------------------------
 
-  def read_labels (self, labels, ii=None, trace=True):
+  def read_labels (self, ii=None, trace=True):
     """Return a vector with a subset (ii) of labels (strings)
     selected from self.plotinfo.labels.
     """
@@ -177,6 +195,8 @@ class VisuPlotXY (pynode.PyNode):
 
     n = len(self.child_indices)               # nr of children
     if ii==None: ii = range(n)
+
+    labels = self.plotinfo.labels             # see .update_state()
 
     # Select a vector of (string) labels:
     ss = []
@@ -190,7 +210,7 @@ class VisuPlotXY (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def read_results (self, children, ii=None, 
+  def read_results (self, children, ii=None, offset=0.0, 
                     error_bars=True, trace=True):
     """Return a vector of numbers from the results of the specified (ii) children.
     """
@@ -219,7 +239,7 @@ class VisuPlotXY (pynode.PyNode):
       Vells = cr[0]
       if trace:
         print '---',i,':',Vells.oneliner()
-      vv.append(Vells.mean())
+      vv.append(offset+Vells.mean())
       # Optional, read error-bar info into self._dvv
       if error_bars:
         self._dvv.append(Vells.errorbar())
@@ -251,23 +271,32 @@ class VisuPlotY (VisuPlotXY):
     import Graphics
     grs = self.on_entry()
     # Make separate Graphics/Subplot objects for the various subplots:
-    for rr in self._subplot:
-      yy = self.read_results(children, rr.iiy, error_bars=True)
+    for i,rr in enumerate(self._subplot):
+      yy = self.read_results(children, rr.iiy, offset=rr.yoffset, error_bars=True)
       xx = range(len(yy))
-      labels = self.read_labels(rr.labels, rr.iiy)
+      labels = self.read_labels(rr.iiy)
       grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
                               dyy=self._dvv,
                               style='o', markersize=10,
                               color=rr.color)
       grs.add(grs1)
-      grs.legend(self.name, color=rr.color)
+      grs.legend(rr.legend, color=rr.color)
     # Finished
     return self.on_exit(grs, trace=True)
+
+
+
 
 
 #=====================================================================================
 # Helper function(s): (May be called from other modules)
 #=====================================================================================
+
+
+
+
+
+
 
 
 
@@ -287,44 +316,50 @@ def _define_forest (ns,**kwargs):
   
   if True:
     name = 'VisuPlotXY'
-    yname = 'y1'
-    xname = 'x1'
     cc = []
-    iix = []
-    iiy = []
     labels = []
-    n = 5
-    for i in range(n):
-      x = ns[xname](i) << random.gauss(i,0.3)
-      # y = ns[yname](i) << random.gauss(i,0.5)
-      y = ns[yname](i) << (ft + random.gauss(i,0.5))
-      cc.append(x)
-      labels.append(x.name)   
-      iix.append(len(cc)-1)
-      cc.append(y)
-      labels.append(y.name)   
-      iiy.append(len(cc)-1)
+    rr[name] = record(title=name, xlabel='x', ylabel='y',
+                      yoffset=-2.0, subplot=[])
+    colors = ['blue','magenta','cyan']
+    for k in range(3):
+      iix = []
+      iiy = []
+      yname = 'y1_'+str(k)
+      xname = 'x1_'+str(k)
+      for i in range(5):
+        x = ns[xname](i) << random.gauss(i,0.3)
+        # y = ns[yname](i) << random.gauss(i,0.5)
+        y = ns[yname](i) << (ft + random.gauss(i,0.5))
+        cc.append(x)
+        labels.append(x.name)   
+        iix.append(len(cc)-1)
+        cc.append(y)
+        labels.append(y.name)   
+        iiy.append(len(cc)-1)
+      rr[name].subplot.append(record(iix=iix, iiy=iiy, color=colors[k]))
     classname.append(name)
+    rr[name].labels = labels
     children[name] = cc
-    rr[name] = record(title=name, xlabel=xname, ylabel=yname, subplot=[])
-    rr[name].subplot.append(record(iix=iix, iiy=iiy, labels=labels))
       
   if True:
     name = 'VisuPlotY'
     cc = []
     labels = []
-    n = 6
-    yname = 'y2'
-    xname = 'range(n)'
-    for i in range(n):
-      # y = ns[yname](i) << random.gauss(i,0.5)
-      y = ns[yname](i) << (ft + random.gauss(i,0.5))
-      cc.append(y)
-      labels.append(y.name)   
+    rr[name] = record(title=name, ylabel='y', labels=None,
+                      yoffset=2.0, subplot=[])
+    colors = ['blue','magenta','cyan']
+    for k in range(2):
+      yname = 'y2_'+str(k)
+      iiy = []
+      for i in range(6):
+        y = ns[yname](i) << (ft + random.gauss(i,0.5))
+        cc.append(y)
+        iiy.append(len(cc)-1)
+        labels.append(y.name)   
+      rr[name].subplot.append(record(iiy=iiy, color=colors[k], legend=k))
     classname.append(name)
+    rr[name].labels = labels
     children[name] = cc
-    rr[name] = record(title=name, xlabel=xname, ylabel=yname, subplot=[])
-    rr[name].subplot.append(record(labels=labels, color='blue'))
       
       
   # Make the pynode(s):

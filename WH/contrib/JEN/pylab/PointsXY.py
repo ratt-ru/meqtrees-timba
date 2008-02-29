@@ -560,8 +560,13 @@ class PointsXY (object):
             pylab.plot(xx, yy,
                        **self._PlotStyle.kwargs('plot'))
         else:
-            pylab.plot(xx, yy, label=label,    
-                       **self._PlotStyle.kwargs('plot'))
+            kwargs = self._PlotStyle.kwargs('plot')
+            if kwargs['linestyle']=='.':
+                kwargs.__delitem__('linestyle')
+                for i,y in enumerate(yy):
+                    pylab.plot(xx[i], yy[i], **kwargs)
+            else:
+                pylab.plot(xx, yy, label=label, **kwargs)
         return True
 
     #---------------------------------------------------------------
