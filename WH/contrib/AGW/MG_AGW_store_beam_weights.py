@@ -341,6 +341,7 @@ if __name__ == '__main__':
    # this runs the _test_forest job.
    mod._test_forest(mqs,None,wait=True);
    print 'finished'
+   sys.exit()
  else:
 # Timba.TDL._dbg.set_verbose(5);
   ns=NodeScope()
