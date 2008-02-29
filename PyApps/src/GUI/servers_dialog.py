@@ -275,7 +275,7 @@ class ServersDialog (QDialog):
       item.setText(1,server.statestr.lower() or '');
       cwd = server.cwd;
       if cwd:
-        home = os.getenv('HOME');
+        home = os.path.expanduser('~');
         prefix = os.path.commonprefix((home,cwd));
         if prefix:
           cwd = os.path.join('~',cwd[len(prefix)+1:],'');

@@ -27,6 +27,7 @@
 
 from ConfigParser import *
 import os
+import os.path
 import sys
 
 _system_files = [ 
@@ -34,7 +35,7 @@ _system_files = [
   "/usr/Timba/timba.conf",
   "/etc/timba.conf" ];
 
-_user_file = os.environ['HOME']+"/.timba.conf";
+_user_file = os.path.expanduser("~/.timba.conf");
 
 class DualConfigParser (object):
   """A dual config parser taking into account both system-wide files
