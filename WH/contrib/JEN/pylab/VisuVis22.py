@@ -163,7 +163,7 @@ class VisuVis22 (pynode.PyNode):
         print '--',i,':',chires.oneliner()
       dy = None
       for igrs,icorr in enumerate(iicorr):
-        corr = corrs[icorr]
+        corr = corrs[igrs]
         Vells = chires[icorr]
         if trace:
           print '---',i,igrs,icorr,corr,':',Vells.oneliner()
@@ -268,7 +268,7 @@ def corr_Graphics (corr, trace=False):
   """Create a standard Graphics object for the specified correlation.
   This imposes uniformity on the rendering of the various correlations."""
   import Graphics
-  grs = Graphics.Scatter(None, name=corr,
+  grs = Graphics.Scatter(name=corr,
                          color=corr_color(corr),
                          style=corr_style(corr),
                          plot_circle_mean=True,

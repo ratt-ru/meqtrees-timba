@@ -76,13 +76,28 @@ class VisuPlotXY (pynode.PyNode):
 
   def update_state (self, mystate):
     """Read information from the pynode state record"""
+    trace = False
+    trace = True
     mystate('name')
     mystate('class_name')
     mystate('child_indices')
+    nc = len(self.child_indices)       # nr of children
     mystate('plotinfo')
-    self.plotinfo.setdefault('labels',None) 
-    self.plotinfo.setdefault('color','red') 
-    self.plotinfo.setdefault('style','--') 
+    print '\n** update_state(): self.plotinfo:',self.plotinfo,'\n'
+    self._subplot = []
+    if self.plotinfo.has_key('subplot'):
+      for rr in self.plotinfo.subplot:
+        if trace: print '\n-- subplot:',rr
+        rr.setdefault('iix', range(nc)) 
+        rr.setdefault('iiy', range(nc)) 
+        rr.setdefault('labels', nc*[None]) 
+        rr.setdefault('color','red') 
+        # rr.setdefault('style','--')
+        if trace:
+          for key in rr.keys():
+            print '  -',key,':',rr[key]
+          print
+        self._subplot.append(rr)
     return None
 
   #-------------------------------------------------------------------
@@ -136,20 +151,23 @@ class VisuPlotXY (pynode.PyNode):
     """Placeholder, to be re-implemented in derived classes"""
     import Graphics
     grs = self.on_entry()
-    xx = self.read_results(children, self.plotinfo.iix)
-    yy = self.read_results(children, self.plotinfo.iiy, error_bars=True)
-    labels = self.read_labels(self.plotinfo.iiy)
-    grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
-                            dyy=self._dvv,
-                            style='o', markersize=10,
-                            color=self.plotinfo.color)
-    grs.add(grs1)
-    grs.legend(self.name, color=self.plotinfo.color)
+    # Make separate Graphics/Subplot objects for the various subplots:
+    for rr in self._subplot:
+      xx = self.read_results(children, rr.iix)
+      yy = self.read_results(children, rr.iiy, error_bars=True)
+      labels = self.read_labels(rr.labels, rr.iiy)
+      grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
+                              dyy=self._dvv,
+                              style='o', markersize=10,
+                              color=rr.color)
+      grs.add(grs1)
+      grs.legend(self.name, color=rr.color)
+    # Finished:
     return self.on_exit(grs, trace=True)
 
   #-------------------------------------------------------------------
 
-  def read_labels (self, ii=None, trace=True):
+  def read_labels (self, labels, ii=None, trace=True):
     """Return a vector with a subset (ii) of labels (strings)
     selected from self.plotinfo.labels.
     """
@@ -159,12 +177,6 @@ class VisuPlotXY (pynode.PyNode):
 
     n = len(self.child_indices)               # nr of children
     if ii==None: ii = range(n)
-
-    labels = self.plotinfo.labels
-    if labels==None:
-      labels = n*None                         # vector of None values
-    if not len(labels)==n:
-      labels = n*'?'                          # vector of question marks
 
     # Select a vector of (string) labels:
     ss = []
@@ -238,15 +250,18 @@ class VisuPlotY (VisuPlotXY):
     """Re-implementation of the function in baseclass VisuPlotXY"""
     import Graphics
     grs = self.on_entry()
-    yy = self.read_results(children, error_bars=True)
-    xx = range(len(yy))
-    labels = self.read_labels()
-    grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
-                            dyy=self._dvv,
-                            style='o', markersize=10,
-                            color=self.plotinfo.color)
-    grs.add(grs1)
-    grs.legend(self.name, color=self.plotinfo.color)
+    # Make separate Graphics/Subplot objects for the various subplots:
+    for rr in self._subplot:
+      yy = self.read_results(children, rr.iiy, error_bars=True)
+      xx = range(len(yy))
+      labels = self.read_labels(rr.labels, rr.iiy)
+      grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
+                              dyy=self._dvv,
+                              style='o', markersize=10,
+                              color=rr.color)
+      grs.add(grs1)
+      grs.legend(self.name, color=rr.color)
+    # Finished
     return self.on_exit(grs, trace=True)
 
 
@@ -280,7 +295,7 @@ def _define_forest (ns,**kwargs):
     labels = []
     n = 5
     for i in range(n):
-      x = ns[xname](i) << i/3.0
+      x = ns[xname](i) << random.gauss(i,0.3)
       # y = ns[yname](i) << random.gauss(i,0.5)
       y = ns[yname](i) << (ft + random.gauss(i,0.5))
       cc.append(x)
@@ -291,9 +306,8 @@ def _define_forest (ns,**kwargs):
       iiy.append(len(cc)-1)
     classname.append(name)
     children[name] = cc
-    rr[name] = record(labels=labels, title=name,
-                      iix=iix, iiy=iiy,
-                      xlabel=xname, ylabel=yname)
+    rr[name] = record(title=name, xlabel=xname, ylabel=yname, subplot=[])
+    rr[name].subplot.append(record(iix=iix, iiy=iiy, labels=labels))
       
   if True:
     name = 'VisuPlotY'
@@ -309,25 +323,23 @@ def _define_forest (ns,**kwargs):
       labels.append(y.name)   
     classname.append(name)
     children[name] = cc
-    rr[name] = record(labels=labels, title=name,
-                      color='blue',
-                      xlabel=xname, ylabel=yname)
+    rr[name] = record(title=name, xlabel=xname, ylabel=yname, subplot=[])
+    rr[name].subplot.append(record(labels=labels, color='blue'))
       
-
-
       
-    # Make the pynode(s):
-    bookpage = Meow.Bookmarks.Page('pynodes')
-    pn = []
-    for name in classname:
-      pynode = ns[name] << Meq.PyNode(children=children[name],
-                                      class_name=name,
-                                      plotinfo=rr[name],
-                                      module_name=__file__)
-      pn.append(pynode)
-      Meow.Bookmarks.Page(name).add(pynode, viewer="Svg Plotter")
-      bookpage.add(pynode, viewer="Svg Plotter")
-    ns.rootnode << Meq.Composer(*pn) 
+  # Make the pynode(s):
+  bookpage = Meow.Bookmarks.Page('pynodes')
+  pn = []
+  for name in classname:
+    print '\n** rr[',name,'] =',rr[name],'\n'
+    pynode = ns[name] << Meq.PyNode(children=children[name],
+                                    class_name=name,
+                                    plotinfo=rr[name],
+                                    module_name=__file__)
+    pn.append(pynode)
+    Meow.Bookmarks.Page(name).add(pynode, viewer="Svg Plotter")
+    bookpage.add(pynode, viewer="Svg Plotter")
+  ns.rootnode << Meq.Composer(*pn) 
 
   # Finished:
   return True
