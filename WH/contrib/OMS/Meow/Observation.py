@@ -52,14 +52,26 @@ class Observation (object):
     """returns radec node for the phase center direction""";
     return self.phase_centre.radec();
 
-  def freq0(self):
+  def freq0 (self):
     """return start frequency """;
     if not self.ns.freq0.initialized():
       self.ns.freq0 << Meq.Constant(59e6);
     return self.ns.freq0;
 
-  def freq1(self):
+  def freq1 (self):
     """return end frequency """;
     if not self.ns.freq1.initialized():
       self.ns.freq1 << Meq.Constant(60e6);
     return self.ns.freq1;
+
+  def time0 (self):
+    """return start time""";
+    if not self.ns.time0.initialized():
+      self.ns.time0 << 0;
+    return self.ns.time0;
+
+  def time1 (self):
+    """return end time""";
+    if not self.ns.time1.initialized():
+      self.ns.time1 << 1;
+    return self.ns.time1;
