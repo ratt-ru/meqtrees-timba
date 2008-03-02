@@ -157,7 +157,6 @@ class MeqMaker (object):
         mods.append((mod,name,None,None));
       # now go through list and pull in options from each active module
       for mod,name,submod,subname in mods:
-        print mod,name;
         if mod:
           modopts = _modopts(mod,'runtime');
           # add submenu for submodule
