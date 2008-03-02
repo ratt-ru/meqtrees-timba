@@ -387,9 +387,11 @@ def _define_forest (ns,**kwargs):
 
 def _test_forest (mqs,parent,wait=False):
   from Timba.Meq import meq
-  i = 0
-  cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
-  print '\n--',i,': cells =',cells,'\n'
+  nf2 = 10
+  nt2 = 5
+  cells = meq.cells(meq.domain(-nf2,nf2,-nt2,nt2),
+                    num_freq=2*nf2+1,num_time=2*nt2+1);
+  print '\n-- cells =',cells,'\n'
   request = meq.request(cells,rqtype='e1');
   a = mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
   return True

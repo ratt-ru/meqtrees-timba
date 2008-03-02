@@ -327,7 +327,8 @@ class PointsXY (object):
 
     def yrange(self, margin=0.0, yrange=None):
         """Return [min,max] of the y-coordinate(s)."""
-        return self._range(self.yy(), self._dyy, margin=margin, vrange=yrange)
+        return self._range(self.yy(), margin=margin, vrange=yrange)
+        # return self._range(self.yy(), self._dyy, margin=margin, vrange=yrange)
 
     def __getitem__(self, index):
         """Return the coordinates [x,y] of the specified (index) point"""
@@ -373,7 +374,8 @@ class PointsXY (object):
 
     def xrange(self, margin=0.0, xrange=None):
         """Return [min,max] of the x-coordinate(s)."""
-        return self._range(self.xx(), self._dxx, margin=margin, vrange=xrange)
+        return self._range(self.xx(), margin=margin, vrange=xrange)
+        # return self._range(self.xx(), self._dxx, margin=margin, vrange=xrange)
 
     #------------------------------------------------
 
@@ -501,7 +503,7 @@ class PointsXY (object):
             if self._kw['plot_type']=='plot':
                 [xmin,xmax] = self.xrange(margin=margin)
                 [ymin,ymax] = self.yrange(margin=margin)
-                pylab.axis([xmin, xmax, ymin, ymax])       # <----- !!
+                pylab.axis([xmin, xmax, ymin, ymax]) 
             elif self._kw['plot_type']=='polar':
                 [rmin,rmax] = self.yrange(margin=margin)
                 rr = pylab.array([0.25,0.5,0.75,1.0])*rmax

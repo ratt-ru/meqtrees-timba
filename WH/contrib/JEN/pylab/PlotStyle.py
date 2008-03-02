@@ -7,7 +7,6 @@
 # Short description:
 #   A PlotStyle object contains a style-record, which can be passed
 #   to a pylab.plot() command: pylab.plot(x,y,...,**kwargs)
-#   Base class, and PlotStylePylab derived class 
 #
 # History:
 #    - 20 jan 2008: creation (extracted from Points2D.py)
@@ -53,7 +52,7 @@ import random
 #======================================================================================
 
 class PlotStyle (object):
-    """Encapsulation of a set of 2D points, for (pylab) plotting
+    """Returns dicts of valid plot-styles, for pylab plotting.
     """
 
     def __init__(self, **kwargs):
