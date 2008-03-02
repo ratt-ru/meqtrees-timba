@@ -43,7 +43,7 @@ TDLCompileMenu("What do we want to do",
      doc="""Inverts phases in the input data. Some e.g. WSRT MSs require this."""),
 );
 do_correct_sky = False;
-  #TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
+# TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
 
 # now load optional modules for the ME maker
 from Meow import MeqMaker
@@ -51,39 +51,28 @@ meqmaker = MeqMaker.MeqMaker(solvable=True);
 
 # specify available sky models
 # these will show up in the menu automatically
-import Meow.LSM
 import gridded_sky
-lsm = Meow.LSM.MeowLSM(include_options=False);
-meqmaker.add_sky_models([lsm,gridded_sky]);
+meqmaker.add_sky_models([gridded_sky]);
 
 # now add optional Jones terms
 # these will show up in the menu automatically
 
-# E - beam
-# import wsrt_beams
-import solvable_sky_jones
-meqmaker.add_sky_jones('E','beam',[
-    #wsrt_beams,
-    solvable_sky_jones.FullRealImag('E')]);
+import mims
+meqmaker.add_sky_jones('Z','ionosphere',[mims]);
 
-# B - bandpass, G - gain
+# G - gain
 import solvable_jones
-meqmaker.add_uv_jones('B','bandpass',
-  [ solvable_jones.DiagAmplPhase(),
-    solvable_jones.FullRealImag() ]);
 meqmaker.add_uv_jones('G','receiver gains/phases',
   [ solvable_jones.DiagAmplPhase(),
     solvable_jones.FullRealImag() ]);
 
+do_ifr_errors = False;
 
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
-TDLCompileOption('do_ifr_errors',"Use interferometer-based errors",False);
-
-
 def _define_forest (ns):
-  ANTENNAS = mssel.get_antenna_set(range(1,15));
+  ANTENNAS = mssel.get_antenna_set(range(1,28));
   array = Meow.IfrArray(ns,ANTENNAS);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);

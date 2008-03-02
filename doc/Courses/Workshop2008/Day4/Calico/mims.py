@@ -1,5 +1,7 @@
 from Timba.TDL import *
 from Meow import Context
+from Meow import StdTrees
+from Meow import ParmGroup
 import math
 import iono_geometry
 
@@ -8,35 +10,31 @@ def center_tecs_only (ns,source_list):
   Returns Zeta-jones node, which should be qualified with source name 
   and antenna to get a TEC""";
 
-  polc_shape = [polc_deg_time+1,1];
   src0 = source_list[0];
   tecs = ns.tec;
   for p in Context.array.stations():
-    tecs(p) << Meq.Parm(tec0,shape=polc_shape,
+    tecs(p) << Meq.Parm(tec0,
                    constrain=[.8*tec0,1.2*tec0],
-                   tags="mim solvable tec",
-                   table_name=get_mep_table());
+                   tags="mim solvable tec");
     
   tecfunc = lambda srcname,p: tecs(p);
   
-  return iono_geometry.compute_zeta_jones_from_tecs(ns,tecs,source_list);
+  return tecfunc;
 
   
 def per_direction_tecs (ns,source_list):
   """Creates MIM to solve for one TEC per source, per station.
   Returns Zeta-jones node, which should be qualified with source name 
   and antenna to get a TEC""";
-  polc_shape = [polc_deg_time+1,1];
   tecs = ns.tec;
   for src in source_list:
     name = src.direction.name;
     for p in Context.array.stations():
-      tec = tecs(name,p) << Meq.Parm(tec0,shape=polc_shape,
+      tec = tecs(name,p) << Meq.Parm(tec0,
                             tags="mim solvable tec",
-                            constrain=[.8*tec0,1.2*tec0],
-                            table_name=get_mep_table());
+                            constrain=[.8*tec0,1.2*tec0]);
     
-  return iono_geometry.compute_zeta_jones_from_tecs(ns,tecs,source_list);
+  return tecs;
 
 
 def mim_poly (ns,source_list,tec0=10.):
@@ -44,7 +42,6 @@ def mim_poly (ns,source_list,tec0=10.):
   Returns Zeta-jones node, which should be qualified with source name 
   and antenna to get a TEC""";
 
-  polc_shape = [polc_deg_time+1,1];
   # compute piercing points and zenith angle cosines
   pxy = iono_geometry.compute_piercings(ns,source_list);
   za_cos = iono_geometry.compute_za_cosines(ns,source_list);
@@ -56,13 +53,9 @@ def mim_poly (ns,source_list,tec0=10.):
                 if dx+dy <= mim_polc_degree ];
   for degx,degy in polc_degs:
     if not degx and not degy:
-      mc(degx,degy) << Meq.Parm(tec0,shape=polc_shape,
-                                table_name=get_mep_table(),
-                                tags="mim solvable");
+      mc(degx,degy) << Meq.Parm(tec0,tags="mim solvable");
     else:
-      mc(degx,degy) << Meq.Parm(0,shape=polc_shape,
-                                table_name=get_mep_table(),
-                                tags="mim solvable");
+      mc(degx,degy) << Meq.Parm(0,tags="mim solvable");
   # make TEC subtrees
   tecs = ns.tec;
   for src in source_list:
@@ -77,16 +70,14 @@ def mim_poly (ns,source_list,tec0=10.):
       ns.vtec(name,p) << Meq.Add(*[ns.vtecs(name,p,dx,dy) for dx,dy in polc_degs]);
       tecs(name,p) << Meq.Divide(ns.vtec(name,p),za_cos(name,p),tags="mim tec");
 
-  return iono_geometry.compute_zeta_jones_from_tecs(ns,tecs,source_list);
+  return tecs;
 
 def compute_jones (Jones,sources,stations=None,inspectors=[],label='Z',**kw):
   """Creates the Z Jones for ionospheric phase, given TECs (per source, 
   per station).""";
   stations = stations or Context.array.stations;
   ns = Jones.Subscope();
-  piercings = iono_geometry.compute_piercings(ns,sources,stations);
-  za_cos = iono_geometry.compute_za_cosines(ns,sources,stations);
-  tecs = iono_model(ns,piercings,za_cos,sources,stations);
+  tecs = iono_model(ns,sources);
   # make inspector for TECs
   inspectors.append(
     Jones.scope.inspector('TEC') << StdTrees.define_inspector(tecs,sources,stations,
@@ -115,13 +106,16 @@ def compute_jones (Jones,sources,stations=None,inspectors=[],label='Z',**kw):
 
   return Jones;
 
+def runtime_options ():
+  return [];
+
 TDLCompileMenu('MIM options',
+  iono_geometry,
   TDLOption("iono_model","Ionospheric model",
-              [ mims.mim_poly,
-                mims.center_tecs_only,
-                mims.per_direction_tecs,
+              [ mim_poly,
+                center_tecs_only,
+                per_direction_tecs,
               ]),
   TDLOption('mim_polc_degree',"Polc degree in X/Y",[1,2,3,4],more=int),
-  TDLOption('polc_deg_time',"Polc degree, in time",[0,1,2],more=int),
   TDLOption('tec0',"Base TEC value",[0,1,5,10],more=float)
 );

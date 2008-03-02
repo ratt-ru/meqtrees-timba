@@ -94,12 +94,12 @@ def compute_za_cosines (ns,source_list,stations=None):
       
   return za_cos;
 
-def compute_zeta_jones_from_tecs (zeta,tecs,source_list,stations):
+def compute_zeta_jones_from_tecs (zeta,tecs,source_list,stations=None):
   """Creates the Z Jones for ionospheric phase, given TECs (per source, 
   per station).""";
   stations = stations or Context.array.stations();
-  print [src.name for src in source_list];
-  print stations;
+  # print [src.name for src in source_list];
+  # print stations;
   for src in source_list:
     for p in stations:
       zeta(src.name,p) << Meq.Polar(1,-25*Lightspeed*tecs(src.name,p)/Meq.Freq());

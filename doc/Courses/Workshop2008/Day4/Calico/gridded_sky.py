@@ -139,6 +139,9 @@ def source_list (ns,basename="S",l0=None,m0=None):
                        (grid_size-1)/2,source_flux);
   return filter(lambda x:x,sources);
 
+def runtime_options ():
+  return [];
+
 # model options
 model_option = TDLCompileOption("model_func","Sky model type",
       [cross_model,grid_model,circ_grid_model,star8_model,lbar_model,mbar_model]);

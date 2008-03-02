@@ -999,6 +999,7 @@ def populate_option_listview (listview,option_items,executor=None):
   # populate listview
   previtem = None;
   for item in option_items:
+    # print item,getattr(item,'__name__','');
     previtem = item.make_listview_item(listview,previtem,executor=executor);
   # add callbacks
   # add to menu

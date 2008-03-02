@@ -157,6 +157,7 @@ class MeqMaker (object):
         mods.append((mod,name,None,None));
       # now go through list and pull in options from each active module
       for mod,name,submod,subname in mods:
+        print mod,name;
         if mod:
           modopts = _modopts(mod,'runtime');
           # add submenu for submodule
@@ -219,7 +220,6 @@ class MeqMaker (object):
       else:
         selname = getattr(self,self._make_attr(label,"module"));
         for mod in modules:
-          print _modname(mod),selname;
           if _modname(mod).replace('.','_') == selname:
             return mod;
     return None;
@@ -356,22 +356,19 @@ class MeqMaker (object):
 
   make_tree = make_predict_tree; # alias for compatibility with older code
 
-  def correct_uv_data (self,ns,inputs,outputs=None,sky_correct=None,stations=None):
+  def correct_uv_data (self,ns,inputs,outputs=None,sky_correct=None):
     """makes subtrees for correcting the uv data given by 'inputs'.
     If 'outputs' is given, then it will be qualified by a jones label and by stations pairs
     to derive the output nodes. If it is None, then ns.correct(jones_label) is used as a base name.
-    'stations' can be a list of station indices, if None is given, then the whole station
-    list from the global Meow.Context is used.
     By default only uv-Jones corrections are applied, but if 'sky_correct' is set to
     a source object (or source name), then sky-Jones corrections for this particular source
     are also put in.
-      NB: Since the internal Jones trees are initialized only once, the 'stations' argument
-      should be the same if both make_predict_tree() and correct_uv_data() are invoked. Also,
-      the source/name given by 'sky_correct' here should have been present in the source list
+      NB: The source/name given by 'sky_correct' here should have been present in the source list
       used to invoke make_predict_tree().
     Returns an unqualified node that must be qualified with a station pair to get visibilities.
     """;
-    stations = stations or Meow.Context.array.stations();
+    stations = Meow.Context.array.stations();
+    ifrs = Meow.Context.array.ifrs();
 
     # now build up a correction chain for every station
     correction_chains = dict([(p,[]) for p in stations]);
@@ -402,7 +399,6 @@ class MeqMaker (object):
     # products
     Jinv = outputs('Jinv');
     Jtinv = outputs('Jtinv');
-    ifrs = [ (p,q) for p in stations for q in stations if p<q ];
     if len(correction_chains[stations[0]]) > 1:
       Jprod = outputs('Jprod');
       for p in stations:
