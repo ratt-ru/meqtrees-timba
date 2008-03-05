@@ -163,24 +163,52 @@ class Graphics (Subplot.Subplot):
 
     #-------------------------------------------------------------
 
-    def yrange(self, margin=0.0, yrange=None):
+    def yrange(self, margin=0.0, yrange=None, trace=False):
         """Return [min,max] of all the y-coordinate(s)."""
         yr = yrange
+        if trace:
+            print '\n** .yrange(margin=',margin,yr,'):'
         for key in self._order:
             yr = self._graphic[key].yrange(margin=margin, yrange=yr)
+            if trace:
+                print '  -',key,':',yr
         if not yr:
             yr = [-1.0,1.0]
+        else:
+            yr = self._add_margin(yr, margin=margin)
         return yr
 
-    def xrange(self, margin=0.0, xrange=None):
+    def xrange(self, margin=0.0, xrange=None, trace=False):
         """Return [min,max] of all the x-coordinate(s)."""
         xr = xrange
+        if trace:
+            print '\n** .xrange(margin=',margin,xr,'):'
         for key in self._order:
-            xr = self._graphic[key].xrange(margin=margin, xrange=xr)
+            xr = self._graphic[key].xrange(margin=0.0, xrange=xr)
+            if trace:
+                print '  -',key,':',xr
         if not xr:
             xr = [-1.0,1.0]
+        else:
+            xr = self._add_margin(xr, margin=margin)
         return xr
 
+    #------------------------------------------------
+
+    def _add_margin(self, vv, margin=0.0):
+        """Add the specified margin to the given vv (=[vmin,vmax])"""
+        if not isinstance(vv,list):
+            return vv
+        [vmin,vmax] = vv
+        if margin>0.0:
+            dv2 = 0.5*(vmax-vmin)*margin
+            if vmax==vmin:
+                dv2 = 0.0004
+                if not vmax==0.0:
+                    dv2 *= vmax
+            vmin -= dv2
+            vmax += dv2
+        return [vmin,vmax]
 
     #-------------------------------------------------------------
     # Display of the contents of this object:

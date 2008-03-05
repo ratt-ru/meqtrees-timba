@@ -98,7 +98,6 @@ class PointsXY (object):
         self._dyy = []
         self._dxx = []
         self._annot = []
-        self._input = dict(annot=annot, dx=dxx, dy=dyy)                      # used in .append()
         self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy, trace=False)     # if any specified 
 
         # Finished:
@@ -159,14 +158,23 @@ class PointsXY (object):
             if not isinstance(x, list):
                 x = range(nyy,nyy+ny+1)
             if not isinstance(dx, list):
-                if dx==None: dx = 0.0
-                dx = ny*[dx]
+                if isinstance(dx, (float,int)):
+                    dx = ny*[dx]
+                else:
+                    dx = ny*[0.0]
             if not isinstance(dy, list):
-                if dy==None: dy = 0.0
-                dy = ny*[dy]
+                if isinstance(dy, (float,int)):
+                    dy = ny*[dy]
+                elif isinstance(dy, complex):
+                    dy = ny*[dy.imag]
+                    dx = ny*[dy.real]
+                else:
+                    dy = ny*[0.0]
             if not isinstance(annot, list):
-                if ny==1: annot = [annot]
-                if ny>1: annot = ny*[None]
+                if ny==1:
+                    annot = [str(annot)]
+                else:
+                    annot = ny*[None]
 
             # OK: append the points one by one:
             for i,y1 in enumerate(y):
@@ -218,39 +226,25 @@ class PointsXY (object):
         if isinstance(dy, complex):
             self._dyy.append(dy.imag)
             self._dxx.append(dy.real)
-
+        elif isinstance(dy, (float,int)):
+            self._dyy.append(float(dy))
         else:
-            dyin = self._input['dy']                   # see .__init__()
-            if isinstance(dy, (float,int)):
-                self._dyy.append(float(dy))
-            elif isinstance(dyin, (float,int)):
-                self._dyy.append(float(dyin))
-            else:
-                self._dyy.append(0.0)
+            self._dyy.append(0.0)
 
-            dxin = self._input['dx']                   # see .__init__()
-            if xauto:                                  # automatic x (0,1,2,...)
-                self._dxx.append(0.0)                  # no x-error-bar
-            elif isinstance(dx, (float,int)):
-                self._dxx.append(float(dx))
-            elif is_complex:
-                dylast = self._dyy[len(self._dyy)-1]
-                self._dxx.append(dylast)
-            elif isinstance(dxin, (float,int)):
-                self._dxx.append(float(dxin))
-            else:
-                self._dxx.append(0.0)
+        if xauto:                                  # automatic x (0,1,2,...)
+            self._dxx.append(0.0)                  # no x-error-bar
+        elif isinstance(dx, (float,int)):
+            self._dxx.append(float(dx))
+        elif is_complex:
+            dylast = self._dyy[len(self._dyy)-1]
+            self._dxx.append(dylast)
+        else:
+            self._dxx.append(0.0)
 
 
         # Point annotations: 
         if annot==None:
-            annin = self._input['annot']               # see .__init__()
-            if annin==None or annin==False:
-                self._annot.append(None)
-            elif isinstance(annin, bool):
-                self._annot.append(len(self._yy)-1)
-            else:
-                self._annot.append(str(annin))
+            self._annot.append(None)
         else:
             self._annot.append(str(annot))
 
@@ -618,12 +612,14 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
-    def annotate(self, trace=False):
+    def annotate(self, trace=True):
         """Annotate the points"""
         if not isinstance(self._annot,list): return False
         if not len(self._annot)==self.len(): return False
         kwargs = self._PlotStyle.kwargs('text')
-        if trace: print '\n** annotate(): kwargs(text) =',kwargs
+        if trace:
+            print '\n** annotate(): kwargs(text) =',kwargs
+            print '  annot =',self._annot
         for i in range(self.len()):
             if not self._annot[i]==None:              # ignore if None
                 x = self._xx[i]

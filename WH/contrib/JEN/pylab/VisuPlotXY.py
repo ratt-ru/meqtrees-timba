@@ -82,40 +82,102 @@ class VisuPlotXY (pynode.PyNode):
     mystate('name')
     mystate('class_name')
     mystate('child_indices')
-    nc = len(self.child_indices)       # nr of children
+    self._num_children = len(self.child_indices)
 
     # Read the plotinfo record, and set defaults:
     mystate('plotinfo')
-    print '\n** update_state(): self.plotinfo:',self.plotinfo,'\n'
-    self.plotinfo.setdefault('title', self.name) 
-    self.plotinfo.setdefault('xlabel', 'x') 
-    self.plotinfo.setdefault('ylabel', 'y') 
-    self.plotinfo.setdefault('xoffset', 0.0) 
-    self.plotinfo.setdefault('yoffset', 0.0) 
-    self.plotinfo.setdefault('labels', nc*[None]) 
+    self.set_plotinfo_defaults()
+    self.read_plotinfo_subplots()
+    return None
 
-    # Transfer the subplot definition(s), and set defaults:
+  #-------------------------------------------------------------------
+
+  def set_plotinfo_defaults(self, trace=False):
+    """Set default values in self.plotinfo.
+    This routine may be re-implemented by a derived class."""
+    if trace:
+      print '\n** set_plotinfo_defaults (before):',self.plotinfo,'\n'
+
+    rr = self.plotinfo                                 # convenience
+
+    title = 'VisuPlotXY_'+self.class_name
+    title += '_'+str(self._num_children)
+    rr.setdefault('title', self.name) 
+    rr.setdefault('xlabel', 'x') 
+    rr.setdefault('ylabel', 'y') 
+    rr.setdefault('xoffset', 0.0) 
+    rr.setdefault('yoffset', 0.0) 
+    rr.setdefault('color', 'blue') 
+    rr.setdefault('linestyle', None) 
+    rr.setdefault('marker', 'o') 
+    rr.setdefault('markersize', 5) 
+    rr.setdefault('plot_error_bars', False)
+    rr.setdefault('labels', self._num_children*[None])
+
+    # The following keys are used in other routines; 
+    self._spkeys = ['color','linestyle','marker','markersize']
+    self._spkeys.extend(['plot_error_bars'])
+
+    if trace:
+      print '\n** set_plotinfo_defaults (after):',self.plotinfo,'\n'
+    return None
+
+  #-------------------------------------------------------------------
+
+  def read_plotinfo_subplots(self, trace=False):
+    """Transfer the subplot definition(s) from self.plotinfo"""
+    rr = self.plotinfo                                 # convenience
     self._subplot = []
-    if self.plotinfo.has_key('subplot'):
-      for i,rr in enumerate(self.plotinfo.subplot):
-        if trace: print '\n-- subplot:',rr
-        rr.setdefault('iix', range(nc)) 
-        rr.setdefault('iiy', range(nc)) 
-        rr.setdefault('legend', str(i))
-        rr.xoffset = i*self.plotinfo.xoffset
-        rr.yoffset = i*self.plotinfo.yoffset
-        rr.legend = str(rr.legend)
-        if rr.yoffset>0.0:
-          rr.legend += ' (+'+str(rr.yoffset)+')'
-        elif rr.yoffset<0.0:
-          rr.legend += ' ('+str(rr.yoffset)+')'
-        rr.setdefault('color', 'red') 
-        # rr.setdefault('style', '--')
+    if rr.has_key('subplot'):
+      for i,sp in enumerate(rr.subplot):
         if trace:
-          for key in rr.keys():
-            print '  -',key,':',rr[key]
+          print '\n-- subplot:',sp
+        sp.setdefault('iix', range(self._num_children)) 
+        sp.setdefault('iiy', range(self._num_children)) 
+        sp.xoffset = i*rr.xoffset
+        sp.yoffset = i*rr.yoffset
+        for key in self._spkeys:            
+          sp.setdefault(key, rr[key]) 
+        sp.setdefault('legend', str(i))
+        sp.legend = str(sp.legend)
+        if sp.yoffset>0.0:
+          sp.legend += ' (+'+str(sp.yoffset)+')'
+        elif sp.yoffset<0.0:
+          sp.legend += ' ('+str(sp.yoffset)+')'
+        if trace:
+          for key in sp.keys():
+            print '  -',key,':',sp[key]
           print
-        self._subplot.append(rr)
+        self._subplot.append(sp)
+
+    # Make a default subplot if none supplied:
+    if len(self._subplot)==0:
+      self.make_default_plotinfo_subplot(trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def make_default_plotinfo_subplot(self, trace=False):
+    """If there are no subplots, make a default one from the children.
+    This routine may be re-implemented for derived classes"""
+    rr = self.plotinfo                         # convenience
+    sp = record()                              # empty subplot record
+    sp.iix = range(self._num_children/2)       # first half of children
+    sp.iiy = range(self._num_children/2, self._num_children) # second half
+    for k,iy in enumerate(sp.iiy):
+      if rr.labels[iy]==None:
+        rr.labels[iy] = k
+    sp.xoffset = 0.0
+    sp.yoffset = 0.0
+    sp.setdefault('legend', 'legend')
+    sp.legend = str(sp.legend)
+    for key in self._spkeys:
+      sp.setdefault(key, rr[key]) 
+    if trace:
+      for key in sp.keys():
+        print '  -',key,':',sp[key]
+      print
+    self._subplot.append(sp)
     return None
 
   #-------------------------------------------------------------------
@@ -133,7 +195,7 @@ class VisuPlotXY (pynode.PyNode):
     grs = Graphics.Graphics(name=self.class_name,
                             # plot_type='polar',     # does not work in svg...!
                             plot_grid=True,
-                            title=self.plotinfo.title,
+                            title=self.plotinfo.title+'_'+str(self._count),
                             xlabel=self.plotinfo.xlabel,
                             ylabel=self.plotinfo.ylabel)
 
@@ -172,64 +234,63 @@ class VisuPlotXY (pynode.PyNode):
     # Make separate Graphics/Subplot objects for the various subplots:
     for i,rr in enumerate(self._subplot):
       xx = self.read_results(children, rr.iix, offset=rr.xoffset)
-      yy = self.read_results(children, rr.iiy, offset=rr.yoffset, error_bars=True)
+      yy = self.read_results(children, rr.iiy, offset=rr.yoffset,
+                             error_bars=rr.plot_error_bars)
       labels = self.read_labels(rr.iiy)
       grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
-                              dyy=self._dvv,
-                              style='o', markersize=10,
+                              dyy=self._dvv,           
+                              linestyle=rr.linestyle,
+                              marker=rr.marker,
+                              markersize=rr.markersize,
                               color=rr.color)
       grs.add(grs1)
       grs.legend(rr.legend, color=rr.color)
     # Finished:
-    return self.on_exit(grs, trace=True)
+    return self.on_exit(grs, trace=False)
 
   #-------------------------------------------------------------------
 
-  def read_labels (self, ii=None, trace=True):
+  def read_labels (self, ii=None, trace=False):
     """Return a vector with a subset (ii) of labels (strings)
     selected from self.plotinfo.labels.
     """
-
     if trace:
       print '\n** .read_labels(',ii,'):'
-
-    n = len(self.child_indices)               # nr of children
-    if ii==None: ii = range(n)
-
-    labels = self.plotinfo.labels             # see .update_state()
-
-    # Select a vector of (string) labels:
-    ss = []
+    if ii==None:
+      ii = range(self._num_children)
+    labels = []
     for i in ii:
-      ss.append(labels[i])
-
-    # Finished:
+      labels.append(self.plotinfo.labels[i])
     if trace:
-      print '  -> selected labels =',ss,'\n'
-    return ss
+      print '  -> selected labels =',labels,'\n'
+    return labels
 
   #-------------------------------------------------------------------
 
   def read_results (self, children, ii=None, offset=0.0, 
-                    error_bars=True, trace=True):
+                    error_bars=True, trace=False):
     """Return a vector of numbers from the results of the specified (ii) children.
     """
 
     if trace:
-      print '\n** .read_results(',ii,'):'
+      print '\n**',self.name,'.read_results(',ii,'):'
 
-    n = len(self.child_indices)               # nr of children
-    if ii==None: ii = range(n)
+    if ii==None:
+      ii = range(self._num_children)
 
     # Select a vector of child results:
     cc = []
     for i in ii:
       cc.append(children[i])
 
+    # A vector of error-bars
+    self._dvv = None
+    if error_bars:
+      self._dvv = []
+
     # Read the child results and fill the vector(s):
     import ChildResult
     vv = []                                   # vv is a vector of y-values
-    self._dvv = []                            # self._dvv is a vector of error-bars
     for i in range(len(cc)):
       cr = ChildResult.Result(cc[i])          # cc[i] is MeqResult class
       if trace:
@@ -253,6 +314,9 @@ class VisuPlotXY (pynode.PyNode):
 
 
 
+
+
+
 #=====================================================================================
 # Classes derived from VisuPlotXY:
 #=====================================================================================
@@ -261,29 +325,59 @@ class VisuPlotY (VisuPlotXY):
   """Make an xy-plot of the results of its children"""
 
   def __init__ (self, *args, **kwargs):
-    VisuPlotXY.__init__(self,*args);
+    VisuPlotXY.__init__(self, *args);
     return None
 
+  def set_plotinfo_defaults(self, trace=False):
+    """Set class-specific defaults in self.plotinfo"""
+    return VisuPlotXY.set_plotinfo_defaults(self, trace=trace)
+                                                            
   #-------------------------------------------------------------------
 
-  def get_result (self, request, *children):
+  def get_result_notneeded (self, request, *children):
     """Re-implementation of the function in baseclass VisuPlotXY"""
     import Graphics
     grs = self.on_entry()
     # Make separate Graphics/Subplot objects for the various subplots:
     for i,rr in enumerate(self._subplot):
-      yy = self.read_results(children, rr.iiy, offset=rr.yoffset, error_bars=True)
+      yy = self.read_results(children, rr.iiy, offset=rr.yoffset,
+                             error_bars=rr.plot_error_bars)
       xx = range(len(yy))
       labels = self.read_labels(rr.iiy)
       grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
                               dyy=self._dvv,
-                              style='o', markersize=10,
+                              linestyle=rr.linestyle,
+                              marker=rr.marker,
+                              markersize=rr.markersize,
                               color=rr.color)
       grs.add(grs1)
       grs.legend(rr.legend, color=rr.color)
     # Finished
-    return self.on_exit(grs, trace=True)
+    return self.on_exit(grs, trace=False)
 
+
+  #-------------------------------------------------------------------
+
+  def get_result_base (self, request, *children):
+    """Placeholder, to be re-implemented in derived classes"""
+    import Graphics
+    grs = self.on_entry()
+    # Make separate Graphics/Subplot objects for the various subplots:
+    for i,rr in enumerate(self._subplot):
+      xx = self.read_results(children, rr.iix, offset=rr.xoffset)
+      yy = self.read_results(children, rr.iiy, offset=rr.yoffset,
+                             error_bars=rr.plot_error_bars)
+      labels = self.read_labels(rr.iiy)
+      grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
+                              dyy=self._dvv,           
+                              linestyle=rr.linestyle,
+                              marker=rr.marker,
+                              markersize=rr.markersize,
+                              color=rr.color)
+      grs.add(grs1)
+      grs.legend(rr.legend, color=rr.color)
+    # Finished:
+    return self.on_exit(grs, trace=False)
 
 
 
@@ -309,13 +403,36 @@ def _define_forest (ns,**kwargs):
 
   children = dict()
   rr = dict()
-  classname = []
+  classnames = dict()
 
   ftx= ns.cx_freqtime << Meq.ToComplex(Meq.Time(),Meq.Freq())
   ft= ns.freqtime << Meq.Add(Meq.Time(),Meq.Freq())
+  gsx = ns.cx_gauss << Meq.ToComplex(Meq.GaussNoise(stddev=0.1),
+                                     Meq.GaussNoise(stddev=0.1))
+  gs = ns.gauss << Meq.GaussNoise(stddev=0.5)
   
   if True:
-    name = 'VisuPlotXY'
+    classname = 'VisuPlotXY'
+    name = classname+'m'              # minimal VisuPlotXY
+    cc = []
+    yy = []
+    yname = 'y1m'
+    xname = 'x1m'
+    n = 5
+    for i in range(n):
+      x = ns[xname](i) << random.gauss(i,0.5)
+      cc.append(x)
+      y = ns[yname](i) << (gs + random.gauss(i,0.5))
+      yy.append(y)
+    cc.extend(yy)
+    rr[name] = record(title=name)
+    classnames[name] = classname
+    children[name] = cc
+
+
+  if True:
+    classname = 'VisuPlotXY'
+    name = classname
     cc = []
     labels = []
     rr[name] = record(title=name, xlabel='x', ylabel='y',
@@ -329,7 +446,7 @@ def _define_forest (ns,**kwargs):
       for i in range(5):
         x = ns[xname](i) << random.gauss(i,0.3)
         # y = ns[yname](i) << random.gauss(i,0.5)
-        y = ns[yname](i) << (ft + random.gauss(i,0.5))
+        y = ns[yname](i) << (gs + random.gauss(i,0.5))
         cc.append(x)
         labels.append(x.name)   
         iix.append(len(cc)-1)
@@ -337,12 +454,14 @@ def _define_forest (ns,**kwargs):
         labels.append(y.name)   
         iiy.append(len(cc)-1)
       rr[name].subplot.append(record(iix=iix, iiy=iiy, color=colors[k]))
-    classname.append(name)
+    classnames[name] = classname
     rr[name].labels = labels
     children[name] = cc
+
       
   if True:
-    name = 'VisuPlotY'
+    classname = 'VisuPlotY'
+    name = classname
     cc = []
     labels = []
     rr[name] = record(title=name, ylabel='y', labels=None,
@@ -352,23 +471,31 @@ def _define_forest (ns,**kwargs):
       yname = 'y2_'+str(k)
       iiy = []
       for i in range(6):
-        y = ns[yname](i) << (ft + random.gauss(i,0.5))
+        y = ns[yname](i) << (gs + random.gauss(i,0.5))
         cc.append(y)
         iiy.append(len(cc)-1)
         labels.append(y.name)   
       rr[name].subplot.append(record(iiy=iiy, color=colors[k], legend=k))
-    classname.append(name)
+    classnames[name] = classname
     rr[name].labels = labels
     children[name] = cc
       
+
+
+  # Make a bookpage with auxiliary info:
+  auxpage = Meow.Bookmarks.Page('aux')
+  auxpage.add(ftx, viewer="Result Plotter")
+  auxpage.add(ft, viewer="Result Plotter")
+  auxpage.add(gsx, viewer="Result Plotter")
+  auxpage.add(gs, viewer="Result Plotter")
       
   # Make the pynode(s):
   bookpage = Meow.Bookmarks.Page('pynodes')
   pn = []
-  for name in classname:
-    print '\n** rr[',name,'] =',rr[name],'\n'
+  for name in rr.keys():
+    print '\n** make_pynode: rr[',name,'] =',rr[name],'\n'
     pynode = ns[name] << Meq.PyNode(children=children[name],
-                                    class_name=name,
+                                    class_name=classnames[name],
                                     plotinfo=rr[name],
                                     module_name=__file__)
     pn.append(pynode)

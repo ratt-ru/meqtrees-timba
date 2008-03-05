@@ -64,7 +64,7 @@ class VisuVis22 (pynode.PyNode):
   def __init__ (self, *args, **kwargs):
     pynode.PyNode.__init__(self,*args);
     self.set_symdeps('domain','resolution')
-    self._count = 0
+    self._count = -1
     self._xmin = None
     self._xmax = None
     self._ymin = None
@@ -98,8 +98,8 @@ class VisuVis22 (pynode.PyNode):
 
     title = 'VisuVis22_'+self.class_name
     title += '_'+str(self._num_children)
-    rr.setdefault('corr_names', ['XX','XY','YX','YY']) 
     rr.setdefault('title', title) 
+    rr.setdefault('corr_names', ['XX','XY','YX','YY']) 
     rr.setdefault('xlabel', 'real part (Jy)') 
     rr.setdefault('ylabel', 'imag part (Jy)') 
     rr.setdefault('labels', self._num_children*[None]) 
@@ -137,6 +137,9 @@ class VisuVis22 (pynode.PyNode):
     """Called on entry of .get_result()"""
     self._count += 1
 
+    if trace:
+      print '\n**',type(self),'.on_entry(): count =',self._count,'\n'
+
     # we need the following two lines
     import matplotlib
     matplotlib.use('SVG')
@@ -145,7 +148,9 @@ class VisuVis22 (pynode.PyNode):
     import Graphics
     grs = Graphics.Graphics(name=self.class_name,
                             # plot_type='polar',                  # does not work in svg...!
-                            title=self.plotinfo.title+'_'+str(1+self._count),
+                            xmin=self._xmin, xmax=self._xmax,
+                            ymin=self._ymin, ymax=self._ymax,
+                            title=self.plotinfo.title+'_'+str(self._count),
                             xlabel=self.plotinfo.xlabel,
                             ylabel=self.plotinfo.ylabel)
     return grs
@@ -216,15 +221,48 @@ class VisuVis22 (pynode.PyNode):
           label = labels[i]
         grs[igrs][0].append(y=mean, annot=label, dy=dy)
 
-    # Fix the window:
-    if self._count==1:
-      [self._xmin,self._xmax] = grs.xrange(margin=0.5)
-      [self._ymin,self._ymax] = grs.yrange(margin=0.5)
-      grs.kwupdate(**dict(xmin=self._xmin, xmax=self._xmax,
-                          ymin=self._ymin, ymax=self._ymax))
-        
+    self.set_window(grs)
+
     # Finished: Return the modified Graphics object
     return grs
+
+#--------------------------------------------------------------------
+
+  def set_window(self, grs, trace=False):
+    """Set the plot window"""
+
+    margin = 0.1
+    [xmin, xmax] = grs.xrange(margin=margin, trace=trace)
+    [ymin, ymax] = grs.yrange(margin=margin, trace=trace)
+
+    if trace:
+      print '\n**',type(self),'.set_window():',self._count
+      print '  [xmin,xmax] =',[xmin,xmax]
+      print '  [ymin,ymax] =',[ymin,ymax]
+    # return None
+
+    q = 0.2                                # dampening factor
+    if self._count==0:
+      # First time: Get the general size
+      self._xmin = xmin
+      self._xmax = xmax
+      self._ymin = ymin
+      self._ymax = ymax
+    else:
+      self._xmin += (xmin - self._xmin)*q
+      self._xmax += (xmax - self._xmax)*q
+      self._ymin += (ymin - self._ymin)*q
+      self._ymax += (ymax - self._ymax)*q
+
+    if trace:
+        print '  [dxmin,dxmax] =',[(xmin-self._xmin)*q,(xmax-self._xmax)*q]
+        print '  [dymin,dymax] =',[(ymin-self._ymin)*q,(ymax-self._ymax)*q]
+
+    # Update the Subplot (grs) window:
+    if True:
+      grs.kwupdate(**dict(xmin=self._xmin, xmax=self._xmax,
+                          ymin=self._ymin, ymax=self._ymax))
+    return None
 
 
 
@@ -301,6 +339,8 @@ def _define_forest (ns,**kwargs):
   cc = []
   
   if True:
+    tfrac = ns.tfrac << Meq.Multiply(Meq.Time(),0.1)
+    ffrac = ns.ffrac << Meq.Multiply(Meq.Freq(),0.1)
     ftx = ns.cx_freqtime << Meq.ToComplex(Meq.Time(),Meq.Freq())
     gsx = ns.cx_gauss << Meq.ToComplex(Meq.GaussNoise(stddev=0.1),
                                        Meq.GaussNoise(stddev=0.1))
@@ -315,19 +355,20 @@ def _define_forest (ns,**kwargs):
         # print '-- (i,j)=',i,j
         XX = ns.XX(i)(j) << Meq.Polar(random.gauss(1.1,rmsa),
                                       random.gauss(0.0,1.0))
-        if False:
-          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa),
-                                        random.gauss(0.0,1.0))
-        elif True:
-          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa),
-                                        random.gauss(0.0,1.0)+Meq.Freq())
-        else:
-          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa)+Meq.Time(),
-                                        random.gauss(0.0,1.0)+Meq.Freq())
         XY = ns.XY(i)(j) << Meq.Polar(random.gauss(0.1,rmsa),
                                       random.gauss(0.5,0.1))
         YX = ns.YX(i)(j) << Meq.Polar(random.gauss(0.1,rmsa),
                                       random.gauss(-0.5,0.1))
+        if False:
+          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa),
+                                        random.gauss(0.0,1.0))
+        elif False:
+          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa),
+                                        random.gauss(0.0,0.0)+ffrac)
+        else:
+          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa)+tfrac,
+                                        random.gauss(0.0,1.0)+ffrac)
+
         vis22 = ns.vis22(i)(j) << Meq.Matrix22(XX,XY,YX,YY)
         # vis22 = ns.vis22plus(i)(j) << Meq.Add(vis22, ftx)
         vis22 = ns.vis22plus(i)(j) << Meq.Add(vis22, gsx)
@@ -341,13 +382,17 @@ def _define_forest (ns,**kwargs):
     auxpage = Meow.Bookmarks.Page('aux')
     auxpage.add(ftx, viewer="Result Plotter")
     auxpage.add(gsx, viewer="Result Plotter")
+    auxpage.add(tfrac, viewer="Result Plotter")
+    auxpage.add(ffrac, viewer="Result Plotter")
 
     # Make the pynode(s):
-    bookpage = Meow.Bookmarks.Page('pynodes')
+    bookpage = Meow.Bookmarks.Page('pynodes')    
     pn = []
-    for classname in ['AllCorrs','CrossCorrs']:
-    # for classname in ['AllCorrs']:
-    # for classname in ['CrossCorrs']:
+    ss = []
+    ss.append('AllCorrs')
+    ss.append('CrossCorrs')
+    # ss.append('VisuVis22')
+    for classname in ss:
       pynode = ns[classname] << Meq.PyNode(children=cc,
                                            class_name=classname,
                                            plotinfo=plotinfo,
