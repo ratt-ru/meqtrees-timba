@@ -39,11 +39,12 @@ TDLCompileMenu("What do we want to do",
   ),
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
   TDLOption('do_correct',"Correct the data or residuals",True),
-  TDLOption('do_invert_phase',"Invert phases in input data",True,
-     doc="""Inverts phases in the input data. Some e.g. WSRT MSs require this."""),
+  TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True),
+#  TDLOption('do_invert_phase',"Invert phases in input data",True,
+#     doc="""Inverts phases in the input data. Some e.g. WSRT MSs require this."""),
 );
-do_correct_sky = False;
-# TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
+
+do_invert_phase = False;
 
 # now load optional modules for the ME maker
 from Meow import MeqMaker
@@ -60,9 +61,13 @@ meqmaker.add_sky_models([gridded_sky]);
 import mims
 meqmaker.add_sky_jones('Z','ionosphere',[mims]);
 
+
 # G - gain
 import solvable_jones
 meqmaker.add_uv_jones('G','receiver gains/phases',
+  [ solvable_jones.DiagAmplPhase(),
+    solvable_jones.FullRealImag() ]);
+meqmaker.add_uv_jones('B','bandpass',
   [ solvable_jones.DiagAmplPhase(),
     solvable_jones.FullRealImag() ]);
 
