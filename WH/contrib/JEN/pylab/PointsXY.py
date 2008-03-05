@@ -531,6 +531,7 @@ class PointsXY (object):
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
         ptype = self._kw['plot_type']
+        print '\n** plot_points(label=',label,') plot_type=',ptype,'\n'
         if ptype=='loglog':
             pylab.loglog(xx, yy, label=label,
                          **self._PlotStyle.kwargs(ptype))
@@ -551,17 +552,27 @@ class PointsXY (object):
                           **self._PlotStyle.kwargs(ptype))
         elif self._kw['plot_naked']:
             pylab.plot(xx, yy)
-        elif not isinstance(label,str):
-            # NB: label=='_nolegend_' causes problems with Qt read SVG....
-            pylab.plot(xx, yy,
-                       **self._PlotStyle.kwargs('plot'))
+
+        # elif not isinstance(label,str):
+        #    # NB: label=='_nolegend_' causes problems with Qt read SVG....
+        #    print '\n** plot_points(',label,'): linestyle=',kwargs['linestyle'],'\n'
+        #    pylab.plot(xx, yy,
+        #               **self._PlotStyle.kwargs('plot'))
+
         else:
             kwargs = self._PlotStyle.kwargs('plot')
-            if kwargs['linestyle']=='.':
+            print '--- kwargs =',kwargs
+            if not kwargs.has_key('linestyle'):
+                print '\n** plot_points(): kwargs has no field linestyle\n'
+                for i,y in enumerate(yy):
+                    pylab.plot([xx[i]], [yy[i]], **kwargs)
+            elif kwargs['linestyle']=='.':
+                print '\n** plot_points(): linestyle==. (delete)\n'
                 kwargs.__delitem__('linestyle')
                 for i,y in enumerate(yy):
-                    pylab.plot(xx[i], yy[i], **kwargs)
+                    pylab.plot([xx[i]], [yy[i]], **kwargs)
             else:
+                print '\n** plot_points(): linestyle=',kwargs['linestyle'],'\n'
                 pylab.plot(xx, yy, label=label, **kwargs)
         return True
 
