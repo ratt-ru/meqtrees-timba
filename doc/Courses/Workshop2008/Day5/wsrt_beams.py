@@ -41,11 +41,21 @@ def WSRT_cos3_beam (E,lm,*dum):
   'E' is output node
   'lm' is direction (2-vector node)
   """
+  beamsize = wsrt_beam_size_factor*1e-9;
   ns = E.Subscope();
   ns.lmsq << Meq.Sqr(lm);
   ns.lsq  << Meq.Selector(ns.lmsq,index=0);
   ns.msq  << Meq.Selector(ns.lmsq,index=1);
-  E << Meq.Pow(Meq.Cos(Meq.Sqrt(ns.lsq+ns.msq)*wsrt_beam_size_factor*Meq.Freq()),3);
+  if wsrt_beam_eccentricity:
+    ns.lsqex << ns.lsq*(1-wsrt_beam_eccentricity)**2;
+    ns.lsqey << ns.lsq*(1+wsrt_beam_eccentricity)**2;
+    ns.msqex << ns.msq*(1+wsrt_beam_eccentricity)**2;
+    ns.msqey << ns.msq*(1-wsrt_beam_eccentricity)**2;
+    ns.Ex << Meq.Pow(Meq.Cos(Meq.Sqrt(ns.lsqex+ns.msqex)*Meq.Freq()*beamsize),3);
+    ns.Ey << Meq.Pow(Meq.Cos(Meq.Sqrt(ns.lsqey+ns.msqey)*Meq.Freq()*beamsize),3);
+    E << Meq.Matrix22(ns.Ex,0,0,ns.Ey);
+  else:
+    E << Meq.Pow(Meq.Cos(Meq.Sqrt(ns.lsq+ns.msq)**Meq.Freq()*beamsize),3);
   return E;
 # this beam model is not per-station
 WSRT_cos3_beam._not_per_station = True;
@@ -82,7 +92,8 @@ _model_option = TDLCompileOption('beam_model',"Beam model",
 );
 
 _wsrt_option_menu = TDLCompileMenu('WSRT beam model options',
-  TDLOption('wsrt_beam_size_factor',"Beam size factor",[2e-6],more=float)
+  TDLOption('wsrt_beam_size_factor',"Beam size factor",[68],more=float),
+  TDLOption('wsrt_beam_eccentricity',"Beam eccentricity",[None,.01],more=float)
 );
 
 def _show_option_menus (model):

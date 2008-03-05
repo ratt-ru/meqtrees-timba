@@ -1,29 +1,4 @@
-#
-#% $Id$ 
-#
-#
-# Copyright (C) 2002-2007
-# The MeqTree Foundation & 
-# ASTRON (Netherlands Foundation for Research in Astronomy)
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
-# 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
- # standard preamble
+# standard preamble
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
@@ -76,9 +51,8 @@ meqmaker.add_sky_jones('Z','ionosphere',oms_ionosphere);
 
 # E - beam
 import wsrt_beams
-import sarod_cs1_beams
 import oms_pointing_errors
-meqmaker.add_sky_jones('E','beam',[wsrt_beams,sarod_cs1_beams],
+meqmaker.add_sky_jones('E','beam',[wsrt_beams],
                                   pointing=oms_pointing_errors);
 
 # G - gains
@@ -88,13 +62,24 @@ meqmaker.add_uv_jones('G','gains/phases',oms_gain_models);
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
+# resampling option
+TDLCompileMenu("Enable resampling",
+  TDLOption('resample_time',"Resampling factor in time",[3,5,10],more=int),
+  TDLOption('resample_freq',"Resampling factor in freq",[3,5,10],more=int),
+  toggle='do_resample');
+   
 # noise option
 TDLCompileOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float);
 
 
 def _define_forest (ns):
   ANTENNAS = mssel.get_antenna_set(range(1,28));
-  array = Meow.IfrArray(ns,ANTENNAS);
+  # sneaky, sneaky: disable MS-UVWs when resampling is in use
+  if do_resample:
+    ms_uvw = False;
+  else:
+    ms_uvw = None;
+  array = Meow.IfrArray(ns,ANTENNAS,ms_uvw=ms_uvw);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   stas = array.stations();
@@ -105,6 +90,14 @@ def _define_forest (ns):
   
   # get a predict tree from the MeqMaker
   output = meqmaker.make_predict_tree(ns);
+  
+  # add resampling if needed
+  if do_resample:
+    for p,q in array.ifrs():
+      modres = ns.modres(p,q) << Meq.ModRes(output(p,q),
+                                            upsample=[resample_time,resample_freq]);
+      ns.resampled(p,q) << Meq.Resampler(modres,mode=2);
+    output = ns.resampled;
   
   # throw in a bit of noise
   if noise_stddev:
