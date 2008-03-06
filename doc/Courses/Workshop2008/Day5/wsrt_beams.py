@@ -93,7 +93,7 @@ _model_option = TDLCompileOption('beam_model',"Beam model",
 
 _wsrt_option_menu = TDLCompileMenu('WSRT beam model options',
   TDLOption('wsrt_beam_size_factor',"Beam size factor",[68],more=float),
-  TDLOption('wsrt_beam_eccentricity',"Beam eccentricity",[None,.01],more=float)
+  TDLOption('wsrt_beam_eccentricity',"Beam eccentricity",[None,.01,.1],more=float)
 );
 
 def _show_option_menus (model):

@@ -55,6 +55,10 @@ import oms_pointing_errors
 meqmaker.add_sky_jones('E','beam',[wsrt_beams],
                                   pointing=oms_pointing_errors);
 
+# P - parallactic angle
+import jones_par_angle
+meqmaker.add_uv_jones('P','parallactic angle',jones_par_angle);
+  
 # G - gains
 import oms_gain_models
 meqmaker.add_uv_jones('G','gains/phases',oms_gain_models);
