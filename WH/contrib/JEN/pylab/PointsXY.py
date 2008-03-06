@@ -530,8 +530,13 @@ class PointsXY (object):
         """Plot the specified points (xx,yy) with the relevant
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
+        trace = False
+        trace = True
+        
         ptype = self._kw['plot_type']
-        print '\n** plot_points(label=',label,') plot_type=',ptype,'\n'
+        if trace:
+            print '\n** plot_points(label=',label,') plot_type=',ptype,'\n'
+
         if ptype=='loglog':
             pylab.loglog(xx, yy, label=label,
                          **self._PlotStyle.kwargs(ptype))
@@ -561,18 +566,22 @@ class PointsXY (object):
 
         else:
             kwargs = self._PlotStyle.kwargs('plot')
-            print '--- kwargs =',kwargs
+            if trace:
+                print '--- kwargs =',kwargs
             if not kwargs.has_key('linestyle'):
-                print '\n** plot_points(): kwargs has no field linestyle\n'
+                if trace:
+                    print '\n** plot_points(): kwargs has no field linestyle\n'
                 for i,y in enumerate(yy):
                     pylab.plot([xx[i]], [yy[i]], **kwargs)
             elif kwargs['linestyle']=='.':
-                print '\n** plot_points(): linestyle==. (delete)\n'
+                if trace:
+                    print '\n** plot_points(): linestyle==. (delete)\n'
                 kwargs.__delitem__('linestyle')
                 for i,y in enumerate(yy):
                     pylab.plot([xx[i]], [yy[i]], **kwargs)
             else:
-                print '\n** plot_points(): linestyle=',kwargs['linestyle'],'\n'
+                if trace:
+                    print '\n** plot_points(): linestyle=',kwargs['linestyle'],'\n'
                 pylab.plot(xx, yy, label=label, **kwargs)
         return True
 
@@ -623,7 +632,7 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
-    def annotate(self, trace=True):
+    def annotate(self, trace=False):
         """Annotate the points"""
         if not isinstance(self._annot,list): return False
         if not len(self._annot)==self.len(): return False
