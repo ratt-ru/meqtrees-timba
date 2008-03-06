@@ -202,7 +202,6 @@ class SvgPlotter(GriddedPlugin):
     self._svg_plotter = None
     self.plotPrinter = None
     self.results_selector = None
-    self.scroll_view = None
     self.status_label = None
     self.layout_parent = None
     self.layout = None
@@ -217,9 +216,6 @@ class SvgPlotter(GriddedPlugin):
       self.layout_parent = QWidget(self.wparent())
       self.layout = QGridLayout(self.layout_parent)
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
-      self.scroll_view = QScrollView(self.layout_parent)
-      self.layout.addWidget(self.scroll_view,0,0)
-      self.scroll_view.show()
       self.layout_created = True
     self._wtop = self.layout_parent;       
 
@@ -358,13 +354,11 @@ class SvgPlotter(GriddedPlugin):
     file.close()
 
     if not self._svg_plotter is None:
-      self.scroll_view.removeChild(self._svg_plotter)
+      self._svg_plotter.reparent(QWidget(), 0, QPoint())
       self._svg_plotter = None
     if self._svg_plotter is None:
-#     self._svg_plotter = PictureDisplay(parent=self.layout_parent)
-      self._svg_plotter = PictureDisplay()
-#     self.layout.addWidget(self._svg_plotter, 0, 0)
-      self.scroll_view.addChild(self._svg_plotter)
+      self._svg_plotter = PictureDisplay(parent=self.layout_parent)
+      self.layout.addWidget(self._svg_plotter, 0, 0)
       self.plotPrinter = plot_printer.plot_printer(self._svg_plotter)
       QObject.connect(self._svg_plotter,PYSIGNAL('do_print'), self.plotPrinter.do_print)
       QObject.connect(self._svg_plotter, PYSIGNAL('save_display'), self.grab_display)
