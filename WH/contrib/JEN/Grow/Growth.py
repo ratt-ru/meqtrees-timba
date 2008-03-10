@@ -373,12 +373,15 @@ class Growth (object):
 
         # If not selected, do nothing.
         # NB: This should be AFTER setting self._input !!
-        if not self._OMI.is_selected():
+        if self._OMI.is_selected():
+            print '\n',s,' OMI.is_selected() -> True\n'        # temporary
+            pass
+        else:
             if self._kwargs['inhibit_selection']:
                 print '\n',s,'NOT selected, but inhibit_selection=True...\n'
             else:
                 proceed = False                      # This will cause .grow() to exit
-                self.display('not selected')
+                # self.display('not selected')
                 print '\n',s,'not selected (ignored)\n'
                 
 

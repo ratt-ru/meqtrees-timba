@@ -155,13 +155,20 @@ class PointsXY (object):
             ny = len(y)
             if ny==0:
                 raise ValueError,'** [y] has zero length'
+
             if not isinstance(x, list):
                 x = range(nyy,nyy+ny+1)
+            elif not len(x)==ny:
+                x = range(nyy,nyy+ny+1)
+
             if not isinstance(dx, list):
                 if isinstance(dx, (float,int)):
                     dx = ny*[dx]
                 else:
                     dx = ny*[0.0]
+            elif not len(dx)==ny:
+                dx = ny*[0.0]
+
             if not isinstance(dy, list):
                 if isinstance(dy, (float,int)):
                     dy = ny*[dy]
@@ -170,11 +177,16 @@ class PointsXY (object):
                     dx = ny*[dy.real]
                 else:
                     dy = ny*[0.0]
+            elif not len(dy)==ny:
+                dy = ny*[0.0]
+
             if not isinstance(annot, list):
                 if ny==1:
                     annot = [str(annot)]
                 else:
                     annot = ny*[None]
+            elif not len(annot)==ny:
+                annot = ny*[None]
 
             # OK: append the points one by one:
             for i,y1 in enumerate(y):
@@ -531,7 +543,7 @@ class PointsXY (object):
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
         trace = False
-        trace = True
+        # trace = True
         
         ptype = self._kw['plot_type']
         if trace:

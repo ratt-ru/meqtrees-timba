@@ -414,10 +414,8 @@ class VisuPlotY (VisuPlotXY):
     grs = self.on_entry()
     # Make separate Graphics/Subplot objects for the various subplots:
     for i,rr in enumerate(self._subplot):
-      [yy,dyy,xx,dxx] = self.read_results(children, rr.iiy, offset=rr.yoffset,
-                                          error_bars=rr.plot_error_bars)
-      xx = range(len(yy))
-      labels = self.read_labels(rr.iiy)
+      [yy,xx,labels,dyy,dxx] = self.read_results(children, rr.iiy, offset=rr.yoffset,
+                                                 error_bars=rr.plot_error_bars)
       grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
                               dyy=dyy, dxx=None,
                               linestyle=rr.linestyle,
@@ -434,7 +432,7 @@ class VisuPlotY (VisuPlotXY):
 
   def read_results (self, children, ii=None, offset=0.0, 
                     error_bars=True, trace=False):
-    """Return a vector of numbers from the results of the specified (ii) children.
+    """Return vector(s) of numbers from the results of the specified (ii) children.
     This is a re-implementation of the function in the base class.
     """
 
@@ -447,11 +445,15 @@ class VisuPlotY (VisuPlotXY):
     cc = []
     for i in ii:
       cc.append(children[i])
+    clabels = self.read_labels(ii)            # child labels
 
     # Read the child results and fill the vector(s):
     import ChildResult
-    vv = []                                   # vv is a vector of y-values
-    dvv = []
+    yy = []
+    xx = []
+    labels = []
+    dyy = []
+    dxx = []
     for i in range(len(cc)):
       cr = ChildResult.Result(cc[i])          # cc[i] is MeqResult class
       if trace:
@@ -459,23 +461,32 @@ class VisuPlotY (VisuPlotXY):
         # print '--',i,':',cr.oneliner()
         pass
       nv = cr.len()                           # nr of Vells in result
-      Vells = cr[0]
-      if trace:
-        print '---',i,'(y):',Vells.oneliner()
-      vv.append(offset+Vells.mean())
-      if error_bars:
-        dvv.append(Vells.errorbar())
+      for k in range(nv):
+        Vells = cr[k]
+        if trace:
+          print '---',i,k,':',Vells.oneliner()
+        yy.append(offset+Vells.mean())
+        xx.append(i)
+        if nv==1:
+          labels.append(clabels[i])
+        else:
+          labels.append(clabels[i]+'_'+str(k))
+        if error_bars:
+          dyy.append(Vells.errorbar())
 
     if trace:
-      print '  -> vv =',vv
-      if error_bars:
-        print '  -> dvv =',dvv
+      print
+      print '  -> yy (',len(yy),') =',yy
+      print '  -> labels (',len(labels),') =',labels
+      print '  -> xx (',len(xx),') =',xx
+      print '  -> dyy (',len(dyy),') =',dyy
+      print '  -> dxx (',len(dxx),') =',dxx
         
-    # If no error-bars, set dvv to None:
-    if len(dvv)==0: dvv = None
+    # if len(dyy)==0: dyy = None
+    # if len(dxx)==0: dxx = None
       
     # Finished:
-    return [vv,dvv]
+    return [yy,xx,labels,dyy,dxx]
 
 
 
@@ -593,8 +604,12 @@ def _define_forest (ns,**kwargs):
       yname = 'y2_'+str(k)
       iiy = []
       for i in range(6):
-        y = ns[yname](i) << (gs + random.gauss(i,0.5))
-        cc.append(y)
+        ee = []
+        for j in range(3):
+          y = ns[yname](i)(j) << (gs + random.gauss(i,0.5))
+          ee.append(y)
+        c = ns[yname](i) << Meq.Composer(*ee)
+        cc.append(c)
         iiy.append(len(cc)-1)
         labels.append(y.name)   
       rr[name].subplot.append(record(iiy=iiy, color=colors[k], legend=k))

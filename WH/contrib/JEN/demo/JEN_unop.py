@@ -244,7 +244,7 @@ def _define_forest (ns, **kwargs):
 def _tdl_job_execute (mqs, parent):
     """Execute the forest, starting at the named node"""
     domain = meq.domain(0.1,10,0,1)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=20, num_time=1)
+    cells = meq.cells(domain, num_freq=200, num_time=1)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='result', request=request))
     return result
