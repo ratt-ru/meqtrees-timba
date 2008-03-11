@@ -1,9 +1,12 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Contrib.MXM.MimModule.MIM_model import *
+from Timba.Contrib.MXM.MimModule import PrintPyNode 
+
 import Meow
 
-
+def compile_options():
+    return [TDLOption("make_log","Create Log Nodes",False),]
 R_earth=6378135.; # Radius of earth at somewhere.
 
 class PiercePoints(MIM_model):
@@ -17,8 +20,7 @@ class PiercePoints(MIM_model):
             self._height = Meow.Parm(height);
 
 	self.ns.h << self._height .make()
-        print "NS:::",self.ns;
-
+        self._make_log=make_log;
         
     def make_rot_matrix(self,ref_station=1):
         ns=self.ns;
@@ -96,7 +98,7 @@ class PiercePoints(MIM_model):
                 z = pp('z',src,station);
                 pp('lon',src,station) << Meq.Atan(x/y);
                 pp('lat',src,station) << Meq.Asin(z/Meq.Sqrt(x*x+y*y+z*z));
-
+        return pp;
 
     def make_xy_pp(self,ref_station=None):
         '''make xy of piercepoints'''
@@ -123,6 +125,49 @@ class PiercePoints(MIM_model):
 
         return pp;
 
+    def create_log_nodes(self,xy=True): # create nodes to log phase per x,y (or long/lat if xy=False) 
+        if xy:
+            pp = self.make_xy_pp();
+        else:
+            pp = self.make_longlat_pp();
+
+        phases = self.make_phase_error();
+        for station in self.stations:
+            for src in self.src:
+                filename="phases_"+str(station)+"_"+src.name+".dat";
+                log = pp('log',src,station);
+                if not log.initialized():
+
+                    log<< Meq.PyNode(children=(pp('x',src,station),pp('y',src,station),phases(src,station)),
+                                     class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
+        return pp('log');
+
+    def create_station_log_nodes(self): # create nodes to log phase of all stations per source 
+        phases = self.make_phase_error();
+        ns=self.ns;
+        for src in self.src:
+            direction =src.direction;
+            pd =direction._parmdefs;
+            if isinstance(direction,Meow.LMDirection):
+                nm='l.'+str(pd['l'][0])+'.m.'+str(pd['m'][0]);
+            else:
+                nm='ra.'+str(pd['ra'][0])+'.dec.'+str(pd['dec'][0]);
+            print "creating file for",nm;
+            filename="phases_"+nm+".dat";
+            log = ns['station_log'](src);
+            if not log.initialized():
+                log<< Meq.PyNode(children=[phases(src,station) for station in self.stations],
+                                 class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
+        return ns['station_log'];
+
+    def inspectors(self):
+        inspectors=[];
+        if make_log:
+            #ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_log_nodes(),self.src,self.stations);
+            ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_station_log_nodes(),self.src);
+            inspectors.append(ip);
+        print "INSPECTORS:::::",inspectors;
+        return inspectors;
     
 def create_inproduct ( ns,a, b,length=0):
     """Computes the dot product of two vectors of arbitrary length""";

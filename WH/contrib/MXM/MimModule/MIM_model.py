@@ -42,7 +42,7 @@ class MIM_model(Parameterization):
         for src in self.src:
             for station in self.stations:
                 if not self.ns['mim_phase'](src,station).initialized():
-                    self.ns['mim_phase'](src,station)<<Meq.Polar(1,-75e8/freq*tec(src,station));
+                    self.ns['mim_phase'](src,station)<<(75e8/freq)*tec(src,station);
 
         return self.ns['mim_phase'];
     
@@ -83,7 +83,7 @@ class MIM_model(Parameterization):
         for src in self.src:
             for station in self.stations:
                 if not Jones(src,station).initialized():
-                         Jones(src,station)<< Meq.Matrix22(phase(src,station),0,0,phase(src,station));
+                         Jones(src,station)<< Meq.Matrix22(Meq.Polar(1,-phase(src,station)),0,0,Meq.Polar(1,-phase(src,station)));
 
         return Jones;
 

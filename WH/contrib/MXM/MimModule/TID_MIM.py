@@ -1,10 +1,10 @@
 from Timba.TDL import *
 from Timba.Meq import meq
-from Timba.Contrib.MXM.MimModule.PiercePoints import *
+from Timba.Contrib.MXM.MimModule  import PiercePoints
 import Meow
 
 def compile_options():
-    return [TDLCompileOption("Fac_long","2pi/WaveLength Longitude",[1.,5.,10.],more=float,
+    return PiercePoints.compile_options() + [TDLCompileOption("Fac_long","2pi/WaveLength Longitude",[1.,5.,10.],more=float,
                              doc="""Wave = Amp_lon*Sin(lon*factor_lon+a*t)+Amp_lat*Sin(lat*factor_lat+b*t)"""),
             TDLCompileOption("Fac_lat","2pi/WaveLength Lattitude",[1.,5.,10.],more=float,
                              doc="""Wave = Amp_lon*Sin(lon*factor_lon+a*t)+Amp_lat*Sin(lat*factor_lat+b*t)"""),
@@ -22,12 +22,12 @@ def compile_options():
 
 
 
-class MIM(PiercePoints):
+class MIM(PiercePoints.PiercePoints):
     """Create MIM_model with travelling waves as function of the pierc points"""
 
 
     def __init__(self,ns,name,sources,stations=None,height=300,ref_station=1,tags="iono"):
-        PiercePoints.__init__(self,ns,name,sources,stations,height);
+        PiercePoints.PiercePoints.__init__(self,ns,name,sources,stations,height);
         self.ref_station=ref_station;
         self._add_parm(name="Amp_long",value=Meow.Parm(Amp_long),tags=tags)
         self._add_parm(name="Amp_lat",value=Meow.Parm(Amp_lat),tags=tags)

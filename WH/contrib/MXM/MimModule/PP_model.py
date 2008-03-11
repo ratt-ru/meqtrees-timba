@@ -19,25 +19,40 @@ ALL_CORRS = "XX XY YX YY";
 DIAG_CORRS = "XX YY";
 CROSS_CORRS = "YX XY";
 SINGLE_CORR = "XX";
+    
+run_model=TDLCompileOption('run_option',"What do we want to do",['calibrate','simulate'])
 
-TDLCompileMenu("What do we want to do",
-  TDLMenu("Work with existing UV data (otherwise simulate)",
-          TDLOption('do_solve',"Calibrate",True),
-          TDLOption('cal_corr',"Use correlations",
-                    [ALL_CORRS,DIAG_CORRS,CROSS_CORRS,SINGLE_CORR]),
-          TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
-          TDLMenu("Correct the data or residuals",
-                  TDLMenu("include sky-Jones correction",
-                          TDLOption('src_name',"name of the source (if None, first source in list is used)",[None,"S+0+0"],more=str),
-                          toggle='do_correct_sky',open=True),
-                  toggle='do_correct',open=True),
-          toggle='do_not_simulate',open=True  ),
+calibrate_options= TDLCompileMenu("Existing UV data Options",
+                                  TDLOption('do_solve',"Calibrate",True),
+                                  TDLOption('cal_corr',"Use correlations",
+                                            [ALL_CORRS,DIAG_CORRS,CROSS_CORRS,SINGLE_CORR]),
+                                  TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
+                                  TDLMenu("Correct the data or residuals",
+                                          TDLMenu("include sky-Jones correction",
+                                                  TDLOption('src_name',"name of the source (if None, first source in list is used)",[None,"S+0+0"],more=str),
+                                                  toggle='do_correct_sky',open=True),
+                                          toggle='do_correct',open=True))
 
-);
+simulate_options= TDLCompileMenu("Simulation Options",
+                                 # noise option
+                                 TDLOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float))
+
+
+do_not_simulate=(run_option=='calibrate');
+
+def change_run_option(model):
+    global do_not_simulate;
+    simulate_options.show(model=='simulate');
+    calibrate_options.show(model=='calibrate');
+    do_not_simulate=(model=='calibrate');
+
+run_model.when_changed(change_run_option);
+
+
 
 # now load optional modules for the ME maker
 from Meow import MeqMaker
-meqmaker = MeqMaker.MeqMaker(solvable=do_solve and do_not_simulate);
+meqmaker = MeqMaker.MeqMaker(solvable=do_solve and run_option=='calibrate');
 
 # specify available sky models
 # these will show up in the menu automatically
@@ -127,6 +142,23 @@ def _define_forest(ns):
             outputs = solve_tree.sequencers(inputs=observed,outputs=outputs);
 
 
+    # throw in a bit of noise
+    if not do_not_simulate and noise_stddev:
+        # make two complex noise terms per station (x/y)
+        noisedef = Meq.GaussNoise(stddev=noise_stddev)
+        noise_x = ns.sta_noise('x');
+        noise_y = ns.sta_noise('y');
+        for p in array.stations():
+            noise_x(p) << Meq.ToComplex(noisedef,noisedef);
+            noise_y(p) << Meq.ToComplex(noisedef,noisedef);
+        # now combine them into per-baseline noise matrices
+        for p,q in array.ifrs():
+            noise = ns.noise(p,q) << Meq.Matrix22(
+                noise_x(p)+noise_x(q),noise_x(p)+noise_y(q),
+                noise_y(p)+noise_x(q),noise_y(p)+noise_y(q)
+                );
+            ns.noisy_predict(p,q) << outputs(p,q) + noise;
+        outputs = ns.noisy_predict;
     # make sinks and vdm.
     # The list of inspectors comes in handy here
     Meow.StdTrees.make_sinks(ns,outputs,spigots=None,post=meqmaker.get_inspectors());

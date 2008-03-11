@@ -48,7 +48,7 @@ class ZJones(object):
   def runtime_options (self):
     return self.options;
 
-  def compute_jones (self,jones,sources,stations=None,tags=None,label='',**kw):
+  def compute_jones (self,jones,sources,stations=None,tags=None,label='',inspectors=[],**kw):
     stations = stations or Context.array.stations();
     print "selected",selname;
     for mod in modules:
@@ -58,6 +58,7 @@ class ZJones(object):
         break;
     mim = self.mim_model.MIM(jones.Subscope(),None,sources,Context.array,tags=tags);
     mim.compute_jones(jones,tags=tags);
+    inspectors+=mim.inspectors();
     return jones;
 
   def compile_options(self):
