@@ -59,13 +59,12 @@ meqmaker = MeqMaker.MeqMaker(solvable=do_solve and run_option=='calibrate');
 from Timba.Contrib.OMS.Calico import central_point_source
 from Timba.Contrib.OMS.Siamese import gridded_sky
 
-from Timba.Contrib.MXM.MimModule import gridded_sky_ivb
 
 
 
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
-meqmaker.add_sky_models([central_point_source,lsm,gridded_sky,gridded_sky_ivb]);
+meqmaker.add_sky_models([central_point_source,lsm,gridded_sky]);
 
 from Timba.Contrib.OMS.Calico import solvable_jones;
 meqmaker.add_uv_jones('G','receiver gains/phases',
