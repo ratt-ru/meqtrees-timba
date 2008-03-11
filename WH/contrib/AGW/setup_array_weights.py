@@ -117,9 +117,6 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
     beam_solvables_y.append(ns.beam_wt_re_y(k))
     beam_solvables_y.append(ns.beam_wt_im_y(k))
 
-  # node that is called to process all initial parameter solvers in parallel
-  parms_req_mux = ns.parms_req_mux<<Meq.ReqMux(children=parm_solvers)
-
   # sum up the weights
   ns.wt_sum_x << Meq.Add(*[ns.beam_weight_x(k) for k in BEAMS])
   ns.wt_sum_y << Meq.Add(*[ns.beam_weight_y(k) for k in BEAMS])
@@ -137,29 +134,55 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
   ns.voltage_sum_yy_i << Meq.Imag(ns.voltage_sum_yy_norm)
   ns.im_sq_x << ns.voltage_sum_xx_r * ns.voltage_sum_xx_r + ns.voltage_sum_xx_i * ns.voltage_sum_xx_i 
   ns.im_x <<Meq.Sqrt(ns.im_sq_x)
-  ns.im_x_max <<Meq.Max(ns.im_x)
+# ns.im_x_max <<Meq.Max(ns.im_x)
 
   ns.im_sq_y << ns.voltage_sum_yy_r * ns.voltage_sum_yy_r + ns.voltage_sum_yy_i * ns.voltage_sum_yy_i 
   ns.im_y <<Meq.Sqrt(ns.im_sq_y)
-  ns.im_y_max <<Meq.Max(ns.im_y)
+# ns.im_y_max <<Meq.Max(ns.im_y)
+
+  # find peak values
+  ns.resampler_im_x << Meq.Resampler(ns.im_x,dep_mask = 0xff)
+  ns.im_x_max << Meq.Compounder(children=[ns.lm_beam,ns.resampler_im_x],common_axes=[hiid('l'),hiid('m')])
+  ns.im_x_max_fit << tpolc(mep_beam_weights,0,1.0)
+  ns.condeq_im_x_max << Meq.Condeq(children=(ns.im_x_max_fit, ns.im_x_max))
+  ns.solver_im_x_max <<Meq.Solver(ns.condeq_im_x_max,num_iter=50,epsilon=1e-4,solvable=ns.im_x_max_fit,save_funklets=True,last_update=True)
+  parm_solvers.append(ns.solver_im_x_max)
+# beam_solvables_x.append(ns.im_x_max_fit)
+
+  ns.resampler_im_y << Meq.Resampler(ns.im_y,dep_mask = 0xff)
+  ns.im_y_max << Meq.Compounder(children=[ns.lm_beam,ns.resampler_im_y],common_axes=[hiid('l'),hiid('m')])
+  ns.im_y_max_fit << tpolc(mep_beam_weights,0,1.0)
+  ns.condeq_im_y_max << Meq.Condeq(children=(ns.im_y_max_fit, ns.im_y_max))
+  ns.solver_im_y_max <<Meq.Solver(ns.condeq_im_y_max,num_iter=50,epsilon=1e-4,solvable=ns.im_y_max_fit,save_funklets=True,last_update=True)
+  parm_solvers.append(ns.solver_im_y_max)
+# beam_solvables_y.append(ns.im_y_max_fit)
+
+  # node that is called to process all initial parameter solvers in parallel
+  parms_req_mux = ns.parms_req_mux<<Meq.ReqMux(children=parm_solvers)
 
   # now set up equations to solve for X and Y weights so that difference
   # between above x and y beams and voltage gaussian is minimized
   if do_fit:
-    ns.im_x_norm << ns.im_x / ns.im_x_max
+    ns.im_x_norm_max << Meq.Max(ns.im_x)
+    ns.im_x_norm << ns.im_x / ns.im_x_norm_max
     ns.resampler_x <<Meq.Resampler(ns.im_x_norm)
     ns.condeq_x << Meq.Condeq(children=(ns.resampler_x, ns.sqrt_gauss))
     solver_x = ns.solver_x <<Meq.Solver(ns.condeq_x,num_iter=20,epsilon=5e-4,solvable=beam_solvables_x)
 
-    ns.im_y_norm << ns.im_y / ns.im_y_max
+    ns.im_y_norm_max << Meq.Max(ns.im_y)
+    ns.im_y_norm << ns.im_y / ns.im_y_norm_max
     ns.resampler_y <<Meq.Resampler(ns.im_y_norm)
     ns.condeq_y << Meq.Condeq(children=(ns.resampler_y, ns.sqrt_gauss))
     solver_y = ns.solver_y <<Meq.Solver(ns.condeq_y,num_iter=20,epsilon=5e-4,solvable=beam_solvables_y)
-
-  ns.norm_voltage_sum_xx << ns.voltage_sum_xx_norm / ns.im_x_max
-  ns.norm_voltage_sum_xy << ns.voltage_sum_xy_norm / ns.im_x_max
-  ns.norm_voltage_sum_yy << ns.voltage_sum_yy_norm / ns.im_y_max
-  ns.norm_voltage_sum_yx << ns.voltage_sum_yx_norm / ns.im_y_max
+    ns.norm_voltage_sum_xx << ns.voltage_sum_xx_norm / ns.im_x_norm_max
+    ns.norm_voltage_sum_xy << ns.voltage_sum_xy_norm / ns.im_x_norm_max
+    ns.norm_voltage_sum_yy << ns.voltage_sum_yy_norm / ns.im_y_norm_max
+    ns.norm_voltage_sum_yx << ns.voltage_sum_yx_norm / ns.im_y_norm_max
+  else:
+    ns.norm_voltage_sum_xx << ns.voltage_sum_xx_norm / ns.im_x_max_fit
+    ns.norm_voltage_sum_xy << ns.voltage_sum_xy_norm / ns.im_x_max_fit
+    ns.norm_voltage_sum_yy << ns.voltage_sum_yy_norm / ns.im_y_max_fit
+    ns.norm_voltage_sum_yx << ns.voltage_sum_yx_norm / ns.im_y_max_fit
 
   return (parms_req_mux, solver_x, solver_y)
 

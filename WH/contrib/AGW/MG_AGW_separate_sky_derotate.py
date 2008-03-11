@@ -90,6 +90,7 @@ if do_fit:
 else:
   mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '_conj.mep'
 
+
 ########################################################
 def _define_forest(ns):  
 
@@ -228,10 +229,18 @@ def _define_forest(ns):
 ########################################################################
 def _test_forest(mqs,parent):
 
+# delete any previous version if the mep file ...
+  print 'trying to delete file ', mep_beam_weights
+  try:
+    command = "rm -rf "+ mep_beam_weights
+    os.system(command)
+    print 'issued OS command ', command
+  except:   pass
+
 # any large time range will do: we observe the changes in the beam
 # pattern in timesteps of 3600s, or 1 hr
-# delta_t = 900.0
-  delta_t = 3600.0
+  delta_t = 900.0
+# delta_t = 3600.0
   # t0 = -1200.0 + 0.5 * delta_t
   # Approx start of 2001
   t0 = 4485011731.14 - delta_t       
@@ -245,8 +254,8 @@ def _test_forest(mqs,parent):
   lm_num = 101;
   counter = 0
 # for i in range(16):
-# for i in range(32):
-  for i in range(8):
+# for i in range(8):
+  for i in range(32):
       t0 = t0 + delta_t
       t1 = t0 + delta_t
       mqs.clearcache('IQUV',recursive=True)
