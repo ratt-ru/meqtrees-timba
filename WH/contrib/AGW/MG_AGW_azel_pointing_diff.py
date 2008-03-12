@@ -116,7 +116,7 @@ def _define_forest (ns):
   # create an Array object
   num_antennas = 30
   xntd_list = [ str(i) for i in range(1,num_antennas+1) ];
-  array = Meow.IfrArray(ns,xntd_list);
+  array = Meow.IfrArray(ns,xntd_list,ms_uvw=False,mirror_uvw=False)
   # create an Observation object
   observation = Meow.Observation(ns);
   # set global context
