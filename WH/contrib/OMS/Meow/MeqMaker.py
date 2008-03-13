@@ -413,6 +413,9 @@ class MeqMaker (object):
     else:
       for p,q in ifrs:
         outputs(p,q) << Meq.Identity(inputs(p,q));
+      # make an inspector for the results
+      StdTrees.vis_inspector(ns.inspector('output'),outputs,ifrs=ifrs,bookmark=False);
+      self._add_inspector(ns.inspector('output'),name='Inspect corrected data or residuals');
       return outputs;
     # now apply the correction matrices
     for p,q in ifrs:

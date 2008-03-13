@@ -137,15 +137,20 @@ class IfrArray (object):
   def num_ifrs (self):
     return len(self._ifrs);
     
-  def spigots (self,node=None,**kw):
+  def spigots (self,node=None,corr=[0,1,2,3],**kw):
     """Creates (if necessary) and returns spigots, as an unqualified node.
     Extra keyword arguments will be passed to Spigot node."""
     if node is None:
       node = self.ns.spigot;
     (ip0,p0),(iq0,q0) = self.ifr_index()[0];
+    if len(corr) == 4:
+      dims = [2,2];
+    else:
+      dims = [ len(corr) ];
     if not node(p0,q0).initialized():
       for (ip,p),(iq,q) in self.ifr_index():
-        node(p,q) << Meq.Spigot(station_1_index=ip,station_2_index=iq,**kw);
+        node(p,q) << Meq.Spigot(station_1_index=ip,station_2_index=iq,
+                                corr_index=corr,dims=dims,**kw);
     return node;
       
   def sinks (self,children,node=None,**kw):

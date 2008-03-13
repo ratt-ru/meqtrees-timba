@@ -236,6 +236,17 @@ class MSContentSelector (object):
           value <= self.ms_ddid_numchannels[self.ddid_index];
 
 class MSSelector (object):
+  _corr_1 = "1";
+  _corr_2 = "2";
+  _corr_2x2 = "2x2";
+  _corr_2x2_diag = "2x2, diagonal terms only"
+  _corr_index = {
+    _corr_1:[0],
+    _corr_2:[0,-1,-1,1],
+    _corr_2x2:[0,1,2,3],
+    _corr_2x2_diag:[0,-1,-1,3],
+  };
+  
   """An MSSelector implements TDL options for selecting an MS and a subset therein""";
   def __init__ (self,
                 pattern="*.ms *.MS",
@@ -245,7 +256,7 @@ class MSSelector (object):
                 antsel=True,
                 tile_sizes=[1,5,10,20,30,60],
                 ddid=[0],
-                field=None,
+                field=[0],
                 channels=True,
                 flags=False,
                 hanning=False,
@@ -296,7 +307,12 @@ class MSSelector (object):
       if pycasatable:
         self.antsel_option.hide();
       self._compile_opts.append(self.antsel_option);
-    # input/output column options
+    # correlation options
+    self.corrsel_option = TDLOption("ms_corr_sel","Correlations",
+                                    [self._corr_2x2,self._corr_2x2_diag,
+                                    self._corr_2,self._corr_1],
+                                    namespace=self);
+    self._compile_opts.append(self.corrsel_option);
     self.ms_data_columns = ["DATA","MODEL_DATA","CORRECTED_DATA"];
     if isinstance(forbid_output,str):
       self._forbid_output = sets.Set([forbid_output]);
@@ -406,6 +422,11 @@ class MSSelector (object):
       return list(enumerate(self.ms_antenna_names));
     else:
       return default;
+    
+  def get_corr_index (self):
+    """Returns the set of selected antenna correlation indices
+    """;
+    return self._corr_index[self.ms_corr_sel];
 
   def make_subset_selector (self,namespace):
     """Makes an MSContentSelector object connected to this MS selector."""
@@ -439,6 +460,17 @@ class MSSelector (object):
       if self.antsel_option:
         self.antsel_option.set_option_list([None,"0:%d"%(len(self.ms_antenna_names)-1)]);
         self.antsel_option.show();
+      # correlations
+      corrs = pycasatable.table(ms.getkeyword('POLARIZATION'),
+                                   lockoptions='autonoread').getcol('CORR_TYPE');
+      ncorr = len(corrs[0]);
+      if ncorr < 2:
+        corrlist = [self._corr_1];
+      elif ncorr < 4:
+        corrlist = [self._corr_2,self._corr_1];
+      else:
+        corrlist = [self._corr_2x2,self._corr_2x2_diag,self._corr_2,self._corr_1];
+      self.corrsel_option.set_option_list(corrlist);
       # notify content selectors
       for sel in self._content_selectors:
         sel._select_new_ms(ms);
