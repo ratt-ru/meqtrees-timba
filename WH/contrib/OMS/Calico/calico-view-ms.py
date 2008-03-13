@@ -53,7 +53,7 @@ def _define_forest(ns):
   stas = array.stations();
 
   # make spigot nodes
-  spigots = spigots0 = array.spigots();
+  spigots = spigots0 = array.spigots(corr=mssel.get_corr_index());
   # invert phases if necessary
   if do_invert_phase:
     for p,q in array.ifrs():

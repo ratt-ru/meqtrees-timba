@@ -67,7 +67,7 @@ TDLRuntimeOptions(*mssel.runtime_options());
 
 TDLCompileOption('clear_ms_flags',"Ignore flags already in MS",False);
 TDLCompileOption('flag_xx_yy',"Flag on XX/YY values only",True);
-TDLCompileOption('flag_all_corrs',"Merge flags across all four correlations",True);
+TDLCompileOption('flag_all_corrs',"Merge flags across all correlations",True);
 TDLCompileOption('flag_abs',"Flag on absolute value >=",[None,1.,2.],more=float);
 TDLCompileOption('flag_rms',"Flag on rms sigmas >= ",[None,3.,5.,10.],more=float);
 
@@ -82,7 +82,8 @@ def _define_forest(ns):
     flag_mask = 0;
   else:
     flag_mask = -1;
-  outputs = spigots = array.spigots(flag_mask=flag_mask,row_flag_mask=flag_mask);
+  outputs = spigots = array.spigots(corr_index=mssel.get_corr_index(),
+                                  flag_mask=flag_mask,row_flag_mask=flag_mask);
   Meow.Bookmarks.make_node_folder("Input visibilities by baseline",
     [ spigots(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 
