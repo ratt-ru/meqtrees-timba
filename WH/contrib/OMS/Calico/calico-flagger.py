@@ -82,8 +82,8 @@ def _define_forest(ns):
     flag_mask = 0;
   else:
     flag_mask = -1;
-  outputs = spigots = array.spigots(corr_index=mssel.get_corr_index(),
-                                  flag_mask=flag_mask,row_flag_mask=flag_mask);
+  outputs = spigots = array.spigots(corr=mssel.get_corr_index(),
+                                    flag_mask=flag_mask,row_flag_mask=flag_mask);
   Meow.Bookmarks.make_node_folder("Input visibilities by baseline",
     [ spigots(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 
