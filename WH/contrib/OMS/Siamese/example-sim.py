@@ -58,10 +58,11 @@ meqmaker = MeqMaker.MeqMaker();
 # these will show up in the menu automatically
 import gridded_sky
 import transient_sky
+import fitsimage_sky
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 
-meqmaker.add_sky_models([gridded_sky,transient_sky,lsm]);
+meqmaker.add_sky_models([gridded_sky,transient_sky,fitsimage_sky,lsm]);
 
 # now add optional Jones terms
 # these will show up in the menu automatically
