@@ -63,17 +63,165 @@ _dprintf = _dbg.dprintf;
 #=====================================================================================
 
 
+class ResultVector (object):
+  """Contains a vector of child Results"""
+
+  def __init__ (self, results, name=None,
+                labels=None, select=None, index=None,
+                yoffset=0.0, xoffset=0.0,
+                mode=None):
+
+    self._name = name
+    self._mode = mode
+    self._yoffset = yoffset
+    self._xoffset = xoffset
+    self._index = index
+
+    # A subset of the given list of results may be selected:
+    if isinstance(select,(list,tuple)):
+      self._select = select
+    elif isinstance(select,int):
+      self._select = [select]
+    else:
+      self._select = range(len(results))
+
+    # Make a list of Result objects:
+    if not isinstance(results,(list,tuple)):
+      results = [results]
+    self._Result = []
+    for i,k in enumerate(self._select):
+      label = str(k)
+      if isinstance(labels,(list,tuple)):
+        label = labels[k]
+      self._Result.append(Result(results[k], name=label, iseq=i,
+                                 yoffset=self._yoffset,
+                                 xoffset=self._xoffset,
+                                 mode=self._mode))
+
+    # Finished:
+    return None
+
+  #---------------------------------------------------------------------
+  # Access routines:
+  #---------------------------------------------------------------------
+
+  def len(self):
+    """Return the number of (JEN) Results"""
+    return len(self._Result)
+
+  def mode(self):
+    """Return the mode of this object"""
+    return self._mode
+
+  def name(self):
+    """Return the name/label of this object"""
+    return str(self._name)
+
+  def __getitem__(self, index):
+    """Get the specified (index) Result object."""
+    return self._Result[index]
+
+
+  #---------------------------------------------------------------------
+  # display:
+  #---------------------------------------------------------------------
+
+  def oneliner(self):
+    """Return a one-line summary of this object""" 
+    ss = '** <ResultVector> '+str(self.name())+':'
+    ss += ' n='+str(self.len())
+    if not self._index==None:
+      ss += ' index='+str(self._index)
+    if self._mode:
+      ss += ' mode='+str(self.mode())
+    if self._yoffset:
+      ss += ' yoffset='+str(self._yoffset)
+    if self._xoffset:
+      ss += ' xoffset='+str(self._xoffset)
+    return ss
+
+
+  def display(self, txt=None, full=True):
+    """Print a multi-line summary of this object"""
+    print '\n** (txt='+str(txt)+')'
+    print ' * ',self.oneliner()
+    for i,rr in enumerate(self._Result):
+      print '    -',i,':',rr.oneliner()
+    if full:
+      print ' * yy =',self.yy()
+      print ' * xx =',self.xx()
+      print ' * labels =',self.labels()
+      print ' * dyy =',self.dyy()
+      print ' * dxx =',self.dxx()
+    print '**\n'
+
+  #---------------------------------------------------------------------
+  # Return lists of values for its Results
+  #---------------------------------------------------------------------
+
+  def yy(self, index=None):
+    """Return a list of yy values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.yy(index=(index or self._index)))
+    return vv
+
+  def xx(self, index=None):
+    """Return a list of xx values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.xx(index=(index or self._index)))
+    return vv
+
+  def labels(self, index=None):
+    """Return a list of labels."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.labels(index=(index or self._index)))
+    return vv
+
+  def dxx(self, index=None):
+    """Return a list of dxx values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.dxx(index=(index or self._index)))
+    return vv
+
+  def dyy(self, index=None):
+    """Return a list of dyy values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.dyy(index=(index or self._index)))
+    return vv
+
+
+
+#=====================================================================================
+#=====================================================================================
+
+
 class Result (object):
   """Helps to unpack a child (node) result"""
 
-  def __init__ (self, result, request=None):
+  def __init__ (self, result, name=None, iseq=0,
+                labels=None, mode=None,
+                yoffset=0.0, xoffset=0.0,
+                request=None):
 
     self._result = result
+    self._name = str(name)
+    if name==None:
+      self._name = 'V'+str(iseq)
+    self._labels = labels                              # e.g. [XX,XY,YX,YY]....
+    self._mode = mode
+    self._iseq = iseq
+    self._yoffset = yoffset
+    self._xoffset = xoffset
     self._request = request
 
     self._Cells = None
     if result.has_key('cells'):
-      self._Cells = Cells(result['cells'])  # Cells object!
+      self._Cells = Cells(result['cells'])             # Cells object!
 
     self._Vells = dict()             
     self._order = []             
@@ -83,15 +231,39 @@ class Result (object):
       self._Vells[key] = Vells(vellset['value'], self._Cells)
       if vellset.has_key('shape'):
         pass
-    
+
+    self._yy = None
+    self._xx = None
+    self._dyy = None
+    self._dxx = None
+
+    # Finished:
     return None
 
+  #---------------------------------------------------------------------
+  # Access routines:
+  #---------------------------------------------------------------------
+
   def len(self):
-    """Return the number of (JEN) Vells"""
+    """Return the number of (JEN) Vells in this result"""
     return len(self._order)
+
+  def name(self):
+    """Return the name/label of this result"""
+    return str(self._name)
+
+  def mode(self):
+    """Return the mode of this object"""
+    return self._mode
+
+  def iseq(self):
+    """Return the sequence nr of this result"""
+    return self._iseq
+
   def order(self):
     """Return a list of (JEN) Vells keys"""
     return self._order
+
   def Cells(self):
     """Return its (JEN) Cells object"""
     return len(self._Cells)
@@ -105,10 +277,16 @@ class Result (object):
       key = self._order[index]
     return self._Vells[key]
 
+  #---------------------------------------------------------------------
+  # display:
+  #---------------------------------------------------------------------
+
   def oneliner(self):
     """Return a one-line summary of this object""" 
-    ss = '** <Result>: '
+    ss = '** <Result> '+str(self.name())+' (iseq='+str(self.iseq())+'):'
     ss += ' n='+str(self.len())
+    if self._mode:
+      ss += ' mode='+str(self.mode())
     # ss += ' shape='+str(self.shape())
     if self._Cells:
       ss += '   '+self._Cells.oneliner()
@@ -126,6 +304,92 @@ class Result (object):
     """Show the MeqResult dict in detail"""
     show_value(self._result)
     return True
+
+
+  #---------------------------------------------------------------------
+  # Functions for extracting numbers from Vells
+  #---------------------------------------------------------------------
+
+  def yy(self, index=None):
+    """Return a list of yy values, for plotting."""
+    if not self._yy:
+      self._yy = []
+      self._xx = []
+
+      if self._mode=='pair':
+        # Assume that its two Vells represent x and y: 
+        x = self._Vells[self._order[0]].mean()
+        y = self._Vells[self._order[1]].mean()
+        self._xx.append(x+self._xoffset)
+        self._yy.append(y+self._yoffset)
+
+      else:                            # default (self._mode==None) 
+        for key in self._order:
+          x = self._iseq               # the same x for all its Vells
+          y = self._Vells[key].mean()
+          if isinstance(y,complex):
+            x = y.real
+            y = y.imag
+          self._xx.append(x+self._xoffset)
+          self._yy.append(y+self._yoffset)
+    # Return a list with the current yy, or one of its elements:
+    if isinstance(index,int): return [self._yy[index]]
+    return self._yy
+
+
+  def labels(self, index=None):
+    """Return a list of labels, with the same length as yy."""
+    if not self._labels:
+      self._labels = []
+      if self.len()==1:                   # One Vells only
+        self._labels.append(self.name())  
+      else:                               # Multiple Vells
+        for key in self._order:
+          self._labels.append(self.name()+'['+str(key)+']')
+    # Return a list with the current labels, or one of its elements:
+    if isinstance(index,int): return [self._labels[index]]
+    return self._labels
+
+
+  def dyy(self, index=None):
+    """Return a list of dyy values, with the same length as yy."""
+    if not self._dyy:
+      self._dyy = []
+      self._dxx = []
+      for key in self._order:
+        dx = 0.0
+        dy = self._Vells[key].errorbar()
+        if isinstance(dy,complex):
+          dx = dy.real
+          dy = dy.imag
+        self._dxx.append(dx)
+        self._dyy.append(dy)
+    # Return a list with the current dyy, or one of its elements:
+    if isinstance(index,int): return [self._dyy[index]]
+    return self._dyy
+
+
+  def xx(self, index=None):
+    """Return a list of xx values, with the same length as yy."""
+    if not self._xx or not len(self._xx)==self.len():
+      self._dxx = self.len()*[self._iseq]
+    # Return a list with the current xx, or one of its elements:
+    if isinstance(index,int): return [self._xx[index]]
+    return self._xx
+
+
+  def dxx(self, index=None):
+    """Return a list of dxx values, with the same length as yy."""
+    if not self._dxx:
+      self._dxx = self.len()*[0.0]
+    # Return a list with the current dxx, or one of its elements:
+    if isinstance(index,int): return [self._dxx[index]]
+    return self._dxx
+
+
+
+
+
 
 
 
@@ -308,7 +572,7 @@ class Cells (object):
 
 
 class OneChildPyNode (pynode.PyNode):
-  """Make a test pyNode that uses the ChildNodeResult class"""
+  """Make a test pyNode that uses the Result class"""
 
   def __init__ (self, *args):
     pynode.PyNode.__init__(self,*args);
@@ -324,6 +588,23 @@ class OneChildPyNode (pynode.PyNode):
     for key in cr.order():
       print cr[key].oneliner()
     return result
+
+
+#=====================================================================================
+
+
+class MultiChildPyNode (pynode.PyNode):
+  """Make a test pyNode that uses the ResultVector class"""
+
+  def __init__ (self, *args):
+    pynode.PyNode.__init__(self,*args);
+    self.set_symdeps('domain','resolution');
+                              
+  def get_result (self, request, *children):
+    rv = ResultVector(children)
+    # rv = ResultVector(children, mode='pair')
+    rv.display(full=True)
+    return children[0]
 
 
 
@@ -432,9 +713,13 @@ def _define_forest (ns,**kwargs):
       cc.append(ns['YX'] << -1-1j)
       cc.append(ns['YY'] << 1-1j)
       c = ns['child'] << Meq.Composer(*cc)
-      
-    classname = "OneChildPyNode"
-    ns.pynode << Meq.PyNode(c, class_name=classname, module_name=__file__)
+
+    if False:
+      classname = "OneChildPyNode"
+      ns.pynode << Meq.PyNode(c, class_name=classname, module_name=__file__)
+    else:
+      classname = "MultiChildPyNode"
+      ns.pynode << Meq.PyNode(children=cc, class_name=classname, module_name=__file__)
                 
   return True
   

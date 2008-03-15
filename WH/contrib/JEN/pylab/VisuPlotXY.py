@@ -106,6 +106,7 @@ class VisuPlotXY (pynode.PyNode):
     rr.setdefault('ylabel', 'y') 
     rr.setdefault('xoffset', 0.0) 
     rr.setdefault('yoffset', 0.0) 
+    rr.setdefault('mode', None) 
     rr.setdefault('color', 'blue') 
     rr.setdefault('linestyle', None) 
     rr.setdefault('marker', 'o') 
@@ -133,6 +134,7 @@ class VisuPlotXY (pynode.PyNode):
           print '\n-- subplot:',sp
         sp.setdefault('iix', None) 
         sp.setdefault('iiy', range(self._num_children)) 
+        sp.setdefault('index', None)                   # index into Vellsets 
         sp.xoffset = i*rr.xoffset
         sp.yoffset = i*rr.yoffset
         for key in self._spkeys:            
@@ -198,6 +200,7 @@ class VisuPlotXY (pynode.PyNode):
 
     sp.xoffset = 0.0
     sp.yoffset = 0.0
+    sp.index = None
     sp.setdefault('legend', 'legend')
     sp.legend = str(sp.legend)
 
@@ -259,134 +262,31 @@ class VisuPlotXY (pynode.PyNode):
 
   def get_result (self, request, *children):
     """Placeholder, to be re-implemented in derived classes"""
-    import Graphics
     grs = self.on_entry()
-    # Make separate Graphics/Subplot objects for the various subplots:
-    for i,sp in enumerate(self._subplot):
-      [yy,dyy,xx,dxx] = self.read_results(children, sp.iiy, offset=sp.yoffset,
-                                          error_bars=sp.plot_error_bars)
-      labels = self.read_labels(sp.iiy)
-
-      if xx:               
-        if not len(xx)==len(yy):
-          xx = range(self._num_children)
-      elif not sp.has_key('iix'):
-        xx = range(self._num_children)
-      elif not len(sp.iix)==len(yy):
-        xx = range(self._num_children)
-      else:
-        [xx,dxx,dummy,dummy] = self.read_results(children, sp.iix,
-                                                 offset=sp.xoffset)
-
-      grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
+    import ChildResult
+    import Graphics
+    for i,rr in enumerate(self._subplot):
+      rv = ChildResult.ResultVector(children,
+                                    labels=self.plotinfo.labels,
+                                    mode=self.plotinfo.mode,
+                                    select=rr.iiy, index=rr.index,
+                                    yoffset=rr.yoffset)
+      rv.display(self.class_name+'_'+str(i))
+      dxx = None
+      dyy = None
+      if rr.plot_error_bars:
+        dyy = rv.dyy()
+        dxx = rv.dxx()
+      grs1 = Graphics.Scatter(yy=rv.yy(), xx=rv.xx(), annot=rv.labels(),
                               dyy=dyy, dxx=dxx,           
-                              linestyle=sp.linestyle,
-                              marker=sp.marker,
-                              markersize=sp.markersize,
-                              color=sp.color)
+                              linestyle=rr.linestyle,
+                              marker=rr.marker,
+                              markersize=rr.markersize,
+                              color=rr.color)
       grs.add(grs1)
-      grs.legend(sp.legend, color=sp.color)
+      grs.legend(rr.legend, color=rr.color)
     # Finished:
     return self.on_exit(grs, trace=False)
-
-  #-------------------------------------------------------------------
-
-  def read_labels (self, ii=None, trace=False):
-    """Return a vector with a subset (ii) of labels (strings)
-    selected from self.plotinfo.labels.
-    """
-    if trace:
-      print '\n** .read_labels(',ii,'):'
-    if ii==None:
-      ii = range(self._num_children)
-    rr = self.plotinfo                   # convenience
-    labels = []
-    if not rr.has_key('labels'):
-      for i in ii:
-        labels.append(str(i))            # automatic
-    elif not isinstance(rr.labels, (list,tuple)):
-      for i in ii:
-        labels.append(str(i))            # automatic
-    elif not len(rr.labels)>max(ii):
-      for i in ii:
-        labels.append(str(-i))           # negative (warning)
-    else:
-      for i in ii:
-        labels.append(rr.labels[i])      # use the given labels
-    if trace:
-      print '  -> selected labels =',labels,'\n'
-    return labels
-
-  #-------------------------------------------------------------------
-
-  def read_results (self, children, ii=None, offset=0.0, 
-                    error_bars=True, trace=False):
-    """Return a vector of numbers from the results of the specified (ii) children.
-    """
-
-    # trace = True
-    
-    if trace:
-      print '\n**',self.name,'.read_results(',ii,'):'
-
-    # if ii==None:
-    #   ii = range(self._num_children)
-
-    # Select a vector of child results:
-    cc = []
-    for i in ii:
-      cc.append(children[i])
-
-    # Read the child results and fill the vector(s):
-    import ChildResult
-    vv = []                                   # vv is a vector of y-values
-    dvv = []
-    xx = []                                   # xx is a vector of x-values
-    dxx = []
-    for i in range(len(cc)):
-      cr = ChildResult.Result(cc[i])          # cc[i] is MeqResult class
-      if trace:
-        # cr.display()
-        # print '--',i,':',cr.oneliner()
-        pass
-      nv = cr.len()                           # nr of Vells in result
-      if nv==1:
-        Vells = cr[0]
-      else:
-        Vells = cr[1]
-      if trace:
-        print '---',i,'(y):',Vells.oneliner()
-      vv.append(offset+Vells.mean())
-      if error_bars:
-        dvv.append(Vells.errorbar())
-
-      # If the result has more than one Vells, assume (x,y):
-      if nv>1:
-        Vells = cr[0]
-        if trace:
-          print '---',i,'(x):',Vells.oneliner()
-        xx.append(Vells.mean())
-        if error_bars:
-          dxx.append(Vells.errorbar())
-
-    if trace:
-      print '  -> vv =',vv
-      if error_bars:
-        print '  -> dvv =',dvv
-      if len(xx)>0:
-        print '  -> xx =',xx
-        print '  -> dxx =',dxx
-        
-
-    # If no error-bars, set dvv to None:
-    if len(dvv)==0: dvv = None
-    if len(dxx)==0: dxx = None
-    if len(xx)==0: xx = None
-      
-    # Finished:
-    return [vv,dvv,xx,dxx]
-
-
 
 
 
@@ -404,19 +304,29 @@ class VisuPlotY (VisuPlotXY):
 
   def set_plotinfo_defaults(self, trace=False):
     """Set class-specific defaults in self.plotinfo"""
+    rr = self.plotinfo                   # convenience
+    rr.setdefault('xlabel', 'child') 
+    rr.setdefault('ylabel', 'result')
+    # Always call the baseclass function last:
     return VisuPlotXY.set_plotinfo_defaults(self, trace=trace)
                                                             
   #-------------------------------------------------------------------
 
   def get_result (self, request, *children):
     """Re-implementation of the function in baseclass VisuPlotXY"""
-    import Graphics
     grs = self.on_entry()
-    # Make separate Graphics/Subplot objects for the various subplots:
+    import ChildResult
+    import Graphics
     for i,rr in enumerate(self._subplot):
-      [yy,xx,labels,dyy,dxx] = self.read_results(children, rr.iiy, offset=rr.yoffset,
-                                                 error_bars=rr.plot_error_bars)
-      grs1 = Graphics.Scatter(yy=yy, xx=xx, annot=labels,
+      rv = ChildResult.ResultVector(children,
+                                    labels=self.plotinfo.labels,
+                                    select=rr.iiy, index=rr.index,
+                                    yoffset=rr.yoffset)
+      rv.display(self.class_name+'_'+str(i))
+      dyy = None
+      if rr.plot_error_bars:
+        dyy = rv.dyy()
+      grs1 = Graphics.Scatter(yy=rv.yy(), xx=rv.xx(), annot=rv.labels(),
                               dyy=dyy, dxx=None,
                               linestyle=rr.linestyle,
                               marker=rr.marker,
@@ -428,79 +338,11 @@ class VisuPlotY (VisuPlotXY):
     return self.on_exit(grs, trace=False)
 
 
-  #-------------------------------------------------------------------
-
-  def read_results (self, children, ii=None, offset=0.0, 
-                    error_bars=True, trace=False):
-    """Return vector(s) of numbers from the results of the specified (ii) children.
-    This is a re-implementation of the function in the base class.
-    """
-
-    trace = True
-    
-    if trace:
-      print '\n**',self.name,'.read_results(',ii,'):'
-
-    # Select a vector of child results:
-    cc = []
-    for i in ii:
-      cc.append(children[i])
-    clabels = self.read_labels(ii)            # child labels
-
-    # Read the child results and fill the vector(s):
-    import ChildResult
-    yy = []
-    xx = []
-    labels = []
-    dyy = []
-    dxx = []
-    for i in range(len(cc)):
-      cr = ChildResult.Result(cc[i])          # cc[i] is MeqResult class
-      if trace:
-        # cr.display()
-        # print '--',i,':',cr.oneliner()
-        pass
-      nv = cr.len()                           # nr of Vells in result
-      for k in range(nv):
-        Vells = cr[k]
-        if trace:
-          print '---',i,k,':',Vells.oneliner()
-        yy.append(offset+Vells.mean())
-        xx.append(i)
-        if nv==1:
-          labels.append(clabels[i])
-        else:
-          labels.append(clabels[i]+'_'+str(k))
-        if error_bars:
-          dyy.append(Vells.errorbar())
-
-    if trace:
-      print
-      print '  -> yy (',len(yy),') =',yy
-      print '  -> labels (',len(labels),') =',labels
-      print '  -> xx (',len(xx),') =',xx
-      print '  -> dyy (',len(dyy),') =',dyy
-      print '  -> dxx (',len(dxx),') =',dxx
-        
-    # if len(dyy)==0: dyy = None
-    # if len(dxx)==0: dxx = None
-      
-    # Finished:
-    return [yy,xx,labels,dyy,dxx]
-
-
-
 
 
 #=====================================================================================
 # Helper function(s): (May be called from other modules)
 #=====================================================================================
-
-
-
-
-
-
 
 
 
@@ -521,7 +363,7 @@ def _define_forest (ns,**kwargs):
                                      Meq.GaussNoise(stddev=0.1))
   gs = ns.gauss << Meq.GaussNoise(stddev=0.5)
   
-  if False:
+  if True:
     classname = 'VisuPlotXY'
     name = classname+'p'              # pairs VisuPlotXY
     cc = []
@@ -535,7 +377,7 @@ def _define_forest (ns,**kwargs):
       xy = ns.pair(i) << Meq.Composer(x,y)
       cc.append(xy)
       labels.append('pair_'+str(i))    
-    rr[name] = record(title=name, labels=labels)
+    rr[name] = record(title=name, labels=labels, mode='pair')
     classnames[name] = classname
     children[name] = cc
 
@@ -592,12 +434,12 @@ def _define_forest (ns,**kwargs):
 
   #-----------------------------------------------------------------------
       
-  if True:
+  if False:
     classname = 'VisuPlotY'
     name = classname
     cc = []
     labels = []
-    rr[name] = record(title=name, ylabel='y', labels=None,
+    rr[name] = record(title=name, labels=None,
                       yoffset=-2.0, subplot=[])
     colors = ['blue','magenta','cyan']
     for k in range(2):
