@@ -44,6 +44,7 @@ import sky_models
 
 Settings.forest_state.cache_policy = 100
 
+
 # some GUI options
 Meow.Utils.include_ms_options(has_input=False,tile_sizes=[16,32,48,96]);
 TDLRuntimeMenu("Imaging options",
@@ -89,14 +90,35 @@ TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
   TDLOption('do_solve','Solve for Structure Parameters?',[True,False]),
 );
 
-mep_table = 'pointing_coeffs.mep'
-# first, make sure that any previous version of the mep table is
-# obliterated so nothing strange happens in succeeding steps
 if do_solve:
-  try:
-    os.system("rm -fr "+ mep_table);
-  except:   pass
+  Settings.forest_state = record(bookmarks=[
+    record(name='Results',page=[
+      record(udi="/node/AzPoint:2",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/ElPoint:2",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/AzPoint:18",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/ElPoint:18",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/AzPoint:25",viewer="Result Plotter",pos=(2,0)),
+      record(udi="/node/ElPoint:25",viewer="Result Plotter",pos=(2,1))]),
+    record(name='Solve Results',page=[
+      record(udi="/node/solve_AzPoint:2",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/solve_ElPoint:2",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/solve_AzPoint:18",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/solve_ElPoint:18",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/solve_AzPoint:25",viewer="Result Plotter",pos=(2,0)),
+      record(udi="/node/solve_ElPoint:25",viewer="Result Plotter",pos=(2,1))])]);
+else:
+# setup a bookmark for display of results.
+  Settings.forest_state = record(bookmarks=[
+    record(name='Results',page=[
+      record(udi="/node/AzPoint:2",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/ElPoint:2",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/AzPoint:18",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/ElPoint:18",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/AzPoint:25",viewer="Result Plotter",pos=(2,0)),
+      record(udi="/node/ElPoint:25",viewer="Result Plotter",pos=(2,1))])]);
 
+
+mep_table = 'pointing_coeffs.mep'
 
 # get Azimuth / Elevation telescope random tracking errors
 TDLCompileOption("max_tr_error","Max tracking error, arcsec",[0,1,2,5],more=float);
@@ -226,22 +248,33 @@ def _define_forest (ns):
       ns.solve_PS(p) << tpolc(0, -1.0 * axis_offset_PS * PS)
       ns.solve_EX(p) << tpolc(0, -1.0 * axis_offset_EX * EX)
       ns.solve_EZ(p) << tpolc(0, -1.0 * axis_offset_EZ * EZ)
+      if abs(AZ_EN) > 0:
+        solvables.append(ns.solve_AZ_EN(p))
+      if abs(EL_EN) > 0:
+        solvables.append(ns.solve_EL_EN(p))
+      if abs(NPAE) > 0:
+        solvables.append(ns.solve_NPAE(p))
+      if abs(AW) > 0:
+        solvables.append(ns.solve_AW(p))
+      if abs(AS) > 0:
+        solvables.append(ns.solve_AS(p))
+      if abs(GRAV) > 0:
+        solvables.append(ns.solve_GRAV(p))
+      if abs(CX) > 0:
+        solvables.append(ns.solve_CX(p))
+      if abs(CY) > 0:
+        solvables.append(ns.solve_CY(p))
+      if abs(PW) > 0:
+        solvables.append(ns.solve_PW(p))
+      if abs(PS) > 0:
+        solvables.append(ns.solve_PS(p))
+      if abs(EX) > 0:
+        solvables.append(ns.solve_EX(p))
+      if abs(EZ) > 0:
+        solvables.append(ns.solve_EZ(p))
 
-      solvables.append(ns.solve_AZ_EN(p))
-      solvables.append(ns.solve_EL_EN(p))
-      solvables.append(ns.solve_NPAE(p))
-      solvables.append(ns.solve_AW(p))
-      solvables.append(ns.solve_AS(p))
-      solvables.append(ns.solve_GRAV(p))
-      solvables.append(ns.solve_CX(p))
-      solvables.append(ns.solve_CY(p))
-      solvables.append(ns.solve_PW(p))
-      solvables.append(ns.solve_PS(p))
-      solvables.append(ns.solve_EX(p))
-      solvables.append(ns.solve_EZ(p))
-
-      ns.solve_AzPoint(p) << ns.solve_NPAE(p) *ns.SinEl(p)  - ns.solve_AZ_EN(p) * ns.CosEl(p) + ns.solve_AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.solve_AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.solve_CX(p) + ns.solve_PW(p) * ns.SinPa(p) - ns.solve_PS(p) * ns.CosPa(p)
-      ns.solve_ElPoint(p) << ns.solve_PW(p) * ns.SinPa(p) - ns.solve_EX(p) * ns.SinEl(p) - (ns.solve_EZ(p) + ns.solve_GRAV(p)) * ns.CosEl(p) - ns.solve_AS(p) * ns.CosAz(p) - ns.solve_AW(p) * ns.SinAz(p) - ns.solve_EL_EN(p) - ns.solve_CY(p) - ns.solve_PS(p)  * ns.SinPa(p) 
+      ns.solve_AzPoint(p) << ns.solve_NPAE(p) *ns.SinEl(p)  - ns.solve_AZ_EN(p) * ns.CosEl(p) + ns.solve_AW(p) * ns.SinEl(p) * ns.CosAz(p) - ns.solve_AS(p) * ns.SinAz(p) * ns.SinEl(p) + ns.solve_CX(p) + ns.solve_PW(p) * ns.CosPa(p) + ns.solve_PS(p) * ns.SinPa(p)
+      ns.solve_ElPoint(p) << ns.solve_PW(p) * ns.SinPa(p) - ns.solve_EX(p) * ns.SinEl(p) - (ns.solve_EZ(p) + ns.solve_GRAV(p)) * ns.CosEl(p) - ns.solve_AS(p) * ns.CosAz(p) - ns.solve_AW(p) * ns.SinAz(p) - ns.solve_EL_EN(p) - ns.solve_CY(p) - ns.solve_PS(p)  * ns.CosPa(p) 
 
       # combine azimuth and elevation errors into one node
       # and convert to radians
@@ -291,13 +324,15 @@ def _define_forest (ns):
       ns.residual(p,q) << observed(p,q) - expected(p,q);
     pg1.add(ns.ce(1,2), viewer="Result Plotter")
     pg1.add(ns.ce(10,20), viewer="Result Plotter")
+    pg1.add(observed(1,2), viewer="Result Plotter")
+    pg1.add(observed(10,20), viewer="Result Plotter")
 
     inspectors.append(
       Meow.StdTrees.vis_inspector(ns.inspect_residuals,ns.reqseq) );
     pg.add(ns.inspect_residuals,viewer="Collections Plotter");
 
     # create solver
-    ns.solver << Meq.Solver(solvable=solvables,num_iter=5,epsilon=1e-4,save_funklets=True,*[ns.ce(p,q) for p,q in array.ifrs()]);
+    ns.solver << Meq.Solver(solvable=solvables,num_iter=40,epsilon=1e-4,save_funklets=True,*[ns.ce(p,q) for p,q in array.ifrs()]);
     pg1.add(ns.solver, viewer="Result Plotter")
 
     # create sequencer
@@ -310,7 +345,14 @@ def _define_forest (ns):
     Meow.StdTrees.make_sinks(ns,observed,spigots=False,post=inspectors);
 
 
-def _tdl_job_1_simulate_MS (mqs,parent):
+def _test_forest(mqs,parent):
+# first, make sure that any previous version of the mep table is
+# obliterated so nothing strange happens in succeeding steps
+  if do_solve:
+    try:
+      os.system("rm -fr "+ mep_table);
+    except:   pass
+
   req = Meow.Utils.create_io_request();
   # execute    
   mqs.execute('VisDataMux',req,wait=False);
