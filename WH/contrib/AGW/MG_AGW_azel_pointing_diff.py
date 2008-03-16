@@ -82,18 +82,18 @@ def ASKAP_voltage_response(E, lm):
 
 # get Azimuth / Elevation telescope structural errors
 TDLCompileMenu('Telescope Maximum Structural Errors - in arcsec',
-  TDLOption('AS','Amount by which telescope azimuth axis is South of Vertical',[0,5,10,20],more=float),
-  TDLOption('AW','Amount by which telescope azimuth axis is West of Vertical',[0,5,10,20],more=float),
-  TDLOption('AZ_EN','Azimuth encoder offset',[0,5,10,20],more=float),
-  TDLOption('EL_EN','Elevation encoder offset',[0,5,10,20],more=float),
-  TDLOption('NPAE','Amount by which telescope elevation axis is not perpendicular to azimuth axis',[0,5,10,20],more=float),
-  TDLOption('EX','Amount by which telescope elevation axis is decentered in X',[0,5,10,20],more=float),
-  TDLOption('EZ','Amount by which telescope elevation axis is decentered in Z',[0,5,10,20],more=float),
-  TDLOption('CX','Beam Collimation Error X',[0,5,10,20],more=float),
-  TDLOption('CY','Beam Collimation Error Y',[0,5,10,20],more=float),
-  TDLOption('PW','Parallactic Angle Tilt W',[0,5,10,20],more=float),
-  TDLOption('PS','Parallactic Angle Tilt S',[0,5,10,20],more=float),
-  TDLOption('GRAV','Gravitational deformation',[0,5,10,20],more=float),
+  TDLOption('AS','Amount by which telescope azimuth axis is South of Vertical',[0,2.5,5,10,20],more=float),
+  TDLOption('AW','Amount by which telescope azimuth axis is West of Vertical',[0,2.5,5,10,20],more=float),
+  TDLOption('AZ_EN','Azimuth encoder offset',[0,2.5,5,10,20],more=float),
+  TDLOption('EL_EN','Elevation encoder offset',[0,2.5,5,10,20],more=float),
+  TDLOption('NPAE','Amount by which telescope elevation axis is not perpendicular to azimuth axis',[0,2.5,5,10,20],more=float),
+  TDLOption('EX','Amount by which telescope elevation axis is decentered in X',[0,2.5,5,10,20],more=float),
+  TDLOption('EZ','Amount by which telescope elevation axis is decentered in Z',[0,2.5,5,10,20],more=float),
+  TDLOption('CX','Beam Collimation Error X',[0,2.5,5,10,20],more=float),
+  TDLOption('CY','Beam Collimation Error Y',[0,2.5,5,10,20],more=float),
+  TDLOption('PW','Parallactic Angle Tilt W',[0,2.5,5,10,20],more=float),
+  TDLOption('PS','Parallactic Angle Tilt S',[0,2.5,5,10,20],more=float),
+  TDLOption('GRAV','Gravitational deformation',[0,2.5,5,10,20],more=float),
   TDLOption('randomize_axes','Randomize above extremes for each telescope?',[True,False]),
 );
 
@@ -123,19 +123,36 @@ def _define_forest (ns):
   Meow.Context.set(array=array,observation=observation);
 
   # create nodes to compute tracking errors per antenna
+
+  # do the following here for case dishes all behave the same way
+  # convert random periods of daz/del variation from hours to seconds
+  if max_tr_error > 0.0:
+    ant_max_tr_error = (max_tr_error,max_tr_error)
+    daz = random.uniform(min_tr_period*3600,max_tr_period*3600);
+    dell = random.uniform(min_tr_period*3600,max_tr_period*3600);
+    # pick a random starting phase for the variations
+    daz_0 = random.uniform(0,2*math.pi);    
+    del_0 = random.uniform(0,2*math.pi);
+
+  if saw_max_tr_error > 0.0:
+    saw_ant_max_tr_error = (saw_max_tr_error, saw_max_tr_error)
+    saw_daz = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
+    saw_dell = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
+    # pick a random starting phase for the variations
+    saw_daz_0 = random.uniform(-43200, 43200)
+    saw_del_0 = random.uniform(-43200, 43200)
+
   for p in array.stations():
     if max_tr_error > 0.0:
       if randomize_track_error:
         ant_max_tr_error = (random.uniform(0, max_tr_error), random.uniform(0, max_tr_error))
-      else:
-        ant_max_tr_error = (max_tr_error,max_tr_error)
-      # to add random errors on top of systematic ones
-      # convert random periods of daz/del variation from hours to seconds
-      daz = random.uniform(min_tr_period*3600,max_tr_period*3600);
-      dell = random.uniform(min_tr_period*3600,max_tr_period*3600);
-      # pick a random starting phase for the variations
-      daz_0 = random.uniform(0,2*math.pi); 
-      del_0 = random.uniform(0,2*math.pi);
+        # to add random errors on top of systematic ones
+        # convert random periods of daz/del variation from hours to seconds
+        daz = random.uniform(min_tr_period*3600,max_tr_period*3600);
+        dell = random.uniform(min_tr_period*3600,max_tr_period*3600);
+        # pick a random starting phase for the variations
+        daz_0 = random.uniform(0,2*math.pi); 
+        del_0 = random.uniform(0,2*math.pi);
       ns.daz(p) << ant_max_tr_error[0] *Meq.Sin(Meq.Time()*(2*math.pi/daz)+daz_0);
       ns.dell(p) << ant_max_tr_error[1] *Meq.Sin(Meq.Time()*(2*math.pi/dell)+del_0);
     else:
@@ -145,15 +162,13 @@ def _define_forest (ns):
     if saw_max_tr_error > 0.0:
       if saw_randomize_track_error:
         saw_ant_max_tr_error = (random.uniform(0, saw_max_tr_error),random.uniform(0, saw_max_tr_error))
-      else:
-        saw_ant_max_tr_error = (saw_max_tr_error, saw_max_tr_error)
-      # to add random errors on top of systematic ones
-      # convert random periods of daz/del variation from hours to seconds
-      saw_daz = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
-      saw_dell = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
-      # pick a random starting phase for the variations
-      saw_daz_0 = random.uniform(-43200, 43200)
-      saw_del_0 = random.uniform(-43200, 43200)
+        # to add random errors on top of systematic ones
+        # convert random periods of daz/del variation from hours to seconds
+        saw_daz = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
+        saw_dell = random.uniform(saw_min_tr_period*3600,saw_max_tr_period*3600);
+        # pick a random starting phase for the variations
+        saw_daz_0 = random.uniform(-43200, 43200)
+        saw_del_0 = random.uniform(-43200, 43200)
       ns.saw_az(p) << ( Meq.Time() + saw_daz_0 ) / saw_daz
       ns.saw_el(p) << ( Meq.Time() + saw_del_0 ) / saw_dell
       ns.saw_daz(p) << 2.0 * saw_ant_max_tr_error[0] * (ns.saw_az(p) - Meq.Floor(ns.saw_az(p) + 0.5) )
