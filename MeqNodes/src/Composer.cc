@@ -65,50 +65,106 @@ int Composer::getResult (Result::Ref &resref,
   for( uint i=0; i<childres.size(); i++ )
     nres += childres[i]->numVellSets();
   // in tensor mode, check for matching dims
-  bool tensor_mode = ( dims_.size() == 1 && dims_[0] == 0 );
-  const Result::Dims & dims0 = childres[0]->dims();
-  // check that integrated property matches, and tensor dims match
-  // (in tensor mode)
-  bool integrated = childres[0]->isIntegrated();
-  for( int i=1; i<numChildren(); i++ )
+  bool tensor_mode = false;
+  Result::Dims dims0;
+  int nres0;
+  // if any children are tensors, then they must have the same rank and dims (=dims0).
+  // It is possible to mix tensors and scalars, though 
+  for( int i=0; i<numChildren(); i++ )
   {
-    FailWhen( childres[i]->isIntegrated() != integrated,
-        "'integrated' property of child results is not uniform");
-    FailWhen( tensor_mode && childres[i]->dims() != dims0,
-        "tensor dimensions of child results are not uniform");
+    const Result &chres = *childres[i];
+    bool tensor = chres.tensorRank()>1 || chres.numVellSets()>1;
+    if( tensor )
+    {
+      // tensor_mode=true if we've come upon at least one child with a tensor
+      // result. Once that happens, start verifying dimensions
+      if( tensor_mode )
+      {
+        FailWhen(dims0 != chres.dims(),
+              "tensor dimensions of child results are not uniform");
+      }
+      else
+      {
+        dims0 = chres.dims();
+        nres0 = dims0.product();
+        tensor_mode = true;
+      }
+    }
   }
   // compose the result
   Result *presult;
   if( dims_.empty() )
-    resref <<= presult = new Result(nres,integrated);
+    resref <<= presult = new Result(nres);
   else
   {
+    // in tensor mode, result is composed with a new outer tensor dimension 
+    // going over children
     if( tensor_mode )
     {
       Result::Dims dims(true,dims0.size()+1);
       dims[0] = childres.size();
       for( uint i=1; i<dims.size(); i++ )
         dims[i] = dims0[i-1];
-      resref <<= presult = new Result(dims,integrated);
+      resref <<= presult = new Result(dims);
     }
     else // use standard dims
-      resref <<= presult = new Result(dims_,integrated);
-    FailWhen(presult->numVellSets()!=nres,
-             "number of child results does not match tensor dimensions");
+      resref <<= presult = new Result(dims_);
   }
   int ires=0;
   const Cells *pcells = 0;
   for( int i=0; i<numChildren(); i++ )
   {
     const Result &chres = *childres[i];
-    for( int ivs=0; ivs<chres.numVellSets(); ivs++ )
+    // in tensor mode, we have to make sure the right number of vellsets is
+    // inserted for, e.g., missing children
+    if( tensor_mode )
     {
-      const VellSet &vs = chres.vellSet(ivs);
-      presult->setVellSet(ires++,vs);
-      if( vs.isFail() )
-        nfails++;
-      else if( vs.isEmpty() )
-        nmissing++;
+      // if child has the right number of vellsets already, just copy them over
+      if( chres.numVellSets() == nres0 )
+      {
+        for( int ivs=0; ivs<chres.numVellSets(); ivs++ )
+        {
+          const VellSet &vs = chres.vellSet(ivs);
+          presult->setVellSet(ires++,vs);
+          if( vs.isFail() )
+            nfails++;
+          else if( vs.isEmpty() )
+            nmissing++;
+        }
+      }
+      // else fill in tensor dims with repeated scalar vellset
+      else if( chres.numVellSets() <= 1 )
+      {
+        VellSet::Ref vsref;
+        if( chres.numVellSets() )
+        {
+          vsref <<= &( chres.vellSet(0) );
+          if( vsref->isFail() )
+            nfails += nres0;
+        }
+        else
+        {
+          vsref <<= new VellSet;
+          nmissing += nres0;
+        }
+        for( int ivs=0; ivs<nres0; ivs++ )
+          presult->setVellSet(ires++,*vsref);
+      }
+      else
+        Throw(Debug::ssprintf("child %d returned an unexpected number of Result planes (%d)",i,chres.numVellSets()));
+    }
+    // in normal mode, just append child results one after the other
+    else
+    {
+      for( int ivs=0; ivs<chres.numVellSets(); ivs++ )
+      {
+        const VellSet &vs = chres.vellSet(ivs);
+        presult->setVellSet(ires++,vs);
+        if( vs.isFail() )
+          nfails++;
+        else if( vs.isEmpty() )
+          nmissing++;
+      }
     }
     if( !pcells && chres.hasCells() )
       pcells = &( chres.cells() );
