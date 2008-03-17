@@ -81,7 +81,8 @@ int Composer::getResult (Result::Ref &resref,
       if( tensor_mode )
       {
         FailWhen(dims0 != chres.dims(),
-              "tensor dimensions of child results are not uniform");
+          Debug::ssprintf(
+            "tensor dimensions of child result %d does not match the others",i));
       }
       else
       {
