@@ -67,15 +67,17 @@ class ResultVector (object):
   """Contains a vector of child Results"""
 
   def __init__ (self, results, name=None,
-                labels=None, select=None, index=None,
-                yoffset=0.0, xoffset=0.0,
+                labels=None, vlabels=None,
+                select=None, index=None,
+                offset=0.0, xindex=None, yindex=None, 
                 mode=None):
 
     self._name = name
     self._mode = mode
-    self._yoffset = yoffset
-    self._xoffset = xoffset
+    self._offset = offset
     self._index = index
+    self._xindex = xindex
+    self._yindex = yindex
 
     # A subset of the given list of results may be selected:
     if isinstance(select,(list,tuple)):
@@ -92,10 +94,14 @@ class ResultVector (object):
     for i,k in enumerate(self._select):
       label = str(k)
       if isinstance(labels,(list,tuple)):
-        label = labels[k]
+        label = '?'
+        if k>=0 and k<len(labels):
+          label = labels[k]
       self._Result.append(Result(results[k], name=label, iseq=i,
-                                 yoffset=self._yoffset,
-                                 xoffset=self._xoffset,
+                                 vlabels=vlabels,
+                                 offset=self._offset,
+                                 xindex=self._xindex,
+                                 yindex=self._yindex,
                                  mode=self._mode))
 
     # Finished:
@@ -130,14 +136,18 @@ class ResultVector (object):
     """Return a one-line summary of this object""" 
     ss = '** <ResultVector> '+str(self.name())+':'
     ss += ' n='+str(self.len())
+    if not self._vlabels==None:
+      ss += ' '+str(self._vlabels)
     if not self._index==None:
       ss += ' index='+str(self._index)
+    if not self._xindex==None:
+      ss += ' xindex='+str(self._xindex)
+    if not self._yindex==None:
+      ss += ' yindex='+str(self._yindex)
     if self._mode:
       ss += ' mode='+str(self.mode())
-    if self._yoffset:
-      ss += ' yoffset='+str(self._yoffset)
-    if self._xoffset:
-      ss += ' xoffset='+str(self._xoffset)
+    if self._offset:
+      ss += ' offset='+str(self._offset)
     return ss
 
 
@@ -148,16 +158,32 @@ class ResultVector (object):
     for i,rr in enumerate(self._Result):
       print '    -',i,':',rr.oneliner()
     if full:
-      print ' * yy =',self.yy()
-      print ' * xx =',self.xx()
+      print ' * vv =',self.vv()
+      print ' * dvv =',self.dvv()
       print ' * labels =',self.labels()
-      print ' * dyy =',self.dyy()
+      print ' * xx =',self.xx()
       print ' * dxx =',self.dxx()
+      print ' * yy =',self.yy()
+      print ' * dyy =',self.dyy()
     print '**\n'
 
   #---------------------------------------------------------------------
   # Return lists of values for its Results
   #---------------------------------------------------------------------
+
+  def vv(self, index=None):
+    """Return a list of values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.vv(index=(index or self._index)))
+    return vv
+
+  def dvv(self, index=None):
+    """Return a list of values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.dvv(index=(index or self._index)))
+    return vv
 
   def yy(self, index=None):
     """Return a list of yy values."""
@@ -204,19 +230,21 @@ class Result (object):
   """Helps to unpack a child (node) result"""
 
   def __init__ (self, result, name=None, iseq=0,
-                labels=None, mode=None,
-                yoffset=0.0, xoffset=0.0,
+                vlabels=None,
+                mode=None, offset=0.0,
+                xindex=None, yindex=None,
                 request=None):
 
     self._result = result
     self._name = str(name)
     if name==None:
       self._name = 'V'+str(iseq)
-    self._labels = labels                              # e.g. [XX,XY,YX,YY]....
+    self._vlabels = vlabels             # list of Vells labels, e.g. [XX,XY,YX,YY]....
     self._mode = mode
     self._iseq = iseq
-    self._yoffset = yoffset
-    self._xoffset = xoffset
+    self._offset = offset
+    self._xindex = xindex
+    self._yindex = yindex
     self._request = request
 
     self._Cells = None
@@ -232,10 +260,17 @@ class Result (object):
       if vellset.has_key('shape'):
         pass
 
-    self._yy = None
-    self._xx = None
-    self._dyy = None
-    self._dxx = None
+    # The values (mean/stddev over the domain) of the result
+    self._vv = []
+    self._dvv = []
+
+    # The x-coordinates (mean/stddev):
+    self._xx = []
+    self._dxx = []
+
+    # The y-coordinates (mean/stddev) (if any):
+    self._yy = []
+    self._dyy = []
 
     # Finished:
     return None
@@ -285,6 +320,10 @@ class Result (object):
     """Return a one-line summary of this object""" 
     ss = '** <Result> '+str(self.name())+' (iseq='+str(self.iseq())+'):'
     ss += ' n='+str(self.len())
+    if isinstance(self._xindex,int):
+      ss += ' xindex='+str(self._xindex)
+    if isinstance(self._yindex,int):
+      ss += ' yindex='+str(self._yindex)
     if self._mode:
       ss += ' mode='+str(self.mode())
     # ss += ' shape='+str(self.shape())
@@ -310,83 +349,116 @@ class Result (object):
   # Functions for extracting numbers from Vells
   #---------------------------------------------------------------------
 
-  def yy(self, index=None):
-    """Return a list of yy values, for plotting."""
-    if not self._yy:
-      self._yy = []
+  def vv(self, index=None):
+    """Calculate the various vectors of values, labels and coordinates.
+    Return a list of vv values."""
+    if not self._vv:
+      self._vv = []
+      self._dvv = []
+      self._labels = []
       self._xx = []
+      self._yy = []
+      self._dxx = []
+      self._dyy = []
+      
+      for i,key in enumerate(self._order):
+        v = self._Vells[key].mean()                   # the mean of the domain values
+        dv = self._Vells[key].errorbar()              # the stddev of the domain values
+        if isinstance(dv,complex): dv = abs(dv)       # .....?
 
-      if self._mode=='pair':
-        # Assume that its two Vells represent x and y: 
-        x = self._Vells[self._order[0]].mean()
-        y = self._Vells[self._order[1]].mean()
-        self._xx.append(x+self._xoffset)
-        self._yy.append(y+self._yoffset)
+        if self._xindex==i:
+          # This Vells contains an x-coordinate value
+          if isinstance(v,complex): v = abs(v)        # just in case
+          self._xx.append(v)
+          self._dxx.append(dv)
 
-      else:                            # default (self._mode==None) 
-        for key in self._order:
-          x = self._iseq               # the same x for all its Vells
-          y = self._Vells[key].mean()
-          if isinstance(y,complex):
-            x = y.real
-            y = y.imag
-          self._xx.append(x+self._xoffset)
-          self._yy.append(y+self._yoffset)
-    # Return a list with the current yy, or one of its elements:
-    if isinstance(index,int): return [self._yy[index]]
-    return self._yy
+        elif self._yindex==i:
+          # This Vells contains an y-coordinate value
+          if isinstance(v,complex): v = abs(v)        # just in case
+          self._yy.append(v)
+          self._dyy.append(dv)
+
+        else:
+          # This Vells contains a value (v):
+          if isinstance(v,complex):
+            self._xx.append(v.real)
+            self._dxx.append(dv)
+            self._vv.append(v.imag+self._offset)
+          else:
+            self._vv.append(v+self._offset)
+          self._dvv.append(dv)
+          label = self.name()
+          if isinstance(self._vlabels,(list,tuple)): # Vells labels
+            label = self._vlabels[i]                 # .... can be dangerous ....
+          label += '['+str(key)+']'
+          self._labels.append(label)
+    # Finished:
+    return self.vvout(self._vv, index)
+
+  #----------------------------------------------------------------
+
+  def vvout (self, vv, index=None):
+    """Helper function to return the required list:
+    If an index is specified, return a list with the specified element(s) of vv.
+    Otherwise, return the entire list vv"""
+    if isinstance(index,int):
+      return [vv[index]]
+    return vv
+
+  #----------------------------------------------------------------
+
+  def dvv(self, index=None):
+    """Return a list of dvv (stddev) values."""
+    if not self._dvv: self.vv()             # make sure that there is a self._vv
+    if not len(self._dvv)==len(self._vv):
+      # Default: dvv==0 for all the values self._vv
+      self._dvv = len(self._vv)*[0.0]
+    return self.vvout(self._dvv, index)
 
 
   def labels(self, index=None):
-    """Return a list of labels, with the same length as yy."""
-    if not self._labels:
-      self._labels = []
-      if self.len()==1:                   # One Vells only
-        self._labels.append(self.name())  
-      else:                               # Multiple Vells
-        for key in self._order:
-          self._labels.append(self.name()+'['+str(key)+']')
-    # Return a list with the current labels, or one of its elements:
-    if isinstance(index,int): return [self._labels[index]]
-    return self._labels
-
-
-  def dyy(self, index=None):
-    """Return a list of dyy values, with the same length as yy."""
-    if not self._dyy:
-      self._dyy = []
-      self._dxx = []
-      for key in self._order:
-        dx = 0.0
-        dy = self._Vells[key].errorbar()
-        if isinstance(dy,complex):
-          dx = dy.real
-          dy = dy.imag
-        self._dxx.append(dx)
-        self._dyy.append(dy)
-    # Return a list with the current dyy, or one of its elements:
-    if isinstance(index,int): return [self._dyy[index]]
-    return self._dyy
+    """Return a list of labels with the same length as self._vv."""
+    if not self._labels: self.vv()          # make sure that there is a self._vv
+    if not len(self._labels)==len(self._vv):
+      # Something wrong: indicate by question mark labels
+      self._labels = len(self._vv)*['?']
+    return self.vvout(self._labels, index)
 
 
   def xx(self, index=None):
-    """Return a list of xx values, with the same length as yy."""
-    if not self._xx or not len(self._xx)==self.len():
-      self._dxx = self.len()*[self._iseq]
-    # Return a list with the current xx, or one of its elements:
-    if isinstance(index,int): return [self._xx[index]]
-    return self._xx
+    """Return a list of x-coordinates"""
+    if not self._xx: self.vv()              # make sure that there is a self._vv
+    if not len(self._xx)==len(self._vv):
+      # Default: the same x for all the values self._vv
+      self._xx = len(self._vv)*[self._iseq]
+    return self.vvout(self._xx, index)
 
 
   def dxx(self, index=None):
-    """Return a list of dxx values, with the same length as yy."""
-    if not self._dxx:
-      self._dxx = self.len()*[0.0]
-    # Return a list with the current dxx, or one of its elements:
-    if isinstance(index,int): return [self._dxx[index]]
-    return self._dxx
+    """Return a list of error-bars for x-coordinates"""
+    if not self._dxx: self.vv()             # make sure that there is a self._vv
+    if not len(self._dxx)==len(self._vv):
+      # Default: dxx==0 for all the values self._vv
+      self._dxx = len(self._vv)*[0.0]
+    return self.vvout(self._dxx, index)
 
 
+  def yy(self, index=None):
+    """Return a list of x-coordinates"""
+    if not self._yy: self.vv()              # make sure that there is a self._vv
+    if not len(self._yy)==len(self._vv):
+      # Default: the same y for all the values self._vv
+      self._yy = len(self._vv)*[self._iseq]
+    return self.vvout(self._yy, index)
+
+
+  def dyy(self, index=None):
+    """Return a list of error-bars for x-coordinates"""
+    if not self._dyy: self.vv()             # make sure that there is a self._vv
+    if not len(self._dyy)==len(self._vv):
+      # Default: dyy==0 for all the values self._vv
+      self._dyy = len(self._vv)*[0.0]
+    return self.vvout(self._dyy, index)
 
 
 
@@ -601,8 +673,10 @@ class MultiChildPyNode (pynode.PyNode):
     self.set_symdeps('domain','resolution');
                               
   def get_result (self, request, *children):
-    rv = ResultVector(children)
-    # rv = ResultVector(children, mode='pair')
+    rv = ResultVector(children, offset=0.0)
+    rv = ResultVector(children, xindex=1, yindex=2,
+                      vlabels=['P','Q'],
+                      labels=['a','b','c','d'])
     rv.display(full=True)
     return children[0]
 
@@ -706,12 +780,20 @@ def _define_forest (ns,**kwargs):
     # c = ns['child'] << Meq.Add(Meq.Time(),Meq.Freq())
     # c = ns['child'] << Meq.ToComplex(Meq.Time(),Meq.Freq())
     # c = ns['child'] << Meq.Composer(Meq.Time(),3.4)
-    if True:
+
+    if False:
       cc = []
       cc.append(ns['XX'] << 1+1j)
       cc.append(ns['XY'] << -1+1j)
       cc.append(ns['YX'] << -1-1j)
       cc.append(ns['YY'] << 1-1j)
+      c = ns['child'] << Meq.Composer(*cc)
+
+    elif True:
+      cc = []
+      cc.append(ns['123'] << Meq.Composer(1,2,3))
+      cc.append(ns['456'] << Meq.Composer(4,5,6))
+      cc.append(ns['789'] << Meq.Composer(7,8,9))
       c = ns['child'] << Meq.Composer(*cc)
 
     if False:

@@ -104,8 +104,7 @@ class VisuPlotXY (pynode.PyNode):
     rr.setdefault('title', self.name) 
     rr.setdefault('xlabel', 'x') 
     rr.setdefault('ylabel', 'y') 
-    rr.setdefault('xoffset', 0.0) 
-    rr.setdefault('yoffset', 0.0) 
+    rr.setdefault('offset', 0.0) 
     rr.setdefault('mode', None) 
     rr.setdefault('color', 'blue') 
     rr.setdefault('linestyle', None) 
@@ -135,16 +134,15 @@ class VisuPlotXY (pynode.PyNode):
         sp.setdefault('iix', None) 
         sp.setdefault('iiy', range(self._num_children)) 
         sp.setdefault('index', None)                   # index into Vellsets 
-        sp.xoffset = i*rr.xoffset
-        sp.yoffset = i*rr.yoffset
+        sp.offset = i*rr.offset
         for key in self._spkeys:            
           sp.setdefault(key, rr[key]) 
         sp.setdefault('legend', str(i))
         sp.legend = str(sp.legend)
-        if sp.yoffset>0.0:
-          sp.legend += ' (+'+str(sp.yoffset)+')'
-        elif sp.yoffset<0.0:
-          sp.legend += ' ('+str(sp.yoffset)+')'
+        if sp.offset>0.0:
+          sp.legend += ' (+'+str(sp.offset)+')'
+        elif sp.offset<0.0:
+          sp.legend += ' ('+str(sp.offset)+')'
         if trace:
           for key in sp.keys():
             print '  -',key,':',sp[key]
@@ -198,8 +196,7 @@ class VisuPlotXY (pynode.PyNode):
         else:                                 # y-child
           sp.iiy.append(i)
 
-    sp.xoffset = 0.0
-    sp.yoffset = 0.0
+    sp.offset = 0.0
     sp.index = None
     sp.setdefault('legend', 'legend')
     sp.legend = str(sp.legend)
@@ -270,7 +267,7 @@ class VisuPlotXY (pynode.PyNode):
                                     labels=self.plotinfo.labels,
                                     mode=self.plotinfo.mode,
                                     select=rr.iiy, index=rr.index,
-                                    yoffset=rr.yoffset)
+                                    offset=rr.offset)
       rv.display(self.class_name+'_'+str(i))
       dxx = None
       dyy = None
@@ -321,13 +318,13 @@ class VisuPlotY (VisuPlotXY):
       rv = ChildResult.ResultVector(children,
                                     labels=self.plotinfo.labels,
                                     select=rr.iiy, index=rr.index,
-                                    yoffset=rr.yoffset)
+                                    offset=rr.offset)
       rv.display(self.class_name+'_'+str(i))
-      dyy = None
+      dvv = None
       if rr.plot_error_bars:
-        dyy = rv.dyy()
-      grs1 = Graphics.Scatter(yy=rv.yy(), xx=rv.xx(), annot=rv.labels(),
-                              dyy=dyy, dxx=None,
+        dvv = rv.dvv()
+      grs1 = Graphics.Scatter(yy=rv.vv(), xx=rv.xx(), annot=rv.labels(),
+                              dyy=dvv, dxx=None,
                               linestyle=rr.linestyle,
                               marker=rr.marker,
                               markersize=rr.markersize,
@@ -363,7 +360,7 @@ def _define_forest (ns,**kwargs):
                                      Meq.GaussNoise(stddev=0.1))
   gs = ns.gauss << Meq.GaussNoise(stddev=0.5)
   
-  if True:
+  if False:
     classname = 'VisuPlotXY'
     name = classname+'p'              # pairs VisuPlotXY
     cc = []
@@ -410,7 +407,7 @@ def _define_forest (ns,**kwargs):
     cc = []
     labels = []
     rr[name] = record(title=name, xlabel='x', ylabel='y',
-                      yoffset=-2.0, subplot=[])
+                      offset=-2.0, subplot=[])
     colors = ['blue','magenta','cyan']
     for k in range(3):
       iix = []
@@ -434,13 +431,13 @@ def _define_forest (ns,**kwargs):
 
   #-----------------------------------------------------------------------
       
-  if False:
+  if True:
     classname = 'VisuPlotY'
     name = classname
     cc = []
     labels = []
     rr[name] = record(title=name, labels=None,
-                      yoffset=-2.0, subplot=[])
+                      offset=-2.0, subplot=[])
     colors = ['blue','magenta','cyan']
     for k in range(2):
       yname = 'y2_'+str(k)
