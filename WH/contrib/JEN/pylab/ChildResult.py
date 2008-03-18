@@ -75,6 +75,7 @@ class ResultVector (object):
     self._name = name
     self._mode = mode
     self._offset = offset
+    self._vlabels = vlabels
     self._index = index
     self._xindex = xindex
     self._yindex = yindex
@@ -98,7 +99,7 @@ class ResultVector (object):
         if k>=0 and k<len(labels):
           label = labels[k]
       self._Result.append(Result(results[k], name=label, iseq=i,
-                                 vlabels=vlabels,
+                                 vlabels=self._vlabels,
                                  offset=self._offset,
                                  xindex=self._xindex,
                                  yindex=self._yindex,
@@ -135,7 +136,7 @@ class ResultVector (object):
   def oneliner(self):
     """Return a one-line summary of this object""" 
     ss = '** <ResultVector> '+str(self.name())+':'
-    ss += ' n='+str(self.len())
+    ss += ' nChildren='+str(self.len())
     if not self._vlabels==None:
       ss += ' '+str(self._vlabels)
     if not self._index==None:
@@ -227,7 +228,7 @@ class ResultVector (object):
 
 
 class Result (object):
-  """Helps to unpack a child (node) result"""
+  """Helps to unpack a child (node) result."""
 
   def __init__ (self, result, name=None, iseq=0,
                 vlabels=None,
@@ -235,26 +236,36 @@ class Result (object):
                 xindex=None, yindex=None,
                 request=None):
 
-    self._result = result
-    self._name = str(name)
-    if name==None:
-      self._name = 'V'+str(iseq)
+    self._result = result               # child result (record)
+    
+    self._name = str(name)              # child label
+    self._iseq = iseq                   # child sequence number
+    if name==None:                      
+      self._name = 'V'+str(iseq)        # default child label
+      
     self._vlabels = vlabels             # list of Vells labels, e.g. [XX,XY,YX,YY]....
-    self._mode = mode
-    self._iseq = iseq
-    self._offset = offset
-    self._xindex = xindex
-    self._yindex = yindex
+    self._xindex = xindex               # index of 'x' Vells (for x,y plotting)
+    self._yindex = yindex               # index of 'y' Vells (for x,y,z plotting)
+    self._offset = offset               # optional offset to the values vv
     self._request = request
+    self._mode = mode                   # not used
 
     self._Cells = None
     if result.has_key('cells'):
-      self._Cells = Cells(result['cells'])             # Cells object!
+      self._Cells = Cells(result['cells'])      # Cells object!
 
+    # Make a dict of Vells objects: 
     self._Vells = dict()             
     self._order = []             
     for i,vellset in enumerate(result['vellsets']):
       key = str(i)
+      if i==self._xindex:
+        key = 'x'
+      elif i==self._yindex:
+        key = 'y'
+      elif isinstance(vlabels,(list,tuple)):
+        if i<len(vlabels):
+          key = vlabels[i]
       self._order.append(key)
       self._Vells[key] = Vells(vellset['value'], self._Cells)
       if vellset.has_key('shape'):
@@ -319,11 +330,8 @@ class Result (object):
   def oneliner(self):
     """Return a one-line summary of this object""" 
     ss = '** <Result> '+str(self.name())+' (iseq='+str(self.iseq())+'):'
-    ss += ' n='+str(self.len())
-    if isinstance(self._xindex,int):
-      ss += ' xindex='+str(self._xindex)
-    if isinstance(self._yindex,int):
-      ss += ' yindex='+str(self._yindex)
+    ss += ' nVells='+str(self.len())
+    ss += ' '+str(self._order)
     if self._mode:
       ss += ' mode='+str(self.mode())
     # ss += ' shape='+str(self.shape())
@@ -360,6 +368,14 @@ class Result (object):
       self._yy = []
       self._dxx = []
       self._dyy = []
+
+      # First count the number (nv) of 'value' Vells
+      nv = 0
+      for i,key in enumerate(self._order):
+        if i==self._xindex or i==self._yindex:
+          pass                                        # ignore
+        else:
+          nv += 1
       
       for i,key in enumerate(self._order):
         v = self._Vells[key].mean()                   # the mean of the domain values
@@ -388,9 +404,13 @@ class Result (object):
             self._vv.append(v+self._offset)
           self._dvv.append(dv)
           label = self.name()
-          if isinstance(self._vlabels,(list,tuple)): # Vells labels
-            label = self._vlabels[i]                 # .... can be dangerous ....
-          label += '['+str(key)+']'
+          if nv>1:                                    # multiple 'values' Vells
+            if not isinstance(self._vlabels,(list,tuple)):    # Vells labels
+              label += '['+str(key)+']'
+            elif i>=len(self._vlabels):
+              label += '['+str(key)+'?]'
+            else:
+              label += '['+self._vlabels[i]+']'   
           self._labels.append(label)
     # Finished:
     return self.vvout(self._vv, index)
@@ -622,10 +642,10 @@ class Cells (object):
   #--------------------------------------
 
   def oneliner(self):
-    ss = '** <Cells>: '
-    ss += ' n='+str(self.len())
-    ss += ' shape='+str(self.shape())
-    ss += ' axes='+str(self._axes)
+    ss = '** <Cells>:'
+    ss += ' '+str(self.len())
+    ss += ' '+str(self.shape())
+    ss += ' '+str(self._axes)
     return ss
                               
   def show (self):

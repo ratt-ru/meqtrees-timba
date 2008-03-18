@@ -99,21 +99,36 @@ class VisuPlotXY (pynode.PyNode):
 
     rr = self.plotinfo                                 # convenience
 
+    rr.setdefault('labels', self._num_children*[None]) 
+    if not isinstance(rr['labels'], (list,tuple)):
+      rr['labels'] = self._num_children*[None]
+    elif not len(rr['labels'])==self._num_children:
+      rr['labels'] = self._num_children*[None]
+
     title = 'VisuPlotXY_'+self.class_name
     title += '_'+str(self._num_children)
     rr.setdefault('title', self.name) 
     rr.setdefault('xlabel', 'x') 
     rr.setdefault('ylabel', 'y') 
-    rr.setdefault('offset', 0.0) 
-    rr.setdefault('mode', None) 
-    rr.setdefault('color', 'blue') 
-    rr.setdefault('linestyle', None) 
+
+    rr.setdefault('offset', 0.0)                      # optional v-offset
+    rr.setdefault('xindex', None)                     # index of x-coord Vells
+    rr.setdefault('yindex', None)                     # index of y-coord Vells
+    rr.setdefault('mode', None)                       # not used.... 
+
+    rr.setdefault('vlabels', None)                    # vector of Vells labels 
+    rr.setdefault('index', None)                      # index(es) of value Vells 
+    rr.setdefault('color', 'blue')                    # color(s)
+    rr.setdefault('linestyle', None)                  
     rr.setdefault('marker', 'o') 
     rr.setdefault('markersize', 5) 
     rr.setdefault('plot_error_bars', True)
 
+
+
     # The following keys are used in other routines; 
     self._spkeys = ['color','linestyle','marker','markersize']
+    self._spkeys.extend(['xindex','yindex'])
     self._spkeys.extend(['plot_error_bars'])
 
     if trace:
@@ -158,8 +173,8 @@ class VisuPlotXY (pynode.PyNode):
 
   def make_default_plotinfo_subplot(self, trace=False):
     """If there are no subplots, make a default one from the children
-    and the labels (if present).
-    - If no labels, or len(labels)!=len(children), use implicit x
+    and the labels.
+    - If no labels, or len(labels)!=len(children), use implicit x (0,1,2,...)
     - If labels are present:
     --- x-child: label==None
     --- y-child: label is anything else (e.g. str or float) -> str
@@ -181,21 +196,21 @@ class VisuPlotXY (pynode.PyNode):
       sp.setdefault(key, rr[key]) 
 
     # The x and y children are identified by the labels
-    if not rr.has_key('labels'):
-      rr['labels'] = self._num_children*[None]
-    elif not isinstance(rr['labels'], (list,tuple)):
-      rr['labels'] = self._num_children*[None]
-    elif not len(rr['labels'])==self._num_children:
-      rr['labels'] = self._num_children*[None]
-    else:
-      sp.iix = []
-      sp.iiy = []
-      for i,label in enumerate(rr['labels']):
-        if label==None:                       # x-child
-          sp.iix.append(i)
-        else:                                 # y-child
-          sp.iiy.append(i)
+    sp.iix = []
+    sp.iiy = []
+    for i,label in enumerate(rr['labels']):
+      if label==None:                       # x-child
+        sp.iix.append(i)
+      else:                                 # y-child
+        sp.iiy.append(i)
 
+    if len(sp.iiy)==0:
+      sp.iiy = None
+      sp.iix = None
+    elif not len(sp.iix)==len(sp.iiy):
+      sp.iiy = None
+      sp.iix = None
+      
     sp.offset = 0.0
     sp.index = None
     sp.setdefault('legend', 'legend')
@@ -262,28 +277,39 @@ class VisuPlotXY (pynode.PyNode):
     grs = self.on_entry()
     import ChildResult
     import Graphics
-    for i,rr in enumerate(self._subplot):
-      rv = ChildResult.ResultVector(children,
-                                    labels=self.plotinfo.labels,
-                                    mode=self.plotinfo.mode,
-                                    select=rr.iiy, index=rr.index,
-                                    offset=rr.offset)
+    for i,sp in enumerate(self._subplot):
+      rv = ChildResult.ResultVector(children, labels=self.plotinfo.labels,
+                                    select=sp.iiy, index=sp.index,
+                                    xindex=sp.xindex, yindex=sp.yindex,
+                                    offset=sp.offset)
       rv.display(self.class_name+'_'+str(i))
-      dxx = None
-      dyy = None
-      if rr.plot_error_bars:
-        dyy = rv.dyy()
+      dyy = rv.dvv()
+
+      if sp.iix==None:
+        xx = rv.xx()
         dxx = rv.dxx()
-      grs1 = Graphics.Scatter(yy=rv.yy(), xx=rv.xx(), annot=rv.labels(),
+      else:
+        rvx = ChildResult.ResultVector(children, labels=self.plotinfo.labels,
+                                       select=sp.iix)
+        xx = rvx.vv()
+        dxx = rvx.dxx()
+
+      if not sp.plot_error_bars:
+        dyy = None
+        dxx = None
+
+      grs1 = Graphics.Scatter(yy=rv.vv(), xx=xx, annot=rv.labels(),
                               dyy=dyy, dxx=dxx,           
-                              linestyle=rr.linestyle,
-                              marker=rr.marker,
-                              markersize=rr.markersize,
-                              color=rr.color)
+                              linestyle=sp.linestyle,
+                              marker=sp.marker,
+                              markersize=sp.markersize,
+                              color=sp.color)
       grs.add(grs1)
-      grs.legend(rr.legend, color=rr.color)
+      grs.legend(sp.legend, color=sp.color)
     # Finished:
     return self.on_exit(grs, trace=False)
+
+
 
 
 
@@ -314,23 +340,23 @@ class VisuPlotY (VisuPlotXY):
     grs = self.on_entry()
     import ChildResult
     import Graphics
-    for i,rr in enumerate(self._subplot):
+    for i,sp in enumerate(self._subplot):
       rv = ChildResult.ResultVector(children,
                                     labels=self.plotinfo.labels,
-                                    select=rr.iiy, index=rr.index,
-                                    offset=rr.offset)
+                                    select=sp.iiy, index=sp.index,
+                                    offset=sp.offset)
       rv.display(self.class_name+'_'+str(i))
-      dvv = None
-      if rr.plot_error_bars:
-        dvv = rv.dvv()
+      dyy = None
+      if sp.plot_error_bars:
+        dyy = rv.dvv()
       grs1 = Graphics.Scatter(yy=rv.vv(), xx=rv.xx(), annot=rv.labels(),
-                              dyy=dvv, dxx=None,
-                              linestyle=rr.linestyle,
-                              marker=rr.marker,
-                              markersize=rr.markersize,
-                              color=rr.color)
+                              dyy=dyy, dxx=None,
+                              linestyle=sp.linestyle,
+                              marker=sp.marker,
+                              markersize=sp.markersize,
+                              color=sp.color)
       grs.add(grs1)
-      grs.legend(rr.legend, color=rr.color)
+      grs.legend(sp.legend, color=sp.color)
     # Finished
     return self.on_exit(grs, trace=False)
 
@@ -360,7 +386,7 @@ def _define_forest (ns,**kwargs):
                                      Meq.GaussNoise(stddev=0.1))
   gs = ns.gauss << Meq.GaussNoise(stddev=0.5)
   
-  if False:
+  if True:
     classname = 'VisuPlotXY'
     name = classname+'p'              # pairs VisuPlotXY
     cc = []
@@ -374,12 +400,12 @@ def _define_forest (ns,**kwargs):
       xy = ns.pair(i) << Meq.Composer(x,y)
       cc.append(xy)
       labels.append('pair_'+str(i))    
-    rr[name] = record(title=name, labels=labels, mode='pair')
+    rr[name] = record(title=name, labels=labels, xindex=0)
     classnames[name] = classname
     children[name] = cc
 
 
-  if False:
+  if True:
     classname = 'VisuPlotXY'
     name = classname+'m'              # minimal VisuPlotXY
     cc = []
@@ -401,7 +427,7 @@ def _define_forest (ns,**kwargs):
     children[name] = cc
 
 
-  if False:
+  if True:
     classname = 'VisuPlotXY'
     name = classname
     cc = []
