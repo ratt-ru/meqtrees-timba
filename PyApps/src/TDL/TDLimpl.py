@@ -1136,9 +1136,10 @@ class _NodeRepository (dict):
     """finds the node "family" with the given name prefix:
     i.e. all nodes that are initialized, and whose name is "name_prefix"
     or "name_prefix:*" """;
-    regex = re.compile(name_prefix+"(:.*)?$").match;
+    match = lambda name:name.startswith(name_prefix) and (
+                          len(name) == len(name_prefix) or name[len(name_prefix)] == ':');
     return [ node for name,node in self.iteritems() \
-                  if regex(name) and node._initrec is not None ];
+                  if match(name) and node._initrec is not None ];
 
   def resolve (self,cleanup_orphans):
     """resolves contents of repository.

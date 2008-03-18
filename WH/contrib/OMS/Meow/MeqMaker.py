@@ -418,11 +418,13 @@ class MeqMaker (object):
       self._add_inspector(ns.inspector('output'),name='Inspect corrected data or residuals');
       return outputs;
     # now apply the correction matrices
+    StdTrees.vis_inspector(ns.inspector('uncorr'),inputs,ifrs=ifrs,bookmark=False);
+    self._add_inspector(ns.inspector('uncorr'),name='Inspect uncorrected data/residuals');
     for p,q in ifrs:
       outputs(p,q) << Meq.MatrixMultiply(Jinv(p),inputs(p,q),Jtinv(q));
 
     # make an inspector for the results
     StdTrees.vis_inspector(ns.inspector('output'),outputs,ifrs=ifrs,bookmark=False);
-    self._add_inspector(ns.inspector('output'),name='Inspect corrected data or residuals');
+    self._add_inspector(ns.inspector('output'),name='Inspect corrected data/residuals');
 
     return outputs;
