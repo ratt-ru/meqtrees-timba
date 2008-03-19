@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -30,13 +30,13 @@ _wsrt_list = [ str(i) for i in range(10)] + ['A','B','C','D','E','F'];
 _vla_list = [ str(i) for i in range(1,28) ];
 
 _uvw_from_ms = "from MS";
-_uvw_compute = "compute";
-_uvw_sign_ba = "B-A (VLA style)";
-_uvw_sign_ab = "A-B (WSRT style)";
+_uvw_compute_mirror = "compute (VLA convention)";
+_uvw_compute = "compute (WSRT convention)";
 
 _options = [
-  TDLOption('uvw_source',"UVW coordinates",[_uvw_from_ms,_uvw_compute]),
-  TDLOption('uvw_sign',"UVW sign convention",[_uvw_sign_ba,_uvw_sign_ab])
+  TDLOption('uvw_source',"UVW coordinates",[_uvw_from_ms,_uvw_compute_mirror,_uvw_compute],
+      doc="""UVW coordinates can be read from the MS, or recomputed on the fly.
+      In the latter case, you have a choice of two opposite sign conventions.""")
 ];
 
 class IfrArray (object):
@@ -53,18 +53,18 @@ class IfrArray (object):
     'station_index' is an optional list of numeric station indices. If not given,
       [0,...,N-1] will be used. This is an alternative to passing in tuples
       to station_list.
-    'uvw_table' is a path to a MEP table containing station UVWs. 
+    'uvw_table' is a path to a MEP table containing station UVWs.
     'ms_uvw' if True, causes UVWs to be read from the MS. If False, causes UVWs to
       be computed with a Meq.UVW node. If None, uses the global uvw_source TDLOption.
-    'mirror_uvw' is True to use the VLA UVW sign definition, False to use the WSRT one,
-      or None to use the global uvw_sign option.
+    'mirror_uvw' only applicable if UVWs are being computed. If True, uses the VLA
+      UVW sign definition, if False, uses the WSRT one.
     """;
     self.ns = ns;
     # select UVW options
     if ms_uvw is None:
       ms_uvw = (uvw_source == _uvw_from_ms);
-    if mirror_uvw is None:
-      mirror_uvw = (uvw_sign == _uvw_sign_ba);
+      if not ms_uvw:
+        mirror_uvw = (uvw_source == _uvw_compute_mirror);
     # make list of station pairs: (0,p0),(1,p1),... etc.
     if station_index:
       if len(station_list) != len(station_index):
@@ -77,14 +77,14 @@ class IfrArray (object):
         self._station_index = list(enumerate(station_list));
     # now make some other lists
     self._stations = [ px[1] for px in self._station_index ];
-    self._ifr_index = [ (px,qx) for px in self._station_index 
+    self._ifr_index = [ (px,qx) for px in self._station_index
                                 for qx in self._station_index if px[0]<qx[0] ];
     self._ifrs = [ (px[1],qx[1]) for px,qx in self._ifr_index ];
     self._uvw_table = uvw_table;
     self._ms_uvw = ms_uvw;
     self._mirror_uvw = mirror_uvw;
     self._jones = [];
-    
+
   def WSRT (ns,stations=14,uvw_table=None,mirror_uvw=False):
     """Creates and returns an IfrArray for WSRT, i.e., with proper labels.
     The 'stations' argument can be either a number of stations (then only
@@ -101,7 +101,7 @@ class IfrArray (object):
       raise TypeError,"WSRT 'stations' argument must be a list of stations, or a number";
     return IfrArray(ns,stations,station_index=index,uvw_table=uvw_table,mirror_uvw=mirror_uvw);
   WSRT = staticmethod(WSRT);
-  
+
   def VLA (ns,stations=27,uvw_table=None,mirror_uvw=False):
     """Creates and returns an IfrArray for VLA, i.e., with proper labels.
     The 'stations' argument can be either a number of stations (then only
@@ -121,22 +121,22 @@ class IfrArray (object):
 
   def stations (self):
     return self._stations;
-    
+
   def station_index (self):
     return self._station_index;
-    
+
   def num_stations (self):
     return len(self._stations);
-    
+
   def ifrs (self):
     return self._ifrs;
-    
+
   def ifr_index (self):
     return self._ifr_index;
-    
+
   def num_ifrs (self):
     return len(self._ifrs);
-    
+
   def spigots (self,node=None,corr=[0,1,2,3],**kw):
     """Creates (if necessary) and returns spigots, as an unqualified node.
     Extra keyword arguments will be passed to Spigot node."""
@@ -152,7 +152,7 @@ class IfrArray (object):
         node(p,q) << Meq.Spigot(station_1_index=ip,station_2_index=iq,
                                 corr_index=corr,dims=dims,**kw);
     return node;
-      
+
   def sinks (self,children,node=None,**kw):
     """Creates (if necessary) and returns sinks, as an unqualified node.
     The 'children' argument should be a list of child nodes, which
@@ -167,12 +167,12 @@ class IfrArray (object):
                                station_1_index=ip,station_2_index=iq,
                                **kw);
     return node;
-    
+
   def xyz0 (self):
     """Returns array reference position node""";
     self.xyz();
     return self.ns.xyz0;
-    
+
   def xyz (self,*quals):
     """Returns unqualified station position nodes,
     If a station is supplied, returns XYZ node for that station""";
@@ -193,7 +193,7 @@ class IfrArray (object):
         if not xyz0.initialized():
           xyz0 << Meq.Selector(xyz); # xyz0 == xyz first station essentially
     return self.ns.xyz(*quals);
-    
+
   def x_station(self,*quals):
     self.xyz();
     if not self.ns.x_station(self.stations()[0]).initialized():
@@ -234,13 +234,7 @@ class IfrArray (object):
         p = self.stations()[0];
         uvw(p) << Meq.Composer(0,0,0);
         for iq,q in enumerate(self.stations()[1:]):
-          if self._mirror_uvw:
-            uvw(q,'neg') << Meq.Spigot(station_1_index=0,station_2_index=iq+1,
-                                  input_col='UVW');
-            uvw(q) << -uvw(q,'neg');
-          else:
-            uvw(q) << Meq.Spigot(station_1_index=0,station_2_index=iq+1,
-                                  input_col='UVW');
+          uvw(q) << Meq.Spigot(station_1_index=0,station_2_index=iq+1,input_col='UVW');
       elif self._uvw_table:
         # read UVWs from MEP table
         for station in self.stations():
@@ -263,7 +257,7 @@ class IfrArray (object):
           else:
             uvw(station) << uvw_def;
     return uvw(*quals);
-  
+
   def uvw_ifr (self,dir0,*quals):
     """returns interferometer UVW node(s) for a given phase centre direction,
     or using the global phase center if None is given.
@@ -276,7 +270,7 @@ class IfrArray (object):
       for sta1,sta2 in self.ifrs():
         uvw_ifr(sta1,sta2) << uvw(sta2) - uvw(sta1);
     return uvw_ifr(*quals);
-    
+
   def uv (self,dir0,*quals):
     """returns station UV node(s) for a given phase centre direction,
     or using the global phase center if None is given.
