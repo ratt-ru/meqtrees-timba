@@ -84,7 +84,7 @@ TDLCompileOption('do_ifr_errors',"Use interferometer-based errors",False);
 
 def _define_forest (ns):
   ANTENNAS = mssel.get_antenna_set(range(1,15));
-  array = Meow.IfrArray(ns,ANTENNAS);
+  array = Meow.IfrArray(ns,ANTENNAS,resamplers=do_resample);
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
   stas = array.stations();
