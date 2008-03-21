@@ -69,11 +69,10 @@ class ResultVector (object):
   def __init__ (self, results, name=None,
                 labels=None, vlabels=None,
                 select=None, index=None,
-                offset=0.0, xindex=None, yindex=None, 
-                mode=None):
+                xindex=None, yindex=None, 
+                offset=0.0):
 
     self._name = name
-    self._mode = mode
     self._offset = offset
     self._vlabels = vlabels
     self._index = index
@@ -100,10 +99,9 @@ class ResultVector (object):
           label = labels[k]
       self._Result.append(Result(results[k], name=label, iseq=i,
                                  vlabels=self._vlabels,
-                                 offset=self._offset,
                                  xindex=self._xindex,
                                  yindex=self._yindex,
-                                 mode=self._mode))
+                                 offset=self._offset))
 
     # Finished:
     return None
@@ -115,10 +113,6 @@ class ResultVector (object):
   def len(self):
     """Return the number of (JEN) Results"""
     return len(self._Result)
-
-  def mode(self):
-    """Return the mode of this object"""
-    return self._mode
 
   def name(self):
     """Return the name/label of this object"""
@@ -145,8 +139,6 @@ class ResultVector (object):
       ss += ' xindex='+str(self._xindex)
     if not self._yindex==None:
       ss += ' yindex='+str(self._yindex)
-    if self._mode:
-      ss += ' mode='+str(self.mode())
     if self._offset:
       ss += ' offset='+str(self._offset)
     return ss
@@ -232,7 +224,7 @@ class Result (object):
 
   def __init__ (self, result, name=None, iseq=0,
                 vlabels=None,
-                mode=None, offset=0.0,
+                offset=0.0,
                 xindex=None, yindex=None,
                 request=None):
 
@@ -248,7 +240,10 @@ class Result (object):
     self._yindex = yindex               # index of 'y' Vells (for x,y,z plotting)
     self._offset = offset               # optional offset to the values vv
     self._request = request
-    self._mode = mode                   # not used
+
+    self._plotinfo = None
+    if result.has_key('plotinfo'):
+      self._plotinfo = result['plotinfo']       # plot information
 
     self._Cells = None
     if result.has_key('cells'):
@@ -298,10 +293,6 @@ class Result (object):
     """Return the name/label of this result"""
     return str(self._name)
 
-  def mode(self):
-    """Return the mode of this object"""
-    return self._mode
-
   def iseq(self):
     """Return the sequence nr of this result"""
     return self._iseq
@@ -312,7 +303,11 @@ class Result (object):
 
   def Cells(self):
     """Return its (JEN) Cells object"""
-    return len(self._Cells)
+    return self._Cells
+                              
+  def plotinfo(self):
+    """Return its plotinfo record (if any)"""
+    return self._plotinfo
                               
   def __getitem__(self, index):
     """Get the specified (index) Vells object. The index may either be
@@ -332,9 +327,8 @@ class Result (object):
     ss = '** <Result> '+str(self.name())+' (iseq='+str(self.iseq())+'):'
     ss += ' nVells='+str(self.len())
     ss += ' '+str(self._order)
-    if self._mode:
-      ss += ' mode='+str(self.mode())
-    # ss += ' shape='+str(self.shape())
+    if self._plotinfo:
+      ss += ' (has plotinfo record)'
     if self._Cells:
       ss += '   '+self._Cells.oneliner()
     return ss
