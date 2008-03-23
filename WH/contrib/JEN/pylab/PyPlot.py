@@ -85,8 +85,8 @@ class PyPlot (pynode.PyNode):
     """
 
     trace = False
-    # trace = True
-    
+    trace = True
+
     mystate('name')
     mystate('class_name')
     mystate('child_indices')
@@ -101,6 +101,11 @@ class PyPlot (pynode.PyNode):
     #     number of 'regular' (plottable) children, which is
     #     OK for the generation of lists of plot-specifications....
 
+    if trace:
+      print '\n*******************************************'
+      print '** .update_state()',self.class_name,self.name,self.child_indices
+      print '*******************************************\n'
+    
     # Read the plotinfo record, and check it:
     mystate('plotinfo')
     self.check_plotinfo(trace=trace)
@@ -146,17 +151,18 @@ class PyPlot (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def check_and_append_subplot(self, sp, trace=True):
+  def check_and_append_subplot(self, sp, trace=False):
     """Check the integrity of the given subplot definition,
     and append it to self.plotinfo.
     """
 
-    if not sp.offset==0.0:
+    rr = self.plotinfo
+    if not rr.offset==0.0:
       sp.legend = str(sp.legend)
-      if sp.offset>0.0:
-        sp.legend += ' (+'+str(sp.offset)+')'
-      elif sp.offset<0.0:
-        sp.legend += ' ('+str(sp.offset)+')'
+      if rr.offset>0.0:
+        sp.legend += ' (+'+str(rr.offset)+')'
+      elif rr.offset<0.0:
+        sp.legend += ' ('+str(rr.offset)+')'
 
     if trace:
       print '\n** .append_subplot():'
@@ -190,6 +196,7 @@ class PyPlot (pynode.PyNode):
     # Thus, nodes derived from PyPlot may be concatenated to produce
     # complicated plots. But they can also be used by themselves.
     
+    self.plotinfo.subplot = []            # If not, subplots accumulate.....
     cc = []
     for c in children:
       if c.has_key('plotinfo'):
@@ -211,13 +218,17 @@ class PyPlot (pynode.PyNode):
     # make an empty result record
     result = meq.result()
 
-    # Optionally, make a plot:
-    if not self.plotinfo.inhibit_svg:
+    # Optionally, generate info for the "svg plotter":
+    result.svg_plot = None
+    if self.plotinfo.generate_svg:
       svg_list_of_strings = self.make_svg(trace=trace)
       result.svg_plot = svg_list_of_strings
 
-    # Always attach the current plotinfo
-    result.plotinfo = self.plotinfo
+    # Always attach the subplots (etc) of the current plotinfo
+    rr = record(subplot=self.plotinfo.subplot)
+    for key in self._ovkeys:
+      rr[key] = self.plotinfo[key]
+    result.plotinfo = rr
     
     # Finished:
     return result
@@ -282,15 +293,9 @@ class PyPlot (pynode.PyNode):
       self.show_plotinfo('check_plotinfo() input')
 
     rr = self.plotinfo                                # convenience
-    rr.setdefault('subplot',[])                       # subplot definitions 
-    
-    rr.setdefault('inhibit_svg', False)               # If True, do not make SVG plot
 
-    title = 'PyPlot_'+self.class_name
-    title += '_'+str(self._num_children)
-    rr.setdefault('title', self.name) 
-    rr.setdefault('xlabel', 'child') 
-    rr.setdefault('ylabel', 'result') 
+    # Some node control parameters:
+    rr.setdefault('generate_svg', True)               # Attach SVG info to node result
 
     # There must be as many labels as children:
     rr.setdefault('labels', self._num_children*[None]) 
@@ -299,19 +304,33 @@ class PyPlot (pynode.PyNode):
     elif not len(rr['labels'])==self._num_children:
       rr['labels'] = self._num_children*[None]
 
-    # Subplot parameters (see self._spkeys): 
-    # The keys are used to transfer information to subplot definitions:
-    self._spkeys = ['color','linestyle','marker','markersize']
-    self._spkeys.extend(['plot_error_bars','annotate'])
-    self._spkeys.extend(['offset','legend'])
-    self._spkeys.extend(['vlabels','index','xindex','yindex'])
+    # Overall parameters 
+    # These keys are used to transfer fields to the node result:
+    self._ovkeys = ['title','xlabel','ylabel']
+    self._ovkeys.extend(['xunit','yunit'])
 
-    rr.setdefault('legend', [None])                   # subplot legend
-    rr.setdefault('offset', [0.0])                    # optional v-offset
-    rr.setdefault('xindex', [None])                   # index of x-coord Vells
-    rr.setdefault('yindex', [None])                   # index of y-coord Vells
-    rr.setdefault('index', [0])                       # index(es) of value Vells 
+    title = 'PyPlot_'+self.class_name
+    title += '_'+str(self._num_children)
+    rr.setdefault('title', self.name) 
+    rr.setdefault('xlabel', 'child') 
+    rr.setdefault('ylabel', 'result') 
+    rr.setdefault('xunit', None) 
+    rr.setdefault('yunit', None) 
+    rr.setdefault('xindex', None)                     # index of x-coord Vells
+    rr.setdefault('yindex', None)                     # index of y-coord Vells
+    rr.setdefault('offset', 0.0)                      # optional v-offset
+
+
+    # Subplot parameters: 
+    # These keys are used to transfer information to subplot definitions:
+    self._spkeys = ['color','linestyle','marker','markersize']
+    self._spkeys.extend(['vindex','vlabels','legend'])
+    self._spkeys.extend(['plot_error_bars','annotate'])
+
+    rr.setdefault('subplot',[])                       # subplot definitions 
+    rr.setdefault('vindex', [None])                   # index(es) of Vells 
     rr.setdefault('vlabels', [None])                  # Vells label(s) 
+    rr.setdefault('legend', [None])                   # subplot legend
     rr.setdefault('color', ['blue'])                  # Vells plot color(s)
     rr.setdefault('linestyle', [None])                # Vells plot line style(s)                  
     rr.setdefault('marker', ['o'])                    # Vells plot marker style(s)
@@ -319,7 +338,7 @@ class PyPlot (pynode.PyNode):
     rr.setdefault('annotate', [True])                 # Vells plot annotation(s)
     rr.setdefault('plot_error_bars', [True])          # Vells plot error-bar(s)
 
-    # Make sure that all the suplot parameters are lists:
+    # Make sure that all the subplot parameters are lists:
     for key in self._spkeys:
       if not isinstance(rr[key],(list,tuple)):     
         rr[key] = [rr[key]]                  
@@ -332,31 +351,27 @@ class PyPlot (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one or more subplot record(s) from self.plotinfo,
+    """Define a single subplot record from self.plotinfo,
     and fill it with values read from the pyNode children.
-    - If no labels, or len(labels)!=len(children), use implicit x (0,1,2,...)
-    - If labels are present:
-    --- x-child: label==None
-    --- y-child: label is anything else (e.g. str or float) -> str
-    Append the subplot(s) to the list self.plotinfo.subplot.
+    Append the subplot to the list self.plotinfo.subplot.
     This function will be re-implemented by derived classes.
     """
-    
     rr = self.plotinfo                         # convenience
 
-    # Create an empty subplot record, and initialize it:
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    rv = ChildResult.ResultVector(children, labels=rr.labels,
+                                  offset=rr.offset,
+                                  xindex=rr.xindex, yindex=rr.yindex)
+    if trace:
+      rv.display(self.class_name)
+
+    # Create an empty subplot definition record, and initialize it:
     sp = record()
     for key in self._spkeys:                   # transfer standard fields
-      print '-',key,'=',rr[key]
       sp[key] = rr[key][0]                     # the 1st element of each list
 
-    import ChildResult
-    rv = ChildResult.ResultVector(children,
-                                  labels=self.plotinfo.labels,
-                                  # select=sp.iiv, index=sp.index,
-                                  offset=sp.offset)
-    # rv.display(self.class_name)
-    dyy = None
+    # Fill in the data from the child result(s):
     sp.yy = rv.vv()
     sp.dyy = None
     if sp.plot_error_bars:
@@ -366,7 +381,7 @@ class PyPlot (pynode.PyNode):
     sp.labels = rv.labels()
 
     # Check and append the subplot definition:
-    self.check_and_append_subplot(sp)
+    self.check_and_append_subplot(sp, trace=trace)
     if trace:
       self.show_plotinfo('.define_subplots()')
     return None
@@ -379,15 +394,52 @@ class PyPlot (pynode.PyNode):
 
 
 #=====================================================================================
+#=====================================================================================
+#=====================================================================================
 # Classes derived from PyPlot:
 #=====================================================================================
+#=====================================================================================
+#=====================================================================================
 
-class PyPlotTensorVells (pynode.PyNode):
+
+class PyPlotTensorVells (PyPlot):
   """Class derived from PyPlot."""
 
   def __init__ (self, *args, **kwargs):
     PyPlot.__init__(self, *args);
     return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    trace = True
+    
+    # First do the generic checks (mandatory!) 
+    PyPlot.check_plotinfo(self, trace=trace)
+
+    # Make sure that all the subplot parameters are lists of the same length.
+    # Assume that at least one of them (e.g. color) is a list of the correct length.
+    nmax = 0
+    for key in self._spkeys:
+      nmax = max(nmax,len(rr[key]))
+    if trace:
+      print '\n** nmax =',nmax
+      
+    for key in self._spkeys:
+      if not len(rr[key])==nmax:
+        was = rr[key]
+        rr[key] = nmax*[rr[key][0]]
+        if trace:
+          print ' -',key,':',was,'->',rr[key]
+                 
+    if trace:
+      self.show_plotinfo('after specific .check_plotinfo()')
+    return None
+
+
 
   #-------------------------------------------------------------------
 
@@ -398,32 +450,32 @@ class PyPlotTensorVells (pynode.PyNode):
     i.e. each with the same number of Vells.
     Make separate subplots for each of the Vells.
     """
-    
     rr = self.plotinfo                         # convenience
 
-    # Create an empty subplot record, and initialize it:
-    sp = record()
-    for key in self._spkeys:                   # transfer standard fields
-      print '-',key,'=',rr[key]
-      sp[key] = rr[key][0]                     # the 1st element of each list
-
+    # The child result(s) are read by a special object: 
     import ChildResult
-    rv = ChildResult.ResultVector(children,
-                                  labels=self.plotinfo.labels,
-                                  # select=sp.iiv, index=sp.index,
-                                  offset=sp.offset)
-    # rv.display(self.class_name)
-    dyy = None
-    sp.yy = rv.vv()
-    sp.dyy = None
-    if sp.plot_error_bars:
-      sp.dyy = rv.dvv()
-    sp.xx = rv.xx()
-    sp.dxx = None
-    sp.labels = rv.labels()
+    rv = ChildResult.ResultVector(children, labels=rr.labels,
+                                  # vlabels=rr.vlabels,
+                                  xindex=rr.xindex, yindex=rr.yindex)
+    if trace:
+      rv.display(self.class_name)
 
-    # Check and append the subplot definition:
-    self.check_and_append_subplot(sp)
+    # Make separate suplot definitions for each Vells (index)
+    for index in range(rv[0].len()):           # nr of Vells in 1st (!) result
+      sp = record()
+      for key in self._spkeys:                 # transfer standard fields
+        sp[key] = rr[key][index]               # the specified index only
+      sp.yy = rv.vv(index=index)
+      sp.xx = rv.xx(index=index)
+      sp.labels = rv.labels(index=index)
+      sp.dyy = None
+      sp.dxx = None
+      if sp.plot_error_bars:
+        sp.dyy = rv.dvv(index=index)
+        sp.dxx = rv.dxx(index=index)
+      self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
     if trace:
       self.show_plotinfo('.define_subplots()')
     return None
@@ -562,8 +614,6 @@ def _define_forest (ns,**kwargs):
   #-----------------------------------------------------------------------
       
   if True:
-    classname = 'PyPlot'
-    name = classname
     cc = []
     labels = []
     for k in range(2):
@@ -576,9 +626,23 @@ def _define_forest (ns,**kwargs):
         c = ns[yname](i) << Meq.Composer(*ee)
         cc.append(c)
         labels.append(y.name)   
-    classnames[name] = classname
-    rr[name] = record(title=name, labels=labels, offset=-2.0, color='green')
-    children[name] = cc
+
+    if True:
+      classname = 'PyPlot'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name, labels=labels, offset=-2.0,
+                        color='green', marker='x', markersize=10)
+      children[name] = cc
+
+    if True:
+      classname = 'PyPlotTensorVells'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name, labels=labels,
+                        # offset=-2.0,
+                        color=['blue','red','cyan'])
+      children[name] = cc
       
 
 
@@ -594,19 +658,21 @@ def _define_forest (ns,**kwargs):
   pn = []
   for name in rr.keys():
     print '\n** make_pynode: rr[',name,'] =',rr[name],'\n'
+    rr[name].generate_svg = False
     pynode = ns[name] << Meq.PyNode(children=children[name],
                                     class_name=classnames[name],
                                     plotinfo=rr[name],
                                     module_name=__file__)
     pn.append(pynode)
-    Meow.Bookmarks.Page(name).add(pynode, viewer="Svg Plotter")
-    bookpage.add(pynode, viewer="Svg Plotter")
+    if rr[name].generate_svg:
+      Meow.Bookmarks.Page(name).add(pynode, viewer="Svg Plotter")
+      bookpage.add(pynode, viewer="Svg Plotter")
 
   # Make a root node:
   if False:
     ns.rootnode << Meq.Composer(*pn)
   else:
-    plotinfo = record(inhibit_svg=False, title='combined')
+    plotinfo = record(title='combined', generate_svg=True)
     ns.rootnode << Meq.PyNode(children=pn,
                               plotinfo=plotinfo,
                               class_name='PyPlot',
