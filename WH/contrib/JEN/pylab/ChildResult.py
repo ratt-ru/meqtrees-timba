@@ -97,6 +97,7 @@ class ResultVector (object):
         label = '?'
         if k>=0 and k<len(labels):
           label = labels[k]
+      # print '--- i=',i,' k=',k,' label=',label
       self._Result.append(Result(results[k], name=label, iseq=i,
                                  vlabels=self._vlabels,
                                  xindex=self._xindex,
@@ -233,7 +234,7 @@ class Result (object):
     self._name = str(name)              # child label
     self._iseq = iseq                   # child sequence number
     if name==None:                      
-      self._name = 'V'+str(iseq)        # default child label
+      self._name = 'c'+str(iseq)        # default child label
       
     self._vlabels = vlabels             # list of Vells labels, e.g. [XX,XY,YX,YY]....
     self._xindex = xindex               # index of 'x' Vells (for x,y plotting)
