@@ -155,10 +155,21 @@ class PyPlot (pynode.PyNode):
     """Check the integrity of the given subplot definition,
     and append it to self.plotinfo.subplot.
     """
+    trace = True
+
+    # Add some fields with statistics:
+    import pylab
+    yy = pylab.array(sp.yy)
+    sp.min = yy.min()
+    sp.max = yy.max()
+    sp.mean = yy.mean()
+    sp.stddev = 0.0
+    if len(yy)>1:
+      if not isinstance(yy[0],complex):
+        sp.stddev = yy.stddev()       
+    
     if trace:
-      print '\n** .append_subplot():'
-      for key in sp.keys():
-        print '  -',key,'=',sp[key]
+      self.show_subplot(sp, '.append_subplot()')
       print
 
     # Append the valid subplot definition:
@@ -246,19 +257,22 @@ class PyPlot (pynode.PyNode):
     # Fill it with the subplots:
     for i,sp in enumerate(rr.subplot):
       offset = i*rr.offset
-      offset += -10
+      # offset += -10                    # testing only
       yy = sp.yy
       if not offset==0.0:
         yy = list(yy)                    # tuple does not support item assignment...      
-        # print 'yy:',type(yy),yy
         for i,y in enumerate(yy):
           yy[i] += offset
+      labels = len(yy)*[None]
+      if sp.annotate:
+        labels = sp.labels
       grs1 = Graphics.Scatter(yy=yy, xx=sp.xx,
-                              annot=sp.labels,
+                              annot=labels,
                               dyy=sp.dyy, dxx=sp.dxx,           
                               linestyle=sp.linestyle,
                               marker=sp.marker,
                               markersize=sp.markersize,
+                              plot_circle_mean=sp.plot_circle_mean,
                               color=sp.color)
       grs.add(grs1)
       legend = sp.legend
@@ -330,6 +344,7 @@ class PyPlot (pynode.PyNode):
     # These keys are used to transfer information to subplot definitions:
     self._spkeys = ['color','linestyle','marker','markersize']
     self._spkeys.extend(['legend','plot_error_bars','annotate'])
+    self._spkeys.extend(['plot_circle_mean'])
 
     rr.setdefault('subplot',[])                     # subplot definitions 
     rr.setdefault('legend', None)                   # subplot legend
@@ -339,6 +354,7 @@ class PyPlot (pynode.PyNode):
     rr.setdefault('markersize', 5)                  # markersize
     rr.setdefault('annotate', True)                 # do annotation
     rr.setdefault('plot_error_bars', True)          # plot error-bars
+    rr.setdefault('plot_circle_mean', False)         # plot circle around (0,0) with radius=mean
 
     if trace:
       self.show_plotinfo('check_plotinfo() checked')
@@ -360,7 +376,9 @@ class PyPlot (pynode.PyNode):
 
     # The child result(s) are read by a special object: 
     import ChildResult
-    rv = ChildResult.ResultVector(children, labels=rr.labels)
+    rv = ChildResult.ResultVector(children,
+                                  extend_labels=True,
+                                  labels=rr.labels)
     if trace:
       rv.display(self.class_name)
 
@@ -476,6 +494,7 @@ class PyPlotTensorVells (PyPlot):
     # The child result(s) are read by a special object: 
     import ChildResult
     rv = ChildResult.ResultVector(children, labels=rr.labels,
+                                  extend_labels=False,
                                   xindex=rr.xindex,
                                   yindex=rr.yindex)
     if trace:
@@ -519,11 +538,11 @@ class PyPlotTensorVells (PyPlot):
 
 
 #=====================================================================
-# 
+# Classes to plot 2x2 complex cohaerency matrices:
 #=====================================================================
 
 class PyPlotCoh22 (PyPlotTensorVells):
-  """Class derived from PyPlot."""
+  """Class derived from PyPlotTensorVells"""
 
   def __init__ (self, *args, **kwargs):
     PyPlotTensorVells.__init__(self, *args);
@@ -544,17 +563,65 @@ class PyPlotCoh22 (PyPlotTensorVells):
     rr.marker = ['o','x','x','o']
     rr.markersize = [5,5,5,5]
     rr.annotate = [True,False,False,True]
+    rr.plot_circle_mean = [True,True,True,True]
+    rr.xlabel = 'real part (Jy)'
+    rr.ylabel = 'imag part (Jy)'
     
     # Then do the generic checks (mandatory!) 
     PyPlotTensorVells.check_plotinfo(self, trace=trace)
     return None
 
+  #-------------------------------------------------------------------
 
-class PyPlotCrossCorrs22 (PyPlotTensorVells):
+  def define_subplots (self, children, trace=False):
+    """Define one or more subplot record(s) from self.plotinfo,
+    and fill it with values read from the pyNode children.
+    Assume that its children are tensor nodes of the same kind,
+    i.e. each with the same number of Vells.
+    Make separate subplots for each of the Vells.
+    """
+    rr = self.plotinfo                         # convenience
+    # trace = True
+
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    rv = ChildResult.ResultVector(children, labels=rr.labels,
+                                  extend_labels=False,
+                                  xindex=rr.xindex,
+                                  yindex=rr.yindex)
+    if trace:
+      rv.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    for index in rr.index:
+      sp = record()
+      for key in self._spkeys:               # transfer standard fields
+        sp[key] = self.getval(rr[key], index=index, trace=trace)  
+      sp.yy = rv.vcx(index=index)            # complex
+      sp.xx = None                           # from complex
+      sp.labels = rv.labels(index=index)
+      sp.dyy = None
+      sp.dxx = None
+      if sp.plot_error_bars:
+        sp.dyy = rv.dvv(index=index)
+        sp.dxx = rv.dxx(index=index)
+      self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+
+
+
+#=====================================================================
+
+class PyPlotCrossCorrs22 (PyPlotCoh22):
   """Class derived from PyPlot."""
 
   def __init__ (self, *args, **kwargs):
-    PyPlotTensorVells.__init__(self, *args);
+    PyPlotCoh22.__init__(self, *args);
     return None
 
   #-------------------------------------------------------------------
@@ -567,14 +634,10 @@ class PyPlotCrossCorrs22 (PyPlotTensorVells):
 
     # Set the specific values:
     rr.index = [1,2]
-    rr.legend = ['XY','YX']
-    rr.color = ['green','magenta']
-    rr.marker = ['x','x']
-    rr.markersize = [5,5]
     rr.annotate = [True,True]
     
     # Then do the generic checks (mandatory!) 
-    PyPlotTensorVells.check_plotinfo(self, trace=trace)
+    PyPlotCoh22.check_plotinfo(self, trace=trace)
     return None
 
 
@@ -617,7 +680,9 @@ def format_vv (vv):
   s += format_float(ww.min(),'  min')
   s += format_float(ww.max(),'  max')
   s += format_float(ww.mean(),'  mean')
-  s += format_float(ww.stddev(),'  stddev')
+  if len(ww)>1:                       
+    if not isinstance(ww[0],complex):
+      s += format_float(ww.stddev(),'  stddev')
   return s
 
 
@@ -638,6 +703,11 @@ def _define_forest (ns,**kwargs):
   gsx = ns.cx_gauss << Meq.ToComplex(Meq.GaussNoise(stddev=0.1),
                                      Meq.GaussNoise(stddev=0.1))
   gs = ns.gauss << Meq.GaussNoise(stddev=0.5)
+
+  tfrac = ns.tfrac << Meq.Multiply(Meq.Time(),0.1)
+  ffrac = ns.ffrac << Meq.Multiply(Meq.Freq(),0.1)
+
+
   
   if False:
     classname = 'PyPlot'
@@ -667,7 +737,8 @@ def _define_forest (ns,**kwargs):
     xname = 'x1m'
     n = 5
     for i in range(n):
-      y = ns[yname](i) << (gs + random.gauss(i,0.5))
+      # y = ns[yname](i) << (gs + random.gauss(i,0.5))
+      y = ns[yname](i) << (gsx + random.gauss(i,0.5))
       cc.append(y)
       labels.append('y_'+str(i))        # <---!
     for i in range(n):
@@ -708,9 +779,57 @@ def _define_forest (ns,**kwargs):
     rr[name].labels = labels
     children[name] = cc
 
+  #----------------------------------------------------------------------
+
+  if True:
+    cc = []
+    nstat = 3
+    rmsa = 0.01
+    labels = []
+    for i in range(nstat-1):
+      for j in range(i+1,nstat):
+        label = str(i)+'.'+str(j)
+        labels.append(label)
+        # print '-- (i,j)=',i,j
+        XX = ns.XX(i)(j) << Meq.Polar(random.gauss(1.1,rmsa),
+                                      random.gauss(0.0,1.0))
+        XY = ns.XY(i)(j) << Meq.Polar(random.gauss(0.1,rmsa),
+                                      random.gauss(0.5,0.1))
+        YX = ns.YX(i)(j) << Meq.Polar(random.gauss(0.1,rmsa),
+                                      random.gauss(-0.5,0.1))
+        if False:
+          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa),
+                                        random.gauss(0.0,1.0))
+        elif False:
+          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa),
+                                        random.gauss(0.0,0.0)+ffrac)
+        else:
+          YY = ns.YY(i)(j) << Meq.Polar(random.gauss(0.9,rmsa)+tfrac,
+                                        random.gauss(0.0,1.0)+ffrac)
+
+        vis22 = ns.vis22(i)(j) << Meq.Matrix22(XX,XY,YX,YY)
+        # vis22 = ns.vis22plus(i)(j) << Meq.Add(vis22, ftx)
+        vis22 = ns.vis22plus(i)(j) << Meq.Add(vis22, gsx)
+        cc.append(vis22)
+
+    if True:
+      classname = 'PyPlotCoh22'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name, labels=labels)
+      children[name] = cc
+
+    if False:
+      classname = 'PyPlotCrossCorr22'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name, labels=labels)
+      children[name] = cc
+
+      
   #-----------------------------------------------------------------------
       
-  if True:
+  if False:
     cc = []
     labels = []
     for k in range(2):
@@ -724,23 +843,24 @@ def _define_forest (ns,**kwargs):
         cc.append(c)
         labels.append(y.name)   
 
-    if True:
+    if False:
       classname = 'PyPlot'
       name = classname
       classnames[name] = classname
       rr[name] = record(title=name, labels=labels,
+                        xindex=1,
                         color='green', marker='x', markersize=20)
       children[name] = cc
 
-    if False:
+    if True:
       classname = 'PyPlotTensorVells'
       name = classname
       classnames[name] = classname
       rr[name] = record(title=name, labels=labels,
-                        offset=-2.0,
                         color=['blue','red','cyan'])
       children[name] = cc
       
+  #-----------------------------------------------------------------------
 
 
   # Make a bookpage with auxiliary info:
@@ -755,7 +875,7 @@ def _define_forest (ns,**kwargs):
   pn = []
   for name in rr.keys():
     print '\n** make_pynode: rr[',name,'] =',rr[name],'\n'
-    rr[name].make_plot = False
+    rr[name].make_plot = True
     pynode = ns[name] << Meq.PyNode(children=children[name],
                                     class_name=classnames[name],
                                     plotinfo=rr[name],
@@ -771,7 +891,7 @@ def _define_forest (ns,**kwargs):
     ns.rootnode << Meq.Composer(*pn)
   else:
     # Concatenation of all PyPlot nodes:
-    plotinfo = record(title='combined', make_plot=True)
+    plotinfo = record(title='combined', make_plot=True, offset=-2.0)
     ns.rootnode << Meq.PyNode(children=pn,
                               plotinfo=plotinfo,
                               class_name='PyPlot',

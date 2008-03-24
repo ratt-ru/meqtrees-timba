@@ -68,6 +68,7 @@ class ResultVector (object):
 
   def __init__ (self, results, name=None,
                 labels=None, vlabels=None,
+                extend_labels=False,
                 select=None, index=None,
                 xindex=None, yindex=None, 
                 offset=0.0):
@@ -75,6 +76,7 @@ class ResultVector (object):
     self._name = name
     self._offset = offset
     self._vlabels = vlabels
+    self._extend_labels = extend_labels
     self._index = index
     self._xindex = xindex
     self._yindex = yindex
@@ -100,6 +102,7 @@ class ResultVector (object):
       # print '--- i=',i,' k=',k,' label=',label
       self._Result.append(Result(results[k], name=label, iseq=i,
                                  vlabels=self._vlabels,
+                                 extend_labels=self._extend_labels,
                                  xindex=self._xindex,
                                  yindex=self._yindex,
                                  offset=self._offset))
@@ -153,6 +156,7 @@ class ResultVector (object):
       print '    -',i,':',rr.oneliner()
     if full:
       print ' * vv =',self.vv()
+      print ' * vcx =',self.vcx()
       print ' * dvv =',self.dvv()
       print ' * labels =',self.labels()
       print ' * xx =',self.xx()
@@ -169,49 +173,62 @@ class ResultVector (object):
     """Return a list of values."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.vv(index=(index or self._index)))
+      vv.extend(rr.vv(index=self.getindex(index)))
     return vv
+
+  def getindex(self, index):
+    """Helper function to get the correct index"""
+    if isinstance(index,int): return index
+    if isinstance(index,(list,tuple)): return index
+    return self._index
 
   def dvv(self, index=None):
     """Return a list of values."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.dvv(index=(index or self._index)))
+      vv.extend(rr.vv(index=self.getindex(index)))
+    return vv
+
+  def vcx(self, index=None):
+    """Return a list of complex values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.vcx(index=self.getindex(index)))
     return vv
 
   def yy(self, index=None):
     """Return a list of yy values."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.yy(index=(index or self._index)))
+      vv.extend(rr.yy(index=self.getindex(index)))
     return vv
 
   def xx(self, index=None):
     """Return a list of xx values."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.xx(index=(index or self._index)))
+      vv.extend(rr.xx(index=self.getindex(index)))
     return vv
 
   def labels(self, index=None):
     """Return a list of labels."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.labels(index=(index or self._index)))
+      vv.extend(rr.labels(index=self.getindex(index)))
     return vv
 
   def dxx(self, index=None):
     """Return a list of dxx values."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.dxx(index=(index or self._index)))
+      vv.extend(rr.dxx(index=self.getindex(index)))
     return vv
 
   def dyy(self, index=None):
     """Return a list of dyy values."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.dyy(index=(index or self._index)))
+      vv.extend(rr.dyy(index=self.getindex(index)))
     return vv
 
 
@@ -225,6 +242,7 @@ class Result (object):
 
   def __init__ (self, result, name=None, iseq=0,
                 vlabels=None,
+                extend_labels=False,
                 offset=0.0,
                 xindex=None, yindex=None,
                 request=None):
@@ -237,6 +255,7 @@ class Result (object):
       self._name = 'c'+str(iseq)        # default child label
       
     self._vlabels = vlabels             # list of Vells labels, e.g. [XX,XY,YX,YY]....
+    self._extend_labels = extend_labels # if True, append [ivells] to labels
     self._xindex = xindex               # index of 'x' Vells (for x,y plotting)
     self._yindex = yindex               # index of 'y' Vells (for x,y,z plotting)
     self._offset = offset               # optional offset to the values vv
@@ -270,6 +289,7 @@ class Result (object):
     # The values (mean/stddev over the domain) of the result
     self._vv = []
     self._dvv = []
+    self._vcx = []                       # complex version
 
     # The x-coordinates (mean/stddev):
     self._xx = []
@@ -357,6 +377,7 @@ class Result (object):
     Return a list of vv values."""
     if not self._vv:
       self._vv = []
+      self._vcx = []
       self._dvv = []
       self._labels = []
       self._xx = []
@@ -392,17 +413,19 @@ class Result (object):
         else:
           # This Vells contains a value (v):
           if isinstance(v,complex):
+            self._vcx.append(v)                       # complex value
             self._xx.append(v.real)
             self._dxx.append(dv)
             self._vv.append(v.imag+self._offset)
           else:
             self._vv.append(v+self._offset)
+            self._vcx.append(complex(v+self._offset,0.0))
           self._dvv.append(dv)
           label = self.name()
-          if nv>1:                                    # multiple 'values' Vells
+          if nv>1 and self._extend_labels:            # multiple 'values' Vells
             if not isinstance(self._vlabels,(list,tuple)):    # Vells labels
               label += '['+str(key)+']'
-            elif i>=len(self._vlabels):
+            elif i>=len(self._vlabels):               # too few vlabels
               label += '['+str(key)+'?]'
             else:
               label += '['+self._vlabels[i]+']'   
@@ -414,13 +437,28 @@ class Result (object):
 
   def vvout (self, vv, index=None):
     """Helper function to return the required list:
-    If an index is specified, return a list with the specified element(s) of vv.
+    If an index is specified (int or list of ints), return a list with
+    the specified element(s) of vv.
     Otherwise, return the entire list vv"""
     if isinstance(index,int):
       return [vv[index]]
+    elif isinstance(index,(list,tuple)):
+      vvv = [] 
+      for i in index:
+        vvv.append(vv[i])
+      return vvv
     return vv
 
   #----------------------------------------------------------------
+
+  def vcx(self, index=None):
+    """Return a list of vcx (complex) values."""
+    if not self._vcx: self.vv()             # make sure that there is a self._vv
+    if not len(self._vcx)==len(self._vv):
+      # Default: vcx=complex(0,0) for all the values self._vv
+      self._vcx = len(self._vv)*[complex(0.0,0.0)]
+    return self.vvout(self._vcx, index)
+
 
   def dvv(self, index=None):
     """Return a list of dvv (stddev) values."""
