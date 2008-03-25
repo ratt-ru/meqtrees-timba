@@ -37,11 +37,11 @@ from make_multi_dim_request import *
 from handle_beams import *
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','gauss_array_pats_offset','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_noise','gauss_array_pats_defocus','gauss_array_pats_offset','veidt_fpa_180', 'veidt_fpa_180_noise', 'veidt_fpa_30'],more=str)
 
 #setup a bookmark for display of results with a 'Result Plotter'
 Settings.forest_state = record(bookmarks=[
-  record(name='Results',page=[
+  record(name='Beams',page=[
     record(udi="/node/collector",viewer="Result Plotter",pos=(0,0))])]);
 
 # to force caching put 100
