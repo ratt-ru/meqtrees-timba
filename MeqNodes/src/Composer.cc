@@ -67,7 +67,7 @@ int Composer::getResult (Result::Ref &resref,
   // in tensor mode, check for matching dims
   bool tensor_mode = false;
   Result::Dims dims0;
-  int nres0;
+  int nres0 = 0;
   // if any children are tensors, then they must have the same rank and dims (=dims0).
   // It is possible to mix tensors and scalars, though 
   for( int i=0; i<numChildren(); i++ )
