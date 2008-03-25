@@ -163,21 +163,34 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
   # now set up equations to solve for X and Y weights so that difference
   # between above x and y beams and voltage gaussian is minimized
   if do_fit:
+    ns.gauss_x_max_fit << tpolc(mep_beam_weights,0,1.0)
+    ns.condeq_gauss_x_norm_max << Meq.Condeq(children=(ns.im_x_max, ns.gauss_x_max_fit))
+    ns.solver_gauss_x_norm_max <<Meq.Solver(ns.condeq_gauss_x_norm_max,num_iter=50,epsilon=1e-4,solvable=ns.gauss_x_max_fit,save_funklets=True,last_update=True)
+
     ns.im_x_norm_max << Meq.Max(ns.im_x)
     ns.im_x_norm << ns.im_x / ns.im_x_norm_max
     ns.resampler_x <<Meq.Resampler(ns.im_x_norm)
     ns.condeq_x << Meq.Condeq(children=(ns.resampler_x, ns.sqrt_gauss))
-    solver_x = ns.solver_x <<Meq.Solver(ns.condeq_x,num_iter=20,epsilon=5e-4,solvable=beam_solvables_x,save_funklets=True,last_update=True)
+    ns.solver_x <<Meq.Solver(ns.condeq_x,num_iter=20,epsilon=5e-4,solvable=beam_solvables_x,save_funklets=True,last_update=True)
+    solver_x = ns.req_solver_x << Meq.ReqSeq(ns.solver_x,ns.solver_gauss_x_norm_max)
+#   solver_x = ns.req_solver_x << Meq.ReqSeq(ns.solver_x, ns.solver_im_x_max)
+
+    ns.gauss_y_max_fit << tpolc(mep_beam_weights,0,1.0)
+    ns.condeq_gauss_y_norm_max << Meq.Condeq(children=(ns.im_y_max, ns.gauss_y_max_fit))
+    ns.solver_gauss_y_norm_max <<Meq.Solver(ns.condeq_gauss_y_norm_max,num_iter=50,epsilon=1e-4,solvable=ns.gauss_y_max_fit,save_funklets=True,last_update=True)
 
     ns.im_y_norm_max << Meq.Max(ns.im_y)
     ns.im_y_norm << ns.im_y / ns.im_y_norm_max
     ns.resampler_y <<Meq.Resampler(ns.im_y_norm)
     ns.condeq_y << Meq.Condeq(children=(ns.resampler_y, ns.sqrt_gauss))
-    solver_y = ns.solver_y <<Meq.Solver(ns.condeq_y,num_iter=20,epsilon=5e-4,solvable=beam_solvables_y,save_funklets=True,last_update=True)
-    ns.norm_voltage_sum_xx << ns.voltage_sum_xx_norm / ns.im_x_norm_max
-    ns.norm_voltage_sum_xy << ns.voltage_sum_xy_norm / ns.im_x_norm_max
-    ns.norm_voltage_sum_yy << ns.voltage_sum_yy_norm / ns.im_y_norm_max
-    ns.norm_voltage_sum_yx << ns.voltage_sum_yx_norm / ns.im_y_norm_max
+    ns.solver_y <<Meq.Solver(ns.condeq_y,num_iter=20,epsilon=5e-4,solvable=beam_solvables_y,save_funklets=True,last_update=True)
+    solver_y = ns.req_solver_y << Meq.ReqSeq(ns.solver_y, ns.solver_gauss_y_norm_max)
+#   solver_y = ns.req_solver_y << Meq.ReqSeq(ns.solver_y, ns.solver_im_y_max)
+
+    ns.norm_voltage_sum_xx << ns.voltage_sum_xx_norm / ns.gauss_x_max_fit
+    ns.norm_voltage_sum_xy << ns.voltage_sum_xy_norm / ns.gauss_x_max_fit
+    ns.norm_voltage_sum_yy << ns.voltage_sum_yy_norm / ns.gauss_y_max_fit
+    ns.norm_voltage_sum_yx << ns.voltage_sum_yx_norm / ns.gauss_y_max_fit
   else:
     ns.norm_voltage_sum_xx << ns.voltage_sum_xx_norm / ns.im_x_max_fit
     ns.norm_voltage_sum_xy << ns.voltage_sum_xy_norm / ns.im_x_max_fit
