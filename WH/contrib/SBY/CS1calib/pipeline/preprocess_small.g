@@ -4,7 +4,7 @@ infile:=0;
 # clipping threshold
 limm:=1e5;
 # uv clip limit
-limuv:=70;
+limuv:=1;
 
 
 ### parse args

@@ -36,11 +36,11 @@ for( a in argv )
 }
 
 # CygA
-#myphasecenter:=dm.direction('J2000', '19h57m42','40d35m54')
+myphasecenter:=dm.direction('J2000', '19h57m42','40d35m54')
 # CasA
 #myphasecenter:=dm.direction('J2000', '23h23m24','58d48m54')
 #NCP
-myphasecenter:=dm.direction('J2000', '00h00m00','90d00m00')
+#myphasecenter:=dm.direction('J2000', '00h00m00','90d00m00')
 
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > 100 and (TIME/(24*3600) <= MJD(28apr2007/08:49:00)) or TIME/(24*3600) >= MJD(28apr2007/20:29:00)",fid)
 #msstr:=sprintf("FIELD_ID==%d AND sumsqr(UVW[1:2]) > 100)",fid)
@@ -68,9 +68,9 @@ myimager.setdata(mode='channel', fieldid=fid, spwid=spid,
              start=startch, msselect=msstr,
              step=1, async=F);
 # LBA
-myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+#myimager.setimage(nx=1728, ny=1728, cellx='240arcsec', celly='240arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
 # HBA
-#myimager.setimage(nx=3456, ny=3456, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
+myimager.setimage(nx=3456, ny=3456, cellx='120arcsec', celly='120arcsec',  stokes='IQUV', phasecenter=myphasecenter, doshift=T, fieldid=fid, spwid=spid, mode='channel', nchan=1, start=startch, step=1)
 myimager.setoptions(ftmachine='wproject', wprojplanes=128, padding=1.2 , cache=500000000)
 myimager.makeimage(type="corrected",image=my_img,async=False);
 myimager.close()

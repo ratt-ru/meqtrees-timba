@@ -102,7 +102,7 @@ TDLCompileMenu("LSM",
 
 
 # correct for all baselines
-TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
+TDLCompileOption('exclude_short_base',"Exclude short baselines in calibration",[True,False],default=True);
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[16,24,15,3],more=int);
 
@@ -143,7 +143,7 @@ short_baselines=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
 def _define_forest(ns, parent=None, **kw):
   # create array model
   stations = range(1,num_stations+1);
-  array = IfrArray(ns,stations,mirror_uvw=False);
+  array = IfrArray(ns,stations,ms_uvw=False,mirror_uvw=False);
   observation = Observation(ns);
   
   lsm=LSM()
@@ -154,7 +154,7 @@ def _define_forest(ns, parent=None, **kw):
 
   # if not including short baselines, exclude list is empty because 
   # they are flagged
-  if not include_short_base:
+  if not exclude_short_base:
     exclude_baselines=[]
   else:
     exclude_baselines=short_baselines

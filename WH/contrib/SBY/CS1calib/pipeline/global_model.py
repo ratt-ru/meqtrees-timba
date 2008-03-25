@@ -1,8 +1,11 @@
 from Timba.TDL import *
 from Meow.Utils import *
 from Meow.Direction import *
+from Meow.ODirection import *
 from Meow.PointSource import *
 from Meow.GaussianSource import *
+from Meow.DiskSource import *
+
 import Meow
 from Meow.Shapelet import *
 
@@ -161,6 +164,89 @@ def point_and_extended_sources_solvable(ns,lsm,tablename=''):
 
   return source_model
 
+### for phase tracking
+def point_and_extended_sources_sun(ns,lsm,tablename=''):
+  parm_options = record(
+      use_previous=False,
+      table_name=tablename,
+      node_groups='Parm');
+  
+
+  source_model = []
+
+  #plist=lsm.queryLSM(all=1)
+  plist=lsm.queryLSM(count=30)
+
+  for pu in plist:
+     (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
+     (eX,eY,eP)=pu.getExtParms()
+     # scale 2 difference
+     eX=eX*2
+     eY=eY*2
+     if f0==0:
+       f0=150e6
+     if eX!=0 or eY!=0 or eP!=0:
+         #source_model.append( GaussianSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
+         #         Iorder=0, direction=Direction(ns,pu.name,ra,dec,parm_options=parm_options),
+         #         spi=SIn,freq0=f0,
+         #         size=[eX,eY],phi=eP,
+         #         parm_options=parm_options));
+         if pu.name=="SUN":
+              eX=0.09
+              eY=0.09
+              source_model.append( DiskSource(ns,name=pu.name,I=Meow.Parm(sI), Q=Meow.Parm(sQ), U=Meow.Parm(sU), V=Meow.Parm(sV),
+                   direction=ODirection(ns,pu.name,pu.name),
+                   spi=SIn,freq0=f0,
+                   size=[eX,eY],phi=eP,
+                   ));
+         elif pu.name=="DC10":
+              eX=0.054
+              eY=0.054
+              source_model.append( DiskSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
+                   direction=Direction(ns,pu.name,ra,dec),
+                   spi=SIn,freq0=f0,
+                   size=[eX,eY],phi=eP,
+                   ));
+         else:
+            source_model.append( Shapelet(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
+                  direction=Direction(ns,pu.name,ra,dec),
+                  spi=SIn,freq0=f0,
+                  size=[eX,eY],phi=eP,
+                  modefile=beampath+"/Cas_A-4.model.FITS.modes"));
+     else:
+       # point sources
+       if RM==0: 
+         if pu.name=="SUN":
+              eX=0.09
+              eY=0.09
+              source_model.append( DiskSource(ns,name=pu.name,I=Meow.Parm(sI), Q=Meow.Parm(sQ), U=Meow.Parm(sU), V=Meow.Parm(sV),
+                   direction=ODirection(ns,pu.name,pu.name),
+                   spi=SIn,freq0=f0,
+                   size=[eX,eY],phi=eP,
+                   ));
+         elif pu.name=="DC10":
+              eX=0.064
+              eY=0.064
+              source_model.append( DiskSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
+                   direction=Direction(ns,pu.name,ra,dec),
+                   spi=SIn,freq0=f0,
+                   size=[eX,eY],phi=eP,
+                   ));
+         else:
+              source_model.append( PointSource(ns,name=pu.name,I=Meow.Parm(sI), Q=Meow.Parm(sQ), U=Meow.Parm(sU), V=Meow.Parm(sV),
+                  direction=Direction(ns,pu.name,ra,dec),
+                  spi=SIn,freq0=f0));
+
+
+       else:
+         source_model.append( PointSource(ns,name=pu.name,I=sI, Q=sQ, U=sU, V=sV,
+                  direction=Direction(ns,pu.name,ra,dec),
+                  spi=SIn,freq0=f0, RM=RM,
+                  ));
+
+
+
+  return source_model
 
 
 
@@ -454,14 +540,14 @@ def EJones_HBA(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False
 
   return Ej0;
 
-def EJones_HBA_stat(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, name="E"):
+def EJones_HBA_stat0(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, name="E"):
   Bx_phi={}
   Bx_theta={}
   By_phi={}
   By_theta={}
   
   ## wich ones are beamformed
-  beam_formed=[5,6]
+  beam_formed=[3,4]
  
   for station in array.stations():
    Bx_phi[station] = makebeam_hba_phi(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
@@ -517,6 +603,87 @@ def EJones_HBA_stat(ns,array,sources,radec0,meptable=None,solvables=[],solvable=
 
   return Ej0;
 
+def EJones_HBA_stat(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False, name="E"):
+  Bx_phi={}
+  Bx_theta={}
+  By_phi={}
+  By_theta={}
+  
+  ## wich ones are beamformed
+  beam_formed=[1,2,3,4]
+ 
+  for station in array.stations():
+   Bx_phi[station] = makebeam_hba_phi(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   Bx_theta[station] = makebeam_hba_theta(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   By_phi[station] = makebeam_hba_phi(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+   By_theta[station] = makebeam_hba_theta(ns,pol='Y',station=station,meptable=meptable,solvable=solvable,solvables=solvables);
+
+  Ej0 = ns[name];
+
+  # get array xyz
+  xyz=array.xyz();
+
+  # station beam
+  if not ns.freq0.initialized():
+    ns.freq0<<Meq.Constant(159e6)
+  if not ns.freq1.initialized():
+    ns.freq1<<Meq.Constant(160e6)
+
+
+  ### dummy xyz for beamformer
+  #x00=10000; y00=100000; z00=100;
+  #x00=3818797.786607182; y00=5051723.325381768; z00=757842.9797027396;
+  #if not ns.xyz_dummy.initialized():
+  #  ns.xyz_dummy<<Meq.Composer(x00,y00,z00)
+  ### track zenith
+  #az00=math.pi; el00=math.pi/2;
+  #if not ns.radec_dummy.initialized():
+  #  radec00=ns.radec_dummy<<Meq.Mean(Meq.RADec(Meq.Composer(az00,el00),xyz(5)))
+
+  # create per-direction, per-station E Jones matrices
+  for src in sources:
+    dirname = src.direction.name;
+    radec=src.direction.radec()
+    Ej = Ej0(dirname);
+
+    # create Az,El per source, using station 1
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    # make shifts
+    az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
+    azX=ns.azX(dirname)<<az-math.pi/4
+    azY=ns.azY(dirname)<<az-math.pi/4
+    el=ns.el(dirname)<<Meq.Selector(azelnode,multi=True,index=[1])
+   
+
+    for station in array.stations():
+        azelX =ns.azelX(dirname,station)<<Meq.Composer(azX,el)
+        azelY =ns.azelY(dirname,station)<<Meq.Composer(azY,el)
+        Xediag_phi = ns.Xediag_phi(dirname,station) << Meq.Compounder(children=[azelX,Bx_phi[station]],common_axes=[hiid('l'),hiid('m')])
+        Xediag_theta= ns.Xediag_theta(dirname,station) << Meq.Compounder(children=[azelX,Bx_theta[station]],common_axes=[hiid('l'),hiid('m')])
+        Yediag_phi = ns.Yediag_phi(dirname,station) << Meq.Compounder(children=[azelY,By_phi[station]],common_axes=[hiid('l'),hiid('m')])
+        Yediag_theta = ns.Yediag_theta(dirname,station) << Meq.Compounder(children=[azelY,By_theta[station]],common_axes=[hiid('l'),hiid('m')])
+        if station in beam_formed:
+          Xstatbeam=ns.Xstatbeam(dirname,station)<<Meq.StationBeam(filename=beampath+'/beams/AntennaCoords',radec=radec0,xyz=xyz(station),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+          #radec00=ns.radec_dummy(dirname,station,'x')<<Meq.RADec(Meq.Composer(az00,el00),xyz(station))
+
+          #Xstatbeam=ns.Xstatbeam(dirname,station)<<Meq.StationBeam(filename=beampath+'/beams/AntennaCoords',radec=radec00,xyz=xyz(station),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+          Ystatbeam=ns.Ystatbeam(dirname,station)<<Meq.StationBeam(filename=beampath+'/beams/AntennaCoords',radec=radec0,xyz=xyz(station),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+
+          #radec00=ns.radec_dummy(dirname,station,'y')<<Meq.RADec(Meq.Composer(az00,el00),xyz(station))
+          #Ystatbeam=ns.Ystatbeam(dirname,station)<<Meq.StationBeam(filename=beampath+'/beams/AntennaCoords',radec=radec00,xyz=xyz(station),phi0=Meq.Constant(-math.pi/4),ref_freq=(ns.freq0+ns.freq1)/2)
+
+          Xstatgain=ns.Xstatgain(dirname,station)<<Meq.Compounder(children=[azelX,Xstatbeam],common_axes=[hiid('l'),hiid('m')])
+          Ystatgain=ns.Ystatgain(dirname,station)<<Meq.Compounder(children=[azelY,Ystatbeam],common_axes=[hiid('l'),hiid('m')])
+          Ej(station) <<Meq.Matrix22(Xstatgain*Xediag_theta,Xstatgain*Xediag_phi,Ystatgain*Yediag_theta,Ystatgain*Yediag_phi)/600.00
+          #Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)
+        else:
+          Ej(station) <<Meq.Matrix22(Xediag_theta,Xediag_phi,Yediag_theta,Yediag_phi)/600.00
+        #Ej(station) <<Meq.Matrix22(el_S*az_S*Xediag_theta,az_C*Xediag_phi,Meq.Negate(el_S*az_S)*Yediag_theta,az_C*Yediag_phi)
+
+  return Ej0;
+
+
+
 
 
 
@@ -569,7 +736,7 @@ def EJones_fits(ns,array,sources,radec0,meptable=None,solvables=[],solvable=Fals
         # find modulo values add 20 deg to fit to right grid points
         az_X=ns.az_X(station,dirname)<<az-Meq.Floor(az/(2*math.pi))*2*math.pi+math.pi/9
         az_y=ns.az_y(station,dirname)<<az_X-math.pi/2
-        az_Y=ns.az_Y(station,dirname)<<az_y-Meq.Floor(az_y/(2*math.pi))*2*math.pi+math.pi/9
+        az_Y=ns.az_Y(station,dirname)<<az_y-Meq.Floor(az_y/(2*math.pi))*2*math.pi
 
 
         X_theta = ns.X_theta(dirname,station) << Meq.Compounder(children=[Meq.Composer(az_X,theta),beam_theta],common_axes=[hiid('l'),hiid('m')])

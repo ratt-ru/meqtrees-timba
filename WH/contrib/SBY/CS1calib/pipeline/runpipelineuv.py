@@ -113,7 +113,7 @@ TDLOption('max_condnum',"Max condition number",[3,4],more=float,doc="Max conditi
 );
 
 # correct for all baselines
-TDLCompileOption('include_short_base',"All Baselines",[True,False],default=True);
+TDLCompileOption('exclude_short_base',"Exclude short baselines in calibration",[True,False],default=True);
 
 
 # number of stations
@@ -155,7 +155,7 @@ short_baselines=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
 def _define_forest(ns, parent=None, **kw):
   # create array model
   stations = range(1,num_stations+1);
-  array = IfrArray(ns,stations,mirror_uvw=False);
+  array = IfrArray(ns,stations,ms_uvw=False,mirror_uvw=False);
   observation = Observation(ns);
   
   lsm=LSM()
@@ -165,7 +165,7 @@ def _define_forest(ns, parent=None, **kw):
   if parent:
     lsm.display()
 
-  if not include_short_base:
+  if not exclude_short_base:
     exclude_baselines=[]
   else:
     exclude_baselines=short_baselines
@@ -188,7 +188,10 @@ def _define_forest(ns, parent=None, **kw):
       if usefitsbeam:
         Ej = global_model.EJones_fits(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False,rotate=dorotate,lba=use_lba);
       else:
-        Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+        if stationbeam:
+          Ej = global_model.EJones_HBA_stat(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
+        else:
+          Ej = global_model.EJones_HBA(ns,array,source_list,observation.phase_centre.radec(),meptable='',solvables=beam_parms,solvable=False);
     
   corrupt_list = [
       CorruptComponent(ns,src,label='E',station_jones=Ej(src.direction.name))
@@ -433,6 +436,8 @@ def _do_preprocess(fname,mqs):
 def _do_calibrate(fname,mqs):
   if fname==None: return
 
+  ##### update fluxes
+  _update_fluxes(fname,mqs)
   ### setup solvables #####
   solvables = ['Jreal11:'+str(station) for station in range(1,num_stations+1)];
   solvables += ['Jimag11:'+str(station) for station in range(1,num_stations+1)];
@@ -478,6 +483,44 @@ def _do_postprocess(fname,mqs):
   # cleanup any crumbs left from glish
   # to be done
 
+
+def  _update_fluxes(fname,mqs):
+  ## read file
+  infilename='./smoothed_flux.txt'
+  infile=open(infilename,'r');
+  all=infile.readlines()
+  infile.close()
+  pp=re.compile(r"""
+  ^(?P<col1>\d+)  # col 1, number
+   \s*            # skip white space
+   (?P<col2>\d+(\.\d*)?) # frequency
+   \s*            # skip white space
+   (?P<col3>(-)?\d+(\.\d*)?)   # CygA
+   \s*            # skip white space
+   (?P<col4>(-)?\d+(\.\d*)?)   # TauA
+   \s*            # skip white space
+   (?P<col5>(-)?\d+(\.\d*)?)   # VirA
+   [\S\s]+""",re.VERBOSE)
+  ### which subband to match
+  ### file name is something like L2007_04783_SB10.MS
+  ff=re.split('\S+_SB',fname)
+  if len(ff)<2: return
+  bb=re.findall('\d+',ff[1])
+  if len(bb)<1: return
+  sbnum=int(bb[0])
+
+  for eachline in all:
+   v=pp.search(eachline)
+   if v!=None:
+     snum=int(v.group('col1'))-1; # index from 0
+     if snum==sbnum:
+       ## update nodes
+       CygAI=float(v.group('col3'))
+       TauAI=float(v.group('col4'))
+       VirAI=float(v.group('col5'))
+       set_node_state(mqs,'I:S1',record(value=CygAI))
+       set_node_state(mqs,'I:S3',record(value=TauAI))
+       set_node_state(mqs,'I:S4',record(value=VirAI))
 
 
 Settings.forest_state.cache_policy = 1  # -1 for minimal, 1 for smart caching, 100 for full caching
