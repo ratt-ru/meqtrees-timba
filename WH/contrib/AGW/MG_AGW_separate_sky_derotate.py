@@ -85,10 +85,7 @@ else:
     record(name='Results',page=[
       record(udi="/node/IQUV",viewer="Result Plotter",pos=(0,0))])])
 
-if do_fit:
-  mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '.mep'
-else:
-  mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '_conj.mep'
+mep_beam_weights = 'beam_weights_rotate' + str(l_beam) + '_' + str(m_beam) + '.mep'
 
 
 ########################################################
