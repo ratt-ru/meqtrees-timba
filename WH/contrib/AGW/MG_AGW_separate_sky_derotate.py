@@ -49,7 +49,7 @@ from Timba.Meq import meq
 from Meow import Bookmarks,Utils
 from handle_beams import *
 from make_multi_dim_request import *
-from setup_array_weights import *
+from MG_AGW_setup_array_weights import *
 
 import os
 
