@@ -543,7 +543,7 @@ class PointsXY (object):
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
         trace = False
-        # trace = True
+        trace = True
         
         ptype = self._kw['plot_type']
         if trace:
@@ -578,23 +578,47 @@ class PointsXY (object):
 
         else:
             kwargs = self._PlotStyle.kwargs('plot')
+            ms = None
+            if kwargs.has_key('markersize'):
+                ms = kwargs['markersize']
+                kwargs.__delitem__('markersize') 
+            if not isinstance(ms,(list,tuple)):
+                ms = [ms]
+            if not len(ms)==len(yy):
+                ms = len(yy)*[ms[0]]
             if trace:
                 print '--- kwargs =',kwargs
+                print '--- markersize: ms =',ms
+
             if not kwargs.has_key('linestyle'):
                 if trace:
                     print '\n** plot_points(): kwargs has no field linestyle\n'
                 for i,y in enumerate(yy):
-                    pylab.plot([xx[i]], [yy[i]], **kwargs)
+                    if trace: print '-',xx[i],yy[i],ms[i]
+                    pylab.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+
             elif kwargs['linestyle']=='.':
                 if trace:
                     print '\n** plot_points(): linestyle==. (delete)\n'
                 kwargs.__delitem__('linestyle')
                 for i,y in enumerate(yy):
-                    pylab.plot([xx[i]], [yy[i]], **kwargs)
+                    if trace: print '-',xx[i],yy[i],ms[i]
+                    pylab.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+
+            elif False:
+                if trace:
+                    print '\n** plot_points(): (deleted: linestyle=',kwargs['linestyle'],')\n'
+                kwargs.__delitem__('linestyle')
+                for i,y in enumerate(yy):
+                    if trace: print '-',xx[i],yy[i],ms[i]
+                    pylab.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+
             else:
                 if trace:
-                    print '\n** plot_points(): linestyle=',kwargs['linestyle'],'\n'
+                    print '\n** plot_points(): group with linestyle=',kwargs['linestyle'],'\n'
                 pylab.plot(xx, yy, label=label, **kwargs)
+
+        # Finished
         return True
 
     #---------------------------------------------------------------

@@ -186,7 +186,7 @@ class ResultVector (object):
     """Return a list of values."""
     vv = []
     for i,rr in enumerate(self._Result):
-      vv.extend(rr.vv(index=self.getindex(index)))
+      vv.extend(rr.dvv(index=self.getindex(index)))
     return vv
 
   def vcx(self, index=None):
@@ -287,6 +287,7 @@ class Result (object):
         pass
 
     # The values (mean/stddev over the domain) of the result
+    self._vv_executed = False
     self._vv = []
     self._dvv = []
     self._vcx = []                       # complex version
@@ -375,7 +376,7 @@ class Result (object):
   def vv(self, index=None):
     """Calculate the various vectors of values, labels and coordinates.
     Return a list of vv values."""
-    if not self._vv:
+    if not self._vv_executed:
       self._vv = []
       self._vcx = []
       self._dvv = []
@@ -385,17 +386,9 @@ class Result (object):
       self._dxx = []
       self._dyy = []
 
-      # First count the number (nv) of 'value' Vells
-      nv = 0
-      for i,key in enumerate(self._order):
-        if i==self._xindex or i==self._yindex:
-          pass                                        # ignore
-        else:
-          nv += 1
-      
       for i,key in enumerate(self._order):
         v = self._Vells[key].mean()                   # the mean of the domain values
-        dv = self._Vells[key].errorbar()              # the stddev of the domain values
+        dv = self._Vells[key].sigmabar()              # the stddev of the domain values
         if isinstance(dv,complex): dv = abs(dv)       # .....?
 
         if self._xindex==i:
@@ -414,23 +407,26 @@ class Result (object):
           # This Vells contains a value (v):
           if isinstance(v,complex):
             self._vcx.append(v)                       # complex value
+            self._vv.append(v.imag+self._offset)
             self._xx.append(v.real)
             self._dxx.append(dv)
-            self._vv.append(v.imag+self._offset)
           else:
             self._vv.append(v+self._offset)
             self._vcx.append(complex(v+self._offset,0.0))
           self._dvv.append(dv)
+          
           label = self.name()
-          if nv>1 and self._extend_labels:            # multiple 'values' Vells
+          if self._extend_labels:       
             if not isinstance(self._vlabels,(list,tuple)):    # Vells labels
               label += '['+str(key)+']'
-            elif i>=len(self._vlabels):               # too few vlabels
+            elif i>=len(self._vlabels):                   # too few vlabels
               label += '['+str(key)+'?]'
             else:
               label += '['+self._vlabels[i]+']'   
           self._labels.append(label)
+
     # Finished:
+    self._vv_executed = True                          # avoid duplication
     return self.vvout(self._vv, index)
 
   #----------------------------------------------------------------
@@ -453,64 +449,43 @@ class Result (object):
 
   def vcx(self, index=None):
     """Return a list of vcx (complex) values."""
-    if not self._vcx: self.vv()             # make sure that there is a self._vv
-    if not len(self._vcx)==len(self._vv):
-      # Default: vcx=complex(0,0) for all the values self._vv
-      self._vcx = len(self._vv)*[complex(0.0,0.0)]
+    if not self._vv_executed: self.vv()       
     return self.vvout(self._vcx, index)
 
 
   def dvv(self, index=None):
     """Return a list of dvv (stddev) values."""
-    if not self._dvv: self.vv()             # make sure that there is a self._vv
-    if not len(self._dvv)==len(self._vv):
-      # Default: dvv==0 for all the values self._vv
-      self._dvv = len(self._vv)*[0.0]
+    if not self._vv_executed: self.vv()       
     return self.vvout(self._dvv, index)
 
 
   def labels(self, index=None):
-    """Return a list of labels with the same length as self._vv."""
-    if not self._labels: self.vv()          # make sure that there is a self._vv
-    if not len(self._labels)==len(self._vv):
-      # Something wrong: indicate by question mark labels
-      self._labels = len(self._vv)*['?']
+    """Return a list of labels"""
+    if not self._vv_executed: self.vv()       
     return self.vvout(self._labels, index)
 
 
   def xx(self, index=None):
     """Return a list of x-coordinates"""
-    if not self._xx: self.vv()              # make sure that there is a self._vv
-    if not len(self._xx)==len(self._vv):
-      # Default: the same x for all the values self._vv
-      self._xx = len(self._vv)*[self._iseq]
+    if not self._vv_executed: self.vv()       
     return self.vvout(self._xx, index)
 
 
   def dxx(self, index=None):
     """Return a list of error-bars for x-coordinates"""
-    if not self._dxx: self.vv()             # make sure that there is a self._vv
-    if not len(self._dxx)==len(self._vv):
-      # Default: dxx==0 for all the values self._vv
-      self._dxx = len(self._vv)*[0.0]
+    if not self._vv_executed: self.vv()       
     return self.vvout(self._dxx, index)
 
 
   def yy(self, index=None):
     """Return a list of x-coordinates"""
-    if not self._yy: self.vv()              # make sure that there is a self._vv
-    if not len(self._yy)==len(self._vv):
-      # Default: the same y for all the values self._vv
-      self._yy = len(self._vv)*[self._iseq]
+    if not self._vv_executed: self.vv()       
     return self.vvout(self._yy, index)
 
 
   def dyy(self, index=None):
     """Return a list of error-bars for x-coordinates"""
-    if not self._dyy: self.vv()             # make sure that there is a self._vv
-    if not len(self._dyy)==len(self._vv):
-      # Default: dyy==0 for all the values self._vv
-      self._dyy = len(self._vv)*[0.0]
+    if not self._vv_executed: self.vv()       
     return self.vvout(self._dyy, index)
 
 
@@ -579,8 +554,8 @@ class Vells (object):
       return self._vells.__abs__().stddev()     # not entirely correct: expand first!
     return self._vells.stddev()                 # not entirely correct: expand first!
 
-  def errorbar (self):
-    """Return the length of the error-bar (stddev) around the mean.
+  def sigmabar (self):
+    """Return the length of the one_sigma-bar (stddev) around the mean.
     If the Vells is complex, complex(stddev,stddev) is returned."""
     stddev = self.stddev()
     if self._is_complex:

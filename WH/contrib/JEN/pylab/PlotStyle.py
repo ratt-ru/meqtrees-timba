@@ -298,7 +298,7 @@ class PlotStyle (object):
         # specified via the 'style' keyword. If they are both required
         # the more specific 'marker' and 'linestyle' must be used.
         if not kw['style'] or kw['marker'] or kw['linestyle']:
-            kw['style'] = '-'
+            kw['style'] = 'o'                   # in any case NOT a linestyle!
         if kw['style'] in self.line_styles():
             if not kw['linestyle']:
                 kw['linestyle'] = kw['style']
@@ -335,12 +335,15 @@ class PlotStyle (object):
 
         # Temporary kludge(s) to solve SVG poblems:
         if True:
-            s = '\n** .PlotStyle: temporary SVG kludge: '
             if kw['linestyle']==None:
+                s = '\n** .PlotStyle: temporary SVG kludge: '
                 kw['linestyle'] = '.'             # not recognized, ignored...  
                 # kw['linestyle'] = ':'             # dotted, safe for svg-Qt  
-                kw.__delitem__('linestyle')       # remove entirely (gives solid lines...)
-                # print s,' avoided linestyle=None ->',kw['linestyle']
+                if True:
+                    kw.__delitem__('linestyle')       # remove entirely (gives solid lines...)
+                    print s,'deleted kw.linestyle'
+                else:
+                    print s,' avoided linestyle=None ->',kw['linestyle']
 
         return True
 

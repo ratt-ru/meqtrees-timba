@@ -113,10 +113,54 @@ class PyPlot (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
+  def getiix (self, ii=None, labels=None, trace=False):
+    """Helper function to determine a list of indices
+    of child nodes that represent x-coordinates"""
+    return self.getii (ii=ii, labels=labels, lookfor=['x','X',None], trace=trace)
+
+  def getiiy (self, ii=None, labels=None, trace=False):
+    """Helper function to determine a list of indices
+    of child nodes that represent y-coordinates"""
+    return self.getii (ii=ii, labels=labels, lookfor=['y','Y'], trace=trace)
+
+  def getiiz (self, ii=None, labels=None, trace=False):
+    """Helper function to determine a list of indices
+    of child nodes that represent z-coordinates"""
+    return self.getii (ii=ii, labels=labels, lookfor=['z','Z'], trace=trace)
+
+  def getiiv (self, ii=None, labels=None, trace=False):
+    """Helper function to determine a list of indices
+    of child nodes that represent values"""
+    return self.getii (ii=ii, labels=labels, lookfor=['v','V'], trace=trace)
+
+  def getii (self, ii=None, labels=None, lookfor=[], trace=False):
+    """Helper function to extract a list of child indices
+    """
+    trace = True
+    if trace:
+      print '\n** .getii(',ii,lookfor,')\n  (',labels,')'
+    if isinstance(ii, (list,tuple)):
+      # If a list of indices (ii) is supplied, use it:
+      pass
+    else:
+      # Make the list from the list of node labels:
+      ii = []
+      for i,label in enumerate(labels):
+        if label in lookfor:
+          ii.append(i)
+    if trace:
+      print '  ->',ii
+    return ii
+  
+
+  #-------------------------------------------------------------------
+
   def show_plotinfo (self, txt=None, full=False, plotinfo=None):
     """Helper function to show the contents of self.plotinfo"""
 
     print '\n** PyPlot: self.plotinfo record (',txt,'):'
+    print ' *',type(self),self.class_name,self.name
+    print ' *',self._num_children,self.child_indices
 
     if plotinfo:               # plotinfo record externally provided
       rr = plotinfo
@@ -143,8 +187,8 @@ class PyPlot (pynode.PyNode):
     """Helper function to show the contents of a subplot definition"""
     print ' - subplot definition (',txt,'):'
     for key in sp.keys():
-      if key in ['xx','yy','dxx','dyy']:
-        print '   - ',key,':',format_vv(sp[key])
+      if key in ['xx','yy','zz','dxx','dyy','dzz']:
+        print '   - ',key,': (LIST)',format_vv(sp[key])
       else:
         print '   - ',key,'=',sp[key]
     return True
@@ -160,13 +204,14 @@ class PyPlot (pynode.PyNode):
     # Add some fields with statistics:
     import pylab
     yy = pylab.array(sp.yy)
-    sp.min = yy.min()
-    sp.max = yy.max()
-    sp.mean = yy.mean()
-    sp.stddev = 0.0
-    if len(yy)>1:
-      if not isinstance(yy[0],complex):
-        sp.stddev = yy.stddev()       
+    if len(yy)>0:
+      sp.min = yy.min()
+      sp.max = yy.max()
+      sp.mean = yy.mean()
+      sp.stddev = 0.0
+      if len(yy)>1:
+        if not isinstance(yy[0],complex):
+          sp.stddev = yy.stddev()       
     
     if trace:
       self.show_subplot(sp, '.append_subplot()')
@@ -283,6 +328,10 @@ class PyPlot (pynode.PyNode):
         if offset<0.0: legend += ' ('+str(offset)+')'
       grs.legend(legend, color=sp.color)
 
+    # Optionally, set the plot-window:
+    if False:
+      self.set_window(grs)
+
     if trace:
       grs.display('make_svg()')
 
@@ -298,6 +347,45 @@ class PyPlot (pynode.PyNode):
                                    clear=False, trace=trace)
     # Finished:
     return svg_list_of_strings
+
+
+#--------------------------------------------------------------------
+
+  def set_window(self, grs, trace=False):
+    """Set the plot window"""
+
+    margin = 0.1
+    [xmin, xmax] = grs.xrange(margin=margin, trace=trace)
+    [ymin, ymax] = grs.yrange(margin=margin, trace=trace)
+
+    if trace:
+      print '\n**',type(self),'.set_window():',self._count
+      print '  [xmin,xmax] =',[xmin,xmax]
+      print '  [ymin,ymax] =',[ymin,ymax]
+    # return None
+
+    q = 0.2                                # dampening factor
+    if self._count==0:
+      # First time: Get the general size
+      self._xmin = xmin
+      self._xmax = xmax
+      self._ymin = ymin
+      self._ymax = ymax
+    else:
+      self._xmin += (xmin - self._xmin)*q
+      self._xmax += (xmax - self._xmax)*q
+      self._ymin += (ymin - self._ymin)*q
+      self._ymax += (ymax - self._ymax)*q
+
+    if trace:
+        print '  [dxmin,dxmax] =',[(xmin-self._xmin)*q,(xmax-self._xmax)*q]
+        print '  [dymin,dymax] =',[(ymin-self._ymin)*q,(ymax-self._ymax)*q]
+
+    # Update the Subplot (grs) window:
+    if True:
+      grs.kwupdate(**dict(xmin=self._xmin, xmax=self._xmax,
+                          ymin=self._ymin, ymax=self._ymax))
+    return None
 
 
 
@@ -327,6 +415,14 @@ class PyPlot (pynode.PyNode):
       rr['labels'] = self._num_children*[None]
     # print self._num_children,rr['labels']
 
+    # Make various lists of child indices:
+    rr.setdefault('iix',None)
+    rr.setdefault('iiy',None)
+    rr.setdefault('iiz',None)
+    rr.iix = self.getiix(rr.iix, rr.labels)
+    rr.iiy = self.getiiy(rr.iiy, rr.labels)
+    rr.iiz = self.getiiz(rr.iiz, rr.labels)
+
     # Overall parameters 
     # These keys are used to transfer fields to the node result:
     self._ovkeys = ['title','xlabel','ylabel']
@@ -343,7 +439,7 @@ class PyPlot (pynode.PyNode):
     # Subplot parameters: 
     # These keys are used to transfer information to subplot definitions:
     self._spkeys = ['color','linestyle','marker','markersize']
-    self._spkeys.extend(['legend','plot_error_bars','annotate'])
+    self._spkeys.extend(['legend','plot_sigma_bars','annotate'])
     self._spkeys.extend(['plot_circle_mean'])
 
     rr.setdefault('subplot',[])                     # subplot definitions 
@@ -353,7 +449,7 @@ class PyPlot (pynode.PyNode):
     rr.setdefault('marker', 'o')                    # marker style
     rr.setdefault('markersize', 5)                  # markersize
     rr.setdefault('annotate', True)                 # do annotation
-    rr.setdefault('plot_error_bars', True)          # plot error-bars
+    rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)         # plot circle around (0,0) with radius=mean
 
     if trace:
@@ -390,7 +486,7 @@ class PyPlot (pynode.PyNode):
     # Fill in the data from the child result(s):
     sp.yy = rv.vv()
     sp.dyy = None
-    if sp.plot_error_bars:
+    if sp.plot_sigma_bars:
       sp.dyy = rv.dvv()
     sp.xx = rv.xx()
     sp.dxx = None
@@ -437,7 +533,6 @@ class PyPlotTensorVells (PyPlot):
     rr.setdefault('index', '*')                       # indices of Vells to be plotted
     rr.setdefault('xindex', None)                     # index of x-coord Vells
     rr.setdefault('yindex', None)                     # index of y-coord Vells
-    # rr.setdefault('vlabels', None)                    # Vells label(s) 
     
     # First do the generic checks (mandatory!) 
     PyPlot.check_plotinfo(self, trace=trace)
@@ -467,8 +562,9 @@ class PyPlotTensorVells (PyPlot):
 
   #-------------------------------------------------------------------
 
-  def getval (self, vv, index=1, trace=False):
-    """Helper function to get the specified (index) element from vv."""
+  def getval (self, vv, index=0, trace=False):
+    """Helper function to get the specified (index) element from vv.
+    """
     if not isinstance(vv,(list,tuple)):
       v = vv                            # e.g. 'blue'
     elif index>=len(vv) or index<0:     # out of range
@@ -524,7 +620,7 @@ class PyPlotTensorVells (PyPlot):
         sp.labels = rv.labels(index=index)
         sp.dyy = None
         sp.dxx = None
-        if sp.plot_error_bars:
+        if sp.plot_sigma_bars:
           sp.dyy = rv.dvv(index=index)
           sp.dxx = rv.dxx(index=index)
         self.check_and_append_subplot(sp, trace=trace)
@@ -533,6 +629,169 @@ class PyPlotTensorVells (PyPlot):
     if trace:
       self.show_plotinfo('.define_subplots()')
     return None
+
+
+
+
+#=====================================================================
+# Classes to plot 2x2 complex cohaerency matrices:
+#=====================================================================
+
+class PyPlotXY (PyPlotTensorVells):
+  """Class derived from PyPlotTensorVells"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlotTensorVells.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xindex',0)
+    rr.setdefault('yindex',1)
+    rr.setdefault('xlabel','x')
+    rr.setdefault('ylabel','y')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlotTensorVells.check_plotinfo(self, trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_subplots (self, children, trace=False):
+    """Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that its children are tensor nodes, in which
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    """
+    rr = self.plotinfo                         # convenience
+    trace = True
+
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    rv = ChildResult.ResultVector(children, labels=rr.labels,
+                                  extend_labels=False,
+                                  xindex=rr.xindex,
+                                  yindex=rr.yindex)
+    if trace:
+      rv.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    sp = record()
+    for key in self._spkeys:               # transfer standard fields
+      sp[key] = self.getval(rr[key], index=0, trace=trace)  
+    sp.yy = rv.yy()     
+    sp.xx = rv.xx()         
+    sp.labels = rr.labels                  # use the input labels themselves
+    sp.dyy = None
+    sp.dxx = None
+    if sp.plot_sigma_bars:
+      sp.dyy = rv.dyy()
+      sp.dxx = rv.dxx()
+    self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+
+
+#=====================================================================
+
+class PyPlotXYZ (PyPlotTensorVells):
+  """Class derived from PyPlotTensorVells"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlotTensorVells.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xindex',0)
+    rr.setdefault('yindex',1)
+    rr.setdefault('xlabel','x')
+    rr.setdefault('ylabel','y')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlotTensorVells.check_plotinfo(self, trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_subplots (self, children, trace=False):
+    """Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that its children are tensor nodes, in which
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    The rest of the Vells are assumed used to control the size of the marker.
+    """
+    rr = self.plotinfo                         # convenience
+    trace = True
+
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    rv = ChildResult.ResultVector(children, labels=rr.labels,
+                                  extend_labels=False,
+                                  xindex=rr.xindex,
+                                  yindex=rr.yindex)
+    if trace:
+      rv.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    sp = record()
+    for key in self._spkeys:               # transfer standard fields
+      sp[key] = self.getval(rr[key], index=0, trace=trace)  
+    sp.yy = rv.yy()     
+    sp.xx = rv.xx()         
+    sp.zz = rv.vv()
+    if True:
+      # Use the z-values to vary the marker size:
+      sp.zmin = min(sp.zz)
+      sp.zmax = max(sp.zz)
+      msmin = 2.0
+      msmax = 20.0 
+      q = (msmax-msmin)/(sp.zmax-sp.zmin)
+      ms = []
+      for i,z in enumerate(sp.zz):
+        ms.append(int(msmin+q*(z-sp.zmin)))
+      sp.markersize = ms
+    sp.labels = rv.labels()  
+    sp.dyy = None
+    sp.dxx = None
+    if sp.plot_sigma_bars:
+      sp.dyy = rv.dyy()
+      sp.dxx = rv.dxx()
+    self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+
+
+
+
+
+
+
+
 
 
 
@@ -602,7 +861,7 @@ class PyPlotCoh22 (PyPlotTensorVells):
       sp.labels = rv.labels(index=index)
       sp.dyy = None
       sp.dxx = None
-      if sp.plot_error_bars:
+      if sp.plot_sigma_bars:
         sp.dyy = rv.dvv(index=index)
         sp.dxx = rv.dxx(index=index)
       self.check_and_append_subplot(sp, trace=trace)
@@ -632,12 +891,17 @@ class PyPlotCrossCorrs22 (PyPlotCoh22):
     rr = self.plotinfo                        # convenience
     # trace = True
 
-    # Set the specific values:
-    rr.index = [1,2]
-    rr.annotate = [True,True]
     
     # Then do the generic checks (mandatory!) 
     PyPlotCoh22.check_plotinfo(self, trace=trace)
+
+    # Set the specific values:
+    rr.index = [1,2]
+    rr.annotate = [True,True,True,True]
+
+    # Finished:
+    if True:
+      self.show_plotinfo('.check_plotinfo()')
     return None
 
 
@@ -708,25 +972,101 @@ def _define_forest (ns,**kwargs):
   ffrac = ns.ffrac << Meq.Multiply(Meq.Freq(),0.1)
 
 
+  #----------------------------------------------------------------------
   
   if False:
-    classname = 'PyPlot'
-    name = classname+'p'              # pairs PyPlot
     cc = []
+    cc2 = []
+    cc3 = []
+    cc4 = []
     labels = []
+    labels2 = []
+    labels3 = []
+    labels4 = []
     yname = 'y1p'
     xname = 'x1p'
+    zname = 'z1p'
+    vname = 'v1p'
+    iix = []
+    iiy = []
+    iiz = []
+    iiv = []
+    
     n = 5
     for i in range(n):
-      y = ns[yname](i) << (gs + random.gauss(i,0.5))
-      x = ns[xname](i) << (gs + random.gauss(i,0.3))
-      xy = ns.pair(i) << Meq.Composer(x,y)
-      cc.append(xy)
-      labels.append('pair_'+str(i))    
-    rr[name] = record(title=name, labels=labels, xindex=0)
-    classnames[name] = classname
-    children[name] = cc
 
+      y = ns[yname](i) << (gs + random.gauss(i,0.5))
+      iiy.append(len(cc))
+      cc.append(y)
+      labels.append('y')    
+
+      x = ns[xname](i) << (gs + random.gauss(i,0.3))
+      iix.append(len(cc))
+      cc.append(x)
+      labels.append('x')    
+      # labels.append(None)    
+
+      z = ns[zname](i) << (gs + random.gauss(i,0.3))
+      iiz.append(len(cc))
+      labels.append('z')    
+      cc.append(z)
+
+      v = ns[vname](i) << (gs + random.gauss(i,0.3))
+      iiv.append(len(cc))
+      labels.append('v')    
+      cc.append(v)
+
+      xy = ns.xy(i) << Meq.Composer(x,y)
+      cc2.append(xy)
+      labels2.append('xy_'+str(i))    
+
+      xyz = ns.xyz(i) << Meq.Composer(x,y,z)
+      cc3.append(xyz)
+      labels3.append('xyz_'+str(i))    
+
+    if False:
+      classname = 'PyPlotXY'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name,
+                        markersize=10,
+                        labels=labels2,
+                        # labels=labels3,
+                        plot_sigma_bars=True)
+      # children[name] = cc2
+      children[name] = cc3
+
+    if True:
+      classname = 'PyPlotXYZ'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name,
+                        markersize=10,
+                        plot_sigma_bars=True,
+                        labels=labels3)
+      children[name] = cc3
+
+    if False:
+      classname = 'PyPlotXYZZ'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name,
+                        markersize=10,
+                        plot_sigma_bars=True,
+                        labels=labels)
+      children[name] = cc
+
+    if False:
+      classname = 'PyPlotXXYY'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name,
+                        markersize=10,
+                        plot_sigma_bars=True,
+                        labels=labels)
+      children[name] = cc
+
+  #----------------------------------------------------------------------
 
   if False:
     classname = 'PyPlot'
@@ -750,6 +1090,7 @@ def _define_forest (ns,**kwargs):
     classnames[name] = classname
     children[name] = cc
 
+  #----------------------------------------------------------------------
 
   if False:
     classname = 'PyPlot'
@@ -783,7 +1124,7 @@ def _define_forest (ns,**kwargs):
 
   if True:
     cc = []
-    nstat = 3
+    nstat = 5
     rmsa = 0.01
     labels = []
     for i in range(nstat-1):
@@ -819,11 +1160,14 @@ def _define_forest (ns,**kwargs):
       rr[name] = record(title=name, labels=labels)
       children[name] = cc
 
-    if False:
-      classname = 'PyPlotCrossCorr22'
+    if True:
+      classname = 'PyPlotCrossCorrs22'
       name = classname
       classnames[name] = classname
-      rr[name] = record(title=name, labels=labels)
+      rr[name] = record(title=name,
+                        markersize=20,
+                        plot_sigma_bars=False,
+                        labels=labels)
       children[name] = cc
 
       
