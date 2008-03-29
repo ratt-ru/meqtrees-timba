@@ -113,45 +113,37 @@ class PyPlot (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def getiix (self, ii=None, labels=None, trace=False):
-    """Helper function to determine a list of indices
-    of child nodes that represent x-coordinates"""
-    return self.getii (ii=ii, labels=labels, lookfor=['x','X',None], trace=trace)
-
-  def getiiy (self, ii=None, labels=None, trace=False):
-    """Helper function to determine a list of indices
-    of child nodes that represent y-coordinates"""
-    return self.getii (ii=ii, labels=labels, lookfor=['y','Y'], trace=trace)
-
-  def getiiz (self, ii=None, labels=None, trace=False):
-    """Helper function to determine a list of indices
-    of child nodes that represent z-coordinates"""
-    return self.getii (ii=ii, labels=labels, lookfor=['z','Z'], trace=trace)
-
-  def getiiv (self, ii=None, labels=None, trace=False):
-    """Helper function to determine a list of indices
-    of child nodes that represent values"""
-    return self.getii (ii=ii, labels=labels, lookfor=['v','V'], trace=trace)
-
-  def getii (self, ii=None, labels=None, lookfor=[], trace=False):
-    """Helper function to extract a list of child indices
+  def iisubset (self, nc, part=1, nparts=1, trace=False):
+    """Helper function that returns a list of indices for a subset
+    of the nc child nodes. It assumes that the children are grouped in
+    nparts equal parts (e.g. 3 equal-sized groups of x-nodes, y-nodes
+    and z-nodes). It returns indices for the specified part.
     """
-    trace = True
+    # trace = True
+    npp = nc/nparts           # nr per part (should be integer...)
+    offset = (part-1)*npp
+    ii = []
+    for i in range(npp):
+      ii.append(i+offset)
     if trace:
-      print '\n** .getii(',ii,lookfor,')\n  (',labels,')'
-    if isinstance(ii, (list,tuple)):
-      # If a list of indices (ii) is supplied, use it:
-      pass
-    else:
-      # Make the list from the list of node labels:
-      ii = []
-      for i,label in enumerate(labels):
-        if label in lookfor:
-          ii.append(i)
-    if trace:
-      print '  ->',ii
+      print '\n** iisubset(',n,part,nparts,'):',npp,offset,'->',ii,'\n'
     return ii
-  
+
+  #-------------------------------------------------------------------
+
+  def getval (self, vv, index=0, trace=False):
+    """Helper function to get the specified (index) element from vv.
+    """
+    if not isinstance(vv,(list,tuple)):
+      v = vv                            # e.g. 'blue'
+    elif index>=len(vv) or index<0:     # out of range
+      v = vv[0]                         #  always return a value
+    else:
+      v = vv[index]                     # ok
+    if trace:
+      print ' - getval(',vv,index,') ->',v
+    return v
+
 
   #-------------------------------------------------------------------
 
@@ -195,11 +187,33 @@ class PyPlot (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
+  def zz2markersize(self, sp, trace=False):
+    """Helper function to translate the values sp.zz in the given subplot
+    definition into a vector of integer values sp.markersize, between the
+    specified (plotinfo) miniumum and maximum sizes (in points)
+    """
+    rr = self.plotinfo             # convenience, contains msmin and msmax
+    sp.zmin = min(sp.zz)
+    sp.zmax = max(sp.zz)
+    sp.legend = 'z-range=['+format_float(sp.zmin)+', '+format_float(sp.zmax)+']'
+    q = (rr.msmax-rr.msmin)/(sp.zmax-sp.zmin)
+    ms = []
+    for i,z in enumerate(sp.zz):
+      ms.append(int(rr.msmin+q*(z-sp.zmin)))
+    sp.markersize = ms
+    return True
+
+  #-------------------------------------------------------------------
+
   def check_and_append_subplot(self, sp, trace=False):
     """Check the integrity of the given subplot definition,
     and append it to self.plotinfo.subplot.
     """
     trace = True
+
+    # Make sure of some fields:
+    sp.setdefault('dxx',None)
+    sp.setdefault('dyy',None)
 
     # Add some fields with statistics:
     import pylab
@@ -407,21 +421,13 @@ class PyPlot (pynode.PyNode):
     rr.setdefault('make_plot', True)                  # if True, make the plot
     rr.setdefault('offset', 0.0)                      # offset multiple subplots
 
-    # There must be as many labels as children:         <---- !!
+    # There must be as many labels as 'value-nodes'
+    # (i.e. no labels are needed for x-coordinate nodes etc)
+    # If no labels are specified, it is safe to have a list
+    # of None-values for all the children....
     rr.setdefault('labels', self._num_children*[None]) 
     if not isinstance(rr['labels'], (list,tuple)):
       rr['labels'] = self._num_children*[None]
-    elif not len(rr['labels'])==self._num_children:
-      rr['labels'] = self._num_children*[None]
-    # print self._num_children,rr['labels']
-
-    # Make various lists of child indices:
-    rr.setdefault('iix',None)
-    rr.setdefault('iiy',None)
-    rr.setdefault('iiz',None)
-    rr.iix = self.getiix(rr.iix, rr.labels)
-    rr.iiy = self.getiiy(rr.iiy, rr.labels)
-    rr.iiz = self.getiiz(rr.iiz, rr.labels)
 
     # Overall parameters 
     # These keys are used to transfer fields to the node result:
@@ -435,6 +441,9 @@ class PyPlot (pynode.PyNode):
     rr.setdefault('ylabel', 'result') 
     rr.setdefault('xunit', None) 
     rr.setdefault('yunit', None) 
+    rr.setdefault('xindex', 0)                      # index of x-coordinate Vells 
+    rr.setdefault('yindex', 1)                      # index of y-coordinate Vells  
+    rr.setdefault('zindex', 2)                      # index of z-coordinate Vells  
 
     # Subplot parameters: 
     # These keys are used to transfer information to subplot definitions:
@@ -448,6 +457,8 @@ class PyPlot (pynode.PyNode):
     rr.setdefault('linestyle', None)                # line style                  
     rr.setdefault('marker', 'o')                    # marker style
     rr.setdefault('markersize', 5)                  # markersize
+    rr.setdefault('msmin',2)                        # min marker size (zmin)
+    rr.setdefault('msmax',20)                       # max marker size (zmax)
     rr.setdefault('annotate', True)                 # do annotation
     rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)         # plot circle around (0,0) with radius=mean
@@ -538,42 +549,6 @@ class PyPlotTensorVells (PyPlot):
     PyPlot.check_plotinfo(self, trace=trace)
     return None
 
-  #-------------------------------------------------------------------
-
-
-    # Make sure that all the subplot parameters are lists of the same length.
-    # Assume that at least one of them (e.g. color) is a list of the correct length.
-    nmax = 0
-    for key in self._spkeys:
-      nmax = max(nmax,len(rr[key]))
-    if trace:
-      print '\n** nmax =',nmax
-      
-    for key in self._spkeys:
-      if not len(rr[key])==nmax:
-        was = rr[key]
-        rr[key] = nmax*[rr[key][0]]
-        if trace:
-          print ' -',key,':',was,'->',rr[key]
-                 
-    if trace:
-      self.show_plotinfo('after specific .check_plotinfo()')
-
-
-  #-------------------------------------------------------------------
-
-  def getval (self, vv, index=0, trace=False):
-    """Helper function to get the specified (index) element from vv.
-    """
-    if not isinstance(vv,(list,tuple)):
-      v = vv                            # e.g. 'blue'
-    elif index>=len(vv) or index<0:     # out of range
-      v = vv[0]                         #  always return a value
-    else:
-      v = vv[index]                     # ok
-    if trace:
-      print ' - getval(',vv,index,') ->',v
-    return v
 
   #-------------------------------------------------------------------
 
@@ -629,171 +604,6 @@ class PyPlotTensorVells (PyPlot):
     if trace:
       self.show_plotinfo('.define_subplots()')
     return None
-
-
-
-
-#=====================================================================
-# Classes to plot 2x2 complex cohaerency matrices:
-#=====================================================================
-
-class PyPlotXY (PyPlotTensorVells):
-  """Class derived from PyPlotTensorVells"""
-
-  def __init__ (self, *args, **kwargs):
-    PyPlotTensorVells.__init__(self, *args);
-    return None
-
-  #-------------------------------------------------------------------
-
-  def check_plotinfo (self, trace=False):
-    """Check the contents of the input self.plotinfo record.
-    """
-    rr = self.plotinfo                        # convenience
-    # trace = True
-
-    # Set the specific values:
-    rr.setdefault('xindex',0)
-    rr.setdefault('yindex',1)
-    rr.setdefault('xlabel','x')
-    rr.setdefault('ylabel','y')
-    
-    # Then do the generic checks (mandatory!) 
-    PyPlotTensorVells.check_plotinfo(self, trace=trace)
-    return None
-
-  #-------------------------------------------------------------------
-
-  def define_subplots (self, children, trace=False):
-    """Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that its children are tensor nodes, in which
-    - Vells[xindex] represents the x-coordinate, and
-    - Vells[yindex] represents the y-coordinate.
-    """
-    rr = self.plotinfo                         # convenience
-    trace = True
-
-    # The child result(s) are read by a special object: 
-    import ChildResult
-    rv = ChildResult.ResultVector(children, labels=rr.labels,
-                                  extend_labels=False,
-                                  xindex=rr.xindex,
-                                  yindex=rr.yindex)
-    if trace:
-      rv.display(self.class_name)
-
-    # Make separate suplot definitions for each Vells:
-    sp = record()
-    for key in self._spkeys:               # transfer standard fields
-      sp[key] = self.getval(rr[key], index=0, trace=trace)  
-    sp.yy = rv.yy()     
-    sp.xx = rv.xx()         
-    sp.labels = rr.labels                  # use the input labels themselves
-    sp.dyy = None
-    sp.dxx = None
-    if sp.plot_sigma_bars:
-      sp.dyy = rv.dyy()
-      sp.dxx = rv.dxx()
-    self.check_and_append_subplot(sp, trace=trace)
-
-    # Finished:
-    if trace:
-      self.show_plotinfo('.define_subplots()')
-    return None
-
-
-
-#=====================================================================
-
-class PyPlotXYZ (PyPlotTensorVells):
-  """Class derived from PyPlotTensorVells"""
-
-  def __init__ (self, *args, **kwargs):
-    PyPlotTensorVells.__init__(self, *args);
-    return None
-
-  #-------------------------------------------------------------------
-
-  def check_plotinfo (self, trace=False):
-    """Check the contents of the input self.plotinfo record.
-    """
-    rr = self.plotinfo                        # convenience
-    # trace = True
-
-    # Set the specific values:
-    rr.setdefault('xindex',0)
-    rr.setdefault('yindex',1)
-    rr.setdefault('xlabel','x')
-    rr.setdefault('ylabel','y')
-    
-    # Then do the generic checks (mandatory!) 
-    PyPlotTensorVells.check_plotinfo(self, trace=trace)
-    return None
-
-  #-------------------------------------------------------------------
-
-  def define_subplots (self, children, trace=False):
-    """Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that its children are tensor nodes, in which
-    - Vells[xindex] represents the x-coordinate, and
-    - Vells[yindex] represents the y-coordinate.
-    The rest of the Vells are assumed used to control the size of the marker.
-    """
-    rr = self.plotinfo                         # convenience
-    trace = True
-
-    # The child result(s) are read by a special object: 
-    import ChildResult
-    rv = ChildResult.ResultVector(children, labels=rr.labels,
-                                  extend_labels=False,
-                                  xindex=rr.xindex,
-                                  yindex=rr.yindex)
-    if trace:
-      rv.display(self.class_name)
-
-    # Make separate suplot definitions for each Vells:
-    sp = record()
-    for key in self._spkeys:               # transfer standard fields
-      sp[key] = self.getval(rr[key], index=0, trace=trace)  
-    sp.yy = rv.yy()     
-    sp.xx = rv.xx()         
-    sp.zz = rv.vv()
-    if True:
-      # Use the z-values to vary the marker size:
-      sp.zmin = min(sp.zz)
-      sp.zmax = max(sp.zz)
-      msmin = 2.0
-      msmax = 20.0 
-      q = (msmax-msmin)/(sp.zmax-sp.zmin)
-      ms = []
-      for i,z in enumerate(sp.zz):
-        ms.append(int(msmin+q*(z-sp.zmin)))
-      sp.markersize = ms
-    sp.labels = rv.labels()  
-    sp.dyy = None
-    sp.dxx = None
-    if sp.plot_sigma_bars:
-      sp.dyy = rv.dyy()
-      sp.dxx = rv.dxx()
-    self.check_and_append_subplot(sp, trace=trace)
-
-    # Finished:
-    if trace:
-      self.show_plotinfo('.define_subplots()')
-    return None
-
-
-
-
-
-
-
-
-
-
-
 
 
 #=====================================================================
@@ -909,6 +719,404 @@ class PyPlotCrossCorrs22 (PyPlotCoh22):
 
 
 
+#=====================================================================
+#=====================================================================
+#=====================================================================
+# Classes to plot x,y[,z] plots:
+#=====================================================================
+
+
+class PyPlotXY (PyPlot):
+  """Class derived from PyPlot"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlot.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xindex',0)
+    rr.setdefault('yindex',1)
+    rr.setdefault('xlabel','x')
+    rr.setdefault('ylabel','y')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlot.check_plotinfo(self, trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_subplots (self, children, trace=False):
+    """Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that its children are tensor nodes, in which
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    """
+    rr = self.plotinfo                         # convenience
+    trace = True
+
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    rv = ChildResult.ResultVector(children,
+                                  xindex=rr.xindex,
+                                  yindex=rr.yindex)
+    if trace:
+      rv.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    sp = record()
+    for key in self._spkeys:               # transfer standard fields
+      sp[key] = self.getval(rr[key], index=0, trace=trace)  
+    sp.yy = rv.yy()     
+    sp.xx = rv.xx()         
+    sp.labels = rr.labels                  # use the input labels themselves
+    sp.dyy = None
+    sp.dxx = None
+    if sp.plot_sigma_bars:
+      sp.dyy = rv.dyy()
+      # sp.dxx = rv.dxx()
+    self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+#=====================================================================
+
+class PyPlotUV (PyPlotXY):
+  """Class derived from PyPlotXY"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlotXY.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xindex',0)
+    rr.setdefault('yindex',1)
+    rr.setdefault('xlabel','u')
+    rr.setdefault('ylabel','v')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlotXY.check_plotinfo(self, trace=trace)
+    return None
+
+
+#=====================================================================
+
+class PyPlotXXYY (PyPlot):
+  """Class derived from PyPlot"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlot.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xlabel','x')
+    rr.setdefault('ylabel','y')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlot.check_plotinfo(self, trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_subplots (self, children, trace=False):
+    """Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that the list of children contains two groups:
+    - The first half are nodes representing x-coordinates
+    - The second half are nodes representing y-coordinates/values
+    """
+    rr = self.plotinfo                         # convenience
+    trace = True
+
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    ii = self.iisubset(len(children),1,2)
+    rvx = ChildResult.ResultVector(children, select=ii)
+    ii = self.iisubset(len(children),2,2)
+    rvy = ChildResult.ResultVector(children, select=ii)
+    if trace:
+      rvx.display(self.class_name)
+      rvy.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    sp = record()
+    for key in self._spkeys:               # transfer standard fields
+      sp[key] = self.getval(rr[key], index=0, trace=trace)  
+    sp.yy = rvy.vv()     
+    sp.xx = rvx.vv()         
+    sp.labels = rr.labels                  # use the input labels themselves
+    sp.dyy = None
+    sp.dxx = None
+    if sp.plot_sigma_bars:
+      sp.dyy = rvy.dvv()
+      # sp.dxx = rvx.dvv()
+    self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+
+
+
+#=====================================================================
+# Plots that also have a z-value (controls marker size)
+#=====================================================================
+
+class PyPlotXYZ (PyPlot):
+  """Class derived from PyPlot"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlot.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xindex',0)
+    rr.setdefault('yindex',1)
+    rr.setdefault('xlabel','x')
+    rr.setdefault('ylabel','y')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlot.check_plotinfo(self, trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_subplots (self, children, trace=False):
+    """Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that its children are 3-Vells tensor nodes, in which
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    The remaining Vells of each node is assumed to represent z-values,
+    which are translated into the size of the point markers.
+    """
+    rr = self.plotinfo                         # convenience
+    trace = True
+
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    rv = ChildResult.ResultVector(children,
+                                  xindex=rr.xindex,
+                                  yindex=rr.yindex)
+    if trace:
+      rv.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    sp = record()
+    for key in self._spkeys:               # transfer standard fields
+      sp[key] = self.getval(rr[key], index=0, trace=trace)  
+    sp.yy = rv.yy()     
+    sp.xx = rv.xx()         
+    sp.zz = rv.vv()
+    self.zz2markersize(sp)
+    sp.labels = rr.labels  
+    self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+
+
+#=====================================================================
+
+class PyPlotXYZZ (PyPlot):
+  """Class derived from PyPlot"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlot.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xindex',0)
+    rr.setdefault('yindex',1)
+    rr.setdefault('xlabel','x')
+    rr.setdefault('ylabel','y')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlot.check_plotinfo(self, trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_subplots (self, children, trace=False):
+    """Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that half of its children are tensor nodes, in which
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    The other half of the chidren are assumed to represent z-values
+    which are used to control the size of the point markers.
+    """
+    rr = self.plotinfo                         # convenience
+    trace = True
+
+    # The child result(s) are read by special objects: 
+    import ChildResult
+    ii = self.iisubset(len(children),1,2)
+    rvxy = ChildResult.ResultVector(children, select=ii,
+                                    xindex=rr.xindex,
+                                    yindex=rr.yindex)
+    ii = self.iisubset(len(children),2,2)
+    rvz = ChildResult.ResultVector(children, select=ii)
+
+    if trace:
+      rvxy.display(self.class_name)
+      rvz.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    sp = record()
+    for key in self._spkeys:               # transfer standard fields
+      sp[key] = self.getval(rr[key], index=0, trace=trace)  
+    sp.yy = rvxy.yy()     
+    sp.xx = rvxy.xx()         
+    sp.zz = rvz.vv()
+    self.zz2markersize(sp)
+    sp.labels = rr.labels  
+    self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+
+
+#=====================================================================
+
+class PyPlotXXYYZZ (PyPlot):
+  """Class derived from PyPlot"""
+
+  def __init__ (self, *args, **kwargs):
+    PyPlot.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def check_plotinfo (self, trace=False):
+    """Check the contents of the input self.plotinfo record.
+    """
+    rr = self.plotinfo                        # convenience
+    # trace = True
+
+    # Set the specific values:
+    rr.setdefault('xlabel','x')
+    rr.setdefault('ylabel','y')
+    
+    # Then do the generic checks (mandatory!) 
+    PyPlot.check_plotinfo(self, trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_subplots (self, children, trace=False):
+    """Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that the list of children contains three groups:
+    - The first third are nodes representing x-coordinates
+    - The second third are nodes representing y-coordinates
+    - The third third are nodes representing z-values
+    """
+    rr = self.plotinfo                         # convenience
+    trace = True
+
+    # The child result(s) are read by a special object: 
+    import ChildResult
+    ii = self.iisubset(len(children),1,3)
+    rvx = ChildResult.ResultVector(children, select=ii)
+    ii = self.iisubset(len(children),2,3)
+    rvy = ChildResult.ResultVector(children, select=ii)
+    ii = self.iisubset(len(children),3,3)
+    rvz = ChildResult.ResultVector(children, select=ii)
+    if trace:
+      rvx.display(self.class_name)
+      rvy.display(self.class_name)
+      rvz.display(self.class_name)
+
+    # Make separate suplot definitions for each Vells:
+    sp = record()
+    for key in self._spkeys:               # transfer standard fields
+      sp[key] = self.getval(rr[key], index=0, trace=trace)  
+    sp.xx = rvx.vv()         
+    sp.yy = rvy.vv()     
+    sp.zz = rvz.vv()         
+    self.zz2markersize(sp)
+    sp.labels = rr.labels                  # use the input labels themselves
+    sp.dyy = None
+    sp.dxx = None
+    if sp.plot_sigma_bars:
+      # sp.dyy = rvy.dvv()
+      # sp.dxx = rvx.dvv()
+      pass
+    self.check_and_append_subplot(sp, trace=trace)
+
+    # Finished:
+    if trace:
+      self.show_plotinfo('.define_subplots()')
+    return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #=====================================================================================
 # Helper function(s): (May be called from other modules)
@@ -974,97 +1182,99 @@ def _define_forest (ns,**kwargs):
 
   #----------------------------------------------------------------------
   
-  if False:
-    cc = []
-    cc2 = []
-    cc3 = []
-    cc4 = []
-    labels = []
-    labels2 = []
-    labels3 = []
-    labels4 = []
+  if True:
+    ccx = []
+    ccy = []
+    ccz = []
+    ccxy = []
+    ccxyz = []
+    labz = []
+    labxy = []
+    labxyz = []
     yname = 'y1p'
     xname = 'x1p'
     zname = 'z1p'
     vname = 'v1p'
-    iix = []
-    iiy = []
-    iiz = []
-    iiv = []
     
     n = 5
     for i in range(n):
 
-      y = ns[yname](i) << (gs + random.gauss(i,0.5))
-      iiy.append(len(cc))
-      cc.append(y)
-      labels.append('y')    
-
       x = ns[xname](i) << (gs + random.gauss(i,0.3))
-      iix.append(len(cc))
-      cc.append(x)
-      labels.append('x')    
-      # labels.append(None)    
+      ccx.append(x)
+
+      y = ns[yname](i) << (gs + random.gauss(i,0.5))
+      ccy.append(y)
 
       z = ns[zname](i) << (gs + random.gauss(i,0.3))
-      iiz.append(len(cc))
-      labels.append('z')    
-      cc.append(z)
-
-      v = ns[vname](i) << (gs + random.gauss(i,0.3))
-      iiv.append(len(cc))
-      labels.append('v')    
-      cc.append(v)
+      ccz.append(z)
+      labz.append('z_'+str(i))    
 
       xy = ns.xy(i) << Meq.Composer(x,y)
-      cc2.append(xy)
-      labels2.append('xy_'+str(i))    
+      ccxy.append(xy)
+      labxy.append('xy_'+str(i))    
 
       xyz = ns.xyz(i) << Meq.Composer(x,y,z)
-      cc3.append(xyz)
-      labels3.append('xyz_'+str(i))    
+      ccxyz.append(xyz)
+      labxyz.append('xyz_'+str(i))    
 
-    if False:
+    if 1:
       classname = 'PyPlotXY'
       name = classname
       classnames[name] = classname
       rr[name] = record(title=name,
                         markersize=10,
-                        labels=labels2,
-                        # labels=labels3,
+                        labels=labxy,
                         plot_sigma_bars=True)
-      # children[name] = cc2
-      children[name] = cc3
+      children[name] = ccxy
 
-    if True:
-      classname = 'PyPlotXYZ'
-      name = classname
-      classnames[name] = classname
-      rr[name] = record(title=name,
-                        markersize=10,
-                        plot_sigma_bars=True,
-                        labels=labels3)
-      children[name] = cc3
+      if 1:
+        classname = 'PyPlotUV'
+        name = classname
+        classnames[name] = classname
+        rr[name] = rr['PyPlotXY']
+        children[name] = children['PyPlotXY']
 
-    if False:
-      classname = 'PyPlotXYZZ'
-      name = classname
-      classnames[name] = classname
-      rr[name] = record(title=name,
-                        markersize=10,
-                        plot_sigma_bars=True,
-                        labels=labels)
-      children[name] = cc
 
-    if False:
+    if 0:
       classname = 'PyPlotXXYY'
       name = classname
       classnames[name] = classname
       rr[name] = record(title=name,
-                        markersize=10,
+                        markersize=5,
+                        color='magenta',
                         plot_sigma_bars=True,
-                        labels=labels)
-      children[name] = cc
+                        labels=labz)
+      children[name] = ccx+ccy
+
+
+    if 0:
+      classname = 'PyPlotXYZ'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name,
+                        color='red',
+                        labels=labxyz)
+      children[name] = ccxyz
+
+    if 0:
+      classname = 'PyPlotXYZZ'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name,
+                        color='green',
+                        labels=labz)
+      children[name] = ccxy+ccz
+
+    if 0:
+      classname = 'PyPlotXXYYZZ'
+      name = classname
+      classnames[name] = classname
+      rr[name] = record(title=name,
+                        color='yellow',
+                        plot_sigma_bars=True,
+                        labels=labz)
+      children[name] = ccx+ccy+ccz
+
 
   #----------------------------------------------------------------------
 
@@ -1122,7 +1332,7 @@ def _define_forest (ns,**kwargs):
 
   #----------------------------------------------------------------------
 
-  if True:
+  if False:
     cc = []
     nstat = 5
     rmsa = 0.01

@@ -543,7 +543,7 @@ class PointsXY (object):
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
         trace = False
-        trace = True
+        # trace = True
         
         ptype = self._kw['plot_type']
         if trace:
