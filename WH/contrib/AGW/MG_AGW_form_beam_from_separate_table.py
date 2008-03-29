@@ -54,7 +54,7 @@ Settings.forest_state = record(bookmarks=[
 Settings.forest_state.cache_policy = 100
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30','veidt_fpa_180_noise'],more=str)
 
 # get position of phase up point in L and M
 TDLCompileMenu('L and M position of phased-up beam',
@@ -141,9 +141,10 @@ def _define_forest(ns):
   ns.Q_real << Meq.Selector(ns.IQUV,index=1)
   ns.U_real << Meq.Selector(ns.IQUV,index=2)
   ns.V_real << Meq.Selector(ns.IQUV,index=3)
-# ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
-  ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real
+  ns.pol_sq << ns.Q_real * ns.Q_real + ns.U_real * ns.U_real + ns.V_real * ns.V_real
   ns.Ins_pol << Meq.Sqrt(ns.pol_sq) / ns.I_real
+  ns.fits <<Meq.FITSWriter(ns.I_real, filename= '!beam.fits')
+  ns.req_seq << Meq.ReqSeq(ns.Ins_pol, ns.fits)
 
 # Note: we are observing with linearly-polarized dipoles. If we
   # want the aips++ imager to generate images in the sequence I,Q,U,V
@@ -167,8 +168,7 @@ def _test_forest(mqs,parent):
   counter = 0
   request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.clearcache('Ins_pol',recursive=True)
-  mqs.meq('Node.Execute',record(name='Ins_pol',request=request),wait=True);
+  mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=True);
 #####################################################################
 
 if __name__=='__main__':
