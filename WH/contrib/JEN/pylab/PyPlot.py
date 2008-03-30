@@ -74,7 +74,34 @@ class PyPlot (pynode.PyNode):
     self._count = -1
     return None
 
+  #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0):
+    """pyNode base-class PyPlot. Recursive.
+    This doc-string is the actual help.
+    This function must be re-implemented by all classes derived from PyPlot. 
+    """
+    ss = self.attach_help('PyPlot', ss, level, PyPlot.help.__doc__)
+    return ss
+
+
+  def attach_help(self, classname, ss, level, s, header=True):
+    """Attach the given help-string (in triple-quotes) to the list ss.
+    (ss is a list of strings, for readability by the meqbrowser.)
+    This function is used by all classes derived from PyPlot. 
+    """
+    if not isinstance(ss,(list,tuple)): ss = []
+    if header:
+      h = (level*'  ')+'** Help for class: '+str(classname)
+      ss.append(h)
+    prefix = (level*'..')+' '
+    cc = s.split('\n')
+    for c in cc:
+      ss.append(prefix+c)
+    return ss
+    
+  #-------------------------------------------------------------------
+    
   def update_state (self, mystate):
     """Read information from the pynode state record. This is called
     when the node is first created and a full state record is available.
@@ -86,6 +113,18 @@ class PyPlot (pynode.PyNode):
 
     trace = False
     trace = True
+
+    if True:
+      # Attach the help for this class to the state record.
+      # It may be read with the browser after building the tree.
+      if getattr(self, 'help', None):
+        ss = self.help()
+        mystate('pyplot_node_help',ss)
+        if trace:
+          print '\n** Help attached to node state record:'
+          for s in ss:
+            print s
+          print '**\n'
 
     mystate('name')
     mystate('class_name')
@@ -290,7 +329,7 @@ class PyPlot (pynode.PyNode):
     for key in self._ovkeys:
       rr[key] = self.plotinfo[key]
     result.plotinfo = rr
-    
+
     # Finished:
     return result
 
@@ -732,6 +771,17 @@ class PyPlotXY (PyPlot):
   def __init__ (self, *args, **kwargs):
     PyPlot.__init__(self, *args);
     return None
+
+  def help (self, ss=None, level=0):
+    """pyNode derived from class PyPlot.
+    Define one subplot record from self.plotinfo,
+    using values read from the pyNode children.
+    Assume that its children are tensor nodes, in which
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    """
+    ss = self.attach_help('PyPlotXY', ss, level, PyPlotXY.help.__doc__)
+    return PyPlot.help(self, ss, level=level+1) 
 
   #-------------------------------------------------------------------
 
@@ -1227,11 +1277,12 @@ def _define_forest (ns,**kwargs):
                         plot_sigma_bars=True)
       children[name] = ccxy
 
-      if 1:
+      if 0:
         classname = 'PyPlotUV'
         name = classname
         classnames[name] = classname
         rr[name] = rr['PyPlotXY']
+        rr[name]['title'] = name
         children[name] = children['PyPlotXY']
 
 
@@ -1489,25 +1540,30 @@ def _tdl_job_sequence (mqs,parent,wait=False):
 #=====================================================================================
 
 if __name__ == '__main__':
- # run in batch mode?
- if '-run' in sys.argv:
-   from Timba.Apps import meqserver
-   from Timba.TDL import Compile
 
-   # this starts a kernel.
-   mqs = meqserver.default_mqs(wait_init=10);
+  # run in batch mode?
+  if '-run' in sys.argv:
+    from Timba.Apps import meqserver
+    from Timba.TDL import Compile
+    
+    # this starts a kernel.
+    mqs = meqserver.default_mqs(wait_init=10);
 
-   # This compiles a script as a TDL module. Any errors will be thrown as
-   # an exception, so this always returns successfully. We pass in
-   # __file__ so as to compile ourselves.
-   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+    # This compiles a script as a TDL module. Any errors will be thrown as
+    # an exception, so this always returns successfully. We pass in
+    # __file__ so as to compile ourselves.
+    (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+    
+    # this runs the _test_forest job.
+    mod._test_forest(mqs,None,wait=True);
 
-   # this runs the _test_forest job.
-   mod._test_forest(mqs,None,wait=True);
+  elif True:
+    pp = PyPlotXY()
+    print pp.help()
 
- else:
-#  from Timba.Meq import meqds 
-  Timba.TDL._dbg.set_verbose(5);
-  ns = NodeScope();
-  _define_forest(ns);
-  ns.Resolve();
+  else:
+    #  from Timba.Meq import meqds 
+    # Timba.TDL._dbg.set_verbose(5);
+    ns = NodeScope();
+    _define_forest(ns);
+    ns.Resolve();
