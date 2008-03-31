@@ -55,7 +55,7 @@ import Meow.Bookmarks
 
 import inspect
 import random
-# import pylab
+# import pylab       # not here, but in the class....!
 
 
 Settings.forest_state.cache_policy = 100;
@@ -76,28 +76,51 @@ class PyPlot (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def help (self, ss=None, level=0):
+  def help (self, ss=None, level=0, mode=None):
     """pyNode base-class PyPlot. Recursive.
     This doc-string is the actual help.
     This function must be re-implemented by all classes derived from PyPlot. 
     """
-    ss = self.attach_help('PyPlot', ss, level, PyPlot.help.__doc__)
+    ss = self.attach_help(ss, PyPlot.help.__doc__, classname='PyPlot',
+                          level=level, mode=mode)
     return ss
 
+  #...................................................................
 
-  def attach_help(self, classname, ss, level, s, header=True):
-    """Attach the given help-string (in triple-quotes) to the list ss.
-    (ss is a list of strings, for readability by the meqbrowser.)
-    This function is used by all classes derived from PyPlot. 
+  def attach_help(self, ss, s, classname='PyPlot',
+                  level=0, mode=None, header=True):
     """
-    if not isinstance(ss,(list,tuple)): ss = []
+    This is the generic routine that does all the work for .help(). 
+    It attaches the given help-string (s, in triple-quotes) to ss.
+    The following modes are supported:
+    - mode=None: interpreted as the default mode (e.g. 'list').
+    - mode='list': ss is a list of strings (lines), to be attached to
+    the node state. This is easier to read with the meqbrowser.
+    - mode='str': ss is a string, in which lines are separated by \n.
+    This is easier for just printing the help-text.
+    """
+    if mode==None:           # The default mode is specified here
+      mode = 'list'
+    if mode=='list':  
+      if not isinstance(ss,(list,tuple)): ss = []
+    else:                    # e.g. mode=='str'
+      if not isinstance(ss,str): ss = ''
+    sunit = '**'             # prefix unit string
+
     if header:
-      h = (level*'  ')+'** Help for class: '+str(classname)
-      ss.append(h)
-    prefix = (level*'..')+' '
+      h = sunit+(level*sunit)+'** Help for class: '+str(classname)
+      if mode=='list':
+        ss.append(h)
+      else:
+        ss += '\n'+h
+
+    prefix = sunit+(level*sunit)+'   '
     cc = s.split('\n')
     for c in cc:
-      ss.append(prefix+c)
+      if mode=='list':
+        ss.append(prefix+c)
+      else:
+        ss += '\n'+prefix+c
     return ss
     
   #-------------------------------------------------------------------
@@ -118,13 +141,16 @@ class PyPlot (pynode.PyNode):
       # Attach the help for this class to the state record.
       # It may be read with the browser after building the tree.
       if getattr(self, 'help', None):
-        ss = self.help()
+        ss = self.help(mode='list')
         mystate('pyplot_node_help',ss)
         if trace:
           print '\n** Help attached to node state record:'
+          print '\n** self.help(mode=list):\n'
           for s in ss:
             print s
-          print '**\n'
+          print '\n** self.help(mode=str):\n'
+          print self.help(mode='str')
+          print ' '
 
     mystate('name')
     mystate('class_name')
@@ -772,7 +798,7 @@ class PyPlotXY (PyPlot):
     PyPlot.__init__(self, *args);
     return None
 
-  def help (self, ss=None, level=0):
+  def help (self, ss=None, level=0, mode=None):
     """pyNode derived from class PyPlot.
     Define one subplot record from self.plotinfo,
     using values read from the pyNode children.
@@ -780,8 +806,9 @@ class PyPlotXY (PyPlot):
     - Vells[xindex] represents the x-coordinate, and
     - Vells[yindex] represents the y-coordinate.
     """
-    ss = self.attach_help('PyPlotXY', ss, level, PyPlotXY.help.__doc__)
-    return PyPlot.help(self, ss, level=level+1) 
+    ss = self.attach_help(ss, PyPlotXY.help.__doc__, classname='PyPlotXY',
+                          level=level, mode=mode)
+    return PyPlot.help(self, ss, level=level+1, mode=mode) 
 
   #-------------------------------------------------------------------
 
@@ -848,6 +875,14 @@ class PyPlotUV (PyPlotXY):
   def __init__ (self, *args, **kwargs):
     PyPlotXY.__init__(self, *args);
     return None
+
+  def help (self, ss=None, level=0, mode=None):
+    """Version of PyPlotXY, used for plotting uv-points.
+    """
+    ss = self.attach_help(ss, PyPlotUV.help.__doc__, classname='PyPlotUV',
+                          level=level, mode=mode)
+    return PyPlotXY.help(self, ss, level=level+1, mode=mode) 
+
 
   #-------------------------------------------------------------------
 
@@ -1277,7 +1312,7 @@ def _define_forest (ns,**kwargs):
                         plot_sigma_bars=True)
       children[name] = ccxy
 
-      if 0:
+      if 1:
         classname = 'PyPlotUV'
         name = classname
         classnames[name] = classname
