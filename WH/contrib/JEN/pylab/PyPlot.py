@@ -77,9 +77,57 @@ class PyPlot (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def help (self, ss=None, level=0, mode=None):
-    """pyNode base-class PyPlot. Recursive.
-    This doc-string is the actual help.
-    This function must be re-implemented by all classes derived from PyPlot. 
+    """
+    Base class for an entire zoo of plotting pyNodes.
+    Its central function is .define_subplots(), which is usually
+    reimplemented by derived classes. It defines one or more subplots,
+    i.e. makes one or more subplot definition records in the list
+    self.plotinfo.subplot. These are used in various ways:
+    - The subplots are converted into a SVG list (of strings),
+    which is attached to the pyNode result as svg_string. It is
+    used by the 'svg plotter' to make a (clumsy) plot.
+    - The subplot definition records are also attached to the
+    pyNode result. If the parent is also derived from PyPlot,
+    it will append these subplots to its won new subplots.
+    This allows the building of complicated plots by concatenation.
+    A PyPlot node recognises PyPlot children from the plotinfo record
+    in its result, and will ignore them for its normal function.
+    
+    When defining a PyPlot node, specific instructions are passed to it
+    via a record named plotinfo:
+    ns.plot << Meq.PyNode(class_name='PyPlotXY', module_name=__file__,
+    plotinfo=record(title=..., xlabel=...)
+
+    Possible keywords are (base class defaults in []):
+    - labels     [=None]         a list of node labels
+    - annotate   [=True]         if True, annotate points with labels
+    - make_plot  [=True]         plotting may be inhibited if concatenated
+    - offset     [=0.0]          concatenated plots maye be offset vertically
+    - title      [=<classname>]  plot title
+    - xlabel     [='child']      x-axis label
+    - ylabel     [='result']     y-axis label
+
+    - xindex     [=0]            Vells index of x-coordinate
+    - yindex     [=1]            Vells index of y-coordinate
+
+    - legend     [=None]         subplot legend string
+    - color      [='blue']       subplot color
+    - linestyle  [=None]         subplot linestyle ('-','--',':')
+    - marker     [='o']          subplot marker style ('+','x', ...)
+    - markersize [=5]            subplot marker size (points)
+    - plot_sigma_bars [=True]    if True, indicate domain variation
+
+    - msmin      [=2]            min marker size (z-values)
+    - msmax      [=20]           max marker size (z-values)
+    - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
+    
+    The .define_subplots() function of this baseclass is quite general
+    and robust: it may be used to plot the resuts of a list of arbitrary
+    child-nodes. It defines a single subplot of all the Vells of all its
+    children: 
+    - The horizontal axis is child-number (0,1,2,...,n-1).
+    - Multiple Vells of the same node have the same x-coordinate.
+    - The vertical axis is the mean over the domain (complex?).
     """
     ss = self.attach_help(ss, PyPlot.help.__doc__, classname='PyPlot',
                           level=level, mode=mode)
@@ -536,10 +584,8 @@ class PyPlot (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define a single subplot record from self.plotinfo,
-    and fill it with values read from the pyNode children.
-    Append the subplot to the list self.plotinfo.subplot.
-    This function will be re-implemented by derived classes.
+    """
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     # trace = True
@@ -599,6 +645,22 @@ class PyPlotTensorVells (PyPlot):
 
   #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Define one or more subplot record(s).
+    Assume that its children are tensor nodes of the same kind,
+    i.e. each with the same number of Vells.
+    Make separate subplots for each of the Vells.
+    Parameters like color, marker, markersize, etc may be lists,
+    with different values for each subplot.
+    """
+    ss = self.attach_help(ss, PyPlotTensorVells.help.__doc__,
+                          classname='PyPlotTensorVells',
+                          level=level, mode=mode)
+    return PyPlot.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
   def check_plotinfo (self, trace=False):
     """Check the contents of the input self.plotinfo record.
     """
@@ -618,11 +680,9 @@ class PyPlotTensorVells (PyPlot):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one or more subplot record(s) from self.plotinfo,
-    and fill it with values read from the pyNode children.
-    Assume that its children are tensor nodes of the same kind,
-    i.e. each with the same number of Vells.
-    Make separate subplots for each of the Vells.
+    """
+    Reimplementation of baseclass function.
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     # trace = True
@@ -684,6 +744,20 @@ class PyPlotCoh22 (PyPlotTensorVells):
 
   #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Special version of PlotTensorVells to plot 2x2 cohaerency matrices,
+    using standard colors for each of the 4 correlations.
+    For each correlation, a dotted circle (0,0,<abs>) is drawn.
+    To avoid clutter, the cross-corrs are not annotated.
+    """
+    ss = self.attach_help(ss, PyPlotCoh22.help.__doc__,
+                          classname='PyPlotCoh22',
+                          level=level, mode=mode)
+    return PyPlotTensorVells.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
   def check_plotinfo (self, trace=False):
     """Check the contents of the input self.plotinfo record.
     """
@@ -708,11 +782,9 @@ class PyPlotCoh22 (PyPlotTensorVells):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one or more subplot record(s) from self.plotinfo,
-    and fill it with values read from the pyNode children.
-    Assume that its children are tensor nodes of the same kind,
-    i.e. each with the same number of Vells.
-    Make separate subplots for each of the Vells.
+    """
+    Reimplementation of baseclass function.
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     # trace = True
@@ -760,6 +832,18 @@ class PyPlotCrossCorrs22 (PyPlotCoh22):
 
   #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Version of PyPlotCoh22 that only plots the cross-correlations
+    (i.e. index 1 and 2). By default, annotate=True.
+    """
+    ss = self.attach_help(ss, PyPlotCrossCorrs22.help.__doc__,
+                          classname='PyPlotCrossCorrs22',
+                          level=level, mode=mode)
+    return PyPlotCoh22.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
   def check_plotinfo (self, trace=False):
     """Check the contents of the input self.plotinfo record.
     """
@@ -798,15 +882,17 @@ class PyPlotXY (PyPlot):
     PyPlot.__init__(self, *args);
     return None
 
+  #-------------------------------------------------------------------
+
   def help (self, ss=None, level=0, mode=None):
-    """pyNode derived from class PyPlot.
-    Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that its children are tensor nodes, in which
+    """
+    Defines one plotinfo.subplot record.
+    Assumes that its children are tensor nodes with at least 2 Vells.
     - Vells[xindex] represents the x-coordinate, and
     - Vells[yindex] represents the y-coordinate.
     """
-    ss = self.attach_help(ss, PyPlotXY.help.__doc__, classname='PyPlotXY',
+    ss = self.attach_help(ss, PyPlotXY.help.__doc__,
+                          classname='PyPlotXY',
                           level=level, mode=mode)
     return PyPlot.help(self, ss, level=level+1, mode=mode) 
 
@@ -831,11 +917,9 @@ class PyPlotXY (PyPlot):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that its children are tensor nodes, in which
-    - Vells[xindex] represents the x-coordinate, and
-    - Vells[yindex] represents the y-coordinate.
+    """
+    Reimplementation of baseclass function.
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     trace = True
@@ -867,6 +951,7 @@ class PyPlotXY (PyPlot):
       self.show_plotinfo('.define_subplots()')
     return None
 
+
 #=====================================================================
 
 class PyPlotUV (PyPlotXY):
@@ -876,10 +961,14 @@ class PyPlotUV (PyPlotXY):
     PyPlotXY.__init__(self, *args);
     return None
 
+  #-------------------------------------------------------------------
+
   def help (self, ss=None, level=0, mode=None):
-    """Version of PyPlotXY, used for plotting uv-points.
     """
-    ss = self.attach_help(ss, PyPlotUV.help.__doc__, classname='PyPlotUV',
+    Version of PyPlotXY, used for plotting uv-points.
+    """
+    ss = self.attach_help(ss, PyPlotUV.help.__doc__,
+                          classname='PyPlotUV',
                           level=level, mode=mode)
     return PyPlotXY.help(self, ss, level=level+1, mode=mode) 
 
@@ -914,6 +1003,20 @@ class PyPlotXXYY (PyPlot):
 
   #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Defines one plotinfo.subplot record.
+    Assumes that its children are single nodes:
+    - The first half represent the x-coordinates, and
+    - The second half represent the y-coordinates.
+    """
+    ss = self.attach_help(ss, PyPlotXXYY.help.__doc__,
+                          classname='PyPlotXXYY',
+                          level=level, mode=mode)
+    return PyPlot.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
   def check_plotinfo (self, trace=False):
     """Check the contents of the input self.plotinfo record.
     """
@@ -931,11 +1034,9 @@ class PyPlotXXYY (PyPlot):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that the list of children contains two groups:
-    - The first half are nodes representing x-coordinates
-    - The second half are nodes representing y-coordinates/values
+    """
+    Reimplementation of baseclass function.
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     trace = True
@@ -985,6 +1086,22 @@ class PyPlotXYZ (PyPlot):
 
   #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Defines one plotinfo.subplot record.
+    Assumes that its children are tensor nodes with 3 Vells.
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    The remaining Vells of each node is assumed to represent z-values,
+    which are translated into the size of the point markers.
+    """
+    ss = self.attach_help(ss, PyPlotXYZ.help.__doc__,
+                          classname='PyPlotXYZ',
+                          level=level, mode=mode)
+    return PyPlot.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
   def check_plotinfo (self, trace=False):
     """Check the contents of the input self.plotinfo record.
     """
@@ -1004,13 +1121,9 @@ class PyPlotXYZ (PyPlot):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that its children are 3-Vells tensor nodes, in which
-    - Vells[xindex] represents the x-coordinate, and
-    - Vells[yindex] represents the y-coordinate.
-    The remaining Vells of each node is assumed to represent z-values,
-    which are translated into the size of the point markers.
+    """
+    Reimplementation of baseclass function.
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     trace = True
@@ -1052,8 +1165,25 @@ class PyPlotXYZZ (PyPlot):
 
   #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Defines one plotinfo.subplot record.
+    Assume that half of its children are tensor nodes, in which
+    - Vells[xindex] represents the x-coordinate, and
+    - Vells[yindex] represents the y-coordinate.
+    The other half of the chidren are assumed to represent z-values
+    which are used to control the size of the point markers.
+    """
+    ss = self.attach_help(ss, PyPlotXYZZ.help.__doc__,
+                          classname='PyPlotXYZZ',
+                          level=level, mode=mode)
+    return PyPlot.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
   def check_plotinfo (self, trace=False):
-    """Check the contents of the input self.plotinfo record.
+    """
+    Check the contents of the input self.plotinfo record.
     """
     rr = self.plotinfo                        # convenience
     # trace = True
@@ -1071,13 +1201,9 @@ class PyPlotXYZZ (PyPlot):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that half of its children are tensor nodes, in which
-    - Vells[xindex] represents the x-coordinate, and
-    - Vells[yindex] represents the y-coordinate.
-    The other half of the chidren are assumed to represent z-values
-    which are used to control the size of the point markers.
+    """
+    Reimplementation of baseclass function.
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     trace = True
@@ -1124,6 +1250,22 @@ class PyPlotXXYYZZ (PyPlot):
 
   #-------------------------------------------------------------------
 
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Defines one plotinfo.subplot record.
+    Assumes that the list of children contains three groups:
+    - The first third are nodes representing x-coordinates
+    - The second third are nodes representing y-coordinates
+    - The third third are nodes representing z-values.
+    The latter are converted to the marker sizes (msmin<>msmax).
+    """
+    ss = self.attach_help(ss, PyPlotXXYYZZ.help.__doc__,
+                          classname='PyPlotXXYYZZ',
+                          level=level, mode=mode)
+    return PyPlot.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
   def check_plotinfo (self, trace=False):
     """Check the contents of the input self.plotinfo record.
     """
@@ -1141,12 +1283,9 @@ class PyPlotXXYYZZ (PyPlot):
   #-------------------------------------------------------------------
 
   def define_subplots (self, children, trace=False):
-    """Define one subplot record from self.plotinfo,
-    using values read from the pyNode children.
-    Assume that the list of children contains three groups:
-    - The first third are nodes representing x-coordinates
-    - The second third are nodes representing y-coordinates
-    - The third third are nodes representing z-values
+    """
+    Reimplementation of baseclass function.
+    See .help() for details.
     """
     rr = self.plotinfo                         # convenience
     trace = True
@@ -1267,7 +1406,7 @@ def _define_forest (ns,**kwargs):
 
   #----------------------------------------------------------------------
   
-  if True:
+  if False:
     ccx = []
     ccy = []
     ccz = []
@@ -1418,7 +1557,7 @@ def _define_forest (ns,**kwargs):
 
   #----------------------------------------------------------------------
 
-  if False:
+  if True:
     cc = []
     nstat = 5
     rmsa = 0.01
