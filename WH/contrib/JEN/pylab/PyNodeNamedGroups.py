@@ -83,7 +83,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     Base class for a category of pyNodes.
     It contains functions that manipulate named groups of values,
     which are derived from the results of its children.
-    The named groups can be turnrd into other named groups
+    The named groups can be turned into other named groups
     by means of python mathematical expressions, in which the
     names of the groups serve as variables.
 
@@ -92,31 +92,32 @@ class PyNodeNamedGroups (pynode.PyNode):
     This is specified by attaching a record named 'extractgroups' to
     the constructor, containing zero or more named records:
     .   ns.plot << Meq.PyNode(class_name='PyPlot', module_name=__file__,
-    .        extractgroups=record(name1=record(child=... [, vells=...]),
-    .                             name2=record(child=... [, vells=...]),
+    .        extractgroups=record(name1=record(children=... [, vells=...]),
+    .                             name2=record(children=... [, vells=...]),
     .                             ...
     .                            ))
 
     If no extractgroups record has been provided, or if it is empty,
     or if it is not a record, a default record will be assumed:
-    .        extractgroups=record(vv=record(child='*', vells=[0]))
+    .        extractgroups=record(vv=record(children='*', vells=[0]))
     i.e. it will make a single group (named 'vv') from the first vells
     (object) of all its 'extractable' children.
 
-    A group specification record may have the following fields:
-    - child = '*'           (default) all children
-            = '2/3'         the second third of its chidren (etc)
-            = [0,2,7,5,...] any vector of child indices
-    - vells = [0]           (default) the first vells of each child result
-            = [1,2,2,1,3]   any vector of vells indices
-            = None          the group will contain entire result objects
-    - vexpr = None          (default) python expression
-              'mean()'      initial operation on each vells
+    An extractgroup specification record may have the following fields:
+    - children = '*'           (default) all its children
+               = '2/3'         the second third of its chidren (etc)
+               = [0,2,7,5,...] any vector of child indices
+    - vells    = [0]           (default) the first vells of each child result
+               = [1,2,2,1,3]   any vector of vells indices
+               = None          the group will contain entire result objects
+    - expr     = None          (default) python expression
+               = 'mean()'      initial operation on each vells
     """
     ss = self.attach_help(ss, PyNodeNamedGroups.help.__doc__,
                           classname='PyNodeNamedGroups',
                           level=level, mode=mode)
     return ss
+
 
   #...................................................................
 
@@ -157,6 +158,20 @@ class PyNodeNamedGroups (pynode.PyNode):
     return ss
     
   #-------------------------------------------------------------------
+
+  def update_state_derived (self, mystate):
+    """Example re-implementation of .update_state(), for use in
+    derived classes (without '_derived' in the name, of course).
+    """
+    # First call the generic function of the base class:
+    # PyNodeNamedGroups.update_state(self, mystate)
+    #
+    # The class-specific part:
+    # mystate('someting',None)
+    # ...
+    return None
+
+  #-------------------------------------------------------------------
     
   def update_state (self, mystate):
     """Read information from the pynode state record. This is called
@@ -168,14 +183,14 @@ class PyNodeNamedGroups (pynode.PyNode):
     """
 
     trace = False
-    trace = True
+    # trace = True
 
     if True:
       # Attach the help for this class to the state record.
-      # It may be read with the browser after building the tree.
+      # This may then be read with the meqbrowser after building the tree.
       if getattr(self, 'help', None):
         ss = self.help(mode='list')
-        mystate('pyplot_node_help',ss)
+        mystate('pynode_help',ss)
         if trace:
           print '\n** Help attached to node state record:'
           print '\n** self.help(mode=list):\n'
@@ -188,10 +203,27 @@ class PyNodeNamedGroups (pynode.PyNode):
     mystate('name')
     mystate('class_name')
     mystate('child_indices')
-    print '** self.child_indices =',self.child_indices
     if isinstance(self.child_indices,int):
       self.child_indices = [self.child_indices]
     self._num_children = len(self.child_indices)
+
+    # It is usually a good idea to specify labels for the
+    # 'regular' children (these may be used for plotting etc).
+    # NB: Since we only need labels for the 'regular' children,
+    # the number of labels is not necessarily equal to the number
+    # of children (there might be some PyNodeNamedGroups children)
+    undef = None
+    undef = 'undef'
+    mystate('child_labels', undef)
+    if self.child_labels==undef:
+      string_indices = []
+      for i in self.child_indices:
+        string_indices.append(str(i))           # default label: node index 
+      self.child_labels = string_indices
+    elif not isinstance(self.child_labels, (list,tuple)):
+      self.child_labels = [str(self.child_labels)]
+    for i,label in enumerate(self.child_labels):
+      self.child_labels[i] = str(label)         # make sure the labels are strings
 
     if trace:
       print '\n*******************************************'
@@ -201,9 +233,12 @@ class PyNodeNamedGroups (pynode.PyNode):
     # Read the extractgroups record, and check it:
     mystate('extractgroups', None)
     if not isinstance(self.extractgroups, record):
-      self.extractgroups = record()               # make sure it is a record
+      self.extractgroups = record()             # make sure it is a record
+
+    self.define_specific_extractgroups()        # class-specific function 
     if len(self.extractgroups)==0:
-      self.extractgroups = record(vv=record())    # at least one group (named vv)
+      self.extractgroups['vv'] = record()       # at least one group (named vv)
+
     for key in self.extractgroups.keys():
       rr = self.extractgroups[key]
       if not isinstance(rr, record):
@@ -217,6 +252,23 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
+  def define_specific_extractgroups(self, trac=True):  
+    """Placeholder for class-specific function, to be redefined by classes
+    that are derived from PyNodeNamedGroups.Called by .update_state().
+    It allows the specification of one or more default extractgroups.
+    """
+    # Example(s):
+    if False:
+      # Used for operations (e.g. plotting) on separate correlations.
+      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+      self.extracgroups['XX'] = record(children='*', vells=[0])
+      self.extracgroups['XY'] = record(children='*', vells=[1])
+      self.extracgroups['YX'] = record(children='*', vells=[2])
+      self.extracgroups['YY'] = record(children='*', vells=[3])
+    return None
+
+  #-------------------------------------------------------------------
+
   def _check_extractgroup_definition(self, rr, trac=True):
     """Helper function to check the validity of the given definition (rr)
     of an extractgroup (used to extract information from its children).
@@ -226,32 +278,32 @@ class PyNodeNamedGroups (pynode.PyNode):
     # Deal with the selection of children:
     # NB: String specs are not converted to child index vectors, because this can
     # only be done when the nr of 'used' children is known (see .get_result()).
-    rr.setdefault('child','*')                  # default: all
+    rr.setdefault('children','*')               # default: all
     s = str(rr.key)+': child spec error: '
-    if isinstance(rr.child, (list,tuple)):
+    if isinstance(rr.children, (list,tuple)):
       pass                                      # assume OK
-    elif isinstance(rr.child, str):
-      if rr.child=='*':                         # all
-        rr.child = range(self.num_children)
-      elif '/' in rr.child:                     # e.g. '2/3'
-        ss = rr.child.split('/')
+    elif isinstance(rr.children, str):
+      if rr.children=='*':                      # all
+        rr.children = range(self._num_children)
+      elif '/' in rr.children:                  # e.g. '2/3'
+        ss = rr.children.split('/')
         rr.part = int(ss[0])                    # e.g. 2
         rr.nparts = int(ss[1])                  # e.g. 3
       else:
-        s += str(rr.child)
+        s += str(rr.children)
         raise ValueError(s)
     else:
-      s += str(type(rr.child))
+      s += str(type(rr.children))
       raise ValueError(s)
 
-    # Deal with the vells specification
+    # Deal with the selction of vells:
     rr.setdefault('vells',[0])                  # default: 1st vells
     s = str(rr.key)+': vells spec error: '
-    if isinstance(rr.child, int):               # vells index, e.g. 0
-      rr.child = [rr.child]                     # 0 -> [0]
-    elif isinstance(rr.child, (list,tuple)):
+    if isinstance(rr.vells, int):               # vells index, e.g. 0
+      rr.vells = [rr.vells]                     # 0 -> [0]
+    elif isinstance(rr.vells, (list,tuple)):
       pass                                      # assume ok
-    elif rr.child==None:                        # extract entire child result(s)
+    elif rr.vells==None:                        # extract entire child result(s)
       pass
     else:
       s += str(type(rr.vells))
@@ -264,8 +316,9 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def _extract_groups(self, children, labels, trace=True):
-    """Helper function to extract groups of vells from the
+  def _extract_namedgroups(self, children, child_indices,
+                           child_labels=None, trace=True):
+    """Helper function to extract named groups from the
     given child-results (children). Called by .get_result().
     """
 
@@ -279,19 +332,36 @@ class PyNodeNamedGroups (pynode.PyNode):
       # The child result(s) are read by a special object: 
       rv = ChildResult.ResultVector(children, select=iic,
                                     extend_labels=True,
-                                    labels=labels)
+                                    labels=child_labels)
       if trace:
         rv.display(self.class_name)
 
-      # Make a new namedgroup record (object?):
-      ng = record(key=key, child=rr.child, vells=rr.vells,
-                  history=[], vv=vv)
-      # Attach it:
-      self._namedgroups[key] = ng 
+      # Make/attach a new namedgroup record (object?):
+      if isinstance(rr.vells, (list,tuple)):
+        for ivells in rr.vells:
+          s = 'Extracted:'
+          s += '  mean of'                        # <---- !!
+          s += '  vells['+str(ivells)+']'
+          s += '  from child(ren) '+str(rr.children)
+          hist = [s]
+          vv = rv.vv(index=ivells)                # <---- !!
+          ng = record(key=key, children=iic, nodes=child_indices, vells=ivells,
+                      history=hist, vv=vv)
+          self._namedgroups[key] = ng
+
+      else:
+        s = 'Extracted:'
+        s += '  entire result(s)'
+        s += '  from child(ren) '+str(rr.children)
+        hist = [s]
+        vv = rv.results()                         # <---- !!
+        ng = record(key=key, children=iic, nodes=child_indices, vells=ivells,
+                    history=hist, vv=vv)
+        self._namedgroups[key] = ng
 
     # Finished:
     if trace:
-      self.display('_extract_groups()')
+      self.display('_extract_namedgroups()')
     return None
     
       
@@ -302,10 +372,13 @@ class PyNodeNamedGroups (pynode.PyNode):
     of the nc child nodes.
     """
 
-    # trace = True
+    trace = True
     
     iic = []
-    if rr.child=='*':
+    if isinstance(rr.children, (list,tuple)):
+      iic = rr.children
+
+    elif rr.children=='*':
       iic = range(nc)
 
     elif rr.has_field('part'):
@@ -314,20 +387,23 @@ class PyNodeNamedGroups (pynode.PyNode):
       for i in range(npp):
         iic.append(i+offset)
     else:
-      raise ValueError(rr.child)
+      raise ValueError(rr.children)
         
     if trace:
-      print '\n** _make_child_selection(',nc,rr.key,rr.child,') ->',ii,'\n'
-    return ii
+      print '\n** _make_child_selection(',nc,rr.key,rr.children,') ->',iic,'\n'
+    return iic
 
   #-------------------------------------------------------------------
 
   def oneliner(self):
     """Helper function to show a one-line summary of this object"""
     ss = '** PyNodeNamedGroups: '
-    ss += ' * count='+str(self._count)
-    ss += ' * neg='+str(len(self.extractgroups.keys()))
-    ss += ' * nng='+str(len(self._namedgroups.keys()))
+    ss += self.name+':'
+    ss += '  count='+str(self._count)
+    ss += '  extract('+str(len(self.extractgroups.keys()))+')'
+    ss += str(self.extractgroups.keys())
+    ss += '  named('+str(len(self._namedgroups.keys()))+')'
+    ss += str(self._namedgroups.keys())
     return ss
   
 
@@ -338,54 +414,31 @@ class PyNodeNamedGroups (pynode.PyNode):
     print self.oneliner()
     print ' * (',txt,'):'
     print ' *',type(self), self.class_name, self.name
-    print ' *',self._num_children, self.child_indices
+    n = self._num_children
+    print ' * child_indices ('+str(len(self.child_indices))+'/'+str(n)+')'
+    print '     ',self.child_indices
+    print ' * child_labels  ('+str(len(self.child_labels))+'/'+str(n)+')'
+    print '     ',self.child_labels
 
-    print ' * specified extractgroups:'    
+    print ' * Specified extractgroups:'    
     for key in self.extractgroups.keys():
       rr = self.extractgroups[key]
-      print '  - '+key+':'+str(rr)
+      print '  - '+key+':  '+str(rr)
 
-    print ' * total namedgroups:'    
+    print ' * Total (extracted and copied) namedgroups:'    
     for key in self._namedgroups.keys():
       rr = self._namedgroups[key]
-      print '  - '+key+':'+str(rr)
+      qq = record()
+      for key1 in rr.keys():
+        if not key1 in ['vv','history']:
+          qq[key1] = rr[key1]
+      print '  - '+key+':  '+str(qq)
+      print '         vv = '+str(rr.vv)
+      for i,s in enumerate(rr.history):
+        print '         history['+str(i)+']:  ',s
 
     print
     return True
-
-
-  #-------------------------------------------------------------------
-
-  def check_and_append_subplot_not_needed(self, sp, trace=False):
-    """Check the integrity of the given subplot definition,
-    and append it to self.vellsgroups.subplot.
-    """
-    trace = True
-
-    # Make sure of some fields:
-    sp.setdefault('dxx',None)
-    sp.setdefault('dyy',None)
-
-    # Add some fields with statistics:
-    import pylab
-    yy = pylab.array(sp.yy)
-    if len(yy)>0:
-      sp.min = yy.min()
-      sp.max = yy.max()
-      sp.mean = yy.mean()
-      sp.stddev = 0.0
-      if len(yy)>1:
-        if not isinstance(yy[0],complex):
-          sp.stddev = yy.stddev()       
-    
-    if trace:
-      self.show_vellsgroup(sp, '.append_subplot()')
-      print
-
-    # Append the valid subplot definition:
-    if True:
-      self.vellsgroups.subplot.append(sp)
-    return None
 
 
   #-------------------------------------------------------------------
@@ -407,27 +460,38 @@ class PyNodeNamedGroups (pynode.PyNode):
     # to produce complicated results.
     # But they can also be used by themselves.
     
-    self._namedgroups = record()  
+    fieldname = 'namedgroups'                      # name of result field
+    self._namedgroups = record()     
     cc = []
-    for c in children:                             # child results
-      if c.has_key('namedgroups'):
-        # Copy the existing namedgroup definitions:
-        for ng in c['namedgroups'].keys():
-          self._namedgroups[key] = ng
+    ii = []
+    for i,child in enumerate(children):            # child results
+      if child.has_key(fieldname):
+        # Copy the PyNodeNamedGroups namedgroup definitions:
+        rr = child[fieldname]
+        for key in rr.keys():
+          if self._namedgroups.has_key(key):       # name clash....
+            self._namedgroups[key] = rr[key]       # overwrite....?!
+          else:
+            self._namedgroups[key] = rr[key]       # just copy
       else:
-        # Append to the list of 'regular' children.
-        cc.append(c)
+        # Append child to the list of 'regular' children.
+        cc.append(child)
+        ii.append(self.child_indices[i])
     
     # Extract new namedgroup definitions from its 'regular' children (if any),
     # and append them to the list self._namedgroups:
     if len(cc)>0:
-      self._extract_groups(cc, trace=trace)
+      self._extract_namedgroups(cc, child_indices=ii,
+                                child_labels=self.child_labels,
+                                trace=trace)
+    if True:
+      self.display('.get_result()')
 
     # Make an empty result record
     result = meq.result()
 
     # Always attach the accumulated namedgroups to the result:
-    result.namedgroups = self._namedgroups
+    result[fieldname] = self._namedgroups
 
     # Finished:
     return result
@@ -437,215 +501,7 @@ class PyNodeNamedGroups (pynode.PyNode):
   # Re-implementable functions (for derived classes)
   #-------------------------------------------------------------------
 
-  def check_vellsgroups (self, trace=False):
-    """Check the contents of the input self.vellsgroups record.
-    Any re-implementation by derived classes should call this one too.
-    """
 
-    if trace:
-      self.show_vellsgroups('check_vellsgroups() input')
-
-    rr = self.vellsgroups                                # convenience
-
-    # Some node control parameters:
-    rr.setdefault('make_plot', True)                  # if True, make the plot
-    rr.setdefault('offset', 0.0)                      # offset multiple subplots
-
-    # There must be as many labels as 'value-nodes'
-    # (i.e. no labels are needed for x-coordinate nodes etc)
-    # If no labels are specified, it is safe to have a list
-    # of None-values for all the children....
-    rr.setdefault('labels', self._num_children*[None]) 
-    if not isinstance(rr['labels'], (list,tuple)):
-      rr['labels'] = self._num_children*[None]
-
-    # Overall parameters 
-    # These keys are used to transfer fields to the node result:
-    self._ovkeys = ['title','xlabel','ylabel']
-    self._ovkeys.extend(['xunit','yunit'])
-
-    title = 'PyNodeNamedGroups_'+self.class_name
-    title += '_'+str(self._num_children)
-    rr.setdefault('title', self.name) 
-    rr.setdefault('xlabel', 'child') 
-    rr.setdefault('ylabel', 'result') 
-    rr.setdefault('xunit', None) 
-    rr.setdefault('yunit', None) 
-    rr.setdefault('xindex', 0)                      # index of x-coordinate Vells 
-    rr.setdefault('yindex', 1)                      # index of y-coordinate Vells  
-    rr.setdefault('zindex', 2)                      # index of z-coordinate Vells  
-
-    # Subplot parameters: 
-    # These keys are used to transfer information to subplot definitions:
-    self._spkeys = ['color','linestyle','marker','markersize']
-    self._spkeys.extend(['legend','plot_sigma_bars','annotate'])
-    self._spkeys.extend(['plot_circle_mean'])
-
-    rr.setdefault('subplot',[])                     # subplot definitions 
-    rr.setdefault('legend', None)                   # subplot legend
-    rr.setdefault('color', 'blue')                  # plot color
-    rr.setdefault('linestyle', None)                # line style                  
-    rr.setdefault('marker', 'o')                    # marker style
-    rr.setdefault('markersize', 5)                  # markersize
-    rr.setdefault('msmin',2)                        # min marker size (zmin)
-    rr.setdefault('msmax',20)                       # max marker size (zmax)
-    rr.setdefault('annotate', True)                 # do annotation
-    rr.setdefault('plot_sigma_bars', True)          # plot error-bars
-    rr.setdefault('plot_circle_mean', False)         # plot circle around (0,0) with radius=mean
-
-    if trace:
-      self.show_vellsgroups('check_vellsgroups() checked')
-    return None
-
-
-  #-------------------------------------------------------------------
-
-  def define_subplots (self, children, trace=False):
-    """
-    See .help() for details.
-    """
-    rr = self.vellsgroups                         # convenience
-    # trace = True
-    if trace:
-      print '\n** .define_subplots():'
-
-    # The child result(s) are read by a special object: 
-    import ChildResult
-    rv = ChildResult.ResultVector(children,
-                                  extend_labels=True,
-                                  labels=rr.labels)
-    if trace:
-      rv.display(self.class_name)
-
-    # Create an empty subplot definition record, and initialize it:
-    sp = record()
-    for key in self._spkeys:
-      sp[key] = rr[key]
-
-    # Fill in the data from the child result(s):
-    sp.yy = rv.vv()
-    sp.dyy = None
-    if sp.plot_sigma_bars:
-      sp.dyy = rv.dvv()
-    sp.xx = rv.xx()
-    sp.dxx = None
-    sp.labels = rv.labels()
-
-    # Check and append the subplot definition:
-    self.check_and_append_subplot(sp, trace=trace)
-    if trace:
-      self.show_vellsgroups('.define_subplots()')
-    return None
-
-
-
-
-
-
-
-
-#=====================================================================================
-#=====================================================================================
-#=====================================================================================
-# Classes derived from PyNodeNamedGroups:
-#=====================================================================================
-#=====================================================================================
-#=====================================================================================
-
-
-class PyNodeNamedGroupsTensorVells (PyNodeNamedGroups):
-  """Class derived from PyNodeNamedGroups."""
-
-  def __init__ (self, *args, **kwargs):
-    PyNodeNamedGroups.__init__(self, *args);
-    return None
-
-  #-------------------------------------------------------------------
-
-  def help (self, ss=None, level=0, mode=None):
-    """
-    Define one or more subplot record(s).
-    Assume that its children are tensor nodes of the same kind,
-    i.e. each with the same number of Vells.
-    Make separate subplots for each of the Vells.
-    Parameters like color, marker, markersize, etc may be lists,
-    with different values for each subplot.
-    """
-    ss = self.attach_help(ss, PyNodeNamedGroupsTensorVells.help.__doc__,
-                          classname='PyNodeNamedGroupsTensorVells',
-                          level=level, mode=mode)
-    return PyNodeNamedGroups.help(self, ss, level=level+1, mode=mode) 
-
-  #-------------------------------------------------------------------
-
-  def check_vellsgroups (self, trace=False):
-    """Check the contents of the input self.vellsgroups record.
-    """
-    # trace = True
-
-    rr = self.vellsgroups                                # convenience
-
-    rr.setdefault('index', '*')                       # indices of Vells to be plotted
-    rr.setdefault('xindex', None)                     # index of x-coord Vells
-    rr.setdefault('yindex', None)                     # index of y-coord Vells
-    
-    # First do the generic checks (mandatory!) 
-    PyNodeNamedGroups.check_vellsgroups(self, trace=trace)
-    return None
-
-
-  #-------------------------------------------------------------------
-
-  def define_subplots (self, children, trace=False):
-    """
-    Reimplementation of baseclass function.
-    See .help() for details.
-    """
-    rr = self.vellsgroups                         # convenience
-    # trace = True
-
-    # The child result(s) are read by a special object: 
-    import ChildResult
-    rv = ChildResult.ResultVector(children, labels=rr.labels,
-                                  extend_labels=False,
-                                  xindex=rr.xindex,
-                                  yindex=rr.yindex)
-    if trace:
-      rv.display(self.class_name)
-
-    # The Vells to be plotted are specified by rr.index:
-    nvells = rv[0].len()                       # nr of Vells in 1st (!) child
-    if rr.index=='*':
-      rr.index = range(nvells)      
-    elif isinstance(rr.index, int):
-      rr.index = [rr.index]
-
-    # Make separate suplot definitions for each Vells:
-    for index in rr.index:
-      if index<0 or index>=nvells:
-        pass                                   # out of range
-      elif index==rr.xindex:
-        pass                                   # x-coord Vells: ignore
-      elif index==rr.yindex:
-        pass                                   # y-coord Vells: ignore
-      else:
-        sp = record()
-        for key in self._spkeys:               # transfer standard fields
-          sp[key] = self.getval(rr[key], index=index, trace=trace)  
-        sp.yy = rv.vv(index=index)
-        sp.xx = rv.xx(index=index)
-        sp.labels = rv.labels(index=index)
-        sp.dyy = None
-        sp.dxx = None
-        if sp.plot_sigma_bars:
-          sp.dyy = rv.dvv(index=index)
-          sp.dxx = rv.dxx(index=index)
-        self.check_and_append_subplot(sp, trace=trace)
-
-    # Finished:
-    if trace:
-      self.show_vellsgroups('.define_subplots()')
-    return None
 
 
 
@@ -698,154 +554,20 @@ def format_vv (vv):
 def _define_forest (ns,**kwargs):
   """Make trees with the various pyNodes"""
 
-  children = dict()
-  rr = dict()
-  classnames = dict()
+  cc = []
+  n = 5
+  for i in range(n):
+    v = ns['v'](i) << i
+    cc.append(v)
 
-  ftx= ns.cx_freqtime << Meq.ToComplex(Meq.Time(),Meq.Freq())
-  ft= ns.freqtime << Meq.Add(Meq.Time(),Meq.Freq())
-  gsx = ns.cx_gauss << Meq.ToComplex(Meq.GaussNoise(stddev=0.1),
-                                     Meq.GaussNoise(stddev=0.1))
-  gs = ns.gauss << Meq.GaussNoise(stddev=0.5)
-
-  tfrac = ns.tfrac << Meq.Multiply(Meq.Time(),0.1)
-  ffrac = ns.ffrac << Meq.Multiply(Meq.Freq(),0.1)
-
-
-  #----------------------------------------------------------------------
-  
-  if False:
-    ccx = []
-    ccy = []
-    ccz = []
-    ccxy = []
-    ccxyz = []
-    labz = []
-    labxy = []
-    labxyz = []
-    yname = 'y1p'
-    xname = 'x1p'
-    zname = 'z1p'
-    vname = 'v1p'
-    
-    n = 5
-    for i in range(n):
-
-      x = ns[xname](i) << (gs + random.gauss(i,0.3))
-      ccx.append(x)
-
-      y = ns[yname](i) << (gs + random.gauss(i,0.5))
-      ccy.append(y)
-
-      z = ns[zname](i) << (gs + random.gauss(i,0.3))
-      ccz.append(z)
-      labz.append('z_'+str(i))    
-
-      xy = ns.xy(i) << Meq.Composer(x,y)
-      ccxy.append(xy)
-      labxy.append('xy_'+str(i))    
-
-      xyz = ns.xyz(i) << Meq.Composer(x,y,z)
-      ccxyz.append(xyz)
-      labxyz.append('xyz_'+str(i))    
-
-    if 1:
-      classname = 'PyPlotXY'
-      name = classname
-      classnames[name] = classname
-      rr[name] = record(title=name,
-                        markersize=10,
-                        labels=labxy,
-                        plot_sigma_bars=True)
-      children[name] = ccxy
-
-      if 1:
-        classname = 'PyPlotUV'
-        name = classname
-        classnames[name] = classname
-        rr[name] = rr['PyPlotXY']
-        rr[name]['title'] = name
-        children[name] = children['PyPlotXY']
-
-
-    if 0:
-      classname = 'PyPlotXXYY'
-      name = classname
-      classnames[name] = classname
-      rr[name] = record(title=name,
-                        markersize=5,
-                        color='magenta',
-                        plot_sigma_bars=True,
-                        labels=labz)
-      children[name] = ccx+ccy
-
-
-    if 0:
-      classname = 'PyPlotXYZ'
-      name = classname
-      classnames[name] = classname
-      rr[name] = record(title=name,
-                        color='red',
-                        labels=labxyz)
-      children[name] = ccxyz
-
-    if 0:
-      classname = 'PyPlotXYZZ'
-      name = classname
-      classnames[name] = classname
-      rr[name] = record(title=name,
-                        color='green',
-                        labels=labz)
-      children[name] = ccxy+ccz
-
-    if 0:
-      classname = 'PyPlotXXYYZZ'
-      name = classname
-      classnames[name] = classname
-      rr[name] = record(title=name,
-                        color='yellow',
-                        plot_sigma_bars=True,
-                        labels=labz)
-      children[name] = ccx+ccy+ccz
-
-
-  #-----------------------------------------------------------------------
-
-
-  # Make a bookpage with auxiliary info:
-  auxpage = Meow.Bookmarks.Page('aux')
-  auxpage.add(ftx, viewer="Result Plotter")
-  auxpage.add(ft, viewer="Result Plotter")
-  auxpage.add(gsx, viewer="Result Plotter")
-  auxpage.add(gs, viewer="Result Plotter")
+  exg = None
       
-  # Make the pynode(s):
-  bookpage = Meow.Bookmarks.Page('pynodes')
-  pn = []
-  for name in rr.keys():
-    print '\n** make_pynode: rr[',name,'] =',rr[name],'\n'
-    rr[name].make_plot = True
-    pynode = ns[name] << Meq.PyNode(children=children[name],
-                                    class_name=classnames[name],
-                                    vellsgroups=rr[name],
-                                    module_name=__file__)
-    pn.append(pynode)
-    if rr[name].make_plot:
-      Meow.Bookmarks.Page(name).add(pynode, viewer="Svg Plotter")
-      bookpage.add(pynode, viewer="Svg Plotter")
-
-  # Make a root node:
-  if False:
-    # Just bundle all into a single root node:
-    ns.rootnode << Meq.Composer(*pn)
-  else:
-    # Concatenation of all PyPlot nodes:
-    vellsgroups = record(title='combined', make_plot=True, offset=-2.0)
-    ns.rootnode << Meq.PyNode(children=pn,
-                              vellsgroups=vellsgroups,
-                              class_name='PyPlot',
-                              module_name=__file__)
-    bookpage.add(ns.rootnode, viewer="Svg Plotter")
+  # Make the pynode:
+  ns['rootnode'] << Meq.PyNode(children=cc,
+                               class_name='PyNodeNamedGroups',
+                               extractgroups=exg,
+                               module_name=__file__)
+  # Meow.Bookmarks.Page('pynode').add(rootnode, viewer="Record Viewer")
 
   # Finished:
   return True
@@ -867,16 +589,16 @@ def _test_forest (mqs,parent,wait=False):
   a = mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
   return True
 
-
-def _tdl_job_sequence (mqs,parent,wait=False):
-  from Timba.Meq import meq
-  for i in range(5):
-    cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
-    rqid = meq.requestid(i)
-    print '\n--',i,rqid,': cells =',cells,'\n'
-    request = meq.request(cells, rqid=rqid);
-    a = mqs.meq('Node.Execute',record(name='rootnode',request=request), wait=wait)
-  return True
+if False:
+  def _tdl_job_sequence (mqs,parent,wait=False):
+    from Timba.Meq import meq
+    for i in range(5):
+      cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
+      rqid = meq.requestid(i)
+      print '\n--',i,rqid,': cells =',cells,'\n'
+      request = meq.request(cells, rqid=rqid);
+      a = mqs.meq('Node.Execute',record(name='rootnode',request=request), wait=wait)
+    return True
 
 
 #=====================================================================================
@@ -901,8 +623,8 @@ if __name__ == '__main__':
     # this runs the _test_forest job.
     mod._test_forest(mqs,None,wait=True);
 
-  elif True:
-    pp = PyPlotXY()
+  elif False:
+    pp = PyNodeNamedGroups()
     print pp.help()
 
   else:
