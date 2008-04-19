@@ -328,6 +328,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     for key in self.extractgroups.keys():
       rr = self.extractgroups[key]                            # convenience
       lowerkey = key.lower()                                  # use lowercase only...!!  
+      nameclash = self._namedgroups.has_key(lowerkey)     
 
       iic = self._make_child_selection (nc, rr, trace=False)  # child indices
       cindices = []
@@ -369,7 +370,7 @@ class PyNodeNamedGroups (pynode.PyNode):
         self._namedgroups[lowerkey] = ng
 
       # Name clashes are more likely with concatenated pynodes....
-      if self._namedgroups.has_key(lowerkey):     
+      if nameclash:
         s = '** namedgroup name clash: '+lowerkey+' (overwritten)'
         self._namedgroups[lowerkey].history.append(s)
         print s
@@ -589,6 +590,7 @@ def _define_forest (ns,**kwargs):
                                module_name=__file__)
     cc.append(ns['concat'])
     # cc.insert(0,ns['concat'])
+    # cc.insert(2,ns['concat'])
 
 
   # Make the root pynode:
