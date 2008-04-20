@@ -313,8 +313,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     
     # Make subplots from its 'regular' children (if any),
     # and append them to the list self.plotinfo.subplot:
-    if len(cc)>0:
-      self.define_subplots(cc, trace=trace)
+    self.define_subplots(trace=trace)
 
     # Optionally, generate info for the "svg plotter":
     result.svg_plot = None

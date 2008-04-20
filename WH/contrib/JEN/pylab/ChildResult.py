@@ -177,7 +177,7 @@ class ResultVector (object):
     return vv
 
   def getindex(self, index):
-    """Helper function to get the correct index"""
+    """Helper function to get the correct (vells) index"""
     if isinstance(index,int): return index
     if isinstance(index,(list,tuple)): return index
     return self._index
@@ -229,6 +229,20 @@ class ResultVector (object):
     vv = []
     for i,rr in enumerate(self._Result):
       vv.extend(rr.dyy(index=self.getindex(index)))
+    return vv
+
+  #---------------------------------------------------------
+
+  def expand(self, ii, index=None):
+    """Expand the given list of node-related values
+    (e.g. child indices, or node indices) into a list
+    with the same length as the nr of nodes/results.
+    """
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv1 = rr.vv(index=self.getindex(index))
+      for j,v in enumerate(vv1):
+        vv.append(ii[i])
     return vv
 
 
@@ -416,13 +430,15 @@ class Result (object):
           self._dvv.append(dv)
           
           label = self.name()
-          if self._extend_labels:       
+          if self._extend_labels:
             if not isinstance(self._vlabels,(list,tuple)):    # Vells labels
-              label += '['+str(key)+']'
+              if len(self._order)>1:
+                label += '['+str(key)+']'
             elif i>=len(self._vlabels):                   # too few vlabels
               label += '['+str(key)+'?]'
-            else:
+            elif len(self._order)>1:
               label += '['+self._vlabels[i]+']'   
+          # print '---',i,key,self._vlabels,index,'-> label =',label
           self._labels.append(label)
 
     # Finished:
@@ -434,14 +450,16 @@ class Result (object):
   def vvout (self, vv, index=None):
     """Helper function to return the required list:
     If an index is specified (int or list of ints), return a list with
-    the specified element(s) of vv.
-    Otherwise, return the entire list vv"""
+    the specified element(s) of vv. Otherwise, return the entire list vv.
+    """
+    # print '\n** vvout(',index,'):'
     if isinstance(index,int):
       return [vv[index]]
     elif isinstance(index,(list,tuple)):
       vvv = [] 
       for i in index:
         vvv.append(vv[i])
+        # print '-- index=',index,':',i,vv[i],'->',vvv
       return vvv
     return vv
 

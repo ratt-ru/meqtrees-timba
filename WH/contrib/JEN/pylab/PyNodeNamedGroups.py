@@ -205,7 +205,6 @@ class PyNodeNamedGroups (pynode.PyNode):
     mystate('child_indices')
     if isinstance(self.child_indices,int):
       self.child_indices = [self.child_indices]
-    self._num_children = len(self.child_indices)
 
     # It is usually a good idea to specify labels for the
     # 'regular' children (these may be used for plotting etc).
@@ -214,14 +213,16 @@ class PyNodeNamedGroups (pynode.PyNode):
     # of children (there might be some PyNodeNamedGroups children)
     undef = None
     undef = 'undef'
-    mystate('child_labels', undef)
-    if self.child_labels==undef:
+    mystate('child_labels', undef)              #  default None not possible....?
+    # print '\n** self.child_labels =',self.child_labels,type(self.child_labels)
+    if self.child_labels in [None,undef]:
       string_indices = []
       for i in self.child_indices:
         string_indices.append(str(i))           # default label: node index 
       self.child_labels = string_indices
     elif not isinstance(self.child_labels, (list,tuple)):
       self.child_labels = [str(self.child_labels)]
+    self.child_labels = list(self.child_labels) # Tuple does not support item assignment
     for i,label in enumerate(self.child_labels):
       self.child_labels[i] = str(label)         # make sure the labels are strings
 
@@ -252,13 +253,13 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def define_specific_extractgroups(self, trac=True):  
+  def define_specific_extractgroups(self, trace=True):  
     """Placeholder for class-specific function, to be redefined by classes
     that are derived from PyNodeNamedGroups.Called by .update_state().
     It allows the specification of one or more default extractgroups.
     """
     # Example(s):
-    if True:
+    if False:
       # Used for operations (e.g. plotting) on separate correlations.
       # Its children are assumed to be 2x2 tensor nodes (4 vells each).
       self.extractgroups['XX'] = record(children='*', vells=[0])
@@ -296,11 +297,18 @@ class PyNodeNamedGroups (pynode.PyNode):
       s += str(type(rr.children))
       raise ValueError(s)
 
-    # Deal with the selction of vells:
-    rr.setdefault('vells',[0])                  # default: 1st vells
+    # Deal with the selcetion of vells:
+    # rr.setdefault('vells',[0])                  # default: 1st vells
+    rr.setdefault('vells','*')                  # default: all vells
     s = str(rr.key)+': vells spec error: '
     if isinstance(rr.vells, int):               # vells index, e.g. 0
-      rr.vells = [rr.vells]                     # 0 -> [0]
+      rr.vells = [rr.vells]                     # e.g. 0 -> [0]
+    elif isinstance(rr.vells, str):
+      if rr.vells=='*':                         # all vells
+        pass                                    # converted later
+      else:
+        s += str(rr.vells)
+        raise ValueError(s)
     elif isinstance(rr.vells, (list,tuple)):
       pass                                      # assume ok
     elif rr.vells==None:                        # extract entire child result(s)
@@ -328,7 +336,6 @@ class PyNodeNamedGroups (pynode.PyNode):
     for key in self.extractgroups.keys():
       rr = self.extractgroups[key]                            # convenience
       lowerkey = key.lower()                                  # use lowercase only...!!  
-      nameclash = self._namedgroups.has_key(lowerkey)     
 
       iic = self._make_child_selection (nc, rr, trace=False)  # child indices
       cindices = []
@@ -338,42 +345,38 @@ class PyNodeNamedGroups (pynode.PyNode):
         cindices.append(child_indices[i])
 
       # The child result(s) are read by a special object: 
+      extend_labels = True                                    # -> label[ivells] 
+      if isinstance(rr.vells,(list,tuple)) and len(rr.vells)==1:
+        extend_labels = False                                 # 
       rv = ChildResult.ResultVector(children, select=iic,
-                                    extend_labels=True,
+                                    extend_labels=extend_labels,
                                     labels=child_labels)
       if trace:
         rv.display(self.class_name)
 
       # Make/attach a new namedgroup record (object?):
-      if isinstance(rr.vells, (list,tuple)):
-        for ivells in rr.vells:                   # NB: _namedgroups nameclash if muliple....!!
-          s = 'Extracted:'
-          s += '  mean of'                        # <---- !!
-          s += '  vells['+str(ivells)+']'
-          s += '  from node(s) '+str(cindices)
-          hist = [s]
-          vv = rv.vv(index=ivells)                # <---- !!
-          ng = record(key=lowerkey, 
-                      children=iic, nodes=cindices, vells=ivells,
-                      history=hist, vv=vv)
-          self._namedgroups[lowerkey] = ng
-
-      else:
+      if rr.vells==None:
+        vv = rv.results()                         # <----- !!
         s = 'Extracted:'
         s += '  entire result(s)'
-        s += '  from node(s) '+str(cindices)
-        hist = [s]
-        vv = rv.results()                         # <---- !!
-        ng = record(key=lowerkey,
-                    children=iic, nodes=cindices, vells=ivells,
-                    history=hist, vv=vv)
-        self._namedgroups[lowerkey] = ng
+        self._create_namedgroup (key=lowerkey, vells=ivells,
+                                 children=iic, nodes=cindices,
+                                 labels=child_labels,
+                                 history=s, vv=vv)
 
-      # Name clashes are more likely with concatenated pynodes....
-      if nameclash:
-        s = '** namedgroup name clash: '+lowerkey+' (overwritten)'
-        self._namedgroups[lowerkey].history.append(s)
-        print s
+      else:
+        index = rr.vells
+        if rr.vells=='*': index = None
+        s = 'Extracted:'
+        s += '  mean of'                          # <---- !!
+        s += '  vells'+str(rr.vells)
+        vv = rv.vcx(index=index)                  # <---- !!
+        self._create_namedgroup (key=lowerkey, vells=rr.vells,
+                                 children=rv.expand(iic, index=index),
+                                 nodes=rv.expand(cindices, index=index),
+                                 labels=rv.labels(index=index),
+                                 history=s, vv=vv)
+
 
     # Finished:
     if trace:
@@ -381,6 +384,38 @@ class PyNodeNamedGroups (pynode.PyNode):
     return None
     
       
+  #-------------------------------------------------------------------
+
+  def _create_namedgroup (self, key, children, nodes, vells, labels,
+                          history, vv, trace=True):
+    """Helper function to create a new namedgroup record.
+    Called (only) from ._extract_namedgroups(). 
+    """
+    # Finishing touches on its history (list of strings)
+    nn = []
+    for n in nodes:
+      if not n in nn:
+        nn.append(n)
+    history += '  from '+str(len(nn))+' node(s): '+str(nn)
+    history = [history]
+
+    # Name clashes are more likely with concatenated pynodes....
+    if self._namedgroups.has_key(key):
+      s = '** namedgroup name clash: '+key+' (overwritten)'
+      history.append(s)
+      print s
+
+    # Create and attach the new record:
+    rr = record(key=key, vells=vells,
+                children=children, nodes=nodes,
+                labels=labels,
+                history=history, vv=vv)
+    self._namedgroups[key] = rr
+
+    # Finished:
+    return True
+
+
   #-------------------------------------------------------------------
 
   def _make_child_selection (self, nc, rr, trace=False):
@@ -430,8 +465,8 @@ class PyNodeNamedGroups (pynode.PyNode):
     print self.oneliner()
     print ' * (',txt,'):'
     print ' *',type(self), self.class_name, self.name
-    n = self._num_children
-    print ' * child_indices ('+str(len(self.child_indices))+'/'+str(n)+')'
+    n = len(self.child_indices)
+    print ' * child_indices ('+str(len(self.child_indices))+')'
     print '     ',self.child_indices
     print ' * child_labels  ('+str(len(self.child_labels))+'/'+str(n)+')'
     print '     ',self.child_labels
@@ -439,19 +474,27 @@ class PyNodeNamedGroups (pynode.PyNode):
     print ' * Specified extractgroups:'    
     for key in self.extractgroups.keys():
       rr = self.extractgroups[key]
-      print '  - '+key+':  '+str(rr)
+      print '   - '+key+':  '+str(rr)
 
     print ' * Total (extracted and copied) namedgroups:'    
     for key in self._namedgroups.keys():
       rr = self._namedgroups[key]
       qq = record()
+      keys = []
       for key1 in rr.keys():
-        if not key1 in ['vv','history']:
+        if key1 in ['history']:
+          pass
+        elif not isinstance(rr[key1],(list,tuple)):
           qq[key1] = rr[key1]
-      print '  - '+key+':  '+str(qq)
-      print '         vv = '+str(rr.vv)
+        elif len(rr[key1])<5:
+          qq[key1] = rr[key1]
+        else:
+          keys.append(key1)
+      print '   - '+key+':  '+str(qq)
+      for key1 in keys:
+        print '      > '+key1+'('+str(len(rr[key1]))+'):  '+str(rr[key1])
       for i,s in enumerate(rr.history):
-        print '         history['+str(i)+']:  ',s
+        print '      > history['+str(i)+']:  ',s
 
     print
     return True
@@ -573,15 +616,17 @@ def _define_forest (ns,**kwargs):
   n = 5
   for i in range(n):
     vv = []
-    for j,corr in enumerate(['XX','XY','YX','YY']): 
-      vv.append(ns[corr](i) << (j+1)+10*(i+1))
+    for j,corr in enumerate(['XX','XY','YX','YY']):
+      v = (j+1)+10*(i+1)
+      v = complex(i,j)
+      vv.append(ns[corr](i) << v)
     cc.append(ns['v'](i) << Meq.Composer(*vv))
     labels.append('v'+str(i))
 
   exg = None
   labels = None
 
-  if True:
+  if False:
     # Optional: make concatenation pynode:
     exg = record(concat=record(vells=[2]))
     ns['concat'] << Meq.PyNode(children=cc, child_labels=labels,
@@ -594,8 +639,12 @@ def _define_forest (ns,**kwargs):
 
 
   # Make the root pynode:
-  exg = record(extra=record(children=range(1,3)))
-  ns['rootnode'] << Meq.PyNode(children=cc, child_labels=labels,
+  # exg = record(extra=record(children=range(1,3)))
+  # exg = record(extra=record(children=range(1,3), vells=[0,1]))
+  # exg = record(extra=record(children=range(1,3), vells=2))
+
+  ns['rootnode'] << Meq.PyNode(children=cc,
+                               # child_labels=labels,
                                class_name='PyNodeNamedGroups',
                                extractgroups=exg,
                                module_name=__file__)
