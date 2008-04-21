@@ -99,7 +99,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     If no groupspecs record has been provided, or if it is empty,
     or if it is not a record, a default record will be assumed:
-    .        groupspecs=record(vv=record(children='*', vells=[0]))
+    .        groupspecs=record(allvells=record(children='*', vells='*'))
     i.e. it will make a single group (named 'allvells') from
     all available vells in the results of all its 'regular' children.
 
@@ -107,11 +107,12 @@ class PyNodeNamedGroups (pynode.PyNode):
     - children = '*'           (default) all its children
                = '2/3'         the second third of its chidren (etc)
                = [0,2,7,5,...] any vector of child indices
-    - vells    = [0]           (default) the first vells of each child result
+    - vells    = '*'           (default) all vells of each child result
                = [1,2,2,1,3]   any vector of vells indices
+               = 0             an integer vells index
                = None          the group will contain entire result objects
-    - expr     = None          (default) python expression
-               = 'mean()'      initial operation on each vells
+    - expr     = None          (default) no math operation on vells/results
+               = 'mean()'      take the mean of each vells
     """
     ss = self.attach_help(ss, PyNodeNamedGroups.help.__doc__,
                           classname='PyNodeNamedGroups',
@@ -237,15 +238,8 @@ class PyNodeNamedGroups (pynode.PyNode):
       self.groupspecs = record()             # make sure it is a record
 
     self.define_specific_groupspecs()        # (re-implemented) class-specific function 
-    if len(self.groupspecs)==0:
-      self.groupspecs['allvells'] = record() # at least one group (named allvells)
 
-    for key in self.groupspecs.keys():
-      rr = self.groupspecs[key]
-      if not isinstance(rr, record):
-        rr = record()                           # make sure it is a record
-      rr.key = key                              # attach the key (group name)
-      self.groupspecs[key] = self._check_extractgroup_definition(rr)
+    self._check_groupspecs()
 
     # Finished
     return None
@@ -253,10 +247,34 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
+  def _check_groupspecs (self, trace=False):
+    """Helper function to check the user-specified group specs"""
+
+    if trace:
+      self.display('_check_groupspecs() input')
+
+    if len(self.groupspecs)==0:
+      self.groupspecs['allvells'] = record() # at least one group (named allvells)
+
+    for key in self.groupspecs.keys():
+      rr = self.groupspecs[key]
+      if not isinstance(rr, record):
+        rr = record()                        # make sure it is a record
+      rr.key = key                           # attach the key (group name)
+      self.groupspecs[key] = self._check_extractgroup_definition(rr)
+
+    # Finished
+    if trace:
+      self.display('_check_groupspecs() output')
+    return True
+
+  #-------------------------------------------------------------------
+
   def define_specific_groupspecs(self, trace=True):  
     """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodeNamedGroups.Called by .update_state().
-    It allows the specification of one or more default groupspecs.
+    that are derived from PyNodeNamedGroups.
+    Called by ._check_groupspecs().
+    It allows the specification of one or more specific groupspecs.
     """
     # Example(s):
     if False:
@@ -370,7 +388,7 @@ class PyNodeNamedGroups (pynode.PyNode):
         if rr.vells=='*': index = None
         s = 'Extracted:'
         s += '  mean of'                          # <---- !!
-        s += '  vells'+str(rr.vells)
+        s += '  vells('+str(rr.vells)+')'
         vv = rv.vcx(index=index)                  # <---- !!
         self._create_namedgroup (key=lowerkey, vells=rr.vells,
                                  children=rr.children,
@@ -455,8 +473,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   def oneliner(self):
     """Helper function to show a one-line summary of this object"""
-    ss = '** PyNodeNamedGroups: '
-    ss += self.name+':'
+    ss = '** '+self.class_name+' '+self.name+':'
     ss += '  count='+str(self._count)
     ss += '  extract('+str(len(self.groupspecs.keys()))+')'
     ss += str(self.groupspecs.keys())
@@ -464,24 +481,39 @@ class PyNodeNamedGroups (pynode.PyNode):
     ss += str(self._namedgroups.keys())
     return ss
   
+  def _preamble(self, level, txt=None):
+    """Helper function, called at start of .display()"""
+    prefix = level*'...'
+    if level==0:
+      print prefix,'\n'
+      print prefix,self.oneliner()
+      print prefix,' * (',txt,'):'
+    else:
+      print prefix,' * inherited part:'
+    return prefix
 
-  def display (self, txt=None, full=False):
+  def _postamble(self, level, prefix):
+    """Helper function, called at end of .display()"""
+    if level==0:
+      print prefix,'\n'
+    return None
+
+#---------------------------------------------------------------------
+
+  def display (self, txt=None, full=False, level=0):
     """Helper function to show the contents of this object
     """
-    print '\n'
-    print self.oneliner()
-    print ' * (',txt,'):'
-    print ' *',type(self), self.class_name, self.name
+    prefix = self._preamble(level, txt=txt)
     n = len(self.child_indices)
-    print ' * child_indices ('+str(len(self.child_indices))+' nodes):',self.child_indices
-    print ' * child_labels  ('+str(len(self.child_labels))+'/'+str(n)+'):',self.child_labels
+    print prefix,' * child_indices ('+str(len(self.child_indices))+' nodes):',self.child_indices
+    print prefix,' * child_labels  ('+str(len(self.child_labels))+'/'+str(n)+'):',self.child_labels
 
-    print ' * Group specifications (by the user):'    
+    print prefix,' * Group specifications (by the user):'    
     for key in self.groupspecs.keys():
       rr = self.groupspecs[key]
-      print '   - '+key+':  '+str(rr)
+      print prefix,'   - '+key+':  '+str(rr)
 
-    print ' * Total (copied and/or extracted) namedgroups:'    
+    print prefix,' * Total (copied and/or extracted) namedgroups:'    
     for key in self._namedgroups.keys():
       rr = self._namedgroups[key]
       qq = record()
@@ -495,13 +527,14 @@ class PyNodeNamedGroups (pynode.PyNode):
           qq[key1] = rr[key1]
         else:
           keys.append(key1)
-      print '   - '+key+':  '+str(qq)
+      print prefix,'   - '+key+':  '+str(qq)
       for key1 in keys:
-        print '      > '+key1+'('+str(len(rr[key1]))+'):  '+str(rr[key1])
+        print prefix,'     > '+key1+'('+str(len(rr[key1]))+'):  '+str(rr[key1])
       for i,s in enumerate(rr.history):
-        print '      > history['+str(i)+']:  ',s
+        print prefix,'     > history['+str(i)+']:  ',s
 
-    print
+    # Finished:
+    self._postamble(level, prefix)
     return True
 
 
@@ -524,14 +557,13 @@ class PyNodeNamedGroups (pynode.PyNode):
     # to produce complicated results.
     # But they can also be used by themselves.
     
-    fieldname = 'namedgroups'                      # name of result field
     self._namedgroups = record()     
     cc = []
     ii = []
     for i,child in enumerate(children):            # child results
-      if child.has_key(fieldname):
+      if child.has_key('namedgroups'):
         # Copy the PyNodeNamedGroups namedgroup definitions:
-        rr = child[fieldname]
+        rr = child['namedgroups']
         for key in rr.keys():
           self._namedgroups[key] = rr[key]  
       else:
@@ -546,13 +578,13 @@ class PyNodeNamedGroups (pynode.PyNode):
                                 child_labels=self.child_labels,
                                 trace=trace)
     if True:
-      self.display('.get_result()')
+      self.display('PyNodeNamedGroups.get_result()')
 
     # Make an empty result record
     result = meq.result()
 
     # Always attach the accumulated namedgroups to the result:
-    result[fieldname] = self._namedgroups
+    result['namedgroups'] = self._namedgroups
 
     # Finished:
     return result
@@ -644,8 +676,9 @@ def _define_forest (ns,**kwargs):
 
 
   # Make the root pynode:
+  gs = record(gs0=record())
   # gs = record(gs0=record(children=range(1,3)))
-  gs = record(gs0=record(children='2/3', vells='*'))
+  # gs = record(gs0=record(children='2/3', vells='*'))
   # gs = record(gs0=record(children=range(1,3), vells=[0,1]))
   # gs = record(gs0=record(children=range(1,3), vells=2))
 
