@@ -73,7 +73,9 @@ class PyNodeNamedGroups (pynode.PyNode):
     self.set_symdeps('domain','resolution')
     self._count = -1
     self.groupspecs = record()
+    self._gs_order = []
     self._namedgroups = record()
+    self._ng_order = []
     return None
 
   #-------------------------------------------------------------------
@@ -256,8 +258,10 @@ class PyNodeNamedGroups (pynode.PyNode):
     if len(self.groupspecs)==0:
       self.groupspecs['allvells'] = record() # at least one group (named allvells)
 
+    self._gs_order = []                      # make the order user-specifiable?
     for key in self.groupspecs.keys():
       rr = self.groupspecs[key]
+      self._gs_order.append(key)    
       if not isinstance(rr, record):
         rr = record()                        # make sure it is a record
       rr.key = key                           # attach the key (group name)
@@ -351,8 +355,8 @@ class PyNodeNamedGroups (pynode.PyNode):
     import ChildResult
     nc = len(children)
 
-    for key in self.groupspecs.keys():
-      rr = self.groupspecs[key]                            # convenience
+    for key in self._gs_order:
+      rr = self.groupspecs[key]                               # convenience
       lowerkey = key.lower()                                  # use lowercase only...!!  
 
       iic = self._make_child_selection (nc, rr, trace=False)  # child indices
@@ -432,6 +436,10 @@ class PyNodeNamedGroups (pynode.PyNode):
                 history=history, vv=vv)
     self._namedgroups[key] = rr
 
+    # The groups order is important for derived groups, i.e. groups
+    # that depend on the values of others (which should be read first).
+    self._ng_order.append(key)
+
     # Finished:
     return True
 
@@ -475,26 +483,37 @@ class PyNodeNamedGroups (pynode.PyNode):
     """Helper function to show a one-line summary of this object"""
     ss = '** '+self.class_name+' '+self.name+':'
     ss += '  count='+str(self._count)
-    ss += '  extract('+str(len(self.groupspecs.keys()))+')'
-    ss += str(self.groupspecs.keys())
-    ss += '  named('+str(len(self._namedgroups.keys()))+')'
-    ss += str(self._namedgroups.keys())
+    if not len(self._ng_order)==len(self._gs_order):
+      ss += '  ('+str(len(self._gs_order))+')'
+      ss += str(self._gs_order)                        # ....?
+    ss += '  groups:'+str(self._ng_order)
     return ss
+
+  def _prefix(self, level=0):
+    """Helper function to generate prefix string for display."""
+    return level*'... '
   
-  def _preamble(self, level, txt=None):
+  def _preamble(self, level, txt=None, classname='<classname>'):
     """Helper function, called at start of .display()"""
-    prefix = level*'...'
+    prefix = self._prefix(level)
     if level==0:
       print prefix,'\n'
       print prefix,self.oneliner()
-      print prefix,' * (',txt,'):'
+      if not txt==None: print prefix,' * (',str(txt),'):'
     else:
-      print prefix,' * inherited part:'
+      print prefix
+      print prefix,' **** Inherited from class: '+str(classname)+' ****'
     return prefix
 
-  def _postamble(self, level, prefix):
+  def _postamble(self, level, txt=None):
     """Helper function, called at end of .display()"""
-    if level==0:
+    prefix = self._prefix(level)
+    if level>0:
+      pass
+      # print prefix,' ****'
+      # print prefix
+    else:
+      if not txt==None: print prefix,' * (',str(txt),'):'
       print prefix,'\n'
     return None
 
@@ -503,18 +522,21 @@ class PyNodeNamedGroups (pynode.PyNode):
   def display (self, txt=None, full=False, level=0):
     """Helper function to show the contents of this object
     """
-    prefix = self._preamble(level, txt=txt)
+    prefix = self._preamble(level, txt=txt, classname='PyNodeNamedGroups')
     n = len(self.child_indices)
     print prefix,' * child_indices ('+str(len(self.child_indices))+' nodes):',self.child_indices
     print prefix,' * child_labels  ('+str(len(self.child_labels))+'/'+str(n)+'):',self.child_labels
 
-    print prefix,' * Group specifications (by the user):'    
-    for key in self.groupspecs.keys():
+    n = len(self._gs_order)
+    print prefix,' * Group specifications ('+str(n)+'):'    
+    for key in self._gs_order:
       rr = self.groupspecs[key]
       print prefix,'   - '+key+':  '+str(rr)
 
-    print prefix,' * Total (copied and/or extracted) namedgroups:'    
-    for key in self._namedgroups.keys():
+    n = len(self._ng_order)
+    print prefix,' * Total (copied and/or extracted) namedgroups ('+str(n)+'):'    
+    # for key in self._namedgroups.keys():
+    for key in self._ng_order:
       rr = self._namedgroups[key]
       qq = record()
       keys = []
@@ -534,7 +556,7 @@ class PyNodeNamedGroups (pynode.PyNode):
         print prefix,'     > history['+str(i)+']:  ',s
 
     # Finished:
-    self._postamble(level, prefix)
+    self._postamble(level)
     return True
 
 
@@ -558,14 +580,18 @@ class PyNodeNamedGroups (pynode.PyNode):
     # But they can also be used by themselves.
     
     self._namedgroups = record()     
+    self._ng_order = []
     cc = []
     ii = []
     for i,child in enumerate(children):            # child results
       if child.has_key('namedgroups'):
         # Copy the PyNodeNamedGroups namedgroup definitions:
+        # NB: The order is not important here, because the
+        # group values have all been calculated by the child.
         rr = child['namedgroups']
-        for key in rr.keys():
+        for key in rr.keys():  
           self._namedgroups[key] = rr[key]  
+          self._ng_order.append(key)
       else:
         # Append child to the list of 'regular' children.
         cc.append(child)

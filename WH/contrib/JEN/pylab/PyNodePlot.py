@@ -74,9 +74,11 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   def __init__ (self, *args, **kwargs):
     PyNodeNamedGroups.PyNodeNamedGroups.__init__(self,*args);
     self._plotypes = ['graphics']                # supported plot types
-    self._plotinfo = record()                    
+    self._pskeys = record(overall=[])
     for plotype in self._plotypes:
-      self._plotinfo[plotype] = []               # list of plot definitions
+      self._pskeys[plotype] = []
+    self.plotspecs = record()                    
+    self._plotinfo = record()                    
     return None
 
   #-------------------------------------------------------------------
@@ -141,78 +143,63 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #--------------------------------------------------------------------
 
   def oneliner(self):
-    # ss = PyNodeNamedGroups.PyNodeNamedGroups.oneliner(self)
-    ss = '** '+self.class_name+' '+self.name+':'
-    ss += '  count='+str(self._count)
-    ss += '  extract('+str(len(self.groupspecs.keys()))+')'
-    # ss += str(self.groupspecs.keys())
-    ss += '  named('+str(len(self._namedgroups.keys()))+')'
-    # ss += str(self._namedgroups.keys())
+    ss = PyNodeNamedGroups.PyNodeNamedGroups.oneliner(self)
     for plotype in self._plotypes:
+      nn = [0,0]
       if self.plotspecs.has_key(plotype):
-        n = len(self.plotspecs[plotype])
-        if n>0:
-          ss += '  '+plotype+'('+str(n)+')'
+        nn[0] = len(self.plotspecs[plotype])
+      if self._plotinfo.has_key(plotype):
+        nn[1] = len(self._plotinfo[plotype])
+      if True or  sum(nn)>0:
+        ss += '  '+plotype+'('+str(nn)+')'
     return ss
 
-
+  #---------------------------------------------------------------
 
   def display(self, txt, full=False, level=0):
     """Display a summary of the contents of this object"""
     prefix = self._preamble(level, txt=txt)
 
-    print prefix,' * self.plotspecs:'    
-
-    # First the overall fields:
-    rr = self.plotspecs                   # convenience
+    print prefix,' * self._pskeys:'
+    rr = self._pskeys
     for key in rr.keys():
-      if key in [self._plotypes]:
-        print prefix,' - ',key,':',type(rr[key]),len(rr[key])
-      else:
-        print prefix,' - ',key,'=',rr[key]
-        
-    # Then the various (types of) (sub)plot definitions:
-    for plotype in self._plotypes:
-      if self.plotspecs.has_key(plotype):
-        for i,rr in enumerate(self.plotspecs[plotype]):
-          print prefix,'   - '+str(rr)
+      print prefix,' - ',key,':',rr[key]
 
+    print prefix,' * self.plotspecs (defaults and user-input):'
+    rr = self.plotspecs                      # convenience
+    for key in self._pskeys['overall']:
+      print prefix,' - ',key,'=',rr[key]
+    for plotype in self._plotypes:
+      if rr.has_key(plotype):
+        print prefix,' -- plotype:',plotype,'('+str(len(rr[plotype]))+'):'
+        for key in self._pskeys[plotype]:
+          print prefix,'   - ',key,'=',rr[key]
+        for i,ps in enumerate(rr[plotype]):
+          print prefix,'   ----'
+          for key in ps.keys():    
+            print prefix,'     - ',key,'=',ps[key]
+
+    print prefix,' * self._plotinfo (copied and new):'
+    rr = self._plotinfo                      # convenience
+    for key in rr.keys():    
+      if not key in self._plotypes:
+        print prefix,' - ',key,'=',rr[key]
+    for plotype in self._plotypes:
+      if rr.has_key(plotype):
+        print prefix,' -- plotspec:',plotype,'('+str(len(rr[plotype]))+'):'
+        for i,pd in enumerate(rr[plotype]):
+          print prefix,'     - '+str(pd)
+
+    # NB: It is probably best to display the base-class info here...
     PyNodeNamedGroups.PyNodeNamedGroups.display(self, txt, full=full,
                                                 level=level+1)
-    self._postamble(level, prefix)
+    self._postamble(level)
     return True
+
 
   #-------------------------------------------------------------------
 
-  def show_plotspecs_obsolete (self, txt=None, full=False, plotspecs=None):
-    """Helper function to show the contents of self.plotspecs"""
-
-    print '\n** PyNodePlot: self.plotspecs record (',txt,'):'
-    print ' *',type(self),self.class_name,self.name
-    # print ' *',self._num_children,self.child_indices
-
-    if plotspecs:               # plotspecs record externally provided
-      rr = plotspecs
-    else:                      # use the internal one
-      rr = self.plotspecs       
-
-    # First the overall fields:
-    for key in rr.keys():
-      if key=='subplot':
-        print ' - ',key,':',type(rr[key]),len(rr[key])
-      else:
-        print ' - ',key,'=',rr[key]
-        
-    # Then the subplot definitions:
-    if rr.has_key('subplot'):
-      for i,sp in enumerate(rr.subplot):
-        self.show_subplot(sp)
-    print
-    return True
-
-  #-------------------------------------------------------------------
-
-  def show_subplot_not_yet_obsolete (self, sp, txt=None, full=False):
+  def show_subplot_graphics (self, sp, txt=None, full=False):
     """Helper function to show the contents of a subplot definition"""
     print ' - subplot definition (',txt,'):'
     for key in sp.keys():
@@ -237,14 +224,24 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     trace = False
     trace = True
 
+    # First update all the namedgroup specifications:
+    # This creates self.groupspecs (and self._gs_order) and
+    # self._namedgroups (and self._ng_order).
     PyNodeNamedGroups.PyNodeNamedGroups.update_state(self, mystate)
 
     # Read the plotspecs record, and check it:
-    mystate('plotspecs')
+    mystate('plotspecs', None)
     if not isinstance(self.plotspecs, record):
       self.plotspecs = record()              # make sure it is a record
 
-    self.define_specific_plotspecs()         # (re-implemented) class-specific function 
+    # Define class-specific plotspecs (if any), using
+    # the (re-implementable) class-specific function: 
+    self.define_specific_plotspecs()
+
+    if False:
+      # Make sure that there is at least one plot specification....?
+      if len(self.plotspecs)==0:
+        self.plotspecs['allvells'] = record() 
 
     self._check_plotspecs(trace=trace)
     return None
@@ -264,10 +261,14 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr.setdefault('make_plot', True)                  # if True, make the plot
     rr.setdefault('offset', 0.0)                      # offset multiple subplots
 
-    # Overall parameters 
     # These keys are used to transfer fields to the node result:
-    self._ovkeys = ['title','xlabel','ylabel']
-    self._ovkeys.extend(['xunit','yunit'])
+    self._pskeys = record(overall=[])
+    for plotype in self._plotypes:
+      self._pskeys[plotype] = []
+
+    # Overall parameters 
+    self._pskeys['overall'] = ['title','xlabel','ylabel']
+    self._pskeys['overall'].extend(['xunit','yunit'])
 
     title = 'PyNodePlot_'+self.class_name
     title += '_'+str(len(self.child_indices))
@@ -280,11 +281,10 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # Parameters used in (sub)plot definitions of various types.
     # They all have default values in the overall section.
     # These keys are used to transfer defaults to subplot definitions:
-    self._spkeys = ['color','linestyle','marker','markersize']
-    self._spkeys.extend(['legend','plot_sigma_bars','annotate'])
-    self._spkeys.extend(['plot_circle_mean'])
+    self._pskeys['graphics'] = ['color','linestyle','marker','markersize']
+    self._pskeys['graphics'].extend(['legend','plot_sigma_bars','annotate'])
+    self._pskeys['graphics'].extend(['plot_circle_mean'])
 
-    rr.setdefault('plotype', 'graphics')            # subplot type
     rr.setdefault('legend', None)                   # subplot legend
     rr.setdefault('color', 'blue')                  # plot color
     rr.setdefault('linestyle', None)                # line style                  
@@ -295,6 +295,14 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr.setdefault('annotate', True)                 # do annotation
     rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)        # plot circle around (0,0) with radius=mean
+
+    # Deal with the plotspecs, dependent on their plot-type (e.g. graphics): 
+    for plotype in self._plotypes:
+      if rr.has_key(plotype):                       # e.g. plotspecs[graphics] = [list]
+        for ps in rr[plotype]:                      # 
+          if plotype=='graphics':
+            # self._check_plotspec_graphics(self)
+            pass                                      # do what?
 
     # Finished:
     if trace:
@@ -399,7 +407,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     # Fill self._namedgroups with named groups from its children.
     # These are also attached to the result, for concatenation.
-    result = PyNodeNamedGroups.PyNodeNamedGroups(self, request, *children)
+    result = PyNodeNamedGroups.PyNodeNamedGroups.get_result(self, request,
+                                                            *children)
 
     # Re-initialize the record that contains the plot definitions:
     self._plotinfo = record()
@@ -882,11 +891,16 @@ def _define_forest (ns,**kwargs):
     # cc.insert(2,ns['concat'])
 
 
-  # Make the root pynode:
+  # Make the group specification record:
   # gs = record(gs0=record(children=range(1,3)))
   # gs = record(gs0=record(children='2/3', vells='*'))
   # gs = record(gs0=record(children=range(1,3), vells=[0,1]))
   # gs = record(gs0=record(children=range(1,3), vells=2))
+
+  # Make the plot specification record:
+  ps = record(title='test',
+              graphics=[record(),
+                        record()])
 
   ns['rootnode'] << Meq.PyNode(children=cc,
                                child_labels=labels,
