@@ -74,6 +74,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   def __init__ (self, *args, **kwargs):
     PyNodeNamedGroups.PyNodeNamedGroups.__init__(self,*args);
     self._plotypes = ['graphics']                # supported plot types
+    self._plotypes.append('other')               # testing only
     self._pskeys = record(overall=[])
     for plotype in self._plotypes:
       self._pskeys[plotype] = []
@@ -168,16 +169,16 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     print prefix,' * self.plotspecs (defaults and user-input):'
     rr = self.plotspecs                      # convenience
     for key in self._pskeys['overall']:
-      print prefix,' - ',key,'=',rr[key]
+      print prefix,'   -',key,'=',rr[key]
     for plotype in self._plotypes:
       if rr.has_key(plotype):
-        print prefix,' -- plotype:',plotype,'('+str(len(rr[plotype]))+'):'
+        print prefix,'   - plotype:',plotype,'('+str(len(rr[plotype]))+'):'
         for key in self._pskeys[plotype]:
-          print prefix,'   - ',key,'=',rr[key]
+          print prefix,'     -',key,'=',rr[key]
         for i,ps in enumerate(rr[plotype]):
-          print prefix,'   ----'
+          print prefix,'     -',plotype+'['+str(i)+']:'
           for key in ps.keys():    
-            print prefix,'     - ',key,'=',ps[key]
+            print prefix,'       -',key,'=',ps[key]
 
     print prefix,' * self._plotinfo (copied and new):'
     rr = self._plotinfo                      # convenience
@@ -211,6 +212,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
 
   #-------------------------------------------------------------------
+  #-------------------------------------------------------------------
     
   def update_state (self, mystate):
     """Read information from the pynode state record. This is called
@@ -231,19 +233,47 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     # Read the plotspecs record, and check it:
     mystate('plotspecs', None)
-    if not isinstance(self.plotspecs, record):
-      self.plotspecs = record()              # make sure it is a record
+    rr = self.plotspecs                      # convenience
+    if not isinstance(rr, record):
+      rr = record()                          # make sure it is a record
+    for plotype in self._plotypes:
+      if not rr.has_key(plotype):
+        rr[plotype] = []
+      else:
+        rr[plotype] = list(rr[plotype])
+    print '** self.plotspecs= ',self.plotspecs
+
 
     # Define class-specific plotspecs (if any), using
     # the (re-implementable) class-specific function: 
     self.define_specific_plotspecs()
 
-    if False:
+    if True:
       # Make sure that there is at least one plot specification....?
       if len(self.plotspecs)==0:
-        self.plotspecs['allvells'] = record() 
+        ps = record(yy='{allvells}', color='magenta') 
+        self.plotspecs['graphics'].append(ps)
 
     self._check_plotspecs(trace=trace)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_specific_plotspecs(self, trace=True):  
+    """Placeholder for class-specific function, to be redefined by classes
+    that are derived from PyNodePlot. Called by ._update_state().
+    It allows the specification of one or more specific plotspecs.
+    """
+    # Example(s):
+    if True:
+      # Used for operations (e.g. plotting) on separate correlations.
+      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+      gg = []
+      gg.append(record(yy='{xx}', color='red'))
+      gg.append(record(yy='{xy}', color='magenta', annotate=False))
+      gg.append(record(yy='{yx}', color='green', annotate=False))
+      gg.append(record(yy='{yy}', color='blue'))
+      self.plotspecs['graphics'] = gg
     return None
 
 
@@ -267,8 +297,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
       self._pskeys[plotype] = []
 
     # Overall parameters 
-    self._pskeys['overall'] = ['title','xlabel','ylabel']
-    self._pskeys['overall'].extend(['xunit','yunit'])
+    ss = ['title','xlabel','ylabel','xunit','yunit']
+    self._pskeys['overall'] = ss
 
     title = 'PyNodePlot_'+self.class_name
     title += '_'+str(len(self.child_indices))
@@ -281,10 +311,13 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # Parameters used in (sub)plot definitions of various types.
     # They all have default values in the overall section.
     # These keys are used to transfer defaults to subplot definitions:
-    self._pskeys['graphics'] = ['color','linestyle','marker','markersize']
-    self._pskeys['graphics'].extend(['legend','plot_sigma_bars','annotate'])
-    self._pskeys['graphics'].extend(['plot_circle_mean'])
-
+    ss = ['color','linestyle','marker','markersize']
+    ss.extend(['legend','plot_sigma_bars','annotate'])
+    ss.extend(['plot_circle_mean','xx','zz'])
+    self._pskeys['graphics'] = ss
+    
+    rr.setdefault('xx', None)                       # xx expr
+    rr.setdefault('zz', None)                       # zz expr
     rr.setdefault('legend', None)                   # subplot legend
     rr.setdefault('color', 'blue')                  # plot color
     rr.setdefault('linestyle', None)                # line style                  
@@ -299,10 +332,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # Deal with the plotspecs, dependent on their plot-type (e.g. graphics): 
     for plotype in self._plotypes:
       if rr.has_key(plotype):                       # e.g. plotspecs[graphics] = [list]
-        for ps in rr[plotype]:                      # 
-          if plotype=='graphics':
-            # self._check_plotspec_graphics(self)
-            pass                                      # do what?
+        if plotype=='graphics':
+          self._check_plotspecs_graphics()
 
     # Finished:
     if trace:
@@ -311,20 +342,23 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
   #-------------------------------------------------------------------
 
-  def define_specific_plotspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodePlot. Called by ._check_plotspecs().
-    It allows the specification of one or more specific groupspecs.
+  def _check_plotspecs_graphics (self, trace=False):
+    """Check the plotspecs of plotype graphics
     """
-    # Example(s):
-    if False:
-      # Used for operations (e.g. plotting) on separate correlations.
-      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-      self.groupspecs['XX'] = record(children='2/3', vells=[0])
-      self.groupspecs['XY'] = record(children='3/3', vells=[1])
-      self.groupspecs['YX'] = record(children='*', vells=[2])
-      self.groupspecs['YY'] = record(children='*', vells=[3])
-    return None
+    if trace:
+      print '\n** _check_plotspecs_graphics():'
+    for i,rr in enumerate(self.plotspecs['graphics']):
+      s = 'plotspecs.graphics['+str(i)+']: '
+      if not rr.has_key('yy'):
+        s += 'no key yy in keys: '+str(rr.keys())
+        # raise ValueError, s
+      # rr.setdefault('xx',None) 
+      # rr.setdefault('zz',None)
+      if trace:
+        print '**',s,rr
+    # Finished:
+    if trace: print
+    return True
 
 
   #-------------------------------------------------------------------
@@ -899,8 +933,8 @@ def _define_forest (ns,**kwargs):
 
   # Make the plot specification record:
   ps = record(title='test',
-              graphics=[record(),
-                        record()])
+              graphics=[record(yy='{a}'),
+                        record(xx='{b}')])
 
   ns['rootnode'] << Meq.PyNode(children=cc,
                                child_labels=labels,
