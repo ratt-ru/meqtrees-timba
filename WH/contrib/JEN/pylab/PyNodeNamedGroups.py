@@ -53,6 +53,8 @@ from Timba.Meq import meq
 from Timba.Meq import meqds
 import Meow.Bookmarks
 
+from math import *   # for ._evaluate()
+
 import inspect
 import random
 # import pylab       # not here, but in the class....!
@@ -105,7 +107,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     i.e. it will make a single group (named 'allvells') from
     all available vells in the results of all its 'regular' children.
 
-    An extractgroup specification record may have the following fields:
+    A group specification record may have the following fields:
     - children = '*'           (default) all its children
                = '2/3'         the second third of its chidren (etc)
                = [0,2,7,5,...] any vector of child indices
@@ -215,7 +217,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     # the number of labels is not necessarily equal to the number
     # of children (there might be some PyNodeNamedGroups children)
     undef = None
-    undef = 'undef'
+    undef = '**undef**'
     mystate('child_labels', undef)              #  default None not possible....?
     # print '\n** self.child_labels =',self.child_labels,type(self.child_labels)
     if self.child_labels in [None,undef]:
@@ -243,6 +245,11 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     self._check_groupspecs()
 
+    # Optional: test-evaluation (see .get_result()):
+    mystate('testeval', undef)               # only used if it is a string (expr)
+    if self.testeval==undef:
+      self.testeval = None                   # temporary kludge, until None recognized...
+
     # Finished
     return None
 
@@ -265,7 +272,7 @@ class PyNodeNamedGroups (pynode.PyNode):
       if not isinstance(rr, record):
         rr = record()                        # make sure it is a record
       rr.key = key                           # attach the key (group name)
-      self.groupspecs[key] = self._check_extractgroup_definition(rr)
+      self.groupspecs[key] = self._check_groupspec(rr)
 
     # Finished
     if trace:
@@ -292,10 +299,10 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def _check_extractgroup_definition(self, rr, trac=True):
-    """Helper function to check the validity of the given definition (rr)
-    of an extractgroup (used to extract information from its children).
-    Called by .update_state().
+  def _check_groupspec(self, rr, trac=True):
+    """Helper function to check the validity of the given group
+    specification (rr), which will be used to extract information
+    from its children. Called by .update_state().
     """
 
     # Deal with the selection of children:
@@ -527,6 +534,9 @@ class PyNodeNamedGroups (pynode.PyNode):
     print prefix,' * child_indices ('+str(len(self.child_indices))+' nodes):',self.child_indices
     print prefix,' * child_labels  ('+str(len(self.child_labels))+'/'+str(n)+'):',self.child_labels
 
+    if isinstance(self.testeval, str):
+      print prefix,' * testeval =',self.testeval
+
     n = len(self._gs_order)
     print prefix,' * Group specifications ('+str(n)+'):'    
     for key in self._gs_order:
@@ -606,6 +616,11 @@ class PyNodeNamedGroups (pynode.PyNode):
     if True:
       self.display('PyNodeNamedGroups.get_result()')
 
+    if isinstance(self.testeval, str):
+      self._evaluate(self.testeval, trace=True)
+      self._expr2labels(self.testeval, trace=True)
+      self._expr2childnos(self.testeval, trace=True)
+
     # Make an empty result record
     result = meq.result()
 
@@ -614,6 +629,86 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     # Finished:
     return result
+
+
+  #-------------------------------------------------------------------
+  #-------------------------------------------------------------------
+
+  def _evaluate(self, expr, trace=False):
+    """Evaluate the given (python, string) expression, in which the
+    names of the namedgroups (enclosed in {}) are variables.
+    The groups must have values, and the result is a list/vector.
+    """
+    if trace:
+      print '\n** _evaluate(',expr,'):'
+
+    # First collect the relevant groups, and count the elements:
+    rr = record()
+    nv = None
+    for key in self._namedgroups.keys():
+      kenc = '{'+key+'}'
+      if kenc in expr:
+        rr[kenc] = self._namedgroups[key].vv
+        n = len(rr[kenc])
+        if nv==None: nv = n
+        if trace: print '-',kenc,' in expr, n=',n
+        if not nv==n:
+          s = '** '+kenc+': evaluation length mismatch: '+str(n)+' != '+str(nv)
+          raise ValueError,s
+      elif trace:
+        print '-',kenc,' not in expr'
+
+    # Evaluate element-by-element:
+    vv = []
+    for i in range(nv):
+      seval = expr
+      for kenc in rr.keys():                           # all {var}
+        seval = seval.replace(kenc,str(rr[kenc][i]))   # replace all with str(number)
+      vv.append(eval(seval))                           # evaluate
+      if trace:
+        print '-',i,seval,'->',type(vv[i]),vv[i]
+
+    # Finished:
+    if trace:
+      print '->',format_vv(vv),'\n'
+    return vv
+
+  #-------------------------------------------------------------------
+
+  def _expr2labels(self, expr, trace=False):
+    """Return the labels of the first namedgroup that appears as
+    a variable {<name>} in the given expression. 
+    """
+    if trace:
+      print '\n** _expr2labels(',expr,'):'
+    for key in self._namedgroups.keys():
+      kenc = '{'+key+'}'
+      if kenc in expr:
+        ss = self._namedgroups[key].labels
+        if trace:
+          print '-',kenc,'->',ss,'\n'
+        return ss
+    return None
+
+
+  #-------------------------------------------------------------------
+
+  def _expr2childnos(self, expr, trace=False):
+    """Return the child numbers of the first namedgroup that appears as
+    a variable {<name>} in the given expression. To be used as xx. 
+    """
+    if trace:
+      print '\n** _expr2childnos(',expr,'):'
+    for key in self._namedgroups.keys():
+      kenc = '{'+key+'}'
+      if kenc in expr:
+        ss = self._namedgroups[key].childnos
+        if trace:
+          print '-',kenc,'->',ss,'\n'
+        return ss
+    return None
+
+
 
 
   #-------------------------------------------------------------------
@@ -702,16 +797,26 @@ def _define_forest (ns,**kwargs):
 
 
   # Make the root pynode:
-  gs = record(gs0=record())
+  # gs = record(gs0=record())
   # gs = record(gs0=record(children=range(1,3)))
   # gs = record(gs0=record(children='2/3', vells='*'))
   # gs = record(gs0=record(children=range(1,3), vells=[0,1]))
   # gs = record(gs0=record(children=range(1,3), vells=2))
 
+  # Optional (testing): Define a test-evaluation expression 
+  tv = None
+  tv = '{allvells}'
+  tv = '{allvells}/2'
+  tv = '{allvells}.real + {allvells}.imag'
+  tv = 'cos(abs({allvells}))'
+  tv = '{allvells}**2'
+  # tv = None
+
   ns['rootnode'] << Meq.PyNode(children=cc,
                                child_labels=labels,
                                class_name='PyNodeNamedGroups',
                                groupspecs=gs,
+                               testeval=tv,
                                module_name=__file__)
   # Meow.Bookmarks.Page('pynode').add(rootnode, viewer="Record Viewer")
 
