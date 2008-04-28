@@ -139,7 +139,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     This is easier for just printing the help-text.
     """
     if mode==None:           # The default mode is specified here
-      mode = 'list'
+      mode = 'str'
     if mode=='list':  
       if not isinstance(ss,(list,tuple)): ss = []
     else:                    # e.g. mode=='str'

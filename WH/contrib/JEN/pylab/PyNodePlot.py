@@ -687,14 +687,15 @@ class ExampleDerivedClass (PyNodePlot):
   """Example of a class derived from PyNodePlot."""
 
   def __init__ (self, *args, **kwargs):
-    PyNodePlot.__init__(self, *args);
+    PyNodePlot.__init__(self, *args)
+    self._color = record()
     return None
 
   #-------------------------------------------------------------------
 
   def help (self, ss=None, level=0, mode=None):
     """
-    This is an exmple of a derived class
+    This is an exmple of a class derived from PyNodePlot.
     """
     ss = self.attach_help(ss, ExampleDerivedClass.help.__doc__,
                           classname='ExampleDerivedClass',
@@ -717,6 +718,7 @@ class ExampleDerivedClass (PyNodePlot):
       self.groupspecs['yy'] = record(children='*', vells=[3])
 
     # Finished:
+    # print self.help()
     return None
 
   #-------------------------------------------------------------------
@@ -731,13 +733,17 @@ class ExampleDerivedClass (PyNodePlot):
     if True:
       # Used for operations (e.g. plotting) on separate correlations.
       # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-      ps.append(record(xy='{xx}', color='red'))
-      ps.append(record(xy='{xy}', color='magenta', annotate=False))
-      ps.append(record(xy='{yx}', color='green', annotate=False))
-      ps.append(record(xy='{yy}', color='blue'))
+      ps.append(record(xy='{xx}', color='red', marker='plus', markersize=10))
+      ps.append(record(xy='{xy}', color='magenta', markersize=10, annotate=False))
+      ps.append(record(xy='{yx}', color='green', markersize=10,
+                       marker='cross', annotate=False))
+      ps.append(record(xy='{yy}', color='blue', markersize=10))
 
     # Finished:
     self.plotspecs['graphics'] = ps
+    self.plotspecs['xlabel'] = 'real part'
+    self.plotspecs['ylabel'] = 'imag part'
+    self.plotspecs['title'] = 'title without underscores'
     return None
 
 
@@ -804,17 +810,20 @@ def format_vv (vv):
 
 def _define_forest (ns,**kwargs):
   """Make trees with the various pyNodes"""
-  
+
+  time = ns['time'] << Meq.Time()
   cc = []
   labels = []
   n = 6
   for i in range(n):
     vv = []
-    for j,corr in enumerate(['XX','XY','YX','YY']):
+    for j,corr in enumerate(['xx','xy','yx','yy']):
       v = (j+1)+10*(i+1)
       v = complex(i,j)
-      vv.append(ns[corr](i) << v)
-    cc.append(ns['c'](i) << Meq.Composer(*vv))
+      v = ns[corr](i)(j) << v
+      v = ns[corr](i) << Meq.Add(v,time)
+      vv.append(v)
+    cc.append(ns['child'](i) << Meq.Composer(*vv))
     labels.append('c'+str(i))
 
   gs = None
@@ -823,7 +832,10 @@ def _define_forest (ns,**kwargs):
 
   if False:
     # Optional: make concatenation pynode:
-    gs = record(concat=record(vells=[2]))
+    gs = None
+    ps = None
+    # gs = record(concat=record(vells=[2]))
+    # ps = record(make_svg=False)
     ns['concat'] << Meq.PyNode(children=cc, child_labels=labels,
                                class_name='PyNodePlot',
                                groupspecs=gs,
@@ -832,15 +844,18 @@ def _define_forest (ns,**kwargs):
     cc.append(ns['concat'])
     # cc.insert(0,ns['concat'])
     # cc.insert(2,ns['concat'])
+    Meow.Bookmarks.Page('concat').add(ns['concat'], viewer="Svg Plotter")
 
 
   # Make the group specification record:
+  gs = None
   # gs = record(gs0=record(children=range(1,3)))
   # gs = record(gs0=record(children='2/3', vells='*'))
   # gs = record(gs0=record(children=range(1,3), vells=[0,1]))
   # gs = record(gs0=record(children=range(1,3), vells=2))
 
   # Make the plot specification record:
+  ps = None
   # ps = record(title='test')
   # ps = record(title='test', graphics=[record(y='{a}'), record(x='{b}')])
   # ps = record(title='test', graphics=[record(xy='{xx}'))])
@@ -876,10 +891,10 @@ def _test_forest (mqs,parent,wait=False):
   return True
 
 
-if False:
+if True:
   def _tdl_job_sequence (mqs,parent,wait=False):
     from Timba.Meq import meq
-    for i in range(5):
+    for i in range(10):
       cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
       rqid = meq.requestid(i)
       print '\n--',i,rqid,': cells =',cells,'\n'
