@@ -79,7 +79,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     for plotype in self._plotypes:
       self._pskeys[plotype] = []
     self.plotspecs = record()                    
-    self._plotinfo = record()                    
+    self._plotdefs = record()                    
     return None
 
   #-------------------------------------------------------------------
@@ -110,12 +110,14 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     Possible keywords are (base class defaults in []):
     - labels     [=None]         a list of node labels
-    - annotate   [=True]         if True, annotate points with labels
-    - make_plot  [=True]         plotting may be inhibited if concatenated
+    - make_svg   [=True]         (svg) plotting may be inhibited if concatenated
     - offset     [=0.0]          concatenated plots maye be offset vertically
     - title      [=<classname>]  plot title
     - xlabel     [='child']      x-axis label
     - ylabel     [='result']     y-axis label
+    - xunit      [=None]         x-axis unit (string)
+    - yunit      [=None]         y-axis unit (string)
+    - zunit      [=None]         z-axis unit (string)
 
     - legend     [=None]         subplot legend string
     - color      [='blue']       subplot color
@@ -123,7 +125,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     - marker     [='o']          subplot marker style ('+','x', ...)
     - markersize [=5]            subplot marker size (points)
     - plot_sigma_bars [=True]    if True, indicate domain variation
-
+    - annotate   [=True]         if True, annotate points with labels
     - msmin      [=2]            min marker size (z-values)
     - msmax      [=20]           max marker size (z-values)
     - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
@@ -149,8 +151,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
       nn = [0,0]
       if self.plotspecs.has_key(plotype):
         nn[0] = len(self.plotspecs[plotype])
-      if self._plotinfo.has_key(plotype):
-        nn[1] = len(self._plotinfo[plotype])
+      if self._plotdefs.has_key(plotype):
+        nn[1] = len(self._plotdefs[plotype])
       if True or  sum(nn)>0:
         ss += '  '+plotype+'('+str(nn)+')'
     return ss
@@ -166,7 +168,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     for key in rr.keys():
       print prefix,' - ',key,':',rr[key]
 
-    print prefix,' * self.plotspecs (defaults and user-input):'
+    print prefix,' * self.plotspecs (user-input records, and default values):'
     rr = self.plotspecs                      # convenience
     for key in self._pskeys['overall']:
       print prefix,'   -',key,'=',rr[key]
@@ -180,22 +182,20 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
           for key in ps.keys():    
             print prefix,'       -',key,'=',ps[key]
 
-    print prefix,' * self._plotinfo (copied and new):'
-    qq = None
-    qq = self._plotinfo                      # convenience
+    print prefix,' * self._plotdefs (new, and copied from children):'
+    rr = self._plotdefs                      # convenience
     for key in self._pskeys['overall']:
-      if qq.has_key(key):
-        print prefix,'   -',key,'==',qq[key]
+      if rr.has_key(key):
+        print prefix,'   -',key,'=',rr[key]
     for plotype in self._plotypes:
-      if qq.has_key(plotype):
-        print prefix,'   - plotype:',plotype,'(n='+str(len(qq[plotype]))+'):'
-        for key in self._pskeys[plotype]:
-          if qq.has_key(key):
-            print prefix,'     -',key,'==',qq[key]
-        for i,pd in enumerate(qq[plotype]):
+      if rr.has_key(plotype):
+        print prefix,'   - plotype:',plotype,'(n='+str(len(rr[plotype]))+'):'
+        for i,pd in enumerate(rr[plotype]):
           print prefix,'     -',plotype+'['+str(i)+']:'
-          for key in pd.keys():    
-            if key in ['xx','yy','zz','dxx','dyy','dzz']:
+          for key in pd.keys():
+            if not isinstance(pd[key],(list,tuple)):
+              print prefix,'       - ',key,'=',pd[key]
+            elif key in ['xx','yy','zz','dxx','dyy','dzz']:
               print prefix,'       - ',key,': (LIST)',format_vv(pd[key])
             else:
               print prefix,'       - ',key,'=',pd[key]
@@ -258,6 +258,15 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
   #-------------------------------------------------------------------
 
+  def define_specific_plotspecs(self, trace=True):  
+    """Placeholder for class-specific function, to be re-implemented
+    by classes that are derived from PyNodePlot. Called by ._update_state().
+    It allows the specification of one or more specific plotspecs.
+    """
+    return None
+
+  #-------------------------------------------------------------------
+
   def _check_plotspecs (self, trace=False):
     """Check the contents of the input self.plotspecs record.
     """
@@ -267,17 +276,17 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr = self.plotspecs                               # convenience
 
     # Some node control parameters:
-    rr.setdefault('make_plot', True)                  # if True, make the plot
+    # rr.setdefault('make_plot', True)                  # if True, make the plot
     rr.setdefault('make_svg', True)                   # if True, make the SVG plot
-    rr.setdefault('offset', 0.0)                      # offset multiple subplots
 
-    # These keys are used to transfer fields to the node result:
+    # These keys are used to transfer fields to self._plotdefs:
     self._pskeys = record(overall=[])
     for plotype in self._plotypes:
       self._pskeys[plotype] = []
 
     # Overall parameters 
-    ss = ['title','xlabel','ylabel','xunit','yunit']
+    ss = ['title','xlabel','ylabel','xunit','yunit','zunit']
+    ss.extend(['offset'])                             # ....?
     self._pskeys['overall'] = ss
 
     title = 'PyNodePlot_'+self.class_name
@@ -287,19 +296,17 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr.setdefault('ylabel', 'result') 
     rr.setdefault('xunit', None) 
     rr.setdefault('yunit', None) 
+    rr.setdefault('zunit', None) 
+    rr.setdefault('offset', 0.0)                      # offset multiple subplots
 
     # Parameters used in (sub)plot definitions of various types.
     # They all have default values in the overall section.
-    # These keys are used to transfer defaults to subplot definitions:
+    # These keys are used to transfer defaults to self._plotdefs:
     ss = ['color','linestyle','marker','markersize']
     ss.extend(['legend','plot_sigma_bars','annotate'])
-    ss.extend(['plot_circle_mean','x','y','xy','z'])
+    ss.extend(['plot_circle_mean'])
     self._pskeys['graphics'] = ss
     
-    rr.setdefault('x', None)                        # x expr
-    rr.setdefault('x', None)                        # x expr
-    rr.setdefault('xy', None)                       # short for x=real,y=imag
-    rr.setdefault('z', None)                        # z expr
     rr.setdefault('legend', None)                   # subplot legend
     rr.setdefault('color', 'blue')                  # plot color
     rr.setdefault('linestyle', None)                # line style                  
@@ -342,41 +349,6 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
 
   #-------------------------------------------------------------------
-
-  def getval_obsolete (self, vv, index=0, trace=False):
-    """Helper function to get the specified (index) element from vv.
-    """
-    if not isinstance(vv,(list,tuple)):
-      v = vv                            # e.g. 'blue'
-    elif index>=len(vv) or index<0:     # out of range
-      v = vv[0]                         #  always return a value
-    else:
-      v = vv[index]                     # ok
-    if trace:
-      print ' - getval(',vv,index,') ->',v
-    return v
-
-
-  #-------------------------------------------------------------------
-
-  def zz2markersize (self, sp, trace=False):
-    """Helper function to translate the values sp.zz in the given subplot
-    definition into a vector of integer values sp.markersize, between the
-    specified (plotspecs) miniumum and maximum sizes (in points)
-    """
-    rr = self.plotspecs             # convenience, contains msmin and msmax
-    sp.zmin = min(sp.zz)
-    sp.zmax = max(sp.zz)
-    sp.legend = 'z-range=['+format_float(sp.zmin)+', '+format_float(sp.zmax)+']'
-    q = (rr.msmax-rr.msmin)/(sp.zmax-sp.zmin)
-    ms = []
-    for i,z in enumerate(sp.zz):
-      ms.append(int(rr.msmin+q*(z-sp.zmin)))
-    sp.markersize = ms
-    return True
-
-
-  #-------------------------------------------------------------------
   #-------------------------------------------------------------------
 
   def get_result (self, request, *children):
@@ -393,16 +365,16 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
                                                             *children)
 
     # Re-initialize the record that contains the plot definitions:
-    self._plotinfo = record()
+    self._plotdefs = record()
     for key in self._pskeys['overall']:           # title, ylabel etc
-      self._plotinfo[key] = self.plotspecs[key]   
+      self._plotdefs[key] = self.plotspecs[key]   
     for plotype in self._plotypes:                # for all plot types
-      self._plotinfo[plotype] = []          
+      self._plotdefs[plotype] = []          
 
     # There are two classes of children:
-    # - Those that are derived from PyNodePlot have a plotinfo field
+    # - Those that are derived from PyNodePlot have a plotdefs field
     #   in their result. Its (sub)plot definitions are appended to
-    #   the local self._plotinfo.graphics list (etc).
+    #   the local self._plotdefs.graphics list (etc).
     # - The others are 'regular' children whose results are used
     #   to make named groups (see PyNodeNamedGroups.py)
     # Nodes derived from PyNodePlot may be concatenated to produce
@@ -410,38 +382,38 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     # First copy the concatenable (sub)plot definitions:
     for child in children:
-      if child.has_key('plotinfo'):             
+      if child.has_key('plotdefs'):             
         for plotype in self._plotypes:
-          for plodef in child['plotinfo'][plotype]:
-            self._plotinfo[plotype].append(plodef)
+          for plodef in child['plotdefs'][plotype]:
+            self._plotdefs[plotype].append(plodef)
     
     # Make new (sub)plot definition records from the available
     # named groups, using the user-defined self.plotspecs record.
-    # Append them to the relevant self._plotinfo[plotype] lists.
+    # Append them to the relevant self._plotdefs[plotype] lists.
     if True:
-      self._plotspecs2plotinfo_graphics(trace=trace)
+      self._plotspecs2plotdefs_graphics(trace=trace)
 
     if True:
       self.display('PyNodePlot.get_result()')
 
     # Optionally, generate info for the "svg plotter":
     result.svg_plot = None
-    if False and self.plotspecs.make_plot:            # ....inhibited....
+    if self.plotspecs.make_svg: 
       svg_list_of_strings = self.make_svg(trace=trace)
       result.svg_plot = svg_list_of_strings
 
-    # Always attach the self._plotinfo record to the result,
+    # Always attach the self._plotdefs record to the result,
     # to be used for concatenation (and inspection):
-    result.plotinfo = self._plotinfo
+    result.plotdefs = self._plotdefs
 
     # Finished:
     return result
 
   #-------------------------------------------------------------------
 
-  def _plotspecs2plotinfo_graphics(self, trace=False):
+  def _plotspecs2plotdefs_graphics(self, trace=False):
     """Helper function to turn the graphics plotspecs into
-    graphics plot definition records in self._plotinfo"""
+    graphics plot definition records in self._plotdefs"""
 
     trace = True
 
@@ -461,82 +433,100 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
       # Get the xx and yy vectors by evaluating python expressions:
       if rr.has_key('xy'):                       # expr
-        # Use the real and imag parts for x and y: 
-        pd.yy = self._evaluate('complex('+str(rr.xy)+').imag', trace=trace)
-        pd.xx = self._evaluate('complex('+str(rr.xy)+').real', trace=trace)
-        pd.labels = self._expr2labels(str(rr.xy), trace=trace)
+        pd.yexpr = 'complex('+str(rr.xy)+').imag'
+        pd.xexpr = 'complex('+str(rr.xy)+').real'
+        pd.yy = self._evaluate(pd.yexpr, trace=trace)
+        pd.xx = self._evaluate(pd.xexpr, trace=trace)
+        pd.labels = self._expr2labels(pd.yexpr, trace=trace)
+        pd.legend = str(rr.xy)
         
       elif rr.has_key('y'):                      # y expr specified                       
-        pd.yy = self._evaluate(str(rr.y), trace=trace)
-        pd.labels = self._expr2labels(str(rr.y), trace=trace)
+        pd.yexpr = str(rr.y)
+        pd.yy = self._evaluate(pd.yexpr, trace=trace)
+        pd.labels = self._expr2labels(rr.y, trace=trace)
+        pd.legend = pd.yexpr
         if rr.has_key('x'):                      # x expr specified
-          pd.xx = self._evaluate(str(rr.x), trace=trace)
+          pd.xexpr = str(rr.x)
+          pd.xx = self._evaluate(pd.xexpr, trace=trace)
         else:                                    # use child numbers for x
-          pd.xx = self._expr2childnos(str(rr.y), trace=trace) 
+          pd.xx = self._expr2childnos(pd.yexpr, trace=trace) 
+          self._plotdefs.xlabel = 'pynode child no'      # <---- ??
 
       else:
         s = '** neither y nor xy expression in graphics plotspec'
         raise ValueError,s
-          
-      # Fill in the data from the child result(s):
-      # sp.yy = rv.vv()
-      # sp.dyy = None
-      # if sp.plot_sigma_bars:
-      # sp.dyy = rv.dvv()
-      # sp.xx = rv.xx()
-      # sp.dxx = None
-      # sp.labels = rv.labels()
 
+      # If a z-expr is specified, make a XYZ plot:
+      if rr.has_key('z'):                        # z expr specified                       
+        pd.zexpr = str(rr.z)
+        pd.zz = self._evaluate(pd.zexpr, trace=trace)
+        pd.labels = self._expr2labels(pd.zexpr, trace=trace)
+        pd.legend = pd.zexpr                     # overwrite
+        self._zz2markersize(pd)
+        if pd.plot_sigma_bars:
+          pd.dzz = self._expr2dvv(pd.zexpr, trace=trace)
+        self._plotdef_statistics(pd,'zz')
+      else:
+        if pd.plot_sigma_bars:
+          pd.dyy = self._expr2dvv(pd.yexpr, trace=trace)
+        self._plotdef_statistics(pd,'yy')
+          
       # Append the new plot
       if trace:
         print pd
-      self._plotinfo[plotype].append(pd)
+      self._plotdefs[plotype].append(pd)
       
     # Finished:
     return True
 
   #-------------------------------------------------------------------
 
-  def check_and_append_subplot(self, sp, trace=False):
-    """Check the integrity of the given subplot definition,
-    and append it to self.plotspecs.subplot.
+  def _zz2markersize (self, pd, trace=False):
+    """Helper function to translate the values pd.zz in the given plot
+    definition (pd) into a vector of integer values pd.markersize,
+    between the specified (plotspecs) miniumum and maximum sizes (in points)
     """
-    trace = True
-
-    # Make sure of some fields:
-    sp.setdefault('dxx',None)
-    sp.setdefault('dyy',None)
-
-    # Add some fields with statistics:
-    import pylab
-    yy = pylab.array(sp.yy)
-    if len(yy)>0:
-      sp.min = yy.min()
-      sp.max = yy.max()
-      sp.mean = yy.mean()
-      sp.stddev = 0.0
-      if len(yy)>1:
-        if not isinstance(yy[0],complex):
-          sp.stddev = yy.stddev()       
-    
-    if trace:
-      self.show_subplot(sp, '.append_subplot()')
-      print
-
-    # Append the valid subplot definition:
-    if True:
-      self.plotspecs.subplot.append(sp)
-    return None
+    rr = self.plotspecs             # convenience, contains msmin and msmax
+    pd.zmin = min(pd.zz)
+    pd.zmax = max(pd.zz)
+    pd.legend = 'z-range=['+format_float(pd.zmin)+', '+format_float(pd.zmax)+']'
+    q = (rr.msmax-rr.msmin)/(pd.zmax-pd.zmin)
+    ms = []
+    for i,z in enumerate(pd.zz):
+      ms.append(int(rr.msmin+q*(z-pd.zmin)))
+    pd.markersize = ms
+    return True
 
   #-------------------------------------------------------------------
 
+  def _plotdef_statistics(self, pd, key):
+    """Helper function to calculate some statistics for the specified
+    (key) vector in the given plot definition (pd) record, and attach them.
+    """
+    import pylab
+    vv = pylab.array(pd[key])  
+    if len(vv)>0:
+      pd.min = vv.min()
+      pd.max = vv.max()
+      pd.mean = vv.mean()
+      pd.stddev = 0.0
+      if len(vv)>1:
+        if not isinstance(vv[0],complex):
+          pd.stddev = vv.stddev()       
+    return True
+
+
+  #-------------------------------------------------------------------
+  #-------------------------------------------------------------------
+
   def make_svg (self, trace=False):
-    """Make an svg plot definition from the self.plotspecs.subplot definitions.
+    """Make an svg plot definition from all items in self._plotdefs.
     """
     import Graphics
     import matplotlib
     matplotlib.use('SVG')
-    rr = self.plotspecs                              # convenience
+    rr = self._plotdefs                              # convenience
+    print '** rr =',type(rr),rr.keys()
     # trace = True
       
     # Create an empty Graphics object:
@@ -548,33 +538,35 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
                             ylabel=rr.ylabel)
 
     # Fill it with the subplots:
-    for i,sp in enumerate(rr.subplot):
+    plotype = 'graphics'
+    print '** rr[plotype] =',type(rr[plotype])
+    for i,pd in enumerate(rr[plotype]):
       offset = i*rr.offset
       # offset += -10                    # testing only
-      yy = sp.yy
+      yy = pd.yy
       if not offset==0.0:
         yy = list(yy)                    # tuple does not support item assignment...      
         for i,y in enumerate(yy):
           yy[i] += offset
       labels = len(yy)*[None]
-      if sp.annotate:
-        labels = sp.labels
-      grs1 = Graphics.Scatter(yy=yy, xx=sp.xx,
+      if pd.annotate:
+        labels = pd.labels
+      grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
                               annot=labels,
-                              dyy=sp.dyy, dxx=sp.dxx,           
-                              linestyle=sp.linestyle,
-                              marker=sp.marker,
-                              markersize=sp.markersize,
-                              plot_circle_mean=sp.plot_circle_mean,
-                              color=sp.color)
+                              dyy=pd.dyy, dxx=pd.dxx,           
+                              linestyle=pd.linestyle,
+                              marker=pd.marker,
+                              markersize=pd.markersize,
+                              plot_circle_mean=pd.plot_circle_mean,
+                              color=pd.color)
       grs.add(grs1)
-      legend = sp.legend
+      legend = pd.legend
       if not offset==0.0:
         if legend==None: legend = 'offset'
         if not isinstance(legend,str): legend = str(legend)
         if offset>0.0: legend += ' (+'+str(offset)+')'
         if offset<0.0: legend += ' ('+str(offset)+')'
-      grs.legend(legend, color=sp.color)
+      grs.legend(legend, color=pd.color)
 
     # Optionally, set the plot-window:
     if False:
@@ -679,45 +671,6 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
 
 
-  #-------------------------------------------------------------------
-  # Re-implementable in derived classes:
-  #-------------------------------------------------------------------
-
-  def define_specific_groupspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodeNamedGroups.
-    Called by ._check_groupspecs().
-    It allows the specification of one or more specific groupspecs.
-    """
-    # Example(s):
-    if True:
-      # Used for operations (e.g. plotting) on separate correlations.
-      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-      self.groupspecs['XX'] = record(children='2/3', vells=[0])
-      self.groupspecs['XY'] = record(children='3/3', vells=[1])
-      self.groupspecs['YX'] = record(children='*', vells=[2])
-      self.groupspecs['YY'] = record(children='*', vells=[3])
-    return None
-
-
-  def define_specific_plotspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodePlot. Called by ._update_state().
-    It allows the specification of one or more specific plotspecs.
-    """
-    # Example(s):
-    if True:
-      # Used for operations (e.g. plotting) on separate correlations.
-      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-      gg = []
-      gg.append(record(xy='{xx}', color='red'))
-      if False:
-        gg.append(record(xy='{xy}', color='magenta', annotate=False))
-        gg.append(record(xy='{yx}', color='green', annotate=False))
-        gg.append(record(xy='{yy}', color='blue'))
-      self.plotspecs['graphics'] = gg
-    return None
-
 
 
 
@@ -730,8 +683,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 #=====================================================================================
 
 
-class PyNodePlotTensorVells (PyNodePlot):
-  """Class derived from PyNodePlot."""
+class ExampleDerivedClass (PyNodePlot):
+  """Example of a class derived from PyNodePlot."""
 
   def __init__ (self, *args, **kwargs):
     PyNodePlot.__init__(self, *args);
@@ -741,178 +694,51 @@ class PyNodePlotTensorVells (PyNodePlot):
 
   def help (self, ss=None, level=0, mode=None):
     """
-    Define one or more subplot record(s).
-    Assume that its children are tensor nodes of the same kind,
-    i.e. each with the same number of Vells.
-    Make separate subplots for each of the Vells.
-    Parameters like color, marker, markersize, etc may be lists,
-    with different values for each subplot.
+    This is an exmple of a derived class
     """
-    ss = self.attach_help(ss, PyNodePlotTensorVells.help.__doc__,
-                          classname='PyNodePlotTensorVells',
+    ss = self.attach_help(ss, ExampleDerivedClass.help.__doc__,
+                          classname='ExampleDerivedClass',
                           level=level, mode=mode)
     return PyNodePlot.help(self, ss, level=level+1, mode=mode) 
 
-  #-------------------------------------------------------------------
-
-  def check_plotspecs (self, trace=False):
-    """Check the contents of the input self.plotspecs record.
-    """
-    # trace = True
-
-    rr = self.plotspecs                                # convenience
-
-    rr.setdefault('index', '*')                       # indices of Vells to be plotted
-    rr.setdefault('xindex', None)                     # index of x-coord Vells
-    rr.setdefault('yindex', None)                     # index of y-coord Vells
-    
-    # First do the generic checks (mandatory!) 
-    PyNodePlot.check_plotspecs(self, trace=trace)
-    return None
-
 
   #-------------------------------------------------------------------
 
-  def define_subplots (self, children, trace=False):
+  def define_specific_groupspecs(self, trace=True):  
+    """Class-specific re-implementation. It allows the specification
+    of one or more specific groupspecs.
     """
-    Reimplementation of baseclass function.
-    See .help() for details.
-    """
-    rr = self.plotspecs                         # convenience
-    # trace = True
-
-    # The child result(s) are read by a special object: 
-    import ChildResult
-    rv = ChildResult.ResultVector(children, labels=rr.labels,
-                                  extend_labels=False,
-                                  xindex=rr.xindex,
-                                  yindex=rr.yindex)
-    if trace:
-      rv.display(self.class_name)
-
-    # The Vells to be plotted are specified by rr.index:
-    nvells = rv[0].len()                       # nr of Vells in 1st (!) child
-    if rr.index=='*':
-      rr.index = range(nvells)      
-    elif isinstance(rr.index, int):
-      rr.index = [rr.index]
-
-    # Make separate suplot definitions for each Vells:
-    for index in rr.index:
-      if index<0 or index>=nvells:
-        pass                                   # out of range
-      elif index==rr.xindex:
-        pass                                   # x-coord Vells: ignore
-      elif index==rr.yindex:
-        pass                                   # y-coord Vells: ignore
-      else:
-        sp = record()
-        for key in self._spkeys:               # transfer standard fields
-          sp[key] = self.getval(rr[key], index=index, trace=trace)  
-        sp.yy = rv.vv(index=index)
-        sp.xx = rv.xx(index=index)
-        sp.labels = rv.labels(index=index)
-        sp.dyy = None
-        sp.dxx = None
-        if sp.plot_sigma_bars:
-          sp.dyy = rv.dvv(index=index)
-          sp.dxx = rv.dxx(index=index)
-        self.check_and_append_subplot(sp, trace=trace)
+    if True:
+      # Used for operations (e.g. plotting) on separate correlations.
+      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+      self.groupspecs['xx'] = record(children='*', vells=[0])
+      self.groupspecs['xy'] = record(children='*', vells=[1])
+      self.groupspecs['yx'] = record(children='*', vells=[2])
+      self.groupspecs['yy'] = record(children='*', vells=[3])
 
     # Finished:
-    if trace:
-      self.show_plotspecs('.define_subplots()')
-    return None
-
-
-#=====================================================================
-# Classes to plot 2x2 complex cohaerency matrices:
-#=====================================================================
-
-class PyNodePlotCoh22 (PyNodePlotTensorVells):
-  """Class derived from PyNodePlotTensorVells"""
-
-  def __init__ (self, *args, **kwargs):
-    PyNodePlotTensorVells.__init__(self, *args);
     return None
 
   #-------------------------------------------------------------------
 
-  def help (self, ss=None, level=0, mode=None):
+  def define_specific_plotspecs(self, trace=True):  
+    """Placeholder for class-specific function, to be redefined by classes
+    that are derived from PyNodePlot. Called by ._update_state().
+    It allows the specification of one or more specific plotspecs.
     """
-    Special version of PlotTensorVells to plot 2x2 cohaerency matrices,
-    using standard colors for each of the 4 correlations.
-    For each correlation, a dotted circle (0,0,<abs>) is drawn.
-    To avoid clutter, the cross-corrs are not annotated.
-    """
-    ss = self.attach_help(ss, PyNodePlotCoh22.help.__doc__,
-                          classname='PyNodePlotCoh22',
-                          level=level, mode=mode)
-    return PyNodePlotTensorVells.help(self, ss, level=level+1, mode=mode) 
-
-  #-------------------------------------------------------------------
-
-  def check_plotspecs (self, trace=False):
-    """Check the contents of the input self.plotspecs record.
-    """
-    rr = self.plotspecs                        # convenience
-    # trace = True
-
-    # Set the specific values:
-    rr.index = [0,1,2,3]
-    rr.legend = ['XX','XY','YX','YY']
-    rr.color = ['red','green','magenta','blue']
-    rr.marker = ['o','x','x','o']
-    rr.markersize = [5,5,5,5]
-    rr.annotate = [True,False,False,True]
-    rr.plot_circle_mean = [True,True,True,True]
-    rr.xlabel = 'real part (Jy)'
-    rr.ylabel = 'imag part (Jy)'
-    
-    # Then do the generic checks (mandatory!) 
-    PyNodePlotTensorVells.check_plotspecs(self, trace=trace)
-    return None
-
-  #-------------------------------------------------------------------
-
-  def define_subplots (self, children, trace=False):
-    """
-    Reimplementation of baseclass function.
-    See .help() for details.
-    """
-    rr = self.plotspecs                         # convenience
-    # trace = True
-
-    # The child result(s) are read by a special object: 
-    import ChildResult
-    rv = ChildResult.ResultVector(children, labels=rr.labels,
-                                  extend_labels=False,
-                                  xindex=rr.xindex,
-                                  yindex=rr.yindex)
-    if trace:
-      rv.display(self.class_name)
-
-    # Make separate suplot definitions for each Vells:
-    for index in rr.index:
-      sp = record()
-      for key in self._spkeys:               # transfer standard fields
-        sp[key] = self.getval(rr[key], index=index, trace=trace)  
-      sp.yy = rv.vcx(index=index)            # complex
-      sp.xx = None                           # from complex
-      sp.labels = rv.labels(index=index)
-      sp.dyy = None
-      sp.dxx = None
-      if sp.plot_sigma_bars:
-        sp.dyy = rv.dvv(index=index)
-        sp.dxx = rv.dxx(index=index)
-      self.check_and_append_subplot(sp, trace=trace)
+    ps = []
+    # Example(s):
+    if True:
+      # Used for operations (e.g. plotting) on separate correlations.
+      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+      ps.append(record(xy='{xx}', color='red'))
+      ps.append(record(xy='{xy}', color='magenta', annotate=False))
+      ps.append(record(xy='{yx}', color='green', annotate=False))
+      ps.append(record(xy='{yy}', color='blue'))
 
     # Finished:
-    if trace:
-      self.show_plotspecs('.define_subplots()')
+    self.plotspecs['graphics'] = ps
     return None
-
-
 
 
 
@@ -1016,18 +842,18 @@ def _define_forest (ns,**kwargs):
 
   # Make the plot specification record:
   # ps = record(title='test')
-  if False:
-    ps = record(title='test',
-                graphics=[record(y='{a}'),
-                          record(x='{b}')])
+  # ps = record(title='test', graphics=[record(y='{a}'), record(x='{b}')])
+  # ps = record(title='test', graphics=[record(xy='{xx}'))])
 
   ns['rootnode'] << Meq.PyNode(children=cc,
                                child_labels=labels,
-                               class_name='PyNodePlot',
+                               # class_name='PyNodePlot',
+                               class_name='ExampleDerivedClass',
                                groupspecs=gs,
                                plotspecs=ps,
                                module_name=__file__)
-  # Meow.Bookmarks.Page('pynode').add(rootnode, viewer="Record Viewer")
+  # Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer="Record Viewer")
+  Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer="Svg Plotter")
 
   # Finished:
   return True

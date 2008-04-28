@@ -268,11 +268,12 @@ class PyNodeNamedGroups (pynode.PyNode):
     self._gs_order = []                      # make the order user-specifiable?
     for key in self.groupspecs.keys():
       rr = self.groupspecs[key]
-      self._gs_order.append(key)    
+      lowerkey = key.lower()                 # meqbrowser only transmits lowercase....
+      self._gs_order.append(lowerkey)    
       if not isinstance(rr, record):
         rr = record()                        # make sure it is a record
-      rr.key = key                           # attach the key (group name)
-      self.groupspecs[key] = self._check_groupspec(rr)
+      rr.key = lowerkey                      # attach the key (group name)
+      self.groupspecs[lowerkey] = self._check_groupspec(rr)
 
     # Finished
     if trace:
@@ -283,18 +284,9 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   def define_specific_groupspecs(self, trace=True):  
     """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodeNamedGroups.
-    Called by ._check_groupspecs().
+    that are derived from PyNodeNamedGroups. Called by ._check_groupspecs().
     It allows the specification of one or more specific groupspecs.
     """
-    # Example(s):
-    if False:
-      # Used for operations (e.g. plotting) on separate correlations.
-      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-      self.groupspecs['XX'] = record(children='2/3', vells=[0])
-      self.groupspecs['XY'] = record(children='3/3', vells=[1])
-      self.groupspecs['YX'] = record(children='*', vells=[2])
-      self.groupspecs['YY'] = record(children='*', vells=[3])
     return None
 
   #-------------------------------------------------------------------
@@ -392,7 +384,7 @@ class PyNodeNamedGroups (pynode.PyNode):
                                  children=rr.children,
                                  childnos=iic, nodes=cindices,
                                  labels=child_labels,
-                                 history=s, vv=vv)
+                                 history=s, vv=vv, dvv=None)
 
       else:
         index = rr.vells
@@ -401,12 +393,13 @@ class PyNodeNamedGroups (pynode.PyNode):
         s += '  mean of'                          # <---- !!
         s += '  vells('+str(rr.vells)+')'
         vv = rv.vcx(index=index)                  # <---- !!
+        dvv = rv.dvv(index=index)                 # <---- !!
         self._create_namedgroup (key=lowerkey, vells=rr.vells,
                                  children=rr.children,
                                  childnos=rv.expand(iic, index=index),
                                  nodes=rv.expand(cindices, index=index),
                                  labels=rv.labels(index=index),
-                                 history=s, vv=vv)
+                                 history=s, vv=vv, dvv=dvv)
 
 
     # Finished:
@@ -418,8 +411,9 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _create_namedgroup (self, key, children, vells,
-                          childnos, nodes, labels,
-                          history, vv, trace=True):
+                          childnos, nodes, labels, history,
+                          vv, dvv=None,
+                          trace=True):
     """Helper function to create a new namedgroup record.
     Called (only) from ._extract_namedgroups(). 
     """
@@ -440,7 +434,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     # Create and attach the new record:
     rr = record(key=key, vells=vells, children=children,
                 childnos=childnos, nodes=nodes, labels=labels,
-                history=history, vv=vv)
+                history=history, vv=vv, dvv=dvv)
     self._namedgroups[key] = rr
 
     # The groups order is important for derived groups, i.e. groups
@@ -538,32 +532,34 @@ class PyNodeNamedGroups (pynode.PyNode):
       print prefix,' * testeval =',self.testeval
 
     n = len(self._gs_order)
-    print prefix,' * Group specifications ('+str(n)+'):'    
+    print prefix,' * Group specifications (n='+str(n)+'):'    
     for key in self._gs_order:
       rr = self.groupspecs[key]
       print prefix,'   - '+key+':  '+str(rr)
 
     n = len(self._ng_order)
-    print prefix,' * Total (copied and/or extracted) namedgroups ('+str(n)+'):'    
-    # for key in self._namedgroups.keys():
+    print prefix,' * Defined namedgroups (new and copied from children) (n='+str(n)+'):'    
     for key in self._ng_order:
       rr = self._namedgroups[key]
       qq = record()
-      keys = []
+      shortlists = []
+      longlists = []
       for key1 in rr.keys():
         if key1 in ['history']:
           pass
         elif not isinstance(rr[key1],(list,tuple)):
           qq[key1] = rr[key1]
         elif len(rr[key1])<5:
-          qq[key1] = rr[key1]
+          shortlists.append(key1)
         else:
-          keys.append(key1)
-      print prefix,'   - '+key+':  '+str(qq)
-      for key1 in keys:
-        print prefix,'     > '+key1+'('+str(len(rr[key1]))+'):  '+str(rr[key1])
+          longlists.append(key1)
+      print prefix,'   - '+key+':  '+str(qq)    # qq is record of small (non-list) items 
+      for key1 in shortlists:
+        print prefix,'       > '+key1+'('+str(len(rr[key1]))+'):  '+str(rr[key1])
+      for key1 in longlists:
+        print prefix,'       > '+key1+': '+format_vv(rr[key1])
       for i,s in enumerate(rr.history):
-        print prefix,'     > history['+str(i)+']:  ',s
+        print prefix,'       > history['+str(i)+']:  ',s
 
     # Finished:
     self._postamble(level)
@@ -620,6 +616,7 @@ class PyNodeNamedGroups (pynode.PyNode):
       self._evaluate(self.testeval, trace=True)
       self._expr2labels(self.testeval, trace=True)
       self._expr2childnos(self.testeval, trace=True)
+      self._expr2dvv(self.testeval, trace=True)
 
     # Make an empty result record
     result = meq.result()
@@ -675,6 +672,24 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
+  def _expr2dvv(self, expr, trace=False):
+    """Return the dvv (stddev) of the first namedgroup that appears as
+    a variable {<name>} in the given expression.
+    NB: This is just a placeholder, until it is done properly....
+    """
+    if trace:
+      print '\n** _expr2dvv(',expr,'):'
+    for key in self._namedgroups.keys():
+      kenc = '{'+key+'}'
+      if kenc in expr:
+        dvv = self._namedgroups[key].dvv
+        if trace:
+          print '-',kenc,len(dvv),'->',dvv,'\n'
+        return dvv
+    return None
+
+  #-------------------------------------------------------------------
+
   def _expr2labels(self, expr, trace=False):
     """Return the labels of the first namedgroup that appears as
     a variable {<name>} in the given expression. 
@@ -686,7 +701,7 @@ class PyNodeNamedGroups (pynode.PyNode):
       if kenc in expr:
         ss = self._namedgroups[key].labels
         if trace:
-          print '-',kenc,'->',ss,'\n'
+          print '-',kenc,len(ss),'->',ss,'\n'
         return ss
     return None
 
@@ -702,20 +717,11 @@ class PyNodeNamedGroups (pynode.PyNode):
     for key in self._namedgroups.keys():
       kenc = '{'+key+'}'
       if kenc in expr:
-        ss = self._namedgroups[key].childnos
+        ii = self._namedgroups[key].childnos
         if trace:
-          print '-',kenc,'->',ss,'\n'
-        return ss
+          print '-',kenc,len(ii),'->',ii,'\n'
+        return ii
     return None
-
-
-
-
-  #-------------------------------------------------------------------
-  # Re-implementable functions (for derived classes)
-  #-------------------------------------------------------------------
-
-
 
 
 
@@ -747,17 +753,69 @@ def format_vv (vv):
     return str(vv)
   elif len(vv)==0:
     return 'empty'
-  import pylab              # must be done here, not above....
-  ww = pylab.array(vv)
-  # print '\n** ww =',type(ww),ww
-  s = '  length='+str(len(ww))
-  s += format_float(ww.min(),'  min')
-  s += format_float(ww.max(),'  max')
-  s += format_float(ww.mean(),'  mean')
-  if len(ww)>1:                       
-    if not isinstance(ww[0],complex):
-      s += format_float(ww.stddev(),'  stddev')
+  elif not isinstance(vv[0],(int,float,complex)):
+    s = '  length='+str(len(vv))
+    s += '  type='+str(type(vv[0]))
+    s += '  '+str(vv[0])+' ... '+str(vv[len(vv)-1])
+  else:
+    import pylab              # must be done here, not above....
+    # print '** vv[0] =',type(vv[0]),vv[0]
+    ww = pylab.array(vv)
+    # print '** ww =',type(ww),ww
+    s = '  length='+str(len(ww))
+    s += format_float(ww.min(),'  min')
+    s += format_float(ww.max(),'  max')
+    s += format_float(ww.mean(),'  mean')
+    if len(ww)>1:                       
+      if not isinstance(ww[0],complex):
+        s += format_float(ww.stddev(),'  stddev')
   return s
+
+
+
+
+
+#=====================================================================================
+# Example of a class derived from PyNodeNamedGroups
+#=====================================================================================
+
+class ExampleDerivedClass (PyNodeNamedGroups):
+  """Example of a class derived from PyNodeNamedGroups"""
+
+  def __init__ (self, *args, **kwargs):
+    PyNodeNamedGroups.__init__(self, *args);
+    return None
+
+  #-------------------------------------------------------------------
+
+  def help (self, ss=None, level=0, mode=None):
+    """
+    This is an example of a derived class.
+    """
+    ss = self.attach_help(ss, ExampleDerivedClass.help.__doc__,
+                          classname='ExampleDerivedClass',
+                          level=level, mode=mode)
+    return PyNodeNamedGroups.help(self, ss, level=level+1, mode=mode) 
+
+  #-------------------------------------------------------------------
+
+  def define_specific_groupspecs(self, trace=True):  
+    """Class-specific re-implementation. It allows the specification
+    of one or more specific groupspecs.
+    """
+    if False:
+      # Used for operations (e.g. plotting) on separate correlations.
+      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+      self.groupspecs['XX'] = record(children='2/3', vells=[0])
+      self.groupspecs['XY'] = record(children='3/3', vells=[1])
+      self.groupspecs['YX'] = record(children='*', vells=[2])
+      self.groupspecs['YY'] = record(children='*', vells=[3])
+    return None
+
+
+
+
+
 
 
 
@@ -814,7 +872,8 @@ def _define_forest (ns,**kwargs):
 
   ns['rootnode'] << Meq.PyNode(children=cc,
                                child_labels=labels,
-                               class_name='PyNodeNamedGroups',
+                               # class_name='PyNodeNamedGroups',
+                               class_name='ExampleDerivedClass',
                                groupspecs=gs,
                                testeval=tv,
                                module_name=__file__)
