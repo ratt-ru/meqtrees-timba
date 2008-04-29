@@ -73,14 +73,46 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
   def __init__ (self, *args, **kwargs):
     PyNodeNamedGroups.PyNodeNamedGroups.__init__(self,*args);
+
     self._plotypes = ['graphics']                # supported plot types
     self._plotypes.append('other')               # testing only
+
     self._pskeys = record(overall=[])
     for plotype in self._plotypes:
       self._pskeys[plotype] = []
+
     self.plotspecs = record()                    
-    self._plotdefs = record()                    
+    self._plotdefs = record()
+    
+    self._standard = record()
+    self.color(clear=True)
+    self.marker(clear=True)
     return None
+
+  #-------------------------------------------------------------------
+
+  def color (self, key=None, update=None, clear=False):
+    """Helper function to get a user-defined (key) color
+    """
+    if clear: self._standard.color = record()
+    if isinstance(update, record):
+      self._standard.color.update(update)
+      print '\n** update color:',self._standard.color
+    rr = self._standard.color
+    if rr.has_key(key): return rr[key]
+    return 'yellow'
+
+
+  def marker (self, key=None, update=None, clear=False):
+    """Helper function to get a user-defined (key) marker
+    """
+    if clear: self._standard.marker = record()
+    if isinstance(update, record):
+      self._standard.marker.update(update)
+      print '\n** update marker:',self._standard.marker
+    rr = self._standard.marker
+    if rr.has_key(key): return rr[key]
+    return 'diamond'
 
   #-------------------------------------------------------------------
 
@@ -167,6 +199,11 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr = self._pskeys
     for key in rr.keys():
       print prefix,' - ',key,':',rr[key]
+
+    print prefix,' * self._standard:'
+    rr = self._standard
+    for key in rr.keys():
+      print prefix,' - ',key,'(keys):',rr[key].keys()
 
     print prefix,' * self.plotspecs (user-input records, and default values):'
     rr = self.plotspecs                      # convenience
@@ -399,7 +436,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # Optionally, generate info for the "svg plotter":
     result.svg_plot = None
     if self.plotspecs.make_svg: 
-      svg_list_of_strings = self.make_svg(trace=trace)
+      svg_list_of_strings = self.make_svg(trace=False)
       result.svg_plot = svg_list_of_strings
 
     # Always attach the self._plotdefs record to the result,
@@ -431,6 +468,9 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
         else:
           pd[key] = self.plotspecs[key]          # general default
 
+      if not isinstance(pd.legend,str):
+        pd.legend = ''
+
       # Get the xx and yy vectors by evaluating python expressions:
       if rr.has_key('xy'):                       # expr
         pd.yexpr = 'complex('+str(rr.xy)+').imag'
@@ -438,13 +478,13 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
         pd.yy = self._evaluate(pd.yexpr, trace=trace)
         pd.xx = self._evaluate(pd.xexpr, trace=trace)
         pd.labels = self._expr2labels(pd.yexpr, trace=trace)
-        pd.legend = str(rr.xy)
+        pd.legend += ' '+str(rr.xy)
         
       elif rr.has_key('y'):                      # y expr specified                       
         pd.yexpr = str(rr.y)
         pd.yy = self._evaluate(pd.yexpr, trace=trace)
         pd.labels = self._expr2labels(rr.y, trace=trace)
-        pd.legend = pd.yexpr
+        pd.legend += ' '+pd.yexpr
         if rr.has_key('x'):                      # x expr specified
           pd.xexpr = str(rr.x)
           pd.xx = self._evaluate(pd.xexpr, trace=trace)
@@ -688,7 +728,11 @@ class ExampleDerivedClass (PyNodePlot):
 
   def __init__ (self, *args, **kwargs):
     PyNodePlot.__init__(self, *args)
-    self._color = record()
+
+    # Set some standard colors/markers, which may be retrieved with
+    # color = self.color(key) or marker = self.marker(key) etc. 
+    self.color(update=record(a='red', b='green', x='blue'))
+    self.marker(update=record(c='diamond', d='hexagon'))
     return None
 
   #-------------------------------------------------------------------
@@ -724,16 +768,18 @@ class ExampleDerivedClass (PyNodePlot):
   #-------------------------------------------------------------------
 
   def define_specific_plotspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodePlot. Called by ._update_state().
-    It allows the specification of one or more specific plotspecs.
+    """Class-specific re-implementation. It allows the specification
+    of one or more specific plotspecs.
     """
     ps = []
     # Example(s):
     if True:
       # Used for operations (e.g. plotting) on separate correlations.
       # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-      ps.append(record(xy='{xx}', color='red', marker='plus', markersize=10))
+      ps.append(record(xy='{xx}',
+                       color=self.color('b'),
+                       marker=self.marker('d'),
+                       markersize=10))
       ps.append(record(xy='{xy}', color='magenta', markersize=10, annotate=False))
       ps.append(record(xy='{yx}', color='green', markersize=10,
                        marker='cross', annotate=False))

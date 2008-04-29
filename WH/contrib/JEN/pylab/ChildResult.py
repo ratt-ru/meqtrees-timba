@@ -196,6 +196,13 @@ class ResultVector (object):
       vv.extend(rr.vcx(index=self.getindex(index)))
     return vv
 
+  def VV(self, index=None):
+    """Return a list of straight values."""
+    vv = []
+    for i,rr in enumerate(self._Result):
+      vv.extend(rr.VV(index=self.getindex(index)))
+    return vv
+
   def yy(self, index=None):
     """Return a list of yy values."""
     vv = []
@@ -391,6 +398,7 @@ class Result (object):
     """Calculate the various vectors of values, labels and coordinates.
     Return a list of vv values."""
     if not self._vv_executed:
+      self._VV = []
       self._vv = []
       self._vcx = []
       self._dvv = []
@@ -427,6 +435,7 @@ class Result (object):
           else:
             self._vv.append(v+self._offset)
             self._vcx.append(complex(v+self._offset,0.0))
+          self._VV.append(v+self._offset)
           self._dvv.append(dv)
           
           label = self.name()
@@ -464,6 +473,12 @@ class Result (object):
     return vv
 
   #----------------------------------------------------------------
+
+  def VV(self, index=None):
+    """Return a list of VV (straight) values."""
+    if not self._vv_executed: self.vv()       
+    return self.vvout(self._VV, index)
+
 
   def vcx(self, index=None):
     """Return a list of vcx (complex) values."""

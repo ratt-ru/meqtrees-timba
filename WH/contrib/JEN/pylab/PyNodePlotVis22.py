@@ -65,13 +65,17 @@ Settings.forest_state.cache_policy = 100;
 #=====================================================================================
 
 
-
 class PlotVis22 (PyNodePlot.PyNodePlot):
-  """Base class for visibility plotting, derived from PyNodePlot."""
+  """Base class for visibility plotting."""
 
   def __init__ (self, *args, **kwargs):
     PyNodePlot.PyNodePlot.__init__(self, *args)
-    self._color = record()
+    
+    # Specify standard colors/markers for the 4 corrs:
+    self.color(update=record(xx='red', xy='magenta', yx='green', yy='blue',
+                             rr='red', rl='magenta', lr='green', ll='blue'))
+    self.marker(update=record(xx='circle', xy='cross', yx='cross', yy='circle',
+                              rr='circle', rl='cross', lr='cross', ll='circle'))
     return None
 
   #-------------------------------------------------------------------
@@ -106,23 +110,28 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
 
   #-------------------------------------------------------------------
 
-  def define_specific_plotspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodePlot. Called by ._update_state().
-    It allows the specification of one or more specific plotspecs.
+  def define_specific_plotspecs(self, trace=True):
+    """Make plotspec records for the 4 correlations
     """
     ps = []
-    ps.append(record(xy='{xx}', color='red',
+    ps.append(record(xy='{xx}',
+                     color=self.color('xx'),
+                     marker=self.marker('xx'),
                      plot_circle_mean=True,
                      annotate=True))
-    ps.append(record(xy='{xy}', color='magenta', marker='cross',
+    ps.append(record(xy='{xy}',
+                     color=self.color('xy'),
+                     marker=self.marker('xy'),
                      plot_circle_mean=True,
                      annotate=False))
-    ps.append(record(xy='{yx}', color='green', marker='cross',
+    ps.append(record(xy='{yx}',
+                     color=self.color('yx'),
+                     marker=self.marker('yx'),
                      plot_circle_mean=True,
                      annotate=False))
-    ps.append(record(xy='{yy}', color='blue',
-                     markersize=10,
+    ps.append(record(xy='{yy}',
+                     color=self.color('yy'),
+                     marker=self.marker('yy'),
                      plot_circle_mean=True,
                      annotate=True))
     self.plotspecs['graphics'] = ps
@@ -130,6 +139,161 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
     self.plotspecs['xlabel'] = 'real part (Jy)'
     self.plotspecs['ylabel'] = 'imag part (Jy)'
     # self.plotspecs['title'] = 'title without underscores'
+    return None
+
+
+
+#========================================================================
+#========================================================================
+
+class PlotUV (PyNodePlot.PyNodePlot):
+  """Plot uv-coordinates."""
+
+  def __init__ (self, *args, **kwargs):
+    PyNodePlot.PyNodePlot.__init__(self, *args)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Plot uv-coordinates. The children are assumed to be tensor-nodes. 
+    """
+    ss = self.attach_help(ss, PlotVis22.help.__doc__,
+                          classname='PlotVis22',
+                          level=level, mode=mode)
+    return PyNodePlot.PyNodePlot.help(self, ss, level=level+1, mode=mode) 
+
+
+  #-------------------------------------------------------------------
+
+  def define_specific_groupspecs(self, trace=True):  
+    """Class-specific re-implementation. It allows the specification
+    of one or more specific groupspecs.
+    """
+    # Its children are assumed to be tensor nodes (2 vells each).
+    self.groupspecs['u'] = record(children='*', vells=[0])
+    self.groupspecs['v'] = record(children='*', vells=[1])
+
+    # Finished:
+    print self.help()
+    return None
+
+  #-------------------------------------------------------------------
+
+  def define_specific_plotspecs(self, trace=True):
+    """Make plotspec record.
+    """
+    ps = []
+    ps.append(record(x='{u}', y='{v}',
+                     plot_sigma_bars=False,
+                     annotate=True))
+    self.plotspecs['graphics'] = ps
+    self.plotspecs['xlabel'] = 'u (wavelengths)'
+    self.plotspecs['ylabel'] = 'v (wavelengths)'
+    return None
+
+
+
+#=====================================================================================
+# Classes derived from PlotVis22:
+#=====================================================================================
+
+
+class PlotCrossCorrs (PlotVis22):
+  """Plot only the cross-corrs, derived from PlotVis22."""
+
+  def __init__ (self, *args, **kwargs):
+    PlotVis22.__init__(self, *args)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Plot only the 2 cross-correlations (xy/rl and yx/lr).
+    """
+    ss = self.attach_help(ss, PlotVis22.help.__doc__,
+                          classname='PlotVis22',
+                          level=level, mode=mode)
+    return PlotVis22.help(self, ss, level=level+1, mode=mode) 
+
+
+  #-------------------------------------------------------------------
+
+  def define_specific_plotspecs(self, trace=True):  
+    """
+    Make plotspec records for the two cross-corrs.
+    """
+    ps = []
+    ps.append(record(xy='{xy}',
+                     color=self.color('xy'),
+                     marker=self.marker('xy'),
+                     plot_circle_mean=True,
+                     annotate=True))
+    ps.append(record(xy='{yx}',
+                     color=self.color('yx'),
+                     marker=self.marker('yx'),
+                     plot_circle_mean=True,
+                     annotate=True))
+    self.plotspecs['graphics'] = ps
+    return None
+
+
+
+#======================================================================
+
+class PlotIQUV (PlotVis22):
+  """Plot Stokes I,Q,U,V visibilities. Derived from PlotVis22."""
+
+  def __init__ (self, *args, **kwargs):
+    PlotVis22.__init__(self, *args)
+
+    # Specify standard colors/markers for the 4 stokes parameters:
+    self.color(update=record(I='red', Q='magenta', U='green', V='blue'))
+    self.marker(update=record(I='circle', Q='cross', U='cross', V='circle'))
+    return None
+
+  #-------------------------------------------------------------------
+
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Plot the I,Q,U,V visibilities.
+    """
+    ss = self.attach_help(ss, PlotVis22.help.__doc__,
+                          classname='PlotVis22',
+                          level=level, mode=mode)
+    return PlotVis22.help(self, ss, level=level+1, mode=mode) 
+
+
+  #-------------------------------------------------------------------
+
+  def define_specific_plotspecs(self, trace=True):  
+    """
+    Make plotspec records for the two cross-corrs.
+    """
+    ps = []
+    ps.append(record(xy='({xx}+{yy})*0.5', legend='I:',
+                     color=self.color('I'),
+                     marker=self.marker('I'),
+                     plot_circle_mean=True,
+                     annotate=True))
+    ps.append(record(xy='({xx}-{yy})*0.5', legend='Q:',
+                     color=self.color('Q'),
+                     marker=self.marker('Q'),
+                     plot_circle_mean=True,
+                     annotate=False))
+    ps.append(record(xy='({xy}+{yx})*0.5', legend='U:',
+                     color=self.color('U'),
+                     marker=self.marker('U'),
+                     plot_circle_mean=True,
+                     annotate=False))
+    ps.append(record(xy='({xy}-{yx})*0.5', legend='V:',
+                     color=self.color('V'),
+                     marker=self.marker('V'),
+                     plot_circle_mean=True,
+                     annotate=False))
+    self.plotspecs['graphics'] = ps
     return None
 
 
@@ -176,8 +340,6 @@ def _define_forest (ns,**kwargs):
       bwvl = ns['bwvl'](i)(j) << basel/wvl
       u = ns['u'](i)(j) << bwvl*cosHA
       v = ns['v'](i)(j) << bwvl*sinHAsinDEC
-      uv = ns['uv'](i)(j) << Meq.Composer(u,v)
-      uu.append(uv)                
       uvlm = ns['ulvm'](i)(j) << Meq.Add(u*lpos,v*mpos)
       karg = ns['karg'](i)(j) << Meq.ToComplex(0.0, pi2*uvlm) 
       K = ns['KJones'](i)(j) << Meq.Exp(karg)
@@ -187,31 +349,54 @@ def _define_forest (ns,**kwargs):
       YY = ns['YY'](i)(j) << (I-Q)
       cps = ns['cps'](i)(j) << Meq.Matrix22(XX,XY,YX,YY)
       coh = ns['coh'](i)(j) << Meq.Multiply(cps,K)
+
       cc.append(coh)
       labels.append(str(i)+'_'+str(j))
+      uv = ns['uv'](i)(j) << Meq.Composer(u,v)
+      uu.append(uv)                
 
 
-  # Bundle the other lists, to limit browser clutter:
-  ns['uu'] << Meq.Composer(*uu)
-
+  #---------------------------------------------------------------------
   # Make the pynode(s):
-  class_names = ['PlotVis22']
   pp = []
-  for class_name in class_names:
-    gs = None
-    ps = None
-    pynode = ns[class_name] << Meq.PyNode(children=cc,
+  pypage = Meow.Bookmarks.Page('pynode')
+
+  if False:
+    class_names = ['PlotVis22','PlotCrossCorrs','PlotIQUV']
+    # class_names = ['PlotIQUV']
+    for class_name in class_names:
+      gs = None
+      ps = None
+      pynode = ns[class_name] << Meq.PyNode(children=cc,
+                                            child_labels=labels,
+                                            class_name=class_name,
+                                            # groupspecs=gs,
+                                            # plotspecs=ps,
+                                            module_name=__file__)
+      pp.append(pynode)
+      pypage.add(ns[class_name], viewer="Svg Plotter")
+      Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
+
+
+  #---------------------------------------------------------------------
+  # Optional: uv-coordinates:
+  if True:
+    class_name = 'PlotUV'
+    pynode = ns[class_name] << Meq.PyNode(children=uu,
                                           child_labels=labels,
                                           class_name=class_name,
-                                          # groupspecs=gs,
-                                          # plotspecs=ps,
                                           module_name=__file__)
     pp.append(pynode)
-    Meow.Bookmarks.Page('pynode').add(ns[class_name], viewer="Svg Plotter")
+    pypage.add(ns[class_name], viewer="Svg Plotter")
     Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
+  else:
+    # Bundle them, to limit browser clutter:
+    ns['uu'] << Meq.Composer(*uu)
 
-  ns['rootnode'] << Meq.Composer(*pp)
+
+  #---------------------------------------------------------------------
   # Finished:
+  ns['rootnode'] << Meq.Composer(*pp)
   return True
   
 

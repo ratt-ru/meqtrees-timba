@@ -392,7 +392,7 @@ class PyNodeNamedGroups (pynode.PyNode):
         s = 'Extracted:'
         s += '  mean of'                          # <---- !!
         s += '  vells('+str(rr.vells)+')'
-        vv = rv.vcx(index=index)                  # <---- !!
+        vv = rv.VV(index=index)                  # <---- !!
         dvv = rv.dvv(index=index)                 # <---- !!
         self._create_namedgroup (key=lowerkey, vells=rr.vells,
                                  children=rr.children,
