@@ -112,10 +112,19 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
     It allows the specification of one or more specific plotspecs.
     """
     ps = []
-    ps.append(record(xy='{xx}', color='red', marker='plus'))
-    ps.append(record(xy='{xy}', color='magenta', annotate=False))
-    ps.append(record(xy='{yx}', color='green', marker='cross', annotate=False))
-    ps.append(record(xy='{yy}', color='blue', markersize=10))
+    ps.append(record(xy='{xx}', color='red',
+                     plot_circle_mean=True,
+                     annotate=True))
+    ps.append(record(xy='{xy}', color='magenta', marker='cross',
+                     plot_circle_mean=True,
+                     annotate=False))
+    ps.append(record(xy='{yx}', color='green', marker='cross',
+                     plot_circle_mean=True,
+                     annotate=False))
+    ps.append(record(xy='{yy}', color='blue',
+                     markersize=10,
+                     plot_circle_mean=True,
+                     annotate=True))
     self.plotspecs['graphics'] = ps
 
     self.plotspecs['xlabel'] = 'real part (Jy)'
@@ -138,50 +147,70 @@ def _define_forest (ns,**kwargs):
   """Make trees with the various pyNodes"""
 
   time = ns['time'] << Meq.Time()
-  HArad = ns['HArad'] << time*(math.pi/(12.0*3600.0))
-  cosHA = ns['cosHA'] << Meq.Cos(HArad)
-  sinHA = ns['sinHA'] << Meq.Sin(HArad)
-  DECrad = ns['DECrad'] << math.pi/6.0
-  sinDEC = ns['sinDEC'] << Meq.Sin(DECrad)
+  freq = ns['freq'] << Meq.Freq()
+  clight = ns['clight'] << 3e8
+  pi2 = ns['2pi'] << 2*math.pi
+  wvl = ns['lambda'] << freq/clight
+  HA = ns['HA'] << time*(math.pi/(12.0*3600.0))
+  DEC = ns['DEC'] << math.pi/6.0
+  cosHA = ns << Meq.Cos(HA)
+  sinHA = ns << Meq.Sin(HA)
+  sinDEC = ns << Meq.Sin(DEC)
+  sinHAsinDEC = ns << Meq.Multiply(sinHA,sinDEC)
   
   I = ns['stokesI'] << 10.0
   Q = ns['stokesQ'] << -1.0
   U = ns['stokesU'] << 0.5
-  V = ns['stokesV'] << 0.0
+  iV = ns['stokesV'] << Meq.ToComplex(0.0,0.001)
   lpos = ns['lpos'] << 0.01         # rad
   mpos = ns['mpos'] << 0.001        # rad
 
+  uu = []        # list of uv-pairs (for plotting)
   cc = []
   labels = []
-  n = 6
+  n = 4
   xpos = range(n)
   for i in range(n-1):
     for j in range(i+1,n):
-      dx = xpos[j] - xpos[i]
-      u = ns['u'](i)(j) << dx*cosHA
-      v = ns['v'](i)(j) << dx*sinHA*sinDEC
-      ulvm = ns['ulvm'](i)(j) << Meq.Add()
+      basel = ns['basel'](i)(j) << (xpos[j] - xpos[i])
+      bwvl = ns['bwvl'](i)(j) << basel/wvl
+      u = ns['u'](i)(j) << bwvl*cosHA
+      v = ns['v'](i)(j) << bwvl*sinHAsinDEC
+      uv = ns['uv'](i)(j) << Meq.Composer(u,v)
+      uu.append(uv)                
+      uvlm = ns['ulvm'](i)(j) << Meq.Add(u*lpos,v*mpos)
+      karg = ns['karg'](i)(j) << Meq.ToComplex(0.0, pi2*uvlm) 
+      K = ns['KJones'](i)(j) << Meq.Exp(karg)
+      XX = ns['XX'](i)(j) << (I+Q)
+      XY = ns['XY'](i)(j) << (U+iV)
+      YX = ns['YX'](i)(j) << (U-iV)
+      YY = ns['YY'](i)(j) << (I-Q)
+      cps = ns['cps'](i)(j) << Meq.Matrix22(XX,XY,YX,YY)
+      coh = ns['coh'](i)(j) << Meq.Multiply(cps,K)
+      cc.append(coh)
+      labels.append(str(i)+'_'+str(j))
 
-    vv = []
-    for j,corr in enumerate(['xx','xy','yx','yy']):
-      v = (j+1)+10*(i+1)
-      v = complex(i,j)
-      v = ns[corr](i)(j) << v
-      v = ns[corr](i) << Meq.Add(v,time)
-      vv.append(v)
-    cc.append(ns['child'](i) << Meq.Composer(*vv))
-    labels.append('c'+str(i))
 
-  gs = None
-  ps = None
-  ns['rootnode'] << Meq.PyNode(children=cc,
-                               child_labels=labels,
-                               class_name='PlotVis22',
-                               groupspecs=gs,
-                               plotspecs=ps,
-                               module_name=__file__)
-  Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer="Svg Plotter")
+  # Bundle the other lists, to limit browser clutter:
+  ns['uu'] << Meq.Composer(*uu)
 
+  # Make the pynode(s):
+  class_names = ['PlotVis22']
+  pp = []
+  for class_name in class_names:
+    gs = None
+    ps = None
+    pynode = ns[class_name] << Meq.PyNode(children=cc,
+                                          child_labels=labels,
+                                          class_name=class_name,
+                                          # groupspecs=gs,
+                                          # plotspecs=ps,
+                                          module_name=__file__)
+    pp.append(pynode)
+    Meow.Bookmarks.Page('pynode').add(ns[class_name], viewer="Svg Plotter")
+    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
+
+  ns['rootnode'] << Meq.Composer(*pp)
   # Finished:
   return True
   
@@ -193,17 +222,19 @@ def _define_forest (ns,**kwargs):
 
 def _test_forest (mqs,parent,wait=False):
   from Timba.Meq import meq
-  nf2 = 10
-  nt2 = 5
-  cells = meq.cells(meq.domain(-nf2,nf2,-nt2,nt2),
-                    num_freq=2*nf2+1,num_time=2*nt2+1);
+  f1 = 100e6
+  f2 = 110e6
+  t1 = 0
+  t2 = 1000
+  cells = meq.cells(meq.domain(f1,f2,t1,t2),
+                    num_freq=11,num_time=5);
   print '\n-- cells =',cells,'\n'
   request = meq.request(cells,rqtype='e1');
   a = mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
   return True
 
 
-if True:
+if False:
   def _tdl_job_sequence (mqs,parent,wait=False):
     from Timba.Meq import meq
     for i in range(10):
