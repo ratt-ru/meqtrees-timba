@@ -85,34 +85,10 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     self._plotdefs = record()
     
     self._standard = record()
-    self.color(clear=True)
-    self.marker(clear=True)
+    self.standard('color', clear=True, update=record(default='yellow'))
+    self.standard('marker', clear=True, update=record(default='triangle'))
     return None
 
-  #-------------------------------------------------------------------
-
-  def color (self, key=None, update=None, clear=False):
-    """Helper function to get a user-defined (key) color
-    """
-    if clear: self._standard.color = record()
-    if isinstance(update, record):
-      self._standard.color.update(update)
-      print '\n** update color:',self._standard.color
-    rr = self._standard.color
-    if rr.has_key(key): return rr[key]
-    return 'yellow'
-
-
-  def marker (self, key=None, update=None, clear=False):
-    """Helper function to get a user-defined (key) marker
-    """
-    if clear: self._standard.marker = record()
-    if isinstance(update, record):
-      self._standard.marker.update(update)
-      print '\n** update marker:',self._standard.marker
-    rr = self._standard.marker
-    if rr.has_key(key): return rr[key]
-    return 'diamond'
 
   #-------------------------------------------------------------------
 
@@ -120,9 +96,10 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     """
     Base class for an entire zoo of plotting pyNodes.
     Itself derived from the class PyNodeNamedGroups, which
-    takes care of reading the results of its children.
+    takes care of reading the results of its children into
+    named groups (see below).
 
-    It makes (sub)plot definitions from named groups (of values)
+    It makes (sub)plot definitions from these named groups (of values)
 
     It makes one or more subplot definition records in the list
     self.plotspecs.graphics. These are used in various ways:
@@ -162,18 +139,11 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     - msmax      [=20]           max marker size (z-values)
     - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
     
-    The .define_subplots() function of this baseclass is quite general
-    and robust: it may be used to plot the resuts of a list of arbitrary
-    child-nodes. It defines a single subplot of all the Vells of all its
-    children: 
-    - The horizontal axis is child-number (0,1,2,...,n-1).
-    - Multiple Vells of the same node have the same x-coordinate.
-    - The vertical axis is the mean over the domain (complex?).
     """
     ss = self.attach_help(ss, PyNodePlot.help.__doc__,
                           classname='PyNodePlot',
                           level=level, mode=mode)
-    return ss
+    return PyNodeNamedGroups.PyNodeNamedGroups.help(self, ss, level=level+1, mode=mode) 
 
   #--------------------------------------------------------------------
 
@@ -269,16 +239,16 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     mystate('plotspecs', None)
     if not isinstance(self.plotspecs, record):
       self.plotspecs = record()              # make sure it is a record
+
     rr = self.plotspecs                      # convenience
     for plotype in self._plotypes:
       if not rr.has_key(plotype):
-        rr[plotype] = []
+        rr[plotype] = []                     # e.g. rr['graphics'] = []
       else:
-        rr[plotype] = list(rr[plotype])
-    print '\n** self.plotspecs= ',self.plotspecs
+        rr[plotype] = list(rr[plotype])      # convert tuple into list
 
-    # Define class-specific plotspecs (if any), using
-    # the (re-implementable) class-specific function: 
+    # Define (extra) class-specific plotspecs (if any), using
+    # the (re-implementable) class-specific function.
     self.define_specific_plotspecs()
 
     if True:
@@ -287,9 +257,10 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
       for plotype in self._plotypes:
         n += len(self.plotspecs[plotype])
       if n==0:
-        ps = record(y='{allvells}', color='magenta') 
+        ps = record(y='{allvells}', color='cyan') 
         self.plotspecs['graphics'].append(ps)
 
+    # Check the final self.plotspecs:
     self._check_plotspecs(trace=trace)
     return None
 
@@ -301,6 +272,29 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     It allows the specification of one or more specific plotspecs.
     """
     return None
+
+  #-------------------------------------------------------------------
+
+  def standard (self, attrib=None, key=None, 
+                update=None, clear=False, trace=False):
+    """Helper function to get a standard attribute (e.g. color) for the
+    specified key: color = self.standard('color','a').
+    Used in (re-implementation of) define_specific_plotspecs().
+    The named (key) attributes are defined in __init__():
+    self.standard('color', update=record(a='red', b='green') etc.
+    """
+    if clear or not self._standard.has_key(attrib):
+      self._standard[attrib] = record()
+    if isinstance(update, record):
+      self._standard[attrib].update(update)
+      if trace:
+        print '\n** standard.update(',attrib,') ->',self._standard[attrib]
+    rr = self._standard[attrib]
+    if rr.has_key(key):
+      return rr[key]
+    if rr.has_key('default'):
+      return rr['default']
+    return False
 
   #-------------------------------------------------------------------
 
@@ -467,9 +461,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
           pd[key] = rr[key]                      # user-specified
         else:
           pd[key] = self.plotspecs[key]          # general default
-
-      if not isinstance(pd.legend,str):
-        pd.legend = ''
+      legend = pd.legend                         # used below
 
       # Get the xx and yy vectors by evaluating python expressions:
       if rr.has_key('xy'):                       # expr
@@ -478,13 +470,15 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
         pd.yy = self._evaluate(pd.yexpr, trace=trace)
         pd.xx = self._evaluate(pd.xexpr, trace=trace)
         pd.labels = self._expr2labels(pd.yexpr, trace=trace)
-        pd.legend += ' '+str(rr.xy)
+        if isinstance(legend,str):
+          pd.legend = legend.replace('\expr',str(rr.xy))
         
       elif rr.has_key('y'):                      # y expr specified                       
         pd.yexpr = str(rr.y)
         pd.yy = self._evaluate(pd.yexpr, trace=trace)
         pd.labels = self._expr2labels(rr.y, trace=trace)
-        pd.legend += ' '+pd.yexpr
+        if isinstance(legend,str):
+          pd.legend = legend.replace('\expr',str(pd.yexpr))
         if rr.has_key('x'):                      # x expr specified
           pd.xexpr = str(rr.x)
           pd.xx = self._evaluate(pd.xexpr, trace=trace)
@@ -501,7 +495,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
         pd.zexpr = str(rr.z)
         pd.zz = self._evaluate(pd.zexpr, trace=trace)
         pd.labels = self._expr2labels(pd.zexpr, trace=trace)
-        pd.legend = pd.zexpr                     # overwrite
+        if isinstance(legend,str):
+          pd.legend = legend.replace('\expr',str(pd.zexpr))
         self._zz2markersize(pd)
         if pd.plot_sigma_bars:
           pd.dzz = self._expr2dvv(pd.zexpr, trace=trace)
@@ -573,7 +568,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     grs = Graphics.Graphics(name=self.class_name,
                             # plot_type='polar',     # does not work in svg...!
                             plot_grid=True,
-                            title=rr.title+'_'+str(self._count),
+                            title=rr.title+' {'+str(self._count)+'}',
                             xlabel=rr.xlabel,
                             ylabel=rr.ylabel)
 
@@ -777,19 +772,28 @@ class ExampleDerivedClass (PyNodePlot):
       # Used for operations (e.g. plotting) on separate correlations.
       # Its children are assumed to be 2x2 tensor nodes (4 vells each).
       ps.append(record(xy='{xx}',
-                       color=self.color('b'),
-                       marker=self.marker('d'),
+                       color=self.standard('color','b'),
+                       marker=self.standard('marker','d'),
                        markersize=10))
-      ps.append(record(xy='{xy}', color='magenta', markersize=10, annotate=False))
-      ps.append(record(xy='{yx}', color='green', markersize=10,
-                       marker='cross', annotate=False))
-      ps.append(record(xy='{yy}', color='blue', markersize=10))
+      ps.append(record(xy='{xy}',
+                       color='magenta',
+                       markersize=10,
+                       annotate=False))
+      ps.append(record(xy='{yx}',
+                       color='green', 
+                       marker='cross',
+                       annotate=False))
+      ps.append(record(xy='{yy}',
+                       legend='YY: \expr',
+                       color='blue',
+                       markersize=10))
 
     # Finished:
     self.plotspecs['graphics'] = ps
-    self.plotspecs['xlabel'] = 'real part'
-    self.plotspecs['ylabel'] = 'imag part'
-    self.plotspecs['title'] = 'title without underscores'
+
+    self.plotspecs.setdefault('markersize', 20)
+    self.plotspecs.setdefault('xlabel', 'real part')
+    self.plotspecs.setdefault('ylabel', 'imag part')
     return None
 
 

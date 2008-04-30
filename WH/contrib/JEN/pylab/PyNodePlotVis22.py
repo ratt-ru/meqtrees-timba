@@ -52,7 +52,7 @@ import PyNodePlot
 
 import math
 # import inspect
-# import random
+import random
 # import pylab       # not here, but in the class....!
 
 
@@ -71,11 +71,10 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
   def __init__ (self, *args, **kwargs):
     PyNodePlot.PyNodePlot.__init__(self, *args)
     
-    # Specify standard colors/markers for the 4 corrs:
-    self.color(update=record(xx='red', xy='magenta', yx='green', yy='blue',
-                             rr='red', rl='magenta', lr='green', ll='blue'))
-    self.marker(update=record(xx='circle', xy='cross', yx='cross', yy='circle',
-                              rr='circle', rl='cross', lr='cross', ll='circle'))
+    self.standard('color', update=record(XX='red', XY='magenta', YX='green', YY='blue',
+                                         RR='red', RL='magenta', LR='green', LL='blue'))
+    self.standard('marker', update=record(XX='circle', XY='cross', YX='cross', YY='circle',
+                                          RR='circle', RL='cross', LR='cross', LL='circle'))
     return None
 
   #-------------------------------------------------------------------
@@ -105,7 +104,6 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
     self.groupspecs['yy'] = record(children='*', vells=[3])
 
     # Finished:
-    print self.help()
     return None
 
   #-------------------------------------------------------------------
@@ -114,31 +112,27 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
     """Make plotspec records for the 4 correlations
     """
     ps = []
-    ps.append(record(xy='{xx}',
-                     color=self.color('xx'),
-                     marker=self.marker('xx'),
-                     plot_circle_mean=True,
+    ps.append(record(xy='{xx}', legend='XX',
+                     color=self.standard('color','XX'),
+                     marker=self.standard('marker','XX'),
                      annotate=True))
-    ps.append(record(xy='{xy}',
-                     color=self.color('xy'),
-                     marker=self.marker('xy'),
-                     plot_circle_mean=True,
+    ps.append(record(xy='{xy}', legend='XY',
+                     color=self.standard('color','XY'),
+                     marker=self.standard('marker','XY'),
                      annotate=False))
-    ps.append(record(xy='{yx}',
-                     color=self.color('yx'),
-                     marker=self.marker('yx'),
-                     plot_circle_mean=True,
+    ps.append(record(xy='{yx}', legend='YX',
+                     color=self.standard('color','YX'),
+                     marker=self.standard('marker','YX'),
                      annotate=False))
-    ps.append(record(xy='{yy}',
-                     color=self.color('yy'),
-                     marker=self.marker('yy'),
-                     plot_circle_mean=True,
+    ps.append(record(xy='{yy}', legend='YY',
+                     color=self.standard('color','YY'),
+                     marker=self.standard('marker','YY'),
                      annotate=True))
     self.plotspecs['graphics'] = ps
 
-    self.plotspecs['xlabel'] = 'real part (Jy)'
-    self.plotspecs['ylabel'] = 'imag part (Jy)'
-    # self.plotspecs['title'] = 'title without underscores'
+    self.plotspecs.setdefault('plot_circle_mean', True)
+    self.plotspecs.setdefault('xlabel', 'real part (Jy)')
+    self.plotspecs.setdefault('ylabel', 'imag part (Jy)')
     return None
 
 
@@ -159,8 +153,8 @@ class PlotUV (PyNodePlot.PyNodePlot):
     """
     Plot uv-coordinates. The children are assumed to be tensor-nodes. 
     """
-    ss = self.attach_help(ss, PlotVis22.help.__doc__,
-                          classname='PlotVis22',
+    ss = self.attach_help(ss, PlotUV.help.__doc__,
+                          classname='PlotUV',
                           level=level, mode=mode)
     return PyNodePlot.PyNodePlot.help(self, ss, level=level+1, mode=mode) 
 
@@ -176,7 +170,6 @@ class PlotUV (PyNodePlot.PyNodePlot):
     self.groupspecs['v'] = record(children='*', vells=[1])
 
     # Finished:
-    print self.help()
     return None
 
   #-------------------------------------------------------------------
@@ -189,8 +182,9 @@ class PlotUV (PyNodePlot.PyNodePlot):
                      plot_sigma_bars=False,
                      annotate=True))
     self.plotspecs['graphics'] = ps
-    self.plotspecs['xlabel'] = 'u (wavelengths)'
-    self.plotspecs['ylabel'] = 'v (wavelengths)'
+    
+    self.plotspecs.setdefault('xlabel', 'u (wavelengths)')
+    self.plotspecs.setdefault('ylabel', 'v (wavelengths)')
     return None
 
 
@@ -226,17 +220,16 @@ class PlotCrossCorrs (PlotVis22):
     Make plotspec records for the two cross-corrs.
     """
     ps = []
-    ps.append(record(xy='{xy}',
-                     color=self.color('xy'),
-                     marker=self.marker('xy'),
-                     plot_circle_mean=True,
-                     annotate=True))
-    ps.append(record(xy='{yx}',
-                     color=self.color('yx'),
-                     marker=self.marker('yx'),
-                     plot_circle_mean=True,
-                     annotate=True))
+    ps.append(record(xy='{xy}', legend='XY',
+                     color=self.standard('color','XY'),
+                     marker=self.standard('marker','XY')))
+    ps.append(record(xy='{yx}', legend='YX',
+                     color=self.standard('color','YX'),
+                     marker=self.standard('marker','YX')))
     self.plotspecs['graphics'] = ps
+
+    self.plotspecs.setdefault('annotate', True)
+    self.plotspecs.setdefault('plot_circle_mean', True)
     return None
 
 
@@ -249,16 +242,15 @@ class PlotIQUV (PlotVis22):
   def __init__ (self, *args, **kwargs):
     PlotVis22.__init__(self, *args)
 
-    # Specify standard colors/markers for the 4 stokes parameters:
-    self.color(update=record(I='red', Q='magenta', U='green', V='blue'))
-    self.marker(update=record(I='circle', Q='cross', U='cross', V='circle'))
+    self.standard('color', update=record(I='red', Q='magenta', U='green', V='blue'))
+    self.standard('marker', update=record(I='circle', Q='cross', U='cross', V='plus'))
     return None
 
   #-------------------------------------------------------------------
 
   def help (self, ss=None, level=0, mode=None):
     """
-    Plot the I,Q,U,V visibilities.
+    Plot the I,Q,U,V visibilities (complex).
     """
     ss = self.attach_help(ss, PlotVis22.help.__doc__,
                           classname='PlotVis22',
@@ -270,30 +262,33 @@ class PlotIQUV (PlotVis22):
 
   def define_specific_plotspecs(self, trace=True):  
     """
-    Make plotspec records for the two cross-corrs.
+    Make plotspec records for I,Q,U,iV.
     """
     ps = []
-    ps.append(record(xy='({xx}+{yy})*0.5', legend='I:',
-                     color=self.color('I'),
-                     marker=self.marker('I'),
-                     plot_circle_mean=True,
+    ps.append(record(xy='({xx}+{yy})/2',
+                     legend='I: \expr',
+                     color=self.standard('color','I'),
+                     marker=self.standard('marker','I'),
                      annotate=True))
-    ps.append(record(xy='({xx}-{yy})*0.5', legend='Q:',
-                     color=self.color('Q'),
-                     marker=self.marker('Q'),
-                     plot_circle_mean=True,
+
+    ps.append(record(xy='({xx}-{yy})/2',
+                     legend='Q: \expr',
+                     color=self.standard('color','Q'),
+                     marker=self.standard('marker','Q'),
                      annotate=False))
-    ps.append(record(xy='({xy}+{yx})*0.5', legend='U:',
-                     color=self.color('U'),
-                     marker=self.marker('U'),
-                     plot_circle_mean=True,
+    ps.append(record(xy='({xy}+{yx})/2',
+                     legend='U: \expr',
+                     color=self.standard('color','U'),
+                     marker=self.standard('marker','U'),
                      annotate=False))
-    ps.append(record(xy='({xy}-{yx})*0.5', legend='V:',
-                     color=self.color('V'),
-                     marker=self.marker('V'),
-                     plot_circle_mean=True,
+    ps.append(record(xy='({xy}-{yx})/2',
+                     legend='iV: \expr',
+                     color=self.standard('color','V'),
+                     marker=self.standard('marker','V'),
                      annotate=False))
     self.plotspecs['graphics'] = ps
+
+    self.plotspecs.setdefault('plot_circle_mean', True)
     return None
 
 
@@ -349,6 +344,14 @@ def _define_forest (ns,**kwargs):
       YY = ns['YY'](i)(j) << (I-Q)
       cps = ns['cps'](i)(j) << Meq.Matrix22(XX,XY,YX,YY)
       coh = ns['coh'](i)(j) << Meq.Multiply(cps,K)
+      if True:
+        q = 0.1
+        noise = ns['noise'](i)(j) << Meq.Matrix22(complex(random.gauss(0,q),random.gauss(0,q)),
+                                                  complex(random.gauss(0,q),random.gauss(0,q)),
+                                                  complex(random.gauss(0,q),random.gauss(0,q)),
+                                                  complex(random.gauss(0,q),random.gauss(0,q)))
+        coh = ns['noisy'](i)(j) << Meq.Add(coh,noise)
+        
 
       cc.append(coh)
       labels.append(str(i)+'_'+str(j))
@@ -361,7 +364,7 @@ def _define_forest (ns,**kwargs):
   pp = []
   pypage = Meow.Bookmarks.Page('pynode')
 
-  if False:
+  if True:
     class_names = ['PlotVis22','PlotCrossCorrs','PlotIQUV']
     # class_names = ['PlotIQUV']
     for class_name in class_names:

@@ -310,6 +310,7 @@ class Result (object):
     # The values (mean/stddev over the domain) of the result
     self._vv_executed = False
     self._vv = []
+    self._VV = []                        # straight....
     self._dvv = []
     self._vcx = []                       # complex version
 
