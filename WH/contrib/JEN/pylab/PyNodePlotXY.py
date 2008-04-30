@@ -151,7 +151,7 @@ class PlotXYZ (PyNodePlot.PyNodePlot):
     # Its children are assumed to be tensor nodes (3 vells each).
     self.groupspecs['x'] = record(children='*', vells=[0])
     self.groupspecs['y'] = record(children='*', vells=[1])
-    self.groupspecs['z'] = record(children='*', vells=[3])
+    self.groupspecs['z'] = record(children='*', vells=[2])
 
     # Finished:
     print self.help()           # temporary, for testing
@@ -215,6 +215,83 @@ class PlotXXYY (PlotXY):
     return None
 
 
+#=====================================================================
+
+class PlotCXY (PlotXY):
+  """Derived from PlotXY"""
+
+  def __init__ (self, *args, **kwargs):
+    PlotXY.__init__(self, *args)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Its children are assumed to be two pynodes of type PyNodeNamedGroups,
+    each with one named group named 'x' and 'y' respectively. 
+    """
+    ss = self.attach_help(ss, PlotCXY.help.__doc__,
+                          classname='PlotCXY',
+                          level=level, mode=mode)
+    return PlotXY.help(self, ss, level=level+1, mode=mode) 
+
+
+  #-------------------------------------------------------------------
+
+  def define_specific_groupspecs(self, trace=True):  
+    """Class-specific re-implementation. It allows the specification
+    of one or more specific groupspecs.
+    """
+    # Finished:
+    print self.help()           # temporary, for testing
+    return None
+
+
+
+
+
+#========================================================================
+# Classes derived from PlotXYZ:
+#========================================================================
+
+class PlotXXYYZZ (PlotXYZ):
+  """Derived from PlotXYZ"""
+
+  def __init__ (self, *args, **kwargs):
+    PlotXYZ.__init__(self, *args)
+    return None
+
+  #-------------------------------------------------------------------
+
+  def help (self, ss=None, level=0, mode=None):
+    """
+    Its children are assumed to come in two concatenated lists:
+    First the x-children, then the y-children.
+    """
+    ss = self.attach_help(ss, PlotXXYYZZ.help.__doc__,
+                          classname='PlotXXYYZZ',
+                          level=level, mode=mode)
+    return PlotXYZ.help(self, ss, level=level+1, mode=mode) 
+
+
+  #-------------------------------------------------------------------
+
+  def define_specific_groupspecs(self, trace=True):  
+    """Class-specific re-implementation. It allows the specification
+    of one or more specific groupspecs.
+    """
+    # Its children are assumed to be in three concatenated lists:
+    # (and have a single vells...)
+    self.groupspecs['x'] = record(children='1/3')
+    self.groupspecs['y'] = record(children='2/3')
+    self.groupspecs['z'] = record(children='3/3')
+
+    # Finished:
+    print self.help()           # temporary, for testing
+    return None
+
+
 
 
 
@@ -239,20 +316,20 @@ def _define_forest (ns,**kwargs):
   xxyy = []        # first all x-nodes, then all y-nodes
   xxyyzz = []      # same, followed by all z-nodes
 
-  t_labels = [] 
-  x_labels = []
-  y_labels = []
-  z_labels = []
+  tt_labels = [] 
+  xx_labels = []
+  yy_labels = []
+  zz_labels = []
   xxyy_labels = []
   xxyyzz_labels = []
   xyxy_labels = []
   xyzxyz_labels = []
 
-  n = 4
+  n = 7
   for i in range(n):
-    x = ns['x'](i) << 11*i+time
-    y = ns['y'](i) << 12*i+freq
-    z = ns['z'](i) << i
+    x = ns['x'](i) << 11*(i-2)+time
+    y = ns['y'](i) << 12*(i-1)+freq
+    z = ns['z'](i) << (i-3)
 
     xlabel = 'x'+str(i)       # x-node label
     ylabel = 'y'+str(i)
@@ -263,16 +340,16 @@ def _define_forest (ns,**kwargs):
     xyz = ns['xyz'](i) << Meq.Composer(x,y,z)
     ttxy.append(xy)                
     ttxyz.append(xyz)                
-    t_labels.append(tlabel)
+    tt_labels.append(tlabel)
 
     xx.append(x)                
-    x_labels.append(xlabel)
+    xx_labels.append(xlabel)
 
     yy.append(y)                
-    y_labels.append(ylabel)
+    yy_labels.append(ylabel)
 
     zz.append(z)                
-    z_labels.append(zlabel)
+    zz_labels.append(zlabel)
 
     xyxy.extend([x,y])                
     xyxy_labels.extend([xlabel,ylabel])                
@@ -282,9 +359,9 @@ def _define_forest (ns,**kwargs):
 
 
   xxyy = xx+yy
-  xxyy_labels = x_labels + y_labels
+  xxyy_labels = xx_labels + yy_labels
   xxyyzz = xx+yy+zz
-  xxyyzz_labels = x_labels + y_labels + z_labels
+  xxyyzz_labels = xx_labels + yy_labels + zz_labels
 
 
   # Bundle things, to minimize browser clutter:
@@ -314,7 +391,7 @@ def _define_forest (ns,**kwargs):
                 plot_sigma_bars=True, annotate=True, markersize=20)
     ps = None
     pynode = ns[class_name] << Meq.PyNode(children=ttxy,
-                                          child_labels=t_labels,
+                                          child_labels=tt_labels,
                                           class_name=class_name,
                                           plotspecs=ps,
                                           module_name=__file__)
@@ -326,7 +403,7 @@ def _define_forest (ns,**kwargs):
   if True:
     class_name = 'PlotXYZ'
     pynode = ns[class_name] << Meq.PyNode(children=ttxyz,
-                                          child_labels=t_labels,
+                                          child_labels=tt_labels,
                                           class_name=class_name,
                                           module_name=__file__)
     pp.append(pynode)
@@ -334,7 +411,7 @@ def _define_forest (ns,**kwargs):
     Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
 
 
-  if False:
+  if True:
     class_name = 'PlotXXYY'
     pynode = ns[class_name] << Meq.PyNode(children=xxyy,
                                           child_labels=xxyy_labels,
@@ -344,10 +421,54 @@ def _define_forest (ns,**kwargs):
     pypage.add(ns[class_name], viewer="Svg Plotter")
     Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
 
+  if True:
+    class_name = 'PlotXXYYZZ'
+    pynode = ns[class_name] << Meq.PyNode(children=xxyyzz,
+                                          child_labels=xxyyzz_labels,
+                                          class_name=class_name,
+                                          module_name=__file__)
+    pp.append(pynode)
+    pypage.add(ns[class_name], viewer="Svg Plotter")
+    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
+
+
+  if True:
+    class_name = 'PyNodeNamedGroups'
+    module_name = 'PyNodeNamedGroups'
+    gxx = ns['gxx'] << Meq.PyNode(children=xx,
+                                  child_labels=xx_labels,
+                                  groupspecs=record(x=record()),
+                                  class_name=class_name,
+                                  module_name=module_name)
+    gyy = ns['gyy'] << Meq.PyNode(children=yy,
+                                  child_labels=yy_labels,
+                                  groupspecs=record(y=record()),
+                                  class_name=class_name,
+                                  module_name=module_name)
+    gzz = ns['gzz'] << Meq.PyNode(children=zz,
+                                  child_labels=zz_labels,
+                                  groupspecs=record(z=record()),
+                                  class_name=class_name,
+                                  module_name=module_name)
+
+    if True:
+      class_name = 'PlotCXY'
+      pynode = ns[class_name] << Meq.PyNode(class_name=class_name,
+                                            children=[gxx, gyy],
+                                            # child_labels=xxyyzz_labels,
+                                            module_name=__file__)
+      pp.append(pynode)
+      pypage.add(ns[class_name], viewer="Svg Plotter")
+      Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
+
+
 
   #---------------------------------------------------------------------
   # Finished:
-  ns['rootnode'] << Meq.Composer(*pp)
+  if len(pp)>0:
+    ns['rootnode'] << Meq.Composer(*pp)
+  else:
+    ns['rootnode'] << Meq.Composer(*bb)
   return True
   
 
