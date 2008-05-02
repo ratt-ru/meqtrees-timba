@@ -131,7 +131,6 @@ class MyPylabPlotter(FigureCanvas):
       grs.display('make_plot()')
 
     # Use the Figure class to make a pylab plot,
-    # and to generate an svg definition string:
     import Figure as figure
     fig = figure.Figure()
     fig.add(grs)
@@ -150,7 +149,7 @@ class PylabPlotter(GriddedPlugin):
 
   def __init__(self,gw,dataitem,cellspec={},**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
-    """ a plugin for showing svg plots """
+    """ a plugin for showing pylab plots """
     print '***************************'
     print 'in PylabPlotter constructor'
     print '***************************'
@@ -175,7 +174,7 @@ class PylabPlotter(GriddedPlugin):
     """ resets widgets to None. Needed if we have been putting
         out a message about Cache not containing results, etc
     """
-    self._svg_plotter = None
+    self._pylab_plotter = None
     self._toolbar = None
     self.results_selector = None
     self.status_label = None
@@ -202,7 +201,7 @@ class PylabPlotter(GriddedPlugin):
         necessary preprocssing forwards the data to one of
         the functions which does the actual plotting """
 
-    _dprint(3, '** in svg_plotter:set_data callback')
+    _dprint(3, '** in pylab_plotter:set_data callback')
     self._rec = dataitem.data;
     _dprint(3, 'set_data: initial self._rec ', self._rec)
 # if we are single stepping through requests, Oleg may reset the
@@ -265,15 +264,15 @@ class PylabPlotter(GriddedPlugin):
   def process_data (self):
     """ process the actual record structure associated with a Cache result """
     process_result = False
-# are we dealing with an svg result?
+# are we dealing with an svg / pylab result?
     print '*************************'
     print ' in process_data '
 
-    if self._rec.has_key("svg_plot"):
+    if self._rec.has_key("plotdefs"):
       print 'creating layout stuff!!'
       self.create_layout_stuff()
       print 'created layout stuff'
-      self.show_svg_plot()
+      self.show_pylab_plot()
       process_result = True
 
 # enable & highlight the cell
@@ -292,8 +291,8 @@ class PylabPlotter(GriddedPlugin):
       self.results_selector.setLabel(self.label)
       process_result = self.process_data()
 
-  def show_svg_plot(self, store_rec=True):
-    """ process incoming vells data and attributes into the
+  def show_pylab_plot(self, store_rec=True):
+    """ process incoming data and attributes into the
         appropriate type of plot """
 
 # if we are single stepping through requests, Oleg may reset the
@@ -301,39 +300,39 @@ class PylabPlotter(GriddedPlugin):
     if store_rec and isinstance(self._rec, bool):
       return
 
-    svg_plot = self._rec.plotdefs
-    print 'incoming plot string is ', svg_plot
+    pylab_record = self._rec.plotdefs
+    print 'incoming plot string is ', pylab_record
     print '***************************'
-    print 'handling svg_plot event - string has length ', len(svg_plot)
+    print 'handling pylab plot event - string has length ', len(pylab_record)
     print '***************************'
 
-    if not self._svg_plotter is None:
-      self._svg_plotter.reparent(QWidget(), 0, QPoint())
+    if not self._pylab_plotter is None:
+      self._pylab_plotter.reparent(QWidget(), 0, QPoint())
     if not self._toolbar is None:
       self._toolbar.reparent(QWidget(), 0, QPoint())
       self._toolbar = None
-    if self._svg_plotter is None:
+    if self._pylab_plotter is None:
       print 'constructing plotter '
-      self._svg_plotter = MyPylabPlotter(parent=self.layout_parent,name="app")
+      self._pylab_plotter = MyPylabPlotter(parent=self.layout_parent,name="app")
       print 'constructed plotter '
-      self.layout.addWidget(self._svg_plotter,0,0)
+      self.layout.addWidget(self._pylab_plotter,0,0)
       print 'added to layout'
     if self._toolbar is None:
       print 'constructing toolbar '
-      self._toolbar = NavigationToolbar(self._svg_plotter, self.layout_parent)
+      self._toolbar = NavigationToolbar(self._pylab_plotter, self.layout_parent)
       self._toolbar.show()
       print 'constructed toolbar '
       self.layout.addWidget(self._toolbar,1,0)
       print 'added to layout'
     
     print 'computing initial figure '
-#   self._svg_plotter.compute_demo_figure()
-    self._svg_plotter.make_plot(svg_plot)
+#   self._pylab_plotter.compute_demo_figure()
+    self._pylab_plotter.make_plot(pylab_record)
     print 'showing plot '
-    self._svg_plotter.show()
+    self._pylab_plotter.show()
     print 'showed plot '
     
-    # end show_svg_plot()
+    # end show_pylab_plot()
 
 
   def set_results_buffer (self, result_value):
@@ -352,7 +351,7 @@ class PylabPlotter(GriddedPlugin):
     if len(self.data_list) != self.data_list_length:
       self.data_list_length = len(self.data_list)
 
-    self.show_svg_plot(store_rec=False)
+    self.show_pylab_plot(store_rec=False)
 
   def adjust_selector (self):
     """ instantiate and/or adjust contents of ResultsRange object """
@@ -436,7 +435,6 @@ def main( argv ):
 
 # Admire
 if __name__ == '__main__':
-  """ We need at least one argument: the name of the svg file to plot """
   main(sys.argv)
 
 
