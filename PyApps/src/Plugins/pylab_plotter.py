@@ -150,9 +150,6 @@ class PylabPlotter(GriddedPlugin):
   def __init__(self,gw,dataitem,cellspec={},**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     """ a plugin for showing pylab plots """
-    print '***************************'
-    print 'in PylabPlotter constructor'
-    print '***************************'
     self._rec = None;
     self._wtop = None;
     self.dataitem = dataitem
@@ -265,9 +262,6 @@ class PylabPlotter(GriddedPlugin):
     """ process the actual record structure associated with a Cache result """
     process_result = False
 # are we dealing with an svg / pylab result?
-    print '*************************'
-    print ' in process_data '
-
     if self._rec.has_key("plotdefs"):
       print 'creating layout stuff!!'
       self.create_layout_stuff()
@@ -301,36 +295,22 @@ class PylabPlotter(GriddedPlugin):
       return
 
     pylab_record = self._rec.plotdefs
-    print 'incoming plot string is ', pylab_record
-    print '***************************'
-    print 'handling pylab plot event - string has length ', len(pylab_record)
-    print '***************************'
-
     if not self._pylab_plotter is None:
       self._pylab_plotter.reparent(QWidget(), 0, QPoint())
     if not self._toolbar is None:
       self._toolbar.reparent(QWidget(), 0, QPoint())
       self._toolbar = None
     if self._pylab_plotter is None:
-      print 'constructing plotter '
       self._pylab_plotter = MyPylabPlotter(parent=self.layout_parent,name="app")
-      print 'constructed plotter '
       self.layout.addWidget(self._pylab_plotter,0,0)
-      print 'added to layout'
     if self._toolbar is None:
-      print 'constructing toolbar '
       self._toolbar = NavigationToolbar(self._pylab_plotter, self.layout_parent)
       self._toolbar.show()
-      print 'constructed toolbar '
       self.layout.addWidget(self._toolbar,1,0)
-      print 'added to layout'
     
-    print 'computing initial figure '
 #   self._pylab_plotter.compute_demo_figure()
     self._pylab_plotter.make_plot(pylab_record)
-    print 'showing plot '
     self._pylab_plotter.show()
-    print 'showed plot '
     
     # end show_pylab_plot()
 
