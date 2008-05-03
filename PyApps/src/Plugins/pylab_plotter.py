@@ -72,11 +72,11 @@ class MyPylabPlotter(FigureCanvas):
 
   def compute_demo_figure(self):
     """Simple demo canvas with a sine plot."""
-    self.axes = self.fig.add_subplot(111)
+    self.subplot = self.fig.add_subplot(111)
     t = arange(0.0, 3.0, 0.01)
     s = sin(2*pi*t)
-    self.axes.plot(t, s)
-    self.axes.grid()
+    self.subplot.plot(t, s)
+    self.subplot.grid()
 
   def make_plot(self, plot_defs):
     """Make a pylab plot from all items in self._plotdefs.
@@ -130,9 +130,11 @@ class MyPylabPlotter(FigureCanvas):
     if trace:
       grs.display('make_plot()')
 
+    print '********* grs is ', grs
+
     # Use the Figure class to make a pylab plot,
     import Figure as figure
-    fig = figure.Figure()
+    fig = figure.Figure(clear=False)
     fig.add(grs)
     fig.plot(dispose=['show'], rootname=self.class_name,
                                    clear=False, trace=trace)
@@ -263,9 +265,7 @@ class PylabPlotter(GriddedPlugin):
     process_result = False
 # are we dealing with an svg / pylab result?
     if self._rec.has_key("plotdefs"):
-      print 'creating layout stuff!!'
       self.create_layout_stuff()
-      print 'created layout stuff'
       self.show_pylab_plot()
       process_result = True
 
@@ -303,6 +303,7 @@ class PylabPlotter(GriddedPlugin):
     if self._pylab_plotter is None:
       self._pylab_plotter = MyPylabPlotter(parent=self.layout_parent,name="app")
       self.layout.addWidget(self._pylab_plotter,0,0)
+      self._pylab_plotter.show()
     if self._toolbar is None:
       self._toolbar = NavigationToolbar(self._pylab_plotter, self.layout_parent)
       self._toolbar.show()
@@ -310,7 +311,6 @@ class PylabPlotter(GriddedPlugin):
     
 #   self._pylab_plotter.compute_demo_figure()
     self._pylab_plotter.make_plot(pylab_record)
-    self._pylab_plotter.show()
     
     # end show_pylab_plot()
 
