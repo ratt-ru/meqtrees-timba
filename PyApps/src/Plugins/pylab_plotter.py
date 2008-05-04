@@ -79,36 +79,52 @@ if has_pylab:
    def minimumSizeHint(self):
      return QSize(10, 10)
 
-   def compute_demo_figure(self):
-     """Simple demo canvas with a sine plot."""
-     self.axes = self.fig.add_subplot(211)
-     t = arange(0.0, 3.0, 0.01)
-     s = sin(2*pi*t)
-#    self.axes.plot(t, s, 'ro')
-     self.axes.plot(t, s)
-     self.axes.grid()
-     self.axes.set_title('Demonstration of Matplotlib Plugin for Qt')
-     self.axes.set_ylabel('sine')
- 
-     self.axes = self.fig.add_subplot(212)
-     c = cos(2*pi*t)
-     self.axes.plot(t, c)
-     self.axes.grid()
-     self.axes.set_xlabel('time')
-     self.axes.set_ylabel('cosine')
+   # The following method is adapted from 
+   # matplotlib/examples/pythonic_matplotlib.py
+   # It shows how you can approximate pylab calls
+   # in a 'pythonic' manner which allows the plot
+   # to be embedded in the MyPylabPlotter figure.
+   def demo_pythonic_matplotlib(self):
+     """Simple demo canvas with some sine plots."""
+     t = arange(0.0, 1.0, 0.01)
+     ax1 = self.fig.add_subplot(211)
+     ax1.plot(t, sin(2*pi*t))
+     ax1.grid(True)
+     ax1.set_ylim( (-2,2) )
+     ax1.set_ylabel('1 Hz')
+     ax1.set_title('A sine wave or two')
 
-   def compute_demo_pylab_figure(self):
+     for label in ax1.get_xticklabels():
+         label.set_color('r')
+
+     ax2 = self.fig.add_subplot(212)
+     ax2.plot(t, sin(2*2*pi*t))
+     ax2.grid(True)
+     ax2.set_ylim( (-2,2) )
+     ax2.set_ylabel('2 Hz')
+     l = ax2.set_xlabel('Hi mom')
+     l.set_color('g')
+     l.set_fontsize('large')
+
+   # The following method causes a separate pylab figure to  
+   # appear. The figure for the MyPylabPlotter class doesn't 
+   # appear until the pylab figure is closed!
+   def demo_pylab_figure(self):
      """Simple demo canvas with a sine plot."""
-     fig = pylab.gcf()
-     print 'fig ', fig
+     # create a separate pylab figure
+     pylab.figure(1)   
      pylab.subplot(111)
      t = arange(0.0, 3.0, 0.01)
      s = sin(2*pi*t)
      pylab.plot(t, s)
      pylab.grid()
-     pylab.title('demonstration of matplotlib plugin')
+     pylab.title('Demonstration of Matplotlib pylab-style Plugin')
      pylab.xlabel('time')
      pylab.ylabel('sine')
+     pylab.show()
+     # After the figure that appears in response to the 'show'
+     # command is closed a blank figure for the MyPylabPlotter class
+     # remains.
 
    def make_plot(self, plot_defs):
      """Make a pylab plot from all items in self._plotdefs.
@@ -424,11 +440,10 @@ if has_pylab:
         self.main_widget.setFocus()
         self.setCentralWidget(self.main_widget)
 
-        # plot something
-        sc.compute_demo_figure()
-
-# the following doesn't work
-#       sc.compute_demo_pylab_figure()
+# Produce a plot that is contained in MyPylabPlotter
+        sc.demo_pythonic_matplotlib()
+# The following doesn't work properly
+#       sc.demo_pylab_figure()
 
     def fileQuit(self):
         qApp.exit(0)
