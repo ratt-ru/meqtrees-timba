@@ -38,78 +38,110 @@ from qt import *
 from ResultsRange import *
 from BufferSizeDialog import *
 
-from numpy import arange, sin, pi
+from numpy import arange, sin, cos, pi
 import os, sys
 
-import matplotlib
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
+# test if matplotlib / pylab is installed
+global has_pylab
+has_pylab = False
+try:
+  import matplotlib
+  from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+  from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
+  from matplotlib.figure import Figure
+  import pylab
+  has_pylab = True
+except:
+  print ' '
+  print '*** matplotlib/pylab not imported! ***'
+  print 'The system will assume that matplotlib is not present.'
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='pylab_plotter');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-
-class MyPylabPlotter(FigureCanvas):
-
-  def __init__(self, parent=None, name=None, dpi=100):
-    self.fig = Figure(dpi=dpi)
-    FigureCanvas.__init__(self, self.fig)
-    self.reparent(parent, QPoint(0, 0))
-    FigureCanvas.setSizePolicy(self,
+if has_pylab:
+ class MyPylabPlotter(FigureCanvas):
+   def __init__(self, parent=None, name=None, dpi=100):
+     self.fig = Figure(dpi=dpi)
+     FigureCanvas.__init__(self, self.fig)
+     self.reparent(parent, QPoint(0, 0))
+     FigureCanvas.setSizePolicy(self,
                                    QSizePolicy.Expanding,
                                    QSizePolicy.Expanding)
-    FigureCanvas.updateGeometry(self)
+     FigureCanvas.updateGeometry(self)
 
-  def sizeHint(self):
-    w, h = self.get_width_height()
-    return QSize(w, h)
+   def sizeHint(self):
+     w, h = self.get_width_height()
+     return QSize(w, h)
 
-  def minimumSizeHint(self):
-    return QSize(10, 10)
+   def minimumSizeHint(self):
+     return QSize(10, 10)
 
-  def compute_demo_figure(self):
-    """Simple demo canvas with a sine plot."""
-    self.subplot = self.fig.add_subplot(111)
-    t = arange(0.0, 3.0, 0.01)
-    s = sin(2*pi*t)
-    self.subplot.plot(t, s)
-    self.subplot.grid()
+   def compute_demo_figure(self):
+     """Simple demo canvas with a sine plot."""
+     self.axes = self.fig.add_subplot(211)
+     t = arange(0.0, 3.0, 0.01)
+     s = sin(2*pi*t)
+#    self.axes.plot(t, s, 'ro')
+     self.axes.plot(t, s)
+     self.axes.grid()
+     self.axes.set_title('Demonstration of Matplotlib Plugin for Qt')
+     self.axes.set_ylabel('sine')
+ 
+     self.axes = self.fig.add_subplot(212)
+     c = cos(2*pi*t)
+     self.axes.plot(t, c)
+     self.axes.grid()
+     self.axes.set_xlabel('time')
+     self.axes.set_ylabel('cosine')
 
-  def make_plot(self, plot_defs):
-    """Make a pylab plot from all items in self._plotdefs.
-    """
-    import Graphics
-    self._plotdefs = plot_defs
-    self.class_name = "pylab_plot"
-    rr = self._plotdefs                              # convenience
-    print '** rr =',type(rr),rr.keys()
+   def compute_demo_pylab_figure(self):
+     """Simple demo canvas with a sine plot."""
+     fig = pylab.gcf()
+     print 'fig ', fig
+     pylab.subplot(111)
+     t = arange(0.0, 3.0, 0.01)
+     s = sin(2*pi*t)
+     pylab.plot(t, s)
+     pylab.grid()
+     pylab.title('demonstration of matplotlib plugin')
+     pylab.xlabel('time')
+     pylab.ylabel('sine')
+
+   def make_plot(self, plot_defs):
+     """Make a pylab plot from all items in self._plotdefs.
+     """
+     import Graphics
+     self._plotdefs = plot_defs
+     self.class_name = "pylab_plot"
+     rr = self._plotdefs                              # convenience
+     print '** rr =',type(rr),rr.keys()
       
-    # Create an empty Graphics object:
-    grs = Graphics.Graphics(name=self.class_name,
-                            # plot_type='polar',     # does not work in svg...!
-                            plot_grid=True,
-                            title=rr.title,
-                            xlabel=rr.xlabel,
-                            ylabel=rr.ylabel)
-
-    # Fill it with the subplots:
-    plotype = 'graphics'
-    print '** rr[plotype] =',type(rr[plotype])
-    for i,pd in enumerate(rr[plotype]):
-      offset = i*rr.offset
-      # offset += -10                    # testing only
-      yy = pd.yy
-      if not offset==0.0:
-        yy = list(yy)                    # tuple does not support item assignment...      
-        for i,y in enumerate(yy):
-          yy[i] += offset
-      labels = len(yy)*[None]
-      if pd.annotate:
-        labels = pd.labels
-      grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
+     # Create an empty Graphics object:
+     grs = Graphics.Graphics(name=self.class_name,
+                             # plot_type='polar',     # does not work in svg...!
+                             plot_grid=True,
+                             title=rr.title,
+                             xlabel=rr.xlabel,
+                             ylabel=rr.ylabel)
+ 
+     # Fill it with the subplots:
+     plotype = 'graphics'
+     print '** rr[plotype] =',type(rr[plotype])
+     for i,pd in enumerate(rr[plotype]):
+       offset = i*rr.offset
+       # offset += -10                    # testing only
+       yy = pd.yy
+       if not offset==0.0:
+         yy = list(yy)                    # tuple does not support item assignment...      
+         for i,y in enumerate(yy):
+           yy[i] += offset
+       labels = len(yy)*[None]
+       if pd.annotate:
+         labels = pd.labels
+       grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
                               annot=labels,
                               dyy=pd.dyy, dxx=pd.dxx,           
                               linestyle=pd.linestyle,
@@ -117,28 +149,28 @@ class MyPylabPlotter(FigureCanvas):
                               markersize=pd.markersize,
                               plot_circle_mean=pd.plot_circle_mean,
                               color=pd.color)
-      grs.add(grs1)
-      legend = pd.legend
-      if not offset==0.0:
-        if legend==None: legend = 'offset'
-        if not isinstance(legend,str): legend = str(legend)
-        if offset>0.0: legend += ' (+'+str(offset)+')'
-        if offset<0.0: legend += ' ('+str(offset)+')'
-      grs.legend(legend, color=pd.color)
+       grs.add(grs1)
+       legend = pd.legend
+       if not offset==0.0:
+         if legend==None: legend = 'offset'
+         if not isinstance(legend,str): legend = str(legend)
+         if offset>0.0: legend += ' (+'+str(offset)+')'
+         if offset<0.0: legend += ' ('+str(offset)+')'
+       grs.legend(legend, color=pd.color)
 
-    trace = True
-    if trace:
-      grs.display('make_plot()')
+     trace = True
+     if trace:
+       grs.display('make_plot()')
 
-    print '********* grs is ', grs
+     print '********* grs is ', grs
 
-    # Use the Figure class to make a pylab plot,
-    import Figure as figure
-    fig = figure.Figure(clear=False)
-    fig.add(grs)
-    fig.plot(dispose=['show'], rootname=self.class_name,
+     # Use the Figure class to make a pylab plot,
+     import Figure as figure
+     fig = figure.Figure(clear=False)
+     fig.add(grs)
+     fig.plot(dispose=['show'], rootname=self.class_name,
                                    clear=False, trace=trace)
-    # Finished:
+     # Finished:
 
 class PylabPlotter(GriddedPlugin):
   """ a class to visualize data from external pylab graphics files """
@@ -152,6 +184,7 @@ class PylabPlotter(GriddedPlugin):
   def __init__(self,gw,dataitem,cellspec={},**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     """ a plugin for showing pylab plots """
+
     self._rec = None;
     self._wtop = None;
     self.dataitem = dataitem
@@ -201,6 +234,16 @@ class PylabPlotter(GriddedPlugin):
         the functions which does the actual plotting """
 
     _dprint(3, '** in pylab_plotter:set_data callback')
+
+    if not has_pylab:
+      Message = "Matplotlib does not appear to be installed so no plot can be made."
+      cache_message = QLabel(Message,self.wparent())
+      cache_message.setTextFormat(Qt.RichText)
+      self._wtop = cache_message
+      self.set_widgets(cache_message)
+      self.reset_plot_stuff()
+      return
+
     self._rec = dataitem.data;
     _dprint(3, 'set_data: initial self._rec ', self._rec)
 # if we are single stepping through requests, Oleg may reset the
@@ -263,7 +306,7 @@ class PylabPlotter(GriddedPlugin):
   def process_data (self):
     """ process the actual record structure associated with a Cache result """
     process_result = False
-# are we dealing with an svg / pylab result?
+# are we dealing with an pylab result?
     if self._rec.has_key("plotdefs"):
       self.create_layout_stuff()
       self.show_pylab_plot()
@@ -308,11 +351,9 @@ class PylabPlotter(GriddedPlugin):
       self._toolbar = NavigationToolbar(self._pylab_plotter, self.layout_parent)
       self._toolbar.show()
       self.layout.addWidget(self._toolbar,1,0)
-    
-#   self._pylab_plotter.compute_demo_figure()
     self._pylab_plotter.make_plot(pylab_record)
     
-    # end show_pylab_plot()
+  # end show_pylab_plot()
 
 
   def set_results_buffer (self, result_value):
@@ -355,7 +396,8 @@ Grid.Services.registerViewer(meqds.NodeClass(),PylabPlotter,priority=22)
 ########################################
 # stuff for testing
 ########################################
-class ApplicationWindow(QMainWindow):
+if has_pylab:
+  class ApplicationWindow(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self, None,
                              "application main window",
@@ -385,6 +427,9 @@ class ApplicationWindow(QMainWindow):
         # plot something
         sc.compute_demo_figure()
 
+# the following doesn't work
+#       sc.compute_demo_pylab_figure()
+
     def fileQuit(self):
         qApp.exit(0)
 
@@ -407,11 +452,16 @@ modified versions may be distributed without limitation."""
 
 
 def main( argv ):
-  app = QApplication(sys.argv)
-  aw = ApplicationWindow()
-  app.setMainWidget(aw)
-  aw.show()
-  sys.exit(app.exec_loop())
+  if has_pylab:
+    app = QApplication(sys.argv)
+    aw = ApplicationWindow()
+    app.setMainWidget(aw)
+    aw.show()
+    sys.exit(app.exec_loop())
+  else:
+    print ' '
+    print '**** Sorry! It looks like matplotlib/pylab is not available! ****'
+
 
 # Admire
 if __name__ == '__main__':
