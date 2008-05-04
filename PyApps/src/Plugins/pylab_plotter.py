@@ -180,7 +180,7 @@ if has_pylab:
 
      print '********* grs is ', grs
 
-     # Use the Figure class to make a pylab plot,
+     # Use the JEN Figure class to make a pylab plot,
      import Figure as figure
      fig = figure.Figure(clear=False)
      fig.add(grs)
