@@ -136,7 +136,7 @@ if has_pylab:
      print '** rr =',type(rr),rr.keys()
       
      # Create an empty Graphics object:
-     grs = Graphics.Graphics(name=self.class_name,
+     grs = Graphics.Graphics(name=self.class_name, figure=self.fig,
                              # plot_type='polar',     # does not work in svg...!
                              plot_grid=True,
                              title=rr.title,
@@ -157,7 +157,7 @@ if has_pylab:
        labels = len(yy)*[None]
        if pd.annotate:
          labels = pd.labels
-       grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
+       grs1 = Graphics.Scatter(yy=yy, xx=pd.xx, figure=self.fig,
                               annot=labels,
                               dyy=pd.dyy, dxx=pd.dxx,           
                               linestyle=pd.linestyle,
@@ -182,7 +182,7 @@ if has_pylab:
 
      # Use the JEN Figure class to make a pylab plot,
      import Figure as figure
-     fig = figure.Figure(clear=False)
+     fig = figure.Figure(figure=self.fig, clear=False)
      fig.add(grs)
      fig.plot(dispose=['show'], rootname=self.class_name,
                                    clear=False, trace=trace)
@@ -356,6 +356,7 @@ class PylabPlotter(GriddedPlugin):
     pylab_record = self._rec.plotdefs
     if not self._pylab_plotter is None:
       self._pylab_plotter.reparent(QWidget(), 0, QPoint())
+      self._pylab_plotter  = None
     if not self._toolbar is None:
       self._toolbar.reparent(QWidget(), 0, QPoint())
       self._toolbar = None
