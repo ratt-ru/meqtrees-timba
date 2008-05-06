@@ -216,6 +216,8 @@ DMI::BObj * __construct_MeqLST (int n) { return n>0 ? new Meq::LST [n] : new Meq
 DMI::BObj * __construct_MeqStationBeam (int n) { return n>0 ? new Meq::StationBeam [n] : new Meq::StationBeam; }
 #include "ShapeletVisTf.h"
 DMI::BObj * __construct_MeqShapeletVisTf (int n) { return n>0 ? new Meq::ShapeletVisTf [n] : new Meq::ShapeletVisTf; }
+#include "Bessel.h"
+DMI::BObj * __construct_MeqBessel (int n) { return n>0 ? new Meq::Bessel [n] : new Meq::Bessel; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -668,10 +670,15 @@ DMI::BObj * __construct_MeqShapeletVisTf (int n) { return n>0 ? new Meq::Shapele
         AtomicID::registerId(-1728,"Phi0")+
         AtomicID::registerId(-1154,"Ref")+
         AtomicID::registerId(-1177,"Freq")+
+        AtomicID::registerId(-1737,"Coupling")+
         AtomicID::registerId(-1694,"MeqShapeletVisTf")+
         TypeInfoReg::addToRegistry(-1694,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1694,__construct_MeqShapeletVisTf)+
         AtomicID::registerId(-1729,"Modes")+
+        AtomicID::registerId(-1734,"MeqBessel")+
+        TypeInfoReg::addToRegistry(-1734,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1734,__construct_MeqBessel)+
+        AtomicID::registerId(-1601,"Order")+
     0;
     return res;
   }

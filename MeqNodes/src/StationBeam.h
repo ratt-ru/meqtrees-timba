@@ -33,7 +33,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::StationBeam
 #pragma aid RA Dec XYZ
-#pragma aid Filename Phi0 Ref Freq
+#pragma aid Filename Phi0 Ref Freq Coupling
 
 /*
  RA=RA of phase centre
@@ -50,6 +50,7 @@
  
  phi0: rotation of coordinates around the zenith
  ref_freq: reference freq of narrowband beamformer
+ coupling=text file with mutual coupling matrix
 */
 namespace Meq {    
 
@@ -86,7 +87,10 @@ protected:
 
 private:
   string coordfile_name_; //file to store coordinates
+  string couplingfile_name_; //file for mutual coupling
   blitz::Array<double,2> p_;//array of coordinates
+  blitz::Array<double,2> c_;//mutual coupling matrix
+  int coupling_defined_;
 };
 
 

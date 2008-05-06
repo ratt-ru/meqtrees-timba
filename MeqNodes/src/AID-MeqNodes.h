@@ -113,6 +113,11 @@ const int AidConvergence_int = -1626;
 const DMI::AtomicID AidCount(-1099);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
 const int AidCount_int = -1099;
 #endif
+#ifndef _defined_id_AidCoupling
+#define _defined_id_AidCoupling 1
+const DMI::AtomicID AidCoupling(-1737);           // from /home/sarod/Timba/MeqNodes/src/StationBeam.h:36
+const int AidCoupling_int = -1737;
+#endif
 #ifndef _defined_id_AidCutOff
 #define _defined_id_AidCutOff 1
 const DMI::AtomicID AidCutOff(-1648);             // from /home/sarod/LOFAR/Timba/MeqNodes/src/Dimage.h:33
@@ -367,6 +372,11 @@ const int AidMeqAtan_int = -1428;
 #define _defined_id_AidMeqAzEl 1
 const DMI::AtomicID AidMeqAzEl(-1551);            // from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
 const int AidMeqAzEl_int = -1551;
+#endif
+#ifndef _defined_id_AidMeqBessel
+#define _defined_id_AidMeqBessel 1
+const DMI::AtomicID AidMeqBessel(-1734);          // from /home/sarod/Timba/MeqNodes/src/Bessel.h:32
+const int AidMeqBessel_int = -1734;
 #endif
 #ifndef _defined_id_AidMeqCeil
 #define _defined_id_AidMeqCeil 1
@@ -922,6 +932,11 @@ const int AidOnly_int = -1390;
 #define _defined_id_AidOper 1
 const DMI::AtomicID AidOper(-1453);               // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 const int AidOper_int = -1453;
+#endif
+#ifndef _defined_id_AidOrder
+#define _defined_id_AidOrder 1
+const DMI::AtomicID AidOrder(-1601);              // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45
+const int AidOrder_int = -1601;
 #endif
 #ifndef _defined_id_AidOut
 #define _defined_id_AidOut 1

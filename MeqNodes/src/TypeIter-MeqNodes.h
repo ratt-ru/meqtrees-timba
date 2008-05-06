@@ -123,7 +123,8 @@
         Do(Meq::CoordTransform,arg) separator \
         Do(Meq::LST,arg) separator \
         Do(Meq::StationBeam,arg) separator \
-        Do(Meq::ShapeletVisTf,arg)
+        Do(Meq::ShapeletVisTf,arg) separator \
+        Do(Meq::Bessel,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

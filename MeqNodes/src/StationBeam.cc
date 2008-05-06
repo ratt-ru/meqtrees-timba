@@ -46,8 +46,8 @@ using namespace casa;
 namespace Meq {
   
 
-const HIID FDomain = AidDomain;
 const HIID FFilename= AidFilename;
+const HIID FCoupling= AidCoupling;
 
 const HIID child_labels[] = { AidRADec,AidXYZ,AidPhi0,AidRef|AidFreq };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
@@ -60,6 +60,7 @@ StationBeam::StationBeam()
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
+  coupling_defined_=0;
 }
 
 StationBeam::~StationBeam()
@@ -100,6 +101,38 @@ void StationBeam::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 #ifdef DEBUG
    cout<<"P="<<p_<<endl;
 #endif
+
+	if (rec[FCoupling].get(couplingfile_name_,initializing) ) {
+#ifdef DEBUG
+   cout<<"Coupling File Name ="<<couplingfile_name_<<endl;
+#endif
+   infd.open(couplingfile_name_.c_str());
+   if (infd.is_open()) {
+    coupling_defined_=1;
+    c_.resize(nx,nx);//mutual coupling matrix
+    ci=0;
+    int cj;
+    double dummy;
+    while (!infd.eof() && ci<nx) {
+      c_(ci,ci)=1; // diagonal is 1
+      cj=0;
+      while (!infd.eof() && cj<ci) {
+        getline(infd,line);
+        sscanf(line.c_str(),"%lf %lf",&c_(ci,cj), &dummy); 
+        c_(cj,ci)=c_(ci,cj);
+        cj++;
+      }
+      ci++;
+    }
+    infd.close();
+   }
+#ifdef DEBUG
+   cout<<"C="<<c_<<endl;
+#endif
+
+
+  }
+
 }
 
 
@@ -206,6 +239,21 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
         tau=k0[0]*p_(nt,0)+k0[1]*p_(nt,1)+k0[2]*p_(nt,2);
         wk(nt)=make_dcomplex(cos(tau),sin(tau))/p_.extent(0); //conjugate, and normalize
      }
+     // mutual copling makes w^H x v_k to w^H x C x v_k, so postmultiply w by C
+     // to reduce cost
+     if (coupling_defined_) {
+        blitz::Array<dcomplex,1> wk1;
+        int np=p_.extent(0);
+        wk1.resize(np);
+        wk1=wk;
+        for (int nrr=0; nrr<np; nrr++) {
+         wk(nrr)=make_dcomplex(0); 
+         for (int ncc=0; ncc<np; ncc++) {
+           wk(nrr)+=wk1(ncc)*c_(ncc,nrr);
+         }
+        }
+     }
+
      for( int ck=0; ck<naz; ck++)  {
        double phi=azval(ck); //no rotation here, because already rotated
        for( int cl=0; cl<nel; cl++)  {
