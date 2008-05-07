@@ -159,7 +159,7 @@ class MSContentSelector (object):
     if self.field_index is not None:
       selection.field_index = self.field_index;
     if self.ms_taql_str:
-      selection.selection_string = ms_taql_str;
+      selection.selection_string = self.ms_taql_str;
     return selection;
 
   def _select_new_ms (self,ms):

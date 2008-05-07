@@ -177,6 +177,7 @@ class IfrArray (object):
     """Returns unqualified station position nodes,
     If a station is supplied, returns XYZ node for that station""";
     xyz0 = self.ns.xyz0;
+    #print "xyz",  xyz0.initialized(),self.station_index();
     if not xyz0.initialized():
       for (ip,p) in self.station_index():
         # since the Meow.ReadVisHeader script knows nothing about
