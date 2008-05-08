@@ -41,8 +41,7 @@ class PrintPyNode (pynode.PyNode):
       for ch in children:
           for result in ch.vellsets:
             f=array(result.value.getflat());
-            print "f",f
-            f.tofile(file=filen, format='%.6f', sep=' ')
+            f.tofile(file=filen, format='%.6f ', sep=' : ')
              # f.write(result.value.getflat());
           
       #f.close();

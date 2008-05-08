@@ -5,6 +5,7 @@ from Meow import Jones,ParmGroup,Bookmarks
 from Timba.Contrib.MXM.MimModule.KL import KL_MIM
 from Timba.Contrib.MXM.MimModule import TID_MIM
 from Timba.Contrib.MXM.MimModule import Poly_MIM
+from Timba.Contrib.MXM.MimModule import Kolmogorov_MIM
 
 def _modname (obj):
   if hasattr(obj,'name'):
@@ -31,7 +32,7 @@ def _modopts (mod,opttype='compile'):
   else:
     return [];
 
-modules=[KL_MIM,TID_MIM,Poly_MIM];
+modules=[KL_MIM,TID_MIM,Poly_MIM,Kolmogorov_MIM];
 submenus = [ TDLMenu("Use '%s' module"%_modname(mod),name=_modname(mod),
                      toggle=_modname(mod).replace('.','_'),namespace={},
                      *_modopts(mod,'compile'))
@@ -52,7 +53,6 @@ class ZJones(object):
     stations = stations or Context.array.stations();
     print "selected",selname;
     for mod in modules:
-      print _modname(mod),selname;
       if _modname(mod).replace('.','_') == selname:
         self.mim_model=mod;
         break;

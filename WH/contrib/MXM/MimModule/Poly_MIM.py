@@ -68,6 +68,6 @@ class MIM(PiercePoints):
                             Mim=Miml;
                         if nlo> 0:
                             Mim = Mim*lon(src,station);
-                tec << Mim * sec;
+                    tec << Mim * sec;
                 
         return ns['tec'];

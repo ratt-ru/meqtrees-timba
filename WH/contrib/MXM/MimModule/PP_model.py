@@ -5,7 +5,7 @@ from Meow import ParmGroup,Bookmarks
 from Timba.Contrib.MXM.MimModule import ZJones
 
 
-
+Settings.forest_state.cache_policy = 0;
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=[1,10,50],flags=False);
 
 # MS compile-time options
@@ -66,11 +66,13 @@ import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 meqmaker.add_sky_models([central_point_source,lsm,gridded_sky]);
 
-from Timba.Contrib.OMS.Calico import solvable_jones;
+from Timba.Contrib.MXM.MimModule import solvable_jones;
 meqmaker.add_uv_jones('G','receiver gains/phases',
   [ solvable_jones.DiagAmplPhase(),
     solvable_jones.FullRealImag() ]);
 
+meqmaker.add_uv_jones('B','bandpass',
+  [ solvable_jones.DiagBandPass()]);
 
 meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
 from Timba.Contrib.MXM.MimModule import solvable_sky_jones;

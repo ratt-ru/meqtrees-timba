@@ -125,7 +125,7 @@ class PiercePoints(MIM_model):
 
         return pp;
 
-    def create_log_nodes(self,xy=True): # create nodes to log phase per x,y (or long/lat if xy=False) 
+    def create_log_nodes(self,xy=False): # create nodes to log phase per x,y (or long/lat if xy=False) 
         if xy:
             pp = self.make_xy_pp();
         else:
@@ -137,9 +137,12 @@ class PiercePoints(MIM_model):
                 filename="phases_"+str(station)+"_"+src.name+".dat";
                 log = pp('log',src,station);
                 if not log.initialized():
-
-                    log<< Meq.PyNode(children=(pp('x',src,station),pp('y',src,station),phases(src,station)),
-                                     class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
+                    if xy:
+                        log<< Meq.PyNode(children=(pp('x',src,station),pp('y',src,station),phases(src,station)),
+                                         class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
+                    else:
+                        log<< Meq.PyNode(children=(pp('lon',src,station),pp('lat',src,station)),
+                                         class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
         return pp('log');
 
     def create_station_log_nodes(self): # create nodes to log phase of all stations per source 
@@ -163,8 +166,8 @@ class PiercePoints(MIM_model):
     def inspectors(self):
         inspectors=[];
         if make_log:
-            #ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_log_nodes(),self.src,self.stations);
-            ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_station_log_nodes(),self.src);
+            ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_log_nodes(),self.src,self.stations);
+            #ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_station_log_nodes(),self.src);
             inspectors.append(ip);
         print "INSPECTORS:::::",inspectors;
         return inspectors;
