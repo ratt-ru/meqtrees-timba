@@ -24,7 +24,7 @@ LOCALSRCS = \
     FITSSpigot.cc FITSDataMux.cc FITSUtils.cc \
     PrivateFunction.cc MaxLocation.cc MinLocation.cc\
     RADec.cc ObjectRADec.cc CoordTransform.cc LST.cc\
-    StationBeam.cc ShapeletVisTf.cc
+    StationBeam.cc ShapeletVisTf.cc Bessel.cc
 
 
 
