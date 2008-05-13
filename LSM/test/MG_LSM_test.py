@@ -70,7 +70,7 @@ lsm=LSM()
 def _define_forest (ns):
  global lsm
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
+ infile_name = home_dir + '/Timba/LSM/test/3C343_nvss.txt'
  lsm.build_from_catalog(infile_name,ns)
  #remember node scope
  lsm.setNodeScope(ns)
@@ -80,7 +80,7 @@ def _define_forest (ns):
 def _define_forest1 (ns):
  global lsm
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
+ infile_name = home_dir + '/Timba/LSM/test/3C343_nvss.txt'
  infile=open(infile_name,'r')
  all=infile.readlines()
  infile.close()
@@ -145,7 +145,7 @@ def _tdl_job_build_lsm_from_sixpacks(mqs,parent):
  lsm=LSM()
  ns=NodeScope()
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/LOFAR/Timba/LSM/test/3C343_nvss.txt'
+ infile_name = home_dir + '/Timba/LSM/test/3C343_nvss.txt'
  infile=open(infile_name,'r')
  all=infile.readlines()
  infile.close()
@@ -228,27 +228,6 @@ def _tdl_job_build_lsm_from_sixpacks(mqs,parent):
 
 def _test_forest (mqs, parent):
  global lsm
- #display LSM within MeqBrowser
- #l.display()
- # set the MQS proxy of LSM
- lsm.setMQS(mqs)
-
- 
-
- f0 = 1200e6
- f1 = 1600e6
- t0 = 0.0
- t1 = 1.0
- nfreq = 3
- ntime = 2
- # create cells
- freqtime_domain = meq.domain(startfreq=f0, endfreq=f1, starttime=t0, endtime=t1);
- cells =meq.cells(domain=freqtime_domain, num_freq=nfreq,  num_time=ntime);
- # set the cells to LSM
- lsm.setCells(cells)
- # query the MeqTrees using these cells
- lsm.updateCells()
- # display results
  lsm.display()
 
 
