@@ -41,7 +41,9 @@ class KolmogorovNode (pynode.PyNode):
         mystate('speedx',0.); #speed in m/s.
         mystate('speedy',0.); #speed in m/s.
         mystate('grid_size',10); #scale in km.
-        mystate('beta',5./3.); #scale in km.
+        mystate('beta',5./3.); #beta.
+        mystate('amp_scale',1e-5); #scale of amplitude.
+
 
         if not initialized:
             PhaseScreen.init_phasescreen(self.grid_size,self.beta);
@@ -91,7 +93,7 @@ class KolmogorovNode (pynode.PyNode):
                 xn=int(xn)%(self.grid_size*2)  # zorg dat xn een integer tussen 0 en 2*grid_size is
                 yn=int(yn)%(self.grid_size*2)  # zorg dat xn een integer tussen 0 en 2*grid_size is
                 
-                val.append(PhaseScreen.phasescreen[xn][yn]);
+                val.append(PhaseScreen.phasescreen[xn][yn]*self.amp_scale);
         #fill result
         res = meq.result(0,cells);
         val2=meq.vells(shape=meq.shape(endt+1,));
