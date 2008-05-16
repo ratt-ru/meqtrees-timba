@@ -25,19 +25,6 @@
 
 script_name = 'MG_LSM_test.py'
 
-# Short description:
-#   Template for the generation of MeqGraft scripts
-
-# Keywords: LSM
-
-
-# History:
-# - 12 Sep 2005: creation
-
-# Copyright: The MeqTree Foundation 
-
-#================================================================================
-# Import of Python modules:
 
 from Timba import utils
 _dbg = utils.verbosity(0, name='LSM_Test')
@@ -53,7 +40,6 @@ from Timba.Meq import meq
 from Timba.LSM.LSM import *
 from Timba.LSM.LSM_GUI import *
 
-from Timba.Contrib.JEN import MG_JEN_Sixpack
 
 from random import *
 # to force caching put 100
@@ -77,143 +63,6 @@ def _define_forest (ns):
 
 ########################################################################
 
-def _define_forest1 (ns):
- global lsm
- home_dir = os.environ['HOME']
- infile_name = home_dir + '/Timba/LSM/test/3C343_nvss.txt'
- infile=open(infile_name,'r')
- all=infile.readlines()
- infile.close()
-
- # regexp pattern
- pp=re.compile(r"""
-   ^(?P<col1>\S+)  # column 1 'NVSS'
-   \s*             # skip white space
-   (?P<col2>[A-Za-z]\w+\+\w+)  # source name i.e. 'J163002+631308'
-   \s*             # skip white space
-   (?P<col3>\d+)   # RA angle - hr 
-   \s*             # skip white space
-   (?P<col4>\d+)   # RA angle - min 
-   \s*             # skip white space
-   (?P<col5>\d+(\.\d+)?)   # RA angle - sec
-   \s*             # skip white space
-   (?P<col6>\d+(\.\d+)?)   # eRA angle - sec
-   \s*             # skip white space
-   (?P<col7>\d+)   # Dec angle - hr 
-   \s*             # skip white space
-   (?P<col8>\d+)   # Dec angle - min 
-   \s*             # skip white space
-   (?P<col9>\d+(\.\d+)?)   # Dec angle - sec
-   \s*             # skip white space
-   (?P<col10>\d+(\.\d+)?)   # eDec angle - sec
-   \s*             # skip white space
-   (?P<col11>\d+)   # freq
-   \s*             # skip white space
-   (?P<col12>\d+(\.\d+)?)   # brightness - Flux
-   \s*             # skip white space
-   (?P<col13>\d*\.\d+)   # brightness - eFlux
-   \s*
-   \S+
-   \s*$""",re.VERBOSE)
- 
- sixpack_list=[]
- # read each source and insert to LSM
- for eachline in all:
-  v=pp.search(eachline)
-  if v!=None:
-   #print v.group('col2'), v.group('col12')
-   s=Source(v.group('col2'))
-   source_RA=float(v.group('col3'))+(float(v.group('col5'))/60.0+float(v.group('col4')))/60.0
-   source_RA*=math.pi/12.0
-   source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
-   source_Dec*=math.pi/180.0
-
-   my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[1.0],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
-   # first compose the sixpack before giving it to the LSM
-   SourceRoot=my_sixpack.sixpack(ns)
-
-   sixpack_list.append(my_sixpack)
-   my_sixpack.display()
- 
- lsm.build_from_sixpacks(sixpack_list,ns)
- #remember node scope
- lsm.setNodeScope(ns)
-
-#
-# this should be only run from the browser
-def _tdl_job_build_lsm_from_sixpacks(mqs,parent):
- lsm=LSM()
- ns=NodeScope()
- home_dir = os.environ['HOME']
- infile_name = home_dir + '/Timba/LSM/test/3C343_nvss.txt'
- infile=open(infile_name,'r')
- all=infile.readlines()
- infile.close()
-
- # regexp pattern
- pp=re.compile(r"""
-   ^(?P<col1>\S+)  # column 1 'NVSS'
-   \s*             # skip white space
-   (?P<col2>[A-Za-z]\w+\+\w+)  # source name i.e. 'J163002+631308'
-   \s*             # skip white space
-   (?P<col3>\d+)   # RA angle - hr 
-   \s*             # skip white space
-   (?P<col4>\d+)   # RA angle - min 
-   \s*             # skip white space
-   (?P<col5>\d+(\.\d+)?)   # RA angle - sec
-   \s*             # skip white space
-   (?P<col6>\d+(\.\d+)?)   # eRA angle - sec
-   \s*             # skip white space
-   (?P<col7>\d+)   # Dec angle - hr 
-   \s*             # skip white space
-   (?P<col8>\d+)   # Dec angle - min 
-   \s*             # skip white space
-   (?P<col9>\d+(\.\d+)?)   # Dec angle - sec
-   \s*             # skip white space
-   (?P<col10>\d+(\.\d+)?)   # eDec angle - sec
-   \s*             # skip white space
-   (?P<col11>\d+)   # freq
-   \s*             # skip white space
-   (?P<col12>\d+(\.\d+)?)   # brightness - Flux
-   \s*             # skip white space
-   (?P<col13>\d*\.\d+)   # brightness - eFlux
-   \s*
-   \S+
-   \s*$""",re.VERBOSE)
- 
- sixpack_list=[]
- # read each source and insert to LSM
- for eachline in all:
-  v=pp.search(eachline)
-  if v!=None:
-   #print v.group('col2'), v.group('col12')
-   s=Source(v.group('col2'))
-   source_RA=float(v.group('col3'))+(float(v.group('col5'))/60.0+float(v.group('col4')))/60.0
-   source_RA*=math.pi/12.0
-   source_Dec=float(v.group('col7'))+(float(v.group('col9'))/60.0+float(v.group('col8')))/60.0
-   source_Dec*=math.pi/180.0
-
-   my_sixpack=MG_JEN_Sixpack.newstar_source(ns,name=s.name,I0=eval(v.group('col12')), SI=[1.0],f0=1e6,RA=source_RA, Dec=source_Dec,trace=0)
-   # first compose the sixpack before giving it to the LSM
-   SourceRoot=my_sixpack.sixpack(ns)
-
-   sixpack_list.append(my_sixpack)
-   my_sixpack.display()
- 
- lsm.build_from_sixpacks(sixpack_list,ns,1e6,mqs)
- #remember node scope
- lsm.setNodeScope(ns)
-
- lsm.setMQS(mqs)
- lsm.display()
-
-
-#================================================================================
-# Optional: Importable function(s): To be imported into user scripts.
-#================================================================================
-
-
-
 
 
 #********************************************************************************
@@ -231,8 +80,6 @@ def _test_forest (mqs, parent):
  lsm.display()
 
 
-##############################################################
-#### test routine to query the LSM and get some Sixpacks from   
 #### PUnits
 def _tdl_job_query_punits(mqs, parent):
  global lsm
@@ -249,14 +96,11 @@ def _tdl_job_query_punits(mqs, parent):
 if __name__ == '__main__':
   print '\n*******************\n** Local test of:',script_name,':\n'
   ns=NodeScope()
-  _define_forest1(ns)
+  _define_forest(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
   #display LSM without MeqBrowser
   # create cell
-  freqtime_domain = meq.domain(10,1000,0,1);
-  cells =meq.cells(domain=freqtime_domain, num_freq=2,  num_time=3);
-  lsm.setCells(cells)
   lsm.display(app='create')
 #********************************************************************************
 #********************************************************************************
