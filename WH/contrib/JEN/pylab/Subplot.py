@@ -10,6 +10,7 @@
 #
 # History:
 #    - 29 jan 2008: creation
+#    - 08 may 2008: Tony's version self.ax.
 #
 # Remarks:
 #
@@ -53,7 +54,7 @@ class Subplot (object):
     """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, figure=1, **kwargs):
         """
         ** The Subplot class looks for the followin keywords in **kwargs:
         - name  [='<name>']:
@@ -70,6 +71,7 @@ class Subplot (object):
         """
 
         # Extract the relevant keyword arguments from kwargs:
+        self.fig = figure
         kw = dict()
         if isinstance(kwargs, dict):
             keys = ['name','plot_mode','plot_type',
@@ -229,8 +231,8 @@ class Subplot (object):
     def plot(self, figure=1, subplot=111, margin=0.1,
              dispose='show', trace=False):
         """Make the subplot"""
-        pylab.figure(figure)
-        pylab.subplot(subplot)
+#       self.fig = pylab.figure(figure)
+        self.ax = self.fig.add_subplot(subplot)
         self.set_plot_window(margin=margin)
         if self._kw['plot_legend']:
             self.plot_legend()              
@@ -246,17 +248,20 @@ class Subplot (object):
     def plot_axis_labels(self):
         """Helper function to make axes labels, using internal info"""
         if isinstance(self._kw['xlabel'],str):
-            pylab.xlabel(self._kw['xlabel'])
+            self.ax.set_xlabel(self._kw['xlabel'])
         if isinstance(self._kw['ylabel'],str):
-            pylab.ylabel(self._kw['ylabel'])
+            self.ax.set_ylabel(self._kw['ylabel'])
         if isinstance(self._kw['title'],str):
-            pylab.title(self._kw['title'])
+            self.ax.set_title(self._kw['title'])
         return True
 
     #------------------------------------------------
 
     def set_plot_window(self, margin=0.1, trace=False):
         """Helper function to set the plot_window, using internal info"""
+        
+        trace = True
+        
         if self._kw['plot_type']=='polar':
             [rmin,rmax] = self._range(self.yrange(), margin=margin,
                                       vmax=self._kw['rmax'])
@@ -274,7 +279,8 @@ class Subplot (object):
             [ymin,ymax] = self._range(self.yrange(), margin=margin,
                                       vmin=self._kw['ymin'],
                                       vmax=self._kw['ymax'])
-            pylab.axis([xmin, xmax, ymin, ymax])
+            print '\n** Subplot.set_plot_window(): self.ax.axis() causes NO problems in Tonys version...\n'
+            self.ax.axis([xmin, xmax, ymin, ymax])
             if trace:
                 print '** set_plot_window(): xrange =',[xmin,xmax],'  yrange =',[ymin,ymax]
         return True
@@ -317,7 +323,7 @@ class Subplot (object):
             y -= dy
             if trace:
                 print '-',i,'(',x,y,dy,color[i],'):',s
-            pylab.text(x,y,s, color=color[i])
+            self.ax.text(x,y,s, color=color[i])
         if trace: print
         return True
 

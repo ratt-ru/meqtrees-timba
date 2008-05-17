@@ -189,7 +189,11 @@ class Figure (Subplot.Subplot):
     def plot(self, figure=1, margin=0.1, dispose='show', rootname='Figure',
              clear=True, trace=False):
         """Plot the pylab figure, with its Subplots"""
-        pylab.figure(figure)
+
+        trace = True
+        
+#       self.fig = pylab.figure(figure)
+
         if trace:
             print '\n** Figure.plot(',figure, margin, rootname, dispose,'):'
         for key in self._order:
@@ -215,6 +219,8 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
     """Generic routine to dispose of the pylab figure.
     Dipose can be a string (show, svg), or a list of strings"""
 
+    trace = True
+    
     if trace:
         print '\n** Figure.dispose(',dispose,origin,') rootname=',rootname,
     if dispose==None:
@@ -242,9 +248,10 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
                 result = filename             # filename for png-plotter...??
 
             if ext in ['svg','SVG']:
-                import matplotlib             # Tony says...??
-                matplotlib.use('SVG')         # Tony says...??
-                svgname = filename            # used below...
+                if True:                  
+                    import matplotlib             # Tony says...??
+                    matplotlib.use('SVG')         # Tony says...??
+                    svgname = filename            # used below...
                 # since we are using backend 'SVG', svg is
                 # automatically added to filename
                 # r = pylab.savefig(rootname)
@@ -255,9 +262,9 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
 
             if clear:
                 # Clear the current figure AFTER pylab.savefig()
-                if trace: print '** Figure: before pylab.clf()',rootname
+#               if trace: print '** Figure: before pylab.clf()',rootname
                 pylab.clf()
-                if trace: print '** Figure: after pylab.clf()',rootname
+#               if trace: print '** Figure: after pylab.clf()',rootname
 
             if delay>0.0:
                 # Not necessary...
@@ -266,10 +273,11 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
 
     # Get the XML string (result) from the .svg file: 
     if isinstance(svgname,str):
+        print '\n** Figure: ',filename,svgname,type(svgname),'\n'
         file = open(filename,'r')
         result = file.readlines()
         file.close()
-        if trace:
+        if False:
             n = len(result)
             print '\n - read:',filename,'->',type(result),n,'\n'
             for i in range(min(6,n-1)): print '  -',i,': ',result[i]
@@ -286,7 +294,7 @@ def pylab_dispose(dispose='show', rootname='pylabFigure',
     # Show the pylab figure (this freezes everything and closes the figure!)
     if 'show' in dispose:
         if trace: print '  doing pylab.show()'
-        pylab.show()
+#       pylab.show()
 
 
     # Finished: return the result (if any):

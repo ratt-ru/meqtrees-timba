@@ -8,6 +8,7 @@
 # History:
 #    - 21 mar 2008: creation (from VisuPlotXY.py)
 #    - 21 apr 2008: derived from PyNodeNamedGroups)
+#    - 07 may 2008: Tony's version with pyfig
 #
 # Remarks:
 #
@@ -547,7 +548,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
       pd.stddev = 0.0
       if len(vv)>1:
         if not isinstance(vv[0],complex):
-          pd.stddev = vv.stddev()       
+          pd.stddev = vv.std()       
     return True
 
 
@@ -565,7 +566,9 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # trace = True
       
     # Create an empty Graphics object:
-    grs = Graphics.Graphics(name=self.class_name,
+    import pylab
+    pyfig = pylab.figure(1)
+    grs = Graphics.Graphics(name=self.class_name, figure = pyfig,
                             # plot_type='polar',     # does not work in svg...!
                             plot_grid=True,
                             title=rr.title+' {'+str(self._count)+'}',
@@ -586,7 +589,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
       labels = len(yy)*[None]
       if pd.annotate:
         labels = pd.labels
-      grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
+      grs1 = Graphics.Scatter(yy=yy, xx=pd.xx, figure=pyfig,
                               annot=labels,
                               dyy=pd.dyy, dxx=pd.dxx,           
                               linestyle=pd.linestyle,
@@ -613,7 +616,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # Use the Figure class to make a pylab plot,
     # and to generate an svg definition string:
     import Figure
-    fig = Figure.Figure()
+    fig = Figure.Figure(figure=pyfig)
     fig.add(grs)
     if trace:
       fig.display('make_svg()')
@@ -725,9 +728,8 @@ class ExampleDerivedClass (PyNodePlot):
     PyNodePlot.__init__(self, *args)
 
     # Set some standard colors/markers, which may be retrieved with
-    # color = self.color(key) or marker = self.marker(key) etc. 
-    self.color(update=record(a='red', b='green', x='blue'))
-    self.marker(update=record(c='diamond', d='hexagon'))
+    self.standard('color', update=record(a='red', b='green', x='blue'))
+    self.standard('marker', update=record(c='diamond', d='hexagon'))
     return None
 
   #-------------------------------------------------------------------
@@ -849,7 +851,7 @@ def format_vv (vv):
   s += format_float(ww.mean(),'  mean')
   if len(ww)>1:                       
     if not isinstance(ww[0],complex):
-      s += format_float(ww.stddev(),'  stddev')
+      s += format_float(ww.std(),'  stddev')
   return s
 
 
@@ -912,8 +914,8 @@ def _define_forest (ns,**kwargs):
 
   ns['rootnode'] << Meq.PyNode(children=cc,
                                child_labels=labels,
-                               # class_name='PyNodePlot',
-                               class_name='ExampleDerivedClass',
+                               class_name='PyNodePlot',
+                               # class_name='ExampleDerivedClass',
                                groupspecs=gs,
                                plotspecs=ps,
                                module_name=__file__)

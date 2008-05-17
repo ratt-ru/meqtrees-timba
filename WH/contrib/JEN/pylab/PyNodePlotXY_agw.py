@@ -1,4 +1,4 @@
-# file: ../contrib/JEN/pylab/PyNodePlotVis22.py
+# file: ../contrib/JEN/pylab/AGW/PyNodePlotXY_agw.py
 
 # Author: J.E.Noordam
 # 
@@ -383,6 +383,8 @@ def _define_forest (ns,**kwargs):
   # Make the pynode(s):
   pp = []
   pypage = Meow.Bookmarks.Page('pynode')
+  viewer = "Pylab Plotter"
+  # viewer = "Svg Plotter"
 
   if True:
     class_name = 'PlotXY'
@@ -396,8 +398,8 @@ def _define_forest (ns,**kwargs):
                                           plotspecs=ps,
                                           module_name=__file__)
     pp.append(pynode)
-    pypage.add(ns[class_name], viewer="Pylab Plotter")
-    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Pylab Plotter")
+    pypage.add(ns[class_name], viewer=viewer)
+    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
 
 
   if False:
@@ -407,19 +409,19 @@ def _define_forest (ns,**kwargs):
                                           class_name=class_name,
                                           module_name=__file__)
     pp.append(pynode)
-    pypage.add(ns[class_name], viewer="Pylab Plotter")
-    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Pylab Plotter")
+    pypage.add(ns[class_name], viewer=viewer)
+    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
 
 
-  if False:
+  if True:
     class_name = 'PlotXXYY'
     pynode = ns[class_name] << Meq.PyNode(children=xxyy,
                                           child_labels=xxyy_labels,
                                           class_name=class_name,
                                           module_name=__file__)
     pp.append(pynode)
-    pypage.add(ns[class_name], viewer="Pylab Plotter")
-    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Pylab Plotter")
+    pypage.add(ns[class_name], viewer=viewer)
+    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
 
   if False:
     class_name = 'PlotXXYYZZ'
@@ -428,8 +430,8 @@ def _define_forest (ns,**kwargs):
                                           class_name=class_name,
                                           module_name=__file__)
     pp.append(pynode)
-    pypage.add(ns[class_name], viewer="Pylab Plotter")
-    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Pylab Plotter")
+    pypage.add(ns[class_name], viewer=viewer)
+    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
 
 
   if False:
@@ -458,8 +460,8 @@ def _define_forest (ns,**kwargs):
                                             # child_labels=xxyyzz_labels,
                                             module_name=__file__)
       pp.append(pynode)
-      pypage.add(ns[class_name], viewer="Pylab Plotter")
-      Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Pylab Plotter")
+      pypage.add(ns[class_name], viewer=viewer)
+      Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
 
 
 

@@ -12,6 +12,7 @@
 #
 # History:
 #   - 12 apr 2008: creation (from PyPlot.py)
+#   - 17 may 2008: stddev() -> std() (numpy)
 #
 # Remarks:
 #
@@ -768,7 +769,7 @@ def format_vv (vv):
     s += format_float(ww.mean(),'  mean')
     if len(ww)>1:                       
       if not isinstance(ww[0],complex):
-        s += format_float(ww.stddev(),'  stddev')
+        s += format_float(ww.std(),'  stddev')
   return s
 
 

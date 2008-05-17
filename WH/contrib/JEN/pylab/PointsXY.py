@@ -9,6 +9,7 @@
 #
 # History:
 #    - 27 jan 2008: creation
+#    - 15 may 2008: Tony's version (.ax.)
 #
 # Remarks:
 #
@@ -56,12 +57,13 @@ class PointsXY (object):
     """Encapsulation of a set of 2D points, for (pylab) plotting
     """
 
-    def __init__(self, yy=None, annot=None, name=None, 
+    def __init__(self, subplot=None, yy=None, annot=None, name=None, 
                  xx=None, dyy=None, dxx=None,
                  **kwargs):
 
 
         # Deal with the specified name (label):
+        self.ax = subplot
         self._name = name
         if not isinstance(self._name,str): self._name = '<name>'
 
@@ -550,25 +552,25 @@ class PointsXY (object):
             print '\n** plot_points(label=',label,') plot_type=',ptype,'\n'
 
         if ptype=='loglog':
-            pylab.loglog(xx, yy, label=label,
+            self.ax.loglog(xx, yy, label=label,
                          **self._PlotStyle.kwargs(ptype))
         elif ptype=='semilogy':
-            pylab.semilogy(xx, yy, label=label,
+            self.ax.semilogy(xx, yy, label=label,
                            **self._PlotStyle.kwargs(ptype))
         elif ptype=='semilogx':
-            pylab.semilogx(xx, yy, label=label,
+            self.ax.semilogx(xx, yy, label=label,
                            **self._PlotStyle.kwargs(ptype))
         elif ptype=='polar':
-            pylab.polar(xx, yy, label=label,
+            self.ax.polar(xx, yy, label=label,
                         **self._PlotStyle.kwargs(ptype))
         elif ptype=='quiver':
             self.plot_quiver(xx, yy, label=label,
                              **self._PlotStyle.kwargs(ptype))
         elif ptype=='scatter':
-            pylab.scatter(xx, yy, label=label,
+            self.ax.scatter(xx, yy, label=label,
                           **self._PlotStyle.kwargs(ptype))
         elif self._kw['plot_naked']:
-            pylab.plot(xx, yy)
+            self.ax.plot(xx, yy)
 
         # elif not isinstance(label,str):
         #    # NB: label=='_nolegend_' causes problems with Qt read SVG....
@@ -595,7 +597,7 @@ class PointsXY (object):
                     print '\n** plot_points(): kwargs has no field linestyle\n'
                 for i,y in enumerate(yy):
                     if trace: print '-',xx[i],yy[i],ms[i]
-                    pylab.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+                    self.ax.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
 
             elif kwargs['linestyle']=='.':
                 if trace:
@@ -603,7 +605,7 @@ class PointsXY (object):
                 kwargs.__delitem__('linestyle')
                 for i,y in enumerate(yy):
                     if trace: print '-',xx[i],yy[i],ms[i]
-                    pylab.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+                    self.ax.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
 
             elif False:
                 if trace:
@@ -611,12 +613,12 @@ class PointsXY (object):
                 kwargs.__delitem__('linestyle')
                 for i,y in enumerate(yy):
                     if trace: print '-',xx[i],yy[i],ms[i]
-                    pylab.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+                    self.ax.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
 
             else:
                 if trace:
                     print '\n** plot_points(): group with linestyle=',kwargs['linestyle'],'\n'
-                pylab.plot(xx, yy, label=label, **kwargs)
+                self.ax.plot(xx, yy, label=label, **kwargs)
 
         # Finished
         return True
@@ -658,7 +660,7 @@ class PointsXY (object):
             print '  - Y =',Y
             print '  - U =',U
             print '  - V =',V
-        pylab.quiver(X,Y,U,V,S, color=color, width=width)
+        self.ax.quiver(X,Y,U,V,S, color=color, width=width)
         # pylab.quiver(X,Y,U,V, color=color)
         if trace:
             # pylab.plot(xx,yy,marker='o',color=color)
@@ -683,7 +685,7 @@ class PointsXY (object):
                 s = '.  '+str(self._annot[i])
                 if trace:
                     print '-',i,':',s,'  x,y =',x,y
-                pylab.text(x,y, s, **kwargs)
+                self.ax.text(x,y, s, **kwargs)
         if trace: print
         return True
 
@@ -699,14 +701,14 @@ class PointsXY (object):
                     dy = self._dyy
                     if isinstance(dy,list): dy = dy[i]
                     dy2 = dy/2.0
-                    pylab.plot([x,x], [y-dy2,y+dy2],
+                    self.ax.plot([x,x], [y-dy2,y+dy2],
                                # label='_nolegend_',
                                color=color, linestyle='-')
                 if self._dxx:
                     dx = self._dxx
                     if isinstance(dx,list): dx = dx[i]
                     dx2 = dx/2.0
-                    pylab.plot([x-dx2,x+dx2], [y,y],
+                    self.ax.plot([x-dx2,x+dx2], [y,y],
                                # label='_nolegend_',
                                color=color, linestyle='-')
         return True
@@ -726,9 +728,9 @@ class PointsXY (object):
                               color=color, linestyle='--')
             [xmean,ymean] = self.mean('xy')
             if False:
-                pylab.text(xmean, ymean, '  mean', color=color)
+                self.ax.text(xmean, ymean, '  mean', color=color)
             if False:
-                arr = pylab.Arrow(0,0,xmean,ymean, edgecolor='black',
+                arr = self.ax.Arrow(0,0,xmean,ymean, edgecolor='black',
                                   # label='_nolegend_',
                                   facecolor=color, linewidth=1, alpha=0.05)
                 pylab.gca().add_patch(arr)
@@ -745,10 +747,10 @@ class PointsXY (object):
             self.plot_ellipse(xy0=[xmean,ymean], a=xstddev, b=ystddev,
                               # label='_nolegend_',
                               color=color, linestyle='--')
-            pylab.plot([xmean], [ymean], marker='+',
+            self.ax.plot([xmean], [ymean], marker='+',
                        # label='_nolegend_',
                        markeredgecolor=color, markersize=20)
-            pylab.plot([xmean], [ymean], marker='o',
+            self.ax.plot([xmean], [ymean], marker='o',
                        # label='_nolegend_',
                        markeredgecolor=color, markerfacecolor=color)
         return True
@@ -769,7 +771,7 @@ class PointsXY (object):
         for angle in angles:
             xx.append(x0+a*pylab.cos(angle))
             yy.append(y0+b*pylab.sin(angle))
-        pylab.plot(xx, yy, color=color,
+        self.ax.plot(xx, yy, color=color,
                    # label=label,
                    linestyle=linestyle)
         return True

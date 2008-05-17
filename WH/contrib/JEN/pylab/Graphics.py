@@ -53,7 +53,7 @@ import PointsXY
 
 class Graphics (Subplot.Subplot):
 
-    def __init__(self, **kwargs):
+    def __init__(self, figure=1, **kwargs):
         """
         ** The Grapics class is derived from the Subplot class.
         It holds one or more Graphics objects.
@@ -69,7 +69,9 @@ class Graphics (Subplot.Subplot):
         - If centre_mark=<mark>, the centre/mean is indicated.
         """
 
-        Subplot.Subplot.__init__(self, **kwargs)
+        self.fig = figure
+        print '************* Graphics: self.fig = ', self.fig
+        Subplot.Subplot.__init__(self, figure, **kwargs)
 
         # Extract the keywords available to all Graphics classes,
         # and add them to the Subplot keyword dict self._kw:
@@ -254,27 +256,32 @@ class Graphics (Subplot.Subplot):
         """Plot the group of points, using pylab"""
         if trace:
             print '\n** Graphics.plot(',figure,subplot,margin,dispose,')'
-        fig = pylab.figure(figure)
-        if trace: print '  -',fig
-        sub= pylab.subplot(subplot)
-        if trace: print '  -',sub
+#       self.fig = pylab.figure(figure)
+        if trace: print '  -',self.fig
+        self.ax = self.fig.add_subplot(subplot)
+        if trace: print '  -',self.ax
         if self._kw['plot_axes']:
             self.plot_axes(xaxis=True, yaxis=True)
         for key in self._order:
+            if trace:
+                print '- self._graphic[',key,'].plot(margin=0.0, dispose=None)'
             self._graphic[key].plot(margin=0.0, dispose=None)
-        self.set_plot_window(margin=margin, trace=False)
+        if False:
+            print '- inhibited self.set_plot_window(margin=',margin,')'
+        else:
+            self.set_plot_window(margin=margin, trace=trace)
         if self._kw['plot_axis_labels']:
             self.plot_axis_labels()
         if self._kw['plot_legend']:
             self.plot_legend()
         if self._kw['auto_legend']:
-            pylab.legend()             # NB: This causes problems with Qwt read svg...!!
+            self.ax.legend()             # NB: This causes problems with Qwt read svg...!!
         if self._kw['plot_grid']:
             if self._kw['plot_type']=='polar':
                 pass
                 # pylab.thetagrids(True)                 # see also .rgrids()
             else:
-                pylab.grid(True)
+                self.ax.grid(True)
         import Figure
         return Figure.pylab_dispose(dispose, origin='Graphics.plot()',
                                     rootname=self.name(), trace=trace)
@@ -297,11 +304,11 @@ class Graphics (Subplot.Subplot):
         [xmin,xmax] = self.xrange()
         [ymin,ymax] = self.yrange()
         if xaxis and ((ymin*ymax)<=0.0):
-            pylab.plot([xmin,xmax], [0.0,0.0],
+            self.ax.plot([xmin,xmax], [0.0,0.0],
                        label='_nolegend_',
                        color=color, linewidth=linewidth)
         if yaxis and ((xmin*xmax)<=0.0):
-            pylab.plot([0.0,0.0], [ymin,ymax],
+            self.ax.plot([0.0,0.0], [ymin,ymax],
                        label='_nolegend_',
                        color=color, linewidth=linewidth)
         return True
@@ -315,7 +322,7 @@ class Graphics (Subplot.Subplot):
 
 class Scatter (Graphics):
 
-    def __init__(self, yy=None, annot=None,
+    def __init__(self, figure=1, yy=None, annot=None,
                  xx=None, dxx=None, dyy=None,
                  **kwargs):
         """
@@ -328,13 +335,18 @@ class Scatter (Graphics):
         - Any dyy and/or dxx are converted to error bars.
         - Annotations are supplied via annot and annotpos.
         """
-        Graphics.__init__(self, **kwargs)
+        self.fig = figure
+        print '************* Scatter: self.fig = ', self.fig
+        Graphics.__init__(self, figure=self.fig, **kwargs)
+
+        # A hack. why isn't the subplot constructed in the Graphics init? 
+        self.ax = self.fig.add_subplot(111)
 
         # Make the PointsXY object, and add it to the internal list:
         kwargs.setdefault('style','o')
         kwargs.setdefault('markersize',5)
         # kwargs['linestyle'] = None
-        self.add(PointsXY.PointsXY(yy=yy, annot=annot,
+        self.add(PointsXY.PointsXY(subplot=self.ax, yy=yy, annot=annot,
                                    xx=xx, dxx=dxx, dyy=dyy,
                                    **kwargs))
 
@@ -373,7 +385,7 @@ class Rectangle (Graphics):
         kwargs.setdefault('linewidth',2)
 
         # Make the PointsXY object, and add it to the internal list:
-        self.add(PointsXY.PointsXY(yy, xx=xx, **kwargs))
+        self.add(PointsXY.PointsXY(yy, subplot=self.ax, xx=xx, **kwargs))
 
         # Finished:
         return None
@@ -405,7 +417,7 @@ class Arrow (Graphics):
 
 
         # Make the PointsXY object:
-        pxy = PointsXY.PointsXY(y0, xx=x0, dxx=dx, dyy=dy, **kwargs)
+        pxy = PointsXY.PointsXY(y0, subplot=self.ax, xx=x0, dxx=dx, dyy=dy, **kwargs)
         self.add(pxy)
         self.last().kwupdate(**dict(plot_type='quiver'))
 
@@ -464,7 +476,7 @@ class Arrow_old (Graphics):
         yy.append(yy[1])
 
         # Make the PointsXY object and rotate it by angle a:
-        pxy = PointsXY.PointsXY(yy, xx=xx, **kwargs)
+        pxy = PointsXY.PointsXY(yy, subplot=self.ax, xx=xx, **kwargs)
         pxy.rotate(a, xy0=xy1)
         self.add(pxy)
 
@@ -511,7 +523,7 @@ class Circle (Graphics):
             yy.append(y0)
             
         # Make the PointsXY object, and add it to the internal list:
-        pts = PointsXY.PointsXY(yy, xx=xx, **kwargs)
+        pts = PointsXY.PointsXY(yy, subplot=self.ax, xx=xx, **kwargs)
         pts.rotate(angle, xy0=xy0)
         self.add(pts)
 
@@ -567,7 +579,7 @@ class Ellipse (Graphics):
 
             
         # Make the PointsXY object, and add it to the internal list:
-        pts = PointsXY.PointsXY(yy, xx=xx, **kwargs)
+        pts = PointsXY.PointsXY(yy, subplot=self.ax, xx=xx, **kwargs)
         pts.rotate(angle, xy0=xy0)
         self.add(pts)
 

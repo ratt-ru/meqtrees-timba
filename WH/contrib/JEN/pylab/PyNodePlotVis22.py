@@ -7,6 +7,7 @@
 #
 # History:
 #    - 28 apr 2008: creation (from PyNodePlot.py)
+#    - Tony's version
 #
 # Remarks:
 #
@@ -363,8 +364,10 @@ def _define_forest (ns,**kwargs):
   # Make the pynode(s):
   pp = []
   pypage = Meow.Bookmarks.Page('pynode')
+  viewer = "Pylab Plotter"
 
   if True:
+    class_names = ['PlotVis22']
     class_names = ['PlotVis22','PlotCrossCorrs','PlotIQUV']
     # class_names = ['PlotIQUV']
     for class_name in class_names:
@@ -377,8 +380,8 @@ def _define_forest (ns,**kwargs):
                                             # plotspecs=ps,
                                             module_name=__file__)
       pp.append(pynode)
-      pypage.add(ns[class_name], viewer="Svg Plotter")
-      Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
+      pypage.add(ns[class_name], viewer=viewer)
+      Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
 
 
   #---------------------------------------------------------------------
@@ -390,8 +393,8 @@ def _define_forest (ns,**kwargs):
                                           class_name=class_name,
                                           module_name=__file__)
     pp.append(pynode)
-    pypage.add(ns[class_name], viewer="Svg Plotter")
-    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer="Svg Plotter")
+    pypage.add(ns[class_name], viewer=viewer)
+    Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
   else:
     # Bundle them, to limit browser clutter:
     ns['uu'] << Meq.Composer(*uu)
