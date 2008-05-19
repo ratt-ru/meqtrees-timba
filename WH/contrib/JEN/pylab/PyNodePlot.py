@@ -430,7 +430,6 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     # Optionally, generate info for the "svg plotter":
     result.svg_plot = None
-    # self.plotspecs.make_svg = False            # obsolete...? 
     if self.plotspecs.make_svg: 
       svg_list_of_strings = self.make_svg(trace=False)
       result.svg_plot = svg_list_of_strings
@@ -558,27 +557,26 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
   def make_svg (self, trace=False):
     """Make an svg plot definition from all items in self._plotdefs.
+    NB: This is semi-obsolete, but retained for the future.....
     """
-    import Graphics
-    import matplotlib
-    matplotlib.use('SVG')
-    rr = self._plotdefs                              # convenience
-    print '** rr =',type(rr),rr.keys()
+
     # trace = True
       
-    # Create an empty Graphics object:
-    import pylab
-    pyfig = pylab.figure(1)
-    grs = Graphics.Graphics(name=self.class_name, figure = pyfig,
+    rr = self._plotdefs                              # convenience
+    # print '** rr =',type(rr),rr.keys()
+    plotype = 'graphics'
+    # print '** rr[plotype] =',type(rr[plotype])
+
+     # Create an empty Graphics object:
+    import Graphics
+    grs = Graphics.Graphics(name=self.class_name,
                             # plot_type='polar',     # does not work in svg...!
                             plot_grid=True,
                             title=rr.title+' {'+str(self._count)+'}',
                             xlabel=rr.xlabel,
                             ylabel=rr.ylabel)
 
-    # Fill it with the subplots:
-    plotype = 'graphics'
-    print '** rr[plotype] =',type(rr[plotype])
+    # Fill the Graphics object with the subplots:
     for i,pd in enumerate(rr[plotype]):
       offset = i*rr.offset
       # offset += -10                    # testing only
@@ -590,7 +588,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
       labels = len(yy)*[None]
       if pd.annotate:
         labels = pd.labels
-      grs1 = Graphics.Scatter(yy=yy, xx=pd.xx, figure=pyfig,
+      grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
                               annot=labels,
                               dyy=pd.dyy, dxx=pd.dxx,           
                               linestyle=pd.linestyle,
@@ -617,13 +615,13 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # Use the Figure class to make a pylab plot,
     # and to generate an svg definition string:
     import Figure
-    fig = Figure.Figure(figure=pyfig)
+    fig = Figure.Figure()
     fig.add(grs)
     if trace:
       fig.display('make_svg()')
-    svg_list_of_strings = fig.plot(dispose=['svg'],
-                                   rootname=self.class_name,
-                                   clear=False, trace=trace)
+    fig.make_plot(trace=trace)
+    svg_list_of_strings = fig.make_svg(rootname=self.class_name)
+    
     # Finished:
     return svg_list_of_strings
 

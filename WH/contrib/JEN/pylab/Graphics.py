@@ -246,13 +246,13 @@ class Graphics (Subplot.Subplot):
 
     #-------------------------------------------------------------
     # Plot standalone (testing only?)
-    # (for PointsXY graphics, their own .plot() functions are used....)
+    # (for PointsXY graphics, their own .make_plot() functions are used....)
     #-------------------------------------------------------------
 
-    def plot(self, axob=None, margin=0.1, trace=False):
-        """Plot the internal set of graphics objects in a single subplot"""
+    def make_plot(self, axob=None, margin=0.1, trace=False):
+        """Make the plot(s) of its graphics object(s) in a single subplot"""
 
-        trace = True
+        # trace = True
 
         # If no axob object provided, assume standalone, and show:
         dispose = None
@@ -263,7 +263,7 @@ class Graphics (Subplot.Subplot):
             self._axob = axob
 
         if trace:
-            print '\n** Graphics.plot(',axob,margin,'): ',self._axob
+            print '\n** Graphics.make_plot(',axob,margin,'): ',self._axob
 
         if self._kw['plot_axes']:
             self.plot_axes(xaxis=True, yaxis=True)
@@ -271,9 +271,9 @@ class Graphics (Subplot.Subplot):
         # Plot its graphics objects: 
         for key in self._order:
             if trace:
-                print '- self._graphic[',key,'].plot(margin=0.0)'
+                print '- self._graphic[',key,'].make_plot(margin=0.0)'
                 print '-   ',self._graphic[key].oneliner()
-            self._graphic[key].plot(axob=self._axob, margin=0.0)
+            self._graphic[key].make_plot(axob=self._axob, margin=0.0)
 
         self.set_plot_window(margin=margin, trace=trace)
         if self._kw['plot_axis_labels']:
@@ -290,7 +290,7 @@ class Graphics (Subplot.Subplot):
                 self._axob.grid(True)
 
         # Finished:
-        if dispose=='show':                              # standalone only
+        if dispose=='show':        
             pylab.show()
         return True
 
@@ -659,7 +659,7 @@ if __name__ == '__main__':
         fig.add(Circle())
         fig.add(Ellipse())
         fig.add(Arrow())
-        fig.plot()
+        fig.make_plot()
 
     #------------------------------------
 
@@ -669,7 +669,7 @@ if __name__ == '__main__':
     grs.display()
 
     if 1:
-        grs.plot()
+        grs.make_plot()
 
     #------------------------------------
 

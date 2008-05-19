@@ -479,8 +479,8 @@ class PointsXY (object):
     #===============================================================
     #===============================================================
 
-    def plot(self, axob=None, margin=0.2):
-        """Plot the group of points, using pylab/matplotlib"""
+    def make_plot(self, axob=None, margin=0.2):
+        """Make the plot of the group of points"""
 
         # If no axob object provided, assume standalone, and show:
         dispose = None
@@ -546,7 +546,7 @@ class PointsXY (object):
                 if self._kw['plot_grid']: self._axob.grid()  
         
         # Finished:
-        if dispose=='show':                                   # standalone only
+        if dispose=='show':           
             pylab.show()
         return True
 
@@ -853,7 +853,7 @@ def format_float(v, name=None, n=2):
 def test_line (n=6, name='test_line', **kwargs):
     """PointsXY object for a straight line"""
     kwargs.setdefault('color','magenta')
-    kwargs.setdefault('style','-')
+    kwargs.setdefault('linestyle','-')
     yy = 0.3*pylab.array(range(1,n))
     # name += '_'+kwargs['plot_type']
     print '\n** ',name,':',kwargs,'\n'
@@ -864,7 +864,7 @@ def test_line (n=6, name='test_line', **kwargs):
 def test_parabola (n=6, name='test_parabola', **kwargs):
     """PointsXY object for a parabola"""
     kwargs.setdefault('color','blue')
-    kwargs.setdefault('style','-')
+    kwargs.setdefault('linestyle','-')
     kwargs.setdefault('marker','+')
     kwargs.setdefault('markersize',10)
     yy = pylab.array(range(n))/2.0
@@ -876,7 +876,7 @@ def test_parabola (n=6, name='test_parabola', **kwargs):
 def test_sine (n=10, name='test_sine', **kwargs):
     """PointsXY object for a sine-wave"""
     kwargs.setdefault('color','red')
-    kwargs.setdefault('style','--')
+    kwargs.setdefault('linestyle','--')
     yy = 0.6*pylab.array(range(n))
     yy = pylab.sin(yy)
     pts = PointsXY (yy, name=name, **kwargs)
@@ -887,7 +887,7 @@ def test_cloud (n=10, mean=1.0, stddev=1.0,
                 name='test_cloud', **kwargs):
     """PointsXY object for a cloud of random points"""
     kwargs.setdefault('color','green')
-    kwargs.setdefault('style','cross')
+    kwargs.setdefault('marker','cross')
     kwargs.setdefault('plot_ellipse_stddev',True)
     kwargs.setdefault('plot_circle_mean',True)
     # kwargs.setdefault('markersize',10)
@@ -955,7 +955,7 @@ if __name__ == '__main__':
     # pts = PointsXY(3+5j, name='complex scalar', **kwargs)
     # pts = PointsXY([3,-2+1.5j], name='complex list', **kwargs)
     # pts = PointsXY([0,0,0,0], name='zeroes', **kwargs)
-    # pts = test_line()
+    pts = test_line()
     # pts = test_sine()
     # pts = test_parabola()
     # pts = test_cloud()
@@ -985,7 +985,7 @@ if __name__ == '__main__':
         print '- .rotate(angle=0.2, xy0=[-10,100]) -> ',pts.rotate(angle=0.2, xy0=[-10,100]), '\n   ',pts.oneliner()
 
     if 1:
-        pts.plot()
+        pts.make_plot()
 
     if 0:
         print '- .xy2pair([2,3]) -> ',xy2pair([2,3])

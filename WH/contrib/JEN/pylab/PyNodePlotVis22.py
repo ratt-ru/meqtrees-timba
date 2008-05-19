@@ -72,10 +72,15 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
   def __init__ (self, *args, **kwargs):
     PyNodePlot.PyNodePlot.__init__(self, *args)
     
-    self.standard('color', update=record(XX='red', XY='magenta', YX='green', YY='blue',
-                                         RR='red', RL='magenta', LR='green', LL='blue'))
-    self.standard('marker', update=record(XX='circle', XY='cross', YX='cross', YY='circle',
-                                          RR='circle', RL='cross', LR='cross', LL='circle'))
+    self.standard('color',
+                  update=record(XX='red', XY='magenta', YX='green', YY='blue',
+                                RR='red', RL='magenta', LR='green', LL='blue'))
+    self.standard('marker',
+                  update=record(XX='circle', XY='cross', YX='cross', YY='circle',
+                                RR='circle', RL='cross', LR='cross', LL='circle'))
+    self.standard('markersize',
+                  update=record(XX=2, XY=3, YX=3, YY=2,
+                                RR=2, RL=3, LR=3, LL=2))
     return None
 
   #-------------------------------------------------------------------
@@ -113,21 +118,29 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
     """Make plotspec records for the 4 correlations
     """
     ps = []
-    ps.append(record(xy='{xx}', legend='XX',
-                     color=self.standard('color','XX'),
-                     marker=self.standard('marker','XX'),
+    corr = 'XX'
+    ps.append(record(xy='{xx}', legend=corr,
+                     color=self.standard('color',corr),
+                     marker=self.standard('marker',corr),
+                     markersize=self.standard('markersize',corr),
                      annotate=True))
-    ps.append(record(xy='{xy}', legend='XY',
-                     color=self.standard('color','XY'),
-                     marker=self.standard('marker','XY'),
+    corr = 'XY'
+    ps.append(record(xy='{xy}', legend=corr,
+                     color=self.standard('color',corr),
+                     marker=self.standard('marker',corr),
+                     markersize=self.standard('markersize',corr),
                      annotate=False))
-    ps.append(record(xy='{yx}', legend='YX',
-                     color=self.standard('color','YX'),
-                     marker=self.standard('marker','YX'),
+    corr = 'YX'
+    ps.append(record(xy='{yx}', legend=corr,
+                     color=self.standard('color',corr),
+                     marker=self.standard('marker',corr),
+                     markersize=self.standard('markersize',corr),
                      annotate=False))
-    ps.append(record(xy='{yy}', legend='YY',
-                     color=self.standard('color','YY'),
-                     marker=self.standard('marker','YY'),
+    corr = 'YY'
+    ps.append(record(xy='{yy}', legend=corr,
+                     color=self.standard('color',corr),
+                     marker=self.standard('marker',corr),
+                     markersize=self.standard('markersize',corr),
                      annotate=True))
     self.plotspecs['graphics'] = ps
 
@@ -221,12 +234,18 @@ class PlotCrossCorrs (PlotVis22):
     Make plotspec records for the two cross-corrs.
     """
     ps = []
-    ps.append(record(xy='{xy}', legend='XY',
-                     color=self.standard('color','XY'),
-                     marker=self.standard('marker','XY')))
-    ps.append(record(xy='{yx}', legend='YX',
-                     color=self.standard('color','YX'),
-                     marker=self.standard('marker','YX')))
+    corr = 'XY'
+    ps.append(record(xy='{xy}', legend=corr,
+                     color=self.standard('color',corr),
+                     marker=self.standard('marker',corr),
+                     markersize=self.standard('markersize',corr),
+                     annotate=True))
+    corr = 'YX'
+    ps.append(record(xy='{yx}', legend=corr,
+                     color=self.standard('color',corr),
+                     marker=self.standard('marker',corr),
+                     markersize=self.standard('markersize',corr),
+                     annotate=True))
     self.plotspecs['graphics'] = ps
 
     self.plotspecs.setdefault('annotate', True)
@@ -243,8 +262,12 @@ class PlotIQUV (PlotVis22):
   def __init__ (self, *args, **kwargs):
     PlotVis22.__init__(self, *args)
 
-    self.standard('color', update=record(I='red', Q='magenta', U='green', V='blue'))
-    self.standard('marker', update=record(I='circle', Q='cross', U='cross', V='plus'))
+    self.standard('color',
+                  update=record(I='red', Q='magenta', U='green', V='blue'))
+    self.standard('marker',
+                  update=record(I='circle', Q='cross', U='cross', V='plus'))
+    self.standard('markersize',
+                  update=record(I=2, Q=3, U=3, V=3))
     return None
 
   #-------------------------------------------------------------------
@@ -266,26 +289,33 @@ class PlotIQUV (PlotVis22):
     Make plotspec records for I,Q,U,iV.
     """
     ps = []
+    stokes = 'I'
     ps.append(record(xy='({xx}+{yy})/2',
                      legend='I: \expr',
-                     color=self.standard('color','I'),
-                     marker=self.standard('marker','I'),
+                     color=self.standard('color',stokes),
+                     marker=self.standard('marker',stokes),
+                     markersize=self.standard('markersize',stokes),
                      annotate=True))
-
+    stokes = 'Q'
     ps.append(record(xy='({xx}-{yy})/2',
                      legend='Q: \expr',
-                     color=self.standard('color','Q'),
-                     marker=self.standard('marker','Q'),
+                     color=self.standard('color',stokes),
+                     marker=self.standard('marker',stokes),
+                     markersize=self.standard('markersize',stokes),
                      annotate=False))
+    stokes = 'U'
     ps.append(record(xy='({xy}+{yx})/2',
                      legend='U: \expr',
-                     color=self.standard('color','U'),
-                     marker=self.standard('marker','U'),
+                     color=self.standard('color',stokes),
+                     marker=self.standard('marker',stokes),
+                     markersize=self.standard('markersize',stokes),
                      annotate=False))
+    stokes = 'V'
     ps.append(record(xy='({xy}-{yx})/2',
                      legend='iV: \expr',
-                     color=self.standard('color','V'),
-                     marker=self.standard('marker','V'),
+                     color=self.standard('color',stokes),
+                     marker=self.standard('marker',stokes),
+                     markersize=self.standard('markersize',stokes),
                      annotate=False))
     self.plotspecs['graphics'] = ps
 
@@ -373,7 +403,6 @@ def _define_forest (ns,**kwargs):
     for class_name in class_names:
       gs = None
       ps = None
-      ps = record(make_svg=True)
       pynode = ns[class_name] << Meq.PyNode(children=cc,
                                             child_labels=labels,
                                             class_name=class_name,
@@ -389,9 +418,12 @@ def _define_forest (ns,**kwargs):
   # Optional: uv-coordinates:
   if True:
     class_name = 'PlotUV'
+    ps = None
+    # ps = record(make_svg=True)   # just for testing.....
     pynode = ns[class_name] << Meq.PyNode(children=uu,
                                           child_labels=labels,
                                           class_name=class_name,
+                                          plotspecs=ps,
                                           module_name=__file__)
     pp.append(pynode)
     pypage.add(ns[class_name], viewer=viewer)

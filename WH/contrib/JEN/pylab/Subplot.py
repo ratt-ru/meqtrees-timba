@@ -234,7 +234,7 @@ class Subplot (object):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, axob=None, margin=0.1, trace=False):
+    def make_plot(self, axob=None, margin=0.1, trace=False):
         """Make the subplot"""
 
         # If no axob object provided, assume standalone, and show:
@@ -246,7 +246,7 @@ class Subplot (object):
             self._axob = axob
 
         if trace:
-            print '\n** Subplot.plot(',axob,margin,'): ',self._axob
+            print '\n** Subplot.make_plot(',axob,margin,'): ',self._axob
         
         self.set_plot_window(margin=margin)
         if self._kw['plot_legend']:
@@ -255,7 +255,7 @@ class Subplot (object):
             self.plot_axis_labels()
 
         # Finished:
-        if dispose=='show':                                   # standalone only
+        if dispose=='show':           
             pylab.show()
         return True
 
@@ -277,7 +277,7 @@ class Subplot (object):
     def set_plot_window(self, margin=0.1, trace=False):
         """Helper function to set the plot_window, using internal info"""
         
-        trace = True
+        # trace = True
         
         if self._kw['plot_type']=='polar':
             [rmin,rmax] = self._range(self.yrange(), margin=margin,
@@ -296,7 +296,6 @@ class Subplot (object):
             [ymin,ymax] = self._range(self.yrange(), margin=margin,
                                       vmin=self._kw['ymin'],
                                       vmax=self._kw['ymax'])
-            # print '\n** Subplot.set_plot_window(): self._axob.axis() causes NO problems in Tonys version...\n'
             self._axob.axis([xmin, xmax, ymin, ymax])
             if trace:
                 print '** set_plot_window(): xrange =',[xmin,xmax],'  yrange =',[ymin,ymax]
@@ -463,8 +462,11 @@ if __name__ == '__main__':
 
     sub = Subplot(xmin=-1,xmax=1,ymin=-1,ymax=1)
 
-    if 1:
+    if 0:
         sub = Legend()
+
+    if 1:
+        sub = test_line()
 
     print sub.oneliner()
     sub.display('init')
@@ -479,7 +481,7 @@ if __name__ == '__main__':
         sub.display('legend')
 
     if 1:
-        sub.plot()
+        sub.make_plot()
 
     print '\n** End of local test of: Subplot.py:\n'
 

@@ -58,14 +58,12 @@ class Figure (Subplot.Subplot):
     """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, figure=1, nrow=1, ncol=1, name=None, clear=True): 
+    def __init__(self, nrow=1, ncol=1, name=None, clear=True): 
 
         # Deal with the specified name (label):
         self._name = name
         if not isinstance(self._name,str): self._name = '<name>'
-
-        # ctrl.setdefault('figure', None)        # integer: 1,2,3,...
-        self._figure = figure
+        
         self._nrow = nrow                        # nr of rows (1-relative)                        
         self._ncol = ncol                        # nr of cols (1-relative)
 
@@ -73,6 +71,11 @@ class Figure (Subplot.Subplot):
         self._order = []
         self._subplot = dict()
         self._plopos = dict()
+
+        # If no figure object (figob) is supplied to .make_plot(),
+        # a "pylab" figure is used by default:
+        self._figob = None               
+        self._pylab_figure = False 
 
         # Clear any existing pylab figure (kludge?)
         if clear:
@@ -111,7 +114,7 @@ class Figure (Subplot.Subplot):
     def add(self, graphic, key=None):
         """Add a named (key) plottable object to self._subplot"""
         if not isinstance(key, str):
-            key = str(len(self._order))       # .....??
+            key = str(len(self._order))              # .....??
         self._subplot[key] = graphic
         self._plopos[key] = self.make_plopos()
         self._order.append(key)
@@ -120,7 +123,7 @@ class Figure (Subplot.Subplot):
     def remove(self, key):
         """Remove a named object from self._subplot"""
         if self.has_key(key):
-            self._grahic.__delitem__(key)
+            self._subplot.__delitem__(key)
             self._order.__delitem__(key)
         return True
 
@@ -182,126 +185,128 @@ class Figure (Subplot.Subplot):
         return True
 
     #===============================================================
-    # Plot the specified figure, and dispose of it:
+    # Make the plot(s), using the given figure object:
     #===============================================================
 
+    def make_plot(self, figob=None, margin=0.1, show=True, trace=False):
+        """Make the plot(s) in the various panels (subplots)"""
 
-    def plot(self,
-             figure=1, margin=0.1,
-             dispose='show', rootname='Figure',
-             clear=True, trace=False):
-        """Plot the pylab figure, with its Subplots"""
+        # trace = True
 
-        trace = True
-        
-        # self.fig = pylab.figure(figure)
+        # If no figure object specified, assume standalone:
+        if figob==None:
+            self._figob = pylab.figure(1)
+            self._pylab_figure = True
+        else:
+            self._figob = figob
+            show = False
+            self._pylab_figure = False
 
         if trace:
-            print '\n** Figure.plot(',figure, margin, rootname, dispose,'):'
+            print '\n** Figure.make_plot(',figob, margin,'):',self._figob
+
         for key in self._order:
             subplot = self._plopos[key]['subplot']
             if trace:
                 print '  -',key,': subplot =',subplot,self._plopos[key]
-            self._subplot[key].plot(figure=figure, subplot=subplot,
-                                    trace=trace)
-        # Finsished: dispose of the pylab figure:
-        return pylab_dispose(dispose,
-                             rootname=rootname,
-                             origin='Figure.plot()',
-                             clear=clear,
-                             trace=trace)
+            axob = self._figob.add_subplot(subplot)
+            if trace:
+                print '    axob =',axob
+            self._subplot[key].make_plot(axob=axob, trace=trace)
 
+        # Finished:
+        if show:
+            self.show()
+        return self._figob
 
-#========================================================================
-# Some helper functions (also used externally)
-#========================================================================
+    #====================================================================
 
-def pylab_dispose(dispose='show', rootname='pylabFigure',
-                  origin='<unknown>', clear=True, trace=False):
-    """Generic routine to dispose of the pylab figure.
-    Dipose can be a string (show, svg), or a list of strings"""
+    def show (self):
+        """Show the internal figure"""
+        if self._pylab_figure:
+            pylab.show()
+        else:
+            print '\n** Internal figure not a pylab figure....\n'
+        return True
+        
 
-    trace = True
-    
-    if trace:
-        print '\n** Figure.dispose(',dispose,origin,') rootname=',rootname,
-    if dispose==None:
-        if trace: print ' (done nothing)\n' 
-        return None
-    if isinstance(dispose,str):
-        dispose = [dispose]
-    result = None
-    svgname = None
-    if trace: print dispose
+    #====================================================================
+    # Save the figure in a file:
+    #====================================================================
 
-    # Save in a file:
-    file_extensions = ['png','PNG','svg','SVG']
-    for ext in file_extensions:
-        if ext in dispose:
+    def save (self, rootname='rootname', ext='png',
+              clear=False, trace=False):
+        """Save the figure in a file"""
+
+        # If no plot has been made yet, make a pylab one:
+        if self._figob==None:
+            self.make_plot(show=False)
+
+        if ext in ['svg','SVG']:
+            import matplotlib             # Tony says...??
+            matplotlib.use('SVG')         # Tony says...??
+            filename = rootname+'.svg'
+            # svgname = filename            # used below...
+            # since we are using backend 'SVG', svg is
+            # automatically added to filename
+            # r = pylab.savefig(rootname)
+            # if trace: print '  - pylab.savefig(',rootname,') ->',r
+
+        elif ext in ['png','PNG']:
+            filename = rootname+'.png'
+
+        else:
             filename = rootname+'.'+ext
-            delay = 0.0
 
-            if delay>0.0:
-                # Not necessary...
-                time.sleep(delay)
-                if trace: print '  - sleep(',delay,') before savefig(',filename,')'
+        # OK, save the internal figure, and check the resulting file:
+        r = self._figob.savefig(filename)
+        if trace:
+            print '\n** Figure.save(): .savefig(',filename,') ->',r,'\n'
+        if True:
+            file = open(filename,'r')
+            file.close()
+        
+        # Optional: clear the current pylab (!) figure AFTER .savefig()
+        if clear:
+            self._figob.clf()
 
-            if ext in ['png','PNG']:
-                result = filename             # filename for png-plotter...??
+        # Finished:
+        return filename
 
-            if ext in ['svg','SVG']:
-                if True:                  
-                    import matplotlib             # Tony says...??
-                    matplotlib.use('SVG')         # Tony says...??
-                    svgname = filename            # used below...
-                # since we are using backend 'SVG', svg is
-                # automatically added to filename
-                # r = pylab.savefig(rootname)
-                # if trace: print '  - pylab.savefig(',rootname,') ->',r
 
-            r = pylab.savefig(filename)
-            if trace: print '  - pylab.savefig(',filename,') ->',r
+    #====================================================================
+    # Make SVG XML definition (list of strings) of the figure
+    #====================================================================
 
-            if clear:
-                # Clear the current figure AFTER pylab.savefig()
-#               if trace: print '** Figure: before pylab.clf()',rootname
-                pylab.clf()
-#               if trace: print '** Figure: after pylab.clf()',rootname
+    def make_svg (self, rootname='rootname', trace=False):
+        """Return a a SVG XML definition as a list of strings"""
 
-            if delay>0.0:
-                # Not necessary...
-                time.sleep(delay)
-                if trace: print '  - sleep(',delay,') after savefig(',filename,')'
+        filename = self.save(rootname=rootname, ext='svg', trace=trace)
 
-    # Get the XML string (result) from the .svg file: 
-    if isinstance(svgname,str):
-        print '\n** Figure: ',filename,svgname,type(svgname),'\n'
         file = open(filename,'r')
-        result = file.readlines()
+        xml = file.readlines()
         file.close()
-        if False:
-            n = len(result)
-            print '\n - read:',filename,'->',type(result),n,'\n'
-            for i in range(min(6,n-1)): print '  -',i,': ',result[i]
+
+        if trace:
+            n = len(xml)
+            print '\n - read:',filename,'->',type(xml),n,'\n'
+            for i in range(min(6,n-1)):
+                print '  -',i,': ',xml[i]
             print '  ........'
             print '  ........'
             print
-            for i in range(max(0,n-5),n): print '  -',i,': ',result[i]
+            for i in range(max(0,n-5),n):
+                print '  -',i,': ',xml[i]
             print
-        if False:
+
+        if True:
             import os
             os.system("%s -size 640x480 %s" % ('display',filename))
             # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
 
-    # Show the pylab figure (this freezes everything and closes the figure!)
-    if 'show' in dispose:
-        if trace: print '  doing pylab.show()'
-#       pylab.show()
-
-
-    # Finished: return the result (if any):
-    return result
-
+        # Finished:
+        return xml
+        
 
 
 #========================================================================
@@ -315,6 +320,13 @@ if __name__ == '__main__':
     # import Subplot
 
     fig = Figure(nrow=2, ncol=2)
+
+    if 0:
+        sub = Subplot.Subplot(xmin=-3,xmax=6,ymin=-7,ymax=8)
+        fig.add(sub)
+
+    if 0:
+        fig.add(Subplot.test_line())
 
     if 1:
         fig.add(Subplot.test_line())
@@ -331,10 +343,13 @@ if __name__ == '__main__':
     fig.display()
 
     if 1:
-        dispose = 'show'
-        dispose = 'svg'
-        # dispose = ['svg','show']
-        fig.plot(dispose=dispose, trace=True)
+        fig.make_plot(show=True, trace=False)
+
+    if 0:
+        fig.save(trace=True)
+
+    if 0:
+        fig.make_svg(trace=True)
 
     print '\n** End of local test of: Figure.py:\n'
 

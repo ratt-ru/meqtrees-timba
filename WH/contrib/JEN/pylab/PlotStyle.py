@@ -333,17 +333,18 @@ class PlotStyle (object):
         if ms=='horizontal': kw['marker'] = '_'
         if ms=='vertical': kw['marker'] = '|'
 
-        # Temporary kludge(s) to solve SVG poblems:
+        # Temporary kludge(s) to solve SVG poblems (still needed!):
         if True:
             if kw['linestyle']==None:
                 s = '\n** .PlotStyle: temporary SVG kludge: '
                 kw['linestyle'] = '.'             # not recognized, ignored...  
                 # kw['linestyle'] = ':'             # dotted, safe for svg-Qt  
-                if True:
+                if False:
                     kw.__delitem__('linestyle')       # remove entirely (gives solid lines...)
                     print s,'deleted kw.linestyle'
                 else:
-                    print s,' avoided linestyle=None ->',kw['linestyle']
+                    # print s,' avoided linestyle=None ->',kw['linestyle']
+                    pass
 
         return True
 
