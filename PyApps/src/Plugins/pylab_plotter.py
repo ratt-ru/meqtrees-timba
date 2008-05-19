@@ -145,7 +145,7 @@ if has_pylab:
       
      # Create an empty Graphics object:
      grs = Graphics.Graphics(name=self.class_name,
-                             # figure=self.fig,
+                             # figure=self.fig,       # no longer needed here...
                              # plot_type='polar',     # does not work in svg...!
                              plot_grid=True,
                              title=rr.title,
@@ -168,7 +168,7 @@ if has_pylab:
        if pd.annotate:
          labels = pd.labels
        grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
-                               # figure=self.fig,
+                               # figure=self.fig,        # see fig.plot(figob) below
                                annot=labels,
                                dyy=pd.dyy, dxx=pd.dxx,           
                                linestyle=pd.linestyle,
@@ -193,13 +193,15 @@ if has_pylab:
        # grs.display('pylab_plotter: make_plot()')
 
      # Use the JEN Figure class to make a pylab plot,
+     # NB: Tony: Note the changes by JEN on 19 May 2008....
      import Figure as figure
-     # fig = figure.Figure(figure=self.fig, clear=False)
-     fig = figure.Figure(clear=False)
+     fig = figure.Figure(clear=False)     # .... clear....?
      fig.add(grs)
-     fig.plot(figob=self.fig,
-              dispose=['show'], rootname=self.class_name,
-              clear=False, trace=trace)
+     fig.make_plot(figob=self.fig,        
+                   # dispose=['show'],
+                   # rootname=self.class_name,
+                   # clear=False,
+                   trace=trace)
      # Finished:
      return None
 
