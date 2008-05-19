@@ -11,6 +11,7 @@
 # History:
 #    - 29 jan 2008: creation
 #    - 08 may 2008: Tony's version self.ax.
+#    - 19 may 2008: Changed all self.ax to self._axob
 #
 # Remarks:
 #
@@ -54,7 +55,9 @@ class Subplot (object):
     """Encapsulation of a pylab subplot
     """
 
-    def __init__(self, figure=1, **kwargs):
+    def __init__(self,
+                 # figure=1,
+                 **kwargs):
         """
         ** The Subplot class looks for the followin keywords in **kwargs:
         - name  [='<name>']:
@@ -70,8 +73,11 @@ class Subplot (object):
         - rmax  [=None]: viewing window (polar)
         """
 
+        # self.fig = figure
+        # matplotlib/pylab axes object (used for plotting)
+        self._axob = None
+        
         # Extract the relevant keyword arguments from kwargs:
-        self.fig = figure
         kw = dict()
         if isinstance(kwargs, dict):
             keys = ['name','plot_mode','plot_type',
@@ -228,19 +234,30 @@ class Subplot (object):
     # Plot standalone (testing only?)
     #===============================================================
 
-    def plot(self, figure=1, subplot=111, margin=0.1,
-             dispose='show', trace=False):
+    def plot(self, axob=None, margin=0.1, trace=False):
         """Make the subplot"""
-#       self.fig = pylab.figure(figure)
-        self.ax = self.fig.add_subplot(subplot)
+
+        # If no axob object provided, assume standalone, and show:
+        dispose = None
+        if axob==None:
+            self._axob = pylab.subplot(111)
+            dispose = 'show'
+        else:
+            self._axob = axob
+
+        if trace:
+            print '\n** Subplot.plot(',axob,margin,'): ',self._axob
+        
         self.set_plot_window(margin=margin)
         if self._kw['plot_legend']:
             self.plot_legend()              
         if self._kw['plot_axis_labels']:
             self.plot_axis_labels()
-        import Figure
-        return Figure.pylab_dispose(dispose, origin='Subplot.plot()',
-                                    rootname=self.name(), trace=trace)
+
+        # Finished:
+        if dispose=='show':                                   # standalone only
+            pylab.show()
+        return True
 
 
     #------------------------------------------------
@@ -248,11 +265,11 @@ class Subplot (object):
     def plot_axis_labels(self):
         """Helper function to make axes labels, using internal info"""
         if isinstance(self._kw['xlabel'],str):
-            self.ax.set_xlabel(self._kw['xlabel'])
+            self._axob.set_xlabel(self._kw['xlabel'])
         if isinstance(self._kw['ylabel'],str):
-            self.ax.set_ylabel(self._kw['ylabel'])
+            self._axob.set_ylabel(self._kw['ylabel'])
         if isinstance(self._kw['title'],str):
-            self.ax.set_title(self._kw['title'])
+            self._axob.set_title(self._kw['title'])
         return True
 
     #------------------------------------------------
@@ -279,8 +296,8 @@ class Subplot (object):
             [ymin,ymax] = self._range(self.yrange(), margin=margin,
                                       vmin=self._kw['ymin'],
                                       vmax=self._kw['ymax'])
-            print '\n** Subplot.set_plot_window(): self.ax.axis() causes NO problems in Tonys version...\n'
-            self.ax.axis([xmin, xmax, ymin, ymax])
+            # print '\n** Subplot.set_plot_window(): self._axob.axis() causes NO problems in Tonys version...\n'
+            self._axob.axis([xmin, xmax, ymin, ymax])
             if trace:
                 print '** set_plot_window(): xrange =',[xmin,xmax],'  yrange =',[ymin,ymax]
         return True
@@ -323,7 +340,7 @@ class Subplot (object):
             y -= dy
             if trace:
                 print '-',i,'(',x,y,dy,color[i],'):',s
-            self.ax.text(x,y,s, color=color[i])
+            self._axob.text(x,y,s, color=color[i])
         if trace: print
         return True
 

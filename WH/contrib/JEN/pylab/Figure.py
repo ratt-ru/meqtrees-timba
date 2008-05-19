@@ -186,13 +186,15 @@ class Figure (Subplot.Subplot):
     #===============================================================
 
 
-    def plot(self, figure=1, margin=0.1, dispose='show', rootname='Figure',
+    def plot(self,
+             figure=1, margin=0.1,
+             dispose='show', rootname='Figure',
              clear=True, trace=False):
         """Plot the pylab figure, with its Subplots"""
 
         trace = True
         
-#       self.fig = pylab.figure(figure)
+        # self.fig = pylab.figure(figure)
 
         if trace:
             print '\n** Figure.plot(',figure, margin, rootname, dispose,'):'
@@ -201,7 +203,7 @@ class Figure (Subplot.Subplot):
             if trace:
                 print '  -',key,': subplot =',subplot,self._plopos[key]
             self._subplot[key].plot(figure=figure, subplot=subplot,
-                                    dispose=None, trace=trace)
+                                    trace=trace)
         # Finsished: dispose of the pylab figure:
         return pylab_dispose(dispose,
                              rootname=rootname,

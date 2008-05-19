@@ -373,11 +373,12 @@ def _define_forest (ns,**kwargs):
     for class_name in class_names:
       gs = None
       ps = None
+      ps = record(make_svg=True)
       pynode = ns[class_name] << Meq.PyNode(children=cc,
                                             child_labels=labels,
                                             class_name=class_name,
                                             # groupspecs=gs,
-                                            # plotspecs=ps,
+                                            plotspecs=ps,
                                             module_name=__file__)
       pp.append(pynode)
       pypage.add(ns[class_name], viewer=viewer)

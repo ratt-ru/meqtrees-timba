@@ -120,7 +120,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     Possible keywords are (base class defaults in []):
     - labels     [=None]         a list of node labels
-    - make_svg   [=True]         (svg) plotting may be inhibited if concatenated
+    - make_svg   [=False]         (svg) plotting may be inhibited if concatenated
     - offset     [=0.0]          concatenated plots maye be offset vertically
     - title      [=<classname>]  plot title
     - xlabel     [='child']      x-axis label
@@ -308,8 +308,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr = self.plotspecs                               # convenience
 
     # Some node control parameters:
-    # rr.setdefault('make_plot', True)                  # if True, make the plot
-    rr.setdefault('make_svg', True)                   # if True, make the SVG plot
+    rr.setdefault('make_svg', False)                  # if True, make the SVG plot
 
     # These keys are used to transfer fields to self._plotdefs:
     self._pskeys = record(overall=[])
@@ -319,6 +318,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # Overall parameters 
     ss = ['title','xlabel','ylabel','xunit','yunit','zunit']
     ss.extend(['offset'])                             # ....?
+    ss.extend(['make_svg'])                           # ....?
     self._pskeys['overall'] = ss
 
     title = 'PyNodePlot_'+self.class_name
@@ -430,6 +430,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     # Optionally, generate info for the "svg plotter":
     result.svg_plot = None
+    # self.plotspecs.make_svg = False            # obsolete...? 
     if self.plotspecs.make_svg: 
       svg_list_of_strings = self.make_svg(trace=False)
       result.svg_plot = svg_list_of_strings

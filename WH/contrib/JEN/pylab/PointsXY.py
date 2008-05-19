@@ -10,6 +10,7 @@
 # History:
 #    - 27 jan 2008: creation
 #    - 15 may 2008: Tony's version (.ax.)
+#    - 19 may 2008: Changed all pylab. to self._axob.
 #
 # Remarks:
 #
@@ -57,13 +58,12 @@ class PointsXY (object):
     """Encapsulation of a set of 2D points, for (pylab) plotting
     """
 
-    def __init__(self, subplot=None, yy=None, annot=None, name=None, 
+    def __init__(self,
+                 yy=None, annot=None, name=None, 
                  xx=None, dyy=None, dxx=None,
                  **kwargs):
 
-
         # Deal with the specified name (label):
-        self.ax = subplot
         self._name = name
         if not isinstance(self._name,str): self._name = '<name>'
 
@@ -102,6 +102,9 @@ class PointsXY (object):
         self._annot = []
         self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy, trace=False)     # if any specified 
 
+        # matplotlib/pylab axes object (used for plotting)
+        self._axob = None
+        
         # Finished:
         return None
 
@@ -299,6 +302,7 @@ class PointsXY (object):
         print ' * dxx:   ',self.sumarr(self._dxx)
         print ' * annot: ',self.sumarr(self._annot)
         print ' * ',self._PlotStyle.oneliner()
+        print ' * axob =',self._axob
         print '**\n'
         return True
 
@@ -359,15 +363,15 @@ class PointsXY (object):
 
     def stddev(self, mode='y'):
         """Return the stddev of the specified coordinates:
-        - mode=y: -> stddev(yy) (default)
-        - mode=x: -> stddev(xx)
-        - mode=xy: -> [stddev(xx),stddev(yy)]"""
+        - mode=y: -> std(yy) (default)
+        - mode=x: -> std(xx)
+        - mode=xy: -> [std(xx),std(yy)]"""
         if self.len()==1:
             if mode=='xy': return [0.0,0.0]
             return 0.0
-        if mode=='y': return self.yy().stddev()
-        if mode=='xy': return [self.xx().stddev(),self.yy().stddev()]
-        if mode=='x': return self.xx().stddev()
+        if mode=='y': return self.yy().std()
+        if mode=='xy': return [self.xx().std(),self.yy().std()]
+        if mode=='x': return self.xx().std()
         return None
 
 
@@ -475,8 +479,16 @@ class PointsXY (object):
     #===============================================================
     #===============================================================
 
-    def plot(self, margin=0.2, dispose='show'):
-        """Plot the group of points, using pylab"""
+    def plot(self, axob=None, margin=0.2):
+        """Plot the group of points, using pylab/matplotlib"""
+
+        # If no axob object provided, assume standalone, and show:
+        dispose = None
+        if axob==None:
+            self._axob = pylab.subplot(111)
+            dispose = 'show'
+        else:
+            self._axob = axob
 
         # Make the label (pleg) to be used for the pylab automatic legend:
         legend_label = '_nolegend_'
@@ -511,7 +523,7 @@ class PointsXY (object):
             if self._kw['plot_type']=='plot':
                 [xmin,xmax] = self.xrange(margin=margin)
                 [ymin,ymax] = self.yrange(margin=margin)
-                pylab.axis([xmin, xmax, ymin, ymax]) 
+                self._axob.axis([xmin, xmax, ymin, ymax]) 
             elif self._kw['plot_type']=='polar':
                 [rmin,rmax] = self.yrange(margin=margin)
                 rr = pylab.array([0.25,0.5,0.75,1.0])*rmax
@@ -519,22 +531,22 @@ class PointsXY (object):
                 for r in rr:
                     labels.append(str(int(r*100)/100.0))
                 # labels = ['0.25','0.5','0.75','rmax']
-                pylab.rgrids(rr, labels, angle=-90.0)
-                # pylab.axis([-rmin, rmax, -rmin, rmax])
-                # pylab.axis([0.5, 0.5, -rmax*2.0, rmax*2.0])
+                self._axob.rgrids(rr, labels, angle=-90.0)
+                # self._axob.axis([-rmin, rmax, -rmin, rmax])
+                # self._axob.axis([0.5, 0.5, -rmax*2.0, rmax*2.0])
 
         # Make the pylab legend, if required:
         if self._kw['plot_standalone']:
             if self._kw['plot_type']=='polar':
-                # pylab.thetagrids(True)                 # see also .rgrids()
+                # self._axob.thetagrids(True)                 # see also .rgrids()
                 pass
             else:
-                # NB: pylab.legend() causes problems with Qwt read svg...!
-                if self._kw['auto_legend']: pylab.legend()
-                if self._kw['plot_grid']: pylab.grid()  
+                # NB: self._axob.legend() causes problems with Qwt read svg...!
+                if self._kw['auto_legend']: self._axob.legend()
+                if self._kw['plot_grid']: self._axob.grid()  
         
         # Finished:
-        if dispose=='show':              # standalone only?
+        if dispose=='show':                                   # standalone only
             pylab.show()
         return True
 
@@ -552,31 +564,31 @@ class PointsXY (object):
             print '\n** plot_points(label=',label,') plot_type=',ptype,'\n'
 
         if ptype=='loglog':
-            self.ax.loglog(xx, yy, label=label,
-                         **self._PlotStyle.kwargs(ptype))
+            self._axob.loglog(xx, yy, label=label,
+                              **self._PlotStyle.kwargs(ptype))
         elif ptype=='semilogy':
-            self.ax.semilogy(xx, yy, label=label,
-                           **self._PlotStyle.kwargs(ptype))
+            self._axob.semilogy(xx, yy, label=label,
+                                **self._PlotStyle.kwargs(ptype))
         elif ptype=='semilogx':
-            self.ax.semilogx(xx, yy, label=label,
-                           **self._PlotStyle.kwargs(ptype))
+            self._axob.semilogx(xx, yy, label=label,
+                                **self._PlotStyle.kwargs(ptype))
         elif ptype=='polar':
-            self.ax.polar(xx, yy, label=label,
-                        **self._PlotStyle.kwargs(ptype))
+            self._axob.polar(xx, yy, label=label,
+                             **self._PlotStyle.kwargs(ptype))
         elif ptype=='quiver':
             self.plot_quiver(xx, yy, label=label,
                              **self._PlotStyle.kwargs(ptype))
         elif ptype=='scatter':
-            self.ax.scatter(xx, yy, label=label,
-                          **self._PlotStyle.kwargs(ptype))
+            self._axob.scatter(xx, yy, label=label,
+                               **self._PlotStyle.kwargs(ptype))
         elif self._kw['plot_naked']:
-            self.ax.plot(xx, yy)
+            self._axob.plot(xx, yy)
 
         # elif not isinstance(label,str):
         #    # NB: label=='_nolegend_' causes problems with Qt read SVG....
         #    print '\n** plot_points(',label,'): linestyle=',kwargs['linestyle'],'\n'
-        #    pylab.plot(xx, yy,
-        #               **self._PlotStyle.kwargs('plot'))
+        #    self._axob.plot(xx, yy,
+        #                    **self._PlotStyle.kwargs('plot'))
 
         else:
             kwargs = self._PlotStyle.kwargs('plot')
@@ -597,7 +609,7 @@ class PointsXY (object):
                     print '\n** plot_points(): kwargs has no field linestyle\n'
                 for i,y in enumerate(yy):
                     if trace: print '-',xx[i],yy[i],ms[i]
-                    self.ax.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+                    self._axob.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
 
             elif kwargs['linestyle']=='.':
                 if trace:
@@ -605,7 +617,7 @@ class PointsXY (object):
                 kwargs.__delitem__('linestyle')
                 for i,y in enumerate(yy):
                     if trace: print '-',xx[i],yy[i],ms[i]
-                    self.ax.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+                    self._axob.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
 
             elif False:
                 if trace:
@@ -613,12 +625,12 @@ class PointsXY (object):
                 kwargs.__delitem__('linestyle')
                 for i,y in enumerate(yy):
                     if trace: print '-',xx[i],yy[i],ms[i]
-                    self.ax.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
+                    self._axob.plot([xx[i]], [yy[i]], markersize=ms[i], **kwargs)
 
             else:
                 if trace:
                     print '\n** plot_points(): group with linestyle=',kwargs['linestyle'],'\n'
-                self.ax.plot(xx, yy, label=label, **kwargs)
+                self._axob.plot(xx, yy, label=label, **kwargs)
 
         # Finished
         return True
@@ -631,7 +643,7 @@ class PointsXY (object):
         trace = False
         # trace = True
         if trace:
-            print pylab.quiver.func_doc
+            print self._axob.quiver.func_doc
             print '** plot_quiver(): ',self.oneliner()
             # self.display('plot_quiver()')
         n = len(yy)
@@ -660,10 +672,10 @@ class PointsXY (object):
             print '  - Y =',Y
             print '  - U =',U
             print '  - V =',V
-        self.ax.quiver(X,Y,U,V,S, color=color, width=width)
-        # pylab.quiver(X,Y,U,V, color=color)
+        self._axob.quiver(X,Y,U,V,S, color=color, width=width)
+        # self._axob.quiver(X,Y,U,V, color=color)
         if trace:
-            # pylab.plot(xx,yy,marker='o',color=color)
+            # self._axob.plot(xx,yy,marker='o',color=color)
             print '  - xrange =',self.xrange()
             print '  - yrange =',self.yrange()
         return True
@@ -685,7 +697,7 @@ class PointsXY (object):
                 s = '.  '+str(self._annot[i])
                 if trace:
                     print '-',i,':',s,'  x,y =',x,y
-                self.ax.text(x,y, s, **kwargs)
+                self._axob.text(x,y, s, **kwargs)
         if trace: print
         return True
 
@@ -701,16 +713,16 @@ class PointsXY (object):
                     dy = self._dyy
                     if isinstance(dy,list): dy = dy[i]
                     dy2 = dy/2.0
-                    self.ax.plot([x,x], [y-dy2,y+dy2],
-                               # label='_nolegend_',
-                               color=color, linestyle='-')
+                    self._axob.plot([x,x], [y-dy2,y+dy2],
+                                    # label='_nolegend_',
+                                    color=color, linestyle='-')
                 if self._dxx:
                     dx = self._dxx
                     if isinstance(dx,list): dx = dx[i]
                     dx2 = dx/2.0
-                    self.ax.plot([x-dx2,x+dx2], [y,y],
-                               # label='_nolegend_',
-                               color=color, linestyle='-')
+                    self._axob.plot([x-dx2,x+dx2], [y,y],
+                                    # label='_nolegend_',
+                                    color=color, linestyle='-')
         return True
 
     #---------------------------------------------------------------
@@ -728,12 +740,12 @@ class PointsXY (object):
                               color=color, linestyle='--')
             [xmean,ymean] = self.mean('xy')
             if False:
-                self.ax.text(xmean, ymean, '  mean', color=color)
+                self._axob.text(xmean, ymean, '  mean', color=color)
             if False:
-                arr = self.ax.Arrow(0,0,xmean,ymean, edgecolor='black',
-                                  # label='_nolegend_',
-                                  facecolor=color, linewidth=1, alpha=0.05)
-                pylab.gca().add_patch(arr)
+                arr = self._axob.Arrow(0,0,xmean,ymean, edgecolor='black',
+                                       # label='_nolegend_',
+                                       facecolor=color, linewidth=1, alpha=0.05)
+                self._axob.gca().add_patch(arr)
         return True
 
     #..............................................................
@@ -747,12 +759,12 @@ class PointsXY (object):
             self.plot_ellipse(xy0=[xmean,ymean], a=xstddev, b=ystddev,
                               # label='_nolegend_',
                               color=color, linestyle='--')
-            self.ax.plot([xmean], [ymean], marker='+',
-                       # label='_nolegend_',
-                       markeredgecolor=color, markersize=20)
-            self.ax.plot([xmean], [ymean], marker='o',
-                       # label='_nolegend_',
-                       markeredgecolor=color, markerfacecolor=color)
+            self._axob.plot([xmean], [ymean], marker='+',
+                            # label='_nolegend_',
+                            markeredgecolor=color, markersize=20)
+            self._axob.plot([xmean], [ymean], marker='o',
+                            # label='_nolegend_',
+                            markeredgecolor=color, markerfacecolor=color)
         return True
 
     #..............................................................
@@ -771,9 +783,9 @@ class PointsXY (object):
         for angle in angles:
             xx.append(x0+a*pylab.cos(angle))
             yy.append(y0+b*pylab.sin(angle))
-        self.ax.plot(xx, yy, color=color,
-                   # label=label,
-                   linestyle=linestyle)
+        self._axob.plot(xx, yy, color=color,
+                        # label=label,
+                        linestyle=linestyle)
         return True
 
 
@@ -941,7 +953,7 @@ if __name__ == '__main__':
     # pts = PointsXY(pylab.array(range(6)), name='numarray', **kwargs)
     # pts = PointsXY(-2, name='scalar', **kwargs)
     # pts = PointsXY(3+5j, name='complex scalar', **kwargs)
-    pts = PointsXY([3,-2+1.5j], name='complex list', **kwargs)
+    # pts = PointsXY([3,-2+1.5j], name='complex list', **kwargs)
     # pts = PointsXY([0,0,0,0], name='zeroes', **kwargs)
     # pts = test_line()
     # pts = test_sine()
