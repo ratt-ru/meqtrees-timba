@@ -174,6 +174,7 @@ if has_pylab:
                                linestyle=pd.linestyle,
                                marker=pd.marker,
                                markersize=pd.markersize,
+                               fontsize=pd.fontsize,
                                plot_circle_mean=pd.plot_circle_mean,
                                color=pd.color)
        grs.add(grs1)
