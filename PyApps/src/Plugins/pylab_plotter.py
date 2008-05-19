@@ -63,13 +63,14 @@ _dprintf = _dbg.dprintf;
 
 if has_pylab:
  class MyPylabPlotter(FigureCanvas):
+   
    def __init__(self, parent=None, name=None, dpi=100):
      self.fig = Figure(dpi=dpi)
      FigureCanvas.__init__(self, self.fig)
      self.reparent(parent, QPoint(0, 0))
      FigureCanvas.setSizePolicy(self,
-                                   QSizePolicy.Expanding,
-                                   QSizePolicy.Expanding)
+                                QSizePolicy.Expanding,
+                                QSizePolicy.Expanding)
      FigureCanvas.updateGeometry(self)
 
    def sizeHint(self):
@@ -126,17 +127,25 @@ if has_pylab:
      # command is closed a blank figure for the MyPylabPlotter class
      # remains.
 
+
+#=========================================================================
+
    def make_plot(self, plot_defs):
      """Make a pylab plot from all items in self._plotdefs.
      """
+     trace = False
+     trace = True
+
      import Graphics
      self._plotdefs = plot_defs
      self.class_name = "pylab_plot"
      rr = self._plotdefs                              # convenience
-     print '** rr =',type(rr),rr.keys()
+     if trace:
+       print '** rr =',type(rr),rr.keys()
       
      # Create an empty Graphics object:
-     grs = Graphics.Graphics(name=self.class_name, figure=self.fig,
+     grs = Graphics.Graphics(name=self.class_name,
+                             # figure=self.fig,
                              # plot_type='polar',     # does not work in svg...!
                              plot_grid=True,
                              title=rr.title,
@@ -145,7 +154,8 @@ if has_pylab:
  
      # Fill it with the subplots:
      plotype = 'graphics'
-     print '** rr[plotype] =',type(rr[plotype])
+     if trace:
+       print '** rr[',plotype,'] =',type(rr[plotype])
      for i,pd in enumerate(rr[plotype]):
        offset = i*rr.offset
        # offset += -10                    # testing only
@@ -157,14 +167,15 @@ if has_pylab:
        labels = len(yy)*[None]
        if pd.annotate:
          labels = pd.labels
-       grs1 = Graphics.Scatter(yy=yy, xx=pd.xx, figure=self.fig,
-                              annot=labels,
-                              dyy=pd.dyy, dxx=pd.dxx,           
-                              linestyle=pd.linestyle,
-                              marker=pd.marker,
-                              markersize=pd.markersize,
-                              plot_circle_mean=pd.plot_circle_mean,
-                              color=pd.color)
+       grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
+                               # figure=self.fig,
+                               annot=labels,
+                               dyy=pd.dyy, dxx=pd.dxx,           
+                               linestyle=pd.linestyle,
+                               marker=pd.marker,
+                               markersize=pd.markersize,
+                               plot_circle_mean=pd.plot_circle_mean,
+                               color=pd.color)
        grs.add(grs1)
        legend = pd.legend
        if not offset==0.0:
@@ -173,20 +184,26 @@ if has_pylab:
          if offset>0.0: legend += ' (+'+str(offset)+')'
          if offset<0.0: legend += ' ('+str(offset)+')'
        grs.legend(legend, color=pd.color)
+       if trace:
+         print grs1.oneliner(),':',legend
 
-     trace = True
      if trace:
-       grs.display('make_plot()')
-
-     print '********* grs is ', grs
+       print '********* grs is ', grs
+       print grs.oneliner()
+       # grs.display('pylab_plotter: make_plot()')
 
      # Use the JEN Figure class to make a pylab plot,
      import Figure as figure
-     fig = figure.Figure(figure=self.fig, clear=False)
+     # fig = figure.Figure(figure=self.fig, clear=False)
+     fig = figure.Figure(clear=False)
      fig.add(grs)
-     fig.plot(dispose=['show'], rootname=self.class_name,
-                                   clear=False, trace=trace)
+     fig.plot(figob=self.fig,
+              dispose=['show'], rootname=self.class_name,
+              clear=False, trace=trace)
      # Finished:
+     return None
+
+#========================================================================
 
 class PylabPlotter(GriddedPlugin):
   """ a class to visualize data from external pylab graphics files """
@@ -348,8 +365,8 @@ class PylabPlotter(GriddedPlugin):
     """ process incoming data and attributes into the
         appropriate type of plot """
 
-# if we are single stepping through requests, Oleg may reset the
-# cache, so check for a non-data record situation
+    # if we are single stepping through requests, Oleg may reset the
+    # cache, so check for a non-data record situation
     if store_rec and isinstance(self._rec, bool):
       return
 
