@@ -81,6 +81,9 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
     self.standard('markersize',
                   update=record(XX=2, XY=3, YX=3, YY=2,
                                 RR=2, RL=3, LR=3, LL=2))
+    self.standard('fontsize',
+                  update=record(XX=7, XY=7, YX=7, YY=7,
+                                RR=7, RL=7, LR=7, LL=7))
     return None
 
   #-------------------------------------------------------------------
@@ -123,24 +126,28 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
                      color=self.standard('color',corr),
                      marker=self.standard('marker',corr),
                      markersize=self.standard('markersize',corr),
+                     fontsize=self.standard('fontsize',corr),
                      annotate=True))
     corr = 'XY'
     ps.append(record(xy='{xy}', legend=corr,
                      color=self.standard('color',corr),
                      marker=self.standard('marker',corr),
                      markersize=self.standard('markersize',corr),
+                     fontsize=self.standard('fontsize',corr),
                      annotate=False))
     corr = 'YX'
     ps.append(record(xy='{yx}', legend=corr,
                      color=self.standard('color',corr),
                      marker=self.standard('marker',corr),
                      markersize=self.standard('markersize',corr),
+                     fontsize=self.standard('fontsize',corr),
                      annotate=False))
     corr = 'YY'
     ps.append(record(xy='{yy}', legend=corr,
                      color=self.standard('color',corr),
                      marker=self.standard('marker',corr),
                      markersize=self.standard('markersize',corr),
+                     fontsize=self.standard('fontsize',corr),
                      annotate=True))
     self.plotspecs['graphics'] = ps
 
@@ -239,12 +246,14 @@ class PlotCrossCorrs (PlotVis22):
                      color=self.standard('color',corr),
                      marker=self.standard('marker',corr),
                      markersize=self.standard('markersize',corr),
+                     fontsize=self.standard('fontsize',corr),
                      annotate=True))
     corr = 'YX'
     ps.append(record(xy='{yx}', legend=corr,
                      color=self.standard('color',corr),
                      marker=self.standard('marker',corr),
                      markersize=self.standard('markersize',corr),
+                     fontsize=self.standard('fontsize',corr),
                      annotate=True))
     self.plotspecs['graphics'] = ps
 
@@ -266,8 +275,8 @@ class PlotIQUV (PlotVis22):
                   update=record(I='red', Q='magenta', U='green', V='blue'))
     self.standard('marker',
                   update=record(I='circle', Q='cross', U='cross', V='plus'))
-    self.standard('markersize',
-                  update=record(I=2, Q=3, U=3, V=3))
+    self.standard('markersize', update=record(I=2, Q=3, U=3, V=3))
+    self.standard('fontsize', update=record(I=7, Q=7, U=7, V=7))
     return None
 
   #-------------------------------------------------------------------
@@ -295,6 +304,7 @@ class PlotIQUV (PlotVis22):
                      color=self.standard('color',stokes),
                      marker=self.standard('marker',stokes),
                      markersize=self.standard('markersize',stokes),
+                     fontsize=self.standard('fontsize',stokes),
                      annotate=True))
     stokes = 'Q'
     ps.append(record(xy='({xx}-{yy})/2',
@@ -320,6 +330,8 @@ class PlotIQUV (PlotVis22):
     self.plotspecs['graphics'] = ps
 
     self.plotspecs.setdefault('plot_circle_mean', True)
+    self.plotspecs.setdefault('xlabel', 'real part (Jy)')
+    self.plotspecs.setdefault('ylabel', 'imag part (Jy)')
     return None
 
 
@@ -418,8 +430,9 @@ def _define_forest (ns,**kwargs):
   # Optional: uv-coordinates:
   if True:
     class_name = 'PlotUV'
+    svg = True
     ps = None
-    # ps = record(make_svg=True)   # just for testing.....
+    if svg: ps = record(make_svg=True)                     # just for testing.....
     pynode = ns[class_name] << Meq.PyNode(children=uu,
                                           child_labels=labels,
                                           class_name=class_name,
@@ -428,6 +441,8 @@ def _define_forest (ns,**kwargs):
     pp.append(pynode)
     pypage.add(ns[class_name], viewer=viewer)
     Meow.Bookmarks.Page(class_name).add(ns[class_name], viewer=viewer)
+    if svg: Meow.Bookmarks.Page(class_name+'_SVG').add(ns[class_name], viewer="Svg Plotter")
+
   else:
     # Bundle them, to limit browser clutter:
     ns['uu'] << Meq.Composer(*uu)

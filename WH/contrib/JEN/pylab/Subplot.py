@@ -320,7 +320,7 @@ class Subplot (object):
 
     #---------------------------------------------------------------
 
-    def plot_legend (self, ny=16, trace=False):
+    def plot_legend (self, ny=16, fontsize=10, trace=False):
         """Plot the accumulated legend-strings (if any).
         The number ny(=16) determines the line-spacing,
         by specifying the number of lines that fit on the plot.
@@ -339,7 +339,7 @@ class Subplot (object):
             y -= dy
             if trace:
                 print '-',i,'(',x,y,dy,color[i],'):',s
-            self._axob.text(x,y,s, color=color[i])
+            self._axob.text(x,y,s, color=color[i], fontsize=fontsize)   
         if trace: print
         return True
 

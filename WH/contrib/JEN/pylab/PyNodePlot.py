@@ -136,6 +136,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     - markersize [=5]            subplot marker size (points)
     - plot_sigma_bars [=True]    if True, indicate domain variation
     - annotate   [=True]         if True, annotate points with labels
+    - fontsize   [=7]            annotation font size (points)
     - msmin      [=2]            min marker size (z-values)
     - msmax      [=20]           max marker size (z-values)
     - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
@@ -335,7 +336,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # They all have default values in the overall section.
     # These keys are used to transfer defaults to self._plotdefs:
     ss = ['color','linestyle','marker','markersize']
-    ss.extend(['legend','plot_sigma_bars','annotate'])
+    ss.extend(['legend','plot_sigma_bars','annotate','fontsize'])
     ss.extend(['plot_circle_mean'])
     self._pskeys['graphics'] = ss
     
@@ -343,10 +344,11 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr.setdefault('color', 'blue')                  # plot color
     rr.setdefault('linestyle', None)                # line style                  
     rr.setdefault('marker', 'o')                    # marker style
-    rr.setdefault('markersize', 5)                  # markersize
+    rr.setdefault('markersize', 5)                  # markersize (points)
     rr.setdefault('msmin',2)                        # min marker size (zmin)
     rr.setdefault('msmax',20)                       # max marker size (zmax)
     rr.setdefault('annotate', True)                 # do annotation
+    rr.setdefault('fontsize', 7)                    # font size (points)
     rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)        # plot circle around (0,0) with radius=mean
 
@@ -556,6 +558,17 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def make_svg (self, trace=False):
+    """Make an svg plot definition from all items in self._plotdefs.
+    (NB: This is semi-obsolete, but retained for the future.....)
+    Using the same function that is called by Tony's pylab_plotter.
+    """
+    fig = make_pylab_figure(self._plotdefs, figob=None,
+                            target='svg', trace=trace)
+    svg_list_of_strings = fig.make_svg(rootname=self.class_name)
+    return svg_list_of_strings
+
+
+  def make_svg_old (self, trace=False):
     """Make an svg plot definition from all items in self._plotdefs.
     NB: This is semi-obsolete, but retained for the future.....
     """
@@ -801,6 +814,86 @@ class ExampleDerivedClass (PyNodePlot):
 
 
 
+#=====================================================================================
+# Make a pylab 
+#=====================================================================================
+
+def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
+  """Make a pylab figure from all items in the plot_defs record.
+  The figob is a matplotlib/pylab figure object.
+  If the target is 'svg', there are some restrictions.
+  """
+  # trace = True
+
+  rr = plotdefs                                    # convenience
+  if trace:
+    print '\n** PyNodePlot.make_pylab_figure(',figob,target,'):'
+    # print '** plotdefs: rr =',type(rr),rr.keys()
+    print
+
+  # If none supplied, make an empty pylab figure object (e.g. make_svg)
+  if figob==None:
+    import pylab
+    figob = pylab.figure()
+       
+  # Create an empty Graphics object:
+  import Graphics
+  grs = Graphics.Graphics(name="pylab_plot",
+                          # plot_type='polar',     # does not work in svg...!
+                          plot_grid=True,
+                          title=rr.title,
+                          xlabel=rr.xlabel,
+                          ylabel=rr.ylabel)
+ 
+  # Fill the Graphics object with Scatter plots:
+  plotype = 'graphics'
+  if trace:
+    print '** rr[',plotype,'] =',type(rr[plotype]),'\n'
+
+  for i,pd in enumerate(rr[plotype]):
+    offset = i*rr.offset
+    # offset += -10                    # testing only
+    yy = pd.yy
+    if not offset==0.0:
+      yy = list(yy)                    # tuple does not support item assignment...      
+      for i,y in enumerate(yy):
+        yy[i] += offset
+    labels = len(yy)*[None]
+    if pd.annotate:
+      labels = pd.labels
+    grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
+                            annot=labels,
+                            dyy=pd.dyy, dxx=pd.dxx,           
+                            linestyle=pd.linestyle,
+                            marker=pd.marker,
+                            markersize=pd.markersize,
+                            fontsize=pd.fontsize,
+                            plot_circle_mean=pd.plot_circle_mean,
+                            color=pd.color)
+    grs.add(grs1)
+    legend = pd.legend
+    if not offset==0.0:
+      if legend==None: legend = 'offset'
+      if not isinstance(legend,str): legend = str(legend)
+      if offset>0.0: legend += ' (+'+str(offset)+')'
+      if offset<0.0: legend += ' ('+str(offset)+')'
+    grs.legend(legend, color=pd.color)
+    if trace:
+      print grs1.oneliner(),':',legend
+
+  if trace:
+    print '********* grs is ', grs
+    print grs.oneliner()
+    # grs.display('pylab_plotter: make_plot()')
+
+  # Use the JEN Figure class to make a pylab plot,
+  import Figure
+  fig = Figure.Figure(nrow=1, ncol=1)   
+  fig.add(grs)
+  fig.make_plot(figob=figob, show=True, trace=trace)
+
+  # Finished: Return the JEN Figure object (e.g. for make_svg()).
+  return fig
 
 
 

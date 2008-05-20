@@ -55,7 +55,7 @@ import copy
 #======================================================================================
 
 class Figure (Subplot.Subplot):
-    """Encapsulation of a pylab subplot
+    """Encapsulation of a pylab figure.
     """
 
     def __init__(self, nrow=1, ncol=1, name=None, clear=True): 
@@ -287,7 +287,7 @@ class Figure (Subplot.Subplot):
         xml = file.readlines()
         file.close()
 
-        if trace:
+        if False:
             n = len(xml)
             print '\n - read:',filename,'->',type(xml),n,'\n'
             for i in range(min(6,n-1)):
@@ -299,7 +299,7 @@ class Figure (Subplot.Subplot):
                 print '  -',i,': ',xml[i]
             print
 
-        if True:
+        if False:
             import os
             os.system("%s -size 640x480 %s" % ('display',filename))
             # -> error: "display: Opening and ending tag mismatch: name line 0 and text"
