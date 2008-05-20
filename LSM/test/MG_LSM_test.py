@@ -23,47 +23,35 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-script_name = 'MG_LSM_test.py'
-
-
-from Timba import utils
-_dbg = utils.verbosity(0, name='LSM_Test')
-_dprint = _dbg.dprint                    # use: _dprint(2, "abc")
-_dprintf = _dbg.dprintf                  # use: _dprintf(2, "a = %d", a)
-# run the script with: -dtutorial=3
-# level 0 is always printed
-
 
 from Timba.TDL import *
-from Timba.TDL import Settings
 from Timba.Meq import meq
-from Timba.LSM.LSM import *
-from Timba.LSM.LSM_GUI import *
-
-
-from random import *
-# to force caching put 100
-Settings.forest_state.cache_policy = 0
-
+from Timba.LSM.LSM import LSM
 
 # Create Empty LSM - global
 lsm=LSM()
-#================================================================================
-# Tree definition routine (may be executed from the browser):
-# To be used as example, for experimentation, and automatic testing.
-#================================================================================
-
 def _define_forest (ns):
  global lsm
  home_dir = os.environ['HOME']
  infile_name = home_dir + '/Timba/LSM/test/3C343_nvss.txt'
  lsm.build_from_catalog(infile_name,ns)
- #remember node scope
- lsm.setNodeScope(ns)
+ plist=lsm.queryLSM(count=3)
+ ## build your own tree
+ source_list=[]
+ for pu in plist:
+    # essential source params
+    (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
+    # extended sources
+    (eX,eY,eP)=pu.getExtParms()
+    ns.I(pu.name)<<Meq.Constant(sI)
+    ns.Q(pu.name)<<Meq.Constant(sQ)
+    ns.U(pu.name)<<Meq.Constant(sU)
+    ns.V(pu.name)<<Meq.Constant(sV)
+    ns.IQUV(pu.name)<<Meq.Composer(ns.I(pu.name),ns.Q(pu.name),ns.U(pu.name),ns.V(pu.name))
+    source_list.append(ns.IQUV(pu.name))
+    
 
-########################################################################
-
-
+ lsm.display()
 
 #********************************************************************************
 # Initialisation and testing routines
@@ -76,9 +64,7 @@ def _define_forest (ns):
 # The 'mqs' argument is a meqserver proxy object.
 
 def _test_forest (mqs, parent):
- global lsm
- lsm.display()
-
+ pass
 
 #### PUnits
 def _tdl_job_query_punits(mqs, parent):
