@@ -254,6 +254,16 @@ class PyNodeNamedGroups (pynode.PyNode):
     # Finished
     return None
 
+  #===================================================================
+  # Functions dealing with group specifications:
+  #===================================================================
+
+  def define_specific_groupspecs(self, trace=True):  
+    """Placeholder for class-specific function, to be redefined by classes
+    that are derived from PyNodeNamedGroups. Called by ._check_groupspecs().
+    It allows the specification of one or more specific groupspecs.
+    """
+    return None
 
   #-------------------------------------------------------------------
 
@@ -271,24 +281,20 @@ class PyNodeNamedGroups (pynode.PyNode):
       rr = self.groupspecs[key]
       lowerkey = key.lower()                 # meqbrowser only transmits lowercase....
       self._gs_order.append(lowerkey)    
-      if not isinstance(rr, record):
-        rr = record()                        # make sure it is a record
-      rr.key = lowerkey                      # attach the key (group name)
-      self.groupspecs[lowerkey] = self._check_groupspec(rr)
+
+      if isinstance(rr, str):                # assume python expression (string)
+        self.groupspecs[lowerkey] = rr
+
+      else:
+        if not isinstance(rr, record):
+          rr = record()                      # make sure it is a record
+        rr.key = lowerkey                    # attach the key (group name)
+        self.groupspecs[lowerkey] = self._check_groupspec(rr)
 
     # Finished
     if trace:
       self.display('_check_groupspecs() output')
     return True
-
-  #-------------------------------------------------------------------
-
-  def define_specific_groupspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodeNamedGroups. Called by ._check_groupspecs().
-    It allows the specification of one or more specific groupspecs.
-    """
-    return None
 
   #-------------------------------------------------------------------
 
@@ -344,63 +350,81 @@ class PyNodeNamedGroups (pynode.PyNode):
     return rr
 
 
-  #-------------------------------------------------------------------
+  #===================================================================
+  # Functions dealing with named groups:
+  #===================================================================
 
   def _extract_namedgroups(self, children, child_indices,
-                           child_labels=None, trace=True):
+                           child_labels=None, trace=False):
     """Helper function to extract named groups from the
     given child-results (children). Called by .get_result().
     """
 
+    if trace:
+      print '\n** _extract_namedgroups():'
+    
     import ChildResult
     nc = len(children)
 
+    # First do the groupspecs that are records (they extract values from chirdren):
     for key in self._gs_order:
-      rr = self.groupspecs[key]                               # convenience
-      lowerkey = key.lower()                                  # use lowercase only...!!  
+      rr = self.groupspecs[key]                                 # convenience
+      if isinstance(rr,record):
 
-      iic = self._make_child_selection (nc, rr, trace=False)  # child indices
-      cindices = []
-      # print '\n iic =',iic,nc,rr.children
-      for i in iic:
-        # print '-',child_indices,'[',i,']->',child_indices[i]
-        cindices.append(child_indices[i])
+        iic = self._make_child_selection (nc, rr, trace=False)  # child indices
+        cindices = []
+        for i in iic:
+          cindices.append(child_indices[i])
 
-      # The child result(s) are read by a special object: 
-      extend_labels = True                                    # -> label[ivells] 
-      if isinstance(rr.vells,(list,tuple)) and len(rr.vells)==1:
-        extend_labels = False                                 # 
-      rv = ChildResult.ResultVector(children, select=iic,
-                                    extend_labels=extend_labels,
-                                    labels=child_labels)
-      if trace:
-        rv.display(self.class_name)
+        # The child result(s) are read by a special object: 
+        extend_labels = True                                    # -> label[ivells] 
+        if isinstance(rr.vells,(list,tuple)) and len(rr.vells)==1:
+          extend_labels = False                                 # 
+        rv = ChildResult.ResultVector(children, select=iic,
+                                      extend_labels=extend_labels,
+                                      labels=child_labels)
+        if trace:
+          rv.display(self.class_name)
 
-      # Make/attach a new namedgroup record (object?):
-      if rr.vells==None:
-        vv = rv.results()                         # <----- !!
-        s = 'Extracted:'
-        s += '  entire result(s)'
-        self._create_namedgroup (key=lowerkey, vells=rr.vells,
-                                 children=rr.children,
-                                 childnos=iic, nodes=cindices,
-                                 labels=child_labels,
-                                 history=s, vv=vv, dvv=None)
+        # Make/attach a new namedgroup record (object?):
+        if rr.vells==None:
+          vv = rv.results()                         # <----- !!
+          s = 'Extracted:'
+          s += '  entire result(s)'
+          self._create_namedgroup (key=key, vv=vv, dvv=None,
+                                   vells=rr.vells, children=rr.children,
+                                   childnos=iic, nodes=cindices,
+                                   labels=child_labels,
+                                   history=s)
 
-      else:
-        index = rr.vells
-        if rr.vells=='*': index = None
-        s = 'Extracted:'
-        s += '  mean of'                          # <---- !!
-        s += '  vells('+str(rr.vells)+')'
-        vv = rv.VV(index=index)                  # <---- !!
-        dvv = rv.dvv(index=index)                 # <---- !!
-        self._create_namedgroup (key=lowerkey, vells=rr.vells,
-                                 children=rr.children,
-                                 childnos=rv.expand(iic, index=index),
-                                 nodes=rv.expand(cindices, index=index),
-                                 labels=rv.labels(index=index),
-                                 history=s, vv=vv, dvv=dvv)
+        else:
+          index = rr.vells
+          if rr.vells=='*': index = None
+          s = 'Extracted:'
+          s += '  mean of'                          # <---- !!
+          s += '  vells('+str(rr.vells)+')'
+          vv = rv.VV(index=index)                   # <---- !!
+          dvv = rv.dvv(index=index)                 # <---- !!
+          self._create_namedgroup (key=key, vv=vv, dvv=dvv,
+                                   vells=rr.vells, children=rr.children,
+                                   childnos=rv.expand(iic, index=index),
+                                   nodes=rv.expand(cindices, index=index),
+                                   labels=rv.labels(index=index),
+                                   history=s)
+
+    # Then do the groupspecs that are strings (python extressions)
+    # They are derived groups:
+    for key in self._gs_order:
+      rr = self.groupspecs[key]                                 # convenience
+      if isinstance(rr,str):
+        expr = rr
+        s = 'Derived: '+expr
+        self._create_namedgroup (key=key, derived=True,
+                                 vv=self._evaluate(expr, trace=trace),
+                                 dvv=self._expr2dvv(expr, trace=trace),
+                                 labels=self._expr2labels(expr, trace=trace),
+                                 childnos=self._expr2childnos(expr, trace=trace),
+                                 history=s)
 
 
     # Finished:
@@ -408,41 +432,51 @@ class PyNodeNamedGroups (pynode.PyNode):
       self.display('_extract_namedgroups()')
     return None
     
-      
   #-------------------------------------------------------------------
 
-  def _create_namedgroup (self, key, children, vells,
-                          childnos, nodes, labels, history,
-                          vv, dvv=None,
-                          trace=True):
+  def _create_namedgroup (self, key, vv, dvv=None,
+                          children=None, vells=None,
+                          childnos=None, nodes=None,
+                          labels=None, history='History',
+                          derived=False, trace=True):
     """Helper function to create a new namedgroup record.
     Called (only) from ._extract_namedgroups(). 
     """
     # Finishing touches on its history (list of strings)
-    nn = []
-    for n in nodes:
-      if not n in nn:
-        nn.append(n)
-    history += '  from '+str(len(nn))+' node(s): '+str(nn)
+    if isinstance(nodes,(list,tuple)):
+      nn = []
+      for n in nodes:
+        if not n in nn:
+          nn.append(n)
+      history += '  from '+str(len(nn))+' node(s): '+str(nn)
     history = [history]
 
+    # The group names are lower-key, because the meqbrowser only
+    # transmits lowerkey names. 
+    lowerkey = key.lower()   
+
     # Name clashes are more likely with concatenated pynodes....
-    if self._namedgroups.has_key(key):
-      s = '** namedgroup name clash: '+key+' (overwritten)'
+    if self._namedgroups.has_key(lowerkey):
+      s = '** namedgroup name clash: '+lowerkey+' (overwritten)'
       history.append(s)
       print s
 
     # Create and attach the new record:
-    rr = record(key=key, vells=vells, children=children,
+    rr = record(vv=vv, dvv=dvv,
+                key=lowerkey,
+                derived=derived,
+                vells=vells, children=children,
                 childnos=childnos, nodes=nodes, labels=labels,
-                history=history, vv=vv, dvv=dvv)
-    self._namedgroups[key] = rr
+                history=history)
+    self._namedgroups[lowerkey] = rr
 
     # The groups order is important for derived groups, i.e. groups
     # that depend on the values of others (which should be read first).
-    self._ng_order.append(key)
-
+    self._ng_order.append(lowerkey)
+    
     # Finished:
+    if trace:
+      print '\n** _create_named_group(',key,'): ->',self._ng_order,'\n'
     return True
 
 
@@ -450,10 +484,8 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   def _make_child_selection (self, nc, rr, trace=False):
     """Helper function that returns a list of indices for a subset
-    of the nc child nodes.
+    of the nc child nodes. Called from _extract_named_groups()
     """
-
-    # trace = True
     
     iic = []
     if isinstance(rr.children, (list,tuple)):
@@ -479,7 +511,10 @@ class PyNodeNamedGroups (pynode.PyNode):
       print '** _make_child_selection(',nc,rr.key,rr.children,') ->',iic,'\n'
     return iic
 
-  #-------------------------------------------------------------------
+
+  #===================================================================
+  # Display related functions (also used in derived classes):
+  #===================================================================
 
   def oneliner(self):
     """Helper function to show a one-line summary of this object"""
@@ -491,9 +526,11 @@ class PyNodeNamedGroups (pynode.PyNode):
     ss += '  groups:'+str(self._ng_order)
     return ss
 
+
   def _prefix(self, level=0):
     """Helper function to generate prefix string for display."""
     return level*'... '
+
   
   def _preamble(self, level, txt=None, classname='<classname>'):
     """Helper function, called at start of .display()"""
@@ -506,6 +543,7 @@ class PyNodeNamedGroups (pynode.PyNode):
       print prefix
       print prefix,' **** Inherited from class: '+str(classname)+' ****'
     return prefix
+
 
   def _postamble(self, level, txt=None):
     """Helper function, called at end of .display()"""
@@ -567,6 +605,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     return True
 
 
+  #-------------------------------------------------------------------
   #-------------------------------------------------------------------
 
   def get_result (self, request, *children):
@@ -630,6 +669,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 
 
   #-------------------------------------------------------------------
+  # Functions dealing with (python, string) expressions:
   #-------------------------------------------------------------------
 
   def _evaluate(self, expr, trace=False):
@@ -674,7 +714,7 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _expr2dvv(self, expr, trace=False):
-    """Return the dvv (stddev) of the first namedgroup that appears as
+    """Return the dvv (stddev) of the first (!?) namedgroup that appears as
     a variable {<name>} in the given expression.
     NB: This is just a placeholder, until it is done properly....
     """
@@ -686,13 +726,13 @@ class PyNodeNamedGroups (pynode.PyNode):
         dvv = self._namedgroups[key].dvv
         if trace:
           print '-',kenc,len(dvv),'->',dvv,'\n'
-        return dvv
+        return dvv                             # for the moment: return the first...!
     return None
 
   #-------------------------------------------------------------------
 
   def _expr2labels(self, expr, trace=False):
-    """Return the labels of the first namedgroup that appears as
+    """Return the labels of the first (!?) namedgroup that appears as
     a variable {<name>} in the given expression. 
     """
     if trace:
@@ -703,14 +743,14 @@ class PyNodeNamedGroups (pynode.PyNode):
         ss = self._namedgroups[key].labels
         if trace:
           print '-',kenc,len(ss),'->',ss,'\n'
-        return ss
+        return ss                              # for the moment: return the first...!
     return None
 
 
   #-------------------------------------------------------------------
 
   def _expr2childnos(self, expr, trace=False):
-    """Return the child numbers of the first namedgroup that appears as
+    """Return the child numbers of the first (!?) namedgroup that appears as
     a variable {<name>} in the given expression. To be used as xx. 
     """
     if trace:
@@ -721,7 +761,7 @@ class PyNodeNamedGroups (pynode.PyNode):
         ii = self._namedgroups[key].childnos
         if trace:
           print '-',kenc,len(ii),'->',ii,'\n'
-        return ii
+        return ii                             # for the moment: return the first...!
     return None
 
 
@@ -760,9 +800,7 @@ def format_vv (vv):
     s += '  '+str(vv[0])+' ... '+str(vv[len(vv)-1])
   else:
     import pylab              # must be done here, not above....
-    # print '** vv[0] =',type(vv[0]),vv[0]
     ww = pylab.array(vv)
-    # print '** ww =',type(ww),ww
     s = '  length='+str(len(ww))
     s += format_float(ww.min(),'  min')
     s += format_float(ww.max(),'  max')
@@ -804,13 +842,17 @@ class ExampleDerivedClass (PyNodeNamedGroups):
     """Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
-    if False:
+    if True:
       # Used for operations (e.g. plotting) on separate correlations.
       # Its children are assumed to be 2x2 tensor nodes (4 vells each).
       self.groupspecs['XX'] = record(children='2/3', vells=[0])
       self.groupspecs['XY'] = record(children='3/3', vells=[1])
       self.groupspecs['YX'] = record(children='*', vells=[2])
       self.groupspecs['YY'] = record(children='*', vells=[3])
+      # Derived groups are specified as (string) python extressions,
+      # in which the (lowercase!) group names {a} are variables.
+      if True:
+        self.groupspecs['stokesI'] = '({yx}+{yy})/2' 
     return None
 
 
@@ -873,8 +915,8 @@ def _define_forest (ns,**kwargs):
                                child_labels=labels,
                                # class_name='PyNodeNamedGroups',
                                class_name='ExampleDerivedClass',
-                               groupspecs=gs,
-                               testeval=tv,
+                               # groupspecs=gs,
+                               # testeval=tv,
                                module_name=__file__)
   # Meow.Bookmarks.Page('pynode').add(rootnode, viewer="Record Viewer")
 
