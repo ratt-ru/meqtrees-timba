@@ -23,5 +23,15 @@ def init_phasescreen(N=10,beta=5.):
     S[N,N] = 0
     
     # Compute the inverse real ffts in both directions
-    phasescreen = numpy.real(ifft2(fftshift(S)));
-    print "in tPhaseScreen",len(phasescreen);
+    screen = numpy.real(ifft2(fftshift(S)));
+
+    # Normalize phasescreen to have all values between -1 and 1
+    print "in PhaseScreen",len(screen);
+    minscreen = numpy.min(screen)
+    print "Min screen", minscreen
+    maxscreen = numpy.max(numpy.abs(screen));
+    print "Max screen", maxscreen;
+    phasescreen = screen / maxscreen;
+    print "****************************************************************************************"
+    print phasescreen
+    print "****************************************************************************************"
