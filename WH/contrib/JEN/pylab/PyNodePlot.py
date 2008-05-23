@@ -9,15 +9,11 @@
 #    - 21 mar 2008: creation (from VisuPlotXY.py)
 #    - 21 apr 2008: derived from PyNodeNamedGroups)
 #    - 07 may 2008: Tony's version with pyfig
+#    - 23 may 2008: implemented plotspec ignore=expr
 #
 # Remarks:
 #
 # Description:
-#   The PyNodePlot class actually makes the (SVG) plot from a list of
-#   subplots in its plotspecs record. The subplots are a concatenation
-#   if the subplots defined in the plotspecs records of its children.
-#   Its children are PyNodes that collect values from node-results
-#   in various ways and turn them into subplots.
 #
 
 #-------------------------------------------------------------------------------
@@ -330,16 +326,19 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     rr.setdefault('xunit', None) 
     rr.setdefault('yunit', None) 
     rr.setdefault('zunit', None) 
-    rr.setdefault('offset', 0.0)                      # offset multiple subplots
+    rr.setdefault('offset', 0.0)                    # offset multiple subplots
 
     # Parameters used in (sub)plot definitions of various types.
     # They all have default values in the overall section.
     # These keys are used to transfer defaults to self._plotdefs:
     ss = ['color','linestyle','marker','markersize']
     ss.extend(['legend','plot_sigma_bars','annotate','fontsize'])
+    ss.extend(['ignore'])                           # ....?
     ss.extend(['plot_circle_mean'])
     self._pskeys['graphics'] = ss
     
+    rr.setdefault('ignore', None)                   # python expression (string)
+
     rr.setdefault('legend', None)                   # subplot legend
     rr.setdefault('color', 'blue')                  # plot color
     rr.setdefault('linestyle', None)                # line style                  
@@ -456,7 +455,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
       # Initialize a new plot definition record:
       pd = record(xx=None, yy=None, zz=None,
-                  dxx=None, dyy=None)
+                  dxx=None, dyy=None, ignore=None)
 
       # Transfer the various options (e.g. color):
       for key in self._pskeys[plotype]:
@@ -474,7 +473,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
         pd.xx = self._evaluate(pd.xexpr, trace=trace)
         pd.labels = self._expr2labels(pd.yexpr, trace=trace)
         if isinstance(legend,str):
-          pd.legend = legend.replace('\expr',str(rr.xy))
+          pd.legend = legend.replace('\expr','xy='+str(rr.xy))
         
       elif rr.has_key('y'):                      # y expr specified                       
         pd.yexpr = str(rr.y)
@@ -492,6 +491,12 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
       else:
         s = '** neither y nor xy expression in graphics plotspec'
         raise ValueError,s
+
+      # If pd.ignore is a python expression (string), evaluate it: 
+      if isinstance(pd.ignore, str):
+        pd.legend += '(ignore='+pd.ignore+')'
+        pd.ignore = self._evaluate(pd.ignore, trace=trace)
+        
 
       # If a z-expr is specified, make a XYZ plot:
       if rr.has_key('z'):                        # z expr specified                       
@@ -566,78 +571,6 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
                             target='svg', trace=trace)
     svg_list_of_strings = fig.make_svg(rootname=self.class_name)
     return svg_list_of_strings
-
-
-  def make_svg_old (self, trace=False):
-    """Make an svg plot definition from all items in self._plotdefs.
-    NB: This is semi-obsolete, but retained for the future.....
-    """
-
-    # trace = True
-      
-    rr = self._plotdefs                              # convenience
-    # print '** rr =',type(rr),rr.keys()
-    plotype = 'graphics'
-    # print '** rr[plotype] =',type(rr[plotype])
-
-     # Create an empty Graphics object:
-    import Graphics
-    grs = Graphics.Graphics(name=self.class_name,
-                            # plot_type='polar',     # does not work in svg...!
-                            plot_grid=True,
-                            title=rr.title+' {'+str(self._count)+'}',
-                            xlabel=rr.xlabel,
-                            ylabel=rr.ylabel)
-
-    # Fill the Graphics object with the subplots:
-    for i,pd in enumerate(rr[plotype]):
-      offset = i*rr.offset
-      # offset += -10                    # testing only
-      yy = pd.yy
-      if not offset==0.0:
-        yy = list(yy)                    # tuple does not support item assignment...      
-        for i,y in enumerate(yy):
-          yy[i] += offset
-      labels = len(yy)*[None]
-      if pd.annotate:
-        labels = pd.labels
-      grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
-                              annot=labels,
-                              dyy=pd.dyy, dxx=pd.dxx,           
-                              linestyle=pd.linestyle,
-                              marker=pd.marker,
-                              markersize=pd.markersize,
-                              plot_circle_mean=pd.plot_circle_mean,
-                              color=pd.color)
-      grs.add(grs1)
-      legend = pd.legend
-      if not offset==0.0:
-        if legend==None: legend = 'offset'
-        if not isinstance(legend,str): legend = str(legend)
-        if offset>0.0: legend += ' (+'+str(offset)+')'
-        if offset<0.0: legend += ' ('+str(offset)+')'
-      grs.legend(legend, color=pd.color)
-
-    # Optionally, set the plot-window:
-    if False:
-      self.set_window(grs)
-
-    if trace:
-      grs.display('make_svg()')
-
-    # Use the Figure class to make a pylab plot,
-    # and to generate an svg definition string:
-    import Figure
-    fig = Figure.Figure()
-    fig.add(grs)
-    if trace:
-      fig.display('make_svg()')
-    fig.make_plot(trace=trace)
-    svg_list_of_strings = fig.make_svg(rootname=self.class_name)
-    
-    # Finished:
-    return svg_list_of_strings
-
 
 #--------------------------------------------------------------------
 
@@ -781,23 +714,29 @@ class ExampleDerivedClass (PyNodePlot):
     of one or more specific plotspecs.
     """
     ps = []
-    # Example(s):
+
     if True:
       # Used for operations (e.g. plotting) on separate correlations.
       # Its children are assumed to be 2x2 tensor nodes (4 vells each).
       ps.append(record(xy='{xx}',
+                       legend='XX',
                        color=self.standard('color','b'),
                        marker=self.standard('marker','d'),
                        markersize=10))
       ps.append(record(xy='{xy}',
+                       ignore='abs({xy})>4',
+                       # ignore='abs({yy})>4',
+                       legend='XY',
                        color='magenta',
                        markersize=10,
                        annotate=False))
       ps.append(record(xy='{yx}',
+                       legend='YX',
                        color='green', 
                        marker='cross',
                        annotate=False))
       ps.append(record(xy='{yy}',
+                       ignore='abs({yy})>4',
                        legend='YY: \expr',
                        color='blue',
                        markersize=10))
@@ -815,7 +754,7 @@ class ExampleDerivedClass (PyNodePlot):
 
 
 #=====================================================================================
-# Make a pylab 
+# Make a pylab figure (also called externally):
 #=====================================================================================
 
 def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
@@ -864,6 +803,7 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
     grs1 = Graphics.Scatter(yy=yy, xx=pd.xx,
                             annot=labels,
                             dyy=pd.dyy, dxx=pd.dxx,           
+                            ignore=pd.ignore,
                             linestyle=pd.linestyle,
                             marker=pd.marker,
                             markersize=pd.markersize,
@@ -955,6 +895,9 @@ def format_vv (vv):
 def _define_forest (ns,**kwargs):
   """Make trees with the various pyNodes"""
 
+  viewer = "Svg Plotter"
+  viewer = "Pylab Plotter"
+
   time = ns['time'] << Meq.Time()
   cc = []
   labels = []
@@ -988,7 +931,7 @@ def _define_forest (ns,**kwargs):
     cc.append(ns['concat'])
     # cc.insert(0,ns['concat'])
     # cc.insert(2,ns['concat'])
-    Meow.Bookmarks.Page('concat').add(ns['concat'], viewer="Svg Plotter")
+    Meow.Bookmarks.Page('concat').add(ns['concat'], viewer=viewer)
 
 
   # Make the group specification record:
@@ -1006,13 +949,13 @@ def _define_forest (ns,**kwargs):
 
   ns['rootnode'] << Meq.PyNode(children=cc,
                                child_labels=labels,
-                               class_name='PyNodePlot',
-                               # class_name='ExampleDerivedClass',
+                               # class_name='PyNodePlot',
+                               class_name='ExampleDerivedClass',
                                groupspecs=gs,
                                plotspecs=ps,
                                module_name=__file__)
   # Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer="Record Viewer")
-  Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer="Svg Plotter")
+  Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer=viewer)
 
   # Finished:
   return True

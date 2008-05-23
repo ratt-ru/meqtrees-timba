@@ -10,6 +10,7 @@
 #
 # History:
 #    - 29 jan 2008: creation
+#    - 23 may 2008: added argument 'ignore' to Scatter
 #
 # Remarks:
 #
@@ -333,6 +334,7 @@ class Scatter (Graphics):
 
     def __init__(self, yy=None, annot=None,
                  xx=None, dxx=None, dyy=None,
+                 ignore=None,
                  **kwargs):
         """
         The Scatter class is derived from the Graphics class.
@@ -343,6 +345,7 @@ class Scatter (Graphics):
         - A single point may be specified as scalar(s).
         - Any dyy and/or dxx are converted to error bars.
         - Annotations are supplied via annot and annotpos.
+        - Points may be ignored by means of a vector of bools.
         """
         Graphics.__init__(self, **kwargs)
 
@@ -352,6 +355,7 @@ class Scatter (Graphics):
         # kwargs['linestyle'] = None
         self.add(PointsXY.PointsXY(yy=yy, annot=annot,
                                    xx=xx, dxx=dxx, dyy=dyy,
+                                   ignore=ignore,
                                    **kwargs))
 
         # Finished:

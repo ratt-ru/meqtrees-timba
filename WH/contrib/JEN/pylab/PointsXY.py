@@ -11,6 +11,7 @@
 #    - 27 jan 2008: creation
 #    - 15 may 2008: Tony's version (.ax.)
 #    - 19 may 2008: Changed all pylab. to self._axob.
+#    - 23 may 2008: added argument 'ignore'
 #
 # Remarks:
 #
@@ -61,6 +62,7 @@ class PointsXY (object):
     def __init__(self,
                  yy=None, annot=None, name=None, 
                  xx=None, dyy=None, dxx=None,
+                 ignore=None,
                  **kwargs):
 
         # Deal with the specified name (label):
@@ -100,7 +102,9 @@ class PointsXY (object):
         self._dyy = []
         self._dxx = []
         self._annot = []
-        self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy, trace=False)     # if any specified 
+        self._ignore = []
+        self.append(y=yy, annot=annot, x=xx, dx=dxx, dy=dyy,
+                    ignore=ignore, trace=False)                      # if any specified 
 
         # matplotlib/pylab axes object (used for plotting)
         self._axob = None
@@ -127,7 +131,8 @@ class PointsXY (object):
 
     #---------------------------------------------------------------
 
-    def append (self, y, annot=None, x=None, dy=None, dx=None, trace=False):
+    def append (self, y, annot=None, x=None, dy=None, dx=None,
+                ignore=None, trace=False):
         """Add a point (x,y) to the internal group"""
 
         if trace:
@@ -147,6 +152,8 @@ class PointsXY (object):
             dx = dx.tolist()
         if isinstance(dy, type(pylab.array([]))):
             dy = dy.tolist()
+        if isinstance(ignore, type(pylab.array([]))):
+            ignore = ignore.tolist()
 
         if isinstance(y, (list,tuple)):
             # Recursive: append a list of points.
@@ -155,6 +162,7 @@ class PointsXY (object):
             if isinstance(x,tuple): x = list(x)
             if isinstance(dx,tuple): dx = list(dx)
             if isinstance(dy,tuple): dy = list(dy)
+            if isinstance(ignore,tuple): ignore = list(ignore)
             if isinstance(annot,tuple): annot = list(annot)
             nyy = len(self._yy)
             ny = len(y)
@@ -193,13 +201,21 @@ class PointsXY (object):
             elif not len(annot)==ny:
                 annot = ny*[None]
 
+            print '\n** ignore (before) =',ignore
+            if not isinstance(ignore, list):
+                ignore = ny*[False]
+            elif not len(ignore)==ny:
+                ignore = ny*[False]
+            print '\n** ignore (after) =',ignore
+
             # OK: append the points one by one:
             for i,y1 in enumerate(y):
-                if trace:
-                    print '-',i,': (x,y)=',x[i],y[i],annot[i],' (dx,dy)=',dx[i],dy[i]
-                self.append (y=y[i], annot=annot[i], 
-                             x=x[i], dy=dy[i], dx=dx[i],
-                             trace=trace)
+                if True or trace:
+                    print '-',i,ignore[i],': (x,y)=',x[i],y[i],annot[i],' (dx,dy)=',dx[i],dy[i]
+                if not ignore[i]:
+                    self.append (y=y[i], annot=annot[i], 
+                                 x=x[i], dy=dy[i], dx=dx[i],
+                                 trace=trace)
             return True
 
         #----------------------------------------------------------
