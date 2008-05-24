@@ -11,6 +11,12 @@
 #
 # Remarks:
 #
+#   - Meow.Bookmarks needs a folder option....
+#   - Middle-clicking a node in the browser should display its quickref_help
+#   - NB: Left-clicking a node displays the state record, except the Composer...
+#         It would be nice if it were easier to invoke the relevant plotter...
+#         (at this moment it takes to many actions, and the new display is confusing)
+#
 # Description:
 #
 
@@ -48,10 +54,13 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-# from Timba.Contrib.JEN.util import JEN_bookmarks
 
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
+
+import Meow.Bookmarks
+from Timba.Contrib.JEN.util import JEN_bookmarks
+
 
 
 
@@ -248,6 +257,13 @@ def _define_forest_old (ns, **kwargs):
 #================================================================================
 #================================================================================
 
+TDLCompileMenu("Categories:",
+               TDLOption('opt_standard_nodes',"Standard MeqNodes",True),
+               TDLOption('opt_pynodes',"General PyNodes",False),
+               TDLOption('opt_visualization',"JEN", False)
+               )
+  
+
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
@@ -257,6 +273,7 @@ def _define_forest (ns, **kwargs):
    bb = []
    bb.append(ns.x << Meq.Freq())
    bb.append(ns.y << Meq.Time())
+   bb.append(ns.cx << Meq.ToComplex(ns.x,ns.y))
    bb.append(ns.f << Meq.Freq())
    bb.append(ns.t << Meq.Time())
    unc = ns['unclutter'] << Meq.Composer(children=bb)
@@ -265,8 +282,9 @@ def _define_forest (ns, **kwargs):
    print '\n** Start of QuickRef _define_forest()'
 
    # Make bundles of (bundles of) categories of nodes/subtrees:
-   cc = [unc]
-   cc.append(bundle_standard_nodes(ns, level=1, trace=trace))
+   cc = []
+   if opt_standard_nodes:
+      cc.append(bundle_standard_nodes(ns, level=1, trace=trace))
 
    # Finished: Make the outer bundle (of node bundles):
    help = 'help'
@@ -282,55 +300,164 @@ def _define_forest (ns, **kwargs):
 # Functions that make categories of nodes/subtrees:
 #================================================================================
 
-def bundle_standard_nodes (ns, level=0, trace=True):
+def bundle_standard_nodes (ns, folder=None, level=0, trace=True):
    """Make bundle of bundles of all standard nodes"""
    cc = []
-   cc.append(bundle_unop (ns, level=level+1, trace=True))
-   cc.append(bundle_binop (ns, level=level+1, trace=True))
+   subfolder = 'standard_nodes'
+   subfolder = None
+   cc.append(bundle_unop (ns, folder=subfolder, level=level+1, trace=True))
+   cc.append(bundle_binop (ns, folder=subfolder, level=level+1, trace=True))
    help = 'standard nodes: ns[name] << Meq.XYZ(children,kwargs)'
    return bundle (ns, name='standard_nodes', nodes=cc, help=help,
-                  level=level, trace=trace)
+                  folder=folder, level=level, trace=trace)
 
 #================================================================================
 
-def bundle_unop (ns, level=0, trace=False):
-   """Make a bundle of MeqNodes that do unary operations"""
-   qq = ['Sin','Cos']
-   cc = []
-   for q in qq:
-      cc.append(MeqNode (ns, name=q+'(x)',
-                         meqclass=q, children=[ns.x],
-                         help='Unary operation on a single child',
-                         level=level+1, trace=trace))
-   help = 'unary nodes have one child, which may be a tensor' 
-   return bundle (ns, name='unary_operations', nodes=cc, help=help,
-                  level=level, trace=trace)
 
+def bundle_unop (ns, level=0, folder=None, trace=False):
+   """Make a bundle of bundles of MeqNodes"""
+   cc = []
+   subfolder = 'unary_operations'
+   cc.append(bundle_unop_elementary (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(bundle_unop_goniometric (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(bundle_unop_hyperbolic (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(bundle_unop_power (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(bundle_unop_misc (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(bundle_unop_cell_statistics (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(bundle_unop_complex (ns, folder=subfolder, level=level+1, trace=trace))
+   help = 'unary nodes have one child, which may be a tensor' 
+   return bundle (ns, name=subfolder, nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
 
 #--------------------------------------------------------------------------------
 
-def bundle_binop (ns, level=0, trace=False):
-   """Make a bundle of MeqNodes that do unary operations"""
+def bundle_unop_goniometric (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
    cc = []
-   qq = ['Add','Multiply']
-   help='Binary operation on two or more children'
-   for q in qq:
+   help = 'Unary operation on a single child (angle, rad)'
+   for q in ['Sin','Cos','Tan']:
+      node = MeqNode (ns, name=q+'(x)', help=help,
+                      meqclass=q, children=[ns.x],
+                      level=level+1, trace=trace)
+      cc.append(node)
+   return bundle (ns, name='goniometric', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def bundle_unop_elementary (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Negate','Invert','Exp','Log','Sqrt']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   return bundle (ns, name='elementary', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def bundle_unop_hyperbolic (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Sinh','Cosh','Tanh']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   help = 'unary nodes have one child, which may be a tensor' 
+   return bundle (ns, name='hyperbolic', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def bundle_unop_complex (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child, which usually is complex'
+   for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
+      cc.append(MeqNode (ns, name=q+'(cx)', help=help,
+                         meqclass=q, children=[ns.cx],
+                         level=level+1, trace=trace))
+      # ns << Meq.Norm(cx),       # same as Abs() 
+      # ns << Meq.Log(cx),        # elog(), show 10log()?
+   return bundle (ns, name='complex', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def bundle_unop_power (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   return bundle (ns, name='power', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def bundle_unop_misc (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Abs','Ceil','Floor','Stripper','Identity']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   return bundle (ns, name='misc', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def bundle_unop_cell_statistics (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   # Cell_statistics are Operations that calculate properties of
+   # the values of all the cells in the requested domain.
+   # Note that they produce a 'scalar' result, which will be
+   # expanded to a domain in which all cells have the same value
+   # when needed.
+   return bundle (ns, name='cell_statistics', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#================================================================================
+#================================================================================
+
+
+def bundle_binop (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'binary operation on two children, which may be tensor(s)'
+   for q in ['Add','Multiply']:
       cc.append(MeqNode (ns, name=q+'(x,y,t)', help=help,
                          meqclass=q, children=[ns.x,ns.y,ns.t],
                          level=level+1, trace=trace))
-   qq = ['Subtract','Divide']
-   help='Binary operation on two children'
-   for q in qq:
+   help = 'binary operation on two or more children, which may be tensor(s)'
+   for q in ['Subtract','Divide']:
       cc.append(MeqNode (ns, name=q+'(x,y)', help=help,
                          meqclass=q, children=[ns.x,ns.y],
                          level=level+1, trace=trace))
-   help = 'binary nodes have two or more children, which may be tensor(s)' 
-   return bundle (ns, name='binary_operations', nodes=cc, help=help,
-                  level=level, trace=trace)
+   name = 'binary_operations'
+   page = name
+   if isinstance(folder, str):
+      page = None
+   return bundle (ns, name=name, nodes=cc, help=help,
+                  page=page, folder=folder, level=level, trace=trace)
+
+
 
 
 #================================================================================
-# Helper functions:
+# Helper functions(may be called externally):
 #================================================================================
 
 def prefix (level=0):
@@ -338,23 +465,50 @@ def prefix (level=0):
    prefix = (level*'**')+' '
    return prefix
 
+#-------------------------------------------------------------------------------
 
 def bundle (ns=None, name=None, nodes=None, help=None,
+            page=None, folder=None, viewer="Result Plotter",
             level=0, trace=False):
    """Make a bundle of nodes in an organized way"""
-   node = ns[name] << Meq.Composer(children=nodes,
-                                   quickref_help=help)
-   if trace:
-      print prefix(level),name,'->',str(node)
-   return node
 
+   # Make a single parent node, with the given nodes as children:
+   if True:
+      # NB: When a Composer node is left-clicked in the browser,
+      # it plots an inspector, not its state record (with help...)   
+      parent = ns[name] << Meq.Composer(children=nodes,
+                                        quickref_help=help)
+   else:
+      # Alternative: ReqSeq?
+      parent = ns[name] << Meq.Add(children=nodes,
+                                   quickref_help=help)
+
+   # Make a meqbrowser bookmark for this bundle, if required:
+   if folder or page:
+      if True:
+         # Temporary, until Meow folder problem (?) is solved....
+         JEN_bookmarks.create(nodes, name, page=page, folder=folder,
+                              viewer=viewer)
+      else:
+         # NB: There does not seem to be a way to assign a folder....
+         bookpage = Meow.Bookmarks.Page(name, folder=bookfolder)
+         for node in nodes:
+            bookpage.add(node, viewer=viewer)
+
+   if trace:
+      print prefix(level),name,'->',str(parent)
+   return parent
+
+#-------------------------------------------------------------------------------
 
 def MeqNode (ns=None, name=None, meqclass=None,
              children=None, help=None,
              level=0, trace=False, **kwargs):
    """Define the specified node an an organised way"""
-   node = ns[name] << getattr(Meq,meqclass)(children=children,
-                                            quickref_help=help)
+   nodename = str(name)
+   # nodename = 'Meq.'+nodename        # ....this clutters the browser....
+   node = ns[nodename] << getattr(Meq,meqclass)(children=children,
+                                                quickref_help=help)
    if trace:
       print prefix(level),name,meqclass,'->',str(node)
    return node
