@@ -1,10 +1,11 @@
-# ../JEN/demo/QuickRef.py:
+"""
+file: ../JEN/demo/QuickRef.py:
+Author: J.E.Noordam
+Short description:
+A quick reference to all MeqTree nodes and subtrees.
+It makes actual nodes, and prints help etc
+"""
 
-# Author: J.E.Noordam
-# 
-# Short description:
-#   A quick reference to all MeqTree nodes and subtrees.
-#   It makes actual nodes, and prints help etc
 #
 # History:
 #   - 23 may 2008: creation
@@ -16,6 +17,8 @@
 #   - NB: Left-clicking a node displays the state record, except the Composer...
 #         It would be nice if it were easier to invoke the relevant plotter...
 #         (at this moment it takes to many actions, and the new display is confusing)
+#   - TDLCompileMenu should have tick-box option.....
+#   - Is there a way to attach fields like quickref_help to existing nodes?
 #
 # Description:
 #
@@ -61,7 +64,8 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
-
+import math
+import random
 
 
 #********************************************************************************
@@ -260,9 +264,14 @@ def _define_forest_old (ns, **kwargs):
 TDLCompileMenu("Categories:",
                TDLOption('opt_standard_nodes',"Standard MeqNodes",True),
                TDLOption('opt_pynodes',"General PyNodes",False),
+               TDLCompileMenu('Submenu:',
+                              TDLOption('first_item','1',True),
+                              TDLOption('second_item','2',True)
+                              ),
                TDLOption('opt_visualization',"JEN", False)
                )
   
+#-------------------------------------------------------------------------------
 
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
@@ -271,26 +280,52 @@ def _define_forest (ns, **kwargs):
    # These are used in the various bundles below.
    # They are bundles to avoid browser clutter.
    bb = []
+   bb.append(ns << Meq.Constant(2.3))
+   bb.append(ns << 2.4)
    bb.append(ns.x << Meq.Freq())
    bb.append(ns.y << Meq.Time())
-   bb.append(ns.cx << Meq.ToComplex(ns.x,ns.y))
+   bb.append(ns.cxy << Meq.ToComplex(ns.x,ns.y))
+   bb.append(ns.cyx << Meq.ToComplex(ns.y,ns.x))
    bb.append(ns.f << Meq.Freq())
    bb.append(ns.t << Meq.Time())
+   bb.append(ns.ft << Meq.Multiply(ns.f,ns.t))
+   bb.append(ns['f+t'] << Meq.Add(ns.f,ns.t))
    unc = ns['unclutter'] << Meq.Composer(children=bb)
 
    trace = True
    print '\n** Start of QuickRef _define_forest()'
 
+   # Initialise the function that collates the help-string.
+   collate_help(init=True, trace=trace)
+
    # Make bundles of (bundles of) categories of nodes/subtrees:
    cc = []
+   cc = [unc]
    if opt_standard_nodes:
-      cc.append(bundle_standard_nodes(ns, level=1, trace=trace))
+      cc.append(standard_nodes(ns, level=1, trace=trace))
 
-   # Finished: Make the outer bundle (of node bundles):
-   help = 'help'
+   # Make the outer bundle (of node bundles):
+   # (NB: The name 'rootnode' is expected by the tdl_jobs below)
+   help = """help"""
    bundle (ns, name='rootnode', nodes=cc, help=help,
            level=0, trace=trace)
 
+   TDLRuntimeMenu("parameters of the requested domain:",
+                  TDLOption('runopt_nfreq',"nr of freq cells",
+                            [20,21,50,1], more=int),
+                  TDLOption('runopt_fmin',"min freq (edge)",
+                            [0.1,1.0,3.0,0.01,0.0,-1.0,-math.pi,-2*math.pi,100e6,1400e6], more=float),
+                  TDLOption('runopt_fmax',"max freq (edge)",
+                            [2.0,1.0,math.pi,2*math.pi,110e6,200e6,1500e6], more=float),
+                  TDLOption('runopt_ntime',"nr of time cells",
+                            [1,20,21,50], more=int),
+                  TDLOption('runopt_tmin',"min time (edge)",
+                            [0.0,-1.0,-10.0], more=float),
+                  TDLOption('runopt_tmax',"max time (edge)",
+                            [1.0,0.1,3.0,10.0,100.0,1000.0], more=float),
+                  )
+
+   # Finished:
    print '** end of QuickRef _define_forest()/n'
    return True
    
@@ -300,140 +335,40 @@ def _define_forest (ns, **kwargs):
 # Functions that make categories of nodes/subtrees:
 #================================================================================
 
-def bundle_standard_nodes (ns, folder=None, level=0, trace=True):
+def standard_nodes (ns, folder=None, level=0, trace=True):
    """Make bundle of bundles of all standard nodes"""
    cc = []
    subfolder = 'standard_nodes'
    subfolder = None
-   cc.append(bundle_unop (ns, folder=subfolder, level=level+1, trace=True))
-   cc.append(bundle_binop (ns, folder=subfolder, level=level+1, trace=True))
+   cc.append(standard_unops (ns, folder=subfolder, level=level+1, trace=True))
+   cc.append(standard_binops (ns, folder=subfolder, level=level+1, trace=True))
+   cc.append(standard_leaves (ns, folder=subfolder, level=level+1, trace=True))
    help = 'standard nodes: ns[name] << Meq.XYZ(children,kwargs)'
    return bundle (ns, name='standard_nodes', nodes=cc, help=help,
                   folder=folder, level=level, trace=trace)
 
 #================================================================================
+# 
+#================================================================================
 
-
-def bundle_unop (ns, level=0, folder=None, trace=False):
+def standard_unops (ns, level=0, folder=None, trace=False):
    """Make a bundle of bundles of MeqNodes"""
    cc = []
    subfolder = 'unary_operations'
-   cc.append(bundle_unop_elementary (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(bundle_unop_goniometric (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(bundle_unop_hyperbolic (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(bundle_unop_power (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(bundle_unop_misc (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(bundle_unop_cell_statistics (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(bundle_unop_complex (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(standard_unops_elementary (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(standard_unops_goniometric (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(standard_unops_hyperbolic (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(standard_unops_power (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(standard_unops_misc (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(standard_unops_cell_statistics (ns, folder=subfolder, level=level+1, trace=trace))
+   cc.append(standard_unops_complex (ns, folder=subfolder, level=level+1, trace=trace))
    help = 'unary nodes have one child, which may be a tensor' 
    return bundle (ns, name=subfolder, nodes=cc, help=help,
                   folder=folder, level=level, trace=trace)
 
 #--------------------------------------------------------------------------------
 
-def bundle_unop_goniometric (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child (angle, rad)'
-   for q in ['Sin','Cos','Tan']:
-      node = MeqNode (ns, name=q+'(x)', help=help,
-                      meqclass=q, children=[ns.x],
-                      level=level+1, trace=trace)
-      cc.append(node)
-   return bundle (ns, name='goniometric', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def bundle_unop_elementary (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Negate','Invert','Exp','Log','Sqrt']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   return bundle (ns, name='elementary', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def bundle_unop_hyperbolic (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Sinh','Cosh','Tanh']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   help = 'unary nodes have one child, which may be a tensor' 
-   return bundle (ns, name='hyperbolic', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def bundle_unop_complex (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child, which usually is complex'
-   for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
-      cc.append(MeqNode (ns, name=q+'(cx)', help=help,
-                         meqclass=q, children=[ns.cx],
-                         level=level+1, trace=trace))
-      # ns << Meq.Norm(cx),       # same as Abs() 
-      # ns << Meq.Log(cx),        # elog(), show 10log()?
-   return bundle (ns, name='complex', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def bundle_unop_power (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   return bundle (ns, name='power', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def bundle_unop_misc (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Abs','Ceil','Floor','Stripper','Identity']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   return bundle (ns, name='misc', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def bundle_unop_cell_statistics (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   # Cell_statistics are Operations that calculate properties of
-   # the values of all the cells in the requested domain.
-   # Note that they produce a 'scalar' result, which will be
-   # expanded to a domain in which all cells have the same value
-   # when needed.
-   return bundle (ns, name='cell_statistics', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#================================================================================
-#================================================================================
-
-
-def bundle_binop (ns, folder=None, level=0, trace=False):
+def standard_binops (ns, folder=None, level=0, trace=False):
    """Make a bundle of MeqNodes"""
    cc = []
    help = 'binary operation on two children, which may be tensor(s)'
@@ -453,6 +388,149 @@ def bundle_binop (ns, folder=None, level=0, trace=False):
    return bundle (ns, name=name, nodes=cc, help=help,
                   page=page, folder=folder, level=level, trace=trace)
 
+#--------------------------------------------------------------------------------
+
+def standard_leaves (ns, level=0, folder=None, trace=False):
+   """Make a bundle of bundles of MeqNodes"""
+   cc = []
+   subfolder = 'leaf_nodes'
+   cc.append(standard_leaves_constant (ns, folder=subfolder, level=level+1, trace=trace))
+   # cc.append(standard_leaves_grids (ns, folder=subfolder, level=level+1, trace=trace))
+   # cc.append(standard_leaves_noise (ns, folder=subfolder, level=level+1, trace=trace))
+   help = 'leaf nodes have no children' 
+   return bundle (ns, name=subfolder, nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+
+#================================================================================
+# standard_leaves_...
+#================================================================================
+
+def standard_leaves_constant (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Constant node created with: '
+   cc.append(MeqNode (ns, node=(ns << 2.5), level=level+1, trace=trace,
+                      help=help+'ns << 2.5'))
+   cc.append(MeqNode (ns, node=(ns.xxxx << 2.4), level=level+1, trace=trace,
+                      help=help+'ns.xxxx << 2.4'))
+   cc.append(MeqNode (ns, name=None,  meqclass='Constant',
+                      level=level+1, trace=trace,
+                      value=1.2))
+   help = 'A constant may be complex, or a tensor'
+   return bundle (ns, name='constant', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#================================================================================
+# standard_binops_...
+#================================================================================
+
+#================================================================================
+# standard_unops_...
+#================================================================================
+
+def standard_unops_goniometric (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child (angle, rad)'
+   for q in ['Sin','Cos','Tan']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   return bundle (ns, name='goniometric', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def standard_unops_elementary (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = """Unary operation on a single child.
+   The rain in Spain
+   Falls mainly in the plain
+   """
+   for q in ['Negate','Invert','Exp','Log','Sqrt']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   return bundle (ns, name='elementary', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def standard_unops_hyperbolic (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Sinh','Cosh','Tanh']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   help = 'unary nodes have one child, which may be a tensor' 
+   return bundle (ns, name='hyperbolic', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def standard_unops_complex (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child, which usually is complex'
+   for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
+      cc.append(MeqNode (ns, name=q+'(cxy)', help=help,
+                         meqclass=q, children=[ns.cxy],
+                         level=level+1, trace=trace))
+      # ns << Meq.Norm(cxy),       # same as Abs() 
+      # ns << Meq.Log(cxy),        # elog(), show 10log()?
+   return bundle (ns, name='complex', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def standard_unops_power (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   return bundle (ns, name='power', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def standard_unops_misc (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Abs','Ceil','Floor','Stripper','Identity']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   return bundle (ns, name='misc', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#--------------------------------------------------------------------------------
+
+def standard_unops_cell_statistics (ns, folder=None, level=0, trace=False):
+   """Make a bundle of MeqNodes"""
+   cc = []
+   help = 'Unary operation on a single child'
+   for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
+      cc.append(MeqNode (ns, name=q+'(x)', help=help,
+                         meqclass=q, children=[ns.x],
+                         level=level+1, trace=trace))
+   # Cell_statistics are Operations that calculate properties of
+   # the values of all the cells in the requested domain.
+   # Note that they produce a 'scalar' result, which will be
+   # expanded to a domain in which all cells have the same value
+   # when needed.
+   return bundle (ns, name='cell_statistics', nodes=cc, help=help,
+                  folder=folder, level=level, trace=trace)
+
+#================================================================================
+#================================================================================
 
 
 
@@ -467,21 +545,78 @@ def prefix (level=0):
 
 #-------------------------------------------------------------------------------
 
+def quickref_help (help, level=0):
+   """Convert the help-string into a list of strings, by splitting it
+   on the newline chars. This makes easier reading in the mewbrowser.
+   """
+   if isinstance(help,str):
+      qhelp = help.split('\n')
+   else:
+      qhelp = str(help)
+   collate_help (qhelp, level=level)
+   return qhelp
+
+#-------------------------------------------------------------------------------
+
+def MeqNode (ns=None, name=None, meqclass=None,
+             # quals=None, kwquals=None,
+             children=None, help=None,
+             node=None,
+             level=0, trace=False, **kwargs):
+   """Define the specified node an an organised way.
+   Collate the help-strings.
+   """
+   # Condition the help-string:
+   qhelp = quickref_help(help, level=level)
+   
+   if is_node(node):
+      # The node already exists. Just attach the help-string....
+      # NB: Is there a way to attach it to the existing node itself...?
+      node = ns << Meq.Identity(node, quickref_help=qhelp)
+      
+   elif not isinstance(children,(list,tuple)):           # No children specified: 
+      if isinstance(name,str):
+         node = ns[name] << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
+      else:
+         node = ns << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
+
+   else:                          
+      if isinstance(name,str):
+         node = ns[name] << getattr(Meq,meqclass)(children=children,
+                                                  quickref_help=qhelp,
+                                                  **kwargs)
+      else:
+         node = ns << getattr(Meq,meqclass)(children=children,
+                                            quickref_help=qhelp,
+                                            **kwargs)
+   if trace:
+      nc = None
+      if isinstance(children,(list,tuple)):
+         nc = len(children)
+      print prefix(level),name,meqclass,'(nc=',nc,') ->',str(node)
+   return node
+
+
+#-------------------------------------------------------------------------------
+
 def bundle (ns=None, name=None, nodes=None, help=None,
             page=None, folder=None, viewer="Result Plotter",
             level=0, trace=False):
-   """Make a bundle of nodes in an organized way"""
+   """Make a single parent node, with the given nodes as children.
+   Make bookmarks if required, and collate the help-strings.
+   """
+   # Condition the help-string:
+   qhelp = quickref_help(help, level=level)
 
-   # Make a single parent node, with the given nodes as children:
    if True:
       # NB: When a Composer node is left-clicked in the browser,
       # it plots an inspector, not its state record (with help...)   
       parent = ns[name] << Meq.Composer(children=nodes,
-                                        quickref_help=help)
+                                        quickref_help=qhelp)
    else:
       # Alternative: ReqSeq?
       parent = ns[name] << Meq.Add(children=nodes,
-                                   quickref_help=help)
+                                   quickref_help=qhelp)
 
    # Make a meqbrowser bookmark for this bundle, if required:
    if folder or page:
@@ -490,7 +625,7 @@ def bundle (ns=None, name=None, nodes=None, help=None,
          JEN_bookmarks.create(nodes, name, page=page, folder=folder,
                               viewer=viewer)
       else:
-         # NB: There does not seem to be a way to assign a folder....
+         # NB: There does not seem to be a Meow way to assign a folder....
          bookpage = Meow.Bookmarks.Page(name, folder=bookfolder)
          for node in nodes:
             bookpage.add(node, viewer=viewer)
@@ -499,52 +634,72 @@ def bundle (ns=None, name=None, nodes=None, help=None,
       print prefix(level),name,'->',str(parent)
    return parent
 
-#-------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 
-def MeqNode (ns=None, name=None, meqclass=None,
-             children=None, help=None,
-             level=0, trace=False, **kwargs):
-   """Define the specified node an an organised way"""
-   nodename = str(name)
-   # nodename = 'Meq.'+nodename        # ....this clutters the browser....
-   node = ns[nodename] << getattr(Meq,meqclass)(children=children,
-                                                quickref_help=help)
-   if trace:
-      print prefix(level),name,meqclass,'->',str(node)
-   return node
+collated_help_string = None
+def collate_help (help=None, level=0, init=False, trace=False):
+   """Collate the help-string"""
+   global collated_help_string
+   ss = collated_help_string
+   if init:
+      ss = '\n** Collated help strin for QuickRef:'
+      
+   
 
 
 #********************************************************************************
 # The function under the TDL Exec button:
 #********************************************************************************
 
-def _tdl_job_execute (mqs, parent):
+def _tdl_job_execute_1D_freq (mqs, parent):
     """Execute the forest, starting at the named node"""
-    domain = meq.domain(0.1,10,0,1)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=200, num_time=1)
+    domain = meq.domain(runopt_fmin,runopt_fmax,
+                        runopt_tmin,runopt_tmax)       
+    cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=1)
     request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
     return result
-       
-def _tdl_job_negapos (mqs, parent):
-    """Execute the forest, with negative and positive values in the request"""
-    domain = meq.domain(-10,10,0,1)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=20, num_time=1)
-    rqid = meq.requestid(domain_id=2)
-    request = meq.request(cells, rqtype='ev', rqid=rqid)
-    result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
-    return result
-       
 
-def _tdl_job_zero (mqs, parent):
-    """Execute the forest, with one-cell request (x=0)"""
-    domain = meq.domain(-1,1,-1,1)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=1, num_time=1)
-    rqid = meq.requestid(domain_id=3)
-    request = meq.request(cells, rqtype='ev', rqid=rqid)
+def _tdl_job_execute_2D (mqs, parent):
+    """Execute the forest, starting at the named node"""
+    domain = meq.domain(runopt_fmin,runopt_fmax,
+                        runopt_tmin,runopt_tmax)       
+    cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=runopt_ntime)
+    request = meq.request(cells, rqtype='ev')
     result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
     return result
-       
+
+if False: 
+   def _tdl_job_negapos_1D (mqs, parent):
+      """Execute the forest, with negative and positive values in the request"""
+      domain = meq.domain(-10,10,0,1)                            # (f1,f2,t1,t2)
+      cells = meq.cells(domain, num_freq=20, num_time=1)
+      rqid = meq.requestid(domain_id=2)
+      request = meq.request(cells, rqtype='ev', rqid=rqid)
+      result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
+      return result
+
+if False:
+   def _tdl_job_single_cell_00 (mqs, parent):
+      """Execute the forest, with one-cell request (x=0)"""
+      domain = meq.domain(-1,1,-1,1)                            # (f1,f2,t1,t2)
+      cells = meq.cells(domain, num_freq=1, num_time=1)
+      rqid = meq.requestid(domain_id=3)
+      request = meq.request(cells, rqtype='ev', rqid=rqid)
+      result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
+      return result
+      
+if True:
+   def _tdl_job_print_selected_help (mqs, parent):
+      """Print the help-text of the selected categories"""
+      print '\n** Not yet implemented **\n'
+      return True
+
+   def _tdl_job_popup_selected_help (mqs, parent):
+      """Show the help-text of the selected categories"""
+      print '\n** Not yet implemented **\n'
+      return True
+
 
 #********************************************************************************
 # Comments:
