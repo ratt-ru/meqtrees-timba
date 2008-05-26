@@ -156,7 +156,7 @@ def leaves_constant (ns, path, chr=None):
 
 def unops_goniometric (ns, path, chr=None):
    """Make a bundle of MeqNodes"""
-   cc = []
+   cc = [ns.x]
    path = QR.add2path(path,'goniometric')
    help = 'Unary operation on a single child (angle, rad)'
    for q in ['Sin','Cos','Tan']:
@@ -168,7 +168,7 @@ def unops_goniometric (ns, path, chr=None):
 
 def unops_elementary (ns, path, chr=None):
    """Make a bundle of MeqNodes"""
-   cc = []
+   cc = [ns.x]
    path = QR.add2path(path,'elementary')
    help = """Unary operation on a single child.
    The rain in Spain
@@ -183,7 +183,7 @@ def unops_elementary (ns, path, chr=None):
 
 def unops_hyperbolic (ns, path, chr=None):
    """Make a bundle of MeqNodes"""
-   cc = []
+   cc = [ns.x]
    path = QR.add2path(path,'hyperbolic')
    help = 'Unary operation on a single child'
    for q in ['Sinh','Cosh','Tanh']:
@@ -196,7 +196,7 @@ def unops_hyperbolic (ns, path, chr=None):
 
 def unops_complex (ns, path, chr=None):
    """Make a bundle of MeqNodes"""
-   cc = []
+   cc = [ns.cxy]
    path = QR.add2path(path,'complex')
    help = 'Unary operation on a single child, which usually is complex'
    for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
@@ -210,7 +210,7 @@ def unops_complex (ns, path, chr=None):
 
 def unops_power (ns, path, chr=None):
    """Make a bundle of MeqNodes"""
-   cc = []
+   cc = [ns.x]
    path = QR.add2path(path,'power')
    help = 'Unary operation on a single child'
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
@@ -222,7 +222,7 @@ def unops_power (ns, path, chr=None):
 
 def unops_misc (ns, path, chr=None):
    """Make a bundle of MeqNodes"""
-   cc = []
+   cc = [ns.x]
    path = QR.add2path(path,'misc')
    help = 'Unary operation on a single child'
    for q in ['Abs','Ceil','Floor','Stripper','Identity']:
@@ -234,17 +234,19 @@ def unops_misc (ns, path, chr=None):
 
 def unops_cell_statistics (ns, path, chr=None):
    """Make a bundle of MeqNodes"""
-   cc = []
+   cc = [ns.x]
    path = QR.add2path(path,'cell_statistics')
    help = 'Unary operation on a single child'
    for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
                             help=help, chr=chr, children=[ns.x]))
-   # Cell_statistics are Operations that calculate properties of
-   # the values of all the cells in the requested domain.
-   # Note that they produce a 'scalar' result, which will be
-   # expanded to a domain in which all cells have the same value
-   # when needed.
+   help = """
+   Cell_statistics are Operations that calculate properties of
+   the values of all the cells in the requested domain.
+   Note that they produce a 'scalar' result, which will be
+   expanded to a domain in which all cells have the same value
+   when needed.
+   """
    return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
 
 #================================================================================

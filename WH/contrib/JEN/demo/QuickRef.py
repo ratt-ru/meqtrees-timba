@@ -215,6 +215,7 @@ def bundle (ns, path,
    if chr:
       chr.add(path, qhelp)
       qhelp = chr.subrec(path, trace=True)
+      qhelp = chr.cleanup(qhelp)
 
 
    if True:
@@ -341,10 +342,10 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def show(self, txt=None, rr=None, key=None, level=0):
+   def show(self, txt=None, rr=None, full=True, key=None, level=0):
       """Show the record (recursive)"""
       if level==0:
-         print '\n** CollatedHelpRecord.show(',txt,' rr=',type(rr),'):'
+         print '\n** CollatedHelpRecord.show(',txt,' full=',full,' rr=',type(rr),'):'
          if rr==None:
             rr = self._chrec
       prefix = self.prefix(level)
@@ -354,13 +355,13 @@ class CollatedHelpRecord (object):
       else:                                      # has 'order' key
          for key in rr.keys():
             if not isinstance(rr[key], dict):
-               if not key in ['order']:          # ignore 'order'
+               if full or (not key in ['order']):  # ignore 'order'
                   print prefix,key,':',rr[key]
             elif not key in rr['order']:         # should not happen
                print prefix,key,':','...record...??'
          for key in rr['order']:
-            if isinstance(rr[key], dict):         
-               self.show(rr=rr[key], key=key, level=level+1)  # recursive
+            if isinstance(rr[key], dict):        # recursive 
+               self.show(rr=rr[key], key=key, level=level+1, full=full) 
             else:                                # should not happen
                print prefix,key,':',rr[key],'..??..'
 
@@ -397,17 +398,20 @@ class CollatedHelpRecord (object):
    def cleanup (self, rr=None, level=0):
       """Clean up the given record (rr)"""
       if level==0:
+         print '\n** .cleanup(rr=',type(rr),'):'
          if rr==None:
             rr = self._chrec
             
       if isinstance(rr, dict):
          if rr.has_key('order'):
-            for key in rr.keys():
-               if isinstance(rr[key], dict):
-                  self.cleanup(rr=rr[key], level=level+1)  # recursive
             rr.__delitem__('order')
-
-      return None
+            for key in rr.keys():
+               if isinstance(rr[key], dict):          # recursive
+                  rr[key] = self.cleanup(rr=rr[key], level=level+1)
+      # Finished:
+      if level==0:
+         print '** finished .cleanup() -> rr=',type(rr)
+      return rr
 
 
 
@@ -478,7 +482,15 @@ if __name__ == '__main__':
          path = 'test.MeqNodes.binops'
          # path = 'test.MeqNodes'
          rr = CHR.subrec(path, trace=True)
-         CHR.show('subrec',rr)
+         CHR.show('subrec',rr, full=False)
+         CHR.show('subrec',rr, full=True)
+         if 1:
+            print 'before cleanup(): ',type(rr)
+            rr = CHR.cleanup(rr=rr)
+            print 'after cleanup(): ',type(rr)
+            CHR.show('cleanup',rr, full=True)
+            CHR.show('cleanup',rr, full=False)
+            
          
    print '\n** End of standalone test of: QuickRef.py:\n' 
 
