@@ -1,10 +1,11 @@
-"""
-file: ../JEN/demo/QuickRef.py:
-Author: J.E.Noordam
-Short description:
-A quick reference to all MeqTree nodes and subtrees.
-It makes actual nodes, and prints help etc
-"""
+
+# file: ../JEN/demo/QuickRef.py:
+#
+# Author: J.E.Noordam
+#
+# Short description:
+#    A quick reference to all MeqTree nodes and subtrees.
+#    It makes actual nodes, and prints help etc
 
 #
 # History:
@@ -57,7 +58,6 @@ It makes actual nodes, and prints help etc
 from Timba.TDL import *
 from Timba.Meq import meq
 
-
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
 
@@ -65,204 +65,16 @@ import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
 import math
-import random
+# import random
 
 
 #********************************************************************************
 # The function under the 'blue button':
 #********************************************************************************
 
-def _define_forest_old (ns, **kwargs):
-   """Definition of a 'forest' of one or more trees"""
-
-   # Organised in named groups of related unary operations.
-   # The nodes of each group are collected in a list (cc).
-   # Groups are bundled by supplying the cc as children to an Add node.
-   # (this has the added advantage of detecting errors per group).
-   # The groups are bundled in the same way via child-list gg.
-   
-   gg = []
-
-   # Make node(s) to serve as argument for the unary ops.
-   # Variation over freq gives a nice 1D plot. 
-   x = ns.x << Meq.Freq()
-   x10 = ns.x10 << Meq.Freq()/10
-   cx = ns.cx << Meq.toComplex(1,x)
-
-   # Optionally, make separate bookmarks for each group.
-   # This produces a separate plot for each unary node.
-   # This makes use of a utlity module JEN_bookmarks, which
-   # generates named bookpages from lists (cc, bb) of nodes.
-   # This is convenient, but not ecouraged in demo scripts.
-
-   bms = False
-   bms = True
-
-   group = 'elementary'
-   cc = [x,
-         ns << Meq.Negate(x), 
-         ns << Meq.Invert(x), 
-         ns << Meq.Exp(x), 
-         ns << Meq.Log(x), 
-         ns << Meq.Sqrt(x), 
-         ns << Meq.Cos(x), 
-         ns << Meq.Sin(x), 
-         ns << Meq.Tan(x), 
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   group = 'inverse_circular'
-   cc = [x,x10,
-      ns << Meq.Acos(x), 
-      ns << Meq.Asin(x), 
-      ns << Meq.Atan(x),
-      ns << Meq.Acos(x10), 
-      ns << Meq.Asin(x10), 
-      ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   group = 'hyperbolic'
-   cc = [x,
-      ns << Meq.Cosh(x), 
-      ns << Meq.Sinh(x), 
-      ns << Meq.Tanh(x),
-      ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   group = 'complex'
-   cc = [cx,
-         ns << Meq.Abs(cx), 
-         ns << Meq.Norm(cx),       # same as Abs() 
-         ns << Meq.Arg(cx), 
-         ns << Meq.Real(cx), 
-         ns << Meq.Imag(cx), 
-         ns << Meq.Conj(cx),
-         ns << Meq.Exp(cx), 
-         ns << Meq.Log(cx),        # elog(), show 10log()?
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   group = 'power'
-   cc = [x,
-         ns << Meq.Sqr(x),
-         ns << Meq.Pow2(x), 
-         ns << Meq.Pow3(x), 
-         ns << Meq.Pow4(x), 
-         ns << Meq.Pow5(x), 
-         ns << Meq.Pow6(x), 
-         ns << Meq.Pow7(x), 
-         ns << Meq.Pow8(x),
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   group = 'misc'
-   cc = [x,
-         ns << Meq.Abs(x), 
-         # ns << Meq.Fabs(x),         # same as Abs, needed?
-         ns << Meq.Ceil(x), 
-         ns << Meq.Floor(x),
-         ns << Meq.Stripper(x),     # just strips the derivatives off the result 
-         ns << Meq.Identity(x),     # just makes a copy....
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   # Cell_statistics are Operations that calculate properties of
-   # the values of all the cells in the requested domain.
-   # Note that they produce a 'scalar' result, which will be
-   # expanded to a domain in which all cells have the same value
-   # when needed.
-   
-   group = 'cell_statistics'
-   cc = [x,
-         ns << Meq.NElements(x),
-         ns << Meq.Sum(x),
-         ns << Meq.Mean(x),
-         ns << Meq.StdDev(x),
-         ns << Meq.Min(x),
-         ns << Meq.Max(x),
-         ns << Meq.Product(x),
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   # With multiple children, the operations are done over
-   # all the children. The results are per cell.
-
-   a1 = ns.a1 << Meq.Freq()
-   a2 = ns.a2 << Meq.Cos(a1)
-   a3 = ns.a3 << Meq.Sin(a1)
-
-   group = 'child_ops'
-   cc = [a1,a2,a3,
-         ns << Meq.Min(a1,a2,a3),
-         ns << Meq.Max(a1,a2,a3),
-         ns << Meq.Min(a2,a3),
-         ns << Meq.Max(a2,a3),
-         ns << Meq.Mean(a1,a2,a3)
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   # Some child-ops have weighted versions.
-   # Children with weight=0 are ignored (i.e. not evaluated).
-
-   group = 'weighted_child_ops'
-   wgt = [3.0,1.0,2.0]
-   wgt = [3,1,2]
-   wtot = ns.wtot << sum(wgt)
-   wsum = ns['wsum(3*a1,1*a2,2*a3)'] << Meq.WSum(a1,a2,a3, weights=wgt)
-   wmean = ns['wmean(3*a1,1*a2,2*a3)'] << Meq.WMean(a1,a2,a3, weights=wgt)
-   cc = [a1,a2,a3,
-         wsum,wmean,wtot,
-         ns << wmean - wsum/wtot,          # result should be zero
-         ]
-   gg.append(ns[group] << Meq.Add(children=cc))
-   if bms: JEN_bookmarks.create(cc, group)
-
-   # It is possible to add children (and step_children) to
-   # an existing node:
-
-   group = 'add_children'
-   c1 = ns.c1 << Meq.Freq()
-   c2 = ns.c2 << Meq.Cos(c1)
-   sc = ns.step_child << Meq.Sin(c1)
-   parent = ns.parent << Meq.Add(c1)
-   parent.add_children(c2)
-   parent.add_stepchildren(sc)
-   gg.append(parent)
-   if bms: JEN_bookmarks.create(parent, group, recurse=1, step_children=True)
-
-
-
-   #==============================================================
-   
-   result = ns.result << Meq.Add(children=gg)
-
-   # Optionally, make a bookpage for the group bundling nodes (gg).
-   if bms:
-      gg.append(result)
-      JEN_bookmarks.create(gg, 'overall')
-
-   # Standard: make a bookmark of the result node, for easy viewing:
-   bm = record(name='result', viewer='Result Plotter',
-               udi='/node/result', publish=True)
-   Settings.forest_state.bookmarks.append(bm)
-
-   # Finished:
-   return True
-
-
-#================================================================================
-#================================================================================
 
 TDLCompileMenu("Categories:",
-               TDLOption('opt_standard_nodes',"Standard MeqNodes",True),
+               TDLOption('opt_MeqNodes',"Standard MeqNodes",True),
                TDLOption('opt_pynodes',"General PyNodes",False),
                TDLCompileMenu('Submenu:',
                               TDLOption('first_item','1',True),
@@ -295,20 +107,19 @@ def _define_forest (ns, **kwargs):
    trace = True
    print '\n** Start of QuickRef _define_forest()'
 
-   # Initialise the function that collates the help-string.
-   collate_help(init=True, trace=trace)
-
    # Make bundles of (bundles of) categories of nodes/subtrees:
    cc = []
    cc = [unc]
-   if opt_standard_nodes:
-      cc.append(standard_nodes(ns, level=1, trace=trace))
+   path = 'QuickRef'           # NB: This is also the name of the node to be executed...
+   CHR = CollatedHelpRecord()
+   if opt_MeqNodes:
+      import QR_MeqNodes
+      cc.append(QR_MeqNodes.MeqNodes(ns, path, chr=CHR))
 
    # Make the outer bundle (of node bundles):
-   # (NB: The name 'rootnode' is expected by the tdl_jobs below)
    help = """help"""
-   bundle (ns, name='rootnode', nodes=cc, help=help,
-           level=0, trace=trace)
+   bundle (ns, path, nodes=cc, help=help, chr=CHR)
+   CHR.show()
 
    TDLRuntimeMenu("parameters of the requested domain:",
                   TDLOption('runopt_nfreq',"nr of freq cells",
@@ -331,244 +142,28 @@ def _define_forest (ns, **kwargs):
    
 
 
-#================================================================================
-# Functions that make categories of nodes/subtrees:
-#================================================================================
-
-def standard_nodes (ns, folder=None, level=0, trace=True):
-   """Make bundle of bundles of all standard nodes"""
-   cc = []
-   subfolder = 'standard_nodes'
-   subfolder = None
-   cc.append(standard_unops (ns, folder=subfolder, level=level+1, trace=True))
-   cc.append(standard_binops (ns, folder=subfolder, level=level+1, trace=True))
-   cc.append(standard_leaves (ns, folder=subfolder, level=level+1, trace=True))
-   help = 'standard nodes: ns[name] << Meq.XYZ(children,kwargs)'
-   return bundle (ns, name='standard_nodes', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#================================================================================
-# 
-#================================================================================
-
-def standard_unops (ns, level=0, folder=None, trace=False):
-   """Make a bundle of bundles of MeqNodes"""
-   cc = []
-   subfolder = 'unary_operations'
-   cc.append(standard_unops_elementary (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(standard_unops_goniometric (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(standard_unops_hyperbolic (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(standard_unops_power (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(standard_unops_misc (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(standard_unops_cell_statistics (ns, folder=subfolder, level=level+1, trace=trace))
-   cc.append(standard_unops_complex (ns, folder=subfolder, level=level+1, trace=trace))
-   help = 'unary nodes have one child, which may be a tensor' 
-   return bundle (ns, name=subfolder, nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_binops (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'binary operation on two children, which may be tensor(s)'
-   for q in ['Add','Multiply']:
-      cc.append(MeqNode (ns, name=q+'(x,y,t)', help=help,
-                         meqclass=q, children=[ns.x,ns.y,ns.t],
-                         level=level+1, trace=trace))
-   help = 'binary operation on two or more children, which may be tensor(s)'
-   for q in ['Subtract','Divide']:
-      cc.append(MeqNode (ns, name=q+'(x,y)', help=help,
-                         meqclass=q, children=[ns.x,ns.y],
-                         level=level+1, trace=trace))
-   name = 'binary_operations'
-   page = name
-   if isinstance(folder, str):
-      page = None
-   return bundle (ns, name=name, nodes=cc, help=help,
-                  page=page, folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_leaves (ns, level=0, folder=None, trace=False):
-   """Make a bundle of bundles of MeqNodes"""
-   cc = []
-   subfolder = 'leaf_nodes'
-   cc.append(standard_leaves_constant (ns, folder=subfolder, level=level+1, trace=trace))
-   # cc.append(standard_leaves_grids (ns, folder=subfolder, level=level+1, trace=trace))
-   # cc.append(standard_leaves_noise (ns, folder=subfolder, level=level+1, trace=trace))
-   help = 'leaf nodes have no children' 
-   return bundle (ns, name=subfolder, nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-
-#================================================================================
-# standard_leaves_...
-#================================================================================
-
-def standard_leaves_constant (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Constant node created with: '
-   cc.append(MeqNode (ns, node=(ns << 2.5), level=level+1, trace=trace,
-                      help=help+'ns << 2.5'))
-   cc.append(MeqNode (ns, node=(ns.xxxx << 2.4), level=level+1, trace=trace,
-                      help=help+'ns.xxxx << 2.4'))
-   cc.append(MeqNode (ns, name=None,  meqclass='Constant',
-                      level=level+1, trace=trace,
-                      value=1.2))
-   help = 'A constant may be complex, or a tensor'
-   return bundle (ns, name='constant', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#================================================================================
-# standard_binops_...
-#================================================================================
-
-#================================================================================
-# standard_unops_...
-#================================================================================
-
-def standard_unops_goniometric (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child (angle, rad)'
-   for q in ['Sin','Cos','Tan']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   return bundle (ns, name='goniometric', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_unops_elementary (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = """Unary operation on a single child.
-   The rain in Spain
-   Falls mainly in the plain
-   """
-   for q in ['Negate','Invert','Exp','Log','Sqrt']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   return bundle (ns, name='elementary', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_unops_hyperbolic (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Sinh','Cosh','Tanh']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   help = 'unary nodes have one child, which may be a tensor' 
-   return bundle (ns, name='hyperbolic', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_unops_complex (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child, which usually is complex'
-   for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
-      cc.append(MeqNode (ns, name=q+'(cxy)', help=help,
-                         meqclass=q, children=[ns.cxy],
-                         level=level+1, trace=trace))
-      # ns << Meq.Norm(cxy),       # same as Abs() 
-      # ns << Meq.Log(cxy),        # elog(), show 10log()?
-   return bundle (ns, name='complex', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_unops_power (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   return bundle (ns, name='power', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_unops_misc (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Abs','Ceil','Floor','Stripper','Identity']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   return bundle (ns, name='misc', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#--------------------------------------------------------------------------------
-
-def standard_unops_cell_statistics (ns, folder=None, level=0, trace=False):
-   """Make a bundle of MeqNodes"""
-   cc = []
-   help = 'Unary operation on a single child'
-   for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
-      cc.append(MeqNode (ns, name=q+'(x)', help=help,
-                         meqclass=q, children=[ns.x],
-                         level=level+1, trace=trace))
-   # Cell_statistics are Operations that calculate properties of
-   # the values of all the cells in the requested domain.
-   # Note that they produce a 'scalar' result, which will be
-   # expanded to a domain in which all cells have the same value
-   # when needed.
-   return bundle (ns, name='cell_statistics', nodes=cc, help=help,
-                  folder=folder, level=level, trace=trace)
-
-#================================================================================
-#================================================================================
 
 
 
 #================================================================================
-# Helper functions(may be called externally):
+# Helper functions (called externally from QR_... modules):
 #================================================================================
 
-def prefix (level=0):
-   """Used to indent"""
-   prefix = (level*'**')+' '
-   return prefix
 
-#-------------------------------------------------------------------------------
-
-def quickref_help (help, level=0):
-   """Convert the help-string into a list of strings, by splitting it
-   on the newline chars. This makes easier reading in the mewbrowser.
-   """
-   if isinstance(help,str):
-      qhelp = help.split('\n')
-   else:
-      qhelp = str(help)
-   collate_help (qhelp, level=level)
-   return qhelp
-
-#-------------------------------------------------------------------------------
-
-def MeqNode (ns=None, name=None, meqclass=None,
+def MeqNode (ns, path,
+             meqclass=None, name=None,
              # quals=None, kwquals=None,
-             children=None, help=None,
+             children=None, help=None, chr=None,
              node=None,
-             level=0, trace=False, **kwargs):
-   """Define the specified node an an organised way.
-   Collate the help-strings.
-   """
-   # Condition the help-string:
-   qhelp = quickref_help(help, level=level)
-   
+             trace=False, **kwargs):
+   """Define the specified node an an organised way."""
+
+   # Condition the help-string and update the CollatedHelpRecord (chr):
+   qhelp = quickref_help(name, help)
+   if chr:
+      chr.add(add2path(path,name), qhelp)
+
+
    if is_node(node):
       # The node already exists. Just attach the help-string....
       # NB: Is there a way to attach it to the existing node itself...?
@@ -593,20 +188,34 @@ def MeqNode (ns=None, name=None, meqclass=None,
       nc = None
       if isinstance(children,(list,tuple)):
          nc = len(children)
-      print prefix(level),name,meqclass,'(nc=',nc,') ->',str(node)
+      print '- QR.MeqNode():',path,meqclass,name,'(nc=',nc,') ->',str(node)
    return node
 
 
 #-------------------------------------------------------------------------------
 
-def bundle (ns=None, name=None, nodes=None, help=None,
-            page=None, folder=None, viewer="Result Plotter",
-            level=0, trace=False):
+def bundle (ns, path,
+            nodes=None, help=None, chr=None,
+            page=False, folder=True, viewer="Result Plotter",
+            trace=False):
    """Make a single parent node, with the given nodes as children.
    Make bookmarks if required, and collate the help-strings.
    """
-   # Condition the help-string:
-   qhelp = quickref_help(help, level=level)
+
+   # The name of the bundle (node, page, folder) is the last
+   # part of the path string, i.e. after the last dot ('.')
+   ss = path.split('.')
+   name = ss[len(ss)-1]
+   if folder:
+      folder = name
+   # level = len(ss)
+
+   # Condition the help-string and update the CollatedHelpRecord (chr):
+   qhelp = quickref_help(name, help)
+   if chr:
+      chr.add(path, qhelp)
+      qhelp = chr.subrec(path, trace=True)
+
 
    if True:
       # NB: When a Composer node is left-clicked in the browser,
@@ -631,20 +240,179 @@ def bundle (ns=None, name=None, nodes=None, help=None,
             bookpage.add(node, viewer=viewer)
 
    if trace:
-      print prefix(level),name,'->',str(parent)
+      print '** QR.bundle():',path,name,'->',str(parent),'\n'
    return parent
+
 
 #--------------------------------------------------------------------------------
 
-collated_help_string = None
-def collate_help (help=None, level=0, init=False, trace=False):
-   """Collate the help-string"""
-   global collated_help_string
-   ss = collated_help_string
-   if init:
-      ss = '\n** Collated help strin for QuickRef:'
-      
+def prefix (level=0):
+   """Used to indent"""
+   prefix = (level*'**')+' '
+   return prefix
+
+#-------------------------------------------------------------------------------
+
+def quickref_help (name, help, test=False):
+   """Convert the help-string into a list of strings, by splitting it
+   on the newline chars. This makes easier reading in the mewbrowser.
+   If test==True, return another type of qhelp.
+   """
+   qhelp = str(help)
+   if test:
+      if False:
+         qhelp = [range(2),range(3),[range(4),range(5),[range(6)]]]
+      elif False:
+         qhelp = record(a=record(text='a',
+                                 d=record(text='c'),
+                                 c=record(text='d')),
+                        b=record(e=record(text='e'),
+                                 text=quickref_help('\naa\nbb\ncc\n'),
+                                 a=record(text='a')))
+   elif isinstance(help,str):
+      qhelp = help.split('\n')
+      if isinstance(name, str):
+         qhelp[0] = name+': '+qhelp[0]
+   else:
+      qhelp = str(help)
+   return qhelp
+
+#-------------------------------------------------------------------------------
+
+def add2path (path, name=None, trace=False):
+   """Helper function to form the path to a specific bundle."""
+   s = str(path)
+   if isinstance(name,str):
+      s += '.'+str(name)
+   if trace:
+      print '\n** QR.add2path(',path,name,') ->',s
+   return s
+
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
+
+
+class CollatedHelpRecord (object):
+
+   def __init__(self):
+      self.clear()
+      return None
+
+   def clear (self):
+      self._chrec = record(help=None, order=[])
+      return self._chrec
+
+   def chrec (self):
+      return self._chrec
+
+   #---------------------------------------------------------------------
+
+   def add (self, path=None, help=None, rr=None,
+            level=0, trace=False):
+      """Add a help-item (recursive)"""
+      if level==0:
+         rr = self._chrec
+      if isinstance(path,str):
+         path = path.split('.')
+
+      key = path[0]
+      if not rr.has_key(key):
+         rr.order.append(key)
+         rr[key] = record(help=None)
+         if len(path)>1:
+            rr[key].order = []
+
+      if len(path)>1:                        # recursive
+         self.add(path=path[1:], help=help, rr=rr[key],
+                  level=level+1, trace=trace)
+      else:
+         rr[key].help = help                 # may be list of strings...
+         if trace:
+            prefix = self.prefix(level)
+            print '.add():',prefix,key,':',help
+      # Finished:
+      return None
+
+   #---------------------------------------------------------------------
    
+   def prefix (self, level=0):
+      """Indentation string"""
+      return ' '+(level*'..')+' '
+
+   #---------------------------------------------------------------------
+
+   def show(self, txt=None, rr=None, key=None, level=0):
+      """Show the record (recursive)"""
+      if level==0:
+         print '\n** CollatedHelpRecord.show(',txt,' rr=',type(rr),'):'
+         if rr==None:
+            rr = self._chrec
+      prefix = self.prefix(level)
+      if not rr.has_key('order'):                # has no 'order' key
+         for key in rr.keys():
+            print prefix,key,':',rr[key]
+      else:                                      # has 'order' key
+         for key in rr.keys():
+            if not isinstance(rr[key], dict):
+               if not key in ['order']:          # ignore 'order'
+                  print prefix,key,':',rr[key]
+            elif not key in rr['order']:         # should not happen
+               print prefix,key,':','...record...??'
+         for key in rr['order']:
+            if isinstance(rr[key], dict):         
+               self.show(rr=rr[key], key=key, level=level+1)  # recursive
+            else:                                # should not happen
+               print prefix,key,':',rr[key],'..??..'
+
+      if level==0:
+         print '**\n'
+      return None
+
+   #---------------------------------------------------------------------
+
+   def subrec(self, path, rr=None, trace=False):
+      """Extract the specified (path) subrecord
+      from the given record (if not specified, use self._chrec)
+      """
+      if trace:
+         print '\n** .extract(',path,' rr=',type(rr),'):'
+      if rr==None:
+         rr = self._chrec
+
+      ss = path.split('.')
+      for key in ss:
+         if trace:
+            print '-',key,ss,rr.keys()
+         if not rr.has_key(key):
+            s = '** key='+key+' not found in: '+str(ss)
+            raise ValueError,s
+         else:
+            rr = rr[key]
+      if trace:
+         self.show(txt=path, rr=rr)
+      return rr
+      
+   #---------------------------------------------------------------------
+
+   def cleanup (self, rr=None, level=0):
+      """Clean up the given record (rr)"""
+      if level==0:
+         if rr==None:
+            rr = self._chrec
+            
+      if isinstance(rr, dict):
+         if rr.has_key('order'):
+            for key in rr.keys():
+               if isinstance(rr[key], dict):
+                  self.cleanup(rr=rr[key], level=level+1)  # recursive
+            rr.__delitem__('order')
+
+      return None
+
+
+
+
+
 
 
 #********************************************************************************
@@ -657,7 +425,7 @@ def _tdl_job_execute_1D_freq (mqs, parent):
                         runopt_tmin,runopt_tmax)       
     cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=1)
     request = meq.request(cells, rqtype='ev')
-    result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
+    result = mqs.meq('Node.Execute',record(name='QuickRef', request=request))
     return result
 
 def _tdl_job_execute_2D (mqs, parent):
@@ -666,30 +434,10 @@ def _tdl_job_execute_2D (mqs, parent):
                         runopt_tmin,runopt_tmax)       
     cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=runopt_ntime)
     request = meq.request(cells, rqtype='ev')
-    result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
+    result = mqs.meq('Node.Execute',record(name='QuickRef', request=request))
     return result
 
-if False: 
-   def _tdl_job_negapos_1D (mqs, parent):
-      """Execute the forest, with negative and positive values in the request"""
-      domain = meq.domain(-10,10,0,1)                            # (f1,f2,t1,t2)
-      cells = meq.cells(domain, num_freq=20, num_time=1)
-      rqid = meq.requestid(domain_id=2)
-      request = meq.request(cells, rqtype='ev', rqid=rqid)
-      result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
-      return result
-
 if False:
-   def _tdl_job_single_cell_00 (mqs, parent):
-      """Execute the forest, with one-cell request (x=0)"""
-      domain = meq.domain(-1,1,-1,1)                            # (f1,f2,t1,t2)
-      cells = meq.cells(domain, num_freq=1, num_time=1)
-      rqid = meq.requestid(domain_id=3)
-      request = meq.request(cells, rqtype='ev', rqid=rqid)
-      result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
-      return result
-      
-if True:
    def _tdl_job_print_selected_help (mqs, parent):
       """Print the help-text of the selected categories"""
       print '\n** Not yet implemented **\n'
@@ -701,24 +449,40 @@ if True:
       return True
 
 
-#********************************************************************************
-# Comments:
-#********************************************************************************
-
-# - First execute with TDL Exec 'execute'
-#   - If bms=True in _define_forest(), there are more bookmarks.
-
-# - Try the other TDL Exec options with arguments that can be illegal. 
-#   - Then check the state records of those unary ops that are not
-#     be able to deal with zero or negativbee arguments.
-
-# NB: Results of illegal arguments produce 'nan' (not-a-number)
-#     but is not reported in any way (look at the vellset),
-#     and is even used in further math operations!!
 
 #********************************************************************************
-#********************************************************************************
 
+#=====================================================================================
+# Standalone test (without the browser):
+#=====================================================================================
+
+if __name__ == '__main__':
+
+   print '\n** Start of standalone test of: QuickRef.py:\n' 
+   ns = NodeScope()
+
+   if 1:
+      CHR = CollatedHelpRecord()
+
+   if 0:
+      path = 'aa.bb.cc.dd'
+      help = 'xxx'
+      CHR.add(path=path, help=help, trace=True)
+
+   if 1:
+      import QR_MeqNodes
+      QR_MeqNodes.MeqNodes(ns, 'test', chr=CHR)
+      CHR.show('testing')
+
+      if 1:
+         path = 'test.MeqNodes.binops'
+         # path = 'test.MeqNodes'
+         rr = CHR.subrec(path, trace=True)
+         CHR.show('subrec',rr)
+         
+   print '\n** End of standalone test of: QuickRef.py:\n' 
+
+#=====================================================================================
 
 
 
