@@ -86,8 +86,8 @@ class KolmogorovNode (pynode.PyNode):
 
 
 
-                xshift=(time[it]-time[0])*self.speedx;
-                yshift=(time[it]-time[0])*self.speedy;
+                xshift=(time[it])*self.speedx;
+                yshift=(time[it])*self.speedy;
                 xn=((xv+xshift)/self.scale)*self.grid_size+self.grid_size;
                 yn=((yv+yshift)/self.scale)*self.grid_size+self.grid_size;
                 xn=int(xn)%(self.grid_size*2)  # zorg dat xn een integer tussen 0 en 2*grid_size is
