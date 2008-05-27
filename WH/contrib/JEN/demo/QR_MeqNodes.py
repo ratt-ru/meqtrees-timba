@@ -43,14 +43,7 @@ from Timba.Meq import meq
 
 import QuickRef as QR
 
-
-# Settings.forest_state.cache_policy = 100
-# Settings.forest_state.bookmarks = []
-
-# import Meow.Bookmarks
-# from Timba.Contrib.JEN.util import JEN_bookmarks
-
-import math
+# import math
 # import random
 
 
@@ -59,15 +52,17 @@ import math
 # Top function, called from QuickRef.py:
 #********************************************************************************
 
-def MeqNodes (ns, path, chr=None):
-   """Top function, called from QuickRef.py"""
+def MeqNodes (ns, path, rider=None):
+   """
+   Standard nodes: ns[name] << Meq.XYZ(children,kwargs)'
+   """
    cc = []
    path = QR.add2path(path,'MeqNodes')
-   cc.append(unops (ns, path, chr=chr))
-   cc.append(binops (ns, path, chr=chr))
-   cc.append(leaves (ns, path, chr=chr))
-   help = 'standard nodes: ns[name] << Meq.XYZ(children,kwargs)'
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+   cc.append(unops (ns, path, rider=rider))
+   cc.append(binops (ns, path, rider=rider))
+   cc.append(leaves (ns, path, rider=rider))
+   help = MeqNodes.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 
 
@@ -75,48 +70,57 @@ def MeqNodes (ns, path, chr=None):
 # 2nd tier: Functions called from the top function above:
 #********************************************************************************
 
-def unops (ns, path, chr=None):
-   """Make a bundle of bundles of MeqNodes"""
+def unops (ns, path, rider=None):
+   """
+   Unary nodes perform operations on one child, which may be a tensor. 
+   """
    cc = [] 
    path = QR.add2path(path,'unops')
-   cc.append(unops_elementary (ns, path, chr=chr))
-   cc.append(unops_goniometric (ns, path, chr=chr))
-   cc.append(unops_hyperbolic (ns, path, chr=chr))
-   cc.append(unops_power (ns, path, chr=chr))
-   cc.append(unops_misc (ns, path, chr=chr))
-   cc.append(unops_cell_statistics (ns, path, chr=chr))
-   cc.append(unops_complex (ns, path, chr=chr))
-   help = 'unary nodes have one child, which may be a tensor' 
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+   cc.append(unops_elementary (ns, path, rider=rider))
+   cc.append(unops_goniometric (ns, path, rider=rider))
+   cc.append(unops_hyperbolic (ns, path, rider=rider))
+   cc.append(unops_power (ns, path, rider=rider))
+   cc.append(unops_misc (ns, path, rider=rider))
+   cc.append(unops_cell_statistics (ns, path, rider=rider))
+   cc.append(unops_complex (ns, path, rider=rider))
+   help = unops.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def binops (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
+def binops (ns, path, rider=None):
+   """
+   Binary nodes perform operations on two or more children.
+   If two children
+   """
    cc = []
    path = QR.add2path(path,'binops')
    help = 'binary operation on two children, which may be tensor(s)'
    for q in ['Add','Multiply']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x,y,t)',
-                            help=help, chr=chr, children=[ns.x,ns.y,ns.t]))
+                            help=help, rider=rider, children=[ns.x,ns.y,ns.t]))
    help = 'binary operation on two or more children, which may be tensor(s)'
    for q in ['Subtract','Divide']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x,y)',
-                            help=help, chr=chr, children=[ns.x,ns.y]))
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+                            help=help, rider=rider, children=[ns.x,ns.y]))
+   help = binops.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def leaves (ns, path, chr=None):
-   """Make a bundle of bundles of MeqNodes"""
+def leaves (ns, path, rider=None):
+   """
+   Leaf nodes have no children. Some have access to an external
+   source of information (like a file) to satisfy a request. 
+   """
    cc = []
    path = QR.add2path(path,'leaves')
-   cc.append(leaves_constant (ns, path, chr=chr))
-   # cc.append(leaves_parm (ns, path, chr=chr))
-   # cc.append(leaves_grid (ns, path, chr=chr))
-   # cc.append(leaves_noise (ns, path, chr=chr))
-   help = 'leaf nodes have no children' 
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+   cc.append(leaves_constant (ns, path, rider=rider))
+   # cc.append(leaves_parm (ns, path, rider=rider))
+   # cc.append(leaves_grid (ns, path, rider=rider))
+   # cc.append(leaves_noise (ns, path, rider=rider))
+   help = leaves.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 
 
@@ -134,8 +138,10 @@ def leaves (ns, path, chr=None):
 # leaves_...
 #================================================================================
 
-def leaves_constant (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
+def leaves_constant (ns, path, rider=None):
+   """
+   A constant may be complex, or a tensor. There are various ways to define one.
+   """
    cc = []
    path = QR.add2path(path,'constant')
    help = 'Constant node created with: '
@@ -145,8 +151,8 @@ def leaves_constant (ns, path, chr=None):
                          help=help+'ns.xxxx << 2.4'))
    cc.append(QR.MeqNode (ns, path, meqclass='Constant', name=None,
                          value=1.2))
-   help = 'A constant may be complex, or a tensor'
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+   help = leaves_constant.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 
 
@@ -154,100 +160,122 @@ def leaves_constant (ns, path, chr=None):
 # unops_...
 #================================================================================
 
-def unops_goniometric (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
-   cc = [ns.x]
-   path = QR.add2path(path,'goniometric')
-   help = 'Unary operation on a single child (angle, rad)'
-   for q in ['Sin','Cos','Tan']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=help, chr=chr, children=[ns.x]))
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
 
-#--------------------------------------------------------------------------------
-
-def unops_elementary (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
+def unops_elementary (ns, path, rider=None):
+   """
+   Elementary unary operations.
+   """
    cc = [ns.x]
    path = QR.add2path(path,'elementary')
-   help = """Unary operation on a single child.
-   The rain in Spain
-   Falls mainly in the plain
-   """
+   help = ''
    for q in ['Negate','Invert','Exp','Log','Sqrt']:
+      # NB: explain log...
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=help, chr=chr, children=[ns.x]))
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+                            help=help, rider=rider, children=[ns.x]))
+   help = unops_elementary.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def unops_hyperbolic (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
+def unops_goniometric (ns, path, rider=None):
+   """
+   Goniometric functions turn an angle (rad) into a fraction.
+   """
+   cc = [ns.x]
+   path = QR.add2path(path,'goniometric')
+   help = ''
+   for q in ['Sin','Cos','Tan']:
+      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
+                            help=help, rider=rider, children=[ns.x]))
+   help = unops_goniometric.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def unops_hyperbolic (ns, path, rider=None):
+   """
+   Hyperbolic functions convert a fraction into an angle (rad).
+   """
    cc = [ns.x]
    path = QR.add2path(path,'hyperbolic')
-   help = 'Unary operation on a single child'
+   help = ''
    for q in ['Sinh','Cosh','Tanh']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=help, chr=chr, children=[ns.x]))
-   help = 'unary nodes have one child, which may be a tensor' 
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+                            help=help, rider=rider, children=[ns.x]))
+   help = unops_hyperbolic.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def unops_complex (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
+def unops_complex (ns, path, rider=None):
+   """
+   Operations on a (usually) complex child.
+   """
    cc = [ns.cxy]
    path = QR.add2path(path,'complex')
-   help = 'Unary operation on a single child, which usually is complex'
+   help = ' of it single child'
    for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(cxy)',
-                            help=help, chr=chr, children=[ns.cxy]))
+                            help=q+help, rider=rider, children=[ns.cxy]))
       # ns << Meq.Norm(cxy),       # same as Abs() 
       # ns << Meq.Log(cxy),        # elog(), show 10log()?
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+   help = unops_complex.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def unops_power (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
+def unops_power (ns, path, rider=None):
+   """
+   Nodes that take some power of its child.
+   """
    cc = [ns.x]
    path = QR.add2path(path,'power')
-   help = 'Unary operation on a single child'
+   help = ' of its single child'
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=help, chr=chr, children=[ns.x]))
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+                            help=q+help, rider=rider, children=[ns.x]))
+   help = unops_power.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def unops_misc (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
+def unops_misc (ns, path, rider=None):
+   """
+   Miscellaneous unary operations.
+   """
    cc = [ns.x]
    path = QR.add2path(path,'misc')
-   help = 'Unary operation on a single child'
+   help = record(Abs='Take the absolute value.',
+                 Ceil='Round upwards to integers.',
+                 Floor='Round downwards to integers.',
+                 Stripper="""Remove all derivatives (if any) from the result.
+                 This saves space and can be used to control solving.""",
+                 Identity='Make a copy node with a different name.'
+                 )
    for q in ['Abs','Ceil','Floor','Stripper','Identity']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=help, chr=chr, children=[ns.x]))
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+                            help=help[q], rider=rider, children=[ns.x]))
+   help = unops_misc.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def unops_cell_statistics (ns, path, chr=None):
-   """Make a bundle of MeqNodes"""
-   cc = [ns.x]
-   path = QR.add2path(path,'cell_statistics')
-   help = 'Unary operation on a single child'
-   for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=help, chr=chr, children=[ns.x]))
-   help = """
+def unops_cell_statistics (ns, path, rider=None):
+   """
    Cell_statistics are Operations that calculate properties of
    the values of all the cells in the requested domain.
    Note that they produce a 'scalar' result, which will be
    expanded to a domain in which all cells have the same value
    when needed.
    """
-   return QR.bundle (ns, path, nodes=cc, help=help, chr=chr)
+   cc = [ns.x]
+   path = QR.add2path(path,'cell_statistics')
+   help = ' over all cell values.'
+   for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
+      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
+                            help=q+help, rider=rider, children=[ns.x]))
+   help = unops_cell_statistics.__doc__
+   return QR.bundle (ns, path, nodes=cc, help=help, rider=rider)
 
 #================================================================================
 #================================================================================
