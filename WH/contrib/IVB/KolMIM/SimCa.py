@@ -77,8 +77,8 @@ meqmaker.add_uv_jones('G_sim','simulate receiver gains/phases',
                       [ oms_gain_models]);
 
 #Z jones
-from Timba.Contrib.MXM.MimModule import ZJones
-meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
+import ZJones_ivb
+meqmaker.add_sky_jones('Z','iono',[ZJones_ivb.ZJones()]);
 
 #Directional G jones
 from Timba.Contrib.MXM.MimModule import solvable_sky_jones;

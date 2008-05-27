@@ -13,7 +13,9 @@ def init_phasescreen(N=10,beta=5.):
     Y = numpy.matrix(range(-N,N)).T * numpy.matrix(numpy.ones((1,2*N)))*1.0/N
     # Q is the distance from the origin
     Q = numpy.sqrt(numpy.power(X,2) + numpy.power(Y,2))
-    
+
+    # start from the same random seed to get identical screen
+    seed(42);
     # W is complex white noise
     W = (standard_normal((2*N,2*N))) * numpy.exp(1j*uniform(-math.pi,math.pi,(2*N,2*N)))
     
