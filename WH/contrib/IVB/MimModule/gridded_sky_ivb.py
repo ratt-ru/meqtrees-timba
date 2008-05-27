@@ -49,6 +49,11 @@ def point_source (ns,name,l,m,I=1):
   else:
     return None;
 
+def single_source (ns,basename,l0,m0,dl,dm,nsrc,I):
+  """Returns single point source"""
+  model = [point_source(ns,basename+"+0+0",l0,m0,I)];
+  return model;
+
 def cross_model (ns,basename,l0,m0,dl,dm,nsrc,I):
   """Returns sources arranged in a cross""";
   model = [point_source(ns,basename+"+0+0",l0,m0,I)];
@@ -156,7 +161,7 @@ def source_list (ns,basename="S",l0=None,m0=None):
 
 # model options
 model_option = TDLCompileOption("model_func","Sky model type",
-      [point_source,single_grid_model,double_grid_model,cross_model,circ_grid_model,star8_model,lbar_model,mbar_model]);
+      [single_source,single_grid_model,double_grid_model,cross_model,circ_grid_model,star8_model,lbar_model,mbar_model]);
 
 TDLCompileOption("grid_size","Number of sources in each direction",
       [3,1,5,7],more=int);

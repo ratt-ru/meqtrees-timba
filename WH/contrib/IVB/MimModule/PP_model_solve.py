@@ -59,7 +59,9 @@ TDLCompileOptions(*meqmaker.compile_options());
 def _define_forest(ns):
     #make pynodes, xyzcomponent for sources
     ANTENNAS = mssel.get_antenna_set(range(1,N_ANT+1));
-    array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False,ms_uvw=False);
+    # for LOFAR simulations set mirror=True 
+    # ALWAYS use ms_uvw=True	
+    array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=True,ms_uvw=True);
     observation = Meow.Observation(ns);
     Meow.Context.set(array,observation);
     # make a predict tree using the MeqMaker
