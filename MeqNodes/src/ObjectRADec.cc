@@ -123,7 +123,7 @@ int ObjectRADec::getResult (Result::Ref &resref,
     frame.set(mdat);
     MDirection::Ref sunr(type_, frame);
     MDirection sn(sunr);
-    MDirection::Convert sc0(sn, MDirection::Ref(MDirection::JTRUE));
+    MDirection::Convert sc0(sn, MDirection::Ref(MDirection::J2000));
     //MDirection::Ref sunr(MDirection::MOON, frame);
     for (int ci=0; ci<ntime; ci++) {
       qepoch.setValue(arrtime(ci)*tscale);
