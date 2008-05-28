@@ -37,6 +37,7 @@ namespace Meq {
 
 const HIID FFilename= AidFilename;
 const HIID FCutoff= AidCutoff;
+const HIID FMethod = AidMethod;
 const HIID child_labels[] = { AidModes };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
@@ -52,6 +53,7 @@ ShapeletVisTf::ShapeletVisTf()
 : TensorFunction(num_children,child_labels) //only one child
 {
  cutoff_=0.0;
+ method_=0; //default rectangular
 }
 
 //##ModelId=400E5355029D
@@ -71,11 +73,12 @@ void ShapeletVisTf::setStateImpl (DMI::Record::Ref &rec,bool initializing)
  // cout<<"File Name ="<<filename_<<endl;
 #endif
 
-//	if(rec[FCutoff].get(cutoff_,initializing)) {
+	if(rec[FMethod].get(method_,initializing)) {
 #ifdef DEBUG
- //  cout<<"Cutoff ="<<cutoff_<<endl;
+   cout<<"method="<<method_<<endl;
 #endif
-//	}
+   if (method_>1) method_=0; //default
+	}
 }
 
 
@@ -127,18 +130,13 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
   double beta_=vbeta.getScalar<double>();
   //modes
   int nmodes=nvells-1; // first one is beta
-  int n0_=(int)sqrt(nmodes);
-#ifdef DEBUG
- std::cout<<"Modes = "<<n0_<<std::endl;
-#endif
 
 	const Cells &incells=resultCells();
 	//get U,V axes
 	blitz::Array<double,1> uax=incells.center(Axis::axis(AX1));
 	blitz::Array<double,1> vax=incells.center(Axis::axis(AX2));
-	//note: we decompose f(-l,m) so the Fourier transform is F(-u,v)
-	//so negate the u grid
-	uax=-uax;
+
+
 #ifdef DEBUG
 	cout<<"Grid "<<endl;
 	cout<<uax<<endl;
@@ -154,6 +152,18 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
   cout<<"Cells (t,f,u,v)"<<ntime<<" "<<nfreq<<" "<<Nu<<" "<<Nv<<endl;
 #endif
 
+
+/////////////////////////////////////////////////////////////////////////
+///// rectangular method
+
+  if (!method_) {
+  int n0_=(int)sqrt(nmodes);
+#ifdef DEBUG
+ std::cout<<"Rectangular Modes = "<<n0_<<std::endl;
+#endif
+	//note: we decompose f(-l,m) so the Fourier transform is F(-u,v)
+	//so negate the u grid
+	uax=-uax;
 
 	double *UV;
 	int *cplx;
@@ -178,6 +188,7 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
   //Ca: n0,n0
 	Ca.transposeSelf(1,0);
 
+
   //read in mode params
   double *mc;
 	//allocate memory for modes
@@ -191,10 +202,6 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
   }
 	blitz::Array<double,2> md_(mc,blitz::shape(n0_,n0_),blitz::neverDeleteData);
 	md_.transposeSelf(1,0);
-
-  /*out[0] = Vells(make_dcomplex(0.0),incells.shape(),false);
-  dcomplex* data = out[0].complexStorage();
-  blitz::Array<dcomplex,4> B(data,blitz::shape(ntime,nfreq,Nu,Nv)); */
 
 	Vells realv(0.0,incells.shape());
 	Vells imagv(0.0,incells.shape());
@@ -235,6 +242,73 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 	free(cplx);
 	free(UV);
   free(mc);
+
+  } else {
+  //////////////////////////////////////////////////////
+  /////// polar method
+  int n0_=(int)((sqrt(8.0*nmodes+1.0)-1)/2.0);
+#ifdef DEBUG
+ std::cout<<"Polar Modes = ="<<n0_<<", total="<<nmodes<<std::endl;
+#endif
+
+
+	Vells realv(0.0,incells.shape());
+	Vells imagv(0.0,incells.shape());
+  double* datar = realv.realStorage();
+  double* datai = imagv.realStorage();
+	blitz::Array<double,4> realsum(datar,blitz::shape(ntime,nfreq,Nu,Nv));
+	blitz::Array<double,4> imagsum(datai,blitz::shape(ntime,nfreq,Nu,Nv));
+
+	 double *UVr, *UVi;
+   //NB: u,v axes are azimuth, elevation: theta,r in polar in practice
+   calculate_polar_mode_vectors(v, Nv, u, Nu, n0_,beta_, &UVr, &UVi);
+
+ 	 blitz::Array<double ,3> Mr(UVr,blitz::shape(nmodes,Nu,Nv),blitz::neverDeleteData);
+ 	 blitz::Array<double ,3> Mi(UVi,blitz::shape(nmodes,Nu,Nv),blitz::neverDeleteData);
+
+  //U,V,mode
+	Mr.transposeSelf(2,1,0);
+	Mi.transposeSelf(2,1,0);
+  //read in mode params (complex)
+  dcomplex *mc;
+	//allocate memory for modes
+	if ((mc=(dcomplex*)calloc((size_t)(nmodes),sizeof(dcomplex)))==0) {
+	  fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+	  exit(1);
+	}
+  for (int ci=0; ci<nmodes; ci++) {
+   const Vells &vmode=*(args[0][ci+1]);
+   mc[ci]=vmode.getScalar<dcomplex>();
+#ifdef DEBUG
+   std::cout<<"mode "<<ci<<" = "<<creal(mc[ci])<<"+ j*"<<cimag(mc[ci])<<std::endl;
+#endif
+  }
+
+  double tmpr,tmpi;
+  for (int ci=0; ci<ntime; ci++) {
+    for (int cj=0; cj<nfreq; cj++) {
+    //each time,freq slice, iterate over modes
+     blitz::Array<double,2> A=realsum(ci,cj,blitz::Range::all(),blitz::Range::all());  
+     blitz::Array<double,2> B=imagsum(ci,cj,blitz::Range::all(),blitz::Range::all());  
+	   A=0;
+	   B=0;
+     for (int n1=0; n1<nmodes; n1++) {
+       tmpr=creal(mc[n1]); 
+       tmpi=cimag(mc[n1]); 
+       A+=(Mr(blitz::Range::all(),blitz::Range::all(),n1))*(tmpr)-(Mi(blitz::Range::all(),blitz::Range::all(),n1))*(tmpi);
+       B+=(Mr(blitz::Range::all(),blitz::Range::all(),n1))*(tmpi)+(Mi(blitz::Range::all(),blitz::Range::all(),n1))*(tmpr);
+       //A=(Mr(blitz::Range::all(),blitz::Range::all(),1));
+       //B=(Mi(blitz::Range::all(),blitz::Range::all(),1));
+       //A(ci,cj,blitz::Range::all(),blitz::Range::all())=(M(blitz::Range::all(),blitz::Range::all(),0));
+     }
+    }
+  }
+ 
+	 out[0]=Vells((VellsMath::tocomplex(realv,imagv)));
+   free(UVr);
+   free(UVi);
+   free(mc);
+  }
 }
 
 /*int ShapeletVisTf::getResult (Result::Ref &resref, 
@@ -1222,4 +1296,350 @@ ShapeletVisTf::calculate_uv_mode_vectors_scalar(double *u, int Nu, double *v, in
 
   return 0;
 }
+
+
+
+///// polar shapelet stuff
+
+/* generalized Laguerre polynomial L_p^q(x) */
+static double
+L_g(int p, int q, double x) {
+  if(p==0) return 1.0;
+  if(p==1) return 1.0-x+(double)q;
+  return (2+((double)q-1.0-x)/(double)p)*L_g(p-1,q,x)-(1+((double)q-1.0)/(double)p)*L_g(p-2,q,x);
+}
+
+
+/* calculate mode vectors for polar shapelet basis, 
+ *  n0: max number in n, so m goes from -n0,...,n0
+ *  the number of modes is then n0*(n0+1)/2
+ *  r: first axis, radial
+ *  Nr: length of r
+ *  th: second axis, angular
+ *  Nt: length of th
+ *  Av: array of mode vectors, column major order, real and imaginary
+*/
+int 
+ShapeletVisTf::calculate_polar_mode_vectors(double *r, int Nr, double *th, int Nt, int n0,double beta, double **Avr, double **Avi) {
+ double *fact,*betam;
+ double **pream,**rgridm;
+ dcomplex **thgrid;
+ dcomplex ****M;
+ double ***Lg;
+ int xci,yci,zci, xlen, npm,nmm;
+ double inv_beta_sq;
+
+ int nmodes,rank;
+
+ FILE *dbg;
+ inv_beta_sq=1.0/(beta*beta);
+
+ /* factorial array, store from 0! to ((n0+|m|)/2)! at the 
+ * respective position of the array - length n+1
+ * size  n0+1
+ */
+ if ((fact=(double*)calloc((size_t)(n0+1),sizeof(double)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ fact[0]=1;
+ for (xci=1; xci<=(n0); xci++) {
+    fact[xci]=(xci+1)*fact[xci-1];
+ }
+
+ /* storage to calculate 1/beta^{|m|+1} , from 0 to n0 */
+ /* size n0+1 */
+ if ((betam=(double*)calloc((size_t)(n0+1),sizeof(double)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ betam[0]=1/beta;
+ for (xci=1; xci<=(n0); xci++) {
+    betam[xci]=betam[xci-1]/beta;
+ }
+
+ /* storage to calculate r^|m| for all possible values, also
+ * multiplied by exp(-r^2/2beta^2) */
+ /* size Nr x (n0+1) */
+ if ((rgridm=(double**)calloc((size_t)(Nr),sizeof(double*)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ for (xci=0; xci<(Nr); xci++) {
+  if ((rgridm[xci]=(double*)calloc((size_t)(n0+1),sizeof(double)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+  }
+  rgridm[xci][0]=exp(-0.5*r[xci]*r[xci]/(beta*beta));
+  for (yci=1; yci<=(n0); yci++) {
+   rgridm[xci][yci]=r[xci]*rgridm[xci][yci-1];
+  }
+ }
+ 
+ /* storage to calculate exp(-j*m*theta) for all possible values */
+ /* only calculate m from 0 .. to n0 because negative is conjugate */
+ /* size Nt x (n0+1) */
+ if ((thgrid=(dcomplex**)calloc((size_t)(Nt),sizeof(dcomplex*)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ for (xci=0; xci<(Nt); xci++) {
+  if ((thgrid[xci]=(dcomplex*)calloc((size_t)(n0+1),sizeof(dcomplex)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+  }
+  for (yci=0; yci<=(n0); yci++) {
+   thgrid[xci][yci]=make_dcomplex(cos(yci*th[xci]),-sin(yci*th[xci]));
+  }
+ }
+
+ /* storage to calculate preamble, dependent only on n and |m| */
+ /* size n0 x [1,1,2,2,3,3,...] varying */
+ if ((pream=(double**)calloc((size_t)(n0),sizeof(double*)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ for (xci=0; xci<(n0); xci++) {
+  /* for each xci, |m| goes from 0/1,2/3,...,xci */
+  xlen=xci/2+1;
+  if ((pream[xci]=(double*)calloc((size_t)(xlen),sizeof(double)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+  }
+  zci=xlen-1;
+  for (yci=xci; yci>=0; yci-=2) {
+   npm=(xci+yci)/2;
+   nmm=(xci-yci)/2;
+   /* reverse fill */
+   pream[xci][zci]=sqrt((double)fact[nmm]/((double)fact[npm]*M_PI))/betam[yci];
+   if (nmm%2)  { /* odd */
+    pream[xci][zci]=-pream[xci][zci];
+   }
+   zci--;
+  }
+ }
+
+ /* storage to calculate Laguerre polynomical for given n,|m|,r */
+ /* size n0 x [1,1,2,2,3,3,....] x  Nr */
+ if ((Lg=(double***)calloc((size_t)(n0),sizeof(double**)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+
+ for (xci=0; xci<(n0); xci++) {
+  /* for each xci, |m| goes from 0/1,2/3,...,xci */
+  xlen=xci/2+1;
+  if ((Lg[xci]=(double**)calloc((size_t)(xlen),sizeof(double*)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+  }
+  zci=0;
+  for (yci=xci%2; yci<=xci; yci+=2) {
+    if ((Lg[xci][zci]=(double*)calloc((size_t)(Nr),sizeof(double)))==0) {
+     fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+     exit(1);
+    } 
+
+    nmm=(xci-yci)/2; /* (n-|m|)/2 */
+    for (npm=0; npm<Nr; npm++) {
+      Lg[xci][zci][npm]=L_g(nmm,yci,r[npm]*r[npm]*inv_beta_sq);
+    }
+    zci++;
+  }
+ }
+ 
+ free(fact);
+ free(betam);
+ /* now form the product of pream(n,|m|) ,  rgridm(r,|m|), 
+ * thgrid(m ,theta)  (m positive) and Lg(n, |m|, r)
+ * size: n0 x [0, 2, 3, 4, 5, ..] x Nr x Nt
+ */
+ if ((M=(dcomplex****)calloc((size_t)(n0),sizeof(dcomplex***)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ for(xci=0; xci<n0; xci++) {
+   if ((M[xci]=(dcomplex***)calloc((size_t)(xci+1),sizeof(dcomplex**)))==0) {
+     fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+     exit(1);
+   }
+   for (yci=0; yci<=xci; yci++) {
+     if ((M[xci][yci]=(dcomplex**)calloc((size_t)(Nr),sizeof(dcomplex*)))==0) {
+       fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+       exit(1);
+     }
+     for (zci=0; zci<Nr; zci++) {
+       if ((M[xci][yci][zci]=(dcomplex*)calloc((size_t)(Nt),sizeof(dcomplex)))==0) {
+         fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+         exit(1);
+       }
+       
+     }
+
+   }
+ }
+
+ for(xci=0; xci<n0; xci++) {
+  yci=0; /* present m index */
+  xlen=0; /* present |m| index */
+  for (npm=xci%2; npm<=xci; npm+=2) {
+    if (npm) { /* m not zero */
+     /* calculate m and -m */
+     for (zci=0; zci<Nr; zci++) {
+        for (nmm=0; nmm<Nt; nmm++) {
+          M[xci][yci][zci][nmm]=pream[xci][xlen]*rgridm[zci][xlen]*thgrid[nmm][npm]*Lg[xci][xlen][zci];
+          /* this is conjugate */
+          M[xci][yci+1][zci][nmm]=make_dcomplex(creal(M[xci][yci][zci][nmm]), -cimag(M[xci][yci][zci][nmm]));
+        }
+     }
+     yci+=2;
+    } else { /* m is zero */
+     /* calculate for m */
+     for (zci=0; zci<Nr; zci++) {
+        for (nmm=0; nmm<Nt; nmm++) {
+          M[xci][yci][zci][nmm]=pream[xci][xlen]*rgridm[zci][xlen]*thgrid[nmm][npm]*Lg[xci][xlen][zci];
+        }
+     }
+     yci++;
+    }
+    xlen++;
+  }
+ }
+
+#ifdef DEBUG
+ printf("preamble n, |m|\n");
+ for (xci=0; xci<(n0); xci++) {
+  xlen=xci/2+1;
+  for (yci=0; yci<xlen; yci++) {
+   printf("[%d %d]: %lf ",xci,yci,pream[xci][yci]);
+  }
+  printf("\n");
+ }
+ 
+ printf("thetagrid theta, |m|\n");
+ for (xci=0; xci<(Nt); xci++) {
+  for (yci=0; yci<=(n0); yci++) {
+   printf("[%d %d]: %lf(%lf) ",xci,yci,creal(thgrid[xci][yci]), cimag(thgrid[xci][yci]));
+  }
+  printf("\n");
+ }
+
+ printf("rmgrid r, |m|\n");
+ for (xci=0; xci<(Nr); xci++) {
+  for (yci=0; yci<=(n0); yci++) {
+   printf("[%d %d]: %lf ",xci,yci,rgridm[xci][yci]);
+  }
+  printf("\n");
+ }
+#endif
+
+ for(xci=0; xci<n0; xci++) {
+  free(pream[xci]);
+ }
+ free(pream);
+ for(xci=0; xci<Nr; xci++) {
+  free(rgridm[xci]);
+ }
+ free(rgridm);
+ for(xci=0; xci<Nt; xci++) {
+  free(thgrid[xci]);
+ }
+ free(thgrid);
+ for(xci=0; xci<n0; xci++) {
+   xlen=xci/2+1;
+   for(yci=0; yci<xlen; yci++) {
+    free(Lg[xci][yci]);
+   }
+   free(Lg[xci]);
+ }
+ free(Lg);
+
+#ifdef DEBUG
+ printf("Product\n");
+ for(xci=0; xci<n0; xci++) {
+   for (yci=0; yci<=xci; yci++) {
+     for (zci=0; zci<Nr; zci++) {
+        printf("[%d %d %d]: ", xci,yci,zci);
+        for (nmm=0; nmm<Nt; nmm++) {
+         printf("%lf(%lf)  ",creal(M[xci][yci][zci][nmm]),cimag(M[xci][yci][zci][nmm]));
+        }
+     printf("\n");
+     }
+   } 
+ }
+#endif
+
+ nmodes=(n0)*(n0+1)/2;
+ printf("nmodes=%d\n",nmodes);
+ printf("ncols=%d\n",Nr*Nt);
+
+ if ((*Avr=(double*)calloc((size_t)(Nr*Nt*nmodes),sizeof(double)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ if ((*Avi=(double*)calloc((size_t)(Nr*Nt*nmodes),sizeof(double)))==0) {
+    fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
+    exit(1);
+ }
+
+ /* copy to A */
+ xlen=0;
+ for(xci=0; xci<n0; xci++) {
+ for (yci=0; yci<=xci; yci++) {
+  for (zci=0; zci<Nr; zci++) {
+   for (nmm=0; nmm<Nt; nmm++) {
+     (*Avr)[xlen]=creal(M[xci][yci][zci][nmm]);
+     (*Avi)[xlen]=cimag(M[xci][yci][zci][nmm]);
+     xlen++;
+     }
+   }
+  }
+ }
+
+ printf("\n");
+ printf("r=[");
+ for(xci=0; xci<Nr; xci++) {
+  printf("%lf, ",r[xci]);
+ }
+ printf("];\n");
+ printf("theta=[");
+ for(xci=0; xci<Nt; xci++) {
+  printf("%lf, ",th[xci]);
+ }
+ printf("];\n");
+
+
+ /* print debug to file */
+ if ((dbg=fopen("debug","w"))==0) {
+    fprintf(stderr,"%s: %d: cannot open file\n",__FILE__,__LINE__);
+    exit(1);
+ }
+ for (zci=0; zci<Nr; zci++) {
+  for (nmm=0; nmm<Nt; nmm++) {
+    for(xci=0; xci<n0; xci++) {
+     for (yci=0; yci<=xci; yci++) {
+         fprintf(dbg," %lf %lf",creal(M[xci][yci][zci][nmm]),cimag(M[xci][yci][zci][nmm]));
+     }
+    }
+    fprintf(dbg,"\n");
+    }
+ }
+ fclose(dbg);
+
+ for(xci=0; xci<n0; xci++) {
+   for (yci=0; yci<=xci; yci++) {
+     for (zci=0; zci<Nr; zci++) {
+       free(M[xci][yci][zci]);
+     }
+     free(M[xci][yci]);
+   }
+  free(M[xci]);
+ }
+ free(M);
+
+
+ return 0;
+}
+
+
 } // namespace Meq

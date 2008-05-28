@@ -1,4 +1,4 @@
-//# ShapeletVisTf.h: Calculates beam gasin of a ShapeletVisTf tracking a source at Ra, Dec
+//# ShapeletVisTf.h:  Shapelet transform
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,7 +19,7 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
-//# $Id: ShapeletVisTf.h 5175 2007-05-15 21:21:00Z twillis $
+//# $Id: ShapeletVisTf.h 5175 2007-05-15 21:21:00Z sarod$
 
 
 #ifndef MEQNODES_SHAPELETVISTF_H
@@ -30,14 +30,15 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ShapeletVisTf
-#pragma aid Filename Cutoff Modes
+#pragma aid Filename Cutoff Modes Method
 
 
 //defrec begin MeqShapeletVisTf
-////  Changes the resolution of a parent's Request before passing it on to the
-////  child. Returns child result as is. Expects exactly one child.
 ////field: children []
 ////  UV children, modes
+//    method:
+//     0 : rectangular uv plane (default)
+//     1 : polar 
 ////
 ////defrec end
 //
@@ -78,6 +79,9 @@ private:
   //cutoff weak modes
   double cutoff_;
 
+  // rectangular (0)  or polar (1)? 
+  int method_;
+
   // shapelet stuff: to be included separately in the future
   /* evaluate Hermite polynomial value using recursion
   */
@@ -107,6 +111,18 @@ private:
  *
  */
  int calculate_uv_mode_vectors_scalar(double *u, int Nu, double *v, int Nv, double beta, int n0, double **Av, int **cplx);
+
+ /* calculate mode vectors for polar shapelet basis, 
+ *  n0: max number in n, so m goes from -n0,...,n0
+ *  the number of modes is then n0*(n0+1)/2
+ *  r: first axis, radial
+ *  Nr: length of r
+ *  th: second axis, angular
+ *  Nt: length of th
+ *  Av: array of mode vectors, column major order
+ */
+ int calculate_polar_mode_vectors(double *r, int Nr, double *th, int Nt, int n0,double beta,  double **Avr, double **Avi);
+
 
 };
 
