@@ -2,71 +2,69 @@
 #include <complex.h>
 
 /* Note: formulas have been optimized! */
-#define palpha1  1.13446401379631
-#define palpha2  0.55850536063819
-#define sin_alpha1 0.90630778703665
-#define sin_alpha2 0.52991926423320
-#define cos_alpha1 0.42261826174070
-#define cos_alpha2 0.84804809615643
-#define tan_alpha1 2.14450692050956
-#define tan_alpha2 0.62486935190933
+/* alpha1=50/180*pi;
+ * alpha2=80/180*pi;
+ * L=0.366;
+ * h=45/100;
+ */
+#define palpha1  0.87266462599716
+#define palpha2  1.39626340159546
+#define sin_alpha1 0.76604444311898
+#define sin_alpha2 0.98480775301221
+#define cos_alpha1 0.64278760968654
+#define cos_alpha2 0.17364817766693
+#define tan_alpha1 1.19175359259421 
+#define tan_alpha2 5.67128181961771
 #define pH 0.450
 #define pL 0.366
-#define pL1 0.2562
+#define pL1  0.13275660600238
+#define pL2  0.23888953394781
 #define pC 2.998e8 /* speed of light */
 #define TOL 1e-9
+#define del1 0.47777906789561
+#define del2 0.37164613995018
 
 /* see writeup for the exact formula */
-inline complex double 
-Phiplus(double A, double B, double k, double L, double L1, double alpha) 
-{
+inline complex double
+Gammplus(double A, double B, double k, double L, double alpha) {
   double salpha=1/sin(alpha);
   double tmp=k*B;
   complex double z=-(cos(tmp)+_Complex_I*sin(tmp))/(A*A-salpha*salpha+TOL);
-  tmp=k*A*L1;
-  double ang1=k*(L-L1)*salpha;
-  double ang2=k*L*salpha;
-  complex double part1=_Complex_I*(A*(cos(tmp)*sin(ang1)-sin(ang2))+salpha*sin(tmp)*cos(ang1))+(-A*sin(tmp)*sin(ang1)+salpha*(cos(tmp)*cos(ang1)-cos(ang2)));
-
-  return z*part1;
-}
-inline complex double 
-Phiminus(double A, double B, double k, double L, double L1, double alpha) 
-{
-  double salpha=1/sin(alpha);
-  double tmp=k*B;
-  complex double z=-(cos(tmp)+_Complex_I*sin(tmp))/(A*A-salpha*salpha+TOL);
-  tmp=-k*A*L1;
-  double ang1=k*(L-L1)*salpha;
-  double ang2=k*L*salpha;
-  complex double part1=_Complex_I*(-A*(cos(tmp)*sin(ang1)-sin(ang2))+salpha*sin(tmp)*cos(ang1))+(A*sin(tmp)*sin(ang1)+salpha*(cos(tmp)*cos(ang1)-cos(ang2)));
-
+  tmp=k*A*L;
+  double ang1=k*(L)*salpha;
+  complex double part1=cos(tmp)+_Complex_I*sin(tmp);
+  part1=part1*salpha-_Complex_I*A*sin(ang1)-salpha*cos(ang1);
   return z*part1;
 }
 inline complex double
-Psiplus(double A, double B, double k, double L, double L1, double alpha)
-{
+Gammminus(double A, double B, double k, double L, double alpha) {
   double salpha=1/sin(alpha);
   double tmp=k*B;
   complex double z=-(cos(tmp)+_Complex_I*sin(tmp))/(A*A-salpha*salpha+TOL);
-  tmp=k*A*L1;
-  double tmp1=k*A*L;
-  double ang1=k*(L-L1)*salpha;
-  complex double part1=_Complex_I*(salpha*(sin(tmp1)-sin(tmp)*cos(ang1))-A*cos(tmp)*sin(ang1))+salpha*(cos(tmp1)-cos(tmp)*cos(ang1))+A*sin(tmp)*sin(ang1);
-  
+  tmp=-k*A*L;
+  double ang1=k*(L)*salpha;
+  complex double part1=cos(tmp)+_Complex_I*sin(tmp);
+  part1=part1*salpha+_Complex_I*A*sin(ang1)-salpha*cos(ang1);
   return z*part1;
 }
 inline complex double
-Psiminus(double A, double B, double k, double L, double L1, double alpha)
-{
-  double salpha=1/sin(alpha);
+Gammplus0(double A, double B, double k, double L) {
   double tmp=k*B;
-  complex double z=-(cos(tmp)+_Complex_I*sin(tmp))/(A*A-salpha*salpha+TOL);
-  tmp=-k*A*L1;
-  double tmp1=-k*A*L;
-  double ang1=k*(L-L1)*salpha;
-  complex double part1=_Complex_I*(salpha*(sin(tmp1)-sin(tmp)*cos(ang1))+A*cos(tmp)*sin(ang1))+salpha*(cos(tmp1)-cos(tmp)*cos(ang1))-A*sin(tmp)*sin(ang1);
-  
+  complex double z=-(cos(tmp)+_Complex_I*sin(tmp))/(A*A-1.0+TOL);
+  tmp=k*A*L;
+  double ang1=k*(L);
+  complex double part1=cos(tmp)+_Complex_I*sin(tmp);
+  part1=part1-_Complex_I*A*sin(ang1)-cos(ang1);
+  return z*part1;
+}
+inline complex double
+Gammminus0(double A, double B, double k, double L) {
+  double tmp=k*B;
+  complex double z=-(cos(tmp)+_Complex_I*sin(tmp))/(A*A-1.0+TOL);
+  tmp=-k*A*L;
+  double ang1=k*(L);
+  complex double part1=cos(tmp)+_Complex_I*sin(tmp);
+  part1=part1+_Complex_I*A*sin(ang1)-cos(ang1);
   return z*part1;
 }
 
@@ -101,6 +99,11 @@ complex double test_complex(const complex *par,const complex *x){
   /* some essential constants */
   double k=2*M_PI*x1/pC;
 
+  /* extra params for length of current distribution */
+  double wt=(240-x1/1e6)/140.0;
+  double pLL1=wt*pL1+(1-wt)*pL2;
+  double pLL2=wt*pL2+(1-wt)*pL1;
+
   /* calculate needed trig functions */
   double sin_theta=sin(theta);
   double cos_theta=cos(theta);
@@ -110,23 +113,49 @@ complex double test_complex(const complex *par,const complex *x){
   /* mu/4PI=10e-7  x omega*/
   const double mop=(1e-7)*2*M_PI*x1;
 
-  complex double Phi11=Phiplus(sin_theta*cos_phi-cos_theta/tan_alpha1,pH*cos_theta,k,pL1+(pL-pL1)*sin_alpha1/sin_alpha2,pL1,palpha1);
-  complex double Psi11=Psiplus(sin_theta*cos_phi-cos_theta/tan_alpha2,(pH-pL1*(1/tan_alpha1-1/tan_alpha2))*cos_theta,k,pL,pL1,palpha2);
+  complex double expjkL1=sin(k*del1)+_Complex_I*cos(k*del1);
+  complex double expjkL1_=sin(k*del1)-_Complex_I*cos(k*del1);
+  complex double expjkL2=sin(k*del2)+_Complex_I*cos(k*del2);
+  complex double expjkL2_=sin(k*del2)-_Complex_I*cos(k*del2);
 
-  complex double Eth=(cos_alpha1*sin_theta-sin_alpha1*cos_theta*cos_phi)/sin_alpha1*Phi11+(cos_alpha2*sin_theta-sin_alpha2*cos_theta*cos_phi)/sin_alpha2*Psi11;
+  complex double Phi11=Gammplus(sin_theta*cos_phi-cos_theta/tan_alpha1,pH*cos_theta,k,pL,palpha1);
+  complex double Eth=(-cos_alpha1*sin_theta-sin_alpha1*cos_theta*cos_phi)*Phi11;
+  Phi11=Gammplus(sin_theta*cos_phi+cos_theta/tan_alpha2,pH*cos_theta,k,pL,M_PI-palpha2);
+  Eth+=(cos_alpha2*sin_theta-sin_alpha2*cos_theta*cos_phi)*Phi11;
+  Phi11=expjkL1*Gammplus0(cos_theta,pL*sin_theta*cos_phi+(pH-pL/tan_alpha1)*cos_theta,k,pLL1);
+  Eth+=sin_theta*Phi11;
+  Phi11=-expjkL2*Gammplus0(-cos_theta,pL*sin_theta*cos_phi+(pH+pL/tan_alpha2)*cos_theta,k,pLL2);
+  Eth+=sin_theta*Phi11;
 
-  Phi11=Phiminus(-sin_theta*cos_phi-cos_theta/tan_alpha1,pH*cos_theta,k,pL1+(pL-pL1)*sin_alpha1/sin_alpha2,pL1,palpha1);
-  Psi11=Psiminus(-sin_theta*cos_phi-cos_theta/tan_alpha2,(pH-pL1*(1/tan_alpha1-1/tan_alpha2))*cos_theta,k,pL,pL1,palpha2);
-  Eth+=(-cos_alpha1*sin_theta-sin_alpha1*cos_theta*cos_phi)/sin_alpha1*Phi11+(-cos_alpha2*sin_theta-sin_alpha2*cos_theta*cos_phi)/sin_alpha2*Psi11;
+
+  Phi11=Gammminus(-sin_theta*cos_phi+cos_theta/tan_alpha1,pH*cos_theta,k,pL,palpha1);
+  Eth+=(cos_alpha1*sin_theta-sin_alpha1*cos_theta*cos_phi)*Phi11;
+  Phi11=Gammminus(-sin_theta*cos_phi-cos_theta/tan_alpha2,pH*cos_theta,k,pL,M_PI-palpha2);
+  Eth+=(-cos_alpha2*sin_theta-sin_alpha2*cos_theta*cos_phi)*Phi11;
+  Phi11=-expjkL1_*Gammplus0(cos_theta,-pL*sin_theta*cos_phi+(pH-pL/tan_alpha1)*cos_theta,k,pLL1);
+  Eth+=sin_theta*Phi11;
+  Phi11=expjkL2_*Gammplus0(-cos_theta,-pL*sin_theta*cos_phi+(pH+pL/tan_alpha2)*cos_theta,k,pLL2);
+  Eth+=sin_theta*Phi11;
 
 
-  Phi11=Phiminus(-sin_theta*cos_phi+cos_theta/tan_alpha1,-pH*cos_theta,k,pL1+(pL-pL1)*sin_alpha1/sin_alpha2,pL1,palpha1);
-  Psi11=Psiminus(-sin_theta*cos_phi+cos_theta/tan_alpha2,-(pH-pL1*(1/tan_alpha1-1/tan_alpha2))*cos_theta,k,pL,pL1,palpha2);
-  Eth+=(-cos_alpha1*sin_theta+sin_alpha1*cos_theta*cos_phi)/sin_alpha1*Phi11+(-cos_alpha2*sin_theta+sin_alpha2*cos_theta*cos_phi)/sin_alpha2*Psi11;
+  Phi11=Gammminus(-sin_theta*cos_phi-cos_theta/tan_alpha1,-pH*cos_theta,k,pL,palpha1);
+  Eth+=(cos_alpha1*sin_theta+sin_alpha1*cos_theta*cos_phi)*Phi11;
+  Phi11=Gammminus(-sin_theta*cos_phi+cos_theta/tan_alpha2,-pH*cos_theta,k,pL,M_PI-palpha2);
+  Eth+=(-cos_alpha2*sin_theta+sin_alpha2*cos_theta*cos_phi)*Phi11;
+  Phi11=-expjkL1*Gammminus0(cos_theta,-pL*sin_theta*cos_phi-(pH-pL/tan_alpha1)*cos_theta,k,pLL1);
+  Eth+=sin_theta*Phi11;
+  Phi11=expjkL2*Gammminus0(-cos_theta,-pL*sin_theta*cos_phi-(pH+pL/tan_alpha2)*cos_theta,k,pLL2);
+  Eth+=sin_theta*Phi11;
 
-  Phi11=Phiplus(sin_theta*cos_phi+cos_theta/tan_alpha1,-pH*cos_theta,k,pL1+(pL-pL1)*sin_alpha1/sin_alpha2,pL1,palpha1);
-  Psi11=Psiplus(sin_theta*cos_phi+cos_theta/tan_alpha2,-(pH-pL1*(1/tan_alpha1-1/tan_alpha2))*cos_theta,k,pL,pL1,palpha2);
-  Eth+=(cos_alpha1*sin_theta+sin_alpha1*cos_theta*cos_phi)/sin_alpha1*Phi11+(cos_alpha2*sin_theta+sin_alpha2*cos_theta*cos_phi)/sin_alpha2*Psi11;
+
+  Phi11=Gammplus(sin_theta*cos_phi+cos_theta/tan_alpha1,-pH*cos_theta,k,pL,palpha1);
+  Eth+=(-cos_alpha1*sin_theta+sin_alpha1*cos_theta*cos_phi)*Phi11;
+  Phi11=Gammplus(sin_theta*cos_phi-cos_theta/tan_alpha2,-pH*cos_theta,k,pL,M_PI-palpha2);
+  Eth+=(cos_alpha2*sin_theta+sin_alpha2*cos_theta*cos_phi)*Phi11;
+  Phi11=expjkL1_*Gammminus0(cos_theta,pL*sin_theta*cos_phi-(pH-pL/tan_alpha1)*cos_theta,k,pLL1);
+  Eth+=sin_theta*Phi11;
+  Phi11=-expjkL2_*Gammminus0(-cos_theta,pL*sin_theta*cos_phi-(pH+pL/tan_alpha2)*cos_theta,k,pLL2);
+  Eth+=sin_theta*Phi11;
 
   return (Eth*mop);
 }

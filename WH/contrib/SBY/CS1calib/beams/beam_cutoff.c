@@ -14,5 +14,5 @@ double test_double(const double *par,const double *x){
 complex test_complex(const complex *par,const complex *x){
   return 0;
 }
-int Npar_test=3;
+int Npar_test=0;
 int Nx_test=4;
