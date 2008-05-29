@@ -610,7 +610,7 @@ def EJones_HBA_stat(ns,array,sources,radec0,meptable=None,solvables=[],solvable=
   By_theta={}
   
   ## wich ones are beamformed
-  beam_formed=[1,2,3,4]
+  beam_formed=[9,10,11,12]
  
   for station in array.stations():
    Bx_phi[station] = makebeam_hba_phi(ns,station=station,meptable=meptable,solvable=solvable,solvables=solvables);
@@ -747,3 +747,95 @@ def EJones_fits(ns,array,sources,radec0,meptable=None,solvables=[],solvable=Fals
 
   return Ej0;
 
+
+
+################# shapelet beam
+def setup_shapelet(ns,modefile,qual=''):
+    # read mode file
+    infile=open(modefile,'r');
+    all=infile.readlines()
+    infile.close()
+    thisline=all[0].split()
+    n0=int(thisline[0]);
+    beta=float(thisline[1]);
+    _children=[];
+    _children+=[ns.parm('beta'+qual+str(n0))<<Meq.Parm(beta,tags='beta')];
+    for ci in range(1,n0+1):
+      thisline=all[ci].split()
+      modeval_r=float(thisline[0])
+      modeval_i=float(thisline[1])
+      _children+=[ns.parm(str(ci)+qual)<<Meq.ToComplex(Meq.Parm(modeval_r,tags='modes'), Meq.Parm(modeval_i,tags='modes'))];
+
+    clist=ns.clist(qual)<<Meq.Composer(children=_children)
+    shptf= ns.beam(qual)
+    if not shptf.initialized():
+      shptf= ns.beam(qual)<<Meq.ShapeletVisTf(modes=clist,method=1,dep_mask=0xff);
+    return shptf
+
+def EJones_shapelet(ns,array,sources,radec0,name="E",rotate=False):
+  Bx_phi={}
+  Bx_theta={}
+  By_phi={}
+  By_theta={}
+  
+  # dipole rotations (in degrees)
+  diprot=[0,0,0,0,0,22.5,45,67.5,15,37.5,60,82.5,7.5,30,52.5,75];
+  dipnum=0;
+
+  for station in array.stations():
+   if rotate:
+    myphi0=diprot[dipnum]*math.pi/180;
+    dipnum=dipnum+1;
+   else:
+    myphi0=0
+
+  ## cutoff below horizon
+  beamc = ns.beamc(name)
+  if not beamc.initialized():
+     beamc = ns.beamc(name) << Meq.Mean(Meq.PrivateFunction(
+          lib_name=beampath+"/beams/beam_cutoff.so",function_name="test"));
+
+
+  B_theta=setup_shapelet(ns(name),beampath+'/beams/polar_theta_lba_40.modes',qual='theta_polar')
+  B_phi=setup_shapelet(ns(name),beampath+'/beams/polar_phi_lba_40.modes',qual='phi_polar')
+  beam_theta=B_theta*beamc
+  beam_phi=B_phi*beamc
+
+  Ej0 = ns[name];
+  # get array xyz
+  xyz=array.xyz();
+
+  # create per-direction, per-station E Jones matrices
+  for src in sources:
+
+    dirname = src.direction.name;
+    radec=src.direction.radec()
+    Ej = Ej0(dirname);
+    # create Az,El per source, using station 1
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    dipnum=0;
+    for station in array.stations():
+        if rotate:
+          myphi0=diprot[dipnum]*math.pi/180-math.pi/4;
+          dipnum=dipnum+1;
+        else:
+          myphi0=-math.pi/4
+
+
+        # make shifts
+        az=ns.az(station,dirname)<<Meq.Selector(azelnode,multi=True,index=[0])+myphi0
+        el0=ns.el0(station,dirname)<<Meq.Selector(azelnode,multi=True,index=[1])
+        theta=ns.theta(station,dirname)<<-el0+math.pi/2
+        az_X=ns.az_X(station,dirname)<<az-Meq.Floor(az/(2*math.pi))*2*math.pi
+        az_y=ns.az_y(station,dirname)<<az_X-math.pi/2
+        az_Y=ns.az_Y(station,dirname)<<az_y-Meq.Floor(az_y/(2*math.pi))*2*math.pi
+
+
+        X_theta = ns.X_theta(dirname,station) << Meq.Compounder(children=[Meq.Composer(az_X,theta),beam_theta],common_axes=[hiid('l'),hiid('m')])
+        X_phi= ns.X_phi(dirname,station) << Meq.Compounder(children=[Meq.Composer(az_X,theta),beam_phi],common_axes=[hiid('l'),hiid('m')])
+        Y_theta = ns.Y_theta(dirname,station) << Meq.Compounder(children=[Meq.Composer(az_Y,theta),beam_theta],common_axes=[hiid('l'),hiid('m')])
+        Y_phi= ns.Y_phi(dirname,station) << Meq.Compounder(children=[Meq.Composer(az_Y,theta),beam_phi],common_axes=[hiid('l'),hiid('m')])
+        Ej(station) <<Meq.Matrix22(X_theta,X_phi,Y_theta,Y_phi)
+
+
+  return Ej0;
