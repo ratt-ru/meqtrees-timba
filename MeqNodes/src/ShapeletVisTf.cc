@@ -256,19 +256,19 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 	Vells imagv(0.0,incells.shape());
   double* datar = realv.realStorage();
   double* datai = imagv.realStorage();
-	blitz::Array<double,4> realsum(datar,blitz::shape(ntime,nfreq,Nu,Nv));
-	blitz::Array<double,4> imagsum(datai,blitz::shape(ntime,nfreq,Nu,Nv));
+	blitz::Array<double,4> realsum(datar,blitz::shape(ntime,nfreq,Nv,Nu));
+	blitz::Array<double,4> imagsum(datai,blitz::shape(ntime,nfreq,Nv,Nu));
 
 	 double *UVr, *UVi;
    //NB: u,v axes are azimuth, elevation: theta,r in polar in practice
    calculate_polar_mode_vectors(v, Nv, u, Nu, n0_,beta_, &UVr, &UVi);
 
- 	 blitz::Array<double ,3> Mr(UVr,blitz::shape(nmodes,Nu,Nv),blitz::neverDeleteData);
- 	 blitz::Array<double ,3> Mi(UVi,blitz::shape(nmodes,Nu,Nv),blitz::neverDeleteData);
+ 	 blitz::Array<double ,3> Mr(UVr,blitz::shape(nmodes,Nv,Nu),blitz::neverDeleteData);
+ 	 blitz::Array<double ,3> Mi(UVi,blitz::shape(nmodes,Nv,Nu),blitz::neverDeleteData);
 
-  //U,V,mode
-	Mr.transposeSelf(2,1,0);
-	Mi.transposeSelf(2,1,0);
+  //V,U,mode
+	Mr.transposeSelf(1,2,0);
+	Mi.transposeSelf(1,2,0);
   //read in mode params (complex)
   dcomplex *mc;
 	//allocate memory for modes
@@ -284,6 +284,8 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 #endif
   }
 
+  //std::cout<<"realsum shape "<<realsum.shape()<<std::endl;
+  //std::cout<<"Mr shape "<<Mr.shape()<<std::endl;
   double tmpr,tmpi;
   for (int ci=0; ci<ntime; ci++) {
     for (int cj=0; cj<nfreq; cj++) {
@@ -292,6 +294,7 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
      blitz::Array<double,2> B=imagsum(ci,cj,blitz::Range::all(),blitz::Range::all());  
 	   A=0;
 	   B=0;
+     //std::cout<<"A shape "<<A.shape()<<std::endl;
      for (int n1=0; n1<nmodes; n1++) {
        tmpr=creal(mc[n1]); 
        tmpi=cimag(mc[n1]); 
@@ -1586,8 +1589,8 @@ ShapeletVisTf::calculate_polar_mode_vectors(double *r, int Nr, double *th, int N
  xlen=0;
  for(xci=0; xci<n0; xci++) {
  for (yci=0; yci<=xci; yci++) {
-  for (zci=0; zci<Nr; zci++) {
    for (nmm=0; nmm<Nt; nmm++) {
+    for (zci=0; zci<Nr; zci++) {
      (*Avr)[xlen]=creal(M[xci][yci][zci][nmm]);
      (*Avi)[xlen]=cimag(M[xci][yci][zci][nmm]);
      xlen++;
