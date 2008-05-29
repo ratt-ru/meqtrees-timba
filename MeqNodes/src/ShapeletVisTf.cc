@@ -1573,8 +1573,10 @@ ShapeletVisTf::calculate_polar_mode_vectors(double *r, int Nr, double *th, int N
 #endif
 
  nmodes=(n0)*(n0+1)/2;
+#ifdef DEBUG
  printf("nmodes=%d\n",nmodes);
  printf("ncols=%d\n",Nr*Nt);
+#endif
 
  if ((*Avr=(double*)calloc((size_t)(Nr*Nt*nmodes),sizeof(double)))==0) {
     fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
@@ -1599,6 +1601,7 @@ ShapeletVisTf::calculate_polar_mode_vectors(double *r, int Nr, double *th, int N
   }
  }
 
+#ifdef DEBUG
  printf("\n");
  printf("r=[");
  for(xci=0; xci<Nr; xci++) {
@@ -1628,6 +1631,7 @@ ShapeletVisTf::calculate_polar_mode_vectors(double *r, int Nr, double *th, int N
     }
  }
  fclose(dbg);
+#endif
 
  for(xci=0; xci<n0; xci++) {
    for (yci=0; yci<=xci; yci++) {
