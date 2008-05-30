@@ -20,6 +20,7 @@
 #         (at this moment it takes to many actions, and the new display is confusing)
 #   - TDLCompileMenu should have tick-box option.....
 #   - Is there a way to attach fields like quickref_help to existing nodes?
+#   - Can we plot each request in a sequence while it is running....?
 #
 # Description:
 #
@@ -65,6 +66,7 @@ import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
 import math
+import time
 # import random
 
 
@@ -73,7 +75,9 @@ import math
 #********************************************************************************
 
 TDLCompileMenu("Categories:",
-               TDLOption('opt_MeqNodes',"Standard MeqNodes",True),
+               TDLOption('opt_general',"general MeqTree",False),
+               TDLOption('opt_MeqBrowser',"MeqBrowser features",False),
+               TDLOption('opt_MeqNodes',"Available MeqNodes",True),
                # TDLOption('opt_pynodes',"General PyNodes",False),
                # TDLCompileMenu('Submenu:',
                #                TDLOption('first_item','1',True),
@@ -120,7 +124,7 @@ def _define_forest (ns, **kwargs):
       cc.append(QR_MeqNodes.MeqNodes(ns, path, rider=rider))
 
    # Make the outer bundle (of node bundles):
-   help = """
+   bundle_help = """
    The QuickRef module offers a quick reference to MeqTrees.
    When used in the meqbrowser, it generates example subtrees
    for user-selected categories, which can be executed (with
@@ -135,7 +139,7 @@ def _define_forest (ns, **kwargs):
    any MeqTrees contributor, following a number of simple rules.
    (Look for instance at the module QR_MeqNodes.py)
    """
-   bundle (ns, path, nodes=cc, help=help, rider=rider)
+   bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
    if trace:
       rider.show('_define_forest()')
@@ -156,6 +160,16 @@ def _define_forest (ns, **kwargs):
                   TDLOption('runopt_tmax',"max time (domain/cell edge)",
                             [1.0,0.1,3.0,10.0,100.0,1000.0], more=float),
                   TDLOption('runopt_separator',"",['']),
+                  TDLOption('runopt_seq_ntime',"nr of steps in time-sequence",
+                            [1,5,10,20,100], more=int),
+                  TDLOption('runopt_seq_tstep',"time-step (fraction of domain)",
+                            [0.5,0.1,0.9,1.0,2.0,10.0,-0.5,-1.0], more=float),
+                  TDLOption('runopt_separator',"",['']),
+                  TDLOption('runopt_seq_nfreq',"nr of steps in freq-sequence",
+                            [1,5,10,20,100], more=int),
+                  TDLOption('runopt_seq_fstep',"freq-step (fraction of domain)",
+                            [0.5,0.1,0.9,1.0,2.0,10.0,-0.5,-1.0], more=float),
+                  TDLOption('runopt_separator',"",['']),
                   )
 
    # Finished:
@@ -170,12 +184,19 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 
 request_counter = 0
-def make_request (cells):
+def make_request (cells, rqtype=None):
    """Make a request"""
    global request_counter
    request_counter += 1
    rqid = meq.requestid(request_counter)
-   return meq.request(cells, rqid=rqid)
+   if isinstance(rqtype,str):
+      # e.g. rqtype='ev' (for sequences, when the domain has changed)....
+      return meq.request(cells, rqtype=rqtype)
+      # return meq.request(cells, rqtype=rqtype, rqid=rqid)
+   else:
+      return meq.request(cells, rqid=rqid)
+
+#----------------------------------------------------------------------------
 
 def _tdl_job_execute_1D (mqs, parent):
    """Execute the forest with a 1D (freq) domain, starting at the named node.
@@ -195,6 +216,28 @@ def _tdl_job_execute_2D (mqs, parent):
    cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=runopt_ntime)
    request = make_request(cells)
    result = mqs.meq('Node.Execute',record(name='QuickRef', request=request))
+   return result
+
+
+def _tdl_job_sequence (mqs, parent):
+   """Execute a sequence, moving the 2D domain.
+   """
+   for ifreq in range(runopt_seq_nfreq):
+      foffset = (runopt_fmax - runopt_fmin)*ifreq*runopt_seq_fstep
+      print '** ifreq =',ifreq,' foffset =',foffset
+      for itime in range(runopt_seq_ntime):
+         toffset = (runopt_tmax - runopt_tmin)*itime*runopt_seq_tstep
+         print '   - itime =',itime,' toffset =',toffset
+         domain = meq.domain(runopt_fmin+foffset,runopt_fmax+foffset,
+                             runopt_tmin+toffset,runopt_tmax+toffset)       
+         cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=runopt_ntime)
+         request = make_request(cells)
+         result = mqs.meq('Node.Execute',record(name='QuickRef', request=request))
+         # NB: It executes the entire sequence before showing any plots!
+         # The things I have tried to make it display each result:
+         # request = make_request(cells, rqtype='ev')
+         # result = mqs.meq('Node.Execute',record(name='QuickRef', request=request), wait=True)
+         # time.sleep(1)
    return result
 
 
@@ -226,7 +269,7 @@ def MeqNode (ns, path,
              children=None, help=None, rider=None,
              node=None,
              trace=False, **kwargs):
-   """Define the specified node an an organised way.
+   """Define (make) the specified node an an organised way.
    NB: This function is called from all QR_... modules!
    """
 
@@ -296,7 +339,7 @@ def bundle (ns, path,
       rider.add(path, qhelp)                    # add qhelp to the rest
       # The relevant subset of help is attached to this bundle node:
       qhelp = rider.subrec(path, trace=trace)   # get the relevant sub-record
-      qhelp = rider.cleanup(qhelp)              # clean it up
+      # qhelp = rider.cleanup(qhelp)              # clean it up (use a copy!!)
 
 
    if True:
@@ -425,28 +468,46 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def show(self, txt=None, rr=None, full=True, key=None, level=0):
+   def show(self, txt=None, rr=None, full=False, key=None, level=0):
       """Show the record (recursive)"""
       if level==0:
          print '\n** CollatedHelpRecord.show(',txt,' full=',full,' rr=',type(rr),'):'
          if rr==None:
             rr = self._chrec
       prefix = self.prefix(level)
+
       if not rr.has_key('order'):                # has no 'order' key
          for key in rr.keys():
-            print prefix,key,':',rr[key]
+            if isinstance(rr[key], (list,tuple)):
+               if len(rr[key])>1:
+                  print prefix,key,':',rr[key][0]
+                  for s in rr[key][1:]:
+                     print prefix,len(key)*' ',s
+               else:
+                  print prefix,key,':',rr[key]
+            else:
+               print prefix,key,'(no order):',type(rr[key])
+
       else:                                      # has 'order' key
          for key in rr.keys():
-            if not isinstance(rr[key], dict):
-               if full or (not key in ['order']):  # ignore 'order'
-                  print prefix,key,':',rr[key]
-            elif not key in rr['order']:         # should not happen
-               print prefix,key,':','...record...??'
+            if isinstance(rr[key], (list,tuple)):
+               if key in ['order']:              # ignore 'order'
+                  if full:
+                     print prefix,key,':',rr[key]
+               elif len(rr[key])>1:
+                  print prefix,key,':',rr[key][0]
+                  for s in rr[key][1:]:
+                     print prefix,len(key)*' ',s
+               else:
+                  print prefix,key,'(',len(rr[key]),'):',rr[key]
+            elif not isinstance(rr[key], (dict,Timba.dmi.record)):
+               print prefix,key,'(',type(rr[key]),'??):',rr[key]
+               
          for key in rr['order']:
-            if isinstance(rr[key], dict):        # recursive 
+            if isinstance(rr[key], (dict,Timba.dmi.record)):
                self.show(rr=rr[key], key=key, level=level+1, full=full) 
-            else:                                # should not happen
-               print prefix,key,':',rr[key],'..??..'
+            else:
+               print prefix,key,'(',type(rr[key]),'??):',rr[key]
 
       if level==0:
          print '**\n'
@@ -499,7 +560,66 @@ class CollatedHelpRecord (object):
       return rr
 
 
+#====================================================================================
+# Experimental....
+#====================================================================================
 
+def nodestub (ns, rootname, *quals, **kwquals):
+   """Helper function that forms a unique node-name (incl qualifiers)
+   from the given information. It checks for uniqueness by checking whether
+   the proposed node has already been initialized in the given nodescope (ns).
+   This may be a little unsafe when using unqualified nodes...."""
+
+   # print '\n** help =',nodename.__doc__,'\n'
+
+   trace = False
+   trace = True
+
+   # Decode the uniquifying parameter (see below):
+   ss = rootname.split('|')
+   n = 0
+   rootroot = rootname
+   if len(ss)==3:                       # assume: <rootroot>|<n>|
+      n = int(ss[1])
+      rootroot = ss[0]
+
+   if trace:
+      s1 = n*'--'
+      s1 += ' QR.nodename('+str(rootname)+','+str(quals)+','+str(kwquals)+')'
+
+   # Safety valve:
+   if n>10:
+      print s1
+      raise ValueError,'** max of uniqueness parameter exceeded'
+
+   # Make node-stub:
+   stub = ns[rootname]
+   if len(quals)>0:
+      stub = stub(*quals)
+   if len(kwquals)>0:
+      stub = stub(**kwquals)
+
+
+   # Testing:
+   if True:
+      if n<3:
+         ns[stub] << n                        # .....!!
+      s1 += ' '+str(ns[stub].initialized())
+      s1 += ' '+str(ns[stub.name].initialized())
+
+   if trace:
+      print  s1,'  ->',str(stub)
+   
+   # Check whether the node already exists (i.e. initialized...):
+   if ns[stub].initialized():
+      # Recursive: Try again with a modified rootname.
+      # (using the incremented uniquifying parameter n)
+      newname = rootroot+'|'+str(n+1)+'|'
+      return nodestub(ns, newname, *quals, **kwquals)
+
+   # Return the unique (!) node-name:
+   return stub.name
+   
 
 
 
@@ -512,15 +632,14 @@ if __name__ == '__main__':
    print '\n** Start of standalone test of: QuickRef.py:\n' 
    ns = NodeScope()
 
-   if 1:
+   if 0:
       rider = CollatedHelpRecord()
+      if 0:
+         path = 'aa.bb.cc.dd'
+         help = 'xxx'
+         rider.add(path=path, help=help, trace=True)
 
    if 0:
-      path = 'aa.bb.cc.dd'
-      help = 'xxx'
-      rider.add(path=path, help=help, trace=True)
-
-   if 1:
       import QR_MeqNodes
       QR_MeqNodes.MeqNodes(ns, 'test', rider=rider)
       rider.show('testing')
@@ -538,7 +657,28 @@ if __name__ == '__main__':
             rider.show('cleanup',rr, full=True)
             rider.show('cleanup',rr, full=False)
             
-         
+   if 0:
+      name = nodestub(ns,'xxx',5,-7,c=8,h=9)
+      if 1:
+         stub = ns[name]
+         print '\n',dir(stub)
+         print '\n stub = ns[',name,'] ->',str(stub)
+         print '- stub.name:',stub.name
+         print '- stub.basename:',stub.basename
+         print '- stub.classname:',stub.classname
+         print '- stub.quals:',stub.quals
+         print '- stub.kwquals:',stub.kwquals
+         print '- stub.initialized():',stub.initialized()
+      if 1:
+         node = ns[name] << 3.4
+         print '\n node = ns[',name,'] << 3.4   ->',str(node)
+         print '- node.name:',node.name
+         print '- node.basename:',node.basename
+         print '- node.classname:',node.classname
+         print '- node.quals:',node.quals
+         print '- node.kwquals:',node.kwquals
+         print '- node.initialized():',node.initialized()
+      
    print '\n** End of standalone test of: QuickRef.py:\n' 
 
 #=====================================================================================
