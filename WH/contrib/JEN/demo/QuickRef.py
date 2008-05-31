@@ -27,6 +27,9 @@
 #   - Meow.Bookmarks needs a folder option....
 #   - Is there a way to attach fields like a quickref_help record to the
 #     state record (initrec?) of an existing node?
+#   - Tony: Right-click plotting in Log scale does not work if 1D data
+#     (it only produces a colorbar...)
+#     NB: it is only offered as an option when doing 1D after 2D...
 #
 # Description:
 #
@@ -103,20 +106,30 @@ def standard_child_nodes (ns):
    bb = []
    bb.append(ns << Meq.Constant(2.3))
    bb.append(ns << 2.4)
+
+   bb.append(ns.range2 << Meq.Constant(range(2)))
+   bb.append(ns.range3 << Meq.Constant(range(3)))
+   bb.append(ns.range4 << Meq.Constant(range(4)))
+   bb.append(ns.range5 << Meq.Constant(range(5)))
+   bb.append(ns.range9 << Meq.Constant(range(9)))
+
    bb.append(ns.x << Meq.Freq())
    bb.append(ns.y << Meq.Time())
+   bb.append(ns.xy << Meq.Add(ns.x,ns.y))
+
+   bb.append(ns.nx << Meq.NElements(ns.x))
+   bb.append(ns.ny << Meq.NElements(ns.y))
+   bb.append(ns.nxy << Meq.NElements(ns.xy))
+
    bb.append(ns.cxx << Meq.ToComplex(ns.x,ns.x))
    bb.append(ns.cyy << Meq.ToComplex(ns.y,ns.y))
    bb.append(ns.cxy << Meq.ToComplex(ns.x,ns.y))
    bb.append(ns.cyx << Meq.ToComplex(ns.y,ns.x))
+
    bb.append(ns.f << Meq.Freq())
    bb.append(ns.t << Meq.Time())
-   bb.append(ns.ft << Meq.Multiply(ns.f,ns.t))
-   bb.append(ns['f+t'] << Meq.Add(ns.f,ns.t))
-   bb.append(ns.cff << Meq.ToComplex(ns.f,ns.f))
-   bb.append(ns.ctt << Meq.ToComplex(ns.t,ns.t))
-   bb.append(ns.cft << Meq.ToComplex(ns.f,ns.t))
-   bb.append(ns.ctf << Meq.ToComplex(ns.t,ns.f))
+   bb.append(ns.ft << Meq.Add(ns.f,ns.t))
+
    scn = ns['standard_child_nodes'] << Meq.Composer(children=bb)
    return scn
 
@@ -286,6 +299,19 @@ if False:
 #================================================================================
 
 
+def add2path (path, name=None, trace=False):
+   """Helper function to form the path to a specific bundle.
+   NB: This function is called from all QR_... modules!
+   """
+   s = str(path)
+   if isinstance(name,str):
+      s += '.'+str(name)
+   if trace:
+      print '\n** QR.add2path(',path,name,') ->',s
+   return s
+
+#-------------------------------------------------------------------------------
+
 def MeqNode (ns, path,
              meqclass=None, name=None,
              # quals=None, kwquals=None,
@@ -296,49 +322,53 @@ def MeqNode (ns, path,
    NB: This function is called from all QR_... modules!
    """
 
-   # Condition the help-string and update the CollatedHelpRecord (rider): 
    # First replace the dots(.) in the node-name (name): They cause trouble
    # in the browser (and elsewhere?)
    qname = str(name)
    qname = qname.replace('.',',')
+
+   # Condition the help-string: prepend the node name, and make a list of lines:
    if isinstance(help, str):
-      qhelp = help.split('\n')
-      # print qname,qhelp[0]
-      qhelp[0] = str(qname)+': '+str(qhelp[0])
-   else:
-      qhelp = str(qname)+': '+str(help)
-   kwargs['quickref_help'] = qhelp
+      # May be multi-line (in triple-quotes, or containing \n): 
+      qhelp = help.split('\n')                            # -> list
+      qhelp[0] = str(qname)+': '+str(qhelp[0])            # prepend
+   else:                                                  # should not happen...?
+      qhelp = str(qname)+': '+str(help)                   # ...show something...
 
+   # Dispose of the conditioned help (qhelp):
+   kwargs['quickref_help'] = qhelp                        # -> node state record
    if rider:
-      rider.add(add2path(path,name), qhelp)
+      # The rider is a CollatedHelpRecord object, which collects the
+      # hierarchical help items, using the path string:
+      rider.add(add2path(path,name), qhelp) 
 
+   # Make the specified node:
    if is_node(node):
       # The node already exists. Just attach the help-string....
       # node = ns << Meq.Identity(node, quickref_help=qhelp)         # confusing...
       # NB: Is there a way to attach it to the existing node itself...?
-      # node.initrec.quickref_help = qhelp               # error....
+      # node.initrec.quickref_help = qhelp               # causes error....
       pass
       
-   elif not isinstance(children,(list,tuple)):           # No children specified: 
+   elif isinstance(children,(list,tuple)):              
       if isinstance(name,str):
-         # node = ns[name] << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
-         node = ns[name] << getattr(Meq,meqclass)(**kwargs)
+         node = ns[name] << getattr(Meq,meqclass)(*children, **kwargs)
       else:
-         # node = ns << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
-         node = ns << getattr(Meq,meqclass)(**kwargs)
+         node = ns << getattr(Meq,meqclass)(*children, **kwargs)
+
+   elif is_node(children):   
+      if isinstance(name,str):
+         node = ns[name] << getattr(Meq,meqclass)(children, **kwargs)
+      else:
+         node = ns << getattr(Meq,meqclass)(children, **kwargs)
 
    else:                           
-      # Some nodes (Matrix22, ConjugateTranspose) insist on non-keyword args....!
       if isinstance(name,str):
-         # node = ns[name] << getattr(Meq,meqclass)(children=children,
-         node = ns[name] << getattr(Meq,meqclass)(*children,
-                                                  # quickref_help=qhelp,
-                                                  **kwargs)
+         node = ns[name] << getattr(Meq,meqclass)(**kwargs)
       else:
-         # node = ns << getattr(Meq,meqclass)(children=children,
-         node = ns << getattr(Meq,meqclass)(*children,
-                                            # quickref_help=qhelp,
-                                            **kwargs)
+         node = ns << getattr(Meq,meqclass)(**kwargs)
+
+
    if trace:
       nc = None
       if isinstance(children,(list,tuple)):
@@ -379,8 +409,12 @@ def bundle (ns, path,
 
    if True:
       # NB: When a Composer node is left-clicked in the browser,
-      # it plots an inspector, not its state record (with help...)   
+      # it plots an inspector, not its state record (with help...)
+      plot_label = []
+      for node in nodes:
+         plot_label.append(node.name)
       parent = ns[name] << Meq.Composer(children=nodes,
+                                        plot_label=plot_label,
                                         quickref_help=qhelp)
    else:
       # Alternative: ReqSeq?
@@ -404,19 +438,6 @@ def bundle (ns, path,
    if trace:
       print '** QR.bundle():',path,name,'->',str(parent),'\n'
    return parent
-
-#-------------------------------------------------------------------------------
-
-def add2path (path, name=None, trace=False):
-   """Helper function to form the path to a specific bundle.
-   NB: This function is called from all QR_... modules!
-   """
-   s = str(path)
-   if isinstance(name,str):
-      s += '.'+str(name)
-   if trace:
-      print '\n** QR.add2path(',path,name,') ->',s
-   return s
 
 
 

@@ -17,6 +17,7 @@
 # Problem nodes:
 #
 #   MeqNElements()           multiple children give error
+#   (Reduction nodes do not work on multiple children...?)
 #   MeqMod()                 crashes the browser/server
 #   MeqRandomNoise()         crashes the browser/server
 #
@@ -78,6 +79,13 @@ def MeqNodes (ns, path, rider=None):
    cc.append(binops (ns, path, rider=rider))
    cc.append(leaves (ns, path, rider=rider))
    cc.append(tensor (ns, path, rider=rider))
+   cc.append(reduction (ns, path, rider=rider))
+   # cc.append(regridding (ns, path, rider=rider))
+   # cc.append(flagging (ns, path, rider=rider))
+   # cc.append(solving (ns, path, rider=rider))
+   # cc.append(visualization (ns, path, rider=rider))
+   # cc.append(transforms (ns, path, rider=rider))
+   # cc.append(flowcontrol (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -102,7 +110,6 @@ def unops (ns, path, rider=None):
    cc.append(unops_hyperbolic (ns, path, rider=rider))
    cc.append(unops_power (ns, path, rider=rider))
    cc.append(unops_misc (ns, path, rider=rider))
-   cc.append(unops_cell_statistics (ns, path, rider=rider))
    cc.append(unops_complex (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
@@ -157,14 +164,267 @@ def tensor (ns, path, rider=None):
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
+#--------------------------------------------------------------------------------
+
+def reduction (ns, path, rider=None):
+   """
+   Reduction nodes reduce the values of all domain cells to a smaller
+   number of values (e.g. their mean). They operate on all the vellsets
+   in the Result(s) of their child(ren?).
+   NB: It is not clear (to me, in this stage) what happens if some cells
+   are flagged....!?
+   If one or more reduction_axes are specified, the reduction is only
+   along the specified axes (e.g. reduction_axes=['time'] reduces only
+   the time-axis to length 1. The default is all available axes, of course. 
+   The Result of a reduction node will be expanded when needed to fit a
+   domain of the original size, in which multiple cells have the same value.
+   """
+   bundle_help = reduction.__doc__
+   path = QR.add2path(path,'reduction')
+   cc = []
+   cc.append(reduction_single (ns, path, rider=rider))
+   cc.append(reduction_multiple (ns, path, rider=rider))
+   cc.append(reduction_axes (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
+
+def regridding (ns, path, rider=None):
+   """
+   MeqModRes
+   MeqResampler
+   MeqCompounder
+   """
+   bundle_help = regridding.__doc__
+   path = QR.add2path(path,'regridding')
+   cc = []
+   # cc.append(regridding_modres (ns, path, rider=rider))
+   # cc.append(regridding_compounder (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def flowcontrol (ns, path, rider=None):
+   """
+   MeqReqSeq
+   MeqReqMux
+   MeqSink
+   MeqVisDataMux
+   """
+   bundle_help = flowcontrol.__doc__
+   path = QR.add2path(path,'flowcontrol')
+   cc = []
+   # cc.append(flowcontrol_reqseq (ns, path, rider=rider))
+   # cc.append(flowcontrol_reqmux (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def flagging (ns, path, rider=None):
+   """
+   MeqZeroFlagger
+   MeqMergeFlags
+   """
+   bundle_help = flagging.__doc__
+   path = QR.add2path(path,'flagging')
+   cc = []
+   # cc.append(flagging_simple (ns, path, rider=rider))
+   # cc.append(flagging_merge (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
+
+def solving (ns, path, rider=None):
+   """
+   MeqSolver
+   MeqCondeq
+   MeqStripper
+   """
+   bundle_help = solving.__doc__
+   path = QR.add2path(path,'solving')
+   cc = []
+   # cc.append(solving_simple (ns, path, rider=rider))
+   # cc.append(solving_merge (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def visualization (ns, path, rider=None):
+   """
+   MeqComposer (inpector)
+   MeqParmFiddler
+   MeqDataCollect (?)
+   MeqDataConcat (?)
+   MeqHistoryCollect (?)
+   point to pyNodes...
+   """
+   bundle_help = visualization.__doc__
+   path = QR.add2path(path,'visualization')
+   cc = []
+   # cc.append(visualization_simple (ns, path, rider=rider))
+   # cc.append(visualization_merge (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def transforms (ns, path, rider=None):
+   """
+   MeqUVBrick
+   MeqUVInterpol
+   MeqVisPhaseShift
+   MeqCoordTransform
+   MeqAzEl
+   MeqLST
+   MeqLMN
+   MeqLMRaDec
+   MeqObjectRADec (A?)
+   MeqParAngle
+   MeqRaDec
+   MeqUVW
+   
+   """
+   bundle_help = transforms.__doc__
+   path = QR.add2path(path,'transforms')
+   cc = []
+   # cc.append(transforms_coord (ns, path, rider=rider))
+   # cc.append(transforms_FFT (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
 
+
+
+#********************************************************************************
+#********************************************************************************
 #********************************************************************************
 #********************************************************************************
 # 3rd tier: Functions called from functions at the 2nd tier above
 #********************************************************************************
 #********************************************************************************
+
+
+
+#================================================================================
+# visualization_... 
+#================================================================================
+
+#================================================================================
+# regridding_... 
+#================================================================================
+
+#================================================================================
+# solving_... 
+#================================================================================
+
+#================================================================================
+# flagging_... 
+#================================================================================
+
+#================================================================================
+# transforms_... 
+#================================================================================
+
+#================================================================================
+# flowcontrol_... 
+#================================================================================
+
+
+#================================================================================
+# reduction_... 
+#================================================================================
+
+def reduction_single (ns, path, rider=None):
+   """
+   Demonstration of basic reduction, on one child, with a single vellset.
+   The reduction is done along all available axes (the default), producing a
+   single-number Result.
+   """
+   bundle_help = reduction_single.__doc__
+   path = QR.add2path(path,'single')
+   cc = [ns.x]
+   help = record(NElements='nr of cells',
+                 Sum='sum of cell values', Mean='mean of cell values',
+                 Product='product of cell values',
+                 Min='min cell value', Max='max  cell value',
+                 StdDev='stddev of cell values',
+                 Rms='same as StdDev (obsolete?)')
+   for q in ['Nelements','Sum','Mean','Product','StdDev','Rms', 'Min','Max']:
+      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
+                            help=help[q], rider=rider, children=[ns.x]))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def reduction_multiple (ns, path, rider=None):
+   """
+   Demonstration of more advanced reduction,
+   involving multiple children (....?) 
+   with Results that may contain multiple vellsets.
+   The reduction is done along all available axes (the default), producing a
+   single-number Result.
+   This demonstration uses only one of the relevant MeqNodes (MeqSum).
+   """
+   bundle_help = reduction_multiple.__doc__
+   path = QR.add2path(path,'multiple')
+   democlass = 'Sum'
+   help = democlass+' over the cells of '
+   cc = [ns.y,ns.range5,ns.ny]
+   cc.append(QR.MeqNode (ns, path, meqclass=democlass, name=democlass+'(y)',
+                         help=help+'a single vellset, of a single child',
+                         rider=rider, children=[ns.y]))
+   cc.append(QR.MeqNode (ns, path, meqclass=democlass, name=democlass+'(range5)',
+                         help=help+'multiple vellsets, from a single tensor child',
+                         rider=rider, children=[ns.range5]))
+   if False:
+      # Reduction nodes do not work on multiple children...?
+      cc.append(QR.MeqNode (ns, path, meqclass=democlass, name=democlass+'(x,y)',
+                            help=help+'multiple vellsets, from two children',
+                            rider=rider, children=[ns.x,ns.y]))
+      cc.append(QR.MeqNode (ns, path, meqclass=democlass, name=democlass+'(range5,x)',
+                            help=help+'multiple vellsets, from inhomogeneos children',
+                            rider=rider, children=[ns.range5,ns.x]))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
+
+def reduction_axes (ns, path, rider=None):
+   """
+   Demonstration of more advanced reduction, along a subset of the available axes.
+   If one or more reduction_axes are specified, the reduction is only
+   along the specified axes (e.g. reduction_axes=['time'] reduces only
+   the time-axis to length 1. The default is all available axes, of course. 
+   The Result of a reduction node will be expanded when needed to fit a
+   domain of the original size, in which multiple cells have the same value.
+   This demonstration uses only one of the relevant MeqNodes (MeqSum).
+   """
+   bundle_help = reduction_axes.__doc__
+   path = QR.add2path(path,'axes')
+   democlass = 'Sum'
+   help = democlass+' over the cells of '
+   c0 = ns.xy
+   nc0 = ns << Meq.NElements(c0)
+   cc = [c0,nc0]
+   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+                         name=democlass+'(xy)',
+                         help=help+'no reduction_axes specified, assume all',
+                         rider=rider, children=[c0]))
+   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+                         name=democlass+'(xy, reduction_axes=[time])',
+                         help=help+'the time-axis is reduced to length 1.',
+                         rider=rider, children=[c0], reduction_axes=['time']))
+   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+                         name=democlass+'(xy, reduction_axes=[freq])',
+                         help=help+'the freq-axis is reduced to length 1.',
+                         rider=rider, children=[c0], reduction_axes=['freq']))
+   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+                         name=democlass+'(xy, reduction_axes=[freq,time])',
+                         help=help+'both the freq and time axes are reduced.',
+                         rider=rider, children=[c0], reduction_axes=['freq','time']))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
 
 
 
@@ -200,7 +460,7 @@ def tensor_manipulation (ns, path, rider=None):
                             help="""Make a new node, in which the vellset from the
                             second child (c1) is pasted at the specified (index) position
                             among the vellsets of its first child (c0)""",
-                            rider=rider, children=[cc[0],ns['f+t']], index=1))
+                            rider=rider, children=[cc[0],ns.ft], index=1))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -570,24 +830,6 @@ def unops_misc (ns, path, rider=None):
                             help=help[q], rider=rider, children=[ns.x]))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
-#--------------------------------------------------------------------------------
-
-def unops_cell_statistics (ns, path, rider=None):
-   """
-   Cell_statistics are operations that calculate things (like Mean)
-   of the values of all the cells in the requested domain.
-   Note that they produce a 'scalar' result, which will be
-   expanded when needed to a domain of the original size, in which
-   all cells have the same value.
-   """
-   bundle_help = unops_cell_statistics.__doc__
-   path = QR.add2path(path,'cell_statistics')
-   cc = [ns.x]
-   help = ' of all cell values.'
-   for q in ['Nelements','Sum','Mean','StdDev','Min','Max','Product']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=q+help, rider=rider, children=[ns.x]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
 
@@ -609,8 +851,16 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLOption('opt_allcats',"all",True),
                TDLOption('opt_unops',"Unary nodes (one child)",False),
                TDLOption('opt_binops',"Binary nodes",False),
-               TDLOption('opt_leaves',"Leaf nodes (no children)",True),
-               TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",True),
+               TDLOption('opt_leaves',"Leaf nodes (no children)",False),
+               TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
+               TDLOption('opt_reduction',"reduction",False),
+               TDLOption('opt_regridding',"regridding",False),
+               TDLOption('opt_flagging',"flagging",False),
+               TDLOption('opt_solving',"solving",False),
+               TDLOption('opt_visualization',"visualization",False),
+               TDLOption('opt_transforms',"transforms",False),
+               TDLOption('opt_flowcontrol',"flowcontrol",False),
+               # TDLOption('opt_',"",False),
                )
 
 #--------------------------------------------------------------------------------
@@ -641,6 +891,20 @@ def _define_forest (ns, **kwargs):
          cc.append(leaves(ns, path, rider=rider))
       if opt_tensor:
          cc.append(tensor(ns, path, rider=rider))
+      if opt_reduction:
+         cc.append(reduction(ns, path, rider=rider))
+      if opt_regridding:
+         cc.append(regridding(ns, path, rider=rider))
+      if opt_flagging:
+         cc.append(flagging(ns, path, rider=rider))
+      if opt_solving:
+         cc.append(solving(ns, path, rider=rider))
+      if opt_visualization:
+         cc.append(visualization(ns, path, rider=rider))
+      if opt_transforms:
+         cc.append(transforms(ns, path, rider=rider))
+      if opt_flowcontrol:
+         cc.append(flowcontrol(ns, path, rider=rider))
 
    # Make the outer bundle (of node bundles):
    bundle_help = 'Local testing forest'
@@ -697,6 +961,13 @@ if __name__ == '__main__':
       subject = 'binops'
       subject = 'leaves'
       subject = 'leaves.constant'
+   # cc.append(reduction (ns, path, rider=rider))
+   # cc.append(regridding (ns, path, rider=rider))
+   # cc.append(flagging (ns, path, rider=rider))
+   # cc.append(solving (ns, path, rider=rider))
+   # cc.append(visualization (ns, path, rider=rider))
+   # cc.append(transforms (ns, path, rider=rider))
+   # cc.append(flowcontrol (ns, path, rider=rider))
       path = 'test.MeqNodes.'+subject
       rr = rider.subrec(path, trace=True)
       rider.show('subrec',rr, full=False)
