@@ -13,14 +13,20 @@
 #
 # Remarks:
 #
-#   - Meow.Bookmarks needs a folder option....
-#   - Middle-clicking a node in the browser should display its quickref_help
+#   - Middle-clicking a node in the browser could display its quickref_help,
+#     just like right-click option in the various plotter(s)....
+#     Tony already has a popup uption for selecting from multiple vellsets,
+#     which includes an expansion tree. The quickref_help popup needs the same.  
 #   - NB: Left-clicking a node displays the state record, except the Composer...
 #         It would be nice if it were easier to invoke the relevant plotter...
 #         (at this moment it takes to many actions, and the new display is confusing)
-#   - TDLCompileMenu should have tick-box option.....
-#   - Is there a way to attach fields like quickref_help to existing nodes?
-#   - Can we plot each request in a sequence while it is running....?
+#   - Can we plot the result of each request in a sequence while it is running....?
+
+#   - TDLCompileMenu should have tick-box option (just like the TDLOption)
+#     Or should I read the manual better?
+#   - Meow.Bookmarks needs a folder option....
+#   - Is there a way to attach fields like a quickref_help record to the
+#     state record (initrec?) of an existing node?
 #
 # Description:
 #
@@ -74,7 +80,10 @@ import time
 # The function under the 'blue button':
 #********************************************************************************
 
-TDLCompileMenu("Categories:",
+# NB: This QuickRef menu is included automatically in the menus of the QR_... modules,
+#     since they import this QuickRef module for its functions....
+
+TDLCompileMenu("QuickRef Categories:",
                TDLOption('opt_general',"general MeqTree",False),
                TDLOption('opt_MeqBrowser',"MeqBrowser features",False),
                TDLOption('opt_MeqNodes',"Available MeqNodes",True),
@@ -88,6 +97,31 @@ TDLCompileMenu("Categories:",
   
 #-------------------------------------------------------------------------------
 
+def standard_child_nodes (ns):
+   """Helper function to make some child nodes with standard names,
+   to be used in the various nodes""" 
+   bb = []
+   bb.append(ns << Meq.Constant(2.3))
+   bb.append(ns << 2.4)
+   bb.append(ns.x << Meq.Freq())
+   bb.append(ns.y << Meq.Time())
+   bb.append(ns.cxx << Meq.ToComplex(ns.x,ns.x))
+   bb.append(ns.cyy << Meq.ToComplex(ns.y,ns.y))
+   bb.append(ns.cxy << Meq.ToComplex(ns.x,ns.y))
+   bb.append(ns.cyx << Meq.ToComplex(ns.y,ns.x))
+   bb.append(ns.f << Meq.Freq())
+   bb.append(ns.t << Meq.Time())
+   bb.append(ns.ft << Meq.Multiply(ns.f,ns.t))
+   bb.append(ns['f+t'] << Meq.Add(ns.f,ns.t))
+   bb.append(ns.cff << Meq.ToComplex(ns.f,ns.f))
+   bb.append(ns.ctt << Meq.ToComplex(ns.t,ns.t))
+   bb.append(ns.cft << Meq.ToComplex(ns.f,ns.t))
+   bb.append(ns.ctf << Meq.ToComplex(ns.t,ns.f))
+   scn = ns['standard_child_nodes'] << Meq.Composer(children=bb)
+   return scn
+
+#-------------------------------------------------------------------------------
+
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
@@ -97,18 +131,7 @@ def _define_forest (ns, **kwargs):
    # Make some standard child-nodes with standard names
    # These are used in the various bundles below.
    # They are bundles to avoid browser clutter.
-   bb = []
-   bb.append(ns << Meq.Constant(2.3))
-   bb.append(ns << 2.4)
-   bb.append(ns.x << Meq.Freq())
-   bb.append(ns.y << Meq.Time())
-   bb.append(ns.cxy << Meq.ToComplex(ns.x,ns.y))
-   bb.append(ns.cyx << Meq.ToComplex(ns.y,ns.x))
-   bb.append(ns.f << Meq.Freq())
-   bb.append(ns.t << Meq.Time())
-   bb.append(ns.ft << Meq.Multiply(ns.f,ns.t))
-   bb.append(ns['f+t'] << Meq.Add(ns.f,ns.t))
-   unc = ns['unclutter'] << Meq.Composer(children=bb)
+   scnodes = standard_child_nodes(ns)
 
    if trace:
       print '\n** Start of QuickRef _define_forest()'
@@ -118,7 +141,7 @@ def _define_forest (ns, **kwargs):
    path = rootnodename                      # Root of the path-string
    rider = CollatedHelpRecord()             # Helper class
    cc = []
-   cc = [unc]
+   cc = [scnodes]
    if opt_MeqNodes:                         # specified in compile-options
       import QR_MeqNodes                    # import the relevant module
       cc.append(QR_MeqNodes.MeqNodes(ns, path, rider=rider))
@@ -273,36 +296,48 @@ def MeqNode (ns, path,
    NB: This function is called from all QR_... modules!
    """
 
-   # Condition the help-string and update the CollatedHelpRecord (rider):
+   # Condition the help-string and update the CollatedHelpRecord (rider): 
+   # First replace the dots(.) in the node-name (name): They cause trouble
+   # in the browser (and elsewhere?)
+   qname = str(name)
+   qname = qname.replace('.',',')
    if isinstance(help, str):
       qhelp = help.split('\n')
-      # print name,qhelp[0]
-      qhelp[0] = str(name)+': '+str(qhelp[0])
+      # print qname,qhelp[0]
+      qhelp[0] = str(qname)+': '+str(qhelp[0])
    else:
-      qhelp = str(name)+': '+str(help)
+      qhelp = str(qname)+': '+str(help)
+   kwargs['quickref_help'] = qhelp
 
    if rider:
       rider.add(add2path(path,name), qhelp)
 
    if is_node(node):
       # The node already exists. Just attach the help-string....
+      # node = ns << Meq.Identity(node, quickref_help=qhelp)         # confusing...
       # NB: Is there a way to attach it to the existing node itself...?
-      node = ns << Meq.Identity(node, quickref_help=qhelp)
+      # node.initrec.quickref_help = qhelp               # error....
+      pass
       
    elif not isinstance(children,(list,tuple)):           # No children specified: 
       if isinstance(name,str):
-         node = ns[name] << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
+         # node = ns[name] << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
+         node = ns[name] << getattr(Meq,meqclass)(**kwargs)
       else:
-         node = ns << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
+         # node = ns << getattr(Meq,meqclass)(quickref_help=qhelp, **kwargs)
+         node = ns << getattr(Meq,meqclass)(**kwargs)
 
-   else:                          
+   else:                           
+      # Some nodes (Matrix22, ConjugateTranspose) insist on non-keyword args....!
       if isinstance(name,str):
-         node = ns[name] << getattr(Meq,meqclass)(children=children,
-                                                  quickref_help=qhelp,
+         # node = ns[name] << getattr(Meq,meqclass)(children=children,
+         node = ns[name] << getattr(Meq,meqclass)(*children,
+                                                  # quickref_help=qhelp,
                                                   **kwargs)
       else:
-         node = ns << getattr(Meq,meqclass)(children=children,
-                                            quickref_help=qhelp,
+         # node = ns << getattr(Meq,meqclass)(children=children,
+         node = ns << getattr(Meq,meqclass)(*children,
+                                            # quickref_help=qhelp,
                                             **kwargs)
    if trace:
       nc = None

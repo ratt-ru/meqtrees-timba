@@ -8,10 +8,25 @@
 #
 # History:
 #   - 25 may 2008: creation (from QuickRef.py)
+#   - 30 may 2008: local testing tree/routine
+#
+# Description:
 #
 # Remarks:
 #
-# Description:
+# Problem nodes:
+#
+#   MeqNElements()           multiple children give error
+#   MeqMod()                 crashes the browser/server
+#   MeqRandomNoise()         crashes the browser/server
+#
+#   MeqPaster()              does not paste
+#   MeqSelector()            index=[1,2] not supported          
+#
+# Workaround exists:
+#
+#   MeqMatrix22()            use of children=[...] gives error
+#   MeqConjugateTranspose()  use of children=[...] gives error
 #
 #
 #% $Id$ 
@@ -54,7 +69,7 @@ import QuickRef as QR
 
 def MeqNodes (ns, path, rider=None):
    """
-   Standard nodes: ns[name] << Meq.XYZ(children,kwargs)'
+   Available standard nodes: ns[name] << Meq.XYZ(*children,**kwargs).
    """
    bundle_help = MeqNodes.__doc__
    path = QR.add2path(path,'MeqNodes')
@@ -62,6 +77,7 @@ def MeqNodes (ns, path, rider=None):
    cc.append(unops (ns, path, rider=rider))
    cc.append(binops (ns, path, rider=rider))
    cc.append(leaves (ns, path, rider=rider))
+   cc.append(tensor (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -120,6 +136,27 @@ def leaves (ns, path, rider=None):
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
+#--------------------------------------------------------------------------------
+
+def tensor (ns, path, rider=None):
+   """
+   Many node classes can handle Results with multiple vellsets.
+   They are somewhat clumsily (and wrongly) called 'tensor nodes'.
+   The advantages of multiple vellsets are:
+   - the trees are more compact, so easier to define and read
+   - efficiency: execution can be optimized internally
+   - they allow special nodes that do matrix/tensor operations
+   - etc, etc
+   """
+   bundle_help = tensor.__doc__
+   path = QR.add2path(path,'tensor')
+   cc = []
+   cc.append(tensor_manipulation (ns, path, rider=rider))
+   cc.append(tensor_matrix (ns, path, rider=rider))
+   cc.append(tensor_matrix22 (ns, path, rider=rider))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+
 
 
 
@@ -128,6 +165,101 @@ def leaves (ns, path, rider=None):
 # 3rd tier: Functions called from functions at the 2nd tier above
 #********************************************************************************
 #********************************************************************************
+
+
+
+#================================================================================
+# tensor_... 
+#================================================================================
+
+
+def tensor_manipulation (ns, path, rider=None):
+   """
+   Manipulation of 'tensor' nodes, i.e. nodes with multiple vellsets.
+   """
+   bundle_help = tensor_manipulation.__doc__
+   path = QR.add2path(path,'manipulation')
+   cc = []
+   cc.append(QR.MeqNode (ns, path, meqclass='Composer', name='Composer(x,y,ft)',
+                         help="""Combine the vellsets in the Results of its children
+                         into a Result with multiple vellsets in the new node.""",
+                         rider=rider, children=[ns.x,ns.y,ns.ft]))
+   cc.append(QR.MeqNode (ns, path, meqclass='Selector', name='Selector(child, index=1)',
+                         help="""Select the specified (index) vellset in its child
+                         for a new node with a single vellset in its Result""",
+                         rider=rider, children=[cc[0]], index=1))
+   if True:
+      # Problem: Gives an error (list indix not supported?)
+      cc.append(QR.MeqNode (ns, path, meqclass='Selector', name='Selector(child, index=[0,2])',
+                            help="""Select the specified (index) vellsets in its child
+                            for a new node with this subset of vellsets in its Result""",
+                            rider=rider, children=[cc[0]], index=[0,2]))
+   if True:
+      # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
+      cc.append(QR.MeqNode (ns, path, meqclass='Paster', name='Paster(c0, c1, index=1)',
+                            help="""Make a new node, in which the vellset from the
+                            second child (c1) is pasted at the specified (index) position
+                            among the vellsets of its first child (c0)""",
+                            rider=rider, children=[cc[0],ns['f+t']], index=1))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def tensor_matrix (ns, path, rider=None):
+   """
+   Nodes with multiple vellsets can be treated as matrices.
+   There are some specialised nodes that do matrix operations.
+   NB: For the moment, only 2x2 matrices can be inverted, since
+   this was easiest to program by hand (see MatrixInvert22).
+   A more general inversion node will be implemted later.
+   """
+   bundle_help = tensor_matrix.__doc__
+   path = QR.add2path(path,'matrix')
+   cc = []
+   cc.append(QR.MeqNode (ns, path, meqclass='Composer',
+                         name='Composer(1,2,3,4,5,6, dims=[2,3])',
+                         help="""Make a tensor node with a 2x3 array of vellsets.
+                         This can be treated as a 2x3 matrix. Note the use of
+                         constants as children, for easier inspection and verification.""",
+                         rider=rider, children=range(6),dims=[2,3]))
+   cc.append(QR.MeqNode (ns, path, meqclass='Transpose', name='Transpose(m0)',
+                         help="""Make the 3x2 transpose of the given 2x3 matrix.""",
+                         rider=rider, children=[cc[0]]))
+   cc.append(QR.MeqNode (ns, path, meqclass='MatrixMultiply', name='MatrixMultiply(m0,m1)',
+                         help="""Multply the original 2x3 matrix with its 3x2 transpose.
+                         This produces a 2x2 matrix.""",
+                         rider=rider, children=[cc[0],cc[1]]))
+   cc.append(QR.MeqNode (ns, path, meqclass='MatrixMultiply', name='MatrixMultiply(m1,m0)',
+                         help="""Multply the 3x2 transpose with the original 2x3 matrix.
+                         This produces a 3x3 matrix.""",
+                         rider=rider, children=[cc[1],cc[0]]))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def tensor_matrix22 (ns, path, rider=None):
+   """
+   Because the 2x2 cohaerency matrix and the 2x2 Jones matrix play an important
+   role in the radio-astronomical Measurement Equation (M.E.), there are a few
+   specialized nodes that deal with 2x2 matrices.
+   """
+   bundle_help = tensor_matrix22.__doc__
+   path = QR.add2path(path,'matrix22')
+   cc = []
+   cc.append(QR.MeqNode (ns, path, meqclass='Matrix22', name='Matrix22(cxx,0,0,cxy)',
+                         help="""Make a complex 2x2 diagonal matrix.""",
+                         rider=rider, children=[ns.cxx,0,0,ns.cxy]))
+   cc.append(QR.MeqNode (ns, path, meqclass='MatrixInvert22', name='MatrixInvert22(m0)',
+                         help="""Invert the given 2x2 matrix (m0), cell-by-cell""",
+                         rider=rider, children=[cc[0]]))
+   cc.append(QR.MeqNode (ns, path, meqclass='MatrixMultiply', name='MatrixMultiply(m0,m0inv)',
+                         help="""Multply the matrix (m0) with its inverse (m0inv).
+                         The result should be a unit matrix (cell-by-cell).""",
+                         rider=rider, children=[cc[0],cc[1]]))
+   cc.append(QR.MeqNode (ns, path, meqclass='ConjTranspose', name='ConjTranspose(m0)',
+                         help="""Conjugate Transpose the given matrix (m0)""",
+                         rider=rider, children=[cc[0]]))
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
 
@@ -150,9 +282,13 @@ def binops_two_children (ns, path, rider=None):
    cc = []
    help = record(Subtract='c0-c1', Divide='c0/c1', Pow='c0^c1', Mod='c0%c1',
                  ToComplex='(real, imag)', Polar='(amplitude, phase)')
-   for q in ['Subtract','Divide','Pow','Mod','ToComplex','Polar']:
+   for q in ['Subtract','Divide','Pow','ToComplex','Polar']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x,y)',
                             help=help[q], rider=rider, children=[ns.x,ns.y]))
+   if False:
+      # Problem: MeqMod() crashes the meqserver.... Needs integer children??
+      cc.append(QR.MeqNode (ns, path, meqclass='Mod', name='Mod(x,y)',
+                            help=help['Mod'], rider=rider, children=[ns.x,ns.y]))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -173,18 +309,24 @@ def binops_one_or_more (ns, path, rider=None):
                  NElements="""the number of cells in the domain.
                  Not quite safe if there are flags....""",
                  WSum="""Weighted sum: w[0]*c0 + w[1]*c1 + w[2]*c2 + ...
-                 The weights vector (wgt) is a vector of DOUBLES (!)""",
+                 The weights vector (weights) is a vector of DOUBLES (!)""",
                  WMean="""Weighted mean, the same as WSum, but divides by
-                 the sum of the weights wgt (w[0]+w[1]+w[2]+....)""")
-   for q in ['Add','Multiply','NElements']:
+                 the sum of the weights (w[0]+w[1]+w[2]+....)""")
+   for q in ['Add','Multiply']:
+   # NElements gives problems with more than one child:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x,y,t)',
                             help=help[q], rider=rider,
                             children=[ns.x,ns.y,ns.t]))
+   if False:
+      # Problem: NElements() gives problems with more than one child:
+      cc.append(QR.MeqNode (ns, path, meqclass='NElements', name='NElements(x,y,t)',
+                            help=help['NElements'], rider=rider,
+                            children=[ns.x,ns.y,ns.t]))
    for q in ['WSum','WMean']:
-      wgt = [2.0,3.0,4.0]
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x,y,t,wgt=wgt)',
+      weights = [2.0,3.0,4.0]
+      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x,y,t,weights=ww)',
                             help=help[q], rider=rider,
-                            children=[ns.x,ns.y,ns.t], wgt=wgt))
+                            children=[ns.x,ns.y,ns.t], weights=weights))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -242,20 +384,20 @@ def leaves_noise (ns, path, rider=None):
    cc = []
    help = 'Gaussian noise with given stddev (and zero mean)'
    cc.append(QR.MeqNode (ns, path, meqclass='GaussNoise',
-                         name='GaussNoise(stddev=2.0)',
+                         name='GaussNoise(stddev=2)',
                          help=help, rider=rider,
                          stddev=2.0))
    help = 'Gaussian noise with given stddev and mean'
    # NB: mean does not work...
    cc.append(QR.MeqNode (ns, path, meqclass='GaussNoise',
-                         name='GaussNoise(stddev=2.0,mean=-10.0)',
+                         name='GaussNoise(stddev=2,mean=-10)',
                          help=help, rider=rider,
                          mean=-10.0, stddev=2.0))
    if False:
-      # NB: The server crashes on this one...!
+      # Problem: The server crashes on this one...!
       help = 'Random noise between lower and upper bounds'
       cc.append(QR.MeqNode (ns, path, meqclass='RandomNoise',
-                            name='RandomNoise(-2.0,4.0)',
+                            name='RandomNoise(-2,4)',
                             help=help, rider=rider,
                             lower=-2.0, upper=4.0))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
@@ -277,11 +419,10 @@ def leaves_grids (ns, path, rider=None):
    help = ''
    for q in ['Freq','Time']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'()',
-                            help=help, rider=rider))
-   for q in ['freq','time']:
-   # for q in ['freq','time','l','m']:
-      cc.append(QR.MeqNode (ns, path, meqclass='Grid',name=q+'(axis='+q+')',
-                            help=help, rider=rider))
+                            help=help, rider=rider)) 
+   for q in ['freq','time','L','M']:
+      cc.append(QR.MeqNode (ns, path, meqclass='Grid',name='Grid(axis='+q+')',
+                            help=help, rider=rider, axis=q))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -300,7 +441,7 @@ def leaves_spigot (ns, path, rider=None):
    path = QR.add2path(path,'spigot')
    cc = []
    help = ''
-   cc.append(QR.MeqNode (ns, path, meqclass='Spigot',
+   cc.append(QR.MeqNode (ns, path, meqclass='Spigot', name='Spigot()',
                          help=help))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
@@ -317,7 +458,7 @@ def leaves_FITS (ns, path, rider=None):
    path = QR.add2path(path,'FITS')
    cc = []
    help = ''
-   cc.append(QR.MeqNode (ns, path, meqclass='Spigot',
+   cc.append(QR.MeqNode (ns, path, meqclass='FITSReader',
                          help=help))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
@@ -352,10 +493,12 @@ def unops_goniometric (ns, path, rider=None):
    bundle_help = unops_goniometric.__doc__
    path = QR.add2path(path,'goniometric')
    cc = [ns.x]
-   help = ''
-   for q in ['Sin','Cos','Tan']:
+   cc = []
+   help = record(Sin='(rad)', Cos='(rad)', Tan='(rad)',
+                 Asin='abs(x)<1', Acos='abs(x)<1', Atan='')
+   for q in ['Sin','Cos','Tan','Asin','Acos','Atan']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(x)',
-                            help=help, rider=rider, children=[ns.x]))
+                            help=help[q], rider=rider, children=[ns.x]))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -382,12 +525,13 @@ def unops_complex (ns, path, rider=None):
    bundle_help = unops_complex.__doc__
    path = QR.add2path(path,'complex')
    cc = [ns.cxy]
-   help = ' of it single child'
+   help = record(Abs='', Norm='like Abs', Arg='-> rad', Real='', Imag='',
+                 Conj='complex conjugate: a+bj -> a-bj',
+                 Exp='exp(a+bj) = exp(a)*exp(bj), i.e. cos with increasing ampl',
+                 Log='e-log (ln)')
    for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(cxy)',
-                            help=q+help, rider=rider, children=[ns.cxy]))
-      # ns << Meq.Norm(cxy),       # same as Abs() 
-      # ns << Meq.Log(cxy),        # elog(), show 10log()?
+                            help=help[q], rider=rider, children=[ns.cxy]))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -445,8 +589,90 @@ def unops_cell_statistics (ns, path, rider=None):
                             help=q+help, rider=rider, children=[ns.x]))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
+
+
+
+
+
+
+
+
+
 #================================================================================
 #================================================================================
+#================================================================================
+#================================================================================
+# Local testing forest:
+#================================================================================
+
+TDLCompileMenu("QR_MeqNodes categories:",
+               TDLOption('opt_allcats',"all",True),
+               TDLOption('opt_unops',"Unary nodes (one child)",False),
+               TDLOption('opt_binops',"Binary nodes",False),
+               TDLOption('opt_leaves',"Leaf nodes (no children)",True),
+               TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",True),
+               )
+
+#--------------------------------------------------------------------------------
+
+def _define_forest (ns, **kwargs):
+   """Definition of a 'forest' of one or more trees"""
+
+   trace = False
+   # trace = True
+
+   # Make some standard child-nodes with standard names
+   scnodes = QR.standard_child_nodes(ns)
+
+   # Make bundles of (bundles of) categories of nodes/subtrees:
+   rootnodename = 'QR_MeqNodes'                 # The name of the node to be executed...
+   path = rootnodename                          # Root of the path-string
+   rider = QR.CollatedHelpRecord()              # Helper class
+   cc = []
+   cc = [scnodes]
+   if opt_allcats:                              # All available categories
+      cc.append(MeqNodes(ns, path, rider=rider))
+   else:                                        # Selected categories only
+      if opt_unops:
+         cc.append(unops(ns, path, rider=rider))
+      if opt_binops:
+         cc.append(binops(ns, path, rider=rider))
+      if opt_leaves:
+         cc.append(leaves(ns, path, rider=rider))
+      if opt_tensor:
+         cc.append(tensor(ns, path, rider=rider))
+
+   # Make the outer bundle (of node bundles):
+   bundle_help = 'Local testing forest'
+   QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+   if trace:
+      rider.show('_define_forest()')
+
+   # Finished:
+   return True
+   
+#=====================================================================================
+
+def _tdl_job_execute_1D (mqs, parent):
+   """Execute the forest with a 1D (freq) domain, starting at the named node.
+   """
+   domain = meq.domain(0.1,2,-2,10)                     # (f1,f2,t1,t2)       
+   cells = meq.cells(domain, num_freq=20, num_time=1)
+   request = QR.make_request(cells)
+   result = mqs.meq('Node.Execute',record(name='QR_MeqNodes', request=request))
+   return result
+
+#--------------------------------------------------------------------------------
+
+def _tdl_job_execute_2D (mqs, parent):
+   """Execute the forest with a 2D domain, starting at the named node.
+   """
+   domain = meq.domain(0.1,2,-2,10)                     # (f1,f2,t1,t2)       
+   cells = meq.cells(domain, num_freq=20, num_time=11)
+   request = QR.make_request(cells)
+   result = mqs.meq('Node.Execute',record(name='QR_MeqNodes', request=request))
+   return result
 
 
 #=====================================================================================
@@ -463,13 +689,14 @@ if __name__ == '__main__':
    rider = QR.CollatedHelpRecord()
    MeqNodes(ns, 'test', rider=rider)
 
-   if 1:
+   if 0:
       rider.show('testing')
 
    if 0:
       subject = 'unops'
       subject = 'binops'
       subject = 'leaves'
+      subject = 'leaves.constant'
       path = 'test.MeqNodes.'+subject
       rr = rider.subrec(path, trace=True)
       rider.show('subrec',rr, full=False)
