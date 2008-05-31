@@ -80,9 +80,9 @@ def MeqNodes (ns, path, rider=None):
    cc.append(leaves (ns, path, rider=rider))
    cc.append(tensor (ns, path, rider=rider))
    cc.append(reduction (ns, path, rider=rider))
-   # cc.append(regridding (ns, path, rider=rider))
-   # cc.append(flagging (ns, path, rider=rider))
-   # cc.append(solving (ns, path, rider=rider))
+   cc.append(regridding (ns, path, rider=rider))
+   cc.append(flagging (ns, path, rider=rider))
+   cc.append(solving (ns, path, rider=rider))
    # cc.append(visualization (ns, path, rider=rider))
    # cc.append(transforms (ns, path, rider=rider))
    # cc.append(flowcontrol (ns, path, rider=rider))
@@ -199,7 +199,7 @@ def regridding (ns, path, rider=None):
    bundle_help = regridding.__doc__
    path = QR.add2path(path,'regridding')
    cc = []
-   # cc.append(regridding_modres (ns, path, rider=rider))
+   cc.append(regridding_modres (ns, path, rider=rider))
    # cc.append(regridding_compounder (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
@@ -229,7 +229,7 @@ def flagging (ns, path, rider=None):
    bundle_help = flagging.__doc__
    path = QR.add2path(path,'flagging')
    cc = []
-   # cc.append(flagging_simple (ns, path, rider=rider))
+   cc.append(flagging_simple (ns, path, rider=rider))
    # cc.append(flagging_merge (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
@@ -240,13 +240,13 @@ def solving (ns, path, rider=None):
    """
    MeqSolver
    MeqCondeq
-   MeqStripper
+   MeqStripper (?)
    """
    bundle_help = solving.__doc__
    path = QR.add2path(path,'solving')
    cc = []
-   # cc.append(solving_simple (ns, path, rider=rider))
-   # cc.append(solving_merge (ns, path, rider=rider))
+   cc.append(solving_ab (ns, path, rider=rider))
+   # cc.append(solving_single (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -311,24 +311,108 @@ def transforms (ns, path, rider=None):
 #================================================================================
 
 #================================================================================
-# regridding_... 
-#================================================================================
-
-#================================================================================
-# solving_... 
-#================================================================================
-
-#================================================================================
-# flagging_... 
-#================================================================================
-
-#================================================================================
 # transforms_... 
 #================================================================================
 
 #================================================================================
 # flowcontrol_... 
 #================================================================================
+
+#================================================================================
+# solving_... 
+#================================================================================
+
+def solving_ab (ns, path, rider=None):
+   """
+   Demonstration of solving for two unknown parameters (a,b),
+   using two linear equations (one condeq each).
+   """
+   bundle_help = solving_ab.__doc__
+   path = QR.add2path(path,'ab')
+
+   a = ns.aparm << Meq.Parm(0)
+   b = ns.bparm << Meq.Parm(0)
+   sum_ab = ns << Meq.Add(a,b) 
+   diff_ab = ns << Meq.Subtract(a,b)
+   condeqs = []
+   condeqs.append(ns << Meq.Condeq(sum_ab, 10))
+   condeqs.append(ns << Meq.Condeq(diff_ab, 2))
+   solver = QR.MeqNode (ns, path, meqclass='Solver', name='Solver(condeqs)',
+                        help='Solver', rider=rider, children=condeqs)  
+   cc = [solver,condeqs[0],condeqs[1],a,b]
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
+                     reqseq=0)
+
+
+#--------------------------------------------------------------------------------
+
+
+#================================================================================
+# flagging_... 
+#================================================================================
+
+  
+def flagging_simple (ns, path, rider=None):
+   """
+   Demonstration of flagging.
+   """
+   bundle_help = flagging_simple.__doc__
+   path = QR.add2path(path,'simple')
+   rfi = ns.rfi << Meq.Exp(ns.noise3)
+   mean =  ns << Meq.Mean(rfi)
+   stddev =  ns << Meq.Stddev(rfi)
+   diff = ns << Meq.Subtract(rfi,mean)
+   absdiff = ns << Meq.Abs(diff)
+   sigma = 5
+   crit = ns.crit << Meq.Subtract(absdiff,sigma*stddev)
+   zflag = QR.MeqNode (ns, path, meqclass='ZeroFlagger',
+                       name='ZeroFlagger(crit, oper=GE)',
+                       help='Flag all cells with crit value > 0.0',
+                       rider=rider, children=[crit], oper='GE')
+   mflag = QR.MeqNode (ns, path, meqclass='MergeFlags',
+                       name='MergeFlags(rfi,zflag)',
+                       help='Merge new flags with existing flags',
+                       rider=rider, children=[rfi, zflag])
+   cc = [rfi, mean, stddev, crit, zflag, mflag]
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
+
+#================================================================================
+# regridding_... 
+#================================================================================
+
+
+def regridding_modres (ns, path, rider=None):
+   """
+   Demonstration of changing the number of cells in the domain.
+   # Make a side-branch that first lowers the resolution (modres),
+   # by simply lowering the resolution of the request
+   # then resamples the result to the the original resolution,
+   # and then takes the difference with the original input to
+   # check the quality of the two operations.
+   # The reqseq issues a (full-resolution) request first to the
+   # branch that changes the resolution back and forth, and then to the
+   # branch that holds the original resolution. Since it
+   # is only a demonstration, the original result (1) is passed on.
+   """
+   bundle_help = regridding_modres.__doc__
+   path = QR.add2path(path,'modres')
+   original = ns << Meq.Identity(ns.gaussnoise)
+   modres = QR.MeqNode (ns, path, meqclass='ModRes', name='ModRes(noise, num_cells=[2,3])',
+                        help='changes the resolution of the REQUEST',
+                        rider=rider, children=[ns.gaussnoise], num_cells=[2,3])
+   resampled = QR.MeqNode (ns, path, meqclass='Resampler', name='Resampler(modres, mode=1)',
+                           help='resamples the domain according to the input request',
+                           rider=rider, children=[modres], mode=1)
+   diff = ns.modres_diff << Meq.Subtract(modres,original)
+   reqseq = ns.modres_reqseq << Meq.ReqSeq(diff,original, result_index=1)
+   cc = [original, modres, resampled, diff,reqseq]
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
 
 
 #================================================================================

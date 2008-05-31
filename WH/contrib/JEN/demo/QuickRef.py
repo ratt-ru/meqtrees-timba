@@ -107,6 +107,11 @@ def standard_child_nodes (ns):
    bb.append(ns << Meq.Constant(2.3))
    bb.append(ns << 2.4)
 
+   bb.append(ns.noise2 << Meq.GaussNoise(stddev=2.0))
+   bb.append(ns.noise3 << Meq.GaussNoise(stddev=3.0))
+   bb.append(ns.noise4 << Meq.GaussNoise(stddev=4.0))
+   bb.append(ns.noise5 << Meq.GaussNoise(stddev=5.0))
+
    bb.append(ns.range2 << Meq.Constant(range(2)))
    bb.append(ns.range3 << Meq.Constant(range(3)))
    bb.append(ns.range4 << Meq.Constant(range(4)))
@@ -381,6 +386,7 @@ def MeqNode (ns, path,
 
 def bundle (ns, path,
             nodes=None, help=None, rider=None,
+            reqseq=None,
             bookmark=True, viewer="Result Plotter",
             trace=False):
    """Make a single parent node, with the given nodes as children.
@@ -407,7 +413,13 @@ def bundle (ns, path,
       # qhelp = rider.cleanup(qhelp)              # clean it up (use a copy!!)
 
 
-   if True:
+   if isinstance(reqseq, int):
+      # Make the nodes the children of a reqseq,
+      # and pass on the specified (index) result, 
+      parent = ns[name] << Meq.ReqSeq(children=nodes,
+                                      result_index=reqseq,
+                                      quickref_help=qhelp)
+   elif True:
       # NB: When a Composer node is left-clicked in the browser,
       # it plots an inspector, not its state record (with help...)
       plot_label = []
@@ -417,7 +429,6 @@ def bundle (ns, path,
                                         plot_label=plot_label,
                                         quickref_help=qhelp)
    else:
-      # Alternative: ReqSeq?
       parent = ns[name] << Meq.Add(children=nodes,
                                    quickref_help=qhelp)
 
