@@ -325,7 +325,50 @@ def transforms (ns, path, rider=None):
 def solving_ab (ns, path, rider=None):
    """
    Demonstration of solving for two unknown parameters (a,b),
-   using two linear equations (one condeq each).
+   using two linear equations (one condeq child each):
+   - condeq 0:  a + b = p (=10)
+   - condeq 1:  a - b = q (=2)
+   The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
+   Condeq Results are the solution residuals, which should be small.
+   """
+   bundle_help = solving_ab.__doc__
+   path = QR.add2path(path,'ab')
+
+   a = ns.a << Meq.Parm(0)
+   b = ns.b << Meq.Parm(0)
+   p = ns.p << Meq.Constant(10)
+   q = ns.q << Meq.Constant(2)
+   sum_ab = ns << Meq.Add(a,b) 
+   diff_ab = ns << Meq.Subtract(a,b)
+   condeqs = []
+   condeqs.append(QR.MeqNode (ns, path, meqclass='Condeq',name='Condeq(a+b,p)',
+                              help='Represents equation: a + b = p (=10)',
+                              rider=rider, children=[sum_ab, p]))
+   condeqs.append(QR.MeqNode (ns, path, meqclass='Condeq',name='Condeq(a-b,q)',
+                              help='Represents equation: a - b = q (=2)',
+                              rider=rider, children=[diff_ab, q]))
+   solver = QR.MeqNode (ns, path, meqclass='Solver',
+                        name='Solver(*condeqs, solvable=[a,b])',
+                        help='Solver', rider=rider, children=condeqs,
+                        solvable=[a,b])  
+   residuals = QR.MeqNode (ns, path, meqclass='Add', name='residuals',
+                           help='The sum of the (abs) condeq residuals',
+                           rider=rider, children=condeqs, unop='Abs')
+   cc = [solver,residuals,a,b]
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
+                     parentclass='ReqSeq', result_index=0)
+
+#--------------------------------------------------------------------------------
+
+
+def solving_ft (ns, path, rider=None):
+   """
+   Demonstration of solving for two unknown parameters (a,b),
+   using two linear equations (one condeq child each):
+   - condeq 0:  a + b = p (=10)
+   - condeq 1:  a - b = q (=2)
+   The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
+   Condeq Results are the solution residuals, which should be small.
    """
    bundle_help = solving_ab.__doc__
    path = QR.add2path(path,'ab')
@@ -337,8 +380,10 @@ def solving_ab (ns, path, rider=None):
    condeqs = []
    condeqs.append(ns << Meq.Condeq(sum_ab, 10))
    condeqs.append(ns << Meq.Condeq(diff_ab, 2))
-   solver = QR.MeqNode (ns, path, meqclass='Solver', name='Solver(condeqs)',
-                        help='Solver', rider=rider, children=condeqs)  
+   solver = QR.MeqNode (ns, path, meqclass='Solver',
+                        name='Solver(*condeqs, solvable=[a,b])',
+                        help='Solver', rider=rider, children=condeqs,
+                        solvable=[a,b])  
    cc = [solver,condeqs[0],condeqs[1],a,b]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
                      reqseq=0)
@@ -354,26 +399,31 @@ def solving_ab (ns, path, rider=None):
   
 def flagging_simple (ns, path, rider=None):
    """
-   Demonstration of flagging.
+   Demonstration of simple flagging. A zero-criterion (zcrit) is calculated
+   by a little subtree. This calculates the abs(diff) from the mean of the
+   input, and then subtracts 5 times its stddev.
+   The ZeroFlagger(oper=GE) flags all domain cells whose zcrit value is >= 0.
+   Other behaviour can be specified with oper=LE or GT or LT.
+   The MergeFlags node merges the new flags with the original flags of the input.
    """
    bundle_help = flagging_simple.__doc__
    path = QR.add2path(path,'simple')
-   rfi = ns.rfi << Meq.Exp(ns.noise3)
-   mean =  ns << Meq.Mean(rfi)
-   stddev =  ns << Meq.Stddev(rfi)
-   diff = ns << Meq.Subtract(rfi,mean)
+   input = QR.uniquestub(ns,'input') << Meq.Exp(ns.noise3)
+   mean =  ns << Meq.Mean(input)
+   stddev =  ns << Meq.Stddev(input)
+   diff = ns << Meq.Subtract(input,mean)
    absdiff = ns << Meq.Abs(diff)
-   sigma = 5
-   crit = ns.crit << Meq.Subtract(absdiff,sigma*stddev)
+   zcrit = QR.uniquestub(ns,'zcrit') << Meq.Subtract(absdiff,5*stddev)
    zflag = QR.MeqNode (ns, path, meqclass='ZeroFlagger',
-                       name='ZeroFlagger(crit, oper=GE)',
-                       help='Flag all cells with crit value > 0.0',
-                       rider=rider, children=[crit], oper='GE')
+                       name='ZeroFlagger(zcrit, oper=GE)',
+                       help="""Flag all cells for which zcrit>=0.0.
+                       zcrit = (absdev from mean) - 5*stddev.""",
+                       rider=rider, children=[zcrit], oper='GE')
    mflag = QR.MeqNode (ns, path, meqclass='MergeFlags',
-                       name='MergeFlags(rfi,zflag)',
+                       name='MergeFlags(input,zflag)',
                        help='Merge new flags with existing flags',
-                       rider=rider, children=[rfi, zflag])
-   cc = [rfi, mean, stddev, crit, zflag, mflag]
+                       rider=rider, children=[input, zflag])
+   cc = [input, mean, stddev, zcrit, zflag, mflag]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -1000,27 +1050,18 @@ def _define_forest (ns, **kwargs):
    # Finished:
    return True
    
-#=====================================================================================
-
-def _tdl_job_execute_1D (mqs, parent):
-   """Execute the forest with a 1D (freq) domain, starting at the named node.
-   """
-   domain = meq.domain(0.1,2,-2,10)                     # (f1,f2,t1,t2)       
-   cells = meq.cells(domain, num_freq=20, num_time=1)
-   request = QR.make_request(cells)
-   result = mqs.meq('Node.Execute',record(name='QR_MeqNodes', request=request))
-   return result
 
 #--------------------------------------------------------------------------------
 
+def _tdl_job_execute_1D (mqs, parent):
+   return QR._tdl_job_execute_1D (mqs, parent, rootnode='QR_MeqNodes')
+
 def _tdl_job_execute_2D (mqs, parent):
-   """Execute the forest with a 2D domain, starting at the named node.
-   """
-   domain = meq.domain(0.1,2,-2,10)                     # (f1,f2,t1,t2)       
-   cells = meq.cells(domain, num_freq=20, num_time=11)
-   request = QR.make_request(cells)
-   result = mqs.meq('Node.Execute',record(name='QR_MeqNodes', request=request))
-   return result
+   return QR._tdl_job_execute_2D (mqs, parent, rootnode='QR_MeqNodes')
+
+def _tdl_job_sequence (mqs, parent):
+   return QR._tdl_job_sequence (mqs, parent, rootnode='QR_MeqNodes')
+
 
 
 #=====================================================================================
