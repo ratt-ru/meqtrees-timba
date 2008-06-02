@@ -41,6 +41,7 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
   CompiledFunklet::CompiledFunklet(double pert,double weight,DbId id):
     Funklet(pert,weight,id)
   {
+#ifndef HAVE_CASACORE
     (*this)[FClass]=objectType().toString();
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     itsFunction = new casa::CompiledFunction<casa::Double>();
@@ -51,12 +52,14 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
       
       setFunction(fstr);
     }
+#endif
   }
   
 
   CompiledFunklet::CompiledFunklet (const DMI::Record &other,int flags,int depth):
     Funklet(other,flags,depth)
   {
+#ifndef HAVE_CASACORE
     (*this)[FClass]=objectType().toString();
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     itsFunction = new casa::CompiledFunction<casa::Double>();
@@ -68,17 +71,20 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
     
       setFunction(fstr);
     }
+#endif
   }
 
   CompiledFunklet::CompiledFunklet (const CompiledFunklet &other,int flags,int depth):
     Funklet(other,flags,depth),Npar(other.Npar),Ndim(other.Ndim)
   {
+#ifndef HAVE_CASACORE
     (*this)[FClass]=objectType().toString();
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   
     itsFunction=new casa::CompiledFunction<casa::Double>((*other.itsFunction));
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >(*(other.itsDerFunction));
       
+#endif
   }
 
 
@@ -89,6 +95,7 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
   
   void CompiledFunklet::fill_values(double *value, double * pertValPtr[],double *xval,const Vells::Shape & res_shape ,const int dimN, const LoVec_double grid[],const std::vector<double> &perts, const std::vector<int> &spidIndex, const int makePerturbed, int &pos) const
 {
+#ifndef HAVE_CASACORE
    
   //    Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     for(int datai=0;datai<res_shape[dimN];datai++){
@@ -127,6 +134,7 @@ static DMI::Container::Register reg(TpMeqCompiledFunklet,true);
 	pos++;
       }
     }
+#endif
   }
 
 
@@ -136,6 +144,7 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
     const std::vector<int>    &spidIndex,
     int makePerturbed) const
 {
+#ifndef HAVE_CASACORE
   // init shape of result
   Vells::Shape res_shape;
   Axis::degenerateShape(res_shape,cells.rank());
@@ -240,12 +249,14 @@ void CompiledFunklet::do_evaluate (VellSet &vs,const Cells &cells,
   
   fill_values(value,pertValPtr,xval,res_shape,0,grid,perts,spidIndex,makePerturbed,pos);
 
+#endif
 }
 
 
 
 void CompiledFunklet::do_update (const double values[],const std::vector<int> &spidIndex,bool force_positive)
 {
+#ifndef HAVE_CASACORE
   Thread::Mutex::Lock lock(mutex());
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
   for( uint i=0; i<spidIndex.size(); i++ ) 
@@ -257,10 +268,12 @@ void CompiledFunklet::do_update (const double values[],const std::vector<int> &s
       }
   }
   setParam();
+#endif
 }
 
 void CompiledFunklet::do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive)
 {
+#ifndef HAVE_CASACORE
   Thread::Mutex::Lock lock(mutex());
   double* coeff = static_cast<double*>(coeffWr().getDataPtr());
   for( uint i=0; i<spidIndex.size(); i++ ) 
@@ -276,6 +289,7 @@ void CompiledFunklet::do_update (const double values[],const std::vector<int> &s
       }
   }
   setParam();
+#endif
 }
 
 

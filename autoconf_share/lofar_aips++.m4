@@ -38,7 +38,7 @@ AC_DEFUN([lofar_AIPSPP],dnl
 [dnl
 AC_PREREQ(2.13)dnl
 ifelse($1, [], [lfr_option=0], [lfr_option=$1])
-ifelse($2, [], [lfr_aipslibs="-ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa -lglish -lsos -lnpd"], [lfr_aipslibs=$2])
+ifelse($2, [], [lfr_aipslibs="default"], [lfr_aipslibs=$2])
 AC_ARG_WITH(aipspp,
 	[  --with-aipspp[=PFX]         enable use of AIPS++ (via AIPSPATH or explicit path)],
 	[with_aipspp="$withval"],
@@ -47,12 +47,16 @@ AC_ARG_WITH(casa,
 	[  --with-casa[=PFX]           enable use of casa (via casapath or explicit path)],
 	[with_casa="$withval"],
 	[with_casa=""])
+AC_ARG_WITH(casacore,
+	[  --with-casacore[=PFX]           enable use of casacore (via /usr, or explicit path)],
+	[with_casacore="$withval"],
+	[with_casacore=""])
 AC_ARG_WITH(pgplot,
-	[  --with-pgplot[=PFX]         enable use of PGPLOT if needed by AIPS++],
+	[  --with-pgplot[=PFX]         enable use of PGPLOT if needed],
 	[with_pgplot="$withval"],
 	[with_pgplot=""])
 AC_ARG_WITH(wcs,
-	[  --with-wcs[=PFX]            specific path for wcslib if needed by AIPS++],
+	[  --with-wcs[=PFX]            specific path for wcslib if needed],
 	[with_wcs="$withval"],
 	[with_wcs=""])
 [
@@ -70,17 +74,40 @@ AIPSPP_LIB_PATH=""
 # the path where the include files can be found
 AIPSPP_INC_PATH=""
 
+# check the --with-casacore option
+if test "$with_casacore" = "no"; then
+  # do nothing
+  with_casacore="";
+  echo
+elif test "$with_casacore" = "yes"; then
+  # --with-casa was given, so assume /usr
+  AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} /usr"
+  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} /usr/include/casacore"
+  ]AC_DEFINE(HAVE_CASACORE, 1, [Define if casacore is installed])dnl
+  AM_CONDITIONAL(HAVE_CASACORE, [test "true" = "true"])dnl
+  [
+else
+  # the casa path was given manually so look there
+  AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${with_casacore}"
+  AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${with_casacore}/include/casacore"
+  ]AC_DEFINE(HAVE_CASACORE, 1, [Define if casacore is installed])dnl
+  AM_CONDITIONAL(HAVE_CASACORE, [test "true" = "true"])dnl
+  [
+fi
+
 # if casa and aips are both set, casa will be used
 # check the --with-casa option
 if test "$with_casa" = ""; then
-  # --with-casa was not given, so look in casapath if it exists
-  ]AC_MSG_CHECKING([whether casapath environment variable is set])[
-  if test "${casapath}set" != "set"; then
-    ]AC_MSG_RESULT([yes])[
-    AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${casapath}"
-    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}/include/casa"
-  else
-    ]AC_MSG_RESULT([no])[
+  if test "$with_casacore" = ""; then
+    # --with-casa was not given, so look in casapath if it exists
+    ]AC_MSG_CHECKING([whether casapath environment variable is set])[
+    if test "${casapath}set" != "set"; then
+      ]AC_MSG_RESULT([yes])[
+      AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${casapath}"
+      AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${casapath}/include/casa"
+    else
+      ]AC_MSG_RESULT([no])[
+    fi
   fi
 elif test "$with_casa" = "no"; then
   # do nothing
@@ -106,13 +133,15 @@ fi
 # check the --with-aipspp option
 if test "$with_aipspp" = ""; then
   # --with-aips was not given, so look in AIPSPATH if it exists
-  ]AC_MSG_CHECKING([whether AIPSPATH environment variable is set])[
-  if test "${AIPSPATH}set" != "set"; then
-    ]AC_MSG_RESULT([yes])[
-    AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/`expr "$AIPSPATH" : ".* \(.*\) .* .*"`"
-    AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code/include"
-  else
-    ]AC_MSG_RESULT([no])[
+  if test "$with_casacore" = ""; then
+    ]AC_MSG_CHECKING([whether AIPSPATH environment variable is set])[
+    if test "${AIPSPATH}set" != "set"; then
+      ]AC_MSG_RESULT([yes])[
+      AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/`expr "$AIPSPATH" : ".* \(.*\) .* .*"`"
+      AIPSPP_INC_PATH="${AIPSPP_INC_PATH} `expr "$AIPSPATH" : "\(.*\) .* .* .*"`/code/include"
+    else
+      ]AC_MSG_RESULT([no])[
+    fi
   fi
 elif test "$with_aipspp" = "no"; then
   # do nothing
@@ -138,7 +167,7 @@ fi
 # Do we have enough info?
 if test "$AIPSPP_LIB_PATH" = ""; then
   if test "$lfr_option" != "0"; then
-    ]AC_MSG_ERROR([AIPS++ is needed, but casapath and AIPSPATH have not been set and  --with-aipspp=path and --with-casa=path have not been given])[
+    ]AC_MSG_ERROR([AIPS++ or casa or casacore is needed, but casapath and AIPSPATH have not been set and  --with-casacore=path or --with-aipspp=path or --with-casa=path have not been given])[
   fi
 else
   # Now we have the paths and we can start searching for the aips installation
@@ -183,7 +212,11 @@ else
       ]AC_CHECK_FILE([$with_wcs/wcslib/wcs.h],
             [lfr_wcs=yes], [lfr_wcs=no])[
       if test $lfr_wcs = no; then
-        ]AC_MSG_ERROR([WCS directory not found])[
+        ]AC_CHECK_FILE([$with_wcs/include/wcslib/wcs.h],
+              [lfr_wcs=yes], [lfr_wcs=no])[
+        if test $lfr_wcs = no; then
+          ]AC_MSG_ERROR([WCS directory not found])[
+        fi
       fi
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -I$with_wcs"
     fi      
@@ -192,7 +225,19 @@ else
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
     fi
     AIPSPP_LDFLAGS="-L$ALP/lib -Wl,-rpath,$ALP/lib"
-    AIPSPP_LIBS="$ALP/lib/version.o $lfr_aipslibs"
+    
+    if test "$lfr_aipslibs" = "default"; then
+      if test "$with_casacore" = ""; then
+        lfr_aipslibs="-limages -lmir -lcomponents -lcoordinates -lwcs -llattices -ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa"
+      else
+        lfr_aipslibs="-lcasa_images -lcasa_mirlib -lcasa_components -lcasa_coordinates -lwcs -lcasa_lattices -lcasa_ms -lcasa_fits -lcasa_measures -lcasa_tables -lcasa_scimath -lcasa_scimath_f -lcasa_casa"
+      fi
+    fi
+    if test "$with_casacore" = ""; then
+      AIPSPP_LIBS="$ALP/lib/version.o $lfr_aipslibs"
+    else
+      AIPSPP_LIBS="$lfr_aipslibs"
+    fi
 
     if test "$with_pgplot" != "no"; then
       ]AC_CHECK_FILE([$with_pgplot],

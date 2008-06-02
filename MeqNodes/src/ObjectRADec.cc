@@ -27,7 +27,7 @@
 #include <MEQ/Cells.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-
+#include <measures/Measures/MCDirection.h>
 #include <measures/Measures/MBaseline.h>
 #include <measures/Measures/MPosition.h>
 #include <measures/Measures/MEpoch.h>

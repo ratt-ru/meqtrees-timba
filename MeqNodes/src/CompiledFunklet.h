@@ -32,8 +32,11 @@
 #include <MEQ/Polc.h>
 #include <DMI/NumArray.h>
 
-#include <scimath/Functionals/CompiledFunction.h>
+#ifndef HAVE_CASACORE
 #include <scimath/Mathematics/AutoDiff.h>
+#include <scimath/Functionals/CompiledFunction.h>
+#endif
+
 #include <casa/BasicSL/String.h>
 #include <MEQ/Vells.h>
 
@@ -75,6 +78,7 @@ class CompiledFunklet: public Funklet{
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 			   DbId id=-1,string fstr  = "p0") 
   {
+#ifndef HAVE_CASACORE
     //   setCoeff(coeff);
     //set by hand since setcoeff calls init too early
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
@@ -90,6 +94,7 @@ class CompiledFunklet: public Funklet{
     
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
+#endif
   }
 
   explicit CompiledFunklet(const LoMat_double &coeff,
@@ -99,6 +104,7 @@ class CompiledFunklet: public Funklet{
 		    double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 		    DbId id=-1,string fstr  = "p0") 
   {
+#ifndef HAVE_CASACORE
     //    setCoeff(coeff);
     //set by hand since setcoeff calls init before we know about Ndim
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
@@ -116,6 +122,7 @@ class CompiledFunklet: public Funklet{
     init(Ndim,iaxis,offset,scale,pert,weight,id);
    
     itsState<<=new Funklet(*this);
+#endif
   }
  
 
@@ -126,6 +133,7 @@ class CompiledFunklet: public Funklet{
 		     double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
 		     DbId id=-1,string fstr  = "p0") 
   {
+#ifndef HAVE_CASACORE
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     itsFunction = new casa::CompiledFunction<casa::Double>();
     itsDerFunction = new casa::CompiledFunction<casa::AutoDiff<casa::Double> >();
@@ -145,15 +153,19 @@ class CompiledFunklet: public Funklet{
 
     init(Ndim,iaxis,offset,scale,pert,weight,id);
     itsState<<=new Funklet(*this);
+#endif
   }
 
   ~CompiledFunklet(){
+#ifndef HAVE_CASACORE
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     delete itsFunction;
     delete itsDerFunction;
+#endif
   }
 
   void setFunction(string funcstring){
+#ifndef HAVE_CASACORE
     //check if this is a valid string
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     (*this)[FFunction] = funcstring;
@@ -173,12 +185,14 @@ class CompiledFunklet: public Funklet{
     }
     realDim=dim;
     setParam();
+#endif
   }
 
   //check if 'xi' occurs in function string
     int dependsOn(int i);
 
   void setParam(){
+#ifndef HAVE_CASACORE
     //set paramters...if coeff doesnt match, take matching part and set rest to unsolvable/0  ?
     FailWhen(int(Npar) != getNumParms (),"nr. coeff not matching nr. of parameters in Compiled Function!!");
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
@@ -190,13 +204,16 @@ class CompiledFunklet: public Funklet{
       (*itsDerFunction)[i]=casa::AutoDiff<casa::Double>(coeffData[i],  Npar,i);
       (*itsFunction)[i]=coeffData[i];
     }
+#endif
 	
   }
 
 
   virtual string getFunction() const{
+#ifndef HAVE_CASACORE
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
     return string(itsFunction->getText());
+#endif
   }
 
 
@@ -217,10 +234,12 @@ class CompiledFunklet: public Funklet{
   
   private:
 
+#ifndef HAVE_CASACORE
   //autodiff is only calculated if the parm is solvable
   casa::CompiledFunction<casa::AutoDiff<casa::Double> >  * itsDerFunction;
   //otherwise use this one, initialize both
   casa::CompiledFunction<casa::Double> * itsFunction;
+#endif
   // casa::CompiledFunction<casa::Double> itsFunction;
   uint Npar,Ndim,realDim;
   uint depend_[Axis::MaxAxis];

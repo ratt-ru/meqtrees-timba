@@ -122,7 +122,7 @@ void MSSeqOutputChannel::flushOutputTiles ()
             flags.reverseSelf(blitz::secondDim);
           Matrix<Bool> aips_flags;
           B2A::copyArray(aips_flags,flags);
-          cdebug(6)<<"writing to FLAG column: "<<aips_flags<<endl;
+//          cdebug(6)<<"writing to FLAG column: "<<aips_flags<<endl;
           flagCol_.putSlice(msrow,column_slicer_,aips_flags);
         }
       }

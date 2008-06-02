@@ -51,9 +51,7 @@ dnl
 dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
-#lofar_AIPSPP(1,"-limages -lmir -lcomponents -lcoordinates -lwcs -llattices -ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa -lglish -lsos -lnpd")
-lofar_AIPSPP(1,"-limages -lmir -lcomponents -lcoordinates -lwcs -llattices -ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa")
-# lofar_AIPSPP(1)
+lofar_AIPSPP(1)
 lofar_BLITZ(1)
 # lofar_FFTW2
 lofar_PACKAGE(MEQ)

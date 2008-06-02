@@ -1587,7 +1587,8 @@ void * Solver::workerLoop ()
 } // namespace Meq
 
 //# Instantiate the makeNorm template.
+#ifndef HAVE_CASACORE
 #include <scimath/Fitting/LSQFit2.cc>
 template void casa::LSQFit::makeNorm<double, double*, int*>(unsigned,
 int* const&, double* const&, double const&, double const&, bool, bool);
-
+#endif

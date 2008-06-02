@@ -1,5 +1,5 @@
 gnu3.compiler.conf: CXX=ccache\ g++-3.4 --enable-shared --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
-gnu3.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
+gnu3.compiler.aipspp.var: --with-casacore=/home/oms/casacore --with-wcs=/usr/local
 
 gnu4.compiler.conf: CXX=ccache\ g++-4.1 --enable-shared --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
 gnu4.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu

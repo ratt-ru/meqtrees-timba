@@ -251,7 +251,7 @@ void MSOutputChannel::putColumn (Column &col,int irow,const LoMat_fcomplex &data
   }
   else
     B2A::copyArray(aips_data,data);
-  cdebug(6)<<"writing "<<col.name<<": "<<aips_data<<endl;
+  // cdebug(6)<<"writing "<<col.name<<": "<<aips_data<<endl;
   if( !col.col.isDefined(irow) )
     col.col.put(irow,null_cell_);
   col.col.putSlice(irow,column_slicer_,aips_data);
@@ -288,7 +288,7 @@ void MSOutputChannel::doPutTile (const VTile &tile)
         flags.reverseSelf(blitz::secondDim);
       Matrix<Bool> aflags;
       B2A::copyArray(aflags,flags);
-      cdebug(6)<<"writing to FLAG column: "<<aflags<<endl;
+      // cdebug(6)<<"writing to FLAG column: "<<aflags<<endl;
       flagCol_.putSlice(irow,column_slicer_,aflags);
     }
     if( tile.defined(VTile::DATA) && datacol_.valid )

@@ -28,6 +28,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <measures/Measures/MBaseline.h>
 #include <measures/Measures/MPosition.h>
+#include <measures/Measures/MCEpoch.h>
 #include <measures/Measures/MEpoch.h>
 #include <measures/Measures/MeasConvert.h>
 #include <measures/Measures/MeasTable.h>
