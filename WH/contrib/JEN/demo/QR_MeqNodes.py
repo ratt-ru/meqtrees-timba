@@ -334,10 +334,10 @@ def solving_ab (ns, path, rider=None):
    bundle_help = solving_ab.__doc__
    path = QR.add2path(path,'ab')
 
-   a = ns.a << Meq.Parm(0)
-   b = ns.b << Meq.Parm(0)
-   p = ns.p << Meq.Constant(10)
-   q = ns.q << Meq.Constant(2)
+   a = QR.uniquestub(ns, 'a') << Meq.Parm(0)
+   b = QR.uniquestub(ns, 'b') << Meq.Parm(0)
+   p = QR.uniquestub(ns, 'p') << Meq.Constant(10)
+   q = QR.uniquestub(ns, 'q') << Meq.Constant(2)
    sum_ab = ns << Meq.Add(a,b) 
    diff_ab = ns << Meq.Subtract(a,b)
    condeqs = []
@@ -354,7 +354,7 @@ def solving_ab (ns, path, rider=None):
    residuals = QR.MeqNode (ns, path, meqclass='Add', name='residuals',
                            help='The sum of the (abs) condeq residuals',
                            rider=rider, children=condeqs, unop='Abs')
-   cc = [solver,residuals,a,b]
+   cc = [solver,residuals,a,b,p,q]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
 
@@ -373,8 +373,8 @@ def solving_ft (ns, path, rider=None):
    bundle_help = solving_ab.__doc__
    path = QR.add2path(path,'ab')
 
-   a = ns.aparm << Meq.Parm(0)
-   b = ns.bparm << Meq.Parm(0)
+   a = QR.uniquestub(ns, 'a') << Meq.Parm(0)
+   b = QR.uniquestub(ns, 'b') << Meq.Parm(0)
    sum_ab = ns << Meq.Add(a,b) 
    diff_ab = ns << Meq.Subtract(a,b)
    condeqs = []
@@ -416,8 +416,7 @@ def flagging_simple (ns, path, rider=None):
    zcrit = QR.uniquestub(ns,'zcrit') << Meq.Subtract(absdiff,5*stddev)
    zflag = QR.MeqNode (ns, path, meqclass='ZeroFlagger',
                        name='ZeroFlagger(zcrit, oper=GE)',
-                       help="""Flag all cells for which zcrit>=0.0.
-                       zcrit = (absdev from mean) - 5*stddev.""",
+                       help='oper=GE: Flag all cells for which zcrit>=0.0.',
                        rider=rider, children=[zcrit], oper='GE')
    mflag = QR.MeqNode (ns, path, meqclass='MergeFlags',
                        name='MergeFlags(input,zflag)',
@@ -446,20 +445,67 @@ def regridding_modres (ns, path, rider=None):
    # branch that changes the resolution back and forth, and then to the
    # branch that holds the original resolution. Since it
    # is only a demonstration, the original result (1) is passed on.
+   # Since the bundle parent node gets the request, it should only send it to diff.
+   # But there should be bookmarks for a different group of nodes.
    """
    bundle_help = regridding_modres.__doc__
    path = QR.add2path(path,'modres')
-   original = ns << Meq.Identity(ns.gaussnoise)
-   modres = QR.MeqNode (ns, path, meqclass='ModRes', name='ModRes(noise, num_cells=[2,3])',
-                        help='changes the resolution of the REQUEST',
-                        rider=rider, children=[ns.gaussnoise], num_cells=[2,3])
-   resampled = QR.MeqNode (ns, path, meqclass='Resampler', name='Resampler(modres, mode=1)',
-                           help='resamples the domain according to the input request',
-                           rider=rider, children=[modres], mode=1)
-   diff = ns.modres_diff << Meq.Subtract(modres,original)
-   reqseq = ns.modres_reqseq << Meq.ReqSeq(diff,original, result_index=1)
-   cc = [original, modres, resampled, diff,reqseq]
+   cc = []
+   cc.append(regridding_modres_noise (ns, path, rider=rider))
+   cc.append(regridding_modres_linear (ns, path, rider=rider))
+   cc.append(regridding_modres_curved (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def regridding_modres_noise (ns, path, rider=None):
+   """
+   The input is gaussian noise.
+   """
+   bundle_help = regridding_modres_noise.__doc__
+   path = QR.add2path(path,'noise')
+   return regridding_modres_generic (ns, path, rider, bundle_help, input=ns.noise2, num_cells=[4,5])
+
+#--------------------------------------------------------------------------------
+
+def regridding_modres_linear (ns, path, rider=None):
+   """
+   The input is linear over the domain.
+   """
+   bundle_help = regridding_modres_linear.__doc__
+   path = QR.add2path(path,'linear')
+   return regridding_modres_generic (ns, path, rider, bundle_help, input=ns.xy)
+
+#--------------------------------------------------------------------------------
+
+def regridding_modres_curved (ns, path, rider=None):
+   """
+   The input is curved over the domain.
+   """
+   bundle_help = regridding_modres_curved.__doc__
+   path = QR.add2path(path,'curved')
+   return regridding_modres_generic (ns, path, rider, bundle_help,
+                                     input=ns.gaussian2D, num_cells=[4,5])
+
+#--------------------------------------------------------------------------------
+
+def regridding_modres_generic (ns, path, rider, bundle_help, input,
+                                num_cells=[2,3], mode=1):
+   """
+   Generic subtree to demonstrate MeqModRes regridding.
+   """
+   original = QR.uniquestub(ns, 'original') << Meq.Identity(input)
+   modres = QR.MeqNode (ns, path, meqclass='ModRes',
+                        name='ModRes(input, num_cells='+str(num_cells)+')',
+                        help='changes the resolution of the REQUEST',
+                        rider=rider, children=[input], num_cells=num_cells)
+   resampled = QR.MeqNode (ns, path, meqclass='Resampler',
+                           name='Resampler(modres, mode='+str(mode)+')',
+                           help='resamples the domain according to the input request',
+                           rider=rider, children=[modres], mode=mode)
+   diff = QR.uniquestub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
+   return QR.bundle (ns, path, nodes=[diff], help=bundle_help, rider=rider,
+                     bookmark=[original, modres, resampled, diff])
 
 
 #--------------------------------------------------------------------------------

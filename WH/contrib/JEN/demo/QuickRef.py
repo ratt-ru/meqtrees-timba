@@ -13,21 +13,23 @@
 #
 # Remarks:
 #
-#   - Middle-clicking a node in the browser could display its quickref_help,
-#     just like right-click option in the various plotter(s)....
+#   - AGW: Middle-clicking a node in the browser could display its quickref_help
+#     (field in the state record) just like right-click option in the various plotter(s)....
+#     The quickref_help is in the form of a record.
 #     Tony already has a popup uption for selecting from multiple vellsets,
-#     which includes an expansion tree. The quickref_help popup needs the same.  
-#   - NB: Left-clicking a node displays the state record, except the Composer...
+#     which includes an expansion tree. The quickref_help popup needs the same.
+#   - AGW: Left-clicking a node displays the state record, except the Composer...
 #         It would be nice if it were easier to invoke the relevant plotter...
 #         (at this moment it takes to many actions, and the new display is confusing)
-#   - Can we plot the result of each request in a sequence while it is running....?
-
-#   - TDLCompileMenu should have tick-box option (just like the TDLOption)
+#   - OMS:Can we plot the result of each request in a sequence while it is running....?
+#         (this problem may have been solved....)
+#
+#   - OMS: TDLCompileMenu should have tick-box option (just like the TDLOption)
 #     Or should I read the manual better?
-#   - Meow.Bookmarks needs a folder option....
+#   - OMS: Meow.Bookmarks needs a folder option....
 #   - Is there a way to attach fields like a quickref_help record to the
 #     state record (initrec?) of an existing node?
-#   - Tony: Right-click plotting in Log scale does not work if 1D data
+#   - AGW: Right-click plotting in Log scale does not work if 1D data
 #     (it only produces a colorbar...)
 #     NB: it is only offered as an option when doing 1D after 2D...
 #
@@ -121,6 +123,12 @@ def standard_child_nodes (ns):
    bb.append(ns.x << Meq.Freq())
    bb.append(ns.y << Meq.Time())
    bb.append(ns.xy << Meq.Add(ns.x,ns.y))
+
+   bb.append(ns.x2 << Meq.Pow2(ns.x))
+   bb.append(ns.y2 << Meq.Pow2(ns.y))
+   bb.append(ns.xy2 << Meq.Add(ns.x2,ns.y2))
+   bb.append(ns.gaussian1D << Meq.Exp(ns << Meq.Negate(ns.x2)))
+   bb.append(ns.gaussian2D << Meq.Exp(ns << Meq.Negate(ns.xy2)))
 
    bb.append(ns.nx << Meq.NElements(ns.x))
    bb.append(ns.ny << Meq.NElements(ns.y))
@@ -477,7 +485,16 @@ def bundle (ns, path,
 
    # Make a meqbrowser bookmark for this bundle, if required:
    if bookmark:
+      # By default, all nodes in the bundle will be bookmarked.
+      # However, a different selection may be passed via the bookmark argument.
+      if is_node(bookmark):
+         nodes = [bookmark]
+      elif isinstance(bookmark,(list,tuple)):
+         nodes = bookmark
+
+      # The rider object has a service for extracting page and folder from path.
       [page, folder] = rider.bookmark(path, trace=trace)
+
       if folder or page:
          if True:
             # Temporary, until Meow folder problem (?) is solved....
@@ -609,29 +626,6 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def bookmark (self, path, trace=False):
-      """A little service to determine [page,folder] from path.
-      It is part of this class because it initializes each time.
-      This is necessary to avoid extra pages/folders.
-      """
-      ss = path.split('.')
-      page = ss[len(ss)-1]                  # the last one, always there
-      folder = None
-      if len(ss)>3:
-         folder = ss[len(ss)-2]
-      if folder:
-         self._folder.setdefault(folder,0)
-         self._folder[folder] += 1
-      else:
-         if self._folder.has_key(page):
-            page = None
-      # Finished:
-      if trace:
-         print '** .bookmark():',len(ss),ss,' page=',page,' folder=',folder
-      return [page,folder]
-
-   #---------------------------------------------------------------------
-
    def add (self, path=None, help=None, rr=None,
             level=0, trace=False):
       """Add a help-item (recursive)"""
@@ -756,6 +750,37 @@ class CollatedHelpRecord (object):
          if trace:
             print '** finished .cleanup() -> rr=',type(rr)
       return rr
+
+   #---------------------------------------------------------------------
+
+   def bookmark (self, path, trace=False):
+      """A little service to determine [page,folder] from path.
+      It is part of this class because it initializes each time.
+      This is necessary to avoid extra pages/folders.
+      """
+      # trace = True
+      ss = path.split('.')
+      nss = len(ss)
+
+      page = None
+      page = ss[nss-1]                          # the last one, always there
+      if nss>1:
+         page = ss[nss-2]+'_'+ss[nss-1]
+
+      folder = None
+      if len(ss)>3:
+         folder = ss[nss-3]+'_'+ss[nss-2]       # same format as page above (essential!)
+
+      if folder:
+         self._folder.setdefault(folder,0)
+         self._folder[folder] += 1
+      elif page and self._folder.has_key(page):
+         page = None
+
+      # Finished:
+      if trace:
+         print '*** .bookmark():',len(ss),ss,' page=',page,' folder=',folder
+      return [page,folder]
 
 
 
