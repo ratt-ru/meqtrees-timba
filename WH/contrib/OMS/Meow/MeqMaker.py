@@ -333,8 +333,8 @@ class MeqMaker (object):
       if Jj:
         corr_sources = [];
         for src,src0 in zip(corrupt_sources,sources):
-          jones = Jj(src.name);
-          # do not corrupt if Jones term is initialized
+          jones = Jj(src0.name);
+          # do not corrupt if Jones term is not initialized
           if jones(stations[0]).initialized():
             src = src.corrupt(jones);
           corr_sources.append(src);
