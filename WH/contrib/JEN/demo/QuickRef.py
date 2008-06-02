@@ -76,6 +76,7 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
+import copy
 import math
 import time
 # import random
@@ -179,6 +180,7 @@ def _define_forest (ns, **kwargs):
    # Make bundles of (bundles of) categories of nodes/subtrees:
    rootnodename = 'QuickRef'                # The name of the node to be executed...
    path = rootnodename                      # Root of the path-string
+   global rider
    rider = CollatedHelpRecord()             # Helper class
    cc = []
    cc = [scnodes]
@@ -275,7 +277,7 @@ def _tdl_job_execute_2D (mqs, parent, rootnode='QuickRef'):
 
 #----------------------------------------------------------------------------
 
-def _tdl_job_sequence (mqs, parent, rootnode='QuickRef'):
+def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRef'):
    """Execute a sequence, moving the 2D domain.
    """
    for ifreq in range(runopt_seq_nfreq):
@@ -298,16 +300,24 @@ def _tdl_job_sequence (mqs, parent, rootnode='QuickRef'):
 
 #----------------------------------------------------------------------------
 
-if False:
-   def _tdl_job_print_selected_help (mqs, parent):
-      """Print the help-text of the selected categories"""
-      print '\n** Not yet implemented **\n'
-      return True
+def _tdl_job_print_doc (mqs, parent, rr=None, header='QuickRef'):
+   if rr==None:
+      rr = rider             # i.e. the CollatedHelpObject
+   print rr.format()
+   return True
 
-   def _tdl_job_popup_selected_help (mqs, parent):
-      """Show the help-text of the selected categories"""
-      print '\n** Not yet implemented **\n'
-      return True
+def _tdl_job_popup_doc (mqs, parent, rr=None, header='QuickRef'):
+   if rr==None:
+      rr = rider             # i.e. the CollatedHelpObject
+   print '\n** popup doc not yet implemented **\n'
+   return True
+
+def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRef'):
+   if rr==None:
+      rr = rider             # i.e. the CollatedHelpObject
+   rr.save(filename)
+   return True
+
 
 
 
@@ -432,20 +442,24 @@ def bundle (ns, path,
    # The name of the bundle (node, page, folder) is the last
    # part of the path string, i.e. after the last dot ('.')
    ss = path.split('.')
-   name = ss[len(ss)-1]
+   nss = len(ss)
+   name = ss[nss-1]
+   qname = name
+   if nss>1:
+      qname = '*'+str(nss-2)+'* '+ss[nss-2]+'_'+ss[nss-1]
       
    # Condition the help-string and update the CollatedHelpRecord (rider):
    if isinstance(help, str):
       qhelp = help.split('\n')
-      qhelp[0] = name+': '+qhelp[0]
+      qhelp[0] = qname+': '+qhelp[0]
    else:
-      qhelp = name+': '+str(help)
+      qhelp = qname+': '+str(help)
       
    if rider:
       rider.add(path, qhelp)                    # add qhelp to the rest
       # The relevant subset of help is attached to this bundle node:
-      qhelp = rider.subrec(path, trace=trace)   # get the relevant sub-record
-      # qhelp = rider.cleanup(qhelp)              # clean it up (use a copy!!)  <----!!
+      qhelp = rider.subrec(path, trace=trace)   # get (a copy of) the relevant sub-record 
+      qhelp = rider.cleanup(qhelp)              # clean it up (remove order fields etc) 
 
    # Optionally, apply a one or more unary math operations (e.g. Abs)
    # on all the nodes to be bundled:
@@ -705,16 +719,79 @@ class CollatedHelpRecord (object):
          print '**\n'
       return None
 
+
+   #---------------------------------------------------------------------
+
+   def format(self, rr=None, ss=None, key=None, level=0, trace=False):
+      """
+      Recursively format a help-string, to be printed.
+      """
+      if level==0:
+         ss = '\n'
+         if rr==None:
+            rr = self._chrec
+         if trace:
+            print '\n** Start of .format():'
+            
+      prefix = '\n'+self.prefix(level)
+
+      # First attach the overall help, if available:
+      if rr.has_key('help'):
+         help = rr['help']
+         if isinstance(help, str):
+            ss += prefix+str(help)
+         elif isinstance(help, (list,tuple)):
+            ss += prefix+str(help[0])
+            if len(help)>1:
+               s1 = str(len(str(key))*' ')
+               for s in help[1:]:
+                  ss += prefix+s1+str(s)
+
+      # Then recurse in the proper order, if possible:
+      keys = rr.keys()
+      if rr.has_key('order'):                # has no 'order' key
+         keys = rr['order']
+      for key in keys:
+         if isinstance(rr[key], (dict,Timba.dmi.record)):
+            ss = self.format(rr=rr[key], ss=ss, key=key,
+                             level=level+1, trace=trace) 
+      # Finished:
+      if len(keys)>1:
+         ss += prefix
+      if level==0:
+         ss += '**\n'
+         if trace:
+            print '\n** End of .format():\n'
+            print ss
+      return ss
+
+   #---------------------------------------------------------------------
+
+   def save (self, rr=None, filename='CollatedHelpString'):
+      """Save the formatted help-string in the specified file"""
+      if not '.' in filename:
+         filename += '.meqdoc'
+      file = open (filename,'w')
+      ss = self.format()
+      file.writelines(ss)
+      file.close()
+      print '\n** Saved the doc string in file: ',filename,'**\n'
+      return filename
+      
+
    #---------------------------------------------------------------------
 
    def subrec(self, path, rr=None, trace=False):
-      """Extract the specified (path) subrecord
+      """Extract (a deep copy of) the specified (path) subrecord
       from the given record (if not specified, use self._chrec)
       """
       if trace:
          print '\n** .extract(',path,' rr=',type(rr),'):'
+
       if rr==None:
-         rr = self._chrec
+         rr = copy.deepcopy(self._chrec)
+      else:
+         rr = copy.deepcopy(rr)
 
       ss = path.split('.')
       for key in ss:
@@ -775,7 +852,10 @@ class CollatedHelpRecord (object):
          self._folder.setdefault(folder,0)
          self._folder[folder] += 1
       elif page and self._folder.has_key(page):
-         page = None
+         folder = page                          # works well for ...regridding_modres....
+         self._folder[folder] += 1              # ....?
+         page = None                            # produces 'autopage' pages in the folder
+         page = '..dummy..'                     # still there, clean up later
 
       # Finished:
       if trace:
@@ -797,32 +877,38 @@ if __name__ == '__main__':
    print '\n** Start of standalone test of: QuickRef.py:\n' 
    ns = NodeScope()
 
-   if 0:
+   if 1:
       rider = CollatedHelpRecord()
-      if 0:
-         path = 'aa.bb.cc.dd'
-         help = 'xxx'
-         rider.add(path=path, help=help, trace=True)
 
    if 0:
+      path = 'aa.bb.cc.dd'
+      help = 'xxx'
+      rider.add(path=path, help=help, trace=True)
+
+   if 1:
       import QR_MeqNodes
       QR_MeqNodes.MeqNodes(ns, 'test', rider=rider)
-      rider.show('testing')
+      # rider.show('testing', full=True)
+      # print rider.format()
 
-      if 0:
+      if 1:
          path = 'test.MeqNodes.binops'
          # path = 'test.MeqNodes'
          rr = rider.subrec(path, trace=True)
-         rider.show('subrec',rr, full=False)
-         rider.show('subrec',rr, full=True)
+         rider.show('subrec('+path+')',rr, full=False)
+         rider.show('subrec('+path+')',rr, full=True)
+         rider.format(rr, trace=True)
+
          if 0:
             print 'before cleanup(): ',type(rr)
             rr = rider.cleanup(rr=rr)
             print 'after cleanup(): ',type(rr)
-            rider.show('cleanup',rr, full=True)
-            rider.show('cleanup',rr, full=False)
+            # The order fields should now have disappeared: (no order)
+            rider.show('after cleanup',rr, full=True)
+            # Finally, test whether the original self._chrec still has order fields:
+            # rider.show('self._chrec after cleanup', full=True)
             
-   if 1:
+   if 0:
       stub = nodestub(ns,'xxx',5,-7,c=8,h=9)
       print '\n nodestub() ->',str(stub),type(stub)
       stub << 5.6

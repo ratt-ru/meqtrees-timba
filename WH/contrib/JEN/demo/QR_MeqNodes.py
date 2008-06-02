@@ -436,17 +436,28 @@ def flagging_simple (ns, path, rider=None):
 def regridding_modres (ns, path, rider=None):
    """
    Demonstration of changing the number of cells in the domain.
-   # Make a side-branch that first lowers the resolution (modres),
-   # by simply lowering the resolution of the request
-   # then resamples the result to the the original resolution,
-   # and then takes the difference with the original input to
-   # check the quality of the two operations.
-   # The reqseq issues a (full-resolution) request first to the
-   # branch that changes the resolution back and forth, and then to the
-   # branch that holds the original resolution. Since it
-   # is only a demonstration, the original result (1) is passed on.
-   # Since the bundle parent node gets the request, it should only send it to diff.
-   # But there should be bookmarks for a different group of nodes.
+   ...
+   - The MeqModRes(child, num_cells=[2,3]) node changes the number
+   of cells in the domain of the REQUEST that it issues to its child.
+   Thus, the entire subtree below the child is evaluated with this
+   resolution. 
+   - The MeqResample(child, mode=1) resamples the domain of the Result
+   it gets from its child, to match the resolution of the Request that
+   it received itself. (So it does nothing if the domains already match,
+   i.e. if there is no MeqModRes upstream).
+   - The MeqResample(child, mode=2) resamples in a different way
+   .....
+   The various examples show the difference between the input, and after
+   a sequence of ModRes and Resample. Obviously, the differences are
+   smaller when the input is smoother and/or when num_cells is larger.
+   ...
+   This feature has been developed (by Sarod) for 'peeling': If the
+   phase-centre is shifted to the position of the peeling source, its
+   visibility function will be smooth over the domain, so it is not
+   necessary to predict it at the full time/freq resolution of the data.
+   Since the number of cells may be 100 less, this can save a lot of
+   processing.
+   There may also be other applications of these nodes....
    """
    bundle_help = regridding_modres.__doc__
    path = QR.add2path(path,'modres')
@@ -460,17 +471,19 @@ def regridding_modres (ns, path, rider=None):
 
 def regridding_modres_noise (ns, path, rider=None):
    """
-   The input is gaussian noise.
+   The input is gaussian noise. The ModRes and Resampling have a smoothing effect.
    """
    bundle_help = regridding_modres_noise.__doc__
    path = QR.add2path(path,'noise')
-   return regridding_modres_generic (ns, path, rider, bundle_help, input=ns.noise2, num_cells=[4,5])
+   return regridding_modres_generic (ns, path, rider, bundle_help,
+                                     input=ns.noise2, num_cells=[4,5])
 
 #--------------------------------------------------------------------------------
 
 def regridding_modres_linear (ns, path, rider=None):
    """
-   The input is linear over the domain.
+   The input is linear over the domain. The fact that the residuals are very small
+   despite the small number of cells, proves that the basic algorithm is sound.
    """
    bundle_help = regridding_modres_linear.__doc__
    path = QR.add2path(path,'linear')
@@ -480,7 +493,9 @@ def regridding_modres_linear (ns, path, rider=None):
 
 def regridding_modres_curved (ns, path, rider=None):
    """
-   The input is curved over the domain.
+   The input is curved over the domain. The residuals reflect the fact that the
+   function is not quite linear over a cell. The residuals will be smaller if the
+   cells are smaller, i.e. for larger values of num_cells.
    """
    bundle_help = regridding_modres_curved.__doc__
    path = QR.add2path(path,'curved')
@@ -508,7 +523,6 @@ def regridding_modres_generic (ns, path, rider, bundle_help, input,
                      bookmark=[original, modres, resampled, diff])
 
 
-#--------------------------------------------------------------------------------
 
 
 #================================================================================
@@ -1057,6 +1071,7 @@ def _define_forest (ns, **kwargs):
    # Make bundles of (bundles of) categories of nodes/subtrees:
    rootnodename = 'QR_MeqNodes'                 # The name of the node to be executed...
    path = rootnodename                          # Root of the path-string
+   global rider                                 # used in tdl_jobs
    rider = QR.CollatedHelpRecord()              # Helper class
    cc = []
    cc = [scnodes]
@@ -1105,8 +1120,17 @@ def _tdl_job_execute_1D (mqs, parent):
 def _tdl_job_execute_2D (mqs, parent):
    return QR._tdl_job_execute_2D (mqs, parent, rootnode='QR_MeqNodes')
 
-def _tdl_job_sequence (mqs, parent):
-   return QR._tdl_job_sequence (mqs, parent, rootnode='QR_MeqNodes')
+def _tdl_job_execute_sequence (mqs, parent):
+   return QR._tdl_job_execute_sequence (mqs, parent, rootnode='QR_MeqNodes')
+
+def _tdl_job_print_doc (mqs, parent):
+   return QR._tdl_job_print_doc (mqs, parent, rider, header='QR_MeqNodes')
+
+def _tdl_job_popup_doc (mqs, parent):
+   return QR._tdl_job_popup_doc (mqs, parent, rider, header='QR_MeqNodes')
+
+def _tdl_job_save_doc (mqs, parent):
+   return QR._tdl_job_save_doc (mqs, parent, rider, filename='QR_MeqNodes')
 
 
 
