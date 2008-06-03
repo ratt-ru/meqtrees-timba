@@ -1,3 +1,18 @@
+"""
+QuickRef module: QR_MeqNodes.py
+Gives an overview over all available MeqNodes.
+It may be called from the module QuickRef.py.
+But it may also be used stand-alone.
+-- Load the TDL script into the meqbrowser.
+-- Using TDL Options, select categories to be includes.
+-- Compile: The tree will appear in the left panel.
+.    (NB: the state record of each node has a quickref_help field)
+-- Use the bookmarks to select one or more views.
+-- Use TDL Exec to execute the tree: The views will come alive.
+-- Use TDL Exec to show or print or save the hierarchical help
+.    for the selected categories.
+"""
+
 # file: ../JEN/demo/QR_MeqNodes.py:
 #
 # Author: J.E.Noordam
@@ -57,7 +72,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import QuickRef as QR
+import QuickRefUtil as QR
 
 # import math
 # import random
@@ -68,6 +83,8 @@ import QuickRef as QR
 # Top function, called from QuickRef.py:
 #********************************************************************************
 
+
+
 def MeqNodes (ns, path, rider=None):
    """
    Available standard nodes: ns[name] << Meq.XYZ(*children,**kwargs).
@@ -75,14 +92,23 @@ def MeqNodes (ns, path, rider=None):
    bundle_help = MeqNodes.__doc__
    path = QR.add2path(path,'MeqNodes')
    cc = []
-   cc.append(unops (ns, path, rider=rider))
-   cc.append(binops (ns, path, rider=rider))
-   cc.append(leaves (ns, path, rider=rider))
-   cc.append(tensor (ns, path, rider=rider))
-   cc.append(reduction (ns, path, rider=rider))
-   cc.append(regridding (ns, path, rider=rider))
-   cc.append(flagging (ns, path, rider=rider))
-   cc.append(solving (ns, path, rider=rider))
+   if opt_allcats or opt_unops:
+      cc.append(unops (ns, path, rider=rider))
+   if opt_allcats or opt_binops:
+      cc.append(binops (ns, path, rider=rider))
+   if opt_allcats or opt_leaves:
+      cc.append(leaves (ns, path, rider=rider))
+   if opt_allcats or opt_tensor:
+      cc.append(tensor (ns, path, rider=rider))
+   if opt_allcats or opt_reduction:
+      cc.append(reduction (ns, path, rider=rider))
+   if opt_allcats or opt_resampling:
+      cc.append(resampling (ns, path, rider=rider))
+   if opt_allcats or opt_flagging:
+      cc.append(flagging (ns, path, rider=rider))
+   if opt_allcats or opt_solving:
+      cc.append(solving (ns, path, rider=rider))
+
    # cc.append(visualization (ns, path, rider=rider))
    # cc.append(transforms (ns, path, rider=rider))
    # cc.append(flowcontrol (ns, path, rider=rider))
@@ -190,17 +216,17 @@ def reduction (ns, path, rider=None):
 
 #--------------------------------------------------------------------------------
 
-def regridding (ns, path, rider=None):
+def resampling (ns, path, rider=None):
    """
    MeqModRes
    MeqResampler
    MeqCompounder
    """
-   bundle_help = regridding.__doc__
-   path = QR.add2path(path,'regridding')
+   bundle_help = resampling.__doc__
+   path = QR.add2path(path,'resampling')
    cc = []
-   cc.append(regridding_modres (ns, path, rider=rider))
-   # cc.append(regridding_compounder (ns, path, rider=rider))
+   cc.append(resampling_modres (ns, path, rider=rider))
+   # cc.append(resampling_compounder (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -429,11 +455,11 @@ def flagging_simple (ns, path, rider=None):
 #--------------------------------------------------------------------------------
 
 #================================================================================
-# regridding_... 
+# resampling_... 
 #================================================================================
 
 
-def regridding_modres (ns, path, rider=None):
+def resampling_modres (ns, path, rider=None):
    """
    Demonstration of changing the number of cells in the domain.
    ...
@@ -459,55 +485,58 @@ def regridding_modres (ns, path, rider=None):
    processing.
    There may also be other applications of these nodes....
    """
-   bundle_help = regridding_modres.__doc__
+   bundle_help = resampling_modres.__doc__
    path = QR.add2path(path,'modres')
    cc = []
-   cc.append(regridding_modres_noise (ns, path, rider=rider))
-   cc.append(regridding_modres_linear (ns, path, rider=rider))
-   cc.append(regridding_modres_curved (ns, path, rider=rider))
+   cc.append(resampling_modres_noise (ns, path, rider=rider))
+   cc.append(resampling_modres_linear (ns, path, rider=rider))
+   cc.append(resampling_modres_curved (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
-def regridding_modres_noise (ns, path, rider=None):
+def resampling_modres_noise (ns, path, rider=None):
    """
    The input is gaussian noise. The ModRes and Resampling have a smoothing effect.
    """
-   bundle_help = regridding_modres_noise.__doc__
+   bundle_help = resampling_modres_noise.__doc__
    path = QR.add2path(path,'noise')
-   return regridding_modres_generic (ns, path, rider, bundle_help,
-                                     input=ns.noise2, num_cells=[4,5])
+   num_cells = opt_resampling_MeqModRes_num_cells
+   mode = opt_resampling_MeqResampler_mode
+   print '\n** resampling_modres_noise(): num_cells =',num_cells,'  mode =',mode,'\n'
+   return resampling_modres_generic (ns, path, rider, bundle_help, input=ns.noise2,
+                                     num_cells=num_cells, mode=mode)
 
 #--------------------------------------------------------------------------------
 
-def regridding_modres_linear (ns, path, rider=None):
+def resampling_modres_linear (ns, path, rider=None):
    """
    The input is linear over the domain. The fact that the residuals are very small
    despite the small number of cells, proves that the basic algorithm is sound.
    """
-   bundle_help = regridding_modres_linear.__doc__
+   bundle_help = resampling_modres_linear.__doc__
    path = QR.add2path(path,'linear')
-   return regridding_modres_generic (ns, path, rider, bundle_help, input=ns.xy)
+   return resampling_modres_generic (ns, path, rider, bundle_help, input=ns.xy)
 
 #--------------------------------------------------------------------------------
 
-def regridding_modres_curved (ns, path, rider=None):
+def resampling_modres_curved (ns, path, rider=None):
    """
    The input is curved over the domain. The residuals reflect the fact that the
    function is not quite linear over a cell. The residuals will be smaller if the
    cells are smaller, i.e. for larger values of num_cells.
    """
-   bundle_help = regridding_modres_curved.__doc__
+   bundle_help = resampling_modres_curved.__doc__
    path = QR.add2path(path,'curved')
-   return regridding_modres_generic (ns, path, rider, bundle_help,
+   return resampling_modres_generic (ns, path, rider, bundle_help,
                                      input=ns.gaussian2D, num_cells=[4,5])
 
 #--------------------------------------------------------------------------------
 
-def regridding_modres_generic (ns, path, rider, bundle_help, input,
+def resampling_modres_generic (ns, path, rider, bundle_help, input,
                                 num_cells=[2,3], mode=1):
    """
-   Generic subtree to demonstrate MeqModRes regridding.
+   Generic subtree to demonstrate MeqModRes resampling.
    """
    original = QR.uniquestub(ns, 'original') << Meq.Identity(input)
    modres = QR.MeqNode (ns, path, meqclass='ModRes',
@@ -1041,6 +1070,10 @@ def unops_misc (ns, path, rider=None):
 # Local testing forest:
 #================================================================================
 
+TDLRuntimeMenu(":")
+TDLRuntimeMenu("QuickRef runtime options:", QR)
+TDLRuntimeMenu(":")
+
 TDLCompileMenu("QR_MeqNodes categories:",
                TDLOption('opt_allcats',"all",True),
                TDLOption('opt_unops',"Unary nodes (one child)",False),
@@ -1048,14 +1081,20 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLOption('opt_leaves',"Leaf nodes (no children)",False),
                TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
                TDLOption('opt_reduction',"reduction",False),
-               TDLOption('opt_regridding',"regridding",False),
+               TDLMenu("resampling",
+                        TDLOption('opt_resampling_MeqModRes_num_cells',"num_cells for MeqModRes",
+                                  [[2,3],[3,4],[4,3],[5,5],[20,20]]),
+                        TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
+                                  [1,2]),
+                        toggle='opt_resampling'),
                TDLOption('opt_flagging',"flagging",False),
                TDLOption('opt_solving',"solving",False),
                TDLOption('opt_visualization',"visualization",False),
                TDLOption('opt_transforms',"transforms",False),
                TDLOption('opt_flowcontrol',"flowcontrol",False),
-               # TDLOption('opt_',"",False),
+               toggle='opt_QR_MeqNodes',
                )
+
 
 #--------------------------------------------------------------------------------
 
@@ -1072,37 +1111,13 @@ def _define_forest (ns, **kwargs):
    rootnodename = 'QR_MeqNodes'                 # The name of the node to be executed...
    path = rootnodename                          # Root of the path-string
    global rider                                 # used in tdl_jobs
-   rider = QR.CollatedHelpRecord()              # Helper class
+   rider = QR.create_rider()                    # CollatedHelpRecord object
    cc = []
    cc = [scnodes]
-   if opt_allcats:                              # All available categories
-      cc.append(MeqNodes(ns, path, rider=rider))
-   else:                                        # Selected categories only
-      if opt_unops:
-         cc.append(unops(ns, path, rider=rider))
-      if opt_binops:
-         cc.append(binops(ns, path, rider=rider))
-      if opt_leaves:
-         cc.append(leaves(ns, path, rider=rider))
-      if opt_tensor:
-         cc.append(tensor(ns, path, rider=rider))
-      if opt_reduction:
-         cc.append(reduction(ns, path, rider=rider))
-      if opt_regridding:
-         cc.append(regridding(ns, path, rider=rider))
-      if opt_flagging:
-         cc.append(flagging(ns, path, rider=rider))
-      if opt_solving:
-         cc.append(solving(ns, path, rider=rider))
-      if opt_visualization:
-         cc.append(visualization(ns, path, rider=rider))
-      if opt_transforms:
-         cc.append(transforms(ns, path, rider=rider))
-      if opt_flowcontrol:
-         cc.append(flowcontrol(ns, path, rider=rider))
+   cc.append(MeqNodes(ns, path, rider))
 
    # Make the outer bundle (of node bundles):
-   bundle_help = 'Local testing forest'
+   bundle_help = __doc__
    QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
    if trace:
@@ -1111,6 +1126,7 @@ def _define_forest (ns, **kwargs):
    # Finished:
    return True
    
+
 
 #--------------------------------------------------------------------------------
 
@@ -1123,11 +1139,17 @@ def _tdl_job_execute_2D (mqs, parent):
 def _tdl_job_execute_sequence (mqs, parent):
    return QR._tdl_job_execute_sequence (mqs, parent, rootnode='QR_MeqNodes')
 
+def _tdl_job_m (mqs, parent):
+   return QR._tdl_job_m (mqs, parent)
+
 def _tdl_job_print_doc (mqs, parent):
    return QR._tdl_job_print_doc (mqs, parent, rider, header='QR_MeqNodes')
 
-def _tdl_job_popup_doc (mqs, parent):
-   return QR._tdl_job_popup_doc (mqs, parent, rider, header='QR_MeqNodes')
+def _tdl_job_print_hardcopy (mqs, parent):
+   return QR._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_MeqNodes')
+
+def _tdl_job_show_doc (mqs, parent):
+   return QR._tdl_job_show_doc (mqs, parent, rider, header='QR_MeqNodes')
 
 def _tdl_job_save_doc (mqs, parent):
    return QR._tdl_job_save_doc (mqs, parent, rider, filename='QR_MeqNodes')
@@ -1144,11 +1166,10 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
-   import QuickRef as QR
-   rider = QR.CollatedHelpRecord()
+   rider = QR.create_rider()             # CollatedHelpRecord object
    MeqNodes(ns, 'test', rider=rider)
 
-   if 0:
+   if 1:
       rider.show('testing')
 
    if 0:
@@ -1156,13 +1177,13 @@ if __name__ == '__main__':
       subject = 'binops'
       subject = 'leaves'
       subject = 'leaves.constant'
-   # cc.append(reduction (ns, path, rider=rider))
-   # cc.append(regridding (ns, path, rider=rider))
-   # cc.append(flagging (ns, path, rider=rider))
-   # cc.append(solving (ns, path, rider=rider))
-   # cc.append(visualization (ns, path, rider=rider))
-   # cc.append(transforms (ns, path, rider=rider))
-   # cc.append(flowcontrol (ns, path, rider=rider))
+      # subject = 'reduction'
+      # subject = 'resampling'
+      # subject = 'flagging'
+      # subject = 'solving'
+      # subject = 'visualization'
+      # subject = 'transforms'
+      # subject = 'flowcontrol'
       path = 'test.MeqNodes.'+subject
       rr = rider.subrec(path, trace=True)
       rider.show('subrec',rr, full=False)
