@@ -86,7 +86,8 @@ elif test "$with_casacore" = "yes"; then
   ]AC_DEFINE(HAVE_CASACORE, 1, [Define if casacore is installed])dnl
   AM_CONDITIONAL(HAVE_CASACORE, [test "true" = "true"])dnl
   [
-else
+fi
+if test "$with_casacore" != ""; then
   # the casa path was given manually so look there
   AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${with_casacore}"
   AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${with_casacore}/include/casacore"
