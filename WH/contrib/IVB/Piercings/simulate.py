@@ -13,7 +13,8 @@ from Meow import MeqMaker
 from Meow import Context
 meqmaker = MeqMaker.MeqMaker(solvable=False)
 lsm = Meow.LSM.MeowLSM(include_options=False)
-meqmaker.add_sky_models([lsm])
+import gridded_sky_ivb
+meqmaker.add_sky_models([lsm,gridded_sky_ivb])
 
 #import sky_models
 import pierce_points
