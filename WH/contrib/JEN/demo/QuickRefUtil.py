@@ -128,7 +128,6 @@ def _define_forest (ns, **kwargs):
     path = rootnodename                      # Root of the path-string
     global rider
     rider = create_rider()                   # CollatedHelpRecord object
-    # rider = CollatedHelpRecord()             # Helper class
     cc = [scnodes]
     
     # Make the outer bundle (of node bundles):
@@ -447,7 +446,7 @@ def bundle (ns, path,
         rider.add(path, qhelp)                    # add qhelp to the rest
         # The relevant subset of help is attached to this bundle node:
         qhelp = rider.subrec(path, trace=trace)   # get (a copy of) the relevant sub-record 
-        qhelp = rider.cleanup(qhelp)              # clean it up (remove order fields etc) 
+        qhelp = qhelp.cleanup().chrec()           # clean it up (remove order fields etc) 
 
     # Optionally, apply a one or more unary math operations (e.g. Abs)
     # on all the nodes to be bundled:
@@ -607,11 +606,10 @@ def uniquestub (ns, rootname, *quals, **kwquals):
 # Helper Class, to be used as rider:
 #=================================================================================
 
-def create_rider():
+def create_rider(name='rider'):
+    """Return a CollatedHelpRecord object, to serve as rider"""
     import CollatedHelpRecord
-    return CollatedHelpRecord.CollatedHelpRecord()
-
-
+    return CollatedHelpRecord.CollatedHelpRecord(name)
 
 
 #=====================================================================================

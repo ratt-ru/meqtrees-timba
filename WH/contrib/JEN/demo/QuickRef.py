@@ -98,18 +98,8 @@ Settings.forest_state.bookmarks = []
 
 import QuickRefUtil as QR
 
-import Meow.Bookmarks
-from Timba.Contrib.JEN.util import JEN_bookmarks
-
-import copy
-import math
-import time
-import os
-# import random
-
 
 #********************************************************************************
-# The function under the 'blue button':
 #********************************************************************************
 
 TDLCompileMenu("QuickRef Categories:",
@@ -123,6 +113,8 @@ TDLCompileMenu("QuickRef Categories:",
 if opt_MeqNodes:              
    import QR_MeqNodes        
    TDLCompileMenu("Options for QR_MeqNodes:", QR_MeqNodes)
+
+
 
 #-------------------------------------------------------------------------------
 
@@ -140,9 +132,10 @@ def _define_forest (ns, **kwargs):
    rootnodename = 'QuickRef'                # The name of the node to be executed...
    path = rootnodename                      # Root of the path-string
    global rider
-   rider = QR.create_rider()                    # CollatedHelpRecord object
+   rider = QR.create_rider()                # CollatedHelpRecord object
    cc = []
    cc = [scnodes]
+
    if opt_MeqNodes:                         # specified in compile-options
       import QR_MeqNodes                    # import the relevant module
       TDLCompileMenu("Options for QR_MeqNodes", QR_MeqNodes)
@@ -161,7 +154,6 @@ def _define_forest (ns, **kwargs):
 
 
 #********************************************************************************
-# Forest exection functions:
 #********************************************************************************
 
 def _tdl_job_execute_1D (mqs, parent):
@@ -187,8 +179,6 @@ def _tdl_job_show_doc (mqs, parent):
 
 def _tdl_job_save_doc (mqs, parent):
    return QR._tdl_job_save_doc (mqs, parent, rider, filename='QuickRef')
-
-
 
 
 

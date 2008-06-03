@@ -49,14 +49,15 @@ from Timba.Meq import meq
 #=================================================================================
 
 class CollatedHelpRecord (object):
-   """This object collects and handles the hierarchical set of QuickRef help strings
-   into a record. This is controlled by the path, e.g. 'QuickRef.MeqNodes.unops'
-   It is used in the functions .MeqNode() and .bundle() in this module, but has
-   to be passed (as rider) through all contributing QR_... modules.
+   """This object collects and handles a hierarchical set of help strings
+   into a record. This is controlled by the path, e.g. 'QuickRef.MeqNodes.unops'.
    """
 
-   def __init__(self):
+   def __init__(self, name='CollatedHelpRecord', chrec=None):
+      self._name = name 
       self.clear()
+      if isinstance(chrec, record):
+          self._chrec = chrec
       return None
 
    def clear (self):
@@ -69,11 +70,12 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def add (self, path=None, help=None, rr=None,
-            level=0, trace=False):
-      """Add a help-item (recursive)"""
+   def add (self, path=None, help=None, rr=None, level=0, trace=False):
+      """Attach a help-item at the designated (path) position (recursive)
+      """
       if level==0:
          rr = self._chrec
+
       if isinstance(path,str):
          path = path.split('.')
 
@@ -106,9 +108,8 @@ class CollatedHelpRecord (object):
    def show(self, txt=None, rr=None, full=False, key=None, level=0):
       """Show the record (recursive)"""
       if level==0:
-         print '\n** CollatedHelpRecord.show(',txt,' full=',full,' rr=',type(rr),'):'
-         if rr==None:
-            rr = self._chrec
+         print '\n** CHR.show(',txt,', full='+str(full),'):',str(self._name)
+         rr = self._chrec
       prefix = self.prefix(level)
 
       if not rr.has_key('order'):                # has no 'order' key
@@ -157,8 +158,7 @@ class CollatedHelpRecord (object):
       """
       if level==0:
          ss = '\n'
-         if rr==None:
-            rr = self._chrec
+         rr = self._chrec
          if trace:
             print '\n** Start of .format():'
             
@@ -210,18 +210,14 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def subrec(self, path, rr=None, trace=False):
+   def subrec(self, path, trace=False):
       """Extract (a deep copy of) the specified (path) subrecord
-      from the given record (if not specified, use self._chrec)
+      from the internal self._chrec.
       """
       if trace:
-         print '\n** .extract(',path,' rr=',type(rr),'):'
+         print '\n** .extract(',path,'):'
 
-      if rr==None:
-         rr = copy.deepcopy(self._chrec)
-      else:
-         rr = copy.deepcopy(rr)
-
+      rr = copy.deepcopy(self._chrec)
       ss = path.split('.')
       for key in ss:
          if trace:
@@ -231,19 +227,23 @@ class CollatedHelpRecord (object):
             raise ValueError,s
          else:
             rr = rr[key]
+
+      # Return another object of the same type:
+      newname = 'subrec('+path+')'
+      result = CollatedHelpRecord(newname, chrec=rr)
       if trace:
-         self.show(txt=path, rr=rr)
-      return rr
+         result.show(txt=path)
+      return result
       
    #---------------------------------------------------------------------
 
    def cleanup (self, rr=None, level=0, trace=False):
-      """Clean up the given record (rr)"""
+      """Return a cleaned-up copy of its internal record.
+      """
       if level==0:
          if trace:
-            print '\n** .cleanup(rr=',type(rr),'):'
-         if rr==None:
-            rr = self._chrec
+            print '\n** .cleanup():'
+         rr = copy.deepcopy(self._chrec)
             
       if isinstance(rr, dict):
          if rr.has_key('order'):
@@ -251,11 +251,18 @@ class CollatedHelpRecord (object):
             for key in rr.keys():
                if isinstance(rr[key], dict):          # recursive
                   rr[key] = self.cleanup(rr=rr[key], level=level+1)
-      # Finished:
-      if level==0:
-         if trace:
-            print '** finished .cleanup() -> rr=',type(rr)
-      return rr
+
+      if level>0:
+          # Not finished: Return to former level:
+          return rr
+
+      # Finished: eturn another object of the same type:
+      newname = 'upcleaned'
+      result = CollatedHelpRecord(newname, chrec=rr)
+      if trace:
+          print '** finished .cleanup()'
+      return result
+
 
    #---------------------------------------------------------------------
 
@@ -325,19 +332,17 @@ if __name__ == '__main__':
       if 1:
          path = 'test.MeqNodes.binops'
          # path = 'test.MeqNodes'
-         rr = rider.subrec(path, trace=True)
-         rider.show('subrec('+path+')',rr, full=False)
-         rider.show('subrec('+path+')',rr, full=True)
-         rider.format(rr, trace=True)
+         sub = rider.subrec(path, trace=True)
+         sub.show(full=False)
+         sub.show(full=True)
+         sub.format(trace=True)
 
          if 0:
-            print 'before cleanup(): ',type(rr)
-            rr = rider.cleanup(rr=rr)
-            print 'after cleanup(): ',type(rr)
+            clean = sub.cleanup(trace=True)
             # The order fields should now have disappeared: (no order)
-            rider.show('after cleanup',rr, full=True)
+            clean.show(full=True)
             # Finally, test whether the original self._chrec still has order fields:
-            # rider.show('self._chrec after cleanup', full=True)
+            sub.show('after cleanup', full=True)
             
    print '\n** End of standalone test of: CollatedHelpRecord.py:\n' 
 
