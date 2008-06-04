@@ -120,33 +120,20 @@ if opt_MeqNodes:
 
 def _define_forest (ns, **kwargs):
 
-   trace = False
-   # trace = True
-
-   # Make some standard child-nodes with standard names
-   # These are used in the various bundles below.
-   # They are bundles to avoid browser clutter.
-   scnodes = QR.standard_child_nodes(ns)
-
    # Make bundles of (bundles of) categories of nodes/subtrees:
-   rootnodename = 'QuickRef'                # The name of the node to be executed...
-   path = rootnodename                      # Root of the path-string
    global rider
    rider = QR.create_rider()                # CollatedHelpRecord object
-   cc = []
-   cc = [scnodes]
+   rootnodename = 'QuickRef'                # The name of the node to be executed...
+   path = rootnodename                      # Root of the path-string
 
-   if opt_MeqNodes:                         # specified in compile-options
-      import QR_MeqNodes                    # import the relevant module
+   cc = []
+   if opt_MeqNodes:   
+      import QR_MeqNodes   
       TDLCompileMenu("Options for QR_MeqNodes", QR_MeqNodes)
       cc.append(QR_MeqNodes.MeqNodes(ns, path, rider=rider))
 
    # Make the outer bundle (of node bundles):
-   bundle_help = __doc__                    # module help
-   QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
-
-   if trace:
-      rider.show('_define_forest()')
+   QR.bundle (ns, path, nodes=cc, help=__doc__, rider=rider)
 
    # Finished:
    return True
