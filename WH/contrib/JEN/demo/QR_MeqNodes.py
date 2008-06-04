@@ -82,62 +82,74 @@ import QuickRefUtil as QR
 # TDLCompileMenu (included in QuickRef menu):
 #********************************************************************************
 
-def input_node(ns, name):
+def input_node(ns, name, trace=False):
     """Return a standard (name) input node. Create it if ncessary.
     """
-    stub = QR.nodestub(ns, name)
-    if stub.initialized():          # node already exists
-        return stub                 # return it
+    s1 = '** QR_MeqNodes.input_node('+str(name)+'):'
 
+    # Derive and condition the nodename:
+    nodename = name
+    nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
+
+    # Check whether the node already exists (i.e. is initialized...)
+    stub = QR.nodestub(ns, nodename)
+    if stub.initialized():                  # node already exists
+        return stub                         # return it
+
+    # Create a new node:
     if name in ['f','freq','MeqFreq']:
-       return stub << Meq.Freq()
-    if name in ['t','time','MeqTime']:
-       return stub << Meq.Time()
+       stub << Meq.Freq()
+    elif name in ['t','time','MeqTime']:
+       stub << Meq.Time()
 
-    if name in ['nf']:
-       return stub << Meq.NElements(input_node(ns,'f'))
-    if name in ['nt']:
-       return stub << Meq.NElements(input_node(ns,'t'))
-    if name in ['nft']:
-       return stub << Meq.NElements(input_node(ns,'ft'))
+    elif name in ['nf']:
+       stub << Meq.NElements(input_node(ns,'f'))
+    elif name in ['nt']:
+       stub << Meq.NElements(input_node(ns,'t'))
+    elif name in ['nft']:
+       stub << Meq.NElements(input_node(ns,'ft'))
 
-    if name in ['f+t','t+f']:
-       return stub << Meq.Add(input_node(ns,'f'),input_node(ns,'t'))
-    if name in ['tf','ft','f*t','t*f']:
-       return stub << Meq.Multiply(input_node(ns,'f'),input_node(ns,'t'))
-    if name in ['cft','cxft']:
-       return stub << Meq.ToComplex(input_node(ns,'f'),input_node(ns,'t'))
-    if name in ['ctf','cxtf']:
-       return stub << Meq.ToComplex(input_node(ns,'t'),input_node(ns,'f'))
+    elif name in ['f+t','t+f']:
+       stub << Meq.Add(input_node(ns,'f'),input_node(ns,'t'))
+    elif name in ['tf','ft','f*t','t*f']:
+       stub << Meq.Multiply(input_node(ns,'f'),input_node(ns,'t'))
+    elif name in ['cft','cxft']:
+       stub << Meq.ToComplex(input_node(ns,'f'),input_node(ns,'t'))
+    elif name in ['ctf','cxtf']:
+       stub << Meq.ToComplex(input_node(ns,'t'),input_node(ns,'f'))
 
-    if name in ['f2','f**2']:
-       return stub << Meq.Pow2(input_node(ns,'f'))
-    if name in ['t2','t**2']:
-       return stub << Meq.Pow2(input_node(ns,'t'))
-    if name in ['ft2']:
-       return stub << Meq.Pow2(input_node(ns,'ft'))
-    if name in ['f2+t2','t2+f2']:
-       return stub << Meq.Add(input_node(ns,'f2'),input_node(ns,'t2'))
+    elif name in ['f2','f**2']:
+       stub << Meq.Pow2(input_node(ns,'f'))
+    elif name in ['t2','t**2']:
+       stub << Meq.Pow2(input_node(ns,'t'))
+    elif name in ['ft2']:
+       stub << Meq.Pow2(input_node(ns,'ft'))
+    elif name in ['f2+t2','t2+f2']:
+       stub << Meq.Add(input_node(ns,'f2'),input_node(ns,'t2'))
 
-    if name in ['gaussian_ft']:
-       return stub << Meq.Exp(Meq.Negate(input_node(ns,'f2+t2')))
-    if name in ['gaussian_f']:
-       return stub << Meq.Exp(Meq.Negate(input_node(ns,'f2')))
-    if name in ['gaussian_t']:
-       return stub << Meq.Exp(Meq.Negate(input_node(ns,'t2')))
+    elif name in ['gaussian_ft']:
+       stub << Meq.Exp(Meq.Negate(input_node(ns,'f2+t2')))
+    elif name in ['gaussian_f']:
+       stub << Meq.Exp(Meq.Negate(input_node(ns,'f2')))
+    elif name in ['gaussian_t']:
+       stub << Meq.Exp(Meq.Negate(input_node(ns,'t2')))
 
-    ss = name.split('range')                        # e.g. range3
-    if len(ss)>1 and isinstance(int(ss[1]),int):
-       return stub << Meq.Constant(range(int(ss[1])))
+    elif len(name.split('range'))>1:
+       ss = name.split('range')
+       stub << Meq.Constant(range(int(ss[1])))
 
-    if name in ['noise2']: return stub << Meq.GaussNoise(stddev=2.0)
-    if name in ['noise3']: return stub << Meq.GaussNoise(stddev=3.0)
-    if name in ['noise4']: return stub << Meq.GaussNoise(stddev=4.0)
-    if name in ['noise5']: return stub << Meq.GaussNoise(stddev=5.0)
+    elif len(name.split('noise'))>1:
+       ss = name.split('noise')
+       stub << Meq.GaussNoise(stddev=float(ss[1]))
 
-    # Always return an initialized node (..?): 
-    stub << Meq.Constant(0.123456789)               # a safe (?) number
-    print '\n** QR_MeqNodes.input_node(',name,'): not recognised, ->',str(stub),'\n'
+    else:
+       # Always return an initialized node (..?):
+       stub << Meq.Constant(0.123456789)               # a safe (?) number
+       s1 += '(not recognized)'
+       trace = True
+
+    if trace:
+       print '\n',s1,'->',str(stub)
     return stub
 
 #-------------------------------------------------------------------------------
@@ -152,7 +164,7 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLMenu("resampling",
                         TDLOption('opt_resampling_MeqModRes_input',
                                   "input (child) of MeqModRes",
-                                  ['f','t','f+t','ft','ft2','cxft'], more=str),
+                                  ['f','t','f+t','ft','ft2','gaussian_ft','noise3','cxft'], more=str),
                         TDLOption('opt_resampling_MeqModRes_num_freq',
                                   "nr of freq cells for MeqModRes num_cells [nt,nf]",
                                   [4,1,2,3,5,6,10,20,50], more=int),
@@ -1177,10 +1189,13 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      ss = ['f','range4','range4','gaussian_ft']
-      ss.extend(['dummy'])
-      for name in ss:
-         print '- input_node(ns,',name,') ->',input_node(ns, name)
+      input_node(ns, 'f', trace=True)
+      input_node(ns, 'ft', trace=True)
+      input_node(ns, 'f**t', trace=True)
+      input_node(ns, 'f+t', trace=True)
+      input_node(ns, 'range3', trace=True)
+      input_node(ns, 'noise3.5', trace=True)
+      input_node(ns, 'dummy', trace=True)
 
    rider = QR.create_rider()             # CollatedHelpRecord object
    if 0:
