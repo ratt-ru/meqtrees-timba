@@ -78,11 +78,102 @@ import QuickRefUtil as QR
 # import random
 
 
+#******************************************************************************** 
+# TDLCompileMenu (included in QuickRef menu):
+#********************************************************************************
+
+def input_node(ns, name):
+    """Return a standard (name) input node. Create it if ncessary.
+    """
+    stub = QR.nodestub(ns, name)
+    if stub.initialized():          # node already exists
+        return stub                 # return it
+
+    if name in ['f','freq','MeqFreq']:
+       return stub << Meq.Freq()
+    if name in ['t','time','MeqTime']:
+       return stub << Meq.Time()
+
+    if name in ['nf']:
+       return stub << Meq.NElements(input_node(ns,'f'))
+    if name in ['nt']:
+       return stub << Meq.NElements(input_node(ns,'t'))
+    if name in ['nft']:
+       return stub << Meq.NElements(input_node(ns,'ft'))
+
+    if name in ['f+t','t+f']:
+       return stub << Meq.Add(input_node(ns,'f'),input_node(ns,'t'))
+    if name in ['tf','ft','f*t','t*f']:
+       return stub << Meq.Multiply(input_node(ns,'f'),input_node(ns,'t'))
+    if name in ['cft','cxft']:
+       return stub << Meq.ToComplex(input_node(ns,'f'),input_node(ns,'t'))
+    if name in ['ctf','cxtf']:
+       return stub << Meq.ToComplex(input_node(ns,'t'),input_node(ns,'f'))
+
+    if name in ['f2','f**2']:
+       return stub << Meq.Pow2(input_node(ns,'f'))
+    if name in ['t2','t**2']:
+       return stub << Meq.Pow2(input_node(ns,'t'))
+    if name in ['ft2']:
+       return stub << Meq.Pow2(input_node(ns,'ft'))
+    if name in ['f2+t2','t2+f2']:
+       return stub << Meq.Add(input_node(ns,'f2'),input_node(ns,'t2'))
+
+    if name in ['gaussian_ft']:
+       return stub << Meq.Exp(Meq.Negate(input_node(ns,'f2+t2')))
+    if name in ['gaussian_f']:
+       return stub << Meq.Exp(Meq.Negate(input_node(ns,'f2')))
+    if name in ['gaussian_t']:
+       return stub << Meq.Exp(Meq.Negate(input_node(ns,'t2')))
+
+    ss = name.split('range')                        # e.g. range3
+    if len(ss)>1 and isinstance(int(ss[1]),int):
+       return stub << Meq.Constant(range(int(ss[1])))
+
+    if name in ['noise2']: return stub << Meq.GaussNoise(stddev=2.0)
+    if name in ['noise3']: return stub << Meq.GaussNoise(stddev=3.0)
+    if name in ['noise4']: return stub << Meq.GaussNoise(stddev=4.0)
+    if name in ['noise5']: return stub << Meq.GaussNoise(stddev=5.0)
+
+    # Always return an initialized node (..?): 
+    stub << Meq.Constant(0.123456789)               # a safe (?) number
+    print '\n** QR_MeqNodes.input_node(',name,'): not recognised, ->',str(stub),'\n'
+    return stub
+
+#-------------------------------------------------------------------------------
+
+TDLCompileMenu("QR_MeqNodes categories:",
+               TDLOption('opt_allcats',"all",True),
+               TDLOption('opt_unops',"Unary nodes (one child)",False),
+               TDLOption('opt_binops',"Binary nodes",False),
+               TDLOption('opt_leaves',"Leaf nodes (no children)",False),
+               TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
+               TDLOption('opt_reduction',"reduction",False),
+               TDLMenu("resampling",
+                        TDLOption('opt_resampling_MeqModRes_input',
+                                  "input (child) of MeqModRes",
+                                  ['f','t','f+t','ft','ft2','cxft'], more=str),
+                        TDLOption('opt_resampling_MeqModRes_num_freq',
+                                  "nr of freq cells for MeqModRes num_cells [nt,nf]",
+                                  [4,1,2,3,5,6,10,20,50], more=int),
+                        TDLOption('opt_resampling_MeqModRes_num_time',
+                                  "nr of time cells for MeqModRes num_cells [nt,nf]",
+                                  [4,1,2,3,5,6,10,20,50], more=int),
+                        TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
+                                  [1,2]),
+                        toggle='opt_resampling'),
+               TDLOption('opt_flagging',"flagging",False),
+               TDLOption('opt_solving',"solving",False),
+               TDLOption('opt_visualization',"visualization",False),
+               TDLOption('opt_transforms',"transforms",False),
+               TDLOption('opt_flowcontrol',"flowcontrol",False),
+               toggle='opt_QR_MeqNodes',
+               )
+
 
 #********************************************************************************
 # Top function, called from QuickRef.py:
 #********************************************************************************
-
 
 
 def MeqNodes (ns, path, rider=None):
@@ -108,7 +199,6 @@ def MeqNodes (ns, path, rider=None):
       cc.append(flagging (ns, path, rider=rider))
    if opt_allcats or opt_solving:
       cc.append(solving (ns, path, rider=rider))
-
    # cc.append(visualization (ns, path, rider=rider))
    # cc.append(transforms (ns, path, rider=rider))
    # cc.append(flowcontrol (ns, path, rider=rider))
@@ -218,15 +308,34 @@ def reduction (ns, path, rider=None):
 
 def resampling (ns, path, rider=None):
    """
-   MeqModRes
-   MeqResampler
-   MeqCompounder
+   The number of cells in the domain may be changed locally:
+   ...
+   - The MeqModRes(child, num_cells=[2,3]) node changes the number
+   of cells in the domain of the REQUEST that it issues to its child.
+   Thus, the entire subtree below the child is evaluated with this
+   resolution. 
+   - The MeqResample(child, mode=1) resamples the domain of the Result
+   it gets from its child, to match the resolution of the Request that
+   it received itself. (So it does nothing if the domains already match,
+   i.e. if there is no MeqModRes upstream).
+   - The MeqResample(child, mode=2) resamples in a different way...
+   .....
+   This feature has been developed (by Sarod) for 'peeling': If the
+   phase-centre is shifted to the position of the peeling source, its
+   visibility function will be smooth over the domain, so it is not
+   necessary to predict it at the full time/freq resolution of the data.
+   Since the number of cells may be 100 less, this can save a lot of
+   processing.
+   There may also be other applications of these nodes....
    """
    bundle_help = resampling.__doc__
    path = QR.add2path(path,'resampling')
+   input = input_node (ns, opt_resampling_MeqModRes_input)
+   num_cells = [opt_resampling_MeqModRes_num_time,
+                opt_resampling_MeqModRes_num_freq]
+   mode = opt_resampling_MeqResampler_mode
    cc = []
-   cc.append(resampling_modres (ns, path, rider=rider))
-   # cc.append(resampling_compounder (ns, path, rider=rider))
+   cc.append(resampling_experiment (ns, path, rider, input, num_cells, mode))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -459,88 +568,21 @@ def flagging_simple (ns, path, rider=None):
 #================================================================================
 
 
-def resampling_modres (ns, path, rider=None):
+def resampling_experiment (ns, path, rider,
+                           input=None, num_cells=[2,3], mode=1):
    """
-   Demonstration of changing the number of cells in the domain.
-   ...
-   - The MeqModRes(child, num_cells=[2,3]) node changes the number
-   of cells in the domain of the REQUEST that it issues to its child.
-   Thus, the entire subtree below the child is evaluated with this
-   resolution. 
-   - The MeqResample(child, mode=1) resamples the domain of the Result
-   it gets from its child, to match the resolution of the Request that
-   it received itself. (So it does nothing if the domains already match,
-   i.e. if there is no MeqModRes upstream).
-   - The MeqResample(child, mode=2) resamples in a different way
-   .....
-   The various examples show the difference between the input, and after
+   The experiment shows the difference between the input, and after
    a sequence of ModRes and Resample. Obviously, the differences are
    smaller when the input is smoother and/or when num_cells is larger.
-   ...
-   This feature has been developed (by Sarod) for 'peeling': If the
-   phase-centre is shifted to the position of the peeling source, its
-   visibility function will be smooth over the domain, so it is not
-   necessary to predict it at the full time/freq resolution of the data.
-   Since the number of cells may be 100 less, this can save a lot of
-   processing.
-   There may also be other applications of these nodes....
+   You may experiment with different inputs, MeqModRes num_cells or
+   MeqResampler mode, by modifying the TDLOptions and recompiling and
+   re-executing.
    """
-   bundle_help = resampling_modres.__doc__
-   path = QR.add2path(path,'modres')
-   cc = []
-   cc.append(resampling_modres_noise (ns, path, rider=rider))
-   cc.append(resampling_modres_linear (ns, path, rider=rider))
-   cc.append(resampling_modres_curved (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
-
-#--------------------------------------------------------------------------------
-
-def resampling_modres_noise (ns, path, rider=None):
-   """
-   The input is gaussian noise. The ModRes and Resampling have a smoothing effect.
-   """
-   bundle_help = resampling_modres_noise.__doc__
-   path = QR.add2path(path,'noise')
-   num_cells = opt_resampling_MeqModRes_num_cells
-   mode = opt_resampling_MeqResampler_mode
-   print '\n** resampling_modres_noise(): num_cells =',num_cells,'  mode =',mode,'\n'
-   return resampling_modres_generic (ns, path, rider, bundle_help, input=ns.noise2,
-                                     num_cells=num_cells, mode=mode)
-
-#--------------------------------------------------------------------------------
-
-def resampling_modres_linear (ns, path, rider=None):
-   """
-   The input is linear over the domain. The fact that the residuals are very small
-   despite the small number of cells, proves that the basic algorithm is sound.
-   """
-   bundle_help = resampling_modres_linear.__doc__
-   path = QR.add2path(path,'linear')
-   return resampling_modres_generic (ns, path, rider, bundle_help, input=ns.xy)
-
-#--------------------------------------------------------------------------------
-
-def resampling_modres_curved (ns, path, rider=None):
-   """
-   The input is curved over the domain. The residuals reflect the fact that the
-   function is not quite linear over a cell. The residuals will be smaller if the
-   cells are smaller, i.e. for larger values of num_cells.
-   """
-   bundle_help = resampling_modres_curved.__doc__
-   path = QR.add2path(path,'curved')
-   return resampling_modres_generic (ns, path, rider, bundle_help,
-                                     input=ns.gaussian2D, num_cells=[4,5])
-
-#--------------------------------------------------------------------------------
-
-def resampling_modres_generic (ns, path, rider, bundle_help, input,
-                                num_cells=[2,3], mode=1):
-   """
-   Generic subtree to demonstrate MeqModRes resampling.
-   """
+   bundle_help = resampling_experiment.__doc__
+   path = QR.add2path(path,'experiment')
    original = QR.uniquestub(ns, 'original') << Meq.Identity(input)
    modres = QR.MeqNode (ns, path, meqclass='ModRes',
-                        name='ModRes(input, num_cells='+str(num_cells)+')',
+                        name='ModRes(original, num_cells=[nt,nf])',
                         help='changes the resolution of the REQUEST',
                         rider=rider, children=[input], num_cells=num_cells)
    resampled = QR.MeqNode (ns, path, meqclass='Resampler',
@@ -1074,26 +1116,7 @@ TDLRuntimeMenu(":")
 TDLRuntimeMenu("QuickRef runtime options:", QR)
 TDLRuntimeMenu(":")
 
-TDLCompileMenu("QR_MeqNodes categories:",
-               TDLOption('opt_allcats',"all",True),
-               TDLOption('opt_unops',"Unary nodes (one child)",False),
-               TDLOption('opt_binops',"Binary nodes",False),
-               TDLOption('opt_leaves',"Leaf nodes (no children)",False),
-               TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
-               TDLOption('opt_reduction',"reduction",False),
-               TDLMenu("resampling",
-                        TDLOption('opt_resampling_MeqModRes_num_cells',"num_cells for MeqModRes",
-                                  [[2,3],[3,4],[4,3],[5,5],[20,20]]),
-                        TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
-                                  [1,2]),
-                        toggle='opt_resampling'),
-               TDLOption('opt_flagging',"flagging",False),
-               TDLOption('opt_solving',"solving",False),
-               TDLOption('opt_visualization',"visualization",False),
-               TDLOption('opt_transforms',"transforms",False),
-               TDLOption('opt_flowcontrol',"flowcontrol",False),
-               toggle='opt_QR_MeqNodes',
-               )
+# For TDLCompileMenu, see the top of this module
 
 
 #--------------------------------------------------------------------------------
@@ -1101,27 +1124,14 @@ TDLCompileMenu("QR_MeqNodes categories:",
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
-   trace = False
-   # trace = True
-
-   # Make some standard child-nodes with standard names
-   scnodes = QR.standard_child_nodes(ns)
-
-   # Make bundles of (bundles of) categories of nodes/subtrees:
-   rootnodename = 'QR_MeqNodes'                 # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
    global rider                                 # used in tdl_jobs
    rider = QR.create_rider()                    # CollatedHelpRecord object
-   cc = []
-   cc = [scnodes]
-   cc.append(MeqNodes(ns, path, rider))
-
-   # Make the outer bundle (of node bundles):
-   bundle_help = __doc__
-   QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
-
-   if trace:
-      rider.show('_define_forest()')
+   rootnodename = 'QR_MeqNodes'                 # The name of the node to be executed...
+   path = rootnodename                          # Root of the path-string
+   QR.bundle (ns, path,
+              nodes=[MeqNodes(ns, path, rider)],
+              help=__doc__,
+              rider=rider)
 
    # Finished:
    return True
@@ -1166,11 +1176,17 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
-   rider = QR.create_rider()             # CollatedHelpRecord object
-   MeqNodes(ns, 'test', rider=rider)
-
    if 1:
-      rider.show('testing')
+      ss = ['f','range4','range4','gaussian_ft']
+      ss.extend(['dummy'])
+      for name in ss:
+         print '- input_node(ns,',name,') ->',input_node(ns, name)
+
+   rider = QR.create_rider()             # CollatedHelpRecord object
+   if 0:
+      MeqNodes(ns, 'test', rider=rider)
+      if 0:
+         rider.show('testing')
 
    if 0:
       subject = 'unops'

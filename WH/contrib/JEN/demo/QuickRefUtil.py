@@ -109,6 +109,24 @@ def standard_child_nodes (ns):
 
 #-------------------------------------------------------------------------------
 
+def standard_node(ns, name):
+    """Return a standard (name) node. Create it if ncessary.
+    See QR_MeqNodes for a more elaborate version....
+    """
+    stub = nodestub(ns, name)
+    if stub.initialized():
+        return stub
+
+    if name=='f': return stub << Meq.Freq()
+    if name=='t': return stub << Meq.Time()
+
+    # Always return an initialized node:
+    stub << Meq.Constant(0.123456789)
+    print '\n** .standard_node(',name,'): not recognised, ->',str(stub),'\n'
+    return stub
+
+#===============================================================================
+
 def _define_forest (ns, **kwargs):
     """Just for testing the various utility functions"""
 
