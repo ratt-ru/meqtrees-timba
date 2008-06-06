@@ -70,8 +70,8 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def add (self, path=None, help=None, rr=None, level=0, trace=False):
-      """Attach a help-item at the designated (path) position (recursive)
+   def insert_help (self, path=None, help=None, rr=None, level=0, trace=False):
+      """Insert a help-item at the designated (path) position (recursive)
       """
       if level==0:
          rr = self._chrec
@@ -87,13 +87,13 @@ class CollatedHelpRecord (object):
             rr[key].order = []
 
       if len(path)>1:                        # recursive
-         self.add(path=path[1:], help=help, rr=rr[key],
-                  level=level+1, trace=trace)
+         self.insert_help(path=path[1:], help=help, rr=rr[key],
+                          level=level+1, trace=trace)
       else:
          rr[key].help = help                 # may be list of strings...
          if trace:
             prefix = self.prefix(level)
-            print '.add():',prefix,key,':',help
+            print '.insert_help():',prefix,key,':',help
       # Finished:
       return None
 
@@ -321,7 +321,7 @@ if __name__ == '__main__':
    if 0:
       path = 'aa.bb.cc.dd'
       help = 'xxx'
-      rider.add(path=path, help=help, trace=True)
+      rider.insert_help(path=path, help=help, trace=True)
 
    if 1:
       import QR_MeqNodes

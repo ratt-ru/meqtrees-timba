@@ -44,7 +44,9 @@ any MeqTrees contributor, following a number of simple rules.
 #   - OMS:Can we plot the result of each request in a sequence while it is running....?
 #         (this problem may have been solved....)
 #   - AGW: Flag-information is lost when a panel is floated in a separate window.
-#          Also in the plot-memory... (Try unary_elementary sqrt(noise3))  
+#          Also in the plot-memory... (Try unary_elementary sqrt(noise3))
+#   - AGW: When the flags are "toggled" the colorbar scale does not change,
+#          and neither do the mean/stddev in the top-right corner...
 #
 #   - OMS: TDLCompileMenu should have tick-box option (just like the TDLOption)
 #     Or should I read the manual better?

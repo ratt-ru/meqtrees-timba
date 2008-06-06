@@ -4,7 +4,8 @@ Gives an overview over all available MeqNodes.
 It may be called from the module QuickRef.py.
 But it may also be used stand-alone.
 -- Load the TDL script into the meqbrowser.
--- Using TDL Options, select categories to be includes.
+-- Using TDL Options, select categories to be included,
+.    and customize parameters and input children.
 -- Compile: The tree will appear in the left panel.
 .    (NB: the state record of each node has a quickref_help field)
 -- Use the bookmarks to select one or more views.
@@ -86,34 +87,55 @@ import QuickRefUtil as QR
 TDLCompileMenu("QR_MeqNodes categories:",
                TDLOption('opt_allcats',"all",True),
                TDLMenu("Unary nodes (one child)",
-                        TDLOption('opt_unops_twig',"input twig (child node)",
-                                  QR.twig_names(), more=str),
-                        toggle='opt_unops'),
+                       TDLOption('opt_unops_twig',"input twig (child node)",
+                                 QR.twig_names(), more=str),
+                       toggle='opt_unops'),
                TDLMenu("Binary math nodes (two children)",
-                        TDLOption('opt_binops_math_lhs',"lhs twig (child node)",
-                                  QR.twig_names(), more=str),
-                        TDLOption('opt_binops_math_rhs',"rhs twig (child node)",
-                                  QR.twig_names(), more=str),
-                        toggle='opt_binops_math'),
-               TDLOption('opt_multi_math',"Math on one or more children",False),
+                       TDLOption('opt_binops_math_lhs',"lhs twig (child node)",
+                                 QR.twig_names(), more=str),
+                       TDLOption('opt_binops_math_rhs',"rhs twig (child node)",
+                                 QR.twig_names(), more=str),
+                       toggle='opt_binops_math'),
+               TDLMenu("Math on an arbitrary nr of children",
+                       TDLOption('opt_multi_math_twig1',"1st twig (child node)",
+                                 QR.twig_names(), more=str),
+                       TDLOption('opt_multi_math_twig2',"2nd twig (child node)",
+                                 QR.twig_names(include=[None]), more=str),
+                       TDLOption('opt_multi_math_twig3',"3rd twig (child node)",
+                                 QR.twig_names(include=[None]), more=str),
+                       toggle='opt_multi_math'),
                TDLOption('opt_leaves',"Leaf nodes (no children)",False),
                TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
                TDLOption('opt_axis_reduction',"axis_reduction",False),
                TDLMenu("resampling",
-                        TDLOption('opt_resampling_MeqModRes_twig',
-                                  "input twig (child node) of MeqModRes",
-                                  QR.twig_names(), more=str),
-                        TDLOption('opt_resampling_MeqModRes_num_freq',
-                                  "nr of freq cells for MeqModRes num_cells [nt,nf]",
-                                  [4,1,2,3,5,6,10,20,50], more=int),
-                        TDLOption('opt_resampling_MeqModRes_num_time',
-                                  "nr of time cells for MeqModRes num_cells [nt,nf]",
-                                  [4,1,2,3,5,6,10,20,50], more=int),
-                        TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
-                                  [1,2]),
-                        toggle='opt_resampling'),
-               TDLOption('opt_flagging',"flagging",False),
-               TDLOption('opt_solving',"solving",False),
+                       TDLOption('opt_resampling_MeqModRes_twig',
+                                 "input twig (child node) of MeqModRes",
+                                 QR.twig_names(), more=str),
+                       TDLOption('opt_resampling_MeqModRes_num_freq',
+                                 "nr of freq cells for MeqModRes num_cells [nt,nf]",
+                                 [4,1,2,3,5,6,10,20,50], more=int),
+                       TDLOption('opt_resampling_MeqModRes_num_time',
+                                 "nr of time cells for MeqModRes num_cells [nt,nf]",
+                                 [4,1,2,3,5,6,10,20,50], more=int),
+                       TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
+                                 [1,2]),
+                       toggle='opt_resampling'),
+               TDLMenu("flagging",
+                       TDLOption('opt_flagging_twig',"input twig (child node)",
+                                 QR.twig_names('noise', first='noise3'), more=str),
+                       TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
+                                 [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
+                       toggle='opt_flagging'),
+               TDLMenu("solving",
+                       TDLMenu("solving_poly",
+                               TDLOption('opt_solving_poly_twig',"input twig (lhs of condeq)",
+                                         QR.twig_names(first='gaussian_ft'), more=str),
+                               TDLOption('opt_solving_poly_fdeg',"polynomial degree in freq",
+                                         range(6), more=int),
+                               TDLOption('opt_solving_poly_tdeg',"polynomial degree in time",
+                                         range(6), more=int),
+                               toggle='opt_solving_poly'),
+                       toggle='opt_solving'),
                TDLOption('opt_visualization',"visualization",False),
                TDLOption('opt_transforms',"transforms",False),
                TDLOption('opt_flowcontrol',"flowcontrol",False),
@@ -321,7 +343,8 @@ def solving (ns, path, rider=None):
    path = QR.add2path(path,'solving')
    cc = []
    cc.append(solving_ab (ns, path, rider=rider))
-   # cc.append(solving_single (ns, path, rider=rider))
+   if opt_solving_poly:
+      cc.append(solving_poly (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -409,10 +432,10 @@ def solving_ab (ns, path, rider=None):
    bundle_help = solving_ab.__doc__
    path = QR.add2path(path,'ab')
 
-   a = QR.uniquestub(ns, 'a') << Meq.Parm(0)
-   b = QR.uniquestub(ns, 'b') << Meq.Parm(0)
-   p = QR.uniquestub(ns, 'p') << Meq.Constant(10)
-   q = QR.uniquestub(ns, 'q') << Meq.Constant(2)
+   a = QR.unique_stub(ns, 'a') << Meq.Parm(0)
+   b = QR.unique_stub(ns, 'b') << Meq.Parm(0)
+   p = QR.unique_stub(ns, 'p') << Meq.Constant(10)
+   q = QR.unique_stub(ns, 'q') << Meq.Constant(2)
    sum_ab = ns << Meq.Add(a,b) 
    diff_ab = ns << Meq.Subtract(a,b)
    condeqs = []
@@ -436,32 +459,36 @@ def solving_ab (ns, path, rider=None):
 #--------------------------------------------------------------------------------
 
 
-def solving_ft (ns, path, rider=None):
+def solving_poly (ns, path, rider=None):
    """
-   Demonstration of solving for two unknown parameters (a,b),
-   using two linear equations (one condeq child each):
-   - condeq 0:  a + b = p (=10)
-   - condeq 1:  a - b = q (=2)
-   The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
-   Condeq Results are the solution residuals, which should be small.
+   Demonstration of solving for the coefficients of a freq-time polynomial.
+   It is fitted to the specified twig (e.g. a 2D gaussian).
+   A separate equation is generated for each cell of the Request domain.
+   The number of cells should be greater than the number of unknowns.
+   In this case, this is the number of MeqParms, which have polcs with only
+   a single coefficient (c00). NB: Try solving for freq-time polcs....)
+   If the input (twig) function does not vary much over the domain, there
+   is not enough information to solve for higher-order polynomial coeff.
+   In this case, the solution will 'lose rank', which is indicated in the
+   solver plot: the black line on the right leaves the right edge. 
    """
-   bundle_help = solving_ab.__doc__
-   path = QR.add2path(path,'ab')
+   bundle_help = solving_poly.__doc__
+   path = QR.add2path(path,'poly')
 
-   a = QR.uniquestub(ns, 'a') << Meq.Parm(0)
-   b = QR.uniquestub(ns, 'b') << Meq.Parm(0)
-   sum_ab = ns << Meq.Add(a,b) 
-   diff_ab = ns << Meq.Subtract(a,b)
-   condeqs = []
-   condeqs.append(ns << Meq.Condeq(sum_ab, 10))
-   condeqs.append(ns << Meq.Condeq(diff_ab, 2))
+   twig = QR.twig(ns, opt_solving_poly_twig)
+   poly = QR.polynomial(ns, fdeg=opt_solving_poly_fdeg,
+                        tdeg=opt_solving_poly_tdeg)
+   parms = QR.find_parms(poly, trace=True)
+   parmset = QR.unique_stub(ns, 'solved_polynomial_coeff') << Meq.Composer(*parms)
+
+   condeq = ns << Meq.Condeq(poly, twig)
    solver = QR.MeqNode (ns, path, meqclass='Solver',
-                        name='Solver(*condeqs, solvable=[a,b])',
-                        help='Solver', rider=rider, children=condeqs,
-                        solvable=[a,b])  
-   cc = [solver,condeqs[0],condeqs[1],a,b]
+                        name='Solver(condeq(poly,twig))',
+                        help='Solver', rider=rider, children=[condeq],
+                        solvable=parms)  
+   cc = [solver,condeq,poly,parmset]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
-                     reqseq=0)
+                     parentclass='ReqSeq', result_index=0)
 
 
 #--------------------------------------------------------------------------------
@@ -476,19 +503,21 @@ def flagging_simple (ns, path, rider=None):
    """
    Demonstration of simple flagging. A zero-criterion (zcrit) is calculated
    by a little subtree. This calculates the abs(diff) from the mean of the
-   input, and then subtracts 5 times its stddev.
+   input, and then subtracts 'nsigma' times its stddev.
    The ZeroFlagger(oper=GE) flags all domain cells whose zcrit value is >= 0.
    Other behaviour can be specified with oper=LE or GT or LT.
    The MergeFlags node merges the new flags with the original flags of the input.
    """
    bundle_help = flagging_simple.__doc__
    path = QR.add2path(path,'simple')
-   twig = QR.uniquestub(ns,'twig') << Meq.Exp(QR.twig(ns,'noise3'))
+   twig = QR.unique_stub(ns,'twig') << Meq.Exp(QR.twig(ns, opt_flagging_twig))
    mean =  ns << Meq.Mean(twig)
    stddev =  ns << Meq.Stddev(twig)
    diff = ns << Meq.Subtract(twig,mean)
    absdiff = ns << Meq.Abs(diff)
-   zcrit = QR.uniquestub(ns,'zcrit') << Meq.Subtract(absdiff,5*stddev)
+   nsigma = opt_flagging_nsigma
+   zcritname = 'zcrit(nsigma='+str(nsigma)+')'
+   zcrit = QR.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
    zflag = QR.MeqNode (ns, path, meqclass='ZeroFlagger',
                        name='ZeroFlagger(zcrit, oper=GE)',
                        help='oper=GE: Flag all cells for which zcrit>=0.0.',
@@ -520,7 +549,7 @@ def resampling_experiment (ns, path, rider,
    """
    bundle_help = resampling_experiment.__doc__
    path = QR.add2path(path,'experiment')
-   original = QR.uniquestub(ns, 'original') << Meq.Identity(twig)
+   original = QR.unique_stub(ns, 'original') << Meq.Identity(twig)
    modres = QR.MeqNode (ns, path, meqclass='ModRes',
                         name='ModRes(original, num_cells=[nt,nf])',
                         help='changes the resolution of the REQUEST',
@@ -529,7 +558,7 @@ def resampling_experiment (ns, path, rider,
                            name='Resampler(modres, mode='+str(mode)+')',
                            help='resamples the domain according to the twig request',
                            rider=rider, children=[modres], mode=mode)
-   diff = QR.uniquestub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
+   diff = QR.unique_stub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
    return QR.bundle (ns, path, nodes=[diff], help=bundle_help, rider=rider,
                      bookmark=[original, modres, resampled, diff])
 
@@ -867,16 +896,17 @@ def leaves_FITS (ns, path, rider=None):
 
 def unops_elementary (ns, path, rider=None, twig=None):
    """
-   Elementary unary operations.
+   Elementary unary math operations.
    """
    bundle_help = unops_elementary.__doc__
    path = QR.add2path(path,'elementary')
    cc = [twig]
-   help = ''
+   help = record(Negate='-c', Invert='1/c', Exp='exp(c)', Sqrt='square root',
+                 Log='e-log (for 10-log, divide by Log(10))')
    for q in ['Negate','Invert','Exp','Log','Sqrt']:
       # NB: explain log...
       cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
-                            help=help, rider=rider, children=[twig]))
+                            help=help[q], rider=rider, children=[twig]))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -914,7 +944,7 @@ def unops_hyperbolic (ns, path, rider=None, twig=None):
 
 def unops_complex (ns, path, rider=None, twig=None):
    """
-   Operations on a (usually) complex child.
+   Complex unary math operations on a (usually) complex child.
    """
    bundle_help = unops_complex.__doc__
    path = QR.add2path(path,'complex')
@@ -948,7 +978,7 @@ def unops_power (ns, path, rider=None, twig=None):
 
 def unops_misc (ns, path, rider=None, twig=None):
    """
-   Miscellaneous unary operations.
+   Miscellaneous unary math operations.
    """
    bundle_help = unops_misc.__doc__
    path = QR.add2path(path,'misc')
@@ -972,18 +1002,20 @@ def unops_misc (ns, path, rider=None, twig=None):
 
 def binops_math (ns, path, rider=None):
    """
-   Binary math operations (two children). The operation is performed cell-by-cell.
-   If the first child (left-hand-side, lhs) has a result with multiple vellsets
-   ('tensor-node'), there are two possibilities: If the second child (rhs) is a
-   'scalar node', its single vellset is applied to all the vellsets of lhs.
-   Otherwise, the Result of rhs must have the same number of vellsets as lhs,
-   and the operation is performed between corresponding vellsets.
+   Binary math operations (two children).
+   The operation is performed cell-by-cell.
+   The input children may be selected, for experimentation.
+   - If the first child (left-hand-side, lhs) has a result with multiple vellsets
+   .    ('tensor-node'), there are two possibilities: If the second child (rhs) is a
+   .    'scalar node', its single vellset is applied to all the vellsets of lhs.
+   - Otherwise, the Result of rhs must have the same number of vellsets as lhs,
+   .    and the operation is performed between corresponding vellsets.
    The final Result always has the same shape (number of vellsets) as lhs.
    """
    bundle_help = binops_math.__doc__
    path = QR.add2path(path,'binops_math')
-   lhs = QR.twig(ns, opt_binops_math_lhs)
-   rhs = QR.twig(ns, opt_binops_math_rhs)
+   lhs = QR.twig(ns, opt_binops_math_lhs)         # left-hand side (child)
+   rhs = QR.twig(ns, opt_binops_math_rhs)         # right-hand side (child)
    cc = []
    help = record(Subtract='lhs-rhs', Divide='lhs/rhs', Pow='lhs^rhs',
                  Mod='lhs%rhs',
@@ -1003,39 +1035,55 @@ def binops_math (ns, path, rider=None):
 
 def multi_math (ns, path, rider=None):
    """
-   Math operations on one (!) or more children. The operation is performed
-   cell-by-cell. If the number of children is two, the same rules apply as
-   for binary operations (see binops_two_children).
-   If the number of children is greater than two, the Results of all children
-   must have the same shape (i.e. the same number of vellsets in their Results).
-   If the number of of children is one.... 
+   Math operations on an arbitrary number (one or more) of children.
+   The operation is performed cell-by-cell.
+   The number and type of children may be selected, for experimentation.
+   - If the number of children is two, the same rules apply as for binary
+   .    operations (see binops_math).
+   - If the number of children is greater than two, the Results of all children
+   .    must have the same shape (i.e. the same number of vellsets in their Results).
+   - If the number of of children is one, its Result is just passed on.
    """
    bundle_help = multi_math.__doc__
    path = QR.add2path(path,'multi_math')
+   # Make the child-related vectors (ignore the ones with opt=None):
+   twigs = [QR.twig(ns,opt_multi_math_twig1)]
+   sname = twigs[0].name
+   weights = [1.0]
+   if opt_multi_math_twig2:
+      twigs.append(QR.twig(ns,opt_multi_math_twig2))
+      sname += ','+twigs[len(twigs)-1].name
+      weights.append(2.0)
+   if opt_multi_math_twig3:
+      twigs.append(QR.twig(ns,opt_multi_math_twig3))
+      sname += ','+twigs[len(twigs)-1].name
+      weights.append(3.0)
    cc = []
-   help = record(Add='c0+c1+c2+...', Multiply='c0*c1*c2*...',
-                 NElements="""the number of cells in the domain.
-                 Not quite safe if there are flags....""",
-                 WSum="""Weighted sum: w[0]*c0 + w[1]*c1 + w[2]*c2 + ...
+
+   # First the simple ones:
+   help = record(Add='c0+c1+c2+...',
+                 Multiply='c0*c1*c2*...')
+   for q in ['Add','Multiply']:
+      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+sname+')',
+                            help=help[q], rider=rider,
+                            children=twigs))
+
+   # Then the weighted ones:
+   help = record(WSum="""Weighted sum: w[0]*c0 + w[1]*c1 + w[2]*c2 + ...
                  The weights vector (weights) is a vector of DOUBLES (!)""",
                  WMean="""Weighted mean, the same as WSum, but divides by
                  the sum of the weights (w[0]+w[1]+w[2]+....)""")
-   children = [QR.twig(ns,'f'), QR.twig(ns,'f'), QR.twig(ns,'ft')]
-   for q in ['Add','Multiply']:
-   # NElements gives problems with more than one child:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(f,t,ft)',
-                            help=help[q], rider=rider,
-                            children=children))
-   if False:
-      # Problem: NElements() gives problems with more than one child:
-      cc.append(QR.MeqNode (ns, path, meqclass='NElements', name='NElements(f,t,ft)',
-                            help=help['NElements'], rider=rider,
-                            children=children))
+   sw = str(weights).replace('.0','').replace('.',',')
    for q in ['WSum','WMean']:
-      weights = [2.0,3.0,4.0]
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'(f,t,ft,weights=ww)',
+      print '\n** ',q,': weigths =',weights,'\n'
+      cc.append(QR.MeqNode (ns, path, meqclass=q,
+                            name=q+'('+sname+',weights='+sw+')',
                             help=help[q], rider=rider,
-                            children=children, weights=weights))
+                            weights=weights, children=twigs))
+
+   # Attach the input twigs to the bundle, for inspection.
+   # NB: If attached at the start, WMean and WSum refuse to plot....?
+   cc.extend(twigs)
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
