@@ -51,15 +51,15 @@ from handle_beams import *
 import os
 
 Settings.forest_state = record(bookmarks=[
-  record(name='condeq',page=Bookmarks.PlotPage(
-      ["condeq"], ["width"],
+  record(name='fit',page=Bookmarks.PlotPage(
+      ["I"], ["condeq"], ["width"],
   )),
 ])
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_offset','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
 
 mep_beam_parms = 'beam_widths.mep'
 
@@ -108,18 +108,9 @@ def _define_forest(ns):
   BEAMS = range(0,num_beams)
 
   for k in BEAMS:
-    # normalize
-    ns.y_im_sq(k) << ns.image_re_yy(k) * ns.image_re_yy(k) + ns.image_im_yy(k) * ns.image_im_yy(k) +\
-                  ns.image_re_yx(k) * ns.image_re_yx(k) + ns.image_im_yx(k) * ns.image_im_yx(k)
-    ns.y_im(k) <<Meq.Sqrt(ns.y_im_sq(k))
-    ns.y_im_max(k) <<Meq.Max(ns.y_im(k))
-    ns.norm_image_re_yy(k) << ns.image_re_yy(k) / ns.y_im_max(k)
-    ns.norm_image_im_yy(k) << ns.image_im_yy(k) / ns.y_im_max(k)
-    ns.norm_image_re_yx(k) << ns.image_re_yx(k) / ns.y_im_max(k)
-    ns.norm_image_im_yx(k) << ns.image_im_yx(k) / ns.y_im_max(k)
 
-    ns.resampler_image_re_yy(k) << Meq.Resampler(ns.norm_image_re_yy(k),dep_mask = 0xff)
-    ns.resampler_image_im_yy(k) << Meq.Resampler(ns.norm_image_im_yy(k),dep_mask = 0xff)
+    ns.resampler_image_re_yy(k) << Meq.Resampler(ns.image_re_yy(k),dep_mask = 0xff)
+    ns.resampler_image_im_yy(k) << Meq.Resampler(ns.image_im_yy(k),dep_mask = 0xff)
     ns.beam_wt_re_y(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_yy(k)],common_axes=[hiid('l'),hiid('m')])
     ns.beam_wt_im_y(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_yy(k)],common_axes=[hiid('l'),hiid('m')])
 
@@ -128,24 +119,13 @@ def _define_forest(ns):
     # take transpose for phase conjugate weighting
     ns.beam_weight_y(k) << Meq.ConjTranspose(ns.beam_wt_y(k))
 
-    ns.beam_yx(k) << Meq.ToComplex(ns.norm_image_re_yx(k), ns.norm_image_im_yx(k)) 
-    ns.beam_yy(k) << Meq.ToComplex(ns.norm_image_re_yy(k), ns.norm_image_im_yy(k))
+    ns.beam_yx(k) << Meq.ToComplex(ns.image_re_yx(k), ns.image_im_yx(k)) 
+    ns.beam_yy(k) << Meq.ToComplex(ns.image_re_yy(k), ns.image_im_yy(k))
     ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
     ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
-    # normalize
-    ns.x_im_sq(k) << ns.image_re_xx(k) * ns.image_re_xx(k) + ns.image_im_xx(k) * ns.image_im_xx(k) +\
-                  ns.image_re_xy(k) * ns.image_re_xy(k) + ns.image_im_xy(k) * ns.image_im_xy(k)
-    ns.x_im(k) <<Meq.Sqrt(ns.x_im_sq(k))
-    ns.x_im_max(k) <<Meq.Max(ns.x_im(k))
-    ns.norm_image_re_xx(k) << ns.image_re_xx(k) / ns.x_im_max(k)
-    ns.norm_image_im_xx(k) << ns.image_im_xx(k) / ns.x_im_max(k)
-    ns.norm_image_re_xy(k) << ns.image_re_xy(k) / ns.x_im_max(k)
-    ns.norm_image_im_xy(k) << ns.image_im_xy(k) / ns.x_im_max(k)
-
-
-    ns.resampler_image_re_xx(k) << Meq.Resampler(ns.norm_image_re_xx(k),dep_mask = 0xff)
-    ns.resampler_image_im_xx(k) << Meq.Resampler(ns.norm_image_im_xx(k),dep_mask = 0xff)
+    ns.resampler_image_re_xx(k) << Meq.Resampler(ns.image_re_xx(k),dep_mask = 0xff)
+    ns.resampler_image_im_xx(k) << Meq.Resampler(ns.image_im_xx(k),dep_mask = 0xff)
     ns.beam_wt_re_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_re_xx(k)],common_axes=[hiid('l'),hiid('m')])
     ns.beam_wt_im_x(k) << Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
 
@@ -154,8 +134,8 @@ def _define_forest(ns):
     # take transpose for phase conjugate weighting
     ns.beam_weight_x(k) << Meq.ConjTranspose(ns.beam_wt_x(k))
 
-    ns.beam_xy(k) << Meq.ToComplex(ns.norm_image_re_xy(k), ns.norm_image_im_xy(k)) 
-    ns.beam_xx(k) << Meq.ToComplex(ns.norm_image_re_xx(k), ns.norm_image_im_xx(k))
+    ns.beam_xy(k) << Meq.ToComplex(ns.image_re_xy(k), ns.image_im_xy(k)) 
+    ns.beam_xx(k) << Meq.ToComplex(ns.image_re_xx(k), ns.image_im_xx(k))
     ns.wt_beam_xy(k) << ns.beam_xy(k) * ns.beam_weight_x(k)
     ns.wt_beam_xx(k) << ns.beam_xx(k) * ns.beam_weight_x(k)
 
@@ -169,8 +149,7 @@ def _define_forest(ns):
   ns.voltage_sum_xx_i << Meq.Imag(ns.voltage_sum_xx)
   ns.voltage_sum_xy_r << Meq.Real(ns.voltage_sum_xy)
   ns.voltage_sum_xy_i << Meq.Imag(ns.voltage_sum_xy)
-  ns.im_sq_x << ns.voltage_sum_xx_r * ns.voltage_sum_xx_r + ns.voltage_sum_xx_i * ns.voltage_sum_xx_i +\
-                  ns.voltage_sum_xy_r * ns.voltage_sum_xy_r + ns.voltage_sum_xy_i * ns.voltage_sum_xy_i
+  ns.im_sq_x << ns.voltage_sum_xx_r * ns.voltage_sum_xx_r + ns.voltage_sum_xx_i * ns.voltage_sum_xx_i 
   ns.im_x <<Meq.Sqrt(ns.im_sq_x)
   ns.im_x_max <<Meq.Max(ns.im_x)
   ns.voltage_sum_xx_norm << ns.voltage_sum_xx / ns.im_x_max
@@ -180,8 +159,7 @@ def _define_forest(ns):
   ns.voltage_sum_yy_i << Meq.Imag(ns.voltage_sum_yy)
   ns.voltage_sum_yx_r << Meq.Real(ns.voltage_sum_yx)
   ns.voltage_sum_yx_i << Meq.Imag(ns.voltage_sum_yx)
-  ns.im_sq_y << ns.voltage_sum_yy_r * ns.voltage_sum_yy_r + ns.voltage_sum_yy_i * ns.voltage_sum_yy_i +\
-                  ns.voltage_sum_yx_r * ns.voltage_sum_yx_r + ns.voltage_sum_yx_i * ns.voltage_sum_yx_i
+  ns.im_sq_y << ns.voltage_sum_yy_r * ns.voltage_sum_yy_r + ns.voltage_sum_yy_i * ns.voltage_sum_yy_i 
   ns.im_y <<Meq.Sqrt(ns.im_sq_y)
   ns.im_y_max <<Meq.Max(ns.im_y)
   ns.voltage_sum_yy_norm << ns.voltage_sum_yy / ns.im_y_max
@@ -227,7 +205,7 @@ def _test_forest(mqs,parent):
   counter = 0
   request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.meq('Node.Execute',record(name='solver',request=request),wait=True);
+  mqs.meq('Node.Execute',record(name='solver',request=request),wait=False);
 
 #####################################################################
 
