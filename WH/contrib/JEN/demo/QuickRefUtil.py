@@ -60,71 +60,10 @@ import os
 # import random
 
 
-#********************************************************************************
-#********************************************************************************
 
-def standard_child_nodes (ns):
-    """Helper function to make some child nodes with standard names,
-    to be used in the various nodes""" 
-    bb = []
-    bb.append(ns << Meq.Constant(2.3))
-    bb.append(ns << 2.4)
-    
-    bb.append(ns.noise2 << Meq.GaussNoise(stddev=2.0))
-    bb.append(ns.noise3 << Meq.GaussNoise(stddev=3.0))
-    bb.append(ns.noise4 << Meq.GaussNoise(stddev=4.0))
-    bb.append(ns.noise5 << Meq.GaussNoise(stddev=5.0))
-    
-    bb.append(ns.range2 << Meq.Constant(range(2)))
-    bb.append(ns.range3 << Meq.Constant(range(3)))
-    bb.append(ns.range4 << Meq.Constant(range(4)))
-    bb.append(ns.range5 << Meq.Constant(range(5)))
-    bb.append(ns.range9 << Meq.Constant(range(9)))
-    
-    bb.append(ns.x << Meq.Freq())
-    bb.append(ns.y << Meq.Time())
-    bb.append(ns.xy << Meq.Add(ns.x,ns.y))
-    
-    bb.append(ns.x2 << Meq.Pow2(ns.x))
-    bb.append(ns.y2 << Meq.Pow2(ns.y))
-    bb.append(ns.xy2 << Meq.Add(ns.x2,ns.y2))
-    bb.append(ns.gaussian1D << Meq.Exp(ns << Meq.Negate(ns.x2)))
-    bb.append(ns.gaussian2D << Meq.Exp(ns << Meq.Negate(ns.xy2)))
-    
-    bb.append(ns.nx << Meq.NElements(ns.x))
-    bb.append(ns.ny << Meq.NElements(ns.y))
-    bb.append(ns.nxy << Meq.NElements(ns.xy))
-    
-    bb.append(ns.cxx << Meq.ToComplex(ns.x,ns.x))
-    bb.append(ns.cyy << Meq.ToComplex(ns.y,ns.y))
-    bb.append(ns.cxy << Meq.ToComplex(ns.x,ns.y))
-    bb.append(ns.cyx << Meq.ToComplex(ns.y,ns.x))
-    
-    bb.append(ns.f << Meq.Freq())
-    bb.append(ns.t << Meq.Time())
-    bb.append(ns.ft << Meq.Add(ns.f,ns.t))
 
-    scn = ns['standard_child_nodes'] << Meq.Composer(children=bb)
-    return scn
-
-#-------------------------------------------------------------------------------
-
-def standard_node(ns, name):
-    """Return a standard (name) node. Create it if ncessary.
-    See QR_MeqNodes for a more elaborate version....
-    """
-    stub = nodestub(ns, name)
-    if stub.initialized():
-        return stub
-
-    if name=='f': return stub << Meq.Freq()
-    if name=='t': return stub << Meq.Time()
-
-    # Always return an initialized node:
-    stub << Meq.Constant(0.123456789)
-    print '\n** .standard_node(',name,'): not recognised, ->',str(stub),'\n'
-    return stub
-
+#===============================================================================
+# Test forest:
 #===============================================================================
 
 def _define_forest (ns, **kwargs):
@@ -132,25 +71,28 @@ def _define_forest (ns, **kwargs):
 
     trace = False
     # trace = True
+    cc = []
     
-    # Make some standard child-nodes with standard names
-    # These are used in the various bundles below.
-    # They are bundles to avoid browser clutter.
-    scnodes = standard_child_nodes(ns)
-    cc = [scnodes]
+    if True:
+        twigs = []
+        for name in twig_names(trace=trace):
+            twigs.append(twig(ns,name))
+        names = []
+        names = ['polynomialf3t2']
+        for name in names:
+            twigs.append(twig(ns,name))
+        twig_bundle = ns.twig_bundle << Meq.Composer(*twigs)
+        cc.append(twig_bundle)
+        JEN_bookmarks.create(twigs)
 
-    nodes = [ns.range3, ns.noise5, ns.gaussian2D, ns.cxy]
-    JEN_bookmarks.create(nodes, name='xxx', folder=None)
     
     rootnodename = 'QuickRefUtil'            # The name of the node to be executed...
     path = rootnodename                      # Root of the path-string
     global rider
     rider = create_rider()                   # CollatedHelpRecord object
-    cc = [scnodes]
     
     # Make the outer bundle (of node bundles):
-    bundle_help = 'QuickRefUtil bundle help'         
-    bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+    bundle (ns, path, nodes=cc, help=__doc__, rider=rider)
     
     if trace:
         rider.show('_define_forest()')
@@ -172,6 +114,8 @@ TDLRuntimeMenu("Printer settings (for hardcopy doc):",
                )
 
 TDLRuntimeMenu("Parameters of the Request domain(s):",
+               # None,
+               TDLOption('runopt_separator',"",['']),
                TDLOption('runopt_nfreq',"nr of cells in freq direction",
                          [20,21,50,100,1000], more=int),
                TDLOption('runopt_fmin',"min freq (domain edge)",
@@ -181,26 +125,29 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                # None,
                TDLOption('runopt_separator',"",['']),
                TDLOption('runopt_ntime',"nr of cells in time direction",
-                         [3,1,2,4,5,10,11,100,1000], more=int),
+                         [3,1,2,4,5,10,11,21,100,1000], more=int),
                TDLOption('runopt_tmin',"min time (domain edge)",
                          [0.0,1.0,-1.0,-10.0], more=float),
                TDLOption('runopt_tmax',"max time (domain edge)",
                          [2.0,10.0,100.0,1000.0], more=float),
                # None,
                TDLOption('runopt_separator',"",['']),
-               TDLOption('runopt_seq_ntime',"nr of steps in time-sequence",
-                         [1,2,3,5,10], more=int),
-               TDLOption('runopt_seq_tstep',"time-step (fraction of domain)",
-                         [0.5,0.1,0.9,1.0,2.0,10.0,-0.5,-1.0], more=float),
+               TDLMenu("sequence parameters",
+                       TDLOption('runopt_seq_ntime',"nr of steps in time-sequence",
+                                 [1,2,3,5,10], more=int),
+                       TDLOption('runopt_seq_tstep',"time-step (fraction of domain-size)",
+                                 [0.5,0.1,0.9,1.0,2.0,10.0,-0.5,-1.0], more=float),
+                       # None,
+                       TDLOption('runopt_separator',"",['']),
+                       TDLOption('runopt_seq_nfreq',"nr of steps in freq-sequence",
+                                 [1,2,3,5,10], more=int),
+                       TDLOption('runopt_seq_fstep',"freq-step (fraction of domain-size)",
+                                 [0.5,0.1,0.9,1.0,math.pi,2*math.pi,-0.5,-1.0], more=float),
+                       ),
                # None,
-               TDLOption('runopt_separator',"",['']),
-               TDLOption('runopt_seq_nfreq',"nr of steps in freq-sequence",
-                         [1,2,3,5,10], more=int),
-               TDLOption('runopt_seq_fstep',"freq-step (fraction of domain)",
-                         [0.5,0.1,0.9,1.0,math.pi,2*math.pi,-0.5,-1.0], more=float),
-               # None,
-               TDLOption('runopt_separator',"",['']),
+               # TDLOption('runopt_separator',"",['']),
                )
+
 # TDLRuntimeOptionSeparator()
 
 #----------------------------------------------------------------------------
@@ -533,6 +480,144 @@ def bundle (ns, path,
 
 
 #====================================================================================
+# Helper functions dealing with standard input twigs:
+#====================================================================================
+
+def twig_names (cat='default', trace=False):
+    """Return a group (category) of valid twig names"""
+    if cat=='all':
+        names = []
+    else:                                      # default category
+        names = ['f','t','f+t','ft','ft2','gaussian_ft','noise3','cxft']
+    if trace:
+        print '** QuickRefUtil.twig_names(',cat,'):',names
+    return names
+
+#-----------------------------------------------------------------------------------
+
+def twig(ns, name, trace=False):
+    """Return a standard (name) subtree (a twig), to be used as input for
+    demonstrations in QR_... nodules.
+    Reuse if it exists already. Create it if necessary.
+    """
+    s1 = '** QuickRefUtil.twig('+str(name)+'):'
+
+    # Derive and condition the nodename:
+    nodename = name
+    nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
+
+    # Check whether the node already exists (i.e. is initialized...)
+    stub = nodestub(ns, nodename)
+    node = None
+    if stub.initialized():                  # node already exists
+        node = stub                         # return it
+
+    # Create a new node:
+    elif name in ['f','freq','MeqFreq']:
+       node = stub << Meq.Freq()
+    elif name in ['t','time','MeqTime']:
+       node = stub << Meq.Time()
+
+    elif name in ['nf']:
+       node = stub << Meq.NElements(twig(ns,'f'))
+    elif name in ['nt']:
+       node = stub << Meq.NElements(twig(ns,'t'))
+    elif name in ['nft']:
+       node = stub << Meq.NElements(twig(ns,'ft'))
+
+    elif name in ['f+t','t+f']:
+       node = stub << Meq.Add(twig(ns,'f'),twig(ns,'t'))
+    elif name in ['tf','ft','f*t','t*f']:
+       node = stub << Meq.Multiply(twig(ns,'f'),twig(ns,'t'))
+    elif name in ['cft','cxft']:
+       node = stub << Meq.ToComplex(twig(ns,'f'),twig(ns,'t'))
+    elif name in ['ctf','cxtf']:
+       node = stub << Meq.ToComplex(twig(ns,'t'),twig(ns,'f'))
+
+    elif name in ['f2','f**2']:
+       node = stub << Meq.Pow2(twig(ns,'f'))
+    elif name in ['t2','t**2']:
+       node = stub << Meq.Pow2(twig(ns,'t'))
+    elif name in ['ft2']:
+       node = stub << Meq.Pow2(twig(ns,'ft'))
+    elif name in ['f2+t2','t2+f2']:
+       node = stub << Meq.Add(twig(ns,'f2'),twig(ns,'t2'))
+
+    elif name in ['f**t']:
+       node = stub << Meq.Pow(twig(ns,'f'),twig(ns,'t'))
+    elif name in ['t**f']:
+       node = stub << Meq.Pow(twig(ns,'t'),twig(ns,'f'))
+
+    elif name in ['gaussian_ft']:
+       node = stub << Meq.Exp(Meq.Negate(twig(ns,'f2+t2')))
+    elif name in ['gaussian_f']:
+       node = stub << Meq.Exp(Meq.Negate(twig(ns,'f2')))
+    elif name in ['gaussian_t']:
+       node = stub << Meq.Exp(Meq.Negate(twig(ns,'t2')))
+
+    elif len(name.split('range'))>1:                  # e.g. 'range4' 
+       ss = name.split('range')
+       node = stub << Meq.Constant(range(int(ss[1])))
+
+    elif len(name.split('noise'))>1:                  # e.g. 'noise2.5'
+       ss = name.split('noise')
+       node = stub << Meq.GaussNoise(stddev=float(ss[1]))
+
+    elif len(name.split('powf'))>1:                   # e.g. 'powf3'
+       ss = name.split('powf')
+       node = twig(ns,'f')
+       if ss[1] in '2345678':
+           node = stub << getattr(Meq,'Pow'+ss[1])(node)
+    elif len(name.split('powt'))>1:                   # e.g. 'powt3'
+       ss = name.split('powt')
+       node = twig(ns,'t')
+       if ss[1] in '2345678':
+           node = stub << getattr(Meq,'Pow'+ss[1])(node)
+
+    elif len(name.split('polyterm'))>1:               # e.g. 'polytermf2t1'
+       ss = name.split('polyterm')
+       tt = ss[1].split('t')
+       ff = tt[0].split('f')
+       # print '\n** tt=',tt,'  ff=',ff,'\n'
+       if tt[1]=='0' and ff[1]=='0':                  # f0t0
+           node = stub << Meq.Constant(1.0)
+       elif tt[1]=='0':                               # f0tn
+           node = stub << Meq.Identity(twig(ns,'powf'+ff[1]))
+       elif ff[1]=='0':                               # f0tn
+           node = stub << Meq.Identity(twig(ns,'powt'+tt[1]))
+       else:                                          # fntm
+           node = stub << Meq.Multiply(twig(ns,'powf'+ff[1]),twig(ns,'powt'+tt[1]))
+
+    elif len(name.split('polynomial'))>1:             # e.g. 'polynomialf2t1'
+       ss = name.split('polynomial')
+       tt = ss[1].split('t')
+       ff = tt[0].split('f')
+       cc = []
+       for f in range(1+int(ff[1])):
+           for t in range(1+int(tt[1])):
+               cc.append(twig(ns,'polyterm'+'f'+str(f)+'t'+str(t), trace=True))
+       node = stub << Meq.Add(*cc)
+
+    # Always return an initialized node (..?):
+    if node==None:
+       node = stub << Meq.Constant(0.123456789)               # a safe (?) number
+       s1 += '                ** (name not recognized!) **'
+       trace = True
+
+    if trace:
+       s1 += ' -> '+str(node)
+       # print dir(node)
+       if getattr(node,'children', None):
+           cc = node.children
+           for c in cc:
+               s1 += '  '+str(c[1])
+       print s1
+    return node
+
+
+
+
+#====================================================================================
 # Functions for (unique) nodename generation:
 #====================================================================================
 
@@ -639,7 +724,7 @@ if __name__ == '__main__':
    print '\n** Start of standalone test of: QuickRefUtil.py:\n' 
    ns = NodeScope()
 
-   if 1:
+   if 0:
       rider = create_rider()          # CollatedHelpRecord object
 
    if 0:
@@ -647,7 +732,31 @@ if __name__ == '__main__':
       help = 'xxx'
       rider.add(path=path, help=help, trace=True)
 
+   #------------------------------------------------
+      
+   if 0:
+       twig_names(trace=True)
+
    if 1:
+       names = twig_names()
+       names = ['powf3','powt6','termf3t1']
+       names = ['polynomialf2t3']
+       for name in names:
+           twig(ns, name, trace=True)
+           
+   if 0:
+      twig(ns, 'f', trace=True)
+      twig(ns, 'ft', trace=True)
+      twig(ns, 'f**t', trace=True)
+      twig(ns, 't**f', trace=True)
+      twig(ns, 'f+t', trace=True)
+      twig(ns, 'range3', trace=True)
+      twig(ns, 'noise3.5', trace=True)
+      twig(ns, 'dummy', trace=True)
+
+   #------------------------------------------------
+
+   if 0:
       stub = nodestub(ns,'xxx',5,-7,c=8,h=9)
       print '\n nodestub() ->',str(stub),type(stub)
       stub << 5.6
