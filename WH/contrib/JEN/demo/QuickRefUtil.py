@@ -7,6 +7,8 @@
 #
 # History:
 #   - 03 june 2008: creation (from QuickRef.py)
+#   - 07 jun 2008: added twig() etc
+#   - 07 jun 2008: added 4D (L,M)
 #
 # Remarks:
 #
@@ -132,7 +134,7 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                          [2.0,10.0,100.0,1000.0], more=float),
                # None,
                TDLOption('runopt_separator',"",['']),
-               TDLMenu("sequence parameters",
+               TDLMenu("(extra) parameters for execute_seqence",
                        TDLOption('runopt_seq_ntime',"nr of steps in time-sequence",
                                  [1,2,3,5,10], more=int),
                        TDLOption('runopt_seq_tstep',"time-step (fraction of domain-size)",
@@ -143,6 +145,23 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                                  [1,2,3,5,10], more=int),
                        TDLOption('runopt_seq_fstep',"freq-step (fraction of domain-size)",
                                  [0.5,0.1,0.9,1.0,math.pi,2*math.pi,-0.5,-1.0], more=float),
+                       ),
+               # None,
+               TDLOption('runopt_separator',"",['']),
+               TDLMenu("(extra) parameters for execute_4D:",
+                       TDLOption('runopt_nL',"nr of cells in L direction",
+                                 [3,1,2,3,5,10,11,21,50,100], more=int),
+                       TDLOption('runopt_Lmin',"min L (domain edge)",
+                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                       TDLOption('runopt_Lmax',"max L (domain edge)",
+                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
+                       TDLOption('runopt_separator',"",['']),
+                       TDLOption('runopt_nM',"nr of cells in M direction",
+                                 [3,1,2,3,5,10,11,21,50,100], more=int),
+                       TDLOption('runopt_Mmin',"min M (domain edge)",
+                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                       TDLOption('runopt_Mmax',"max M (domain edge)",
+                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
                        ),
                # None,
                # TDLOption('runopt_separator',"",['']),
@@ -167,12 +186,36 @@ def make_request (cells, rqtype=None):
 
 #----------------------------------------------------------------------------
 
+def make_cells (foffset=0, toffset=0, ND=2):
+    """Make a cells object, using the Runtime options (runopt_...).
+    """
+    dd = record(freq=(runopt_fmin+foffset, runopt_fmax+foffset),
+                time=(runopt_tmin+toffset, runopt_tmax+toffset))
+    if ND==1:
+        cells = meq.gen_cells(meq.gen_domain(**dd),
+                              num_freq=runopt_nfreq,
+                              num_time=1)
+    elif ND==4:
+        dd.L = (runopt_Lmin, runopt_Lmax)
+        dd.M = (runopt_Mmin, runopt_Mmax)
+        domain = meq.gen_domain(**dd)
+        cells = meq.gen_cells(meq.gen_domain(**dd),
+                              num_freq=runopt_nfreq,
+                              num_time=runopt_nfreq,
+                              num_L=runopt_nL,
+                              num_M=runopt_nM)
+    else:
+        cells = meq.gen_cells(meq.gen_domain(**dd),
+                              num_freq=runopt_nfreq,
+                              num_time=runopt_nfreq)
+    return cells
+
+#----------------------------------------------------------------------------
+
 def _tdl_job_execute_1D (mqs, parent, rootnode='QuickRefUtil'):
     """Execute the forest with a 1D (freq) domain.
     """
-    domain = meq.domain(runopt_fmin,runopt_fmax,
-                        runopt_tmin,runopt_tmax)       
-    cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=1)
+    cells = make_cells(ND=1)
     request = make_request(cells)
     result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
     return result
@@ -182,9 +225,17 @@ def _tdl_job_execute_1D (mqs, parent, rootnode='QuickRefUtil'):
 def _tdl_job_execute_2D (mqs, parent, rootnode='QuickRefUtil'):
     """Execute the forest with a 2D domain.
     """
-    domain = meq.domain(runopt_fmin,runopt_fmax,
-                        runopt_tmin,runopt_tmax)       
-    cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=runopt_ntime)
+    cells = make_cells()
+    request = make_request(cells)
+    result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
+    return result
+
+#----------------------------------------------------------------------------
+
+def _tdl_job_execute_4D (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 4D domain.
+    """
+    cells = make_cells(ND=4)
     request = make_request(cells)
     result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
     return result
@@ -194,23 +245,28 @@ def _tdl_job_execute_2D (mqs, parent, rootnode='QuickRefUtil'):
 def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
     """Execute a sequence, moving the 2D domain.
     """
+    print '\n** _tdl_job_execute_sequence():'
+    print '** runopt_seq_nfreq =',runopt_seq_nfreq, range(runopt_seq_nfreq)
+    print '** runopt_seq_ntime =',runopt_seq_ntime, range(runopt_seq_ntime)
     for ifreq in range(runopt_seq_nfreq):
         foffset = (runopt_fmax - runopt_fmin)*ifreq*runopt_seq_fstep
-        print '** ifreq =',ifreq,' foffset =',foffset
+        print '\n** ifreq =',ifreq,' foffset =',foffset
         for itime in range(runopt_seq_ntime):
             toffset = (runopt_tmax - runopt_tmin)*itime*runopt_seq_tstep
             print '   - itime =',itime,' toffset =',toffset
-            domain = meq.domain(runopt_fmin+foffset,runopt_fmax+foffset,
-                                runopt_tmin+toffset,runopt_tmax+toffset)       
-            cells = meq.cells(domain, num_freq=runopt_nfreq, num_time=runopt_ntime)
+            cells = make_cells(foffset=foffset, toffset=toffset)
             request = make_request(cells)
             result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
-            # NB: It executes the entire sequence before showing any plots!
-            # The things I have tried to make it display each result:
-            # request = make_request(cells, rqtype='ev')
-            # result = mqs.meq('Node.Execute',record(name='QuickRefUtil', request=request), wait=True)
-            # time.sleep(1)
-        return result
+    # Finished:
+    print '\n** _tdl_job_execute_sequence(): finished\n'
+    return result
+
+
+    # NB: It executes the entire sequence before showing any plots!
+    # The things I have tried to make it display each result:
+    # request = make_request(cells, rqtype='ev')
+    # result = mqs.meq('Node.Execute',record(name='QuickRefUtil', request=request), wait=True)
+    # time.sleep(1)
 
 #----------------------------------------------------------------------------
 

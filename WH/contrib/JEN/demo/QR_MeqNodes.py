@@ -26,6 +26,8 @@ But it may also be used stand-alone.
 #   - 25 may 2008: creation (from QuickRef.py)
 #   - 30 may 2008: local testing tree/routine
 #   - 06 jun 2008: selectable input twigs
+#   - 07 jun 2008: added twig() etc
+#   - 07 jun 2008: added 4D (L,M)
 #
 # Description:
 #
@@ -120,6 +122,7 @@ TDLCompileMenu("QR_MeqNodes categories:",
                        TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
                                  [1,2]),
                        toggle='opt_resampling'),
+               TDLOption('opt_compounder',"transforms",False),
                TDLMenu("flagging",
                        TDLOption('opt_flagging_twig',"input twig (child node)",
                                  QR.twig_names('noise', first='noise3'), more=str),
@@ -169,6 +172,8 @@ def MeqNodes (ns, path, rider=None):
       cc.append(axis_reduction (ns, path, rider=rider))
    if opt_allcats or opt_resampling:
       cc.append(resampling (ns, path, rider=rider))
+   if opt_allcats or opt_compounder:
+      cc.append(compounder (ns, path, rider=rider))
    if opt_allcats or opt_flagging:
       cc.append(flagging (ns, path, rider=rider))
    if opt_allcats or opt_solving:
@@ -299,6 +304,37 @@ def resampling (ns, path, rider=None):
    cc = []
    cc.append(resampling_experiment (ns, path, rider, twig, num_cells, mode))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
+
+def compounder (ns, path, rider=None):
+   """
+   The MeqCompounder node interpolates ....
+   The extra_axes argument
+   should be a MeqComposer that bundles the extra (coordinate) children,
+   described by the common_axes argument (e.g. [hiid('l'),hiid('m')].                  
+   """
+   bundle_help = compounder.__doc__
+   path = QR.add2path(path,'compounder')
+   cc = []
+   cc.append(axis_compounder_simple (ns, path, rider=rider))
+   # from: JEN/Expression/Expression.py
+   # OK, make the compounder:
+   cc = []
+   common_axes = []
+   for k,axis in enumerate(caxes):             # e.g. caxes = ['L','M']
+      common_axes.append(hiid(axis))
+      if (k%2)==0:        # alternate between MeqFreq and MeqTime
+         cc.append(self.ns['extra_axis_'+axis] << Meq.Time())
+      else:
+         cc.append(self.ns['extra_axis_'+axis] << Meq.Freq())
+   if len(cc)<2:
+      raise ValueError,'** too few common axes for MeqCompounder() ...'
+      extra_axes = self.ns['extra_axes'] << Meq.Composer(children=cc)
+   qnode << Meq.Compounder(children=[extra_axes, node],
+                           common_axes=common_axes)
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
 
 #--------------------------------------------------------------------------------
 
@@ -438,6 +474,8 @@ def solving_ab (ns, path, rider=None):
    q = QR.unique_stub(ns, 'q') << Meq.Constant(2)
    sum_ab = ns << Meq.Add(a,b) 
    diff_ab = ns << Meq.Subtract(a,b)
+   drivers = QR.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
+   parmset = QR.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
    condeqs = []
    condeqs.append(QR.MeqNode (ns, path, meqclass='Condeq',name='Condeq(a+b,p)',
                               help='Represents equation: a + b = p (=10)',
@@ -452,7 +490,7 @@ def solving_ab (ns, path, rider=None):
    residuals = QR.MeqNode (ns, path, meqclass='Add', name='residuals',
                            help='The sum of the (abs) condeq residuals',
                            rider=rider, children=condeqs, unop='Abs')
-   cc = [solver,residuals,a,b,p,q]
+   cc = [solver,residuals,drivers,parmset]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
 
@@ -526,6 +564,32 @@ def flagging_simple (ns, path, rider=None):
                        name='MergeFlags(twig,zflag)',
                        help='Merge new flags with existing flags',
                        rider=rider, children=[twig, zflag])
+   cc = [twig, mean, stddev, zcrit, zflag, mflag]
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
+
+#================================================================================
+# compounder_... 
+#================================================================================
+
+  
+def compounder_simple (ns, path, rider=None):
+   """
+   Demonstration of simple compounder.
+   """
+   bundle_help = compounder_simple.__doc__
+   path = QR.add2path(path,'simple')
+   
+   twig = QR.unique_stub(ns,'twig') << Meq.Exp(QR.twig(ns, opt_flagging_twig))
+   mean =  ns << Meq.Mean(twig)
+   stddev =  ns << Meq.Stddev(twig)
+   diff = ns << Meq.Subtract(twig,mean)
+   absdiff = ns << Meq.Abs(diff)
+   nsigma = opt_flagging_nsigma
+   zcritname = 'zcrit(nsigma='+str(nsigma)+')'
+   zcrit = QR.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
    cc = [twig, mean, stddev, zcrit, zflag, mflag]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
@@ -847,6 +911,9 @@ def leaves_grids (ns, path, rider=None):
    for q in ['freq','time','L','M']:
       cc.append(QR.MeqNode (ns, path, meqclass='Grid',name='Grid(axis='+q+')',
                             help=help, rider=rider, axis=q))
+   cc.append(ns.ft << Meq.Add(cc[2],cc[3]))
+   cc.append(ns.LM << Meq.Add(cc[4],cc[5]))
+   cc.append(ns.ftLM << Meq.Add(cc[2],cc[3],cc[4],cc[5]))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -1137,6 +1204,9 @@ def _tdl_job_execute_1D (mqs, parent):
 
 def _tdl_job_execute_2D (mqs, parent):
    return QR._tdl_job_execute_2D (mqs, parent, rootnode='QR_MeqNodes')
+
+def _tdl_job_execute_4D (mqs, parent):
+   return QR._tdl_job_execute_4D (mqs, parent, rootnode='QR_MeqNodes')
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QR._tdl_job_execute_sequence (mqs, parent, rootnode='QR_MeqNodes')

@@ -153,6 +153,9 @@ def _tdl_job_execute_1D (mqs, parent):
 def _tdl_job_execute_2D (mqs, parent):
    return QR._tdl_job_execute_2D (mqs, parent, rootnode='QuickRef')
 
+def _tdl_job_execute_4D (mqs, parent):
+   return QR._tdl_job_execute_4D (mqs, parent, rootnode='QuickRef')
+
 def _tdl_job_execute_sequence (mqs, parent):
    return QR._tdl_job_execute_sequence (mqs, parent, rootnode='QuickRef')
 

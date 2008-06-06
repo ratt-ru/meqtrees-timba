@@ -156,11 +156,14 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     prefix = sunit+(level*sunit)+'   '
     cc = s.split('\n')
+    bb = []
     for c in cc:
       if mode=='list':
-        ss.append(prefix+c)
+        bb.append(prefix+c)
       else:
         ss += '\n'+prefix+c
+    if mode=='list':
+      ss.append(bb)
     return ss
     
   #-------------------------------------------------------------------

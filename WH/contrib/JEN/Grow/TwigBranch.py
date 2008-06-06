@@ -341,7 +341,7 @@ class TwigBranch(Twig.Twig):
                        xtor=True)
 
         # Finished:
-        self.make_leaf_toggle_group(trace=trace)
+        self.make_leaf_toggle_group(trace=True)
         return True
 
     #---------------------------------------------------------------------------
