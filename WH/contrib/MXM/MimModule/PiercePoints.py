@@ -1,7 +1,6 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Contrib.MXM.MimModule.MIM_model import *
-from Timba.Contrib.MXM.MimModule import PrintPyNode 
 
 import Meow
 
@@ -30,9 +29,10 @@ class PiercePoints(MIM_model):
         rot_matrix = ns['rot'](ref_station);
         if not rot_matrix.initialized():
             if not longlat.initialized():
-                longlat << Meq.LongLat(xyz(ref_station));
+                longlat << Meq.LongLat(xyz(ref_station),use_w=True);
                 lon = ns['lon'](ref_station)<< Meq.Selector(longlat,index=0)
                 lat = ns['lat'](ref_station)<< Meq.Selector(longlat,index=1)
+                h_stat = ns['h_stat'](ref_station)<< Meq.Selector(longlat,index=2) ## hm..not sure of we can use this if below earth surface!!Maybe find another way to find the earth_radius
                 cosl= ns['coslon'](ref_station) <<Meq.Cos(lon); 
                 sinl= ns['sinlon'](ref_station) <<Meq.Sin(lon); 
                 cosphi= ns['coslat'](ref_station) <<Meq.Cos(lat); 
@@ -47,19 +47,22 @@ class PiercePoints(MIM_model):
     def make_pp(self,ref_station=None):
         #returns xyz position of pierce point, assumes spherical earth, if elliptical some other method should be chosen. azel seems to be related to spherical earth plus alpha_prime and the last formula calculating the scale.
         ns=self.ns;
-        if not ns.earth_radius.initialized():
-             ns.earth_radius<< Meq.Constant(R_earth);
         if not ns.pi.initialized():
              ns.pi<< Meq.Constant(math.pi);
              
         xyz = self.array.xyz();
+        for station in self.stations:
+            rot_matrix = ns['rot'](station);
+            if not rot_matrix.initialized():
+                self.make_rot_matrix(station);
         if ref_station:
-            rot_matrix=self.make_rot_matrix(ref_station);
-        
+            ref_rot_matrix=ns['rot'](ref_station);
                 
 
         for station in self.stations:
             norm_xyz = create_inproduct(ns,xyz(station),xyz(station));
+            earth_radius = ns.earth_radius(station)<<Meq.Subtract(norm_xyz,ns['h_stat'](station));
+            rot_matrix = ns['rot'](station);
             for src in self.src:
                 az = self.get_az()(src,station);
                 el = self.get_el()(src,station);
@@ -69,20 +72,23 @@ class PiercePoints(MIM_model):
                 sin_el = Meq.Sin(el);
                 diff = ns['diff'](src,station);
                 if  not diff.initialized():
-                    diff_vector = diff << Meq.Composer(cos_el*cos_az,
-                                                       cos_el*sin_az,
-                                                       sin_el);
-
+                    diff_vector = diff << Meq.Composer(Meq.MatrixMultiply(Meq.Composer(cos_el*sin_az,
+                                                                          cos_el*cos_az,
+                                                                          sin_el,dims=[1,3]),
+                                                             rot_matrix));
                     
                     
-                    alpha_prime = Meq.Asin(cos_el*norm_xyz/(ns.earth_radius+ns.h*1000.));
-                    sec = ns.sec(src,station)<<1./Meq.Cos(alpha_prime);
-                    sin_beta = ns.sin_beta(src,station)  << Meq.Sin((0.5*ns.pi - el) - alpha_prime); #angle at center earth
-                    scale = ns.scale(src,station)<<(ns.earth_radius+ns.h*1000.)*sin_beta/cos_el;
-                    if ref_station:
-                        ns['pp'](src,station) << Meq.MatrixMultiply(rot_matrix,xyz(station) + diff_vector*scale);
-                    else:
-                        ns['pp'](src,station) << xyz(station) + diff_vector*scale;
+                alpha_prime = Meq.Asin(cos_el*norm_xyz/(earth_radius+ns.h*1000.));
+                # correct. draw triangle from piercepoint to center earth, and along the line connecting pp and antenna with 90 degree angle between center earth and that line.
+                sec = ns.sec(src,station)<<1./Meq.Cos(alpha_prime);
+                sin_beta = ns.sin_beta(src,station)  << Meq.Sin((0.5*ns.pi - el) - alpha_prime); #angle at center earth
+                scale = ns.scale(src,station)<<(earth_radius+ns.h*1000.)*sin_beta/cos_el;
+                # correct. draw triangle from center earth to pierce point and along vector a (=xyz_station), with a 90 degree angle between that line and piercepoint
+                
+                if ref_station:
+                    ns['pp'](src,station) << Meq.MatrixMultiply(ref_rot_matrix,xyz(station) + diff_vector*scale);
+                else:
+                    ns['pp'](src,station) << xyz(station) + diff_vector*scale;
                         
         return ns['pp'];
                     
@@ -139,10 +145,10 @@ class PiercePoints(MIM_model):
                 if not log.initialized():
                     if xy:
                         log<< Meq.PyNode(children=(pp('x',src,station),pp('y',src,station),phases(src,station)),
-                                         class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
+                                         class_name="PrintPyNode",module_name="Timba.Contrib.MXM.MimModule.PrintPyNode",filename=filename);
                     else:
                         log<< Meq.PyNode(children=(pp('lon',src,station),pp('lat',src,station)),
-                                         class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
+                                         class_name="PrintPyNode",module_name="Timba.Contrib.MXM.MimModule.PrintPyNode",filename=filename);
         return pp('log');
 
     def create_station_log_nodes(self): # create nodes to log phase of all stations per source 
@@ -156,18 +162,24 @@ class PiercePoints(MIM_model):
             else:
                 nm='ra.'+str(pd['ra'][0])+'.dec.'+str(pd['dec'][0]);
             print "creating file for",nm;
-            filename="phases_"+nm+".dat";
-            log = ns['station_log'](src);
-            if not log.initialized():
-                log<< Meq.PyNode(children=[phases(src,station) for station in self.stations],
-                                 class_name="PrintPyNode.PrintPyNode",module_name=PrintPyNode,filename=filename);
+##            filename="phases_"+nm+".dat";
+##            log = ns['station_log'](src);
+##            if not log.initialized():
+##                log<< Meq.PyNode(children=[phases(src,station) for station in self.stations],
+##                                 class_name="PrintPyNode",module_name="Timba.Contrib.MXM.MimModule.PrintPyNode",filename=filename);
+            for station in self.stations:
+                filename="phases_"+nm+"_"+str(station)+".dat";
+                log = ns['station_log'](src,station);
+                if not log.initialized():
+                    log<< Meq.PyNode(children=[phases(src,station),],
+                                     class_name="PrintPyNode",module_name="Timba.Contrib.MXM.MimModule.PrintPyNode",filename=filename);
         return ns['station_log'];
 
     def inspectors(self):
         inspectors=[];
         if make_log:
-            ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_log_nodes(),self.src,self.stations);
-            #ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_station_log_nodes(),self.src);
+            #ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_log_nodes(),self.src,self.stations);
+            ip=self.ns.inspector<<Meow.StdTrees.define_inspector(self.create_station_log_nodes(),self.src,self.stations);
             inspectors.append(ip);
         print "INSPECTORS:::::",inspectors;
         return inspectors;

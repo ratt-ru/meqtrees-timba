@@ -26,7 +26,7 @@ class MIM(PiercePoints.PiercePoints):
     """Create MIM_model with travelling waves as function of the pierc points"""
 
 
-    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=1,tags="iono"):
+    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=None,tags="iono"):
         PiercePoints.PiercePoints.__init__(self,ns,name,sources,stations,height);
         self.ref_station=ref_station;
         self._add_parm(name="Amp_long",value=Meow.Parm(Amp_long),tags=tags)

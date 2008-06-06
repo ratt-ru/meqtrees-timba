@@ -25,7 +25,7 @@ def compile_options():
 class MIM(PiercePoints):
     """A Poly_MIM is a PiercePoints that creates a polynomial as functrion of the pierc points"""
 
-    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=1,tags="iono"):
+    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=None,tags="iono"):
         PiercePoints.__init__(self,ns,name,sources,stations,height);
         self.ref_station=ref_station;
 

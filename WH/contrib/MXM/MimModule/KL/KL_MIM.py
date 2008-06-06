@@ -14,7 +14,7 @@ class MIM(PiercePoints):
     """Create MIM_model with KL transform"""
 
 
-    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=1,tags="iono"):
+    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=None,tags="iono"):
         PiercePoints.__init__(self,ns,name,sources,stations,height);
         self.ref_station=ref_station;
         for i in range(rank):

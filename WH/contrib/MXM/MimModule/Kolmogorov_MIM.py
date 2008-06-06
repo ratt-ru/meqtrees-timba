@@ -18,7 +18,7 @@ def compile_options():
 
 class MIM(PiercePoints):
     """Create MIM_model with Kolmogorov phase screen"""
-    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=1,tags="iono"):
+    def __init__(self,ns,name,sources,stations=None,height=300,ref_station=None,tags="iono"):
         PiercePoints.__init__(self,ns,name,sources,stations,height);
         self.ref_station=ref_station;
         #        init_phasescreen(N,beta);
