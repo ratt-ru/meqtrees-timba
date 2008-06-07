@@ -177,23 +177,47 @@ def make_request (cells, rqtype=None):
 
 #----------------------------------------------------------------------------
 
-def make_cells (axes=['freq','time'], foffset=0, toffset=0, ND=2):
+def make_cells (axes=['freq','time'], offset=None, trace=False):
     """Make a cells object, using the Runtime options (runopt_...).
     """
+    s1 = '** QuickRefUtil('+str(axes)+'): '
+    if trace:
+        print '\n',s1
+
+    # First some checks:
+    raxes = ['freq','time','L','M']                 # list of recognized axes
+    for axis in axes:
+        if not axis in raxes:
+            s = s1+'**error**  axis not recognized: '+str(axis)
+            raise ValueError,s
+
+    # Check the offset-record:
+    if not isinstance(offset,dict):
+        offset = dict()
+    for axis in raxes:
+        offset.setdefault(axis,0.0)
+    if trace:
+        print '--- offset =',offset
+
+    # Make the records for meq.gen_domain() and meq.gen_cells():
     dd = record()
     nn = record()
     if 'freq' in axes:
-        dd.freq = (runopt_fmin+foffset, runopt_fmax+foffset)
+        dd.freq = (runopt_fmin+offset['freq'], runopt_fmax+offset['freq'])
         nn.num_freq = runopt_nfreq
     if 'time' in axes:
-        dd.time = (runopt_tmin+toffset, runopt_tmax+toffset)
+        dd.time = (runopt_tmin+offset['time'], runopt_tmax+offset['time'])
         nn.num_time = runopt_ntime
     if 'L' in axes:
-        dd.L = (runopt_Lmin, runopt_Lmax)
+        dd.L = (runopt_Lmin+offset['L'], runopt_Lmax+offset['L'])
         nn.num_L = runopt_nL
     if 'M' in axes:
-        dd.M = (runopt_Mmin, runopt_Mmax)
+        dd.M = (runopt_Mmin+offset['M'], runopt_Mmax+offset['M'])
         nn.num_M = runopt_nM
+
+    if trace:
+        print '--- dd =',dd
+        print '--- nn =',nn
 
     cells = meq.gen_cells(meq.gen_domain(**dd), **nn)
     return cells
@@ -250,7 +274,7 @@ def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
         for itime in range(runopt_seq_ntime):
             toffset = (runopt_tmax - runopt_tmin)*itime*runopt_seq_tstep
             print '   - itime =',itime,' toffset =',toffset
-            cells = make_cells(foffset=foffset, toffset=toffset)
+            cells = make_cells(offset=dict(freq=foffset, time=toffset))
             request = make_request(cells)
             result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
     # Finished:
