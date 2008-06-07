@@ -30,6 +30,7 @@ any MeqTrees contributor, following a number of simple rules.
 #
 # History:
 #   - 23 may 2008: creation
+#   - 07 jun 2008: added 4D (L,M)
 #
 # Remarks:
 #

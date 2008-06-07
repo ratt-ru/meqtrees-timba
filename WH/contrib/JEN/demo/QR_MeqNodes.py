@@ -28,6 +28,7 @@ But it may also be used stand-alone.
 #   - 06 jun 2008: selectable input twigs
 #   - 07 jun 2008: added twig() etc
 #   - 07 jun 2008: added 4D (L,M)
+#   - 07 jun 2008: import EasyTwig as ET
 #
 # Description:
 #
@@ -77,6 +78,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 import QuickRefUtil as QR
+import EasyTwig as ET
 
 # import math
 # import random
@@ -90,21 +92,21 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLOption('opt_allcats',"all",True),
                TDLMenu("Unary nodes (one child)",
                        TDLOption('opt_unops_twig',"input twig (child node)",
-                                 QR.twig_names(), more=str),
+                                 ET.twig_names(), more=str),
                        toggle='opt_unops'),
                TDLMenu("Binary math nodes (two children)",
                        TDLOption('opt_binops_math_lhs',"lhs twig (child node)",
-                                 QR.twig_names(), more=str),
+                                 ET.twig_names(), more=str),
                        TDLOption('opt_binops_math_rhs',"rhs twig (child node)",
-                                 QR.twig_names(), more=str),
+                                 ET.twig_names(), more=str),
                        toggle='opt_binops_math'),
                TDLMenu("Math on an arbitrary nr of children",
                        TDLOption('opt_multi_math_twig1',"1st twig (child node)",
-                                 QR.twig_names(), more=str),
+                                 ET.twig_names(), more=str),
                        TDLOption('opt_multi_math_twig2',"2nd twig (child node)",
-                                 QR.twig_names(include=[None]), more=str),
+                                 ET.twig_names(include=[None]), more=str),
                        TDLOption('opt_multi_math_twig3',"3rd twig (child node)",
-                                 QR.twig_names(include=[None]), more=str),
+                                 ET.twig_names(include=[None]), more=str),
                        toggle='opt_multi_math'),
                TDLOption('opt_leaves',"Leaf nodes (no children)",False),
                TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
@@ -112,7 +114,7 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLMenu("resampling",
                        TDLOption('opt_resampling_MeqModRes_twig',
                                  "input twig (child node) of MeqModRes",
-                                 QR.twig_names(), more=str),
+                                 ET.twig_names(), more=str),
                        TDLOption('opt_resampling_MeqModRes_num_freq',
                                  "nr of freq cells for MeqModRes num_cells [nt,nf]",
                                  [4,1,2,3,5,6,10,20,50], more=int),
@@ -125,14 +127,14 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLOption('opt_compounder',"transforms",False),
                TDLMenu("flagging",
                        TDLOption('opt_flagging_twig',"input twig (child node)",
-                                 QR.twig_names('noise', first='noise3'), more=str),
+                                 ET.twig_names('noise', first='noise3'), more=str),
                        TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
                                  [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
                        toggle='opt_flagging'),
                TDLMenu("solving",
                        TDLMenu("solving_poly",
                                TDLOption('opt_solving_poly_twig',"input twig (lhs of condeq)",
-                                         QR.twig_names(first='gaussian_ft'), more=str),
+                                         ET.twig_names(first='gaussian_ft'), more=str),
                                TDLOption('opt_solving_poly_fdeg',"polynomial degree in freq",
                                          range(6), more=int),
                                TDLOption('opt_solving_poly_tdeg',"polynomial degree in time",
@@ -199,7 +201,7 @@ def unops (ns, path, rider=None):
    """
    bundle_help = unops.__doc__
    path = QR.add2path(path,'unops')
-   twig = QR.twig (ns, opt_unops_twig)
+   twig = ET.twig (ns, opt_unops_twig)
    cc = [] 
    cc.append(unops_elementary (ns, path, rider, twig))
    cc.append(unops_goniometric (ns, path, rider, twig))
@@ -297,7 +299,7 @@ def resampling (ns, path, rider=None):
    """
    bundle_help = resampling.__doc__
    path = QR.add2path(path,'resampling')
-   twig = QR.twig (ns, opt_resampling_MeqModRes_twig)
+   twig = ET.twig (ns, opt_resampling_MeqModRes_twig)
    num_cells = [opt_resampling_MeqModRes_num_time,
                 opt_resampling_MeqModRes_num_freq]
    mode = opt_resampling_MeqResampler_mode
@@ -468,14 +470,14 @@ def solving_ab (ns, path, rider=None):
    bundle_help = solving_ab.__doc__
    path = QR.add2path(path,'ab')
 
-   a = QR.unique_stub(ns, 'a') << Meq.Parm(0)
-   b = QR.unique_stub(ns, 'b') << Meq.Parm(0)
-   p = QR.unique_stub(ns, 'p') << Meq.Constant(10)
-   q = QR.unique_stub(ns, 'q') << Meq.Constant(2)
+   a = ET.unique_stub(ns, 'a') << Meq.Parm(0)
+   b = ET.unique_stub(ns, 'b') << Meq.Parm(0)
+   p = ET.unique_stub(ns, 'p') << Meq.Constant(10)
+   q = ET.unique_stub(ns, 'q') << Meq.Constant(2)
    sum_ab = ns << Meq.Add(a,b) 
    diff_ab = ns << Meq.Subtract(a,b)
-   drivers = QR.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
-   parmset = QR.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
+   drivers = ET.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
+   parmset = ET.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
    condeqs = []
    condeqs.append(QR.MeqNode (ns, path, meqclass='Condeq',name='Condeq(a+b,p)',
                               help='Represents equation: a + b = p (=10)',
@@ -513,11 +515,11 @@ def solving_poly (ns, path, rider=None):
    bundle_help = solving_poly.__doc__
    path = QR.add2path(path,'poly')
 
-   twig = QR.twig(ns, opt_solving_poly_twig)
-   poly = QR.polynomial(ns, fdeg=opt_solving_poly_fdeg,
+   twig = ET.twig(ns, opt_solving_poly_twig)
+   poly = ET.polynomial(ns, fdeg=opt_solving_poly_fdeg,
                         tdeg=opt_solving_poly_tdeg)
-   parms = QR.find_parms(poly, trace=True)
-   parmset = QR.unique_stub(ns, 'solved_polynomial_coeff') << Meq.Composer(*parms)
+   parms = ET.find_parms(poly, trace=True)
+   parmset = ET.unique_stub(ns, 'solved_polynomial_coeff') << Meq.Composer(*parms)
 
    condeq = ns << Meq.Condeq(poly, twig)
    solver = QR.MeqNode (ns, path, meqclass='Solver',
@@ -548,14 +550,14 @@ def flagging_simple (ns, path, rider=None):
    """
    bundle_help = flagging_simple.__doc__
    path = QR.add2path(path,'simple')
-   twig = QR.unique_stub(ns,'twig') << Meq.Exp(QR.twig(ns, opt_flagging_twig))
+   twig = ET.unique_stub(ns,'twig') << Meq.Exp(ET.twig(ns, opt_flagging_twig))
    mean =  ns << Meq.Mean(twig)
    stddev =  ns << Meq.Stddev(twig)
    diff = ns << Meq.Subtract(twig,mean)
    absdiff = ns << Meq.Abs(diff)
    nsigma = opt_flagging_nsigma
    zcritname = 'zcrit(nsigma='+str(nsigma)+')'
-   zcrit = QR.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
+   zcrit = ET.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
    zflag = QR.MeqNode (ns, path, meqclass='ZeroFlagger',
                        name='ZeroFlagger(zcrit, oper=GE)',
                        help='oper=GE: Flag all cells for which zcrit>=0.0.',
@@ -582,14 +584,14 @@ def compounder_simple (ns, path, rider=None):
    bundle_help = compounder_simple.__doc__
    path = QR.add2path(path,'simple')
    
-   twig = QR.unique_stub(ns,'twig') << Meq.Exp(QR.twig(ns, opt_flagging_twig))
+   twig = ET.unique_stub(ns,'twig') << Meq.Exp(ET.twig(ns, opt_flagging_twig))
    mean =  ns << Meq.Mean(twig)
    stddev =  ns << Meq.Stddev(twig)
    diff = ns << Meq.Subtract(twig,mean)
    absdiff = ns << Meq.Abs(diff)
    nsigma = opt_flagging_nsigma
    zcritname = 'zcrit(nsigma='+str(nsigma)+')'
-   zcrit = QR.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
+   zcrit = ET.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
    cc = [twig, mean, stddev, zcrit, zflag, mflag]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
@@ -613,7 +615,7 @@ def resampling_experiment (ns, path, rider,
    """
    bundle_help = resampling_experiment.__doc__
    path = QR.add2path(path,'experiment')
-   original = QR.unique_stub(ns, 'original') << Meq.Identity(twig)
+   original = ET.unique_stub(ns, 'original') << Meq.Identity(twig)
    modres = QR.MeqNode (ns, path, meqclass='ModRes',
                         name='ModRes(original, num_cells=[nt,nf])',
                         help='changes the resolution of the REQUEST',
@@ -622,7 +624,7 @@ def resampling_experiment (ns, path, rider,
                            name='Resampler(modres, mode='+str(mode)+')',
                            help='resamples the domain according to the twig request',
                            rider=rider, children=[modres], mode=mode)
-   diff = QR.unique_stub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
+   diff = ET.unique_stub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
    return QR.bundle (ns, path, nodes=[diff], help=bundle_help, rider=rider,
                      bookmark=[original, modres, resampled, diff])
 
@@ -642,7 +644,7 @@ def axis_reduction_single (ns, path, rider=None):
    bundle_help = axis_reduction_single.__doc__
    path = QR.add2path(path,'single')
    twig_name = 'f'
-   twig = QR.twig(ns, twig_name)
+   twig = ET.twig(ns, twig_name)
    cc = [twig]
    help = record(NElements='nr of cells',
                  Sum='sum of cell values', Mean='mean of cell values',
@@ -673,7 +675,7 @@ def axis_reduction_multiple (ns, path, rider=None):
                  range5=democlass+' over the cells of multiple vellsets, from a tensor child')
    cc = []
    for twig_name in help.keys():
-      twig = QR.twig(ns, twig_name)
+      twig = ET.twig(ns, twig_name)
       cc.append(twig)
       cc.append(QR.MeqNode (ns, path, meqclass=democlass, name=democlass+'('+str(twig.name)+')',
                             help=help[twig_name], rider=rider, children=[twig]))
@@ -697,7 +699,7 @@ def axis_reduction_axes (ns, path, rider=None):
    democlass = 'Sum'
    help = democlass+' over the cells of '
    twig_name = 'ft'
-   twig = QR.twig(ns, twig_name)
+   twig = ET.twig(ns, twig_name)
    ntwig = ns << Meq.NElements(twig)
    cc = [twig,ntwig]
    cc.append(QR.MeqNode (ns, path, meqclass=democlass,
@@ -733,7 +735,7 @@ def tensor_manipulation (ns, path, rider=None):
    bundle_help = tensor_manipulation.__doc__
    path = QR.add2path(path,'manipulation')
    cc = []
-   children = [QR.twig(ns,'f'), QR.twig(ns,'t'), QR.twig(ns,'ft')]
+   children = [ET.twig(ns,'f'), ET.twig(ns,'t'), ET.twig(ns,'ft')]
    cc.append(QR.MeqNode (ns, path, meqclass='Composer', name='Composer(c0,c1,c2)',
                          help="""Combine the vellsets in the Results of its children
                          into a Result with multiple vellsets in the new node.""",
@@ -750,7 +752,7 @@ def tensor_manipulation (ns, path, rider=None):
                             rider=rider, children=[cc[0]], index=[0,2]))
    if True:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
-      c1 = QR.twig(ns,'ft2')
+      c1 = ET.twig(ns,'ft2')
       cc.append(QR.MeqNode (ns, path, meqclass='Paster', name='Paster(c0, c1, index=1)',
                             help="""Make a new node, in which the vellset from the
                             second child (c1) is pasted at the specified (index) position
@@ -800,7 +802,7 @@ def tensor_matrix22 (ns, path, rider=None):
    """
    bundle_help = tensor_matrix22.__doc__
    path = QR.add2path(path,'matrix22')
-   children = [QR.twig(ns,'cxft'),0,0,QR.twig(ns,'cxtf')]
+   children = [ET.twig(ns,'cxft'),0,0,ET.twig(ns,'cxtf')]
    cc = []
    cc.append(QR.MeqNode (ns, path, meqclass='Matrix22', name='Matrix22(cxft,0,0,cxtf)',
                          help="""Make a complex 2x2 diagonal matrix.""",
@@ -1015,7 +1017,7 @@ def unops_complex (ns, path, rider=None, twig=None):
    """
    bundle_help = unops_complex.__doc__
    path = QR.add2path(path,'complex')
-   twig = QR.twig(ns,'cxft')                # override input twig...
+   twig = ET.twig(ns,'cxft')                # override input twig...
    cc = [twig]
    help = record(Abs='', Norm='like Abs', Arg='-> rad', Real='', Imag='',
                  Conj='complex conjugate: a+bj -> a-bj',
@@ -1081,8 +1083,8 @@ def binops_math (ns, path, rider=None):
    """
    bundle_help = binops_math.__doc__
    path = QR.add2path(path,'binops_math')
-   lhs = QR.twig(ns, opt_binops_math_lhs)         # left-hand side (child)
-   rhs = QR.twig(ns, opt_binops_math_rhs)         # right-hand side (child)
+   lhs = ET.twig(ns, opt_binops_math_lhs)         # left-hand side (child)
+   rhs = ET.twig(ns, opt_binops_math_rhs)         # right-hand side (child)
    cc = []
    help = record(Subtract='lhs-rhs', Divide='lhs/rhs', Pow='lhs^rhs',
                  Mod='lhs%rhs',
@@ -1114,15 +1116,15 @@ def multi_math (ns, path, rider=None):
    bundle_help = multi_math.__doc__
    path = QR.add2path(path,'multi_math')
    # Make the child-related vectors (ignore the ones with opt=None):
-   twigs = [QR.twig(ns,opt_multi_math_twig1)]
+   twigs = [ET.twig(ns,opt_multi_math_twig1)]
    sname = twigs[0].name
    weights = [1.0]
    if opt_multi_math_twig2:
-      twigs.append(QR.twig(ns,opt_multi_math_twig2))
+      twigs.append(ET.twig(ns,opt_multi_math_twig2))
       sname += ','+twigs[len(twigs)-1].name
       weights.append(2.0)
    if opt_multi_math_twig3:
-      twigs.append(QR.twig(ns,opt_multi_math_twig3))
+      twigs.append(ET.twig(ns,opt_multi_math_twig3))
       sname += ','+twigs[len(twigs)-1].name
       weights.append(3.0)
    cc = []
@@ -1204,6 +1206,9 @@ def _tdl_job_execute_1D (mqs, parent):
 
 def _tdl_job_execute_2D (mqs, parent):
    return QR._tdl_job_execute_2D (mqs, parent, rootnode='QR_MeqNodes')
+
+def _tdl_job_execute_3D (mqs, parent):
+   return QR._tdl_job_execute_3D (mqs, parent, rootnode='QR_MeqNodes')
 
 def _tdl_job_execute_4D (mqs, parent):
    return QR._tdl_job_execute_4D (mqs, parent, rootnode='QR_MeqNodes')
