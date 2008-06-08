@@ -60,6 +60,21 @@ any MeqTrees contributor, following a number of simple rules.
 #   - OMS: TDLOption separator (None): gives problems.... (rebuild?)
 #          Same with TDLRuntimeOptionSeparator()
 #          It complains that the option name has to be a string....
+#   - AGW/OMS: The result plotter does not always refresh when switching
+#          from 4D to 2D, even in the rqid is changed (see EasyTwig, polynomial)
+#   - AGW: I often use the Composer to display the values of a group of scalar nodes
+#          in a single panel. It would be nice if each value could be labelled, just
+#          as the composer/inspector tracks are labelled with 'plot_labels'.
+#          Can we use plot_labels for this too? (after all, it is the Result Plotter)
+#   - OMS: For clarity, I often put parameter values in the names of nodes that are
+#          displayed via a bookmark page. This means that, when I change the parameters
+#          via TDL options the names of the displayed nodes change. When I re-execute,
+#          the bookpage does not update. This is annoying, partly because I have to search
+#          for the page in the bookmarks. But also because the user may not realise that
+#          this has happened, and is thus looking at the wrong picture.
+#          Can we have some (automatic?) bookpage refresh option, that uses the bookpage
+#          name (which after all has not changed)? 
+#          
 #
 # Description:
 #

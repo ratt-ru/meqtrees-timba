@@ -88,7 +88,12 @@ import EasyTwig as ET
 # TDLCompileMenu (included in QuickRef menu):
 #********************************************************************************
 
+
+
+#-------------------------------------------------------------------------------
+
 TDLCompileMenu("QR_MeqNodes categories:",
+               # TDLOption_user_level,               # ... needs some thought ...
                TDLOption('opt_allcats',"all",True),
                TDLMenu("Unary nodes (one child)",
                        TDLOption('opt_unops_twig',"input twig (child node)",
@@ -124,7 +129,7 @@ TDLCompileMenu("QR_MeqNodes categories:",
                        TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
                                  [1,2]),
                        toggle='opt_resampling'),
-               TDLOption('opt_compounder',"transforms",False),
+               TDLOption('opt_compounder',"compounder",False),
                TDLMenu("flagging",
                        TDLOption('opt_flagging_twig',"input twig (child node)",
                                  ET.twig_names('noise', first='noise3'), more=str),
@@ -134,18 +139,17 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLMenu("solving",
                        TDLMenu("solving_poly",
                                TDLOption('opt_solving_poly_twig',"input twig (lhs of condeq)",
-                                         ET.twig_names(first='gaussian_ft'), more=str),
-                               TDLOption('opt_solving_poly_fdeg',"polynomial degree in freq",
-                                         range(6), more=int),
-                               TDLOption('opt_solving_poly_tdeg',"polynomial degree in time",
-                                         range(6), more=int),
+                                         ET.twig_names(['gaussian'],first='gaussianft'),
+                                         more=str),
+                               TDLOption('opt_solving_poly_poly',"polynomial to be fitted (rhs)",
+                                         ET.twig_names(['polynomial']), more=str),
                                toggle='opt_solving_poly'),
                        toggle='opt_solving'),
                TDLOption('opt_visualization',"visualization",False),
                TDLOption('opt_transforms',"transforms",False),
                TDLOption('opt_flowcontrol',"flowcontrol",False),
-               toggle='opt_QR_MeqNodes',
-               )
+               toggle='opt_QR_MeqNodes')
+
 
 
 #********************************************************************************
@@ -314,27 +318,12 @@ def compounder (ns, path, rider=None):
    The MeqCompounder node interpolates ....
    The extra_axes argument
    should be a MeqComposer that bundles the extra (coordinate) children,
-   described by the common_axes argument (e.g. [hiid('l'),hiid('m')].                  
+   described by the common_axes argument (e.g. [hiid('L'),hiid('M')].                  
    """
    bundle_help = compounder.__doc__
    path = QR.add2path(path,'compounder')
    cc = []
-   cc.append(axis_compounder_simple (ns, path, rider=rider))
-   # from: JEN/Expression/Expression.py
-   # OK, make the compounder:
-   cc = []
-   common_axes = []
-   for k,axis in enumerate(caxes):             # e.g. caxes = ['L','M']
-      common_axes.append(hiid(axis))
-      if (k%2)==0:        # alternate between MeqFreq and MeqTime
-         cc.append(self.ns['extra_axis_'+axis] << Meq.Time())
-      else:
-         cc.append(self.ns['extra_axis_'+axis] << Meq.Freq())
-   if len(cc)<2:
-      raise ValueError,'** too few common axes for MeqCompounder() ...'
-      extra_axes = self.ns['extra_axes'] << Meq.Composer(children=cc)
-   qnode << Meq.Compounder(children=[extra_axes, node],
-                           common_axes=common_axes)
+   cc.append(compounder_simple (ns, path, rider=rider))
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -516,9 +505,8 @@ def solving_poly (ns, path, rider=None):
    path = QR.add2path(path,'poly')
 
    twig = ET.twig(ns, opt_solving_poly_twig)
-   poly = ET.polynomial(ns, fdeg=opt_solving_poly_fdeg,
-                        tdeg=opt_solving_poly_tdeg)
-   parms = ET.find_parms(poly, trace=True)
+   poly = ET.twig(ns, opt_solving_poly_poly)
+   parms = ET.find_parms(poly, trace=False)
    parmset = ET.unique_stub(ns, 'solved_polynomial_coeff') << Meq.Composer(*parms)
 
    condeq = ns << Meq.Condeq(poly, twig)
@@ -526,7 +514,7 @@ def solving_poly (ns, path, rider=None):
                         name='Solver(condeq(poly,twig))',
                         help='Solver', rider=rider, children=[condeq],
                         solvable=parms)  
-   cc = [solver,condeq,poly,parmset]
+   cc = [solver,condeq,poly,twig,parmset]
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
 
@@ -583,17 +571,17 @@ def compounder_simple (ns, path, rider=None):
    """
    bundle_help = compounder_simple.__doc__
    path = QR.add2path(path,'simple')
-   
-   twig = ET.unique_stub(ns,'twig') << Meq.Exp(ET.twig(ns, opt_flagging_twig))
-   mean =  ns << Meq.Mean(twig)
-   stddev =  ns << Meq.Stddev(twig)
-   diff = ns << Meq.Subtract(twig,mean)
-   absdiff = ns << Meq.Abs(diff)
-   nsigma = opt_flagging_nsigma
-   zcritname = 'zcrit(nsigma='+str(nsigma)+')'
-   zcrit = ET.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
-   cc = [twig, mean, stddev, zcrit, zflag, mflag]
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+   # twig = ET.twig(ns,'gaussianftLM')
+   twig = ET.twig(ns,'gaussianLM')
+   # LM = [ET.twig(ns,'L'), ET.twig(ns,'M')]
+   LM = [(ns << 0.5), (ns << -0.5)]
+   extra_axes = ns['extra_axes'] << Meq.Composer(*LM)
+   common_axes = [hiid('L'),hiid('M')]
+   node = ns.compou << Meq.Compounder(children=[extra_axes,twig],
+                                      common_axes=common_axes)
+   return QR.bundle (ns, path, nodes=[node], help=bundle_help, rider=rider,
+                     bookmark=[extra_axes,twig,node])
 
 
 #--------------------------------------------------------------------------------

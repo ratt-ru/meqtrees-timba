@@ -159,7 +159,60 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
 
 # TDLRuntimeOptionSeparator()
 
-#----------------------------------------------------------------------------
+
+#============================================================================
+# Functions related to user-level (from QR_MeqNodes.py)
+# This requires a little more thought....
+# NB: The problem is that the other TDL options are updated BEFORE opt_user_level
+#     This might be related to its place in the tdlconf file, due to the fact
+#     that the opt_user_level was at the end of the TDLCompileMenu.....
+#============================================================================
+
+optoptrec = record()
+
+def optopt(opt, trace=True):
+   """Get the list of options for the specified (opt) TDLOption,
+   depending on the current user level"""
+   global opt_user_level
+   global optoptrec
+   if not optoptrec.has_key(opt):
+      s = '\n** optopt(): not recognized: '+str(opt)
+      raise ValueError,s
+   result = optoptrec[opt][opt_user_level]
+   if trace:
+      print '\n** optopt(',opt,')',opt_user_level,'->',result,'\n'
+   return result
+
+def setoptopt(opt, beginner=[], advanced=[], blackbelt=[]):
+   global optoptrec
+   optoptrec[opt] = record(beginner=beginner, advanced=advanced, blackbelt=blackbelt)
+   return True
+
+setoptopt('test',range(2),range(3),range(4))
+setoptopt('opt_solving_poly_twig',
+          ET.twig_names(['gaussian'],first='gaussianft'),
+          ET.twig_names(['gaussian','polynomial'],first='gaussianft'),
+          ET.twig_names(['gaussian','polynomial','noise'],first='gaussianft'))
+
+# TDLOption_user_level = TDLOption('opt_user_level',"user level",
+#                            ['beginner','advanced','blackbelt'])
+opt_user_level = None
+def callback_user_level(level):
+   global opt_user_level
+   was = opt_user_level
+   opt_user_level = level
+   print '\n** callback_user_level(',level,')',was,'->',opt_user_level,
+   print ':',optopt('test')
+   print 
+   return True
+
+# TDLOption_user_level.when_changed(callback_user_level)
+
+
+
+#============================================================================
+# Tree execution functions:
+#============================================================================
 
 request_counter = 0
 

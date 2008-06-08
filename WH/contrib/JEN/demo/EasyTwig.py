@@ -260,6 +260,30 @@ def find_nodes (tree, meqtype='MeqParm', level=0, trace=False):
     return nn
     
 
+#-----------------------------------------------------------------------------------
+
+#====================================================================================
+# Helper fuctions:
+#====================================================================================
+
+def unique_list (ss, trace=False):
+    """Helper function to remove doubles from the given list (ss)
+    """
+    if trace:
+        print '\n** unique_list(',ss,'):'
+    if isinstance(ss, list):
+        ss.reverse()
+        for item in copy.copy(ss):
+            if trace: print '-',item,':',
+            while ss.count(item)>1:
+                ss.remove(item)
+                if trace: print ss,
+            if trace: print
+        ss.reverse()
+    if trace:
+        print '   ->',ss
+    return ss
+
 
 #====================================================================================
 # Functions dealing with standard input twigs:
@@ -330,26 +354,6 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     if trace:
         print '** EasyTwig.twig_names(',cat,include,' first=',first,'):',names
     return names
-
-#-----------------------------------------------------------------------------------
-
-def unique_list (ss, trace=False):
-    """Helper function to remove doubles from the given list (ss)
-    """
-    if trace:
-        print '\n** unique_list(',ss,'):'
-    if isinstance(ss, list):
-        ss.reverse()
-        for item in copy.copy(ss):
-            if trace: print '-',item,':',
-            while ss.count(item)>1:
-                ss.remove(item)
-                if trace: print ss,
-            if trace: print
-        ss.reverse()
-    if trace:
-        print '   ->',ss
-    return ss
 
 #-----------------------------------------------------------------------------------
 
@@ -506,7 +510,7 @@ def twig(ns, name, test=False, trace=False):
 
 def combine_ftLM(ns, stub, ss, default=0.0, meqclass='Multiply'):
     """Combine the children in cc, using the specified meqclass"""
-    vv = decode_ftLM(ss, trace=True)
+    vv = decode_ftLM(ss, trace=False)
     cc = []
     for key in vv.keys():
         power = vv[key]
@@ -578,7 +582,8 @@ def polynomial (ns, name='polynomial', ftLM=None,
         for t in range(tdeg+1):
             for L in range(Ldeg+1):
                 for M in range(Mdeg+1):
-                    if full or (f+t+L+M)<degmax:                 # cutting the corner
+                    sum_ftLM = f+t+L+M                           # total degree of term
+                    if full or sum_ftLM<degmax:                  # cutting the corner
                         quals = []
                         if fdeg>0: quals.append(f)
                         if tdeg>0: quals.append(t)
@@ -586,8 +591,9 @@ def polynomial (ns, name='polynomial', ftLM=None,
                         if Mdeg>0: quals.append(M)
                         parmstub = unique_stub(ns,'parm',*quals)
                         termstub = unique_stub(ns,'term',*quals)
-                        parm = parmstub << Meq.Parm(0.001)       # slightly non-zero
-                        if f==0 and t==0 and L==0 and M==0:      # the constant term
+                        default_value = 0.1**sum_ftLM            # slightly non_zero
+                        parm = parmstub << Meq.Parm(default_value)
+                        if sum_ftLM==0:                          # the constant term
                             term = termstub << Meq.Identity(parm)
                         else:
                             pname = 'prod'
@@ -612,7 +618,7 @@ def polynomial (ns, name='polynomial', ftLM=None,
     node = nodestub << Meq.Add(*cc)
     if trace:
         print '   ->',str(node),len(node.children),'terms\n'
-        find_parms(node, trace=True)
+        find_parms(node, trace=trace)
     return node
 
 
