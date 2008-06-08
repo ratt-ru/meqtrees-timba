@@ -54,7 +54,7 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
-# import copy
+import copy
 import math
 # import random
 
@@ -71,37 +71,71 @@ def _define_forest (ns, **kwargs):
     trace = False
     # trace = True
     cc = []
-    
-    twigs = []
-    for name in twig_names(trace=trace):
-        twigs.append(twig(ns,name))
 
+    # Standard twig categories:
+    for cat in twig_cats():
+        twigs = []
+        print '\n\n****** twig_cat =',cat
+        for name in twig_names(cat):
+            t = twig(ns, name, trace=True)
+            JEN_bookmarks.create(t, page=name, folder=cat, recurse=2)
+            twigs.append(t)
+        cc.append(ns[cat] << Meq.Composer(*twigs))
+        JEN_bookmarks.create(twigs, cat, folder='twig_categoriess')
+
+    # Some extra twigs:
     names = []
-    names = ['polynomialf3t2']
+    # names = ['polynomialf3t2']
     for name in names:
-        twigs.append(twig(ns,name))
-
-    twig_bundle = ns.twig_bundle << Meq.Composer(*twigs)
-    cc.append(twig_bundle)
-    JEN_bookmarks.create(twigs)
-
-    ns.rootnode << Meq.Composer(*cc)
+        t = twig(ns,name)
+        cc.append(t)
+        JEN_bookmarks.create(t, page=name, recurse=2)
 
     # Finished:
+    ns.rootnode << Meq.Composer(*cc)
     return True
 
 #------------------------------------------------------------------------------------
 
-def _test_forest (mqs,parent,wait=False):
+def _tdl_job_execute_1D (mqs,parent,wait=False):
   from Timba.Meq import meq
-  nf2 = 10
-  nt2 = 5
-  cells = meq.cells(meq.domain(-nf2,nf2,-nt2,nt2),
-                    num_freq=2*nf2+1,num_time=2*nt2+1);
-  print '\n-- cells =',cells,'\n'
-  request = meq.request(cells,rqtype='e1');
-  a = mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
+  cells = meq.cells(meq.domain(0.1,2,-1,1),             # f1,f2,t1,t2
+                    num_freq=50,num_time=1);
+  request = make_request(cells)
+  mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
   return True
+
+#------------------------------------------------------------------------------------
+
+def _tdl_job_execute_2D (mqs,parent,wait=False):
+  from Timba.Meq import meq
+  cells = meq.cells(meq.domain(0.001,2,-2,2),             # f1,f2,t1,t2
+                    num_freq=20,num_time=11)
+  request = make_request(cells)
+  mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
+  return True
+
+#------------------------------------------------------------------------------------
+
+def _tdl_job_execute_4D (mqs,parent,wait=False):
+  from Timba.Meq import meq
+  dd = record(freq=(0.01,2), time=(-2,2), L=(-1,1), M=(-1,1))
+  cc = record(num_freq=20, num_time=21, num_L=11, num_M=11)
+  cells = meq.gen_cells(meq.gen_domain(**dd), **cc) 
+  request = make_request(cells)
+  mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
+  return True
+
+#------------------------------------------------------------------------------------
+
+request_counter = 0
+
+def make_request (cells, rqtype=None):
+    """Make a request"""
+    global request_counter
+    request_counter += 1
+    rqid = meq.requestid(request_counter)
+    return meq.request(cells, rqid=rqid)
 
 
 
@@ -231,14 +265,52 @@ def find_nodes (tree, meqtype='MeqParm', level=0, trace=False):
 # Functions dealing with standard input twigs:
 #====================================================================================
 
+def twig_cats (trace=False):
+    """Return a list of twig categories"""
+    cats = []
+    cats.extend(['axes','complex','noise','range'])
+    cats.extend(['gaussian','expnegsum'])
+    cats.extend(['polynomial'])
+    cats.extend(['prod','sum'])
+    # cats.extend([])
+    return cats
+
+#-----------------------------------------------------------------------------------
+
 def twig_names (cat='default', include=None, first=None, trace=False):
-    """Return a group (category) of valid twig names"""
-    if cat=='all':
-        names = []
+    """Return a group (category, cat) of valid twig names"""
+
+    names = []
+    
+    if isinstance(cat,(list,tuple)):
+        # The specified cat may be a list of categories: just concatenate.
+        for cat1 in cat:
+            names.extend(twig_names(cat1))
+
+    elif cat=='axes':
+        names = ['f','t','L','M']
+    elif cat=='complex':
+        names = ['cxft','cxLM']
     elif cat=='noise':
-        names = ['noise1','noise3','noise5']
-    else:                                      # default category
-        names = ['f','t','f+t','ft','f**2','gaussian_ft','noise3','cxft']
+        names = ['noise1','noise3.5','expnoise2']
+    elif cat=='range':
+        names = ['range4','range10']
+    elif cat=='gaussian':
+        names = ['gaussianf','gaussianft','gaussianftLM']
+    elif cat=='expnegsum':
+        names = ['expnegsumf2','expnegsum1.5ft2','expnegsumf2t2L2M2']
+    elif cat=='polynomial':
+        names = ['polynomialf2','polynomialft2','polynomialf2t2L2M2']
+    elif cat=='sum':
+        names = ['sumf2t3','sum-3.3f2t','sumf2t2L2M2']
+    elif cat=='prod':
+        names = ['prodf2t3','prod-3.3f2t','prodf2t2L2M2']
+
+    elif cat=='all':
+        names = twig_names(twig_cats())
+    else:
+        # default category
+        names = ['f','t','f+t','ft','f**2','f**t','noise3','cxft']
 
     # Specific names may be included:
     if isinstance(include,str):
@@ -251,10 +323,33 @@ def twig_names (cat='default', include=None, first=None, trace=False):
         if first in names:
             names.remove(first)
         names.insert(0,first)
+
+    # Avoid doubles:
+    names = unique_list(names)
         
     if trace:
         print '** EasyTwig.twig_names(',cat,include,' first=',first,'):',names
     return names
+
+#-----------------------------------------------------------------------------------
+
+def unique_list (ss, trace=False):
+    """Helper function to remove doubles from the given list (ss)
+    """
+    if trace:
+        print '\n** unique_list(',ss,'):'
+    if isinstance(ss, list):
+        ss.reverse()
+        for item in copy.copy(ss):
+            if trace: print '-',item,':',
+            while ss.count(item)>1:
+                ss.remove(item)
+                if trace: print ss,
+            if trace: print
+        ss.reverse()
+    if trace:
+        print '   ->',ss
+    return ss
 
 #-----------------------------------------------------------------------------------
 
@@ -271,7 +366,7 @@ def twig(ns, name, test=False, trace=False):
 
     # Derive and condition the nodename:
     nodename = name
-    nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
+    # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
 
     # Check whether the node already exists (i.e. is initialized...)
     stub = nodestub(ns, nodename)
@@ -351,6 +446,10 @@ def twig(ns, name, test=False, trace=False):
     elif len(name.split('expnegsum'))>1:              # e.g. 'expnegsumf0t1L2M'
         ss = name.split('expnegsum')[1]
         node = stub << Meq.Exp(Meq.Negate(twig(ns,'sum'+ss)))
+
+    elif len(name.split('polynomial'))>1:             # e.g. 'polynomialf0t1L2M'
+        ss = name.split('polynomial')[1]
+        node = polynomial(ns, 'polynomial', ftLM=ss, trace=trace)
 
     #.....................................................................
     # do these last (their short names might be subsets of other names...)
@@ -453,29 +552,67 @@ def decode_ftLM (s, trace=False):
 
 #----------------------------------------------------------------
 
-def polynomial (ns, name='polynomial', fdeg=2, tdeg=3, full=False, trace=False):
-    """Make a polynomial subtree"""
+def polynomial (ns, name='polynomial', ftLM=None,
+                fdeg=0, tdeg=0, Ldeg=0, Mdeg=0,
+                full=False, trace=False):
+    """Make a polynomial subtree (up to 4D, f,t,L,M)
+    """
+
+    if isinstance(ftLM, str):
+        # The polynomial degree may be specified by 'ftLM' string:
+        # (for compatibility with twig())
+        vv = decode_ftLM(ftLM)
+        fdeg = max(0,vv['f'])
+        tdeg = max(0,vv['t'])
+        Ldeg = max(0,vv['L'])
+        Mdeg = max(0,vv['M'])
+        
     if trace:
-        print '\n** polynomial(',name,fdeg,tdeg,'):'
-    # Make the polynomial terms (nodes):
+        print '\n** polynomial(',name,ftLM,fdeg,tdeg,Ldeg,Mdeg,'):'
+
+
+    # Make a list (cc) of polynomial terms (nodes):
     cc = []
-    ftmax = max(fdeg+1,tdeg+1)           # defines bottom-right corner
+    degmax = max(fdeg+1,tdeg+1,Mdeg+1,Ldeg+1)                    # cutting the corner
     for f in range(fdeg+1):
         for t in range(tdeg+1):
-            if full or (f+t)<ftmax:
-                parmstub = unique_stub(ns,'parm',f,t)
-                parm = parmstub << Meq.Parm(0)
-                if f==0 and t==0:
-                    cc.append(parm)
-                else:
-                    prodft = twig(ns,'prod'+'f'+str(f)+'t'+str(t), trace=trace)
-                    cc.append(ns.term(f,t) << Meq.Multiply(parm,prodft))
+            for L in range(Ldeg+1):
+                for M in range(Mdeg+1):
+                    if full or (f+t+L+M)<degmax:                 # cutting the corner
+                        quals = []
+                        if fdeg>0: quals.append(f)
+                        if tdeg>0: quals.append(t)
+                        if Ldeg>0: quals.append(L)
+                        if Mdeg>0: quals.append(M)
+                        parmstub = unique_stub(ns,'parm',*quals)
+                        termstub = unique_stub(ns,'term',*quals)
+                        parm = parmstub << Meq.Parm(0.001)       # slightly non-zero
+                        if f==0 and t==0 and L==0 and M==0:      # the constant term
+                            term = termstub << Meq.Identity(parm)
+                        else:
+                            pname = 'prod'
+                            if fdeg>0: pname += 'f'+str(f)
+                            if tdeg>0: pname += 't'+str(t)
+                            if Ldeg>0: pname += 'L'+str(L)
+                            if Mdeg>0: pname += 'M'+str(M)
+                            prodft = twig(ns, pname, trace=trace)
+                            term = termstub << Meq.Multiply(parm,prodft)
+                        cc.append(term)
+
     # Add all the terms together:
-    nodestub = unique_stub(ns, name+'f'+str(fdeg)+'t'+str(tdeg))
-    # nodestub = unique_stub(ns, name, fdeg=fdeg, tdeg=tdeg)
+    if isinstance(ftLM,str):
+        sname = name+ftLM
+    else:
+        sname = name
+        if fdeg>0: sname += 'f'+str(fdeg)
+        if tdeg>0: sname += 't'+str(tdeg)
+        if Ldeg>0: sname += 'L'+str(Ldeg)
+        if Mdeg>0: sname += 'M'+str(Mdeg)
+    nodestub = unique_stub(ns, sname)
     node = nodestub << Meq.Add(*cc)
     if trace:
         print '   ->',str(node),len(node.children),'terms\n'
+        find_parms(node, trace=True)
     return node
 
 
@@ -492,16 +629,21 @@ if __name__ == '__main__':
 
       
    if 0:
-       twig_names(trace=True)
+       for cat in twig_cats():
+           print '\n\n****** twig_cat =',cat
+           for name in twig_names(cat):
+               twig(ns, name, trace=True)
 
    if 1:
-       names = twig_names()
-       names = ['fpow3','tpow6']
+       names = []
+       names.extend(['fpow3','tpow6'])
        names.extend(['prodf3t1','prodf3L1M','prod3.56'])
        names.extend(['sumf3t1','sum-6f3L1M','sum3.56'])
        names.extend(['f+t','f2','f**2','ft'])
        names.extend(['gaussianft','gaussian'])
        names.extend(['expnoise4','expnegsum-2fLM3'])
+       names = []
+       names.extend(['polynomialf2t2LM'])
        for name in names:
            twig(ns, name, trace=True)
            
@@ -516,8 +658,8 @@ if __name__ == '__main__':
        twig(ns, 'dummy', trace=True)
 
    if 0:
-       twig = polynomial(ns, trace=True)
-       nn = find_parms(twig, trace=True)
+       t = polynomial(ns, fdeg=1, tdeg=2, Ldeg=1, Mdeg=1, trace=True)
+       nn = find_parms(t, trace=True)
 
    #------------------------------------------------
 
@@ -532,6 +674,13 @@ if __name__ == '__main__':
        decode_ftLM('3.6fL5M6', trace=True)
        # decode_ftLM('ML', trace=True)    # wrong order: error
 
+
+   if 0:
+       ss = range(4)
+       ss.extend([1,'a'])
+       ss.extend([1,1,3,7,'a',2,2,2])
+       print unique_list(ss, trace=True)
+       print 'ss (after) =',ss
 
    #------------------------------------------------
 
