@@ -29,6 +29,7 @@ But it may also be used stand-alone.
 #   - 07 jun 2008: added twig() etc
 #   - 07 jun 2008: added 4D (L,M)
 #   - 07 jun 2008: import EasyTwig as ET
+#   - 09 jun 2008: implemented hhelp
 #
 # Description:
 #
@@ -89,9 +90,6 @@ import EasyTwig as ET
 #********************************************************************************
 
 
-
-#-------------------------------------------------------------------------------
-
 TDLCompileMenu("QR_MeqNodes categories:",
                # TDLOption_user_level,               # ... needs some thought ...
                TDLOption('opt_allcats',"all",True),
@@ -132,22 +130,27 @@ TDLCompileMenu("QR_MeqNodes categories:",
                TDLOption('opt_compounder',"compounder",False),
                TDLMenu("flagging",
                        TDLOption('opt_flagging_twig',"input twig (child node)",
-                                 ET.twig_names('noise', first='noise3'), more=str),
+                                 ET.twig_names('noise', first='noise_3'), more=str),
                        TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
                                  [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
                        toggle='opt_flagging'),
                TDLMenu("solving",
                        TDLMenu("solving_poly",
                                TDLOption('opt_solving_poly_twig',"input twig (lhs of condeq)",
-                                         ET.twig_names(['gaussian'],first='gaussianft'),
+                                         ET.twig_names(['gaussian'],first='gaussian_ft'),
                                          more=str),
                                TDLOption('opt_solving_poly_poly',"polynomial to be fitted (rhs)",
-                                         ET.twig_names(['polynomial']), more=str),
+                                         ET.twig_names(['polyparm']), more=str),
                                toggle='opt_solving_poly'),
                        toggle='opt_solving'),
                TDLOption('opt_visualization',"visualization",False),
                TDLOption('opt_transforms',"transforms",False),
                TDLOption('opt_flowcontrol',"flowcontrol",False),
+
+               TDLMenu("help",
+                       TDLOption('opt_hhelp_twig',"help on EasyTwig.twig()", False),
+                       toggle='opt_helpnodes'),
+
                toggle='opt_QR_MeqNodes')
 
 
@@ -165,28 +168,34 @@ def MeqNodes (ns, path, rider=None):
    path = QR.add2path(path,'MeqNodes')
    cc = []
    if opt_allcats or opt_unops:
-      cc.append(unops (ns, path, rider=rider))
+      print '---- unops -----'
+      cc.append(unops (ns, path, rider))
    if opt_allcats or opt_binops_math:
-      cc.append(binops_math (ns, path, rider=rider))
+      cc.append(binops_math (ns, path, rider))
    if opt_allcats or opt_multi_math:
-      cc.append(multi_math (ns, path, rider=rider))
+      cc.append(multi_math (ns, path, rider))
    if opt_allcats or opt_leaves:
-      cc.append(leaves (ns, path, rider=rider))
+      cc.append(leaves (ns, path, rider))
    if opt_allcats or opt_tensor:
-      cc.append(tensor (ns, path, rider=rider))
+      cc.append(tensor (ns, path, rider))
    if opt_allcats or opt_axis_reduction:
-      cc.append(axis_reduction (ns, path, rider=rider))
+      cc.append(axis_reduction (ns, path, rider))
    if opt_allcats or opt_resampling:
-      cc.append(resampling (ns, path, rider=rider))
+      cc.append(resampling (ns, path, rider))
    if opt_allcats or opt_compounder:
-      cc.append(compounder (ns, path, rider=rider))
+      cc.append(compounder (ns, path, rider))
    if opt_allcats or opt_flagging:
-      cc.append(flagging (ns, path, rider=rider))
+      cc.append(flagging (ns, path, rider))
    if opt_allcats or opt_solving:
-      cc.append(solving (ns, path, rider=rider))
-   # cc.append(visualization (ns, path, rider=rider))
-   # cc.append(transforms (ns, path, rider=rider))
-   # cc.append(flowcontrol (ns, path, rider=rider))
+      cc.append(solving (ns, path, rider))
+
+   # cc.append(visualization (ns, path, rider))
+   # cc.append(transforms (ns, path, rider))
+   # cc.append(flowcontrol (ns, path, rider))
+
+   if opt_helpnodes:
+      cc.append(helpnodes (ns, path, rider))
+
    return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
 
 
@@ -194,6 +203,26 @@ def MeqNodes (ns, path, rider=None):
 #********************************************************************************
 # 2nd tier: Functions called from the top function above:
 #********************************************************************************
+
+def helpnodes (ns, path, rider=None):
+   """
+   helpnodes...
+   """
+   bundle_help = helpnodes.__doc__
+   path = QR.add2path(path,'helpnodes')        # avoide name 'help'....
+   
+   print '\n**',path,type(rider)
+   cc = []
+   if opt_hhelp_twig:
+      cc.append(QR.helpnode (ns, path,
+                             # name='EasyTwig.twig(ns,name)',
+                             name='EasyTwig_twig',
+                             help=ET.twig.__doc__, rider=rider, trace=True))
+      print '**',path,'cc[0]:',str(cc[0]),type(rider),'\n'
+
+   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+
+#--------------------------------------------------------------------------------
 
 def unops (ns, path, rider=None):
    """
@@ -567,21 +596,38 @@ def flagging_simple (ns, path, rider=None):
   
 def compounder_simple (ns, path, rider=None):
    """
-   Demonstration of simple compounder.
+   Demonstration of a 'grid' of compounders, which sample a grid of points (L,M)
+   of a 2D gaussian input twig (subtree): 'gaussian_LM' -> exp(-(L**2+M**2)).
+   The result of each compounder is a constant, with values that decrease with
+   the distance to the origin. Expected values are:
+   v(0,0) = 1.00000
+   v(1,1) = 0.13533
+   v(2,2) = 0.00335
+   v(0,1) = v(1,0) = 0.36788
+   v(0,2) = v(2,0) = 0.01831
+   v(2,1) = v(1,2) = 0.00673
+   A similar 2D gaussian (in f,t) is shown for comparison.
    """
    bundle_help = compounder_simple.__doc__
    path = QR.add2path(path,'simple')
 
-   # twig = ET.twig(ns,'gaussianftLM')
-   twig = ET.twig(ns,'gaussianLM')
-   # LM = [ET.twig(ns,'L'), ET.twig(ns,'M')]
-   LM = [(ns << 0.5), (ns << -0.5)]
-   extra_axes = ns['extra_axes'] << Meq.Composer(*LM)
+   twig_LM = ET.twig(ns,'gaussian_LM')
+   twig_ft = ET.twig(ns,'gaussian_ft')
    common_axes = [hiid('L'),hiid('M')]
-   node = ns.compou << Meq.Compounder(children=[extra_axes,twig],
-                                      common_axes=common_axes)
-   return QR.bundle (ns, path, nodes=[node], help=bundle_help, rider=rider,
-                     bookmark=[extra_axes,twig,node])
+   help = 'Compounder(LM,twigLM,common_axes='+str(common_axes)+')'
+   cc = []
+   for L in [0,1,2]:
+      for M in [0,1,2]:
+         LM = [(ns << L), (ns << M)]
+         extra_axes = ns['extra_axes'](L=L)(M=M) << Meq.Composer(*LM)
+         c = ns.Compounder(L=L)(M=M) << Meq.Compounder(extra_axes, twig_LM,
+                                                       help=help,
+                                                       common_axes=common_axes)
+         cc.append(c)
+   cs = ET.unique_stub(ns,'Compounders') << Meq.Composer(*cc)
+   return QR.bundle (ns, path, nodes=[cs,cc[1],twig_LM,twig_ft],
+                     make_helpnode=True,
+                     help=bundle_help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -1232,9 +1278,9 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    rider = QR.create_rider()             # CollatedHelpRecord object
-   if 0:
+   if 1:
       MeqNodes(ns, 'test', rider=rider)
-      if 0:
+      if 1:
          rider.show('testing')
 
    if 0:

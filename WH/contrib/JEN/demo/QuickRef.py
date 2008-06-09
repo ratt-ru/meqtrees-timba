@@ -35,37 +35,58 @@ any MeqTrees contributor, following a number of simple rules.
 # Remarks:
 #
 #   - AGW: Middle-clicking a node in the browser could display its quickref_help
-#     (field in the state record) just like right-click option in the various plotter(s)....
-#     The quickref_help is in the form of a record.
-#     Tony already has a popup uption for selecting from multiple vellsets,
-#     which includes an expansion tree. The quickref_help popup needs the same.
+#          (field in the state record) just like right-click option in the various plotter(s)....
+#          The quickref_help is in the form of a record.
+#          Tony already has a popup uption for selecting from multiple vellsets,
+#          which includes an expansion tree. The quickref_help popup needs the same.
+#
 #   - AGW: Left-clicking a node displays the state record, except the Composer...
 #         It would be nice if it were easier to invoke the relevant plotter...
 #         (at this moment it takes to many actions, and the new display is confusing)
+#
 #   - OMS:Can we plot the result of each request in a sequence while it is running....?
 #         (this problem may have been solved....)
+#
 #   - AGW: Flag-information is lost when a panel is floated in a separate window.
 #          Also in the plot-memory... (Try unary_elementary sqrt(noise3))
+#
 #   - AGW: When the flags are "toggled" the colorbar scale does not change,
 #          and neither do the mean/stddev in the top-right corner...
 #
-#   - OMS: TDLCompileMenu should have tick-box option (just like the TDLOption)
-#     Or should I read the manual better?
-#   - OMS: Meow.Bookmarks needs a folder option....
-#   - Is there a way to attach fields like a quickref_help record to the
-#     state record (initrec?) of an existing node?
+#   - OMS: Meow.Bookmarks needs a folder option.... (Mind yiou, I probably do not
+#          understand it properly. I will use my own bookmarks for the moment)
+#
+#   - OMS: Is there a way to attach fields like a quickref_help record to the
+#          state record (initrec?) of an existing node?
+#
+#   - AGW: Can we have a QuickRef Viewer? It would be a version of the Record Browser
+#          that displays only the (opened!) quickref_help field of the state record in a panel.
+#          This would allow me to make bookmarks with this viewer, of nodes that contain a
+#          particularly useful/relevant quickref_help.
+#
+#   - OMS: The page tabs in the right panel of the browser are too large, because their
+#          letters are too large. In this way, they run off the page too quickly.
+#          Can we have smaller letters, and multi-line tabs? 
+#
 #   - AGW: Right-click plotting in Log scale does not work if 1D data
-#     (it only produces a colorbar...)
-#     NB: it is only offered as an option when doing 1D after 2D...
-#   - OMS: TDLOption separator (None): gives problems.... (rebuild?)
+#          (it only produces a colorbar...)
+#          NB: it is only offered as an option when doing 1D after 2D...
+#
+#   - OMS: TDLOption separator (None): gives problems.... (should I rebuild?)
 #          Same with TDLRuntimeOptionSeparator()
 #          It complains that the option name has to be a string....
+#
+#   - OMS: What does determine the order in which the TDLOption values are read from
+#          the tdlconf file? Their order in that file?
+#
 #   - AGW/OMS: The result plotter does not always refresh when switching
 #          from 4D to 2D, even in the rqid is changed (see EasyTwig, polynomial)
+#
 #   - AGW: I often use the Composer to display the values of a group of scalar nodes
 #          in a single panel. It would be nice if each value could be labelled, just
 #          as the composer/inspector tracks are labelled with 'plot_labels'.
 #          Can we use plot_labels for this too? (after all, it is the Result Plotter)
+#
 #   - OMS: For clarity, I often put parameter values in the names of nodes that are
 #          displayed via a bookmark page. This means that, when I change the parameters
 #          via TDL options the names of the displayed nodes change. When I re-execute,

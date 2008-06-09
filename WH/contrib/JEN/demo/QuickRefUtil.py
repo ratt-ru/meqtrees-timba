@@ -422,6 +422,35 @@ def add2path (path, name=None, trace=False):
         print '\n** QR.add2path(',path,name,') ->',s
     return s
 
+
+#-------------------------------------------------------------------------------
+
+def helpnode (ns, path, name=None,
+              # quals=None, kwquals=None,
+              help=None, rider=None,
+              trace=False):
+    """A special version of MeqNode(), for nodes that are only
+    used to carry a quickref_help field in their state-record.
+    """
+    if not isinstance(name,str):
+        ss = path.split('.')
+        nss = len(ss)
+        name = ss[nss-1]
+        if nss>1:
+            name = ss[nss-2]+'_'+ss[nss-1]
+
+    node = MeqNode (ns, path, meqclass='Constant',
+                    name='helpnode'+'_'+name,
+                    # quals=quals, kwquals=kwquals,                # .....??
+                    help=help, rider=rider,
+                    trace=trace, value=-0.123456789)
+    print '\n**',name,':\n',help,'\n'                              # temporary
+    viewer = 'QuickRef Browser'                                    # when implemented...
+    viewer = 'Record Browser'                                      # temporary
+    JEN_bookmarks.create(node, page=name, folder='helpnodes', viewer=viewer)
+    return node
+
+
 #-------------------------------------------------------------------------------
 
 def MeqNode (ns, path,
@@ -514,6 +543,7 @@ def bundle (ns, path,
             help=None, rider=None,
             parentclass='Composer', result_index=0,
             bookmark=True, viewer="Result Plotter",
+            make_helpnode=False,
             trace=False):
     """Make a single parent node, with the given nodes as children.
     Make bookmarks if required, and collate the help-strings.
@@ -531,52 +561,62 @@ def bundle (ns, path,
       
     # Condition the help-string and update the CollatedHelpRecord (rider):
     if isinstance(help, str):
+        if make_helpnode:
+            # Special case: make a separate helpnode/bookmark:
+            helpnode(ns, path, rider=rider, help=help)
         qhelp = help.split('\n')
         qhelp[0] = qname+': '+qhelp[0]
     else:
         qhelp = qname+': '+str(help)
-      
+
     if rider:
         rider.insert_help(path, qhelp)            # add qhelp to the rest
         # The relevant subset of help is attached to this bundle node:
         qhelp = rider.subrec(path, trace=trace)   # get (a copy of) the relevant sub-record 
         qhelp = qhelp.cleanup().chrec()           # clean it up (remove order fields etc) 
 
-    # Optionally, apply a one or more unary math operations (e.g. Abs)
-    # on all the nodes to be bundled:
-    if unop:
-        if isinstance(unop,str):
-            unop = [unop]
-        if isinstance(unop,(list,tuple)):
-            for unop1 in unop:
-                for i,node in enumerate(nodes):
-                    nodes[i] = ns << getattr(Meq, unop1)(node)
-
-    # OK, bundle the given nodes by making them children of the
-    # specified parentclass:
     # First make a nodestub with an unique name
     parent = ET.unique_stub(ns, name)
-   
-    if parentclass=='ReqSeq':
-        if not isinstance(result_index,int):
-            if result_index=='last':
-                result_index = len(nodes)-1
-            else:
-                result_index = 0
-        parent << Meq.ReqSeq(children=nodes,
-                             result_index=result_index,
-                             quickref_help=qhelp)
+    print '---',path,': name=',name,'-> (unique?) parent=',str(parent)
 
-    elif parentclass in ['Add','Multiply']:
-        parent << getattr(Meq,parentclass)(children=nodes,
-                                           quickref_help=qhelp)
+    # Special case: no nodes to be bundled:
+    if len(nodes)==0:
+        parent << Meq.Constant(-0.123454321, quickref_help=qhelp)
+        bookmark = False
+
     else:
-        plot_label = []
-        for node in nodes:
-            plot_label.append(node.name)
-        parent << Meq.Composer(children=nodes,
-                               plot_label=plot_label,
-                               quickref_help=qhelp)
+        # Optionally, apply a one or more unary math operations (e.g. Abs)
+        # on all the nodes to be bundled:
+        if unop and len(nodes)>0:
+            if isinstance(unop,str):
+                unop = [unop]
+            if isinstance(unop,(list,tuple)):
+                for unop1 in unop:
+                    for i,node in enumerate(nodes):
+                        nodes[i] = ns << getattr(Meq, unop1)(node)
+
+        # OK, bundle the given nodes by making them children of the specified parentclass:
+        if parentclass=='ReqSeq':
+            if not isinstance(result_index,int):
+                if result_index=='last':
+                    result_index = len(nodes)-1
+                else:
+                    result_index = 0                 # safe (not recognized...)
+            parent << Meq.ReqSeq(children=nodes,
+                                 result_index=result_index,
+                                 quickref_help=qhelp)
+
+        elif parentclass in ['Add','Multiply']:
+            parent << getattr(Meq,parentclass)(children=nodes,
+                                               quickref_help=qhelp)
+        else:
+            # Assume MeqComposer:
+            plot_label = []
+            for node in nodes:
+                plot_label.append(node.name)
+            parent << Meq.Composer(children=nodes,
+                                   plot_label=plot_label,
+                                   quickref_help=qhelp)
 
     # Make a meqbrowser bookmark for this bundle, if required:
     if bookmark:

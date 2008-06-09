@@ -292,9 +292,9 @@ def unique_list (ss, trace=False):
 def twig_cats (trace=False):
     """Return a list of twig categories"""
     cats = []
-    cats.extend(['axes','complex','noise','range'])
+    cats.extend(['axes','complex','noise','tensor'])
     cats.extend(['gaussian','expnegsum'])
-    cats.extend(['polynomial'])
+    cats.extend(['polyparm'])
     cats.extend(['prod','sum'])
     # cats.extend([])
     return cats
@@ -314,27 +314,29 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     elif cat=='axes':
         names = ['f','t','L','M']
     elif cat=='complex':
-        names = ['cxft','cxLM']
+        names = ['cx_ft','cx_tf','cx_LM']
     elif cat=='noise':
-        names = ['noise1','noise3.5','expnoise2']
-    elif cat=='range':
-        names = ['range4','range10']
+        names = ['noise_1','noise_3.5','expnoise_2','cxnoise_2.5',
+                 'polarnoise_0.1','phasenoise_0.2','amplnoise_0.01']
+    elif cat=='tensor':
+        names = ['range_4','range_10','tensor_ftLM']
     elif cat=='gaussian':
-        names = ['gaussianf','gaussianft','gaussianftLM']
+        names = ['gaussian_f','gaussian_ft','gaussian_ftLM']
     elif cat=='expnegsum':
-        names = ['expnegsumf2','expnegsum1.5ft2','expnegsumf2t2L2M2']
-    elif cat=='polynomial':
-        names = ['polynomialf2','polynomialft2','polynomialf2t2L2M2']
+        names = ['expnegsum_f2','expnegsum_1.5ft2','expnegsum_f2t2L2M2']
+    elif cat=='polyparm':
+        names = ['polyparm_f2','polyparm_ft2','polyparm_f2t2L2M2']
     elif cat=='sum':
-        names = ['sumf2t3','sum-3.3f2t','sumf2t2L2M2']
+        names = ['sum_f2t3','sum_-3.3f2t','sum_f2t2L2M2']
     elif cat=='prod':
-        names = ['prodf2t3','prod-3.3f2t','prodf2t2L2M2']
+        names = ['prod_f2t3','prod_-3.3f2t','prod_f2t2L2M2']
 
     elif cat=='all':
         names = twig_names(twig_cats())
     else:
         # default category
-        names = ['f','t','f+t','ft','f**2','f**t','noise3','cxft']
+        names = ['f','t','L','M','prod_ft2','sum_L2M2',
+                 'f**t','range_3','noise_3','cx_ft']
 
     # Specific names may be included:
     if isinstance(include,str):
@@ -357,16 +359,43 @@ def twig_names (cat='default', include=None, first=None, trace=False):
 
 #-----------------------------------------------------------------------------------
 
-def twig(ns, name, test=False, trace=False):
-    """Return a standard (name) subtree (a twig), to be used as input for
-    demonstrations in QR_... nodules.
-    Reuse if it exists already. Create it if necessary.
-    If test=True, just test whether the name is recognized.... 
+def twig(ns, name, test=False, help=None, trace=False):
     """
-    recognized_axes = ['f','t','L','M']    
-    s1 = '** EasyTwig.twig('+str(name)+', test='+str(test)+'):'
+    Return a little subtree (a twig), specified by its name.
 
-    # print s1,name.split('pow')
+    - f,t,L,M        :  Grid(axis=freq/time/L/M)
+    - cx_ft, cx_tf, cx_LM   :  Complex twigs
+    - f**t, t**f, f+t, ft   :
+    
+    - range_4        :  a 4-element (0,1,2,3) 'tensor' node
+    - noise_3.5      :  GaussNoise(stddev=3.5)                stddev>0
+    - expnoise_4     :  Exp(GaussNoise(stddev=4))             generate peaks, for flagging
+    - cxnoise_3      :  complex noise, with same stddev in real and imag         
+    - polarnoise_3   :  complex noise, with same stddev in ampl(w.r.t 1) and phase         
+    - phasenoise_3   :  complex noise, with stddev in phase only (rad, w.r.t. 0)        
+    - amplnoise_3    :  complex noise, with stddev in ampl only (w.r.t. 1)        
+
+    Twig specs often have an 'ftLM' string, which specifies powers of f,t,L,M.
+    For instance, f2t4L0 means f**2, t**4 and L**0 (=1). For instance:
+    - sum_f2t2       :  f**2 + t**2
+    - sum_-3.4t0L3   :  -3.4 + t**0 + L**3
+    - prod_5f1t2L3M4 :  5(f**1)(t**2)(L**3)(M**4)
+    NB: The ORDER of the variables in the ftLM string MUST be f,t,L,M  
+
+    - tensor_ftM     :  3-element (f,t,M) 'tensor' node 
+    - gaussian_ftLM  :  4D Gaussian, around 0.0, width=1.0 
+    - expnegsum_f2t2 :  exp(-(f**2 + t**2))                   equivalent to gaussian_ft
+    - polyparm_L3M4  :  polynomial in L,M, with MeqParms      use ET.find_parms(twig) 
+    
+    An already existing (i.e. a node of that name is initialized) twig is re-used.
+    If the twig name is not recognized, a constant node is generated.
+    """
+
+    s1 = '--- EasyTwig.twig('+str(name)
+    if test: s1 += ', test='+str(test)
+    s1 += '):  '
+
+    recognized_axes = ['f','t','L','M']    
 
     # Derive and condition the nodename:
     nodename = name
@@ -402,22 +431,22 @@ def twig(ns, name, test=False, trace=False):
     elif name in ['f+t','t+f']:
         node = stub << Meq.Add(twig(ns,'f'),twig(ns,'t'))
     elif name in ['f+t+L+M']:
-        node = stub << Meq.Identity(twig(ns,'sumftLM'))
+        node = stub << Meq.Identity(twig(ns,'sum_ftLM'))
 
     elif name in ['tf','ft','f*t','t*f']:
         node = stub << Meq.Multiply(twig(ns,'f'),twig(ns,'t'))
     elif name in ['LM','ML','L*M','M*L']:
         node = stub << Meq.Multiply(twig(ns,'L'),twig(ns,'M'))
     elif name in ['f*t*L*M']:
-        node = stub << Meq.Identity(twig(ns,'prodftLM'))
+        node = stub << Meq.Identity(twig(ns,'prod_ftLM'))
     elif name in ['ftLM','ftL','ftM','fLM','tLM']:
-        node = stub << Meq.Identity(twig(ns,'prod'+name))
+        node = stub << Meq.Identity(twig(ns,'prod_'+name))
 
-    elif name in ['cft','cxft']:
+    elif name in ['cx_ft']:
         node = stub << Meq.ToComplex(twig(ns,'f'),twig(ns,'t'))
-    elif name in ['ctf','cxtf']:
+    elif name in ['cx_tf']:
         node = stub << Meq.ToComplex(twig(ns,'t'),twig(ns,'f'))
-    elif name in ['cLM','cxLM']:
+    elif name in ['cx_LM']:
         node = stub << Meq.ToComplex(twig(ns,'L'),twig(ns,'M'))
         
     elif name in ['f2','f**2']:
@@ -430,53 +459,85 @@ def twig(ns, name, test=False, trace=False):
         node = stub << Meq.Sqr(twig(ns,'M'))
 
     elif name in ['f2+t2','t2+f2']:
-        node = stub << Meq.Identity(twig(ns,'sumf2t2'))
+        node = stub << Meq.Identity(twig(ns,'sum_f2t2'))
         
     elif name in ['f**t']:
         node = stub << Meq.Pow(twig(ns,'f'),twig(ns,'t'))
     elif name in ['t**f']:
         node = stub << Meq.Pow(twig(ns,'t'),twig(ns,'f'))
 
-    elif len(name.split('expnoise'))>1:               # e.g. 'expnoise2.5'
-        ss = name.split('expnoise')[1]
-        node = stub << Meq.Exp(twig(ns,'noise'+ss))
+    elif len(name.split('expnoise_'))>1:               # e.g. 'expnoise_2.5'
+        ss = name.split('expnoise_')[1]
+        node = stub << Meq.Exp(twig(ns,'noise_'+ss))
 
-    elif len(name.split('gaussian'))>1:               # e.g. 'gaussianft'
-        ss = name.split('gaussian')[1]
+    elif len(name.split('cxnoise_'))>1:               # e.g. 'cxnoise_2.5'
+        ss = name.split('cxnoise_')[1]
+        real = stub('real') << Meq.GaussNoise(stddev=float(ss))
+        imag = stub('imag') << Meq.GaussNoise(stddev=float(ss))
+        node = stub << Meq.ToComplex(real,imag)
+
+    elif len(name.split('polarnoise_'))>1:            # e.g. 'polarnoise_2.5'
+        ss = name.split('polarnoise_')[1]
+        dampl = stub('dampl') << Meq.GaussNoise(stddev=float(ss))
+        ampl = stub('ampl') << Meq.Add(1.0, dampl)
+        phase = stub('phase') << Meq.GaussNoise(stddev=float(ss))
+        node = stub << Meq.Polar(ampl,phase)
+
+    elif len(name.split('phasenoise_'))>1:            # e.g. 'phasenoise_2.5'
+        ss = name.split('phasenoise_')[1]
+        phase = stub('phase') << Meq.GaussNoise(stddev=float(ss))
+        node = stub << Meq.Polar(1.0, phase)
+
+    elif len(name.split('amplnoise_'))>1:            # e.g. 'phasenoise_2.5'
+        ss = name.split('amplnoise_')[1]
+        dampl = stub('dampl') << Meq.GaussNoise(stddev=float(ss))
+        ampl = stub('ampl') << Meq.Add(1.0, dampl)
+        node = stub << Meq.Polar(ampl, 0.0)
+
+    elif len(name.split('gaussian_'))>1:               # e.g. 'gaussian_ft'
+        ss = name.split('gaussian_')[1]
         for s in recognized_axes:
             ss = ss.replace(s,s+'2')                  # e.g. ft -> f2t2 
-        node = stub << Meq.Exp(Meq.Negate(twig(ns,'sum'+ss)))
+        node = stub << Meq.Exp(Meq.Negate(twig(ns,'sum_'+ss)))
 
-    elif len(name.split('expnegsum'))>1:              # e.g. 'expnegsumf0t1L2M'
-        ss = name.split('expnegsum')[1]
-        node = stub << Meq.Exp(Meq.Negate(twig(ns,'sum'+ss)))
+    elif len(name.split('expnegsum_'))>1:              # e.g. 'expnegsum_f0t1L2M'
+        ss = name.split('expnegsum_')[1]
+        node = stub << Meq.Exp(Meq.Negate(twig(ns,'sum_'+ss)))
 
-    elif len(name.split('polynomial'))>1:             # e.g. 'polynomialf0t1L2M'
-        ss = name.split('polynomial')[1]
-        node = polynomial(ns, 'polynomial', ftLM=ss, trace=trace)
+    elif len(name.split('tensor_'))>1:                # e.g. 'tensor_ftLM'
+        ss = name.split('tensor_')[1]
+        cc = []
+        for s in ss:
+            cc.append(twig(ns,s))
+        if len(cc)>0:
+            node = stub << Meq.Composer(*cc)
+
+    elif len(name.split('polyparm_'))>1:             # e.g. 'polyparm_f0t1L2M'
+        ss = name.split('polyparm_')[1]
+        node = polyparm(ns, 'polyparm', ftLM=ss, trace=trace)
 
     #.....................................................................
     # do these last (their short names might be subsets of other names...)
     #.....................................................................
 
-    elif len(name.split('range'))>1:                  # e.g. 'range4' 
-        ss = name.split('range')
+    elif len(name.split('range_'))>1:                  # e.g. 'range_4' 
+        ss = name.split('range_')
         node = stub << Meq.Constant(range(int(ss[1])))
 
-    elif len(name.split('noise'))>1:                  # e.g. 'noise2.5'
-        ss = name.split('noise')[1]
+    elif len(name.split('noise_'))>1:                  # e.g. 'noise_2.5'
+        ss = name.split('noise_')[1]
         node = stub << Meq.GaussNoise(stddev=float(ss))
 
-    elif len(name.split('prod'))>1:                   # e.g. 'prodf0t1L2M'
-        ss = name.split('prod')[1]
+    elif len(name.split('prod_'))>1:                   # e.g. 'prod_f0t1L2M'
+        ss = name.split('prod_')[1]
         node = combine_ftLM(ns, stub, ss, default=1.0, meqclass='Multiply') 
 
-    elif len(name.split('sum'))>1:                    # e.g. 'sumf0t1L2M'
-        ss = name.split('sum')[1]
+    elif len(name.split('sum_'))>1:                    # e.g. 'sum_f0t1L2M'
+        ss = name.split('sum_')[1]
         node = combine_ftLM(ns, stub, ss, default=0.0, meqclass='Add') 
 
-    elif len(name.split('pow'))==2:                   # e.g. 'fpow3'
-        ss = name.split('pow')
+    elif len(name.split('pow_'))==2:                   # e.g. 'fpow_3'
+        ss = name.split('pow_')
         if ss[0] in recognized_axes:     
             node = twig(ns,ss[0])
             if ss[1] in '2345678':                    # MeqPow2 ... MeqPow8 
@@ -496,8 +557,10 @@ def twig(ns, name, test=False, trace=False):
         # print dir(node)
         if getattr(node,'children', None):
             cc = node.children
+            s1 += '  children('+str(len(cc))+'):' 
             for c in cc:
                 s1 += '  '+str(c[1])
+            s1 += ')'
         print s1
 
     if test:                                                  # testing mode
@@ -519,7 +582,7 @@ def combine_ftLM(ns, stub, ss, default=0.0, meqclass='Multiply'):
         elif power==1:                            # linear
             cc.append(twig(ns,key))
         elif power>1:                             # ignore power<0
-            cc.append(twig(ns,key+'pow'+str(power)))
+            cc.append(twig(ns,key+'pow_'+str(power)))
     if len(cc)==0:
         node = stub << Meq.Constant(default)      # use nodename
     elif len(cc)==1:
@@ -556,10 +619,10 @@ def decode_ftLM (s, trace=False):
 
 #----------------------------------------------------------------
 
-def polynomial (ns, name='polynomial', ftLM=None,
-                fdeg=0, tdeg=0, Ldeg=0, Mdeg=0,
-                full=False, trace=False):
-    """Make a polynomial subtree (up to 4D, f,t,L,M)
+def polyparm (ns, name='polyparm', ftLM=None,
+              fdeg=0, tdeg=0, Ldeg=0, Mdeg=0,
+              full=False, trace=False):
+    """Make a polynomial subtree (up to 4D, f,t,L,M), with parms.
     """
 
     if isinstance(ftLM, str):
@@ -572,7 +635,7 @@ def polynomial (ns, name='polynomial', ftLM=None,
         Mdeg = max(0,vv['M'])
         
     if trace:
-        print '\n** polynomial(',name,ftLM,fdeg,tdeg,Ldeg,Mdeg,'):'
+        print '\n** polyparm(',name,ftLM,fdeg,tdeg,Ldeg,Mdeg,'):'
 
 
     # Make a list (cc) of polynomial terms (nodes):
@@ -589,14 +652,14 @@ def polynomial (ns, name='polynomial', ftLM=None,
                         if tdeg>0: quals.append(t)
                         if Ldeg>0: quals.append(L)
                         if Mdeg>0: quals.append(M)
-                        parmstub = unique_stub(ns,'parm',*quals)
-                        termstub = unique_stub(ns,'term',*quals)
+                        parmstub = unique_stub(ns,'polyparm',*quals)
+                        termstub = unique_stub(ns,'polyterm',*quals)
                         default_value = 0.1**sum_ftLM            # slightly non_zero
                         parm = parmstub << Meq.Parm(default_value)
                         if sum_ftLM==0:                          # the constant term
                             term = termstub << Meq.Identity(parm)
                         else:
-                            pname = 'prod'
+                            pname = 'prod_'
                             if fdeg>0: pname += 'f'+str(f)
                             if tdeg>0: pname += 't'+str(t)
                             if Ldeg>0: pname += 'L'+str(L)
@@ -634,22 +697,22 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 0:
+   if 1:
        for cat in twig_cats():
            print '\n\n****** twig_cat =',cat
            for name in twig_names(cat):
                twig(ns, name, trace=True)
 
-   if 1:
+   if 0:
        names = []
-       names.extend(['fpow3','tpow6'])
-       names.extend(['prodf3t1','prodf3L1M','prod3.56'])
-       names.extend(['sumf3t1','sum-6f3L1M','sum3.56'])
+       names.extend(['fpow_3','tpow_6'])
+       names.extend(['prod_f3t1','prod_f3L1M','prod_3.56'])
+       names.extend(['sum_f3t1','sum_-6f3L1M','sum_3.56'])
        names.extend(['f+t','f2','f**2','ft'])
-       names.extend(['gaussianft','gaussian'])
-       names.extend(['expnoise4','expnegsum-2fLM3'])
+       names.extend(['gaussian_ft','gaussian'])
+       names.extend(['expnoise_4','expnegsum_-2fLM3'])
        names = []
-       names.extend(['polynomialf2t2LM'])
+       names.extend(['polyparm_f2t2LM'])
        for name in names:
            twig(ns, name, trace=True)
            
@@ -659,12 +722,12 @@ if __name__ == '__main__':
        twig(ns, 'f**t', trace=True)
        twig(ns, 't**f', trace=True)
        twig(ns, 'f+t', trace=True)
-       twig(ns, 'range3', trace=True)
-       twig(ns, 'noise3.5', trace=True)
+       twig(ns, 'range_3', trace=True)
+       twig(ns, 'noise_3.5', trace=True)
        twig(ns, 'dummy', trace=True)
 
    if 0:
-       t = polynomial(ns, fdeg=1, tdeg=2, Ldeg=1, Mdeg=1, trace=True)
+       t = polyparm(ns, fdeg=1, tdeg=2, Ldeg=1, Mdeg=1, trace=True)
        nn = find_parms(t, trace=True)
 
    #------------------------------------------------
