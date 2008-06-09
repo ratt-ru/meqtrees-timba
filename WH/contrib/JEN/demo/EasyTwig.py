@@ -325,7 +325,9 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     elif cat=='expnegsum':
         names = ['expnegsum_f2','expnegsum_1.5ft2','expnegsum_f2t2L2M2']
     elif cat=='polyparm':
-        names = ['polyparm_f2','polyparm_ft2','polyparm_f2t2L2M2']
+        names = ['polyparm_f2','polyparm_t2',
+                 'polyparm_ft2','polyparm_f2t',
+                 'polyparm_f4t4','polyparm_f2t2L2M2']
     elif cat=='sum':
         names = ['sum_f2t3','sum_-3.3f2t','sum_f2t2L2M2']
     elif cat=='prod':

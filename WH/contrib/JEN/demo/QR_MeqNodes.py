@@ -135,15 +135,18 @@ TDLCompileMenu("QR_MeqNodes categories:",
                                  [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
                        toggle='opt_flagging'),
                TDLMenu("solving",
-                       TDLMenu("solving_poly",
-                               TDLOption('opt_solving_poly_twig',"input twig (lhs of condeq)",
+                       TDLMenu("solving_polyparm",
+                               TDLOption('opt_solving_polyparm_twig',"input twig (lhs of condeq)",
                                          ET.twig_names(['gaussian'],first='gaussian_ft'),
                                          more=str),
-                               TDLOption('opt_solving_poly_poly',"polynomial to be fitted (rhs)",
+                               TDLOption('opt_solving_polyparm_poly',"polynomial to be fitted (rhs)",
                                          ET.twig_names(['polyparm']), more=str),
-                               toggle='opt_solving_poly'),
+                               toggle='opt_solving_polyparm'),
                        toggle='opt_solving'),
-               TDLOption('opt_visualization',"visualization",False),
+               TDLMenu("visualization",
+                       TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
+                                 ET.twig_names(first='t'), more=str),
+                       toggle='opt_visualization'),
                TDLOption('opt_transforms',"transforms",False),
                TDLOption('opt_flowcontrol',"flowcontrol",False),
 
@@ -188,8 +191,10 @@ def MeqNodes (ns, path, rider=None):
       cc.append(solving (ns, rr.path, rider))
    if opt_allcats or opt_visualization:
       cc.append(visualization (ns, rr.path, rider))
-   # cc.append(transforms (ns, rr.path, rider))
-   # cc.append(flowcontrol (ns, rr.path, rider))
+   if opt_allcats or opt_flowcontrol:
+      cc.append(flowcontrol (ns, rr.path, rider))
+   if opt_allcats or opt_transforms:
+      cc.append(transforms (ns, rr.path, rider))
 
    if opt_helpnodes:
       cc.append(helpnodes (ns, rr.path, rider))
@@ -358,7 +363,7 @@ def flowcontrol (ns, path, rider=None):
    """
    rr = QR.on_entry(flowcontrol, path, rider)
    cc = []
-   # cc.append(flowcontrol_reqseq (ns, rr.path, rider=rider))
+   cc.append(flowcontrol_reqseq (ns, rr.path, rider=rider))
    # cc.append(flowcontrol_reqmux (ns, rr.path, rider=rider))
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
@@ -387,8 +392,8 @@ def solving (ns, path, rider=None):
    rr = QR.on_entry(solving, path, rider)
    cc = []
    cc.append(solving_ab (ns, rr.path, rider=rider))
-   if opt_solving_poly:
-      cc.append(solving_poly (ns, rr.path, rider=rider))
+   if opt_solving_polyparm:
+      cc.append(solving_polyparm (ns, rr.path, rider=rider))
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -462,13 +467,23 @@ def transforms_astro (ns, path, rider=None):
 # flowcontrol_... 
 #================================================================================
 
-def flowcontrol_xxx (ns, path, rider=None):
+def flowcontrol_reqseq (ns, path, rider=None):
    """
-   Control of the flow of requests/results...
+   The MeqReqSeq (Request Sequencer) node issues its request to its children one
+   by one (rather than simultaneously, as other nodes do), in order of the child list.
+   When finished, it passes on the result of only one of the children, which may be
+   specified by means of the keyword 'result_index' (default=0, i.e. the first child).
    """
-   rr = QR.on_entry(flowcontrol_xxx, path, rider)
+   rr = QR.on_entry(flowcontrol_reqseq, path, rider)
+   rindex = 1
    cc = []
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+   for i in range(5):
+      cc.append(ns << (-5*i))
+   node = QR.MeqNode(ns, rr.path, meqclass='ReqSeq',
+                     name='ReqSeq(*cc, result_index='+str(rindex)+')',
+                     children=cc, help=help, result_index=rindex)
+   CC = ET.unique_stub(ns,'cc') << Meq.Composer(*cc)
+   return QR.bundle (ns, rr.path, nodes=[node,CC], help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -480,15 +495,38 @@ def flowcontrol_xxx (ns, path, rider=None):
 
 def visualization_inspector (ns, path, rider=None):
    """
-   Visualization...
+   An 'inspector' is a MeqComposer node. Its default viewer (invoked when
+   clicking on it in the browser tree) is the Collections Plotter, which
+   plots time-tracks of its children in a single plot. If the keyword
+   argument 'plot_label' is given a list of strings, these are used as
+   labels in the plot.
+   - The plotter takes the average over all the non-time axes over the domain.
+   .   (this is equivalent to axis_reduction with reduction_axis=all-except-time)
+   .   Exercise: Play with different input twigs, and different domain axes.
+   - When the result is complex, one may toggle betweem ampl,phase,real,imag. 
+   - When a sequence is executed, the tim-slots are plotted sequentially.
+   .   NB: this can be confusing, since the time-axis is really a sequence-axis...
+   .   Exercise: Execute a sequence with different fractional time-steps.
+   .   (a time-step of 1.0 steps by the domain size, so the time is continuous)
+   - When the tree is excuted again, the new result is plotted after what is there
+   .   already. The plot can be cleared via its right-clicking menu.
+   On the whole, the Inspector is very useful, but it has its limitation.
+   For more control, check out the PyNodePlots.
    """
    rr = QR.on_entry(visualization_inspector, path, rider)
    
-   bundle_help = visualization_inspector.__doc__
-   path = QR.add2path(path,'inspector')
+   tname = opt_visualization_inspector_twig
+   twig = ET.twig(ns, tname)
    cc = []
-
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+   plot_label = []
+   for i in range(10):
+      label = 'sin('+str(i)+'*'+tname+')'
+      plot_label.append(label)
+      cc.append(ns[label] << Meq.Sin(Meq.Multiply(i,twig)))
+   node = QR.MeqNode(ns, rr.path, meqclass='Composer', name='inspector',
+                     children=cc, help=help, plot_label=plot_label)
+   return QR.bundle (ns, rr.path, nodes=[node], help=rr.help, rider=rider,
+                     viewer='Collections Plotter')
 
 
 #================================================================================
@@ -535,31 +573,33 @@ def solving_ab (ns, path, rider=None):
 #--------------------------------------------------------------------------------
 
 
-def solving_poly (ns, path, rider=None):
+def solving_polyparm (ns, path, rider=None):
    """
    Demonstration of solving for the coefficients of a freq-time polynomial.
    It is fitted to the specified twig (e.g. a 2D gaussian).
    A separate equation is generated for each cell of the Request domain.
+
    The number of cells should be greater than the number of unknowns.
    In this case, this is the number of MeqParms, which have polcs with only
    a single coefficient (c00). NB: Try solving for freq-time polcs....)
+
    If the input (twig) function does not vary much over the domain, there
    is not enough information to solve for higher-order polynomial coeff.
    In this case, the solution will 'lose rank', which is indicated in the
    solver plot: the black line on the right leaves the right edge. 
    """
-   rr = QR.on_entry(solving_poly, path, rider)
+   rr = QR.on_entry(solving_polyparm, path, rider)
 
-   twig = ET.twig(ns, opt_solving_poly_twig)
-   poly = ET.twig(ns, opt_solving_poly_poly)
+   twig = ET.twig(ns, opt_solving_polyparm_twig)
+   poly = ET.twig(ns, opt_solving_polyparm_poly)
    parms = ET.find_parms(poly, trace=False)
    parmset = ET.unique_stub(ns, 'solved_polynomial_coeff') << Meq.Composer(*parms)
 
    condeq = ns << Meq.Condeq(poly, twig)
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
-                        name='Solver(condeq(poly,twig))',
-                        help='Solver', rider=rider, children=[condeq],
-                        solvable=parms)  
+                        name='Solver(condeq, solvable=parms)',
+                        help='Solver', rider=rider,
+                        children=[condeq], solvable=parms)  
    cc = [solver,condeq,poly,twig,parmset]
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
