@@ -190,9 +190,9 @@ def setoptopt(opt, beginner=[], advanced=[], blackbelt=[]):
 
 setoptopt('test',range(2),range(3),range(4))
 setoptopt('opt_solving_poly_twig',
-          ET.twig_names(['gaussian'],first='gaussianft'),
-          ET.twig_names(['gaussian','polynomial'],first='gaussianft'),
-          ET.twig_names(['gaussian','polynomial','noise'],first='gaussianft'))
+          ET.twig_names(['gaussian'],first='gaussian_ft'),
+          ET.twig_names(['gaussian','polyparm'],first='gaussian_ft'),
+          ET.twig_names(['gaussian','polyparm','noise'],first='gaussian_ft'))
 
 # TDLOption_user_level = TDLOption('opt_user_level',"user level",
 #                            ['beginner','advanced','blackbelt'])
@@ -410,6 +410,35 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 # Helper functions (called externally from QR_... modules):
 #================================================================================
 
+#--------------------------------------------------------------------------------
+
+
+def on_entry(func, path, rider, trace=False):
+    """Helper function to extract the extra path and (bundle-)help from
+    the given function. Called on entry of all QR_... functions."""
+    rr = record()
+    ss = func.func_name.split('_')
+    nss = len(ss)
+    rr.path = path+'.'+ss[nss-1]
+    if not ss[nss-2] in path:
+        s = '** '+ss[nss-2]+' not in path '+path
+        ### raise ValueError,s
+    rr.help = func.__doc__
+    if trace:
+        print '\n** .on_entry(',type(func),path,'):',ss,'->',rr
+    return rr
+   
+   # print '-- .func_name:',func.func_name        # -> add2path
+   # print '-- .func_code:',func.func_code  
+   # print '-- .func_globals:',func.func_globals  
+   # print '-- .__module__:',func.__module__
+   # print '-- .__str__:',func.__str__
+   # print '-- .__doc__:',func.__doc__            # -> bundle_help
+   # print dir(func)
+   # print
+   # [path, bundle_help]
+   
+#-------------------------------------------------------------------------------
 
 def add2path (path, name=None, trace=False):
     """Helper function to form the path to a specific bundle.
@@ -425,13 +454,19 @@ def add2path (path, name=None, trace=False):
 
 #-------------------------------------------------------------------------------
 
-def helpnode (ns, path, name=None,
-              # quals=None, kwquals=None,
+def helpnode (ns, path, name=None, node=None,
               help=None, rider=None,
               trace=False):
-    """A special version of MeqNode(), for nodes that are only
-    used to carry a quickref_help field in their state-record.
     """
+    A special version of MeqNode(), for nodes that are only
+    used to carry a quickref_help field in their state-record.
+    If no name is given, make it from the path.
+    If a node is specified, assume that it has a quickref_help field.
+    Otherwise make a dummy-node with a quickref_help field.
+    Always make a bookmark for the node, with a suitable viewer.
+    """
+
+    # Make sure of the name-string:
     if not isinstance(name,str):
         ss = path.split('.')
         nss = len(ss)
@@ -439,12 +474,13 @@ def helpnode (ns, path, name=None,
         if nss>1:
             name = ss[nss-2]+'_'+ss[nss-1]
 
-    node = MeqNode (ns, path, meqclass='Constant',
-                    name='helpnode'+'_'+name,
-                    # quals=quals, kwquals=kwquals,                # .....??
-                    help=help, rider=rider,
-                    trace=trace, value=-0.123456789)
-    print '\n**',name,':\n',help,'\n'                              # temporary
+    if not is_node(node):
+        node = MeqNode (ns, path, meqclass='Constant',
+                        name='helpnode'+'_'+name,
+                        help=help, rider=rider,
+                        trace=trace, value=-0.123456789)
+
+    # Make a bookmark with a suitable viewer:
     viewer = 'QuickRef Browser'                                    # when implemented...
     viewer = 'Record Browser'                                      # temporary
     JEN_bookmarks.create(node, page=name, folder='helpnodes', viewer=viewer)
@@ -561,9 +597,6 @@ def bundle (ns, path,
       
     # Condition the help-string and update the CollatedHelpRecord (rider):
     if isinstance(help, str):
-        if make_helpnode:
-            # Special case: make a separate helpnode/bookmark:
-            helpnode(ns, path, rider=rider, help=help)
         qhelp = help.split('\n')
         qhelp[0] = qname+': '+qhelp[0]
     else:
@@ -577,7 +610,7 @@ def bundle (ns, path,
 
     # First make a nodestub with an unique name
     parent = ET.unique_stub(ns, name)
-    print '---',path,': name=',name,'-> (unique?) parent=',str(parent)
+    # print '---',path,': name=',name,'-> (unique?) parent=',str(parent)
 
     # Special case: no nodes to be bundled:
     if len(nodes)==0:
@@ -617,6 +650,10 @@ def bundle (ns, path,
             parent << Meq.Composer(children=nodes,
                                    plot_label=plot_label,
                                    quickref_help=qhelp)
+
+    # If required, make a bookmark to the parent node, with a suitable viewer:
+    if make_helpnode:
+        helpnode(ns, path, rider=rider, node=parent)
 
     # Make a meqbrowser bookmark for this bundle, if required:
     if bookmark:

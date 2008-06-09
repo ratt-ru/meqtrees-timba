@@ -164,39 +164,37 @@ def MeqNodes (ns, path, rider=None):
    """
    Available standard nodes: ns[name] << Meq.XYZ(*children,**kwargs).
    """
-   bundle_help = MeqNodes.__doc__
-   path = QR.add2path(path,'MeqNodes')
+   rr = QR.on_entry(MeqNodes, path, rider)
    cc = []
    if opt_allcats or opt_unops:
-      print '---- unops -----'
-      cc.append(unops (ns, path, rider))
+      cc.append(unops (ns, rr.path, rider))
    if opt_allcats or opt_binops_math:
-      cc.append(binops_math (ns, path, rider))
+      cc.append(binops_math (ns, rr.path, rider))
    if opt_allcats or opt_multi_math:
-      cc.append(multi_math (ns, path, rider))
+      cc.append(multi_math (ns, rr.path, rider))
    if opt_allcats or opt_leaves:
-      cc.append(leaves (ns, path, rider))
+      cc.append(leaves (ns, rr.path, rider))
    if opt_allcats or opt_tensor:
-      cc.append(tensor (ns, path, rider))
+      cc.append(tensor (ns, rr.path, rider))
    if opt_allcats or opt_axis_reduction:
-      cc.append(axis_reduction (ns, path, rider))
+      cc.append(axis_reduction (ns, rr.path, rider))
    if opt_allcats or opt_resampling:
-      cc.append(resampling (ns, path, rider))
+      cc.append(resampling (ns, rr.path, rider))
    if opt_allcats or opt_compounder:
-      cc.append(compounder (ns, path, rider))
+      cc.append(compounder (ns, rr.path, rider))
    if opt_allcats or opt_flagging:
-      cc.append(flagging (ns, path, rider))
+      cc.append(flagging (ns, rr.path, rider))
    if opt_allcats or opt_solving:
-      cc.append(solving (ns, path, rider))
-
-   # cc.append(visualization (ns, path, rider))
-   # cc.append(transforms (ns, path, rider))
-   # cc.append(flowcontrol (ns, path, rider))
+      cc.append(solving (ns, rr.path, rider))
+   if opt_allcats or opt_visualization:
+      cc.append(visualization (ns, rr.path, rider))
+   # cc.append(transforms (ns, rr.path, rider))
+   # cc.append(flowcontrol (ns, rr.path, rider))
 
    if opt_helpnodes:
-      cc.append(helpnodes (ns, path, rider))
+      cc.append(helpnodes (ns, rr.path, rider))
 
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 
@@ -208,19 +206,18 @@ def helpnodes (ns, path, rider=None):
    """
    helpnodes...
    """
-   bundle_help = helpnodes.__doc__
-   path = QR.add2path(path,'helpnodes')        # avoide name 'help'....
+   rr = QR.on_entry(helpnodes, path, rider)
    
    print '\n**',path,type(rider)
    cc = []
    if opt_hhelp_twig:
-      cc.append(QR.helpnode (ns, path,
+      cc.append(QR.helpnode (ns, rr.path,
                              # name='EasyTwig.twig(ns,name)',
                              name='EasyTwig_twig',
-                             help=ET.twig.__doc__, rider=rider, trace=True))
+                             help=ET.twig.__doc__, rider=rider, trace=False))
       print '**',path,'cc[0]:',str(cc[0]),type(rider),'\n'
 
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -232,17 +229,16 @@ def unops (ns, path, rider=None):
    (i.e. from child to parent, towards the root of the tree). It does NOT produce
    a FAIL. See also ....
    """
-   bundle_help = unops.__doc__
-   path = QR.add2path(path,'unops')
+   rr = QR.on_entry(unops, path, rider)
    twig = ET.twig (ns, opt_unops_twig)
    cc = [] 
-   cc.append(unops_elementary (ns, path, rider, twig))
-   cc.append(unops_goniometric (ns, path, rider, twig))
-   cc.append(unops_hyperbolic (ns, path, rider, twig))
-   cc.append(unops_power (ns, path, rider, twig))
-   cc.append(unops_misc (ns, path, rider, twig))
-   cc.append(unops_complex (ns, path, rider, twig))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(unops_elementary (ns, rr.path, rider, twig))
+   cc.append(unops_goniometric (ns, rr.path, rider, twig))
+   cc.append(unops_hyperbolic (ns, rr.path, rider, twig))
+   cc.append(unops_power (ns, rr.path, rider, twig))
+   cc.append(unops_misc (ns, rr.path, rider, twig))
+   cc.append(unops_complex (ns, rr.path, rider, twig))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -251,14 +247,13 @@ def leaves (ns, path, rider=None):
    Leaf nodes have no children. They often (but not always) have access to
    some external source of information (like a file) to satisfy a request. 
    """
-   bundle_help = leaves.__doc__
-   path = QR.add2path(path,'leaves')
+   rr = QR.on_entry(leaves, path, rider)
    cc = []
-   cc.append(leaves_constant (ns, path, rider=rider))
-   cc.append(leaves_parm (ns, path, rider=rider))
-   cc.append(leaves_grids (ns, path, rider=rider))
-   cc.append(leaves_noise (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(leaves_constant (ns, rr.path, rider=rider))
+   cc.append(leaves_parm (ns, rr.path, rider=rider))
+   cc.append(leaves_grids (ns, rr.path, rider=rider))
+   cc.append(leaves_noise (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -273,13 +268,12 @@ def tensor (ns, path, rider=None):
    - they allow special nodes that do matrix/tensor operations
    - etc, etc
    """
-   bundle_help = tensor.__doc__
-   path = QR.add2path(path,'tensor')
+   rr = QR.on_entry(tensor, path, rider)
    cc = []
-   cc.append(tensor_manipulation (ns, path, rider=rider))
-   cc.append(tensor_matrix (ns, path, rider=rider))
-   cc.append(tensor_matrix22 (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(tensor_manipulation (ns, rr.path, rider=rider))
+   cc.append(tensor_matrix (ns, rr.path, rider=rider))
+   cc.append(tensor_matrix22 (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -297,13 +291,12 @@ def axis_reduction (ns, path, rider=None):
    The Result of a reduction node will be expanded when needed to fit a
    domain of the original size, in which multiple cells have the same value.
    """
-   bundle_help = axis_reduction.__doc__
-   path = QR.add2path(path,'axis_reduction')
+   rr = QR.on_entry(axis_reduction, path, rider)
    cc = []
-   cc.append(axis_reduction_single (ns, path, rider=rider))
-   cc.append(axis_reduction_multiple (ns, path, rider=rider))
-   cc.append(axis_reduction_axes (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(axis_reduction_single (ns, rr.path, rider=rider))
+   cc.append(axis_reduction_multiple (ns, rr.path, rider=rider))
+   cc.append(axis_reduction_axes (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -330,15 +323,14 @@ def resampling (ns, path, rider=None):
    processing.
    There may also be other applications of these nodes....
    """
-   bundle_help = resampling.__doc__
-   path = QR.add2path(path,'resampling')
+   rr = QR.on_entry(resampling, path, rider)
    twig = ET.twig (ns, opt_resampling_MeqModRes_twig)
    num_cells = [opt_resampling_MeqModRes_num_time,
                 opt_resampling_MeqModRes_num_freq]
    mode = opt_resampling_MeqResampler_mode
    cc = []
-   cc.append(resampling_experiment (ns, path, rider, twig, num_cells, mode))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(resampling_experiment (ns, rr.path, rider, twig, num_cells, mode))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -349,11 +341,10 @@ def compounder (ns, path, rider=None):
    should be a MeqComposer that bundles the extra (coordinate) children,
    described by the common_axes argument (e.g. [hiid('L'),hiid('M')].                  
    """
-   bundle_help = compounder.__doc__
-   path = QR.add2path(path,'compounder')
+   rr = QR.on_entry(compounder, path, rider)
    cc = []
-   cc.append(compounder_simple (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(compounder_simple (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -365,12 +356,11 @@ def flowcontrol (ns, path, rider=None):
    MeqSink
    MeqVisDataMux
    """
-   bundle_help = flowcontrol.__doc__
-   path = QR.add2path(path,'flowcontrol')
+   rr = QR.on_entry(flowcontrol, path, rider)
    cc = []
-   # cc.append(flowcontrol_reqseq (ns, path, rider=rider))
-   # cc.append(flowcontrol_reqmux (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   # cc.append(flowcontrol_reqseq (ns, rr.path, rider=rider))
+   # cc.append(flowcontrol_reqmux (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -379,12 +369,11 @@ def flagging (ns, path, rider=None):
    MeqZeroFlagger
    MeqMergeFlags
    """
-   bundle_help = flagging.__doc__
-   path = QR.add2path(path,'flagging')
+   rr = QR.on_entry(flagging, path, rider)
    cc = []
-   cc.append(flagging_simple (ns, path, rider=rider))
-   # cc.append(flagging_merge (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(flagging_simple (ns, rr.path, rider=rider))
+   # cc.append(flagging_merge (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -395,13 +384,12 @@ def solving (ns, path, rider=None):
    MeqCondeq
    MeqStripper (?)
    """
-   bundle_help = solving.__doc__
-   path = QR.add2path(path,'solving')
+   rr = QR.on_entry(solving, path, rider)
    cc = []
-   cc.append(solving_ab (ns, path, rider=rider))
+   cc.append(solving_ab (ns, rr.path, rider=rider))
    if opt_solving_poly:
-      cc.append(solving_poly (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+      cc.append(solving_poly (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -414,12 +402,10 @@ def visualization (ns, path, rider=None):
    MeqHistoryCollect (?)
    point to pyNodes...
    """
-   bundle_help = visualization.__doc__
-   path = QR.add2path(path,'visualization')
+   rr = QR.on_entry(visualization, path, rider)
    cc = []
-   # cc.append(visualization_simple (ns, path, rider=rider))
-   # cc.append(visualization_merge (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   cc.append(visualization_inspector(ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -439,12 +425,11 @@ def transforms (ns, path, rider=None):
    MeqUVW
    
    """
-   bundle_help = transforms.__doc__
-   path = QR.add2path(path,'transforms')
+   rr = QR.on_entry(transforms, path, rider)
    cc = []
-   # cc.append(transforms_coord (ns, path, rider=rider))
-   # cc.append(transforms_FFT (ns, path, rider=rider))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   # cc.append(transforms_coord (ns, rr.path, rider=rider))
+   # cc.append(transforms_FFT (ns, rr.path, rider=rider))
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 
@@ -458,19 +443,53 @@ def transforms (ns, path, rider=None):
 #********************************************************************************
 #********************************************************************************
 
+#================================================================================
+# transforms_... 
+#================================================================================
+
+def transforms_astro (ns, path, rider=None):
+   """
+   Astronomical coordinate transform nodes...
+   """
+   rr = QR.on_entry(transforms_astro, path, rider)
+   cc = []
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
+
+#================================================================================
+# flowcontrol_... 
+#================================================================================
+
+def flowcontrol_xxx (ns, path, rider=None):
+   """
+   Control of the flow of requests/results...
+   """
+   rr = QR.on_entry(flowcontrol_xxx, path, rider)
+   cc = []
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+
+
+#--------------------------------------------------------------------------------
 
 
 #================================================================================
 # visualization_... 
 #================================================================================
 
-#================================================================================
-# transforms_... 
-#================================================================================
+def visualization_inspector (ns, path, rider=None):
+   """
+   Visualization...
+   """
+   rr = QR.on_entry(visualization_inspector, path, rider)
+   
+   bundle_help = visualization_inspector.__doc__
+   path = QR.add2path(path,'inspector')
+   cc = []
 
-#================================================================================
-# flowcontrol_... 
-#================================================================================
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+
 
 #================================================================================
 # solving_... 
@@ -485,8 +504,7 @@ def solving_ab (ns, path, rider=None):
    The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
    Condeq Results are the solution residuals, which should be small.
    """
-   bundle_help = solving_ab.__doc__
-   path = QR.add2path(path,'ab')
+   rr = QR.on_entry(solving_ab, path, rider)
 
    a = ET.unique_stub(ns, 'a') << Meq.Parm(0)
    b = ET.unique_stub(ns, 'b') << Meq.Parm(0)
@@ -497,21 +515,21 @@ def solving_ab (ns, path, rider=None):
    drivers = ET.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
    parmset = ET.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
    condeqs = []
-   condeqs.append(QR.MeqNode (ns, path, meqclass='Condeq',name='Condeq(a+b,p)',
+   condeqs.append(QR.MeqNode (ns, rr.path, meqclass='Condeq',name='Condeq(a+b,p)',
                               help='Represents equation: a + b = p (=10)',
                               rider=rider, children=[sum_ab, p]))
-   condeqs.append(QR.MeqNode (ns, path, meqclass='Condeq',name='Condeq(a-b,q)',
+   condeqs.append(QR.MeqNode (ns, rr.path, meqclass='Condeq',name='Condeq(a-b,q)',
                               help='Represents equation: a - b = q (=2)',
                               rider=rider, children=[diff_ab, q]))
-   solver = QR.MeqNode (ns, path, meqclass='Solver',
+   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(*condeqs, solvable=[a,b])',
                         help='Solver', rider=rider, children=condeqs,
                         solvable=[a,b])  
-   residuals = QR.MeqNode (ns, path, meqclass='Add', name='residuals',
+   residuals = QR.MeqNode (ns, rr.path, meqclass='Add', name='residuals',
                            help='The sum of the (abs) condeq residuals',
                            rider=rider, children=condeqs, unop='Abs')
    cc = [solver,residuals,drivers,parmset]
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
@@ -530,8 +548,7 @@ def solving_poly (ns, path, rider=None):
    In this case, the solution will 'lose rank', which is indicated in the
    solver plot: the black line on the right leaves the right edge. 
    """
-   bundle_help = solving_poly.__doc__
-   path = QR.add2path(path,'poly')
+   rr = QR.on_entry(solving_poly, path, rider)
 
    twig = ET.twig(ns, opt_solving_poly_twig)
    poly = ET.twig(ns, opt_solving_poly_poly)
@@ -539,12 +556,12 @@ def solving_poly (ns, path, rider=None):
    parmset = ET.unique_stub(ns, 'solved_polynomial_coeff') << Meq.Composer(*parms)
 
    condeq = ns << Meq.Condeq(poly, twig)
-   solver = QR.MeqNode (ns, path, meqclass='Solver',
+   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(condeq(poly,twig))',
                         help='Solver', rider=rider, children=[condeq],
                         solvable=parms)  
    cc = [solver,condeq,poly,twig,parmset]
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider,
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
 
 
@@ -565,8 +582,8 @@ def flagging_simple (ns, path, rider=None):
    Other behaviour can be specified with oper=LE or GT or LT.
    The MergeFlags node merges the new flags with the original flags of the input.
    """
-   bundle_help = flagging_simple.__doc__
-   path = QR.add2path(path,'simple')
+   rr = QR.on_entry(flagging_simple, path, rider)
+
    twig = ET.unique_stub(ns,'twig') << Meq.Exp(ET.twig(ns, opt_flagging_twig))
    mean =  ns << Meq.Mean(twig)
    stddev =  ns << Meq.Stddev(twig)
@@ -575,16 +592,16 @@ def flagging_simple (ns, path, rider=None):
    nsigma = opt_flagging_nsigma
    zcritname = 'zcrit(nsigma='+str(nsigma)+')'
    zcrit = ET.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
-   zflag = QR.MeqNode (ns, path, meqclass='ZeroFlagger',
+   zflag = QR.MeqNode (ns, rr.path, meqclass='ZeroFlagger',
                        name='ZeroFlagger(zcrit, oper=GE)',
                        help='oper=GE: Flag all cells for which zcrit>=0.0.',
                        rider=rider, children=[zcrit], oper='GE')
-   mflag = QR.MeqNode (ns, path, meqclass='MergeFlags',
+   mflag = QR.MeqNode (ns, rr.path, meqclass='MergeFlags',
                        name='MergeFlags(twig,zflag)',
                        help='Merge new flags with existing flags',
                        rider=rider, children=[twig, zflag])
    cc = [twig, mean, stddev, zcrit, zflag, mflag]
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -598,6 +615,7 @@ def compounder_simple (ns, path, rider=None):
    """
    Demonstration of a 'grid' of compounders, which sample a grid of points (L,M)
    of a 2D gaussian input twig (subtree): 'gaussian_LM' -> exp(-(L**2+M**2)).
+   Execute with a 2D (f,t) domain.
    The result of each compounder is a constant, with values that decrease with
    the distance to the origin. Expected values are:
    v(0,0) = 1.00000
@@ -607,9 +625,9 @@ def compounder_simple (ns, path, rider=None):
    v(0,2) = v(2,0) = 0.01831
    v(2,1) = v(1,2) = 0.00673
    A similar 2D gaussian (in f,t) is shown for comparison.
+   NB: Try executing with a 4D domain....
    """
-   bundle_help = compounder_simple.__doc__
-   path = QR.add2path(path,'simple')
+   rr = QR.on_entry(compounder_simple, path, rider)
 
    twig_LM = ET.twig(ns,'gaussian_LM')
    twig_ft = ET.twig(ns,'gaussian_ft')
@@ -625,9 +643,9 @@ def compounder_simple (ns, path, rider=None):
                                                        common_axes=common_axes)
          cc.append(c)
    cs = ET.unique_stub(ns,'Compounders') << Meq.Composer(*cc)
-   return QR.bundle (ns, path, nodes=[cs,cc[1],twig_LM,twig_ft],
+   return QR.bundle (ns, rr.path, nodes=[cs,cc[1],twig_LM,twig_ft],
                      make_helpnode=True,
-                     help=bundle_help, rider=rider)
+                     help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -647,19 +665,19 @@ def resampling_experiment (ns, path, rider,
    MeqResampler mode, by modifying the TDLOptions and recompiling and
    re-executing.
    """
-   bundle_help = resampling_experiment.__doc__
-   path = QR.add2path(path,'experiment')
+   rr = QR.on_entry(resampling_experiment, path, rider)
+
    original = ET.unique_stub(ns, 'original') << Meq.Identity(twig)
-   modres = QR.MeqNode (ns, path, meqclass='ModRes',
+   modres = QR.MeqNode (ns, rr.path, meqclass='ModRes',
                         name='ModRes(original, num_cells=[nt,nf])',
                         help='changes the resolution of the REQUEST',
                         rider=rider, children=[twig], num_cells=num_cells)
-   resampled = QR.MeqNode (ns, path, meqclass='Resampler',
+   resampled = QR.MeqNode (ns, rr.path, meqclass='Resampler',
                            name='Resampler(modres, mode='+str(mode)+')',
                            help='resamples the domain according to the twig request',
                            rider=rider, children=[modres], mode=mode)
    diff = ET.unique_stub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
-   return QR.bundle (ns, path, nodes=[diff], help=bundle_help, rider=rider,
+   return QR.bundle (ns, rr.path, nodes=[diff], help=rr.help, rider=rider,
                      bookmark=[original, modres, resampled, diff])
 
 
@@ -675,8 +693,8 @@ def axis_reduction_single (ns, path, rider=None):
    The reduction is done along all available axes (the default), producing a
    single-number Result.
    """
-   bundle_help = axis_reduction_single.__doc__
-   path = QR.add2path(path,'single')
+   rr = QR.on_entry(axis_reduction_single, path, rider)
+
    twig_name = 'f'
    twig = ET.twig(ns, twig_name)
    cc = [twig]
@@ -687,9 +705,9 @@ def axis_reduction_single (ns, path, rider=None):
                  StdDev='stddev of cell values',
                  Rms='same as StdDev (obsolete?)')
    for q in ['Nelements','Sum','Mean','Product','StdDev','Rms', 'Min','Max']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
                             help=help[q], rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -702,18 +720,18 @@ def axis_reduction_multiple (ns, path, rider=None):
    single-number Result.
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
-   bundle_help = axis_reduction_multiple.__doc__
-   path = QR.add2path(path,'multiple')
+   rr = QR.on_entry(axis_reduction_multiple, path, rider)
+
    democlass = 'Sum'
    help = record(f=democlass+' over the cells of a single vellset, of its single child',
-                 range5=democlass+' over the cells of multiple vellsets, from a tensor child')
+                 range_5=democlass+' over the cells of multiple vellsets, from a tensor child')
    cc = []
    for twig_name in help.keys():
       twig = ET.twig(ns, twig_name)
       cc.append(twig)
-      cc.append(QR.MeqNode (ns, path, meqclass=democlass, name=democlass+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=democlass, name=democlass+'('+str(twig.name)+')',
                             help=help[twig_name], rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -728,31 +746,31 @@ def axis_reduction_axes (ns, path, rider=None):
    domain of the original size, in which multiple cells have the same value.
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
-   bundle_help = axis_reduction_axes.__doc__
-   path = QR.add2path(path,'axes')
+   rr = QR.on_entry(axis_reduction_axes, path, rider)
+
    democlass = 'Sum'
    help = democlass+' over the cells of '
    twig_name = 'ft'
    twig = ET.twig(ns, twig_name)
    ntwig = ns << Meq.NElements(twig)
    cc = [twig,ntwig]
-   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+   cc.append(QR.MeqNode (ns, rr.path, meqclass=democlass,
                          name=democlass+'('+str(twig.name)+')',
                          help=help+'no reduction_axes specified, assume all',
                          rider=rider, children=[twig]))
-   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+   cc.append(QR.MeqNode (ns, rr.path, meqclass=democlass,
                          name=democlass+'('+str(twig.name)+', reduction_axes=[time])',
                          help=help+'the time-axis is reduced to length 1.',
                          rider=rider, children=[twig], reduction_axes=['time']))
-   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+   cc.append(QR.MeqNode (ns, rr.path, meqclass=democlass,
                          name=democlass+'('+str(twig.name)+', reduction_axes=[freq])',
                          help=help+'the freq-axis is reduced to length 1.',
                          rider=rider, children=[twig], reduction_axes=['freq']))
-   cc.append(QR.MeqNode (ns, path, meqclass=democlass,
+   cc.append(QR.MeqNode (ns, rr.path, meqclass=democlass,
                          name=democlass+'('+str(twig.name)+', reduction_axes=[freq,time])',
                          help=help+'both the freq and time axes are reduced.',
                          rider=rider, children=[twig], reduction_axes=['freq','time']))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 
@@ -766,33 +784,32 @@ def tensor_manipulation (ns, path, rider=None):
    """
    Manipulation of 'tensor' nodes, i.e. nodes with multiple vellsets.
    """
-   bundle_help = tensor_manipulation.__doc__
-   path = QR.add2path(path,'manipulation')
+   rr = QR.on_entry(tensor_manipulation, path, rider)
    cc = []
    children = [ET.twig(ns,'f'), ET.twig(ns,'t'), ET.twig(ns,'ft')]
-   cc.append(QR.MeqNode (ns, path, meqclass='Composer', name='Composer(c0,c1,c2)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Composer', name='Composer(c0,c1,c2)',
                          help="""Combine the vellsets in the Results of its children
                          into a Result with multiple vellsets in the new node.""",
                          rider=rider, children=children))
-   cc.append(QR.MeqNode (ns, path, meqclass='Selector', name='Selector(child, index=1)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Selector', name='Selector(child, index=1)',
                          help="""Select the specified (index) vellset in its child
                          for a new node with a single vellset in its Result""",
                          rider=rider, children=[cc[0]], index=1))
    if True:
       # Problem: Gives an error (list indix not supported?)
-      cc.append(QR.MeqNode (ns, path, meqclass='Selector', name='Selector(child, index=[0,2])',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass='Selector', name='Selector(child, index=[0,2])',
                             help="""Select the specified (index) vellsets in its child
                             for a new node with this subset of vellsets in its Result""",
                             rider=rider, children=[cc[0]], index=[0,2]))
    if True:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
-      c1 = ET.twig(ns,'ft2')
-      cc.append(QR.MeqNode (ns, path, meqclass='Paster', name='Paster(c0, c1, index=1)',
+      c1 = ET.twig(ns,'prod_f2t2')
+      cc.append(QR.MeqNode (ns, rr.path, meqclass='Paster', name='Paster(c0, c1, index=1)',
                             help="""Make a new node, in which the vellset from the
                             second child (c1) is pasted at the specified (index) position
                             among the vellsets of its first child (c0)""",
                             rider=rider, children=[cc[0],c1], index=1))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -804,27 +821,26 @@ def tensor_matrix (ns, path, rider=None):
    this was easiest to program by hand (see MatrixInvert22).
    A more general inversion node will be implemted later.
    """
-   bundle_help = tensor_matrix.__doc__
-   path = QR.add2path(path,'matrix')
+   rr = QR.on_entry(tensor_matrix, path, rider)
    cc = []
-   cc.append(QR.MeqNode (ns, path, meqclass='Composer',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Composer',
                          name='Composer(1,2,3,4,5,6, dims=[2,3])',
                          help="""Make a tensor node with a 2x3 array of vellsets.
                          This can be treated as a 2x3 matrix. Note the use of
                          constants as children, for easier inspection and verification.""",
                          rider=rider, children=range(6),dims=[2,3]))
-   cc.append(QR.MeqNode (ns, path, meqclass='Transpose', name='Transpose(m0)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Transpose', name='Transpose(m0)',
                          help="""Make the 3x2 transpose of the given 2x3 matrix.""",
                          rider=rider, children=[cc[0]]))
-   cc.append(QR.MeqNode (ns, path, meqclass='MatrixMultiply', name='MatrixMultiply(m0,m1)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='MatrixMultiply', name='MatrixMultiply(m0,m1)',
                          help="""Multply the original 2x3 matrix with its 3x2 transpose.
                          This produces a 2x2 matrix.""",
                          rider=rider, children=[cc[0],cc[1]]))
-   cc.append(QR.MeqNode (ns, path, meqclass='MatrixMultiply', name='MatrixMultiply(m1,m0)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='MatrixMultiply', name='MatrixMultiply(m1,m0)',
                          help="""Multply the 3x2 transpose with the original 2x3 matrix.
                          This produces a 3x3 matrix.""",
                          rider=rider, children=[cc[1],cc[0]]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -834,24 +850,23 @@ def tensor_matrix22 (ns, path, rider=None):
    role in the radio-astronomical Measurement Equation (M.E.), there are a few
    specialized nodes that deal with 2x2 matrices.
    """
-   bundle_help = tensor_matrix22.__doc__
-   path = QR.add2path(path,'matrix22')
-   children = [ET.twig(ns,'cxft'),0,0,ET.twig(ns,'cxtf')]
+   rr = QR.on_entry(tensor_matrix22, path, rider)
+   children = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
    cc = []
-   cc.append(QR.MeqNode (ns, path, meqclass='Matrix22', name='Matrix22(cxft,0,0,cxtf)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Matrix22', name='Matrix22(cxft,0,0,cxtf)',
                          help="""Make a complex 2x2 diagonal matrix.""",
                          rider=rider, children=children))
-   cc.append(QR.MeqNode (ns, path, meqclass='MatrixInvert22', name='MatrixInvert22(m0)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='MatrixInvert22', name='MatrixInvert22(m0)',
                          help="""Invert the given 2x2 matrix (m0), cell-by-cell""",
                          rider=rider, children=[cc[0]]))
-   cc.append(QR.MeqNode (ns, path, meqclass='MatrixMultiply', name='MatrixMultiply(m0,m0inv)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='MatrixMultiply', name='MatrixMultiply(m0,m0inv)',
                          help="""Multply the matrix (m0) with its inverse (m0inv).
                          The result should be a unit matrix (cell-by-cell).""",
                          rider=rider, children=[cc[0],cc[1]]))
-   cc.append(QR.MeqNode (ns, path, meqclass='ConjTranspose', name='ConjTranspose(m0)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='ConjTranspose', name='ConjTranspose(m0)',
                          help="""Conjugate Transpose the given matrix (m0)""",
                          rider=rider, children=[cc[0]]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 
@@ -863,23 +878,22 @@ def leaves_constant (ns, path, rider=None):
    """
    A constant may be complex, or a tensor. There are various ways to define one.
    """
-   bundle_help = leaves_constant.__doc__
-   path = QR.add2path(path,'constant')
+   rr = QR.on_entry(leaves_constant, path, rider)
    cc = []
    help = 'Constant node created with: '
-   cc.append(QR.MeqNode (ns, path, node=(ns << 2.5),
+   cc.append(QR.MeqNode (ns, rr.path, node=(ns << 2.5),
                          help=help+'ns << 2.5'))
-   cc.append(QR.MeqNode (ns, path, node=(ns.xxxx << 2.4),
+   cc.append(QR.MeqNode (ns, rr.path, node=(ns.xxxx << 2.4),
                          help=help+'ns.xxxx << 2.4'))
-   cc.append(QR.MeqNode (ns, path, meqclass='Constant', name='Constant(real)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(real)',
                          help='', value=1.2))
-   cc.append(QR.MeqNode (ns, path, meqclass='Constant', name='Constant(complex)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(complex)',
                          help='', value=complex(1,2)))
-   cc.append(QR.MeqNode (ns, path, meqclass='Constant', name='Constant(vector)',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(vector)',
                          help='produces a "tensor node"', value=range(4)))
-   cc.append(QR.MeqNode (ns, path, meqclass='Constant', name='Constant(vector, shape=[2,2])',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(vector, shape=[2,2])',
                          help='produces a "tensor node"', value=range(4), shape=[2,2]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -887,13 +901,12 @@ def leaves_parm (ns, path, rider=None):
    """
    MeqParm nodes represent M.E. parameters, which may be solved for.
    """
-   bundle_help = leaves_parm.__doc__
-   path = QR.add2path(path,'parm')
+   rr = QR.on_entry(leaves_parm, path, rider)
    cc = []
    help = ''
-   cc.append(QR.MeqNode (ns, path, meqclass='Parm',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Parm',
                          help=help, default=2.5))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -903,28 +916,27 @@ def leaves_noise (ns, path, rider=None):
    Noise nodes generate noisy cell values. The arguments are passed as
    keyword arguments in the node constructor (or as children?)
    """
-   bundle_help = leaves_noise.__doc__
-   path = QR.add2path(path,'noise')
+   rr = QR.on_entry(leaves_noise, path, rider)
    cc = []
    help = 'Gaussian noise with given stddev (and zero mean)'
-   cc.append(QR.MeqNode (ns, path, meqclass='GaussNoise',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='GaussNoise',
                          name='GaussNoise(stddev=2)',
                          help=help, rider=rider,
                          stddev=2.0))
    help = 'Gaussian noise with given stddev and mean'
    # NB: mean does not work...
-   cc.append(QR.MeqNode (ns, path, meqclass='GaussNoise',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='GaussNoise',
                          name='GaussNoise(stddev=2,mean=-10)',
                          help=help, rider=rider,
                          mean=-10.0, stddev=2.0))
    if False:
       # Problem: The server crashes on this one...!
       help = 'Random noise between lower and upper bounds'
-      cc.append(QR.MeqNode (ns, path, meqclass='RandomNoise',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass='RandomNoise',
                             name='RandomNoise(-2,4)',
                             help=help, rider=rider,
                             lower=-2.0, upper=4.0))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -937,20 +949,19 @@ def leaves_grids (ns, path, rider=None):
    The two default axes (time and freq) have dedicated Grid nodes,
    called MeqTime and MeqFreq.
    """
-   bundle_help = leaves_grids.__doc__
-   path = QR.add2path(path,'grids')
+   rr = QR.on_entry(leaves_grids, path, rider)
    cc = []
    help = ''
    for q in ['Freq','Time']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'()',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'()',
                             help=help, rider=rider)) 
    for q in ['freq','time','L','M']:
-      cc.append(QR.MeqNode (ns, path, meqclass='Grid',name='Grid(axis='+q+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass='Grid',name='Grid(axis='+q+')',
                             help=help, rider=rider, axis=q))
    cc.append(ns.ft << Meq.Add(cc[2],cc[3]))
    cc.append(ns.LM << Meq.Add(cc[4],cc[5]))
    cc.append(ns.ftLM << Meq.Add(cc[2],cc[3],cc[4],cc[5]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #--------------------------------------------------------------------------------
@@ -964,13 +975,12 @@ def leaves_spigot (ns, path, rider=None):
    MeqVisDataMux:
    MeqFITSSpigot:
    """
-   bundle_help = leaves_spigot.__doc__
-   path = QR.add2path(path,'spigot')
+   rr = QR.on_entry(leaves_spigot, path, rider)
    cc = []
    help = ''
-   cc.append(QR.MeqNode (ns, path, meqclass='Spigot', name='Spigot()',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='Spigot', name='Spigot()',
                          help=help))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -981,13 +991,12 @@ def leaves_FITS (ns, path, rider=None):
    MeqFITSImage:
    MeqFITSSpigot:
    """
-   bundle_help = leaves_FITS.__doc__
-   path = QR.add2path(path,'FITS')
+   rr = QR.on_entry(leaves_FITS, path, rider)
    cc = []
    help = ''
-   cc.append(QR.MeqNode (ns, path, meqclass='FITSReader',
+   cc.append(QR.MeqNode (ns, rr.path, meqclass='FITSReader',
                          help=help))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 
@@ -1001,16 +1010,15 @@ def unops_elementary (ns, path, rider=None, twig=None):
    """
    Elementary unary math operations.
    """
-   bundle_help = unops_elementary.__doc__
-   path = QR.add2path(path,'elementary')
+   rr = QR.on_entry(unops_elementary, path, rider)
    cc = [twig]
    help = record(Negate='-c', Invert='1/c', Exp='exp(c)', Sqrt='square root',
                  Log='e-log (for 10-log, divide by Log(10))')
    for q in ['Negate','Invert','Exp','Log','Sqrt']:
       # NB: explain log...
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
                             help=help[q], rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -1018,15 +1026,14 @@ def unops_goniometric (ns, path, rider=None, twig=None):
    """
    Goniometric functions turn an angle (rad) into a fraction.
    """
-   bundle_help = unops_goniometric.__doc__
-   path = QR.add2path(path,'goniometric')
+   rr = QR.on_entry(unops_goniometric, path, rider)
    cc = [twig]
    help = record(Sin='(rad)', Cos='(rad)', Tan='(rad)',
                  Asin='abs('+str(twig.name)+')<1', Acos='abs('+str(twig.name)+')<1', Atan='')
    for q in ['Sin','Cos','Tan','Asin','Acos','Atan']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
                             help=help[q], rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -1034,14 +1041,13 @@ def unops_hyperbolic (ns, path, rider=None, twig=None):
    """
    Hyperbolic functions convert a fraction into an angle (rad).
    """
-   bundle_help = unops_hyperbolic.__doc__
-   path = QR.add2path(path,'hyperbolic')
+   rr = QR.on_entry(unops_hyperbolic, path, rider)
    cc = [twig]
    help = ''
    for q in ['Sinh','Cosh','Tanh']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
                             help=help, rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -1049,18 +1055,17 @@ def unops_complex (ns, path, rider=None, twig=None):
    """
    Complex unary math operations on a (usually) complex child.
    """
-   bundle_help = unops_complex.__doc__
-   path = QR.add2path(path,'complex')
-   twig = ET.twig(ns,'cxft')                # override input twig...
+   rr = QR.on_entry(unops_complex, path, rider)
+   twig = ET.twig(ns,'cx_ft')                # override input twig...
    cc = [twig]
    help = record(Abs='', Norm='like Abs', Arg='-> rad', Real='', Imag='',
                  Conj='complex conjugate: a+bj -> a-bj',
                  Exp='exp(a+bj) = exp(a)*exp(bj), i.e. cos with increasing ampl',
                  Log='e-log (ln)')
    for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
                             help=help[q], rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -1068,14 +1073,13 @@ def unops_power (ns, path, rider=None, twig=None):
    """
    Nodes that take some power of its child.
    """
-   bundle_help = unops_power.__doc__
-   path = QR.add2path(path,'power')
+   rr = QR.on_entry(unops_power, path, rider)
    cc = [twig]
    help = ' of its single child'
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
                             help=q+help, rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
 
@@ -1083,8 +1087,7 @@ def unops_misc (ns, path, rider=None, twig=None):
    """
    Miscellaneous unary math operations.
    """
-   bundle_help = unops_misc.__doc__
-   path = QR.add2path(path,'misc')
+   rr = QR.on_entry(unops_misc, path, rider)
    cc = [twig]
    help = record(Abs='Take the absolute value.',
                  Ceil='Round upwards to integers.',
@@ -1094,9 +1097,9 @@ def unops_misc (ns, path, rider=None, twig=None):
                  Identity='Make a copy node with a different name.'
                  )
    for q in ['Abs','Ceil','Floor','Stripper','Identity']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+str(twig.name)+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
                             help=help[q], rider=rider, children=[twig]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #================================================================================
@@ -1115,8 +1118,7 @@ def binops_math (ns, path, rider=None):
    .    and the operation is performed between corresponding vellsets.
    The final Result always has the same shape (number of vellsets) as lhs.
    """
-   bundle_help = binops_math.__doc__
-   path = QR.add2path(path,'binops_math')
+   rr = QR.on_entry(binops_math, path, rider)
    lhs = ET.twig(ns, opt_binops_math_lhs)         # left-hand side (child)
    rhs = ET.twig(ns, opt_binops_math_rhs)         # right-hand side (child)
    cc = []
@@ -1126,10 +1128,10 @@ def binops_math (ns, path, rider=None):
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
    # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
    for q in ['Subtract','Divide','Pow','ToComplex','Polar']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q,
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q,
                             name=q+'('+str(lhs.name)+','+str(rhs.name)+')',
                             help=help[q], rider=rider, children=[lhs,rhs]))
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 #================================================================================
@@ -1147,8 +1149,8 @@ def multi_math (ns, path, rider=None):
    .    must have the same shape (i.e. the same number of vellsets in their Results).
    - If the number of of children is one, its Result is just passed on.
    """
-   bundle_help = multi_math.__doc__
-   path = QR.add2path(path,'multi_math')
+   rr = QR.on_entry(multi_math, path, rider)
+
    # Make the child-related vectors (ignore the ones with opt=None):
    twigs = [ET.twig(ns,opt_multi_math_twig1)]
    sname = twigs[0].name
@@ -1167,7 +1169,7 @@ def multi_math (ns, path, rider=None):
    help = record(Add='c0+c1+c2+...',
                  Multiply='c0*c1*c2*...')
    for q in ['Add','Multiply']:
-      cc.append(QR.MeqNode (ns, path, meqclass=q, name=q+'('+sname+')',
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+sname+')',
                             help=help[q], rider=rider,
                             children=twigs))
 
@@ -1178,8 +1180,8 @@ def multi_math (ns, path, rider=None):
                  the sum of the weights (w[0]+w[1]+w[2]+....)""")
    sw = str(weights).replace('.0','').replace('.',',')
    for q in ['WSum','WMean']:
-      print '\n** ',q,': weigths =',weights,'\n'
-      cc.append(QR.MeqNode (ns, path, meqclass=q,
+      # print '\n** ',q,': weigths =',weights,'\n'
+      cc.append(QR.MeqNode (ns, rr.path, meqclass=q,
                             name=q+'('+sname+',weights='+sw+')',
                             help=help[q], rider=rider,
                             weights=weights, children=twigs))
@@ -1187,7 +1189,7 @@ def multi_math (ns, path, rider=None):
    # Attach the input twigs to the bundle, for inspection.
    # NB: If attached at the start, WMean and WSum refuse to plot....?
    cc.extend(twigs)
-   return QR.bundle (ns, path, nodes=cc, help=bundle_help, rider=rider)
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 
 

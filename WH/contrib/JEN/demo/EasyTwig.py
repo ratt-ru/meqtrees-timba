@@ -85,7 +85,7 @@ def _define_forest (ns, **kwargs):
 
     # Some extra twigs:
     names = []
-    # names = ['polynomialf3t2']
+    # names = ['polyparm_f3t2']
     for name in names:
         t = twig(ns,name)
         cc.append(t)
@@ -709,7 +709,7 @@ if __name__ == '__main__':
        names.extend(['prod_f3t1','prod_f3L1M','prod_3.56'])
        names.extend(['sum_f3t1','sum_-6f3L1M','sum_3.56'])
        names.extend(['f+t','f2','f**2','ft'])
-       names.extend(['gaussian_ft','gaussian'])
+       names.extend(['gaussian_ft'])
        names.extend(['expnoise_4','expnegsum_-2fLM3'])
        names = []
        names.extend(['polyparm_f2t2LM'])
