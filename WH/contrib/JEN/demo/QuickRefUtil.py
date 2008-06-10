@@ -579,7 +579,7 @@ def bundle (ns, path,
             help=None, rider=None,
             parentclass='Composer', result_index=0,
             bookmark=True, viewer="Result Plotter",
-            make_helpnode=True,
+            make_helpnode=False,
             trace=False):
     """Make a single parent node, with the given nodes as children.
     Make bookmarks if required, and collate the help-strings.

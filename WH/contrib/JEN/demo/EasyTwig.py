@@ -294,7 +294,7 @@ def twig_cats (trace=False):
     cats = []
     cats.extend(['axes','complex','noise','tensor'])
     cats.extend(['gaussian','expnegsum'])
-    cats.extend(['polyparm'])
+    cats.extend(['polyparm','Expression'])
     cats.extend(['prod','sum'])
     # cats.extend([])
     return cats
@@ -328,6 +328,8 @@ def twig_names (cat='default', include=None, first=None, trace=False):
         names = ['polyparm_f2','polyparm_t2',
                  'polyparm_ft2','polyparm_f2t',
                  'polyparm_f4t4','polyparm_f2t2L2M2']
+    elif cat=='Expression':
+        names = ['{a}*exp(-({b}*[f]**2+{c}*[t]**2))']
     elif cat=='sum':
         names = ['sum_f2t3','sum_-3.3f2t','sum_f2t2L2M2']
     elif cat=='prod':
@@ -388,9 +390,13 @@ def twig(ns, name, test=False, help=None, trace=False):
     - gaussian_ftLM  :  4D Gaussian, around 0.0, width=1.0 
     - expnegsum_f2t2 :  exp(-(f**2 + t**2))                   equivalent to gaussian_ft
     - polyparm_L3M4  :  polynomial in L,M, with MeqParms      use ET.find_parms(twig) 
-    
+
     An already existing (i.e. a node of that name is initialized) twig is re-used.
     If the twig name is not recognized, a constant node is generated.
+
+    Cookie: If the twig name contains square [] or curly {} brackets,
+    a (JEN) Expression tree is generated.
+
     """
 
     s1 = '--- EasyTwig.twig('+str(name)
@@ -544,8 +550,18 @@ def twig(ns, name, test=False, help=None, trace=False):
             node = twig(ns,ss[0])
             if ss[1] in '2345678':                    # MeqPow2 ... MeqPow8 
                 node = stub << getattr(Meq,'Pow'+ss[1])(node)
+
+    #............................................................
+
+    elif ('[' in name) or (']' in name) or ('{' in name) or ('}' in name):
+        # import Expression
+        from Timba.Contrib.JEN.Expression import Expression
+        expr = Expression.Expression(ns, 'EasyTwig', expr=name)
+        expr.display('EasyTwig()')
+        node = expr.MeqFunctional()
                 
     #............................................................
+
     if node==None:
         if test:                                               # testing mode
             return False                                       # False: name is invalid ....
@@ -699,7 +715,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 1:
+   if 0:
        for cat in twig_cats():
            print '\n\n****** twig_cat =',cat
            for name in twig_names(cat):
@@ -731,6 +747,13 @@ if __name__ == '__main__':
    if 0:
        t = polyparm(ns, fdeg=1, tdeg=2, Ldeg=1, Mdeg=1, trace=True)
        nn = find_parms(t, trace=True)
+
+   if 1:
+       expr = '[f]+[t]'
+       expr = '[f]+[t]*{alpha}'
+       t = twig(ns,expr, trace=True)
+       nn = find_parms(t, trace=True)
+       
 
    #------------------------------------------------
 

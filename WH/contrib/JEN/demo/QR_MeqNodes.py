@@ -83,6 +83,7 @@ import EasyTwig as ET
 
 # import math
 # import random
+import numpy
 
 
 #******************************************************************************** 
@@ -135,13 +136,29 @@ TDLCompileMenu("QR_MeqNodes categories:",
                                  [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
                        toggle='opt_flagging'),
                TDLMenu("solving",
+                       TDLOption('opt_solving_twig',"input twig (lhs of condeq)",
+                                 ET.twig_names(['gaussian'],first='gaussian_ft'),
+                                 more=str),
+                       TDLOption('opt_solving_tiling_time',"size (time-cells) of solving subtile",
+                                 [None,1,2,3,4,5,10], more=int),
+                       TDLOption('opt_solving_tiling_freq',"size (freq-cells) of solving subtile",
+                                 [None,1,2,3,4,5,10], more=int),
+                       TDLOption('opt_solving_mepfile',"name of mep table file",
+                                 [None,'QR_MeqNodes'], more=str),
                        TDLMenu("solving_polyparm",
-                               TDLOption('opt_solving_polyparm_twig',"input twig (lhs of condeq)",
-                                         ET.twig_names(['gaussian'],first='gaussian_ft'),
-                                         more=str),
                                TDLOption('opt_solving_polyparm_poly',"polynomial to be fitted (rhs)",
                                          ET.twig_names(['polyparm']), more=str),
                                toggle='opt_solving_polyparm'),
+                       TDLMenu("solving_Expression",
+                               TDLOption('opt_solving_Expression_expr',"Expression to be fitted (rhs)",
+                                         ET.twig_names(['Expression']), more=str),
+                               toggle='opt_solving_Expression'),
+                       TDLMenu("solving_onepolc",
+                               TDLOption('opt_solving_onepolc_tdeg',"time deg of MeqParm polc",
+                                         range(6), more=int),
+                               TDLOption('opt_solving_onepolc_fdeg',"freq deg of MeqParm polc",
+                                         range(6), more=int),
+                               toggle='opt_solving_onepolc'),
                        toggle='opt_solving'),
                TDLMenu("visualization",
                        TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
@@ -391,9 +408,13 @@ def solving (ns, path, rider=None):
    """
    rr = QR.on_entry(solving, path, rider)
    cc = []
-   cc.append(solving_ab (ns, rr.path, rider=rider))
+   cc.append(solving_ab (ns, rr.path, rider=rider))           # simplest, do always
    if opt_solving_polyparm:
       cc.append(solving_polyparm (ns, rr.path, rider=rider))
+   if opt_solving_Expression:
+      cc.append(solving_Expression (ns, rr.path, rider=rider))
+   if opt_solving_onepolc:
+      cc.append(solving_onepolc (ns, rr.path, rider=rider))
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -543,7 +564,6 @@ def solving_ab (ns, path, rider=None):
    Condeq Results are the solution residuals, which should be small.
    """
    rr = QR.on_entry(solving_ab, path, rider)
-
    a = ET.unique_stub(ns, 'a') << Meq.Parm(0)
    b = ET.unique_stub(ns, 'b') << Meq.Parm(0)
    p = ET.unique_stub(ns, 'p') << Meq.Constant(10)
@@ -552,6 +572,7 @@ def solving_ab (ns, path, rider=None):
    diff_ab = ns << Meq.Subtract(a,b)
    drivers = ET.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
    parmset = ET.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
+
    condeqs = []
    condeqs.append(QR.MeqNode (ns, rr.path, meqclass='Condeq',name='Condeq(a+b,p)',
                               help='Represents equation: a + b = p (=10)',
@@ -559,6 +580,7 @@ def solving_ab (ns, path, rider=None):
    condeqs.append(QR.MeqNode (ns, rr.path, meqclass='Condeq',name='Condeq(a-b,q)',
                               help='Represents equation: a - b = q (=2)',
                               rider=rider, children=[diff_ab, q]))
+
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(*condeqs, solvable=[a,b])',
                         help='Solver', rider=rider, children=condeqs,
@@ -571,7 +593,6 @@ def solving_ab (ns, path, rider=None):
                      parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
-
 
 def solving_polyparm (ns, path, rider=None):
    """
@@ -589,18 +610,81 @@ def solving_polyparm (ns, path, rider=None):
    solver plot: the black line on the right leaves the right edge. 
    """
    rr = QR.on_entry(solving_polyparm, path, rider)
-
-   twig = ET.twig(ns, opt_solving_polyparm_twig)
+   twig = ET.twig(ns, opt_solving_twig)                       # move to solving()?
    poly = ET.twig(ns, opt_solving_polyparm_poly)
    parms = ET.find_parms(poly, trace=False)
-   parmset = ET.unique_stub(ns, 'solved_polynomial_coeff') << Meq.Composer(*parms)
-
+   parmset = ET.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
    condeq = ns << Meq.Condeq(poly, twig)
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(condeq, solvable=parms)',
                         help='Solver', rider=rider,
                         children=[condeq], solvable=parms)  
    cc = [solver,condeq,poly,twig,parmset]
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
+                     parentclass='ReqSeq', result_index=0)
+
+#--------------------------------------------------------------------------------
+
+def solving_Expression (ns, path, rider=None):
+   """
+   """
+   rr = QR.on_entry(solving_Expression, path, rider)
+   lhs = ET.twig(ns, opt_solving_twig)              
+   rhs = ET.twig(ns, opt_solving_Expression_expr)
+   parms = ET.find_parms(rhs, trace=False)
+   if len(parms)==0:
+      s = '** the Expression: '+opt_solving_Expression_expr
+      s += '\n  should have at least one {parm}...'
+      raise ValueError,s
+   elif len(parms)==1:
+      parmset = parms[0]
+   else:
+      parmset = ET.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
+   condeq = ns << Meq.Condeq(lhs,rhs)
+   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
+                        name='Solver(condeq, solvable=parms)',
+                        help='Solver', rider=rider,
+                        children=[condeq], solvable=parms)  
+   cc = [solver,condeq,lhs,rhs,parmset]
+   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
+                     parentclass='ReqSeq', result_index=0)
+
+#--------------------------------------------------------------------------------
+
+def solving_onepolc (ns, path, rider=None):
+   """
+   Solving for the coeff of the polc of a single MeqParm.
+   The single MeqCondeq child of the MeqSolver has two children:
+   - The left-hand side (lhs) is the input twig node (e.g. a gaussian_ft)
+   - The right-hand side (rhs) is a MeqParm:
+   .      rhs = ns['MeqParm'] << Meq.Parm(meq.polc(coeff=numpy.zeros([tdeg+1,fdeg+1])))
+   """
+   rr = QR.on_entry(solving_onepolc, path, rider)
+   lhs = ET.twig(ns, opt_solving_twig)
+   tiling = record(freq=opt_solving_tiling_freq,
+                   time=opt_solving_tiling_time)
+   fdeg = opt_solving_onepolc_fdeg
+   tdeg = opt_solving_onepolc_tdeg
+   mepfile = opt_solving_mepfile
+   pname = 'MeqParm(shape=[1+'+str(tdeg)+',1+'+str(fdeg)+'])'
+   help = 'help'
+   rhs = ET.unique_stub(ns,pname) << Meq.Parm(0.0,
+                                              tags=['tag1','tag2'],
+                                              shape=[tdeg+1,fdeg+1],
+                                              tiling=tiling,
+                                              table_name=mepfile,
+                                              use_previous=True,
+                                              quickref_help='...help...',
+                                              node_groups='Parm')
+   condeq = ns << Meq.Condeq(lhs,rhs)
+   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
+                        name='Solver(condeq, solvable=MeqParm)',
+                        help='Solver', rider=rider,
+                        children=[condeq],
+                        niter=10,
+                        solvable=rhs)  
+   cc = [solver,condeq,lhs,rhs]
+   QR.helpnode(ns, path, rider=rider, node=rhs)
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
 
