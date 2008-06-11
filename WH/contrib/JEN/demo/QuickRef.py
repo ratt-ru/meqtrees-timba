@@ -94,7 +94,11 @@ any MeqTrees contributor, following a number of simple rules.
 #          for the page in the bookmarks. But also because the user may not realise that
 #          this has happened, and is thus looking at the wrong picture.
 #          Can we have some (automatic?) bookpage refresh option, that uses the bookpage
-#          name (which after all has not changed)? 
+#          name (which after all has not changed)?
+#
+#   - OMS: QuickRef always gives lots of errors of the type: "tensor dimensions of child
+#          result 1 does not math the others". Executing EasyTwig is a good way to study
+#          this problem.
 #          
 #
 # Description:

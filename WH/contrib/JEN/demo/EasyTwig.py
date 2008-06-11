@@ -329,7 +329,7 @@ def twig_names (cat='default', include=None, first=None, trace=False):
                  'polyparm_ft2','polyparm_f2t',
                  'polyparm_f4t4','polyparm_f2t2L2M2']
     elif cat=='Expression':
-        names = ['{a}*exp(-({b}*[f]**2+{c}*[t]**2))']
+        names = ['{ampl}*exp(-({af}*[f]**2+{at}*[t]**2))']
     elif cat=='sum':
         names = ['sum_f2t3','sum_-3.3f2t','sum_f2t2L2M2']
     elif cat=='prod':
@@ -639,6 +639,7 @@ def decode_ftLM (s, trace=False):
 
 def polyparm (ns, name='polyparm', ftLM=None,
               fdeg=0, tdeg=0, Ldeg=0, Mdeg=0,
+              pname='polyparm',
               full=False, trace=False):
     """Make a polynomial subtree (up to 4D, f,t,L,M), with parms.
     """
@@ -670,7 +671,7 @@ def polyparm (ns, name='polyparm', ftLM=None,
                         if tdeg>0: quals.append(t)
                         if Ldeg>0: quals.append(L)
                         if Mdeg>0: quals.append(M)
-                        parmstub = unique_stub(ns,'polyparm',*quals)
+                        parmstub = unique_stub(ns,pname,*quals)  # default: 'polyparm'
                         termstub = unique_stub(ns,'polyterm',*quals)
                         default_value = 0.1**sum_ftLM            # slightly non_zero
                         parm = parmstub << Meq.Parm(default_value)
@@ -715,7 +716,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 0:
+   if 1:
        for cat in twig_cats():
            print '\n\n****** twig_cat =',cat
            for name in twig_names(cat):
@@ -748,9 +749,10 @@ if __name__ == '__main__':
        t = polyparm(ns, fdeg=1, tdeg=2, Ldeg=1, Mdeg=1, trace=True)
        nn = find_parms(t, trace=True)
 
-   if 1:
+   if 0:
        expr = '[f]+[t]'
        expr = '[f]+[t]*{alpha}'
+       expr = '{a}*exp(-({b}*[f]**2+{c}*[t]**2))'
        t = twig(ns,expr, trace=True)
        nn = find_parms(t, trace=True)
        

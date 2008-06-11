@@ -630,8 +630,10 @@ def solving_Expression (ns, path, rider=None):
    """
    rr = QR.on_entry(solving_Expression, path, rider)
    lhs = ET.twig(ns, opt_solving_twig)              
+   print '** expr =',opt_solving_Expression_expr
    rhs = ET.twig(ns, opt_solving_Expression_expr)
-   parms = ET.find_parms(rhs, trace=False)
+   print '** rhs =',str(rhs)
+   parms = ET.find_parms(rhs, trace=True)
    if len(parms)==0:
       s = '** the Expression: '+opt_solving_Expression_expr
       s += '\n  should have at least one {parm}...'

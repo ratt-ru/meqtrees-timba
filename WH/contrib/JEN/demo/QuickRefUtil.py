@@ -368,6 +368,7 @@ def _tdl_job_print_hardcopy (mqs, parent, rr=None, header='QuickRefUtil'):
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
     filename = 'QuickRef.tmp'
+    filename = header+'.tmp'
     filename = rr.save(filename)
     # command = 'lp -d '+str(filename)
     # print '\n** tdl_job_print_hardcopy(): os.system(',command,')'
@@ -499,25 +500,49 @@ def MeqNode (ns, path,
     NB: This function is called from all QR_... modules!
     """
 
-    # First replace the dots(.) in the node-name (name): They cause trouble
-    # in the browser (and elsewhere?)
-    qname = str(name)
-    qname = qname.replace('.',',')
+    #........................................................................
 
-    # Condition the help-string: prepend the node name, and make a list of lines:
+    # Condition the help-string: make a list of lines (qhelp):
     if isinstance(help, str):
         # May be multi-line (in triple-quotes, or containing \n): 
         qhelp = help.split('\n')                            # -> list
-        qhelp[0] = str(qname)+': '+str(qhelp[0])            # prepend
-    else:                                                  # should not happen...?
-        qhelp = str(qname)+': '+str(help)                   # ...show something...
+    else:                                                   # should not happen...?
+        qhelp = [str(help)]                                 # ...show something...
+
+    # Make a MeqNode oneliner, for prepending to the MeqNode help:
+    qinfo = 'MeqNode: '+str(name)+': '
+    if is_node(node):
+        qinfo += ' node='+str(node)
+    else:
+        if unop:
+            qinfo += ' (unop='+str(unop)+') '
+        qinfo += ' '+str(meqclass)+'('
+        if isinstance(children,(list,tuple)):
+            qinfo += '*['+str(len(children))+' child(ren)]'
+
+        # Include all the ACTUAL keyword options used:
+        for key in kwargs.keys():
+            if key in ['children']:
+                pass
+            elif key=='solvable':
+                qinfo += ', '+str(key)+'=['+str(len(kwargs[key]))+' MeqParm(s)]'
+            else:
+                qinfo += ', '+str(key)+'='+str(kwargs[key])
+        qinfo += '):'
+    
+    # Replace the dots(.) in the node-name (name): They cause trouble
+    # in the browser (and elsewhere?)
+    qinfo = qinfo.replace('.',',')
+    qhelp.insert(0,qinfo)                                   # prepend
 
     # Dispose of the conditioned help (qhelp):
-    kwargs['quickref_help'] = qhelp                        # -> node state record
+    kwargs['quickref_help'] = qhelp                         # -> node state record
     if rider:
         # The rider is a CollatedHelpRecord object, which collects the
         # hierarchical help items, using the path string:
         rider.insert_help(add2path(path,name), qhelp) 
+
+    #........................................................................
 
     # Optionally, apply a one or more unary math operations (e.g. Abs)
     # on all the children (if any):
@@ -573,6 +598,7 @@ def MeqNode (ns, path,
 
 
 #-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 def bundle (ns, path,
             nodes=None, unop=None,
@@ -591,23 +617,26 @@ def bundle (ns, path,
     ss = path.split('.')
     nss = len(ss)
     name = ss[nss-1]
-    qname = name
+
+    qinfo = 'Selected subset of QR module: '+str(name)+':'
     if nss>1:
-        qname = '*'+str(nss-2)+'* '+ss[nss-2]+'_'+ss[nss-1]
+        qinfo = '*'+str(nss-2)+'* bundle: '+ss[nss-2]+'_'+ss[nss-1]
       
-    # Condition the help-string and update the CollatedHelpRecord (rider):
+    # Condition the help-string (make a list of strings):
     if isinstance(help, str):
         qhelp = help.split('\n')
-        qhelp[0] = qname+': '+qhelp[0]
     else:
-        qhelp = qname+': '+str(help)
+        qhelp = [str(help)]
+    qhelp.insert(0,qinfo)                                   # prepend
 
+    # update the CollatedHelpRecord (rider) with qhelp:
     if rider:
         rider.insert_help(path, qhelp)            # add qhelp to the rest
         # The relevant subset of help is attached to this bundle node:
         qhelp = rider.subrec(path, trace=trace)   # get (a copy of) the relevant sub-record 
         qhelp = qhelp.cleanup().chrec()           # clean it up (remove order fields etc) 
 
+    #.......................................................................
     # First make a nodestub with an unique name
     parent = ET.unique_stub(ns, name)
     # print '---',path,': name=',name,'-> (unique?) parent=',str(parent)
