@@ -43,16 +43,28 @@ from Timba.TDL import *
 from Timba.Meq import meqds
 from Timba.Meq import meq
 
+from handle_beams import * 
+from MG_AGW_read_separate_table_weights import *
+
+# get directory with GRASP focal plane array beams
+#TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_offset','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+
+fpa_directory = 'veidt_fpa_30'
+
 # setup a bookmark for display of results with a 'Collections Plotter'
 Settings.forest_state = record(bookmarks=[
   record(name='Collector',page=[
-    record(udi="/node/collector",viewer="Collections Plotter",pos=(0,0)),
+#   record(udi="/node/collector",viewer="Collections Plotter",pos=(0,0)),
     record(udi="/node/inspect_predicts",viewer="Collections Plotter",pos=(1,0))])]);
 # to force caching put 100
-Settings.forest_state.cache_policy = 100
+#Settings.forest_state.cache_policy = 100
+
+l_beam = 0
+m_beam = 0
+use_gauss = True
 
 # define antenna list
-ANTENNAS = range(1,11);
+ANTENNAS = range(1,31);
 BEAMS = range(0,30)
 
 # derive interferometer list
@@ -86,16 +98,18 @@ for p in ANTENNAS:
     ant_phase_day_y[p-1,k] = sample_day * seconds_day
     sample_hour = random.random()
     ant_phase_hour_y[p-1,k] = sample_hour * seconds_hour
+
 # we'll put the sources on a 5x5 grid (positions relative to 
 # the phase centre, in radians)
 
 LM = []
-delta = 0.0035
+delta = 0.02081 * 0.5
 l = -3.0 * delta
-#l = 3.0 * delta
+#l = 0
+#m = -3.0 * delta
 # define request
 for i in range(5):
-  m = -0.0105
+  m = -3.0 * delta 
   l = l + delta
   for j in range(5):
     m = m + delta
@@ -113,115 +127,52 @@ for i in range(5):
 #print 'LM ', LM
 
 SOURCES = range(len(LM));       # 0...N-1
-# define location for phase-up
-offset = 0.01414214
 
-mep_beam_weights = 'beam_weights.mep'
+def create_gain_invariable_beams(num_beams, I_parm_max_x,I_parm_max_y,weight_re,weight_im, ns):
 
-def create_gain_invariable_beams(ns):
-# read in beam images
-  BEAMS = range(0,30)
-  home_dir = os.environ['HOME']
+  BEAMS = range(0,num_beams)
+
+# get complex weights for beams
   for k in BEAMS:
-  # read in beam data - y dipole
-    infile_name_re_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) + '_Re_x.fits'
-    infile_name_im_yx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_x.fits'
-    infile_name_re_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Re_y.fits'
-    infile_name_im_yy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k+30) +'_Im_y.fits' 
-    ns.image_re_yx(k) << Meq.FITSImage(filename=infile_name_re_yx,cutoff=1.0,mode=2)
-    ns.image_im_yx(k) << Meq.FITSImage(filename=infile_name_im_yx,cutoff=1.0,mode=2)
-    ns.image_re_yy(k) << Meq.FITSImage(filename=infile_name_re_yy,cutoff=1.0,mode=2)
-    ns.image_im_yy(k) << Meq.FITSImage(filename=infile_name_im_yy,cutoff=1.0,mode=2)
-    # normalize
-    ns.y_im_sq(k) << ns.image_re_yy(k) * ns.image_re_yy(k) + ns.image_im_yy(k) * ns.image_im_yy(k) +\
-                  ns.image_re_yx(k) * ns.image_re_yx(k) + ns.image_im_yx(k) * ns.image_im_yx(k)
-    ns.y_im(k) <<Meq.Sqrt(ns.y_im_sq(k))
-    ns.y_im_max(k) <<Meq.Max(ns.y_im(k))
-    ns.norm_image_re_yy(k) << ns.image_re_yy(k) / ns.y_im_max(k)
-    ns.norm_image_im_yy(k) << ns.image_im_yy(k) / ns.y_im_max(k)
-    ns.norm_image_re_yx(k) << ns.image_re_yx(k) / ns.y_im_max(k)
-    ns.norm_image_im_yx(k) << ns.image_im_yx(k) / ns.y_im_max(k)
-
-    ns.beam_wt_re_y(k) << Meq.Parm(table_name =  mep_beam_weights)
-    ns.beam_wt_im_y(k) << Meq.Parm(table_name =  mep_beam_weights)
-
-    ns.beam_weight_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
-
-    ns.beam_yx(k) << Meq.ToComplex(ns.norm_image_re_yx(k), ns.norm_image_im_yx(k)) 
-    ns.beam_yy(k) << Meq.ToComplex(ns.norm_image_re_yy(k), ns.norm_image_im_yy(k))
-    ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
-    ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
-
-  # read in beam data - x dipole
-    infile_name_re_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) + '_Re_x.fits'
-    infile_name_im_xx = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_x.fits'
-    infile_name_re_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Re_y.fits'
-    infile_name_im_xy = home_dir + '/Timba/WH/contrib/AGW/veidt_fpa/fpa_pat_' + str(k) +'_Im_y.fits' 
-    ns.image_re_xy(k) << Meq.FITSImage(filename=infile_name_re_xy,cutoff=1.0,mode=2)
-    ns.image_im_xy(k) << Meq.FITSImage(filename=infile_name_im_xy,cutoff=1.0,mode=2)
-    ns.image_re_xx(k) << Meq.FITSImage(filename=infile_name_re_xx,cutoff=1.0,mode=2)
-    ns.image_im_xx(k) << Meq.FITSImage(filename=infile_name_im_xx,cutoff=1.0,mode=2)
-
-    # normalize
-    ns.x_im_sq(k) << ns.image_re_xx(k) * ns.image_re_xx(k) + ns.image_im_xx(k) * ns.image_im_xx(k) +\
-                  ns.image_re_xy(k) * ns.image_re_xy(k) + ns.image_im_xy(k) * ns.image_im_xy(k)
-    ns.x_im(k) <<Meq.Sqrt(ns.x_im_sq(k))
-    ns.x_im_max(k) <<Meq.Max(ns.x_im(k))
-    ns.norm_image_re_xx(k) << ns.image_re_xx(k) / ns.x_im_max(k)
-    ns.norm_image_im_xx(k) << ns.image_im_xx(k) / ns.x_im_max(k)
-    ns.norm_image_re_xy(k) << ns.image_re_xy(k) / ns.x_im_max(k)
-    ns.norm_image_im_xy(k) << ns.image_im_xy(k) / ns.x_im_max(k)
-
-    ns.beam_wt_re_x(k) << Meq.Parm(table_name =  mep_beam_weights)
-    ns.beam_wt_im_x(k) << Meq.Parm(table_name =  mep_beam_weights)
-
+    ns.beam_wt_re_x(k) << Meq.Constant(weight_re['beam_wt_re_x:'+ str(k)])
+    ns.beam_wt_im_x(k) << Meq.Constant(weight_im['beam_wt_im_x:'+ str(k)])
     ns.beam_weight_x(k) << Meq.ToComplex(ns.beam_wt_re_x(k), ns.beam_wt_im_x(k))
 
-    ns.beam_xy(k) << Meq.ToComplex(ns.norm_image_re_xy(k), ns.norm_image_im_xy(k)) 
-    ns.beam_xx(k) << Meq.ToComplex(ns.norm_image_re_xx(k), ns.norm_image_im_xx(k))
+  for k in BEAMS:
+    ns.beam_wt_re_y(k) << Meq.Constant(weight_re['beam_wt_re_y:'+ str(k)])
+    ns.beam_wt_im_y(k) << Meq.Constant(weight_im['beam_wt_im_y:'+ str(k)])
+    ns.beam_weight_y(k) << Meq.ToComplex(ns.beam_wt_re_y(k), ns.beam_wt_im_y(k))
+
+# form a beam
+  for k in BEAMS:
+    ns.beam_xy(k) << Meq.ToComplex(ns.image_re_xy(k), ns.image_im_xy(k))
+    ns.beam_xx(k) << Meq.ToComplex(ns.image_re_xx(k), ns.image_im_xx(k))
     ns.wt_beam_xy(k) << ns.beam_xy(k) * ns.beam_weight_x(k)
     ns.wt_beam_xx(k) << ns.beam_xx(k) * ns.beam_weight_x(k)
 
-  ns.voltage_sum_xx << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS])
-  ns.voltage_sum_xy << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS])
-  ns.voltage_sum_yx << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS])
-  ns.voltage_sum_yy << Meq.Add(*[ns.wt_beam_yy(k) for k in BEAMS])
+    ns.beam_yx(k) << Meq.ToComplex(ns.image_re_yx(k), ns.image_im_yx(k))
+    ns.beam_yy(k) << Meq.ToComplex(ns.image_re_yy(k), ns.image_im_yy(k))
+    ns.wt_beam_yx(k) << ns.beam_yx(k) * ns.beam_weight_y(k)
+    ns.wt_beam_yy(k) << ns.beam_yy(k) * ns.beam_weight_y(k)
 
-  # normalize beam to peak response
-  ns.voltage_sum_xx_r << Meq.Real(ns.voltage_sum_xx)
-  ns.voltage_sum_xx_i << Meq.Imag(ns.voltage_sum_xx)
-  ns.voltage_sum_xy_r << Meq.Real(ns.voltage_sum_xy)
-  ns.voltage_sum_xy_i << Meq.Imag(ns.voltage_sum_xy)
+  # sum up the weights
+  ns.wt_sum_x << Meq.Add(*[ns.beam_weight_x(k) for k in BEAMS])
+  ns.wt_sum_y << Meq.Add(*[ns.beam_weight_y(k) for k in BEAMS])
 
-  ns.im_sq_x << ns.voltage_sum_xx_r * ns.voltage_sum_xx_r + ns.voltage_sum_xx_i * ns.voltage_sum_xx_i +\
-                  ns.voltage_sum_xy_r * ns.voltage_sum_xy_r + ns.voltage_sum_xy_i * ns.voltage_sum_xy_i
-  ns.im_x <<Meq.Sqrt(ns.im_sq_x)
-  ns.im_x_max <<Meq.Max(ns.im_x)
+  # sum beams up and normalize by the summed weights
+  ns.voltage_sum_xx_norm << Meq.Add(*[ns.wt_beam_xx(k) for k in BEAMS]) / (ns.wt_sum_x * I_parm_max_x) 
+  ns.voltage_sum_xy_norm << Meq.Add(*[ns.wt_beam_xy(k) for k in BEAMS]) / (ns.wt_sum_x * I_parm_max_x) 
+  ns.voltage_sum_yx_norm << Meq.Add(*[ns.wt_beam_yx(k) for k in BEAMS]) / (ns.wt_sum_y * I_parm_max_y)
+  ns.voltage_sum_yy_norm << Meq.Add(*[ns.wt_beam_yy(k) for k in BEAMS]) / (ns.wt_sum_y * I_parm_max_y)
 
-  ns.voltage_sum_yy_r << Meq.Real(ns.voltage_sum_yy)
-  ns.voltage_sum_yy_i << Meq.Imag(ns.voltage_sum_yy)
-  ns.voltage_sum_yx_r << Meq.Real(ns.voltage_sum_yx)
-  ns.voltage_sum_yx_i << Meq.Imag(ns.voltage_sum_yx)
-  ns.im_sq_y << ns.voltage_sum_yy_r * ns.voltage_sum_yy_r + ns.voltage_sum_yy_i * ns.voltage_sum_yy_i +\
-                  ns.voltage_sum_yx_r * ns.voltage_sum_yx_r + ns.voltage_sum_yx_i * ns.voltage_sum_yx_i
-  ns.im_y <<Meq.Sqrt(ns.im_sq_y)
-  ns.im_y_max <<Meq.Max(ns.im_y)
+  ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_xy_norm, ns.voltage_sum_yx_norm, ns.voltage_sum_yy_norm)
 
-  ns.voltage_sum_yy_norm << ns.voltage_sum_yy / ns.im_y_max
-  ns.voltage_sum_yx_norm << ns.voltage_sum_yx / ns.im_y_max
-
-  ns.voltage_sum_xx_norm << ns.voltage_sum_xx / ns.im_x_max
-  ns.voltage_sum_xy_norm << ns.voltage_sum_xy / ns.im_x_max
-
-
-  #  We have E_Jones with no time dependent gain variation
-  ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_yx_norm,ns.voltage_sum_xy_norm, ns.voltage_sum_yy_norm)
   # we will need a resampler for the beam in order to extract the
   # actual E-Jones in the directions of each of the sources. The dep_mask
   # flag is yet another of those mysterious thingys needed by Sarod ...
   ns.resampler_E << Meq.Resampler(ns.E, dep_mask=0xff)
 
-def create_gain_variable_beams(ns):
+def create_gain_variable_beams(I_parm_max_x, I_parm_max_y, ns):
   for p in ANTENNAS:
     # Now, create antenna-based time-dependent gain variations
     # first, daily variation for x dipole
@@ -233,11 +184,11 @@ def create_gain_variable_beams(ns):
       ns.offset_day_x(p,k) << Meq.Time() - ant_phase_day_x[p-1,k]
       ns.phase_offset_day_x(p,k) << (ns.offset_day_x(p,k) *2* math.pi) / full_seconds_day 
     # now compute the actual gain variation of an antenna for the 
-    # 24 hr daily cycle
+    # 0.5% 24 hr daily cycle
       ns.daily_gain_x(p,k) << 1.0 + 0.005 * Meq.Cos(ns.phase_offset_day_x(p,k))
 
     # then, calculate phase and then hourly gain fluctuation 
-    # for the 0.1 % hourly cycle
+    # for the 0.05% hourly cycle
       ns.offset_hour_x(p,k) << Meq.Time() - ant_phase_hour_x[p-1,k]
       ns.phase_offset_hr_x(p,k) << (ns.offset_hour_x(p,k) *2* math.pi) /  seconds_hour
       ns.hourly_gain_x(p,k) << 0.0005 * Meq.Cos(ns.phase_offset_hr_x(p,k))
@@ -259,55 +210,36 @@ def create_gain_variable_beams(ns):
     # G Jones for y dipole = sum of daily and hourly gain
       ns.Gy(p,k) << ns.daily_gain_y(p,k) + ns.hourly_gain_y(p,k) 
 
-      ns.wt_beam_yx(p,k) << ns.wt_beam_yx(k) * ns.Gy(p,k)
-      ns.wt_beam_yy(p,k) << ns.wt_beam_yy(k) * ns.Gy(p,k)
+      ns.wt_beam_yx_vary(p,k) << ns.wt_beam_yx(k) * ns.Gy(p,k)
+      ns.wt_beam_yy_vary(p,k) << ns.wt_beam_yy(k) * ns.Gy(p,k)
 
-      ns.wt_beam_xy(p,k) << ns.wt_beam_xy(k) * ns.Gx(p,k)
-      ns.wt_beam_xx(p,k) << ns.wt_beam_xx(k) * ns.Gx(p,k)
+      ns.wt_beam_xy_vary(p,k) << ns.wt_beam_xy(k) * ns.Gx(p,k)
+      ns.wt_beam_xx_vary(p,k) << ns.wt_beam_xx(k) * ns.Gx(p,k)
 
     # first, daily variation for x dipole
-    ns.voltage_sum_xx(p) << Meq.Add(*[ns.wt_beam_xx(p,k) for k in BEAMS])
-    ns.voltage_sum_xy(p) << Meq.Add(*[ns.wt_beam_xy(p,k) for k in BEAMS])
-    ns.voltage_sum_yx(p) << Meq.Add(*[ns.wt_beam_yx(p,k) for k in BEAMS])
-    ns.voltage_sum_yy(p) << Meq.Add(*[ns.wt_beam_yy(p,k) for k in BEAMS])
+    # sum beams up and normalize by the summed weights
+    ns.voltage_sum_xx_norm_vary(p) << Meq.Add(*[ns.wt_beam_xx_vary(p,k) for k in BEAMS]) / (ns.wt_sum_x * I_parm_max_x) 
+    ns.voltage_sum_xy_norm_vary(p) << Meq.Add(*[ns.wt_beam_xy_vary(p,k) for k in BEAMS]) / (ns.wt_sum_x * I_parm_max_x) 
+    ns.voltage_sum_yx_norm_vary(p) << Meq.Add(*[ns.wt_beam_yx_vary(p,k) for k in BEAMS]) / (ns.wt_sum_y * I_parm_max_y)
+    ns.voltage_sum_yy_norm_vary(p) << Meq.Add(*[ns.wt_beam_yy_vary(p,k) for k in BEAMS]) / (ns.wt_sum_y * I_parm_max_y)
 
-  # normalize beam to peak response
-    ns.voltage_sum_xx_r(p) << Meq.Real(ns.voltage_sum_xx(p))
-    ns.voltage_sum_xx_i(p) << Meq.Imag(ns.voltage_sum_xx(p))
-    ns.voltage_sum_xy_r(p) << Meq.Real(ns.voltage_sum_xy(p))
-    ns.voltage_sum_xy_i(p) << Meq.Imag(ns.voltage_sum_xy(p))
+    ns.E(p) << Meq.Matrix22(ns.voltage_sum_xx_norm_vary(p), ns.voltage_sum_xy_norm_vary(p), ns.voltage_sum_yx_norm_vary(p), ns.voltage_sum_yy_norm_vary(p))
 
-    ns.im_sq_x(p) << ns.voltage_sum_xx_r(p) * ns.voltage_sum_xx_r(p) + ns.voltage_sum_xx_i(p) * ns.voltage_sum_xx_i(p) +\
-                  ns.voltage_sum_xy_r(p) * ns.voltage_sum_xy_r(p) + ns.voltage_sum_xy_i(p) * ns.voltage_sum_xy_i(p)
-    ns.im_x(p) <<Meq.Sqrt(ns.im_sq_x(p))
-    ns.im_x_max(p) <<Meq.Max(ns.im_x(p))
-
-    ns.voltage_sum_yy_r(p) << Meq.Real(ns.voltage_sum_yy(p))
-    ns.voltage_sum_yy_i(p) << Meq.Imag(ns.voltage_sum_yy(p))
-    ns.voltage_sum_yx_r(p) << Meq.Real(ns.voltage_sum_yx(p))
-    ns.voltage_sum_yx_i(p) << Meq.Imag(ns.voltage_sum_yx(p))
-    ns.im_sq_y(p) << ns.voltage_sum_yy_r(p) * ns.voltage_sum_yy_r(p) + ns.voltage_sum_yy_i(p) * ns.voltage_sum_yy_i(p) +\
-                  ns.voltage_sum_yx_r(p) * ns.voltage_sum_yx_r(p) + ns.voltage_sum_yx_i(p) * ns.voltage_sum_yx_i(p)
-    ns.im_y(p) <<Meq.Sqrt(ns.im_sq_y(p))
-    ns.im_y_max(p) <<Meq.Max(ns.im_y(p))
-
-    ns.voltage_sum_yy_norm(p) << ns.voltage_sum_yy(p) / ns.im_y_max(p)
-    ns.voltage_sum_yx_norm(p) << ns.voltage_sum_yx(p) / ns.im_y_max(p)
-
-    ns.voltage_sum_xx_norm(p) << ns.voltage_sum_xx(p) / ns.im_x_max(p)
-    ns.voltage_sum_xy_norm(p) << ns.voltage_sum_xy(p) / ns.im_x_max(p)
-
-  #  We have E_Jones with time dependent gain variation
-    ns.E(p) << Meq.Matrix22(ns.voltage_sum_xx_norm(p), ns.voltage_sum_yx_norm(p),ns.voltage_sum_xy_norm(p), ns.voltage_sum_yy_norm(p))
-  # we will need a resampler for the beam in order to extract the
-  # actual E-Jones in the directions of each of the sources. The dep_mask
-  # flag is yet another of those mysterious thingys needed by Sarod ...
     ns.resampler_E(p) << Meq.Resampler(ns.E(p), dep_mask=0xff)
 
 ########################################################
 def _define_forest(ns):  
-  create_gain_invariable_beams(ns)
-  create_gain_variable_beams(ns)
+
+# read in beam images
+# number of beams is 30 or 90
+  num_beams = read_in_FPA_beams(ns,fpa_directory)
+  print 'num_beams = ', num_beams
+
+#read in weights for system
+  I_parm_max_x,I_parm_max_y,weight_re,weight_im = read_separate_table_weights(l_beam, m_beam, use_gauss)
+
+  create_gain_invariable_beams(num_beams,I_parm_max_x,I_parm_max_y,weight_re,weight_im,ns)
+  create_gain_variable_beams(I_parm_max_x, I_parm_max_y, ns)
  
 # OK - we have E Jones - now observe sources
 
@@ -325,9 +257,7 @@ def _define_forest(ns):
 
   # Now, define individual source e-Jones matrices
   for src in SOURCES:
-    l0,m0 = LM[src];
-    l = l0 + offset
-    m = m0 + offset
+    l,m = LM[src]
     n = math.sqrt(1-l*l-m*m);
     ns.lmn_minus1(src) << Meq.Composer(l,m,n-1);
     # define source brightness B0 (unprojected)
@@ -345,8 +275,9 @@ def _define_forest(ns):
     # and get the complex conjugate
     ns.Est(src) << Meq.ConjTranspose(ns.Es(src)) 
 
-# define K-jones matrices - just derive the phase shift, and the
-# its complex conjugate for each antenna  / source combination
+# Define K-jones matrices - just derive the phase shift, and 
+# its complex conjugate for each antenna  / source combination.
+# And define antnna-based time variable E-Jones for FPA-based system.
   for p in ANTENNAS:
     for src in SOURCES:
       ns.K(p,src) << Meq.VisPhaseShift(lmn=ns.lmn_minus1(src),uvw=ns.uvw(p));
@@ -395,14 +326,14 @@ def _define_forest(ns):
 
 ########################################################################
 
-def _test_forest(mqs,parent):
+def _test_forest(mqs,parent,wait=False):
 
 # now observe sources - tells the system which MS to use and
 # which column is to be used to write out our simulated observation
   req = meq.request();
   req.input = record(
     ms = record(
-      ms_name          = 'TEST_XNTD_30_960.MS',
+      ms_name          = 'TEST_XNTD_60_480.MS',
       tile_size        = 20,
       selection = record(channel_start_index=0,
                              channel_end_index=0,
@@ -417,12 +348,33 @@ def _test_forest(mqs,parent):
     )
   );
   # execute
-  mqs.execute('vdm',req,wait=False);
+  mqs.execute('vdm',req,wait=wait);
 
 
-if __name__=='__main__':
+  
+if __name__ == '__main__':
+ # run in batch mode?
+ if '-run' in sys.argv:
+   from Timba.Apps import meqserver
+   from Timba.TDL import Compile
+
+   # this starts a kernel.
+   mqs = meqserver.default_mqs(wait_init=10);
+
+   # This compiles a script as a TDL module. Any errors will be thrown as
+   # an exception, so this always returns successfully. We pass in
+   # __file__ so as to compile ourselves.
+   (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+
+   # this runs the _test_forest job.
+   mod._test_forest(mqs,None,wait=True);
+   print 'finished'
+   sys.exit()
+ else:
+# Timba.TDL._dbg.set_verbose(5);
   ns=NodeScope()
   _define_forest(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
-  
+
+
