@@ -86,16 +86,17 @@ class KolmogorovNode (pynode.PyNode):
 
 
 
-                xshift=(time[it])*self.speedx;
-                yshift=(time[it])*self.speedy;
-                xn=((xv+xshift)/self.scale)*self.grid_size+self.grid_size;
-                yn=((yv+yshift)/self.scale)*self.grid_size+self.grid_size;
-                xn=int(xn)%(self.grid_size*2)  # zorg dat xn een integer tussen 0 en 2*grid_size is
-                yn=int(yn)%(self.grid_size*2)  # zorg dat xn een integer tussen 0 en 2*grid_size is
-                
-                val.append(PhaseScreen.phasescreen[xn][yn]*self.amp_scale);
+            xshift=(time[it])*self.speedx;
+            yshift=(time[it])*self.speedy;
+            xn=((xv+xshift)/self.scale)*self.grid_size+self.grid_size;
+            yn=((yv+yshift)/self.scale)*self.grid_size+self.grid_size;
+            xn=int(xn)%(self.grid_size*2)  # zorg dat xn een integer tussen 0 en 2*grid_size is
+            yn=int(yn)%(self.grid_size*2)  # zorg dat xn een integer tussen 0 en 2*grid_size is
+
+            val.append(PhaseScreen.phasescreen[xn][yn]*self.amp_scale);
         #fill result
         res = meq.result(0,cells);
+        # print startt,endt,seg,val;
         val2=meq.vells(shape=meq.shape(endt+1,));
         val2[:]=val;
         vs=meq.vellset(val2);

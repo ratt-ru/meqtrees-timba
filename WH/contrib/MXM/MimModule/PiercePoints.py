@@ -37,7 +37,7 @@ class PiercePoints(MIM_model):
                 sinl= ns['sinlon'](ref_station) <<Meq.Sin(lon); 
                 cosphi= ns['coslat'](ref_station) <<Meq.Cos(lat); 
                 sinphi= ns['sinlat'](ref_station) <<Meq.Sin(lat); 
-                # create rotation matrix to convert to ENU coordinates
+                # create rotation matrix to convert to/from ENU coordinates
                 rot_matrix <<Meq.Composer(-1*sinl,cosl,0,
                                           -1*sinphi*cosl,-1*sinphi*sinl,cosphi,
                                           cosphi*cosl,cosphi*sinl,sinphi,
