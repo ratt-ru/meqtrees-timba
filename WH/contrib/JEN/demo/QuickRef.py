@@ -148,10 +148,11 @@ import QuickRefUtil as QR
 #********************************************************************************
 
 TDLCompileMenu("QuickRef Categories:",
-               TDLOption('opt_general',"QR_MeqTree: general items",False),
-               TDLOption('opt_MeqBrowser',"QR_MeqBrowser: browser features",False),
+               # TDLOption('opt_general',"QR_MeqTree: general items",False),
+               # TDLOption('opt_MeqBrowser',"QR_MeqBrowser: browser features",False),
                TDLOption('opt_MeqNodes',"QR_MeqNodes: Available nodes",True),
-               TDLOption('opt_pynodes',"QR_PyNodes: general pynodes",False),
+               TDLOption('opt_solving',"QR_solving: Solving for MeqParm values",False),
+               # TDLOption('opt_pynodes',"QR_PyNodes: general pynodes",False),
                toggle='opt_QuickRef',
                )
 
@@ -176,6 +177,10 @@ def _define_forest (ns, **kwargs):
       import QR_MeqNodes   
       TDLCompileMenu("Options for QR_MeqNodes", QR_MeqNodes)
       cc.append(QR_MeqNodes.MeqNodes(ns, path, rider=rider))
+   if opt_solving:   
+      import QR_solving   
+      TDLCompileMenu("Options for QR_solving", QR_solving)
+      cc.append(QR_solving.solving(ns, path, rider=rider))
 
    # Make the outer bundle (of node bundles):
    QR.bundle (ns, path, nodes=cc, help=__doc__, rider=rider)

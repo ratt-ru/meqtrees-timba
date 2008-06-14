@@ -101,7 +101,9 @@ class CollatedHelpRecord (object):
    
    def prefix (self, level=0):
       """Indentation string"""
-      return ' '+(level*'..')+' '
+      ps= ' '+(level*'..')+' '
+      # ps= ' '+str(level)+(level*'..')+' '
+      return ps
 
    #---------------------------------------------------------------------
 
@@ -172,7 +174,8 @@ class CollatedHelpRecord (object):
          elif isinstance(help, (list,tuple)):
             ss += prefix+str(help[0])
             if len(help)>1:
-               s1 = str(len(str(key))*' ')
+               # s1 = str(len(str(key))*' ')           # keys too long...
+               s1 = str(5*' ')                        # <---- !!
                for s in help[1:]:
                   ss += prefix+s1+str(s)
 

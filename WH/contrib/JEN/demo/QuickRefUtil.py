@@ -452,7 +452,48 @@ def add2path (path, name=None, trace=False):
         print '\n** QR.add2path(',path,name,') ->',s
     return s
 
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
+def show_tree (node, ss=None, level=0, recurse=1000, mode='str', trace=False):
+    """Helper function (recursive) to attach the subtree under the given node(s)
+    to the given string (ss).
+    If mode='list', return a list of strings (lines).
+    """
+    prefix = '\n'+(level*' |  ')+' '
+    if trace:
+        print prefix+str(node),node
+        # print dir(node)
+
+    if level==0:
+        if not isinstance(ss,str): ss = ''
+        if isinstance(node,list):
+            # Special case (see MeqNode()): Start with a list of children:
+            for c in node:
+                ss = show_tree(c, ss, level=level+1, recurse=recurse, trace=trace)
+        elif not is_node(node):                
+            return '** not a node (??) **'                  # error
+        else:
+            ss += prefix+str(node)
+    else:
+        ss += prefix+str(node)
+
+    # Do its children, if required:
+    if level<recurse:
+        if getattr(node, 'children', None):
+            for c in node.children:
+                ss = show_tree(c[1], ss, level=level+1, recurse=recurse, trace=trace)
+
+    # Finished:
+    if level==0:
+        ss += '\n'
+        if mode=='list':
+            ss = ss.split('\n')
+    return ss
+
+
+
+#-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
 def helpnode (ns, path, name=None, node=None,
@@ -489,58 +530,24 @@ def helpnode (ns, path, name=None, node=None,
 
 
 #-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
-def MeqNode (ns, path,
-             meqclass=None, name=None,
+def MeqNode (ns, path, meqclass=None, name=None,
              # quals=None, kwquals=None,
              node=None, children=None, unop=None,
-             help=None, rider=None,
+             help=None, recurse=0,
+             rider=None,
              trace=False, **kwargs):
-    """Define (make) the specified node an an organised way.
+    """Define (make) the specified node an an organised way, using path and rider.
+    - Using meclass, name, children, help, and any keyword options (**kwargs).
+    - Attach generic and specific help to the quickref_help field of the node,
+    and to the hierarchical help collected by the rider (for later display).
+    - If unop is string (e.g. Sin) or list (e.g. [Sin,Cos]), apply the
+    give unary operations to all the children first.
+    - If recurse>0, show the subtree below this node, to the required depth.
     NB: This function is called from all QR_... modules!
     """
 
-    #........................................................................
-
-    # Condition the help-string: make a list of lines (qhelp):
-    if isinstance(help, str):
-        # May be multi-line (in triple-quotes, or containing \n): 
-        qhelp = help.split('\n')                            # -> list
-    else:                                                   # should not happen...?
-        qhelp = [str(help)]                                 # ...show something...
-
-    # Make a MeqNode oneliner, for prepending to the MeqNode help:
-    qinfo = 'MeqNode: '+str(name)+': '
-    if is_node(node):
-        qinfo += ' node='+str(node)
-    else:
-        if unop:
-            qinfo += ' (unop='+str(unop)+') '
-        qinfo += ' '+str(meqclass)+'('
-        if isinstance(children,(list,tuple)):
-            qinfo += '*['+str(len(children))+' child(ren)]'
-
-        # Include all the ACTUAL keyword options used:
-        for key in kwargs.keys():
-            if key in ['children']:
-                pass
-            elif key=='solvable':
-                qinfo += ', '+str(key)+'=['+str(len(kwargs[key]))+' MeqParm(s)]'
-            else:
-                qinfo += ', '+str(key)+'='+str(kwargs[key])
-        qinfo += '):'
-    
-    # Replace the dots(.) in the node-name (name): They cause trouble
-    # in the browser (and elsewhere?)
-    qinfo = qinfo.replace('.',',')
-    qhelp.insert(0,qinfo)                                   # prepend
-
-    # Dispose of the conditioned help (qhelp):
-    kwargs['quickref_help'] = qhelp                         # -> node state record
-    if rider:
-        # The rider is a CollatedHelpRecord object, which collects the
-        # hierarchical help items, using the path string:
-        rider.insert_help(add2path(path,name), qhelp) 
 
     #........................................................................
 
@@ -557,6 +564,56 @@ def MeqNode (ns, path,
                 elif is_node(children):
                     children = ns << getattr(Meq, unop1)(children)
 
+
+    #........................................................................
+
+    # Condition the help-string: make a list of lines (qhelp):
+    if isinstance(help, str):
+        # May be multi-line (in triple-quotes, or containing \n): 
+        qhelp = help.split('\n')                            # -> list
+    else:                                                   # should not happen...?
+        qhelp = [str(help)]                                 # ...show something...
+
+    # Make a MeqNode oneliner, for prepending to the MeqNode help:
+    qinfo = 'MeqNode: ns[\''+str(name)+'\']'
+
+    if is_node(node):
+        qinfo += ': node='+str(node)
+
+    else:
+        qinfo += ' << Meq.'+str(meqclass)+'('
+        if isinstance(children,(list,tuple)):
+            qinfo += '*['+str(len(children))+' child(ren)]'
+
+        # Include all the ACTUAL keyword options used:
+        for key in kwargs.keys():
+            kw = kwargs[key]
+            if key in ['children']:
+                pass                                        # ignore
+            elif key=='solvable' and isinstance(kw,(list,tuple)):
+                qinfo += ', '+str(key)+'=['+str(len(kw))+' MeqParm(s)]'
+            else:
+                qinfo += ', '+str(key)+'='+str(kw)
+        qinfo += ')'
+    
+    # Replace the dots(.) in the node-name (name): They cause trouble
+    # in the browser (and elsewhere?)
+    # qinfo = qinfo.replace('.',',')                          # ....?
+    qhelp.insert(0,qinfo)                                   # prepend
+
+    # Optional, show the subtree below to the required depth:
+    if recurse>0:
+        if is_node(node):
+            qhelp.extend(show_tree(node, recurse=recurse, mode='list'))
+        elif isinstance(children,(list,tuple)):
+            qhelp.extend(show_tree(children, recurse=recurse, mode='list'))
+ 
+    # Dispose of the conditioned help (qhelp):
+    kwargs['quickref_help'] = qhelp                         # -> node state record
+    if rider:
+        # The rider is a CollatedHelpRecord object, which collects the
+        # hierarchical help items, using the path string:
+        rider.insert_help(add2path(path,name), qhelp) 
 
     # Make the specified node:
     if is_node(node):
@@ -619,8 +676,14 @@ def bundle (ns, path,
     name = ss[nss-1]
 
     qinfo = 'Selected subset of QR module: '+str(name)+':'
-    if nss>1:
-        qinfo = '*'+str(nss-2)+'* bundle: '+ss[nss-2]+'_'+ss[nss-1]
+    level = nss-2
+    if level>-1:
+        itemtype = 'DEMO'
+        if level==1:
+            itemtype = 'TOPIC' 
+        if level==0:
+            itemtype = 'MODULE' 
+        qinfo = '*'+str(level)+'* '+itemtype+': '+ss[nss-2]+'_'+ss[nss-1]
       
     # Condition the help-string (make a list of strings):
     if isinstance(help, str):
@@ -714,7 +777,7 @@ def bundle (ns, path,
 
 
 #=================================================================================
-# Helper Class, to be used as rider:
+# Create the rider:
 #=================================================================================
 
 def create_rider(name='rider'):
@@ -732,13 +795,20 @@ if __name__ == '__main__':
     print '\n** Start of standalone test of: QuickRefUtil.py:\n' 
     ns = NodeScope()
     
-    if 1:
+    if 0:
         rider = create_rider()          # CollatedHelpRecord object
 
     if 0:
         path = 'aa.bb.cc.dd'
         help = 'xxx'
         rider.insert_help(path=path, help=help, trace=True)
+
+    if 1:
+        a = ns.a << 1.0
+        b = ns.b << 3.0
+        node = ns.test << Meq.Add(a,b)
+        ss = show_tree(node, mode='list', trace=True)
+        print ss
 
     print '\n** End of standalone test of: QuickRefUtil.py:\n' 
 
