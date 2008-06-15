@@ -135,31 +135,7 @@ TDLCompileMenu("QR_MeqNodes categories:",
                        TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
                                  [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
                        toggle='opt_flagging'),
-               TDLMenu("solving",
-                       TDLOption('opt_solving_twig',"input twig (lhs of condeq)",
-                                 ET.twig_names(['gaussian'],first='gaussian_ft'),
-                                 more=str),
-                       TDLOption('opt_solving_tiling_time',"size (time-cells) of solving subtile",
-                                 [None,1,2,3,4,5,10], more=int),
-                       TDLOption('opt_solving_tiling_freq',"size (freq-cells) of solving subtile",
-                                 [None,1,2,3,4,5,10], more=int),
-                       TDLOption('opt_solving_mepfile',"name of mep table file",
-                                 [None,'QR_MeqNodes'], more=str),
-                       TDLMenu("solving_polyparm",
-                               TDLOption('opt_solving_polyparm_poly',"polynomial to be fitted (rhs)",
-                                         ET.twig_names(['polyparm']), more=str),
-                               toggle='opt_solving_polyparm'),
-                       TDLMenu("solving_Expression",
-                               TDLOption('opt_solving_Expression_expr',"Expression to be fitted (rhs)",
-                                         ET.twig_names(['Expression']), more=str),
-                               toggle='opt_solving_Expression'),
-                       TDLMenu("solving_onepolc",
-                               TDLOption('opt_solving_onepolc_tdeg',"time deg of MeqParm polc",
-                                         range(6), more=int),
-                               TDLOption('opt_solving_onepolc_fdeg',"freq deg of MeqParm polc",
-                                         range(6), more=int),
-                               toggle='opt_solving_onepolc'),
-                       toggle='opt_solving'),
+               TDLOption('opt_solving',"solving",False),
                TDLMenu("visualization",
                        TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
                                  ET.twig_names(first='t'), more=str),
@@ -402,19 +378,14 @@ def flagging (ns, path, rider=None):
 
 def solving (ns, path, rider=None):
    """
-   MeqSolver
-   MeqCondeq
-   MeqStripper (?)
+   The purpose of MeqTrees is not only to allow the implementation of an arbitrary
+   Measurement Equation, but also to solve for (arbitrary subsets of) its parameters.
+   This is treated in detail in a separate module (QR_solving). For completeness,
+   we show a single simple example here.
    """
    rr = QR.on_entry(solving, path, rider)
    cc = []
-   cc.append(solving_ab (ns, rr.path, rider=rider))           # simplest, do always
-   if opt_solving_polyparm:
-      cc.append(solving_polyparm (ns, rr.path, rider=rider))
-   if opt_solving_Expression:
-      cc.append(solving_Expression (ns, rr.path, rider=rider))
-   if opt_solving_onepolc:
-      cc.append(solving_onepolc (ns, rr.path, rider=rider))
+   cc.append(solving_ab (ns, rr.path, rider=rider))    
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -583,7 +554,8 @@ def solving_ab (ns, path, rider=None):
 
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(*condeqs, solvable=[a,b])',
-                        help='Solver', rider=rider, children=condeqs,
+                        help='Solver', show_recurse=True,
+                        rider=rider, children=condeqs,
                         solvable=[a,b])  
    residuals = QR.MeqNode (ns, rr.path, meqclass='Add', name='residuals',
                            help='The sum of the (abs) condeq residuals',
@@ -592,106 +564,6 @@ def solving_ab (ns, path, rider=None):
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
 
-#--------------------------------------------------------------------------------
-
-def solving_polyparm (ns, path, rider=None):
-   """
-   Demonstration of solving for the coefficients of a freq-time polynomial.
-   It is fitted to the specified twig (e.g. a 2D gaussian).
-   A separate equation is generated for each cell of the Request domain.
-
-   The number of cells should be greater than the number of unknowns.
-   In this case, this is the number of MeqParms, which have polcs with only
-   a single coefficient (c00). NB: Try solving for freq-time polcs....)
-
-   If the input (twig) function does not vary much over the domain, there
-   is not enough information to solve for higher-order polynomial coeff.
-   In this case, the solution will 'lose rank', which is indicated in the
-   solver plot: the black line on the right leaves the right edge. 
-   """
-   rr = QR.on_entry(solving_polyparm, path, rider)
-   twig = ET.twig(ns, opt_solving_twig)                       # move to solving()?
-   poly = ET.twig(ns, opt_solving_polyparm_poly)
-   parms = ET.find_parms(poly, trace=False)
-   parmset = ET.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
-   condeq = ns << Meq.Condeq(poly, twig)
-   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
-                        name='Solver(condeq, solvable=parms)',
-                        help='Solver', rider=rider,
-                        children=[condeq], solvable=parms)  
-   cc = [solver,condeq,poly,twig,parmset]
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
-                     parentclass='ReqSeq', result_index=0)
-
-#--------------------------------------------------------------------------------
-
-def solving_Expression (ns, path, rider=None):
-   """
-   """
-   rr = QR.on_entry(solving_Expression, path, rider)
-   lhs = ET.twig(ns, opt_solving_twig)              
-   print '** expr =',opt_solving_Expression_expr
-   rhs = ET.twig(ns, opt_solving_Expression_expr)
-   print '** rhs =',str(rhs)
-   parms = ET.find_parms(rhs, trace=True)
-   if len(parms)==0:
-      s = '** the Expression: '+opt_solving_Expression_expr
-      s += '\n  should have at least one {parm}...'
-      raise ValueError,s
-   elif len(parms)==1:
-      parmset = parms[0]
-   else:
-      parmset = ET.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
-   condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
-                        name='Solver(condeq, solvable=parms)',
-                        help='Solver', rider=rider,
-                        children=[condeq], solvable=parms)  
-   cc = [solver,condeq,lhs,rhs,parmset]
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
-                     parentclass='ReqSeq', result_index=0)
-
-#--------------------------------------------------------------------------------
-
-def solving_onepolc (ns, path, rider=None):
-   """
-   Solving for the coeff of the polc of a single MeqParm.
-   The single MeqCondeq child of the MeqSolver has two children:
-   - The left-hand side (lhs) is the input twig node (e.g. a gaussian_ft)
-   - The right-hand side (rhs) is a MeqParm:
-   .      rhs = ns['MeqParm'] << Meq.Parm(meq.polc(coeff=numpy.zeros([tdeg+1,fdeg+1])))
-   """
-   rr = QR.on_entry(solving_onepolc, path, rider)
-   lhs = ET.twig(ns, opt_solving_twig)
-   tiling = record(freq=opt_solving_tiling_freq,
-                   time=opt_solving_tiling_time)
-   fdeg = opt_solving_onepolc_fdeg
-   tdeg = opt_solving_onepolc_tdeg
-   mepfile = opt_solving_mepfile
-   pname = 'MeqParm(shape=[1+'+str(tdeg)+',1+'+str(fdeg)+'])'
-   help = 'help'
-   rhs = ET.unique_stub(ns,pname) << Meq.Parm(0.0,
-                                              tags=['tag1','tag2'],
-                                              shape=[tdeg+1,fdeg+1],
-                                              tiling=tiling,
-                                              table_name=mepfile,
-                                              use_previous=True,
-                                              quickref_help='...help...',
-                                              node_groups='Parm')
-   condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
-                        name='Solver(condeq, solvable=MeqParm)',
-                        help='Solver', rider=rider,
-                        children=[condeq],
-                        niter=10,
-                        solvable=rhs)  
-   cc = [solver,condeq,lhs,rhs]
-   QR.helpnode(ns, path, rider=rider, node=rhs)
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
-                     parentclass='ReqSeq', result_index=0)
-
-
-#--------------------------------------------------------------------------------
 
 
 #================================================================================
@@ -1012,9 +884,9 @@ def leaves_constant (ns, path, rider=None):
    cc.append(QR.MeqNode (ns, rr.path, node=(ns.xxxx << 2.4),
                          help=help+'ns.xxxx << 2.4'))
    cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(real)',
-                         help='', value=1.2))
+                         help=None, value=1.2))
    cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(complex)',
-                         help='', value=complex(1,2)))
+                         help=None, value=complex(1,2)))
    cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(vector)',
                          help='produces a "tensor node"', value=range(4)))
    cc.append(QR.MeqNode (ns, rr.path, meqclass='Constant', name='Constant(vector, shape=[2,2])',
@@ -1070,20 +942,25 @@ def leaves_noise (ns, path, rider=None):
 def leaves_grids (ns, path, rider=None):
    """
    Grid nodes fill in the cells of the requested domain with the
-   values of the specified axis (time, freq, l, m, etc).
-   See also the state forest....
-   The two default axes (time and freq) have dedicated Grid nodes,
-   called MeqTime and MeqFreq.
+   values of the specified axis (time, freq, L, M, X, Y, Z, etc).
+   They are created by:  ns[nodename] << Meq.Grid(axis='M')
+
+   The two default axes (time and freq) also have dedicated Grid nodes,
+   called MeqTime and MeqFreq, e.g.:  ns[nodename] << Meq.Freq()
+
+   NB: Check also the Forest State record. Note that its axis_map and
+   its axis_list have default axes [time,freq,L,M], but that extra
+   axes are added to them as soon as MeqGrid node with a new axis
+   (name) has been defined.   
    """
    rr = QR.on_entry(leaves_grids, path, rider)
    cc = []
-   help = ''
    for q in ['Freq','Time']:
       cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'()',
-                            help=help, rider=rider)) 
-   for q in ['freq','time','L','M']:
+                            help=None, rider=rider)) 
+   for q in ['time','L','M','X','Y','Z']:
       cc.append(QR.MeqNode (ns, rr.path, meqclass='Grid',name='Grid(axis='+q+')',
-                            help=help, rider=rider, axis=q))
+                            help=None, rider=rider, axis=q))
    cc.append(ns.ft << Meq.Add(cc[2],cc[3]))
    cc.append(ns.LM << Meq.Add(cc[4],cc[5]))
    cc.append(ns.ftLM << Meq.Add(cc[2],cc[3],cc[4],cc[5]))
@@ -1169,10 +1046,9 @@ def unops_hyperbolic (ns, path, rider=None, twig=None):
    """
    rr = QR.on_entry(unops_hyperbolic, path, rider)
    cc = [twig]
-   help = ''
    for q in ['Sinh','Cosh','Tanh']:
       cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
-                            help=help, rider=rider, children=[twig]))
+                            help=None, rider=rider, children=[twig]))
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -1201,10 +1077,9 @@ def unops_power (ns, path, rider=None, twig=None):
    """
    rr = QR.on_entry(unops_power, path, rider)
    cc = [twig]
-   help = ' of its single child'
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
       cc.append(QR.MeqNode (ns, rr.path, meqclass=q, name=q+'('+str(twig.name)+')',
-                            help=q+help, rider=rider, children=[twig]))
+                            rider=rider, children=[twig]))
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
 
 #--------------------------------------------------------------------------------
@@ -1363,17 +1238,17 @@ def _define_forest (ns, **kwargs):
 
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D (mqs, parent):
-   return QR._tdl_job_execute_1D (mqs, parent, rootnode='QR_MeqNodes')
+def _tdl_job_execute_f (mqs, parent):
+   return QR._tdl_job_execute_f (mqs, parent, rootnode='QR_MeqNodes')
 
-def _tdl_job_execute_2D (mqs, parent):
-   return QR._tdl_job_execute_2D (mqs, parent, rootnode='QR_MeqNodes')
+def _tdl_job_execute_t (mqs, parent):
+   return QR._tdl_job_execute_t (mqs, parent, rootnode='QR_MeqNodes')
 
-def _tdl_job_execute_3D (mqs, parent):
-   return QR._tdl_job_execute_3D (mqs, parent, rootnode='QR_MeqNodes')
+def _tdl_job_execute_ft (mqs, parent):
+   return QR._tdl_job_execute_ft (mqs, parent, rootnode='QR_MeqNodes')
 
-def _tdl_job_execute_4D (mqs, parent):
-   return QR._tdl_job_execute_4D (mqs, parent, rootnode='QR_MeqNodes')
+def _tdl_job_execute_ftLM (mqs, parent):
+   return QR._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_MeqNodes')
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QR._tdl_job_execute_sequence (mqs, parent, rootnode='QR_MeqNodes')

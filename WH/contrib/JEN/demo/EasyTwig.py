@@ -117,10 +117,32 @@ def _tdl_job_execute_2D (mqs,parent,wait=False):
 
 #------------------------------------------------------------------------------------
 
+def _tdl_job_execute_3D (mqs,parent,wait=False):
+  from Timba.Meq import meq
+  dd = record(X=(-1,1), Y=(-2,2), Z=(-3,3))
+  cc = record(num_X=11, num_Y=12, num_Z=13)
+  cells = meq.gen_cells(meq.gen_domain(**dd), **cc) 
+  request = make_request(cells)
+  mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
+  return True
+
+#------------------------------------------------------------------------------------
+
 def _tdl_job_execute_4D (mqs,parent,wait=False):
   from Timba.Meq import meq
   dd = record(freq=(0.01,2), time=(-2,2), L=(-1,1), M=(-1,1))
   cc = record(num_freq=20, num_time=21, num_L=11, num_M=11)
+  cells = meq.gen_cells(meq.gen_domain(**dd), **cc) 
+  request = make_request(cells)
+  mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
+  return True
+
+#------------------------------------------------------------------------------------
+
+def _tdl_job_execute_5D (mqs,parent,wait=False):
+  from Timba.Meq import meq
+  dd = record(freq=(0.01,2), time=(-2,2), X=(-1,1), Y=(-2,2), Z=(-3,3))
+  cc = record(num_freq=20, num_time=21, num_X=11, num_Y=12, num_Z=13)
   cells = meq.gen_cells(meq.gen_domain(**dd), **cc) 
   request = make_request(cells)
   mqs.meq('Node.Execute',record(name='rootnode',request=request),wait=wait)
@@ -294,7 +316,8 @@ def twig_cats (trace=False):
     cats = []
     cats.extend(['axes','complex','noise','tensor'])
     cats.extend(['gaussian','expnegsum'])
-    cats.extend(['polyparm','Expression'])
+    cats.extend(['polyparm'])
+    # cats.extend(['Expression'])
     cats.extend(['prod','sum'])
     # cats.extend([])
     return cats
@@ -313,8 +336,9 @@ def twig_names (cat='default', include=None, first=None, trace=False):
 
     elif cat=='axes':
         names = ['f','t','L','M']
+        names.extend(['X','Y','Z'])
     elif cat=='complex':
-        names = ['cx_ft','cx_tf','cx_LM']
+        names = ['cx_ft','cx_tf','cx_LM','cx_XY']
     elif cat=='noise':
         names = ['noise_1','noise_3.5','expnoise_2','cxnoise_2.5',
                  'polarnoise_0.1','phasenoise_0.2','amplnoise_0.01']
@@ -327,7 +351,8 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     elif cat=='polyparm':
         names = ['polyparm_f2','polyparm_t2',
                  'polyparm_ft2','polyparm_f2t',
-                 'polyparm_f4t4','polyparm_f2t2L2M2']
+                 'polyparm_f4t4','polyparm_f2t2L2M2',
+                 'polyparm_tLMXYZ']
     elif cat=='Expression':
         names = ['{ampl}*exp(-({af}*[f]**2+{at}*[t]**2))']
     elif cat=='sum':
@@ -367,9 +392,9 @@ def twig(ns, name, test=False, help=None, trace=False):
     """
     Return a little subtree (a twig), specified by its name.
 
-    - f,t,L,M        :  Grid(axis=freq/time/L/M)
-    - cx_ft, cx_tf, cx_LM   :  Complex twigs
-    - f**t, t**f, f+t, ft   :
+    - f,t,L,M,X,Y,Z                :  Grid(axis=freq/time/L/M/X/Y/Z)
+    - cx_ft, cx_tf, cx_LM, cx_XY   :  Complex twigs
+    - f**t, t**f, f+t, ft          :
     
     - range_4        :  a 4-element (0,1,2,3) 'tensor' node
     - noise_3.5      :  GaussNoise(stddev=3.5)                stddev>0
@@ -390,6 +415,7 @@ def twig(ns, name, test=False, help=None, trace=False):
     - gaussian_ftLM  :  4D Gaussian, around 0.0, width=1.0 
     - expnegsum_f2t2 :  exp(-(f**2 + t**2))                   equivalent to gaussian_ft
     - polyparm_L3M4  :  polynomial in L,M, with MeqParms      use ET.find_parms(twig) 
+    - polyparm_tLMXYZ  :  polynomial in t,L,M,X,Y,Z with MeqParms    MIM 
 
     An already existing (i.e. a node of that name is initialized) twig is re-used.
     If the twig name is not recognized, a constant node is generated.
@@ -428,6 +454,12 @@ def twig(ns, name, test=False, help=None, trace=False):
         node = stub << Meq.Grid(axis='L')
     elif name in ['m','M','MeqM']:
         node = stub << Meq.Grid(axis='M')
+    elif name in ['x','X','MeqX']:
+        node = stub << Meq.Grid(axis='X')
+    elif name in ['y','Y','MeqY']:
+        node = stub << Meq.Grid(axis='Y')
+    elif name in ['z','Z','MeqZ']:
+        node = stub << Meq.Grid(axis='Z')
         
     elif name in ['nf']:
         node = stub << Meq.NElements(twig(ns,'f'))
@@ -445,6 +477,8 @@ def twig(ns, name, test=False, help=None, trace=False):
         node = stub << Meq.Multiply(twig(ns,'f'),twig(ns,'t'))
     elif name in ['LM','ML','L*M','M*L']:
         node = stub << Meq.Multiply(twig(ns,'L'),twig(ns,'M'))
+    elif name in ['XYZ','X*Y*Z']:
+        node = stub << Meq.Multiply(twig(ns,'X'),twig(ns,'Y'),twig(ns,'Z'))
     elif name in ['f*t*L*M']:
         node = stub << Meq.Identity(twig(ns,'prod_ftLM'))
     elif name in ['ftLM','ftL','ftM','fLM','tLM']:
@@ -456,6 +490,8 @@ def twig(ns, name, test=False, help=None, trace=False):
         node = stub << Meq.ToComplex(twig(ns,'t'),twig(ns,'f'))
     elif name in ['cx_LM']:
         node = stub << Meq.ToComplex(twig(ns,'L'),twig(ns,'M'))
+    elif name in ['cx_XY']:
+        node = stub << Meq.ToComplex(twig(ns,'X'),twig(ns,'Y'))
         
     elif name in ['f2','f**2']:
         node = stub << Meq.Sqr(twig(ns,'f'))
@@ -617,7 +653,10 @@ def decode_ftLM (s, trace=False):
     ss = s                                       # the copy will be modified
     vv = dict()
     
-    for vc in ['M','L','t','f']:                 # reverse order
+    cc = ['M','L','t','f']                       # reverse order
+    cc = ['Z','Y','X','M','L','t','f']           # reverse order
+
+    for vc in cc:                                # reverse order
         ss = ss.split(vc)
         if len(ss)==1:                           # vc not present in ss
             vv[vc] = -1
@@ -639,6 +678,7 @@ def decode_ftLM (s, trace=False):
 
 def polyparm (ns, name='polyparm', ftLM=None,
               fdeg=0, tdeg=0, Ldeg=0, Mdeg=0,
+              Xdeg=0, Ydeg=0, Zdeg=0,
               pname='polyparm',
               full=False, trace=False):
     """Make a polynomial subtree (up to 4D, f,t,L,M), with parms.
@@ -652,6 +692,9 @@ def polyparm (ns, name='polyparm', ftLM=None,
         tdeg = max(0,vv['t'])
         Ldeg = max(0,vv['L'])
         Mdeg = max(0,vv['M'])
+        Xdeg = max(0,vv['X'])
+        Ydeg = max(0,vv['Y'])
+        Zdeg = max(0,vv['Z'])
         
     if trace:
         print '\n** polyparm(',name,ftLM,fdeg,tdeg,Ldeg,Mdeg,'):'
@@ -659,33 +702,42 @@ def polyparm (ns, name='polyparm', ftLM=None,
 
     # Make a list (cc) of polynomial terms (nodes):
     cc = []
-    degmax = max(fdeg+1,tdeg+1,Mdeg+1,Ldeg+1)                    # cutting the corner
+    degmax = max(fdeg+1,tdeg+1,Mdeg+1,Ldeg+1,Xdeg+1,Ydeg+1,Zdeg+1)   # cutting the corner
     for f in range(fdeg+1):
         for t in range(tdeg+1):
             for L in range(Ldeg+1):
                 for M in range(Mdeg+1):
-                    sum_ftLM = f+t+L+M                           # total degree of term
-                    if full or sum_ftLM<degmax:                  # cutting the corner
-                        quals = []
-                        if fdeg>0: quals.append(f)
-                        if tdeg>0: quals.append(t)
-                        if Ldeg>0: quals.append(L)
-                        if Mdeg>0: quals.append(M)
-                        parmstub = unique_stub(ns,pname,*quals)  # default: 'polyparm'
-                        termstub = unique_stub(ns,'polyterm',*quals)
-                        default_value = 0.1**sum_ftLM            # slightly non_zero
-                        parm = parmstub << Meq.Parm(default_value)
-                        if sum_ftLM==0:                          # the constant term
-                            term = termstub << Meq.Identity(parm)
-                        else:
-                            pname = 'prod_'
-                            if fdeg>0: pname += 'f'+str(f)
-                            if tdeg>0: pname += 't'+str(t)
-                            if Ldeg>0: pname += 'L'+str(L)
-                            if Mdeg>0: pname += 'M'+str(M)
-                            prodft = twig(ns, pname, trace=trace)
-                            term = termstub << Meq.Multiply(parm,prodft)
-                        cc.append(term)
+                    for X in range(Xdeg+1):
+                        for Y in range(Ydeg+1):
+                            for Z in range(Zdeg+1):
+                                sum_ftLM = f+t+L+M+X+Y+Z         # total degree of term
+                                if full or sum_ftLM<degmax:                  # cutting the corner
+                                    quals = []
+                                    if fdeg>0: quals.append(f)
+                                    if tdeg>0: quals.append(t)
+                                    if Ldeg>0: quals.append(L)
+                                    if Mdeg>0: quals.append(M)
+                                    if Xdeg>0: quals.append(X)
+                                    if Ydeg>0: quals.append(Y)
+                                    if Zdeg>0: quals.append(Z)
+                                    parmstub = unique_stub(ns,pname,*quals)  # default: 'polyparm'
+                                    termstub = unique_stub(ns,'polyterm',*quals)
+                                    default_value = 0.1**sum_ftLM            # slightly non_zero
+                                    parm = parmstub << Meq.Parm(default_value)
+                                    if sum_ftLM==0:                          # the constant term
+                                        term = termstub << Meq.Identity(parm)
+                                    else:
+                                        pname = 'prod_'
+                                        if fdeg>0: pname += 'f'+str(f)
+                                        if tdeg>0: pname += 't'+str(t)
+                                        if Ldeg>0: pname += 'L'+str(L)
+                                        if Mdeg>0: pname += 'M'+str(M)
+                                        if Xdeg>0: pname += 'X'+str(X)
+                                        if Ydeg>0: pname += 'Y'+str(Y)
+                                        if Zdeg>0: pname += 'Z'+str(Z)
+                                        prodft = twig(ns, pname, trace=trace)
+                                        term = termstub << Meq.Multiply(parm,prodft)
+                                    cc.append(term)
 
     # Add all the terms together:
     if isinstance(ftLM,str):
@@ -696,6 +748,9 @@ def polyparm (ns, name='polyparm', ftLM=None,
         if tdeg>0: sname += 't'+str(tdeg)
         if Ldeg>0: sname += 'L'+str(Ldeg)
         if Mdeg>0: sname += 'M'+str(Mdeg)
+        if Xdeg>0: sname += 'X'+str(Xdeg)
+        if Ydeg>0: sname += 'Y'+str(Ydeg)
+        if Zdeg>0: sname += 'Z'+str(Zdeg)
     nodestub = unique_stub(ns, sname)
     node = nodestub << Meq.Add(*cc)
     if trace:
@@ -716,13 +771,13 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 1:
+   if 0:
        for cat in twig_cats():
            print '\n\n****** twig_cat =',cat
            for name in twig_names(cat):
                twig(ns, name, trace=True)
 
-   if 0:
+   if 1:
        names = []
        names.extend(['fpow_3','tpow_6'])
        names.extend(['prod_f3t1','prod_f3L1M','prod_3.56'])
@@ -732,6 +787,8 @@ if __name__ == '__main__':
        names.extend(['expnoise_4','expnegsum_-2fLM3'])
        names = []
        names.extend(['polyparm_f2t2LM'])
+       names.extend(['polyparm_LM'])
+       names.extend(['polyparm_XYZ'])
        for name in names:
            twig(ns, name, trace=True)
            

@@ -138,7 +138,7 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                        ),
                # None,
                TDLOption('runopt_separator',"",['']),
-               TDLMenu("(extra) parameters for execute_4D:",
+               TDLMenu("(extra) parameters for axes (L,M):",
                        TDLOption('runopt_nL',"nr of cells in L direction",
                                  [3,1,2,3,5,10,11,21,50,100], more=int),
                        TDLOption('runopt_Lmin',"min L (domain edge)",
@@ -151,6 +151,30 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                        TDLOption('runopt_Mmin',"min M (domain edge)",
                                  [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
                        TDLOption('runopt_Mmax',"max M (domain edge)",
+                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
+                       ),
+               # None,
+               TDLOption('runopt_separator',"",['']),
+               TDLMenu("(extra) parameters for axes (X,Y,Z):",
+                       TDLOption('runopt_nX',"nr of cells in X direction",
+                                 [3,1,2,3,5,10,11,21,50,100], more=int),
+                       TDLOption('runopt_Xmin',"min X (domain edge)",
+                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                       TDLOption('runopt_Xmax',"max X (domain edge)",
+                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
+                       TDLOption('runopt_separator',"",['']),
+                       TDLOption('runopt_nY',"nr of cells in Y direction",
+                                 [3,1,2,3,5,10,11,21,50,100], more=int),
+                       TDLOption('runopt_Ymin',"min Y (domain edge)",
+                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                       TDLOption('runopt_Ymax',"max Y (domain edge)",
+                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
+                       TDLOption('runopt_separator',"",['']),
+                       TDLOption('runopt_nZ',"nr of cells in Z direction",
+                                 [3,1,2,3,5,10,11,21,50,100], more=int),
+                       TDLOption('runopt_Zmin',"min Z (domain edge)",
+                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                       TDLOption('runopt_Zmax',"max Z (domain edge)",
                                  [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
                        ),
                # None,
@@ -238,7 +262,7 @@ def make_cells (axes=['freq','time'], offset=None, trace=False):
         print '\n',s1
 
     # First some checks:
-    raxes = ['freq','time','L','M']                 # list of recognized axes
+    raxes = ['freq','time','L','M','X','Y','Z']        # list of recognized axes
     for axis in axes:
         if not axis in raxes:
             s = s1+'**error**  axis not recognized: '+str(axis)
@@ -267,6 +291,15 @@ def make_cells (axes=['freq','time'], offset=None, trace=False):
     if 'M' in axes:
         dd.M = (runopt_Mmin+offset['M'], runopt_Mmax+offset['M'])
         nn.num_M = runopt_nM
+    if 'X' in axes:
+        dd.X = (runopt_Xmin+offset['X'], runopt_Xmax+offset['X'])
+        nn.num_X = runopt_nX
+    if 'Y' in axes:
+        dd.Y = (runopt_Ymin+offset['Y'], runopt_Ymax+offset['Y'])
+        nn.num_Y = runopt_nY
+    if 'Z' in axes:
+        dd.Z = (runopt_Zmin+offset['Z'], runopt_Zmax+offset['Z'])
+        nn.num_Z = runopt_nZ
 
     if trace:
         print '--- dd =',dd
@@ -278,31 +311,105 @@ def make_cells (axes=['freq','time'], offset=None, trace=False):
 #----------------------------------------------------------------------------
 
 def _tdl_job_execute_1D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (freq) domain.
-    """
+    """Execute the forest with a 1D (freq) domain."""
     return execute_ND (mqs, parent, axes=['freq'], rootnode=rootnode)
+
+def _tdl_job_execute_f (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 1D (freq) domain."""
+    return execute_ND (mqs, parent, axes=['freq'], rootnode=rootnode)
+
+def _tdl_job_execute_t (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 1D (time) domain."""
+    return execute_ND (mqs, parent, axes=['time'], rootnode=rootnode)
+
+def _tdl_job_execute_L (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 1D (L) domain."""
+    return execute_ND (mqs, parent, axes=['L'], rootnode=rootnode)
+
+def _tdl_job_execute_M (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 1D (M) domain."""
+    return execute_ND (mqs, parent, axes=['M'], rootnode=rootnode)
+
+def _tdl_job_execute_X (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 1D (X) domain."""
+    return execute_ND (mqs, parent, axes=['X'], rootnode=rootnode)
+
+def _tdl_job_execute_Y (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 1D (Y) domain."""
+    return execute_ND (mqs, parent, axes=['Y'], rootnode=rootnode)
+
+def _tdl_job_execute_Z (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 1D (Z) domain."""
+    return execute_ND (mqs, parent, axes=['Z'], rootnode=rootnode)
+
 
 #----------------------------------------------------------------------------
 
 def _tdl_job_execute_2D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 2D domain (freq,time).
-    """
+    """Execute the forest with a 2D domain (freq,time)."""
     return execute_ND (mqs, parent, axes=['freq','time'], rootnode=rootnode)
+
+def _tdl_job_execute_ft (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 2D domain (freq,time)."""
+    return execute_ND (mqs, parent, axes=['freq','time'], rootnode=rootnode)
+
+def _tdl_job_execute_LM (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 2D domain (L,M)."""
+    return execute_ND (mqs, parent, axes=['L','M'], rootnode=rootnode)
+
+def _tdl_job_execute_XY (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 2D domain (X,Y)."""
+    return execute_ND (mqs, parent, axes=['X','Y'], rootnode=rootnode)
 
 #----------------------------------------------------------------------------
 
 def _tdl_job_execute_3D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 3D domain (freq,time,L).
-    """
+    """Execute the forest with a 3D domain (freq,time,L)."""
     return execute_ND (mqs, parent, axes=['freq','time','L'], rootnode=rootnode)
+
+def _tdl_job_execute_ftL (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 3D domain (freq,time,L)."""
+    return execute_ND (mqs, parent, axes=['freq','time','L'], rootnode=rootnode)
+
+def _tdl_job_execute_XYZ (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 3D domain (X,Y,Z)."""
+    return execute_ND (mqs, parent, axes=['X','Y','Z'], rootnode=rootnode)
 
 #----------------------------------------------------------------------------
 
 def _tdl_job_execute_4D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 4D domain (freq,time,L,M).
-    """
+    """Execute the forest with a 4D domain (freq,time,L,M)."""
     return execute_ND (mqs, parent, axes=['freq','time','L','M'], rootnode=rootnode)
 
+def _tdl_job_execute_ftLM (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 4D domain (freq,time,L,M)."""
+    return execute_ND (mqs, parent, axes=['freq','time','L','M'], rootnode=rootnode)
+
+def _tdl_job_execute_ftXY (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 4D domain (freq,time,X,Y)."""
+    return execute_ND (mqs, parent, axes=['freq','time','X','Y'], rootnode=rootnode)
+
+#----------------------------------------------------------------------------
+
+def _tdl_job_execute_5D (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 5D domain (L,M,X,Y,Z)."""
+    return execute_ND (mqs, parent, axes=['L','M','X','Y','Z'], rootnode=rootnode)
+
+def _tdl_job_execute_LMXYZ (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 5D domain (L,M,X,Y,Z)."""
+    return execute_ND (mqs, parent, axes=['L','M','X','Y','Z'], rootnode=rootnode)
+
+#----------------------------------------------------------------------------
+
+def _tdl_job_execute_6D_MIM (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 6D (MIM) domain (time,L,M,X,Y,Z)."""
+    return execute_ND (mqs, parent, axes=['time','L','M','X','Y','Z'], rootnode=rootnode)
+
+def _tdl_job_execute_tLMXYZ (mqs, parent, rootnode='QuickRefUtil'):
+    """Execute the forest with a 6D (MIM) domain (time,L,M,X,Y,Z)."""
+    return execute_ND (mqs, parent, axes=['time','L','M','X','Y','Z'], rootnode=rootnode)
+
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
 def execute_ND (mqs, parent, axes=['freq','time'], rootnode='QuickRefUtil'):
@@ -313,6 +420,7 @@ def execute_ND (mqs, parent, axes=['freq','time'], rootnode='QuickRefUtil'):
     result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
     return result
 
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
 def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
@@ -455,11 +563,23 @@ def add2path (path, name=None, trace=False):
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
-def show_tree (node, ss=None, level=0, recurse=1000, mode='str', trace=False):
+def show_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
     """Helper function (recursive) to attach the subtree under the given node(s)
-    to the given string (ss).
-    If mode='list', return a list of strings (lines).
+    to the given string (ss). If mode='list', return a list of strings (lines).
+    The recursion depth is controlled by the 'recurse argument:
+    - recurse=False or <=0: return '' or [] (if mode='list')
+    - recurse=True is equivalent to recurse=1000 (i.e. deep enough for any subtree)
+    The input node may be either a single node, or a list of nodes. The latter is
+    used by MeqNode(), where the top node is shown in detail, and this function
+    is used only to expand the subtrees of its children in somewhat less detail.
     """
+    
+    if isinstance(recurse,bool):
+        if recurse: recurse=1000                            # True
+    if not recurse:                                         # not required
+        if mode=='list': return [] 
+        return '' 
+
     prefix = '\n'+(level*' |  ')+' '
     if trace:
         print prefix+str(node),node
@@ -469,6 +589,7 @@ def show_tree (node, ss=None, level=0, recurse=1000, mode='str', trace=False):
         if not isinstance(ss,str): ss = ''
         if isinstance(node,list):
             # Special case (see MeqNode()): Start with a list of children:
+            ss += prefix+'its subtree, starting with its children:'
             for c in node:
                 ss = show_tree(c, ss, level=level+1, recurse=recurse, trace=trace)
         elif not is_node(node):                
@@ -535,7 +656,7 @@ def helpnode (ns, path, name=None, node=None,
 def MeqNode (ns, path, meqclass=None, name=None,
              # quals=None, kwquals=None,
              node=None, children=None, unop=None,
-             help=None, recurse=0,
+             help=None, show_recurse=False,
              rider=None,
              trace=False, **kwargs):
     """Define (make) the specified node an an organised way, using path and rider.
@@ -544,7 +665,7 @@ def MeqNode (ns, path, meqclass=None, name=None,
     and to the hierarchical help collected by the rider (for later display).
     - If unop is string (e.g. Sin) or list (e.g. [Sin,Cos]), apply the
     give unary operations to all the children first.
-    - If recurse>0, show the subtree below this node, to the required depth.
+    - If show_recurse>0, show the subtree below this node, to the required depth.
     NB: This function is called from all QR_... modules!
     """
 
@@ -566,15 +687,10 @@ def MeqNode (ns, path, meqclass=None, name=None,
 
 
     #........................................................................
-
     # Condition the help-string: make a list of lines (qhelp):
-    if isinstance(help, str):
-        # May be multi-line (in triple-quotes, or containing \n): 
-        qhelp = help.split('\n')                            # -> list
-    else:                                                   # should not happen...?
-        qhelp = [str(help)]                                 # ...show something...
+    #........................................................................
 
-    # Make a MeqNode oneliner, for prepending to the MeqNode help:
+    # First make a MeqNode oneliner, for prepending to the MeqNode help:
     qinfo = 'MeqNode: ns[\''+str(name)+'\']'
 
     if is_node(node):
@@ -582,31 +698,49 @@ def MeqNode (ns, path, meqclass=None, name=None,
 
     else:
         qinfo += ' << Meq.'+str(meqclass)+'('
+        comma = ''
         if isinstance(children,(list,tuple)):
-            qinfo += '*['+str(len(children))+' child(ren)]'
-
+            nc = len(children)
+            if nc==0:
+                qinfo += '(no children)'                    # should not happen...?
+            elif nc==1:
+                qinfo += ' '+str(children[0])+' '
+            else:
+                qinfo += '*['+str(nc)+' children]'
+            comma = ', '                                    # used for kwargs below
+        
         # Include all the ACTUAL keyword options used:
         for key in kwargs.keys():
             kw = kwargs[key]
             if key in ['children']:
                 pass                                        # ignore
             elif key=='solvable' and isinstance(kw,(list,tuple)):
-                qinfo += ', '+str(key)+'=['+str(len(kw))+' MeqParm(s)]'
+                qinfo += comma+str(key)+'=['+str(len(kw))+' MeqParm(s)]'
             else:
-                qinfo += ', '+str(key)+'='+str(kw)
+                qinfo += comma+str(key)+'='+str(kw)
+            comma = ', '
         qinfo += ')'
     
     # Replace the dots(.) in the node-name (name): They cause trouble
     # in the browser (and elsewhere?)
     # qinfo = qinfo.replace('.',',')                          # ....?
-    qhelp.insert(0,qinfo)                                   # prepend
+
+    # The qhelp list (of strings) is a combination of qinfo and help: 
+    if isinstance(help, str):
+        # May be multi-line (in triple-quotes, or containing \n): 
+        qhelp = help.split('\n')                            # -> list
+        qhelp.insert(0,qinfo)                               # prepend
+    elif help==None:
+        qhelp = [qinfo]
+    else:                                                   # should not happen...?
+        qhelp = [qinfo,str(help)]                           # ...show something...
 
     # Optional, show the subtree below to the required depth:
-    if recurse>0:
+    if show_recurse:
         if is_node(node):
-            qhelp.extend(show_tree(node, recurse=recurse, mode='list'))
+            qhelp.extend(show_tree(node, recurse=show_recurse, mode='list'))
         elif isinstance(children,(list,tuple)):
-            qhelp.extend(show_tree(children, recurse=recurse, mode='list'))
+            qhelp.extend(show_tree(children, recurse=show_recurse, mode='list'))
  
     # Dispose of the conditioned help (qhelp):
     kwargs['quickref_help'] = qhelp                         # -> node state record
@@ -615,7 +749,11 @@ def MeqNode (ns, path, meqclass=None, name=None,
         # hierarchical help items, using the path string:
         rider.insert_help(add2path(path,name), qhelp) 
 
-    # Make the specified node:
+
+    #........................................................................
+    # Make the specified MeqNode:
+    #........................................................................
+
     if is_node(node):
         # The node already exists. Just attach the help-string....
         # node = ns << Meq.Identity(node, quickref_help=qhelp)         # confusing...
@@ -645,7 +783,9 @@ def MeqNode (ns, path, meqclass=None, name=None,
         else:
             node = ns << getattr(Meq,meqclass)(**kwargs)
 
+    #........................................................................
 
+    # Finished:
     if trace:
         nc = None
         if isinstance(children,(list,tuple)):
@@ -678,7 +818,7 @@ def bundle (ns, path,
     qinfo = 'Selected subset of QR module: '+str(name)+':'
     level = nss-2
     if level>-1:
-        itemtype = 'DEMO'
+        itemtype = 'VIEW'
         if level==1:
             itemtype = 'TOPIC' 
         if level==0:

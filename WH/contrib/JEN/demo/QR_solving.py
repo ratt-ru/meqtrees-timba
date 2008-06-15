@@ -212,7 +212,8 @@ def basic_ab (ns, path, rider=None):
 
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(*condeqs, solvable=[a,b])',
-                        help='Solver', rider=rider, children=condeqs,
+                        help='Solver', show_recurse=True,
+                        rider=rider, children=condeqs,
                         solvable=[a,b])  
    residuals = QR.MeqNode (ns, rr.path, meqclass='Add', name='residuals',
                            help='The sum of the (abs) condeq residuals',
@@ -246,8 +247,9 @@ def basic_polyparm (ns, path, rider=None):
    condeq = ns << Meq.Condeq(poly, twig)
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(condeq, solvable=parms)',
-                        help='Solver', rider=rider,
-                        children=[condeq], solvable=parms)  
+                        help='Solver', show_recurse=True,
+                        rider=rider, children=[condeq],
+                        solvable=parms)  
    cc = [solver,condeq,poly,twig,parmset]
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
@@ -274,8 +276,9 @@ def basic_Expression (ns, path, rider=None):
    condeq = ns << Meq.Condeq(lhs,rhs)
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(condeq, solvable=parms)',
-                        help='Solver', rider=rider,
-                        children=[condeq], solvable=parms)  
+                        help='Solver', show_recurse=True,
+                        rider=rider, children=[condeq],
+                        solvable=parms)  
    cc = [solver,condeq,lhs,rhs,parmset]
    return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
                      parentclass='ReqSeq', result_index=0)
@@ -310,8 +313,8 @@ def basic_onepolc (ns, path, rider=None):
    condeq = ns << Meq.Condeq(lhs,rhs)
    solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
                         name='Solver(condeq, solvable=MeqParm)',
-                        help='Solver', rider=rider,
-                        children=[condeq],
+                        help='Solver', show_recurse=True,
+                        rider=rider, children=[condeq],
                         niter=10,
                         solvable=rhs)  
    cc = [solver,condeq,lhs,rhs]
@@ -365,6 +368,7 @@ def _define_forest (ns, **kwargs):
 
 
 #--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D (mqs, parent):
    return QR._tdl_job_execute_1D (mqs, parent, rootnode='QR_solving')
@@ -380,6 +384,8 @@ def _tdl_job_execute_4D (mqs, parent):
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QR._tdl_job_execute_sequence (mqs, parent, rootnode='QR_solving')
+
+#--------------------------------------------------------------------------------
 
 def _tdl_job_m (mqs, parent):
    return QR._tdl_job_m (mqs, parent)
