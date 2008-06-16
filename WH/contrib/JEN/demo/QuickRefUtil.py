@@ -563,7 +563,7 @@ def add2path (path, name=None, trace=False):
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
-def show_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
+def format_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
     """Helper function (recursive) to attach the subtree under the given node(s)
     to the given string (ss). If mode='list', return a list of strings (lines).
     The recursion depth is controlled by the 'recurse argument:
@@ -589,9 +589,9 @@ def show_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
         if not isinstance(ss,str): ss = ''
         if isinstance(node,list):
             # Special case (see MeqNode()): Start with a list of children:
-            ss += prefix+'its subtree, starting with its children:'
+            ss += prefix+'Its subtree, starting with its '+str(len(node))+' children:'
             for c in node:
-                ss = show_tree(c, ss, level=level+1, recurse=recurse, trace=trace)
+                ss = format_tree(c, ss, level=level+1, recurse=recurse, trace=trace)
         elif not is_node(node):                
             return '** not a node (??) **'                  # error
         else:
@@ -603,7 +603,7 @@ def show_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
     if level<recurse:
         if getattr(node, 'children', None):
             for c in node.children:
-                ss = show_tree(c[1], ss, level=level+1, recurse=recurse, trace=trace)
+                ss = format_tree(c[1], ss, level=level+1, recurse=recurse, trace=trace)
 
     # Finished:
     if level==0:
@@ -617,8 +617,9 @@ def show_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
-def helpnode (ns, path, name=None, node=None,
-              help=None, rider=None,
+def helpnode (ns, path, rider,
+              name=None, node=None,
+              help=None,
               trace=False):
     """
     A special version of MeqNode(), for nodes that are only
@@ -653,11 +654,11 @@ def helpnode (ns, path, name=None, node=None,
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
-def MeqNode (ns, path, meqclass=None, name=None,
+def MeqNode (ns, path, rider,
+             meqclass=None, name=None,
              # quals=None, kwquals=None,
              node=None, children=None, unop=None,
              help=None, show_recurse=False,
-             rider=None,
              trace=False, **kwargs):
     """Define (make) the specified node an an organised way, using path and rider.
     - Using meclass, name, children, help, and any keyword options (**kwargs).
@@ -738,9 +739,9 @@ def MeqNode (ns, path, meqclass=None, name=None,
     # Optional, show the subtree below to the required depth:
     if show_recurse:
         if is_node(node):
-            qhelp.extend(show_tree(node, recurse=show_recurse, mode='list'))
+            qhelp.extend(format_tree(node, recurse=show_recurse, mode='list'))
         elif isinstance(children,(list,tuple)):
-            qhelp.extend(show_tree(children, recurse=show_recurse, mode='list'))
+            qhelp.extend(format_tree(children, recurse=show_recurse, mode='list'))
  
     # Dispose of the conditioned help (qhelp):
     kwargs['quickref_help'] = qhelp                         # -> node state record
@@ -795,14 +796,14 @@ def MeqNode (ns, path, meqclass=None, name=None,
 
 
 #-------------------------------------------------------------------------------
+# Exit routine:
 #-------------------------------------------------------------------------------
 
-def bundle (ns, path,
+def bundle (ns, path, rider,
             nodes=None, unop=None,
-            help=None, rider=None,
             parentclass='Composer', result_index=0,
+            help=None, make_helpnode=False,
             bookmark=True, viewer="Result Plotter",
-            make_helpnode=False,
             trace=False):
     """Make a single parent node, with the given nodes as children.
     Make bookmarks if required, and collate the help-strings.
@@ -817,14 +818,16 @@ def bundle (ns, path,
 
     qinfo = 'Selected subset of QR module: '+str(name)+':'
     level = nss-2
-    if level>-1:
-        itemtype = 'VIEW'
-        if level==1:
-            itemtype = 'TOPIC' 
-        if level==0:
-            itemtype = 'MODULE' 
-        qinfo = '*'+str(level)+'* '+itemtype+': '+ss[nss-2]+'_'+ss[nss-1]
-      
+    qinfo = '*'+str(level)+'* '
+    if level==0:                # i.e. nss=2
+        qinfo += 'MODULE: '+ss[nss-2]+'_'+ss[nss-1]
+    elif level==1:              # i.e. nss=3
+        qinfo += 'TOPIC: '+ss[nss-2]+'_'+ss[nss-1]
+    elif level==2:              # i.e. nss=4
+        qinfo += 'VIEW: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+    elif level>2:
+        qinfo += 'VVIEW: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+            
     # Condition the help-string (make a list of strings):
     if isinstance(help, str):
         qhelp = help.split('\n')
@@ -947,7 +950,7 @@ if __name__ == '__main__':
         a = ns.a << 1.0
         b = ns.b << 3.0
         node = ns.test << Meq.Add(a,b)
-        ss = show_tree(node, mode='list', trace=True)
+        ss = format_tree(node, mode='list', trace=True)
         print ss
 
     print '\n** End of standalone test of: QuickRefUtil.py:\n' 

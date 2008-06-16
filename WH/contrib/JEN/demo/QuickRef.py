@@ -99,7 +99,9 @@ any MeqTrees contributor, following a number of simple rules.
 #   - OMS: QuickRef always gives lots of errors of the type: "tensor dimensions of child
 #          result 1 does not math the others". Executing EasyTwig is a good way to study
 #          this problem.
-#          
+#
+#   - OMS: (this one is serious!) When I include the TDLCompileMenu from more than one
+#          QR module to the compile menu of QuickRef, they do not appear....!
 #
 # Description:
 #
@@ -141,7 +143,7 @@ from Timba.Meq import meq
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
 
-import QuickRefUtil as QR
+import QuickRefUtil as QRU
 
 
 #********************************************************************************
@@ -153,6 +155,7 @@ TDLCompileMenu("QuickRef Categories:",
                TDLOption('opt_MeqNodes',"QR_MeqNodes: Available nodes",True),
                TDLOption('opt_solving',"QR_solving: Solving for MeqParm values",False),
                # TDLOption('opt_pynodes',"QR_PyNodes: general pynodes",False),
+               TDLOption('opt_template',"QR_template: Template/help for making QR modules",False),
                toggle='opt_QuickRef',
                )
 
@@ -168,7 +171,7 @@ def _define_forest (ns, **kwargs):
 
    # Make bundles of (bundles of) categories of nodes/subtrees:
    global rider
-   rider = QR.create_rider()                # CollatedHelpRecord object
+   rider = QRU.create_rider()                # CollatedHelpRecord object
    rootnodename = 'QuickRef'                # The name of the node to be executed...
    path = rootnodename                      # Root of the path-string
 
@@ -176,14 +179,18 @@ def _define_forest (ns, **kwargs):
    if opt_MeqNodes:   
       import QR_MeqNodes   
       TDLCompileMenu("Options for QR_MeqNodes", QR_MeqNodes)
-      cc.append(QR_MeqNodes.MeqNodes(ns, path, rider=rider))
+      cc.append(QR_MeqNodes.QR_MeqNodes(ns, path, rider=rider))
    if opt_solving:   
       import QR_solving   
-      TDLCompileMenu("Options for QR_solving", QR_solving)
-      cc.append(QR_solving.solving(ns, path, rider=rider))
+      TDLCompileMenu("Options for QR_solving", QR_solving)         # <------- not added!!
+      cc.append(QR_solving.QR_solving(ns, path, rider=rider))
+   if opt_template:   
+      import QR_template   
+      TDLCompileMenu("Options for QR_template", QR_template)         # <------- not added!!
+      cc.append(QR_template.QR_template(ns, path, rider=rider))
 
    # Make the outer bundle (of node bundles):
-   QR.bundle (ns, path, nodes=cc, help=__doc__, rider=rider)
+   QRU.bundle (ns, path, nodes=cc, help=__doc__, rider=rider)
 
    # Finished:
    return True
@@ -194,31 +201,33 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 
 def _tdl_job_execute_1D (mqs, parent):
-   return QR._tdl_job_execute_1D (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QuickRef')
 
 def _tdl_job_execute_2D (mqs, parent):
-   return QR._tdl_job_execute_2D (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_2D (mqs, parent, rootnode='QuickRef')
 
 def _tdl_job_execute_4D (mqs, parent):
-   return QR._tdl_job_execute_4D (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_4D (mqs, parent, rootnode='QuickRef')
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QR._tdl_job_execute_sequence (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QuickRef')
+
+#-------------------------------------------------------------------------------
 
 def _tdl_job_m (mqs, parent):
-   return QR._tdl_job_m (mqs, parent)
+   return QRU._tdl_job_m (mqs, parent)
 
 def _tdl_job_print_doc (mqs, parent):
-   return QR._tdl_job_print_doc (mqs, parent, rider, header='QuickRef')
+   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QuickRef')
 
 def _tdl_job_print_hardcopy (mqs, parent):
-   return QR._tdl_job_print_hardcopy (mqs, parent, rider, header='QuickRef')
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QuickRef')
 
 def _tdl_job_show_doc (mqs, parent):
-   return QR._tdl_job_show_doc (mqs, parent, rider, header='QuickRef')
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QuickRef')
 
 def _tdl_job_save_doc (mqs, parent):
-   return QR._tdl_job_save_doc (mqs, parent, rider, filename='QuickRef')
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QuickRef')
 
 
 

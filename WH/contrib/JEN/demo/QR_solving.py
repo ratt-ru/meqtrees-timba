@@ -70,8 +70,8 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_solving categories:",
-               TDLOption('opt_allcats',"all",True),
+TDLCompileMenu("QR_solving topics:",
+               TDLOption('opt_alltopics',"all",True),
                TDLMenu("basic",
                        TDLOption('opt_basic_twig',"input twig (lhs of condeq)",
                                  ET.twig_names(['gaussian'],first='gaussian_ft'),
@@ -99,7 +99,7 @@ TDLCompileMenu("QR_solving categories:",
                        toggle='opt_basic'),
 
                TDLMenu("help",
-                       TDLOption('opt_hhelp_twig',"help on EasyTwig.twig()", False),
+                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
                        toggle='opt_helpnodes'),
 
                toggle='opt_QR_solving')
@@ -111,19 +111,19 @@ TDLCompileMenu("QR_solving categories:",
 #********************************************************************************
 
 
-def solving (ns, path, rider=None):
+def QR_solving (ns, path, rider):
    """
    Solving...
    """
-   rr = QR.on_entry(solving, path, rider)
+   rr = QR.on_entry(QR_solving, path, rider)
    cc = []
-   if opt_allcats or opt_basic:
+   if opt_alltopics or opt_basic:
       cc.append(basic (ns, rr.path, rider))
 
    if opt_helpnodes:
-      cc.append(helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rr.path, rider))
 
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+   return QR.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 
@@ -131,27 +131,24 @@ def solving (ns, path, rider=None):
 # 2nd tier: Functions called from the top function above:
 #********************************************************************************
 
-def helpnodes (ns, path, rider=None):
+def make_helpnodes (ns, path, rider):
    """
    helpnodes...
    """
-   rr = QR.on_entry(helpnodes, path, rider)
+   rr = QR.on_entry(make_helpnodes, path, rider)
    
-   print '\n**',path,type(rider)
    cc = []
-   if opt_hhelp_twig:
-      cc.append(QR.helpnode (ns, rr.path,
-                             # name='EasyTwig.twig(ns,name)',
+   if opt_alltopics or opt_helpnode_twig:
+      cc.append(QR.helpnode (ns, rr.path, rider,
                              name='EasyTwig_twig',
-                             help=ET.twig.__doc__, rider=rider, trace=False))
-      print '**',path,'cc[0]:',str(cc[0]),type(rider),'\n'
+                             help=ET.twig.__doc__, trace=False))
 
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+   return QR.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 #--------------------------------------------------------------------------------
 
-def basic (ns, path, rider=None):
+def basic (ns, path, rider):
    """
    MeqSolver
    MeqCondeq
@@ -159,14 +156,17 @@ def basic (ns, path, rider=None):
    """
    rr = QR.on_entry(basic, path, rider)
    cc = []
-   cc.append(basic_ab (ns, rr.path, rider=rider))           # simplest, do always
-   if opt_basic_polyparm:
-      cc.append(basic_polyparm (ns, rr.path, rider=rider))
+   cc.append(basic_ab (ns, rr.path, rider))                    # simplest, do always
+   if opt_alltopics or opt_basic_polyparm:
+      cc.append(basic_polyparm (ns, rr.path, rider))
+   if opt_alltopics or opt_basic_onepolc:
+      cc.append(basic_onepolc (ns, rr.path, rider))
+
    if opt_basic_Expression:
-      cc.append(basic_Expression (ns, rr.path, rider=rider))
-   if opt_basic_onepolc:
-      cc.append(basic_onepolc (ns, rr.path, rider=rider))
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider)
+   # if opt_alltopics or opt_basic_Expression:                 # when Expression MeqParm problem solved...
+      cc.append(basic_Expression (ns, rr.path, rider))
+
+   return QR.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 
@@ -183,7 +183,7 @@ def basic (ns, path, rider=None):
 # basic_... 
 #================================================================================
 
-def basic_ab (ns, path, rider=None):
+def basic_ab (ns, path, rider):
    """
    Demonstration of solving for two unknown parameters (a,b),
    using two linear equations (one condeq child each):
@@ -203,28 +203,28 @@ def basic_ab (ns, path, rider=None):
    parmset = ET.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
 
    condeqs = []
-   condeqs.append(QR.MeqNode (ns, rr.path, meqclass='Condeq',name='Condeq(a+b,p)',
+   condeqs.append(QR.MeqNode (ns, rr.path, rider, meqclass='Condeq',name='Condeq(a+b,p)',
                               help='Represents equation: a + b = p (=10)',
-                              rider=rider, children=[sum_ab, p]))
-   condeqs.append(QR.MeqNode (ns, rr.path, meqclass='Condeq',name='Condeq(a-b,q)',
+                              children=[sum_ab, p]))
+   condeqs.append(QR.MeqNode (ns, rr.path, rider, meqclass='Condeq',name='Condeq(a-b,q)',
                               help='Represents equation: a - b = q (=2)',
-                              rider=rider, children=[diff_ab, q]))
+                              children=[diff_ab, q]))
 
-   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
+   solver = QR.MeqNode (ns, rr.path, rider, meqclass='Solver',
                         name='Solver(*condeqs, solvable=[a,b])',
                         help='Solver', show_recurse=True,
-                        rider=rider, children=condeqs,
+                        children=condeqs,
                         solvable=[a,b])  
-   residuals = QR.MeqNode (ns, rr.path, meqclass='Add', name='residuals',
+   residuals = QR.MeqNode (ns, rr.path, rider, meqclass='Add', name='residuals',
                            help='The sum of the (abs) condeq residuals',
-                           rider=rider, children=condeqs, unop='Abs')
+                           children=condeqs, unop='Abs')
    cc = [solver,residuals,drivers,parmset]
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
+   return QR.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                      parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
-def basic_polyparm (ns, path, rider=None):
+def basic_polyparm (ns, path, rider):
    """
    Demonstration of solving for the coefficients of a freq-time polynomial.
    It is fitted to the specified twig (e.g. a 2D gaussian).
@@ -245,18 +245,18 @@ def basic_polyparm (ns, path, rider=None):
    parms = ET.find_parms(poly, trace=False)
    parmset = ET.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
    condeq = ns << Meq.Condeq(poly, twig)
-   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
+   solver = QR.MeqNode (ns, rr.path, rider, meqclass='Solver',
                         name='Solver(condeq, solvable=parms)',
                         help='Solver', show_recurse=True,
-                        rider=rider, children=[condeq],
+                        children=[condeq],
                         solvable=parms)  
    cc = [solver,condeq,poly,twig,parmset]
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
+   return QR.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                      parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
-def basic_Expression (ns, path, rider=None):
+def basic_Expression (ns, path, rider):
    """
    """
    rr = QR.on_entry(basic_Expression, path, rider)
@@ -274,18 +274,18 @@ def basic_Expression (ns, path, rider=None):
    else:
       parmset = ET.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
    condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
+   solver = QR.MeqNode (ns, rr.path, rider, meqclass='Solver',
                         name='Solver(condeq, solvable=parms)',
                         help='Solver', show_recurse=True,
-                        rider=rider, children=[condeq],
+                        children=[condeq],
                         solvable=parms)  
    cc = [solver,condeq,lhs,rhs,parmset]
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
+   return QR.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                      parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
-def basic_onepolc (ns, path, rider=None):
+def basic_onepolc (ns, path, rider):
    """
    Solving for the coeff of the polc of a single MeqParm.
    The single MeqCondeq child of the MeqSolver has two children:
@@ -311,15 +311,15 @@ def basic_onepolc (ns, path, rider=None):
                                               quickref_help='...help...',
                                               node_groups='Parm')
    condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QR.MeqNode (ns, rr.path, meqclass='Solver',
+   solver = QR.MeqNode (ns, rr.path, rider, meqclass='Solver',
                         name='Solver(condeq, solvable=MeqParm)',
                         help='Solver', show_recurse=True,
-                        rider=rider, children=[condeq],
+                        children=[condeq],
                         niter=10,
                         solvable=rhs)  
    cc = [solver,condeq,lhs,rhs]
-   QR.helpnode(ns, path, rider=rider, node=rhs)
-   return QR.bundle (ns, rr.path, nodes=cc, help=rr.help, rider=rider,
+   QR.helpnode(ns, path, rider, node=rhs)
+   return QR.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                      parentclass='ReqSeq', result_index=0)
 
 
@@ -357,10 +357,9 @@ def _define_forest (ns, **kwargs):
    rider = QR.create_rider()                    # CollatedHelpRecord object
    rootnodename = 'QR_solving'                  # The name of the node to be executed...
    path = rootnodename                          # Root of the path-string
-   QR.bundle (ns, path,
-              nodes=[solving(ns, path, rider)],
-              help=__doc__,
-              rider=rider)
+   QR.bundle (ns, path, rider,
+              nodes=[QR_solving(ns, path, rider)],
+              help=__doc__)
 
    # Finished:
    return True
@@ -416,7 +415,7 @@ if __name__ == '__main__':
 
    rider = QR.create_rider()             # CollatedHelpRecord object
    if 1:
-      solving(ns, 'test', rider=rider)
+      QR_solving(ns, 'test', rider)
       if 1:
          rider.show('testing')
 
