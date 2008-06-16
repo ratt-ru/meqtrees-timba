@@ -1296,7 +1296,7 @@ if __name__ == '__main__':
    if 1:
       QR_MeqNodes(ns, 'test', rider)
       if 1:
-         rider.show('testing')
+         print rider.format()
 
    if 0:
       subject = 'unops'

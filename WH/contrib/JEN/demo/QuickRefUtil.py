@@ -98,13 +98,15 @@ def _define_forest (ns, **kwargs):
 # Forest exection functions (also used externally from QR_... modules):
 #********************************************************************************
 
-TDLRuntimeMenu("Printer settings (for hardcopy doc):",
-               TDLOption('runopt_printer',"name of the printer for harcopy",
-                         ['xrxkantine'], more=str),
-               TDLOption('runopt_fontsize',"hardcopy font size",
-                         [7,4,5,6,8], more=int),
-               )
-
+TDLRuntimeMenu("Custom settings:",
+               TDLOption('runopt_show_request',"Show each request", False),
+               TDLMenu("Printer settings (for hardcopy doc):",
+                       TDLOption('runopt_printer',"name of the printer for harcopy",
+                                 ['xrxkantine'], more=str),
+                       TDLOption('runopt_fontsize',"hardcopy font size",
+                                 [7,4,5,6,8], more=int),
+                       ),
+)
 TDLRuntimeMenu("Parameters of the Request domain(s):",
                # None,
                TDLOption('runopt_separator',"",['']),
@@ -124,7 +126,7 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                          [2.0,10.0,100.0,1000.0], more=float),
                # None,
                TDLOption('runopt_separator',"",['']),
-               TDLMenu("(extra) parameters for execute_seqence",
+               TDLMenu("(extra) parameters for execute_sequence",
                        TDLOption('runopt_seq_ntime',"nr of steps in time-sequence",
                                  [1,2,3,5,10], more=int),
                        TDLOption('runopt_seq_tstep',"time-step (fraction of domain-size)",
@@ -247,10 +249,17 @@ def make_request (cells, rqtype=None):
     rqid = meq.requestid(request_counter)
     if isinstance(rqtype,str):
         # e.g. rqtype='ev' (for sequences, when the domain has changed)....
-        return meq.request(cells, rqtype=rqtype)
+        rr = meq.request(cells, rqtype=rqtype)
         # return meq.request(cells, rqtype=rqtype, rqid=rqid)
     else:
-        return meq.request(cells, rqid=rqid)
+        rr = meq.request(cells, rqid=rqid)
+
+    if runopt_show_request:
+        print '\n** QRU.make_request(',type(cells),'): counter=',request_counter,'-> rqid=',rqid
+        print '    cells=',cells
+        print '    request=',type(rr)
+        print 
+    return rr
 
 #----------------------------------------------------------------------------
 
@@ -426,15 +435,19 @@ def execute_ND (mqs, parent, axes=['freq','time'], rootnode='QuickRefUtil'):
 def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
     """Execute a sequence, moving the 2D domain.
     """
-    print '\n** _tdl_job_execute_sequence():'
-    print '** runopt_seq_nfreq =',runopt_seq_nfreq, range(runopt_seq_nfreq)
-    print '** runopt_seq_ntime =',runopt_seq_ntime, range(runopt_seq_ntime)
+    if runopt_show_request:
+        print '\n** _tdl_job_execute_sequence():'
+        print '** runopt_seq_nfreq =',runopt_seq_nfreq, range(runopt_seq_nfreq)
+        print '** runopt_seq_ntime =',runopt_seq_ntime, range(runopt_seq_ntime)
+
     for ifreq in range(runopt_seq_nfreq):
         foffset = (runopt_fmax - runopt_fmin)*ifreq*runopt_seq_fstep
-        print '\n** ifreq =',ifreq,' foffset =',foffset
+        if runopt_show_request:
+            print '\n** ifreq =',ifreq,' foffset =',foffset
         for itime in range(runopt_seq_ntime):
             toffset = (runopt_tmax - runopt_tmin)*itime*runopt_seq_tstep
-            print '   - itime =',itime,' toffset =',toffset
+            if runopt_show_request:
+                print '   - itime =',itime,' toffset =',toffset
             cells = make_cells(offset=dict(freq=foffset, time=toffset))
             request = make_request(cells)
             result = mqs.meq('Node.Execute',record(name=rootnode, request=request))

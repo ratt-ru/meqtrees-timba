@@ -152,6 +152,7 @@ import QuickRefUtil as QRU
 TDLCompileMenu("QuickRef Categories:",
                # TDLOption('opt_general',"QR_MeqTree: general items",False),
                # TDLOption('opt_MeqBrowser',"QR_MeqBrowser: browser features",False),
+               TDLOption('opt_execution',"QR_execution: Tree execution",False),
                TDLOption('opt_MeqNodes',"QR_MeqNodes: Available nodes",True),
                TDLOption('opt_solving',"QR_solving: Solving for MeqParm values",False),
                # TDLOption('opt_pynodes',"QR_PyNodes: general pynodes",False),
@@ -176,6 +177,10 @@ def _define_forest (ns, **kwargs):
    path = rootnodename                      # Root of the path-string
 
    cc = []
+   if opt_execution:   
+      import QR_execution   
+      TDLCompileMenu("Options for QR_execution", QR_execution)
+      cc.append(QR_execution.QR_execution(ns, path, rider=rider))
    if opt_MeqNodes:   
       import QR_MeqNodes   
       TDLCompileMenu("Options for QR_MeqNodes", QR_MeqNodes)
@@ -239,6 +244,12 @@ if __name__ == '__main__':
 
    print '\n** Start of standalone test of: QuickRef.py:\n' 
    ns = NodeScope()
+
+   if 1:
+      _define_forest(ns)
+      if 1:
+         print rider.format()
+            
 
    print '\n** End of standalone test of: QuickRef.py:\n' 
 

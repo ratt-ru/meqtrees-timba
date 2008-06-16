@@ -386,15 +386,9 @@ if __name__ == '__main__':
 
    rider = QRU.create_rider()             # CollatedHelpRecord object
    if 1:
-      template(ns, 'test', rider=rider)
+      QR_template(ns, 'test', rider=rider)
       if 1:
-         rider.show('testing')
-
-   if 0:
-      subject = 'onepolc'
-      path = 'test.solving.'+subject
-      rr = rider.subrec(path, trace=True)
-      rider.show('subrec',rr, full=False)
+         print rider.format()
             
    print '\n** End of standalone test of: QR_template.py:\n' 
 

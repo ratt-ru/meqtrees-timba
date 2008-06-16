@@ -417,13 +417,7 @@ if __name__ == '__main__':
    if 1:
       QR_solving(ns, 'test', rider)
       if 1:
-         rider.show('testing')
-
-   if 0:
-      subject = 'onepolc'
-      path = 'test.solving.'+subject
-      rr = rider.subrec(path, trace=True)
-      rider.show('subrec',rr, full=False)
+         print rider.format()
             
    print '\n** End of standalone test of: QR_solving.py:\n' 
 

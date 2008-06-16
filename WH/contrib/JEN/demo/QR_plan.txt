@@ -1,7 +1,7 @@
 file: ../JEN/demo/QR_plan.txt: planned modules for QuickRef.
 
 
-      QR_execute.py
+      QR_execution.py
       =============
 
 ** Request
@@ -79,6 +79,12 @@ Instructions for creating a QR_... module
 ** Wishlist
 
 ** Weak points
+
+** Misspellings
+
+** Quotations
+
+** Profound sayings
 
 
       QR_solving.py
