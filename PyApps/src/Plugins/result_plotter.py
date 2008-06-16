@@ -658,6 +658,13 @@ class ResultPlotter(GriddedPlugin):
     if isinstance(self._rec, bool):
       return
 
+# if this node is a Composer, it might have a plot_label which we
+# want to use later
+    try:
+      self._plot_label = self._rec.plot_label
+    except:
+      self._plot_label = None
+
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
@@ -788,6 +795,8 @@ class ResultPlotter(GriddedPlugin):
 
       if store_rec:
         self._vells_data.setInitialSelection(False)
+        if not self._plot_label is None:
+          self._vells_data.set_exterior_plot_label(self._plot_label)
         self._vells_data.StoreVellsData(self._rec,self.label)
 
       if self._vells_data.isVellsScalar():
@@ -834,7 +843,10 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.reset_color_bar(True)
 
 # plot the appropriate plane / perturbed value
-      plot_data = self._vells_data.getActiveData()
+# we make a deep copy as the plot array may be modified by flagging etc
+# during plotting
+      plot_data = self._vells_data.getActiveData().copy()
+
       # get initial axis parameters
       axis_parms =  self._vells_data.getActiveAxisParms()
       self._visu_plotter.setAxisParms(axis_parms)
@@ -858,7 +870,7 @@ class ResultPlotter(GriddedPlugin):
   def request_full_image(self,signal):
     """ request a full filled-in image from the Vells """
     self._vells_data.request_full_image(signal)
-    plot_data = self._vells_data.getActiveData()
+    plot_data = self._vells_data.getActiveData().copy()
     # get initial axis parameters
     axis_parms =  self._vells_data.getActiveAxisParms()
     self._visu_plotter.setAxisParms(axis_parms)
@@ -994,7 +1006,7 @@ class ResultPlotter(GriddedPlugin):
      
     self._vells_data.unravelMenuId(menuid)
     plot_label = self._vells_data.getPlotLabel()
-    plot_data = self._vells_data.getActiveData()
+    plot_data = self._vells_data.getActiveData().copy()
 
 # do we have flags for data?	  
     self.test_for_flags()
@@ -1038,7 +1050,7 @@ class ResultPlotter(GriddedPlugin):
     if self._vells_plot:
       self._vells_data.setSelectedAxes(first_axis, second_axis, third_axis)
       axis_parms = self._vells_data.getActiveAxisParms()
-      plot_array = self._vells_data.getActiveData()
+      plot_array = self._vells_data.getActiveData().copy()
       if not self._visu_plotter is None:
         self._visu_plotter.delete_cross_sections()
         self._visu_plotter.setAxisParms(axis_parms)
@@ -1056,7 +1068,7 @@ class ResultPlotter(GriddedPlugin):
     """
     if self._vells_plot:
       self._vells_data.updateArraySelector(lcd_number,slider_value)
-      plot_array = self._vells_data.getActiveData()
+      plot_array = self._vells_data.getActiveData().copy()
       if not self._visu_plotter is None:
         self._visu_plotter.reset_color_bar(True)
         self._visu_plotter.array_plot('data: '+ display_string, plot_array)
@@ -1153,7 +1165,7 @@ class ResultPlotter(GriddedPlugin):
       return
     axis_increments = None
     if not display_flag_3D:
-      plot_array = self._vells_data.getActiveData()
+      plot_array = self._vells_data.getActiveData().copy()
       if plot_array.min() == plot_array.max():
         return
     axis_increments = self._visu_plotter.getActiveAxesInc()
@@ -1182,7 +1194,7 @@ class ResultPlotter(GriddedPlugin):
         self.ND_Controls.reparent(QWidget(), 0, QPoint())
         self.ND_Controls = None
     self.axis_parms = self._vells_data.getActiveAxisParms()
-    plot_array = self._vells_data.getActiveData()
+    plot_array = self._vells_data.getActiveData().copy()
     if plot_array.min() == plot_array.max():
       return
     

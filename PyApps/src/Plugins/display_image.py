@@ -361,6 +361,7 @@ class QwtImageDisplay(QwtPlot):
         self._toggle_blink_label = None
         self._drag_amplitude_scale = False
         self._vells_menu_data = None
+        self.has_nans_infs = False
 #       self.nan_inf_value = -32767.0
         self.nan_inf_value = -0.1e-6
 
@@ -1002,19 +1003,26 @@ class QwtImageDisplay(QwtPlot):
 # add flag toggling for vells but make hidden by default
       toggle_flag_label = "toggle flagged data for plane "
       toggle_id = self.menu_table[toggle_flag_label]
-      self._menu.setItemEnabled(toggle_id, flag_setting)
-      self._menu.setItemVisible(toggle_id, flag_setting)
-
-      toggle_blink_label = "toggle blink of flagged data for plane "
-      toggle_id = self.menu_table[toggle_blink_label]
-      self._menu.setItemEnabled(toggle_id, flag_setting)
-      self._menu.setItemVisible(toggle_id, flag_setting)
-
-      if image_display:
-        toggle_range_label = "Toggle display range to that of flagged image for plane "
-        toggle_id = self.menu_table[toggle_range_label]
+      if self.has_nans_infs and self.is_vector == False:
+        info_label = "Flagged data has NaNs or Infs and cannot be shown explicitly"
+        self._menu.changeItem(toggle_id, info_label)
+        self._menu.setItemVisible(toggle_id,flag_setting)
+      else:
+        info_label = toggle_flag_label
+        self._menu.changeItem(toggle_id, info_label)
         self._menu.setItemEnabled(toggle_id, flag_setting)
         self._menu.setItemVisible(toggle_id, flag_setting)
+
+        toggle_blink_label = "toggle blink of flagged data for plane "
+        toggle_id = self.menu_table[toggle_blink_label]
+        self._menu.setItemEnabled(toggle_id, flag_setting)
+        self._menu.setItemVisible(toggle_id, flag_setting)
+
+        if image_display:
+          toggle_range_label = "Toggle display range to that of flagged image for plane "
+          toggle_id = self.menu_table[toggle_range_label]
+          self._menu.setItemEnabled(toggle_id, flag_setting)
+          self._menu.setItemVisible(toggle_id, flag_setting)
 
     def initVellsContextMenu (self):
       """ intitialize context menu for selection of Vells data """
@@ -1578,7 +1586,10 @@ class QwtImageDisplay(QwtPlot):
           value = self.raw_array[xpos,ypos]
         except:
           return message
-        temp_str = "value: %-.3g" % value
+        if self.has_nans_infs and value == self.nan_inf_value:
+          temp_str = "value: NaN or Inf"
+        else:
+          temp_str = "value: %-.3g" % value
 	if not marker_index is None:  
           if self.is_combined_image:
             length = len(self.marker_labels)
@@ -1657,7 +1668,12 @@ class QwtImageDisplay(QwtPlot):
             temp_str = "nearest " + axis +" =%+.3g" % x + units
           else:
             temp_str = "nearest x=%-.3g" % x
-          temp_str1 = " y=%-.3g" % y
+          
+          if self.has_nans_infs and y == self.nan_inf_value:
+            temp_str1 = "value: NaN or Inf"
+          else:
+            temp_str1 = "value: %-.3g" % y
+#         temp_str1 = " y=%-.3g" % y
 	  message = temp_str + temp_str1 
         return message
 
@@ -2862,20 +2878,6 @@ class QwtImageDisplay(QwtPlot):
         plot_array = transpose(incoming_plot_array, axes)
 #       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
 
-# check for NaNs and Infs etc
-
-      nan_test = ieee.isnan(plot_array)
-      if nan_test.max() > 0:
-        plot_array[ieee.isnan(plot_array)] = self.nan_inf_value
-        self.set_flag_toggles_active(True)
-        self.setFlagsData(nan_test,False)
-
-      inf_test = ieee.isinf(plot_array)
-      if inf_test.max() > 0:
-        plot_array[ieee.isinf(plot_array)] = self.nan_inf_value
-        self.set_flag_toggles_active(True)
-        self.setFlagsData(inf_test,False)
-
 # figure out type and rank of incoming array
 # for vectors, this is a pain as e.g. (8,) and (8,1) have
 # different 'formal' ranks but really are the same 1-D vectors
@@ -2895,6 +2897,23 @@ class QwtImageDisplay(QwtPlot):
 # chi-square surfaces
       if self.display_solution_distances:
         self.is_vector = True
+
+# check for NaNs and Infs etc
+      nan_test = ieee.isnan(plot_array)
+      self.has_nans_infs = False
+      if nan_test.max() > 0:
+        plot_array[ieee.isnan(plot_array)] = self.nan_inf_value
+        self.has_nans_infs = True
+        self.set_flag_toggles_active(True)
+        self.setFlagsData(nan_test,False)
+
+      inf_test = ieee.isinf(plot_array)
+      if inf_test.max() > 0:
+        plot_array[ieee.isinf(plot_array)] = self.nan_inf_value
+        self.has_nans_infs = True
+        self.set_flag_toggles_active(True)
+        self.setFlagsData(inf_test,False)
+
 
 # I don't think we should ever see the N-D controller in the vector case.
 # If self.original_data_rank > 2 that means that the cells dimensions are
@@ -2932,6 +2951,10 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, False)
 
 # test if we have a 2-D array
+      if self.is_vector:
+        toggle_id = self.menu_table['Toggle logarithmic range for data']
+        self._menu.setItemVisible(toggle_id, False)
+
       if self.is_vector == False and not self.log_switch_set:
         toggle_id = self.menu_table['Toggle logarithmic range for data']
         if self.toggle_log_display:

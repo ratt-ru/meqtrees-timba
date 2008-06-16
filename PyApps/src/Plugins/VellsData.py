@@ -63,6 +63,7 @@ class VellsData:
      self.shape_change = True
      self.scalar_data = False
      self._request_full_image = False
+     self._exterior_plot_label = None
      self.rank = -1
      self.actual_rank = -1
      self.shape = (-1,)
@@ -174,6 +175,9 @@ class VellsData:
      _dprint(3,'received method call')
      return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes,self.shape]
 
+   def set_exterior_plot_label(self, exterior_plot_label):
+     self._exterior_plot_label = exterior_plot_label
+
    def StoreVellsData(self, vells_rec, rq_label = ''):
      """ converts vells record structure into a format that is
          easy to use with the visualization displays
@@ -211,6 +215,10 @@ class VellsData:
 
 # store data
      for i in range(self._number_of_planes):
+       try:
+         exterior_label = self._exterior_plot_label[i]
+       except:
+         exterior_label = None
        if vells_rec.vellsets[i].has_key("value"):
          menu_label = "[" + str(i) + "]" 
          if self.dims is None:
@@ -238,7 +246,10 @@ class VellsData:
                self._menu_labels_big[id] = False
          
 #        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
-         tag = "] main value "
+         if not exterior_label is None:
+           tag = "] " + exterior_label + " " + "main value "
+         else:
+           tag = "] main value "
          if self._number_of_planes > 1:
            if self.dims is None:
              plot_string = "[" + str(i) + tag 
@@ -258,7 +269,10 @@ class VellsData:
        if vells_rec.vellsets[i].has_key("perturbed_value"):
          try:
            number_of_perturbed_arrays = len(vells_rec.vellsets[i].perturbed_value)
-           tag = "] perturbed value "
+           if not exterior_label is None:
+             tag = "] " + exterior_label + " " + "perturbed value "
+           else:
+             tag = "] perturbed value "
            perturbations_list = []
            perturbations_key = str(id) + ' perturbations'
            for j in range(number_of_perturbed_arrays):
@@ -379,10 +393,6 @@ class VellsData:
    def getActivePlane(self):
      """ returns number of active plane """
      return self._active_plane
-
-   def getPlotLabels(self):
-     """ returns the labels for vells plots """
-     return self._plot_labels
 
    def getPlotLabel(self):
      """ returns the plot label for a given plane or perturbed plane """
