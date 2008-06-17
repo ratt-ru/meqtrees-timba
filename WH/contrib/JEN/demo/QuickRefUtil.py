@@ -98,8 +98,9 @@ def _define_forest (ns, **kwargs):
 # Forest exection functions (also used externally from QR_... modules):
 #********************************************************************************
 
-TDLRuntimeMenu("Custom settings:",
+TDLRuntimeMenu("Custom Settings:",
                TDLOption('runopt_show_request',"Show each request", False),
+               TDLOption('runopt_show_bundles',"Show all bundle subtree(s)", False),
                TDLMenu("Printer settings (for hardcopy doc):",
                        TDLOption('runopt_printer',"name of the printer for harcopy",
                                  ['xrxkantine'], more=str),
@@ -314,7 +315,9 @@ def make_cells (axes=['freq','time'], offset=None, trace=False):
         print '--- dd =',dd
         print '--- nn =',nn
 
-    cells = meq.gen_cells(meq.gen_domain(**dd), **nn)
+    domain = meq.gen_domain(**dd)
+    # print type(domain),domain
+    cells = meq.gen_cells(domain, **nn)
     return cells
 
 #----------------------------------------------------------------------------
@@ -537,17 +540,18 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 
 def on_entry(func, path, rider, trace=False):
     """Helper function to extract the extra path and (bundle-)help from
-    the given function. Called on entry of all QR_... functions."""
+    the given function. Called on entry of all QR_... functions.
+    """
     rr = record()
     ss = func.func_name.split('_')
     nss = len(ss)
     rr.path = path+'.'+ss[nss-1]
     if not ss[nss-2] in path:
         s = '** '+ss[nss-2]+' not in path '+path
-        ### raise ValueError,s
+        ### raise ValueError,s                    # NOT a good idea....
     rr.help = func.__doc__
     if trace:
-        print '\n** .on_entry(',type(func),path,'):',ss,'->',rr
+        print '\n** .on_entry(',type(func),path,'):',ss,'->',rr.keys()
     return rr
    
    # print '-- .func_name:',func.func_name        # -> add2path
@@ -572,59 +576,6 @@ def add2path (path, name=None, trace=False):
     if trace:
         print '\n** QR.add2path(',path,name,') ->',s
     return s
-
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-
-def format_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
-    """Helper function (recursive) to attach the subtree under the given node(s)
-    to the given string (ss). If mode='list', return a list of strings (lines).
-    The recursion depth is controlled by the 'recurse argument:
-    - recurse=False or <=0: return '' or [] (if mode='list')
-    - recurse=True is equivalent to recurse=1000 (i.e. deep enough for any subtree)
-    The input node may be either a single node, or a list of nodes. The latter is
-    used by MeqNode(), where the top node is shown in detail, and this function
-    is used only to expand the subtrees of its children in somewhat less detail.
-    """
-    
-    if isinstance(recurse,bool):
-        if recurse: recurse=1000                            # True
-    if not recurse:                                         # not required
-        if mode=='list': return [] 
-        return '' 
-
-    prefix = '\n'+(level*' |  ')+' '
-    if trace:
-        print prefix+str(node),node
-        # print dir(node)
-
-    if level==0:
-        if not isinstance(ss,str): ss = ''
-        if isinstance(node,list):
-            # Special case (see MeqNode()): Start with a list of children:
-            ss += prefix+'Its subtree, starting with its '+str(len(node))+' children:'
-            for c in node:
-                ss = format_tree(c, ss, level=level+1, recurse=recurse, trace=trace)
-        elif not is_node(node):                
-            return '** not a node (??) **'                  # error
-        else:
-            ss += prefix+str(node)
-    else:
-        ss += prefix+str(node)
-
-    # Do its children, if required:
-    if level<recurse:
-        if getattr(node, 'children', None):
-            for c in node.children:
-                ss = format_tree(c[1], ss, level=level+1, recurse=recurse, trace=trace)
-
-    # Finished:
-    if level==0:
-        ss += '\n'
-        if mode=='list':
-            ss = ss.split('\n')
-    return ss
-
 
 
 #-------------------------------------------------------------------------------
@@ -752,9 +703,9 @@ def MeqNode (ns, path, rider,
     # Optional, show the subtree below to the required depth:
     if show_recurse:
         if is_node(node):
-            qhelp.extend(format_tree(node, recurse=show_recurse, mode='list'))
+            qhelp.extend(ET.format_tree(node, recurse=show_recurse, mode='list'))
         elif isinstance(children,(list,tuple)):
-            qhelp.extend(format_tree(children, recurse=show_recurse, mode='list'))
+            qhelp.extend(ET.format_tree(children, recurse=show_recurse, mode='list'))
  
     # Dispose of the conditioned help (qhelp):
     kwargs['quickref_help'] = qhelp                         # -> node state record
@@ -816,6 +767,7 @@ def bundle (ns, path, rider,
             nodes=None, unop=None,
             parentclass='Composer', result_index=0,
             help=None, make_helpnode=False,
+            show_recurse=False,
             bookmark=True, viewer="Result Plotter",
             trace=False):
     """Make a single parent node, with the given nodes as children.
@@ -858,12 +810,20 @@ def bundle (ns, path, rider,
     #.......................................................................
     # First make a nodestub with an unique name
     parent = ET.unique_stub(ns, name)
-    # print '---',path,': name=',name,'-> (unique?) parent=',str(parent)
 
     # Special case: no nodes to be bundled:
     if len(nodes)==0:
+        # If bookmark specifies any nodes, use those:
+        # (after all, they require a request)
+        if is_node(bookmark):
+            nodes = [bookmark]
+        elif isinstance(bookmark,(list,tuple)):
+            nodes = bookmark
+
+    if len(nodes)==0:
+        # If still no nodes to be bundles, make a dummy one:
         parent << Meq.Constant(-0.123454321, quickref_help=qhelp)
-        bookmark = False
+        bookmark = False                      # just in case
 
     else:
         # Optionally, apply a one or more unary math operations (e.g. Abs)
@@ -926,6 +886,15 @@ def bundle (ns, path, rider,
                 for node in nodes:
                     bookpage.add(node, viewer=viewer)
 
+    # Show a resulting subtree, if required:
+    if is_node(show_recurse):
+        print ET.format_tree(show_recurse)
+    elif show_recurse:
+        print ET.format_tree(parent, recurse=show_recurse)
+    elif runopt_show_bundles:
+        print '\n** subtree under the bundle parent node (path=',path,'):'
+        print ET.format_tree(parent, recurse=10)
+
     if trace:
         print '** QR.bundle():',path,name,'->',str(parent),'\n'
     return parent
@@ -963,7 +932,7 @@ if __name__ == '__main__':
         a = ns.a << 1.0
         b = ns.b << 3.0
         node = ns.test << Meq.Add(a,b)
-        ss = format_tree(node, mode='list', trace=True)
+        ss = ET.format_tree(node, mode='list', trace=True)
         print ss
 
     print '\n** End of standalone test of: QuickRefUtil.py:\n' 

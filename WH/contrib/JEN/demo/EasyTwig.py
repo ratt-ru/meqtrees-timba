@@ -249,6 +249,60 @@ def unique_stub (ns, rootname, *quals, **kwquals):
     return stub
    
 
+#====================================================================================
+#====================================================================================
+
+def format_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
+    """Helper function (recursive) to attach the subtree under the given node(s)
+    to the given string (ss). If mode='list', return a list of strings (lines).
+    The recursion depth is controlled by the 'recurse argument:
+    - recurse=False or <=0: return '' or [] (if mode='list')
+    - recurse=True is equivalent to recurse=1000 (i.e. deep enough for any subtree)
+    The input node may be either a single node, or a list of nodes. The latter is
+    used by MeqNode(), where the top node is shown in detail, and this function
+    is used only to expand the subtrees of its children in somewhat less detail.
+    """
+    
+    if isinstance(recurse,bool):
+        if recurse: recurse=1000                            # True
+    if not recurse:                                         # not required
+        if mode=='list': return [] 
+        return '' 
+
+    prefix = '\n'+(level*' |  ')+' '
+    if trace:
+        print prefix+str(node),node
+        # print dir(node)
+
+    if level==0:
+        if not isinstance(ss,str): ss = ''
+        if isinstance(node,list):
+            # Special case (see MeqNode()): Start with a list of children:
+            ss += prefix+'Its subtree, starting with its '+str(len(node))+' children:'
+            for c in node:
+                ss = format_tree(c, ss, level=level+1, recurse=recurse, trace=trace)
+        elif not is_node(node):                
+            return '** not a node (??) **'                  # error
+        else:
+            ss += prefix+str(node)
+    else:
+        ss += prefix+str(node)
+
+    # Do its children (recursively), if required:
+    if getattr(node, 'children', None):
+        if level<recurse:               # only to the specified recursion depth
+            for c in node.children:
+                ss = format_tree(c[1], ss, level=level+1, recurse=recurse, trace=trace)
+        else:
+            ss += prefix+'   .....'     # indicate that the subtree is deeper
+
+    # Finished:
+    if level==0:
+        ss += '\n'
+        if mode=='list':
+            ss = ss.split('\n')
+    return ss
+
 
 #====================================================================================
 # Functions dealing with finding nodes in a tree:
@@ -615,7 +669,7 @@ def twig(ns, name, test=False, help=None, trace=False):
             for c in cc:
                 s1 += '  '+str(c[1])
             s1 += ')'
-        print s1
+        print '\n**',s1
 
     if test:                                                  # testing mode
         return True                                           # True: name is valid (recognized)

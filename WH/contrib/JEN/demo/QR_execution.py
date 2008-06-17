@@ -73,15 +73,9 @@ import numpy
 
 TDLCompileMenu("QR_execution topics:",
                TDLOption('opt_alltopics',"override: include all topics",True),
+               TDLOption('opt_input_twig',"input twig",
+                         ET.twig_names(), more=str),
                TDLMenu("request",
-                       TDLOption('opt_request_twig',"input twig (lhs of condeq)",
-                                 ET.twig_names(), more=str),
-                       TDLMenu("request_xxx",
-                               TDLOption('opt_request_xxx_a',"option a",
-                                         range(3), more=int),
-                               TDLOption('opt_request_xxx_b',"option b",
-                                         ['the','rain','in','Spain'], more=str),
-                               toggle='opt_request_xxx'),
                        toggle='opt_request'),
 
                TDLMenu("help",
@@ -99,18 +93,52 @@ TDLCompileMenu("QR_execution topics:",
 
 def QR_execution (ns, path, rider):
    """
-   ...
+   A MeqTree is a non-circular graph, i.e. it consists of (software, C++) nodes,
+   each of which has zero or more children. The tree is defined by means of the
+   Tree Definition Language (TDL), which is just Python with a few extensions.
+   A TDL script generates a list of instructions for the creation of C++ nodes,
+   which do the real work. Python is not used in the actual execution, except by
+   a user-defined class of nodes called PyNodes. The latter are usually not on
+   the critical path, so they do not slow down the execution.
+
+   A (sub)tree may be 'executed' by passing a request (object) to any node. This
+   is usually, but not necessarily the root (bottom) node of the entire tree.
+   Nodes that have children pass the request on, and calculate their result by
+   'doing their thing' with their child results, according to their type (class).
+   Leaf nodes (no children) have access to other information to produce their result.
+   Thus, the request is passed all the way 'up the tree' to its leaves, and the
+   results are passed 'downstream' from children to parent nodes. The process ends
+   when the node that has been given the request has produced its result (object).
+
+   A request specifies a 'domain', i.e. an N-dimensional array of points in some
+   space. The default domain is a 2D rectangle in time-freq space, reflecting the
+   fact that most Measurement Equations depend on time and frequency. A domain is
+   subdivided into 'cells', not necessarily on a regular grid, not necessarily with
+   uniform size, and not necessarily contiguous.
+
+   A result contains at least one 'vellset', i.e. an array of values for the cells of
+   the requested domain. Producing these values is the ultimate purpose of MeqTrees. 
+
+
+   Multiple results (tensors).
+   Perturbations.
+   Caching.
+   See ....
+   
    """
    rr = QRU.on_entry(QR_execution, path, rider)
  
-   cc = []
+   twig = ET.twig(ns, opt_input_twig)
+
+   cc = [twig]
    if opt_alltopics or opt_request:
-      cc.append(request (ns, rr.path, rider))
+      cc.append(request (ns, rr.path, rider, twig=twig))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rr.path, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=twig, viewer='Record Browser')
 
 
 
@@ -137,16 +165,41 @@ def make_helpnodes (ns, path, rider):
 
 #--------------------------------------------------------------------------------
 
-def request (ns, path, rider):
+def request (ns, path, rider, twig):
    """
-   .....
-   """
-   rr = QRU.on_entry(request, path, rider)
-   cc = []
-   if opt_alltopics or opt_request_domain:
-      cc.append(request_domain (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   A request is an object, which contains a domain, subdivided in cells, for which values
+   are required. A request also contains other information. It is passed 'up' a tree, from
+   parent to children, until the leaf nodes (which have no children).
 
+   The simplest way to generate a simple 2D (freq-time) request is:
+   .      from Timba.Meq import meq
+   .      domain = meq.domain(fmin,fmax,tmin,tmax)              <class 'Timba.dmi.MeqDomain'> 
+   .      cells = meq.cells(domain, num_time=10, num_freq=21)   <class 'Timba.dmi.MeqCells'> 
+   .      request_counter += 1
+   .      rqid = meq.requestid(request_counter)
+   .      request = meq.request(cells, rqid=rqid)               <class 'Timba.dmi.MeqRequest'>
+
+   The request may be inspected (after execution) in the state record of any node (by clicking 
+   on it in the browser), or by specifying 'show each request' in the Custom Settings of the
+   TDL exec menu when executing the QuickRef module.
+   
+   The tree may now be executed (starting at the named node):
+   .      result = mqs.meq('Node.Execute',record(name=<nodename>, request=request), wait=True)   
+
+   NB: Changing the request identifier by incrementing the request_counter guarantees that the
+   request will be interpreted by the nodes upstream as a new request, for which new values
+   are required (i.e. the values in their caches will not do).
+   An alternative way of generating a request is (... this needs some explanation! ...):
+   .      request = meq.request(cells, rqtype='ev')
+
+   See below for a more detailed discussion of generating domains and cells.
+   """
+   rr = QRU.on_entry(request, path, rider, twig)
+   cc = [twig]
+   cc.append(request_domain (ns, rr.path, rider, twig=twig))
+   cc.append(request_cells (ns, rr.path, rider, twig=twig))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=twig, viewer='Record Browser')
 
 
 
@@ -162,13 +215,67 @@ def request (ns, path, rider):
 # request_... 
 #================================================================================
 
-def request_domain (ns, path, rider):
+def request_domain (ns, path, rider, twig):
    """
-   ...
+   A domain object is ...
+
+   The simplest way to generate a simple 2D (freq-time) domain is:
+   .      from Timba.Meq import meq
+   .      domain = meq.domain(fmin,fmax,tmin,tmax)              <class 'Timba.dmi.MeqDomain'> 
+
+   A more general (N-dimensional) domain may be specified by:
+   .      dd = record()                             
+   .      dd.freq = (fmin,fmax)
+   .      dd.time = (tmin,tmax)
+   .      dd.L = (Lmin,Lmax)
+   .      dd.M = (Mmin,Mmax)
+   .      .. etc ..
+   .      domain = meq.gen_domain(**dd)                         <class 'Timba.dmi.MeqDomain'> 
+
+   The request domain may be inspected (after execution) in the state record of any node.
+   Try this by executing different kinds of input nodes (twigs).
    """
    rr = QRU.on_entry(request_domain, path, rider)
-   cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=twig, viewer='Record Browser')
+
+#--------------------------------------------------------------------------------------------
+
+def request_cells (ns, path, rider, twig):
+   """
+   A cells object sub-divides a rectangular N-dim domain (envelope) into an N-dim array
+   of cells. NB: Since the domain is an envelope, and cell coordinates represent the
+   cell centres, the coordinates of the outer cells will be different from the domain
+   boundaries. 
+   
+   The simplest way to generate a default 2D (freq-time) cells object is:
+   .      from Timba.Meq import meq
+   .      cells = meq.cells(domain, num_time=10, num_freq=21)   <class 'Timba.dmi.MeqCells'> 
+
+   A more general (N-dimensional) cells may be specified by:
+   .      nn = record()                             
+   .      nn.num_freq = 100
+   .      nn.num_L = 23
+   .      nn.num_M = 3
+   .      .. etc ..
+   .      cells = meq.gen_cells(domain, **nn)                   <class 'Timba.dmi.MeqCells'> 
+
+   In both cases, the domain object is generated in the way(s) discussed above.
+
+   By default, domain cells are on a regular grid, uniform in size, and contiguous.
+   However, in many cases, less regular cells may needed (e.g. with data that are sampled
+   irregularly in time of freq). Such cells be specified in the following way:
+   ... to be done ....
+   (NB: do irregular cells carry a penalty in efficiency?)
+
+   The cells details may be inspected (after execution) in the state record of any node.
+   Try this by executing different kinds of input nodes (twigs).
+   """
+   rr = QRU.on_entry(request_cells, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=twig, viewer='Record Browser')
 
 
 
