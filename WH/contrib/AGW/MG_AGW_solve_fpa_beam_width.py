@@ -165,7 +165,7 @@ def _define_forest(ns):
   ns.voltage_sum_yy_norm << ns.voltage_sum_yy / ns.im_y_max
   ns.voltage_sum_yx_norm << ns.voltage_sum_yx / ns.im_y_max
 
-  ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_yx_norm,ns.voltage_sum_xy_norm, ns.voltage_sum_yy_norm)
+  ns.E << Meq.Matrix22(ns.voltage_sum_xx_norm, ns.voltage_sum_xy_norm,ns.voltage_sum_yx_norm, ns.voltage_sum_yy_norm)
   ns.Et << Meq.ConjTranspose(ns.E)
 
  # sky brightness
