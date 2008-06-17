@@ -75,8 +75,12 @@ TDLCompileMenu("QR_execution topics:",
                TDLOption('opt_alltopics',"override: include all topics",True),
                TDLOption('opt_input_twig',"input twig",
                          ET.twig_names(), more=str),
-               TDLMenu("request",
-                       toggle='opt_request'),
+
+               TDLMenu("request", toggle='opt_request'),
+               TDLMenu("result", toggle='opt_result'),
+               TDLMenu("state", toggle='opt_state'),
+               TDLMenu("efficiency", toggle='opt_effic'),
+               TDLMenu("misc", toggle='opt_misc'),
 
                TDLMenu("help",
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
@@ -133,12 +137,21 @@ def QR_execution (ns, path, rider):
    cc = [twig]
    if opt_alltopics or opt_request:
       cc.append(request (ns, rr.path, rider, twig=twig))
+   if opt_alltopics or opt_result:
+      cc.append(result (ns, rr.path, rider, twig=twig))
+   if opt_alltopics or opt_state:
+      cc.append(state (ns, rr.path, rider, twig=twig))
+   if opt_alltopics or opt_effic:
+      cc.append(effic (ns, rr.path, rider, twig=twig))
+   if opt_alltopics or opt_misc:
+      cc.append(misc (ns, rr.path, rider, twig=twig))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rr.path, rider))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=twig, viewer='Record Browser')
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
 
 
 
@@ -192,14 +205,138 @@ def request (ns, path, rider, twig):
    An alternative way of generating a request is (... this needs some explanation! ...):
    .      request = meq.request(cells, rqtype='ev')
 
-   See below for a more detailed discussion of generating domains and cells.
+   The request details may be inspected (after execution) in the state record of any node.
+   Try this by defining the tree with different kinds of input nodes (twigs), and/or by
+   executing the tree with domains with different (numbers of) axes.
+   Requests may also be printed by means of the TDL exec Customs Settings menu.
    """
-   rr = QRU.on_entry(request, path, rider, twig)
+   rr = QRU.on_entry(request, path, rider)
    cc = [twig]
    cc.append(request_domain (ns, rr.path, rider, twig=twig))
    cc.append(request_cells (ns, rr.path, rider, twig=twig))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=twig, viewer='Record Browser')
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+
+#--------------------------------------------------------------------------------
+
+def result (ns, path, rider, twig):
+   """
+   A result is an object, which contains
+
+   The result details may be inspected (after execution) in the state record of any node.
+   Try this by defining the tree with different kinds of input nodes (twigs), and/or by
+   executing the tree with domains with different (numbers of) axes.
+   Requests may also be printed by means of the TDL exec Customs Settings menu.
+   """
+   rr = QRU.on_entry(result, path, rider)
+   cc = [twig]
+   # cc.append(result_domain (ns, rr.path, rider, twig=twig))
+   # cc.append(result_perturbations (ns, rr.path, rider, twig=twig))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+
+#--------------------------------------------------------------------------------
+
+def state (ns, path, rider, twig):
+   """
+   Each node has a state record, which may be inspected by clicking on it in the
+   browser. It contains the information that the node needs for efficient operation.
+
+   There is also a 'Forest State Record', which contains information about the
+   forest (collection of trees) as a whole. It may be inspected by clicking on
+   the 'Forest State' field at the top of the leftmost panel of the browser.
+   """
+   rr = QRU.on_entry(state, path, rider)
+   cc = [twig]
+   cc.append(state_nodestate (ns, rr.path, rider, twig=twig))
+   cc.append(state_forest (ns, rr.path, rider, twig=twig))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+
+#--------------------------------------------------------------------------------
+
+def effic (ns, path, rider, twig):
+   """
+   Premature optimization is the root of all evil (Donald Knuth). However, speed
+   is important, especcially in view of the increasing volume of data that has to
+   be processed. MeqTrees offer various features for speeding up operation, and
+   reducing memory use, sometimes by very large factors. Most of them are based on
+   intelligence rather than brute force (although the latter usually wins in the
+   end, of course).
+   
+   - Caching: Each node has a cache, in which it can keep its last result. If it
+   receives the same request from a different parent, the result can be re-used.
+   This happens a lot in interferometry, where N(N-1)/2 cohaerency matrices share
+   only N station Jones matrices. There is a trade-off between caching and memory
+   use, of course. Clever (but complicated) caching rules have been developed,
+   which use the structure of the request identifier to make decisions.
+
+   - Vellset axis collapse: This minimizes the physical size of the results, by not
+   duplicating values that do not change along an axis. The advantages are in memory
+   use and transferring results between nodes. 
+
+   - Local intelligence: Processing can often be optimized by changing the weights
+   of certain results, or even ignoring them completely, depending on the changing
+   results of other nodes. MeqTrees allow considerable 'intelligence' at node level.
+
+   - Resampling: If a model function is smooth over the requested domain, it does not
+   need to be evaluated for many cells, even if the data has a high resolution.
+   Re-sampling to a (much) smaller number of cells can mean very considerable savings
+   in processing and memory use. Especially when solving for many parameters (coeff),
+   each of which requires its own perturbed vellset.
+
+   - Supernodes: The inevitable handshaking overhead of passing requests and results
+   between nodes can be reduced considerably by gathering entire subtrees of nodes
+   into 'supernodes' that perform the same operations as the individual nodes. For
+   example, a supernode may evaluate a complicated math expression. In many cases,
+   supernodes can be generated automatically.
+
+   - Sub-tiling: Result-passing overhead can also be reduced by using larger domains.
+   However, sometimes separate solutions are required over smallish domains. In that
+   case, multiple solutions may be performed on two or more 'sub-tiles' of the same
+   domain. The latter may be sub-tiled independently along any axis.
+
+   - Cluster operation (parallelisation): Since a forest of trees can be multiply
+   connected, it is not always easy to divide it over different processors in an
+   efficient way. However, it must obviously be attempted.
+
+   - Etc...
+
+
+   The browser provides a profiler, which can be used to identify bottlenecks.
+
+   NB: Another type of efficiency that is usually overlooked is the speed in which
+   new ideas can be implemented, developed and debugged. In traditional systems, the
+   time required is often so prohibitive that very few people even try. MeqTrees, with
+   its TDL and extensive visualization, should make a BIG difference here...
+   """
+   rr = QRU.on_entry(effic, path, rider)
+   cc = [twig]
+   cc.append(effic_caching (ns, rr.path, rider, twig=twig))   
+   cc.append(effic_parallel (ns, rr.path, rider, twig=twig))   
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+
+#--------------------------------------------------------------------------------
+
+def misc (ns, path, rider, twig):
+   """
+   """
+   rr = QRU.on_entry(misc, path, rider)
+   cc = [twig]
+   cc.append(misc_debugging (ns, rr.path, rider, twig=twig))   
+   cc.append(misc_profiling (ns, rr.path, rider, twig=twig))   
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
 
 
 
@@ -217,7 +354,9 @@ def request (ns, path, rider, twig):
 
 def request_domain (ns, path, rider, twig):
    """
-   A domain object is ...
+   A domain object represents an N-dimensional rectangular envelope. The default
+   is a 2D rectangle in freq-time space. It outlines the N-dim 'volume' for which
+   we wish to evaluate the Measurement Equation that is implemented by the tree.
 
    The simplest way to generate a simple 2D (freq-time) domain is:
    .      from Timba.Meq import meq
@@ -233,12 +372,14 @@ def request_domain (ns, path, rider, twig):
    .      domain = meq.gen_domain(**dd)                         <class 'Timba.dmi.MeqDomain'> 
 
    The request domain may be inspected (after execution) in the state record of any node.
-   Try this by executing different kinds of input nodes (twigs).
+   Try this by defining the tree with different kinds of input nodes (twigs), and/or by
+   executing the tree with domains with different (numbers of) axes. 
    """
    rr = QRU.on_entry(request_domain, path, rider)
    cc = [twig]
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=twig, viewer='Record Browser')
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
@@ -270,14 +411,203 @@ def request_cells (ns, path, rider, twig):
    (NB: do irregular cells carry a penalty in efficiency?)
 
    The cells details may be inspected (after execution) in the state record of any node.
-   Try this by executing different kinds of input nodes (twigs).
+   Try this by defining the tree with different kinds of input nodes (twigs), and/or by
+   executing the tree with domains with different (numbers of) axes. 
    """
    rr = QRU.on_entry(request_cells, path, rider)
    cc = [twig]
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=twig, viewer='Record Browser')
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
 
 
+#================================================================================
+# result_... 
+#================================================================================
+
+def result_ (ns, path, rider, twig):
+   """
+   """
+   rr = QRU.on_entry(result_, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+#--------------------------------------------------------------------------------------------
+
+#================================================================================
+# state_... 
+#================================================================================
+
+def state_nodestate (ns, path, rider, twig):
+   """
+   The state record of ANY node may be inspected by left-clicking on it in the
+   browser. The one exception, for some reason, is a MeqComposer node. Its state
+   record can be displayed via right-clicking on it, and selecting the Record
+   Browser from the display menu.
+
+   A typical node state record has the following fields (the values are
+   examples, taken from an actual node):
+
+   - active_syndeps           ('(null)')
+   - breakpoint_single_shot   0
+   - missing_data_policy      (e.g. 'Ignore')
+   + children                 (list of integer node indices)
+   - dep_mask                 0
+   - log_policy               0
+   + cache                    (its result record)
+   - sequence_symdeps         ('State')
+   - internal_init_index      0
+   - cells_only               False
+   - publishing_level         0
+   - nodeindex                (its node index, int)
+   + profiling_stats          record
+   - cache_policy             0
+   - cache_num_active_parents 0
+   - node_description         (e.g. 'execution:MeqReqSeq:EasyTwig.py:194')
+   - fail_policy              'Ignore'
+   - auto_resample            -2
+   - breakpoint               0
+   - class                    (node class, e.g. 'MeqReqSeq')
+   - control_status           (e.g. 529)
+   - name                     (node name, string)
+   + quickref_help            (this help-text, attached by QuickRef)
+   + child_indices            same as children above (?)
+   + request                  record, contains cells/domain and request_id
+   + cache_stats              record
+   - request_id               (e.g. 'ev.0.0.0.1.0)
+   - result_index             (e.g. 0, MeqReqSeq option)
+   
+
+   In addition, every option that is passed as a keyword argument to the TDL node
+   constructor ends up in its state record (what about name clashes?) The user can
+   use this to pass arbitrary information to a node, and between nodes via the
+   result record. This is very powerful.
+
+   An example is the quickref_help field, which is only attached by QuickRef (QR)
+   modules, like this one.  
+   
+   """
+   rr = QRU.on_entry(state_nodestate, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+#--------------------------------------------------------------------------------------------
+
+def state_forest (ns, path, rider, twig):
+   """
+   The Forest State record can be inspected by left-clicking on it, at the top of the
+   leftmost section of the browser (above the tree).
+
+   It has the following fields:
+
+   - executing
+   + axis_map
+   + tdl_source
+   - cache_policy            (100=always, 0=never, ...)
+   + symdeps
+   - profiling_enabled
+   - breakpoint_single_shot
+   - debug_level
+   - stopped
+   - breakpoint
+   + bookmarks
+   + axis_list
+   - cwd
+
+   The user may interact with the fields of the Forest state record with statements like:
+   - Settings.forest_state.cache_policy = 100
+   - Settings.forest_state.bookmarks = []
+   
+   
+   """
+   rr = QRU.on_entry(state_forest, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+#--------------------------------------------------------------------------------------------
+
+
+#================================================================================
+# effic_... 
+#================================================================================
+
+#--------------------------------------------------------------------------------------------
+
+def effic_parallel (ns, path, rider, twig):
+   """
+   ...
+   """
+   rr = QRU.on_entry(effic_parallel, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+
+#--------------------------------------------------------------------------------------------
+
+def effic_caching (ns, path, rider, twig):
+   """
+   The caching rules are as follows:
+   ....
+   """
+   rr = QRU.on_entry(effic_caching, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+#--------------------------------------------------------------------------------------------
+
+
+#================================================================================
+# misc_... 
+#================================================================================
+
+def misc_debugging (ns, path, rider, twig):
+   """
+   There are several ways to debug a tree:
+
+   - Attach a debugger (use Debug menu). This is for C++ enthousiasts, especially
+   those that have actually written the C++ node classes.
+
+   - Use the stop/step/resume functionality offered by the buttons along the left
+   edge of the browser.
+
+   - Use the MeqTree visualisation and inspection tools.
+
+   - Etc.
+   
+   """
+   rr = QRU.on_entry(misc_debugging, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
+
+#--------------------------------------------------------------------------------------------
+
+def misc_profiling (ns, path, rider, twig):
+   """
+   The profiler may be invoked by selecting 'Collect profiling stats' from the Debug menu in
+   the browser. This should be done AFTER execution, of course. The profiling statistics are
+   collected from the individual nodes, and displayed in the middle section of the browser.
+
+   The meaning of the various columns is as follows:
+   ....
+   
+   """
+   rr = QRU.on_entry(misc_profiling, path, rider)
+   cc = [twig]
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0,
+                      bookmark='parent', viewer='Record Browser')
 
 
 

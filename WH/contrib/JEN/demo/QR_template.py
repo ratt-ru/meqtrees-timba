@@ -138,7 +138,8 @@ def QR_template (ns, path, rider):
    - result_index[=0]: Used if the bundling parent is a ReqSeq.
    - bookmark[=True]: If True, make a page of bookmarks for all nodes cc. It is also
    .                  possible to specify a list of nodes (i.e. different from cc).
-   - viewer[=Result Plotter]: Used in the bookmarks.
+   .                  If bookmark='parent', the bundle parent node is bookmarked.
+   - viewer[=Result Plotter]: Used in the bookmarks. 
    - make_helpnode[=False]: If True, make a (bookmarked) help-node for this function
    .                        (see make_helpnodes() above).
    """

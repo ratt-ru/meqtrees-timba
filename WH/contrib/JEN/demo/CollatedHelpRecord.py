@@ -293,8 +293,8 @@ class CollatedHelpRecord (object):
       elif page and self._folder.has_key(page):
          folder = page                          # works well for ...resampling_modres....
          self._folder[folder] += 1              # ....?
-         page = None                            # produces 'autopage' pages in the folder
-         page = '..dummy..'                     # still there, clean up later
+         # page = None                            # produces 'autopage' pages in the folder
+         # page = '..dummy..'                     # still there, clean up later
 
       # Finished:
       if trace:

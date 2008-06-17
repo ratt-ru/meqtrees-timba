@@ -99,7 +99,7 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 
 TDLRuntimeMenu("Custom Settings:",
-               TDLOption('runopt_show_request',"Show each request", False),
+               TDLOption('runopt_show_request',"Show each request", [False, True, 'full']),
                TDLOption('runopt_show_bundles',"Show all bundle subtree(s)", False),
                TDLMenu("Printer settings (for hardcopy doc):",
                        TDLOption('runopt_printer',"name of the printer for harcopy",
@@ -257,11 +257,11 @@ def make_request (cells, rqtype=None):
 
     if runopt_show_request:
         print '\n** QRU.make_request(',type(cells),'): counter=',request_counter,'-> rqid=',rqid
-        print '    cells=',cells
-        print '    request=',type(rr)
-        print 
+        print format_record(rr, 'request', full=(runopt_show_request=='full'))
     return rr
 
+
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
 def make_cells (axes=['freq','time'], offset=None, trace=False):
@@ -527,6 +527,98 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 
 
 
+#================================================================================
+# Helper functions for formatting output strings:
+#================================================================================
+
+def format_record(rr, txt=None, ss=None, level=0, full=False, mode='str'):
+    """Format the given record"""
+    prefix = '\n ..'+(level*'..')+' '
+    if level==0:
+        ss = '\n** format_record(): '+str(txt)+' ('+str(type(rr))+'):'
+        
+    for key in rr.keys():
+        if getattr(rr[key],'mean',None):              # e.g. numarray...
+            vv = rr[key]
+            # print dir(vv)
+            nel = vv.nelements()
+            stddev = 0.0
+            if nel>1:
+                if getattr(vv,'stddev',None):    # numarray...
+                    stddev = vv.stddev()
+                elif getattr(vv,'std',None):     # numpy
+                    stddev = vv.std()
+                else:
+                    stddev = '??'
+            ss += prefix+str(key)+': n='+str(nel)
+            ss += '   mean='+str(vv.mean())
+            ss += '   stddev='+str(stddev)
+            ss += '   [min,max]='+str([vv.min(),vv.max()])
+            if full:
+                ss += prefix+str(key)+' ('+str(type(rr[key]))+') = '+str(rr[key])
+                
+        # elif isinstance(rr[key],(list,tuple)):
+        #     ss += format_vv(rr[key])
+
+        elif not isinstance(rr[key],dict):
+            ss += prefix+str(key)+' ('+str(type(rr[key]))+') = '+str(rr[key])
+
+    for key in rr.keys():
+        if isinstance(rr[key],dict):
+            ss += prefix+str(key)+':'
+            ss = format_record(rr[key], ss=ss, level=level+1, full=full)
+
+    if level==0:
+        ss += '\n**\n'
+        if mode=='list':
+            ss = ss.split('\n')
+    return ss
+
+#----------------------------------------------------------------------------
+
+def format_value (v):
+    """Helper function to format a value"""
+    return ss
+
+def format_float(v, name=None, n=2):
+  """Helper function to format a float for printing"""
+  if isinstance(v, complex):
+     s1 = format_float(v.real)
+     s2 = format_float(v.imag)
+     s = '('+s1+'+'+s2+'j)'
+  else:
+     q = 100.0
+     v1 = int(v*q)/q
+     s = str(v1)
+  if isinstance(name,str):
+    s = name+'='+s
+  # print '** format_float(',v,name,n,') ->',s
+  return s
+
+#-----------------------------------------------------------
+
+def format_vv (vv):
+  if not isinstance(vv,(list,tuple)):
+    return str(vv)
+  elif len(vv)==0:
+    return 'empty'
+  elif not isinstance(vv[0],(int,float,complex)):
+    s = '  length='+str(len(vv))
+    s += '  type='+str(type(vv[0]))
+    s += '  '+str(vv[0])+' ... '+str(vv[len(vv)-1])
+  else:
+    import pylab              # must be done here, not above....
+    ww = pylab.array(vv)
+    s = '  length='+str(len(ww))
+    s += format_float(ww.min(),'  min')
+    s += format_float(ww.max(),'  max')
+    s += format_float(ww.mean(),'  mean')
+    if len(ww)>1:                       
+      if not isinstance(ww[0],complex):
+        s += format_float(ww.std(),'  stddev')
+  return s
+
+
 
 
 
@@ -534,8 +626,6 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 #================================================================================
 # Helper functions (called externally from QR_... modules):
 #================================================================================
-
-#--------------------------------------------------------------------------------
 
 
 def on_entry(func, path, rider, trace=False):
@@ -813,17 +903,8 @@ def bundle (ns, path, rider,
 
     # Special case: no nodes to be bundled:
     if len(nodes)==0:
-        # If bookmark specifies any nodes, use those:
-        # (after all, they require a request)
-        if is_node(bookmark):
-            nodes = [bookmark]
-        elif isinstance(bookmark,(list,tuple)):
-            nodes = bookmark
-
-    if len(nodes)==0:
-        # If still no nodes to be bundles, make a dummy one:
         parent << Meq.Constant(-0.123454321, quickref_help=qhelp)
-        bookmark = False                      # just in case
+        ## bookmark = False                      # just in case
 
     else:
         # Optionally, apply a one or more unary math operations (e.g. Abs)
@@ -871,6 +952,8 @@ def bundle (ns, path, rider,
             nodes = [bookmark]
         elif isinstance(bookmark,(list,tuple)):
             nodes = bookmark
+        elif bookmark=='parent':
+            nodes = [parent]
 
         # The rider object has a service for extracting page and folder from path.
         [page, folder] = rider.bookmark(path, trace=trace)
