@@ -1670,9 +1670,9 @@ class QwtImageDisplay(QwtPlot):
             temp_str = "nearest x=%-.3g" % x
           
           if self.has_nans_infs and y == self.nan_inf_value:
-            temp_str1 = "value: NaN or Inf"
+            temp_str1 = " value: NaN or Inf"
           else:
-            temp_str1 = "value: %-.3g" % y
+            temp_str1 = " value: %-.3g" % y
 #         temp_str1 = " y=%-.3g" % y
 	  message = temp_str + temp_str1 
         return message
