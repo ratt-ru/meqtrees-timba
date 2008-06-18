@@ -3282,7 +3282,14 @@ class QwtImageDisplay(QwtPlot):
             axis_diff = 0.005
             axis_subt = 0.002
           if not self._flags_array is None:
-            self.setAxisScale(QwtPlot.yRight, flags_y_array.min() - axis_subt, flags_y_array.max() + axis_diff)
+            min_val = flags_y_array.min() - axis_subt
+            max_val = flags_y_array.max() + axis_diff
+            if self.has_nans_infs:
+              if flags_y_array.min() > self.nan_inf_value: 
+                min_val = self.nan_inf_value - axis_subt
+              if flags_y_array.max() < self.nan_inf_value: 
+                max_val = self.nan_inf_value + axis_diff
+            self.setAxisScale(QwtPlot.yLeft, min_val, max_val)
           else:
             self.setAxisScale(QwtPlot.yRight, self.y_array.min() - axis_subt, self.y_array.max() + axis_diff)
           if not self._flags_array is None:
@@ -3294,7 +3301,14 @@ class QwtImageDisplay(QwtPlot):
             axis_diff = 0.005
             axis_add = 0.002
           if not self._flags_array is None:
-            self.setAxisScale(QwtPlot.yLeft, flags_x_array.min() - axis_diff, flags_x_array.max() + axis_add)
+            min_val = flags_x_array.min() - axis_diff
+            max_val = flags_x_array.max() + axis_add
+            if self.has_nans_infs:
+              if flags_x_array.min() > self.nan_inf_value: 
+                min_val = self.nan_inf_value - axis_diff
+              if flags_x_array.max() < self.nan_inf_value: 
+                max_val = self.nan_inf_value + axis_add
+            self.setAxisScale(QwtPlot.yLeft, min_val, max_val)
           else:
             self.setAxisScale(QwtPlot.yLeft, self.x_array.min() - axis_diff, self.x_array.max() + axis_add)
           _dprint(3, 'plotting complex array with x values ', self.x_index)
@@ -3386,7 +3400,14 @@ class QwtImageDisplay(QwtPlot):
             axis_add = abs(0.01 * axis_diff)
             if axis_diff <0.00001:
               axis_add = 0.002
-            self.setAxisScale(QwtPlot.yLeft, flags_x_array.min() - axis_add, flags_x_array.max() + axis_add)
+            min_val = flags_x_array.min() - axis_add
+            max_val = flags_x_array.max() + axis_add
+            if self.has_nans_infs:
+              if flags_x_array.min() > self.nan_inf_value: 
+                min_val = self.nan_inf_value - axis_add
+              if flags_x_array.max() < self.nan_inf_value: 
+                max_val = self.nan_inf_value + axis_add
+            self.setAxisScale(QwtPlot.yLeft, min_val, max_val)
           else:
             self.setCurveData(self.xrCrossSection, self.x_index, self.x_array)
 
