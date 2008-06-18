@@ -25,6 +25,38 @@
 
 from SkyComponent import *
 import Context
+import Parallelization
+
+# This is a function to add a large number of visibilities in a clever way.
+# The problem is that having too many children on a node leads to huge cache 
+# usage. So instead we make a hierarchical tree to only add two things at a time.
+#
+# 'nodes' are output (sum) nodes
+# 'visibilities' is a list of nodes containing visibilities (per component)
+# 'ifrs' is a list of IFRs (so that for each i,p,q compvis[i](p,q) is a valid node)
+def smart_adder (nodes,visibilities,ifrs,**kw):
+  sums = visibilities;
+  while sums:
+    # if down to two terms or less, generate final nodes
+    if len(sums) <= 2:
+      for ifr in ifrs:
+        nodes(*ifr) << Meq.Add(*[x(*ifr) for x in sums],**kw)
+      break;
+    # else generate intermediate sums
+    else:
+      newsums = [];
+      for i in range(0,len(sums),2):
+        # if we're dealing with the odd term out, propagate it to newsums list as-is
+        if i == len(sums)-1:
+          newsums.append(sums[i]);
+        else:
+          newnode = nodes('(%d,%d)'%(len(sums),i));  # create unique name for intermediate sum node
+          for ifr in ifrs:
+            newnode(*ifr) << Meq.Add(*[x(*ifr) for x in sums[i:i+2]],**kw);
+          newsums.append(newnode);
+      sums = newsums;
+  return nodes;
+
 
 class Patch (SkyComponent):
   def __init__(self,ns,name,direction):
@@ -37,33 +69,38 @@ class Patch (SkyComponent):
     
   def make_visibilities (self,nodes,array,observation):
     array = Context.get_array(array);
+    ifrs = array.ifrs();
     # no components -- use 0
     if not self._components:
-      [ nodes(*ifr) << 0.0 for ifr in array.ifrs() ];
+      [ nodes(*ifr) << 0.0 for ifr in ifrs ];
     else:
-      compvis = [ comp.visibilities(array,observation) for comp in self._components ];
       # add them up per-ifr
-      # be clever -- having too many children to one node leads to a huge
-      # memory footprint, so we add them in packs of two. cur_vis is the current
-      # list of nodes to be added, it is reduced by a factor of 2 at each step.
-      sums = compvis;
-      while sums:
-        # if down to two terms or less, generate final nodes
-        if len(sums) <= 2:
-          for ifr in array.ifrs():
-            nodes(*ifr) << Meq.Add(*[x(*ifr) for x in sums])
-          break;
-        # else generate intermediate sums
-        else:
-          newsums = [];
-          for i in range(0,len(sums),2):
-            # if we're dealing with the odd term out, propagate it to newsums list as-is
-            if i == len(sums)-1:
-              newsums.append(sums[i]);
-            else:
-              newnode = nodes('(%d,%d)'%(len(sums),i));  # create unique name for intermediate sum node
-              for ifr in array.ifrs():
-                newnode(*ifr) << Meq.Add(*[x(*ifr) for x in sums[i:i+2]]);
-              newsums.append(newnode);
-          sums = newsums;
+      # If Parallelization is enabled, divide sources into batches and
+      # place on each machine
+      if Parallelization.mpi_enable and getattr(Parallelization,'parallelize_by_source',False):
+        nproc = Parallelization.mpi_nproc;
+        # how many sources per processor?
+        nsrc = len(self._components);
+        src_per_proc = nsrc/nproc;
+        if nsrc%nproc != 0:
+          src_per_proc += 1;
+        # now loop over processors
+        per_proc_nodes = [];
+        for proc in range(nproc):
+          isrc0 = proc*src_per_proc; 
+          if isrc0 >= nsrc:
+            break;
+          isrc1 = min(isrc0+src_per_proc,nsrc-1);
+          # this node will contain the per-processor sum
+          procnode = nodes('P%d'%proc);
+          per_proc_nodes.append(procnode);
+          # now, make nodes to add contributions of every source on that processor
+          compvis = [ comp.visibilities(array,observation) for comp in self._components[isrc0:isrc1] ];
+          smart_adder(procnode,compvis,ifrs,proc=proc);
+        # now, make one final sum of per-processor contributions
+        smart_adder(nodes,per_proc_nodes,ifrs,proc=0);
+      else:
+        # No parallelization, all sourced added up on one machine.
+        compvis = [ comp.visibilities(array,observation) for comp in self._components ];
+        smart_adder(nodes,compvis,ifrs);
     return nodes;

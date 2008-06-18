@@ -27,6 +27,8 @@
 #include <DMI/Record.h>
 #include <MEQ/RequestId.h>
 
+#pragma aidgroup Meq
+#pragma types #Meq::NodeFace
 
 namespace Meq 
 { 
@@ -87,6 +89,9 @@ class NodeFace : public DMI::BObj
     const std::string & name () const
     { return name_; }
     
+    virtual string className() const
+    { return objectType().toString(); }
+
     //## Returns nodeindex
     int nodeIndex () const 
     { return nodeindex_; }
@@ -198,8 +203,14 @@ class NodeFace : public DMI::BObj
     //## publish their status.
     //## No exceptions may be thrown.
     virtual void publishParentalStatus () =0;
-      
-        
+    
+    //## sets breakpoint(s)
+    virtual void setBreakpoint (int bpmask,bool single_shot=false) =0;
+    //## clears breakpoint(s)
+    virtual void clearBreakpoint (int bpmask,bool single_shot=false) =0;
+    // changes the publishing level
+    virtual void setPublishingLevel (int level=1) =0;
+
     
     //## Standard debug info method. Returns string describing the node object
     //## at the specified level of details. If a multi-line string is returned,

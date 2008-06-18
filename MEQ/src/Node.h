@@ -311,9 +311,6 @@ class Node : public NodeFace
     const string & description () const
     { return description_; }
 
-    string className() const
-    { return objectType().toString(); }
-
     NodeNursery & children ()
     { return children_; }
     const NodeNursery & children () const

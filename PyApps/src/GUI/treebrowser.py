@@ -82,6 +82,8 @@ class TreeBrowser (QObject):
       # fill basic listview stuff
       self.setText(tb.icolumn("class"),str(node.classname));
       self.setText(tb.icolumn("index"),str(node.nodeindex));
+      if tb._mpi_num_proc > 1:
+        self.setText(tb.icolumn("proc"),"P%d"%node.proc);
       self.setDragEnabled(True);
       if node.children or node.step_children:
         self.setExpandable(True);
@@ -507,6 +509,7 @@ class TreeBrowser (QObject):
     self._callbacks = [];
     self._stopped_nodes = [];
     self._breakpoint_nodes = [];
+    self._mpi_num_proc = 1;
     #----------------------- public state
     self.app_state = None;
     self.debug_level = 0;
@@ -523,6 +526,8 @@ class TreeBrowser (QObject):
       self.add_column("breakpoint",'',24,iconset=pixmaps.breakpoint.iconset());
       self.add_column("execstate","xs/rqid");
       self.add_column("result",'',24,iconset=pixmaps.blue_round_result.iconset());
+      if self._mpi_num_proc > 1:
+        self.add_column("proc",'',24);
       icol = self.add_column("class");
       self._icol_disable = icol;
       icol = self.add_column("index",width=60);
@@ -548,15 +553,18 @@ class TreeBrowser (QObject):
     # add nodelist views
     nodelist = meqds.nodelist;
     self._recent_item = None;
+    # add 'All Nodes' item
     all_item  = StickyListViewItem(self._nlv,"All nodes (%d)"%len(nodelist),key=10);
     all_item._no_auto_open = True;
     all_item._iter_nodes = nodelist.iternodes();
     all_item.setExpandable(True);
+    # add 'Root Nodes' item
     rootnodes = nodelist.rootnodes();
     rootitem  = self._nlv_rootitem = \
       StickyListViewItem(self._nlv,all_item,"Root nodes (%d)"%len(rootnodes),key=30);
     rootitem._iter_nodes = iter(rootnodes);
     rootitem.setExpandable(True);
+    # add 'By Class' item
     classes = nodelist.classes();
     cls_item  = item = \
       StickyListViewItem(self._nlv,rootitem,"By class (%d)"%len(classes),key=20);
@@ -570,6 +578,23 @@ class TreeBrowser (QObject):
       item.setExpandable(True);
       item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
+    # add 'By Processor' item
+    if self._mpi_num_proc > 1:
+      procitem = item = \
+        StickyListViewItem(self._nlv,cls_item,"By processor (%d)"%self._mpi_num_proc,key=25);
+      procitem._no_auto_open = True;
+      # add node to per-processor list only if it is a root node of
+      # that processor (i.e. none of its parents belong to that processor)
+      for proc in range(self._mpi_num_proc):
+        # list of all nodes on processor
+        proclist = filter(lambda x:x.proc == proc,nodelist.iternodes()); 
+        # list of root nodes of that processor
+        procrootlist = filter(lambda x:not filter(lambda y:nodelist[y].proc==proc,x.parents),
+                          proclist);
+        item = QListViewItem(procitem,item,"P%d (%d)"%(proc,len(proclist)));
+        item.setExpandable(True);
+        item._iter_nodes = iter(procrootlist);
+        item._no_auto_open = True;
     # emit signal
     self.emit(PYSIGNAL("forestLoaded()"),());
       
@@ -717,6 +742,7 @@ class TreeBrowser (QObject):
     was_stopped = self.is_stopped;
     self.is_stopped = fst.stopped;
     self.debug_level = fst.debug_level;
+    self._mpi_num_proc = fst.mpi_num_proc;
     self._forest_breakpoint = fst.breakpoint;
     self.wtop().emit(PYSIGNAL("isRunning()"),(self.is_running,));
     self.wtop().emit(PYSIGNAL("isStopped()"),(self.is_stopped,));

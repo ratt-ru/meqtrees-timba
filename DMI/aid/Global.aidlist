@@ -368,7 +368,7 @@ MeqMergeFlags                    1441       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqMin                           1392       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Min.h:29
 MeqMinLocation                   1700       ; from /home/sarod/Timba/MeqNodes/src/MinLocation.h:30
 MeqModRes                        1592       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32
-#MeqMPIProxy                     1739       ; from /home/oms/Timba/MeqMPI/src/MPIProxy.h:8
+MeqMPIProxy                      1739       ; from /home/oms/Timba/MeqMPI/src/MPIProxy.h:8
 MeqMultiply                      1391       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
 MeqNegate                        1506       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Negate.h:29
 MeqNElements                     1500       ; from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
@@ -397,8 +397,8 @@ MeqPrivateFunction               1692       ; from /home/mevius/LOFAR/Timba/MeqN
 MeqPrivFunction                  1693       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivFunction.h:31
 MeqProduct                       1501       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
 MeqPyFunctionNode                1707       ; from /home/oms/Timba/MeqServer/src/PyFunctionNode.h:6
-MeqPyNode                        1705       ; from /home/oms/Timba/MeqServer/src/PyNode.h:10
-MeqPyTensorFuncNode              1721       ; from /home/oms/Timba/MeqServer/src/PyTensorFuncNode.h:7
+#MeqPyNode                       1705       ; from /home/oms/Timba/MeqServer/src/PyNode.h:10
+#MeqPyTensorFuncNode             1721       ; from /home/oms/Timba/MeqServer/src/PyTensorFuncNode.h:7
 MeqPyTensorFunction              1720       ; from /home/oms/Timba/MeqServer/src/PyTensorFunction.h:7
 MeqPyTensorFunctionNode          1719       ; from /home/oms/Timba/MeqServer/src/PyTensorFunctionNode.h:7
 MeqRADec                         1709       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:52
@@ -415,9 +415,9 @@ MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServ
 MeqShapeletVisTf                 1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
 MeqSin                           1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 MeqSinh                          1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
-MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
+#MeqSink                         1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
 MeqSolver                        1401       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:30
-MeqSpigot                        1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
+#MeqSpigot                       1468       ; from /home/oms/LOFAR/Timba/MeqServer/src/Spigot.h:9
 MeqSpline                        1704       ; from /home/mevius/Timba/MEQ/src/Spline.h:10
 MeqSqr                           1458       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqr.h:30
 MeqSqrt                          1408       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sqrt.h:30
@@ -440,7 +440,7 @@ MeqUVInterpolWave                1688       ; from /home/rnijboer/LOFAR/Timba/Me
 MeqUVW                           1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
 MeqVells                         1341       ; from /home/oms/LOFAR/Timba/MEQ/src/Vells.h:30
 MeqVellSet                       1307       ; from /home/oms/LOFAR/Timba/MEQ/src/VellSet.h:35
-MeqVisDataMux                    1585       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
+#MeqVisDataMux                   1585       ; from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
 MeqVisPhaseShift                 1517       ; from /home/brentjens/LOFAR/Timba/MeqNodes/src/VisPhaseShift.h:31
 MeqWAvg                          1503       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WAvg.h:30
 MeqWMean                         1504       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WMean.h:30
@@ -459,6 +459,7 @@ Module                           1706       ; from /home/oms/Timba/MeqServer/src
 Modulo                           1679       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
 Motion                           1167       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
 Mount                            1155       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
+MPI                              1740       ; from /home/oms/Timba/MeqServer/src/MeqServer.h:36
 MS                               1128       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 MsgLog                           1043       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WorkProcess.h:30
 MT                               1604       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:45

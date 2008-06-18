@@ -33,6 +33,11 @@
 #include <MEQ/MTPool.h>
 #include <unistd.h>
 
+#include "config.h"
+#ifdef HAVE_MPI
+#include <MeqMPI/MeqMPI.h>
+#endif
+
 typedef std::vector<string> StrVec;
 typedef StrVec::iterator SVI;
 typedef StrVec::const_iterator SVCI;
@@ -41,6 +46,7 @@ using namespace DebugMeq;
 using namespace DMI;
 using namespace AppAgent;
 using LOFAR::Socket;
+using namespace Meq;
 
 // define a local debug context
 namespace main_debug_context
@@ -51,59 +57,85 @@ namespace main_debug_context
     
 int main (int argc,const char *argv[])
 {
+  int retcode = 0;
+  Debug::initLevels(argc,argv);
   // begin by closing all open FDs -- this is necessary so that we don't inherit any
   // GW sockets from a launching browser
   for( int i=3; i<1024; i++ )
     close(i);
 
+  // collect command-line arguments into vector
+  StrVec args(argc-1);
+  for( int i=1; i<argc; i++ )
+    args[i-1] = argv[i];
+  
+  // parse various options
+  bool start_gateways = 
+      std::find(args.begin(),args.end(),string("-nogw")) == args.end();
+  // "-ssr" option
+  if( std::find(args.begin(),args.end(),string("-ssr")) != args.end() )
+    Meq::NodeNursery::forceSequentialServiceRequests(true);
+  // "-mt" option
+  StrVec::const_iterator iter = 
+      std::find(args.begin(),args.end(),string("-mt"));
+  if( iter != args.end() )
+  {
+    ++iter;
+    if( iter == args.end() || !isdigit((*iter)[0]) )
+    {
+      cerr<<"-mt option must be followed by number of threads to use\n";
+      return 1;
+    }
+    int nt = atoi(iter->c_str());
+    if( nt>0 )
+    {        Meq::MTPool::Brigade::setBrigadeSize(nt);
+      Meq::MTPool::Brigade::startNewBrigade();
+      Meq::MTPool::Brigade::startNewBrigade();
+
+    }
+  }
+  // "-gw" option
+  string local_gw;
+  iter = std::find(args.begin(),args.end(),string("-gw"));
+  if( iter != args.end() )
+  {
+    ++iter;
+    if( iter == args.end() )
+    {
+      cerr<<"-gw option must be followed by socket name\n";
+      return 1;
+    }
+    local_gw = *iter;
+  }
+  
+
+#ifdef HAVE_MPI
+  MPI_Init(&argc,const_cast<char***>(&argv));
+  
+  // create a meqmpi object
+  MeqMPI meqmpi(argc,argv);
+  
+  meqmpi.initialize();
+  // If we're on processor 0, proceed below for regular meqserver startup.
+  // On all other processors, start abbreviated version 
+  if( meqmpi.comm_rank() !=0 )
+  {
+    Meq::Forest forest;
+    meqmpi.attachForest(forest);
+    meqmpi.rejoinCommThread();
+    if( Meq::MTPool::Brigade::numBrigades() )
+    {
+      cdebug(0)<<"=================== stopping worker threads ===================\n";
+      Meq::MTPool::Brigade::stopAll();
+    }
+  }
+  else
+  {
+#endif
+
   using main_debug_context::getDebugContext;
   try 
   {
-    // collect command-line arguments into vector
-    StrVec args(argc-1);
-    for( int i=1; i<argc; i++ )
-      args[i-1] = argv[i];
-    
-    // parse various options
-    bool start_gateways = 
-        std::find(args.begin(),args.end(),string("-nogw")) == args.end();
-    // "-ssr" option
-    if( std::find(args.begin(),args.end(),string("-ssr")) != args.end() )
-      Meq::NodeNursery::forceSequentialServiceRequests(true);
-    // "-mt" option
-    StrVec::const_iterator iter = 
-        std::find(args.begin(),args.end(),string("-mt"));
-    if( iter != args.end() )
-    {
-      ++iter;
-      if( iter == args.end() || !isdigit((*iter)[0]) )
-      {
-        cerr<<"-mt option must be followed by number of threads to use\n";
-        return 1;
-      }
-      int nt = atoi(iter->c_str());
-      if( nt>0 )
-      {
-        Meq::MTPool::Brigade::setBrigadeSize(nt);
-        Meq::MTPool::Brigade::startNewBrigade();
-        Meq::MTPool::Brigade::startNewBrigade();
-      }
-    }
-    // "-gw" option
-    string local_gw;
-    iter = std::find(args.begin(),args.end(),string("-gw"));
-    if( iter != args.end() )
-    {
-      ++iter;
-      if( iter == args.end() )
-      {
-        cerr<<"-gw option must be followed by socket name\n";
-        return 1;
-      }
-      local_gw = *iter;
-    }
-    Debug::initLevels(argc,argv);
-    
     cdebug(0)<<"=================== initializing OCTOPUSSY =====================\n";
     Octopussy::OctopussyConfig::initGlobal(argc,argv);
     Octopussy::init(false);  // start_gateways=False, we start our own
@@ -127,6 +159,9 @@ int main (int argc,const char *argv[])
     
     cdebug(0)<<"=================== creating MeqServer ========================\n";
     Meq::MeqServer meqserver;
+    #ifdef HAVE_MPI
+    meqmpi.attachForest(meqserver.getForest());
+    #endif
     
     // create control channel 
     DMI::Record::Ref recref;
@@ -181,7 +216,7 @@ int main (int argc,const char *argv[])
   catch ( std::exception &exc ) 
   {
     cdebug(0)<<"Exiting with exception: "<<exc.what()<<endl;  
-    return 1;
+    retcode = 1;
   }
 //  catch ( AipsError &err ) 
 //  {
@@ -191,8 +226,15 @@ int main (int argc,const char *argv[])
   catch( ... )
   {
     cdebug(0)<<"Exiting with unknown exception\n";  
-    return 1;
+    retcode = 1;
   }
   
-  return 0;  
+#ifdef HAVE_MPI
+  for( int i=1; i<meqmpi.comm_size(); i++ )
+    meqmpi.postCommand(MeqMPI::TAG_HALT,i);
+  }
+  meqmpi.stopCommThread();
+  MPI_Finalize();
+#endif
+  return retcode;  
 }

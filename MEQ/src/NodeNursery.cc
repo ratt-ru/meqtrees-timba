@@ -359,7 +359,7 @@ void NodeNursery::mt_waitForEndOfPoll ()
   {
     // else grab a work order for ourselves
     Thread::Mutex::Lock lock2(mt.cur_brigade_->cond());
-    MTPool::WorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
+    MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
     lock2.release();
     // if there's nothing on the queue, then we have to wait for all worker
     // threads to finish and deliver a result, so just go to sleep
@@ -422,7 +422,7 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
       }
       // no result on queue, so we can grab a work order from the brigade queue 
       Thread::Mutex::Lock lock2(mt.cur_brigade_->cond());
-      MTPool::WorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
+      MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
       lock2.release();
       // if there's nothing on the queue, then we have to wait for all worker
       // threads to finish and deliver a result, so just go to sleep
@@ -550,7 +550,7 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
           child_retcodes_[ichild] = 0;
       }
       // get the last WO back from the queue since we'll be executing it ourselves
-      MTPool::WorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
+      MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
       // wake up one or all worker threads
       if( mt.numchildren_ > 2 )
         mt.cur_brigade_->cond().broadcast();

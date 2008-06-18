@@ -122,7 +122,7 @@ void * Brigade::workerLoop ()
     Thread::testCancel();
     // wait on the queue condition for a work order to show up
     lock.relock(cond());
-    WorkOrder *wo = getWorkOrder(true);
+    AbstractWorkOrder *wo = getWorkOrder(true);
     lock.release();
     // execute order if any
     if( wo )
@@ -181,9 +181,9 @@ void Brigade::deactivated ()
 }
 
      
-// gets a WorkOrder from the brigade queue
+// gets a AbstractWorkOrder from the brigade queue
 // assume we have a lock on cond()
-WorkOrder * Brigade::getWorkOrder (bool wait)
+AbstractWorkOrder * Brigade::getWorkOrder (bool wait)
 {
   bool idled = false;
   while( true )
@@ -240,7 +240,7 @@ WorkOrder * Brigade::getWorkOrder (bool wait)
         DbgAssert(num_busy_<=num_workers_);
       }
       activated();
-      WorkOrder * wo = wo_queue_.front();
+      AbstractWorkOrder * wo = wo_queue_.front();
       wo_queue_.pop_front();
       return wo;
     }
@@ -370,21 +370,6 @@ void Brigade::waitUntilIdle (int minbusy)
   lock.release();
 }
 
-// this executes a work order. 
-void WorkOrder::execute (Brigade &brigade)
-{
-  timer.start();
-  NodeFace &node = noderef();
-  const Request &req = *reqref;
-  cdebug1(1)<<brigade.sdebug(1)+" executing WO "+req.id().toString('.')+" on node "+node.name()+"\n";
-  // note that this will block if node is already being executed
-  retcode = node.execute(resref,req);
-  cdebug1(1)<<brigade.sdebug(1)+" finished WO "+req.id().toString('.')+" on node "+node.name()+"\n";
-  timer.stop();
-  // notify client of completed order
-  (clientref.*callback)(ichild,*this);
-}
-
 // starts a new brigade and returns pointer to it
 Brigade * Brigade::startNewBrigade (Thread::Mutex::Lock *plock,bool one_short)
 {
@@ -394,9 +379,9 @@ Brigade * Brigade::startNewBrigade (Thread::Mutex::Lock *plock,bool one_short)
   return brigade;
 }
 
-// joins an idle brigade (allocates a new one as needed) and returns 
+// gets an idle brigade (allocates a new one as needed) and returns 
 // pointer to it; sets lock on brigade->cond()
-Brigade * Brigade::joinIdleBrigade (Thread::Mutex::Lock &lock)
+Brigade * Brigade::getIdleBrigade (Thread::Mutex::Lock &lock,bool one_short)
 {
   Thread::Mutex::Lock lock2(globMutex());
   Brigade *brigade;
@@ -407,19 +392,28 @@ Brigade * Brigade::joinIdleBrigade (Thread::Mutex::Lock &lock)
     idle_brigades_.pop_front();
     lock2.release();
     lock.relock(brigade->cond());
-    brigade->join();
-    cdebug1(1)<<ssprintf("removed %s from idle pool and joined, %d brigades now idle\n",
+    cdebug1(1)<<ssprintf("removed %s from idle pool, %d brigades now idle\n",
                  brigade->sdebug(0).c_str(),idle_brigades_.size());
-    return brigade;
   }
   else
   {
-    brigade = startNewBrigade(&lock,true);
-    brigade->join();
-    cdebug1(1)<<ssprintf("joined new idle brigade %s, %d brigades now idle\n",
+    brigade = startNewBrigade(&lock,one_short);
+    cdebug1(1)<<ssprintf("created new brigade %s, %d brigades now idle\n",
                  brigade->sdebug(0).c_str(),idle_brigades_.size());
-    return brigade;
   }
+  return brigade;
+}
+
+
+// joins an idle brigade (allocates a new one as needed) and returns 
+// pointer to it; sets lock on brigade->cond()
+Brigade * Brigade::joinIdleBrigade (Thread::Mutex::Lock &lock)
+{
+  Thread::Mutex::Lock lock2(globMutex());
+  Brigade *brigade = getIdleBrigade(lock);
+  brigade->join();
+  cdebug1(1)<<ssprintf("joined brigade %s\n",brigade->sdebug(0).c_str());
+  return brigade;
 }
 
 void Brigade::stopAll ()
@@ -444,6 +438,24 @@ void Brigade::stopAll ()
   all_brigades_.clear();
   idle_brigades_.clear();
 }
+
+
+// this executes a node-execute work order. 
+void WorkOrder::execute (Brigade &brigade)
+{
+  timer.start();
+  NodeFace &node = noderef();
+  const Request &req = *reqref;
+  cdebug1(1)<<brigade.sdebug(1)+" executing WO "+req.id().toString('.')+" on node "+node.name()+"\n";
+  // note that this will block if node is already being executed
+  retcode = node.execute(resref,req);
+  cdebug1(1)<<brigade.sdebug(1)+" finished WO "+req.id().toString('.')+" on node "+node.name()+"\n";
+  timer.stop();
+  // notify client of completed order
+  (clientref.*callback)(ichild,*this);
+}
+
+
 
 }
 }

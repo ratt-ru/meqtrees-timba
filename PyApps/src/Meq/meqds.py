@@ -140,6 +140,7 @@ class NodeList (QObject):
       self.nodeindex = ni;
       self.name = None;
       self.classname = None;
+      self.proc = 0;
       self.children = [];
       self.step_children = [];
       self.parents  = [];
@@ -237,68 +238,73 @@ class NodeList (QObject):
     if not self.is_valid_meqnodelist(meqnl):
       raise ValueError,"not a valid meqnodelist";
     self.serial = getattr(meqnl,'forest_serial',0);
-    # check that all list fields are correct
-    num = len(meqnl.nodeindex);
-    # form sequence of iterators
-    iter_name     = iter(meqnl.name);
-    iter_class    = iter(meqnl['class']);
-    iter_children = iter(meqnl.children);
-    iter_step_children = iter(meqnl.step_children);
-    iter_cstate   = iter(meqnl.control_status);
-    iter_rqid     = iter(meqnl.request_id);
-    # profiling info is optional
-    if hasattr(meqnl,'profiling_stats'):
-      self._has_profiling = True;
-      iter_prof   = iter(meqnl.profiling_stats);
-      iter_cache  = iter(meqnl.cache_stats);
-    else:
-      iter_prof = iter_cache = None;
-      self._has_profiling = False;
+    # make sure we have a proclist. If only one
+    # list arrives, stuff it into proclist anyway
+    proclist = getattr(meqnl,'proc',None);
+    if proclist is None:
+      proclist = [meqnl];
     self._nimap = {};
     self._namemap = {};
     self._classmap = {};
-    # iterate over all nodes in list
-    # (0,) is a special case of an empty list (see bug in DMI/DataField.cc)
-    if meqnl.nodeindex != (0,):
-      for ni in meqnl.nodeindex:
-        # insert node into list (or use old one: may have been inserted below)
-        node = self._nimap.setdefault(ni,self.Node(ni,self));
-        node.name      = iter_name.next();
-        node.classname = iter_class.next();
-        node.update_status(iter_cstate.next(),iter_rqid.next());
-        children  = iter_children.next();
-        step_children  = iter_step_children.next();
-        # set children
-        if children is None:
-          node.children = ();
-        elif isinstance(children,dict):
-          node.children = tuple(children.iteritems());
-        else:
-          node.children = tuple(enumerate(children));
-        # set step_children
-        if step_children is None:
-          node.step_children = ();
-        else:
-          node.step_children = step_children;
-        # set profiling stats, form them into 2D arrays for easier accounting
-        if iter_prof is not None:
-          ps = iter_prof.next();
-          try: node.profiling_stats = array([ps.total[0:2],ps.children[0:2],ps.get_result[0:2]]);
-          except KeyError: node.profiling_stats = sys.exc_info();
-          cs = iter_cache.next();
-          try: node.cache_stats = array([cs.all_requests,cs.new_requests]);
-          except KeyError: node.cache_stats = sys.exc_info();
-        # for all children, init node entry in list (if necessary), and
-        # add to parent list
-        for (i,ch_ni) in node.children:
-          if ch_ni > 0: # ignore missing children
+    for proc,sublist in enumerate(proclist):
+      # form sequence of iterators
+      iter_name     = iter(sublist.name);
+      iter_class    = iter(sublist['class']);
+      iter_children = iter(sublist.children);
+      iter_step_children = iter(sublist.step_children);
+      iter_cstate   = iter(sublist.control_status);
+      iter_rqid     = iter(sublist.request_id);
+      # profiling info is optional
+      if hasattr(sublist,'profiling_stats'):
+        self._has_profiling = True;
+        iter_prof   = iter(sublist.profiling_stats);
+        iter_cache  = iter(sublist.cache_stats);
+      else:
+        iter_prof = iter_cache = None;
+        self._has_profiling = False;
+      # iterate over all nodes in list
+      # (0,) is a special case of an empty list (see bug in DMI/Vec.cc)
+      if sublist.nodeindex != (0,):
+        for ni in sublist.nodeindex:
+          # insert node into list (or use old one: may have been inserted below)
+          node = self._nimap.setdefault(ni,self.Node(ni,self));
+          node.name      = iter_name.next();
+          node.classname = iter_class.next();
+          node.proc      = proc;
+          node.update_status(iter_cstate.next(),iter_rqid.next());
+          children  = iter_children.next();
+          step_children  = iter_step_children.next();
+          # set children
+          if children is None:
+            node.children = ();
+          elif isinstance(children,dict):
+            node.children = tuple(children.iteritems());
+          else:
+            node.children = tuple(enumerate(children));
+          # set step_children
+          if step_children is None:
+            node.step_children = ();
+          else:
+            node.step_children = step_children;
+          # set profiling stats, form them into 2D arrays for easier accounting
+          if iter_prof is not None:
+            ps = iter_prof.next();
+            try: node.profiling_stats = array([ps.total[0:2],ps.children[0:2],ps.get_result[0:2]]);
+            except KeyError: node.profiling_stats = sys.exc_info();
+            cs = iter_cache.next();
+            try: node.cache_stats = array([cs.all_requests,cs.new_requests]);
+            except KeyError: node.cache_stats = sys.exc_info();
+          # for all children, init node entry in list (if necessary), and
+          # add to parent list
+          for (i,ch_ni) in node.children:
+            if ch_ni > 0: # ignore missing children
+              self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
+          for ch_ni in node.step_children:
             self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
-        for ch_ni in node.step_children:
-          self._nimap.setdefault(ch_ni,self.Node(ch_ni)).parents.append(ni);
-        # add to name map
-        self._namemap[node.name] = node;
-        # add to class map
-        self._classmap.setdefault(node.classname,[]).append(node);
+          # add to name map
+          self._namemap[node.name] = node;
+          # add to class map
+          self._classmap.setdefault(node.classname,[]).append(node);
     # compose list of root (i.e. parentless) nodes
     self._rootnodes = [ node for node in self._nimap.itervalues() if not node.parents ];
     # emit signal
@@ -343,9 +349,19 @@ class NodeList (QObject):
 
   # return True if this is a valid meqNodeList (i.e. node list object from meq kernel)
   def is_valid_meqnodelist (nodelist):
-    for f in ('nodeindex',) + NodeList.NodeAttrs:
-      if f not in nodelist:
+    # if nodelist has a 'proc' field, then it is a list of nodes by processor
+    proclist = getattr(nodelist,'proc',None);
+    if proclist is not None:
+      if not isinstance(proclist,(list,tuple)):
         return False;
+      for sublist in proclist:
+        for f in ('nodeindex',) + NodeList.NodeAttrs:
+          if f not in sublist:
+            return False;
+    else:
+      for f in ('nodeindex',) + NodeList.NodeAttrs:
+        if f not in nodelist:
+          return False;
     return True;
   is_valid_meqnodelist = staticmethod(is_valid_meqnodelist);
 

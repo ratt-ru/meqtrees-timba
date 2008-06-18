@@ -52,7 +52,7 @@ class Forest
       NL_PROFILING_STATS  = 32,
       NL_DEFAULT   = NL_NODEINDEX|NL_NAME|NL_CLASS|NL_CONTROL_STATUS,
     } NodeListContent;
-
+    
     //##ModelId=3F60697A00ED
     Forest();
 
@@ -65,8 +65,8 @@ class Forest
     //## Creates a node using the given init record. The class of the node is
     //## determined by initrec["Class"].
     //## Returns ref to node.
-    Node & create (int &node_index, DMI::Record::Ref &initrec,
-                   bool reinitializing=false);
+    NodeFace & create (int &node_index, DMI::Record::Ref &initrec,
+                       bool reinitializing=false);
 
     //##ModelId=3F5F5CA300E0
     //##Documentation
@@ -76,12 +76,12 @@ class Forest
     //##ModelId=3F5F5B4F01BD
     //##Documentation
     //## Returns node specified by index
-    Node & get (int node_index);
+    NodeFace & get (int node_index);
 
     //##ModelId=3F7048570004
     //##Documentation
     //## Returns ref to repository's countedref, specified by index
-    const Node::Ref & getRef (int node_index);
+    const NodeFace::Ref & getRef (int node_index);
 
     //##ModelId=3F5F5B9D016A
     bool valid (int node_index) const;
@@ -95,7 +95,7 @@ class Forest
     //##Documentation
     //## Finds node by name, returns reference to node. Throws exception if not
     //## found.
-    Node & findNode(const string &name);
+    NodeFace & findNode(const string &name);
 
     //##ModelId=400E530501C2
     int maxNodeIndex () const
@@ -245,6 +245,11 @@ class Forest
         (*event_callback)(type,data);
     }
 
+    void postMessage (const std::string &msg,const HIID &type=HIID(AidMessage));
+    void postError   (const std::exception &exc);
+    void postError   (const std::string &msg)
+    { postMessage(msg,AidError); }
+
     // writes result of a node to the logger
     void logNodeResult (const Node &node,const Request &req,const Result &res);
 
@@ -302,7 +307,7 @@ class Forest
     void (*event_callback)(const HIID &,const ObjRef &);
 
     //##ModelId=3F60697903A7
-    typedef std::vector<Node::Ref> Repository;
+    typedef std::vector<NodeFace::Ref> Repository;
     //##ModelId=3F5F439203E2
     Repository nodes;
 

@@ -1,11 +1,11 @@
 dnl
 dnl Process this file with autoconf to produce a configure script.
 dnl
-AC_INIT
+AC_INIT(src/Makefile.am)
 dnl AC_CONFIG_AUX_DIR(config)
 dnl AM_CONFIG_HEADER(config/config.h)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(MeqServer, 0.1)
+AM_INIT_AUTOMAKE(MeqMPI, 0.1)
 
 dnl Initialize for LOFAR (may set compilers)
 lofar_INIT
@@ -51,24 +51,14 @@ dnl
 dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
-lofar_BLITZ(1)
-lofar_AIPSPP(1)
 lofar_MPI(0)
-lofar_PACKAGE(OCTOPUSSY)
-lofar_PACKAGE(OCTOPython)
-lofar_PACKAGE(AppAgent/AppUtils)
+lofar_BLITZ(1)
 lofar_PACKAGE(MEQ)
-lofar_PACKAGE(MeqNodes)
-lofar_PACKAGE(MeqMPI)
-dnl # removing cfitsio, it should be brought in by MeqNodes
-dnl lofar_EXTERNAL(cfitsio,1,fitsio.h,,/usr /usr/local /aips++/cfitsio)
-lofar_EXTERNAL(lapack,1,,'blas lapack','/usr/lib /usr/lib/atlas',,,,gnu3:-lg2c)
-lofar_PYTHON(1)
+
 dnl
 dnl Output Makefiles
 dnl
 AC_OUTPUT(
 src/Makefile
-test/Makefile
 Makefile
 )

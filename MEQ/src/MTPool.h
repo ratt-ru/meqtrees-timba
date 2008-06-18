@@ -22,6 +22,8 @@
 // or write to the Free Software Foundation, Inc., 
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+#ifndef MEQ_MTPOOL_H
+#define MEQ_MTPOOL_H
 
 #include <TimBase/Thread/Condition.h>
 #include <TimBase/Timer.h>
@@ -35,12 +37,26 @@ namespace Meq
   {
     class Brigade;
     
-    // This class represents a work order to be executed
-    class WorkOrder
+    // This class represents an abstract work order for a worker thread.
+    // A WO is usually (but does not have to be) associated with a node.
+    class AbstractWorkOrder 
     {
       public:
-        typedef void (NodeNursery::*Callback)(int,WorkOrder &);  
+        // executes the WO. 
+        virtual void execute (Brigade &brig) =0;
         
+        virtual ~AbstractWorkOrder ()
+        {}
+    };
+    
+    // An WorkOrder makes an execute() call on a node
+    // This is used from NodeNurseries to do mutlithreaded polls.
+    class WorkOrder : public AbstractWorkOrder
+    {
+      public:
+        typedef void (NodeNursery::*Callback)(int,WorkOrder &);
+        
+        // creates an "EXECUTE" workorder
         WorkOrder (NodeNursery &client,Callback cb,NodeFace &child,int i,const Request &req)
         : clientref(client),
           callback(cb),
@@ -49,22 +65,18 @@ namespace Meq
           reqref(req)
         {}
         
-        void execute (Brigade &brig);      // runs the work order. 
-        // Caller must successfully call lockNode() first.
+        virtual void execute (Brigade &brig);      // runs the work order. 
         
-        NodeNursery & clientref; // who placed the order
-        Callback callback;       // where to deliver result within the caller
+        NodeNursery & clientref;  // who placed the order
+        Callback callback;    // where to deliver result within the caller
         
         NodeFace::Ref noderef;  // which node to execute
         int ichild;             // child number of node to execute
         Request::Ref reqref;    // request to execute
         
-        Result::Ref resref;   // result of request (when completed)
-        int retcode;          // return code (when completed)
-        LOFAR::NSTimer timer; // execution timer
-        
-        // a lock is held on node's execMutex() while executing
-        Thread::Mutex::Lock  nodelock;
+        Result::Ref resref;     // result of request (when completed)
+        int retcode;            // return code (when completed)
+        LOFAR::NSTimer timer;   // execution timer
     };
     
     // a brigate is a set of worker threads sharing a WO queue
@@ -88,7 +100,7 @@ namespace Meq
         // puts a new work order on the brigade's queue. 
         // !!! The caller must obtain a lock on cond() before calling this.
         // Ownership of order object is transferred to the queue. 
-        inline void placeWorkOrder (WorkOrder *wo)
+        inline void placeWorkOrder (AbstractWorkOrder *wo)
         { 
           // queue is LIFO so orders are pushed in the front
           wo_queue_.push_front(wo);
@@ -108,7 +120,7 @@ namespace Meq
         // The work order will have its nodelock set, so WorkOrder::execute() 
         // may be called immediately. 
         // Ownership of order object is transferred to caller. 
-        WorkOrder * getWorkOrder (bool wait=true);
+        AbstractWorkOrder * getWorkOrder (bool wait=true);
         
         // returns brigade to which the current thread belongs
         static Brigade * current ()
@@ -204,6 +216,9 @@ namespace Meq
         // starts a new brigade and returns pointer to it
         static Brigade * startNewBrigade (Thread::Mutex::Lock *plock=0,bool one_short=true);
         
+        // starts a new brigade and returns pointer to it
+        static Brigade * getIdleBrigade (Thread::Mutex::Lock &lock,bool one_short=true);
+
         // joins an idle brigade (allocates a new one as needed) and returns 
         // pointer to it; sets lock on brigade->cond()
         static Brigade * joinIdleBrigade (Thread::Mutex::Lock &lock);
@@ -263,7 +278,7 @@ namespace Meq
           // brigade idle/busy condition variable & mutex
         Thread::Condition busy_cond_;  
           // work order queue
-        typedef std::list<WorkOrder *> WorkOrderQueue;  
+        typedef std::list<AbstractWorkOrder *> WorkOrderQueue;  
         WorkOrderQueue wo_queue_;
           
           // thread key used to hold context structure for each thread
@@ -288,3 +303,5 @@ namespace Meq
 
   
 };
+
+#endif

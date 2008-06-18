@@ -263,6 +263,11 @@ const int AidList_int = -1040;
 const DMI::AtomicID AidLoad(-1463);               // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:14
 const int AidLoad_int = -1463;
 #endif
+#ifndef _defined_id_AidMPI
+#define _defined_id_AidMPI 1
+const DMI::AtomicID AidMPI(-1740);                // from /home/oms/Timba/MeqServer/src/MeqServer.h:36
+const int AidMPI_int = -1740;
+#endif
 #ifndef _defined_id_AidMandate
 #define _defined_id_AidMandate 1
 const DMI::AtomicID AidMandate(-1486);            // from /home/oms/LOFAR/Timba/MeqServer/src/VisHandlerNode.h:12
@@ -367,6 +372,11 @@ const int AidPost_int = -1231;
 #define _defined_id_AidPre 1
 const DMI::AtomicID AidPre(-1584);                // from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:10
 const int AidPre_int = -1584;
+#endif
+#ifndef _defined_id_AidProc
+#define _defined_id_AidProc 1
+const DMI::AtomicID AidProc(-1738);               // from /home/oms/Timba/MeqServer/src/MeqServer.h:36
+const int AidProc_int = -1738;
 #endif
 #ifndef _defined_id_AidProcessing
 #define _defined_id_AidProcessing 1

@@ -456,7 +456,7 @@ class _NodeStub (object):
             "nodeindex",
             "_initrec","_name_stack","_bind_stack","_debuginfo","_basenode",
             "_must_define_stack","_must_define_by",
-            "_search_cookie" );
+            "_proc","_search_cookie" );
   class Parents (weakref.WeakValueDictionary):
     """The Parents class is used to manage a weakly-reffed dictionary of the
     node's parents. We only redefine it as a class to implement __copy__
@@ -485,6 +485,7 @@ class _NodeStub (object):
     self.parents = self.Parents();
     self._basenode = basenode;
     self._initrec = None;         # uninitialized node
+    self._proc = None;
     # figure out source location from where node was defined.
     ## this used to say
     # self._deftb = Timba.utils.extract_stack(None,4);
@@ -581,6 +582,10 @@ class _NodeStub (object):
         elif self.classname == 'MeqVisDataMux':
           self.scope._repository._have_vdm = self;
         self._initrec = initrec;
+        # get processor keyword, add to list of processor assignments
+        proc = self._proc = initrec.get('proc',None);
+        if proc is not None:
+          self.scope._repository._proc_assignment.setdefault(proc,[]).append(self);
       # success
       self._bind_stack = this_stack;
       return self;
@@ -911,6 +916,7 @@ class _NodeRepository (dict):
     self._sinks = [];
     self._spigots = [];
     self._have_vdm = None;
+    self._proc_assignment = {};
     # used during recursive searches
     self._search_cookie = 0;
 
@@ -1207,6 +1213,22 @@ class _NodeRepository (dict):
       _dprint(3,"uninitialized:",uninit);
       for name in uninit:
         del self[name];
+    ## finalize MPI processor assignments, if any were specified
+    if self._proc_assignment:
+      # for each explicitly specified processor assignment, go
+      # up the tree and assign all children to that processor
+      def recursive_proc_assign (node,proc):
+        node._proc = node._initrec.proc = proc;
+        for label,child in node.children:
+          if getattr(child,'_proc') is None:
+            recursive_proc_assign(child,proc);
+        for label,child in node.stepchildren:
+          if getattr(child,'_proc') is None:
+            recursive_proc_assign(child,proc);
+      for proc,nodelist in self._proc_assignment.iteritems():
+        for node in nodelist:
+          recursive_proc_assign(node,proc);
+      
     # clean up potential orphans: if deleteOrphan() returns False, then node is
     # not really an orphan, so we move it to the roots group instead
     len0 = len(self);

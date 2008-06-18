@@ -33,7 +33,7 @@
 
 #pragma aidgroup MeqServer    
 #pragma aid MeqClient
-#pragma aid Node Name NodeIndex MeqServer Meq CWD
+#pragma aid Node Name NodeIndex MeqServer Meq CWD Proc MPI Num 
 #pragma aid Create Delete Get Set State Request Resolve Child Children List Batch
 #pragma aid App Command Args Result Data Processing Error Message Code
 #pragma aid Execute Clear Cache Save Load Forest Recursive Forest Header Version 
@@ -118,6 +118,10 @@ class MeqServer : public DMI::EventRecepient
     //##ModelId=3F61920F01A8
     void createNode   (DMI::Record::Ref &out,DMI::Record::Ref &in);
     void createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    #ifdef HAVE_MPI
+    void createNodeBatch_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void getNodeList_Mpi  (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    #endif
     //##ModelId=3F61920F01FA
     void deleteNode   (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F024E
@@ -134,10 +138,10 @@ class MeqServer : public DMI::EventRecepient
     
     //##ModelId=400E5B6C015E
     void nodeExecute  (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    //##ModelId=400E5B6C0247
+/*    //##ModelId=400E5B6C0247
     void saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=400E5B6C02B3
-    void loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
+    void loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in);*/
     //##ModelId=400E5B6C0324
     void clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in);
     
@@ -206,7 +210,7 @@ class MeqServer : public DMI::EventRecepient
     { return state_; }
       
     //##ModelId=3F6196800325
-    Node & resolveNode (bool &getstate,const DMI::Record &rec);
+    NodeFace & resolveNode (bool &getstate,const DMI::Record &rec);
 
     void reportNodeStatus  (Node &node,int oldstat,int newstat);
 

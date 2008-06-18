@@ -31,6 +31,12 @@
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
 
+#include "config.h"
+#ifdef HAVE_MPI
+#include <MeqMPI/MeqMPI.h>
+#include <MeqMPI/MeqSubserver.h>
+#endif
+
 #ifndef HAVE_PARMDB
 #include <MeqNodes/ParmTableUtils.h>
 #endif
@@ -69,7 +75,7 @@ const HIID MeqResultPrefix  = AidResult;
 
 const HIID DataProcessingError = AidData|AidProcessing|AidError;
 
-InitDebugContext(MeqServer,"MeqServer");
+InitDebugContext(MeqServer,"MeqServ");
 
 // this flag can be set in the input record of all commands dealing with
 // individual nodes to have the new node state included in the command result.
@@ -124,19 +130,28 @@ MeqServer::MeqServer()
   async_commands["Set.Forest.State"] = &MeqServer::setForestState;
 
   sync_commands["Create.Node"] = &MeqServer::createNode;
+  #ifdef HAVE_MPI
+  sync_commands["Create.Node.Batch"] = &MeqServer::createNodeBatch_Mpi;
+  #else
   sync_commands["Create.Node.Batch"] = &MeqServer::createNodeBatch;
+  #endif
+    
   sync_commands["Delete.Node"] = &MeqServer::deleteNode;
   sync_commands["Init.Node"] = &MeqServer::initNode;
   sync_commands["Init.Node.Batch"] = &MeqServer::initNodeBatch;
   async_commands["Set.Cwd"] = &MeqServer::setCurrentDir;
   async_commands["Set.Session.Name"] = &MeqServer::setSessionName;
+  #ifdef HAVE_MPI
+  async_commands["Get.Node.List"] = &MeqServer::getNodeList_Mpi;
+  #else
   async_commands["Get.Node.List"] = &MeqServer::getNodeList;
+  #endif  
   async_commands["Get.Forest.Status"] = &MeqServer::getForestStatus;
   async_commands["Get.NodeIndex"] = &MeqServer::getNodeIndex;
 
   async_commands["Disable.Publish.Results"] = &MeqServer::disablePublishResults;
-  sync_commands["Save.Forest"] = &MeqServer::saveForest;
-  sync_commands["Load.Forest"] = &MeqServer::loadForest;
+//  sync_commands["Save.Forest"] = &MeqServer::saveForest;
+//  sync_commands["Load.Forest"] = &MeqServer::loadForest;
   sync_commands["Clear.Forest"] = &MeqServer::clearForest;
 
   // per-node commands
@@ -175,17 +190,17 @@ static string makeNodeLabel (const string &name,int)
   return ssprintf("node '%s'",name.c_str());
 }
 
-static string makeNodeLabel (const Meq::Node &node)
+static string makeNodeLabel (const Meq::NodeFace &node)
 {
   return ssprintf("node '%s'",node.name().c_str());
 }
 
-static string makeNodeMessage (const Meq::Node &node,const string &msg)
+static string makeNodeMessage (const Meq::NodeFace &node,const string &msg)
 {
   return makeNodeLabel(node) + ": " + msg;
 }
 
-static string makeNodeMessage (const string &msg1,const Meq::Node &node,const string &msg2 = string())
+static string makeNodeMessage (const string &msg1,const Meq::NodeFace &node,const string &msg2 = string())
 {
   string str = msg1 + " " + makeNodeLabel(node);
   if( !msg2.empty() )
@@ -195,14 +210,14 @@ static string makeNodeMessage (const string &msg1,const Meq::Node &node,const st
 
 
 //##ModelId=3F6196800325
-Node & MeqServer::resolveNode (bool &getstate,const DMI::Record &rec)
+NodeFace & MeqServer::resolveNode (bool &getstate,const DMI::Record &rec)
 {
   int nodeindex = rec[AidNodeIndex].as<int>(-1);
   string name = rec[AidName].as<string>("");
   getstate = rec[FGetState].as<bool>(false);
   if( nodeindex>0 )
   {
-    Node &node = forest.get(nodeindex);
+    NodeFace &node = forest.get(nodeindex);
     FailWhen( name.length() && node.name() != name,"node specified by index is "+
         node.name()+", which does not match specified name "+name);
     return node;
@@ -224,6 +239,13 @@ void MeqServer::halt (DMI::Record::Ref &out,DMI::Record::Ref &in)
 void MeqServer::setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(3)<<"setForestState()"<<endl;
+  // if running under MPI, post state to all subservers
+  #ifdef HAVE_MPI
+  ObjRef objref = in;
+  for( int proc=1; proc<MeqMPI::self->comm_size(); proc++ )
+    MeqMPI::self->postCommand(MeqMPI::TAG_SET_FOREST_STATE,proc,objref);
+  objref.detach();
+  #endif
   DMI::Record::Ref ref = in[AidState].ref();
   forest.setState(ref);
   fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
@@ -274,7 +296,7 @@ void MeqServer::createNode (DMI::Record::Ref &out,DMI::Record::Ref &initrec)
   cdebug(3)<<initrec->sdebug(3);
   cdebug(2)<<endl;
   int nodeindex;
-  Node & node = forest.create(nodeindex,initrec);
+  NodeFace & node = forest.create(nodeindex,initrec);
   // form a response message
   const string & name = node.name();
   string classname = node.className();
@@ -303,7 +325,7 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
     int nodeindex;
     try
     {
-      Node & node = forest.create(nodeindex,recref);
+      NodeFace & node = forest.create(nodeindex,recref);
     }
     catch( std::exception &exc )
     {
@@ -316,6 +338,92 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
+#ifdef HAVE_MPI
+// MPI version of batch-creation function
+void MeqServer::createNodeBatch_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  setState(AidConstructing);
+  script_name_ = in[AidScript|AidName].as<string>("");
+  DMI::Container &batch = in[AidBatch].as_wr<DMI::Container>();
+  int nn = batch.size();
+  postMessage(ssprintf("creating %d nodes, please wait",nn));
+  cdebug(2)<<"splitting up nodes among MPI processors"<<endl;
+  // create lists of node specifications per processor
+  int nproc = MeqMPI::self->comm_size();
+  DMI::List::Ref nodelist[nproc];
+  for( int i=0; i<nproc; i++ )
+    nodelist[i] <<= new DMI::List;
+  // now, go through list of node specifications, and distribute it into per-processor lists
+  for( int i=0; i<nn; i++ )
+  {
+    ObjRef ref;
+    batch[i].detach(&ref);
+    DMI::Record::Ref recref(ref);
+    ref.detach();
+    int nodeindex;
+    // get processor index from node state
+    int proc = recref[AidProc].as<int>(0);
+    if( proc < 0 || proc >= nproc )
+    {
+      postError(ssprintf("invalid proc=%d specification for node '%s'",proc,recref[AidName].as<string>("").c_str()));
+      continue;
+    }
+    cdebug(4)<<"node "<<recref[AidName].as<string>()<<": processor "<<proc<<endl;
+    // add nodespec to list associated with this processor
+    nodelist[proc]().addBack(recref);
+    // make a nodespec for an MPIProxy node representing this node
+    DMI::Record::Ref spec;
+    spec <<= new DMI::Record;
+    spec[FClass] = "MeqMPIProxy";
+    spec[FName] = recref[FName].as<string>();
+    spec[FNodeIndex] = recref[FNodeIndex].as<int>(-1);
+    spec[AidRemote|AidProc] = proc;
+//    if( recref[FChildren].exists() )
+//      spec[FChildren] = recref[FChildren].ref();
+//    if( recref[FStepChildren].exists() )
+//      spec[FStepChildren] = recref[FStepChildren].ref();
+    // add this spec to back of all other remote nodelists
+    for( int i=0; i<nproc; i++ )
+      if( i != proc )
+        nodelist[i]().addBack(spec);
+  }
+  // send remote nodelists off for processing
+  cdebug(2)<<"sending off lists to remote processors"<<endl;
+  MeqMPI::ReplyEndpoint replies[nproc];
+  for( int i=1; i<nproc; i++ )
+  {
+    cdebug(2)<<"proc "<<i<<": "<<nodelist[i]->size()<<" nodes"<<endl;
+    ObjRef ref(nodelist[i]);
+    MeqMPI::self->postCommand(MeqMPI::TAG_CREATE_NODES,i,replies[i],ref);
+  }
+  // create local nodes
+  DMI::List &local_list = nodelist[0]();
+  DMI::List::iterator iter = local_list.begin();
+  for( iter = local_list.begin(); iter != local_list.end(); iter++ )
+  {
+    DMI::Record::Ref recref(*iter);
+    iter->detach();
+    try
+    {
+      int nodeindex;
+      NodeFace & node = forest.create(nodeindex,recref);
+    }
+    catch( std::exception &exc )
+    {
+      postError(exc);
+    }
+  }
+  cdebug(2)<<"waiting for completion replies from remotes"<<endl;
+  ObjRef ref;
+  for( int i=1; i<nproc; i++ )
+    replies[i].await(ref);
+  // form a response message
+  out[AidMessage] = ssprintf("created %d nodes",nn);
+  out[FForestChanged] = incrementForestSerial();
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+}
+#endif
+      
 void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   int nodeindex = (*in)[AidNodeIndex].as<int>(-1);
@@ -327,7 +435,7 @@ void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
     nodeindex = forest.findIndex(name);
     FailWhen( nodeindex<0,"node '"+name+"' not found");
   }
-  Node &node = forest.get(nodeindex);
+  NodeFace &node = forest.get(nodeindex);
   string name = node.name();
   cdebug(2)<<"deleting node "<<name<<"("<<nodeindex<<")\n";
   // remove from forest
@@ -342,7 +450,7 @@ void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 void MeqServer::nodeGetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   bool getstate;
-  Node & node = resolveNode(getstate,*in);
+  NodeFace & node = resolveNode(getstate,*in);
   cdebug(3)<<"getState for node "<<node.name()<<" ";
   cdebug(4)<<in->sdebug(3);
   cdebug(3)<<endl;
@@ -361,7 +469,7 @@ void MeqServer::nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   DMI::Record::Ref rec = in;
   bool getstate;
-  Node & node = resolveNode(getstate,*rec);
+  NodeFace & node = resolveNode(getstate,*rec);
   cdebug(3)<<"setState for node "<<node.name()<<endl;
   DMI::Record::Ref ref = rec[AidState].ref();
   node.setState(ref);
@@ -376,7 +484,7 @@ void MeqServer::initNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
   setState(AidConstructing);
   DMI::Record::Ref rec = in;
   bool getstate;
-  Node & node = resolveNode(getstate,*rec);
+  NodeFace & node = resolveNode(getstate,*rec);
   cdebug(2)<<"init for node "<<node.name()<<endl;
   node.init(0,false,0);
   cdebug(3)<<"init complete"<<endl;
@@ -396,7 +504,7 @@ void MeqServer::initNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(2)<<"batch-init of "<<nn<<" nodes\n";
   for( int i=0; i<nn; i++ )
   {
-    Node &node = forest.findNode(names[i].as<string>());
+    NodeFace &node = forest.findNode(names[i].as<string>());
     node.init(0,false,0);
   }
   cdebug(3)<<"init complete"<<endl;
@@ -426,6 +534,51 @@ void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 
+#ifdef HAVE_MPI
+void MeqServer::getNodeList_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in)
+{
+  cdebug(2)<<"getNodeList: building list"<<endl;
+  DMI::Record &list = out <<= new DMI::Record;
+  int serial = in[FForestSerial].as<int>(0);
+  if( !serial || serial != forest_serial )
+  {
+    int content =
+      ( in[AidNodeIndex].as<bool>(true) ? Forest::NL_NODEINDEX : 0 ) |
+      ( in[AidName].as<bool>(true) ? Forest::NL_NAME : 0 ) |
+      ( in[AidClass].as<bool>(true) ? Forest::NL_CLASS : 0 ) |
+      ( in[AidChildren].as<bool>(false) ? Forest::NL_CHILDREN : 0 ) |
+      ( in[FControlStatus].as<bool>(false) ? Forest::NL_CONTROL_STATUS : 0 ) |
+      ( in[FProfilingStats].as<bool>(false) ? Forest::NL_PROFILING_STATS : 0 );
+    // dispatch requests to subservers
+    cdebug(2)<<"requesting nodelists from remote processors"<<endl;
+    int nproc = MeqMPI::self->comm_size();
+    MeqMPI::ReplyEndpoint replies[nproc];
+    for( int i=1; i<nproc; i++ )
+    {
+      MeqMPI::HdrGetNodeList hdr = { content,&replies[i] };
+      MeqMPI::self->postCommand(MeqMPI::TAG_GET_NODE_LIST,i,hdr);
+    }
+    // get local list
+    DMI::Vec *proclist;
+    out[AidProc] <<= proclist = new DMI::Vec(TpDMIRecord,nproc);
+    ObjRef ref;
+    ref <<= new DMI::Record;
+    int count = MeqMPI::getNodeList(ref.as<DMI::Record>(),content,forest);
+    cdebug(2)<<"getNodeList: local list has "<<count<<" nodes"<<endl;
+    (*proclist)[0] = ref;
+    // now wait for replies from all remotes
+    for( int i=1; i<nproc; i++ )
+    {
+      int num = replies[i].await(ref);
+      (*proclist)[i] = ref;
+      cdebug(2)<<"getNodeList: proc "<<i<<" returns "<<num<<" nodes\n";
+    }
+    out[FForestSerial] = forest_serial;
+  }
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+}
+#endif
+
 void MeqServer::executeAbort (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   forest.raiseAbortFlag();
@@ -454,7 +607,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
     forest.clearAbortFlag();
     DMI::Record::Ref rec = in;
     bool getstate;
-    Node & node = resolveNode(getstate,*rec);
+    NodeFace & node = resolveNode(getstate,*rec);
     cdebug(2)<<"nodeExecute for node "<<node.name()<<endl;
     // take request object out of record
     Request &req = rec[AidRequest].as_wr<Request>();
@@ -526,106 +679,106 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 }
 
 
-//##ModelId=400E5B6C0247
-void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  setState(AidUpdating);
-  string filename = (*in)[FFileName].as<string>();
-  cdebug(1)<<"saving forest to file "<<filename<<endl;
-  postMessage(ssprintf("saving forest to file %s, please wait",filename.c_str()));
-  BOIO boio(filename,BOIO::WRITE);
-  int nsaved = 0;
-
-  // write header record
-  DMI::Record header;
-  header["Forest.Header.Version"] = 1;
-  boio << header;
-  // write forest state
-  boio << *(forest.state());
-  // write all nodes
-  for( int i=1; i<=forest.maxNodeIndex(); i++ )
-    if( forest.valid(i) )
-    {
-      Node &node = forest.get(i);
-      // if node is unresolved, fail and delete file
-      if( !node.isInitialized() )
-      {
-        boio.close();
-        unlink(filename.c_str());
-        Throw("can't save forest: uninitialized node "+node.name());
-      }
-      cdebug(3)<<"saving node "<<node.name()<<endl;
-      DMI::Record::Ref saverec;
-      node.saveState(saverec);
-      boio << *saverec;
-      nsaved++;
-    }
-  cdebug(1)<<"saved "<<nsaved<<" nodes to file "<<filename<<endl;
-  out[AidMessage] = ssprintf("saved %d nodes to file %s",
-      nsaved,filename.c_str());
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-}
-
-//##ModelId=400E5B6C02B3
-void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  setState(AidUpdating);
-  string filename = (*in)[FFileName].as<string>();
-  cdebug(1)<<"loading forest from file "<<filename<<endl;
-  postMessage(ssprintf("loading forest from file %s, please wait",filename.c_str()));
-  forest.clear();
-  int nloaded = 0;
-  DMI::Record::Ref ref;
-  std::string fmessage;
-  // open file
-  BOIO boio(filename,BOIO::READ);
-  // get header record out
-  if( ! (boio >> ref) )
-  {
-    Throw("no records in file");
-  }
-  // is this a version record?
-  int version = ref["Forest.Header.Version"].as<int>(-1);
-  if( version >=1 )
-  {
-    // version 1+: forest state comes first
-    if( !(boio >> ref) )
-    {
-      Throw("no forest state in file");
-    }
-    forest.setState(ref,true);
-    // then get next node record for loop below
-    if( !(boio >> ref) )
-      ref.detach();
-    fmessage = "loaded %d nodes and forest state from file %s";
-  }
-  else
-  {
-    // else version 0: nothing but node records in here, so fall through
-    fmessage = "loaded %d nodes from old-style file %s";
-  }
-  // ok, at this point we expect a bunch of node records
-  do
-  {
-    int nodeindex;
-    // create the node
-    Node & node = forest.create(nodeindex,ref,true);
-    cdebug(3)<<"loaded node "<<node.name()<<endl;
-    nloaded++;
-  }
-  while( boio >> ref );
-  cdebug(2)<<"loaded "<<nloaded<<" nodes, setting child links"<<endl;
-  for( int i=1; i<=forest.maxNodeIndex(); i++ )
-    if( forest.valid(i) )
-    {
-      Node &node = forest.get(i);
-      cdebug(3)<<"setting children for node "<<node.name()<<endl;
-      node.reinit();
-    }
-  out[AidMessage] = ssprintf(fmessage.c_str(),nloaded,filename.c_str());
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-  out[FForestChanged] = incrementForestSerial();
-}
+// //##ModelId=400E5B6C0247
+// void MeqServer::saveForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
+// {
+//   setState(AidUpdating);
+//   string filename = (*in)[FFileName].as<string>();
+//   cdebug(1)<<"saving forest to file "<<filename<<endl;
+//   postMessage(ssprintf("saving forest to file %s, please wait",filename.c_str()));
+//   BOIO boio(filename,BOIO::WRITE);
+//   int nsaved = 0;
+// 
+//   // write header record
+//   DMI::Record header;
+//   header["Forest.Header.Version"] = 1;
+//   boio << header;
+//   // write forest state
+//   boio << *(forest.state());
+//   // write all nodes
+//   for( int i=1; i<=forest.maxNodeIndex(); i++ )
+//     if( forest.valid(i) )
+//     {
+//       NodeFace &node = forest.get(i);
+//       // if node is unresolved, fail and delete file
+//       if( !node.isInitialized() )
+//       {
+//         boio.close();
+//         unlink(filename.c_str());
+//         Throw("can't save forest: uninitialized node "+node.name());
+//       }
+//       cdebug(3)<<"saving node "<<node.name()<<endl;
+//       DMI::Record::Ref saverec;
+//       node.saveState(saverec);
+//       boio << *saverec;
+//       nsaved++;
+//     }
+//   cdebug(1)<<"saved "<<nsaved<<" nodes to file "<<filename<<endl;
+//   out[AidMessage] = ssprintf("saved %d nodes to file %s",
+//       nsaved,filename.c_str());
+//   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+// }
+// 
+// //##ModelId=400E5B6C02B3
+// void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
+// {
+//   setState(AidUpdating);
+//   string filename = (*in)[FFileName].as<string>();
+//   cdebug(1)<<"loading forest from file "<<filename<<endl;
+//   postMessage(ssprintf("loading forest from file %s, please wait",filename.c_str()));
+//   forest.clear();
+//   int nloaded = 0;
+//   DMI::Record::Ref ref;
+//   std::string fmessage;
+//   // open file
+//   BOIO boio(filename,BOIO::READ);
+//   // get header record out
+//   if( ! (boio >> ref) )
+//   {
+//     Throw("no records in file");
+//   }
+//   // is this a version record?
+//   int version = ref["Forest.Header.Version"].as<int>(-1);
+//   if( version >=1 )
+//   {
+//     // version 1+: forest state comes first
+//     if( !(boio >> ref) )
+//     {
+//       Throw("no forest state in file");
+//     }
+//     forest.setState(ref,true);
+//     // then get next node record for loop below
+//     if( !(boio >> ref) )
+//       ref.detach();
+//     fmessage = "loaded %d nodes and forest state from file %s";
+//   }
+//   else
+//   {
+//     // else version 0: nothing but node records in here, so fall through
+//     fmessage = "loaded %d nodes from old-style file %s";
+//   }
+//   // ok, at this point we expect a bunch of node records
+//   do
+//   {
+//     int nodeindex;
+//     // create the node
+//     Node & node = forest.create(nodeindex,ref,true);
+//     cdebug(3)<<"loaded node "<<node.name()<<endl;
+//     nloaded++;
+//   }
+//   while( boio >> ref );
+//   cdebug(2)<<"loaded "<<nloaded<<" nodes, setting child links"<<endl;
+//   for( int i=1; i<=forest.maxNodeIndex(); i++ )
+//     if( forest.valid(i) )
+//     {
+//       Node &node = forest.get(i);
+//       cdebug(3)<<"setting children for node "<<node.name()<<endl;
+//       node.reinit();
+//     }
+//   out[AidMessage] = ssprintf(fmessage.c_str(),nloaded,filename.c_str());
+//   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+//   out[FForestChanged] = incrementForestSerial();
+// }
 
 //##ModelId=400E5B6C0324
 void MeqServer::clearForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
@@ -742,7 +895,7 @@ void MeqServer::debugNextNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 void MeqServer::debugUntilNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   bool getstate;
-  Node & node = resolveNode(getstate,*in);
+  NodeFace & node = resolveNode(getstate,*in);
   // set one-shot breakpoint on anything in this node
   node.setBreakpoint(Node::CS_ALL,true);
   if( forest.isStopFlagRaised() )
@@ -844,6 +997,11 @@ void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
   DMI::Record &fst = rec[AidForest|AidStatus] <<= new DMI::Record;
   fillAppState(rec);
   // get other stuff
+  #ifdef HAVE_MPI
+  fst[AidMPI|AidNum|AidProc] = MeqMPI::self->comm_size();
+  #else
+  fst[AidMPI|AidNum|AidProc] = 0;
+  #endif
   fst[AidBreakpoint] = forest_breakpoint_;
   fst[AidExecuting] = executing_;
   fst[AidDebug|AidLevel] = forest.debugLevel();
@@ -910,7 +1068,7 @@ bool MeqServer::execNodeCommand (DMI::Record::Ref &out,ExecQueueEntry &qe)
   // use argument record to resolve to a Node object, throw exception on failure
   bool getstate;
   int get_forest_status = (*qe.args)[FGetForestStatus].as<int>(0);
-  Node &node = resolveNode(getstate,*qe.args);
+  NodeFace &node = resolveNode(getstate,*qe.args);
   // add node name to output event record
   out[AidNode] = node.name();
   // pass command to node. Exceptions will be caught by our caller's handler

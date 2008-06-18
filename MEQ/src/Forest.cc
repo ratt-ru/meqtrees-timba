@@ -73,6 +73,7 @@ Forest::Forest ()
   log_append_ = false;
   log_filename_ = "meqlog.mql";
   profiling_enabled_ = true;
+  abort_flag_ = false;
 
   // init the state record
   initDefaultState();
@@ -89,12 +90,12 @@ void Forest::clear ()
 }
 
 //##ModelId=3F5F572601B2
-Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitializing)
+NodeFace & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitializing)
 {
   string classname;
   string nodename;
-  Node::Ref noderef;
-  Node *pnode;
+  NodeFace::Ref noderef;
+  NodeFace *pnode;
   // get class from initrec and try to construct a node of that class
   try
   {
@@ -108,7 +109,7 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
     FailWhen(classname.empty(),"missing or invalid 'class' field in init record");
     DMI::BObj * pbp = DynamicTypeManager::construct(TypeId(classname));
     FailWhen(!pbp,classname+" is not a known node class");
-    pnode = dynamic_cast<Meq::Node*>(pbp);
+    pnode = dynamic_cast<Meq::NodeFace*>(pbp);
     if( !pnode )
     {
       delete pbp;
@@ -123,11 +124,16 @@ Node & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinitiali
     }
     else  // not set, allocate new node index
       node_index = nodes.size();
+    // if this is an actual node and not some weird NodeFace variation, reattach its inti-record
     pnode->setNameAndIndex(nodename,node_index);
-    if( reinitializing )
-      pnode->reattachInitRecord(initrec,this);
-    else
-      pnode->attachInitRecord(initrec,this);
+    Node *pnode1 = dynamic_cast<Meq::Node*>(pnode);
+    if( pnode1 )
+    {
+      if( reinitializing )
+        pnode1->reattachInitRecord(initrec,this);
+      else
+        pnode1->attachInitRecord(initrec,this);
+    }
   }
   catch( std::exception &exc )
   {
@@ -155,7 +161,7 @@ int Forest::remove (int node_index)
 {
   FailWhen(node_index<=0 || node_index>int(nodes.size()),
           "invalid node index");
-  Node::Ref &ref = nodes[node_index];
+  NodeFace::Ref &ref = nodes[node_index];
   FailWhen(!ref.valid(),"invalid node index");
   string name = ref->name();
   // detach the node & shrink repository if needed
@@ -175,11 +181,11 @@ int Forest::remove (int node_index)
 }
 
 //##ModelId=3F5F5B4F01BD
-Node & Forest::get (int node_index)
+NodeFace & Forest::get (int node_index)
 {
   FailWhen(node_index<=0 || node_index>int(nodes.size()),
           "invalid node index");
-  Node::Ref &ref = nodes[node_index];
+  NodeFace::Ref &ref = nodes[node_index];
   FailWhen(!ref.valid(),"invalid node index");
   return ref();
 }
@@ -199,7 +205,7 @@ int Forest::findIndex (const string& name) const
 }
 
 //##ModelId=3F60549B02FE
-Node & Forest::findNode (const string &name)
+NodeFace & Forest::findNode (const string &name)
 {
   // lookup node index in map
   NameMap::const_iterator iter = name_map.find(name);
@@ -207,13 +213,13 @@ Node & Forest::findNode (const string &name)
   int node_index = iter->second;
   // debug-fails here since name map should be consistent with repository
   DbgFailWhen(node_index<=0 || node_index>int(nodes.size()),"invalid node index");
-  Node::Ref &ref = nodes[node_index];
+  NodeFace::Ref &ref = nodes[node_index];
   DbgFailWhen(!ref.valid(),"invalid node index");
   return ref();
 }
 
 //##ModelId=3F7048570004
-const Node::Ref & Forest::getRef (int node_index)
+const NodeFace::Ref & Forest::getRef (int node_index)
 {
   FailWhen(node_index<=0 || node_index>int(nodes.size()),
           "invalid node index");
@@ -268,7 +274,7 @@ int Forest::getNodeList (DMI::Record &list,int content)
       if( nodes[i].valid() )
       {
         FailWhen(i0>num,"forest inconsistency: too many valid nodes");
-        Node &node = nodes[i]();
+        NodeFace &node = nodes[i]();
         DMI::Record::Ref nodestate;
         if( lni )
           (*lni)[i0] = i;
@@ -276,15 +282,27 @@ int Forest::getNodeList (DMI::Record &list,int content)
           (*lname)[i0] = node.name();
         if( lclass )
           (*lclass)[i0] = node.className();
-        if( lstate )
-          (*lstate)[i0] = node.getControlStatus();
-        if( lrqid )
-          (*lrqid)[i0] = node.currentRequestId();
+        Node *pnode = dynamic_cast<Node*>(&node);
+        if( pnode )
+        {
+          if( lstate )
+            (*lstate)[i0] = pnode->getControlStatus();
+          if( lrqid )
+            (*lrqid)[i0] = pnode->currentRequestId();
+        }
         if( lchildren )
         {
           node.getState(nodestate);
-          lchildren->addBack((*nodestate)[FChildren].ref(true));
-          lstepchildren->addBack((*nodestate)[FStepChildren].ref(true));
+          DMI::Record::Hook hook(*nodestate,FChildren);
+          if( hook.exists() )
+            lchildren->addBack(hook.ref(true));
+          else
+            lchildren->addBack(new DMI::List);
+          DMI::Record::Hook hook1(*nodestate,FStepChildren);
+          if( hook1.exists() )
+            lstepchildren->addBack(hook1.ref(true));
+          else
+            lstepchildren->addBack(new DMI::List);
         }
         if( lprof )
         {
@@ -494,4 +512,24 @@ void Forest::logNodeResult (const Node &node,const Request &req,const Result &re
   logger_ << entry;
 }
 
+void Forest::postError (const std::exception &exc)
+{
+  DMI::Record *prec = new DMI::Record;
+  ObjRef out(prec);
+  (*prec)[AidError] = exceptionToObj(exc);
+  postEvent(AidError,out);
+}
+
+void Forest::postMessage (const std::string &msg,const HIID &type)
+{
+  DMI::Record *prec = new DMI::Record;
+  ObjRef out(prec);
+  if( type == HIID(AidError) )
+    (*prec)[AidError] = msg;
+  else
+    (*prec)[AidMessage] = msg;
+  postEvent(type,out);
+}
+
+    
 } // namespace Meq

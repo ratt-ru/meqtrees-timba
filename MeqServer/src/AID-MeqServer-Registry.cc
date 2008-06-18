@@ -27,6 +27,9 @@ DMI::BObj * __construct_MeqPyTensorFuncNode (int n) { return n>0 ? new Meq::PyTe
         AtomicID::registerId(-1462,"MeqServer")+
         AtomicID::registerId(-1622,"Meq")+
         AtomicID::registerId(-1553,"CWD")+
+        AtomicID::registerId(-1738,"Proc")+
+        AtomicID::registerId(-1740,"MPI")+
+        AtomicID::registerId(-1163,"Num")+
         AtomicID::registerId(-1312,"Create")+
         AtomicID::registerId(-1336,"Delete")+
         AtomicID::registerId(-1467,"Get")+
@@ -112,7 +115,6 @@ DMI::BObj * __construct_MeqPyTensorFuncNode (int n) { return n>0 ? new Meq::PyTe
         AtomicID::registerId(-1635,"Current")+
         AtomicID::registerId(-1640,"Timeslots")+
         AtomicID::registerId(-1487,"VisHandlerNode")+
-        AtomicID::registerId(-1163,"Num")+
         AtomicID::registerId(-1202,"Antenna")+
         AtomicID::registerId(-1036,"Input")+
         AtomicID::registerId(-1241,"Output")+

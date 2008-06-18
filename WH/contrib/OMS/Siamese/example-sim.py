@@ -92,6 +92,9 @@ TDLCompileOptions(*meqmaker.compile_options());
 # noise option
 TDLCompileOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float);
 
+# MPI options
+from Meow import Parallelization
+TDLCompileOptions(*Parallelization.compile_options());
 
 def _define_forest (ns):
   ANTENNAS = mssel.get_antenna_set(range(1,28));

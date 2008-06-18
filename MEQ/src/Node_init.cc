@@ -26,6 +26,7 @@
 #include "Node.h"
 #include "MeqVocabulary.h"
 #include "Forest.h"
+#include "MTPool.h"
 #include <DMI/Record.h>
 #include <DMI/Vec.h>
 #include <DMI/NumArray.h>
@@ -74,8 +75,80 @@ void Node::relinkParents ()
   }
 } 
 
+// #ifndef DISABLE_NODE_MT
+// class NodeInitWorkOrder : public MTPool::AbstractWorkOrder
+// {
+//   public:
+//     NodeInitWorkOrder (NodeFace &parent,NodeFace &child,int ichild,bool stepparent,int init_idx)
+//     : parentref(parent,DMI::SHARED),
+//       noderef(child,DMI::SHARED),
+//       ichild(ich),
+//       is_stepparent(steppar),
+//       init_index(init_idx)
+//     {}
+//     
+//     virtual void execute (Brigade &brig);      // runs the work order
+//     {
+//       int retcode = -1;
+//       NodeFace &node = noderef();
+//       NodeFace &parent = parentref();
+//       try
+//       {
+//         cdebug1(1)<<brigade.sdebug(1)+" init on node "+node.name()+"\n";
+//         node.init(&parent,is_stepparent,init_index);
+//         retcode = 0;
+//         cdebug1(1)<<brigade.sdebug(1)+" init on node "+node.name()+"\n";
+//       }
+//       catch( std::exception &exc )
+//       {
+//         string str = Debug::ssprintf("caught exception while initializing a node: %s",exc.what());
+//         cdebug(0)<<str<<endl;
+//         DMI::ExceptionList exclist(exc);
+//         exclist.add(LOFAR::Exception(str));
+//         node.forest().postError(exclist);
+//       }
+//       catch(...)
+//       {
+//         string str = "caught unknown exception while initializing a node";
+//         cdebug(0)<<str<<endl;
+//         node.forest().postError(str);
+//       }
+//       // notify parent
+//       parent.completeChildInit(ichild,is_stepparent);
+//     } 
+//     
+//     NodeFace::Ref parentref,noderef;  
+//     int ichild; 
+//     bool stepparent;
+//     int init_index; 
+// };
+// 
+// void Node::completeChildInit (int,bool)
+// {
+//   Thread::Mutex::Lock lock(child_init_cond_);
+//   child_init_count_--;
+//   if( child_init_count_<=0 )
+//     child_init_cond_.signal();
+// }
+// #endif
+
 void Node::init (NodeFace *parent,bool stepparent,int init_index)
 {
+#ifndef DISABLE_NODE_MT
+  Thread::Mutex::Lock lock(execCond());
+  // if node is executing, then wait for it to finish, and meanwhile
+  // mark our thread as blocked
+  if( executing_ )
+  {
+    MTPool::Brigade::markThreadAsBlocked(*this);
+    while( executing_ )
+      execCond().wait();
+    MTPool::Brigade::markThreadAsUnblocked(*this);
+  }
+  executing_ = true;
+  lock.release();
+#endif
+
   try
   {
     // increment the parent count
@@ -90,6 +163,7 @@ void Node::init (NodeFace *parent,bool stepparent,int init_index)
     if( internal_init_index_ == init_index )
     {
       cdebug(4)<<"node already initialized for init_index "<<init_index<<endl;
+      executing_ = false;
       return;
     }
     cdebug(3)<<"initializing node, init_index="<<init_index<<endl;
@@ -103,10 +177,20 @@ void Node::init (NodeFace *parent,bool stepparent,int init_index)
   }
   catch( std::exception &exc )
   {
+#ifndef DISABLE_NODE_MT
+    Thread::Mutex::Lock lock(execCond());
+    executing_ = false;
+    execCond().signal();
+#endif
     ThrowMore(exc,"failed to init node '"+name()+"'");
   }
   catch( ... )
   {
+#ifndef DISABLE_NODE_MT
+    Thread::Mutex::Lock lock(execCond());
+    executing_ = false;
+    execCond().signal();
+#endif
     Throw("failed to init node '"+name()+"'");
   }
   // recursively init() all children
@@ -117,6 +201,11 @@ void Node::init (NodeFace *parent,bool stepparent,int init_index)
     stepchildren().getChild(i).init(this,true,init_index);
   // call checkChildren() since all children are now valid
   checkChildren();
+#ifndef DISABLE_NODE_MT
+  lock.relock(execCond());
+  executing_ = false;
+  execCond().signal();
+#endif
 }
 
 

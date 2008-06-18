@@ -26,6 +26,9 @@
 
 //# Includes
 #include <TimBase/Thread/Mutex.h>
+#include <sys/time.h>
+#include <time.h>
+
 
 namespace LOFAR
 {
@@ -132,7 +135,11 @@ namespace LOFAR
     //##ModelId=30EB4F86FEED
     inline int Condition::wait (int sec, int ns) const
     {
-      struct timespec ts = { sec,ns };
+      struct timeval now;
+      struct timespec ts;
+      gettimeofday(&now,0);
+      ts.tv_sec = now.tv_sec + sec;
+      ts.tv_nsec = now.tv_usec*1000 + ns;
       return pthread_cond_timedwait(&cond,&mutex,&ts); 
     }
 

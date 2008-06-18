@@ -6,6 +6,6 @@ VisCube
 AppAgent
 MEQ
 MeqNodes
+MeqMPI
 MeqServer
 PyApps
-PyParmDB
