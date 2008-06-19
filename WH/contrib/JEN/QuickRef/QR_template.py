@@ -2,8 +2,11 @@
 QuickRef module: QR_template.py:
 
 Template for the generation of QR_... modules.
-Just make a copy with a new name (e.g. QR_<name>.py),
-replace the word QR_template with QR_<newname>,
+Just:
+- make a copy with a new name (e.g. QR_<name>.py),
+- replace the word QR_template with QR_<newname>,
+- remove the 'template' help-texts from the functions,
+- remove any help=... from the QRU.on_entry(..., help=...) functions
 and add content.
 
 This module may be called from the module QuickRef.py.
@@ -76,16 +79,14 @@ import numpy
 
 TDLCompileMenu("QR_template topics:",
                TDLOption('opt_alltopics',"override: include all topics",True),
+
                TDLOption('opt_input_twig',"input twig",
                          ET.twig_names(), more=str),
+
                TDLMenu("topic1",
-                       TDLMenu("topic1_subtopic1",
-                               TDLOption('opt_topic1_subtopic1_a',"option a",
-                                         range(3), more=int),
-                               TDLOption('opt_topic1_subtopic1_b',"option b",
-                                         ['the','rain','in','Spain'], more=str),
-                               toggle='opt_topic1_subtopic1'),
                        toggle='opt_topic1'),
+               TDLMenu("topic2",
+                       toggle='opt_topic2'),
 
                TDLMenu("help",
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
@@ -136,8 +137,11 @@ def QR_template (ns, path, rider):
    rr = QRU.on_entry(QR_template, path, rider, help=QRU.bundle.__doc__)
  
    cc = []
+
    if opt_alltopics or opt_topic1:
       cc.append(topic1 (ns, rr.path, rider))
+   if opt_alltopics or opt_topic2:
+      cc.append(topic2 (ns, rr.path, rider))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rr.path, rider))
@@ -145,9 +149,6 @@ def QR_template (ns, path, rider):
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
-
-#********************************************************************************
-# 2nd tier: Functions called from the top function above:
 #********************************************************************************
 
 def make_helpnodes (ns, path, rider):
@@ -167,7 +168,10 @@ def make_helpnodes (ns, path, rider):
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
-#--------------------------------------------------------------------------------
+
+#================================================================================
+# topic1:
+#================================================================================
 
 def topic1 (ns, path, rider):
    """
@@ -182,8 +186,8 @@ def topic1 (ns, path, rider):
    .   def topic1 (ns, path, rider):
    .       rr = QRU.on_entry(topic1, path, rider)
    .       cc = []
-   .       if opt_alltopics or opt_topic1_subtopic1:
-   .           cc.append(topic1_subtopic1 (ns, rr.path, rider))
+   .       if opt_alltopics or opt_topic1_subtopic:
+   .           cc.append(topic1_subtopic (ns, rr.path, rider))
    .       return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
    It is sometimes useful to read some general TDLCompileOptions here, and pass
@@ -191,26 +195,14 @@ def topic1 (ns, path, rider):
    """
    rr = QRU.on_entry(topic1, path, rider)
    cc = []
-   if opt_alltopics or opt_topic1_subtopic1:
-      cc.append(topic1_subtopic1 (ns, rr.path, rider))
+   # if opt_alltopics or opt_topic1_subtopic:
+   #    cc.append(topic1_subtopic (ns, rr.path, rider))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
-
-
-#********************************************************************************
-#********************************************************************************
-#********************************************************************************
-# 3rd tier: Functions called from functions at the 2nd tier above
-#********************************************************************************
-#********************************************************************************
-
-
-#================================================================================
-# topic1_... 
 #================================================================================
 
-def topic1_subtopic1 (ns, path, rider):
+def topic1_subtopic (ns, path, rider):
    """
    NB: This text should be replaced with an overall explanation of this subtopic of
    this topic of this QR module.
@@ -233,57 +225,55 @@ def topic1_subtopic1 (ns, path, rider):
    MeqNode, with help attached to the quickref_help field of its state record.
    (See QRU.MeqNode.__doc__ for details).
    """
-   rr = QRU.on_entry(topic1_subtopic1, path, rider, help=QRU.MeqNode.__doc__)
-   
-   a = ET.unique_stub(ns, 'a') << Meq.Parm(0)
-   b = ET.unique_stub(ns, 'b') << Meq.Parm(0)
-   p = ET.unique_stub(ns, 'p') << Meq.Constant(10)
-   q = ET.unique_stub(ns, 'q') << Meq.Constant(2)
-   sum_ab = ns << Meq.Add(a,b) 
-   diff_ab = ns << Meq.Subtract(a,b)
-   drivers = ET.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
-   parmset = ET.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
-
-   condeqs = []
-   condeqs.append(QRU.MeqNode (ns, rr.path, rider,
-                               meqclass='Condeq',name='Condeq(a+b,p)',
-                              help='Represents equation: a + b = p (=10)',
-                              children=[sum_ab, p]))
-   condeqs.append(QRU.MeqNode (ns, rr.path, rider,
-                               meqclass='Condeq',name='Condeq(a-b,q)',
-                              help='Represents equation: a - b = q (=2)',
-                              children=[diff_ab, q]))
-
-   solver = QRU.MeqNode (ns, rr.path, rider, meqclass='Solver',
-                        name='Solver(*condeqs, solvable=[a,b])',
-                        help='Solver', show_recurse=True,
-                        children=condeqs,
-                        solvable=[a,b])  
-   residuals = QRU.MeqNode (ns, rr.path, rider,
-                            meqclass='Add', name='residuals',
-                           help='The sum of the (abs) condeq residuals',
-                           children=condeqs, unop='Abs')
-   cc = [solver,residuals,drivers,parmset]
+   rr = QRU.on_entry(topic1_subtopic, path, rider, help=QRU.MeqNode.__doc__)
+   cc = []
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)
 
 
 
 
+#================================================================================
+# topic2:
+#================================================================================
 
-
-
-
-
+def topic2 (ns, path, rider):
+   """
+   topic2 covers ....
+   """
+   rr = QRU.on_entry(topic2, path, rider)
+   cc = []
+   # if opt_alltopics or opt_topic2_subtopic:
+   #    cc.append(topic2_subtopic (ns, rr.path, rider))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
-#================================================================================
-#================================================================================
-#================================================================================
-# It is possible to define a standalone forest (i.e. not part of QuickRef.py) of
-# this QR_module. Just load it into the browser, and compile/execute it.
-#================================================================================
+
+def topic2_subtopic (ns, path, rider):
+   """
+   topic2_subtopic treats ....
+   """
+   rr = QRU.on_entry(topic2_subtopic, path, rider)
+   cc = []
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+
+
+
+
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+# Standalone forest (i.e. not part of QuickRef.py) of this QR_module.
+# Just load it into the browser, and compile/execute it.
+#********************************************************************************
+#********************************************************************************
 
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
@@ -359,9 +349,12 @@ def _tdl_job_save_doc (mqs, parent):
 
 
 
-#=====================================================================================
+
+#********************************************************************************
+#********************************************************************************
 # Standalone test (without the browser):
-#=====================================================================================
+#********************************************************************************
+#********************************************************************************
 
 if __name__ == '__main__':
 
