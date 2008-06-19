@@ -1,0 +1,116 @@
+file: ../JEN/demo/QR_plan.txt: planned modules for QuickRef.
+
+
+      QR_execution.py
+      =============
+
+** Request
+
+   - Domain
+   - Cells
+   - Request
+   - reqid
+   - explanation of all fields
+
+** Result
+
+   - explanation of all fields
+   - vellset (multiple)
+   - 
+
+** caching policy
+
+
+      QR_TreeDefinition.py
+      ====================
+
+** nodenames
+
+** TDL
+
+** TDLOptions
+
+** Forest State
+
+** bookmarks
+
+
+      QR_MeqBrowser.py
+      ================
+
+** overview
+
+** editing
+
+** inspection
+
+** bookmarks
+
+** debugging
+
+** profiler
+
+
+      QR_UserNodes.py
+      ===============
+
+** MeqFunctional
+
+** PrivateFunction
+
+** pyNodes
+
+** Reading Results
+
+
+      QR_template.py
+      ==============
+
+Instructions for creating a QR_... module
+
+
+      QR_boilerplate.py
+      =================
+
+** Why MeqTrees
+
+** History
+
+** Wishlist
+
+** Weak points
+
+** Misspellings
+
+** Quotations
+
+** Profound sayings
+
+
+      QR_solving.py
+      =============
+
+** MeqParm
+
+** MeqCondeq
+
+** MeqSolver
+
+** Solver Result
+
+** plans for the future
+
+
+      QR_PyNodePlot.py
+      ================
+
+** PyNodePlot
+
+** general
+
+** VisuPlot22
+
+** PyNodeNamedGroups
+
+                    ======================================
+

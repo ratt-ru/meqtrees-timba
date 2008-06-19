@@ -1,10 +1,5 @@
 """
-QuickRef module: QR_template.py:
-
-Template for the generation of QR_... modules.
-Just make a copy with a new name (e.g. QR_<name>.py),
-replace the word QR_template with QR_<newname>,
-and add content.
+QuickRef module: QR_TreeDefinition.py:
 
 This module may be called from the module QuickRef.py.
 But it may also be used stand-alone.
@@ -19,7 +14,7 @@ But it may also be used stand-alone.
 .    for the selected categories.
 """
 
-# file: ../JEN/demo/QR_template.py:
+# file: ../JEN/demo/QR_TreeDefinition.py:
 #
 # Author: J.E.Noordam
 #
@@ -74,24 +69,25 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_template topics:",
+TDLCompileMenu("QR_TreeDefinition topics:",
                TDLOption('opt_alltopics',"override: include all topics",True),
                TDLOption('opt_input_twig',"input twig",
                          ET.twig_names(), more=str),
-               TDLMenu("topic1",
-                       TDLMenu("topic1_subtopic1",
-                               TDLOption('opt_topic1_subtopic1_a',"option a",
-                                         range(3), more=int),
-                               TDLOption('opt_topic1_subtopic1_b',"option b",
-                                         ['the','rain','in','Spain'], more=str),
-                               toggle='opt_topic1_subtopic1'),
-                       toggle='opt_topic1'),
+
+               TDLMenu("nodenames",
+                       toggle='opt_nodenames'),
+               TDLMenu("TDL",
+                       toggle='opt_TDL'),
+               TDLMenu("TDLOptions",
+                       toggle='opt_TDLOptions'),
+               TDLMenu("bookmarks",
+                       toggle='opt_bookmarks'),
 
                TDLMenu("help",
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
                        toggle='opt_helpnodes'),
 
-               toggle='opt_QR_template')
+               toggle='opt_QR_TreeDefinition')
 
 
 
@@ -100,44 +96,20 @@ TDLCompileMenu("QR_template topics:",
 #********************************************************************************
 
 
-def QR_template (ns, path, rider):
+def QR_TreeDefinition (ns, path, rider):
    """
-   NB: This text should be replaced with an overall explanation of the
-   MeqTree functionality that is covered in this QR module.
-   
-   This top-level function has the same name as the module. Its role is to
-   include the user-specified parts (topics) of QuickRef documentation by calling
-   lower-level functions according to the TDLCompileMenu options.
-   This function may be called from QuickRef.py, but also from its standalone
-   _define_forest() below, or from the local testing function (without the browser).
-
-   The functions in a QR module use utility functions in QuickRefUtil.py (QRU),
-   which do the main work of collecting and organising the hierarchical help,
-   and of creating and bundling the nodes of the demonstration trees.
-
-   All functions in a QR module have the following general structure:
-
-   .   def funcname (ns, path, rider [,optional arguments]):
-   .      <help-text for this function enclosed in triple-quotes>
-   .      rr = QRU.on_entry(funcname, path, rider)
-   .      cc = []
-   .      <function body, in which nodes are appended to the list cc>
-   .      return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
-
-   The first argument of QRU.on_entry() is the function itself, without ().
-   It returns a record rr, the fields of which (rr.path and rr.help) are
-   used in the function (or rather, passed to other QRU functions).
-   
-   The last statement (return QRU.bundle()) bundles the nodes (cc) in a
-   convenient way, and returns the resulting parent node of the bundle
-   (see QRU.bundle.__doc__).
-
    """
-   rr = QRU.on_entry(QR_template, path, rider, help=QRU.bundle.__doc__)
+   rr = QRU.on_entry(QR_TreeDefinition, path, rider)
  
    cc = []
-   if opt_alltopics or opt_topic1:
-      cc.append(topic1 (ns, rr.path, rider))
+   if opt_alltopics or opt_nodenames:
+      cc.append(nodenames (ns, rr.path, rider))
+   if opt_alltopics or opt_TDL:
+      cc.append(TDL (ns, rr.path, rider))
+   if opt_alltopics or opt_TDLOptions:
+      cc.append(TDLOptions (ns, rr.path, rider))
+   if opt_alltopics or opt_bookmarks:
+      cc.append(bookmarks (ns, rr.path, rider))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rr.path, rider))
@@ -169,30 +141,49 @@ def make_helpnodes (ns, path, rider):
 
 #--------------------------------------------------------------------------------
 
-def topic1 (ns, path, rider):
+def nodenames (ns, path, rider):
    """
-   NB: This text should be replaced with an overall explanation of this 'topic'
-   of this QR module.
-
-   The topic functions are '2nd-tier' functions, i.e. they are called from the
-   top-level function QR_template() above. They usually call one or more functions
-   that represent different 'views' (e.g. demonstration trees of particular aspects)
-   of this topic. The general structure is:
-
-   .   def topic1 (ns, path, rider):
-   .       rr = QRU.on_entry(topic1, path, rider)
-   .       cc = []
-   .       if opt_alltopics or opt_topic1_subtopic1:
-   .           cc.append(topic1_subtopic1 (ns, rr.path, rider))
-   .       return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
-
-   It is sometimes useful to read some general TDLCompileOptions here, and pass
-   them to the lower-level functions as extra arguments.
    """
-   rr = QRU.on_entry(topic1, path, rider)
+   rr = QRU.on_entry(nodenames, path, rider)
    cc = []
-   if opt_alltopics or opt_topic1_subtopic1:
-      cc.append(topic1_subtopic1 (ns, rr.path, rider))
+   if opt_alltopics or opt_nodenames_xxx:
+      cc.append(nodenames_xxx (ns, rr.path, rider))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+
+
+#--------------------------------------------------------------------------------
+
+def TDL (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(TDL, path, rider)
+   cc = []
+   if opt_alltopics or opt_TDL_xxx:
+      cc.append(TDL_xxx (ns, rr.path, rider))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+
+
+#--------------------------------------------------------------------------------
+
+def TDLOptions (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(TDLOptions, path, rider)
+   cc = []
+   if opt_alltopics or opt_TDLOptions_xxx:
+      cc.append(TDLOptions_xxx (ns, rr.path, rider))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+
+
+#--------------------------------------------------------------------------------
+
+def bookmarks (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(bookmarks, path, rider)
+   cc = []
+   if opt_alltopics or opt_bookmarks_xxx:
+      cc.append(bookmarks_xxx (ns, rr.path, rider))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
@@ -210,30 +201,10 @@ def topic1 (ns, path, rider):
 # topic1_... 
 #================================================================================
 
-def topic1_subtopic1 (ns, path, rider):
+def topic1_xxx (ns, path, rider):
    """
-   NB: This text should be replaced with an overall explanation of this subtopic of
-   this topic of this QR module.
-
-   A view (<topic>_<subtopic>()) demonstrates a particular aspect of a given topic.
-   It usually generates a group of 4-9 related nodes that may be displayed on a
-   single bookmark page.
-
-   NB: Nodes for a subtopic subtree may also be defined directly (i.e. without using the
-   function QRU.MeqNode(). For those cases, the EasyTwig (ET) module provides a useful
-   service to generate unique (i.e. non-clashing) nodenames:
-
-   .    node = ET.unique_stub(ns, <name>) << Meq.Cos(child)
-
-   The EasyTwig module may also be used to generate small standard subtrees (twigs)
-   that may serve as (user-defined) inputs to a demonstration subtree. Etc, etc.
-
-   In addition to the usual QRU.on_entry() and QRU.bundle(), a function calls the
-   function QRU.MeqNode() one or more times. This function creates the specified
-   MeqNode, with help attached to the quickref_help field of its state record.
-   (See QRU.MeqNode.__doc__ for details).
    """
-   rr = QRU.on_entry(topic1_subtopic1, path, rider, help=QRU.MeqNode.__doc__)
+   rr = QRU.on_entry(topic1_xxx, path, rider)
    
    a = ET.unique_stub(ns, 'a') << Meq.Parm(0)
    b = ET.unique_stub(ns, 'b') << Meq.Parm(0)
@@ -290,10 +261,10 @@ def _define_forest (ns, **kwargs):
 
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
-   rootnodename = 'QR_template'                 # The name of the node to be executed...
+   rootnodename = 'QR_TreeDefinition'                 # The name of the node to be executed...
    path = rootnodename                          # Root of the path-string
    QRU.bundle (ns, path, rider,
-              nodes=[QR_template(ns, path, rider)],
+              nodes=[QR_TreeDefinition(ns, path, rider)],
               help=__doc__)
 
    # Finished:
@@ -318,19 +289,19 @@ TDLRuntimeMenu(":")
 #--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_TreeDefinition')
 
 def _tdl_job_execute_2D (mqs, parent):
-   return QRU._tdl_job_execute_2D (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_2D (mqs, parent, rootnode='QR_TreeDefinition')
 
 def _tdl_job_execute_3D (mqs, parent):
-   return QRU._tdl_job_execute_3D (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_3D (mqs, parent, rootnode='QR_TreeDefinition')
 
 def _tdl_job_execute_4D (mqs, parent):
-   return QRU._tdl_job_execute_4D (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_4D (mqs, parent, rootnode='QR_TreeDefinition')
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_TreeDefinition')
 
 #--------------------------------------------------------------------------------
 # Some functions to dispose of the specified subset of the documentation:
@@ -342,20 +313,20 @@ def _tdl_job_m (mqs, parent):
 
 def _tdl_job_print_doc (mqs, parent):
    """Print the specified subset of the help doc on the screen"""
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QR_template')
+   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QR_TreeDefinition')
 
 def _tdl_job_print_hardcopy (mqs, parent):
    """Print a hardcopy of the specified subset of the help doc on the printer.
    NB: The printer may be customized with the runtime options."""
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_template')
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_TreeDefinition')
 
 def _tdl_job_show_doc (mqs, parent):
    """Show the specified subset of the help doc in a popup"""
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QR_template')
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QR_TreeDefinition')
 
 def _tdl_job_save_doc (mqs, parent):
    """Save the specified subset of the help doc in a file"""
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QR_template')
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QR_TreeDefinition')
 
 
 
@@ -365,17 +336,17 @@ def _tdl_job_save_doc (mqs, parent):
 
 if __name__ == '__main__':
 
-   print '\n** Start of standalone test of: QR_template.py:\n' 
+   print '\n** Start of standalone test of: QR_TreeDefinition.py:\n' 
 
    ns = NodeScope()
 
    rider = QRU.create_rider()             # CollatedHelpRecord object
    if 1:
-      QR_template(ns, 'test', rider=rider)
+      QR_TreeDefinition(ns, 'test', rider=rider)
       if 1:
          print rider.format()
             
-   print '\n** End of standalone test of: QR_template.py:\n' 
+   print '\n** End of standalone test of: QR_TreeDefinition.py:\n' 
 
 #=====================================================================================
 
