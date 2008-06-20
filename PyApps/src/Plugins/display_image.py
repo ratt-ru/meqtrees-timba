@@ -2899,20 +2899,24 @@ class QwtImageDisplay(QwtPlot):
         self.is_vector = True
 
 # check for NaNs and Infs etc
-      nan_test = ieee.isnan(plot_array)
       self.has_nans_infs = False
+      self.nan_inf_value = -0.1e-6
+      nan_test = ieee.isnan(plot_array)
       if nan_test.max() > 0:
-        plot_array[ieee.isnan(plot_array)] = self.nan_inf_value
         self.has_nans_infs = True
         self.set_flag_toggles_active(True)
         self.setFlagsData(nan_test,False)
 
       inf_test = ieee.isinf(plot_array)
       if inf_test.max() > 0:
-        plot_array[ieee.isinf(plot_array)] = self.nan_inf_value
         self.has_nans_infs = True
         self.set_flag_toggles_active(True)
         self.setFlagsData(inf_test,False)
+      if self.has_nans_infs:
+        keep = ~ieee.isnan(plot_array) & ~ieee.isinf(plot_array)
+        delete = ieee.isnan(plot_array) | ieee.isinf(plot_array)
+        self.nan_inf_value = plot_array[keep].mean() + -0.1e-6
+        plot_array[delete] = self.nan_inf_value
 
 
 # I don't think we should ever see the N-D controller in the vector case.
