@@ -51,7 +51,7 @@ from Timba.Meq import meqds
 import Meow.Bookmarks
 
 # from Timba import pynode
-import PyNodeNamedGroups
+from Timba.Contrib.JEN.pylab import PyNodeNamedGroups
 
 import inspect
 import random
@@ -66,7 +66,61 @@ Settings.forest_state.cache_policy = 100;
 #=====================================================================================
 
 class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
-  """Make an plot of the results of its children"""
+  """
+  Base class for an entire zoo of plotting pyNodes.
+  Itself derived from the class PyNodeNamedGroups, which
+  takes care of reading the results of its children into
+  named groups (see below).
+  
+  It makes (sub)plot definitions from these named groups (of values)
+
+  It makes one or more subplot definition records in the list
+  self.plotspecs.graphics. These are used in various ways:
+  - The subplots are converted into a SVG list (of strings),
+  which is attached to the pyNode result as svg_string. It is
+  used by the 'svg plotter' to make a (clumsy) plot.
+  - The subplot definition records are also attached to the
+  pyNode result. This allows the building of complicated plots
+  by concatenation. A PyNodePlot node recognises PyNodePlot
+  children from the plotspecs record in its result, and will
+  ignore them for its normal function.
+  
+  When defining a PyNodePlot node, specific instructions are passed to it
+  via a record named plotspecs:
+
+  .   from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
+  .   ns[nodename] << Meq.PyNode(children=[nodes],
+  .                              child_labels=[strings],
+  .                              class_name='PyNodePlot',
+  .                              module_name=PNP.__file__,
+  .                              [groupspecs=record(....),]
+  .                              plotspecs=record(title=..., xlabel=...)
+  .                              )
+  For the (optional) groupspecs definition, see the class PyNodeNamedGroups.
+  
+  Possible plotspecs keywords are:
+  - labels     [=None]         a list of node labels
+  - make_svg   [=False]         (svg) plotting may be inhibited if concatenated
+  - offset     [=0.0]          concatenated plots maye be offset vertically
+  - title      [=<classname>]  plot title
+  - xlabel     [='child']      x-axis label
+  - ylabel     [='result']     y-axis label
+  - xunit      [=None]         x-axis unit (string)
+  - yunit      [=None]         y-axis unit (string)
+  - zunit      [=None]         z-axis unit (string)
+  
+  - legend     [=None]         subplot legend string
+  - color      [='blue']       subplot color
+  - linestyle  [=None]         subplot linestyle ('-','--',':')
+  - marker     [='o']          subplot marker style ('+','x', ...)
+  - markersize [=5]            subplot marker size (points)
+  - plot_sigma_bars [=True]    if True, indicate domain variation
+  - annotate   [=True]         if True, annotate points with labels
+  - fontsize   [=7]            annotation font size (points)
+  - msmin      [=2]            min marker size (z-values)
+  - msmax      [=20]           max marker size (z-values)
+  - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
+  """
 
   def __init__ (self, *args, **kwargs):
     PyNodeNamedGroups.PyNodeNamedGroups.__init__(self,*args);
@@ -91,54 +145,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
   def help (self, ss=None, level=0, mode=None):
     """
-    Base class for an entire zoo of plotting pyNodes.
-    Itself derived from the class PyNodeNamedGroups, which
-    takes care of reading the results of its children into
-    named groups (see below).
-
-    It makes (sub)plot definitions from these named groups (of values)
-
-    It makes one or more subplot definition records in the list
-    self.plotspecs.graphics. These are used in various ways:
-    - The subplots are converted into a SVG list (of strings),
-    which is attached to the pyNode result as svg_string. It is
-    used by the 'svg plotter' to make a (clumsy) plot.
-    - The subplot definition records are also attached to the
-    pyNode result. This allows the building of complicated plots
-    by concatenation. A PyNodePlot node recognises PyNodePlot
-    children from the plotspecs record in its result, and will
-    ignore them for its normal function.
-    
-    When defining a PyNodePlot node, specific instructions are passed to it
-    via a record named plotspecs:
-    ns.plot << Meq.PyNode(class_name='PyNodePlot', module_name=__file__,
-    .                     plotspecs=record(title=..., xlabel=...)
-
-    Possible keywords are (base class defaults in []):
-    - labels     [=None]         a list of node labels
-    - make_svg   [=False]         (svg) plotting may be inhibited if concatenated
-    - offset     [=0.0]          concatenated plots maye be offset vertically
-    - title      [=<classname>]  plot title
-    - xlabel     [='child']      x-axis label
-    - ylabel     [='result']     y-axis label
-    - xunit      [=None]         x-axis unit (string)
-    - yunit      [=None]         y-axis unit (string)
-    - zunit      [=None]         z-axis unit (string)
-
-    - legend     [=None]         subplot legend string
-    - color      [='blue']       subplot color
-    - linestyle  [=None]         subplot linestyle ('-','--',':')
-    - marker     [='o']          subplot marker style ('+','x', ...)
-    - markersize [=5]            subplot marker size (points)
-    - plot_sigma_bars [=True]    if True, indicate domain variation
-    - annotate   [=True]         if True, annotate points with labels
-    - fontsize   [=7]            annotation font size (points)
-    - msmin      [=2]            min marker size (z-values)
-    - msmax      [=20]           max marker size (z-values)
-    - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
-    
     """
-    ss = self.attach_help(ss, PyNodePlot.help.__doc__,
+    ss = self.attach_help(ss, PyNodePlot.__doc__,
                           classname='PyNodePlot',
                           level=level, mode=mode)
     return PyNodeNamedGroups.PyNodeNamedGroups.help(self, ss, level=level+1, mode=mode) 

@@ -61,11 +61,9 @@ from Timba.Meq import meq
 import QuickRefUtil as QRU
 import EasyTwig as ET
 
-from Timba.Contrib.JEN.pylab import PyNodeNamedGroups
-# print dir(PyNodeNamedGroups)
-# print dir(PyNodeNamedGroups.PyNodeNamedGroups)
-
-from Timba.Contrib.JEN.pylab import PyNodePlot
+from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
+from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
+from Timba.Contrib.JEN.pylab import PyNodePlotVis22 as PNPVis22
 
 # import math
 # import random
@@ -82,6 +80,12 @@ TDLCompileMenu("QR_PyNodePlot topics:",
 
                TDLOption('opt_input_twig',"input twig",
                          ET.twig_names(), more=str),
+
+               TDLMenu("PyNodePlot",
+                       toggle='opt_PyNodePlot'),
+
+               TDLMenu("PlotVis22",
+                       toggle='opt_PlotVis22'),
 
                TDLMenu("PyNodeNamedGroups",
                        toggle='opt_PyNodeNamedGroups'),
@@ -105,6 +109,11 @@ def QR_PyNodePlot (ns, path, rider):
    rr = QRU.on_entry(QR_PyNodePlot, path, rider)
  
    cc = []
+   if opt_alltopics or opt_PyNodePlot:
+      cc.append(PyNodePlot (ns, rr.path, rider))
+   if opt_alltopics or opt_PlotVis22:
+      cc.append(PlotVis22 (ns, rr.path, rider))
+
    if opt_alltopics or opt_PyNodeNamedGroups:
       cc.append(PyNodeNamedGroups (ns, rr.path, rider))
 
@@ -137,17 +146,100 @@ def make_helpnodes (ns, path, rider):
 
 
 #================================================================================
+# PyNodePlot:
+#================================================================================
+
+def PyNodePlot (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PyNodePlot, path, rider,
+                     help=PNP.PyNodePlot.__doc__)
+   cc = []
+   children = [ns << 0.1, ns << 1.1]
+   pynode = ns['PyNodePlot'] << Meq.PyNode(children=children,
+                                                  # child_labels=labels,
+                                                  class_name='PyNodePlot',
+                                                  # groupspecs=gs,
+                                                  module_name=PNP.__file__)
+   cc.append(pynode)
+   # if opt_alltopics or opt_PyNodePlot_subtopic:
+      # cc.append(PyNodePlot_subtopic (ns, rr.path, rider))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=cc[0], viewer='Record Browser',
+                      parentclass='ReqSeq', result_index=0)
+
+
+#================================================================================
+
+def PyNodePlot_subtopic (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PyNodePlot_subtopic, path, rider)
+   cc = []
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0)
+
+
+
+#================================================================================
+# PlotVis22:
+#================================================================================
+
+def PlotVis22 (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PlotVis22, path, rider,
+                     help=PNPVis22.PlotVis22.__doc__)
+   cc = []
+   [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)
+   pynode = ns['PlotVis22'] << Meq.PyNode(children=coh,
+                                          child_labels=labels,
+                                          class_name='PlotVis22',
+                                          # groupspecs=gs,
+                                          module_name=PNPVis22.__file__)
+   cc.append(pynode)
+   # if opt_alltopics or opt_PyNodePlotVis22_subtopic:
+      # cc.append(PyNodePlotVis22_subtopic (ns, rr.path, rider))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=cc[0], viewer='Pylab Plotter',
+                      parentclass='ReqSeq', result_index=0)
+
+
+#================================================================================
+
+def PyNodePlotVis22_subtopic (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PyNodePlotVis22_subtopic, path, rider)
+   cc = []
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0)
+
+
+
+
+#================================================================================
 # PyNodeNamedGroups:
 #================================================================================
 
 def PyNodeNamedGroups (ns, path, rider):
    """
    """
-   rr = QRU.on_entry(PyNodeNamedGroups, path, rider)
+   rr = QRU.on_entry(PyNodeNamedGroups, path, rider,
+                     help=PNNG.PyNodeNamedGroups.__doc__)
    cc = []
-   if opt_alltopics or opt_PyNodeNamedGroups_subtopic:
-      cc.append(PyNodeNamedGroups_subtopic (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   children = [ns << 0.1, ns << 1.1]
+   pynode = ns['PyNodeNamedGroups'] << Meq.PyNode(children=children,
+                                                  # child_labels=labels,
+                                                  class_name='PyNodeNamedGroups',
+                                                  # groupspecs=gs,
+                                                  module_name=PNNG.__file__)
+   cc.append(pynode)
+   # if opt_alltopics or opt_PyNodeNamedGroups_subtopic:
+      # cc.append(PyNodeNamedGroups_subtopic (ns, rr.path, rider))
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=cc[0], viewer='Record Browser',
+                      parentclass='ReqSeq', result_index=0)
 
 
 #================================================================================
@@ -156,13 +248,7 @@ def PyNodeNamedGroups_subtopic (ns, path, rider):
    """
    """
    rr = QRU.on_entry(PyNodeNamedGroups_subtopic, path, rider)
-   children = [ns << 0.1, ns << 1.1]
    cc = []
-   cc.append(ns['xxx'] << Meq.PyNode(children=children,
-                                     # child_labels=labels,
-                                     class_name='PyNodeNamedGroups',
-                                     # groupspecs=gs,
-                                     module_name='PyNodeNamedGroups'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)
 

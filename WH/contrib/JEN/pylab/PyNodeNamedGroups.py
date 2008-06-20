@@ -55,6 +55,7 @@ from Timba.Meq import meqds
 import Meow.Bookmarks
 
 from math import *   # for ._evaluate()
+from Timba.Contrib.JEN.pylab import ChildResult
 
 import inspect
 import random
@@ -69,7 +70,46 @@ Settings.forest_state.cache_policy = 100;
 #=====================================================================================
 
 class PyNodeNamedGroups (pynode.PyNode):
-  """Extract named groups of Vells from its child results."""
+  """
+  Base class for a category of pyNodes.
+  It contains functions that manipulate named groups of values,
+  which are derived from the results of its children.
+  The named groups can be turned into other named groups
+  by means of python mathematical expressions, in which the
+  names of the groups serve as variables.
+  
+  First of all, this baseclass contains functions for the
+  extraction of named groups from its child results.
+  This is specified by attaching a record named 'groupspecs' to
+  the constructor, containing zero or more named records:
+
+  .   from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
+  .   ns[nodename] << Meq.PyNode(children=[nodes],
+  .                              child_labels=[strings],
+  .                              class_name='PyNodeNamedGroups',
+  .                              module_name=PNNG.__file__,
+  .        groupspecs=record(name1=record(children=... [, vells=...]),
+  .                          name2=record(children=... [, vells=...]),
+  .                          ...
+  .                          ))
+  
+  If no groupspecs record has been provided, or if it is empty,
+  or if it is not a record, a default record will be assumed:
+  .        groupspecs=record(allvells=record(children='*', vells='*'))
+  i.e. it will make a single group (named 'allvells') from
+  all available vells in the results of all its 'regular' children.
+  
+  A group specification record may have the following fields:
+  - children = '*'           (default) all its children
+  .          = '2/3'         the second third of its chidren (etc)
+  .          = [0,2,7,5,...] any vector of child indices
+  - vells    = '*'           (default) all vells of each child result
+  .          = [1,2,2,1,3]   any vector of vells indices
+  .          = 0             an integer vells index
+  .          = None          the group will contain entire result objects
+  - expr     = None          (default) no math operation on vells/results
+  .          = 'mean()'      take the mean of each vells
+  """
 
   def __init__ (self, *args, **kwargs):
     pynode.PyNode.__init__(self,*args);
@@ -85,41 +125,8 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   def help (self, ss=None, level=0, mode=None):
     """
-    Base class for a category of pyNodes.
-    It contains functions that manipulate named groups of values,
-    which are derived from the results of its children.
-    The named groups can be turned into other named groups
-    by means of python mathematical expressions, in which the
-    names of the groups serve as variables.
-
-    First of all, this baseclass contains functions for the
-    extraction of named groups from its child results.
-    This is specified by attaching a record named 'groupspecs' to
-    the constructor, containing zero or more named records:
-    .   ns.plot << Meq.PyNode(class_name='PyPlot', module_name=__file__,
-    .        groupspecs=record(name1=record(children=... [, vells=...]),
-    .                          name2=record(children=... [, vells=...]),
-    .                          ...
-    .                          ))
-
-    If no groupspecs record has been provided, or if it is empty,
-    or if it is not a record, a default record will be assumed:
-    .        groupspecs=record(allvells=record(children='*', vells='*'))
-    i.e. it will make a single group (named 'allvells') from
-    all available vells in the results of all its 'regular' children.
-
-    A group specification record may have the following fields:
-    - children = '*'           (default) all its children
-               = '2/3'         the second third of its chidren (etc)
-               = [0,2,7,5,...] any vector of child indices
-    - vells    = '*'           (default) all vells of each child result
-               = [1,2,2,1,3]   any vector of vells indices
-               = 0             an integer vells index
-               = None          the group will contain entire result objects
-    - expr     = None          (default) no math operation on vells/results
-               = 'mean()'      take the mean of each vells
     """
-    ss = self.attach_help(ss, PyNodeNamedGroups.help.__doc__,
+    ss = self.attach_help(ss, PyNodeNamedGroups.__doc__,
                           classname='PyNodeNamedGroups',
                           level=level, mode=mode)
     return ss
@@ -366,7 +373,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     if trace:
       print '\n** _extract_namedgroups():'
     
-    import ChildResult
+    # import ChildResult
     nc = len(children)
 
     # First do the groupspecs that are records (they extract values from chirdren):
@@ -822,7 +829,9 @@ def format_vv (vv):
 #=====================================================================================
 
 class ExampleDerivedClass (PyNodeNamedGroups):
-  """Example of a class derived from PyNodeNamedGroups"""
+  """
+  Example of a class derived from PyNodeNamedGroups
+  """
 
   def __init__ (self, *args, **kwargs):
     PyNodeNamedGroups.__init__(self, *args);
@@ -832,9 +841,8 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
   def help (self, ss=None, level=0, mode=None):
     """
-    This is an example of a derived class.
     """
-    ss = self.attach_help(ss, ExampleDerivedClass.help.__doc__,
+    ss = self.attach_help(ss, ExampleDerivedClass.__doc__,
                           classname='ExampleDerivedClass',
                           level=level, mode=mode)
     return PyNodeNamedGroups.help(self, ss, level=level+1, mode=mode) 
@@ -977,7 +985,7 @@ if __name__ == '__main__':
     # this runs the _test_forest job.
     mod._test_forest(mqs,None,wait=True);
 
-  elif False:
+  elif True:
     pp = PyNodeNamedGroups()
     print pp.help()
 

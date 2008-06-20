@@ -49,7 +49,7 @@ from Timba.Meq import meqds
 import Meow.Bookmarks
 
 # from Timba import pynode
-import PyNodePlot
+from Timba.Contrib.JEN.pylab import PyNodePlot
 
 import math
 # import inspect
@@ -67,7 +67,11 @@ Settings.forest_state.cache_policy = 100;
 
 
 class PlotVis22 (PyNodePlot.PyNodePlot):
-  """Base class for visibility plotting."""
+  """
+  Base class for visibility plotting, derived from PyNodePlot.
+  It specifies four named groups (xx,xy,yx,yy) for the 4 corrs,
+  and four plots with standard colors and styles for all corrs.
+  """
 
   def __init__ (self, *args, **kwargs):
     PyNodePlot.PyNodePlot.__init__(self, *args)
@@ -90,11 +94,8 @@ class PlotVis22 (PyNodePlot.PyNodePlot):
 
   def help (self, ss=None, level=0, mode=None):
     """
-    Base class for visibility plotting, derived from PyNodePlot.
-    It specifies four named groups (xx,xy,yx,yy) for the 4 corrs,
-    and four plots with standard colors and styles for all corrs.
     """
-    ss = self.attach_help(ss, PlotVis22.help.__doc__,
+    ss = self.attach_help(ss, PlotVis22.__doc__,
                           classname='PlotVis22',
                           level=level, mode=mode)
     return PyNodePlot.PyNodePlot.help(self, ss, level=level+1, mode=mode) 
@@ -345,9 +346,9 @@ class PlotIQUV (PlotVis22):
 # Make a test-forest:
 #=====================================================================================
 
-def _define_forest (ns,**kwargs):
-  """Make trees with the various pyNodes"""
-
+def make_uvdata (ns, n=4):
+  """Make some test uv-data"""
+  
   time = ns['time'] << Meq.Time()
   freq = ns['freq'] << Meq.Freq()
   clight = ns['clight'] << 3e8
@@ -370,7 +371,6 @@ def _define_forest (ns,**kwargs):
   uu = []        # list of uv-pairs (for plotting)
   cc = []
   labels = []
-  n = 4
   xpos = range(n)
   for i in range(n-1):
     for j in range(i+1,n):
@@ -401,6 +401,15 @@ def _define_forest (ns,**kwargs):
       uv = ns['uv'](i)(j) << Meq.Composer(u,v)
       uu.append(uv)                
 
+    # Finished: 
+    return [uu,uv,cc,labels]
+
+#---------------------------------------------------------------------
+
+def _define_forest (ns,**kwargs):
+  """Make trees with the various pyNodes"""
+
+  [uu,uv,cc,labels] = make_uvdata(ns, n=4)
 
   #---------------------------------------------------------------------
   # Make the pynode(s):
