@@ -115,7 +115,7 @@ def _define_forest(ns):
 
   # Create E-Jones from beam data
   # I think the following order is correct!
-  ns.E << Meq.Matrix22(ns.beam_xx, ns.beam_yx,ns.beam_xy, ns.beam_yy)
+  ns.E << Meq.Matrix22(ns.beam_xx, ns.beam_xy,ns.beam_yx, ns.beam_yy)
   ns.Et << Meq.ConjTranspose(ns.E)
 
   # sky brightness
