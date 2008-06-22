@@ -442,9 +442,10 @@ def twig_names (cat='default', include=None, first=None, trace=False):
 
 #-----------------------------------------------------------------------------------
 
-def twig(ns, name, test=False, help=None, trace=False):
+def twig(ns, name, test=False, help=None, stddev=0.0, trace=False):
     """
     Return a little subtree (a twig), specified by its name.
+    If stddev>0, add gaussian noise to the final twig node.
 
     - f,t,L,M,X,Y,Z                :  Grid(axis=freq/time/L/M/X/Y/Z)
     - cx_ft, cx_tf, cx_LM, cx_XY   :  Complex twigs
@@ -614,6 +615,16 @@ def twig(ns, name, test=False, help=None, trace=False):
         ss = name.split('polyparm_')[1]
         node = polyparm(ns, 'polyparm', ftLM=ss, trace=trace)
 
+    elif len(name.split('cohlin_'))>1:               # e.g. 'cohlin_I10Q0.1U-0.1V0.01'
+        ss = name.split('cohlin_')[1]
+        node = cohmat(ns, 'cohlin', IQUV=ss, polrep='linear',
+                      stddev=stddev, trace=trace)
+
+    elif len(name.split('cohcir_'))>1:               # e.g. 'cohcir_I10Q0.1U-0.1V0.01'
+        ss = name.split('cohcir_')[1]
+        node = cohmat(ns, 'cohcir', IQUV=ss, polrep='circular',
+                      stddev=stddev, trace=trace)
+
     #.....................................................................
     # do these last (their short names might be subsets of other names...)
     #.....................................................................
@@ -660,6 +671,12 @@ def twig(ns, name, test=False, help=None, trace=False):
         s1 += '                ** (name not recognized!) **'
         trace = True
 
+    if stddev>0:
+        # Optionally, add gaussian noise to the final result
+        # Not yet implemented (what should the nodename be?)
+        # NB: Except in cohmat(...., stddev=stddev)
+        pass
+
     if trace:
         s1 += ' -> '+str(node)
         # print dir(node)
@@ -701,7 +718,7 @@ def combine_ftLM(ns, stub, ss, default=0.0, meqclass='Multiply'):
 
 #................................................................
 
-def decode_ftLM (s, trace=False):
+def decode_ftLM_old (s, trace=False):
     """Helper function to unravel the string (s), which is assumed
     to have the format f2t1L3M0"""
     ss = s                                       # the copy will be modified
@@ -730,6 +747,108 @@ def decode_ftLM (s, trace=False):
 
 #----------------------------------------------------------------
 
+def decode_coh (s, trace=False):
+    dekey = dict(I=1.0, Q=0.0, U=0.0, V=0.0, u=1.0, v=1.0, L=0.0, M=0.0)
+    return decode (s, dekey, trace=trace)
+
+def decode_ftLM (s, trace=False):
+    dekey = dict(f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
+    return decode (s, dekey, trace=trace)
+
+
+def decode (ss, dekey=None, trace=False):
+    """Decode the given substring according to the keys and default
+    values of dict 'dekey'. Return a dict with decoded (or default)
+    values for all keys in dekey.
+    """
+    if trace:
+        print '\n** .decode(',ss,dekey,'):'
+    
+    rr = dict()
+    for key in dekey.keys():
+        rr[key] = dekey[key]             # default value
+        s = ss.split(key)
+        if len(s)==2:
+            rr[key] = s[1]
+            if rr[key]=='': rr[key] = '1'
+        if trace:
+            print '- rr[',key,'] = ',rr[key],type(rr[key])
+
+    count = 0
+    has_strings = True
+    while has_strings and count<10:
+        count += 1
+        has_strings = False
+        if trace:
+            print 'count=',count
+        for key in rr.keys():
+            if isinstance(rr[key],str):
+                try:
+                    if isinstance(dekey[key],int):
+                        v = int(rr[key])
+                    else:
+                        v = float(rr[key])
+                    rr[key] = v
+                    if trace:
+                        print '- rr[',key,'] ->',rr[key],type(rr[key])
+                except:
+                    has_strings = True
+                    keys = rr.keys()
+                    keys.remove(key)
+                    for key1 in keys:
+                        s = rr[key].split(key1)
+                        if len(s)==2:
+                            rr[key] = s[0]
+                            if rr[key]=='': rr[key] = '1'
+                            if trace:
+                                print '-',key1,': rr[',key,'] = (string)',rr[key]
+    if trace:
+        print '    ->',rr
+    return rr
+
+#----------------------------------------------------------------
+
+def cohmat (ns, name='cohmat', IQUV=None, polrep='linear',
+            stddev=0.0, trace=False):
+    """Make a 2x2 cohaerency matrix, of the specified polarisation.
+    The IQUV string contains information about I,Q,U,V,u,v,L,M.
+    If stddev>0, some noise is added.
+    """
+
+    if isinstance(IQUV, str):
+        dekey = dict(I=1.0, Q=0.0, U=0.0, V=0.0, u=1.0, v=1.0, L=0.0, M=0.0)
+        vv = decode(IQUV, dekey, trace=True)
+        
+    if trace:
+        print '\n** cohmat(',name, IQUV, polrep,'):'
+
+    time = twig(ns,'t')
+    freq = twig(ns,'f')
+    clight = unique_stub(ns,'clight') << 3e8
+    pi2 = unique_stub(ns,'2pi') << 2*math.pi
+    wvl = unique_stub(ns,'lambda') << freq/clight
+    HA = unique_stub(ns,'HA') << time*(math.pi/(12.0*3600.0))
+    DEC = unique_stub(ns,'DEC') << math.pi/6.0
+    cosHA = ns << Meq.Cos(HA)
+    sinHA = ns << Meq.Sin(HA)
+    sinDEC = ns << Meq.Sin(DEC)
+    sinHAsinDEC = ns << Meq.Multiply(sinHA,sinDEC)
+    
+    I = unique_stub(ns,'stokesI') << vv['I']
+    Q = unique_stub(ns,'stokesQ') << vv['Q']
+    U = unique_stub(ns,'stokesU') << vv['U']
+    iV = unique_stub(ns,'stokesV') << Meq.ToComplex(0.0,vv['V'])
+    lpos = twig(ns,'L')
+    mpos = twig(ns,'M')
+
+    nodestub = unique_stub(ns, sname)
+    node = nodestub << Meq.Add(*cc)
+    if trace:
+        print '   ->',str(node)
+    return node
+
+#----------------------------------------------------------------
+
 def polyparm (ns, name='polyparm', ftLM=None,
               fdeg=0, tdeg=0, Ldeg=0, Mdeg=0,
               Xdeg=0, Ydeg=0, Zdeg=0,
@@ -741,7 +860,7 @@ def polyparm (ns, name='polyparm', ftLM=None,
     if isinstance(ftLM, str):
         # The polynomial degree may be specified by 'ftLM' string:
         # (for compatibility with twig())
-        vv = decode_ftLM(ftLM)
+        vv = decode_ftLM(ftLM, trace=True)
         fdeg = max(0,vv['f'])
         tdeg = max(0,vv['t'])
         Ldeg = max(0,vv['L'])
@@ -831,7 +950,7 @@ if __name__ == '__main__':
            for name in twig_names(cat):
                twig(ns, name, trace=True)
 
-   if 1:
+   if 0:
        names = []
        names.extend(['fpow_3','tpow_6'])
        names.extend(['prod_f3t1','prod_f3L1M','prod_3.56'])
@@ -869,6 +988,16 @@ if __name__ == '__main__':
        
 
    #------------------------------------------------
+
+   if 1:
+       dekey = dict(I=1.0, Q=0.0, U=0.0, V=0.0)
+       decode('Q-0.1U3', dekey, trace=True)
+       cohmat(ns, 'cohmat', IQUV='Q-0.1U3', polrep='linear', stddev=0.0, trace=True) 
+
+   if 0:
+       dekey = dict(f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
+       decode('f3t4L5M6', dekey, trace=True)
+       decode('ft4L5M6', dekey, trace=True)
 
    if 0:
        decode_ftLM('f3t4L5M6', trace=True)
