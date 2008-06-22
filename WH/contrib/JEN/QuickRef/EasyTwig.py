@@ -54,9 +54,11 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
+from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+
 import copy
 import math
-# import random
+import random
 
 
 
@@ -194,6 +196,7 @@ def nodestub (ns, rootname, *quals, **kwquals):
     stub = ns[rootname]
     if len(quals)>0:
         stub = stub(*quals)
+
     if len(kwquals)>0:
         stub = stub(**kwquals)
 
@@ -287,6 +290,11 @@ def format_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
             ss += prefix+str(node)
     else:
         ss += prefix+str(node)
+        if getattr(node,'initrec',None):
+            initrec = node.initrec()
+            v = getattr(initrec,'value',None)
+            if isinstance(v,(int,float,complex)):
+                ss += '   (value='+str(v)+')'
 
     # Do its children (recursively), if required:
     if getattr(node, 'children', None):
@@ -373,6 +381,7 @@ def twig_cats (trace=False):
     cats.extend(['polyparm'])
     # cats.extend(['Expression'])
     cats.extend(['prod','sum'])
+    cats.extend(['constants'])
     # cats.extend([])
     return cats
 
@@ -391,6 +400,9 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     elif cat=='axes':
         names = ['f','t','L','M']
         names.extend(['X','Y','Z'])
+    elif cat=='constants':
+        names = ['clight','pi','pi2','pi4','2pi','e_ln','sqrt2','sqrt3']
+        names.extend(['c_light','k_Boltzman','G_gravity','e_charge','h_Planck'])
     elif cat=='complex':
         names = ['cx_ft','cx_tf','cx_LM','cx_XY']
     elif cat=='noise':
@@ -442,9 +454,11 @@ def twig_names (cat='default', include=None, first=None, trace=False):
 
 #-----------------------------------------------------------------------------------
 
-def twig(ns, name, test=False, help=None, stddev=0.0, trace=False):
+def twig(ns, name, quals=None, kwquals=None,
+         test=False, help=None, stddev=0.0, trace=False):
     """
-    Return a little subtree (a twig), specified by its name.
+    Return a little subtree (a twig), specified by its name,
+    and any name-qualifiers (quals=[list] and/or kwquals=dict()).
     If stddev>0, add gaussian noise to the final twig node.
 
     - f,t,L,M,X,Y,Z                :  Grid(axis=freq/time/L/M/X/Y/Z)
@@ -481,6 +495,8 @@ def twig(ns, name, test=False, help=None, stddev=0.0, trace=False):
     """
 
     s1 = '--- EasyTwig.twig('+str(name)
+    if quals: s1 += ', quals='+str(quals)
+    if kwquals: s1 += ', kwquals='+str(kwquals)
     if test: s1 += ', test='+str(test)
     s1 += '):  '
 
@@ -490,8 +506,17 @@ def twig(ns, name, test=False, help=None, stddev=0.0, trace=False):
     nodename = name
     # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
 
+    # Limited name-qualifiers may be specified:
+    if not isinstance(kwquals,dict):
+        kwquals = dict()
+    if quals==None:
+        stub = nodestub(ns, nodename, **kwquals)
+    elif isinstance(quals,(list,tuple)):
+        stub = nodestub(ns, nodename, *quals, **kwquals)
+    else:
+        stub = nodestub(ns, nodename, *[quals], **kwquals)
+
     # Check whether the node already exists (i.e. is initialized...)
-    stub = nodestub(ns, nodename)
     node = None
     if stub.initialized():                  # node already exists
         node = stub                         # return it
@@ -626,6 +651,51 @@ def twig(ns, name, test=False, help=None, stddev=0.0, trace=False):
                       stddev=stddev, trace=trace)
 
     #.....................................................................
+    # Some useful constants etc:
+    #.....................................................................
+
+    elif name in ['c_light','clight']:
+        s = 'velocity of light in vacuum (m/s)'
+        node = stub << Meq.Constant(2.9979250e8, quickref_help=s) 
+    elif name in ['e_charge']:
+        s = 'electron charge (C)'
+        node = stub << Meq.Constant(1.6021917e-19, quickref_help=s) 
+    elif name in ['h_Planck']:
+        # def const_h2pi_Planck(ns): return MeqConstant(ns, h_Planck/(2*pi), name='h_Planck_Js/2pi')
+        s = 'Planck constant (Js)'
+        node = stub << Meq.Constant(6.626196e-34, quickref_help=s) 
+    elif name in ['k_Boltzmann','k_Boltzman']:
+        # def const_k_Jy(ns): return MeqConstant(ns, k_Boltzmann/1e-26, name='k_Jy/K')
+        # def const_2k_Jy(ns): return MeqConstant(ns, 2*k_Boltzmann/1e-26, name='2k_Jy/HzK')
+        s = 'Boltzmann constant (J/K)'
+        node = stub << Meq.Constant(1.380622e-23, quickref_help=s) 
+    elif name in ['G_gravity','G_gravitation']:
+        s = 'Gravity constant (Nm2/kg2)'
+        node = stub << Meq.Constant(6.6732e-11, quickref_help=s) 
+
+    elif name in ['e_ln']:
+        s = 'natural logarithm (e)'
+        node = stub << Meq.Constant(math.e, quickref_help=s) 
+        
+    elif name in ['pi']:
+        node = stub << Meq.Constant(math.pi)
+    elif name in ['2pi','2*pi']:
+        node = stub << Meq.Constant(2*math.pi)
+    elif name in ['pi2','pi/2']:
+        node = stub << Meq.Constant(0.5*math.pi)
+    elif name in ['pi4','pi/4']:
+        node = stub << Meq.Constant(0.25*math.pi)
+
+    elif name in ['sqrt2']:
+        node = stub << Meq.Sqrt(2.0)
+    elif name in ['sqrt3']:
+        node = stub << Meq.Sqrt(3.0)
+
+    elif name in ['wavelength','wvl','lambda']:
+        node = stub << Meq.Divide(twig(ns,'f'),twig(ns,'clight'),
+                                  quickref_help='wavelength (m)') 
+        
+    #.....................................................................
     # do these last (their short names might be subsets of other names...)
     #.....................................................................
 
@@ -686,6 +756,12 @@ def twig(ns, name, test=False, help=None, stddev=0.0, trace=False):
             for c in cc:
                 s1 += '  '+str(c[1])
             s1 += ')'
+        if getattr(node,'initrec', None):
+            initrec = node.initrec()
+            # print initrec
+            v = getattr(initrec,'value',None)
+            if isinstance(v,(int,float,complex)):
+                s1 += '  (value='+str(v)+')' 
         print '\n**',s1
 
     if test:                                                  # testing mode
@@ -716,35 +792,7 @@ def combine_ftLM(ns, stub, ss, default=0.0, meqclass='Multiply'):
         node = stub << getattr(Meq,meqclass)(*cc)      
     return node
 
-#................................................................
-
-def decode_ftLM_old (s, trace=False):
-    """Helper function to unravel the string (s), which is assumed
-    to have the format f2t1L3M0"""
-    ss = s                                       # the copy will be modified
-    vv = dict()
-    
-    cc = ['M','L','t','f']                       # reverse order
-    cc = ['Z','Y','X','M','L','t','f']           # reverse order
-
-    for vc in cc:                                # reverse order
-        ss = ss.split(vc)
-        if len(ss)==1:                           # vc not present in ss
-            vv[vc] = -1
-        elif ss[1]=='':                          # vc not followed by number 
-            vv[vc] = 1
-        else:                                    # vc followed by integer
-            vv[vc] = int(ss[1])
-        ss = ss[0]                               # next vc
-
-    # Assume that the remainder is a constant (float)
-    if len(ss)>0:
-        vv['c'] = float(ss)
-
-    if trace:
-        print '\n** .decode_ftLM(',s,') ->',vv,'  (ss=',ss,' len=',len(ss),')'
-    return vv
-
+#----------------------------------------------------------------
 #----------------------------------------------------------------
 
 def decode_coh (s, trace=False):
@@ -752,9 +800,14 @@ def decode_coh (s, trace=False):
     return decode (s, dekey, trace=trace)
 
 def decode_ftLM (s, trace=False):
+    dekey = dict(f=-1, t=-1, L=-1, M=-1)
+    return decode (s, dekey, trace=trace)
+
+def decode_ftLMXYZ (s, trace=False):
     dekey = dict(f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
     return decode (s, dekey, trace=trace)
 
+#................................................................
 
 def decode (ss, dekey=None, trace=False):
     """Decode the given substring according to the keys and default
@@ -806,9 +859,12 @@ def decode (ss, dekey=None, trace=False):
         print '    ->',rr
     return rr
 
+
+#----------------------------------------------------------------
 #----------------------------------------------------------------
 
-def cohmat (ns, name='cohmat', IQUV=None, polrep='linear',
+def cohmat (ns, name='cohmat', quals=None, kwquals=None,
+            IQUV=None, polrep='linear',
             stddev=0.0, trace=False):
     """Make a 2x2 cohaerency matrix, of the specified polarisation.
     The IQUV string contains information about I,Q,U,V,u,v,L,M.
@@ -824,28 +880,54 @@ def cohmat (ns, name='cohmat', IQUV=None, polrep='linear',
 
     time = twig(ns,'t')
     freq = twig(ns,'f')
-    clight = unique_stub(ns,'clight') << 3e8
-    pi2 = unique_stub(ns,'2pi') << 2*math.pi
-    wvl = unique_stub(ns,'lambda') << freq/clight
-    HA = unique_stub(ns,'HA') << time*(math.pi/(12.0*3600.0))
-    DEC = unique_stub(ns,'DEC') << math.pi/6.0
-    cosHA = ns << Meq.Cos(HA)
-    sinHA = ns << Meq.Sin(HA)
-    sinDEC = ns << Meq.Sin(DEC)
-    sinHAsinDEC = ns << Meq.Multiply(sinHA,sinDEC)
+    pi2 = twig(ns,'pi2')
+    # wvl = twig(ns,'lambda')
+    # HA = EN.unique_stub(ns,'HA') << time*(math.pi/(12.0*3600.0))
+    # DEC = EN.unique_stub(ns,'DEC') << math.pi/6.0
+    # cosHA = ns << Meq.Cos(HA)
+    # sinHA = ns << Meq.Sin(HA)
+    # sinDEC = ns << Meq.Sin(DEC)
+    # sinHAsinDEC = ns << Meq.Multiply(sinHA,sinDEC)
     
-    I = unique_stub(ns,'stokesI') << vv['I']
-    Q = unique_stub(ns,'stokesQ') << vv['Q']
-    U = unique_stub(ns,'stokesU') << vv['U']
-    iV = unique_stub(ns,'stokesV') << Meq.ToComplex(0.0,vv['V'])
     lpos = twig(ns,'L')
     mpos = twig(ns,'M')
+    ucoord = EN.unique_stub(ns,'ucoord') << vv['u']
+    vcoord = EN.unique_stub(ns,'vcoord') << vv['v']
+    uvlm = EN.unique_stub(ns,'ulvm') << Meq.Add(ucoord*lpos,vcoord*mpos)
+    karg = EN.unique_stub(ns,'karg') << Meq.ToComplex(0.0, pi2*uvlm) 
+    KJones = EN.unique_stub(ns,'KJones') << Meq.Exp(karg)
 
-    nodestub = unique_stub(ns, sname)
-    node = nodestub << Meq.Add(*cc)
+    I = EN.unique_stub(ns,'stokesI') << vv['I']
+    Q = EN.unique_stub(ns,'stokesQ') << vv['Q']
+    if polrep=='circular':
+        iU = EN.unique_stub(ns,'i*stokesU') << Meq.ToComplex(0.0,vv['U'])
+        V = EN.unique_stub(ns,'stokesV') << vv['V']
+        AA = EN.unique_stub(ns,'RR') << (I+V)
+        AB = EN.unique_stub(ns,'RL') << (Q+iU)
+        BA = EN.unique_stub(ns,'LR') << (Q-iU)
+        BB = EN.unique_stub(ns,'LL') << (I-V)
+    else:
+        U = EN.unique_stub(ns,'stokesU') << vv['U']
+        iV = EN.unique_stub(ns,'i*stokesV') << Meq.ToComplex(0.0,vv['V'])
+        AA = EN.unique_stub(ns,'XX') << (I+Q)
+        AB = EN.unique_stub(ns,'XY') << (U+iV)
+        BA = EN.unique_stub(ns,'YX') << (U-iV)
+        BB = EN.unique_stub(ns,'YY') << (I-Q)
+    cps = EN.unique_stub(ns,'cps') << Meq.Matrix22(AA,AB,BA,BB)
+    coh = EN.unique_stub(ns,'coh') << Meq.Multiply(cps,KJones)
+
+    if stddev>0:
+        q = stddev
+        noise = EN.unique_stub(ns,'cohnoise') << Meq.Matrix22(complex(random.gauss(0,q),random.gauss(0,q)),
+                                                           complex(random.gauss(0,q),random.gauss(0,q)),
+                                                           complex(random.gauss(0,q),random.gauss(0,q)),
+                                                           complex(random.gauss(0,q),random.gauss(0,q)))
+        coh = EN.unique_stub(ns,'noisycoh') << Meq.Add(coh,noise)
+        
     if trace:
-        print '   ->',str(node)
-    return node
+        print '   ->',str(coh)
+        print EN.format_tree(coh)
+    return coh
 
 #----------------------------------------------------------------
 
@@ -893,8 +975,8 @@ def polyparm (ns, name='polyparm', ftLM=None,
                                     if Xdeg>0: quals.append(X)
                                     if Ydeg>0: quals.append(Y)
                                     if Zdeg>0: quals.append(Z)
-                                    parmstub = unique_stub(ns,pname,*quals)  # default: 'polyparm'
-                                    termstub = unique_stub(ns,'polyterm',*quals)
+                                    parmstub = EN.unique_stub(ns,pname,*quals)  # default: 'polyparm'
+                                    termstub = EN.unique_stub(ns,'polyterm',*quals)
                                     default_value = 0.1**sum_ftLM            # slightly non_zero
                                     parm = parmstub << Meq.Parm(default_value)
                                     if sum_ftLM==0:                          # the constant term
@@ -924,7 +1006,7 @@ def polyparm (ns, name='polyparm', ftLM=None,
         if Xdeg>0: sname += 'X'+str(Xdeg)
         if Ydeg>0: sname += 'Y'+str(Ydeg)
         if Zdeg>0: sname += 'Z'+str(Zdeg)
-    nodestub = unique_stub(ns, sname)
+    nodestub = EN.unique_stub(ns, sname)
     node = nodestub << Meq.Add(*cc)
     if trace:
         print '   ->',str(node),len(node.children),'terms\n'
@@ -976,6 +1058,16 @@ if __name__ == '__main__':
        twig(ns, 'dummy', trace=True)
 
    if 0:
+      twig(ns, 'f', trace=True)
+      twig(ns, 'f', quals=range(3), trace=True)
+      twig(ns, 'f', quals=[4], trace=True)
+      twig(ns, 'f', quals=5, trace=True)
+      twig(ns, 'f', quals=[None], trace=True)
+      twig(ns, 'f', kwquals=dict(a=2,b=6), trace=True)
+      twig(ns, 'f', quals=range(2), kwquals=dict(a=2,b=6), trace=True)
+
+
+   if 0:
        t = polyparm(ns, fdeg=1, tdeg=2, Ldeg=1, Mdeg=1, trace=True)
        nn = find_parms(t, trace=True)
 
@@ -992,7 +1084,7 @@ if __name__ == '__main__':
    if 1:
        dekey = dict(I=1.0, Q=0.0, U=0.0, V=0.0)
        decode('Q-0.1U3', dekey, trace=True)
-       cohmat(ns, 'cohmat', IQUV='Q-0.1U3', polrep='linear', stddev=0.0, trace=True) 
+       cohmat(ns, 'cohmat', quals=[1,2], IQUV='Q-0.1U3', polrep='linear', stddev=0.0, trace=True) 
 
    if 0:
        dekey = dict(f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
@@ -1015,41 +1107,8 @@ if __name__ == '__main__':
        ss = range(4)
        ss.extend([1,'a'])
        ss.extend([1,1,3,7,'a',2,2,2])
-       print unique_list(ss, trace=True)
+       print EN.unique_list(ss, trace=True)
        print 'ss (after) =',ss
-
-   #------------------------------------------------
-
-   if 0:
-      stub = nodestub(ns,'xxx',5,-7,c=8,h=9)
-      print '\n nodestub() ->',str(stub),type(stub)
-      stub << 5.6
-      stub = unique_stub(ns,'xxx',5,-7,c=8,h=9)
-      print '\n unique_stub() ->',str(stub),type(stub)
-      if 0:
-         if 1:
-            print '\n dir(stub):',dir(stub),'\n'
-         print '- stub.name:',stub.name
-         print '- stub.basename:',stub.basename
-         print '- stub.classname:',stub.classname
-         print '- stub.quals:',stub.quals
-         print '- stub.kwquals:',stub.kwquals
-         print '- stub.initialized():',stub.initialized()
-      if 0:
-         node = stub << 3.4
-         print '\n node = stub << 3.4   ->',str(node),type(node)
-         if 1:
-            print '\n dir(node):',dir(node),'\n'
-         print '- node.name:',node.name
-         print '- node.basename:',node.basename
-         print '- node.classname:',node.classname
-         print '- node.quals:',node.quals
-         print '- node.kwquals:',node.kwquals
-         print '- node.initialized():',node.initialized()
-
-      if 1:
-         print '.nodename() ->',nodename(ns,'xxx',5,-7,c=8,h=9)
-         print '.unique_name() ->',unique_name(ns,'xxx',5,-7,c=8,h=9)
 
    print '\n** End of standalone test of: EasyTwig.py:\n' 
 

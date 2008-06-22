@@ -64,8 +64,10 @@ But it may also be used stand-alone.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import QuickRefUtil as QRU
-import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
+from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+
 
 # import math
 # import random
@@ -212,10 +214,10 @@ def topic1_subtopic (ns, path, rider):
    single bookmark page.
 
    NB: Nodes for a subtopic subtree may also be defined directly (i.e. without using the
-   function QRU.MeqNode(). For those cases, the EasyTwig (ET) module provides a useful
+   function QRU.MeqNode(). For those cases, the EasyNode (EN) module provides a useful
    service to generate unique (i.e. non-clashing) nodenames:
 
-   .    node = ET.unique_stub(ns, <name>) << Meq.Cos(child)
+   .    node = EN.unique_stub(ns, <name>) << Meq.Cos(child)
 
    The EasyTwig module may also be used to generate small standard subtrees (twigs)
    that may serve as (user-defined) inputs to a demonstration subtree. Etc, etc.
