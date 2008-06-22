@@ -4,10 +4,10 @@
 #
 # Short description:
 #    Utility functions for making little subtrees (twigs)
-#    and unique nodestubs/nodenames.
 #
 # History:
 #   - 07 june 2008: creation (from EasyTwig.py)
+#   - 22 june 2008: split off EasyNode.py
 #
 # Remarks:
 #
@@ -163,191 +163,8 @@ def make_request (cells, rqtype=None):
 
 
 
-
 #====================================================================================
-# Functions for (unique) nodename/stub generation:
-#====================================================================================
-
-def nodename (ns, rootname, *quals, **kwquals):
-    """
-    Helper function that forms a nodename from the given rootname and
-    list (*) and keyword (**) qualifiers.
-    """
-    stub = nodestub (ns, rootname, *quals, **kwquals)
-    return stub.name
-
-#-------------------------------------------------------------------------
-
-def unique_name (ns, rootname, *quals, **kwquals):
-    """
-    Helper function that forms a unique nodename from the given rootname and
-    list (*) and keyword (**) qualifiers.
-    """
-    stub = unique_stub (ns, rootname, *quals, **kwquals)
-    return stub.name
-
-#-------------------------------------------------------------------------
-
-def nodestub (ns, rootname, *quals, **kwquals):
-    """
-    Helper function that forms a nodestub from the given rootname and
-    list (*) and keyword (**) qualifiers.
-    """
-    stub = ns[rootname]
-    if len(quals)>0:
-        stub = stub(*quals)
-
-    if len(kwquals)>0:
-        stub = stub(**kwquals)
-
-    if False:
-        s = '** QR.nodestub('+str(rootname)+','+str(quals)+','+str(kwquals)+')'
-        s += ' -> '+str(stub)
-        print s
-    return stub
-
-#-------------------------------------------------------------------------
-
-def unique_stub (ns, rootname, *quals, **kwquals):
-    """Helper function that forms a unique (i.e. uninitialized) nodestub
-    from the given information.
-    NB: Checking whether the proposed node has already been initialized
-    in the given nodescope (ns) may be not an entirely safe method,
-    when using unqualified nodes....
-    """
-    # First make a nodestub:
-    stub = nodestub(ns, rootname, *quals, **kwquals)
-
-    # Decode the uniquifying parameter (see below):
-    ss = rootname.split('|')
-    n = 0
-    nameroot = rootname
-    if len(ss)==3:                       # assume: <nameroot>|<n>|
-        n = int(ss[1])
-        nameroot = ss[0]
-
-    # Safety valve:
-    if n>100:
-        print s1
-        raise ValueError,'** max of uniqueness parameter exceeded'
-
-    # Testing:
-    if False:
-        if n<3:
-            stub << n               
-        s = (n*'--')+' initialized: '
-        s += ' '+str(stub.initialized())            # the correct way
-        s += ' '+str(ns[stub].initialized())        # .....?
-        s += ' '+str(ns[stub.name].initialized())   # .....
-        print s
-
-    # Check whether the node already exists (i.e. initialized...):
-    if stub.initialized():
-        # Recursive: Try again with a modified rootname.
-        # (using the incremented uniquifying parameter n)
-        newname = nameroot+'|'+str(n+1)+'|'
-        return unique_stub(ns, newname, *quals, **kwquals)
-
-    # Return the unique (!) nodestub:
-    return stub
-   
-
-#====================================================================================
-#====================================================================================
-
-def format_tree (node, ss=None, level=0, recurse=True, mode='str', trace=False):
-    """Helper function (recursive) to attach the subtree under the given node(s)
-    to the given string (ss). If mode='list', return a list of strings (lines).
-    The recursion depth is controlled by the 'recurse argument:
-    - recurse=False or <=0: return '' or [] (if mode='list')
-    - recurse=True is equivalent to recurse=1000 (i.e. deep enough for any subtree)
-    The input node may be either a single node, or a list of nodes. The latter is
-    used by MeqNode(), where the top node is shown in detail, and this function
-    is used only to expand the subtrees of its children in somewhat less detail.
-    """
-    
-    if isinstance(recurse,bool):
-        if recurse: recurse=1000                            # True
-    if not recurse:                                         # not required
-        if mode=='list': return [] 
-        return '' 
-
-    prefix = '\n'+(level*' |  ')+' '
-    if trace:
-        print prefix+str(node),node
-        # print dir(node)
-
-    if level==0:
-        if not isinstance(ss,str): ss = ''
-        if isinstance(node,list):
-            # Special case (see MeqNode()): Start with a list of children:
-            ss += prefix+'Its subtree, starting with its '+str(len(node))+' children:'
-            for c in node:
-                ss = format_tree(c, ss, level=level+1, recurse=recurse, trace=trace)
-        elif not is_node(node):                
-            return '** not a node (??) **'                  # error
-        else:
-            ss += prefix+str(node)
-    else:
-        ss += prefix+str(node)
-        if getattr(node,'initrec',None):
-            initrec = node.initrec()
-            v = getattr(initrec,'value',None)
-            if isinstance(v,(int,float,complex)):
-                ss += '   (value='+str(v)+')'
-
-    # Do its children (recursively), if required:
-    if getattr(node, 'children', None):
-        if level<recurse:               # only to the specified recursion depth
-            for c in node.children:
-                ss = format_tree(c[1], ss, level=level+1, recurse=recurse, trace=trace)
-        else:
-            ss += prefix+'   .....'     # indicate that the subtree is deeper
-
-    # Finished:
-    if level==0:
-        ss += '\n'
-        if mode=='list':
-            ss = ss.split('\n')
-    return ss
-
-
-#====================================================================================
-# Functions dealing with finding nodes in a tree:
-#====================================================================================
-
-def find_parms (tree, trace=False):
-    """Get a list of all the MeqParm nodes in the given tree"""
-    return find_nodes (tree, meqtype='MeqParm', trace=trace)
-
-
-def find_nodes (tree, meqtype='MeqParm', level=0, trace=False):
-    """Get a list of nodes of the specified type from the given tree.
-    """
-    prefix = level*'..'
-    if level==0:
-        if trace:
-            s1 = '** .find_nodes('+str(tree)+','+meqtype+'):'
-    nn = []
-    if getattr(tree,'children', None):
-        for child in tree.children:
-            c1 = child[1]
-            if c1.classname==meqtype:
-                nn.append(c1)
-            nn.extend(find_nodes(c1, meqtype=meqtype, level=level+1, trace=trace))
-    if level==0:
-        if trace:
-            print prefix,s1,'found',len(nn),'nodes'
-            for i,n in enumerate(nn):
-                print '   -',i,':',str(n)
-            print
-    return nn
-    
-
-#-----------------------------------------------------------------------------------
-
-#====================================================================================
-# Helper fuctions:
+# Some helper fuctions:
 #====================================================================================
 
 def unique_list (ss, trace=False):
@@ -483,7 +300,7 @@ def twig(ns, name, quals=None, kwquals=None,
     - tensor_ftM     :  3-element (f,t,M) 'tensor' node 
     - gaussian_ftLM  :  4D Gaussian, around 0.0, width=1.0 
     - expnegsum_f2t2 :  exp(-(f**2 + t**2))                   equivalent to gaussian_ft
-    - polyparm_L3M4  :  polynomial in L,M, with MeqParms      use ET.find_parms(twig) 
+    - polyparm_L3M4  :  polynomial in L,M, with MeqParms      use EN.find_parms(twig) 
     - polyparm_tLMXYZ  :  polynomial in t,L,M,X,Y,Z with MeqParms    MIM 
 
     An already existing (i.e. a node of that name is initialized) twig is re-used.
@@ -506,15 +323,7 @@ def twig(ns, name, quals=None, kwquals=None,
     nodename = name
     # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
 
-    # Limited name-qualifiers may be specified:
-    if not isinstance(kwquals,dict):
-        kwquals = dict()
-    if quals==None:
-        stub = nodestub(ns, nodename, **kwquals)
-    elif isinstance(quals,(list,tuple)):
-        stub = nodestub(ns, nodename, *quals, **kwquals)
-    else:
-        stub = nodestub(ns, nodename, *[quals], **kwquals)
+    stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
 
     # Check whether the node already exists (i.e. is initialized...)
     node = None
@@ -942,7 +751,7 @@ def polyparm (ns, name='polyparm', ftLM=None,
     if isinstance(ftLM, str):
         # The polynomial degree may be specified by 'ftLM' string:
         # (for compatibility with twig())
-        vv = decode_ftLM(ftLM, trace=True)
+        vv = decode_ftLMXYZ(ftLM, trace=True)
         fdeg = max(0,vv['f'])
         tdeg = max(0,vv['t'])
         Ldeg = max(0,vv['L'])
@@ -975,8 +784,8 @@ def polyparm (ns, name='polyparm', ftLM=None,
                                     if Xdeg>0: quals.append(X)
                                     if Ydeg>0: quals.append(Y)
                                     if Zdeg>0: quals.append(Z)
-                                    parmstub = EN.unique_stub(ns,pname,*quals)  # default: 'polyparm'
-                                    termstub = EN.unique_stub(ns,'polyterm',*quals)
+                                    parmstub = EN.unique_stub(ns, pname, quals=quals)  # default: 'polyparm'
+                                    termstub = EN.unique_stub(ns, 'polyterm', quals=quals)
                                     default_value = 0.1**sum_ftLM            # slightly non_zero
                                     parm = parmstub << Meq.Parm(default_value)
                                     if sum_ftLM==0:                          # the constant term
@@ -1010,7 +819,7 @@ def polyparm (ns, name='polyparm', ftLM=None,
     node = nodestub << Meq.Add(*cc)
     if trace:
         print '   ->',str(node),len(node.children),'terms\n'
-        find_parms(node, trace=trace)
+        EN.find_parms(node, trace=trace)
     return node
 
 
@@ -1026,9 +835,9 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 0:
+   if 1:
        for cat in twig_cats():
-           print '\n\n****** twig_cat =',cat
+           print '\n\n** twig_cat =',cat
            for name in twig_names(cat):
                twig(ns, name, trace=True)
 
@@ -1069,14 +878,14 @@ if __name__ == '__main__':
 
    if 0:
        t = polyparm(ns, fdeg=1, tdeg=2, Ldeg=1, Mdeg=1, trace=True)
-       nn = find_parms(t, trace=True)
+       nn = EN.find_parms(t, trace=True)
 
    if 0:
        expr = '[f]+[t]'
        expr = '[f]+[t]*{alpha}'
        expr = '{a}*exp(-({b}*[f]**2+{c}*[t]**2))'
        t = twig(ns,expr, trace=True)
-       nn = find_parms(t, trace=True)
+       nn = EN.find_parms(t, trace=True)
        
 
    #------------------------------------------------

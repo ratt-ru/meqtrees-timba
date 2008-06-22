@@ -58,8 +58,9 @@ But it may also be used stand-alone.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-import QuickRefUtil as QRU
-import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
+from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 # import math
 # import random

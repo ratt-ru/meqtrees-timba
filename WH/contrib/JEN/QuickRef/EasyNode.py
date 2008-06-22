@@ -58,47 +58,29 @@ import copy
 # Functions for (unique) nodename/stub generation:
 #====================================================================================
 
-def nodename (ns, rootname, *quals, **kwquals):
+def nodename (ns, rootname, quals=None, kwquals=None, trace=False):
     """
     Helper function that forms a nodename from the given rootname and
     list (*) and keyword (**) qualifiers.
     """
-    stub = nodestub (ns, rootname, *quals, **kwquals)
+    stub = nodestub (ns, rootname, quals=quals, kwquals=kwquals,
+                     trace=trace)
     return stub.name
 
 #-------------------------------------------------------------------------
 
-def unique_name (ns, rootname, *quals, **kwquals):
+def unique_name (ns, rootname, quals=None, kwquals=None, trace=False):
     """
     Helper function that forms a unique nodename from the given rootname and
     list (*) and keyword (**) qualifiers.
     """
-    stub = unique_stub (ns, rootname, *quals, **kwquals)
+    stub = unique_stub (ns, rootname, quals=quals, kwquals=kwquals,
+                        trace=trace)
     return stub.name
 
 #-------------------------------------------------------------------------
 
-def nodestub (ns, rootname, *quals, **kwquals):
-    """
-    Helper function that forms a nodestub from the given rootname and
-    list (*) and keyword (**) qualifiers.
-    """
-    stub = ns[rootname]
-    if len(quals)>0:
-        stub = stub(*quals)
-
-    if len(kwquals)>0:
-        stub = stub(**kwquals)
-
-    if False:
-        s = '** QR.nodestub('+str(rootname)+','+str(quals)+','+str(kwquals)+')'
-        s += ' -> '+str(stub)
-        print s
-    return stub
-
-#-------------------------------------------------------------------------
-
-def unique_stub (ns, rootname, *quals, **kwquals):
+def unique_stub (ns, rootname, quals=None, kwquals=None, trace=False):
     """Helper function that forms a unique (i.e. uninitialized) nodestub
     from the given information.
     NB: Checking whether the proposed node has already been initialized
@@ -106,7 +88,8 @@ def unique_stub (ns, rootname, *quals, **kwquals):
     when using unqualified nodes....
     """
     # First make a nodestub:
-    stub = nodestub(ns, rootname, *quals, **kwquals)
+    stub = nodestub(ns, rootname, quals=quals, kwquals=kwquals,
+                    trace=trace)
 
     # Decode the uniquifying parameter (see below):
     ss = rootname.split('|')
@@ -136,11 +119,44 @@ def unique_stub (ns, rootname, *quals, **kwquals):
         # Recursive: Try again with a modified rootname.
         # (using the incremented uniquifying parameter n)
         newname = nameroot+'|'+str(n+1)+'|'
-        return unique_stub(ns, newname, *quals, **kwquals)
+        return unique_stub(ns, newname, quals=quals, kwquals=kwquals,
+                           trace=trace)
 
     # Return the unique (!) nodestub:
     return stub
-   
+
+#-------------------------------------------------------------------------
+
+def nodestub (ns, rootname, quals=None, kwquals=None, trace=False):
+    """
+    Helper function that forms a nodestub from the given rootname and
+    any qualifiers quals(list or value) and/or kwquals(dict).
+    """
+    stub = ns[rootname]
+
+    # Un-named qualifiers:
+    if quals==None:
+        pass
+    elif isinstance(quals,(list,tuple)):
+        if len(quals)>0:
+            stub = stub(*quals)
+    else:
+        stub = stub(*[quals])
+
+    # Keyword qualifiers:
+    if isinstance(kwquals, dict):
+        if len(kwquals)>0:
+            stub = stub(**kwquals)
+
+    if trace:
+        s = '\n** EasyNode.nodestub('+str(rootname)+','+str(quals)+','+str(kwquals)+')'
+        s += ' -> '+str(stub)
+        # s += ' (initialized='+str(stub.initialized())+')'
+        print s
+    return stub
+
+
+
 
 #====================================================================================
 #====================================================================================
@@ -270,44 +286,61 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 0:
+       nodestub(ns, 'xxx', trace=True)
+       nodestub(ns, 'xxx', quals=range(3), trace=True)
+       nodestub(ns, 'xxx', quals=3, trace=True)
+       nodestub(ns, 'xxx', kwquals=dict(a=3), trace=True)
+       nodestub(ns, 'xxx', quals=4, kwquals=dict(a=3), trace=True)
+       # Empty:
+       nodestub(ns, 'xxx', quals=4, kwquals=dict(), trace=True)
+       nodestub(ns, 'xxx', quals=[], kwquals=dict(), trace=True)
+       nodestub(ns, 'xxx', quals=(3,4,5), kwquals=dict(), trace=True)
+       # Errors?
+       nodestub(ns, 'xxx', kwquals=15, trace=True)
+       nodestub(ns, 'xxx', quals=dict(a=5), trace=True)
+
+   #------------------------------------------------
+
+   if 1:
+       quals = [5,-7]
+       kwquals = dict(c=8, h=9)
+       stub = nodestub(ns,'xxx', quals, kwquals, trace=True)
+       stub << 5.6
+       stub = unique_stub(ns,'xxx', quals, kwquals, trace=True)
+       if 1:
+           if 1:
+               print '\n dir(stub):',dir(stub),'\n'
+           print '- stub.name:',stub.name
+           print '- stub.basename:',stub.basename
+           print '- stub.classname:',stub.classname
+           print '- stub.quals:',stub.quals
+           print '- stub.kwquals:',stub.kwquals
+           print '- stub.initialized():',stub.initialized()
+       if 1:
+           node = stub << 3.4
+           print '\n node = stub << 3.4   ->',str(node),type(node)
+           if 1:
+               print '\n dir(node):',dir(node),'\n'
+           print '- node.name:',node.name
+           print '- node.basename:',node.basename
+           print '- node.classname:',node.classname
+           print '- node.quals:',node.quals
+           print '- node.kwquals:',node.kwquals
+           print '- node.initialized():',node.initialized()
+
+       if 1:
+           print
+           print '.nodename() ->',nodename(ns,'xxx', quals, kwquals)
+           print '.unique_name() ->',unique_name(ns,'xxx', quals, kwquals)
+
+
+
+   if 0:
        ss = range(4)
        ss.extend([1,'a'])
        ss.extend([1,1,3,7,'a',2,2,2])
        print unique_list(ss, trace=True)
        print 'ss (after) =',ss
-
-   #------------------------------------------------
-
-   if 0:
-      stub = nodestub(ns,'xxx',5,-7,c=8,h=9)
-      print '\n nodestub() ->',str(stub),type(stub)
-      stub << 5.6
-      stub = unique_stub(ns,'xxx',5,-7,c=8,h=9)
-      print '\n unique_stub() ->',str(stub),type(stub)
-      if 0:
-         if 1:
-            print '\n dir(stub):',dir(stub),'\n'
-         print '- stub.name:',stub.name
-         print '- stub.basename:',stub.basename
-         print '- stub.classname:',stub.classname
-         print '- stub.quals:',stub.quals
-         print '- stub.kwquals:',stub.kwquals
-         print '- stub.initialized():',stub.initialized()
-      if 0:
-         node = stub << 3.4
-         print '\n node = stub << 3.4   ->',str(node),type(node)
-         if 1:
-            print '\n dir(node):',dir(node),'\n'
-         print '- node.name:',node.name
-         print '- node.basename:',node.basename
-         print '- node.classname:',node.classname
-         print '- node.quals:',node.quals
-         print '- node.kwquals:',node.kwquals
-         print '- node.initialized():',node.initialized()
-
-      if 1:
-         print '.nodename() ->',nodename(ns,'xxx',5,-7,c=8,h=9)
-         print '.unique_name() ->',unique_name(ns,'xxx',5,-7,c=8,h=9)
 
    print '\n** End of standalone test of: EasyNode.py:\n' 
 

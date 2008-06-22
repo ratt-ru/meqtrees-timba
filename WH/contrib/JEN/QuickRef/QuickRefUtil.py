@@ -56,7 +56,8 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
-import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 import copy
 import math
@@ -827,9 +828,9 @@ def MeqNode (ns, path, rider,
     # Optional, show the subtree below to the required depth:
     if show_recurse:
         if is_node(node):
-            qhelp.extend(ET.format_tree(node, recurse=show_recurse, mode='list'))
+            qhelp.extend(EN.format_tree(node, recurse=show_recurse, mode='list'))
         elif isinstance(children,(list,tuple)):
-            qhelp.extend(ET.format_tree(children, recurse=show_recurse, mode='list'))
+            qhelp.extend(EN.format_tree(children, recurse=show_recurse, mode='list'))
  
     # Dispose of the conditioned help (qhelp):
     kwargs['quickref_help'] = qhelp                         # -> node state record
@@ -852,7 +853,7 @@ def MeqNode (ns, path, rider,
       
     elif isinstance(children,(list,tuple)):              
         if isinstance(name,str):
-            stub = ET.unique_stub(ns, name)
+            stub = EN.unique_stub(ns, name)
             node = stub << getattr(Meq,meqclass)(*children, **kwargs)
         else:
             node = ns << getattr(Meq,meqclass)(*children, **kwargs)
@@ -860,14 +861,14 @@ def MeqNode (ns, path, rider,
     elif is_node(children):
         child = children
         if isinstance(name,str):
-            stub = ET.unique_stub(ns, name)
+            stub = EN.unique_stub(ns, name)
             node = stub << getattr(Meq,meqclass)(child, **kwargs)
         else:
             node = ns << getattr(Meq,meqclass)(child, **kwargs)
 
     else:                           
         if isinstance(name,str):
-            stub = ET.unique_stub(ns, name)
+            stub = EN.unique_stub(ns, name)
             node = stub << getattr(Meq,meqclass)(**kwargs)
         else:
             node = ns << getattr(Meq,meqclass)(**kwargs)
@@ -964,7 +965,7 @@ def bundle (ns, path, rider,
 
     #.......................................................................
     # First make a nodestub with an unique name
-    parent = ET.unique_stub(ns, name)
+    parent = EN.unique_stub(ns, name)
 
     # Special case: no nodes to be bundled:
     if len(nodes)==0:
@@ -1036,12 +1037,12 @@ def bundle (ns, path, rider,
 
     # Show a resulting subtree, if required:
     if is_node(show_recurse):
-        print ET.format_tree(show_recurse)
+        print EN.format_tree(show_recurse)
     elif show_recurse:
-        print ET.format_tree(parent, recurse=show_recurse)
+        print EN.format_tree(parent, recurse=show_recurse)
     elif runopt_show_bundles:
         print '\n** subtree under the bundle parent node (path=',path,'):'
-        print ET.format_tree(parent, recurse=10)
+        print EN.format_tree(parent, recurse=10)
 
     if trace:
         print '** QR.bundle():',path,name,'->',str(parent),'\n'
@@ -1080,7 +1081,7 @@ if __name__ == '__main__':
         a = ns.a << 1.0
         b = ns.b << 3.0
         node = ns.test << Meq.Add(a,b)
-        ss = ET.format_tree(node, mode='list', trace=True)
+        ss = EN.format_tree(node, mode='list', trace=True)
         print ss
 
     print '\n** End of standalone test of: QuickRefUtil.py:\n' 

@@ -143,7 +143,9 @@ from Timba.Meq import meq
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
 
-import QuickRefUtil as QRU
+from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
+# from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+# from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 
 #********************************************************************************
