@@ -35,6 +35,7 @@ calibrate_options= TDLCompileMenu("Existing UV data Options",
 
 simulate_options= TDLCompileMenu("Simulation Options",
                                  # noise option
+                                 TDLOption('do_add',"Add sky model to existing data to increase number of sources",False),
                                  TDLOption("noise_stddev","Add noise, Jy",[None,1e-6,1e-3],more=float))
 
 
@@ -97,9 +98,17 @@ def _define_forest(ns):
     selected_corrs = cal_corr.split(" ");
 
     # make spigot nodes
+    if not do_not_simulate and do_add:
+        spigots = spigots0 = outputs = array.spigots();
+        sums = ns.sums;
+        for p,q in array.ifrs():
+            sums(p,q) << spigots(p,q) + predict(p,q);
+        outputs = sums;
+
+    # make spigot nodes
     if do_not_simulate:
         spigots = spigots0 = outputs = array.spigots();
-
+        # make nodes to compute residuals
         
 
         # make nodes to compute residuals
