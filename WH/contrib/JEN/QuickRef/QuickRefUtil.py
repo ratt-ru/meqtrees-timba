@@ -460,7 +460,7 @@ def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
     return result
 
 
-    # NB: It executes the entire sequence before showing any plots!
+    # NB: It executes the entire sequence before showing any plots! (or does it...?)
     # The things I have tried to make it display each result:
     # request = make_request(cells, rqtype='ev')
     # result = mqs.meq('Node.Execute',record(name='QuickRefUtil', request=request), wait=True)
@@ -630,18 +630,22 @@ def format_vv (vv):
 
 
 def on_entry(func, path, rider, help=None, trace=False):
-    """QuickRefUtil.on_entry(func, path, rider, help=None, trace=False):
-    This function is called on entry of all functions in QR_... modules.
+    """
+    Syntax:
+    .   rr = QuickRefUtil.on_entry(func, path, rider, help=None, trace=False)
+    This function is called upon entry of all functions in QR_... modules:
     .      def func (ns, path, rider, ...):
     .          <doc-string in triple-quotes>
     .          rr = QR.on_entry(func, path, rider, help=None, trace=False)
     It returns a record rr with the following fields:
     - rr.path: the given path, plus (part of) func.func_name.
-    .          This is used to attach hlp strings at their proper place
+    .          This is used to attach help strings at their proper place
     .          in the CollatedHelpRecord (rider).
     - rr.help: func.__doc__  (plus any extra help, if specified).
+    - rr.name: func.func_name
     """
     rr = record()
+    rr.name = func.func_name
 
     ss = func.func_name.split('_')
     nss = len(ss)
@@ -678,7 +682,8 @@ def on_entry(func, path, rider, help=None, trace=False):
 #-------------------------------------------------------------------------------
 
 def add2path (path, name=None, trace=False):
-    """Helper function to form the path to a specific bundle.
+    """
+    Helper function to form the path to a specific bundle.
     NB: This function is called from all QR_... modules!
     """
     s = str(path)
@@ -695,15 +700,25 @@ def add2path (path, name=None, trace=False):
 def helpnode (ns, path, rider,
               name=None, node=None,
               help=None,
+              func=None,
               trace=False):
     """
+    Syntax:
+    .     node = QuickRefUtil.helpnode(ns, path, rider, ...)
     A special version of MeqNode(), for nodes that are only
     used to carry a quickref_help field in their state-record.
-    If no name is given, make it from the path.
-    If a node is specified, assume that it has a quickref_help field.
+    - If no name is given, make it from the path.
+    - If a node is specified, assume that it has a quickref_help field.
     Otherwise make a dummy-node with a quickref_help field.
+    - If a function is specified (func), use its name and docstring.
     Always make a bookmark for the node, with a suitable viewer.
     """
+
+    if getattr(func,'func_name', None):
+        # A function specified: Reuse .on_entry() to extract help (its doc-string)
+        rr = on_entry(func, path, rider, help=None, trace=trace)
+        help = rr.help
+        name = rr.name
 
     # Make sure of the name-string:
     if not isinstance(name,str):
@@ -735,7 +750,9 @@ def MeqNode (ns, path, rider,
              node=None, children=None, unop=None,
              help=None, show_recurse=False,
              trace=False, **kwargs):
-    """QuickRefUtil.MeqNode(ns, path, rider, ...):
+    """
+    Syntax:
+    .     node = QuickRefUtil.MeqNode(ns, path, rider, ...)
     This function is called from many functions in QR_... modules.
     It defines and returns the specified node an an organised way,
     avoiding nodename clashes, and using path and rider.
@@ -895,7 +912,9 @@ def bundle (ns, path, rider,
             show_recurse=False,
             bookmark=True, viewer="Result Plotter",
             trace=False):
-    """QuickRefUtil.bundle(ns, path, rider, nodes, help, ...):
+    """
+    Syntax:
+    .      node = QuickRefUtil.bundle(ns, path, rider, nodes, help, ...)
     Returns a single parent node, with the given nodes as its children.
     Makes bookmarks if required, and disposes of the help-string in two
     ways: As the quickref_help in the state record of the parent node,

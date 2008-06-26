@@ -151,24 +151,90 @@ from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 #********************************************************************************
 #********************************************************************************
 
+failed =  ': ... module not available ...'
+
+if True:
+   try:
+      module = 'MeqNodes'
+      from Timba.Contrib.JEN.QuickRef import QR_MeqNodes        
+      avail_MeqNodes = True
+   except:
+      QR_MeqNodes = TDLCompileOption('avail_'+module,
+                                     'QR_'+module+failed, [False])
+   try:
+      module = 'UserNodes'
+      from Timba.Contrib.JEN.QuickRef import QR_UserNodes        
+      avail_UserNodes = True
+   except:
+      QR_UserNodes = TDLCompileOption('avail_'+module,
+                                      'QR_'+module+failed, [False])
+   try:
+      module = 'execution'
+      from Timba.Contrib.JEN.QuickRef import QR_execution        
+      avail_execution = True
+   except:
+      QR_execution = TDLCompileOption('avail_'+module,
+                                      'QR_'+module+failed, [False])
+   try:
+      module = 'template'
+      from Timba.Contrib.JEN.QuickRef import QR_template        
+      avail_template = True
+   except:
+      QR_template = TDLCompileOption('avail_'+module,
+                                     'QR_'+module+failed, [False])
+   try:
+      module = 'solving'
+      from Timba.Contrib.JEN.QuickRef import QR_solving        
+      avail_solving = True
+   except:
+      QR_solving = TDLCompileOption('avail_'+module,
+                                    'QR_'+module+failed, [False])
+   try:
+      module = 'TreeDefinition'
+      from Timba.Contrib.JEN.QuickRef import QR_TreeDefinition        
+      avail_TreeDefinition = True
+   except:
+      QR_TreeDefinition = TDLCompileOption('avail_'+module,
+                                     'QR_'+module+failed, [False])
+
+   try:
+      module = 'PyNodePlot'
+      from Timba.Contrib.JEN.QuickRef import QR_PyNodePlot        
+      avail_PyNodePlot = True
+   except:
+      QR_PyNodePlot = TDLCompileOption('avail_'+module,
+                                       'QR_'+module+failed, [False])
+
+
+
+modules = ['MeqNodes','execution','solving',
+           'UserNodes','PyNodePlot','TreeDefinition','template']
+for module in modules:
+   print '-',module,':',eval('avail_'+module)
+
+
+
+#--------------------------------------------------------------------------------
+
 TDLCompileMenu("QuickRef Categories:",
-               TDLOption('opt_allcats',"override: include all categories",True),
-               # TDLOption('opt_general',"QR_MeqTree: general items",False),
-               # TDLOption('opt_MeqBrowser',"QR_MeqBrowser: Using the meqbrowser",False),
-               TDLOption('opt_TreeDefinition',"QR_TreeDefinition: Defining trees",False),
-               TDLOption('opt_execution',"QR_execution: Requests and Results",False),
-               TDLOption('opt_MeqNodes',"QR_MeqNodes: Overview of available nodes",True),
-               TDLOption('opt_UserNodes',"QR_UserNodes: user-defined nodes",False),
-               TDLOption('opt_solving',"QR_solving: Solving for MeqParm values",False),
-               TDLOption('opt_PyNodePlot',"QR_PyNodePlot: pynodes for plotting",False),
-               # TDLOption('opt_boilerplate',"QR_boilerplate: swollen text",False),
-               TDLOption('opt_template',"QR_template: Template/help for making QR modules",False),
+               TDLOption('opt_allcats',"override: include all categories", False),
+               
+               # TDLMenu("QR_MeqTree: general items", QR_general, toggle='opt_general'),
+               # TDLMenu("QR_MeqBrowser: Using the meqbrowser", QR_MeqBrowser, toggle='opt_MeqBrowser'),
+
+               TDLMenu("QR_TreeDefinition: Defining trees", QR_TreeDefinition, toggle='opt_TreeDefinition'),
+               TDLMenu("QR_execution: Requests and Results", QR_execution, toggle='opt_execution'),
+               TDLMenu("QR_MeqNodes: Overview of available nodes", QR_MeqNodes, toggle='opt_MeqNodes'),
+               TDLMenu("QR_UserNodes: user-defined nodes", QR_UserNodes, toggle='opt_UserNodes'),
+               TDLMenu("QR_solving: Solving for MeqParm values", QR_solving, toggle='opt_solving'),
+               TDLMenu("QR_PyNodePlot: pynodes for plotting", QR_PyNodePlot, toggle='opt_PyNodePlot'),
+
+               # TDLMenu("QR_boilerplate: swollen text", QR_boilerplate, toggle='opt_boilerplate'),
+
+               TDLMenu("QR_template: Template/help for making QR modules", QR_template, toggle='opt_template'),
                toggle='opt_QuickRef',
                )
 
-if opt_MeqNodes:              
-   import QR_MeqNodes        
-   TDLCompileMenu("Options for QR_MeqNodes:", QR_MeqNodes)
 
 
 
@@ -184,39 +250,25 @@ def _define_forest (ns, **kwargs):
 
    cc = []
 
-   if opt_allcats or opt_TreeDefinition:   
-      import QR_TreeDefinition   
-      TDLCompileMenu("Options for QR_TreeDefinition", QR_TreeDefinition)
+   if avail_TreeDefinition and (opt_allcats or opt_TreeDefinition):   
       cc.append(QR_TreeDefinition.QR_TreeDefinition(ns, path, rider=rider))
 
-   if opt_allcats or opt_execution:   
-      import QR_execution   
-      TDLCompileMenu("Options for QR_execution", QR_execution)
+   if avail_execution and (opt_allcats or opt_execution):   
       cc.append(QR_execution.QR_execution(ns, path, rider=rider))
 
-   if opt_allcats or opt_MeqNodes:   
-      import QR_MeqNodes   
-      TDLCompileMenu("Options for QR_MeqNodes", QR_MeqNodes)
+   if avail_MeqNodes and (opt_allcats or opt_MeqNodes):   
       cc.append(QR_MeqNodes.QR_MeqNodes(ns, path, rider=rider))
 
-   if opt_allcats or opt_UserNodes:   
-      import QR_UserNodes   
-      TDLCompileMenu("Options for QR_UserNodes", QR_UserNodes)
+   if avail_UserNodes and (opt_allcats or opt_UserNodes):   
       cc.append(QR_UserNodes.QR_UserNodes(ns, path, rider=rider))
 
-   if opt_allcats or opt_solving:   
-      import QR_solving   
-      TDLCompileMenu("Options for QR_solving", QR_solving)     
+   if avail_solving and (opt_allcats or opt_solving):   
       cc.append(QR_solving.QR_solving(ns, path, rider=rider))
 
-   if opt_allcats or opt_PyNodePlot:   
-      import QR_PyNodePlot   
-      TDLCompileMenu("Options for QR_PyNodePlot", QR_PyNodePlot)
+   if avail_PyNodePlot and (opt_allcats or opt_PyNodePlot):   
       cc.append(QR_PyNodePlot.QR_PyNodePlot(ns, path, rider=rider))
 
-   if opt_allcats or opt_template:   
-      import QR_template   
-      TDLCompileMenu("Options for QR_template", QR_template)   
+   if avail_template and (opt_allcats or opt_template):   
       cc.append(QR_template.QR_template(ns, path, rider=rider))
 
    # Make the outer bundle (of node bundles):
@@ -230,14 +282,14 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 #********************************************************************************
 
-def _tdl_job_execute_1D (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QuickRef')
+def _tdl_job_execute_1D_f (mqs, parent):
+   return QRU._tdl_job_execute_f (mqs, parent, rootnode='QuickRef')
 
-def _tdl_job_execute_2D (mqs, parent):
-   return QRU._tdl_job_execute_2D (mqs, parent, rootnode='QuickRef')
+def _tdl_job_execute_2D_ft (mqs, parent):
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QuickRef')
 
-def _tdl_job_execute_4D (mqs, parent):
-   return QRU._tdl_job_execute_4D (mqs, parent, rootnode='QuickRef')
+def _tdl_job_execute_4D_ftLM (mqs, parent):
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QuickRef')
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QuickRef')
@@ -270,7 +322,7 @@ if __name__ == '__main__':
    print '\n** Start of standalone test of: QuickRef.py:\n' 
    ns = NodeScope()
 
-   if 1:
+   if 0:
       _define_forest(ns)
       if 1:
          print rider.format()

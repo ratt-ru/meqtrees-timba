@@ -117,7 +117,7 @@ TDLCompileMenu("QR_MeqNodes topics:",
                        toggle='opt_multi_math'),
                TDLOption('opt_leaves',"Leaf nodes (no children)",False),
                TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
-               TDLOption('opt_axis_reduction',"axis_reduction",False),
+               TDLOption('opt_axisreduction',"axisreduction",False),
                TDLMenu("resampling",
                        TDLOption('opt_resampling_MeqModRes_twig',
                                  "input twig (child node) of MeqModRes",
@@ -171,13 +171,12 @@ def QR_MeqNodes (ns, path, rider):
       cc.append(binops_math (ns, rr.path, rider))
    if opt_alltopics or opt_multi_math:
       cc.append(multi_math (ns, rr.path, rider))
-   if opt_leaves:
-   # if opt_alltopics or opt_leaves:                    # <----!!
+   if opt_alltopics or opt_leaves:             
       cc.append(leaves (ns, rr.path, rider))
    if opt_alltopics or opt_tensor:
       cc.append(tensor (ns, rr.path, rider))
-   if opt_alltopics or opt_axis_reduction:
-      cc.append(axis_reduction (ns, rr.path, rider))
+   if opt_alltopics or opt_axisreduction:
+      cc.append(axisreduction (ns, rr.path, rider))
    if opt_alltopics or opt_resampling:
       cc.append(resampling (ns, rr.path, rider))
    if opt_alltopics or opt_compounder:
@@ -282,9 +281,9 @@ def tensor (ns, path, rider):
 
 #--------------------------------------------------------------------------------
 
-def axis_reduction (ns, path, rider):
+def axisreduction (ns, path, rider):
    """
-   Axis_reduction nodes reduce the values of all domain cells to a smaller
+   Axisreduction nodes reduce the values of all domain cells to a smaller
    number of values (e.g. their mean). They operate on all the vellsets
    in the Result(s) of their child(ren?).
    NB: It is not clear (to me, in this stage) what happens if some cells
@@ -295,11 +294,11 @@ def axis_reduction (ns, path, rider):
    The Result of a reduction node will be expanded when needed to fit a
    domain of the original size, in which multiple cells have the same value.
    """
-   rr = QRU.on_entry(axis_reduction, path, rider)
+   rr = QRU.on_entry(axisreduction, path, rider)
    cc = []
-   cc.append(axis_reduction_single (ns, rr.path, rider))
-   cc.append(axis_reduction_multiple (ns, rr.path, rider))
-   cc.append(axis_reduction_axes (ns, rr.path, rider))
+   cc.append(axisreduction_single (ns, rr.path, rider))
+   cc.append(axisreduction_multiple (ns, rr.path, rider))
+   cc.append(axisreduction_axes (ns, rr.path, rider))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
@@ -500,7 +499,7 @@ def visualization_inspector (ns, path, rider):
    argument 'plot_label' is given a list of strings, these are used as
    labels in the plot.
    - The plotter takes the average over all the non-time axes over the domain.
-   .   (this is equivalent to axis_reduction with reduction_axis=all-except-time)
+   .   (this is equivalent to axisreduction with reduction_axis=all-except-time)
    .   Exercise: Play with different input twigs, and different domain axes.
    - When the result is complex, one may toggle betweem ampl,phase,real,imag. 
    - When a sequence is executed, the tim-slots are plotted sequentially.
@@ -596,7 +595,7 @@ def flagging_simple (ns, path, rider):
    diff = ns << Meq.Subtract(twig,mean)
    absdiff = ns << Meq.Abs(diff)
    nsigma = opt_flagging_nsigma
-   zcritname = 'zcrit(nsigma='+str(nsigma)+')'
+   zcritname = 'zero_crit(nsigma='+str(nsigma)+')'
    zcrit = EN.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
    zflag = QRU.MeqNode (ns, rr.path, rider, meqclass='ZeroFlagger',
                         name='ZeroFlagger(zcrit, oper=GE)',
@@ -690,16 +689,16 @@ def resampling_experiment (ns, path, rider,
 
 
 #================================================================================
-# axis_reduction_... 
+# axisreduction_... 
 #================================================================================
 
-def axis_reduction_single (ns, path, rider):
+def axisreduction_single (ns, path, rider):
    """
-   Demonstration of basic axis_reduction, on one child, with a single vellset.
+   Demonstration of basic axisreduction, on one child, with a single vellset.
    The reduction is done along all available axes (the default), producing a
    single-number Result.
    """
-   rr = QRU.on_entry(axis_reduction_single, path, rider)
+   rr = QRU.on_entry(axisreduction_single, path, rider)
 
    twig_name = 'f'
    twig = ET.twig(ns, twig_name)
@@ -718,16 +717,16 @@ def axis_reduction_single (ns, path, rider):
 
 #--------------------------------------------------------------------------------
 
-def axis_reduction_multiple (ns, path, rider):
+def axisreduction_multiple (ns, path, rider):
    """
    Demonstration of more advanced axis reduction, with Results that may contain
    multiple vellsets.
-   NB: Axis_reduction nodes ONLY work with a single child.
+   NB: Axisreduction nodes ONLY work with a single child.
    The reduction is done along all available axes (the default), producing a
    single-number Result.
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
-   rr = QRU.on_entry(axis_reduction_multiple, path, rider)
+   rr = QRU.on_entry(axisreduction_multiple, path, rider)
 
    democlass = 'Sum'
    help = record(f=democlass+' over the cells of a single vellset, of its single child',
@@ -744,9 +743,9 @@ def axis_reduction_multiple (ns, path, rider):
 
 #--------------------------------------------------------------------------------
 
-def axis_reduction_axes (ns, path, rider):
+def axisreduction_axes (ns, path, rider):
    """
-   Demonstration of more advanced axis_reduction, along a subset of the available axes.
+   Demonstration of more advanced axisreduction, along a subset of the available axes.
    If one or more reduction_axes are specified, the reduction is only
    along the specified axes (e.g. reduction_axes=['time'] reduces only
    the time-axis to length 1. The default is all available axes, of course. 
@@ -754,7 +753,7 @@ def axis_reduction_axes (ns, path, rider):
    domain of the original size, in which multiple cells have the same value.
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
-   rr = QRU.on_entry(axis_reduction_axes, path, rider)
+   rr = QRU.on_entry(axisreduction_axes, path, rider)
 
    democlass = 'Sum'
    help = democlass+' over the cells of '
@@ -793,22 +792,27 @@ def tensor_manipulation (ns, path, rider):
    Manipulation of 'tensor' nodes, i.e. nodes with multiple vellsets.
    """
    rr = QRU.on_entry(tensor_manipulation, path, rider)
-   cc = []
-   children = [ET.twig(ns,'f'), ET.twig(ns,'t'), ET.twig(ns,'ft')]
-   cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Composer', name='Composer(c0,c1,c2)',
-                          help="""Combine the vellsets in the Results of its children
-                          into a Result with multiple vellsets in the new node.""",
-                          children=children))
-   cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Selector', name='Selector(child, index=1)',
-                          help="""Select the specified (index) vellset in its child
-                          for a new node with a single vellset in its Result""",
-                          children=[cc[0]], index=1))
-   if True:
+   c0 = ET.twig(ns,'f', nodename='c0')
+   c1 = ET.twig(ns,'t', nodename='c1')
+   c2 = ET.twig(ns,'ft', nodename='c2')
+   cc = [c0,c1,c2]
+   tensor = QRU.MeqNode (ns, rr.path, rider, meqclass='Composer', name='Composer(c0,c1,c2)',
+                         help="""Combine the vellsets in the Results of its children
+                         into a Result with multiple vellsets in the new node.""",
+                         children=[c0,c1,c2])
+   cc.append(tensor)
+   for index in [0,1,2]:
+      cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Selector',
+                             name='Selector(child, index='+str(index)+')',
+                             help="""Select the specified (index) vellset in its child
+                             for a new node with a single vellset in its Result""",
+                             children=[tensor], index=index))
+   if False:
       # Problem: Gives an error (list indix not supported?)
       cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Selector', name='Selector(child, index=[0,2])',
                              help="""Select the specified (index) vellsets in its child
                              for a new node with this subset of vellsets in its Result""",
-                             children=[cc[0]], index=[0,2]))
+                             children=[tensor], index=[0,2]))
    if True:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
       c1 = ET.twig(ns,'prod_f2t2')
@@ -816,7 +820,7 @@ def tensor_manipulation (ns, path, rider):
                              help="""Make a new node, in which the vellset from the
                              second child (c1) is pasted at the specified (index) position
                              among the vellsets of its first child (c0)""",
-                             children=[cc[0],c1], index=1))
+                             children=[tensor,c1], index=1))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 #--------------------------------------------------------------------------------
@@ -888,24 +892,41 @@ def tensor_matrix22 (ns, path, rider):
 
 def leaves_constant (ns, path, rider):
    """
-   A constant may be complex, or a tensor. There are various ways to define one.
+   A Constant node may represent a real or a complex constant.
+   It can also be a tensor node, i.e. containing an N-dimensional array of vellsets.
+   There are various ways to define one.
    """
    rr = QRU.on_entry(leaves_constant, path, rider)
    cc = []
-   help = 'Constant node created with: '
-   cc.append(QRU.MeqNode (ns, rr.path, rider, node=(ns << 2.5),
-                          help=help+'ns << 2.5'))
-   cc.append(QRU.MeqNode (ns, rr.path, rider, node=(ns.xxxx << 2.4),
-                          help=help+'ns.xxxx << 2.4'))
+   if False:
+      # The QRU.MeqNode(..., node=node) gives an error: no such field: order
+      # NB: We could add quickref_help to the node here, and provide a QRU function
+      #     that attaches the same help to the rider, with the proper path etc... 
+      help = 'Constant node created with: '
+      cc.append(QRU.MeqNode (ns, rr.path, rider, node=(ns << 2.5),
+                             help=help+'ns << 2.5'))
+      cc.append(QRU.MeqNode (ns, rr.path, rider, node=(ns.xxxx << 2.4),
+                             help=help+'ns.xxxx << 2.4'))
+
    cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Constant', name='Constant(real)',
                           help=None, value=1.2))
    cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Constant', name='Constant(complex)',
                           help=None, value=complex(1,2)))
-   cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Constant', name='Constant(vector)',
-                          help='produces a "tensor node"', value=range(4)))
+
+   vv = [1.5, -2.5, 3.5, -467]
    cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Constant',
-                          name='Constant(vector, shape=[2,2])',
-                          help='produces a "tensor node"', value=range(4), shape=[2,2]))
+                          name='Constant([r,r,r,r])',
+                          help='produces a tensor node', value=vv))
+   cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Constant',
+                          name='Constant([r,r,r,r], shape=[2,2])',
+                          help='produces a tensor node', value=vv, shape=[2,2]))
+
+   vv[2] = complex(3,5)
+   help = """A vector that contains one or more complex numbers
+   produces a tensor node with all complex values"""
+   cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Constant',
+                          name='Constant([r,r,cx,r])',
+                          help=help, value=vv))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 #--------------------------------------------------------------------------------
@@ -917,7 +938,7 @@ def leaves_parm (ns, path, rider):
    rr = QRU.on_entry(leaves_parm, path, rider)
    cc = []
    help = ''
-   cc.append(QRU.MeqNode (ns, rr.path, rider, rider, meqclass='Parm',
+   cc.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Parm',
                           help=help, default=2.5))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
@@ -1268,16 +1289,16 @@ def _define_forest (ns, **kwargs):
 
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_f (mqs, parent):
+def _tdl_job_execute_1D_f (mqs, parent):
    return QRU._tdl_job_execute_f (mqs, parent, rootnode='QR_MeqNodes')
 
-def _tdl_job_execute_t (mqs, parent):
+def _tdl_job_execute_1D_t (mqs, parent):
    return QRU._tdl_job_execute_t (mqs, parent, rootnode='QR_MeqNodes')
 
-def _tdl_job_execute_ft (mqs, parent):
+def _tdl_job_execute_2D_ft (mqs, parent):
    return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_MeqNodes')
 
-def _tdl_job_execute_ftLM (mqs, parent):
+def _tdl_job_execute_4D_ftLM (mqs, parent):
    return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_MeqNodes')
 
 def _tdl_job_execute_sequence (mqs, parent):
@@ -1321,7 +1342,7 @@ if __name__ == '__main__':
       subject = 'binops'
       subject = 'leaves'
       subject = 'leaves.constant'
-      # subject = 'axis_reduction'
+      # subject = 'axisreduction'
       # subject = 'resampling'
       # subject = 'flagging'
       # subject = 'solving'

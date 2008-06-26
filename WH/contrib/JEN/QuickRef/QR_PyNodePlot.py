@@ -302,17 +302,17 @@ TDLRuntimeMenu(":")
 # Make a selection that is suitable for this particular QR module.
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_PyNodePlot')
+def _tdl_job_execute_1D_f (mqs, parent):
+   return QRU._tdl_job_execute_f (mqs, parent, rootnode='QR_PyNodePlot')
 
-def _tdl_job_execute_2D (mqs, parent):
-   return QRU._tdl_job_execute_2D (mqs, parent, rootnode='QR_PyNodePlot')
+def _tdl_job_execute_2D_ft (mqs, parent):
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_PyNodePlot')
 
-def _tdl_job_execute_3D (mqs, parent):
-   return QRU._tdl_job_execute_3D (mqs, parent, rootnode='QR_PyNodePlot')
+def _tdl_job_execute_3D_ftL (mqs, parent):
+   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode='QR_PyNodePlot')
 
-def _tdl_job_execute_4D (mqs, parent):
-   return QRU._tdl_job_execute_4D (mqs, parent, rootnode='QR_PyNodePlot')
+def _tdl_job_execute_4D_ftLM (mqs, parent):
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_PyNodePlot')
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_PyNodePlot')

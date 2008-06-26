@@ -265,7 +265,7 @@ def basic_Expression (ns, path, rider):
    print '** expr =',opt_basic_Expression_expr
    rhs = ET.twig(ns, opt_basic_Expression_expr)
    print '** rhs =',str(rhs)
-   parms = ET.find_parms(rhs, trace=True)
+   parms = EN.find_parms(rhs, trace=True)
    if len(parms)==0:
       s = '** the Expression: '+opt_basic_Expression_expr
       s += '\n  should have at least one {parm}...'
@@ -370,17 +370,17 @@ def _define_forest (ns, **kwargs):
 #--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_solving')
+def _tdl_job_execute_1D_f (mqs, parent):
+   return QRU._tdl_job_execute_f (mqs, parent, rootnode='QR_solving')
 
-def _tdl_job_execute_2D (mqs, parent):
-   return QRU._tdl_job_execute_2D (mqs, parent, rootnode='QR_solving')
+def _tdl_job_execute_2D_ft (mqs, parent):
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_solving')
 
-def _tdl_job_execute_3D (mqs, parent):
-   return QRU._tdl_job_execute_3D (mqs, parent, rootnode='QR_solving')
+def _tdl_job_execute_3D_ftL (mqs, parent):
+   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode='QR_solving')
 
-def _tdl_job_execute_4D (mqs, parent):
-   return QRU._tdl_job_execute_4D (mqs, parent, rootnode='QR_solving')
+def _tdl_job_execute_4D_ftLM (mqs, parent):
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_solving')
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_solving')

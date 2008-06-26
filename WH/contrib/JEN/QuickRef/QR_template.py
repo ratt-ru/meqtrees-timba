@@ -132,14 +132,16 @@ def QR_template (ns, path, rider):
    used in the function (or rather, passed to other QRU functions).
    
    The last statement (return QRU.bundle()) bundles the nodes (cc) in a
-   convenient way, and returns the resulting parent node of the bundle
-   (see QRU.bundle.__doc__).
-
+   convenient way, and returns the resulting parent node of the bundle.
+   Its syntax is given below.
    """
-   rr = QRU.on_entry(QR_template, path, rider, help=QRU.bundle.__doc__)
- 
+   rr = QRU.on_entry(QR_template, path, rider)
    cc = []
 
+   # Remove this part:
+   cc.append(QRU.helpnode (ns, rr.path, rider, func=QRU.bundle))
+
+   # Edit this part:
    if opt_alltopics or opt_topic1:
       cc.append(topic1 (ns, rr.path, rider))
    if opt_alltopics or opt_topic2:
@@ -165,7 +167,7 @@ def make_helpnodes (ns, path, rider):
    cc = []
    if opt_alltopics or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyTwig_twig',
-                             help=ET.twig.__doc__, trace=False))
+                              help=ET.twig.__doc__, trace=False))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
@@ -197,8 +199,8 @@ def topic1 (ns, path, rider):
    """
    rr = QRU.on_entry(topic1, path, rider)
    cc = []
-   # if opt_alltopics or opt_topic1_subtopic:
-   #    cc.append(topic1_subtopic (ns, rr.path, rider))
+   if opt_alltopics or opt_topic1_subtopic:
+      cc.append(topic1_subtopic (ns, rr.path, rider))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
@@ -209,26 +211,34 @@ def topic1_subtopic (ns, path, rider):
    NB: This text should be replaced with an overall explanation of this subtopic of
    this topic of this QR module.
 
-   A view (<topic>_<subtopic>()) demonstrates a particular aspect of a given topic.
+   A subtopic (<topic>_<subtopic>()) demonstrates a particular aspect of a given topic.
    It usually generates a group of 4-9 related nodes that may be displayed on a
    single bookmark page.
 
-   NB: Nodes for a subtopic subtree may also be defined directly (i.e. without using the
-   function QRU.MeqNode(). For those cases, the EasyNode (EN) module provides a useful
-   service to generate unique (i.e. non-clashing) nodenames:
-
-   .    node = EN.unique_stub(ns, <name>) << Meq.Cos(child)
-
-   The EasyTwig module may also be used to generate small standard subtrees (twigs)
-   that may serve as (user-defined) inputs to a demonstration subtree. Etc, etc.
-
-   In addition to the usual QRU.on_entry() and QRU.bundle(), a function calls the
-   function QRU.MeqNode() one or more times. This function creates the specified
+   In addition to the mandatory QRU.on_entry() and QRU.bundle(), a function maye call
+   the function QRU.MeqNode() zero or more times. This function creates the specified
    MeqNode, with help attached to the quickref_help field of its state record.
-   (See QRU.MeqNode.__doc__ for details).
+   The syntax of QRU.MeqNode() is given below.
+
+   NB: Nodes for a subtopic subtree may also be defined directly (i.e. without using the
+   function QRU.MeqNode(). For those cases, the EasyNode (EN) module provides some useful
+   services to generate unique (i.e. non-clashing) or reusable nodestubs/names. Their
+   syntax is given below.
+
+   The EasyTwig (ET) module may also be used to generate small standard subtrees (twigs)
+   that may serve as (user-defined) inputs to a demonstration subtree. Its syntax is
+   given as a separate 'helpnode' item above. 
    """
-   rr = QRU.on_entry(topic1_subtopic, path, rider, help=QRU.MeqNode.__doc__)
+   rr = QRU.on_entry(topic1_subtopic, path, rider)
    cc = []
+
+   # Remove this part: 
+   cc.append(QRU.helpnode (ns, rr.path, rider, func=QRU.MeqNode))
+   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.nodestub))
+   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.unique_stub))
+   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.unique_node))
+   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.reusenode))
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)
 
@@ -309,17 +319,17 @@ TDLRuntimeMenu(":")
 # Make a selection that is suitable for this particular QR module.
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D (mqs, parent):
+def _tdl_job_execute_1D_f (mqs, parent):
    return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_template')
 
-def _tdl_job_execute_2D (mqs, parent):
-   return QRU._tdl_job_execute_2D (mqs, parent, rootnode='QR_template')
+def _tdl_job_execute_2D_ft (mqs, parent):
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_template')
 
-def _tdl_job_execute_3D (mqs, parent):
-   return QRU._tdl_job_execute_3D (mqs, parent, rootnode='QR_template')
+def _tdl_job_execute_3D_ftL (mqs, parent):
+   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode='QR_template')
 
-def _tdl_job_execute_4D (mqs, parent):
-   return QRU._tdl_job_execute_4D (mqs, parent, rootnode='QR_template')
+def _tdl_job_execute_4D_ftLM (mqs, parent):
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_template')
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_template')
