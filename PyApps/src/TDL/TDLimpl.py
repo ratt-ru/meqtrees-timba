@@ -245,55 +245,17 @@ class _NodeDef (object):
       reslist.is_dict = self.is_dict;
       reslist._resolved = True;
       return reslist;
-
-  def __init__ (self,pkgname,classname='',*childlist,**kw):
-    """Creates a _NodeDef object for a node of the given package/classname.
-    Children are built up from either the argument list, or the 'children'
-    keyword (if both are supplied, an error is thrown), or from keywords of
-    type '_NodeDef' or '_NodeStub', or set to None if no children are specified.
-    The initrec is built from the remaining keyword arguments, with the field
-    class=pkgname+classname inserted as well.
-    """;
+  
+  def __init__ (self,arg0,*args,**kw):
+    """A NodeDef may be initialized in one of two ways -- examine arguments here and defer
+    to the appropriate method.""";
     try:
-      # an error def may be constructed with an exception opject
-      if isinstance(pkgname,Exception):
-        raise pkgname;
-      # figure out children. May be specified as
-      # (a) a 'children' keyword
-      # (b) an argument list (but not both a and b)
-      # (c) keywords with values of type NodeDef or NodeStub
-      try:
-        children = kw.pop('children');
-        if childlist:
-          raise ChildError,"children specified both by arguments and 'children' keyword";
-      except KeyError:  # no 'children' keyword, case (b) or (c)
-        if childlist:
-          children = childlist;
-        else: # else see if some keyword arguments specify children-like objects
-          children = dict([(key,val) for (key,val) in kw.iteritems()
-                            if isinstance(val,(_NodeDef,_NodeStub)) ]);
-          map(kw.pop,children.iterkeys());
-      _dprint(3,"NodeDef",classname,"children are",children);
-      self.children = self.ChildList(children);
-      # now check for step_children:
-      stepchildren = kw.pop('stepchildren',None);
-      if isinstance(stepchildren,dict):
-        raise ChildError,"'stepchildren' must be a list or a single node";
-      self.stepchildren = self.ChildList(stepchildren);
-      # use the NodeTags class to convert tags into a list of strings
-      tags = kw.get('tags',None);
-      if tags is not None:
-        kw['tags'] = NodeTags(tags).tags;
-      # create init-record
-      initrec = dmi.record(**kw);
-      initrec['class'] = ''.join((pkgname,classname));
-      self._class = classname;
-      # ensure type of node_groups argument (so that strings are implicitly converted to hiids)
-      groups = getattr(initrec,'node_groups',None);
-      if groups is not None:
-        initrec.node_groups = dmi.make_hiid_list(groups);
-      self.initrec = initrec;
-      self.error = None;
+      if isinstance(arg0,(str,Exception)):
+        return self.__init_normal__(arg0,*args,**kw);
+      elif isinstance(arg0,dict):
+        return self.__init_from_initrec__(arg0,*args,**kw);
+      else:
+        raise NodeDefError,"illegal argument of type "+str(type(arg0));
     except:
       # catch exceptions and produce an "error" def, to be reported later on
       self.children = self.initrec = None;
@@ -302,6 +264,62 @@ class _NodeDef (object):
       if not hasattr(self.error,'tb'):
         setattr(self.error,'tb',Timba.utils.extract_stack(None));
       _dprint(1,'creating error def',self.error);
+  
+  def __init_from_initrec__ (self,initrec,children,stepchildren=[]):
+    self.children = self.ChildList(children);
+    self.stepchildren = self.ChildList(stepchildren);
+    self._class = initrec['class'];
+    self.initrec = initrec;
+    self.error = None;
+
+  def __init_normal__ (self,pkgname,classname='',*childlist,**kw):
+    """Creates a _NodeDef object for a node of the given package/classname.
+    Children are built up from either the argument list, or the 'children'
+    keyword (if both are supplied, an error is thrown), or from keywords of
+    type '_NodeDef' or '_NodeStub', or set to None if no children are specified.
+    The initrec is built from the remaining keyword arguments, with the field
+    class=pkgname+classname inserted as well.
+    """;
+    # a nodedef may be constructed with an exception opject -- reraise it to construct
+    # an "error definition"
+    if isinstance(pkgname,Exception):
+      raise pkgname;
+    # figure out children. May be specified as
+    # (a) a 'children' keyword
+    # (b) an argument list (but not both a and b)
+    # (c) keywords with values of type NodeDef or NodeStub
+    try:
+      children = kw.pop('children');
+      if childlist:
+        raise ChildError,"children specified both by arguments and 'children' keyword";
+    except KeyError:  # no 'children' keyword, case (b) or (c)
+      if childlist:
+        children = childlist;
+      else: # else see if some keyword arguments specify children-like objects
+        children = dict([(key,val) for (key,val) in kw.iteritems()
+                          if isinstance(val,(_NodeDef,_NodeStub)) ]);
+        map(kw.pop,children.iterkeys());
+    _dprint(3,"NodeDef",classname,"children are",children);
+    self.children = self.ChildList(children);
+    # now check for step_children:
+    stepchildren = kw.pop('stepchildren',None);
+    if isinstance(stepchildren,dict):
+      raise ChildError,"'stepchildren' must be a list or a single node";
+    self.stepchildren = self.ChildList(stepchildren);
+    # use the NodeTags class to convert tags into a list of strings
+    tags = kw.get('tags',None);
+    if tags is not None:
+      kw['tags'] = NodeTags(tags).tags;
+    # create init-record
+    initrec = dmi.record(**kw);
+    initrec['class'] = ''.join((pkgname,classname));
+    self._class = classname;
+    # ensure type of node_groups argument (so that strings are implicitly converted to hiids)
+    groups = getattr(initrec,'node_groups',None);
+    if groups is not None:
+      initrec.node_groups = dmi.make_hiid_list(groups);
+    self.initrec = initrec;
+    self.error = None;
 
   def resolve (arg,recurse=5):
     """static method to resolve an argument to a _NodeDef object, or return None on error.
@@ -456,7 +474,7 @@ class _NodeStub (object):
             "nodeindex",
             "_initrec","_name_stack","_bind_stack","_debuginfo","_basenode",
             "_must_define_stack","_must_define_by",
-            "_proc","_search_cookie" );
+            "_proc","_multiproc","_search_cookie" );
   class Parents (weakref.WeakValueDictionary):
     """The Parents class is used to manage a weakly-reffed dictionary of the
     node's parents. We only redefine it as a class to implement __copy__
@@ -605,6 +623,9 @@ class _NodeStub (object):
   def initialized (self):
     """Returns True if node stub is already initialized, False otherwise""";
     return self._initrec is not None;
+  def duplicate (self):
+    """Returns a NodeDef which can be used to declare a duplicate node""";
+    return _NodeDef(self._initrec.copy(),self.children,self.stepchildren);
   def only_define_here (self,by=None):
     """If node stub is already initialized, checks that the _defined_where and _defined_by
     attributes match the caller and the 'by' argument, throws an exception on
@@ -1170,6 +1191,37 @@ class _NodeRepository (dict):
     else: # no vdm needed. So release ref to it even if explicitly created,
       # to ensure it is orphaned or kept as needed elsewhere.
       self._have_vdm = None;
+    ## finalize MPI processor assignments, if any were specified
+    if self._proc_assignment:
+      # for each explicitly specified processor assignment, go
+      # up the tree and assign all children to that processor.
+      def recursive_proc_assign (node,proc):
+        # assign node to a processor
+        node._proc = node._initrec.proc = proc;
+        for ich,(label,child) in enumerate(node.children + node.stepchildren):
+          # assign all unassigned children to the same processor
+          chproc = getattr(child,'_proc',None);
+          if chproc is None:
+            recursive_proc_assign(child,proc);
+          # else if child is on a different processor, check if it wants to have
+          # a copy on every processor. This is either set explicitly,
+          # but is implicit for some classes.
+          elif chproc != proc and ( getattr(child,'_multiproc',None) or
+               child.classname in ("MeqConstant","MeqTime","MeqFreq","MeqGrid") ):
+            dup = child(P=proc);
+            if not dup.initialized():
+              dup << child.duplicate();
+            child = dup;
+            # assign new child node
+            if ich < len(node.children):
+              node.children[ich] = label,child;
+            else:
+              node.stepchildren[ich-len(node.children)] = label,child;
+            recursive_proc_assign(child,proc);
+      # call function above on all "root" processor assignments
+      for proc,nodelist in self._proc_assignment.iteritems():
+        for node in nodelist:
+          recursive_proc_assign(node,proc);
     # now go through node list, weed out uninitialized nodes, finalize
     # parents and children, etc.
     current_nodeindex = 1;
@@ -1213,22 +1265,6 @@ class _NodeRepository (dict):
       _dprint(3,"uninitialized:",uninit);
       for name in uninit:
         del self[name];
-    ## finalize MPI processor assignments, if any were specified
-    if self._proc_assignment:
-      # for each explicitly specified processor assignment, go
-      # up the tree and assign all children to that processor
-      def recursive_proc_assign (node,proc):
-        node._proc = node._initrec.proc = proc;
-        for label,child in node.children:
-          if getattr(child,'_proc') is None:
-            recursive_proc_assign(child,proc);
-        for label,child in node.stepchildren:
-          if getattr(child,'_proc') is None:
-            recursive_proc_assign(child,proc);
-      for proc,nodelist in self._proc_assignment.iteritems():
-        for node in nodelist:
-          recursive_proc_assign(node,proc);
-      
     # clean up potential orphans: if deleteOrphan() returns False, then node is
     # not really an orphan, so we move it to the roots group instead
     len0 = len(self);

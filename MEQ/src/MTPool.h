@@ -37,6 +37,21 @@ namespace Meq
   {
     class Brigade;
     
+    extern Brigade * main_brigade_; 
+    extern int max_busy_;
+    
+    inline bool enabled ()
+    { return main_brigade_ != 0; }
+    
+    inline int num_threads ()
+    { return max_busy_; }
+    
+    inline Brigade & brigade ()
+    { return *main_brigade_; } 
+    
+    void start (int nworkers,int max_busy);
+    void stop  ();
+    
     // This class represents an abstract work order for a worker thread.
     // A WO is usually (but does not have to be) associated with a node.
     class AbstractWorkOrder 
@@ -79,14 +94,21 @@ namespace Meq
         LOFAR::NSTimer timer;   // execution timer
     };
     
+    typedef enum { IDLE,BUSY,BLOCKED } ThreadState;
+    
+    typedef struct
+    {
+      int            state;
+      Brigade       *brigade;
+      Thread::ThrID  thread_id;
+      bool           launched_by_us;
+    } WorkerData;
+    
     // a brigate is a set of worker threads sharing a WO queue
     class Brigade 
     {
       public:
-        // creates new idle brigade with the given id. By default, brigade 
-        // will be one worker short (most brigades are activated when a thread
-        // joins it). If lock pointer is supplied, cond() will be locked.
-        Brigade (Thread::Mutex::Lock *plock=0,bool one_short=true);
+        Brigade (int nworkers,int maxbusy,Thread::Mutex::Lock *plock=0);
          
         int id () const
         { return brigade_id_; }
@@ -94,8 +116,8 @@ namespace Meq
         Thread::Condition & cond ()
         { return cond_; }
         
-        Thread::Condition & busyCond ()
-        { return busy_cond_; }
+        // adds current thread to brigade, marks it as having the given state
+        void join (int state = BUSY);
         
         // puts a new work order on the brigade's queue. 
         // !!! The caller must obtain a lock on cond() before calling this.
@@ -106,133 +128,56 @@ namespace Meq
           wo_queue_.push_front(wo);
         }
         
-        // Clears the brigade's work order queue.
-        // !!! The caller must obtain a lock on cond() before calling this.
-        inline void clearQueue ()
-        { wo_queue_.clear(); }
+        // Clears the brigade's work order queue of WorkOrders associated with the
+        // given NodeNursery
+        void clearQueue (const NodeNursery &client);
         
         // gets next work order on from the queue.
         // !!! The caller must obtain a lock on cond() before calling this.
-        // If queue is empty and wait=false, returns 0. 
+        // If queue is empty OR too many threads are busy and wait=false, returns 0. 
         // If queue is empty and wait=true, marks thread as idle and
         // waits for an order indefinitely (a return value of 0 will
         // cancel the thread)
         // The work order will have its nodelock set, so WorkOrder::execute() 
         // may be called immediately. 
-        // Ownership of order object is transferred to caller. 
+        // Ownership of order object is transferred to caller.
+        // If returning a WO, marks thread as busy.
         AbstractWorkOrder * getWorkOrder (bool wait=true);
-        
-        // returns brigade to which the current thread belongs
-        static Brigade * current ()
-        { return static_cast<Brigade*>(context_pointer_.get()); }
         
         // checks if queue is empty
         // !!! The caller must obtain a lock on cond() before calling this.
         bool queueEmpty () const
         { return wo_queue_.empty(); }
         
-        // returns number of busy worker threads 
-        int numBusy () const
-        { return num_busy_; }
-        
-        // returns number of non-blocked workers
-        int numNonblocked () 
-        { return num_nonblocked_; }
-        
-        // returns true if brigade has loaned a worker to another brigade
-        bool missingTemp() const
-        { return missing_temp_; }
-        
-        // waits until brigade is idle (numBusy() <= minbusy and
-        // missingTemp() is false). This is normally called when a poll
-        // is aborted and the node has to wait for all polling threads
-        // to subside. Minbusy==1 normally since the caller still belongs
-        // to the brigade, otherwise set it to 0.
-        void waitUntilIdle (int minbusy=1);
-        
-        // causes current thread to leave this brigade indefinitely.
+        // wakes up a worker thread. If no idle workers are available, 
+        // and not too many workers are already running (or always_spawn is true), 
+        // spawns a new worker thread.
         // !!! The caller must obtain a lock on cond() before calling this.
-        void leave ();
-        // causes current thread to join this brigade. 
-        // !!! The caller must obtain a lock on cond() before calling this.
-        void join ();
-        
-        // causes current thread to temporaily leave this brigade, to rejoin
-        // later. A brigade temporarily missing a worker will not make itself
-        // available in the idle pool.
-        // !!! The caller must obtain a lock on cond() before calling this.
-        void tempLeave ();
-        // rejoins brigade, and resumes it if suspended and back up to
-        // full strength. tempLeave()/rejoin() must be paired.
-        // !!! The caller must obtain a lock on cond() before calling this.
-        void rejoin ();
-        
-        // deactivates brigade, decrements count of active brigades
-        // !!! The caller must obtain a lock on cond() before calling this.
-        void suspend ();
-        
-        // activates brigade, increments count of active brigades
-        // !!! The caller must obtain a lock on cond() before calling this.
-        void resume ();
-        
-        // is brigade suspended?
-        bool isSuspended () const
-        { return suspended_; }
-        
-        // is brigade active? (i.e. not suspended, not all blocked, not idle)
-        bool isActive () const
-        { return active_; }
+        void awakenWorker (bool always_spawn=false);
         
         // marks current thread as blocked/unblocked
-        void markAsBlocked (const NodeFace &node);
-        void markAsUnblocked (const NodeFace &node);
+        void markAsBlocked   (const string &where,WorkerData &wd);
+        void markAsUnblocked (const string &where,WorkerData &wd,bool can_stop=true);
         
         // marks current thread as blocked/unblocked, gets brigade from per-thread context
-        static void markThreadAsBlocked (const NodeFace &node)
+        static void markThreadAsBlocked (const string &where)
         {
-          Brigade *cur = current();
-          if( cur )
-            cur->markAsBlocked(node);
+          WorkerData &wd = workerData();
+          if( wd.brigade )
+            wd.brigade->markAsBlocked(where,wd);
         }
-        static void markThreadAsUnblocked (const NodeFace &node)
+        static void markThreadAsUnblocked (const string &where,bool can_stop=true)
         {
-          Brigade *cur = current();
-          if( cur )
-            cur->markAsUnblocked(node);
+          WorkerData &wd = workerData();
+          if( wd.brigade )
+            wd.brigade->markAsUnblocked(where,wd,can_stop);
         }
         
-        // ======== static Brigade methods
+        static WorkerData & workerData ()
+        { return *static_cast<WorkerData*>(context_pointer_.get()); }
         
-        // sets the nominal size of all brigades
-        static void setBrigadeSize (int size);
-        
-        static int getBrigadeSize ()
-        { return brigade_size_; }
-        
-        // global mutex for brigade pool
-        static Thread::Mutex & globMutex ()
-        { return brigade_mutex_; }
-        
-        // starts a new brigade and returns pointer to it
-        static Brigade * startNewBrigade (Thread::Mutex::Lock *plock=0,bool one_short=true);
-        
-        // starts a new brigade and returns pointer to it
-        static Brigade * getIdleBrigade (Thread::Mutex::Lock &lock,bool one_short=true);
-
-        // joins an idle brigade (allocates a new one as needed) and returns 
-        // pointer to it; sets lock on brigade->cond()
-        static Brigade * joinIdleBrigade (Thread::Mutex::Lock &lock);
-        
-        // stops all brigades
-        static void stopAll ();
-        
-        // total number of brigades 
-        static int numBrigades ()
-        { return all_brigades_.size(); }
-        
-        // total number of active brigades 
-        static int numActiveBrigades ()
-        { return num_active_brigades_; }
+        // stops all workers
+        void stop ();
         
         // returns short brigade label
         string sdebug (int detail=0);
@@ -243,36 +188,18 @@ namespace Meq
         // static method to start a worker thread
         static void * startWorker (void *brigade);
         
-        // marks brigade as activated/deactivated
-        // !!! The caller must obtain a lock on cond() before calling this.
-        void activated ();
-        void deactivated ();
-        
-        // helper method, called when the number of busy threads in the brigade
-        // goes to 0. Will add the brigade to the idle pool, unless the
-        // missing_temp_ flag below is set.
-        // !!! The caller must obtain a lock on cond() before calling this.
-        void allowIdling ();
-          
         int brigade_id_; // brigade id
-          // flag: brigade has been suspended (i.e. when all nodes are locked)
-          // workers in a suspended brigade will do nothing until resumed
-        bool suspended_; 
-          // flag: brigade is active (cleared when all threads go idle,
-          // or when all go blocked, or when suspended). This is needed to 
-          // keep track of how many brigades are active, so as to limit
-          // the number of active brigades
-        bool active_;
-          // flag: brigade is temporarily missing a worker. Set when a worker
-          // temporarily leaves a brigade, cleared when all workers rejoin.
-          // A brigade with this flag set will not join the idle pool.
-        bool missing_temp_;
-          // number of worker threads
-        int num_workers_;         
-          // number of running and non-blocked worker threads
-        int num_nonblocked_; 
-          // number of busy worker threads (including blocked)
-        int num_busy_; 
+        
+        // max number of busy threads
+        int max_busy_;
+        // max number of worker threads
+        int max_workers_;
+        // counters of threads in various states
+        int nthr_[3];
+        
+        // our PID -- for debugging messages only, really
+        int pid_;
+        
           // brigade state condition variable & mutex
         Thread::Condition cond_;  
           // brigade idle/busy condition variable & mutex
@@ -280,20 +207,14 @@ namespace Meq
           // work order queue
         typedef std::list<AbstractWorkOrder *> WorkOrderQueue;  
         WorkOrderQueue wo_queue_;
+        
+        // worker threads
+        std::vector<WorkerData> workers_;
+        
           
           // thread key used to hold context structure for each thread
         static Thread::Key context_pointer_;
         
-          // nominal brigade size
-        static int brigade_size_;
-          // global brigade pool mutex
-        static Thread::Mutex brigade_mutex_;
-          // number of active brigades
-        static int num_active_brigades_;
-          // pool of idle brigades
-        static std::list<Brigade *> idle_brigades_;
-          // list of all brigades
-        static std::vector<Brigade *> all_brigades_;
           // current id counter for creating new brigades
         static int max_brigade_id_;
     };

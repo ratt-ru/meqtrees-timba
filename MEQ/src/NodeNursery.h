@@ -424,10 +424,6 @@ class NodeNursery
       Thread::Condition child_poll_cond_;
       //## current mt brigade -- null if not an mt poll
       MTPool::Brigade * cur_brigade_; 
-      //## old mt brigade -- if 0, we used to be orphaned
-      MTPool::Brigade * old_brigade_; 
-      //## true if we need to rejoin old brigade on exit
-      bool rejoin_old_;   
       //## true as long as polling is in progress
       bool polling_;
       //## true if poll is being abandoned (in AbandonCollect mode)

@@ -34,7 +34,8 @@ void MeqMPI::procInit (int source,const char *msgbuf,int msgsize)
   int mt = rec["mt"].as<int>();
   if( mt<1 )
     mt = 1;
-  Meq::MTPool::Brigade::setBrigadeSize(mt);
+  if( !MTPool::enabled() )
+    MTPool::start(mt*2,mt);
   // post a reply
   if( header.endpoint )
     postReply(source,header.endpoint);
@@ -208,32 +209,20 @@ void MeqMPI::procEvent  (int source,const char *msgbuf,int msgsize)
     postReply(source,hdr.endpoint);
 }
 
-MTPool::Brigade * MeqMPI::getBrigade (Thread::Mutex::Lock &lock)
-{
-  if( brigade_ && brigade_->isActive() && !brigade_->isSuspended() )
-  {
-    lock.relock(brigade_->cond());
-    return brigade_;
-  }
-  else
-  {
-    // if current brigade is completely blocked, abandon it (it will presumably return to the idle pool eventually) 
-    // and get a new one
-    return brigade_ = MTPool::Brigade::getIdleBrigade(lock,false);
-  }
-}
-
 // An InitWorkOrder makes an init() call on a node
 class InitWorkOrder : public MTPool::AbstractWorkOrder
 {
   public:
-    InitWorkOrder (NodeFace &node,NodeFace &parent,bool is_step,int init_index1,
+    InitWorkOrder (NodeFace &node,NodeFace *parent,bool is_step,int init_index1,
                    MeqMPI &mpi,int dest,MeqMPI::ReplyEndpoint *ep)
-    : noderef(node,DMI::SHARED),parentref(parent,DMI::SHARED),
+    : noderef(node,DMI::SHARED),
       is_stepparent(is_step),
       init_index(init_index1),
       meqmpi(mpi),reply_dest(dest),endpoint(ep)
-    {}
+    {
+      if( parent )
+        parentref.attach(parent,DMI::SHARED);
+    }
     
     virtual void execute (MTPool::Brigade &brigade)      // runs the work order. 
     {
@@ -241,9 +230,9 @@ class InitWorkOrder : public MTPool::AbstractWorkOrder
       try
       {
         NodeFace &node = noderef();
-        NodeFace &parent = parentref();
+        NodeFace * parent = parentref.valid() ? parentref.dewr_p(): 0;
         cdebug1(1)<<brigade.sdebug(1)+" init on node "+node.name()+"\n";
-        node.init(&parent,is_stepparent,init_index);
+        node.init(parent,is_stepparent,init_index);
         retcode = 0;
         cdebug1(1)<<brigade.sdebug(1)+" init on node "+node.name()+"\n";
       }
@@ -285,11 +274,10 @@ void MeqMPI::procNodeInit (int source,const char *msgbuf,int msgsize)
   decodeMessage(ref,&header,sizeof(header),msgbuf,msgsize);
   // enqueue a workorder and wake up worker thread
   NodeFace &node = forest().get(header.nodeindex);
-  NodeFace &parent = forest().get(header.parent_nodeindex);
-  Thread::Mutex::Lock lock;
-  MTPool::Brigade *brig = getBrigade(lock);
-  brig->placeWorkOrder(new InitWorkOrder(node,parent,header.stepparent,header.init_index,*this,source,header.endpoint));
-  brig->cond().signal();
+  NodeFace * parent = header.parent_nodeindex ? &( forest().get(header.parent_nodeindex) ) : 0;
+  Thread::Mutex::Lock lock(MTPool::brigade().cond());
+  MTPool::brigade().placeWorkOrder(new InitWorkOrder(node,parent,header.stepparent,header.init_index,*this,source,header.endpoint));
+  MTPool::brigade().awakenWorker();
 }
 
 // processes a NODE_GET_STATE message
@@ -387,11 +375,11 @@ void MeqMPI::procNodeExecute (int source,const char *msgbuf,int msgsize)
   HdrNodeOperation header;
   decodeMessage(ref,&header,sizeof(header),msgbuf,msgsize);
   NodeFace &node = forest().get(header.nodeindex);
+  cdebug(2)<<"enqueueing execute() request on node "<<node.name()<<endl;
   // enqueue a workorder and wake up worker thread
-  Thread::Mutex::Lock lock;
-  MTPool::Brigade *brig = getBrigade(lock);
-  brig->placeWorkOrder(new MpiExecWorkOrder(node,ref.as<Request>(),*this,source,header.endpoint));
-  brig->cond().signal();
+  Thread::Mutex::Lock lock(MTPool::brigade().cond());
+  MTPool::brigade().placeWorkOrder(new MpiExecWorkOrder(node,ref.as<Request>(),*this,source,header.endpoint));
+  MTPool::brigade().awakenWorker(true);
 }
 
 // processes a NODE_SET_PUBLISHING_LEVEL message

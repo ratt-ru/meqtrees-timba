@@ -8,7 +8,7 @@
 #include <DMI/Exception.h>
 #include <MeqMPI/AID-MeqMPI.h>
 #include <MeqMPI/MeqMPI.h>
-#include <MeqMPI/MeqSubserver.h>
+#include <MEQ/Forest.h>
 #include <iostream>
 
 namespace Meq
@@ -31,7 +31,6 @@ MeqMPI::MeqMPI (int argc,const char *argv[])
   msgbuf_ = 0;
   msgbuf_size_ = 0;
   meq_mpi_communicator_ = MPI_COMM_WORLD;
-  brigade_ = 0;
   
   MPI_Comm_size(meq_mpi_communicator_,&mpi_num_processors_);
   MPI_Comm_rank(meq_mpi_communicator_,&mpi_our_processor_);
@@ -69,7 +68,7 @@ MeqMPI::MeqMPI (int argc,const char *argv[])
     rec["Argv"] <<= new DMI::Vec(Tpstring,argc);
     for( int i=0; i<argc; i++ )
       rec["Argv"][i] = string(argv[i]);
-    rec["mt"] = Meq::MTPool::Brigade::getBrigadeSize();
+    rec["mt"] = Meq::MTPool::num_threads();
     // post the message to all rank>0 processes
     postCommand(TAG_INIT,-1,ref);
   }
@@ -262,8 +261,8 @@ void * MeqMPI::runCommThread ()
       }
       catch( std::exception &exc )
       {
-        string str = Debug::ssprintf("caught exception processing message %d (%s): %s",
-                                status.MPI_TAG,tagToString(status.MPI_TAG).c_str(),exc.what());
+        string str = Debug::ssprintf("MPI process %d caught exception processing message %d (%s): %s",
+                                comm_rank(),status.MPI_TAG,tagToString(status.MPI_TAG).c_str(),exc.what());
         cdebug(0)<<str<<endl;
         DMI::ExceptionList exclist(exc);
         exclist.add(LOFAR::Exception(str));
@@ -271,8 +270,8 @@ void * MeqMPI::runCommThread ()
       }
       catch(...)
       {
-        string str = Debug::ssprintf("caught unknown exception processing message %d (%s)",
-                                status.MPI_TAG,tagToString(status.MPI_TAG).c_str());
+        string str = Debug::ssprintf("MPI process %d caught unknown exception processing message %d (%s)",
+                                comm_rank(),status.MPI_TAG,tagToString(status.MPI_TAG).c_str());
         cdebug(0)<<str<<endl;
         postError(str);
       }

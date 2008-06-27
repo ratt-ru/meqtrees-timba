@@ -1445,7 +1445,7 @@ void Solver::setStateImpl (DMI::Record::Ref & newst,bool initializing)
 void Solver::startWorkerThreads ()
 {
   // do nothing if -mt is not configured
-  int nt = MTPool::Brigade::getBrigadeSize();
+  int nt = MTPool::num_threads();
   if( nt<2 )
     return;
   // start workers

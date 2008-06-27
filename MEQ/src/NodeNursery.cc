@@ -40,8 +40,8 @@ NodeNursery::NodeNursery ()
   async_poll_in_progress_ = background_poll_in_progress_ = false;
   fail_policy_ = missing_data_policy_ = AidCollectPropagate;
 
-  mt.enabled_ = mt.polling_ = mt.abandon_ = mt.rejoin_old_ = false;
-  mt.cur_brigade_ = mt.old_brigade_ = 0;
+  mt.enabled_ = mt.polling_ = mt.abandon_ = false;
+  mt.cur_brigade_ = 0;
 }  
 
 
@@ -106,7 +106,7 @@ void NodeNursery::enableMultiThreaded (bool enable)
 {
   if( enable )
   {
-    if( MTPool::Brigade::numBrigades() )
+    if( MTPool::num_threads()>1 )
       mt.enabled_ = true;
   }
   else
@@ -174,49 +174,13 @@ MTPool::Brigade * NodeNursery::mt_checkBrigadeAvailability (Thread::Mutex::Lock 
   // or is a service request and we have requested serialization
   if( !multiThreaded() || numChildren()<2 ||
       ( sequential_service_requests_ && req.evalMode() <0 ) )
-    return 0;
-  mt.old_brigade_ = 0;
-  mt.rejoin_old_ = false;
-  MTPool::Brigade * current = MTPool::Brigade::current();
-  if( current )
+    return mt.cur_brigade_ = 0;
+  else
   {
-    lock.relock(current->cond());
-    // (A) if our brigade is idle (we are the only busy thread in it),
-    //     and has no orders queued, use it for polling right away
-    if( current->numBusy() < 2 && current->queueEmpty() )
-      return mt.cur_brigade_ = current;
-    Thread::Mutex::Lock lock2(MTPool::Brigade::globMutex());
-    // we allow at most 2 active brigades, so:
-    // (B) if rest of our brigade is blocked (numNonblocked()<2), suspend it
-    //    and join an idle brigade (this keeps the number of active brigades 
-    //    unchanged)
-    // (C) If ours is the only active brigade, leave it and join an idle 
-    //     brigade.
-    // Otherwise, return 0 (too many active brigades)
-    if( current->numNonblocked() < 2 )
-      current->suspend();
-    else if( MTPool::Brigade::numActiveBrigades() > 1 )
-    {
-      lock.release();
-      return 0;
-    }
-    // ok, leave our brigade temporarily -- we will rejoin it at end of poll
-    current->tempLeave();
-    mt.old_brigade_ = current;
-    mt.rejoin_old_ = true;
-    current = 0;
-    lock.release();
+    mt.cur_brigade_ = &( MTPool::brigade() );
+    lock.relock(mt.cur_brigade_->cond());
+    return mt.cur_brigade_;
   }
-  else  // we are somehow orphaned, so if <2 brigades are active,
-        // we can (re)activate and join one
-  {
-    mt.old_brigade_ = 0;
-    if( MTPool::Brigade::numActiveBrigades() > 1 )
-      return 0;
-    mt.rejoin_old_ = true;
-  }
-  // ok, at this point we have no brigade but we're allowed to join an idle one
-  return mt.cur_brigade_ = MTPool::Brigade::joinIdleBrigade(lock);
 }
 
 int NodeNursery::startAsyncPoll (const Request &req)
@@ -247,10 +211,8 @@ int NodeNursery::startAsyncPoll (const Request &req)
       else
         child_retcodes_[ichild] = 0;
     }
-    // wake up all worker threads in brigade
-    mt.cur_brigade_->cond().broadcast();
-    lock.release();
     mt.numchildren_ = numchildren;
+    mt.cur_brigade_->awakenWorker();
   }
   else
   {
@@ -309,20 +271,6 @@ void NodeNursery::mt_receiveBackgroundResult (int ichild,MTPool::WorkOrder &res)
 
 void NodeNursery::mt_cleanupAfterPoll ()
 {
-   // if we have an old brigade waiting to be rejoined, do it
-   mt.polling_ = false;
-   if( mt.rejoin_old_ )
-   {
-     Thread::Mutex::Lock lock(mt.cur_brigade_->cond());
-     mt.cur_brigade_->leave();  // this will make it idle as needed
-     mt.cur_brigade_ = 0;
-     lock.release();
-     if( mt.old_brigade_ )
-     {
-       lock.relock(mt.old_brigade_->cond());
-       mt.old_brigade_->rejoin();  // this will resume it as needed
-     }
-   }
    mt.child_retqueue_.clear();
    async_poll_in_progress_ = background_poll_in_progress_ = false;
 }
@@ -337,13 +285,9 @@ void NodeNursery::mt_abortPoll ()
   Thread::Mutex::Lock lock(mt.cur_brigade_->cond());
   mt.abandon_ = true;
   mt.polling_ = false;
-  mt.cur_brigade_->clearQueue();
+  // clear out orders placed by us
+  mt.cur_brigade_->clearQueue(*this);
   lock.release();
-  // wait for brigade to become idle
-  // **************** review this -- do we really want to do this? not 
-  // sure why the if() is there in the first place, shouldn't we always wait?
-  if( mt.old_brigade_ )
-    mt.cur_brigade_->waitUntilIdle(1);
   // clean up (leaving brigade if needed)
   mt_cleanupAfterPoll();
 }
@@ -360,17 +304,20 @@ void NodeNursery::mt_waitForEndOfPoll ()
     // else grab a work order for ourselves
     Thread::Mutex::Lock lock2(mt.cur_brigade_->cond());
     MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
-    lock2.release();
     // if there's nothing on the queue, then we have to wait for all worker
     // threads to finish and deliver a result, so just go to sleep
     if( !wo )
     {
-      becomeIdle(); 
+      MTPool::Brigade::markThreadAsBlocked(name());
+      lock2.release();
+      becomeIdle();
       mt.child_poll_cond_.wait();
+      MTPool::Brigade::markThreadAsUnblocked(name());
       becomeBusy(); 
       // once woken, go back to top of loop to see what we have received
       continue;
     }
+    lock2.release();
     // ok, we have a work order -- release child results lock and go on to 
     // fill it
     lock.release();
@@ -421,19 +368,29 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
         return ichild;
       }
       // no result on queue, so we can grab a work order from the brigade queue 
+      lock.release();
       Thread::Mutex::Lock lock2(mt.cur_brigade_->cond());
       MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
-      lock2.release();
       // if there's nothing on the queue, then we have to wait for all worker
       // threads to finish and deliver a result, so just go to sleep
       if( !wo )
       {
-        becomeIdle(); 
-        mt.child_poll_cond_.wait();
-        becomeBusy(); 
+        lock.relock(mt.child_poll_cond_);
+        if( mt.child_retcount_ < mt.numchildren_ )
+        {
+          MTPool::Brigade::markThreadAsBlocked(name());
+          becomeIdle();
+          lock2.release(); 
+          mt.child_poll_cond_.wait();
+          becomeBusy(); 
+          MTPool::Brigade::markThreadAsUnblocked(name());
+        }
+        else
+          lock2.release();
         // once woken, go back to top of loop to see what we have received
         continue;
       }
+      lock2.release();
       // ok, we have a work order -- release child results lock and go on to 
       // fill it
       lock.release();
@@ -508,7 +465,7 @@ void NodeNursery::mt_receiveSyncChildResult (int ichild,MTPool::WorkOrder &res)
   {
     lock.release();
     lock.relock(mt.cur_brigade_->cond());
-    mt.cur_brigade_->clearQueue();
+    mt.cur_brigade_->clearQueue(*this);
   }
 }
 
@@ -549,29 +506,38 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
         else
           child_retcodes_[ichild] = 0;
       }
-      // get the last WO back from the queue since we'll be executing it ourselves
-      MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
-      // wake up one or all worker threads
-      if( mt.numchildren_ > 2 )
-        mt.cur_brigade_->cond().broadcast();
-      else  // only two WOs so only one worker needs to be woken
-        mt.cur_brigade_->cond().signal();
-      // release queue lock and go on to fill WO for first child
-      lock.release();
-      // keep executing work orders until queue is empty
-      while( wo )
-      {
-        wo->execute(*mt.cur_brigade_);
-        delete wo;
-        lock.relock(mt.cur_brigade_->cond());
-        wo = mt.cur_brigade_->getWorkOrder(false);  // wait=false
-        lock.release();
-      }
       // no more WOs -- sleep until all children have returned 
-      Thread::Mutex::Lock lock2(mt.child_poll_cond_);
-      while( mt.child_retcount_ < mt.numchildren_ )
-        mt.child_poll_cond_.wait();
-      lock2.release();
+      while( true )
+      {
+        // at this point we hold a lock on the brigade queue
+        // get a WO back from the queue since we'll be executing it ourselves
+        MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
+        // release queue lock and go on to fill WO for first child
+        lock.release();
+        if( wo )
+        {
+          wo->execute(*mt.cur_brigade_);
+          delete wo;
+          lock.relock(mt.cur_brigade_->cond());
+          continue;
+        }
+        // null from queue means either no more work orders, or too many busy threads busy
+        // either way, sleep until a child has returned
+        Thread::Mutex::Lock lock2(mt.child_poll_cond_);
+        if( mt.child_retcount_ < mt.numchildren_ )
+        {
+          MTPool::Brigade::markThreadAsBlocked(name());
+          becomeIdle();
+          mt.child_poll_cond_.wait();
+          becomeBusy();
+          MTPool::Brigade::markThreadAsUnblocked(name());
+        }
+        else
+          break;
+        lock2.release();
+        lock.relock(mt.cur_brigade_->cond());
+      }
+      lock.release();
       // finish up
       mt_cleanupAfterPoll();
     }
@@ -682,8 +648,8 @@ void NodeNursery::backgroundPoll (const Request &req)
       else
         child_retcodes_[ichild] = 0;
     }
-    // wake up all worker threads in brigade
-    mt.cur_brigade_->cond().broadcast();
+    // wake up some worker threads in brigade
+    mt.cur_brigade_->awakenWorker();
     lock.release();
   }
   // single-threaded version

@@ -34,7 +34,6 @@
 #include "config.h"
 #ifdef HAVE_MPI
 #include <MeqMPI/MeqMPI.h>
-#include <MeqMPI/MeqSubserver.h>
 #endif
 
 #ifndef HAVE_PARMDB
@@ -241,10 +240,11 @@ void MeqServer::setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
   cdebug(3)<<"setForestState()"<<endl;
   // if running under MPI, post state to all subservers
   #ifdef HAVE_MPI
-  ObjRef objref = in;
   for( int proc=1; proc<MeqMPI::self->comm_size(); proc++ )
+  {
+    ObjRef objref = in;
     MeqMPI::self->postCommand(MeqMPI::TAG_SET_FOREST_STATE,proc,objref);
-  objref.detach();
+  }
   #endif
   DMI::Record::Ref ref = in[AidState].ref();
   forest.setState(ref);
@@ -1333,10 +1333,16 @@ void MeqServer::run ()
 void * MeqServer::runExecutionThread ()
 {
   Thread::Mutex::Lock lock(exec_cond_);
+  if( MTPool::enabled() )
+    MTPool::brigade().join(MTPool::BUSY);
   while( true )
   {
     while( running_ && exec_queue_.empty() )
+    {
+      MTPool::Brigade::markThreadAsBlocked("main");
       exec_cond_.wait();
+      MTPool::Brigade::markThreadAsUnblocked("main",false);  // can_stop=false
+    }
     // exit if no longer running
     if( !running_ )
       return 0;

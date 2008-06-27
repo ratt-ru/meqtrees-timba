@@ -310,8 +310,13 @@ def make_sinks (ns,outputs,array=None,
   elif post and not is_node(post):
     raise TypeError,"'post' argument should be a node or a list of nodes, %s given"%type(post);
 
+  # figure out optimal poll order for children
+  cpo = [];
+  sta = array.stations();
+  for i in range(0,len(sta)-1,2):
+    cpo.append(sink(sta[i],sta[i+1]).name);
   # now make the vdm
-  vdm << Meq.VisDataMux(post=post,*[sink(p,q) for p,q in array.ifrs()]);
+  vdm << Meq.VisDataMux(post=post,child_poll_order=cpo,*[sink(p,q) for p,q in array.ifrs()]);
   if spigots:
     if spigots is True:
       spigots = array.spigots();

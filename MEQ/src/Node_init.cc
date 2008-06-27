@@ -136,14 +136,14 @@ void Node::init (NodeFace *parent,bool stepparent,int init_index)
 {
 #ifndef DISABLE_NODE_MT
   Thread::Mutex::Lock lock(execCond());
-  // if node is executing, then wait for it to finish, and meanwhile
+  // if node is already initializing, then wait for it to finish, and meanwhile
   // mark our thread as blocked
   if( executing_ )
   {
-    MTPool::Brigade::markThreadAsBlocked(*this);
+    MTPool::Brigade::markThreadAsBlocked(name());
     while( executing_ )
       execCond().wait();
-    MTPool::Brigade::markThreadAsUnblocked(*this);
+    MTPool::Brigade::markThreadAsUnblocked(name());
   }
   executing_ = true;
   lock.release();
@@ -174,13 +174,21 @@ void Node::init (NodeFace *parent,bool stepparent,int init_index)
     cdebug(2)<<"initializing node (setStateImpl)"<<endl;
     cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
     setStateImpl(staterec_,true);
+    // recursively init() all children
+    for( int i=0; i<children().numChildren(); i++ )
+      if( children().isChildValid(i) )
+        children().getChild(i).init(this,false,init_index);
+    for( int i=0; i<stepchildren().numChildren(); i++ )
+      stepchildren().getChild(i).init(this,true,init_index);
+    // call checkChildren() since all children are now valid
+    checkChildren();
   }
   catch( std::exception &exc )
   {
 #ifndef DISABLE_NODE_MT
     Thread::Mutex::Lock lock(execCond());
     executing_ = false;
-    execCond().signal();
+    execCond().broadcast();
 #endif
     ThrowMore(exc,"failed to init node '"+name()+"'");
   }
@@ -189,22 +197,14 @@ void Node::init (NodeFace *parent,bool stepparent,int init_index)
 #ifndef DISABLE_NODE_MT
     Thread::Mutex::Lock lock(execCond());
     executing_ = false;
-    execCond().signal();
+    execCond().broadcast();
 #endif
     Throw("failed to init node '"+name()+"'");
   }
-  // recursively init() all children
-  for( int i=0; i<children().numChildren(); i++ )
-    if( children().isChildValid(i) )
-      children().getChild(i).init(this,false,init_index);
-  for( int i=0; i<stepchildren().numChildren(); i++ )
-    stepchildren().getChild(i).init(this,true,init_index);
-  // call checkChildren() since all children are now valid
-  checkChildren();
 #ifndef DISABLE_NODE_MT
   lock.relock(execCond());
   executing_ = false;
-  execCond().signal();
+  execCond().broadcast();
 #endif
 }
 

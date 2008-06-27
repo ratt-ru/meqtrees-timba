@@ -725,6 +725,12 @@ class Node : public NodeFace
     void lockStateMutex ();
     void unlockStateMutex ();
 
+    //## this flag is set inside Node::execute() to prevent reentrancy
+    bool executing_;
+
+    //## condition variable used to signal when executing_ is cleared.
+    Thread::Condition exec_cond_;
+
   private:
     //## sets up nursery objects based on the child_indices_ and stepchild_indices_
     //## vectors which are populated by init() or reinit(). Called
@@ -795,12 +801,6 @@ class Node : public NodeFace
         LOFAR::NSTimer & timer_;
     };
 
-    //## this flag is set inside Node::execute() to prevent reentrancy
-    bool executing_;
-
-    //## condition variable used to signal when executing_ is cleared.
-    Thread::Condition exec_cond_;
-
     //## helper function to cleanup upon exit from execute() (stops timers,
     //## clears flags, etc.) Retcode is passed as-is, making this a handy
     //## wrapper around the return value
@@ -815,7 +815,7 @@ class Node : public NodeFace
       stepchildren().finishPoll();
       Thread::Mutex::Lock lock(execCond());
       executing_ = false;
-      execCond().signal();
+      execCond().broadcast();
 #endif
       timers_.total.stop();
       return retcode;

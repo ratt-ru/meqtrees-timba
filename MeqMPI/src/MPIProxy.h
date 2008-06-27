@@ -15,8 +15,8 @@ namespace Meq
 class MPIProxy : public Node
 {
   public:
-    virtual ~MPIProxy()
-    {}
+    MPIProxy ();
+    virtual ~MPIProxy();
   
     virtual void init (NodeFace *parent,bool stepparent,int init_index=0);
     
@@ -50,6 +50,9 @@ class MPIProxy : public Node
     
     virtual void setPublishingLevel (int level=1);
     
+    int getRemoteProc () const
+    { return remote_proc_; }
+    
     virtual TypeId objectType() const
     { return TpMeqMPIProxy; }
 
@@ -59,9 +62,28 @@ class MPIProxy : public Node
     virtual std::string sdebug(int detail = 0, const std::string &prefix = "", const char *objname = 0) const
     { return "mpiproxy "+name(); }
     
+    LocalDebugContext;
+    
   private:
+    //## helper function to cleanup upon exit from execute() (stops timers,
+    //## clears flags, etc.) Retcode is passed as-is, making this a handy
+    //## wrapper around the return value
+    int exitExecute (int retcode)
+    {
+      Thread::Mutex::Lock lock(execCond());
+      executing_ = false;
+      execCond().broadcast();
+      return retcode;
+    }
+  
+    //## helper function to exit when the abort flag is raised
+    int exitAbort (int retcode)
+    {
+      return exitExecute(retcode|RES_ABORT);
+    }
   
     int remote_proc_;
+    int num_local_parents_;
 };
 
 

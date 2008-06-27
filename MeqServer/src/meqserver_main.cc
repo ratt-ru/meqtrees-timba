@@ -63,6 +63,8 @@ int main (int argc,const char *argv[])
   // GW sockets from a launching browser
   for( int i=3; i<1024; i++ )
     close(i);
+  
+  int max_threads = 1;
 
   // collect command-line arguments into vector
   StrVec args(argc-1);
@@ -88,11 +90,7 @@ int main (int argc,const char *argv[])
     }
     int nt = atoi(iter->c_str());
     if( nt>0 )
-    {        Meq::MTPool::Brigade::setBrigadeSize(nt);
-      Meq::MTPool::Brigade::startNewBrigade();
-      Meq::MTPool::Brigade::startNewBrigade();
-
-    }
+      max_threads = nt;
   }
   // "-gw" option
   string local_gw;
@@ -108,14 +106,14 @@ int main (int argc,const char *argv[])
     local_gw = *iter;
   }
   
-
 #ifdef HAVE_MPI
+  // init MPI 
   MPI_Init(&argc,const_cast<char***>(&argv));
   
-  // create a meqmpi object
   MeqMPI meqmpi(argc,argv);
-  
-  meqmpi.initialize();
+  // don't bother to initialize unless there's someone to talk to
+  if( meqmpi.comm_size() > 1 )
+    meqmpi.initialize();
   // If we're on processor 0, proceed below for regular meqserver startup.
   // On all other processors, start abbreviated version 
   if( meqmpi.comm_rank() !=0 )
@@ -123,14 +121,18 @@ int main (int argc,const char *argv[])
     Meq::Forest forest;
     meqmpi.attachForest(forest);
     meqmpi.rejoinCommThread();
-    if( Meq::MTPool::Brigade::numBrigades() )
-    {
-      cdebug(0)<<"=================== stopping worker threads ===================\n";
-      Meq::MTPool::Brigade::stopAll();
-    }
+    // stop worker threads
+    Meq::MTPool::stop();
   }
   else
   {
+  // start worker threads, since we always need them in MPI mode
+  Meq::MTPool::start(max_threads*2-1,max_threads);
+#else
+  // no MPI support -- start worker threads only as needed
+  // Start one less since the main execution thread will join the brigade.
+  if( max_threads > 1 )
+    Meq::MTPool::start(max_threads*2-1,max_threads);
 #endif
 
   using main_debug_context::getDebugContext;
@@ -187,24 +189,6 @@ int main (int argc,const char *argv[])
     cdebug(0)<<"=================== running MeqServer =========================\n";
     meqserver.run();
     
-//     cdebug(0)<<"=================== starting app threads ======================\n";
-//     std::vector<Thread::ThrID> appthreads(apps.size());
-//     for( uint i=0; i<apps.size(); i++)
-//     {
-//       appthreads[i] = apps[i]().runThread(true);
-//       cdebug(0)<<"  thread: "<<appthreads[i]<<endl;
-//     }
-//     
-//     cdebug(0)<<"=================== rejoining app threads =====================\n";
-//     for( uint i=0; i<appthreads.size(); i++ )
-//       appthreads[i].join();
-
-    if( Meq::MTPool::Brigade::numBrigades() )
-    {
-      cdebug(0)<<"=================== stopping worker threads ===================\n";
-      Meq::MTPool::Brigade::stopAll();
-    }
-
 //    pthread_kill_other_threads_np();
 //    exit(1);
     
@@ -228,8 +212,14 @@ int main (int argc,const char *argv[])
     cdebug(0)<<"Exiting with unknown exception\n";  
     retcode = 1;
   }
-  
+  // stop worker threads, if we were running them
+  if( MTPool::enabled() )
+  {
+    cdebug(0)<<"=================== stopping worker threads ===================\n";
+    MTPool::stop();
+  }
 #ifdef HAVE_MPI
+  // tell remote subservers to stop
   for( int i=1; i<meqmpi.comm_size(); i++ )
     meqmpi.postCommand(MeqMPI::TAG_HALT,i);
   }

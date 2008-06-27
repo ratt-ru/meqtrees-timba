@@ -81,24 +81,26 @@ class Patch (SkyComponent):
         nproc = Parallelization.mpi_nproc;
         # how many sources per processor?
         nsrc = len(self._components);
-        src_per_proc = nsrc/nproc;
-        if nsrc%nproc != 0:
-          src_per_proc += 1;
+        src_per_proc = [nsrc/nproc]*nproc;
+        # distriebute remainder over a few processors
+        remainder = nsrc%nproc;
+        if remainder != 0:
+          for i in range(1,remainder+1):
+            src_per_proc[i] += 1;
         # now loop over processors
         per_proc_nodes = [];
+        isrc0 = 0;
         for proc in range(nproc):
-          isrc0 = proc*src_per_proc; 
-          if isrc0 >= nsrc:
-            break;
-          isrc1 = min(isrc0+src_per_proc,nsrc-1);
+          isrc1 = isrc0 + src_per_proc[proc];
           # this node will contain the per-processor sum
           procnode = nodes('P%d'%proc);
           per_proc_nodes.append(procnode);
           # now, make nodes to add contributions of every source on that processor
           compvis = [ comp.visibilities(array,observation) for comp in self._components[isrc0:isrc1] ];
           smart_adder(procnode,compvis,ifrs,proc=proc);
+          isrc0 = isrc1;
         # now, make one final sum of per-processor contributions
-        smart_adder(nodes,per_proc_nodes,ifrs,proc=0);
+        smart_adder(nodes,per_proc_nodes,ifrs,proc=0,mt_polling=True);
       else:
         # No parallelization, all sourced added up on one machine.
         compvis = [ comp.visibilities(array,observation) for comp in self._components ];

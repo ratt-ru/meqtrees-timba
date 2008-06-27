@@ -227,7 +227,6 @@ class MeqMPI
     // singleton meqmpi object
     static MeqMPI * self;
     
-    
     // message tags -- these identify message types
     typedef enum
     {
@@ -323,9 +322,6 @@ class MeqMPI
     
     // local MeqSubserver object
     Meq::Forest  *forest_;
-    
-    // worker thread brigade (must be one present!)
-    Meq::MTPool::Brigade * brigade_;
     
     Thread::ThrID comm_thread_ ;
     bool comm_thread_running_;

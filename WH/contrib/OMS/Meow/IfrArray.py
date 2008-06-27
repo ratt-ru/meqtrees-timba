@@ -234,6 +234,7 @@ class IfrArray (object):
         # first station gets (0,0,0), the rest is via subtraction
         p = self.stations()[0];
         uvw(p) << Meq.Composer(0,0,0);
+        uvw(p)._multiproc = True; # hint to parallelizer to clone this node on all processors
         for iq,q in enumerate(self.stations()[1:]):
           uvw(q) << Meq.Spigot(station_1_index=0,station_2_index=iq+1,input_col='UVW');
       elif self._uvw_table:

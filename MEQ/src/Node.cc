@@ -347,7 +347,7 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   children().setState(rec,initializing);
 
   // enable multithreading
-  if( MTPool::Brigade::numBrigades() )
+  if( MTPool::num_threads() > 1 )
   {
     bool mtpoll = children().multiThreaded();
     if( rec[FMTPolling].get(mtpoll,initializing) )
@@ -899,10 +899,10 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
   // mark our thread as blocked
   if( executing_ )
   {
-    MTPool::Brigade::markThreadAsBlocked(*this);
+    MTPool::Brigade::markThreadAsBlocked(name());
     while( executing_ )
       execCond().wait();
-    MTPool::Brigade::markThreadAsUnblocked(*this);
+    MTPool::Brigade::markThreadAsUnblocked(name());
   }
   executing_ = true;
 #endif
@@ -1290,7 +1290,7 @@ std::string Node::getStrExecState (int state)
 
 void Node::enableMultiThreadedPolling (bool enable)
 {
-  if( !MTPool::Brigade::numBrigades() )
+  if( MTPool::num_threads() < 2 )
     enable = false;
   children().enableMultiThreaded(enable);
   stepchildren().enableMultiThreaded(enable);

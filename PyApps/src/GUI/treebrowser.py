@@ -526,8 +526,7 @@ class TreeBrowser (QObject):
       self.add_column("breakpoint",'',24,iconset=pixmaps.breakpoint.iconset());
       self.add_column("execstate","xs/rqid");
       self.add_column("result",'',24,iconset=pixmaps.blue_round_result.iconset());
-      if self._mpi_num_proc > 1:
-        self.add_column("proc",'',24);
+      self.add_column("proc",'',24);
       icol = self.add_column("class");
       self._icol_disable = icol;
       icol = self.add_column("index",width=60);
@@ -742,7 +741,8 @@ class TreeBrowser (QObject):
     was_stopped = self.is_stopped;
     self.is_stopped = fst.stopped;
     self.debug_level = fst.debug_level;
-    self._mpi_num_proc = fst.mpi_num_proc;
+    self._mpi_num_proc = getattr(fst,'mpi_num_proc',1);
+    self.show_column("proc",self._mpi_num_proc>1);
     self._forest_breakpoint = fst.breakpoint;
     self.wtop().emit(PYSIGNAL("isRunning()"),(self.is_running,));
     self.wtop().emit(PYSIGNAL("isStopped()"),(self.is_stopped,));
