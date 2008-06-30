@@ -7,11 +7,11 @@ from Meow import Jones,ParmGroup,Bookmarks
 from Timba.Contrib.MXM.MimModule.KL import KL_MIM
 from Timba.Contrib.MXM.MimModule import TID_MIM
 from Timba.Contrib.MXM.MimModule import Poly_MIM
-#from Timba.Contrib.IVB.MimModule import TID_MIM_2waves
-#from Timba.Contrib.IVB.KolMIM import Kolmogorov_MIM_ivb
+from Timba.Contrib.IVB.MimModule import TID_MIM_2waves
+from Timba.Contrib.IVB.KolMIM import Kolmogorov_MIM_ivb
 #@Leiden
-import TID_MIM_2waves
-import Kolmogorov_MIM_ivb
+#import TID_MIM_2waves
+#import Kolmogorov_MIM_ivb
 
 def _modname (obj):
   if hasattr(obj,'name'):
