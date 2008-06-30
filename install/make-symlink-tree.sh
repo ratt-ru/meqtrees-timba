@@ -53,7 +53,13 @@ makedir libexec
 cd bin
 ln-s ../../../TimBase/src/gprof-run
 ln-s ../../../PyApps/src/meqbrowser.py
-ln-s ../../../MeqServer/build/$flavour/src/.libs/meqserver
+if [ -f ../../../MeqServer/build/$flavour/src/.libs/meqserver ]; then
+  ln-s ../../../MeqServer/build/$flavour/src/.libs/meqserver
+elif [ -f ../../../MeqServer/build/$flavour/src/meqserver ]; then
+  ln-s ../../../MeqServer/build/$flavour/src/meqserver
+else
+  echo "WARNING: meqserver binary not found"
+fi
 ln-s ../../../PyApps/src/tdlrun.py
 ln-s ../../../PyApps/src/trut
 ln-s ../../../PyApps/src/trutify

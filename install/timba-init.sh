@@ -36,12 +36,12 @@ else
   _timba-setup()
   {
     if [ ! -d $TIMBA_PATH/install/$1/bin ]; then
-      echo "Timba build variant $1 not found" 
+      echo "Timba version $TIMBA_PATH/install/$1 not found" 
     else
       export PATH=$PRE_TIMBA_PATH:$TIMBA_PATH/install/$1/bin
       export PYTHONPATH=$PRE_TIMBA_PYTHONPATH:.:$TIMBA_PATH/install/$1/libexec/python
       export LD_LIBRARY_PATH=$PRE_TIMBA_LD_LIBRARY_PATH:$TIMBA_PATH/install/$1/lib
-      echo "Using Timba install $TIMBA_PATH/install/$1"
+      echo "Using Timba version $TIMBA_PATH/install/$1"
     fi
   }
 
