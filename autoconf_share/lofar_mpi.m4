@@ -34,7 +34,6 @@ lofar_HEADER_MPICH([])dnl
 lofar_HEADER_LAM([])dnl
 lofar_HEADER_SCAMPI()dnl
 lofar_HEADER_BGLMPICH([])dnl
-AM_CONDITIONAL(HAVE_MPI,false)dnl
 [
 enable_mpi=0
 if test "$enable_mpich" = "yes"; then
@@ -83,12 +82,14 @@ AC_ARG_WITH(mpich,
 [
 if test "$mpich_prefix" = "no" ; then
   enable_mpich=no
+  ]AM_CONDITIONAL(HAVE_MPI,false)[
 else
   if test "$mpich_prefix" = "yes"; then
     mpich_prefix=/usr/local/mpich]MPICH_VERSION
 [
   fi
   enable_mpich=yes
+  ]AM_CONDITIONAL(HAVE_MPI,true)[
 ]
 dnl
 AC_CHECK_FILE([$mpich_prefix/include/mpi.h],
@@ -113,7 +114,6 @@ AC_CHECK_FILE([$mpich_prefix/include/mpi.h],
 AC_SUBST(MPIBIN)dnl
 AC_SUBST(CC)dnl
 AC_SUBST(CXX)dnl
-AM_CONDITIONAL(HAVE_MPI,true)
 AC_DEFINE(HAVE_MPICH,dnl
 	1, [Define if MPICH is installed])dnl
 [
