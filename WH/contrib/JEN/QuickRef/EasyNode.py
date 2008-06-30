@@ -247,7 +247,8 @@ def reusenode (ns, rootname, assign, *quals, **kwquals):
 
 def format_tree (node, ss='', recurse=True,
                  level=0, mode='str',
-                 nodenames=None, basenames=None, 
+                 nodenames=None, basenames=None,
+                 full=False,
                  trace=False):
     """
     Recursively format the subtree under the given node(s) to the given string (ss).
@@ -281,6 +282,7 @@ def format_tree (node, ss='', recurse=True,
             for c in node:
                 ss = format_tree(c, ss=ss, recurse=recurse, 
                                  nodenames=nodenames, basenames=basenames,
+                                 full=full,
                                  level=level+1, trace=trace)
             finished = True
         elif not is_node(node):
@@ -302,11 +304,12 @@ def format_tree (node, ss='', recurse=True,
         s1 = ''
 
         # Stop if a similar node (same basename, same level):
-        if node.basename in basenames[slevel]:
-            stophere = True
-            s1 = '... similar to earlier nodes at this level with basename: '+node.basename
-        else:
-            basenames[slevel].append(node.basename)
+        if not full:
+            if node.basename in basenames[slevel]:
+                stophere = True
+                s1 = '... similar to earlier nodes at this level with basename: '+node.basename
+            else:
+                basenames[slevel].append(node.basename)
 
         # Stop if this node has already been shown (same node-name):
         if node.name in nodenames:
@@ -325,6 +328,7 @@ def format_tree (node, ss='', recurse=True,
                 for c in node.children:
                     ss = format_tree(c[1], ss=ss, recurse=recurse, 
                                      nodenames=nodenames, basenames=basenames,
+                                     full=full,
                                      level=level+1, trace=trace)
 
     # Finished:

@@ -9,6 +9,8 @@
 #   - 07 june 2008: creation (from EasyTwig.py)
 #   - 22 june 2008: split off EasyNode.py
 #   - 26 june 2008: implemented bundle()
+#   - 30 june 2008: implemented noise()
+#   - 30 june 2008: implemented cloud()
 #
 # Remarks:
 #
@@ -228,8 +230,8 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     elif cat=='prod':
         names = ['prod_f2t3','prod_-3.3f2t','prod_f2t2L2M2']
     elif cat=='noise':
-        names = ['noise_1','noise_3.5','expnoise_2','cxnoise_2.5',
-                 'polarnoise_0.1','phasenoise_0.2','amplnoise_0.01']
+        names = ['noise_s1','noise_s3.5','expnoise_s2','noise_r2.5',
+                 'noise_a0.1','noise_a0.0p1.0','noise_a0.01']
     elif cat=='tensor':
         names = ['range_4','range_10','tensor_ftLM']
     elif cat=='gaussian':
@@ -252,7 +254,7 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     else:
         # default category
         names = ['f','t','L','M','prod_ft2','sum_L2M2',
-                 'f**t','range_3','noise_3','cx_ft']
+                 'f**t','range_3','noise_s3','cx_ft']
 
     # Specific names may be included:
     if isinstance(include,str):
@@ -275,6 +277,37 @@ def twig_names (cat='default', include=None, first=None, trace=False):
 
 #-----------------------------------------------------------------------------------
 
+def cloud (ns, stddev=1.0, mean=0.0,
+           nodename='cloud', quals=None, kwquals=None,
+           parent=None, help=None, trace=False):
+    """
+    Syntax:
+    """
+
+    s = '** EeasyTwig.cloud('+str(spec)+','+str(nodename)+','+str(shape)+','+str(parent)+'):'
+    if trace:
+        print '\n',s
+
+    noise = EN.unique_stub(ns,'cohnoise', quals, kwquals) << Meq.Matrix22(complex(random.gauss(0,q),random.gauss(0,q)),
+                                                                          complex(random.gauss(0,q),random.gauss(0,q)),
+                                                                          complex(random.gauss(0,q),random.gauss(0,q)),
+                                                                          complex(random.gauss(0,q),random.gauss(0,q)))
+    return cc
+
+#-----------------------------------------------------------------------------------
+
+def shape2length (shape=1, trace=False):
+    """Helper function to change a shape into a length"""
+    if isinstance(shape,int):
+        shape = [shape]
+    nel = 1
+    for i in shape:
+        nel *= i
+    return nel
+    
+
+#-----------------------------------------------------------------------------------
+
 def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
            shape=1, parent='Composer', result_index=0,
            help=None, trace=False):
@@ -288,26 +321,28 @@ def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
     
     # The number of bundle elements (nodes) may be specified by
     # the length of a list of spec-strings, or by the shape:
-    if isinstance(shape,int):
-        shape = [shape]
-    nel = 1
-    for i in shape:
-        nel *= i
+    nel = shape2length(shape)
 
+    qualify = False
     if isinstance(spec, (list,tuple)):
         if not nel==len(spec):
             shape = [nel]
         nel = len(spec)
     else:
         spec = nel*[spec]
+        qualify = True
 
     if trace:
         print '  -- nel=',nel,'  shape=',shape,'  spec=',spec
 
     # Make the nodes of the bundle:
     cc = []
-    for spec1 in spec:
-        cc.append(twig(ns, spec1, trace=trace))
+    for k,spec1 in enumerate(spec):
+        if qualify:
+            cc.append(twig(ns, spec1, quals=k, trace=trace))
+        else:
+            cc.append(twig(ns, spec1, trace=trace))
+
     if trace:
         print '   cc(',len(cc),'):'
         for c in cc: print str(c)
@@ -335,6 +370,102 @@ def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
         print '  ->',str(node)
     return node
 
+
+#-----------------------------------------------------------------------------------
+
+def apply_unop (ns, node, unop=None, trace=False):
+    """Apply zero or more unary operations to the given node"""
+    s = '** ET.apply_unop('+str(unop)+'):'
+    if unop==None:
+        return node
+    elif isinstance(unop,str):
+        unop = [unop]
+    for unop1 in unop:
+        node = ns << getattr(Meq,unop1)(node)
+    if trace:
+        print s,'->',str(node)
+    return node
+
+#-----------------------------------------------------------------------------------
+
+def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
+              shape=1, help=None, unop=None, trace=False):
+    """
+    Syntax:
+            node = ET.noisetwig(ns, spec, nodename=None, quals=None, kwquals=None, shape=1)
+
+    Generate a noise-twig, according to the specification.
+    - s (stddev) [=1.0]:        real, >0
+    - m (mean) [=0.0]:          if complex (a+bj), the result is complex
+    - a (stddev of ampl):       if >0, use MeqPolar (default=p)
+    - p (stddev of phase):      if >0, MeqPolar (default=a)
+    - r (stddev of real part):  if >0, use MeqToComplex (default=i)
+    - i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+    If a/p and r/i both specified (>0), MeqPolar (a/p) takes precedence.
+    If shape is specified (e.g. 3, or [2,2]) make a tensor node.
+    """
+
+    s = '** EeasyTwig.noise('+str(spec)+','+str(nodename)+'):'
+    if trace:
+        print '\n',s
+
+    if not isinstance(nodename, str):
+        nodename = 'noise_'+str(spec)
+    stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+
+    nel = shape2length(shape)
+    if nel>1:
+        cc = []
+        for k in range(nel):
+            if quals:
+                cc.append(noisetwig(ns, spec, quals+[k], kwquals=kwquals))
+            else:
+                cc.append(noisetwig(ns, spec, quals=k, kwquals=kwquals))
+        node = stub << Meq.Composer(*cc)
+
+    else:
+
+        dekey = dict(s=1.0, m=0.0, r=-1.0, i=-1.0, a=-1.0, p=-1.0)
+        vv = decode(spec, dekey, trace=trace)
+
+        is_complex = True
+        if vv['a']>0 or vv['p']>0:
+            if vv['p']<0: vv['p'] = vv['a']
+            if vv['a']<0: vv['a'] = vv['p']
+            dampl = stub('dampl')(stddev=str(vv['a'])) << Meq.GaussNoise(stddev=vv['a'])
+            dphase = stub('dphase')(stddev=str(vv['p'])) << Meq.GaussNoise(stddev=vv['p'])
+            var = stub('dpolar') << Meq.Polar(dampl,dphase)
+            
+        elif vv['r']>0 or vv['i']>0:
+            if vv['i']<0: vv['i'] = vv['r']
+            if vv['r']<0: vv['r'] = vv['i']
+            dreal = stub('dreal')(stddev=str(vv['r'])) << Meq.GaussNoise(stddev=vv['r'])
+            dimag = stub('dimag')(stddev=str(vv['i'])) << Meq.GaussNoise(stddev=vv['i'])
+            var = stub('dcomplex') << Meq.ToComplex(dreal,dimag)
+
+        elif vv['s']>0:
+            is_complex = False
+            var = stub('dfloat')(stddev=str(vv['s'])) << Meq.GaussNoise(stddev=vv['s'])
+
+        else:
+            s += 's, a or r should be specified (>0): '+str(spec)
+            raise ValueError, s
+
+        # Add a mean value (if required):
+        if vv['m'] or (isinstance(vv['m'],complex) and not is_complex):
+            mean = stub('mean')(str(vv['m'])) << Meq.Constant(vv['m'])
+            node = stub << Meq.Add(mean,var)
+        else:
+            node = var
+
+    # Finishing touches on node/bundle:
+    if unop:
+        node = apply_unop (ns, node, unop, trace=trace)
+    if trace:
+        print EN.format_tree(node, full=True)
+    return node
+
+#-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
 
 def twig(ns, spec, nodename=None, quals=None, kwquals=None,
@@ -353,12 +484,8 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     - f**t, t**f, f+t, ft          :
     
     - range_4        :  a 4-element (0,1,2,3) 'tensor' node
-    - noise_3.5      :  GaussNoise(stddev=3.5)                stddev>0
-    - expnoise_4     :  Exp(GaussNoise(stddev=4))             generate peaks, for flagging
-    - cxnoise_3      :  complex noise, with same stddev in real and imag         
-    - polarnoise_3   :  complex noise, with same stddev in ampl(w.r.t 1) and phase         
-    - phasenoise_3   :  complex noise, with stddev in phase only (rad, w.r.t. 0)        
-    - amplnoise_3    :  complex noise, with stddev in ampl only (w.r.t. 1)        
+    - noise_s3.5     :  GaussNoise(stddev=3.5)                stddev>0
+    - expnoise_s4    :  Exp(GaussNoise(stddev=4))             generate peaks, for flagging
 
     Twig specs often have an 'ftLM' string, which specifies powers of f,t,L,M.
     For instance, f2t4L0 means f**2, t**4 and L**0 (=1). For instance:
@@ -384,11 +511,6 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     """
     recognized_axes = ['f','t','L','M']       # used below...
 
-    # If no nodename specified, use spec
-    if nodename==None:
-        nodename = spec
-    # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
-
     s1 = '--- EasyTwig.twig('+str(spec)
     if nodename: s1 += ', '+str(nodename)
     if quals: s1 += ', quals='+str(quals)
@@ -396,52 +518,17 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     if test: s1 += ', test='+str(test)
     s1 += '):  '
 
+    # If no nodename specified, use spec
+    if nodename==None:
+        nodename = spec
+    # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
+
     stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
     unique_stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
     node = None
     is_complex = False
 
-    if len(spec.split('expnoise_'))>1:               # e.g. 'expnoise_2.5'
-        ss = spec.split('expnoise_')[1]
-        node = unique_stub << Meq.Exp(twig(ns,'noise_'+ss))
-        stddev = 0.0
-
-    elif len(spec.split('cxnoise_'))>1:               # e.g. 'cxnoise_2.5'
-        ss = spec.split('cxnoise_')[1]
-        real = unique_stub('real') << Meq.GaussNoise(stddev=float(ss))
-        imag = unique_stub('imag') << Meq.GaussNoise(stddev=float(ss))
-        node = unique_stub << Meq.ToComplex(real,imag)
-        stddev = 0.0
-
-    elif len(spec.split('polarnoise_'))>1:            # e.g. 'polarnoise_2.5'
-        ss = spec.split('polarnoise_')[1]
-        dampl = unique_stub('dampl') << Meq.GaussNoise(stddev=float(ss))
-        ampl = unique_stub('ampl') << Meq.Add(1.0, dampl)
-        phase = unique_stub('phase') << Meq.GaussNoise(stddev=float(ss))
-        node = unique_stub << Meq.Polar(ampl,phase)
-        stddev = 0.0
-
-    elif len(spec.split('phasenoise_'))>1:            # e.g. 'phasenoise_2.5'
-        ss = spec.split('phasenoise_')[1]
-        phase = unique_stub('phase') << Meq.GaussNoise(stddev=float(ss))
-        node = unique_stub << Meq.Polar(1.0, phase)
-        stddev = 0.0
-
-    elif len(spec.split('amplnoise_'))>1:            # e.g. 'phasenoise_2.5'
-        ss = spec.split('amplnoise_')[1]
-        dampl = unique_stub('dampl') << Meq.GaussNoise(stddev=float(ss))
-        ampl = unique_stub('ampl') << Meq.Add(1.0, dampl)
-        node = unique_stub << Meq.Polar(ampl, 0.0)
-        stddev = 0.0
-
-    elif len(spec.split('noise_'))>1:           # e.g. 'noise_2.5'
-        # Do this one last of the noises...
-        ss = spec.split('noise_')[1]
-        node = unique_stub << Meq.GaussNoise(stddev=float(ss))
-        stddev = 0.0
-
-    #....................................................................
-    elif stub.initialized():                  # node already exists
+    if stub.initialized():                  # node already exists
         # Check whether the node already exists (i.e. is initialized...)
         node = stub                           # return it
     #....................................................................
@@ -553,6 +640,12 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         ss = spec.split('cpscohcir_')[1]
         node = cpscoh(ns, 'cpscoh', IQUV=ss, polrep='circular', trace=trace)
 
+    elif len(spec.split('KuvLM_'))>1:                # e.g. 'KuvLM_'
+        ss = spec.split('KuvLM_')[1]
+        node = KuvLM(ns, ss, trace=trace)
+        # def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
+
+
     #.....................................................................
     # Some useful constants etc:
     #.....................................................................
@@ -608,11 +701,11 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
 
     elif len(spec.split('prod_'))>1:                   # e.g. 'prod_f0t1L2M'
         ss = spec.split('prod_')[1]
-        node = combine_ftLM(ns, stub, ss, default=1.0, meqclass='Multiply') 
+        node = combine_ftLMXYZ(ns, stub, ss, default=1.0, meqclass='Multiply') 
 
     elif len(spec.split('sum_'))>1:                    # e.g. 'sum_f0t1L2M'
         ss = spec.split('sum_')[1]
-        node = combine_ftLM(ns, stub, ss, default=0.0, meqclass='Add') 
+        node = combine_ftLMXYZ(ns, stub, ss, default=0.0, meqclass='Add') 
 
     elif len(spec.split('pow_'))==2:                   # e.g. 'fpow_3'
         ss = spec.split('pow_')
@@ -620,6 +713,19 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
             node = twig(ns,ss[0])        
             if ss[1] in '2345678':                     # MeqPow2 ... MeqPow8 
                 node = stub << getattr(Meq,'Pow'+ss[1])(node)
+
+
+    elif len(spec.split('expnoise_'))>1:               # e.g. 'expnoise_s2.5'
+        ss = spec.split('expnoise_')[1]
+        node = noisetwig(ns, ss, unop='Exp')
+        stddev = 0.0
+
+    elif len(spec.split('noise_'))>1:                  # e.g. 'noise_s2.5'
+        # Do this one last of the noises...
+        ss = spec.split('noise_')[1]
+        node = noisetwig(ns, ss)
+        stddev = 0.0
+
 
     #............................................................
 
@@ -643,13 +749,13 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     elif stddev>0:
         # Optionally, add gaussian noise to the final result
         if is_complex:
-            spec = 'cxnoise_'+str(stddev)
+            nspec = 'r'+str(stddev)
         else:
-            spec = 'noise_'+str(stddev)
+            nspec = 's'+str(stddev)
         if shape==None:
-            noise = twig(ns, spec, quals=quals, kwquals=kwquals)
+            noise = noisetwig(ns, nspec, quals=quals, kwquals=kwquals, trace=trace)
         else:
-            noise = bundle(ns, spec, shape=shape, quals=quals, kwquals=kwquals)
+            noise = noisetwig(ns, nspec, shape=shape, quals=quals, kwquals=kwquals, trace=trace)
         node = ns << Meq.Add(node, noise)
 
     if trace:
@@ -677,12 +783,13 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
 
 
 #----------------------------------------------------------------
+#----------------------------------------------------------------
 
-def combine_ftLM(ns, stub, ss, default=0.0, meqclass='Multiply'):
+def combine_ftLMXYZ(ns, stub, ss, default=0.0, meqclass='Multiply'):
     """
     Combine the children in cc, using the specified meqclass
     """
-    vv = decode_ftLM(ss, trace=False)
+    vv = decode_ftLMXYZ(ss, trace=False)
     cc = []
     for key in vv.keys():
         power = vv[key]
@@ -701,11 +808,6 @@ def combine_ftLM(ns, stub, ss, default=0.0, meqclass='Multiply'):
     return node
 
 #----------------------------------------------------------------
-#----------------------------------------------------------------
-
-def decode_ftLM (s, trace=False):
-    dekey = dict(f=-1, t=-1, L=-1, M=-1)
-    return decode (s, dekey, trace=trace)
 
 def decode_ftLMXYZ (s, trace=False):
     dekey = dict(f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
@@ -721,7 +823,7 @@ def decode (ss, dekey=None, trace=False):
     if not isinstance(ss,str):
         ss = ''
     if trace:
-        print '\n** .decode(',ss,dekey,'):'
+        print '\n** .decode(',ss,', dekey=',dekey,'):'
     
     rr = dict()
     for key in dekey.keys():
@@ -731,7 +833,10 @@ def decode (ss, dekey=None, trace=False):
             rr[key] = s[1]
             if rr[key]=='': rr[key] = '1'
         if trace:
-            print '- rr[',key,'] = ',rr[key],type(rr[key])
+            if isinstance(rr[key],str):
+                print '- rr[',key,'] = ',rr[key],type(rr[key])
+            else:
+                print '- rr[',key,'] = ',rr[key],type(rr[key]),'(default value)'
 
     count = 0
     has_strings = True
@@ -743,19 +848,27 @@ def decode (ss, dekey=None, trace=False):
         for key in rr.keys():
             if isinstance(rr[key],str):
                 try:
-                    if isinstance(dekey[key],int):
-                        v = int(rr[key])
+                    # If any of the conversions fails, revert to except:
+                    if 'j' in rr[key]:                    # 'j' in spec-string
+                        v = complex(rr[key])              #   assume complex is meant (..?)
+                    elif isinstance(dekey[key],int):      # default is int
+                        v = int(rr[key])                  #   convert to int
+                    elif isinstance(dekey[key],complex):  # default is complex
+                        v = complex(rr[key])              #   convert to complex (..?)
+                    elif isinstance(dekey[key],float):    # default is float
+                        v = float(rr[key])                #   convert to float 
                     else:
-                        v = float(rr[key])
+                        v = float(rr[key])                # always try to convert (..?)
                     rr[key] = v
                     if trace:
                         print '- rr[',key,'] ->',rr[key],type(rr[key])
                 except:
+                    # One of the above conversions has failed:
                     has_strings = True
                     keys = rr.keys()
                     keys.remove(key)
-                    for key1 in keys:
-                        s = rr[key].split(key1)
+                    for key1 in keys:             # for all but the present key
+                        s = rr[key].split(key1)   # see whether it still is in rr[key]
                         if len(s)==2:
                             rr[key] = s[0]
                             if rr[key]=='': rr[key] = '1'
@@ -763,6 +876,9 @@ def decode (ss, dekey=None, trace=False):
                                 print '-',key1,': rr[',key,'] = (string)',rr[key]
     if trace:
         print '    ->',rr
+    if has_strings:
+        s = 'still some undecoded string values in: '+str(rr)
+        raise ValueError,s
     return rr
 
 
@@ -908,8 +1024,7 @@ def cpscoh (ns, name='cpscoh', quals=None, kwquals=None,
                              *(quals+[IQUV,polrep]), **kwquals)
             
     if trace:
-        print '   ->',str(coh)
-        print EN.format_tree(coh)
+        print EN.format_tree(coh, full=True)
     return coh
 
 
@@ -946,8 +1061,7 @@ def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
     node = EN.unique_stub(ns,name, *quals, **kwquals) << Meq.Exp(karg)
 
     if trace:
-        print '   ->',str(node)
-        print EN.format_tree(node)
+        print EN.format_tree(node, full=True)
     return node
 
 #-------------------------------------------------------------------------------
@@ -1023,8 +1137,7 @@ def cohmat (ns, name='cohmat', quals=None, kwquals=None,
         coh = EN.unique_stub(ns,'noisycoh', quals, kwquals) << Meq.Add(coh,noise)
         
     if trace:
-        print '   ->',str(coh)
-        print EN.format_tree(coh)
+        print EN.format_tree(coh, full=True)
     return coh
 
 
@@ -1038,7 +1151,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 0:
+   if 1:
        quals = None
        kwquals = None
        # quals = range(3)
@@ -1098,12 +1211,19 @@ if __name__ == '__main__':
        t = twig(ns,expr, trace=True)
        nn = EN.find_parms(t, trace=True)
 
-   if 1:
+   if 0:
        bundle(ns, 'cxnoise_3.1',
               # nodename=None, quals=None, kwquals=None,
               shape=[2,2],
               # parent='Composer', result_index=0,
               help=None, trace=True)
+
+   if 0:
+       noise(ns, trace=True)
+       noise(ns, 'm1+0j', trace=True)
+       noise(ns, 's10m-1+0j', trace=True)
+       noise(ns, 'a10m-1+0j', trace=True)
+       noise(ns, 'r1i2', trace=True)
 
    #------------------------------------------------
 
@@ -1121,18 +1241,6 @@ if __name__ == '__main__':
        dekey = dict(f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
        decode('f3t4L5M6', dekey, trace=True)
        decode('ft4L5M6', dekey, trace=True)
-
-   if 0:
-       decode_ftLM('f3t4L5M6', trace=True)
-       decode_ftLM('ft4L5M6', trace=True)
-       decode_ftLM('fL5M6', trace=True)
-       decode_ftLM('L', trace=True)
-       decode_ftLM('LM', trace=True)
-       decode_ftLM('L0M', trace=True)
-       decode_ftLM('', trace=True)
-       decode_ftLM('3.6fL5M6', trace=True)
-       # decode_ftLM('ML', trace=True)    # wrong order: error
-
 
    if 0:
        ss = range(4)
