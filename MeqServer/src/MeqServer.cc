@@ -30,6 +30,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <MEQ/Request.h>
 #include <MEQ/Result.h>
+#include <MEQ/MTPool.h>
 
 #include "config.h"
 #ifdef HAVE_MPI

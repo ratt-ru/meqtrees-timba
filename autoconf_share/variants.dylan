@@ -1,4 +1,4 @@
-gnu3.compiler.conf: CXX=ccache\ mpicxx --with-mpich=/usr/lib/mpich --enable-shared --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
+gnu3.compiler.conf: CXX=ccache\ g++-3.4 --enable-shared --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
 gnu3.compiler.aipspp.var: --with-casacore=/usr/local --with-wcs=/usr/local
 
 mpi.compiler.conf: CXX=ccache\ mpicxx --with-mpich=/usr/lib/mpich --enable-shared --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"

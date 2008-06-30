@@ -10,7 +10,11 @@ DOCHDRS		= $(LOCALHDRS)
 
 lib_LTLIBRARIES 	= libmeqmpi.la
 
+if HAVE_MPI
 libmeqmpi_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) AID-MeqMPI-Registry.cc
+else
+libmeqmpi_la_SOURCES 	= 
+endif
   
 libmeqmpi_la_LIBADD = 
 
