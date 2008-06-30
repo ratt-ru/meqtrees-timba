@@ -135,7 +135,7 @@ def _define_forest(ns):
 
 # compute corresponding 'apparent' L,M position of feed in AzEl
 # system as function of parallactic angle
-  ns.lm_prime_beam << Meq.LMN(ns.RADec0, ns.RaDec_beam, -1.0 * ns.ParAngle)
+  ns.lm_prime_beam << Meq.LMN(ns.RADec0, ns.RaDec_beam, pa)
   ns.l_prime_beam << Meq.Selector(ns.lm_prime_beam, index=0)
   ns.m_prime_beam << Meq.Selector(ns.lm_prime_beam, index=1)
   ns.lm_beam << Meq.Composer(ns.l_prime_beam,ns.m_prime_beam);
@@ -172,6 +172,10 @@ def _define_forest(ns):
   ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
   ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
   ns.lm_rot << Meq.Composer(Meq.Grid(axis=0),Meq.Grid(axis=1),ns.l_rot,ns.m_rot)
+# the ns.lm_rot contains L'M' AzEl grid positions as a function of the
+# original grid. So, I think that the resampling etc being done below
+# gets the data from the L'M' grid but puts the result on the original 
+# LM grid. 
 
   ns.resampler_xx_real << Meq.Resampler(Meq.Real(ns.norm_voltage_sum_xx),dep_mask = 0xff)
   ns.xx_real << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xx_real],common_axes=[hiid('l'),hiid('m')])
@@ -236,7 +240,7 @@ def _test_forest(mqs,parent):
 
 # any large time range will do: we observe the changes in the beam
 # pattern in timesteps of 3600s, or 1 hr
-  delta_t = 900.0
+  delta_t = 900.0 * 2
 # delta_t = 3600.0
   # t0 = -1200.0 + 0.5 * delta_t
   # Approx start of 2001
@@ -250,9 +254,9 @@ def _test_forest(mqs,parent):
   l_range = [-0.15,0.15];
   lm_num = 101;
   counter = 0
-# for i in range(16):
+  for i in range(16):
 # for i in range(8):
-  for i in range(32):
+# for i in range(32):
       t0 = t0 + delta_t
       t1 = t0 + delta_t
       mqs.clearcache('IQUV',recursive=True)
