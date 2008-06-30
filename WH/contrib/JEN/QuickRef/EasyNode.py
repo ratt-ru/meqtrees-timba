@@ -446,25 +446,19 @@ def find_nodes (tree, meqtype='MeqParm', level=0, recurse=True, trace=False):
 # Some misc helper fuctions:
 #====================================================================================
 
-def unique_list (ss, trace=False):
+def largest_common_name (nodes, trace=False):
     """
-    Helper function to remove doubles from the given list (ss)
+    Return the largest common name-string in the names of the given nodes.
     """
+    lcn = 'largest_common_name?'
+    if is_node(nodes):
+        nodes = [nodes]
+    if isinstance(nodes,(list,tuple)):
+        lcn = nodes[0].basename               # ....temporary....
     if trace:
-        print '\n** unique_list(',ss,'):'
-    if isinstance(ss, list):
-        ss.reverse()
-        for item in copy.copy(ss):
-            if trace: print '-',item,':',
-            while ss.count(item)>1:
-                ss.remove(item)
-                if trace: print ss,
-            if trace: print
-        ss.reverse()
-    if trace:
-        print '   ->',ss
-    return ss
-
+        print lcn
+    return lcn
+    
 
 
 #=====================================================================================
@@ -574,13 +568,6 @@ if __name__ == '__main__':
        format_value(complex(3,4), 'complex', trace=True)
        format_value(range(100), 'list', trace=True)
        format_value(ns << Meq.Constant(4.5), 'node', trace=True)
-
-   if 0:
-       ss = range(4)
-       ss.extend([1,'a'])
-       ss.extend([1,1,3,7,'a',2,2,2])
-       print unique_list(ss, trace=True)
-       print 'ss (after) =',ss
 
    print '\n** End of standalone test of: EasyNode.py:\n' 
 

@@ -8,7 +8,6 @@
 # History:
 #   - 07 june 2008: creation (from EasyTwig.py)
 #   - 22 june 2008: split off EasyNode.py
-#   - 26 june 2008: implemented bundle()
 #   - 30 june 2008: implemented noise()
 #   - 30 june 2008: implemented cloud()
 #
@@ -167,7 +166,7 @@ def make_request (cells, rqtype=None):
 
 
 #====================================================================================
-# Some helper fuctions:
+# Misc helper fuctions:
 #====================================================================================
 
 def unique_list (ss, trace=False):
@@ -188,6 +187,19 @@ def unique_list (ss, trace=False):
         print '   ->',ss
     return ss
 
+#-----------------------------------------------------------------------------------
+
+def shape2length (shape=1, trace=False):
+    """
+    Helper function to change a shape into a length.
+    """
+    if isinstance(shape,int):
+        shape = [shape]
+    nel = 1
+    for i in shape:
+        nel *= i
+    return nel
+    
 
 #====================================================================================
 # Functions dealing with standard input twigs:
@@ -202,6 +214,7 @@ def twig_cats (trace=False):
     cats.extend(['prod','sum'])
     cats.extend(['constants'])
     cats.extend(['polyparm','cpscoh'])
+    cats.extend(['cloud'])
     # cats.extend([])
     return cats
 
@@ -234,6 +247,8 @@ def twig_names (cat='default', include=None, first=None, trace=False):
                  'noise_a0.1','noise_a0.0p1.0','noise_a0.01']
     elif cat=='tensor':
         names = ['range_4','range_10','tensor_ftLM']
+    elif cat=='cloud':
+        names = ['cloud_n6s4','cloud_a2p3','cloud_r2m-1+3j']
     elif cat=='gaussian':
         names = ['gaussian_f','gaussian_ft','gaussian_ftLM']
     elif cat=='expnegsum':
@@ -245,7 +260,7 @@ def twig_names (cat='default', include=None, first=None, trace=False):
                  'polyparm_tLMXYZ']
     elif cat=='cpscoh':
         names = ['cpscohlin_I10','cpscohcir_V-0.1']
-        names.extend(['KuvLM','KuvLM_L2M3'])
+        names.extend(['KuvLM_','KuvLM_L2M3'])
     elif cat=='Expression':
         names = ['{ampl}*exp(-({af}*[f]**2+{at}*[t]**2))']
 
@@ -277,104 +292,10 @@ def twig_names (cat='default', include=None, first=None, trace=False):
 
 #-----------------------------------------------------------------------------------
 
-def cloud (ns, stddev=1.0, mean=0.0,
-           nodename='cloud', quals=None, kwquals=None,
-           parent=None, help=None, trace=False):
-    """
-    Syntax:
-    """
-
-    s = '** EeasyTwig.cloud('+str(spec)+','+str(nodename)+','+str(shape)+','+str(parent)+'):'
-    if trace:
-        print '\n',s
-
-    noise = EN.unique_stub(ns,'cohnoise', quals, kwquals) << Meq.Matrix22(complex(random.gauss(0,q),random.gauss(0,q)),
-                                                                          complex(random.gauss(0,q),random.gauss(0,q)),
-                                                                          complex(random.gauss(0,q),random.gauss(0,q)),
-                                                                          complex(random.gauss(0,q),random.gauss(0,q)))
-    return cc
-
-#-----------------------------------------------------------------------------------
-
-def shape2length (shape=1, trace=False):
-    """Helper function to change a shape into a length"""
-    if isinstance(shape,int):
-        shape = [shape]
-    nel = 1
-    for i in shape:
-        nel *= i
-    return nel
-    
-
-#-----------------------------------------------------------------------------------
-
-def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
-           shape=1, parent='Composer', result_index=0,
-           help=None, trace=False):
-    """
-    Syntax:
-    """
-
-    s = '** EeasyTwig.bundle('+str(spec)+','+str(nodename)+','+str(shape)+','+str(parent)+'):'
-    if trace:
-        print '\n',s
-    
-    # The number of bundle elements (nodes) may be specified by
-    # the length of a list of spec-strings, or by the shape:
-    nel = shape2length(shape)
-
-    qualify = False
-    if isinstance(spec, (list,tuple)):
-        if not nel==len(spec):
-            shape = [nel]
-        nel = len(spec)
-    else:
-        spec = nel*[spec]
-        qualify = True
-
-    if trace:
-        print '  -- nel=',nel,'  shape=',shape,'  spec=',spec
-
-    # Make the nodes of the bundle:
-    cc = []
-    for k,spec1 in enumerate(spec):
-        if qualify:
-            cc.append(twig(ns, spec1, quals=k, trace=trace))
-        else:
-            cc.append(twig(ns, spec1, trace=trace))
-
-    if trace:
-        print '   cc(',len(cc),'):'
-        for c in cc: print str(c)
-        print
-    
-    if parent==None:
-        # No bundling parent specified: Return a list of nodes (cc): 
-        if trace:
-            print '  ->',len(cc),cc
-        return cc
-
-    # Bundle the nodes cc with the specified parent node, which can be
-    # any class that accepts an arbitrary number of children:
-    # If no nodename specified, use spec
-    if nodename==None:
-        nodename = 'bundle'+str(shape)+str(spec[0])
-    stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
-    if parent=='Composer':
-        node = stub << getattr(Meq,parent)(children=cc, shape=shape) 
-    elif parent=='ReqSeq':
-        node = stub << getattr(Meq,parent)(children=cc, result_index=0) 
-    else:
-        node = stub << getattr(Meq,parent)(children=cc)
-    if trace:
-        print '  ->',str(node)
-    return node
-
-
-#-----------------------------------------------------------------------------------
-
 def apply_unop (ns, node, unop=None, trace=False):
-    """Apply zero or more unary operations to the given node"""
+    """
+    Apply zero or more unary operations to the given node.
+    """
     s = '** ET.apply_unop('+str(unop)+'):'
     if unop==None:
         return node
@@ -392,7 +313,8 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
               shape=1, help=None, unop=None, trace=False):
     """
     Syntax:
-            node = ET.noisetwig(ns, spec, nodename=None, quals=None, kwquals=None, shape=1)
+    .    node = ET.noisetwig(ns, spec, nodename=None, quals=None, kwquals=None,
+    .                        shape=1, help=None, unop=None)
 
     Generate a noise-twig, according to the specification.
     - s (stddev) [=1.0]:        real, >0
@@ -405,7 +327,7 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
     If shape is specified (e.g. 3, or [2,2]) make a tensor node.
     """
 
-    s = '** EeasyTwig.noise('+str(spec)+','+str(nodename)+'):'
+    s = '** ET.noisetwig('+str(spec)+','+str(nodename)+'):'
     if trace:
         print '\n',s
 
@@ -413,8 +335,9 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
         nodename = 'noise_'+str(spec)
     stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
-    nel = shape2length(shape)
+    nel = shape2length(shape)             # nr of tensor elements
     if nel>1:
+        # If tensor, recursive:
         cc = []
         for k in range(nel):
             if quals:
@@ -424,9 +347,9 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
         node = stub << Meq.Composer(*cc)
 
     else:
-
+        # A single noise-twig node:
         dekey = dict(s=1.0, m=0.0, r=-1.0, i=-1.0, a=-1.0, p=-1.0)
-        vv = decode(spec, dekey, trace=trace)
+        vv = decode(spec, dekey, trace=False)
 
         is_complex = True
         if vv['a']>0 or vv['p']>0:
@@ -458,12 +381,101 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
         else:
             node = var
 
-    # Finishing touches on node/bundle:
+    # Finishing touches on the twig node:
     if unop:
         node = apply_unop (ns, node, unop, trace=trace)
     if trace:
         print EN.format_tree(node, full=True)
     return node
+
+
+#-----------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------
+
+def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
+           parent=None, help=None, unop=None, trace=False):
+    """
+    Syntax:
+    .    node = ET.cloud(ns, spec, nodename=None, quals=None, kwquals=None,
+    .                    parent=None, help=None, unop=None)
+
+    Generate a cloud of MeqConstant nodes, according to the specification.
+    - n (nr of nodes) [=3]      nr of nodes in the cloud
+    - s (stddev) [=1.0]:        real, >0
+    - m (mean) [=0.0]:          if complex (a+bj), the result is complex
+    - a (stddev of ampl):       if >0, use MeqPolar (default=p)
+    - p (stddev of phase):      if >0, MeqPolar (default=a)
+    - r (stddev of real part):  if >0, use MeqToComplex (default=i)
+    - i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+    If a/p and r/i both specified (>0), MeqPolar (a/p) takes precedence.
+    If parent is specified (e.g. 3, or [2,2]) make a tensor node.
+    """
+
+    s = '** ET.cloud('+str(spec)+','+str(nodename)+'):'
+    if trace:
+        print '\n',s
+
+    if not isinstance(nodename, str):
+        nodename = 'cloud_'+str(spec)
+    stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+
+    dekey = dict(n=3, s=1.0, m=0.0, r=-1.0, i=-1.0, a=-1.0, p=-1.0)
+    vv = decode(spec, dekey, trace=False)
+    mean = vv['m']
+    if isinstance(mean,complex):
+        rmean = mean.real
+        imean = mean.imag
+    else:
+        rmean = float(mean)
+        imean = 0.0
+
+    cc = []
+    for i in range(vv['n']):
+        if vv['a']>0 or vv['p']>0:
+            if vv['p']<0: vv['p'] = vv['a']
+            if vv['a']<0: vv['a'] = vv['p']
+            amean = abs(mean)
+            pmean = math.atan2(rmean,imean)
+            ampl = amean + random.gauss(0,vv['a'])
+            phase = pmean + random.gauss(0,vv['p'])
+            v = ampl*complex(math.cos(phase),math.sin(phase))
+            
+        elif vv['r']>0 or vv['i']>0:
+            if vv['i']<0: vv['i'] = vv['r']
+            if vv['r']<0: vv['r'] = vv['i']
+            v = mean + complex(random.gauss(0,vv['r']),random.gauss(0,vv['i']))
+
+        elif vv['s']>0:
+            v = mean + random.gauss(0, vv['s'])
+
+        else:
+            s += 's, a or r should be specified (>0): '+str(spec)
+            raise ValueError, s
+        
+        c = stub(i) << Meq.Constant(v)
+        if trace:
+            print '--',i,':',v,str(c)
+        cc.append(c)
+
+    if parent:
+        # Optional: Use a parent node (e.g. Composer) to bundle the cloud nodes:
+        node = stub << getattr(Meq,parent)(*cc)
+        if unop:
+            node = apply_unop(ns, node, unop, trace=trace)
+        if trace:
+            print EN.format_tree(node, full=True)
+        return node
+
+    else:
+        # Finishing touches on the list (cc) of nodes:
+        if unop:
+            for k,c in enumerate(cc):
+                cc[k] = apply_unop (ns, c, unop, trace=trace)
+        # Initialize the stub anyhow, to force uniqueness.... 
+        node = stub << Meq.Composer(*cc)
+        if trace:
+            print EN.format_tree(cc, full=True)
+        return cc
 
 #-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
@@ -486,6 +498,7 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     - range_4        :  a 4-element (0,1,2,3) 'tensor' node
     - noise_s3.5     :  GaussNoise(stddev=3.5)                stddev>0
     - expnoise_s4    :  Exp(GaussNoise(stddev=4))             generate peaks, for flagging
+    - cloud_n5s2m-4  :  cloud of n=5 MeqConstant nodes, with stddev (s) and mean (m) 
 
     Twig specs often have an 'ftLM' string, which specifies powers of f,t,L,M.
     For instance, f2t4L0 means f**2, t**4 and L**0 (=1). For instance:
@@ -524,7 +537,7 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
 
     stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
-    unique_stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+    # unique_stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
     node = None
     is_complex = False
 
@@ -624,25 +637,31 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         if len(cc)>0:
             node = stub << Meq.Composer(*cc)
 
+    elif len(spec.split('cloud_'))>1:                # e.g. 'cloud_n5s3m-1'
+        ss = spec.split('cloud_')[1]
+        # NB: This is just for testing. A real cloud produces a list of nodes,
+        #     so it should made by calling .cloud() directly. 
+        node = cloud(ns, ss, parent='Composer', trace=False)
+
     elif len(spec.split('polyparm_'))>1:             # e.g. 'polyparm_f0t1L2M'
         ss = spec.split('polyparm_')[1]
-        node = polyparm(ns, 'polyparm', ftLM=ss, trace=trace)
+        node = polyparm(ns, 'polyparm', ftLM=ss, trace=False)
 
     elif len(spec.split('cpscohlin_'))>1:            # e.g. 'cpscohlin_I10Q0.1U-0.1V0.01'
         is_complex = True
         shape = [2,2]
         ss = spec.split('cpscohlin_')[1]
-        node = cpscoh(ns, 'cpscoh', IQUV=ss, polrep='linear', trace=trace)
+        node = cpscoh(ns, 'cpscoh', IQUV=ss, polrep='linear', trace=False)
 
     elif len(spec.split('cpscohcir_'))>1:            # e.g. 'cpscohcir_I10Q0.1U-0.1V0.01'
         is_complex = True
         shape = [2,2]
         ss = spec.split('cpscohcir_')[1]
-        node = cpscoh(ns, 'cpscoh', IQUV=ss, polrep='circular', trace=trace)
+        node = cpscoh(ns, 'cpscoh', IQUV=ss, polrep='circular', trace=False)
 
     elif len(spec.split('KuvLM_'))>1:                # e.g. 'KuvLM_'
         ss = spec.split('KuvLM_')[1]
-        node = KuvLM(ns, ss, trace=trace)
+        node = KuvLM(ns, ss, trace=False)
         # def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
 
 
@@ -738,13 +757,17 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
                 
     #............................................................
 
-    if node==None:
-        if test:                                               # testing mode
-            return False                                       # False: spec is invalid ....
-        # Otherwise, always return an initialized node:
-        node = stub << Meq.Constant(0.123456789)               # a safe (?) number
-        s1 += '                ** (spec not recognized!) **'
-        trace = True
+    if not is_node(node):
+        # Error messages:
+        if node==None:
+            if test:                                               # testing mode
+                return False                                       # False: spec is invalid ....
+            s1 += '                ** (spec not recognized!) **'
+        else:
+            s1 += '                ** (node is: '+str(type(node))+'?? **'
+        # Always return an initialized node:
+        node = stub << Meq.Constant(0.123456789)                   # a safe (?) number
+        trace = True                                               # ensure trace message
 
     elif stddev>0:
         # Optionally, add gaussian noise to the final result
@@ -753,27 +776,29 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         else:
             nspec = 's'+str(stddev)
         if shape==None:
-            noise = noisetwig(ns, nspec, quals=quals, kwquals=kwquals, trace=trace)
+            noise = noisetwig(ns, nspec, quals=quals, kwquals=kwquals, trace=False)
         else:
-            noise = noisetwig(ns, nspec, shape=shape, quals=quals, kwquals=kwquals, trace=trace)
+            noise = noisetwig(ns, nspec, shape=shape, quals=quals, kwquals=kwquals, trace=False)
         node = ns << Meq.Add(node, noise)
 
     if trace:
-        s1 += ' -> '+str(node)
-        # print dir(node)
-        if getattr(node,'children', None):
-            cc = node.children
-            s1 += '  children('+str(len(cc))+'):' 
-            for c in cc:
-                s1 += '  '+str(c[1])
-            s1 += ')'
-        if getattr(node,'initrec', None):
-            initrec = node.initrec()
-            # print initrec
-            v = getattr(initrec,'value',None)
-            if isinstance(v,(int,float,complex)):
-                s1 += '  (value='+str(v)+')' 
+        if False:
+            s1 += ' -> '+str(node)
+            # print dir(node)
+            if getattr(node,'children', None):
+                cc = node.children
+                s1 += '  children('+str(len(cc))+'):' 
+                for c in cc:
+                    s1 += '  '+str(c[1])
+                s1 += ')'
+            if getattr(node,'initrec', None):
+                initrec = node.initrec()
+                # print initrec
+                v = getattr(initrec,'value',None)
+                if isinstance(v,(int,float,complex)):
+                    s1 += '  (value='+str(v)+')' 
         print '\n**',s1
+        print EN.format_tree(node, full=True)
 
     if test:                                                  # testing mode
         return True                                           # True: spec is valid (recognized)
@@ -853,6 +878,8 @@ def decode (ss, dekey=None, trace=False):
                         v = complex(rr[key])              #   assume complex is meant (..?)
                     elif isinstance(dekey[key],int):      # default is int
                         v = int(rr[key])                  #   convert to int
+                    elif isinstance(dekey[key],bool):     # default is bool
+                        v = bool(rr[key])                 #   convert to bool
                     elif isinstance(dekey[key],complex):  # default is complex
                         v = complex(rr[key])              #   convert to complex (..?)
                     elif isinstance(dekey[key],float):    # default is float
@@ -871,7 +898,7 @@ def decode (ss, dekey=None, trace=False):
                         s = rr[key].split(key1)   # see whether it still is in rr[key]
                         if len(s)==2:
                             rr[key] = s[0]
-                            if rr[key]=='': rr[key] = '1'
+                            if rr[key]=='': rr[key] = '1'   # no value behind key
                             if trace:
                                 print '-',key1,': rr[',key,'] = (string)',rr[key]
     if trace:
@@ -1040,7 +1067,7 @@ def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
         print '\n** cohmat(',name, uvLM,'):'
 
     dekey = dict(u=1.0, v=1.0, L=1.0, M=1.0)
-    vv = decode(uvLM, dekey, trace=True)
+    vv = decode(uvLM, dekey, trace=False)
     [quals,kwquals] = EN.check_quals(quals, kwquals)
 
     Lpos = EN.unique_stub(ns,'Lpos', *quals+[vv['L']], **kwquals) << vv['L']
@@ -1162,8 +1189,8 @@ if __name__ == '__main__':
            print '***************************************************************************'
            print '** twig_cat =',cat,'  quals=',quals,'  kwquals=',kwquals, ' stddev=',stddev
            print '***************************************************************************'
-           for name in twig_names(cat):
-               twig(ns, name, quals=quals, kwquals=kwquals, stddev=stddev, trace=True)
+           for spec in twig_names(cat):
+               twig(ns, spec, quals=quals, kwquals=kwquals, stddev=stddev, trace=True)
 
    if 0:
        names = []
@@ -1212,18 +1239,17 @@ if __name__ == '__main__':
        nn = EN.find_parms(t, trace=True)
 
    if 0:
-       bundle(ns, 'cxnoise_3.1',
-              # nodename=None, quals=None, kwquals=None,
-              shape=[2,2],
-              # parent='Composer', result_index=0,
-              help=None, trace=True)
-
-   if 0:
        noise(ns, trace=True)
        noise(ns, 'm1+0j', trace=True)
        noise(ns, 's10m-1+0j', trace=True)
        noise(ns, 'a10m-1+0j', trace=True)
        noise(ns, 'r1i2', trace=True)
+
+   if 0:
+       cloud(ns, 'n5', 'xxx', trace=True)
+       cloud(ns, 'n7', 'xxx', trace=True)
+       cloud(ns, 'r1', 'rrr', trace=True)
+       cloud(ns, 'a1', 'rrr', trace=True)
 
    #------------------------------------------------
 
