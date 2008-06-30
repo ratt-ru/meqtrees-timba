@@ -1340,9 +1340,11 @@ void * MeqServer::runExecutionThread ()
   {
     while( running_ && exec_queue_.empty() )
     {
-      MTPool::Brigade::markThreadAsBlocked("main");
+      if( MTPool::enabled() )
+        MTPool::Brigade::markThreadAsBlocked("main");
       exec_cond_.wait();
-      MTPool::Brigade::markThreadAsUnblocked("main",false);  // can_stop=false
+      if( MTPool::enabled() )
+        MTPool::Brigade::markThreadAsUnblocked("main",false);  // can_stop=false
     }
     // exit if no longer running
     if( !running_ )
