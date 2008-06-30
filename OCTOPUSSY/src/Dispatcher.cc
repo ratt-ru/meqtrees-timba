@@ -292,13 +292,13 @@ void Dispatcher::start ()
     {
       WPRef ref = attached_wps.top();
       attached_wps.pop();
+      wps[ref->wpid()] = ref;
       // release the wp map mutex before doing init or start on the wp
       lock.release();
       ref().do_init();
       if( ref().do_start() )
         repoll = true;
       lock.relock(wpmutex);
-      wps[ref->wpid()] = ref;
     }
   }
   // startup event thread
