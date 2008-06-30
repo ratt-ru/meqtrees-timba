@@ -89,9 +89,6 @@ void LMN::evaluateTensors (std::vector<Vells> & out,
 
   // Note: nominally we would most likely use a non-zero value for 
   // the incoming pa_radians when pa == parallactic angle. 
-  // But the rotation below will require the incoming
-  // parallactic angle to be multiplied by -1 before feeding
-  // it to the LMN node.
   if ( !pa_radians ) {
     L = cos(vdec) * sin(vra-vra0);
     M = sin(vdec) * cos(vdec0) - cos(vdec) * sin(vdec0) * cos(vra-vra0);
@@ -101,8 +98,8 @@ void LMN::evaluateTensors (std::vector<Vells> & out,
     Vells L1 = cos(vdec) * sin(vra-vra0);
     Vells M1 = sin(vdec) * cos(vdec0) - cos(vdec) * sin(vdec0) * cos(vra-vra0);
     // perform 2D rotation consistent with WNB rotation matrix
-    L = L1 * cos(*pa_radians) + M1 * sin(*pa_radians);
-    M = (-1.0) * L1 * sin(*pa_radians) + M1 * cos(*pa_radians);
+    L = L1 * cos(*pa_radians) - M1 * sin(*pa_radians);
+    M = L1 * sin(*pa_radians) + M1 * cos(*pa_radians);
     N = sqrt(1 - sqr(L) - sqr(M));
   }
 }
