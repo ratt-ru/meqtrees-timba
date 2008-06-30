@@ -39,7 +39,7 @@ TDLRuntimeMenu("Imaging options",
 TDLCompileOptions(*meqmaker.compile_options());
 
 # define antenna list
-ANTENNAS = range(1,50);
+ANTENNAS = range(1,21);
 
 def _define_forest (ns):
   # setup the objects for the simulated observation
