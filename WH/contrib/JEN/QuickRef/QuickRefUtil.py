@@ -10,6 +10,7 @@
 #   - 07 jun 2008: added twig() etc
 #   - 07 jun 2008: added 4D (L,M)
 #   - 07 jun 2008: moved twig() etc to EasyTwig.py
+#   - 01 jul 2008: implemented orphan functions
 #
 # Remarks:
 #
@@ -83,6 +84,9 @@ def _define_forest (ns, **kwargs):
     path = rootnodename                      # Root of the path-string
     global rider
     rider = create_rider()                   # CollatedHelpRecord object
+
+    if True:
+        ET.EN.orphans(ns << 1.2, trace=True)
     
     # Make the outer bundle (of node bundles):
     bundle (ns, path, nodes=cc, help=__doc__, rider=rider)
@@ -91,9 +95,9 @@ def _define_forest (ns, **kwargs):
         rider.show('_define_forest()')
 
     # Finished:
+    ET.EN.bundle_orphans(ns, trace=True)
     return True
    
-
 
 #********************************************************************************
 # Forest exection functions (also used externally from QR_... modules):
@@ -527,13 +531,14 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 
 
 
-
 #================================================================================
 # Helper functions for formatting output strings:
 #================================================================================
 
 def format_record(rr, txt=None, ss=None, level=0, full=False, mode='str'):
-    """Format the given record"""
+    """
+    Format the given record
+    """
     prefix = '\n ..'+(level*'..')+' '
     if level==0:
         ss = '\n** format_record(): '+str(txt)+' ('+str(type(rr))+'):'

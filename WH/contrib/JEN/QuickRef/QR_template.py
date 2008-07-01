@@ -295,10 +295,11 @@ def _define_forest (ns, **kwargs):
    rootnodename = 'QR_template'                 # The name of the node to be executed...
    path = rootnodename                          # Root of the path-string
    QRU.bundle (ns, path, rider,
-              nodes=[QR_template(ns, path, rider)],
-              help=__doc__)
+               nodes=[QR_template(ns, path, rider)],
+               help=__doc__)
 
    # Finished:
+   QRU.ET.EN.bundle_orphans(ns)
    return True
 
 

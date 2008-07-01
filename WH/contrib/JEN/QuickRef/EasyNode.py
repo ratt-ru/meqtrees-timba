@@ -50,6 +50,7 @@ from Timba.Meq import meq
 Settings.forest_state.cache_policy = 100
 
 import copy
+import math
 
 
 
@@ -295,7 +296,7 @@ def format_tree (node, ss='', recurse=True,
             initrec = node.initrec()
             v = getattr(initrec,'value',None)
             if isinstance(v,(int,float,complex)):
-                ss += '   (value='+str(v)+')'
+                ss += '   (value='+str(format_value(v))+')'
 
         # Some clutter-avoiding:
         slevel = str(level)
@@ -344,37 +345,39 @@ def format_tree (node, ss='', recurse=True,
 # Function to format a (short) string that represent a value:
 #============================================================================
 
-def format_value(v, name=None, trace=False):
+def format_value(v, name=None, nsig=4, trace=False):
     """
     Format a string that summarizes the given value (v).
     If v is a node, use its initrec.value field, if any.
     If a name is specified, prepend it.
+    The argument nsig[=4] is the desired nr of significant digits.
     """
+    vin = v
     if is_node(v):
         ss = '(node)'
+        vin = '(node)'
         if getattr(v,'initrec',None):
             initrec = v.initrec()
             v1 = getattr(initrec,'value',None)
             if not v1==None:
-                ss = format_value(v1)
+                ss = format_value(v1, nsig=nsig)
     elif isinstance(v,(complex)):
-        s1 = format_float(v.real)
-        s2 = format_float(v.imag)
-        ss = '('+s1+'+'+s2+'j)'
+        ss = format_float(v, nsig=nsig)
     elif isinstance(v,(int)):
         ss = str(v)
     elif isinstance(v,(float)):
-        ss = format_float(v)
+        ss = format_float(v, nsig=nsig)
     elif isinstance(v,(list,tuple)):
+        vin = '(list)'
         import pylab                        # must be done here, not above....
         vv = pylab.array(v)
         ss = '[length='+str(len(vv))
-        ss += format_float(vv.min(),'  min')
-        ss += format_float(vv.max(),'  max')
-        ss += format_float(vv.mean(),'  mean')
+        ss += format_float(vv.min(),'  min', nsig=nsig)
+        ss += format_float(vv.max(),'  max', nsig=nsig)
+        ss += format_float(vv.mean(),'  mean', nsig=nsig)
         if len(vv)>1:                       
             if not isinstance(vv[0],complex):
-                ss += format_float(vv.std(),'  stddev')
+                ss += format_float(vv.std(),'  stddev', nsig=nsig)
         ss += ']'
     else:
         ss = str(v)
@@ -383,15 +386,42 @@ def format_value(v, name=None, trace=False):
         ss = name+'='+ss
 
     if trace:
-        print '** format_value(',type(v),name,') ->',ss
+        print '** format_value(',vin,type(v),name,nsig,') ->',ss
     return ss
 
 #-----------------------------------------------------------------------
 
-def format_float(v, name=None):
-    q = 100.0
-    v1 = int(v*q)/q
-    ss = str(v1)
+def format_float(v, name=None, nsig=4, trace=False):
+    """Helper function to format a string that represents the given value.
+    Contrary to its name, it handles complex, int and float. 
+    The argument nsig[=4] is the desired nr of significant digits.
+    """
+    if isinstance(v,complex):
+        s1 = format_float(v.real)
+        s2 = format_float(v.imag)
+        if v.imag<0:
+            ss = '('+s1+s2+'j)'
+        else:
+            ss = '('+s1+'+'+s2+'j)'
+    elif not isinstance(v,float):
+        ss = str(v)
+    elif v==0.0:
+        ss = '0.0'
+    else:
+        vabs = abs(v)
+        log10 = math.log(10.0)
+        nlog = int(math.log(vabs)/log10)
+        q = 10.0**float(nsig-nlog)
+        if vabs>1e10:
+            ss = str(v)
+        elif vabs>1e3:
+            ss = str(int(v))
+        elif vabs<1e-5:
+            ss = str(v)
+        else:
+            v1 = int(v*q)/q
+            ss = str(v1)
+            # print '===',v,vabs,nlog,q,ss
     if isinstance(name,str):
         ss = name+'='+ss
     return ss
@@ -461,6 +491,52 @@ def largest_common_name (nodes, trace=False):
     
 
 
+#================================================================================
+# Orphan (node) collection functions:
+#================================================================================
+
+orphanodes = []
+
+def orphans (node, clear=False, trace=True):
+    """
+    Add the given node(s) to the orpans list (global orphanodes).
+    If clear==True, clear the internal orphanodes list ([]).
+    Always return the current contents of the list.
+    """
+    global orphanodes
+    if clear:
+        orphanodes = []
+    if is_node(node):
+        orphanodes.append(node)
+    elif isinstance(node,(list,tuple)):
+        orphanodes.extend(node)
+    if trace:
+        print '\n** EN.orphans(',type(node),clear,') -> total =',len(orphanodes),'\n'
+    return orphanodes
+
+#-------------------------------------------------------------------------------
+
+def bundle_orphans (ns, parent='Composer', trace=True):
+    """
+    Bundle the collected orphan nodes (if any) in 'orphanodes' with the specified
+    parent node, and return it. If orphanodes is empty, return None.
+    The idea is to minimize clutter in the browser.
+    This function should be called at the end of all _define_forest() functions.
+    """
+    global orphanodes
+    stub = unique_stub(ns, 'orphans')
+    node = None
+    if len(orphanodes)>0:
+        node = stub << getattr(Meq,parent)(*orphanodes)
+    if trace:
+        print '\n** EN.bundle_orphans(',parent,') ->',str(node),'\n'
+        if node:
+            print format_tree(node, full=True)
+    return node
+
+
+
+
 #=====================================================================================
 # Standalone test (without the browser):
 #=====================================================================================
@@ -511,7 +587,7 @@ if __name__ == '__main__':
        reusenode(ns, 'yyy', assign=(c1+c2))
        reusenode(ns, 'zzz', assign=5.6)
 
-   if 1:
+   if 0:
        check_quals(3, trace=True)
        check_quals(range(3), trace=True)
        check_quals(range(3), aa=3, trace=True)
@@ -568,6 +644,14 @@ if __name__ == '__main__':
        format_value(complex(3,4), 'complex', trace=True)
        format_value(range(100), 'list', trace=True)
        format_value(ns << Meq.Constant(4.5), 'node', trace=True)
+
+   if 1:
+       format_value(123.456, trace=True)
+       format_value(12.3456, trace=True)
+       format_value(1.23456, trace=True)
+       format_value(0.123456, trace=True)
+       format_value(0.0123456, trace=True)
+       format_value(0.00123456, trace=True)
 
    print '\n** End of standalone test of: EasyNode.py:\n' 
 

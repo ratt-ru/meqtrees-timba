@@ -5,7 +5,8 @@
 # Short description:
 #
 # History:
-#   - 03 june 2008: creation (from QuickRef.py)
+#   - 03 jun 2008: creation (from QuickRef.py)
+#   - 01 jul 2008: implemented .orphans()
 #
 # Remarks:
 #
@@ -49,8 +50,9 @@ from Timba.Meq import meq
 #=================================================================================
 
 class CollatedHelpRecord (object):
-   """This object collects and handles a hierarchical set of help strings
-   into a record. This is controlled by the path, e.g. 'QuickRef.MeqNodes.unops'.
+   """
+   This object collects and handles a hierarchical set of help strings
+   in a record. This is controlled by the path, e.g. 'QuickRef.MeqNodes.unops'.
    """
 
    def __init__(self, name='CollatedHelpRecord', chrec=None):
@@ -63,6 +65,7 @@ class CollatedHelpRecord (object):
    def clear (self):
       self._chrec = record(help=None, order=[])
       self._folder = record()
+      self._orphans = []
       return None
 
    def chrec (self):
@@ -71,7 +74,8 @@ class CollatedHelpRecord (object):
    #---------------------------------------------------------------------
 
    def insert_help (self, path=None, help=None, rr=None, level=0, trace=False):
-      """Insert a help-item at the designated (path) position (recursive)
+      """
+      Insert a help-item at the designated (path) position (recursive)
       """
       if level==0:
          rr = self._chrec
@@ -108,7 +112,9 @@ class CollatedHelpRecord (object):
    #---------------------------------------------------------------------
 
    def show(self, txt=None, rr=None, full=False, key=None, level=0):
-      """Show the record (recursive)"""
+      """
+      Show the internal record (recursive)
+      """
       if level==0:
          print '\n** CHR.show(',txt,', full='+str(full),'):',str(self._name)
          rr = self._chrec
@@ -200,7 +206,9 @@ class CollatedHelpRecord (object):
    #---------------------------------------------------------------------
 
    def save (self, filename='CollatedHelpString', rr=None):
-      """Save the formatted help-string in the specified file"""
+      """
+      Save the formatted help-string in the specified file.
+      """
       if not '.' in filename:
          filename += '.meqdoc'
       file = open (filename,'w')
@@ -214,7 +222,8 @@ class CollatedHelpRecord (object):
    #---------------------------------------------------------------------
 
    def subrec(self, path, trace=False):
-      """Extract (a deep copy of) the specified (path) subrecord
+      """
+      Extract (a deep copy of) the specified (path) subrecord
       from the internal self._chrec.
       """
       if trace:
@@ -241,7 +250,8 @@ class CollatedHelpRecord (object):
    #---------------------------------------------------------------------
 
    def cleanup (self, rr=None, level=0, trace=False):
-      """Return a cleaned-up copy of its internal record.
+      """
+      Return a cleaned-up copy of its internal record.
       """
       if level==0:
          if trace:
@@ -270,8 +280,9 @@ class CollatedHelpRecord (object):
    #---------------------------------------------------------------------
 
    def bookmark (self, path, trace=False):
-      """A little service to determine [page,folder] from path.
-      It is part of this class because it initializes each time.
+      """
+      A little service to determine [page,folder] from path.
+      It is part of this CHR class because it initializes each time.
       This is necessary to avoid extra pages/folders.
       """
       # trace = True
@@ -298,9 +309,27 @@ class CollatedHelpRecord (object):
 
       # Finished:
       if trace:
-         print '*** .bookmark():',len(ss),ss,' page=',page,' folder=',folder
+         print '*** CHR.bookmark():',len(ss),ss,' page=',page,' folder=',folder
       return [page,folder]
 
+   #---------------------------------------------------------------------
+
+   def orphans (self, node=None, clear=False, trace=True):
+      """
+      Add the given node(s) to the internal orphans list.
+      If no node(s) supplied, just return the internal list.
+      This is an example of the CHR rider being used as a holder
+      of items that need to be held for some reason.
+      """
+      if clear:
+         self._orphans = []
+      if is_node(node):
+         self._orphans.append(node)
+      elif isinstance(node,(list,tuple)):
+         self._orphans.extend(node)
+      if trace:
+         print '\n** CHR.orphans(',type(node),clear,') -> total =',len(self._orphans),'\n'
+      return self._orphans
 
 
 
@@ -321,12 +350,19 @@ if __name__ == '__main__':
    if 1:
       rider = CollatedHelpRecord()
 
+   if 1:
+      cc = rider.orphans(ns << 1.2, trace=True)
+      cc = rider.orphans(ns << 1.2, trace=True)
+      cc = rider.orphans(trace=True)
+      print cc
+      cc = rider.orphans(clear=True, trace=True)
+
    if 0:
       path = 'aa.bb.cc.dd'
       help = 'xxx'
       rider.insert_help(path=path, help=help, trace=True)
 
-   if 1:
+   if 0:
       import QR_MeqNodes
       QR_MeqNodes.MeqNodes(ns, 'test', rider=rider)
       # rider.show('testing', full=True)

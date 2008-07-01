@@ -97,6 +97,7 @@ def _define_forest (ns, **kwargs):
 
     # Finished:
     ns.rootnode << Meq.Composer(*cc)
+    EN.bundle_orphans(ns)
     return True
 
 #------------------------------------------------------------------------------------
@@ -214,7 +215,7 @@ def twig_cats (trace=False):
     cats.extend(['prod','sum'])
     cats.extend(['constants'])
     cats.extend(['polyparm','cpscoh'])
-    cats.extend(['cloud'])
+    cats.extend(['cloud','stddev'])
     # cats.extend([])
     return cats
 
@@ -239,9 +240,9 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     elif cat=='complex':
         names = ['cx_ft','cx_tf','cx_LM','cx_XY']
     elif cat=='sum':
-        names = ['sum_f2t3','sum_-3.3f2t','sum_f2t2L2M2']
+        names = ['sum_f2t3','sum_f2tc-3.3','sum_f2t2L2M2']
     elif cat=='prod':
-        names = ['prod_f2t3','prod_-3.3f2t','prod_f2t2L2M2']
+        names = ['prod_f2t3','prod_c-3.3f2t','prod_f2t2L2M2']
     elif cat=='noise':
         names = ['noise_s1','noise_s3.5','expnoise_s2','noise_r2.5',
                  'noise_a0.1','noise_a0.0p1.0','noise_a0.01']
@@ -249,10 +250,13 @@ def twig_names (cat='default', include=None, first=None, trace=False):
         names = ['range_4','range_10','tensor_ftLM']
     elif cat=='cloud':
         names = ['cloud_n6s4','cloud_a2p3','cloud_r2m-1+3j']
+    elif cat=='stddev':
+        names = ['stddev_s4','stddev_a2p3','stddev_r2']
+        names.extend(['stddev_n6s4','stddev_a2p3','stddev_r2m-1+3j'])
     elif cat=='gaussian':
         names = ['gaussian_f','gaussian_ft','gaussian_ftLM']
     elif cat=='expnegsum':
-        names = ['expnegsum_f2','expnegsum_1.5ft2','expnegsum_f2t2L2M2']
+        names = ['expnegsum_f2','expnegsum_c1.5ft2','expnegsum_f2t2L2M2']
     elif cat=='polyparm':
         names = ['polyparm_f2','polyparm_t2',
                  'polyparm_ft2','polyparm_f2t',
@@ -332,7 +336,8 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
         print '\n',s
 
     if not isinstance(nodename, str):
-        nodename = 'noise_'+str(spec)
+        nodename = 'noise_'
+    nodename += str(spec)
     stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
     nel = shape2length(shape)             # nr of tensor elements
@@ -392,8 +397,21 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
 #-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
 
-def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
-           parent=None, help=None, unop=None, trace=False):
+def cloudlet (ns, spec='n1s1', nodename=None, quals=None, kwquals=None,
+              help=None, unop=None, trace=False):
+    """
+    A cloud of one. Called by twig(ns, 'stddev_...')
+    """
+    if not isinstance(nodename,str):
+        nodename = 'cloudlet_'
+    return cloud (ns, spec=spec, override=dict(n=1, m=0.0),
+                  nodename=nodename, quals=quals, kwquals=kwquals,
+                  parent='noparent', help=help, unop=unop, trace=trace)
+
+#-----------------------------------------------------------------------------------
+
+def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
+           parent=None, help=None, unop=None, override=None, trace=False):
     """
     Syntax:
     .    node = ET.cloud(ns, spec, nodename=None, quals=None, kwquals=None,
@@ -409,6 +427,7 @@ def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
     - i (stddev of imag part):  if >0, use MeqToComplex (default=r)
     If a/p and r/i both specified (>0), MeqPolar (a/p) takes precedence.
     If parent is specified (e.g. 3, or [2,2]) make a tensor node.
+    If parent=='noparent', return the first (and only?) node.
     """
 
     s = '** ET.cloud('+str(spec)+','+str(nodename)+'):'
@@ -416,11 +435,13 @@ def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
         print '\n',s
 
     if not isinstance(nodename, str):
-        nodename = 'cloud_'+str(spec)
+        nodename = 'cloud_'
+    nodename += str(spec)
     stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
     dekey = dict(n=3, s=1.0, m=0.0, r=-1.0, i=-1.0, a=-1.0, p=-1.0)
-    vv = decode(spec, dekey, trace=False)
+    vv = decode(spec, dekey, override=override, trace=False)
+    nel = max(vv['n'],1)
     mean = vv['m']
     if isinstance(mean,complex):
         rmean = mean.real
@@ -430,7 +451,7 @@ def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
         imean = 0.0
 
     cc = []
-    for i in range(vv['n']):
+    for i in range(nel):
         if vv['a']>0 or vv['p']>0:
             if vv['p']<0: vv['p'] = vv['a']
             if vv['a']<0: vv['a'] = vv['p']
@@ -451,15 +472,23 @@ def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
         else:
             s += 's, a or r should be specified (>0): '+str(spec)
             raise ValueError, s
-        
-        c = stub(i) << Meq.Constant(v)
+
+        if nel==1:
+            c = stub(EN.format_value(v)) << Meq.Constant(v)
+        else:
+            c = stub(i)(EN.format_value(v)) << Meq.Constant(v)
+
         if trace:
             print '--',i,':',v,str(c)
         cc.append(c)
 
     if parent:
-        # Optional: Use a parent node (e.g. Composer) to bundle the cloud nodes:
-        node = stub << getattr(Meq,parent)(*cc)
+        if parent=='noparent':
+            # Return the first (and only?) node:
+            node = cc[0]
+        else:
+            # Use a parent node (e.g. Composer) to bundle the cloud nodes:
+            node = stub << getattr(Meq,parent)(*cc)
         if unop:
             node = apply_unop(ns, node, unop, trace=trace)
         if trace:
@@ -472,7 +501,7 @@ def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
             for k,c in enumerate(cc):
                 cc[k] = apply_unop (ns, c, unop, trace=trace)
         # Initialize the stub anyhow, to force uniqueness.... 
-        node = stub << Meq.Composer(*cc)
+        EN.orphans(stub << Meq.Composer(*cc))
         if trace:
             print EN.format_tree(cc, full=True)
         return cc
@@ -481,15 +510,18 @@ def cloud (ns, spec='n3s1', nodename='cloud', quals=None, kwquals=None,
 #-----------------------------------------------------------------------------------
 
 def twig(ns, spec, nodename=None, quals=None, kwquals=None,
-         test=False, help=None, shape=None, stddev=0.0,
+         test=False, help=None, shape=None,
+         unop=None, stddev=0.0, noise=0.0,
          trace=False):
     """
     Return a little subtree (a twig), specified by the argument 'spec'.
-    The name of the rootnode of the twig is composed of 'nodename' (or 'spec'
-    if no nodename specified) and any nodename-qualifiers (quals=[list], kwquals=dict()).
-    If stddev>0, add gaussian noise to the final twig node.
+    - The name of the rootnode of the twig is composed of 'nodename' (or 'spec'
+    .    if no nodename specified) and any nodename-qualifiers (quals=[list], kwquals=dict()).
+    - If unop is specified (e.g. 'Cos', or ['Cos','Sin'], apply to the final twig node.
+    - If stddev>0, add a gaussian offset (MeqConstant) to the final twig node.
+    - If noise>0, add gaussian noise (MeqGaussNoise) to the final twig node.
 
-    The following forms of 'spec' are recognized:  
+    The following forms of 'spec' (string) are recognized:  
 
     - f,t,L,M,X,Y,Z                :  Grid(axis=freq/time/L/M/X/Y/Z)
     - cx_ft, cx_tf, cx_LM, cx_XY   :  Complex twigs
@@ -503,8 +535,8 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     Twig specs often have an 'ftLM' string, which specifies powers of f,t,L,M.
     For instance, f2t4L0 means f**2, t**4 and L**0 (=1). For instance:
     - sum_f2t2       :  f**2 + t**2
-    - sum_-3.4t0L3   :  -3.4 + t**0 + L**3
-    - prod_5f1t2L3M4 :  5(f**1)(t**2)(L**3)(M**4)
+    - sum_c-3.4t0L3  :  -3.4 + t**0 + L**3
+    - prod_c5f1t2L3M4 :  5(f**1)(t**2)(L**3)(M**4)
     NB: The ORDER of the variables in the ftLM string MUST be f,t,L,M  
 
     - tensor_ftM     :  3-element (f,t,M) 'tensor' node 
@@ -533,7 +565,8 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
 
     # If no nodename specified, use spec
     if nodename==None:
-        nodename = spec
+        nodename = 'twig_'
+    nodename += str(spec)
     # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
 
     stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
@@ -637,12 +670,6 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         if len(cc)>0:
             node = stub << Meq.Composer(*cc)
 
-    elif len(spec.split('cloud_'))>1:                # e.g. 'cloud_n5s3m-1'
-        ss = spec.split('cloud_')[1]
-        # NB: This is just for testing. A real cloud produces a list of nodes,
-        #     so it should made by calling .cloud() directly. 
-        node = cloud(ns, ss, parent='Composer', trace=False)
-
     elif len(spec.split('polyparm_'))>1:             # e.g. 'polyparm_f0t1L2M'
         ss = spec.split('polyparm_')[1]
         node = polyparm(ns, 'polyparm', ftLM=ss, trace=False)
@@ -670,41 +697,51 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     #.....................................................................
 
     elif spec in ['c_light','clight']:
+        v = 2.9979250e8
         s = 'velocity of light in vacuum (m/s)'
-        node = stub << Meq.Constant(2.9979250e8, quickref_help=s) 
+        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['e_charge']:
+        v = 1.6021917e-19
         s = 'electron charge (C)'
-        node = stub << Meq.Constant(1.6021917e-19, quickref_help=s) 
+        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['h_Planck']:
         # def const_h2pi_Planck(ns): return MeqConstant(ns, h_Planck/(2*pi), spec='h_Planck_Js/2pi')
+        v = 6.626196e-34
         s = 'Planck constant (Js)'
-        node = stub << Meq.Constant(6.626196e-34, quickref_help=s) 
+        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['k_Boltzmann','k_Boltzman']:
         # def const_k_Jy(ns): return MeqConstant(ns, k_Boltzmann/1e-26, spec='k_Jy/K')
         # def const_2k_Jy(ns): return MeqConstant(ns, 2*k_Boltzmann/1e-26, spec='2k_Jy/HzK')
+        v = 1.380622e-23
         s = 'Boltzmann constant (J/K)'
-        node = stub << Meq.Constant(1.380622e-23, quickref_help=s) 
+        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['G_gravity','G_gravitation']:
+        v = 6.6732e-11
         s = 'Gravity constant (Nm2/kg2)'
-        node = stub << Meq.Constant(6.6732e-11, quickref_help=s) 
+        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
 
     elif spec in ['e_ln']:
+        v = math.e
         s = 'natural logarithm (e)'
-        node = stub << Meq.Constant(math.e, quickref_help=s) 
-        
+        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['pi']:
-        node = stub << Meq.Constant(math.pi)
+        v = math.pi
+        node = stub(EN.format_value(v)) << Meq.Constant(v)
     elif spec in ['2pi','2*pi']:
-        node = stub << Meq.Constant(2*math.pi)
+        v = 2*math.pi
+        node = stub(EN.format_value(v)) << Meq.Constant(v)
     elif spec in ['pi2','pi/2']:
-        node = stub << Meq.Constant(0.5*math.pi)
+        v = 0.5*math.pi
+        node = stub(EN.format_value(v)) << Meq.Constant(v)
     elif spec in ['pi4','pi/4']:
-        node = stub << Meq.Constant(0.25*math.pi)
-
+        v = 0.25*math.pi
+        node = stub(EN.format_value(v)) << Meq.Constant(v)
     elif spec in ['sqrt2']:
-        node = stub << Meq.Sqrt(2.0)
+        v = math.sqrt(2.0)
+        node = stub(EN.format_value(v)) << Meq.Constant(v)
     elif spec in ['sqrt3']:
-        node = stub << Meq.Sqrt(3.0)
+        v = math.sqrt(3.0)
+        node = stub(EN.format_value(v)) << Meq.Constant(v)
 
     elif spec in ['wavelength','wvl','lambda']:
         node = stub << Meq.Divide(twig(ns,'f'),twig(ns,'clight'),
@@ -733,7 +770,6 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
             if ss[1] in '2345678':                     # MeqPow2 ... MeqPow8 
                 node = stub << getattr(Meq,'Pow'+ss[1])(node)
 
-
     elif len(spec.split('expnoise_'))>1:               # e.g. 'expnoise_s2.5'
         ss = spec.split('expnoise_')[1]
         node = noisetwig(ns, ss, unop='Exp')
@@ -744,6 +780,16 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         ss = spec.split('noise_')[1]
         node = noisetwig(ns, ss)
         stddev = 0.0
+
+    elif len(spec.split('cloud_'))>1:                  # e.g. 'cloud_n5s3m-1'
+        ss = spec.split('cloud_')[1]
+        # NB: This is just for testing. A real cloud produces a list of nodes,
+        #     so it should made by calling .cloud() directly. 
+        node = cloud(ns, ss, parent='Composer', trace=False)
+
+    elif len(spec.split('stddev_'))>1:                 # e.g. 'stddev_s3'
+        ss = spec.split('stddev_')[1]
+        node = cloudlet(ns, ss, nodename='stddev_', trace=False)
 
 
     #............................................................
@@ -769,17 +815,44 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         node = stub << Meq.Constant(0.123456789)                   # a safe (?) number
         trace = True                                               # ensure trace message
 
-    elif stddev>0:
-        # Optionally, add gaussian noise to the final result
+    #............................................................
+
+    if unop:
+        node = apply_unop(ns, node, unop, trace=False)
+        if isinstance(unop,(list,tuple)):
+            stub = stub(*unop)
+        else:
+            stub = stub(unop)
+
+    if noise>0:
+        # Optionally, add gaussian noise (MeqGaussNoise) to the final result
+        if is_complex:
+            nspec = 'r'+str(noise)
+        else:
+            nspec = 's'+str(noise)
+        if shape==None:
+            noisy = noisetwig(ns, nspec, quals=quals, kwquals=kwquals, trace=False)
+        else:
+            noisy = noisetwig(ns, nspec, shape=shape, quals=quals, kwquals=kwquals, trace=False)
+        stub = stub('noisy')
+        node = stub << Meq.Add(node, noisy)
+
+    if stddev>0:
+        # Optionally, add gaussian offset (MeqConstant) to the final result
         if is_complex:
             nspec = 'r'+str(stddev)
         else:
             nspec = 's'+str(stddev)
         if shape==None:
-            noise = noisetwig(ns, nspec, quals=quals, kwquals=kwquals, trace=False)
+            offset = cloudlet(ns, nspec, nodename='offset_',
+                              quals=quals, kwquals=kwquals, trace=False)
         else:
-            noise = noisetwig(ns, nspec, shape=shape, quals=quals, kwquals=kwquals, trace=False)
-        node = ns << Meq.Add(node, noise)
+            offset = cloudlet(ns, nspec, nodename='offset_', shape=shape,
+                              quals=quals, kwquals=kwquals, trace=False)
+        stub = stub('offset')
+        node = stub << Meq.Add(node, offset)
+
+    #............................................................
 
     if trace:
         if False:
@@ -810,16 +883,23 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
 #----------------------------------------------------------------
 #----------------------------------------------------------------
 
-def combine_ftLMXYZ(ns, stub, ss, default=0.0, meqclass='Multiply'):
+def combine_ftLMXYZ(ns, stub, spec, default=0.0,
+                    meqclass='Multiply', trace=False):
     """
-    Combine the children in cc, using the specified meqclass
+    Combine (Multiply,Add) the terms (nodes) specified in spec.
+    These will be powers of f,t,L,M,X,Y,Z, and perhaps a constant.
     """
-    vv = decode_ftLMXYZ(ss, trace=False)
+    # trace = True
+    if trace:
+        print '\n** ET.combine_ftLMXYZ(',spec,default,meqclass,'):'
+    dekey = dict(c=default, f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
+    vv = decode (spec, dekey, trace=trace)
     cc = []
     for key in vv.keys():
         power = vv[key]
         if key=='c':                              # constant (float)
-            cc.append(ns << vv[key])           
+            if not (vv[key]==default):            # ignore if default value
+                cc.append(ns << vv[key])           
         elif power==1:                            # linear
             cc.append(twig(ns,key))
         elif power>1:                             # ignore power<0
@@ -829,7 +909,9 @@ def combine_ftLMXYZ(ns, stub, ss, default=0.0, meqclass='Multiply'):
     elif len(cc)==1:
         node = stub << Meq.Identity(cc[0])        # use nodename
     else:
-        node = stub << getattr(Meq,meqclass)(*cc)      
+        node = stub << getattr(Meq,meqclass)(*cc)
+    if trace:
+        print EN.format_tree(node)
     return node
 
 #----------------------------------------------------------------
@@ -840,20 +922,23 @@ def decode_ftLMXYZ (s, trace=False):
 
 #................................................................
 
-def decode (ss, dekey=None, trace=False):
-    """Decode the given substring according to the keys and default
+def decode (spec, dekey=None, override=None, trace=False):
+    """
+    Decode the given spec-string according to the keys and default
     values of dict 'dekey'. Return a dict with decoded (or default)
     values for all keys in dekey.
+    If override is specified (dict), the values of its fields
+    override the values of the corresponding output fields.
     """
-    if not isinstance(ss,str):
-        ss = ''
+    if not isinstance(spec,str):
+        spec = ''
     if trace:
-        print '\n** .decode(',ss,', dekey=',dekey,'):'
+        print '\n** .decode(',spec,', dekey=',dekey,override,'):'
     
     rr = dict()
     for key in dekey.keys():
         rr[key] = dekey[key]             # default value
-        s = ss.split(key)
+        s = spec.split(key)
         if len(s)==2:
             rr[key] = s[1]
             if rr[key]=='': rr[key] = '1'
@@ -903,9 +988,15 @@ def decode (ss, dekey=None, trace=False):
                                 print '-',key1,': rr[',key,'] = (string)',rr[key]
     if trace:
         print '    ->',rr
+    if isinstance(override,dict):
+        for key in override.keys():
+            rr[key] = override[key]
+            if trace:
+                print '-- override:',key,'->',rr[key]
     if has_strings:
         s = 'still some undecoded string values in: '+str(rr)
         raise ValueError,s
+    
     return rr
 
 
@@ -1182,15 +1273,25 @@ if __name__ == '__main__':
        quals = None
        kwquals = None
        # quals = range(3)
+       cats = twig_cats()
+       # cats = ['sum','prod','expnegsum']
+       cats = ['stddev']
+       unop = None
        stddev = 0.0
+       noise = 0.0
+       unop = 'Cos'
+       unop = ['Cos','Sin']
        stddev = 0.11
-       for cat in twig_cats():
+       noise = 0.22
+       for cat in cats:
            print '\n\n\n'
            print '***************************************************************************'
            print '** twig_cat =',cat,'  quals=',quals,'  kwquals=',kwquals, ' stddev=',stddev
            print '***************************************************************************'
            for spec in twig_names(cat):
-               twig(ns, spec, quals=quals, kwquals=kwquals, stddev=stddev, trace=True)
+               twig(ns, spec, quals=quals, kwquals=kwquals,
+                    unop=unop, stddev=stddev, noise=noise,
+                    trace=True)
 
    if 0:
        names = []
