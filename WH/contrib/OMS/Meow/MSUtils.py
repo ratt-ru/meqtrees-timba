@@ -35,10 +35,37 @@ import Meow
 import Meow.Utils
 import sets
 
+# figure out which table implementation to use.
 try:
   import pycasatable
+  TABLE = pycasatable.table
+  print "Meow.MSUtils: using the pycasatable module"
 except:
-  pycasatable = None;
+  try:
+    import pyrap_tables
+    TABLE = pyrap_tables.table
+    print "Meow.MSUtils: using the pyrap_tables module"
+  except:
+    TABLE = None;
+    print "Meow.MSUtils: no tables module found, GUI functionality will be reduced"
+
+# figure out if we have an imager
+if os.system('which lwimager >/dev/null') == 0 :
+  _IMAGER = "python";
+  print "Meow.MSUtils: found lwimager, will use that for imaging";
+elif os.system('which glish >/dev/null') == 0 :
+  _IMAGER = 'glish';
+  print "Meow.MSUtils: found glish, will use glish scripts for imaging";
+else:
+  _IMAGER = None;
+  print "Meow.MSUtils: no imager found";
+  
+# figure out if we have a visualizer
+_VISUALIZER = None;
+if os.system('which kvis >/dev/null') == 0:
+  _VISUALIZER = 'kvis';
+  print "Meow.MSUtils: found kvis";
+
 
 # queue size parameter for MS i/o record
 ms_queue_size = 500;
@@ -62,7 +89,7 @@ class MSContentSelector (object):
     """Creates options for selecting a subset of an MS.
     ddid:       list of suggested DDIDs, or false for no selector.
     field:      list of suggested fields. or false for no selector.
-      NB: if pycasatable is available, ddid/field is ignored, and selectors are always
+      NB: if TABLE is available, ddid/field is ignored, and selectors are always
       provided, based on the MS content.
     namespace:  the TDLOption namespace name, used to qualify TDL options created here.
         If making multiple selectors, you must give them different namespace names
@@ -73,7 +100,7 @@ class MSContentSelector (object):
     self.ms_spws = self.ms_field_names = self.ms_ddid_numchannels = None;
     # field/ddid selectors
     more_ids = int;
-    if pycasatable:
+    if TABLE:
       ddid = [0];
       field = [0];
       more_ids = None;  # no more= option to ddid/field: they come from the MS
@@ -105,8 +132,8 @@ class MSContentSelector (object):
                                 [None],more=str,namespace=self)
     self._opts.append(self.taql_option);
     self._nchan = None;
-    # if pycasatable exists, set up interactivity for ddid/channels
-    if pycasatable:
+    # if TABLE exists, set up interactivity for ddid/channels
+    if TABLE:
       if channels:
         self.channel_options[0].set_validator(self._validate_first_channel);
         self.channel_options[1].set_validator(self._validate_last_channel);
@@ -167,15 +194,15 @@ class MSContentSelector (object):
     object. Fills ddid/field/channel selectors from the MS.
     """;
     # DDIDs
-    self.ms_spws = list(pycasatable.table(ms.getkeyword('DATA_DESCRIPTION'),
+    self.ms_spws = list(TABLE(ms.getkeyword('DATA_DESCRIPTION'),
                                             lockoptions='autonoread') \
                                           .getcol('SPECTRAL_WINDOW_ID'));
-    numchans = pycasatable.table(ms.getkeyword('SPECTRAL_WINDOW'),
+    numchans = TABLE(ms.getkeyword('SPECTRAL_WINDOW'),
                                   lockoptions='autonoread').getcol('NUM_CHAN');
     self.ms_ddid_numchannels = [ numchans[spw] for spw in self.ms_spws ];
     # Fields
-    self.ms_field_names = list(pycasatable.table(ms.getkeyword('FIELD'),
-                                                 lockoptions='autonoread').getcol('NAME'));
+    self.ms_field_names = list(TABLE(ms.getkeyword('FIELD'),
+                                     lockoptions='autonoread').getcol('NAME'));
     # update selectors
     self._update_ms_options();
 
@@ -271,7 +298,7 @@ class MSSelector (object):
     tile_sizes: list of suggested tile sizes. If false, no tile size selector is provided.
     ddid:       list of suggested DDIDs, or false for no selector.
     field:      list of suggested fields. or false for no selector.
-      NB: if pycasatable is available, ddid/field is ignored, and selectors are always
+      NB: if TABLE is available, ddid/field is ignored, and selectors are always
       provided, based on the MS content.
     channels:   if True, channel selection will be provided
     flags:      if True, a "write flags" option will be provided
@@ -304,7 +331,7 @@ class MSSelector (object):
       );
       self.antsel_option.set_validator(self._antenna_sel_validator);
       # hide until an MS is selected
-      if pycasatable:
+      if TABLE:
         self.antsel_option.hide();
       self._compile_opts.append(self.antsel_option);
     # correlation options
@@ -324,7 +351,7 @@ class MSSelector (object):
     self.ms_has_input = has_input;
     self.ms_has_output = has_output;
     # if no access to tables, then allow more input columns to be entered
-    if pycasatable:
+    if TABLE:
       more_col = None;
     else:
       more_col = str;
@@ -360,13 +387,13 @@ class MSSelector (object):
     self._ddid,self._field,self._channels = ddid,field,channels;
     self.subset_selector = self.make_subset_selector(namespace);
     self._opts += self.subset_selector.option_list();
-    # if pycasatable exists, set up interactivity for MS options
-    if pycasatable:
+    # if TABLE exists, set up interactivity for MS options
+    if TABLE:
       ms_option.set_validator(self._select_new_ms);
 
   def when_changed (self,callback):
     # if tables are available, callbacks will be called by _select_new_ms()
-    if pycasatable:
+    if TABLE:
       self._when_changed_callbacks.append(callback);
       # and call it immediately if we already have an MS
       if getattr(self,'_msname',None):
@@ -433,7 +460,7 @@ class MSSelector (object):
     sel = MSContentSelector(ddid=self._ddid,field=self._field,
                             channels=self._channels,namespace=namespace);
     # extra selectors needs to be initialized with existing info
-    if pycasatable and self._content_selectors:
+    if TABLE and self._content_selectors:
       sel._update_from_other(self.subset_selector);
       sel._select_ddid(self.subset_selector.ddid_index or 0);
     self._content_selectors.append(sel);
@@ -446,23 +473,23 @@ class MSSelector (object):
     if msname == getattr(self,'_msname',None):
       return True;
     try:
-      ms = pycasatable.table(msname,lockoptions='autonoread');
+      ms = TABLE(msname,lockoptions='autonoread');
       # data columns
       self.ms_data_columns = [ name for name in ms.colnames() if name.endswith('DATA') ];
       self.input_col_option.set_option_list(self.ms_data_columns);
       outcols = [ col for col in self.ms_data_columns if col not in self._forbid_output ];
       self.output_col_option.set_option_list(outcols);
       # antennas
-      antnames = pycasatable.table(ms.getkeyword('ANTENNA'),
-                                   lockoptions='autonoread').getcol('NAME');
+      antnames = TABLE(ms.getkeyword('ANTENNA'),
+                       lockoptions='autonoread').getcol('NAME');
       prefix = len(longest_prefix(*antnames));
       self.ms_antenna_names = [ name[prefix:] for name in antnames ];
       if self.antsel_option:
         self.antsel_option.set_option_list([None,"0:%d"%(len(self.ms_antenna_names)-1)]);
         self.antsel_option.show();
       # correlations
-      corrs = pycasatable.table(ms.getkeyword('POLARIZATION'),
-                                   lockoptions='autonoread').getcol('CORR_TYPE');
+      corrs = TABLE(ms.getkeyword('POLARIZATION'),
+                    lockoptions='autonoread').getcol('CORR_TYPE');
       ncorr = len(corrs[0]);
       if ncorr < 2:
         corrlist = [self._corr_1];
@@ -611,6 +638,12 @@ class ImagingSelector (object):
     namespace:  the TDLOption namespace name, used to qualify TDL options created here.
         If making multiple selectors, you must give them different namespace names.
     """;
+    global _IMAGER;
+    if not _IMAGER:
+      def do_nothing (mqs,parent,**kw):
+        None;
+      self._opts = [ TDLJob(do_nothing,"No imager found, please install casarest or aips++") ];
+      return;
     self.tdloption_namespace = namespace;
     self.mssel = mssel;
     # add imaging column option
@@ -631,16 +664,16 @@ class ImagingSelector (object):
                 number of output channels, the input channels will be averaged down
                 to this number."""
     self.imaging_totchan = 1;
-    if pycasatable:
+    if TABLE:
       chan_opt = TDLOption('imaging_chanmode',"Frequency channels in image",
                     [CHANMODE_NOAVG,CHANMODE_ALL,CHANMODE_MFS,CHANMODE_MANUAL],
                     more=int,namespace=self,doc=docstr);
     else:
       self._opts += [ TDLOption('imaging_totchan',"Frequency channels in input data",
                                [1],more=int,namespace=self,\
-                      doc="""Since pycasatable is not available with your build of aips++,
-                      we don't know how many total channels there are in the MS. Please 
-                      supply the number here.""") ];
+                      doc="""Since pycasatable (aips++) or pyrap_tables (pyrap) is not 
+                      available, we don't know how many total channels there are in the MS.  
+                      Please supply the number here.""") ];
       chan_opt = TDLOption('imaging_chanmode',"Frequency channels in image",
                     [CHANMODE_ALL,CHANMODE_MFS,CHANMODE_MANUAL],
                     more=int,namespace=self,doc=docstr);
@@ -719,6 +752,7 @@ class ImagingSelector (object):
                   that either arcmin or cellsize may be specified, not both.
     """;
     # choose selector based on custom MS select option
+    global _IMAGER;
     if self.imaging_custom_ms_select:
       selector = self.subset_selector;
     else:
@@ -750,21 +784,31 @@ class ImagingSelector (object):
     else:
       imgmode = "channel";
     # form up initial argument list to run imaging script
-    script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
-    script_name = os.path.realpath(script_name);  # glish don't like symlinks...
-    args = [ 'glish','-l',
-      script_name,
-      col,
-      'ms='+self.mssel.msname,
-      'mode='+imgmode,
-      'weight='+self.imaging_weight,
-      'stokes='+self.imaging_stokes,
-      'npix=%d'%npix,
-      'cellsize='+cellsize,
-      'spwid=%d'%(selector.get_spectral_window()+1),
-      'field=%d'%(selector.get_field()+1),
-      'padding=%f'%self.imaging_padding,
-    ];
+    if _IMAGER == 'glish':
+      script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
+      script_name = os.path.realpath(script_name);  # glish don't like symlinks...
+      args = [ 'glish','-l',
+        script_name,
+        col ];
+      offset = 1;
+    elif _IMAGER == 'python':
+      script_name = os.path.join(Meow._meow_path,'make_dirty_image.py');
+      args = [ 'python',script_name,'data='+col ];
+      offset = 0;
+    else:
+      args = [];
+    # these arguments are common to both imagers
+    args += \
+      [ 'ms='+self.mssel.msname,
+        'mode='+imgmode,
+        'weight='+self.imaging_weight,
+        'stokes='+self.imaging_stokes,
+        'npix=%d'%npix,
+        'cellsize='+cellsize,
+        'spwid=%d'%(selector.get_spectral_window()+offset),
+        'field=%d'%(selector.get_field()+offset),
+        'padding=%f'%self.imaging_padding,
+      ];
     # add w-proj arguments
     if self.imaging_enable_wproj:
       args.append("wprojplanes=%d"%self.imaging_wprojplanes);
@@ -773,7 +817,7 @@ class ImagingSelector (object):
     totchan = selector.get_total_channels() or self.imaging_totchan;
     if chans:
       nchan = chans[1]-chans[0]+1;
-      chanstart = chans[0]+1;
+      chanstart = chans[0]+offset;
       if len(chans) > 2:
         chanstep = chans[2];
         nchan /= chanstep;
@@ -785,11 +829,11 @@ class ImagingSelector (object):
                 'chanstep='+str(chanstep) ];
     else:
       args.append("chanmode=none");
-      chanstart,nchan,chanstep = 1,totchan,1;
+      chanstart,nchan,chanstep = offset,totchan,1;
     # add channel arguments for setimage
     if self.imaging_chanmode == CHANMODE_MANUAL:
       img_nchan     = self.imaging_nchan;
-      img_chanstart = self.imaging_chanstart+1;
+      img_chanstart = self.imaging_chanstart+offset;
       img_chanstep  = self.imaging_chanstep;
     elif self.imaging_chanmode == CHANMODE_NOAVG:
       img_nchan     = nchan;
@@ -810,7 +854,19 @@ class ImagingSelector (object):
     args += [ 'img_nchan='+str(img_nchan),
               'img_chanstart='+str(img_chanstart),
               'img_chanstep='+str(img_chanstep) ];
+    # figure out an output FITS filename
+    fitsname = self.mssel.msname;
+    if fitsname.endswith('/'):
+      fitsname = fitsname[:-1];
+    fitsname = os.path.basename(fitsname);
+    fitsname = "%s.%s.%s.%dch.fits"%(fitsname,col,imgmode,img_nchan);
+    args += [ 'fits='+fitsname ];
+    # if the fits file exists, clobber it
+    if os.path.exists(fitsname):
+      try:
+        os.unlink(fitsname);
+      except:
+        pass; 
+    print "MSUtils: imager args are",args;
     # run script
-    print "imaging args",args;
-    os.spawnvp(os.P_NOWAIT,'glish',args);
-
+    os.spawnvp(os.P_NOWAIT,_IMAGER,args);

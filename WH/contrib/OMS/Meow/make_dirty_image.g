@@ -22,6 +22,7 @@ img_chanstart := 1;
 img_chanstep := 1;
 wprojplanes := 0;
 padding := 1.0;
+fitsname := '';
 
 # parse command line
 for( a in argv )
@@ -37,6 +38,8 @@ for( a in argv )
     imagetype:="residual";
   else if( a =~ s/^ms=// )
     msname := a;
+  else if( a =~ s/^fits=// )
+    fitsname := a;
   else if( a =~ s/^mode=// )
     mode := a;
   else if( a =~ s/^weight=// )
@@ -117,7 +120,8 @@ myimager.done()
 
 # convert to FITS
 im := image(imgfile);
-fitsname := spaste(imgname,'.fits');
+if( fitsname == '' )
+  fitsname := spaste(imgname,'.fits');
 im.tofits(fitsname,overwrite=T);
 im.done();
 shell(spaste('rm -fr ',imgfile));
