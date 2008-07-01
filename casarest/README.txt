@@ -11,3 +11,6 @@ To build and install everything run 'batchbuild.py' like:
 		 enable_hdf5 hdf5root=/dop131_1/gvandiep
 
 Only use enable_hdf5 if casacore was built with hdf5.
+
+If you don't have your own ~/.casarc, copy the provided casarc file to
+~/.casarc.
