@@ -157,16 +157,25 @@ def PyNodePlot (ns, path, rider):
                      help=PNP.PyNodePlot.__doc__)
    cc = []
    children = [ns << 0.1, ns << 1.1]
+   lcn = EN.largest_common_name(children, trace=True)
+   labels = EN.get_plot_labels(children, lcn=lcn, trace=True)
+   ps = record()
+   ps.legend = lcn                                # ....ok....
+   ps.legend = str(labels)
+   ps.xlabel = 'hor'
+   ps.ylabel = 'ver'
+   ps.title = lcn                                 # ....ok....
    pynode = ns['PyNodePlot'] << Meq.PyNode(children=children,
-                                                  # child_labels=labels,
-                                                  class_name='PyNodePlot',
-                                                  # groupspecs=gs,
-                                                  module_name=PNP.__file__)
+                                           child_labels=labels,
+                                           class_name='PyNodePlot',
+                                           # groupspecs=gs,
+                                           plotspecs=ps,
+                                           module_name=PNP.__file__)
    cc.append(pynode)
    # if opt_alltopics or opt_PyNodePlot_subtopic:
       # cc.append(PyNodePlot_subtopic (ns, rr.path, rider))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=cc[0], viewer='Record Browser',
+                      bookmark=cc[0], viewer='Pylab Plotter',
                       parentclass='ReqSeq', result_index=0)
 
 
@@ -193,10 +202,16 @@ def PlotVis22 (ns, path, rider):
                      help=PNPVis22.PlotVis22.__doc__)
    cc = []
    [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)
+   lcn = EN.largest_common_name(coh, trace=True)
+   labels = EN.get_plot_labels(coh, lcn=lcn, trace=True)
+   ps = record()
+   ps.legend = lcn                                # ....is not passed on....
+   ps.title = lcn                                 # ....ok....
    pynode = ns['PlotVis22'] << Meq.PyNode(children=coh,
                                           child_labels=labels,
                                           class_name='PlotVis22',
                                           # groupspecs=gs,
+                                          plotspecs=ps,
                                           module_name=PNPVis22.__file__)
    cc.append(pynode)
    # if opt_alltopics or opt_PyNodePlotVis22_subtopic:
@@ -282,6 +297,7 @@ def _define_forest (ns, **kwargs):
               help=__doc__)
 
    # Finished:
+   QRU.ET.EN.bundle_orphans(ns)
    return True
 
 

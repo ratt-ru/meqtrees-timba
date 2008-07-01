@@ -482,13 +482,56 @@ def largest_common_name (nodes, trace=False):
     """
     lcn = 'largest_common_name?'
     if is_node(nodes):
-        nodes = [nodes]
-    if isinstance(nodes,(list,tuple)):
-        lcn = nodes[0].basename               # ....temporary....
+        lcn = nodes.name
+    elif not isinstance(nodes,(list,tuple)):
+        lcn = 'not a list of nodes!'
+    elif len(nodes)==1:
+        lcn = nodes[0].name
+    else:
+        lcn = ''
+        ii = range(1,len(nodes))
+        same = True
+        for k,c in enumerate(nodes[0].name):
+            # print '**',ii,len(nodes)
+            for i in ii:
+                # print k,c,i,nodes[i].name[k]
+                same = (c==nodes[i].name[k])
+                if not same: break
+            if not same: break
+            lcn += c
+                
     if trace:
-        print lcn
+        print '** EN.largest_common_name() ->',lcn
     return lcn
-    
+
+#-----------------------------------------------------------------------
+
+def get_plot_labels (nodes, lcn=None, trace=False):
+    """
+    Get a list of plot-labels (strings) for the given nodes.
+    Do this by removing the 'largest_common_name' string from
+    their node-names.
+    """
+    if trace:
+        print '\n** EN.get_plot_labels(',lcn,'):'
+    if not isinstance(lcn,str):
+        lcn = largest_common_name(nodes, trace=trace)
+    if is_node(nodes):
+        return [lcn]
+    ss = []
+    char = '#'
+    for i,node in enumerate(nodes):
+        name = node.name
+        label = name.replace(lcn,char)      
+        if label==char:       # the node-name is the entire lcn...
+            # This is likely the first node, without qualifiers:
+            label = str(name)
+        ss.append(label)
+        if trace:
+            print '-',i,':',name,'->',label
+    if trace:
+        print '->',ss,'\n'
+    return ss
 
 
 #================================================================================
@@ -594,6 +637,14 @@ if __name__ == '__main__':
        print check_quals(range(3), dict(a=3), **dict(b=4))
        check_quals(range(3), None, 6, aa=3, trace=True)
 
+   if 1:
+       cc = []
+       stub = nodestub(ns, 'test')
+       for i in range(4):
+           cc.append(stub(i) << Meq.Constant(i))
+       lcn = largest_common_name(cc, trace=True)
+       get_plot_labels(cc, trace=True)
+
    #------------------------------------------------
 
    if 0:
@@ -645,7 +696,7 @@ if __name__ == '__main__':
        format_value(range(100), 'list', trace=True)
        format_value(ns << Meq.Constant(4.5), 'node', trace=True)
 
-   if 1:
+   if 0:
        format_value(123.456, trace=True)
        format_value(12.3456, trace=True)
        format_value(1.23456, trace=True)
