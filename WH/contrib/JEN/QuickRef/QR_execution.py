@@ -722,9 +722,37 @@ if __name__ == '__main__':
             
    print '\n** End of standalone test of: QR_execution.py:\n' 
 
+
+
+#=====================================================================================
+# from OMS pynode ....
 #=====================================================================================
 
+#  # run in batch mode?
+#  if '-run' in sys.argv:
+#    from Timba.Apps import meqserver
+#    from Timba.TDL import Compile
+#    
+#    # this starts a kernel.
+#    mqs = meqserver.default_mqs(wait_init=10);
+#
+#    # This compiles a script as a TDL module. Any errors will be thrown as
+#    # an exception, so this always returns successfully. We pass in
+#    # __file__ so as to compile ourselves.
+#    (mod,ns,msg) = Compile.compile_file(mqs,__file__);
+#    
+#    # this runs the _test_forest job.
+#    mod._test_forest(mqs,None,wait=True);
+#
+#  else:
+#    #  from Timba.Meq import meqds 
+#    # Timba.TDL._dbg.set_verbose(5);
+#    ns = NodeScope();
+#    _define_forest(ns);
+#    ns.Resolve();
 
+
+#======================================================================================
 
 
 

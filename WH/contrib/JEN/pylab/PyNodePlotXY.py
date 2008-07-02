@@ -89,7 +89,8 @@ class PlotXY (PyNodePlot.PyNodePlot):
   #-------------------------------------------------------------------
 
   def define_specific_groupspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
     # Its children are assumed to be tensor nodes (2 vells each).
@@ -103,7 +104,8 @@ class PlotXY (PyNodePlot.PyNodePlot):
   #-------------------------------------------------------------------
 
   def define_specific_plotspecs(self, trace=True):
-    """Make plotspec record.
+    """
+    Make plotspec record.
     """
     ps = []
     ps.append(record(x='{x}', y='{y}'))
@@ -121,7 +123,9 @@ class PlotXY (PyNodePlot.PyNodePlot):
 #========================================================================
 
 class PlotXYZ (PyNodePlot.PyNodePlot):
-  """Base-class for classes that make x-y-z plots"""
+  """
+  Base-class for classes that make x-y-z plots
+  """
 
   def __init__ (self, *args, **kwargs):
     PyNodePlot.PyNodePlot.__init__(self, *args)
@@ -145,7 +149,8 @@ class PlotXYZ (PyNodePlot.PyNodePlot):
   #-------------------------------------------------------------------
 
   def define_specific_groupspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
     # Its children are assumed to be tensor nodes (3 vells each).
@@ -160,7 +165,8 @@ class PlotXYZ (PyNodePlot.PyNodePlot):
   #-------------------------------------------------------------------
 
   def define_specific_plotspecs(self, trace=True):
-    """Make plotspec record.
+    """
+    Make plotspec record.
     """
     ps = []
     ps.append(record(x='{x}', y='{y}', z='{z}'))
@@ -180,7 +186,8 @@ class PlotXYZ (PyNodePlot.PyNodePlot):
 #========================================================================
 
 class PlotXXYY (PlotXY):
-  """Derived from PlotXY"""
+  """
+  Derived from PlotXY"""
 
   def __init__ (self, *args, **kwargs):
     PlotXY.__init__(self, *args)
@@ -202,7 +209,8 @@ class PlotXXYY (PlotXY):
   #-------------------------------------------------------------------
 
   def define_specific_groupspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
     # Its children are assumed to be in two concatenated lists:
@@ -218,7 +226,9 @@ class PlotXXYY (PlotXY):
 #=====================================================================
 
 class PlotCXY (PlotXY):
-  """Derived from PlotXY"""
+  """
+  Derived from PlotXY
+  """
 
   def __init__ (self, *args, **kwargs):
     PlotXY.__init__(self, *args)
@@ -240,7 +250,8 @@ class PlotCXY (PlotXY):
   #-------------------------------------------------------------------
 
   def define_specific_groupspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
     # Finished:
@@ -256,7 +267,9 @@ class PlotCXY (PlotXY):
 #========================================================================
 
 class PlotXXYYZZ (PlotXYZ):
-  """Derived from PlotXYZ"""
+  """
+  Derived from PlotXYZ
+  """
 
   def __init__ (self, *args, **kwargs):
     PlotXYZ.__init__(self, *args)
@@ -278,7 +291,8 @@ class PlotXXYYZZ (PlotXYZ):
   #-------------------------------------------------------------------
 
   def define_specific_groupspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
     # Its children are assumed to be in three concatenated lists:

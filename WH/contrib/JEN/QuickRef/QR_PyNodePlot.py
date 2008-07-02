@@ -65,6 +65,7 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 from Timba.Contrib.JEN.pylab import PyNodePlotVis22 as PNPVis22
+from Timba.Contrib.JEN.pylab import PyNodePlotXY as PNPXY
 
 # import math
 # import random
@@ -84,6 +85,11 @@ TDLCompileMenu("QR_PyNodePlot topics:",
 
                TDLMenu("PyNodePlot",
                        toggle='opt_PyNodePlot'),
+
+               TDLMenu("PlotXY",
+                       TDLMenu("PlotXXYY",
+                               toggle='opt_PlotXY_PlotXXYY'),
+                       toggle='opt_PlotXY'),
 
                TDLMenu("PlotVis22",
                        toggle='opt_PlotVis22'),
@@ -112,6 +118,10 @@ def QR_PyNodePlot (ns, path, rider):
    cc = []
    if opt_alltopics or opt_PyNodePlot:
       cc.append(PyNodePlot (ns, rr.path, rider))
+
+   if opt_alltopics or opt_PlotXY:
+      cc.append(PlotXY (ns, rr.path, rider))
+
    if opt_alltopics or opt_PlotVis22:
       cc.append(PlotVis22 (ns, rr.path, rider))
 
@@ -156,16 +166,18 @@ def PyNodePlot (ns, path, rider):
    rr = QRU.on_entry(PyNodePlot, path, rider,
                      help=PNP.PyNodePlot.__doc__)
    cc = []
-   children = [ns << 0.1, ns << 1.1]
-   lcn = EN.largest_common_name(children, trace=True)
-   labels = EN.get_plot_labels(children, lcn=lcn, trace=True)
+   # yy = [ns << 0.1, ns << 1.1]
+   yy = ET.cloud(ns, 'n27s3', 'yy_', trace=True)
+   lcn = EN.largest_common_name(yy, trace=True)
+   labels = EN.get_plot_labels(yy, lcn=lcn, trace=True)
    ps = record()
-   ps.legend = lcn                                # ....ok....
-   ps.legend = str(labels)
-   ps.xlabel = 'hor'
-   ps.ylabel = 'ver'
+   ps.color = 'red'
+   # ps.legend = lcn                                # ....ok....
+   # ps.legend = str(labels)
+   # ps.xlabel = 'hor'                              # ....ok....
+   ps.ylabel = 'ver'                              # overwitten.... (pynode child no)
    ps.title = lcn                                 # ....ok....
-   pynode = ns['PyNodePlot'] << Meq.PyNode(children=children,
+   pynode = ns['PyNodePlot'] << Meq.PyNode(children=yy,
                                            child_labels=labels,
                                            class_name='PyNodePlot',
                                            # groupspecs=gs,
@@ -185,6 +197,53 @@ def PyNodePlot_subtopic (ns, path, rider):
    """
    """
    rr = QRU.on_entry(PyNodePlot_subtopic, path, rider)
+   cc = []
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      parentclass='ReqSeq', result_index=0)
+
+
+#================================================================================
+# PlotXY:
+#================================================================================
+
+def PlotXY (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PlotXY, path, rider,
+                     help=PNPXY.PlotXY.__doc__)
+   cc = []
+   # yy = [ns << 0.1, ns << 1.1]
+   yy = ET.cloud(ns, 'n27s3', 'yy_', trace=True)
+   lcn = EN.largest_common_name(yy, trace=True)
+   labels = EN.get_plot_labels(yy, lcn=lcn, trace=True)
+   ps = record()
+   ps.color = 'red'
+   # ps.legend = lcn                                # ....ok....
+   # ps.legend = str(labels)
+   # ps.xlabel = 'hor'                              # ....ok....
+   ps.ylabel = 'ver'                              # overwitten.... (pynode child no)
+   ps.title = lcn                                 # ....ok....
+   pynode = ns['PyNodePlot'] << Meq.PyNode(children=yy,
+                                           child_labels=labels,
+                                           class_name='PlotXY',
+                                           # groupspecs=gs,
+                                           plotspecs=ps,
+                                           module_name=PNPXY.__file__)
+   cc.append(pynode)
+   if opt_alltopics or opt_PlotXY_PlotXXYY:
+      cc.append(PlotXY_PlotXXYY (ns, rr.path, rider))
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=cc[0], viewer='Pylab Plotter',
+                      parentclass='ReqSeq', result_index=0)
+
+
+#================================================================================
+
+def PlotXY_PlotXXYY (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PlotXY_PlotXXYY, path, rider)
    cc = []
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)

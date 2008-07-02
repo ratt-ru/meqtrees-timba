@@ -13,6 +13,8 @@
 # History:
 #   - 12 apr 2008: creation (from PyPlot.py)
 #   - 17 may 2008: stddev() -> std() (numpy)
+#   - 02 jul 2008: use of EasyNode/EasyTwig
+#   - 02 jul 2008: pynode_NamedGroup() etc
 #
 # Remarks:
 #
@@ -56,6 +58,9 @@ import Meow.Bookmarks
 
 from math import *   # for ._evaluate()
 from Timba.Contrib.JEN.pylab import ChildResult
+from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyBundle as EB
 
 import inspect
 import random
@@ -872,6 +877,77 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
 
 #=====================================================================================
+# pynode_...Group() functions
+#=====================================================================================
+
+def pynode_XGroup (ns, nodes, labels=None,
+                   nodename=None, quals=None, kwquals=None,
+                   groupspecs=None, **kwargs):
+  """
+  Create and return a pynode of class PyNodeNamedGroups, with groupname='x'.
+  """
+  if not isinstance(nodename, str):
+    nodename = 'pynode_XGroup'
+  return pynode_NamedGroup (ns, nodes, 'x', labels=labels,
+                            nodename=nodename, quals=quals, kwquals=kwquals,
+                            groupspecs=groupspecs, **kwargs)
+
+#--------------------------------------------------------------------
+
+def pynode_YGroup (ns, nodes, labels=None,
+                   nodename=None, quals=None, kwquals=None,
+                   groupspecs=None, **kwargs):
+  """
+  Create and return a pynode of class PyNodeNamedGroups, with groupname='y'.
+  """
+  if not isinstance(nodename, str):
+    nodename = 'pynode_YGroup'
+  return pynode_NamedGroup (ns, nodes, 'y', labels=labels,
+                            nodename=nodename, quals=quals, kwquals=kwquals,
+                            groupspecs=groupspecs, **kwargs)
+
+#--------------------------------------------------------------------
+
+def pynode_NamedGroup (ns, nodes, groupname='allvells', labels=None,
+                       nodename=None, quals=None, kwquals=None,
+                       groupspecs=None, **kwargs):
+  """
+  Create and return a pynode of class PyNodeNamedGroups,
+  with the nodes (children) in the named (groupname) group.
+  """
+  trace = False
+  if kwargs.has_key('trace'):
+    trace = kwargs['trace']
+    kwargs.__delitem__('trace')
+
+  # Condition the groupspecs record:
+  if not isinstance(groupspecs, dict):
+    groupspecs = record()
+  if not groupspecs.has_key(groupname):     # make sure of a record for the named group    
+    groupspecs[groupname] = record()        # e.g. groupspecs['x'] = record()
+    
+  if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
+    lcn = EN.largest_common_name(nodes)
+    labels = EN.get_plot_labels(nodes, lcn=lcn, trace=trace)
+    if not groupspecs.has_key('title'):
+      groupspecs['title'] = lcn
+
+  # Create the PyNode:
+  if not isinstance(nodename, str):
+    nodename = 'pynode_NamedGroup_'+str(groupname)
+  stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+  pynode = stub << Meq.PyNode(children=nodes,
+                              child_labels=labels,
+                              groupspecs=groupspecs,
+                              class_name='PyNodeNamedGroups',
+                              module=__file__)
+  if trace:
+    print '->',str(pynode)
+  return pynode
+  
+
+
+#=====================================================================================
 # Make a test-forest:
 #=====================================================================================
 
@@ -969,29 +1045,26 @@ if False:
 
 if __name__ == '__main__':
 
-  # run in batch mode?
-  if '-run' in sys.argv:
-    from Timba.Apps import meqserver
-    from Timba.TDL import Compile
-    
-    # this starts a kernel.
-    mqs = meqserver.default_mqs(wait_init=10);
+  print '\n** Start of standalone test of: PyNodeNamedGroups.py:\n' 
+  ns = NodeScope()
 
-    # This compiles a script as a TDL module. Any errors will be thrown as
-    # an exception, so this always returns successfully. We pass in
-    # __file__ so as to compile ourselves.
-    (mod,ns,msg) = Compile.compile_file(mqs,__file__);
-    
-    # this runs the _test_forest job.
-    mod._test_forest(mqs,None,wait=True);
-
-  elif True:
-    pp = PyNodeNamedGroups()
-    print pp.help()
-
+  if False:
+    stub = EN.unique_stub(ns,'xxx')
+    nodes = []
+    for i in range(4):
+      nodes.append(stub(i) << Meq.Constant(i))
   else:
-    #  from Timba.Meq import meqds 
-    # Timba.TDL._dbg.set_verbose(5);
-    ns = NodeScope();
-    _define_forest(ns);
-    ns.Resolve();
+    nodes = EB.cloud(ns,'n64s2')
+
+  if False:
+    pynode = pynode_XGroup(ns, nodes, trace=True)
+    pynode = pynode_YGroup(ns, nodes, trace=True)
+    pynode = pynode_NamedGroup(ns, nodes, 'cc', trace=True)
+  
+  _define_forest(ns);
+  ns.Resolve();
+
+  print '\n** End of standalone test of: PyNodeNamedGroups.py:\n' 
+
+#=====================================================================================
+

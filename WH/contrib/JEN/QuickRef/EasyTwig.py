@@ -6,10 +6,11 @@
 #    Utility functions for making little subtrees (twigs)
 #
 # History:
-#   - 07 june 2008: creation (from EasyTwig.py)
-#   - 22 june 2008: split off EasyNode.py
-#   - 30 june 2008: implemented noise()
-#   - 30 june 2008: implemented cloud()
+#   - 07 jun 2008: creation (from EasyTwig.py)
+#   - 22 jun 2008: split off EasyNode.py
+#   - 30 jun 2008: implemented noise()
+#   - 30 jun 2008: implemented cloud()
+#   - 02 jul 2008: split off EasyBundle.py
 #
 # Remarks:
 #
@@ -209,13 +210,13 @@ def shape2length (shape=1, trace=False):
 def twig_cats (trace=False):
     """Return a list of twig categories"""
     cats = []
-    cats.extend(['axes','complex','noise','tensor'])
+    cats.extend(['axes','complex','tensor'])
     cats.extend(['gaussian','expnegsum'])
     # cats.extend(['Expression'])
     cats.extend(['prod','sum'])
     cats.extend(['constants'])
     cats.extend(['polyparm','cpscoh'])
-    cats.extend(['cloud','stddev'])
+    cats.extend(['noise','offset'])
     # cats.extend([])
     return cats
 
@@ -248,11 +249,9 @@ def twig_names (cat='default', include=None, first=None, trace=False):
                  'noise_a0.1','noise_a0.0p1.0','noise_a0.01']
     elif cat=='tensor':
         names = ['range_4','range_10','tensor_ftLM']
-    elif cat=='cloud':
-        names = ['cloud_n6s4','cloud_a2p3','cloud_r2m-1+3j']
-    elif cat=='stddev':
-        names = ['stddev_s4','stddev_a2p3','stddev_r2']
-        names.extend(['stddev_n6s4','stddev_a2p3','stddev_r2m-1+3j'])
+    elif cat=='offset':
+        names = ['offset_s4','offset_a2p1m1','offset_r2']
+        names.extend(['offset_n6s4','offset_a2p3','offset_r2m-1+3j'])
     elif cat=='gaussian':
         names = ['gaussian_f','gaussian_ft','gaussian_ftLM']
     elif cat=='expnegsum':
@@ -298,17 +297,26 @@ def twig_names (cat='default', include=None, first=None, trace=False):
 
 def apply_unop (ns, node, unop=None, trace=False):
     """
-    Apply zero or more unary operations to the given node.
+    Apply zero or more unary operations to the given node(s).
+    (node may be a list of nodes).
     """
-    s = '** ET.apply_unop('+str(unop)+'):'
+    s = '** ET.apply_unop('+str(type(node))+','+str(unop)+'):'
     if unop==None:
         return node
     elif isinstance(unop,str):
         unop = [unop]
-    for unop1 in unop:
-        node = ns << getattr(Meq,unop1)(node)
-    if trace:
-        print s,'->',str(node)
+    if isinstance(node,(list,tuple)):
+        for i,node1 in enumerate(node):
+            for unop1 in unop:
+                node1 = ns << getattr(Meq,unop1)(node1)
+            node[i] = node1
+            if trace:
+                print s,'->',i,str(node[i])
+    else:
+        for unop1 in unop:
+            node = ns << getattr(Meq,unop1)(node)
+        if trace:
+            print s,'->',str(node)
     return node
 
 #-----------------------------------------------------------------------------------
@@ -397,28 +405,14 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
 #-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
 
-def cloudlet (ns, spec='n1s1', nodename=None, quals=None, kwquals=None,
-              help=None, unop=None, trace=False):
-    """
-    A cloud of one. Called by twig(ns, 'stddev_...')
-    """
-    if not isinstance(nodename,str):
-        nodename = 'cloudlet_'
-    return cloud (ns, spec=spec, override=dict(n=1, m=0.0),
-                  nodename=nodename, quals=quals, kwquals=kwquals,
-                  parent='noparent', help=help, unop=unop, trace=trace)
-
-#-----------------------------------------------------------------------------------
-
-def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
-           parent=None, help=None, unop=None, override=None, trace=False):
+def random_offset (ns, spec='s1', nodename=None, quals=None, kwquals=None,
+                   shape=1, help=None, unop=None, trace=False):
     """
     Syntax:
-    .    node = ET.cloud(ns, spec, nodename=None, quals=None, kwquals=None,
-    .                    parent=None, help=None, unop=None)
+    .    node = ET.random_offset(ns, spec, nodename=None, quals=None, kwquals=None,
+    .                       parent=None, help=None, unop=None)
 
-    Generate a cloud of MeqConstant nodes, according to the specification.
-    - n (nr of nodes) [=3]      nr of nodes in the cloud
+    Generate a random_offset of one MeqConstant node, according to the specification.
     - s (stddev) [=1.0]:        real, >0
     - m (mean) [=0.0]:          if complex (a+bj), the result is complex
     - a (stddev of ampl):       if >0, use MeqPolar (default=p)
@@ -426,32 +420,40 @@ def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
     - r (stddev of real part):  if >0, use MeqToComplex (default=i)
     - i (stddev of imag part):  if >0, use MeqToComplex (default=r)
     If a/p and r/i both specified (>0), MeqPolar (a/p) takes precedence.
-    If parent is specified (e.g. 3, or [2,2]) make a tensor node.
-    If parent=='noparent', return the first (and only?) node.
     """
 
-    s = '** ET.cloud('+str(spec)+','+str(nodename)+'):'
+    s = '** ET.random_offset('+str(spec)+','+str(nodename)+'):'
     if trace:
         print '\n',s
 
     if not isinstance(nodename, str):
-        nodename = 'cloud_'
+        nodename = 'random_offset_'
     nodename += str(spec)
     stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
-    dekey = dict(n=3, s=1.0, m=0.0, r=-1.0, i=-1.0, a=-1.0, p=-1.0)
-    vv = decode(spec, dekey, override=override, trace=False)
-    nel = max(vv['n'],1)
-    mean = vv['m']
-    if isinstance(mean,complex):
-        rmean = mean.real
-        imean = mean.imag
-    else:
-        rmean = float(mean)
-        imean = 0.0
+    nel = shape2length(shape)             # nr of tensor elements
+    if nel>1:
+        # If tensor, recursive:
+        cc = []
+        for k in range(nel):
+            if quals:
+                cc.append(random_offset(ns, spec, quals+[k], kwquals=kwquals))
+            else:
+                cc.append(random_offset(ns, spec, quals=k, kwquals=kwquals))
+        node = stub << Meq.Composer(*cc)
 
-    cc = []
-    for i in range(nel):
+    else:
+        dekey = dict(s=1.0, m=0.0, r=-1.0, i=-1.0, a=-1.0, p=-1.0)
+        vv = decode(spec, dekey, trace=False)
+
+        mean = vv['m']
+        if isinstance(mean,complex):
+            rmean = mean.real
+            imean = mean.imag
+        else:
+            rmean = float(mean)
+            imean = 0.0
+
         if vv['a']>0 or vv['p']>0:
             if vv['p']<0: vv['p'] = vv['a']
             if vv['a']<0: vv['a'] = vv['p']
@@ -473,38 +475,14 @@ def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
             s += 's, a or r should be specified (>0): '+str(spec)
             raise ValueError, s
 
-        if nel==1:
-            c = stub(EN.format_value(v)) << Meq.Constant(v)
-        else:
-            c = stub(i)(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EN.format_value(v)) << Meq.Constant(v)
 
-        if trace:
-            print '--',i,':',v,str(c)
-        cc.append(c)
-
-    if parent:
-        if parent=='noparent':
-            # Return the first (and only?) node:
-            node = cc[0]
-        else:
-            # Use a parent node (e.g. Composer) to bundle the cloud nodes:
-            node = stub << getattr(Meq,parent)(*cc)
-        if unop:
-            node = apply_unop(ns, node, unop, trace=trace)
-        if trace:
-            print EN.format_tree(node, full=True)
-        return node
-
-    else:
-        # Finishing touches on the list (cc) of nodes:
-        if unop:
-            for k,c in enumerate(cc):
-                cc[k] = apply_unop (ns, c, unop, trace=trace)
-        # Initialize the stub anyhow, to force uniqueness.... 
-        EN.orphans(stub << Meq.Composer(*cc))
-        if trace:
-            print EN.format_tree(cc, full=True)
-        return cc
+    # Finishing touches on the list (cc) of nodes:
+    if unop:
+        node = apply_unop (ns, node, unop, trace=trace)
+    if trace:
+        print EN.format_tree(node, full=True)
+    return node
 
 #-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
@@ -669,6 +647,7 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
             cc.append(twig(ns,s))
         if len(cc)>0:
             node = stub << Meq.Composer(*cc)
+        shape = len(cc)
 
     elif len(spec.split('polyparm_'))>1:             # e.g. 'polyparm_f0t1L2M'
         ss = spec.split('polyparm_')[1]
@@ -781,16 +760,9 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         node = noisetwig(ns, ss)
         stddev = 0.0
 
-    elif len(spec.split('cloud_'))>1:                  # e.g. 'cloud_n5s3m-1'
-        ss = spec.split('cloud_')[1]
-        # NB: This is just for testing. A real cloud produces a list of nodes,
-        #     so it should made by calling .cloud() directly. 
-        node = cloud(ns, ss, parent='Composer', trace=False)
-
-    elif len(spec.split('stddev_'))>1:                 # e.g. 'stddev_s3'
-        ss = spec.split('stddev_')[1]
-        node = cloudlet(ns, ss, nodename='stddev_', trace=False)
-
+    elif len(spec.split('offset_'))>1:                 # e.g. 'offset_s3'
+        ss = spec.split('offset_')[1]
+        node = random_offset(ns, ss, trace=False)
 
     #............................................................
 
@@ -838,38 +810,22 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
         node = stub << Meq.Add(node, noisy)
 
     if stddev>0:
-        # Optionally, add gaussian offset (MeqConstant) to the final result
+        # Optionally, add a random (gaussian) offset (MeqConstant) to the final result
         if is_complex:
             nspec = 'r'+str(stddev)
         else:
             nspec = 's'+str(stddev)
         if shape==None:
-            offset = cloudlet(ns, nspec, nodename='offset_',
-                              quals=quals, kwquals=kwquals, trace=False)
+            offset = random_offset(ns, nspec, quals=quals, kwquals=kwquals, trace=False)
         else:
-            offset = cloudlet(ns, nspec, nodename='offset_', shape=shape,
-                              quals=quals, kwquals=kwquals, trace=False)
+            offset = random_offset(ns, nspec, shape=shape,
+                                   quals=quals, kwquals=kwquals, trace=False)
         stub = stub('offset')
         node = stub << Meq.Add(node, offset)
 
     #............................................................
 
     if trace:
-        if False:
-            s1 += ' -> '+str(node)
-            # print dir(node)
-            if getattr(node,'children', None):
-                cc = node.children
-                s1 += '  children('+str(len(cc))+'):' 
-                for c in cc:
-                    s1 += '  '+str(c[1])
-                s1 += ')'
-            if getattr(node,'initrec', None):
-                initrec = node.initrec()
-                # print initrec
-                v = getattr(initrec,'value',None)
-                if isinstance(v,(int,float,complex)):
-                    s1 += '  (value='+str(v)+')' 
         print '\n**',s1
         print EN.format_tree(node, full=True)
 
@@ -1275,12 +1231,12 @@ if __name__ == '__main__':
        # quals = range(3)
        cats = twig_cats()
        # cats = ['sum','prod','expnegsum']
-       cats = ['stddev']
-       unop = None
+       cats = ['offset','tensor']
        stddev = 0.0
        noise = 0.0
        unop = 'Cos'
        unop = ['Cos','Sin']
+       # unop = None
        stddev = 0.11
        noise = 0.22
        for cat in cats:
@@ -1345,12 +1301,6 @@ if __name__ == '__main__':
        noise(ns, 's10m-1+0j', trace=True)
        noise(ns, 'a10m-1+0j', trace=True)
        noise(ns, 'r1i2', trace=True)
-
-   if 0:
-       cloud(ns, 'n5', 'xxx', trace=True)
-       cloud(ns, 'n7', 'xxx', trace=True)
-       cloud(ns, 'r1', 'rrr', trace=True)
-       cloud(ns, 'a1', 'rrr', trace=True)
 
    #------------------------------------------------
 

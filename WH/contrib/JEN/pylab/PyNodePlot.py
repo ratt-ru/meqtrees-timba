@@ -225,7 +225,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
     
   def update_state (self, mystate):
-    """Read information from the pynode state record. This is called
+    """
+    Read information from the pynode state record. This is called
     when the node is first created and a full state record is available.
     But also when state changes, and only a partial state record is
     supplied....
@@ -273,7 +274,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def define_specific_plotspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be re-implemented
+    """
+    Placeholder for class-specific function, to be re-implemented
     by classes that are derived from PyNodePlot. Called by ._update_state().
     It allows the specification of one or more specific plotspecs.
     """
@@ -283,7 +285,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
   def standard (self, attrib=None, key=None, 
                 update=None, clear=False, trace=False):
-    """Helper function to get a standard attribute (e.g. color) for the
+    """
+    Helper function to get a standard attribute (e.g. color) for the
     specified key: color = self.standard('color','a').
     Used in (re-implementation of) define_specific_plotspecs().
     The named (key) attributes are defined in __init__():
@@ -305,7 +308,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def _check_plotspecs (self, trace=False):
-    """Check the contents of the input self.plotspecs record.
+    """
+    Check the contents of the input self.plotspecs record.
     """
     if trace:
       self.display('_check_plotspecs() input')
@@ -373,7 +377,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def _check_plotspecs_graphics (self, trace=False):
-    """Check the plotspecs of plotype graphics
+    """
+    Check the plotspecs of plotype graphics
     """
     if trace:
       print '\n** _check_plotspecs_graphics():'
@@ -393,7 +398,9 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def get_result (self, request, *children):
-    """Required pyNode function."""
+    """
+    Required pyNode function.
+    """
 
     trace = False
     trace = True
@@ -453,7 +460,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def _plotspecs2plotdefs_graphics(self, trace=False):
-    """Helper function to turn the graphics plotspecs into
+    """
+    Helper function to turn the graphics plotspecs into
     graphics plot definition records in self._plotdefs"""
 
     trace = True
@@ -493,8 +501,9 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
           pd.xexpr = str(rr.x)
           pd.xx = self._evaluate(pd.xexpr, trace=trace)
         else:                                    # use child numbers for x
-          pd.xx = self._expr2childnos(pd.yexpr, trace=trace) 
-          self._plotdefs.xlabel = 'pynode child no'      # <---- ??
+          pd.xx = self._expr2childnos(pd.yexpr, trace=trace)
+          if not isinstance(self._plotdefs.xlabel,str): 
+            self._plotdefs.xlabel = 'pynode child no'   
 
       else:
         s = '** neither y nor xy expression in graphics plotspec'
@@ -533,7 +542,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def _zz2markersize (self, pd, trace=False):
-    """Helper function to translate the values pd.zz in the given plot
+    """
+    Helper function to translate the values pd.zz in the given plot
     definition (pd) into a vector of integer values pd.markersize,
     between the specified (plotspecs) miniumum and maximum sizes (in points)
     """
@@ -551,7 +561,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def _plotdef_statistics(self, pd, key):
-    """Helper function to calculate some statistics for the specified
+    """
+    Helper function to calculate some statistics for the specified
     (key) vector in the given plot definition (pd) record, and attach them.
     """
     import pylab
@@ -571,7 +582,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def make_svg (self, trace=False):
-    """Make an svg plot definition from all items in self._plotdefs.
+    """
+    Make an svg plot definition from all items in self._plotdefs.
     (NB: This is semi-obsolete, but retained for the future.....)
     Using the same function that is called by Tony's pylab_plotter.
     """
@@ -583,7 +595,9 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 #--------------------------------------------------------------------
 
   def set_window(self, grs, trace=False):
-    """Set the plot window"""
+    """
+    Set the plot window
+    """
 
     margin = 0.1
     [xmin, xmax] = grs.xrange(margin=margin, trace=trace)
@@ -675,7 +689,9 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
 
 class ExampleDerivedClass (PyNodePlot):
-  """Example of a class derived from PyNodePlot."""
+  """
+  Example of a class derived from PyNodePlot.
+  """
 
   def __init__ (self, *args, **kwargs):
     PyNodePlot.__init__(self, *args)
@@ -700,7 +716,8 @@ class ExampleDerivedClass (PyNodePlot):
   #-------------------------------------------------------------------
 
   def define_specific_groupspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
     if True:
@@ -718,7 +735,8 @@ class ExampleDerivedClass (PyNodePlot):
   #-------------------------------------------------------------------
 
   def define_specific_plotspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific plotspecs.
     """
     ps = []

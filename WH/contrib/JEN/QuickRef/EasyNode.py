@@ -279,7 +279,7 @@ def format_tree (node, ss='', recurse=True,
         basenames = dict()
         if isinstance(node,list):
             # Special case (see MeqNode()): Start with a list of children:
-            ss += prefix+'Its subtree, starting with its '+str(len(node))+' children:'
+            ss += prefix+'List of '+str(len(node))+' nodes/subtrees (e.g. children):'
             for c in node:
                 ss = format_tree(c, ss=ss, recurse=recurse, 
                                  nodenames=nodenames, basenames=basenames,
