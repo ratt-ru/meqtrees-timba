@@ -181,7 +181,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def update_state_derived (self, mystate):
-    """Example re-implementation of .update_state(), for use in
+    """
+    Example re-implementation of .update_state(), for use in
     derived classes (without '_derived' in the name, of course).
     """
     # First call the generic function of the base class:
@@ -195,7 +196,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
     
   def update_state (self, mystate):
-    """Read information from the pynode state record. This is called
+    """
+    Read information from the pynode state record. This is called
     when the node is first created and a full state record is available.
     But also when state changes, and only a partial state record is
     supplied....
@@ -274,7 +276,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #===================================================================
 
   def define_specific_groupspecs(self, trace=True):  
-    """Placeholder for class-specific function, to be redefined by classes
+    """
+    Placeholder for class-specific function, to be redefined by classes
     that are derived from PyNodeNamedGroups. Called by ._check_groupspecs().
     It allows the specification of one or more specific groupspecs.
     """
@@ -283,7 +286,9 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _check_groupspecs (self, trace=False):
-    """Helper function to check the user-specified group specs"""
+    """
+    Helper function to check the user-specified group specs
+    """
 
     if trace:
       self.display('_check_groupspecs() input')
@@ -314,7 +319,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _check_groupspec(self, rr, trac=True):
-    """Helper function to check the validity of the given group
+    """
+    Helper function to check the validity of the given group
     specification (rr), which will be used to extract information
     from its children. Called by .update_state().
     """
@@ -371,7 +377,8 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   def _extract_namedgroups(self, children, child_indices,
                            child_labels=None, trace=False):
-    """Helper function to extract named groups from the
+    """
+    Helper function to extract named groups from the
     given child-results (children). Called by .get_result().
     """
 
@@ -429,6 +436,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     # Then do the groupspecs that are strings (python extressions)
     # They are derived groups:
+    self.display('_extract_namedgroups()')
     for key in self._gs_order:
       rr = self.groupspecs[key]                                 # convenience
       if isinstance(rr,str):
@@ -454,7 +462,8 @@ class PyNodeNamedGroups (pynode.PyNode):
                           childnos=None, nodes=None,
                           labels=None, history='History',
                           derived=False, trace=True):
-    """Helper function to create a new namedgroup record.
+    """
+    Helper function to create a new namedgroup record.
     Called (only) from ._extract_namedgroups(). 
     """
     # Finishing touches on its history (list of strings)
@@ -498,7 +507,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _make_child_selection (self, nc, rr, trace=False):
-    """Helper function that returns a list of indices for a subset
+    """
+    Helper function that returns a list of indices for a subset
     of the nc child nodes. Called from _extract_named_groups()
     """
     
@@ -532,7 +542,9 @@ class PyNodeNamedGroups (pynode.PyNode):
   #===================================================================
 
   def oneliner(self):
-    """Helper function to show a one-line summary of this object"""
+    """
+    Helper function to show a one-line summary of this object
+    """
     ss = '** '+self.class_name+' '+self.name+':'
     ss += '  count='+str(self._count)
     if not len(self._ng_order)==len(self._gs_order):
@@ -543,12 +555,16 @@ class PyNodeNamedGroups (pynode.PyNode):
 
 
   def _prefix(self, level=0):
-    """Helper function to generate prefix string for display."""
+    """
+    Helper function to generate prefix string for display.
+    """
     return level*'... '
 
   
   def _preamble(self, level, txt=None, classname='<classname>'):
-    """Helper function, called at start of .display()"""
+    """
+    Helper function, called at start of .display()
+    """
     prefix = self._prefix(level)
     if level==0:
       print prefix,'\n'
@@ -561,7 +577,9 @@ class PyNodeNamedGroups (pynode.PyNode):
 
 
   def _postamble(self, level, txt=None):
-    """Helper function, called at end of .display()"""
+    """
+    Helper function, called at end of .display()
+    """
     prefix = self._prefix(level)
     if level>0:
       pass
@@ -575,7 +593,8 @@ class PyNodeNamedGroups (pynode.PyNode):
 #---------------------------------------------------------------------
 
   def display (self, txt=None, full=False, level=0):
-    """Helper function to show the contents of this object
+    """
+    Helper function to show the contents of this object
     """
     prefix = self._preamble(level, txt=txt, classname='PyNodeNamedGroups')
     n = len(self.child_indices)
@@ -623,8 +642,25 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
   #-------------------------------------------------------------------
 
+  def group_history (self, key, append=None, clear=False, trace=True):
+    """
+    Helper function to interact with the history of the specified group.
+    """
+    hist = self._namedgroups[key]['history']  
+    if isinstance(append,str):
+      if isinstance(hist,tuple):
+        hist = hist.__add__((append,))
+      elif isinstance(hist,list):
+        hist.append(append)
+      self._namedgroups[key]['history'] = hist  
+    return hist
+
+  #-------------------------------------------------------------------
+
   def get_result (self, request, *children):
-    """Required pyNode function."""
+    """
+    Required pyNode function.
+    """
 
     trace = False
     # trace = True
@@ -650,9 +686,10 @@ class PyNodeNamedGroups (pynode.PyNode):
         # NB: The order is not important here, because the
         # group values have all been calculated by the child.
         rr = child['namedgroups']
-        for key in rr.keys():  
+        for key in rr.keys():
           self._namedgroups[key] = rr[key]  
           self._ng_order.append(key)
+          self.group_history(key, append='copied from child pynode')
       else:
         # Append child to the list of 'regular' children.
         cc.append(child)
@@ -688,10 +725,12 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _evaluate(self, expr, trace=False):
-    """Evaluate the given (python, string) expression, in which the
+    """
+    Evaluate the given (python, string) expression, in which the
     names of the namedgroups (enclosed in {}) are variables.
     The groups must have values, and the result is a list/vector.
     """
+    trace = True
     if trace:
       print '\n** _evaluate(',expr,'):'
 
@@ -729,7 +768,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _expr2dvv(self, expr, trace=False):
-    """Return the dvv (stddev) of the first (!?) namedgroup that appears as
+    """
+    Return the dvv (stddev) of the first (!?) namedgroup that appears as
     a variable {<name>} in the given expression.
     NB: This is just a placeholder, until it is done properly....
     """
@@ -747,7 +787,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _expr2labels(self, expr, trace=False):
-    """Return the labels of the first (!?) namedgroup that appears as
+    """
+    Return the labels of the first (!?) namedgroup that appears as
     a variable {<name>} in the given expression. 
     """
     if trace:
@@ -765,7 +806,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
 
   def _expr2childnos(self, expr, trace=False):
-    """Return the child numbers of the first (!?) namedgroup that appears as
+    """
+    Return the child numbers of the first (!?) namedgroup that appears as
     a variable {<name>} in the given expression. To be used as xx. 
     """
     if trace:
@@ -835,7 +877,9 @@ def format_vv (vv):
 
 class ExampleDerivedClass (PyNodeNamedGroups):
   """
-  Example of a class derived from PyNodeNamedGroups
+  Example of a class derived from PyNodeNamedGroups. 
+  NB: The (preferred) alternative to a derived class is
+  a function like pynode_NamedGroups().
   """
 
   def __init__ (self, *args, **kwargs):
@@ -846,6 +890,7 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
   def help (self, ss=None, level=0, mode=None):
     """
+    Link in the chain to provide hierarchical help for the inheritance tree.
     """
     ss = self.attach_help(ss, ExampleDerivedClass.__doc__,
                           classname='ExampleDerivedClass',
@@ -855,7 +900,8 @@ class ExampleDerivedClass (PyNodeNamedGroups):
   #-------------------------------------------------------------------
 
   def define_specific_groupspecs(self, trace=True):  
-    """Class-specific re-implementation. It allows the specification
+    """
+    Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
     """
     if True:
@@ -877,70 +923,109 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
 
 #=====================================================================================
-# pynode_...Group() functions
+# pynode_...Group() functions (preferred alternative to derived classes)
 #=====================================================================================
 
 def pynode_XGroup (ns, nodes, labels=None,
                    nodename=None, quals=None, kwquals=None,
-                   groupspecs=None, **kwargs):
+                   groupspecs=None):
   """
   Create and return a pynode of class PyNodeNamedGroups, with groupname='x'.
+  This particular group is used by some PyNodePlot classes as x-coordinates.
+  Syntax:
+  .   import PyNodeNamedGroups as PNNG
+  .    pynode = PNNG.pynode_XGroup (ns, nodes, labels=None,
+  .                                 nodename=None, quals=None, kwquals=None,
+  .                                 groupspecs=None, **kwargs)
+  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='x',
+  .   and the same arguments. The latter are explained in that function.
   """
   if not isinstance(nodename, str):
     nodename = 'pynode_XGroup'
   return pynode_NamedGroup (ns, nodes, 'x', labels=labels,
                             nodename=nodename, quals=quals, kwquals=kwquals,
-                            groupspecs=groupspecs, **kwargs)
+                            groupspecs=groupspecs)
 
 #--------------------------------------------------------------------
 
 def pynode_YGroup (ns, nodes, labels=None,
                    nodename=None, quals=None, kwquals=None,
-                   groupspecs=None, **kwargs):
+                   groupspecs=None):
   """
   Create and return a pynode of class PyNodeNamedGroups, with groupname='y'.
+  This particular group is used by some PyNodePlot classes as y-coordinates.
+  Syntax:
+  .   import PyNodeNamedGroups as PNNG
+  .    pynode = PNNG.pynode_YGroup (ns, nodes, labels=None,
+  .                                 nodename=None, quals=None, kwquals=None,
+  .                                 groupspecs=None, **kwargs)
+  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='y',
+  .   and the same arguments. The latter are explained in that function.
   """
   if not isinstance(nodename, str):
     nodename = 'pynode_YGroup'
   return pynode_NamedGroup (ns, nodes, 'y', labels=labels,
                             nodename=nodename, quals=quals, kwquals=kwquals,
-                            groupspecs=groupspecs, **kwargs)
+                            groupspecs=groupspecs)
 
 #--------------------------------------------------------------------
 
-def pynode_NamedGroup (ns, nodes, groupname='allvells', labels=None,
+def pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
                        nodename=None, quals=None, kwquals=None,
-                       groupspecs=None, **kwargs):
+                       groupspecs=None):
   """
   Create and return a pynode of class PyNodeNamedGroups,
   with the nodes (children) in the named (groupname) group.
+  Syntax:
+  .   import PyNodeNamedGroups as PNNG
+  .   pynode = PNNG.pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
+  .                                    nodename=None, quals=None, kwquals=None,
+  .                                    groupspecs=None, **kwargs)
+  Mandatory arguments:
+  - ns:          nodescope
+  - nodes:       list of (child) nodes whose results are to be used.
+  .              NB: Some or all of these child nodes may be other pynodes of
+  .              the PyNodeNamedGroups class. The named groups in their results
+  .              will be copied to the new pynode. This mechanism allows concatenation
+  .              of PyNodeNamedGroups pynodes, which is very powerful.
+  Optional arguments:
+  - groupname:   name of the 'named group' to be created. If not supplied,
+  .                a default 'allvells' group will be created.
+  - labels:      list of labels for the node results. If not supplied, or the wrong
+  .                length, they will be derived from the node names.
+  - nodename:    name of the resulting pynode
+  - quals:       list of qualifiers
+  - kwquals:     dict of keyword qualifiers
+  - groupspecs:  dict of further group specification(s). (to be elaborated)
   """
   trace = False
-  if kwargs.has_key('trace'):
-    trace = kwargs['trace']
-    kwargs.__delitem__('trace')
+  trace = True
+  # if kwargs.has_key('trace'):
+  #   trace = kwargs['trace']
+  #   kwargs.__delitem__('trace')
 
-  # Condition the groupspecs record:
-  if not isinstance(groupspecs, dict):
-    groupspecs = record()
-  if not groupspecs.has_key(groupname):     # make sure of a record for the named group    
-    groupspecs[groupname] = record()        # e.g. groupspecs['x'] = record()
+  # Condition the groupspecs record (if required):
+  if isinstance(groupname, str):              # if not specified, the 'allvells' group will be created....             
+    if not isinstance(groupspecs, dict):     
+      groupspecs = record()
+    if not groupspecs.has_key(groupname):     # make sure of a record for the named group    
+      groupspecs[groupname] = record()        # e.g. groupspecs['x'] = record()
     
   if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
     lcn = EN.largest_common_name(nodes)
     labels = EN.get_plot_labels(nodes, lcn=lcn, trace=trace)
-    if not groupspecs.has_key('title'):
-      groupspecs['title'] = lcn
 
   # Create the PyNode:
   if not isinstance(nodename, str):
-    nodename = 'pynode_NamedGroup_'+str(groupname)
+    nodename = 'pynode_NamedGroup_'
+  if isinstance(groupname, str):                  
+    nodename += str(groupname)
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
                               groupspecs=groupspecs,
                               class_name='PyNodeNamedGroups',
-                              module=__file__)
+                              module_name=__file__)
   if trace:
     print '->',str(pynode)
   return pynode
@@ -952,6 +1037,47 @@ def pynode_NamedGroup (ns, nodes, groupname='allvells', labels=None,
 #=====================================================================================
 
 def _define_forest (ns,**kwargs):
+  """Make trees with the various pyNodes"""
+
+  cc = []
+
+  nodes = EB.cloud(ns,'n6s2')
+  viewer = 'Record Browser'
+  
+  if True:
+    node = pynode_XGroup(ns, nodes)
+    Meow.Bookmarks.Page('XGroup').add(node, viewer=viewer)
+    cc.append(node)
+
+  if True:
+    node = pynode_YGroup(ns, nodes)
+    Meow.Bookmarks.Page('YGroup').add(node, viewer=viewer)
+    cc.append(node)
+
+  if True:
+    # Concatenate the pynodes in cc:
+    node = pynode_NamedGroup(ns, cc, 'concat')
+    Meow.Bookmarks.Page('concat').add(node, viewer=viewer)
+    cc.append(node)
+    
+  if True:
+    node = pynode_NamedGroup(ns, nodes, 'user')
+    Meow.Bookmarks.Page('NamedGroup_user').add(node, viewer=viewer)
+    cc.append(node)
+
+  if True:
+    node = pynode_NamedGroup(ns, nodes)
+    Meow.Bookmarks.Page('NamedGroup').add(node, viewer=viewer)
+    cc.append(node)
+
+   
+  # Finished:
+  ns['rootnode'] << Meq.Composer(*cc)
+  return True
+
+#-------------------------------------------------------------------------------------
+
+def _define_forest_old (ns,**kwargs):
   """Make trees with the various pyNodes"""
   
 
