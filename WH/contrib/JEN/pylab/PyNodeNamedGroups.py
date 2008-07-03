@@ -117,6 +117,7 @@ class PyNodeNamedGroups (pynode.PyNode):
   """
 
   def __init__ (self, *args, **kwargs):
+    print '\n** entering PyNodeNamedGroups.__init__()\n'
     pynode.PyNode.__init__(self,*args);
     self.set_symdeps('domain','resolution')
     self._count = -1
@@ -124,6 +125,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     self._gs_order = []
     self._namedgroups = record()
     self._ng_order = []
+    print '\n** leaving PyNodeNamedGroups.__init__()\n'
     return None
 
   #-------------------------------------------------------------------
@@ -197,6 +199,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     
   def update_state (self, mystate):
     """
+    in PyNodeNamedGroups.py
     Read information from the pynode state record. This is called
     when the node is first created and a full state record is available.
     But also when state changes, and only a partial state record is
@@ -205,6 +208,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     which encapsulates the state record with some additional semantics.
     """
 
+    print '\n** PNNG.update_state(mystate=',type(mystate),'):\n'
     trace = False
     # trace = True
 
@@ -256,12 +260,21 @@ class PyNodeNamedGroups (pynode.PyNode):
     
     # Read the groupspecs record, and check it:
     mystate('groupspecs', None)
-    if not isinstance(self.groupspecs, record):
-      self.groupspecs = record()             # make sure it is a record
-
-    self.define_specific_groupspecs()        # (re-implemented) class-specific function 
-
-    self._check_groupspecs()
+    print '\n**',self.class_name,self.name,': input self.groupspecs =',self.groupspecs,type(self.groupspecs),'\n'
+    if isinstance(self.groupspecs,(int,bool)):      # e.g. False
+      self.groupspecs = record()               # make sure it is a record
+      self.define_specific_groupspecs()        # (re-implemented) class-specific function 
+      self._check_groupspecs(default=False)    # if empty, do nothing
+    elif self.groupspecs==None:
+      self.groupspecs = record()               # make sure it is a record
+      self.define_specific_groupspecs()        # (re-implemented) class-specific function
+      self._check_groupspecs(default=True)     # if empty, make default 'allvells' group  
+    elif isinstance(self.groupspecs, record):
+      self.define_specific_groupspecs()        # (re-implemented) class-specific function 
+      self._check_groupspecs()
+    else:
+      s = '\n** groupspecs type not recognized: '+str(type(self.groupspecs)) 
+      raise ValueError,s
 
     # Optional: test-evaluation (see .get_result()):
     mystate('testeval', undef)               # only used if it is a string (expr)
@@ -278,23 +291,28 @@ class PyNodeNamedGroups (pynode.PyNode):
   def define_specific_groupspecs(self, trace=True):  
     """
     Placeholder for class-specific function, to be redefined by classes
-    that are derived from PyNodeNamedGroups. Called by ._check_groupspecs().
+    that are derived from PyNodeNamedGroups. 
     It allows the specification of one or more specific groupspecs.
     """
     return None
 
   #-------------------------------------------------------------------
 
-  def _check_groupspecs (self, trace=False):
+  def _check_groupspecs (self, default=True, trace=False):
     """
-    Helper function to check the user-specified group specs
+    Helper function to check the user-specified groupspecs.
+    If default=True, make sure that there is at least one group ('allvells').
     """
+
+    default = False
+    print '\n** ',self.class_name,self.name,': ._check_groupspecs(default=',default,')\n'
 
     if trace:
-      self.display('_check_groupspecs() input')
+      self.display('_check_groupspecs(default=',default,') input')
 
-    if len(self.groupspecs)==0:
-      self.groupspecs['allvells'] = record() # at least one group (named allvells)
+    # if len(self.groupspecs)==0:
+    #   if default:
+    #     self.groupspecs['allvells'] = record() # at least one group (named allvells)
 
     self._gs_order = []                      # make the order user-specifiable?
     for key in self.groupspecs.keys():
@@ -878,8 +896,8 @@ def format_vv (vv):
 class ExampleDerivedClass (PyNodeNamedGroups):
   """
   Example of a class derived from PyNodeNamedGroups. 
-  NB: The (preferred) alternative to a derived class is
-  a function like pynode_NamedGroups().
+  NB: The (preferred) alternative to a derived class is the use of
+  a function like pynode_NamedGroups(), as defined in this module.
   """
 
   def __init__ (self, *args, **kwargs):
@@ -936,7 +954,7 @@ def pynode_XGroup (ns, nodes, labels=None,
   .   import PyNodeNamedGroups as PNNG
   .    pynode = PNNG.pynode_XGroup (ns, nodes, labels=None,
   .                                 nodename=None, quals=None, kwquals=None,
-  .                                 groupspecs=None, **kwargs)
+  .                                 groupspecs=None)
   NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='x',
   .   and the same arguments. The latter are explained in that function.
   """
@@ -958,7 +976,7 @@ def pynode_YGroup (ns, nodes, labels=None,
   .   import PyNodeNamedGroups as PNNG
   .    pynode = PNNG.pynode_YGroup (ns, nodes, labels=None,
   .                                 nodename=None, quals=None, kwquals=None,
-  .                                 groupspecs=None, **kwargs)
+  .                                 groupspecs=None)
   NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='y',
   .   and the same arguments. The latter are explained in that function.
   """
@@ -980,7 +998,7 @@ def pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
   .   import PyNodeNamedGroups as PNNG
   .   pynode = PNNG.pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
   .                                    nodename=None, quals=None, kwquals=None,
-  .                                    groupspecs=None, **kwargs)
+  .                                    groupspecs=None)
   Mandatory arguments:
   - ns:          nodescope
   - nodes:       list of (child) nodes whose results are to be used.
@@ -1000,26 +1018,25 @@ def pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
   """
   trace = False
   trace = True
-  # if kwargs.has_key('trace'):
-  #   trace = kwargs['trace']
-  #   kwargs.__delitem__('trace')
+
+  # Check the name of the new node:
+  if not isinstance(nodename, str):
+    nodename = 'pynode_NamedGroup_'
 
   # Condition the groupspecs record (if required):
   if isinstance(groupname, str):              # if not specified, the 'allvells' group will be created....             
+    nodename += '_'+str(groupname)
     if not isinstance(groupspecs, dict):     
       groupspecs = record()
     if not groupspecs.has_key(groupname):     # make sure of a record for the named group    
       groupspecs[groupname] = record()        # e.g. groupspecs['x'] = record()
-    
+
+  # If no labels specified, derive them from the child nodenames:
   if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
     lcn = EN.largest_common_name(nodes)
     labels = EN.get_plot_labels(nodes, lcn=lcn, trace=trace)
 
   # Create the PyNode:
-  if not isinstance(nodename, str):
-    nodename = 'pynode_NamedGroup_'
-  if isinstance(groupname, str):                  
-    nodename += str(groupname)
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
@@ -1174,19 +1191,18 @@ if __name__ == '__main__':
   print '\n** Start of standalone test of: PyNodeNamedGroups.py:\n' 
   ns = NodeScope()
 
-  if False:
-    stub = EN.unique_stub(ns,'xxx')
-    nodes = []
-    for i in range(4):
-      nodes.append(stub(i) << Meq.Constant(i))
-  else:
-    nodes = EB.cloud(ns,'n64s2')
+  nodes = EB.cloud(ns,'n64s2')
+
+  if True:
+    pynode = pynode_NamedGroup(ns, nodes)
+    pynode = pynode_NamedGroup(ns, nodes, 'user')
 
   if False:
-    pynode = pynode_XGroup(ns, nodes, trace=True)
-    pynode = pynode_YGroup(ns, nodes, trace=True)
-    pynode = pynode_NamedGroup(ns, nodes, 'cc', trace=True)
-  
+    xx = pynode_XGroup(ns, nodes)
+    yy = pynode_YGroup(ns, nodes)
+    if False:
+      concat = pynode_NamedGroup(ns, [xx,yy], 'concat')
+   
   _define_forest(ns);
   ns.Resolve();
 

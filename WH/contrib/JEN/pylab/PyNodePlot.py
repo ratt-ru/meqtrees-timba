@@ -10,8 +10,26 @@
 #    - 21 apr 2008: derived from PyNodeNamedGroups)
 #    - 07 may 2008: Tony's version with pyfig
 #    - 23 may 2008: implemented plotspec ignore=expr
+#    - 03 jul 2008: implemented pynode_Plot() etc
 #
 # Remarks:
+#
+#  AGW: If I try to import pylab_plotter.py twice, it complains that
+#       it 'cannot import name PyNodeplot' ....?
+#       It is OK again if I restart the browser....
+#
+#  OMS: When I edit something in a baseclass (PyNodeNamedGroups),
+#       it only takes effect after killing the MeqServer(!)
+#       It is NOT sufficient to kill the MeqBrowser
+#
+#  OMS: When I print something in the baseclass, it is not printed
+#       on the screen when such a function is called from the
+#       derived class (in which the function is re-implemented).
+#       I call the baseclass version, of course, with self as an argument:
+#           PNNG.PyNodeNamedGroups.update_state(self, mystate)
+#       However, the function appears to be executed. Is there something
+#       with stdout from inside a baseclass function when called from a
+#       derived class...?
 #
 # Description:
 #
@@ -51,7 +69,10 @@ from Timba.Meq import meqds
 import Meow.Bookmarks
 
 # from Timba import pynode
-from Timba.Contrib.JEN.pylab import PyNodeNamedGroups
+from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
+from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyBundle as EB
 
 import inspect
 import random
@@ -65,7 +86,7 @@ Settings.forest_state.cache_policy = 100;
 # The PyNodePlot base class:
 #=====================================================================================
 
-class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
+class PyNodePlot (PNNG.PyNodeNamedGroups):
   """
   Base class for an entire zoo of plotting pyNodes.
   Itself derived from the class PyNodeNamedGroups, which
@@ -123,7 +144,9 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
   """
 
   def __init__ (self, *args, **kwargs):
-    PyNodeNamedGroups.PyNodeNamedGroups.__init__(self,*args);
+    print '\n** entering PyNodePlot.__init__()\n'
+    PNNG.PyNodeNamedGroups.__init__(self,*args);
+    print '\n** after PNNG.PyNodeNamedGroups.__init__()\n'
 
     self._plotypes = ['graphics']                # supported plot types
     self._plotypes.append('other')               # testing only
@@ -138,6 +161,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     self._standard = record()
     self.standard('color', clear=True, update=record(default='yellow'))
     self.standard('marker', clear=True, update=record(default='triangle'))
+    # print self.help()
     return None
 
 
@@ -149,12 +173,12 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     ss = self.attach_help(ss, PyNodePlot.__doc__,
                           classname='PyNodePlot',
                           level=level, mode=mode)
-    return PyNodeNamedGroups.PyNodeNamedGroups.help(self, ss, level=level+1, mode=mode) 
+    return PNNG.PyNodeNamedGroups.help(self, ss, level=level+1, mode=mode) 
 
   #--------------------------------------------------------------------
 
   def oneliner(self):
-    ss = PyNodeNamedGroups.PyNodeNamedGroups.oneliner(self)
+    ss = PNNG.PyNodeNamedGroups.oneliner(self)
     for plotype in self._plotypes:
       nn = [0,0]
       if self.plotspecs.has_key(plotype):
@@ -215,8 +239,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
 
     # NB: It is probably best to display the base-class info here...
-    PyNodeNamedGroups.PyNodeNamedGroups.display(self, txt, full=full,
-                                                level=level+1)
+    PNNG.PyNodeNamedGroups.display(self, txt, full=full, level=level+1)
     self._postamble(level)
     return True
 
@@ -226,6 +249,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     
   def update_state (self, mystate):
     """
+    in PyNodePlot.py
     Read information from the pynode state record. This is called
     when the node is first created and a full state record is available.
     But also when state changes, and only a partial state record is
@@ -240,7 +264,11 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     # First update all the namedgroup specifications:
     # This creates self.groupspecs (and self._gs_order) and
     # self._namedgroups (and self._ng_order).
-    PyNodeNamedGroups.PyNodeNamedGroups.update_state(self, mystate)
+    print '** BEFORE:'
+    print type(PNNG.PyNodeNamedGroups.update_state)
+    print PNNG.PyNodeNamedGroups.update_state.__doc__
+    r = PNNG.PyNodeNamedGroups.update_state(self, mystate)
+    print '** AFTER:',r
 
     # Read the plotspecs record, and check it:
     mystate('plotspecs', None)
@@ -261,9 +289,10 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
     if True:
       # Make sure that there is at least one plot specification....?
       n = 0
-      for plotype in self._plotypes:
-        n += len(self.plotspecs[plotype])
-      if n==0:
+      for plotype in self._plotypes:         # for each plotype
+        n += len(self.plotspecs[plotype])    #   count the plotspecs
+      if False and n==0:                              # <----- !!
+        # NOT a good idea(?), especially since allvells is not guaranteed...
         ps = record(y='{allvells}', color='cyan') 
         self.plotspecs['graphics'].append(ps)
 
@@ -409,8 +438,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
     # Fill self._namedgroups with named groups from its children.
     # These are also attached to the result, for concatenation.
-    result = PyNodeNamedGroups.PyNodeNamedGroups.get_result(self, request,
-                                                            *children)
+    result = PNNG.PyNodeNamedGroups.get_result(self, request,*children)
 
     # Re-initialize the record that contains the plot definitions:
     self._plotdefs = record()
@@ -636,7 +664,7 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 
   #-------------------------------------------------------------------
 
-  def define_subplots (self, children, trace=False):
+  def define_subplots_obsolete (self, children, trace=False):
     """
     See .help() for details.
     """
@@ -691,6 +719,8 @@ class PyNodePlot (PyNodeNamedGroups.PyNodeNamedGroups):
 class ExampleDerivedClass (PyNodePlot):
   """
   Example of a class derived from PyNodePlot.
+  NB: The (preferred) alternative to derived classes is the use of
+  functions like pynode_Plot(), as defined in this module.
   """
 
   def __init__ (self, *args, **kwargs):
@@ -913,12 +943,140 @@ def format_vv (vv):
   return s
 
 
+#=====================================================================================
+# pynode_...Group() functions (preferred alternative to derived classes)
+#=====================================================================================
+
+def pynode_PlotXY (ns, nodes, labels=None,
+                   nodename=None, quals=None, kwquals=None,
+                   groupspecs=False, plotspecs=None):
+  """
+  Create and return a pynode of class PyNodePlot with the nodes (children).
+  Syntax:
+  .   import PyNodePlot as PNP
+  .    pynode = PNP.pynode_PlotXY (ns, nodes, labels=None,
+  .                                nodename=None, quals=None, kwquals=None,
+  .                                groupspecs=False,
+  .                                plotspecs=None)
+  NB: It just calls the function PNP.pynode_Plot() with a specific plotspecs record
+  .   and the same arguments. The latter are explained in that function.
+  """
+
+  # Condition the plotspecs record (if required):
+  if not isinstance(plotspecs, dict):
+    plotspecs = record(graphics=[record(y='{y}', x='{x}', legend='y=\expr')])
+    if True:
+      plotspecs.graphics.append(record(y='{y}+{x}', x='{x}', color='red', legend='y=\expr'))
+      plotspecs.graphics.append(record(y='{y}*{x}/10', x='{x}', color='green', legend='y=\expr'))
+
+  if not isinstance(nodename, str):
+    nodename = 'pynode_PlotXY'
+  return pynode_Plot(ns, nodes, labels=labels,
+                     nodename=nodename, quals=quals, kwquals=kwquals,
+                     groupspecs=groupspecs, plotspecs=plotspecs)
+
+
+
+#--------------------------------------------------------------------------------------
+
+def pynode_Plot (ns, nodes, labels=None,
+                 nodename=None, quals=None, kwquals=None,
+                 groupspecs=None,
+                 plotspecs=None):
+  """
+  Create and return a pynode of class PyNodePlot with the nodes (children).
+  Syntax:
+  .   import PyNodePlot as PNP
+  .   pynode = PNP.pynode_Ploy (ns, nodes, labels=None,
+  .                             nodename=None, quals=None, kwquals=None,
+  .                             groupspecs=None,
+  .                             plotspecs=None)
+  Mandatory arguments:
+  - ns:          nodescope
+  - nodes:       list of (child) nodes whose results are to be used.
+  .              NB: Some or all of these child nodes may be other pynodes of
+  .              the PyNodeNamedGroups class. The named groups in their results
+  .              will be copied to the new pynode. This mechanism allows concatenation
+  .              of PyNodeNamedGroups pynodes, which is very powerful.
+  Optional arguments:
+  - labels:      list of labels for the node results. If not supplied, or the wrong
+  .                length, they will be derived from the node names.
+  - nodename:    name of the resulting pynode
+  - quals:       list of qualifiers
+  - kwquals:     dict of keyword qualifiers
+  - plotspecs:   list of further plot specification(s). (to be elaborated)
+  - groupspecs:  dict of further group specification(s). (to be elaborated)
+  """
+  trace = False
+  trace = True
+
+  if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
+    lcn = EN.largest_common_name(nodes)
+    labels = EN.get_plot_labels(nodes, lcn=lcn, trace=trace)
+
+  # Condition the plotspecs record (if required):
+  if not isinstance(plotspecs, dict):
+    plotspecs = record(graphics=[])
+  plotspecs.setdefault('title',lcn)
+  # ps = record(title='test', graphics=[record(y='{a}'), record(x='{b}')])
+    
+  # Create the PyNode:
+  if not isinstance(nodename, str):
+    nodename = 'pynode_Plot_'
+  stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+  pynode = stub << Meq.PyNode(children=nodes,
+                              child_labels=labels,
+                              groupspecs=groupspecs,
+                              plotspecs=plotspecs,
+                              class_name='PyNodePlot',
+                              module_name=__file__)
+  if trace:
+    print '->',str(pynode)
+  return pynode
+  
 
 #=====================================================================================
 # Make a test-forest:
 #=====================================================================================
-
 def _define_forest (ns,**kwargs):
+  """Make trees with the various pyNodes"""
+
+  viewer = 'Pylab Plotter'
+  cc = []
+
+  nodes = EB.cloud(ns,'n6s2')
+
+  if True:
+    # The somplest possible case:
+    node = pynode_Plot(ns, nodes)
+    Meow.Bookmarks.Page('Plot').add(node, viewer=viewer)
+    Meow.Bookmarks.Page('Plot_state_record').add(node, viewer="Record Browser")
+    cc.append(node)
+  
+  if True:
+    # Plotting of concatenated pynodes:
+    node = PNNG.pynode_XGroup(ns, nodes)
+    Meow.Bookmarks.Page('XGroup').add(node, viewer="Record Browser")
+    cc.append(node)
+
+    node = PNNG.pynode_YGroup(ns, nodes)
+    Meow.Bookmarks.Page('YGroup').add(node, viewer="Record Browser")
+    cc.append(node)
+
+    # Concatenate the pynodes in cc:
+    node = pynode_PlotXY(ns, cc, 'concat')
+    Meow.Bookmarks.Page('concat').add(node, viewer=viewer)
+    Meow.Bookmarks.Page('concat_state_record').add(node, viewer="Record Browser")
+    cc.append(node)
+    
+   
+  # Finished:
+  ns['rootnode'] << Meq.Composer(*cc)
+  return True
+
+#--------------------------------------------------------------------
+
+def _define_forest_old (ns,**kwargs):
   """Make trees with the various pyNodes"""
 
   viewer = "Svg Plotter"
@@ -1022,29 +1180,29 @@ if True:
 
 if __name__ == '__main__':
 
-  # run in batch mode?
-  if '-run' in sys.argv:
-    from Timba.Apps import meqserver
-    from Timba.TDL import Compile
+  print '\n** Start of standalone test of: PyNodePlot.py:\n' 
+  ns = NodeScope()
+
+  nodes = EB.cloud(ns,'n64s2')
+
+  if True:
+    pynode = pynode_Plot(ns, nodes)
+
+  if False:
+    pynode = pynode_Plot(ns, nodes, 'user')
+
+  if False:
+    xx = pynode_XGroup(ns, nodes)
+    yy = pynode_YGroup(ns, nodes)
+    if False:
+      concat = pynode_PlotXY(ns, [xx,yy], 'concat')
     
-    # this starts a kernel.
-    mqs = meqserver.default_mqs(wait_init=10);
+  
+  _define_forest(ns);
+  ns.Resolve();
 
-    # This compiles a script as a TDL module. Any errors will be thrown as
-    # an exception, so this always returns successfully. We pass in
-    # __file__ so as to compile ourselves.
-    (mod,ns,msg) = Compile.compile_file(mqs,__file__);
-    
-    # this runs the _test_forest job.
-    mod._test_forest(mqs,None,wait=True);
+  print '\n** End of standalone test of: PyNodePlot.py:\n' 
 
-  elif False:
-    pp = PyNodePlotXY()
-    print pp.help()
+#========================================================================
 
-  else:
-    #  from Timba.Meq import meqds 
-    # Timba.TDL._dbg.set_verbose(5);
-    ns = NodeScope();
-    _define_forest(ns);
-    ns.Resolve();
+
