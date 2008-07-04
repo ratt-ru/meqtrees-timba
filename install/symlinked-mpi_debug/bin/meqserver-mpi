@@ -1,4 +1,4 @@
 #!/bin/bash
-source $HOME/Timba/install/timba-init.sh
-_timba-setup symlinked-mpi_debug
+source $HOME/Timba/install/timba-init.sh 
+timba-setup symlinked-mpi_debug
 meqserver $*

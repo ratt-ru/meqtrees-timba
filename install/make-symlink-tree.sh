@@ -70,8 +70,7 @@ if [ -f meqserver-mpi ]; then
 else
   cat <<END >meqserver-mpi
 #!/bin/bash
-source \$HOME/Timba/install/timba-init.sh
-_timba-setup symlinked-$flavour
+source \$HOME/Timba/install/timba-init.sh symlinked-$flavour
 meqserver \$*
 END
   chmod 755 meqserver-mpi

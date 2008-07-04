@@ -19,10 +19,34 @@ if [ -z "$TIMBA_PATH" ]; then
   echo "Using \$TIMBA_PATH $TIMBA_PATH"
 fi
 
+valid-timba-versions()
+{
+  _tvers=""
+  if [ -z $1 ]; then
+    pattern="*";
+  else
+    pattern="*$1*"
+  fi
+  for f in $TIMBA_PATH/install/$pattern/bin; do
+    if [ -d $f ]; then
+      f=${f%/bin}
+      f=${f##*/}
+      _tvers="$_tvers $f"
+    fi
+  done
+  echo -n $_tvers
+}
+
+timba_versions=`valid-timba-versions`
+
 if [ ! -d $TIMBA_PATH/install ]; then
-  echo "Warning: cannot find Timba install under $TIMBA_PATH"
-  echo "If Timba is installed elsewhere, please set your TIMBA_PATH variable appropriately."
+  echo "Warning: cannot find a MeqTree install under $TIMBA_PATH"
+  echo "If MeqTrees are installed elsewhere, please set your TIMBA_PATH variable appropriately."
+elif [ -z "$timba_versions" ]; then
+  echo "Warning: cannot find any MeqTree versions in $TIMBA_PATH/install"
+  echo "If MeqTrees are installed elsewhere, please set your TIMBA_PATH variable appropriately."
 else
+  echo "Available MeqTree versions: $timba_versions";
   if [ "$PRE_TIMBA_PATH" == "" ]; then
     export PRE_TIMBA_PATH=$PATH
   fi
@@ -33,17 +57,38 @@ else
     export PRE_TIMBA_PYTHONPATH=$PYTHONPATH
   fi
 
-  _timba-setup()
+  timba-setup()
   {
-    if [ ! -d $TIMBA_PATH/install/$1/bin ]; then
-      echo "Timba version $TIMBA_PATH/install/$1 not found" 
+    if [ -z $1 ]; then
+      echo "timba-setup: sets up paths, etc. for running MeqTrees"
+      echo "Usage: timba-setup <version>"
+      echo -n "where version is one of: "
+      valid-timba-versions
+      return
+    fi
+    versions="`valid-timba-versions $1`"
+    if [ -z "$versions" ]; then
+      echo "No MeqTree version matching $TIMBA_PATH/install/*$1* found" 
+      echo "You need to re-run timba-setup <version>"
+      echo -n "where version is one of: "
+      valid-timba-versions
+      echo ""
+    elif [ "$versions" != "${versions% *}" ]; then
+      echo "Multiple MeqTree versions matching $TIMBA_PATH/install/*$1* found" 
+      echo "You need to re-run timba-setup <version>"
+      echo "where version is one of: $versions"
     else
-      export PATH=$PRE_TIMBA_PATH:$TIMBA_PATH/install/$1/bin
-      export PYTHONPATH=$PRE_TIMBA_PYTHONPATH:.:$TIMBA_PATH/install/$1/libexec/python
-      export LD_LIBRARY_PATH=$PRE_TIMBA_LD_LIBRARY_PATH:$TIMBA_PATH/install/$1/lib
-      echo "Using Timba version $TIMBA_PATH/install/$1"
+      export PATH=$TIMBA_PATH/install/$versions/bin:$PRE_TIMBA_PATH
+      export PYTHONPATH=$TIMBA_PATH/install/$versions/libexec/python:.:$PRE_TIMBA_PYTHONPATH
+      export LD_LIBRARY_PATH=$TIMBA_PATH/install/$versions/lib:$PRE_TIMBA_LD_LIBRARY_PATH
+      echo "Using MeqTree version $TIMBA_PATH/install/$versions"
+      export TIMBA_CURRENT_VERSION="$versions"
     fi
   }
+  _timba-setup() 
+  { 
+    timba-setup $*
+  }
 
-  _timba-setup current
+  timba-setup current
 fi
