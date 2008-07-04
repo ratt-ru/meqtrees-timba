@@ -35,36 +35,50 @@ import Meow
 import Meow.Utils
 import sets
 
-# figure out which table implementation to use.
+# figure out which table implementation to use -- try pyrap/casacore first
 try:
-  import pycasatable
-  TABLE = pycasatable.table
-  print "Meow.MSUtils: using the pycasatable module"
+  import pyrap_tables
+  TABLE = pyrap_tables.table
+  print "Meow.MSUtils: using the pyrap_tables module"
 except:
+  # else try the old pycasatable/aips++ thing
   try:
-    import pyrap_tables
-    TABLE = pyrap_tables.table
-    print "Meow.MSUtils: using the pyrap_tables module"
+    import pycasatable
+    TABLE = pycasatable.table
+    print "Meow.MSUtils: using the pycasatable module. WARNING: this is deprecated."
+    print "Please install pyrap and casacore!"
   except:
     TABLE = None;
     print "Meow.MSUtils: no tables module found, GUI functionality will be reduced"
+    print "Please install pyrap and casacore!"
+
+def find_exec (execname):
+  path = os.environ.get('PATH') or os.defpath;
+  for dirname in path.split(os.pathsep):
+    fname = os.path.join(dirname,execname);
+    if os.access(fname,os.R_OK|os.X_OK):
+      return fname;
+  return None;
 
 # figure out if we have an imager
-if os.system('which lwimager >/dev/null') == 0 :
+_lwi = find_exec('lwimager');
+if _lwi:
   _IMAGER = "python";
-  print "Meow.MSUtils: found lwimager, will use that for imaging";
-elif os.system('which glish >/dev/null') == 0 :
-  _IMAGER = 'glish';
-  print "Meow.MSUtils: found glish, will use glish scripts for imaging";
+  print "Meow.MSUtils: found %s, will use that for imaging"%_lwi;
 else:
-  _IMAGER = None;
-  print "Meow.MSUtils: no imager found";
+  gli = find_exec('glish');
+  if gli:
+    _IMAGER = 'glish';
+    print "Meow.MSUtils: found %s, will use glish scripts for imaging"%_gli;
+  else:
+    _IMAGER = None;
+    print "Meow.MSUtils: no imager found";
   
 # figure out if we have a visualizer
-_VISUALIZER = None;
-if os.system('which kvis >/dev/null') == 0:
-  _VISUALIZER = 'kvis';
-  print "Meow.MSUtils: found kvis";
+#_VISUALIZER = None;
+#if os.system('which kvis >/dev/null') == 0:
+#  _VISUALIZER = 'kvis';
+#  print "Meow.MSUtils: found kvis";
 
 
 # queue size parameter for MS i/o record

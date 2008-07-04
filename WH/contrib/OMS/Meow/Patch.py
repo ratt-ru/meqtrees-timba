@@ -74,35 +74,8 @@ class Patch (SkyComponent):
     if not self._components:
       [ nodes(*ifr) << 0.0 for ifr in ifrs ];
     else:
-      # add them up per-ifr
-      # If Parallelization is enabled, divide sources into batches and
-      # place on each machine
-      if Parallelization.mpi_enable and getattr(Parallelization,'parallelize_by_source',False):
-        nproc = Parallelization.mpi_nproc;
-        # how many sources per processor?
-        nsrc = len(self._components);
-        src_per_proc = [nsrc/nproc]*nproc;
-        # distriebute remainder over a few processors
-        remainder = nsrc%nproc;
-        if remainder != 0:
-          for i in range(1,remainder+1):
-            src_per_proc[i] += 1;
-        # now loop over processors
-        per_proc_nodes = [];
-        isrc0 = 0;
-        for proc in range(nproc):
-          isrc1 = isrc0 + src_per_proc[proc];
-          # this node will contain the per-processor sum
-          procnode = nodes('P%d'%proc);
-          per_proc_nodes.append(procnode);
-          # now, make nodes to add contributions of every source on that processor
-          compvis = [ comp.visibilities(array,observation) for comp in self._components[isrc0:isrc1] ];
-          smart_adder(procnode,compvis,ifrs,proc=proc);
-          isrc0 = isrc1;
-        # now, make one final sum of per-processor contributions
-        smart_adder(nodes,per_proc_nodes,ifrs,proc=0,mt_polling=True);
-      else:
-        # No parallelization, all sourced added up on one machine.
-        compvis = [ comp.visibilities(array,observation) for comp in self._components ];
-        smart_adder(nodes,compvis,ifrs);
+      compvis = [ comp.visibilities(array,observation) for comp in self._components ];
+      # use the intelligence in Parallelization to add in a smart way, depending on out
+      # parallelization settings
+      Parallelization.add_visibilities(nodes,compvis,ifrs);
     return nodes;

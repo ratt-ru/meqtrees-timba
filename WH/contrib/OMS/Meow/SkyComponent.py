@@ -58,6 +58,26 @@ class SkyComponent (Parameterization):
     with an (sta1,sta2) pair.
     """;
     raise TypeError,type(self).__name__+".make_visibilities() not defined";
+  
+  def is_station_decomposable (self):
+    """Returns true if source can be decomposed into per-station contributions
+    (i.e. if the sqrt_visibilities method below is implemented)""";
+    return False;
+  
+  def sqrt_visibilities (self,array=None,observation=None,nodes=None):
+    """If component can be decomposed into a per-station contribution,
+    this creates the per-station nodes. If not, None can be returned.
+    'array' is an IfrArray object, or None if the global context is to be used.
+    'observation' is an Observation object, or None if the global context is 
+      to be used.
+    If 'nodes' is None, creates sqrt-visibility nodes as ns.sqrtvis(name,...,p), 
+    where '...' are any extra qualifiers from observation.radec0().
+    Otherwise 'nodes' is supposed to refer to an unqualified node, and 
+    sqrt-visibility nodes are created as nodes(p).
+    Returns the actual unqualified sqrt-visibility node that was created, i.e. 
+    either 'nodes' itself, or the automatically named nodes. Else returns None
+    (if decomposition is not supported).""";
+    return None;
     
   def visibilities  (self,array=None,observation=None,nodes=None):
     """Creates nodes computing visibilities of component.

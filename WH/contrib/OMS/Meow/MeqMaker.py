@@ -32,7 +32,7 @@ import inspect
 import Meow
 from Meow import StdTrees
 from Meow import ParmGroup
-
+from Meow import Parallelization
 
 
 def _modname (obj):
@@ -70,10 +70,26 @@ class MeqMaker (object):
     self._source_list = None;
     self._solvable = solvable;
     self._inspectors = [];
+    
+    self.use_decomposition = True;
+    self._compile_options.append(
+      TDLOption('use_decomposition',"Use source coherency decomposition, if available",True,namespace=self,
+        doc="""If your source models are heavy on point sources, then an alternative form of the M.E. --
+        where the source coherency is decomposed into per-station contributions -- may produce 
+        faster and/or more compact trees. Check this option to enable. Your mileage may vary."""
+      )
+    );
+    self.use_jones_inspectors = True;
+    self._compile_options.append(
+      TDLOption('use_jones_inspectors',"Enable inspectors for Jones modules",True,namespace=self,
+        doc="""If enabled, then your trees will automatically include inspector nodes for all
+        Jones terms. This will slow things down somewhat -- perhaps a lot, in an MPI configuration --
+        so you might want to disable this in production trees."""
+      )
+    );
 
   def compile_options (self):
     return self._compile_options;
-
 
   def add_sky_models (self,modules):
     if self._sky_models:
@@ -289,17 +305,18 @@ class MeqMaker (object):
                                           tags=jt.label,label=jt.label,
                                           inspectors=inspectors);
       # if module does not make its own inspectors, add automatic ones
-      if inspectors:
-        jones_inspectors += inspectors;
-      elif Jj:
-        qual_list = [stations];
-        if sources:
-          qual_list.insert(0,sources);
-        jones_inspectors.append(
-            ns.inspector(jt.label) << StdTrees.define_inspector(Jj,*qual_list));
-      # add inspectors to internal list
-      for insp in jones_inspectors:
-        self._add_inspector(insp);
+      if self.use_jones_inspectors:
+        if inspectors:
+          jones_inspectors += inspectors;
+        elif Jj:
+          qual_list = [stations];
+          if sources:
+            qual_list.insert(0,sources);
+          jones_inspectors.append(
+              ns.inspector(jt.label) << StdTrees.define_inspector(Jj,*qual_list));
+        # add inspectors to internal list
+        for insp in jones_inspectors:
+          self._add_inspector(insp);
       # see if module has created any solvejobs; create one automatically if not
       if self._solvable:
         if ParmGroup.num_solvejobs() == prev_num_solvejobs:
@@ -309,7 +326,7 @@ class MeqMaker (object):
             ParmGroup.SolveJob("solve_%s"%jt.label,"Solve for %s"%jt.label,pg);
     return jt.base_node;
 
-  def make_predict_tree (self,ns,sources=None,stations=None):
+  def make_predict_tree (self,ns,sources=None):
     """makes predict trees using the sky model and ME.
     'ns' is a node scope
     'sources' is a list of sources; the current sky model is used if None.
@@ -318,10 +335,81 @@ class MeqMaker (object):
       should be the same if both make_predict_tree() and correct_uv_data() are invoked.
     Returns a base node which should be qualified with a station pair.
     """;
-    stations = stations or Meow.Context.array.stations();
+    stations = Meow.Context.array.stations();
+    ifrs = Meow.Context.array.ifrs();
     # use sky model if no source list is supplied
     sources = sources or self.get_source_list(ns);
 
+    # are we using decomposition? Then form up an alternate tree for decomposable sources.
+    dec_sky = None;
+    if self.use_decomposition:
+      # first, split the list into decomposable and non-decomposable sources
+      dec_sources = [ src for src in sources if src.is_station_decomposable() ];
+      sources = [ src for src in sources if not src.is_station_decomposable() ];
+      if dec_sources:
+        # for every decomposable source, build a jones chain, and multiply
+        # it by that source's sqrt-visibility
+        skychain = {};
+        for jt in self._sky_jones_list:
+          Jj = self._get_jones_nodes(ns,jt,stations,sources=dec_sources);
+          # if this Jones is enabled (Jj not None), add it to chain of each source
+          if Jj:
+            for src in dec_sources:
+              jones = Jj(src.name);
+              # only add to chain if this Jones term is initialized
+              if jones(stations[0]).initialized():
+                chain = skychain.setdefault(src.name,[]);
+                chain.insert(0,Jj(src.name));
+        # now, form up a chain of uv-Jones terms
+        uvchain = [];
+        for jt in self._uv_jones_list:
+          Jj = self._get_jones_nodes(ns,jt,stations);
+          if Jj:
+            uvchain.insert(0,Jj);
+        if uvchain:
+          # if only one uv-Jones, will use it directly
+          if len(uvchain) > 1:
+            for p in stations:
+              self.ns.uvjones(p) << Meq.MatrixMultiply(*[j(p) for j in uvchain]);
+            uvchain = [ self.ns.uvjones ];
+        # now, form up the corrupt sqrt-visibility (and its conjugate) of each source,
+        # then the final visibility
+        corrvis = ns.corrupt_vis;
+        sqrtcorrvis = ns.sqrt_corrupt_vis;
+        sqrtcorrvis_conj = sqrtcorrvis('conj'); 
+        for src in dec_sources:
+          # terms is a list of matrices to be multiplied
+          sqrtvis = src.sqrt_visibilities();
+          C = sqrtcorrvis(src);
+          Ct = sqrtcorrvis_conj(src);
+          jones_chain = uvchain + skychain.get(src.name,[]);
+          # if there's a real jones chain, multiply all the matrices
+          if jones_chain:
+            for p in stations:
+              C(p) << Meq.MatrixMultiply(*([j(p) for j in jones_chain]+[sqrtvis(p)]));
+              if p is not stations[0]:
+                Ct(p) << Meq.ConjTranspose(C(p));
+          # else use an identity relation
+          else:
+            for p in stations:
+              C(p) << Meq.Identity(sqrtvis(p));
+              if p is not stations[0]:
+                Ct(p) << Meq.ConjTranspose(C(p));
+          # ok, now get the visiblity of each source by multiplying its two per-station contributions
+          for p,q in ifrs:
+            ns.corrupt_vis(src,p,q) << Meq.MatrixMultiply(C(p),Ct(q));
+        # finally, sum up all the source contributions
+        # if no non-decomposable sources, then call the output 'visibility:sky', since
+        # it already contains everything
+        if sources:
+          dec_sky = ns.visibility('sky1');
+        else:
+          dec_sky = ns.visibility('sky');
+        Parallelization.add_visibilities(dec_sky,[ns.corrupt_vis(src) for src in dec_sources],ifrs);
+        if not sources:
+          return dec_sky;
+    
+    # now, proceed to build normal trees for non-decomposable sources
     # corrupt_sources will be replaced with a new source list every time
     # a Jones term is applied
     corrupt_sources = sources;
@@ -341,7 +429,11 @@ class MeqMaker (object):
         corrupt_sources = corr_sources;
 
     # now form up patch
-    allsky = Meow.Patch(ns,'sky',Meow.Context.observation.phase_centre);
+    if dec_sky:
+      patchname = 'sky2';
+    else:
+      patchname = 'sky';
+    allsky = Meow.Patch(ns,patchname,Meow.Context.observation.phase_centre);
     allsky.add(*corrupt_sources);
 
     # add uv-plane effects
@@ -350,8 +442,16 @@ class MeqMaker (object):
       if Jj:
         allsky = allsky.corrupt(Jj);
 
-    # return predicted visibilities
-    return allsky.visibilities();
+    # now, if we also have a contribution from decomposable sources, add it here
+    if dec_sky:
+      vis = ns.visibility('sky');
+      vis2 = allsky.visibilities();
+      for p,q in ifrs:
+        vis(p,q) << dec_sky(p,q) + vis2(p,q);
+    else:
+      vis = allsky.visibilities();
+      
+    return vis;
 
   make_tree = make_predict_tree; # alias for compatibility with older code
 

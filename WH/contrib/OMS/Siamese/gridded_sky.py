@@ -50,7 +50,7 @@ def point_source (ns,name,l,m,I=1):
       U = I*source_ui;
       V = I*source_vi;
     else:
-      Q = U = V = 0;
+      Q = U = V = None;
     return Meow.PointSource(ns,name,srcdir,I=I,Q=Q,U=U,V=V,spi=source_spi,freq0=freq0);
   else:
     return None;

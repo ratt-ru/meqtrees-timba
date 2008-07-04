@@ -53,8 +53,8 @@ class PointSource(SkyComponent):
     self._add_parm('I',I,tags="flux");
     # check if polarized
     # NB: disable for now, as Sink can't handle scalar results
-    self._polarized = True;
-    # self._polarized = Q is not None or U is not None or V is not None or RM is not None:
+    # self._polarized = True;
+    self._polarized = Q is not None or U is not None or V is not None or RM is not None;
     self._add_parm('Q',Q or 0.,tags="flux pol");
     self._add_parm('U',U or 0.,tags="flux pol");
     self._add_parm('V',V or 0.,tags="flux pol");
@@ -69,13 +69,19 @@ class PointSource(SkyComponent):
     self._has_rm = RM is not None;
     if self._has_rm:
       self._add_parm("RM",RM,tags="pol");
+    # flag: flux is fully defined by constants
+    self._constant_flux = not self._has_rm and not \
+                          [ flux for flux in STOKES if not self._is_constant(flux) ];
       
   def stokes (self,st):
     """Returns flux node for this source. 'st' must be one of 'I','Q','U','V'.
     (This is the flux after RM has been applied, but without spi).
+    If flux was defined as a constant, returns constant value, not node!
     """;
     if st not in STOKES:
       raise ValueError,"st: must be one of 'I','Q','U','V'";
+    if self._constant_flux:
+      return self._get_constant(st);
     # rotation measure rotates Q-U with frequency. So if no RM is given,
     # or if we're just asked for an I or V node, return it as is
     if st == "I" or st == "V" or not self._has_rm:
@@ -108,6 +114,26 @@ class PointSource(SkyComponent):
       nsp << Meq.Pow(freq/self._parm('spi_fq0'),self._parm('spi'));
     return nsp;
     
+  def coherency_elements (self,observation):
+    """helper method: returns the four components of the coherency matrix""";
+    i,q,u,v = [ self.stokes(st) for st in STOKES ];
+    if observation.circular():
+      if self._constant_flux:
+        return i+v,complex(q,u),complex(q,-u),i-v;
+      rr = self.ns.rr ** (self.stokes("I") + self.stokes("V"));
+      rl = self.ns.rl ** Meq.ToComplex(self.stokes("Q"),self.stokes("U"));
+      lr = self.ns.lr ** Meq.Conj(rl);
+      ll = self.ns.ll ** (self.stokes("I") - self.stokes("V"));
+      return rr,rl,lr,ll;
+    else:
+      if self._constant_flux:
+        return i+q,complex(u,v),complex(u,-v),i-q;
+      xx = self.ns.xx ** (self.stokes("I") + self.stokes("Q"));
+      xy = self.ns.xy ** Meq.ToComplex(self.stokes("U"),self.stokes("V"));
+      yx = self.ns.yx ** Meq.Conj(xy);
+      yy = self.ns.yy ** (self.stokes("I") - self.stokes("Q"));
+      return xx,xy,yx,yy;
+    
   def coherency (self,observation=None):
     """Returns the coherency matrix for a point source.
     'observation' argument is used to select a linear or circular basis;
@@ -119,23 +145,27 @@ class PointSource(SkyComponent):
     if not coh.initialized():
       # if not polarized, just return I
       if not self._polarized:
-        coh << self.stokes("I")*0.5*self.norm_spectrum();
-      elif observation.circular():
-        # create coherency elements
-        rr = self.ns.rr << (self.stokes("I") + self.stokes("V"));
-        rl = self.ns.rl << Meq.ToComplex(self.stokes("Q"),self.stokes("U"));
-        lr = self.ns.lr << Meq.Conj(rl);
-        ll = self.ns.ll << (self.stokes("I") - self.stokes("V"));
-        # create coherency node
-        coh << Meq.Matrix22(rr,rl,lr,ll)*0.5*self.norm_spectrum();
+        if self._has_spi:
+          if self._constant_flux:
+            coh << (self.stokes("I")*0.5)*self.norm_spectrum();
+          else:
+            coh << Meq.Multiply(self.stokes("I"),self.norm_spectrum(),.5);
+        else:
+          coh << self.stokes("I")*.5;
       else:
-        # create coherency elements
-        xx = self.ns.xx << (self.stokes("I") + self.stokes("Q"));
-        xy = self.ns.xy << Meq.ToComplex(self.stokes("U"),self.stokes("V"));
-        yx = self.ns.yx << Meq.Conj(xy);
-        yy = self.ns.yy << (self.stokes("I") - self.stokes("Q"));
-        # create coherency node
-        coh << Meq.Matrix22(xx,xy,yx,yy)*0.5*self.norm_spectrum();
+        coh_els = self.coherency_elements(observation);
+        if self._constant_flux:
+          if self._has_spi:
+            coh1 = self.ns.coh1 << Meq.Matrix22(*[x*.5 for x in coh_els]);
+            coh << coh1*self.norm_spectrum();
+          else:
+            coh << Meq.Matrix22(*[x*.5 for x in coh_els]);
+        else:
+          coh1 = self.ns.coh1 << Meq.Matrix22(*coh_els);
+          if self._has_spi:
+            coh << Meq.Multiply(coh1,self.norm_spectrum(),.5);
+          else:
+            coh << coh1*.5;
     return coh;
 
   def make_visibilities (self,nodes,array=None,observation=None):
@@ -145,3 +175,77 @@ class PointSource(SkyComponent):
     # use direction's phase shift method
     self.direction.make_phase_shift(nodes,cohnode,array,observation.phase_center);
    
+  def is_station_decomposable (self):
+    """Check the type -- subclasses are not necessarily decomposable.""";
+    return type(self) == PointSource;
+  
+  def sqrt_coherency (self,observation):
+    # Cholesky decomposition of the coherency matrix into 
+    # UU*, where U is lower-triangular
+    coh = self.ns.sqrt_coh;
+    if not coh.initialized():
+      # if unpolarized, then matrix is scalar -- simply take the square root
+      if not self._polarized:
+        flux = self.stokes("I")*0.5*self.norm_spectrum();
+        if isinstance(flux,(int,float,complex)):
+          coh << math.sqrt(flux);
+        else:
+          coh << Meq.Sqrt(flux);
+      else:
+        # circular and linear matrices have the same form, only QUV is swapped around.
+        # So the code below forms up the matrix assuming linear polarization, while
+        # here for the circular case we simply swap the quv variables around
+        if observation.circular():
+          i,q,u,v = self.stokes("I"),self.stokes("V"),self.stokes("Q"),self.stokes("U");
+        else:
+          i,q,u,v = self.stokes("I"),self.stokes("Q"),self.stokes("U"),self.stokes("V");
+        # form up matrix
+        if self._constant_flux:
+          norm = math.sqrt(.5/(i+q));
+          c11 = (i+q)*norm;
+          c12 = 0;
+          c21 = complex(u,-v)*norm;
+          c22 = math.sqrt(i**2-q**2-u**2-v**2)*norm;
+          if self._has_spi:
+            coh1 = self.ns.sqrt_coh1 << Meq.Matrix22(c11,c12,c21,c22);
+            coh << coh1*Meq.Sqrt(self.norm_spectrum());
+          else:
+            coh << Meq.Matrix22(c11,c12,c21,c22);
+        else:
+          c11 = self.ns.sqrt_coh(1,1) << i+q;
+          c12 = 0;
+          c21 = self.ns.sqrt_coh(2,1) << Meq.ToComplex(u,-v);
+          i2 = self.ns.I2 << Meq.Sqr(i);
+          q2 = self.ns.Q2 << Meq.Sqr(q);
+          u2 = self.ns.U2 << Meq.Sqr(u);
+          v2 = self.ns.V2 << Meq.Sqr(v);
+          c22 = self.ns.sqrt_coh(2,2) << Meq.Sqrt(
+            self.ns.I2_QUV2 << self.ns.I2 - (self.ns.QUV2 << Meq.Add(q2,u2,v2)) 
+          );
+          # create unnormalized matrix + normalization term
+          self.ns.sqrt_coh1 << Meq.Matrix22(c11,c12,c21,c22);
+          norm = self.ns.sqrt_coh_norm << Meq.Sqrt(.5*self.norm_spectrum()/c11);
+          # and finally form up product
+          coh << norm * self.ns.sqrt_coh1;
+    return coh;
+  
+  def sqrt_visibilities (self,array=None,observation=None,nodes=None):
+    observation = Context.get_observation(observation);
+    array = Context.get_array(array);
+    if nodes is None:
+      nodes = self.ns.sqrt_visibility.qadd(observation.radec0());
+    stations = array.stations();
+    if nodes(stations[0]).initialized():
+      return nodes;
+    # create decomposition nodes
+    sqrtcoh = self.sqrt_coherency(observation);
+    # get K jones per station
+    if self.direction is observation.phase_center:
+      for p in array.stations():
+        nodes(p) << Meq.Identity(sqrtcoh);
+    # else apply KJones
+    else:
+      Kj = self.direction.KJones(array=array,dir0=observation.phase_center);
+      for p in array.stations():
+        nodes(p) << Meq.MatrixMultiply(Kj(p),sqrtcoh);
+    return nodes;

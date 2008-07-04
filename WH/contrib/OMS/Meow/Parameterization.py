@@ -129,3 +129,17 @@ class Parameterization (object):
     self._parmnodes[name] = resolve_parameter(name,self.ns[nodename],
                                               value,tags,solvable);
     return self._parmnodes[name];
+
+  def _get_constant (self,name):
+    """Returns constant corresponding to given parm, or None if parm is non-constant""";
+    value,tags,solvable = self._parmdefs.get(name,(None,None,None));
+    if value is None:
+      raise TypeError,"Meow parm '"+name+"' not previously defined";
+    if isinstance(value,(int,float,complex)):
+      return value;
+    return None;
+  
+  def _is_constant (self,name):
+    """Returns True if given parm is a constant""";
+    value,tags,solvable = self._parmdefs.get(name,(None,None,None));
+    return isinstance(value,(int,float,complex));
