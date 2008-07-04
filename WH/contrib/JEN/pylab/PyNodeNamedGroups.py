@@ -15,6 +15,8 @@
 #   - 17 may 2008: stddev() -> std() (numpy)
 #   - 02 jul 2008: use of EasyNode/EasyTwig
 #   - 02 jul 2008: pynode_NamedGroup() etc
+#   - 03 jul 2008: removed default group 'allvells'
+#   - 04 jul 2008: implemented string2groupspecs()
 #
 # Remarks:
 #
@@ -974,14 +976,6 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   - groupspecs:  group specification(s) (string or dict)
   .    if dict, assume a valid groupspecs record (advanced use)
   .    if string:
-  .    - Y or YY:   Take vells[0] for group y
-  .    - XY:        Assume tensor nodes with vells[0,1] for groups x,y
-  .    - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
-  .    - Vells_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
-  .    - XXYY:      Assume single list of equal nrs of x,y nodes
-  .    - XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
-  .    - Vis22:     Assume 2x2 tensor nodes. Groups xx,xy,yx,yy
-  .    - anything else: make a group of that name, with all vells[0]
   """
   trace = False
   trace = True
@@ -993,48 +987,7 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   if isinstance(groupspecs, str):
     # Certain standard group-specs may be specified by a string:
     nodename += '_'+str(groupspecs)
-    gs = record()
-    if groupspecs in ['Y','YY']:
-      # Its children are assumed to have a single vells
-      gs.x = record(children='*', vells=[0])
-    elif groupspecs=='XXYY':
-      # Its children are assumed to be in 2 concatenated lists (and have a single vells...)
-      gs.x = record(children='1/2', vells=[0])           # the 1st half
-      gs.y = record(children='2/2', vells=[0])           # the 2nd half
-    elif groupspecs=='XXYYZZ':
-      # Its children are assumed to be in 3 concatenated lists (and have a single vells...)
-      gs.x = record(children='1/3', vells=[0])           # the 1st third
-      gs.y = record(children='2/3', vells=[0])           # the 2nd third
-      gs.z = record(children='3/3', vells=[0])           # the 3rd third
-    elif groupspecs=='XY':
-      # Its children are assumed to be tensor nodes with (at least) 2 vells
-      gs.x = record(children='*', vells=[0]) 
-      gs.y = record(children='*', vells=[1]) 
-    elif groupspecs=='XYZ':
-      # Its children are assumed to be tensor nodes with (at least) 3 vells
-      gs.x = record(children='*', vells=[0]) 
-      gs.y = record(children='*', vells=[1]) 
-      gs.z = record(children='*', vells=[2]) 
-    elif 'Vells_' in groupspecs:
-      # Its children are assumed to be tensor nodes with at least as
-      # many vells as are required by the integers after '_'.
-      vv = groupspecs.split('Vells_')[1]                 # Vells_34 -> vv = '34'
-      if len(vv)==1:
-        gs.y = record(children='*', vells=[int(vv[0])])    # [3]
-      elif len(vv)>1:
-        gs.x = record(children='*', vells=[int(vv[0])])    # [3]
-        gs.y = record(children='*', vells=[int(vv[1])])    # [4]
-        if len(vv)==3:
-          gs.y = record(children='*', vells=[int(vv[2])])  # 
-    elif groupspecs=='Vis22':
-      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-      gs.xx = record(children='*', vells=[0])
-      gs.xy = record(children='*', vells=[1])
-      gs.yx = record(children='*', vells=[2])
-      gs.yy = record(children='*', vells=[3])
-    else:
-      # Assume that the string is a groupname....
-      gs[groupspecs] = record(children='*', vells=[0])
+    gs = string2groupspecs(groupspecs)
 
   elif not isinstance(groupspecs, dict):
       s = '** groupspecs type not recognized: '+str(type(groupspecs))
@@ -1063,49 +1016,79 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
 
 #---------------------------------------------------------------------------------------
   
-
-def pynode_XGroup (ns, nodes, labels=None,
-                   nodename=None, quals=None, kwquals=None,
-                   **kwargs):
+def string2groupspecs(groupspecs, trace=True):
   """
-  Create and return a pynode of class PyNodeNamedGroups, with group name='x'.
-  This particular group is used by some PyNodePlot classes as x-coordinates.
-  Syntax:
-  .   import PyNodeNamedGroups as PNNG
-  .    pynode = PNNG.pynode_XGroup (ns, nodes, labels=None,
-  .                                 nodename=None, quals=None, kwquals=None,
-  .                                 **kwargs)
-  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='x',
-  .   and the same arguments. The latter are explained in that function.
+  Make a groupspecs record from the given string spec.
+  Recognized strings are:
+  - Y or YY:   Take vells[0] for group y
+  - XY:        Assume tensor nodes with vells[0,1] for groups x,y
+  - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
+  - Vells_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
+  - XXYY:      Assume single list of equal nrs of x,y nodes
+  - XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
+  - Vis22:     Assume 2x2 tensor nodes. Groups xx,xy,yx,yy
+  - anything else: make a group of that name, with all vells[0]
+  .                (NB: group-name will be converted to lowercase...)
   """
-  if not isinstance(nodename, str):
-    nodename = 'pynode_XGroup'
-  return pynode_NamedGroup (ns, nodes, groupspecs='x', labels=labels,
-                            nodename=nodename, quals=quals, kwquals=kwquals,
-                            **kwargs)
+  gs = record()
+  if groupspecs in ['Y','YY','y','yy']:
+    # Its children are assumed to have a single vells
+    gs.y = record(children='*', vells=[0])
+  elif groupspecs in ['X','XX','x','xx']:
+    # Its children are assumed to have a single vells
+    gs.x = record(children='*', vells=[0])
+  elif groupspecs in ['Z','ZZ','z','zz']:
+    # Its children are assumed to have a single vells
+    gs.z = record(children='*', vells=[0])
 
-#---------------------------------------------------------------------------------------
+  elif groupspecs=='XXYY':
+    # Its children are assumed to be in 2 concatenated lists (and have a single vells...)
+    gs.x = record(children='1/2', vells=[0])           # the 1st half
+    gs.y = record(children='2/2', vells=[0])           # the 2nd half
+  elif groupspecs=='XXYYZZ':
+    # Its children are assumed to be in 3 concatenated lists (and have a single vells...)
+    gs.x = record(children='1/3', vells=[0])           # the 1st third
+    gs.y = record(children='2/3', vells=[0])           # the 2nd third
+    gs.z = record(children='3/3', vells=[0])           # the 3rd third
 
-def pynode_YGroup (ns, nodes, labels=None,
-                   nodename=None, quals=None, kwquals=None,
-                   **kwargs):
-  """
-  Create and return a pynode of class PyNodeNamedGroups, with group name='y'.
-  This particular group is used by some PyNodePlot classes as y-coordinates.
-  Syntax:
-  .   import PyNodeNamedGroups as PNNG
-  .    pynode = PNNG.pynode_YGroup (ns, nodes, labels=None,
-  .                                 nodename=None, quals=None, kwquals=None,
-  .                                 **kwargs)
-  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='y',
-  .   and the same arguments. The latter are explained in that function.
-  """
-  if not isinstance(nodename, str):
-    nodename = 'pynode_YGroup'
-  return pynode_NamedGroup (ns, nodes, groupspecs='y', labels=labels,
-                            nodename=nodename, quals=quals, kwquals=kwquals,
-                            **kwargs)
+  elif groupspecs=='XY':
+    # Its children are assumed to be tensor nodes with (at least) 2 vells
+    gs.x = record(children='*', vells=[0]) 
+    gs.y = record(children='*', vells=[1]) 
+  elif groupspecs=='XYZ':
+    # Its children are assumed to be tensor nodes with (at least) 3 vells
+    gs.x = record(children='*', vells=[0]) 
+    gs.y = record(children='*', vells=[1]) 
+    gs.z = record(children='*', vells=[2]) 
 
+  elif 'Vells_' in groupspecs:
+    # Its children are assumed to be tensor nodes with at least as
+    # many vells as are required by the integers after '_'.
+    vv = groupspecs.split('Vells_')[1]                 # Vells_34 -> vv = '34'
+    if len(vv)==1:
+      gs.y = record(children='*', vells=[int(vv[0])])    # [3]
+    elif len(vv)>1:
+      gs.x = record(children='*', vells=[int(vv[0])])    # [3]
+      gs.y = record(children='*', vells=[int(vv[1])])    # [4]
+      if len(vv)==3:
+        gs.y = record(children='*', vells=[int(vv[2])])  # 
+
+  elif groupspecs=='Vis22':
+    # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+    gs.xx = record(children='*', vells=[0])
+    gs.xy = record(children='*', vells=[1])
+    gs.yx = record(children='*', vells=[2])
+    gs.yy = record(children='*', vells=[3])
+
+  else:
+    # Assume that the string is a groupname....
+    # NB: Convert the group-name to lowercase, because the meqbrowser
+    #     will converts it in any case....
+    gs[groupspecs.lower()] = record(children='*', vells=[0])
+
+  if trace:
+    print '\n** string2groupspecs(',groupspecs,'):\n    ',gs,'\n'
+  return gs
 
 
 
@@ -1119,32 +1102,45 @@ def _define_forest (ns,**kwargs):
   cc = []
 
   nodes = EB.cloud(ns,'n6s2')
+  xnodes = EB.cloud(ns,'n6s1')
+  ynodes = EB.cloud(ns,'n6s2')
+  znodes = EB.cloud(ns,'n6s3')
   viewer = 'Record Browser'
-  
+
   if True:
-    node = pynode_XGroup(ns, nodes)
-    Meow.Bookmarks.Page('XGroup').add(node, viewer=viewer)
+    node = pynode_NamedGroup(ns, xnodes, 'XX')
+    Meow.Bookmarks.Page('XX').add(node, viewer=viewer)
+    cc.append(node)
+    node = pynode_NamedGroup(ns, ynodes, 'YY')
+    Meow.Bookmarks.Page('YY').add(node, viewer=viewer)
     cc.append(node)
 
   if True:
-    node = pynode_YGroup(ns, nodes)
-    Meow.Bookmarks.Page('YGroup').add(node, viewer=viewer)
-    cc.append(node)
-
-  if True:
-    # Concatenate the pynodes in cc:
+    # Concatenate the pynodes in cc (XX and YY):
     node = pynode_NamedGroup(ns, cc, 'concat')
     Meow.Bookmarks.Page('concat').add(node, viewer=viewer)
     cc.append(node)
-    
+
   if True:
+    # A group with an arbitrary name
     node = pynode_NamedGroup(ns, nodes, 'user')
-    Meow.Bookmarks.Page('NamedGroup_user').add(node, viewer=viewer)
+    Meow.Bookmarks.Page('user').add(node, viewer=viewer)
     cc.append(node)
 
   if True:
-    node = pynode_NamedGroup(ns, nodes, 'YY')
-    Meow.Bookmarks.Page('NamedGroup').add(node, viewer=viewer)
+    # Concatenate the pynodes in cc (XX, YY, concat, user):
+    node = pynode_NamedGroup(ns, cc, 'concat2')
+    Meow.Bookmarks.Page('concat2').add(node, viewer=viewer)
+    cc.append(node)
+
+  if True:
+    node = pynode_NamedGroup(ns, xnodes+ynodes, 'XXYY')
+    Meow.Bookmarks.Page('XXYY').add(node, viewer=viewer)
+    cc.append(node)
+
+  if True:
+    node = pynode_NamedGroup(ns, xnodes+ynodes+znodes, 'XXYYZZ')
+    Meow.Bookmarks.Page('XXYYZZ').add(node, viewer=viewer)
     cc.append(node)
 
    
@@ -1251,20 +1247,28 @@ if __name__ == '__main__':
   print '\n** Start of standalone test of: PyNodeNamedGroups.py:\n' 
   ns = NodeScope()
 
-  nodes = EB.cloud(ns,'n64s2')
+  nodes = EB.cloud(ns,'n6s2')
 
   if True:
-    pynode = pynode_NamedGroup(ns, nodes, 'YY')
+    pynode = pynode_NamedGroup(ns, nodes, 'Y')
     pynode = pynode_NamedGroup(ns, nodes, 'user')
 
-  if False:
-    xx = pynode_XGroup(ns, nodes)
-    yy = pynode_YGroup(ns, nodes)
-    if False:
+  if True:
+    xx = pynode_NamedGroup(ns, nodes, 'XX')
+    yy = pynode_NamedGroup(ns, nodes, 'YY')
+    if True:
       concat = pynode_NamedGroup(ns, [xx,yy], 'concat')
-   
-  _define_forest(ns);
-  ns.Resolve();
+
+  if True:
+    xnodes = EB.cloud(ns,'n6s1')
+    ynodes = EB.cloud(ns,'n6s2')
+    znodes = EB.cloud(ns,'n6s3')
+    pynode = pynode_NamedGroup(ns, xnodes+ynodes, 'XXYY')
+    pynode = pynode_NamedGroup(ns, xnodes+ynodes+znodes, 'XXYYZZ')
+
+  if False:
+    _define_forest(ns);
+    ns.Resolve();
 
   print '\n** End of standalone test of: PyNodeNamedGroups.py:\n' 
 
