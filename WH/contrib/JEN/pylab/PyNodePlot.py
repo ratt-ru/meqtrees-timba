@@ -947,37 +947,6 @@ def format_vv (vv):
 # pynode_...Group() functions (preferred alternative to derived classes)
 #=====================================================================================
 
-def pynode_PlotXY (ns, nodes, labels=None,
-                   nodename=None, quals=None, kwquals=None,
-                   groupspecs=False, plotspecs=None):
-  """
-  Create and return a pynode of class PyNodePlot with the nodes (children).
-  Syntax:
-  .   import PyNodePlot as PNP
-  .    pynode = PNP.pynode_PlotXY (ns, nodes, labels=None,
-  .                                nodename=None, quals=None, kwquals=None,
-  .                                groupspecs=False,
-  .                                plotspecs=None)
-  NB: It just calls the function PNP.pynode_Plot() with a specific plotspecs record
-  .   and the same arguments. The latter are explained in that function.
-  """
-
-  # Condition the plotspecs record (if required):
-  if not isinstance(plotspecs, dict):
-    plotspecs = record(graphics=[record(y='{y}', x='{x}', legend='y=\expr')])
-    if True:
-      plotspecs.graphics.append(record(y='{y}+{x}', x='{x}', color='red', legend='y=\expr'))
-      plotspecs.graphics.append(record(y='{y}*{x}/10', x='{x}', color='green', legend='y=\expr'))
-
-  if not isinstance(nodename, str):
-    nodename = 'pynode_PlotXY'
-  return pynode_Plot(ns, nodes, labels=labels,
-                     nodename=nodename, quals=quals, kwquals=kwquals,
-                     groupspecs=groupspecs, plotspecs=plotspecs)
-
-
-
-#--------------------------------------------------------------------------------------
 
 def pynode_Plot (ns, nodes, labels=None,
                  nodename=None, quals=None, kwquals=None,
@@ -1033,7 +1002,83 @@ def pynode_Plot (ns, nodes, labels=None,
   if trace:
     print '->',str(pynode)
   return pynode
-  
+
+
+#--------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------
+
+def pynode_PlotXY (ns, nodes, labels=None,
+                   nodename=None, quals=None, kwquals=None,
+                   groupspecs=False, plotspecs=None):
+  """
+  Create and return a pynode of class PyNodePlot with the nodes (children).
+  Syntax:
+  .   import PyNodePlot as PNP
+  .    pynode = PNP.pynode_PlotXY (ns, nodes, labels=None,
+  .                                nodename=None, quals=None, kwquals=None,
+  .                                groupspecs=False,
+  .                                plotspecs=None)
+  NB: It just calls the function PNP.pynode_Plot() with a specific plotspecs record
+  .   and the same arguments. The latter are explained in that function.
+  """
+
+  # Condition the plotspecs record (if required):
+  if not isinstance(plotspecs, dict):
+    plotspecs = record()
+  plotspecs.setdefault('graphics',[])
+  plotspecs.graphics.append(record(y='{y}', x='{x}', legend='y=\expr'))
+  if True:
+    plotspecs.graphics.append(record(y='{y}+{x}', x='{x}',
+                                     color='red', legend='y=\expr'))
+    plotspecs.graphics.append(record(y='{y}*{x}/10', x='{x}',
+                                     color='green', legend='y=\expr'))
+
+  if not isinstance(nodename, str):
+    nodename = 'pynode_PlotXY'
+  return pynode_Plot(ns, nodes, labels=labels,
+                     nodename=nodename, quals=quals, kwquals=kwquals,
+                     groupspecs=groupspecs, plotspecs=plotspecs)
+
+#--------------------------------------------------------------------------------------
+
+def pynode_PlotXXYY (ns, nodes, labels=None,
+                     nodename=None, quals=None, kwquals=None,
+                     groupspecs=False, plotspecs=None):
+  """
+  Create and return a pynode of class PyNodePlot with the nodes (children).
+  Syntax:
+  .   import PyNodePlot as PNP
+  .    pynode = PNP.pynode_PlotXXYY (ns, nodes, labels=None,
+  .                                  nodename=None, quals=None, kwquals=None,
+  .                                  groupspecs=False,
+  .                                  plotspecs=None)
+  NB: It just calls the function PNP.pynode_Plot() with a specific plotspecs record
+  .   and the same arguments. The latter are explained in that function.
+  """
+
+  # Condition the groupspecs record (if required):
+  if not isinstance(groupspecs, dict):
+    groupspecs = record()
+  # Its children are assumed to be in two concatenated lists:
+  # (and have a single vells...)
+  groupspecs.setdefault('x', record(children='1/2'))
+  groupspecs.setdefault('y', record(children='2/2'))
+
+  # Condition the plotspecs record (if required):
+  if not isinstance(plotspecs, dict):
+    plotspecs = record()
+  plotspecs.setdefault('graphics',[])
+  plotspecs.graphics.append(record(y='{y}', x='{x}', legend='y=\expr'))
+
+  if not isinstance(nodename, str):
+    nodename = 'pynode_PlotXXYY'
+  return pynode_Plot(ns, nodes, labels=labels,
+                     nodename=nodename, quals=quals, kwquals=kwquals,
+                     groupspecs=groupspecs, plotspecs=plotspecs)
+
+#--------------------------------------------------------------------------------------
+
+
 
 #=====================================================================================
 # Make a test-forest:
@@ -1046,14 +1091,20 @@ def _define_forest (ns,**kwargs):
 
   nodes = EB.cloud(ns,'n6s2')
 
-  if True:
+  if False:
     # The somplest possible case:
     node = pynode_Plot(ns, nodes)
     Meow.Bookmarks.Page('Plot').add(node, viewer=viewer)
     Meow.Bookmarks.Page('Plot_state_record').add(node, viewer="Record Browser")
     cc.append(node)
-  
+
   if True:
+    node = pynode_PlotXXYY(ns, nodes+nodes)
+    Meow.Bookmarks.Page('PlotXXYY').add(node, viewer=viewer)
+    Meow.Bookmarks.Page('PlotXXYY_state_record').add(node, viewer="Record Browser")
+    cc.append(node)
+  
+  if False:
     # Plotting of concatenated pynodes:
     node = PNNG.pynode_XGroup(ns, nodes)
     Meow.Bookmarks.Page('XGroup').add(node, viewer="Record Browser")

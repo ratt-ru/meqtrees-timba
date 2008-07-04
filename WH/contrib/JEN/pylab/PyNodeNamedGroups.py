@@ -941,64 +941,23 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
 
 #=====================================================================================
-# pynode_...Group() functions (preferred alternative to derived classes)
+# pynode_NamedGroup() functions (preferred alternative to derived classes)
 #=====================================================================================
 
-def pynode_XGroup (ns, nodes, labels=None,
-                   nodename=None, quals=None, kwquals=None,
-                   groupspecs=None):
-  """
-  Create and return a pynode of class PyNodeNamedGroups, with groupname='x'.
-  This particular group is used by some PyNodePlot classes as x-coordinates.
-  Syntax:
-  .   import PyNodeNamedGroups as PNNG
-  .    pynode = PNNG.pynode_XGroup (ns, nodes, labels=None,
-  .                                 nodename=None, quals=None, kwquals=None,
-  .                                 groupspecs=None)
-  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='x',
-  .   and the same arguments. The latter are explained in that function.
-  """
-  if not isinstance(nodename, str):
-    nodename = 'pynode_XGroup'
-  return pynode_NamedGroup (ns, nodes, 'x', labels=labels,
-                            nodename=nodename, quals=quals, kwquals=kwquals,
-                            groupspecs=groupspecs)
 
 #--------------------------------------------------------------------
 
-def pynode_YGroup (ns, nodes, labels=None,
-                   nodename=None, quals=None, kwquals=None,
-                   groupspecs=None):
-  """
-  Create and return a pynode of class PyNodeNamedGroups, with groupname='y'.
-  This particular group is used by some PyNodePlot classes as y-coordinates.
-  Syntax:
-  .   import PyNodeNamedGroups as PNNG
-  .    pynode = PNNG.pynode_YGroup (ns, nodes, labels=None,
-  .                                 nodename=None, quals=None, kwquals=None,
-  .                                 groupspecs=None)
-  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='y',
-  .   and the same arguments. The latter are explained in that function.
-  """
-  if not isinstance(nodename, str):
-    nodename = 'pynode_YGroup'
-  return pynode_NamedGroup (ns, nodes, 'y', labels=labels,
-                            nodename=nodename, quals=quals, kwquals=kwquals,
-                            groupspecs=groupspecs)
-
-#--------------------------------------------------------------------
-
-def pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
+def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
                        nodename=None, quals=None, kwquals=None,
-                       groupspecs=None):
+                       **kwargs):
   """
   Create and return a pynode of class PyNodeNamedGroups,
-  with the nodes (children) in the named (groupname) group.
+  with the nodes (children) in the groups defined groupspecs.
   Syntax:
   .   import PyNodeNamedGroups as PNNG
-  .   pynode = PNNG.pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
+  .   pynode = PNNG.pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   .                                    nodename=None, quals=None, kwquals=None,
-  .                                    groupspecs=None)
+  .                                    **kwargs)
   Mandatory arguments:
   - ns:          nodescope
   - nodes:       list of (child) nodes whose results are to be used.
@@ -1007,29 +966,84 @@ def pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
   .              will be copied to the new pynode. This mechanism allows concatenation
   .              of PyNodeNamedGroups pynodes, which is very powerful.
   Optional arguments:
-  - groupname:   name of the 'named group' to be created. If not supplied,
-  .                a default 'allvells' group will be created.
   - labels:      list of labels for the node results. If not supplied, or the wrong
   .                length, they will be derived from the node names.
   - nodename:    name of the resulting pynode
   - quals:       list of qualifiers
   - kwquals:     dict of keyword qualifiers
-  - groupspecs:  dict of further group specification(s). (to be elaborated)
+  - groupspecs:  group specification(s) (string or dict)
+  .    if dict, assume a valid groupspecs record (advanced use)
+  .    if string:
+  .    - Y or YY:   Take vells[0] for group y
+  .    - XY:        Assume tensor nodes with vells[0,1] for groups x,y
+  .    - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
+  .    - Vells_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
+  .    - XXYY:      Assume single list of equal nrs of x,y nodes
+  .    - XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
+  .    - Vis22:     Assume 2x2 tensor nodes. Groups xx,xy,yx,yy
+  .    - anything else: make a group of that name, with all vells[0]
   """
   trace = False
   trace = True
 
-  # Check the name of the new node:
+  # Check the name of the new node: 
   if not isinstance(nodename, str):
-    nodename = 'pynode_NamedGroup_'
+    nodename = 'pynode_NamedGroup'
 
-  # Condition the groupspecs record (if required):
-  if isinstance(groupname, str):              # if not specified, the 'allvells' group will be created....             
-    nodename += '_'+str(groupname)
-    if not isinstance(groupspecs, dict):     
-      groupspecs = record()
-    if not groupspecs.has_key(groupname):     # make sure of a record for the named group    
-      groupspecs[groupname] = record()        # e.g. groupspecs['x'] = record()
+  if isinstance(groupspecs, str):
+    # Certain standard group-specs may be specified by a string:
+    nodename += '_'+str(groupspecs)
+    gs = record()
+    if groupspecs in ['Y','YY']:
+      # Its children are assumed to have a single vells
+      gs.x = record(children='*', vells=[0])
+    elif groupspecs=='XXYY':
+      # Its children are assumed to be in 2 concatenated lists (and have a single vells...)
+      gs.x = record(children='1/2', vells=[0])           # the 1st half
+      gs.y = record(children='2/2', vells=[0])           # the 2nd half
+    elif groupspecs=='XXYYZZ':
+      # Its children are assumed to be in 3 concatenated lists (and have a single vells...)
+      gs.x = record(children='1/3', vells=[0])           # the 1st third
+      gs.y = record(children='2/3', vells=[0])           # the 2nd third
+      gs.z = record(children='3/3', vells=[0])           # the 3rd third
+    elif groupspecs=='XY':
+      # Its children are assumed to be tensor nodes with (at least) 2 vells
+      gs.x = record(children='*', vells=[0]) 
+      gs.y = record(children='*', vells=[1]) 
+    elif groupspecs=='XYZ':
+      # Its children are assumed to be tensor nodes with (at least) 3 vells
+      gs.x = record(children='*', vells=[0]) 
+      gs.y = record(children='*', vells=[1]) 
+      gs.z = record(children='*', vells=[2]) 
+    elif 'Vells_' in groupspecs:
+      # Its children are assumed to be tensor nodes with at least as
+      # many vells as are required by the integers after '_'.
+      vv = groupspecs.split('Vells_')[1]                 # Vells_34 -> vv = '34'
+      if len(vv)==1:
+        gs.y = record(children='*', vells=[int(vv[0])])    # [3]
+      elif len(vv)>1:
+        gs.x = record(children='*', vells=[int(vv[0])])    # [3]
+        gs.y = record(children='*', vells=[int(vv[1])])    # [4]
+        if len(vv)==3:
+          gs.y = record(children='*', vells=[int(vv[2])])  # 
+    elif groupspecs=='Vis22':
+      # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+      gs.xx = record(children='*', vells=[0])
+      gs.xy = record(children='*', vells=[1])
+      gs.yx = record(children='*', vells=[2])
+      gs.yy = record(children='*', vells=[3])
+    else:
+      # Assume that the string is a groupname....
+      gs[groupspecs] = record(children='*', vells=[0])
+
+  elif not isinstance(groupspecs, dict):
+      s = '** groupspecs type not recognized: '+str(type(groupspecs))
+      raise ValueError,s
+
+  else:
+    # Assume a valid groupspecs record....? 
+    gs = groupspecs
+
 
   # If no labels specified, derive them from the child nodenames:
   if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
@@ -1040,13 +1054,59 @@ def pynode_NamedGroup (ns, nodes, groupname=None, labels=None,
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
-                              groupspecs=groupspecs,
+                              groupspecs=gs,
                               class_name='PyNodeNamedGroups',
                               module_name=__file__)
   if trace:
     print '->',str(pynode)
   return pynode
+
+#---------------------------------------------------------------------------------------
   
+
+def pynode_XGroup (ns, nodes, labels=None,
+                   nodename=None, quals=None, kwquals=None,
+                   **kwargs):
+  """
+  Create and return a pynode of class PyNodeNamedGroups, with group name='x'.
+  This particular group is used by some PyNodePlot classes as x-coordinates.
+  Syntax:
+  .   import PyNodeNamedGroups as PNNG
+  .    pynode = PNNG.pynode_XGroup (ns, nodes, labels=None,
+  .                                 nodename=None, quals=None, kwquals=None,
+  .                                 **kwargs)
+  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='x',
+  .   and the same arguments. The latter are explained in that function.
+  """
+  if not isinstance(nodename, str):
+    nodename = 'pynode_XGroup'
+  return pynode_NamedGroup (ns, nodes, groupspecs='x', labels=labels,
+                            nodename=nodename, quals=quals, kwquals=kwquals,
+                            **kwargs)
+
+#---------------------------------------------------------------------------------------
+
+def pynode_YGroup (ns, nodes, labels=None,
+                   nodename=None, quals=None, kwquals=None,
+                   **kwargs):
+  """
+  Create and return a pynode of class PyNodeNamedGroups, with group name='y'.
+  This particular group is used by some PyNodePlot classes as y-coordinates.
+  Syntax:
+  .   import PyNodeNamedGroups as PNNG
+  .    pynode = PNNG.pynode_YGroup (ns, nodes, labels=None,
+  .                                 nodename=None, quals=None, kwquals=None,
+  .                                 **kwargs)
+  NB: It just calls the function PNNG.pynode_NamedGroup() with groupname='y',
+  .   and the same arguments. The latter are explained in that function.
+  """
+  if not isinstance(nodename, str):
+    nodename = 'pynode_YGroup'
+  return pynode_NamedGroup (ns, nodes, groupspecs='y', labels=labels,
+                            nodename=nodename, quals=quals, kwquals=kwquals,
+                            **kwargs)
+
+
 
 
 #=====================================================================================
@@ -1083,7 +1143,7 @@ def _define_forest (ns,**kwargs):
     cc.append(node)
 
   if True:
-    node = pynode_NamedGroup(ns, nodes)
+    node = pynode_NamedGroup(ns, nodes, 'YY')
     Meow.Bookmarks.Page('NamedGroup').add(node, viewer=viewer)
     cc.append(node)
 
@@ -1194,7 +1254,7 @@ if __name__ == '__main__':
   nodes = EB.cloud(ns,'n64s2')
 
   if True:
-    pynode = pynode_NamedGroup(ns, nodes)
+    pynode = pynode_NamedGroup(ns, nodes, 'YY')
     pynode = pynode_NamedGroup(ns, nodes, 'user')
 
   if False:
