@@ -115,6 +115,19 @@ def unique_node (ns, rootname, assign, *quals, **kwquals):
 
 #-------------------------------------------------------------------------
 
+def append2quals (q, quals=None):
+    """
+    Helper function that appends the given qualifier (q) to quals.
+    """
+    if quals==None:
+        quals = []
+    if isinstance(q,(list,tuple)):
+        return quals+q
+    else:
+        return quals+[q]
+
+#-------------------------------------------------------------------------
+
 def check_quals(quals=None, kwquals=None, *args, **kwargs):
     """
     Syntax:

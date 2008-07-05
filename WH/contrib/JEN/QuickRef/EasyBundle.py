@@ -225,16 +225,20 @@ def bundle_names (cat='default', include=None, first=None, trace=False):
 
 #-----------------------------------------------------------------------------------
 
-def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
-         help=None, shape=None, unop=None, parent=None,
-         trace=False):
+def bundle (ns, spec,
+            n=-1, noise=0.0, stddev=1.0,
+            nodename=None, quals=None, kwquals=None,
+            help=None, shape=None, unop=None, parent=None,
+            severe=False, trace=False):
     """
-    Return a bundle of subtrees (twigs), specified by the argument 'spec'.
-    Normally, this will be a list of nodes.
-    - The name of the rootnode of the bundle is composed of 'nodename' (or 'spec'
+    Return a bundle of nodes (subtrees), specified by the argument 'spec'.
+    Normally, this will be a list of nodes (unless a parent is specified, see below).
+    - The name of the node(s) of the bundle is composed of 'nodename' (or 'spec'
     .    if no nodename specified) and any nodename-qualifiers (quals=[list], kwquals=dict()).
+    - If n>1, spec is used to generate a bundle of n twigs (see EasyTwig.py) 
     - If unop is specified (e.g. 'Cos', or ['Cos','Sin'], apply to the final bundle nodes.
     - If parent is specified (e.g. 'Composer'), return a single parent node.
+    - If severe=True, give an error if spec not recognized
 
     The following forms of 'spec' (string) are recognized:  
     - cloud_n5s2m-4  :  cloud of n=5 MeqConstant nodes, with stddev (s) and mean (m) 
@@ -243,6 +247,7 @@ def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
     recognized_axes = ['f','t','L','M']       # used below...
 
     s1 = '--- EasyBundle.bundle('+str(spec)
+    if n>0: s1 += ', '+str(n)+'twigs'
     if nodename: s1 += ', '+str(nodename)
     if quals: s1 += ', quals='+str(quals)
     if kwquals: s1 += ', kwquals='+str(kwquals)
@@ -258,15 +263,27 @@ def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
 
     #....................................................................
 
-    if len(spec.split('cloud_'))>1:                                # e.g. 'cloud_s3'
+    if n>0:
+        cc = []
+        for i in range(n):
+            qq = EN.append2quals(i, quals)
+            node = ET.twig(ns, spec,
+                           noise=noise, stddev=stddev,
+                           nodename=None, quals=qq, kwquals=kwquals,
+                           severe=severe, trace=trace)
+            cc.append(node)
+                
+
+    elif len(spec.split('cloud_'))>1:                                # e.g. 'cloud_s3'
         ss = spec.split('cloud_')[1]
         cc = cloud(ns, ss, trace=False)
-                
+
     #............................................................
 
     if not cc:
-        s = '** bundle spec not recognized: '+str(spec)
-        raise ValueError,s
+        if True or severe:
+            s = '** bundle spec not recognized: '+str(spec)
+            raise ValueError,s
 
     #............................................................
 
@@ -289,7 +306,7 @@ def bundle(ns, spec, nodename=None, quals=None, kwquals=None,
     else:
         # Return the bundle (list of nodes):
         if trace:
-            print '\n**',s1
+            print '\n**',s1,'->',len(cc),' cc[0]=',str(cc[0])
             print EN.format_tree(cc, full=True)
         return cc                        
 
@@ -420,7 +437,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 1:
+   if 0:
        quals = None
        kwquals = None
        # quals = range(3)
@@ -436,7 +453,16 @@ if __name__ == '__main__':
            print '***************************************************************************'
            for spec in bundle_names(cat):
                bundle(ns, spec, quals=quals, kwquals=kwquals,
-                    unop=unop, trace=True)
+                      unop=unop, trace=True)
+
+   if 1:
+       cats = ET.twig_cats()
+       # cats = ['axes','complex','tensor']
+       # cats = ['axes']
+       for cat in cats:
+           for spec in ET.twig_names(cat):
+               bundle(ns, spec, n=5, trace=True)
+           
 
    if 0:
        names = []

@@ -487,10 +487,11 @@ def random_offset (ns, spec='s1', nodename=None, quals=None, kwquals=None,
 #-----------------------------------------------------------------------------------
 #-----------------------------------------------------------------------------------
 
-def twig(ns, spec, nodename=None, quals=None, kwquals=None,
-         test=False, help=None, shape=None,
-         unop=None, stddev=0.0, noise=0.0,
-         trace=False):
+def twig (ns, spec,
+          nodename=None, quals=None, kwquals=None,
+          help=None, shape=None,
+          unop=None, stddev=0.0, noise=0.0,
+          severe=True, trace=False):
     """
     Return a little subtree (a twig), specified by the argument 'spec'.
     - The name of the rootnode of the twig is composed of 'nodename' (or 'spec'
@@ -498,6 +499,7 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     - If unop is specified (e.g. 'Cos', or ['Cos','Sin'], apply to the final twig node.
     - If stddev>0, add a gaussian offset (MeqConstant) to the final twig node.
     - If noise>0, add gaussian noise (MeqGaussNoise) to the final twig node.
+    - If severe: give an error if spec not recognized (otherwise return a Constant node)
 
     The following forms of 'spec' (string) are recognized:  
 
@@ -538,14 +540,12 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     if nodename: s1 += ', '+str(nodename)
     if quals: s1 += ', quals='+str(quals)
     if kwquals: s1 += ', kwquals='+str(kwquals)
-    if test: s1 += ', test='+str(test)
     s1 += '):  '
 
     # If no nodename specified, use spec
     if nodename==None:
         nodename = 'twig_'
     nodename += str(spec)
-    # nodename = nodename.replace('.',',')    # avoid dots (.) in the nodename
 
     stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
     # unique_stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
@@ -776,16 +776,13 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     #............................................................
 
     if not is_node(node):
-        # Error messages:
-        if node==None:
-            if test:                                               # testing mode
-                return False                                       # False: spec is invalid ....
-            s1 += '                ** (spec not recognized!) **'
+        if severe:
+            s = '\n** ET.twig(',+str(spec)+'): spec not recognized\n'
+            raise ValueError,s
         else:
-            s1 += '                ** (node is: '+str(type(node))+'?? **'
-        # Always return an initialized node:
-        node = stub << Meq.Constant(0.123456789)                   # a safe (?) number
-        trace = True                                               # ensure trace message
+            # Always return an initialized node:
+            node = stub << Meq.Constant(0.123456789)                   # a safe (?) number
+            trace = True                                               # ensure trace message
 
     #............................................................
 
@@ -828,9 +825,6 @@ def twig(ns, spec, nodename=None, quals=None, kwquals=None,
     if trace:
         print '\n**',s1
         print EN.format_tree(node, full=True)
-
-    if test:                                                  # testing mode
-        return True                                           # True: spec is valid (recognized)
 
     # Return the (root)node of the twig:
     return node                        
@@ -1247,7 +1241,7 @@ if __name__ == '__main__':
            for spec in twig_names(cat):
                twig(ns, spec, quals=quals, kwquals=kwquals,
                     unop=unop, stddev=stddev, noise=noise,
-                    trace=True)
+                    severe=True, trace=True)
 
    if 0:
        names = []

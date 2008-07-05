@@ -974,29 +974,54 @@ def pynode_Plot (ns, nodes, labels=None,
   - quals:       list of qualifiers
   - kwquals:     dict of keyword qualifiers
   - plotspecs:   list of further plot specification(s). (to be elaborated)
-  - groupspecs:  dict of further group specification(s). (to be elaborated)
+  - groupspecs:  group specification(s).
+  .              - record()
+  .              - string (e.g. XXYY)
+  .              - None (if children are PyNodeNamedGroups pynodes
   """
   trace = False
   trace = True
 
+  if not isinstance(nodename, str):
+    nodename = 'pynode_Plot_'
+
+  ps = None
+  if isinstance(groupspecs, str):
+    # Certain standard group-specs may be specified by a string:
+    nodename += '_'+str(groupspecs)
+    gs = PNNG.string2groupspecs(groupspecs)
+    ps = string2plotspecs(groupspecs)
+  elif not isinstance(groupspecs, dict):
+    gs = record()
+    gs.y = record(children='*', vells=[0])
+  else:
+    # Assume a valid groupspecs record....? 
+    gs = groupspecs
+
+  # If no labels specified, get them from the node-names:
   if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
     lcn = EN.largest_common_name(nodes)
     labels = EN.get_plot_labels(nodes, lcn=lcn, trace=trace)
 
   # Condition the plotspecs record (if required):
-  if not isinstance(plotspecs, dict):
-    plotspecs = record(graphics=[])
-  plotspecs.setdefault('title',lcn)
-  # ps = record(title='test', graphics=[record(y='{a}'), record(x='{b}')])
+  if isinstance(plotspecs, dict):            # defined by the user
+    ps = plotspecs                           # assume a valid plotspecs record...?
+  elif isinstance(ps, dict):
+    pass                                     # ps = string2plotspecs(groupspecs) above
+  else:                                      # assume scalar children
+    ps = record(graphics=[])
+    ps.graphics.append(record(y='{y}',
+                              xlabel='x', ylabel='y',
+                              legend='y=\expr',
+                              color='green'))
+  ps.setdefault('title',lcn)
     
   # Create the PyNode:
-  if not isinstance(nodename, str):
-    nodename = 'pynode_Plot_'
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
-                              groupspecs=groupspecs,
-                              plotspecs=plotspecs,
+                              groupspecs=gs,
+                              plotspecs=ps,
                               class_name='PyNodePlot',
                               module_name=__file__)
   if trace:
@@ -1005,78 +1030,56 @@ def pynode_Plot (ns, nodes, labels=None,
 
 
 #--------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------
 
-def pynode_PlotXY (ns, nodes, labels=None,
-                   nodename=None, quals=None, kwquals=None,
-                   groupspecs=False, plotspecs=None):
+  
+def string2plotspecs(plotspecs, trace=True):
   """
-  Create and return a pynode of class PyNodePlot with the nodes (children).
-  Syntax:
-  .   import PyNodePlot as PNP
-  .    pynode = PNP.pynode_PlotXY (ns, nodes, labels=None,
-  .                                nodename=None, quals=None, kwquals=None,
-  .                                groupspecs=False,
-  .                                plotspecs=None)
-  NB: It just calls the function PNP.pynode_Plot() with a specific plotspecs record
-  .   and the same arguments. The latter are explained in that function.
+  Make a plotspecs record from the given string spec.
+  Recognized strings are:
+  - Y or YY:   Take vells[0] for group y
+  - XY:        Assume tensor nodes with vells[0,1] for groups x,y
+  - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
+  - Vells_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
+  - XXYY:      Assume single list of equal nrs of x,y nodes
+  - XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
+  - Vis22:     Assume 2x2 tensor nodes. Groups xx,xy,yx,yy
+  - anything else: make a group of that name, with all vells[0]
+  .                (NB: group-name will be converted to lowercase...)
   """
+  gy = record(y='{y}', xlabel='child no', ylabel='result')
+  gxy = record(x='{x}', y='{y}', ylabel='y', xlabel='x')
+  gxyz = record(x='{x}', y='{y}', z='{z}', ylabel='y', xlabel='x', zlabel='z')
+  ps = record(graphics=[])
+  if plotspecs in ['Y','YY','y','yy']:
+    ps.graphics.append(gy)
+  elif plotspecs in ['X','XX','x','xx']:
+    ps.graphics.append(gy)                            # .....??
+  elif plotspecs in ['Z','ZZ','z','zz']:
+    ps.graphics.append(gy)                            # .....??
 
-  # Condition the plotspecs record (if required):
-  if not isinstance(plotspecs, dict):
-    plotspecs = record()
-  plotspecs.setdefault('graphics',[])
-  plotspecs.graphics.append(record(y='{y}', x='{x}', legend='y=\expr'))
-  if True:
-    plotspecs.graphics.append(record(y='{y}+{x}', x='{x}',
-                                     color='red', legend='y=\expr'))
-    plotspecs.graphics.append(record(y='{y}*{x}/10', x='{x}',
-                                     color='green', legend='y=\expr'))
+  elif plotspecs in ['XXYY','XY']:
+    ps.graphics.append(gxy)
 
-  if not isinstance(nodename, str):
-    nodename = 'pynode_PlotXY'
-  return pynode_Plot(ns, nodes, labels=labels,
-                     nodename=nodename, quals=quals, kwquals=kwquals,
-                     groupspecs=groupspecs, plotspecs=plotspecs)
+  elif plotspecs in ['XXYYZZ','XYZ']:
+    ps.graphics.append(gxyz)
 
-#--------------------------------------------------------------------------------------
+  elif 'Vells_' in plotspecs:
+    vv = plotspecs.split('Vells_')[1]                 # Vells_34 -> vv = '34'
+    if len(vv)==1:
+      ps.graphics.append(gy)
+    elif len(vv)==2:
+      ps.graphics.append(gxy)
+    elif len(vv)==3:
+      ps.graphics.append(gxyz)
 
-def pynode_PlotXXYY (ns, nodes, labels=None,
-                     nodename=None, quals=None, kwquals=None,
-                     groupspecs=False, plotspecs=None):
-  """
-  Create and return a pynode of class PyNodePlot with the nodes (children).
-  Syntax:
-  .   import PyNodePlot as PNP
-  .    pynode = PNP.pynode_PlotXXYY (ns, nodes, labels=None,
-  .                                  nodename=None, quals=None, kwquals=None,
-  .                                  groupspecs=False,
-  .                                  plotspecs=None)
-  NB: It just calls the function PNP.pynode_Plot() with a specific plotspecs record
-  .   and the same arguments. The latter are explained in that function.
-  """
+  elif plotspecs=='Vis22':
+    # See PyNodePlotVis22.py
+    pass
 
-  # Condition the groupspecs record (if required):
-  if not isinstance(groupspecs, dict):
-    groupspecs = record()
-  # Its children are assumed to be in two concatenated lists:
-  # (and have a single vells...)
-  groupspecs.setdefault('x', record(children='1/2'))
-  groupspecs.setdefault('y', record(children='2/2'))
+  if trace:
+    print '\n** string2plotspecs(',plotspecs,'):\n    ',ps,'\n'
+  return ps
 
-  # Condition the plotspecs record (if required):
-  if not isinstance(plotspecs, dict):
-    plotspecs = record()
-  plotspecs.setdefault('graphics',[])
-  plotspecs.graphics.append(record(y='{y}', x='{x}', legend='y=\expr'))
-
-  if not isinstance(nodename, str):
-    nodename = 'pynode_PlotXXYY'
-  return pynode_Plot(ns, nodes, labels=labels,
-                     nodename=nodename, quals=quals, kwquals=kwquals,
-                     groupspecs=groupspecs, plotspecs=plotspecs)
-
-#--------------------------------------------------------------------------------------
 
 
 
@@ -1092,28 +1095,26 @@ def _define_forest (ns,**kwargs):
   nodes = EB.cloud(ns,'n6s2')
 
   if False:
-    # The somplest possible case:
+    # The simplest possible case:
     node = pynode_Plot(ns, nodes)
     Meow.Bookmarks.Page('Plot').add(node, viewer=viewer)
     Meow.Bookmarks.Page('Plot_state_record').add(node, viewer="Record Browser")
     cc.append(node)
 
   if True:
-    node = pynode_PlotXXYY(ns, nodes+nodes)
-    Meow.Bookmarks.Page('PlotXXYY').add(node, viewer=viewer)
-    Meow.Bookmarks.Page('PlotXXYY_state_record').add(node, viewer="Record Browser")
+    node = pynode_Plot(ns, nodes+nodes, groupspecs='XXYY')
+    Meow.Bookmarks.Page('XXYY').add(node, viewer=viewer)
+    Meow.Bookmarks.Page('XXYY_state_record').add(node, viewer="Record Browser")
     cc.append(node)
   
   if False:
     # Plotting of concatenated pynodes:
-    node = PNNG.pynode_XGroup(ns, nodes)
+    node = PNNG.pynode_NamedGroup(ns, nodes, groupspecs='XX')
     Meow.Bookmarks.Page('XGroup').add(node, viewer="Record Browser")
     cc.append(node)
-
-    node = PNNG.pynode_YGroup(ns, nodes)
+    node = PNNG.pynode_NamedGroup(ns, nodes, groupspecs='YY')
     Meow.Bookmarks.Page('YGroup').add(node, viewer="Record Browser")
     cc.append(node)
-
     # Concatenate the pynodes in cc:
     node = pynode_PlotXY(ns, cc, 'concat')
     Meow.Bookmarks.Page('concat').add(node, viewer=viewer)

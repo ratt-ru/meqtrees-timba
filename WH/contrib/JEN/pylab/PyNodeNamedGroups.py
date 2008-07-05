@@ -1014,6 +1014,7 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
     print '->',str(pynode)
   return pynode
 
+
 #---------------------------------------------------------------------------------------
   
 def string2groupspecs(groupspecs, trace=True):
@@ -1105,6 +1106,7 @@ def _define_forest (ns,**kwargs):
   xnodes = EB.cloud(ns,'n6s1')
   ynodes = EB.cloud(ns,'n6s2')
   znodes = EB.cloud(ns,'n6s3')
+  cxnodes = EB.cloud(ns,'n6r1')
   viewer = 'Record Browser'
 
   if True:
@@ -1122,8 +1124,8 @@ def _define_forest (ns,**kwargs):
     cc.append(node)
 
   if True:
-    # A group with an arbitrary name
-    node = pynode_NamedGroup(ns, nodes, 'user')
+    # A group with an arbitrary name (and complex children)
+    node = pynode_NamedGroup(ns, cxnodes, 'complex')
     Meow.Bookmarks.Page('user').add(node, viewer=viewer)
     cc.append(node)
 
@@ -1248,10 +1250,11 @@ if __name__ == '__main__':
   ns = NodeScope()
 
   nodes = EB.cloud(ns,'n6s2')
+  cxnodes = EB.cloud(ns,'n6r1', trace=True)
 
   if True:
     pynode = pynode_NamedGroup(ns, nodes, 'Y')
-    pynode = pynode_NamedGroup(ns, nodes, 'user')
+    pynode = pynode_NamedGroup(ns, cxnodes, 'complex')
 
   if True:
     xx = pynode_NamedGroup(ns, nodes, 'XX')

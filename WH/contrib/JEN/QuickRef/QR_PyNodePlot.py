@@ -59,6 +59,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
+from Timba.Contrib.JEN.QuickRef import EasyBundle as EB
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
@@ -84,12 +85,15 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                          ET.twig_names(), more=str),
 
                TDLMenu("PyNodePlot",
+                       TDLMenu("basic",
+                               toggle='opt_PyNodePlot_basic'),
+                       TDLMenu("scalars",
+                               toggle='opt_PyNodePlot_scalars'),
+                       TDLMenu("tensors",
+                               toggle='opt_PyNodePlot_tensors'),
+                       TDLMenu("concat",
+                               toggle='opt_PyNodePlot_concat'),
                        toggle='opt_PyNodePlot'),
-
-               TDLMenu("PlotXY",
-                       TDLMenu("PlotXXYY",
-                               toggle='opt_PlotXY_PlotXXYY'),
-                       toggle='opt_PlotXY'),
 
                TDLMenu("PlotVis22",
                        toggle='opt_PlotVis22'),
@@ -98,6 +102,7 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                        toggle='opt_PyNodeNamedGroups'),
 
                TDLMenu("help",
+                       # TDLOption('opt_helpnode_bundle',"help on EasyBundle.bundle()", False),
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
                        toggle='opt_helpnodes'),
 
@@ -118,9 +123,6 @@ def QR_PyNodePlot (ns, path, rider):
    cc = []
    if opt_alltopics or opt_PyNodePlot:
       cc.append(PyNodePlot (ns, rr.path, rider))
-
-   if opt_alltopics or opt_PlotXY:
-      cc.append(PlotXY (ns, rr.path, rider))
 
    if opt_alltopics or opt_PlotVis22:
       cc.append(PlotVis22 (ns, rr.path, rider))
@@ -146,6 +148,9 @@ def make_helpnodes (ns, path, rider):
    rr = QRU.on_entry(make_helpnodes, path, rider)
    
    cc = []
+   if opt_alltopics or opt_helpnode_bundle:
+      cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyBundle_bundle',
+                             help=ET.bundle.__doc__, trace=False))
    if opt_alltopics or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyTwig_twig',
                              help=ET.twig.__doc__, trace=False))
@@ -162,30 +167,21 @@ def make_helpnodes (ns, path, rider):
 
 def PyNodePlot (ns, path, rider):
    """
+   Basic plotting, using the function PNP.pynode_PyNodePlot(),
+   which creates a pynode of class PyNodePlot, which is derived
+   from PyNodeNamedGroups.
    """
-   rr = QRU.on_entry(PyNodePlot, path, rider,
-                     help=PNP.PyNodePlot.__doc__)
+   rr = QRU.on_entry(PyNodePlot, path, rider)
    cc = []
-   # yy = [ns << 0.1, ns << 1.1]
-   yy = ET.cloud(ns, 'n27s3', 'yy_', trace=True)
-   lcn = EN.largest_common_name(yy, trace=True)
-   labels = EN.get_plot_labels(yy, lcn=lcn, trace=True)
-   ps = record()
-   ps.color = 'red'
-   # ps.legend = lcn                                # ....ok....
-   # ps.legend = str(labels)
-   # ps.xlabel = 'hor'                              # ....ok....
-   ps.ylabel = 'ver'                              # overwitten.... (pynode child no)
-   ps.title = lcn                                 # ....ok....
-   pynode = ns['PyNodePlot'] << Meq.PyNode(children=yy,
-                                           child_labels=labels,
-                                           class_name='PyNodePlot',
-                                           # groupspecs=gs,
-                                           plotspecs=ps,
-                                           module_name=PNP.__file__)
-   cc.append(pynode)
-   # if opt_alltopics or opt_PyNodePlot_subtopic:
-      # cc.append(PyNodePlot_subtopic (ns, rr.path, rider))
+   if opt_alltopics or opt_PyNodePlot_basic:
+      cc.append(PyNodePlot_basic (ns, rr.path, rider))
+   if opt_alltopics or opt_PyNodePlot_scalars:
+      cc.append(PyNodePlot_scalars (ns, rr.path, rider))
+   if opt_alltopics or opt_PyNodePlot_tensors:
+      cc.append(PyNodePlot_tensors (ns, rr.path, rider))
+   if opt_alltopics or opt_PyNodePlot_concat:
+      cc.append(PyNodePlot_concat (ns, rr.path, rider))
+   cc.append(QRU.helpnode (ns, rr.path, rider, func=PNP.PyNodePlot))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       bookmark=cc[0], viewer='Pylab Plotter',
                       parentclass='ReqSeq', result_index=0)
@@ -193,60 +189,57 @@ def PyNodePlot (ns, path, rider):
 
 #================================================================================
 
-def PyNodePlot_subtopic (ns, path, rider):
+def PyNodePlot_basic (ns, path, rider):
    """
+   Extra plotspecs....
    """
-   rr = QRU.on_entry(PyNodePlot_subtopic, path, rider)
+   rr = QRU.on_entry(PyNodePlot_basic, path, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      parentclass='ReqSeq', result_index=0)
-
-
-#================================================================================
-# PlotXY:
-#================================================================================
-
-def PlotXY (ns, path, rider):
-   """
-   """
-   rr = QRU.on_entry(PlotXY, path, rider,
-                     help=PNPXY.PlotXY.__doc__)
-   cc = []
-   # yy = [ns << 0.1, ns << 1.1]
-   yy = ET.cloud(ns, 'n27s3', 'yy_', trace=True)
-   lcn = EN.largest_common_name(yy, trace=True)
-   labels = EN.get_plot_labels(yy, lcn=lcn, trace=True)
-   ps = record()
-   ps.color = 'red'
-   # ps.legend = lcn                                # ....ok....
-   # ps.legend = str(labels)
-   # ps.xlabel = 'hor'                              # ....ok....
-   ps.ylabel = 'ver'                              # overwitten.... (pynode child no)
-   ps.title = lcn                                 # ....ok....
-   pynode = ns['PyNodePlot'] << Meq.PyNode(children=yy,
-                                           child_labels=labels,
-                                           class_name='PlotXY',
-                                           # groupspecs=gs,
-                                           plotspecs=ps,
-                                           module_name=PNPXY.__file__)
-   cc.append(pynode)
-   if opt_alltopics or opt_PlotXY_PlotXXYY:
-      cc.append(PlotXY_PlotXXYY (ns, rr.path, rider))
-
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=cc[0], viewer='Pylab Plotter',
-                      parentclass='ReqSeq', result_index=0)
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def PlotXY_PlotXXYY (ns, path, rider):
+def PyNodePlot_scalars (ns, path, rider):
    """
+   There are various ways to plot groups of scalar nodes, i.e. nodes with a single vellset.
    """
-   rr = QRU.on_entry(PlotXY_PlotXXYY, path, rider)
+   rr = QRU.on_entry(PyNodePlot_scalars, path, rider)
    cc = []
+   xnodes = EB.bundle(ns,'cloud_n6s1')
+   ynodes = EB.bundle(ns,'cloud_n6s1')
+   znodes = None
+   cc.append(PNP.pynode_Plot(ns, ynodes))
+   cc.append(PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY'))
+   if znodes:
+      cc.append(PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      parentclass='ReqSeq', result_index=0)
+                      viewer='Pylab Plotter')
+
+
+#================================================================================
+
+def PyNodePlot_tensors (ns, path, rider):
+   """
+   Tensor nodes are nodes with a multiple vellsets.
+   There are various ways to plot the vellsets of groups of tensor nodes against each other.
+   """
+   rr = QRU.on_entry(PyNodePlot_tensors, path, rider)
+   cc = []
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+
+
+#================================================================================
+
+def PyNodePlot_concat (ns, path, rider):
+   """
+   It is possible to concatenate pynodes of class PyNodePlot/PyNodeNamedGroups.
+   Children of these classes are ignored for plotting, but their groups definitions
+   and plot definitions are copied into the new pynode. This is very powerful.
+   """
+   rr = QRU.on_entry(PyNodePlot_concat, path, rider)
+   cc = []
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 
