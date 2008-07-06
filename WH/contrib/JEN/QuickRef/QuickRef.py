@@ -41,14 +41,22 @@ any MeqTrees contributor, following a number of simple rules.
 #          which includes an expansion tree. The quickref_help popup needs the same.
 #
 #   - AGW: Left-clicking a node displays the state record, except the Composer...
-#         It would be nice if it were easier to invoke the relevant plotter...
-#         (at this moment it takes to many actions, and the new display is confusing)
+#          It would be nice if it were easier to invoke the relevant plotter...
+#          (at this moment it takes to many actions, and the new display is confusing)
 #
-#   - OMS:Can we plot the result of each request in a sequence while it is running....?
-#         (this problem may have been solved....)
+#   - OMS: Can we plot the result of each request in a sequence while it is running....?
+#          (this problem may have been solved....)
 #
 #   - AGW: Flag-information is lost when a panel is floated in a separate window.
 #          Also in the plot-memory... (Try unary_elementary sqrt(noise3))
+#
+#   - AGW: When a panel is floated, it is no longer possible to view it ("view using")
+#          with another viewer (e.g. the Record Browser). This is inconvenient, but
+#          not a show-stopper, since one can change viewers before floating the panel.
+#
+#   - AGW: However, after one has de-floated a panel, it re-appears in its panel, but it
+#          is no longer possible to view it with another viewer
+#          ("None-type object does not have an attribute 'udi'", or something like that...)
 #
 #   - AGW: When the flags are "toggled" the colorbar scale does not change,
 #          and neither do the mean/stddev in the top-right corner...

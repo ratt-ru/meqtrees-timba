@@ -119,7 +119,7 @@ class PyNodeNamedGroups (pynode.PyNode):
   """
 
   def __init__ (self, *args, **kwargs):
-    print '\n** entering PyNodeNamedGroups.__init__()\n'
+    # print '\n** entering PyNodeNamedGroups.__init__()\n'
     pynode.PyNode.__init__(self,*args);
     self.set_symdeps('domain','resolution')
     self._count = -1
@@ -127,7 +127,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     self._gs_order = []
     self._namedgroups = record()
     self._ng_order = []
-    print '\n** leaving PyNodeNamedGroups.__init__()\n'
+    # print '\n** leaving PyNodeNamedGroups.__init__()\n'
     return None
 
   #-------------------------------------------------------------------
@@ -210,7 +210,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     which encapsulates the state record with some additional semantics.
     """
 
-    print '\n** PNNG.update_state(mystate=',type(mystate),'):\n'
+    # print '\n** PNNG.update_state(mystate=',type(mystate),'):\n'
     trace = False
     # trace = True
 
@@ -262,7 +262,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     
     # Read the groupspecs record, and check it:
     mystate('groupspecs', None)
-    print '\n**',self.class_name,self.name,': input self.groupspecs =',self.groupspecs,type(self.groupspecs),'\n'
+    # print '\n**',self.class_name,self.name,': input self.groupspecs =',self.groupspecs,type(self.groupspecs),'\n'
     if isinstance(self.groupspecs,(int,bool)):      # e.g. False
       self.groupspecs = record()               # make sure it is a record
       self.define_specific_groupspecs()        # (re-implemented) class-specific function 
@@ -290,7 +290,7 @@ class PyNodeNamedGroups (pynode.PyNode):
   # Functions dealing with group specifications:
   #===================================================================
 
-  def define_specific_groupspecs(self, trace=True):  
+  def define_specific_groupspecs(self, trace=False):  
     """
     Placeholder for class-specific function, to be redefined by classes
     that are derived from PyNodeNamedGroups. 
@@ -307,11 +307,12 @@ class PyNodeNamedGroups (pynode.PyNode):
     """
 
     default = False
-    print '\n** ',self.class_name,self.name,': ._check_groupspecs(default=',default,')\n'
+    # print '\n** ',self.class_name,self.name,': ._check_groupspecs(default=',default,')\n'
 
     if trace:
       self.display('_check_groupspecs(default=',default,') input')
 
+    # Not recommended....
     # if len(self.groupspecs)==0:
     #   if default:
     #     self.groupspecs['allvells'] = record() # at least one group (named allvells)
@@ -456,7 +457,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     # Then do the groupspecs that are strings (python extressions)
     # They are derived groups:
-    self.display('_extract_namedgroups()')
+    # self.display('_extract_namedgroups()')
     for key in self._gs_order:
       rr = self.groupspecs[key]                                 # convenience
       if isinstance(rr,str):
@@ -481,7 +482,7 @@ class PyNodeNamedGroups (pynode.PyNode):
                           children=None, vells=None,
                           childnos=None, nodes=None,
                           labels=None, history='History',
-                          derived=False, trace=True):
+                          derived=False, trace=False):
     """
     Helper function to create a new namedgroup record.
     Called (only) from ._extract_namedgroups(). 
@@ -662,7 +663,7 @@ class PyNodeNamedGroups (pynode.PyNode):
   #-------------------------------------------------------------------
   #-------------------------------------------------------------------
 
-  def group_history (self, key, append=None, clear=False, trace=True):
+  def group_history (self, key, append=None, clear=False, trace=False):
     """
     Helper function to interact with the history of the specified group.
     """
@@ -721,7 +722,7 @@ class PyNodeNamedGroups (pynode.PyNode):
       self._extract_namedgroups(cc, child_indices=ii,
                                 child_labels=self.child_labels,
                                 trace=trace)
-    if True:
+    if False:
       self.display('PyNodeNamedGroups.get_result()')
 
     if isinstance(self.testeval, str):
@@ -750,7 +751,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     names of the namedgroups (enclosed in {}) are variables.
     The groups must have values, and the result is a list/vector.
     """
-    trace = True
+    # trace = True
     if trace:
       print '\n** _evaluate(',expr,'):'
 
@@ -919,7 +920,7 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
   #-------------------------------------------------------------------
 
-  def define_specific_groupspecs(self, trace=True):  
+  def define_specific_groupspecs(self, trace=False):  
     """
     Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
@@ -978,7 +979,7 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   .    if string:
   """
   trace = False
-  trace = True
+  # trace = True
 
   # Check the name of the new node: 
   if not isinstance(nodename, str):
@@ -1017,12 +1018,14 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
 
 #---------------------------------------------------------------------------------------
   
-def string2groupspecs(groupspecs, trace=True):
+def string2groupspecs(groupspecs, trace=False):
   """
   Make a groupspecs record from the given string spec.
   Recognized strings are:
   - Y or YY:   Take vells[0] for group y
+  - CY:        Take (complex) vells[0] for group y 
   - XY:        Assume tensor nodes with vells[0,1] for groups x,y
+  - CXY:       Take real,imag part of vells[0] for groups x,y 
   - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
   - Vells_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
   - XXYY:      Assume single list of equal nrs of x,y nodes
@@ -1032,14 +1035,14 @@ def string2groupspecs(groupspecs, trace=True):
   .                (NB: group-name will be converted to lowercase...)
   """
   gs = record()
-  if groupspecs in ['Y','YY','y','yy']:
-    # Its children are assumed to have a single vells
+  if groupspecs in ['Y','YY','y','yy','CY']:
+    # Its children are assumed to have a single vells -> group y
     gs.y = record(children='*', vells=[0])
   elif groupspecs in ['X','XX','x','xx']:
-    # Its children are assumed to have a single vells
+    # Its children are assumed to have a single vells -> group x
     gs.x = record(children='*', vells=[0])
-  elif groupspecs in ['Z','ZZ','z','zz']:
-    # Its children are assumed to have a single vells
+  elif groupspecs in ['Z','ZZ','z','zz']:    
+    # Its children are assumed to have a single vells -> group z
     gs.z = record(children='*', vells=[0])
 
   elif groupspecs=='XXYY':
@@ -1051,6 +1054,11 @@ def string2groupspecs(groupspecs, trace=True):
     gs.x = record(children='1/3', vells=[0])           # the 1st third
     gs.y = record(children='2/3', vells=[0])           # the 2nd third
     gs.z = record(children='3/3', vells=[0])           # the 3rd third
+
+  elif groupspecs=='CXY':
+    # Its children are assumed to nodes with complex vells[0]
+    gs.x = record(children='*', vells=[0], expr='real()')       # ...?
+    gs.y = record(children='*', vells=[0], expr='imag()')       # ...?
 
   elif groupspecs=='XY':
     # Its children are assumed to be tensor nodes with (at least) 2 vells

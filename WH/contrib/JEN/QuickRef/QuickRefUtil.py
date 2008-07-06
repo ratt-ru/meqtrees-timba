@@ -6,11 +6,12 @@
 #    Utility functions for modules QuickRef.py and all QR_...py 
 #
 # History:
-#   - 03 june 2008: creation (from QuickRef.py)
+#   - 03 jun 2008: creation (from QuickRef.py)
 #   - 07 jun 2008: added twig() etc
 #   - 07 jun 2008: added 4D (L,M)
 #   - 07 jun 2008: moved twig() etc to EasyTwig.py
 #   - 01 jul 2008: implemented orphan functions
+#   - 06 jul 2008: allow list of viewers in .bundle()
 #
 # Remarks:
 #
@@ -941,6 +942,7 @@ def bundle (ns, path, rider,
     - bookmark[=True]: If True, make a bookmark page of the given nodes.
     -   If a node or list of nodes, make the bookmark page of them.
     - viewer[=Result Plotter]: The viewer to be used by the bookmark(s).
+    .   NB: viewer may be a list of viewers, one for each bookmarked node
     - trace[=False]: If True, print tracing messages (debugging)
     NB: This function is called at the exit of all functions in QR_... modules.
     """
@@ -1048,6 +1050,12 @@ def bundle (ns, path, rider,
         # The rider object has a service for extracting page and folder from path.
         [page, folder] = rider.bookmark(path, trace=trace)
 
+        # Make sure that viewer is a list with the same length as nodes:
+        if not isinstance(viewer,(list,tuple)):
+            viewer = len(nodes)*[viewer]
+        elif not len(viewer)==len(nodes):
+            viewer = len(nodes)*[viewer[0]]
+
         if folder or page:
             if True:
                 # Temporary, until Meow folder problem (?) is solved....
@@ -1056,8 +1064,8 @@ def bundle (ns, path, rider,
             else:
                 # NB: There does not seem to be a Meow way to assign a folder....
                 bookpage = Meow.Bookmarks.Page(name, folder=bookfolder)
-                for node in nodes:
-                    bookpage.add(node, viewer=viewer)
+                for i,node in enumerate(nodes):
+                    bookpage.add(node, viewer=viewer[i])
 
     # Show a resulting subtree, if required:
     if is_node(show_recurse):

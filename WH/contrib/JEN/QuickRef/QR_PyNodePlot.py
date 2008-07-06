@@ -89,6 +89,8 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                                toggle='opt_PyNodePlot_basic'),
                        TDLMenu("scalars",
                                toggle='opt_PyNodePlot_scalars'),
+                       TDLMenu("complex",
+                               toggle='opt_PyNodePlot_complex'),
                        TDLMenu("tensors",
                                toggle='opt_PyNodePlot_tensors'),
                        TDLMenu("concat",
@@ -177,6 +179,8 @@ def PyNodePlot (ns, path, rider):
       cc.append(PyNodePlot_basic (ns, rr.path, rider))
    if opt_alltopics or opt_PyNodePlot_scalars:
       cc.append(PyNodePlot_scalars (ns, rr.path, rider))
+   if opt_alltopics or opt_PyNodePlot_complex:
+      cc.append(PyNodePlot_complex (ns, rr.path, rider))
    if opt_alltopics or opt_PyNodePlot_tensors:
       cc.append(PyNodePlot_tensors (ns, rr.path, rider))
    if opt_alltopics or opt_PyNodePlot_concat:
@@ -195,7 +199,8 @@ def PyNodePlot_basic (ns, path, rider):
    """
    rr = QRU.on_entry(PyNodePlot_basic, path, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -209,10 +214,30 @@ def PyNodePlot_scalars (ns, path, rider):
    xnodes = EB.bundle(ns,'cloud_n6s1')
    ynodes = EB.bundle(ns,'cloud_n6s1')
    znodes = None
-   cc.append(PNP.pynode_Plot(ns, ynodes))
+   znodes = EB.bundle(ns,'cloud_n6s1')
+   cc.append(PNP.pynode_Plot(ns, ynodes, title='simplest', color='red'))
    cc.append(PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY'))
    if znodes:
       cc.append(PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ'))
+   viewer = len(cc)*['Pylab Plotter']
+   if True:
+      cc.append(cc[len(cc)-1])
+      viewer.append('Record Browser')
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer=viewer)
+
+
+#================================================================================
+
+def PyNodePlot_complex (ns, path, rider):
+   """
+   Complex vellsets may be plotted in various ways.
+   """
+   rr = QRU.on_entry(PyNodePlot_complex, path, rider)
+   cc = []
+   cxnodes = EB.bundle(ns,'cloud_n6r1')
+   cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CY'))
+   cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CXY'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
@@ -226,7 +251,8 @@ def PyNodePlot_tensors (ns, path, rider):
    """
    rr = QRU.on_entry(PyNodePlot_tensors, path, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -239,7 +265,8 @@ def PyNodePlot_concat (ns, path, rider):
    """
    rr = QRU.on_entry(PyNodePlot_concat, path, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer='Pylab Plotter')
 
 
 

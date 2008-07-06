@@ -13,6 +13,7 @@
 # - 25 mar 2006: separated the semi-obsolete functions
 # - 09 aug 2006: inplement recurse argument in .create()
 # - 03 oct 2006: refined autoplace()
+# - 05 jul 2008: allow a list of (different) viewers
 
 
 # Copyright: The MeqTree Foundation 
@@ -79,7 +80,8 @@ def family (fam=[], node=None, recurse=0, step_children=False, nmax=9):
 
 #------------------------------------------------------------------------------
 
-def create (node=None, name=None, udi=None, viewer='Result Plotter',
+def create (node=None, name=None,
+            udi=None, viewer='Result Plotter',
             recurse=0, step_children=False,
             page=None, folder=None, perpage=9,
             save=True, trace=False):
@@ -135,9 +137,16 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
         # if isinstance(name, str): page += '_'+name       # ....?
         n = _counter (page, increment=-1)
         if n<-1: page += '('+str(n)+')'
+
+        # Make sure that viewer is a list with the same length as node:
+        if not isinstance(viewer,(list,tuple)):
+            viewer = len(node)*[viewer]
+        elif not len(viewer)==len(node):
+            viewer = len(node)*[viewer[0]]
+            
         pagecount = 1
         itemcount = 0
-        for item in node:
+        for i,item in enumerate(node):
             itemcount += 1                                 # increment
             if itemcount>perpage:                          # max nr of items per page
                 itemcount = 1                              # reset
@@ -145,7 +154,7 @@ def create (node=None, name=None, udi=None, viewer='Result Plotter',
             pagename = page
             if pagecount>1: pagename = page+'_'+str(pagecount)
             # print '-',itemcount,pagecount,pagename,item.name
-            create (item, name=name, udi=udi, viewer=viewer,
+            create (item, name=name, udi=udi, viewer=viewer[i],
                     save=save, page=pagename, folder=folder,
                     perpage=perpage, trace=trace)
         return True

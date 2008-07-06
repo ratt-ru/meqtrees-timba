@@ -144,9 +144,9 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   """
 
   def __init__ (self, *args, **kwargs):
-    print '\n** entering PyNodePlot.__init__()\n'
+    # print '\n** entering PyNodePlot.__init__()\n'
     PNNG.PyNodeNamedGroups.__init__(self,*args);
-    print '\n** after PNNG.PyNodeNamedGroups.__init__()\n'
+    # print '\n** after PNNG.PyNodeNamedGroups.__init__()\n'
 
     self._plotypes = ['graphics']                # supported plot types
     self._plotypes.append('other')               # testing only
@@ -259,16 +259,16 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     """
 
     trace = False
-    trace = True
+    # trace = True
 
     # First update all the namedgroup specifications:
     # This creates self.groupspecs (and self._gs_order) and
     # self._namedgroups (and self._ng_order).
-    print '** BEFORE:'
-    print type(PNNG.PyNodeNamedGroups.update_state)
-    print PNNG.PyNodeNamedGroups.update_state.__doc__
+    # print '** BEFORE:'
+    # print type(PNNG.PyNodeNamedGroups.update_state)
+    # print PNNG.PyNodeNamedGroups.update_state.__doc__
     r = PNNG.PyNodeNamedGroups.update_state(self, mystate)
-    print '** AFTER:',r
+    # print '** AFTER:',r
 
     # Read the plotspecs record, and check it:
     mystate('plotspecs', None)
@@ -286,13 +286,13 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     # the (re-implementable) class-specific function.
     self.define_specific_plotspecs()
 
-    if True:
+    if False:
+      # NOT a good idea(?), especially since allvells is not guaranteed...
       # Make sure that there is at least one plot specification....?
       n = 0
       for plotype in self._plotypes:         # for each plotype
         n += len(self.plotspecs[plotype])    #   count the plotspecs
-      if False and n==0:                              # <----- !!
-        # NOT a good idea(?), especially since allvells is not guaranteed...
+      if n==0:                            
         ps = record(y='{allvells}', color='cyan') 
         self.plotspecs['graphics'].append(ps)
 
@@ -302,7 +302,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
 
   #-------------------------------------------------------------------
 
-  def define_specific_plotspecs(self, trace=True):  
+  def define_specific_plotspecs(self, trace=False):  
     """
     Placeholder for class-specific function, to be re-implemented
     by classes that are derived from PyNodePlot. Called by ._update_state().
@@ -432,7 +432,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     """
 
     trace = False
-    trace = True
+    # trace = True
     
     self._count += 1
 
@@ -469,7 +469,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     if True:
       self._plotspecs2plotdefs_graphics(trace=trace)
 
-    if True:
+    if False:
       self.display('PyNodePlot.get_result()')
 
     # Optionally, generate info for the "svg plotter":
@@ -492,7 +492,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     Helper function to turn the graphics plotspecs into
     graphics plot definition records in self._plotdefs"""
 
-    trace = True
+    # trace = True
 
     plotype = 'graphics'
     for i,rr in enumerate(self.plotspecs[plotype]):
@@ -745,7 +745,7 @@ class ExampleDerivedClass (PyNodePlot):
 
   #-------------------------------------------------------------------
 
-  def define_specific_groupspecs(self, trace=True):  
+  def define_specific_groupspecs(self, trace=False):  
     """
     Class-specific re-implementation. It allows the specification
     of one or more specific groupspecs.
@@ -764,7 +764,7 @@ class ExampleDerivedClass (PyNodePlot):
 
   #-------------------------------------------------------------------
 
-  def define_specific_plotspecs(self, trace=True):  
+  def define_specific_plotspecs(self, trace=False):  
     """
     Class-specific re-implementation. It allows the specification
     of one or more specific plotspecs.
@@ -951,7 +951,8 @@ def format_vv (vv):
 def pynode_Plot (ns, nodes, labels=None,
                  nodename=None, quals=None, kwquals=None,
                  groupspecs=None,
-                 plotspecs=None):
+                 plotspecs=None,
+                 **kwargs):
   """
   Create and return a pynode of class PyNodePlot with the nodes (children).
   Syntax:
@@ -959,7 +960,8 @@ def pynode_Plot (ns, nodes, labels=None,
   .   pynode = PNP.pynode_Ploy (ns, nodes, labels=None,
   .                             nodename=None, quals=None, kwquals=None,
   .                             groupspecs=None,
-  .                             plotspecs=None)
+  .                             plotspecs=None,
+  .                             **kwargs)
   Mandatory arguments:
   - ns:          nodescope
   - nodes:       list of (child) nodes whose results are to be used.
@@ -976,14 +978,16 @@ def pynode_Plot (ns, nodes, labels=None,
   - plotspecs:   list of further plot specification(s). (to be elaborated)
   - groupspecs:  group specification(s).
   .              - record()
-  .              - string (e.g. XXYY)
+  .              - string (e.g. 'XXYY')
   .              - None (if children are PyNodeNamedGroups pynodes
+  - **kwargs:    Any keyword arguments specified via kwargs override default
+  .              plotspecs values like xlabel, ylabel, title etc.
   """
   trace = False
-  trace = True
+  # trace = True
 
   if not isinstance(nodename, str):
-    nodename = 'pynode_Plot_'
+    nodename = 'pynode_Plot'
 
   ps = None
   if isinstance(groupspecs, str):
@@ -1009,12 +1013,12 @@ def pynode_Plot (ns, nodes, labels=None,
   elif isinstance(ps, dict):
     pass                                     # ps = string2plotspecs(groupspecs) above
   else:                                      # assume scalar children
-    ps = record(graphics=[])
-    ps.graphics.append(record(y='{y}',
-                              xlabel='x', ylabel='y',
-                              legend='y=\expr',
-                              color='green'))
-  ps.setdefault('title',lcn)
+    ps = record(graphics=[], xlabel='x', ylabel='y')
+    ps.graphics.append(record(y='{y}', legend='y=\expr'))
+    
+  # Update the plotspecs record with any kwargs:
+  ps.update(**kwargs)          # this overrides already existing keyword values! 
+  ps.setdefault('title',lcn)   # this does NOT overridde any existing (e.g. from kwargs) 
     
   # Create the PyNode:
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
@@ -1032,7 +1036,7 @@ def pynode_Plot (ns, nodes, labels=None,
 #--------------------------------------------------------------------------------------
 
   
-def string2plotspecs(plotspecs, trace=True):
+def string2plotspecs(plotspecs, trace=False):
   """
   Make a plotspecs record from the given string spec.
   Recognized strings are:
@@ -1046,31 +1050,57 @@ def string2plotspecs(plotspecs, trace=True):
   - anything else: make a group of that name, with all vells[0]
   .                (NB: group-name will be converted to lowercase...)
   """
-  gy = record(y='{y}', xlabel='child no', ylabel='result')
-  gxy = record(x='{x}', y='{y}', ylabel='y', xlabel='x')
-  gxyz = record(x='{x}', y='{y}', z='{z}', ylabel='y', xlabel='x', zlabel='z')
-  ps = record(graphics=[])
+
+  ps = record(graphics=[], xlabel='x', ylabel='y')
+  gy = record(y='{y}')
+  gxy = record(x='{x}', y='{y}')
+  gcxy = record(x='{y}.real', y='{y}.imag')
+  gxyz = record(x='{x}', y='{y}', z='{z}')
+
   if plotspecs in ['Y','YY','y','yy']:
     ps.graphics.append(gy)
+    ps.ylabel = 'result'
+    ps.xlabel = 'child no'
   elif plotspecs in ['X','XX','x','xx']:
     ps.graphics.append(gy)                            # .....??
+    ps.ylabel = 'result'
+    ps.xlabel = 'child no'
   elif plotspecs in ['Z','ZZ','z','zz']:
     ps.graphics.append(gy)                            # .....??
+    ps.ylabel = 'result'
+    ps.xlabel = 'child no'
+
+  if plotspecs in ['CY']:
+    ps.graphics.append(gcxy)          # x={y}.real and y={y}.imag (1 group)
+    ps.xlabel = 'real part'
+    ps.ylabel = 'imag part'
+  if plotspecs in ['CXY']:        
+    ps.graphics.append(gxy)           # x={x} and y={y} (2 groups)
+    ps.xlabel = 'real part'
+    ps.ylabel = 'imag part'
 
   elif plotspecs in ['XXYY','XY']:
     ps.graphics.append(gxy)
 
   elif plotspecs in ['XXYYZZ','XYZ']:
     ps.graphics.append(gxyz)
+    ps.zlabel = 'z'
 
   elif 'Vells_' in plotspecs:
     vv = plotspecs.split('Vells_')[1]                 # Vells_34 -> vv = '34'
     if len(vv)==1:
       ps.graphics.append(gy)
+      ps.xlabel = 'child no'
+      ps.ylabel = 'vells['+vv[0]+']'
     elif len(vv)==2:
       ps.graphics.append(gxy)
+      ps.xlabel = 'vells['+vv[0]+']'
+      ps.ylabel = 'vells['+vv[1]+']'
     elif len(vv)==3:
       ps.graphics.append(gxyz)
+      ps.xlabel = 'vells['+vv[0]+']'
+      ps.ylabel = 'vells['+vv[1]+']'
+      ps.zlabel = 'vells['+vv[2]+']'
 
   elif plotspecs=='Vis22':
     # See PyNodePlotVis22.py
