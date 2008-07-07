@@ -102,8 +102,10 @@ def meqbrowse (debug={},**kwargs):
     if isinstance(debug,dict):
       octopussy.set_debug(debug);
   # start octopussy if needed
+  port = 4000+os.getuid();
+  print "Binding to TCP port %d, remote meqservers may connect with gwpeer=<host>:%d"%(port,port); 
   if not octopussy.is_initialized():
-    octopussy.init(gwclient=False,gwtcp=4000+os.getuid(),
+    octopussy.init(gwclient=False,gwtcp=port,
                    gwlocal=("=meqbrowser-%d:1"%os.getuid()));
   if not octopussy.is_running():
     octopussy.start(wait=True);
