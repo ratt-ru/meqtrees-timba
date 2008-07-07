@@ -22,6 +22,9 @@
 # or write to the Free Software Foundation, Inc., 
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+print """WARNING: the Meow.Utils module is deprecated. Please port your scripts
+to the newer, better, slimmer Meow.MSUtils. """;
+
 
 from Timba.TDL import *
 from Timba.Meq import meq
@@ -35,7 +38,6 @@ try:
 except:
   pycasatable = None;
   
-
 msname = '';
 input_column = output_column = imaging_column = None;
 tile_size = None;
