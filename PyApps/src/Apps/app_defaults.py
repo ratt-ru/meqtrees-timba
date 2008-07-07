@@ -44,6 +44,7 @@ args = dmi.record({
 # if this is false, then all gui definitions are omitted at startup, and
 # a gui can't be enabled later (set via the "-nogui" option)
 include_gui = True;
+  
 
 def parse_argv (argv):
   dbgre = re.compile('-d(.+)=([0-9]+)');
@@ -111,4 +112,4 @@ def parse_argv (argv):
         
   return remain;
 
-parse_argv(sys.argv);
+# parse_argv(sys.argv);

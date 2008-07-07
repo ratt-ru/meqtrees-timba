@@ -25,12 +25,43 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+debuglevels = {};
+options = {};
+
+import Timba.utils
+import os
+
 if __name__ == "__main__":
+  # tell verbosity class to not parse argv -- we do it ourselves here
+  Timba.utils.verbosity.disable_argv(); 
+  # parse options is the first thing we should do
+  from optparse import OptionParser
+  parser = OptionParser()
+  parser.add_option("-p", "--port",dest="port",type="int",
+                    default=4000+os.getuid(),
+                    help="TCP port to listen on for connections from remote meqservers");
+  parser.add_option("-s", "--socket",dest="socket",type="string",
+                    default="meqbrowser-%d:1"%os.getuid(),
+                    help="local Unix socket to listen on for connections from local meqservers, use None for none");
+  parser.add_option("-d", "--debug",dest="debug",type="string",action="append",metavar="Context=Level",
+                    help="(for debugging C++ code) sets debug level of the named C++ context. May be used multiple times.");
+  parser.add_option("-v", "--verbose",dest="verbose",type="string",action="append",metavar="Context=Level",
+                    help="(for debugging Python code) sets verbosity level of the named Python context. May be used multiple times.");
+  (options, rem_args) = parser.parse_args();
+  for optstr in (options.debug or []):
+    opt = optstr.split("=") + ['1'];
+    context,level = opt[:2];
+    debuglevels[context] = int(level);
+  Timba.utils.verbosity.disable_argv(); # tell verbosity class to not parse its argv
+  for optstr in (options.verbose or []):
+    opt = optstr.split("=") + ['1'];
+    context,level = opt[:2];
+    Timba.utils.verbosity.set_verbosity_level(context,level);
+
   print "Welcome to the MeqTree Browser!";
   print "Please wait a second while the GUI starts up.";
 
 import sys
-import os
 
 # first things first: setup app defaults from here and from
 # command line (this has to go first, as other modules being imported
@@ -44,6 +75,7 @@ from Timba import qt_threading
 from Timba import octopussy
 from Timba.Apps import meqserver
 
+import Timba.utils
 #from Timba.GUI import app_proxy_gui
 #from Timba.GUI.pixmaps import pixmaps
 #app_proxy_gui.set_splash_screen(pixmaps.trees_splash.pm,"Starting MeqTimba Brower");
@@ -72,46 +104,18 @@ importPlugin('parmfiddler');
 # importPlugin('TableInspector');
 importPlugin('stream_control');
 
-#-------- update default debuglevels
-app_defaults.debuglevels.update({
-#  'MeqNode'      :2,
-#  'MeqForest'    :2,
-#  'MeqSink'      :2,
-#  'MeqSpigot'    :2,
-#  'MeqVisHandler':2,
-#  'MeqServer'    :2,
-#  'meqserver'    :1,
-#  'gwclientwp'   :1,
-#  'gwserverwp'   :1,
-});
-
-#-------- update default arguments
-app_defaults.args.update({'spawn':None,'threads':True,
-                         'verbose':2,'wp_verbose':0 });
-
 def meqbrowse (debug={},**kwargs):
   # parse command line -- old style
-  remaining_args = app_defaults.parse_argv(sys.argv[1:]);
+#  remaining_args = app_defaults.parse_argv(sys.argv[1:]);
   args = app_defaults.args;
-  # parse rest of command line -- new style
-  from optparse import OptionParser
-  parser = OptionParser()
-  parser.add_option("-p", "--port",dest="port",type="int",
-                    default=4000+os.getuid(),
-                    help="TCP port to listen on for connections from remote meqservers");
-  parser.add_option("-s", "--socket",dest="socket",type="string",
-                    default="meqbrowser-%d:1"%os.getuid(),
-                    help="local Unix socket to listen on for connections from local meqservers, use None for none");
-  (options, rem_args) = parser.parse_args(remaining_args);
+  for d,l in debug.iteritems():
+    debuglevels[d] = max(debuglevels.get(d,0),l);
   
   # insert '' into sys.path, so that CWD is always in the search path
   sys.path.insert(1,'');
-  if debug is None:
-    pass;
-  else:
-    octopussy.set_debug(app_defaults.debuglevels);
-    if isinstance(debug,dict):
-      octopussy.set_debug(debug);
+  if debuglevels:
+    octopussy.set_debug(debuglevels);
+    
   # start octopussy if needed
   port = options.port;
   sock = options.socket;
