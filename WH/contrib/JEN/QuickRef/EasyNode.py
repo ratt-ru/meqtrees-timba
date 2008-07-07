@@ -489,59 +489,112 @@ def find_nodes (tree, meqtype='MeqParm', level=0, recurse=True, trace=False):
 # Some misc helper fuctions:
 #====================================================================================
 
-def largest_common_name (nodes, trace=False):
+def get_node_names (nodes, select='*', trace=False):
     """
-    Return the largest common name-string in the names of the given nodes.
+    Return a list of node-names from (a selection of) the given nodes
+    or node-names. 
     """
-    lcn = 'largest_common_name?'
-    if is_node(nodes):
-        lcn = nodes.name
-    elif not isinstance(nodes,(list,tuple)):
-        lcn = 'not a list of nodes!'
-    elif len(nodes)==1:
-        lcn = nodes[0].name
+    # trace = True
+
+    if not isinstance(nodes,(list,tuple)):
+        nodes = [nodes]
+
+    if trace:
+        print '\n** EN.get_node_names(',len(nodes), select,'):'
+        for i,node in enumerate(nodes):
+            print '-',i,'(',type(node),'):',str(node)
+
+    # First make the node selection:
+    snodes = []                             
+    if isinstance(select,(list,tuple)):
+        for i in select:
+            snodes.append(nodes[i])
     else:
-        lcn = ''
-        ii = range(1,len(nodes))
-        same = True
-        for k,c in enumerate(nodes[0].name):
-            # print '**',ii,len(nodes)
-            for i in ii:
-                # print k,c,i,nodes[i].name[k]
-                same = (c==nodes[i].name[k])
-                if not same: break
-            if not same: break
-            lcn += c
+        snodes = nodes                      # default: use all nodes
+    if trace:
+        print '- selected nodes: ',len(snodes),'/',len(nodes)
+
+    nn = []
+    for i,node in enumerate(snodes):
+        if is_node(node):
+            nn.append(node.name)
+        elif isinstance(node,str):
+            nn.append(node)
+        else:
+            nn.append(str(type(node))+'??')
+        if trace:
+            print '--',i,nn[i]
                 
     if trace:
-        print '** EN.largest_common_name() ->',lcn
-    return lcn
+        print '** EN.get_node_names(',len(nodes),') ->',len(nn)
+    return nn
+
+#------------------------------------------------------------------------
+
+def get_largest_common_string (ss, trace=False):
+    """
+    Return the largest common string (starting at the beginning) of the given
+    list of strings (ss). Example: a list of nodenames.
+    """
+    # trace = True
+    if trace:
+        print '\n** EN.largest_common_string(',len(ss),'):'
+        print '   from:',ss
+
+    if not isinstance(ss,(list,tuple)):
+        s = 'not a list of strings, but: '+str(type(ss))
+        raise ValueError,s
+    elif len(ss)==0:
+        s = 'empty list of strings'
+        raise ValueError,s        
+    elif len(ss)==1:
+        lcs = ss[0]
+    else:
+        lcs = ''
+        ii = range(1,len(ss))
+        same = True
+        for k,c in enumerate(ss[0]):
+            for i in ii:
+                same = (c==ss[i][k])
+                if not same: break
+            if not same: break
+            lcs += c
+                
+    if trace:
+        print '** EN.largest_common_string(',len(ss),') ->',lcs
+    return lcs
 
 #-----------------------------------------------------------------------
 
-def get_plot_labels (nodes, lcn=None, trace=False):
+def get_plot_labels (nodes, lcs=None, trace=False):
     """
-    Get a list of plot-labels (strings) for the given nodes.
-    Do this by removing the 'largest_common_name' string from
-    their node-names.
+    Get a list of plot-labels (strings) for the given nodes,
+    by removing the 'largest_common_string' from their node-names.
     """
+    # trace = True
     if trace:
-        print '\n** EN.get_plot_labels(',lcn,'):'
-    if not isinstance(lcn,str):
-        lcn = largest_common_name(nodes, trace=trace)
+        print '\n** EN.get_plot_labels(',len(nodes),lcs,'):'
+
+    names = get_node_names (nodes, trace=trace)
+    if not isinstance(lcs,str):
+        lcs = get_largest_common_string (names, trace=trace)
+
     if is_node(nodes):
-        return [lcn]
-    ss = []
-    char = '#'
-    for i,node in enumerate(nodes):
-        name = node.name
-        label = name.replace(lcn,char)      
-        if label==char:       # the node-name is the entire lcn...
-            # This is likely the first node, without qualifiers:
-            label = str(name)
-        ss.append(label)
-        if trace:
-            print '-',i,':',name,'->',label
+        ss = names                     # just return the node-names
+    elif lcs=='':           
+        ss = names                     # just return the node-names
+    else:
+        ss = []
+        char = '#'
+        for i,name in enumerate(names):
+            label = name.replace(lcs,char)      
+            if label==char:                  # the node-name is the entire lcs...
+                # This is likely the first node, without qualifiers:
+                label = str(name)            # use the entire nodename
+            ss.append(label)
+            if trace:
+                print '-',i,':',name,'->',label
+    # Finished:
     if trace:
         print '->',ss,'\n'
     return ss
@@ -653,10 +706,13 @@ if __name__ == '__main__':
    if 1:
        cc = []
        stub = nodestub(ns, 'test')
-       for i in range(4):
+       for i in range(6):
            cc.append(stub(i) << Meq.Constant(i))
-       lcn = largest_common_name(cc, trace=True)
-       get_plot_labels(cc, trace=True)
+       select = None
+       select = [2,3,4]
+       nn = get_node_names(cc, select=select, trace=True)
+       lcs = get_largest_common_string(nn, trace=True)
+       get_plot_labels(cc, lcs=lcs, trace=True)
 
    #------------------------------------------------
 

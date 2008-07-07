@@ -191,38 +191,52 @@ def PyNodePlot (ns, path, rider):
                       parentclass='ReqSeq', result_index=0)
 
 
+
 #================================================================================
 
 def PyNodePlot_basic (ns, path, rider):
    """
-   Extra plotspecs....
+   There are various ways to plot groups of scalar nodes, i.e. nodes with a single vellset.
    """
    rr = QRU.on_entry(PyNodePlot_basic, path, rider)
    cc = []
+   viewer = []
+   ynodes = EB.bundle(ns,'cloud_n6s1')
+   cc.append(PNP.pynode_Plot(ns, ynodes, title='simplest', color='red'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      viewer='Pylab Plotter')
-
+                      viewer=viewer)
 
 #================================================================================
 
 def PyNodePlot_scalars (ns, path, rider):
    """
-   There are various ways to plot groups of scalar nodes, i.e. nodes with a single vellset.
+   Lists of scalar nodes can be plotted against each other by arranging them
+   in a single list, and specifying groupspecs='XXYY'. The results of first half
+   of the list will be used as x-coordinates, and the second half as y-coordinates:
+   .    import PyNodePlot as PNP
+   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY')
+   The plot may be customised with keyword arguments (e.g. color='green' etc).
+
+   Simple (x,y,z) plots may be made in a similar way:
+   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ')
+   In this case, the z-values are indicated by the size of their markers.
    """
    rr = QRU.on_entry(PyNodePlot_scalars, path, rider)
-   cc = []
-   xnodes = EB.bundle(ns,'cloud_n6s1')
-   ynodes = EB.bundle(ns,'cloud_n6s1')
-   znodes = None
+   xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
+   ynodes = EB.bundle(ns,'cloud_n6s1', nodename='yyy')
    znodes = EB.bundle(ns,'cloud_n6s1')
-   cc.append(PNP.pynode_Plot(ns, ynodes, title='simplest', color='red'))
-   cc.append(PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY'))
-   if znodes:
-      cc.append(PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ'))
-   viewer = len(cc)*['Pylab Plotter']
-   if True:
-      cc.append(cc[len(cc)-1])
-      viewer.append('Record Browser')
+   cc = []
+   viewer = []
+
+   node = PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY',
+                          xlabel='xlabel', ylabel='ylabel', color='green')
+   cc.extend([node,node])
+   viewer.extend(['Pylab Plotter','Record Browser'])
+
+   node = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ')
+   cc.extend([node,node])
+   viewer.extend(['Pylab Plotter','Record Browser'])
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer=viewer)
 
@@ -237,7 +251,9 @@ def PyNodePlot_complex (ns, path, rider):
    cc = []
    cxnodes = EB.bundle(ns,'cloud_n6r1')
    cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CY'))
-   cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CXY'))
+   if False:
+      # NB: This does not work (yet), see string2groupspecs()
+      cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CXY'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 

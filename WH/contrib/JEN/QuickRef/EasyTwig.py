@@ -344,8 +344,8 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
         print '\n',s
 
     if not isinstance(nodename, str):
-        nodename = 'noise_'
-    nodename += str(spec)
+        nodename = 'noise'
+        nodename += '_'+str(spec)
     stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
     nel = shape2length(shape)             # nr of tensor elements
@@ -427,8 +427,8 @@ def random_offset (ns, spec='s1', nodename=None, quals=None, kwquals=None,
         print '\n',s
 
     if not isinstance(nodename, str):
-        nodename = 'random_offset_'
-    nodename += str(spec)
+        nodename = 'random_offset'
+        nodename += '_'+str(spec)
     stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
     nel = shape2length(shape)             # nr of tensor elements
@@ -544,8 +544,8 @@ def twig (ns, spec,
 
     # If no nodename specified, use spec
     if nodename==None:
-        nodename = 'twig_'
-    nodename += str(spec)
+        nodename = 'twig'
+        nodename += '_'+str(spec)
 
     stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
     # unique_stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
@@ -1233,13 +1233,16 @@ if __name__ == '__main__':
        # unop = None
        stddev = 0.11
        noise = 0.22
+       nodename = None
+       nodename = 'bob'
        for cat in cats:
            print '\n\n\n'
            print '***************************************************************************'
-           print '** twig_cat =',cat,'  quals=',quals,'  kwquals=',kwquals, ' stddev=',stddev
+           print '** twig_cat =',cat,'  quals=',quals,'  kwquals=',kwquals, ' stddev=',stddev,'  nodename=',nodename
            print '***************************************************************************'
            for spec in twig_names(cat):
                twig(ns, spec, quals=quals, kwquals=kwquals,
+                    nodename=nodename,
                     unop=unop, stddev=stddev, noise=noise,
                     severe=True, trace=True)
 

@@ -53,6 +53,7 @@ any MeqTrees contributor, following a number of simple rules.
 #   - AGW: When a panel is floated, it is no longer possible to view it ("view using")
 #          with another viewer (e.g. the Record Browser). This is inconvenient, but
 #          not a show-stopper, since one can change viewers before floating the panel.
+#          NB: Strangely enough, a floating view DOES update when re-executing (??) 
 #
 #   - AGW: However, after one has de-floated a panel, it re-appears in its panel, but it
 #          is no longer possible to view it with another viewer

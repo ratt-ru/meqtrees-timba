@@ -253,34 +253,31 @@ def bundle (ns, spec,
     if kwquals: s1 += ', kwquals='+str(kwquals)
     s1 += '):  '
 
-    # If no nodename specified, use spec
-    if nodename==None:
-        nodename = 'bundle_'
-    nodename += str(spec)
-
-    stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
     cc = None
 
     #....................................................................
 
     if n>0:
+        # If n>0, make a bundle of twigs, using spec:
         cc = []
         for i in range(n):
             qq = EN.append2quals(i, quals)
             node = ET.twig(ns, spec,
                            noise=noise, stddev=stddev,
-                           nodename=None, quals=qq, kwquals=kwquals,
+                           nodename=nodename, quals=qq, kwquals=kwquals,
                            severe=severe, trace=trace)
             cc.append(node)
                 
 
     elif len(spec.split('cloud_'))>1:                                # e.g. 'cloud_s3'
+        # Make a 'cloud' of values with random distribution:
         ss = spec.split('cloud_')[1]
-        cc = cloud(ns, ss, trace=False)
+        cc = cloud(ns, ss, nodename=nodename, trace=False)
 
     #............................................................
 
     if not cc:
+        # Problem: no nodes in cc.
         if True or severe:
             s = '** bundle spec not recognized: '+str(spec)
             raise ValueError,s
@@ -288,21 +285,27 @@ def bundle (ns, spec,
     #............................................................
 
     if unop:
+        # Optional: apply unary operation(s) on all nodes in cc:
         cc = apply_unop(ns, cc, unop, trace=False)
-        if isinstance(unop,(list,tuple)):
-            stub = stub(*unop)
-        else:
-            stub = stub(unop)
 
     #............................................................
 
     if parent:
         # If parent specified (e.g. 'Composer'), return a single parent node:
+        if not isinstance(nodename,str):
+            nodename = 'bundle'
+            nodename += '_'+str(spec)
+        stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+        if isinstance(unop,(list,tuple)):
+            stub = stub(*unop)
+        else:
+            stub = stub(unop)
         node = stub << getattr(Meq,parent)(*cc)
         if trace:
             print '\n**',s1,'->',str(node)
             print EN.format_tree(node, full=True)
         return node
+
     else:
         # Return the bundle (list of nodes):
         if trace:
@@ -340,9 +343,11 @@ def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
     if trace:
         print '\n',s
 
+    append_value = False
     if not isinstance(nodename, str):
-        nodename = 'cloud_'
-    nodename += str(spec)
+        append_value = True
+        nodename = 'cloud'
+        nodename += '_'+str(spec)
     stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
     dekey = dict(n=3, s=1.0, m=0.0, r=-1.0, i=-1.0, a=-1.0, p=-1.0)
@@ -383,8 +388,10 @@ def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
 
         if nel==1:
             c = stub(EN.format_value(v)) << Meq.Constant(v)
-        else:
+        elif append_value:
             c = stub(i)(EN.format_value(v)) << Meq.Constant(v)
+        else:
+            c = stub(i) << Meq.Constant(v)
 
         if trace:
             print '--',i,':',v,str(c)
@@ -437,25 +444,28 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 0:
+   if 1:
        quals = None
        kwquals = None
        # quals = range(3)
        cats = bundle_cats()
-       # cats = ['cloud']
+       cats = ['cloud']
        unop = 'Cos'
        unop = ['Cos','Sin']
        unop = None
+       nodename = None
+       nodename = 'pop'
        for cat in cats:
            print '\n\n\n'
            print '***************************************************************************'
-           print '** bundle_cat =',cat,'  quals=',quals,'  kwquals=',kwquals,'  unop=',unop
+           print '** bundle_cat =',cat,'  quals=',quals,'  kwquals=',kwquals,'  nodename=',nodename,'  unop=',unop
            print '***************************************************************************'
            for spec in bundle_names(cat):
                bundle(ns, spec, quals=quals, kwquals=kwquals,
+                      nodename=nodename,
                       unop=unop, trace=True)
 
-   if 1:
+   if 0:
        cats = ET.twig_cats()
        # cats = ['axes','complex','tensor']
        # cats = ['axes']

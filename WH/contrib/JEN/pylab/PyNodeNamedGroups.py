@@ -234,6 +234,10 @@ class PyNodeNamedGroups (pynode.PyNode):
     mystate('child_indices')
     if isinstance(self.child_indices,int):
       self.child_indices = [self.child_indices]
+    string_indices = []
+    for i in self.child_indices:
+      string_indices.append(str(i))           # default label: node index 
+
 
     # It is usually a good idea to specify labels for the
     # 'regular' children (these may be used for plotting etc).
@@ -242,18 +246,25 @@ class PyNodeNamedGroups (pynode.PyNode):
     # of children (there might be some PyNodeNamedGroups children)
     undef = None
     undef = '**undef**'
+    mystate('child_names', undef)               #  default None not possible....?
     mystate('child_labels', undef)              #  default None not possible....?
     # print '\n** self.child_labels =',self.child_labels,type(self.child_labels)
+
     if self.child_labels in [None,undef]:
-      string_indices = []
-      for i in self.child_indices:
-        string_indices.append(str(i))           # default label: node index 
       self.child_labels = string_indices
     elif not isinstance(self.child_labels, (list,tuple)):
       self.child_labels = [str(self.child_labels)]
     self.child_labels = list(self.child_labels) # Tuple does not support item assignment
-    for i,label in enumerate(self.child_labels):
-      self.child_labels[i] = str(label)         # make sure the labels are strings
+    for i,s in enumerate(self.child_labels):
+      self.child_labels[i] = str(s)             # make sure the labels are strings
+
+    if self.child_names in [None,undef]:
+      self.child_names = string_indices
+    elif not isinstance(self.child_names, (list,tuple)):
+      self.child_names = [str(self.child_names)]
+    self.child_names = list(self.child_names)   # Tuple does not support item assignment
+    for i,s in enumerate(self.child_names):
+      self.child_names[i] = str(s)              # make sure the names are strings
 
     if trace:
       print '\n*******************************************'
@@ -401,15 +412,17 @@ class PyNodeNamedGroups (pynode.PyNode):
     """
     Helper function to extract named groups from the
     given child-results (children). Called by .get_result().
+    NB: The 'children' are NOT nodes!
     """
 
+    # trace = True
     if trace:
       print '\n** _extract_namedgroups():'
     
     # import ChildResult
     nc = len(children)
 
-    # First do the groupspecs that are records (they extract values from chirdren):
+    # First do the groupspecs that are records (they extract values from children):
     for key in self._gs_order:
       rr = self.groupspecs[key]                                 # convenience
       if isinstance(rr,record):
@@ -418,7 +431,7 @@ class PyNodeNamedGroups (pynode.PyNode):
         cindices = []
         for i in iic:
           cindices.append(child_indices[i])
-
+          
         # The child result(s) are read by a special object: 
         extend_labels = True                                    # -> label[ivells] 
         if isinstance(rr.vells,(list,tuple)) and len(rr.vells)==1:
@@ -437,7 +450,7 @@ class PyNodeNamedGroups (pynode.PyNode):
           self._create_namedgroup (key=key, vv=vv, dvv=None,
                                    vells=rr.vells, children=rr.children,
                                    childnos=iic, nodes=cindices,
-                                   labels=child_labels,
+                                   labels=child_labels, 
                                    history=s)
 
         else:
@@ -452,7 +465,7 @@ class PyNodeNamedGroups (pynode.PyNode):
                                    vells=rr.vells, children=rr.children,
                                    childnos=rv.expand(iic, index=index),
                                    nodes=rv.expand(cindices, index=index),
-                                   labels=rv.labels(index=index),
+                                   labels=rv.labels(index=index), 
                                    history=s)
 
     # Then do the groupspecs that are strings (python extressions)
@@ -481,7 +494,8 @@ class PyNodeNamedGroups (pynode.PyNode):
   def _create_namedgroup (self, key, vv, dvv=None,
                           children=None, vells=None,
                           childnos=None, nodes=None,
-                          labels=None, history='History',
+                          labels=None,
+                          history='History',
                           derived=False, trace=False):
     """
     Helper function to create a new namedgroup record.
@@ -506,12 +520,20 @@ class PyNodeNamedGroups (pynode.PyNode):
       history.append(s)
       print s
 
+    # Extract the largest common string (lcs) from the relevant
+    # selection (childnos) of child nodenames:
+    ss = EN.get_node_names(self.child_names, select=childnos, trace=True) 
+    lcs = EN.get_largest_common_string(ss, trace=True) 
+    # reduced_labels = EN.get_plot_labels(self.child_names, lcs=lcs, trace=trace)
+    
     # Create and attach the new record:
     rr = record(vv=vv, dvv=dvv,
                 key=lowerkey,
                 derived=derived,
                 vells=vells, children=children,
-                childnos=childnos, nodes=nodes, labels=labels,
+                childnos=childnos, nodes=nodes,
+                labels=labels, lcs=lcs,
+                # reduced_labels=reduced_labels,
                 history=history)
     self._namedgroups[lowerkey] = rr
 
@@ -651,7 +673,8 @@ class PyNodeNamedGroups (pynode.PyNode):
       for key1 in shortlists:
         print prefix,'       > '+key1+'('+str(len(rr[key1]))+'):  '+str(rr[key1])
       for key1 in longlists:
-        print prefix,'       > '+key1+': '+format_vv(rr[key1])
+        # print prefix,'       > '+key1+': '+format_vv(rr[key1])
+        print prefix,'       > '+key1+': '+EN.format_value(rr[key1])
       for i,s in enumerate(rr.history):
         print prefix,'       > history['+str(i)+']:  ',s
 
@@ -783,7 +806,8 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     # Finished:
     if trace:
-      print '->',format_vv(vv),'\n'
+      # print '->',format_vv(vv),'\n'
+      print '->',EN.format_value(vv),'\n'
     return vv
 
   #-------------------------------------------------------------------
@@ -818,10 +842,35 @@ class PyNodeNamedGroups (pynode.PyNode):
       kenc = '{'+key+'}'
       if kenc in expr:
         ss = self._namedgroups[key].labels
+        lcs = self._namedgroups[key].lcs
+        ss = EN.get_plot_labels(ss, lcs=lcs)
         if trace:
-          print '-',kenc,len(ss),'->',ss,'\n'
+          print '-',kenc,lcs,len(ss),'->',ss,'\n'
         return ss                              # for the moment: return the first...!
     return None
+
+
+  #-------------------------------------------------------------------
+
+  def _expr2lcs(self, expr, trace=False):
+    """
+    If the given expression contains a variable {<name>}, return the
+    expr in which {<name>} is raplaced by the largest_common_string (lcs)
+    field of the relevant named group.
+    This is used for xlabel/ylabel (see PyNodePlot.py)
+    """
+    # trace = True
+    if trace:
+      print '\n** _expr2lcs(',expr,'):'
+    for key in self._namedgroups.keys():
+      kenc = '{'+key+'}'
+      if kenc in expr:
+        ss = expr.replace(kenc, str(self._namedgroups[key].lcs))
+        if trace:
+          print '-',kenc,expr,'->',ss,'\n'
+        return ss
+    # If none found, return the input expr:
+    return expr
 
 
   #-------------------------------------------------------------------
@@ -850,7 +899,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 #=====================================================================================
 
 
-def format_float(v, name=None, n=2):
+def format_float_obsolete(v, name=None, n=2):
   """Helper function to format a float for printing"""
   if isinstance(v, complex):
      s1 = format_float(v.real)
@@ -867,7 +916,7 @@ def format_float(v, name=None, n=2):
 
 #-----------------------------------------------------------
 
-def format_vv (vv):
+def format_vv_obsolete (vv):
   if not isinstance(vv,(list,tuple)):
     return str(vv)
   elif len(vv)==0:
@@ -977,6 +1026,7 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   - groupspecs:  group specification(s) (string or dict)
   .    if dict, assume a valid groupspecs record (advanced use)
   .    if string:
+  - **kwargs:    additional customizing arguments (..)
   """
   trace = False
   # trace = True
@@ -1000,15 +1050,47 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
 
 
   # If no labels specified, derive them from the child nodenames:
+  child_names = EN.get_node_names(nodes, select='*', trace=False)
   if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
-    lcn = EN.largest_common_name(nodes)
-    labels = EN.get_plot_labels(nodes, lcn=lcn, trace=trace)
+    lcs = EN.get_largest_common_string(child_names, trace=False)
+    labels = EN.get_plot_labels(nodes, lcs=lcs, trace=trace)
+
+  # Make a unique nodestub:
+  stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+
+  # Make the quickref_help list of strings:
+  qhelp = ['']
+  qhelp.append('   This pynode has been specified by a convienience function:')
+  qhelp.append('     import PyNodeNamedGroups as PNNG')
+  qhelp.append('     PNNG.pynode_NamedGroup(ns, nodes,')
+  if isinstance(groupspecs, str):
+    qhelp.append('                     groupspecs='+str(groupspecs)+',')
+  else:
+    qhelp.append('                     groupspecs='+str(type(groupspecs))+',')
+  qhelp.append('                    )')
+  qhelp.append('')
+  qhelp.append('   The convenience function has defined the actual MeqPyNode:')
+  qhelp.append('     stub = EasyNode.unique_stub(ns,nodename,quals,kwquals) -> '+str(stub))
+  qhelp.append('     pynode = stub << Meq.PyNode(')
+  qhelp.append('                         children=nodes,')
+  qhelp.append('                         child_labels=labels,')
+  qhelp.append('                         child_names=child_names,')
+  qhelp.append('                         groupspecs=gs,')
+  qhelp.append('                         class_name=pyNodeNamedGroups,')
+  qhelp.append('                         module_name='+str(__file__)+')')
+  qhelp.append('')
+  qhelp.append('   in which:')
+  qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
+  qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
+  qhelp.append('       gs (record) = '+str(gs))
+  qhelp.append('')
 
   # Create the PyNode:
-  stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
+                              child_names=child_names,
                               groupspecs=gs,
+                              quickref_help=qhelp,
                               class_name='PyNodeNamedGroups',
                               module_name=__file__)
   if trace:
@@ -1056,6 +1138,7 @@ def string2groupspecs(groupspecs, trace=False):
     gs.z = record(children='3/3', vells=[0])           # the 3rd third
 
   elif groupspecs=='CXY':
+    # NB: This does not work, because 'expr' is not used (yet)...................!!
     # Its children are assumed to nodes with complex vells[0]
     gs.x = record(children='*', vells=[0], expr='real()')       # ...?
     gs.y = record(children='*', vells=[0], expr='imag()')       # ...?

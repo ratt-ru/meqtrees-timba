@@ -130,7 +130,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   - yunit      [=None]         y-axis unit (string)
   - zunit      [=None]         z-axis unit (string)
   
-  - legend     [=None]         subplot legend string
+  - legend     [=[]]           subplot legend string(s)
   - color      [='blue']       subplot color
   - linestyle  [=None]         subplot linestyle ('-','--',':')
   - marker     [='o']          subplot marker style ('+','x', ...)
@@ -233,7 +233,8 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
             if not isinstance(pd[key],(list,tuple)):
               print prefix,'       - ',key,'=',pd[key]
             elif key in ['xx','yy','zz','dxx','dyy','dzz']:
-              print prefix,'       - ',key,': (LIST)',format_vv(pd[key])
+              # print prefix,'       - ',key,': (LIST)',format_vv(pd[key])
+              print prefix,'       - ',key,': (LIST)',EN.format_value(pd[key])
             else:
               print prefix,'       - ',key,'=',pd[key]
 
@@ -380,7 +381,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     
     rr.setdefault('ignore', None)                   # python expression (string)
 
-    rr.setdefault('legend', None)                   # subplot legend
+    rr.setdefault('legend', [])                     # subplot legend
     rr.setdefault('color', 'blue')                  # plot color
     rr.setdefault('linestyle', None)                # line style                  
     rr.setdefault('marker', 'o')                    # marker style
@@ -442,8 +443,12 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
 
     # Re-initialize the record that contains the plot definitions:
     self._plotdefs = record()
+
     for key in self._pskeys['overall']:           # title, ylabel etc
-      self._plotdefs[key] = self.plotspecs[key]   
+      self._plotdefs[key] = self.plotspecs[key]
+    self._plotdefs['xlabel'] = self._expr2lcs(self._plotdefs['xlabel'])
+    self._plotdefs['ylabel'] = self._expr2lcs(self._plotdefs['ylabel'])
+
     for plotype in self._plotypes:                # for all plot types
       self._plotdefs[plotype] = []          
 
@@ -507,6 +512,10 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
           pd[key] = rr[key]                      # user-specified
         else:
           pd[key] = self.plotspecs[key]          # general default
+
+      if not isinstance(pd.legend,(list,tuple)):
+        pd.legend = [pd.legend]
+      pd.legend = list(pd.legend)                # tuple does not support item assignment
       legend = pd.legend                         # used below
 
       # Get the xx and yy vectors by evaluating python expressions:
@@ -516,15 +525,11 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
         pd.yy = self._evaluate(pd.yexpr, trace=trace)
         pd.xx = self._evaluate(pd.xexpr, trace=trace)
         pd.labels = self._expr2labels(pd.yexpr, trace=trace)
-        if isinstance(legend,str):
-          pd.legend = legend.replace('\expr','xy='+str(rr.xy))
         
       elif rr.has_key('y'):                      # y expr specified                       
         pd.yexpr = str(rr.y)
         pd.yy = self._evaluate(pd.yexpr, trace=trace)
         pd.labels = self._expr2labels(rr.y, trace=trace)
-        if isinstance(legend,str):
-          pd.legend = legend.replace('\expr',str(pd.yexpr))
         if rr.has_key('x'):                      # x expr specified
           pd.xexpr = str(rr.x)
           pd.xx = self._evaluate(pd.xexpr, trace=trace)
@@ -539,7 +544,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
 
       # If pd.ignore is a python expression (string), evaluate it: 
       if isinstance(pd.ignore, str):
-        pd.legend += '(ignore='+pd.ignore+')'
+        pd.legend.append('(ignore='+pd.ignore+')')
         pd.ignore = self._evaluate(pd.ignore, trace=trace)
         
 
@@ -548,8 +553,6 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
         pd.zexpr = str(rr.z)
         pd.zz = self._evaluate(pd.zexpr, trace=trace)
         pd.labels = self._expr2labels(pd.zexpr, trace=trace)
-        if isinstance(legend,str):
-          pd.legend = legend.replace('\expr',str(pd.zexpr))
         self._zz2markersize(pd)
         if pd.plot_sigma_bars:
           pd.dzz = self._expr2dvv(pd.zexpr, trace=trace)
@@ -558,6 +561,15 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
         if pd.plot_sigma_bars:
           pd.dyy = self._expr2dvv(pd.yexpr, trace=trace)
         self._plotdef_statistics(pd,'yy')
+
+      # Adjust the legend string(s), if necessary:
+      for i,s in enumerate(pd.legend):
+        if getattr(pd,'xexpr',None):
+          pd.legend[i] = pd.legend[i].replace('xexpr',str(pd.xexpr))
+        if getattr(pd,'yexpr',None):
+          pd.legend[i] = pd.legend[i].replace('yexpr',str(pd.yexpr))
+        if getattr(pd,'zexpr',None):
+          pd.legend[i] = pd.legend[i].replace('zexpr',str(pd.zexpr))
           
       # Append the new plot
       if trace:
@@ -578,7 +590,10 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr = self.plotspecs             # convenience, contains msmin and msmax
     pd.zmin = min(pd.zz)
     pd.zmax = max(pd.zz)
-    pd.legend = 'z-range=['+format_float(pd.zmin)+', '+format_float(pd.zmax)+']'
+    nsig = 3                        # nr of significant digits
+    s = 'z-range=['+EN.format_value(pd.zmin, nsig=nsig)
+    s += ', '+EN.format_value(pd.zmax, nsig=nsig)+']'
+    pd.legend.append(s)
     q = (rr.msmax-rr.msmin)/(pd.zmax-pd.zmin)
     ms = []
     for i,z in enumerate(pd.zz):
@@ -867,15 +882,19 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                             plot_circle_mean=pd.plot_circle_mean,
                             color=pd.color)
     grs.add(grs1)
-    legend = pd.legend
-    if not offset==0.0:
-      if legend==None: legend = 'offset'
-      if not isinstance(legend,str): legend = str(legend)
-      if offset>0.0: legend += ' (+'+str(offset)+')'
-      if offset<0.0: legend += ' ('+str(offset)+')'
-    grs.legend(legend, color=pd.color)
+
+    # Write the legend-string(s):
+    if not isinstance(pd.legend,(list,tuple)):
+      pd.legend = [pd.legend]
+    for legend in pd.legend:
+      if not offset==0.0:
+        if legend==None: legend = 'offset'
+        if not isinstance(legend,str): legend = str(legend)
+        if offset>0.0: legend += ' (+'+str(offset)+')'
+        if offset<0.0: legend += ' ('+str(offset)+')'
+      grs.legend(legend, color=pd.color)
     if trace:
-      print grs1.oneliner(),':',legend
+      print grs1.oneliner(),':',pd.legend
 
   if trace:
     print '********* grs is ', grs
@@ -901,50 +920,8 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
 
 
 
-
-
 #=====================================================================================
-# Helper function(s): (May be called from other modules)
-#=====================================================================================
-
-
-def format_float(v, name=None, n=2):
-  """Helper function to format a float for printing"""
-  if isinstance(v, complex):
-     s1 = format_float(v.real)
-     s2 = format_float(v.imag)
-     s = '('+s1+'+'+s2+'j)'
-  else:
-     q = 100.0
-     v1 = int(v*q)/q
-     s = str(v1)
-  if isinstance(name,str):
-    s = name+'='+s
-  # print '** format_float(',v,name,n,') ->',s
-  return s
-
-#-----------------------------------------------------------
-
-def format_vv (vv):
-  if not isinstance(vv,(list,tuple)):
-    return str(vv)
-  elif len(vv)==0:
-    return 'empty'
-  import pylab              # must be done here, not above....
-  ww = pylab.array(vv)
-  # print '\n** ww =',type(ww),ww
-  s = '  length='+str(len(ww))
-  s += format_float(ww.min(),'  min')
-  s += format_float(ww.max(),'  max')
-  s += format_float(ww.mean(),'  mean')
-  if len(ww)>1:                       
-    if not isinstance(ww[0],complex):
-      s += format_float(ww.std(),'  stddev')
-  return s
-
-
-#=====================================================================================
-# pynode_...Group() functions (preferred alternative to derived classes)
+# pynode_Plot() convenience function (preferred alternative to derived classes)
 #=====================================================================================
 
 
@@ -954,7 +931,7 @@ def pynode_Plot (ns, nodes, labels=None,
                  plotspecs=None,
                  **kwargs):
   """
-  Create and return a pynode of class PyNodePlot with the nodes (children).
+  Convenience function to create and return a pynode of class PyNodePlot.
   Syntax:
   .   import PyNodePlot as PNP
   .   pynode = PNP.pynode_Ploy (ns, nodes, labels=None,
@@ -1003,9 +980,10 @@ def pynode_Plot (ns, nodes, labels=None,
     gs = groupspecs
 
   # If no labels specified, get them from the node-names:
+  child_names = EN.get_node_names(nodes, select='*', trace=False)
   if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
-    lcn = EN.largest_common_name(nodes)
-    labels = EN.get_plot_labels(nodes, lcn=lcn, trace=trace)
+    lcs = EN.get_largest_common_string(child_names, trace=False)
+    labels = EN.get_plot_labels(nodes, lcs=lcs, trace=True)
 
   # Condition the plotspecs record (if required):
   if isinstance(plotspecs, dict):            # defined by the user
@@ -1013,19 +991,56 @@ def pynode_Plot (ns, nodes, labels=None,
   elif isinstance(ps, dict):
     pass                                     # ps = string2plotspecs(groupspecs) above
   else:                                      # assume scalar children
-    ps = record(graphics=[], xlabel='x', ylabel='y')
-    ps.graphics.append(record(y='{y}', legend='y=\expr'))
+    ps = record(graphics=[], xlabel='{x}', ylabel='{y}')
+    ps.graphics.append(record(y='{y}', legend='y=yexpr'))
     
   # Update the plotspecs record with any kwargs:
-  ps.update(**kwargs)          # this overrides already existing keyword values! 
-  ps.setdefault('title',lcn)   # this does NOT overridde any existing (e.g. from kwargs) 
+  ps.update(**kwargs)               # this overrides already existing keyword values! 
+  ps.setdefault('title',nodename)   # this does NOT overridde any existing (e.g. from kwargs) 
+
+  # Make a unique nodestub:
+  stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
+
+  # Make the quickref_help list of strings:
+  qhelp = ['']
+  qhelp.append('   This pynode has been specified by means of a convenience function:')
+  qhelp.append('     import PyNodePlot as PNP')
+  qhelp.append('     pynode = PNP.pynode_Plot(ns, nodes,')
+  if isinstance(groupspecs, str):
+    qhelp.append('                     groupspecs='+str(groupspecs)+',')
+  else:
+    qhelp.append('                     groupspecs='+str(type(groupspecs))+',')
+  qhelp.append('                     plotspecs='+str(type(plotspecs))+',')
+  for key in kwargs.keys():
+    qhelp.append('                    '+str(key)+'='+str(kwargs[key])+',')
+  qhelp.append('                    )')
+  qhelp.append('   NB: Note the customisation by means of **kwargs.')
+  qhelp.append('')
+  qhelp.append('   The convenience function has defined the actual MeqPyNode:')
+  qhelp.append('     stub = EasyNode.unique_stub(ns,nodename,quals,kwquals) -> '+str(stub))
+  qhelp.append('     pynode = stub << Meq.PyNode(')
+  qhelp.append('                    children=nodes,')
+  qhelp.append('                    child_labels=labels,')
+  qhelp.append('                    child_names=child_names,')
+  qhelp.append('                    plotspecs=ps,')
+  qhelp.append('                    groupspecs=gs,')
+  qhelp.append('                    class_name=pyNodePlot,')
+  qhelp.append('                    module_name='+str(__file__)+')')
+  qhelp.append('')
+  qhelp.append('   in which:')
+  qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
+  qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
+  qhelp.append('       ps (record) = '+str(ps))
+  qhelp.append('       gs (record) = '+str(gs))
+  qhelp.append('')
     
   # Create the PyNode:
-  stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
+                              child_names=child_names,
                               groupspecs=gs,
                               plotspecs=ps,
+                              quickref_help=qhelp,
                               class_name='PyNodePlot',
                               module_name=__file__)
   if trace:
@@ -1051,33 +1066,31 @@ def string2plotspecs(plotspecs, trace=False):
   .                (NB: group-name will be converted to lowercase...)
   """
 
-  ps = record(graphics=[], xlabel='x', ylabel='y')
-  gy = record(y='{y}')
-  gxy = record(x='{x}', y='{y}')
+  ps = record(graphics=[], xlabel='{x}', ylabel='{y}')
+  gy = record(y='{y}', legend='y=yexpr')
+  gxy = record(x='{x}', y='{y}', legend=['x=xexpr','y=yexpr'])
   gcxy = record(x='{y}.real', y='{y}.imag')
-  gxyz = record(x='{x}', y='{y}', z='{z}')
+  gxyz = record(x='{x}', y='{y}', z='{z}', legend=['x=xexpr','y=yexpr','z=zexpr'])
 
   if plotspecs in ['Y','YY','y','yy']:
     ps.graphics.append(gy)
-    ps.ylabel = 'result'
     ps.xlabel = 'child no'
   elif plotspecs in ['X','XX','x','xx']:
     ps.graphics.append(gy)                            # .....??
-    ps.ylabel = 'result'
     ps.xlabel = 'child no'
   elif plotspecs in ['Z','ZZ','z','zz']:
     ps.graphics.append(gy)                            # .....??
-    ps.ylabel = 'result'
     ps.xlabel = 'child no'
 
-  if plotspecs in ['CY']:
+  elif plotspecs in ['CY']:
     ps.graphics.append(gcxy)          # x={y}.real and y={y}.imag (1 group)
-    ps.xlabel = 'real part'
-    ps.ylabel = 'imag part'
-  if plotspecs in ['CXY']:        
+    ps.xlabel = 'real part of: {y}'
+    ps.ylabel = 'imag part of: {y}'
+  elif plotspecs in ['CXY']:
+    # NB: This does not work, see string2groupspecs()
     ps.graphics.append(gxy)           # x={x} and y={y} (2 groups)
-    ps.xlabel = 'real part'
-    ps.ylabel = 'imag part'
+    ps.xlabel = 'real part of: {x}'
+    ps.ylabel = 'imag part of: {x}'
 
   elif plotspecs in ['XXYY','XY']:
     ps.graphics.append(gxy)
