@@ -74,6 +74,20 @@ def nonportable_extract_stack (f=None,limit=None):
 #
 class verbosity:
   _verbosities = {};
+  _levels = {};
+  _parse_argv = True;
+  
+  def set_verbosity_level (context,level):
+    verbosity._levels[context] = level; 
+    vv = verbosity._verbosities.get(context,None);
+    if vv:
+      vv.set_verbose(level);
+  set_verbosity_level = staticmethod(set_verbosity_level);
+  
+  def disable_argv ():
+    verbosity._parse_argv = False;
+  disable_argv = staticmethod(disable_argv);
+  
   def __init__(self,verbose=0,stream=None,name=None,tb=2):
     if not __debug__:
       verbose=0;
@@ -86,24 +100,27 @@ class verbosity:
         raise RuntimeError,"""When creating a verbosity object directly,
           a name must be specified.""";
       self.verbosity_name = name = self.__class__.__name__;
-    # look for argv to override debug levels
-    # NB: sys.argv doesn't always exist -- e.g., when embedding Python
-    # it doesn't seem to be present.  Hence the check.
-    argv = getattr(sys,'argv',None);
-    have_debug = False;
-    if argv:
-      patt = re.compile('-d'+name+'=(.*)$');
-      for arg in argv[1:]:
-        if arg.startswith('-d'):
-          have_debug = True;
-        try: 
-          self.verbose = int(patt.match(arg).group(1));
-        except: pass;
+    # look for argv to override debug levels (unless they were already set via set_verbosity_level above)
+    if verbosity._levels:
+      self.verbose = verbosity._levels.get(name,0);
+      print "Registered verbosity context:",name,"=",self.verbose;
+    elif verbosity._parse_argv:
+      # NB: sys.argv doesn't always exist -- e.g., when embedding Python
+      # it doesn't seem to be present.  Hence the check.
+      argv = getattr(sys,'argv',None);
+      have_debug = False;
+      if argv:
+        patt = re.compile('-d'+name+'=(.*)$');
+        for arg in argv[1:]:
+          if arg.startswith('-d'):
+            have_debug = True;
+          try: 
+            self.verbose = int(patt.match(arg).group(1));
+          except: pass;
+      if have_debug:
+        print "Registered verbosity context:",name,"=",self.verbose;
     # add name to map
     self._verbosities[name] = self;
-    # if any "-d" switches were supplied, print our context
-    if have_debug:
-      print "Registered debug verbosity context:",name,"=",self.verbose;
   def __del__ (self):
     if self.verbosity_name in self._verbosities:
       del self._verbosities[self.verbosity_name];
