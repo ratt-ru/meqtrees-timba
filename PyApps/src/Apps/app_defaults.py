@@ -47,13 +47,14 @@ include_gui = True;
 
 def parse_argv (argv):
   dbgre = re.compile('-d(.+)=([0-9]+)');
+  # list of unparsed arguments
+  remain = [];
 
-  for i in range(len(argv)):
-    arg = argv[i]
+  for i,arg in enumerate(argv):
     
     if arg ==  "--":
       args.extra = argv[i+1:];
-      return;
+      return remain;
       
     elif arg == "-spawn":
       args.launch = None
@@ -105,5 +106,9 @@ def parse_argv (argv):
       if m:
         print 'will set debug level ',m.group(1),' to ',m.group(2);
         debuglevels[m.group(1)] = int(m.group(2));
+      else:
+        remain.append(arg);
+        
+  return remain;
 
 parse_argv(sys.argv);

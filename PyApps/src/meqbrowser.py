@@ -90,11 +90,22 @@ app_defaults.args.update({'spawn':None,'threads':True,
                          'verbose':2,'wp_verbose':0 });
 
 def meqbrowse (debug={},**kwargs):
+  # parse command line -- old style
+  remaining_args = app_defaults.parse_argv(sys.argv[1:]);
+  args = app_defaults.args;
+  # parse rest of command line -- new style
+  from optparse import OptionParser
+  parser = OptionParser()
+  parser.add_option("-p", "--port",dest="port",type="int",
+                    default=4000+os.getuid(),
+                    help="TCP port to listen on for connections from remote meqservers");
+  parser.add_option("-s", "--socket",dest="socket",type="string",
+                    default="meqbrowser-%d:1"%os.getuid(),
+                    help="local Unix socket to listen on for connections from local meqservers, use None for none");
+  (options, rem_args) = parser.parse_args(remaining_args);
+  
   # insert '' into sys.path, so that CWD is always in the search path
   sys.path.insert(1,'');
-  # parse command line
-  app_defaults.parse_argv(sys.argv[1:]);
-  args = app_defaults.args;
   if debug is None:
     pass;
   else:
@@ -102,11 +113,17 @@ def meqbrowse (debug={},**kwargs):
     if isinstance(debug,dict):
       octopussy.set_debug(debug);
   # start octopussy if needed
-  port = 4000+os.getuid();
+  port = options.port;
+  sock = options.socket;
+  if sock == "None" or sock == "none":
+    sock = "";
+    print "Not binding to a local socket."; 
+  else:
+    sock = "="+sock;
+    print "Binding to local socket %s"%sock; 
   print "Binding to TCP port %d, remote meqservers may connect with gwpeer=<host>:%d"%(port,port); 
   if not octopussy.is_initialized():
-    octopussy.init(gwclient=False,gwtcp=port,
-                   gwlocal=("=meqbrowser-%d:1"%os.getuid()));
+    octopussy.init(gwclient=False,gwtcp=port,gwlocal=sock);
   if not octopussy.is_running():
     octopussy.start(wait=True);
   # start meqserver
