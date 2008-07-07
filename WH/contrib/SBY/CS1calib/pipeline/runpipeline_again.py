@@ -117,6 +117,9 @@ TDLCompileOption('exclude_short_base',"Exclude short baselines in calibration",[
 # number of stations
 TDLCompileOption('num_stations',"Number of stations",[16,24,15,3],more=int);
 
+# list of stations to flag
+TDLCompileOption('ignored_stations', "Station number's which should be ignored", ["0"], more=str, doc="semicolumn-separated list of station numbers");
+
 # which source model to use
 TDLCompileOption('source_model',"Source model",[
     global_model.point_and_extended_sources_abs, # absolute
@@ -183,11 +186,15 @@ short_baselines0=[(1,2), (1,3), (1,4), (2,3), (2,4), (3,4),
                  (23,24)]
 
                  
+#### define station list excluding ignored station numbers
+station_list = range(1, num_stations+1);
+__ign = map(int, ignored_stations.split(";"));
+station_list = filter((lambda x: x not in __ign), station_list);
 
 def _define_forest(ns, parent=None, **kw):
   # create array model
-  stations = range(1,num_stations+1);
-  array = IfrArray(ns,stations,ms_uvw=False,mirror_uvw=False);
+  #stations = range(1,num_stations+1);
+  array = IfrArray(ns,station_list,ms_uvw=False,mirror_uvw=False);
   observation = Observation(ns);
   
   lsm=LSM()
@@ -525,25 +532,25 @@ def _do_calibrate(fname,mqs):
   if fname==None: return
 
   ### setup solvables #####
-  solvables = ['Jreal11:'+str(station)+':0' for station in range(1,num_stations+1)];
-  solvables += ['Jimag11:'+str(station)+':0' for station in range(1,num_stations+1)];
-  solvables += ['Jreal22:'+str(station)+':0' for station in range(1,num_stations+1)];
-  solvables += ['Jimag22:'+str(station)+':0' for station in range(1,num_stations+1)];
+  solvables = ['Jreal11:'+str(station)+':0' for station in station_list];
+  solvables += ['Jimag11:'+str(station)+':0' for station in station_list];
+  solvables += ['Jreal22:'+str(station)+':0' for station in station_list];
+  solvables += ['Jimag22:'+str(station)+':0' for station in station_list];
   if full_J:
-    solvables += ['Jreal12:'+str(station)+':0' for station in range(1,num_stations+1)];
-    solvables += ['Jimag12:'+str(station)+':0' for station in range(1,num_stations+1)];
-    solvables += ['Jreal21:'+str(station)+':0' for station in range(1,num_stations+1)];
-    solvables += ['Jimag21:'+str(station)+':0' for station in range(1,num_stations+1)];
+    solvables += ['Jreal12:'+str(station)+':0' for station in station_list];
+    solvables += ['Jimag12:'+str(station)+':0' for station in station_list];
+    solvables += ['Jreal21:'+str(station)+':0' for station in station_list];
+    solvables += ['Jimag21:'+str(station)+':0' for station in station_list];
 
-  solvables += ['Jreal11:'+str(station)+':1' for station in range(1,num_stations+1)];
-  solvables += ['Jimag11:'+str(station)+':1' for station in range(1,num_stations+1)];
-  solvables += ['Jreal22:'+str(station)+':1' for station in range(1,num_stations+1)];
-  solvables += ['Jimag22:'+str(station)+':1' for station in range(1,num_stations+1)];
+  solvables += ['Jreal11:'+str(station)+':1' for station in station_list];
+  solvables += ['Jimag11:'+str(station)+':1' for station in station_list];
+  solvables += ['Jreal22:'+str(station)+':1' for station in station_list];
+  solvables += ['Jimag22:'+str(station)+':1' for station in station_list];
   if full_J:
-    solvables += ['Jreal12:'+str(station)+':1' for station in range(1,num_stations+1)];
-    solvables += ['Jimag12:'+str(station)+':1' for station in range(1,num_stations+1)];
-    solvables += ['Jreal21:'+str(station)+':1' for station in range(1,num_stations+1)];
-    solvables += ['Jimag21:'+str(station)+':1' for station in range(1,num_stations+1)];
+    solvables += ['Jreal12:'+str(station)+':1' for station in station_list];
+    solvables += ['Jimag12:'+str(station)+':1' for station in station_list];
+    solvables += ['Jreal21:'+str(station)+':1' for station in station_list];
+    solvables += ['Jimag21:'+str(station)+':1' for station in station_list];
 
 
   for spwid in range(min_spwid-1,max_spwid):

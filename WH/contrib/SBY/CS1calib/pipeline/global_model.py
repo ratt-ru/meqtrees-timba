@@ -12,7 +12,7 @@ from Meow.Shapelet import *
 from Timba.LSM.LSM import LSM
 
 
-beampath="/home/sarod/";
+beampath="/data2/mamta/pipeline2"
 ## for observations without phase tracking
 def point_and_extended_sources_nophasetrack(ns,lsm,tablename=''):
   """ define two extended sources: positions and flux densities """
@@ -403,7 +403,7 @@ def EJones_droopy_comp(ns,array,sources,radec0,meptable=None,solvables=[],solvab
     Ej = Ej0(dirname);
 
     # create Az,El per source, using station 1
-    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(array._stations[1]))
     # make shifts
     az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
     azX=ns.azX(dirname)<<az-math.pi/4
@@ -469,7 +469,7 @@ def EJones_droopy_comp_stat(ns,array,sources,radec0,meptable=None,solvables=[],s
     Ej = Ej0(dirname);
 
     # create Az,El per source, using station 1
-    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(array._stations[1]))
     # make shifts
     az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
     azX=ns.azX(dirname)<<az-math.pi/4
@@ -523,7 +523,7 @@ def EJones_HBA(ns,array,sources,radec0,meptable=None,solvables=[],solvable=False
     Ej = Ej0(dirname);
 
     # create Az,El per source, using station 1
-    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(array._stations[1]))
     # make shifts
     az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
     azX=ns.azX(dirname)<<az-math.pi/4
@@ -574,7 +574,7 @@ def EJones_HBA_stat0(ns,array,sources,radec0,meptable=None,solvables=[],solvable
     Ej = Ej0(dirname);
 
     # create Az,El per source, using station 1
-    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(array._stations[1]))
     # make shifts
     az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
     azX=ns.azX(dirname)<<az-math.pi/4
@@ -647,7 +647,7 @@ def EJones_HBA_stat(ns,array,sources,radec0,meptable=None,solvables=[],solvable=
     Ej = Ej0(dirname);
 
     # create Az,El per source, using station 1
-    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(array._stations[1]))
     # make shifts
     az=ns.az(dirname)<<Meq.Selector(azelnode,multi=True,index=[0])
     azX=ns.azX(dirname)<<az-math.pi/4
@@ -719,7 +719,7 @@ def EJones_fits(ns,array,sources,radec0,meptable=None,solvables=[],solvable=Fals
     radec=src.direction.radec()
     Ej = Ej0(dirname);
     # create Az,El per source, using station 1
-    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(array._stations[1]))
     dipnum=0;
     for station in array.stations():
         if rotate:
@@ -812,7 +812,7 @@ def EJones_shapelet(ns,array,sources,radec0,name="E",rotate=False):
     radec=src.direction.radec()
     Ej = Ej0(dirname);
     # create Az,El per source, using station 1
-    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(1))
+    azelnode=ns.azel(dirname)<<Meq.AzEl(radec=src.direction.radec(),xyz=xyz(array._stations[1]))
     dipnum=0;
     for station in array.stations():
         if rotate:
