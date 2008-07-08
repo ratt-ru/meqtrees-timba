@@ -34,13 +34,20 @@ from Timba.Plugins.VellsData import *
 from numarray import *
 
 has_table_interface = True
+# figure out which table implementation to use -- try pyrap/casacore first
 try:
   from pyrap_tables import *
+  print "Using the pyrap_tables module"
 except:
+  # else try the old pycasatable/aips++ thing
   try:
     from pycasatable import *
+    print "Using the pycasatable module. WARNING: this is deprecated."
+    print "Please install pyrap and casacore!"
   except:
     has_table_interface = False
+    print "No tables module found"
+    print "Python interface to Measurement Sets does not appear to be present"
 
 def usage( prog ):
   print 'usage : python %s <MS to be corrected>' % prog
@@ -48,7 +55,7 @@ def usage( prog ):
 
 def main( argv ):
   if has_table_interface:
-    print 'Inserting UVWs into MS ', argv[1]
+    print "Inserting UVWs into MS ", argv[1]
 # first load data from table
     t = table(argv[1],readonly=False)
     boio = mequtils.open_boio("meqlog.mql")
@@ -88,12 +95,11 @@ def main( argv ):
                 uvw_group[1] = V
                 uvw_group[2] = W
                 t.putcell('UVW',row_number,uvw_group)
-    print 'number of rows processed ', row_number + 1
+    print "number of rows processed ", row_number + 1
     t.flush()
     t.close()
   else:
-    print 'python interface to aips++ tables does not appear to be present'
-    print 'exiting'
+    print "exiting"
 
 if __name__ == "__main__":
   """ We need at least one argument: the name of the Measurement Set in which to insert UVWs """
