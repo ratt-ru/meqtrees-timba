@@ -65,7 +65,7 @@ void MeqMPI::procCreateNodes (int source,const char *msgbuf,int msgsize)
     int nodeindex;
     try
     {
-      NodeFace & node = forest().create(nodeindex,recref);
+      forest().create(nodeindex,recref);
     }
     catch( std::exception &exc )
     {
@@ -74,6 +74,8 @@ void MeqMPI::procCreateNodes (int source,const char *msgbuf,int msgsize)
     nn++;
   }
   cdebug(2)<<"batch-created "<<nn<<" nodes"<<endl;
+  forest().initAll();
+  cdebug(2)<<"initialized "<<nn<<" nodes"<<endl;
   // form a response message
   (*prec)[AidMessage] = Debug::ssprintf("created %d nodes on P%d",nn,comm_rank());
   // post a reply
@@ -207,77 +209,6 @@ void MeqMPI::procEvent  (int source,const char *msgbuf,int msgsize)
   forest().postEvent(rec[AidType].as<HIID>(),rec[AidData].ref());
   if( hdr.endpoint )
     postReply(source,hdr.endpoint);
-}
-
-// An InitWorkOrder makes an init() call on a node
-class InitWorkOrder : public MTPool::AbstractWorkOrder
-{
-  public:
-    InitWorkOrder (NodeFace &node,NodeFace *parent,bool is_step,int init_index1,
-                   MeqMPI &mpi,int dest,MeqMPI::ReplyEndpoint *ep)
-    : noderef(node,DMI::SHARED),
-      is_stepparent(is_step),
-      init_index(init_index1),
-      meqmpi(mpi),reply_dest(dest),endpoint(ep)
-    {
-      if( parent )
-        parentref.attach(parent,DMI::SHARED);
-    }
-    
-    virtual void execute (MTPool::Brigade &brigade)      // runs the work order. 
-    {
-      int retcode = -1;
-      try
-      {
-        NodeFace &node = noderef();
-        NodeFace * parent = parentref.valid() ? parentref.dewr_p(): 0;
-        cdebug1(1)<<brigade.sdebug(1)+" init on node "+node.name()+"\n";
-        node.init(parent,is_stepparent,init_index);
-        retcode = 0;
-        cdebug1(1)<<brigade.sdebug(1)+" init on node "+node.name()+"\n";
-      }
-      catch( std::exception &exc )
-      {
-        string str = Debug::ssprintf("caught exception while initializing a node: %s",exc.what());
-        cdebug(0)<<str<<endl;
-        DMI::ExceptionList exclist(exc);
-        exclist.add(LOFAR::Exception(str));
-        meqmpi.postError(exclist);
-      }
-      catch(...)
-      {
-        string str = "caught unknown exception while initializing a node";
-        cdebug(0)<<str<<endl;
-        meqmpi.postError(str);
-      }
-      // notify client of completed order
-      if( endpoint )
-        meqmpi.postReply(reply_dest,endpoint,retcode);
-    }
-    virtual ~InitWorkOrder() {};
-    
-    NodeFace::Ref noderef;
-    NodeFace::Ref parentref;
-    bool is_stepparent;
-    int init_index;
-    MeqMPI & meqmpi;
-    int reply_dest;
-    MeqMPI::ReplyEndpoint *endpoint;
-};
-
-// processes a NODE_INIT message
-void MeqMPI::procNodeInit (int source,const char *msgbuf,int msgsize)
-{
-  // decode the message
-  ObjRef ref;
-  HdrNodeInit header;
-  decodeMessage(ref,&header,sizeof(header),msgbuf,msgsize);
-  // enqueue a workorder and wake up worker thread
-  NodeFace &node = forest().get(header.nodeindex);
-  NodeFace * parent = header.parent_nodeindex ? &( forest().get(header.parent_nodeindex) ) : 0;
-  Thread::Mutex::Lock lock(MTPool::brigade().cond());
-  MTPool::brigade().placeWorkOrder(new InitWorkOrder(node,parent,header.stepparent,header.init_index,*this,source,header.endpoint));
-  MTPool::brigade().awakenWorker();
 }
 
 // processes a NODE_GET_STATE message

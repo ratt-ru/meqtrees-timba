@@ -137,8 +137,6 @@ MeqServer::MeqServer()
   #endif
     
   sync_commands["Delete.Node"] = &MeqServer::deleteNode;
-  sync_commands["Init.Node"] = &MeqServer::initNode;
-  sync_commands["Init.Node.Batch"] = &MeqServer::initNodeBatch;
   async_commands["Set.Cwd"] = &MeqServer::setCurrentDir;
   async_commands["Set.Session.Name"] = &MeqServer::setSessionName;
   #ifdef HAVE_MPI
@@ -333,6 +331,8 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
       postError(exc);
     }
   }
+  postMessage(ssprintf("initializing %d nodes, please wait",nn));
+  forest.initAll();
   // form a response message
   out[AidMessage] = ssprintf("created %d nodes",nn);
   out[FForestChanged] = incrementForestSerial();
@@ -414,6 +414,7 @@ void MeqServer::createNodeBatch_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in)
       postError(exc);
     }
   }
+  forest.initAll();
   cdebug(2)<<"waiting for completion replies from remotes"<<endl;
   ObjRef ref;
   for( int i=1; i<nproc; i++ )
@@ -477,41 +478,6 @@ void MeqServer::nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in)
   if( getstate )
     out[FNodeState] <<= node.syncState();
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-}
-
-//##ModelId=3F98D91A03B9
-void MeqServer::initNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  setState(AidConstructing);
-  DMI::Record::Ref rec = in;
-  bool getstate;
-  NodeFace & node = resolveNode(getstate,*rec);
-  cdebug(2)<<"init for node "<<node.name()<<endl;
-  node.init(0,false,0);
-  cdebug(3)<<"init complete"<<endl;
-  out[AidMessage] = makeNodeMessage(node,"recursive init complete");
-  if( getstate )
-    out[FNodeState] <<= node.syncState();
-  out[FForestChanged] = incrementForestSerial();
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
-}
-
-void MeqServer::initNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
-{
-  setState(AidConstructing);
-  const DMI::Vec & names = in[AidName].as<DMI::Vec>();
-  int nn = names.size(Tpstring);
-  postMessage(ssprintf("recursively initializing from %d roots, please wait",nn));
-  cdebug(2)<<"batch-init of "<<nn<<" nodes\n";
-  for( int i=0; i<nn; i++ )
-  {
-    NodeFace &node = forest.findNode(names[i].as<string>());
-    node.init(0,false,0);
-  }
-  cdebug(3)<<"init complete"<<endl;
-  out[AidMessage] = "recursive init complete";
-  out[FForestChanged] = incrementForestSerial();
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
 }
 
 void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)

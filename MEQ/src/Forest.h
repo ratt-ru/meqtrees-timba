@@ -67,6 +67,9 @@ class Forest
     //## Returns ref to node.
     NodeFace & create (int &node_index, DMI::Record::Ref &initrec,
                        bool reinitializing=false);
+                       
+    //## initializes all nodes in forest
+    void initAll ();
 
     //##ModelId=3F5F5CA300E0
     //##Documentation

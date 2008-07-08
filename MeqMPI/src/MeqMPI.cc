@@ -45,7 +45,6 @@ MeqMPI::MeqMPI (int argc,const char *argv[])
   tag_strings[TAG_GET_NODE_LIST] = "GET_NODE_LIST";
   tag_strings[TAG_SET_FOREST_STATE] = "SET_FOREST_STATE";
   tag_strings[TAG_EVENT] = "EVENT";
-  tag_strings[TAG_NODE_INIT] = "NODE_INIT";
   tag_strings[TAG_NODE_GET_STATE] = "NODE_GET_STATE";
   tag_strings[TAG_NODE_SET_STATE] = "NODE_SET_STATE";
   tag_strings[TAG_NODE_EXECUTE] = "NODE_EXECUTE";
@@ -223,10 +222,6 @@ void * MeqMPI::runCommThread ()
     
           case TAG_SET_FOREST_STATE:
             procSetForestState(status.MPI_SOURCE,msgbuf_,msgsize);
-            break;
-    
-          case TAG_NODE_INIT:
-            procNodeInit(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
     
           case TAG_NODE_EXECUTE:

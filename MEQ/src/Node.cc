@@ -914,7 +914,7 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
   pstate_lock_ = &state_lock;
 
   cdebug(3)<<"execute, request ID "<<req.id()<<": "<<req.sdebug(DebugLevel-1,"    ")<<endl;
-  FailWhen(internal_init_index_<0,"execute() called before resolve()");
+  FailWhen(internal_init_index_<0,"execute() called before init()");
   int retcode = 0;
   // this indicates the current stage (for exception handler)
   string stage;

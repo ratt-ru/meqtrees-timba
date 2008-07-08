@@ -1284,6 +1284,10 @@ class _NodeRepository (dict):
         node._initrec.children = children;
       if node.stepchildren:
         node._initrec.step_children = [ child.nodeindex for label,child in node.stepchildren ];
+      # assign parent list
+      if node.parents:
+        node._initrec.parents = [ parent.nodeindex for parent in node.parents.itervalues() ];
+      
     # print roots in debug mode
     if _dbg.verbose > 3:
       for node in self._roots.itervalues():

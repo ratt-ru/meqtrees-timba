@@ -71,7 +71,7 @@ void Node::relinkParents ()
   for( uint i=0; i<parents_.size(); i++ )
   {
     parents_[i].ref.attach(forest().get(parent_indices[i]),DMI::SHARED);
-    parents_[i].stepparent = stepparent[i];
+//    parents_[i].stepparent = stepparent[i];
   }
 } 
 
@@ -132,80 +132,36 @@ void Node::relinkParents ()
 // }
 // #endif
 
-void Node::init (NodeFace *parent,bool stepparent,int init_index)
+void Node::init ()
 {
-#ifndef DISABLE_NODE_MT
-  Thread::Mutex::Lock lock(execCond());
-  // if node is already initializing, then wait for it to finish, and meanwhile
-  // mark our thread as blocked
-  if( executing_ )
-  {
-    MTPool::Brigade::markThreadAsBlocked(name());
-    while( executing_ )
-      execCond().wait();
-    MTPool::Brigade::markThreadAsUnblocked(name());
-  }
-  executing_ = true;
-  lock.release();
-#endif
-
   try
   {
-    // increment the parent count
-    if( parent )
+    // set the parents
+    int npar = parent_indices_.size();
+    parents_.resize(npar);
+    pcparents_->npar = npar;
+    for( int i=0; i<npar; i++ )
     {
-      pcparents_->npar++;
-      parents_.push_back(ParentEntry());
-      parents_.back().ref.attach(parent,DMI::SHARED);
-      parents_.back().stepparent = stepparent;
+      NodeFace & parent = forest().get(parent_indices_[i]);
+      parents_[i].ref.attach(parent,DMI::SHARED);
     }
     // if node already resolved with this resolve parent ID, do nothing
-    if( internal_init_index_ == init_index )
-    {
-      cdebug(4)<<"node already initialized for init_index "<<init_index<<endl;
-      executing_ = false;
-      return;
-    }
-    cdebug(3)<<"initializing node, init_index="<<init_index<<endl;
-    wstate()[FInternalInitIndex] = internal_init_index_ = init_index;
+    wstate()[FInternalInitIndex] = internal_init_index_ = 0;
     // init nurseries and resolve children
     setupNurseries();
     // call the state init method
     cdebug(2)<<"initializing node (setStateImpl)"<<endl;
     cdebug(3)<<"initial state is "<<staterec_().sdebug(10,"    ")<<endl;
     setStateImpl(staterec_,true);
-    // recursively init() all children
-    for( int i=0; i<children().numChildren(); i++ )
-      if( children().isChildValid(i) )
-        children().getChild(i).init(this,false,init_index);
-    for( int i=0; i<stepchildren().numChildren(); i++ )
-      stepchildren().getChild(i).init(this,true,init_index);
-    // call checkChildren() since all children are now valid
-    checkChildren();
   }
   catch( std::exception &exc )
   {
-#ifndef DISABLE_NODE_MT
-    Thread::Mutex::Lock lock(execCond());
-    executing_ = false;
-    execCond().broadcast();
-#endif
     ThrowMore(exc,"failed to init node '"+name()+"'");
   }
   catch( ... )
   {
-#ifndef DISABLE_NODE_MT
-    Thread::Mutex::Lock lock(execCond());
-    executing_ = false;
-    execCond().broadcast();
-#endif
     Throw("failed to init node '"+name()+"'");
   }
-#ifndef DISABLE_NODE_MT
-  lock.relock(execCond());
-  executing_ = false;
-  execCond().broadcast();
-#endif
 }
 
 
@@ -243,7 +199,7 @@ void Node::saveState (DMI::Record::Ref &ref)
   for( int i=0; i<numParents(); i++ )
   {
     parent_indices[i] = getParent(i).nodeIndex();
-    stepparent[i] = isStepParent(i);
+//    stepparent[i] = isStepParent(i);
   }
   Thread::Mutex::Lock lock(stateMutex());
   DMI::Record &strec = wstate();
@@ -335,6 +291,10 @@ void Node::attachInitRecord (DMI::Record::Ref &initrec, Forest* frst)
     FailWhen(hstep.type()!=Tpint,"illegal 'step_children' field of type "+hstep.type().toString());
     hstep.get_vector(stepchild_indices_);
   }
+  // check that parents field is a vector of indices
+  DMI::Record::Hook hpar(strec,FParents);
+  if( hpar.exists() )
+    hpar.get_vector(parent_indices_);
 }
   
 //##ModelId=400E530F0090

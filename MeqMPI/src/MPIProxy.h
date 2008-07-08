@@ -18,7 +18,7 @@ class MPIProxy : public Node
     MPIProxy ();
     virtual ~MPIProxy();
   
-    virtual void init (NodeFace *parent,bool stepparent,int init_index=0);
+    virtual void init ();
     
     virtual void setState (DMI::Record::Ref &rec);
     

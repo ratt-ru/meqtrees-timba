@@ -104,16 +104,18 @@ class NodeFace : public DMI::BObj
       nodeindex_ = ni; 
     }
     
-    //## Recursively initializes node and all its children.
+    //## Initializes node 
     //## Resolves links to children, processes init record, etc.
     //## Called after a forest has been constructed, and before any execute().
-    //## Parent is set to the parent node, and stepparent is true
-    //## if we are a stepchild of that parent. Node is expected to recursively
-    //## call init() on its children. Node is allowed (and even expected) to 
-    //## ignore subsequent init() calls with the same init_index.
-    //## Root nodes are called with a parent of 0.
     //## Errors should be indicated by throwing an exception.
-    virtual void init (NodeFace *parent,bool stepparent,int init_index=0) =0;
+    virtual void init () =0;
+    
+    // Checks children
+    // Called after all children have been initialized.
+    // Meant to do node-specific child type checking, etc. Should throw exceptions on error
+    virtual void checkChildren ()
+    {}
+
     
     //## Reinitializes node after loading from a record (e.g. when restoring
     //## from binary file). Unlike init(), this is non-recusrive, since

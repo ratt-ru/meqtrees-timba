@@ -137,11 +137,11 @@ NodeFace & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinit
   }
   catch( std::exception &exc )
   {
-    ThrowMore(exc,"failed to init node '"+nodename +"' of class "+classname);
+    ThrowMore(exc,"failed to create node '"+nodename +"' of class "+classname);
   }
   catch(...)
   {
-    Throw("failed to init node '"+nodename +"' of class "+classname);
+    Throw("failed to create node '"+nodename +"' of class "+classname);
   }
   // resize repository as needed, and put node into it
   if( node_index >= int(nodes.capacity()) )
@@ -154,6 +154,18 @@ NodeFace & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinit
   if( !nodename.empty() )
     name_map[nodename] = node_index;
   return *pnode;
+}
+
+void Forest::initAll ()
+{
+  // call init() on all nodes
+  for( uint i=0; i<nodes.size(); i++ )
+    if( nodes[i].valid() )
+      nodes[i]().init();
+  // call checkChildren() on all nodes
+  for( uint i=0; i<nodes.size(); i++ )
+    if( nodes[i].valid() )
+      nodes[i]().checkChildren();
 }
 
 //##ModelId=3F5F5CA300E0

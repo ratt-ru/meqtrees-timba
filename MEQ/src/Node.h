@@ -231,7 +231,7 @@ class Node : public NodeFace
     {
       CACHE_NEVER      = -10,    //## nothing is cached at all
       CACHE_MINIMAL    = -1,     //## cache held until all parents get result
-      CACHE_DEFAULT    =  0,     //## use global (forest default) policy
+      CACHE_DEFAULT    =  0,     //## use global (foresdefault) policy
       //## note that a forest default of 0 actually corresponds to CACHE_SMART
       CACHE_SMART      =  1,     //## smart caching based on next-request hints,
                                  //## conservative (when in doubt, don't cache)
@@ -290,8 +290,8 @@ class Node : public NodeFace
     void reattachInitRecord (DMI::Record::Ref &initrec, Forest* frst);
 
     //====== NodeFace method
-    //## Recursively initializes node and children.
-    virtual void init (NodeFace *parent,bool stepparent,int init_index=0);
+    //## Initializes node. By this stage, all parent/children nodes exist.
+    virtual void init ();
 
     //====== NodeFace method
     //## initializes node after reloading (from, e.g., a file).
@@ -457,9 +457,6 @@ class Node : public NodeFace
     const NodeFace & getParent (int i) const
     { return parents_[i].ref.deref(); }
 
-    bool isStepParent (int i) const
-    { return parents_[i].stepparent; }
-
     const std::vector<HIID> & getNodeGroups () const
     { return node_groups_; }
 
@@ -577,12 +574,6 @@ class Node : public NodeFace
     //## init()), rec is a complete state record.
     //## Record will be COWed as needed.
     virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-
-    // virtual method called from init()/reinit() after all children have
-    // been attached and initialized. Meant to do node-specific
-    // child type checking, etc. SHould throw exceptions on error
-    virtual void checkChildren ()
-    {}
 
     //## Called from execute() to collect the child results for a given request.
     //## Default behaviour is to call NodeNursery::syncPoll() on children,
@@ -838,16 +829,17 @@ class Node : public NodeFace
     typedef struct
     {
       NodeFace::Ref ref;
-      bool stepparent;
     } ParentEntry;
     std::vector<ParentEntry> parents_;
+    // vector of parent indices
+    std::vector<int> parent_indices_;
 
     //======= CHILD INFORMATION
 
     NodeNursery children_;
     NodeNursery stepchildren_;
 
-    //## vectors of child and step indices populated by init()/reinit()
+    //## vectors of child and stepchild indices 
     std::vector<int> child_indices_;
     std::vector<int> stepchild_indices_;
 

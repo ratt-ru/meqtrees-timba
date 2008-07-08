@@ -242,7 +242,6 @@ class MeqMPI
       TAG_EVENT,
       
       // node management messages
-      TAG_NODE_INIT,
       TAG_NODE_GET_STATE,
       TAG_NODE_SET_STATE,
       TAG_NODE_EXECUTE,
@@ -262,10 +261,6 @@ class MeqMPI
     // returns string corresponding to tag
     std::string tagToString (int tag);
     
-    // various message headers
-    
-    
-    
     virtual string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
 
     //##ModelId=3F5F195E013F
@@ -274,9 +269,9 @@ class MeqMPI
   private:
     // gets/allocates a worker thread brigade, sets lock on brigade's condition var
     MTPool::Brigade * getBrigade (Thread::Mutex::Lock &lock);
-      
-    void procInit             (int source,const char *msgbuf,int msgsize);
     
+    void procInit             (int source,const char *msgbuf,int msgsize);
+      
     void procCreateNodes      (int source,const char *msgbuf,int msgsize);
     void procGetNodeList      (int source,const char *msgbuf,int msgsize);
     void procSetForestState   (int source,const char *msgbuf,int msgsize);

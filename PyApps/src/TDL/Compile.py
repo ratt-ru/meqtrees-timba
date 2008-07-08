@@ -204,7 +204,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
         mqs.meq('Create.Node.Batch',
             record(script_name=os.path.basename(filename),
             batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
-        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
+#        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
         msg = """Script has run successfully. %d node definitions 
   (of which %d are root nodes) sent to the kernel.""" \
           % (num_nodes,len(ns.RootNodes()));

@@ -128,9 +128,6 @@ class MeqServer : public DMI::EventRecepient
     void nodeGetState (DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F61920F02A4
     void nodeSetState (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    //##ModelId=3F98D91A03B9
-    void initNode     (DMI::Record::Ref &out,DMI::Record::Ref &in);
-    void initNodeBatch(DMI::Record::Ref &out,DMI::Record::Ref &in);
     //##ModelId=3F98D91B0064
     void getNodeList  (DMI::Record::Ref &out,DMI::Record::Ref &in);
     

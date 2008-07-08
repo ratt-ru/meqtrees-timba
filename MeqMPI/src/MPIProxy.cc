@@ -20,30 +20,29 @@ MPIProxy::~MPIProxy ()
 {
 }
 
-void MPIProxy::init (NodeFace *parent,bool stepparent,int init_index)
+void MPIProxy::init ()
 { 
   // init the node
-  Node::init(parent,stepparent,init_index);
-  dprintf(2)("init(parent=%s,%d)\n",parent?parent->name().c_str():"",init_index);
+  Node::init();
+  dprintf(2)("init");
   // get remote processor number
   remote_proc_ = wstate()[AidRemote|AidProc].as<int>(0);
-  // if parent is NOT an MPIProxy (e.g. is a local parent, increment counter of local parents.
-  // note that we only hold cache for local parents
-  MPIProxy *ptr = dynamic_cast<MPIProxy*>(parent);
-  if( parent && !ptr )
-  {
-    num_local_parents_++;
-    dprintf(2)("now have %d local parents\n",num_local_parents_);
-  }
+  // count the number of local (i.e. non-MPIProxy) parents. 
+  // We need to know since we only hold cache for local parents
+  num_local_parents_ = 0;
+  for( int i=0; i<numParents(); i++ )
+    if( getParent(i).objectType() != TpMeqMPIProxy )
+      num_local_parents_++;
+  dprintf(2)("we have %d local parents\n",num_local_parents_);
   // rather clumsy way to propagate this into the Node mechanism, but there you go...
   DMI::Record::Ref rec(new DMI::Record);
   rec()[FCacheNumActiveParents] = num_local_parents_;
   Node::setStateImpl(rec,false);
-  // send init message and wait for reply
-  MeqMPI::ReplyEndpoint reply;
-  MeqMPI::HdrNodeInit header = { nodeIndex(),parent?parent->nodeIndex():0,stepparent,init_index,&reply };
-  MeqMPI::self->postCommand(MeqMPI::TAG_NODE_INIT,remote_proc_,header);
-  reply.await();
+//  // send init message and wait for reply
+//  MeqMPI::ReplyEndpoint reply;
+//  MeqMPI::HdrNodeInit header = { nodeIndex(),parent?parent->nodeIndex():0,stepparent,init_index,&reply };
+//  MeqMPI::self->postCommand(MeqMPI::TAG_NODE_INIT,remote_proc_,header);
+//  reply.await();
 }
 
 void MPIProxy::getSyncState (DMI::Record::Ref &ref) 
@@ -150,8 +149,10 @@ void MPIProxy::clearCache (bool recursive) throw()
 void MPIProxy::holdCache (bool hold) throw()
 {
   Node::holdCache(hold);
-  MeqMPI::HdrNodeOperation header = { nodeIndex(),hold,0 };
-  MeqMPI::self->postCommand(MeqMPI::TAG_NODE_HOLD_CACHE,remote_proc_,header);
+//// NB: for now, do not send message across MPI. Let remote
+//// nodes hold their caches, but we don't want the message overhead
+//  MeqMPI::HdrNodeOperation header = { nodeIndex(),hold,0 };
+//  MeqMPI::self->postCommand(MeqMPI::TAG_NODE_HOLD_CACHE,remote_proc_,header);
 }
     
 void MPIProxy::propagateStateDependency ()

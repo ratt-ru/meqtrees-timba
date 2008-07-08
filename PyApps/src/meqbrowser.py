@@ -107,7 +107,8 @@ importPlugin('stream_control');
 def meqbrowse (debug={},**kwargs):
   # parse command line -- old style
 #  remaining_args = app_defaults.parse_argv(sys.argv[1:]);
-  args = app_defaults.args;
+  args = dict(app_defaults.args);
+  args['spawn'] = False;
   for d,l in debug.iteritems():
     debuglevels[d] = max(debuglevels.get(d,0),l);
   
