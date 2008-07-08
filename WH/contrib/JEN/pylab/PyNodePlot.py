@@ -925,19 +925,17 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
 #=====================================================================================
 
 
-def pynode_Plot (ns, nodes, labels=None,
+def pynode_Plot (ns, nodes, groupspecs=None,
+                 plotspecs=None, labels=None,
                  nodename=None, quals=None, kwquals=None,
-                 groupspecs=None,
-                 plotspecs=None,
                  **kwargs):
   """
-  Convenience function to create and return a pynode of class PyNodePlot.
+  Convenience function to create and return a MeqPyNode of class PyNodePlot.
   Syntax:
   .   import PyNodePlot as PNP
-  .   pynode = PNP.pynode_Ploy (ns, nodes, labels=None,
+  .   pynode = PNP.pynode_Plot (ns, nodes, groupspecs=None,
+  .                             plotspecs=None, labels=None,
   .                             nodename=None, quals=None, kwquals=None,
-  .                             groupspecs=None,
-  .                             plotspecs=None,
   .                             **kwargs)
   Mandatory arguments:
   - ns:          nodescope
@@ -947,19 +945,20 @@ def pynode_Plot (ns, nodes, labels=None,
   .              will be copied to the new pynode. This mechanism allows concatenation
   .              of PyNodeNamedGroups pynodes, which is very powerful.
   Optional arguments:
+  - groupspecs:  group specification(s) may have different types:
+  .              - string (e.g. 'XXYY'): convenient way to specify standard plots
+  .              - record(): (advanced use) a valid groupspecs record 
+  .              - None: (if children are PyNodeNamedGroups pynodes)
+  - plotspecs:   record with further plot specification(s). (advanced use, to be elaborated)
   - labels:      list of labels for the node results. If not supplied, or the wrong
   .                length, they will be derived from the node names.
   - nodename:    name of the resulting pynode
-  - quals:       list of qualifiers
-  - kwquals:     dict of keyword qualifiers
-  - plotspecs:   list of further plot specification(s). (to be elaborated)
-  - groupspecs:  group specification(s).
-  .              - record()
-  .              - string (e.g. 'XXYY')
-  .              - None (if children are PyNodeNamedGroups pynodes
-  - **kwargs:    Any keyword arguments specified via kwargs override default
-  .              plotspecs values like xlabel, ylabel, title etc.
+  - quals:       list of nodenamed qualifiers [=None]
+  - kwquals:     dict of nodename keyword qualifiers [=None]
+  - **kwargs:    Standard plots (e.g. 'XXYY') may be customized by means of keyword arguments.
+  .              They override default plotspecs values like xlabel, ylabel, title etc.
   """
+
   trace = False
   # trace = True
 

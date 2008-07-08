@@ -524,7 +524,13 @@ class PyNodeNamedGroups (pynode.PyNode):
     # selection (childnos) of child nodenames:
     ss = EN.get_node_names(self.child_names, select=childnos, trace=True) 
     lcs = EN.get_largest_common_string(ss, trace=True) 
-    # reduced_labels = EN.get_plot_labels(self.child_names, lcs=lcs, trace=trace)
+
+    # Make a one-line group summary string: 
+    ss = '{'+str(lowerkey)+'}:'
+    ss += ' n='+str(len(childnos))
+    ss += ' ('+str(children)+')'
+    ss += ' vells='+str(vells)
+    ss += ' lcs='+str(lcs)
     
     # Create and attach the new record:
     rr = record(vv=vv, dvv=dvv,
@@ -533,7 +539,7 @@ class PyNodeNamedGroups (pynode.PyNode):
                 vells=vells, children=children,
                 childnos=childnos, nodes=nodes,
                 labels=labels, lcs=lcs,
-                # reduced_labels=reduced_labels,
+                summary=ss,
                 history=history)
     self._namedgroups[lowerkey] = rr
 
@@ -852,6 +858,23 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
+  def _expr2keys(self, expr, trace=False):
+    """
+    Return a list of keys of the existing named group(s) that appear as
+    variable(s) {<name>} in the given expression. 
+    """
+    keys = []
+    for key in self._namedgroups.keys():
+      kenc = '{'+key+'}'
+      if kenc in expr:
+        keys.appens(key)
+    if trace:
+      print '\n** _expr2keys(',expr,') ->',keys
+    return keys
+
+
+  #-------------------------------------------------------------------
+
   def _expr2lcs(self, expr, trace=False):
     """
     If the given expression contains a variable {<name>}, return the
@@ -1163,7 +1186,7 @@ def string2groupspecs(groupspecs, trace=False):
       gs.x = record(children='*', vells=[int(vv[0])])    # [3]
       gs.y = record(children='*', vells=[int(vv[1])])    # [4]
       if len(vv)==3:
-        gs.y = record(children='*', vells=[int(vv[2])])  # 
+        gs.z = record(children='*', vells=[int(vv[2])])  # 
 
   elif groupspecs=='Vis22':
     # Its children are assumed to be 2x2 tensor nodes (4 vells each).

@@ -561,7 +561,7 @@ def get_largest_common_string (ss, trace=False):
             lcs += c
                 
     if trace:
-        print '** EN.largest_common_string(',len(ss),') ->',lcs
+        print '** EN.largest_common_string(',len(ss),') ->',lcs,'\n'
     return lcs
 
 #-----------------------------------------------------------------------

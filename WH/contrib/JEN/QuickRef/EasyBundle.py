@@ -226,7 +226,7 @@ def bundle_names (cat='default', include=None, first=None, trace=False):
 #-----------------------------------------------------------------------------------
 
 def bundle (ns, spec,
-            n=-1, noise=0.0, stddev=1.0,
+            n=-1, noise=0.0, stddev=0.0,
             nodename=None, quals=None, kwquals=None,
             help=None, shape=None, unop=None, parent=None,
             severe=False, trace=False):

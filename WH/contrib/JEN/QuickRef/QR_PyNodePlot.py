@@ -169,9 +169,25 @@ def make_helpnodes (ns, path, rider):
 
 def PyNodePlot (ns, path, rider):
    """
-   Basic plotting, using the function PNP.pynode_PyNodePlot(),
-   which creates a pynode of class PyNodePlot, which is derived
+   Basic plotting, using the convenience function PNP.pynode_PyNodePlot(),
+   which creates a MeqPyNode of class PyNodePlot, which is derived
    from PyNodeNamedGroups.
+
+   In order to make things easy, standard plots may be specified by means
+   of a string (e.g. 'XXYY'), and customized by means of keyword arguments.
+   This should take care of the vast majority of plots. More advanced use
+   requires the input of valid groupspecs/plotspecs records.
+
+   In the examples shown here, the MeqPyNode state record is often shown next
+   to the plot itself, because it contains a lot of detailed information:
+   - pynode_help:   the __doc__ string of the PyNodePlot class
+   - groupspecs:    the input group specification record
+   - plotspecs:     the input plot specification record
+   - quickref_help: the actual call used to create this MeqPyNode,
+   .                including the values of the custimizing keyword arguments.
+   - cache.result (available after execution):
+   .    - namedgroups: The detailed list of available named groups
+   .    - plotdefs:    The detailed list of (sub)plot definitions
    """
    rr = QRU.on_entry(PyNodePlot, path, rider)
    cc = []
@@ -210,15 +226,17 @@ def PyNodePlot_basic (ns, path, rider):
 
 def PyNodePlot_scalars (ns, path, rider):
    """
-   Lists of scalar nodes can be plotted against each other by arranging them
-   in a single list, and specifying groupspecs='XXYY'. The results of first half
-   of the list will be used as x-coordinates, and the second half as y-coordinates:
+   Groups of scalar nodes can be plotted against each other by arranging them
+   in a single list, and specifying groupspecs='XXYY'. The results of the nodes in
+   the first half of the list will be used as x-coordinates, and those in the second
+   half as y-coordinates:
    .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY')
+   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes, 'XXYY')
    The plot may be customised with keyword arguments (e.g. color='green' etc).
 
-   Simple (x,y,z) plots may be made in a similar way:
-   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ')
+   Simple (x,y,z) plots may be made in a similar way. The x,y and z groups are
+   the 1st, 2nd and 3rd third of the input node list:
+   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, 'XXYYZZ')
    In this case, the z-values are indicated by the size of their markers.
    """
    rr = QRU.on_entry(PyNodePlot_scalars, path, rider)
@@ -229,7 +247,7 @@ def PyNodePlot_scalars (ns, path, rider):
    viewer = []
 
    node = PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY',
-                          xlabel='xlabel', ylabel='ylabel', color='green')
+                          xlabel='xlabel', color='green')
    cc.extend([node,node])
    viewer.extend(['Pylab Plotter','Record Browser'])
 
@@ -245,7 +263,13 @@ def PyNodePlot_scalars (ns, path, rider):
 
 def PyNodePlot_complex (ns, path, rider):
    """
-   Complex vellsets may be plotted in various ways.
+   Complex vellsets may be plotted in various ways. The simplest is to use the
+   real parts of vellsets[0] as x-coordinates, and their imaginary parts as
+   y-coordinates:
+   .    import PyNodePlot as PNP
+   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes, 'CY')
+   In this case, the named group 'y' contains complex numbers. They are split into
+   real and imaginary parts by plotspecs expressions x={y}.real and y={y}.imag.
    """
    rr = QRU.on_entry(PyNodePlot_complex, path, rider)
    cc = []
@@ -262,11 +286,30 @@ def PyNodePlot_complex (ns, path, rider):
 
 def PyNodePlot_tensors (ns, path, rider):
    """
-   Tensor nodes are nodes with a multiple vellsets.
-   There are various ways to plot the vellsets of groups of tensor nodes against each other.
+   Tensor nodes are nodes with a multiple vellsets in their results (scalars have one).
+   In a group of related tensor nodes (e.g. containing pairs (u,v) of coordinates),
+   the groups of corresponding vellsets may be extracted as named groups, and plotted
+   against each other: 
+   .    import PyNodePlot as PNP
+   .    pynode = PNP.pynode_Plot(ns, nodes, 'XY')
+   This extracts all vellsets[0] as group 'x', and all vellsets[1] as group 'y',
+   and uses them as horizontal and vertical coordinates.
+   The plot may be customised with keyword arguments (e.g. color='green' etc).
+
+   Simple (x,y,z) plots may be made in a similar way from vellsets 0,1,2 of
+   the input nodes.
+   .    pynode = PNP.pynode_Plot(ns, nodes, 'XYZ')
+   Again, the z-values are indicated by the size of their markers.
+
    """
    rr = QRU.on_entry(PyNodePlot_tensors, path, rider)
    cc = []
+   nodes = EB.bundle(ns,'range_4', n=5, nodename='range', stddev=1.0)
+   cc = []
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XY'))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XYZ'))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='Vells_32'))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='Vells_213'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
