@@ -29,36 +29,75 @@ import sys
 import os.path
 import getopt
 import inspect
+import Timba.utils
+from Timba import octopussy
+from optparse import OptionParser
 
-if __name__ == '__main__':
+def main ():
+  debuglevels = {};
   
-  optionlist,args = getopt.getopt(sys.argv[1:],'m:');
+  # tell verbosity class to not parse argv -- we do it ourselves here
+  Timba.utils.verbosity.disable_argv(); 
+  # parse options is the first thing we should do
+  usage="Usage: %prog [options] <TDLSCRIPT> [<TDLJOB>]";
+  parser = OptionParser(usage=usage)
+  parser.add_option("-m", "--mt",dest="mt",type="int",
+                    default=1,
+                    help="run meqserver with multiple threads (-mt option to meqserver)");
+  parser.add_option("-c", "--config",dest="config",type="string",
+                    default=".tdl.conf",
+                    help="configuration file to use");
+  parser.add_option("-C", "--compile-only",dest="compile_only",action="store_true",
+                    help="compile script only, do not run");
+  parser.add_option("-d", "--debug",dest="debug",type="string",action="append",metavar="Context=Level",
+                    help="(for debugging C++ code) sets debug level of the named C++ context. May be used multiple times.");
+  parser.add_option("-v", "--verbose",dest="verbose",type="string",action="append",metavar="Context=Level",
+                    help="(for debugging Python code) sets verbosity level of the named Python context. May be used multiple times.");
+  (options,args) = parser.parse_args();
+  
+  for optstr in (options.debug or []):
+    opt = optstr.split("=") + ['1'];
+    context,level = opt[:2];
+    debuglevels[context] = int(level);
+  Timba.utils.verbosity.disable_argv(); # tell verbosity class to not parse its argv
+  for optstr in (options.verbose or []):
+    opt = optstr.split("=") + ['1'];
+    context,level = opt[:2];
+    Timba.utils.verbosity.set_verbosity_level(context,level);
 
   if not args:
-    print "Usage:",__file__," [-m num_threads] tdlscript [tdljob] [debug flags]";
-    print "If TDL job is not specified, the first TDL job will be executed";
+    parser.print_help();
     sys.exit(1);
 
+  if debuglevels:
+    octopussy.set_debug(debuglevels);
+
   script = args[0];
-  args = [ x for x in args if not x.startswith("-") ];
   tdljob = (len(args)>1 and args[1]) or None;
-  opts = dict(optionlist);
-  num_threads = opts.get('-m','1');
   
   from Timba.Apps import meqserver
   from Timba.TDL import Compile
   from Timba.TDL import TDLOptions
   
-  # this starts a kernel. 
-  mqs = meqserver.default_mqs(wait_init=10,extra=["-mt",num_threads]);
+  print options.mt;
   
-  TDLOptions.config.read(".tdl.conf");
+  # this starts a kernel. 
+  if options.compile_only:
+    mqs = None;
+  else:
+    mqs = meqserver.default_mqs(wait_init=10,extra=["-mt",options.mt]);
+  
+  TDLOptions.config.read(options.config);
   TDLOptions.init_options(script);
   
   print "************************ Compiling TDL script",script;
   # this compiles a script as a TDL module. Any errors will be thrown as
   # and exception, so this always returns successfully
   (mod,ns,msg) = Compile.compile_file(mqs,script);
+  
+  if options.compile_only:
+    print msg;
+    sys.exit(0);
   
   # if a solve job is not specified, try to find one
   if tdljob:
@@ -95,3 +134,7 @@ if __name__ == '__main__':
     jobopts = {};
   jobfunc(mqs,None,**jobopts);
 
+if __name__ == '__main__':
+  main();
+  #import profile
+  #profile.run('main()','tdlprof');
