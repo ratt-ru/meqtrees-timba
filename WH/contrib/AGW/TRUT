@@ -1,0 +1,45 @@
+TDL meq_42.py
+ 
+TDL MG_AGW_azel.py
+ 
+TDL MG_AGW_Collections_Plotter.py
+ 
+TDL MG_AGW_form_beam_from_separate_table.py
+ 
+TDL MG_AGW_form_beams_all.py
+ 
+TDL MG_AGW_FPA_azel_gauss_obs.py
+ 
+TDL MG_AGW_FPA_azel_obs1.py
+ 
+TDL MG_AGW_FPA_azel_obs.py
+ 
+TDL MG_AGW_full_gain_varying_FPA.py
+ 
+TDL MG_AGW_gain_varying_FPA.py
+ 
+TDL MG_AGW_gain_varying_FPA_solving_problem.py
+ 
+TDL MG_AGW_gain_varying_FPA_solving.py
+ 
+TDL MG_AGW_history.py
+ 
+TDL MG_AGW_LMRaDec.py
+ 
+TDL MG_AGW_LST.py
+ 
+TDL MG_AGW_modcal.py
+ 
+TDL MG_AGW_multifreq_poln_images.py
+ 
+MG_AGW_observe_noise_from_table_separate.py
+ 
+TDL MG_AGW_ParAngle.py
+ 
+TDL MG_AGW_phased_beam_obs.py
+ 
+TDL MG_AGW_solve_FPA_beam.py
+ 
+TDL MG_AGW_store_beam_separate_weights.py
+ 
+TDL MG_AGW_tree.py
