@@ -1123,7 +1123,7 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
 
 #---------------------------------------------------------------------------------------
   
-def string2groupspecs(groupspecs, trace=False):
+def string2groupspecs(ss, trace=False):
   """
   Make a groupspecs record from the given string spec.
   Recognized strings are:
@@ -1140,46 +1140,46 @@ def string2groupspecs(groupspecs, trace=False):
   .                (NB: group-name will be converted to lowercase...)
   """
   gs = record()
-  if groupspecs in ['Y','YY','y','yy','CY']:
+  if ss in ['Y','YY','y','yy','CY']:
     # Its children are assumed to have a single vells -> group y
     gs.y = record(children='*', vells=[0])
-  elif groupspecs in ['X','XX','x','xx']:
+  elif ss in ['X','XX','x','xx']:
     # Its children are assumed to have a single vells -> group x
     gs.x = record(children='*', vells=[0])
-  elif groupspecs in ['Z','ZZ','z','zz']:    
+  elif ss in ['Z','ZZ','z','zz']:    
     # Its children are assumed to have a single vells -> group z
     gs.z = record(children='*', vells=[0])
 
-  elif groupspecs=='XXYY':
+  elif ss=='XXYY':
     # Its children are assumed to be in 2 concatenated lists (and have a single vells...)
     gs.x = record(children='1/2', vells=[0])           # the 1st half
     gs.y = record(children='2/2', vells=[0])           # the 2nd half
-  elif groupspecs=='XXYYZZ':
+  elif ss=='XXYYZZ':
     # Its children are assumed to be in 3 concatenated lists (and have a single vells...)
     gs.x = record(children='1/3', vells=[0])           # the 1st third
     gs.y = record(children='2/3', vells=[0])           # the 2nd third
     gs.z = record(children='3/3', vells=[0])           # the 3rd third
 
-  elif groupspecs=='CXY':
+  elif ss=='CXY':
     # NB: This does not work, because 'expr' is not used (yet)...................!!
     # Its children are assumed to nodes with complex vells[0]
     gs.x = record(children='*', vells=[0], expr='real()')       # ...?
     gs.y = record(children='*', vells=[0], expr='imag()')       # ...?
 
-  elif groupspecs=='XY':
+  elif ss=='XY':
     # Its children are assumed to be tensor nodes with (at least) 2 vells
     gs.x = record(children='*', vells=[0]) 
     gs.y = record(children='*', vells=[1]) 
-  elif groupspecs=='XYZ':
+  elif ss=='XYZ':
     # Its children are assumed to be tensor nodes with (at least) 3 vells
     gs.x = record(children='*', vells=[0]) 
     gs.y = record(children='*', vells=[1]) 
     gs.z = record(children='*', vells=[2]) 
 
-  elif 'Vells_' in groupspecs:
+  elif 'Vells_' in ss:
     # Its children are assumed to be tensor nodes with at least as
     # many vells as are required by the integers after '_'.
-    vv = groupspecs.split('Vells_')[1]                 # Vells_34 -> vv = '34'
+    vv = ss.split('Vells_')[1]                 # Vells_34 -> vv = '34'
     if len(vv)==1:
       gs.y = record(children='*', vells=[int(vv[0])])    # [3]
     elif len(vv)>1:
@@ -1188,24 +1188,72 @@ def string2groupspecs(groupspecs, trace=False):
       if len(vv)==3:
         gs.z = record(children='*', vells=[int(vv[2])])  # 
 
-  elif groupspecs=='Vis22':
-    # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-    gs.xx = record(children='*', vells=[0])
-    gs.xy = record(children='*', vells=[1])
-    gs.yx = record(children='*', vells=[2])
-    gs.yy = record(children='*', vells=[3])
+  elif ss=='Vis22':
+    # Special case: 2x2 cohaerency matrices
+    gs = string2groupspecs_Vis22 (ss, trace=trace)
 
   else:
     # Assume that the string is a groupname....
     # NB: Convert the group-name to lowercase, because the meqbrowser
     #     will converts it in any case....
-    gs[groupspecs.lower()] = record(children='*', vells=[0])
+    gs[ss.lower()] = record(children='*', vells=[0])
 
   if trace:
-    print '\n** string2groupspecs(',groupspecs,'):\n    ',gs,'\n'
+    print '\n** string2groupspecs(',ss,'):\n    ',gs,'\n'
   return gs
 
+#-------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
 
+def string2groupspecs_Vis22 (ss, trace=False):
+  """
+  Special case....
+  See also PyNodePlotVis22.py
+  """
+  rr =  string2corrs_Vis22 (ss, trace=trace)
+  # Its children are assumed to be 2x2 tensor nodes (4 vells each).
+  # OK, make the groups for the specified corrs:
+  gs = record()
+  for icorr in rr.corrs:
+    name = rr.name[icorr]
+    gs[name] = record(children='*', vells=[icorr])
+    if trace:
+      print '-',icorr,name,gs[name]
+  return gs
+
+#.....................................................................
+
+def string2corrs_Vis22 (ss, trace=False):
+  """
+  NB: This function is also called from PyNodePlot.py
+  """
+  rr = record()
+  rr.polrep = 'circular'
+  rr.polrep = 'linear'
+  rr.name = ['I','Q','U','iV']
+  rr.name = ['I','Q','iU','V']
+  rr.name = ['rr','rl','lr','ll']
+  rr.name = ['xx','xy','yx','yy']
+  rr.color = ['red','magenta','green','blue']
+  rr.marker = ['circle','cross','cross','plus']          # IQUV
+  rr.marker = ['circle','cross','cross','circle']        # vis
+  rr.expr = ['({rr}+{ll})/2','({rl}+{lr})/2',
+             '({rl}-{lr})/2','({rx}-{ll})/2']
+  rr.expr = ['({xx}+{yy})/2','({xy}+{yx})/2',
+             '({xy}-{yx})/2','({xx}-{yy})/2']
+  rr.expr = ['{rr}','{rl}','{lr}','{ll}']
+  rr.expr = ['{xx}','{xy}','{yx}','{yy}']
+  rr.markersize = [2,3,3,3]                              # IQUV
+  rr.markersize = [2,3,3,2]
+  rr.fontsize = [7,7,7,7]
+
+  rr.corrs = range(4)
+  if 'Vis22_' in ss:
+    vv = ss.split('Vis22_')[1]         
+
+  if trace:
+    print rr
+  return rr
 
 #=====================================================================================
 # Make a test-forest:

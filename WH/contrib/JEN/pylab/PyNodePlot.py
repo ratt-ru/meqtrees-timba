@@ -957,6 +957,18 @@ def pynode_Plot (ns, nodes, groupspecs=None,
   - kwquals:     dict of nodename keyword qualifiers [=None]
   - **kwargs:    Standard plots (e.g. 'XXYY') may be customized by means of keyword arguments.
   .              They override default plotspecs values like xlabel, ylabel, title etc.
+
+  The fun is in the combination of groupspecs [=None] and plotspecs [=None].
+  There are various possibilities:
+  
+  - gs=string, ps=None:   One of the standard plots (e.g. gs='XXYY') -> gs and ps. 
+  - gs=None, ps=None:     The simplest possible case: interpreted as gs='Y'
+  - gs=None, ps=string:   Assume that the child nodes are pynodes containing named groups.
+  .                       A standard ps string specified how they are to be plotted.
+  - gs=None, ps=dict:     The same, but ps specifies a more advanced plot.
+  - gs=dict, ps=dict:     Black-belt: User defined groups, and user-defined plots.  
+  - 
+  
   """
 
   trace = False
@@ -971,11 +983,11 @@ def pynode_Plot (ns, nodes, groupspecs=None,
     nodename += '_'+str(groupspecs)
     gs = PNNG.string2groupspecs(groupspecs)
     ps = string2plotspecs(groupspecs)
-  elif not isinstance(groupspecs, dict):
-    gs = record()
-    gs.y = record(children='*', vells=[0])
+  elif not isinstance(groupspecs, dict):             # i.e. groupspecs=None
+    gs = PNNG.string2groupspecs('Y')
   else:
     # Assume a valid groupspecs record....? 
+    nodename += '___gs'
     gs = groupspecs
 
   # If no labels specified, get them from the node-names:
@@ -985,13 +997,15 @@ def pynode_Plot (ns, nodes, groupspecs=None,
     labels = EN.get_plot_labels(nodes, lcs=lcs, trace=True)
 
   # Condition the plotspecs record (if required):
-  if isinstance(plotspecs, dict):            # defined by the user
+  if isinstance(plotspecs, str):             # a standard plot
+    nodename += '__'+str(plotspecs)          #  
+    ps = string2plotspecs(plotspecs)
+  elif isinstance(plotspecs, dict):          # defined by the user (takes precedence over ps)
     ps = plotspecs                           # assume a valid plotspecs record...?
   elif isinstance(ps, dict):
     pass                                     # ps = string2plotspecs(groupspecs) above
-  else:                                      # assume scalar children
-    ps = record(graphics=[], xlabel='{x}', ylabel='{y}')
-    ps.graphics.append(record(y='{y}', legend='y=yexpr'))
+  else:                                      # e.g. plotspecs==None
+    ps = string2plotspecs('Y')
     
   # Update the plotspecs record with any kwargs:
   ps.update(**kwargs)               # this overrides already existing keyword values! 
@@ -1050,7 +1064,7 @@ def pynode_Plot (ns, nodes, groupspecs=None,
 #--------------------------------------------------------------------------------------
 
   
-def string2plotspecs(plotspecs, trace=False):
+def string2plotspecs(ss, trace=False):
   """
   Make a plotspecs record from the given string spec.
   Recognized strings are:
@@ -1071,35 +1085,35 @@ def string2plotspecs(plotspecs, trace=False):
   gcxy = record(x='{y}.real', y='{y}.imag')
   gxyz = record(x='{x}', y='{y}', z='{z}', legend=['x=xexpr','y=yexpr','z=zexpr'])
 
-  if plotspecs in ['Y','YY','y','yy']:
+  if ss in ['Y','YY','y','yy']:
     ps.graphics.append(gy)
     ps.xlabel = 'child no'
-  elif plotspecs in ['X','XX','x','xx']:
+  elif ss in ['X','XX','x','xx']:
     ps.graphics.append(gy)                            # .....??
     ps.xlabel = 'child no'
-  elif plotspecs in ['Z','ZZ','z','zz']:
+  elif ss in ['Z','ZZ','z','zz']:
     ps.graphics.append(gy)                            # .....??
     ps.xlabel = 'child no'
 
-  elif plotspecs in ['CY']:
+  elif ss in ['CY']:
     ps.graphics.append(gcxy)          # x={y}.real and y={y}.imag (1 group)
     ps.xlabel = 'real part of: {y}'
     ps.ylabel = 'imag part of: {y}'
-  elif plotspecs in ['CXY']:
-    # NB: This does not work, see string2groupspecs()
+  elif ss in ['CXY']:
+    # NB: This does not work (yet), see string2groupspecs()
     ps.graphics.append(gxy)           # x={x} and y={y} (2 groups)
     ps.xlabel = 'real part of: {x}'
     ps.ylabel = 'imag part of: {x}'
 
-  elif plotspecs in ['XXYY','XY']:
+  elif ss in ['XXYY','XY']:
     ps.graphics.append(gxy)
 
-  elif plotspecs in ['XXYYZZ','XYZ']:
+  elif ss in ['XXYYZZ','XYZ']:
     ps.graphics.append(gxyz)
     ps.zlabel = 'z'
 
-  elif 'Vells_' in plotspecs:
-    vv = plotspecs.split('Vells_')[1]                 # Vells_34 -> vv = '34'
+  elif 'Vells_' in ss:
+    vv = ss.split('Vells_')[1]                 # Vells_34 -> vv = '34'
     if len(vv)==1:
       ps.graphics.append(gy)
       ps.xlabel = 'child no'
@@ -1114,15 +1128,36 @@ def string2plotspecs(plotspecs, trace=False):
       ps.ylabel = 'vells['+vv[1]+']'
       ps.zlabel = 'vells['+vv[2]+']'
 
-  elif plotspecs=='Vis22':
-    # See PyNodePlotVis22.py
-    pass
+  elif 'Vis22' in ss:
+    ps =  string2plotspecs_Vis22(ss, trace=trace)
 
   if trace:
-    print '\n** string2plotspecs(',plotspecs,'):\n    ',ps,'\n'
+    print '\n** string2plotspecs(',ss,'):\n    ',ps,'\n'
   return ps
 
+#-------------------------------------------------------------------------------------
 
+def string2plotspecs_Vis22 (ss, trace=False):
+  """
+  Special case....
+  See also PyNodePlotVis22.py
+  """
+  rr =  PNNG.string2corrs_Vis22 (ss, trace=trace)
+  ps = record(graphics=[], xlabel='{x}', ylabel='{y}')
+  for icorr in rr.corrs:
+    psc = record(xy=rr.expr[icorr],
+                 color=rr.color[icorr],
+                 legend=rr.name[icorr]+': \expr',
+                 marker=rr.marker[icorr],
+                 markersize=rr.markersize[icorr],
+                 annotate=(icorr==0))
+    if trace:
+      print '-',icorr,psc
+    ps.graphics.append(psc)
+  ps.xlabel = 'real part (Jy)'
+  ps.ylabel = 'imag part (Jy)'
+  ps.plot_circle_mean = True
+  return ps
 
 
 #=====================================================================================
