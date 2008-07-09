@@ -316,6 +316,7 @@ class PylabPlotter(GriddedPlugin):
       self._pylab_plotter.show()
     if self._toolbar is None:
       self._toolbar = NavigationToolbar(self._pylab_plotter, self.layout_parent)
+      self._toolbar.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
       self._toolbar.show()
       self.layout.addWidget(self._toolbar,1,0)
     self._pylab_plotter.make_plot(pylab_record)
