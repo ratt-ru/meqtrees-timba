@@ -358,6 +358,7 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
             else:
                 cc.append(noisetwig(ns, spec, quals=k, kwquals=kwquals))
         node = stub << Meq.Composer(*cc)
+        EN.orphans(node)
 
     else:
         # A single noise-twig node:

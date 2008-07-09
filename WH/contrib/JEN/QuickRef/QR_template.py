@@ -102,6 +102,7 @@ TDLCompileMenu("QR_template topics:",
 # Top-level function, called from QuickRef.py:
 #********************************************************************************
 
+header = 'QR_template'                    # used in exec functions at the bottom
 
 def QR_template (ns, path, rider):
    """
@@ -137,14 +138,16 @@ def QR_template (ns, path, rider):
    """
    rr = QRU.on_entry(QR_template, path, rider)
    cc = []
+   override = opt_alltopics
+   global header
 
    # Remove this part:
    cc.append(QRU.helpnode (ns, rr.path, rider, func=QRU.bundle))
 
    # Edit this part:
-   if opt_alltopics or opt_topic1:
+   if override or opt_topic1:
       cc.append(topic1 (ns, rr.path, rider))
-   if opt_alltopics or opt_topic2:
+   if override or opt_topic2:
       cc.append(topic2 (ns, rr.path, rider))
 
    if opt_helpnodes:
@@ -164,10 +167,11 @@ def make_helpnodes (ns, path, rider):
    """
    rr = QRU.on_entry(make_helpnodes, path, rider)
    
+   override = opt_alltopics
    cc = []
-   if opt_alltopics or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyTwig_twig',
-                              help=ET.twig.__doc__, trace=False))
+
+   if override or opt_helpnode_twig:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
@@ -190,7 +194,7 @@ def topic1 (ns, path, rider):
    .   def topic1 (ns, path, rider):
    .       rr = QRU.on_entry(topic1, path, rider)
    .       cc = []
-   .       if opt_alltopics or opt_topic1_subtopic:
+   .       if override or opt_topic1_subtopic:
    .           cc.append(topic1_subtopic (ns, rr.path, rider))
    .       return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
@@ -199,8 +203,11 @@ def topic1 (ns, path, rider):
    """
    rr = QRU.on_entry(topic1, path, rider)
    cc = []
-   if opt_alltopics or opt_topic1_subtopic:
+   override = opt_alltopics
+
+   if override or opt_topic1_subtopic:
       cc.append(topic1_subtopic (ns, rr.path, rider))
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
@@ -255,8 +262,11 @@ def topic2 (ns, path, rider):
    """
    rr = QRU.on_entry(topic2, path, rider)
    cc = []
-   # if opt_alltopics or opt_topic2_subtopic:
+   override = opt_alltopics
+
+   # if override or opt_topic2_subtopic:
    #    cc.append(topic2_subtopic (ns, rr.path, rider))
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
@@ -345,20 +355,20 @@ def _tdl_job_m (mqs, parent):
 
 def _tdl_job_print_doc (mqs, parent):
    """Print the specified subset of the help doc on the screen"""
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QR_template')
+   return QRU._tdl_job_print_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_print_hardcopy (mqs, parent):
    """Print a hardcopy of the specified subset of the help doc on the printer.
    NB: The printer may be customized with the runtime options."""
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_template')
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
 def _tdl_job_show_doc (mqs, parent):
    """Show the specified subset of the help doc in a popup"""
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QR_template')
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_save_doc (mqs, parent):
    """Save the specified subset of the help doc in a file"""
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QR_template')
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
 
 

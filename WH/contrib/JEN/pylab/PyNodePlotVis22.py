@@ -50,6 +50,7 @@ import Meow.Bookmarks
 
 # from Timba import pynode
 from Timba.Contrib.JEN.pylab import PyNodePlot
+from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 import math
 # import inspect
@@ -372,6 +373,10 @@ def make_uvdata (ns, n=4):
   cc = []
   labels = []
   xpos = range(n)
+  stub_noise = EN.unique_stub(ns, 'noise')
+  stub_noisy = EN.unique_stub(ns, 'noisy')
+  stub_noise << -0.123456789
+  stub_noisy << -0.123456789
   for i in range(n-1):
     for j in range(i+1,n):
       basel = ns['basel'](i)(j) << (xpos[j] - xpos[i])
@@ -389,11 +394,11 @@ def make_uvdata (ns, n=4):
       coh = ns['coh'](i)(j) << Meq.Multiply(cps,K)
       if True:
         q = 0.1
-        noise = ns['noise'](i)(j) << Meq.Matrix22(complex(random.gauss(0,q),random.gauss(0,q)),
-                                                  complex(random.gauss(0,q),random.gauss(0,q)),
-                                                  complex(random.gauss(0,q),random.gauss(0,q)),
-                                                  complex(random.gauss(0,q),random.gauss(0,q)))
-        coh = ns['noisy'](i)(j) << Meq.Add(coh,noise)
+        noise = stub_noise(i)(j) << Meq.Matrix22(complex(random.gauss(0,q),random.gauss(0,q)),
+                                                 complex(random.gauss(0,q),random.gauss(0,q)),
+                                                 complex(random.gauss(0,q),random.gauss(0,q)),
+                                                 complex(random.gauss(0,q),random.gauss(0,q)))
+        coh = stub_noisy(i)(j) << Meq.Add(coh,noise)
         
 
       cc.append(coh)

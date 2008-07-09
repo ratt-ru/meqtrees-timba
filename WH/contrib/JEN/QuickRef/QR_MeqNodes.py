@@ -158,6 +158,7 @@ TDLCompileMenu("QR_MeqNodes topics:",
 # Top function, called from QuickRef.py:
 #********************************************************************************
 
+header = 'QR_MeqNodes'
 
 def QR_MeqNodes (ns, path, rider):
    """
@@ -165,34 +166,37 @@ def QR_MeqNodes (ns, path, rider):
    """
    rr = QRU.on_entry(QR_MeqNodes, path, rider)
    cc = []
-   if opt_alltopics or opt_unops:
+   override = opt_alltopics
+   global header
+   
+   if override or opt_unops:
       cc.append(unops (ns, rr.path, rider))
-   if opt_alltopics or opt_binops_math:
+   if override or opt_binops_math:
       cc.append(binops_math (ns, rr.path, rider))
-   if opt_alltopics or opt_multi_math:
+   if override or opt_multi_math:
       cc.append(multi_math (ns, rr.path, rider))
-   if opt_alltopics or opt_leaves:             
+   if override or opt_leaves:             
       cc.append(leaves (ns, rr.path, rider))
-   if opt_alltopics or opt_tensor:
+   if override or opt_tensor:
       cc.append(tensor (ns, rr.path, rider))
-   if opt_alltopics or opt_axisreduction:
+   if override or opt_axisreduction:
       cc.append(axisreduction (ns, rr.path, rider))
-   if opt_alltopics or opt_resampling:
+   if override or opt_resampling:
       cc.append(resampling (ns, rr.path, rider))
-   if opt_alltopics or opt_compounder:
+   if override or opt_compounder:
       cc.append(compounder (ns, rr.path, rider))
-   if opt_alltopics or opt_flagging:
+   if override or opt_flagging:
       cc.append(flagging (ns, rr.path, rider))
-   if opt_alltopics or opt_solving:
+   if override or opt_solving:
       cc.append(solving (ns, rr.path, rider))
-   if opt_alltopics or opt_visualization:
+   if override or opt_visualization:
       cc.append(visualization (ns, rr.path, rider))
-   if opt_alltopics or opt_flowcontrol:
+   if override or opt_flowcontrol:
       cc.append(flowcontrol (ns, rr.path, rider))
-   if opt_alltopics or opt_transforms:
+   if override or opt_transforms:
       cc.append(transforms (ns, rr.path, rider))
 
-   if opt_helpnodes:
+   if override or opt_helpnodes:
       cc.append(make_helpnodes (ns, rr.path, rider))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
@@ -211,9 +215,7 @@ def make_helpnodes (ns, path, rider):
    
    cc = []
    if opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider,
-                              name='EasyTwig_twig',
-                             help=ET.twig.__doc__, trace=False))
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
@@ -1308,16 +1310,16 @@ def _tdl_job_m (mqs, parent):
    return QRU._tdl_job_m (mqs, parent)
 
 def _tdl_job_print_doc (mqs, parent):
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QR_MeqNodes')
+   return QRU._tdl_job_print_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_print_hardcopy (mqs, parent):
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_MeqNodes')
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
 def _tdl_job_show_doc (mqs, parent):
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QR_MeqNodes')
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_save_doc (mqs, parent):
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QR_MeqNodes')
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
 
 

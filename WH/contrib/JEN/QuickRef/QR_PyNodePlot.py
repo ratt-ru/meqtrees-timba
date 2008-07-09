@@ -79,33 +79,59 @@ import numpy
 
 
 TDLCompileMenu("QR_PyNodePlot topics:",
-               TDLOption('opt_alltopics',"override: include all topics",True),
+               TDLOption('opt_alltopics',"override: include all topics",False),
 
                TDLOption('opt_input_twig',"input twig",
                          ET.twig_names(), more=str),
 
                TDLMenu("PyNodePlot",
+                       TDLOption('opt_PNP_alltopics',
+                                 "override: include all PyNodePlot sub-topics",False),
                        TDLMenu("basic",
-                               toggle='opt_PyNodePlot_basic'),
+                               toggle='opt_PNP_basic'),
                        TDLMenu("scalars",
-                               toggle='opt_PyNodePlot_scalars'),
+                               toggle='opt_PNP_scalars'),
                        TDLMenu("complex",
-                               toggle='opt_PyNodePlot_complex'),
+                               toggle='opt_PNP_complex'),
                        TDLMenu("tensors",
-                               toggle='opt_PyNodePlot_tensors'),
+                               toggle='opt_PNP_tensors'),
                        TDLMenu("concat",
-                               toggle='opt_PyNodePlot_concat'),
+                               toggle='opt_PNP_concat'),
+                       TDLMenu("customize",
+                               toggle='opt_PNP_customize'),
+                       TDLMenu("hotrod",
+                               toggle='opt_PNP_hotrod'),
                        toggle='opt_PyNodePlot'),
 
-               TDLMenu("PlotVis22",
-                       toggle='opt_PlotVis22'),
+               TDLMenu("PlotVIS22",
+                       TDLOption('opt_PlotVIS22_alltopics',
+                                 "override: include all PlotVIS22 sub-topics",False),
+                       TDLMenu("linear",
+                               toggle='opt_PlotVIS22_linear'),
+                       TDLMenu("circular",
+                               toggle='opt_PlotVIS22_circular'),
+                       TDLMenu("old",
+                               toggle='opt_PlotVIS22_old'),
+                       toggle='opt_PlotVIS22'),
 
                TDLMenu("PyNodeNamedGroups",
+                       TDLOption('opt_PNNG_alltopics',
+                                 "override: include all PyNodeNamedGroups sub-topics",False),
+                       TDLMenu("basic",
+                               toggle='opt_PNNG_basic'),
+                       TDLMenu("concat",
+                               toggle='opt_PNNG_concat'),
                        toggle='opt_PyNodeNamedGroups'),
 
                TDLMenu("help",
-                       # TDLOption('opt_helpnode_bundle',"help on EasyBundle.bundle()", False),
+                       TDLOption('opt_helpnode_alltopics',
+                                 "override: include all helpnodes",False),
+                       TDLOption('opt_helpnode_bundle',"help on EasyBundle.bundle()", False),
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                       TDLOption('opt_helpnode_PNP',"help on class PyNodePlot", False),
+                       TDLOption('opt_helpnode_pynode_PNP',"help on pynode_Plot()", False),
+                       TDLOption('opt_helpnode_PNNG',"help on class PyNodeNodeGroups", False),
+                       TDLOption('opt_helpnode_pynode_PNNG',"help on pynode_NamedGroup()", False),
                        toggle='opt_helpnodes'),
 
                toggle='opt_QR_PyNodePlot')
@@ -116,6 +142,7 @@ TDLCompileMenu("QR_PyNodePlot topics:",
 # Top-level function, called from QuickRef.py:
 #********************************************************************************
 
+header = 'QR_PyNodePlot'
 
 def QR_PyNodePlot (ns, path, rider):
    """
@@ -123,16 +150,22 @@ def QR_PyNodePlot (ns, path, rider):
    rr = QRU.on_entry(QR_PyNodePlot, path, rider)
  
    cc = []
-   if opt_alltopics or opt_PyNodePlot:
+   override = opt_alltopics
+   global header
+   
+   if override or opt_PyNodePlot:
+      header += '_PNP'
       cc.append(PyNodePlot (ns, rr.path, rider))
 
-   if opt_alltopics or opt_PlotVis22:
-      cc.append(PlotVis22 (ns, rr.path, rider))
+   if override or opt_PlotVIS22:
+      cc.append(PlotVIS22 (ns, rr.path, rider))
 
-   if opt_alltopics or opt_PyNodeNamedGroups:
+   if override or opt_PyNodeNamedGroups:
+      header += '_PNNG'
       cc.append(PyNodeNamedGroups (ns, rr.path, rider))
 
-   if opt_helpnodes:
+   if override or opt_helpnodes:
+      header += '_help'
       cc.append(make_helpnodes (ns, rr.path, rider))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
@@ -150,12 +183,26 @@ def make_helpnodes (ns, path, rider):
    rr = QRU.on_entry(make_helpnodes, path, rider)
    
    cc = []
-   if opt_alltopics or opt_helpnode_bundle:
-      cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyBundle_bundle',
-                             help=ET.bundle.__doc__, trace=False))
-   if opt_alltopics or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyTwig_twig',
-                             help=ET.twig.__doc__, trace=False))
+   override = (opt_alltopics or opt_helpnode_alltopics)
+
+   if override or opt_helpnode_bundle:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=EB.bundle))
+   if override or opt_helpnode_twig:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
+
+   if override or opt_helpnode_PNP:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNP.PyNodePlot))
+   if override or opt_helpnode_pynode_PNP:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNP.pynode_Plot))
+      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNP.string2plotspecs))
+      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNP.string2plotspecs_VIS22))
+
+   if override or opt_helpnode_PNNG:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNNG.PyNodeNamedGroups))
+   if override or opt_helpnode_pynode_PNNG:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNNG.pynode_NamedGroup))
+      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2groupspecs))
+      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2record_VIS22))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
@@ -170,15 +217,15 @@ def make_helpnodes (ns, path, rider):
 def PyNodePlot (ns, path, rider):
    """
    Basic plotting, using the convenience function PNP.pynode_PyNodePlot(),
-   which creates a MeqPyNode of class PyNodePlot, which is derived
-   from PyNodeNamedGroups.
+   (import PyNodePlot as PNP) which creates a MeqPyNode of class PyNodePlot,
+   which is derived from PyNodeNamedGroups (see elsewhere in this module).
 
    In order to make things easy, standard plots may be specified by means
    of a string (e.g. 'XXYY'), and customized by means of keyword arguments.
    This should take care of the vast majority of plots. More advanced use
    requires the input of valid groupspecs/plotspecs records.
 
-   In the examples shown here, the MeqPyNode state record is often shown next
+   In the examples shown below, the MeqPyNode state record is often shown next
    to the plot itself, because it contains a lot of detailed information:
    - pynode_help:   the __doc__ string of the PyNodePlot class
    - groupspecs:    the input group specification record
@@ -191,17 +238,19 @@ def PyNodePlot (ns, path, rider):
    """
    rr = QRU.on_entry(PyNodePlot, path, rider)
    cc = []
-   if opt_alltopics or opt_PyNodePlot_basic:
+   override = (opt_alltopics or opt_PNP_alltopics)
+
+   if override or opt_PNP_basic:
       cc.append(PyNodePlot_basic (ns, rr.path, rider))
-   if opt_alltopics or opt_PyNodePlot_scalars:
+   if override or opt_PNP_scalars:
       cc.append(PyNodePlot_scalars (ns, rr.path, rider))
-   if opt_alltopics or opt_PyNodePlot_complex:
+   if override or opt_PNP_complex:
       cc.append(PyNodePlot_complex (ns, rr.path, rider))
-   if opt_alltopics or opt_PyNodePlot_tensors:
+   if override or opt_PNP_tensors:
       cc.append(PyNodePlot_tensors (ns, rr.path, rider))
-   if opt_alltopics or opt_PyNodePlot_concat:
+   if override or opt_PNP_concat:
       cc.append(PyNodePlot_concat (ns, rr.path, rider))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=PNP.PyNodePlot))
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       bookmark=cc[0], viewer='Pylab Plotter',
                       parentclass='ReqSeq', result_index=0)
@@ -217,8 +266,9 @@ def PyNodePlot_basic (ns, path, rider):
    rr = QRU.on_entry(PyNodePlot_basic, path, rider)
    cc = []
    viewer = []
+   viewer = 'Pylab Plotter'
    ynodes = EB.bundle(ns,'cloud_n6s1')
-   cc.append(PNP.pynode_Plot(ns, ynodes, title='simplest', color='red'))
+   cc.append(PNP.pynode_Plot(ns, ynodes))                    # title='simplest', color='red'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer=viewer)
 
@@ -301,15 +351,26 @@ def PyNodePlot_tensors (ns, path, rider):
    .    pynode = PNP.pynode_Plot(ns, nodes, 'XYZ')
    Again, the z-values are indicated by the size of their markers.
 
+   The following plots vellset[0] as a function of child nr:
+   .    pynode = PNP.pynode_Plot(ns, nodes, 'YY')
+
+   Arbitrary vellsets may be plotted against each other in the following way:
+   .    pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_1')
+   .    pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_32')
+   .    pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_213')
+   The integers following 'VELLS_' are vellset indices, of course.
+
    """
    rr = QRU.on_entry(PyNodePlot_tensors, path, rider)
    cc = []
    nodes = EB.bundle(ns,'range_4', n=5, nodename='range', stddev=1.0)
    cc = []
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='YY'))
    cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XY'))
    cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XYZ'))
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='Vells_32'))
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='Vells_213'))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_1'))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_32'))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_213'))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
@@ -319,55 +380,140 @@ def PyNodePlot_tensors (ns, path, rider):
 def PyNodePlot_concat (ns, path, rider):
    """
    It is possible to concatenate pynodes of class PyNodePlot/PyNodeNamedGroups.
-   Children of these classes are ignored for plotting, but their groups definitions
-   and plot definitions are copied into the new pynode. This is very powerful.
+   Children of these types are ignored for plotting, but their group definitions
+   and plot definitions are copied into the new MeqPyNode. This is very powerful.
+   
+   .    import PyNodeNamedGroups as PNNG
+   .    pynode_XX = PNP.pynode_NamedGroup(ns, xnodes, 'XX')
+   .    pynode_YY = PNP.pynode_NamedGroup(ns, ynodes, 'YY')
+   
+   .    import PyNodePlot as PNP
+   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY], plotspecs='XY')
+
+   Note that in this case, no groupspecs is specified (as 3rd argument), but a
+   keyword argument plotspecs. The reason is of course that the groups (x and y)
+   have been copied from its pynode children, but we still have to specify how
+   to plot these groups.
+
+   An (x,y,z) plot can be made by adding a 3rd pynode child (pynode_ZZ),
+   and specifying a suitable plotspecs:
+   .    pynode_ZZ = PNP.pynode_NamedGroup(ns, znodes, 'ZZ')
+   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY, pynode_ZZ],
+   .                             plotspecs='XYZ')
+
+   Etc, etc. See also the more elaborate concatenation examples below....
    """
    rr = QRU.on_entry(PyNodePlot_concat, path, rider)
    cc = []
+   viewer = []
+   xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
+   ynodes = EB.bundle(ns,'cloud_n6s1', nodename='yyy')
+   # znodes = EB.bundle(ns,'cloud_n6s1')
+
+   cc.append(PNNG.pynode_NamedGroup(ns, xnodes, groupspecs='XX'))
+   viewer.append('Record Browser')
+
+   cc.append(PNNG.pynode_NamedGroup(ns, ynodes, groupspecs='YY'))
+   viewer.append('Record Browser')
+
+   node = PNP.pynode_Plot(ns, cc, plotspecs='XY',
+                          xlabel='from pynode_XX',
+                          ylabel='from pynode_YY')
+   cc.extend([node,node])
+   viewer.extend(['Pylab Plotter','Record Browser'])
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      viewer='Pylab Plotter')
+                      viewer=viewer)
 
 
 
 #================================================================================
-# PlotVis22:
+# PlotVIS22:
 #================================================================================
 
-def PlotVis22 (ns, path, rider):
+def PlotVIS22 (ns, path, rider):
    """
+   Standard plot of the 4 elements (visibilities) of 2x2 cohaerency matrices.
    """
-   rr = QRU.on_entry(PlotVis22, path, rider,
-                     help=PNPVis22.PlotVis22.__doc__)
+   rr = QRU.on_entry(PlotVIS22, path, rider)
    cc = []
+
+   override = (opt_alltopics or opt_PlotVIS22_alltopics)
+   if override or opt_PlotVIS22_linear:
+      cc.append(PlotVIS22_linear (ns, rr.path, rider))
+   if override or opt_PlotVIS22_circular:
+      cc.append(PlotVIS22_circular (ns, rr.path, rider))
+
+   if True:
+      # Works, but causes node clashes (should be removed anyway) 
+      if override or opt_PlotVIS22_old:
+         cc.append(PlotVIS22_old (ns, rr.path, rider))
+
+   cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2record_VIS22))
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+
+
+#================================================================================
+
+def PlotVIS22_old (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PlotVIS22_old, path, rider)
+   cc = []
+
    [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)
-   lcn = EN.largest_common_name(coh, trace=True)
-   labels = EN.get_plot_labels(coh, lcn=lcn, trace=True)
+   ss = EN.get_node_names(coh)
+   lcs = EN.get_largest_common_string(ss)
+   labels = EN.get_plot_labels(coh, lcs=lcs)
    ps = record()
-   ps.legend = lcn                                # ....is not passed on....
-   ps.title = lcn                                 # ....ok....
-   pynode = ns['PlotVis22'] << Meq.PyNode(children=coh,
+   ps.legend = lcs                                # ....is not passed on....
+   ps.title = lcs                                 # ....ok....
+   pynode = ns['PlotVIS22'] << Meq.PyNode(children=coh,
                                           child_labels=labels,
                                           class_name='PlotVis22',
                                           # groupspecs=gs,
                                           plotspecs=ps,
                                           module_name=PNPVis22.__file__)
    cc.append(pynode)
-   # if opt_alltopics or opt_PyNodePlotVis22_subtopic:
-      # cc.append(PyNodePlotVis22_subtopic (ns, rr.path, rider))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=cc[0], viewer='Pylab Plotter',
-                      parentclass='ReqSeq', result_index=0)
+                      viewer='Pylab Plotter')
 
 
 #================================================================================
 
-def PyNodePlotVis22_subtopic (ns, path, rider):
+def PlotVIS22_linear (ns, path, rider):
    """
    """
-   rr = QRU.on_entry(PyNodePlotVis22_subtopic, path, rider)
+   rr = QRU.on_entry(PlotVIS22_linear, path, rider)
    cc = []
+
+   [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)        # temporary
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_DIAG'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV'))
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      parentclass='ReqSeq', result_index=0)
+                      viewer='Pylab Plotter')
+
+
+#================================================================================
+
+def PlotVIS22_circular (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PlotVIS22_circular, path, rider)
+   cc = []
+
+   [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)        # temporary
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_DIAG'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_OFFDIAG'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV'))
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer='Pylab Plotter')
 
 
 
@@ -379,8 +525,26 @@ def PyNodePlotVis22_subtopic (ns, path, rider):
 def PyNodeNamedGroups (ns, path, rider):
    """
    """
-   rr = QRU.on_entry(PyNodeNamedGroups, path, rider,
-                     help=PNNG.PyNodeNamedGroups.__doc__)
+   rr = QRU.on_entry(PyNodeNamedGroups, path, rider)
+   cc = []
+   override = (opt_alltopics or opt_PNNG_alltopics)
+
+   if override or opt_PNNG_basic:
+      cc.append(PyNodeNamedGroups_basic (ns, rr.path, rider))
+   if override or opt_PNNG_concat:
+      cc.append(PyNodeNamedGroups_concat (ns, rr.path, rider))
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      bookmark=cc[0], viewer='Record Browser',
+                      parentclass='ReqSeq', result_index=0)
+
+
+#================================================================================
+
+def PyNodeNamedGroups_basic (ns, path, rider):
+   """
+   """
+   rr = QRU.on_entry(PyNodeNamedGroups_basic, path, rider)
    cc = []
    children = [ns << 0.1, ns << 1.1]
    pynode = ns['PyNodeNamedGroups'] << Meq.PyNode(children=children,
@@ -389,22 +553,17 @@ def PyNodeNamedGroups (ns, path, rider):
                                                   # groupspecs=gs,
                                                   module_name=PNNG.__file__)
    cc.append(pynode)
-   # if opt_alltopics or opt_PyNodeNamedGroups_subtopic:
-      # cc.append(PyNodeNamedGroups_subtopic (ns, rr.path, rider))
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=cc[0], viewer='Record Browser',
-                      parentclass='ReqSeq', result_index=0)
-
+                      viewer='Record Browser')
 
 #================================================================================
 
-def PyNodeNamedGroups_subtopic (ns, path, rider):
+def PyNodeNamedGroups_concat (ns, path, rider):
    """
    """
-   rr = QRU.on_entry(PyNodeNamedGroups_subtopic, path, rider)
+   rr = QRU.on_entry(PyNodeNamedGroups_concat, path, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      parentclass='ReqSeq', result_index=0)
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 
@@ -481,20 +640,20 @@ def _tdl_job_m (mqs, parent):
 
 def _tdl_job_print_doc (mqs, parent):
    """Print the specified subset of the help doc on the screen"""
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QR_PyNodePlot')
+   return QRU._tdl_job_print_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_print_hardcopy (mqs, parent):
    """Print a hardcopy of the specified subset of the help doc on the printer.
    NB: The printer may be customized with the runtime options."""
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_PyNodePlot')
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
 def _tdl_job_show_doc (mqs, parent):
    """Show the specified subset of the help doc in a popup"""
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QR_PyNodePlot')
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_save_doc (mqs, parent):
    """Save the specified subset of the help doc in a file"""
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QR_PyNodePlot')
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
 
 

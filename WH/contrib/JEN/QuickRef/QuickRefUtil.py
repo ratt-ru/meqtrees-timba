@@ -12,6 +12,7 @@
 #   - 07 jun 2008: moved twig() etc to EasyTwig.py
 #   - 01 jul 2008: implemented orphan functions
 #   - 06 jul 2008: allow list of viewers in .bundle()
+#   - 09 jul 2008: improved helpnode() behaviour
 #
 # Remarks:
 #
@@ -649,11 +650,14 @@ def on_entry(func, path, rider, help=None, trace=False):
     .          in the CollatedHelpRecord (rider).
     - rr.help: func.__doc__  (plus any extra help, if specified).
     - rr.name: func.func_name
+    .          or str(func.__module__)      (helpnodes only)
     """
     rr = record()
-    rr.name = func.func_name
 
-    ss = func.func_name.split('_')
+    if getattr(func, 'func_name', None):
+        rr.name = str(func.func_name)
+
+    ss = rr.name.split('_')
     nss = len(ss)
     rr.path = path+'.'+ss[nss-1]
 
@@ -720,11 +724,21 @@ def helpnode (ns, path, rider,
     Always make a bookmark for the node, with a suitable viewer.
     """
 
-    if getattr(func,'func_name', None):
-        # A function specified: Reuse .on_entry() to extract help (its doc-string)
-        rr = on_entry(func, path, rider, help=None, trace=trace)
-        help = rr.help
-        name = rr.name
+    hh = None
+    if func:
+        if False:
+            print '\n** helpnode(',path,'):\n',dir(func)
+            print '-- func.__class__ =',func.__class__
+            print '-- func.__module__ =',func.__module__
+            print
+        hh = str(func.__module__)
+        if getattr(func, 'func_name', None):
+            name = str(func.func_name)+'()'
+        else:
+            ss = hh.split('.')
+            name = ss[len(ss)-1]
+        hh = '  (see module: '+hh+')'
+        help = func.__doc__
 
     # Make sure of the name-string:
     if not isinstance(name,str):
@@ -738,6 +752,7 @@ def helpnode (ns, path, rider,
         node = MeqNode (ns, path, meqclass='Constant',
                         name='helpnode'+'_'+name,
                         help=help, rider=rider,
+                        helpnode=hh,
                         trace=trace, value=-0.123456789)
 
     # Make a bookmark with a suitable viewer:
@@ -755,6 +770,7 @@ def MeqNode (ns, path, rider,
              ## quals=None, kwquals=None,              # not a good idea...?
              node=None, children=None, unop=None,
              help=None, show_recurse=False,
+             helpnode=False,
              trace=False, **kwargs):
     """
     Syntax:
@@ -808,6 +824,9 @@ def MeqNode (ns, path, rider,
 
     if is_node(node):
         qinfo += ': node='+str(node)
+
+    elif helpnode:
+        qinfo = '\n\n ns[\''+str(name)+'\'] '+str(helpnode)
 
     else:
         qinfo += ' << Meq.'+str(meqclass)+'('
@@ -1053,6 +1072,8 @@ def bundle (ns, path, rider,
         # Make sure that viewer is a list with the same length as nodes:
         if not isinstance(viewer,(list,tuple)):
             viewer = len(nodes)*[viewer]
+        elif not len(viewer)==0:
+            viewer = len(nodes)*['Record Browser']
         elif not len(viewer)==len(nodes):
             viewer = len(nodes)*[viewer[0]]
 

@@ -17,6 +17,7 @@
 #   - 02 jul 2008: pynode_NamedGroup() etc
 #   - 03 jul 2008: removed default group 'allvells'
 #   - 04 jul 2008: implemented string2groupspecs()
+#   - 06 jul 2008: implemented string2record_VIS22()
 #
 # Remarks:
 #
@@ -522,8 +523,8 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     # Extract the largest common string (lcs) from the relevant
     # selection (childnos) of child nodenames:
-    ss = EN.get_node_names(self.child_names, select=childnos, trace=True) 
-    lcs = EN.get_largest_common_string(ss, trace=True) 
+    ss = EN.get_node_names(self.child_names, select=childnos, trace=False) 
+    lcs = EN.get_largest_common_string(ss, trace=False) 
 
     # Make a one-line group summary string: 
     ss = '{'+str(lowerkey)+'}:'
@@ -1127,26 +1128,26 @@ def string2groupspecs(ss, trace=False):
   """
   Make a groupspecs record from the given string spec.
   Recognized strings are:
-  - Y or YY:   Take vells[0] for group y
+  - YY:        Take vells[0] for group y
   - CY:        Take (complex) vells[0] for group y 
   - XY:        Assume tensor nodes with vells[0,1] for groups x,y
   - CXY:       Take real,imag part of vells[0] for groups x,y 
   - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
-  - Vells_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
+  - VELLS_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
   - XXYY:      Assume single list of equal nrs of x,y nodes
   - XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
-  - Vis22:     Assume 2x2 tensor nodes. Groups xx,xy,yx,yy
+  - VIS22...:  Assume 2x2 tensor nodes. See string2record_VIS22()
   - anything else: make a group of that name, with all vells[0]
   .                (NB: group-name will be converted to lowercase...)
   """
   gs = record()
-  if ss in ['Y','YY','y','yy','CY']:
+  if ss in ['YY','CY']:
     # Its children are assumed to have a single vells -> group y
     gs.y = record(children='*', vells=[0])
-  elif ss in ['X','XX','x','xx']:
+  elif ss in ['XX']:
     # Its children are assumed to have a single vells -> group x
     gs.x = record(children='*', vells=[0])
-  elif ss in ['Z','ZZ','z','zz']:    
+  elif ss in ['ZZ']:    
     # Its children are assumed to have a single vells -> group z
     gs.z = record(children='*', vells=[0])
 
@@ -1176,10 +1177,10 @@ def string2groupspecs(ss, trace=False):
     gs.y = record(children='*', vells=[1]) 
     gs.z = record(children='*', vells=[2]) 
 
-  elif 'Vells_' in ss:
+  elif 'VELLS_' in ss:
     # Its children are assumed to be tensor nodes with at least as
     # many vells as are required by the integers after '_'.
-    vv = ss.split('Vells_')[1]                 # Vells_34 -> vv = '34'
+    vv = ss.split('VELLS_')[1]                 # VELLS_34 -> vv = '34'
     if len(vv)==1:
       gs.y = record(children='*', vells=[int(vv[0])])    # [3]
     elif len(vv)>1:
@@ -1188,9 +1189,9 @@ def string2groupspecs(ss, trace=False):
       if len(vv)==3:
         gs.z = record(children='*', vells=[int(vv[2])])  # 
 
-  elif ss=='Vis22':
+  elif 'VIS22' in ss:
     # Special case: 2x2 cohaerency matrices
-    gs = string2groupspecs_Vis22 (ss, trace=trace)
+    gs = string2groupspecs_VIS22 (ss, trace=trace)
 
   else:
     # Assume that the string is a groupname....
@@ -1205,51 +1206,75 @@ def string2groupspecs(ss, trace=False):
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
 
-def string2groupspecs_Vis22 (ss, trace=False):
+def string2groupspecs_VIS22 (ss, trace=False):
   """
-  Special case....
-  See also PyNodePlotVis22.py
+  Special case: visibilities.
+  Its children are assumed to be 2x2 tensor nodes (4 vells each).
+  See also PyNodePlotVIS22.py
   """
-  rr =  string2corrs_Vis22 (ss, trace=trace)
-  # Its children are assumed to be 2x2 tensor nodes (4 vells each).
-  # OK, make the groups for the specified corrs:
+  rr =  string2record_VIS22 (ss, trace=trace)
   gs = record()
   for icorr in rr.corrs:
-    name = rr.name[icorr]
-    gs[name] = record(children='*', vells=[icorr])
+    gname = rr.groupname[icorr]
+    gs[gname] = record(children='*', vells=[icorr])
     if trace:
-      print '-',icorr,name,gs[name]
+      print '-',icorr,gname,gs[gname]
   return gs
 
 #.....................................................................
 
-def string2corrs_Vis22 (ss, trace=False):
+def string2record_VIS22 (ss, trace=False):
   """
-  NB: This function is also called from PyNodePlot.py
+  Turns the given string (VIS22...) into a record of polarisation info,
+  which is used to define groupspecs and plotspecs for visibility plotting.
+  - VIS22C: polrep='circular' (otherwise: polrep='linear')
+  - _IQUV: convert to I,Q,U,V (otherwise: visibilities)
+  - _DIAG: diagonal terms corrs=[0,3] (e.g. XX,YY')
+  - _OFFDIAG: off-diagonal terms corrs=[1,2] (e.g. XY,YX')
+  NB: This function is also called from module PyNodePlot.py
   """
   rr = record()
-  rr.polrep = 'circular'
+
   rr.polrep = 'linear'
-  rr.name = ['I','Q','U','iV']
-  rr.name = ['I','Q','iU','V']
-  rr.name = ['rr','rl','lr','ll']
-  rr.name = ['xx','xy','yx','yy']
+  rr.groupname = ['xx','xy','yx','yy']
+  if 'VIS22C' in ss:
+    rr.polrep = 'circular'
+    rr.groupname = ['rr','rl','lr','ll']
+
   rr.color = ['red','magenta','green','blue']
-  rr.marker = ['circle','cross','cross','plus']          # IQUV
-  rr.marker = ['circle','cross','cross','circle']        # vis
-  rr.expr = ['({rr}+{ll})/2','({rl}+{lr})/2',
-             '({rl}-{lr})/2','({rx}-{ll})/2']
-  rr.expr = ['({xx}+{yy})/2','({xy}+{yx})/2',
-             '({xy}-{yx})/2','({xx}-{yy})/2']
-  rr.expr = ['{rr}','{rl}','{lr}','{ll}']
-  rr.expr = ['{xx}','{xy}','{yx}','{yy}']
-  rr.markersize = [2,3,3,3]                              # IQUV
+  rr.marker = ['circle','cross','cross','circle']      
   rr.markersize = [2,3,3,2]
   rr.fontsize = [7,7,7,7]
+  rr.xlabel = 'real part (cos) of vis (Jy)'
+  rr.ylabel = 'imag part (sin) of vis (Jy)'
+
+  if '_IQUV' in ss:
+    rr.marker = ['circle','cross','cross','plus']     
+    rr.markersize = [2,3,3,3]                       
+    rr.xlabel = 'real part of Stokes (Jy)'
+    rr.ylabel = 'imag part of Stokes (Jy)'
+    if rr.polrep=='circular':
+      rr.name = ['stokesI','Q','iU','V']
+      rr.expr = ['({rr}+{ll})/2','({rl}+{lr})/2',
+                 '({rl}-{lr})/2','({rr}-{ll})/2']
+    else:
+      rr.name = ['stokesI','Q','U','iV']
+      rr.expr = ['({xx}+{yy})/2','({xy}+{yx})/2',
+                 '({xy}-{yx})/2','({xx}-{yy})/2']
+
+  elif rr.polrep=='circular':
+    rr.name = ['RR','RL','LR','LL']
+    rr.expr = ['{rr}','{rl}','{lr}','{ll}']
+
+  else:
+    rr.name = ['XX','XY','YX','YY']
+    rr.expr = ['{xx}','{xy}','{yx}','{yy}']
 
   rr.corrs = range(4)
-  if 'Vis22_' in ss:
-    vv = ss.split('Vis22_')[1]         
+  if '_DIAG' in ss:
+    rr.corrs = [0,3]
+  elif '_OFFDIAG' in ss:
+    rr.corrs = [1,2]
 
   if trace:
     print rr

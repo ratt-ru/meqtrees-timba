@@ -495,6 +495,11 @@ def get_node_names (nodes, select='*', trace=False):
     or node-names. 
     """
     # trace = True
+    if trace:
+        print '\n** trace=True:'
+        for node in nodes:
+            print '-',str(node)
+        trace = False
 
     if not isinstance(nodes,(list,tuple)):
         nodes = [nodes]
@@ -606,7 +611,7 @@ def get_plot_labels (nodes, lcs=None, trace=False):
 
 orphanodes = []
 
-def orphans (node, clear=False, trace=True):
+def orphans (node=None, clear=False, trace=True):
     """
     Add the given node(s) to the orpans list (global orphanodes).
     If clear==True, clear the internal orphanodes list ([]).
