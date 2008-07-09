@@ -317,6 +317,34 @@ def bundle (ns, spec,
 
 
 #-----------------------------------------------------------------------------------
+
+def vis22 (ns, IQUV='Q0.1', n=10, L=0.0, M=0.0, urms=1.0, vrms=1.0, 
+           nodename=None, quals=None, kwquals=None,
+           parent=None, help=None, unop=None, trace=False):
+    """
+    Make a bundle of 2x2 cohaerency matrices.
+    """
+    if trace:
+        print '\n** EB.vis22(',IQUV,n,L,M,urms,vrms,'):'
+    coh = ET.cpscoh (ns, name='cpscoh', quals=None, kwquals=None,
+                     IQUV=IQUV, polrep='linear', trace=trace)
+    stub = EN.unique_stub(ns, 'vis22')
+    cc = []
+    for i in range(n):
+        u = EN.format_value(random.gauss(0,urms), nsig=2)
+        v = EN.format_value(random.gauss(0,vrms), nsig=2)
+        K = ET.KuvLM (ns, uvLM='u'+str(u)+'v'+str(v)+'L'+str(L)+'M'+str(M),
+                      name='K', quals=i, kwquals=None, trace=trace)
+        node = stub(i) << Meq.Multiply(coh,K)
+        cc.append(node)
+        if trace:
+            print '-',i,': u=',u,' v=',v,' K=',str(K),'->',str(node)
+    orphan = stub << Meq.Composer(*cc)
+    EN.orphans(orphan)
+    if trace:
+        print EN.format_tree(orphan, full=True)
+    return cc
+
 #-----------------------------------------------------------------------------------
 
 def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
@@ -444,7 +472,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 1:
+   if 0:
        quals = None
        kwquals = None
        # quals = range(3)
@@ -464,6 +492,9 @@ if __name__ == '__main__':
                bundle(ns, spec, quals=quals, kwquals=kwquals,
                       nodename=nodename,
                       unop=unop, trace=True)
+
+   if 1:
+       cc = vis22(ns, trace=True)
 
    if 0:
        cats = ET.twig_cats()

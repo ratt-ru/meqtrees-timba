@@ -513,10 +513,16 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
         else:
           pd[key] = self.plotspecs[key]          # general default
 
+      # Condition the plot-legend (list of strings):
       if not isinstance(pd.legend,(list,tuple)):
         pd.legend = [pd.legend]
       pd.legend = list(pd.legend)                # tuple does not support item assignment
-      legend = pd.legend                         # used below
+      if isinstance(self.plotspecs['legend'],str):
+        pd.legend.append(self.plotspecs['legend'])
+      elif isinstance(self.plotspecs['legend'],(list,tuple)):
+        pd.legend.extend(self.plotspecs['legend'])
+        
+      # legend = pd.legend                         # used below
 
       # Get the xx and yy vectors by evaluating python expressions:
       if rr.has_key('xy'):                       # expr
@@ -1147,7 +1153,7 @@ def string2plotspecs_VIS22 (ss, trace=False):
   for icorr in rr.corrs:
     psc = record(xy=rr.expr[icorr],
                  color=rr.color[icorr],
-                 legend=rr.name[icorr]+': \expr',
+                 legend=rr.name[icorr]+': yexpr',
                  marker=rr.marker[icorr],
                  markersize=rr.markersize[icorr],
                  annotate=(icorr==0))

@@ -1106,7 +1106,7 @@ def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
     e.g. uvLM='u1.2M-2.3'
     """
     if trace:
-        print '\n** cohmat(',name, uvLM,'):'
+        print '\n** KuvLM(',name, uvLM,'):'
 
     dekey = dict(u=1.0, v=1.0, L=1.0, M=1.0)
     vv = decode(uvLM, dekey, trace=False)

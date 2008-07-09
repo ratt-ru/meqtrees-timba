@@ -488,8 +488,15 @@ def PlotVIS22_linear (ns, path, rider):
    rr = QRU.on_entry(PlotVIS22_linear, path, rider)
    cc = []
 
-   [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)        # temporary
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L'))
+   IQUV = 'Q0.1U-0.2'
+   L = 1.0
+   M = 0.0
+   coh = EB.vis22 (ns, IQUV=IQUV, n=10, L=L, M=M, urms=1.0, vrms=1.0)
+   legend = ['IQUV='+str(IQUV)]
+   legend.append('L='+str(L)+', M='+str(M))
+   # [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)        # temporary
+
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L', legend=legend))
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_DIAG'))
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG'))
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV'))
