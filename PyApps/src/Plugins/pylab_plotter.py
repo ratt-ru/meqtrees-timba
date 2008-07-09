@@ -386,6 +386,7 @@ if has_pylab:
         l = QVBoxLayout(self.main_widget)
         sc = MyPylabPlotter(self.main_widget, dpi=100)
         toolbar = NavigationToolbar(sc, self.main_widget)
+        toolbar.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
         l.addWidget(sc)
         l.addWidget(toolbar)
 
