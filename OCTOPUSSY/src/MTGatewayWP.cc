@@ -558,7 +558,7 @@ void MTGatewayWP::shutdown ()
   Thread::Mutex::Lock lock(gwmutex);
   if( shutdown_done )
     return;
-  shutdown_done = true;
+  shutdown_done = shutting_down = true;
   //// NB 19/12/07: this can cause a segfault if one worker/reader thread calls shutdown itself, then exits,
   //// then this thread tries to send it a signal. So I have moved the mutex release down after
   //// the reader threads have been interrupted
