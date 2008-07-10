@@ -111,23 +111,27 @@ int main (int argc,const char *argv[])
   MPI_Init(&argc,const_cast<char***>(&argv));
   
   MeqMPI meqmpi(argc,argv);
-  // don't bother to initialize unless there's someone to talk to
-  if( meqmpi.comm_size() > 1 )
-    meqmpi.initialize();
   // If we're on processor 0, proceed below for regular meqserver startup.
   // On all other processors, start abbreviated version 
   if( meqmpi.comm_rank() !=0 )
   {
     Meq::Forest forest;
     meqmpi.attachForest(forest);
+    meqmpi.initialize();
     meqmpi.rejoinCommThread();
     // stop worker threads
     Meq::MTPool::stop();
   }
   else
   {
-  // start worker threads, since we always need them in MPI mode
-  Meq::MTPool::start(max_threads*2-1,max_threads);
+    // rank 0: main server.
+    // don't bother to initialize MPI unless there's someone to talk to
+    if( meqmpi.comm_size() > 1 )
+    {
+      meqmpi.initialize();
+      // start worker threads, since we always need them in MPI mode
+      Meq::MTPool::start(max_threads*2-1,max_threads);
+    }
 #else
   // no MPI support -- start worker threads only as needed
   // Start one less since the main execution thread will join the brigade.

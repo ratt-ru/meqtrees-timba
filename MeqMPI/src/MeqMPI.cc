@@ -157,7 +157,7 @@ void * MeqMPI::runCommThread ()
   
   comm_thread_running_ = true;
   
-  while( comm_thread_running_ )
+  while( true )
   {
     Thread::Mutex::Lock lock;
     // probe for an MPI message -- nonblocking
@@ -206,7 +206,7 @@ void * MeqMPI::runCommThread ()
           case TAG_HALT:
             comm_thread_running_ = false;
             dprintf(3)("HALT command received, exiting thread\n");
-            continue;
+            break;
         
           case TAG_CREATE_NODES:
             procCreateNodes(status.MPI_SOURCE,msgbuf_,msgsize);
@@ -287,6 +287,9 @@ void * MeqMPI::runCommThread ()
       sendMessage(msg);
       rcvflag = 1;
     }
+    else // queue empty and we're asked to exit
+      if( !comm_thread_running_ )
+        break;
     // now, if rcvflag is true, we have sent or received something this time 'round,
     // so before going to sleep, let's have another go at things. But if it is false, we
     // can go to sleep on the sendqueue_ condition
