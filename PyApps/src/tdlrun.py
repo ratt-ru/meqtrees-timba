@@ -33,27 +33,8 @@ import Timba.utils
 from Timba import octopussy
 from optparse import OptionParser
 
+
 def main ():
-  debuglevels = {};
-  
-  # tell verbosity class to not parse argv -- we do it ourselves here
-  Timba.utils.verbosity.disable_argv(); 
-  # parse options is the first thing we should do
-  usage="Usage: %prog [options] <TDLSCRIPT> [<TDLJOB>]";
-  parser = OptionParser(usage=usage)
-  parser.add_option("-m", "--mt",dest="mt",type="int",
-                    default=1,
-                    help="run meqserver with multiple threads (-mt option to meqserver)");
-  parser.add_option("-c", "--config",dest="config",type="string",
-                    default=".tdl.conf",
-                    help="configuration file to use");
-  parser.add_option("-C", "--compile-only",dest="compile_only",action="store_true",
-                    help="compile script only, do not run");
-  parser.add_option("-d", "--debug",dest="debug",type="string",action="append",metavar="Context=Level",
-                    help="(for debugging C++ code) sets debug level of the named C++ context. May be used multiple times.");
-  parser.add_option("-v", "--verbose",dest="verbose",type="string",action="append",metavar="Context=Level",
-                    help="(for debugging Python code) sets verbosity level of the named Python context. May be used multiple times.");
-  (options,args) = parser.parse_args();
   
   for optstr in (options.debug or []):
     opt = optstr.split("=") + ['1'];
@@ -78,8 +59,6 @@ def main ():
   from Timba.Apps import meqserver
   from Timba.TDL import Compile
   from Timba.TDL import TDLOptions
-  
-  print options.mt;
   
   # this starts a kernel. 
   if options.compile_only:
@@ -135,6 +114,32 @@ def main ():
   jobfunc(mqs,None,**jobopts);
 
 if __name__ == '__main__':
-  main();
-  #import profile
-  #profile.run('main()','tdlprof');
+  debuglevels = {};
+  
+  # tell verbosity class to not parse argv -- we do it ourselves here
+  Timba.utils.verbosity.disable_argv(); 
+  # parse options is the first thing we should do
+  usage="Usage: %prog [options] <TDLSCRIPT> [<TDLJOB>]";
+  parser = OptionParser(usage=usage)
+  parser.add_option("-m", "--mt",dest="mt",type="int",
+                    default=1,
+                    help="run meqserver with multiple threads (-mt option to meqserver)");
+  parser.add_option("-c", "--config",dest="config",type="string",
+                    default=".tdl.conf",
+                    help="configuration file to use instead of .tdl.conf");
+  parser.add_option("-C", "--compile-only",dest="compile_only",action="store_true",
+                    help="compile script only, do not run");
+  parser.add_option("-p", "--profile",dest="profile",metavar="FILE",type="string",default="",
+                    help="run Python profiler, dump info to given file");
+  parser.add_option("-d", "--debug",dest="debug",type="string",action="append",metavar="Context=Level",
+                    help="(for debugging C++ code) sets debug level of the named C++ context. May be used multiple times.");
+  parser.add_option("-v", "--verbose",dest="verbose",type="string",action="append",metavar="Context=Level",
+                    help="(for debugging Python code) sets verbosity level of the named Python context. May be used multiple times.");
+  (options,args) = parser.parse_args();
+  
+  if options.profile:
+    import profile
+    profile.run('main()',options.profile);
+  else:
+    main();
+
