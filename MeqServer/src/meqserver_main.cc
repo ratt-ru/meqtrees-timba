@@ -195,6 +195,15 @@ int main (int argc,const char *argv[])
     
 //    pthread_kill_other_threads_np();
 //    exit(1);
+  #ifdef HAVE_MPI
+    // tell remote subservers to stop
+    for( int i=1; i<meqmpi.comm_size(); i++ )
+      meqmpi.postCommand(MeqMPI::TAG_HALT,i);
+    meqmpi.stopCommThread();
+    MPI_Finalize();
+    // harakiri
+    exit(0);
+  #endif
     
     cdebug(0)<<"=================== stopping OCTOPUSSY ========================\n";
     Octopussy::stopThread();
@@ -216,19 +225,15 @@ int main (int argc,const char *argv[])
     cdebug(0)<<"Exiting with unknown exception\n";  
     retcode = 1;
   }
+  #ifdef HAVE_MPI
+  }
+  #endif
   // stop worker threads, if we were running them
   if( MTPool::enabled() )
   {
     cdebug(0)<<"=================== stopping worker threads ===================\n";
     MTPool::stop();
   }
-#ifdef HAVE_MPI
-  // tell remote subservers to stop
-  for( int i=1; i<meqmpi.comm_size(); i++ )
-    meqmpi.postCommand(MeqMPI::TAG_HALT,i);
-  }
-  meqmpi.stopCommThread();
-  MPI_Finalize();
-#endif
+  
   return retcode;  
 }
