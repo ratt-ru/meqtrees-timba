@@ -1,9 +1,3 @@
-#try:
-#  import psyco
-#  psyco.full();
-#except:
-#  pass;
-
 #
 #% $Id$
 #
@@ -44,6 +38,7 @@ import copy
 _dbg = utils.verbosity(0,name='tdl');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
+
 
 # this regex is used to match "local" files during error processing. Stack frames
 # within the local files will not be added to nested CalledFrom error lists
@@ -1559,4 +1554,22 @@ def _printNode (node,name='',offset=0):
       _printNode(child,str(ich),offset+2);
     for (ich,child) in node.stepchildren:
       _printNode(child,"(%d)"%ich,offset+2);
+
+
+## none of this gave any improvement, so fsck it...
+#try:
+  #import psyco
+  ## psyco.profile();
+  ## compile important stuff
+  #psyco.bind(NodeScope._apply_qualifiers);
+  #psyco.bind(_NodeStub.__lshift__);
+  #psyco.bind(_NodeDef.__init_normal__);
+##  psyco.bind(_NodeRepository.resolve);
+  #psyco.bind(dmi.record.make_value);
+  #psyco.bind(dmi.dmize_object);
+  #psyco.log('log');
+  #pass;
+#except:
+  #pass;
+
 

@@ -1007,7 +1007,11 @@ def populate_option_listview (listview,option_items,executor=None):
   return listview;
 
 def _resolve_owner (calldepth=2):
-  filename = inspect.getframeinfo(sys._getframe(calldepth+1))[0];
+  frame = sys._getframe(calldepth+1);
+  ## this is kludgy, but psyco understands it:
+  # filename = frame.f_code.co_filename;
+  ## this way is more portable, but incompatible with psyco:
+  filename = inspect.getframeinfo(frame)[0];
   filename = os.path.basename(filename).split('.')[0];
   # if owner matches our config section, return None
   if filename == config_section:
