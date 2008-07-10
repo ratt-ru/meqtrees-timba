@@ -637,9 +637,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     elif addr:
       buttons = ("HALT","Cancel",None,0,1);
       res = QMessageBox.warning(self,"Stopping meqserver",
-        """<p>We are connected to a remote meqserver (%s), or at least we don't
-        have a local PID for it. Should we try to stop it with a <tt>HALT</tt> 
-        command?</p>""" % str(addr),
+        """<p>We are connected to a remote meqserver (%s). Should we try 
+        to stop it with a <tt>HALT</tt> command?</p>""" % str(addr),
         *buttons);
       res = buttons[res];
     else:
@@ -1257,7 +1256,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         self.treebrowser.update_forest_status(fstatus);
       # check for change of working directory, make sure browser tracks that of kernel
       cwd = getattr(value,'cwd',None);
-      if cwd and not os.path.samefile(cwd,os.getcwd()):
+      if cwd and os.path.exists(cwd) and not os.path.samefile(cwd,os.getcwd()):
         self.change_working_directory(cwd,browser=True,kernel=False);
     # auto-request mechanism:
     # if we're not up-to-date with a node list or forest state, start a timer as soon as we
