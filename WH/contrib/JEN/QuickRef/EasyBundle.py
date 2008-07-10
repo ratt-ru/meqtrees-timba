@@ -318,19 +318,29 @@ def bundle (ns, spec,
 
 #-----------------------------------------------------------------------------------
 
-def vis22 (ns, IQUV='Q0.1', n=10, L=0.0, M=0.0, urms=1.0, vrms=1.0, 
+def vis22 (ns, IQUV='Q0.1', nuv=10, L=0.0, M=0.0,
+           urms=1.0, vrms=1.0, pzd=0.0,
            nodename=None, quals=None, kwquals=None,
            parent=None, help=None, unop=None, trace=False):
     """
     Make a bundle of 2x2 cohaerency matrices.
     """
     if trace:
-        print '\n** EB.vis22(',IQUV,n,L,M,urms,vrms,'):'
+        print '\n** EB.vis22(',IQUV,nuv,L,M,urms,vrms,'):'
     coh = ET.cpscoh (ns, name='cpscoh', quals=None, kwquals=None,
                      IQUV=IQUV, polrep='linear', trace=trace)
     stub = EN.unique_stub(ns, 'vis22')
+
+    PZD = None
+    if not pzd==0.0:
+        c = math.cos(pzd)
+        s = math.sin(pzd)
+        PZD = stub('PZD') << Meq.Composer(1.0,complex(c,s),complex(c,-s),1.0,
+                                          dims=[2,2])
+        coh = stub('cpscoh*PZD') << Meq.Multiply(coh,PZD)
+
     cc = []
-    for i in range(n):
+    for i in range(nuv):
         u = EN.format_value(random.gauss(0,urms), nsig=2)
         v = EN.format_value(random.gauss(0,vrms), nsig=2)
         K = ET.KuvLM (ns, uvLM='u'+str(u)+'v'+str(v)+'L'+str(L)+'M'+str(M),
@@ -342,7 +352,7 @@ def vis22 (ns, IQUV='Q0.1', n=10, L=0.0, M=0.0, urms=1.0, vrms=1.0,
     orphan = stub << Meq.Composer(*cc)
     EN.orphans(orphan)
     if trace:
-        print EN.format_tree(orphan, full=True)
+        print EN.format_tree(orphan, full=False)
     return cc
 
 #-----------------------------------------------------------------------------------
@@ -494,7 +504,7 @@ if __name__ == '__main__':
                       unop=unop, trace=True)
 
    if 1:
-       cc = vis22(ns, trace=True)
+       cc = vis22(ns, nuv=3, pzd=1.0, trace=True)
 
    if 0:
        cats = ET.twig_cats()

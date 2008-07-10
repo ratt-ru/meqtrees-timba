@@ -310,6 +310,9 @@ def format_tree (node, ss='', recurse=True,
             v = getattr(initrec,'value',None)
             if isinstance(v,(int,float,complex)):
                 ss += '   (value='+str(format_value(v))+')'
+            tags = getattr(initrec,'tags',None)
+            if tags:
+                ss += '   (tags='+str(tags)+')'
 
         # Some clutter-avoiding:
         slevel = str(level)
@@ -352,6 +355,94 @@ def format_tree (node, ss='', recurse=True,
             ss = ss.split('\n')         # (split on '\n')
     return ss
 
+#----------------------------------------------------------------------------
+
+def format_node (node, cut=False, cmax=80, trace=False):
+    """
+    Format a string that gives information about the given node,
+    including the syntax with which it was specified.
+    """
+    if trace:
+        print dir(node)
+        print node.name         # '(constant)'
+        print node.basename     # '(constant)'
+        print node.quals        # tuple ()
+        print node.kwquals      # dict {}
+        print node.classname    # 'MeqConstant'
+        print node.children     # list []
+        print node.num_children() # int 0
+        print node.num_parents()  # int 0
+        print node.parents      # <WeakValueDictionary at -1258575060>
+        print node.family()     # [<Timba.TDL.TDLimpl._NodeStub object at 0xb4e06aec>]
+        print str(node.family()[0])  # '(constant)(MeqConstant)'
+        print node.initrec()    # { class: MeqConstant, value: 4.5, tags: ['test'] }
+
+    # Make the constructor string in 3 parts:
+    # 1: node part:
+    ss = ''
+    ss += '** node:   '
+    ss += str(node)
+    ss_node = ss
+
+    # 2: stub part:
+    ss = ''
+    ss += ' = ns'
+    ss += '[\''+str(node.basename)+'\']'
+    if node.quals:
+        ss += '(<quals>)'
+    if node.kwquals:
+        ss += '(<kwquals>)'
+    ss_stub = ss
+
+    # 3: init part:
+    ss = ''
+    ss += ' << Meq.'+node.classname.split('Meq')[1]+'('
+    rr = node.initrec()
+    nc = node.num_children()
+    if nc==1:
+        ss += '<child>' 
+        # ss += str(node.children[0][1]) 
+    elif nc>1:
+        ss += 'children=[<'+str(nc)+'>]'
+    if getattr(rr,'value',None):
+        ss += str(getattr(rr,'value'))
+    ignore = ['class','value','quickref_help']
+    for key in rr.keys():
+        v = rr[key]
+        if key in ignore:
+            pass
+        elif isinstance(v,str) and len(v)>20:
+            ss += ', '+str(key)+'='+str(v[:5])+'..'
+        elif isinstance(v,(list,tuple)) and len(v)>5:
+            ss += ', '+str(key)+'=[<'+len(v)+'>]'
+        elif isinstance(v,(int,float,complex)):
+            ss += ', '+str(key)+'='+str(v)
+        elif isinstance(v,dict):
+            ss += ', '+str(key)+'={'+str(v.keys())+'}'
+        else:
+            ss += ', '+str(key)+'='+str(type(v))   
+    ss += ')'
+    ss_init = ss
+
+    # Put the final string together:
+    ss = ss_node
+    ss_line = ss_node
+
+    if cut and (len(ss_line)+len(ss_stub))>cmax:
+        ss += '\n.    stub:  '
+        ss_line = ''
+    ss += ss_stub
+    ss_line += ss_stub
+    
+    if cut and (len(ss_line)+len(ss_init))>cmax:
+        ss += '\n.    init:  '
+        ss_line = ''
+    ss += ss_init
+    ss_line += ss_init
+
+    if trace:
+        print ss
+    return ss
 
 
 #============================================================================
@@ -541,7 +632,7 @@ def get_largest_common_string (ss, trace=False):
     Return the largest common string (starting at the beginning) of the given
     list of strings (ss). Example: a list of nodenames.
     """
-    # trace = True
+    trace = True
     if trace:
         print '\n** EN.largest_common_string(',len(ss),'):'
         print '   from:',ss
@@ -555,10 +646,16 @@ def get_largest_common_string (ss, trace=False):
     elif len(ss)==1:
         lcs = ss[0]
     else:
+        ncmin = 10000
+        for s in ss:
+            ncmin = min(ncmin,len(s))
+        for s in ss:
+            if len(s)==ncmin:
+                smin = s       # smin is the shortest string in ss
         lcs = ''
         ii = range(1,len(ss))
         same = True
-        for k,c in enumerate(ss[0]):
+        for k,c in enumerate(smin):
             for i in ii:
                 same = (c==ss[i][k])
                 if not same: break
@@ -649,8 +746,6 @@ def bundle_orphans (ns, parent='Composer', trace=True):
     return node
 
 
-
-
 #=====================================================================================
 # Standalone test (without the browser):
 #=====================================================================================
@@ -708,7 +803,7 @@ if __name__ == '__main__':
        print check_quals(range(3), dict(a=3), **dict(b=4))
        check_quals(range(3), None, 6, aa=3, trace=True)
 
-   if 1:
+   if 0:
        cc = []
        stub = nodestub(ns, 'test')
        for i in range(6):
@@ -777,6 +872,14 @@ if __name__ == '__main__':
        format_value(0.123456, trace=True)
        format_value(0.0123456, trace=True)
        format_value(0.00123456, trace=True)
+
+   if 1:
+       node = ns['xxx'](range(2)) << Meq.Constant(4.5, tags='test', k1=4, k2=78)
+       print format_node(node, cut=True)
+       node = ns << Meq.Cos(node, sss='67')
+       print format_node(node, cut=True)
+       node = ns['comp'](1,2)(g=6) << Meq.Composer(node,0,1,2, dims=[2,2])
+       print format_node(node, cut=True)
 
    print '\n** End of standalone test of: EasyNode.py:\n' 
 

@@ -1058,19 +1058,22 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   # Check the name of the new node: 
   if not isinstance(nodename, str):
     nodename = 'pynode_NamedGroup'
+  else:
+    nodename = 'pynode_NamedGroup_'+nodename
+    
 
   if isinstance(groupspecs, str):
     # Certain standard group-specs may be specified by a string:
     nodename += '_'+str(groupspecs)
     gs = string2groupspecs(groupspecs)
 
-  elif not isinstance(groupspecs, dict):
-      s = '** groupspecs type not recognized: '+str(type(groupspecs))
-      raise ValueError,s
-
-  else:
+  elif isinstance(groupspecs, dict):
     # Assume a valid groupspecs record....? 
     gs = groupspecs
+
+  else:
+    # No groupspecs specified (concatenation)
+    gs = None
 
 
   # If no labels specified, derive them from the child nodenames:
@@ -1229,18 +1232,19 @@ def string2record_VIS22 (ss, trace=False):
   which is used to define groupspecs and plotspecs for visibility plotting.
   - VIS22C: polrep='circular' (otherwise: polrep='linear')
   - _IQUV: convert to I,Q,U,V (otherwise: visibilities)
+  - _QUV: convert to Q,U,V 
   - _DIAG: diagonal terms corrs=[0,3] (e.g. XX,YY')
   - _OFFDIAG: off-diagonal terms corrs=[1,2] (e.g. XY,YX')
+  - _annotate: annotate all corrs/stokes
+  - _nannotate: annotate none of the corrs/stokes
   NB: This function is also called from module PyNodePlot.py
   """
   rr = record()
 
-  rr.polrep = 'linear'
-  rr.groupname = ['xx','xy','yx','yy']
-  if 'VIS22C' in ss:
-    rr.polrep = 'circular'
-    rr.groupname = ['rr','rl','lr','ll']
-
+  rr.annotate = [True,False,False,False]
+  rr.corrs = range(4)
+  rr.stokes = []
+  rr.mode = 'vis'
   rr.color = ['red','magenta','green','blue']
   rr.marker = ['circle','cross','cross','circle']      
   rr.markersize = [2,3,3,2]
@@ -1249,16 +1253,40 @@ def string2record_VIS22 (ss, trace=False):
   rr.ylabel = 'imag part (sin) of vis (Jy)'
 
   if '_IQUV' in ss:
+    rr.mode = 'stokes'
+    rr.stokes = range(4)
+  elif '_QUV' in ss:
+    rr.mode = 'stokes'
+    rr.stokes = range(1,4)
+    rr.annotate[1] = True
+  elif '_DIAG' in ss:
+    rr.corrs = [0,3]
+  elif '_OFFDIAG' in ss:
+    rr.corrs = [1,2]
+    rr.annotate[1] = True
+
+  if '_annot' in ss:
+    rr.annotate = 4*[True] 
+  elif '_nannot' in ss:
+    rr.annotate = 4*[False] 
+
+  rr.polrep = 'linear'
+  rr.groupname = ['xx','xy','yx','yy']
+  if 'VIS22C' in ss:
+    rr.polrep = 'circular'
+    rr.groupname = ['rr','rl','lr','ll']
+
+  if rr.mode=='stokes':
     rr.marker = ['circle','cross','cross','plus']     
     rr.markersize = [2,3,3,3]                       
     rr.xlabel = 'real part of Stokes (Jy)'
     rr.ylabel = 'imag part of Stokes (Jy)'
     if rr.polrep=='circular':
-      rr.name = ['stokesI','Q','iU','V']
+      rr.name = ['I','Q','iU','V']
       rr.expr = ['({rr}+{ll})/2','({rl}+{lr})/2',
                  '({rl}-{lr})/2','({rr}-{ll})/2']
     else:
-      rr.name = ['stokesI','Q','U','iV']
+      rr.name = ['I','Q','U','iV']
       rr.expr = ['({xx}+{yy})/2','({xy}+{yx})/2',
                  '({xy}-{yx})/2','({xx}-{yy})/2']
 
@@ -1270,11 +1298,6 @@ def string2record_VIS22 (ss, trace=False):
     rr.name = ['XX','XY','YX','YY']
     rr.expr = ['{xx}','{xy}','{yx}','{yy}']
 
-  rr.corrs = range(4)
-  if '_DIAG' in ss:
-    rr.corrs = [0,3]
-  elif '_OFFDIAG' in ss:
-    rr.corrs = [1,2]
 
   if trace:
     print rr

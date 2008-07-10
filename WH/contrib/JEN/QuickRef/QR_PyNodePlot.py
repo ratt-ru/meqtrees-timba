@@ -110,9 +110,21 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                                toggle='opt_PlotVIS22_linear'),
                        TDLMenu("circular",
                                toggle='opt_PlotVIS22_circular'),
-                       TDLMenu("old",
-                               toggle='opt_PlotVIS22_old'),
+                       TDLMenu("play",
+                               TDLOption('opt_PlotVIS22_play_nuv',"nr of uv-points",
+                                         [10,20,40,91,351], more=int),
+                               TDLOption('opt_PlotVIS22_play_L',"cps pos L",
+                                         [0.0,0.01,0.1,1.0], more=float),
+                               TDLOption('opt_PlotVIS22_play_M',"cps pos M",
+                                         [0.0,0.01,0.1,1.0], more=float),
+                               TDLOption('opt_PlotVIS22_play_IQUV',"cps IQUV",
+                                         ['I','Q0.1U-0.2','V0.01'], more=str),
+                               TDLOption('opt_PlotVIS22_play_PZD',"X/Y phase zero diff (rad)",
+                                         [0.0,0.1,1.0], more=float),
+                               toggle='opt_PlotVIS22_play'),
                        toggle='opt_PlotVIS22'),
+
+
 
                TDLMenu("PyNodeNamedGroups",
                        TDLOption('opt_PNNG_alltopics',
@@ -250,6 +262,11 @@ def PyNodePlot (ns, path, rider):
       cc.append(PyNodePlot_tensors (ns, rr.path, rider))
    if override or opt_PNP_concat:
       cc.append(PyNodePlot_concat (ns, rr.path, rider))
+   if False:
+      if override or opt_PNP_customize:
+         cc.append(PyNodePlot_customize (ns, rr.path, rider))
+      if override or opt_PNP_hotrod:
+         cc.append(PyNodePlot_hotrod (ns, rr.path, rider))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       bookmark=cc[0], viewer='Pylab Plotter',
@@ -261,7 +278,8 @@ def PyNodePlot (ns, path, rider):
 
 def PyNodePlot_basic (ns, path, rider):
    """
-   There are various ways to plot groups of scalar nodes, i.e. nodes with a single vellset.
+   There are various ways to plot groups of scalar nodes, i.e. nodes with a
+   single vellset.
    """
    rr = QRU.on_entry(PyNodePlot_basic, path, rider)
    cc = []
@@ -443,41 +461,12 @@ def PlotVIS22 (ns, path, rider):
       cc.append(PlotVIS22_linear (ns, rr.path, rider))
    if override or opt_PlotVIS22_circular:
       cc.append(PlotVIS22_circular (ns, rr.path, rider))
-
-   if True:
-      # Works, but causes node clashes (should be removed anyway) 
-      if override or opt_PlotVIS22_old:
-         cc.append(PlotVIS22_old (ns, rr.path, rider))
+   if override or opt_PlotVIS22_play:
+      cc.append(PlotVIS22_play (ns, rr.path, rider))
 
    cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2record_VIS22))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
-
-
-#================================================================================
-
-def PlotVIS22_old (ns, path, rider):
-   """
-   """
-   rr = QRU.on_entry(PlotVIS22_old, path, rider)
-   cc = []
-
-   [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)
-   ss = EN.get_node_names(coh)
-   lcs = EN.get_largest_common_string(ss)
-   labels = EN.get_plot_labels(coh, lcs=lcs)
-   ps = record()
-   ps.legend = lcs                                # ....is not passed on....
-   ps.title = lcs                                 # ....ok....
-   pynode = ns['PlotVIS22'] << Meq.PyNode(children=coh,
-                                          child_labels=labels,
-                                          class_name='PlotVis22',
-                                          # groupspecs=gs,
-                                          plotspecs=ps,
-                                          module_name=PNPVis22.__file__)
-   cc.append(pynode)
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -491,15 +480,14 @@ def PlotVIS22_linear (ns, path, rider):
    IQUV = 'Q0.1U-0.2'
    L = 1.0
    M = 0.0
-   coh = EB.vis22 (ns, IQUV=IQUV, n=10, L=L, M=M, urms=1.0, vrms=1.0)
+   coh = EB.vis22 (ns, IQUV=IQUV, nuv=10, L=L, M=M, urms=1.0, vrms=1.0)
    legend = ['IQUV='+str(IQUV)]
    legend.append('L='+str(L)+', M='+str(M))
-   # [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)        # temporary
 
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L', legend=legend))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_DIAG'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG_annotate'))
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_QUV'))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
@@ -513,11 +501,58 @@ def PlotVIS22_circular (ns, path, rider):
    rr = QRU.on_entry(PlotVIS22_circular, path, rider)
    cc = []
 
-   [uu,uv,coh,labels] = PNPVis22.make_uvdata(ns, n=4)        # temporary
+   IQUV = 'Q0.1U-0.2'
+   L = 1.0
+   M = 0.0
+   coh = EB.vis22 (ns, IQUV=IQUV, nuv=10, L=L, M=M, urms=1.0, vrms=1.0)
+   legend = ['IQUV='+str(IQUV)]
+   legend.append('L='+str(L)+', M='+str(M))
+
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_DIAG'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_OFFDIAG'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_OFFDIAG_annotate'))
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_QUV'))
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer='Pylab Plotter')
+
+
+#================================================================================
+
+def PlotVIS22_play (ns, path, rider):
+   """
+   Play with the visibility/stokes plots for sources of different polarisations,
+   at different positions (l,m) w.r.t. the phase centre.
+   """
+   rr = QRU.on_entry(PlotVIS22_play, path, rider)
+   cc = []
+
+   nuv = opt_PlotVIS22_play_nuv
+   IQUV = opt_PlotVIS22_play_IQUV
+   L = opt_PlotVIS22_play_L
+   M = opt_PlotVIS22_play_M
+   pzd = opt_PlotVIS22_play_PZD
+   coh = EB.vis22 (ns, IQUV=IQUV, nuv=nuv, L=L, M=M,
+                   urms=1.0, vrms=1.0, pzd=pzd)
+   legend = ['IQUV='+str(IQUV)+' PZD='+str(pzd)+'rad']
+   legend.append('source pos (l,m) = ('+str(L)+','+str(M)+')')
+
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22', legend=legend))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22_IQUV', legend=legend))
+
+   uu = ns.Search(tags='ucoord', subtree=coh)
+   vv = ns.Search(tags='vcoord', subtree=coh)
+   cc.append(PNP.pynode_Plot(ns, uu+vv, 'XXYY', color='yellow',
+                             title='uv-coverage', legend=legend))
+
+   ll = ns.Search(tags='lpos', subtree=coh)
+   mm = ns.Search(tags='mpos', subtree=coh)
+   # ll += [ns<<0.0]
+   # mm += [ns<<0.0]
+   cc.append(PNP.pynode_Plot(ns, ll+mm, 'XXYY', color='green',
+                             # xmin=min(0.0,1.1*L), xmax=max(0.0,1.1*L),
+                             # ymin=min(0.0,1.1*M), ymax=max(0.0,1.1*M),
+                             title='point source ('+str(IQUV)+')'))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
@@ -525,6 +560,9 @@ def PlotVIS22_circular (ns, path, rider):
 
 
 
+
+
+#================================================================================
 #================================================================================
 # PyNodeNamedGroups:
 #================================================================================
@@ -563,15 +601,50 @@ def PyNodeNamedGroups_basic (ns, path, rider):
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Record Browser')
 
+
 #================================================================================
 
 def PyNodeNamedGroups_concat (ns, path, rider):
    """
-   """
-   rr = QRU.on_entry(PyNodeNamedGroups_concat, path, rider)
-   cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   It is possible to concatenate pynodes of class PyNodeNamedGroups.
+   Children of these types are ignored for extracting results, but their
+   group definitions are copied into the new MeqPyNode. This is very powerful.
+   (see also PyNodePlot above).
+   
+   .    import PyNodeNamedGroups as PNNG
+   .    pynode_a = PNNG.pynode_NamedGroup(ns, xnodes, 'a')
+   .    pynode_b = PNNG.pynode_NamedGroup(ns, ynodes, 'b')
+   .    pynode_ab = PNNG.pynode_NamedGroup(ns, [pynode_a, pynode_b])
 
+   Note that in this case, no groupspecs (name) is specified (as 3rd argument),
+   because there are no extra children to extract new groups from (although that
+   would be entirely legal, of course).
+
+   More groups, with arbitrary names can be added
+   .    pynode_c = PNNG.pynode_NamedGroup(ns, znodes, 'c')
+   .    pynode_abc = PNNG.pynode_NamedGroup(ns, [pynode_ab, pynode_c])
+
+   In this experiment, we show the state-records of the resulting pynodes.
+   T=Inspect their cache_results, to see how the named groups (a,b,c) are
+   extracted from input nodes, and passed from one pynode to another.
+   
+   Etc, etc. See also the more elaborate concatenation examples below....
+   """
+   rr = QRU.on_entry(PyNodePlot_concat, path, rider)
+   cc = []
+   anodes = EB.bundle(ns,'cloud_n6s1', nodename='aa')
+   bnodes = EB.bundle(ns,'cloud_n6s1', nodename='bb')
+   cnodes = EB.bundle(ns,'cloud_n6s1', nodename='cc')
+
+   cc.append(PNNG.pynode_NamedGroup(ns, anodes, groupspecs='a'))  # cc[0]
+   cc.append(PNNG.pynode_NamedGroup(ns, bnodes, groupspecs='b'))  # cc[1]
+   cc.append(PNNG.pynode_NamedGroup(ns, cnodes, groupspecs='c'))  # cc[2]
+
+   cc.append(PNNG.pynode_NamedGroup(ns, [cc[0],cc[1]], nodename='ab'))     # cc[3]: (a,b) -> ab
+   cc.append(PNNG.pynode_NamedGroup(ns, [cc[2],cc[3]], nodename='abc'))    # cc[4]: (c,ab) -> abc
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer='Record Browser')
 
 
 

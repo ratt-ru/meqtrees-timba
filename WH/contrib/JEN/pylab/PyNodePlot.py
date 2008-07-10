@@ -11,6 +11,7 @@
 #    - 07 may 2008: Tony's version with pyfig
 #    - 23 may 2008: implemented plotspec ignore=expr
 #    - 03 jul 2008: implemented pynode_Plot() etc
+#    - 07 jul 2008: introduced overall plot-legend
 #
 # Remarks:
 #
@@ -121,7 +122,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   
   Possible plotspecs keywords are:
   - labels     [=None]         a list of node labels
-  - make_svg   [=False]         (svg) plotting may be inhibited if concatenated
+  - make_svg   [=False]        (svg) plotting may be inhibited if concatenated
   - offset     [=0.0]          concatenated plots maye be offset vertically
   - title      [=<classname>]  plot title
   - xlabel     [='child']      x-axis label
@@ -129,8 +130,13 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   - xunit      [=None]         x-axis unit (string)
   - yunit      [=None]         y-axis unit (string)
   - zunit      [=None]         z-axis unit (string)
+  - xmin       [=None]         plot-window
+  - xmax       [=None]         plot-window
+  - ymin       [=None]         plot-window
+  - ymax       [=None]         plot-window
   
-  - legend     [=[]]           subplot legend string(s)
+  - legend     [=[]]           (sub)plot legend string(s)
+
   - color      [='blue']       subplot color
   - linestyle  [=None]         subplot linestyle ('-','--',':')
   - marker     [='o']          subplot marker style ('+','x', ...)
@@ -356,8 +362,10 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
 
     # Overall parameters 
     ss = ['title','xlabel','ylabel','xunit','yunit','zunit']
+    ss.extend(['xmin','xmax','ymin','ymax'])
     ss.extend(['offset'])                             # ....?
     ss.extend(['make_svg'])                           # ....?
+    ss.extend(['legend'])                             # .. a special case ..
     self._pskeys['overall'] = ss
 
     title = 'PyNodePlot_'+self.class_name
@@ -365,23 +373,27 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr.setdefault('title', self.name) 
     rr.setdefault('xlabel', 'child') 
     rr.setdefault('ylabel', 'result') 
+    rr.setdefault('xmin', None) 
+    rr.setdefault('xmax', None) 
+    rr.setdefault('ymin', None) 
+    rr.setdefault('ymax', None) 
     rr.setdefault('xunit', None) 
     rr.setdefault('yunit', None) 
     rr.setdefault('zunit', None) 
-    rr.setdefault('offset', 0.0)                    # offset multiple subplots
+    rr.setdefault('offset', 0.0)                      # offset multiple subplots
+    rr.setdefault('legend', [])                       # plot-legend
 
     # Parameters used in (sub)plot definitions of various types.
     # They all have default values in the overall section.
     # These keys are used to transfer defaults to self._plotdefs:
     ss = ['color','linestyle','marker','markersize']
-    ss.extend(['legend','plot_sigma_bars','annotate','fontsize'])
+    ss.extend(['plot_sigma_bars','annotate','fontsize'])
     ss.extend(['ignore'])                           # ....?
     ss.extend(['plot_circle_mean'])
     self._pskeys['graphics'] = ss
-    
-    rr.setdefault('ignore', None)                   # python expression (string)
 
     rr.setdefault('legend', [])                     # subplot legend
+    rr.setdefault('ignore', None)                   # python expression (string)
     rr.setdefault('color', 'blue')                  # plot color
     rr.setdefault('linestyle', None)                # line style                  
     rr.setdefault('marker', 'o')                    # marker style
@@ -514,15 +526,12 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
           pd[key] = self.plotspecs[key]          # general default
 
       # Condition the plot-legend (list of strings):
+      pd.legend = []
+      if rr.has_key('legend'):
+        pd['legend'] = rr['legend']
       if not isinstance(pd.legend,(list,tuple)):
         pd.legend = [pd.legend]
       pd.legend = list(pd.legend)                # tuple does not support item assignment
-      if isinstance(self.plotspecs['legend'],str):
-        pd.legend.append(self.plotspecs['legend'])
-      elif isinstance(self.plotspecs['legend'],(list,tuple)):
-        pd.legend.extend(self.plotspecs['legend'])
-        
-      # legend = pd.legend                         # used below
 
       # Get the xx and yy vectors by evaluating python expressions:
       if rr.has_key('xy'):                       # expr
@@ -547,6 +556,13 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
       else:
         s = '** neither y nor xy expression in graphics plotspec'
         raise ValueError,s
+
+      # Temporary (testing): Make sure that all values are slightly different:
+      if False:
+        rms = 0.0000001
+        for i,v in enumerate(pd.yy):
+          pd.yy[i] += random.gauss(0,rms)
+          pd.xx[i] += random.gauss(0,rms)
 
       # If pd.ignore is a python expression (string), evaluate it: 
       if isinstance(pd.ignore, str):
@@ -860,7 +876,17 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                           title=rr.title,
                           xlabel=rr.xlabel,
                           ylabel=rr.ylabel)
- 
+
+  # First write any overall legend-string(s):
+  if rr.has_key('legend'):
+    if isinstance(rr.legend,str):
+      rr.legend = [rr.legend]
+    if isinstance(rr.legend,(list,tuple)):
+      for s in rr.legend:
+        grs.legend(s)
+      if trace:
+        print 'overall legend:',rr.legend
+
   # Fill the Graphics object with Scatter plots:
   plotype = 'graphics'
   if trace:
@@ -889,7 +915,7 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                             color=pd.color)
     grs.add(grs1)
 
-    # Write the legend-string(s):
+    # Write the plotdef legend-string(s):
     if not isinstance(pd.legend,(list,tuple)):
       pd.legend = [pd.legend]
     for legend in pd.legend:
@@ -901,6 +927,12 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
       grs.legend(legend, color=pd.color)
     if trace:
       print grs1.oneliner(),':',pd.legend
+
+  # Plot window (if relevant):
+  if True:
+    grs.kwupdate(**dict(xmin=rr['xmin'], xmax=rr['xmax'],
+                        ymin=rr['ymin'], ymax=rr['ymax']))
+
 
   if trace:
     print '********* grs is ', grs
@@ -982,6 +1014,8 @@ def pynode_Plot (ns, nodes, groupspecs=None,
 
   if not isinstance(nodename, str):
     nodename = 'pynode_Plot'
+  else:
+    nodename = 'pynode_Plot_'+nodename
 
   ps = None
   if isinstance(groupspecs, str):
@@ -1150,15 +1184,18 @@ def string2plotspecs_VIS22 (ss, trace=False):
   """
   rr = PNNG.string2record_VIS22 (ss, trace=trace)
   ps = record(graphics=[])
-  for icorr in rr.corrs:
-    psc = record(xy=rr.expr[icorr],
-                 color=rr.color[icorr],
-                 legend=rr.name[icorr]+': yexpr',
-                 marker=rr.marker[icorr],
-                 markersize=rr.markersize[icorr],
-                 annotate=(icorr==0))
+  ii = rr.stokes                              # stokes (IQUV or QUV)
+  if len(ii)==0:
+    ii = rr.corrs                             # corrs (XX,YY etc)
+  for i in ii:
+    psc = record(y=rr.expr[i],                # keep as complex values, i.e. NOT xy=..
+                 color=rr.color[i],
+                 legend=rr.name[i]+': yexpr',
+                 marker=rr.marker[i],
+                 markersize=rr.markersize[i],
+                 annotate=rr.annotate[i])
     if trace:
-      print '-',icorr,psc
+      print '-',i,psc
     ps.graphics.append(psc)
   ps.xlabel = rr.xlabel
   ps.ylabel = rr.ylabel

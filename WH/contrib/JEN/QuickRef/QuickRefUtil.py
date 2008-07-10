@@ -915,6 +915,12 @@ def MeqNode (ns, path, rider,
         else:
             node = ns << getattr(Meq,meqclass)(**kwargs)
 
+    if False:
+        # Experimental.... (overwrites...!) Not a good idea.....
+        fn = EN.format_node(node)
+        rider.insert_help(add2path(path,name), [fn]) 
+
+
     #........................................................................
 
     # Finished:

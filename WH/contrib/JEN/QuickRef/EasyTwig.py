@@ -1112,10 +1112,10 @@ def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
     vv = decode(uvLM, dekey, trace=False)
     [quals,kwquals] = EN.check_quals(quals, kwquals)
 
-    Lpos = EN.unique_stub(ns,'Lpos', *quals+[vv['L']], **kwquals) << vv['L']
-    Mpos = EN.unique_stub(ns,'Mpos', *quals+[vv['M']], **kwquals) << vv['M']
-    ucoord = EN.unique_stub(ns,'ucoord', *quals+[vv['u']], **kwquals) << vv['u']
-    vcoord = EN.unique_stub(ns,'vcoord', *quals+[vv['v']], **kwquals) << vv['v']
+    Lpos = EN.unique_stub(ns,'Lpos', *quals+[vv['L']], **kwquals) << Meq.Constant(vv['L'], tags='lpos')
+    Mpos = EN.unique_stub(ns,'Mpos', *quals+[vv['M']], **kwquals) << Meq.Constant(vv['M'], tags='mpos')
+    ucoord = EN.unique_stub(ns,'ucoord', *quals+[vv['u']], **kwquals) << Meq.Constant(vv['u'], tags='ucoord')
+    vcoord = EN.unique_stub(ns,'vcoord', *quals+[vv['v']], **kwquals) << Meq.Constant(vv['v'], tags='vcoord')
 
     uL= vv['u']*vv['L']
     vM = vv['v']*vv['M']
@@ -1220,7 +1220,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
       
-   if 1:
+   if 0:
        quals = None
        kwquals = None
        # quals = range(3)
@@ -1308,8 +1308,11 @@ if __name__ == '__main__':
        cpscoh(ns, 'cpscoh', quals='Moon', IQUV='Q-0.1U3',
               polrep='linear', trace=True) 
 
-   if 0:
-       KuvLM(ns, uvLM='u3v5L2', quals='2c67', trace=True) 
+   if 1:
+       KuvLM(ns, uvLM='u3v5L2', quals='2c67', trace=True)
+       for tag in ['lpos','mpos','ucoord','vcoord']:
+           nn = ns.Search(tags=tag)
+           print '- ns.Search(',tag,') -> [',str(nn[0]),']',len(nn)
 
 
    if 0:
