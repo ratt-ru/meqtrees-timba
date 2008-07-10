@@ -131,6 +131,13 @@ void * MTGatewayWP::readerThread ()
       while( nread < read_buf_size )
       {
         dprintf(6)("readerThread: going into readBlocking\n");
+        Thread::Mutex::Lock lock1(gwmutex);
+        if( !isRunning() || shutting_down )
+        {
+          dprintf(2)("readerThread: shutdown detected, exiting\n");
+          return 0; 
+        }
+        lock1.release();
         int n = sock->readBlocking(read_buf + nread,read_buf_size - nread);
         dprintf(5)("readBlocking(buf+%d,%d)=%d\n",nread,read_buf_size-nread,n);
         if( n<0 )
