@@ -119,6 +119,7 @@ int main (int argc,const char *argv[])
     meqmpi.attachForest(forest);
     meqmpi.initialize();
     meqmpi.rejoinCommThread();
+    MPI_Finalize();
     // stop worker threads
     Meq::MTPool::stop();
   }
