@@ -319,7 +319,7 @@ def bundle (ns, spec,
 #-----------------------------------------------------------------------------------
 
 def vis22 (ns, IQUV='Q0.1', nuv=10, L=0.0, M=0.0,
-           urms=1.0, vrms=1.0, pzd=0.0,
+           urms=1.0, vrms=1.0, pzd=0.0, polrep='linear',
            nodename=None, quals=None, kwquals=None,
            parent=None, help=None, unop=None, trace=False):
     """
@@ -328,7 +328,7 @@ def vis22 (ns, IQUV='Q0.1', nuv=10, L=0.0, M=0.0,
     if trace:
         print '\n** EB.vis22(',IQUV,nuv,L,M,urms,vrms,'):'
     coh = ET.cpscoh (ns, name='cpscoh', quals=None, kwquals=None,
-                     IQUV=IQUV, polrep='linear', trace=trace)
+                     IQUV=IQUV, polrep=polrep, trace=trace)
     stub = EN.unique_stub(ns, 'vis22')
 
     PZD = None

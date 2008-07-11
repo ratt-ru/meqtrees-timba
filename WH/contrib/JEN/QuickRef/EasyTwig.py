@@ -1060,15 +1060,15 @@ def cpscoh (ns, name='cpscoh', quals=None, kwquals=None,
     [quals,kwquals] = EN.check_quals(quals, kwquals)
                       
     I = EN.reusenode(ns,'stokesI', vv['I'], *(quals+[vv['I']]), **kwquals)
-    Q = 0.0
+    Q = complex(0.0)
     if vv['Q']:
         Q = EN.reusenode(ns,'stokesQ', vv['Q'], *(quals+[vv['Q']]), **kwquals)
     if polrep=='circular':
-        iU = 0.0
+        iU = complex(0.0)
         if vv['U']:
             iU = EN.reusenode(ns,'i*stokesU', Meq.ToComplex(0.0,vv['U']),
                               *(quals+[vv['U']]), **kwquals)
-        V = 0.0
+        V = complex(0.0)
         if vv['V']:
             V = EN.reusenode(ns,'stokesV', vv['V'], *(quals+[vv['V']]), **kwquals)
         RR = EN.reusenode(ns,'RR', (I+V), *quals, **kwquals)
@@ -1078,10 +1078,10 @@ def cpscoh (ns, name='cpscoh', quals=None, kwquals=None,
         coh = EN.unique_node(ns,name, Meq.Matrix22(RR,RL,LR,LL),
                              *(quals+[IQUV,polrep]), **kwquals)
     else:
-        U = 0.0
+        U = complex(0.0)
         if vv['U']:
             U = EN.reusenode(ns,'stokesU', vv['U'], *(quals+[vv['U']]), **kwquals)
-        iV = 0.0
+        iV = complex(0.0)
         if vv['V']:
             iV = EN.reusenode(ns,'i*stokesV', Meq.ToComplex(0.0,vv['V']),
                               *(quals+[vv['V']]), **kwquals)
@@ -1126,7 +1126,10 @@ def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
     uLvM = EN.unique_stub(ns,'u*L+v*M', *quals+[uLvM], **kwquals) << Meq.Add(uL,vM)
 
     kwquals.update(vv)
-    karg = EN.unique_stub(ns,'karg', *quals+[cuLvM], **kwquals) << Meq.ToComplex(0.0, uLvM)
+    zero = twig(ns,'zero')
+    karg = EN.unique_stub(ns,'karg', *quals+[cuLvM], **kwquals) << Meq.ToComplex(zero, uLvM)
+    print EN.format_node(karg, trace=False)
+    print EN.format_tree(karg)
     node = EN.unique_stub(ns,name, *quals, **kwquals) << Meq.Exp(karg)
 
     if trace:
@@ -1135,9 +1138,9 @@ def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
 
 #-------------------------------------------------------------------------------
 
-def cohmat (ns, name='cohmat', quals=None, kwquals=None,
-            IQUV=None, polrep='linear',
-            stddev=0.0, trace=False):
+def cohmat_obsolete (ns, name='cohmat', quals=None, kwquals=None,
+                     IQUV=None, polrep='linear',
+                     stddev=0.0, trace=False):
     """Make a 2x2 cohaerency matrix, of the specified polarisation.
     The IQUV string contains information about I,Q,U,V,u,v,L,M.
     If stddev>0, some noise is added.

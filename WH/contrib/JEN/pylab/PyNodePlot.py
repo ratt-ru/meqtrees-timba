@@ -170,7 +170,6 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     # print self.help()
     return None
 
-
   #-------------------------------------------------------------------
 
   def help (self, ss=None, level=0, mode=None):
@@ -987,7 +986,8 @@ def pynode_Plot (ns, nodes, groupspecs=None,
   .              - string (e.g. 'XXYY'): convenient way to specify standard plots
   .              - record(): (advanced use) a valid groupspecs record 
   .              - None: (if children are PyNodeNamedGroups pynodes)
-  - plotspecs:   record with further plot specification(s). (advanced use, to be elaborated)
+  - plotspecs:   record with further plot specification(s).
+  .                (advanced use, to be elaborated)
   - labels:      list of labels for the node results. If not supplied, or the wrong
   .                length, they will be derived from the node names.
   - nodename:    name of the resulting pynode
@@ -1017,13 +1017,13 @@ def pynode_Plot (ns, nodes, groupspecs=None,
   else:
     nodename = 'pynode_Plot_'+nodename
 
-  ps = None
+  ps = plotspecs   
   if isinstance(groupspecs, str):
     # Certain standard group-specs may be specified by a string:
     nodename += '_'+str(groupspecs)
     gs = PNNG.string2groupspecs(groupspecs)
-    ps = string2plotspecs(groupspecs)
-  elif not isinstance(groupspecs, dict):             # i.e. groupspecs=None
+    ps = string2plotspecs(groupspecs, plotspecs=plotspecs)
+  elif not isinstance(groupspecs, dict):       # i.e. groupspecs=None
     gs = PNNG.string2groupspecs('YY')
   else:
     # Assume a valid groupspecs record....? 
@@ -1037,13 +1037,11 @@ def pynode_Plot (ns, nodes, groupspecs=None,
     labels = EN.get_plot_labels(nodes, lcs=lcs, trace=False)
 
   # Condition the plotspecs record (if required):
-  if isinstance(plotspecs, str):             # a standard plot
-    nodename += '__'+str(plotspecs)          #  
-    ps = string2plotspecs(plotspecs)
-  elif isinstance(plotspecs, dict):          # defined by the user (takes precedence over ps)
-    ps = plotspecs                           # assume a valid plotspecs record...?
-  elif isinstance(ps, dict):
-    pass                                     # ps = string2plotspecs(groupspecs) above
+  if isinstance(plotspecs, str):             # a standard plot.... (does this happen?)
+    nodename += '__'+str(plotspecs)   
+    ps = string2plotspecs(plotspecs)         
+  elif isinstance(ps, dict):                 # assume valid plotspecs
+    pass
   else:                                      # e.g. plotspecs==None
     ps = string2plotspecs('YY')
     
@@ -1101,12 +1099,41 @@ def pynode_Plot (ns, nodes, groupspecs=None,
   return pynode
 
 
+#-------------------------------------------------------------------
+
+def kwargs2legend(**kwargs):
+  """
+  Helper function to turn the given keyword arguments into a list of strings,
+  and attach them as kwargs['legend']. The result may be given to pyNode_Plot()
+  and will appear as legends on the plot. Used in QR_PyNodePlot.py etc.
+  """
+  ss = ['Keyword arguments used:']
+  legend = None
+  for key in kwargs.keys():
+    v = kwargs[key]
+    if key=='legend':
+      legend = v
+    s = ' - '+str(key)+' = '
+    if isinstance(v,str):
+      s += '\''+str(v)+'\''
+    else:
+      s += str(v)
+    ss.append(s)
+              
+  if isinstance(legend,(list,tuple)):
+    ss.extend(legend)
+  elif isinstance(legend,str):
+    ss.append(legend)
+  kwargs['legend'] = ss
+  return kwargs
+
+
 #--------------------------------------------------------------------------------------
 
-  
-def string2plotspecs(ss, trace=False):
+def string2plotspecs(ss, plotspecs=None, trace=False):
   """
   Make a plotspecs record from the given string spec.
+  If input plotspecs is a record, just add to it.
   Recognized strings are:
   - Y or YY:   Take vells[0] for group y
   - XY:        Assume tensor nodes with vells[0,1] for groups x,y
@@ -1119,12 +1146,23 @@ def string2plotspecs(ss, trace=False):
   .                (NB: group-name will be converted to lowercase...)
   """
 
-  ps = record(graphics=[], xlabel='{x}', ylabel='{y}')
+  # Prepare the output plotspecs record (ps):
+  ps = record()
+  if isinstance(plotspecs,dict):        # given by the user         
+    ps = plotspecs                      # just add new items
+  ps.setdefault('graphics',[])
+  if not isinstance(ps.graphics,list):
+    ps.graphics = []
+  ps.setdefault('xlabel','{x}')
+  ps.setdefault('ylabel','{y}')
+
+  # Standard graphics subplot records (used below): 
   gy = record(y='{y}', legend='y=yexpr')
   gxy = record(x='{x}', y='{y}', legend=['x=xexpr','y=yexpr'])
   gcxy = record(x='{y}.real', y='{y}.imag')
   gxyz = record(x='{x}', y='{y}', z='{z}', legend=['x=xexpr','y=yexpr','z=zexpr'])
 
+  # Convert the input string (ss) into sub-plot record(s):
   if ss in ['YY']:
     ps.graphics.append(gy)
     ps.xlabel = 'child no'
@@ -1142,8 +1180,8 @@ def string2plotspecs(ss, trace=False):
   elif ss in ['CXY']:
     # NB: This does not work (yet), see string2groupspecs()
     ps.graphics.append(gxy)           # x={x} and y={y} (2 groups)
-    ps.xlabel = 'real part of: {x}'
-    ps.ylabel = 'imag part of: {x}'
+    ps.xlabel = 'real'
+    ps.ylabel = 'imag'
 
   elif ss in ['XXYY','XY']:
     ps.graphics.append(gxy)

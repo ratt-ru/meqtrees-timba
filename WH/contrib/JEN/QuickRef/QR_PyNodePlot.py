@@ -68,7 +68,7 @@ from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 from Timba.Contrib.JEN.pylab import PyNodePlotVis22 as PNPVis22
 from Timba.Contrib.JEN.pylab import PyNodePlotXY as PNPXY
 
-# import math
+import math
 # import random
 import numpy
 
@@ -111,15 +111,18 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                        TDLMenu("circular",
                                toggle='opt_PlotVIS22_circular'),
                        TDLMenu("play",
+                               TDLOption('opt_PlotVIS22_play_polrep',
+                                         "polarization representation",
+                                         ['linear','circular']),
                                TDLOption('opt_PlotVIS22_play_nuv',"nr of uv-points",
                                          [10,20,40,91,351], more=int),
-                               TDLOption('opt_PlotVIS22_play_L',"cps pos L",
+                               TDLOption('opt_PlotVIS22_play_L',"source pos l (deg)",
                                          [0.0,0.01,0.1,1.0], more=float),
-                               TDLOption('opt_PlotVIS22_play_M',"cps pos M",
+                               TDLOption('opt_PlotVIS22_play_M',"source pos m (deg)",
                                          [0.0,0.01,0.1,1.0], more=float),
-                               TDLOption('opt_PlotVIS22_play_IQUV',"cps IQUV",
-                                         ['I','Q0.1U-0.2','V0.01'], more=str),
-                               TDLOption('opt_PlotVIS22_play_PZD',"X/Y phase zero diff (rad)",
+                               TDLOption('opt_PlotVIS22_play_IQUV',"cps IQUV spec-string",
+                                         ['I','V0.01','U0.1','Q0.1','Q0.1U0.1','Q0.1U0.1V0.01'], more=str),
+                               TDLOption('opt_PlotVIS22_play_PZD',"XY/RL phase zero diff PZD (rad)",
                                          [0.0,0.1,1.0], more=float),
                                toggle='opt_PlotVIS22_play'),
                        toggle='opt_PlotVIS22'),
@@ -278,17 +281,57 @@ def PyNodePlot (ns, path, rider):
 
 def PyNodePlot_basic (ns, path, rider):
    """
-   There are various ways to plot groups of scalar nodes, i.e. nodes with a
-   single vellset.
+   The simplest possible plot plots vells[0] of its children against child no:
+   .    import PyNodePlot as PNP
+   .    pynode = PNP.pynode_Plot(ns, nodes)
+
+   The plot may be customized by means of keyword args, e.g.:
+   .    pynode = PNP.pynode_Plot(ns, nodes, title='basic', ylabel='ylabel', ...)
+   
+   The utliized customization keywords are shown in the plot legends.
+   They can be used in any combination, of course.
+   More advanced customization is shown in subtopic 'customization' below
    """
    rr = QRU.on_entry(PyNodePlot_basic, path, rider)
    cc = []
    viewer = []
    viewer = 'Pylab Plotter'
-   ynodes = EB.bundle(ns,'cloud_n6s1')
-   cc.append(PNP.pynode_Plot(ns, ynodes))                    # title='simplest', color='red'))
+   nodes = EB.bundle(ns,'cloud_n6s1')
+   cc.append(PNP.pynode_Plot(ns, nodes))
+   
+   kwargs = dict(title='simplest',ylabel='ylabel', xlabel='xlabel',
+                 legend=['line1','line2'])
+   cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
+                             
+   kwargs = dict(fontsize=10, color='red', marker='triangle')
+   cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
+
+   kwargs = dict(annotate=False,xmin=-5, xmax=4, ymin=-10, ymax=10)
+   cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      viewer=viewer)
+                      viewer='Pylab Plotter')
+
+
+
+
+#  - xmin       [=None]         plot-window
+#  - xmax       [=None]         plot-window
+#  - ymin       [=None]         plot-window
+#  - ymax       [=None]         plot-window
+  
+#  - legend     [=[]]           (sub)plot legend string(s)
+
+#  - color      [='blue']       subplot color
+#  - linestyle  [=None]         subplot linestyle ('-','--',':')
+#  - marker     [='o']          subplot marker style ('+','x', ...)
+#  - markersize [=5]            subplot marker size (points)
+#  - plot_sigma_bars [=True]    if True, indicate domain variation
+#  - annotate   [=True]         if True, annotate points with labels
+#  - fontsize   [=7]            annotation font size (points)
+#  - msmin      [=2]            min marker size (z-values)
+#  - msmax      [=20]           max marker size (z-values)
+#  - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
 
 #================================================================================
 
@@ -473,6 +516,8 @@ def PlotVIS22 (ns, path, rider):
 
 def PlotVIS22_linear (ns, path, rider):
    """
+   Four plots of the complex visibilities (XX,XY,YX,YY) of a point source,
+   assuming linearly polarized receptors (like WSRT or ATCA). 
    """
    rr = QRU.on_entry(PlotVIS22_linear, path, rider)
    cc = []
@@ -497,6 +542,8 @@ def PlotVIS22_linear (ns, path, rider):
 
 def PlotVIS22_circular (ns, path, rider):
    """
+   Four plots of the complex visibilities (RR,RL,LR,LL) of a point source,
+   assuming cirularly polarized receptors (like VLA or VLBI).
    """
    rr = QRU.on_entry(PlotVIS22_circular, path, rider)
    cc = []
@@ -522,27 +569,52 @@ def PlotVIS22_circular (ns, path, rider):
 def PlotVIS22_play (ns, path, rider):
    """
    Play with the visibility/stokes plots for sources of different polarisations,
-   at different positions (l,m) w.r.t. the phase centre.
+   at different positions (l,m) w.r.t. the phase centre. Note how much information
+   can be gleaned from the single plot with all four corrs:
+   - Because it is a single point source, all corrs lie on circles, i.e. the
+   .   different baselines only affect the phases, not the amplitides. 
+   - If the source is in the field centre (l=0,m=0), all visibilities are real.
+   - If outside the field centre, the phase increases with baseline length.
+   - Since XX=I+Q and YY=I-Q, Stokes I and Q can be estimated from the separation
+   .   between the XX and YY circles. Similarly: RR=I+V and LL=I-V
+   - Since XY=U+iV and YX=U-iV....   Similarly: RL=Q+iU and LR=Q-iU 
+
+   Cookies (some instrumental effects): 
+   - A non-zero X-Y (R-L) phase-zero-difference (PZD) does not affect the parallel corrs,
+   .   (XX,YY,RR,LL) but changes the phase of the perpendicular corrs (XY,YX,RL,LR).
+   - Faraday rotation (not implemented yet)
    """
    rr = QRU.on_entry(PlotVIS22_play, path, rider)
    cc = []
 
+   polrep = opt_PlotVIS22_play_polrep
    nuv = opt_PlotVIS22_play_nuv
    IQUV = opt_PlotVIS22_play_IQUV
    L = opt_PlotVIS22_play_L
    M = opt_PlotVIS22_play_M
    pzd = opt_PlotVIS22_play_PZD
-   coh = EB.vis22 (ns, IQUV=IQUV, nuv=nuv, L=L, M=M,
-                   urms=1.0, vrms=1.0, pzd=pzd)
-   legend = ['IQUV='+str(IQUV)+' PZD='+str(pzd)+'rad']
-   legend.append('source pos (l,m) = ('+str(L)+','+str(M)+')')
 
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22', legend=legend))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22_IQUV', legend=legend))
+   legend = ['IQUV='+str(IQUV)+' PZD='+str(pzd)+'rad']
+   legend.append('source pos (l,m) = ('+str(L)+','+str(M)+') deg')
+
+   rad2deg = 180.0/math.pi                    
+   coh = EB.vis22 (ns, IQUV=IQUV, nuv=nuv,
+                   L=L/rad2deg, M=M/rad2deg,
+                   urms=1.0*rad2deg, vrms=1.0*rad2deg,
+                   pzd=pzd, polrep=polrep)
+
+   if polrep=='circular':
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C', legend=legend))
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV', legend=legend))
+   else:
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22', legend=legend))
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22_IQUV', legend=legend))
 
    uu = ns.Search(tags='ucoord', subtree=coh)
    vv = ns.Search(tags='vcoord', subtree=coh)
    cc.append(PNP.pynode_Plot(ns, uu+vv, 'XXYY', color='yellow',
+                             xlabel='u (wavelengths)',
+                             ylabel='v (wavelengths)',
                              title='uv-coverage', legend=legend))
 
    ll = ns.Search(tags='lpos', subtree=coh)
@@ -552,6 +624,8 @@ def PlotVIS22_play (ns, path, rider):
    cc.append(PNP.pynode_Plot(ns, ll+mm, 'XXYY', color='green',
                              # xmin=min(0.0,1.1*L), xmax=max(0.0,1.1*L),
                              # ymin=min(0.0,1.1*M), ymax=max(0.0,1.1*M),
+                             xlabel='l (deg w.r.t. phase centre)',
+                             ylabel='m (deg w.r.t. phase centre)',
                              title='point source ('+str(IQUV)+')'))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
@@ -579,6 +653,9 @@ def PyNodeNamedGroups (ns, path, rider):
    if override or opt_PNNG_concat:
       cc.append(PyNodeNamedGroups_concat (ns, rr.path, rider))
 
+   cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2groupspecs))
+   # cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2record_VIS22))
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       bookmark=cc[0], viewer='Record Browser',
                       parentclass='ReqSeq', result_index=0)
@@ -591,13 +668,10 @@ def PyNodeNamedGroups_basic (ns, path, rider):
    """
    rr = QRU.on_entry(PyNodeNamedGroups_basic, path, rider)
    cc = []
-   children = [ns << 0.1, ns << 1.1]
-   pynode = ns['PyNodeNamedGroups'] << Meq.PyNode(children=children,
-                                                  # child_labels=labels,
-                                                  class_name='PyNodeNamedGroups',
-                                                  # groupspecs=gs,
-                                                  module_name=PNNG.__file__)
-   cc.append(pynode)
+
+   anodes = EB.bundle(ns,'cloud_n6s1', nodename='aa')
+   cc.append(PNNG.pynode_NamedGroup(ns, anodes, groupspecs='a'))
+   
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Record Browser')
 

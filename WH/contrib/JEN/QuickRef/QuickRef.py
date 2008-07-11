@@ -112,6 +112,11 @@ any MeqTrees contributor, following a number of simple rules.
 #   - OMS: (this one is serious!) When I include the TDLCompileMenu from more than one
 #          QR module to the compile menu of QuickRef, they do not appear....!
 #
+#   - OMS: Meq.ToComplex(0.0,node) (in EasyTwig.KuvLM) interpreted the 0.0 as complex(0),
+#          so ToComplex generated an error. It disappeared when I replaced 0.0 with the
+#          node Meq.Constant(0.0). The same construct elsewhere did not give the same
+#          problem. It is very strange.....
+#
 # Description:
 #
 
