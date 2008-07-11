@@ -657,6 +657,29 @@ class ResultPlotter(GriddedPlugin):
       return
     if isinstance(self._rec, bool):
       return
+    if self._rec.has_key("quickref_help"):
+      Message = ""
+      for i in range(len(self._rec.quickref_help)):
+        Message = Message + self._rec.quickref_help[i] +"\n"
+      quickref_help = QMessageBox(self._rec.name,
+                 Message,
+                 QMessageBox.Information,
+                 QMessageBox.Ok | QMessageBox.Default,
+                 QMessageBox.NoButton,
+                 QMessageBox.NoButton)
+      quickref_help.exec_loop()
+
+#     quickref_help = QTextEdit(None,self._rec.name)
+#     quickref_help.setText(Message)
+#     quickref_help.setReadOnly(True)
+#     quickref_help.show()
+
+#     textbrowser = QTextBrowser()
+#     textbrowser.setText(text)
+#     textbrowser.show()
+
+      return
+
 
 # if this node is a Composer, it might have a plot_label which we
 # want to use later
