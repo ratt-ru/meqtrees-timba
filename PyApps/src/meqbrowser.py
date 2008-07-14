@@ -95,6 +95,7 @@ importPlugin('array_browser');
 importPlugin('array_plotter');
 importPlugin('histogram_plotter');
 importPlugin('result_plotter');
+importPlugin('quickref_plotter');
 importPlugin('svg_plotter');
 importPlugin('pylab_plotter');
 importPlugin('collections_plotter');
