@@ -179,7 +179,7 @@ class ResultPlotter(GriddedPlugin):
         out a message about Cache not containing results, etc
     """
     self._visu_plotter = None
-    self.QTextBrowser = None
+    self.QTextEdit = None
     self.colorbar = {}
     self.results_selector = None
     self.spectrum_node_selector = None
@@ -596,9 +596,10 @@ class ResultPlotter(GriddedPlugin):
     if self.layout_parent is None or not self.layout_created:
       self.layout_parent = QWidget(self.wparent())
       self.layout = QGridLayout(self.layout_parent)
-      self.QTextBrowser = QTextBrowser(self.layout_parent)
-      self.layout.addWidget(self.QTextBrowser, 0, 1)
-      self.QTextBrowser.hide()
+      self.QTextEdit = QTextEdit(self.layout_parent)
+      self.layout.addWidget(self.QTextEdit, 0, 1)
+      self.QTextEdit.hide()
+      self.QTextEdit.setReadOnly(True)
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
       self.layout_created = True
     self._wtop = self.layout_parent;       
@@ -657,29 +658,6 @@ class ResultPlotter(GriddedPlugin):
       return
     if isinstance(self._rec, bool):
       return
-    if self._rec.has_key("quickref_help"):
-      Message = ""
-      for i in range(len(self._rec.quickref_help)):
-        Message = Message + self._rec.quickref_help[i] +"\n"
-      quickref_help = QMessageBox(self._rec.name,
-                 Message,
-                 QMessageBox.Information,
-                 QMessageBox.Ok | QMessageBox.Default,
-                 QMessageBox.NoButton,
-                 QMessageBox.NoButton)
-      quickref_help.exec_loop()
-
-#     quickref_help = QTextEdit(None,self._rec.name)
-#     quickref_help.setText(Message)
-#     quickref_help.setReadOnly(True)
-#     quickref_help.show()
-
-#     textbrowser = QTextBrowser()
-#     textbrowser.setText(text)
-#     textbrowser.show()
-
-      return
-
 
 # if this node is a Composer, it might have a plot_label which we
 # want to use later
@@ -826,8 +804,8 @@ class ResultPlotter(GriddedPlugin):
         if not self._visu_plotter is None:
           self._visu_plotter.hide()
         Message =  self._vells_data.getScalarString()
-        self.QTextBrowser.setText(Message)
-        self.QTextBrowser.show()
+        self.QTextEdit.setText(Message)
+        self.QTextEdit.show()
         return
 
       self._vells_plot = True
@@ -1044,13 +1022,13 @@ class ResultPlotter(GriddedPlugin):
       if not self._visu_plotter is None:
         self._visu_plotter.hide()
       Message =  self._vells_data.getScalarString()
-      self.QTextBrowser.setText(Message)
-      self.QTextBrowser.show()
+      self.QTextEdit.setText(Message)
+      self.QTextEdit.show()
       return
     else:
       if not self.test_vells_scalar(plot_data, plot_label):
-        if not self.QTextBrowser is None:
-          self.QTextBrowser.hide()
+        if not self.QTextEdit is None:
+          self.QTextEdit.hide()
         if not self._visu_plotter is None:
           self._visu_plotter.show()
         black_colour = 0
