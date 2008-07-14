@@ -51,6 +51,7 @@ Settings.forest_state.cache_policy = 100
 
 import copy
 import math
+import pylab       
 
 
 
@@ -470,7 +471,7 @@ def format_value(v, name=None, nsig=4, trace=False):
         ss = format_float(v, nsig=nsig)
     elif isinstance(v,(list,tuple)):
         vin = '(list)'
-        import pylab                        # must be done here, not above....
+        # import pylab                        # must be done here, not above....
         vv = pylab.array(v)
         ss = '[length='+str(len(vv))
         ss += format_float(vv.min(),'  min', nsig=nsig)
@@ -601,7 +602,10 @@ def get_node_names (nodes, select='*', trace=False):
     snodes = []                             
     if isinstance(select,(list,tuple)):
         for i in select:
-            snodes.append(nodes[i])
+            if i>=0 and i<len(nodes):
+                snodes.append(nodes[i])
+    elif select==None:
+        snodes = []
     else:
         snodes = nodes                      # default: use all nodes
     if trace:
@@ -638,8 +642,8 @@ def get_largest_common_string (ss, trace=False):
         s = 'not a list of strings, but: '+str(type(ss))
         raise ValueError,s
     elif len(ss)==0:
-        s = 'empty list of strings'
-        raise ValueError,s        
+        lcs = '<empty list of strings>'
+        # raise ValueError,lcs        
     elif len(ss)==1:
         lcs = ss[0]
     else:

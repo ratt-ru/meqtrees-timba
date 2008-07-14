@@ -128,6 +128,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     self._gs_order = []
     self._namedgroups = record()
     self._ng_order = []
+    self.testeval = None   
     # print '\n** leaving PyNodeNamedGroups.__init__()\n'
     return None
 
@@ -278,11 +279,11 @@ class PyNodeNamedGroups (pynode.PyNode):
     if isinstance(self.groupspecs,(int,bool)):      # e.g. False
       self.groupspecs = record()               # make sure it is a record
       self.define_specific_groupspecs()        # (re-implemented) class-specific function 
-      self._check_groupspecs(default=False)    # if empty, do nothing
+      self._check_groupspecs()                 # if empty, do nothing
     elif self.groupspecs==None:
       self.groupspecs = record()               # make sure it is a record
       self.define_specific_groupspecs()        # (re-implemented) class-specific function
-      self._check_groupspecs(default=True)     # if empty, make default 'allvells' group  
+      self._check_groupspecs()                 # if empty, do nothing  
     elif isinstance(self.groupspecs, record):
       self.define_specific_groupspecs()        # (re-implemented) class-specific function 
       self._check_groupspecs()
@@ -312,22 +313,13 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def _check_groupspecs (self, default=True, trace=False):
+  def _check_groupspecs (self, trace=False):
     """
     Helper function to check the user-specified groupspecs.
-    If default=True, make sure that there is at least one group ('allvells').
     """
-
-    default = False
-    # print '\n** ',self.class_name,self.name,': ._check_groupspecs(default=',default,')\n'
-
+    trace = True
     if trace:
-      self.display('_check_groupspecs(default=',default,') input')
-
-    # Not recommended....
-    # if len(self.groupspecs)==0:
-    #   if default:
-    #     self.groupspecs['allvells'] = record() # at least one group (named allvells)
+      self.display('_check_groupspecs() input')
 
     self._gs_order = []                      # make the order user-specifiable?
     for key in self.groupspecs.keys():
@@ -469,6 +461,7 @@ class PyNodeNamedGroups (pynode.PyNode):
                                    labels=rv.labels(index=index), 
                                    history=s)
 
+    #....................................................................
     # Then do the groupspecs that are strings (python extressions)
     # They are derived groups:
     # self.display('_extract_namedgroups()')
@@ -477,7 +470,7 @@ class PyNodeNamedGroups (pynode.PyNode):
       if isinstance(rr,str):
         expr = rr
         s = 'Derived: '+expr
-        self._create_namedgroup (key=key, derived=True,
+        self._create_namedgroup (key=key, derived=True, expr=expr,
                                  vv=self._evaluate(expr, trace=trace),
                                  dvv=self._expr2dvv(expr, trace=trace),
                                  labels=self._expr2labels(expr, trace=trace),
@@ -496,8 +489,9 @@ class PyNodeNamedGroups (pynode.PyNode):
                           children=None, vells=None,
                           childnos=None, nodes=None,
                           labels=None,
+                          derived=False, expr=None,
                           history='History',
-                          derived=False, trace=False):
+                          trace=False):
     """
     Helper function to create a new namedgroup record.
     Called (only) from ._extract_namedgroups(). 
@@ -523,20 +517,26 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     # Extract the largest common string (lcs) from the relevant
     # selection (childnos) of child nodenames:
-    ss = EN.get_node_names(self.child_names, select=childnos, trace=False) 
-    lcs = EN.get_largest_common_string(ss, trace=False) 
+    lcs = None
+    if not derived:
+      ss = EN.get_node_names(self.child_names, select=childnos, trace=False) 
+      lcs = EN.get_largest_common_string(ss, trace=False) 
 
     # Make a one-line group summary string: 
     ss = '{'+str(lowerkey)+'}:'
     ss += ' n='+str(len(childnos))
-    ss += ' ('+str(children)+')'
-    ss += ' vells='+str(vells)
     ss += ' lcs='+str(lcs)
+    if derived:
+      ss += 'derived'
+      ss += ' expr='+str(expr)
+    else:
+      ss += ' ('+str(children)+')'
+      ss += ' vells='+str(vells)
     
     # Create and attach the new record:
     rr = record(vv=vv, dvv=dvv,
                 key=lowerkey,
-                derived=derived,
+                derived=derived, expr=expr,
                 vells=vells, children=children,
                 childnos=childnos, nodes=nodes,
                 labels=labels, lcs=lcs,
@@ -747,11 +747,12 @@ class PyNodeNamedGroups (pynode.PyNode):
         ii.append(self.child_indices[i])
     
     # Extract new namedgroup definitions from its 'regular' children (if any),
+    # or from string groupspecs (i.e. math expressions of existing groups),
     # and append them to the list self._namedgroups:
-    if len(cc)>0:
-      self._extract_namedgroups(cc, child_indices=ii,
-                                child_labels=self.child_labels,
-                                trace=trace)
+    # if len(cc)>=0:
+    self._extract_namedgroups(cc, child_indices=ii,
+                              child_labels=self.child_labels,
+                              trace=trace)
     if False:
       self.display('PyNodeNamedGroups.get_result()')
 
@@ -807,9 +808,13 @@ class PyNodeNamedGroups (pynode.PyNode):
       seval = expr
       for kenc in rr.keys():                           # all {var}
         seval = seval.replace(kenc,str(rr[kenc][i]))   # replace all with str(number)
-      vv.append(eval(seval))                           # evaluate
+      v = eval(seval)                                  # evaluate
+      if isinstance(v,bool):
+        vv.append(v)                       
+      else:
+        vv.append(v)                       
       if trace:
-        print '-',i,seval,'->',type(vv[i]),vv[i]
+        print '-',i,seval,'->',type(v),v
 
     # Finished:
     if trace:
@@ -1047,9 +1052,16 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   - nodename:    name of the resulting pynode
   - quals:       list of qualifiers
   - kwquals:     dict of keyword qualifiers
-  - groupspecs:  group specification(s) (string or dict)
-  .    if dict, assume a valid groupspecs record (advanced use)
-  .    if string:
+  - groupspecs:  group specification(s) (string or record):
+  .    - if a string (e.g. 'YY'), make a standard groupspecs record internally
+  .              (see PNNG.string2groupspecs() for the various possibilities.      
+  .    - if a record, assume a valid groupspecs record (advanced use).
+  .              The field-names of the record are the names of the new groups.
+  .              The field values may be either a record or a string:
+  .              - if a string, it should be a valid math expression, in which
+  .                the other groups are variables (e.g. '{a}+{b}')
+  .              - if a record, it contains specifications for extracting results
+  .                from its 'regular' children (i.e. non-PyNamedGroups children)
   - **kwargs:    additional customizing arguments (..)
   """
   trace = False
@@ -1075,6 +1087,7 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
     # No groupspecs specified (concatenation)
     gs = None
 
+  # print '--- gs =',gs
 
   # If no labels specified, derive them from the child nodenames:
   child_names = EN.get_node_names(nodes, select='*', trace=False)

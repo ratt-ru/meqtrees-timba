@@ -999,6 +999,10 @@ def bundle (ns, path, rider,
         qinfo += 'sub-sub-sub-...: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
     qhelp.insert(0,qinfo)
 
+    # Optional, show the node subtree(s) to the required depth:
+    if show_recurse:
+        qhelp.extend(EN.format_tree(nodes, recurse=show_recurse, mode='list'))
+
     # Prepend some separators in the text:
     if False:
         if level==0:
@@ -1078,7 +1082,7 @@ def bundle (ns, path, rider,
         # Make sure that viewer is a list with the same length as nodes:
         if not isinstance(viewer,(list,tuple)):
             viewer = len(nodes)*[viewer]
-        elif not len(viewer)==0:
+        elif len(viewer)==0:                           #....needed??
             viewer = len(nodes)*['Record Browser']
         elif not len(viewer)==len(nodes):
             viewer = len(nodes)*[viewer[0]]

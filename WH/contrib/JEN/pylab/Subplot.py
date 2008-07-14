@@ -12,6 +12,7 @@
 #    - 29 jan 2008: creation
 #    - 08 may 2008: Tony's version self.ax.
 #    - 19 may 2008: Changed all self.ax to self._axob
+#    - 11 jul 2008: sorted out legend bug...
 #
 # Remarks:
 #
@@ -144,7 +145,9 @@ class Subplot (object):
     #---------------------------------------------------------------
 
     def legend (self, new=None, color=None, init=False):
-        """Legend control"""
+        """
+        Legend control
+        """
         if init:
             self._legend = []
             self._legend_color = []
@@ -321,15 +324,28 @@ class Subplot (object):
     #---------------------------------------------------------------
 
     def plot_legend (self, ny=16, fontsize=10, trace=False):
-        """Plot the accumulated legend-strings (if any).
+        """
+        Plot the accumulated legend-strings (if any).
         The number ny(=16) determines the line-spacing,
         by specifying the number of lines that fit on the plot.
         """
         if trace: print '\n** plot_legend():'
         ss = self.legend()
         color = self._legend_color
-        [xmin,xmax] = self.xrange()
-        [ymin,ymax] = self.yrange()
+
+        if False:
+            # Does not take user-window into account...
+            [xmin,xmax] = self.xrange()
+            [ymin,ymax] = self.yrange()
+        else:
+            # Better....
+            [xmin,xmax] = self._range(self.xrange(), margin=0.1,
+                                      vmin=self._kw['xmin'],
+                                      vmax=self._kw['xmax'])
+            [ymin,ymax] = self._range(self.yrange(), margin=0.2,
+                                      vmin=self._kw['ymin'],
+                                      vmax=self._kw['ymax'])
+            
         if trace: print '- xx =',xmin,xmax
         if trace: print '- yy =',ymin,ymax
         x = xmin + abs(xmax-xmin)/20.0

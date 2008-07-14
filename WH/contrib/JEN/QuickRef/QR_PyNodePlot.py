@@ -97,8 +97,8 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                                toggle='opt_PNP_tensors'),
                        TDLMenu("concat",
                                toggle='opt_PNP_concat'),
-                       TDLMenu("customize",
-                               toggle='opt_PNP_customize'),
+                       TDLMenu("advanced",
+                               toggle='opt_PNP_advanced'),
                        TDLMenu("hotrod",
                                toggle='opt_PNP_hotrod'),
                        toggle='opt_PyNodePlot'),
@@ -257,6 +257,8 @@ def PyNodePlot (ns, path, rider):
 
    if override or opt_PNP_basic:
       cc.append(PyNodePlot_basic (ns, rr.path, rider))
+   if override or opt_PNP_advanced:
+      cc.append(PyNodePlot_advanced (ns, rr.path, rider))
    if override or opt_PNP_scalars:
       cc.append(PyNodePlot_scalars (ns, rr.path, rider))
    if override or opt_PNP_complex:
@@ -265,11 +267,8 @@ def PyNodePlot (ns, path, rider):
       cc.append(PyNodePlot_tensors (ns, rr.path, rider))
    if override or opt_PNP_concat:
       cc.append(PyNodePlot_concat (ns, rr.path, rider))
-   if False:
-      if override or opt_PNP_customize:
-         cc.append(PyNodePlot_customize (ns, rr.path, rider))
-      if override or opt_PNP_hotrod:
-         cc.append(PyNodePlot_hotrod (ns, rr.path, rider))
+   if override or opt_PNP_hotrod:
+      cc.append(PyNodePlot_hotrod (ns, rr.path, rider))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       bookmark=cc[0], viewer='Pylab Plotter',
@@ -285,53 +284,138 @@ def PyNodePlot_basic (ns, path, rider):
    .    import PyNodePlot as PNP
    .    pynode = PNP.pynode_Plot(ns, nodes)
 
-   The plot may be customized by means of keyword args, e.g.:
+   The other 3 plots show how things may be customized by means of keyword args, e.g.:
    .    pynode = PNP.pynode_Plot(ns, nodes, title='basic', ylabel='ylabel', ...)
-   
-   The utliized customization keywords are shown in the plot legends.
-   They can be used in any combination, of course.
-   More advanced customization is shown in subtopic 'customization' below
+   The utilized customization keywords are shown in the plot legends. They can be
+   used in any combination, of course.
    """
    rr = QRU.on_entry(PyNodePlot_basic, path, rider)
    cc = []
-   viewer = []
-   viewer = 'Pylab Plotter'
+
    nodes = EB.bundle(ns,'cloud_n6s1')
    cc.append(PNP.pynode_Plot(ns, nodes))
    
-   kwargs = dict(title='simplest',ylabel='ylabel', xlabel='xlabel',
-                 legend=['line1','line2'])
+   kwargs = dict(title='custom_title',ylabel='custom_ylabel',
+                 xlabel='custom_xlabel', legend=['line1','line2'])
    cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
                              
-   kwargs = dict(fontsize=10, color='red', marker='triangle')
+   kwargs = dict(color='red', marker='triangle', markersize=10, fontsize=15)
    cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
 
-   kwargs = dict(annotate=False,xmin=-5, xmax=4, ymin=-10, ymax=10)
+   kwargs = dict(annotate=False, xmin=-5, xmax=4, ymin=-10, ymax=10,
+                 plot_ellipse_stddev=True, plot_circle_mean=True)
    cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
+#================================================================================
 
+def PyNodePlot_advanced (ns, path, rider):
+   """
+   In this more advanced example, a single plot contains graphics that represent
+   different mathematical expressions in which the the available named groups
+   are arguments (e.g. y={a}*{b}, x={b}-{c} etc). This is done by filling an
+   external plotspecs record with a list of one or more subplot definitions.
+   (NB: In the standard plots, which are specified by strings like 'XXYY' etc,
+   standard plotspecs records are generated internally)
 
+   This example has two steps. First a PyNodeNamedGroups pynode_1 is created,
+   which extracts named groups of values ({u},{v},{w}) from the results of
+   groups of nodes. In addition, a derived group {ruv} is created with a math
+   expression (string), in which the other groups are variables {..}.
 
-#  - xmin       [=None]         plot-window
-#  - xmax       [=None]         plot-window
-#  - ymin       [=None]         plot-window
-#  - ymax       [=None]         plot-window
-  
-#  - legend     [=[]]           (sub)plot legend string(s)
+   .    import PyNodeNamedGroups as PNNG
+   .    gs = record(ruv='sqrt(abs(({u}**2+{v}**2)))')
+   .    pynode_1 = PNNG.pynode_NamedGroup(ns, 
+   .                                      [PNNG.pynode_NamedGroup(ns, unodes, 'u'),
+   .                                       PNNG.pynode_NamedGroup(ns, vnodes, 'v'),
+   .                                       PNNG.pynode_NamedGroup(ns, wnodes, 'w')],
+   .                                      groupspecs=gs))
 
-#  - color      [='blue']       subplot color
-#  - linestyle  [=None]         subplot linestyle ('-','--',':')
-#  - marker     [='o']          subplot marker style ('+','x', ...)
-#  - markersize [=5]            subplot marker size (points)
-#  - plot_sigma_bars [=True]    if True, indicate domain variation
-#  - annotate   [=True]         if True, annotate points with labels
-#  - fontsize   [=7]            annotation font size (points)
-#  - msmin      [=2]            min marker size (z-values)
-#  - msmax      [=20]           max marker size (z-values)
-#  - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
+   The actual plot(s) are made by another pynode of class PyNodePlot, which has
+   pynode_1 as its child. The (graphics) plots are specified as math expressions
+   of the named groups, which it copies from the result of its child.
+   The second plot is specified in the following way:
+   
+   .   import PyNodePlot as PNP
+   .   psg = []
+   .   psg.append(record(x='{u}', y='{v}', z='{w}', color='green'))
+   .   psg.append(record(x='{u}', y='{ruv}', color='blue'))
+   .   pynode_2 = PNP.pynode_Plot(ns, pynode_1,
+   .                              plotspecs=record(graphics=psg),
+   .                              **kwargs)
+
+   Any number of plots may be specified, and appended to the list of graphics
+   plotspecs. (NB: Only plots of type graphics are supported for the moment,
+   but there will be others in the future.)
+   
+   As shown in subtopic 'PyNodePlot_basic' above, the keywords arguments
+   can be used to customize the plot with titla, axes labels etc.
+
+   For the third graph, two extra groups produv and sumuv are defined,
+   and plotted against each other in the same plot in two different ways:
+
+   gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
+   psg = []
+   psg.append(record(x='{produv}', y='{sumuv}', color='magenta', legend='sumuv vs produv'))
+   psg.append(record(x='{sumuv}', y='{produv}', color='cyan', legend='produv vs sumuv'))
+   pynode_3 = PNP.pynode_Plot(ns, pynode_1,
+   .                          groupspecs=gs,
+   .                          plotspecs=record(graphics=psg),
+   .                          **kwargs)
+
+   The state-record of pynode_3 is bookmarked too, for easy inspection. Check the
+   namedgroups in the result, and the plotdefs.
+   
+   Etc, etc. The possibilities are endless.
+   """
+   rr = QRU.on_entry(PyNodePlot_advanced, path, rider)
+   cc = []
+   viewer = []
+
+   unodes = EB.bundle(ns,'cloud_n6s1', nodename='u')
+   vnodes = EB.bundle(ns,'cloud_n6s1', nodename='v')
+   wnodes = EB.bundle(ns,'cloud_n6s0.01', nodename='w')
+   ruv_expr = 'sqrt(abs(({u}**2+{v}**2)))'
+   gs = record(ruv=ruv_expr)
+   cc.append(PNNG.pynode_NamedGroup(ns, 
+                                    [PNNG.pynode_NamedGroup(ns, unodes, 'u'),
+                                     PNNG.pynode_NamedGroup(ns, vnodes, 'v'),
+                                     PNNG.pynode_NamedGroup(ns, wnodes, 'w')],
+                                    groupspecs=gs))
+   viewer.append('Record Browser')
+
+   psg = []
+   psg.append(record(x='{u}', y='{v}', z='{w}', color='green'))
+   psg.append(record(x='{u}', y='{ruv}', color='blue'))
+   kwargs = dict(title='uvw-coverage(green) and ruv(blue)',
+                 zlabel='w (wavelengths)',
+                 ylabel='v/ruv (wavelengths)',
+                 xlabel='u (wavelengths)')
+   cc.append(PNP.pynode_Plot(ns, [cc[0]], plotspecs=record(graphics=psg),
+                             **PNP.kwargs2legend(**kwargs)))
+   viewer.append('Pylab Plotter')
+
+   psg = []
+   psg.append(record(x='{produv}', y='{sumuv}', color='magenta', legend='sumuv vs produv'))
+   psg.append(record(x='{sumuv}', y='{produv}', color='cyan', legend='produv vs sumuv'))
+   kwargs = dict(title='produv (u*v) and sumuv (u+v)',
+                 ylabel='produv/sumuv',
+                 xlabel='sumuv/produv')
+   gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
+   pynode = PNP.pynode_Plot(ns, [cc[0]],
+                            groupspecs=gs,
+                            plotspecs=record(graphics=psg),
+                            **PNP.kwargs2legend(**kwargs))
+   cc.append(pynode)
+   viewer.append('Pylab Plotter')
+   cc.append(pynode)
+   viewer.append('Record Browser')
+   
+                             
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      show_recurse=True, viewer=viewer)
 
 #================================================================================
 
@@ -486,10 +570,64 @@ def PyNodePlot_concat (ns, path, rider):
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer=viewer)
 
+#================================================================================
+
+def PyNodePlot_hotrod (ns, path, rider):
+   """
+   It is possible to concatenate pynodes of class PyNodePlot/PyNodeNamedGroups.
+   Children of these types are ignored for plotting, but their group definitions
+   and plot definitions are copied into the new MeqPyNode. This is very powerful.
+   
+   .    import PyNodeNamedGroups as PNNG
+   .    pynode_XX = PNP.pynode_NamedGroup(ns, xnodes, 'XX')
+   .    pynode_YY = PNP.pynode_NamedGroup(ns, ynodes, 'YY')
+   
+   .    import PyNodePlot as PNP
+   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY], plotspecs='XY')
+
+   Note that in this case, no groupspecs is specified (as 3rd argument), but a
+   keyword argument plotspecs. The reason is of course that the groups (x and y)
+   have been copied from its pynode children, but we still have to specify how
+   to plot these groups.
+
+   An (x,y,z) plot can be made by adding a 3rd pynode child (pynode_ZZ),
+   and specifying a suitable plotspecs:
+   .    pynode_ZZ = PNP.pynode_NamedGroup(ns, znodes, 'ZZ')
+   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY, pynode_ZZ],
+   .                             plotspecs='XYZ')
+
+   Etc, etc. See also the more elaborate concatenation examples below....
+   """
+   rr = QRU.on_entry(PyNodePlot_hotrod, path, rider)
+   cc = []
+   viewer = []
+   xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
+   ynodes = EB.bundle(ns,'cloud_n6s1', nodename='yyy')
+   # znodes = EB.bundle(ns,'cloud_n6s1')
+
+   cc.append(PNNG.pynode_NamedGroup(ns, xnodes, groupspecs='XX'))
+   viewer.append('Record Browser')
+
+   cc.append(PNNG.pynode_NamedGroup(ns, ynodes, groupspecs='YY'))
+   viewer.append('Record Browser')
+
+   node = PNP.pynode_Plot(ns, cc, plotspecs='XY',
+                          xlabel='from pynode_XX',
+                          ylabel='from pynode_YY')
+   cc.extend([node,node])
+   viewer.extend(['Pylab Plotter','Record Browser'])
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer=viewer)
+
+
+
 
 
 #================================================================================
+#================================================================================
 # PlotVIS22:
+#================================================================================
 #================================================================================
 
 def PlotVIS22 (ns, path, rider):

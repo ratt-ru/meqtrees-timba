@@ -145,9 +145,10 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   - annotate   [=True]         if True, annotate points with labels
   - fontsize   [=7]            annotation font size (points)
   - msmin      [=2]            min marker size (z-values)
-  - msmax      [=20]           max marker size (z-values)
+  - msmax      [=20]           max marker size (z-values) 
   - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
-  """
+  - plot_ellipse_stddev [=False]  if True, plot an ellipse (xc,yc,stddev)
+ """
 
   def __init__ (self, *args, **kwargs):
     # print '\n** entering PyNodePlot.__init__()\n'
@@ -389,6 +390,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     ss.extend(['plot_sigma_bars','annotate','fontsize'])
     ss.extend(['ignore'])                           # ....?
     ss.extend(['plot_circle_mean'])
+    ss.extend(['plot_ellipse_stddev'])
     self._pskeys['graphics'] = ss
 
     rr.setdefault('legend', [])                     # subplot legend
@@ -403,6 +405,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr.setdefault('fontsize', 7)                    # font size (points)
     rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)        # plot circle around (0,0) with radius=mean
+    rr.setdefault('plot_ellipse_stddev', False)     # plot ellipse around (mean) with radii=stddev
 
     # Deal with the plotspecs, dependent on their plot-type (e.g. graphics): 
     for plotype in self._plotypes:
@@ -450,7 +453,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
 
     # Fill self._namedgroups with named groups from its children.
     # These are also attached to the result, for concatenation.
-    result = PNNG.PyNodeNamedGroups.get_result(self, request,*children)
+    result = PNNG.PyNodeNamedGroups.get_result(self, request, *children)
 
     # Re-initialize the record that contains the plot definitions:
     self._plotdefs = record()
@@ -911,6 +914,7 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                             markersize=pd.markersize,
                             fontsize=pd.fontsize,
                             plot_circle_mean=pd.plot_circle_mean,
+                            plot_ellipse_stddev=pd.plot_ellipse_stddev,
                             color=pd.color)
     grs.add(grs1)
 
