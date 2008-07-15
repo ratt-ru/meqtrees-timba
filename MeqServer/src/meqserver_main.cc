@@ -119,6 +119,8 @@ int main (int argc,const char *argv[])
     meqmpi.attachForest(forest);
     meqmpi.initialize();
     meqmpi.rejoinCommThread();
+    // inelegant, but I can't get MPI to exit cleanly...
+    _exit(0);
     MPI_Finalize();
     // stop worker threads
     Meq::MTPool::stop();
@@ -201,9 +203,9 @@ int main (int argc,const char *argv[])
     for( int i=1; i<meqmpi.comm_size(); i++ )
       meqmpi.postCommand(MeqMPI::TAG_HALT,i);
     meqmpi.stopCommThread();
+    // inelegant and brute force, but I can't get MPI to exit cleanly...
+    _exit(0);
     MPI_Finalize();
-    // harakiri
-    exit(0);
   #endif
     
     cdebug(0)<<"=================== stopping OCTOPUSSY ========================\n";

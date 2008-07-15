@@ -52,32 +52,32 @@ lofar_GENERAL
 lofar_BLITZ(1)
 AC_PROG_LIBTOOL
 
-dnl
-dnl Check how to get at the mutex 'kind' attribute
-dnl
-AC_MSG_CHECKING([how to access the mutex 'kind' attribute])
-AC_LANG(C++)
-AC_COMPILE_IFELSE(    
-  AC_LANG_PROGRAM(
-    [[#include <pthread.h>]],
-    [[
-      pthread_mutex_t mutex;
-      mutex.__data.__kind /* ; */
-    ]]),
-  ac_mutex_kind=__data.__kind,
-  [AC_COMPILE_IFELSE(    
-    AC_LANG_PROGRAM(
-      [[#include <pthread.h>]],
-      [[
-	pthread_mutex_t mutex;
-	mutex.__m_kind /* ; */
-      ]]),
-    ac_mutex_kind=__m_kind,
-    [AC_MSG_ERROR([sorry, I don't know how to do this with your pthread library])]
-  )]
-)
-AC_MSG_RESULT($ac_mutex_kind)
-AC_DEFINE_UNQUOTED(PTHREAD_MUTEX_KIND,${ac_mutex_kind},[accesses the 'kind' attribute of a mutex structure])
+dnl dnl We no longer do this as it was way unportable
+dnl dnl Check how to get at the mutex 'kind' attribute
+dnl dnl
+dnl AC_MSG_CHECKING([how to access the mutex 'kind' attribute])
+dnl AC_LANG(C++)
+dnl AC_COMPILE_IFELSE(    
+dnl   AC_LANG_PROGRAM(
+dnl     [[#include <pthread.h>]],
+dnl     [[
+dnl       pthread_mutex_t mutex;
+dnl       mutex.__data.__kind /* ; */
+dnl     ]]),
+dnl   ac_mutex_kind=__data.__kind,
+dnl   [AC_COMPILE_IFELSE(    
+dnl     AC_LANG_PROGRAM(
+dnl       [[#include <pthread.h>]],
+dnl       [[
+dnl 	pthread_mutex_t mutex;
+dnl 	mutex.__m_kind /* ; */
+dnl       ]]),
+dnl     ac_mutex_kind=__m_kind,
+dnl     [AC_MSG_ERROR([sorry, I don't know how to do this with your pthread library])]
+dnl   )]
+dnl )
+dnl AC_MSG_RESULT($ac_mutex_kind)
+dnl AC_DEFINE_UNQUOTED(PTHREAD_MUTEX_KIND,${ac_mutex_kind},[accesses the 'kind' attribute of a mutex structure])
 dnl
 dnl Output Makefiles
 dnl

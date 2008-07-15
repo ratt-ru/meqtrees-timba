@@ -34,20 +34,22 @@ namespace LOFAR
     // Otherwise, declare just a skeleton class (to keep, e.g., declarations
     // consistent)
 #ifdef USE_THREADS
-    int pthread_mutex_kind (const pthread_mutex_t &mutex);
 
     //##ModelId=3D1049B40332
     class Mutex 
     {
     public:
-      // This is completely non-portable, but pthread.h has me confused
-      // In any event, mutex type implementation is OS-dependent (and we can
-      // always do recursion and error-checking in the Mutex class itself)
-      //##ModelId=3DB935A103A1
-      typedef enum { DEFAULT    = PTHREAD_MUTEX_TIMED_NP,
-                     FAST       = DEFAULT,
-                     RECURSIVE  = PTHREAD_MUTEX_RECURSIVE_NP,
-                     ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK_NP } MutexKind;
+//// Removing this, since we only ever use recursive mutexes, and mutex kind is non-portable
+//// anyways. If we ever need different kinds of mutexes, subclass!
+//
+//       // This is completely non-portable, but pthread.h has me confused
+//       // In any event, mutex type implementation is OS-dependent (and we can
+//       // always do recursion and error-checking in the Mutex class itself)
+//       //##ModelId=3DB935A103A1
+//       typedef enum { DEFAULT    = PTHREAD_MUTEX_TIMED_NP,
+//                      FAST       = DEFAULT,
+//                      RECURSIVE  = PTHREAD_MUTEX_RECURSIVE_NP,
+//                      ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK_NP } MutexKind;
 
       //##ModelId=3DB935A103C9
       typedef enum { TRY=1 } MutexOptions;
@@ -106,6 +108,10 @@ namespace LOFAR
         //##ModelId=3DB935A4039B
         string sdebug (int = 1,const string & = "",const char * = 0 ) const
         { return debug(); }
+        
+        // static method used to init the mutex attr_recursive object below
+        static int init_attr_recursive ();
+
       private:
 
         //##ModelId=5FDF0A36FEED
@@ -116,11 +122,11 @@ namespace LOFAR
 
         //##ModelId=3D10514502E9
         pthread_mutex_t *pmutex;
-
+        
       };
 
       //##ModelId=70B8C5D3FEED
-      Mutex (int kind = RECURSIVE);
+      Mutex ();
 
       //##ModelId=3D10B976039C
       Mutex (const Mutex &right);
@@ -151,10 +157,11 @@ namespace LOFAR
       //##ModelId=3DB935A50388
       string sdebug (int = 1,const string & = "",const char * = 0 ) const
       { return debug(); }
+      
     protected:
 
       //##ModelId=9C882969FEED
-      void init (int kind);
+      void init ();
 
       // Data Members for Class Attributes
 
@@ -280,15 +287,15 @@ namespace LOFAR
     // Class Thread::Mutex 
 
     //##ModelId=70B8C5D3FEED
-    inline Mutex::Mutex (int kind)
+    inline Mutex::Mutex ()
     {
-      init(kind);
+      init();
     }
 
     //##ModelId=3D10B976039C
     inline Mutex::Mutex (const Mutex &right)
     {
-      init(pthread_mutex_kind(right.mutex));
+      init();
     }
 
 
@@ -299,18 +306,18 @@ namespace LOFAR
     }
 
     //##ModelId=9C882969FEED
-    inline void Mutex::init (int kind)
+    inline void Mutex::init ()
     {
-      pthread_mutexattr_t attr = { kind  };
+      pthread_mutexattr_t attr;
+      pthread_mutexattr_init(&attr);
+      pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE_NP);
       pthread_mutex_init(&mutex,&attr); 
-      dprintf(3)("initialized mutex %p kind %d\n",(void*)&mutex,kind);
+      dprintf(3)("initialized mutex %p\n",(void*)&mutex);
     }
 
     //##ModelId=3D10BC47035F
-    inline Mutex & Mutex::operator = (const Mutex &right)
+    inline Mutex & Mutex::operator = (const Mutex &)
     {
-      pthread_mutex_destroy(&mutex);
-      init(pthread_mutex_kind(right.mutex));
       return *this;
     }
 

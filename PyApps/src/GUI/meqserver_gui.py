@@ -627,7 +627,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         *buttons);
       res = buttons[res];
     elif pid:
-      buttons = ("KILL","Cancel",None,0,1);
+      buttons = ("KILL","Cancel","",0,1);
       res = QMessageBox.warning(self,"Stopping meqserver",
         """<p>It seems there's a meqserver running (pid %d) but we can't
         establish a connection to it. Should we try to stop it with 
@@ -635,7 +635,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         *buttons);
       res = buttons[res];
     elif addr:
-      buttons = ("HALT","Cancel",None,0,1);
+      buttons = ("HALT","Cancel","",0,1);
       res = QMessageBox.warning(self,"Stopping meqserver",
         """<p>We are connected to a remote meqserver (%s). Should we try 
         to stop it with a <tt>HALT</tt> command?</p>""" % str(addr),

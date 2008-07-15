@@ -87,14 +87,12 @@ namespace LOFAR
 
     //##ModelId=3D10B9920176
     inline Condition::Condition()
-      : Mutex(RECURSIVE)
     {
       pthread_cond_init(&cond,NULL);
     }
 
     //##ModelId=3DB935A200EF
     inline Condition::Condition (const Condition &)
-      : Mutex(RECURSIVE)
     {
       pthread_cond_init(&cond,NULL);
     }

@@ -24,6 +24,7 @@
 //
 
 #include <TimBase/Thread/Thread.h>
+#include <TimBase/Thread/Mutex.h>
 
 #include <TimBase/CheckConfig.h>
 #ifdef USE_THREADS
@@ -83,16 +84,6 @@ namespace LOFAR
     int ThrID::join (void * &value)
     { 
       return pthread_join(id_,&value);  
-    }
-    
-    
-
-    // Additional Declarations
-    
-    int pthread_mutex_kind (const pthread_mutex_t &mutex)
-    {
-      // PTHREAD_MUTEX_KIND should be setup in config.h, via lofarconf
-      return mutex.PTHREAD_MUTEX_KIND;
     }
     
 #endif
