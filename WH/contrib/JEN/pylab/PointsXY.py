@@ -90,6 +90,9 @@ class PointsXY (object):
         kw.setdefault('plot_standalone', False)
         kw.setdefault('plot_ellipse_stddev', False)
         kw.setdefault('plot_circle_mean', False)
+        kw.setdefault('include_origin', False)
+        kw.setdefault('include_xaxis', False)
+        kw.setdefault('include_yaxis', False)
         kw.setdefault('quiver_scale', None)
         self._kw = kw
 
@@ -533,13 +536,27 @@ class PointsXY (object):
             self.plot_circle_mean()
         if self._kw['plot_ellipse_stddev']:
             self.plot_ellipse_stddev()
-                
+
+        
         # Make the window, if required, but AFTER the circles:
-        if margin>0.0:
+        if ((margin>0.0) or
+            self._kw['include_origin'] or
+            self._kw['include_xaxis'] or
+            self._kw['include_yaxis']):
+
             if self._kw['plot_type']=='plot':
                 [xmin,xmax] = self.xrange(margin=margin)
                 [ymin,ymax] = self.yrange(margin=margin)
+                if (self._kw['include_origin'] or
+                    self._kw['include_yaxis']):
+                    xmin = min(xmin,0.0)
+                    xmax = max(xmax,0.0)
+                if (self._kw['include_origin'] or
+                    self._kw['include_xaxis']):
+                    ymin = min(ymin,0.0)
+                    ymax = max(ymax,0.0)
                 self._axob.axis([xmin, xmax, ymin, ymax]) 
+
             elif self._kw['plot_type']=='polar':
                 [rmin,rmax] = self.yrange(margin=margin)
                 rr = pylab.array([0.25,0.5,0.75,1.0])*rmax
@@ -550,6 +567,8 @@ class PointsXY (object):
                 self._axob.rgrids(rr, labels, angle=-90.0)
                 # self._axob.axis([-rmin, rmax, -rmin, rmax])
                 # self._axob.axis([0.5, 0.5, -rmax*2.0, rmax*2.0])
+
+
 
         # Make the pylab legend, if required:
         if self._kw['plot_standalone']:

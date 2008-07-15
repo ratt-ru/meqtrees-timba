@@ -108,7 +108,17 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   ignore them for its normal function.
   
   When defining a PyNodePlot node, specific instructions are passed to it
-  via a record named plotspecs:
+  via plotspecs record (ps):
+
+  .   psg = []
+  .   psg.append(record(y='{y}', color='red'))
+  .   psg.append(record(y='{a}*{b}', x='{c}', color='blue'))
+  .   ps = record(graphics=psg, title=.., ylabel=.., ...)
+  
+  For the moment, only plots of type 'graphics' are supported.
+  The ps.graphics field has a list of one or more plotspec records.
+  They are plotted together in a single plots, whose overall attributes
+  (title, xlabel, ylabel etc) may be added as extra ps fields.
 
   .   from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
   .   ns[nodename] << Meq.PyNode(children=[nodes],
@@ -116,13 +126,12 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   .                              class_name='PyNodePlot',
   .                              module_name=PNP.__file__,
   .                              [groupspecs=record(....),]
-  .                              plotspecs=record(title=..., xlabel=...)
-  .                              )
+  .                              plotspecs=ps)
+  
   For the (optional) groupspecs definition, see the class PyNodeNamedGroups.
   
-  Possible plotspecs keywords are:
+  Possible overall plotspecs keywords are:
   - labels     [=None]         a list of node labels
-  - make_svg   [=False]        (svg) plotting may be inhibited if concatenated
   - offset     [=0.0]          concatenated plots maye be offset vertically
   - title      [=<classname>]  plot title
   - xlabel     [='child']      x-axis label
@@ -134,20 +143,25 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   - xmax       [=None]         plot-window
   - ymin       [=None]         plot-window
   - ymax       [=None]         plot-window
-  
-  - legend     [=[]]           (sub)plot legend string(s)
+  - legend     [=[]]           plot legend string(s)
+  - make_svg   [=False]        (svg) plotting may be inhibited if concatenated
 
+  Possible keywords for individual subplots are:
   - color      [='blue']       subplot color
   - linestyle  [=None]         subplot linestyle ('-','--',':')
   - marker     [='o']          subplot marker style ('+','x', ...)
   - markersize [=5]            subplot marker size (points)
   - plot_sigma_bars [=True]    if True, indicate domain variation
+  - legend     [=[]]           subplot legend string(s)
   - annotate   [=True]         if True, annotate points with labels
   - fontsize   [=7]            annotation font size (points)
   - msmin      [=2]            min marker size (z-values)
   - msmax      [=20]           max marker size (z-values) 
   - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
   - plot_ellipse_stddev [=False]  if True, plot an ellipse (xc,yc,stddev)
+  - include_origin [=False]    if True, include the origin (0,0)
+  - include_xaxis [=False]     if True, include y=0
+  - include_yaxis [=False]     if True, include x=0
  """
 
   def __init__ (self, *args, **kwargs):
@@ -389,8 +403,8 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     ss = ['color','linestyle','marker','markersize']
     ss.extend(['plot_sigma_bars','annotate','fontsize'])
     ss.extend(['ignore'])                           # ....?
-    ss.extend(['plot_circle_mean'])
-    ss.extend(['plot_ellipse_stddev'])
+    ss.extend(['plot_circle_mean','plot_ellipse_stddev'])
+    ss.extend(['include_origin','include_xaxis','include_yaxis'])
     self._pskeys['graphics'] = ss
 
     rr.setdefault('legend', [])                     # subplot legend
@@ -406,6 +420,9 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)        # plot circle around (0,0) with radius=mean
     rr.setdefault('plot_ellipse_stddev', False)     # plot ellipse around (mean) with radii=stddev
+    rr.setdefault('include_origin', False)          # include (0,0)
+    rr.setdefault('include_xaxis', False)           # include y=0
+    rr.setdefault('include_yaxis', False)           # include x=0
 
     # Deal with the plotspecs, dependent on their plot-type (e.g. graphics): 
     for plotype in self._plotypes:
@@ -915,6 +932,9 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                             fontsize=pd.fontsize,
                             plot_circle_mean=pd.plot_circle_mean,
                             plot_ellipse_stddev=pd.plot_ellipse_stddev,
+                            include_origin=pd.include_origin,
+                            include_xaxis=pd.include_xaxis,
+                            include_yaxis=pd.include_yaxis,
                             color=pd.color)
     grs.add(grs1)
 

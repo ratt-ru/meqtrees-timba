@@ -85,29 +85,28 @@ class PyNodeNamedGroups (pynode.PyNode):
   The named groups can be turned into other named groups
   by means of python mathematical expressions, in which the
   names of the groups serve as variables.
-  
-  First of all, this baseclass contains functions for the
-  extraction of named groups from its child results.
-  This is specified by attaching a record named 'groupspecs' to
-  the constructor, containing zero or more named records:
+
+  The groupspecs record (gs) contains one or more fields, whose names
+  are the names of the specified groups. The field values may be either
+  a record (see below) or a string. In the latter case, it is assumed
+  to be a valid python expression, in which the available groups may be
+  variables (see below).
+
+  .   gs =  record(name1=record(children=... [, vells=...]),
+  .                name2=record(children=... [, vells=...]),
+  .                name3='({name1}+5)*{name2}',
+  .               )
 
   .   from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
   .   ns[nodename] << Meq.PyNode(children=[nodes],
   .                              child_labels=[strings],
   .                              class_name='PyNodeNamedGroups',
   .                              module_name=PNNG.__file__,
-  .        groupspecs=record(name1=record(children=... [, vells=...]),
-  .                          name2=record(children=... [, vells=...]),
-  .                          ...
-  .                          ))
-  
-  If no groupspecs record has been provided, or if it is empty,
-  or if it is not a record, a default record will be assumed:
-  .        groupspecs=record(allvells=record(children='*', vells='*'))
-  i.e. it will make a single group (named 'allvells') from
-  all available vells in the results of all its 'regular' children.
-  
-  A group specification record may have the following fields:
+  .                              groupspecs=gs)
+
+  For each call .get_result() to this PyNode, the results of its children
+  are extracted and stored as vectors in the named groups. This is controlled
+  by the group specification records, which may have the following fields:
   - children = '*'           (default) all its children
   .          = '2/3'         the second third of its chidren (etc)
   .          = [0,2,7,5,...] any vector of child indices
@@ -809,10 +808,15 @@ class PyNodeNamedGroups (pynode.PyNode):
       for kenc in rr.keys():                           # all {var}
         seval = seval.replace(kenc,str(rr[kenc][i]))   # replace all with str(number)
       v = eval(seval)                                  # evaluate
+
+      # If the result of the evaluation is boolean, it may be used to select
+      # values, e.g. from the first (?) group in the expression....
+      # Obviously this is a bit of a kludge (...to be implemented...)
       if isinstance(v,bool):
-        vv.append(v)                       
+        vv.append(v)                         # temporary: do nothing special....                           
       else:
         vv.append(v)                       
+
       if trace:
         print '-',i,seval,'->',type(v),v
 
