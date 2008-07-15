@@ -191,7 +191,7 @@ else
     fi
   done
 
-  if test "$ALL_FOUND" = "no"; then 
+  if test "$ALL_FOUND" = "no"; then
     # the paths do not contain the needed files/dirs
     if test "$lfr_option" != "0"; then
       ]AC_MSG_ERROR([AIPS++ installation not found])[
@@ -213,22 +213,22 @@ else
         with_wcs=`echo $AIP | sed -e 's%/include.*%/casa%'`
       fi
       ]AC_CHECK_FILE([$with_wcs/wcslib/wcs.h],
-            [lfr_wcs=yes], [lfr_wcs=no])[
+            [lfr_wcs=$with_wcs], [lfr_wcs=no])[
       if test $lfr_wcs = no; then
         ]AC_CHECK_FILE([$with_wcs/include/wcslib/wcs.h],
-              [lfr_wcs=yes], [lfr_wcs=no])[
+              [lfr_wcs=$with_wcs/include], [lfr_wcs=no])[
         if test $lfr_wcs = no; then
           ]AC_MSG_ERROR([WCS directory not found])[
         fi
       fi
-      AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -I$with_wcs"
-    fi      
+      AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -I$lfr_wcs"
+    fi
     AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_$arch -DAIPS_NO_TEMPLATE_SRC"
     if test "$lofar_compiler" = "kcc"; then
       AIPSPP_CPPFLAGS="$AIPSPP_CPPFLAGS -DAIPS_KAICC"
     fi
     AIPSPP_LDFLAGS="-L$ALP/lib -Wl,-rpath,$ALP/lib"
-    
+
     if test "$lfr_aipslibs" = "default"; then
       if test "$with_casacore" = ""; then
         lfr_aipslibs="-limages -lmir -lcomponents -lcoordinates -lwcs -llattices -ltasking -lms -lfits -lmeasures -ltables -lscimath -lscimath_f -lcasa"

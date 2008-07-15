@@ -7,6 +7,12 @@ gnu4.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 gnu3prod.compiler.conf: CXX=ccache\ g++-3.4 --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
 gnu3prod.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 
+mpi.compiler.conf: CXX=ccache\ mpicxx --with-mpich=/usr/lib/mpich --enable-shared --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
+mpi.compiler.aipspp.var: --with-casacore=/aips++/casacore-0.3.0 --with-wcs=/aips++/casacore-0.3.0
+
+mpist.compiler.conf: CXX=ccache\ mpicxx --with-mpich=/usr/lib/mpich --disable-shared --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="-static --enable-new-dtags"
+mpist.compiler.aipspp.var: --with-casacore=/aips++/casacore-0.3.0 --with-wcs=/aips++/casacore-0.3.0
+
 #gnu3.compiler.conf: CXX=ccache\ /usr/local/gcc-3.4.3/bin/g++ --with-cppflags="-m32 -msse -m3dnow -msse2 -Wno-deprecated -Wa,--32" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
 #gnu3.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu
 
@@ -15,7 +21,7 @@ gnu64.compiler.aipspp.var: --with-aipspp=/aips++/prod/linux_gnu_x86_64
 
 sse.var: --with-sse
 
-python.var:  --with-python-version=2.4 --with-python=/usr/include/+pkg+vers --with-python-libdir=/usr/lib 
+python.var:  --with-python-version=2.4 --with-python=/usr/include/+pkg+vers --with-python-libdir=/usr/lib
 
 optimize.var:	--with-optimize='-O4'
 debugopt.var:	--with-optimize='-ggdb -O4'
