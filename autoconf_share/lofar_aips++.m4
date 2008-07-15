@@ -75,9 +75,12 @@ AIPSPP_LIB_PATH=""
 AIPSPP_INC_PATH=""
 
 # check the --with-casacore option
-if test "$with_casacore" = "no"; then
+if test "$with_casacore" = "no" -o "$with_casacore" = "" ; then
   # do nothing
   with_casacore="";
+  ]
+  AM_CONDITIONAL(HAVE_CASACORE, [test "true" = "false"])dnl
+  [
   echo
 elif test "$with_casacore" = "yes"; then
   # --with-casa was given, so assume /usr
@@ -86,8 +89,7 @@ elif test "$with_casacore" = "yes"; then
   ]AC_DEFINE(HAVE_CASACORE, 1, [Define if casacore is installed])dnl
   AM_CONDITIONAL(HAVE_CASACORE, [test "true" = "true"])dnl
   [
-fi
-if test "$with_casacore" != ""; then
+else
   # the casa path was given manually so look there
   AIPSPP_LIB_PATH="${AIPSPP_LIB_PATH} ${with_casacore}"
   AIPSPP_INC_PATH="${AIPSPP_INC_PATH} ${with_casacore}/include/casacore"
