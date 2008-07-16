@@ -46,6 +46,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
+# from Timba.meqkernel import set_state
 
 Settings.forest_state.cache_policy = 100
 
@@ -874,12 +875,16 @@ if __name__ == '__main__':
        format_value(0.0123456, trace=True)
        format_value(0.00123456, trace=True)
 
-   if 1:
+   if 0:
        node = ns['xxx'](range(2)) << Meq.Constant(4.5, tags='test', k1=4, k2=78)
        print format_node(node, cut=True)
        node = ns << Meq.Cos(node, sss='67')
        print format_node(node, cut=True)
        node = ns['comp'](1,2)(g=6) << Meq.Composer(node,0,1,2, dims=[2,2])
+       print format_node(node, cut=True)
+
+   if 1:
+       node = ns['xxx'](range(2)) << Meq.Constant(4.5, tags='test', k1=4, k2=78)
        print format_node(node, cut=True)
 
    print '\n** End of standalone test of: EasyNode.py:\n' 

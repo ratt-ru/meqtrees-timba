@@ -7,6 +7,7 @@
 # History:
 #   - 03 jun 2008: creation (from QuickRef.py)
 #   - 01 jul 2008: implemented .orphans()
+#   - 16 jul 2008: format_html()
 #
 # Remarks:
 #
@@ -102,14 +103,6 @@ class CollatedHelpRecord (object):
       return None
 
    #---------------------------------------------------------------------
-   
-   def prefix (self, level=0):
-      """Indentation string"""
-      ps= ' '+(level*'..')+' '
-      # ps= ' '+str(level)+(level*'..')+' '
-      return ps
-
-   #---------------------------------------------------------------------
 
    def show(self, txt=None, rr=None, full=False, key=None, level=0):
       """
@@ -202,6 +195,103 @@ class CollatedHelpRecord (object):
             print '\n** End of .format():\n'
             print ss
       return ss
+
+
+   #---------------------------------------------------------------------
+   
+   def prefix (self, level=0):
+      """Indentation string"""
+      ps= ' '+(level*'..')+' '
+      # ps= ' '+str(level)+(level*'..')+' '
+      return ps
+
+   #---------------------------------------------------------------------
+   
+   def tag (self, level=0):
+      """Indentation string"""
+      ps= ' '+(level*'..')+' '
+      # ps= ' '+str(level)+(level*'..')+' '
+      return ps
+
+#    def helpAbout(self):
+#      tmp_str="<font color=\"blue\">LSM Browser</font><br/>"
+#      tmp_str+="<p>For more information please visit Timba MeqWiki Page at<br/>"
+#      tmp_str+="<span style=\"font-style: italic;\">http://lofar9.astron.nl/meqwiki/</span><br>"
+#      tmp_str+="</p>"
+#      dialog=SDialog(self)
+#      dialog.setInfoText(tmp_str)
+#      dialog.setTitle("Help")
+#      dialog.show()
+
+   #---------------------------------------------------------------------
+
+   def format_html(self, rr=None, ss=None, key=None,
+                   level=0, trace=False):
+      """
+      Recursively format a html help-string, to be saved.
+      """
+      if level==0:
+         ss = '<html>\n'
+         rr = self._chrec
+         if trace:
+            print '\n** Start of .format_html():'
+            
+      prefix = '\n'+self.prefix(level)
+
+      # First attach the overall help, if available:
+      if rr.has_key('help'):
+         help = rr['help']
+         if isinstance(help, str):
+            # ss += prefix+str(help)
+            ss += prefix+str(help)
+         elif isinstance(help, (list,tuple)):
+            # ss += prefix+str(help[0])
+            htag1 = '\n<h'+str(level)+'>'
+            htag2 = '</h'+str(level)+'>'
+            ss += htag1+str(help[0])+htag2
+            if len(help)>1:
+               ss += '\n<p>'
+               # s1 = str(5*' ')                        # <---- !!
+               for s in help[1:]:
+                  ss += '\n'+str(s)
+                  # ss += prefix+s1+str(s)
+               ss += '</p>'
+
+      # Then recurse in the proper order, if possible:
+      keys = rr.keys()
+      if rr.has_key('order'):                # has no 'order' key
+         keys = rr['order']
+      for key in keys:
+         if isinstance(rr[key], (dict,Timba.dmi.record)):
+            ss = self.format_html(rr=rr[key], ss=ss, key=key,
+                                  level=level+1, trace=trace) 
+      # Finished:
+      if len(keys)>1:
+         # ss += prefix
+         pass
+      if level==0:
+         ss += '**\n</html>'
+         if trace:
+            print '\n** End of .format_html():\n'
+            print ss
+      return ss
+
+   #---------------------------------------------------------------------
+
+   def save_html (self, filename='CollatedHelpString', rr=None):
+      """
+      Save the formatted help-string in the specified file.
+      """
+      if not '.' in filename:
+         filename += '.html'
+      file = open (filename,'w')
+      ss = self.format_html()
+      print ss
+      file.writelines(ss)
+      file.close()
+      print '\n** Saved the doc string in file: ',filename,'**\n'
+      return filename
+
 
    #---------------------------------------------------------------------
 

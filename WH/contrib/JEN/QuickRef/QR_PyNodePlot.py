@@ -270,8 +270,12 @@ def PyNodePlot (ns, path, rider):
    if override or opt_PNP_hotrod:
       cc.append(PyNodePlot_hotrod (ns, rr.path, rider))
 
+   bookmark = cc
+   if len(cc)>0:
+      bookmark = cc[0]
+
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      bookmark=cc[0], viewer='Pylab Plotter',
+                      bookmark=bookmark, viewer='Pylab Plotter',
                       parentclass='ReqSeq', result_index=0)
 
 
@@ -356,14 +360,16 @@ def PyNodePlot_advanced (ns, path, rider):
    For the third graph, two extra groups produv and sumuv are defined,
    and plotted against each other in the same plot in two different ways:
 
-   gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
-   psg = []
-   psg.append(record(x='{produv}', y='{sumuv}', color='magenta', legend='sumuv vs produv'))
-   psg.append(record(x='{sumuv}', y='{produv}', color='cyan', legend='produv vs sumuv'))
-   pynode_3 = PNP.pynode_Plot(ns, pynode_1,
-   .                          groupspecs=gs,
-   .                          plotspecs=record(graphics=psg),
-   .                          **kwargs)
+   .   gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
+   .   psg = []
+   .   psg.append(record(x='{produv}', y='{sumuv}', color='magenta',
+   .                     legend='sumuv vs produv'))
+   .   psg.append(record(x='{sumuv}', y='{produv}', color='cyan',
+   .                     legend='produv vs sumuv'))
+   .   pynode_3 = PNP.pynode_Plot(ns, pynode_1,
+   .                              groupspecs=gs,
+   .                              plotspecs=record(graphics=psg),
+   .                              **kwargs)
 
    The state-record of pynode_3 is bookmarked too, for easy inspection. Check the
    namedgroups in the result, and the plotdefs.
@@ -750,7 +756,7 @@ def PlotVIS22_play (ns, path, rider):
 
    uu = ns.Search(tags='ucoord', subtree=coh)
    vv = ns.Search(tags='vcoord', subtree=coh)
-   cc.append(PNP.pynode_Plot(ns, uu+vv, 'XXYY', color='yellow',
+   cc.append(PNP.pynode_Plot(ns, uu+vv, 'XXYY', color='cyan',
                              xlabel='u (wavelengths)',
                              ylabel='v (wavelengths)',
                              title='uv-coverage', legend=legend))
@@ -760,6 +766,7 @@ def PlotVIS22_play (ns, path, rider):
    # ll += [ns<<0.0]
    # mm += [ns<<0.0]
    cc.append(PNP.pynode_Plot(ns, ll+mm, 'XXYY', color='green',
+                             include_origin=True,
                              # xmin=min(0.0,1.1*L), xmax=max(0.0,1.1*L),
                              # ymin=min(0.0,1.1*M), ymax=max(0.0,1.1*M),
                              xlabel='l (deg w.r.t. phase centre)',

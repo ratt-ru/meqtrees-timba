@@ -1,13 +1,7 @@
 """
-QuickRef module: QR_template.py:
+QuickRef module: QR_ionos.py:
 
-Template for the generation of QR_... modules.
-Just:
-- make a copy with a new name (e.g. QR_<name>.py),
-- replace the word QR_template with QR_<newname>,
-- remove the parts that are marked 'remove'
-.   (they generate the general template documentation)
-and add content.
+Topics in ionospheric simulation/calibration
 
 This module may be called from the module QuickRef.py.
 But it may also be used stand-alone.
@@ -22,14 +16,14 @@ But it may also be used stand-alone.
 .    for the selected categories.
 """
 
-# file: ../JEN/demo/QR_template.py:
+# file: ../JEN/demo/QR_ionos.py:
 #
 # Author: J.E.Noordam
 #
 # Short description:
 #
 # History:
-#   - 11 jun 2008: creation (from QR-template.py)
+#   - 13 jul 2008: creation (from QR-template.py)
 #
 # Description:
 #
@@ -69,8 +63,8 @@ from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 
-# import math
-# import random
+import math
+import random
 import numpy
 
 
@@ -79,22 +73,30 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_template topics:",
+TDLCompileMenu("QR_ionos topics:",
                TDLOption('opt_alltopics',"override: include all topics",True),
 
-               TDLOption('opt_input_twig',"input twig",
-                         ET.twig_names(), more=str),
+               TDLMenu("thinlayer",
+                       TDLMenu("TEC",
+                               toggle='opt_thinlayer_TEC'),
+                       TDLMenu("MIM",
+                               toggle='opt_thinlayer_MIM'),
+                       toggle='opt_thinlayer'),
 
-               TDLMenu("topic1",
-                       toggle='opt_topic1'),
-               TDLMenu("topic2",
-                       toggle='opt_topic2'),
+               TDLMenu("multilayer",
+                       toggle='opt_multilayer'),
+               
+               TDLMenu("parabolic",
+                       toggle='opt_parabolic'),
 
+               TDLMenu("TID",
+                       toggle='opt_TID'),
+               
                TDLMenu("help",
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
                        toggle='opt_helpnodes'),
 
-               toggle='opt_QR_template')
+               toggle='opt_QR_ionos')
 
 
 
@@ -102,53 +104,19 @@ TDLCompileMenu("QR_template topics:",
 # Top-level function, called from QuickRef.py:
 #********************************************************************************
 
-header = 'QR_template'                    # used in exec functions at the bottom
+header = 'QR_ionos'                    # used in exec functions at the bottom
 
-def QR_template (ns, path, rider):
+def QR_ionos (ns, path, rider):
    """
-   NB: This text should be replaced with an overall explanation of the
-   MeqTree functionality that is covered in this QR module.
-   
-   This top-level function has the same name as the module. Its role is to
-   include the user-specified parts (topics) of QuickRef documentation by calling
-   lower-level functions according to the TDLCompileMenu options.
-   This function may be called from QuickRef.py, but also from its standalone
-   _define_forest() below, or from the local testing function (without the browser).
-
-   The functions in a QR module use utility functions in QuickRefUtil.py (QRU),
-   which do the main work of collecting and organising the hierarchical help,
-   and of creating and bundling the nodes of the demonstration trees.
-
-   All functions in a QR module have the following general structure:
-
-   .   def funcname (ns, path, rider [,optional arguments]):
-   .      <help-text for this function enclosed in triple-quotes>
-   .      rr = QRU.on_entry(funcname, path, rider)
-   .      cc = []
-   .      <function body, in which nodes are appended to the list cc>
-   .      return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
-
-   The first argument of QRU.on_entry() is the function itself, without ().
-   It returns a record rr, the fields of which (rr.path and rr.help) are
-   used in the function (or rather, passed to other QRU functions).
-   
-   The last statement (return QRU.bundle()) bundles the nodes (cc) in a
-   convenient way, and returns the resulting parent node of the bundle.
-   Its syntax is given below.
    """
-   rr = QRU.on_entry(QR_template, path, rider)
+   rr = QRU.on_entry(QR_ionos, path, rider)
    cc = []
    override = opt_alltopics
    global header
 
-   # Remove this part:
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=QRU.bundle))
-
    # Edit this part:
-   if override or opt_topic1:
-      cc.append(topic1 (ns, rr.path, rider))
-   if override or opt_topic2:
-      cc.append(topic2 (ns, rr.path, rider))
+   if override or opt_thinlayer:
+      cc.append(thinlayer (ns, rr.path, rider))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rr.path, rider))
@@ -169,6 +137,7 @@ def make_helpnodes (ns, path, rider):
    
    override = opt_alltopics
    cc = []
+   zz = numpy.arange(0,math.pi,math.pi/20)     # does NOT include math.pi itself
 
    if override or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
@@ -178,111 +147,121 @@ def make_helpnodes (ns, path, rider):
 
 
 #================================================================================
-# topic1:
+# thinlayer:
 #================================================================================
 
-def topic1 (ns, path, rider):
+def thinlayer (ns, path, rider):
    """
-   NB: This text should be replaced with an overall explanation of this 'topic'
-   of this QR module.
-
-   The topic functions are '2nd-tier' functions, i.e. they are called from the
-   top-level function QR_template() above. They usually call one or more functions
-   that represent different 'views' (e.g. demonstration trees of particular aspects)
-   of this topic. The general structure is:
-
-   .   def topic1 (ns, path, rider):
-   .       rr = QRU.on_entry(topic1, path, rider)
-   .       cc = []
-   .       if override or opt_topic1_subtopic:
-   .           cc.append(topic1_subtopic (ns, rr.path, rider))
-   .       return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
-
-   It is sometimes useful to read some general TDLCompileOptions here, and pass
-   them to the lower-level functions as extra arguments.
+   The simplest ionospheric model is a thin, uniform layer at a constant altitude.
    """
-   rr = QRU.on_entry(topic1, path, rider)
+   rr = QRU.on_entry(thinlayer, path, rider)
    cc = []
    override = opt_alltopics
 
-   if override or opt_topic1_subtopic:
-      cc.append(topic1_subtopic (ns, rr.path, rider))
+   if override or opt_thinlayer_TEC:
+      cc.append(thinlayer_TEC (ns, rr.path, rider))
+   if override or opt_thinlayer_MIM:
+      cc.append(thinlayer_MIM (ns, rr.path, rider))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def topic1_subtopic (ns, path, rider):
+def thinlayer_TEC (ns, path, rider):
    """
-   NB: This text should be replaced with an overall explanation of this subtopic of
-   this topic of this QR module.
-
-   A subtopic (<topic>_<subtopic>()) demonstrates a particular aspect of a given topic.
-   It usually generates a group of 4-9 related nodes that may be displayed on a
-   single bookmark page.
-
-   In addition to the mandatory QRU.on_entry() and QRU.bundle(), a function maye call
-   the function QRU.MeqNode() zero or more times. This function creates the specified
-   MeqNode, with help attached to the quickref_help field of its state record.
-   The syntax of QRU.MeqNode() is given below.
-
-   NB: Nodes for a subtopic subtree may also be defined directly (i.e. without using the
-   function QRU.MeqNode(). For those cases, the EasyNode (EN) module provides some useful
-   services to generate unique (i.e. non-clashing) or reusable nodestubs/names. Their
-   syntax is given below.
-
-   The EasyTwig (ET) module may also be used to generate small standard subtrees (twigs)
-   that may serve as (user-defined) inputs to a demonstration subtree. Its syntax is
-   given as a separate 'helpnode' item above. 
    """
-   rr = QRU.on_entry(topic1_subtopic, path, rider)
+   rr = QRU.on_entry(thinlayer_TEC, path, rider)
    cc = []
 
-   # Remove this part: 
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=QRU.MeqNode))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.nodestub))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.unique_stub))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.unique_node))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.reusenode))
-
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 
 
 #================================================================================
-# topic2:
-#================================================================================
 
-def topic2 (ns, path, rider):
+def thinlayer_MIM (ns, path, rider):
    """
-   topic2 covers ....
    """
-   rr = QRU.on_entry(topic2, path, rider)
+   rr = QRU.on_entry(thinlayer_MIM, path, rider)
    cc = []
-   override = opt_alltopics
-
-   # if override or opt_topic2_subtopic:
-   #    cc.append(topic2_subtopic (ns, rr.path, rider))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
-#================================================================================
 
-def topic2_subtopic (ns, path, rider):
+
+
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
+# Helper functions
+#********************************************************************************
+
+def TEC_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
+                    TEC0=1.0, h=300, trace=False):
    """
-   topic2_subtopic treats ....
+   Return the TEC(x,y,z,l,m,t) for a thin layer at altitude h[=300] (km),
+   for the given vertical TEC[=1.0] value (TECU)
    """
-   rr = QRU.on_entry(topic2_subtopic, path, rider)
-   cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   zeff = zenith_angle_thin_layer(x=x, y=y, z=z, l=l, m=m, trace=trace)
+   TEC = TEC0/math.cos(zeff)
+   if trace:
+      print '** TEC_thin_layer(TEC0=',TEC0,'TECU, h=',h,'km) ->',TEC 
+   return TEC
 
+#-------------------------------------------------------------------------------
 
+def zenith_angle_thin_layer (x=0,y=0,z=0,l=0,m=0, h=300, trace=False):
+   """
+   Calculate the 'effective' zenith angle (x,y,z,l,m)
+   for a thin layer at h[=300] km
+   """
+   R = 6370.0                        # Earth Radius (km)
+   zang = zenith_angle (x=x, y=y, z=z, l=l, m=m, trace=False)
+   zeff = math.asin(math.sin(zang)*R/(R+h))
+   if trace:
+      s = '** zenith_angle_thin_layer(x='+str(x)+', y='+str(y)+', z='+str(z)
+      s += ', l='+str(l)+', m='+str(m)+', h='+str(h)+'km)'
+      print s,'-> ',zeff,' rad (dz=',zeff-zang,1./math.cos(zeff),')'
+   return zeff
 
+#-------------------------------------------------------------------------------
 
+def zeff_thin_layer (z, h=300, trace=False):
+   """
+   Calculate the 'effective' zenith angle from the nominal one,
+   for a thin layer at h[=300] km
+   """
+   R = 6370.0                        # Earth Radius (km)
+   zeff = math.asin(math.sin(z)*R/(R+h))
+   if trace:
+      print '** zeff_thin_layer(',z,', h=',h,'km) -> ',zeff,' rad (dz=',zeff-z,1./math.cos(zeff),')'
+   return zeff
 
+#-------------------------------------------------------------------------------
+
+def zenith_angle (x=0,y=0,z=0,l=0,m=0, trace=False):
+   """
+   Calculates the zenith angle (rad) from (x,y,z,l,m).
+   """
+   R = 6700.0                        # Earth Radius (km)
+   z1 = l - math.atan(float(x)/(R+z))
+   z2 = m - math.atan(float(y)/(R+z))
+   zang = math.hypot(z1,z2)          # equiv:  zang = math.sqrt(z1*z1 + z2*z2)
+   if trace:
+      s = '** zenith_angle (x='+str(x)+', y='+str(y)+', z='+str(z)
+      s += ', l='+str(l)+', m='+str(m)+')'
+      print s,' -> ',zang,' rad   (z1=',z1,', z2=',z2,')'
+   return zang
 
 
 
@@ -301,10 +280,10 @@ def _define_forest (ns, **kwargs):
 
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
-   rootnodename = 'QR_template'                 # The name of the node to be executed...
+   rootnodename = 'QR_ionos'                    # The name of the node to be executed...
    path = rootnodename                          # Root of the path-string
    QRU.bundle (ns, path, rider,
-               nodes=[QR_template(ns, path, rider)],
+               nodes=[QR_ionos(ns, path, rider)],
                help=__doc__)
 
    # Finished:
@@ -330,19 +309,16 @@ TDLRuntimeMenu(":")
 #--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_ionos')
 
 def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_ionos')
 
-def _tdl_job_execute_3D_ftL (mqs, parent):
-   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode='QR_template')
-
-def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_template')
+def _tdl_job_execute_6D_tLMXYZ (mqs, parent):
+   return QRU._tdl_job_execute_tLMXYZ (mqs, parent, rootnode='QR_ionos')
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_template')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_ionos')
 
 #--------------------------------------------------------------------------------
 # Some functions to dispose of the specified subset of the documentation:
@@ -380,17 +356,37 @@ def _tdl_job_save_doc (mqs, parent):
 
 if __name__ == '__main__':
 
-   print '\n** Start of standalone test of: QR_template.py:\n' 
+   print '\n** Start of standalone test of: QR_ionos.py:\n' 
 
    ns = NodeScope()
 
    rider = QRU.create_rider()             # CollatedHelpRecord object
-   if 1:
-      QR_template(ns, 'test', rider=rider)
+   if 0:
+      QR_ionos(ns, 'test', rider=rider)
       if 1:
          print rider.format()
+
+   if 0:
+      zenith_angle(trace=True)
+      zenith_angle(l=1, trace=True)
+      zenith_angle(l=1, m=1, trace=True)
+      zenith_angle(x=100, trace=True)
+      zenith_angle(x=100, l=0.1, trace=True)
+      zenith_angle(x=100, m=0.1, trace=True)
+      zenith_angle(x=100, y=100, trace=True)
+      zenith_angle(y=100, trace=True)
+      zenith_angle(y=100, z=100, trace=True)
+
+   if 0:
+      zenith_angle_thin_layer(trace=True)
+      zenith_angle_thin_layer(l=1, trace=True)
+      zenith_angle_thin_layer(l=math.pi/2, trace=True)
+
+   if 1:
+      TEC_thin_layer(trace=True)
+      TEC_thin_layer(l=1, trace=True)
             
-   print '\n** End of standalone test of: QR_template.py:\n' 
+   print '\n** End of standalone test of: QR_ionos.py:\n' 
 
 #=====================================================================================
 

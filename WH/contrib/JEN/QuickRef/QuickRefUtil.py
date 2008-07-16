@@ -52,6 +52,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
+# from Timba.meqkernel import set_state
 
 Settings.forest_state.cache_policy = 100
 Settings.forest_state.bookmarks = []
@@ -517,7 +518,9 @@ def _tdl_job_show_doc (mqs, parent, rr=None, header='QuickRefUtil'):
     """
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
-    print rr.format()
+    # print rr.format()
+    # print rr.format_with_tags()
+    rr.save_html()
     print '\n** The proper show_doc (popup) is not yet implemented **\n'
     return True
 
@@ -1140,7 +1143,7 @@ if __name__ == '__main__':
         help = 'xxx'
         rider.insert_help(path=path, help=help, trace=True)
 
-    if 1:
+    if 0:
         a = ns.a << 1.0
         b = ns.b << 3.0
         node = ns.test << Meq.Add(a,b)
