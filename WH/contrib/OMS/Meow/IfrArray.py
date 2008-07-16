@@ -45,7 +45,7 @@ class IfrArray (object):
   compile_options = staticmethod(compile_options);
 
   def __init__(self,ns,station_list,station_index=None,uvw_table=None,
-               ms_uvw=None,mirror_uvw=None):
+               ms_uvw=None,mirror_uvw=None,resamplers=False):
     """Creates an IfrArray object, representing an interferometer array.
     'station_list' is a list of station IDs, not necessarily numeric.
         It can also be a list of (index,ID) tuples, when a subset of antennas
@@ -58,6 +58,8 @@ class IfrArray (object):
       be computed with a Meq.UVW node. If None, uses the global uvw_source TDLOption.
     'mirror_uvw' only applicable if UVWs are being computed. If True, uses the VLA
       UVW sign definition, if False, uses the WSRT one.
+    'resamplers': if True (and ms_uvw=True), Resampler nodes will be put on the UVWs.
+      This is useful when the tree is being executed under a ModRes.
     """;
     self.ns = ns;
     # select UVW options
@@ -83,6 +85,7 @@ class IfrArray (object):
     self._uvw_table = uvw_table;
     self._ms_uvw = ms_uvw;
     self._mirror_uvw = mirror_uvw;
+    self._resamplers = resamplers;
     self._jones = [];
 
   def WSRT (ns,stations=14,uvw_table=None,mirror_uvw=False):
@@ -236,7 +239,11 @@ class IfrArray (object):
         uvw(p) << Meq.Composer(0,0,0);
         uvw(p)._multiproc = True; # hint to parallelizer to clone this node on all processors
         for iq,q in enumerate(self.stations()[1:]):
-          uvw(q) << Meq.Spigot(station_1_index=0,station_2_index=iq+1,input_col='UVW');
+          spigdef = Meq.Spigot(station_1_index=0,station_2_index=iq+1,input_col='UVW');
+          if self._resamplers:
+            uvw(q) << Meq.Resampler(uvw(q,"res") << spigdef,mode=1);
+          else:
+            uvw(q) << spigdef;
       elif self._uvw_table:
         # read UVWs from MEP table
         for station in self.stations():
