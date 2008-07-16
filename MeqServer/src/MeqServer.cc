@@ -66,7 +66,8 @@ namespace Meq
 
 static int dum =  aidRegistry_MeqServer() +
                   aidRegistry_Meq() +
-                  aidRegistry_MeqNodes();
+                  aidRegistry_MeqNodes() +
+                  aidRegistry_MeqMPI();
 
 const HIID MeqCommandPrefix = AidCommand;
 const HIID MeqCommandMask   = AidCommand|AidWildcard;
