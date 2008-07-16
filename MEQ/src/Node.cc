@@ -756,7 +756,7 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
   // i.e., a superset of all their vellset shapes
   LoShape resshape;
   // now loop over all children to verify that their cells are mutually
-  // consistent 
+  // consistent
   for( uint ich=0; ich<childres.size(); ich++ )
   {
     if( !childres[ich].valid() )
@@ -796,7 +796,7 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
         // 1. degenerate axis in cumulative result
         if( iaxis >= resshape.size() || resshape[iaxis] == 1 )
         {
-          // 1.1. non-degenerate axis in next result, merge cells 
+          // 1.1. non-degenerate axis in next result, merge cells
           if( iaxis < shape1.size() && shape1[iaxis] > 1 )
           {
             rescells().setCells(iaxis,cc.center(iaxis),cc.cellSize(iaxis));
@@ -812,14 +812,25 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
           if( iaxis >= shape1.size() || shape1[iaxis] == 1 )
             continue;
           // 2.2. both axes non-degenerate, compare cells
-          if( np != np1 || 
-              fabs(rescells->domain().start(iaxis) - cc.domain().start(iaxis)) > 1e-16 ||
-              fabs(rescells->domain().end(iaxis) - cc.domain().end(iaxis))     > 1e-16 )
+          if( np != np1 )
           {
-            double diff1 = rescells->domain().start(iaxis) - cc.domain().start(iaxis);
-            double diff2 = rescells->domain().end(iaxis) - cc.domain().end(iaxis);
-            Throw(ssprintf("cells of child result %d, axis %s do not match those of previous children",
-                  ich,Axis::axisId(iaxis).toString().c_str()));
+            Throw(ssprintf("axis %s in cells of child result %d has %d points, prior children had %d points",
+                  Axis::axisId(iaxis).toString().c_str(),ich,np1,np));
+          }
+          else
+          {
+            double s1 = rescells->domain().start(iaxis);
+            double s2 = cc.domain().start(iaxis);
+            double e1 = rescells->domain().end(iaxis);
+            double e2 = cc.domain().end(iaxis);
+            double ds = s1 - s2;
+            double de = e1 - e2;
+            if( fabs(ds) > std::max(fabs(s1),fabs(s2))*1e-10 ||
+                fabs(de) > std::max(fabs(e1),fabs(e2))*1e-10 )
+            {
+              Throw(ssprintf("domain of axis %s in cells of child result %d does not match that of prior children (difference %g,%g)",
+                    Axis::axisId(iaxis).toString().c_str(),ich,ds,de));
+            }
           }
         }
       }
