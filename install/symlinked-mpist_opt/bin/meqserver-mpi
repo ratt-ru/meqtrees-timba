@@ -1,3 +1,4 @@
 #!/bin/bash
-source $HOME/Timba/install/timba-init.sh symlinked-mpist_opt
+source $HOME/Timba/install/timba-init.sh 
+timba-setup symlinked-mpist_opt
 meqserver $*

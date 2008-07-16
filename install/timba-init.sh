@@ -68,13 +68,13 @@ else
     fi
     versions="`valid-timba-versions $1`"
     if [ -z "$versions" ]; then
-      echo "No MeqTree version matching $TIMBA_PATH/install/*$1* found" 
+      echo "No MeqTree version matching $TIMBA_PATH/install/*$1* found"
       echo "You need to re-run timba-setup <version>"
       echo -n "where version is one of: "
       valid-timba-versions
       echo ""
     elif [ "$versions" != "${versions% *}" ]; then
-      echo "Multiple MeqTree versions matching $TIMBA_PATH/install/*$1* found" 
+      echo "Multiple MeqTree versions matching $TIMBA_PATH/install/*$1* found"
       echo "You need to re-run timba-setup <version>"
       echo "where version is one of: $versions"
     else
@@ -85,10 +85,14 @@ else
       export TIMBA_CURRENT_VERSION="$versions"
     fi
   }
-  _timba-setup() 
-  { 
+  _timba-setup()
+  {
     timba-setup $*
   }
-
-  timba-setup current
+  versions="`valid-timba-versions current`"
+  if [ "$versions" != "" ]; then
+    timba-setup current
+  else
+    echo "Please use 'timba-setup <version>' to set up paths for a MeqTree version"
+  fi
 fi
