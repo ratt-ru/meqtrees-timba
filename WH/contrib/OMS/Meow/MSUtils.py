@@ -66,8 +66,8 @@ if _lwi:
   _IMAGER = "python";
   print "Meow.MSUtils: found %s, will use that for imaging"%_lwi;
 else:
-  gli = find_exec('glish');
-  if gli:
+  _gli = find_exec('glish');
+  if _gli:
     _IMAGER = 'glish';
     print "Meow.MSUtils: found %s, will use glish scripts for imaging"%_gli;
   else:
