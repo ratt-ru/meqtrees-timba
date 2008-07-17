@@ -18,6 +18,7 @@
 #   - 03 jul 2008: removed default group 'allvells'
 #   - 04 jul 2008: implemented string2groupspecs()
 #   - 06 jul 2008: implemented string2record_VIS22()
+#   - 17 jul 2008: allowed values i.s.o. nodes
 #
 # Remarks:
 #
@@ -329,9 +330,18 @@ class PyNodeNamedGroups (pynode.PyNode):
       if isinstance(rr, str):                # assume python expression (string)
         self.groupspecs[lowerkey] = rr
 
-      else:
-        if not isinstance(rr, record):
-          rr = record()                      # make sure it is a record
+      elif isinstance(rr, record):           # children/vells etc
+        rr.key = lowerkey                    # attach the key (group name)
+        self.groupspecs[lowerkey] = self._check_groupspec(rr)
+
+      elif isinstance(rr, (list,tuple)):     # assume a list of values
+        self.groupspecs[lowerkey] = list(rr) # make sure it is a list
+
+      elif isinstance(rr, (int,float,complex)):  # a single value
+        self.groupspecs[lowerkey] = [rr]     # make a list of one value
+
+      else:                                  # ...error...?
+        rr = record()                        # make sure it is a record
         rr.key = lowerkey                    # attach the key (group name)
         self.groupspecs[lowerkey] = self._check_groupspec(rr)
 
@@ -461,7 +471,19 @@ class PyNodeNamedGroups (pynode.PyNode):
                                    history=s)
 
     #....................................................................
-    # Then do the groupspecs that are strings (python extressions)
+    # Then do the groupspecs that are lists (of values)
+    for key in self._gs_order:
+      rr = self.groupspecs[key]                                 # convenience
+      if isinstance(rr,list):
+        dvv = len(rr)*[0.0]
+        s = str(len(rr))+' values (nonodes)'
+        self._create_namedgroup (key=key, nonodes=True,
+                                 vv=rr, dvv=dvv, 
+                                 labels=child_labels,
+                                 history=s)
+
+    #....................................................................
+    # Finally do the groupspecs that are strings (python extressions)
     # They are derived groups:
     # self.display('_extract_namedgroups()')
     for key in self._gs_order:
@@ -482,6 +504,7 @@ class PyNodeNamedGroups (pynode.PyNode):
       self.display('_extract_namedgroups()')
     return None
     
+
   #-------------------------------------------------------------------
 
   def _create_namedgroup (self, key, vv, dvv=None,
@@ -489,6 +512,7 @@ class PyNodeNamedGroups (pynode.PyNode):
                           childnos=None, nodes=None,
                           labels=None,
                           derived=False, expr=None,
+                          nonodes=False,
                           history='History',
                           trace=False):
     """
@@ -517,18 +541,21 @@ class PyNodeNamedGroups (pynode.PyNode):
     # Extract the largest common string (lcs) from the relevant
     # selection (childnos) of child nodenames:
     lcs = None
-    if not derived:
+    if not (derived or nonodes):
       ss = EN.get_node_names(self.child_names, select=childnos, trace=False) 
       lcs = EN.get_largest_common_string(ss, trace=False) 
 
     # Make a one-line group summary string: 
     ss = '{'+str(lowerkey)+'}:'
-    ss += ' n='+str(len(childnos))
     ss += ' lcs='+str(lcs)
     if derived:
-      ss += 'derived'
+      ss += ' n='+str(len(childnos))
+      ss += ' (derived)'
       ss += ' expr='+str(expr)
+    elif nonodes:
+      ss += ' (nonodes)'
     else:
+      ss += ' n='+str(len(childnos))
       ss += ' ('+str(children)+')'
       ss += ' vells='+str(vells)
     
@@ -1081,7 +1108,7 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   if isinstance(groupspecs, str):
     # Certain standard group-specs may be specified by a string:
     nodename += '_'+str(groupspecs)
-    gs = string2groupspecs(groupspecs)
+    gs = string2groupspecs(groupspecs, nodes=nodes)
 
   elif isinstance(groupspecs, dict):
     # Assume a valid groupspecs record....? 
@@ -1091,13 +1118,8 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
     # No groupspecs specified (concatenation)
     gs = None
 
-  # print '--- gs =',gs
-
-  # If no labels specified, derive them from the child nodenames:
-  child_names = EN.get_node_names(nodes, select='*', trace=False)
-  if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
-    lcs = EN.get_largest_common_string(child_names, trace=False)
-    labels = EN.get_plot_labels(nodes, lcs=lcs, trace=trace)
+  # Make two vectors of child names and labels (used below):
+  [child_names, labels] = child_labels(nodes, labels, trace=False)
 
   # Make a unique nodestub:
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
@@ -1143,8 +1165,43 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
 
 
 #---------------------------------------------------------------------------------------
+
+def child_labels(nodes, labels, trace=False):
+  """
+  Return a list of valid lists [child_names, labels] of the same
+  length as nodes. Check that nodes is an non-empty list.
+  Called from pynode_NamedGroup() and PyNodePlot.pynode_Plot() 
+  """
+  if not isinstance(nodes,(list,tuple)):
+    s = '** nodes is not a list, but: '+str(type(nodes))
+    raise ValueError,s
+
+  elif len(nodes)==0:
+    s = '** node/value list is empty: '
+    raise ValueError,s
+    
+  elif is_node(nodes[0]):
+    # Normal case: a list of nodes. 
+    # If no labels specified, derive them from the child nodenames:
+    child_names = EN.get_node_names(nodes, select='*', trace=False)
+    if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
+      lcs = EN.get_largest_common_string(child_names, trace=False)
+      labels = EN.get_plot_labels(nodes, lcs=lcs, trace=trace)
+
+  else:
+    # Assume that nodes is a list of values:
+    child_names = []
+    for i,v in enumerate(nodes):
+      child_names.append('#'+str(i))
+    if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
+      labels = child_names
+
+  # Finished:
+  return [child_names, labels]
+      
+#---------------------------------------------------------------------------------------
   
-def string2groupspecs(ss, trace=False):
+def string2groupspecs(ss, nodes=None, trace=False):
   """
   Make a groupspecs record from the given string spec.
   Recognized strings are:
@@ -1161,6 +1218,7 @@ def string2groupspecs(ss, trace=False):
   .                (NB: group-name will be converted to lowercase...)
   """
   gs = record()
+
   if ss in ['YY','CY']:
     # Its children are assumed to have a single vells -> group y
     gs.y = record(children='*', vells=[0])
@@ -1219,8 +1277,28 @@ def string2groupspecs(ss, trace=False):
     #     will converts it in any case....
     gs[ss.lower()] = record(children='*', vells=[0])
 
+
+  #...............................................................
+  # The input 'nodes' may also be a list of values,
+  # from which a named group will be formed:
+  values = False
+  if isinstance(nodes, (int,float,complex)):
+    values = True
+    gs[ss.lower()] = [nodes]
+  elif not isinstance(nodes,(list,tuple)):
+    pass
+  elif len(nodes)==0:
+    pass
+  elif is_node(nodes[0]):
+    pass
+  else:
+    values = True
+    gs[ss.lower()] = nodes
+  #...............................................................
+
+
   if trace:
-    print '\n** string2groupspecs(',ss,'):\n    ',gs,'\n'
+    print '\n** string2groupspecs(',ss,values,'):\n    ',gs,'\n'
   return gs
 
 #-------------------------------------------------------------------------------------
@@ -1479,17 +1557,17 @@ if __name__ == '__main__':
   nodes = EB.cloud(ns,'n6s2')
   cxnodes = EB.cloud(ns,'n6r1', trace=True)
 
-  if True:
+  if 0:
     pynode = pynode_NamedGroup(ns, nodes, 'Y')
     pynode = pynode_NamedGroup(ns, cxnodes, 'complex')
 
-  if True:
+  if 0:
     xx = pynode_NamedGroup(ns, nodes, 'XX')
     yy = pynode_NamedGroup(ns, nodes, 'YY')
     if True:
       concat = pynode_NamedGroup(ns, [xx,yy], 'concat')
 
-  if True:
+  if 0:
     xnodes = EB.cloud(ns,'n6s1')
     ynodes = EB.cloud(ns,'n6s2')
     znodes = EB.cloud(ns,'n6s3')

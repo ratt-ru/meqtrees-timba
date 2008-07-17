@@ -585,19 +585,29 @@ def get_node_names (nodes, select='*', trace=False):
     or node-names. 
     """
     # trace = True
-    if trace:
-        print '\n** trace=True:'
-        for node in nodes:
-            print '-',str(node)
-        trace = False
 
+    # Make sure that the input is a list of nodes:
+    expected_type = 'node(s)'
+    input_type = expected_type
     if not isinstance(nodes,(list,tuple)):
-        nodes = [nodes]
+        if not is_node(nodes):                     # not a node
+            input_type = type(nodes)
+        else:
+            nodes = [nodes]
+    elif len(nodes)==0:                            # not nodes
+        input_type = 'empty list'
+    elif not is_node(nodes[0]):                    # not nodes
+        input_type = type(nodes[0])
 
     if trace:
-        print '\n** EN.get_node_names(',len(nodes), select,'):'
-        for i,node in enumerate(nodes):
-            print '-',i,'(',type(node),'):',str(node)
+        print '\n** EN.get_node_names(',len(nodes), input_type, select,'):'
+        if input_type==expected_type:             
+            for i,node in enumerate(nodes):
+                print '-',i,'(',type(node),'):',str(node)
+
+    # Escape gracefully if input not nodes (may be values):
+    if not input_type==expected_type:              # not nodes
+        return None
 
     # First make the node selection:
     snodes = []                             
@@ -634,14 +644,14 @@ def get_largest_common_string (ss, trace=False):
     Return the largest common string (starting at the beginning) of the given
     list of strings (ss). Example: a list of nodenames.
     """
-    trace = True
+    # trace = True
     if trace:
-        print '\n** EN.largest_common_string(',len(ss),'):'
+        print '\n** EN.largest_common_string():'
         print '   from:',ss
 
     if not isinstance(ss,(list,tuple)):
-        s = 'not a list of strings, but: '+str(type(ss))
-        raise ValueError,s
+        lcs = 'not a list of strings, but: '+str(type(ss))
+        # raise ValueError,s
     elif len(ss)==0:
         lcs = '<empty list of strings>'
         # raise ValueError,lcs        
@@ -665,7 +675,7 @@ def get_largest_common_string (ss, trace=False):
             lcs += c
                 
     if trace:
-        print '** EN.largest_common_string(',len(ss),') ->',lcs,'\n'
+        print '** EN.largest_common_string() ->',lcs,'\n'
     return lcs
 
 #-----------------------------------------------------------------------
@@ -680,6 +690,9 @@ def get_plot_labels (nodes, lcs=None, trace=False):
         print '\n** EN.get_plot_labels(',len(nodes),lcs,'):'
 
     names = get_node_names (nodes, trace=trace)
+    if not names:
+        return None
+    
     if not isinstance(lcs,str):
         lcs = get_largest_common_string (names, trace=trace)
 

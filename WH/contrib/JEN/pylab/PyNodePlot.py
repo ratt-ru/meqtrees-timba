@@ -1041,24 +1041,23 @@ def pynode_Plot (ns, nodes, groupspecs=None,
   else:
     nodename = 'pynode_Plot_'+nodename
 
-  ps = plotspecs   
+  ps = plotspecs
+  gs = None
   if isinstance(groupspecs, str):
     # Certain standard group-specs may be specified by a string:
     nodename += '_'+str(groupspecs)
-    gs = PNNG.string2groupspecs(groupspecs)
+    gs = PNNG.string2groupspecs(groupspecs, nodes=nodes)
     ps = string2plotspecs(groupspecs, plotspecs=plotspecs)
   elif not isinstance(groupspecs, dict):       # i.e. groupspecs=None
-    gs = PNNG.string2groupspecs('YY')
+    pass
+    # gs = PNNG.string2groupspecs('YY', nodes=nodes)
   else:
     # Assume a valid groupspecs record....? 
     nodename += '___gs'
     gs = groupspecs
 
-  # If no labels specified, get them from the node-names:
-  child_names = EN.get_node_names(nodes, select='*', trace=False)
-  if (not isinstance(labels,(list,tuple))) or (not len(labels)==len(nodes)):
-    lcs = EN.get_largest_common_string(child_names, trace=False)
-    labels = EN.get_plot_labels(nodes, lcs=lcs, trace=False)
+  # If no labels specified, derive them from the child nodenames:
+  [child_names, labels] = PNNG.child_labels(nodes, labels, trace=False)
 
   # Condition the plotspecs record (if required):
   if isinstance(plotspecs, str):             # a standard plot.... (does this happen?)
@@ -1159,15 +1158,14 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
   Make a plotspecs record from the given string spec.
   If input plotspecs is a record, just add to it.
   Recognized strings are:
-  - Y or YY:   Take vells[0] for group y
-  - XY:        Assume tensor nodes with vells[0,1] for groups x,y
-  - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
-  - VELLS_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
+  - Y or YY:   Plot group {y} against index nr (child no)
+  - XY:        Plot group {y} vs group {x}
+  - XYZ:       Same as XY, but markersize controlled by group {z}
+  - XXYYZZ:    Same as XYZ 
+  - VELLS_ijk: Vells indices i[jk] control groups {x},{y},{z}
   - XXYY:      Assume single list of equal nrs of x,y nodes
-  - XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
-  - VIS22:     Assume 2x2 tensor nodes. Groups xx,xy,yx,yy
-  - anything else: make a group of that name, with all vells[0]
-  .                (NB: group-name will be converted to lowercase...)
+  - VIS22:     Assume groups {xx},{xy},{yx},{yy}
+  - VIS22C:     Assume groups {rr},{rl},{lr},{ll}
   """
 
   # Prepare the output plotspecs record (ps):

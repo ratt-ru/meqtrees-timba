@@ -62,6 +62,8 @@ from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
+from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
+from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 
 import math
 import random
@@ -77,8 +79,14 @@ TDLCompileMenu("QR_ionos topics:",
                TDLOption('opt_alltopics',"override: include all topics",True),
 
                TDLMenu("thinlayer",
+                       TDLOption('opt_thinlayer_alltopics',
+                                 "override: include all thinlayer sub-topics",False),
+                       TDLOption('opt_thinlayer_altitude',"altitude (km)",
+                                 [300,350,400,500,200], more=float),
+
                        TDLMenu("TEC",
                                toggle='opt_thinlayer_TEC'),
+
                        TDLMenu("MIM",
                                toggle='opt_thinlayer_MIM'),
                        toggle='opt_thinlayer'),
@@ -156,7 +164,7 @@ def thinlayer (ns, path, rider):
    """
    rr = QRU.on_entry(thinlayer, path, rider)
    cc = []
-   override = opt_alltopics
+   override = opt_thinlayer_alltopics
 
    if override or opt_thinlayer_TEC:
       cc.append(thinlayer_TEC (ns, rr.path, rider))
@@ -173,8 +181,37 @@ def thinlayer_TEC (ns, path, rider):
    """
    rr = QRU.on_entry(thinlayer_TEC, path, rider)
    cc = []
+   viewer = []
+   h = opt_thinlayer_altitude
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   zzang = numpy.arange(0,numpy.pi/2,numpy.pi/20).tolist()
+   zzeff = []
+   dz = []
+   for zang in zzang:
+      zeff = zeff_thin_layer(zang, h=h, trace=True)
+      zzeff.append(zeff)
+      dz.append(zang-zeff)
+
+   cc.append(PNNG.pynode_NamedGroup(ns, zzang, groupspecs='zzang'))
+   viewer.append('Record Browser')
+   cc.append(PNNG.pynode_NamedGroup(ns, zzeff, groupspecs='zzeff'))
+   viewer.append('Record Browser')
+   cc.append(PNNG.pynode_NamedGroup(ns, dz, groupspecs='dz'))
+   viewer.append('Record Browser')
+
+   psg = []
+   psg.append(record(y='{zzeff}', x='{zzang}'))
+   psg.append(record(y='{dz}', x='{zzang}', color='red'))
+   ps = record(graphics=psg)
+   node = PNP.pynode_Plot(ns, cc, plotspecs=ps,
+                          title='thin layer @'+str(h)+'km, curved',
+                          xlabel='zenith angle (deg)',
+                          ylabel='eff. zenith angle (rad)')
+   cc.append(node)
+   viewer.append('Pylab Plotter')
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer=viewer)
 
 
 
@@ -239,9 +276,9 @@ def zenith_angle_thin_layer (x=0,y=0,z=0,l=0,m=0, h=300, trace=False):
 def zeff_thin_layer (z, h=300, trace=False):
    """
    Calculate the 'effective' zenith angle from the nominal one,
-   for a thin layer at h[=300] km
+   for a thin layer at h[=300] km.
    """
-   R = 6370.0                        # Earth Radius (km)
+   R = 6370.0                                      # Earth Radius (km)
    zeff = math.asin(math.sin(z)*R/(R+h))
    if trace:
       print '** zeff_thin_layer(',z,', h=',h,'km) -> ',zeff,' rad (dz=',zeff-z,1./math.cos(zeff),')'

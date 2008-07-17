@@ -68,6 +68,8 @@ from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
+from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
+from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 
 # import math
 # import random
@@ -86,8 +88,13 @@ TDLCompileMenu("QR_template topics:",
                          ET.twig_names(), more=str),
 
                TDLMenu("topic1",
+                       TDLOption('opt_topic1_alltopics',
+                                 "override: include all topic1 sub-topics",False),
                        toggle='opt_topic1'),
+
                TDLMenu("topic2",
+                       TDLOption('opt_topic2_alltopics',
+                                 "override: include all topic2 sub-topics",False),
                        toggle='opt_topic2'),
 
                TDLMenu("help",

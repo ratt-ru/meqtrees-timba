@@ -243,18 +243,26 @@ class CollatedHelpRecord (object):
          help = rr['help']
          if isinstance(help, str):
             # ss += prefix+str(help)
+            ss += '<font size=2>'
             ss += prefix+str(help)
+            ss += '<br/>'
+            ss += '</font>'
          elif isinstance(help, (list,tuple)):
             # ss += prefix+str(help[0])
             htag1 = '\n<h'+str(level)+'>'
+            htag1 += '<font color=\"blue\">'
             htag2 = '</h'+str(level)+'>'
+            htag2 += '</font>'
             ss += htag1+str(help[0])+htag2
             if len(help)>1:
                ss += '\n<p>'
+               ss += '<font size=1>'
                # s1 = str(5*' ')                        # <---- !!
                for s in help[1:]:
                   ss += '\n'+str(s)
+                  ss += '<br/>'
                   # ss += prefix+s1+str(s)
+               ss += '</font>'
                ss += '</p>'
 
       # Then recurse in the proper order, if possible:

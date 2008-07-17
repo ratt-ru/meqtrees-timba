@@ -489,7 +489,7 @@ def _tdl_job_print_doc (mqs, parent, rr=None, header='QuickRefUtil'):
     """
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
-    print rr.format()
+    print rr.format_html()
     return True
 
 #----------------------------------------------------------------------------
@@ -500,8 +500,9 @@ def _tdl_job_print_hardcopy (mqs, parent, rr=None, header='QuickRefUtil'):
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
     filename = 'QuickRef.tmp'
-    filename = header+'.tmp'
-    filename = rr.save(filename)
+    # filename = header+'.tmp'
+    # filename = rr.save(filename)
+    filename = rr.save_html(header)
     # command = 'lp -d '+str(filename)
     # print '\n** tdl_job_print_hardcopy(): os.system(',command,')'
     # r = os.system(command)
@@ -519,8 +520,8 @@ def _tdl_job_show_doc (mqs, parent, rr=None, header='QuickRefUtil'):
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
     # print rr.format()
-    # print rr.format_with_tags()
-    rr.save_html()
+    print rr.format_html()
+    # filename = rr.save_html(filename)
     print '\n** The proper show_doc (popup) is not yet implemented **\n'
     return True
 
@@ -531,7 +532,8 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
     """
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
-    filename = rr.save(filename)
+    # filename = rr.save(filename)
+    filename = rr.save_html(filename)
     return True
 
 

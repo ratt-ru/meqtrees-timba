@@ -65,8 +65,6 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
-from Timba.Contrib.JEN.pylab import PyNodePlotVis22 as PNPVis22
-from Timba.Contrib.JEN.pylab import PyNodePlotXY as PNPXY
 
 import math
 # import random
@@ -99,8 +97,8 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                                toggle='opt_PNP_concat'),
                        TDLMenu("advanced",
                                toggle='opt_PNP_advanced'),
-                       TDLMenu("hotrod",
-                               toggle='opt_PNP_hotrod'),
+                       TDLMenu("nonodes",
+                               toggle='opt_PNP_nonodes'),
                        toggle='opt_PyNodePlot'),
 
                TDLMenu("PlotVIS22",
@@ -267,8 +265,8 @@ def PyNodePlot (ns, path, rider):
       cc.append(PyNodePlot_tensors (ns, rr.path, rider))
    if override or opt_PNP_concat:
       cc.append(PyNodePlot_concat (ns, rr.path, rider))
-   if override or opt_PNP_hotrod:
-      cc.append(PyNodePlot_hotrod (ns, rr.path, rider))
+   if override or opt_PNP_nonodes:
+      cc.append(PyNodePlot_nonodes (ns, rr.path, rider))
 
    bookmark = cc
    if len(cc)>0:
@@ -578,48 +576,23 @@ def PyNodePlot_concat (ns, path, rider):
 
 #================================================================================
 
-def PyNodePlot_hotrod (ns, path, rider):
+def PyNodePlot_nonodes (ns, path, rider):
    """
-   It is possible to concatenate pynodes of class PyNodePlot/PyNodeNamedGroups.
-   Children of these types are ignored for plotting, but their group definitions
-   and plot definitions are copied into the new MeqPyNode. This is very powerful.
-   
-   .    import PyNodeNamedGroups as PNNG
-   .    pynode_XX = PNP.pynode_NamedGroup(ns, xnodes, 'XX')
-   .    pynode_YY = PNP.pynode_NamedGroup(ns, ynodes, 'YY')
-   
-   .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY], plotspecs='XY')
-
-   Note that in this case, no groupspecs is specified (as 3rd argument), but a
-   keyword argument plotspecs. The reason is of course that the groups (x and y)
-   have been copied from its pynode children, but we still have to specify how
-   to plot these groups.
-
-   An (x,y,z) plot can be made by adding a 3rd pynode child (pynode_ZZ),
-   and specifying a suitable plotspecs:
-   .    pynode_ZZ = PNP.pynode_NamedGroup(ns, znodes, 'ZZ')
-   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY, pynode_ZZ],
-   .                             plotspecs='XYZ')
-
-   Etc, etc. See also the more elaborate concatenation examples below....
+   It is also possible to make plots of values, 
    """
-   rr = QRU.on_entry(PyNodePlot_hotrod, path, rider)
+   rr = QRU.on_entry(PyNodePlot_nonodes, path, rider)
    cc = []
    viewer = []
-   xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
-   ynodes = EB.bundle(ns,'cloud_n6s1', nodename='yyy')
-   # znodes = EB.bundle(ns,'cloud_n6s1')
 
-   cc.append(PNNG.pynode_NamedGroup(ns, xnodes, groupspecs='XX'))
+   cc.append(PNNG.pynode_NamedGroup(ns, range(5), groupspecs='x'))
    viewer.append('Record Browser')
 
-   cc.append(PNNG.pynode_NamedGroup(ns, ynodes, groupspecs='YY'))
+   cc.append(PNNG.pynode_NamedGroup(ns, range(5), groupspecs='y'))
    viewer.append('Record Browser')
 
    node = PNP.pynode_Plot(ns, cc, plotspecs='XY',
-                          xlabel='from pynode_XX',
-                          ylabel='from pynode_YY')
+                          xlabel='from pynode_x',
+                          ylabel='from pynode_y')
    cc.extend([node,node])
    viewer.extend(['Pylab Plotter','Record Browser'])
 
