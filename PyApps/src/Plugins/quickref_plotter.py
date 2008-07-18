@@ -118,8 +118,11 @@ class QuickRefPlotter(GriddedPlugin):
     if self._rec.has_key("quickref_help"):
       self.create_layout_stuff()
       Message = ""
-      for i in range(len(self._rec.quickref_help)):
-        Message = Message + self._rec.quickref_help[i] +"\n"
+      try:
+        for i in range(len(self._rec.quickref_help)):
+          Message = Message + str(self._rec.quickref_help[i]) +"\n"
+      except:
+          pass
       self.QTextEdit.setText(Message)
       self.QTextEdit.show()
       return
