@@ -120,11 +120,14 @@ class QuickRefPlotter(GriddedPlugin):
       Message = ""
       try:
         for i in range(len(self._rec.quickref_help)):
-          Message = Message + str(self._rec.quickref_help[i]) +"\n"
+          text = str(self._rec.quickref_help[i])
+          if not text is None:
+            Message = Message + text +"\n"
       except:
           pass
-      self.QTextEdit.setText(Message)
-      self.QTextEdit.show()
+      if len(Message) > 0:
+        self.QTextEdit.setText(Message)
+        self.QTextEdit.show()
       return
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),QuickRefPlotter,priority=10)
