@@ -231,7 +231,25 @@ class CollatedHelpRecord (object):
       Recursively format a html help-string, to be saved.
       """
       if level==0:
-         ss = '<html>\n'
+         ss = """
+         <!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">
+         <html>
+         <head>
+         <meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\">
+         <meta name=\"AUTHOR\" content=\"\">
+         <meta name=\"keywords\" content=\"\">
+         <title>Title</title>
+         <style type=\"text/css\">
+         body {color: black; background: white; font-size: 11px; }
+         body, div, p, th, td, li, dd {font-family: Verdana Lucida, Arial, Helvetica, sans-serif; }
+         h1 {color: blue;}
+         h2 {color: red;}
+         h3 {color: blue;}
+         h4 {color: blue;}
+         h5 {color: blue;}
+         </style>
+         </head>
+         """ 
          rr = self._chrec
          if trace:
             print '\n** Start of .format_html():'
@@ -243,26 +261,26 @@ class CollatedHelpRecord (object):
          help = rr['help']
          if isinstance(help, str):
             # ss += prefix+str(help)
-            ss += '<font size=2>'
+            # ss += '<font size=2>'
             ss += prefix+str(help)
             ss += '<br/>'
-            ss += '</font>'
+            # ss += '</font>'
          elif isinstance(help, (list,tuple)):
             # ss += prefix+str(help[0])
             htag1 = '\n<h'+str(level)+'>'
-            htag1 += '<font color=\"blue\">'
+            # htag1 += '<font color=\"blue\">'
             htag2 = '</h'+str(level)+'>'
-            htag2 += '</font>'
+            # htag2 += '</font>'
             ss += htag1+str(help[0])+htag2
             if len(help)>1:
                ss += '\n<p>'
-               ss += '<font size=1>'
+               # ss += '<font size=1>'
                # s1 = str(5*' ')                        # <---- !!
                for s in help[1:]:
                   ss += '\n'+str(s)
                   ss += '<br/>'
                   # ss += prefix+s1+str(s)
-               ss += '</font>'
+               # ss += '</font>'
                ss += '</p>'
 
       # Then recurse in the proper order, if possible:

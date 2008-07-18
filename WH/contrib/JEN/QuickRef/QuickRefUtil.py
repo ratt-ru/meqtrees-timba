@@ -60,6 +60,8 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
+import CollatedHelpRecord
+
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
@@ -1124,7 +1126,7 @@ def bundle (ns, path, rider,
 
 def create_rider(name='rider'):
     """Return a CollatedHelpRecord object, to serve as rider"""
-    import CollatedHelpRecord
+    # import CollatedHelpRecord
     return CollatedHelpRecord.CollatedHelpRecord(name)
 
 
