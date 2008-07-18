@@ -116,7 +116,6 @@ class QuickRefPlotter(GriddedPlugin):
     if isinstance(self._rec, bool):
       return
     if self._rec.has_key("quickref_help"):
-      self.create_layout_stuff()
       Message = ""
       try:
         for i in range(len(self._rec.quickref_help)):
@@ -126,6 +125,9 @@ class QuickRefPlotter(GriddedPlugin):
       except:
           pass
       if len(Message) > 0:
+        # create widgets 
+        self.create_layout_stuff()
+        # display text string
         self.QTextEdit.setText(Message)
         self.QTextEdit.show()
       return
