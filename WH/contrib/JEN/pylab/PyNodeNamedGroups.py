@@ -233,7 +233,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 
     mystate('name')
     mystate('class_name')
-    mystate('child_indices')
+    mystate('child_indices',[])               # default [] (nonodes)
     if isinstance(self.child_indices,int):
       self.child_indices = [self.child_indices]
     string_indices = []
@@ -1059,7 +1059,7 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
 #--------------------------------------------------------------------
 
-def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
+def pynode_NamedGroup (ns, nodes=None, groupspecs=None, labels=None,
                        nodename=None, quals=None, kwquals=None,
                        **kwargs):
   """
@@ -1112,10 +1112,13 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
 
   elif isinstance(groupspecs, dict):
     # Assume a valid groupspecs record....? 
+    for key in groupspecs.keys():
+      nodename += '_'+str(key)
     gs = groupspecs
 
   else:
     # No groupspecs specified (concatenation)
+    nodename += '_concat'
     gs = None
 
   # Make two vectors of child names and labels (used below):
@@ -1146,8 +1149,14 @@ def pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
   qhelp.append('                         module_name='+str(__file__)+')')
   qhelp.append('')
   qhelp.append('   in which:')
-  qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
-  qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
+  if isinstance(nodes,(list,tuple)):
+    qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
+  else:
+    qhelp.append('       nodes = '+str(nodes))
+  if isinstance(labels,(list,tuple)):
+    qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
+  else:
+    qhelp.append('       nodes = '+str(labels))
   qhelp.append('       gs (record) = '+str(gs))
   qhelp.append('')
 
@@ -1173,8 +1182,10 @@ def child_labels(nodes, labels, trace=False):
   Called from pynode_NamedGroup() and PyNodePlot.pynode_Plot() 
   """
   if not isinstance(nodes,(list,tuple)):
-    s = '** nodes is not a list, but: '+str(type(nodes))
-    raise ValueError,s
+    # Assume that list(s) of values are given via the groupspecs record...
+    return [None,None]
+    # s = '** nodes is not a list, but: '+str(type(nodes))
+    # raise ValueError,s
 
   elif len(nodes)==0:
     s = '** node/value list is empty: '

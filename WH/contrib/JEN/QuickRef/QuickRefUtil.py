@@ -521,9 +521,8 @@ def _tdl_job_show_doc (mqs, parent, rr=None, header='QuickRefUtil'):
     """
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
-    # print rr.format()
+    print rr.format()
     print rr.format_html()
-    # filename = rr.save_html(filename)
     print '\n** The proper show_doc (popup) is not yet implemented **\n'
     return True
 
@@ -535,6 +534,7 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
     # filename = rr.save(filename)
+    filename = 'QuickRef'      # use standard filename for easy web-browser refresh
     filename = rr.save_html(filename)
     return True
 
@@ -833,10 +833,16 @@ def MeqNode (ns, path, rider,
         qinfo += ': node='+str(node)
 
     elif helpnode:
-        qinfo = '\n\n ns[\''+str(name)+'\'] '+str(helpnode)
+        qinfo = '\n\n'
+        qinfo += '<font color=\"red\">'
+        qinfo += 'ns[\''+str(name)+'\'] '+str(helpnode)
+        qinfo += '</font>  '
 
     else:
-        qinfo += ' << Meq.'+str(meqclass)+'('
+        qinfo += '  <font color=\"red\">'
+        qinfo += ' << Meq.'+str(meqclass)
+        qinfo += '</font>  '
+        qinfo += ' ('
         comma = ''
         if isinstance(children,(list,tuple)):
             nc = len(children)
@@ -860,14 +866,13 @@ def MeqNode (ns, path, rider,
             comma = ', '
         qinfo += ')'
     
-    # Replace the dots(.) in the node-name (name): They cause trouble
-    # in the browser (and elsewhere?)
-    # qinfo = qinfo.replace('.',',')                          # ....?
-
     # The qhelp list (of strings) is a combination of qinfo and help: 
     if isinstance(help, str):
         # May be multi-line (in triple-quotes, or containing \n): 
         qhelp = help.split('\n')                            # -> list
+        for i,s in enumerate(qhelp):
+            if len(s)>0:
+                qhelp[i] = '.      '+qhelp[i]               # indent
         qhelp.insert(0,qinfo)                               # prepend
     elif help==None:
         qhelp = [qinfo]
@@ -993,30 +998,27 @@ def bundle (ns, path, rider,
 
     # Prepend a header:
     level = nss-2
-    qinfo = '*'+str(level)+'* '
-    if level==0:                # i.e. nss=2
-        qinfo += 'MODULE: '+ss[nss-2]+'_'+ss[nss-1]
-    elif level==1:              # i.e. nss=3
-        qinfo += 'TOPIC: '+ss[nss-2]+'_'+ss[nss-1]
-    elif level==2:              # i.e. nss=4
-        qinfo += 'sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
-    elif level==3:              # i.e. nss=4
-        qinfo += 'sub-sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+    qhead = '<h'+str(level+2)+'>\n '       # html tag (see CollatedHelpRecord())
+    qhead += '('+str(level+2)+')  '
+    if level==0:                           # i.e. nss=2
+        qhead += 'MODULE: '+ss[nss-2]+'_'+ss[nss-1]
+    elif level==1:                         # i.e. nss=3
+        qhead += 'TOPIC: '+ss[nss-2]+'_'+ss[nss-1]
+    elif level==2:                         # i.e. nss=4
+        qhead += 'sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+    elif level==3:                         # i.e. nss=5
+        qhead += 'sub-sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
     elif level>3:
-        qinfo += 'sub-sub-sub-...: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
-    qhelp.insert(0,qinfo)
+        qhead += 'sub-sub-sub-...: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+    qhead += ' </h'+str(level+2)+'>'       # closing html tag
+
+    qhelp[0] += '<p>'
+    qhelp[len(qhelp)-1] += '</p>'
+    qhelp.insert(0,qhead)
 
     # Optional, show the node subtree(s) to the required depth:
     if show_recurse:
         qhelp.extend(EN.format_tree(nodes, recurse=show_recurse, mode='list'))
-
-    # Prepend some separators in the text:
-    if False:
-        if level==0:
-            qhelp.insert(0,' ==============================================')                           
-            qhelp.insert(0,' ==============================================')                           
-        if level==1:
-            qhelp.insert(0,' ==============================================')                           
 
     # Update the CollatedHelpRecord (rider) with qhelp:
     if rider:

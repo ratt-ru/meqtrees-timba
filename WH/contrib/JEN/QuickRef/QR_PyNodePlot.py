@@ -126,15 +126,17 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                        toggle='opt_PlotVIS22'),
 
 
-
                TDLMenu("PyNodeNamedGroups",
                        TDLOption('opt_PNNG_alltopics',
                                  "override: include all PyNodeNamedGroups sub-topics",False),
                        TDLMenu("basic",
                                toggle='opt_PNNG_basic'),
+                       TDLMenu("nonodes",
+                               toggle='opt_PNNG_nonodes'),
                        TDLMenu("concat",
                                toggle='opt_PNNG_concat'),
                        toggle='opt_PyNodeNamedGroups'),
+
 
                TDLMenu("help",
                        TDLOption('opt_helpnode_alltopics',
@@ -578,23 +580,53 @@ def PyNodePlot_concat (ns, path, rider):
 
 def PyNodePlot_nonodes (ns, path, rider):
    """
-   It is also possible to make plots of values, 
+   It is also possible to plot 'named groups' that do not contain the
+   results of child-nodes, but lists of values given directly. This opens
+   many new possibilities, from inserting explanatory plots into the
+   meqbrowser, to inserting support information into node-result plots.
+
+   Four named groups (x,y,a,b) are specified via the groupspecs record:
+   .    gs = record(x=range(6), y=range(6), a=range(6), b=range(6))
+   .    pynode_xyab = PNNG.pynode_NamedGroup(ns, groupspecs=gs)
+
+   NB: For simplicity, the python range() function is used to generate lists
+   of numbers: range(6) -> [0,1,2,3,4,5].
+
+   The plots are now specified in the usual way. The simplest is a standard
+   plot that plots x={x} versus y={y}:
+   .    pynode = PNP.pynode_Plot(ns, pynode_xyab, 'XY')
+
+   More complicated plots may be specified with the plotspecs record:
+   .    psg = [record(x='{x}',y='{y}', color='red', legend='yexpr'),
+   .           record(x='{x}',y='{y}+{x}-2*({b}+{a}/2)', color='blue', legend='yexpr'),
+   .           record(x='{x}',y='sin({a}*2)', color='green', legend='yexpr')]
+   .    ps = record(graphics=psg, xlabel='x-group', ylabel='see legend',
+   .                title='multiple plots (plotspecs=record)')
+   .    pynode = PNP.pynode_Plot(ns, pynode_xyab, plotspecs=ps)
+
+   See also the PyNodeNamedGroups topic 'nonodes' below. 
    """
    rr = QRU.on_entry(PyNodePlot_nonodes, path, rider)
    cc = []
    viewer = []
 
-   cc.append(PNNG.pynode_NamedGroup(ns, range(5), groupspecs='x'))
+   gs = record(x=range(6), y=range(6), a=range(6), b=range(6))
+   cc.append(PNNG.pynode_NamedGroup(ns, range(5), groupspecs=gs))
    viewer.append('Record Browser')
 
-   cc.append(PNNG.pynode_NamedGroup(ns, range(5), groupspecs='y'))
-   viewer.append('Record Browser')
-
-   node = PNP.pynode_Plot(ns, cc, plotspecs='XY',
-                          xlabel='from pynode_x',
-                          ylabel='from pynode_y')
-   cc.extend([node,node])
-   viewer.extend(['Pylab Plotter','Record Browser'])
+   cc.append(PNP.pynode_Plot(ns, cc, plotspecs='XY',
+                             color='red', xlabel='x', ylabel='y',
+                             title='standard plot (plotspecs=\'XY\')'))
+   viewer.append('Pylab Plotter')
+   
+   
+   psg = [record(x='{x}',y='{y}', color='red', legend='yexpr'),
+          record(x='{x}',y='{y}+{x}-2*({b}+{a}/2)', color='blue', legend='yexpr'),
+          record(x='{x}',y='sin({a}*2)', color='green', legend='yexpr')]
+   ps = record(graphics=psg, xlabel='x-group', ylabel='see legend',
+               title='multiple plots (plotspecs=record)')
+   cc.append(PNP.pynode_Plot(ns, cc, plotspecs=ps))
+   viewer.append('Pylab Plotter')
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer=viewer)
@@ -761,6 +793,10 @@ def PlotVIS22_play (ns, path, rider):
 
 def PyNodeNamedGroups (ns, path, rider):
    """
+   PyNodes of class PyNodeNamedGroups manipulate 'named groups' of values,
+   e.g. for plotting. The values are extracted from the results of its
+   children, or supplied directly as a list of numbers.
+   Classes like PyNodePlot are derived from PyNodeNamedGroups.
    """
    rr = QRU.on_entry(PyNodeNamedGroups, path, rider)
    cc = []
@@ -768,6 +804,8 @@ def PyNodeNamedGroups (ns, path, rider):
 
    if override or opt_PNNG_basic:
       cc.append(PyNodeNamedGroups_basic (ns, rr.path, rider))
+   if override or opt_PNNG_nonodes:
+      cc.append(PyNodeNamedGroups_nonodes (ns, rr.path, rider))
    if override or opt_PNNG_concat:
       cc.append(PyNodeNamedGroups_concat (ns, rr.path, rider))
 
@@ -793,6 +831,44 @@ def PyNodeNamedGroups_basic (ns, path, rider):
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Record Browser')
 
+
+#================================================================================
+
+def PyNodeNamedGroups_nonodes (ns, path, rider):
+   """
+   While the 'normal' use of named groups is to extract and manipulate groups of
+   node results, it is also possible to fill a group directly with a list (vector)
+   of values. This opens many new possibilities, especially for plotting (see
+   PyNodePlot topic 'nonodes' in this module).
+
+   There are two ways to specify a named group from a list of values:
+   - via a groupspecs record:
+   .    gs = record(a=range(6), b=range(7), c=range(3))
+   .    pynode_abc = PNNG.pynode_NamedGroup(ns, groupspecs=gs)
+   - directly:
+   .    pynode_p = PNNG.pynode_NamedGroup(ns, range(9), 'p')
+   .    pynode_q = PNNG.pynode_NamedGroup(ns, range(8), 'q')
+
+   The last method has the simplest syntax, but the first one allows multiple
+   groups to be specified. The result may be inspected in the state records of
+   the resulting PyNode.
+
+   All groups may be in a single pynode by pynode-concatenation (see below):
+   .    cc = [pynode_abc, pynode_q, pynode_p]
+   .    pynode = PNNG.pynode_NamedGroup(ns, cc)
+   
+   """
+   rr = QRU.on_entry(PyNodeNamedGroups_nonodes, path, rider)
+   cc = []
+
+   gs = record(a=range(6), b=range(7), c=range(3))
+   cc.append(PNNG.pynode_NamedGroup(ns, groupspecs=gs))
+   cc.append(PNNG.pynode_NamedGroup(ns, range(9), groupspecs='p'))
+   cc.append(PNNG.pynode_NamedGroup(ns, range(8), groupspecs='q'))
+   cc.append(PNNG.pynode_NamedGroup(ns, cc))
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+                      viewer='Record Browser')
 
 #================================================================================
 

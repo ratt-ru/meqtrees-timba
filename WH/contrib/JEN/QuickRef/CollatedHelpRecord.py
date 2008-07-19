@@ -242,9 +242,10 @@ class CollatedHelpRecord (object):
          <style type=\"text/css\">
          body {color: black; background: white; font-size: 11px; }
          body, div, p, th, td, li, dd {font-family: Verdana Lucida, Arial, Helvetica, sans-serif; }
-         h1 {color: blue;}
-         h2 {color: red;}
-         h3 {color: blue;}
+         h0 {color: yellow;}
+         h1 {color: red;}
+         h2 {color: magenta;}
+         h3 {color: green;}
          h4 {color: blue;}
          h5 {color: blue;}
          </style>
@@ -262,26 +263,35 @@ class CollatedHelpRecord (object):
          if isinstance(help, str):
             # ss += prefix+str(help)
             # ss += '<font size=2>'
-            ss += prefix+str(help)
+            ss += str(help)
             ss += '<br/>'
             # ss += '</font>'
          elif isinstance(help, (list,tuple)):
             # ss += prefix+str(help[0])
-            htag1 = '\n<h'+str(level)+'>'
+            # htag1 = '\n<h'+str(level)+'>'
             # htag1 += '<font color=\"blue\">'
-            htag2 = '</h'+str(level)+'>'
+            # htag2 = '</h'+str(level)+'>'
             # htag2 += '</font>'
-            ss += htag1+str(help[0])+htag2
-            if len(help)>1:
-               ss += '\n<p>'
-               # ss += '<font size=1>'
-               # s1 = str(5*' ')                        # <---- !!
-               for s in help[1:]:
+            # ss += htag1+str(help[0])+htag2
+            # ss += str(help[0])
+            # if len(help)>1:                             # <-------!!
+            # ss += '\n<p>'
+            # ss += '<font size=1>'
+            # s1 = str(5*' ')               
+            for i,s in enumerate(help):
+               if len(s)==0:
+                  ss += '\n<br/>'
+               else:
                   ss += '\n'+str(s)
-                  ss += '<br/>'
-                  # ss += prefix+s1+str(s)
-               # ss += '</font>'
-               ss += '</p>'
+                  if s[0]=='<':
+                     pass
+                  elif s[len(s)-1]=='>':
+                     pass
+                  else:
+                     ss += '<br/>'
+               # ss += prefix+s1+str(s)
+            # ss += '</font>'
+            # ss += '</p>'
 
       # Then recurse in the proper order, if possible:
       keys = rr.keys()
