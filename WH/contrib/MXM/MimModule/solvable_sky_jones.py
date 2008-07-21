@@ -32,7 +32,7 @@ from Meow.Parameterization import resolve_parameter
 class DiagAmplPhase (object):
 ##  def __init__ (self):
 ##    self.options = [];
-  def __init__ (self,label=''):
+  def __init__ (self,label='',solve_source=None):
     self.tdloption_namespace = label+".diagamplphase";
     subset_opt = TDLOption('subset',"Apply this Jones term to a subset of sources",
         [None],more=str,namespace=self,doc="""Selects a subset of sources to which this 
@@ -43,7 +43,7 @@ class DiagAmplPhase (object):
     subset_opt.set_validator(self._subset_parser.validator);
     self.options = [ subset_opt ];
     self.subset = None;
-
+    self.solve_source=solve_source;
 
   def compile_options (self):
     return self.options;
@@ -74,11 +74,20 @@ class DiagAmplPhase (object):
     if self.subset:
       srclist = self._subset_parser.parse_list(self.subset);
       sources = [ sources[i] for i in srclist ];
+      
     g_ampl_def = Meow.Parm(1);
     g_phase_def = Meow.Parm(0);
     # loop over sources
-    for src in sources:
-      jones = Jones.gain_ap_matrix(nodes(src),g_ampl_def,g_phase_def,tags=tags,series=stations);
+    #print "tags",tags
+    for srci,src in enumerate(sources):
+      #print  srci,src,self.solve_source,(srci==self.solve_source)
+      if (self.solve_source or self.solve_source==0) and not(srci==self.solve_source):
+        #print "not solvable",src;
+        jones = Jones.gain_ap_matrix(nodes(src),g_ampl_def,g_phase_def,tags=tags,series=stations,solvable=False);
+      else:
+        #print "solvable",src,self.solve_source;
+        jones = Jones.gain_ap_matrix(nodes(src),g_ampl_def,g_phase_def,tags=tags,series=stations);
+    
     # make parmgroups for phases and gains
     self.pg_phase = ParmGroup.ParmGroup(label+"_phase",
                     nodes.search(tags="solvable phase"),
@@ -86,6 +95,14 @@ class DiagAmplPhase (object):
     self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",
                     nodes.search(tags="solvable ampl"),
                     table_name="%s_ampl.mep"%label,bookmark=4);
+    # make parmgroups for phases and gains
+    self.pg_phasen = ParmGroup.ParmGroup(label+"_phase_other",
+                    nodes.search(tags="nonsolvable phase"),
+                    table_name="%s_phase.mep"%label,bookmark=4);
+    self.pg_ampln  = ParmGroup.ParmGroup(label+"_ampl_other",
+                    nodes.search(tags="nonsolvable ampl"),
+                    table_name="%s_ampl.mep"%label,bookmark=4);
+
 
 ##    # make solvejobs
 ##    ParmGroup.SolveJob("cal_"+label+"_phase","Calibrate %s phases"%label,self.pg_phase);
