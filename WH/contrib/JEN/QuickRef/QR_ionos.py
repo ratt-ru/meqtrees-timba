@@ -65,6 +65,8 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 
+# from Timba.Contrib.JEN.Expression import Expression
+
 import math
 import random
 import numpy
@@ -100,6 +102,13 @@ TDLCompileMenu("QR_ionos topics:",
                TDLMenu("TID",
                        toggle='opt_TID'),
                
+               TDLMenu("GPS",
+                       TDLMenu("TEC",
+                               toggle='opt_GPS_TEC'),
+                       TDLMenu("triplefreq",
+                               toggle='opt_GPS_triplefreq'),
+                       toggle='opt_GPS'),
+               
                TDLMenu("help",
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
                        toggle='opt_helpnodes'),
@@ -122,9 +131,11 @@ def QR_ionos (ns, path, rider):
    override = opt_alltopics
    global header
 
-   # Edit this part:
    if override or opt_thinlayer:
       cc.append(thinlayer (ns, rr.path, rider))
+
+   if override or opt_GPS:
+      cc.append(GPS (ns, rr.path, rider))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rr.path, rider))
@@ -183,35 +194,65 @@ def thinlayer_TEC (ns, path, rider):
    cc = []
    viewer = []
    h = opt_thinlayer_altitude
+   TEC0 = 1.0
+   wvl = 1.0
 
-   zzang = numpy.arange(0,numpy.pi/2,numpy.pi/20).tolist()
-   zzeff = []
-   dz = []
-   for zang in zzang:
-      zeff = zeff_thin_layer(zang, h=h, trace=True)
-      zzeff.append(zeff)
-      dz.append(zang-zeff)
+   zmax = numpy.pi/2
+   dz = zmax/30
+   zz = numpy.arange(0,dz+zmax,dz).tolist()
+   zfz = []
+   for z in zz:
+      zfz.append(zfactor_thin_layer (l=z, h=h, trace=False))
 
-   cc.append(PNNG.pynode_NamedGroup(ns, zzang, groupspecs='zzang'))
-   viewer.append('Record Browser')
-   cc.append(PNNG.pynode_NamedGroup(ns, zzeff, groupspecs='zzeff'))
-   viewer.append('Record Browser')
-   cc.append(PNNG.pynode_NamedGroup(ns, dz, groupspecs='dz'))
-   viewer.append('Record Browser')
+   xmax = 1000.0
+   dx = xmax/20
+   xx = numpy.arange(0,dx+xmax,dx).tolist()
+   ll = [0,0.5,1.0,1.5]
+   pdiff = numpy.zeros([len(ll),len(xx)])
+   for j,l in enumerate(ll):
+      zfx = []
+      for i,x in enumerate(xx):
+         zf = zfactor_thin_layer (x=x, l=l, h=h, trace=False)
+         zfx.append(zf)
+         pdiff[j,i] = -25*wvl*TEC0*(zf-zfx[0])
+
+   gs = record(zz=zz, xx=xx, zfz=zfz, zfx=zfx)
+   for j,l in enumerate(ll):
+      gs['pdiff'+str(j)] = pdiff[j].tolist()
+
+   psg = [record(y='{zfz}', x='{zz}', color='red')]
+   ps = record(graphics=psg,
+               linestyle='-',
+               title='thin layer @'+str(h)+'km, curved',
+               xlabel='zenith angle (rad)',
+               ylabel='z-factor')
+   cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
+
+   psg = [record(y='{zfx}', x='{xx}', color='magenta')]
+   ps = record(graphics=psg,
+               linestyle='--', marker=None,
+               title='thin layer @'+str(h)+'km, curved',
+               xlabel='baseline length (km)',
+               ylabel='z-factor')
+   cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
+
 
    psg = []
-   psg.append(record(y='{zzeff}', x='{zzang}'))
-   psg.append(record(y='{dz}', x='{zzang}', color='red'))
-   ps = record(graphics=psg)
-   node = PNP.pynode_Plot(ns, cc, plotspecs=ps,
-                          title='thin layer @'+str(h)+'km, curved',
-                          xlabel='zenith angle (deg)',
-                          ylabel='eff. zenith angle (rad)')
-   cc.append(node)
-   viewer.append('Pylab Plotter')
+   for j,l in enumerate(ll):
+      psg.append(record(y='{pdiff'+str(j)+'}', x='{xx}',
+                        color='blue', legend='z='+str(l)+'rad'))
+   legend = ['thin layer altitude ='+str(h)+' km',
+             'TEC0 = '+str(TEC0)+' TECU',
+             'wavelength = '+str(wvl)+ 'm']
+   ps = record(graphics=psg,
+               linestyle='--', legend=legend,
+               title='non-linear "refraction"',
+               xlabel='baseline length (km)',
+               ylabel='phase-diff (rad)')
+   cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
-                      viewer=viewer)
+                      viewer='Pylab Plotter')
 
 
 
@@ -226,6 +267,26 @@ def thinlayer_MIM (ns, path, rider):
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
+
+
+#================================================================================
+# GPS:
+#================================================================================
+
+def GPS (ns, path, rider):
+   """
+   The simplest ionospheric model is a thin, uniform layer at a constant altitude.
+   """
+   rr = QRU.on_entry(GPS, path, rider)
+   cc = []
+   override = opt_GPS_alltopics
+
+   if override or opt_GPS_TEC:
+      cc.append(GPS_TEC (ns, rr.path, rider))
+   if override or opt_GPS_triplefreq:
+      cc.append(GPS_triplefreq (ns, rr.path, rider))
+
+   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
 
 
 
@@ -243,59 +304,35 @@ def thinlayer_MIM (ns, path, rider):
 # Helper functions
 #********************************************************************************
 
-def TEC_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
-                    TEC0=1.0, h=300, trace=False):
+def zfactor_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
+                        h=300, trace=False):
    """
-   Return the TEC(x,y,z,l,m,t) for a thin layer at altitude h[=300] (km),
-   for the given vertical TEC[=1.0] value (TECU)
-   """
-   zeff = zenith_angle_thin_layer(x=x, y=y, z=z, l=l, m=m, trace=trace)
-   TEC = TEC0/math.cos(zeff)
-   if trace:
-      print '** TEC_thin_layer(TEC0=',TEC0,'TECU, h=',h,'km) ->',TEC 
-   return TEC
-
-#-------------------------------------------------------------------------------
-
-def zenith_angle_thin_layer (x=0,y=0,z=0,l=0,m=0, h=300, trace=False):
-   """
-   Calculate the 'effective' zenith angle (x,y,z,l,m)
-   for a thin layer at h[=300] km
+   Return the z-factor for a uniform thin layer at altitude h (km),
+   for a given position (x,y,z) km, in a given direction (l,m) rad
+   w.r.t. the zenith at the origin (x=0,y=0,z=0) on the Earth surface.
+   The z-factor is the factor with which the excess path length L0
+   (and thus the TEC0) for the zenith have to be multiplied. 
    """
    R = 6370.0                        # Earth Radius (km)
-   zang = zenith_angle (x=x, y=y, z=z, l=l, m=m, trace=False)
-   zeff = math.asin(math.sin(zang)*R/(R+h))
+   zlocal = local_zenith_angle (x=x, y=y, z=z, l=l, m=m, R=R, trace=trace)
+   zfactor = 1.0/math.cos(math.asin(math.sin(zlocal)*R/(R+h)))
    if trace:
-      s = '** zenith_angle_thin_layer(x='+str(x)+', y='+str(y)+', z='+str(z)
-      s += ', l='+str(l)+', m='+str(m)+', h='+str(h)+'km)'
-      print s,'-> ',zeff,' rad (dz=',zeff-zang,1./math.cos(zeff),')'
-   return zeff
+      print '** zfactor_thin_layer(h=',h,'km',R,') ->',zfactor 
+   return zfactor
 
 #-------------------------------------------------------------------------------
 
-def zeff_thin_layer (z, h=300, trace=False):
+def local_zenith_angle (x=0,y=0,z=0,l=0,m=0, R=6370.0, trace=False):
    """
-   Calculate the 'effective' zenith angle from the nominal one,
-   for a thin layer at h[=300] km.
+   Calculates the (geometric) zenith angle (rad) at position (x,y,z)
+   of a source that would have direction (l,m) rad w.r.t. the zenith
+   at the origin (x=0,y=0,z=0) on the Earth surface (R=6370km).
    """
-   R = 6370.0                                      # Earth Radius (km)
-   zeff = math.asin(math.sin(z)*R/(R+h))
-   if trace:
-      print '** zeff_thin_layer(',z,', h=',h,'km) -> ',zeff,' rad (dz=',zeff-z,1./math.cos(zeff),')'
-   return zeff
-
-#-------------------------------------------------------------------------------
-
-def zenith_angle (x=0,y=0,z=0,l=0,m=0, trace=False):
-   """
-   Calculates the zenith angle (rad) from (x,y,z,l,m).
-   """
-   R = 6700.0                        # Earth Radius (km)
    z1 = l - math.atan(float(x)/(R+z))
    z2 = m - math.atan(float(y)/(R+z))
    zang = math.hypot(z1,z2)          # equiv:  zang = math.sqrt(z1*z1 + z2*z2)
    if trace:
-      s = '** zenith_angle (x='+str(x)+', y='+str(y)+', z='+str(z)
+      s = '\n** local_zenith_angle (x='+str(x)+', y='+str(y)+', z='+str(z)
       s += ', l='+str(l)+', m='+str(m)+')'
       print s,' -> ',zang,' rad   (z1=',z1,', z2=',z2,')'
    return zang
@@ -404,24 +441,22 @@ if __name__ == '__main__':
          print rider.format()
 
    if 0:
-      zenith_angle(trace=True)
-      zenith_angle(l=1, trace=True)
-      zenith_angle(l=1, m=1, trace=True)
-      zenith_angle(x=100, trace=True)
-      zenith_angle(x=100, l=0.1, trace=True)
-      zenith_angle(x=100, m=0.1, trace=True)
-      zenith_angle(x=100, y=100, trace=True)
-      zenith_angle(y=100, trace=True)
-      zenith_angle(y=100, z=100, trace=True)
-
-   if 0:
-      zenith_angle_thin_layer(trace=True)
-      zenith_angle_thin_layer(l=1, trace=True)
-      zenith_angle_thin_layer(l=math.pi/2, trace=True)
+      local_zenith_angle(trace=True)
+      local_zenith_angle(l=1, trace=True)
+      local_zenith_angle(l=1, m=1, trace=True)
+      local_zenith_angle(x=100, trace=True)
+      local_zenith_angle(x=100, l=0.1, trace=True)
+      local_zenith_angle(x=100, m=0.1, trace=True)
+      local_zenith_angle(x=100, y=100, trace=True)
+      local_zenith_angle(y=100, trace=True)
+      local_zenith_angle(y=100, z=100, trace=True)
 
    if 1:
-      TEC_thin_layer(trace=True)
-      TEC_thin_layer(l=1, trace=True)
+      zfactor_thin_layer(trace=True)
+      for L in [0,0.01,0.1,0.2,0.5,1]:
+         zfactor_thin_layer(l=L, trace=True)
+      for x in [0,1,10,100,1000]:
+         zfactor_thin_layer(x=x, trace=True)
             
    print '\n** End of standalone test of: QR_ionos.py:\n' 
 

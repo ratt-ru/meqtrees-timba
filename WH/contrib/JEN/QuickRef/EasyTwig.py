@@ -57,6 +57,7 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
+from Timba.Contrib.JEN.Expression import Expression
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 import copy
@@ -768,8 +769,6 @@ def twig (ns, spec,
     #............................................................
 
     elif ('[' in spec) or (']' in spec) or ('{' in spec) or ('}' in spec):
-        # import Expression
-        from Timba.Contrib.JEN.Expression import Expression
         expr = Expression.Expression(ns, 'EasyTwig', expr=spec)
         expr.display('EasyTwig()')
         node = expr.MeqFunctional()
