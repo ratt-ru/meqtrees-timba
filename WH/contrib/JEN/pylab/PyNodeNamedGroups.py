@@ -80,9 +80,8 @@ Settings.forest_state.cache_policy = 100;
 
 class PyNodeNamedGroups (pynode.PyNode):
   """
-  Base class for a category of pyNodes.
-  It contains functions that manipulate named groups of values,
-  which are derived from the results of its children.
+  Base class for a category of pyNodes that manipulate (e.g. plot)
+  'named groups' of values, e.g. node results.
   The named groups can be turned into other named groups
   by means of python mathematical expressions, in which the
   names of the groups serve as variables.

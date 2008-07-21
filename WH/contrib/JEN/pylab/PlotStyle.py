@@ -52,7 +52,53 @@ import random
 #======================================================================================
 
 class PlotStyle (object):
-    """Returns dicts of valid plot-styles, for pylab plotting.
+    """
+    Valid plot-styles, for pylab plotting:
+    <ul>
+    Graphics plot-colors:
+    <ul>
+    <li> Style 1:'
+    <ul>
+    <li> 'b'  or  'blue'
+    <li> 'g'  or  'green'
+    <li> 'r'  or  'red'
+    <li> 'c'  or  'cyan'
+    <li> 'm'  or  'magenta'
+    <li> 'y'  or  'yellow'
+    <li> 'k'  or  'black'
+    <li> 'w'  or  'white'
+    </ul>
+    <li> Style 2: standard color string, e.g. 'yellow', 'wheat', etc
+    <li> Style 3: grayscale intensity (between 0. and 1., inclusive)
+    <li> Style 4: RGB hex color triple, e.g. #2F4F4F
+    <li> Style 5: RGB tuple, e.g. (0.18, 0.31, 0.31)
+    </ul>
+    </ul>
+    
+    Graphics marker-styles:
+    <ul>
+    <li> 'o'  or  'circle'
+    <li> '+'  or  'plus'
+    <li> 's'  or  'square'
+    <li> 'x'  or  'cross'
+    <li> 'D'  or  'diamond'    ('d' is thin diamond)
+    <li> 'h'  or  'hexagon'
+    <li> 'p'  or  'pentagon'
+    <li> '^'  or  'triangle'   ('^','v','<','>' up,down,left,right)
+    <li> '|','_'          (line: vertical,horizontal)
+    <li> '1','2','3','4'  (tripod: down,up,left,right)
+    <li> 'steps'
+    </ul>
+    
+    Graphics line-styles:
+    <ul>
+    <li> '-'  or  'solid'
+    <li> '--'  or  'dashed'
+    <li> ':'  or  'dotted'
+    <li> '-.'  or  'dash-dot'
+    </ul>
+    
+    </ul>    
     """
 
     def __init__(self, **kwargs):

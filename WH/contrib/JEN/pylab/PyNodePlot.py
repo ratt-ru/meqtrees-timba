@@ -89,36 +89,30 @@ Settings.forest_state.cache_policy = 100;
 
 class PyNodePlot (PNNG.PyNodeNamedGroups):
   """
-  Base class for an entire zoo of plotting pyNodes.
-  Itself derived from the class PyNodeNamedGroups, which
-  takes care of reading the results of its children into
-  named groups (see below).
-  
-  It makes (sub)plot definitions from these named groups (of values)
+  Base class for a range of plotting pyNodes.
+  It is derived from the class PyNodeNamedGroups, which
+  manipulates one or more 'named groups' of values.
+  The latter may be obtained from the results of nodes, so these
+  can be plotted. They may also be provided directly as lists of
+  values. For more information see the PyNodeNamedGroups.py.
 
-  It makes one or more subplot definition records in the list
-  self.plotspecs.graphics. These are used in various ways:
-  - The subplots are converted into a SVG list (of strings),
-  which is attached to the pyNode result as svg_string. It is
-  used by the 'svg plotter' to make a (clumsy) plot.
-  - The subplot definition records are also attached to the
-  pyNode result. This allows the building of complicated plots
-  by concatenation. A PyNodePlot node recognises PyNodePlot
-  children from the plotspecs record in its result, and will
-  ignore them for its normal function.
-  
-  When defining a PyNodePlot node, specific instructions are passed to it
-  via plotspecs record (ps):
+  When defining a PyNodePlot node, specific instructions are passed
+  to it via plotspecs record (ps). The latter has lists of subplot
+  definitions which are plotted together in a single plot. For the
+  moment, only plots of type 'graphics' are supported, i.e. the
+  plotspecs record has a 'graphics' field which is a list of records:
+  In addition, the plotspecs record may have overall attributes
+  (title, xlabel, ylabel, window etc) which control the entire plot.
 
   .   psg = []
   .   psg.append(record(y='{y}', color='red'))
   .   psg.append(record(y='{a}*{b}', x='{c}', color='blue'))
-  .   ps = record(graphics=psg, title=.., ylabel=.., ...)
+  .
+  .   ps = record(graphics=psg,
+  .               title=.., ylabel=.., ...)
   
-  For the moment, only plots of type 'graphics' are supported.
-  The ps.graphics field has a list of one or more plotspec records.
-  They are plotted together in a single plots, whose overall attributes
-  (title, xlabel, ylabel etc) may be added as extra ps fields.
+  The PyNode may be generated in the following way (for the optional
+  groupspecs definition, see the class PyNodeNamedGroups):
 
   .   from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
   .   ns[nodename] << Meq.PyNode(children=[nodes],
@@ -128,25 +122,10 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   .                              [groupspecs=record(....),]
   .                              plotspecs=ps)
   
-  For the (optional) groupspecs definition, see the class PyNodeNamedGroups.
-  
-  Possible overall plotspecs keywords are:
-  - labels     [=None]         a list of node labels
-  - offset     [=0.0]          concatenated plots maye be offset vertically
-  - title      [=<classname>]  plot title
-  - xlabel     [='child']      x-axis label
-  - ylabel     [='result']     y-axis label
-  - xunit      [=None]         x-axis unit (string)
-  - yunit      [=None]         y-axis unit (string)
-  - zunit      [=None]         z-axis unit (string)
-  - xmin       [=None]         plot-window
-  - xmax       [=None]         plot-window
-  - ymin       [=None]         plot-window
-  - ymax       [=None]         plot-window
-  - legend     [=[]]           plot legend string(s)
-  - make_svg   [=False]        (svg) plotting may be inhibited if concatenated
+  In practice, it is recommended to use the function pynode_Plot()
+  in this module PyNodePlot.py. 
 
-  Possible keywords for individual subplots are:
+  Possible keywords for individual graphics subplots are:
   - color      [='blue']       subplot color
   - linestyle  [=None]         subplot linestyle ('-','--',':')
   - marker     [='o']          subplot marker style ('+','x', ...)
@@ -159,9 +138,29 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   - msmax      [=20]           max marker size (z-values) 
   - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
   - plot_ellipse_stddev [=False]  if True, plot an ellipse (xc,yc,stddev)
-  - include_origin [=False]    if True, include the origin (0,0)
-  - include_xaxis [=False]     if True, include y=0
-  - include_yaxis [=False]     if True, include x=0
+
+  Overall plotspecs keywords are:
+  - labels     [=None]         a list of node labels
+  - offset     [=0.0]          concatenated plots maye be offset vertically
+  - title      [=<classname>]  plot title
+  - xlabel     [='child']      x-axis label
+  - ylabel     [='result']     y-axis label
+  - xunit      [=None]         x-axis unit (string)
+  - yunit      [=None]         y-axis unit (string)
+  - zunit      [=None]         z-axis unit (string)
+  - xmin       [=None]         plot-window
+  - xmax       [=None]         plot-window
+  - ymin       [=None]         plot-window
+  - ymax       [=None]         plot-window
+  - include_origin [=False]    plot-window, if True, include the origin (0,0)
+  - include_xaxis [=False]     plot-window, if True, include y=0
+  - include_yaxis [=False]     plot-window, if True, include x=0
+  - legend     [=[]]           plot legend string(s)
+  - make_svg   [=False]        (legacy, ignore)
+
+  NB: Many subplot keywords (e.g. linestyle) may be specified as overall
+  keywords also. In that case, it becomes the default for subplots which
+  do not have this keyword specified explicitly. 
  """
 
   def __init__ (self, *args, **kwargs):
@@ -377,6 +376,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     # Overall parameters 
     ss = ['title','xlabel','ylabel','xunit','yunit','zunit']
     ss.extend(['xmin','xmax','ymin','ymax'])
+    ss.extend(['include_origin','include_xaxis','include_yaxis'])
     ss.extend(['offset'])                             # ....?
     ss.extend(['make_svg'])                           # ....?
     ss.extend(['legend'])                             # .. a special case ..
@@ -391,6 +391,9 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr.setdefault('xmax', None) 
     rr.setdefault('ymin', None) 
     rr.setdefault('ymax', None) 
+    rr.setdefault('include_origin', False)            # include (0,0)
+    rr.setdefault('include_xaxis', False)             # include y=0
+    rr.setdefault('include_yaxis', False)             # include x=0
     rr.setdefault('xunit', None) 
     rr.setdefault('yunit', None) 
     rr.setdefault('zunit', None) 
@@ -404,7 +407,6 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     ss.extend(['plot_sigma_bars','annotate','fontsize'])
     ss.extend(['ignore'])                           # ....?
     ss.extend(['plot_circle_mean','plot_ellipse_stddev'])
-    ss.extend(['include_origin','include_xaxis','include_yaxis'])
     self._pskeys['graphics'] = ss
 
     rr.setdefault('legend', [])                     # subplot legend
@@ -420,9 +422,6 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)        # plot circle around (0,0) with radius=mean
     rr.setdefault('plot_ellipse_stddev', False)     # plot ellipse around (mean) with radii=stddev
-    rr.setdefault('include_origin', False)          # include (0,0)
-    rr.setdefault('include_xaxis', False)           # include y=0
-    rr.setdefault('include_yaxis', False)           # include x=0
 
     # Deal with the plotspecs, dependent on their plot-type (e.g. graphics): 
     for plotype in self._plotypes:
@@ -932,9 +931,6 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                             fontsize=pd.fontsize,
                             plot_circle_mean=pd.plot_circle_mean,
                             plot_ellipse_stddev=pd.plot_ellipse_stddev,
-                            include_origin=pd.include_origin,
-                            include_xaxis=pd.include_xaxis,
-                            include_yaxis=pd.include_yaxis,
                             color=pd.color)
     grs.add(grs1)
 
@@ -955,7 +951,10 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
   if True:
     grs.kwupdate(**dict(xmin=rr['xmin'], xmax=rr['xmax'],
                         ymin=rr['ymin'], ymax=rr['ymax']))
-
+  if True:
+    grs.kwupdate(**dict(include_origin=rr['include_origin'],
+                        include_xaxis=rr['include_xaxis'],
+                        include_yaxis=rr['include_yaxis']))
 
   if trace:
     print '********* grs is ', grs
@@ -986,7 +985,7 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
 #=====================================================================================
 
 
-def pynode_Plot (ns, nodes, groupspecs=None,
+def pynode_Plot (ns, nodes=None, groupspecs=None,
                  plotspecs=None, labels=None,
                  nodename=None, quals=None, kwquals=None,
                  **kwargs):
@@ -1102,8 +1101,14 @@ def pynode_Plot (ns, nodes, groupspecs=None,
   qhelp.append('                    module_name='+str(__file__)+')')
   qhelp.append('')
   qhelp.append('   in which:')
-  qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
-  qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
+  if isinstance(nodes,(list,tuple)):
+    qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
+  else:
+    qhelp.append('       nodes = '+str(nodes))
+  if isinstance(labels,(list,tuple)):
+    qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
+  else:
+    qhelp.append('       nodes = '+str(nodes))
   qhelp.append('       ps (record) = '+str(ps))
   qhelp.append('       gs (record) = '+str(gs))
   qhelp.append('')

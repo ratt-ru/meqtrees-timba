@@ -65,6 +65,7 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
+from Timba.Contrib.JEN.pylab import PlotStyle as PPS
 
 import math
 # import random
@@ -145,6 +146,7 @@ TDLCompileMenu("QR_PyNodePlot topics:",
                        TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
                        TDLOption('opt_helpnode_PNP',"help on class PyNodePlot", False),
                        TDLOption('opt_helpnode_pynode_PNP',"help on pynode_Plot()", False),
+                       TDLOption('opt_helpnode_PNP_plotstyles',"help on PNP (pylab) plot-styles", False),
                        TDLOption('opt_helpnode_PNNG',"help on class PyNodeNodeGroups", False),
                        TDLOption('opt_helpnode_pynode_PNNG',"help on pynode_NamedGroup()", False),
                        toggle='opt_helpnodes'),
@@ -211,6 +213,8 @@ def make_helpnodes (ns, path, rider):
       cc.append(QRU.helpnode (ns, rr.path, rider, func=PNP.pynode_Plot))
       cc.append(QRU.helpnode(ns, rr.path, rider, func=PNP.string2plotspecs))
       cc.append(QRU.helpnode(ns, rr.path, rider, func=PNP.string2plotspecs_VIS22))
+   if override or opt_helpnode_PNP_plotstyles:
+      cc.append(QRU.helpnode (ns, rr.path, rider, func=PPS.PlotStyle))
 
    if override or opt_helpnode_PNNG:
       cc.append(QRU.helpnode (ns, rr.path, rider, func=PNNG.PyNodeNamedGroups))
@@ -581,28 +585,30 @@ def PyNodePlot_concat (ns, path, rider):
 def PyNodePlot_nonodes (ns, path, rider):
    """
    It is also possible to plot 'named groups' that do not contain the
-   results of child-nodes, but lists of values given directly. This opens
+   results of child-nodes, but (lists of) values given directly. This opens
    many new possibilities, from inserting explanatory plots into the
    meqbrowser, to inserting support information into node-result plots.
 
-   Four named groups (x,y,a,b) are specified via the groupspecs record:
-   .    gs = record(x=range(6), y=range(6), a=range(6), b=range(6))
+   In this example, four named groups (x,y,a,b) are specified via the
+   groupspecs record:
+   .    gs = record(x=range(2,8), y=range(2,8), a=range(2,8), b=range(2,8))
    .    pynode_xyab = PNNG.pynode_NamedGroup(ns, groupspecs=gs)
 
    NB: For simplicity, the python range() function is used to generate lists
-   of numbers: range(6) -> [0,1,2,3,4,5].
+   of numbers: range(2,8) -> [0,1,2,3,4,5].
 
-   The plots are now specified in the usual way. The simplest is a standard
-   plot that plots x={x} versus y={y}:
-   .    pynode = PNP.pynode_Plot(ns, pynode_xyab, 'XY')
-
-   More complicated plots may be specified with the plotspecs record:
+   The actual plots are specified by means of the plotspecs record:
    .    psg = [record(x='{x}',y='{y}', color='red', legend='yexpr'),
    .           record(x='{x}',y='{y}+{x}-2*({b}+{a}/2)', color='blue', legend='yexpr'),
    .           record(x='{x}',y='sin({a}*2)', color='green', legend='yexpr')]
-   .    ps = record(graphics=psg, xlabel='x-group', ylabel='see legend',
-   .                title='multiple plots (plotspecs=record)')
-   .    pynode = PNP.pynode_Plot(ns, pynode_xyab, plotspecs=ps)
+   .    ps = record(graphics=psg,
+   .                xlabel='x-group', ylabel='y (see legend)',
+   .                include_origin=True,
+   .                title='nonodes')
+
+   Finally, the PyNode is created without any nodes, but with gs and ps:
+   .    import PyNodePlot as PNP
+   .    pynode = PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps)
 
    See also the PyNodeNamedGroups topic 'nonodes' below. 
    """
@@ -610,22 +616,25 @@ def PyNodePlot_nonodes (ns, path, rider):
    cc = []
    viewer = []
 
-   gs = record(x=range(6), y=range(6), a=range(6), b=range(6))
-   cc.append(PNNG.pynode_NamedGroup(ns, range(5), groupspecs=gs))
-   viewer.append('Record Browser')
+   gs = record(x=range(2,8), y=range(2,8), a=range(2,8), b=range(2,8))
+   
+   psg = [record(x='{x}',y='{y}',
+                 linestyle='-',
+                 color='red', legend='yexpr'),
+          record(x='{x}',y='{y}+{x}-2*({b}+{a}/2)',
+                 linestyle='--', marker='+',
+                 color='blue', legend='yexpr'),
+          record(x='{x}',y='sin({a}*2)',
+                 linestyle=':', marker='triangle',
+                 color='green', legend='yexpr')]
+   ps = record(graphics=psg, xlabel='x-group', ylabel='y (see legend)',
+               include_origin=True,
+               title='nonodes')
 
-   cc.append(PNP.pynode_Plot(ns, cc, plotspecs='XY',
-                             color='red', xlabel='x', ylabel='y',
-                             title='standard plot (plotspecs=\'XY\')'))
-   viewer.append('Pylab Plotter')
-   
-   
-   psg = [record(x='{x}',y='{y}', color='red', legend='yexpr'),
-          record(x='{x}',y='{y}+{x}-2*({b}+{a}/2)', color='blue', legend='yexpr'),
-          record(x='{x}',y='sin({a}*2)', color='green', legend='yexpr')]
-   ps = record(graphics=psg, xlabel='x-group', ylabel='see legend',
-               title='multiple plots (plotspecs=record)')
-   cc.append(PNP.pynode_Plot(ns, cc, plotspecs=ps))
+   pynode = PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps)
+   cc.append(pynode)
+   viewer.append('Record Browser')
+   cc.append(pynode)
    viewer.append('Pylab Plotter')
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,

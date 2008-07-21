@@ -72,6 +72,9 @@ class Subplot (object):
         - ymin  [=None]: viewing window
         - ymax  [=None]: viewing window
         - rmax  [=None]: viewing window (polar)
+        - include_origin [=False]:
+        - include_xaxis [=False]:
+        - include_yaxis [=False]:
         """
 
         # self.fig = figure
@@ -84,6 +87,7 @@ class Subplot (object):
             keys = ['name','plot_mode','plot_type',
                     'title','xlabel','ylabel','xunit','yunit',
                     'xmin','xmax','ymin','ymax','rmax',
+                    'include_origin','include_xaxis','include_yaxis',
                     'plot_legend','plot_axis_labels']
             for key in keys:
                 if kwargs.has_key(key):
@@ -100,6 +104,9 @@ class Subplot (object):
         kw.setdefault('ymin',None)
         kw.setdefault('ymax',None)
         kw.setdefault('rmax',None)
+        kw.setdefault('include_origin',False)
+        kw.setdefault('include_xaxis',False)
+        kw.setdefault('include_yaxis',False)
 
         kw.setdefault('plot_mode', 'pylab')
         kw.setdefault('plot_type', 'plot')
@@ -210,11 +217,15 @@ class Subplot (object):
         return 0
 
     def yrange(self, margin=0.0, yrange=None):
-        """Placeholder: Return [min,max] of all y-coordinate(s)."""
+        """Placeholder: Return [min,max] of all y-coordinate(s).
+        Re-implemented in derived classes (e.g. Graphics)
+        """
         return [self._kw['ymin'],self._kw['ymax']]
 
     def xrange(self, margin=0.0, xrange=None):
-        """Placeholder: Return [min,max] of all x-coordinate(s)."""
+        """Placeholder: Return [min,max] of all x-coordinate(s).
+        Re-implemented in derived classes (e.g. Graphics)
+        """
         return [self._kw['xmin'],self._kw['xmax']]
 
     def title(self): return self._kw['title']
@@ -281,6 +292,9 @@ class Subplot (object):
         """Helper function to set the plot_window, using internal info"""
         
         # trace = True
+        if trace:
+            print '\n** set_plot_window(',margin,'):'
+            print '   self._kw =',self._kw
         
         if self._kw['plot_type']=='polar':
             [rmin,rmax] = self._range(self.yrange(), margin=margin,
@@ -292,6 +306,7 @@ class Subplot (object):
             # pylab.rgrids(rr, gridlabels, angle=-90.0)        # causes problems....
             if trace:
                 print '** set_plot_window(polar): rrange =',[rmin,rmax]
+
         else:
             [xmin,xmax] = self._range(self.xrange(), margin=margin,
                                       vmin=self._kw['xmin'],
@@ -299,10 +314,34 @@ class Subplot (object):
             [ymin,ymax] = self._range(self.yrange(), margin=margin,
                                       vmin=self._kw['ymin'],
                                       vmax=self._kw['ymax'])
+            [xmin, xmax] = self.adjust_xrange(xmin, xmax, trace=trace)
+            [ymin, ymax] = self.adjust_yrange(ymin, ymax, trace=trace)
             self._axob.axis([xmin, xmax, ymin, ymax])
             if trace:
                 print '** set_plot_window(): xrange =',[xmin,xmax],'  yrange =',[ymin,ymax]
         return True
+
+    #------------------------------------------------
+
+    def adjust_xrange(self, xmin, xmax, trace=False):
+        """Helper function"""
+        if (self._kw['include_origin'] or
+            self._kw['include_yaxis']):
+            xmin = min(xmin,0.0)
+            xmax = max(xmax,0.0)
+        if trace:
+            print '- xx =',xmin,xmax
+        return [xmin,xmax]
+
+    def adjust_yrange(self, ymin, ymax, trace=False):
+        """Helper function"""
+        if (self._kw['include_origin'] or
+            self._kw['include_xaxis']):
+            ymin = min(ymin,0.0)
+            ymax = max(ymax,0.0)
+        if trace:
+            print '- yy =',ymin,ymax
+        return [ymin,ymax]
 
     #------------------------------------------------
 
@@ -333,24 +372,19 @@ class Subplot (object):
         ss = self.legend()
         color = self._legend_color
 
-        if False:
-            # Does not take user-window into account...
-            [xmin,xmax] = self.xrange()
-            [ymin,ymax] = self.yrange()
-        else:
-            # Better....
-            [xmin,xmax] = self._range(self.xrange(), margin=0.1,
-                                      vmin=self._kw['xmin'],
-                                      vmax=self._kw['xmax'])
-            [ymin,ymax] = self._range(self.yrange(), margin=0.2,
-                                      vmin=self._kw['ymin'],
-                                      vmax=self._kw['ymax'])
+        [xmin,xmax] = self._range(self.xrange(), margin=0.1,
+                                  vmin=self._kw['xmin'],
+                                  vmax=self._kw['xmax'])
+        [ymin,ymax] = self._range(self.yrange(), margin=0.2,
+                                  vmin=self._kw['ymin'],
+                                  vmax=self._kw['ymax'])
             
-        if trace: print '- xx =',xmin,xmax
-        if trace: print '- yy =',ymin,ymax
+        [xmin, xmax] = self.adjust_xrange(xmin, xmax, trace=trace)
+        [ymin, ymax] = self.adjust_yrange(ymin, ymax, trace=trace)
         x = xmin + abs(xmax-xmin)/20.0
         dy = abs(ymax-ymin)/float(ny)
         y = ymax
+        y -= dy 
         for i,s in enumerate(ss):
             y -= dy
             if trace:

@@ -90,9 +90,6 @@ class PointsXY (object):
         kw.setdefault('plot_standalone', False)
         kw.setdefault('plot_ellipse_stddev', False)
         kw.setdefault('plot_circle_mean', False)
-        kw.setdefault('include_origin', False)
-        kw.setdefault('include_xaxis', False)
-        kw.setdefault('include_yaxis', False)
         kw.setdefault('quiver_scale', None)
         self._kw = kw
 
@@ -539,22 +536,11 @@ class PointsXY (object):
 
         
         # Make the window, if required, but AFTER the circles:
-        if ((margin>0.0) or
-            self._kw['include_origin'] or
-            self._kw['include_xaxis'] or
-            self._kw['include_yaxis']):
+        if margin>0.0:
 
             if self._kw['plot_type']=='plot':
                 [xmin,xmax] = self.xrange(margin=margin)
                 [ymin,ymax] = self.yrange(margin=margin)
-                if (self._kw['include_origin'] or
-                    self._kw['include_yaxis']):
-                    xmin = min(xmin,0.0)
-                    xmax = max(xmax,0.0)
-                if (self._kw['include_origin'] or
-                    self._kw['include_xaxis']):
-                    ymin = min(ymin,0.0)
-                    ymax = max(ymax,0.0)
                 self._axob.axis([xmin, xmax, ymin, ymax]) 
 
             elif self._kw['plot_type']=='polar':
