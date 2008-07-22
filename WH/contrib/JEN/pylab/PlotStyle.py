@@ -183,7 +183,7 @@ class PlotStyle (object):
         """Extract pylab.plot() keywords from kwargs"""
 
         trace = True
-        trace = False
+        # trace = False
         
         kw = dict()
         if isinstance(kwargs, dict):
@@ -343,7 +343,7 @@ class PlotStyle (object):
         # If only lines or markers are required, their style may be
         # specified via the 'style' keyword. If they are both required
         # the more specific 'marker' and 'linestyle' must be used.
-        if not kw['style'] or kw['marker'] or kw['linestyle']:
+        if not (kw['style'] or kw['marker'] or kw['linestyle']):
             kw['style'] = 'o'                   # in any case NOT a linestyle!
         if kw['style'] in self.line_styles():
             if not kw['linestyle']:
@@ -360,6 +360,8 @@ class PlotStyle (object):
         if ls=='dashed': kw['linestyle'] = '--'
         if ls=='dotted': kw['linestyle'] = ':'
         if ls=='dashdot': kw['linestyle'] = '-.'
+        if kw['linestyle']==None:
+            kw.__delitem__('linestyle')              # None gives an error...
 
         # Some local extensions to the pylab marker styles:
         ms = kw['marker']
@@ -378,14 +380,18 @@ class PlotStyle (object):
         if ms=='pentagon': kw['marker'] = 'p'
         if ms=='horizontal': kw['marker'] = '_'
         if ms=='vertical': kw['marker'] = '|'
+        if kw['marker']==None:
+            kw.__delitem__('marker')                # None gives an error...
 
         # Temporary kludge(s) to solve SVG poblems (still needed!):
-        if True:
+        if False:
+            if kw['marker']==None:
+                kw.__delitem__('marker')            # remove entirely (gives solid lines...)
             if kw['linestyle']==None:
                 s = '\n** .PlotStyle: temporary SVG kludge: '
-                kw['linestyle'] = '.'             # not recognized, ignored...  
+                kw['linestyle'] = '.'               # not recognized, ignored...  
                 # kw['linestyle'] = ':'             # dotted, safe for svg-Qt  
-                if False:
+                if True:
                     kw.__delitem__('linestyle')       # remove entirely (gives solid lines...)
                     print s,'deleted kw.linestyle'
                 else:

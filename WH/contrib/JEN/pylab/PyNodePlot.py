@@ -71,12 +71,19 @@ import Meow.Bookmarks
 
 # from Timba import pynode
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
+from Timba.Contrib.JEN.pylab import ChildResult
+from Timba.Contrib.JEN.pylab import Figure
+from Timba.Contrib.JEN.pylab import Graphics
+
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyBundle as EB
 
+
 import inspect
 import random
+import numpy
+
 # import pylab       # not here, but in the class....!
 
 
@@ -134,6 +141,8 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   - legend     [=[]]           subplot legend string(s)
   - annotate   [=True]         if True, annotate points with labels
   - fontsize   [=7]            annotation font size (points)
+  - label      [=None]         subplot label
+  - labelpos   ['right']       subplot label position
   - msmin      [=2]            min marker size (z-values)
   - msmax      [=20]           max marker size (z-values) 
   - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
@@ -405,6 +414,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     # These keys are used to transfer defaults to self._plotdefs:
     ss = ['color','linestyle','marker','markersize']
     ss.extend(['plot_sigma_bars','annotate','fontsize'])
+    ss.extend(['label','labelpos'])
     ss.extend(['ignore'])                           # ....?
     ss.extend(['plot_circle_mean','plot_ellipse_stddev'])
     self._pskeys['graphics'] = ss
@@ -419,6 +429,8 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr.setdefault('msmax',20)                       # max marker size (zmax)
     rr.setdefault('annotate', True)                 # do annotation
     rr.setdefault('fontsize', 7)                    # font size (points)
+    rr.setdefault('label', None)                    # subplot label
+    rr.setdefault('labelpos', 'right')              # label position
     rr.setdefault('plot_sigma_bars', True)          # plot error-bars
     rr.setdefault('plot_circle_mean', False)        # plot circle around (0,0) with radius=mean
     rr.setdefault('plot_ellipse_stddev', False)     # plot ellipse around (mean) with radii=stddev
@@ -717,46 +729,6 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
 
 
 
-  #-------------------------------------------------------------------
-
-  def define_subplots_obsolete (self, children, trace=False):
-    """
-    See .help() for details.
-    """
-    rr = self.plotspecs                         # convenience
-    # trace = True
-    if trace:
-      print '\n** .define_subplots():'
-
-    # The child result(s) are read by a special object: 
-    import ChildResult
-    rv = ChildResult.ResultVector(children,
-                                  extend_labels=True,
-                                  labels=rr.labels)
-    if trace:
-      rv.display(self.class_name)
-
-    # Create an empty subplot definition record, and initialize it:
-    sp = record()
-    for key in self._spkeys:
-      sp[key] = rr[key]
-
-    # Fill in the data from the child result(s):
-    sp.yy = rv.vv()
-    sp.dyy = None
-    if sp.plot_sigma_bars:
-      sp.dyy = rv.dvv()
-    sp.xx = rv.xx()
-    sp.dxx = None
-    sp.labels = rv.labels()
-
-    # Check and append the subplot definition:
-    self.check_and_append_subplot(sp, trace=trace)
-    if trace:
-      self.show_plotspecs('.define_subplots()')
-    return None
-
-
 
 
 
@@ -887,7 +859,7 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
     figob = pylab.figure()
        
   # Create an empty Graphics object:
-  import Graphics
+  # import Graphics
   grs = Graphics.Graphics(name="pylab_plot",
                           # plot_type='polar',     # does not work in svg...!
                           plot_grid=True,
@@ -925,6 +897,9 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                             annot=labels,
                             dyy=pd.dyy, dxx=pd.dxx,           
                             ignore=pd.ignore,
+                            style=None,             # Necessary! (Scatter sets default style....)
+                            plot_label=pd.label,
+                            labelpos=pd.labelpos,
                             linestyle=pd.linestyle,
                             marker=pd.marker,
                             markersize=pd.markersize,
@@ -956,13 +931,13 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                         include_xaxis=rr['include_xaxis'],
                         include_yaxis=rr['include_yaxis']))
 
-  if trace:
+  if True or trace:
     print '********* grs is ', grs
     print grs.oneliner()
-    # grs.display('pylab_plotter: make_plot()')
+    grs.display('pylab_plotter: make_plot()')
 
   # Use the JEN Figure class to make a pylab plot,
-  import Figure
+  # import Figure
   fig = Figure.Figure(nrow=1, ncol=1)   
   fig.add(grs)
   fig.make_plot(figob=figob, show=True, trace=trace)

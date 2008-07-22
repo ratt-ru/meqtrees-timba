@@ -85,6 +85,14 @@ TDLCompileMenu("QR_ionos topics:",
                                  "override: include all thinlayer sub-topics",False),
                        TDLOption('opt_thinlayer_altitude',"altitude (km)",
                                  [300,350,400,500,200], more=float),
+                       TDLOption('opt_thinlayer_Earth_radius',"Earth radius (km)",
+                                 [6370,1e3,1e4,1e9], more=float),
+                       TDLOption('opt_thinlayer_TEC0',"vertical TEC (TECU)",
+                                 [1.0,2.0,5.0,10.0,100.0,0.0], more=float),
+                       TDLOption('opt_thinlayer_wvl',"observing wavelength (m)",
+                                 [1.0,2.0,4.0,10.0,20.0,0.33,0.21], more=float),
+                       TDLOption('opt_thinlayer_bmax',"max baseline (km)",
+                                 [1000,100,30,10,3,1.0], more=float),
 
                        TDLMenu("TEC",
                                toggle='opt_thinlayer_TEC'),
@@ -172,6 +180,19 @@ def make_helpnodes (ns, path, rider):
 def thinlayer (ns, path, rider):
    """
    The simplest ionospheric model is a thin, uniform layer at a constant altitude.
+   It is fully characterized by two parameters: its altitude h (usually at a few
+   hundred km) and its vertical TEC (TECU), which is independent of Earth position (x,y).
+   The TEC from a given viewing position (x,y,z) is determined by the slant-angle of the
+   line-of-sight, i.e. the angle at which it intersects the thin layer. This leads to a
+   z-factor (>=1.0) with which TEC0 must be multiplied:   TEC(z) = z-factor * TEC0         
+
+   For a flat Earth, z-factor = sec(z), in which z is the zenith angle, and sec(z)=1/cos(z).
+
+   For a curved Earth surface (R=6370 km), z-factor = sec(asin(sin(z)*(R/(R+h)))).
+
+   The flat Earth formula gives a reasonable approximation for z<1 rad. The curved Earth
+   formula has the obvious advantage that the z-factor towards the horizon (z=pi/2) is
+   about 3.0 (for h=300 km), rather than infinite.
    """
    rr = QRU.on_entry(thinlayer, path, rider)
    cc = []
@@ -189,67 +210,112 @@ def thinlayer (ns, path, rider):
 
 def thinlayer_TEC (ns, path, rider):
    """
+   This topic shows a few (PyNodePlot) plots that fully describe the effects of a thin layer.
+   The user may experiment a little by varying the various parameters (h, TEC0, wvl, bmax).
    """
    rr = QRU.on_entry(thinlayer_TEC, path, rider)
    cc = []
    viewer = []
-   h = opt_thinlayer_altitude
-   TEC0 = 1.0
-   wvl = 1.0
+
+   h = float(opt_thinlayer_altitude)
+   R = float(opt_thinlayer_Earth_radius)
+   TEC0 = float(opt_thinlayer_TEC0)
+   wvl = float(opt_thinlayer_wvl)
+   bmax = float(opt_thinlayer_bmax)
 
    zmax = numpy.pi/2
    dz = zmax/30
-   zz = numpy.arange(0,dz+zmax,dz).tolist()
+   zz = numpy.arange(dz,dz+zmax,dz).tolist()
    zfz = []
    for z in zz:
-      zfz.append(zfactor_thin_layer (l=z, h=h, trace=False))
+      zfz.append(zfactor_thin_layer (l=z, h=h, R=R, trace=False))
 
-   xmax = 1000.0
-   dx = xmax/20
-   xx = numpy.arange(0,dx+xmax,dx).tolist()
+   dx = bmax/20
+   xx = numpy.arange(dx,dx+bmax,dx).tolist()
    ll = [0,0.5,1.0,1.5]
    pdiff = numpy.zeros([len(ll),len(xx)])
+   derr = numpy.zeros([len(ll),len(xx)])
+   zfx = numpy.zeros([len(ll),len(xx)])
+   psf = numpy.zeros([len(ll),len(xx)])
+   rad2arcmin = 60.0*180.0/math.pi
+   derrmax = 0.0
    for j,l in enumerate(ll):
-      zfx = []
       for i,x in enumerate(xx):
-         zf = zfactor_thin_layer (x=x, l=l, h=h, trace=False)
-         zfx.append(zf)
-         pdiff[j,i] = -25*wvl*TEC0*(zf-zfx[0])
+         zfx[j,i] = zfactor_thin_layer (x=x, l=l, h=h, R=R, trace=False)
+         pdiff[j,i] = -25*wvl*TEC0*(zfx[j,i]-zfx[j,0])
+         opd = -4*wvl*wvl*TEC0*(zfx[j,i]-zfx[j,0])       # pathlength diff (m)
+         if not x==0.0:
+            x_m = x*1000.0                               # x in meters
+            derr[j,i] = math.atan(opd/x_m)*rad2arcmin    # direction error
+            derrmax = max(derrmax,derr[j,i])
+            psf[j,i] = (wvl/x_m)*rad2arcmin              # resolution (width of psf) 
 
-   gs = record(zz=zz, xx=xx, zfz=zfz, zfx=zfx)
+   # Make the groupspecs record for all plots:
+   gs = record(zz=zz, xx=xx, zfz=zfz)
+   gs['psf'] = psf[0].tolist()
    for j,l in enumerate(ll):
+      gs['zfx'+str(j)] = zfx[j].tolist()
       gs['pdiff'+str(j)] = pdiff[j].tolist()
+      gs['derr'+str(j)] = derr[j].tolist()
 
-   psg = [record(y='{zfz}', x='{zz}', color='red')]
-   ps = record(graphics=psg,
-               linestyle='-',
-               title='thin layer @'+str(h)+'km, curved',
-               xlabel='zenith angle (rad)',
-               ylabel='z-factor')
-   cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
-
-   psg = [record(y='{zfx}', x='{xx}', color='magenta')]
-   ps = record(graphics=psg,
-               linestyle='--', marker=None,
-               title='thin layer @'+str(h)+'km, curved',
-               xlabel='baseline length (km)',
-               ylabel='z-factor')
-   cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
-
-
-   psg = []
-   for j,l in enumerate(ll):
-      psg.append(record(y='{pdiff'+str(j)+'}', x='{xx}',
-                        color='blue', legend='z='+str(l)+'rad'))
+   # The legend for wavelength-independent plots:
    legend = ['thin layer altitude ='+str(h)+' km',
-             'TEC0 = '+str(TEC0)+' TECU',
-             'wavelength = '+str(wvl)+ 'm']
-   ps = record(graphics=psg,
-               linestyle='--', legend=legend,
-               title='non-linear "refraction"',
-               xlabel='baseline length (km)',
-               ylabel='phase-diff (rad)')
-   cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
+             'Earth radius = '+str(R)+' km',
+             'Vertical TEC: TEC0 = '+str(TEC0)+' TECU']
+
+   if True:
+      psg = [record(y='{zfz}', x='{zz}', color='red',
+                    marker=None, linestyle='-')]
+      ps = record(graphics=psg, legend=legend,
+                  title='z-factor as a function of zdir',
+                  xlabel='zenith angle (rad)',
+                  ylabel='z-factor')
+      cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
+
+   if True:
+      psg = []
+      for j,l in enumerate(ll):
+         psg.append(record(y='{zfx'+str(j)+'}', x='{xx}', color='magenta',
+                           marker=None, linestyle='-',
+                           label='z='+str(l)+' rad'))
+      ps = record(graphics=psg, legend=legend,
+                  title='z-factor as a function of xpos',
+                  xlabel='baseline length (km)',
+                  ylabel='z-factor')
+      cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
+
+
+   # Append wavelength-dependent legend(s):
+   legend.append('wavelength = '+str(wvl)+ 'm')
+
+   if True:
+      psg = []
+      for j,l in enumerate(ll):
+         psg.append(record(y='{pdiff'+str(j)+'}', x='{xx}', color='blue',
+                           marker=None, linestyle='-',
+                           label='z='+str(l)+' rad'))
+      ps = record(graphics=psg, legend=legend,
+                  title='ionospheric phase-diff',
+                  xlabel='baseline length (km)',
+                  ylabel='phase-diff (rad)')
+      cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
+
+   if True:
+      psg = []
+      for j,l in enumerate(ll):
+         psg.append(record(y='{derr'+str(j)+'}', x='{xx}', color='red',
+                           marker=None, linestyle='-',
+                           label='z='+str(l)+' rad'))
+      psg.append(record(y='{psf}', x='{xx}', color='blue',
+                        marker=None, linestyle='--',
+                        ignore='{psf}>'+str(derrmax),
+                        legend='PSF width (resolution)'))
+      ps = record(graphics=psg, legend=legend,
+                  title='baseline-dependent "refraction"',
+                  xlabel='baseline length (km)',
+                  ylabel='direction err (arcmin)')
+      cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
+
 
    return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
@@ -305,7 +371,7 @@ def GPS (ns, path, rider):
 #********************************************************************************
 
 def zfactor_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
-                        h=300, trace=False):
+                        h=300, R=6370.0, trace=False):
    """
    Return the z-factor for a uniform thin layer at altitude h (km),
    for a given position (x,y,z) km, in a given direction (l,m) rad
@@ -313,7 +379,6 @@ def zfactor_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
    The z-factor is the factor with which the excess path length L0
    (and thus the TEC0) for the zenith have to be multiplied. 
    """
-   R = 6370.0                        # Earth Radius (km)
    zlocal = local_zenith_angle (x=x, y=y, z=z, l=l, m=m, R=R, trace=trace)
    zfactor = 1.0/math.cos(math.asin(math.sin(zlocal)*R/(R+h)))
    if trace:

@@ -77,6 +77,7 @@ class PointsXY (object):
         if isinstance(kwargs, dict):
             keys = ['plot_type','plot_mode','plot_naked',
                     'plot_ellipse_stddev','plot_circle_mean',
+                    'plot_label','labelpos',
                     'quiver_scale',
                     'auto_legend','plot_standalone']
             for key in keys:
@@ -87,6 +88,8 @@ class PointsXY (object):
         kw.setdefault('plot_naked', False)
         kw.setdefault('auto_legend', False)           # <--- !!
         kw.setdefault('plot_grid', True)
+        kw.setdefault('plot_label', None)
+        kw.setdefault('labelpos', 'right')
         kw.setdefault('plot_standalone', False)
         kw.setdefault('plot_ellipse_stddev', False)
         kw.setdefault('plot_circle_mean', False)
@@ -578,7 +581,7 @@ class PointsXY (object):
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
         trace = False
-        # trace = True
+        trace = True
         
         ptype = self._kw['plot_type']
         if trace:
@@ -711,6 +714,7 @@ class PointsXY (object):
         if trace:
             print '\n** annotate(): kwargs(text) =',kwargs
             print '  annot =',self._annot
+
         for i in range(self.len()):
             if not self._annot[i]==None:              # ignore if None
                 x = self._xx[i]
@@ -719,6 +723,19 @@ class PointsXY (object):
                 if trace:
                     print '-',i,':',s,'  x,y =',x,y
                 self._axob.text(x,y, s, **kwargs)
+
+        # Plot the label, if specified:
+        label = self._kw['plot_label']
+        if isinstance(label,str):
+            n = len(self._xx)-1
+            x = self._xx[n]
+            y = self._yy[n]
+            s = '.  '+str(label)
+            if trace:
+                print '- plot_label:',s,'  x,y =',x,y
+            self._axob.text(x,y, s, **kwargs)
+
+        # Finished:
         if trace: print
         return True
 
