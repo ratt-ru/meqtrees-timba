@@ -316,7 +316,8 @@ class PyNodeNamedGroups (pynode.PyNode):
     """
     Helper function to check the user-specified groupspecs.
     """
-    trace = True
+    # trace = True
+    
     if trace:
       self.display('_check_groupspecs() input')
 
@@ -351,7 +352,7 @@ class PyNodeNamedGroups (pynode.PyNode):
 
   #-------------------------------------------------------------------
 
-  def _check_groupspec(self, rr, trac=True):
+  def _check_groupspec(self, rr, trac=False):
     """
     Helper function to check the validity of the given group
     specification (rr), which will be used to extract information
@@ -417,6 +418,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     """
 
     # trace = True
+    
     if trace:
       print '\n** _extract_namedgroups():'
     

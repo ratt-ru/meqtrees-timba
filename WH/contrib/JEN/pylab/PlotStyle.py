@@ -183,7 +183,7 @@ class PlotStyle (object):
         """Extract pylab.plot() keywords from kwargs"""
 
         trace = True
-        # trace = False
+        trace = False
         
         kw = dict()
         if isinstance(kwargs, dict):
@@ -341,62 +341,55 @@ class PlotStyle (object):
         kw = self._kw['plot']                   # convenience
 
         # If only lines or markers are required, their style may be
-        # specified via the 'style' keyword. If they are both required
-        # the more specific 'marker' and 'linestyle' must be used.
-        if not (kw['style'] or kw['marker'] or kw['linestyle']):
-            kw['style'] = 'o'                   # in any case NOT a linestyle!
-        if kw['style'] in self.line_styles():
-            if not kw['linestyle']:
-                kw['linestyle'] = kw['style']
-        elif kw['style'] in self.marker_styles():
-            if not kw['marker']:
-                kw['marker'] = kw['style']
-                kw['linestyle'] = None
-        kw.__delitem__('style')            # not recognized by pylab.plot(): delete
+        # specified in shorthand via the 'style' keyword.
+        # If they are both required the more specific 'marker' and
+        # 'linestyle' must be used.
 
-        # Some local extensions to the pylab linestyles:
-        ls = kw['linestyle']
-        if ls=='solid': kw['linestyle'] = '-'
-        if ls=='dashed': kw['linestyle'] = '--'
-        if ls=='dotted': kw['linestyle'] = ':'
-        if ls=='dashdot': kw['linestyle'] = '-.'
+        if kw['marker'] or kw['linestyle']:
+            kw['style'] = None
+        elif kw['style']==None:
+            kw['style'] = 'o'
+
+        if kw['style']:
+            if kw['style'] in self.line_styles():
+                if not kw['linestyle']:
+                    kw['linestyle'] = kw['style']
+            elif kw['style'] in self.marker_styles():
+                if not kw['marker']:
+                    kw['marker'] = kw['style']
+        kw.__delitem__('style')         # not recognized by pylab.plot(): delete
+
+
+        # Deal with local extensions to the pylab linestyles:
+        ls = kw['linestyle']                         # convenience
+        if ls:
+            if ls=='solid': kw['linestyle'] = '-'
+            if ls=='dashed': kw['linestyle'] = '--'
+            if ls=='dotted': kw['linestyle'] = ':'
+            if ls=='dashdot': kw['linestyle'] = '-.'
         if kw['linestyle']==None:
-            kw.__delitem__('linestyle')              # None gives an error...
+            kw.__delitem__('linestyle')              # None-value gives an error...
 
-        # Some local extensions to the pylab marker styles:
-        ms = kw['marker']
-        if ms=='circle': kw['marker'] = 'o'
-        if ms=='triangle': kw['marker'] = '^'
-        if ms=='square': kw['marker'] = 's'
-        if ms=='plus': kw['marker'] = '+'
-        if ms=='cross': kw['marker'] = 'x'
-        if ms=='diamond': kw['marker'] = 'D'
-        if ms=='thindiamond': kw['marker'] = 'd'
-        if ms=='tripod': kw['marker'] = '1'
-        if ms=='tripod_down': kw['marker'] = '2'
-        if ms=='tripod_left': kw['marker'] = '3'
-        if ms=='tripod_right': kw['marker'] = '4'
-        if ms=='hexagon': kw['marker'] = 'h'
-        if ms=='pentagon': kw['marker'] = 'p'
-        if ms=='horizontal': kw['marker'] = '_'
-        if ms=='vertical': kw['marker'] = '|'
+        # Deal with local extensions to the pylab marker styles:
+        ms = kw['marker']                            # convenience
+        if ms:
+            if ms=='circle': kw['marker'] = 'o'
+            if ms=='triangle': kw['marker'] = '^'
+            if ms=='square': kw['marker'] = 's'
+            if ms=='plus': kw['marker'] = '+'
+            if ms=='cross': kw['marker'] = 'x'
+            if ms=='diamond': kw['marker'] = 'D'
+            if ms=='thindiamond': kw['marker'] = 'd'
+            if ms=='tripod': kw['marker'] = '1'
+            if ms=='tripod_down': kw['marker'] = '2'
+            if ms=='tripod_left': kw['marker'] = '3'
+            if ms=='tripod_right': kw['marker'] = '4'
+            if ms=='hexagon': kw['marker'] = 'h'
+            if ms=='pentagon': kw['marker'] = 'p'
+            if ms=='horizontal': kw['marker'] = '_'
+            if ms=='vertical': kw['marker'] = '|'
         if kw['marker']==None:
-            kw.__delitem__('marker')                # None gives an error...
-
-        # Temporary kludge(s) to solve SVG poblems (still needed!):
-        if False:
-            if kw['marker']==None:
-                kw.__delitem__('marker')            # remove entirely (gives solid lines...)
-            if kw['linestyle']==None:
-                s = '\n** .PlotStyle: temporary SVG kludge: '
-                kw['linestyle'] = '.'               # not recognized, ignored...  
-                # kw['linestyle'] = ':'             # dotted, safe for svg-Qt  
-                if True:
-                    kw.__delitem__('linestyle')       # remove entirely (gives solid lines...)
-                    print s,'deleted kw.linestyle'
-                else:
-                    # print s,' avoided linestyle=None ->',kw['linestyle']
-                    pass
+            kw.__delitem__('marker')                # None-value gives an error...
 
         return True
 
@@ -430,10 +423,13 @@ class PlotStyle (object):
         for key in ['color','markerfacecolor','markeredgecolor']:
             color = kw[key]
             # Make sure that color is valid:
-            if not color in cc: kw[key] = 'yellow'
+            if not color in cc:
+                kw[key] = 'yellow'
             # Some have to be translated to pylab colors:
-            if color=='grey': kw[key] = 'gray'
-            if color in ['lightgrey','lightgray']: kw[key] = 0.1   # 0.0<grayscale<1.0
+            if color=='grey':
+                kw[key] = 'gray'
+            if color in ['lightgrey','lightgray']:
+                kw[key] = 0.1   # 0.0<grayscale<1.0
         return True
 
     #---------------------------------------------------------

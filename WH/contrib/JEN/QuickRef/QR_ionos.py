@@ -87,12 +87,15 @@ TDLCompileMenu("QR_ionos topics:",
                                  [300,350,400,500,200], more=float),
                        TDLOption('opt_thinlayer_Earth_radius',"Earth radius (km)",
                                  [6370,1e3,1e4,1e9], more=float),
-                       TDLOption('opt_thinlayer_TEC0',"vertical TEC (TECU)",
-                                 [1.0,2.0,5.0,10.0,100.0,0.0], more=float),
+                       TDLOption('opt_thinlayer_vTEC',"vertical TEC (TECU)",
+                                 ['1','2','5','10','100','0',
+                                  '1+0.5*numpy.cos(0.001*{x}+1.0)'], more=str),
                        TDLOption('opt_thinlayer_wvl',"observing wavelength (m)",
                                  [1.0,2.0,4.0,10.0,20.0,0.33,0.21], more=float),
                        TDLOption('opt_thinlayer_bmax',"max baseline (km)",
-                                 [1000,100,30,10,3,1.0], more=float),
+                                 [1000,100,30,10,3,1.0,0.1,0.01], more=float),
+                       TDLOption('opt_thinlayer_zdir',"zenith angle variation direction",
+                                 ['l','m']),
 
                        TDLMenu("TEC",
                                toggle='opt_thinlayer_TEC'),
@@ -164,7 +167,6 @@ def make_helpnodes (ns, path, rider):
    
    override = opt_alltopics
    cc = []
-   zz = numpy.arange(0,math.pi,math.pi/20)     # does NOT include math.pi itself
 
    if override or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
@@ -219,52 +221,71 @@ def thinlayer_TEC (ns, path, rider):
 
    h = float(opt_thinlayer_altitude)
    R = float(opt_thinlayer_Earth_radius)
-   TEC0 = float(opt_thinlayer_TEC0)
+   vTEC = opt_thinlayer_vTEC
    wvl = float(opt_thinlayer_wvl)
    bmax = float(opt_thinlayer_bmax)
+   zdir = opt_thinlayer_zdir
 
    zmax = numpy.pi/2
    dz = zmax/30
-   zz = numpy.arange(dz,dz+zmax,dz).tolist()
+   zzang = numpy.arange(0.0,dz+zmax,dz).tolist()
    zfz = []
-   for z in zz:
-      zfz.append(zfactor_thin_layer (l=z, h=h, R=R, trace=False))
+   for z in zzang:
+      # NB: zdir should make no difference here ....
+      if zdir=='m':
+         zfz.append(zfactor_thin_layer (m=z, h=h, R=R, trace=False))
+      else:
+         zfz.append(zfactor_thin_layer (l=z, h=h, R=R, trace=False))
 
    dx = bmax/20
-   xx = numpy.arange(dx,dx+bmax,dx).tolist()
-   ll = [0,0.5,1.0,1.5]
-   pdiff = numpy.zeros([len(ll),len(xx)])
-   derr = numpy.zeros([len(ll),len(xx)])
-   zfx = numpy.zeros([len(ll),len(xx)])
-   psf = numpy.zeros([len(ll),len(xx)])
+   xx = numpy.arange(0.001,dx+bmax,dx).tolist()
+   zz = [0,0.5,1.0,1.5]
+   # zz.extend([-0.5,-1.0,-1.5])                # testing only
+   pdiff = numpy.zeros([len(zz),len(xx)])
+   derr = numpy.zeros([len(zz),len(xx)])
+   zfx = numpy.zeros([len(zz),len(xx)])
+   psf = numpy.zeros([len(zz),len(xx)])
+   vTECx = numpy.zeros(len(xx))
    rad2arcmin = 60.0*180.0/math.pi
+   derrmin = 0.0
    derrmax = 0.0
-   for j,l in enumerate(ll):
+   for j,z in enumerate(zz):
+      if zdir=='m':
+         zfx0 = zfactor_thin_layer (x=0, m=z, h=h, R=R, trace=False)
+      else:
+         zfx0 = zfactor_thin_layer (x=0, l=z, h=h, R=R, trace=False)
       for i,x in enumerate(xx):
-         zfx[j,i] = zfactor_thin_layer (x=x, l=l, h=h, R=R, trace=False)
-         pdiff[j,i] = -25*wvl*TEC0*(zfx[j,i]-zfx[j,0])
-         opd = -4*wvl*wvl*TEC0*(zfx[j,i]-zfx[j,0])       # pathlength diff (m)
+         if zdir=='m':
+            zfx[j,i] = zfactor_thin_layer (x=x, m=z, h=h, R=R, trace=False)
+         else:
+            zfx[j,i] = zfactor_thin_layer (x=x, l=z, h=h, R=R, trace=False)
+         vTECx[i] = vertical_TEC(vTEC, x=x, trace=False)
+         pdiff[j,i] = -25*wvl*vTECx[i]*(zfx[j,i]-zfx0)       # phase diff
+         opd = -4*wvl*wvl*vTECx[i]*(zfx[j,i]-zfx0)           # pathlength diff (m)
          if not x==0.0:
-            x_m = x*1000.0                               # x in meters
-            derr[j,i] = math.atan(opd/x_m)*rad2arcmin    # direction error
+            x_m = x*1000.0                                # x in meters
+            derr[j,i] = math.atan(opd/x_m)*rad2arcmin     # direction error
+            derrmin = min(derrmin,derr[j,i])
             derrmax = max(derrmax,derr[j,i])
-            psf[j,i] = (wvl/x_m)*rad2arcmin              # resolution (width of psf) 
+            psf[j,i] = (wvl/x_m)*rad2arcmin               # resolution (width of psf) 
+
+   psfmin = psf.min()
+   psf = psf.clip(min=derrmin, max=derrmax)
 
    # Make the groupspecs record for all plots:
-   gs = record(zz=zz, xx=xx, zfz=zfz)
+   gs = record(zzang=zzang, xx=xx, zfz=zfz, vtecx=vTECx.tolist())
    gs['psf'] = psf[0].tolist()
-   for j,l in enumerate(ll):
+   for j,z in enumerate(zz):
       gs['zfx'+str(j)] = zfx[j].tolist()
       gs['pdiff'+str(j)] = pdiff[j].tolist()
       gs['derr'+str(j)] = derr[j].tolist()
 
    # The legend for wavelength-independent plots:
    legend = ['thin layer altitude ='+str(h)+' km',
-             'Earth radius = '+str(R)+' km',
-             'Vertical TEC: TEC0 = '+str(TEC0)+' TECU']
+             'Earth radius = '+str(R)+' km']
 
    if True:
-      psg = [record(y='{zfz}', x='{zz}', color='red',
+      psg = [record(y='{zfz}', x='{zzang}', color='red',
                     marker=None, linestyle='-')]
       ps = record(graphics=psg, legend=legend,
                   title='z-factor as a function of zdir',
@@ -272,12 +293,18 @@ def thinlayer_TEC (ns, path, rider):
                   ylabel='z-factor')
       cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
+   legend.append('variation of zenith angle in '+str(zdir)+' direction')
+   legend.append('vertical TEC = '+str(vTEC)+' TECU')
+
    if True:
       psg = []
-      for j,l in enumerate(ll):
+      for j,z in enumerate(zz):
          psg.append(record(y='{zfx'+str(j)+'}', x='{xx}', color='magenta',
                            marker=None, linestyle='-',
-                           label='z='+str(l)+' rad'))
+                           label=zdir+'='+str(z)+' rad'))
+      psg.append(record(y='{vtecx}', x='{xx}', color='cyan',
+                        marker=None, linestyle='-',
+                        label='vTECx'))
       ps = record(graphics=psg, legend=legend,
                   title='z-factor as a function of xpos',
                   xlabel='baseline length (km)',
@@ -285,15 +312,14 @@ def thinlayer_TEC (ns, path, rider):
       cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
 
-   # Append wavelength-dependent legend(s):
    legend.append('wavelength = '+str(wvl)+ 'm')
 
    if True:
       psg = []
-      for j,l in enumerate(ll):
+      for j,z in enumerate(zz):
          psg.append(record(y='{pdiff'+str(j)+'}', x='{xx}', color='blue',
                            marker=None, linestyle='-',
-                           label='z='+str(l)+' rad'))
+                           label=zdir+'='+str(z)+' rad'))
       ps = record(graphics=psg, legend=legend,
                   title='ionospheric phase-diff',
                   xlabel='baseline length (km)',
@@ -302,18 +328,23 @@ def thinlayer_TEC (ns, path, rider):
 
    if True:
       psg = []
-      for j,l in enumerate(ll):
+      for j,z in enumerate(zz):
          psg.append(record(y='{derr'+str(j)+'}', x='{xx}', color='red',
                            marker=None, linestyle='-',
-                           label='z='+str(l)+' rad'))
-      psg.append(record(y='{psf}', x='{xx}', color='blue',
-                        marker=None, linestyle='--',
-                        ignore='{psf}>'+str(derrmax),
-                        legend='PSF width (resolution)'))
+                           label=zdir+'='+str(z)+' rad'))
+      if True:
+         s = 'PSF width (wvl/baseline)'
+         if psfmin>derrmin:
+            s += ' (min='+EN.format_value(psfmin)+'arcmin)'
+            legend.append(s)
+         else:
+            psg.append(record(y='{psf}', x='{xx}', color='blue',
+                              marker=None, linestyle='--', legend=s))
+
       ps = record(graphics=psg, legend=legend,
-                  title='baseline-dependent "refraction"',
-                  xlabel='baseline length (km)',
-                  ylabel='direction err (arcmin)')
+                  title='baseline-dependent ionos. "refraction"',
+                  xlabel='baseline length (x-0) (km)',
+                  ylabel='source shift (arcmin)')
       cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
 
@@ -369,6 +400,27 @@ def GPS (ns, path, rider):
 #********************************************************************************
 # Helper functions
 #********************************************************************************
+
+def vertical_TEC (expr='1', x=0, y=0, t=0, trace=False):
+   """
+   Calculate the vertical TEC at position (x,y).
+   """
+   seval = None
+   try: 
+      TEC = float(expr)
+   except:
+      seval = expr.replace('{x}',str(x))
+      seval = seval.replace('{y}',str(y))
+      try:
+         TEC = eval(seval)
+      except:
+         s = '** seval = '+seval
+         raise ValueError,s
+   if trace:
+      print '** vertical_TEC (',expr,', x=',x,', y=',y,') ->',TEC,' (',seval,')'
+   return TEC
+
+#-------------------------------------------------------------------------------
 
 def zfactor_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
                         h=300, R=6370.0, trace=False):
@@ -516,12 +568,16 @@ if __name__ == '__main__':
       local_zenith_angle(y=100, trace=True)
       local_zenith_angle(y=100, z=100, trace=True)
 
-   if 1:
+   if 0:
       zfactor_thin_layer(trace=True)
       for L in [0,0.01,0.1,0.2,0.5,1]:
          zfactor_thin_layer(l=L, trace=True)
       for x in [0,1,10,100,1000]:
          zfactor_thin_layer(x=x, trace=True)
+
+   if 1:
+      vertical_TEC (trace=True)
+      vertical_TEC ('numpy.cos({x})+math.sin({y})', x=2.3, y=0.1, trace=True)
             
    print '\n** End of standalone test of: QR_ionos.py:\n' 
 

@@ -931,7 +931,7 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
                         include_xaxis=rr['include_xaxis'],
                         include_yaxis=rr['include_yaxis']))
 
-  if True or trace:
+  if trace:
     print '********* grs is ', grs
     print grs.oneliner()
     grs.display('pylab_plotter: make_plot()')

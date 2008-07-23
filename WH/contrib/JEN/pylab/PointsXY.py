@@ -204,16 +204,16 @@ class PointsXY (object):
             elif not len(annot)==ny:
                 annot = ny*[None]
 
-            print '\n** ignore (before) =',ignore
+            # print '\n** ignore (before) =',ignore
             if not isinstance(ignore, list):
                 ignore = ny*[False]
             elif not len(ignore)==ny:
                 ignore = ny*[False]
-            print '\n** ignore (after) =',ignore
+            # print '\n** ignore (after) =',ignore
 
             # OK: append the points one by one:
             for i,y1 in enumerate(y):
-                if True or trace:
+                if trace:
                     print '-',i,ignore[i],': (x,y)=',x[i],y[i],annot[i],' (dx,dy)=',dx[i],dy[i]
                 if not ignore[i]:
                     self.append (y=y[i], annot=annot[i], 
@@ -581,7 +581,7 @@ class PointsXY (object):
         pylab plot (plot, loglog, semilogy, semilogx etc).
         """
         trace = False
-        trace = True
+        # trace = True
         
         ptype = self._kw['plot_type']
         if trace:
@@ -666,6 +666,7 @@ class PointsXY (object):
         """
         trace = False
         # trace = True
+        
         if trace:
             print self._axob.quiver.func_doc
             print '** plot_quiver(): ',self.oneliner()
