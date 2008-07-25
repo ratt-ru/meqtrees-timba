@@ -111,19 +111,47 @@ class QuickRefPlotter(GriddedPlugin):
     _dprint(3, '** in quickref_plotter:set_data callback')
     self._rec = dataitem.data;
     _dprint(3, 'set_data: initial self._rec ', self._rec)
+    if not isinstance(self._rec,record):
+      print '\n** self.rec not a record, but:',type(self._rec)
+    elif not self._rec.has_key("quickref_help"):
+      print '\n** self.rec does not have quickref_help field'
+    else:
+      qh = self._rec.quickref_help
+      print '\n** self.rec.quickref_help:',type(qh)
+      if isinstance(qh,str):
+        self.create_layout_stuff()
+        self.QTextEdit.setText(qh)
+        self.QTextEdit.show()
+    return
+
+
+
+  def set_data_obsolete (self,dataitem,default_open=None,**opts):
+    """ this callback receives data from the meqbrowser, when the
+        user has requested a QuickRef display . If there is a 
+        'quickref_help' record it will be shown via a QTextEdit 
+        widget in the browser """
+
+    _dprint(3, '** in quickref_plotter:set_data_obsolete callback')
+    self._rec = dataitem.data;
+    _dprint(3, 'set_data: initial self._rec ', self._rec)
     if self._rec is None:
       return
     if isinstance(self._rec, bool):
       return
     if self._rec.has_key("quickref_help"):
+      qh = self._rec.quickref_help['help']
+      print '\n** qh =',type(qh),':',qh
       Message = ""
       try:
-        for i in range(len(self._rec.quickref_help)):
-          text = str(self._rec.quickref_help[i])
+        for i in range(len(qh)):
+          text = str(qh[i])
+          print '-',i,':',text
           if not text is None:
             Message = Message + text +"\n"
       except:
-          pass
+        print 'exception'  
+        pass
       if len(Message) > 0:
         # create widgets 
         self.create_layout_stuff()
