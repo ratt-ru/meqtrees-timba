@@ -87,9 +87,13 @@ TDLCompileMenu("QR_ionos topics:",
                                  [300,350,400,500,200], more=float),
                        TDLOption('opt_thinlayer_Earth_radius',"Earth radius (km)",
                                  [6370,1e3,1e4,1e9], more=float),
-                       TDLOption('opt_thinlayer_vTEC',"vertical TEC (TECU)",
-                                 ['1','2','5','10','100','0',
-                                  '1+0.5*numpy.cos(0.001*{x}+1.0)'], more=str),
+                       TDLOption('opt_thinlayer_vTEC0',"vertical TEC0 (TECU)",
+                                 [1,2,5,10,100,0.0], more=float),
+                       TDLOption('opt_thinlayer_vTECxy',"vertical TECxy (TECU)",
+                                 [None,
+                                  '0.1*numpy.cos(0.01*{x}+0.5)',
+                                  '0.1*numpy.cos(0.1*{x}+0.5)'],
+                                 more=str),
                        TDLOption('opt_thinlayer_wvl',"observing wavelength (m)",
                                  [1.0,2.0,4.0,10.0,20.0,0.33,0.21], more=float),
                        TDLOption('opt_thinlayer_bmax',"max baseline (km)",
@@ -213,7 +217,19 @@ def thinlayer (ns, path, rider):
 def thinlayer_TEC (ns, path, rider):
    """
    This topic shows a few (PyNodePlot) plots that fully describe the effects of a thin layer.
-   The user may experiment a little by varying the various parameters (h, TEC0, wvl, bmax).
+   The latter has a constant altitude, but the vertical TEC may vary with (x,y)-position.
+   The user may experiment a little by varying the various parameters (h, TEC0, TECxy, wvl, bmax).
+
+   The left panels show the value of the z-factor (see above) as a function of zenith angle (top)
+   and x-position (bottom). The latter also shows the vertical TEC as a function of x-pos.
+
+   The top right panel shows the ionospheric phase-difference between positions x=0 and x=x,
+   when looking at a source in direction l or m (i.e. the zenith angle @ x=0, along the x or y axis).
+   Note that the linear part represents ionospheric refraction (i.e. a source shift), while any
+   curvature causes the source to deform.
+
+   The bottom right panel shows the source shift as a function of baseline length....
+   
    """
    rr = QRU.on_entry(thinlayer_TEC, path, rider)
    cc = []
@@ -221,7 +237,8 @@ def thinlayer_TEC (ns, path, rider):
 
    h = float(opt_thinlayer_altitude)
    R = float(opt_thinlayer_Earth_radius)
-   vTEC = opt_thinlayer_vTEC
+   vTEC0 = float(opt_thinlayer_vTEC0)
+   vTECxy = opt_thinlayer_vTECxy
    wvl = float(opt_thinlayer_wvl)
    bmax = float(opt_thinlayer_bmax)
    zdir = opt_thinlayer_zdir
@@ -245,7 +262,7 @@ def thinlayer_TEC (ns, path, rider):
    derr = numpy.zeros([len(zz),len(xx)])
    zfx = numpy.zeros([len(zz),len(xx)])
    psf = numpy.zeros([len(zz),len(xx)])
-   vTECx = numpy.zeros(len(xx))
+   vTEC = numpy.zeros(len(xx))
    rad2arcmin = 60.0*180.0/math.pi
    derrmin = 0.0
    derrmax = 0.0
@@ -259,9 +276,9 @@ def thinlayer_TEC (ns, path, rider):
             zfx[j,i] = zfactor_thin_layer (x=x, m=z, h=h, R=R, trace=False)
          else:
             zfx[j,i] = zfactor_thin_layer (x=x, l=z, h=h, R=R, trace=False)
-         vTECx[i] = vertical_TEC(vTEC, x=x, trace=False)
-         pdiff[j,i] = -25*wvl*vTECx[i]*(zfx[j,i]-zfx0)       # phase diff
-         opd = -4*wvl*wvl*vTECx[i]*(zfx[j,i]-zfx0)           # pathlength diff (m)
+         vTEC[i] = vertical_TEC(vTECxy, x=x, TEC0=vTEC0)  # evaluate
+         pdiff[j,i] = -25*wvl*vTEC[i]*(zfx[j,i]-zfx0)       # phase diff
+         opd = -4*wvl*wvl*vTEC[i]*(zfx[j,i]-zfx0)           # pathlength diff (m)
          if not x==0.0:
             x_m = x*1000.0                                # x in meters
             derr[j,i] = math.atan(opd/x_m)*rad2arcmin     # direction error
@@ -273,7 +290,7 @@ def thinlayer_TEC (ns, path, rider):
    psf = psf.clip(min=derrmin, max=derrmax)
 
    # Make the groupspecs record for all plots:
-   gs = record(zzang=zzang, xx=xx, zfz=zfz, vtecx=vTECx.tolist())
+   gs = record(zzang=zzang, xx=xx, zfz=zfz, vtec=vTEC.tolist())
    gs['psf'] = psf[0].tolist()
    for j,z in enumerate(zz):
       gs['zfx'+str(j)] = zfx[j].tolist()
@@ -294,7 +311,7 @@ def thinlayer_TEC (ns, path, rider):
       cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
    legend.append('variation of zenith angle in '+str(zdir)+' direction')
-   legend.append('vertical TEC = '+str(vTEC)+' TECU')
+   legend.append('vertical TEC = '+str(vTEC0)+' + '+str(vTECxy)+' TECU')
 
    if True:
       psg = []
@@ -302,9 +319,9 @@ def thinlayer_TEC (ns, path, rider):
          psg.append(record(y='{zfx'+str(j)+'}', x='{xx}', color='magenta',
                            marker=None, linestyle='-',
                            label=zdir+'='+str(z)+' rad'))
-      psg.append(record(y='{vtecx}', x='{xx}', color='cyan',
+      psg.append(record(y='{vtec}', x='{xx}', color='cyan',
                         marker=None, linestyle='-',
-                        label='vTECx'))
+                        label='vTEC'))
       ps = record(graphics=psg, legend=legend,
                   title='z-factor as a function of xpos',
                   xlabel='baseline length (km)',
@@ -401,14 +418,16 @@ def GPS (ns, path, rider):
 # Helper functions
 #********************************************************************************
 
-def vertical_TEC (expr='1', x=0, y=0, t=0, trace=False):
+def vertical_TEC (expr=None, x=0, y=0, TEC0=None, trace=False):
    """
-   Calculate the vertical TEC at position (x,y).
+   Calculate the vertical TEC at position (x,y), using the given
+   math expression (string), and the offset value TEC0[=0.0].
+   The expression is evaluated after replacing '{x}' with str(x)
+   and '{y}' with str(y).
    """
+   TEC = 0.0
    seval = None
-   try: 
-      TEC = float(expr)
-   except:
+   if isinstance(expr,str):
       seval = expr.replace('{x}',str(x))
       seval = seval.replace('{y}',str(y))
       try:
@@ -416,14 +435,19 @@ def vertical_TEC (expr='1', x=0, y=0, t=0, trace=False):
       except:
          s = '** seval = '+seval
          raise ValueError,s
+
+   # Finishing touches:
+   if TEC0:
+      TEC += TEC0                      # add the specified offset
+   TEC = max(TEC,0.0)                  # the TEC cannot be negative
    if trace:
-      print '** vertical_TEC (',expr,', x=',x,', y=',y,') ->',TEC,' (',seval,')'
+      print '** vertical_TEC (',expr,', x=',x,', y=',y,TEC0,') ->',TEC,' (',seval,')'
    return TEC
 
 #-------------------------------------------------------------------------------
 
 def zfactor_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
-                        h=300, R=6370.0, trace=False):
+                        h=300.0, R=6370.0, trace=False):
    """
    Return the z-factor for a uniform thin layer at altitude h (km),
    for a given position (x,y,z) km, in a given direction (l,m) rad
@@ -431,7 +455,8 @@ def zfactor_thin_layer (x=0, y=0, z=0, l=0, m=0, t=0,
    The z-factor is the factor with which the excess path length L0
    (and thus the TEC0) for the zenith have to be multiplied. 
    """
-   zlocal = local_zenith_angle (x=x, y=y, z=z, l=l, m=m, R=R, trace=trace)
+   zlocal = local_zenith_angle (x=x, y=y, z=z, l=l, m=m,
+                                R=R, trace=trace)
    zfactor = 1.0/math.cos(math.asin(math.sin(zlocal)*R/(R+h)))
    if trace:
       print '** zfactor_thin_layer(h=',h,'km',R,') ->',zfactor 
@@ -445,14 +470,30 @@ def local_zenith_angle (x=0,y=0,z=0,l=0,m=0, R=6370.0, trace=False):
    of a source that would have direction (l,m) rad w.r.t. the zenith
    at the origin (x=0,y=0,z=0) on the Earth surface (R=6370km).
    """
-   z1 = l - math.atan(float(x)/(R+z))
-   z2 = m - math.atan(float(y)/(R+z))
-   zang = math.hypot(z1,z2)          # equiv:  zang = math.sqrt(z1*z1 + z2*z2)
+   [zx,zy] = local_zenith_angles_xy (x=x,y=y,z=z,l=l,m=m,
+                                     R=R, trace=False)
+   zang = math.hypot(zx,zy)          # equiv:  zang = math.sqrt(zx*zx + zy*zy)
    if trace:
       s = '\n** local_zenith_angle (x='+str(x)+', y='+str(y)+', z='+str(z)
       s += ', l='+str(l)+', m='+str(m)+')'
-      print s,' -> ',zang,' rad   (z1=',z1,', z2=',z2,')'
+      print s,' -> ',zang,' rad   (zx=',zx,', zy=',zy,')'
    return zang
+
+#-------------------------------------------------------------------------------
+
+def local_zenith_angles_xy (x=0,y=0,z=0,l=0,m=0, R=6370.0, trace=False):
+   """
+   Calculates the (geometric) zenith angles [zx,zy] (rad) at position (x,y,z)
+   of a source that would have direction (l,m) rad w.r.t. the zenith
+   at the origin (x=0,y=0,z=0) on the Earth surface (R=6370km).
+   """
+   zx = l - math.atan(float(x)/(R+z))
+   zy = m - math.atan(float(y)/(R+z))
+   if trace:
+      s = '\n** local_zenith_angles (x='+str(x)+', y='+str(y)+', z='+str(z)
+      s += ', l='+str(l)+', m='+str(m)+')'
+      print s,' -> [zx,zy]=',[zx,zy]
+   return [zx,zy]
 
 
 
@@ -557,7 +598,7 @@ if __name__ == '__main__':
       if 1:
          print rider.format()
 
-   if 0:
+   if 1:
       local_zenith_angle(trace=True)
       local_zenith_angle(l=1, trace=True)
       local_zenith_angle(l=1, m=1, trace=True)
@@ -575,8 +616,9 @@ if __name__ == '__main__':
       for x in [0,1,10,100,1000]:
          zfactor_thin_layer(x=x, trace=True)
 
-   if 1:
+   if 0:
       vertical_TEC (trace=True)
+      vertical_TEC (TEC0=3.4, trace=True)
       vertical_TEC ('numpy.cos({x})+math.sin({y})', x=2.3, y=0.1, trace=True)
             
    print '\n** End of standalone test of: QR_ionos.py:\n' 

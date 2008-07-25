@@ -283,8 +283,13 @@ def format_tree (node, ss='', recurse=True,
         return '' 
 
     prefix = '\n'+(level*' |  ')+' '
+    postfix = ''
+    if mode=='html':
+        prefix = '\n'+(level*' |..')+' '
+        postfix = '<br>'
+    
     if trace:
-        print prefix+str(node),node
+        print prefix+str(node)+postfix,node
         # print dir(node)
 
     finished = False
@@ -293,9 +298,9 @@ def format_tree (node, ss='', recurse=True,
         basenames = dict()
         if isinstance(node,list):
             # Special case (see MeqNode()): Start with a list of children:
-            ss += prefix+'List of '+str(len(node))+' nodes/subtrees (e.g. children):'
+            ss += prefix+'List of '+str(len(node))+' nodes/subtrees (e.g. children):'+postfix
             for c in node:
-                ss = format_tree(c, ss=ss, recurse=recurse, 
+                ss = format_tree(c, ss=ss, recurse=recurse, mode=mode,
                                  nodenames=nodenames, basenames=basenames,
                                  full=full, level=level+1, trace=trace)
             finished = True
@@ -313,6 +318,7 @@ def format_tree (node, ss='', recurse=True,
             tags = getattr(initrec,'tags',None)
             if tags:
                 ss += '   (tags='+str(tags)+')'
+        ss += postfix
 
         # Some clutter-avoiding:
         slevel = str(level)
@@ -338,12 +344,12 @@ def format_tree (node, ss='', recurse=True,
         # Do its children (recursively), if required:
         if getattr(node, 'children', None):
             if stophere:                                 # stop here (see above)
-                ss += '       '+s1
+                ss += '       ' + s1 + postfix
             elif level>=recurse:                         # only to the specified recursion depth
-                ss += prefix+'   .....'                  # indicate that the subtree is deeper
+                ss += prefix + '   .....' + postfix      # indicate that the subtree is deeper
             else:
                 for c in node.children:
-                    ss = format_tree(c[1], ss=ss, recurse=recurse, 
+                    ss = format_tree(c[1], ss=ss, recurse=recurse, mode=mode,
                                      nodenames=nodenames, basenames=basenames,
                                      full=full, level=level+1, trace=trace)
 

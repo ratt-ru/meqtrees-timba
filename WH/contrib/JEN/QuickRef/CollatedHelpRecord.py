@@ -153,13 +153,17 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def format(self, rr=None, ss=None, key=None, level=0, trace=False):
+   def format(self, rr=None, ss=None, key=None,
+              path=None, level=0, trace=False):
       """
-      Recursively format a help-string, to be printed.
+      Recursively format a help-string (below path), to be printed.
       """
       if level==0:
          ss = '\n'
-         rr = self._chrec
+         if path:
+            rr = self.subrec(path, chrec=True, trace=False)
+         else:
+            rr = self._chrec
          if trace:
             print '\n** Start of .format():'
             
@@ -225,33 +229,42 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def format_html(self, rr=None, ss=None, key=None,
-                   level=0, trace=False):
+   def html_style (self):
       """
-      Recursively format a html help-string, to be saved.
+      <!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">
+      <html>
+      <head>
+      <meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\">
+      <meta name=\"AUTHOR\" content=\"\">
+      <meta name=\"keywords\" content=\"\">
+      <title>Title</title>
+      <style type=\"text/css\">
+      body {color: black; background: white; font-size: 11px; }
+      body, div, p, th, td, li, dd {font-family: Verdana Lucida, Arial, Helvetica, sans-serif; }
+      h0 {color: yellow;}
+      h1 {color: red;}
+      h2 {color: magenta;}
+      h3 {color: green;}
+      h4 {color: blue;}
+      h5 {color: blue;}
+      </style>
+      </head>
+      """
+      return self.html_style.__doc__
+
+   #---------------------------------------------------------------------
+
+   def format_html(self, rr=None, ss=None, key=None,
+                   path=None, level=0, trace=False):
+      """
+      Recursively format an html help-string (below path).
       """
       if level==0:
-         ss = """
-         <!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">
-         <html>
-         <head>
-         <meta content=\"text/html; charset=UTF-8\" http-equiv=\"content-type\">
-         <meta name=\"AUTHOR\" content=\"\">
-         <meta name=\"keywords\" content=\"\">
-         <title>Title</title>
-         <style type=\"text/css\">
-         body {color: black; background: white; font-size: 11px; }
-         body, div, p, th, td, li, dd {font-family: Verdana Lucida, Arial, Helvetica, sans-serif; }
-         h0 {color: yellow;}
-         h1 {color: red;}
-         h2 {color: magenta;}
-         h3 {color: green;}
-         h4 {color: blue;}
-         h5 {color: blue;}
-         </style>
-         </head>
-         """ 
-         rr = self._chrec
+         ss = self.html_style()
+         if path:
+            rr = self.subrec(path, chrec=True, trace=False)
+         else:
+            rr = self._chrec
          if trace:
             print '\n** Start of .format_html():'
             
@@ -299,45 +312,64 @@ class CollatedHelpRecord (object):
             print ss
       return ss
 
+
    #---------------------------------------------------------------------
 
-   def save_html (self, filename='CollatedHelpString', rr=None):
+   def save_html (self, filename='CollatedHelpString',
+                  path=None, external=None):
       """
-      Save the formatted help-string in the specified file.
+      Save something in the specified file (with extension .html).
+      If 'external' is a string, save that.
+      Otherwise, save the formatted internal string (from path). 
       """
-      if not '.' in filename:
-         filename += '.html'
+      if isinstance(external, str):
+         ss = external
+      else:
+         ss = self.format_html(path=path)
+      filename = filename.split('.')[0] + '.html'
       file = open (filename,'w')
-      ss = self.format_html()
-      print ss
       file.writelines(ss)
       file.close()
-      print '\n** Saved the doc string in file: ',filename,'**\n'
+      if isinstance(external, str):
+         print '\n** Saved user-defined string in file: ',filename,'**\n'
+      else:
+         print '\n** Saved the help string (from path=',path,') in file: ',filename,'**\n'
       return filename
 
 
    #---------------------------------------------------------------------
 
-   def save (self, filename='CollatedHelpString', rr=None):
+   def save (self, filename='CollatedHelpString',
+             path=None, external=None):
       """
-      Save the formatted help-string in the specified file.
+      Save something in the specified file (default extension .meqdoc).
+      If 'external' is a string, save that.
+      Otherwise, save the formatted internal string (from path). 
       """
+      if isinstance(external, str):
+         ss = external
+      else:
+         ss = self.format(path=path)
       if not '.' in filename:
          filename += '.meqdoc'
       file = open (filename,'w')
-      ss = self.format()
       file.writelines(ss)
       file.close()
-      print '\n** Saved the doc string in file: ',filename,'**\n'
+      if isinstance(external, str):
+         print '\n** Saved user-defined string in file: ',filename,'**\n'
+      else:
+         print '\n** Saved the help string (from path=',path,') in file: ',filename,'**\n'
       return filename
       
 
    #---------------------------------------------------------------------
 
-   def subrec(self, path, trace=False):
+   def subrec(self, path, chrec=False, trace=False):
       """
       Extract (a deep copy of) the specified (path) subrecord
       from the internal self._chrec.
+      If chrec==True, just return the 'naked' record.
+      Otherwise, return a new CHR object.
       """
       if trace:
          print '\n** .extract(',path,'):'
@@ -353,6 +385,10 @@ class CollatedHelpRecord (object):
          else:
             rr = rr[key]
 
+      # Optional: return the 'naked' record: 
+      if chrec:
+         return rr
+      
       # Return another object of the same type:
       newname = 'subrec('+path+')'
       result = CollatedHelpRecord(newname, chrec=rr)
@@ -445,6 +481,82 @@ class CollatedHelpRecord (object):
       return self._orphans
 
 
+   #---------------------------------------------------------------------
+
+   def check_html_tags(self, help, include_style=False, trace=False):
+      """
+      Check for the presence and integrity of a minimum of html tags
+      in the given string (help).
+      If include_style==True, include the QuickRef html style file.
+      """
+      # print '\n',help,'\n'
+      licount = 0
+      ss = help.split('\n')
+      mode_fcall = 0
+      mode_fcode = 0
+      for i,s in enumerate(ss):
+         if trace:
+            print '-',i,':',ss[i]
+
+         if mode_fcall>0:
+            mode_fcall += 1
+         elif mode_fcode>0:
+            # print 'mode_fcode=',mode_fcode
+            if mode_fcode==2:
+               ss[i] = '<dd>\n'+s
+            mode_fcode += 1
+            ss[i] += '<br>'
+
+         if ss[i] in ['',' ','  ','   ','    ']:      # blank line
+            ss[i] = ''
+            if licount>0:
+               licount -= 1
+               ss[i] += '</ul>\n'
+            ss[i] += '<p>'
+
+         elif '<ul>' in ss[i]:              # start of unordered list
+            licount += 1
+         elif '</ul>' in ss[i]:             # end of unordered list
+            licount -= 1
+         elif '<li>' in ss[i]:              # list element (assume unordered list)
+            aa = ss[i].split(':')
+            if len(aa)>1:
+               ss[i] = '<font color="blue">' + aa[0] + ':' + '</font>'   # NB: forces a line-break...!
+               for k,a in enumerate(aa):
+                  if k>0: ss[i] += a
+            if licount==0:
+               ss[i] = '<ul>\n'+ss[i]
+               licount += 1
+
+         elif '<function_call>' in ss[i]:
+            ss[i] = 'Syntax:<center>\n' + ss[i]
+            mode_fcall = 1
+         elif '</function_call>' in ss[i]:
+            ss[i] = '</center>\n'
+            mode_fcall = 0
+            
+         elif '<function_code>' in ss[i]:
+            ss[i] = '<dl>\n<dt>\n'
+            mode_fcode = 1
+         elif '</function_code>' in ss[i]:
+            ss[i] = '</dl>\n'
+            mode_fcode = 0
+
+      # clean up:
+      for i in range(licount):
+         ss.append('</ul>')
+                
+      # Reassemble a single string, with line-breaks:
+      ssout = ''
+      if include_style:
+         ssout = self.html_style()
+      for s in ss:
+         ssout += '\n'+s
+
+      if trace:
+         print ssout
+      return ssout
+                
 
 
 

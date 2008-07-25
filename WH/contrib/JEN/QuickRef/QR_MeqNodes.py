@@ -1066,7 +1066,7 @@ def unops_elementary (ns, path, rider, twig=None):
 
 def unops_goniometric (ns, path, rider, twig=None):
    """
-   Goniometric functions (Sin, Cos, Tan) turn an angle (rad) into a fraction.
+   (Tri-)Goniometric functions (Sin, Cos, Tan) turn an angle (rad) into a fraction.
    Their inverses (Asin, Acos, Atan) turn a fraction into an angle (rad).
    Applying first the function and then its inverse should yield the original
    input (which it does NOT in case of Acos(Cos(x))....)
@@ -1074,8 +1074,8 @@ def unops_goniometric (ns, path, rider, twig=None):
    rr = QRU.on_entry(unops_goniometric, path, rider)
    cc = []
    help = record(Sin='(rad)', Cos='(rad)', Tan='(rad)',
-                 Asin='abs('+str(twig.name)+')<1',
-                 Acos='abs('+str(twig.name)+')<1',
+                 Asin='abs('+str(twig.name)+') &lt 1',
+                 Acos='abs('+str(twig.name)+') &lt 1',
                  Atan='')
    for q in ['Sin','Cos','Tan','Asin','Acos','Atan']:
       cc.append(QRU.MeqNode (ns, rr.path, rider,
