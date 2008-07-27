@@ -113,7 +113,8 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def insert_help (self, path=None, help=None, rr=None, level=0, trace=False):
+   def insert_help (self, path=None, help=None, append=True,
+                    rr=None, level=0, trace=False):
       """
       Insert a help-item at the designated (path) position (recursive)
       """
@@ -126,18 +127,22 @@ class CollatedHelpRecord (object):
       key = path[0]
       if not rr.has_key(key):
          rr.order.append(key)
-         rr[key] = record(help=None)
+         rr[key] = record(help='')
          if len(path)>1:
             rr[key].order = []
 
       if len(path)>1:                        # recursive
          self.insert_help(path=path[1:], help=help, rr=rr[key],
-                          level=level+1, trace=trace)
+                          append=append, level=level+1, trace=trace)
+
       else:
-         rr[key].help = help                 # may be list of strings...
+         if append:
+            rr[key].help += help 
+         else:
+            rr[key].help = help 
          if trace:
             prefix = self.prefix(level)
-            print '.insert_help():',prefix,key,':',help
+            print '.insert_help(append=',append,'):',prefix,key,':',help
       # Finished:
       return None
 
