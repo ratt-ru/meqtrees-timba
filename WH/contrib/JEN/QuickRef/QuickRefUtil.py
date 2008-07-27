@@ -13,6 +13,7 @@
 #   - 01 jul 2008: implemented orphan functions
 #   - 06 jul 2008: allow list of viewers in .bundle()
 #   - 09 jul 2008: improved helpnode() behaviour
+#   - 26 jul 2008: changed quickref_help into string etc
 #
 # Remarks:
 #
@@ -86,15 +87,15 @@ def _define_forest (ns, **kwargs):
     cc = []
     
     rootnodename = 'QuickRefUtil'            # The name of the node to be executed...
-    path = rootnodename                      # Root of the path-string
     global rider
     rider = create_rider()                   # CollatedHelpRecord object
+    rider.path(init=rootnodename)
 
     if True:
         ET.EN.orphans(ns << 1.2, trace=True)
     
     # Make the outer bundle (of node bundles):
-    bundle (ns, path, nodes=cc, help=__doc__, rider=rider)
+    on_exit (ns, rider, nodes=cc, help=__doc__)
     
     if trace:
         rider.show('_define_forest()')
@@ -643,23 +644,23 @@ def format_vv (vv):
 #================================================================================
 
 
-def on_entry(func, path, rider, trace=False):
+def on_entry(func, rider, trace=False):
     """
     <function_call>
-    rr = QuickRefUtil.on_entry(func, path, rider, help=None, trace=False)
+    rr = QuickRefUtil.on_entry(func, rider, help=None, trace=False)
     </function_call>
 
     This function is called upon entry of all functions in QR_... modules:
     <function_code>
-    def QR_function (ns, path, rider, ...):
+    def QR_function (ns, path, rider):
               \"\"\"doc-string in triple-quotes\"\"\"
               rr = QRU.on_entry(QR_function, path, rider, trace=False)
               ... function body ...
-              return QRU.bundle (ns, rr.path, rider, help=rr.help, ....)
+              return QRU.on_exit (ns, rider, help=rr.help, ....)
     </function_code>
 
     It returns a record rr with the following fields:
-    <li> rr.path: the given path, plus (part of) func.func_name. This is used
+    <li> rr.path: the path, plus (part of) func.func_name. This is used
     to attach help strings at their proper place in the CollatedHelpRecord (rider).
     <li> rr.help: func.__doc__ 
     <li> rr.name: func.func_name 
@@ -670,56 +671,19 @@ def on_entry(func, path, rider, trace=False):
         rr.name = str(func.func_name)
 
     ss = rr.name.split('_')
-    nss = len(ss)
-    rr.path = path+'.'+ss[nss-1]
+    rr.path = rider.path(append=ss[len(ss)-1])
 
     rr.help = func.__doc__
-    if help:
-        # Append any extra help string(s) to rr.help
-        if isinstance(help, str):
-            rr.help += help
-        elif isinstance(help, (list,tuple)):
-            for h in help:
-                rr.help += str(h)
-
-    if False:
-        if not ss[nss-2] in path:
-            s = '** '+ss[nss-2]+' not in path '+path
-            ### raise ValueError,s                    # NOT a good idea....
 
     if trace:
-        print '\n** .on_entry(',type(func),path,'):',ss,'->',rr.keys()
+        print '\n** .on_entry(',type(func),'):',ss,'->',rr.keys()
     return rr
    
-   # print '-- .func_name:',func.func_name        # -> add2path
-   # print '-- .func_code:',func.func_code  
-   # print '-- .func_globals:',func.func_globals  
-   # print '-- .__module__:',func.__module__
-   # print '-- .__str__:',func.__str__
-   # print '-- .__doc__:',func.__doc__            # -> bundle_help
-   # print dir(func)
-   # print
-   # [path, bundle_help]
-   
-#-------------------------------------------------------------------------------
-
-def add2path (path, name=None, trace=False):
-    """
-    Helper function to form the path to a specific bundle.
-    NB: This function is called from all QR_... modules!
-    """
-    s = str(path)
-    if isinstance(name,str):
-        s += '.'+str(name)
-    if trace:
-        print '\n** QR.add2path(',path,name,') ->',s
-    return s
-
 
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
-def helpnode (ns, path, rider,
+def helpnode (ns, rider,
               name=None, node=None,
               help=None,
               func=None,
@@ -758,16 +722,16 @@ def helpnode (ns, path, rider,
 
     # Make sure of the name-string:
     if not isinstance(name,str):
-        ss = path.split('.')
+        ss = rider.path().split('.')
         nss = len(ss)
         name = ss[nss-1]
         if nss>1:
             name = ss[nss-2]+'_'+ss[nss-1]
 
     if not is_node(node):
-        node = MeqNode (ns, path, meqclass='Constant',
+        node = MeqNode (ns, rider, meqclass='Constant',
                         name='helpnode'+'_'+name,
-                        help=help, rider=rider,
+                        help=help,
                         helpnode=hh,
                         trace=trace, value=-0.123456789)
 
@@ -781,7 +745,7 @@ def helpnode (ns, path, rider,
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
-def MeqNode (ns, path, rider,
+def MeqNode (ns, rider,
              meqclass=None, name=None,
              ## quals=None, kwquals=None,              # not a good idea...?
              node=None, children=None, unop=None,
@@ -790,7 +754,7 @@ def MeqNode (ns, path, rider,
              trace=False, **kwargs):
     """
     <function_call>
-    node = QuickRefUtil.MeqNode(ns, path, rider, ...)
+    node = QuickRefUtil.MeqNode(ns, rider, ...)
     </function_call>
     
     This function is called from many functions in QR_... modules.
@@ -799,7 +763,6 @@ def MeqNode (ns, path, rider,
 
     Its arguments:
     <li> ns: nodescope
-    <li> path: string
     <li> rider: ColleatedHelpRecord object
     <li> meqclass[=None]: name of the node class (e.g. 'Cos')
     <li> name[=None]: name (string) of the node
@@ -895,7 +858,8 @@ def MeqNode (ns, path, rider,
     kwargs['quickref_help'] = qhelp                         # -> node state record
     # The rider is a CollatedHelpRecord object, which collects the
     # hierarchical help items, using the path string:
-    rider.insert_help(add2path(path,name), qhelp) 
+    # rider.insert_help(add2path(path,name), qhelp) 
+    rider.insert_help(rider.path(temp=name), qhelp) 
 
 
     #........................................................................
@@ -904,10 +868,7 @@ def MeqNode (ns, path, rider,
 
     if is_node(node):
         # The node already exists. Just attach the help-string....
-        # node = ns << Meq.Identity(node, quickref_help=qhelp)         # confusing...
-        # NB: Is there a way to attach it to the existing node itself...?
-        # node.initrec.quickref_help = qhelp               # causes error....
-        pass
+        EN.quickref_help(node, new=qhelp)        # NB: still to be implemented....
       
     elif isinstance(children,(list,tuple)):              
         if isinstance(name,str):
@@ -934,7 +895,8 @@ def MeqNode (ns, path, rider,
     if False:
         # Experimental.... (overwrites...!) Not a good idea.....
         fn = EN.format_node(node)
-        rider.insert_help(add2path(path,name), [fn]) 
+        # rider.insert_help(add2path(path,name), [fn]) 
+        rider.insert_help(rider.path(temp=name), [fn]) 
 
 
     #........................................................................
@@ -944,7 +906,7 @@ def MeqNode (ns, path, rider,
         nc = None
         if isinstance(children,(list,tuple)):
             nc = len(children)
-        print '- QR.MeqNode():',path,meqclass,name,'(nc=',nc,') ->',str(node)
+        print '- QR.MeqNode():',meqclass,name,'(nc=',nc,') ->',str(node)
     return node
 
 
@@ -952,17 +914,16 @@ def MeqNode (ns, path, rider,
 # Exit routine, returns a single parent node:
 #-------------------------------------------------------------------------------
 
-def bundle (ns, path, rider,
-            nodes=None, unop=None,
-            parentclass='Composer', result_index=0,
-            help=None, make_helpnode=False,
-            show_recurse=False,
-            bookmark=True, viewer="Result Plotter",
+def on_exit (ns, rider,
+             nodes=None, unop=None,
+             parentclass='Composer', result_index=0,
+             help=None, make_helpnode=False,
+             show_recurse=False,
+             bookmark=True, viewer="Result Plotter",
             trace=False):
     """
-    Syntax:
     <function_call>
-    node = QuickRefUtil.bundle(ns, path, rider, nodes, help, ...)
+    node = QuickRefUtil.on_exit (ns, rider, nodes=None, help, ...)
     </function_call>
     
     Returns a single parent node, with the given nodes as its children.
@@ -972,7 +933,6 @@ def bundle (ns, path, rider,
 
     Its arguments:
     <li> ns: nodescope
-    <li> path: string that encodes its place in the help hierarchy
     <li> rider: CollatedHelpRecord object
     <li> nodes[=None]: a list of nodes to be bundled
     <li> unop[=None]: zero or more unary operations on the nodes
@@ -993,44 +953,29 @@ def bundle (ns, path, rider,
     NB: This function is called at the exit of all functions in QR_... modules.
     """
 
-    # The name of the bundle (node, page, folder) is the last
-    # part of the path string, i.e. after the last dot ('.')
-    ss = path.split('.')
-    nss = len(ss)
-    name = ss[nss-1]
+    #.......................................................................
+    # Deal with the bundle help information:
 
-    # Prepend a header:
-    level = nss-2
-    qhead = '<h'+str(level+2)+'>\n '       # html tag (see CollatedHelpRecord())
-    qhead += '('+str(level+2)+')  '
-    if level==0:                           # i.e. nss=2
-        qhead += 'MODULE: '+ss[nss-2]+'_'+ss[nss-1]
-    elif level==1:                         # i.e. nss=3
-        qhead += 'TOPIC: '+ss[nss-2]+'_'+ss[nss-1]
-    elif level==2:                         # i.e. nss=4
-        qhead += 'sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
-    elif level==3:                         # i.e. nss=5
-        qhead += 'sub-sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
-    elif level>3:
-        qhead += 'sub-sub-sub-...: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
-    qhead += ' </h'+str(level+2)+'>'       # closing html tag
-
-    # Condition the help-string:
-    qhelp = qhead
+    # Assemble the help-item (string) for the rider:
+    ritem = rider.topic_header(rider.path())
     if isinstance(help, str):
-        qhelp += rider.check_html_tags(help, include_style=False)
+        ritem += rider.check_html_tags(help, include_style=False)
 
     # Optional, show the node subtree(s) to the required depth:
-    # show_recurse = True                               # ... temporary ...
     if show_recurse:
-        qhelp += EN.format_tree(nodes, recurse=show_recurse, mode='html')
+        ritem += EN.format_tree(nodes, recurse=show_recurse, mode='html')
 
-    # Update the CollatedHelpRecord (rider) with qhelp:
-    rider.insert_help(path, qhelp)                    # add qhelp to the rest
-    qhelp = rider.format_html(path=path)              # for node quickref_help
+    # Update the CollatedHelpRecord (rider) with ritem:
+    rider.insert_help(rider.path(), ritem)             # add ritem to the rest
+
+    # Extract the quickref_help string for the state record of the bundle node:
+    # It contains the help for all topics below the current one (using path)
+    qhelp = rider.format_html(path=rider.path())  
 
     #.......................................................................
+    # Make the bundle node:
     # First make a nodestub with an unique name
+    name = rider.topic_name(rider.path())
     parent = EN.unique_stub(ns, name)
 
     # Special case: no nodes to be bundled:
@@ -1074,7 +1019,7 @@ def bundle (ns, path, rider,
 
     # If required, make a bookmark to the parent node, with a suitable viewer:
     if make_helpnode:
-        helpnode(ns, path, rider=rider, node=parent)
+        helpnode(ns, rider, node=parent)
 
     # Make a meqbrowser bookmark for this bundle, if required:
     if bookmark:
@@ -1088,7 +1033,7 @@ def bundle (ns, path, rider,
             nodes = [parent]
 
         # The rider object has a service for extracting page and folder from path.
-        [page, folder] = rider.bookmark(path, trace=trace)
+        [page, folder] = rider.bookmark(rider.path(), trace=trace)
 
         # Make sure that viewer is a list with the same length as nodes:
         if not isinstance(viewer,(list,tuple)):
@@ -1115,11 +1060,14 @@ def bundle (ns, path, rider,
     elif show_recurse:
         print EN.format_tree(parent, recurse=show_recurse)
     elif runopt_show_bundles:
-        print '\n** subtree under the bundle parent node (path=',path,'):'
+        print '\n** subtree under the bundle parent node (path=',rider.path(),'):'
         print EN.format_tree(parent, recurse=10)
 
     if trace:
-        print '** QR.bundle():',path,name,'->',str(parent),'\n'
+        print '** QR.bundle():',name,'->',str(parent),'\n'
+
+    # Shorten the rider path again (last statement)
+    rider.path(up=True)               
     return parent
 
 
@@ -1133,7 +1081,9 @@ def bundle (ns, path, rider,
 def create_rider(name='rider'):
     """Return a CollatedHelpRecord object, to serve as rider"""
     # import CollatedHelpRecord
-    return CollatedHelpRecord.CollatedHelpRecord(name)
+    rider = CollatedHelpRecord.CollatedHelpRecord(name)
+    rider.path(init=name)
+    return rider
 
 
 #=====================================================================================

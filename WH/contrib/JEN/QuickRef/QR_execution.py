@@ -96,7 +96,7 @@ TDLCompileMenu("QR_execution topics:",
 #********************************************************************************
 
 
-def QR_execution (ns, path, rider):
+def QR_execution (ns, rider):
    """
    A MeqTree is a non-circular graph, i.e. it consists of (software, C++) nodes,
    each of which has zero or more children. The tree is defined by means of the
@@ -131,26 +131,26 @@ def QR_execution (ns, path, rider):
    See ....
    
    """
-   rr = QRU.on_entry(QR_execution, path, rider)
+   rr = QRU.on_entry(QR_execution, rider)
  
    twig = ET.twig(ns, opt_input_twig)
 
    cc = [twig]
    if opt_alltopics or opt_request:
-      cc.append(request (ns, rr.path, rider, twig=twig))
+      cc.append(request (ns, rider, twig=twig))
    if opt_alltopics or opt_result:
-      cc.append(result (ns, rr.path, rider, twig=twig))
+      cc.append(result (ns, rider, twig=twig))
    if opt_alltopics or opt_state:
-      cc.append(state (ns, rr.path, rider, twig=twig))
+      cc.append(state (ns, rider, twig=twig))
    if opt_alltopics or opt_effic:
-      cc.append(effic (ns, rr.path, rider, twig=twig))
+      cc.append(effic (ns, rider, twig=twig))
    if opt_alltopics or opt_misc:
-      cc.append(misc (ns, rr.path, rider, twig=twig))
+      cc.append(misc (ns, rider, twig=twig))
 
    if opt_helpnodes:
-      cc.append(make_helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
@@ -160,26 +160,26 @@ def QR_execution (ns, path, rider):
 # 2nd tier: Functions called from the top function above:
 #********************************************************************************
 
-def make_helpnodes (ns, path, rider):
+def make_helpnodes (ns, rider):
    """
    It is possible to define nodes that have no other function than to carry
    a help-text. The latter may be consulted in the quickref_help field in the
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, path, rider)
+   rr = QRU.on_entry(make_helpnodes, rider)
    
    cc = []
    if opt_alltopics or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyTwig_twig',
+      cc.append(QRU.helpnode (ns, rider, name='EasyTwig_twig',
                              help=ET.twig.__doc__, trace=False))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #--------------------------------------------------------------------------------
 
-def request (ns, path, rider, twig):
+def request (ns, rider, twig):
    """
    A request is an object, which contains a domain, subdivided in cells, for which values
    are required. A request also contains other information. It is passed 'up' a tree, from
@@ -215,18 +215,18 @@ def request (ns, path, rider, twig):
    executing the tree with domains with different (numbers of) axes.
    The issued requests may also be printed by means of the TDL exec Customs Settings menu.
    """
-   rr = QRU.on_entry(request, path, rider)
+   rr = QRU.on_entry(request, rider)
    cc = [twig]
-   cc.append(request_domain (ns, rr.path, rider, twig=twig))
-   cc.append(request_cells (ns, rr.path, rider, twig=twig))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   cc.append(request_domain (ns, rider, twig=twig))
+   cc.append(request_cells (ns, rider, twig=twig))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
 
-def result (ns, path, rider, twig):
+def result (ns, rider, twig):
    """
    A result is an object, which contains
 
@@ -235,18 +235,18 @@ def result (ns, path, rider, twig):
    executing the tree with domains with different (numbers of) axes.
    Requests may also be printed by means of the TDL exec Customs Settings menu.
    """
-   rr = QRU.on_entry(result, path, rider)
+   rr = QRU.on_entry(result, rider)
    cc = [twig]
-   # cc.append(result_domain (ns, rr.path, rider, twig=twig))
-   # cc.append(result_perturbations (ns, rr.path, rider, twig=twig))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   # cc.append(result_domain (ns, rider, twig=twig))
+   # cc.append(result_perturbations (ns, rider, twig=twig))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
 
-def state (ns, path, rider, twig):
+def state (ns, rider, twig):
    """
    Each node has a state record, which may be inspected by clicking on it in the
    browser. It contains the information that the node needs for efficient operation.
@@ -255,18 +255,18 @@ def state (ns, path, rider, twig):
    forest (collection of trees) as a whole. It may be inspected by clicking on
    the 'Forest State' field at the top of the leftmost panel of the browser.
    """
-   rr = QRU.on_entry(state, path, rider)
+   rr = QRU.on_entry(state, rider)
    cc = [twig]
-   cc.append(state_nodestate (ns, rr.path, rider, twig=twig))
-   cc.append(state_forest (ns, rr.path, rider, twig=twig))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   cc.append(state_nodestate (ns, rider, twig=twig))
+   cc.append(state_forest (ns, rider, twig=twig))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
 
-def effic (ns, path, rider, twig):
+def effic (ns, rider, twig):
    """
    Premature optimization is the root of all evil (Donald Knuth). However, speed
    is important, especcially in view of the increasing volume of data that has to
@@ -321,25 +321,25 @@ def effic (ns, path, rider, twig):
    time required is often so prohibitive that very few people even try. MeqTrees, with
    its TDL and extensive visualization, should make a BIG difference here...
    """
-   rr = QRU.on_entry(effic, path, rider)
+   rr = QRU.on_entry(effic, rider)
    cc = [twig]
-   cc.append(effic_caching (ns, rr.path, rider, twig=twig))   
-   cc.append(effic_parallel (ns, rr.path, rider, twig=twig))   
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   cc.append(effic_caching (ns, rider, twig=twig))   
+   cc.append(effic_parallel (ns, rider, twig=twig))   
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
 
-def misc (ns, path, rider, twig):
+def misc (ns, rider, twig):
    """
    """
-   rr = QRU.on_entry(misc, path, rider)
+   rr = QRU.on_entry(misc, rider)
    cc = [twig]
-   cc.append(misc_debugging (ns, rr.path, rider, twig=twig))   
-   cc.append(misc_profiling (ns, rr.path, rider, twig=twig))   
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   cc.append(misc_debugging (ns, rider, twig=twig))   
+   cc.append(misc_profiling (ns, rider, twig=twig))   
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
@@ -357,7 +357,7 @@ def misc (ns, path, rider, twig):
 # request_... 
 #================================================================================
 
-def request_domain (ns, path, rider, twig):
+def request_domain (ns, rider, twig):
    """
    A domain object represents an N-dimensional rectangular envelope. The default
    is a 2D rectangle in freq-time space. It outlines the N-dim 'volume' for which
@@ -380,15 +380,15 @@ def request_domain (ns, path, rider, twig):
    Try this by defining the tree with different kinds of input nodes (twigs), and/or by
    executing the tree with domains with different (numbers of) axes. 
    """
-   rr = QRU.on_entry(request_domain, path, rider)
+   rr = QRU.on_entry(request_domain, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
-def request_cells (ns, path, rider, twig):
+def request_cells (ns, rider, twig):
    """
    A cells object sub-divides a rectangular N-dim domain (envelope) into an N-dim array
    of cells. NB: Since the domain is an envelope, and cell coordinates represent the
@@ -419,9 +419,9 @@ def request_cells (ns, path, rider, twig):
    Try this by defining the tree with different kinds of input nodes (twigs), and/or by
    executing the tree with domains with different (numbers of) axes. 
    """
-   rr = QRU.on_entry(request_cells, path, rider)
+   rr = QRU.on_entry(request_cells, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
@@ -430,12 +430,12 @@ def request_cells (ns, path, rider, twig):
 # result_... 
 #================================================================================
 
-def result_ (ns, path, rider, twig):
+def result_ (ns, rider, twig):
    """
    """
-   rr = QRU.on_entry(result_, path, rider)
+   rr = QRU.on_entry(result_, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
@@ -445,7 +445,7 @@ def result_ (ns, path, rider, twig):
 # state_... 
 #================================================================================
 
-def state_nodestate (ns, path, rider, twig):
+def state_nodestate (ns, rider, twig):
    """
    The state record of ANY node may be inspected by left-clicking on it in the
    browser. The one exception, for some reason, is a MeqComposer node. Its state
@@ -494,15 +494,15 @@ def state_nodestate (ns, path, rider, twig):
    modules, like this one.  
    
    """
-   rr = QRU.on_entry(state_nodestate, path, rider)
+   rr = QRU.on_entry(state_nodestate, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
-def state_forest (ns, path, rider, twig):
+def state_forest (ns, rider, twig):
    """
    The Forest State record can be inspected by left-clicking on it, at the top of the
    leftmost section of the browser (above the tree).
@@ -529,9 +529,9 @@ def state_forest (ns, path, rider, twig):
    
    
    """
-   rr = QRU.on_entry(state_forest, path, rider)
+   rr = QRU.on_entry(state_forest, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
@@ -544,27 +544,27 @@ def state_forest (ns, path, rider, twig):
 
 #--------------------------------------------------------------------------------------------
 
-def effic_parallel (ns, path, rider, twig):
+def effic_parallel (ns, rider, twig):
    """
    ...
    """
-   rr = QRU.on_entry(effic_parallel, path, rider)
+   rr = QRU.on_entry(effic_parallel, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------------------
 
-def effic_caching (ns, path, rider, twig):
+def effic_caching (ns, rider, twig):
    """
    The caching rules are as follows:
    ....
    """
-   rr = QRU.on_entry(effic_caching, path, rider)
+   rr = QRU.on_entry(effic_caching, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
@@ -575,7 +575,7 @@ def effic_caching (ns, path, rider, twig):
 # misc_... 
 #================================================================================
 
-def misc_debugging (ns, path, rider, twig):
+def misc_debugging (ns, rider, twig):
    """
    There are several ways to debug a tree:
 
@@ -590,15 +590,15 @@ def misc_debugging (ns, path, rider, twig):
    - Etc.
    
    """
-   rr = QRU.on_entry(misc_debugging, path, rider)
+   rr = QRU.on_entry(misc_debugging, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
-def misc_profiling (ns, path, rider, twig):
+def misc_profiling (ns, rider, twig):
    """
    The profiler may be invoked by selecting 'Collect profiling stats' from the Debug menu in
    the browser. This should be done AFTER execution, of course. The profiling statistics are
@@ -608,9 +608,9 @@ def misc_profiling (ns, path, rider, twig):
    ....
    
    """
-   rr = QRU.on_entry(misc_profiling, path, rider)
+   rr = QRU.on_entry(misc_profiling, rider)
    cc = [twig]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0,
                       bookmark='parent', viewer='Record Browser')
 
@@ -633,13 +633,12 @@ def misc_profiling (ns, path, rider, twig):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
-   global rider                                 # global because it is used in tdl_jobs
-   rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
    rootnodename = 'QR_execution'                 # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
-   QRU.bundle (ns, path, rider,
-              nodes=[QR_execution(ns, path, rider)],
-              help=__doc__)
+   global rider                                  # global because it is used in tdl_jobs
+   rider = QRU.create_rider(rootnodename)        # the rider is a CollatedHelpRecord object
+   QRU.on_exit (ns, rider,
+                nodes=[QR_execution(ns, rider)],
+                help=__doc__)
 
    # Finished:
    return True

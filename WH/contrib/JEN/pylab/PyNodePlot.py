@@ -94,6 +94,42 @@ Settings.forest_state.cache_policy = 100;
 # The PyNodePlot base class:
 #=====================================================================================
 
+def format_plotspecs_record (ps, name=None, mode='html', severe=True, trace=False):
+  """
+  Make a string that summarizes the contents of the given plotspecs record
+  in an organized way. 
+  In the process, check its validity (raise ValueError if severe=True). 
+  """
+  ss = '<dl><dt><font color="blue">\n'
+  ss += 'plotspecs record ('+str(name)+'):'
+  ss += '\n</font><dd>\n'
+
+  plotypes = ['graphics']
+
+  # First do the overall keywords:
+  for key in ps.keys():
+    if not key in plotypes:
+      ss += '-- '+str(key)+' = '+str(ps[key])+'<br>\n'
+
+  # Then do the various plot-types:
+  for plotype in plotypes:
+    if ps.has_key(plotype):
+      if not isinstance(ps[plotype],(list,tuple)):
+        ss += '- '+str(plotype)+' = '+str(type(ps[plotype]))+'??<br>\n'
+        if severe:
+          raise ValueError,ss
+      else:
+        for i,rr in enumerate(ps[plotype]):
+          ss += str(plotype)+': '+str(rr)+'<br>\n'
+      
+  # Finished:
+  ss += '</dl>\n'
+  if trace:
+    print ss
+  return ss
+  
+#-------------------------------------------------------------------------
+
 class PyNodePlot (PNNG.PyNodeNamedGroups):
   """
   Base class for a range of plotting pyNodes.
@@ -1087,6 +1123,15 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   qhelp.append('       ps (record) = '+str(ps))
   qhelp.append('       gs (record) = '+str(gs))
   qhelp.append('')
+
+  if True:
+    qhelp = EN.format_function_call('PNP.pynode_Plot', ns=ns, nodes=nodes,
+                                    groupspecs=groupspecs,
+                                    plotspecs=plotspecs, labels=labels,
+                                    nodename=nodename, quals=quals, kwquals=kwquals,
+                                    kwargs=kwargs)
+    qhelp += PNNG.format_groupspecs_record(gs)
+    qhelp += format_plotspecs_record(ps)
     
   # Create the PyNode:
   pynode = stub << Meq.PyNode(children=nodes,
@@ -1099,6 +1144,7 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
                               module_name=__file__)
   if trace:
     print '->',str(pynode)
+    print EN.quickref_help(pynode)
   return pynode
 
 
@@ -1159,10 +1205,10 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
   ps.setdefault('ylabel','{y}')
 
   # Standard graphics subplot records (used below): 
-  gy = record(y='{y}', legend='y=yexpr')
-  gxy = record(x='{x}', y='{y}', legend=['x=xexpr','y=yexpr'])
-  gcxy = record(x='{y}.real', y='{y}.imag')
-  gxyz = record(x='{x}', y='{y}', z='{z}', legend=['x=xexpr','y=yexpr','z=zexpr'])
+  gy = record(y='{y}', legend='y=yexpr', spec=ss)
+  gxy = record(x='{x}', y='{y}', legend=['x=xexpr','y=yexpr'], spec=ss)
+  gcxy = record(x='{y}.real', y='{y}.imag', spec=ss)
+  gxyz = record(x='{x}', y='{y}', z='{z}', legend=['x=xexpr','y=yexpr','z=zexpr'], spec=ss)
 
   # Convert the input string (ss) into sub-plot record(s):
   if ss in ['YY']:

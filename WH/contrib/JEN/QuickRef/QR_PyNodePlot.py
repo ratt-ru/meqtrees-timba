@@ -161,10 +161,10 @@ TDLCompileMenu("QR_PyNodePlot topics:",
 
 header = 'QR_PyNodePlot'
 
-def QR_PyNodePlot (ns, path, rider):
+def QR_PyNodePlot (ns, rider):
    """
    """
-   rr = QRU.on_entry(QR_PyNodePlot, path, rider)
+   rr = QRU.on_entry(QR_PyNodePlot, rider)
  
    cc = []
    override = opt_alltopics
@@ -172,58 +172,58 @@ def QR_PyNodePlot (ns, path, rider):
    
    if override or opt_PyNodePlot:
       header += '_PNP'
-      cc.append(PyNodePlot (ns, rr.path, rider))
+      cc.append(PyNodePlot (ns, rider))
 
    if override or opt_PlotVIS22:
-      cc.append(PlotVIS22 (ns, rr.path, rider))
+      cc.append(PlotVIS22 (ns, rider))
 
    if override or opt_PyNodeNamedGroups:
       header += '_PNNG'
-      cc.append(PyNodeNamedGroups (ns, rr.path, rider))
+      cc.append(PyNodeNamedGroups (ns, rider))
 
    if override or opt_helpnodes:
       header += '_help'
-      cc.append(make_helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #********************************************************************************
 
-def make_helpnodes (ns, path, rider):
+def make_helpnodes (ns, rider):
    """
    It is possible to define nodes that have no other function than to carry
    a help-text. The latter may be consulted in the quickref_help field in the
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, path, rider)
+   rr = QRU.on_entry(make_helpnodes, rider)
    
    cc = []
    override = (opt_alltopics or opt_helpnode_alltopics)
 
    if override or opt_helpnode_bundle:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=EB.bundle))
+      cc.append(QRU.helpnode (ns, rider, func=EB.bundle))
    if override or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
+      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
    if override or opt_helpnode_PNP:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNP.PyNodePlot))
+      cc.append(QRU.helpnode (ns, rider, func=PNP.PyNodePlot))
    if override or opt_helpnode_pynode_PNP:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNP.pynode_Plot))
-      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNP.string2plotspecs))
-      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNP.string2plotspecs_VIS22))
+      cc.append(QRU.helpnode (ns, rider, func=PNP.pynode_Plot))
+      cc.append(QRU.helpnode(ns, rider, func=PNP.string2plotspecs))
+      cc.append(QRU.helpnode(ns, rider, func=PNP.string2plotspecs_VIS22))
    if override or opt_helpnode_PNP_plotstyles:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=PPS.PlotStyle))
+      cc.append(QRU.helpnode (ns, rider, func=PPS.PlotStyle))
 
    if override or opt_helpnode_PNNG:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNNG.PyNodeNamedGroups))
+      cc.append(QRU.helpnode (ns, rider, func=PNNG.PyNodeNamedGroups))
    if override or opt_helpnode_pynode_PNNG:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=PNNG.pynode_NamedGroup))
-      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2groupspecs))
-      cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2record_VIS22))
+      cc.append(QRU.helpnode (ns, rider, func=PNNG.pynode_NamedGroup))
+      cc.append(QRU.helpnode(ns, rider, func=PNNG.string2groupspecs))
+      cc.append(QRU.helpnode(ns, rider, func=PNNG.string2record_VIS22))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -233,7 +233,7 @@ def make_helpnodes (ns, path, rider):
 # PyNodePlot:
 #================================================================================
 
-def PyNodePlot (ns, path, rider):
+def PyNodePlot (ns, rider):
    """
    Basic plotting, using the convenience function PNP.pynode_PyNodePlot(),
    (import PyNodePlot as PNP) which creates a MeqPyNode of class PyNodePlot,
@@ -255,30 +255,30 @@ def PyNodePlot (ns, path, rider):
    .    - namedgroups: The detailed list of available named groups
    .    - plotdefs:    The detailed list of (sub)plot definitions
    """
-   rr = QRU.on_entry(PyNodePlot, path, rider)
+   rr = QRU.on_entry(PyNodePlot, rider)
    cc = []
    override = (opt_alltopics or opt_PNP_alltopics)
 
    if override or opt_PNP_basic:
-      cc.append(PyNodePlot_basic (ns, rr.path, rider))
+      cc.append(PyNodePlot_basic (ns, rider))
    if override or opt_PNP_advanced:
-      cc.append(PyNodePlot_advanced (ns, rr.path, rider))
+      cc.append(PyNodePlot_advanced (ns, rider))
    if override or opt_PNP_scalars:
-      cc.append(PyNodePlot_scalars (ns, rr.path, rider))
+      cc.append(PyNodePlot_scalars (ns, rider))
    if override or opt_PNP_complex:
-      cc.append(PyNodePlot_complex (ns, rr.path, rider))
+      cc.append(PyNodePlot_complex (ns, rider))
    if override or opt_PNP_tensors:
-      cc.append(PyNodePlot_tensors (ns, rr.path, rider))
+      cc.append(PyNodePlot_tensors (ns, rider))
    if override or opt_PNP_concat:
-      cc.append(PyNodePlot_concat (ns, rr.path, rider))
+      cc.append(PyNodePlot_concat (ns, rider))
    if override or opt_PNP_nonodes:
-      cc.append(PyNodePlot_nonodes (ns, rr.path, rider))
+      cc.append(PyNodePlot_nonodes (ns, rider))
 
    bookmark = cc
    if len(cc)>0:
       bookmark = cc[0]
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       bookmark=bookmark, viewer='Pylab Plotter',
                       parentclass='ReqSeq', result_index=0)
 
@@ -286,7 +286,7 @@ def PyNodePlot (ns, path, rider):
 
 #================================================================================
 
-def PyNodePlot_basic (ns, path, rider):
+def PyNodePlot_basic (ns, rider):
    """
    The simplest possible plot plots vells[0] of its children against child no:
    .    import PyNodePlot as PNP
@@ -297,7 +297,7 @@ def PyNodePlot_basic (ns, path, rider):
    The utilized customization keywords are shown in the plot legends. They can be
    used in any combination, of course.
    """
-   rr = QRU.on_entry(PyNodePlot_basic, path, rider)
+   rr = QRU.on_entry(PyNodePlot_basic, rider)
    cc = []
 
    nodes = EB.bundle(ns,'cloud_n6s1')
@@ -314,12 +314,12 @@ def PyNodePlot_basic (ns, path, rider):
                  plot_ellipse_stddev=True, plot_circle_mean=True)
    cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
 #================================================================================
 
-def PyNodePlot_advanced (ns, path, rider):
+def PyNodePlot_advanced (ns, rider):
    """
    In this more advanced example, a single plot contains graphics that represent
    different mathematical expressions in which the the available named groups
@@ -380,7 +380,7 @@ def PyNodePlot_advanced (ns, path, rider):
    
    Etc, etc. The possibilities are endless.
    """
-   rr = QRU.on_entry(PyNodePlot_advanced, path, rider)
+   rr = QRU.on_entry(PyNodePlot_advanced, rider)
    cc = []
    viewer = []
 
@@ -424,12 +424,12 @@ def PyNodePlot_advanced (ns, path, rider):
    viewer.append('Record Browser')
    
                              
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       show_recurse=True, viewer=viewer)
 
 #================================================================================
 
-def PyNodePlot_scalars (ns, path, rider):
+def PyNodePlot_scalars (ns, rider):
    """
    Groups of scalar nodes can be plotted against each other by arranging them
    in a single list, and specifying groupspecs='XXYY'. The results of the nodes in
@@ -444,7 +444,7 @@ def PyNodePlot_scalars (ns, path, rider):
    .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, 'XXYYZZ')
    In this case, the z-values are indicated by the size of their markers.
    """
-   rr = QRU.on_entry(PyNodePlot_scalars, path, rider)
+   rr = QRU.on_entry(PyNodePlot_scalars, rider)
    xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
    ynodes = EB.bundle(ns,'cloud_n6s1', nodename='yyy')
    znodes = EB.bundle(ns,'cloud_n6s1')
@@ -460,13 +460,13 @@ def PyNodePlot_scalars (ns, path, rider):
    cc.extend([node,node])
    viewer.extend(['Pylab Plotter','Record Browser'])
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer=viewer)
 
 
 #================================================================================
 
-def PyNodePlot_complex (ns, path, rider):
+def PyNodePlot_complex (ns, rider):
    """
    Complex vellsets may be plotted in various ways. The simplest is to use the
    real parts of vellsets[0] as x-coordinates, and their imaginary parts as
@@ -476,20 +476,20 @@ def PyNodePlot_complex (ns, path, rider):
    In this case, the named group 'y' contains complex numbers. They are split into
    real and imaginary parts by plotspecs expressions x={y}.real and y={y}.imag.
    """
-   rr = QRU.on_entry(PyNodePlot_complex, path, rider)
+   rr = QRU.on_entry(PyNodePlot_complex, rider)
    cc = []
    cxnodes = EB.bundle(ns,'cloud_n6r1')
    cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CY'))
    if False:
       # NB: This does not work (yet), see string2groupspecs()
       cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CXY'))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
 
 #================================================================================
 
-def PyNodePlot_tensors (ns, path, rider):
+def PyNodePlot_tensors (ns, rider):
    """
    Tensor nodes are nodes with a multiple vellsets in their results (scalars have one).
    In a group of related tensor nodes (e.g. containing pairs (u,v) of coordinates),
@@ -516,7 +516,7 @@ def PyNodePlot_tensors (ns, path, rider):
    The integers following 'VELLS_' are vellset indices, of course.
 
    """
-   rr = QRU.on_entry(PyNodePlot_tensors, path, rider)
+   rr = QRU.on_entry(PyNodePlot_tensors, rider)
    cc = []
    nodes = EB.bundle(ns,'range_4', n=5, nodename='range', stddev=1.0)
    cc = []
@@ -526,13 +526,13 @@ def PyNodePlot_tensors (ns, path, rider):
    cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_1'))
    cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_32'))
    cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_213'))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
 
 #================================================================================
 
-def PyNodePlot_concat (ns, path, rider):
+def PyNodePlot_concat (ns, rider):
    """
    It is possible to concatenate pynodes of class PyNodePlot/PyNodeNamedGroups.
    Children of these types are ignored for plotting, but their group definitions
@@ -558,7 +558,7 @@ def PyNodePlot_concat (ns, path, rider):
 
    Etc, etc. See also the more elaborate concatenation examples below....
    """
-   rr = QRU.on_entry(PyNodePlot_concat, path, rider)
+   rr = QRU.on_entry(PyNodePlot_concat, rider)
    cc = []
    viewer = []
    xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
@@ -577,12 +577,12 @@ def PyNodePlot_concat (ns, path, rider):
    cc.extend([node,node])
    viewer.extend(['Pylab Plotter','Record Browser'])
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer=viewer)
 
 #================================================================================
 
-def PyNodePlot_nonodes (ns, path, rider):
+def PyNodePlot_nonodes (ns, rider):
    """
    It is also possible to plot 'named groups' that do not contain the
    results of child-nodes, but (lists of) values given directly. This opens
@@ -612,7 +612,7 @@ def PyNodePlot_nonodes (ns, path, rider):
 
    See also the PyNodeNamedGroups topic 'nonodes' below. 
    """
-   rr = QRU.on_entry(PyNodePlot_nonodes, path, rider)
+   rr = QRU.on_entry(PyNodePlot_nonodes, rider)
    cc = []
    viewer = []
 
@@ -637,7 +637,7 @@ def PyNodePlot_nonodes (ns, path, rider):
    cc.append(pynode)
    viewer.append('Pylab Plotter')
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer=viewer)
 
 
@@ -650,34 +650,34 @@ def PyNodePlot_nonodes (ns, path, rider):
 #================================================================================
 #================================================================================
 
-def PlotVIS22 (ns, path, rider):
+def PlotVIS22 (ns, rider):
    """
    Standard plot of the 4 elements (visibilities) of 2x2 cohaerency matrices.
    """
-   rr = QRU.on_entry(PlotVIS22, path, rider)
+   rr = QRU.on_entry(PlotVIS22, rider)
    cc = []
 
    override = (opt_alltopics or opt_PlotVIS22_alltopics)
    if override or opt_PlotVIS22_linear:
-      cc.append(PlotVIS22_linear (ns, rr.path, rider))
+      cc.append(PlotVIS22_linear (ns, rider))
    if override or opt_PlotVIS22_circular:
-      cc.append(PlotVIS22_circular (ns, rr.path, rider))
+      cc.append(PlotVIS22_circular (ns, rider))
    if override or opt_PlotVIS22_play:
-      cc.append(PlotVIS22_play (ns, rr.path, rider))
+      cc.append(PlotVIS22_play (ns, rider))
 
-   cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2record_VIS22))
+   cc.append(QRU.helpnode(ns, rider, func=PNNG.string2record_VIS22))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def PlotVIS22_linear (ns, path, rider):
+def PlotVIS22_linear (ns, rider):
    """
    Four plots of the complex visibilities (XX,XY,YX,YY) of a point source,
    assuming linearly polarized receptors (like WSRT or ATCA). 
    """
-   rr = QRU.on_entry(PlotVIS22_linear, path, rider)
+   rr = QRU.on_entry(PlotVIS22_linear, rider)
    cc = []
 
    IQUV = 'Q0.1U-0.2'
@@ -692,18 +692,18 @@ def PlotVIS22_linear (ns, path, rider):
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV'))
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_QUV'))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
 
 #================================================================================
 
-def PlotVIS22_circular (ns, path, rider):
+def PlotVIS22_circular (ns, rider):
    """
    Four plots of the complex visibilities (RR,RL,LR,LL) of a point source,
    assuming cirularly polarized receptors (like VLA or VLBI).
    """
-   rr = QRU.on_entry(PlotVIS22_circular, path, rider)
+   rr = QRU.on_entry(PlotVIS22_circular, rider)
    cc = []
 
    IQUV = 'Q0.1U-0.2'
@@ -718,13 +718,13 @@ def PlotVIS22_circular (ns, path, rider):
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV'))
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_QUV'))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
 
 #================================================================================
 
-def PlotVIS22_play (ns, path, rider):
+def PlotVIS22_play (ns, rider):
    """
    Play with the visibility/stokes plots for sources of different polarisations,
    at different positions (l,m) w.r.t. the phase centre. Note how much information
@@ -742,7 +742,7 @@ def PlotVIS22_play (ns, path, rider):
    .   (XX,YY,RR,LL) but changes the phase of the perpendicular corrs (XY,YX,RL,LR).
    - Faraday rotation (not implemented yet)
    """
-   rr = QRU.on_entry(PlotVIS22_play, path, rider)
+   rr = QRU.on_entry(PlotVIS22_play, rider)
    cc = []
 
    polrep = opt_PlotVIS22_play_polrep
@@ -787,7 +787,7 @@ def PlotVIS22_play (ns, path, rider):
                              ylabel='m (deg w.r.t. phase centre)',
                              title='point source ('+str(IQUV)+')'))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
 
@@ -800,50 +800,50 @@ def PlotVIS22_play (ns, path, rider):
 # PyNodeNamedGroups:
 #================================================================================
 
-def PyNodeNamedGroups (ns, path, rider):
+def PyNodeNamedGroups (ns, rider):
    """
    PyNodes of class PyNodeNamedGroups manipulate 'named groups' of values,
    e.g. for plotting. The values are extracted from the results of its
    children, or supplied directly as a list of numbers.
    Classes like PyNodePlot are derived from PyNodeNamedGroups.
    """
-   rr = QRU.on_entry(PyNodeNamedGroups, path, rider)
+   rr = QRU.on_entry(PyNodeNamedGroups, rider)
    cc = []
    override = (opt_alltopics or opt_PNNG_alltopics)
 
    if override or opt_PNNG_basic:
-      cc.append(PyNodeNamedGroups_basic (ns, rr.path, rider))
+      cc.append(PyNodeNamedGroups_basic (ns, rider))
    if override or opt_PNNG_nonodes:
-      cc.append(PyNodeNamedGroups_nonodes (ns, rr.path, rider))
+      cc.append(PyNodeNamedGroups_nonodes (ns, rider))
    if override or opt_PNNG_concat:
-      cc.append(PyNodeNamedGroups_concat (ns, rr.path, rider))
+      cc.append(PyNodeNamedGroups_concat (ns, rider))
 
-   cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2groupspecs))
-   # cc.append(QRU.helpnode(ns, rr.path, rider, func=PNNG.string2record_VIS22))
+   cc.append(QRU.helpnode(ns, rider, func=PNNG.string2groupspecs))
+   # cc.append(QRU.helpnode(ns, rider, func=PNNG.string2record_VIS22))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       bookmark=cc[0], viewer='Record Browser',
                       parentclass='ReqSeq', result_index=0)
 
 
 #================================================================================
 
-def PyNodeNamedGroups_basic (ns, path, rider):
+def PyNodeNamedGroups_basic (ns, rider):
    """
    """
-   rr = QRU.on_entry(PyNodeNamedGroups_basic, path, rider)
+   rr = QRU.on_entry(PyNodeNamedGroups_basic, rider)
    cc = []
 
    anodes = EB.bundle(ns,'cloud_n6s1', nodename='aa')
    cc.append(PNNG.pynode_NamedGroup(ns, anodes, groupspecs='a'))
    
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Record Browser')
 
 
 #================================================================================
 
-def PyNodeNamedGroups_nonodes (ns, path, rider):
+def PyNodeNamedGroups_nonodes (ns, rider):
    """
    While the 'normal' use of named groups is to extract and manipulate groups of
    node results, it is also possible to fill a group directly with a list (vector)
@@ -867,7 +867,7 @@ def PyNodeNamedGroups_nonodes (ns, path, rider):
    .    pynode = PNNG.pynode_NamedGroup(ns, cc)
    
    """
-   rr = QRU.on_entry(PyNodeNamedGroups_nonodes, path, rider)
+   rr = QRU.on_entry(PyNodeNamedGroups_nonodes, rider)
    cc = []
 
    gs = record(a=range(6), b=range(7), c=range(3))
@@ -876,12 +876,12 @@ def PyNodeNamedGroups_nonodes (ns, path, rider):
    cc.append(PNNG.pynode_NamedGroup(ns, range(8), groupspecs='q'))
    cc.append(PNNG.pynode_NamedGroup(ns, cc))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Record Browser')
 
 #================================================================================
 
-def PyNodeNamedGroups_concat (ns, path, rider):
+def PyNodeNamedGroups_concat (ns, rider):
    """
    It is possible to concatenate pynodes of class PyNodeNamedGroups.
    Children of these types are ignored for extracting results, but their
@@ -907,7 +907,7 @@ def PyNodeNamedGroups_concat (ns, path, rider):
    
    Etc, etc. See also the more elaborate concatenation examples below....
    """
-   rr = QRU.on_entry(PyNodePlot_concat, path, rider)
+   rr = QRU.on_entry(PyNodePlot_concat, rider)
    cc = []
    anodes = EB.bundle(ns,'cloud_n6s1', nodename='aa')
    bnodes = EB.bundle(ns,'cloud_n6s1', nodename='bb')
@@ -920,7 +920,7 @@ def PyNodeNamedGroups_concat (ns, path, rider):
    cc.append(PNNG.pynode_NamedGroup(ns, [cc[0],cc[1]], nodename='ab'))     # cc[3]: (a,b) -> ab
    cc.append(PNNG.pynode_NamedGroup(ns, [cc[2],cc[3]], nodename='abc'))    # cc[4]: (c,ab) -> abc
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Record Browser')
 
 
@@ -942,13 +942,12 @@ def PyNodeNamedGroups_concat (ns, path, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   rootnodename = 'QR_PyNodePlot'               # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
-   rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
-   rootnodename = 'QR_PyNodePlot'                 # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
-   QRU.bundle (ns, path, rider,
-              nodes=[QR_PyNodePlot(ns, path, rider)],
-              help=__doc__)
+   rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
+   QRU.on_exit (ns, rider,
+                nodes=[QR_PyNodePlot(ns, rider)],
+                help=__doc__)
 
    # Finished:
    QRU.ET.EN.bundle_orphans(ns)

@@ -19,6 +19,7 @@
 #   - 04 jul 2008: implemented string2groupspecs()
 #   - 06 jul 2008: implemented string2record_VIS22()
 #   - 17 jul 2008: allowed values i.s.o. nodes
+#   - 26 jul 2008: implemented .format_groupspecs()
 #
 # Remarks:
 #
@@ -77,6 +78,34 @@ Settings.forest_state.cache_policy = 100;
 #=====================================================================================
 # The PyNodeNamedGroups base class:
 #=====================================================================================
+
+def format_groupspecs_record (gs, name=None, mode='html', severe=True, trace=False):
+  """
+  Make a string that summarizes the contents of the given groupspecs record
+  in an organized way. 
+  In the process, check its validity (raise ValueError if severe=True). 
+  """
+  ss = '<dl><dt><font color="green">\n'
+  ss += 'groupspecs record ('+str(name)+'):'
+  ss += '\n</font><dd>\n'
+  for key in gs.keys():
+    s = '- '+str(key)+': '
+    rr = gs[key]
+    if isinstance(rr,dict):
+      s += str(rr)
+    elif isinstance(rr,(list,tuple,int,float)):
+      s += EN.format_value(rr)
+    else:
+      s += str(type(rr))
+    ss += s+'<br>\n'
+  # Finished:
+  ss += '</dl>\n'
+  if trace:
+    print ss
+  return ss
+  
+
+#------------------------------------------------------------------------------
 
 class PyNodeNamedGroups (pynode.PyNode):
   """
@@ -1308,6 +1337,10 @@ def string2groupspecs(ss, nodes=None, trace=False):
     gs[ss.lower()] = nodes
   #...............................................................
 
+  if False:
+    # Keep the spec-string (ss) that produced gs:
+    for key in gs.keys():
+      gs[key]['spec'] = ss
 
   if trace:
     print '\n** string2groupspecs(',ss,values,'):\n    ',gs,'\n'

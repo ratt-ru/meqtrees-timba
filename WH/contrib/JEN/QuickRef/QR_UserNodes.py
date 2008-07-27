@@ -98,38 +98,38 @@ TDLCompileMenu("QR_UserNodes topics:",
 #********************************************************************************
 
 
-def QR_UserNodes (ns, path, rider):
+def QR_UserNodes (ns, rider):
    """
    """
-   rr = QRU.on_entry(QR_UserNodes, path, rider)
+   rr = QRU.on_entry(QR_UserNodes, rider)
  
    cc = []
    if opt_alltopics or opt_Functional:
-      cc.append(Functional (ns, rr.path, rider))
+      cc.append(Functional (ns, rider))
 
    if opt_helpnodes:
-      cc.append(make_helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #********************************************************************************
 
-def make_helpnodes (ns, path, rider):
+def make_helpnodes (ns, rider):
    """
    It is possible to define nodes that have no other function than to carry
    a help-text. The latter may be consulted in the quickref_help field in the
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, path, rider)
+   rr = QRU.on_entry(make_helpnodes, rider)
    
    cc = []
    if opt_alltopics or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyTwig_twig',
+      cc.append(QRU.helpnode (ns, rider, name='EasyTwig_twig',
                              help=ET.twig.__doc__, trace=False))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -137,24 +137,24 @@ def make_helpnodes (ns, path, rider):
 # Functional:
 #================================================================================
 
-def Functional (ns, path, rider):
+def Functional (ns, rider):
    """
    """
-   rr = QRU.on_entry(Functional, path, rider)
+   rr = QRU.on_entry(Functional, rider)
    cc = []
    # if opt_alltopics or opt_Functional_subtopic:
-   #    cc.append(Functional_subtopic (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   #    cc.append(Functional_subtopic (ns, rider))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def Functional_subtopic (ns, path, rider):
+def Functional_subtopic (ns, rider):
    """
    """
-   rr = QRU.on_entry(Functional_subtopic, path, rider)
+   rr = QRU.on_entry(Functional_subtopic, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -162,24 +162,24 @@ def Functional_subtopic (ns, path, rider):
 # PrivateFunction:
 #================================================================================
 
-def PrivateFunction (ns, path, rider):
+def PrivateFunction (ns, rider):
    """
    """
-   rr = QRU.on_entry(PrivateFunction, path, rider)
+   rr = QRU.on_entry(PrivateFunction, rider)
    cc = []
    # if opt_alltopics or opt_PrivateFunction_subtopic:
-   #    cc.append(PrivateFunction_subtopic (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   #    cc.append(PrivateFunction_subtopic (ns, rider))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def PrivateFunction_subtopic (ns, path, rider):
+def PrivateFunction_subtopic (ns, rider):
    """
    """
-   rr = QRU.on_entry(PrivateFunction_subtopic, path, rider)
+   rr = QRU.on_entry(PrivateFunction_subtopic, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -187,24 +187,24 @@ def PrivateFunction_subtopic (ns, path, rider):
 # PyNode:
 #================================================================================
 
-def PyNode (ns, path, rider):
+def PyNode (ns, rider):
    """
    """
-   rr = QRU.on_entry(PyNode, path, rider)
+   rr = QRU.on_entry(PyNode, rider)
    cc = []
    # if opt_alltopics or opt_PyNode_subtopic:
-   #    cc.append(PyNode_subtopic (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   #    cc.append(PyNode_subtopic (ns, rider))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def PyNode_subtopic (ns, path, rider):
+def PyNode_subtopic (ns, rider):
    """
    """
-   rr = QRU.on_entry(PyNode_subtopic, path, rider)
+   rr = QRU.on_entry(PyNode_subtopic, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -226,13 +226,12 @@ def PyNode_subtopic (ns, path, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
-   global rider                                 # global because it is used in tdl_jobs
-   rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
    rootnodename = 'QR_UserNodes'                 # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
-   QRU.bundle (ns, path, rider,
-              nodes=[QR_UserNodes(ns, path, rider)],
-              help=__doc__)
+   global rider                                  # global because it is used in tdl_jobs
+   rider = QRU.create_rider(rootnodename)        # the rider is a CollatedHelpRecord object
+   QRU.on_exit (ns, rider,
+                nodes=[QR_UserNodes(ns, rider)],
+                help=__doc__)
 
    # Finished:
    return True

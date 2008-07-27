@@ -111,7 +111,7 @@ TDLCompileMenu("QR_template topics:",
 
 header = 'QR_template'                    # used in exec functions at the bottom
 
-def QR_template (ns, path, rider):
+def QR_template (ns, rider):
    """
    NB: This text should be replaced with an overall explanation of the
    MeqTree functionality that is covered in this QR module.
@@ -128,59 +128,59 @@ def QR_template (ns, path, rider):
 
    All functions in a QR module have the following general structure:
 
-   .   def funcname (ns, path, rider [,optional arguments]):
+   .   def funcname (ns, rider [,optional arguments]):
    .      <help-text for this function enclosed in triple-quotes>
-   .      rr = QRU.on_entry(funcname, path, rider)
+   .      rr = QRU.on_entry(funcname, rider)
    .      cc = []
    .      <function body, in which nodes are appended to the list cc>
-   .      return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   .      return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
    The first argument of QRU.on_entry() is the function itself, without ().
    It returns a record rr, the fields of which (rr.path and rr.help) are
    used in the function (or rather, passed to other QRU functions).
    
-   The last statement (return QRU.bundle()) bundles the nodes (cc) in a
+   The last statement (return QRU.on_exit()) bundles the nodes (cc) in a
    convenient way, and returns the resulting parent node of the bundle.
    Its syntax is given below.
    """
-   rr = QRU.on_entry(QR_template, path, rider)
+   rr = QRU.on_entry(QR_template, rider)
    cc = []
    override = opt_alltopics
    global header
 
    # Remove this part:
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=QRU.bundle))
+   cc.append(QRU.helpnode (ns, rider, func=QRU.on_exit))
 
    # Edit this part:
    if override or opt_topic1:
-      cc.append(topic1 (ns, rr.path, rider))
+      cc.append(topic1 (ns, rider))
    if override or opt_topic2:
-      cc.append(topic2 (ns, rr.path, rider))
+      cc.append(topic2 (ns, rider))
 
    if opt_helpnodes:
-      cc.append(make_helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #********************************************************************************
 
-def make_helpnodes (ns, path, rider):
+def make_helpnodes (ns, rider):
    """
    It is possible to define nodes that have no other function than to carry
    a help-text. The latter may be consulted in the quickref_help field in the
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, path, rider)
+   rr = QRU.on_entry(make_helpnodes, rider)
    
    override = opt_alltopics
    cc = []
 
    if override or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
+      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -188,7 +188,7 @@ def make_helpnodes (ns, path, rider):
 # topic1:
 #================================================================================
 
-def topic1 (ns, path, rider):
+def topic1 (ns, rider):
    """
    NB: This text should be replaced with an overall explanation of this 'topic'
    of this QR module.
@@ -198,29 +198,29 @@ def topic1 (ns, path, rider):
    that represent different 'views' (e.g. demonstration trees of particular aspects)
    of this topic. The general structure is:
 
-   .   def topic1 (ns, path, rider):
-   .       rr = QRU.on_entry(topic1, path, rider)
+   .   def topic1 (ns, rider):
+   .       rr = QRU.on_entry(topic1, rider)
    .       cc = []
    .       if override or opt_topic1_subtopic:
-   .           cc.append(topic1_subtopic (ns, rr.path, rider))
-   .       return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   .           cc.append(topic1_subtopic (ns, rider))
+   .       return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
    It is sometimes useful to read some general TDLCompileOptions here, and pass
    them to the lower-level functions as extra arguments.
    """
-   rr = QRU.on_entry(topic1, path, rider)
+   rr = QRU.on_entry(topic1, rider)
    cc = []
    override = opt_alltopics
 
    if override or opt_topic1_subtopic:
-      cc.append(topic1_subtopic (ns, rr.path, rider))
+      cc.append(topic1_subtopic (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def topic1_subtopic (ns, path, rider):
+def topic1_subtopic (ns, rider):
    """
    NB: This text should be replaced with an overall explanation of this subtopic of
    this topic of this QR module.
@@ -229,7 +229,7 @@ def topic1_subtopic (ns, path, rider):
    It usually generates a group of 4-9 related nodes that may be displayed on a
    single bookmark page.
 
-   In addition to the mandatory QRU.on_entry() and QRU.bundle(), a function maye call
+   In addition to the mandatory QRU.on_entry() and QRU.on_exit(), a function maye call
    the function QRU.MeqNode() zero or more times. This function creates the specified
    MeqNode, with help attached to the quickref_help field of its state record.
    The syntax of QRU.MeqNode() is given below.
@@ -243,17 +243,17 @@ def topic1_subtopic (ns, path, rider):
    that may serve as (user-defined) inputs to a demonstration subtree. Its syntax is
    given as a separate 'helpnode' item above. 
    """
-   rr = QRU.on_entry(topic1_subtopic, path, rider)
+   rr = QRU.on_entry(topic1_subtopic, rider)
    cc = []
 
    # Remove this part: 
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=QRU.MeqNode))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.nodestub))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.unique_stub))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.unique_node))
-   cc.append(QRU.helpnode (ns, rr.path, rider, func=EN.reusenode))
+   cc.append(QRU.helpnode (ns, rider, func=QRU.MeqNode))
+   cc.append(QRU.helpnode (ns, rider, func=EN.nodestub))
+   cc.append(QRU.helpnode (ns, rider, func=EN.unique_stub))
+   cc.append(QRU.helpnode (ns, rider, func=EN.unique_node))
+   cc.append(QRU.helpnode (ns, rider, func=EN.reusenode))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -262,29 +262,29 @@ def topic1_subtopic (ns, path, rider):
 # topic2:
 #================================================================================
 
-def topic2 (ns, path, rider):
+def topic2 (ns, rider):
    """
    topic2 covers ....
    """
-   rr = QRU.on_entry(topic2, path, rider)
+   rr = QRU.on_entry(topic2, rider)
    cc = []
    override = opt_alltopics
 
    # if override or opt_topic2_subtopic:
-   #    cc.append(topic2_subtopic (ns, rr.path, rider))
+   #    cc.append(topic2_subtopic (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def topic2_subtopic (ns, path, rider):
+def topic2_subtopic (ns, rider):
    """
    topic2_subtopic treats ....
    """
-   rr = QRU.on_entry(topic2_subtopic, path, rider)
+   rr = QRU.on_entry(topic2_subtopic, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -306,13 +306,14 @@ def topic2_subtopic (ns, path, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
-   global rider                                 # global because it is used in tdl_jobs
-   rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
    rootnodename = 'QR_template'                 # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
-   QRU.bundle (ns, path, rider,
-               nodes=[QR_template(ns, path, rider)],
-               help=__doc__)
+   global rider                                 # global because it is used in tdl_jobs
+   rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
+   # path = rootnodename                        # Root of the path-string
+   # rider.path(init=rootnodename)
+   QRU.on_exit (ns, rider,
+                nodes=[QR_template(ns, rider)],
+                help=__doc__)
 
    # Finished:
    QRU.ET.EN.bundle_orphans(ns)

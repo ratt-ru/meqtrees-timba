@@ -67,10 +67,49 @@ class CollatedHelpRecord (object):
       self._chrec = record(help=None, order=[])
       self._folder = record()
       self._orphans = []
+      self.path(init='CollatedHelpRecord') 
       return None
 
    def chrec (self):
       return self._chrec
+
+   #-------------------------------------------------------------------------------
+
+   def path (self, append=None, up=False, temp=None,
+             init=False, trace=False):
+      """
+      Helper function to get/manipulate the path to a specific item.
+      - If init is a string, set self._path 
+      - If append is a string, append it to self._path (with '.')
+      - If up=True, remove the last appended item
+      - If temp is string, same as append, but self._path unaffected
+      The path string controls many of the functions in this object.
+      NB: This function is called from all QR_... modules!
+      """
+      if isinstance(init,str):
+         self._path = init
+
+      if isinstance(temp,str):
+         # Return a temporary path (does NOT affect self._path)
+         path = self._path+'.'+str(temp)
+         if trace:
+            print '\n** rider.path(temp=',temp,') ->',path
+         return path
+
+      elif isinstance(append,str):
+         # Extend the path string, separated by '.'
+         self._path += '.'+str(append)
+
+      elif up:
+         # Go up one level, by removing the last append:
+         ss = self._path.split('.')
+         last = '.'+ss[len(ss)-1]
+         self._path = self._path.replace(last,'')
+
+      # Return the current self._path (except if temp=str):
+      if trace:
+            print '\n** rider.path(',append,up,init,') ->',self._path
+      return self._path
 
    #---------------------------------------------------------------------
 
@@ -226,6 +265,55 @@ class CollatedHelpRecord (object):
 #      dialog.setInfoText(tmp_str)
 #      dialog.setTitle("Help")
 #      dialog.show()
+
+   #---------------------------------------------------------------------
+
+   def topic_name(self, path, trace=False):
+       """
+       Use the path string to make a topic (bundle) name,
+       to be used for the header and for bundle node-name etc.
+       Called from QuickRefUtil.py, and from topic_header() below.
+       The name of the bundle (node, page, folder) is the last
+       part of the path string, i.e. after the last dot ('.')
+       """
+       ss = path.split('.')
+       nss = len(ss)
+       name = ss[nss-1]
+       return name
+
+   #---------------------------------------------------------------------
+
+   def topic_header(self, path, mode='html', trace=False):
+       """
+       Use the path string to make a QuickRef topic header.
+       Called from QuickRefUtil.py
+       """
+       # The name of the bundle (node, page, folder) is the last
+       # part of the path string, i.e. after the last dot ('.')
+       ss = path.split('.')
+       nss = len(ss)
+       name = ss[nss-1]
+       # name = self.topic_name (path)
+
+       # Prepend a header:
+       level = nss-2
+       qhead = '<h'+str(level+2)+'>\n '       # html tag (see CollatedHelpRecord())
+       qhead += '('+str(level+2)+')  '
+       if level==0:                           # i.e. nss=2
+          qhead += 'MODULE: '+ss[nss-2]+'_'+ss[nss-1]
+       elif level==1:                         # i.e. nss=3
+          qhead += 'TOPIC: '+ss[nss-2]+'_'+ss[nss-1]
+       elif level==2:                         # i.e. nss=4
+          qhead += 'sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+       elif level==3:                         # i.e. nss=5
+          qhead += 'sub-sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+       elif level>3:
+          qhead += 'sub-sub-sub-...: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
+       qhead += ' </h'+str(level+2)+'>'       # closing html tag
+
+       if trace:
+          print '\n** topic_header(',path,'):\n    ->',qhead,'\n'
+       return qhead
 
    #---------------------------------------------------------------------
 
@@ -521,7 +609,7 @@ class CollatedHelpRecord (object):
          elif '<li>' in ss[i]:              # list element (assume unordered list)
             aa = ss[i].split(':')
             if len(aa)>1:
-               ss[i] = '<font color="blue">' + aa[0] + ':' + '</font>'   # NB: forces a line-break...!
+               ss[i] = '<font color="blue">' + aa[0] + ':' + '</font> '   # NB: forces a line-break...!
                for k,a in enumerate(aa):
                   if k>0: ss[i] += a
             if licount==0:
@@ -574,8 +662,20 @@ if __name__ == '__main__':
 
    if 1:
       rider = CollatedHelpRecord()
-
+ 
    if 1:
+      rider.path(trace=True)
+      rider.path(init='test', trace=True)
+      rider.path(append='module', trace=True)
+      rider.path(append='topic', trace=True)
+      rider.path(append='subtopic', trace=True)
+      rider.path(up=True, trace=True)
+      rider.path(up=True, trace=True)
+      rider.path(temp='temp1', trace=True)
+      rider.path(temp='temp2', trace=True)
+      rider.path(trace=True)
+
+   if 0:
       cc = rider.orphans(ns << 1.2, trace=True)
       cc = rider.orphans(ns << 1.2, trace=True)
       cc = rider.orphans(trace=True)

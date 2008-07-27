@@ -256,37 +256,35 @@ TDLCompileMenu("QuickRef Categories:",
 
 def _define_forest (ns, **kwargs):
 
-   # Make bundles of (bundles of) categories of nodes/subtrees:
-   global rider
-   rider = QRU.create_rider()                # CollatedHelpRecord object
    rootnodename = 'QuickRef'                # The name of the node to be executed...
-   path = rootnodename                      # Root of the path-string
+   global rider
+   rider = QRU.create_rider(rootnodename)   # CollatedHelpRecord object
 
    cc = []
 
    if avail_TreeDefinition and (opt_allcats or opt_TreeDefinition):   
-      cc.append(QR_TreeDefinition.QR_TreeDefinition(ns, path, rider=rider))
+      cc.append(QR_TreeDefinition.QR_TreeDefinition(ns, rider))
 
    if avail_execution and (opt_allcats or opt_execution):   
-      cc.append(QR_execution.QR_execution(ns, path, rider=rider))
+      cc.append(QR_execution.QR_execution(ns, rider))
 
    if avail_MeqNodes and (opt_allcats or opt_MeqNodes):   
-      cc.append(QR_MeqNodes.QR_MeqNodes(ns, path, rider=rider))
+      cc.append(QR_MeqNodes.QR_MeqNodes(ns, rider))
 
    if avail_UserNodes and (opt_allcats or opt_UserNodes):   
-      cc.append(QR_UserNodes.QR_UserNodes(ns, path, rider=rider))
+      cc.append(QR_UserNodes.QR_UserNodes(ns, rider))
 
    if avail_solving and (opt_allcats or opt_solving):   
-      cc.append(QR_solving.QR_solving(ns, path, rider=rider))
+      cc.append(QR_solving.QR_solving(ns, rider))
 
    if avail_PyNodePlot and (opt_allcats or opt_PyNodePlot):   
-      cc.append(QR_PyNodePlot.QR_PyNodePlot(ns, path, rider=rider))
+      cc.append(QR_PyNodePlot.QR_PyNodePlot(ns, rider))
 
    if avail_template and (opt_allcats or opt_template):   
-      cc.append(QR_template.QR_template(ns, path, rider=rider))
+      cc.append(QR_template.QR_template(ns, rider))
 
    # Make the outer bundle (of node bundles):
-   QRU.bundle (ns, path, nodes=cc, help=__doc__, rider=rider)
+   QRU.on_exit (ns, rider, nodes=cc, help=__doc__)
 
    # Finished:
    return True

@@ -118,6 +118,8 @@ TDLCompileMenu("QR_ionos topics:",
                        toggle='opt_TID'),
                
                TDLMenu("GPS",
+                       TDLOption('opt_GPS_alltopics',
+                                 "override: include all GPS sub-topics",False),
                        TDLMenu("TEC",
                                toggle='opt_GPS_TEC'),
                        TDLMenu("triplefreq",
@@ -138,44 +140,44 @@ TDLCompileMenu("QR_ionos topics:",
 
 header = 'QR_ionos'                    # used in exec functions at the bottom
 
-def QR_ionos (ns, path, rider):
+def QR_ionos (ns, rider):
    """
    """
-   rr = QRU.on_entry(QR_ionos, path, rider)
+   rr = QRU.on_entry(QR_ionos, rider)
    cc = []
    override = opt_alltopics
    global header
 
    if override or opt_thinlayer:
-      cc.append(thinlayer (ns, rr.path, rider))
+      cc.append(thinlayer (ns, rider))
 
    if override or opt_GPS:
-      cc.append(GPS (ns, rr.path, rider))
+      cc.append(GPS (ns, rider))
 
    if opt_helpnodes:
-      cc.append(make_helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #********************************************************************************
 
-def make_helpnodes (ns, path, rider):
+def make_helpnodes (ns, rider):
    """
    It is possible to define nodes that have no other function than to carry
    a help-text. The latter may be consulted in the quickref_help field in the
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, path, rider)
+   rr = QRU.on_entry(make_helpnodes, rider)
    
    override = opt_alltopics
    cc = []
 
    if override or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, func=ET.twig))
+      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -183,7 +185,7 @@ def make_helpnodes (ns, path, rider):
 # thinlayer:
 #================================================================================
 
-def thinlayer (ns, path, rider):
+def thinlayer (ns, rider):
    """
    The simplest ionospheric model is a thin, uniform layer at a constant altitude.
    It is fully characterized by two parameters: its altitude h (usually at a few
@@ -200,21 +202,21 @@ def thinlayer (ns, path, rider):
    formula has the obvious advantage that the z-factor towards the horizon (z=pi/2) is
    about 3.0 (for h=300 km), rather than infinite.
    """
-   rr = QRU.on_entry(thinlayer, path, rider)
+   rr = QRU.on_entry(thinlayer, rider)
    cc = []
    override = opt_thinlayer_alltopics
 
    if override or opt_thinlayer_TEC:
-      cc.append(thinlayer_TEC (ns, rr.path, rider))
+      cc.append(thinlayer_TEC (ns, rider))
    if override or opt_thinlayer_MIM:
-      cc.append(thinlayer_MIM (ns, rr.path, rider))
+      cc.append(thinlayer_MIM (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #================================================================================
 
-def thinlayer_TEC (ns, path, rider):
+def thinlayer_TEC (ns, rider):
    """
    This topic shows a few (PyNodePlot) plots that fully describe the effects of a thin layer.
    The latter has a constant altitude, but the vertical TEC may vary with (x,y)-position.
@@ -231,7 +233,7 @@ def thinlayer_TEC (ns, path, rider):
    The bottom right panel shows the source shift as a function of baseline length....
    
    """
-   rr = QRU.on_entry(thinlayer_TEC, path, rider)
+   rr = QRU.on_entry(thinlayer_TEC, rider)
    cc = []
    viewer = []
 
@@ -365,7 +367,7 @@ def thinlayer_TEC (ns, path, rider):
       cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       viewer='Pylab Plotter')
 
 
@@ -373,13 +375,13 @@ def thinlayer_TEC (ns, path, rider):
 
 #================================================================================
 
-def thinlayer_MIM (ns, path, rider):
+def thinlayer_MIM (ns, rider):
    """
    """
-   rr = QRU.on_entry(thinlayer_MIM, path, rider)
+   rr = QRU.on_entry(thinlayer_MIM, rider)
    cc = []
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -387,20 +389,20 @@ def thinlayer_MIM (ns, path, rider):
 # GPS:
 #================================================================================
 
-def GPS (ns, path, rider):
+def GPS (ns, rider):
    """
    The simplest ionospheric model is a thin, uniform layer at a constant altitude.
    """
-   rr = QRU.on_entry(GPS, path, rider)
+   rr = QRU.on_entry(GPS, rider)
    cc = []
    override = opt_GPS_alltopics
 
    if override or opt_GPS_TEC:
-      cc.append(GPS_TEC (ns, rr.path, rider))
+      cc.append(GPS_TEC (ns, rider))
    if override or opt_GPS_triplefreq:
-      cc.append(GPS_triplefreq (ns, rr.path, rider))
+      cc.append(GPS_triplefreq (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -510,12 +512,11 @@ def local_zenith_angles_xy (x=0,y=0,z=0,l=0,m=0, R=6370.0, trace=False):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
-   global rider                                 # global because it is used in tdl_jobs
-   rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
    rootnodename = 'QR_ionos'                    # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
-   QRU.bundle (ns, path, rider,
-               nodes=[QR_ionos(ns, path, rider)],
+   global rider                                 # global because it is used in tdl_jobs
+   rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
+   QRU.on_exit (ns, rider,
+               nodes=[QR_ionos(ns, rider)],
                help=__doc__)
 
    # Finished:

@@ -114,19 +114,19 @@ TDLCompileMenu("QR_solving topics:",
 #********************************************************************************
 
 
-def QR_solving (ns, path, rider):
+def QR_solving (ns, rider):
    """
    Solving...
    """
-   rr = QRU.on_entry(QR_solving, path, rider)
+   rr = QRU.on_entry(QR_solving, rider)
    cc = []
    if opt_alltopics or opt_basic:
-      cc.append(basic (ns, rr.path, rider))
+      cc.append(basic (ns, rider))
 
    if opt_helpnodes:
-      cc.append(make_helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -134,42 +134,42 @@ def QR_solving (ns, path, rider):
 # 2nd tier: Functions called from the top function above:
 #********************************************************************************
 
-def make_helpnodes (ns, path, rider):
+def make_helpnodes (ns, rider):
    """
    helpnodes...
    """
-   rr = QRU.on_entry(make_helpnodes, path, rider)
+   rr = QRU.on_entry(make_helpnodes, rider)
    
    cc = []
    if opt_alltopics or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider,
+      cc.append(QRU.helpnode (ns, rider,
                               name='EasyTwig_twig',
                               help=ET.twig.__doc__, trace=False))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #--------------------------------------------------------------------------------
 
-def basic (ns, path, rider):
+def basic (ns, rider):
    """
    MeqSolver
    MeqCondeq
    MeqStripper (?)
    """
-   rr = QRU.on_entry(basic, path, rider)
+   rr = QRU.on_entry(basic, rider)
    cc = []
-   cc.append(basic_ab (ns, rr.path, rider))                    # simplest, do always
+   cc.append(basic_ab (ns, rider))                    # simplest, do always
    if opt_alltopics or opt_basic_polyparm:
-      cc.append(basic_polyparm (ns, rr.path, rider))
+      cc.append(basic_polyparm (ns, rider))
    if opt_alltopics or opt_basic_onepolc:
-      cc.append(basic_onepolc (ns, rr.path, rider))
+      cc.append(basic_onepolc (ns, rider))
 
    if opt_basic_Expression:
    # if opt_alltopics or opt_basic_Expression:                 # when Expression MeqParm problem solved...
-      cc.append(basic_Expression (ns, rr.path, rider))
+      cc.append(basic_Expression (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -186,7 +186,7 @@ def basic (ns, path, rider):
 # basic_... 
 #================================================================================
 
-def basic_ab (ns, path, rider):
+def basic_ab (ns, rider):
    """
    Demonstration of solving for two unknown parameters (a,b),
    using two linear equations (one condeq child each):
@@ -195,7 +195,7 @@ def basic_ab (ns, path, rider):
    The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
    Condeq Results are the solution residuals, which should be small.
    """
-   rr = QRU.on_entry(basic_ab, path, rider)
+   rr = QRU.on_entry(basic_ab, rider)
    a = EN.unique_stub(ns, 'a') << Meq.Parm(0)
    b = EN.unique_stub(ns, 'b') << Meq.Parm(0)
    p = EN.unique_stub(ns, 'p') << Meq.Constant(10)
@@ -206,28 +206,28 @@ def basic_ab (ns, path, rider):
    parmset = EN.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
 
    condeqs = []
-   condeqs.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Condeq',name='Condeq(a+b,p)',
+   condeqs.append(QRU.MeqNode (ns, rider, meqclass='Condeq',name='Condeq(a+b,p)',
                                help='Represents equation: a + b = p (=10)',
                                children=[sum_ab, p]))
-   condeqs.append(QRU.MeqNode (ns, rr.path, rider, meqclass='Condeq',name='Condeq(a-b,q)',
+   condeqs.append(QRU.MeqNode (ns, rider, meqclass='Condeq',name='Condeq(a-b,q)',
                                help='Represents equation: a - b = q (=2)',
                                children=[diff_ab, q]))
 
-   solver = QRU.MeqNode (ns, rr.path, rider, meqclass='Solver',
+   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
                          name='Solver(*condeqs, solvable=[a,b])',
                          help='Solver', show_recurse=True,
                          children=condeqs,
                          solvable=[a,b])  
-   residuals = QRU.MeqNode (ns, rr.path, rider, meqclass='Add', name='residuals',
+   residuals = QRU.MeqNode (ns, rider, meqclass='Add', name='residuals',
                             help='The sum of the (abs) condeq residuals',
                             children=condeqs, unop='Abs')
    cc = [solver,residuals,drivers,parmset]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
-def basic_polyparm (ns, path, rider):
+def basic_polyparm (ns, rider):
    """
    Demonstration of solving for the coefficients of a freq-time polynomial.
    It is fitted to the specified twig (e.g. a 2D gaussian).
@@ -242,27 +242,27 @@ def basic_polyparm (ns, path, rider):
    In this case, the solution will 'lose rank', which is indicated in the
    solver plot: the black line on the right leaves the right edge. 
    """
-   rr = QRU.on_entry(basic_polyparm, path, rider)
+   rr = QRU.on_entry(basic_polyparm, rider)
    twig = ET.twig(ns, opt_basic_twig)                       # move to solving()?
    poly = ET.twig(ns, opt_basic_polyparm_poly)
    parms = EN.find_parms(poly, trace=False)
    parmset = EN.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
    condeq = ns << Meq.Condeq(poly, twig)
-   solver = QRU.MeqNode (ns, rr.path, rider, meqclass='Solver',
+   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
                          name='Solver(condeq, solvable=parms)',
                          help='Solver', show_recurse=True,
                          children=[condeq],
                          solvable=parms)  
    cc = [solver,condeq,poly,twig,parmset]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
-def basic_Expression (ns, path, rider):
+def basic_Expression (ns, rider):
    """
    """
-   rr = QRU.on_entry(basic_Expression, path, rider)
+   rr = QRU.on_entry(basic_Expression, rider)
    lhs = ET.twig(ns, opt_basic_twig)              
    print '** expr =',opt_basic_Expression_expr
    rhs = ET.twig(ns, opt_basic_Expression_expr)
@@ -277,18 +277,18 @@ def basic_Expression (ns, path, rider):
    else:
       parmset = EN.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
    condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QRU.MeqNode (ns, rr.path, rider, meqclass='Solver',
+   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
                          name='Solver(condeq, solvable=parms)',
                          help='Solver', show_recurse=True,
                          children=[condeq],
                          solvable=parms)  
    cc = [solver,condeq,lhs,rhs,parmset]
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
-def basic_onepolc (ns, path, rider):
+def basic_onepolc (ns, rider):
    """
    Solving for the coeff of the polc of a single MeqParm.
    The single MeqCondeq child of the MeqSolver has two children:
@@ -296,7 +296,7 @@ def basic_onepolc (ns, path, rider):
    - The right-hand side (rhs) is a MeqParm:
    .      rhs = ns['MeqParm'] << Meq.Parm(meq.polc(coeff=numpy.zeros([tdeg+1,fdeg+1])))
    """
-   rr = QRU.on_entry(basic_onepolc, path, rider)
+   rr = QRU.on_entry(basic_onepolc, rider)
    lhs = ET.twig(ns, opt_basic_twig)
    tiling = record(freq=opt_basic_tiling_freq,
                    time=opt_basic_tiling_time)
@@ -314,15 +314,15 @@ def basic_onepolc (ns, path, rider):
                                               quickref_help='...help...',
                                               node_groups='Parm')
    condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QRU.MeqNode (ns, rr.path, rider, meqclass='Solver',
+   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
                          name='Solver(condeq, solvable=MeqParm)',
                          help='Solver', show_recurse=True,
                          children=[condeq],
                          niter=10,
                          solvable=rhs)  
    cc = [solver,condeq,lhs,rhs]
-   QRU.helpnode(ns, path, rider, node=rhs)
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help,
+   QRU.helpnode(ns, rider, node=rhs)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
                       parentclass='ReqSeq', result_index=0)
 
 
@@ -356,12 +356,11 @@ TDLRuntimeMenu(":")
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
-   global rider                                 # used in tdl_jobs
-   rider = QRU.create_rider()                    # CollatedHelpRecord object
    rootnodename = 'QR_solving'                  # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
-   QRU.bundle (ns, path, rider,
-               nodes=[QR_solving(ns, path, rider)],
+   global rider                                 # used in tdl_jobs
+   rider = QRU.create_rider(rootnodename)       # CollatedHelpRecord object
+   QRU.on_exit (ns, rider,
+               nodes=[QR_solving(ns, rider)],
                help=__doc__)
 
    # Finished:

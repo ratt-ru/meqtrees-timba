@@ -6,7 +6,8 @@
 #    Utility functions for dealing with nodes (stubs, names, etc)
 #
 # History:
-#   - 22 june 2008: creation (from EasyTwig.py)
+#   - 22 jun 2008: creation (from EasyTwig.py)
+#   - 26 jul 2008: implemented .get_quickref_help(node)
 #
 # Remarks:
 #
@@ -362,6 +363,25 @@ def format_tree (node, ss='', recurse=True,
 
 #----------------------------------------------------------------------------
 
+def quickref_help (node, new=None, severe=False, trace=False):
+    """
+    Get/set the contents of its quickref_help field, if any.
+    """
+    qhelp = '** not a node **'
+    if is_node(node):
+        if new:                         # a new quickref_help (string)
+            pass                        # to be implemented
+        rr = node.initrec()
+        qhelp = getattr(rr,'quickref_help','** no quickref_help available **')
+    elif severe:
+        raise ValueError,qhelp
+    if trace:
+        print '** get_quickref_help(',str(node),') ->',qhelp
+    return qhelp
+
+
+#----------------------------------------------------------------------------
+
 def format_node (node, cut=False, cmax=80, trace=False):
     """
     Format a string that gives information about the given node,
@@ -451,6 +471,40 @@ def format_node (node, cut=False, cmax=80, trace=False):
 
 
 #============================================================================
+# Function to format a function call:
+#============================================================================
+
+def format_function_call (function_name, **kwargs):
+    """
+    Format a string that summarizes a function call
+    """
+    ss = '<br><dl><dt><font color="blue">\n'
+    ss += 'Call to function: '+str(function_name)+'():'
+    ss += '\n</font><dd>\n'
+
+    for key in kwargs.keys():
+        if key=='kwargs' and isinstance(kwargs['kwargs'],dict):
+            pass
+        else:
+            s = '- '+str(key)+' = '
+            s += format_value(kwargs[key])
+            ss += s+'<br>\n'
+
+    if kwargs.has_key('kwargs'):
+        kw = kwargs['kwargs']
+        if isinstance(kw,dict):
+            for key in kw.keys():
+                s = '-- '+str(key)+' = '
+                s += format_value(kw[key])
+                ss += s+'<br>\n'
+                
+    # Finished:
+    ss += '</dl><br>\n'
+    print ss
+    return ss
+      
+
+#============================================================================
 # Function to format a (short) string that represent a value:
 #============================================================================
 
@@ -488,6 +542,8 @@ def format_value(v, name=None, nsig=4, trace=False):
             if not isinstance(vv[0],complex):
                 ss += format_float(vv.std(),'  stddev', nsig=nsig)
         ss += ']'
+    elif isinstance(v,dict):
+        ss = '(dict/record): '+str(v.keys())
     else:
         ss = str(v)
 

@@ -98,25 +98,25 @@ TDLCompileMenu("QR_TreeDefinition topics:",
 #********************************************************************************
 
 
-def QR_TreeDefinition (ns, path, rider):
+def QR_TreeDefinition (ns, rider):
    """
    """
-   rr = QRU.on_entry(QR_TreeDefinition, path, rider)
+   rr = QRU.on_entry(QR_TreeDefinition, rider)
  
    cc = []
    if opt_alltopics or opt_nodenames:
-      cc.append(nodenames (ns, rr.path, rider))
+      cc.append(nodenames (ns, rider))
    if opt_alltopics or opt_TDL:
-      cc.append(TDL (ns, rr.path, rider))
+      cc.append(TDL (ns, rider))
    if opt_alltopics or opt_TDLOptions:
-      cc.append(TDLOptions (ns, rr.path, rider))
+      cc.append(TDLOptions (ns, rider))
    if opt_alltopics or opt_bookmarks:
-      cc.append(bookmarks (ns, rr.path, rider))
+      cc.append(bookmarks (ns, rider))
 
    if opt_helpnodes:
-      cc.append(make_helpnodes (ns, rr.path, rider))
+      cc.append(make_helpnodes (ns, rider))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -124,69 +124,69 @@ def QR_TreeDefinition (ns, path, rider):
 # 2nd tier: Functions called from the top function above:
 #********************************************************************************
 
-def make_helpnodes (ns, path, rider):
+def make_helpnodes (ns, rider):
    """
    It is possible to define nodes that have no other function than to carry
    a help-text. The latter may be consulted in the quickref_help field in the
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, path, rider)
+   rr = QRU.on_entry(make_helpnodes, rider)
    
    cc = []
    if opt_alltopics or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rr.path, rider, name='EasyTwig_twig',
+      cc.append(QRU.helpnode (ns, rider, name='EasyTwig_twig',
                              help=ET.twig.__doc__, trace=False))
 
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #--------------------------------------------------------------------------------
 
-def nodenames (ns, path, rider):
+def nodenames (ns, rider):
    """
    """
-   rr = QRU.on_entry(nodenames, path, rider)
+   rr = QRU.on_entry(nodenames, rider)
    cc = []
    # if opt_alltopics or opt_nodenames_xxx:
-   #    cc.append(nodenames_xxx (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   #    cc.append(nodenames_xxx (ns, rider))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #--------------------------------------------------------------------------------
 
-def TDL (ns, path, rider):
+def TDL (ns, rider):
    """
    """
-   rr = QRU.on_entry(TDL, path, rider)
+   rr = QRU.on_entry(TDL, rider)
    cc = []
    # if opt_alltopics or opt_TDL_xxx:
-   #    cc.append(TDL_xxx (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   #    cc.append(TDL_xxx (ns, rider))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #--------------------------------------------------------------------------------
 
-def TDLOptions (ns, path, rider):
+def TDLOptions (ns, rider):
    """
    """
-   rr = QRU.on_entry(TDLOptions, path, rider)
+   rr = QRU.on_entry(TDLOptions, rider)
    cc = []
    # if opt_alltopics or opt_TDLOptions_xxx:
-   #    cc.append(TDLOptions_xxx (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   #    cc.append(TDLOptions_xxx (ns, rider))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 #--------------------------------------------------------------------------------
 
-def bookmarks (ns, path, rider):
+def bookmarks (ns, rider):
    """
    """
-   rr = QRU.on_entry(bookmarks, path, rider)
+   rr = QRU.on_entry(bookmarks, rider)
    cc = []
    # if opt_alltopics or opt_bookmarks_xxx:
-   #    cc.append(bookmarks_xxx (ns, rr.path, rider))
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   #    cc.append(bookmarks_xxx (ns, rider))
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -203,12 +203,12 @@ def bookmarks (ns, path, rider):
 # nodenames_... 
 #================================================================================
 
-def nodenames_xxx (ns, path, rider):
+def nodenames_xxx (ns, rider):
    """
    """
-   rr = QRU.on_entry(nodenames_xxx, path, rider)
+   rr = QRU.on_entry(nodenames_xxx, rider)
    cc = []
-   return QRU.bundle (ns, rr.path, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
 
 
 
@@ -231,13 +231,12 @@ def nodenames_xxx (ns, path, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   rootnodename = 'QR_TreeDefinition'           # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
-   rider = QRU.create_rider()                   # the rider is a CollatedHelpRecord object
-   rootnodename = 'QR_TreeDefinition'                 # The name of the node to be executed...
-   path = rootnodename                          # Root of the path-string
-   QRU.bundle (ns, path, rider,
-              nodes=[QR_TreeDefinition(ns, path, rider)],
-              help=__doc__)
+   rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
+   QRU.on_exit (ns, rider,
+                nodes=[QR_TreeDefinition(ns, rider)],
+                help=__doc__)
 
    # Finished:
    return True
