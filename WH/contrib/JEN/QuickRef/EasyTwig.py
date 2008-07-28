@@ -59,6 +59,7 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 
 # from Timba.Contrib.JEN.Expression import Expression
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 import copy
 import math
@@ -477,7 +478,7 @@ def random_offset (ns, spec='s1', nodename=None, quals=None, kwquals=None,
             s += 's, a or r should be specified (>0): '+str(spec)
             raise ValueError, s
 
-        node = stub(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EF.format_value(v)) << Meq.Constant(v)
 
     # Finishing touches on the list (cc) of nodes:
     if unop:
@@ -680,49 +681,49 @@ def twig (ns, spec,
     elif spec in ['c_light','clight']:
         v = 2.9979250e8
         s = 'velocity of light in vacuum (m/s)'
-        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
+        node = stub(EF.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['e_charge']:
         v = 1.6021917e-19
         s = 'electron charge (C)'
-        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
+        node = stub(EF.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['h_Planck']:
         # def const_h2pi_Planck(ns): return MeqConstant(ns, h_Planck/(2*pi), spec='h_Planck_Js/2pi')
         v = 6.626196e-34
         s = 'Planck constant (Js)'
-        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
+        node = stub(EF.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['k_Boltzmann','k_Boltzman']:
         # def const_k_Jy(ns): return MeqConstant(ns, k_Boltzmann/1e-26, spec='k_Jy/K')
         # def const_2k_Jy(ns): return MeqConstant(ns, 2*k_Boltzmann/1e-26, spec='2k_Jy/HzK')
         v = 1.380622e-23
         s = 'Boltzmann constant (J/K)'
-        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
+        node = stub(EF.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['G_gravity','G_gravitation']:
         v = 6.6732e-11
         s = 'Gravity constant (Nm2/kg2)'
-        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
+        node = stub(EF.format_value(v)) << Meq.Constant(v, quickref_help=s) 
 
     elif spec in ['e_ln']:
         v = math.e
         s = 'natural logarithm (e)'
-        node = stub(EN.format_value(v)) << Meq.Constant(v, quickref_help=s) 
+        node = stub(EF.format_value(v)) << Meq.Constant(v, quickref_help=s) 
     elif spec in ['pi']:
         v = math.pi
-        node = stub(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EF.format_value(v)) << Meq.Constant(v)
     elif spec in ['2pi','2*pi']:
         v = 2*math.pi
-        node = stub(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EF.format_value(v)) << Meq.Constant(v)
     elif spec in ['pi2','pi/2']:
         v = 0.5*math.pi
-        node = stub(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EF.format_value(v)) << Meq.Constant(v)
     elif spec in ['pi4','pi/4']:
         v = 0.25*math.pi
-        node = stub(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EF.format_value(v)) << Meq.Constant(v)
     elif spec in ['sqrt2']:
         v = math.sqrt(2.0)
-        node = stub(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EF.format_value(v)) << Meq.Constant(v)
     elif spec in ['sqrt3']:
         v = math.sqrt(3.0)
-        node = stub(EN.format_value(v)) << Meq.Constant(v)
+        node = stub(EF.format_value(v)) << Meq.Constant(v)
 
     elif spec in ['wavelength','wvl','lambda']:
         node = stub << Meq.Divide(twig(ns,'f'),twig(ns,'clight'),

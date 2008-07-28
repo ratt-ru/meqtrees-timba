@@ -55,6 +55,7 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 import copy
 import math
@@ -341,8 +342,8 @@ def vis22 (ns, IQUV='Q0.1', nuv=10, L=0.0, M=0.0,
 
     cc = []
     for i in range(nuv):
-        u = EN.format_value(random.gauss(0,urms), nsig=2)
-        v = EN.format_value(random.gauss(0,vrms), nsig=2)
+        u = EF.format_value(random.gauss(0,urms), nsig=2)
+        v = EF.format_value(random.gauss(0,vrms), nsig=2)
         K = ET.KuvLM (ns, uvLM='u'+str(u)+'v'+str(v)+'L'+str(L)+'M'+str(M),
                       name='K', quals=i, kwquals=None, trace=trace)
         node = stub(i) << Meq.Multiply(coh,K)
@@ -425,9 +426,9 @@ def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
             raise ValueError, s
 
         if nel==1:
-            c = stub(EN.format_value(v)) << Meq.Constant(v)
+            c = stub(EF.format_value(v)) << Meq.Constant(v)
         elif append_value:
-            c = stub(i)(EN.format_value(v)) << Meq.Constant(v)
+            c = stub(i)(EF.format_value(v)) << Meq.Constant(v)
         else:
             c = stub(i) << Meq.Constant(v)
 

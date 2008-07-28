@@ -229,9 +229,10 @@ def topic1_subtopic (ns, rider):
    It usually generates a group of 4-9 related nodes that may be displayed on a
    single bookmark page.
 
-   In addition to the mandatory QRU.on_entry() and QRU.on_exit(), a function maye call
+   In addition to the mandatory QRU.on_entry() and QRU.on_exit(), a function may call
    the function QRU.MeqNode() zero or more times. This function creates the specified
-   MeqNode, with help attached to the quickref_help field of its state record.
+   MeqNode, with help attached to the quickref_help field of its state record, and
+   to the hierarchical help in the rider.
    The syntax of QRU.MeqNode() is given below.
 
    NB: Nodes for a subtopic subtree may also be defined directly (i.e. without using the

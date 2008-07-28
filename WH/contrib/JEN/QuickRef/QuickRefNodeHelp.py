@@ -57,77 +57,74 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 #******************************************************************************** 
 
-def QuickRefNodeHelp (node, detail=1, rider=None, mode='html', trace=False):
+
+def node_help (node, detail=1, rider=None, mode='html', trace=False):
    """
    Attach specific help to the quickref_help field of the given node.
+   If a rider (CollatedHelpRecord) is specified, attach it too.
    """
-   if not is_node(node):
-      return False
 
-   cname = node.classname
-   ss = ''
-   ss = EN.format_node(node)
+   if is_node(node):
+      ss = '<br><dl><dt><font color="blue">\n'
+      ss += EN.format_node(node)
+      ## qhead += ' &lt &lt &#32 Meq.'+str(meqclass)         # escape char &lt = <
+      ss += '\n</font><dd>\n'
+      cname = node.classname
+      rr = node.initrec()
+   else:
+      cname = str(node)
+      ss = None
+      rr = None
 
+   ss = class_help (cname, header=ss, rr=rr,
+                           detail=detail, rider=rider,
+                           mode=mode, trace=False)
+
+   # Attach to quickref_help field of the node state record:
+   if is_node(node):
+      EN.quickref_help (node, append=ss, trace=trace)
+
+   if trace:
+      print '\n** QRNH.node_help(',str(node),'):\n  ',ss,'\n'
+      
+   return ss
+      
+
+#-----------------------------------------------------------------------------------
+
+def class_help (cname, header=None, rr=None,
+                       detail=1, rider=None,
+                       mode='html', trace=False):
+   """
+   Attach specific help to the quickref_help field of the given
+   node-class name (cname).
+   If a rider (CollatedHelpRecord) is specified, attach it too.
+   """
+
+   if header==None:
+      ss = '<br><dl><dt><font color="blue">\n'
+      ss += 'MeqNode of class: '+str(cname)
+      ss += '\n</font><dd>\n'
+      rr = record()
+   else:
+      # Assume that this is called by node_help()
+      ss = header
+
+   more = 'specific: '
    if cname=='MeqConstant':
-      pass
-
-   elif cname=='MeqParm':
-      pass
+      more += 'constant leaf node, dims='+str(getattr(rr,'dims',None))
+      more += ' value = '+str(getattr(rr,'value',None))
 
    elif cname in ['MeqFreq','MeqTime','MeqGrid']:
       pass
-   elif cname in ['MeqCos','MeqSin','MeqTan']:
-      help = record(Sin='(rad)', Cos='(rad)', Tan='(rad)')
-   elif cname in ['MeqAcos','MeqAsin','MeqAtan']:
-      help = record(Asin='abs('+str(twig.name)+') &lt 1',
-                    Acos='abs('+str(twig.name)+') &lt 1',
-                    Atan='')
-   elif cname in ['MeqCosh','MeqSinh','MeqTanh']:
-      pass
-   elif cname in ['MeqPow2','MeqPow3','MeqPow4','MeqPow5',
-                  'MeqPow6','MeqPow7','MeqPow8','MeqSqr']:
-      pass
-   elif cname in ['MeqAbs','MeqNegate','MeqInvert','MeqExp','MeqLog','MeqSqrt']:
-      help = record(Negate='-c', Invert='1/c', Exp='exp(c)', Sqrt='square root',
-                    Log='e-log (for 10-log, divide by Log(10))')
 
-   elif cname in ['MeqReqSeq','MeqReqMux']:
-      pass
-   elif cname in ['MeqComposer','MeqSelector','Paster']:
-      pass
-   elif cname in ['MeqAdd','MeqMultiply']:
-      pass
-   elif cname in ['MeqSubtract','MeqDivide','MeqPower']:
-      pass
-   elif cname in ['MeqSolver','MeqCondeq']:
-      pass
-   elif cname in ['MeqZeroFlagger','MeqMergeFlags']:
-      pass
-   elif cname in ['MeqNelements','MeqSum','MeqMean','MeqProduct',
-                  'MeqStdDev','MeqRms', 'MeqMin','MeqMax']:
-      pass
-   elif cname in ['Compounder']:
-      pass
-   elif cname in ['ModRes','Resampler']:
-      pass
-   elif cname in ['Transpose','MatrixMultiply','ConjTranspose']:
-      pass
-   elif cname in ['Matrix22','MatrixInvert22']:
-      pass
-   elif cname in ['GaussNoise','RandomNoise']:
-      pass
-   elif cname in ['MeqSpigot','MeqFitsSpigot']:
-      pass
-   elif cname in ['MeqSink','MeqVisDataMux']:
-      pass
-   elif cname in ['MeqFITSReader','MeqFITSImage','MeqFITSSpigot','','','']:
-      pass
    elif cname in ['MeqAbs','MeqNorm','MeqArg','MeqReal',
                   'MeqImag','MeqConj','MeqExp','MeqLog']:
       help = record(Abs='', Norm='like Abs', Arg='-> rad', Real='', Imag='',
                     Conj='complex conjugate: a+bj -> a-bj',
                     Exp='exp(a+bj) = exp(a)*exp(bj), i.e. cos with increasing ampl',
                     Log='e-log (ln)')
+
    elif cname in ['MeqAbs','MeqCeil','MeqFloor','MeqStripper','MeqIdentity']:
       help = record(Abs='Take the absolute value.',
                     Ceil='Round upwards to integers.',
@@ -144,56 +141,149 @@ def QuickRefNodeHelp (node, detail=1, rider=None, mode='html', trace=False):
                     ToComplex='(real, imag)', Polar='(amplitude, phase)')
       # Problem: MeqMod() crashes the meqserver.... Needs integer children??
 
+   elif cname in ['MeqAdd','MeqMultiply']:
+      pass
+   elif cname in ['MeqSubtract','MeqDivide','MeqPower']:
+      pass
+
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['MeqCos','MeqSin','MeqTan']:
+      help = record(Sin='(rad)', Cos='(rad)', Tan='(rad)')
+
+   elif cname in ['MeqAcos','MeqAsin','MeqAtan']:
+      help = record(Asin='abs('+str('twig.name')+') &lt 1',
+                    Acos='abs('+str('twig.name')+') &lt 1',
+                    Atan='')
+
+   elif cname in ['MeqCosh','MeqSinh','MeqTanh']:
+      pass
+
+   elif cname in ['MeqPow2','MeqPow3','MeqPow4','MeqPow5',
+                  'MeqPow6','MeqPow7','MeqPow8','MeqSqr']:
+      pass
+   elif cname in ['MeqAbs','MeqNegate','MeqInvert','MeqExp','MeqLog','MeqSqrt']:
+      help = record(Negate='-c', Invert='1/c', Exp='exp(c)', Sqrt='square root',
+                    Log='e-log (for 10-log, divide by Log(10))')
+
+   elif cname in ['MeqNelements','MeqSum','MeqMean','MeqProduct',
+                  'MeqStdDev','MeqRms', 'MeqMin','MeqMax']:
+      pass
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['Transpose','MatrixMultiply','ConjTranspose']:
+      pass
+   elif cname in ['Matrix22','MatrixInvert22']:
+      pass
+
+   elif cname in ['GaussNoise','RandomNoise']:
+      pass
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['MeqReqSeq','MeqReqMux']:
+      pass
+
+   elif cname in ['MeqComposer','MeqSelector','Paster']:
+      pass
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['Compounder']:
+      pass
+   elif cname in ['ModRes','Resampler']:
+      pass
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['MeqSolver','MeqCondeq']:
+      pass
+   elif cname=='MeqParm':
+      pass
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['MeqZeroFlagger','MeqMergeFlags']:
+      pass
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['MeqSpigot','MeqFitsSpigot']:
+      pass
+   elif cname in ['MeqSink','MeqVisDataMux']:
+      pass
+   elif cname in ['MeqFITSReader','MeqFITSImage','MeqFITSSpigot','','','']:
+      pass
+
+   #---------------------------------------------------------------------------
+
    elif cname in ['MeqUVBrick','MeqUVInterpol']:
       pass
    elif cname in ['MeqVisPhaseShift']:
       pass
+
+   #---------------------------------------------------------------------------
+
    elif cname in ['MeqCoordTransform','MeqAzEl','MeqLST','MeqLMN','MeqLMRaDec']:
       pass
    elif cname in ['MeqObjectRADec','MeqParAngle','MeqRaDec','MeqUVW']:
       pass
 
 
+   #---------------------------------------------------------------------------
+   #---------------------------------------------------------------------------
+
    else:
-      ss += '** class_name not recognized **'
+      ss += '<font color="red" size=20>'
+      ss += '** class_name not recognized: '+str(cname)+' **'
+      ss += '</font>\n'
       trace = True
 
-   # Attach to quickref_help field:
-   EN.quickref_help (node, new=ss)
+   #---------------------------------------------------------------------------
+   #---------------------------------------------------------------------------
+
+   # Finishing touches:
+   ss += more
+   ss += '\n</dl><br>\n'
 
    if rider:
-      rider.insert(rider.path(), help=ss, append=False, trace=trace)
+      rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)
 
    if trace:
-      print '\n** QuickRefNodeHelp(',str(node),'):\n  ',ss,'\n'
+      print '\n** QRNH.class_help(',cname,'):\n  ',ss,'\n'
       
    return ss
       
 
+
+
 #==============================================================================
 #==============================================================================
 
-def QuickRefTreeHelp (node, detail=1, level=0, recurse=True,
-                      rider=None, mode='html', trace=False):
+def tree_help (node, detail=1, level=0, recurse=True,
+               rider=None, mode='html',
+               trace=False):
    """
    Attach specific help to the quickref_help field of the nodes of
    the given subtree (to the specified recursion level).
    """
-   prefix = level*'..'
+   prefix = level*'..|..'
    if level==0:
       if isinstance(recurse,bool):
          if not recurse: recurse=0
          if recurse: recurse=1000
       if trace:
-         print '\n** .QuickRefTreeHelp('+str(node)+'):'
+         print '\n** QRNH.tree_help('+str(node)+'):'
 
-   ss = QuickRefNodeHelp(node)
+   ss = node_help(node)
    if trace:
-      print prefix,ss
+      print prefix,ss.split('<<')[1].split('\n')[0]
    
    if level<=recurse and getattr(node,'children', None):
       for child in node.children:
-         QuickRefTreeHelp(child[1], detail=detail, level=level+1,
+         tree_help(child[1], detail=detail, level=level+1,
                           rider=rider, recurse=recurse,
                           trace=trace)
    if level==0:
@@ -237,14 +327,15 @@ if __name__ == '__main__':
 
    if 0:
       node = ns << 1.3
-      QuickRefNodeHelp(node, rider=rider, trace=True)
+      node_help(node, rider=rider, trace=True)
 
    if 1:
-      a = ns << 23
+      a = ns << Meq.Constant(range(3))
       b = ns << 78
       node = ns << Meq.Add(a,b)
-      QuickRefNodeHelp(node, rider=rider, trace=True)
-      QuickRefTreeHelp(node, rider=rider, trace=True)
+      class_help(node.classname, rider=rider, trace=True)
+      node_help(node, rider=rider, trace=True)
+      tree_help(node, rider=rider, trace=True)
             
    print '\n** End of standalone test of: QuickRefNodeHelp.py:\n' 
 

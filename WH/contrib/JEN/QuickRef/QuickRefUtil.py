@@ -14,6 +14,7 @@
 #   - 06 jul 2008: allow list of viewers in .bundle()
 #   - 09 jul 2008: improved helpnode() behaviour
 #   - 26 jul 2008: changed quickref_help into string etc
+#   - 28 jul 2008: moved format_record() etc to EasyFormat.py
 #
 # Remarks:
 #
@@ -65,6 +66,8 @@ import CollatedHelpRecord
 
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
+from Timba.Contrib.JEN.QuickRef import QuickRefNodeHelp as QRNH
 
 import copy
 import math
@@ -268,7 +271,7 @@ def make_request (cells, rqtype=None):
 
     if runopt_show_request:
         print '\n** QRU.make_request(',type(cells),'): counter=',request_counter,'-> rqid=',rqid
-        print format_record(rr, 'request', full=(runopt_show_request=='full'))
+        print EF.format_record(rr, 'request', full=(runopt_show_request=='full'))
     return rr
 
 
@@ -541,102 +544,6 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 
 
 
-#================================================================================
-# Helper functions for formatting output strings:
-#================================================================================
-
-def format_record(rr, txt=None, ss=None, level=0, full=False, mode='str'):
-    """
-    Format the given record
-    """
-    prefix = '\n ..'+(level*'..')+' '
-    if level==0:
-        ss = '\n** format_record(): '+str(txt)+' ('+str(type(rr))+'):'
-        
-    for key in rr.keys():
-        if getattr(rr[key],'mean',None):              # e.g. numarray...
-            vv = rr[key]
-            # print dir(vv)
-            nel = vv.nelements()
-            stddev = 0.0
-            if nel>1:
-                if getattr(vv,'stddev',None):    # numarray...
-                    stddev = vv.stddev()
-                elif getattr(vv,'std',None):     # numpy
-                    stddev = vv.std()
-                else:
-                    stddev = '??'
-            ss += prefix+str(key)+': n='+str(nel)
-            ss += '   mean='+str(vv.mean())
-            ss += '   stddev='+str(stddev)
-            ss += '   [min,max]='+str([vv.min(),vv.max()])
-            if full:
-                ss += prefix+str(key)+' ('+str(type(rr[key]))+') = '+str(rr[key])
-                
-        # elif isinstance(rr[key],(list,tuple)):
-        #     ss += format_vv(rr[key])
-
-        elif not isinstance(rr[key],dict):
-            ss += prefix+str(key)+' ('+str(type(rr[key]))+') = '+str(rr[key])
-
-    for key in rr.keys():
-        if isinstance(rr[key],dict):
-            ss += prefix+str(key)+':'
-            ss = format_record(rr[key], ss=ss, level=level+1, full=full)
-
-    if level==0:
-        ss += '\n**\n'
-        if mode=='list':
-            ss = ss.split('\n')
-    return ss
-
-#----------------------------------------------------------------------------
-
-def format_value (v):
-    """Helper function to format a value"""
-    return ss
-
-def format_float(v, name=None, n=2):
-  """Helper function to format a float for printing"""
-  if isinstance(v, complex):
-     s1 = format_float(v.real)
-     s2 = format_float(v.imag)
-     s = '('+s1+'+'+s2+'j)'
-  else:
-     q = 100.0
-     v1 = int(v*q)/q
-     s = str(v1)
-  if isinstance(name,str):
-    s = name+'='+s
-  # print '** format_float(',v,name,n,') ->',s
-  return s
-
-#-----------------------------------------------------------
-
-def format_vv (vv):
-  if not isinstance(vv,(list,tuple)):
-    return str(vv)
-  elif len(vv)==0:
-    return 'empty'
-  elif not isinstance(vv[0],(int,float,complex)):
-    s = '  length='+str(len(vv))
-    s += '  type='+str(type(vv[0]))
-    s += '  '+str(vv[0])+' ... '+str(vv[len(vv)-1])
-  else:
-    import pylab              # must be done here, not above....
-    ww = pylab.array(vv)
-    s = '  length='+str(len(ww))
-    s += format_float(ww.min(),'  min')
-    s += format_float(ww.max(),'  max')
-    s += format_float(ww.mean(),'  mean')
-    if len(ww)>1:                       
-      if not isinstance(ww[0],complex):
-        s += format_float(ww.std(),'  stddev')
-  return s
-
-
-
-
 
 
 #================================================================================
@@ -846,6 +753,9 @@ def MeqNode (ns, rider,
     if help:
         qhelp += '-'
         qhelp += rider.check_html_tags(str(help), include_style=False)
+
+    if False:
+        qhelp = QRNH.class_help(meqclass)                    # <----- !!
         
     # Optional, show the subtree below to the required depth:
     if show_recurse:
@@ -855,11 +765,10 @@ def MeqNode (ns, rider,
             qhelp += EN.format_tree(children, recurse=show_recurse, mode='html')
  
     # Dispose of the conditioned help (qhelp):
-    kwargs['quickref_help'] = qhelp                         # -> node state record
+    # kwargs['quickref_help'] = qhelp                         # -> node state record
     # The rider is a CollatedHelpRecord object, which collects the
     # hierarchical help items, using the path string:
-    # rider.insert_help(add2path(path,name), qhelp) 
-    rider.insert_help(rider.path(temp=name), qhelp) 
+    # rider.insert_help(rider.path(temp=name), qhelp) 
 
 
     #........................................................................
@@ -868,7 +777,7 @@ def MeqNode (ns, rider,
 
     if is_node(node):
         # The node already exists. Just attach the help-string....
-        EN.quickref_help(node, new=qhelp)        # NB: still to be implemented....
+        EN.quickref_help(node, append=qhelp) 
       
     elif isinstance(children,(list,tuple)):              
         if isinstance(name,str):
@@ -891,12 +800,6 @@ def MeqNode (ns, rider,
             node = stub << getattr(Meq,meqclass)(**kwargs)
         else:
             node = ns << getattr(Meq,meqclass)(**kwargs)
-
-    if False:
-        # Experimental.... (overwrites...!) Not a good idea.....
-        fn = EN.format_node(node)
-        # rider.insert_help(add2path(path,name), [fn]) 
-        rider.insert_help(rider.path(temp=name), [fn]) 
 
 
     #........................................................................
@@ -953,6 +856,14 @@ def on_exit (ns, rider,
     NB: This function is called at the exit of all functions in QR_... modules.
     """
 
+
+    if True:
+        # Optionally, attach node-help to all nodes:
+        print '\n**',rider.path()
+        for i, node in enumerate(nodes):
+            QRNH.node_help(nodes[i], rider=rider, trace=False)
+            print '-',str(node),nodes[i].initrec().quickref_help.split('<<')[1].split('\n')[0]
+
     #.......................................................................
     # Deal with the bundle help information:
 
@@ -984,9 +895,9 @@ def on_exit (ns, rider,
         ## bookmark = False                      # just in case
 
     else:
-        # Optionally, apply a one or more unary math operations (e.g. Abs)
-        # on all the nodes to be bundled:
         if unop and len(nodes)>0:
+            # Optionally, apply a one or more unary math operations (e.g. Abs)
+            # on all the nodes to be bundled:
             if isinstance(unop,str):
                 unop = [unop]
             if isinstance(unop,(list,tuple)):

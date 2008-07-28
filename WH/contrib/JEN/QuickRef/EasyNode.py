@@ -8,6 +8,7 @@
 # History:
 #   - 22 jun 2008: creation (from EasyTwig.py)
 #   - 26 jul 2008: implemented .get_quickref_help(node)
+#   - 28 jul 2008: moved format_record() etc to EasyFormat.py
 #
 # Remarks:
 #
@@ -47,9 +48,13 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-# from Timba.meqkernel import set_state
+
+# from Timba.Meq import meqds
+# from Timba.meqkernel import set_state    # no module meqserver_interface
 
 Settings.forest_state.cache_policy = 100
+
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 import copy
 import math
@@ -315,7 +320,7 @@ def format_tree (node, ss='', recurse=True,
             initrec = node.initrec()
             v = getattr(initrec,'value',None)
             if isinstance(v,(int,float,complex)):
-                ss += '   (value='+str(format_value(v))+')'
+                ss += '   (value='+str(EF.format_value(v))+')'
             tags = getattr(initrec,'tags',None)
             if tags:
                 ss += '   (tags='+str(tags)+')'
@@ -363,20 +368,26 @@ def format_tree (node, ss='', recurse=True,
 
 #----------------------------------------------------------------------------
 
-def quickref_help (node, new=None, severe=False, trace=False):
+def quickref_help (node, new=None, append=None, severe=False, trace=False):
     """
     Get/set the contents of its quickref_help field, if any.
     """
     qhelp = '** not a node **'
     if is_node(node):
-        if new:                         # a new quickref_help (string)
-            pass                        # to be implemented
         rr = node.initrec()
-        qhelp = getattr(rr,'quickref_help','** no quickref_help available **')
+        key = 'quickref_help'
+        if new:                         # a new quickref_help (string)
+            node.initrec()[key] = str(new)
+        if append:                      # append quickref_help (string)
+            if rr.has_key(key):
+                node.initrec()[key] += str(append)
+            else:
+                node.initrec()[key] = str(append)
+        qhelp = getattr(rr,key,'** no quickref_help available **')
     elif severe:
         raise ValueError,qhelp
     if trace:
-        print '** get_quickref_help(',str(node),') ->',qhelp
+        print '** EN.quickref_help(',str(node),', new=',type(new),') ->',qhelp
     return qhelp
 
 
@@ -414,9 +425,9 @@ def format_node (node, cut=False, cmax=80, trace=False):
     ss += ' = ns'
     ss += '[\''+str(node.basename)+'\']'
     if node.quals:
-        ss += '(<quals>)'
+        ss += '(quals)'
     if node.kwquals:
-        ss += '(<kwquals>)'
+        ss += '(kwquals)'
     ss_stub = ss
 
     # 3: init part:
@@ -425,11 +436,11 @@ def format_node (node, cut=False, cmax=80, trace=False):
     rr = node.initrec()
     nc = node.num_children()
     if nc==1:
-        ss += '<child>' 
+        ss += 'child' 
         # ss += str(node.children[0][1]) 
     elif nc>1:
-        ss += 'children=[<'+str(nc)+'>]'
-    if getattr(rr,'value',None):
+        ss += 'children=['+str(nc)+']'
+    if not getattr(rr,'value',None)==None:
         ss += str(getattr(rr,'value'))
     ignore = ['class','value','quickref_help']
     for key in rr.keys():
@@ -439,7 +450,7 @@ def format_node (node, cut=False, cmax=80, trace=False):
         elif isinstance(v,str) and len(v)>20:
             ss += ', '+str(key)+'='+str(v[:5])+'..'
         elif isinstance(v,(list,tuple)) and len(v)>5:
-            ss += ', '+str(key)+'=[<'+len(v)+'>]'
+            ss += ', '+str(key)+'=['+str(len(v))+']'
         elif isinstance(v,(int,float,complex)):
             ss += ', '+str(key)+'='+str(v)
         elif isinstance(v,dict):
@@ -474,7 +485,7 @@ def format_node (node, cut=False, cmax=80, trace=False):
 # Function to format a function call:
 #============================================================================
 
-def format_function_call (function_name, **kwargs):
+def format_function_call_obsolete (function_name, **kwargs):
     """
     Format a string that summarizes a function call
     """
@@ -487,7 +498,7 @@ def format_function_call (function_name, **kwargs):
             pass
         else:
             s = '- '+str(key)+' = '
-            s += format_value(kwargs[key])
+            s += EF.format_value(kwargs[key])
             ss += s+'<br>\n'
 
     if kwargs.has_key('kwargs'):
@@ -495,102 +506,14 @@ def format_function_call (function_name, **kwargs):
         if isinstance(kw,dict):
             for key in kw.keys():
                 s = '-- '+str(key)+' = '
-                s += format_value(kw[key])
+                s += EF.format_value(kw[key])
                 ss += s+'<br>\n'
                 
     # Finished:
     ss += '</dl><br>\n'
-    print ss
+    # print ss
     return ss
       
-
-#============================================================================
-# Function to format a (short) string that represent a value:
-#============================================================================
-
-def format_value(v, name=None, nsig=4, trace=False):
-    """
-    Format a string that summarizes the given value (v).
-    If v is a node, use its initrec.value field, if any.
-    If a name is specified, prepend it.
-    The argument nsig[=4] is the desired nr of significant digits.
-    """
-    vin = v
-    if is_node(v):
-        ss = '(node)'
-        vin = '(node)'
-        if getattr(v,'initrec',None):
-            initrec = v.initrec()
-            v1 = getattr(initrec,'value',None)
-            if not v1==None:
-                ss = format_value(v1, nsig=nsig)
-    elif isinstance(v,(complex)):
-        ss = format_float(v, nsig=nsig)
-    elif isinstance(v,(int)):
-        ss = str(v)
-    elif isinstance(v,(float)):
-        ss = format_float(v, nsig=nsig)
-    elif isinstance(v,(list,tuple)):
-        vin = '(list)'
-        # import pylab                        # must be done here, not above....
-        vv = pylab.array(v)
-        ss = '[length='+str(len(vv))
-        ss += format_float(vv.min(),'  min', nsig=nsig)
-        ss += format_float(vv.max(),'  max', nsig=nsig)
-        ss += format_float(vv.mean(),'  mean', nsig=nsig)
-        if len(vv)>1:                       
-            if not isinstance(vv[0],complex):
-                ss += format_float(vv.std(),'  stddev', nsig=nsig)
-        ss += ']'
-    elif isinstance(v,dict):
-        ss = '(dict/record): '+str(v.keys())
-    else:
-        ss = str(v)
-
-    if isinstance(name,str):
-        ss = name+'='+ss
-
-    if trace:
-        print '** format_value(',vin,type(v),name,nsig,') ->',ss
-    return ss
-
-#-----------------------------------------------------------------------
-
-def format_float(v, name=None, nsig=4, trace=False):
-    """Helper function to format a string that represents the given value.
-    Contrary to its name, it handles complex, int and float. 
-    The argument nsig[=4] is the desired nr of significant digits.
-    """
-    if isinstance(v,complex):
-        s1 = format_float(v.real)
-        s2 = format_float(v.imag)
-        if v.imag<0:
-            ss = '('+s1+s2+'j)'
-        else:
-            ss = '('+s1+'+'+s2+'j)'
-    elif not isinstance(v,float):
-        ss = str(v)
-    elif v==0.0:
-        ss = '0.0'
-    else:
-        vabs = abs(v)
-        log10 = math.log(10.0)
-        nlog = int(math.log(vabs)/log10)
-        q = 10.0**float(nsig-nlog)
-        if vabs>1e10:
-            ss = str(v)
-        elif vabs>1e3:
-            ss = str(int(v))
-        elif vabs<1e-5:
-            ss = str(v)
-        else:
-            v1 = int(v*q)/q
-            ss = str(v1)
-            # print '===',v,vabs,nlog,q,ss
-    if isinstance(name,str):
-        ss = name+'='+ss
-    return ss
-
 
 #====================================================================================
 # Functions dealing with finding nodes in a tree:
@@ -935,21 +858,6 @@ if __name__ == '__main__':
            print format_tree([c1,c2,c3], recurse=2)
            
    
-   if 0:
-       format_value(3, 'int', trace=True)
-       format_value(3.4, 'float', trace=True)
-       format_value(complex(3,4), 'complex', trace=True)
-       format_value(range(100), 'list', trace=True)
-       format_value(ns << Meq.Constant(4.5), 'node', trace=True)
-
-   if 0:
-       format_value(123.456, trace=True)
-       format_value(12.3456, trace=True)
-       format_value(1.23456, trace=True)
-       format_value(0.123456, trace=True)
-       format_value(0.0123456, trace=True)
-       format_value(0.00123456, trace=True)
-
    if 0:
        node = ns['xxx'](range(2)) << Meq.Constant(4.5, tags='test', k1=4, k2=78)
        print format_node(node, cut=True)
