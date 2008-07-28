@@ -75,8 +75,8 @@ void FITSImage::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 	setCachePolicy(Node::CACHE_ALWAYS);
 }
 
- 
-int FITSImage::getResult (Result::Ref &resref, 
+
+int FITSImage::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &childres,
                        const Request &request,bool)
 {
@@ -84,7 +84,7 @@ int FITSImage::getResult (Result::Ref &resref,
  long int naxis[4]={0,0,0,0};
  //if (has_prev_result_) {resref=old_res_; return 0; }
  int flag=read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace,mode_);
- 
+
  FailWhen(flag," Error Reading Fits File "+flag);
 
 #ifdef DEBUG
@@ -93,13 +93,13 @@ int FITSImage::getResult (Result::Ref &resref,
  if (mode_==1) {
  //create a result with 6 vellsets, is integrated
  //if integrated=0, cells is removed
- old_res_<<= new Result(6,1); 
+ old_res_<<= new Result(6);
  } else {
  //create a result a single vellset, is NOT integrated
- old_res_<<= new Result(1,0); 
+ old_res_<<= new Result(1);
  }
 
- Result &result=old_res_; 
+ Result &result=old_res_;
  if (mode_==1) {
  /* RA0 vellset */
  VellSet::Ref ref0;
@@ -117,12 +117,12 @@ int FITSImage::getResult (Result::Ref &resref,
 
  //the real business begins
  //create blitz arrays for new axes l,m
- blitz::Array<double,1> l_center(lgrid, blitz::shape(naxis[0]), blitz::duplicateData); 
- blitz::Array<double,1> l_space(lspace, blitz::shape(naxis[0]), blitz::duplicateData); 
- blitz::Array<double,1> m_center(mgrid, blitz::shape(naxis[1]), blitz::duplicateData); 
- blitz::Array<double,1> m_space(mspace, blitz::shape(naxis[1]), blitz::duplicateData); 
- blitz::Array<double,1> f_center(fgrid, blitz::shape(naxis[3]), blitz::duplicateData); 
- blitz::Array<double,1> f_space(fspace, blitz::shape(naxis[3]), blitz::duplicateData); 
+ blitz::Array<double,1> l_center(lgrid, blitz::shape(naxis[0]), blitz::duplicateData);
+ blitz::Array<double,1> l_space(lspace, blitz::shape(naxis[0]), blitz::duplicateData);
+ blitz::Array<double,1> m_center(mgrid, blitz::shape(naxis[1]), blitz::duplicateData);
+ blitz::Array<double,1> m_space(mspace, blitz::shape(naxis[1]), blitz::duplicateData);
+ blitz::Array<double,1> f_center(fgrid, blitz::shape(naxis[3]), blitz::duplicateData);
+ blitz::Array<double,1> f_space(fspace, blitz::shape(naxis[3]), blitz::duplicateData);
 #ifdef DEBUG
  cout<<"Grid :"<<l_center<<m_center<<f_center<<endl;
  cout<<"Space:"<<l_space<<m_space<<f_space<<endl;
@@ -180,7 +180,7 @@ int FITSImage::getResult (Result::Ref &resref,
 #endif
  // axes are L(0),M(1),Stokes(2),Freq(3)
  // but here we have Freq,Stokes,M,L
- blitz::Array<double,4> A(arr, blitz::shape(naxis[3],naxis[2],naxis[1],naxis[0]), blitz::duplicateData); 
+ blitz::Array<double,4> A(arr, blitz::shape(naxis[3],naxis[2],naxis[1],naxis[0]), blitz::duplicateData);
 
  //transpose array such that Freq,L,M,Stokes
  A.transposeSelf(0,3,2,1);

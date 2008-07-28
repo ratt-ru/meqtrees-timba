@@ -45,7 +45,7 @@ ReqSeq::ReqSeq()
   // change default children policies -- we want to ignore errors and pass them on
   children().setFailPolicy(AidIgnore);
   children().setMissingDataPolicy(AidIgnore);
-  // init default seq symdeps 
+  // init default seq symdeps
   seq_symdeps_.resize(1);
   seq_symdeps_.assign(1,AidState);
 }
@@ -94,7 +94,7 @@ int ReqSeq::pollChildren (Result::Ref &resref,
     }
     // poll current child
     unlockStateMutex();
-    int code = children().getChild(ichild).execute(child_res,*reqref);
+    int code = children().getChild(ichild).execute(child_res,*reqref,currentRequestDepth()+1);
     lockStateMutex();
     cdebug(4)<<"    child "<<ichild<<" returns code "<<ssprintf("0x%x",code)<<endl;
     if( forest().abortFlag() )
@@ -108,7 +108,7 @@ int ReqSeq::pollChildren (Result::Ref &resref,
     // handle child fail according to mode
     if( code&RES_FAIL )
     {
-      // if fail policy is Ignore, ignore fails from non-selected children 
+      // if fail policy is Ignore, ignore fails from non-selected children
       if( children().failPolicy() == AidIgnore )
       {
         if( ichild != which_result_ )
@@ -124,7 +124,7 @@ int ReqSeq::pollChildren (Result::Ref &resref,
     // handle missing data according to current mode
     if( code&RES_MISSING )
     {
-      // if fail policy is Ignore, ignore fails from non-selected children 
+      // if fail policy is Ignore, ignore fails from non-selected children
       if( children().missingDataPolicy() == AidIgnore )
       {
         if( ichild != which_result_ )
@@ -148,7 +148,7 @@ int ReqSeq::pollChildren (Result::Ref &resref,
     }
   }
   unlockStateMutex();
-  stepchildren().backgroundPoll(*reqref);
+  stepchildren().backgroundPoll(*reqref,currentRequestDepth()+1);
   timers().children.stop();
   lockStateMutex();
   return 0;
@@ -164,7 +164,7 @@ int ReqSeq::discoverSpids (Result::Ref &ref,
   return result_code_;
 }
 
-int ReqSeq::getResult (Result::Ref &resref, 
+int ReqSeq::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &,
                        const Request &,bool)
 {

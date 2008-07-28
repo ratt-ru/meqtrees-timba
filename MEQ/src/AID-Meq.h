@@ -1,28 +1,3 @@
-//
-//% $Id$ 
-//
-//
-// Copyright (C) 2002-2007
-// The MeqTree Foundation & 
-// ASTRON (Netherlands Foundation for Research in Astronomy)
-// P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
-// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-
       #ifndef AID_Meq_h
       #define AID_Meq_h 1
       
@@ -188,6 +163,11 @@ const int AidControl_int = -1142;
 const DMI::AtomicID AidCreate(-1312);             // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:40
 const int AidCreate_int = -1312;
 #endif
+#ifndef _defined_id_AidCurrent
+#define _defined_id_AidCurrent 1
+const DMI::AtomicID AidCurrent(-1635);            // from /home/oms/LOFAR/Timba/MeqServer/src/VisDataMux.h:11
+const int AidCurrent_int = -1635;
+#endif
 #ifndef _defined_id_AidCwd
 #define _defined_id_AidCwd 1
 const DMI::AtomicID AidCwd(-1553);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
@@ -252,6 +232,11 @@ const int AidDependency_int = -1300;
 #define _defined_id_AidDeps 1
 const DMI::AtomicID AidDeps(-1327);               // from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
 const int AidDeps_int = -1327;
+#endif
+#ifndef _defined_id_AidDepth
+#define _defined_id_AidDepth 1
+const DMI::AtomicID AidDepth(-1741);              // from /home/oms/Timba/MEQ/src/Node.h:43
+const int AidDepth_int = -1741;
 #endif
 #ifndef _defined_id_AidDeriv
 #define _defined_id_AidDeriv 1

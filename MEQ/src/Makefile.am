@@ -1,6 +1,6 @@
 SUBDIRS	= .
 
-LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h VellsSlicer.h VellsSLicerWithFLags.h NodeFace.h
+LOCALHDRS = MeqVocabulary.h RequestId.h Meq.h VellsSlicer.h VellsSlicerWithFlags.h NodeFace.h
 
 LOCALSRCS = \
   Axis.cc Domain.cc   Cells.cc Request.cc RequestId.cc \

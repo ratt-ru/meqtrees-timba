@@ -79,9 +79,7 @@ int Constant::getResult (Result::Ref& resref,
   resref = result_;
   // integrate or simply attach cells as needed
   const Cells &cells = request.cells();
-  if( integrated_ )
-    resref().integrate(&cells);
-  else if( resref->needsCells(cells) )
+  if( resref->needsCells(cells) )
     resref().setCells(cells);
   return 0;
 }
@@ -101,7 +99,7 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   // Get value
   DMI::Record::Hook hook(rec,FValue);
   DMI::Record::Hook hook2(rec,FVells);
-  if( hook.exists() ) 
+  if( hook.exists() )
   {
     TypeId type = hook.type();
     // can we access this as a NumArray?
@@ -118,9 +116,9 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
       {
         // create scalar vells for result, using the hook conversion functions
         Vells::Ref vells;
-        if( type == Tpdcomplex || type == Tpfcomplex ) 
+        if( type == Tpdcomplex || type == Tpfcomplex )
           vells <<= new Vells((*parr)[HIID()].as<dcomplex>(),false);
-        else 
+        else
           vells <<= new Vells((*parr)[HIID()].as<double>(),false);
         (result_ <<= new Result(1)).setNewVellSet(0).setValue(vells);
       }
@@ -148,9 +146,9 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
     {
       Vells::Ref vells;
       // complex values forced to dcomplex; all other to double
-      if( type == Tpdcomplex || type == Tpfcomplex ) 
+      if( type == Tpdcomplex || type == Tpfcomplex )
         vells <<= new Vells(hook.as<dcomplex>(),false);
-      else 
+      else
         vells <<= new Vells(hook.as<double>(),false);
       (result_ <<= new Result(1)).setNewVellSet(0).setValue(vells);
     }

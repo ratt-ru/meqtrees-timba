@@ -21,13 +21,13 @@ MPIProxy::~MPIProxy ()
 }
 
 void MPIProxy::init ()
-{ 
+{
   // init the node
   Node::init();
   dprintf(2)("init");
   // get remote processor number
   remote_proc_ = wstate()[AidRemote|AidProc].as<int>(0);
-  // count the number of local (i.e. non-MPIProxy) parents. 
+  // count the number of local (i.e. non-MPIProxy) parents.
   // We need to know since we only hold cache for local parents
   num_local_parents_ = 0;
   for( int i=0; i<numParents(); i++ )
@@ -45,7 +45,7 @@ void MPIProxy::init ()
 //  reply.await();
 }
 
-void MPIProxy::getSyncState (DMI::Record::Ref &ref) 
+void MPIProxy::getSyncState (DMI::Record::Ref &ref)
 {
   // send message and wait for reply
   MeqMPI::ReplyEndpoint reply;
@@ -56,7 +56,7 @@ void MPIProxy::getSyncState (DMI::Record::Ref &ref)
   ref = objref;
 }
 
-int MPIProxy::execute (CountedRef<Result> &resref, const Request &req) throw()
+int MPIProxy::execute (CountedRef<Result> &resref, const Request &req,int depth) throw()
 {
   Thread::Mutex::Lock lock(execCond());
   // if node is already executing, then wait for it to finish, and meanwhile
@@ -69,10 +69,10 @@ int MPIProxy::execute (CountedRef<Result> &resref, const Request &req) throw()
     MTPool::Brigade::markThreadAsUnblocked(name());
   }
   executing_ = true;
-  
+
   if( forest().abortFlag() )
     return exitAbort(RES_ABORT);
-  
+
   // check the cache, return on match (cache will be cleared on mismatch)
   int retcode;
   if( getCachedResult(retcode,resref,req) )
@@ -81,20 +81,20 @@ int MPIProxy::execute (CountedRef<Result> &resref, const Request &req) throw()
                 "    "<<resref->sdebug(DebugLevel-1,"    ")<<endl;
     return exitExecute(retcode);
   }
-  
+
   lock.release();
-  
+
   // send message and wait for reply
   MeqMPI::ReplyEndpoint reply;
-  MeqMPI::HdrNodeOperation header = { nodeIndex(),0,&reply };
+  MeqMPI::HdrNodeOperation header = { nodeIndex(),depth,&reply };
   ObjRef objref(req);
   MeqMPI::self->postCommand(MeqMPI::TAG_NODE_EXECUTE,remote_proc_,header,objref);
-  
+
   // wait for reply, while marking ourselves blocked
   MTPool::Brigade::markThreadAsBlocked(name());
   retcode = reply.await(objref);
   MTPool::Brigade::markThreadAsUnblocked(name());
-  
+
   // dispence with reply
   if( !objref.valid() )
   {
@@ -105,9 +105,9 @@ int MPIProxy::execute (CountedRef<Result> &resref, const Request &req) throw()
   }
   else
     resref = objref;
-  
+
   retcode = cacheResult(resref,req,retcode);
-  
+
   return exitExecute(retcode);
 }
 
@@ -154,7 +154,7 @@ void MPIProxy::holdCache (bool hold) throw()
 //  MeqMPI::HdrNodeOperation header = { nodeIndex(),hold,0 };
 //  MeqMPI::self->postCommand(MeqMPI::TAG_NODE_HOLD_CACHE,remote_proc_,header);
 }
-    
+
 void MPIProxy::propagateStateDependency ()
 {
   Node::propagateStateDependency();

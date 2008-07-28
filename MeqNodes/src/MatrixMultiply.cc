@@ -23,8 +23,8 @@
 
 #include <MeqNodes/MatrixMultiply.h>
 
-namespace Meq 
-{    
+namespace Meq
+{
 
 
 //##ModelId=400E530A0105
@@ -53,7 +53,7 @@ inline Vells * computeSum (Vells &out,const Vells * pv[],int nsum)
 void MatrixMultiply::scalarMultiply (Result::Ref &res,
     const Result &scalar,const Result &tensor,
     VellsFlagType fms,VellsFlagType fmt,
-    bool integrated,int tensor_ich)
+    int tensor_ich)
 {
   // for consistency, refuse to have anything to do with >2 rank tensors
   FailWhen(tensor.tensorRank()>2,ssprintf(
@@ -61,7 +61,7 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
   // empty result: treat as null
   if( !scalar.numVellSets() )
   {
-    (res <<= new Result(1,integrated)).setNewVellSet(0);
+    (res <<= new Result(1)).setNewVellSet(0);
     return;
   }
   const VellSet & sca_vs = scalar.vellSet(0);
@@ -75,7 +75,7 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
   // empty scalar vellset: return empty result
   if( !sca_vs.hasValue() )
   {
-    (res <<= new Result(1,integrated)).setNewVellSet(0);
+    (res <<= new Result(1)).setNewVellSet(0);
     return;
   }
   const Vells & sca_val = sca_vs.getValue();
@@ -85,7 +85,7 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
     // (flags swallowed by null values...)
     if( sca_val.isNull() )
     {
-      (res <<= new Result(1,integrated)).setNewVellSet(0).setValue(new Vells);
+      (res <<= new Result(1)).setNewVellSet(0).setValue(new Vells);
       return;
     }
     // unity and no perturbations: return tensor itself, applying flags
@@ -110,13 +110,13 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
     }
   }
   // ok, no such luck, so we need to work out a full result
-  Result &result = res <<= new Result(tensor.dims(),integrated);
+  Result &result = res <<= new Result(tensor.dims());
   // use cell shape for result shape, most subclasses will ignore it anyway
   // and let vells math determine the shape instead
   vector<const VellSet*> child_vs(2);
   vector<const Vells*>   pvv(2);
   child_vs[1] = &sca_vs;
-  pvv[1] = &sca_val; 
+  pvv[1] = &sca_val;
   int nplanes = result.numVellSets();
   for( int ivs = 0; ivs < nplanes; ivs++ )
   {
@@ -158,10 +158,10 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
     double pert[npertsets];
     int found[npertsets];
     int indices[2] = {0,0};
-    for( uint ispid=0; ispid<spids.size(); ispid++) 
+    for( uint ispid=0; ispid<spids.size(); ispid++)
     {
       // pert_values start with pointers to each child's main value, the
-      // loop below then replaces them with values from children that 
+      // loop below then replaces them with values from children that
       // have a corresponding perturbed value
       for( int ipert=0; ipert<npertsets; ipert++ )
       {
@@ -169,8 +169,8 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
         pert_values[ipert] = pvv;
       }
       // loop over children. For every child that contains a perturbed
-      // value for spid[j], put a pointer to the perturbed value into 
-      // pert_values[ipert][ichild]. For children that do not contain a 
+      // value for spid[j], put a pointer to the perturbed value into
+      // pert_values[ipert][ichild]. For children that do not contain a
       // perturbed value, it will retain a pointer to the main value.
       // The pertubations themselves are collected into pert[]; these
       // must match across all children
@@ -209,7 +209,7 @@ void MatrixMultiply::scalarMultiply (Result::Ref &res,
         valref() *= *(pert_values[ipert][1]);
         vellset.setPerturbedValue(ispid,valref,ipert);
       }
-    } // end for(ispid) 
+    } // end for(ispid)
   } // end for(ivs)
 }
 
@@ -226,9 +226,7 @@ int MatrixMultiply::getResult (Result::Ref &resref,
   }
   Assert( nrch>1 );
   resref = childres[0];
-  // result is intergrated if any child is integrated
-  bool integrated = resref->isIntegrated();
-  VellsFlagType fm0 = flagmask_[0]; 
+  VellsFlagType fm0 = flagmask_[0];
   // apply flagmask to first child
   if( fm0 != VellsFullFlagMask )
   {
@@ -246,13 +244,12 @@ int MatrixMultiply::getResult (Result::Ref &resref,
     Result::Ref resref1;
     const Result &arga = *resref;
     const Result &argb = *childres[ich];
-    VellsFlagType fm = flagmask_[ich]; 
-    integrated |= argb.isIntegrated(); // accumulate integrated property
+    VellsFlagType fm = flagmask_[ich];
     // fall back to scalar multiplication if either argument is scalar
     if( !arga.tensorRank() )
-      scalarMultiply(resref1,arga,argb,VellsFullFlagMask,fm,integrated,ich);
+      scalarMultiply(resref1,arga,argb,VellsFullFlagMask,fm,ich);
     else if( !argb.tensorRank() )
-      scalarMultiply(resref1,argb,arga,fm,VellsFullFlagMask,integrated,ich-1);
+      scalarMultiply(resref1,argb,arga,fm,VellsFullFlagMask,ich-1);
     else
     {
       // figure out tensor dimensions
@@ -277,9 +274,9 @@ int MatrixMultiply::getResult (Result::Ref &resref,
       // setup output result
       Result *pres;
       if( db[1] == 1 )
-        resref1 <<= pres = new Result(da[0],integrated); // vector or scalar result
+        resref1 <<= pres = new Result(da[0]); // vector or scalar result
       else
-        resref1 <<= pres = new Result(LoShape(da[0],db[1]),integrated);
+        resref1 <<= pres = new Result(LoShape(da[0],db[1]));
       // attach it to ref to ensure cleanup on exception
       int iplane = 0;
       int nsum = da[1]; // number of indices summed over
@@ -350,10 +347,10 @@ int MatrixMultiply::getResult (Result::Ref &resref,
           double pert[npertsets];
           vector<int> indices(nvs,0);
           int found[npertsets];
-          for( uint ispid=0; ispid<spids.size(); ispid++) 
+          for( uint ispid=0; ispid<spids.size(); ispid++)
           {
             // pert_values start with pointers to each child's main value, the
-            // loop below then replaces them with values from children that 
+            // loop below then replaces them with values from children that
             // have a corresponding perturbed value
             for( int ipert=0; ipert<npertsets; ipert++ )
             {
@@ -361,8 +358,8 @@ int MatrixMultiply::getResult (Result::Ref &resref,
               memcpy(pert_values[ipert],pvv,sizeof(pvv));
             }
             // loop over child vellsets. For every vs that contains a perturbed
-            // value for spid[ispid], put a pointer to the perturbed value into 
-            // pert_values[ipert][ichild]. For children that do not contain a 
+            // value for spid[ispid], put a pointer to the perturbed value into
+            // pert_values[ipert][ichild]. For children that do not contain a
             // perturbed value, it will retain a pointer to the main value.
             // The pertubations themselves are collected into pert[]; these
             // must match across all children
@@ -414,7 +411,7 @@ int MatrixMultiply::getResult (Result::Ref &resref,
     if( resref->numFails() == resref->numVellSets() )
       return RES_FAIL;
   } // end of loop over children
-  
+
    // return 0 flag, since we don't add any dependencies of our own
   return 0;
 }

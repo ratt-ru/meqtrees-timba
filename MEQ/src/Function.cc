@@ -65,15 +65,15 @@ void Function::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   if( rec[FFlagMask].get_vector(fm) )
   {
     enable_flags_ = true;
-    // single element? 
+    // single element?
     if( fm.size() == 1 )
     {
       int flag = fm.front();
       if( flag == -1 )        // [-1] means full mask (i.e. disable masking completely)
-        flagmask_.assign(numChildren(),VellsFullFlagMask);  
+        flagmask_.assign(numChildren(),VellsFullFlagMask);
       else if( flag == 0 )    // [0] means no flags on output
       {
-        flagmask_.assign(numChildren(),0);  
+        flagmask_.assign(numChildren(),0);
         enable_flags_ = false;
       }
       else                    // [M] same mask for all elements
@@ -114,15 +114,13 @@ int Function::getResult (Result::Ref &resref,
   }
 
   // Figure out the dimensions of the output result, and see if all children
-  // match these dimensions. Also, figure out if result should be marked as 
+  // match these dimensions. Also, figure out if result should be marked as
   // integrated.  Ino children, assume one plane.
   Result::Dims out_dims;
-  bool integr = false;
   if( nrch )
   {
     FailWhen(!childres[0]->numVellSets(),"no vellsets in result of child 0");
     out_dims = childres[0]->dims();
-    integr   = childres[0]->isIntegrated();  // flag: is any child integrated
     for( int i=1; i<nrch; i++ )
     {
       const Result &res = *childres[i];
@@ -136,14 +134,13 @@ int Function::getResult (Result::Ref &resref,
           FailWhen(res.dims()!=out_dims,"dimensions of tensor child results do not match");
         }
       }
-      integr |= childres[i]->isIntegrated();
     }
   }
   // override the integrated flag if the state record provides one
-  if( force_integrated_ )
-    integr = integrated_;
+//  if( force_integrated_ )
+//    integr = integrated_;
   // Create result and attach to the ref that was passed in
-  Result & result = resref <<= new Result(out_dims,integr);
+  Result & result = resref <<= new Result(out_dims);
   // Find cumulative shape from all children
   // If no children, use the request cells shape.
   LoShape res_shape;
@@ -164,9 +161,9 @@ int Function::getResult (Result::Ref &resref,
   {
     // create a vellset for this plane
     VellSet &vellset = result.setNewVellSet(iplane,0,0);
-    // collect vector of pointers to child vellsets #iplane, and a vector of 
+    // collect vector of pointers to child vellsets #iplane, and a vector of
     // pointers to their main values. If a child is of tensor rank 0, always
-    // reuse its single vellset. If any child vellsets are fails, collect 
+    // reuse its single vellset. If any child vellsets are fails, collect
     // them for propagation
     int nmissing = 0;
     for( int i=0; i<nrch; i++ )
@@ -230,16 +227,16 @@ int Function::getResult (Result::Ref &resref,
         vector<double> pert(npertsets);
         vector<int> indices(nrch,0);
         vector<int> found(npertsets);
-        for( uint j=0; j<spids.size(); j++) 
+        for( uint j=0; j<spids.size(); j++)
         {
           found.assign(npertsets,-1);
           // pert_values start with pointers to each child's main value, the
-          // loop below then replaces them with values from children that 
+          // loop below then replaces them with values from children that
           // have a corresponding perturbed value
           pert_values.assign(npertsets,values);
           // loop over children. For every child that contains a perturbed
-          // value for spid[j], put a pointer to the perturbed value into 
-          // pert_values[ipert][ichild]. For children that do not contain a 
+          // value for spid[j], put a pointer to the perturbed value into
+          // pert_values[ipert][ichild]. For children that do not contain a
           // perturbed value, it will retain a pointer to the main value.
           // The pertubations themselves are collected into pert[]; these
           // must match across all children
@@ -311,7 +308,7 @@ vector<int> Function::findSpids (int &npertsets,const vector<const VellSet*> &re
   // Determine the maximum number of spids.
   int nrspid = 0;
   int nrch = results.size();
-  for (int i=0; i<nrch; i++) 
+  for (int i=0; i<nrch; i++)
     if( results[i] )
       nrspid += results[i]->numSpids();
   npertsets = 0;
@@ -327,7 +324,7 @@ vector<int> Function::findSpids (int &npertsets,const vector<const VellSet*> &re
   int stinx = nrspid;          // start at end
   nrspid = 0;                  // no resulting spids yet
   // Loop through all children.
-  for (int ch=0; ch<nrch; ch++) 
+  for (int ch=0; ch<nrch; ch++)
   {
     if( !results[ch] )
       continue;

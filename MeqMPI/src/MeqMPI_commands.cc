@@ -163,8 +163,8 @@ int MeqMPI::getNodeList (DMI::Record &list,int content,Meq::Forest &forest)
   FailWhen1(i0<num,"forest inconsistency: too few valid nodes found");
   return num;
 }
-      
-      
+
+
 // processes a GET_NODE_LIST message
 void MeqMPI::procGetNodeList (int source,const char *msgbuf,int msgsize)
 {
@@ -245,13 +245,13 @@ void MeqMPI::procNodeSetState (int source,const char *msgbuf,int msgsize)
 class MpiExecWorkOrder : public MTPool::AbstractWorkOrder
 {
   public:
-    MpiExecWorkOrder (NodeFace &node,const Request &req,
+    MpiExecWorkOrder (NodeFace &node,const Request &req,int depth,
                       MeqMPI &mpi,int dest,MeqMPI::ReplyEndpoint *ep)
     : noderef(node,DMI::SHARED),reqref(req),
-      meqmpi(mpi),reply_dest(dest),endpoint(ep)
+    meqmpi(mpi),reqdepth(depth),reply_dest(dest),endpoint(ep)
     {}
-    
-    virtual void execute (MTPool::Brigade &brigade)      // runs the work order. 
+
+    virtual void execute (MTPool::Brigade &brigade)      // runs the work order.
     {
       Result::Ref resref;
       int retcode = Node::RES_FAIL;
@@ -259,7 +259,7 @@ class MpiExecWorkOrder : public MTPool::AbstractWorkOrder
       {
         NodeFace &node = noderef();
         cdebug1(1)<<brigade.sdebug(1)+" executing request "+reqref->id().toString('.')+" on node "+node.name()+"\n";
-        retcode = node.execute(resref,*reqref);
+        retcode = node.execute(resref,*reqref,reqdepth);
         cdebug1(1)<<brigade.sdebug(1)+" finished request "+reqref->id().toString('.')+" on node "+node.name()+"\n";
       }
       catch( std::exception &exc )
@@ -288,12 +288,13 @@ class MpiExecWorkOrder : public MTPool::AbstractWorkOrder
         meqmpi.postReply(reply_dest,endpoint,retcode,objref);
       }
     }
-        
+
     virtual ~MpiExecWorkOrder() {};
-    
+
     NodeFace::Ref noderef;
     Request::Ref  reqref;
     MeqMPI & meqmpi;
+    int reqdepth;
     int reply_dest;
     MeqMPI::ReplyEndpoint *endpoint;
 };
@@ -309,7 +310,7 @@ void MeqMPI::procNodeExecute (int source,const char *msgbuf,int msgsize)
   cdebug(2)<<"enqueueing execute() request on node "<<node.name()<<endl;
   // enqueue a workorder and wake up worker thread
   Thread::Mutex::Lock lock(MTPool::brigade().cond());
-  MTPool::brigade().placeWorkOrder(new MpiExecWorkOrder(node,ref.as<Request>(),*this,source,header.endpoint));
+  MTPool::brigade().placeWorkOrder(new MpiExecWorkOrder(node,ref.as<Request>(),header.arg,*this,source,header.endpoint));
   MTPool::brigade().awakenWorker(true);
 }
 

@@ -28,7 +28,7 @@
 #include <MEQ/Cells.h>
 #include <MEQ/MeqVocabulary.h>
 
-namespace Meq {    
+namespace Meq {
 
 const HIID FMulti = AidMulti;
 
@@ -50,7 +50,7 @@ void Selector::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 }
 
 //##ModelId=400E53550237
-int Selector::getResult (Result::Ref &resref, 
+int Selector::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childref,
                          const Request &request,bool)
 {
@@ -67,7 +67,7 @@ int Selector::getResult (Result::Ref &resref,
   // multiple-selection mode
   if( multi_ || selection_.size() == 1 )
   {
-    Result &result = resref <<= new Result(selection_.size(),childres.isIntegrated());
+    Result &result = resref <<= new Result(selection_.size());
     // select results from child set
     for( uint i=0; i<selection_.size(); i++ )
     {
@@ -120,12 +120,12 @@ int Selector::getResult (Result::Ref &resref,
     }
     // shp now contains the output shape of the selection (including any
     // slices), and rank is the maximal non-trivial dimension
-    
+
     // single element selected
-    if( rank == 0 ) 
+    if( rank == 0 )
     {
       const VellSet &vs = childres.vellSet(offset);
-      (resref <<= new Result(1,childres.isIntegrated())).
+      (resref <<= new Result(1)).
             setVellSet(0,vs);
       if( !vs.isFail() )
         fail = false;
@@ -140,7 +140,7 @@ int Selector::getResult (Result::Ref &resref,
       // shp0 is the same, but contains 0s for selected axis.
       // rank is the highest slicing axis+1.
       shp.resize(rank);
-      Result &result = resref <<= new Result(shp,childres.isIntegrated());
+      Result &result = resref <<= new Result(shp);
       int nout = shp.product();
       // calculate offset to start of slice
       for( int i=0; i<nout; i++ )
@@ -159,7 +159,7 @@ int Selector::getResult (Result::Ref &resref,
             if( --shp0[idim] )       // still something to go? break
               break;
             else                     // reached end of axis, reset and go to next
-              shp0[idim] = shp[idim]; 
+              shp0[idim] = shp[idim];
           }
       }
     }
@@ -169,11 +169,11 @@ int Selector::getResult (Result::Ref &resref,
     return RES_FAIL;
   if( missing )
     return RES_MISSING;
-  
+
   // else add input cells as needed
   if( childres.hasCells() )
     resref().setCells(childres.cells());
-  
+
   return 0;
 }
 

@@ -1,9 +1,9 @@
 //
-//% $Id$ 
+//% $Id$
 //
 //
 // Copyright (C) 2002-2007
-// The MeqTree Foundation & 
+// The MeqTree Foundation &
 // ASTRON (Netherlands Foundation for Research in Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -19,19 +19,19 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
+// or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
 #include "NodeNursery.h"
 #include "MTPool.h"
 #include "AID-Meq.h"
-        
+
 namespace Meq
 {
 
 bool NodeNursery::sequential_service_requests_ = false;
-  
+
 NodeNursery::NodeNursery ()
 {
   initialized_ = false;
@@ -42,7 +42,7 @@ NodeNursery::NodeNursery ()
 
   mt.enabled_ = mt.polling_ = mt.abandon_ = false;
   mt.cur_brigade_ = 0;
-}  
+}
 
 
 void NodeNursery::init (int num_children,const std::string &name)
@@ -57,7 +57,7 @@ void NodeNursery::init (int num_children,const std::string &name)
   child_enabled_.resize(num_children);
   child_enabled_.assign(num_children,false);
   child_retcodes_.resize(num_children);
-  
+
   // setup default polling order
   child_poll_order_.resize(num_children);
   for( int i=0; i<num_children; i++ )
@@ -145,13 +145,13 @@ void NodeNursery::setChildPollOrder (const std::vector<string> &order)
   Assert(nord == numChildren());
 }
 
-void NodeNursery::setFailPolicy (AtomicID policy) 
-{ 
+void NodeNursery::setFailPolicy (AtomicID policy)
+{
   fail_policy_ = validatePolicy(policy);
 }
-    
-void NodeNursery::setMissingDataPolicy (AtomicID policy) 
-{ 
+
+void NodeNursery::setMissingDataPolicy (AtomicID policy)
+{
   missing_data_policy_ = validatePolicy(policy);
 }
 
@@ -183,10 +183,11 @@ MTPool::Brigade * NodeNursery::mt_checkBrigadeAvailability (Thread::Mutex::Lock 
   }
 }
 
-int NodeNursery::startAsyncPoll (const Request &req)
+int NodeNursery::startAsyncPoll (const Request &req,int depth)
 {
   FailWhen(async_poll_in_progress_ || background_poll_in_progress_,"another poll is already in progress");
   int numchildren = 0; // number of children to poll (accounting for disabled children)
+  polling_depth_ = depth;
   Thread::Mutex::Lock lock;
   // multithreaded version
   if( mt_checkBrigadeAvailability(lock,req) )
@@ -205,7 +206,7 @@ int NodeNursery::startAsyncPoll (const Request &req)
       if( isChildEnabled(ichild) )
       {
         mt.cur_brigade_->placeWorkOrder(new MTPool::WorkOrder(
-            *this,&NodeNursery::mt_receiveAsyncChildResult,getChild(ichild),ichild,req));
+            *this,&NodeNursery::mt_receiveAsyncChildResult,getChild(ichild),ichild,req,depth));
         numchildren++;
       }
       else
@@ -275,7 +276,7 @@ void NodeNursery::mt_cleanupAfterPoll ()
    async_poll_in_progress_ = background_poll_in_progress_ = false;
 }
 
-// this is called when execute() aborts in the middle of an MT poll 
+// this is called when execute() aborts in the middle of an MT poll
 // (i.e. mt.cur_brigade_ != 0 on return from execute())
 // deactivates worker threads and cleans up
 void NodeNursery::mt_abortPoll ()
@@ -313,17 +314,17 @@ void NodeNursery::mt_waitForEndOfPoll ()
       becomeIdle();
       mt.child_poll_cond_.wait();
       MTPool::Brigade::markThreadAsUnblocked(name());
-      becomeBusy(); 
+      becomeBusy();
       // once woken, go back to top of loop to see what we have received
       continue;
     }
     lock2.release();
-    // ok, we have a work order -- release child results lock and go on to 
+    // ok, we have a work order -- release child results lock and go on to
     // fill it
     lock.release();
-    becomeIdle(); 
+    becomeIdle();
     wo->execute(*mt.cur_brigade_);
-    becomeBusy(); 
+    becomeBusy();
     delete wo;
     // reacquire child results lock and go back up recheck
     lock.relock(mt.child_poll_cond_);
@@ -367,7 +368,7 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
         mt.child_retqueue_.pop_back();
         return ichild;
       }
-      // no result on queue, so we can grab a work order from the brigade queue 
+      // no result on queue, so we can grab a work order from the brigade queue
       lock.release();
       Thread::Mutex::Lock lock2(mt.cur_brigade_->cond());
       MTPool::AbstractWorkOrder *wo = mt.cur_brigade_->getWorkOrder(false); // wait=false
@@ -380,9 +381,9 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
         {
           MTPool::Brigade::markThreadAsBlocked(name());
           becomeIdle();
-          lock2.release(); 
+          lock2.release();
           mt.child_poll_cond_.wait();
-          becomeBusy(); 
+          becomeBusy();
           MTPool::Brigade::markThreadAsUnblocked(name());
         }
         else
@@ -391,12 +392,12 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
         continue;
       }
       lock2.release();
-      // ok, we have a work order -- release child results lock and go on to 
+      // ok, we have a work order -- release child results lock and go on to
       // fill it
       lock.release();
-      becomeIdle(); 
+      becomeIdle();
       wo->execute(*mt.cur_brigade_);
-      becomeBusy(); 
+      becomeBusy();
       delete wo;
       // reacquire child results lock and go back up to check our result queue
       lock.relock(mt.child_poll_cond_);
@@ -413,9 +414,9 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
       if( isChildEnabled(ichild) )
       {
         timer().start();
-        becomeIdle(); 
-        child_retcodes_[ichild] = rescode = getChild(ichild).execute(resref,req);
-        becomeBusy(); 
+        becomeIdle();
+        child_retcodes_[ichild] = rescode = getChild(ichild).execute(resref,req,polling_depth_);
+        becomeBusy();
         timer().stop();
         return ichild;
       }
@@ -471,7 +472,7 @@ void NodeNursery::mt_receiveSyncChildResult (int ichild,MTPool::WorkOrder &res)
 
 
 //##ModelId=400E531702FD
-int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childres,const Request &req)
+int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childres,const Request &req,int depth)
 {
   childres.resize(numChildren());
   // make sure the becomeBusy() call is paired -- hence the try/catch/rethrow block
@@ -482,6 +483,7 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
     child_cumul_retcode_ = 0;
     num_child_fails_ = 0;
     child_fails_.resize(0);
+    polling_depth_ = depth;
     // multithreaded poll
     Thread::Mutex::Lock lock;
     if( mt_checkBrigadeAvailability(lock,req) )
@@ -500,13 +502,13 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
         if( isChildEnabled(ichild) )
         {
           mt.cur_brigade_->placeWorkOrder(new MTPool::WorkOrder(
-              *this,&NodeNursery::mt_receiveSyncChildResult,getChild(ichild),ichild,req));
+              *this,&NodeNursery::mt_receiveSyncChildResult,getChild(ichild),ichild,req,depth));
           mt.numchildren_++;
         }
         else
           child_retcodes_[ichild] = 0;
       }
-      // no more WOs -- sleep until all children have returned 
+      // no more WOs -- sleep until all children have returned
       while( true )
       {
         // at this point we hold a lock on the brigade queue
@@ -550,7 +552,7 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
         int ichild = child_poll_order_[i];
         if( isChildEnabled(ichild) )
         {
-          int childcode = child_retcodes_[ichild] = getChild(ichild).execute(childres[ichild],req);
+          int childcode = child_retcodes_[ichild] = getChild(ichild).execute(childres[ichild],req,depth);
           cdebug(4)<<"    child "<<ichild<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
           child_cumul_retcode_ |= childcode;
           //*****  if( childcode&NodeFace::RES_WAIT )
@@ -584,7 +586,7 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
     // if fail policy is Ignore, make sure FAIL bit is cleared
     if( failPolicy() == AidIgnore )
       child_cumul_retcode_ &= ~NodeFace::RES_FAIL;
-    // else if we have any fails, return a Result containing all of the fails 
+    // else if we have any fails, return a Result containing all of the fails
     else if( !child_fails_.empty() )
     {
       cdebug(3)<<"  got RES_FAIL from children ("<<num_child_fails_<<"), returning fail-result"<<endl;
@@ -616,10 +618,11 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
 }
 
 
-void NodeNursery::backgroundPoll (const Request &req)
+void NodeNursery::backgroundPoll (const Request &req,int depth)
 {
   FailWhen(async_poll_in_progress_ || background_poll_in_progress_,"another poll is already in progress");
   Thread::Mutex::Lock lock;
+  polling_depth_ = depth;
   // multithreaded version
   if( mt_checkBrigadeAvailability(lock,req) )
   {
@@ -642,7 +645,7 @@ void NodeNursery::backgroundPoll (const Request &req)
       if( isChildEnabled(i) )
       {
         mt.cur_brigade_->placeWorkOrder(new MTPool::WorkOrder(
-            *this,&NodeNursery::mt_receiveBackgroundResult,getChild(ichild),ichild,req));
+            *this,&NodeNursery::mt_receiveBackgroundResult,getChild(ichild),ichild,req,depth));
         mt.numchildren_++;
       }
       else
@@ -662,7 +665,7 @@ void NodeNursery::backgroundPoll (const Request &req)
       if( isChildEnabled(ichild)  )
       {
         Result::Ref dum;
-        int childcode = child_retcodes_[ichild] = getChild(ichild).execute(dum,req);
+        int childcode = child_retcodes_[ichild] = getChild(ichild).execute(dum,req,depth);
         cdebug(4)<<"    child "<<ichild<<" returns code "<<ssprintf("0x%x",childcode)<<endl;
         if( childcode&NodeFace::RES_ABORT )
           break;
@@ -681,8 +684,8 @@ void NodeNursery::finishPoll ()
   if( mt.cur_brigade_ )
     mt_waitForEndOfPoll();
 }
-  
-  
+
+
 void NodeNursery::abortPoll ()
 {
   // if an mt poll is in progress, abort it
@@ -691,6 +694,6 @@ void NodeNursery::abortPoll ()
   // call finish to flush everything else
   finishPoll();
 }
-  
-  
+
+
 };

@@ -40,7 +40,7 @@
 
 #pragma aidgroup Meq
 #pragma types #Meq::Node
-#pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks
+#pragma aid Add Clear Known Active Gen Dep Deps Symdep Symdeps Mask Masks Depth Current
 #pragma aid Parm Value Resolution Domain Dataset Resolve Parent Init Id
 #pragma aid Link Or Create Control Status New Breakpoint Single Shot Step
 #pragma aid Cache Policy Stats All New Requests Parents Num Active Description
@@ -121,6 +121,8 @@ const HIID FLinkOrCreate = AidLink|AidOr|AidCreate;
 
 const HIID FDependMask = AidDep|AidMask;
 const HIID FActiveSymDeps = AidActive|AidSymdeps;
+
+const HIID FCurrentRequestDepth = AidCurrent|AidRequest|AidDepth;
 
 // const HIID FGenSymDep       = AidGen|AidSymdep;
 // const HIID FGenSymDepGroup  = AidGen|AidSymdep|AidGroup;
@@ -366,7 +368,7 @@ class Node : public NodeFace
 
     //====== NodeFace method
     //## Executes a request on the node
-    virtual int execute (Result::Ref &resref, const Request &req) throw();
+    virtual int execute (Result::Ref &resref,const Request &req,int depth) throw();
 
     //====== NodeFace method
     //## Processes node-specific commands. Args is expected to contain
@@ -475,6 +477,10 @@ class Node : public NodeFace
 
     void setLogPolicy (int policy)
     { log_policy_ = policy; }
+
+    //## depth of currently executing request
+    int currentRequestDepth () const
+    { return current_request_depth_; }
 
     //## checking level used for extra sanity checks (presumably expensive),
     //## set to non-0 for debugging
@@ -839,7 +845,7 @@ class Node : public NodeFace
     NodeNursery children_;
     NodeNursery stepchildren_;
 
-    //## vectors of child and stepchild indices 
+    //## vectors of child and stepchild indices
     std::vector<int> child_indices_;
     std::vector<int> stepchild_indices_;
 
@@ -888,6 +894,8 @@ class Node : public NodeFace
     //## used by init() to go into a node only once when resolving
     //## recursively. -1 when node is created and before init() is called.
     int internal_init_index_;
+
+    int current_request_depth_;
 
     //## used during async polling
     int async_poll_child_;

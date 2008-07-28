@@ -652,11 +652,6 @@ namespace Meq {
     // set cells in result as needed
     result.setCells(request.cells());
 
-    // integrate over cell if so specified
-    if( integrated_ )
-      result.integrate();
-
-
     //remove funklet from cache unless cahce_funklet
     if(!cache_funklet_ && !isSolvable()){
       its_funklet_.detach();
@@ -806,8 +801,8 @@ namespace Meq {
       constrained_ = true;
     }
     //reset if all vectors are empty
-    if( its_constraints_.empty() && its_constraints_min_.empty() && its_constraints_max_.empty() )    
-      constrained_ = false; 
+    if( its_constraints_.empty() && its_constraints_min_.empty() && its_constraints_max_.empty() )
+      constrained_ = false;
 
 
     // Get ParmTable name

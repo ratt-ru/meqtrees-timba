@@ -1,9 +1,9 @@
 //
-//% $Id$ 
+//% $Id$
 //
 //
 // Copyright (C) 2002-2007
-// The MeqTree Foundation & 
+// The MeqTree Foundation &
 // ASTRON (Netherlands Foundation for Research in Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -19,7 +19,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
+// or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
@@ -35,6 +35,7 @@
 #include "config.h"
 #ifdef HAVE_MPI
 #include <MeqMPI/MeqMPI.h>
+#include <MeqMPI/AID-MeqMPI.h>
 #endif
 
 #ifndef HAVE_PARMDB
@@ -138,7 +139,7 @@ MeqServer::MeqServer()
   #else
   sync_commands["Create.Node.Batch"] = &MeqServer::createNodeBatch;
   #endif
-    
+
   sync_commands["Delete.Node"] = &MeqServer::deleteNode;
   async_commands["Set.Cwd"] = &MeqServer::setCurrentDir;
   async_commands["Set.Session.Name"] = &MeqServer::setSessionName;
@@ -146,7 +147,7 @@ MeqServer::MeqServer()
   async_commands["Get.Node.List"] = &MeqServer::getNodeList_Mpi;
   #else
   async_commands["Get.Node.List"] = &MeqServer::getNodeList;
-  #endif  
+  #endif
   async_commands["Get.Forest.Status"] = &MeqServer::getForestStatus;
   async_commands["Get.NodeIndex"] = &MeqServer::getNodeIndex;
 
@@ -428,7 +429,7 @@ void MeqServer::createNodeBatch_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 }
 #endif
-      
+
 void MeqServer::deleteNode (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   int nodeindex = (*in)[AidNodeIndex].as<int>(-1);
@@ -597,7 +598,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
     postEvent("Forest.Status",status);
     // execute node
     Result::Ref resref;
-    int flags = node.execute(resref,req);
+    int flags = node.execute(resref,req,0);
     cdebug(2)<<"  execute() returns flags "<<ssprintf("0x%x",flags)<<endl;
     cdebug(3)<<"    result is "<<resref.sdebug(DebugLevel-1,"    ")<<endl;
     if( DebugLevel>3 && resref.valid() )
@@ -658,7 +659,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 //   postMessage(ssprintf("saving forest to file %s, please wait",filename.c_str()));
 //   BOIO boio(filename,BOIO::WRITE);
 //   int nsaved = 0;
-// 
+//
 //   // write header record
 //   DMI::Record header;
 //   header["Forest.Header.Version"] = 1;
@@ -688,7 +689,7 @@ void MeqServer::nodeExecute (DMI::Record::Ref &out,DMI::Record::Ref &in)
 //       nsaved,filename.c_str());
 //   fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
 // }
-// 
+//
 // //##ModelId=400E5B6C02B3
 // void MeqServer::loadForest (DMI::Record::Ref &out,DMI::Record::Ref &in)
 // {

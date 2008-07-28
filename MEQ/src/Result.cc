@@ -33,18 +33,16 @@ namespace Meq {
 static DMI::Container::Register reg(TpMeqResult,true);
 
 //##ModelId=3F86887000CE
-Result::Result (int nvellsets,bool integrated)
+Result::Result (int nvellsets)
   : pvellsets_(0),pcells_(0)
 {
-  setIsIntegrated(integrated);
   if( nvellsets>0 )
     allocateVellSets(nvellsets);
 }
 
-Result::Result (const Dims &dims,bool integrated)
+Result::Result (const Dims &dims)
   : pvellsets_(0),pcells_(0)
 {
-  setIsIntegrated(integrated);
   allocateVellSets(dims);
 }
 
@@ -74,7 +72,7 @@ bool Result::verifyShape (const LoShape &cellshape) const
       hasshapes = true;
     }
   }
-  return isIntegrated() || hasshapes;
+  return hasshapes;
 }
 
 
@@ -117,7 +115,7 @@ void Result::setCells (const Cells *cells,int flags,bool force)
 {
   Thread::Mutex::Lock lock(mutex());
   ObjRef ref(cells,flags);
-  // check that shape is correct, and set cells if needed 
+  // check that shape is correct, and set cells if needed
   if( verifyShape(cells->shape()) || force )
   {
     Field & field = Record::addField(FCells,ref,DMI::REPLACE|Record::PROTECT);
@@ -156,7 +154,7 @@ void Result::validateContent (bool)
   try
   {
     // get integrated flag
-// 04/01/2007 phased out  
+// 04/01/2007 phased out
 //    is_integrated_ = (*this)[FIntegrated].as<bool>(false);
     // get vellsets
     Field * fld = Record::findField(FVellSets);
@@ -201,7 +199,7 @@ void Result::validateContent (bool)
   catch( ... )
   {
     Throw("validate of Result record failed with unknown exception");
-  }  
+  }
 }
 
 //##ModelId=400E5355017B
@@ -269,7 +267,7 @@ int Result::setDims (const Dims &dims)
   return nvs;
 }
 
-// 04/01/2007 phased out  
+// 04/01/2007 phased out
 // void Result::setIsIntegrated (bool integrated)
 // {
 //   Thread::Mutex::Lock lock(mutex());
@@ -281,7 +279,7 @@ int Result::setDims (const Dims &dims)
 // }
 
 VellSet & Result::setNewVellSet (int i,int nspids,int npertsets)
-{ 
+{
   Thread::Mutex::Lock lock(mutex());
   VellSet & vs = setVellSet(i,new VellSet(nspids,npertsets));
   return vs;
@@ -316,7 +314,7 @@ DMI::ExceptionList & Result::addToExceptionList (DMI::ExceptionList &list) const
   return list;
 }
 
-// 04/01/2007 phased out  
+// 04/01/2007 phased out
 // void Result::integrate (const Cells *pcells,bool reverse)
 // {
 //   Thread::Mutex::Lock lock(mutex());

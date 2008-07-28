@@ -28,10 +28,9 @@
 #include <MEQ/RequestId.h>
 
 #pragma aidgroup Meq
-#pragma types #Meq::NodeFace
 
-namespace Meq 
-{ 
+namespace Meq
+{
 using namespace DMI;
 
 class Result;
@@ -39,110 +38,112 @@ class Request;
 
 //## NodeFace
 //## This is an abstract class describing a Node's external interface.
-//## 
+//##
 
 class NodeFace : public DMI::BObj
 {
   public:
     //## this decribes the interface exposed to the rest of the system
-      
+
     //## CountedRef to a node
     typedef CountedRef<NodeFace> Ref;
-  
+
     //##ModelId=3F698825005B
     //##Documentation
     //## These are flags returned by execute() indicating result properties.
-    //## The lower RQIDM_NBITS (currently 16) bits are reserved for request 
+    //## The lower RQIDM_NBITS (currently 16) bits are reserved for request
     //## dependency masks; see RequestId.h for details.
     //## Note that the meaning of the bits is chosen so that the flags of
     //## of a node's result will generally be a bitwise OR of the child
     //## flags, plus any flags added by the node itself.
-    typedef enum 
+    typedef enum
     {
       //## Result has been updated (as opposed to pulled from the node's cache)
-      RES_UPDATED      = 0x01<<RQIDM_NBITS,  
+      RES_UPDATED      = 0x01<<RQIDM_NBITS,
       RES_OK           = RES_UPDATED,  // alias for UPDATED
       //## Normally, results have an implicit dependency on the request type (rqid bit 0).
       //## Return this code to disable this dependency.
-      RES_IGNORE_TYPE  = 0x02<<RQIDM_NBITS,  
-      //## Result is "missing data". A properly-structured "missing data" result 
-      //## must contain a single empty VellSet. Note that an empty Result 
+      RES_IGNORE_TYPE  = 0x02<<RQIDM_NBITS,
+      //## Result is "missing data". A properly-structured "missing data" result
+      //## must contain a single empty VellSet. Note that an empty Result
       //## is not considered missing data (since it is a normal return value
       //## for cell-less requests).
-      RES_MISSING      = 0x04<<RQIDM_NBITS,    
+      RES_MISSING      = 0x04<<RQIDM_NBITS,
       //## Result not yet available, must wait. This flag may be combined
       //## with other flags (except FAIL) to indicate dependencies.
-      RES_WAIT         = 0x20<<RQIDM_NBITS,    
+      RES_WAIT         = 0x20<<RQIDM_NBITS,
       //## Execution was aborted via forest's abortFlag()
       RES_ABORT        = 0x40<<RQIDM_NBITS,
       //## Result is a complete fail (i.e. not a mix of failed and OK VellSets,
       //## just a complete fail)
       RES_FAIL         = 0x80<<RQIDM_NBITS
     } ResultAttributes;
-    
+
     NodeFace ()
-    : nodeindex_(-1) 
+    : nodeindex_(-1)
     {}
-  
-  
+
+
     //## Returns name
     const std::string & name () const
     { return name_; }
-    
+
     virtual string className() const
     { return objectType().toString(); }
 
     //## Returns nodeindex
-    int nodeIndex () const 
+    int nodeIndex () const
     { return nodeindex_; }
-    
+
     //## sets name and nodeindex. Can only be called once
     virtual void setNameAndIndex (std::string &name,int ni)
     {
-      FailWhen(nodeindex_!=-1,"name and nodeindex can only be set once"); 
-      name_ = name; 
-      nodeindex_ = ni; 
+      FailWhen(nodeindex_!=-1,"name and nodeindex can only be set once");
+      name_ = name;
+      nodeindex_ = ni;
     }
-    
-    //## Initializes node 
+
+    //## Initializes node
     //## Resolves links to children, processes init record, etc.
     //## Called after a forest has been constructed, and before any execute().
     //## Errors should be indicated by throwing an exception.
     virtual void init () =0;
-    
+
     // Checks children
     // Called after all children have been initialized.
     // Meant to do node-specific child type checking, etc. Should throw exceptions on error
     virtual void checkChildren ()
     {}
 
-    
+
     //## Reinitializes node after loading from a record (e.g. when restoring
     //## from binary file). Unlike init(), this is non-recusrive, since
     //## at this point everything about parents and children is known.
     virtual void reinit () =0;
-    
-    
-    //## Changes the state of a node. Rec is a partial state record (i.e. it is 
+
+
+    //## Changes the state of a node. Rec is a partial state record (i.e. it is
     //## _merged_ into the node state). Node is allowed to transfer the ref.
     //## Errors should be indicated by throwing an exception.
     virtual void setState  (DMI::Record::Ref &rec) = 0;
-    
+
 
     //## Returns the state of a node by attaching the state record
-    //## to the passed ref. 
+    //## to the passed ref.
     virtual void getState (DMI::Record::Ref &ref) const = 0;
-    
+
     //## Similar to state(), but returns a "syncronized" record.
-    //## If node keeps some "fast transient" state in data members for 
-    //## efficiency, these are not necessarily in sync with the current state 
+    //## If node keeps some "fast transient" state in data members for
+    //## efficiency, these are not necessarily in sync with the current state
     //## record. syncState() returns a synced record (and thus is non-const).
     //## Default version uses normal state.
     virtual void getSyncState (DMI::Record::Ref &ref)
     { getState(ref); }
-    
+
     //## Executes a request on the node, returns a Result object (via ref)
     //## and a bitmask describing the properties of the result.
+    //## The 'depth' argument specifies a request depth, it is generally increased by 1
+    //## with every child.
     //## The lower part of the bitmask is generally a dependency mask.
     //## The following high bits indicate various degenerate conditions:
     //## * RES_FAIL: Result is a fail (i.e. a Result object containing nothing
@@ -153,59 +154,59 @@ class NodeFace : public DMI::BObj
     //## the RES_ABORT or RES_WAIT code is returned.
     //## NO EXCEPTIONS MAY BE THROWN. All errors must be indicated via a RES_FAIL
     //## code and a description of the fail inside the Result.
-    virtual int execute   (CountedRef<Result> &resref, const Request &req) throw() =0;
-    
-    //## Generic command interface. Processes the given command. 
+    virtual int execute   (CountedRef<Result> &resref,const Request &req,int depth) throw() =0;
+
+    //## Generic command interface. Processes the given command.
     //## Each subclass may implement its own set of commands.
     //## command: command name
     //## args: a DMI::Record of input arguments.
     //##    Note that args are passed in as a non-const ref that may be taken
     //##    over, its up to the caller to save a copy if needed.
-    //##    By convention, an invalid args ref may be interpreted as a 
+    //##    By convention, an invalid args ref may be interpreted as a
     //##    boolean "false" or "None" if appropriate.
     //## rqid: if command comes from a request rider, this is the request ID.
     //##    If command comes from another source, this is empty.
     //## Verbosity level: if >0, node may issue events/messages describing
-    //##    the operation. 
+    //##    the operation.
     //## resref (output): a Result record may be returned by attaching it here.
     //## Return code:
     //##    Should have the RES_OK bit set if a valid command was found and
     //##    processed, or unset if the command is not recognized. It may also
     //##    contain a dependency mask.
-    //## Errors (except unknown command) should be indicated by throwing an 
+    //## Errors (except unknown command) should be indicated by throwing an
     //## exception.
     virtual int processCommand (CountedRef<Result> &resref,
                                 const HIID &command,
                                 DMI::Record::Ref &args,
                                 const RequestId &rqid = RequestId(),
                                 int verbosity=0) =0;
-    
-    
+
+
     //## Clears the node's result cache, optionally recursively.
     //## No exceptions may be thrown.
     virtual void clearCache (bool recursive=false) throw() =0;
 
-    
-    //## This is used in the cache resolution mechanism. Called by parent 
+
+    //## This is used in the cache resolution mechanism. Called by parent
     //## node to hint to a child whether it needs to hold its cache until
     //## the next request, or not.
     //## No exceptions may be thrown.
     virtual void holdCache (bool hold) throw() =0;
-      
-    
+
+
     //## This is called from child to parent, to indicate that a child's state
     //## has changed. The information is expected to propagate upstream to
     //## all parents
     //## No exceptions may be thrown.
     virtual void propagateStateDependency () =0;
 
-    
+
     //## This is called from child to parent, to ask parents to publish
     //## their status information. All upstream parents are expected to
     //## publish their status.
     //## No exceptions may be thrown.
     virtual void publishParentalStatus () =0;
-    
+
     //## sets breakpoint(s)
     virtual void setBreakpoint (int bpmask,bool single_shot=false) =0;
     //## clears breakpoint(s)
@@ -213,32 +214,32 @@ class NodeFace : public DMI::BObj
     // changes the publishing level
     virtual void setPublishingLevel (int level=1) =0;
 
-    
+
     //## Standard debug info method. Returns string describing the node object
     //## at the specified level of details. If a multi-line string is returned,
     //## appends prefix.
-    virtual std::string sdebug(int detail = 0, const std::string &prefix = "", const char *objname = 0) const
+    virtual std::string sdebug(int= 0, const std::string & = "", const char * = 0) const
     { return "node "+name(); }
 
-    
+
     //## SOME UTILITY SHORTCUTS
     //## this defines shortcuts to return a ref to state directly
     DMI::Record::Ref state () const
     { DMI::Record::Ref ref; getState(ref); return ref; }
-    
+
     DMI::Record::Ref syncState ()
     { DMI::Record::Ref ref; getSyncState(ref); return ref; }
-    
-    
-    
+
+
+
   private:
-    //## we do have some private data: name and nodeindex    
+    //## we do have some private data: name and nodeindex
     std::string name_;
     int         nodeindex_;
-    
+
 };
 
-  
+
 };
 
 #endif

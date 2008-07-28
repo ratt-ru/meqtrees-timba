@@ -1,9 +1,9 @@
 //
-//% $Id$ 
+//% $Id$
 //
 //
 // Copyright (C) 2002-2007
-// The MeqTree Foundation & 
+// The MeqTree Foundation &
 // ASTRON (Netherlands Foundation for Research in Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -19,18 +19,18 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
+// or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
 #include "MTPool.h"
 #include <vector>
-    
+
 namespace Meq
 {
-  
+
 InitDebugContext(MTPool,"mt");
-  
+
 namespace MTPool
 {
 
@@ -107,8 +107,8 @@ string Brigade::sdebug (int detail)
   using Debug::ssprintf;
   string s;
   if( detail>=0 )
-    s = ssprintf("%d B%dT%d",pid_,brigade_id_,Thread::getThreadNum(Thread::self())+1); 
-  if( detail>=0 || detail==-1 )    
+    s = ssprintf("%d B%dT%d",pid_,brigade_id_,Thread::getThreadNum(Thread::self())+1);
+  if( detail>=0 || detail==-1 )
   {
     Debug::appendf(s,"%di%db%dw q:%d",nthr_[IDLE],nthr_[BUSY],nthr_[BLOCKED],wo_queue_.size());
   }
@@ -135,7 +135,7 @@ void Brigade::awakenWorker (bool always_spawn)
   if( wo_queue_.empty() || nthr_[BUSY] >= max_busy_ )
     return;
   DbgAssert(nthr_[IDLE]>=0);
-  if( !nthr_[IDLE] && ( workers_.size() < max_workers_ || always_spawn ) )
+  if( !nthr_[IDLE] && ( int(workers_.size()) < max_workers_ || always_spawn ) )
   {
     cdebug1(1)<<sdebug(1)+" no idle workers found, creating a new one\n";
     workers_.push_back(WorkerData());
@@ -212,7 +212,7 @@ AbstractWorkOrder * Brigade::getWorkOrder (bool wait)
       {
         // are we even allowed to wake up? check how many threads are busy
         if( nthr_[BUSY] >= max_busy_ )
-        { 
+        {
           if( !wait )
             return 0;
           cdebug1(2)<<sdebug(1)+" too many busy threads, will sleep\n";
@@ -228,7 +228,7 @@ AbstractWorkOrder * Brigade::getWorkOrder (bool wait)
       {
         // if too many threads are busy, idle ourselves and go to sleep
         if( nthr_[BUSY] > max_busy_ )
-        { 
+        {
           if( !wait )
             return 0;
           cdebug1(2)<<sdebug(1)+" too many busy threads, will sleep\n";
@@ -301,7 +301,7 @@ void Brigade::stop ()
       workers_[i].thread_id.cancel();
 }
 
-// this executes a node-execute work order. 
+// this executes a node-execute work order.
 void WorkOrder::execute (Brigade &brigade)
 {
   timer.start();
@@ -309,7 +309,7 @@ void WorkOrder::execute (Brigade &brigade)
   const Request &req = *reqref;
   cdebug1(1)<<brigade.sdebug(1)+" executing WO "+req.id().toString('.')+" on node "+node.name()+"\n";
   // note that this will block if node is already being executed
-  retcode = node.execute(resref,req);
+  retcode = node.execute(resref,req,depth());
   cdebug1(1)<<brigade.sdebug(1)+" finished WO "+req.id().toString('.')+" on node "+node.name()+"\n";
   timer.stop();
   // notify client of completed order

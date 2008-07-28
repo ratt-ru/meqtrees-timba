@@ -23,14 +23,14 @@
 
 #ifndef MEQNODES_MATRIXMULTIPLY_H
 #define MEQNODES_MATRIXMULTIPLY_H
-    
+
 #include <MEQ/Function.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::MatrixMultiply
 
-namespace Meq {    
+namespace Meq {
 
 
 //##ModelId=400E530302E4
@@ -46,7 +46,7 @@ public:
     //##ModelId=400E530A0108
   virtual TypeId objectType() const
     { return TpMeqMatrixMultiply; }
-  
+
 protected:
   int getResult (Result::Ref &resref,
                  const std::vector<Result::Ref> &childres,
@@ -57,9 +57,9 @@ protected:
   // multiplies a scalar child by a tensor child
   void scalarMultiply (Result::Ref &res,const Result &scalar,const Result &tensor,
                        VellsFlagType fms,VellsFlagType fmt,
-                       bool integrated,int tensor_ich);
+                       int tensor_ich);
 
-  
+
 };
 
 } // namespace Meq

@@ -83,10 +83,9 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
     long int naxis[4]={0,0,0,0};
     int flag=mux_read_fits_file(filename_.c_str(),cutoff_,&arr, naxis, &lgrid, &mgrid, &lspace, &mspace, &ra0, &dec0, &fgrid, &fspace, &filep_);
     FailWhen(flag," Error Reading Fits File "+flag);
- //create a result with 6 vellsets, is integrated
- //if integrated=0, cells is removed
+ //create a result with 6 vellsets
  Result::Ref old_res_;
- Result &result=old_res_<<= new Result(6,1); 
+ Result &result=old_res_<<= new Result(6);
 
  /* RA0 vellset */
  VellSet::Ref ref0;
@@ -103,12 +102,12 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
 
  //the real business begins
  //create blitz arrays for new axes l,m
- blitz::Array<double,1> l_center(lgrid, blitz::shape(naxis[0]), blitz::duplicateData); 
- blitz::Array<double,1> l_space(lspace, blitz::shape(naxis[0]), blitz::duplicateData); 
- blitz::Array<double,1> m_center(mgrid, blitz::shape(naxis[1]), blitz::duplicateData); 
- blitz::Array<double,1> m_space(mspace, blitz::shape(naxis[1]), blitz::duplicateData); 
- blitz::Array<double,1> f_center(fgrid, blitz::shape(naxis[3]), blitz::duplicateData); 
- blitz::Array<double,1> f_space(fspace, blitz::shape(naxis[3]), blitz::duplicateData); 
+ blitz::Array<double,1> l_center(lgrid, blitz::shape(naxis[0]), blitz::duplicateData);
+ blitz::Array<double,1> l_space(lspace, blitz::shape(naxis[0]), blitz::duplicateData);
+ blitz::Array<double,1> m_center(mgrid, blitz::shape(naxis[1]), blitz::duplicateData);
+ blitz::Array<double,1> m_space(mspace, blitz::shape(naxis[1]), blitz::duplicateData);
+ blitz::Array<double,1> f_center(fgrid, blitz::shape(naxis[3]), blitz::duplicateData);
+ blitz::Array<double,1> f_space(fspace, blitz::shape(naxis[3]), blitz::duplicateData);
 #ifdef DEBUG
  cout<<"Grid :"<<l_center<<m_center<<f_center<<endl;
  cout<<"Space:"<<l_space<<m_space<<f_space<<endl;
@@ -164,7 +163,7 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
 #endif
  // axes are L(0),M(1),Stokes(2),Freq(3)
  // but here we have Freq,Stokes,L,M
- blitz::Array<double,4> A(arr, blitz::shape(naxis[3],naxis[2],naxis[1],naxis[0]), blitz::duplicateData); 
+ blitz::Array<double,4> A(arr, blitz::shape(naxis[3],naxis[2],naxis[1],naxis[0]), blitz::duplicateData);
 
  //transpose array such that Freq,L,M,Stokes
  A.transposeSelf(0,3,2,1);
@@ -266,7 +265,7 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
 
  //get spigot
  FITSSpigot * spigot = dynamic_cast<FITSSpigot*>(&(stepchildren().getChild(0)));
- FailWhen(!spigot,"Stepchild 0 is not a FITSSpigot"); 
+ FailWhen(!spigot,"Stepchild 0 is not a FITSSpigot");
  spigot->putResult(old_res_);
 
 
@@ -289,7 +288,7 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
 
 		for (int ii=0; ii<numChildren(); ii++) {
     unlockStateMutex();
-    int code=children().getChild(ii).execute(child_res,newreq);
+    int code=children().getChild(ii).execute(child_res,newreq,currentRequestDepth()+1);
     lockStateMutex();
     childres[ii]=child_res;
 
@@ -297,7 +296,7 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
     if(forest().abortFlag())
       return RES_ABORT;
     if(code&RES_WAIT) {
-      //this node will need to run again 
+      //this node will need to run again
       timers().children.stop();
       return 0;
     }
@@ -352,20 +351,20 @@ int FITSDataMux::pollChildren (Result::Ref &resref,
        A(blitz::Range::all(), lrange, blitz::Range::all(),3)=sV.getScalar<double>();
 		  }
 		}
- 
+
 
     A.transposeSelf(0,3,2,1);
 		mux_write_fits_file((double*)A.data(),filep_);
     free(arr);
 		return 0;
 }
- 
+
 
 void FITSDataMux::init_self_(const DMI::Record &rec) {
   //get from init record
-	if (rec.hasField(FFilename)) { 	
-	  rec[FFilename].get(filename_); 	
-	} else { 
+	if (rec.hasField(FFilename)) {
+	  rec[FFilename].get(filename_);
+	} else {
 		FailWhen(1,"Need a FITS file name as input");
 	}
 

@@ -40,7 +40,6 @@ TensorFunction::~TensorFunction ()
 void TensorFunction::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
 {
   // figure out if we have a cells from any child, use first one
-  const Cells *pcells = 0;
   for( uint i=0; i<childres.size(); i++ )
     if( childres[i]->hasCells() )
     {
@@ -57,7 +56,7 @@ LoShape TensorFunction::getResultDims (const vector<const LoShape *> &)
   return LoShape();
 }
 
-   
+
 void TensorFunction::evaluateTensorFlags (
         std::vector<Vells::Ref> & out_flags,
         const std::vector<std::vector<const VellSet *> > &pvs )
@@ -96,7 +95,7 @@ void TensorFunction::evaluateTensorFlags (
         out_flags[i] = out;
 }
 
-void TensorFunction::computeTensorResult (Result::Ref &resref, 
+void TensorFunction::computeTensorResult (Result::Ref &resref,
                                      const std::vector<Result::Ref> &childres)
 {
   uint nchild = childres.size();
@@ -105,14 +104,12 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
   mainval_vector_.resize(nchild);
   index_vector_.resize(nchild);
   int total_vellsets = 0;
-  bool result_integrated = false;
   // collect pointers to child results, check them along the way
   for( uint ichild = 0; ichild < nchild; ichild++ )
   {
     const Result &chres = *(childres[ichild]);
     // get integrated property
-    result_integrated |= chres.isIntegrated();
-    // get dimensions 
+    // get dimensions
     const LoShape & dims = chres.dims();
     dims_vector_[ichild] = &dims;
     // get vellsets
@@ -140,11 +137,11 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
   flag_vector_.resize(nvs_result);
   for( int i=0; i<nvs_result; i++ )
     flag_vector_[i].detach();
-  
+
   // now compute main value and flags
   evaluateTensors(resval_vector_,mainval_vector_);
   evaluateTensorFlags(flag_vector_,pvs_vector_);
-  
+
   // now we need to collect all vellsets into a flat array, to use
   // the findSpids() function
   pvs_all_.resize(total_vellsets);
@@ -158,9 +155,9 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
   // use findSpids() to compute the total spid set
   int npertsets;
   std::vector<int> spids = findSpids(npertsets,pvs_all_);
-  
+
   // construct result and assign main values and flags to it
-  Result &result = resref <<= new Result(result_dims,result_integrated);
+  Result &result = resref <<= new Result(result_dims);
   for( int ivs=0; ivs<nvs_result; ivs++ )
   {
     VellSet &vs = result.setNewVellSet(ivs,0,0);
@@ -173,7 +170,7 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
     vs.setNumPertSets(npertsets);
     vs.setSpids(spids);
   }
-  
+
   // now loop over all spids to compute perturbed values
   pert_vectors_.resize(npertsets);
   // these three arrays contain the search status as we lookup each spid;
@@ -185,17 +182,17 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
   int    found_at_child[npertsets];
   // the vellset number (within the child) at which this spid was found
   int    found_at_vs[npertsets];
-  for( uint ispid=0; ispid<spids.size(); ispid++ ) 
+  for( uint ispid=0; ispid<spids.size(); ispid++ )
   {
     for( int ipert=0; ipert<npertsets; ipert++ )
       found_at_child[ipert] = -1;
     // pert_values start with pointers to each child's main value, the
-    // loop below then replaces them with values from children that 
+    // loop below then replaces them with values from children that
     // have a corresponding perturbed value
     pert_vectors_.assign(npertsets,mainval_vector_);
     // loop over children. For every child that contains a perturbed
-    // value for spid[ispid], put a pointer to the perturbed value into 
-    // pert_values[ipert][ichild]. For children that do not contain a 
+    // value for spid[ispid], put a pointer to the perturbed value into
+    // pert_values[ipert][ichild]. For children that do not contain a
     // perturbed value, it will retain a pointer to the main value.
     // The pertubations themselves are collected into pert[]; these
     // must match across all children
@@ -252,22 +249,22 @@ void TensorFunction::computeTensorResult (Result::Ref &resref,
 
 
 
-int TensorFunction::getResult (Result::Ref &resref, 
+int TensorFunction::getResult (Result::Ref &resref,
                          const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq)
+                         const Request &req,bool)
 {
   // compute result cells
   result_cells_.detach();
   computeResultCells(result_cells_,childres,req);
-  
+
   // fill result
   computeTensorResult(resref,childres);
-  
+
   // assign cells if available
   if( result_cells_.valid() )
     resref().setCells(*result_cells_);
-  
+
   return 0;
 }
-    
+
 };

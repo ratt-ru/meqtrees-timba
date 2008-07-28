@@ -53,7 +53,7 @@ namespace Meq {
 
   /****** small class for sorting with indices */
   class IdVal;
-  //declare this as a friend to have similar behaviour as the builtin 
+  //declare this as a friend to have similar behaviour as the builtin
   bool operator <(const IdVal& a, const IdVal& b);
 
   class IdVal {
@@ -71,7 +71,7 @@ namespace Meq {
   }
 
   // helper func to convert anything to string
-  template<class T> std::string 
+  template<class T> std::string
   __to_string(T x) {
     std::stringstream ss;
     std::string str;
@@ -152,26 +152,26 @@ namespace Meq {
     int nodeidx=nodeIndex();
 
 
-    //handle parm update the default way 
+    //handle parm update the default way
     if( request.requestType() ==RequestType::PARM_UPDATE )
       return Node::pollChildren(resref,childres,request);
 
     /******************* poll child 0 ********/
     setExecState(CS_ES_POLLING);
     timers().children.start();
-	
+
 
     Result::Ref child_res;
     childres.resize(2);
     unlockStateMutex();
-    int code=result_code_=children().getChild(0).execute(child_res,request);
+    int code=result_code_=children().getChild(0).execute(child_res,request,currentRequestDepth()+1);
     lockStateMutex();
     childres[0]=child_res;
     //handle standard error states
     if(forest().abortFlag())
       return RES_ABORT;
     if(code&RES_WAIT) {
-      //this node will need to run again 
+      //this node will need to run again
       timers().children.stop();
       return 0;
     }
@@ -188,7 +188,7 @@ namespace Meq {
     Request::Ref newreq(request);
 
     /* if we discover spids */
-    if ( request.requestType() ==RequestType::DISCOVER_SPIDS ) {  
+    if ( request.requestType() ==RequestType::DISCOVER_SPIDS ) {
 
       const Cells &incells=request.cells();
       const Domain &old_dom=incells.domain();
@@ -226,7 +226,7 @@ namespace Meq {
 
 
       unlockStateMutex();
-      code=children().getChild(1).execute(child_res,*newreq);
+      code=children().getChild(1).execute(child_res,*newreq,currentRequestDepth()+1);
       lockStateMutex();
 #ifdef DEBUG
       cout<<"Discover SPIDS Request Id="<<newreq->id()<<endl;
@@ -236,13 +236,13 @@ namespace Meq {
       resref.detach();
       unlockStateMutex();
       //we might have some step children ??
-      stepchildren().backgroundPoll(*newreq);
+      stepchildren().backgroundPoll(*newreq,currentRequestDepth()+1);
       timers().children.stop();
       lockStateMutex();
 
 
 
-      return code; 
+      return code;
     }
     // get input cells
     const Cells &incells=request.cells();
@@ -279,11 +279,11 @@ namespace Meq {
         space[ch](0)=def_cell_size_;
        } else {
         //vector case
-        for (int i=1;i<grid_[ch].extent(0);i++) 
+        for (int i=1;i<grid_[ch].extent(0);i++)
         	space[ch](i)=grid_[ch](i)-grid_[ch](i-1);
         space[ch](0)=space[ch](1);
        }
-       //calculate extents for domain 
+       //calculate extents for domain
        double llimit=grid_[ch](0)-space[ch](0);
        double ulimit=grid_[ch](grid_[ch].extent(0)-1)+space[ch](grid_[ch].extent(0)-1);
        if (llimit==ulimit) ulimit=llimit+1; //catch scalar case
@@ -313,24 +313,24 @@ namespace Meq {
       unlockStateMutex();
       //clear cache first
       children().getChild(1).clearCache();
-      code=children().getChild(1).execute(child_res,*newreq);
+      code=children().getChild(1).execute(child_res,*newreq,currentRequestDepth()+1);
       lockStateMutex();
 
       result_code_|=code;
 
       VellSet::Ref vref;
       // process result
-      Result &res1=result_<<= new Result(child_res->numVellSets(),child_res->isIntegrated());
+      Result &res1=result_<<= new Result(child_res->numVellSets());
       Vells vl=child_res->vellSet(0).getValue();
       blitz::Array<double,4> B=vl.as<double,4>()(blitz::Range::all(),blitz::Range::all(),blitz::Range::all(),blitz::Range::all());
       //remove degenerate axes from result
       VellSet &vs=vref <<=new VellSet(incells.shape());
       Vells &out=vs.setValue(new Vells(0.0,incells.shape()));
       blitz::Array<double,4> A=out.as<double,4>()(blitz::Range::all(),blitz::Range::all(),blitz::Range::all(),blitz::Range::all());
- 
+
       apply_grid_map_4d4d(A,B);
 		  res1.setVellSet(0,vref);
-     
+
 		  res1.setCells(incells);
 
     //clear memory
@@ -397,7 +397,7 @@ namespace Meq {
     // where axis1, axis2 are the location of the value on
     // sorted axis arrays
     // key=(time,freq,spid,perturbation), value=(axis1,axis2)
-    // note in case where only one axis has perturbations, the value for the 
+    // note in case where only one axis has perturbations, the value for the
     // other axis will be taken from the value in plane 0
     //map<const std::vector<int>, int *, compare_vec> revmap_;
 
@@ -421,11 +421,11 @@ namespace Meq {
         space[ch](0)=def_cell_size_;
       } else {
        //vector case
-       for (int i=1;i<grid_[ch].extent(0);i++) 
+       for (int i=1;i<grid_[ch].extent(0);i++)
         	space[ch](i)=grid_[ch](i)-grid_[ch](i-1);
        space[ch](0)=space[ch](1);
       }
-      //calculate extents for domain 
+      //calculate extents for domain
       double llimit=grid_[ch](0)-space[ch](0);
       double ulimit=grid_[ch](grid_[ch].extent(0)-1)+space[ch](grid_[ch].extent(0)-1);
       if (llimit==ulimit) ulimit=llimit+1; //catch scalar case
@@ -466,7 +466,7 @@ namespace Meq {
     unlockStateMutex();
     //clear cache
     children().getChild(1).clearCache();
-    code=children().getChild(1).execute(child_res,*newreq);
+    code=children().getChild(1).execute(child_res,*newreq,currentRequestDepth()+1);
     lockStateMutex();
 
     //remember this result
@@ -477,7 +477,7 @@ namespace Meq {
 
     /**** begin processing of the result to correct for grid sorting */
     /** also create a new result with one vellset */
-    Result &res1=result_<<= new Result(childres[1]->numVellSets(),childres[1]->isIntegrated());
+    Result &res1=result_<<= new Result(childres[1]->numVellSets());
 
 
    map<const VellSet::SpidType, int *, compare_spid>::iterator spmapiter=spidmap_.begin();
@@ -517,7 +517,7 @@ namespace Meq {
 
 
     VellSet::Ref ref;
-		//determine the correct spids and perturbations before creating 
+		//determine the correct spids and perturbations before creating
 		//the vellset. the priority is given to the axis child
 		//so if either grid vellset 0 or 1 has them, the vellset
 		//will be created to match those values. Else, the vellset
@@ -566,16 +566,16 @@ namespace Meq {
 						//Note this does not check that number of perturbations are same in all results
 						if (dd[2] !=-1) {
 							//copy from funklet
-							for (int ii=0; ii<npsets; ii++) 
+							for (int ii=0; ii<npsets; ii++)
 							  vs.setPerturbation(sp_id,childres[1]->vellSet(ivs).getPerturbation(dd[2],ii),ii);
 						} else if (dd[0] != -1) {
 						 //copy from grid child 1
-							for (int ii=0; ii<npsets; ii++) 
+							for (int ii=0; ii<npsets; ii++)
 							  vs.setPerturbation(sp_id,childres[0]->vellSet(0).getPerturbation(dd[0],ii),ii);
 
 						} else if (dd[1] != -1) {
 						 //copy from grid child 2
-						 for (int ii=0; ii<npsets; ii++) 
+						 for (int ii=0; ii<npsets; ii++)
 							  vs.setPerturbation(sp_id,childres[0]->vellSet(1).getPerturbation(dd[1],ii),ii);
 						} else {
 							//fali
@@ -611,8 +611,8 @@ namespace Meq {
 
     if (mode_!=3)  {
     blitz::Array<double,4> B=in.getArray<double,4>();
-	
-		
+
+
 #ifdef DEBUG
     cout<<"In "<<intime<<","<<infreq<<endl;
     cout<<"InCells from funklet"<<endl;
@@ -670,19 +670,19 @@ namespace Meq {
 					for (int ipset=0; ipset<npsets0; ipset++) {
 	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(0.0,inshape),ipset);
 	          blitz::Array<double,2> pA=pout.as<double,2>()(blitz::Range::all(),blitz::Range::all());
-	
+
             apply_grid_map_2d4d(pA, B, spmapiter->first);
 					}
-			 }	 
+			 }
        spmapiter++;
 			 sp_id++;
 		}
     } else {
-     //simple 2D case 
+     //simple 2D case
      blitz::Array<double,2> B=in.getArray<double,2>();
      A=B;
     }
-	
+
 		} else {
 		/////////////////////////////////////// complex data
 	  Vells &out=vs.setValue(new Vells(make_dcomplex(0.0),inshape));
@@ -742,21 +742,21 @@ namespace Meq {
 					for (int ipset=0; ipset<npsets0; ipset++) {
 	          Vells &pout=vs.setPerturbedValue(sp_id,new Vells(make_dcomplex(0.0),inshape),ipset);
 	          blitz::Array<dcomplex,2> pA=pout.as<dcomplex,2>()(blitz::Range::all(),blitz::Range::all());
-	
+
             apply_grid_map_2d4d(pA, B, spmapiter->first);
 					}
-			 }	 
+			 }
        spmapiter++;
 			 sp_id++;
 		}
-		
+
     } else {
-     //simple 2D case 
+     //simple 2D case
      blitz::Array<dcomplex,2> B=in.getArray<dcomplex,2>();
      A=B;
     }
 	  }
- 
+
 		}
 		res1.setVellSet(ivs,ref);
 
@@ -787,14 +787,14 @@ namespace Meq {
     }
 
     unlockStateMutex();
-    stepchildren().backgroundPoll(request);
+    stepchildren().backgroundPoll(request,currentRequestDepth()+1);
     timers().children.stop();
     lockStateMutex();
 
     return code;
-  } 
+  }
 
-int Compounder::getResult (Result::Ref &resref, 
+int Compounder::getResult (Result::Ref &resref,
 			     const std::vector<Result::Ref> &childres,
 			     const Request &request,bool)
 {
@@ -804,7 +804,7 @@ int Compounder::getResult (Result::Ref &resref,
 }
 
 //IN: grid child result, request time,freq
-//OUT: vector of funklet request grids, map for mapping back grid values 
+//OUT: vector of funklet request grids, map for mapping back grid values
 //to time,freq,spid, perturbation
 int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
 
@@ -839,7 +839,7 @@ int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
 			//note: even when ny==1, we might get a 2D array here
       //blitz::Array<double,1> data=vl0.as<double,1>()(blitz::Range::all());
       double *data_=vl0.getStorage<double>();
-      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
+      blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData);
 #ifdef DEBUG
       cout<<"Axis "<<ch<<" 1 (in)="<<data<<endl;
 #endif
@@ -885,7 +885,7 @@ int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
 	          blitz::Array<double,1> pB(nx*ny);
 	          if (ny==1) {
                double *data_=pvl.getStorage<double>();
-               blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
+               blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData);
 	             pB=data(blitz::Range::all(),0);
 	          } else  {
 	            blitz::Array<double,2> data=pvl.as<double,2>()(blitz::Range::all(),blitz::Range::all());
@@ -973,7 +973,7 @@ int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
 			} else {
         int *bb=revmap_[aa];
 				bb[ch]=i;
-			} 
+			}
 
     }
 #ifdef DEBUG
@@ -1161,7 +1161,7 @@ int Compounder::build_axes_simple_(Result::Ref &childres,   const Cells & incell
 
    //array for sorting
    blitz::Array<IdVal,1> sarray;
-   
+
    //we use the revmap in a different way here
    //key=(time,freq,l',m') value=(time,freq,l,m) or value is the true grid
    std::vector<int> aa(4);
@@ -1181,7 +1181,7 @@ int Compounder::build_axes_simple_(Result::Ref &childres,   const Cells & incell
     FailWhen(nl!=nm,"the 3rd and 4th axesl must be equal");
     grid_[ch].resize(nx);
     double *data_=vl0.getStorage<double>();
-    blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData); 
+    blitz::Array<double,1> data(data_, blitz::shape(nx), blitz::neverDeleteData);
       grid_[ch]=data(blitz::Range::all(),0);
    }
 
@@ -1207,9 +1207,9 @@ int Compounder::build_axes_simple_(Result::Ref &childres,   const Cells & incell
     //sorting...sorting..
     sarray.resize(A.numElements());
     int k=0;
-    for (int i=0; i<ntime; i++) 
-      for (int j=0; j<nfreq; j++) 
-        for (int l=0; l<nl; l++) 
+    for (int i=0; i<ntime; i++)
+      for (int j=0; j<nfreq; j++)
+        for (int l=0; l<nl; l++)
          for (int m=0; m<nm; m++) {
       	sarray(k).id=new int[4];
 	      sarray(k).id[0]=i;
@@ -1241,7 +1241,7 @@ int Compounder::build_axes_simple_(Result::Ref &childres,   const Cells & incell
     if (tmp!=tmp1) {
      k++;
      tmp=tmp1;
-    } 
+    }
    }
 #ifdef DEBUG
    cout<<"Found "<<k<<" unique"<<endl;
@@ -1304,7 +1304,7 @@ int Compounder::build_axes_simple_(Result::Ref &childres,   const Cells & incell
       delete [] sarray(i).id;
     }
 
-  } 
+  }
 
 	 return 0;
 }

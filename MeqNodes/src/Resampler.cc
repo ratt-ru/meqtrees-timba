@@ -68,7 +68,7 @@ void Resampler::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 
 }
 
-int Resampler::getResult (Result::Ref &resref, 
+int Resampler::getResult (Result::Ref &resref,
                            const std::vector<Result::Ref> &childres,
                            const Request &request,bool)
 {
@@ -86,7 +86,7 @@ int Resampler::getResult (Result::Ref &resref,
 
 	//envelope of the two domains
 	Domain::Ref  newdomain(new Domain(Domain::envelope(incells.domain(),outcells.domain())));
-	
+
 	//Domain *newdomain=incells.domain().clone();
 	//newdomain.envelope(outcells.domain());
 	Cells::Ref cells_ref;
@@ -137,10 +137,10 @@ int Resampler::getResult (Result::Ref &resref,
     //resref=childres[0];
     return 0;
   }
-  // do the resampling  
+  // do the resampling
   resampler->setFlagPolicy(flag_mask,flag_bit,flag_density);
   int nvs = chres.numVellSets();
-  Result & result = resref <<= new Result(nvs,chres.isIntegrated());
+  Result & result = resref <<= new Result(nvs);
   for( int ivs=0; ivs<nvs; ivs++ )
   {
     VellSet::Ref ref;
@@ -168,10 +168,10 @@ int Resampler::getResult (Result::Ref &resref,
 //binary search
 int ResampleMachine::bin_search(std::vector<double> xarr,double x,int i_start,int i_end) {
 	/*
-	 * xarr: array of sorted values, make sure x is within the range 
+	 * xarr: array of sorted values, make sure x is within the range
 	 * x: value to search
-	 * i_start: starting index of array to search 
-	 * i_end: end index of array to search 
+	 * i_start: starting index of array to search
+	 * i_end: end index of array to search
 	 *
 	 * return value: index k, such that xarr[k]<= x< xarr[k+1]
 	 * for errors: return negative values
@@ -204,7 +204,7 @@ int ResampleMachine::bin_search(std::vector<double> xarr,double x,int i_start,in
 		//go to lower half of the upper half of the array
 		if (x<xarr[i])
 			return bin_search(xarr,x,i_start,i);
-		else 
+		else
 			return bin_search(xarr,x,i,i_end);
 	}
 
@@ -218,10 +218,10 @@ int ResampleMachine::bin_search(std::vector<double> xarr,double x,int i_start,in
 //binary search
 int ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_start,int i_end) {
 	/*
-	 * xarr: array of sorted values, make sure x is within the range 
+	 * xarr: array of sorted values, make sure x is within the range
 	 * x: value to search
-	 * i_start: starting index of array to search 
-	 * i_end: end index of array to search 
+	 * i_start: starting index of array to search
+	 * i_end: end index of array to search
 	 *
 	 * return value: index k, such that xarr[k]<= x< xarr[k+1]
 	 * for errors: return negative values
@@ -254,7 +254,7 @@ int ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_start
 		//go to lower half of the upper half of the array
 		if (x<xarr(i))
 			return bin_search(xarr,x,i_start,i);
-		else 
+		else
 			return bin_search(xarr,x,i,i_end);
 	}
 
@@ -265,7 +265,7 @@ int ResampleMachine::bin_search(blitz::Array<double,1> xarr,double x,int i_start
 
 
 ////////////////////////////////////////////////////////////////////
-void  
+void
 Integrator::setup(const Cells &in, const Cells &out) {
 
 	// in: cells of the old (child) grid
@@ -274,7 +274,7 @@ Integrator::setup(const Cells &in, const Cells &out) {
 	//new cell centers. Note it is always assumed that out cells
 	// are larger than in cells so that more than one can be included.
 	// Also check to see if they are identical.
-	
+
 				//setup arrays for  binary search
   blitz::Array<double,1> xax=out.center(0);
 	blitz::Array<double,1> yax=out.center(1);
@@ -282,10 +282,10 @@ Integrator::setup(const Cells &in, const Cells &out) {
 	double xend=out.domain().end(0);
 	double ystart=out.domain().start(1);
 	double yend=out.domain().end(1);
-	blitz::Array<double,1> xcellsize=out.cellSize(0); 
-	blitz::Array<double,1> ycellsize=out.cellSize(1); 
-	blitz::Array<double,1> inxcellsize=in.cellSize(0); 
-	blitz::Array<double,1> inycellsize=in.cellSize(1); 
+	blitz::Array<double,1> xcellsize=out.cellSize(0);
+	blitz::Array<double,1> ycellsize=out.cellSize(1);
+	blitz::Array<double,1> inxcellsize=in.cellSize(0);
+	blitz::Array<double,1> inycellsize=in.cellSize(1);
 
 	//array of values to be searched
   blitz::Array<double,1> xaxs=in.center(0);
@@ -305,7 +305,7 @@ Integrator::setup(const Cells &in, const Cells &out) {
 
 	//if out cells are smaller than in cells
 	//it will be taken to be idential for the moment
-  identical_=((nx_==nxs)&&(ny_==nys));	
+  identical_=((nx_==nxs)&&(ny_==nys));
 #ifdef DEBUG
   cout<<"Identical "<<identical_<<endl;
 #endif
@@ -317,7 +317,7 @@ Integrator::setup(const Cells &in, const Cells &out) {
 	//resize the array to store cumulative flags+weights
 	cell_weight_.resize(nx_,ny_);
 	//make it zero
-  cell_weight_=0; 
+  cell_weight_=0;
 
 	////////////////////////////////
 	bx_.resize(2);
@@ -328,10 +328,10 @@ Integrator::setup(const Cells &in, const Cells &out) {
  cout<<inxcellsize<<endl<<xaxs<<endl;
 #endif
 
- blitz::Array<int,1> xxindex; 
+ blitz::Array<int,1> xxindex;
  if (nxs>1) {
  //array to be searched - input cells
- blitz::Array<double,1> xx(nxs-1); 
+ blitz::Array<double,1> xx(nxs-1);
  for (int i=0; i<nxs-1;i++) {
 		xx(i)=xaxs(i)+inxcellsize(i)*0.5;
  }
@@ -339,17 +339,17 @@ Integrator::setup(const Cells &in, const Cells &out) {
  cout<<xx<<endl;
 #endif
  //arrayf of values within search is done
- blitz::Array<double,1> inxx(nx_+1); 
+ blitz::Array<double,1> inxx(nx_+1);
  inxx(0)=xstart;
  inxx(nx_)=xend;
  for (int i=1; i<nx_;i++) {
   inxx(i)=xax(i-1)+xcellsize(i-1)*0.5;
- }	
+ }
 #ifdef DEBUG
  cout<<inxx<<endl;
 #endif
  // do the search
- xxindex.resize(nxs-1); 
+ xxindex.resize(nxs-1);
  for (int i=0; i<nxs-1;i++)
 	  xxindex(i)=bin_search(inxx,xx(i),0,nx_+1);
  } else {
@@ -366,7 +366,7 @@ Integrator::setup(const Cells &in, const Cells &out) {
  cout<<"Cell "<<cli<<" falls on cells ["<<0<<","<<xxindex(cli)<<"]"<<endl;
 #endif
  insert(cli,0,xxindex(cli), 0,inxcellsize,xcellsize,xaxs,xax);
-	
+
  cli++;
  while(cli<nxs-1){
 #ifdef DEBUG
@@ -384,7 +384,7 @@ Integrator::setup(const Cells &in, const Cells &out) {
  bx_[0].print();
 #endif
 
- blitz::Array<int,1> yyindex; 
+ blitz::Array<int,1> yyindex;
  if (nys>1) {
   blitz::Array<double,1> yy;
   yy.resize(nys-1);
@@ -396,12 +396,12 @@ Integrator::setup(const Cells &in, const Cells &out) {
  cout<<yy<<endl;
 #endif
  //arrayf of values within search is done
- blitz::Array<double,1> inyy(ny_+1); 
+ blitz::Array<double,1> inyy(ny_+1);
  inyy(0)=ystart;
  inyy(ny_)=yend;
  for (int i=1; i<ny_;i++) {
   inyy(i)=yax(i-1)+ycellsize(i-1)*0.5;
- }	
+ }
 #ifdef DEBUG
  cout<<inyy<<endl;
 #endif
@@ -422,7 +422,7 @@ Integrator::setup(const Cells &in, const Cells &out) {
  cout<<"Cell "<<cli<<" falls on cells ["<<0<<","<<yyindex(cli)<<"]"<<endl;
 #endif
  insert(cli,0,yyindex(cli), 1,inycellsize,ycellsize,yaxs,yax);
-	
+
  cli++;
  while(cli<nys-1){
 #ifdef DEBUG
@@ -448,7 +448,7 @@ Integrator::setup(const Cells &in, const Cells &out) {
 				((a)==1.0?(b):((b)==1.0?(a):(a)*(b)))
 #endif
 
-template<class T> int  
+template<class T> int
 Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 #ifdef DEBUG
 				bx_[0].print();
@@ -543,18 +543,18 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
 
 //return 0 if no new flags were created,
 //return 1 if new flags were created
-template<class T> int  
-Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,  
-			  VellsFlagType *Fp, bool has_flags, 
+template<class T> int
+Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
+			  VellsFlagType *Fp, bool has_flags,
 				blitz::Array<VellsFlagType,2> Aflag) {
 				double tmp;
 				int create_flags=0;
          //get Flags
 				 blitz::Array<VellsFlagType,2> F(const_cast<VellsFlagType*>(Fp),blitz::shape(B.extent(0),B.extent(1)),blitz::neverDeleteData);
          //an array to count actual contributed cell count
-				 blitz::Array<int,2> Acell(nx_,ny_); 
+				 blitz::Array<int,2> Acell(nx_,ny_);
          //an array to store contributed flag value
-				 blitz::Array<int,2> Aflg(nx_,ny_); 
+				 blitz::Array<int,2> Aflg(nx_,ny_);
 
 #ifdef DEBUG
 				 cout <<"Flags "<<F<<endl;
@@ -696,20 +696,20 @@ Integrator::insert(int incell,int cell1, int cell2, int axis,
  if (cell1==cell2) {
   //find intersection length - must be the orignal
 	//cell length, so the weight is 1
-  INSERT(incell,cell1,1.0,bx_[axis]);	
+  INSERT(incell,cell1,1.0,bx_[axis]);
  } else {
 	double ledge=incenter(incell)-incellsize(incell)*0.5;
 	double redge=incenter(incell)+incellsize(incell)*0.5;
 	for (int i=cell1; i<=cell2;i++) {
  //find common length = min(right_edge)-max(left_edge)
-  double ll=outcenter(i)-outcellsize(i)*0.5; 
-  double rr=outcenter(i)+outcellsize(i)*0.5; 
+  double ll=outcenter(i)-outcellsize(i)*0.5;
+  double rr=outcenter(i)+outcellsize(i)*0.5;
 	double comm=MIN(rr,redge)-MAX(ll,ledge);
 #ifdef DEBUG
 	cout<<"W ="<<comm<<"/"<<incellsize(incell)<<endl;
 #endif
 	double weight=comm/incellsize(incell);
-  INSERT(incell,i,weight,bx_[axis]);	
+  INSERT(incell,i,weight,bx_[axis]);
 	}
  }
 }
@@ -728,7 +728,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 				if (invl.hasDataFlags() ) {
         Vells &flvl=const_cast<Vells &>(invl.dataFlags());
 
-				blitz::Array<VellsFlagType,2> FF=flvl.as<VellsFlagType,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1)); 
+				blitz::Array<VellsFlagType,2> FF=flvl.as<VellsFlagType,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1));
 
 #ifdef DEBUG
 				cout <<"Flags 1"<<FF<<endl;
@@ -742,7 +742,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 				}
 
 				if (invl.isReal()) {
-				 blitz::Array<double,2> B=invl.as<double,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1)); 
+				 blitz::Array<double,2> B=invl.as<double,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1));
          blitz::Array<double,2> A(nx_,ny_);
 				 A=0;
 #ifdef DEBUG
@@ -754,7 +754,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 				  out.setValue(new Vells(A));
 				}else {
          //allocate memory for flags
-				blitz::Array<VellsFlagType,2> Aflag(nx_,ny_); 
+				blitz::Array<VellsFlagType,2> Aflag(nx_,ny_);
 				 Aflag=0;
          int has_flags=do_resample( A,  B,  F, invl.hasDataFlags(), Aflag);
 				  out.setValue(new Vells(A));
@@ -762,7 +762,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 					out.setDataFlags(new Vells(Aflag));
 				}
 				}else{
-				 blitz::Array<dcomplex,2> Bc=invl.as<dcomplex,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1)); 
+				 blitz::Array<dcomplex,2> Bc=invl.as<dcomplex,2>()(blitz::Range(0,nxs-1),blitz::Range(0,nys-1));
          blitz::Array<dcomplex,2> Ac(nx_,ny_);
 				 Ac = make_dcomplex(0);
 
@@ -770,7 +770,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
          do_resample( Ac,  Bc);
 				  out.setValue(new Vells(Ac));
 				}else{
-				 blitz::Array<VellsFlagType,2> Aflag(nx_,ny_); 
+				 blitz::Array<VellsFlagType,2> Aflag(nx_,ny_);
 				 Aflag=0;
          int has_flags=do_resample( Ac,  Bc,  F, invl.hasDataFlags(),Aflag);
 				 out.setValue(new Vells(Ac));
@@ -797,7 +797,7 @@ int Integrator::apply(const VellSet &in, VellSet &out)
 // Interpolation", SIAM J. Numerical Analysis 17, 1980, 238-246.
 // David Kahaner, Cleve Moler and Stephen Nash, Numerical Methods
 // and Software, Prentice Hall, 1988.
-// 
+//
 template<class T> void
  Interpolator::pchip_int(blitz::Array<double,1> xin, blitz::Array<T,1> yin, int n, blitz::Array<double,1> xout,  blitz::Array<T,1> yout, int m, blitz::Array<int,1> xindex) {
 
@@ -808,7 +808,7 @@ template<class T> void
 	int is_identical=1;
 	if (m==n) {
 		int i=0;
-		while(is_identical && i<n) {	
+		while(is_identical && i<n) {
 			if (xin(i)!=xout(i)) {is_identical=0; break;}
 			i++;
 		}
@@ -823,7 +823,7 @@ template<class T> void
 	blitz::Array<T,1> d(n);
 	//array to store first divided differences
 	blitz::Array<T,1> del(n);
-	//Note: the values of above arrays at the end points are determined 
+	//Note: the values of above arrays at the end points are determined
 	//in a special 3 point way
 	//array to store x differences
 	blitz::Array<double,1> h(n);
@@ -848,7 +848,7 @@ template<class T> void
 	del(n-1)=del(n-2);
 	h(n-1)=h(n-2);
 	for (int k=1; k<n-1; k++) {
-		if (del(k-1)==0 || del(k)==0 || ((del(k)) >0 && del(k-1)<0) 
+		if (del(k-1)==0 || del(k)==0 || ((del(k)) >0 && del(k-1)<0)
 									 || (del(k) <0 && del(k-1)>0) )	{
 				d(k)=0;
 		} else {
@@ -865,13 +865,13 @@ template<class T> void
 	if (((del(1) >0 && del(0)<0) || (del(1) <0 && del(0)>0))
 				&& (fabs(d(0))> 3*fabs(del(0)))) {
 			d(0)=3*del(0);
-	} 
+	}
 
 	d(n-1)=((2*h(n-1)+h(n-2))*del(n-1)-h(n-1)*del(n-2))/(h(n-1)+h(n-2));
 	if (((del(n-1) >0 && del(n-2)<0) || (del(n-1) <0 && del(n-2)>0))
 				&& (fabs(d(n-1))> 3*fabs(del(n-1)))) {
 			d(n-1)=3*del(n-1);
-	} 
+	}
 
 
 	}
@@ -945,7 +945,7 @@ void
 	int is_identical=1;
 	if (m==n) {
 		int i=0;
-		while(is_identical && i<n) {	
+		while(is_identical && i<n) {
 			if (xin(i)!=xout(i)) {is_identical=0; break;}
 			i++;
 		}
@@ -960,7 +960,7 @@ void
 	blitz::Array<dcomplex,1> d(n);
 	//array to store first divided differences
 	blitz::Array<dcomplex,1> del(n);
-	//Note: the values of above arrays at the end points are determined 
+	//Note: the values of above arrays at the end points are determined
 	//in a special 3 point way
 	//array to store x differences
 	blitz::Array<double,1> h(n);
@@ -990,13 +990,13 @@ void
 
     double dr=0;
     double di=0;
-		if (!(delr1==0 || delr==0 || ((delr) >0 && delr1<0) 
+		if (!(delr1==0 || delr==0 || ((delr) >0 && delr1<0)
 									 || (delr <0 && delr1>0) ))	 {
 		 double w1=2*h(k)+h(k-1);
 		 double w2=h(k)+2*h(k-1);
 		 dr=(w1+w1)/(w1/delr1+w2/delr);
     }
-		if (!(deli1==0 || deli==0 || ((deli) >0 && deli1<0) 
+		if (!(deli1==0 || deli==0 || ((deli) >0 && deli1<0)
 									 || (deli <0 && deli1>0) ))	 {
 		 double w1=2*h(k)+h(k-1);
 		 double w2=h(k)+2*h(k-1);
@@ -1013,12 +1013,12 @@ void
 	d(0)=((2*h(0)+h(1))*del(0)-h(0)*del(1))/(h(0)+h(1));
 	if ((abs(d(0))> 3*abs(del(0)))) {
 			d(0)=3*del(0);
-	} 
+	}
 
 	d(n-1)=((2*h(n-1)+h(n-2))*del(n-1)-h(n-1)*del(n-2))/(h(n-1)+h(n-2));
 	if ((abs(d(n-1))> 3*abs(del(n-1)))) {
 			d(n-1)=3*del(n-1);
-	} 
+	}
 
 
 	}
@@ -1098,10 +1098,10 @@ void
 //2) prepare the indices for later interpolation
 void
 Interpolator::setup( const Cells &in, const Cells &out) {
-    
-			
+
+
 		unsigned int dimension=std::max(in.rank(),out.rank());
-	  incells_.resize(dimension);	
+	  incells_.resize(dimension);
 	  outcells_.resize(dimension);
 
 	  for (int i=0; i<std::min(in.rank(),out.rank()); i++) {
@@ -1146,17 +1146,17 @@ Interpolator::setup( const Cells &in, const Cells &out) {
 	  }
 
 	 //do binary search
-  xindex_.resize(dimension); 
+  xindex_.resize(dimension);
 	std::vector<double> tempx;
 	for (unsigned int i=0; i<dimension; i++) {
 	 unsigned int n=incells_[i].size();
 	 tempx.resize(n+2);
-	 for (unsigned int j=1; j<n+1; j++) 
+	 for (unsigned int j=1; j<n+1; j++)
 	  tempx[j]=incells_[i](j-1);
 	 tempx[0]=-INFINITY;
 	 tempx[n+1]=INFINITY;
 	 xindex_[i].resize(outcells_[i].size());
-	 for (int j=0; j<outcells_[i].size(); j++) 
+	 for (int j=0; j<outcells_[i].size(); j++)
 		xindex_[i](j)=bin_search(tempx,outcells_[i](j),0,n+1);
 	}
 
@@ -1180,7 +1180,7 @@ Interpolator::setup( const Cells &in, const Cells &out) {
 
 
 
-int 
+int
 Interpolator::apply( const VellSet &in, VellSet &out ) {
   int dim=incells_.size();
 
@@ -1236,7 +1236,7 @@ Interpolator::really_apply(const Vells &in,  std::vector<int> indim, std::vector
   int dim=incells_.size();
 
 	const Vells &invl=in;
-	
+
 	Vells *out=0;
 
 	if (invl.isReal()) {

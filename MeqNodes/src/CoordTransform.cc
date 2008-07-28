@@ -44,7 +44,7 @@ namespace Meq {
 
   CoordTransform::CoordTransform()
     : Node(2),    // 2 children expected
-      n_axis_(0) 
+      n_axis_(0)
   {
     // our own result depends on domain & resolution
     res_symdeps_.resize(1);
@@ -88,27 +88,27 @@ namespace Meq {
     res_depmask_ = symdeps().getMask(res_symdeps_);
     seq_depmask_ = symdeps().getMask(seq_symdeps_);
     dom_depmask_ = symdeps().getMask(dom_symdeps_);
-    
-    //handle parm update the default way 
+
+    //handle parm update the default way
     if( request.requestType() ==RequestType::PARM_UPDATE || request.requestType() ==RequestType::DISCOVER_SPIDS )
       return Node::pollChildren(resref,childres,request);
 
     /******************* poll child 0 ********/
     setExecState(CS_ES_POLLING);
     timers().children.start();
-	
+
 
     Result::Ref child_res;
     childres.resize(2);
     unlockStateMutex();
-    int code=result_code_=children().getChild(0).execute(child_res,request);
+    int code=result_code_=children().getChild(0).execute(child_res,request,currentRequestDepth()+1);
     lockStateMutex();
     childres[0]= child_res;
     //handle standard error states
     if(forest().abortFlag())
       return RES_ABORT;
     if(code&RES_WAIT) {
-      //this node will need to run again 
+      //this node will need to run again
       timers().children.stop();
       return 0;
     }
@@ -120,7 +120,7 @@ namespace Meq {
     //check if result is double outherwise fail!!
     //check order of result, if x[max] < x[min] reverse, if afterwards for any x, x[n]<x[n-1] Fail
 
-    Result &res1=result_<<= new Result(childres[0]->numVellSets(),childres[0]->isIntegrated());
+    Result &res1=result_<<= new Result(childres[0]->numVellSets());
 
     /**** begin poll child 1 ******************/
     // extract values from the result of child 0 to define our axes
@@ -149,7 +149,7 @@ namespace Meq {
       FailWhen(shape.size() <= n_axis_,"child 0 result has two few axes");
       for (int axis =0;axis<shape.size();axis++){
 	idx[axis]=0;
-      }  
+      }
       // get vells
       Vells input_vells = childres[0]->vellSet(vellsi).getValue();
       FailWhen(input_vells.elementType() != Tpdouble,"First child of CoordTransform must return real values!");
@@ -167,14 +167,14 @@ namespace Meq {
 	  vs.copyPerturbations(childres[0]->vellSet(vellsi));
 	}
       VellsSlicer0 slice(new_vells, n_axis_);
-      
+
       while(slice.valid()){//loop over slices
 	Result::Ref  child2_res;
 
 	blitz::Array<double,1> slice_array =   slice.getArray<double,1>();
 	blitz::Array<double,1> sizes;
 	bool reversed = checkResult(slice_array,sizes); //reverse array if needed, fail when for any x-> x[n]<x[n-1], fill sizes
-	
+
 
 	// set request cells to this slice + fill other dimensions
 	for (int axis =0;axis<shape.size();axis++){
@@ -189,7 +189,7 @@ namespace Meq {
 	    }
 	}
 	//set domain
-	      
+
 	trans_cells.recomputeDomain ();
 	// increase res_dep rqid
 	RqId::incrSubId(rqid,seq_depmask_);
@@ -198,10 +198,10 @@ namespace Meq {
 	RqId::setSubId(rqid,dom_depmask_,res_nr++);
 	newreq().setCells(trans_cells);
 	newreq().setId(rqid);
-      
+
 	//get _result for these Cells
 	unlockStateMutex();
-	int code=result_code_=children().getChild(1).execute(child2_res,newreq);
+        int code=result_code_=children().getChild(1).execute(child2_res,newreq,currentRequestDepth()+1);
 	lockStateMutex();
 
 	//add child_res to final result
@@ -216,7 +216,7 @@ namespace Meq {
 	blitz::Array<double,1>  temp_slice = v100.getArray<double,1>();
 	if (reversed) temp_slice.reverseSelf(0); //turn back
 	slice_array = temp_slice;
-	
+
 	//check if childres(1) has perturbed values, NOT implemented at the moment
 	//increment counter
 	slice.incr();
@@ -239,22 +239,22 @@ namespace Meq {
       for(int ipert = 0;ipert <npert;ipert++){
 	for (int axis =0;axis<shape.size();axis++){
 	  idx[axis]=0;
-	}  
+	}
 	// get vells
 	Vells input_pert_vells = childres[0]->vellSet(vellsi).getPerturbedValue(ipert);
 	FailWhen(input_vells.elementType() != Tpdouble,"First child of CoordTransform must return real values!");
 	Vells &new_pert_vells= vref <<= new Vells(0.,input_pert_vells.shape());
 	new_pert_vells.copyData(input_pert_vells);
 	VellsSlicer0 pslice(new_pert_vells, n_axis_);
-      
+
 	while(pslice.valid()){//loop over pslices
 	  Result::Ref  child2_res;
-	    
+
 	  blitz::Array<double,1> pslice_array =   pslice.getArray<double,1>();
 	  blitz::Array<double,1> sizes;
 	  bool reversed;
 	  reversed = checkResult(pslice_array,sizes); //reverse array if needed, fail when for any x-> x[n]<x[n-1], fill sizes
-	
+
 
 	  // set request cells to this pslice + fill other dimensions
 	  for (int axis =0;axis<shape.size();axis++){
@@ -269,9 +269,9 @@ namespace Meq {
 	      }
 	  }
 	  //set domain
-	  
+
 	  trans_cells.recomputeDomain ();
-	    
+
 	  //check if order of vells is still ok, is this necessary?
 	  RqId::incrSubId(rqid,seq_depmask_);
 	  RqId::setSubId(rqid,res_depmask_,res_nr++);
@@ -279,10 +279,10 @@ namespace Meq {
 	  RqId::setSubId(rqid,dom_depmask_,res_nr++);
 	  newreq().setCells(trans_cells);
 	  newreq().setId(rqid);
-	    
+
 	  //get _result for these Cells
 	  unlockStateMutex();
-	  int code=result_code_=children().getChild(1).execute(child2_res,newreq);
+          int code=result_code_=children().getChild(1).execute(child2_res,newreq,currentRequestDepth()+1);
 	  lockStateMutex();
 	  // not needed since in principle psliced_vells refers to the right vells.
 	  LoShape ranges;
@@ -299,12 +299,12 @@ namespace Meq {
 	  blitz::Array<double,1>  temp_pslice = vp100.getArray<double,1>();
 	  if (reversed) temp_pslice.reverseSelf(0); //turn back
 	  pslice_array = temp_pslice;
-	    
+
 	  //check if childres(1) has perturbed values
 	  //increment counter
 	  pslice.incr();
 	  bool ready =false;
-	    
+
 	  for (int axisi=nr_axis-1;axisi>=0;axisi--)
 	    {
 	      ranges[axisi] = idx[axisi];
@@ -318,17 +318,17 @@ namespace Meq {
 	      }
 	    }
 	}// loop over pslice
-	
+
 	vs.setPerturbedValue(ipert,new_pert_vells);
       }//loop over perturbed values
 
     }
 
-    
+
     res1.setCells(request.cells());
 
     unlockStateMutex();
-    stepchildren().backgroundPoll(request);
+    stepchildren().backgroundPoll(request,currentRequestDepth()+1);
     timers().children.stop();
     lockStateMutex();
     return code;
@@ -357,12 +357,12 @@ namespace Meq {
    sizes(size-1)=sizes(size-2);
    FailWhen(min(sizes) <=0,"Result array of first child must be sorted (can be reversed)");
   return reversed;
-   
-   
-  }
-					  
 
-int CoordTransform::getResult (Result::Ref &resref, 
+
+  }
+
+
+int CoordTransform::getResult (Result::Ref &resref,
 			     const std::vector<Result::Ref> &childres,
 			     const Request &request,bool)
 {

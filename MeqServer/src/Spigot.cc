@@ -1,9 +1,9 @@
 //
-//% $Id$ 
+//% $Id$
 //
 //
 // Copyright (C) 2002-2007
-// The MeqTree Foundation & 
+// The MeqTree Foundation &
 // ASTRON (Netherlands Foundation for Research in Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -19,7 +19,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
+// or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
@@ -32,7 +32,7 @@
 #include <MEQ/Forest.h>
 
 namespace Meq {
-  
+
 using namespace blitz;
 
 const HIID FQueue          = AidQueue;
@@ -47,20 +47,19 @@ Spigot::Spigot ()
       flag_mask_(-1),
       row_flag_mask_(-1),
       flag_bit_(1),
-      dims_(2,2),
-      integrated_(false)
+      dims_(2,2)
 {
   // since we effectively hold our own cache, disable node's result caching
   // by default
   setCachePolicy(CACHE_NEVER);
-  
+
   corr_index_.resize(4);
   for( int i=0; i<4; i++ )
     corr_index_[i] = i;
   const HIID deps[2] = {FDataset,FDomain};
   setActiveSymDeps(deps,2);
 }
-  
+
 //##ModelId=3F9FF6AA03D2
 void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
@@ -91,7 +90,6 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     rec[FFlagBit].get(flag_bit_,initializing);
     rec[FFlagMask].get(flag_mask_,initializing);
     rec[FRowFlagMask].get(row_flag_mask_,initializing);
-    rec[FIntegrated].get(integrated_,initializing);
   }
 }
 
@@ -106,12 +104,12 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 //     VellSet &vs = result.setNewVellSet(i);
 //     int icorr = corr_index_[i];
 //     if( icorr >=0 )
-//       vs.setValue(new Vells(VT(),shape,false)).getArray<typename VT,2>() 
+//       vs.setValue(new Vells(VT(),shape,false)).getArray<typename VT,2>()
 //           = cube(rowrange,LoRange::all(),icorr);
 //     // else leave vellset empty to indicate missing data
 //   }
 // }
-// 
+//
 // template<typename TT,typename VT>
 // void Spigot::readColumn<2,TT,VT> (Result &result,void *coldata,const LoShape &colshape,const LoRange &rowrange,int nrows)
 // {
@@ -119,20 +117,20 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 //   // transpose into time-freq order
 //   mat.transposeSelf(blitz::secondDim,blitz::firstDim);
 //   LoShape shape = Axis::freqTimeMatrix(colshape[0],nrows);
-//   result.setNewVellSet(0).setValue(new Vells(VT(),shape,false)).getArray<VT,2>() = 
+//   result.setNewVellSet(0).setValue(new Vells(VT(),shape,false)).getArray<VT,2>() =
 //         mat(rowrange,LoRange::all());
 // }
-// 
+//
 // template<typename TT,typename VT>
 // void Spigot::readColumn<1,TT,VT> (Result &result,void *coldata,const LoShape &colshape,const LoRange &rowrange,int nrows)
 // {
 //   blitz::Array<TT,1> vec(static_cast<TT*>(coldata),colshape,blitz::neverDeleteData);
 //   blitz::Array<TT,1> vec1 = vec(rowrange);
 //   LoShape shape = Axis::timeVector(nrows);
-//   result.setNewVellSet(0).setValue(new Vells(VT(),shape,false)).getArray<VT,1>() = 
+//   result.setNewVellSet(0).setValue(new Vells(VT(),shape,false)).getArray<VT,1>() =
 //   result.setNewVellSet(0).setReal(shape).getArray<VT,1>() = blitz::cast<VT>(vec1);
 // }
-// 
+//
 //##ModelId=3F98DAE6023B
 int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &rowrange)
 {
@@ -154,7 +152,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     TypeId coltype = tileformat.type(icolumn_);
     LoShape colshape = tileformat.shape(icolumn_);
     // # output rows -- tile.nrow() if rowrange is all, or rowrange length otherwise
-    int nrows = rowrange.last(tile.nrow()-1) - rowrange.first(0)+1; 
+    int nrows = rowrange.last(tile.nrow()-1) - rowrange.first(0)+1;
     colshape.push_back(tile.nrow());
     cdebug(3)<<"deliver: using "<<nrows<<" of "<<tile.nrow()<<" tile rows\n";
     int nfreq = 0;
@@ -166,8 +164,8 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     //FailWhen(cubic_column && nplanes!=int(corr_index_.size()),
     //            "tile dimensions do not match spigot settings");
     Result::Ref next_res;
-    Result & result = next_res <<= new Result(dims_,integrated_);
-    // get array 
+    Result & result = next_res <<= new Result(dims_);
+    // get array
     if( coltype == Tpdouble )
     {
       // UVW column is a special case
@@ -206,7 +204,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         // transpose into time-freq order
         mat.transposeSelf(blitz::secondDim,blitz::firstDim);
         LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[0],nrows);
-        result.setNewVellSet(0).setReal(shape).getArray<double,2>() = 
+        result.setNewVellSet(0).setReal(shape).getArray<double,2>() =
               mat(rowrange,LoRange::all());
       }
       else if( colshape.size() == 1 )
@@ -248,7 +246,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         // transpose into time-freq order
         mat.transposeSelf(blitz::secondDim,blitz::firstDim);
         LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[0],nrows);
-        result.setNewVellSet(0).setReal(shape).getArray<double,2>() = 
+        result.setNewVellSet(0).setReal(shape).getArray<double,2>() =
               blitz::cast<double>(mat(rowrange,LoRange::all()));
       }
       else if( colshape.size() == 1 )
@@ -277,7 +275,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
           if( icorr >=0 )
           {
             FailWhen(icorr >= nplanes,ssprintf("corr index %d out of range for this tile",icorr));
-            vs.setComplex(shape).getArray<dcomplex,2>() = 
+            vs.setComplex(shape).getArray<dcomplex,2>() =
               blitz::cast<dcomplex>(cube(rowrange,LoRange::all(),icorr));
           }
           // else leave vellset empty to indicate missing data
@@ -289,7 +287,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         // transpose into time-freq order
         mat.transposeSelf(blitz::secondDim,blitz::firstDim);
         LoShape shape = Axis::freqTimeMatrix(nfreq = colshape[0],nrows);
-        result.setNewVellSet(0).setComplex(shape).getArray<dcomplex,2>() = 
+        result.setNewVellSet(0).setComplex(shape).getArray<dcomplex,2>() =
             blitz::cast<dcomplex>(mat(rowrange,LoRange::all()));
       }
       else if( colshape.size() == 1 )
@@ -318,7 +316,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         flags.transposeSelf(blitz::thirdDim,blitz::secondDim,blitz::firstDim);
 //        cout<<"Tile flags: "<<flags<<endl;
         const LoVec_int  rowflag = tile.rowflag()(rowrange);
-        typedef Vells::Traits<VellsFlagType,2>::Array FlagMatrix; 
+        typedef Vells::Traits<VellsFlagType,2>::Array FlagMatrix;
         for( uint i=0; i<corr_index_.size(); i++ )
         {
           VellSet &vs = result.vellSetWr(i);
@@ -361,19 +359,19 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     }
     // copy cells to result
     result.setCells(req.cells());
-      
+
     // add to queue
     res_queue_.push_back(ResQueueItem());
     res_queue_.back().rqid = req.id();
     res_queue_.back().res = next_res;
     cdebug(3)<<res_queue_.size()<<" results in queue"<<endl;
-    
+
     if( forest().debugLevel() > 1 )
       fillDebugState();
-    
+
 // 02/04/04: commented out, since it screws up (somewhat) the RES_UPDATED flag
 // going back to old scheme
-//    // cache the result for this request. This will be picked up and 
+//    // cache the result for this request. This will be picked up and
 //    // returned by Node::execute() later
 //    setCurrentRequest(req);
 //    cacheResult(resref,dependRES_UPDATED);
@@ -403,11 +401,11 @@ void Spigot::fillDebugState ()
 
 
 //##ModelId=3F9FF6AA0300
-int Spigot::getResult (Result::Ref &resref, 
+int Spigot::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &,
                        const Request &req,bool)
 {
-  // if we have cached results in the queue, go through them until we find 
+  // if we have cached results in the queue, go through them until we find
   // a match. Discard non-matching results at head of queue
   while( !res_queue_.empty() &&
          !RqId::maskedCompare(req.id(),res_queue_.begin()->rqid,getDependMask()) )
@@ -425,7 +423,7 @@ int Spigot::getResult (Result::Ref &resref,
     fillDebugState();
   return 0;
 //// this code no longer invoked
-//       if( pnext == res_queue_.end() || 
+//       if( pnext == res_queue_.end() ||
 //           !RqId::maskedCompare(req.id(),pnext->rqid,getDependMask()) ) // still no match? fail
 //       {
 //         ResQueueItem &next = res_queue_.front();

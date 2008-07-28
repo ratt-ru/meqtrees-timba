@@ -36,7 +36,7 @@ namespace LOFAR
 #ifdef USE_THREADS
 
     //##ModelId=3D1049B40332
-    class Mutex 
+    class Mutex
     {
     public:
 //// Removing this, since we only ever use recursive mutexes, and mutex kind is non-portable
@@ -54,7 +54,7 @@ namespace LOFAR
       //##ModelId=3DB935A103C9
       typedef enum { TRY=1 } MutexOptions;
 
-      class Lock 
+      class Lock
       {
       public:
         //##ModelId=5571A783FEED
@@ -62,7 +62,7 @@ namespace LOFAR
 
         //##ModelId=A15218DBFEED
         Lock(const Lock &right);
-            
+
         Lock & operator = (const Lock &right);
 
         //##ModelId=3DB935A30335
@@ -91,13 +91,13 @@ namespace LOFAR
         void release_without_unlock ();
 
         //##Documentation
-        //## lock() releases current mutex (if any), then obtains 
+        //## lock() releases current mutex (if any), then obtains
         //## a lock on the new mutex
         int lock (const Thread::Mutex &mutex, int options = 0);
-            
+
         //##ModelId=3D19CF980270
         //##Documentation
-        //## relock() works the othe way around: first obtains a lock 
+        //## relock() works the othe way around: first obtains a lock
         //## on the new mutex, then releases the current one
         int relock (const Thread::Mutex &mutex, int options = 0);
 
@@ -108,7 +108,7 @@ namespace LOFAR
         //##ModelId=3DB935A4039B
         string sdebug (int = 1,const string & = "",const char * = 0 ) const
         { return debug(); }
-        
+
         // static method used to init the mutex attr_recursive object below
         static int init_attr_recursive ();
 
@@ -122,7 +122,7 @@ namespace LOFAR
 
         //##ModelId=3D10514502E9
         pthread_mutex_t *pmutex;
-        
+
       };
 
       //##ModelId=70B8C5D3FEED
@@ -150,14 +150,14 @@ namespace LOFAR
     public:
       // Additional Public Declarations
       friend class Lock;
-    
+
       //##ModelId=3DB935A5023E
       const char * debug (int = 1,const string & = "",const char * = 0 ) const
       { return "Mutex"; }
       //##ModelId=3DB935A50388
       string sdebug (int = 1,const string & = "",const char * = 0 ) const
       { return debug(); }
-      
+
     protected:
 
       //##ModelId=9C882969FEED
@@ -182,13 +182,13 @@ namespace LOFAR
         init(*right.pmutex,0);
       else
         pmutex = 0;
-      
+
     }
-  
+
     inline Mutex::Lock & Mutex::Lock::operator =(const Mutex::Lock &right)
     {
-      if( pmutex ) 
-        pthread_mutex_unlock(pmutex); 
+      if( pmutex )
+        pthread_mutex_unlock(pmutex);
       init(*right.pmutex,0);
       return *this;
     }
@@ -209,10 +209,10 @@ namespace LOFAR
     //##ModelId=3DB935A4012E
     inline Mutex::Lock::~Lock()
     {
-      if( pmutex ) 
-        pthread_mutex_unlock(pmutex); 
+      if( pmutex )
+        pthread_mutex_unlock(pmutex);
     }
-  
+
     inline void Mutex::Lock::init (const pthread_mutex_t &mtx, int options)
     {
       pmutex = const_cast<pthread_mutex_t *>(&mtx);
@@ -254,7 +254,7 @@ namespace LOFAR
       dprintf(3)("release: unlocking mutex %p\n",(void*)pmutex);
       int ret = pmutex ? pthread_mutex_unlock(pmutex) : 0;
       pmutex = 0;
-      return ret; 
+      return ret;
     }
 
     //##ModelId=D8B60901FEED
@@ -283,8 +283,8 @@ namespace LOFAR
       init(mutex.mutex,options);
       return 0;
     }
-  
-    // Class Thread::Mutex 
+
+    // Class Thread::Mutex
 
     //##ModelId=70B8C5D3FEED
     inline Mutex::Mutex ()
@@ -293,7 +293,7 @@ namespace LOFAR
     }
 
     //##ModelId=3D10B976039C
-    inline Mutex::Mutex (const Mutex &right)
+    inline Mutex::Mutex (const Mutex &)
     {
       init();
     }
@@ -311,7 +311,7 @@ namespace LOFAR
       pthread_mutexattr_t attr;
       pthread_mutexattr_init(&attr);
       pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE_NP);
-      pthread_mutex_init(&mutex,&attr); 
+      pthread_mutex_init(&mutex,&attr);
       dprintf(3)("initialized mutex %p\n",(void*)&mutex);
     }
 
@@ -325,7 +325,7 @@ namespace LOFAR
     inline int Mutex::lock () const
     {
       dprintf(3)("%d: locking mutex %p\n",(int)self().id(),(void*)&mutex);
-      int ret = pthread_mutex_lock(&mutex); 
+      int ret = pthread_mutex_lock(&mutex);
       dprintf(3)("%d: locked mutex %p: %d\n",(int)self().id(),(void*)&mutex,ret);
       return ret;
     }
@@ -333,7 +333,7 @@ namespace LOFAR
     //##ModelId=4304D0E8FEED
     inline int Mutex::unlock () const
     {
-      int ret = pthread_mutex_unlock(&mutex); 
+      int ret = pthread_mutex_unlock(&mutex);
       dprintf(3)("%d: unlocked mutex %p: %d\n",(int)self().id(),(void*)&mutex,ret);
       return ret;
     }
@@ -344,15 +344,15 @@ namespace LOFAR
       return pthread_mutex_trylock(&mutex);
     }
 
-    // Class Thread::Mutex::Lock 
+    // Class Thread::Mutex::Lock
 
-    // Class Thread::Mutex 
+    // Class Thread::Mutex
 
 #else // no-threads configuration
     class Mutex
     {
     public:
-      class Lock 
+      class Lock
       {
       public:
         Lock () {}

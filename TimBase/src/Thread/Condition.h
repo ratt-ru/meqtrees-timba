@@ -32,7 +32,7 @@
 
 namespace LOFAR
 {
-  namespace Thread 
+  namespace Thread
   {
 #ifdef USE_THREADS
 
@@ -83,7 +83,7 @@ namespace LOFAR
 
     };
 
-    // Class Thread::Condition 
+    // Class Thread::Condition
 
     //##ModelId=3D10B9920176
     inline Condition::Condition()
@@ -93,6 +93,7 @@ namespace LOFAR
 
     //##ModelId=3DB935A200EF
     inline Condition::Condition (const Condition &)
+      : Mutex()
     {
       pthread_cond_init(&cond,NULL);
     }
@@ -115,19 +116,19 @@ namespace LOFAR
     //##ModelId=63F66C39FEED
     inline int Condition::broadcast () const
     {
-      return pthread_cond_broadcast(&cond); 
+      return pthread_cond_broadcast(&cond);
     }
 
     //##ModelId=8892C440FEED
     inline int Condition::signal () const
     {
-      return pthread_cond_signal(&cond); 
+      return pthread_cond_signal(&cond);
     }
 
     //##ModelId=47B70187FEED
     inline int Condition::wait () const
     {
-      return pthread_cond_wait(&cond,&mutex); 
+      return pthread_cond_wait(&cond,&mutex);
     }
 
     //##ModelId=30EB4F86FEED
@@ -138,20 +139,20 @@ namespace LOFAR
       gettimeofday(&now,0);
       ts.tv_sec = now.tv_sec + sec;
       ts.tv_nsec = now.tv_usec*1000 + ns;
-      return pthread_cond_timedwait(&cond,&mutex,&ts); 
+      return pthread_cond_timedwait(&cond,&mutex,&ts);
     }
 
     //##ModelId=D33D2F2EFEED
     inline int Condition::wait (double sec) const
     {
       int isec = static_cast<int>(sec);
-      return wait(isec,static_cast<int>((sec-isec)*1e+9)); 
+      return wait(isec,static_cast<int>((sec-isec)*1e+9));
     }
 
-    // Class Thread::Condition 
+    // Class Thread::Condition
 
 #else
-    class Condition : public Mutex 
+    class Condition : public Mutex
     {
     public:
       Condition() {};
@@ -161,7 +162,7 @@ namespace LOFAR
       int wait () const { return 0; };
       int wait (int, int) const { return 0; };
       int wait (double) { return 0; };
-        
+
       const char * debug (int = 1,const string & = "",const char * = 0 ) const
       { return ""; }
       string sdebug (int = 1,const string & = "",const char * = 0 ) const

@@ -440,7 +440,7 @@ int Meq::VisDataMux::startSnippet (const VisCube::VTile &tile)
       Result::Ref res;
       timers().getresult.stop();
       timers().children.start();
-      result_flag = children().getChild(0).execute(res,req);
+      result_flag = children().getChild(0).execute(res,req,0);
       timers().children.stop();
       timers().getresult.start();
       if( result_flag&RES_FAIL )
@@ -473,7 +473,7 @@ int Meq::VisDataMux::endSnippet ()
     {
       timers().getresult.stop();
       timers().children.start();
-      int retcode = children().getChild(1).execute(res,*current_req_);
+      int retcode = children().getChild(1).execute(res,*current_req_,0);
       timers().children.stop();
       timers().getresult.start();
       result_flag |= retcode;
@@ -501,7 +501,7 @@ int Meq::VisDataMux::endSnippet ()
         children().enableChild(*iter);
     }
   // now do the poll
-  children().startAsyncPoll(*current_req_);
+  children().startAsyncPoll(*current_req_,0);
   while( !forest().abortFlag() )
   {
     try
@@ -552,7 +552,7 @@ int Meq::VisDataMux::endSnippet ()
     {
       timers().getresult.stop();
       timers().children.start();
-      int retcode = children().getChild(2).execute(res,*current_req_);
+      int retcode = children().getChild(2).execute(res,*current_req_,0);
       timers().children.stop();
       timers().getresult.start();
       result_flag |= retcode;

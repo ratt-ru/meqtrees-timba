@@ -58,8 +58,8 @@ void FITSReader::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 
 }
 
- 
-int FITSReader::getResult (Result::Ref &resref, 
+
+int FITSReader::getResult (Result::Ref &resref,
                        const std::vector<Result::Ref> &childres,
                        const Request &request,bool)
 {
@@ -103,8 +103,8 @@ int FITSReader::getResult (Result::Ref &resref,
 
 	for (int i=0;i<naxis;i++) {
 		if (naxes[i]) {
-      blitz::Array<double,1> l_center(centers[i], blitz::shape(naxes[i]), blitz::duplicateData); 
-      blitz::Array<double,1> l_space(naxes[i]); 
+      blitz::Array<double,1> l_center(centers[i], blitz::shape(naxes[i]), blitz::duplicateData);
+      blitz::Array<double,1> l_space(naxes[i]);
 			//calculate spacings
 			for (int j=1; j<naxes[i]-1; j++) {
 				l_space(j)=(l_center(j)-l_center(j-1))/2+ (l_center(j+1)-l_center(j))/2;
@@ -123,8 +123,8 @@ int FITSReader::getResult (Result::Ref &resref,
 		}
 	}
 
-  // create a result with one VellSet (1), not integrated (0)
-  Result &result=resref<<= new Result(1,0); 
+  // create a result with one VellSet (1)
+  Result &result=resref<<= new Result(1);
 
 	//VellSet
 	VellSet::Ref ref0;
@@ -135,7 +135,7 @@ int FITSReader::getResult (Result::Ref &resref,
 		//we need to extend the shape
 		shape.resize(naxis,1);//resize and make all 1
 	}
-  
+
 	for (int i=0;i<naxis;i++) {
 		if (naxes[i]) {
 			shape[i]=naxes[i];
@@ -151,7 +151,7 @@ int FITSReader::getResult (Result::Ref &resref,
 	if (naxis==0) {
 	  // scalar
 	  vs0.setValue(new Vells(*data));
-	} else { 
+	} else {
 	vs0.setShape(shape);
 	Vells &out=vs0.setValue(new Vells(0.0,shape));
 	if (naxis==1) {
@@ -178,7 +178,7 @@ int FITSReader::getResult (Result::Ref &resref,
   	if (naxis==0) {
 	    // scalar
 	    vs0.setValue(new Vells(*cdata));
-	   } else { 
+	   } else {
 	    vs0.setShape(shape);
 	    Vells &out=vs0.setValue(new Vells(make_dcomplex(0.0),shape));
 	    if (naxis==1) {

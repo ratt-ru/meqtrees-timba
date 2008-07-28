@@ -879,7 +879,7 @@ int Node::pollChildren (Result::Ref &resref,
 {
   setExecState(CS_ES_POLLING);
   timers().children.start();
-  int retcode = children().syncPoll(resref,childres,req);
+  int retcode = children().syncPoll(resref,childres,req,currentRequestDepth()+1);
   // if aborted, return without polling stepchildren
   if( retcode&RES_ABORT ||
       ( retcode&RES_FAIL && children().failPolicy() == AidAbandonPropagate ) ||
@@ -889,13 +889,13 @@ int Node::pollChildren (Result::Ref &resref,
     return retcode;
   }
   // do a background poll of the stepchildren
-  stepchildren().backgroundPoll(req);
+  stepchildren().backgroundPoll(req,currentRequestDepth()+1);
   timers().children.stop();
   return retcode;
 }
 
 //##ModelId=3F6726C4039D
-int Node::execute (Result::Ref &ref,const Request &req) throw()
+int Node::execute (Result::Ref &ref,const Request &req,int depth) throw()
 {
   // check for re-entrancy
 #ifdef DISABLE_NODE_MT
@@ -948,6 +948,7 @@ int Node::execute (Result::Ref &ref,const Request &req) throw()
     pcs_total_->req++;
     if( new_request_ )
       pcs_new_->req++;
+    wstate()[FCurrentRequestDepth] = current_request_depth_ = depth;
     // check the cache, return on match (cache will be cleared on mismatch)
     stage = "checking cache";
     if( getCachedResult(retcode,ref,req) )

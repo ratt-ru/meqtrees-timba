@@ -23,8 +23,8 @@
 
 #include <MeqNodes/MatrixInvert22.h>
 
-namespace Meq 
-{    
+namespace Meq
+{
 
 
 //##ModelId=400E530A0105
@@ -74,7 +74,7 @@ int MatrixInvert22::getResult (Result::Ref &resref,
     int nvs = chres.numVellSets();
     Assert(nvs==1);
     // copy vellSet to output
-    Result &result = resref <<= new Result(1,chres.isIntegrated()); 
+    Result &result = resref <<= new Result(1);
     const VellSet &chvs = chres.vellSet(0);
     result.setVellSet(0,&(chvs));
     // if it's a fail, return immediately
@@ -96,7 +96,7 @@ int MatrixInvert22::getResult (Result::Ref &resref,
   else
   {
     FailWhen(dims.size()!=2 || dims[0]!=2 || dims[1]!=2,"scalar or 2x2 child result expected");
-    // since inversion involves all the elements simultaneously, all the 
+    // since inversion involves all the elements simultaneously, all the
     // spids are going to get mixed in here. So, collect all values
     // into one flat array.
     // Use 'nvs' instead of '4' for future-proffing the code
@@ -131,12 +131,12 @@ int MatrixInvert22::getResult (Result::Ref &resref,
     // any fails? return them
     if( fail_vs->isFail() )
     {
-      Result &result = resref <<= new Result(1); 
+      Result &result = resref <<= new Result(1);
       result.setVellSet(0,fail_vs);
       return RES_FAIL;
     }
     // else output has same 2x2 shape
-    Result &result = resref <<= new Result(dims,chres.isIntegrated()); 
+    Result &result = resref <<= new Result(dims);
     // allocate output vellsets and attach flags, if any
     VellSet * outvs[nvs];
     for( int i=0; i<nvs; i++ )
@@ -151,7 +151,7 @@ int MatrixInvert22::getResult (Result::Ref &resref,
     Vells bc0 = (*pvv[1])*(*pvv[2]);
     Vells det0 = 1/(ad0-bc0);
     Vells mdet0 = -det0;
-    outvs[0]->setValue((*pvv[3])*det0); 
+    outvs[0]->setValue((*pvv[3])*det0);
     outvs[1]->setValue((*pvv[1])*mdet0);
     outvs[2]->setValue((*pvv[2])*mdet0);
     outvs[3]->setValue((*pvv[0])*det0);
@@ -171,10 +171,10 @@ int MatrixInvert22::getResult (Result::Ref &resref,
       vector<int> indices(nvs,0);
       int found[npertsets];
       vector<bool> changed(nvs);
-      for( uint ispid=0; ispid<spids.size(); ispid++) 
+      for( uint ispid=0; ispid<spids.size(); ispid++)
       {
         // pert_values start with pointers to each child's main value, the
-        // loop below then replaces them with values from children that 
+        // loop below then replaces them with values from children that
         // have a corresponding perturbed value
         for( int ipert=0; ipert<npertsets; ipert++ )
         {
@@ -183,8 +183,8 @@ int MatrixInvert22::getResult (Result::Ref &resref,
           changed.assign(nvs,false);
         }
         // loop over child vellsets. For every vs that contains a perturbed
-        // value for spid[ispid], put a pointer to the perturbed value into 
-        // pert_values[ipert][ichild]. For children that do not contain a 
+        // value for spid[ispid], put a pointer to the perturbed value into
+        // pert_values[ipert][ichild]. For children that do not contain a
         // perturbed value, it will retain a pointer to the main value.
         // The pertubations themselves are collected into pert[]; these
         // must match across all children
@@ -223,11 +223,11 @@ int MatrixInvert22::getResult (Result::Ref &resref,
           for( int i=0; i<nvs; i++ )
             outvs[i]->setPerturbation(ispid,pert[ipert],ipert);
           // recalc
-          Vells ad = changed[0] || changed[3] 
-                ? (*pert_values[ipert][0])*(*pert_values[ipert][3]) 
+          Vells ad = changed[0] || changed[3]
+                ? (*pert_values[ipert][0])*(*pert_values[ipert][3])
                 : ad0;
-          Vells bc = changed[1] || changed[2] 
-                ? (*pert_values[ipert][1])*(*pert_values[ipert][2]) 
+          Vells bc = changed[1] || changed[2]
+                ? (*pert_values[ipert][1])*(*pert_values[ipert][2])
                 : bc0;
           Vells det = 1/(ad-bc);
           Vells mdet = -det;
@@ -239,7 +239,7 @@ int MatrixInvert22::getResult (Result::Ref &resref,
       } // for spids
     }
   }
-  
+
   // return 0 flag, since we don't add any dependencies of our own
   return 0;
 }
