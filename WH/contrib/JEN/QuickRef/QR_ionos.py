@@ -61,6 +61,7 @@ from Timba.Meq import meq
 from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
@@ -143,7 +144,7 @@ header = 'QR_ionos'                    # used in exec functions at the bottom
 def QR_ionos (ns, rider):
    """
    """
-   rr = QRU.on_entry(QR_ionos, rider)
+   stub = QRU.on_entry(ns, rider, QR_ionos)
    cc = []
    override = opt_alltopics
    global header
@@ -157,7 +158,7 @@ def QR_ionos (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #********************************************************************************
@@ -169,7 +170,7 @@ def make_helpnodes (ns, rider):
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, rider)
+   stub = QRU.on_entry(ns, rider, make_helpnodes)
    
    override = opt_alltopics
    cc = []
@@ -177,7 +178,7 @@ def make_helpnodes (ns, rider):
    if override or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -202,7 +203,7 @@ def thinlayer (ns, rider):
    formula has the obvious advantage that the z-factor towards the horizon (z=pi/2) is
    about 3.0 (for h=300 km), rather than infinite.
    """
-   rr = QRU.on_entry(thinlayer, rider)
+   stub = QRU.on_entry(ns, rider, thinlayer)
    cc = []
    override = opt_thinlayer_alltopics
 
@@ -211,7 +212,7 @@ def thinlayer (ns, rider):
    if override or opt_thinlayer_MIM:
       cc.append(thinlayer_MIM (ns, rider))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #================================================================================
@@ -233,7 +234,7 @@ def thinlayer_TEC (ns, rider):
    The bottom right panel shows the source shift as a function of baseline length....
    
    """
-   rr = QRU.on_entry(thinlayer_TEC, rider)
+   stub = QRU.on_entry(ns, rider, thinlayer_TEC)
    cc = []
    viewer = []
 
@@ -367,7 +368,7 @@ def thinlayer_TEC (ns, rider):
       cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, cc,
                       viewer='Pylab Plotter')
 
 
@@ -378,10 +379,10 @@ def thinlayer_TEC (ns, rider):
 def thinlayer_MIM (ns, rider):
    """
    """
-   rr = QRU.on_entry(thinlayer_MIM, rider)
+   stub = QRU.on_entry(ns, rider, thinlayer_MIM)
    cc = []
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -393,7 +394,7 @@ def GPS (ns, rider):
    """
    The simplest ionospheric model is a thin, uniform layer at a constant altitude.
    """
-   rr = QRU.on_entry(GPS, rider)
+   stub = QRU.on_entry(ns, rider, GPS)
    cc = []
    override = opt_GPS_alltopics
 
@@ -402,7 +403,7 @@ def GPS (ns, rider):
    if override or opt_GPS_triplefreq:
       cc.append(GPS_triplefreq (ns, rider))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -512,15 +513,15 @@ def local_zenith_angles_xy (x=0,y=0,z=0,l=0,m=0, R=6370.0, trace=False):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   global rootnodename
    rootnodename = 'QR_ionos'                    # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-               nodes=[QR_ionos(ns, rider)],
-               help=__doc__)
+                nodes=[QR_ionos(ns, rider)])
 
    # Finished:
-   QRU.ET.EN.bundle_orphans(ns)
+   QRU.ET.EN.bundle_orphans(ns, rider)
    return True
 
 
@@ -542,16 +543,16 @@ TDLRuntimeMenu(":")
 #--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode='QR_ionos')
+   return QRU._tdl_job_execute_1D (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_ionos')
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_6D_tLMXYZ (mqs, parent):
-   return QRU._tdl_job_execute_tLMXYZ (mqs, parent, rootnode='QR_ionos')
+   return QRU._tdl_job_execute_tLMXYZ (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_ionos')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
 
 #--------------------------------------------------------------------------------
 # Some functions to dispose of the specified subset of the documentation:

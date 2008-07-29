@@ -612,6 +612,8 @@ class CollatedHelpRecord (object):
       If include_style==True, include the QuickRef html style file.
       """
       # print '\n',help,'\n'
+      if not isinstance(help,str):
+         help = ''
 
       # First replace some substrings that might mess up the html: 
       ss = help.replace('<<',' &lt &lt &#32')                # escape char &lt = <  

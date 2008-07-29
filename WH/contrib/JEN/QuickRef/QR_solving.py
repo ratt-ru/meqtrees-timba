@@ -118,7 +118,7 @@ def QR_solving (ns, rider):
    """
    Solving...
    """
-   rr = QRU.on_entry(QR_solving, rider)
+   stub = QRU.on_entry(ns, rider, QR_solving)
    cc = []
    if opt_alltopics or opt_basic:
       cc.append(basic (ns, rider))
@@ -126,7 +126,7 @@ def QR_solving (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -138,7 +138,7 @@ def make_helpnodes (ns, rider):
    """
    helpnodes...
    """
-   rr = QRU.on_entry(make_helpnodes, rider)
+   stub = QRU.on_entry(ns, rider, make_helpnodes)
    
    cc = []
    if opt_alltopics or opt_helpnode_twig:
@@ -146,7 +146,7 @@ def make_helpnodes (ns, rider):
                               name='EasyTwig_twig',
                               help=ET.twig.__doc__, trace=False))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #--------------------------------------------------------------------------------
@@ -157,7 +157,7 @@ def basic (ns, rider):
    MeqCondeq
    MeqStripper (?)
    """
-   rr = QRU.on_entry(basic, rider)
+   stub = QRU.on_entry(ns, rider, basic)
    cc = []
    cc.append(basic_ab (ns, rider))                    # simplest, do always
    if opt_alltopics or opt_basic_polyparm:
@@ -169,7 +169,7 @@ def basic (ns, rider):
    # if opt_alltopics or opt_basic_Expression:                 # when Expression MeqParm problem solved...
       cc.append(basic_Expression (ns, rider))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -195,7 +195,7 @@ def basic_ab (ns, rider):
    The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
    Condeq Results are the solution residuals, which should be small.
    """
-   rr = QRU.on_entry(basic_ab, rider)
+   stub = QRU.on_entry(ns, rider, basic_ab)
    a = EN.unique_stub(ns, 'a') << Meq.Parm(0)
    b = EN.unique_stub(ns, 'b') << Meq.Parm(0)
    p = EN.unique_stub(ns, 'p') << Meq.Constant(10)
@@ -222,7 +222,7 @@ def basic_ab (ns, rider):
                             help='The sum of the (abs) condeq residuals',
                             children=condeqs, unop='Abs')
    cc = [solver,residuals,drivers,parmset]
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, cc,
                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
@@ -242,7 +242,7 @@ def basic_polyparm (ns, rider):
    In this case, the solution will 'lose rank', which is indicated in the
    solver plot: the black line on the right leaves the right edge. 
    """
-   rr = QRU.on_entry(basic_polyparm, rider)
+   stub = QRU.on_entry(ns, rider, basic_polyparm)
    twig = ET.twig(ns, opt_basic_twig)                       # move to solving()?
    poly = ET.twig(ns, opt_basic_polyparm_poly)
    parms = EN.find_parms(poly, trace=False)
@@ -254,7 +254,7 @@ def basic_polyparm (ns, rider):
                          children=[condeq],
                          solvable=parms)  
    cc = [solver,condeq,poly,twig,parmset]
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, cc,
                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
@@ -262,7 +262,7 @@ def basic_polyparm (ns, rider):
 def basic_Expression (ns, rider):
    """
    """
-   rr = QRU.on_entry(basic_Expression, rider)
+   stub = QRU.on_entry(ns, rider, basic_Expression)
    lhs = ET.twig(ns, opt_basic_twig)              
    print '** expr =',opt_basic_Expression_expr
    rhs = ET.twig(ns, opt_basic_Expression_expr)
@@ -283,7 +283,7 @@ def basic_Expression (ns, rider):
                          children=[condeq],
                          solvable=parms)  
    cc = [solver,condeq,lhs,rhs,parmset]
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, cc,
                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
@@ -296,7 +296,7 @@ def basic_onepolc (ns, rider):
    - The right-hand side (rhs) is a MeqParm:
    .      rhs = ns['MeqParm'] << Meq.Parm(meq.polc(coeff=numpy.zeros([tdeg+1,fdeg+1])))
    """
-   rr = QRU.on_entry(basic_onepolc, rider)
+   stub = QRU.on_entry(ns, rider, basic_onepolc)
    lhs = ET.twig(ns, opt_basic_twig)
    tiling = record(freq=opt_basic_tiling_freq,
                    time=opt_basic_tiling_time)
@@ -322,7 +322,7 @@ def basic_onepolc (ns, rider):
                          solvable=rhs)  
    cc = [solver,condeq,lhs,rhs]
    QRU.helpnode(ns, rider, node=rhs)
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help,
+   return QRU.on_exit (ns, rider, cc,
                       parentclass='ReqSeq', result_index=0)
 
 
@@ -356,12 +356,12 @@ TDLRuntimeMenu(":")
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
 
+   global rootnodename
    rootnodename = 'QR_solving'                  # The name of the node to be executed...
    global rider                                 # used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-               nodes=[QR_solving(ns, rider)],
-               help=__doc__)
+               nodes=[QR_solving(ns, rider)])
 
    # Finished:
    return True
@@ -372,19 +372,19 @@ def _define_forest (ns, **kwargs):
 #--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_f (mqs, parent, rootnode='QR_solving')
+   return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_solving')
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_3D_ftL (mqs, parent):
-   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode='QR_solving')
+   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_solving')
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_solving')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
 
 #--------------------------------------------------------------------------------
 
@@ -417,7 +417,7 @@ if __name__ == '__main__':
 
    rider = QRU.create_rider()             # CollatedHelpRecord object
    if 1:
-      QR_solving(ns, 'test', rider)
+      QR_solving(ns, 'test')
       if 1:
          print rider.format()
             

@@ -67,6 +67,7 @@ from Timba.Meq import meq
 from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP

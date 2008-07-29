@@ -75,6 +75,7 @@ from Timba.Contrib.JEN.pylab import ChildResult
 from Timba.Contrib.JEN.pylab import Figure
 from Timba.Contrib.JEN.pylab import Graphics
 
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyBundle as EB
@@ -1125,7 +1126,7 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   qhelp.append('')
 
   if True:
-    qhelp = EN.format_function_call('PNP.pynode_Plot', ns=ns, nodes=nodes,
+    qhelp = EF.format_function_call('PNP.pynode_Plot', ns=ns, nodes=nodes,
                                     groupspecs=groupspecs,
                                     plotspecs=plotspecs, labels=labels,
                                     nodename=nodename, quals=quals, kwquals=kwquals,

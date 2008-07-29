@@ -985,53 +985,6 @@ class PyNodeNamedGroups (pynode.PyNode):
 
 
 #=====================================================================================
-# Helper function(s): (May be called from other modules)
-#=====================================================================================
-
-
-def format_float_obsolete(v, name=None, n=2):
-  """Helper function to format a float for printing"""
-  if isinstance(v, complex):
-     s1 = format_float(v.real)
-     s2 = format_float(v.imag)
-     s = '('+s1+'+'+s2+'j)'
-  else:
-     q = 100.0
-     v1 = int(v*q)/q
-     s = str(v1)
-  if isinstance(name,str):
-    s = name+'='+s
-  # print '** format_float(',v,name,n,') ->',s
-  return s
-
-#-----------------------------------------------------------
-
-def format_vv_obsolete (vv):
-  if not isinstance(vv,(list,tuple)):
-    return str(vv)
-  elif len(vv)==0:
-    return 'empty'
-  elif not isinstance(vv[0],(int,float,complex)):
-    s = '  length='+str(len(vv))
-    s += '  type='+str(type(vv[0]))
-    s += '  '+str(vv[0])+' ... '+str(vv[len(vv)-1])
-  else:
-    import pylab              # must be done here, not above....
-    ww = pylab.array(vv)
-    s = '  length='+str(len(ww))
-    s += format_float(ww.min(),'  min')
-    s += format_float(ww.max(),'  max')
-    s += format_float(ww.mean(),'  mean')
-    if len(ww)>1:                       
-      if not isinstance(ww[0],complex):
-        s += format_float(ww.std(),'  stddev')
-  return s
-
-
-
-
-
-#=====================================================================================
 # Example of a class derived from PyNodeNamedGroups
 #=====================================================================================
 

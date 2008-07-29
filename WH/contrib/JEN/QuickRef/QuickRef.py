@@ -256,6 +256,7 @@ TDLCompileMenu("QuickRef Categories:",
 
 def _define_forest (ns, **kwargs):
 
+   global rootnodename
    rootnodename = 'QuickRef'                # The name of the node to be executed...
    global rider
    rider = QRU.create_rider(rootnodename)   # CollatedHelpRecord object
@@ -295,16 +296,16 @@ def _define_forest (ns, **kwargs):
 #********************************************************************************
 
 def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_f (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QuickRef')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
 
 #-------------------------------------------------------------------------------
 

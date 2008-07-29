@@ -101,7 +101,7 @@ TDLCompileMenu("QR_UserNodes topics:",
 def QR_UserNodes (ns, rider):
    """
    """
-   rr = QRU.on_entry(QR_UserNodes, rider)
+   stub = QRU.on_entry(ns, rider, QR_UserNodes)
  
    cc = []
    if opt_alltopics or opt_Functional:
@@ -110,7 +110,7 @@ def QR_UserNodes (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #********************************************************************************
@@ -122,14 +122,14 @@ def make_helpnodes (ns, rider):
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, rider)
+   stub = QRU.on_entry(ns, rider, make_helpnodes)
    
    cc = []
    if opt_alltopics or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rider, name='EasyTwig_twig',
                              help=ET.twig.__doc__, trace=False))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -140,11 +140,11 @@ def make_helpnodes (ns, rider):
 def Functional (ns, rider):
    """
    """
-   rr = QRU.on_entry(Functional, rider)
+   stub = QRU.on_entry(ns, rider, Functional)
    cc = []
    # if opt_alltopics or opt_Functional_subtopic:
    #    cc.append(Functional_subtopic (ns, rider))
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #================================================================================
@@ -152,9 +152,9 @@ def Functional (ns, rider):
 def Functional_subtopic (ns, rider):
    """
    """
-   rr = QRU.on_entry(Functional_subtopic, rider)
+   stub = QRU.on_entry(ns, rider, Functional_subtopic)
    cc = []
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -165,11 +165,11 @@ def Functional_subtopic (ns, rider):
 def PrivateFunction (ns, rider):
    """
    """
-   rr = QRU.on_entry(PrivateFunction, rider)
+   stub = QRU.on_entry(ns, rider, PrivateFunction)
    cc = []
    # if opt_alltopics or opt_PrivateFunction_subtopic:
    #    cc.append(PrivateFunction_subtopic (ns, rider))
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #================================================================================
@@ -177,9 +177,9 @@ def PrivateFunction (ns, rider):
 def PrivateFunction_subtopic (ns, rider):
    """
    """
-   rr = QRU.on_entry(PrivateFunction_subtopic, rider)
+   stub = QRU.on_entry(ns, rider, PrivateFunction_subtopic)
    cc = []
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -190,11 +190,11 @@ def PrivateFunction_subtopic (ns, rider):
 def PyNode (ns, rider):
    """
    """
-   rr = QRU.on_entry(PyNode, rider)
+   stub = QRU.on_entry(ns, rider, PyNode)
    cc = []
    # if opt_alltopics or opt_PyNode_subtopic:
    #    cc.append(PyNode_subtopic (ns, rider))
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #================================================================================
@@ -202,9 +202,9 @@ def PyNode (ns, rider):
 def PyNode_subtopic (ns, rider):
    """
    """
-   rr = QRU.on_entry(PyNode_subtopic, rider)
+   stub = QRU.on_entry(ns, rider, PyNode_subtopic)
    cc = []
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -226,12 +226,12 @@ def PyNode_subtopic (ns, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   global rootnodename
    rootnodename = 'QR_UserNodes'                 # The name of the node to be executed...
    global rider                                  # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)        # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_UserNodes(ns, rider)],
-                help=__doc__)
+                nodes=[QR_UserNodes(ns, rider)])
 
    # Finished:
    return True
@@ -255,19 +255,19 @@ TDLRuntimeMenu(":")
 #--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_f (mqs, parent, rootnode='QR_UserNodes')
+   return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_UserNodes')
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_3D_ftL (mqs, parent):
-   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode='QR_UserNodes')
+   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_UserNodes')
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_UserNodes')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
 
 #--------------------------------------------------------------------------------
 # Some functions to dispose of the specified subset of the documentation:

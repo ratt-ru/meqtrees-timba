@@ -101,22 +101,22 @@ TDLCompileMenu("QR_TreeDefinition topics:",
 def QR_TreeDefinition (ns, rider):
    """
    """
-   rr = QRU.on_entry(QR_TreeDefinition, rider)
- 
+   stub = QRU.on_entry(ns, rider, QR_TreeDefinition)
    cc = []
-   if opt_alltopics or opt_nodenames:
+   override = opt_alltopics
+   if override or opt_nodenames:
       cc.append(nodenames (ns, rider))
-   if opt_alltopics or opt_TDL:
+   if override or opt_TDL:
       cc.append(TDL (ns, rider))
-   if opt_alltopics or opt_TDLOptions:
+   if override or opt_TDLOptions:
       cc.append(TDLOptions (ns, rider))
-   if opt_alltopics or opt_bookmarks:
+   if override or opt_bookmarks:
       cc.append(bookmarks (ns, rider))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -131,14 +131,13 @@ def make_helpnodes (ns, rider):
    state record of this node (a bookmark is generated automatically). It is
    also added to the subset of documentation that is accumulated by the rider.
    """
-   rr = QRU.on_entry(make_helpnodes, rider)
+   stub = QRU.on_entry(ns, rider, make_helpnodes)
    
    cc = []
    if opt_alltopics or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rider, name='EasyTwig_twig',
-                             help=ET.twig.__doc__, trace=False))
+      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #--------------------------------------------------------------------------------
@@ -146,11 +145,11 @@ def make_helpnodes (ns, rider):
 def nodenames (ns, rider):
    """
    """
-   rr = QRU.on_entry(nodenames, rider)
+   stub = QRU.on_entry(ns, rider, nodenames)
    cc = []
    # if opt_alltopics or opt_nodenames_xxx:
    #    cc.append(nodenames_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #--------------------------------------------------------------------------------
@@ -158,11 +157,11 @@ def nodenames (ns, rider):
 def TDL (ns, rider):
    """
    """
-   rr = QRU.on_entry(TDL, rider)
+   stub = QRU.on_entry(ns, rider, TDL)
    cc = []
    # if opt_alltopics or opt_TDL_xxx:
    #    cc.append(TDL_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #--------------------------------------------------------------------------------
@@ -170,11 +169,11 @@ def TDL (ns, rider):
 def TDLOptions (ns, rider):
    """
    """
-   rr = QRU.on_entry(TDLOptions, rider)
+   stub = QRU.on_entry(ns, rider, TDLOptions)
    cc = []
    # if opt_alltopics or opt_TDLOptions_xxx:
    #    cc.append(TDLOptions_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #--------------------------------------------------------------------------------
@@ -182,11 +181,11 @@ def TDLOptions (ns, rider):
 def bookmarks (ns, rider):
    """
    """
-   rr = QRU.on_entry(bookmarks, rider)
+   stub = QRU.on_entry(ns, rider, bookmarks)
    cc = []
    # if opt_alltopics or opt_bookmarks_xxx:
    #    cc.append(bookmarks_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -206,9 +205,9 @@ def bookmarks (ns, rider):
 def nodenames_xxx (ns, rider):
    """
    """
-   rr = QRU.on_entry(nodenames_xxx, rider)
+   stub = QRU.on_entry(ns, rider, nodenames_xxx)
    cc = []
-   return QRU.on_exit (ns, rider, nodes=cc, help=rr.help)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -231,12 +230,12 @@ def nodenames_xxx (ns, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   global rootnodename
    rootnodename = 'QR_TreeDefinition'           # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_TreeDefinition(ns, rider)],
-                help=__doc__)
+                nodes=[QR_TreeDefinition(ns, rider)])
 
    # Finished:
    return True
@@ -260,19 +259,19 @@ TDLRuntimeMenu(":")
 #--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_f (mqs, parent, rootnode='QR_TreeDefinition')
+   return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode='QR_TreeDefinition')
+   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_3D_ftL (mqs, parent):
-   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode='QR_TreeDefinition')
+   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode='QR_TreeDefinition')
+   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
-   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode='QR_TreeDefinition')
+   return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
 
 #--------------------------------------------------------------------------------
 # Some functions to dispose of the specified subset of the documentation:
