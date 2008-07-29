@@ -551,102 +551,6 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 #================================================================================
 
 
-def on_entry(func, rider, trace=False):
-    """
-    <function_call>
-    rr = QuickRefUtil.on_entry(func, rider, help=None, trace=False)
-    </function_call>
-
-    This function is called upon entry of all functions in QR_... modules:
-    <function_code>
-    def QR_function (ns, path, rider):
-              \"\"\"doc-string in triple-quotes\"\"\"
-              rr = QRU.on_entry(QR_function, path, rider, trace=False)
-              ... function body ...
-              return QRU.on_exit (ns, rider, help=rr.help, ....)
-    </function_code>
-
-    It returns a record rr with the following fields:
-    <li> rr.path: the path, plus (part of) func.func_name. This is used
-    to attach help strings at their proper place in the CollatedHelpRecord (rider).
-    <li> rr.help: func.__doc__ 
-    <li> rr.name: func.func_name 
-    """
-    rr = record()
-
-    if getattr(func, 'func_name', None):
-        rr.name = str(func.func_name)
-
-    ss = rr.name.split('_')
-    rr.path = rider.path(append=ss[len(ss)-1])
-
-    rr.help = func.__doc__
-
-    if trace:
-        print '\n** .on_entry(',type(func),'):',ss,'->',rr.keys()
-    return rr
-   
-
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-
-def helpnode (ns, rider,
-              name=None, node=None,
-              help=None,
-              func=None,
-              trace=False):
-    """
-    Syntax:
-    <function_call>
-    node = QRU.helpnode(ns, path, rider, name=None, node=None, help=None, func=None)
-    </function_call>
-
-    A special version of MeqNode(), for nodes that are only
-    used to carry a quickref_help field in their state-record.
-    <li> If no name is given, derive a name from the path.
-    <li> If a node is specified, assume that it has a quickref_help field.
-    Otherwise make a dummy-node with a quickref_help field.
-    <li> If a function is specified (func), use its name and docstring.
-    
-    Always make a bookmark for the node, with a suitable viewer.
-    """
-
-    hh = None
-    if func:
-        if False:
-            print '\n** helpnode(',path,'):\n',dir(func)
-            print '-- func.__class__ =',func.__class__
-            print '-- func.__module__ =',func.__module__
-            print
-        hh = str(func.__module__)
-        if getattr(func, 'func_name', None):
-            name = str(func.func_name)+'()'
-        else:
-            ss = hh.split('.')
-            name = ss[len(ss)-1]
-        hh = '  (see module: '+hh+')'
-        help = func.__doc__
-
-    # Make sure of the name-string:
-    if not isinstance(name,str):
-        ss = rider.path().split('.')
-        nss = len(ss)
-        name = ss[nss-1]
-        if nss>1:
-            name = ss[nss-2]+'_'+ss[nss-1]
-
-    if not is_node(node):
-        node = MeqNode (ns, rider, meqclass='Constant',
-                        name='helpnode'+'_'+name,
-                        help=help,
-                        helpnode=hh,
-                        trace=trace, value=-0.123456789)
-
-    # Make a bookmark with a suitable viewer:
-    viewer = 'QuickRef Browser'                                    # when implemented...
-    viewer = 'Record Browser'                                      # temporary
-    JEN_bookmarks.create(node, page=name, folder='helpnodes', viewer=viewer)
-    return node
 
 
 #-------------------------------------------------------------------------------
@@ -813,64 +717,168 @@ def MeqNode (ns, rider,
     return node
 
 
+
+#-------------------------------------------------------------------------------
+# Make a node that just carries help:
+#-------------------------------------------------------------------------------
+
+def helpnode (ns, rider,
+              name=None,
+              node=None,
+              help=None,
+              func=None,
+              trace=False):
+    """
+    Syntax:
+    <function_call>
+    node = QRU.helpnode(ns, rider, name=None, node=None, help=None, func=None)
+    </function_call>
+
+    A special version of MeqNode(), for nodes that are only
+    used to carry a quickref_help field in their state-record.
+    <li> If no name is given, derive a name from the path.
+    <li> If a function is specified (func), use its name and docstring.
+    <li> If a node is specified, assume that it has a quickref_help field.
+    
+    Always make a bookmark for the node, with the 'QuickRef Display' viewer.
+    """
+    
+    hh = 'module'
+    if func:
+        hh = str(func.__module__)
+        if getattr(func, 'func_name', None):
+            name = str(func.func_name)+'()'
+        else:
+            ss = hh.split('.')
+            name = ss[len(ss)-1]
+        hh = '<font color="red">  (see module: '+hh+')</font>'
+        help = func.__doc__
+
+    elif not isinstance(name,str):
+        name = rider.nodestubname()
+
+    qhelp = rider.html_style()
+    qhelp += hh
+    qhelp += rider.check_html_tags(help, include_style=False)
+
+    if not is_node(node):
+        stub = EN.unique_stub(ns, name)
+        node = stub << Meq.Constant(value=-0.123456789,
+                                    quickref_help=qhelp)
+    else:
+        EN.quickref_help(node, append=qhelp)
+        # node.initrec().update(record(quickref_help=qhelp))
+
+    # Make a bookmark with a suitable viewer:
+    viewer = 'QuickRef Display'                                    # when implemented...
+    JEN_bookmarks.create(node, page=name, folder='helpnodes', viewer=viewer)
+    return node
+
+#-------------------------------------------------------------------------------
+# Entry routine:
+#-------------------------------------------------------------------------------
+
+
+def on_entry(ns, rider, func, trace=False):
+    """
+    <function_call>
+    stub = QRU.on_entry(ns, rider, func)
+    </function_call>
+
+    This function (and its twin QRU.on_exit()) is called upon entry of all
+    functions in QR_... modules:
+    <function_code>
+    def QR_function (ns, rider, func):
+        ... function doc-string (in triple-quotes)...
+        stub = QRU.on_entry(ns, rider, QR_function)
+        cc = []
+        cc.append(stub(qual) << MeqNode())          # generation of local nodes
+        ...
+        return QRU.on_exit (ns, rider, cc, ....)    # returns a single 'parent' node
+    </function_code>
+
+    QRU.on_entry() returns a node-stub, which should be used (with qualifiers) to generate
+    nodes in the function body. It is also used in the complelementary function
+    QRU.on_exit() to generate a 'parent' node that bundles the relevant nodes
+    (in list cc) that are generated.
+    """
+    rr = record()
+
+    if getattr(func, 'func_name', None):
+        rr.name = str(func.func_name)
+
+    ss = rr.name.split('_')
+    rr.path = rider.path(append=ss[len(ss)-1])
+
+    # Start the help-item (string) in the rider:
+    ritem = rider.topic_header(rr.path)
+    rr.help = func.__doc__
+    ritem += rider.check_html_tags(rr.help, include_style=False)
+    rider.insert_help (rr.path, ritem, append=False)
+
+    name = rider.nodestubname()
+    stub = EN.unique_stub(ns, name)
+    
+    if trace:
+        print '\n** .on_entry(',type(func),'):',ss,'->',rr.keys()
+    return stub
+   
+
 #-------------------------------------------------------------------------------
 # Exit routine, returns a single parent node:
 #-------------------------------------------------------------------------------
 
-def on_exit (ns, rider,
-             nodes=None, unop=None,
+def on_exit (ns, rider, nodes=None,
+             unop=None,
              parentclass='Composer', result_index=0,
-             help=None, make_helpnode=False,
+             node_help=False,
              show_recurse=False,
-             bookmark=True, viewer="Result Plotter",
-            trace=False):
+             bookmark=True,
+             viewer="QuickRef Display",
+             help=None,                 # legacy, not used at the moment.....
+             trace=False):
     """
     <function_call>
-    node = QuickRefUtil.on_exit (ns, rider, nodes=None, help, ...)
+    node = QuickRefUtil.on_exit (ns, rider, nodes=None, ...)
     </function_call>
     
     Returns a single parent node, with the given nodes as its children.
-    Makes bookmarks if required, and disposes of the help-string in two
-    ways: As the quickref_help in the state record of the parent node,
-    and in the proper place (path) of the CollatedHelpRecord (rider).
+    Makes bookmarks if required, and controls the attachment of help,
+    as quickref_help in node state record(s), and in the proper place (path)
+    of the CollatedHelpRecord (rider).
 
     Its arguments:
-    <li> ns: nodescope
-    <li> rider: CollatedHelpRecord object
+    <li> ns: nodescope (mandatory)
+    <li> rider: CollatedHelpRecord object (mandatory)
     <li> nodes[=None]: a list of nodes to be bundled
     <li> unop[=None]: zero or more unary operations on the nodes
     <li> parentclass[=Composer]: class of the parent node.
     This can be any class that takes an arbitrary nr of children.
     E.g.: Composer, Reqseq, Add, Multiply, etc
     <li> result_index[=0]: Used if parentclass=ReqSeq
-    <li> help[=None]: Help (string) to be attached as quickref_help to the parent
-    <li> make_helpnode[=False]:
+    <li> node_help[=False]: If True, attach help to each node, and add to rider.
     <li> show_recurse[=False]: If True or int>0, attach a formatted version of the
     parent subtree to the help, to the specified recursion depth (True=1000)
     <li> bookmark[=True]: If True, make a bookmark page of the given nodes.
     <li>   If a node or list of nodes, make the bookmark page of them.
-    <li> viewer[=Result Plotter]: The viewer to be used by the bookmark(s).
-    NB: viewer may be a list of viewers, one for each bookmarked node
+    <li> viewer[='QuickRef Display']: The viewer to be used by the bookmark(s).
+    NB: viewer may be a list of viewers, one for each bookmarked (!) node
     <li> trace[=False]: If True, print tracing messages (debugging)
     
     NB: This function is called at the exit of all functions in QR_... modules.
     """
 
+    #.......................................................................
+    # Optionally, attach node-help to all nodes, and the rider:
 
-    if True:
-        # Optionally, attach node-help to all nodes:
-        print '\n**',rider.path()
+    if node_help:
         for i, node in enumerate(nodes):
             QRNH.node_help(nodes[i], rider=rider, trace=False)
-            print '-',str(node),nodes[i].initrec().quickref_help.split('<<')[1].split('\n')[0]
 
     #.......................................................................
     # Deal with the bundle help information:
 
-    # Assemble the help-item (string) for the rider:
-    ritem = rider.topic_header(rider.path())
-    if isinstance(help, str):
-        ritem += rider.check_html_tags(help, include_style=False)
+    ritem = ''
 
     # Optional, show the node subtree(s) to the required depth:
     if show_recurse:
@@ -885,8 +893,7 @@ def on_exit (ns, rider,
 
     #.......................................................................
     # Make the bundle node:
-    # First make a nodestub with an unique name
-    name = rider.topic_name(rider.path())
+    name = rider.nodestubname()
     parent = EN.unique_stub(ns, name)
 
     # Special case: no nodes to be bundled:
@@ -927,10 +934,6 @@ def on_exit (ns, rider,
             parent << Meq.Composer(children=nodes,
                                    plot_label=plot_label,
                                    quickref_help=qhelp)
-
-    # If required, make a bookmark to the parent node, with a suitable viewer:
-    if make_helpnode:
-        helpnode(ns, rider, node=parent)
 
     # Make a meqbrowser bookmark for this bundle, if required:
     if bookmark:

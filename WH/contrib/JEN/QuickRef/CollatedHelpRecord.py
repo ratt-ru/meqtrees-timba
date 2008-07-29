@@ -67,11 +67,35 @@ class CollatedHelpRecord (object):
       self._chrec = record(help=None, order=[])
       self._folder = record()
       self._orphans = []
+      self._nodestub = None
       self.path(init='CollatedHelpRecord') 
       return None
 
    def chrec (self):
       return self._chrec
+
+   def nodestubname (self, trace=False):
+      """
+      Derive a nodestub name from the current path.
+      """
+      return self.path2name (n=2, trace=trace)
+
+   def path2name (self, n=None, trace=False):
+      """
+      Derive a name from n last sections of the current path.
+      """
+      ss = self._path.split('.')
+      if isinstance(n,int) and n>0:
+         ss1 = ss[-min(len(ss),n):]
+      else:
+         ss1 = ss
+      name = ss1[0]
+      if len(ss1)>1:
+         for s in ss1[1:]:
+            name += '_'+s
+      if trace:
+         print '** nodestubname():',ss,ss1,'->',name
+      return name
 
    #-------------------------------------------------------------------------------
 
@@ -128,8 +152,8 @@ class CollatedHelpRecord (object):
       if not rr.has_key(key):
          rr.order.append(key)
          rr[key] = record(help='')
-         if len(path)>1:
-            rr[key].order = []
+         # if len(path)>1:
+         rr[key].order = []
 
       if len(path)>1:                        # recursive
          self.insert_help(path=path[1:], help=help, rr=rr[key],
@@ -271,9 +295,10 @@ class CollatedHelpRecord (object):
 #      dialog.setTitle("Help")
 #      dialog.show()
 
+
    #---------------------------------------------------------------------
 
-   def topic_name(self, path, trace=False):
+   def topic_name(self, path=None, trace=False):
        """
        Use the path string to make a topic (bundle) name,
        to be used for the header and for bundle node-name etc.
@@ -281,6 +306,8 @@ class CollatedHelpRecord (object):
        The name of the bundle (node, page, folder) is the last
        part of the path string, i.e. after the last dot ('.')
        """
+       if path==None:
+          path = self.path()
        ss = path.split('.')
        nss = len(ss)
        name = ss[nss-1]
@@ -288,13 +315,15 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def topic_header(self, path, mode='html', trace=False):
+   def topic_header(self, path=None, mode='html', trace=False):
        """
        Use the path string to make a QuickRef topic header.
        Called from QuickRefUtil.py
        """
        # The name of the bundle (node, page, folder) is the last
        # part of the path string, i.e. after the last dot ('.')
+       if path==None:
+          path = self.path()
        ss = path.split('.')
        nss = len(ss)
        name = ss[nss-1]
@@ -583,8 +612,15 @@ class CollatedHelpRecord (object):
       If include_style==True, include the QuickRef html style file.
       """
       # print '\n',help,'\n'
+
+      # First replace some substrings that might mess up the html: 
+      ss = help.replace('<<',' &lt &lt &#32')                # escape char &lt = <  
+
+      # Split in lines, i.e. on the '\n' chars from a triple-quoted string:
       licount = 0
-      ss = help.split('\n')
+      ss = ss.split('\n')
+
+      # Look for specific features in the lines:
       mode_fcall = 0
       mode_fcode = 0
       for i,s in enumerate(ss):
@@ -622,20 +658,25 @@ class CollatedHelpRecord (object):
                licount += 1
 
          elif '<function_call>' in ss[i]:
-            ss[i] = 'Syntax:<center>\n' + ss[i]
+            ss[i] = 'Syntax:<center>\n'
+            ss[i] += '<font color="blue">'
+            ss[i] += s
             mode_fcall = 1
          elif '</function_call>' in ss[i]:
-            ss[i] = '</center>\n'
+            ss[i] = '</font>\n'
+            ss[i] += '</center>\n'
             mode_fcall = 0
             
          elif '<function_code>' in ss[i]:
             ss[i] = '<dl>\n<dt>\n'
+            ss[i] += '<font color="blue">'
             mode_fcode = 1
          elif '</function_code>' in ss[i]:
             ss[i] = '</dl>\n'
+            ss[i] += '</font>\n'
             mode_fcode = 0
 
-      # clean up:
+      # Clean up:
       for i in range(licount):
          ss.append('</ul>')
                 
@@ -667,19 +708,22 @@ if __name__ == '__main__':
 
    if 1:
       rider = CollatedHelpRecord()
- 
+
    if 1:
       rider.path(trace=True)
       rider.path(init='test', trace=True)
       rider.path(append='module', trace=True)
       rider.path(append='topic', trace=True)
       rider.path(append='subtopic', trace=True)
+      rider.nodestubname(trace=True)
       rider.path(up=True, trace=True)
       rider.path(up=True, trace=True)
       rider.path(temp='temp1', trace=True)
       rider.path(temp='temp2', trace=True)
       rider.path(trace=True)
+      rider.nodestubname(trace=True)
 
+ 
    if 0:
       cc = rider.orphans(ns << 1.2, trace=True)
       cc = rider.orphans(ns << 1.2, trace=True)

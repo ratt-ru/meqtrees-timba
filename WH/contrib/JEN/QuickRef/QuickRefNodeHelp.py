@@ -64,22 +64,78 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
    If a rider (CollatedHelpRecord) is specified, attach it too.
    """
 
-   if is_node(node):
-      ss = '<br><dl><dt><font color="blue">\n'
-      ss += EN.format_node(node)
-      ## qhead += ' &lt &lt &#32 Meq.'+str(meqclass)         # escape char &lt = <
-      ss += '\n</font><dd>\n'
-      cname = node.classname
-      rr = node.initrec()
+   if not is_node(node):
+      ss = '\n** QRNH.node_help('+str(type(node))+'): not a node **\n'
+      return ss
+
+   ss = '<br><dl><dt><font color="blue">\n'
+   ss += '\n<font color="magenta">\n'
+   ss += 'MeqNode: '
+   ss += str(node)+':'
+   ss += '\n</font>\n'
+   # ss += EN.format_node(node)
+   ## qhead += ' &lt &lt &#32 Meq.'+str(meqclass)         # escape char &lt = <
+   ss += '\n</font><dd>\n'
+
+   if False:
+      # print dir(node)
+      print node.name         # '(constant)'
+      print node.basename     # '(constant)'
+      print node.quals        # tuple ()
+      print node.kwquals      # dict {}
+      print node.classname    # 'MeqConstant'
+      print node.children     # list []
+      print node.num_children() # int 0
+      print node.num_parents()  # int 0
+      print node.parents      # <WeakValueDictionary at -1258575060>
+      print node.family()     # [<Timba.TDL.TDLimpl._NodeStub object at 0xb4e06aec>]
+      print str(node.family()[0])  # '(constant)(MeqConstant)'
+      print node.initrec()    # { class: MeqConstant, value: 4.5, tags: ['test'] }
+
+   # Add a line of general node info:
+   line = ''
+   nc = node.num_children()
+   if nc==0:
+      pass
+   elif nc==1:
+      line += 'child: '+str(node.children[0][1])
+   elif nc==2:
+      line += 'children: '+str(node.children[0][1])+', '+str(node.children[1][1])
    else:
-      cname = str(node)
-      ss = None
-      rr = None
+      line += str(nc)+' children: '+str(node.children[0][1])+' ... '+str(node.children[nc-1][1])
+   if not line=='':
+      ss += line+'<br>'
 
-   ss = class_help (cname, header=ss, rr=rr,
-                           detail=detail, rider=rider,
-                           mode=mode, trace=False)
+   # Add another line of initrec info:
+   line = ''
+   rr = node.initrec()
+   keys = rr.keys()
+   ignore = ['class','quickref_help']
+   for key in ignore:
+      if key in keys: keys.remove(key)
+   if len(keys)>0:
+      line += 'node.initrec().keys(): '+str(keys)
+   if rr.has_key('tags'):
+      line += '  (tags='+str(rr.tags)+')'
+   if not line=='':
+      ss += line+'<br>'
 
+   # Deal with any quickref_help:
+   key = 'quickref_help'
+   if rr.has_key(key):
+      qh = str(rr[key])
+      nq = len(qh)
+      nmax = 60
+      if nq<nmax:
+         ss += qh
+      else:
+         ss += qh[:nmax]+' ... ('+str(nq)+')'
+      ss += '<br>'
+   
+   ss = class_help (node.classname, header=ss, rr=rr,
+                    detail=detail, rider=rider,
+                    mode=mode, trace=False)
+   
    # Attach to quickref_help field of the node state record:
    if is_node(node):
       EN.quickref_help (node, append=ss, trace=trace)
@@ -111,6 +167,7 @@ def class_help (cname, header=None, rr=None,
       ss = header
 
    more = 'specific: '
+   more = ''
    if cname=='MeqConstant':
       more += 'constant leaf node, dims='+str(getattr(rr,'dims',None))
       more += ' value = '+str(getattr(rr,'value',None))
