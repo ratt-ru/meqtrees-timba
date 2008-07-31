@@ -103,10 +103,11 @@ class QuickRefPlotter(GriddedPlugin):
        self.status_label.setText(status)
 
   def set_data (self,dataitem,default_open=None,**opts):
-    """ this callback receives data from the meqbrowser, when the
-        user has requested a QuickRef display . If there is a 
-        'quickref_help' record it will be shown via a QTextEdit 
-        widget in the browser """
+    """ This callback receives data from the meqbrowser, when the
+    user has requested a QuickRef display . If there is a 
+    'quickref_help' field (string) it will be shown via a
+    QTextEdit widget in the browser.
+    """
 
     _dprint(3, '** in quickref_plotter:set_data callback')
     self._rec = dataitem.data;
@@ -117,48 +118,13 @@ class QuickRefPlotter(GriddedPlugin):
       print '\n** self.rec does not have quickref_help field'
     else:
       qh = self._rec.quickref_help
-      print '\n** self.rec.quickref_help:',type(qh)
+      # print '\n** self.rec.quickref_help:',type(qh)
       if isinstance(qh,str):
         self.create_layout_stuff()
         self.QTextEdit.setText(qh)
         self.QTextEdit.show()
     return
 
-
-
-  def set_data_obsolete (self,dataitem,default_open=None,**opts):
-    """ this callback receives data from the meqbrowser, when the
-        user has requested a QuickRef display . If there is a 
-        'quickref_help' record it will be shown via a QTextEdit 
-        widget in the browser """
-
-    _dprint(3, '** in quickref_plotter:set_data_obsolete callback')
-    self._rec = dataitem.data;
-    _dprint(3, 'set_data: initial self._rec ', self._rec)
-    if self._rec is None:
-      return
-    if isinstance(self._rec, bool):
-      return
-    if self._rec.has_key("quickref_help"):
-      qh = self._rec.quickref_help['help']
-      print '\n** qh =',type(qh),':',qh
-      Message = ""
-      try:
-        for i in range(len(qh)):
-          text = str(qh[i])
-          print '-',i,':',text
-          if not text is None:
-            Message = Message + text +"\n"
-      except:
-        print 'exception'  
-        pass
-      if len(Message) > 0:
-        # create widgets 
-        self.create_layout_stuff()
-        # display text string
-        self.QTextEdit.setText(Message)
-        self.QTextEdit.show()
-      return
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),QuickRefPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass(),QuickRefPlotter,priority=22)
