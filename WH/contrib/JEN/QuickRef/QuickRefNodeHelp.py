@@ -68,14 +68,14 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
       ss = '\n** QRNH.node_help('+str(type(node))+'): not a node **\n'
       return ss
 
-   ss = '<br><dl><dt><font color="blue">\n'
-   ss += '\n<font color="magenta">\n'
+   ss = '<dl><dt><font color="blue">'
+   ss += '<font color="blue">'
    ss += 'MeqNode: '
    ss += str(node)+':'
-   ss += '\n</font>\n'
+   ss += '</font>'
    # ss += EN.format_node(node)
    ## qhead += ' &lt &lt &#32 Meq.'+str(meqclass)         # escape char &lt = <
-   ss += '\n</font><dd>\n'
+   ss += '</font><dd>'
 
    if False:
       # print dir(node)
@@ -158,9 +158,9 @@ def class_help (cname, header=None, rr=None,
    """
 
    if header==None:
-      ss = '<br><dl><dt><font color="blue">\n'
+      ss = '<dl><dt><font color="blue">'
       ss += 'MeqNode of class: '+str(cname)
-      ss += '\n</font><dd>\n'
+      ss += '</font><dd>'
       rr = record()
    else:
       # Assume that this is called by node_help()
@@ -303,7 +303,7 @@ def class_help (cname, header=None, rr=None,
 
    # Finishing touches:
    ss += more
-   ss += '\n</dl><br>\n'
+   ss += '</dl>\n'
 
    if rider:
       rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)

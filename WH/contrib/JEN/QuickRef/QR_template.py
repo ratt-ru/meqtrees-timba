@@ -167,7 +167,7 @@ def QR_template (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #********************************************************************************
@@ -195,7 +195,7 @@ def make_helpnodes (ns, rider):
    if override or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -233,7 +233,7 @@ def topic1 (ns, rider):
    if override or opt_topic1_subtopic1:
       cc.append(topic1_subtopic1 (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
@@ -254,7 +254,7 @@ def topic1_subtopic1 (ns, rider):
    stub = QRU.on_entry(ns, rider, topic1_subtopic1)
    cc = []
 
-   return QRU.on_exit (ns, rider, cc, viewer='Result Plotter')
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -276,7 +276,7 @@ def topic2 (ns, rider):
    if override or opt_topic2_subtopic2:
       cc.append(topic2_subtopic2 (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
@@ -288,23 +288,38 @@ def topic2_subtopic1 (ns, rider):
    stub = QRU.on_entry(ns, rider, topic2_subtopic1)
    cc = []
 
-   return QRU.on_exit (ns, rider, cc, viewer='Result Plotter', node_help=True)
+   return QRU.on_exit (ns, rider, cc)
 
 #================================================================================
 
 def topic2_subtopic2 (ns, rider):
    """
+   <warning>
    topic2_subtopic2 treats ....
+   </warning>
+   <error>
+   topic2_subtopic2 treats ....
+   </error>
+   <remark>
+   topic2_subtopic2 treats ....
+   </remark>
    """
    stub = QRU.on_entry(ns, rider, topic2_subtopic2)
    cc = []
 
    # Remove this part:
    twig = ET.twig(ns,'f')
+   node = None
    for q in ['Sin','Cos','Tan']:
-      cc.append(stub(q) << getattr(Meq,q)(twig))
+      # cc.append(stub(q) << getattr(Meq,q)(twig))
+      cc.append('** inserted extra help on '+q+' as string items in nodes (cc) **')
+      cc.append(dict(node=stub(q) << getattr(Meq,q)(twig)))
 
-   return QRU.on_exit (ns, rider, cc, viewer='Result Plotter', node_help=True)
+   bhelp = """
+   It is also possible to append extra bundle help
+   via the .on_exit() help argument.
+   """
+   return QRU.on_exit (ns, rider, cc, help=bhelp)
 
 
 
@@ -331,7 +346,8 @@ def _define_forest (ns, **kwargs):
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_template(ns, rider)])
+                nodes=[QR_template(ns, rider)],
+                mode='group')
 
    # Finished:
    QRU.ET.EN.bundle_orphans(ns)

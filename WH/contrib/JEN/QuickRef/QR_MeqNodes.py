@@ -30,6 +30,7 @@ But it may also be used stand-alone.
 #   - 07 jun 2008: added 4D (L,M)
 #   - 07 jun 2008: import EasyTwig as ET
 #   - 09 jun 2008: implemented make_helpnodes
+#   - 30 jul 2008: removed QRU.MeqNode() etc
 #
 # Description:
 #
@@ -199,7 +200,7 @@ def QR_MeqNodes (ns, rider):
    if override or opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -217,7 +218,7 @@ def make_helpnodes (ns, rider):
    if opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
@@ -243,7 +244,7 @@ def unops (ns, rider):
    cc.append(unops_power (ns, rider, twig))
    cc.append(unops_misc (ns, rider, twig))
    cc.append(unops_complex (ns, rider, twig))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
@@ -258,7 +259,7 @@ def leaves (ns, rider):
    cc.append(leaves_parm (ns, rider))
    cc.append(leaves_grids (ns, rider))
    cc.append(leaves_noise (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -278,7 +279,7 @@ def tensor (ns, rider):
    cc.append(tensor_manipulation (ns, rider))
    cc.append(tensor_matrix (ns, rider))
    cc.append(tensor_matrix22 (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -301,7 +302,7 @@ def axisreduction (ns, rider):
    cc.append(axisreduction_single (ns, rider))
    cc.append(axisreduction_multiple (ns, rider))
    cc.append(axisreduction_axes (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -336,7 +337,7 @@ def resampling (ns, rider):
    cc = []
    cc.append(resampling_experiment (ns, rider,
                                     twig, num_cells, mode))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
@@ -350,7 +351,7 @@ def compounder (ns, rider):
    stub = QRU.on_entry(ns, rider, compounder)
    cc = []
    cc.append(compounder_simple (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -366,7 +367,7 @@ def flowcontrol (ns, rider):
    cc = []
    cc.append(flowcontrol_reqseq (ns, rider))
    # cc.append(flowcontrol_reqmux (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
@@ -379,7 +380,7 @@ def flagging (ns, rider):
    cc = []
    cc.append(flagging_simple (ns, rider))
    # cc.append(flagging_merge (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -394,7 +395,7 @@ def solving (ns, rider):
    stub = QRU.on_entry(ns, rider, solving)
    cc = []
    cc.append(solving_ab (ns, rider))    
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
@@ -410,7 +411,7 @@ def visualization (ns, rider):
    stub = QRU.on_entry(ns, rider, visualization)
    cc = []
    cc.append(visualization_inspector(ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
@@ -434,7 +435,7 @@ def transforms (ns, rider):
    cc = []
    # cc.append(transforms_coord (ns, rider))
    # cc.append(transforms_FFT (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -483,7 +484,7 @@ def flowcontrol_reqseq (ns, rider):
                      name='ReqSeq(*cc, result_index='+str(rindex)+')',
                      children=cc, help=help, result_index=rindex)
    CC = EN.unique_stub(ns,'cc') << Meq.Composer(*cc)
-   return QRU.on_exit (ns, rider, nodes=[node,CC], help=rr.help)
+   return QRU.on_exit (ns, rider, [node,CC])
 
 
 #--------------------------------------------------------------------------------
@@ -526,7 +527,7 @@ def visualization_inspector (ns, rider):
    node = QRU.MeqNode(ns, rider,
                       meqclass='Composer', name='inspector',
                       children=cc, help=help, plot_label=plot_label)
-   return QRU.on_exit (ns, rider, nodes=[node], help=rr.help,
+   return QRU.on_exit (ns, rider, [node],
                       viewer='Collections Plotter')
 
 
@@ -684,8 +685,8 @@ def resampling_experiment (ns, rider,
                             help='resamples the domain according to the twig request',
                             children=[modres], mode=mode)
    diff = EN.unique_stub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
-   return QRU.on_exit (ns, rider, nodes=[diff], help=rr.help,
-                     bookmark=[original, modres, resampled, diff])
+   # bookmark=[original, modres, resampled, diff])
+   return QRU.on_exit (ns, rider, [diff])
 
 
 
@@ -1077,13 +1078,13 @@ def unops_goniometric (ns, rider, twig=None):
    cc = []
    for q in ['Sin','Cos','Tan','Asin','Acos','Atan']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
-   if True:
-      help = 'Applying a function to its inverse should yield unity'
-      rider.insert_help
-      cc.append(stub('AsinSin') << Meq.Asin(cc[0]))
-      cc.append(stub('AcosCos') << Meq.Acos(cc[1]))
-      cc.append(stub('AtanTan') << Meq.Atan(cc[2]))
-   return QRU.on_exit (ns, rider, cc, viewer='Result Plotter', node_help=True)
+   cc.append('Applying a function to its inverse should yield unity')
+   cc.append(stub('AsinSin') << Meq.Asin(cc[0]))
+   cc.append(stub('AcosCos') << Meq.Acos(cc[1]))
+   cc.append(stub('AtanTan') << Meq.Atan(cc[2]))
+   return QRU.on_exit (ns, rider, cc,
+                       help='** Extra topic help **',
+                       show_recurse=True)
 
 #--------------------------------------------------------------------------------
 

@@ -363,16 +363,19 @@ class CollatedHelpRecord (object):
       <style type=\"text/css\">
       body {color: black; background: white; font-size: 11px; }
       body, div, p, th, td, li, dd {font-family: Verdana Lucida, Arial, Helvetica, sans-serif; }
-      h0 {color: yellow;}
-      h1 {color: red;}
-      h2 {color: magenta;}
-      h3 {color: green;}
-      h4 {color: blue;}
-      h5 {color: blue;}
       </style>
       </head>
       """
       return self.html_style.__doc__
+
+
+   # NOT recommended:
+   # h0 {color: yellow;}
+   # h1 {color: red;}
+   # h2 {color: magenta;}
+   # h3 {color: green;}
+   # h4 {color: blue;}
+   # h5 {color: blue;}
 
    #---------------------------------------------------------------------
 
@@ -428,7 +431,7 @@ class CollatedHelpRecord (object):
          # ss += prefix
          pass
       if level==0:
-         ss += '**\n</html>'
+         ss += '\n</html>'
          if trace:
             print '\n** End of .format_html():\n'
             print ss
@@ -605,6 +608,25 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
+   def countag (self, tag=None, action=None, 
+                init=False, txt=None, trace=False):
+      """Helper function for .check_html_tags()"""
+      if init:
+         self._countag = dict()
+      if isinstance(tag,str):
+         self._countag.setdefault(tag, 0)
+         if action=='up':
+            self._countag[tag] += 1
+         elif action=='down':
+            self._countag[tag] -= 1
+         elif action=='reset':
+            self._countag[tag] = 0
+         return self._countag[tag]
+      return self._countag
+      
+
+   #---------------------------------------------------------------------
+
    def check_html_tags(self, help, include_style=False, trace=False):
       """
       Check for the presence and integrity of a minimum of html tags
@@ -619,67 +641,86 @@ class CollatedHelpRecord (object):
       ss = help.replace('<<',' &lt &lt &#32')                # escape char &lt = <  
 
       # Split in lines, i.e. on the '\n' chars from a triple-quoted string:
-      licount = 0
       ss = ss.split('\n')
 
       # Look for specific features in the lines:
-      mode_fcall = 0
-      mode_fcode = 0
+      self.countag(init=True)
       for i,s in enumerate(ss):
          if trace:
             print '-',i,':',ss[i]
 
-         if mode_fcall>0:
-            mode_fcall += 1
-         elif mode_fcode>0:
-            # print 'mode_fcode=',mode_fcode
-            if mode_fcode==2:
+         if self.countag('function_call')>0:
+            self.countag('function_call','up')
+
+         elif self.countag('function_code')>0:
+            if self.countag('function_code')==2:
                ss[i] = '<dd>\n'+s
-            mode_fcode += 1
+            self.countag('function_code','up')
             ss[i] += '<br>'
 
          if ss[i] in ['',' ','  ','   ','    ']:      # blank line
             ss[i] = ''
-            if licount>0:
-               licount -= 1
+            if self.countag('ul')>0:
+               self.countag('ul','down')
                ss[i] += '</ul>\n'
             ss[i] += '<p>'
 
          elif '<ul>' in ss[i]:              # start of unordered list
-            licount += 1
+            self.countag('ul','up')
          elif '</ul>' in ss[i]:             # end of unordered list
-            licount -= 1
+            self.countag('ul','down')
          elif '<li>' in ss[i]:              # list element (assume unordered list)
             aa = ss[i].split(':')
             if len(aa)>1:
                ss[i] = '<font color="blue">' + aa[0] + ':' + '</font> '   # NB: forces a line-break...!
                for k,a in enumerate(aa):
                   if k>0: ss[i] += a
-            if licount==0:
+            if self.countag('ul')==0:
                ss[i] = '<ul>\n'+ss[i]
-               licount += 1
+               self.countag('ul','up')
 
          elif '<function_call>' in ss[i]:
             ss[i] = 'Syntax:<center>\n'
             ss[i] += '<font color="blue">'
             ss[i] += s
-            mode_fcall = 1
+            self.countag('function_call','up')
          elif '</function_call>' in ss[i]:
             ss[i] = '</font>\n'
             ss[i] += '</center>\n'
-            mode_fcall = 0
+            self.countag('function_call','reset')
             
          elif '<function_code>' in ss[i]:
+            self.countag('function_code','up')
             ss[i] = '<dl>\n<dt>\n'
             ss[i] += '<font color="blue">'
-            mode_fcode = 1
          elif '</function_code>' in ss[i]:
+            self.countag('function_code','reset')
             ss[i] = '</dl>\n'
             ss[i] += '</font>\n'
-            mode_fcode = 0
+
+         elif '<warning>' in ss[i]:
+            self.countag('warning','up')
+            ss[i] += '<font color="magenta"> Warning:'
+         elif '</warning>' in ss[i]:
+            self.countag('warning','reset')
+            ss[i] += '</font>\n'
+
+         elif '<error>' in ss[i]:
+            self.countag('error','up')
+            ss[i] += '<font color="red"> Error:'
+         elif '</error>' in ss[i]:
+            self.countag('error','reset')
+            ss[i] += '</font>\n'
+
+         elif '<remark>' in ss[i]:
+            self.countag('remark','up')
+            ss[i] += '<font color="green"> NB:'
+         elif '</remark>' in ss[i]:
+            self.countag('remark','reset')
+            ss[i] += '</font>\n'
 
       # Clean up:
-      for i in range(licount):
+      for i in range(self.countag('ul')):
          ss.append('</ul>')
                 
       # Reassemble a single string, with line-breaks:

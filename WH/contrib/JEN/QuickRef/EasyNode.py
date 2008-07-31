@@ -291,7 +291,7 @@ def format_tree (node, ss='', recurse=True,
     prefix = '\n'+(level*' |  ')+' '
     postfix = ''
     if mode=='html':
-        prefix = '\n'+(level*' |..')+' '
+        prefix = '\n'+(level*' |......')+' '
         postfix = '<br>'
     
     if trace:
@@ -324,7 +324,6 @@ def format_tree (node, ss='', recurse=True,
             tags = getattr(initrec,'tags',None)
             if tags:
                 ss += '   (tags='+str(tags)+')'
-        ss += postfix
 
         # Some clutter-avoiding:
         slevel = str(level)
@@ -336,7 +335,8 @@ def format_tree (node, ss='', recurse=True,
         if not full:
             if node.basename in basenames[slevel]:
                 stophere = True
-                s1 = '... similar to earlier nodes at this level with basename: '+node.basename
+                s1 = '... {similar to earlier nodes at this level}'
+                # with basename: '+node.basename
             else:
                 basenames[slevel].append(node.basename)
 
@@ -350,11 +350,12 @@ def format_tree (node, ss='', recurse=True,
         # Do its children (recursively), if required:
         if getattr(node, 'children', None):
             if stophere:                                 # stop here (see above)
-                ss += '       ' + s1 + postfix
+                ss += '       ' + s1
             elif level>=recurse:                         # only to the specified recursion depth
-                ss += prefix + '   .....' + postfix      # indicate that the subtree is deeper
+                ss += prefix + '   .....'                # indicate that the subtree is deeper
             else:
                 for c in node.children:
+                    ss += postfix
                     ss = format_tree(c[1], ss=ss, recurse=recurse, mode=mode,
                                      nodenames=nodenames, basenames=basenames,
                                      full=full, level=level+1, trace=trace)
