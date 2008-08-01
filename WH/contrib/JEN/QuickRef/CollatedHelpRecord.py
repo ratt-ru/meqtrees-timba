@@ -623,7 +623,17 @@ class CollatedHelpRecord (object):
             self._countag[tag] = 0
          return self._countag[tag]
       return self._countag
-      
+
+   #---------------------------------------------------------------------
+
+   def replace_html_chars (self, help, trace=False):
+      """Replace characters that cause problems with html
+      with their escape versions."""
+      ss = help
+      ss = ss.replace('<<',' &lt &lt &#32')          # escape char &lt = <  
+      ss = ss.replace('<',' &lt ')                    # escape char &lt = <  
+      ss = ss.replace('>',' &gt ')                    # escape char &gt = >  
+      return ss
 
    #---------------------------------------------------------------------
 
@@ -638,7 +648,7 @@ class CollatedHelpRecord (object):
          help = ''
 
       # First replace some substrings that might mess up the html: 
-      ss = help.replace('<<',' &lt &lt &#32')                # escape char &lt = <  
+      ss = self.replace_html_chars (help, trace=False)
 
       # Split in lines, i.e. on the '\n' chars from a triple-quoted string:
       ss = ss.split('\n')

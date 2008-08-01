@@ -14,7 +14,7 @@ But it may also be used stand-alone.
 .    for the selected categories.
 """
 
-# file: ../JEN/demo/QR_MeqNodes.py:
+# file: ../JEN/QuickRef/QR_MeqNodes.py:
 #
 # Author: J.E.Noordam
 #
@@ -98,24 +98,24 @@ TDLCompileMenu("QR_MeqNodes topics:",
                # TDLOption_user_level,               # ... needs some thought ...
                # TDLOption('opt_allcats',"all",True),
                TDLOption('opt_alltopics',"override: include all topics",True),
-               TDLMenu("Unary nodes (one child)",
+               TDLMenu("Unary math (unops) nodes (one child)",
                        TDLOption('opt_unops_twig',"input twig (child node)",
                                  ET.twig_names(), more=str),
                        toggle='opt_unops'),
-               TDLMenu("Binary math nodes (two children)",
-                       TDLOption('opt_binops_math_lhs',"lhs twig (child node)",
+               TDLMenu("Binary math (binops) nodes (two children)",
+                       TDLOption('opt_binops_lhs',"lhs twig (child node)",
                                  ET.twig_names(), more=str),
-                       TDLOption('opt_binops_math_rhs',"rhs twig (child node)",
+                       TDLOption('opt_binops_rhs',"rhs twig (child node)",
                                  ET.twig_names(), more=str),
-                       toggle='opt_binops_math'),
-               TDLMenu("Math on an arbitrary nr of children",
-                       TDLOption('opt_multi_math_twig1',"1st twig (child node)",
+                       toggle='opt_binops'),
+               TDLMenu("Multimath: one or more children",
+                       TDLOption('opt_multimath_twig1',"1st twig (child node)",
                                  ET.twig_names(), more=str),
-                       TDLOption('opt_multi_math_twig2',"2nd twig (child node)",
+                       TDLOption('opt_multimath_twig2',"2nd twig (child node)",
                                  ET.twig_names(include=[None]), more=str),
-                       TDLOption('opt_multi_math_twig3',"3rd twig (child node)",
+                       TDLOption('opt_multimath_twig3',"3rd twig (child node)",
                                  ET.twig_names(include=[None]), more=str),
-                       toggle='opt_multi_math'),
+                       toggle='opt_multimath'),
                TDLOption('opt_leaves',"Leaf nodes (no children)",False),
                TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
                TDLOption('opt_axisreduction',"axisreduction",False),
@@ -172,10 +172,10 @@ def QR_MeqNodes (ns, rider):
    
    if override or opt_unops:
       cc.append(unops (ns, rider))
-   if override or opt_binops_math:
-      cc.append(binops_math (ns, rider))
-   if override or opt_multi_math:
-      cc.append(multi_math (ns, rider))
+   if override or opt_binops:
+      cc.append(binops (ns, rider))
+   if override or opt_multimath:
+      cc.append(multimath (ns, rider))
    if override or opt_leaves:             
       cc.append(leaves (ns, rider))
    if override or opt_tensor:
@@ -205,8 +205,6 @@ def QR_MeqNodes (ns, rider):
 
 
 #********************************************************************************
-# 2nd tier: Functions called from the top function above:
-#********************************************************************************
 
 def make_helpnodes (ns, rider):
    """
@@ -220,200 +218,16 @@ def make_helpnodes (ns, rider):
 
    return QRU.on_exit (ns, rider, cc, mode='group')
 
-#--------------------------------------------------------------------------------
 
-def unops (ns, rider):
-   """
-   Unary math operations on one child, which may be a 'tensor node' (i.e. multiple
-   vellsets in its Result). An illegal operation (e.g. sqrt(-1)) produces a NaN
-   (Not A Number) for that cell, which is then carried all the way downstream
-   (i.e. from child to parent, towards the root of the tree). It does NOT produce
-   a FAIL. See also ....
-
-   The best way to visualize the operation of unary nodes is to use an MeqFreq (f)
-   or MeqTime (t) as input twig (node), and to execute with a 1-dim domain. Since
-   these variables increase linearly over the domain, this produces simple plots
-   of the function value vs its argument. 
-   """
-   stub = QRU.on_entry(ns, rider, unops)
-   twig = ET.twig (ns, opt_unops_twig)
-   cc = [] 
-   cc.append(unops_elementary (ns, rider, twig))
-   cc.append(unops_goniometric (ns, rider, twig))
-   cc.append(unops_hyperbolic (ns, rider, twig))
-   cc.append(unops_power (ns, rider, twig))
-   cc.append(unops_misc (ns, rider, twig))
-   cc.append(unops_complex (ns, rider, twig))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-#--------------------------------------------------------------------------------
-
-def leaves (ns, rider):
-   """
-   Leaf nodes have no children. They often (but not always) have access to
-   some external source of information (like a file) to satisfy a request. 
-   """
-   stub = QRU.on_entry(ns, rider, leaves)
-   cc = []
-   cc.append(leaves_constant (ns, rider))
-   cc.append(leaves_parm (ns, rider))
-   cc.append(leaves_grids (ns, rider))
-   cc.append(leaves_noise (ns, rider))
-   return QRU.on_exit (ns, rider, cc, mode='group')
+#********************************************************************************
+# Topics and their subtopics:
+#********************************************************************************
 
 
-#--------------------------------------------------------------------------------
 
-def tensor (ns, rider):
-   """
-   Many node classes can handle Results with multiple vellsets.
-   They are somewhat clumsily (and wrongly) called 'tensor nodes'.
-   The advantages of multiple vellsets are:
-   - the trees are more compact, so easier to define and read
-   - efficiency: execution can be optimized internally
-   - they allow special nodes that do matrix/tensor operations
-   - etc, etc
-   """
-   stub = QRU.on_entry(ns, rider, tensor)
-   cc = []
-   cc.append(tensor_manipulation (ns, rider))
-   cc.append(tensor_matrix (ns, rider))
-   cc.append(tensor_matrix22 (ns, rider))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-
-#--------------------------------------------------------------------------------
-
-def axisreduction (ns, rider):
-   """
-   Axisreduction nodes reduce the values of all domain cells to a smaller
-   number of values (e.g. their mean). They operate on all the vellsets
-   in the Result(s) of their child(ren?).
-   NB: It is not clear (to me, in this stage) what happens if some cells
-   are flagged....!?
-   If one or more reduction_axes are specified, the reduction is only
-   along the specified axes (e.g. reduction_axes=['time'] reduces only
-   the time-axis to length 1. The default is all available axes, of course. 
-   The Result of a reduction node will be expanded when needed to fit a
-   domain of the original size, in which multiple cells have the same value.
-   """
-   stub = QRU.on_entry(ns, rider, axisreduction)
-   cc = []
-   cc.append(axisreduction_single (ns, rider))
-   cc.append(axisreduction_multiple (ns, rider))
-   cc.append(axisreduction_axes (ns, rider))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-
-#--------------------------------------------------------------------------------
-
-def resampling (ns, rider):
-   """
-   The number of cells in the domain may be changed locally:
-   ...
-   - The MeqModRes(child, num_cells=[2,3]) node changes the number
-   of cells in the domain of the REQUEST that it issues to its child.
-   Thus, the entire subtree below the child is evaluated with this
-   resolution. 
-   - The MeqResample(child, mode=1) resamples the domain of the Result
-   it gets from its child, to match the resolution of the Request that
-   it received itself. (So it does nothing if the domains already match,
-   i.e. if there is no MeqModRes upstream).
-   - The MeqResample(child, mode=2) resamples in a different way...
-   .....
-   This feature has been developed (by Sarod) for 'peeling': If the
-   phase-centre is shifted to the position of the peeling source, its
-   visibility function will be smooth over the domain, so it is not
-   necessary to predict it at the full time/freq resolution of the data.
-   Since the number of cells may be 100 less, this can save a lot of
-   processing.
-   There may also be other applications of these nodes....
-   """
-   stub = QRU.on_entry(ns, rider, resampling)
-   twig = ET.twig (ns, opt_resampling_MeqModRes_twig)
-   num_cells = [opt_resampling_MeqModRes_num_time,
-                opt_resampling_MeqModRes_num_freq]
-   mode = opt_resampling_MeqResampler_mode
-   cc = []
-   cc.append(resampling_experiment (ns, rider,
-                                    twig, num_cells, mode))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-#--------------------------------------------------------------------------------
-
-def compounder (ns, rider):
-   """
-   The MeqCompounder node interpolates ....
-   The extra_axes argument
-   should be a MeqComposer that bundles the extra (coordinate) children,
-   described by the common_axes argument (e.g. [hiid('L'),hiid('M')].                  
-   """
-   stub = QRU.on_entry(ns, rider, compounder)
-   cc = []
-   cc.append(compounder_simple (ns, rider))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-
-#--------------------------------------------------------------------------------
-
-def flowcontrol (ns, rider):
-   """
-   MeqReqSeq
-   MeqReqMux
-   MeqSink
-   MeqVisDataMux
-   """
-   stub = QRU.on_entry(ns, rider, flowcontrol)
-   cc = []
-   cc.append(flowcontrol_reqseq (ns, rider))
-   # cc.append(flowcontrol_reqmux (ns, rider))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-#--------------------------------------------------------------------------------
-
-def flagging (ns, rider):
-   """
-   MeqZeroFlagger
-   MeqMergeFlags
-   """
-   stub = QRU.on_entry(ns, rider, flagging)
-   cc = []
-   cc.append(flagging_simple (ns, rider))
-   # cc.append(flagging_merge (ns, rider))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-
-#--------------------------------------------------------------------------------
-
-def solving (ns, rider):
-   """
-   The purpose of MeqTrees is not only to allow the implementation of an arbitrary
-   Measurement Equation, but also to solve for (arbitrary subsets of) its parameters.
-   This is treated in detail in a separate module (QR_solving). For completeness,
-   we show a single simple example here.
-   """
-   stub = QRU.on_entry(ns, rider, solving)
-   cc = []
-   cc.append(solving_ab (ns, rider))    
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-#--------------------------------------------------------------------------------
-
-def visualization (ns, rider):
-   """
-   MeqComposer (inpector)
-   MeqParmFiddler
-   MeqDataCollect (?)
-   MeqDataConcat (?)
-   MeqHistoryCollect (?)
-   point to pyNodes...
-   """
-   stub = QRU.on_entry(ns, rider, visualization)
-   cc = []
-   cc.append(visualization_inspector(ns, rider))
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-#--------------------------------------------------------------------------------
+#================================================================================
+# transforms_... 
+#================================================================================
 
 def transforms (ns, rider):
    """
@@ -437,21 +251,7 @@ def transforms (ns, rider):
    # cc.append(transforms_FFT (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
-
-
-
-
-#********************************************************************************
-#********************************************************************************
-#********************************************************************************
-#********************************************************************************
-# 3rd tier: Functions called from functions at the 2nd tier above
-#********************************************************************************
-#********************************************************************************
-
-#================================================================================
-# transforms_... 
-#================================================================================
+#--------------------------------------------------------------------------------
 
 def transforms_astro (ns, rider):
    """
@@ -467,6 +267,22 @@ def transforms_astro (ns, rider):
 #================================================================================
 # flowcontrol_... 
 #================================================================================
+
+def flowcontrol (ns, rider):
+   """
+   MeqReqSeq
+   MeqReqMux
+   MeqSink
+   MeqVisDataMux
+   """
+   stub = QRU.on_entry(ns, rider, flowcontrol)
+   cc = []
+   cc.append(flowcontrol_reqseq (ns, rider))
+   # cc.append(flowcontrol_reqmux (ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
+
 
 def flowcontrol_reqseq (ns, rider):
    """
@@ -494,6 +310,22 @@ def flowcontrol_reqseq (ns, rider):
 # visualization_... 
 #================================================================================
 
+def visualization (ns, rider):
+   """
+   MeqComposer (inpector)
+   MeqParmFiddler
+   MeqDataCollect (?)
+   MeqDataConcat (?)
+   MeqHistoryCollect (?)
+   point to pyNodes...
+   """
+   stub = QRU.on_entry(ns, rider, visualization)
+   cc = []
+   cc.append(visualization_inspector(ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
+
 def visualization_inspector (ns, rider):
    """
    An 'inspector' is a MeqComposer node. Its default viewer (invoked when
@@ -501,16 +333,16 @@ def visualization_inspector (ns, rider):
    plots time-tracks of its children in a single plot. If the keyword
    argument 'plot_label' is given a list of strings, these are used as
    labels in the plot.
-   - The plotter takes the average over all the non-time axes over the domain.
-   .   (this is equivalent to axisreduction with reduction_axis=all-except-time)
-   .   Exercise: Play with different input twigs, and different domain axes.
-   - When the result is complex, one may toggle betweem ampl,phase,real,imag. 
-   - When a sequence is executed, the tim-slots are plotted sequentially.
-   .   NB: this can be confusing, since the time-axis is really a sequence-axis...
-   .   Exercise: Execute a sequence with different fractional time-steps.
-   .   (a time-step of 1.0 steps by the domain size, so the time is continuous)
-   - When the tree is excuted again, the new result is plotted after what is there
-   .   already. The plot can be cleared via its right-clicking menu.
+   <li> The plotter takes the average over all the non-time axes over the domain.
+   (this is equivalent to axisreduction with reduction_axis=all-except-time)
+   Exercise: Play with different input twigs, and different domain axes.
+   <li> When the result is complex, one may toggle betweem ampl,phase,real,imag. 
+   <li> When a sequence is executed, the tim-slots are plotted sequentially.
+   NB: this can be confusing, since the time-axis is really a sequence-axis...
+   Exercise: Execute a sequence with different fractional time-steps.
+   (a time-step of 1.0 steps by the domain size, so the time is continuous)
+   <li> When the tree is excuted again, the new result is plotted after what is there
+   already. The plot can be cleared via its right-clicking menu.
    On the whole, the Inspector is very useful, but it has its limitation.
    For more control, check out the PyNodePlots.
    """
@@ -535,12 +367,26 @@ def visualization_inspector (ns, rider):
 # solving_... 
 #================================================================================
 
+def solving (ns, rider):
+   """
+   The purpose of MeqTrees is not only to allow the implementation of an arbitrary
+   Measurement Equation, but also to solve for (arbitrary subsets of) its parameters.
+   This is treated in detail in a separate module (QR_solving). For completeness,
+   we show a single simple example here.
+   """
+   stub = QRU.on_entry(ns, rider, solving)
+   cc = []
+   cc.append(solving_ab (ns, rider))    
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
+
 def solving_ab (ns, rider):
    """
    Demonstration of solving for two unknown parameters (a,b),
    using two linear equations (one condeq child each):
-   - condeq 0:  a + b = p (=10)
-   - condeq 1:  a - b = q (=2)
+   <li> condeq 0:  a + b = p (=10)
+   <li> condeq 1:  a - b = q (=2)
    The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
    Condeq Results are the solution residuals, which should be small.
    """
@@ -580,6 +426,19 @@ def solving_ab (ns, rider):
 # flagging_... 
 #================================================================================
 
+def flagging (ns, rider):
+   """
+   MeqZeroFlagger
+   MeqMergeFlags
+   """
+   stub = QRU.on_entry(ns, rider, flagging)
+   cc = []
+   cc.append(flagging_simple (ns, rider))
+   # cc.append(flagging_merge (ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+
+#--------------------------------------------------------------------------------
   
 def flagging_simple (ns, rider):
    """
@@ -618,6 +477,20 @@ def flagging_simple (ns, rider):
 # compounder_... 
 #================================================================================
 
+def compounder (ns, rider):
+   """
+   The MeqCompounder node interpolates ....
+   The extra_axes argument
+   should be a MeqComposer that bundles the extra (coordinate) children,
+   described by the common_axes argument (e.g. [hiid('L'),hiid('M')].                  
+   """
+   stub = QRU.on_entry(ns, rider, compounder)
+   cc = []
+   cc.append(compounder_simple (ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+
+#--------------------------------------------------------------------------------
   
 def compounder_simple (ns, rider):
    """
@@ -625,15 +498,19 @@ def compounder_simple (ns, rider):
    of a 2D gaussian input twig (subtree): 'gaussian_LM' -> exp(-(L**2+M**2)).
    Execute with a 2D (f,t) domain.
    The result of each compounder is a constant, with values that decrease with
-   the distance to the origin. Expected values are:
-   v(0,0) = 1.00000
-   v(1,1) = 0.13533
-   v(2,2) = 0.00335
-   v(0,1) = v(1,0) = 0.36788
-   v(0,2) = v(2,0) = 0.01831
-   v(2,1) = v(1,2) = 0.00673
+   the distance to the origin.
+
+   Expected values are:
+   <li> v(0,0) = 1.00000
+   <li> v(1,1) = 0.13533
+   <li> v(2,2) = 0.00335
+   <li> v(0,1) = v(1,0) = 0.36788
+   <li> v(0,2) = v(2,0) = 0.01831
+   <li> v(2,1) = v(1,2) = 0.00673
    A similar 2D gaussian (in f,t) is shown for comparison.
-   NB: Try executing with a 4D domain....
+   <remark>
+   Try executing with a 4D domain....
+   </remark>
    """
    stub = QRU.on_entry(ns, rider, compounder_simple)
 
@@ -662,6 +539,39 @@ def compounder_simple (ns, rider):
 # resampling_... 
 #================================================================================
 
+def resampling (ns, rider):
+   """
+   The number of cells in the domain may be changed locally:
+   ...
+   <li> The MeqModRes(child, num_cells=[2,3]) node changes the number
+   of cells in the domain of the REQUEST that it issues to its child.
+   Thus, the entire subtree below the child is evaluated with this
+   resolution. 
+   <li> The MeqResample(child, mode=1) resamples the domain of the Result
+   it gets from its child, to match the resolution of the Request that
+   it received itself. (So it does nothing if the domains already match,
+   i.e. if there is no MeqModRes upstream).
+   <li> The MeqResample(child, mode=2) resamples in a different way...
+   .....
+   This feature has been developed (by Sarod) for 'peeling': If the
+   phase-centre is shifted to the position of the peeling source, its
+   visibility function will be smooth over the domain, so it is not
+   necessary to predict it at the full time/freq resolution of the data.
+   Since the number of cells may be 100 less, this can save a lot of
+   processing.
+   There may also be other applications of these nodes....
+   """
+   stub = QRU.on_entry(ns, rider, resampling)
+   twig = ET.twig (ns, opt_resampling_MeqModRes_twig)
+   num_cells = [opt_resampling_MeqModRes_num_time,
+                opt_resampling_MeqModRes_num_freq]
+   mode = opt_resampling_MeqResampler_mode
+   cc = []
+   cc.append(resampling_experiment (ns, rider,
+                                    twig, num_cells, mode))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
 
 def resampling_experiment (ns, rider,
                            twig=None, num_cells=[2,3], mode=1):
@@ -694,6 +604,28 @@ def resampling_experiment (ns, rider,
 #================================================================================
 # axisreduction_... 
 #================================================================================
+
+def axisreduction (ns, rider):
+   """
+   Axisreduction nodes reduce the values of all domain cells to a smaller
+   number of values (e.g. their mean). They operate on all the vellsets
+   in the Result(s) of their child(ren?).
+   NB: It is not clear (to me, in this stage) what happens if some cells
+   are flagged....!?
+   If one or more reduction_axes are specified, the reduction is only
+   along the specified axes (e.g. reduction_axes=['time'] reduces only
+   the time-axis to length 1. The default is all available axes, of course. 
+   The Result of a reduction node will be expanded when needed to fit a
+   domain of the original size, in which multiple cells have the same value.
+   """
+   stub = QRU.on_entry(ns, rider, axisreduction)
+   cc = []
+   cc.append(axisreduction_single (ns, rider))
+   cc.append(axisreduction_multiple (ns, rider))
+   cc.append(axisreduction_axes (ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
 
 def axisreduction_single (ns, rider):
    """
@@ -789,6 +721,25 @@ def axisreduction_axes (ns, rider):
 # tensor_... 
 #================================================================================
 
+def tensor (ns, rider):
+   """
+   Many node classes can handle Results with multiple vellsets.
+   They are somewhat clumsily (and wrongly) called 'tensor nodes'.
+   The advantages of multiple vellsets are:
+   <li> the trees are more compact, so easier to define and read
+   <li> efficiency: execution can be optimized internally
+   <li> they allow special nodes that do matrix/tensor operations
+   <li> etc, etc
+   """
+   stub = QRU.on_entry(ns, rider, tensor)
+   cc = []
+   cc.append(tensor_manipulation (ns, rider))
+   cc.append(tensor_matrix (ns, rider))
+   cc.append(tensor_matrix22 (ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+
+#--------------------------------------------------------------------------------
 
 def tensor_manipulation (ns, rider):
    """
@@ -799,32 +750,34 @@ def tensor_manipulation (ns, rider):
    c1 = ET.twig(ns,'t', nodename='c1')
    c2 = ET.twig(ns,'ft', nodename='c2')
    cc = [c0,c1,c2]
-   tensor = QRU.MeqNode (ns, rider, meqclass='Composer', name='Composer(c0,c1,c2)',
-                         help="""Combine the vellsets in the Results of its children
-                         into a Result with multiple vellsets in the new node.""",
-                         children=[c0,c1,c2])
+
+   help="""Combine the vellsets in the Results of its children
+   into a Result with multiple vellsets in the new node."""
+   tensor = stub('tensor') << Meq.Composer(children=cc)
    cc.append(tensor)
+
    for index in [0,1,2]:
-      cc.append(QRU.MeqNode (ns, rider, meqclass='Selector',
-                             name='Selector(child, index='+str(index)+')',
-                             help="""Select the specified (index) vellset in its child
-                             for a new node with a single vellset in its Result""",
-                             children=[tensor], index=index))
+      cc.append(stub('Selector')(index) << Meq.Selector(tensor, index=index))
+      help="""Select the specified (index) vellset in its child
+      for a new node with a single vellset in its Result"""
+
    if False:
       # Problem: Gives an error (list indix not supported?)
-      cc.append(QRU.MeqNode (ns, rider, meqclass='Selector', name='Selector(child, index=[0,2])',
-                             help="""Select the specified (index) vellsets in its child
-                             for a new node with this subset of vellsets in its Result""",
-                             children=[tensor], index=[0,2]))
-   if True:
+      index = [0,2]
+      cc.append(stub('Selector')(index) << Meq.Selector(tensor, index=index))
+      help="""Select the specified (index) vellsets in its child
+      for a new node with this subset of vellsets in its Result"""
+
+   if False:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
       c1 = ET.twig(ns,'prod_f2t2')
-      cc.append(QRU.MeqNode (ns, rider, meqclass='Paster', name='Paster(c0, c1, index=1)',
-                             help="""Make a new node, in which the vellset from the
-                             second child (c1) is pasted at the specified (index) position
-                             among the vellsets of its first child (c0)""",
-                             children=[tensor,c1], index=1))
-   return QRU.on_exit (ns, rider, cc)
+      index = 1
+      cc.append(stub('Paster')(index) << Meq.Selector(children=[tensor,c1], index=index))
+      help="""Make a new node, in which the vellset from the
+      second child (c1) is pasted at the specified (index) position
+      among the vellsets of its first child (c0)"""
+
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 #--------------------------------------------------------------------------------
 
@@ -838,23 +791,22 @@ def tensor_matrix (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix)
    cc = []
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Composer',
-                          name='Composer(1,2,3,4,5,6, dims=[2,3])',
-                          help="""Make a tensor node with a 2x3 array of vellsets.
-                          This can be treated as a 2x3 matrix. Note the use of
-                          constants as children, for easier inspection and verification.""",
-                          children=range(6),dims=[2,3]))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Transpose', name='Transpose(m0)',
-                          help="""Make the 3x2 transpose of the given 2x3 matrix.""",
-                          children=[cc[0]]))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='MatrixMultiply', name='MatrixMultiply(m0,m1)',
-                          help="""Multply the original 2x3 matrix with its 3x2 transpose.
-                          This produces a 2x2 matrix.""",
-                          children=[cc[0],cc[1]]))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='MatrixMultiply', name='MatrixMultiply(m1,m0)',
-                          help="""Multiply the 3x2 transpose with the original 2x3 matrix.
-                          This produces a 3x3 matrix.""",
-                          children=[cc[1],cc[0]]))
+   cc.append(stub('Composer') << Meq.Composer(children=range(6), dims=[2,3]))
+   help="""Make a tensor node with a 2x3 array of vellsets.
+   This can be treated as a 2x3 matrix. Note the use of
+   constants as children, for easier inspection and verification."""
+
+   cc.append(stub('Transpose') << Meq.Transpose(cc[0]))
+   help="""Make the 3x2 transpose of the given 2x3 matrix."""
+
+   cc.append(stub('MatrixMultiply')([0,1]) << Meq.MatrixMultiply(cc[0],cc[1]))
+   help="""Multply the original 2x3 matrix with its 3x2 transpose.
+   This produces a 2x2 matrix."""
+   
+   cc.append(stub('MatrixMultiply')([1,0]) << Meq.MatrixMultiply(cc[1],cc[0]))
+   help="""Multiply the 3x2 transpose with the original 2x3 matrix.
+   This produces a 3x3 matrix."""
+   
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -893,6 +845,23 @@ def tensor_matrix22 (ns, rider):
 # leaves_...
 #================================================================================
 
+
+def leaves (ns, rider):
+   """
+   Leaf nodes have no children. They often (but not always) have access to
+   some external source of information (like a file) to satisfy a request. 
+   """
+   stub = QRU.on_entry(ns, rider, leaves)
+   cc = []
+   cc.append(leaves_constant (ns, rider))
+   cc.append(leaves_parm (ns, rider))
+   cc.append(leaves_gridsFTLM (ns, rider))
+   cc.append(leaves_gridsXYZetc (ns, rider))
+   cc.append(leaves_noise (ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
+
 def leaves_constant (ns, rider):
    """
    A Constant node may represent a real or a complex constant.
@@ -901,36 +870,22 @@ def leaves_constant (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_constant)
    cc = []
-   if False:
-      # The QRU.MeqNode(..., node=node) gives an error: no such field: order
-      # NB: We could add quickref_help to the node here, and provide a QRU function
-      #     that attaches the same help to the rider, with the proper path etc... 
-      help = 'Constant node created with: '
-      cc.append(QRU.MeqNode (ns, rider, node=(ns << 2.5),
-                             help=help+'ns << 2.5'))
-      cc.append(QRU.MeqNode (ns, rider, node=(ns.xxxx << 2.4),
-                             help=help+'ns.xxxx << 2.4'))
-
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Constant', name='Constant(real)',
-                          help=None, value=1.2))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Constant', name='Constant(complex)',
-                          help=None, value=complex(1,2)))
-
-   vv = [1.5, -2.5, 3.5, -467]
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Constant',
-                          name='Constant([r,r,r,r])',
-                          help='produces a tensor node', value=vv))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Constant',
-                          name='Constant([r,r,r,r], shape=[2,2])',
-                          help='produces a tensor node', value=vv, shape=[2,2]))
-
-   vv[2] = complex(3,5)
-   help = """A vector that contains one or more complex numbers
-   produces a tensor node with all complex values"""
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Constant',
-                          name='Constant([r,r,cx,r])',
-                          help=help, value=vv))
-   return QRU.on_exit (ns, rider, cc)
+   v = 0.5
+   cc.append(dict(node=(ns << v),
+                  help='syntax: node = ns << '+str(v)))
+   v += 1
+   cc.append(dict(node=(ns.NoDeNaMe << v),
+                  help='syntax: node = ns.NoDeNaMe << '+str(v)))
+   v += 1
+   cc.append(stub('real') << v)
+   v = complex(1,2)
+   cc.append(stub('complex') << v)
+   v = [1.5, -2.5, 3.5, -467]
+   cc.append(stub('tensor4') << Meq.Constant(v))
+   cc.append(stub('tensor22') << Meq.Constant(v, dims=[2,2]))
+   v[2] = complex(3,5)
+   cc.append(stub('mixed') << Meq.Constant(v))
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 #--------------------------------------------------------------------------------
 
@@ -940,9 +895,7 @@ def leaves_parm (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_parm)
    cc = []
-   help = ''
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Parm',
-                          help=help, default=2.5))
+   cc.append(stub('basic') << Meq.Parm(2.5))
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -955,30 +908,17 @@ def leaves_noise (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_noise)
    cc = []
-   help = 'Gaussian noise with given stddev (and zero mean)'
-   cc.append(QRU.MeqNode (ns, rider, meqclass='GaussNoise',
-                          name='GaussNoise(stddev=2)',
-                          help=help,
-                          stddev=2.0))
-   help = 'Gaussian noise with given stddev and mean'
-   # NB: mean does not work...
-   cc.append(QRU.MeqNode (ns, rider, meqclass='GaussNoise',
-                          name='GaussNoise(stddev=2,mean=-10)',
-                          help=help,
-                          mean=-10.0, stddev=2.0))
+   cc.append(stub('stddev') << Meq.GaussNoise(stddev=2.0))
+   # NB: Mean does not work...
+   cc.append(stub('mean') << Meq.GaussNoise(mean=-10.0, stddev=2.0))
    if False:
-      # Problem: The server crashes on this one...!
-      help = 'Random noise between lower and upper bounds'
-      cc.append(QRU.MeqNode (ns, rider, meqclass='RandomNoise',
-                             name='RandomNoise(-2,4)',
-                             help=help,
-                             lower=-2.0, upper=4.0))
-   return QRU.on_exit (ns, rider, cc)
-
+      # NB: The server crashes on this one
+      cc.append(stub('random') << Meq.RandomNoise(lower=-2.0, upper=4.0))
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 #--------------------------------------------------------------------------------
 
-def leaves_grids (ns, rider):
+def leaves_gridsFTLM (ns, rider):
    """
    Grid nodes fill in the cells of the requested domain with the
    values of the specified axis (time, freq, L, M, X, Y, Z, etc).
@@ -992,18 +932,37 @@ def leaves_grids (ns, rider):
    axes are added to them as soon as MeqGrid node with a new axis
    (name) has been defined.   
    """
-   stub = QRU.on_entry(ns, rider, leaves_grids)
+   stub = QRU.on_entry(ns, rider, leaves_gridsFTLM)
    cc = []
    for q in ['Freq','Time']:
-      cc.append(QRU.MeqNode (ns, rider, meqclass=q,
-                             name=q+'()', help=None)) 
-   for q in ['time','L','M','X','Y','Z']:
-      cc.append(QRU.MeqNode (ns, rider, meqclass='Grid',
-                             name='Grid(axis='+q+')', help=None, axis=q))
-   cc.append(ns.ft << Meq.Add(cc[2],cc[3]))
-   cc.append(ns.LM << Meq.Add(cc[4],cc[5]))
-   cc.append(ns.ftLM << Meq.Add(cc[2],cc[3],cc[4],cc[5]))
-   return QRU.on_exit (ns, rider, cc)
+      cc.append(stub(q) << getattr(Meq,q)())
+   for axis in ['L','M']:
+      cc.append(stub(axis) << Meq.Grid(axis=axis))
+   cc.append(stub('ft') << Meq.Add(cc[0],cc[1]))
+   cc.append(stub('LM') << Meq.Add(cc[2],cc[3]))
+   return QRU.on_exit (ns, rider, cc, node_help=True)
+
+#--------------------------------------------------------------------------------
+
+def leaves_gridsXYZetc (ns, rider):
+   """
+   Grid nodes fill in the cells of the requested domain with the
+   values of the specified axis (time, freq, L, M, X, Y, Z, etc).
+   They are created by:  ns[nodename] << Meq.Grid(axis='M')
+
+   The two default axes (time and freq) also have dedicated Grid nodes,
+   called MeqTime and MeqFreq, e.g.:  ns[nodename] << Meq.Freq()
+
+   NB: Check also the Forest State record. Note that its axis_map and
+   its axis_list have default axes [time,freq,L,M], but that extra
+   axes are added to them as soon as MeqGrid node with a new axis
+   (name) has been defined.   
+   """
+   stub = QRU.on_entry(ns, rider, leaves_gridsXYZetc)
+   cc = []
+   for axis in ['X','Y','Z']:
+      cc.append(stub(axis) << Meq.Grid(axis=axis))
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 
 #--------------------------------------------------------------------------------
@@ -1019,9 +978,7 @@ def leaves_spigot (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_spigot)
    cc = []
-   help = ''
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Spigot',
-                          name='Spigot()', help=help))
+   cc.append(stub(axis) << Meq.Spigot())
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1035,9 +992,7 @@ def leaves_FITS (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_FITS)
    cc = []
-   help = ''
-   cc.append(QRU.MeqNode (ns, rider, meqclass='FITSReader',
-                          help=help))
+   cc.append(stub(axis) << Meq.FITSReader())
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1048,19 +1003,41 @@ def leaves_FITS (ns, rider):
 #================================================================================
 
 
+def unops (ns, rider):
+   """
+   Unary math operations on one child, which may be a 'tensor node' (i.e. multiple
+   vellsets in its Result). An illegal operation (e.g. sqrt(-1)) produces a NaN
+   (Not A Number) for that cell, which is then carried all the way downstream
+   (i.e. from child to parent, towards the root of the tree). It does NOT produce
+   a FAIL. See also ....
+
+   The best way to visualize the operation of unary nodes is to use an MeqFreq (f)
+   or MeqTime (t) as input twig (node), and to execute with a 1-dim domain. Since
+   these variables increase linearly over the domain, this produces simple plots
+   of the function value vs its argument. 
+   """
+   stub = QRU.on_entry(ns, rider, unops)
+   twig = ET.twig (ns, opt_unops_twig)
+   cc = [] 
+   cc.append(unops_elementary (ns, rider, twig))
+   cc.append(unops_goniometric (ns, rider, twig))
+   cc.append(unops_hyperbolic (ns, rider, twig))
+   cc.append(unops_power (ns, rider, twig))
+   cc.append(unops_misc (ns, rider, twig))
+   cc.append(unops_complex (ns, rider, twig))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
+
 def unops_elementary (ns, rider, twig=None):
    """
    Elementary unary math operations.
    """
    stub = QRU.on_entry(ns, rider, unops_elementary)
    cc = [twig]
-   help = record(Negate='-c', Invert='1/c', Exp='exp(c)', Sqrt='square root',
-                 Log='e-log (for 10-log, divide by Log(10))')
    for q in ['Negate','Invert','Exp','Log','Sqrt']:
-      # NB: explain log...
-      cc.append(QRU.MeqNode (ns, rider, meqclass=q,
-                             name=q+'('+str(twig.name)+')',
-                             help=help[q], children=[twig]))
+      cc.append(stub(q) << getattr(Meq,q)(twig))
+   # NB: add 10log subtree...
    return QRU.on_exit (ns, rider, cc)
 
 #-----------------------------------------#--------------------------------------------------------------------------------
@@ -1075,7 +1052,7 @@ def unops_goniometric (ns, rider, twig=None):
    input (which it does NOT in case of Acos(Cos(x))....)
    """
    stub = QRU.on_entry(ns, rider, unops_goniometric)
-   cc = []
+   cc = [twig]
    for q in ['Sin','Cos','Tan','Asin','Acos','Atan']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
    cc.append('Applying a function to its inverse should yield unity')
@@ -1095,9 +1072,7 @@ def unops_hyperbolic (ns, rider, twig=None):
    stub = QRU.on_entry(ns, rider, unops_hyperbolic)
    cc = [twig]
    for q in ['Sinh','Cosh','Tanh']:
-      cc.append(QRU.MeqNode (ns, rider,
-                             meqclass=q, name=q+'('+str(twig.name)+')',
-                             help=None, children=[twig]))
+      cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1109,14 +1084,8 @@ def unops_complex (ns, rider, twig=None):
    stub = QRU.on_entry(ns, rider, unops_complex)
    twig = ET.twig(ns,'cx_ft')                # override input twig...
    cc = [twig]
-   help = record(Abs='', Norm='like Abs', Arg='-> rad', Real='', Imag='',
-                 Conj='complex conjugate: a+bj -> a-bj',
-                 Exp='exp(a+bj) = exp(a)*exp(bj), i.e. cos with increasing ampl',
-                 Log='e-log (ln)')
    for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
-      cc.append(QRU.MeqNode (ns, rider,
-                             meqclass=q, name=q+'('+str(twig.name)+')',
-                             help=help[q], children=[twig]))
+      cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1128,9 +1097,7 @@ def unops_power (ns, rider, twig=None):
    stub = QRU.on_entry(ns, rider, unops_power)
    cc = [twig]
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
-      cc.append(QRU.MeqNode (ns, rider,
-                             meqclass=q, name=q+'('+str(twig.name)+')',
-                             children=[twig]))
+      cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1141,107 +1108,88 @@ def unops_misc (ns, rider, twig=None):
    """
    stub = QRU.on_entry(ns, rider, unops_misc)
    cc = [twig]
-   help = record(Abs='Take the absolute value.',
-                 Ceil='Round upwards to integers.',
-                 Floor='Round downwards to integers.',
-                 Stripper="""Remove all derivatives (if any) from the result.
-                 This saves space and can be used to control solving.""",
-                 Identity='Make a copy node with a different name.'
-                 )
    for q in ['Abs','Ceil','Floor','Stripper','Identity']:
-      cc.append(QRU.MeqNode (ns, rider, meqclass=q,
-                             name=q+'('+str(twig.name)+')',
-                             help=help[q], children=[twig]))
+      cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
 
 
+
 #================================================================================
-# binops_math
+# binops
 #================================================================================
 
-def binops_math (ns, rider):
+def binops (ns, rider):
    """
-   Binary math operations (two children).
-   The operation is performed cell-by-cell.
-   The input children may be selected, for experimentation.
-   - If the first child (left-hand-side, lhs) has a result with multiple vellsets
-   .    ('tensor-node'), there are two possibilities: If the second child (rhs) is a
-   .    'scalar node', its single vellset is applied to all the vellsets of lhs.
-   - Otherwise, the Result of rhs must have the same number of vellsets as lhs,
-   .    and the operation is performed between corresponding vellsets.
-   The final Result always has the same shape (number of vellsets) as lhs.
+   Binary math operations (two children: lhs, rhs).
+   The operations are performed cell-by-cell.
+
+   The following rules apply:
+   <li> If the first child (left-hand-side, lhs) has a result with multiple vellsets
+   ('tensor-node'), there are two possibilities: If the second child (rhs) is a
+   'scalar node', its single vellset is applied to all the vellsets of lhs.
+   <li> Otherwise, the Result of rhs must have the same number of vellsets as lhs,
+   and the operation is performed between corresponding vellsets.
+   <li> The final Result always has the same shape (number of vellsets) as lhs.
+
+   The input children may be selected here, for experimentation.
    """
-   stub = QRU.on_entry(ns, rider, binops_math)
-   lhs = ET.twig(ns, opt_binops_math_lhs)         # left-hand side (child)
-   rhs = ET.twig(ns, opt_binops_math_rhs)         # right-hand side (child)
-   cc = []
-   help = record(Subtract='lhs-rhs', Divide='lhs/rhs', Pow='lhs^rhs',
-                 Mod='lhs%rhs',
-                 ToComplex='(real, imag)', Polar='(amplitude, phase)')
+   stub = QRU.on_entry(ns, rider, binops)
+   print '\n** rider.path()=',rider.path(),' stub=',str(stub)
+   lhs = ET.twig(ns, opt_binops_lhs)         # left-hand side (child)
+   rhs = ET.twig(ns, opt_binops_rhs)         # right-hand side (child)
+   cc = [lhs,rhs]
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
    # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
    for q in ['Subtract','Divide','Pow','ToComplex','Polar']:
-      cc.append(QRU.MeqNode (ns, rider, meqclass=q,
-                             name=q+'('+str(lhs.name)+','+str(rhs.name)+')',
-                             help=help[q], children=[lhs,rhs]))
+      # name=q+'('+str(lhs.name)+','+str(rhs.name)+')',
+      cc.append(stub(q) << getattr(Meq,q)(lhs,rhs))
    return QRU.on_exit (ns, rider, cc)
 
 
+
 #================================================================================
-# multi_math
+# multimath
 #================================================================================
 
-def multi_math (ns, rider):
+def multimath (ns, rider):
    """
    Math operations on an arbitrary number (one or more) of children.
    The operation is performed cell-by-cell.
-   The number and type of children may be selected, for experimentation.
-   - If the number of children is two, the same rules apply as for binary
-   .    operations (see binops_math).
-   - If the number of children is greater than two, the Results of all children
-   .    must have the same shape (i.e. the same number of vellsets in their Results).
-   - If the number of of children is one, its Result is just passed on.
-   """
-   stub = QRU.on_entry(ns, rider, multi_math)
 
-   # Make the child-related vectors (ignore the ones with opt=None):
-   twigs = [ET.twig(ns,opt_multi_math_twig1)]
-   sname = twigs[0].name
-   weights = [1.0]
-   if opt_multi_math_twig2:
-      twigs.append(ET.twig(ns,opt_multi_math_twig2))
-      sname += ','+twigs[len(twigs)-1].name
-      weights.append(2.0)
-   if opt_multi_math_twig3:
-      twigs.append(ET.twig(ns,opt_multi_math_twig3))
-      sname += ','+twigs[len(twigs)-1].name
-      weights.append(3.0)
+   The following rules apply:
+   <li> If the number of children is two, the same rules apply as for binary
+   operations (see binops).
+   <li> If the number of children is greater than two, the Results of all children
+   must have the same shape (i.e. the same number of vellsets in their Results).
+   <li> If the number of of children is one, its Result is just passed on.
+
+   The number and type of children may be selected here, for experimentation.
+   """
+   stub = QRU.on_entry(ns, rider, multimath)
    cc = []
 
-   # First the simple ones:
-   help = record(Add='c0+c1+c2+...',
-                 Multiply='c0*c1*c2*...')
-   for q in ['Add','Multiply']:
-      cc.append(QRU.MeqNode (ns, rider, meqclass=q,
-                             name=q+'('+sname+')', help=help[q],
-                             children=twigs))
-
-   # Then the weighted ones:
-   help = record(WSum="""Weighted sum: w[0]*c0 + w[1]*c1 + w[2]*c2 + ...
-                 The weights vector (weights) is a vector of DOUBLES (!)""",
-                 WMean="""Weighted mean, the same as WSum, but divides by
-                 the sum of the weights (w[0]+w[1]+w[2]+....)""")
-   sw = str(weights).replace('.0','').replace('.',',')
-   for q in ['WSum','WMean']:
-      # print '\n** ',q,': weigths =',weights,'\n'
-      cc.append(QRU.MeqNode (ns, rider, meqclass=q,
-                             name=q+'('+sname+',weights='+sw+')',
-                             help=help[q],
-                             weights=weights, children=twigs))
+   # Make the child-related vectors (ignore the ones with opt=None):
+   twigs = [ET.twig(ns,opt_multimath_twig1)]
+   weights = [1.0]
+   if opt_multimath_twig2:
+      twigs.append(ET.twig(ns,opt_multimath_twig2))
+      weights.append(2.0)
+   if opt_multimath_twig3:
+      twigs.append(ET.twig(ns,opt_multimath_twig3))
+      weights.append(3.0)
 
    # Attach the input twigs to the bundle, for inspection.
-   # NB: If attached at the start, WMean and WSum refuse to plot....?
    cc.extend(twigs)
+
+   # First the simple ones:
+   for q in ['Add','Multiply']:
+      cc.append(stub(q) << getattr(Meq,q)(children=twigs))
+
+   # Then the weighted ones:
+   for q in ['WSum','WMean']:
+      node = stub(q) << getattr(Meq,q)(children=twigs, weights=weights)
+      cc.append(dict(node=node, help=True))
+
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1279,7 +1227,8 @@ def _define_forest (ns, **kwargs):
    global rider                                 # used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-               nodes=[QR_MeqNodes(ns, rider)])
+                nodes=[QR_MeqNodes(ns, rider)],
+                mode='group')
 
    # Finished:
    return True
@@ -1299,6 +1248,9 @@ def _tdl_job_execute_2D_ft (mqs, parent):
 
 def _tdl_job_execute_4D_ftLM (mqs, parent):
    return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
+
+def _tdl_job_execute_3D_XYZ (mqs, parent):
+   return QRU._tdl_job_execute_XYZ (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)

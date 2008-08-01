@@ -2,6 +2,7 @@
 QuickRef module: QR_template.py:
 
 Template for the generation of QR_... modules.
+
 Just:
 - make a copy with a new name (e.g. QR_<name>.py),
 - replace the word QR_template with QR_<newname>,
@@ -13,16 +14,15 @@ This module may be called from the module QuickRef.py.
 But it may also be used stand-alone.
 -- Load the TDL script into the meqbrowser.
 -- Using TDL Options, select categories to be included,
-.    and customize parameters and input children.
--- Compile: The tree will appear in the left panel.
-.    (NB: the state record of each node has a quickref_help field)
--- Use the bookmarks to select one or more views.
+.    and customize parameters and input (nodes).
+-- Compile: The tree will appear in the leftmost panel.
+-- Use the bookmarks menu to select one or more views.
 -- Use TDL Exec to execute the tree: The views will come alive.
 -- Use TDL Exec to show or print or save the hierarchical help
 .    for the selected categories.
 """
 
-# file: ../JEN/demo/QR_template.py:
+# file: ../JEN/QuickRef/QR_template.py:
 #
 # Author: J.E.Noordam
 #
@@ -224,7 +224,7 @@ def topic1 (ns, rider):
    </function_code>
 
    It is sometimes useful to read some general TDLCompileOptions here, and pass
-   them to the lower-level functions as extra arguments.
+   them to the subtopic functions as extra arguments.
    """
    stub = QRU.on_entry(ns, rider, topic1)
    cc = []
@@ -294,25 +294,58 @@ def topic2_subtopic1 (ns, rider):
 
 def topic2_subtopic2 (ns, rider):
    """
+   topic2_subtopic2 treats ....
+
    <warning>
-   topic2_subtopic2 treats ....
+   ... text enclosed in 'html' warning tags is rendered like this ...
    </warning>
+
    <error>
-   topic2_subtopic2 treats ....
+   ... text enclosed in 'html' error tags is rendered like this ...
    </error>
+
    <remark>
-   topic2_subtopic2 treats ....
+   ... text enclosed in 'html' remark tags is rendered like this ...
    </remark>
-   """
+
+   Text enclosed in 'html' function_code tags may be used to include the function body in the help.
+   Just copy the entire function body between the tags in the function doc-string (making sure that
+   it does not contain any double-quotes). When the function body is modified, just re-copy it.
+   (NB: it would be nice if there were a python function that turned the function body into s atring...)
+
+   <function_code>
    stub = QRU.on_entry(ns, rider, topic2_subtopic2)
    cc = []
 
-   # Remove this part:
    twig = ET.twig(ns,'f')
-   node = None
+
    for q in ['Sin','Cos','Tan']:
-      # cc.append(stub(q) << getattr(Meq,q)(twig))
+      cc.append(stub(q) << getattr(Meq,q)(twig))
       cc.append('** inserted extra help on '+q+' as string items in nodes (cc) **')
+
+   for q in ['Asin','Acos','Atan']:
+      cc.append(dict(node=stub(q) << getattr(Meq,q)(twig)))
+
+   bhelp = \"\"\"
+   It is also possible to append extra bundle help
+   via the .on_exit() help argument.
+   \"\"\"
+   return QRU.on_exit (ns, rider, cc, help=bhelp)
+   </function_code>
+
+
+   """
+
+   stub = QRU.on_entry(ns, rider, topic2_subtopic2)
+   cc = []
+
+   twig = ET.twig(ns,'f')
+
+   for q in ['Sin','Cos','Tan']:
+      cc.append(stub(q) << getattr(Meq,q)(twig))
+      cc.append('** inserted extra help on '+q+' as string items in nodes (cc) **')
+
+   for q in ['Asin','Acos','Atan']:
       cc.append(dict(node=stub(q) << getattr(Meq,q)(twig)))
 
    bhelp = """

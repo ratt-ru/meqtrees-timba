@@ -58,7 +58,7 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 #******************************************************************************** 
 
 
-def node_help (node, detail=1, rider=None, mode='html', trace=False):
+def node_help (node, detail=1, rider=None, mode='html', extra=None, trace=False):
    """
    Attach specific help to the quickref_help field of the given node.
    If a rider (CollatedHelpRecord) is specified, attach it too.
@@ -99,40 +99,28 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
       pass
    elif nc==1:
       line += 'child: '+str(node.children[0][1])
-   elif nc==2:
-      line += 'children: '+str(node.children[0][1])+', '+str(node.children[1][1])
+   elif nc<6:
+      line += 'children: '+str(node.children[0][1])
+      for i in range(1,nc):
+         line += ', '+str(node.children[i][1])
    else:
       line += str(nc)+' children: '+str(node.children[0][1])+' ... '+str(node.children[nc-1][1])
    if not line=='':
       ss += line+'<br>'
 
-   # Add another line of initrec info:
-   line = ''
+   # Expand the node-specific initrec fields:
    rr = node.initrec()
-   keys = rr.keys()
-   ignore = ['class','quickref_help']
-   for key in ignore:
-      if key in keys: keys.remove(key)
-   if len(keys)>0:
-      line += 'node.initrec().keys(): '+str(keys)
-   if rr.has_key('tags'):
-      line += '  (tags='+str(rr.tags)+')'
-   if not line=='':
-      ss += line+'<br>'
-
-   # Deal with any quickref_help:
-   key = 'quickref_help'
-   if rr.has_key(key):
-      qh = str(rr[key])
-      nq = len(qh)
-      nmax = 60
-      if nq<nmax:
-         ss += qh
+   for key in rr.keys():
+      v = rr[key]
+      if key in ['class']:
+         pass
+      elif key=='quickref_help':
+         ss += ' - '+str(key)+': ('+str(len(v))+' chars)<br>'
       else:
-         ss += qh[:nmax]+' ... ('+str(nq)+')'
-      ss += '<br>'
-   
+         ss += ' - '+str(key)+' = '+str(v)+'<br>'
+
    ss = class_help (node.classname, header=ss, rr=rr,
+                    extra=extra,
                     detail=detail, rider=rider,
                     mode=mode, trace=False)
    
@@ -149,8 +137,8 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
 #-----------------------------------------------------------------------------------
 
 def class_help (cname, header=None, rr=None,
-                       detail=1, rider=None,
-                       mode='html', trace=False):
+                detail=1, rider=None, extra=None,
+                mode='html', trace=False):
    """
    Attach specific help to the quickref_help field of the given
    node-class name (cname).
@@ -169,8 +157,9 @@ def class_help (cname, header=None, rr=None,
    more = 'specific: '
    more = ''
    if cname=='MeqConstant':
-      more += 'constant leaf node, dims='+str(getattr(rr,'dims',None))
-      more += ' value = '+str(getattr(rr,'value',None))
+      pass
+      # more += 'constant leaf node, dims='+str(getattr(rr,'dims',None))
+      # more += ' value = '+str(getattr(rr,'value',None))
 
    elif cname in ['MeqFreq','MeqTime','MeqGrid']:
       pass
@@ -200,6 +189,17 @@ def class_help (cname, header=None, rr=None,
 
    elif cname in ['MeqAdd','MeqMultiply']:
       pass
+
+   elif cname in ['MeqWSum','MeqWMean']:
+      help = record(WSum="""
+                    Weighted sum: w[0]*c0 + w[1]*c1 + w[2]*c2 + ...
+                    The weights vector (weights) is a vector of DOUBLES (!)
+                    """,
+                    WMean="""
+                    Weighted mean, the same as WSum, but divides by
+                    the sum of the weights (w[0]+w[1]+w[2]+....)
+                    """)
+
    elif cname in ['MeqSubtract','MeqDivide','MeqPower']:
       pass
 
@@ -230,27 +230,31 @@ def class_help (cname, header=None, rr=None,
 
    #---------------------------------------------------------------------------
 
-   elif cname in ['Transpose','MatrixMultiply','ConjTranspose']:
+   elif cname in ['MeqTranspose','MeqMatrixMultiply','MeqConjTranspose']:
       pass
-   elif cname in ['Matrix22','MatrixInvert22']:
+   elif cname in ['MeqMatrix22','MeqMatrixInvert22']:
       pass
 
-   elif cname in ['GaussNoise','RandomNoise']:
-      pass
+   elif cname in ['MeqGaussNoise','MeqRandomNoise']:
+      help = 'Gaussian noise with given stddev (and zero mean)'
+      help = 'Gaussian noise with given stddev and mean'
+      # NB: mean does not work...
+      help = 'Random noise between lower and upper bounds'
+      # Problem: The server crashes on RandomNoise ...!
 
    #---------------------------------------------------------------------------
 
    elif cname in ['MeqReqSeq','MeqReqMux']:
       pass
 
-   elif cname in ['MeqComposer','MeqSelector','Paster']:
+   elif cname in ['MeqComposer','MeqSelector','MeqPaster']:
       pass
 
    #---------------------------------------------------------------------------
 
-   elif cname in ['Compounder']:
+   elif cname in ['MeqCompounder']:
       pass
-   elif cname in ['ModRes','Resampler']:
+   elif cname in ['MeqModRes','MeqResampler']:
       pass
 
    #---------------------------------------------------------------------------
@@ -293,7 +297,7 @@ def class_help (cname, header=None, rr=None,
    #---------------------------------------------------------------------------
 
    else:
-      ss += '<font color="red" size=20>'
+      ss += '<font color="red" size=10>'
       ss += '** class_name not recognized: '+str(cname)+' **'
       ss += '</font>\n'
       trace = True
@@ -302,7 +306,10 @@ def class_help (cname, header=None, rr=None,
    #---------------------------------------------------------------------------
 
    # Finishing touches:
-   ss += more
+   if not more=='':
+      ss += more
+   if isinstance(extra,str):
+      ss += str(extra)
    ss += '</dl>\n'
 
    if rider:

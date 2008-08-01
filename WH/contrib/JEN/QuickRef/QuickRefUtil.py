@@ -793,8 +793,7 @@ def on_entry(ns, rider, func, trace=False):
 
     name = str(func.func_name)
     ss = name.split('_')
-    # path = rider.path(append=ss[len(ss)-1])
-    path = rider.path(append=ss[-1])            # the last item
+    path = rider.path(append=ss[-1])            # the last item (!)
 
     qhelp = rider.topic_header(path)
     qhelp += rider.check_html_tags(func.__doc__, include_style=False)
@@ -815,9 +814,11 @@ def on_exit (ns, rider, nodes=None,
              unop=None,
              parentclass='Composer', result_index=0,
              mode=None,            
-             show_recurse=True,
+             show_recurse=False,
+             show_forest_state=False,
              viewer='Result Plotter',
-             help=None,                
+             help=None,
+             node_help=True,
              trace=False):
     """
     <function_call>
@@ -844,11 +845,13 @@ def on_exit (ns, rider, nodes=None,
     E.g.: Composer, Reqseq, Add, Multiply, etc
     <li> result_index[=0]: Used if parentclass=ReqSeq
     <li> help[=None]: If string, it will be added to the 'bundle help'.
+    <li> node_help[=False]: If True, attach help to each node. 
     <li> mode[=None]: convenience/shortcut argument: if specified, it sets suitable
     values for certain other arguments (viewer, show_recurse).
     Example: mode='group': viewer='QuickRef Display', show_recurse=False.
     <li> show_recurse[=False]: If True or int>0, attach a formatted version of the
     parent subtree, to the specified recursion depth (True=1000), to the bundle help.
+    <li> show_forest_state[=False]: If True, bookmark the forest state record 
     <li> viewer[='Result Plotter']: The default viewer to be used by the bookmark(s).
     <li> trace[=False]: If True, print tracing messages (debugging)
     
@@ -864,10 +867,11 @@ def on_exit (ns, rider, nodes=None,
         viewer = 'QuickRef Display'
         node_help = False
         show_recurse = False
+        show_forest_state = False
 
     #.......................................................................
     # Collect the actual nodes into 'bundle'. Deal appropriately with the
-    # items that are not nodes:
+    # items that are not nodes (e.g. strings or dicts):
 
     bhelp = ''                              # start of bundle help
     bundle = []                             # list of actual nodes
@@ -885,7 +889,7 @@ def on_exit (ns, rider, nodes=None,
             bhelp += '\n<warning>'  
             bhelp += 'not recognized: '+str(type(node))
             bhelp += '\n</warning>'
-        else:                               # a record with detailed instructions
+        else:                                 # a record with detailed instructions
             bundle.append(node['node'])           # 'node' is mandatory field
             # Deal with bookmark field:
             node.setdefault('bookmark',True)      # default behaviour
@@ -899,15 +903,30 @@ def on_exit (ns, rider, nodes=None,
                 if isinstance(vv,(list,tuple)): 
                     for v in vv:                  # for one or more viewers
                         bookmarks.append(node['node'])
-                        viewers.append(v)
+                        if isinstance(v,str):
+                            viewers.append(v)     # user-specified viewer
+                        else:
+                            viewers.append(viewer) # default viewer
             # Deal with help-field:
             node.setdefault('help',False)
-            hh = node['help']
-            if isinstance(hh,bool) and hh:        # help=True: node-help
-                QRNH.node_help(bundle[-1], rider=rider, trace=False)
-            elif isinstance(hh,str):              # help is string
-                bundle[-1].initrec().quickref_help = hh
+            if node['help']:                      # node-help (True or string)
+                extra = node['help']
+                if isinstance(extra,str):         # help is string
+                    extra = rider.replace_html_chars (extra, trace=False)
+                else:
+                    extra = None
+                QRNH.node_help(bundle[-1], rider=rider, extra=extra, trace=False)
 
+
+    #.......................................................................
+    # Optionally, add help to each node in the bundle:
+    
+    if node_help:
+        extra = None
+        if isinstance(node_help,str):
+            extra = node_help
+        for i,node in enumerate(bundle):
+            QRNH.node_help(bundle[i], rider=rider, extra=extra, trace=False)
 
     #.......................................................................
     # Append the contents of the help-argument, if string:
@@ -956,12 +975,40 @@ def on_exit (ns, rider, nodes=None,
                                    plot_label=plot_label)
 
 
+    # Optional, show the bundle parent subtree to the required depth:
+    if show_recurse:
+        bhelp += '\n<br>** The resulting bundle subtree:<br>'
+        bhelp += EN.format_tree(parent, recurse=show_recurse,
+                                full=True, mode='html')
+    elif True:
+        bhelp += '\n<br>** The following nodes are bundled by parent node: '+str(parent)+':<br>'
+        for i,node in enumerate(bundle):
+            bhelp += ' - '+str(node)+'<br>'
+    bhelp += '<br>'
+
     #.......................................................................
     # Make a meqbrowser bookmark for the nodes in 'bookmarks', if required:
     if len(bookmarks)>0:
         # The rider object has a service for extracting page and folder from path.
         [page, folder] = rider.bookmark(rider.path(), trace=trace)
         if folder or page:
+
+            if True:
+                # Append an extra bookmark with the bundle help...
+                bookmarks.append(parent)
+                viewers.append('QuickRef Display')
+
+            if True:
+                bhelp += '\n<br>** The following nodes are bookmarked:'
+                if page:
+                    bhelp += ' on page: '+str(page)
+                if folder:
+                    bhelp += ' in folder: '+str(folder)
+                bhelp += ':<br>'
+                for i,node in enumerate(bookmarks):
+                    bhelp += ' - '+str(node)+'   (viewer='+str(viewers[i])+')<br>'
+                bhelp += '<br>'
+
             if True:
                 # Temporary, until Meow folder problem (?) is solved....
                 # JEN_bookmarks.create(nodes, name, page=page, folder=folder, viewer=viewer)
@@ -973,14 +1020,7 @@ def on_exit (ns, rider, nodes=None,
                     bookpage.add(node, viewer=viewers[i])
 
     #.......................................................................
-    # Deal with the bundle help information (bhelp):
-    # (NB: bhelp has been initialized above, with the contents of the help-argument,
-    #      and any string-items in the 'nodes' list)
-
-    # Optional, show the bundle parent subtree to the required depth:
-    if show_recurse:
-        bhelp += EN.format_tree(parent, recurse=show_recurse,
-                                full=True, mode='html')
+    # Dispose of the accumulated bundle help information (bhelp):
 
     # Update the CollatedHelpRecord (rider):
     rider.insert_help(rider.path(), bhelp, append=True)  
@@ -1004,8 +1044,9 @@ def on_exit (ns, rider, nodes=None,
         print '** QRU.on_exit() ->',str(parent),'\n'
 
     #.......................................................................
-    # Shorten the rider path again (last statement)
-    rider.path(up=True)               
+    # The LAST statement: Shorten the rider path again (last statement)
+    rider.path(up=True)
+    # Return the bundle parent node: 
     return parent
 
 
