@@ -746,38 +746,44 @@ def tensor_manipulation (ns, rider):
    Manipulation of 'tensor' nodes, i.e. nodes with multiple vellsets.
    """
    stub = QRU.on_entry(ns, rider, tensor_manipulation)
+   cc = []
+
    c0 = ET.twig(ns,'f', nodename='c0')
    c1 = ET.twig(ns,'t', nodename='c1')
    c2 = ET.twig(ns,'ft', nodename='c2')
-   cc = [c0,c1,c2]
+   elements = [c0,c1,c2]
 
-   help="""Combine the vellsets in the Results of its children
-   into a Result with multiple vellsets in the new node."""
-   tensor = stub('tensor') << Meq.Composer(children=cc)
-   cc.append(tensor)
+   cc.append(stub('tensor') << Meq.Composer(*elements))
+   EN.node_help (cc[-1], rider,
+                 """Make a tensor node by combining the vellsets in the
+                 Results of its children into a Result with multiple vellsets
+                 in the new node.""")
 
    for index in [0,1,2]:
-      cc.append(stub('Selector')(index) << Meq.Selector(tensor, index=index))
-      help="""Select the specified (index) vellset in its child
-      for a new node with a single vellset in its Result"""
+      cc.append(stub('Selector')(index) << Meq.Selector(cc[0], index=index))
+      EN.node_help (cc[-1], rider,
+                    """Select the specified (index) vellset in its child
+                    for a new node with a single vellset in its Result""")
 
    if False:
       # Problem: Gives an error (list indix not supported?)
       index = [0,2]
-      cc.append(stub('Selector')(index) << Meq.Selector(tensor, index=index))
-      help="""Select the specified (index) vellsets in its child
-      for a new node with this subset of vellsets in its Result"""
+      cc.append(stub('Selector')(index) << Meq.Selector(cc[0], index=index))
+      EN.node_help (cc[-1], rider,
+                    """Select the specified (index) vellsets in its child
+                    for a new node with this subset of vellsets in its Result""")
 
    if False:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
       c1 = ET.twig(ns,'prod_f2t2')
       index = 1
-      cc.append(stub('Paster')(index) << Meq.Selector(children=[tensor,c1], index=index))
-      help="""Make a new node, in which the vellset from the
-      second child (c1) is pasted at the specified (index) position
-      among the vellsets of its first child (c0)"""
+      cc.append(stub('Paster')(index) << Meq.Selector(children=[cc[0],c1], index=index))
+      EN.node_help (cc[-1], rider,
+                    """Make a new node, in which the vellset from the
+                    second child (c1) is pasted at the specified (index) position
+                    among the vellsets of its first child (c0)""")
 
-   return QRU.on_exit (ns, rider, cc, node_help=True)
+   return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
 
@@ -785,27 +791,34 @@ def tensor_matrix (ns, rider):
    """
    Nodes with multiple vellsets can be treated as matrices.
    There are some specialised nodes that do matrix operations.
-   NB: For the moment, only 2x2 matrices can be inverted, since
+   <remark>
+   For the moment, only 2x2 matrices can be inverted, since
    this was easiest to program by hand (see MatrixInvert22).
    A more general inversion node will be implemted later.
+   </remark>
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix)
    cc = []
-   cc.append(stub('Composer') << Meq.Composer(children=range(6), dims=[2,3]))
-   help="""Make a tensor node with a 2x3 array of vellsets.
-   This can be treated as a 2x3 matrix. Note the use of
-   constants as children, for easier inspection and verification."""
 
-   cc.append(stub('Transpose') << Meq.Transpose(cc[0]))
-   help="""Make the 3x2 transpose of the given 2x3 matrix."""
+   cc.append(stub('2x3') << Meq.Composer(children=range(6), dims=[2,3]))
+   EN.node_help (cc[-1], rider,
+                 """Make a tensor node with a 2x3 array of vellsets.
+                 This can be treated as a 2x3 matrix. Note the use of
+                 constants as children, for easier inspection and verification.""")
 
-   cc.append(stub('MatrixMultiply')([0,1]) << Meq.MatrixMultiply(cc[0],cc[1]))
-   help="""Multply the original 2x3 matrix with its 3x2 transpose.
-   This produces a 2x2 matrix."""
-   
-   cc.append(stub('MatrixMultiply')([1,0]) << Meq.MatrixMultiply(cc[1],cc[0]))
-   help="""Multiply the 3x2 transpose with the original 2x3 matrix.
-   This produces a 3x3 matrix."""
+   cc.append(stub('3x2') << Meq.Transpose(cc[0])) 
+   EN.node_help (cc[-1], rider,
+                 """Make the 3x2 transpose of the given 2x3 matrix.""")
+
+   cc.append(stub('2x2') << Meq.MatrixMultiply(cc[0],cc[1]))
+   EN.node_help (cc[-1], rider,
+                 """Multply the original 2x3 matrix with its 3x2 transpose.
+                 This produces a 2x2 matrix.""")
+
+   cc.append(stub('3x3') << Meq.MatrixMultiply(cc[1],cc[0]))
+   EN.node_help (cc[-1], rider,
+                 """Multiply the 3x2 transpose with the original 2x3 matrix.
+                 This produces a 3x3 matrix.""")
    
    return QRU.on_exit (ns, rider, cc)
 
@@ -818,25 +831,27 @@ def tensor_matrix22 (ns, rider):
    specialized nodes that deal with 2x2 matrices.
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix22)
-   children = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
+   elements = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
    cc = []
-   cc.append(QRU.MeqNode (ns, rider, meqclass='Matrix22',
-                          name='Matrix22(cxft,0,0,cxtf)',
-                          help="""Make a complex 2x2 diagonal matrix.""",
-                          children=children))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='MatrixInvert22',
-                          name='MatrixInvert22(m0)',
-                          help="""Invert the given 2x2 matrix (m0), cell-by-cell""",
-                          children=[cc[0]]))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='MatrixMultiply',
-                          name='MatrixMultiply(m0,m0inv)',
-                          help="""Multply the matrix (m0) with its inverse (m0inv).
-                          The result should be a unit matrix (cell-by-cell).""",
-                          children=[cc[0],cc[1]]))
-   cc.append(QRU.MeqNode (ns, rider, meqclass='ConjTranspose',
-                          name='ConjTranspose(m0)',
-                          help="""Conjugate Transpose the given matrix (m0)""",
-                          children=[cc[0]]))
+
+   cc.append(stub('m22') << Meq.Matrix22(*elements))
+   EN.node_help (cc[-1], rider,
+                 """Make a complex 2x2 diagonal matrix.""")
+   # NB: Matrix22(children=elements) gives an error.... 
+
+   cc.append(stub('inv22') << Meq.MatrixInvert22(cc[0]))
+   EN.node_help (cc[-1], rider,
+                 """Invert the given 2x2 matrix, cell-by-cell""")
+
+   cc.append(stub('m22xinv22') << Meq.MatrixMultiply(cc[0],cc[1]))
+   EN.node_help (cc[-1], rider,
+                 """Multply the matrix with its inverse.
+                 The result should be a unit matrix (cell-by-cell).""")
+
+   cc.append(stub('hermitian') << Meq.ConjTranspose(cc[0]))
+   EN.node_help (cc[-1], rider,
+                 """Conjugate Transpose the given matrix""")
+
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -871,21 +886,27 @@ def leaves_constant (ns, rider):
    stub = QRU.on_entry(ns, rider, leaves_constant)
    cc = []
    v = 0.5
-   cc.append(dict(node=(ns << v),
-                  help='syntax: node = ns << '+str(v)))
+   cc.append(ns << v)
+   EN.node_help (cc[-1], rider, 'syntax: node = ns << '+str(v))
+
    v += 1
-   cc.append(dict(node=(ns.NoDeNaMe << v),
-                  help='syntax: node = ns.NoDeNaMe << '+str(v)))
+   cc.append(ns.NoDeNaMe << v)
+   EN.node_help (cc[-1], rider, 'syntax: node = ns.NoDeNaMe << '+str(v))
+
    v += 1
    cc.append(stub('real') << v)
+
    v = complex(1,2)
    cc.append(stub('complex') << v)
+
    v = [1.5, -2.5, 3.5, -467]
    cc.append(stub('tensor4') << Meq.Constant(v))
    cc.append(stub('tensor22') << Meq.Constant(v, dims=[2,2]))
+
    v[2] = complex(3,5)
    cc.append(stub('mixed') << Meq.Constant(v))
-   return QRU.on_exit (ns, rider, cc, node_help=True)
+
+   return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
 
@@ -909,12 +930,14 @@ def leaves_noise (ns, rider):
    stub = QRU.on_entry(ns, rider, leaves_noise)
    cc = []
    cc.append(stub('stddev') << Meq.GaussNoise(stddev=2.0))
+
    # NB: Mean does not work...
    cc.append(stub('mean') << Meq.GaussNoise(mean=-10.0, stddev=2.0))
+
    if False:
       # NB: The server crashes on this one
       cc.append(stub('random') << Meq.RandomNoise(lower=-2.0, upper=4.0))
-   return QRU.on_exit (ns, rider, cc, node_help=True)
+   return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
 
@@ -934,13 +957,16 @@ def leaves_gridsFTLM (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_gridsFTLM)
    cc = []
+
    for q in ['Freq','Time']:
       cc.append(stub(q) << getattr(Meq,q)())
+
    for axis in ['L','M']:
       cc.append(stub(axis) << Meq.Grid(axis=axis))
+
    cc.append(stub('ft') << Meq.Add(cc[0],cc[1]))
    cc.append(stub('LM') << Meq.Add(cc[2],cc[3]))
-   return QRU.on_exit (ns, rider, cc, node_help=True)
+   return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
 
@@ -962,7 +988,7 @@ def leaves_gridsXYZetc (ns, rider):
    cc = []
    for axis in ['X','Y','Z']:
       cc.append(stub(axis) << Meq.Grid(axis=axis))
-   return QRU.on_exit (ns, rider, cc, node_help=True)
+   return QRU.on_exit (ns, rider, cc)
 
 
 #--------------------------------------------------------------------------------
@@ -1021,6 +1047,7 @@ def unops (ns, rider):
    cc = [] 
    cc.append(unops_elementary (ns, rider, twig))
    cc.append(unops_goniometric (ns, rider, twig))
+   cc.append(unops_invgoniometric (ns, rider, twig))
    cc.append(unops_hyperbolic (ns, rider, twig))
    cc.append(unops_power (ns, rider, twig))
    cc.append(unops_misc (ns, rider, twig))
@@ -1045,23 +1072,49 @@ def unops_elementary (ns, rider, twig=None):
 def unops_goniometric (ns, rider, twig=None):
    """
    (Tri-)Goniometric functions (Sin, Cos, Tan) turn an angle (rad) into a fraction.
-   Their inverses (Asin, Acos, Atan) turn a fraction into an angle (rad).
-   The abs inputs of Asin and Acos must be smaller than one, of course. 
-   
-   Applying first the function and then its inverse should yield the original
-   input (which it does NOT in case of Acos(Cos(x))....)
    """
    stub = QRU.on_entry(ns, rider, unops_goniometric)
    cc = [twig]
-   for q in ['Sin','Cos','Tan','Asin','Acos','Atan']:
+
+   for q in ['Sin','Cos','Tan']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
-   cc.append('Applying a function to its inverse should yield unity')
+
+   s2 = stub('s2') << Meq.Sqr(cc[1])
+   c2 = stub('c2') << Meq.Sqr(cc[2])
+   cc.append(stub('s2+c2') << Meq.Add(s2,c2))
+
+   EN.node_help (cc[-1], rider, 'Cos(x)**2 + Sin(x)**2 = 1')
+   return QRU.on_exit (ns, rider, cc)
+
+#-----------------------------------------#--------------------------------------------------------------------------------
+
+def unops_invgoniometric (ns, rider, twig=None):
+   """
+   (Tri-)Goniometric functions (Sin, Cos, Tan) turn an angle (rad) into a fraction.
+   The inverses (tri-)Goniometric functions (Asin, Acos, Atan) turn a fraction into
+   an angle (rad). The abs inputs of Asin and Acos must be smaller than one, of course. 
+
+   <remark>
+   Applying first the function and then its inverse should yield the original input
+   <warning>(which it does NOT in case of Acos(Cos(x))....!?)</warning>
+   </remark>
+   """
+   stub = QRU.on_entry(ns, rider, unops_invgoniometric)
+   cc = [twig]
+
+   for q in ['Asin','Acos','Atan']:
+      cc.append(stub(q) << getattr(Meq,q)(twig))
+
    cc.append(stub('AsinSin') << Meq.Asin(cc[0]))
+   EN.node_help (cc[-1], rider,
+                 'Applying a function to its inverse should yield unity')
    cc.append(stub('AcosCos') << Meq.Acos(cc[1]))
+   EN.node_help (cc[-1], rider,
+                 'Applying a function to its inverse should yield unity')
    cc.append(stub('AtanTan') << Meq.Atan(cc[2]))
-   return QRU.on_exit (ns, rider, cc,
-                       help='** Extra topic help **',
-                       show_recurse=True)
+   EN.node_help (cc[-1], rider,
+                 'Applying a function to its inverse should yield unity')
+   return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
 
@@ -1073,7 +1126,13 @@ def unops_hyperbolic (ns, rider, twig=None):
    cc = [twig]
    for q in ['Sinh','Cosh','Tanh']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
-   return QRU.on_exit (ns, rider, cc)
+      
+   sh2 = stub('sh2') << Meq.Sqr(cc[1])
+   ch2 = stub('ch2') << Meq.Sqr(cc[2])
+   cc.append(stub('ch2-sh2') << Meq.Subtract(ch2,sh2))
+
+   EN.node_help (cc[-1], rider, 'Cosh(x)**2 - Sinh(x)**2 = 1')
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 #--------------------------------------------------------------------------------
 
@@ -1098,7 +1157,7 @@ def unops_power (ns, rider, twig=None):
    cc = [twig]
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, bookmark_bundle_help=False)
 
 #--------------------------------------------------------------------------------
 
@@ -1141,7 +1200,6 @@ def binops (ns, rider):
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
    # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
    for q in ['Subtract','Divide','Pow','ToComplex','Polar']:
-      # name=q+'('+str(lhs.name)+','+str(rhs.name)+')',
       cc.append(stub(q) << getattr(Meq,q)(lhs,rhs))
    return QRU.on_exit (ns, rider, cc)
 

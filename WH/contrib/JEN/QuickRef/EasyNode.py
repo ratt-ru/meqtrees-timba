@@ -55,6 +55,7 @@ from Timba.Meq import meq
 Settings.forest_state.cache_policy = 100
 
 from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
+from Timba.Contrib.JEN.QuickRef import QuickRefNodeHelp as QRNH
 
 import copy
 import math
@@ -369,7 +370,20 @@ def format_tree (node, ss='', recurse=True,
 
 #----------------------------------------------------------------------------
 
-def quickref_help (node, new=None, append=None, severe=False, trace=False):
+def node_help (node, rider, new=None, severe=False, trace=False):
+    """
+    Append the given string as a comment to the node quickref_help.
+    This is a low-threshold function, to be used extensively in QR_... modules.
+    to add help (including standard node-help) to existing nodes, and to make
+    sure that they are added to the hierarchical help in the rider.
+    """
+    return QRNH.node_help (node, detail=1, rider=rider, comment=new,
+                           mode='html', trace=False)
+
+#----------------------------------------------------------------------------
+
+def quickref_help (node, append=None, new=None, prepend=None,
+                   severe=False, trace=False):
     """
     Get/set the contents of its quickref_help field, if any.
     """
@@ -379,11 +393,16 @@ def quickref_help (node, new=None, append=None, severe=False, trace=False):
         key = 'quickref_help'
         if new:                         # a new quickref_help (string)
             node.initrec()[key] = str(new)
-        if append:                      # append quickref_help (string)
+        elif append:                    # append quickref_help (string)
             if rr.has_key(key):
                 node.initrec()[key] += str(append)
             else:
                 node.initrec()[key] = str(append)
+        elif prepend:                   # prepend quickref_help (string)
+            if rr.has_key(key):
+                node.initrec()[key] = str(prepend) + str(node.initrec()[key])
+            else:
+                node.initrec()[key] = str(prepend)
         qhelp = getattr(rr,key,'** no quickref_help available **')
     elif severe:
         raise ValueError,qhelp

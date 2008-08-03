@@ -45,9 +45,11 @@ QuickRef module: QuickRefNodeHelp.py:
 from Timba.TDL import *
 from Timba.Meq import meq
 
+# NB: Do NOT use this one in here (circular)
+## from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+
 # from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 # from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 
 # import math
@@ -57,8 +59,7 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 #******************************************************************************** 
 
-
-def node_help (node, detail=1, rider=None, mode='html', extra=None, trace=False):
+def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=False):
    """
    Attach specific help to the quickref_help field of the given node.
    If a rider (CollatedHelpRecord) is specified, attach it too.
@@ -73,8 +74,6 @@ def node_help (node, detail=1, rider=None, mode='html', extra=None, trace=False)
    ss += 'MeqNode: '
    ss += str(node)+':'
    ss += '</font>'
-   # ss += EN.format_node(node)
-   ## qhead += ' &lt &lt &#32 Meq.'+str(meqclass)         # escape char &lt = <
    ss += '</font><dd>'
 
    if False:
@@ -94,19 +93,24 @@ def node_help (node, detail=1, rider=None, mode='html', extra=None, trace=False)
 
    # Add a line of general node info:
    line = ''
+   if not line=='':
+      ss += line+'<br>'
+
+   # Show the children:
    nc = node.num_children()
    if nc==0:
       pass
    elif nc==1:
-      line += 'child: '+str(node.children[0][1])
+      ss += '- '+str(0)+': '+str(node.children[0][1])+'<br>'
    elif nc<6:
-      line += 'children: '+str(node.children[0][1])
-      for i in range(1,nc):
-         line += ', '+str(node.children[i][1])
+      for i in range(nc):
+         ss += '- '+str(i)+': '+str(node.children[i][1])+'<br>'
    else:
-      line += str(nc)+' children: '+str(node.children[0][1])+' ... '+str(node.children[nc-1][1])
-   if not line=='':
-      ss += line+'<br>'
+      for i in [0,1]:
+         ss += '- '+str(i)+': '+str(node.children[i][1])+'<br>'
+      ss += '...'+'<br>'
+      for i in [nc-2,nc-1]:
+         ss += '- '+str(i)+': '+str(node.children[i][1])+'<br>'
 
    # Expand the node-specific initrec fields:
    rr = node.initrec()
@@ -120,13 +124,20 @@ def node_help (node, detail=1, rider=None, mode='html', extra=None, trace=False)
          ss += ' - '+str(key)+' = '+str(v)+'<br>'
 
    ss = class_help (node.classname, header=ss, rr=rr,
-                    extra=extra,
+                    comment=comment,
                     detail=detail, rider=rider,
                     mode=mode, trace=False)
    
    # Attach to quickref_help field of the node state record:
    if is_node(node):
-      EN.quickref_help (node, append=ss, trace=trace)
+      rr = node.initrec()
+      key = 'quickref_help'
+      if rr.has_key(key):
+         rr.quickref_help += ss
+      else:
+         rr.quickref_help = ss
+      # NB: Do not use EasyNode from here (circular)
+      # EN.quickref_help (node, append=ss, trace=trace)
 
    if trace:
       print '\n** QRNH.node_help(',str(node),'):\n  ',ss,'\n'
@@ -137,7 +148,7 @@ def node_help (node, detail=1, rider=None, mode='html', extra=None, trace=False)
 #-----------------------------------------------------------------------------------
 
 def class_help (cname, header=None, rr=None,
-                detail=1, rider=None, extra=None,
+                detail=1, rider=None, comment=None,
                 mode='html', trace=False):
    """
    Attach specific help to the quickref_help field of the given
@@ -157,117 +168,166 @@ def class_help (cname, header=None, rr=None,
    more = 'specific: '
    more = ''
    if cname=='MeqConstant':
-      pass
-      # more += 'constant leaf node, dims='+str(getattr(rr,'dims',None))
-      # more += ' value = '+str(getattr(rr,'value',None))
+      more += 'May be scalar or tensor (multiple results), real or complex. ' 
+      more += 'All the cells of a result domain have the same value.'
 
    elif cname in ['MeqFreq','MeqTime','MeqGrid']:
-      pass
+      more += 'Assign the value of the specified axis to each domain cell. '
 
-   elif cname in ['MeqAbs','MeqNorm','MeqArg','MeqReal',
-                  'MeqImag','MeqConj','MeqExp','MeqLog']:
-      help = record(Abs='', Norm='like Abs', Arg='-> rad', Real='', Imag='',
-                    Conj='complex conjugate: a+bj -> a-bj',
-                    Exp='exp(a+bj) = exp(a)*exp(bj), i.e. cos with increasing ampl',
-                    Log='e-log (ln)')
+   elif cname in ['MeqNorm','MeqArg','MeqReal','MeqImag','MeqConj']:
+      more += 'Operation on complex child. '
 
-   elif cname in ['MeqAbs','MeqCeil','MeqFloor','MeqStripper','MeqIdentity']:
-      help = record(Abs='Take the absolute value.',
-                    Ceil='Round upwards to integers.',
-                    Floor='Round downwards to integers.',
-                    Stripper="""Remove all derivatives (if any) from the result.
-                    This saves space and can be used to control solving.""",
-                    Identity='Make a copy node with a different name.'
-                    )
+   elif cname in ['MeqCeil','MeqFloor']:
+      more += 'Rounding function.'
 
-   elif cname in ['MeqSubtract','MeqDivide','MeqPow',
-                  'MeqToComplex','MeqPolar','MeqMod']:
-      help = record(Subtract='lhs-rhs', Divide='lhs/rhs', Pow='lhs^rhs',
-                    Mod='lhs%rhs',
-                    ToComplex='(real, imag)', Polar='(amplitude, phase)')
-      # Problem: MeqMod() crashes the meqserver.... Needs integer children??
+   elif cname=='MeqIdentity':
+      more += 'Make a copy node with a different name.'
+
+   elif cname=='MeqStripper':
+      more += """Remove all derivatives (if any) from the result.
+      This saves space and can be used to control solving."""
+
+   elif cname=='MeqMod':
+      more += 'Modulo lhs%rhs (lhs and rhs are its 2 children). '
+      more += '<warning>MeqMod() crashes the meqserver.... Needs integer children?? </warning>'
+
+
+   elif cname=='MeqWSum':
+      more += 'Weighted sum of its children: w[0]*c0 + w[1]*c1 + w[2]*c2 + ... '
+      more += '<warning>The weights vector must be a vector of DOUBLES (!)</warning>'
+
+   elif cname=='MeqWMean':
+      more += """Weighted mean of its children: (w[0]*c0 + w[1]*c1 + w[2]*c2 + ...)/wtot,
+      in which wtot = (w[0]+w[1]+w[2]+...)"""
 
    elif cname in ['MeqAdd','MeqMultiply']:
-      pass
-
-   elif cname in ['MeqWSum','MeqWMean']:
-      help = record(WSum="""
-                    Weighted sum: w[0]*c0 + w[1]*c1 + w[2]*c2 + ...
-                    The weights vector (weights) is a vector of DOUBLES (!)
-                    """,
-                    WMean="""
-                    Weighted mean, the same as WSum, but divides by
-                    the sum of the weights (w[0]+w[1]+w[2]+....)
-                    """)
+      more += 'Multi-math function (has one or more children). '
 
    elif cname in ['MeqSubtract','MeqDivide','MeqPower']:
-      pass
+      more += 'Binary math function (has 2 children, lhs and rhs). '
+
+   elif cname in ['MeqToComplex','MeqPolar']:
+      more += 'Converts its two (real) children into a complex result. '
+      if cname=='MeqToComplex':
+         more += 'The children are real and imaginary, in that order.'
+      elif cname=='MeqPolar':
+         more += 'The children are ampl and phase (rad), in that order.'
 
 
    #---------------------------------------------------------------------------
 
    elif cname in ['MeqCos','MeqSin','MeqTan']:
-      help = record(Sin='(rad)', Cos='(rad)', Tan='(rad)')
+      more += '(tri-)goniometric function. Turns an angle (rad) into a fraction.'
 
    elif cname in ['MeqAcos','MeqAsin','MeqAtan']:
-      help = record(Asin='abs('+str('twig.name')+') &lt 1',
-                    Acos='abs('+str('twig.name')+') &lt 1',
-                    Atan='')
+      more += 'Inverse (tri-)goniometric function. Turns a fraction into an angle (rad). '
+      if cname in ['MeqAcos','MeqAsin']:
+         more += 'The abs input should be smaller than one, of course.'
 
    elif cname in ['MeqCosh','MeqSinh','MeqTanh']:
-      pass
+      more += 'Hyperbolic function: '
+      if cname=='MeqCosh':
+         more += 'Cosh(x) = (exp(x)+exp(-x))/2'
+      elif cname=='MeqSinh':
+         more += 'Sinh(x) = (exp(x)-exp(-x))/2'
+      elif cname=='MeqTanh':
+         more += 'Tanh(x) = Sinh(x)/Cosh(x) = (exp(x)-exp(-x))/(exp(x)+exp(-x))'
 
    elif cname in ['MeqPow2','MeqPow3','MeqPow4','MeqPow5',
                   'MeqPow6','MeqPow7','MeqPow8','MeqSqr']:
-      pass
-   elif cname in ['MeqAbs','MeqNegate','MeqInvert','MeqExp','MeqLog','MeqSqrt']:
+      more += 'Takes some power of its input.' 
+
+   elif cname in ['MeqAbs','MeqNegate','MeqInvert','MeqExp','MeqSqrt']:
       help = record(Negate='-c', Invert='1/c', Exp='exp(c)', Sqrt='square root',
                     Log='e-log (for 10-log, divide by Log(10))')
 
+   elif cname=='MeqLog':
+      more += 'e-log (for 10-log, divide by Log(10))'
+      
+
    elif cname in ['MeqNelements','MeqSum','MeqMean','MeqProduct',
                   'MeqStdDev','MeqRms', 'MeqMin','MeqMax']:
-      pass
+      more += """Operation over all the cells of the domainof its child result.
+      Returns a single number, or rather the same number in all cells."""
 
    #---------------------------------------------------------------------------
 
    elif cname in ['MeqTranspose','MeqMatrixMultiply','MeqConjTranspose']:
-      pass
-   elif cname in ['MeqMatrix22','MeqMatrixInvert22']:
-      pass
+      more += 'matrix operation (on a 2D tensor node). '
 
-   elif cname in ['MeqGaussNoise','MeqRandomNoise']:
-      help = 'Gaussian noise with given stddev (and zero mean)'
-      help = 'Gaussian noise with given stddev and mean'
-      # NB: mean does not work...
-      help = 'Random noise between lower and upper bounds'
-      # Problem: The server crashes on RandomNoise ...!
+   elif cname=='MeqMatrix22':
+      more += 'Make a 2x2 matrix from its 4 children. '
+      more += '<remark>Meq.Matrix(children=elements) does give an error (!?)</remark>.'
+      
+   elif cname=='MeqMatrixInvert22':
+      more += 'Invert a 2x2 matrix. '
+
+   elif cname=='MeqGaussNoise':
+      more += 'Gaussian noise with given stddev (and zero mean). '
+      more += '<remark>mean does not work...</remark>.'
+
+   elif cname=='MeqRandomNoise':
+      more += 'Random noise between given lower and upper bounds. '
+      more += '<warning>The meqserver crashes on this node!</warning>'
 
    #---------------------------------------------------------------------------
 
-   elif cname in ['MeqReqSeq','MeqReqMux']:
-      pass
 
-   elif cname in ['MeqComposer','MeqSelector','MeqPaster']:
-      pass
-
+   elif cname=='MeqReqSeq':
+      more += """Passes its request to its children one by one. It returns the result
+      of the child specified by result_index (default=0)."""
+      
+   elif cname=='MeqReqMux':
+      more += """Like MeqReqSeq...."""
+      
+   elif cname=='MeqComposer':
+      more += """Combine the results of its (scalar) children into a tensor node,
+      i.e. a node with multiple results. An optional dims argument may be supplied
+      to specify a shape."""
+      
+   elif cname=='MeqSelector':
+      more += """Makes a scalar node (one result) by extracting the specified (index)
+      element from its tensor child."""
+      
+   elif cname=='MeqPaster':
+      more += """Past the result of its (scalar) child at the specified (index)
+      position of its tensor child.<warning>Does not work</warning>"""
+      
+      
    #---------------------------------------------------------------------------
 
    elif cname in ['MeqCompounder']:
       pass
+   
    elif cname in ['MeqModRes','MeqResampler']:
       pass
 
    #---------------------------------------------------------------------------
 
-   elif cname in ['MeqSolver','MeqCondeq']:
-      pass
-   elif cname=='MeqParm':
-      pass
+   elif cname=='MeqSolver':
+      more += """Non-linear (Levenberg Marquardt) solver node. Uses AIPS++ fitting routines.
+      Its children are MeqCondeq nodes that provide condition equations for the (polc coeff)
+      of those MeqParm(s) in the MeqCondeq subtrees that have been set to 'solvable'.
+      After solution (by SVD matrix inversion), incremental improvements are passed back up
+      the tree to the relevant MeqParms.
+      """ 
+      
+   elif cname=='MeqCondeq':
+      more += """Uses the difference of its 2 children to generate condition equations
+      (one per domain cell) for the solver."""
 
+   elif cname=='MeqParm':
+      more += 'This node represents a (M.E.) parameter, which may be solved for. ' 
+      
    #---------------------------------------------------------------------------
 
-   elif cname in ['MeqZeroFlagger','MeqMergeFlags']:
-      pass
+   elif cname=='MeqZeroFlagger':
+      more += """Flags the cells of the result of its child if they are GT,GE,LE,LT zero.
+      The child will usually be the rootnode of a subtree."""
+
+   elif cname=='MeqMergeFlags':
+      more += """Merges the flags of its children, and returns the result of the
+      first child (with the merged flags of course)."""
 
    #---------------------------------------------------------------------------
 
@@ -307,10 +367,10 @@ def class_help (cname, header=None, rr=None,
 
    # Finishing touches:
    if not more=='':
-      ss += more
-   if isinstance(extra,str):
-      ss += str(extra)
-   ss += '</dl>\n'
+      ss += more+'<br>'
+   if isinstance(comment,str):
+      ss += '<i>Comment: '+str(comment)+'</i>'
+   ss += '</dl><br>\n'
 
    if rider:
       rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)

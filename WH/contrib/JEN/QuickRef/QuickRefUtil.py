@@ -816,9 +816,12 @@ def on_exit (ns, rider, nodes=None,
              mode=None,            
              show_recurse=False,
              show_forest_state=False,
+             show_bookmarks=False,
+             show_bundle=False,
+             bookmark_bundle_help=True,
              viewer='Result Plotter',
              help=None,
-             node_help=True,
+             node_help=False,
              trace=False):
     """
     <function_call>
@@ -853,6 +856,7 @@ def on_exit (ns, rider, nodes=None,
     parent subtree, to the specified recursion depth (True=1000), to the bundle help.
     <li> show_forest_state[=False]: If True, bookmark the forest state record 
     <li> viewer[='Result Plotter']: The default viewer to be used by the bookmark(s).
+    <li> bookmark_bundle_help[=True]: Also bookmark the bundle help (with QuickRef Display)
     <li> trace[=False]: If True, print tracing messages (debugging)
     
     NB: This function is called at the exit of all functions in QR_... modules.
@@ -864,8 +868,10 @@ def on_exit (ns, rider, nodes=None,
     if not isinstance(mode,str):
         pass
     elif mode=='group':
-        viewer = 'QuickRef Display'
+        # Used for 'bundle of bundles':
+        viewer = 'QuickRef Display'         # default viewer
         node_help = False
+        bookmark_bundle_help = False
         show_recurse = False
         show_forest_state = False
 
@@ -889,6 +895,7 @@ def on_exit (ns, rider, nodes=None,
             bhelp += '\n<warning>'  
             bhelp += 'not recognized: '+str(type(node))
             bhelp += '\n</warning>'
+
         else:                                 # a record with detailed instructions
             bundle.append(node['node'])           # 'node' is mandatory field
             # Deal with bookmark field:
@@ -910,23 +917,24 @@ def on_exit (ns, rider, nodes=None,
             # Deal with help-field:
             node.setdefault('help',False)
             if node['help']:                      # node-help (True or string)
-                extra = node['help']
-                if isinstance(extra,str):         # help is string
-                    extra = rider.replace_html_chars (extra, trace=False)
+                comment = node['help']
+                if isinstance(comment,str):         # help is string
+                    comment = rider.replace_html_chars (comment, trace=False)
                 else:
-                    extra = None
-                QRNH.node_help(bundle[-1], rider=rider, extra=extra, trace=False)
+                    comment = None
+                QRNH.node_help(bundle[-1], rider=rider, comment=comment, trace=False)
 
 
     #.......................................................................
     # Optionally, add help to each node in the bundle:
+    # (NB: This might interfere with the EN.help_node(node, rider, help) in the function...)
     
     if node_help:
-        extra = None
+        comment = None
         if isinstance(node_help,str):
-            extra = node_help
+            comment = node_help
         for i,node in enumerate(bundle):
-            QRNH.node_help(bundle[i], rider=rider, extra=extra, trace=False)
+            QRNH.node_help(bundle[i], rider=rider, comment=comment, trace=False)
 
     #.......................................................................
     # Append the contents of the help-argument, if string:
@@ -938,8 +946,8 @@ def on_exit (ns, rider, nodes=None,
     name = rider.nodestubname()
     parent = EN.unique_stub(ns, name)
 
-    # Special case: no nodes to be bundled:
     if len(bundle)==0:
+        # Special case: no nodes to be bundled:
         parent << Meq.Constant(-0.123454321)
         ## bookmark = False                      # just in case
 
@@ -980,7 +988,7 @@ def on_exit (ns, rider, nodes=None,
         bhelp += '\n<br>** The resulting bundle subtree:<br>'
         bhelp += EN.format_tree(parent, recurse=show_recurse,
                                 full=True, mode='html')
-    elif True:
+    elif show_bundle:
         bhelp += '\n<br>** The following nodes are bundled by parent node: '+str(parent)+':<br>'
         for i,node in enumerate(bundle):
             bhelp += ' - '+str(node)+'<br>'
@@ -993,12 +1001,12 @@ def on_exit (ns, rider, nodes=None,
         [page, folder] = rider.bookmark(rider.path(), trace=trace)
         if folder or page:
 
-            if True:
+            if bookmark_bundle_help:
                 # Append an extra bookmark with the bundle help...
                 bookmarks.append(parent)
                 viewers.append('QuickRef Display')
 
-            if True:
+            if show_bookmarks:
                 bhelp += '\n<br>** The following nodes are bookmarked:'
                 if page:
                     bhelp += ' on page: '+str(page)
