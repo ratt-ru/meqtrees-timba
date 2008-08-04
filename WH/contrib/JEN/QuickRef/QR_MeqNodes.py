@@ -287,20 +287,23 @@ def flowcontrol (ns, rider):
 def flowcontrol_reqseq (ns, rider):
    """
    The MeqReqSeq (Request Sequencer) node issues its request to its children one
-   by one (rather than simultaneously, as other nodes do), in order of the child list.
+   by one (rather than simultaneously, as other nodes do), in the order of the child list.
    When finished, it passes on the result of only one of the children, which may be
    specified by means of the keyword 'result_index' (default=0, i.e. the first child).
    """
    stub = QRU.on_entry(ns, rider, flowcontrol_reqseq)
-   rindex = 1
    cc = []
+
+   children = []
    for i in range(5):
-      cc.append(ns << (-5*i))
-   node = QRU.MeqNode(ns, rider, meqclass='ReqSeq',
-                     name='ReqSeq(*cc, result_index='+str(rindex)+')',
-                     children=cc, help=help, result_index=rindex)
-   CC = EN.unique_stub(ns,'cc') << Meq.Composer(*cc)
-   return QRU.on_exit (ns, rider, [node,CC])
+      children.append(ns << (-5*i))
+   cc.append(stub('children') << Meq.Composer(*children))
+
+   cc.append(stub('ReqSeq') << Meq.ReqSeq(*children))
+   for rindex in [0,1]:
+      cc.append(stub('ReqSeq')(rindex) << Meq.ReqSeq(children=children,
+                                                     result_index=rindex))
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 
 #--------------------------------------------------------------------------------
@@ -351,16 +354,17 @@ def visualization_inspector (ns, rider):
    tname = opt_visualization_inspector_twig
    twig = ET.twig(ns, tname)
    cc = []
+   
    plot_label = []
-   for i in range(10):
+   for i in range(7):
       label = 'sin('+str(i)+'*'+tname+')'
       plot_label.append(label)
-      cc.append(ns[label] << Meq.Sin(Meq.Multiply(i,twig)))
-   node = QRU.MeqNode(ns, rider,
-                      meqclass='Composer', name='inspector',
-                      children=cc, help=help, plot_label=plot_label)
-   return QRU.on_exit (ns, rider, [node],
-                      viewer='Collections Plotter')
+      cc.append(stub(label) << Meq.Sin(Meq.Multiply(i,twig)))
+
+   node = stub('inspector') << Meq.Composer(children=cc,
+                                            plot_label=plot_label)
+   cc.append(dict(node=node, viewer='Collections Plotter'))
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 
 #================================================================================
@@ -387,38 +391,47 @@ def solving_ab (ns, rider):
    using two linear equations (one condeq child each):
    <li> condeq 0:  a + b = p (=10)
    <li> condeq 1:  a - b = q (=2)
+
    The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
    Condeq Results are the solution residuals, which should be small.
    """
    stub = QRU.on_entry(ns, rider, solving_ab)
-   a = EN.unique_stub(ns, 'a') << Meq.Parm(0)
-   b = EN.unique_stub(ns, 'b') << Meq.Parm(0)
-   p = EN.unique_stub(ns, 'p') << Meq.Constant(10)
-   q = EN.unique_stub(ns, 'q') << Meq.Constant(2)
-   sum_ab = ns << Meq.Add(a,b) 
-   diff_ab = ns << Meq.Subtract(a,b)
-   drivers = EN.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
-   parmset = EN.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
+   cc = []
+
+   a = stub('a') << Meq.Parm(0)
+   b = stub('b') << Meq.Parm(0)
+   cc.append(stub('solved_parameters_a_b') << Meq.Composer(a,b))
+   EN.node_help(cc[-1], rider,
+                """The parameter values after solving.
+                Check that they satisfy the condeq equations.""")
+
+
+   p = stub('p') << Meq.Constant(10)
+   q = stub('q') << Meq.Constant(2)
+   cc.append(stub('driving_values_p_q') << Meq.Composer(p,q))
+   EN.node_help(cc[-1], rider,
+                """The right-hand sides of the condeq equations""")
 
    condeqs = []
-   condeqs.append(QRU.MeqNode (ns, rider, meqclass='Condeq',name='Condeq(a+b,p)',
-                               help='Represents equation: a + b = p (=10)',
-                               children=[sum_ab, p]))
-   condeqs.append(QRU.MeqNode (ns, rider, meqclass='Condeq',name='Condeq(a-b,q)',
-                               help='Represents equation: a - b = q (=2)',
-                               children=[diff_ab, q]))
+   sum_ab = stub('a+b') << Meq.Add(a,b) 
+   condeqs.append(stub('a+b=p') << Meq.Condeq(sum_ab, p))
+   cc.append(dict(node=condeqs[0],
+                  help="""Represents equation: a + b = p (=10).
+                  After solving the condeq result (=residual) should be 'zero'."""))
 
-   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
-                         name='Solver(*condeqs, solvable=[a,b])',
-                         help='Solver', show_recurse=True,
-                         children=condeqs,
-                         solvable=[a,b])  
-   residuals = QRU.MeqNode (ns, rider, meqclass='Add', name='residuals',
-                            help='The sum of the (abs) condeq residuals',
-                            children=condeqs, unop='Abs')
-   cc = [solver,residuals,drivers,parmset]
-   return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0)
+   diff_ab = stub('a-b') << Meq.Subtract(a,b)
+   condeqs.append(stub('a-b=q') << Meq.Condeq(diff_ab, q))
+   cc.append(dict(node=condeqs[1],
+                  help="""Represents equation: a - b = q (=2).
+                  After solving the condeq result (=residual) should be 'zero'."""))
+   
+   # The solver should be executed first (otherwise the displayed parameter values are
+   # not the final ones).
+   cc.insert(0, stub('solver') << Meq.Solver(children=condeqs, solvable=[a,b]))
+   cc.append(dict(node=cc[0], viewer='Record Browser'))
+
+   return QRU.on_exit (ns, rider, cc, node_help=True,
+                       parentclass='ReqSeq', result_index=0)
 
 
 
@@ -442,7 +455,7 @@ def flagging (ns, rider):
   
 def flagging_simple (ns, rider):
    """
-   Demonstration of simple flagging. A zero-criterion (zcrit) is calculated
+   Demonstration of simple flagging. A zero-criterion (zerocrit) is calculated
    by a little subtree. This calculates the abs(diff) from the mean of the
    input, and then subtracts 'nsigma' times its stddev.
    The ZeroFlagger(oper=GE) flags all domain cells whose zcrit value is >= 0.
@@ -450,25 +463,31 @@ def flagging_simple (ns, rider):
    The MergeFlags node merges the new flags with the original flags of the input.
    """
    stub = QRU.on_entry(ns, rider, flagging_simple)
+   cc = []
 
-   twig = EN.unique_stub(ns,'twig') << Meq.Exp(ET.twig(ns, opt_flagging_twig))
-   mean =  ns << Meq.Mean(twig)
-   stddev =  ns << Meq.Stddev(twig)
-   diff = ns << Meq.Subtract(twig,mean)
-   absdiff = ns << Meq.Abs(diff)
+   cc.append(stub('input') << Meq.Exp(ET.twig(ns, opt_flagging_twig)))
+   cc.append(stub('mean') << Meq.Mean(cc[0]))
+   cc.append(stub('stddev') << Meq.StdDev(cc[0]))
+   stddev = cc[-1]
+   dev = stub('dev') << Meq.Subtract(cc[0],cc[1])
+   cc.append(stub('absdev') << Meq.Abs(dev))
+   absdev = cc[-1]
+   EN.node_help(absdev, rider,
+                """The absolute deviation (per cell) from the mean over the domain.""")
+   
    nsigma = opt_flagging_nsigma
-   zcritname = 'zero_crit(nsigma='+str(nsigma)+')'
-   zcrit = EN.unique_stub(ns, zcritname) << Meq.Subtract(absdiff,nsigma*stddev)
-   zflag = QRU.MeqNode (ns, rider, meqclass='ZeroFlagger',
-                        name='ZeroFlagger(zcrit, oper=GE)',
-                        help='oper=GE: Flag all cells for which zcrit>=0.0.',
-                        children=[zcrit], oper='GE')
-   mflag = QRU.MeqNode (ns, rider, meqclass='MergeFlags',
-                        name='MergeFlags(twig,zflag)',
-                        help='Merge new flags with existing flags',
-                        children=[twig, zflag])
-   cc = [twig, mean, stddev, zcrit, zflag, mflag]
-   return QRU.on_exit (ns, rider, cc)
+   cc.append(stub('abscrit') << Meq.Multiply(nsigma,stddev))
+   cc.append(stub('zerocrit') << Meq.Subtract(absdev,cc[-1]))
+   EN.node_help(cc[-1], rider,
+                """The zero-criterion is the absolute deviation from the mean,
+                minus nsigma (="""+str(nsigma)+""")* the stddev w.r.t. the mean.
+                This will be GE zero for those cells whose value deviates more
+                than nsigma*stddev from the mean over the domain.
+                """)
+   cc.append(stub('flag') << Meq.ZeroFlagger(cc[-1], oper='GE'))
+   cc.append(stub('merge') << Meq.MergeFlags(cc[0], cc[-1]))
+
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 
 #--------------------------------------------------------------------------------
@@ -507,7 +526,9 @@ def compounder_simple (ns, rider):
    <li> v(0,1) = v(1,0) = 0.36788
    <li> v(0,2) = v(2,0) = 0.01831
    <li> v(2,1) = v(1,2) = 0.00673
+
    A similar 2D gaussian (in f,t) is shown for comparison.
+
    <remark>
    Try executing with a 4D domain....
    </remark>
@@ -517,20 +538,15 @@ def compounder_simple (ns, rider):
    twig_LM = ET.twig(ns,'gaussian_LM')
    twig_ft = ET.twig(ns,'gaussian_ft')
    common_axes = [hiid('L'),hiid('M')]
-   help = 'Compounder(LM,twigLM,common_axes='+str(common_axes)+')'
    cc = []
    for L in [0,1,2]:
       for M in [0,1,2]:
          LM = [(ns << L), (ns << M)]
-         extra_axes = ns['extra_axes'](L=L)(M=M) << Meq.Composer(*LM)
-         c = ns.Compounder(L=L)(M=M) << Meq.Compounder(extra_axes, twig_LM,
-                                                       help=help,
-                                                       common_axes=common_axes)
-         cc.append(c)
-   cs = EN.unique_stub(ns,'Compounders') << Meq.Composer(*cc)
-   return QRU.on_exit (ns, rider, nodes=[cs,cc[1],twig_LM,twig_ft])
-
-# make_helpnode=True, ....??
+         extra_axes = stub('extra_axes')(L=L)(M=M) << Meq.Composer(*LM)
+         cc.append(stub('compounder')(L=L)(M=M) << Meq.Compounder(extra_axes, twig_LM,
+                                                                  common_axes=common_axes))
+   cs = stub('Compounders') << Meq.Composer(*cc)
+   return QRU.on_exit (ns, rider, nodes=[cs,cc[1],twig_LM,twig_ft], node_help=True)
 
 
 #--------------------------------------------------------------------------------
@@ -562,13 +578,14 @@ def resampling (ns, rider):
    There may also be other applications of these nodes....
    """
    stub = QRU.on_entry(ns, rider, resampling)
+   cc = []
+
    twig = ET.twig (ns, opt_resampling_MeqModRes_twig)
    num_cells = [opt_resampling_MeqModRes_num_time,
                 opt_resampling_MeqModRes_num_freq]
    mode = opt_resampling_MeqResampler_mode
-   cc = []
-   cc.append(resampling_experiment (ns, rider,
-                                    twig, num_cells, mode))
+   cc.append(resampling_experiment (ns, rider, twig, num_cells, mode))
+
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
@@ -584,19 +601,15 @@ def resampling_experiment (ns, rider,
    re-executing.
    """
    stub = QRU.on_entry(ns, rider, resampling_experiment)
-
-   original = EN.unique_stub(ns, 'original') << Meq.Identity(twig)
-   modres = QRU.MeqNode (ns, rider, meqclass='ModRes',
-                         name='ModRes(original, num_cells=[nt,nf])',
-                         help='changes the resolution of the REQUEST',
-                         children=[twig], num_cells=num_cells)
-   resampled = QRU.MeqNode (ns, rider, meqclass='Resampler',
-                            name='Resampler(modres, mode='+str(mode)+')',
-                            help='resamples the domain according to the twig request',
-                            children=[modres], mode=mode)
-   diff = EN.unique_stub(ns, 'diff(resampled,original)') << Meq.Subtract(resampled,original)
-   # bookmark=[original, modres, resampled, diff])
-   return QRU.on_exit (ns, rider, [diff])
+   cc = [twig]
+   qhelp = """This copy of the input is needed for display, since the
+   resolution of the request changes."""
+   cc.append(stub('original') << Meq.Identity(twig, qhelp=qhelp))
+   cc.append(stub('modres')(num_cells) << Meq.ModRes(twig, num_cells=num_cells))
+   cc.append(stub('resamp')(mode=mode) << Meq.Resampler(cc[-1], mode=mode))
+   cc.insert(0, stub('diff') << Meq.Subtract(cc[-1],cc[1]))
+   return QRU.on_exit (ns, rider, cc, parentclass='ReqSeq',
+                       node_help=True, show_recurse=True)
 
 
 
@@ -634,20 +647,12 @@ def axisreduction_single (ns, rider):
    single-number Result.
    """
    stub = QRU.on_entry(ns, rider, axisreduction_single)
-
    twig_name = 'f'
    twig = ET.twig(ns, twig_name)
    cc = [twig]
-   help = record(NElements='nr of cells',
-                 Sum='sum of cell values', Mean='mean of cell values',
-                 Product='product of cell values',
-                 Min='min cell value', Max='max  cell value',
-                 StdDev='stddev of cell values',
-                 Rms='same as StdDev (obsolete?)')
-   for q in ['Nelements','Sum','Mean','Product','StdDev','Rms', 'Min','Max']:
-      cc.append(QRU.MeqNode (ns, rider,
-                             meqclass=q, name=q+'('+str(twig.name)+')',
-                             help=help[q], children=[twig]))
+   # NB: Left out: 'Rms', which is the same as 'SteDev'...
+   for q in ['Nelements','Sum','Mean','Product','StdDev','Min','Max']:
+      cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -656,7 +661,9 @@ def axisreduction_multiple (ns, rider):
    """
    Demonstration of more advanced axis reduction, with Results that may contain
    multiple vellsets.
+   <remark>
    NB: Axisreduction nodes ONLY work with a single child.
+   </remark>
    The reduction is done along all available axes (the default), producing a
    single-number Result.
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
@@ -670,9 +677,8 @@ def axisreduction_multiple (ns, rider):
    for twig_name in help.keys():
       twig = ET.twig(ns, twig_name)
       cc.append(twig)
-      cc.append(QRU.MeqNode (ns, rider, meqclass=democlass,
-                             name=democlass+'('+str(twig.name)+')',
-                             help=help[twig_name], children=[twig]))
+      qhelp = help[twig_name]
+      cc.append(stub(democlass)(twig_name) << getattr(Meq,democlass)(twig, qhelp=qhelp))
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -690,28 +696,26 @@ def axisreduction_axes (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, axisreduction_axes)
 
-   democlass = 'Sum'
-   help = democlass+' over the cells of '
    twig_name = 'ft'
    twig = ET.twig(ns, twig_name)
-   ntwig = ns << Meq.NElements(twig)
+   ntwig = stub('nelem') << Meq.NElements(twig)
    cc = [twig,ntwig]
-   cc.append(QRU.MeqNode (ns, rider, meqclass=democlass,
-                          name=democlass+'('+str(twig.name)+')',
-                          help=help+'no reduction_axes specified, assume all',
-                          children=[twig]))
-   cc.append(QRU.MeqNode (ns, rider, meqclass=democlass,
-                          name=democlass+'('+str(twig.name)+', reduction_axes=[time])',
-                          help=help+'the time-axis is reduced to length 1.',
-                          children=[twig], reduction_axes=['time']))
-   cc.append(QRU.MeqNode (ns, rider, meqclass=democlass,
-                          name=democlass+'('+str(twig.name)+', reduction_axes=[freq])',
-                          help=help+'the freq-axis is reduced to length 1.',
-                          children=[twig], reduction_axes=['freq']))
-   cc.append(QRU.MeqNode (ns, rider, meqclass=democlass,
-                          name=democlass+'('+str(twig.name)+', reduction_axes=[freq,time])',
-                          help=help+'both the freq and time axes are reduced.',
-                          children=[twig], reduction_axes=['freq','time']))
+
+   democlass = 'Sum'
+   help = democlass+' over the cells of '
+
+   qhelp =help+'no reduction_axes specified, assume all'
+   cc.append(stub('all_axes') << getattr(Meq,democlass)(twig, qhelp=qhelp))
+
+   qhelp = help+'the time-axis is reduced to length 1.'
+   cc.append(stub('time_axis') << getattr(Meq,democlass)(twig, qhelp=qhelp,
+                                                         reduction_axes=['time']))
+   qhelp = help+'the freq-axis is reduced to length 1.'
+   cc.append(stub('freq_axis') << getattr(Meq,democlass)(twig, qhelp=qhelp,
+                                                         reduction_axes=['freq']))
+   qhelp = help+'both the freq and time axes are reduced.'
+   cc.append(stub('timefreq') << getattr(Meq,democlass)(twig, qhelp=qhelp,
+                                                        reduction_axes=['freq','time']))
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1043,7 +1047,7 @@ def unops (ns, rider):
    of the function value vs its argument. 
    """
    stub = QRU.on_entry(ns, rider, unops)
-   twig = ET.twig (ns, opt_unops_twig)
+   twig = ET.twig (ns, opt_unops_twig, nodename='unops_single_child')
    cc = [] 
    cc.append(unops_elementary (ns, rider, twig))
    cc.append(unops_goniometric (ns, rider, twig))
@@ -1167,8 +1171,12 @@ def unops_misc (ns, rider, twig=None):
    """
    stub = QRU.on_entry(ns, rider, unops_misc)
    cc = [twig]
-   for q in ['Abs','Ceil','Floor','Stripper','Identity']:
+   for q in ['Ceil','Floor','Stripper','Identity']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
+
+   cc.append(stub('Stripper') << Meq.Stripper(twig))
+   cc.append(dict(node=cc[-1], viewer='Record Browser'))
+
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1194,14 +1202,14 @@ def binops (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, binops)
    print '\n** rider.path()=',rider.path(),' stub=',str(stub)
-   lhs = ET.twig(ns, opt_binops_lhs)         # left-hand side (child)
-   rhs = ET.twig(ns, opt_binops_rhs)         # right-hand side (child)
+   lhs = ET.twig(ns, opt_binops_lhs, nodename='lhs')   # left-hand side (child)
+   rhs = ET.twig(ns, opt_binops_rhs, nodename='rhs')   # right-hand side (child)
    cc = [lhs,rhs]
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
    # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
    for q in ['Subtract','Divide','Pow','ToComplex','Polar']:
       cc.append(stub(q) << getattr(Meq,q)(lhs,rhs))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 
 

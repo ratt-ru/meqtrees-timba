@@ -90,13 +90,19 @@ def format_value(v, name=None, nsig=4, trace=False):
         vin = '(list)'
         # import pylab                        # must be done here, not above....
         vv = pylab.array(v)
+        print '\n** v =',v,type(v)
+        print '\n** vv = pylab.array(v) ->',vv,type(vv)
         ss = '[length='+str(len(vv))
-        ss += format_float(vv.min(),'  min', nsig=nsig)
-        ss += format_float(vv.max(),'  max', nsig=nsig)
-        ss += format_float(vv.mean(),'  mean', nsig=nsig)
+        if False:
+            # Sometimes gives error: "Cannot perform reduce with flexible type"....
+            ss += format_float(vv.min(),'  min', nsig=nsig)
+            ss += format_float(vv.max(),'  max', nsig=nsig)
+            ss += format_float(vv.mean(),'  mean', nsig=nsig)
         if len(vv)>1:                       
             if not isinstance(vv[0],complex):
-                ss += format_float(vv.std(),'  stddev', nsig=nsig)
+                if False:
+                    # Same problem as above....
+                    ss += format_float(vv.std(),'  stddev', nsig=nsig)
         ss += ']'
     elif isinstance(v,dict):
         ss = '(dict/record): '+str(v.keys())

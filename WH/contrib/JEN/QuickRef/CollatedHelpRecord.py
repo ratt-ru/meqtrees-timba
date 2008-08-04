@@ -631,8 +631,8 @@ class CollatedHelpRecord (object):
       with their escape versions."""
       ss = help
       ss = ss.replace('<<',' &lt &lt &#32')          # escape char &lt = <  
-      ss = ss.replace('<',' &lt ')                    # escape char &lt = <  
-      ss = ss.replace('>',' &gt ')                    # escape char &gt = >  
+      ## ss = ss.replace('<',' &lt ')                    # escape char &lt = <  
+      ## ss = ss.replace('>',' &gt ')                    # escape char &gt = >  
       return ss
 
    #---------------------------------------------------------------------

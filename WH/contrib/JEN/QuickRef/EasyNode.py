@@ -336,7 +336,7 @@ def format_tree (node, ss='', recurse=True,
         if not full:
             if node.basename in basenames[slevel]:
                 stophere = True
-                s1 = '... {similar to earlier nodes at this level}'
+                s1 = '... {similar to above} ...'
                 # with basename: '+node.basename
             else:
                 basenames[slevel].append(node.basename)
@@ -345,6 +345,7 @@ def format_tree (node, ss='', recurse=True,
         if node.name in nodenames:
             stophere = True
             s1 = '... this node/subtree has already been shown above'
+            s1 = '... {see above} ...'
         else:
             nodenames.append(node.name)
             

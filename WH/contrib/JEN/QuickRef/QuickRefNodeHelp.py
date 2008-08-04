@@ -50,6 +50,7 @@ from Timba.Meq import meq
 
 # from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 # from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
+from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 
 # import math
@@ -76,6 +77,17 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
    ss += '</font>'
    ss += '</font><dd>'
 
+   #-------------------------------------------------------------------------
+
+   rr = node.initrec()
+   ss = class_help (node.classname,
+                    header=ss, rr=rr,
+                    detail=detail,
+                    # rider=rider,
+                    # comment=comment,
+                    mode=mode, trace=False)
+
+   #-------------------------------------------------------------------------
    if False:
       # print dir(node)
       print node.name         # '(constant)'
@@ -101,33 +113,48 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
    if nc==0:
       pass
    elif nc==1:
-      ss += '- '+str(0)+': '+str(node.children[0][1])+'<br>'
+      ss += '- child '+str(0)+': '+format_child(node.children[0][1])+'<br>'
    elif nc<6:
       for i in range(nc):
-         ss += '- '+str(i)+': '+str(node.children[i][1])+'<br>'
+         ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
    else:
       for i in [0,1]:
-         ss += '- '+str(i)+': '+str(node.children[i][1])+'<br>'
+         ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
       ss += '...'+'<br>'
       for i in [nc-2,nc-1]:
-         ss += '- '+str(i)+': '+str(node.children[i][1])+'<br>'
+         ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
 
    # Expand the node-specific initrec fields:
-   rr = node.initrec()
    for key in rr.keys():
       v = rr[key]
-      if key in ['class']:
+      if key in ['class','children','qhelp','quickref_help']:
          pass
-      elif key=='quickref_help':
-         ss += ' - '+str(key)+': ('+str(len(v))+' chars)<br>'
+      elif isinstance(v,(list,tuple)):
+         ss += ' - '+str(key)+' (n='+str(len(v))+'): '+str(v)+'<br>'
+         # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+      elif isinstance(v,dict):
+         ss += ' - '+str(key)+'('+str(type(v))+'):<br>'
+         for key1 in v.keys():
+            v1 = v[key1]
+            # print '---',key1,'=',v1
+            # ss += ' --- '+str(key1)+': '+str(EF.format_value(v1))+'<br>'
+            ss += ' --- '+str(key1)+' = '+str(v1)+'<br>'
+      elif isinstance(v,(int,float,complex)):
+         ss += ' - '+str(key)+': '+str(v)+'<br>'
+         # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+      elif isinstance(v,str):
+         ss += ' - '+str(key)+': '+str(v)+'<br>'
+         # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
       else:
-         ss += ' - '+str(key)+' = '+str(v)+'<br>'
+         ss += ' - '+str(key)+'(??): '+str(v)+'<br>'
 
-   ss = class_help (node.classname, header=ss, rr=rr,
-                    comment=comment,
-                    detail=detail, rider=rider,
-                    mode=mode, trace=False)
-   
+   # Add a specific comment (if specified):
+   if isinstance(comment,str):
+      ss += '<i>This node:  '+str(comment)+'</i>'
+
+   # Closing:
+   ss += '</dl><br>\n'
+
    # Attach to quickref_help field of the node state record:
    if is_node(node):
       rr = node.initrec()
@@ -139,13 +166,25 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
       # NB: Do not use EasyNode from here (circular)
       # EN.quickref_help (node, append=ss, trace=trace)
 
+   if rider:
+      rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)
+
    if trace:
       print '\n** QRNH.node_help(',str(node),'):\n  ',ss,'\n'
       
    return ss
       
 
-#-----------------------------------------------------------------------------------
+#===================================================================================
+
+def format_child (node, trace=False):
+   """Helper function"""
+   ss = str(node)
+   if node.classname=='MeqConstant':
+      ss += ' (value='+str(node.initrec().value)+')'
+   return ss
+
+#===================================================================================
 
 def class_help (cname, header=None, rr=None,
                 detail=1, rider=None, comment=None,
@@ -203,7 +242,7 @@ def class_help (cname, header=None, rr=None,
    elif cname in ['MeqAdd','MeqMultiply']:
       more += 'Multi-math function (has one or more children). '
 
-   elif cname in ['MeqSubtract','MeqDivide','MeqPower']:
+   elif cname in ['MeqSubtract','MeqDivide','MeqPow']:
       more += 'Binary math function (has 2 children, lhs and rhs). '
 
    elif cname in ['MeqToComplex','MeqPolar']:
@@ -299,8 +338,15 @@ def class_help (cname, header=None, rr=None,
    elif cname in ['MeqCompounder']:
       pass
    
-   elif cname in ['MeqModRes','MeqResampler']:
-      pass
+   elif cname=='MeqModRes':
+      more += """Modifies the resolution (nr of domain cells) of the
+      <font color='red'><i>REQUEST</i></font> that is passed on to its child(ren). 
+      It does this according to the specified num_cells, which is a list of integers,
+      one for each dimensions of the domain. In general, it will be 2D [ntime,nfreq].
+      """
+
+   elif cname=='MeqResampler':
+      more += 'Resamples the domain of the result according to that of the request.'
 
    #---------------------------------------------------------------------------
 
@@ -368,9 +414,12 @@ def class_help (cname, header=None, rr=None,
    # Finishing touches:
    if not more=='':
       ss += more+'<br>'
+
    if isinstance(comment,str):
       ss += '<i>Comment: '+str(comment)+'</i>'
-   ss += '</dl><br>\n'
+
+   if header==None:
+      ss += '</dl><br>\n'
 
    if rider:
       rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)

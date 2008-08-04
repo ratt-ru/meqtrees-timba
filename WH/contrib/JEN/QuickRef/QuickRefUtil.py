@@ -881,23 +881,33 @@ def on_exit (ns, rider, nodes=None,
 
     bhelp = ''                              # start of bundle help
     bundle = []                             # list of actual nodes
+    comments = []                           # to be used in node_help below
     bookmarks = []                          # list nodes to be bookmarked
     viewers = []                            # corresponding viewers
     for node in nodes:
         if is_node(node):                   # an actual node -> bundle
             bundle.append(node)
+            comments.append(node_help)
+            if node.initrec().has_key('qhelp'):
+                # If the node has a qhelp field, make it into a comment (see below).
+                # This is a convienient way of passing help via the node constructor.
+                comments[-1] = str(node.initrec()['qhelp'])
+                # node.initrec()['qhelp'] = None              # necessary?
             bookmarks.append(node)
             viewers.append(viewer)
-        elif isinstance(node,str):          # assume a help-text....
+
+        elif isinstance(node,str):            # assume a bundle help-text....
             bhelp += rider.check_html_tags(str(node), include_style=False)
             bhelp += '<br>'
-        elif not isinstance(node,dict):
+
+        elif not isinstance(node,dict):       # error...?
             bhelp += '\n<warning>'  
             bhelp += 'not recognized: '+str(type(node))
             bhelp += '\n</warning>'
 
         else:                                 # a record with detailed instructions
             bundle.append(node['node'])           # 'node' is mandatory field
+            comments.append(node_help)
             # Deal with bookmark field:
             node.setdefault('bookmark',True)      # default behaviour
             if node['bookmark']:                  # inhibit if bookmark=False
@@ -918,22 +928,18 @@ def on_exit (ns, rider, nodes=None,
             node.setdefault('help',False)
             if node['help']:                      # node-help (True or string)
                 comment = node['help']
-                if isinstance(comment,str):         # help is string
+                if isinstance(comment,str):       # help is string
                     comment = rider.replace_html_chars (comment, trace=False)
                 else:
                     comment = None
-                QRNH.node_help(bundle[-1], rider=rider, comment=comment, trace=False)
+                comments[-1] = comment            # used below
 
 
     #.......................................................................
     # Optionally, add help to each node in the bundle:
-    # (NB: This might interfere with the EN.help_node(node, rider, help) in the function...)
     
-    if node_help:
-        comment = None
-        if isinstance(node_help,str):
-            comment = node_help
-        for i,node in enumerate(bundle):
+    for i,comment in enumerate(comments):
+        if comment:
             QRNH.node_help(bundle[i], rider=rider, comment=comment, trace=False)
 
     #.......................................................................
@@ -971,6 +977,9 @@ def on_exit (ns, rider, nodes=None,
                     result_index = 0                 # safe (not recognized...)
             parent << Meq.ReqSeq(children=bundle,
                                  result_index=result_index)
+            comment = """The bundle-parent node, shown for the value of its result_index,
+            i.e. the index of the child whose result is passed on."""
+            QRNH.node_help(parent, rider=rider, comment=comment, trace=False)
 
         elif parentclass in ['Add','Multiply']:
             parent << getattr(Meq,parentclass)(children=bundle)
