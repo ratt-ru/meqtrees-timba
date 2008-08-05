@@ -70,14 +70,16 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
       ss = '\n** QRNH.node_help('+str(type(node))+'): not a node **\n'
       return ss
 
-   ss = '<dl><dt><font color="blue">'
-   ss += '<font color="blue">'
+   # ss = '<dl><dt><font color="blue">'
+   ss = '<dl><dt>'
    ss += 'MeqNode: '
-   ss += str(node)+':'
-   ss += '</font>'
-   ss += '</font><dd>'
+   # ss += '<font color="blue">'
+   ss += format_nodestring(node)+':'
+   # ss += '</font>'
+   ss += '<dd>'
 
-   #-------------------------------------------------------------------------
+   #..........................................
+   # Get the generic description of the node, according to its class: 
 
    rr = node.initrec()
    ss = class_help (node.classname,
@@ -87,7 +89,7 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
                     # comment=comment,
                     mode=mode, trace=False)
 
-   #-------------------------------------------------------------------------
+   #..........................................
    if False:
       # print dir(node)
       print node.name         # '(constant)'
@@ -108,39 +110,49 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
    if not line=='':
       ss += line+'<br>'
 
+   #..........................................
    # Show the children:
    nc = node.num_children()
    if nc==0:
       pass
    elif nc==1:
       ss += '- child '+str(0)+': '+format_child(node.children[0][1])+'<br>'
-   elif nc<6:
+   elif nc<5:
       for i in range(nc):
          ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
    else:
-      for i in [0,1]:
+      for i in [0,1]:                    # the first two
          ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
       ss += '...'+'<br>'
-      for i in [nc-2,nc-1]:
+      for i in [nc-1]:                   # the last one
+      # for i in [nc-2,nc-1]:              # the last two
          ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
 
+   #..........................................
    # Expand the node-specific initrec fields:
    for key in rr.keys():
       v = rr[key]
-      if key in ['class','children','qhelp','quickref_help']:
+      if key in ['class','children','quickref_help',
+                 'qhelp','qviewer','qbookmark']:
          pass
       elif isinstance(v,(list,tuple)):
-         ss += ' - '+str(key)+' (n='+str(len(v))+'): '+str(v)+'<br>'
-         # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+         if isinstance(v[0],(int,float,complex)):
+            ss += ' - '+str(key)+' = '+str(v)+'<br>'
+            # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+         elif isinstance(v[0],str):
+            ss += ' - '+str(key)+' = '+str(v)+'<br>'
+         elif len(v)<=5:
+            ss += ' - '+str(key)+' = '+str(v)+'<br>'
+         else:
+            ss += ' - '+str(key)+' (n='+str(len(v))+'): '+str(v[:2])+'...'+str(v[-1])+'<br>'
       elif isinstance(v,dict):
-         ss += ' - '+str(key)+'('+str(type(v))+'):<br>'
+         ss += ' - '+str(key)+' (dict/record):<br>'
          for key1 in v.keys():
             v1 = v[key1]
-            # print '---',key1,'=',v1
             # ss += ' --- '+str(key1)+': '+str(EF.format_value(v1))+'<br>'
             ss += ' --- '+str(key1)+' = '+str(v1)+'<br>'
       elif isinstance(v,(int,float,complex)):
-         ss += ' - '+str(key)+': '+str(v)+'<br>'
+         ss += ' - '+str(key)+' = '+str(v)+'<br>'
          # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
       elif isinstance(v,str):
          ss += ' - '+str(key)+': '+str(v)+'<br>'
@@ -148,13 +160,16 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
       else:
          ss += ' - '+str(key)+'(??): '+str(v)+'<br>'
 
+   #..........................................
    # Add a specific comment (if specified):
    if isinstance(comment,str):
       ss += '<i>This node:  '+str(comment)+'</i>'
 
+   #..........................................
    # Closing:
    ss += '</dl><br>\n'
 
+   #..........................................
    # Attach to quickref_help field of the node state record:
    if is_node(node):
       rr = node.initrec()
@@ -177,11 +192,30 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
 
 #===================================================================================
 
-def format_child (node, trace=False):
+def format_nodestring (node, trace=False):
    """Helper function"""
    ss = str(node)
+   if True:
+      # Make the classname more distinct:
+      nn = ss.split('(')
+      ss = '<font color="blue">'+nn[0]+'</font>'
+      ss += '<font size=1> ('+nn[1]+'</font>'
+   return ss
+
+#-------------------------------------------------------------------------------
+
+def format_child (node, trace=False):
+   """Helper function"""
+   rr = node.initrec()
+   ss = format_nodestring(node)
+
+   # Append some specific initrec fields, if present: 
+   ss += '<font size=1>'
    if node.classname=='MeqConstant':
-      ss += ' (value='+str(node.initrec().value)+')'
+      ss += '  (value='+str(getattr(rr,'value',None))+')'
+   if rr.has_key('tags'):
+      ss += '  (tags='+str(rr.tags)+')'
+   ss += '</font>'
    return ss
 
 #===================================================================================
@@ -360,7 +394,9 @@ def class_help (cname, header=None, rr=None,
       
    elif cname=='MeqCondeq':
       more += """Uses the difference of its 2 children to generate condition equations
-      (one per domain cell) for the solver."""
+      (one equation per domain cell) for the solver.
+      After solving, the condeq result (=residual) should be 'zero' (or rather noise-like).
+      """
 
    elif cname=='MeqParm':
       more += 'This node represents a (M.E.) parameter, which may be solved for. ' 
@@ -398,6 +434,14 @@ def class_help (cname, header=None, rr=None,
    elif cname in ['MeqObjectRADec','MeqParAngle','MeqRaDec','MeqUVW']:
       pass
 
+
+   #---------------------------------------------------------------------------
+   #---------------------------------------------------------------------------
+
+   elif cname=='MeqPyNode':
+      more += """User-defined node, written in python. Using standard interface
+      routines, the user may interact with state record and child results, and
+      produce a result."""
 
    #---------------------------------------------------------------------------
    #---------------------------------------------------------------------------

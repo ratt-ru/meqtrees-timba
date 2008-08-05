@@ -61,6 +61,12 @@ from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
+# Import QR_MeqNodes.py to use its .solving_ab()
+# Its compile options appear in the menu, but have no effect.... (can we hide it?)
+# Its runtime options also appear in the runtime menu...
+# Is it a good idea for quick-reference to make this actually work?
+from Timba.Contrib.JEN.QuickRef import QR_MeqNodes 
+
 # from Timba.Contrib.JEN.Expression import Expression
 
 # import math
@@ -159,14 +165,20 @@ def basic (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, basic)
    cc = []
-   cc.append(basic_ab (ns, rider))                    # simplest, do always
-   if opt_alltopics or opt_basic_polyparm:
+
+   override =  opt_alltopics
+
+   if True:
+      # Use the one from the central module QR_MeqNodes:
+      cc.append(QR_MeqNodes.solving_ab (ns, rider))    
+
+   if override or opt_basic_polyparm:
       cc.append(basic_polyparm (ns, rider))
-   if opt_alltopics or opt_basic_onepolc:
+   if override or opt_basic_onepolc:
       cc.append(basic_onepolc (ns, rider))
 
    if opt_basic_Expression:
-   # if opt_alltopics or opt_basic_Expression:                 # when Expression MeqParm problem solved...
+   # if override or opt_basic_Expression:                 # when Expression MeqParm problem solved...
       cc.append(basic_Expression (ns, rider))
 
    return QRU.on_exit (ns, rider, cc)
@@ -186,46 +198,6 @@ def basic (ns, rider):
 # basic_... 
 #================================================================================
 
-def basic_ab (ns, rider):
-   """
-   Demonstration of solving for two unknown parameters (a,b),
-   using two linear equations (one condeq child each):
-   - condeq 0:  a + b = p (=10)
-   - condeq 1:  a - b = q (=2)
-   The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
-   Condeq Results are the solution residuals, which should be small.
-   """
-   stub = QRU.on_entry(ns, rider, basic_ab)
-   a = EN.unique_stub(ns, 'a') << Meq.Parm(0)
-   b = EN.unique_stub(ns, 'b') << Meq.Parm(0)
-   p = EN.unique_stub(ns, 'p') << Meq.Constant(10)
-   q = EN.unique_stub(ns, 'q') << Meq.Constant(2)
-   sum_ab = ns << Meq.Add(a,b) 
-   diff_ab = ns << Meq.Subtract(a,b)
-   drivers = EN.unique_stub(ns, 'driving_values_p_q') << Meq.Composer(p,q)
-   parmset = EN.unique_stub(ns, 'solved_parameters_a_b') << Meq.Composer(a,b)
-
-   condeqs = []
-   condeqs.append(QRU.MeqNode (ns, rider, meqclass='Condeq',name='Condeq(a+b,p)',
-                               help='Represents equation: a + b = p (=10)',
-                               children=[sum_ab, p]))
-   condeqs.append(QRU.MeqNode (ns, rider, meqclass='Condeq',name='Condeq(a-b,q)',
-                               help='Represents equation: a - b = q (=2)',
-                               children=[diff_ab, q]))
-
-   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
-                         name='Solver(*condeqs, solvable=[a,b])',
-                         help='Solver', show_recurse=True,
-                         children=condeqs,
-                         solvable=[a,b])  
-   residuals = QRU.MeqNode (ns, rider, meqclass='Add', name='residuals',
-                            help='The sum of the (abs) condeq residuals',
-                            children=condeqs, unop='Abs')
-   cc = [solver,residuals,drivers,parmset]
-   return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0)
-
-#--------------------------------------------------------------------------------
 
 def basic_polyparm (ns, rider):
    """
@@ -243,19 +215,18 @@ def basic_polyparm (ns, rider):
    solver plot: the black line on the right leaves the right edge. 
    """
    stub = QRU.on_entry(ns, rider, basic_polyparm)
-   twig = ET.twig(ns, opt_basic_twig)                       # move to solving()?
+   cc = []
+   twig = ET.twig(ns, opt_basic_twig)              
    poly = ET.twig(ns, opt_basic_polyparm_poly)
-   parms = EN.find_parms(poly, trace=False)
-   parmset = EN.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
-   condeq = ns << Meq.Condeq(poly, twig)
-   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
-                         name='Solver(condeq, solvable=parms)',
-                         help='Solver', show_recurse=True,
-                         children=[condeq],
-                         solvable=parms)  
+   parms = EN.find_parms(poly, trace=False)               # search nodescope?
+   parmset = stub('solved_parms') << Meq.Composer(*parms)
+   condeq = stub('condeq') << Meq.Condeq(poly, twig)
+   solver = stub('solver') << Meq.Solver(condeq, solvable=parms,
+                                         qhelp='')
    cc = [solver,condeq,poly,twig,parmset]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0)
+                       show_recurse=solver,
+                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
@@ -292,9 +263,8 @@ def basic_onepolc (ns, rider):
    """
    Solving for the coeff of the polc of a single MeqParm.
    The single MeqCondeq child of the MeqSolver has two children:
-   - The left-hand side (lhs) is the input twig node (e.g. a gaussian_ft)
-   - The right-hand side (rhs) is a MeqParm:
-   .      rhs = ns['MeqParm'] << Meq.Parm(meq.polc(coeff=numpy.zeros([tdeg+1,fdeg+1])))
+   <li> The left-hand side (lhs): is the input twig node (e.g. a gaussian_ft)
+   <li> The right-hand side (rhs): is a MeqParm:
    """
    stub = QRU.on_entry(ns, rider, basic_onepolc)
    lhs = ET.twig(ns, opt_basic_twig)
@@ -303,27 +273,22 @@ def basic_onepolc (ns, rider):
    fdeg = opt_basic_onepolc_fdeg
    tdeg = opt_basic_onepolc_tdeg
    mepfile = opt_basic_mepfile
-   pname = 'MeqParm(shape=[1+'+str(tdeg)+',1+'+str(fdeg)+'])'
-   help = 'help'
-   rhs = EN.unique_stub(ns,pname) << Meq.Parm(0.0,
-                                              tags=['tag1','tag2'],
-                                              shape=[tdeg+1,fdeg+1],
-                                              tiling=tiling,
-                                              table_name=mepfile,
-                                              use_previous=True,
-                                              quickref_help='...help...',
-                                              node_groups='Parm')
-   condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
-                         name='Solver(condeq, solvable=MeqParm)',
-                         help='Solver', show_recurse=True,
-                         children=[condeq],
-                         niter=10,
-                         solvable=rhs)  
+   rhs = stub('rhs') << Meq.Parm(0.0,
+                                 tags=['tag1','tag2'],
+                                 shape=[tdeg+1,fdeg+1],
+                                 tiling=tiling,
+                                 table_name=mepfile,
+                                 use_previous=True,
+                                 node_groups='Parm')
+   condeq = stub('condeq') << Meq.Condeq(lhs,rhs)
+   solver = stub('solver') << Meq.Solver(condeq,
+                                         niter=10,
+                                         qviewer=[True,'Record Browser'],
+                                         solvable=rhs)  
    cc = [solver,condeq,lhs,rhs]
-   QRU.helpnode(ns, rider, node=rhs)
-   return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0)
+   return QRU.on_exit (ns, rider, cc, node_help=True,
+                       show_recurse=solver,
+                       parentclass='ReqSeq', result_index=0)
 
 
 #--------------------------------------------------------------------------------

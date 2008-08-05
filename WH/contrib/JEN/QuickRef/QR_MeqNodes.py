@@ -354,17 +354,21 @@ def visualization_inspector (ns, rider):
    tname = opt_visualization_inspector_twig
    twig = ET.twig(ns, tname)
    cc = []
-   
    plot_label = []
-   for i in range(7):
+   children = []
+   nc = 7
+   for i in range(nc):
       label = 'sin('+str(i)+'*'+tname+')'
       plot_label.append(label)
-      cc.append(stub(label) << Meq.Sin(Meq.Multiply(i,twig)))
+      node = stub(label) << Meq.Sin(Meq.Multiply(i,twig))
+      children.append(node)
+      if i in [0,nc/2,nc-1]:   # display only a subset of the children
+         cc.append(node)
 
-   node = stub('inspector') << Meq.Composer(children=cc,
-                                            plot_label=plot_label)
-   cc.append(dict(node=node, viewer='Collections Plotter'))
-   return QRU.on_exit (ns, rider, cc, node_help=True)
+   cc.append(stub('inspector') << Meq.Composer(children=children,
+                                               plot_label=plot_label,
+                                               qviewer='Collections Plotter'))
+   return QRU.on_exit (ns, rider, cc, node_help=True, show_bookmarks=True)
 
 
 #================================================================================
@@ -388,49 +392,56 @@ def solving (ns, rider):
 def solving_ab (ns, rider):
    """
    Demonstration of solving for two unknown parameters (a,b),
-   using two linear equations (one condeq child each):
+   using two linear equations (each represented by a Condeq node):
    <li> condeq 0:  a + b = p (=10)
    <li> condeq 1:  a - b = q (=2)
 
-   The result should be: a = (p+q)/2 (=6), and b = (p-q)/2 (=4)
-   Condeq Results are the solution residuals, which should be small.
+   The result should be (check this):
+   <li> a = (p+q)/2 = (10+2)/2 = 6
+   <li> b = (p-q)/2 = (10-2)/2 = 4
+   
+   The Condeq Results are the solution residuals, which should be small.
+
+   Note that the solvable MeqParms are found by a search of the nodescope
+   for nodes with tags 'solvable'. 
    """
    stub = QRU.on_entry(ns, rider, solving_ab)
    cc = []
 
-   a = stub('a') << Meq.Parm(0)
-   b = stub('b') << Meq.Parm(0)
-   cc.append(stub('solved_parameters_a_b') << Meq.Composer(a,b))
-   EN.node_help(cc[-1], rider,
-                """The parameter values after solving.
-                Check that they satisfy the condeq equations.""")
+   a = stub('a') << Meq.Parm(0, tags='solvable')
+   b = stub('b') << Meq.Parm(0, tags='solvable')
 
+   qhelp ="""The parameter values after solving. Check that they now have the
+   correct values for satisfying the two equations."""
+   cc.append(stub('solved_parameters_a_b') << Meq.Composer(a,b, qhelp=qhelp))
 
    p = stub('p') << Meq.Constant(10)
    q = stub('q') << Meq.Constant(2)
-   cc.append(stub('driving_values_p_q') << Meq.Composer(p,q))
-   EN.node_help(cc[-1], rider,
-                """The right-hand sides of the condeq equations""")
+
+   qhelp = """The right-hand sides of the condeq equations. Check that p=10, and q=2"""
+   cc.append(stub('driving_values_p_q') << Meq.Composer(p,q, qhelp=qhelp))
 
    condeqs = []
    sum_ab = stub('a+b') << Meq.Add(a,b) 
-   condeqs.append(stub('a+b=p') << Meq.Condeq(sum_ab, p))
-   cc.append(dict(node=condeqs[0],
-                  help="""Represents equation: a + b = p (=10).
-                  After solving the condeq result (=residual) should be 'zero'."""))
+   qhelp ='This condeq represents equation: a + b = p (lhs=rhs)'
+   condeqs.append(stub('a+b=p') << Meq.Condeq(sum_ab, p, qhelp=qhelp))
+   cc.append(condeqs[-1])
 
    diff_ab = stub('a-b') << Meq.Subtract(a,b)
-   condeqs.append(stub('a-b=q') << Meq.Condeq(diff_ab, q))
-   cc.append(dict(node=condeqs[1],
-                  help="""Represents equation: a - b = q (=2).
-                  After solving the condeq result (=residual) should be 'zero'."""))
-   
+   qhelp ='This condeq represents equation: a - b = q (lhs=rhs)'
+   condeqs.append(stub('a-b=q') << Meq.Condeq(diff_ab, q, qhelp=qhelp))
+   cc.append(condeqs[-1])
+
+   solver = stub('solver') << Meq.Solver(children=condeqs,
+                                         solvable=stub.search(tags='solvable'),
+                                         qviewer=[True,'Record Browser'])
+
    # The solver should be executed first (otherwise the displayed parameter values are
-   # not the final ones).
-   cc.insert(0, stub('solver') << Meq.Solver(children=condeqs, solvable=[a,b]))
-   cc.append(dict(node=cc[0], viewer='Record Browser'))
+   # not the final ones). So it must be the first child of the bundle:
+   cc.insert(0, solver)
 
    return QRU.on_exit (ns, rider, cc, node_help=True,
+                       show_recurse=solver,
                        parentclass='ReqSeq', result_index=0)
 
 
@@ -470,20 +481,20 @@ def flagging_simple (ns, rider):
    cc.append(stub('stddev') << Meq.StdDev(cc[0]))
    stddev = cc[-1]
    dev = stub('dev') << Meq.Subtract(cc[0],cc[1])
-   cc.append(stub('absdev') << Meq.Abs(dev))
+
+   qhelp = """The absolute deviation (per cell) from the mean over the domain."""
+   cc.append(stub('absdev') << Meq.Abs(dev, qhelp=qhelp))
    absdev = cc[-1]
-   EN.node_help(absdev, rider,
-                """The absolute deviation (per cell) from the mean over the domain.""")
    
    nsigma = opt_flagging_nsigma
    cc.append(stub('abscrit') << Meq.Multiply(nsigma,stddev))
-   cc.append(stub('zerocrit') << Meq.Subtract(absdev,cc[-1]))
-   EN.node_help(cc[-1], rider,
-                """The zero-criterion is the absolute deviation from the mean,
-                minus nsigma (="""+str(nsigma)+""")* the stddev w.r.t. the mean.
-                This will be GE zero for those cells whose value deviates more
-                than nsigma*stddev from the mean over the domain.
-                """)
+
+   qhelp ="""The zero-criterion is the absolute deviation from the mean,
+   minus nsigma (="""+str(nsigma)+""")* the stddev w.r.t. the mean.
+   This will be GE zero for those cells whose value deviates more
+   than nsigma*stddev from the mean over the domain."""
+   cc.append(stub('zerocrit') << Meq.Subtract(absdev, cc[-1], qhelp=qhelp))
+
    cc.append(stub('flag') << Meq.ZeroFlagger(cc[-1], oper='GE'))
    cc.append(stub('merge') << Meq.MergeFlags(cc[0], cc[-1]))
 
@@ -602,9 +613,11 @@ def resampling_experiment (ns, rider,
    """
    stub = QRU.on_entry(ns, rider, resampling_experiment)
    cc = [twig]
+
    qhelp = """This copy of the input is needed for display, since the
    resolution of the request changes."""
    cc.append(stub('original') << Meq.Identity(twig, qhelp=qhelp))
+
    cc.append(stub('modres')(num_cells) << Meq.ModRes(twig, num_cells=num_cells))
    cc.append(stub('resamp')(mode=mode) << Meq.Resampler(cc[-1], mode=mode))
    cc.insert(0, stub('diff') << Meq.Subtract(cc[-1],cc[1]))
@@ -757,35 +770,34 @@ def tensor_manipulation (ns, rider):
    c2 = ET.twig(ns,'ft', nodename='c2')
    elements = [c0,c1,c2]
 
-   cc.append(stub('tensor') << Meq.Composer(*elements))
-   EN.node_help (cc[-1], rider,
-                 """Make a tensor node by combining the vellsets in the
-                 Results of its children into a Result with multiple vellsets
-                 in the new node.""")
+   qhelp = """Make a tensor node by combining the vellsets in the
+   Results of its children into a Result with multiple vellsets
+   in the new node."""
+   cc.append(stub('tensor') << Meq.Composer(children=elements, qhelp=qhelp))
 
    for index in [0,1,2]:
-      cc.append(stub('Selector')(index) << Meq.Selector(cc[0], index=index))
-      EN.node_help (cc[-1], rider,
-                    """Select the specified (index) vellset in its child
-                    for a new node with a single vellset in its Result""")
+      qhelp = """Select the specified (index) vellset in its child
+      for a new node with a single vellset in its Result"""
+      cc.append(stub('Selector')(index) << Meq.Selector(cc[0], index=index,
+                                                        qhelp=qhelp))
 
    if False:
       # Problem: Gives an error (list indix not supported?)
       index = [0,2]
-      cc.append(stub('Selector')(index) << Meq.Selector(cc[0], index=index))
-      EN.node_help (cc[-1], rider,
-                    """Select the specified (index) vellsets in its child
-                    for a new node with this subset of vellsets in its Result""")
+      qhelp = """Select the specified (index) vellsets in its child
+      for a new node with this subset of vellsets in its Result"""
+      cc.append(stub('Selector')(index) << Meq.Selector(cc[0], index=index,
+                                                        qhelp=qhelp))
 
    if False:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
       c1 = ET.twig(ns,'prod_f2t2')
       index = 1
-      cc.append(stub('Paster')(index) << Meq.Selector(children=[cc[0],c1], index=index))
-      EN.node_help (cc[-1], rider,
-                    """Make a new node, in which the vellset from the
-                    second child (c1) is pasted at the specified (index) position
-                    among the vellsets of its first child (c0)""")
+      qhelp = """Make a new node, in which the vellset from the
+      second child (c1) is pasted at the specified (index) position
+      among the vellsets of its first child (c0)"""
+      cc.append(stub('Paster')(index) << Meq.Selector(children=[cc[0],c1],
+                                                      index=index, qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -804,25 +816,22 @@ def tensor_matrix (ns, rider):
    stub = QRU.on_entry(ns, rider, tensor_matrix)
    cc = []
 
-   cc.append(stub('2x3') << Meq.Composer(children=range(6), dims=[2,3]))
-   EN.node_help (cc[-1], rider,
-                 """Make a tensor node with a 2x3 array of vellsets.
-                 This can be treated as a 2x3 matrix. Note the use of
-                 constants as children, for easier inspection and verification.""")
+   qhelp = """Make a tensor node with a 2x3 array of vellsets.
+   This can be treated as a 2x3 matrix. Note the use of
+   constants as children, for easier inspection and verification."""
+   cc.append(stub('2x3') << Meq.Composer(children=range(6),
+                                         dims=[2,3], qhelp=qhelp))
 
-   cc.append(stub('3x2') << Meq.Transpose(cc[0])) 
-   EN.node_help (cc[-1], rider,
-                 """Make the 3x2 transpose of the given 2x3 matrix.""")
+   qhelp = """Make the 3x2 transpose of the given 2x3 matrix."""
+   cc.append(stub('3x2') << Meq.Transpose(cc[0], qhelp=qhelp)) 
 
-   cc.append(stub('2x2') << Meq.MatrixMultiply(cc[0],cc[1]))
-   EN.node_help (cc[-1], rider,
-                 """Multply the original 2x3 matrix with its 3x2 transpose.
-                 This produces a 2x2 matrix.""")
+   qhelp = """Multply the original 2x3 matrix with its 3x2 transpose.
+   This produces a 2x2 matrix."""
+   cc.append(stub('2x2') << Meq.MatrixMultiply(cc[0],cc[1], qhelp=qhelp))
 
-   cc.append(stub('3x3') << Meq.MatrixMultiply(cc[1],cc[0]))
-   EN.node_help (cc[-1], rider,
-                 """Multiply the 3x2 transpose with the original 2x3 matrix.
-                 This produces a 3x3 matrix.""")
+   qhelp = """Multiply the 3x2 transpose with the original 2x3 matrix.
+   This produces a 3x3 matrix."""
+   cc.append(stub('3x3') << Meq.MatrixMultiply(cc[1],cc[0], qhelp=qhelp))
    
    return QRU.on_exit (ns, rider, cc)
 
@@ -838,23 +847,22 @@ def tensor_matrix22 (ns, rider):
    elements = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
    cc = []
 
-   cc.append(stub('m22') << Meq.Matrix22(*elements))
-   EN.node_help (cc[-1], rider,
-                 """Make a complex 2x2 diagonal matrix.""")
+   qhelp = """Make a complex 2x2 diagonal matrix."""
    # NB: Matrix22(children=elements) gives an error.... 
+   # cc.append(stub('m22') << Meq.Matrix22(*elements))          # takes 4 arguments ....!
+   cc.append(stub('m22') << Meq.Composer(children=elements,
+                                         dims=[2,2], qhelp=qhelp))
 
-   cc.append(stub('inv22') << Meq.MatrixInvert22(cc[0]))
-   EN.node_help (cc[-1], rider,
-                 """Invert the given 2x2 matrix, cell-by-cell""")
+   qhelp = """Invert the given 2x2 matrix, cell-by-cell"""
+   cc.append(stub('inv22') << Meq.MatrixInvert22(cc[0], qhelp=qhelp))
 
-   cc.append(stub('m22xinv22') << Meq.MatrixMultiply(cc[0],cc[1]))
-   EN.node_help (cc[-1], rider,
-                 """Multply the matrix with its inverse.
-                 The result should be a unit matrix (cell-by-cell).""")
+   qhelp = """Multply the matrix with its inverse.
+   The result should be a unit matrix (cell-by-cell)."""
+   cc.append(stub('m22xinv22') << Meq.MatrixMultiply(cc[0],cc[1],
+                                                     qhelp=qhelp))
 
-   cc.append(stub('hermitian') << Meq.ConjTranspose(cc[0]))
-   EN.node_help (cc[-1], rider,
-                 """Conjugate Transpose the given matrix""")
+   qhelp = """Conjugate Transpose the given matrix"""
+   cc.append(stub('hermitian') << Meq.ConjTranspose(cc[0], qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -889,26 +897,34 @@ def leaves_constant (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_constant)
    cc = []
+   
    v = 0.5
    cc.append(ns << v)
-   EN.node_help (cc[-1], rider, 'syntax: node = ns << '+str(v))
+   cc[-1].initrec().qhelp = 'syntax: node = ns << '+str(v)
 
    v += 1
    cc.append(ns.NoDeNaMe << v)
-   EN.node_help (cc[-1], rider, 'syntax: node = ns.NoDeNaMe << '+str(v))
+   cc[-1].initrec().qhelp = 'syntax: node = ns.NoDeNaMe << '+str(v)
 
    v += 1
    cc.append(stub('real') << v)
+   cc[-1].initrec().qhelp = """syntax: node = stub('real') << """+str(v)+""", in which:
+   stub = """+str(stub)+""" is an uninitialised 'node-stub'"""
 
    v = complex(1,2)
    cc.append(stub('complex') << v)
+   cc[-1].initrec().qhelp = "syntax: node = stub('complex') << "+str(v)
 
    v = [1.5, -2.5, 3.5, -467]
    cc.append(stub('tensor4') << Meq.Constant(v))
+   cc[-1].initrec().qhelp = "syntax: node = stub('tensor4') << Meq.Constant("+str(v)+")"
+
    cc.append(stub('tensor22') << Meq.Constant(v, dims=[2,2]))
+   cc[-1].initrec().qhelp = "syntax: node = stub('tensor22') << Meq.Constant("+str(v)+", dims=[2,2])"
 
    v[2] = complex(3,5)
    cc.append(stub('mixed') << Meq.Constant(v))
+   cc[-1].initrec().qhelp = "syntax: node = stub('mixed') << Meq.Constant("+str(v)+")"
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -1085,9 +1101,9 @@ def unops_goniometric (ns, rider, twig=None):
 
    s2 = stub('s2') << Meq.Sqr(cc[1])
    c2 = stub('c2') << Meq.Sqr(cc[2])
-   cc.append(stub('s2+c2') << Meq.Add(s2,c2))
+   qhelp = 'Cos(x)**2 + Sin(x)**2 = 1'
+   cc.append(stub('s2+c2') << Meq.Add(s2,c2, qhelp=qhelp))
 
-   EN.node_help (cc[-1], rider, 'Cos(x)**2 + Sin(x)**2 = 1')
    return QRU.on_exit (ns, rider, cc)
 
 #-----------------------------------------#--------------------------------------------------------------------------------
@@ -1109,15 +1125,11 @@ def unops_invgoniometric (ns, rider, twig=None):
    for q in ['Asin','Acos','Atan']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
 
-   cc.append(stub('AsinSin') << Meq.Asin(cc[0]))
-   EN.node_help (cc[-1], rider,
-                 'Applying a function to its inverse should yield unity')
-   cc.append(stub('AcosCos') << Meq.Acos(cc[1]))
-   EN.node_help (cc[-1], rider,
-                 'Applying a function to its inverse should yield unity')
-   cc.append(stub('AtanTan') << Meq.Atan(cc[2]))
-   EN.node_help (cc[-1], rider,
-                 'Applying a function to its inverse should yield unity')
+   qhelp = 'Applying a function to its inverse should yield unity'
+   cc.append(stub('AsinSin') << Meq.Asin(cc[0], qhelp=qhelp))
+   cc.append(stub('AcosCos') << Meq.Acos(cc[1], qhelp=qhelp))
+   cc.append(stub('AtanTan') << Meq.Atan(cc[2], qhelp=qhelp))
+   
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1133,9 +1145,9 @@ def unops_hyperbolic (ns, rider, twig=None):
       
    sh2 = stub('sh2') << Meq.Sqr(cc[1])
    ch2 = stub('ch2') << Meq.Sqr(cc[2])
-   cc.append(stub('ch2-sh2') << Meq.Subtract(ch2,sh2))
+   qhelp = 'Cosh(x)**2 - Sinh(x)**2 = 1'
+   cc.append(stub('ch2-sh2') << Meq.Subtract(ch2,sh2, qhelp=qhelp))
 
-   EN.node_help (cc[-1], rider, 'Cosh(x)**2 - Sinh(x)**2 = 1')
    return QRU.on_exit (ns, rider, cc, node_help=True)
 
 #--------------------------------------------------------------------------------
@@ -1171,13 +1183,12 @@ def unops_misc (ns, rider, twig=None):
    """
    stub = QRU.on_entry(ns, rider, unops_misc)
    cc = [twig]
-   for q in ['Ceil','Floor','Stripper','Identity']:
-      cc.append(stub(q) << getattr(Meq,q)(twig))
+   for q in ['Ceil','Floor','Identity']:
+      cc.append(stub(q) << getattr(Meq,q)(twig, qbookmark=True))
 
-   cc.append(stub('Stripper') << Meq.Stripper(twig))
-   cc.append(dict(node=cc[-1], viewer='Record Browser'))
+   cc.append(stub('Stripper') << Meq.Stripper(twig, qviewer=[True, 'Record Browser']))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, node_help=True)
 
 
 
@@ -1253,8 +1264,8 @@ def multimath (ns, rider):
 
    # Then the weighted ones:
    for q in ['WSum','WMean']:
-      node = stub(q) << getattr(Meq,q)(children=twigs, weights=weights)
-      cc.append(dict(node=node, help=True))
+      cc.append(stub(q) << getattr(Meq,q)(children=twigs,
+                                          weights=weights, qhelp=True))
 
    return QRU.on_exit (ns, rider, cc)
 

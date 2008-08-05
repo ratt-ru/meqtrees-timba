@@ -258,7 +258,7 @@ def reusenode (ns, rootname, assign, *quals, **kwquals):
         node = stub << assign                    # create a new one
 
     if trace:
-        print s,'->',str(node),' (re-used=',reused,')'
+        print s,'->',format_nodestring(node),' (re-used=',reused,')'
     return node
 
 
@@ -296,7 +296,7 @@ def format_tree (node, ss='', recurse=True,
         postfix = '<br>'
     
     if trace:
-        print prefix+str(node)+postfix,node
+        print prefix+format_nodestring(node)+postfix,node
         # print dir(node)
 
     finished = False
@@ -316,15 +316,17 @@ def format_tree (node, ss='', recurse=True,
             raise ValueError,s
 
     if not finished:
-        ss += prefix+str(node)
+        ss += prefix+format_nodestring(node)
         if getattr(node,'initrec',None):
             initrec = node.initrec()
+            ss += '<font size=1>'
             v = getattr(initrec,'value',None)
             if isinstance(v,(int,float,complex)):
                 ss += '   (value='+str(EF.format_value(v))+')'
             tags = getattr(initrec,'tags',None)
             if tags:
                 ss += '   (tags='+str(tags)+')'
+            ss += '</font>'
 
         # Some clutter-avoiding:
         slevel = str(level)
@@ -336,7 +338,7 @@ def format_tree (node, ss='', recurse=True,
         if not full:
             if node.basename in basenames[slevel]:
                 stophere = True
-                s1 = '... {similar to above} ...'
+                s1 = '<font size=1>... {similar to above} ...</font>'
                 # with basename: '+node.basename
             else:
                 basenames[slevel].append(node.basename)
@@ -344,8 +346,7 @@ def format_tree (node, ss='', recurse=True,
         # Stop if this node has already been shown (same node-name):
         if node.name in nodenames:
             stophere = True
-            s1 = '... this node/subtree has already been shown above'
-            s1 = '... {see above} ...'
+            s1 = '<font size=1>... {see above} ...</font>'
         else:
             nodenames.append(node.name)
             
@@ -408,9 +409,20 @@ def quickref_help (node, append=None, new=None, prepend=None,
     elif severe:
         raise ValueError,qhelp
     if trace:
-        print '** EN.quickref_help(',str(node),', new=',type(new),') ->',qhelp
+        print '** EN.quickref_help(',format_nodestring(node),', new=',type(new),') ->',qhelp
     return qhelp
 
+#----------------------------------------------------------------------------
+
+def format_nodestring (node, trace=False):
+   """Helper function"""
+   ss = str(node)
+   if True:
+      # Make the classname more distinct:
+      nn = ss.split('(')
+      ss = '<font color="blue">'+nn[0]+'</font>'
+      ss += '<font size=1> ('+nn[1]+'</font>'
+   return ss
 
 #----------------------------------------------------------------------------
 
@@ -438,7 +450,7 @@ def format_node (node, cut=False, cmax=80, trace=False):
     # 1: node part:
     ss = ''
     ss += '** node:   '
-    ss += str(node)
+    ss += format_nodestring(node)
     ss_node = ss
 
     # 2: stub part:
@@ -609,7 +621,7 @@ def get_node_names (nodes, select='*', trace=False):
         print '\n** EN.get_node_names(',len(nodes), input_type, select,'):'
         if input_type==expected_type:             
             for i,node in enumerate(nodes):
-                print '-',i,'(',type(node),'):',str(node)
+                print '-',i,'(',type(node),'):',format_nodestring(node)
 
     # Escape gracefully if input not nodes (may be values):
     if not input_type==expected_type:              # not nodes
@@ -761,7 +773,7 @@ def bundle_orphans (ns, parent='Composer', trace=True):
     if len(orphanodes)>0:
         node = stub << getattr(Meq,parent)(*orphanodes)
     if trace:
-        print '\n** EN.bundle_orphans(',parent,') ->',str(node),'\n'
+        print '\n** EN.bundle_orphans(',parent,') ->',format_nodestring(node),'\n'
         if node:
             print format_tree(node, full=False)
     return node
@@ -855,7 +867,7 @@ if __name__ == '__main__':
            print '- stub.initialized():',stub.initialized()
        if 0:
            node = stub << 3.4
-           print '\n node = stub << 3.4   ->',str(node),type(node)
+           print '\n node = stub << 3.4   ->',format_nodestring(node),type(node)
            if 1:
                print '\n dir(node):',dir(node),'\n'
            print '- node.name:',node.name

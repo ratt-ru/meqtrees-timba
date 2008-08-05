@@ -556,13 +556,13 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 
-def MeqNode (ns, rider,
-             meqclass=None, name=None,
-             ## quals=None, kwquals=None,              # not a good idea...?
-             node=None, children=None, unop=None,
-             help=None, show_recurse=False,
-             helpnode=False,
-             trace=False, **kwargs):
+def MeqNode_obsolete (ns, rider,
+                      meqclass=None, name=None,
+                      ## quals=None, kwquals=None,              # not a good idea...?
+                      node=None, children=None, unop=None,
+                      help=None, show_recurse=False,
+                      helpnode=False,
+                      trace=False, **kwargs):
     """
     <function_call>
     node = QuickRefUtil.MeqNode(ns, rider, ...)
@@ -854,6 +854,7 @@ def on_exit (ns, rider, nodes=None,
     Example: mode='group': viewer='QuickRef Display', show_recurse=False.
     <li> show_recurse[=False]: If True or int>0, attach a formatted version of the
     parent subtree, to the specified recursion depth (True=1000), to the bundle help.
+    <li> show_bookmarks[=False]: If True, show the list of bookmarks/viewers 
     <li> show_forest_state[=False]: If True, bookmark the forest state record 
     <li> viewer[='Result Plotter']: The default viewer to be used by the bookmark(s).
     <li> bookmark_bundle_help[=True]: Also bookmark the bundle help (with QuickRef Display)
@@ -887,60 +888,42 @@ def on_exit (ns, rider, nodes=None,
     for node in nodes:
         if is_node(node):                   # an actual node -> bundle
             bundle.append(node)
-            comments.append(node_help)
+            comments.append(node_help)      # bool or string
+
             if node.initrec().has_key('qhelp'):
                 # If the node has a qhelp field, make it into a comment (see below).
                 # This is a convienient way of passing help via the node constructor.
-                comments[-1] = str(node.initrec()['qhelp'])
-                # node.initrec()['qhelp'] = None              # necessary?
-            bookmarks.append(node)
-            viewers.append(viewer)
+                comments[-1] = str(node.initrec()['qhelp'])   # assume string or True
+                # node.initrec()['qhelp'] = True              # necessary?
+
+            if (not node.initrec().has_key('qbookmark')) or node.initrec()['qbookmark']:
+                # A bookmark may be inhibited by: qbookmark=False
+                bookmarks.append(node)
+                viewers.append(viewer)                            # default viewer
+                if node.initrec().has_key('qviewer'):             # viewer specified
+                    # This is a convienient way of passing info via the node constructor.
+                    viewers[-1] = node.initrec()['qviewer']       # replace viewer
 
         elif isinstance(node,str):            # assume a bundle help-text....
             bhelp += rider.check_html_tags(str(node), include_style=False)
             bhelp += '<br>'
 
-        elif not isinstance(node,dict):       # error...?
+        else:                                 # a record with detailed instructions
             bhelp += '\n<warning>'  
             bhelp += 'not recognized: '+str(type(node))
             bhelp += '\n</warning>'
 
-        else:                                 # a record with detailed instructions
-            bundle.append(node['node'])           # 'node' is mandatory field
-            comments.append(node_help)
-            # Deal with bookmark field:
-            node.setdefault('bookmark',True)      # default behaviour
-            if node['bookmark']:                  # inhibit if bookmark=False
-                node.setdefault('viewer',viewer)  # default viewer
-                vv = node['viewer']
-                if isinstance(vv,bool) and vv:    # True -> default viewer
-                    vv = [viewer]
-                elif isinstance(vv,str):          # viewer specified
-                    vv = [vv]
-                if isinstance(vv,(list,tuple)): 
-                    for v in vv:                  # for one or more viewers
-                        bookmarks.append(node['node'])
-                        if isinstance(v,str):
-                            viewers.append(v)     # user-specified viewer
-                        else:
-                            viewers.append(viewer) # default viewer
-            # Deal with help-field:
-            node.setdefault('help',False)
-            if node['help']:                      # node-help (True or string)
-                comment = node['help']
-                if isinstance(comment,str):       # help is string
-                    comment = rider.replace_html_chars (comment, trace=False)
-                else:
-                    comment = None
-                comments[-1] = comment            # used below
-
 
     #.......................................................................
-    # Optionally, add help to each node in the bundle:
+    # Optionally, add help to nodes in the bundle, contrilled by 'comments':
     
     for i,comment in enumerate(comments):
-        if comment:
-            QRNH.node_help(bundle[i], rider=rider, comment=comment, trace=False)
+        if comment:                               # assume True or string
+            if isinstance(comment,str):
+                comment = rider.replace_html_chars (comment, trace=False)
+                QRNH.node_help(bundle[i], rider=rider, comment=comment, trace=False)
+            else:                                 # just the generic node help
+                QRNH.node_help(bundle[i], rider=rider, trace=False)
 
     #.......................................................................
     # Append the contents of the help-argument, if string:
@@ -977,9 +960,10 @@ def on_exit (ns, rider, nodes=None,
                     result_index = 0                 # safe (not recognized...)
             parent << Meq.ReqSeq(children=bundle,
                                  result_index=result_index)
-            comment = """The bundle-parent node, shown for the value of its result_index,
-            i.e. the index of the child whose result is passed on."""
-            QRNH.node_help(parent, rider=rider, comment=comment, trace=False)
+            if False:
+                comment = """The bundle-parent node, shown for the value of its result_index,
+                i.e. the index of the child whose result is passed on."""
+                QRNH.node_help(parent, rider=rider, comment=comment, trace=False)
 
         elif parentclass in ['Add','Multiply']:
             parent << getattr(Meq,parentclass)(children=bundle)
@@ -994,14 +978,20 @@ def on_exit (ns, rider, nodes=None,
 
     # Optional, show the bundle parent subtree to the required depth:
     if show_recurse:
-        bhelp += '\n<br>** The resulting bundle subtree:<br>'
-        bhelp += EN.format_tree(parent, recurse=show_recurse,
-                                full=True, mode='html')
+        if is_node(show_recurse):
+            bhelp += '\n<br>** The subtree of a selected node:<br>'
+            bhelp += EN.format_tree(show_recurse, recurse=True,
+                                    full=True, mode='html')
+        else:
+            bhelp += '\n<br>** The resulting bundle subtree:<br>'
+            bhelp += EN.format_tree(parent, recurse=show_recurse,
+                                    full=True, mode='html')
     elif show_bundle:
         bhelp += '\n<br>** The following nodes are bundled by parent node: '+str(parent)+':<br>'
         for i,node in enumerate(bundle):
             bhelp += ' - '+str(node)+'<br>'
     bhelp += '<br>'
+
 
     #.......................................................................
     # Make a meqbrowser bookmark for the nodes in 'bookmarks', if required:
@@ -1014,6 +1004,21 @@ def on_exit (ns, rider, nodes=None,
                 # Append an extra bookmark with the bundle help...
                 bookmarks.append(parent)
                 viewers.append('QuickRef Display')
+
+            # Deal with multiple viewers:
+            ii = range(len(viewers))
+            for i in ii:
+                vv = viewers[i]
+                if isinstance(vv,(list,tuple)):
+                    for v1 in vv[1:]:
+                        viewers.append(v1)                 # other viewer
+                        bookmarks.append(bookmarks[i])     # copy the node
+                    viewers[i] = vv[0]                     # replace with first viewer
+
+            # Check that all viewers are strings:
+            for i,v in enumerate(viewers):
+                if not isinstance(v,str):                  # if not a string (e.g. True)
+                    viewers[i] = viewer                    # ..use default viewer
 
             if show_bookmarks:
                 bhelp += '\n<br>** The following nodes are bookmarked:'
@@ -1065,6 +1070,8 @@ def on_exit (ns, rider, nodes=None,
     rider.path(up=True)
     # Return the bundle parent node: 
     return parent
+
+
 
 
 
