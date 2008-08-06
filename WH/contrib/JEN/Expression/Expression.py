@@ -828,6 +828,7 @@ class Expression (Meow.Parameterization):
                     rr = self._item[key]                            # item definition record
                     if rr['type']=='parm':                          # undefined item
                         rr['type'] = 'node'                         # turn into MeqParm node
+                        print '\n----Expression: self._item[',key,']:',rr,'\n'        # ...temporary...
                         rr['item'] = self._parm(key)                # Meow (Parameterization)
 
                     if rr['type']=='node':

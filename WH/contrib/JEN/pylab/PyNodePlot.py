@@ -105,23 +105,27 @@ def format_plotspecs_record (ps, name=None, mode='html', severe=True, trace=Fals
   ss += 'plotspecs record ('+str(name)+'):'
   ss += '\n</font><dd>\n'
 
-  plotypes = ['graphics']
+  if not isinstance(ps,dict):
+    ss += 'not a record<br>\n'
 
-  # First do the overall keywords:
-  for key in ps.keys():
-    if not key in plotypes:
-      ss += '-- '+str(key)+' = '+str(ps[key])+'<br>\n'
+  else:
+    plotypes = ['graphics']
 
-  # Then do the various plot-types:
-  for plotype in plotypes:
-    if ps.has_key(plotype):
-      if not isinstance(ps[plotype],(list,tuple)):
-        ss += '- '+str(plotype)+' = '+str(type(ps[plotype]))+'??<br>\n'
-        if severe:
-          raise ValueError,ss
-      else:
-        for i,rr in enumerate(ps[plotype]):
-          ss += str(plotype)+': '+str(rr)+'<br>\n'
+    # First do the overall keywords:
+    for key in ps.keys():
+      if not key in plotypes:
+        ss += '-- '+str(key)+' = '+str(ps[key])+'<br>\n'
+
+    # Then do the various plot-types:
+    for plotype in plotypes:
+      if ps.has_key(plotype):
+        if not isinstance(ps[plotype],(list,tuple)):
+          ss += '- '+str(plotype)+' = '+str(type(ps[plotype]))+'??<br>\n'
+          if severe:
+            raise ValueError,ss
+        else:
+          for i,rr in enumerate(ps[plotype]):
+            ss += str(plotype)+': '+str(rr)+'<br>\n'
       
   # Finished:
   ss += '</dl>\n'
@@ -299,7 +303,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
               print prefix,'       - ',key,'=',pd[key]
             elif key in ['xx','yy','zz','dxx','dyy','dzz']:
               # print prefix,'       - ',key,': (LIST)',format_vv(pd[key])
-              print prefix,'       - ',key,': (LIST)',EN.format_value(pd[key])
+              print prefix,'       - ',key,': (LIST)',EN.EF.format_value(pd[key])
             else:
               print prefix,'       - ',key,'=',pd[key]
 
@@ -680,8 +684,8 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     pd.zmin = min(pd.zz)
     pd.zmax = max(pd.zz)
     nsig = 3                        # nr of significant digits
-    s = 'z-range=['+EN.format_value(pd.zmin, nsig=nsig)
-    s += ', '+EN.format_value(pd.zmax, nsig=nsig)+']'
+    s = 'z-range=['+EN.EF.format_value(pd.zmin, nsig=nsig)
+    s += ', '+EN.EF.format_value(pd.zmax, nsig=nsig)+']'
     pd.legend.append(s)
     q = (rr.msmax-rr.msmin)/(pd.zmax-pd.zmin)
     ms = []

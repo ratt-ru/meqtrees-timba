@@ -518,10 +518,11 @@ def _define_forest (ns, **kwargs):
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_ionos(ns, rider)])
+                nodes=[QR_ionos(ns, rider)],
+                mode='group')
 
    # Finished:
-   QRU.ET.EN.bundle_orphans(ns, rider)
+   QRU.ET.EN.bundle_orphans(ns)
    return True
 
 

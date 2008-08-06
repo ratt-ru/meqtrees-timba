@@ -70,12 +70,9 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
       ss = '\n** QRNH.node_help('+str(type(node))+'): not a node **\n'
       return ss
 
-   # ss = '<dl><dt><font color="blue">'
    ss = '<dl><dt>'
    ss += 'MeqNode: '
-   # ss += '<font color="blue">'
    ss += format_nodestring(node)+':'
-   # ss += '</font>'
    ss += '<dd>'
 
    #..........................................
@@ -88,6 +85,17 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
                     # rider=rider,
                     # comment=comment,
                     mode=mode, trace=False)
+
+   #..........................................
+   # Start of the specific part:
+   
+   ss += '<b>Specific: </b>'
+
+   if isinstance(comment,str):
+      # User-defined description of this particular node:
+      ss += '<i>'+str(comment)+'</i>'
+
+   ss += '<br>'
 
    #..........................................
    if False:
@@ -117,15 +125,15 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
       pass
    elif nc==1:
       ss += '- child '+str(0)+': '+format_child(node.children[0][1])+'<br>'
-   elif nc<5:
+   elif nc<10:
       for i in range(nc):
          ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
    else:
       for i in [0,1]:                    # the first two
          ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
       ss += '...'+'<br>'
-      for i in [nc-1]:                   # the last one
-      # for i in [nc-2,nc-1]:              # the last two
+      # for i in [nc-1]:                   # the last one
+      for i in [nc-2,nc-1]:              # the last two
          ss += '- child '+str(i)+': '+format_child(node.children[i][1])+'<br>'
 
    #..........................................
@@ -159,11 +167,6 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
          # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
       else:
          ss += ' - '+str(key)+'(??): '+str(v)+'<br>'
-
-   #..........................................
-   # Add a specific comment (if specified):
-   if isinstance(comment,str):
-      ss += '<i>This node:  '+str(comment)+'</i>'
 
    #..........................................
    # Closing:
@@ -208,13 +211,10 @@ def format_child (node, trace=False):
    """Helper function"""
    rr = node.initrec()
    ss = format_nodestring(node)
-
-   # Append some specific initrec fields, if present: 
    ss += '<font size=1>'
-   if node.classname=='MeqConstant':
-      ss += '  (value='+str(getattr(rr,'value',None))+')'
-   if rr.has_key('tags'):
-      ss += '  (tags='+str(rr.tags)+')'
+   for key in ['value','tags','result_index']:
+      if rr.has_key(key):
+         ss += '  ('+str(key)+'='+str(rr[key])+')'
    ss += '</font>'
    return ss
 
@@ -238,132 +238,132 @@ def class_help (cname, header=None, rr=None,
       # Assume that this is called by node_help()
       ss = header
 
-   more = 'specific: '
-   more = ''
+   gen = '<b>Generic:</b> '
    if cname=='MeqConstant':
-      more += 'May be scalar or tensor (multiple results), real or complex. ' 
-      more += 'All the cells of a result domain have the same value.'
+      gen += 'May be scalar or tensor (multiple results), real or complex. ' 
+      gen += 'All the cells of a result domain have the same value.'
 
    elif cname in ['MeqFreq','MeqTime','MeqGrid']:
-      more += 'Assign the value of the specified axis to each domain cell. '
+      gen += 'Assign the value of the specified axis to each domain cell. '
 
    elif cname in ['MeqNorm','MeqArg','MeqReal','MeqImag','MeqConj']:
-      more += 'Operation on complex child. '
+      gen += 'Operation on complex child. '
 
    elif cname in ['MeqCeil','MeqFloor']:
-      more += 'Rounding function.'
+      gen += 'Rounding function.'
 
    elif cname=='MeqIdentity':
-      more += 'Make a copy node with a different name.'
+      gen += 'Make a copy node with a different name.'
 
    elif cname=='MeqStripper':
-      more += """Remove all derivatives (if any) from the result.
+      gen += """Remove all derivatives (if any) from the result.
       This saves space and can be used to control solving."""
 
    elif cname=='MeqMod':
-      more += 'Modulo lhs%rhs (lhs and rhs are its 2 children). '
-      more += '<warning>MeqMod() crashes the meqserver.... Needs integer children?? </warning>'
+      gen += 'Modulo lhs%rhs (lhs and rhs are its 2 children). '
+      gen += '<warning>MeqMod() crashes the meqserver.... Needs integer children?? </warning>'
 
 
    elif cname=='MeqWSum':
-      more += 'Weighted sum of its children: w[0]*c0 + w[1]*c1 + w[2]*c2 + ... '
-      more += '<warning>The weights vector must be a vector of DOUBLES (!)</warning>'
+      gen += 'Weighted sum of its children: w[0]*c0 + w[1]*c1 + w[2]*c2 + ... '
+      gen += '<warning>The weights vector must be a vector of DOUBLES (!)</warning>'
 
    elif cname=='MeqWMean':
-      more += """Weighted mean of its children: (w[0]*c0 + w[1]*c1 + w[2]*c2 + ...)/wtot,
+      gen += """Weighted mean of its children: (w[0]*c0 + w[1]*c1 + w[2]*c2 + ...)/wtot,
       in which wtot = (w[0]+w[1]+w[2]+...)"""
 
    elif cname in ['MeqAdd','MeqMultiply']:
-      more += 'Multi-math function (has one or more children). '
+      gen += 'Multi-math function (has one or more children). '
 
    elif cname in ['MeqSubtract','MeqDivide','MeqPow']:
-      more += 'Binary math function (has 2 children, lhs and rhs). '
+      gen += 'Binary math function (has 2 children, lhs and rhs). '
 
    elif cname in ['MeqToComplex','MeqPolar']:
-      more += 'Converts its two (real) children into a complex result. '
+      gen += 'Converts its two (real) children into a complex result. '
       if cname=='MeqToComplex':
-         more += 'The children are real and imaginary, in that order.'
+         gen += 'The children are real and imaginary, in that order.'
       elif cname=='MeqPolar':
-         more += 'The children are ampl and phase (rad), in that order.'
+         gen += 'The children are ampl and phase (rad), in that order.'
 
 
    #---------------------------------------------------------------------------
 
    elif cname in ['MeqCos','MeqSin','MeqTan']:
-      more += '(tri-)goniometric function. Turns an angle (rad) into a fraction.'
+      gen += '(tri-)goniometric function. Turns an angle (rad) into a fraction.'
 
    elif cname in ['MeqAcos','MeqAsin','MeqAtan']:
-      more += 'Inverse (tri-)goniometric function. Turns a fraction into an angle (rad). '
+      gen += 'Inverse (tri-)goniometric function. Turns a fraction into an angle (rad). '
       if cname in ['MeqAcos','MeqAsin']:
-         more += 'The abs input should be smaller than one, of course.'
+         gen += 'The abs input should be smaller than one, of course.'
 
    elif cname in ['MeqCosh','MeqSinh','MeqTanh']:
-      more += 'Hyperbolic function: '
+      gen += 'Hyperbolic function: '
       if cname=='MeqCosh':
-         more += 'Cosh(x) = (exp(x)+exp(-x))/2'
+         gen += 'Cosh(x) = (exp(x)+exp(-x))/2'
       elif cname=='MeqSinh':
-         more += 'Sinh(x) = (exp(x)-exp(-x))/2'
+         gen += 'Sinh(x) = (exp(x)-exp(-x))/2'
       elif cname=='MeqTanh':
-         more += 'Tanh(x) = Sinh(x)/Cosh(x) = (exp(x)-exp(-x))/(exp(x)+exp(-x))'
+         gen += 'Tanh(x) = Sinh(x)/Cosh(x) = (exp(x)-exp(-x))/(exp(x)+exp(-x))'
 
    elif cname in ['MeqPow2','MeqPow3','MeqPow4','MeqPow5',
                   'MeqPow6','MeqPow7','MeqPow8','MeqSqr']:
-      more += 'Takes some power of its input.' 
+      gen += 'Takes some power of its input.' 
 
    elif cname in ['MeqAbs','MeqNegate','MeqInvert','MeqExp','MeqSqrt']:
+      gen += ' Elementary unary operation: '+cname.split('Meq')[1]+'()'
       help = record(Negate='-c', Invert='1/c', Exp='exp(c)', Sqrt='square root',
                     Log='e-log (for 10-log, divide by Log(10))')
 
    elif cname=='MeqLog':
-      more += 'e-log (for 10-log, divide by Log(10))'
+      gen += 'e-log (for 10-log, divide by Log(10))'
       
 
    elif cname in ['MeqNelements','MeqSum','MeqMean','MeqProduct',
                   'MeqStdDev','MeqRms', 'MeqMin','MeqMax']:
-      more += """Operation over all the cells of the domainof its child result.
+      gen += """Operation over all the cells of the domainof its child result.
       Returns a single number, or rather the same number in all cells."""
 
    #---------------------------------------------------------------------------
 
    elif cname in ['MeqTranspose','MeqMatrixMultiply','MeqConjTranspose']:
-      more += 'matrix operation (on a 2D tensor node). '
+      gen += 'matrix operation (on a 2D tensor node). '
 
    elif cname=='MeqMatrix22':
-      more += 'Make a 2x2 matrix from its 4 children. '
-      more += '<remark>Meq.Matrix(children=elements) does give an error (!?)</remark>.'
+      gen += 'Make a 2x2 matrix from its 4 children. '
+      gen += '<remark>Meq.Matrix(children=elements) does give an error (!?)</remark>.'
       
    elif cname=='MeqMatrixInvert22':
-      more += 'Invert a 2x2 matrix. '
+      gen += 'Invert a 2x2 matrix. '
 
    elif cname=='MeqGaussNoise':
-      more += 'Gaussian noise with given stddev (and zero mean). '
-      more += '<remark>mean does not work...</remark>.'
+      gen += 'Gaussian noise with given stddev (and zero mean). '
+      gen += '<remark>mean does not work...</remark>.'
 
    elif cname=='MeqRandomNoise':
-      more += 'Random noise between given lower and upper bounds. '
-      more += '<warning>The meqserver crashes on this node!</warning>'
+      gen += 'Random noise between given lower and upper bounds. '
+      gen += '<warning>The meqserver crashes on this node!</warning>'
 
    #---------------------------------------------------------------------------
 
 
    elif cname=='MeqReqSeq':
-      more += """Passes its request to its children one by one. It returns the result
+      gen += """Passes its request to its children one by one. It returns the result
       of the child specified by result_index (default=0)."""
       
    elif cname=='MeqReqMux':
-      more += """Like MeqReqSeq...."""
+      gen += """Like MeqReqSeq...."""
       
    elif cname=='MeqComposer':
-      more += """Combine the results of its (scalar) children into a tensor node,
+      gen += """Combine the results of its (scalar) children into a tensor node,
       i.e. a node with multiple results. An optional dims argument may be supplied
       to specify a shape."""
       
    elif cname=='MeqSelector':
-      more += """Makes a scalar node (one result) by extracting the specified (index)
+      gen += """Makes a scalar node (one result) by extracting the specified (index)
       element from its tensor child."""
       
    elif cname=='MeqPaster':
-      more += """Past the result of its (scalar) child at the specified (index)
+      gen += """Past the result of its (scalar) child at the specified (index)
       position of its tensor child.<warning>Does not work</warning>"""
       
       
@@ -373,19 +373,19 @@ def class_help (cname, header=None, rr=None,
       pass
    
    elif cname=='MeqModRes':
-      more += """Modifies the resolution (nr of domain cells) of the
+      gen += """Modifies the resolution (nr of domain cells) of the
       <font color='red'><i>REQUEST</i></font> that is passed on to its child(ren). 
       It does this according to the specified num_cells, which is a list of integers,
       one for each dimensions of the domain. In general, it will be 2D [ntime,nfreq].
       """
 
    elif cname=='MeqResampler':
-      more += 'Resamples the domain of the result according to that of the request.'
+      gen += 'Resamples the domain of the result according to that of the request.'
 
    #---------------------------------------------------------------------------
 
    elif cname=='MeqSolver':
-      more += """Non-linear (Levenberg Marquardt) solver node. Uses AIPS++ fitting routines.
+      gen += """Non-linear (Levenberg Marquardt) solver node. Uses AIPS++ fitting routines.
       Its children are MeqCondeq nodes that provide condition equations for the (polc coeff)
       of those MeqParm(s) in the MeqCondeq subtrees that have been set to 'solvable'.
       After solution (by SVD matrix inversion), incremental improvements are passed back up
@@ -393,22 +393,23 @@ def class_help (cname, header=None, rr=None,
       """ 
       
    elif cname=='MeqCondeq':
-      more += """Uses the difference of its 2 children to generate condition equations
+      gen += """The two children of a condeq represent the lhs and rhs of an equation.
+      The difference (residual) between them is used to generate condition equations
       (one equation per domain cell) for the solver.
       After solving, the condeq result (=residual) should be 'zero' (or rather noise-like).
       """
 
    elif cname=='MeqParm':
-      more += 'This node represents a (M.E.) parameter, which may be solved for. ' 
+      gen += 'This node represents a (M.E.) parameter, which may be solved for. ' 
       
    #---------------------------------------------------------------------------
 
    elif cname=='MeqZeroFlagger':
-      more += """Flags the cells of the result of its child if they are GT,GE,LE,LT zero.
+      gen += """Flags the cells of the result of its child if they are GT,GE,LE,LT zero.
       The child will usually be the rootnode of a subtree."""
 
    elif cname=='MeqMergeFlags':
-      more += """Merges the flags of its children, and returns the result of the
+      gen += """Merges the flags of its children, and returns the result of the
       first child (with the merged flags of course)."""
 
    #---------------------------------------------------------------------------
@@ -436,14 +437,27 @@ def class_help (cname, header=None, rr=None,
 
 
    #---------------------------------------------------------------------------
+
+   elif cname=='MeqFunctional':
+      gen += """A node that evaluates an arbitrary, user-supplied math expression
+      of its children."""
+
+   elif cname=='MeqPrivateFunction':
+      gen += """A node that evaluates a user-supplied C function of its children.
+      """
+
+   #---------------------------------------------------------------------------
+   # Various classes of PyNodes"
    #---------------------------------------------------------------------------
 
    elif cname=='MeqPyNode':
-      more += """User-defined node, written in python. Using standard interface
-      routines, the user may interact with state record and child results, and
-      produce a result."""
+      gen += """User-defined node, which may perform arbitrary operations on the
+      results of its children (e.g. visualisation). The user part is supplied in the
+      form of a python class, which uses some standard interface routines to interact
+      with the node state record and the child results, and to produce a result."""
 
    #---------------------------------------------------------------------------
+   # Node (class) not recognised:
    #---------------------------------------------------------------------------
 
    else:
@@ -452,25 +466,32 @@ def class_help (cname, header=None, rr=None,
       ss += '</font>\n'
       trace = True
 
-   #---------------------------------------------------------------------------
-   #---------------------------------------------------------------------------
 
+   #---------------------------------------------------------------------------
    # Finishing touches:
-   if not more=='':
-      ss += more+'<br>'
+   #---------------------------------------------------------------------------
 
+
+   # Append the generic node descr:
+   ss += gen+'<br>'
+
+   # Append a user-defined specific text, if any:
    if isinstance(comment,str):
-      ss += '<i>Comment: '+str(comment)+'</i>'
+      ss += '<i>Specific: '+str(comment)+'</i>'
 
+   # Standalone operation (i.e. not called from node_help())
    if header==None:
       ss += '</dl><br>\n'
 
+   # Add to the hierarchical help in the rider (CollatedHelpRecord), if given:
    if rider:
       rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)
 
+   # Progress message:
    if trace:
       print '\n** QRNH.class_help(',cname,'):\n  ',ss,'\n'
-      
+
+   # Return the node-text:
    return ss
       
 

@@ -57,7 +57,7 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
-# from Timba.Contrib.JEN.Expression import Expression
+from Timba.Contrib.JEN.Expression import Expression
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
@@ -492,6 +492,7 @@ def random_offset (ns, spec='s1', nodename=None, quals=None, kwquals=None,
 
 def twig (ns, spec,
           nodename=None, quals=None, kwquals=None,
+          nodestub=None,
           help=None, shape=None,
           unop=None, stddev=0.0, noise=0.0,
           severe=True, trace=False):
@@ -540,18 +541,22 @@ def twig (ns, spec,
     recognized_axes = ['f','t','L','M']       # used below...
 
     s1 = '--- EasyTwig.twig('+str(spec)
+    if nodestub: s1 += ', stub='+str(nodestub)
     if nodename: s1 += ', '+str(nodename)
     if quals: s1 += ', quals='+str(quals)
     if kwquals: s1 += ', kwquals='+str(kwquals)
     s1 += '):  '
 
-    # If no nodename specified, use spec
-    if nodename==None:
-        nodename = 'twig'
-        nodename += '_'+str(spec)
+    if nodestub:
+        stub = nodestub
+    else:
+        # If no nodename specified, use spec
+        if nodename==None:
+            nodename = 'twig'
+            nodename += '_'+str(spec)
+        stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
+        # unique_stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
-    stub = EN.nodestub(ns, nodename, quals=quals, kwquals=kwquals)
-    # unique_stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
     node = None
     is_complex = False
 
@@ -654,7 +659,7 @@ def twig (ns, spec,
 
     elif len(spec.split('polyparm_'))>1:             # e.g. 'polyparm_f0t1L2M'
         ss = spec.split('polyparm_')[1]
-        node = polyparm(ns, 'polyparm', ftLM=ss, trace=False)
+        node = polyparm(ns, 'polyparm', ftLM=ss, nodestub=nodestub, trace=False)
 
     elif len(spec.split('cpscohlin_'))>1:            # e.g. 'cpscohlin_I10Q0.1U-0.1V0.01'
         is_complex = True
@@ -770,8 +775,7 @@ def twig (ns, spec,
     #............................................................
 
     elif ('[' in spec) or (']' in spec) or ('{' in spec) or ('}' in spec):
-        from Timba.Contrib.JEN.Expression import Expression      # causes error above...
-        expr = Expression.Expression(ns, 'EasyTwig', expr=spec)
+        expr = Expression.Expression(ns, nodename, expr=spec)
         expr.display('EasyTwig()')
         node = expr.MeqFunctional()
                 
@@ -824,12 +828,28 @@ def twig (ns, spec,
 
     #............................................................
 
+    if True:
+        # Attach a qhelp string to the node state record.
+        qhelp = 'rootnode of EasyTwig subtree:  '+str(spec)
+        if unop:
+            qhelp += '  (unop='+str(unop)+')'
+        if stddev:
+            qhelp += '  (stddev='+str(stddev)+')'
+        if noise:
+            qhelp += '  (noise='+str(noise)+')'
+        if not node.initrec().has_key('qhelp'):
+            # Attach only if the node does not have a qhelp field yet
+            # (it may have been set in a function like polyparm()) 
+            node.initrec().qhelp = qhelp
+
     if trace:
         print '\n**',s1
         print EN.format_tree(node, full=True)
 
     # Return the (root)node of the twig:
     return node                        
+
+
 
 
 #----------------------------------------------------------------
@@ -961,6 +981,7 @@ def polyparm (ns, name='polyparm', ftLM=None,
               fdeg=0, tdeg=0, Ldeg=0, Mdeg=0,
               Xdeg=0, Ydeg=0, Zdeg=0,
               pname='polyparm',
+              nodestub=None,
               full=False, trace=False):
     """
     Make a polynomial subtree (up to 4D, f,t,L,M), with MeqParn coeff.
@@ -1005,7 +1026,7 @@ def polyparm (ns, name='polyparm', ftLM=None,
                                     parmstub = EN.unique_stub(ns, pname, quals=quals)  # default: 'polyparm'
                                     termstub = EN.unique_stub(ns, 'polyterm', quals=quals)
                                     default_value = 0.1**sum_ftLM            # slightly non_zero
-                                    parm = parmstub << Meq.Parm(default_value)
+                                    parm = parmstub << Meq.Parm(default_value, tags='polyparm')
                                     if sum_ftLM==0:                          # the constant term
                                         term = termstub << Meq.Identity(parm)
                                     else:
@@ -1033,8 +1054,11 @@ def polyparm (ns, name='polyparm', ftLM=None,
         if Xdeg>0: sname += 'X'+str(Xdeg)
         if Ydeg>0: sname += 'Y'+str(Ydeg)
         if Zdeg>0: sname += 'Z'+str(Zdeg)
-    nodestub = EN.unique_stub(ns, sname)
+    if not nodestub:
+        nodestub = EN.unique_stub(ns, sname)
     node = nodestub << Meq.Add(*cc)
+
+    # Finished:
     if trace:
         print '   ->',str(node),len(node.children),'terms\n'
         EN.find_parms(node, trace=trace)

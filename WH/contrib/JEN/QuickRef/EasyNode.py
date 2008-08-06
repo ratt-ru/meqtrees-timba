@@ -293,6 +293,7 @@ def format_tree (node, ss='', recurse=True,
     postfix = ''
     if mode=='html':
         prefix = '\n'+(level*' |......')+' '
+        prefix = '\n'+(level*' |<font color="white">......</font>')+' '
         postfix = '<br>'
     
     if trace:
@@ -320,12 +321,9 @@ def format_tree (node, ss='', recurse=True,
         if getattr(node,'initrec',None):
             initrec = node.initrec()
             ss += '<font size=1>'
-            v = getattr(initrec,'value',None)
-            if isinstance(v,(int,float,complex)):
-                ss += '   (value='+str(EF.format_value(v))+')'
-            tags = getattr(initrec,'tags',None)
-            if tags:
-                ss += '   (tags='+str(tags)+')'
+            for key in ['value','tags','result_index','default']:
+                if initrec.has_key(key):
+                    ss += '  ('+key+'='+str(initrec[key])+')'
             ss += '</font>'
 
         # Some clutter-avoiding:

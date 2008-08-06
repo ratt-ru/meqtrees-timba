@@ -132,7 +132,7 @@ def QR_solving (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -152,7 +152,7 @@ def make_helpnodes (ns, rider):
                               name='EasyTwig_twig',
                               help=ET.twig.__doc__, trace=False))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -181,7 +181,7 @@ def basic (ns, rider):
    # if override or opt_basic_Expression:                 # when Expression MeqParm problem solved...
       cc.append(basic_Expression (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -213,32 +213,59 @@ def basic_polyparm (ns, rider):
    is not enough information to solve for higher-order polynomial coeff.
    In this case, the solution will 'lose rank', which is indicated in the
    solver plot: the black line on the right leaves the right edge. 
+
+   <function_code>
+   def basic_polyparm (ns, rider):
+   stub = QRU.on_entry(ns, rider, basic_polyparm)
+   rhs = ET.twig(ns, opt_basic_twig, nodestub=stub('rhs'))              
+   lhs = ET.twig(ns, opt_basic_polyparm_poly, nodestub=stub('lhs'))
+   parms = stub.search(tags='polyparm')
+   parmset = stub('solved_parms') << Meq.Composer(*parms)
+   condeq = stub('condeq') << Meq.Condeq(lhs, rhs)
+   solver = stub('solver') << Meq.Solver(condeq, solvable=parms)
+   return QRU.on_exit (ns, rider, [solver,condeq,lhs,rhs,parmset],
+                       node_help=True,
+                       show_recurse=solver, 
+                       parentclass='ReqSeq', result_index=0)
+   </function_code>
    """
    stub = QRU.on_entry(ns, rider, basic_polyparm)
-   cc = []
-   twig = ET.twig(ns, opt_basic_twig)              
-   poly = ET.twig(ns, opt_basic_polyparm_poly)
-   parms = EN.find_parms(poly, trace=False)               # search nodescope?
+
+   rhs = ET.twig(ns, opt_basic_twig, nodestub=stub('rhs'))              
+   lhs = ET.twig(ns, opt_basic_polyparm_poly, nodestub=stub('lhs'))
+   parms = stub.search(tags='polyparm')
    parmset = stub('solved_parms') << Meq.Composer(*parms)
-   condeq = stub('condeq') << Meq.Condeq(poly, twig)
-   solver = stub('solver') << Meq.Solver(condeq, solvable=parms,
-                                         qhelp='')
-   cc = [solver,condeq,poly,twig,parmset]
-   return QRU.on_exit (ns, rider, cc,
-                       show_recurse=solver,
+   condeq = stub('condeq') << Meq.Condeq(lhs, rhs)
+   solver = stub('solver') << Meq.Solver(condeq, solvable=parms)
+
+   return QRU.on_exit (ns, rider, [solver,condeq,lhs,rhs,parmset],
+                       node_help=True,
+                       show_recurse=solver, 
                        parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
 def basic_Expression (ns, rider):
    """
+   Solve for the parameters {p} in a mathematical expression, specified with the
+   Expression class (module contrib/JEN/Expression/Expression.py)
+
+   The single condeq represents an equation that equates the expression (rhs) with
+   some other function (lhs). The solver finds those values of the Expression
+   parameters that satisfy the equation.
+
+   The <b>python</b> expression may be modified by the user here, for experimentation.
+   <li> Parameters should be enclosed in {}. They are replaced by MeqParm nodes.
+   <li> Variables in [] (e.g. [t] or [m]). They are replaced by MeqTime or MeqGrid nodes etc.
    """
    stub = QRU.on_entry(ns, rider, basic_Expression)
-   lhs = ET.twig(ns, opt_basic_twig)              
-   print '** expr =',opt_basic_Expression_expr
-   rhs = ET.twig(ns, opt_basic_Expression_expr)
-   print '** rhs =',str(rhs)
+
+   lhs = ET.twig(ns, opt_basic_twig, nodestub=stub('lhs'))              
+   rhs = ET.twig(ns, opt_basic_Expression_expr, nodename='rhs')      # nodestub=stub('rhs'))
    parms = EN.find_parms(rhs, trace=True)
+   # The following alternatives only work when rhs is below the stub....
+   # parms = stub.search(tags='solvable')       
+   # parms = stub.search(tags='MeqFunctional')       
    if len(parms)==0:
       s = '** the Expression: '+opt_basic_Expression_expr
       s += '\n  should have at least one {parm}...'
@@ -246,16 +273,16 @@ def basic_Expression (ns, rider):
    elif len(parms)==1:
       parmset = parms[0]
    else:
-      parmset = EN.unique_stub(ns,'solved_parms') << Meq.Composer(*parms)
-   condeq = ns << Meq.Condeq(lhs,rhs)
-   solver = QRU.MeqNode (ns, rider, meqclass='Solver',
-                         name='Solver(condeq, solvable=parms)',
-                         help='Solver', show_recurse=True,
-                         children=[condeq],
-                         solvable=parms)  
-   cc = [solver,condeq,lhs,rhs,parmset]
-   return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0)
+      parmset = stub('solved_parms') << Meq.Composer(*parms)
+   qhelp = """The condeq represents the equation: """
+   qhelp += opt_basic_Expression_expr+' = '+opt_basic_twig
+   condeq = stub('condeq') << Meq.Condeq(lhs,rhs, qhelp=qhelp)
+   solver = stub('solver') << Meq.Solver(condeq, solvable=parms)  
+
+   return QRU.on_exit (ns, rider, [solver,condeq,lhs,rhs,parmset],
+                       node_help=True,
+                       show_recurse=solver, 
+                       parentclass='ReqSeq', result_index=0)
 
 #--------------------------------------------------------------------------------
 
@@ -267,7 +294,8 @@ def basic_onepolc (ns, rider):
    <li> The right-hand side (rhs): is a MeqParm:
    """
    stub = QRU.on_entry(ns, rider, basic_onepolc)
-   lhs = ET.twig(ns, opt_basic_twig)
+
+   lhs = ET.twig(ns, opt_basic_twig, nodestub=stub('lhs'))
    tiling = record(freq=opt_basic_tiling_freq,
                    time=opt_basic_tiling_time)
    fdeg = opt_basic_onepolc_fdeg
@@ -285,8 +313,9 @@ def basic_onepolc (ns, rider):
                                          niter=10,
                                          qviewer=[True,'Record Browser'],
                                          solvable=rhs)  
-   cc = [solver,condeq,lhs,rhs]
-   return QRU.on_exit (ns, rider, cc, node_help=True,
+
+   return QRU.on_exit (ns, rider, [solver,condeq,lhs,rhs],
+                       node_help=True,
                        show_recurse=solver,
                        parentclass='ReqSeq', result_index=0)
 

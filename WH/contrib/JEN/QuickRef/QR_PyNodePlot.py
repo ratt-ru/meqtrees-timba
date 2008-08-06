@@ -185,7 +185,7 @@ def QR_PyNodePlot (ns, rider):
       header += '_help'
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #********************************************************************************
@@ -223,7 +223,7 @@ def make_helpnodes (ns, rider):
       cc.append(QRU.helpnode(ns, rider, func=PNNG.string2groupspecs))
       cc.append(QRU.helpnode(ns, rider, func=PNNG.string2record_VIS22))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -278,9 +278,10 @@ def PyNodePlot (ns, rider):
    if len(cc)>0:
       bookmark = cc[0]
 
-   return QRU.on_exit (ns, rider, cc,
-                      bookmark=bookmark, viewer='Pylab Plotter',
-                      parentclass='ReqSeq', result_index=0)
+   return QRU.on_exit (ns, rider, cc, 
+                       # bookmark=bookmark,
+                       viewer='Pylab Plotter',
+                       parentclass='ReqSeq', result_index=0)
 
 
 
@@ -315,7 +316,7 @@ def PyNodePlot_basic (ns, rider):
    cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+                       viewer='Pylab Plotter')
 
 #================================================================================
 
@@ -424,8 +425,9 @@ def PyNodePlot_advanced (ns, rider):
    viewer.append('Record Browser')
    
                              
-   return QRU.on_exit (ns, rider, cc,
-                      show_recurse=True, viewer=viewer)
+   return QRU.on_exit (ns, rider, cc, node_help=True,
+                       show_recurse=True,
+                       viewer='Pylab Plotter')
 
 #================================================================================
 
@@ -461,7 +463,7 @@ def PyNodePlot_scalars (ns, rider):
    viewer.extend(['Pylab Plotter','Record Browser'])
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer=viewer)
+                       viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -484,7 +486,7 @@ def PyNodePlot_complex (ns, rider):
       # NB: This does not work (yet), see string2groupspecs()
       cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CXY'))
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+                       viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -527,7 +529,7 @@ def PyNodePlot_tensors (ns, rider):
    cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_32'))
    cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_213'))
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+                       viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -578,7 +580,7 @@ def PyNodePlot_concat (ns, rider):
    viewer.extend(['Pylab Plotter','Record Browser'])
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer=viewer)
+                      viewer='Pylab Plotter')
 
 #================================================================================
 
@@ -638,7 +640,7 @@ def PyNodePlot_nonodes (ns, rider):
    viewer.append('Pylab Plotter')
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer=viewer)
+                       viewer='Pylab Plotter')
 
 
 
@@ -667,7 +669,8 @@ def PlotVIS22 (ns, rider):
 
    cc.append(QRU.helpnode(ns, rider, func=PNNG.string2record_VIS22))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc,
+                       viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -693,7 +696,7 @@ def PlotVIS22_linear (ns, rider):
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_QUV'))
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+                       viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -719,7 +722,7 @@ def PlotVIS22_circular (ns, rider):
    cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_QUV'))
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+                       viewer='Pylab Plotter')
 
 
 #================================================================================
@@ -788,7 +791,7 @@ def PlotVIS22_play (ns, rider):
                              title='point source ('+str(IQUV)+')'))
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+                       viewer='Pylab Plotter')
 
 
 
@@ -822,8 +825,7 @@ def PyNodeNamedGroups (ns, rider):
    # cc.append(QRU.helpnode(ns, rider, func=PNNG.string2record_VIS22))
 
    return QRU.on_exit (ns, rider, cc,
-                      bookmark=cc[0], viewer='Record Browser',
-                      parentclass='ReqSeq', result_index=0)
+                       viewer='Record Browser')
 
 
 #================================================================================
@@ -838,7 +840,7 @@ def PyNodeNamedGroups_basic (ns, rider):
    cc.append(PNNG.pynode_NamedGroup(ns, anodes, groupspecs='a'))
    
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Record Browser')
+                       viewer='Record Browser')
 
 
 #================================================================================
@@ -947,10 +949,11 @@ def _define_forest (ns, **kwargs):
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_PyNodePlot(ns, rider)])
+                nodes=[QR_PyNodePlot(ns, rider)],
+                mode='group')
 
    # Finished:
-   QRU.ET.EN.bundle_orphans(ns, rider)
+   QRU.ET.EN.bundle_orphans(ns)
    return True
 
 

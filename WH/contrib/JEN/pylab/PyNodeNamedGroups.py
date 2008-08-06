@@ -88,16 +88,19 @@ def format_groupspecs_record (gs, name=None, mode='html', severe=True, trace=Fal
   ss = '<dl><dt><font color="green">\n'
   ss += 'groupspecs record ('+str(name)+'):'
   ss += '\n</font><dd>\n'
-  for key in gs.keys():
-    s = '- '+str(key)+': '
-    rr = gs[key]
-    if isinstance(rr,dict):
-      s += str(rr)
-    elif isinstance(rr,(list,tuple,int,float)):
-      s += EN.format_value(rr)
-    else:
-      s += str(type(rr))
-    ss += s+'<br>\n'
+  if not isinstance(gs,dict):
+    ss += 'not a record<br>\n'
+  else:
+    for key in gs.keys():
+      s = '- '+str(key)+': '
+      rr = gs[key]
+      if isinstance(rr,dict):
+        s += str(rr)
+      elif isinstance(rr,(list,tuple,int,float)):
+        s += EN.EF.format_value(rr)
+      else:
+        s += str(type(rr))
+      ss += s+'<br>\n'
   # Finished:
   ss += '</dl>\n'
   if trace:
