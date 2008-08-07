@@ -72,25 +72,27 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_UserNodes topics:",
-               TDLOption('opt_alltopics',"override: include all topics",True),
+oo = TDLCompileMenu("QR_UserNodes topics:",
+                    TDLOption('opt_alltopics',"override: include all topics",True),
+                    
+                    TDLOption('opt_input_twig',"input twig",
+                              ET.twig_names(), more=str),
+                    
+                    TDLMenu("Functional",
+                            toggle='opt_Functional'),
+                    TDLMenu("PrivateFunction",
+                            toggle='opt_PrivateFunction'),
+                    TDLMenu("PyNode",
+                            toggle='opt_PyNode'),
+                    
+                    TDLMenu("help",
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            toggle='opt_helpnodes'),
+                    
+                    toggle='opt_QR_UserNodes')
 
-               TDLOption('opt_input_twig',"input twig",
-                         ET.twig_names(), more=str),
-
-               TDLMenu("Functional",
-                       toggle='opt_Functional'),
-               TDLMenu("PrivateFunction",
-                       toggle='opt_PrivateFunction'),
-               TDLMenu("PyNode",
-                       toggle='opt_PyNode'),
-
-               TDLMenu("help",
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       toggle='opt_helpnodes'),
-
-               toggle='opt_QR_UserNodes')
-
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 
 #********************************************************************************
@@ -102,15 +104,16 @@ def QR_UserNodes (ns, rider):
    """
    """
    stub = QRU.on_entry(ns, rider, QR_UserNodes)
+   override = opt_alltopics
  
    cc = []
-   if opt_alltopics or opt_Functional:
+   if override or opt_Functional:
       cc.append(Functional (ns, rider))
 
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #********************************************************************************
@@ -125,11 +128,12 @@ def make_helpnodes (ns, rider):
    stub = QRU.on_entry(ns, rider, make_helpnodes)
    
    cc = []
-   if opt_alltopics or opt_helpnode_twig:
+   override = opt_alltopics
+   if override or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rider, name='EasyTwig_twig',
                              help=ET.twig.__doc__, trace=False))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -142,9 +146,10 @@ def Functional (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, Functional)
    cc = []
-   # if opt_alltopics or opt_Functional_subtopic:
+   override = opt_alltopics
+   # if override or opt_Functional_subtopic:
    #    cc.append(Functional_subtopic (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
@@ -153,8 +158,9 @@ def Functional_subtopic (ns, rider):
    """
    """
    stub = QRU.on_entry(ns, rider, Functional_subtopic)
+   override = opt_alltopics
    cc = []
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -166,10 +172,11 @@ def PrivateFunction (ns, rider):
    """
    """
    stub = QRU.on_entry(ns, rider, PrivateFunction)
+   override = opt_alltopics
    cc = []
-   # if opt_alltopics or opt_PrivateFunction_subtopic:
+   # if override or opt_PrivateFunction_subtopic:
    #    cc.append(PrivateFunction_subtopic (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
@@ -178,8 +185,9 @@ def PrivateFunction_subtopic (ns, rider):
    """
    """
    stub = QRU.on_entry(ns, rider, PrivateFunction_subtopic)
+   override = opt_alltopics
    cc = []
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -191,10 +199,11 @@ def PyNode (ns, rider):
    """
    """
    stub = QRU.on_entry(ns, rider, PyNode)
+   override = opt_alltopics
    cc = []
-   # if opt_alltopics or opt_PyNode_subtopic:
+   # if override or opt_PyNode_subtopic:
    #    cc.append(PyNode_subtopic (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
@@ -203,8 +212,9 @@ def PyNode_subtopic (ns, rider):
    """
    """
    stub = QRU.on_entry(ns, rider, PyNode_subtopic)
+   override = opt_alltopics
    cc = []
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -214,6 +224,17 @@ def PyNode_subtopic (ns, rider):
 
 
 
+#********************************************************************************
+#********************************************************************************
+# Helper functions: 
+#********************************************************************************
+
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
 
 
 #********************************************************************************
@@ -226,26 +247,20 @@ def PyNode_subtopic (ns, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   TDLRuntimeMenu(":")
+   TDLRuntimeMenu("QR_UserNodes runtime options:", QRU)
+   TDLRuntimeMenu(":")
+
    global rootnodename
    rootnodename = 'QR_UserNodes'                 # The name of the node to be executed...
    global rider                                  # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)        # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_UserNodes(ns, rider)])
+                nodes=[QR_UserNodes(ns, rider)],
+                mode='group')
 
    # Finished:
    return True
-
-
-#--------------------------------------------------------------------------------
-
-# A 'universal TDLRuntimeMenu is defined in QuickRefUtil.py (QRU):
-
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For the TDLCompileMenu, see the top of this module
 
 
 #--------------------------------------------------------------------------------

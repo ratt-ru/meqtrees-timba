@@ -77,82 +77,84 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_PyNodePlot topics:",
-               TDLOption('opt_alltopics',"override: include all topics",False),
-
-               TDLOption('opt_input_twig',"input twig",
-                         ET.twig_names(), more=str),
-
-               TDLMenu("PyNodePlot",
-                       TDLOption('opt_PNP_alltopics',
-                                 "override: include all PyNodePlot sub-topics",False),
-                       TDLMenu("basic",
-                               toggle='opt_PNP_basic'),
-                       TDLMenu("scalars",
-                               toggle='opt_PNP_scalars'),
-                       TDLMenu("complex",
-                               toggle='opt_PNP_complex'),
-                       TDLMenu("tensors",
-                               toggle='opt_PNP_tensors'),
-                       TDLMenu("concat",
-                               toggle='opt_PNP_concat'),
-                       TDLMenu("advanced",
-                               toggle='opt_PNP_advanced'),
-                       TDLMenu("nonodes",
-                               toggle='opt_PNP_nonodes'),
-                       toggle='opt_PyNodePlot'),
-
-               TDLMenu("PlotVIS22",
-                       TDLOption('opt_PlotVIS22_alltopics',
-                                 "override: include all PlotVIS22 sub-topics",False),
-                       TDLMenu("linear",
-                               toggle='opt_PlotVIS22_linear'),
-                       TDLMenu("circular",
-                               toggle='opt_PlotVIS22_circular'),
-                       TDLMenu("play",
-                               TDLOption('opt_PlotVIS22_play_polrep',
-                                         "polarization representation",
-                                         ['linear','circular']),
-                               TDLOption('opt_PlotVIS22_play_nuv',"nr of uv-points",
-                                         [10,20,40,91,351], more=int),
-                               TDLOption('opt_PlotVIS22_play_L',"source pos l (deg)",
-                                         [0.0,0.01,0.1,1.0], more=float),
-                               TDLOption('opt_PlotVIS22_play_M',"source pos m (deg)",
-                                         [0.0,0.01,0.1,1.0], more=float),
-                               TDLOption('opt_PlotVIS22_play_IQUV',"cps IQUV spec-string",
-                                         ['I','V0.01','U0.1','Q0.1','Q0.1U0.1','Q0.1U0.1V0.01'], more=str),
-                               TDLOption('opt_PlotVIS22_play_PZD',"XY/RL phase zero diff PZD (rad)",
-                                         [0.0,0.1,1.0], more=float),
-                               toggle='opt_PlotVIS22_play'),
-                       toggle='opt_PlotVIS22'),
-
-
-               TDLMenu("PyNodeNamedGroups",
-                       TDLOption('opt_PNNG_alltopics',
-                                 "override: include all PyNodeNamedGroups sub-topics",False),
-                       TDLMenu("basic",
-                               toggle='opt_PNNG_basic'),
-                       TDLMenu("nonodes",
-                               toggle='opt_PNNG_nonodes'),
-                       TDLMenu("concat",
-                               toggle='opt_PNNG_concat'),
-                       toggle='opt_PyNodeNamedGroups'),
+oo = TDLCompileMenu("QR_PyNodePlot topics:",
+                    TDLOption('opt_alltopics',"override: include all topics",False),
+                    
+                    TDLOption('opt_input_twig',"input twig",
+                              ET.twig_names(), more=str),
+                    
+                    TDLMenu("PyNodePlot",
+                            TDLOption('opt_PNP_alltopics',
+                                      "override: include all PyNodePlot sub-topics",False),
+                            TDLMenu("basic",
+                                    toggle='opt_PNP_basic'),
+                            TDLMenu("scalars",
+                                    toggle='opt_PNP_scalars'),
+                            TDLMenu("complex",
+                                    toggle='opt_PNP_complex'),
+                            TDLMenu("tensors",
+                                    toggle='opt_PNP_tensors'),
+                            TDLMenu("concat",
+                                    toggle='opt_PNP_concat'),
+                            TDLMenu("advanced",
+                                    toggle='opt_PNP_advanced'),
+                            TDLMenu("nonodes",
+                                    toggle='opt_PNP_nonodes'),
+                            toggle='opt_PyNodePlot'),
+                    
+                    TDLMenu("PlotVIS22",
+                            TDLOption('opt_PlotVIS22_alltopics',
+                                      "override: include all PlotVIS22 sub-topics",False),
+                            TDLMenu("linear",
+                                    toggle='opt_PlotVIS22_linear'),
+                            TDLMenu("circular",
+                                    toggle='opt_PlotVIS22_circular'),
+                            TDLMenu("play",
+                                    TDLOption('opt_PlotVIS22_play_polrep',
+                                              "polarization representation",
+                                              ['linear','circular']),
+                                    TDLOption('opt_PlotVIS22_play_nuv',"nr of uv-points",
+                                              [10,20,40,91,351], more=int),
+                                    TDLOption('opt_PlotVIS22_play_L',"source pos l (deg)",
+                                              [0.0,0.01,0.1,1.0], more=float),
+                                    TDLOption('opt_PlotVIS22_play_M',"source pos m (deg)",
+                                              [0.0,0.01,0.1,1.0], more=float),
+                                    TDLOption('opt_PlotVIS22_play_IQUV',"cps IQUV spec-string",
+                                              ['I','V0.01','U0.1','Q0.1','Q0.1U0.1','Q0.1U0.1V0.01'], more=str),
+                                    TDLOption('opt_PlotVIS22_play_PZD',"XY/RL phase zero diff PZD (rad)",
+                                              [0.0,0.1,1.0], more=float),
+                                    toggle='opt_PlotVIS22_play'),
+                            toggle='opt_PlotVIS22'),
 
 
-               TDLMenu("help",
-                       TDLOption('opt_helpnode_alltopics',
-                                 "override: include all helpnodes",False),
-                       TDLOption('opt_helpnode_bundle',"help on EasyBundle.bundle()", False),
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       TDLOption('opt_helpnode_PNP',"help on class PyNodePlot", False),
-                       TDLOption('opt_helpnode_pynode_PNP',"help on pynode_Plot()", False),
-                       TDLOption('opt_helpnode_PNP_plotstyles',"help on PNP (pylab) plot-styles", False),
-                       TDLOption('opt_helpnode_PNNG',"help on class PyNodeNodeGroups", False),
-                       TDLOption('opt_helpnode_pynode_PNNG',"help on pynode_NamedGroup()", False),
-                       toggle='opt_helpnodes'),
+                    TDLMenu("PyNodeNamedGroups",
+                            TDLOption('opt_PNNG_alltopics',
+                                      "override: include all PyNodeNamedGroups sub-topics",False),
+                            TDLMenu("basic",
+                                    toggle='opt_PNNG_basic'),
+                            TDLMenu("nonodes",
+                                    toggle='opt_PNNG_nonodes'),
+                            TDLMenu("concat",
+                                    toggle='opt_PNNG_concat'),
+                            toggle='opt_PyNodeNamedGroups'),
+                    
 
-               toggle='opt_QR_PyNodePlot')
+                    TDLMenu("help",
+                            TDLOption('opt_helpnode_alltopics',
+                                      "override: include all helpnodes",False),
+                            TDLOption('opt_helpnode_bundle',"help on EasyBundle.bundle()", False),
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            TDLOption('opt_helpnode_PNP',"help on class PyNodePlot", False),
+                            TDLOption('opt_helpnode_pynode_PNP',"help on pynode_Plot()", False),
+                            TDLOption('opt_helpnode_PNP_plotstyles',"help on PNP (pylab) plot-styles", False),
+                            TDLOption('opt_helpnode_PNNG',"help on class PyNodeNodeGroups", False),
+                            TDLOption('opt_helpnode_pynode_PNNG',"help on pynode_NamedGroup()", False),
+                            toggle='opt_helpnodes'),
 
+                    toggle='opt_QR_PyNodePlot')
+
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 
 #********************************************************************************
@@ -932,6 +934,19 @@ def PyNodeNamedGroups_concat (ns, rider):
 
 
 
+#********************************************************************************
+#********************************************************************************
+# Helper functions: 
+#********************************************************************************
+
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
+
+
 
 
 #********************************************************************************
@@ -944,6 +959,10 @@ def PyNodeNamedGroups_concat (ns, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   TDLRuntimeMenu(":")
+   TDLRuntimeMenu("QR_PyNodePlot runtime options:", QRU)
+   TDLRuntimeMenu(":")
+
    global rootnodename
    rootnodename = 'QR_PyNodePlot'               # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
@@ -955,17 +974,6 @@ def _define_forest (ns, **kwargs):
    # Finished:
    QRU.ET.EN.bundle_orphans(ns)
    return True
-
-
-#--------------------------------------------------------------------------------
-
-# A 'universal TDLRuntimeMenu is defined in QuickRefUtil.py (QRU):
-
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For the TDLCompileMenu, see the top of this module
 
 
 #--------------------------------------------------------------------------------

@@ -143,30 +143,47 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
       if key in ['class','children','quickref_help',
                  'qhelp','qviewer','qbookmark']:
          pass
+
       elif isinstance(v,(list,tuple)):
          if isinstance(v[0],(int,float,complex)):
-            ss += ' - '+str(key)+' = '+str(v)+'<br>'
-            # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+            ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
          elif isinstance(v[0],str):
             ss += ' - '+str(key)+' = '+str(v)+'<br>'
          elif len(v)<=5:
             ss += ' - '+str(key)+' = '+str(v)+'<br>'
          else:
             ss += ' - '+str(key)+' (n='+str(len(v))+'): '+str(v[:2])+'...'+str(v[-1])+'<br>'
+            # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+
       elif isinstance(v,dict):
          ss += ' - '+str(key)+' (dict/record):<br>'
          for key1 in v.keys():
             v1 = v[key1]
-            # ss += ' --- '+str(key1)+': '+str(EF.format_value(v1))+'<br>'
-            ss += ' --- '+str(key1)+' = '+str(v1)+'<br>'
+            if isinstance(v1,dict):
+               ss += ' - '+str(key1)+' (dict/record):<br>'
+               for key2 in v1.keys():
+                  v2 = v1[key2]
+                  ss += ' ------ '+str(key2)+': '+str(EF.format_value(v2))+'<br>'
+            elif isinstance(v1,(list,tuple)):
+               if isinstance(v1[0],dict):
+                  for i,v2 in enumerate(v1):
+                     ss += ' ------ '+str(i)+': '+str(v2)+'<br>'
+               else:
+                  ss += ' --- '+str(key1)+': '+str(EF.format_value(v1))+'<br>'
+            else:
+               ss += ' --- '+str(key1)+' = '+str(EF.format_value(v1))+'<br>'
+
       elif isinstance(v,(int,float,complex)):
-         ss += ' - '+str(key)+' = '+str(v)+'<br>'
-         # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+         ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+
       elif isinstance(v,str):
-         ss += ' - '+str(key)+': '+str(v)+'<br>'
-         # ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+         ss += ' - '+str(key)+' = '+str(EF.format_value(v))+'<br>'
+
+      elif v==None:
+         ss += ' - '+str(key)+' = '+str(v)+'<br>'
+
       else:
-         ss += ' - '+str(key)+'(??): '+str(v)+'<br>'
+         ss += ' - '+str(key)+': '+str(type(v))+'(??) = '+str(v)+'<br>'
 
    #..........................................
    # Closing:
@@ -318,7 +335,7 @@ def class_help (cname, header=None, rr=None,
       gen += 'e-log (for 10-log, divide by Log(10))'
       
 
-   elif cname in ['MeqNelements','MeqSum','MeqMean','MeqProduct',
+   elif cname in ['MeqNElements','MeqSum','MeqMean','MeqProduct',
                   'MeqStdDev','MeqRms', 'MeqMin','MeqMax']:
       gen += """Operation over all the cells of the domainof its child result.
       Returns a single number, or rather the same number in all cells."""

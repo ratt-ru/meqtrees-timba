@@ -66,11 +66,12 @@ from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 
-# from Timba.Contrib.JEN.Expression import Expression
+from Timba.Contrib.JEN.Expression import Expression
 
 import math
 import random
 import numpy
+
 
 
 #******************************************************************************** 
@@ -78,61 +79,63 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_ionos topics:",
-               TDLOption('opt_alltopics',"override: include all topics",True),
+oo = TDLCompileMenu("QR_ionos topics:",
+                    TDLOption('opt_alltopics',"override: include all topics",True),
+                    
+                    TDLMenu("thinlayer",
+                            TDLOption('opt_thinlayer_alltopics',
+                                      "override: include all thinlayer sub-topics",False),
+                            TDLOption('opt_thinlayer_altitude',"altitude (km)",
+                                      [300,350,400,500,200], more=float),
+                            TDLOption('opt_thinlayer_Earth_radius',"Earth radius (km)",
+                                      [6370,1e3,1e4,1e9], more=float),
+                            TDLOption('opt_thinlayer_vTEC0',"vertical TEC0 (TECU)",
+                                      [1,2,5,10,100,0.0], more=float),
+                            TDLOption('opt_thinlayer_vTECxy',"vertical TECxy (TECU)",
+                                      [None,
+                                       '0.1*numpy.cos(0.01*{x}+0.5)',
+                                       '0.1*numpy.cos(0.1*{x}+0.5)'],
+                                      more=str),
+                            TDLOption('opt_thinlayer_wvl',"observing wavelength (m)",
+                                      [1.0,2.0,4.0,10.0,20.0,0.33,0.21], more=float),
+                            TDLOption('opt_thinlayer_bmax',"max baseline (km)",
+                                      [1000,100,30,10,3,1.0,0.1,0.01], more=float),
+                            TDLOption('opt_thinlayer_zdir',"zenith angle variation direction",
+                                      ['l','m']),
+                            
+                            TDLMenu("TEC",
+                                    toggle='opt_thinlayer_TEC'),
+                            
+                            TDLMenu("MIM",
+                                    toggle='opt_thinlayer_MIM'),
+                            toggle='opt_thinlayer'),
+                    
+                    TDLMenu("multilayer",
+                            toggle='opt_multilayer'),
+                    
+                    TDLMenu("parabolic",
+                            toggle='opt_parabolic'),
+                    
+                    TDLMenu("TID",
+                            toggle='opt_TID'),
+                    
+                    TDLMenu("GPS",
+                            TDLOption('opt_GPS_alltopics',
+                                      "override: include all GPS sub-topics",False),
+                            TDLMenu("TEC",
+                                    toggle='opt_GPS_TEC'),
+                            TDLMenu("triplefreq",
+                                    toggle='opt_GPS_triplefreq'),
+                            toggle='opt_GPS'),
+                    
+                    TDLMenu("help",
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            toggle='opt_helpnodes'),
+                    
+                    toggle='opt_QR_ionos')
 
-               TDLMenu("thinlayer",
-                       TDLOption('opt_thinlayer_alltopics',
-                                 "override: include all thinlayer sub-topics",False),
-                       TDLOption('opt_thinlayer_altitude',"altitude (km)",
-                                 [300,350,400,500,200], more=float),
-                       TDLOption('opt_thinlayer_Earth_radius',"Earth radius (km)",
-                                 [6370,1e3,1e4,1e9], more=float),
-                       TDLOption('opt_thinlayer_vTEC0',"vertical TEC0 (TECU)",
-                                 [1,2,5,10,100,0.0], more=float),
-                       TDLOption('opt_thinlayer_vTECxy',"vertical TECxy (TECU)",
-                                 [None,
-                                  '0.1*numpy.cos(0.01*{x}+0.5)',
-                                  '0.1*numpy.cos(0.1*{x}+0.5)'],
-                                 more=str),
-                       TDLOption('opt_thinlayer_wvl',"observing wavelength (m)",
-                                 [1.0,2.0,4.0,10.0,20.0,0.33,0.21], more=float),
-                       TDLOption('opt_thinlayer_bmax',"max baseline (km)",
-                                 [1000,100,30,10,3,1.0,0.1,0.01], more=float),
-                       TDLOption('opt_thinlayer_zdir',"zenith angle variation direction",
-                                 ['l','m']),
-
-                       TDLMenu("TEC",
-                               toggle='opt_thinlayer_TEC'),
-
-                       TDLMenu("MIM",
-                               toggle='opt_thinlayer_MIM'),
-                       toggle='opt_thinlayer'),
-
-               TDLMenu("multilayer",
-                       toggle='opt_multilayer'),
-               
-               TDLMenu("parabolic",
-                       toggle='opt_parabolic'),
-
-               TDLMenu("TID",
-                       toggle='opt_TID'),
-               
-               TDLMenu("GPS",
-                       TDLOption('opt_GPS_alltopics',
-                                 "override: include all GPS sub-topics",False),
-                       TDLMenu("TEC",
-                               toggle='opt_GPS_TEC'),
-                       TDLMenu("triplefreq",
-                               toggle='opt_GPS_triplefreq'),
-                       toggle='opt_GPS'),
-               
-               TDLMenu("help",
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       toggle='opt_helpnodes'),
-
-               toggle='opt_QR_ionos')
-
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 
 #********************************************************************************
@@ -158,7 +161,7 @@ def QR_ionos (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #********************************************************************************
@@ -175,10 +178,10 @@ def make_helpnodes (ns, rider):
    override = opt_alltopics
    cc = []
 
-   if override or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
+   # if override or opt_helpnode_twig:
+   #    cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -212,7 +215,7 @@ def thinlayer (ns, rider):
    if override or opt_thinlayer_MIM:
       cc.append(thinlayer_MIM (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
@@ -238,13 +241,13 @@ def thinlayer_TEC (ns, rider):
    cc = []
    viewer = []
 
-   h = float(opt_thinlayer_altitude)
-   R = float(opt_thinlayer_Earth_radius)
-   vTEC0 = float(opt_thinlayer_vTEC0)
-   vTECxy = opt_thinlayer_vTECxy
-   wvl = float(opt_thinlayer_wvl)
-   bmax = float(opt_thinlayer_bmax)
-   zdir = opt_thinlayer_zdir
+   h = float(getopt('opt_thinlayer_altitude',rider, trace=True))
+   R = float(getopt('opt_thinlayer_Earth_radius',rider))
+   vTEC0 = float(getopt('opt_thinlayer_vTEC0',rider))
+   vTECxy = getopt('opt_thinlayer_vTECxy',rider)
+   wvl = float(getopt('opt_thinlayer_wvl',rider))
+   bmax = float(getopt('opt_thinlayer_bmax',rider))
+   zdir = getopt('opt_thinlayer_zdir',rider)
 
    zmax = numpy.pi/2
    dz = zmax/30
@@ -355,7 +358,7 @@ def thinlayer_TEC (ns, rider):
       if True:
          s = 'PSF width (wvl/baseline)'
          if psfmin>derrmin:
-            s += ' (min='+EN.format_value(psfmin)+'arcmin)'
+            s += ' (min='+EN.EF.format_value(psfmin)+'arcmin)'
             legend.append(s)
          else:
             psg.append(record(y='{psf}', x='{xx}', color='blue',
@@ -369,7 +372,9 @@ def thinlayer_TEC (ns, rider):
 
 
    return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+                       node_help=True,
+                       show_recurse=True,
+                       viewer='Pylab Plotter')
 
 
 
@@ -403,7 +408,7 @@ def GPS (ns, rider):
    if override or opt_GPS_triplefreq:
       cc.append(GPS_triplefreq (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -505,13 +510,30 @@ def local_zenith_angles_xy (x=0,y=0,z=0,l=0,m=0, R=6370.0, trace=False):
 
 #********************************************************************************
 #********************************************************************************
+# Helper functions: 
+#********************************************************************************
+
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
+
+
+
+#********************************************************************************
+#********************************************************************************
 # Standalone forest (i.e. not part of QuickRef.py) of this QR_module.
 # Just load it into the browser, and compile/execute it.
-#********************************************************************************
 #********************************************************************************
 
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
+
+   TDLRuntimeMenu(":")
+   TDLRuntimeMenu("QR_ionos runtime options:", QRU)
+   TDLRuntimeMenu(":")
 
    global rootnodename
    rootnodename = 'QR_ionos'                    # The name of the node to be executed...
@@ -522,19 +544,9 @@ def _define_forest (ns, **kwargs):
                 mode='group')
 
    # Finished:
-   QRU.ET.EN.bundle_orphans(ns)
+   QRU.EN.bundle_orphans(ns)
    return True
 
-
-#--------------------------------------------------------------------------------
-
-# A 'universal TDLRuntimeMenu is defined in QuickRefUtil.py (QRU):
-
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For the TDLCompileMenu, see the top of this module
 
 
 #--------------------------------------------------------------------------------
@@ -595,13 +607,27 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
+   if 0:
+      # print dir(QR_ionos)
+      print dir(__file__)
+      print __file__
+      print __doc__
+      # print dir(ET)
+      import QR_ionos as ionos
+      print dir(ionos)
+      print getattr(ionos,'opt_alltopics')
+      # __getattr__('opt_alltopics')
+      print globals().get('opt_alltopics')       # <-------
+
+
    rider = QRU.create_rider()             # CollatedHelpRecord object
+
    if 0:
       QR_ionos(ns, 'test', rider=rider)
       if 1:
          print rider.format()
 
-   if 1:
+   if 0:
       local_zenith_angle(trace=True)
       local_zenith_angle(l=1, trace=True)
       local_zenith_angle(l=1, m=1, trace=True)

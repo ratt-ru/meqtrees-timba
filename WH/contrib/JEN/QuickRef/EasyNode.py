@@ -419,7 +419,8 @@ def format_nodestring (node, trace=False):
       # Make the classname more distinct:
       nn = ss.split('(')
       ss = '<font color="blue">'+nn[0]+'</font>'
-      ss += '<font size=1> ('+nn[1]+'</font>'
+      if len(nn)>1:
+          ss += '<font size=1> ('+nn[1]+'</font>'
    return ss
 
 #----------------------------------------------------------------------------

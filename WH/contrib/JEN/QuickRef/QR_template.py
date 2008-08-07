@@ -81,34 +81,36 @@ import numpy
 # TDLCompileMenu (included in QuickRef menu):
 #********************************************************************************
 
+oo = TDLCompileMenu("QR_template topics:",
+                    TDLOption('opt_alltopics',"override: include all topics",True),
 
-TDLCompileMenu("QR_template topics:",
-               TDLOption('opt_alltopics',"override: include all topics",True),
+                    TDLOption('opt_input_twig',"input twig",
+                              ET.twig_names(), more=str),
 
-               TDLOption('opt_input_twig',"input twig",
-                         ET.twig_names(), more=str),
+                    TDLMenu("topic1",
+                            TDLOption('opt_topic1_alltopics',
+                                      "override: include all topic1 sub-topics",False),
+                            TDLOption('opt_topic1_subtopic1', "topic1 subtopic1",False),
+                            toggle='opt_topic1'),
 
-               TDLMenu("topic1",
-                       TDLOption('opt_topic1_alltopics',
-                                 "override: include all topic1 sub-topics",False),
-                       TDLOption('opt_topic1_subtopic1', "topic1 subtopic1",False),
-                       toggle='opt_topic1'),
+                    TDLMenu("topic2",
+                            TDLOption('opt_topic2_alltopics',
+                                      "override: include all topic2 sub-topics",False),
+                            TDLOption('opt_topic2_subtopic1', "topic2 subtopic1",False),
+                            toggle='opt_topic2'),
 
-               TDLMenu("topic2",
-                       TDLOption('opt_topic2_alltopics',
-                                 "override: include all topic2 sub-topics",False),
-                       TDLOption('opt_topic2_subtopic1', "topic2 subtopic1",False),
-                       toggle='opt_topic2'),
+                    TDLMenu("help",
+                            TDLOption('opt_allhelpnodes',"override: include all helpnodes",False),
+                            TDLOption('opt_helpnode_on_entry',"help on QuickRefUtil.on_entry()", False),
+                            TDLOption('opt_helpnode_on_exit',"help on QuickRefUtil.on_exit()", False),
+                            TDLOption('opt_helpnode_helpnode',"help on QuickRefUtil.helpnode()", False),
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            toggle='opt_helpnodes'),
+                    
+                    toggle='opt_QR_template')
 
-               TDLMenu("help",
-                       TDLOption('opt_allhelpnodes',"override: include all helpnodes",False),
-                       TDLOption('opt_helpnode_on_entry',"help on QuickRefUtil.on_entry()", False),
-                       TDLOption('opt_helpnode_on_exit',"help on QuickRefUtil.on_exit()", False),
-                       TDLOption('opt_helpnode_helpnode',"help on QuickRefUtil.helpnode()", False),
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       toggle='opt_helpnodes'),
-
-               toggle='opt_QR_template')
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 
 
@@ -374,6 +376,10 @@ def topic2_subtopic2 (ns, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   TDLRuntimeMenu(":")
+   TDLRuntimeMenu("QR_template runtime options:", QRU)
+   TDLRuntimeMenu(":")
+
    global rootnodename
    rootnodename = 'QuickRef'                 # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
@@ -385,17 +391,6 @@ def _define_forest (ns, **kwargs):
    # Finished:
    QRU.ET.EN.bundle_orphans(ns)
    return True
-
-
-#--------------------------------------------------------------------------------
-
-# A 'universal TDLRuntimeMenu is defined in QuickRefUtil.py (QRU):
-
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For the TDLCompileMenu, see the top of this module
 
 
 #--------------------------------------------------------------------------------

@@ -72,24 +72,25 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_execution topics:",
-               TDLOption('opt_alltopics',"override: include all topics",True),
-               TDLOption('opt_input_twig',"input twig",
-                         ET.twig_names(), more=str),
+oo = TDLCompileMenu("QR_execution topics:",
+                    TDLOption('opt_alltopics',"override: include all topics",True),
+                    TDLOption('opt_input_twig',"input twig",
+                              ET.twig_names(), more=str),
+                    
+                    TDLMenu("request", toggle='opt_request'),
+                    TDLMenu("result", toggle='opt_result'),
+                    TDLMenu("state", toggle='opt_state'),
+                    TDLMenu("efficiency", toggle='opt_effic'),
+                    TDLMenu("misc", toggle='opt_misc'),
+                    
+                    TDLMenu("help",
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            toggle='opt_helpnodes'),
+                    
+                    toggle='opt_QR_execution')
 
-               TDLMenu("request", toggle='opt_request'),
-               TDLMenu("result", toggle='opt_result'),
-               TDLMenu("state", toggle='opt_state'),
-               TDLMenu("efficiency", toggle='opt_effic'),
-               TDLMenu("misc", toggle='opt_misc'),
-
-               TDLMenu("help",
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       toggle='opt_helpnodes'),
-
-               toggle='opt_QR_execution')
-
-
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 #********************************************************************************
 # Top-level function, called from QuickRef.py:
@@ -174,7 +175,7 @@ def make_helpnodes (ns, rider):
       cc.append(QRU.helpnode (ns, rider, name='EasyTwig_twig',
                              help=ET.twig.__doc__, trace=False))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -220,8 +221,8 @@ def request (ns, rider, twig):
    cc.append(request_domain (ns, rider, twig=twig))
    cc.append(request_cells (ns, rider, twig=twig))
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
@@ -240,8 +241,8 @@ def result (ns, rider, twig):
    # cc.append(result_domain (ns, rider, twig=twig))
    # cc.append(result_perturbations (ns, rider, twig=twig))
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
@@ -260,8 +261,8 @@ def state (ns, rider, twig):
    cc.append(state_nodestate (ns, rider, twig=twig))
    cc.append(state_forest (ns, rider, twig=twig))
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
@@ -326,8 +327,8 @@ def effic (ns, rider, twig):
    cc.append(effic_caching (ns, rider, twig=twig))   
    cc.append(effic_parallel (ns, rider, twig=twig))   
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------
@@ -340,8 +341,8 @@ def misc (ns, rider, twig):
    cc.append(misc_debugging (ns, rider, twig=twig))   
    cc.append(misc_profiling (ns, rider, twig=twig))   
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 
@@ -383,8 +384,8 @@ def request_domain (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, request_domain)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
@@ -422,8 +423,8 @@ def request_cells (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, request_cells)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 #================================================================================
@@ -436,8 +437,8 @@ def result_ (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, result_)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
@@ -497,8 +498,8 @@ def state_nodestate (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, state_nodestate)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
@@ -532,8 +533,8 @@ def state_forest (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, state_forest)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
@@ -551,8 +552,8 @@ def effic_parallel (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, effic_parallel)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 #--------------------------------------------------------------------------------------------
@@ -565,8 +566,8 @@ def effic_caching (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, effic_caching)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
@@ -593,8 +594,8 @@ def misc_debugging (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, misc_debugging)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 #--------------------------------------------------------------------------------------------
 
@@ -611,13 +612,26 @@ def misc_profiling (ns, rider, twig):
    stub = QRU.on_entry(ns, rider, misc_profiling)
    cc = [twig]
    return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+                       parentclass='ReqSeq', result_index=0,
+                       viewer='Record Browser')
 
 
 
 
 
+
+
+#********************************************************************************
+#********************************************************************************
+# Helper functions: 
+#********************************************************************************
+
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
 
 
 
@@ -633,26 +647,20 @@ def misc_profiling (ns, rider, twig):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   TDLRuntimeMenu(":")
+   TDLRuntimeMenu("QuickRef runtime options:", QRU)
+   TDLRuntimeMenu(":")
+
    global rootnodename
    rootnodename = 'QR_execution'                 # The name of the node to be executed...
    global rider                                  # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)        # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_execution(ns, rider)])
+                nodes=[QR_execution(ns, rider)],
+                mode='group')
 
    # Finished:
    return True
-
-
-#--------------------------------------------------------------------------------
-
-# A 'universal TDLRuntimeMenu is defined in QuickRefUtil.py (QRU):
-
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For the TDLCompileMenu, see the top of this module
 
 
 #--------------------------------------------------------------------------------

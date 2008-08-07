@@ -581,6 +581,34 @@ def on_entry(ns, rider, func, trace=False):
         print '\n** .on_entry():',path,'->',str(stub)
     return stub
    
+#-------------------------------------------------------------------------------
+# Get TDL option value: 
+#-------------------------------------------------------------------------------
+
+def getopt (name, value, rider=None, notrec=None, trace=False):
+   """
+   Helper function to read TDL option values and dispose of them.
+   """
+   # trace = True
+   qhelp = ''
+   qhelp += '<font color="red" size=2>'
+   qhelp += '** TDLOption: '+str(name)+' = '
+   if isinstance(value,str):
+       qhelp += '"'+str(value)+'"'
+   else:
+       qhelp += str(value)
+   qhelp += '</font><br>'
+   if value==notrec:            
+       qhelp += ' (option name not recognized?)'
+       trace = True
+   if rider:
+       path = rider.path()   
+       rider.insert_help (path, qhelp, append=True)
+   if trace:
+      print '\n**',qhelp,'\n'
+   return value
+
+
 
 #-------------------------------------------------------------------------------
 # Exit routine, returns a single parent node:
@@ -755,7 +783,7 @@ def on_exit (ns, rider, nodes=None,
     # Optional, show the bundle parent subtree to the required depth:
     if show_recurse:
         if is_node(show_recurse):
-            # bhelp += '\n<br>** The subtree of a selected node:<br>'
+            bhelp += '\n<br>'
             bhelp += EN.format_tree(show_recurse, recurse=True,
                                     full=True, mode='html')
         else:

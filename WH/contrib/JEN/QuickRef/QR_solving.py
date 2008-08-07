@@ -65,9 +65,10 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 # Its compile options appear in the menu, but have no effect.... (can we hide it?)
 # Its runtime options also appear in the runtime menu...
 # Is it a good idea for quick-reference to make this actually work?
-from Timba.Contrib.JEN.QuickRef import QR_MeqNodes 
+from Timba.Contrib.JEN.QuickRef import QR_MeqNodes
+QR_MeqNodes.itsTDLCompileMenu.hide()
 
-# from Timba.Contrib.JEN.Expression import Expression
+from Timba.Contrib.JEN.Expression import Expression
 
 # import math
 # import random
@@ -79,46 +80,47 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_solving topics:",
-               TDLOption('opt_alltopics',"override: include all topics",True),
-               TDLMenu("basic",
-                       TDLOption('opt_basic_twig',"input twig (lhs of condeq)",
-                                 ET.twig_names(['gaussian'],first='gaussian_ft'),
-                                 more=str),
-                       TDLOption('opt_basic_tiling_time',"size (time-cells) of solving subtile",
-                                 [None,1,2,3,4,5,10], more=int),
-                       TDLOption('opt_basic_tiling_freq',"size (freq-cells) of solving subtile",
-                                 [None,1,2,3,4,5,10], more=int),
-                       TDLOption('opt_basic_mepfile',"name of mep table file",
-                                 [None,'QR_solving'], more=str),
-                       TDLMenu("basic_polyparm",
-                               TDLOption('opt_basic_polyparm_poly',"polynomial to be fitted (rhs)",
-                                         ET.twig_names(['polyparm']), more=str),
-                               toggle='opt_basic_polyparm'),
-                       TDLMenu("basic_Expression",
-                               TDLOption('opt_basic_Expression_expr',"Expression to be fitted (rhs)",
-                                         ET.twig_names(['Expression']), more=str),
-                               toggle='opt_basic_Expression'),
-                       TDLMenu("basic_onepolc",
-                               TDLOption('opt_basic_onepolc_tdeg',"time deg of MeqParm polc",
-                                         range(6), more=int),
-                               TDLOption('opt_basic_onepolc_fdeg',"freq deg of MeqParm polc",
-                                         range(6), more=int),
-                               toggle='opt_basic_onepolc'),
-                       toggle='opt_basic'),
+oo = TDLCompileMenu("QR_solving topics:",
+                    TDLOption('opt_alltopics',"override: include all topics",True),
+                    TDLMenu("basic",
+                            TDLOption('opt_basic_twig',"input twig (lhs of condeq)",
+                                      ET.twig_names(['gaussian'],first='gaussian_ft'),
+                                      more=str),
+                            TDLOption('opt_basic_tiling_time',"size (time-cells) of solving subtile",
+                                      [None,1,2,3,4,5,10], more=int),
+                            TDLOption('opt_basic_tiling_freq',"size (freq-cells) of solving subtile",
+                                      [None,1,2,3,4,5,10], more=int),
+                            TDLOption('opt_basic_mepfile',"name of mep table file",
+                                      [None,'QR_solving'], more=str),
+                            TDLMenu("basic_polyparm",
+                                    TDLOption('opt_basic_polyparm_poly',"polynomial to be fitted (rhs)",
+                                              ET.twig_names(['polyparm']), more=str),
+                                    toggle='opt_basic_polyparm'),
+                            TDLMenu("basic_Expression",
+                                    TDLOption('opt_basic_Expression_expr',"Expression to be fitted (rhs)",
+                                              ['{ampl}*exp(-({af}*[f]**2+{at}*[t]**2))'], more=str),
+                                    toggle='opt_basic_Expression'),
+                            TDLMenu("basic_onepolc",
+                                    TDLOption('opt_basic_onepolc_tdeg',"time deg of MeqParm polc",
+                                              range(6), more=int),
+                                    TDLOption('opt_basic_onepolc_fdeg',"freq deg of MeqParm polc",
+                                              range(6), more=int),
+                                    toggle='opt_basic_onepolc'),
+                            toggle='opt_basic'),
+                    
+                    TDLMenu("help",
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            toggle='opt_helpnodes'),
 
-               TDLMenu("help",
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       toggle='opt_helpnodes'),
+                    toggle='opt_QR_solving')
 
-               toggle='opt_QR_solving')
-
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 
 #********************************************************************************
 # Top-level function, called from QuickRef.py:
 #********************************************************************************
-
 
 def QR_solving (ns, rider):
    """
@@ -261,7 +263,12 @@ def basic_Expression (ns, rider):
    stub = QRU.on_entry(ns, rider, basic_Expression)
 
    lhs = ET.twig(ns, opt_basic_twig, nodestub=stub('lhs'))              
-   rhs = ET.twig(ns, opt_basic_Expression_expr, nodename='rhs')      # nodestub=stub('rhs'))
+
+   ## rhs = ET.twig(ns, opt_basic_Expression_expr, nodename='rhs')      # nodestub=stub('rhs'))
+   expr = Expression.Expression(ns, 'rhs', expr=opt_basic_Expression_expr)
+   # expr.display('QR_solving.basic_Expression()')
+   rhs = expr.MeqFunctional()
+
    parms = EN.find_parms(rhs, trace=True)
    # The following alternatives only work when rhs is below the stub....
    # parms = stub.search(tags='solvable')       
@@ -295,12 +302,13 @@ def basic_onepolc (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, basic_onepolc)
 
-   lhs = ET.twig(ns, opt_basic_twig, nodestub=stub('lhs'))
-   tiling = record(freq=opt_basic_tiling_freq,
-                   time=opt_basic_tiling_time)
-   fdeg = opt_basic_onepolc_fdeg
-   tdeg = opt_basic_onepolc_tdeg
-   mepfile = opt_basic_mepfile
+   lhs = ET.twig(ns, getopt('opt_basic_twig', rider),
+                 nodestub=stub('lhs'))
+   tiling = record(freq=getopt('opt_basic_tiling_freq', rider),
+                   time=getopt('opt_basic_tiling_time', rider))
+   fdeg = getopt('opt_basic_onepolc_fdeg', rider)
+   tdeg = getopt('opt_basic_onepolc_tdeg', rider)
+   mepfile = getopt('opt_basic_onepolc_mepfile', rider)
    rhs = stub('rhs') << Meq.Parm(0.0,
                                  tags=['tag1','tag2'],
                                  shape=[tdeg+1,fdeg+1],
@@ -329,26 +337,34 @@ def basic_onepolc (ns, rider):
 
 
 
+#********************************************************************************
+#********************************************************************************
+# Helper functions: 
+#********************************************************************************
+
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
+
+
 
 
 #================================================================================
 #================================================================================
 #================================================================================
 #================================================================================
-# Local testing forest:
+# Forest for standalone operation:
 #================================================================================
-
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For TDLCompileMenu, see the top of this module
-
-
-#--------------------------------------------------------------------------------
 
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
+
+   TDLRuntimeMenu(":")
+   TDLRuntimeMenu("QR_solving runtime options:", QRU)
+   TDLRuntimeMenu(":")
 
    global rootnodename
    rootnodename = 'QR_solving'                  # The name of the node to be executed...
@@ -360,9 +376,6 @@ def _define_forest (ns, **kwargs):
    # Finished:
    return True
    
-
-
-#--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs, parent):
@@ -410,7 +423,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    rider = QRU.create_rider()             # CollatedHelpRecord object
-   if 1:
+   if 0:
       QR_solving(ns, 'test')
       if 1:
          print rider.format()

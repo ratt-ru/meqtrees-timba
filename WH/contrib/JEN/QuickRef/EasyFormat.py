@@ -87,25 +87,11 @@ def format_value(v, name=None, nsig=4, trace=False):
     elif isinstance(v,(float)):
         ss = format_float(v, nsig=nsig)
     elif isinstance(v,(list,tuple)):
-        vin = '(list)'
-        # import pylab                        # must be done here, not above....
-        vv = pylab.array(v)
-        print '\n** v =',v,type(v)
-        print '\n** vv = pylab.array(v) ->',vv,type(vv)
-        ss = '[length='+str(len(vv))
-        if False:
-            # Sometimes gives error: "Cannot perform reduce with flexible type"....
-            ss += format_float(vv.min(),'  min', nsig=nsig)
-            ss += format_float(vv.max(),'  max', nsig=nsig)
-            ss += format_float(vv.mean(),'  mean', nsig=nsig)
-        if len(vv)>1:                       
-            if not isinstance(vv[0],complex):
-                if False:
-                    # Same problem as above....
-                    ss += format_float(vv.std(),'  stddev', nsig=nsig)
-        ss += ']'
+        ss = format_list(v)
     elif isinstance(v,dict):
         ss = '(dict/record): '+str(v.keys())
+    elif isinstance(v,str):
+        ss = '"'+str(v)+'"'
     else:
         ss = str(v)
 
@@ -114,6 +100,31 @@ def format_value(v, name=None, nsig=4, trace=False):
 
     if trace:
         print '** format_value(',vin,type(v),name,nsig,') ->',ss
+    return ss
+
+#-----------------------------------------------------------------------
+
+def format_list(vv):
+    """
+    Helper function
+    """
+    ss = '(list)'
+    if not isinstance(vv,(list,tuple)):
+        ss += '(not a list, but: '+str(type(vv))+')'
+    elif len(vv)==0:
+        ss += '...empty...'
+    elif not isinstance(vv[0],(int,float,complex)):
+        ss += ' (n='+str(len(vv))+'):'
+        ss += ' not numeric, vv[0]='+str(vv[0])
+    else:
+        ss += ' (n='+str(len(vv))+'):'
+        vmin = 1e20
+        vmax = -1e20
+        for v in vv:
+            vmin = min(vmin,v)
+            vmax = max(vmax,v)
+        ss += ' (min='+format_float(vmin)+')'
+        ss += ' (max='+format_float(vmax)+')'
     return ss
 
 #-----------------------------------------------------------------------

@@ -71,26 +71,28 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_TreeDefinition topics:",
-               TDLOption('opt_alltopics',"override: include all topics",True),
-               TDLOption('opt_input_twig',"input twig",
-                         ET.twig_names(), more=str),
-
-               TDLMenu("nodenames",
+oo = TDLCompileMenu("QR_TreeDefinition topics:",
+                    TDLOption('opt_alltopics',"override: include all topics",True),
+                    TDLOption('opt_input_twig',"input twig",
+                              ET.twig_names(), more=str),
+                    
+                    TDLMenu("nodenames",
                        toggle='opt_nodenames'),
-               TDLMenu("TDL",
-                       toggle='opt_TDL'),
-               TDLMenu("TDLOptions",
-                       toggle='opt_TDLOptions'),
-               TDLMenu("bookmarks",
-                       toggle='opt_bookmarks'),
+                    TDLMenu("TDL",
+                            toggle='opt_TDL'),
+                    TDLMenu("TDLOptions",
+                            toggle='opt_TDLOptions'),
+                    TDLMenu("bookmarks",
+                            toggle='opt_bookmarks'),
 
-               TDLMenu("help",
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       toggle='opt_helpnodes'),
+                    TDLMenu("help",
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            toggle='opt_helpnodes'),
+                    
+                    toggle='opt_QR_TreeDefinition')
 
-               toggle='opt_QR_TreeDefinition')
-
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 
 #********************************************************************************
@@ -116,7 +118,7 @@ def QR_TreeDefinition (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -132,12 +134,13 @@ def make_helpnodes (ns, rider):
    also added to the subset of documentation that is accumulated by the rider.
    """
    stub = QRU.on_entry(ns, rider, make_helpnodes)
+   override = opt_alltopics
    
    cc = []
-   if opt_alltopics or opt_helpnode_twig:
+   if override or opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -147,9 +150,10 @@ def nodenames (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, nodenames)
    cc = []
-   # if opt_alltopics or opt_nodenames_xxx:
+   override = opt_alltopics
+   # if override or opt_nodenames_xxx:
    #    cc.append(nodenames_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -159,9 +163,10 @@ def TDL (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, TDL)
    cc = []
-   # if opt_alltopics or opt_TDL_xxx:
+   override = opt_alltopics
+   # if override or opt_TDL_xxx:
    #    cc.append(TDL_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -171,9 +176,10 @@ def TDLOptions (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, TDLOptions)
    cc = []
-   # if opt_alltopics or opt_TDLOptions_xxx:
+   override = opt_alltopics
+   # if override or opt_TDLOptions_xxx:
    #    cc.append(TDLOptions_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #--------------------------------------------------------------------------------
@@ -183,9 +189,10 @@ def bookmarks (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, bookmarks)
    cc = []
-   # if opt_alltopics or opt_bookmarks_xxx:
+   override = opt_alltopics
+   # if override or opt_bookmarks_xxx:
    #    cc.append(bookmarks_xxx (ns, rider))
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -207,7 +214,8 @@ def nodenames_xxx (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, nodenames_xxx)
    cc = []
-   return QRU.on_exit (ns, rider, cc)
+   override = opt_alltopics
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
@@ -216,6 +224,18 @@ def nodenames_xxx (ns, rider):
 
 
 
+
+#********************************************************************************
+#********************************************************************************
+# Helper functions: 
+#********************************************************************************
+
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
 
 
 
@@ -230,26 +250,20 @@ def nodenames_xxx (ns, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
+   TDLRuntimeMenu(":")
+   TDLRuntimeMenu("QR_TreeDefinition runtime options:", QRU)
+   TDLRuntimeMenu(":")
+
    global rootnodename
    rootnodename = 'QR_TreeDefinition'           # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
    QRU.on_exit (ns, rider,
-                nodes=[QR_TreeDefinition(ns, rider)])
+                nodes=[QR_TreeDefinition(ns, rider)],
+                mode='group')
 
    # Finished:
    return True
-
-
-#--------------------------------------------------------------------------------
-
-# A 'universal TDLRuntimeMenu is defined in QuickRefUtil.py (QRU):
-
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For the TDLCompileMenu, see the top of this module
 
 
 #--------------------------------------------------------------------------------

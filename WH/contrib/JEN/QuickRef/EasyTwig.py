@@ -11,6 +11,7 @@
 #   - 30 jun 2008: implemented noise()
 #   - 30 jun 2008: implemented cloud()
 #   - 02 jul 2008: split off EasyBundle.py
+#   - 08 aug 2008: removed Expression.py (for the moment)
 #
 # Remarks:
 #
@@ -57,9 +58,10 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
-from Timba.Contrib.JEN.Expression import Expression
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
+
+## from Timba.Contrib.JEN.Expression import Expression
 
 import copy
 import math
@@ -106,7 +108,6 @@ def _define_forest (ns, **kwargs):
 #------------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs,parent,wait=False):
-  from Timba.Meq import meq
   cells = meq.cells(meq.domain(0.1,2,-1,1),             # f1,f2,t1,t2
                     num_freq=50,num_time=1);
   request = make_request(cells)
@@ -116,7 +117,6 @@ def _tdl_job_execute_1D_f (mqs,parent,wait=False):
 #------------------------------------------------------------------------------------
 
 def _tdl_job_execute_2D_ft (mqs,parent,wait=False):
-  from Timba.Meq import meq
   cells = meq.cells(meq.domain(0.001,2,-2,2),             # f1,f2,t1,t2
                     num_freq=20,num_time=11)
   request = make_request(cells)
@@ -126,7 +126,6 @@ def _tdl_job_execute_2D_ft (mqs,parent,wait=False):
 #------------------------------------------------------------------------------------
 
 def _tdl_job_execute_3D_XYZ (mqs,parent,wait=False):
-  from Timba.Meq import meq
   dd = record(X=(-1,1), Y=(-2,2), Z=(-3,3))
   cc = record(num_X=11, num_Y=12, num_Z=13)
   cells = meq.gen_cells(meq.gen_domain(**dd), **cc) 
@@ -137,7 +136,6 @@ def _tdl_job_execute_3D_XYZ (mqs,parent,wait=False):
 #------------------------------------------------------------------------------------
 
 def _tdl_job_execute_4D_ftLM (mqs,parent,wait=False):
-  from Timba.Meq import meq
   dd = record(freq=(0.01,2), time=(-2,2), L=(-1,1), M=(-1,1))
   cc = record(num_freq=20, num_time=21, num_L=11, num_M=11)
   cells = meq.gen_cells(meq.gen_domain(**dd), **cc) 
@@ -148,7 +146,6 @@ def _tdl_job_execute_4D_ftLM (mqs,parent,wait=False):
 #------------------------------------------------------------------------------------
 
 def _tdl_job_execute_5D_ftXYZ (mqs,parent,wait=False):
-  from Timba.Meq import meq
   dd = record(freq=(0.01,2), time=(-2,2), X=(-1,1), Y=(-2,2), Z=(-3,3))
   cc = record(num_freq=20, num_time=21, num_X=11, num_Y=12, num_Z=13)
   cells = meq.gen_cells(meq.gen_domain(**dd), **cc) 
@@ -214,7 +211,7 @@ def twig_cats (trace=False):
     cats = []
     cats.extend(['axes','complex','tensor'])
     cats.extend(['gaussian','expnegsum'])
-    # cats.extend(['Expression'])
+    ## cats.extend(['Expression'])
     cats.extend(['prod','sum'])
     cats.extend(['constants'])
     cats.extend(['polyparm','cpscoh'])
@@ -266,8 +263,9 @@ def twig_names (cat='default', include=None, first=None, trace=False):
     elif cat=='cpscoh':
         names = ['cpscohlin_I10','cpscohcir_V-0.1']
         names.extend(['KuvLM_','KuvLM_L2M3'])
-    elif cat=='Expression':
-        names = ['{ampl}*exp(-({af}*[f]**2+{at}*[t]**2))']
+
+    ## elif cat=='Expression':
+    ##     names = ['{ampl}*exp(-({af}*[f]**2+{at}*[t]**2))']
 
     elif cat=='all':
         names = twig_names(twig_cats())
@@ -534,9 +532,6 @@ def twig (ns, spec,
     An already existing (i.e. a node of that name is initialized) twig is re-used.
     If the twig name is not recognized, a constant node is generated.
 
-    Cookie: If the twig name contains square [] or curly {} brackets,
-    a (JEN) Expression tree is generated.
-
     """
     recognized_axes = ['f','t','L','M']       # used below...
 
@@ -774,10 +769,10 @@ def twig (ns, spec,
 
     #............................................................
 
-    elif ('[' in spec) or (']' in spec) or ('{' in spec) or ('}' in spec):
-        expr = Expression.Expression(ns, nodename, expr=spec)
-        expr.display('EasyTwig()')
-        node = expr.MeqFunctional()
+    ## elif ('[' in spec) or (']' in spec) or ('{' in spec) or ('}' in spec):
+    ##    expr = Expression.Expression(ns, nodename, expr=spec)
+    ##    expr.display('EasyTwig()')
+    ##    node = expr.MeqFunctional()
                 
     #............................................................
 

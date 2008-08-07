@@ -94,65 +94,67 @@ import numpy
 #********************************************************************************
 
 
-TDLCompileMenu("QR_MeqNodes topics:",
-               # TDLOption_user_level,               # ... needs some thought ...
-               # TDLOption('opt_allcats',"all",True),
-               TDLOption('opt_alltopics',"override: include all topics",True),
-               TDLMenu("Unary math (unops) nodes (one child)",
-                       TDLOption('opt_unops_twig',"input twig (child node)",
-                                 ET.twig_names(), more=str),
-                       toggle='opt_unops'),
-               TDLMenu("Binary math (binops) nodes (two children)",
-                       TDLOption('opt_binops_lhs',"lhs twig (child node)",
-                                 ET.twig_names(), more=str),
-                       TDLOption('opt_binops_rhs',"rhs twig (child node)",
-                                 ET.twig_names(), more=str),
-                       toggle='opt_binops'),
-               TDLMenu("Multimath: one or more children",
-                       TDLOption('opt_multimath_twig1',"1st twig (child node)",
-                                 ET.twig_names(), more=str),
-                       TDLOption('opt_multimath_twig2',"2nd twig (child node)",
+oo = TDLCompileMenu("QR_MeqNodes topics:",
+                    # TDLOption_user_level,               # ... needs some thought ...
+                    # TDLOption('opt_allcats',"all",True),
+                    TDLOption('opt_alltopics',"override: include all topics",True),
+                    TDLMenu("Unary math (unops) nodes (one child)",
+                            TDLOption('opt_unops_twig',"input twig (child node)",
+                                      ET.twig_names(), more=str),
+                            toggle='opt_unops'),
+                    TDLMenu("Binary math (binops) nodes (two children)",
+                            TDLOption('opt_binops_lhs',"lhs twig (child node)",
+                                      ET.twig_names(), more=str),
+                            TDLOption('opt_binops_rhs',"rhs twig (child node)",
+                                      ET.twig_names(), more=str),
+                            toggle='opt_binops'),
+                    TDLMenu("Multimath: one or more children",
+                            TDLOption('opt_multimath_twig1',"1st twig (child node)",
+                                      ET.twig_names(), more=str),
+                            TDLOption('opt_multimath_twig2',"2nd twig (child node)",
                                  ET.twig_names(include=[None]), more=str),
-                       TDLOption('opt_multimath_twig3',"3rd twig (child node)",
-                                 ET.twig_names(include=[None]), more=str),
-                       toggle='opt_multimath'),
-               TDLOption('opt_leaves',"Leaf nodes (no children)",False),
-               TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
-               TDLOption('opt_axisreduction',"axisreduction",False),
-               TDLMenu("resampling",
-                       TDLOption('opt_resampling_MeqModRes_twig',
-                                 "input twig (child node) of MeqModRes",
-                                 ET.twig_names(), more=str),
-                       TDLOption('opt_resampling_MeqModRes_num_freq',
-                                 "nr of freq cells for MeqModRes num_cells [nt,nf]",
-                                 [4,1,2,3,5,6,10,20,50], more=int),
-                       TDLOption('opt_resampling_MeqModRes_num_time',
-                                 "nr of time cells for MeqModRes num_cells [nt,nf]",
-                                 [4,1,2,3,5,6,10,20,50], more=int),
-                       TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
-                                 [1,2]),
-                       toggle='opt_resampling'),
-               TDLOption('opt_compounder',"compounder",False),
-               TDLMenu("flagging",
-                       TDLOption('opt_flagging_twig',"input twig (child node)",
-                                 ET.twig_names('noise', first='noise_3'), more=str),
-                       TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
-                                 [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
-                       toggle='opt_flagging'),
-               TDLOption('opt_solving',"solving",False),
-               TDLMenu("visualization",
-                       TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
-                                 ET.twig_names(first='t'), more=str),
-                       toggle='opt_visualization'),
-               TDLOption('opt_transforms',"transforms",False),
-               TDLOption('opt_flowcontrol',"flowcontrol",False),
+                            TDLOption('opt_multimath_twig3',"3rd twig (child node)",
+                                      ET.twig_names(include=[None]), more=str),
+                            toggle='opt_multimath'),
+                    TDLOption('opt_leaves',"Leaf nodes (no children)",False),
+                    TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
+                    TDLOption('opt_axisreduction',"axisreduction",False),
+                    TDLMenu("resampling",
+                            TDLOption('opt_resampling_MeqModRes_twig',
+                                      "input twig (child node) of MeqModRes",
+                                      ET.twig_names(), more=str),
+                            TDLOption('opt_resampling_MeqModRes_num_freq',
+                                      "nr of freq cells for MeqModRes num_cells [nt,nf]",
+                                      [4,1,2,3,5,6,10,20,50], more=int),
+                            TDLOption('opt_resampling_MeqModRes_num_time',
+                                      "nr of time cells for MeqModRes num_cells [nt,nf]",
+                                      [4,1,2,3,5,6,10,20,50], more=int),
+                            TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
+                                      [1,2]),
+                            toggle='opt_resampling'),
+                    TDLOption('opt_compounder',"compounder",False),
+                    TDLMenu("flagging",
+                            TDLOption('opt_flagging_twig',"input twig (child node)",
+                                      ET.twig_names('noise', first='noise_3'), more=str),
+                            TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
+                                      [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
+                            toggle='opt_flagging'),
+                    TDLOption('opt_solving',"solving",False),
+                    TDLMenu("visualization",
+                            TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
+                                      ET.twig_names(first='t'), more=str),
+                            toggle='opt_visualization'),
+                    TDLOption('opt_transforms',"transforms",False),
+                    TDLOption('opt_flowcontrol',"flowcontrol",False),
+                    
+                    TDLMenu("help",
+                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                            toggle='opt_helpnodes'),
 
-               TDLMenu("help",
-                       TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                       toggle='opt_helpnodes'),
+                    toggle='opt_QR_MeqNodes')
 
-               toggle='opt_QR_MeqNodes')
-
+# Assign the menu to an attribute, for outside visibility:
+itsTDLCompileMenu = oo
 
 
 #********************************************************************************
@@ -351,7 +353,7 @@ def visualization_inspector (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, visualization_inspector)
    
-   tname = opt_visualization_inspector_twig
+   tname = getopt('opt_visualization_inspector_twig', rider)
    twig = ET.twig(ns, tname)
    cc = []
    plot_label = []
@@ -476,7 +478,7 @@ def flagging_simple (ns, rider):
    stub = QRU.on_entry(ns, rider, flagging_simple)
    cc = []
 
-   cc.append(stub('input') << Meq.Exp(ET.twig(ns, opt_flagging_twig)))
+   cc.append(stub('input') << Meq.Exp(ET.twig(ns, getopt('opt_flagging_twig',rider))))
    cc.append(stub('mean') << Meq.Mean(cc[0]))
    cc.append(stub('stddev') << Meq.StdDev(cc[0]))
    stddev = cc[-1]
@@ -486,7 +488,7 @@ def flagging_simple (ns, rider):
    cc.append(stub('absdev') << Meq.Abs(dev, qhelp=qhelp))
    absdev = cc[-1]
    
-   nsigma = opt_flagging_nsigma
+   nsigma = getopt('opt_flagging_nsigma',rider)
    cc.append(stub('abscrit') << Meq.Multiply(nsigma,stddev))
 
    qhelp ="""The zero-criterion is the absolute deviation from the mean,
@@ -591,10 +593,10 @@ def resampling (ns, rider):
    stub = QRU.on_entry(ns, rider, resampling)
    cc = []
 
-   twig = ET.twig (ns, opt_resampling_MeqModRes_twig)
-   num_cells = [opt_resampling_MeqModRes_num_time,
-                opt_resampling_MeqModRes_num_freq]
-   mode = opt_resampling_MeqResampler_mode
+   twig = ET.twig (ns, getopt('opt_resampling_MeqModRes_twig',rider))
+   num_cells = [getopt('opt_resampling_MeqModRes_num_time',rider),
+                getopt('opt_resampling_MeqModRes_num_freq',rider)]
+   mode = getopt('opt_resampling_MeqResampler_mode',rider)
    cc.append(resampling_experiment (ns, rider, twig, num_cells, mode))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -1063,7 +1065,8 @@ def unops (ns, rider):
    of the function value vs its argument. 
    """
    stub = QRU.on_entry(ns, rider, unops)
-   twig = ET.twig (ns, opt_unops_twig, nodename='unops_single_child')
+   twig = ET.twig (ns, getopt('opt_unops_twig',rider),
+                   nodename='unops_single_child')
    cc = [] 
    cc.append(unops_elementary (ns, rider, twig))
    cc.append(unops_goniometric (ns, rider, twig))
@@ -1116,7 +1119,7 @@ def unops_invgoniometric (ns, rider, twig=None):
 
    <remark>
    Applying first the function and then its inverse should yield the original input
-   <warning>(which it does NOT in case of Acos(Cos(x))....!?)</warning>
+   <b>(which it does NOT in case of Acos(Cos(x))....!?)</b>
    </remark>
    """
    stub = QRU.on_entry(ns, rider, unops_invgoniometric)
@@ -1213,8 +1216,8 @@ def binops (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, binops)
    print '\n** rider.path()=',rider.path(),' stub=',str(stub)
-   lhs = ET.twig(ns, opt_binops_lhs, nodename='lhs')   # left-hand side (child)
-   rhs = ET.twig(ns, opt_binops_rhs, nodename='rhs')   # right-hand side (child)
+   lhs = ET.twig(ns, getopt('opt_binops_lhs',rider), nodename='lhs')   # left-hand side (child)
+   rhs = ET.twig(ns, getopt('opt_binops_rhs',rider), nodename='rhs')   # right-hand side (child)
    cc = [lhs,rhs]
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
    # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
@@ -1246,13 +1249,13 @@ def multimath (ns, rider):
    cc = []
 
    # Make the child-related vectors (ignore the ones with opt=None):
-   twigs = [ET.twig(ns,opt_multimath_twig1)]
+   twigs = [ET.twig(ns,getopt('opt_multimath_twig1',rider))]
    weights = [1.0]
-   if opt_multimath_twig2:
-      twigs.append(ET.twig(ns,opt_multimath_twig2))
+   if getopt('opt_multimath_twig2',rider):
+      twigs.append(ET.twig(ns,getopt('opt_multimath_twig2',rider)))
       weights.append(2.0)
-   if opt_multimath_twig3:
-      twigs.append(ET.twig(ns,opt_multimath_twig3))
+   if getopt('opt_multimath_twig3',rider):
+      twigs.append(ET.twig(ns,getopt('opt_multimath_twig3',rider)))
       weights.append(3.0)
 
    # Attach the input twigs to the bundle, for inspection.
@@ -1278,26 +1281,35 @@ def multimath (ns, rider):
 
 
 
+#********************************************************************************
+#********************************************************************************
+# Helper functions: 
+#********************************************************************************
+
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
+
+
 
 
 #================================================================================
 #================================================================================
 #================================================================================
 #================================================================================
-# Local testing forest:
+# Standalone forest:
 #================================================================================
 
-TDLRuntimeMenu(":")
-TDLRuntimeMenu("QuickRef runtime options:", QRU)
-TDLRuntimeMenu(":")
-
-# For TDLCompileMenu, see the top of this module
-
-
-#--------------------------------------------------------------------------------
 
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
+
+   TDLRuntimeMenu(":")
+   itsTDLRuntimeMenu = TDLRuntimeMenu("QR_MeqNodes runtime options:", QRU)
+   TDLRuntimeMenu(":")
 
    global rootnodename
    rootnodename = 'QuickRef'                    # The name of the node to be executed...

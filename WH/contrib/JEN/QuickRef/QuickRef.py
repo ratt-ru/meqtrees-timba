@@ -210,7 +210,6 @@ if True:
    except:
       QR_TreeDefinition = TDLCompileOption('avail_'+module,
                                      'QR_'+module+failed, [False])
-
    try:
       module = 'PyNodePlot'
       from Timba.Contrib.JEN.QuickRef import QR_PyNodePlot        
@@ -228,6 +227,8 @@ for module in modules:
 
 
 
+#--------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------
 
 TDLCompileMenu("QuickRef Categories:",
@@ -249,8 +250,17 @@ TDLCompileMenu("QuickRef Categories:",
                toggle='opt_QuickRef',
                )
 
+#********************************************************************************
+#********************************************************************************
+# Helper functions: 
+#********************************************************************************
 
-
+def getopt (name, rider=None, trace=False):
+   """
+   Standard helper function to read the named TDL option in an organized way.
+   """
+   value = globals().get(name)                  # gives an error if it does not exist
+   return QRU.getopt(name, value, rider=rider, trace=trace)
 
 #-------------------------------------------------------------------------------
 
@@ -285,7 +295,9 @@ def _define_forest (ns, **kwargs):
       cc.append(QR_template.QR_template(ns, rider))
 
    # Make the outer bundle (of node bundles):
-   QRU.on_exit (ns, rider, nodes=cc, help=__doc__)
+   QRU.on_exit (ns, rider, nodes=cc,
+                help=__doc__,
+                mode='group')
 
    # Finished:
    return True
@@ -294,6 +306,13 @@ def _define_forest (ns, **kwargs):
 
 #********************************************************************************
 #********************************************************************************
+
+
+TDLRuntimeMenu(":")
+TDLRuntimeMenu("QuickRef runtime options:", QRU)
+TDLRuntimeMenu(":")
+
+#-------------------------------------------------------------------------------
 
 def _tdl_job_execute_1D_f (mqs, parent):
    return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)

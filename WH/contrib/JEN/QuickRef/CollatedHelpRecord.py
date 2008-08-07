@@ -626,6 +626,26 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
+   def indent (self, ss=None, add=0, trace=False):
+      """Helper function for .check_html_tags()"""
+      # trace = True
+      if isinstance(ss,int):
+         self._indent = max(0,ss)
+      self._indent += add
+      self._indent = max(self._indent,0)
+      if trace:
+         print '** .indent(',ss,add,'):',self._indent
+      if isinstance(ss,str):
+         if self._indent>0:
+            prefix = '<font color="white">'+str(self._indent*'.')+'</font>'
+            # prefix = '('+str(self._indent)+')'+prefix      # testing only
+            ss = prefix + ss
+            if trace:
+               print '    ',ss
+      return ss
+
+   #---------------------------------------------------------------------
+
    def replace_html_chars (self, help, trace=False):
       """Replace characters that cause problems with html
       with their escape versions."""
@@ -655,6 +675,7 @@ class CollatedHelpRecord (object):
 
       # Look for specific features in the lines:
       self.countag(init=True)
+      self.indent(0)
       for i,s in enumerate(ss):
          if trace:
             print '-',i,':',ss[i]
@@ -663,10 +684,19 @@ class CollatedHelpRecord (object):
             self.countag('function_call','up')
 
          elif self.countag('function_code')>0:
-            if self.countag('function_code')==2:
-               ss[i] = '<dd>\n'+s
-            self.countag('function_code','up')
+            iline = self.countag('function_code')
+            if True:
+               if self._indent>0:
+                  ss[i] = self.indent(s)       # indent the line
+                  if s[-1]==')':               # last char is a closing bracket
+                     self.indent(0)            # reset indentation
+               if s[-1]==',':                  # last char is a comma
+                  self.indent(15)              # set indentation
+            if iline==2:                       # second line: 
+               ss[i] = '<dd>\n'+ss[i]
+            # ss[i] = '{'+str(iline)+'} '+ss[i]   # testing
             ss[i] += '<br>'
+            self.countag('function_code','up') # count the lines of function code
 
          if ss[i] in ['',' ','  ','   ','    ']:      # blank line
             ss[i] = ''
