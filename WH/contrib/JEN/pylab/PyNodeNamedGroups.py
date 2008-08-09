@@ -79,36 +79,7 @@ Settings.forest_state.cache_policy = 100;
 # The PyNodeNamedGroups base class:
 #=====================================================================================
 
-def format_groupspecs_record (gs, name=None, mode='html', severe=True, trace=False):
-  """
-  Make a string that summarizes the contents of the given groupspecs record
-  in an organized way. 
-  In the process, check its validity (raise ValueError if severe=True). 
-  """
-  ss = '<dl><dt><font color="green">\n'
-  ss += 'groupspecs record ('+str(name)+'):'
-  ss += '\n</font><dd>\n'
-  if not isinstance(gs,dict):
-    ss += 'not a record<br>\n'
-  else:
-    for key in gs.keys():
-      s = '- '+str(key)+': '
-      rr = gs[key]
-      if isinstance(rr,dict):
-        s += str(rr)
-      elif isinstance(rr,(list,tuple,int,float)):
-        s += EN.EF.format_value(rr)
-      else:
-        s += str(type(rr))
-      ss += s+'<br>\n'
-  # Finished:
-  ss += '</dl>\n'
-  if trace:
-    print ss
-  return ss
-  
 
-#------------------------------------------------------------------------------
 
 class PyNodeNamedGroups (pynode.PyNode):
   """
@@ -124,30 +95,41 @@ class PyNodeNamedGroups (pynode.PyNode):
   to be a valid python expression, in which the available groups may be
   variables (see below).
 
-  .   gs =  record(name1=record(children=... [, vells=...]),
-  .                name2=record(children=... [, vells=...]),
-  .                name3='({name1}+5)*{name2}',
-  .               )
+  <code_lines>
+  gs =  record(name1=record(children=... [, vells=...]),
+               name2=record(children=... [, vells=...]),
+               name3='({name1}+5)*{name2}',
+              )
+  </code_lines>
 
-  .   from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
-  .   ns[nodename] << Meq.PyNode(children=[nodes],
-  .                              child_labels=[strings],
-  .                              class_name='PyNodeNamedGroups',
-  .                              module_name=PNNG.__file__,
-  .                              groupspecs=gs)
+  <code_lines>
+  from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
+  ns[nodename] << Meq.PyNode(children=[nodes],
+                             child_labels=[strings],
+                             class_name='PyNodeNamedGroups',
+                             module_name=PNNG.__file__,
+                             groupspecs=gs)
+  </code_lines>
 
   For each call .get_result() to this PyNode, the results of its children
   are extracted and stored as vectors in the named groups. This is controlled
   by the group specification records, which may have the following fields:
-  - children = '*'           (default) all its children
-  .          = '2/3'         the second third of its chidren (etc)
-  .          = [0,2,7,5,...] any vector of child indices
-  - vells    = '*'           (default) all vells of each child result
-  .          = [1,2,2,1,3]   any vector of vells indices
-  .          = 0             an integer vells index
-  .          = None          the group will contain entire result objects
-  - expr     = None          (default) no math operation on vells/results
-  .          = 'mean()'      take the mean of each vells
+  
+  <li> children = '*':           (default) all its children
+  <ul>
+  <li>   children = '2/3':         the second third of its chidren (etc)
+  <li>   children = [0,2,7,5,...]: any vector of child indices
+  </ul>
+  <li> vells    = '*':           (default) all vells of each child result
+  <ul>
+  <li>   vells = [1,2,2,1,3]:   any vector of vells indices
+  <li>   vells = 0:             an integer vells index
+  <li>   vells = None:          the group will contain entire result objects
+  </ul>
+  <li> expr     = None:          (default) no math operation on vells/results
+  <ul>
+  <li>   expr = 'mean()':      take the mean of each vells
+  </ul>
   """
 
   def __init__ (self, *args, **kwargs):
@@ -182,10 +164,10 @@ class PyNodeNamedGroups (pynode.PyNode):
     This is the generic routine that does all the work for .help(). 
     It attaches the given help-string (s, in triple-quotes) to ss.
     The following modes are supported:
-    - mode=None: interpreted as the default mode (e.g. 'list').
-    - mode='list': ss is a list of strings (lines), to be attached to
+    <li> mode=None: interpreted as the default mode (e.g. 'list').
+    <li> mode='list': ss is a list of strings (lines), to be attached to
     the node state. This is easier to read with the meqbrowser.
-    - mode='str': ss is a string, in which lines are separated by \n.
+    <li> mode='str': ss is a string, in which lines are separated by \n.
     This is easier for just printing the help-text.
     """
     if mode==None:           # The default mode is specified here
@@ -740,7 +722,7 @@ class PyNodeNamedGroups (pynode.PyNode):
         print prefix,'       > '+key1+'('+str(len(rr[key1]))+'):  '+str(rr[key1])
       for key1 in longlists:
         # print prefix,'       > '+key1+': '+format_vv(rr[key1])
-        print prefix,'       > '+key1+': '+EN.format_value(rr[key1])
+        print prefix,'       > '+key1+': '+EN.EF.format_value(rr[key1])
       for i,s in enumerate(rr.history):
         print prefix,'       > history['+str(i)+']:  ',s
 
@@ -883,7 +865,7 @@ class PyNodeNamedGroups (pynode.PyNode):
     # Finished:
     if trace:
       # print '->',format_vv(vv),'\n'
-      print '->',EN.format_value(vv),'\n'
+      print '->',EN.EF.format_value(vv),'\n'
     return vv
 
   #-------------------------------------------------------------------
@@ -1045,41 +1027,50 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 
 #--------------------------------------------------------------------
 
-def pynode_NamedGroup (ns, nodes=None, groupspecs=None, labels=None,
+def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
+                       labels=None, qhelp=None,
                        nodename=None, quals=None, kwquals=None,
                        **kwargs):
   """
   Create and return a pynode of class PyNodeNamedGroups,
   with the nodes (children) in the groups defined groupspecs.
-  Syntax:
-  .   import PyNodeNamedGroups as PNNG
-  .   pynode = PNNG.pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
-  .                                    nodename=None, quals=None, kwquals=None,
-  .                                    **kwargs)
+  <code_lines>
+  import PyNodeNamedGroups as PNNG
+  pynode = PNNG.pynode_NamedGroup (ns, nodes, groupspecs=None, labels=None,
+                                   nodename=None, quals=None, kwquals=None,
+                                   **kwargs)
+  </code_lines>
+
   Mandatory arguments:
-  - ns:          nodescope
-  - nodes:       list of (child) nodes whose results are to be used.
-  .              NB: Some or all of these child nodes may be other pynodes of
-  .              the PyNodeNamedGroups class. The named groups in their results
-  .              will be copied to the new pynode. This mechanism allows concatenation
-  .              of PyNodeNamedGroups pynodes, which is very powerful.
+  <li> ns:          nodescope
+  <li> nodes[=None]: list of (child) nodes whose results are to be used.
+             NB: Some or all of these child nodes may be other pynodes of
+             the PyNodeNamedGroups class. The named groups in their results
+             will be copied to the new pynode. This mechanism allows concatenation
+             of PyNodeNamedGroups pynodes, which is very powerful.
+
   Optional arguments:
-  - labels:      list of labels for the node results. If not supplied, or the wrong
-  .                length, they will be derived from the node names.
-  - nodename:    name of the resulting pynode
-  - quals:       list of qualifiers
-  - kwquals:     dict of keyword qualifiers
-  - groupspecs:  group specification(s) (string or record):
-  .    - if a string (e.g. 'YY'), make a standard groupspecs record internally
-  .              (see PNNG.string2groupspecs() for the various possibilities.      
-  .    - if a record, assume a valid groupspecs record (advanced use).
-  .              The field-names of the record are the names of the new groups.
-  .              The field values may be either a record or a string:
-  .              - if a string, it should be a valid math expression, in which
-  .                the other groups are variables (e.g. '{a}+{b}')
-  .              - if a record, it contains specifications for extracting results
-  .                from its 'regular' children (i.e. non-PyNamedGroups children)
-  - **kwargs:    additional customizing arguments (..)
+  <li> labels[=None]:      list of labels for the node results. If not supplied, or the wrong
+  length, they will be derived from the node names.
+  <li> groupspecs[=None]:  group specification(s) (string or record):
+  <ul>
+  <li> if a string (e.g. 'YY'), make a standard groupspecs record internally
+  (see PNNG.string2groupspecs() for the various possibilities.      
+  <li> if a record, assume a valid groupspecs record (advanced use).
+  The field-names of the record are the names of the new groups.
+  The field values may be either a record or a string:
+  <ul>
+  <li> if a string, it should be a valid math expression, in which
+  the other groups are variables (e.g. '{a}+{b}')
+  <li> if a record, it contains specifications for extracting results
+  from its 'regular' children (i.e. non-PyNamedGroups children)
+  </ul>
+  </ul>
+  <li> qhelp[=None]:       description of the specific plot
+  <li> nodename[=None]:    name of the resulting pynode (if None, a default name is made)
+  <li> quals[=None]:       list of qualifiers
+  <li> kwquals[=None]:     dict of keyword qualifiers
+  <li> **kwargs:    additional customizing arguments (.. not yet used ..)
   """
   trace = False
   # trace = True
@@ -1110,48 +1101,22 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None, labels=None,
   # Make two vectors of child names and labels (used below):
   [child_names, labels] = child_labels(nodes, labels, trace=False)
 
+  # The qsemi string contains 'semi-specific' help about the PyNodePlot class. 
+  qsemispec = """This PyNode uses the class PyNodeNamedGroups, which is used to make
+  extract and manipulate named groups (of values).
+  Groups may be specified by means of a groupspecs record.
+  Use of the convenience function pynode_NamedGroup() is recommeded."""
+
   # Make a unique nodestub:
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
-
-  # Make the quickref_help list of strings:
-  qhelp = ['']
-  qhelp.append('   This pynode has been specified by a convienience function:')
-  qhelp.append('     import PyNodeNamedGroups as PNNG')
-  qhelp.append('     PNNG.pynode_NamedGroup(ns, nodes,')
-  if isinstance(groupspecs, str):
-    qhelp.append('                     groupspecs='+str(groupspecs)+',')
-  else:
-    qhelp.append('                     groupspecs='+str(type(groupspecs))+',')
-  qhelp.append('                    )')
-  qhelp.append('')
-  qhelp.append('   The convenience function has defined the actual MeqPyNode:')
-  qhelp.append('     stub = EasyNode.unique_stub(ns,nodename,quals,kwquals) -> '+str(stub))
-  qhelp.append('     pynode = stub << Meq.PyNode(')
-  qhelp.append('                         children=nodes,')
-  qhelp.append('                         child_labels=labels,')
-  qhelp.append('                         child_names=child_names,')
-  qhelp.append('                         groupspecs=gs,')
-  qhelp.append('                         class_name=pyNodeNamedGroups,')
-  qhelp.append('                         module_name='+str(__file__)+')')
-  qhelp.append('')
-  qhelp.append('   in which:')
-  if isinstance(nodes,(list,tuple)):
-    qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
-  else:
-    qhelp.append('       nodes = '+str(nodes))
-  if isinstance(labels,(list,tuple)):
-    qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
-  else:
-    qhelp.append('       nodes = '+str(labels))
-  qhelp.append('       gs (record) = '+str(gs))
-  qhelp.append('')
 
   # Create the PyNode:
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
                               child_names=child_names,
                               groupspecs=gs,
-                              quickref_help=qhelp,
+                              qspecific=qhelp,
+                              qsemispec=qsemispec,
                               class_name='PyNodeNamedGroups',
                               module_name=__file__)
   if trace:
@@ -1202,17 +1167,17 @@ def string2groupspecs(ss, nodes=None, trace=False):
   """
   Make a groupspecs record from the given string spec.
   Recognized strings are:
-  - YY:        Take vells[0] for group y
-  - CY:        Take (complex) vells[0] for group y 
-  - XY:        Assume tensor nodes with vells[0,1] for groups x,y
-  - CXY:       Take real,imag part of vells[0] for groups x,y 
-  - XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
-  - VELLS_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
-  - XXYY:      Assume single list of equal nrs of x,y nodes
-  - XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
-  - VIS22...:  Assume 2x2 tensor nodes. See string2record_VIS22()
-  - anything else: make a group of that name, with all vells[0]
-  .                (NB: group-name will be converted to lowercase...)
+  <li> YY:        Take vells[0] for group y
+  <li> CY:        Take (complex) vells[0] for group y 
+  <li> XY:        Assume tensor nodes with vells[0,1] for groups x,y
+  <li> CXY:       Take real,imag part of vells[0] for groups x,y 
+  <li> XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
+  <li> VELLS_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
+  <li> XXYY:      Assume single list of equal nrs of x,y nodes
+  <li> XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
+  <li> VIS22...:  Assume 2x2 tensor nodes. See string2record_VIS22()
+  <li> anything else: make a group of that name, with all vells[0]
+                 (NB: group-name will be converted to lowercase...)
   """
   gs = record()
 
@@ -1326,13 +1291,14 @@ def string2record_VIS22 (ss, trace=False):
   """
   Turns the given string (VIS22...) into a record of polarisation info,
   which is used to define groupspecs and plotspecs for visibility plotting.
-  - VIS22C: polrep='circular' (otherwise: polrep='linear')
-  - _IQUV: convert to I,Q,U,V (otherwise: visibilities)
-  - _QUV: convert to Q,U,V 
-  - _DIAG: diagonal terms corrs=[0,3] (e.g. XX,YY')
-  - _OFFDIAG: off-diagonal terms corrs=[1,2] (e.g. XY,YX')
-  - _annotate: annotate all corrs/stokes
-  - _nannotate: annotate none of the corrs/stokes
+  <li> VIS22C: polrep='circular' (otherwise: polrep='linear')
+  <li> _IQUV: convert to I,Q,U,V (otherwise: visibilities)
+  <li> _QUV: convert to Q,U,V 
+  <li> _DIAG: diagonal terms corrs=[0,3] (e.g. XX,YY')
+  <li> _OFFDIAG: off-diagonal terms corrs=[1,2] (e.g. XY,YX')
+  <li> _annotate: annotate all corrs/stokes
+  <li> _nannotate: annotate none of the corrs/stokes
+  
   NB: This function is also called from module PyNodePlot.py
   """
   rr = record()

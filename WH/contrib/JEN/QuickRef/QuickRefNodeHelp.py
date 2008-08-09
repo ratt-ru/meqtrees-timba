@@ -60,7 +60,7 @@ from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 #******************************************************************************** 
 
-def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=False):
+def node_help (node, detail=1, rider=None, mode='html', trace=False):
    """
    Attach specific help to the quickref_help field of the given node.
    If a rider (CollatedHelpRecord) is specified, attach it too.
@@ -83,17 +83,28 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
                     header=ss, rr=rr,
                     detail=detail,
                     # rider=rider,
-                    # comment=comment,
                     mode=mode, trace=False)
 
    #..........................................
    # Start of the specific part:
-   
-   ss += '<b>Specific: </b>'
 
-   if isinstance(comment,str):
-      # User-defined description of this particular node:
-      ss += '<i>'+str(comment)+'</i>'
+   key = 'qsemispec'
+   if rr.has_key(key):
+      if isinstance(rr[key],str):
+         # E.g. the description of the python class used for a PyNode 
+         ss += '<b>Semi-specific: </b>'
+         ss += str(rr[key])
+         ss += '<br>'
+
+   #..........................................
+   # Start of the specific part:
+
+   ss += '<b>Specific: </b>'
+   key = 'qspecific'
+   if rr.has_key(key):
+      if isinstance(rr[key],str):
+         # User-defined description of this particular node:
+         ss += '<i>'+str(rr[key])+'</i>'
 
    ss += '<br>'
 
@@ -140,8 +151,10 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
    # Expand the node-specific initrec fields:
    for key in rr.keys():
       v = rr[key]
-      if key in ['class','children','quickref_help',
-                 'qhelp','qviewer','qbookmark']:
+      if key in ['class','children',
+                 'quickref_help',
+                 'qspecific','qsemispec',
+                 'qviewer','qbookmark']:
          pass
 
       elif isinstance(v,(list,tuple)):
@@ -160,10 +173,13 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
          for key1 in v.keys():
             v1 = v[key1]
             if isinstance(v1,dict):
-               ss += ' - '+str(key1)+' (dict/record):<br>'
-               for key2 in v1.keys():
-                  v2 = v1[key2]
-                  ss += ' ------ '+str(key2)+': '+str(EF.format_value(v2))+'<br>'
+               if True:                                       # ... temporary ...?
+                  ss += ' --- '+str(key1)+' = '+str(v1)+'<br>'
+               else:
+                  ss += ' --- '+str(key1)+' (dict/record):<br>'
+                  for key2 in v1.keys():
+                     v2 = v1[key2]
+                     ss += ' ------ '+str(key2)+': '+str(EF.format_value(v2))+'<br>'
             elif isinstance(v1,(list,tuple)):
                if isinstance(v1[0],dict):
                   for i,v2 in enumerate(v1):
@@ -191,22 +207,21 @@ def node_help (node, detail=1, rider=None, mode='html', comment=None, trace=Fals
 
    #..........................................
    # Attach to quickref_help field of the node state record:
-   if is_node(node):
-      rr = node.initrec()
-      key = 'quickref_help'
-      if rr.has_key(key):
-         rr.quickref_help += ss
-      else:
-         rr.quickref_help = ss
-      # NB: Do not use EasyNode from here (circular)
-      # EN.quickref_help (node, append=ss, trace=trace)
+   key = 'quickref_help'
+   if rr.has_key(key):
+      rr[key] += ss
+   else:
+      rr[key] = ss
 
+   #..........................................
    if rider:
       rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)
 
+   #..........................................
    if trace:
       print '\n** QRNH.node_help(',str(node),'):\n  ',ss,'\n'
       
+   #..........................................
    return ss
       
 
@@ -238,7 +253,7 @@ def format_child (node, trace=False):
 #===================================================================================
 
 def class_help (cname, header=None, rr=None,
-                detail=1, rider=None, comment=None,
+                detail=1, rider=None,
                 mode='html', trace=False):
    """
    Attach specific help to the quickref_help field of the given
@@ -468,9 +483,10 @@ def class_help (cname, header=None, rr=None,
    #---------------------------------------------------------------------------
 
    elif cname=='MeqPyNode':
-      gen += """User-defined node, which may perform arbitrary operations on the
+      gen += """A PyNode is a user-defined node, which may perform arbitrary operations on the
       results of its children (e.g. visualisation). The user part is supplied in the
-      form of a python class, which uses some standard interface routines to interact
+      form of a specific python class (see class_name below),
+      which may employ some standard interface methods to interact
       with the node state record and the child results, and to produce a result."""
 
    #---------------------------------------------------------------------------
@@ -491,10 +507,6 @@ def class_help (cname, header=None, rr=None,
 
    # Append the generic node descr:
    ss += gen+'<br>'
-
-   # Append a user-defined specific text, if any:
-   if isinstance(comment,str):
-      ss += '<i>Specific: '+str(comment)+'</i>'
 
    # Standalone operation (i.e. not called from node_help())
    if header==None:

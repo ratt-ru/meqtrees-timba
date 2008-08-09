@@ -95,49 +95,10 @@ Settings.forest_state.cache_policy = 100;
 # The PyNodePlot base class:
 #=====================================================================================
 
-def format_plotspecs_record (ps, name=None, mode='html', severe=True, trace=False):
-  """
-  Make a string that summarizes the contents of the given plotspecs record
-  in an organized way. 
-  In the process, check its validity (raise ValueError if severe=True). 
-  """
-  ss = '<dl><dt><font color="blue">\n'
-  ss += 'plotspecs record ('+str(name)+'):'
-  ss += '\n</font><dd>\n'
-
-  if not isinstance(ps,dict):
-    ss += 'not a record<br>\n'
-
-  else:
-    plotypes = ['graphics']
-
-    # First do the overall keywords:
-    for key in ps.keys():
-      if not key in plotypes:
-        ss += '-- '+str(key)+' = '+str(ps[key])+'<br>\n'
-
-    # Then do the various plot-types:
-    for plotype in plotypes:
-      if ps.has_key(plotype):
-        if not isinstance(ps[plotype],(list,tuple)):
-          ss += '- '+str(plotype)+' = '+str(type(ps[plotype]))+'??<br>\n'
-          if severe:
-            raise ValueError,ss
-        else:
-          for i,rr in enumerate(ps[plotype]):
-            ss += str(plotype)+': '+str(rr)+'<br>\n'
-      
-  # Finished:
-  ss += '</dl>\n'
-  if trace:
-    print ss
-  return ss
-  
-#-------------------------------------------------------------------------
 
 class PyNodePlot (PNNG.PyNodeNamedGroups):
   """
-  Base class for a range of plotting pyNodes.
+  The class PyNodePlot is a base class for a range of plotting pyNodes.
   It is derived from the class PyNodeNamedGroups, which
   manipulates one or more 'named groups' of values.
   The latter may be obtained from the results of nodes, so these
@@ -145,73 +106,77 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   values. For more information see the PyNodeNamedGroups.py.
 
   When defining a PyNodePlot node, specific instructions are passed
-  to it via plotspecs record (ps). The latter has lists of subplot
+  to it via plotspecs record (ps). The latter has list(s) of subplot
   definitions which are plotted together in a single plot. For the
   moment, only plots of type 'graphics' are supported, i.e. the
   plotspecs record has a 'graphics' field which is a list of records:
   In addition, the plotspecs record may have overall attributes
   (title, xlabel, ylabel, window etc) which control the entire plot.
 
-  .   psg = []
-  .   psg.append(record(y='{y}', color='red'))
-  .   psg.append(record(y='{a}*{b}', x='{c}', color='blue'))
-  .
-  .   ps = record(graphics=psg,
-  .               title=.., ylabel=.., ...)
+  <code_lines>
+  psg = []
+  psg.append(record(y='{y}', color='red'))
+  psg.append(record(y='{a}*{b}', x='{c}', color='blue'))
+  ps = record(graphics=psg, title=.., ylabel=.., ...)
+  </code_lines>
   
   The PyNode may be generated in the following way (for the optional
   groupspecs definition, see the class PyNodeNamedGroups):
 
-  .   from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
-  .   ns[nodename] << Meq.PyNode(children=[nodes],
-  .                              child_labels=[strings],
-  .                              class_name='PyNodePlot',
-  .                              module_name=PNP.__file__,
-  .                              [groupspecs=record(....),]
-  .                              plotspecs=ps)
+  <code_lines>
+  from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
+  ns[nodename] << Meq.PyNode(children=[nodes],
+  child_labels=[strings],
+  class_name='PyNodePlot',
+  module_name=PNP.__file__,
+  [groupspecs=record(....)],
+  plotspecs=ps)
+  </code_lines>
   
   In practice, it is recommended to use the function pynode_Plot()
   in this module PyNodePlot.py. 
 
   Possible keywords for individual graphics subplots are:
-  - color      [='blue']       subplot color
-  - linestyle  [=None]         subplot linestyle ('-','--',':')
-  - marker     [='o']          subplot marker style ('+','x', ...)
-  - markersize [=5]            subplot marker size (points)
-  - plot_sigma_bars [=True]    if True, indicate domain variation
-  - legend     [=[]]           subplot legend string(s)
-  - annotate   [=True]         if True, annotate points with labels
-  - fontsize   [=7]            annotation font size (points)
-  - label      [=None]         subplot label
-  - labelpos   ['right']       subplot label position
-  - msmin      [=2]            min marker size (z-values)
-  - msmax      [=20]           max marker size (z-values) 
-  - plot_circle_mean [=False]  if True, plot a circle (0,0,rmean)
-  - plot_ellipse_stddev [=False]  if True, plot an ellipse (xc,yc,stddev)
+
+  <li> color      [='blue']:       subplot color
+  <li> linestyle  [=None]:         subplot linestyle ('-','--',':')
+  <li> marker     [='o']:          subplot marker style ('+','x', ...)
+  <li> markersize [=5]:            subplot marker size (points)
+  <li> plot_sigma_bars [=True]:    if True, indicate domain variation
+  <li> legend     [=[]]:           subplot legend string(s)
+  <li> annotate   [=True]:         if True, annotate points with labels
+  <li> fontsize   [=7]:            annotation font size (points)
+  <li> label      [=None]:         subplot label
+  <li> labelpos   ['right']:       subplot label position
+  <li> msmin      [=2]:            min marker size (z-values)
+  <li> msmax      [=20]:           max marker size (z-values) 
+  <li> plot_circle_mean [=False]:  if True, plot a circle (0,0,rmean)
+  <li> plot_ellipse_stddev [=False]:  if True, plot an ellipse (xc,yc,stddev)
 
   Overall plotspecs keywords are:
-  - labels     [=None]         a list of node labels
-  - offset     [=0.0]          concatenated plots maye be offset vertically
-  - title      [=<classname>]  plot title
-  - xlabel     [='child']      x-axis label
-  - ylabel     [='result']     y-axis label
-  - xunit      [=None]         x-axis unit (string)
-  - yunit      [=None]         y-axis unit (string)
-  - zunit      [=None]         z-axis unit (string)
-  - xmin       [=None]         plot-window
-  - xmax       [=None]         plot-window
-  - ymin       [=None]         plot-window
-  - ymax       [=None]         plot-window
-  - include_origin [=False]    plot-window, if True, include the origin (0,0)
-  - include_xaxis [=False]     plot-window, if True, include y=0
-  - include_yaxis [=False]     plot-window, if True, include x=0
-  - legend     [=[]]           plot legend string(s)
-  - make_svg   [=False]        (legacy, ignore)
+  
+  <li> labels     [=None]:         a list of node labels
+  <li> offset     [=0.0]:          concatenated plots maye be offset vertically
+  <li> title      [=<classname>]:  plot title
+  <li> xlabel     [='child']:      x-axis label
+  <li> ylabel     [='result']:     y-axis label
+  <li> xunit      [=None]:         x-axis unit (string)
+  <li> yunit      [=None]:         y-axis unit (string)
+  <li> zunit      [=None]:         z-axis unit (string)
+  <li> xmin       [=None]:         plot-window
+  <li> xmax       [=None]:         plot-window
+  <li> ymin       [=None]:         plot-window
+  <li> ymax       [=None]:         plot-window
+  <li> include_origin [=False]:    plot-window, if True, include the origin (0,0)
+  <li> include_xaxis [=False]:     plot-window, if True, include y=0
+  <li> include_yaxis [=False]:     plot-window, if True, include x=0
+  <li> legend     [=[]]:           plot legend string(s)
+  <li> make_svg   [=False]:        (legacy, ignore)
 
   NB: Many subplot keywords (e.g. linestyle) may be specified as overall
   keywords also. In that case, it becomes the default for subplots which
   do not have this keyword specified explicitly. 
- """
+  """
 
   def __init__ (self, *args, **kwargs):
     # print '\n** entering PyNodePlot.__init__()\n'
@@ -997,54 +962,61 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
 
 
 #=====================================================================================
-# pynode_Plot() convenience function (preferred alternative to derived classes)
+# pynode_Plot() convenience function:
 #=====================================================================================
 
 
 def pynode_Plot (ns, nodes=None, groupspecs=None,
                  plotspecs=None, labels=None,
+                 qhelp=None,
                  nodename=None, quals=None, kwquals=None,
                  **kwargs):
   """
   Convenience function to create and return a MeqPyNode of class PyNodePlot.
-  Syntax:
-  .   import PyNodePlot as PNP
-  .   pynode = PNP.pynode_Plot (ns, nodes, groupspecs=None,
-  .                             plotspecs=None, labels=None,
-  .                             nodename=None, quals=None, kwquals=None,
-  .                             **kwargs)
+
+  <code_lines>
+  import PyNodePlot as PNP
+  pynode = PNP.pynode_Plot (ns, nodes, groupspecs=None,
+  plotspecs=None, labels=None,
+  nodename=None, quals=None, kwquals=None,
+  **kwargs)
+  </code_lines>
+
   Mandatory arguments:
-  - ns:          nodescope
-  - nodes:       list of (child) nodes whose results are to be used.
-  .              NB: Some or all of these child nodes may be other pynodes of
-  .              the PyNodeNamedGroups class. The named groups in their results
-  .              will be copied to the new pynode. This mechanism allows concatenation
-  .              of PyNodeNamedGroups pynodes, which is very powerful.
+  <li> ns:          nodescope
+  <li> nodes[=None]:       list of (child) nodes whose results are to be used.
+  NB: Some or all of these child nodes may be other pynodes of
+  the PyNodeNamedGroups class. The named groups in their results
+  will be copied to the new pynode. This mechanism allows concatenation
+  of PyNodeNamedGroups pynodes, which is very powerful.
+
   Optional arguments:
-  - groupspecs:  group specification(s) may have different types:
-  .              - string (e.g. 'XXYY'): convenient way to specify standard plots
-  .              - record(): (advanced use) a valid groupspecs record 
-  .              - None: (if children are PyNodeNamedGroups pynodes)
-  - plotspecs:   record with further plot specification(s).
-  .                (advanced use, to be elaborated)
-  - labels:      list of labels for the node results. If not supplied, or the wrong
-  .                length, they will be derived from the node names.
-  - nodename:    name of the resulting pynode
-  - quals:       list of nodenamed qualifiers [=None]
-  - kwquals:     dict of nodename keyword qualifiers [=None]
-  - **kwargs:    Standard plots (e.g. 'XXYY') may be customized by means of keyword arguments.
-  .              They override default plotspecs values like xlabel, ylabel, title etc.
+  <li> groupspecs[=None]:  group specification(s) may have different types:
+  <ul>
+  <li> string (e.g. 'XXYY'): convenient way to specify standard plots
+  <li> record(): (advanced use) a valid groupspecs record 
+  <li> None: (if children are PyNodeNamedGroups pynodes)
+  </ul>
+  <li> plotspecs[=None]:   record with further plot specification(s).
+  (advanced use, to be elaborated)
+  <li> labels[=None]:      list of labels for the node results. If not supplied, or the wrong
+  length, they will be derived from the node names.
+  <li> qhelp[=None]:       description of (the purpose of) this specific node
+  <li> nodename[=None]:    name of the resulting pynode (if None, a default name is made)
+  <li> quals[=None]:       list of nodenamed qualifiers
+  <li> kwquals[=None]:     dict of nodename keyword qualifiers 
+  <li> **kwargs:    Standard plots (e.g. 'XXYY') may be customized by means of keyword arguments.
+  They override default plotspecs values like xlabel, ylabel, title etc.
 
   The fun is in the combination of groupspecs [=None] and plotspecs [=None].
   There are various possibilities:
   
-  - gs=string, ps=None:   One of the standard plots (e.g. gs='XXYY') -> gs and ps. 
-  - gs=None, ps=None:     The simplest possible case: interpreted as gs='YY'
-  - gs=None, ps=string:   Assume that the child nodes are pynodes containing named groups.
-  .                       A standard ps string specified how they are to be plotted.
-  - gs=None, ps=dict:     The same, but ps specifies a more advanced plot.
-  - gs=dict, ps=dict:     Black-belt: User defined groups, and user-defined plots.  
-  - 
+  <li> gs=string, ps=None:   One of the standard plots (e.g. gs='XXYY') -> gs and ps. 
+  <li> gs=None, ps=None:     The simplest possible case: interpreted as gs='YY'
+  <li> gs=None, ps=string:   Assume that the child nodes are pynodes containing named groups.
+  A standard ps string specified how they are to be plotted.
+  <li> gs=None, ps=dict:     The same, but ps specifies a more advanced plot.
+  <li> gs=dict, ps=dict:     Black-belt: User defined groups, and user-defined plots.  
   
   """
 
@@ -1064,8 +1036,8 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
     gs = PNNG.string2groupspecs(groupspecs, nodes=nodes)
     ps = string2plotspecs(groupspecs, plotspecs=plotspecs)
   elif not isinstance(groupspecs, dict):       # i.e. groupspecs=None
-    pass
-    # gs = PNNG.string2groupspecs('YY', nodes=nodes)
+    # pass
+    gs = PNNG.string2groupspecs('YY', nodes=nodes)
   else:
     # Assume a valid groupspecs record....? 
     nodename += '___gs'
@@ -1090,66 +1062,25 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   # Make a unique nodestub:
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
-  # Make the quickref_help list of strings:
-  qhelp = ['']
-  qhelp.append('   This pynode has been specified by means of a convenience function:')
-  qhelp.append('     import PyNodePlot as PNP')
-  qhelp.append('     pynode = PNP.pynode_Plot(ns, nodes,')
-  if isinstance(groupspecs, str):
-    qhelp.append('                     groupspecs='+str(groupspecs)+',')
-  else:
-    qhelp.append('                     groupspecs='+str(type(groupspecs))+',')
-  qhelp.append('                     plotspecs='+str(type(plotspecs))+',')
-  for key in kwargs.keys():
-    qhelp.append('                    '+str(key)+'='+str(kwargs[key])+',')
-  qhelp.append('                    )')
-  qhelp.append('   NB: Note the customisation by means of **kwargs.')
-  qhelp.append('')
-  qhelp.append('   The convenience function has defined the actual MeqPyNode:')
-  qhelp.append('     stub = EasyNode.unique_stub(ns,nodename,quals,kwquals) -> '+str(stub))
-  qhelp.append('     pynode = stub << Meq.PyNode(')
-  qhelp.append('                    children=nodes,')
-  qhelp.append('                    child_labels=labels,')
-  qhelp.append('                    child_names=child_names,')
-  qhelp.append('                    plotspecs=ps,')
-  qhelp.append('                    groupspecs=gs,')
-  qhelp.append('                    class_name=pyNodePlot,')
-  qhelp.append('                    module_name='+str(__file__)+')')
-  qhelp.append('')
-  qhelp.append('   in which:')
-  if isinstance(nodes,(list,tuple)):
-    qhelp.append('       nodes (list) = '+str(nodes[0])+' ... ('+str(len(nodes))+')')
-  else:
-    qhelp.append('       nodes = '+str(nodes))
-  if isinstance(labels,(list,tuple)):
-    qhelp.append('       labels (list) = '+str(labels[0])+' ... ('+str(len(labels))+')')
-  else:
-    qhelp.append('       nodes = '+str(nodes))
-  qhelp.append('       ps (record) = '+str(ps))
-  qhelp.append('       gs (record) = '+str(gs))
-  qhelp.append('')
+  # The qsemi string contains 'semi-specific' help about the PyNodePlot class. 
+  qsemispec = """This PyNode uses the class PyNodePlot, which may be used to make plots.
+  It is derived from the class PyNodeNamedGroups. Plots may be specified by means of
+  a plotspecs record, and a groupspecs record.
+  Use of the convenience function pynode_Plot() is recommeded."""
 
-  if True:
-    qhelp = EF.format_function_call('PNP.pynode_Plot', ns=ns, nodes=nodes,
-                                    groupspecs=groupspecs,
-                                    plotspecs=plotspecs, labels=labels,
-                                    nodename=nodename, quals=quals, kwquals=kwquals,
-                                    kwargs=kwargs)
-    qhelp += PNNG.format_groupspecs_record(gs)
-    qhelp += format_plotspecs_record(ps)
-    
   # Create the PyNode:
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
                               child_names=child_names,
                               groupspecs=gs,
                               plotspecs=ps,
-                              quickref_help=qhelp,
+                              qspecific=qhelp,                  # user-supplied
+                              qsemispec=qsemispec,              # generated here
                               class_name='PyNodePlot',
                               module_name=__file__)
   if trace:
     print '->',str(pynode)
-    print EN.quickref_help(pynode)
+    # print EN.quickref_help(pynode)
   return pynode
 
 
@@ -1188,15 +1119,16 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
   """
   Make a plotspecs record from the given string spec.
   If input plotspecs is a record, just add to it.
+  
   Recognized strings are:
-  - Y or YY:   Plot group {y} against index nr (child no)
-  - XY:        Plot group {y} vs group {x}
-  - XYZ:       Same as XY, but markersize controlled by group {z}
-  - XXYYZZ:    Same as XYZ 
-  - VELLS_ijk: Vells indices i[jk] control groups {x},{y},{z}
-  - XXYY:      Assume single list of equal nrs of x,y nodes
-  - VIS22:     Assume groups {xx},{xy},{yx},{yy}
-  - VIS22C:     Assume groups {rr},{rl},{lr},{ll}
+  <li> Y or YY:   Plot group {y} against index nr (child no)
+  <li> XY:        Plot group {y} vs group {x}
+  <li> XYZ:       Same as XY, but markersize controlled by group {z}
+  <li> XXYYZZ:    Same as XYZ 
+  <li> VELLS_ijk: Vells indices i[jk] control groups {x},{y},{z}
+  <li> XXYY:      Assume single list of equal nrs of x,y nodes
+  <li> VIS22:     Assume groups {xx},{xy},{yx},{yy}
+  <li> VIS22C:     Assume groups {rr},{rl},{lr},{ll}
   """
 
   # Prepare the output plotspecs record (ps):
@@ -1294,9 +1226,13 @@ def string2plotspecs_VIS22 (ss, trace=False):
   return ps
 
 
+
+
+
 #=====================================================================================
 # Make a test-forest:
 #=====================================================================================
+
 def _define_forest (ns,**kwargs):
   """Make trees with the various pyNodes"""
 
@@ -1337,76 +1273,6 @@ def _define_forest (ns,**kwargs):
   ns['rootnode'] << Meq.Composer(*cc)
   return True
 
-#--------------------------------------------------------------------
-
-def _define_forest_old (ns,**kwargs):
-  """Make trees with the various pyNodes"""
-
-  viewer = "Svg Plotter"
-  viewer = "Pylab Plotter"
-
-  time = ns['time'] << Meq.Time()
-  cc = []
-  labels = []
-  n = 6
-  for i in range(n):
-    vv = []
-    for j,corr in enumerate(['xx','xy','yx','yy']):
-      v = (j+1)+10*(i+1)
-      v = complex(i,j)
-      v = ns[corr](i)(j) << v
-      v = ns[corr](i) << Meq.Add(v,time)
-      vv.append(v)
-    cc.append(ns['child'](i) << Meq.Composer(*vv))
-    labels.append('c'+str(i))
-
-  gs = None
-  ps = None
-  # labels = None
-
-  if False:
-    # Optional: make concatenation pynode:
-    gs = None
-    ps = None
-    # gs = record(concat=record(vells=[2]))
-    # ps = record(make_svg=False)
-    ns['concat'] << Meq.PyNode(children=cc, child_labels=labels,
-                               class_name='PyNodePlot',
-                               groupspecs=gs,
-                               plotspecs=ps,
-                               module_name=__file__)
-    cc.append(ns['concat'])
-    # cc.insert(0,ns['concat'])
-    # cc.insert(2,ns['concat'])
-    Meow.Bookmarks.Page('concat').add(ns['concat'], viewer=viewer)
-
-
-  # Make the group specification record:
-  gs = None
-  # gs = record(gs0=record(children=range(1,3)))
-  # gs = record(gs0=record(children='2/3', vells='*'))
-  # gs = record(gs0=record(children=range(1,3), vells=[0,1]))
-  # gs = record(gs0=record(children=range(1,3), vells=2))
-
-  # Make the plot specification record:
-  ps = None
-  # ps = record(title='test')
-  # ps = record(title='test', graphics=[record(y='{a}'), record(x='{b}')])
-  # ps = record(title='test', graphics=[record(xy='{xx}'))])
-
-  ns['rootnode'] << Meq.PyNode(children=cc,
-                               child_labels=labels,
-                               # class_name='PyNodePlot',
-                               class_name='ExampleDerivedClass',
-                               groupspecs=gs,
-                               plotspecs=ps,
-                               module_name=__file__)
-  # Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer="Record Viewer")
-  Meow.Bookmarks.Page('pynode').add(ns['rootnode'], viewer=viewer)
-
-  # Finished:
-  return True
-  
 
 
 #=====================================================================================
@@ -1414,7 +1280,7 @@ def _define_forest_old (ns,**kwargs):
 #=====================================================================================
 
 def _test_forest (mqs,parent,wait=False):
-  from Timba.Meq import meq
+  # from Timba.Meq import meq
   nf2 = 10
   nt2 = 5
   cells = meq.cells(meq.domain(-nf2,nf2,-nt2,nt2),
@@ -1427,7 +1293,7 @@ def _test_forest (mqs,parent,wait=False):
 
 if True:
   def _tdl_job_sequence (mqs,parent,wait=False):
-    from Timba.Meq import meq
+    # from Timba.Meq import meq
     for i in range(10):
       cells = meq.cells(meq.domain(i,i+1,i,i+1),num_freq=20,num_time=10);
       rqid = meq.requestid(i)

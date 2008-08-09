@@ -628,9 +628,9 @@ def on_exit (ns, rider, nodes=None,
              help=None,
              trace=False):
     """
-    <function_call>
+    <function_code>
     node = QuickRefUtil.on_exit (ns, rider, nodes=None, ...)
-    </function_call>
+    </function_code>
     
     Returns a single parent node, with bundles the given nodes.
     It also makes bookmarks if required, and controls the attachment of help,
@@ -686,19 +686,11 @@ def on_exit (ns, rider, nodes=None,
 
     bhelp = ''                              # start of bundle help
     bundle = []                             # list of actual nodes
-    comments = []                           # to be used in node_help below
     bookmarks = []                          # list nodes to be bookmarked
     viewers = []                            # corresponding viewers
     for node in nodes:
         if is_node(node):                   # an actual node -> bundle
             bundle.append(node)
-            comments.append(node_help)      # bool or string
-
-            if node.initrec().has_key('qhelp'):
-                # If the node has a qhelp field, make it into a comment (see below).
-                # This is a convienient way of passing help via the node constructor.
-                comments[-1] = str(node.initrec()['qhelp'])   # assume string or True
-                # node.initrec()['qhelp'] = True              # necessary?
 
             if (not node.initrec().has_key('qbookmark')) or node.initrec()['qbookmark']:
                 # A bookmark may be inhibited by: qbookmark=False
@@ -708,26 +700,22 @@ def on_exit (ns, rider, nodes=None,
                     # This is a convienient way of passing info via the node constructor.
                     viewers[-1] = node.initrec()['qviewer']       # replace viewer
 
-        elif isinstance(node,str):            # assume a bundle help-text....
+        elif isinstance(node,str):                            # assume a bundle help-text....(??)
             bhelp += rider.check_html_tags(str(node), include_style=False)
             bhelp += '<br>'
 
-        else:                                 # a record with detailed instructions
+        else:               
             bhelp += '\n<warning>'  
             bhelp += 'not recognized: '+str(type(node))
             bhelp += '\n</warning>'
 
 
     #.......................................................................
-    # Optionally, add help to nodes in the bundle, contrilled by 'comments':
+    # Add help to nodes in the bundle. The specific and semi-specific parts
+    # are contained in the node state fields qspecific and qsemispec:
     
-    for i,comment in enumerate(comments):
-        if comment:                               # assume True or string
-            if isinstance(comment,str):
-                comment = rider.replace_html_chars (comment, trace=False)
-                QRNH.node_help(bundle[i], rider=rider, comment=comment, trace=False)
-            else:                                 # just the generic node help
-                QRNH.node_help(bundle[i], rider=rider, trace=False)
+    for i,node in enumerate(bundle):
+        QRNH.node_help(bundle[i], rider=rider, trace=False)
 
     #.......................................................................
     # Append the contents of the help-argument, if string:
@@ -853,8 +841,7 @@ def on_exit (ns, rider, nodes=None,
 
     # Extract the quickref_help string for the state record of the bundle node:
     # It contains the help for all topics below the current one (using path)
-    qhelp = rider.format_html(path=rider.path())  
-    parent.initrec().quickref_help = qhelp
+    parent.initrec().quickref_help = rider.format_html(path=rider.path())
 
     #.......................................................................
 
@@ -890,9 +877,9 @@ def helpnode (ns, rider,
               trace=False):
     """
     Syntax:
-    <function_call>
+    <function_code>
     node = QRU.helpnode(ns, rider, name=None, node=None, help=None, func=None)
-    </function_call>
+    </function_code>
 
     A special version of MeqNode(), for nodes that are only
     used to carry a quickref_help field in their state-record.

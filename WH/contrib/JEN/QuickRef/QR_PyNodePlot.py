@@ -232,7 +232,7 @@ def make_helpnodes (ns, rider):
 
 
 #================================================================================
-# PyNodePlot:
+# topic PyNodePlot:
 #================================================================================
 
 def PyNodePlot (ns, rider):
@@ -248,14 +248,14 @@ def PyNodePlot (ns, rider):
 
    In the examples shown below, the MeqPyNode state record is often shown next
    to the plot itself, because it contains a lot of detailed information:
-   - pynode_help:   the __doc__ string of the PyNodePlot class
-   - groupspecs:    the input group specification record
-   - plotspecs:     the input plot specification record
-   - quickref_help: the actual call used to create this MeqPyNode,
-   .                including the values of the custimizing keyword arguments.
-   - cache.result (available after execution):
-   .    - namedgroups: The detailed list of available named groups
-   .    - plotdefs:    The detailed list of (sub)plot definitions
+   <li> pynode_help:   the __doc__ string of the PyNodePlot class
+   <li> groupspecs:    the input group specification record
+   <li> plotspecs:     the input plot specification record
+   <li> quickref_help: the actual call used to create this MeqPyNode,
+               including the values of the custimizing keyword arguments.
+   <li> cache.result (available after execution):
+   <li> namedgroups: The detailed list of available named groups
+   <li> plotdefs:    The detailed list of (sub)plot definitions
    """
    stub = QRU.on_entry(ns, rider, PyNodePlot)
    cc = []
@@ -292,11 +292,15 @@ def PyNodePlot (ns, rider):
 def PyNodePlot_basic (ns, rider):
    """
    The simplest possible plot plots vells[0] of its children against child no:
-   .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, nodes)
+   <code_lines>
+   import PyNodePlot as PNP
+   pynode = PNP.pynode_Plot(ns, nodes)
+   </code_lines>
 
    The other 3 plots show how things may be customized by means of keyword args, e.g.:
-   .    pynode = PNP.pynode_Plot(ns, nodes, title='basic', ylabel='ylabel', ...)
+   <code_lines>
+   pynode = PNP.pynode_Plot(ns, nodes, title='basic', ylabel='ylabel', ...)
+   </code_lines>
    The utilized customization keywords are shown in the plot legends. They can be
    used in any combination, of course.
    """
@@ -304,18 +308,23 @@ def PyNodePlot_basic (ns, rider):
    cc = []
 
    nodes = EB.bundle(ns,'cloud_n6s1')
-   cc.append(PNP.pynode_Plot(ns, nodes))
+   qhelp = """The simplest possible call (node = PNP.pynode_Plot(ns, nodes))
+   produces a plot with default settings."""
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp))
    
    kwargs = dict(title='custom_title',ylabel='custom_ylabel',
                  xlabel='custom_xlabel', legend=['line1','line2'])
-   cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
+   qhelp = """Demonstrates custom labels and legend"""
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp, **PNP.kwargs2legend(**kwargs)))
                              
    kwargs = dict(color='red', marker='triangle', markersize=10, fontsize=15)
-   cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
+   qhelp = """Demonstrates custom markers"""
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp, **PNP.kwargs2legend(**kwargs)))
 
    kwargs = dict(annotate=False, xmin=-5, xmax=4, ymin=-10, ymax=10,
                  plot_ellipse_stddev=True, plot_circle_mean=True)
-   cc.append(PNP.pynode_Plot(ns, nodes, **PNP.kwargs2legend(**kwargs)))
+   qhelp = """Demonstrates mean/stddev indications, and plot-window"""
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp, **PNP.kwargs2legend(**kwargs)))
 
    return QRU.on_exit (ns, rider, cc,
                        viewer='Pylab Plotter')
@@ -336,26 +345,30 @@ def PyNodePlot_advanced (ns, rider):
    groups of nodes. In addition, a derived group {ruv} is created with a math
    expression (string), in which the other groups are variables {..}.
 
-   .    import PyNodeNamedGroups as PNNG
-   .    gs = record(ruv='sqrt(abs(({u}**2+{v}**2)))')
-   .    pynode_1 = PNNG.pynode_NamedGroup(ns, 
-   .                                      [PNNG.pynode_NamedGroup(ns, unodes, 'u'),
-   .                                       PNNG.pynode_NamedGroup(ns, vnodes, 'v'),
-   .                                       PNNG.pynode_NamedGroup(ns, wnodes, 'w')],
-   .                                      groupspecs=gs))
+   <code_lines>
+   import PyNodeNamedGroups as PNNG
+   gs = record(ruv='sqrt(abs(({u}**2+{v}**2)))')
+   pynode_1 = PNNG.pynode_NamedGroup(ns, 
+                                     [PNNG.pynode_NamedGroup(ns, unodes, 'u'),
+                                      PNNG.pynode_NamedGroup(ns, vnodes, 'v'),
+                                      PNNG.pynode_NamedGroup(ns, wnodes, 'w')],
+                                     groupspecs=gs))
+   </code_lines>
 
    The actual plot(s) are made by another pynode of class PyNodePlot, which has
    pynode_1 as its child. The (graphics) plots are specified as math expressions
    of the named groups, which it copies from the result of its child.
    The second plot is specified in the following way:
    
-   .   import PyNodePlot as PNP
-   .   psg = []
-   .   psg.append(record(x='{u}', y='{v}', z='{w}', color='green'))
-   .   psg.append(record(x='{u}', y='{ruv}', color='blue'))
-   .   pynode_2 = PNP.pynode_Plot(ns, pynode_1,
-   .                              plotspecs=record(graphics=psg),
-   .                              **kwargs)
+   <code_lines>
+   import PyNodePlot as PNP
+   psg = []
+   psg.append(record(x='{u}', y='{v}', z='{w}', color='green'))
+   psg.append(record(x='{u}', y='{ruv}', color='blue'))
+   pynode_2 = PNP.pynode_Plot(ns, pynode_1,
+                             plotspecs=record(graphics=psg),
+                             **kwargs)
+   </code_lines>
 
    Any number of plots may be specified, and appended to the list of graphics
    plotspecs. (NB: Only plots of type graphics are supported for the moment,
@@ -367,16 +380,18 @@ def PyNodePlot_advanced (ns, rider):
    For the third graph, two extra groups produv and sumuv are defined,
    and plotted against each other in the same plot in two different ways:
 
-   .   gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
-   .   psg = []
-   .   psg.append(record(x='{produv}', y='{sumuv}', color='magenta',
-   .                     legend='sumuv vs produv'))
-   .   psg.append(record(x='{sumuv}', y='{produv}', color='cyan',
-   .                     legend='produv vs sumuv'))
-   .   pynode_3 = PNP.pynode_Plot(ns, pynode_1,
-   .                              groupspecs=gs,
-   .                              plotspecs=record(graphics=psg),
-   .                              **kwargs)
+   <code_lines>
+   gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
+   psg = []
+   psg.append(record(x='{produv}', y='{sumuv}', color='magenta',
+                    legend='sumuv vs produv'))
+   psg.append(record(x='{sumuv}', y='{produv}', color='cyan',
+                    legend='produv vs sumuv'))
+   pynode_3 = PNP.pynode_Plot(ns, pynode_1,
+                             groupspecs=gs,
+                             plotspecs=record(graphics=psg),
+                             **kwargs)
+   </code_lines>
 
    The state-record of pynode_3 is bookmarked too, for easy inspection. Check the
    namedgroups in the result, and the plotdefs.
@@ -439,13 +454,17 @@ def PyNodePlot_scalars (ns, rider):
    in a single list, and specifying groupspecs='XXYY'. The results of the nodes in
    the first half of the list will be used as x-coordinates, and those in the second
    half as y-coordinates:
-   .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes, 'XXYY')
+   <code_lines>
+   import PyNodePlot as PNP
+   pynode = PNP.pynode_Plot(ns, xnodes+ynodes, 'XXYY')
+   </code_lines>
    The plot may be customised with keyword arguments (e.g. color='green' etc).
 
    Simple (x,y,z) plots may be made in a similar way. The x,y and z groups are
    the 1st, 2nd and 3rd third of the input node list:
-   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, 'XXYYZZ')
+   <code_lines>
+   pynode = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, 'XXYYZZ')
+   </code_lines>
    In this case, the z-values are indicated by the size of their markers.
    """
    stub = QRU.on_entry(ns, rider, PyNodePlot_scalars)
@@ -475,8 +494,10 @@ def PyNodePlot_complex (ns, rider):
    Complex vellsets may be plotted in various ways. The simplest is to use the
    real parts of vellsets[0] as x-coordinates, and their imaginary parts as
    y-coordinates:
-   .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, xnodes+ynodes, 'CY')
+   <code_lines>
+   import PyNodePlot as PNP
+   pynode = PNP.pynode_Plot(ns, xnodes+ynodes, 'CY')
+   </code_lines>
    In this case, the named group 'y' contains complex numbers. They are split into
    real and imaginary parts by plotspecs expressions x={y}.real and y={y}.imag.
    """
@@ -499,24 +520,32 @@ def PyNodePlot_tensors (ns, rider):
    In a group of related tensor nodes (e.g. containing pairs (u,v) of coordinates),
    the groups of corresponding vellsets may be extracted as named groups, and plotted
    against each other: 
-   .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, nodes, 'XY')
+   <code_lines>
+   import PyNodePlot as PNP
+   pynode = PNP.pynode_Plot(ns, nodes, 'XY')
+   </code_lines>
    This extracts all vellsets[0] as group 'x', and all vellsets[1] as group 'y',
    and uses them as horizontal and vertical coordinates.
    The plot may be customised with keyword arguments (e.g. color='green' etc).
 
    Simple (x,y,z) plots may be made in a similar way from vellsets 0,1,2 of
    the input nodes.
-   .    pynode = PNP.pynode_Plot(ns, nodes, 'XYZ')
+   <code_lines>
+   pynode = PNP.pynode_Plot(ns, nodes, 'XYZ')
+   </code_lines>
    Again, the z-values are indicated by the size of their markers.
 
    The following plots vellset[0] as a function of child nr:
-   .    pynode = PNP.pynode_Plot(ns, nodes, 'YY')
+   <code_lines>
+   pynode = PNP.pynode_Plot(ns, nodes, 'YY')
+   </code_lines>
 
    Arbitrary vellsets may be plotted against each other in the following way:
-   .    pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_1')
-   .    pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_32')
-   .    pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_213')
+   <code_lines>
+   pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_1')
+   pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_32')
+   pynode = PNP.pynode_Plot(ns, nodes, 'VELLS_213')
+   </code_lines>
    The integers following 'VELLS_' are vellset indices, of course.
 
    """
@@ -542,12 +571,14 @@ def PyNodePlot_concat (ns, rider):
    Children of these types are ignored for plotting, but their group definitions
    and plot definitions are copied into the new MeqPyNode. This is very powerful.
    
-   .    import PyNodeNamedGroups as PNNG
-   .    pynode_XX = PNP.pynode_NamedGroup(ns, xnodes, 'XX')
-   .    pynode_YY = PNP.pynode_NamedGroup(ns, ynodes, 'YY')
+   <code_lines>
+   import PyNodeNamedGroups as PNNG
+   pynode_XX = PNP.pynode_NamedGroup(ns, xnodes, 'XX')
+   pynode_YY = PNP.pynode_NamedGroup(ns, ynodes, 'YY')
    
-   .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY], plotspecs='XY')
+   import PyNodePlot as PNP
+   pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY], plotspecs='XY')
+   </code_lines>
 
    Note that in this case, no groupspecs is specified (as 3rd argument), but a
    keyword argument plotspecs. The reason is of course that the groups (x and y)
@@ -556,9 +587,9 @@ def PyNodePlot_concat (ns, rider):
 
    An (x,y,z) plot can be made by adding a 3rd pynode child (pynode_ZZ),
    and specifying a suitable plotspecs:
-   .    pynode_ZZ = PNP.pynode_NamedGroup(ns, znodes, 'ZZ')
-   .    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY, pynode_ZZ],
-   .                             plotspecs='XYZ')
+   pynode_ZZ = PNP.pynode_NamedGroup(ns, znodes, 'ZZ')
+   pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY, pynode_ZZ],
+                            plotspecs='XYZ')
 
    Etc, etc. See also the more elaborate concatenation examples below....
    """
@@ -595,24 +626,30 @@ def PyNodePlot_nonodes (ns, rider):
 
    In this example, four named groups (x,y,a,b) are specified via the
    groupspecs record:
-   .    gs = record(x=range(2,8), y=range(2,8), a=range(2,8), b=range(2,8))
-   .    pynode_xyab = PNNG.pynode_NamedGroup(ns, groupspecs=gs)
+   <code_lines>
+   gs = record(x=range(2,8), y=range(2,8), a=range(2,8), b=range(2,8))
+   pynode_xyab = PNNG.pynode_NamedGroup(ns, groupspecs=gs)
+   </code_lines>
 
    NB: For simplicity, the python range() function is used to generate lists
    of numbers: range(2,8) -> [0,1,2,3,4,5].
 
    The actual plots are specified by means of the plotspecs record:
-   .    psg = [record(x='{x}',y='{y}', color='red', legend='yexpr'),
-   .           record(x='{x}',y='{y}+{x}-2*({b}+{a}/2)', color='blue', legend='yexpr'),
-   .           record(x='{x}',y='sin({a}*2)', color='green', legend='yexpr')]
-   .    ps = record(graphics=psg,
-   .                xlabel='x-group', ylabel='y (see legend)',
-   .                include_origin=True,
-   .                title='nonodes')
+   <code_lines>
+   psg = [record(x='{x}',y='{y}', color='red', legend='yexpr'),
+          record(x='{x}',y='{y}+{x}-2*({b}+{a}/2)', color='blue', legend='yexpr'),
+          record(x='{x}',y='sin({a}*2)', color='green', legend='yexpr')]
+   ps = record(graphics=psg,
+               xlabel='x-group', ylabel='y (see legend)',
+               include_origin=True,
+               title='nonodes')
+   </code_lines>
 
    Finally, the PyNode is created without any nodes, but with gs and ps:
-   .    import PyNodePlot as PNP
-   .    pynode = PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps)
+   <code_lines>
+   import PyNodePlot as PNP
+   pynode = PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps)
+   </code_lines>
 
    See also the PyNodeNamedGroups topic 'nonodes' below. 
    """
@@ -734,18 +771,18 @@ def PlotVIS22_play (ns, rider):
    Play with the visibility/stokes plots for sources of different polarisations,
    at different positions (l,m) w.r.t. the phase centre. Note how much information
    can be gleaned from the single plot with all four corrs:
-   - Because it is a single point source, all corrs lie on circles, i.e. the
-   .   different baselines only affect the phases, not the amplitides. 
-   - If the source is in the field centre (l=0,m=0), all visibilities are real.
-   - If outside the field centre, the phase increases with baseline length.
-   - Since XX=I+Q and YY=I-Q, Stokes I and Q can be estimated from the separation
-   .   between the XX and YY circles. Similarly: RR=I+V and LL=I-V
-   - Since XY=U+iV and YX=U-iV....   Similarly: RL=Q+iU and LR=Q-iU 
+   <li> Because it is a single point source, all corrs lie on circles, i.e. the
+   different baselines only affect the phases, not the amplitides. 
+   <li> If the source is in the field centre (l=0,m=0), all visibilities are real.
+   <li> If outside the field centre, the phase increases with baseline length.
+   <li> Since XX=I+Q and YY=I-Q, Stokes I and Q can be estimated from the separation
+   between the XX and YY circles. Similarly: RR=I+V and LL=I-V
+   <li> Since XY=U+iV and YX=U-iV....   Similarly: RL=Q+iU and LR=Q-iU 
 
    Cookies (some instrumental effects): 
-   - A non-zero X-Y (R-L) phase-zero-difference (PZD) does not affect the parallel corrs,
-   .   (XX,YY,RR,LL) but changes the phase of the perpendicular corrs (XY,YX,RL,LR).
-   - Faraday rotation (not implemented yet)
+   <li> A non-zero X-Y (R-L) phase-zero-difference (PZD) does not affect the parallel corrs,
+   (XX,YY,RR,LL) but changes the phase of the perpendicular corrs (XY,YX,RL,LR).
+   <li> Faraday rotation (not implemented yet)
    """
    stub = QRU.on_entry(ns, rider, PlotVIS22_play)
    cc = []
@@ -855,20 +892,22 @@ def PyNodeNamedGroups_nonodes (ns, rider):
    PyNodePlot topic 'nonodes' in this module).
 
    There are two ways to specify a named group from a list of values:
-   - via a groupspecs record:
-   .    gs = record(a=range(6), b=range(7), c=range(3))
-   .    pynode_abc = PNNG.pynode_NamedGroup(ns, groupspecs=gs)
-   - directly:
-   .    pynode_p = PNNG.pynode_NamedGroup(ns, range(9), 'p')
-   .    pynode_q = PNNG.pynode_NamedGroup(ns, range(8), 'q')
+   <li> via a groupspecs record:
+   gs = record(a=range(6), b=range(7), c=range(3))
+   pynode_abc = PNNG.pynode_NamedGroup(ns, groupspecs=gs)
+   <li> directly:
+   pynode_p = PNNG.pynode_NamedGroup(ns, range(9), 'p')
+   pynode_q = PNNG.pynode_NamedGroup(ns, range(8), 'q')
 
    The last method has the simplest syntax, but the first one allows multiple
    groups to be specified. The result may be inspected in the state records of
    the resulting PyNode.
 
    All groups may be in a single pynode by pynode-concatenation (see below):
-   .    cc = [pynode_abc, pynode_q, pynode_p]
-   .    pynode = PNNG.pynode_NamedGroup(ns, cc)
+   <code_lines>
+   cc = [pynode_abc, pynode_q, pynode_p]
+   pynode = PNNG.pynode_NamedGroup(ns, cc)
+   </code_lines>
    
    """
    stub = QRU.on_entry(ns, rider, PyNodeNamedGroups_nonodes)
@@ -891,19 +930,23 @@ def PyNodeNamedGroups_concat (ns, rider):
    Children of these types are ignored for extracting results, but their
    group definitions are copied into the new MeqPyNode. This is very powerful.
    (see also PyNodePlot above).
-   
-   .    import PyNodeNamedGroups as PNNG
-   .    pynode_a = PNNG.pynode_NamedGroup(ns, xnodes, 'a')
-   .    pynode_b = PNNG.pynode_NamedGroup(ns, ynodes, 'b')
-   .    pynode_ab = PNNG.pynode_NamedGroup(ns, [pynode_a, pynode_b])
+
+   <code_lines>
+   import PyNodeNamedGroups as PNNG
+   pynode_a = PNNG.pynode_NamedGroup(ns, xnodes, 'a')
+   pynode_b = PNNG.pynode_NamedGroup(ns, ynodes, 'b')
+   pynode_ab = PNNG.pynode_NamedGroup(ns, [pynode_a, pynode_b])
+   </code_lines>
 
    Note that in this case, no groupspecs (name) is specified (as 3rd argument),
    because there are no extra children to extract new groups from (although that
    would be entirely legal, of course).
 
    More groups, with arbitrary names can be added
-   .    pynode_c = PNNG.pynode_NamedGroup(ns, znodes, 'c')
-   .    pynode_abc = PNNG.pynode_NamedGroup(ns, [pynode_ab, pynode_c])
+   <code_lines>
+   pynode_c = PNNG.pynode_NamedGroup(ns, znodes, 'c')
+   pynode_abc = PNNG.pynode_NamedGroup(ns, [pynode_ab, pynode_c])
+   </code_lines>
 
    In this experiment, we show the state-records of the resulting pynodes.
    T=Inspect their cache_results, to see how the named groups (a,b,c) are

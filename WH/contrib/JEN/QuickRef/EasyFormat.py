@@ -113,6 +113,8 @@ def format_list(vv):
         ss += '(not a list, but: '+str(type(vv))+')'
     elif len(vv)==0:
         ss += '...empty...'
+    elif len(vv)<5:
+        ss += ' = '+str(vv)
     elif not isinstance(vv[0],(int,float,complex)):
         ss += ' (n='+str(len(vv))+'):'
         ss += ' not numeric, vv[0]='+str(vv[0])

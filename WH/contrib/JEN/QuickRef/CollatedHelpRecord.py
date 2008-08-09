@@ -626,22 +626,46 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def indent (self, ss=None, add=0, trace=False):
-      """Helper function for .check_html_tags()"""
-      # trace = True
-      if isinstance(ss,int):
-         self._indent = max(0,ss)
-      self._indent += add
+   def indent (self, ss=None, add=0, revert=False, reset=False, trace=False):
+      """Helper function for .check_html_tags(), to control indentation"""
+      trace = True
+
+      # Modify the indentation level, if required:
+      if reset:
+         self._indents = [0]
+         self._indent = self._indents[0]          # i.e. zero
+         self._tempindent = 0
+         self._last_was_comma = False             # just in case (harmless kludge)
+      if isinstance(ss,int):                      # set specific indentation 
+         # self._indents = [0]                      # ...reset....?
+         if ss>0:
+            self._indents.append(ss)
+         self._indent = self._indents[-1]         # set to the last one
+         self._tempindent = 0
+      if add:                                     # 'increase' indentation
+         self._indent += add                      # may be negative
+         self._indents.append(self._indent)
+         self._tempindent += 1 
+      if revert:
+         if len(self._indents)>1:                 # just in case
+            self._indents = self._indents[:-1]    # remove the last one
+            self._indent = self._indents[-1]      # set to the new last one
+         self._tempindent -= 1 
       self._indent = max(self._indent,0)
+
       if trace:
-         print '** .indent(',ss,add,'):',self._indent
-      if isinstance(ss,str):
+         print '** .indent(',ss,add,revert,reset,'): ',self._indents,self._tempindent,self._indent
+
+      if not isinstance(ss,str):                  # not a string
+         ss = self._indent                        # return current indentation 
+      else:                                       # Indent the given string:
          if self._indent>0:
             prefix = '<font color="white">'+str(self._indent*'.')+'</font>'
             # prefix = '('+str(self._indent)+')'+prefix      # testing only
             ss = prefix + ss
             if trace:
                print '    ',ss
+      
       return ss
 
    #---------------------------------------------------------------------
@@ -649,10 +673,11 @@ class CollatedHelpRecord (object):
    def replace_html_chars (self, help, trace=False):
       """Replace characters that cause problems with html
       with their escape versions."""
+      if not isinstance(help,str):                       # e.g. None
+         return help
       ss = help
-      ss = ss.replace('<<',' &lt &lt &#32')          # escape char &lt = <  
-      ## ss = ss.replace('<',' &lt ')                    # escape char &lt = <  
-      ## ss = ss.replace('>',' &gt ')                    # escape char &gt = >  
+      ss = ss.replace('<<',' &lt &lt &#32')              # escape char &lt = <  
+      # ... to be elaborated ...
       return ss
 
    #---------------------------------------------------------------------
@@ -675,28 +700,41 @@ class CollatedHelpRecord (object):
 
       # Look for specific features in the lines:
       self.countag(init=True)
-      self.indent(0)
+      self.indent(reset=True)
+      self._last_was_comma = False 
       for i,s in enumerate(ss):
          if trace:
             print '-',i,':',ss[i]
 
-         if self.countag('function_call')>0:
-            self.countag('function_call','up')
+         # if self.countag('function_call')>0:
+         #    self.countag('function_call','up') # 
 
-         elif self.countag('function_code')>0:
-            iline = self.countag('function_code')
-            if True:
-               if self._indent>0:
-                  ss[i] = self.indent(s)       # indent the line
-                  if s[-1]==')':               # last char is a closing bracket
-                     self.indent(0)            # reset indentation
-               if s[-1]==',':                  # last char is a comma
-                  self.indent(15)              # set indentation
-            if iline==2:                       # second line: 
-               ss[i] = '<dd>\n'+ss[i]
-            # ss[i] = '{'+str(iline)+'} '+ss[i]   # testing
+         if self.countag('code_lines')>0:
+            fline = self.countag('function_code')   # special case
+            if fline>0:
+               if fline==1:                         # 1st line (function call)
+                  pass
+               elif fline==2:                       # 2nd line: increase indentation
+                  self.indent(add=10)
+               self.countag('function_code','up')   # count the lines of function code
+
+            ss[i] = self.indent(s)                 # FIRST indent the line
             ss[i] += '<br>'
-            self.countag('function_code','up') # count the lines of function code
+            # Change the FUTURE indentation, if required:
+            s1 = s.strip()                         # remove leading and trailing blanks
+            if len(s1)>0:
+               if s1[-1]==',':                     # last char is a comma
+                  if not self._last_was_comma:
+                     ## nindent = self._indent + len(s1.split('(')[0])
+                     self.indent(add=15)           # set indentation
+                  self._last_was_comma = True 
+               elif s1[-1]==')':                   # last char is a closing bracket
+                  if self._last_was_comma: 
+                     self.indent(revert=True)      # revert to earlier indentation
+                  self._last_was_comma = False 
+            self.countag('code_lines','up')        # count the code lines
+
+         #................................................................................
 
          if ss[i] in ['',' ','  ','   ','    ']:      # blank line
             ss[i] = ''
@@ -712,31 +750,36 @@ class CollatedHelpRecord (object):
          elif '<li>' in ss[i]:              # list element (assume unordered list)
             aa = ss[i].split(':')
             if len(aa)>1:
-               ss[i] = '<font color="blue">' + aa[0] + ':' + '</font> '   # NB: forces a line-break...!
+               ss[i] = aa[0]+':'
+               # ss[i] = '<em>'+aa[0]+':</em>'                             # NB: forces a line-break...!
+               # ss[i] = '<font color="blue">' + aa[0] + ':' + '</font>'   # NB: forces a line-break...!
                for k,a in enumerate(aa):
                   if k>0: ss[i] += a
             if self.countag('ul')==0:
                ss[i] = '<ul>\n'+ss[i]
                self.countag('ul','up')
 
-         elif '<function_call>' in ss[i]:
-            ss[i] = 'Syntax:<center>\n'
-            ss[i] += '<font color="blue">'
-            ss[i] += s
-            self.countag('function_call','up')
-         elif '</function_call>' in ss[i]:
-            ss[i] = '</font>\n'
-            ss[i] += '</center>\n'
-            self.countag('function_call','reset')
-            
          elif '<function_code>' in ss[i]:
             self.countag('function_code','up')
-            ss[i] = '<dl>\n<dt>\n'
-            ss[i] += '<font color="blue">'
+            self.countag('code_lines','up')
+            self.indent(5)       
+            ss[i] = '\n<br><font color="blue">'
          elif '</function_code>' in ss[i]:
             self.countag('function_code','reset')
-            ss[i] = '</dl>\n'
-            ss[i] += '</font>\n'
+            self.countag('code_lines','reset')
+            self.indent(0)
+            ss[i] = '</font><br>\n'
+
+         elif '<code_lines>' in ss[i]:
+            self.countag('code_lines','up')
+            self.indent(15)       
+            ss[i] = '<br>\n'
+            ss[i] += '<font color="red">\n'
+         elif '</code_lines>' in ss[i]:
+            self.countag('code_lines','reset')
+            self.indent(0)
+            ss[i] = '<br>\n'
+            ss[i] += '</font>'
 
          elif '<warning>' in ss[i]:
             self.countag('warning','up')
@@ -792,7 +835,17 @@ if __name__ == '__main__':
    if 1:
       rider = CollatedHelpRecord()
 
+
    if 1:
+      rider.indent(reset=True, trace=True)
+      rider.indent(10, trace=True)
+      rider.indent(add=10, trace=True)
+      rider.indent(revert=True, trace=True)
+      rider.indent('text', trace=True)
+      rider.indent(0, trace=True)
+      rider.indent('text', trace=True)
+
+   if 0:
       rider.path(trace=True)
       rider.path(init='test', trace=True)
       rider.path(append='module', trace=True)
