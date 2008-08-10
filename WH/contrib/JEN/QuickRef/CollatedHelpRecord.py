@@ -560,6 +560,7 @@ class CollatedHelpRecord (object):
       This is necessary to avoid extra pages/folders.
       """
       # trace = True
+      
       ss = path.split('.')
       nss = len(ss)
 
@@ -588,21 +589,29 @@ class CollatedHelpRecord (object):
 
    #---------------------------------------------------------------------
 
-   def orphans (self, node=None, clear=False, trace=True):
+   def orphans (self, node=None, clear=False, trace=False):
       """
       Add the given node(s) to the internal orphans list.
       If no node(s) supplied, just return the internal list.
       This is an example of the CHR rider being used as a holder
       of items that need to be held for some reason.
       """
+      # trace = True
+      s = '** CHR.orphans('+str(type(node))+', clear='+str(clear)+'): '
       if clear:
          self._orphans = []
+
       if is_node(node):
+         s += ' node='+str(node)
          self._orphans.append(node)
       elif isinstance(node,(list,tuple)):
+         s += ' n='+str(len(node))
+         if len(node)>0:
+            s += ' node[0]='+str(node[0])
          self._orphans.extend(node)
+
       if trace:
-         print '\n** CHR.orphans(',type(node),clear,') -> total =',len(self._orphans),'\n'
+         print '\n'+s+' (total='+str(len(self._orphans))+')'
       return self._orphans
 
 
@@ -628,7 +637,7 @@ class CollatedHelpRecord (object):
 
    def indent (self, ss=None, add=0, revert=False, reset=False, trace=False):
       """Helper function for .check_html_tags(), to control indentation"""
-      trace = True
+      # trace = True
 
       # Modify the indentation level, if required:
       if reset:

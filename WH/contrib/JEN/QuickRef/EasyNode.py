@@ -276,13 +276,14 @@ def format_tree (node, ss='', recurse=True,
     Recursively format the subtree under the given node(s) to the given string (ss).
     If mode='list', return a list of strings (lines).
     The recursion depth is controlled by the 'recurse argument:
-    - recurse=False or <=0: return '' or [] (if mode='list')
-    - recurse=True is equivalent to recurse=1000 (i.e. deep enough for any subtree)
+    <li> recurse=False or <=0: return '' or [] (if mode='list')
+    <li> recurse=True is equivalent to recurse=1000 (i.e. deep enough for any subtree)
+
     The input node may be either a single node, or a list of nodes. The latter is
     used by MeqNode(), where the top node is shown in detail, and this function
     is used only to expand the subtrees of its children in somewhat less detail.
     """
-    
+        
     if isinstance(recurse,bool):
         if recurse: recurse=1000                            # True
     if not recurse:                                         # not required
@@ -740,26 +741,35 @@ def get_plot_labels (nodes, lcs=None, trace=False):
 
 orphanodes = []
 
-def orphans (node=None, clear=False, trace=True):
+def orphans (node=None, clear=False, trace=False):
     """
     Add the given node(s) to the orpans list (global orphanodes).
     If clear==True, clear the internal orphanodes list ([]).
     Always return the current contents of the list.
     """
+    s = '** EN.orphans('+str(type(node))+', clear='+str(clear)+'): '
+
     global orphanodes
     if clear:
         orphanodes = []
+
     if is_node(node):
+        s += ' node='+str(node)
         orphanodes.append(node)
     elif isinstance(node,(list,tuple)):
-        orphanodes.extend(node)
+         s += ' n='+str(len(node))
+         if len(node)>0:
+            s += ' node[0]='+str(node[0])
+         orphanodes.extend(node)
+
     if trace:
-        print '\n** EN.orphans(',type(node),clear,') -> total =',len(orphanodes),'\n'
+        print '\n'+s+' (total='+str(len(orphanodes))+')'
     return orphanodes
+
 
 #-------------------------------------------------------------------------------
 
-def bundle_orphans (ns, parent='Composer', trace=True):
+def bundle_orphans (ns, parent='Composer', trace=False):
     """
     Bundle the collected orphan nodes (if any) in 'orphanodes' with the specified
     parent node, and return it. If orphanodes is empty, return None.

@@ -1102,9 +1102,9 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
   [child_names, labels] = child_labels(nodes, labels, trace=False)
 
   # The qsemi string contains 'semi-specific' help about the PyNodePlot class. 
-  qsemispec = """This PyNode uses the class PyNodeNamedGroups, which is used to make
-  extract and manipulate named groups (of values).
-  Groups may be specified by means of a groupspecs record.
+  qsemispec = """This PyNode uses the class PyNodeNamedGroups, which is used to
+  extract and manipulate 'named groups' (of values), e.g. for plotting etc.
+  Named groups may be specified by means of a groupspecs record.
   Use of the convenience function pynode_NamedGroup() is recommeded."""
 
   # Make a unique nodestub:

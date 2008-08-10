@@ -211,7 +211,7 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
 
 optoptrec = record()
 
-def optopt(opt, trace=True):
+def optopt(opt, trace=False):
    """Get the list of options for the specified (opt) TDLOption,
    depending on the current user level"""
    global opt_user_level
@@ -844,15 +844,14 @@ def on_exit (ns, rider, nodes=None,
     parent.initrec().quickref_help = rider.format_html(path=rider.path())
 
     #.......................................................................
+    # Progress messages (debugging):
 
     # Show a resulting subtree, if required:
-    if is_node(show_recurse):
-        print EN.format_tree(show_recurse)
-    elif show_recurse:
-        print EN.format_tree(parent, recurse=show_recurse)
-    elif runopt_show_bundles:
+    if runopt_show_bundles:
+        # Debugging only (see the generic runtime menu)
         print '\n** subtree under the bundle parent node (path=',rider.path(),'):'
         print EN.format_tree(parent, recurse=10)
+
     if trace:
         print '** QRU.on_exit() ->',str(parent),'\n'
 

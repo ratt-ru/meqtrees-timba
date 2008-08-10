@@ -80,7 +80,7 @@ def _define_forest (ns, **kwargs):
         bundles = []
         print '\n\n****** bundle_cat =',cat
         for name in bundle_names(cat):
-            t = bundle(ns, name, trace=True)
+            t = bundle(ns, name, trace=trace)
             JEN_bookmarks.create(t, page=name, folder=cat, recurse=2)
             bundles.append(t)
         cc.append(ns[cat] << Meq.Composer(*bundles))

@@ -400,19 +400,19 @@ def PyNodePlot_advanced (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, PyNodePlot_advanced)
    cc = []
-   viewer = []
 
    unodes = EB.bundle(ns,'cloud_n6s1', nodename='u')
    vnodes = EB.bundle(ns,'cloud_n6s1', nodename='v')
    wnodes = EB.bundle(ns,'cloud_n6s0.01', nodename='w')
+
    ruv_expr = 'sqrt(abs(({u}**2+{v}**2)))'
    gs = record(ruv=ruv_expr)
    cc.append(PNNG.pynode_NamedGroup(ns, 
                                     [PNNG.pynode_NamedGroup(ns, unodes, 'u'),
                                      PNNG.pynode_NamedGroup(ns, vnodes, 'v'),
                                      PNNG.pynode_NamedGroup(ns, wnodes, 'w')],
+                                    qviewer='Record Browser',
                                     groupspecs=gs))
-   viewer.append('Record Browser')
 
    psg = []
    psg.append(record(x='{u}', y='{v}', z='{w}', color='green'))
@@ -423,7 +423,6 @@ def PyNodePlot_advanced (ns, rider):
                  xlabel='u (wavelengths)')
    cc.append(PNP.pynode_Plot(ns, [cc[0]], plotspecs=record(graphics=psg),
                              **PNP.kwargs2legend(**kwargs)))
-   viewer.append('Pylab Plotter')
 
    psg = []
    psg.append(record(x='{produv}', y='{sumuv}', color='magenta', legend='sumuv vs produv'))
@@ -432,16 +431,12 @@ def PyNodePlot_advanced (ns, rider):
                  ylabel='produv/sumuv',
                  xlabel='sumuv/produv')
    gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
-   pynode = PNP.pynode_Plot(ns, [cc[0]],
-                            groupspecs=gs,
-                            plotspecs=record(graphics=psg),
-                            **PNP.kwargs2legend(**kwargs))
-   cc.append(pynode)
-   viewer.append('Pylab Plotter')
-   cc.append(pynode)
-   viewer.append('Record Browser')
-   
-                             
+   cc.append(PNP.pynode_Plot(ns, [cc[0]],
+                             groupspecs=gs,
+                             qviewer=[True,'Record Browser'],
+                             plotspecs=record(graphics=psg),
+                             **PNP.kwargs2legend(**kwargs)))
+                                
    return QRU.on_exit (ns, rider, cc, node_help=True,
                        show_recurse=True,
                        viewer='Pylab Plotter')

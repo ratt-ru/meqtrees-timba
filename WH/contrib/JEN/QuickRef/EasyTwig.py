@@ -1148,8 +1148,8 @@ def KuvLM (ns, uvLM=None, name='KuvLM', quals=None, kwquals=None,
     kwquals.update(vv)
     zero = twig(ns,'zero')
     karg = EN.unique_stub(ns,'karg', *quals+[cuLvM], **kwquals) << Meq.ToComplex(zero, uLvM)
-    print EN.format_node(karg, trace=False)
-    print EN.format_tree(karg)
+    # print EN.format_node(karg, trace=False)
+    # print EN.format_tree(karg)
     node = EN.unique_stub(ns,name, *quals, **kwquals) << Meq.Exp(karg)
 
     if trace:
