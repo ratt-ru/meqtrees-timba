@@ -153,6 +153,7 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
       v = rr[key]
       if key in ['class','children',
                  'quickref_help',
+                 # 'qdummynode',
                  'qspecific','qsemispec',
                  'qviewer','qbookmark']:
          pass
@@ -215,7 +216,8 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
 
    #..........................................
    if rider:
-      rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)
+      if not rr.has_key('qdummynode'):
+         rider.insert_help(rider.path(temp='node'), help=ss, append=True, trace=trace)
 
    #..........................................
    if trace:

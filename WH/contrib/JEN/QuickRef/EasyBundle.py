@@ -234,15 +234,35 @@ def bundle (ns, spec,
     """
     Return a bundle of nodes (subtrees), specified by the argument 'spec'.
     Normally, this will be a list of nodes (unless a parent is specified, see below).
-    - The name of the node(s) of the bundle is composed of 'nodename' (or 'spec'
-    .    if no nodename specified) and any nodename-qualifiers (quals=[list], kwquals=dict()).
-    - If n>1, spec is used to generate a bundle of n twigs (see EasyTwig.py) 
-    - If unop is specified (e.g. 'Cos', or ['Cos','Sin'], apply to the final bundle nodes.
-    - If parent is specified (e.g. 'Composer'), return a single parent node.
-    - If severe=True, give an error if spec not recognized
+
+    <code_lines>
+    import EasyBundle as EB
+    [nodes] = EB.bundle (ns, spec,
+    nodestub=None,
+    nodename=None, quals=None, kwquals=None,
+    unop=None, stddev=0.0, noise=0.0,
+    parent=None,
+    severe=True)
+    </code_lines>
+
+    Mandatory arguments:
+    <li> ns: nodescop
+    <li> spec: twig specification string (see below)
+
+    Optional arguments:
+    <li> n[=-1]: If n>1, spec is used to generate a bundle of n twigs (see EasyTwig.py) 
+    <li> nodestub[=None]: If specified, used for all twig nodes
+    <li> nodename[=None]: If not specified, a default name will be made (from spec etc)
+    <li> quals[=None]: If a list, used to qualify nodename
+    <li> kwquals[=None]: If a dict, used to qualify nodename
+    <li> unop=[None]: If specified (e.g. 'Cos', or ['Cos','Sin'], apply to the final bundle nodes.
+    <li> stddev[=0.0]: If >0, add a gaussian offset (MeqConstant) to the final twig node.
+    <li> noise[=0.0]: If >0, add gaussian noise (MeqGaussNoise) to the final twig node.
+    <li> parent[=None]: if specified (e.g. 'Composer'), return a single parent node.
+    <li> severe[=True]: If True, give an error if spec not recognized (otherwise return a Constant node)
 
     The following forms of 'spec' (string) are recognized:  
-    - cloud_n5s2m-4  :  cloud of n=5 MeqConstant nodes, with stddev (s) and mean (m) 
+    <li> cloud_n5s2m-4  :  cloud of n=5 MeqConstant nodes, with stddev (s) and mean (m) 
 
     """
     recognized_axes = ['f','t','L','M']       # used below...
@@ -361,20 +381,25 @@ def vis22 (ns, IQUV='Q0.1', nuv=10, L=0.0, M=0.0,
 def cloud (ns, spec='n3s1', nodename=None, quals=None, kwquals=None,
            parent=None, help=None, unop=None, override=None, trace=False):
     """
-    Syntax:
-    .    node = ET.cloud(ns, spec, nodename=None, quals=None, kwquals=None,
-    .                    parent=None, help=None, unop=None)
+    <code_lines>
+    import EasyBundle as EB
+    node = EB.cloud(ns, spec, nodename=None, quals=None, kwquals=None,
+    parent=None, help=None, unop=None)
+    </code_lines>
 
     Generate a cloud of MeqConstant nodes, according to the specification.
-    - n (nr of nodes) [=3]      nr of nodes in the cloud
-    - s (stddev) [=1.0]:        real, >0
-    - m (mean) [=0.0]:          if complex (a+bj), the result is complex
-    - a (stddev of ampl):       if >0, use MeqPolar (default=p)
-    - p (stddev of phase):      if >0, MeqPolar (default=a)
-    - r (stddev of real part):  if >0, use MeqToComplex (default=i)
-    - i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+    <li> n (nr of nodes) [=3]      nr of nodes in the cloud
+    <li> s (stddev) [=1.0]:        real, >0
+    <li> m (mean) [=0.0]:          if complex (a+bj), the result is complex
+    <li> a (stddev of ampl):       if >0, use MeqPolar (default=p)
+    <li> p (stddev of phase):      if >0, MeqPolar (default=a)
+    <li> r (stddev of real part):  if >0, use MeqToComplex (default=i)
+    <li> i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+    
     If a/p and r/i both specified (>0), MeqPolar (a/p) takes precedence.
+
     If parent is specified (e.g. 3, or [2,2]) make a tensor node.
+
     If parent=='noparent', return the first (and only?) node.
     """
 

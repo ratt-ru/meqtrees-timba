@@ -318,7 +318,7 @@ class CollatedHelpRecord (object):
    def topic_header(self, path=None, mode='html', trace=False):
        """
        Use the path string to make a QuickRef topic header.
-       Called from QuickRefUtil.py
+       Called from QuickRefUtil.py (also with mode=='prefix')
        """
        # The name of the bundle (node, page, folder) is the last
        # part of the path string, i.e. after the last dot ('.')
@@ -331,8 +331,11 @@ class CollatedHelpRecord (object):
 
        # Prepend a header:
        level = nss-2
-       qhead = '<h'+str(level+2)+'>\n '       # html tag (see CollatedHelpRecord())
-       qhead += '('+str(level+2)+')  '
+       qhead = ''
+       if mode=='html':
+          qhead += '<h'+str(level+2)+'>\n '   # html tag (see CollatedHelpRecord())
+          qhead += '('+str(level+2)+')  '
+
        if level==0:                           # i.e. nss=2
           qhead += 'MODULE: '+ss[nss-2]+'_'+ss[nss-1]
        elif level==1:                         # i.e. nss=3
@@ -343,10 +346,17 @@ class CollatedHelpRecord (object):
           qhead += 'sub-sub-TOPIC: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
        elif level>3:
           qhead += 'sub-sub-sub-...: '+ss[nss-3]+'_'+ss[nss-2]+'_'+ss[nss-1]
-       qhead += ' </h'+str(level+2)+'>'       # closing html tag
+
+       if mode=='html':
+          qhead += ' </h'+str(level+2)+'>'    # closing html tag
+
+       if mode=='prefix':                     # used for node-names
+          qhead = qhead.split(':')[0]
+          qhead += '__'
+          if level<1: qhead = ''
 
        if trace:
-          print '\n** topic_header(',path,'):\n    ->',qhead,'\n'
+          print '\n** topic_header(',path,mode,'):\n    ->',qhead,'\n'
        return qhead
 
    #---------------------------------------------------------------------

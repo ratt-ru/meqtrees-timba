@@ -692,13 +692,16 @@ def on_exit (ns, rider, nodes=None,
         if is_node(node):                   # an actual node -> bundle
             bundle.append(node)
 
-            if (not node.initrec().has_key('qbookmark')) or node.initrec()['qbookmark']:
-                # A bookmark may be inhibited by: qbookmark=False
+            if node.initrec().has_key('qbookmark') and (not node.initrec()['qbookmark']):
+                pass                        # A bookmark may be inhibited by: qbookmark=False
+            else:                           # assign a bookmark for this node
                 bookmarks.append(node)
                 viewers.append(viewer)                            # default viewer
-                if node.initrec().has_key('qviewer'):             # viewer specified
-                    # This is a convienient way of passing info via the node constructor.
-                    viewers[-1] = node.initrec()['qviewer']       # replace viewer
+                key = 'qviewer'
+                if node.initrec().has_key(key):                   # viewer specified
+                    vv = node.initrec()[key]
+                    if not vv==None:
+                        viewers[-1] = vv                          # replace viewer(s)
 
         elif isinstance(node,str):                            # assume a bundle help-text....(??)
             bhelp += rider.check_html_tags(str(node), include_style=False)
@@ -713,9 +716,10 @@ def on_exit (ns, rider, nodes=None,
     #.......................................................................
     # Add help to nodes in the bundle. The specific and semi-specific parts
     # are contained in the node state fields qspecific and qsemispec:
-    
-    for i,node in enumerate(bundle):
-        QRNH.node_help(bundle[i], rider=rider, trace=False)
+
+    if node_help:
+        for i,node in enumerate(bundle):
+            QRNH.node_help(bundle[i], rider=rider, trace=False)
 
     #.......................................................................
     # Append the contents of the help-argument, if string:
@@ -725,12 +729,13 @@ def on_exit (ns, rider, nodes=None,
     #.......................................................................
     # Make the bundle parent node:
     name = rider.nodestubname()
+    prefix = rider.topic_header(mode='prefix')
+    name = prefix+name       
     parent = EN.unique_stub(ns, name)
 
     if len(bundle)==0:
         # Special case: no nodes to be bundled:
-        parent << Meq.Constant(-0.123454321)
-        ## bookmark = False                      # just in case
+        parent << Meq.Constant(-0.123454321, qdummynode=True)
 
     else:
         if unop and len(bundle)>0:
@@ -875,7 +880,8 @@ def helpnode (ns, rider,
               func=None,
               trace=False):
     """
-    Syntax:
+    A help-node is a dummy node with a quickref_help field.
+
     <function_code>
     node = QRU.helpnode(ns, rider, name=None, node=None, help=None, func=None)
     </function_code>
@@ -888,35 +894,48 @@ def helpnode (ns, rider,
     
     Always make a bookmark for the node, with the 'QuickRef Display' viewer.
     """
+
+    qspec = 'This is a dummy node that carries a quickref_help field'
     
     hh = 'module'
     if func:
         hh = str(func.__module__)
         if getattr(func, 'func_name', None):
             name = str(func.func_name)+'()'
+            qspec += ' for the function: '+name
+            name = 'help_on_function__'+name
         else:
             ss = hh.split('.')
             name = ss[len(ss)-1]
+            qspec += ' for: '+name
+            name = 'help_on__'+name
         hh = '<font color="red">  (see module: '+hh+')</font>'
         help = func.__doc__
 
     elif not isinstance(name,str):
         name = rider.nodestubname()
+        qspec += ' for: '+name
+        name = 'help_on__'+name
 
+    else:
+        qspec += ' for: '+name
+        name = 'help_on__'+name
+
+    # Make a dummy node, if necessary:
+    if not is_node(node):
+        stub = EN.unique_stub(ns, name)
+        node = stub << Meq.Constant(value=-0.123456789, qdummynode=True)
+
+    # Attach qhelp to the node:
     qhelp = rider.html_style()
     qhelp += hh
     qhelp += rider.check_html_tags(help, include_style=False)
-
-    if not is_node(node):
-        stub = EN.unique_stub(ns, name)
-        node = stub << Meq.Constant(value=-0.123456789,
-                                    quickref_help=qhelp)
-    else:
-        EN.quickref_help(node, append=qhelp)
-        # node.initrec().update(record(quickref_help=qhelp))
+    node.initrec().quickref_help = qhelp
+    node.initrec().qspecific = qspec             # specific node-help
 
     # Make a bookmark with a suitable viewer:
-    viewer = 'QuickRef Display'                                    # when implemented...
+    viewer = 'QuickRef Display'           
+    node.initrec().qviewer = viewer
     JEN_bookmarks.create(node, page=name, folder='helpnodes', viewer=viewer)
     return node
 

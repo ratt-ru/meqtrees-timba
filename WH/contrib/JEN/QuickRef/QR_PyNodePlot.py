@@ -463,20 +463,18 @@ def PyNodePlot_scalars (ns, rider):
    In this case, the z-values are indicated by the size of their markers.
    """
    stub = QRU.on_entry(ns, rider, PyNodePlot_scalars)
+   cc = []
+
    xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
    ynodes = EB.bundle(ns,'cloud_n6s1', nodename='yyy')
    znodes = EB.bundle(ns,'cloud_n6s1')
-   cc = []
-   viewer = []
 
-   node = PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY',
-                          xlabel='xlabel', color='green')
-   cc.extend([node,node])
-   viewer.extend(['Pylab Plotter','Record Browser'])
+   cc.append(PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY',
+                             qviewer=[True, 'Record Browser'],
+                             xlabel='xlabel', color='green'))
 
-   node = PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ')
-   cc.extend([node,node])
-   viewer.extend(['Pylab Plotter','Record Browser'])
+   cc.append(PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ',
+                             qviewer=[True, 'Record Browser']))
 
    return QRU.on_exit (ns, rider, cc,
                        viewer='Pylab Plotter')
@@ -499,7 +497,8 @@ def PyNodePlot_complex (ns, rider):
    stub = QRU.on_entry(ns, rider, PyNodePlot_complex)
    cc = []
    cxnodes = EB.bundle(ns,'cloud_n6r1')
-   cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CY'))
+   cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CY',
+                             qviewer=['Pylab Plotter','Record Browser']))
    if False:
       # NB: This does not work (yet), see string2groupspecs()
       cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CXY'))
@@ -568,8 +567,8 @@ def PyNodePlot_concat (ns, rider):
    
    <code_lines>
    import PyNodeNamedGroups as PNNG
-   pynode_XX = PNP.pynode_NamedGroup(ns, xnodes, 'XX')
-   pynode_YY = PNP.pynode_NamedGroup(ns, ynodes, 'YY')
+   pynode_XX = PNNG.pynode_NamedGroup(ns, xnodes, 'XX')
+   pynode_YY = PNNG.pynode_NamedGroup(ns, ynodes, 'YY')
    
    import PyNodePlot as PNP
    pynode = PNP.pynode_Plot(ns, [pynode_XX, pynode_YY], plotspecs='XY')
@@ -590,25 +589,22 @@ def PyNodePlot_concat (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, PyNodePlot_concat)
    cc = []
-   viewer = []
+
    xnodes = EB.bundle(ns,'cloud_n6s1', nodename='xxx')
    ynodes = EB.bundle(ns,'cloud_n6s1', nodename='yyy')
    # znodes = EB.bundle(ns,'cloud_n6s1')
 
    cc.append(PNNG.pynode_NamedGroup(ns, xnodes, groupspecs='XX'))
-   viewer.append('Record Browser')
 
    cc.append(PNNG.pynode_NamedGroup(ns, ynodes, groupspecs='YY'))
-   viewer.append('Record Browser')
 
-   node = PNP.pynode_Plot(ns, cc, plotspecs='XY',
-                          xlabel='from pynode_XX',
-                          ylabel='from pynode_YY')
-   cc.extend([node,node])
-   viewer.extend(['Pylab Plotter','Record Browser'])
+   cc.append(PNP.pynode_Plot(ns, cc, plotspecs='XY',
+                             qviewer=['Pylab Plotter','Record Browser'],
+                             title='Plot YY vs XX',
+                             xlabel='x-coord from pynode_XX',
+                             ylabel='y-coord from pynode_YY'))
 
-   return QRU.on_exit (ns, rider, cc,
-                      viewer='Pylab Plotter')
+   return QRU.on_exit (ns, rider, cc)
 
 #================================================================================
 
@@ -650,7 +646,6 @@ def PyNodePlot_nonodes (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, PyNodePlot_nonodes)
    cc = []
-   viewer = []
 
    gs = record(x=range(2,8), y=range(2,8), a=range(2,8), b=range(2,8))
    
@@ -667,14 +662,10 @@ def PyNodePlot_nonodes (ns, rider):
                include_origin=True,
                title='nonodes')
 
-   pynode = PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps)
-   cc.append(pynode)
-   viewer.append('Record Browser')
-   cc.append(pynode)
-   viewer.append('Pylab Plotter')
+   cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps,
+                             qviewer=['Pylab Plotter','Record Browser']))
 
-   return QRU.on_exit (ns, rider, cc,
-                       viewer='Pylab Plotter')
+   return QRU.on_exit (ns, rider, cc, viewer='Pylab Plotter')
 
 
 
@@ -724,10 +715,15 @@ def PlotVIS22_linear (ns, rider):
    legend = ['IQUV='+str(IQUV)]
    legend.append('L='+str(L)+', M='+str(M))
 
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L', legend=legend))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG_annotate'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_QUV'))
+   qhelp = None
+
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L', legend=legend, qhelp=qhelp))
+   
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG_annotate', qhelp=qhelp))
+
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV', qhelp=qhelp))
+
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_QUV', qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc,
                        viewer='Pylab Plotter')
@@ -842,7 +838,9 @@ def PyNodeNamedGroups (ns, rider):
    PyNodes of class PyNodeNamedGroups manipulate 'named groups' of values,
    e.g. for plotting. The values are extracted from the results of its
    children, or supplied directly as a list of numbers.
-   Classes like PyNodePlot are derived from PyNodeNamedGroups.
+
+   NB: Classes like PyNodePlot are derived from PyNodeNamedGroups.
+   They plot (math expressions of) named groups against each other. 
    """
    stub = QRU.on_entry(ns, rider, PyNodeNamedGroups)
    cc = []
@@ -855,26 +853,34 @@ def PyNodeNamedGroups (ns, rider):
    if override or opt_PNNG_concat:
       cc.append(PyNodeNamedGroups_concat (ns, rider))
 
-   cc.append(QRU.helpnode(ns, rider, func=PNNG.string2groupspecs))
+   # cc.append(QRU.helpnode(ns, rider, func=PNNG.string2groupspecs))          # <----!
    # cc.append(QRU.helpnode(ns, rider, func=PNNG.string2record_VIS22))
 
-   return QRU.on_exit (ns, rider, cc,
-                       viewer='Record Browser')
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
 
 def PyNodeNamedGroups_basic (ns, rider):
    """
+   All it takes to make a PyNodeNamedGroups PyNode for named group {aa}:
+   <code_lines>
+   import PyNodeNamedGroups as PNNG
+   pynode = PNNG.pynode_NamedGroup(ns, nodes, 'aa')
+   </code_lines>
+
+   Inspect the state record of the resulting pynode to see what happens.
    """
    stub = QRU.on_entry(ns, rider, PyNodeNamedGroups_basic)
    cc = []
 
    anodes = EB.bundle(ns,'cloud_n6s1', nodename='aa')
-   cc.append(PNNG.pynode_NamedGroup(ns, anodes, groupspecs='a'))
+   qhelp = """A simple PyNodeNamedGroups PyNode, for a group named 'aa'""" 
+   cc.append(PNNG.pynode_NamedGroup(ns, anodes, groupspecs='aa', qhelp=qhelp))
    
-   return QRU.on_exit (ns, rider, cc,
-                       viewer='Record Browser')
+   cc.append(QRU.helpnode(ns, rider, func=PNNG.PyNodeNamedGroups))
+   # cc.append(QRU.helpnode(ns, rider, func=PNNG.string2groupspecs))       
+   return QRU.on_exit (ns, rider, cc, viewer='Record Browser')
 
 
 #================================================================================
@@ -949,7 +955,7 @@ def PyNodeNamedGroups_concat (ns, rider):
    
    Etc, etc. See also the more elaborate concatenation examples below....
    """
-   stub = QRU.on_entry(ns, rider, PyNodePlot_concat)
+   stub = QRU.on_entry(ns, rider, PyNodeNamedGroups_concat)
    cc = []
    anodes = EB.bundle(ns,'cloud_n6s1', nodename='aa')
    bnodes = EB.bundle(ns,'cloud_n6s1', nodename='bb')

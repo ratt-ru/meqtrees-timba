@@ -239,7 +239,6 @@ def thinlayer_TEC (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, thinlayer_TEC)
    cc = []
-   viewer = []
 
    h = float(getopt('opt_thinlayer_altitude',rider, trace=True))
    R = float(getopt('opt_thinlayer_Earth_radius',rider))

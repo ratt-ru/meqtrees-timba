@@ -669,6 +669,9 @@ def get_largest_common_string (ss, trace=False):
 
     if not isinstance(ss,(list,tuple)):
         lcs = 'not a list of strings, but: '+str(type(ss))
+        lcs = 'largest_common_string('+str(type(ss))+'??)'
+        lcs = None
+        # print '\n** lcs =',lcs,'\n'
         # raise ValueError,s
     elif len(ss)==0:
         lcs = '<empty list of strings>'
@@ -715,6 +718,8 @@ def get_plot_labels (nodes, lcs=None, trace=False):
         lcs = get_largest_common_string (names, trace=trace)
 
     if is_node(nodes):
+        ss = names                     # just return the node-names
+    elif not isinstance(lcs,str):           
         ss = names                     # just return the node-names
     elif lcs=='':           
         ss = names                     # just return the node-names

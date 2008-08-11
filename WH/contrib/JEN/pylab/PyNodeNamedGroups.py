@@ -940,9 +940,12 @@ class PyNodeNamedGroups (pynode.PyNode):
     for key in self._namedgroups.keys():
       kenc = '{'+key+'}'
       if kenc in expr:
-        ss = expr.replace(kenc, str(self._namedgroups[key].lcs))
+        ss = expr
+        lcs = self._namedgroups[key].lcs
+        if isinstance(lcs,str):
+          ss = expr.replace(kenc, lcs)
         if trace:
-          print '-',kenc,expr,'->',ss,'\n'
+          print '-',kenc,expr,lcs,'->',ss,'\n'
         return ss
     # If none found, return the input expr:
     return expr
@@ -1025,10 +1028,9 @@ class ExampleDerivedClass (PyNodeNamedGroups):
 #=====================================================================================
 
 
-#--------------------------------------------------------------------
-
 def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
                        labels=None, qhelp=None,
+                       qviewer='Record Browser',
                        nodename=None, quals=None, kwquals=None,
                        **kwargs):
   """
@@ -1075,13 +1077,37 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
   trace = False
   # trace = True
 
+  # Make a syntax string, to be combined with qhelp
+  sx = 'Syntax: pynode = PNNG.pynode_NamedGroup(ns'
+  if isinstance(nodes,(list,tuple)):
+    if is_node(nodes[0]):
+      sx += ', ['+str(len(nodes))+' nodes]'
+    else:
+      sx += ', ['+str(len(nodes))+' values]'
+  elif not nodes==None:
+    sx += ', nodes='+str(type(nodes))+'(??)'
+  if isinstance(groupspecs,str):
+    sx += ', "'+groupspecs+'"'
+  elif isinstance(groupspecs,dict):
+    sx += ', {groupspecs for: '+str(groupspecs.keys())+'}'
+  elif not groupspecs==None:
+    sx += ', groupspecs='+str(type(groupspecs))+'(??)'
+  if isinstance(labels,(list,tuple)):
+    sx += ', ['+str(len(labels))+' labels]'
+  elif not labels==None:
+    sx += ', labels='+str(type(labels))+'(??)'
+  for key in kwargs:
+    sx += ', '+str(key)+'='+str(kwargs[key])
+  sx += ')<br>'
+
+
   # Check the name of the new node: 
   if not isinstance(nodename, str):
     nodename = 'pynode_NamedGroup'
   else:
     nodename = 'pynode_NamedGroup_'+nodename
     
-
+  shelp = ''
   if isinstance(groupspecs, str):
     # Certain standard group-specs may be specified by a string:
     nodename += '_'+str(groupspecs)
@@ -1102,10 +1128,18 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
   [child_names, labels] = child_labels(nodes, labels, trace=False)
 
   # The qsemi string contains 'semi-specific' help about the PyNodePlot class. 
-  qsemispec = """This PyNode uses the class PyNodeNamedGroups, which is used to
+  qsemispec = """This type of PyNode is based on the class PyNodeNamedGroups, which is used to
   extract and manipulate 'named groups' (of values), e.g. for plotting etc.
   Named groups may be specified by means of a groupspecs record.
   Use of the convenience function pynode_NamedGroup() is recommeded."""
+
+  # The specific help is a combination of various help-elements:
+  key = 'qhelp'
+  if isinstance(gs,dict) and gs.has_key(key):
+    sx += gs[key]+'<br>'
+    gs.__delitem__(key)
+  if isinstance(qhelp,str):
+    sx += qhelp+'<br>'
 
   # Make a unique nodestub:
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
@@ -1115,8 +1149,9 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
                               child_labels=labels,
                               child_names=child_names,
                               groupspecs=gs,
-                              qspecific=qhelp,
+                              qspecific=sx,
                               qsemispec=qsemispec,
+                              qviewer=qviewer,
                               class_name='PyNodeNamedGroups',
                               module_name=__file__)
   if trace:
@@ -1165,103 +1200,116 @@ def child_labels(nodes, labels, trace=False):
   
 def string2groupspecs(ss, nodes=None, trace=False):
   """
-  Make a groupspecs record from the given string spec.
+  Make a PyNodeNamedGroups group specification (groupspecs) record
+  from the given string spec.
+  
   Recognized strings are:
-  <li> YY:        Take vells[0] for group y
-  <li> CY:        Take (complex) vells[0] for group y 
-  <li> XY:        Assume tensor nodes with vells[0,1] for groups x,y
-  <li> CXY:       Take real,imag part of vells[0] for groups x,y 
-  <li> XYZ:       Assume tensor nodes with vells[0,1,2] for groups x,y,z
-  <li> VELLS_ijk: Assume tensor nodes. Groups x,y,z from vells[i,j,k].
-  <li> XXYY:      Assume single list of equal nrs of x,y nodes
-  <li> XXYYZZ:    Assume single list of equal nrs of x,y,z nodes
+  <li> YY:        Take vells[0] for group {y}
+  <li> CY:        Take (complex) vells[0] for group {y} 
+  <li> XY:        Assume tensor nodes with vells[0,1] for groups {x},{y}
+  <li> CXY:       Take real,imag part of vells[0] for groups {x},{y} 
+  <li> XYZ:       Assume tensor nodes with vells[0,1,2] for groups {x},{y},{z}
+  <li> VELLS_ijk: Assume tensor nodes. Groups {x},{y},{z} from vells[i,j,k].
+  <li> XXYY:      Assume single list of equal nrs of {x},{y} nodes
+  <li> XXYYZZ:    Assume single list of equal nrs of {x},{y},{z} nodes
   <li> VIS22...:  Assume 2x2 tensor nodes. See string2record_VIS22()
-  <li> anything else: make a group of that name, with all vells[0]
+  <li> anything else: make a group of that {name}, with all vells[0]
                  (NB: group-name will be converted to lowercase...)
   """
   gs = record()
+  help = ss
 
   if ss in ['YY','CY']:
-    # Its children are assumed to have a single vells -> group y
+    help = 'The means of (vells[0] of) its child results are put into group {y}'
     gs.y = record(children='*', vells=[0])
   elif ss in ['XX']:
-    # Its children are assumed to have a single vells -> group x
+    help = 'The means of (vells[0] of) its child results are put into group {x}'
     gs.x = record(children='*', vells=[0])
   elif ss in ['ZZ']:    
-    # Its children are assumed to have a single vells -> group z
+    help = 'The means of (vells[0] of) its child results are put into group {z}'
     gs.z = record(children='*', vells=[0])
 
   elif ss=='XXYY':
-    # Its children are assumed to be in 2 concatenated lists (and have a single vells...)
+    help = """The first half of (vells[0] of) its child results are put into group {x},
+    and the second half in {y}"""
     gs.x = record(children='1/2', vells=[0])           # the 1st half
     gs.y = record(children='2/2', vells=[0])           # the 2nd half
   elif ss=='XXYYZZ':
-    # Its children are assumed to be in 3 concatenated lists (and have a single vells...)
+    help = """The first third of (vells[0] of) its child results are put into group {x},
+    the second third into {y}, and the third third into {z}"""
     gs.x = record(children='1/3', vells=[0])           # the 1st third
     gs.y = record(children='2/3', vells=[0])           # the 2nd third
     gs.z = record(children='3/3', vells=[0])           # the 3rd third
 
   elif ss=='CXY':
     # NB: This does not work, because 'expr' is not used (yet)...................!!
-    # Its children are assumed to nodes with complex vells[0]
+    help = """The real parts of (vells[0] of) its child results are put into group {x},
+    and the imag parts into group {y}"""
     gs.x = record(children='*', vells=[0], expr='real()')       # ...?
     gs.y = record(children='*', vells=[0], expr='imag()')       # ...?
 
   elif ss=='XY':
-    # Its children are assumed to be tensor nodes with (at least) 2 vells
+    help = 'Its children are assumed to be tensor nodes with (at least) 2 vells'
     gs.x = record(children='*', vells=[0]) 
     gs.y = record(children='*', vells=[1]) 
   elif ss=='XYZ':
-    # Its children are assumed to be tensor nodes with (at least) 3 vells
+    help = 'Its children are assumed to be tensor nodes with (at least) 3 vells'
     gs.x = record(children='*', vells=[0]) 
     gs.y = record(children='*', vells=[1]) 
     gs.z = record(children='*', vells=[2]) 
 
   elif 'VELLS_' in ss:
-    # Its children are assumed to be tensor nodes with at least as
-    # many vells as are required by the integers after '_'.
-    vv = ss.split('VELLS_')[1]                 # VELLS_34 -> vv = '34'
+    help = 'Its children are assumed to be tensor nodes.'
+    vv = ss.split('VELLS_')[1]                           # VELLS_34 -> vv = '34'
     if len(vv)==1:
+      help += 'Put vells['+vv[0]+'] into group {y}'
       gs.y = record(children='*', vells=[int(vv[0])])    # [3]
     elif len(vv)>1:
+      help += 'Put vells['+vv[0]+'] into group {x} and vells['+vv[1]+'] into group {y}'
       gs.x = record(children='*', vells=[int(vv[0])])    # [3]
       gs.y = record(children='*', vells=[int(vv[1])])    # [4]
       if len(vv)==3:
+        help += ' and vells['+vv[2]+'] into group {z}'
         gs.z = record(children='*', vells=[int(vv[2])])  # 
 
   elif 'VIS22' in ss:
-    # Special case: 2x2 cohaerency matrices
     gs = string2groupspecs_VIS22 (ss, trace=trace)
 
   else:
-    # Assume that the string is a groupname....
-    # NB: Convert the group-name to lowercase, because the meqbrowser
-    #     will converts it in any case....
-    gs[ss.lower()] = record(children='*', vells=[0])
+    help = 'Put the means of (vells[0] of) the child results into group {'+str(ss)+'}'
+    slower = ss.lower()
+    if not ss==slower:
+      help += ' (NB: The group-name is converted to lowercase, because the meqbrowser will convert it.)'
+    gs[slower] = record(children='*', vells=[0])
 
 
   #...............................................................
-  # The input 'nodes' may also be a list of values,
-  # from which a named group will be formed:
+  # The input 'nodes' may also be a list of values, from which a named group will be formed:
   values = False
   if isinstance(nodes, (int,float,complex)):
     values = True
     gs[ss.lower()] = [nodes]
+    help = 'Put the given value (='+str(nodes)+') into group {'+ss.lower()+'}'
   elif not isinstance(nodes,(list,tuple)):
+    help = 'The input nodes are not a list, but: '+str(type(type(nodes)))+' ....(?)'
     pass
   elif len(nodes)==0:
+    help = 'The input list of nodes/values is empty ...(?)'
     pass
   elif is_node(nodes[0]):
     pass
   else:
+    help = 'Put the given list of values into group {'+ss.lower()+'}'
     values = True
     gs[ss.lower()] = nodes
+
   #...............................................................
 
-  if False:
-    # Keep the spec-string (ss) that produced gs:
-    for key in gs.keys():
-      gs[key]['spec'] = ss
+  key = 'qhelp'
+  if not gs.has_key(key):
+    gs[key] = '* groupspecs="'+str(ss)+'":  '+str(help)
+
+  #...............................................................
 
   if trace:
     print '\n** string2groupspecs(',ss,values,'):\n    ',gs,'\n'
@@ -1273,24 +1321,32 @@ def string2groupspecs(ss, nodes=None, trace=False):
 def string2groupspecs_VIS22 (ss, trace=False):
   """
   Special case: visibilities.
-  Its children are assumed to be 2x2 tensor nodes (4 vells each).
-  See also PyNodePlotVIS22.py
+  The child nodes of the PyNodeNamedGroups PyNode are assumed
+  to be 2x2 tensor nodes (4 vells each).
   """
+
+  help = 'Assume that its children are 2x2 cohaerency matrices, and extract groups of complex values: '
   rr =  string2record_VIS22 (ss, trace=trace)
   gs = record()
   for icorr in rr.corrs:
     gname = rr.groupname[icorr]
+    help += '  {'+gname+'}(vells['+str(icorr)+'])'
     gs[gname] = record(children='*', vells=[icorr])
     if trace:
       print '-',icorr,gname,gs[gname]
+
+  gs.qhelp = '* groupspecs="'+str(ss)+'":  '+str(help)
   return gs
 
 #.....................................................................
 
 def string2record_VIS22 (ss, trace=False):
   """
-  Turns the given string (VIS22...) into a record of polarisation info,
-  which is used to define groupspecs and plotspecs for visibility plotting.
+  Turns the given string ('VIS22...') into a record of polarisation info,
+  which is used to define groupspecs for the manipulation (e.g. plotting)
+  of visibilities. The input string should start with 'VIS22C' or 'VIS22L',
+  followed by qualifiers starting with an underscore (e.g. 'VIS22C_DIAG' etc): 
+  
   <li> VIS22C: polrep='circular' (otherwise: polrep='linear')
   <li> _IQUV: convert to I,Q,U,V (otherwise: visibilities)
   <li> _QUV: convert to Q,U,V 
@@ -1301,10 +1357,11 @@ def string2record_VIS22 (ss, trace=False):
   
   NB: This function is also called from module PyNodePlot.py
   """
+  
   rr = record()
-
   rr.annotate = [True,False,False,False]
   rr.corrs = range(4)
+  rr.spec = ss
   rr.stokes = []
   rr.mode = 'vis'
   rr.color = ['red','magenta','green','blue']

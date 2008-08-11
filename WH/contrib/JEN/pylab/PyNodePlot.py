@@ -969,6 +969,8 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
 def pynode_Plot (ns, nodes=None, groupspecs=None,
                  plotspecs=None, labels=None,
                  qhelp=None,
+                 # qviewer=None,
+                 qviewer='Pylab Plotter',
                  nodename=None, quals=None, kwquals=None,
                  **kwargs):
   """
@@ -1020,8 +1022,37 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   
   """
 
+
   trace = False
   # trace = True
+
+  # Make a syntax string, to be combined with qhelp
+  sx = 'Syntax: pynode = PNP.pynode_Plot(ns'
+  if isinstance(nodes,(list,tuple)):
+    if is_node(nodes[0]):
+      sx += ', ['+str(len(nodes))+' nodes]'
+    else:
+      sx += ', ['+str(len(nodes))+' values]'
+  elif not nodes==None:
+    sx += ', nodes='+str(type(nodes))+'(??)'
+  if isinstance(groupspecs,str):
+    sx += ', "'+groupspecs+'"'
+  elif isinstance(groupspecs,dict):
+    sx += ', {groupspecs for:'+str(groupspecs.keys())+'}'
+  elif not groupspecs==None:
+    sx += ', groupspecs='+str(type(groupspecs))+'(??)'
+  if isinstance(plotspecs,dict):
+    sx += ', plotspecs={dict}'
+  elif not plotspecs==None:
+    sx += ', plotspecs='+str(type(plotspecs))
+  if isinstance(labels,(list,tuple)):
+    sx += ', ['+str(len(labels))+' labels]'
+  elif not labels==None:
+    sx += ', labels='+str(type(labels))+'(??)'
+  for key in kwargs:
+    sx += ', '+str(key)+'='+str(kwargs[key])
+  sx += ')<br>'
+
 
   if not isinstance(nodename, str):
     nodename = 'pynode_Plot'
@@ -1035,13 +1066,20 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
     nodename += '_'+str(groupspecs)
     gs = PNNG.string2groupspecs(groupspecs, nodes=nodes)
     ps = string2plotspecs(groupspecs, plotspecs=plotspecs)
-  elif not isinstance(groupspecs, dict):       # i.e. groupspecs=None
-    # pass
-    gs = PNNG.string2groupspecs('YY', nodes=nodes)
+
+  elif not isinstance(groupspecs, dict):       # i.e. groupspecs==None
+    # NB: If the groups are supplied by children (concatenation),
+    # it will have a plotspecs argument to tell it what to do with it
+    if plotspecs==None:
+      # Assume the simplest possible case, where all child results are simply
+      # plotted against child no. Make a default groupspecs record for that.
+      gs = PNNG.string2groupspecs('YY', nodes=nodes)
+
   else:
     # Assume a valid groupspecs record....? 
     nodename += '___gs'
     gs = groupspecs
+
 
   # If no labels specified, derive them from the child nodenames:
   [child_names, labels] = PNNG.child_labels(nodes, labels, trace=False)
@@ -1063,10 +1101,21 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
 
   # The qsemi string contains 'semi-specific' help about the PyNodePlot class. 
-  qsemispec = """This PyNode uses the class PyNodePlot, which may be used to make plots.
+  qsemispec = """This type of PyNode is based on the class PyNodePlot, which may be used to make plots.
   It is derived from the class PyNodeNamedGroups. Plots may be specified by means of
   a plotspecs record, and a groupspecs record.
   Use of the convenience function pynode_Plot() is recommeded."""
+
+  # The specific help is a combination of various help-elements:
+  key = 'qhelp'
+  if isinstance(gs,dict) and gs.has_key(key):
+    sx += gs[key]+'<br>'
+    gs.__delitem__(key)
+  if isinstance(ps,dict) and ps.has_key(key):
+    sx += ps[key]+'<br>'
+    ps.__delitem__(key)
+  if isinstance(qhelp,str):
+    sx += qhelp+'<br>'
 
   # Create the PyNode:
   pynode = stub << Meq.PyNode(children=nodes,
@@ -1074,8 +1123,9 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
                               child_names=child_names,
                               groupspecs=gs,
                               plotspecs=ps,
-                              qspecific=qhelp,                  # user-supplied
-                              qsemispec=qsemispec,              # generated here
+                              qspecific=sx,    
+                              qsemispec=qsemispec,
+                              qviewer=qviewer,
                               class_name='PyNodePlot',
                               module_name=__file__)
   if trace:
@@ -1117,11 +1167,12 @@ def kwargs2legend(**kwargs):
 
 def string2plotspecs(ss, plotspecs=None, trace=False):
   """
-  Make a plotspecs record from the given string spec.
-  If input plotspecs is a record, just add to it.
+  Make a PyNodePlot plotspecs record from the given string spec.
+  If the plotspecs argument is a record, assume that it is a valid plotspecs record,
+  and just add a subplot definition record it.
   
   Recognized strings are:
-  <li> Y or YY:   Plot group {y} against index nr (child no)
+  <li> YY:        Plot group {y} against index nr (child no)
   <li> XY:        Plot group {y} vs group {x}
   <li> XYZ:       Same as XY, but markersize controlled by group {z}
   <li> XXYYZZ:    Same as XYZ 
@@ -1133,6 +1184,7 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
 
   # Prepare the output plotspecs record (ps):
   ps = record()
+  help = ''
   if isinstance(plotspecs,dict):        # given by the user         
     ps = plotspecs                      # just add new items
   ps.setdefault('graphics',[])
@@ -1142,50 +1194,62 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
   ps.setdefault('ylabel','{y}')
 
   # Standard graphics subplot records (used below): 
-  gy = record(y='{y}', legend='y=yexpr', spec=ss)
-  gxy = record(x='{x}', y='{y}', legend=['x=xexpr','y=yexpr'], spec=ss)
-  gcxy = record(x='{y}.real', y='{y}.imag', spec=ss)
-  gxyz = record(x='{x}', y='{y}', z='{z}', legend=['x=xexpr','y=yexpr','z=zexpr'], spec=ss)
+  gy = record(y='{y}', legend='y=yexpr')
+  gx = record(y='{x}', legend='x=xexpr')
+  gz = record(y='{z}', legend='z=zexpr')
+  gxy = record(x='{x}', y='{y}', legend=['x=xexpr','y=yexpr'])
+  gcxy = record(x='{y}.real', y='{y}.imag')
+  gxyz = record(x='{x}', y='{y}', z='{z}', legend=['x=xexpr','y=yexpr','z=zexpr'])
 
   # Convert the input string (ss) into sub-plot record(s):
   if ss in ['YY']:
+    help = 'Plot group {y} vs child no'
     ps.graphics.append(gy)
     ps.xlabel = 'child no'
   elif ss in ['XX']:
-    ps.graphics.append(gy)                            # .....??
+    help = 'Plot group {x} vs child no'
+    ps.graphics.append(gx)            
     ps.xlabel = 'child no'
   elif ss in ['ZZ']:
-    ps.graphics.append(gy)                            # .....??
+    help = 'Plot group {z} vs child no'
+    ps.graphics.append(gz)            
     ps.xlabel = 'child no'
 
   elif ss in ['CY']:
+    help = 'Plot group {y}.real vs {y}.imag'
     ps.graphics.append(gcxy)          # x={y}.real and y={y}.imag (1 group)
-    ps.xlabel = 'real part of: {y}'
-    ps.ylabel = 'imag part of: {y}'
+    ps.xlabel = 'real part'
+    ps.ylabel = 'imag part'
   elif ss in ['CXY']:
+    help = 'Plot group {y} vs group {x}'
     # NB: This does not work (yet), see string2groupspecs()
     ps.graphics.append(gxy)           # x={x} and y={y} (2 groups)
     ps.xlabel = 'real'
     ps.ylabel = 'imag'
 
   elif ss in ['XXYY','XY']:
+    help = 'Plot group {y} vs group {x}'
     ps.graphics.append(gxy)
 
   elif ss in ['XXYYZZ','XYZ']:
+    help = 'Plot group {y} vs group {x}, use group {z} for marker-size'
     ps.graphics.append(gxyz)
     ps.zlabel = 'z'
 
   elif 'VELLS_' in ss:
     vv = ss.split('VELLS_')[1]                 # VELLS_34 -> vv = '34'
     if len(vv)==1:
+      help = 'Plot group {y} vs child no'
       ps.graphics.append(gy)
       ps.xlabel = 'child no'
       ps.ylabel = 'vells['+vv[0]+']'
     elif len(vv)==2:
+      help = 'Plot group {y} vs group {x}'
       ps.graphics.append(gxy)
       ps.xlabel = 'vells['+vv[0]+']'
       ps.ylabel = 'vells['+vv[1]+']'
     elif len(vv)==3:
+      help = 'Plot group {y} vs group {x}, use group {z} for marker-size'
       ps.graphics.append(gxyz)
       ps.xlabel = 'vells['+vv[0]+']'
       ps.ylabel = 'vells['+vv[1]+']'
@@ -1193,6 +1257,10 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
 
   elif 'VIS22' in ss:
     ps =  string2plotspecs_VIS22(ss, trace=trace)
+
+  key = 'qhelp'
+  if not ps.has_key(key):
+    ps[key] = '* plotspecs="'+str(ss)+'":  '+str(help)
 
   if trace:
     print '\n** string2plotspecs(',ss,'):\n    ',ps,'\n'
@@ -1205,11 +1273,17 @@ def string2plotspecs_VIS22 (ss, trace=False):
   Special case....
   See also PyNodePlotVIS22.py
   """
+    
   rr = PNNG.string2record_VIS22 (ss, trace=trace)
   ps = record(graphics=[])
   ii = rr.stokes                              # stokes (IQUV or QUV)
-  if len(ii)==0:
+  if len(rr.stokes)>0:
+    ii = rr.stokes
+  else:
     ii = rr.corrs                             # corrs (XX,YY etc)
+    help = 'Plot corrs: '+str(ii)
+
+  help = 'Make a real-vs-imag plot of (complex) groups: '
   for i in ii:
     psc = record(y=rr.expr[i],                # keep as complex values, i.e. NOT xy=..
                  color=rr.color[i],
@@ -1217,11 +1291,15 @@ def string2plotspecs_VIS22 (ss, trace=False):
                  marker=rr.marker[i],
                  markersize=rr.markersize[i],
                  annotate=rr.annotate[i])
+    help += '  '+str(rr.expr[i])
     if trace:
       print '-',i,psc
     ps.graphics.append(psc)
+    
   ps.xlabel = rr.xlabel
   ps.ylabel = rr.ylabel
+  ps.spec = ss
+  ps.qhelp = '* plotspecs="'+str(ss)+'":  '+str(help)
   ps.plot_circle_mean = True
   return ps
 

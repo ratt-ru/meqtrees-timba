@@ -324,18 +324,22 @@ def apply_unop (ns, node, unop=None, trace=False):
 def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
               shape=1, help=None, unop=None, trace=False):
     """
-    Syntax:
-    .    node = ET.noisetwig(ns, spec, nodename=None, quals=None, kwquals=None,
-    .                        shape=1, help=None, unop=None)
+    <code_lines>
+    import EasyTwig as ET
+    node = ET.noisetwig(ns, spec, nodename=None, quals=None, kwquals=None,
+    shape=1, help=None, unop=None)
+    </code_lines>
 
-    Generate a noise-twig, according to the specification.
-    - s (stddev) [=1.0]:        real, >0
-    - m (mean) [=0.0]:          if complex (a+bj), the result is complex
-    - a (stddev of ampl):       if >0, use MeqPolar (default=p)
-    - p (stddev of phase):      if >0, MeqPolar (default=a)
-    - r (stddev of real part):  if >0, use MeqToComplex (default=i)
-    - i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+    Generate a noise-twig, according to the specification (spec):
+    <li> s (stddev) [=1.0]:        real, >0
+    <li> m (mean) [=0.0]:          if complex (a+bj), the result is complex
+    <li> a (stddev of ampl):       if >0, use MeqPolar (default=p)
+    <li> p (stddev of phase):      if >0, MeqPolar (default=a)
+    <li> r (stddev of real part):  if >0, use MeqToComplex (default=i)
+    <li> i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+
     If a/p and r/i both specified (>0), MeqPolar (a/p) takes precedence.
+
     If shape is specified (e.g. 3, or [2,2]) make a tensor node.
     """
 
@@ -409,17 +413,20 @@ def noisetwig(ns, spec='s1m0', nodename=None, quals=None, kwquals=None,
 def random_offset (ns, spec='s1', nodename=None, quals=None, kwquals=None,
                    shape=1, help=None, unop=None, trace=False):
     """
-    Syntax:
-    .    node = ET.random_offset(ns, spec, nodename=None, quals=None, kwquals=None,
-    .                       parent=None, help=None, unop=None)
+    <code_lines>
+    import EasyTwig as ET
+    node = ET.random_offset(ns, spec, nodename=None, quals=None, kwquals=None,
+    parent=None, help=None, unop=None)
+    </code_lines>
 
-    Generate a random_offset of one MeqConstant node, according to the specification.
-    - s (stddev) [=1.0]:        real, >0
-    - m (mean) [=0.0]:          if complex (a+bj), the result is complex
-    - a (stddev of ampl):       if >0, use MeqPolar (default=p)
-    - p (stddev of phase):      if >0, MeqPolar (default=a)
-    - r (stddev of real part):  if >0, use MeqToComplex (default=i)
-    - i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+    Generate a random_offset of one MeqConstant node, according to the specification (spec):
+    <li> s (stddev) [=1.0]:        real, >0
+    <li> m (mean) [=0.0]:          if complex (a+bj), the result is complex
+    <li> a (stddev of ampl):       if >0, use MeqPolar (default=p)
+    <li> p (stddev of phase):      if >0, MeqPolar (default=a)
+    <li> r (stddev of real part):  if >0, use MeqToComplex (default=i)
+    <li> i (stddev of imag part):  if >0, use MeqToComplex (default=r)
+    
     If a/p and r/i both specified (>0), MeqPolar (a/p) takes precedence.
     """
 
@@ -495,39 +502,59 @@ def twig (ns, spec,
           unop=None, stddev=0.0, noise=0.0,
           severe=True, trace=False):
     """
-    Return a little subtree (a twig), specified by the argument 'spec'.
-    - The name of the rootnode of the twig is composed of 'nodename' (or 'spec'
-    .    if no nodename specified) and any nodename-qualifiers (quals=[list], kwquals=dict()).
-    - If unop is specified (e.g. 'Cos', or ['Cos','Sin'], apply to the final twig node.
-    - If stddev>0, add a gaussian offset (MeqConstant) to the final twig node.
-    - If noise>0, add gaussian noise (MeqGaussNoise) to the final twig node.
-    - If severe: give an error if spec not recognized (otherwise return a Constant node)
+    Return the rootnode of a smallish 'standard' subtree (twig), specified by spec (string). 
+    
+    <code_lines>
+    import EasyTwig as ET
+    node = ET.twig (ns, spec,
+    nodestub=None,
+    nodename=None, quals=None, kwquals=None,
+    unop=None, stddev=0.0, noise=0.0,
+    severe=True)
+    </code_lines>
+
+    Mandatory arguments:
+    <li> ns: nodescop
+    <li> spec: twig specification string (see below)
+
+    Optional arguments:
+    <li> nodestub[=None]: If specified, used for all twig nodes
+    <li> nodename[=None]: If not specified, a default name will be made (from spec etc)
+    <li> quals[=None]: If a list, used to qualify nodename
+    <li> kwquals[=None]: If a dict, used to qualify nodename
+    <li> unop=[None]: Unary operation(s), e.g. 'Cos', or ['Cos','Sin'], applied to the twig.
+    <li> stddev[=0.0]: If >0, add a gaussian offset (MeqConstant) to the final twig node.
+    <li> noise[=0.0]: If >0, add gaussian noise (MeqGaussNoise) to the final twig node.
+    <li> shape[=None]: used for tensor nodes...
+    <li> help[=None]: optional quickref_help string for node state record.... 
+    <li> severe[=True]: If True, give an error if spec not recognized (otherwise return a Constant node)
 
     The following forms of 'spec' (string) are recognized:  
 
-    - f,t,L,M,X,Y,Z                :  Grid(axis=freq/time/L/M/X/Y/Z)
-    - cx_ft, cx_tf, cx_LM, cx_XY   :  Complex twigs
-    - f**t, t**f, f+t, ft          :
+    <li> f,t,L,M,X,Y,Z                :  Grid(axis=freq/time/L/M/X/Y/Z)
+    <li> cx_ft, cx_tf, cx_LM, cx_XY   :  Complex twigs
+    <li> f**t, t**f, f+t, ft          :
     
-    - range_4        :  a 4-element (0,1,2,3) 'tensor' node
-    - noise_s3.5     :  GaussNoise(stddev=3.5)                stddev>0
-    - expnoise_s4    :  Exp(GaussNoise(stddev=4))             generate peaks, for flagging
-    - cloud_n5s2m-4  :  cloud of n=5 MeqConstant nodes, with stddev (s) and mean (m) 
+    <li> range_4        :  a 4-element (0,1,2,3) 'tensor' node
+    <li> noise_s3.5     :  GaussNoise(stddev=3.5)                stddev>0
+    <li> expnoise_s4    :  Exp(GaussNoise(stddev=4))             generate peaks, for flagging
+    <li> cloud_n5s2m-4  :  cloud of n=5 MeqConstant nodes, with stddev (s) and mean (m) 
 
     Twig specs often have an 'ftLM' string, which specifies powers of f,t,L,M.
     For instance, f2t4L0 means f**2, t**4 and L**0 (=1). For instance:
-    - sum_f2t2       :  f**2 + t**2
-    - sum_c-3.4t0L3  :  -3.4 + t**0 + L**3
-    - prod_c5f1t2L3M4 :  5(f**1)(t**2)(L**3)(M**4)
+    <li> sum_f2t2       :  f**2 + t**2
+    <li> sum_c-3.4t0L3  :  -3.4 + t**0 + L**3
+    <li> prod_c5f1t2L3M4 :  5(f**1)(t**2)(L**3)(M**4)
+
     NB: The ORDER of the variables in the ftLM string MUST be f,t,L,M  
 
-    - tensor_ftM     :  3-element (f,t,M) 'tensor' node 
-    - gaussian_ftLM  :  4D Gaussian, around 0.0, width=1.0 
-    - expnegsum_f2t2 :  exp(-(f**2 + t**2))                   equivalent to gaussian_ft
-    - polyparm_L3M4  :  polynomial in L,M, with MeqParms      use EN.find_parms(twig) 
-    - polyparm_tLMXYZ :  polynomial in t,L,M,X,Y,Z with MeqParms    MIM
-    - cpscohlin_I2Q-0.1 : 2x2 matrix of CPS cohaerencies (polrep=linear) 
-    - cpscohcir_I10V0.01 : 2x2 matrix of CPS cohaerencies (polrep=circular) 
+    <li> tensor_ftM     :  3-element (f,t,M) 'tensor' node 
+    <li> gaussian_ftLM  :  4D Gaussian, around 0.0, width=1.0 
+    <li> expnegsum_f2t2 :  exp(-(f**2 + t**2))                   equivalent to gaussian_ft
+    <li> polyparm_L3M4  :  polynomial in L,M, with MeqParms      use EN.find_parms(twig) 
+    <li> polyparm_tLMXYZ :  polynomial in t,L,M,X,Y,Z with MeqParms    MIM
+    <li> cpscohlin_I2Q-0.1 : 2x2 matrix of CPS cohaerencies (polrep=linear) 
+    <li> cpscohcir_I10V0.01 : 2x2 matrix of CPS cohaerencies (polrep=circular) 
 
     An already existing (i.e. a node of that name is initialized) twig is re-used.
     If the twig name is not recognized, a constant node is generated.
