@@ -15,6 +15,7 @@
 #   - 09 jul 2008: improved helpnode() behaviour
 #   - 26 jul 2008: changed quickref_help into string etc
 #   - 28 jul 2008: moved format_record() etc to EasyFormat.py
+#   - 14 aug 2008: made a single _tdl_job_execute()
 #
 # Remarks:
 #
@@ -121,7 +122,8 @@ TDLRuntimeMenu("Custom Settings:",
                        TDLOption('runopt_fontsize',"hardcopy font size",
                                  [7,4,5,6,8], more=int),
                        ),
-)
+               )
+
 TDLRuntimeMenu("Parameters of the Request domain(s):",
                # None,
                TDLOption('runopt_separator',"",['']),
@@ -199,6 +201,28 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                )
 
 # TDLRuntimeOptionSeparator()
+
+#-------------------------------------------------------------------------------------
+
+def exec_domains(group=None, first=None):
+    """Return a list of valid execution domains, to be used by _tdl_job_execute().
+    """
+    dd = []
+    dd.extend(['1D_freq','1D_time'])
+    dd.extend(['2D_ft'])
+    dd.extend(['1D_L','1D_M'])
+    dd.extend(['2D_LM'])
+    dd.extend(['1D_X','1D_Y','1D_Z'])
+    dd.extend(['3D_XYZ'])
+    dd.extend(['4D_ftLM','4D_LMXY'])
+    dd.extend(['5D_LMXYZ'])
+    dd.extend(['6D_tLMXYZ'])
+    if isinstance(first,str):
+        dd.insert(0,first)
+    return dd
+
+TDLRuntimeOption('runopt_exec_domain',"axes for _tdl_execute domain",
+                 exec_domains(), more=str)
 
 
 #============================================================================
@@ -286,8 +310,13 @@ def make_cells (axes=['freq','time'], offset=None, trace=False):
         print '\n',s1
 
     # First some checks:
+    if len(axes)==0:
+        s = s1+'**error**  no axes specified'
+        raise ValueError,s
+
     raxes = ['freq','time','L','M','X','Y','Z']        # list of recognized axes
-    for axis in axes:
+    raxes.extend(['f','t'])                            # recognized aliases
+    for i,axis in enumerate(axes):
         if not axis in raxes:
             s = s1+'**error**  axis not recognized: '+str(axis)
             raise ValueError,s
@@ -303,26 +332,26 @@ def make_cells (axes=['freq','time'], offset=None, trace=False):
     # Make the records for meq.gen_domain() and meq.gen_cells():
     dd = record()
     nn = record()
-    if 'freq' in axes:
-        dd.freq = (runopt_fmin+offset['freq'], runopt_fmax+offset['freq'])
+    if ('freq' in axes) or ('f' in axes):
+        dd.freq = minmax(runopt_fmin, runopt_fmax, offset['freq'])
         nn.num_freq = runopt_nfreq
-    if 'time' in axes:
-        dd.time = (runopt_tmin+offset['time'], runopt_tmax+offset['time'])
+    if ('time' in axes) or ('t' in axes):
+        dd.time = minmax(runopt_tmin, runopt_tmax, offset['time'])
         nn.num_time = runopt_ntime
     if 'L' in axes:
-        dd.L = (runopt_Lmin+offset['L'], runopt_Lmax+offset['L'])
+        dd.L = minmax(runopt_Lmin, runopt_Lmax, offset['L'])
         nn.num_L = runopt_nL
     if 'M' in axes:
-        dd.M = (runopt_Mmin+offset['M'], runopt_Mmax+offset['M'])
+        dd.M = minmax(runopt_Mmin, runopt_Mmax, offset['M'])
         nn.num_M = runopt_nM
     if 'X' in axes:
-        dd.X = (runopt_Xmin+offset['X'], runopt_Xmax+offset['X'])
+        dd.X = minmax(runopt_Xmin, runopt_Xmax, offset['X'])
         nn.num_X = runopt_nX
     if 'Y' in axes:
-        dd.Y = (runopt_Ymin+offset['Y'], runopt_Ymax+offset['Y'])
+        dd.Y = minmax(runopt_Ymin, runopt_Ymax, offset['Y'])
         nn.num_Y = runopt_nY
     if 'Z' in axes:
-        dd.Z = (runopt_Zmin+offset['Z'], runopt_Zmax+offset['Z'])
+        dd.Z = minmax(runopt_Zmin, runopt_Zmax, offset['Z'])
         nn.num_Z = runopt_nZ
 
     if trace:
@@ -336,117 +365,47 @@ def make_cells (axes=['freq','time'], offset=None, trace=False):
 
 #----------------------------------------------------------------------------
 
-def _tdl_job_execute_1D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (freq) domain."""
-    return execute_ND (mqs, parent, axes=['freq'], rootnode=rootnode)
-
-def _tdl_job_execute_f (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (freq) domain."""
-    return execute_ND (mqs, parent, axes=['freq'], rootnode=rootnode)
-
-def _tdl_job_execute_t (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (time) domain."""
-    return execute_ND (mqs, parent, axes=['time'], rootnode=rootnode)
-
-def _tdl_job_execute_L (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (L) domain."""
-    return execute_ND (mqs, parent, axes=['L'], rootnode=rootnode)
-
-def _tdl_job_execute_M (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (M) domain."""
-    return execute_ND (mqs, parent, axes=['M'], rootnode=rootnode)
-
-def _tdl_job_execute_X (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (X) domain."""
-    return execute_ND (mqs, parent, axes=['X'], rootnode=rootnode)
-
-def _tdl_job_execute_Y (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (Y) domain."""
-    return execute_ND (mqs, parent, axes=['Y'], rootnode=rootnode)
-
-def _tdl_job_execute_Z (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 1D (Z) domain."""
-    return execute_ND (mqs, parent, axes=['Z'], rootnode=rootnode)
-
-
-#----------------------------------------------------------------------------
-
-def _tdl_job_execute_2D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 2D domain (freq,time)."""
-    return execute_ND (mqs, parent, axes=['freq','time'], rootnode=rootnode)
-
-def _tdl_job_execute_ft (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 2D domain (freq,time)."""
-    return execute_ND (mqs, parent, axes=['freq','time'], rootnode=rootnode)
-
-def _tdl_job_execute_LM (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 2D domain (L,M)."""
-    return execute_ND (mqs, parent, axes=['L','M'], rootnode=rootnode)
-
-def _tdl_job_execute_XY (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 2D domain (X,Y)."""
-    return execute_ND (mqs, parent, axes=['X','Y'], rootnode=rootnode)
-
-#----------------------------------------------------------------------------
-
-def _tdl_job_execute_3D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 3D domain (freq,time,L)."""
-    return execute_ND (mqs, parent, axes=['freq','time','L'], rootnode=rootnode)
-
-def _tdl_job_execute_ftL (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 3D domain (freq,time,L)."""
-    return execute_ND (mqs, parent, axes=['freq','time','L'], rootnode=rootnode)
-
-def _tdl_job_execute_XYZ (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 3D domain (X,Y,Z)."""
-    return execute_ND (mqs, parent, axes=['X','Y','Z'], rootnode=rootnode)
-
-#----------------------------------------------------------------------------
-
-def _tdl_job_execute_4D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 4D domain (freq,time,L,M)."""
-    return execute_ND (mqs, parent, axes=['freq','time','L','M'], rootnode=rootnode)
-
-def _tdl_job_execute_ftLM (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 4D domain (freq,time,L,M)."""
-    return execute_ND (mqs, parent, axes=['freq','time','L','M'], rootnode=rootnode)
-
-def _tdl_job_execute_ftXY (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 4D domain (freq,time,X,Y)."""
-    return execute_ND (mqs, parent, axes=['freq','time','X','Y'], rootnode=rootnode)
-
-#----------------------------------------------------------------------------
-
-def _tdl_job_execute_5D (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 5D domain (L,M,X,Y,Z)."""
-    return execute_ND (mqs, parent, axes=['L','M','X','Y','Z'], rootnode=rootnode)
-
-def _tdl_job_execute_LMXYZ (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 5D domain (L,M,X,Y,Z)."""
-    return execute_ND (mqs, parent, axes=['L','M','X','Y','Z'], rootnode=rootnode)
-
-#----------------------------------------------------------------------------
-
-def _tdl_job_execute_6D_MIM (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 6D (MIM) domain (time,L,M,X,Y,Z)."""
-    return execute_ND (mqs, parent, axes=['time','L','M','X','Y','Z'], rootnode=rootnode)
-
-def _tdl_job_execute_tLMXYZ (mqs, parent, rootnode='QuickRefUtil'):
-    """Execute the forest with a 6D (MIM) domain (time,L,M,X,Y,Z)."""
-    return execute_ND (mqs, parent, axes=['time','L','M','X','Y','Z'], rootnode=rootnode)
-
-#----------------------------------------------------------------------------
-#----------------------------------------------------------------------------
-
-def execute_ND (mqs, parent, axes=['freq','time'], rootnode='QuickRefUtil'):
-    """Execute the forest with an ND domain, as specified by axes.
+def minmax (vmin, vmax, offset=0.0):
     """
+    Helper function to make sure that vmin and vmax are not the same.
+    (the bowser cannot handle that, and dies ignominiously....)
+    Called fom make_cells().
+    """
+    delta = 0.0
+    if vmin==vmax:
+        delta = max(abs(vmin),abs(vmax))*0.000001
+        if delta==0.0:
+            delta = 0.000001
+    mm = (vmin-delta+offset, vmax+delta+offset)
+    return mm
+
+#----------------------------------------------------------------------------
+#----------------------------------------------------------------------------
+
+def _tdl_job_execute (mqs, parent, rootnode='QuickRefUtil', trace=True):
+    """
+    Execute the forest with the domain (axes) specified by runopt_exec_domain.
+    """
+    domain = runopt_exec_domain                    # see TDLRuntimeOptions
+    aa = domain.split('_')
+    if len(aa)>1:
+        aa = aa[1]
+    else:
+        aa = aa[0]
+    axes = []
+    for axis in ['freq','f','time','t','L','M','X','Y','Z']:
+        if axis in aa:
+            axes.append(axis)
+
     cells = make_cells(axes=axes)
     request = make_request(cells)
     result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
+
+    if trace:
+        print '\n** _tdl_job_execute('+str(domain)+'):',aa,axes,'->',result,'\n'
     return result
 
-#----------------------------------------------------------------------------
+
 #----------------------------------------------------------------------------
 
 def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
@@ -457,17 +416,25 @@ def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
         print '** runopt_seq_nfreq =',runopt_seq_nfreq, range(runopt_seq_nfreq)
         print '** runopt_seq_ntime =',runopt_seq_ntime, range(runopt_seq_ntime)
 
+    df = (runopt_fmax - runopt_fmin) 
+    if df==0.0:
+        df = 0.000001
+    dt = (runopt_tmax - runopt_tmin)
+    if dt==0.0:
+        dt = 0.000001
+
     for ifreq in range(runopt_seq_nfreq):
-        foffset = (runopt_fmax - runopt_fmin)*ifreq*runopt_seq_fstep
+        foffset = df*ifreq*runopt_seq_fstep
         if runopt_show_request:
             print '\n** ifreq =',ifreq,' foffset =',foffset
         for itime in range(runopt_seq_ntime):
-            toffset = (runopt_tmax - runopt_tmin)*itime*runopt_seq_tstep
+            toffset = dt*itime*runopt_seq_tstep
             if runopt_show_request:
                 print '   - itime =',itime,' toffset =',toffset
             cells = make_cells(offset=dict(freq=foffset, time=toffset))
             request = make_request(cells)
             result = mqs.meq('Node.Execute',record(name=rootnode, request=request))
+
     # Finished:
     print '\n** _tdl_job_execute_sequence(): finished\n'
     return result
@@ -479,6 +446,8 @@ def _tdl_job_execute_sequence (mqs, parent, rootnode='QuickRefUtil'):
     # result = mqs.meq('Node.Execute',record(name='QuickRefUtil', request=request), wait=True)
     # time.sleep(1)
 
+
+#----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
 def _tdl_job_m (mqs, parent):
@@ -585,11 +554,19 @@ def on_entry(ns, rider, func, trace=False):
 # Get TDL option value: 
 #-------------------------------------------------------------------------------
 
-def getopt (name, value, rider=None, notrec=None, trace=False):
+def getopt (globals, name, rider=None, severe=True, trace=False):
    """
-   Helper function to read TDL option values and dispose of them.
+   Helper function to read the named TDL option value, and return it.
+   The globals argument is the result of globals() in the calling module.
+   If severe==True, throw an exception when not recognized.
+   If a rider is given, a suitable message is inserted into the hierarchical help.
    """
    # trace = True
+
+   # Read the value from globals (If the name does not exist, notrec is returned):
+   notrec = '_UnDef_'
+   value = globals.get(name, notrec)
+
    qhelp = ''
    qhelp += '<font color="red" size=2>'
    qhelp += '** TDLOption: '+str(name)+' = '
@@ -597,16 +574,29 @@ def getopt (name, value, rider=None, notrec=None, trace=False):
        qhelp += '"'+str(value)+'"'
    else:
        qhelp += str(value)
-   qhelp += '</font><br>'
+   
    if value==notrec:            
-       qhelp += ' (option name not recognized?)'
+       qhelp += '<font color="red" size=5>'
+       s = ' (option "'+name+'" not recognized)'
+       qhelp += s
+       qhelp += '</font>'
        trace = True
+       if severe:
+           raise ValueError,s
+
+   qhelp += '</font>'
+   qhelp += '<br>'
+
    if rider:
        path = rider.path()   
        rider.insert_help (path, qhelp, append=True)
+
    if trace:
       print '\n**',qhelp,'\n'
    return value
+
+
+
 
 
 
@@ -715,11 +705,13 @@ def on_exit (ns, rider, nodes=None,
 
     #.......................................................................
     # Add help to nodes in the bundle. The specific and semi-specific parts
-    # are contained in the node state fields qspecific and qsemispec:
+    # are contained in the node state fields qhelp, qspecific and qsemispec:
 
     if node_help:
-        for i,node in enumerate(bundle):
-            QRNH.node_help(bundle[i], rider=rider, trace=False)
+        # nn = bundle                   # do for all the nodes in the bundle
+        nn = bookmarks                # do for the bookmarked nodes only (better)
+        for i,node in enumerate(nn):
+            QRNH.node_help(nn[i], rider=rider, trace=False)
 
     #.......................................................................
     # Append the contents of the help-argument, if string:

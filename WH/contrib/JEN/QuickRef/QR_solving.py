@@ -302,13 +302,15 @@ def basic_onepolc (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, basic_onepolc)
 
-   lhs = ET.twig(ns, getopt('opt_basic_twig', rider),
+   lhs = ET.twig(ns, QRU.getopt(globals(), 'opt_basic_twig', rider),
                  nodestub=stub('lhs'))
-   tiling = record(freq=getopt('opt_basic_tiling_freq', rider),
-                   time=getopt('opt_basic_tiling_time', rider))
-   fdeg = getopt('opt_basic_onepolc_fdeg', rider)
-   tdeg = getopt('opt_basic_onepolc_tdeg', rider)
-   mepfile = getopt('opt_basic_onepolc_mepfile', rider)
+   mepfile = QRU.getopt(globals(), 'opt_basic_mepfile', rider)
+
+   tiling = record(freq=QRU.getopt(globals(), 'opt_basic_tiling_freq', rider),
+                   time=QRU.getopt(globals(), 'opt_basic_tiling_time', rider))
+   fdeg = QRU.getopt(globals(), 'opt_basic_onepolc_fdeg', rider)
+   tdeg = QRU.getopt(globals(), 'opt_basic_onepolc_tdeg', rider)
+
    rhs = stub('rhs') << Meq.Parm(0.0,
                                  tags=['tag1','tag2'],
                                  shape=[tdeg+1,fdeg+1],
@@ -333,21 +335,6 @@ def basic_onepolc (ns, rider):
 
 
 
-
-
-
-
-#********************************************************************************
-#********************************************************************************
-# Helper functions: 
-#********************************************************************************
-
-def getopt (name, rider=None, trace=False):
-   """
-   Standard helper function to read the named TDL option in an organized way.
-   """
-   value = globals().get(name)                  # gives an error if it does not exist
-   return QRU.getopt(name, value, rider=rider, trace=trace)
 
 
 
@@ -378,17 +365,11 @@ def _define_forest (ns, **kwargs):
    
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_3D_ftL (mqs, parent):
-   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
+def _tdl_job_execute (mqs, parent):
+   """Execute the tree, starting at the specified rootnode,
+   with the ND request-domain (axes) specified in the
+   TDLRuntimeOptions (see QuickRefUtils.py)"""
+   return QRU._tdl_job_execute (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)

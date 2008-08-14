@@ -192,9 +192,9 @@ def format_record(rr, txt=None, ss=None, level=0, full=False, mode='str'):
                 else:
                     stddev = '??'
             ss += prefix+str(key)+': n='+str(nel)
-            ss += '   mean='+str(vv.mean())
-            ss += '   stddev='+str(stddev)
-            ss += '   [min,max]='+str([vv.min(),vv.max()])
+            ss += '   mean='+format_value(vv.mean())
+            ss += '   stddev='+format_value(stddev)
+            ss += '   [min,max]='+str([format_value(vv.min()),format_value(vv.max())])
             if full:
                 ss += prefix+str(key)+' ('+str(type(rr[key]))+') = '+str(rr[key])
                 

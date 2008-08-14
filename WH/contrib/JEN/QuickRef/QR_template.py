@@ -394,22 +394,14 @@ def _define_forest (ns, **kwargs):
 
 
 #--------------------------------------------------------------------------------
-# Functions that execute the demo tree of this module with different requests.
-# Many such functions are defined in QuickRefUtil.py (QRU).
-# Make a selection that is suitable for this particular QR module.
+# Functions for executing the tree:
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_3D_ftL (mqs, parent):
-   return QRU._tdl_job_execute_ftL (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
+def _tdl_job_execute (mqs, parent):
+   """Execute the tree, starting at the specified rootnode,
+   with the ND request-domain (axes) specified in the
+   TDLRuntimeOptions (see QuickRefUtils.py)"""
+   return QRU._tdl_job_execute (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)

@@ -436,7 +436,6 @@ class PyNodeNamedGroups (pynode.PyNode):
     if trace:
       print '\n** _extract_namedgroups():'
     
-    # import ChildResult
     nc = len(children)
 
     # First do the groupspecs that are records (they extract values from children):
@@ -1097,7 +1096,12 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
   elif not labels==None:
     sx += ', labels='+str(type(labels))+'(??)'
   for key in kwargs:
-    sx += ', '+str(key)+'='+str(kwargs[key])
+    v = kwargs[key]
+    sx += ', '+str(key)+'='
+    if isinstance(v,str):
+      sx += '"'+str(kwargs[key])+'"'
+    else:
+      sx += str(kwargs[key])
   sx += ')<br>'
 
 
@@ -1138,8 +1142,6 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
   if isinstance(gs,dict) and gs.has_key(key):
     sx += gs[key]+'<br>'
     gs.__delitem__(key)
-  if isinstance(qhelp,str):
-    sx += qhelp+'<br>'
 
   # Make a unique nodestub:
   stub = EN.unique_stub(ns, nodename, quals=quals, kwquals=kwquals)
@@ -1151,6 +1153,7 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
                               groupspecs=gs,
                               qspecific=sx,
                               qsemispec=qsemispec,
+                              qhelp=qhelp,
                               qviewer=qviewer,
                               class_name='PyNodeNamedGroups',
                               module_name=__file__)

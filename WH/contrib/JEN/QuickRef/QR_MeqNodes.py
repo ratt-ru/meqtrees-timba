@@ -83,6 +83,7 @@ from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
+from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 
 # import math
 # import random
@@ -132,7 +133,10 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                             TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
                                       [1,2]),
                             toggle='opt_resampling'),
-                    TDLOption('opt_compounder',"compounder",False),
+                    TDLMenu("compounder",
+                            TDLOption('opt_compounder_simple',"simple",False),
+                            TDLOption('opt_compounder_advanced',"advanced",False),
+                            toggle='opt_compounder'),
                     TDLMenu("flagging",
                             TDLOption('opt_flagging_twig',"input twig (child node)",
                                       ET.twig_names('noise', first='noise_3'), more=str),
@@ -353,7 +357,7 @@ def visualization_inspector (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, visualization_inspector)
    
-   tname = getopt('opt_visualization_inspector_twig', rider)
+   tname = QRU.getopt(globals(), 'opt_visualization_inspector_twig', rider)
    twig = ET.twig(ns, tname)
    cc = []
    plot_label = []
@@ -478,7 +482,7 @@ def flagging_simple (ns, rider):
    stub = QRU.on_entry(ns, rider, flagging_simple)
    cc = []
 
-   cc.append(stub('input') << Meq.Exp(ET.twig(ns, getopt('opt_flagging_twig',rider))))
+   cc.append(stub('input') << Meq.Exp(ET.twig(ns, QRU.getopt(globals(), 'opt_flagging_twig',rider))))
    cc.append(stub('mean') << Meq.Mean(cc[0]))
    cc.append(stub('stddev') << Meq.StdDev(cc[0]))
    stddev = cc[-1]
@@ -488,7 +492,7 @@ def flagging_simple (ns, rider):
    cc.append(stub('absdev') << Meq.Abs(dev, qhelp=qhelp))
    absdev = cc[-1]
    
-   nsigma = getopt('opt_flagging_nsigma',rider)
+   nsigma = QRU.getopt(globals(), 'opt_flagging_nsigma',rider)
    cc.append(stub('abscrit') << Meq.Multiply(nsigma,stddev))
 
    qhelp ="""The zero-criterion is the absolute deviation from the mean,
@@ -512,13 +516,16 @@ def flagging_simple (ns, rider):
 def compounder (ns, rider):
    """
    The MeqCompounder node interpolates ....
-   The extra_axes argument
-   should be a MeqComposer that bundles the extra (coordinate) children,
+   The extra_axes argument should be a MeqComposer that bundles the extra (coordinate) children,
    described by the common_axes argument (e.g. [hiid('L'),hiid('M')].                  
    """
    stub = QRU.on_entry(ns, rider, compounder)
    cc = []
-   cc.append(compounder_simple (ns, rider))
+   override = opt_alltopics
+   if override or opt_compounder_simple:
+      cc.append(compounder_simple (ns, rider))
+   if override or opt_compounder_advanced:
+      cc.append(compounder_advanced (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
@@ -532,15 +539,13 @@ def compounder_simple (ns, rider):
    The result of each compounder is a constant, with values that decrease with
    the distance to the origin.
 
-   Expected values are:
-   <li> v(0,0) = 1.00000
-   <li> v(1,1) = 0.13533
-   <li> v(2,2) = 0.00335
-   <li> v(0,1) = v(1,0) = 0.36788
-   <li> v(0,2) = v(2,0) = 0.01831
-   <li> v(2,1) = v(1,2) = 0.00673
-
-   A similar 2D gaussian (in f,t) is shown for comparison.
+   Expected values v(L,M) are (compare with the plot):
+   <li> v(0,0) = 1.0
+   <li> v(1,1) = 0.1353
+   <li> v(2,2) = 0.0036
+   <li> v(0,1) = v(1,0) = 0.3678
+   <li> v(0,2) = v(2,0) = 0.0183
+   <li> v(2,1) = v(1,2) = 0.0067
 
    <remark>
    Try executing with a 4D domain....
@@ -548,18 +553,105 @@ def compounder_simple (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, compounder_simple)
 
-   twig_LM = ET.twig(ns,'gaussian_LM')
-   twig_ft = ET.twig(ns,'gaussian_ft')
+   twigspec = 'gaussian_LM'
+   twig_LM = ET.twig(ns,twigspec)
    common_axes = [hiid('L'),hiid('M')]
-   cc = []
+   LL = []
+   ll = []
    for L in [0,1,2]:
-      for M in [0,1,2]:
-         LM = [(ns << L), (ns << M)]
-         extra_axes = stub('extra_axes')(L=L)(M=M) << Meq.Composer(*LM)
-         cc.append(stub('compounder')(L=L)(M=M) << Meq.Compounder(extra_axes, twig_LM,
-                                                                  common_axes=common_axes))
-   cs = stub('Compounders') << Meq.Composer(*cc)
-   return QRU.on_exit (ns, rider, nodes=[cs,cc[1],twig_LM,twig_ft], node_help=True)
+      ll.append(L)
+      LL.append(stub(L=L) << L)
+   MM = []
+   mm = []
+   for M in [0,1,2]:
+      mm.append(M)
+      MM.append(stub(M=M) << M)
+   xx = []
+   yy = []
+   zz = []
+   for i,L in enumerate(LL):
+      for j,M in enumerate(MM):
+         xx.append(L)
+         yy.append(M)
+         extra_axes = stub('extra_axes')(i)(j) << Meq.Composer(L,M)
+         qhelp = 'This compounder samples the function at point (L,M)=('+str(ll[i])+','+str(mm[j])+').'
+         zz.append(stub('compounder')(i)(j) << Meq.Compounder(extra_axes, twig_LM,
+                                                              qhelp=qhelp,
+                                                              common_axes=common_axes))
+
+   # Bundle the compounders, to provide them with a request: 
+   cs = stub('compounders') << Meq.Composer(children=zz, qbookmark=False)
+   
+   qhelp = """The points represent the values of the LM-function
+   at the compounder sample points (L,M)"""
+   pynode = PNP.pynode_Plot(ns, xx+yy+zz, 'XXYYZZ',
+                            title='results of grid (L,M) of compounders',
+                            qhelp=qhelp,
+                            zlabel='z ='+twigspec,
+                            xlabel='L', ylabel='M') 
+
+   return QRU.on_exit (ns, rider,
+                       nodes=[cs,zz[1],pynode,twig_LM],
+                       node_help=True)
+
+#--------------------------------------------------------------------------------
+  
+def compounder_advanced (ns, rider):
+   """
+   Explore the behaviour of the compounder if the function is not sampled at a point (L,M)
+   but over a sampling-domain of finite size. This is done by using MeqGrid nodes rather
+   than MeqConstant nodes for the 'extra_axes' L and M.
+   """
+   stub = QRU.on_entry(ns, rider, compounder_advanced)
+
+   twigspec = 'gaussian_LM'
+   twig_LM = ET.twig(ns,twigspec)
+   common_axes = [hiid('L'),hiid('M')]
+   zz = []
+
+   l = 0
+   m = 1
+   L = ns << l
+   M = ns << m
+   extra_axes = stub('extra_axes')(l)(m) << Meq.Composer(L,M)
+   qhelp = 'This compounder samples the function at point (L,M)=('+str(l)+','+str(m)+').'
+   zz.append(stub('compounder')(l)(m) << Meq.Compounder(extra_axes, twig_LM,
+                                                        qhelp=qhelp,
+                                                        common_axes=common_axes))
+   axes = 'GridLM'
+   L = ET.twig(ns,'L')
+   M = ET.twig(ns,'M')
+   extra_axes = stub('extra_axes')(axes) << Meq.Composer(L,M)
+   qhelp = 'This compounder samples the function at MeqGrids L and M.'
+   zz.append(stub('compounder')(axes) << Meq.Compounder(extra_axes, twig_LM,
+                                                            qhelp=qhelp,
+                                                            common_axes=common_axes))
+   axes = 'GridL'
+   m = 1
+   L = ET.twig(ns,'L')
+   M = ns << m
+   extra_axes = stub('extra_axes')(axes)(m) << Meq.Composer(L,M)
+   qhelp = 'This compounder samples the function at MeqGridL and M='+str(m)+'.'
+   zz.append(stub('compounder')(axes)(m) << Meq.Compounder(extra_axes, twig_LM,
+                                                           qhelp=qhelp,
+                                                           common_axes=common_axes))
+
+   axes = 'GridM'
+   l = 1
+   M = ET.twig(ns,'M')
+   L = ns << l
+   extra_axes = stub('extra_axes')(l)(axes) << Meq.Composer(L,M)
+   qhelp = 'This compounder samples the function at MeqGridM and L='+str(l)+'.'
+   zz.append(stub('compounder')(l)(axes) << Meq.Compounder(extra_axes, twig_LM,
+                                                           qhelp=qhelp,
+                                                           common_axes=common_axes))
+
+   # Bundle the compounders, to provide them with a request: 
+   cs = stub('compounders') << Meq.Composer(children=zz, qbookmark=False)
+   
+   return QRU.on_exit (ns, rider,
+                       nodes=[cs,zz[0],zz[1],zz[2],zz[3],twig_LM],
+                       node_help=True)
 
 
 #--------------------------------------------------------------------------------
@@ -593,10 +685,10 @@ def resampling (ns, rider):
    stub = QRU.on_entry(ns, rider, resampling)
    cc = []
 
-   twig = ET.twig (ns, getopt('opt_resampling_MeqModRes_twig',rider))
-   num_cells = [getopt('opt_resampling_MeqModRes_num_time',rider),
-                getopt('opt_resampling_MeqModRes_num_freq',rider)]
-   mode = getopt('opt_resampling_MeqResampler_mode',rider)
+   twig = ET.twig (ns, QRU.getopt(globals(), 'opt_resampling_MeqModRes_twig',rider))
+   num_cells = [QRU.getopt(globals(), 'opt_resampling_MeqModRes_num_time',rider),
+                QRU.getopt(globals(), 'opt_resampling_MeqModRes_num_freq',rider)]
+   mode = QRU.getopt(globals(), 'opt_resampling_MeqResampler_mode',rider)
    cc.append(resampling_experiment (ns, rider, twig, num_cells, mode))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -1065,7 +1157,7 @@ def unops (ns, rider):
    of the function value vs its argument. 
    """
    stub = QRU.on_entry(ns, rider, unops)
-   twig = ET.twig (ns, getopt('opt_unops_twig',rider),
+   twig = ET.twig (ns, QRU.getopt(globals(), 'opt_unops_twig',rider),
                    nodename='unops_single_child')
    cc = [] 
    cc.append(unops_elementary (ns, rider, twig))
@@ -1216,8 +1308,8 @@ def binops (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, binops)
    print '\n** rider.path()=',rider.path(),' stub=',str(stub)
-   lhs = ET.twig(ns, getopt('opt_binops_lhs',rider), nodename='lhs')   # left-hand side (child)
-   rhs = ET.twig(ns, getopt('opt_binops_rhs',rider), nodename='rhs')   # right-hand side (child)
+   lhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_lhs',rider), nodename='lhs')   # left-hand side (child)
+   rhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_rhs',rider), nodename='rhs')   # right-hand side (child)
    cc = [lhs,rhs]
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
    # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
@@ -1249,13 +1341,13 @@ def multimath (ns, rider):
    cc = []
 
    # Make the child-related vectors (ignore the ones with opt=None):
-   twigs = [ET.twig(ns,getopt('opt_multimath_twig1',rider))]
+   twigs = [ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig1',rider))]
    weights = [1.0]
-   if getopt('opt_multimath_twig2',rider):
-      twigs.append(ET.twig(ns,getopt('opt_multimath_twig2',rider)))
+   if QRU.getopt(globals(), 'opt_multimath_twig2',rider):
+      twigs.append(ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig2',rider)))
       weights.append(2.0)
-   if getopt('opt_multimath_twig3',rider):
-      twigs.append(ET.twig(ns,getopt('opt_multimath_twig3',rider)))
+   if QRU.getopt(globals(), 'opt_multimath_twig3',rider):
+      twigs.append(ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig3',rider)))
       weights.append(3.0)
 
    # Attach the input twigs to the bundle, for inspection.
@@ -1278,20 +1370,6 @@ def multimath (ns, rider):
 
 
 
-
-
-
-#********************************************************************************
-#********************************************************************************
-# Helper functions: 
-#********************************************************************************
-
-def getopt (name, rider=None, trace=False):
-   """
-   Standard helper function to read the named TDL option in an organized way.
-   """
-   value = globals().get(name)                  # gives an error if it does not exist
-   return QRU.getopt(name, value, rider=rider, trace=trace)
 
 
 
@@ -1326,23 +1404,17 @@ def _define_forest (ns, **kwargs):
 
 #--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_1D_t (mqs, parent):
-   return QRU._tdl_job_execute_t (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_3D_XYZ (mqs, parent):
-   return QRU._tdl_job_execute_XYZ (mqs, parent, rootnode=rootnodename)
+def _tdl_job_execute (mqs, parent):
+   """Execute the tree, starting at the specified rootnode,
+   with the ND request-domain (axes) specified in the
+   TDLRuntimeOptions (see QuickRefUtils.py)"""
+   return QRU._tdl_job_execute (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
+   """Execute a sequence of requests""" 
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
+
+#--------------------------------------------------------------------------------
 
 def _tdl_job_m (mqs, parent):
    return QRU._tdl_job_m (mqs, parent)

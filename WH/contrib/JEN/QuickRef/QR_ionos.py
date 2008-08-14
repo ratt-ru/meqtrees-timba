@@ -91,7 +91,7 @@ oo = TDLCompileMenu("QR_ionos topics:",
                                       [6370,1e3,1e4,1e9], more=float),
                             TDLOption('opt_thinlayer_vTEC0',"vertical TEC0 (TECU)",
                                       [1,2,5,10,100,0.0], more=float),
-                            TDLOption('opt_thinlayer_vTECxy',"vertical TECxy (TECU)",
+                            TDLOption('opt_thinlayer_vTECxy',"vertical TEC xy-variation (TECU)",
                                       [None,
                                        '0.1*numpy.cos(0.01*{x}+0.5)',
                                        '0.1*numpy.cos(0.1*{x}+0.5)'],
@@ -107,6 +107,8 @@ oo = TDLCompileMenu("QR_ionos topics:",
                                     toggle='opt_thinlayer_TEC'),
                             
                             TDLMenu("MIM",
+                                    TDLOption('opt_thinlayer_MIM_twig',"MIM polyparm",
+                                              ['polyparm_LMXYZ','polyparm_L2M2X2Y2Z2'], more=str),
                                     toggle='opt_thinlayer_MIM'),
                             toggle='opt_thinlayer'),
                     
@@ -240,13 +242,13 @@ def thinlayer_TEC (ns, rider):
    stub = QRU.on_entry(ns, rider, thinlayer_TEC)
    cc = []
 
-   h = float(getopt('opt_thinlayer_altitude',rider, trace=True))
-   R = float(getopt('opt_thinlayer_Earth_radius',rider))
-   vTEC0 = float(getopt('opt_thinlayer_vTEC0',rider))
-   vTECxy = getopt('opt_thinlayer_vTECxy',rider)
-   wvl = float(getopt('opt_thinlayer_wvl',rider))
-   bmax = float(getopt('opt_thinlayer_bmax',rider))
-   zdir = getopt('opt_thinlayer_zdir',rider)
+   h = float(QRU.getopt(globals(), 'opt_thinlayer_altitude',rider))
+   R = float(QRU.getopt(globals(), 'opt_thinlayer_Earth_radius',rider))
+   vTEC0 = float(QRU.getopt(globals(), 'opt_thinlayer_vTEC0',rider))
+   vTECxy = QRU.getopt(globals(), 'opt_thinlayer_vTECxy',rider)
+   wvl = float(QRU.getopt(globals(), 'opt_thinlayer_wvl',rider))
+   bmax = float(QRU.getopt(globals(), 'opt_thinlayer_bmax',rider))
+   zdir = QRU.getopt(globals(), 'opt_thinlayer_zdir',rider)
 
    zmax = numpy.pi/2
    dz = zmax/30
@@ -316,7 +318,11 @@ def thinlayer_TEC (ns, rider):
       cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps))
 
    legend.append('variation of zenith angle in '+str(zdir)+' direction')
-   legend.append('vertical TEC = '+str(vTEC0)+' + '+str(vTECxy)+' TECU')
+   s = 'vertical TEC = '+str(vTEC0)
+   if isinstance(vTECxy, str):
+      s += ' + '+str(vTECxy)
+   s += ' TECU'
+   legend.append(s)
 
    if True:
       psg = []
@@ -385,10 +391,82 @@ def thinlayer_MIM (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, thinlayer_MIM)
    cc = []
+   twigspec = QRU.getopt(globals(), 'opt_thinlayer_MIM_twig', rider)
+   MIM = ET.twig(ns, twigspec)
+   cc.append(MIM)
 
    return QRU.on_exit (ns, rider, cc)
 
 
+
+#--------------------------------------------------------------------------------
+# Copied from QR_MeqNodes.py (temporary)
+#--------------------------------------------------------------------------------
+  
+def compounder_simple (ns, rider):
+   """
+   Demonstration of a 'grid' of compounders, which sample a grid of points (L,M)
+   of a 2D gaussian input twig (subtree): 'gaussian_LM' -> exp(-(L**2+M**2)).
+   Execute with a 2D (f,t) domain.
+   The result of each compounder is a constant, with values that decrease with
+   the distance to the origin.
+
+   Expected values v(L,M) are (compare with the plot):
+   <li> v(0,0) = 1.0
+   <li> v(1,1) = 0.1353
+   <li> v(2,2) = 0.0036
+   <li> v(0,1) = v(1,0) = 0.3678
+   <li> v(0,2) = v(2,0) = 0.0183
+   <li> v(2,1) = v(1,2) = 0.0067
+
+   <remark>
+   Try executing with a 4D domain....
+   </remark>
+   """
+   stub = QRU.on_entry(ns, rider, compounder_simple)
+
+   twigspec = 'gaussian_LM'
+   twig_LM = ET.twig(ns,twigspec)
+   common_axes = [hiid('L'),hiid('M')]
+   LL = []
+   ll = []
+   for L in [0,1,2]:
+      ll.append(L)
+      LL.append(stub(L=L) << L)
+   MM = []
+   mm = []
+   for M in [0,1,2]:
+      mm.append(M)
+      MM.append(stub(M=M) << M)
+   xx = []
+   yy = []
+   zz = []
+   for i,L in enumerate(LL):
+      for j,M in enumerate(MM):
+         xx.append(L)
+         yy.append(M)
+         extra_axes = stub('extra_axes')(i)(j) << Meq.Composer(L,M)
+         qhelp = 'This compounder samples the function at point (L,M)=('+str(ll[i])+','+str(mm[j])+').'
+         zz.append(stub('compounder')(i)(j) << Meq.Compounder(extra_axes, twig_LM,
+                                                              qhelp=qhelp,
+                                                              common_axes=common_axes))
+
+   # Bundle the compounders, to provide them with a request: 
+   cs = stub('compounders') << Meq.Composer(children=zz, qbookmark=False)
+   
+   qhelp = """The points represent the values of the LM-function
+   at the compounder sample points (L,M)"""
+   pynode = PNP.pynode_Plot(ns, xx+yy+zz, 'XXYYZZ',
+                            title='results of grid (L,M) of compounders',
+                            qhelp=qhelp,
+                            zlabel='z ='+twigspec,
+                            xlabel='L', ylabel='M') 
+
+   return QRU.on_exit (ns, rider,
+                       nodes=[cs,zz[1],pynode,twig_LM],
+                       node_help=True)
+
+#--------------------------------------------------------------------------------
 
 #================================================================================
 # GPS:
@@ -509,20 +587,6 @@ def local_zenith_angles_xy (x=0,y=0,z=0,l=0,m=0, R=6370.0, trace=False):
 
 #********************************************************************************
 #********************************************************************************
-# Helper functions: 
-#********************************************************************************
-
-def getopt (name, rider=None, trace=False):
-   """
-   Standard helper function to read the named TDL option in an organized way.
-   """
-   value = globals().get(name)                  # gives an error if it does not exist
-   return QRU.getopt(name, value, rider=rider, trace=trace)
-
-
-
-#********************************************************************************
-#********************************************************************************
 # Standalone forest (i.e. not part of QuickRef.py) of this QR_module.
 # Just load it into the browser, and compile/execute it.
 #********************************************************************************
@@ -549,19 +613,12 @@ def _define_forest (ns, **kwargs):
 
 
 #--------------------------------------------------------------------------------
-# Functions that execute the demo tree of this module with different requests.
-# Many such functions are defined in QuickRefUtil.py (QRU).
-# Make a selection that is suitable for this particular QR module.
-#--------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_1D (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_6D_tLMXYZ (mqs, parent):
-   return QRU._tdl_job_execute_tLMXYZ (mqs, parent, rootnode=rootnodename)
+def _tdl_job_execute (mqs, parent):
+   """Execute the tree, starting at the specified rootnode,
+   with the ND request-domain (axes) specified in the
+   TDLRuntimeOptions (see QuickRefUtils.py)"""
+   return QRU._tdl_job_execute (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)

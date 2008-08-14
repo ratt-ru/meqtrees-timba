@@ -859,10 +859,11 @@ def twig (ns, spec,
             qhelp += '  (stddev='+str(stddev)+')'
         if noise:
             qhelp += '  (noise='+str(noise)+')'
-        if not node.initrec().has_key('qhelp'):
-            # Attach only if the node does not have a qhelp field yet
+        key = 'qspecific' 
+        if not node.initrec().has_key(key):
+            # Attach only if the node does not have a qspecific field yet
             # (it may have been set in a function like polyparm()) 
-            node.initrec().qhelp = qhelp
+            node.initrec()[key] = qhelp
 
     if trace:
         print '\n**',s1

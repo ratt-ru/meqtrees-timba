@@ -250,17 +250,6 @@ TDLCompileMenu("QuickRef Categories:",
                toggle='opt_QuickRef',
                )
 
-#********************************************************************************
-#********************************************************************************
-# Helper functions: 
-#********************************************************************************
-
-def getopt (name, rider=None, trace=False):
-   """
-   Standard helper function to read the named TDL option in an organized way.
-   """
-   value = globals().get(name)                  # gives an error if it does not exist
-   return QRU.getopt(name, value, rider=rider, trace=trace)
 
 #-------------------------------------------------------------------------------
 
@@ -314,14 +303,11 @@ TDLRuntimeMenu(":")
 
 #-------------------------------------------------------------------------------
 
-def _tdl_job_execute_1D_f (mqs, parent):
-   return QRU._tdl_job_execute_f (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_2D_ft (mqs, parent):
-   return QRU._tdl_job_execute_ft (mqs, parent, rootnode=rootnodename)
-
-def _tdl_job_execute_4D_ftLM (mqs, parent):
-   return QRU._tdl_job_execute_ftLM (mqs, parent, rootnode=rootnodename)
+def _tdl_job_execute (mqs, parent):
+   """Execute the tree, starting at the specified rootnode,
+   with the ND request-domain (axes) specified in the
+   TDLRuntimeOptions (see QuickRefUtils.py)"""
+   return QRU._tdl_job_execute (mqs, parent, rootnode=rootnodename)
 
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)

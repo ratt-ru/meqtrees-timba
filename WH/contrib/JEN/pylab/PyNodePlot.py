@@ -71,7 +71,7 @@ import Meow.Bookmarks
 
 # from Timba import pynode
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
-from Timba.Contrib.JEN.pylab import ChildResult
+# from Timba.Contrib.JEN.pylab import ChildResult
 from Timba.Contrib.JEN.pylab import Figure
 from Timba.Contrib.JEN.pylab import Graphics
 
@@ -160,6 +160,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   <li> title      [=<classname>]:  plot title
   <li> xlabel     [='child']:      x-axis label
   <li> ylabel     [='result']:     y-axis label
+  <li> zlabel     [=None]:         z-axis label
   <li> xunit      [=None]:         x-axis unit (string)
   <li> yunit      [=None]:         y-axis unit (string)
   <li> zunit      [=None]:         z-axis unit (string)
@@ -389,7 +390,8 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
       self._pskeys[plotype] = []
 
     # Overall parameters 
-    ss = ['title','xlabel','ylabel','xunit','yunit','zunit']
+    ss = ['title','xlabel','ylabel','zlabel',
+          'xunit','yunit','zunit']
     ss.extend(['xmin','xmax','ymin','ymax'])
     ss.extend(['include_origin','include_xaxis','include_yaxis'])
     ss.extend(['offset'])                             # ....?
@@ -402,6 +404,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr.setdefault('title', self.name) 
     rr.setdefault('xlabel', 'child') 
     rr.setdefault('ylabel', 'result') 
+    rr.setdefault('zlabel', None) 
     rr.setdefault('xmin', None) 
     rr.setdefault('xmax', None) 
     rr.setdefault('ymin', None) 
@@ -496,6 +499,7 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
       self._plotdefs[key] = self.plotspecs[key]
     self._plotdefs['xlabel'] = self._expr2lcs(self._plotdefs['xlabel'])
     self._plotdefs['ylabel'] = self._expr2lcs(self._plotdefs['ylabel'])
+    # self._plotdefs['zlabel'] = self._expr2lcs(self._plotdefs['zlabel'])
 
     for plotype in self._plotypes:                # for all plot types
       self._plotdefs[plotype] = []          
@@ -649,14 +653,26 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     pd.zmin = min(pd.zz)
     pd.zmax = max(pd.zz)
     nsig = 3                        # nr of significant digits
-    s = 'z-range=['+EN.EF.format_value(pd.zmin, nsig=nsig)
-    s += ', '+EN.EF.format_value(pd.zmax, nsig=nsig)+']'
-    pd.legend.append(s)
+
     q = (rr.msmax-rr.msmin)/(pd.zmax-pd.zmin)
     ms = []
+    zlabels = []
     for i,z in enumerate(pd.zz):
       ms.append(int(rr.msmin+q*(z-pd.zmin)))
+      zlabels.append(EN.EF.format_value((z)))
     pd.markersize = ms
+
+    if pd.labels==None:
+      pd.labels = zlabels
+    else:
+      s = 'z-range=['+EN.EF.format_value(pd.zmin, nsig=nsig)
+      s += ', '+EN.EF.format_value(pd.zmax, nsig=nsig)+']'
+      pd.legend.append(s)
+
+    if rr.has_key('zlabel'):
+      if isinstance(rr.zlabel,str):
+        pd.legend.append('zlabel: '+str(rr.zlabel))
+      
     return True
 
   #-------------------------------------------------------------------
@@ -666,16 +682,39 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     Helper function to calculate some statistics for the specified
     (key) vector in the given plot definition (pd) record, and attach them.
     """
-    import pylab
-    vv = pylab.array(pd[key])  
-    if len(vv)>0:
-      pd.min = vv.min()
-      pd.max = vv.max()
-      pd.mean = vv.mean()
+    if True:
+      vv = pd[key]
+      pd.min = 1e20
+      pd.max = -1e20
+      pd.mean = 0.0
       pd.stddev = 0.0
-      if len(vv)>1:
-        if not isinstance(vv[0],complex):
-          pd.stddev = vv.std()       
+      for v in vv:
+        pd.min = min(pd.min,v)
+        pd.max = max(pd.max,v)
+        pd.mean += v
+        pd.stddev += v*v
+      nv = len(vv)
+      if nv>0:
+        pd.mean /= float(nv)
+        if nv==1 or isinstance(vv[0],complex):
+          pd.stddev = 0.0
+        else:
+          pd.stddev /= float(nv)
+          pd.stddev -= (pd.mean*pd.mean)
+          pd.stddev = numpy.sqrt(abs(pd.stddev))
+
+    else:
+      # 
+      import pylab
+      vv = pylab.array(pd[key])  
+      if len(vv)>0:
+        pd.min = vv.min()
+        pd.max = vv.max()
+        pd.mean = vv.mean()
+        pd.stddev = 0.0
+        if len(vv)>1:
+          if not isinstance(vv[0],complex):
+            pd.stddev = vv.std()       
     return True
 
 
@@ -1014,9 +1053,8 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   There are various possibilities:
   
   <li> gs=string, ps=None:   One of the standard plots (e.g. gs='XXYY') -> gs and ps. 
-  <li> gs=None, ps=None:     The simplest possible case: interpreted as gs='YY'
+  <li> gs=None, ps=None:     The simplest possible case: interpreted as gs='YY'.
   <li> gs=None, ps=string:   Assume that the child nodes are pynodes containing named groups.
-  A standard ps string specified how they are to be plotted.
   <li> gs=None, ps=dict:     The same, but ps specifies a more advanced plot.
   <li> gs=dict, ps=dict:     Black-belt: User defined groups, and user-defined plots.  
   
@@ -1050,7 +1088,12 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   elif not labels==None:
     sx += ', labels='+str(type(labels))+'(??)'
   for key in kwargs:
-    sx += ', '+str(key)+'='+str(kwargs[key])
+    v = kwargs[key]
+    sx += ', '+str(key)+'='
+    if isinstance(v,str):
+      sx += '"'+str(kwargs[key])+'"'
+    else:
+      sx += str(kwargs[key])
   sx += ')<br>'
 
 
@@ -1114,8 +1157,6 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   if isinstance(ps,dict) and ps.has_key(key):
     sx += ps[key]+'<br>'
     ps.__delitem__(key)
-  if isinstance(qhelp,str):
-    sx += qhelp+'<br>'
 
   # Create the PyNode:
   pynode = stub << Meq.PyNode(children=nodes,
@@ -1125,6 +1166,7 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
                               plotspecs=ps,
                               qspecific=sx,    
                               qsemispec=qsemispec,
+                              qhelp=qhelp,
                               qviewer=qviewer,
                               class_name='PyNodePlot',
                               module_name=__file__)

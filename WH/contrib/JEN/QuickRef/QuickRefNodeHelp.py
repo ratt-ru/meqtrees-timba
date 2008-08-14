@@ -100,10 +100,18 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
    # Start of the specific part:
 
    ss += '<b>Specific: </b>'
+
    key = 'qspecific'
    if rr.has_key(key):
       if isinstance(rr[key],str):
+         # e.g. the syntax used (see pynode_Plot() etc)
+         ss += '<i>'+str(rr[key])+'</i>'
+
+   key = 'qhelp'
+   if rr.has_key(key):
+      if isinstance(rr[key],str):
          # User-defined description of this particular node:
+         ss += '<b>qhelp: </b>'
          ss += '<i>'+str(rr[key])+'</i>'
 
    ss += '<br>'
@@ -153,6 +161,7 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
       v = rr[key]
       if key in ['class','children',
                  'quickref_help',
+                 'qhelp',
                  # 'qdummynode',
                  'qspecific','qsemispec',
                  'qviewer','qbookmark']:
@@ -404,7 +413,11 @@ def class_help (cname, header=None, rr=None,
    #---------------------------------------------------------------------------
 
    elif cname in ['MeqCompounder']:
-      pass
+      gen += """A Compounder node samples a multi-dimensional function (its 2nd child)
+      over a 'domain' in the axes-space defined by its 1st child. The 'common_axes'
+      argument specifies which axes the children of its 1st child represent.
+      The compounder returns a constant, i.e. it averages over its sampling domain.
+      """
    
    elif cname=='MeqModRes':
       gen += """Modifies the resolution (nr of domain cells) of the
