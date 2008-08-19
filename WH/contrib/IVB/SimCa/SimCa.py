@@ -73,7 +73,7 @@ meqmaker = MeqMaker.MeqMaker(solvable=do_solve and run_option=='calibrate');
 # *** specify available sky models ***
 # modify add_sky_models to include more options
 lsm = Meow.LSM.MeowLSM(include_options=False);
-meqmaker.add_sky_models([gridded_sky_ivb]);
+meqmaker.add_sky_models([gridded_sky_ivb,lsm]);
 
 # *** specify Jones matrices ***
 # solvable G Jones
