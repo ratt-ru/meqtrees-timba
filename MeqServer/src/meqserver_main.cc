@@ -1,9 +1,9 @@
 //
-//% $Id$ 
+//% $Id$
 //
 //
 // Copyright (C) 2002-2007
-// The MeqTree Foundation & 
+// The MeqTree Foundation &
 // ASTRON (Netherlands Foundation for Research in Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -19,7 +19,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
+// or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
@@ -54,7 +54,7 @@ namespace main_debug_context
   static ::Debug::Context main_debug_context("meqserver_main");
   static inline ::Debug::Context & getDebugContext() { return main_debug_context; };
 }
-    
+
 int main (int argc,const char *argv[])
 {
   int retcode = 0;
@@ -63,22 +63,22 @@ int main (int argc,const char *argv[])
   // GW sockets from a launching browser
   for( int i=3; i<1024; i++ )
     close(i);
-  
+
   int max_threads = 1;
 
   // collect command-line arguments into vector
   StrVec args(argc-1);
   for( int i=1; i<argc; i++ )
     args[i-1] = argv[i];
-  
+
   // parse various options
-  bool start_gateways = 
+  bool start_gateways =
       std::find(args.begin(),args.end(),string("-nogw")) == args.end();
   // "-ssr" option
   if( std::find(args.begin(),args.end(),string("-ssr")) != args.end() )
     Meq::NodeNursery::forceSequentialServiceRequests(true);
   // "-mt" option
-  StrVec::const_iterator iter = 
+  StrVec::const_iterator iter =
       std::find(args.begin(),args.end(),string("-mt"));
   if( iter != args.end() )
   {
@@ -105,19 +105,20 @@ int main (int argc,const char *argv[])
     }
     local_gw = *iter;
   }
-  
+
 #ifdef HAVE_MPI
-  // init MPI 
+  // init MPI
   MPI_Init(&argc,const_cast<char***>(&argv));
-  
-  MeqMPI meqmpi(argc,argv);
+
+  MeqMPI meqmpi;
   // If we're on processor 0, proceed below for regular meqserver startup.
-  // On all other processors, start abbreviated version 
+  // On all other processors, start abbreviated version
   if( meqmpi.comm_rank() !=0 )
   {
     Meq::Forest forest;
     meqmpi.attachForest(forest);
-    meqmpi.initialize();
+    // note that MeqMPI with rank>0 will start an MTPool when it receives an INIT message
+    meqmpi.initialize(argc,argv);
     meqmpi.rejoinCommThread();
     // inelegant, but I can't get MPI to exit cleanly...
     _exit(0);
@@ -127,14 +128,15 @@ int main (int argc,const char *argv[])
   }
   else
   {
+    // in MPI mode, always start worker threads, since we need them for incoming MPI requests
+    // otherwise only start if mt>1
+    // this needs to happen before initializing MPI
+    if( max_threads > 1 || meqmpi.comm_size() > 1 )
+      Meq::MTPool::start(max_threads*2-1,max_threads);
     // rank 0: main server.
     // don't bother to initialize MPI unless there's someone to talk to
     if( meqmpi.comm_size() > 1 )
-    {
-      meqmpi.initialize();
-      // start worker threads, since we always need them in MPI mode
-      Meq::MTPool::start(max_threads*2-1,max_threads);
-    }
+      meqmpi.initialize(argc,argv);
 #else
   // no MPI support -- start worker threads only as needed
   // Start one less since the main execution thread will join the brigade.
@@ -143,7 +145,7 @@ int main (int argc,const char *argv[])
 #endif
 
   using main_debug_context::getDebugContext;
-  try 
+  try
   {
     cdebug(0)<<"=================== initializing OCTOPUSSY =====================\n";
     Octopussy::OctopussyConfig::initGlobal(argc,argv);
@@ -162,17 +164,17 @@ int main (int argc,const char *argv[])
                 Octopussy::GWClientWP(local_gw,1,Octopussy::Socket::UNIX));
     // Note that meqserver does not open a local TCP server. The connection
     // is always initiated from server to browser!
-    
+
     cdebug(0)<<"=================== starting StatusMonitor ====================\n";
     Octopussy::dispatcher().attach(new Octopussy::StatusMonitorWP());
-    
+
     cdebug(0)<<"=================== creating MeqServer ========================\n";
     Meq::MeqServer meqserver;
     #ifdef HAVE_MPI
     meqmpi.attachForest(meqserver.getForest());
     #endif
-    
-    // create control channel 
+
+    // create control channel
     DMI::Record::Ref recref;
     DMI::Record &rec = recref <<= new DMI::Record;
     rec[FEventMapIn] <<= new DMI::Record;
@@ -183,19 +185,19 @@ int main (int argc,const char *argv[])
     // create octopussy message multiplexer and event channel
     AppAgent::OctoEventMux::Ref mux(new AppAgent::OctoEventMux(AidMeqServer));
     EventChannel::Ref control_channel(mux().newChannel());
-    
+
     // attach channel to app and mux to OCTOPUSSY
     meqserver.attachControl(control_channel);
     Octopussy::dispatcher().attach(mux);
     // preinitialize control channel
     control_channel().init(recref);
-    
+
     cdebug(0)<<"=================== starting OCTOPUSSY thread =================\n";
     Octopussy::initThread(true);
-    
+
     cdebug(0)<<"=================== running MeqServer =========================\n";
     meqserver.run();
-    
+
 //    pthread_kill_other_threads_np();
 //    exit(1);
   #ifdef HAVE_MPI
@@ -207,25 +209,25 @@ int main (int argc,const char *argv[])
     _exit(0);
     MPI_Finalize();
   #endif
-    
+
     cdebug(0)<<"=================== stopping OCTOPUSSY ========================\n";
     Octopussy::stopThread();
-    
+
     cdebug(0)<<"=================== exiting ===================================\n";
   }
-  catch ( std::exception &exc ) 
+  catch ( std::exception &exc )
   {
-    cdebug(0)<<"Exiting with exception: "<<exc.what()<<endl;  
+    cdebug(0)<<"Exiting with exception: "<<exc.what()<<endl;
     retcode = 1;
   }
-//  catch ( AipsError &err ) 
+//  catch ( AipsError &err )
 //  {
-//    cdebug(0)<<"Exiting with AIPS++ exception: "<<err.getMesg()<<endl;  
+//    cdebug(0)<<"Exiting with AIPS++ exception: "<<err.getMesg()<<endl;
 //    return 1;
 //  }
   catch( ... )
   {
-    cdebug(0)<<"Exiting with unknown exception\n";  
+    cdebug(0)<<"Exiting with unknown exception\n";
     retcode = 1;
   }
   #ifdef HAVE_MPI
@@ -237,6 +239,6 @@ int main (int argc,const char *argv[])
     cdebug(0)<<"=================== stopping worker threads ===================\n";
     MTPool::stop();
   }
-  
-  return retcode;  
+
+  return retcode;
 }

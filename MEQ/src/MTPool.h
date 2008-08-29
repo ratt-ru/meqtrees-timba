@@ -49,7 +49,7 @@ namespace Meq
     inline Brigade & brigade ()
     { return *main_brigade_; }
 
-    void start (int nworkers,int max_busy);
+    void start (int nwork,int max_busy);
     void stop  ();
 
     // This class represents an abstract work order for a worker thread.
@@ -57,8 +57,8 @@ namespace Meq
     class AbstractWorkOrder
     {
       public:
-        AbstractWorkOrder ()
-        : depth_(0)
+        AbstractWorkOrder (int depth1)
+        : depth_(depth1)
         {}
 
         // executes the WO.
@@ -69,6 +69,9 @@ namespace Meq
 
         int depth () const
         { return depth_; }
+
+        virtual string sdebug (int=0) const
+        { return ""; }
 
       protected:
         int depth_;
@@ -84,14 +87,17 @@ namespace Meq
         // creates an "EXECUTE" workorder
         WorkOrder (NodeNursery &client,Callback cb,NodeFace &child,int i,
                    const Request &req,int depth1)
-        : clientref(client),
+        : AbstractWorkOrder(depth1),
+          clientref(client),
           callback(cb),
           noderef(child,DMI::SHARED),
           ichild(i),
           reqref(req)
-        { depth_ = depth1; }
+        {}
 
         virtual void execute (Brigade &brig);      // runs the work order.
+
+        virtual string sdebug (int detail=0) const;
 
         NodeNursery & clientref;  // who placed the order
         Callback callback;    // where to deliver result within the caller
@@ -119,7 +125,7 @@ namespace Meq
     class Brigade
     {
       public:
-        Brigade (int nworkers,int maxbusy,Thread::Mutex::Lock *plock=0);
+        Brigade (int nwork,int maxbusy,Thread::Mutex::Lock *plock=0);
 
         int id () const
         { return brigade_id_; }
@@ -128,7 +134,8 @@ namespace Meq
         { return cond_; }
 
         // adds current thread to brigade, marks it as having the given state
-        void join (int state = BUSY);
+        // if state is BUSY, a depth needs to be supplied (normally 0)
+        void join (int state,int depth);
 
         // puts a new work order on the brigade's queue.
         // !!! The caller must obtain a lock on cond() before calling this.
@@ -137,6 +144,9 @@ namespace Meq
         {
           // queue is LIFO so orders are pushed in the front
           wo_queue_.push_front(wo);
+          // resize vector of thread counters if needed
+          if( wo->depth() >= int(nthr_.size()) )
+            nthr_.resize(wo->depth()+100,0);
         }
 
         // Clears the brigade's work order queue of WorkOrders associated with the
@@ -154,6 +164,9 @@ namespace Meq
         // Ownership of order object is transferred to caller.
         // If returning a WO, marks thread as busy.
         AbstractWorkOrder * getWorkOrder (bool wait=true);
+        
+        // finishes with work order, deallocates object
+        void finishWithWorkOrder (AbstractWorkOrder *wo);
 
         // checks if queue is empty
         // !!! The caller must obtain a lock on cond() before calling this.
@@ -164,7 +177,7 @@ namespace Meq
         // and not too many workers are already running (or always_spawn is true),
         // spawns a new worker thread.
         // !!! The caller must obtain a lock on cond() before calling this.
-        void awakenWorker (bool always_spawn=false);
+        void awakenWorker ();
 
         // marks current thread as blocked/unblocked
         void markAsBlocked   (const string &where,WorkerData &wd);
@@ -203,10 +216,6 @@ namespace Meq
 
         // max number of busy threads
         int max_busy_;
-        // max number of worker threads
-        int max_workers_;
-        // counters of threads in various states
-        int nthr_[3];
 
         // our PID -- for debugging messages only, really
         int pid_;
@@ -219,9 +228,14 @@ namespace Meq
         typedef std::list<AbstractWorkOrder *> WorkOrderQueue;
         WorkOrderQueue wo_queue_;
 
-        // worker threads
+      // worker threads
         std::vector<WorkerData> workers_;
 
+        // number of busy threads per each tree depth
+        std::vector<int> nthr_;
+
+        // number of idle threads
+        int nidle_;
 
           // thread key used to hold context structure for each thread
         static Thread::Key context_pointer_;

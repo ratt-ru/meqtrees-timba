@@ -230,7 +230,7 @@ NodeFace & MeqServer::resolveNode (bool &getstate,const DMI::Record &rec)
 }
 
 
-void MeqServer::halt (DMI::Record::Ref &out,DMI::Record::Ref &in)
+void MeqServer::halt (DMI::Record::Ref &out,DMI::Record::Ref &)
 {
   cdebug(1)<<"halting MeqServer"<<endl;
   running_ = false;
@@ -254,7 +254,7 @@ void MeqServer::setForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
   fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
 }
 
-void MeqServer::getForestState (DMI::Record::Ref &out,DMI::Record::Ref &in)
+void MeqServer::getForestState (DMI::Record::Ref &out,DMI::Record::Ref &)
 {
   fillForestStatus(out(),2);
 }
@@ -328,7 +328,7 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
     int nodeindex;
     try
     {
-      NodeFace & node = forest.create(nodeindex,recref);
+      forest.create(nodeindex,recref);
     }
     catch( std::exception &exc )
     {
@@ -365,7 +365,6 @@ void MeqServer::createNodeBatch_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in)
     batch[i].detach(&ref);
     DMI::Record::Ref recref(ref);
     ref.detach();
-    int nodeindex;
     // get processor index from node state
     int proc = recref[AidProc].as<int>(0);
     if( proc < 0 || proc >= nproc )
@@ -411,7 +410,7 @@ void MeqServer::createNodeBatch_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in)
     try
     {
       int nodeindex;
-      NodeFace & node = forest.create(nodeindex,recref);
+      forest.create(nodeindex,recref);
     }
     catch( std::exception &exc )
     {
@@ -509,7 +508,7 @@ void MeqServer::getNodeList (DMI::Record::Ref &out,DMI::Record::Ref &in)
 void MeqServer::getNodeList_Mpi (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(2)<<"getNodeList: building list"<<endl;
-  DMI::Record &list = out <<= new DMI::Record;
+  out <<= new DMI::Record;
   int serial = in[FForestSerial].as<int>(0);
   if( !serial || serial != forest_serial )
   {
@@ -1305,7 +1304,7 @@ void * MeqServer::runExecutionThread ()
 {
   Thread::Mutex::Lock lock(exec_cond_);
   if( MTPool::enabled() )
-    MTPool::brigade().join(MTPool::BUSY);
+    MTPool::brigade().join(MTPool::BUSY,0);
   while( true )
   {
     while( running_ && exec_queue_.empty() )

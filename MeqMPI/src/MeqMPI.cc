@@ -20,7 +20,7 @@ MeqMPI * MeqMPI::self = 0;
 
 static char * tag_strings[MeqMPI::TAG_LAST_TAG];
 
-MeqMPI::MeqMPI (int argc,const char *argv[])
+MeqMPI::MeqMPI ()
 {
   if( self )
     Throw("Attempting to create a second MeqMPI, which is a singleton");
@@ -31,11 +31,11 @@ MeqMPI::MeqMPI (int argc,const char *argv[])
   msgbuf_ = 0;
   msgbuf_size_ = 0;
   meq_mpi_communicator_ = MPI_COMM_WORLD;
-  
+
   MPI_Comm_size(meq_mpi_communicator_,&mpi_num_processors_);
   MPI_Comm_rank(meq_mpi_communicator_,&mpi_our_processor_);
   dprintf(0)("MPI communicator: rank %d, size %d\n",comm_rank(),comm_size());
-  
+
   // init tag strings
   memset(tag_strings,0,sizeof(tag_strings));
   tag_strings[TAG_INIT] = "INIT";
@@ -56,21 +56,6 @@ MeqMPI::MeqMPI (int argc,const char *argv[])
   tag_strings[TAG_NODE_SET_BREAKPOINT] = "NODE_SET_BREAKPOINT";
   tag_strings[TAG_NODE_CLEAR_BREAKPOINT] = "NODE_CLEAR_BREAKPOINT";
   tag_strings[TAG_NODE_SET_PUBLISHING_LEVEL] = "NODE_SET_PUBLISHING_LEVEL";
-  
-  MPI_Status status;
-  // Now, send an init message.
-  // The rank-0 process sends an init to everyone else
-  if( comm_rank() == 0 )
-  {
-    DMI::Record &rec = *new DMI::Record;
-    ObjRef ref(&rec);
-    rec["Argv"] <<= new DMI::Vec(Tpstring,argc);
-    for( int i=0; i<argc; i++ )
-      rec["Argv"][i] = string(argv[i]);
-    rec["mt"] = Meq::MTPool::num_threads();
-    // post the message to all rank>0 processes
-    postCommand(TAG_INIT,-1,ref);
-  }
 }
 
 std::string MeqMPI::tagToString (int tag)
@@ -96,12 +81,24 @@ void MeqMPI::postForestEvent_static (const HIID &type,const ObjRef &data)
 }
 
 // initializes MeqMPI layer, launches the communicator thread
-Thread::ThrID MeqMPI::initialize ()
+Thread::ThrID MeqMPI::initialize (int argc,const char *argv[])
 {
   FailWhen(comm_thread_.id()!=0,"MPI comm thread already running");
-  // launch communicator
+  // launch communicator thread
   comm_thread_ = Thread::create(commThreadEntrypoint,this);
   dprintf(1)("started MPI comm thread %x\n",int(comm_thread_.id()));
+  // Now, send an init message.
+  // The rank-0 process sends an init to everyone else
+  if( comm_rank() == 0 )
+  {
+    DMI::Record &rec = *new DMI::Record;
+    ObjRef ref(&rec);
+    rec["Argv"] <<= new DMI::Vec(Tpstring,argc);
+    for( int i=0; i<argc; i++ )
+      rec["Argv"][i] = string(argv[i]);
+    rec["mt"] = Meq::MTPool::num_threads();
+    postCommand(TAG_INIT,-1,ref);
+  }
   return comm_thread_;
 }
 
@@ -154,9 +151,9 @@ void * MeqMPI::runCommThread ()
 {
   // preallocate default buffer
   msgbuf_ = new char[msgbuf_size_ = DEFAULT_BUFFER_SIZE];
-  
+
   comm_thread_running_ = true;
-  
+
   while( true )
   {
     Thread::Mutex::Lock lock;
@@ -202,40 +199,40 @@ void * MeqMPI::runCommThread ()
           case TAG_INIT:
             procInit(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-        
+
           case TAG_HALT:
             comm_thread_running_ = false;
             dprintf(3)("HALT command received, exiting thread\n");
             break;
-        
+
           case TAG_CREATE_NODES:
             procCreateNodes(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-    
+
           case TAG_GET_NODE_LIST:
             procGetNodeList(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-  
+
           case TAG_EVENT:
             procEvent(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-    
+
           case TAG_SET_FOREST_STATE:
             procSetForestState(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-    
+
           case TAG_NODE_EXECUTE:
             procNodeExecute(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-      
+
           case TAG_NODE_GET_STATE:
             procNodeGetState(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-            
+
           case TAG_NODE_SET_STATE:
             procNodeSetState(status.MPI_SOURCE,msgbuf_,msgsize);
             break;
-            
+
           case TAG_NODE_PROCESS_COMMAND:
           case TAG_NODE_CLEAR_CACHE:
           case TAG_NODE_HOLD_CACHE:
@@ -245,11 +242,11 @@ void * MeqMPI::runCommThread ()
           case TAG_NODE_CLEAR_BREAKPOINT:
           case TAG_NODE_SET_PUBLISHING_LEVEL:
             break;
-  
+
           case TAG_REPLY:
             procReply(msgbuf_,msgsize);
             break;
-            
+
   //        case TAG_LOG_MESSAGE:
   //          break;
         }
@@ -300,7 +297,7 @@ void * MeqMPI::runCommThread ()
       sendqueue_cond_.wait(0,POLLING_FREQ_NS);
     }
   }
-  
+
   delete [] msgbuf_;
   msgbuf_ = 0;
   return 0;
@@ -335,11 +332,11 @@ bool MeqMPI::sendMessage (MarinatedMessage &msg)
 {
   // make sure buffer is sufficient
   ensureBuffer(msgbuf_,msgbuf_size_,msg.size);
-  // encode the message 
+  // encode the message
   if( encodeMessage(msgbuf_,&msg.hdr,msg.header_size,msg.blockset) != msg.size )
   {
     Throw("outgoing message has a size inconsistency");
-  } 
+  }
   // send
   int retval;
   if( msg.dest<0 )
@@ -492,9 +489,9 @@ void MeqMPI::postMessage (const std::string &msg,const HIID &type)
     (*prec)[AidMessage] = msg;
   postEvent(type,ref);
 }
-    
-// posts a command (with a ReplyExpected header) to the given destination. Uses endpoint for 
-// the reply. 
+
+// posts a command (with a ReplyExpected header) to the given destination. Uses endpoint for
+// the reply.
 void MeqMPI::postCommand (int tag,int dest,ReplyEndpoint &endpoint,ObjRef &ref)
 {
    // lock queue and add a marinated message at the back
@@ -511,8 +508,8 @@ void MeqMPI::postCommand (int tag,int dest,ReplyEndpoint &endpoint,ObjRef &ref)
     sendqueue_cond_.signal();
 }
 
-// posts a command (with a ReplyExpected header) to the given destination. Uses endpoint for 
-// the reply. 
+// posts a command (with a ReplyExpected header) to the given destination. Uses endpoint for
+// the reply.
 void MeqMPI::postCommand (int tag,int dest,ObjRef &ref)
 {
    // lock queue and add a marinated message at the back
@@ -527,9 +524,9 @@ void MeqMPI::postCommand (int tag,int dest,ObjRef &ref)
   if( Thread::self() != comm_thread_ )
     sendqueue_cond_.signal();
 }
-    
-// posts a command (with a ReplyExpected header) to the given destination. Uses endpoint for 
-// the reply. 
+
+// posts a command (with a ReplyExpected header) to the given destination. Uses endpoint for
+// the reply.
 void MeqMPI::postCommand (int tag,int dest,const void *hdr,size_t hdrsize,ObjRef &ref)
 {
   // lock queue and add a marinated message at the back

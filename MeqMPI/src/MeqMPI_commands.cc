@@ -32,6 +32,7 @@ void MeqMPI::procInit (int source,const char *msgbuf,int msgsize)
   Debug::initLevels(argc,argv);
   // init multithreading
   int mt = rec["mt"].as<int>();
+  cdebug(1)<<"INIT message from remote, mt "<<mt<<endl;
   if( mt<1 )
     mt = 1;
   if( !MTPool::enabled() )
@@ -247,8 +248,9 @@ class MpiExecWorkOrder : public MTPool::AbstractWorkOrder
   public:
     MpiExecWorkOrder (NodeFace &node,const Request &req,int depth,
                       MeqMPI &mpi,int dest,MeqMPI::ReplyEndpoint *ep)
-    : noderef(node,DMI::SHARED),reqref(req),
-    meqmpi(mpi),reqdepth(depth),reply_dest(dest),endpoint(ep)
+    : MTPool::AbstractWorkOrder(depth),
+      noderef(node,DMI::SHARED),reqref(req),
+      meqmpi(mpi),reply_dest(dest),endpoint(ep)
     {}
 
     virtual void execute (MTPool::Brigade &brigade)      // runs the work order.
@@ -258,9 +260,9 @@ class MpiExecWorkOrder : public MTPool::AbstractWorkOrder
       try
       {
         NodeFace &node = noderef();
-        cdebug1(1)<<brigade.sdebug(1)+" executing request "+reqref->id().toString('.')+" on node "+node.name()+"\n";
-        retcode = node.execute(resref,*reqref,reqdepth);
-        cdebug1(1)<<brigade.sdebug(1)+" finished request "+reqref->id().toString('.')+" on node "+node.name()+"\n";
+        cdebug1(1)<<brigade.sdebug(1)+" executing "+sdebug(1)+" on node "+node.name()+"\n";
+        retcode = node.execute(resref,*reqref,depth());
+        cdebug1(1)<<brigade.sdebug(1)+" finished "+sdebug(1)+" on node "+node.name()+"\n";
       }
       catch( std::exception &exc )
       {
@@ -289,12 +291,18 @@ class MpiExecWorkOrder : public MTPool::AbstractWorkOrder
       }
     }
 
+    virtual string sdebug (int=0) const
+    {
+      const NodeFace &node = *noderef;
+      return Debug::ssprintf("WO(%s,%s,%d)",node.name().c_str(),reqref->id().toString('.').c_str(),depth());
+    }
+
+
     virtual ~MpiExecWorkOrder() {};
 
     NodeFace::Ref noderef;
     Request::Ref  reqref;
     MeqMPI & meqmpi;
-    int reqdepth;
     int reply_dest;
     MeqMPI::ReplyEndpoint *endpoint;
 };
@@ -311,7 +319,7 @@ void MeqMPI::procNodeExecute (int source,const char *msgbuf,int msgsize)
   // enqueue a workorder and wake up worker thread
   Thread::Mutex::Lock lock(MTPool::brigade().cond());
   MTPool::brigade().placeWorkOrder(new MpiExecWorkOrder(node,ref.as<Request>(),header.arg,*this,source,header.endpoint));
-  MTPool::brigade().awakenWorker(true);
+  MTPool::brigade().awakenWorker();
 }
 
 // processes a NODE_SET_PUBLISHING_LEVEL message

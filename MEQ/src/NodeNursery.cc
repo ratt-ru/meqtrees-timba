@@ -324,8 +324,8 @@ void NodeNursery::mt_waitForEndOfPoll ()
     lock.release();
     becomeIdle();
     wo->execute(*mt.cur_brigade_);
+    mt.cur_brigade_->finishWithWorkOrder(wo);
     becomeBusy();
-    delete wo;
     // reacquire child results lock and go back up recheck
     lock.relock(mt.child_poll_cond_);
   }
@@ -397,8 +397,8 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
       lock.release();
       becomeIdle();
       wo->execute(*mt.cur_brigade_);
+      mt.cur_brigade_->finishWithWorkOrder(wo);
       becomeBusy();
-      delete wo;
       // reacquire child results lock and go back up to check our result queue
       lock.relock(mt.child_poll_cond_);
     }
@@ -519,7 +519,7 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
         if( wo )
         {
           wo->execute(*mt.cur_brigade_);
-          delete wo;
+          mt.cur_brigade_->finishWithWorkOrder(wo);
           lock.relock(mt.cur_brigade_->cond());
           continue;
         }

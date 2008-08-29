@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -42,10 +42,21 @@ def WSRT_cos3_beam (E,lm,*dum):
   'lm' is direction (2-vector node)
   """
   ns = E.Subscope();
+  # According to the WSRT Observer's Guide
+  # (http://www.astron.nl/wsrt/wsrtGuide/node6.html#SECTION00067000000000000000)
+  # the full power WSRT beam can be modelled roughly as
+  #   cos^6(c x freq x r)
+  # where freq is in GHz (hence the 1e-9 factor below), r is distance
+  # from pointing center (in same units as expected by the cos() function, i.e.
+  # in degrees if cos() is taken as a function of degrees), and "the constant c=68 is,
+  # to first order, wavelength independent at GHz frequencies (declining to  c=66 at
+  # 325 MHz and c = 63 at 4995 MHz)."
+  # Hence the E-Jones factor is simply cos^3.
+  #
   ns.lmsq << Meq.Sqr(lm);
   ns.lsq  << Meq.Selector(ns.lmsq,index=0);
   ns.msq  << Meq.Selector(ns.lmsq,index=1);
-  E << Meq.Pow(Meq.Cos(Meq.Sqrt(ns.lsq+ns.msq)*wsrt_beam_size_factor*Meq.Freq()),3);
+  E << Meq.Pow(Meq.Cos(Meq.Sqrt(ns.lsq+ns.msq)*(wsrt_beam_size_factor*1e-9)*Meq.Freq()),3);
   return E;
 # this beam model is not per-station
 WSRT_cos3_beam._not_per_station = True;
@@ -82,7 +93,7 @@ _model_option = TDLCompileOption('beam_model',"Beam model",
 );
 
 _wsrt_option_menu = TDLCompileMenu('WSRT beam model options',
-  TDLOption('wsrt_beam_size_factor',"Beam size factor",[2e-6],more=float)
+  TDLOption('wsrt_beam_size_factor',"Beam size factor",[68.],more=float)
 );
 
 def _show_option_menus (model):

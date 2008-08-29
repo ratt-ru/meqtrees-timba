@@ -4,7 +4,7 @@ gnu3.compiler.aipspp.var: --with-casacore=/aips++/casacore --with-wcs=/aips++/ca
 gnu4.compiler.conf: CXX=ccache\ g++-4.1 --enable-shared --with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-ldflags="-rpath /lib64"--with-threads --with-sse --with-ldflags="--enable-new-dtags"
 gnu4.compiler.aipspp.var: --with-casacore=/aips++/casacore --with-wcs=/aips++/casacore
 
-mpi.compiler.conf: CXX=ccache\ mpicxx --with-mpich=/usr/lib/mpich --enable-shared --with-cppflags=--with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
+mpi.compiler.conf: CXX=ccache\ mpicxx --with-mpich=/usr/lib/mpich --enable-shared --with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-threads --with-sse --with-ldflags="--enable-new-dtags"
 mpi.compiler.aipspp.var: --with-casacore=/aips++/casacore --with-wcs=/aips++/casacore
 
 mpist.compiler.conf: CXX=ccache\ mpicxx --with-mpich=/usr/lib/mpich --disable-shared --with-cppflags="-march=k8 -m64 -Wno-deprecated -Wno-unused-parameter -fPIC -DAIPS_64B" --with-threads --with-sse --with-ldflags="-static --enable-new-dtags"

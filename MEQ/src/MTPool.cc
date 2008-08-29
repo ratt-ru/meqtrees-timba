@@ -43,10 +43,11 @@ int Brigade::max_brigade_id_ = 0;
 Brigade *main_brigade_ = 0;
 int max_busy_ = 1;
 
-void start (int nworkers,int max_busy)
+void start (int nwork,int max_busy)
 {
   FailWhen(main_brigade_,"MTPool already started");
-  main_brigade_ = new Brigade(nworkers,max_busy);
+  dprintf(0)("pid %d starting pool of %d threads, max busy is %d\n",getpid(),nwork,max_busy);
+  main_brigade_ = new Brigade(nwork,max_busy);
   max_busy_ = max_busy;
 }
 
@@ -60,7 +61,7 @@ void stop  ()
 }
 
 
-Brigade::Brigade (int nwork,int nbusy,Thread::Mutex::Lock *plock)
+Brigade::Brigade (int nwork,int max_busy,Thread::Mutex::Lock *plock)
 {
   workers_.reserve(128);
   Thread::Mutex::Lock lock;
@@ -68,8 +69,9 @@ Brigade::Brigade (int nwork,int nbusy,Thread::Mutex::Lock *plock)
     plock = &lock;
   plock->relock(cond());
   brigade_id_ = max_brigade_id_++;
-  max_busy_ = nbusy;
-  max_workers_ = nbusy*4;
+  max_busy_ = max_busy;
+  nthr_.resize(100,0);
+  nidle_ = nwork;
   // spawn worker threads
   for( int i=0; i<nwork; i++ )
   {
@@ -79,24 +81,28 @@ Brigade::Brigade (int nwork,int nbusy,Thread::Mutex::Lock *plock)
     wd.brigade = this;
     wd.thread_id = Thread::create(startWorker,&wd);
   }
-  nthr_[IDLE] = nwork;
-  nthr_[BUSY] = 0;
-  nthr_[BLOCKED] = 0;
   pid_ = getpid();
 }
 
 // adds thread to brigade
-void Brigade::join (int state)
+void Brigade::join (int state,int depth)
 {
   Thread::Mutex::Lock lock(cond());
   workers_.push_back(WorkerData());
   WorkerData &wd = workers_.back();
   wd.state = state;
+  if( state == IDLE )
+    nidle_++;
+  else
+  {
+    if( nthr_.size() >= uint(depth) )
+      nthr_.resize(depth+100,0);
+    nthr_[depth]++;
+  }
   wd.brigade = this;
   wd.thread_id = Thread::self();
   wd.launched_by_us = false;
   context_pointer_.set(&wd);
-  nthr_[state]++;
   cdebug1(1)<<sdebug(1)+" joined brigade\n";
 }
 
@@ -110,7 +116,7 @@ string Brigade::sdebug (int detail)
     s = ssprintf("%d B%dT%d",pid_,brigade_id_,Thread::getThreadNum(Thread::self())+1);
   if( detail>=0 || detail==-1 )
   {
-    Debug::appendf(s,"%di%db%dw q:%d",nthr_[IDLE],nthr_[BUSY],nthr_[BLOCKED],wo_queue_.size());
+    Debug::appendf(s,"q:%d",wo_queue_.size());
   }
   return s;
 }
@@ -130,24 +136,35 @@ void * Brigade::startWorker (void *pwd)
 
 // wakes up one worker thread. If no worker threads are idle, launches a new thread
 // we're expected to hold a lock on cond()
-void Brigade::awakenWorker (bool always_spawn)
+void Brigade::awakenWorker ()
 {
-  if( wo_queue_.empty() || nthr_[BUSY] >= max_busy_ )
+  if( wo_queue_.empty() )
     return;
-  DbgAssert(nthr_[IDLE]>=0);
-  if( !nthr_[IDLE] && ( int(workers_.size()) < max_workers_ || always_spawn ) )
+  const AbstractWorkOrder &wo = *(wo_queue_.front());
+  int depth = wo.depth();
+  // allow at most max_busy_ threads at any tree depth
+  if( nthr_[depth] >= max_busy_ )
   {
-    cdebug1(1)<<sdebug(1)+" no idle workers found, creating a new one\n";
+    dprintf(1)("awakenWorker(), queue %s, %d threads already running, no action\n",
+               wo.sdebug().c_str(),nthr_[depth]);
+    return;
+  }
+  // if there are no idle threads, start a new worker
+  if( !nidle_ )
+  {
+    dprintf(1)("awakenWorker() queue %s, %d threads running but none idle, creating new worker\n",
+               wo.sdebug().c_str(),nthr_[depth]);
     workers_.push_back(WorkerData());
     WorkerData &wd = workers_.back();
+    nidle_++;
     wd.state = IDLE;
     wd.brigade = this;
     wd.thread_id = Thread::create(startWorker,&wd);
-    nthr_[IDLE]++;
   }
+  // else simply awaken an idle worker
   else
   {
-    cdebug1(2)<<sdebug(1)+" awakening a worker\n";
+    dprintf(2)("awakenWorker() queue %s, awakening a worker\n",wo.sdebug().c_str());
     cond().signal();
   }
 }
@@ -171,7 +188,7 @@ void * Brigade::workerLoop ()
     if( wo )
     {
       wo->execute(*this);
-      delete wo;
+      finishWithWorkOrder(wo);
     }
     else  // no WO despite wait=true causes exit
     {
@@ -196,61 +213,80 @@ AbstractWorkOrder * Brigade::getWorkOrder (bool wait)
       // idle this thread if it wasn't idle
       if( wd.state != IDLE )
       {
-        nthr_[wd.state]--;
-        DbgAssert(nthr_[wd.state]>=0);
         wd.state = IDLE;
-        nthr_[IDLE]++;
-        cdebug1(1)<<sdebug(1)+" no WOs queued, idling thread\n";
-        // if whole brigade is idle, move it to idle pool
+        ++nidle_;
+        dprintf(1)("no WOs queued, %d threads now idle\n",nidle_);
       }
       // sleep until something happens to queue
       cond().wait();
     }
     else  // else we have an order on the queue
     {
+      AbstractWorkOrder *pwo = wo_queue_.front();
+      int depth = pwo->depth();
+      dprintf(2)("head of WO queue is %s\n",pwo->sdebug().c_str());
+      // first case is us waking up from idle
       if( wd.state == IDLE )
       {
-        // are we even allowed to wake up? check how many threads are busy
-        if( nthr_[BUSY] >= max_busy_ )
+        // check that not too many threads are busy at this depth, go back to sleep if so
+        if( nthr_[depth] >= max_busy_ )
         {
           if( !wait )
             return 0;
-          cdebug1(2)<<sdebug(1)+" too many busy threads, will sleep\n";
+          dprintf(2)("nthr_[%d]=%d, going back to sleep\n",depth,nthr_[depth]);
           cond().wait();
           continue;
         }
-        nthr_[IDLE]--;
-        DbgAssert(nthr_[IDLE]>=0);
+        // else unidle ourselves
+        if( nidle_ <=0 )
+        {
+          dprintf(0)("worker is going idle->busy, but nidle_=%d\n",nidle_);
+        }
+        else
+          --nidle_;
         wd.state = BUSY;
-        nthr_[BUSY]++;
       }
+      // second case: we're still counted as busy, so see if we should grab another WO
       else if( wd.state == BUSY )
       {
         // if too many threads are busy, idle ourselves and go to sleep
-        if( nthr_[BUSY] > max_busy_ )
+        if( nthr_[depth] > max_busy_ )
         {
           if( !wait )
             return 0;
-          cdebug1(2)<<sdebug(1)+" too many busy threads, will sleep\n";
-          nthr_[IDLE]++;
-          nthr_[BUSY]--;
+          dprintf(2)("nthr_[%d]=%d, going to sleep\n",depth,nthr_[depth]);
           wd.state = IDLE;
+          ++nidle_;
           cond().wait();
           continue;
         }
+        // else go on to process the order
       }
       else
       {
         Throw("unexpected thread state in getWorkOrder()");
       }
-      AbstractWorkOrder * wo = wo_queue_.front();
       wo_queue_.pop_front();
+      ++nthr_[depth];
       cdebug1(2)<<sdebug(1)+" got queued order\n";
       // if there's more stuff on the queue, can we wake up another thread?
       awakenWorker();
-      return wo;
+      return pwo;
     }
   }
+}
+
+void Brigade::finishWithWorkOrder (AbstractWorkOrder *wo)
+{
+  Thread::Mutex::Lock lock(cond());
+  int depth = wo->depth();
+  if( nthr_[depth] <=0 )
+  {
+    dprintf(0)("finished with WO, but nthr_[%d]=%d\n",depth,nthr_[depth]);
+  }
+  else
+    --nthr_[depth];
+  delete wo;
 }
 
 void Brigade::clearQueue (const NodeNursery &client)
@@ -267,9 +303,9 @@ void Brigade::clearQueue (const NodeNursery &client)
 }
 
 // marks thread as blocked or unblocked
-void Brigade::markAsBlocked (const string &where,WorkerData &wd)
+void Brigade::markAsBlocked (const string &where,WorkerData &)
 {
-  Thread::Mutex::Lock lock(cond());
+/*  Thread::Mutex::Lock lock(cond());
   if( wd.state != BLOCKED )
   {
     nthr_[wd.state]--;
@@ -278,17 +314,17 @@ void Brigade::markAsBlocked (const string &where,WorkerData &wd)
     nthr_[BLOCKED]++;
     // if there's stuff on the queue, and not enough busy threads, wake someone up
     awakenWorker();
-  }
+  }*/
   cdebug1(1)<<sdebug(1)+" thread blocked in "+where+"\n";
 }
 
-void Brigade::markAsUnblocked (const string &where,WorkerData &wd,bool)
+void Brigade::markAsUnblocked (const string &where,WorkerData &,bool)
 {
-  Thread::Mutex::Lock lock(cond());
+/*  Thread::Mutex::Lock lock(cond());
   DbgAssert(wd.state==BLOCKED);
   nthr_[BLOCKED]--;
   DbgAssert(nthr_[BLOCKED]>=0);
-  nthr_[wd.state=BUSY]++;
+  nthr_[wd.state=BUSY]++;*/
   cdebug1(1)<<sdebug(1)+" thread unblocked in "+where+"\n";
 }
 
@@ -307,15 +343,20 @@ void WorkOrder::execute (Brigade &brigade)
   timer.start();
   NodeFace &node = noderef();
   const Request &req = *reqref;
-  cdebug1(1)<<brigade.sdebug(1)+" executing WO "+req.id().toString('.')+" on node "+node.name()+"\n";
+  cdebug1(1)<<brigade.sdebug(1)+" executing "+sdebug(1)+" on node "+node.name()+"\n";
   // note that this will block if node is already being executed
   retcode = node.execute(resref,req,depth());
-  cdebug1(1)<<brigade.sdebug(1)+" finished WO "+req.id().toString('.')+" on node "+node.name()+"\n";
+  cdebug1(1)<<brigade.sdebug(1)+" finished "+sdebug(1)+" on node "+node.name()+"\n";
   timer.stop();
   // notify client of completed order
   (clientref.*callback)(ichild,*this);
 }
 
+string WorkOrder::sdebug (int) const
+{
+  const NodeFace &node = *noderef;
+  return Debug::ssprintf("WO(%s,%s,%d)",node.name().c_str(),reqref->id().toString('.').c_str(),depth());
+}
 
 
 }
