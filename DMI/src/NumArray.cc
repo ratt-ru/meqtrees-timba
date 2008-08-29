@@ -357,6 +357,7 @@ void DMI::NumArray::make_reference (void * pdata,bool writable,
 #endif
   FailWhen(&other == this,"cannot make NumArray a reference to self");
   FailWhen(!other.itsArrayValid,"cannot make reference to an empty NumArray");
+  clear();
   itsWritableRef = writable;    
   itsScaType  = other.itsScaType;
   itsType     = TpArray(itsScaType,shape.size());;
