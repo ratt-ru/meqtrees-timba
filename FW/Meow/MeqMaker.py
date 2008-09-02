@@ -370,8 +370,8 @@ class MeqMaker (object):
           # if only one uv-Jones, will use it directly
           if len(uvchain) > 1:
             for p in stations:
-              self.ns.uvjones(p) << Meq.MatrixMultiply(*[j(p) for j in uvchain]);
-            uvchain = [ self.ns.uvjones ];
+              ns.uvjones(p) << Meq.MatrixMultiply(*[j(p) for j in uvchain]);
+            uvchain = [ ns.uvjones ];
         # now, form up the corrupt sqrt-visibility (and its conjugate) of each source,
         # then the final visibility
         corrvis = ns.corrupt_vis;

@@ -21,14 +21,14 @@ ln-s()
     fn=$2
   fi
   if [ -h $fn ]; then
-    echo "$fn exists"
-  else
-    echo -n "Creating $fn... "
-    if ! ln -s $1 $fn; then
-      exit 1;
-    fi
-    echo "OK"
+    echo "$fn exists, removing"
+    rm -f $fn
   fi
+  echo -n "Creating $fn... "
+  if ! ln -s $1 $fn; then
+    exit 1;
+  fi
+  echo "OK"
 }
 
 
@@ -78,7 +78,7 @@ END
 fi
 
 cd ../lib
-for libname in `find ../../../ -name "*so" -o -name "*.so.*" | grep $flavour`; do
+for libname in `find ../../../ -name "*so" -o -name "*.so.[0-9]*" | grep -v svn-base | grep -v symlinked-$flavour | grep $flavour`; do
   ln-s $libname
 done
 
@@ -86,7 +86,9 @@ cd ../libexec
 ln-s ../../../TimBase/build/$flavour/src/gprof-helper.so
 makedir python
 cd python
-ln-s ../../../../WH/contrib/OMS/Meow
+ln-s ../../../../FW/Meow
+ln-s ../../../../FW/Siamese
+ln-s ../../../../FW/Calico
 ln-s ../../../../PyApps/src/meqbrowser.py
 makedir Timba
 cd Timba
@@ -97,7 +99,7 @@ ln-s ../../../../../OCTOPython/src/dmi_repr.py
 ln-s ../../../../../PyApps/src/Grid
 ln-s ../../../../../PyApps/src/GUI
 ln-s ../../../../../OCTOPython/src/__init__.py
-ln-s ../../../../../LSM/src/LSM
+ln-s ../../../../../FW/LSM
 ln-s ../../../../../PyApps/src/Meq
 ln-s ../../../../../MeqServer/src/meqkernel.py
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so
