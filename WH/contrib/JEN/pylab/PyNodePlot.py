@@ -689,8 +689,12 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
       pd.mean = 0.0
       pd.stddev = 0.0
       for v in vv:
-        pd.min = min(pd.min,v)
-        pd.max = max(pd.max,v)
+        if isinstance(v,complex):
+          pd.min = min(pd.min,abs(v))
+          pd.max = max(pd.max,abs(v))
+        else:
+          pd.min = min(pd.min,v)
+          pd.max = max(pd.max,v)
         pd.mean += v
         pd.stddev += v*v
       nv = len(vv)
@@ -1065,7 +1069,9 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
   # trace = True
 
   # Make a syntax string, to be combined with qhelp
-  sx = 'Syntax: pynode = PNP.pynode_Plot(ns'
+  sx = 'Syntax that generated this pynode: <br>'
+  sx += ':: from Timba.Contrib.JEN.pylab import PyNodePlot as PNP <br>'
+  sx += ':: pynode = PNP.pynode_Plot(ns'
   if isinstance(nodes,(list,tuple)):
     if is_node(nodes[0]):
       sx += ', ['+str(len(nodes))+' nodes]'
@@ -1094,7 +1100,7 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
       sx += '"'+str(kwargs[key])+'"'
     else:
       sx += str(kwargs[key])
-  sx += ')<br>'
+  sx += ')<br><br>'
 
 
   if not isinstance(nodename, str):
@@ -1221,7 +1227,7 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
   <li> VELLS_ijk: Vells indices i[jk] control groups {x},{y},{z}
   <li> XXYY:      Assume single list of equal nrs of x,y nodes
   <li> VIS22:     Assume groups {xx},{xy},{yx},{yy}
-  <li> VIS22C:     Assume groups {rr},{rl},{lr},{ll}
+  <li> VIS22C:    Assume groups {rr},{rl},{lr},{ll}
   """
 
   # Prepare the output plotspecs record (ps):
@@ -1312,8 +1318,7 @@ def string2plotspecs(ss, plotspecs=None, trace=False):
 
 def string2plotspecs_VIS22 (ss, trace=False):
   """
-  Special case....
-  See also PyNodePlotVIS22.py
+  Special case, called from .string2plotspecs() above.
   """
     
   rr = PNNG.string2record_VIS22 (ss, trace=trace)

@@ -93,26 +93,29 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
       if isinstance(rr[key],str):
          # E.g. the description of the python class used for a PyNode 
          ss += '<b>Semi-specific: </b>'
-         ss += str(rr[key])
+         s1 = replace_html_chars(rr[key])
+         ss += str(s1)
          ss += '<br>'
 
    #..........................................
    # Start of the specific part:
 
    ss += '<b>Specific: </b>'
+   
+   key = 'qhelp'
+   if rr.has_key(key):
+      if isinstance(rr[key],str):
+         # User-defined description of this particular node:
+         s1 = replace_html_chars(rr[key])
+         ss += '<i>'+str(s1)+'</i>'
 
    key = 'qspecific'
    if rr.has_key(key):
       if isinstance(rr[key],str):
          # e.g. the syntax used (see pynode_Plot() etc)
-         ss += '<i>'+str(rr[key])+'</i>'
-
-   key = 'qhelp'
-   if rr.has_key(key):
-      if isinstance(rr[key],str):
-         # User-defined description of this particular node:
-         ss += '<b>qhelp: </b>'
-         ss += '<i>'+str(rr[key])+'</i>'
+         s1 = replace_html_chars(rr[key])
+         ss += '<br><i>'+str(s1)+'</i>'
+         add_br = False
 
    ss += '<br>'
 
@@ -209,7 +212,9 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
          ss += ' - '+str(key)+' = '+str(v)+'<br>'
 
       else:
-         ss += ' - '+str(key)+': '+str(type(v))+'(??) = '+str(v)+'<br>'
+         ss += ' - '+str(key)+' = '+str(v)
+         ss += ' (numarray?)'
+         ss += '<br>'
 
    #..........................................
    # Closing:
@@ -237,6 +242,18 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
       
 
 #===================================================================================
+
+def replace_html_chars (help, trace=False):
+   """Replace characters that cause problems with html with their escape versions.
+   """
+   if not isinstance(help,str):                       # e.g. None
+      return help
+   ss = help
+   ss = ss.replace('<<',' &lt &lt &#32')              # escape char &lt = <  
+   # ... to be elaborated ...
+   return ss
+
+#---------------------------------------------------------------------
 
 def format_nodestring (node, trace=False):
    """Helper function"""

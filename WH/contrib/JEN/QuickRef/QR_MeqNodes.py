@@ -123,7 +123,7 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                     TDLMenu("resampling",
                             TDLOption('opt_resampling_MeqModRes_twig',
                                       "input twig (child node) of MeqModRes",
-                                      ET.twig_names(), more=str),
+                                      ET.twig_names(first='f+t'), more=str),
                             TDLOption('opt_resampling_MeqModRes_num_freq',
                                       "nr of freq cells for MeqModRes num_cells [nt,nf]",
                                       [4,1,2,3,5,6,10,20,50], more=int),
@@ -577,6 +577,7 @@ def compounder_simple (ns, rider):
          qhelp = 'This compounder samples the function at point (L,M)=('+str(ll[i])+','+str(mm[j])+').'
          zz.append(stub('compounder')(i)(j) << Meq.Compounder(extra_axes, twig_LM,
                                                               qhelp=qhelp,
+                                                              qviewer=[True, 'Record Browser'],
                                                               common_axes=common_axes))
 
    # Bundle the compounders, to provide them with a request: 
@@ -598,9 +599,18 @@ def compounder_simple (ns, rider):
   
 def compounder_advanced (ns, rider):
    """
-   Explore the behaviour of the compounder if the function is not sampled at a point (L,M)
-   but over a sampling-domain of finite size. This is done by using MeqGrid nodes rather
-   than MeqConstant nodes for the 'extra_axes' L and M.
+   Explore the behaviour of the compounder if the function is not
+   sampled at a point (L,M) but over a sampling-domain of finite
+   size. This is done by using MeqGrid nodes rather than MeqConstant
+   nodes for the 'extra_axes' L and M.
+
+   <remark>
+   The conclusion is that executing for different LM-domains
+   does not seem to make any difference, so obviously the finite size
+   of the domain is not used: the LM-function is just sampled at a
+   single point (L,M), which may be the centre point of the domain, or
+   its average L,M coordinates. Is this the behaviour we want...?
+   </remark>
    """
    stub = QRU.on_entry(ns, rider, compounder_advanced)
 
@@ -1064,10 +1074,17 @@ def leaves_gridsFTLM (ns, rider):
    The two default axes (time and freq) also have dedicated Grid nodes,
    called MeqTime and MeqFreq, e.g.:  ns[nodename] << Meq.Freq()
 
-   NB: Check also the Forest State record. Note that its axis_map and
+   <tip>
+   Check also the Forest State record. Note that its axis_map and
    its axis_list have default axes [time,freq,L,M], but that extra
    axes are added to them as soon as MeqGrid node with a new axis
    (name) has been defined.   
+   </tip>
+
+   <tip>
+   Try a 3D or 4D request domain (e.g. '3D_ftLM'), and see that the Result Plotter
+   sprouts a few extra knobs to allow you to plot various cross-sections of the ND array.
+   </tip>
    """
    stub = QRU.on_entry(ns, rider, leaves_gridsFTLM)
    cc = []
@@ -1078,8 +1095,9 @@ def leaves_gridsFTLM (ns, rider):
    for axis in ['L','M']:
       cc.append(stub(axis) << Meq.Grid(axis=axis))
 
-   cc.append(stub('ft') << Meq.Add(cc[0],cc[1]))
-   cc.append(stub('LM') << Meq.Add(cc[2],cc[3]))
+   cc.append(stub('f+t') << Meq.Add(cc[0],cc[1]))
+   cc.append(stub('L+M') << Meq.Add(cc[2],cc[3]))
+   cc.append(stub('f+t+L+M') << Meq.Add(cc[0],cc[1],cc[2],cc[3]))
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1096,12 +1114,20 @@ def leaves_gridsXYZetc (ns, rider):
    NB: Check also the Forest State record. Note that its axis_map and
    its axis_list have default axes [time,freq,L,M], but that extra
    axes are added to them as soon as MeqGrid node with a new axis
-   (name) has been defined.   
+   (name) has been defined.
+
+   <warning>
+   At this moment (aug 2008), the system only accepts 5D request domains.
+   So, request domains including X or Z will cause problems.
+   (Y is the 5th in the axis-map, after time, freq, L, M (see forest state record)
+   </warning>
    """
    stub = QRU.on_entry(ns, rider, leaves_gridsXYZetc)
    cc = []
    for axis in ['X','Y','Z']:
       cc.append(stub(axis) << Meq.Grid(axis=axis))
+   cc.append(stub('X+Y+Z') << Meq.Add(cc[0],cc[1],cc[2]))
+   cc.append(stub('f+t+Y') << Meq.Add(ET.twig(ns,'t'), ET.twig(ns,'f'), cc[1]))
    return QRU.on_exit (ns, rider, cc)
 
 

@@ -24,6 +24,7 @@ But it may also be used stand-alone.
 #
 # History:
 #   - 13 jul 2008: creation (from QR-template.py)
+#   - 16 aug 2008: thinlayer_MIM
 #
 # Description:
 #
@@ -108,7 +109,7 @@ oo = TDLCompileMenu("QR_ionos topics:",
                             
                             TDLMenu("MIM",
                                     TDLOption('opt_thinlayer_MIM_twig',"MIM polyparm",
-                                              ['polyparm_LMXYZ','polyparm_L2M2X2Y2Z2'], more=str),
+                                              ['polyparm_ftLMY','polyparm_L2M2Y2'], more=str),
                                     toggle='opt_thinlayer_MIM'),
                             toggle='opt_thinlayer'),
                     
@@ -392,6 +393,7 @@ def thinlayer_MIM (ns, rider):
    stub = QRU.on_entry(ns, rider, thinlayer_MIM)
    cc = []
    twigspec = QRU.getopt(globals(), 'opt_thinlayer_MIM_twig', rider)
+   print 'twigspec=',twigspec
    MIM = ET.twig(ns, twigspec)
    cc.append(MIM)
 
@@ -528,6 +530,7 @@ def vertical_TEC (expr=None, x=0, y=0, TEC0=None, trace=False):
    if trace:
       print '** vertical_TEC (',expr,', x=',x,', y=',y,TEC0,') ->',TEC,' (',seval,')'
    return TEC
+
 
 #-------------------------------------------------------------------------------
 

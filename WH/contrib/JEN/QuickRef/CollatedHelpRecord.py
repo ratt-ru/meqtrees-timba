@@ -802,24 +802,31 @@ class CollatedHelpRecord (object):
 
          elif '<warning>' in ss[i]:
             self.countag('warning','up')
-            ss[i] += '<font color="magenta"> Warning:'
+            ss[i] += '<font color="magenta"> Warning: '
          elif '</warning>' in ss[i]:
             self.countag('warning','reset')
             ss[i] += '</font>\n'
 
          elif '<error>' in ss[i]:
             self.countag('error','up')
-            ss[i] += '<font color="red"> Error:'
+            ss[i] += '<font color="red"> Error: '
          elif '</error>' in ss[i]:
             self.countag('error','reset')
             ss[i] += '</font>\n'
 
          elif '<remark>' in ss[i]:
             self.countag('remark','up')
-            ss[i] += '<font color="green"> NB:'
+            ss[i] += '<font color="green"> NB: '
          elif '</remark>' in ss[i]:
             self.countag('remark','reset')
             ss[i] += '</font>\n'
+
+         elif '<tip>' in ss[i]:
+            self.countag('tip','up')
+            ss[i] += '<i><b> Tip: </b>'
+         elif '</tip>' in ss[i]:
+            self.countag('tip','reset')
+            ss[i] += '</i>\n'
 
       # Clean up:
       for i in range(self.countag('ul')):

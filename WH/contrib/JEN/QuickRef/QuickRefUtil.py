@@ -161,16 +161,28 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                        TDLOption('runopt_nL',"nr of cells in L direction",
                                  [3,1,2,3,5,10,11,21,50,100], more=int),
                        TDLOption('runopt_Lmin',"min L (domain edge)",
-                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                                 [-1.0,-0.1,-0.001,
+                                  -math.pi/8.0, -math.pi/4.0,
+                                  -math.pi/2.0, -math.pi,
+                                  -10.0,-100.0], more=float),
                        TDLOption('runopt_Lmax',"max L (domain edge)",
-                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
+                                 [1.0,0.1,0.001,
+                                  math.pi/8.0, math.pi/4.0,
+                                  math.pi/2.0, math.pi,
+                                  10.0,100.0], more=float),
                        TDLOption('runopt_separator',"",['']),
                        TDLOption('runopt_nM',"nr of cells in M direction",
                                  [3,1,2,3,5,10,11,21,50,100], more=int),
                        TDLOption('runopt_Mmin',"min M (domain edge)",
-                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                                 [-1.0,-0.1,-0.001,
+                                  -math.pi/8.0, -math.pi/4.0,
+                                  -math.pi/2.0, -math.pi,
+                                  -10.0,-100.0], more=float),
                        TDLOption('runopt_Mmax',"max M (domain edge)",
-                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
+                                 [1.0,0.1,0.001,
+                                  math.pi/8.0, math.pi/4.0,
+                                  math.pi/2.0, math.pi,
+                                  10.0,100.0], more=float),
                        ),
                # None,
                TDLOption('runopt_separator',"",['']),
@@ -178,9 +190,11 @@ TDLRuntimeMenu("Parameters of the Request domain(s):",
                        TDLOption('runopt_nX',"nr of cells in X direction",
                                  [3,1,2,3,5,10,11,21,50,100], more=int),
                        TDLOption('runopt_Xmin',"min X (domain edge)",
-                                 [-1.0,-0.1,-0.001,-math.pi,-10.0,-100.0], more=float),
+                                 [-1.0,-0.1,-0.001,-math.pi,
+                                  -10.0,-100.0,-1000.0], more=float),
                        TDLOption('runopt_Xmax',"max X (domain edge)",
-                                 [1.0,0.1,0.001,math.pi,10.0,100.0], more=float),
+                                 [1.0,0.1,0.001,math.pi,
+                                  10.0,100.0,1000.0], more=float),
                        TDLOption('runopt_separator',"",['']),
                        TDLOption('runopt_nY',"nr of cells in Y direction",
                                  [3,1,2,3,5,10,11,21,50,100], more=int),
@@ -213,9 +227,9 @@ def exec_domains(group=None, first=None):
     dd.extend(['1D_L','1D_M'])
     dd.extend(['2D_LM'])
     dd.extend(['1D_X','1D_Y','1D_Z'])
-    dd.extend(['3D_XYZ'])
+    dd.extend(['3D_XYZ','3D_LMY','3D_ftY'])
     dd.extend(['4D_ftLM','4D_LMXY'])
-    dd.extend(['5D_LMXYZ'])
+    dd.extend(['5D_LMXYZ','5D_ftLMY'])
     dd.extend(['6D_tLMXYZ'])
     if isinstance(first,str):
         dd.insert(0,first)

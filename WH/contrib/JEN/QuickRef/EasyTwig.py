@@ -12,6 +12,7 @@
 #   - 30 jun 2008: implemented cloud()
 #   - 02 jul 2008: split off EasyBundle.py
 #   - 08 aug 2008: removed Expression.py (for the moment)
+#   - 02 sep 2008: streamlined twig naming etc
 #
 # Remarks:
 #
@@ -271,7 +272,8 @@ def twig_names (cat='default', include=None, first=None, trace=False):
         names = twig_names(twig_cats())
     else:
         # default category
-        names = ['f','t','L','M','prod_ft2','sum_L2M2',
+        names = ['f','t','ft','f+t','L','M',
+                 'prod_ft2','sum_L2M2',
                  'f**t','range_3','noise_s3','cx_ft']
 
     # Specific names may be included:
@@ -560,7 +562,7 @@ def twig (ns, spec,
     If the twig name is not recognized, a constant node is generated.
 
     """
-    recognized_axes = ['f','t','L','M']       # used below...
+    recognized_axes = ['f','t','L','M','X','Y','Z']       # used below...
 
     s1 = '--- EasyTwig.twig('+str(spec)
     if nodestub: s1 += ', stub='+str(nodestub)
@@ -805,7 +807,7 @@ def twig (ns, spec,
 
     if not is_node(node):
         if severe:
-            s = '\n** ET.twig(',+str(spec)+'): spec not recognized\n'
+            s = '\n** ET.twig('+str(spec)+'): spec not recognized\n'
             raise ValueError,s
         else:
             # Always return an initialized node:
@@ -859,9 +861,9 @@ def twig (ns, spec,
             qhelp += '  (stddev='+str(stddev)+')'
         if noise:
             qhelp += '  (noise='+str(noise)+')'
-        key = 'qspecific' 
+        key = 'qhelp' 
         if not node.initrec().has_key(key):
-            # Attach only if the node does not have a qspecific field yet
+            # Attach only if the node does not have a qhelp field yet
             # (it may have been set in a function like polyparm()) 
             node.initrec()[key] = qhelp
 
@@ -884,7 +886,7 @@ def combine_ftLMXYZ(ns, stub, spec, default=0.0,
     Combine (Multiply,Add) the terms (nodes) specified in spec.
     These will be powers of f,t,L,M,X,Y,Z, and perhaps a constant.
     """
-    # trace = True
+    trace = True
     if trace:
         print '\n** ET.combine_ftLMXYZ(',spec,default,meqclass,'):'
     dekey = dict(c=default, f=-1, t=-1, L=-1, M=-1, X=-1, Y=-1, Z=-1)
@@ -1010,10 +1012,11 @@ def polyparm (ns, name='polyparm', ftLM=None,
     Make a polynomial subtree (up to 4D, f,t,L,M), with MeqParn coeff.
     """
 
+    trace = True
     if isinstance(ftLM, str):
         # The polynomial degree may be specified by 'ftLM' string:
         # (for compatibility with twig())
-        vv = decode_ftLMXYZ(ftLM, trace=False)
+        vv = decode_ftLMXYZ(ftLM, trace=True)
         fdeg = max(0,vv['f'])
         tdeg = max(0,vv['t'])
         Ldeg = max(0,vv['L'])

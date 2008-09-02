@@ -1077,7 +1077,9 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
   # trace = True
 
   # Make a syntax string, to be combined with qhelp
-  sx = 'Syntax: pynode = PNNG.pynode_NamedGroup(ns'
+  sx = 'Syntax that generated this pynode: <br>'
+  sx += ':: from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG <br>'
+  sx += ':: pynode = PNNG.pynode_NamedGroup(ns'
   if isinstance(nodes,(list,tuple)):
     if is_node(nodes[0]):
       sx += ', ['+str(len(nodes))+' nodes]'
@@ -1102,7 +1104,7 @@ def pynode_NamedGroup (ns, nodes=None, groupspecs=None,
       sx += '"'+str(kwargs[key])+'"'
     else:
       sx += str(kwargs[key])
-  sx += ')<br>'
+  sx += ')<br><br>'
 
 
   # Check the name of the new node: 
