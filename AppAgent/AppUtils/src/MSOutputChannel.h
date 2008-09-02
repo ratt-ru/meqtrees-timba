@@ -176,11 +176,14 @@ class MSOutputChannel : public FileChannel
     
     //##ModelId=3E2ED50E0113
     casa::ScalarColumn<casa::Bool> rowFlagCol_;
-    //##ModelId=3E2ED50E0190
     casa::ArrayColumn<casa::Bool> flagCol_;
+    
+    casa::ArrayColumn<casa::Int> bitflagCol_;
+    casa::ScalarColumn<casa::Int> rowBitflagCol_;
     
     //##ModelId=3F5F43630379
     casa::Array<casa::Complex> null_cell_;
+    casa::Array<casa::Int> null_bitflag_cell_;
 };
 
 

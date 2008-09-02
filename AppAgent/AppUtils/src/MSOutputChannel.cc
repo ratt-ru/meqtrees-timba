@@ -29,6 +29,7 @@
 #include <TimBase/AipsppMutex.h>
 
 #include <tables/Tables/ArrColDesc.h>
+#include <tables/Tables/ScaColDesc.h>
 #include <tables/Tables/ArrayColumn.h>
 #include <tables/Tables/ScalarColumn.h>
 #include <casa/Arrays/Matrix.h>
@@ -156,7 +157,10 @@ bool MSOutputChannel::setupDataColumn (Column &col)
   if( !ms_.tableDesc().isColumn(col.name) ) 
   {
     cdebug(2)<<"creating new column "<<col.name<<", shape "<<null_cell_.shape()<<endl;
-    ArrayColumnDesc<Complex> coldesc(col.name,"added by MSOutputAgent",null_cell_.shape(),ColumnDesc::Direct);
+    ArrayColumnDesc<Complex> coldesc(col.name,
+                          "added by MSOutputAgent","TiledShapeStMan","TiledData",
+                           null_cell_.shape(),
+                           ColumnDesc::Direct|ColumnDesc::FixedShape);
     ms_.addColumn(coldesc);
   }
   // init the column
@@ -191,6 +195,8 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   IPosition origshape = LoShape(header[FOriginalDataShape].as_vector<int>());
   null_cell_.resize(origshape);
   null_cell_.set(0);
+  null_bitflag_cell_.resize(origshape);
+  null_bitflag_cell_.set(0);
   // setup parameters from default record
   write_flags_       = params_[FWriteFlags].as<bool>(false);
   flagmask_          = params_[FFlagMask].as<int>(0xFFFFFFFF);
@@ -215,8 +221,36 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   {
     rowFlagCol_.attach(ms_,"FLAG_ROW");
     flagCol_.attach(ms_,"FLAG");
+    // setup the BITFLAG column
+    const TableDesc &td = ms_.tableDesc();
+    if( !td.isColumn("BITFLAG") ) 
+    {
+      cdebug(2)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()<<endl;
+      // get ColumnDesc of FLAG column, since we want to use the same storage manager
+      const ColumnDesc &cd = td.columnDesc("FLAG");
+      ArrayColumnDesc<Int> coldesc("BITFLAG",
+                            "added by MSOutputAgent",
+                            cd.dataManagerType(),cd.dataManagerGroup(),
+                            null_bitflag_cell_.shape(),
+                            ColumnDesc::Direct|ColumnDesc::FixedShape);
+      ms_.addColumn(coldesc);
+    }
+    cdebug(2)<<"attaching to column BITFLAG";
+    bitflagCol_.attach(ms_,"BITFLAG");
+    // setup the BITFLAG_ROW column
+    if( !td.isColumn("BITFLAG_ROW") ) 
+    {
+      cdebug(2)<<"creating new column BITFLAG_ROW"<<endl;
+      // get ColumnDesc of FLAG_ROW column, since we want to use the same storage manager
+      const ColumnDesc &cd = td.columnDesc("FLAG_ROW");
+      ScalarColumnDesc<Int> coldesc("BITFLAG_ROW",
+                              "added by MSOutputAgent",
+                              cd.dataManagerType(),cd.dataManagerGroup());
+      ms_.addColumn(coldesc);
+    }
+    cdebug(2)<<"attaching to column BITFLAG_ROW\n";
+    rowBitflagCol_.attach(ms_,"BITFLAG_ROW");
   }
-
   cdebug(2)<<"got header for MS "<<msname_<<endl;
   cdebug(2)<<"  orig shape: "<<origshape<<endl;
   cdebug(2)<<"  channels: "<<channels_[0]<<"-"<<channels_[1]<<endl;
@@ -287,9 +321,14 @@ void MSOutputChannel::doPutTile (const VTile &tile)
       if( flip_freq_ )
         flags.reverseSelf(blitz::secondDim);
       Matrix<Bool> aflags;
+      Matrix<Int> abitflags;
       B2A::copyArray(aflags,flags);
+      B2A::copyArray(abitflags,iter.flags());
       // cdebug(6)<<"writing to FLAG column: "<<aflags<<endl;
       flagCol_.putSlice(irow,column_slicer_,aflags);
+      if( !bitflagCol_.isDefined(irow) )
+        bitflagCol_.put(irow,null_bitflag_cell_);
+      bitflagCol_.putSlice(irow,column_slicer_,abitflags);
     }
     if( tile.defined(VTile::DATA) && datacol_.valid )
       putColumn(datacol_,irow,iter.data());
