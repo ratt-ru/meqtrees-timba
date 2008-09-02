@@ -79,10 +79,7 @@ import numpy
 
 oo = TDLCompileMenu("QR_PyNodePlot topics:",
                     TDLOption('opt_alltopics',"override: include all topics",False),
-                    
-                    TDLOption('opt_input_twig',"input twig",
-                              ET.twig_names(), more=str),
-                    
+                                        
                     TDLMenu("PyNodePlot",
                             TDLOption('opt_PNP_alltopics',
                                       "override: include all PyNodePlot sub-topics",False),

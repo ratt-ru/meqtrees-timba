@@ -8,6 +8,7 @@
 #
 # History:
 #    - 29 apr 2007: creation, from TDL_Expression.py
+#    - 02 sep 2008: removed numarray
 #
 # Remarks:
 #
@@ -78,7 +79,7 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 
 Settings.forest_state.cache_policy = 100
 
-from numarray import *
+import numpy
 from math import *
 
 import random
@@ -1424,7 +1425,7 @@ def _define_forest(ns):
         # e9.modparm('{a5}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')           # math
 
         # The following work neither with FunkletParm as with MeqFunctional:
-        ## e9.modparm('{a6}','arcsin(0.5)')  # +arccos(-0.5)+arctan(4)')         # numarray
+        ## e9.modparm('{a6}','arcsin(0.5)')  # +arccos(-0.5)+arctan(4)')         # numpy
         ## e9.modparm('{a8}','complex(5,3)')
         ## e9.modparm('{a10}','pow(-2,3)')             
         ## e9.modparm('{a11}','e')           # use ' e ' (see above)
@@ -1614,7 +1615,7 @@ if __name__ == '__main__':
         e9 = Expression(ns, 'e9', expr, value=0.0)
         e9.modparm('{a0}', 'pi+e')
         e9.modparm('{a1}','sin(2)+cos(3)+tan(4)')
-        # e9.modparm('{a2}','arcsin(0.5)+arccos(-0.5)+arctan(4)')        # numarray
+        # e9.modparm('{a2}','arcsin(0.5)+arccos(-0.5)+arctan(4)')        # numpy
         e9.modparm('{a2}','asin(0.5)+acos(-0.5)+atan(4)+atan2(2,3)')     # math
         e9.modparm('{a3}','sinh(2)+cosh(-2)+tanh(4)')
         e9.modparm('{a4}','log(2)+exp(-2)+sqrt(4)')
@@ -1622,9 +1623,9 @@ if __name__ == '__main__':
         e9.modparm('{a6}','abs(-2)+ceil(3.5)+floor(3.7)')
         e9.modparm('{a7}','complex(5,3)')
         e9.display()
-        if True:
-            import numarray
-            print '\n** numarray:',dir(numarray)
+        if False:
+            import numpy
+            print '\n** numpy:',dir(numpy)
             import math
             print '\n** math:',dir(math)
 

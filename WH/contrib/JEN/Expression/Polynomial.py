@@ -7,6 +7,7 @@
 #
 # History:
 #    - 05may2007: creation, from Expression.py
+#    - 02sep2008: removed numarray
 #
 # Remarks:
 #
@@ -56,12 +57,13 @@ from Timba.Contrib.JEN.Grunt import display
 
 Settings.forest_state.cache_policy = 100
 
-from numarray import *
-linear_algebra = True
-try:
-    import numarray.linear_algebra                # redefines numarray.rank....
-except:
-    linear_algebra = False
+# import SciPy                                    # not supported yet
+linear_algebra = False  
+# linear_algebra = True  
+# try:
+#     import SciPy.linear_algebra                 # redefines scipy.rank....
+# except:
+#     linear_algebra = False
     
 # import random
 from copy import deepcopy
@@ -380,11 +382,11 @@ class Polynomial (Expression.Expression):
                 aa[ieq,iuk] = veval
 
         # Solve for the unknown polynomial terms by inverting the matrix aa:
-        # NB:  numarray.linear_algebra not supported on birch......
+        # NB:  numpy.linear_algebra not supported on birch......
         if not linear_algebra:
             return False
         else:
-            bb = numarray.linear_algebra.linear_least_squares(aa,vv)
+            bb = SciPy.linear_algebra.linear_least_squares(aa,vv)
             solvec = bb[0]                                 # solution vector
             for iuk,key in enumerate(self._term_order):    # for each term
                 self.modify_default(key,solvec[iuk])
