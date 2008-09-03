@@ -32,6 +32,9 @@
 #include <tables/Tables/ScaColDesc.h>
 #include <tables/Tables/ArrayColumn.h>
 #include <tables/Tables/ScalarColumn.h>
+#include <tables/Tables/TiledStManAccessor.h>
+#include <tables/Tables/TiledColumnStMan.h>
+#include <tables/Tables/IncrementalStMan.h>
 #include <casa/Arrays/Matrix.h>
 
 using namespace casa;
@@ -153,15 +156,36 @@ bool MSOutputChannel::setupDataColumn (Column &col)
   // if name is not set, then column is ignored
   if( !col.name.length() )
     return col.valid = false;
+  const TableDesc &td = ms_.tableDesc(); 
   // add column to MS, if it doesn't exist
-  if( !ms_.tableDesc().isColumn(col.name) ) 
+  if( !td.isColumn(col.name) ) 
   {
-    cdebug(2)<<"creating new column "<<col.name<<", shape "<<null_cell_.shape()<<endl;
     ArrayColumnDesc<Complex> coldesc(col.name,
-                          "added by MSOutputAgent","TiledShapeStMan","TiledData",
+                          "added by MSOutputAgent",
                            null_cell_.shape(),
                            ColumnDesc::Direct|ColumnDesc::FixedShape);
-    ms_.addColumn(coldesc);
+    // check what storage manager the standard DATA column uses
+    string dmtype;
+    if( td.isColumn("DATA") )
+      dmtype = td.columnDesc("DATA").dataManagerType();
+    if( dmtype.length() > 5 && !dmtype.compare(0,5,"Tiled") )
+    {
+      // get tile shape from storage manager of DATA column
+      ROTiledStManAccessor acc(ms_,td.columnDesc("DATA").dataManagerGroup());
+      IPosition tileShape(acc.tileShape(0));
+      // create a tiled storage manager with the same shape
+      TiledColumnStMan stman("Tiled_"+col.name,acc.tileShape(0));
+      cdebug(1)<<"creating new column "+col.name+", shape "<<null_cell_.shape()
+                <<", TiledColumnStMan data manager with shape "<<acc.tileShape(0)<<endl;
+      ms_.addColumn(coldesc,stman);
+    }
+    // else add using a standard data manager
+    else
+    {
+      cdebug(1)<<"creating new column "+col.name+", shape "<<null_cell_.shape()
+                <<" using the default data manager"<<endl;
+      ms_.addColumn(coldesc);
+    }
   }
   // init the column
   cdebug(2)<<"attaching to column "<<col.name<<endl;
@@ -225,15 +249,31 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
     const TableDesc &td = ms_.tableDesc();
     if( !td.isColumn("BITFLAG") ) 
     {
-      cdebug(2)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()<<endl;
-      // get ColumnDesc of FLAG column, since we want to use the same storage manager
-      const ColumnDesc &cd = td.columnDesc("FLAG");
       ArrayColumnDesc<Int> coldesc("BITFLAG",
                             "added by MSOutputAgent",
-                            cd.dataManagerType(),cd.dataManagerGroup(),
                             null_bitflag_cell_.shape(),
                             ColumnDesc::Direct|ColumnDesc::FixedShape);
-      ms_.addColumn(coldesc);
+      const ColumnDesc &cd = td.columnDesc("FLAG");
+      // tiled column -- add a tiled data manager
+      string dmtype = cd.dataManagerType();
+      if( dmtype.length() > 5 && !dmtype.compare(0,5,"Tiled") )
+      {
+        // get tile shape from storage manager of FLAG column
+        ROTiledStManAccessor acc(ms_,cd.dataManagerGroup());
+        IPosition tileShape(acc.tileShape(0));
+        // create a tiled storage manager with the same shape
+        TiledColumnStMan stman("Tiled_BITFLAG",acc.tileShape(0));
+        cdebug(1)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()
+                 <<", TiledColumnStMan data manager with shape "<<acc.tileShape(0)<<endl;
+        ms_.addColumn(coldesc,stman);
+      }
+      // else add using a standard data manager
+      else
+      {
+        cdebug(1)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()
+                 <<" using the default data manager"<<endl;
+        ms_.addColumn(coldesc);
+      }
     }
     cdebug(2)<<"attaching to column BITFLAG";
     bitflagCol_.attach(ms_,"BITFLAG");
@@ -241,12 +281,10 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
     if( !td.isColumn("BITFLAG_ROW") ) 
     {
       cdebug(2)<<"creating new column BITFLAG_ROW"<<endl;
-      // get ColumnDesc of FLAG_ROW column, since we want to use the same storage manager
-      const ColumnDesc &cd = td.columnDesc("FLAG_ROW");
       ScalarColumnDesc<Int> coldesc("BITFLAG_ROW",
-                              "added by MSOutputAgent",
-                              cd.dataManagerType(),cd.dataManagerGroup());
-      ms_.addColumn(coldesc);
+                              "added by MSOutputAgent");
+      IncrementalStMan stman("ISM_BITFLAG_ROW");
+      ms_.addColumn(coldesc,stman);
     }
     cdebug(2)<<"attaching to column BITFLAG_ROW\n";
     rowBitflagCol_.attach(ms_,"BITFLAG_ROW");
