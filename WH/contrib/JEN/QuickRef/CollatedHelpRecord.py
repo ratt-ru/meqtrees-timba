@@ -74,11 +74,15 @@ class CollatedHelpRecord (object):
    def chrec (self):
       return self._chrec
 
-   def nodestubname (self, trace=False):
+   def nodestubname (self, short=False, trace=False):
       """
       Derive a nodestub name from the current path.
+      If short=True, keep it short....
       """
-      return self.path2name (n=2, trace=trace)
+      ss = self.path2name (n=2, trace=trace)
+      if short:
+         ss = ss[0] + '_' + self.path2name (n=1, trace=trace)
+      return ss
 
    def path2name (self, n=None, trace=False):
       """

@@ -516,7 +516,7 @@ def _tdl_job_show_doc (mqs, parent, rr=None, header='QuickRefUtil'):
 #----------------------------------------------------------------------------
 
 def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
-    """Save the formatted help from the rider (rr) in a file.
+    """Save the formatted help from the rider (rr) in a html file.
     """
     if rr==None:
         rr = rider             # i.e. the CollatedHelpObject
@@ -558,7 +558,7 @@ def on_entry(ns, rider, func, trace=False):
     qhelp += rider.check_html_tags(func.__doc__, include_style=False)
     rider.insert_help (path, qhelp, append=False)
 
-    stub = EN.unique_stub(ns, rider.nodestubname())
+    stub = EN.unique_stub(ns, rider.nodestubname(short=True))
     
     if trace:
         print '\n** .on_entry():',path,'->',str(stub)

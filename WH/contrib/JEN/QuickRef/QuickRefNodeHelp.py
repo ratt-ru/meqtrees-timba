@@ -344,12 +344,16 @@ def class_help (cname, header=None, rr=None,
 
 
    elif cname=='MeqWSum':
-      gen += 'Weighted sum of its children: w[0]*c0 + w[1]*c1 + w[2]*c2 + ... '
-      gen += '<warning>The weights vector must be a vector of DOUBLES (!)</warning>'
+      gen += """Weighted sum of its children: w[0]*c0 + w[1]*c1 + w[2]*c2 + ...
+      <warning>The weights vector must be a vector of DOUBLES (!)</warning>
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
 
    elif cname=='MeqWMean':
       gen += """Weighted mean of its children: (w[0]*c0 + w[1]*c1 + w[2]*c2 + ...)/wtot,
-      in which wtot = (w[0]+w[1]+w[2]+...)"""
+      in which wtot = (w[0]+w[1]+w[2]+...)
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
 
    elif cname in ['MeqAdd','MeqMultiply']:
       gen += 'Multi-math function (has one or more children). '
@@ -427,23 +431,33 @@ def class_help (cname, header=None, rr=None,
 
    elif cname=='MeqReqSeq':
       gen += """Passes its request to its children one by one. It returns the result
-      of the child specified by result_index (default=0)."""
+      of the child specified by result_index (default=0).
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
       
    elif cname=='MeqReqMux':
-      gen += """Like MeqReqSeq...."""
+      gen += """Like MeqReqSeq....
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
       
    elif cname=='MeqComposer':
       gen += """Combine the results of its (scalar) children into a tensor node,
       i.e. a node with multiple results. An optional dims argument may be supplied
-      to specify a shape."""
+      to specify a shape.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
       
    elif cname=='MeqSelector':
       gen += """Makes a scalar node (one result) by extracting the specified (index)
-      element from its tensor child."""
+      element from its tensor child.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
       
    elif cname=='MeqPaster':
       gen += """Past the result of its (scalar) child at the specified (index)
-      position of its tensor child.<warning>Does not work</warning>"""
+      position of its tensor child.<warning>Does not work</warning>
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
       
       
    #---------------------------------------------------------------------------
@@ -453,6 +467,7 @@ def class_help (cname, header=None, rr=None,
       over a 'domain' in the axes-space defined by its 1st child. The 'common_axes'
       argument specifies which axes the children of its 1st child represent.
       The compounder returns a constant, i.e. it averages over its sampling domain.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqCompounder'>meqwiki/MeqCompounder</A>
       """
    
    elif cname=='MeqModRes':
@@ -460,10 +475,13 @@ def class_help (cname, header=None, rr=None,
       <font color='red'><i>REQUEST</i></font> that is passed on to its child(ren). 
       It does this according to the specified num_cells, which is a list of integers,
       one for each dimensions of the domain. In general, it will be 2D [ntime,nfreq].
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
       """
 
    elif cname=='MeqResampler':
-      gen += 'Resamples the domain of the result according to that of the request.'
+      gen += """Resamples the domain of the result according to that of the request.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
 
    #---------------------------------------------------------------------------
 
@@ -473,6 +491,7 @@ def class_help (cname, header=None, rr=None,
       of those MeqParm(s) in the MeqCondeq subtrees that have been set to 'solvable'.
       After solution (by SVD matrix inversion), incremental improvements are passed back up
       the tree to the relevant MeqParms.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
       """ 
       
    elif cname=='MeqCondeq':
@@ -480,28 +499,56 @@ def class_help (cname, header=None, rr=None,
       The difference (residual) between them is used to generate condition equations
       (one equation per domain cell) for the solver.
       After solving, the condeq result (=residual) should be 'zero' (or rather noise-like).
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
       """
 
    elif cname=='MeqParm':
-      gen += 'This node represents a (M.E.) parameter, which may be solved for. ' 
+      gen += """This node represents a (M.E.) parameter, which may be solved for. 
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
       
    #---------------------------------------------------------------------------
 
    elif cname=='MeqZeroFlagger':
       gen += """Flags the cells of the result of its child if they are GT,GE,LE,LT zero.
-      The child will usually be the rootnode of a subtree."""
+      The child will usually be the rootnode of a subtree.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
 
    elif cname=='MeqMergeFlags':
       gen += """Merges the flags of its children, and returns the result of the
-      first child (with the merged flags of course)."""
+      first child (with the merged flags of course).
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
 
    #---------------------------------------------------------------------------
 
-   elif cname in ['MeqSpigot','MeqFitsSpigot']:
+   elif cname in ['MeqSpigot']:
+      gen += """Reads uv-data from an MS.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqSpigot'>meqwiki/MeqSpigot</A>
+      """
+
+   elif cname in ['MeqSink']:
+      gen += """Generated requests for reading snippets of uv-data from an MS.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqSink'>meqwiki/MeqSink</A>
+      """
+
+   elif cname in ['MeqVisDataMux']:
       pass
-   elif cname in ['MeqSink','MeqVisDataMux']:
-      pass
-   elif cname in ['MeqFITSReader','MeqFITSImage','MeqFITSSpigot','','','']:
+
+   #---------------------------------------------------------------------------
+
+   elif cname in ['MeqFITSReader']:
+      gen += """
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
+
+   elif cname in ['MeqFITSImage']:
+      gen += """
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
+      
+   elif cname in ['MeqFITSSpigot']:
       pass
 
    #---------------------------------------------------------------------------
@@ -509,6 +556,9 @@ def class_help (cname, header=None, rr=None,
    elif cname in ['MeqUVBrick','MeqUVInterpol']:
       pass
    elif cname in ['MeqVisPhaseShift']:
+      pass
+
+   elif cname in ['MeqUVW']:
       pass
 
    #---------------------------------------------------------------------------
@@ -520,25 +570,97 @@ def class_help (cname, header=None, rr=None,
       given an Earth position tensor node (ITRF coordinates X,Y,Z).
       The latter may also be given by observatory name (e.g. 'WSRT').
       The <font color='red'>safe</font> syntax is Meq.AzEl(radec=radec, xyz=xyz)
-      or Meq.AzEl(radec, observatory=..). 
+      or Meq.AzEl(radec, observatory=..).
+      It uses the time of the request domain, which is assumed to be in MJD.
       The result is a tensor node with two vellsets (Az,El).
+      See also: <A href='http://www.astron.nl/meqwiki/MeqAzEl'>meqwiki/MeqAzEl</A>
       """
 
-   elif cname in ['MeqCoordTransform','MeqLST','MeqLMN','MeqLMRaDec']:
-      pass
+   elif cname in ['MeqRaDec']:
+      gen += """Calculates the RA,Dec given Az,El coordinates.
+      Input and output are tensor nodes.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqRaDec'>meqwiki/MeqRaDec</A>
+      """
 
-   elif cname in ['MeqObjectRADec','MeqParAngle','MeqRaDec','MeqUVW']:
-      pass
+   elif cname in ['MeqLMN']:
+      gen += """Calculate L, M, N from RA and DEC (tensor node).
+      See also: <A href='http://www.astron.nl/meqwiki/AllNodes'>meqwiki/AllNodes</A>
+      """
+
+   elif cname in ['MeqLST']:
+      gen += """A MeqLST node transforms the time (assumed MJD) of the request domain
+      into Local Sidereal Time. The LST depends on the Earth location. This can 
+      be peivided in two ways: Either by means of (observatory=name), where the name  
+      of the observatory must known to aips++ Measures,
+      or by means of (xyz=xyz), where xyz is a vector (tensor node) of three ITRF coordinates.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqAllNodes'>meqwiki/MeqAllNodes</A>
+      """
+
+   elif cname in ['MeqLMRaDec']:
+      gen += """The MeqLMRaDec node converts a given (L,M) position
+      (2-element tensor node in radians) relative to the field centre (RA0,DEC0)
+      into a corresponding RA and DEC .
+      The node uses the aips++ DirectionCoordinate class to perform this conversion.
+      Syntax: MeqLMN(radec_0=radec0, lm=lm)
+      See also: <A href='http://www.astron.nl/meqwiki/MeqLMRaDec'>meqwiki/MeqLMRaDec</A>
+      """
+
+   elif cname in ['MeqObjectRADec']:
+      gen += """Give RA,Dec of standard (solar system) objects.
+      Syntax: Meq.ObjectRADec(obj_name='MOON'). Case-insensitive.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqObjectRADec'>meqwiki/MeqObjectRADec</A>
+      """
+
+   elif cname in ['MeqParAngle']:
+      gen += """Calculates Parallactic Angle from RA and DEC and IRTF position (x,y,z).
+      See also: <A href='http://www.astron.nl/meqwiki/MeqParAngle'>meqwiki/MeqParAngle</A>
+      """
+
+   elif cname in ['MeqLongLat']:
+      gen += """
+      Calculate Earth longitude, latitude and length(?)
+      for a given constant vector (tensor node) with IRTF xyz position.
+      If use_w = 1 the longitude, WGS84 geodetic latitude and height are returned.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqLongLat'>meqwiki/MeqLongLat</A>
+      """
+
+   elif cname in ['MeqCoordTransform']:
+      gen += """The MeqCoordTransform can be used to transform the grid values for 1 axis
+      (as a function of the other axes). It has two children.
+      The first child defines the transformation, from this a new request is generated
+      which is fed to the second child.
+      The result of the node will be defined on the orignal cells.
+      An example of how to use this node will follow soon.
+      state field axis: Set the axis of transformation as hiid('axisname').
+      If axis is not defined, or not existing, it will use the default axis (TIME).
+      NOTE: At the moment, the Node is defined for real child results only!!!
+      If the first child's result is complex, the node will simply fail,
+      if the second child returns a complex result, only the real part is evaluated.
+      Also, at this moment only perturbed values of the first child are taken in to account.
+      Perturbations coming from the second child are simply ignored... 
+      See also: <A href='http://www.astron.nl/meqwiki/MeqCoordTransform'>meqwiki/MeqCoordTransform</A>
+      """
+
+
+   #---------------------------------------------------------------------------
+
+   elif cname=='MeqStationBeam':
+      gen += """This node implements a narrow-band beamformer.
+      See also: <A href='http://www.astron.nl/meqwiki/MeqStationBeam'>meqwiki/MeqStationBeam</A>
+      """
 
 
    #---------------------------------------------------------------------------
 
    elif cname=='MeqFunctional':
       gen += """A node that evaluates an arbitrary, user-supplied math expression
-      of its children."""
+      of its children.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
 
    elif cname=='MeqPrivateFunction':
       gen += """A node that evaluates a user-supplied C function of its children.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
       """
 
    #---------------------------------------------------------------------------
@@ -550,7 +672,9 @@ def class_help (cname, header=None, rr=None,
       results of its children (e.g. visualisation). The user part is supplied in the
       form of a specific python class (see class_name below),
       which may employ some standard interface methods to interact
-      with the node state record and the child results, and to produce a result."""
+      with the node state record and the child results, and to produce a result.
+      See also: <A href='http://www.astron.nl/meqwiki/Meq'>meqwiki/Meq</A>
+      """
 
    #---------------------------------------------------------------------------
    # Node (class) not recognised:

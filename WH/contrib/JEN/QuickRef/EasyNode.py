@@ -322,7 +322,7 @@ def format_tree (node, ss='', recurse=True,
         if getattr(node,'initrec',None):
             initrec = node.initrec()
             ss += '<font size=1>'
-            for key in ['value','tags','result_index','default']:
+            for key in ['value','tags','result_index','default','index']:
                 if initrec.has_key(key):
                     ss += '  ('+key+'='+str(initrec[key])+')'
             ss += '</font>'

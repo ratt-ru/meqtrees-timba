@@ -45,7 +45,10 @@ But it may also be used stand-alone.
 #   MeqRandomNoise         crashes the browser/server
 #
 #   MeqPaster              does not paste
-#   MeqSelector            index=[1,2] not supported          
+#   MeqSelector            index=[1,2] not supported
+#
+#   MeqRaDec               crashes the meqserver...!            
+#   MeqObjectRADec         Measures cannot find the planetary data table DE200
 #
 # Workaround exists:
 #
@@ -56,7 +59,7 @@ But it may also be used stand-alone.
 #
 #   MeqAzEl                Meq.AzEl(radec,..) and (radec=radec,..) give the same result
 #                          (the 2nd form is confusing, and should be discouraged,
-#                           and NOT used in the wiki example!)
+#                           and NOT used in the wiki example!). Review the interface
 #
 #% $Id$ 
 #
@@ -101,6 +104,8 @@ import numpy
 #********************************************************************************
 
 WNB_observatories = 'ALMA ARECIBO ATCA BIMA CLRO DRAO DWL GB GBT GMRT IRAM PDB IRAM_PDB JCMT MOPRA MOST NRAO12M NRAO_GBT PKS VLA VLBA WSRT'.split(' ')
+
+WNB_ssobjs = 'SUN MOON MERCURIUS VENUS MARS JUPITER SATURNUS URANUS NEPTUNUS PLUTO'.split(' ')
 
 
 oo = TDLCompileMenu("QR_MeqNodes topics:",
@@ -161,9 +166,18 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                                       [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5], more=float),
                             TDLOption('opt_coordinates_DEC',"input Declination (rad)",
                                       [1.0,0.0,-1.0,math.pi/2], more=float),
-                            TDLOption('opt_coordinates_observatory',"Observatory",
-                                      WNB_observatories, more=str),
-                            TDLOption('opt_coord_azel',"Az/El",False),
+                            TDLOption('opt_coordinates_ssobj',"(override) RA,DEC from Solar System object",
+                                      WNB_ssobjs+[None], more=str),
+                            TDLMenu("Earth-related",
+                                    TDLOption('opt_coordinates_observatory',"Observatory",
+                                              WNB_observatories, more=str),
+                                    toggle='opt_coord_azel'),
+                            TDLMenu("image-related",
+                                    TDLOption('opt_coordinates_RA0',"RA of phase centre (rad)",
+                                              [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5], more=float),
+                                    TDLOption('opt_coordinates_DEC0',"DEC of phase centre (rad)",
+                                              [1.0,0.0,-1.0,math.pi/2], more=float),
+                                    toggle='opt_coord_lmn'),
                             toggle='opt_coordinates'),
                     # TDLOption('opt_transforms',"transforms",False),
                     TDLOption('opt_flowcontrol',"flowcontrol",False),
@@ -267,18 +281,34 @@ def coordinates (ns, rider):
    stub = QRU.on_entry(ns, rider, coordinates)
    cc = []
    override = opt_alltopics
+
+   # Get the radec (RA,DEC) node here, and pass it down:
+   ssobj = QRU.getopt(globals(), 'opt_coordinates_ssobj', rider)
+   ra = QRU.getopt(globals(), 'opt_coordinates_RA', rider)
+   dec = QRU.getopt(globals(), 'opt_coordinates_DEC', rider)
+   if False and ssobj:                                           # temporarily disabled
+      # Measures cannot find the planetary data table DE200
+      radec = stub('radec') << Meq.ObjectRADec(obj_name=ssobj)
+   else:
+      RA = stub('RA') << ra
+      DEC = stub('DEC') << dec
+      radec = stub('radec') << Meq.Composer(RA,DEC)
+
    if override or opt_coord_azel:
-      cc.append(coord_azel (ns, rider))
+      cc.append(coord_azel (ns, rider, radec=radec))
+   if override or opt_coord_lmn:
+      cc.append(coord_lmn (ns, rider, radec=radec))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
-def coord_azel (ns, rider):
+def coord_azel (ns, rider, radec=None):
    """
-   Coordinate transform from RA,DEC to Azimuth,Elevation.
-   It uses the AIPS++/Casa Measures module, written by Wim Brouw.
-   It uses the time in the request domain (assuming that this is MJD?)
-   See also: <A href='http://www.astron.nl/meqwiki/MeqAzEl'>meqwiki</A>
+   Coordinate transform nodes that involve Earth-related coordinates like
+   Azimuth, Elevation, Latitude, Longitude, Local Sidereal Time (LST) etc.
+   They use the AIPS++/Casa Measures module, written by Wim Brouw.
+   They use the time in the request domain (assuming MJD)
+   See also: <A href='http://www.astron.nl/meqwiki/AllNodes'>meqwiki/MeqAllNodes</A>
    
    <tip>
    The Meq.AzEl nodes are tensor nodes, i.e. they have two vellsets (RA amd DEC).
@@ -293,16 +323,17 @@ def coord_azel (ns, rider):
 
    stub = QRU.on_entry(ns, rider, coord_azel)
    cc = []
-   
-   ra = QRU.getopt(globals(), 'opt_coordinates_RA', rider)
-   dec = QRU.getopt(globals(), 'opt_coordinates_DEC', rider)
-   obs = QRU.getopt(globals(), 'opt_coordinates_observatory', rider)
-   RA = stub('RA') << ra
-   DEC = stub('DEC') << dec
-   radec = stub('RADEC') << Meq.Composer(RA,DEC)
-   cc.append(radec)
 
-   cc.append(stub('azel')('observatory') << Meq.AzEl (radec, observatory=obs))
+   cc.append(radec)
+   
+   obs = QRU.getopt(globals(), 'opt_coordinates_observatory', rider)
+
+   cc.append(stub('AzEl')('observatory') << Meq.AzEl(radec, observatory=obs))
+   if False:
+      # Crashes the server...!
+      cc.append(stub('RaDec')('observatory') << Meq.RaDec (cc[-1], observatory=obs))
+   cc.append(stub('ParAngle')('observatory') << Meq.ParAngle(radec, observatory=obs))
+   cc.append(stub('LST')('observatory') << Meq.LST(observatory=obs))
 
    # Use the Earth coordinates of a VLA antenna:
    x = stub('x') << -1597262.96
@@ -310,10 +341,46 @@ def coord_azel (ns, rider):
    z = stub('z') << 3554901.34
    xyz = stub('xyz')('VLA antenna') << Meq.Composer(x,y,z)
    cc.append(xyz)
-   cc.append(stub('azel')('xyz') << Meq.AzEl (radec=radec, xyz=xyz))
-   # cc.append(stub('azel')('xyz') << Meq.AzEl (xyz, radec))
+
+   cc.append(stub('AzEl')('xyz') << Meq.AzEl(radec=radec, xyz=xyz))
+   cc.append(stub('ParAngle')('xyz') << Meq.ParAngle(radec=radec, xyz=xyz))
+   cc.append(stub('LongLat')('xyz') << Meq.LongLat(xyz=xyz))
    
-   return QRU.on_exit (ns, rider, cc)
+   return QRU.on_exit (ns, rider, cc, show_recurse=True)
+
+
+#--------------------------------------------------------------------------------
+
+def coord_lmn (ns, rider, radec=None):
+   """
+   Coordinate transform nodes related to relative sky coordinates (l,m,n).
+   They use the AIPS++/Casa Measures module, written by Wim Brouw.
+   See also: <A href='http://www.astron.nl/meqwiki/MeqAllNodes'>meqwiki/MeqAllNodes</A>
+
+   <tip>
+   Compare the input (RA,DEC) with the one produced by MeqLMRaDec after converting
+   back and forth. Note that they are the same, except for an 2pi 'ambiguity'.
+   </tip>
+   """
+
+   stub = QRU.on_entry(ns, rider, coord_lmn)
+   cc = []
+
+   cc.append(radec)
+
+   ra0 = QRU.getopt(globals(), 'opt_coordinates_RA0', rider)
+   dec0 = QRU.getopt(globals(), 'opt_coordinates_DEC0', rider)
+   radec0 = stub('radec0') << Meq.Composer(ra0,dec0)
+   cc.append(radec0)
+   
+   cc.append(stub('LMN') << Meq.LMN(radec0, radec))
+   L = stub('L') << Meq.Selector(cc[-1], index=0)
+   M = stub('M') << Meq.Selector(cc[-1], index=1)
+   lm = stub('LM') << Meq.Composer(L,M)
+   cc.append(lm)
+   cc.append(stub('LMRaDec') << Meq.LMRaDec(radec_0=radec0, lm=lm))
+   
+   return QRU.on_exit (ns, rider, cc, show_recurse=True)
 
 
 
@@ -1522,8 +1589,8 @@ def _tdl_job_execute_sequence (mqs, parent):
 def _tdl_job_m (mqs, parent):
    return QRU._tdl_job_m (mqs, parent)
 
-def _tdl_job_print_doc (mqs, parent):
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header=header)
+# def _tdl_job_print_doc (mqs, parent):
+#    return QRU._tdl_job_print_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_print_hardcopy (mqs, parent):
    return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
@@ -1531,7 +1598,7 @@ def _tdl_job_print_hardcopy (mqs, parent):
 def _tdl_job_show_doc (mqs, parent):
    return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
-def _tdl_job_save_doc (mqs, parent):
+def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
    return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
 
