@@ -893,14 +893,22 @@ class PyNodeNamedGroups (pynode.PyNode):
     Return the labels of the first (!?) namedgroup that appears as
     a variable {<name>} in the given expression. 
     """
+    # trace = True
     if trace:
       print '\n** _expr2labels(',expr,'):'
+
     for key in self._namedgroups.keys():
       kenc = '{'+key+'}'
+      lcs = None
       if kenc in expr:
         ss = self._namedgroups[key].labels
-        lcs = self._namedgroups[key].lcs
-        ss = EN.get_plot_labels(ss, lcs=lcs)
+        if isinstance(ss,(list,tuple)):
+          lcs = self._namedgroups[key].lcs
+          if isinstance(lcs,str):
+            # char = '#'
+            char = ' '
+            for i,label in enumerate(ss):
+              ss[i] = label.replace(lcs,char)      
         if trace:
           print '-',kenc,lcs,len(ss),'->',ss,'\n'
         return ss                              # for the moment: return the first...!

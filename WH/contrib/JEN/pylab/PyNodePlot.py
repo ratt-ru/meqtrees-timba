@@ -172,6 +172,9 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
   <li> include_xaxis [=False]:     plot-window, if True, include y=0
   <li> include_yaxis [=False]:     plot-window, if True, include x=0
   <li> legend     [=[]]:           plot legend string(s)
+  <li> save       [=False]:        if True, or filename, save the resulting plot in a file
+  <li> document   [=False]:        if True, include the resulting plot in the documentation 
+  <li> hardcopy   [=False]:        if True, print a hardcopy of the resulting plot
   <li> make_svg   [=False]:        (legacy, ignore)
 
   NB: Many subplot keywords (e.g. linestyle) may be specified as overall
@@ -382,7 +385,10 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     rr = self.plotspecs                               # convenience
 
     # Some node control parameters:
-    rr.setdefault('make_svg', False)                  # if True, make the SVG plot
+    rr.setdefault('make_svg', False)                  # if True, make the SVG plot (obsolete)
+    rr.setdefault('save', False)                      # if True, or filename, save the plot 
+    rr.setdefault('document', False)                  # if True, or filename, include the plot in documentation
+    rr.setdefault('hardcopy', False)                  # if True, print a hardcopy of the plot
 
     # These keys are used to transfer fields to self._plotdefs:
     self._pskeys = record(overall=[])
@@ -395,7 +401,8 @@ class PyNodePlot (PNNG.PyNodeNamedGroups):
     ss.extend(['xmin','xmax','ymin','ymax'])
     ss.extend(['include_origin','include_xaxis','include_yaxis'])
     ss.extend(['offset'])                             # ....?
-    ss.extend(['make_svg'])                           # ....?
+    ss.extend(['save','hardcopy','document'])         
+    ss.extend(['make_svg'])                           # .. semi-obsolete ..
     ss.extend(['legend'])                             # .. a special case ..
     self._pskeys['overall'] = ss
 
@@ -991,6 +998,22 @@ def make_pylab_figure(plotdefs, figob=None, target=None, trace=False):
   fig.add(grs)
   fig.make_plot(figob=figob, show=True, trace=trace)
 
+  # Dispose of the plot, if required:
+  if rr.save:
+    filename = str(rr.save)
+    # print '\n** make_pylab_figure(): save plot in file:',filename
+    fig.save(filename, ext='png', trace=True)
+
+  if rr.hardcopy:
+    filename = 'hardcopy'
+    # print '\n** make_pylab_figure(): print hardcopy of plot, using file:',filename
+    fig.save(filename, ext='png', trace=True)
+
+  if rr.document:
+    filename = str(rr.document)
+    # print '\n** make_pylab_figure(): include plot in documentation, using file:',filename
+    fig.save(filename, ext='png', trace=True)
+
   # Finished: Return the JEN Figure object (e.g. for make_svg()).
   return fig
 
@@ -1141,7 +1164,24 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
     pass
   else:                                      # e.g. plotspecs==None
     ps = string2plotspecs('YY')
-    
+
+  # Set some plot disposal defaults (here, because it requires the nodename):
+  kwargs.setdefault('document', False)
+  kwargs.setdefault('save', False)
+  for key in ['document','save']:
+    if kwargs[key]==True:
+      kwargs[key] = nodename
+  # kwargs.setdefault('hardcopy', False)
+
+  qimage = None
+  if isinstance(kwargs['document'],str):
+    # Include the resulting plot in the documentation, if required
+    # (see also .make_pylab_figure() above)
+    qimage = '<br><center><img'
+    qimage += ' src="'+str(kwargs['document'])+'.png"'
+    qimage += ' width="20" height="10"'
+    qimage += '></center><br>'
+
   # Update the plotspecs record with any kwargs:
   ps.update(**kwargs)               # this overrides already existing keyword values! 
   ps.setdefault('title',nodename)   # this does NOT overridde any existing (e.g. from kwargs) 
@@ -1164,6 +1204,7 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
     sx += ps[key]+'<br>'
     ps.__delitem__(key)
 
+
   # Create the PyNode:
   pynode = stub << Meq.PyNode(children=nodes,
                               child_labels=labels,
@@ -1173,6 +1214,7 @@ def pynode_Plot (ns, nodes=None, groupspecs=None,
                               qspecific=sx,    
                               qsemispec=qsemispec,
                               qhelp=qhelp,
+                              qimage=qimage,
                               qviewer=qviewer,
                               class_name='PyNodePlot',
                               module_name=__file__)

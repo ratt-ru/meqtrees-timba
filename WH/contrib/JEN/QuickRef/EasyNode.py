@@ -701,7 +701,7 @@ def get_largest_common_string (ss, trace=False):
 
 #-----------------------------------------------------------------------
 
-def get_plot_labels (nodes, lcs=None, trace=False):
+def get_plot_labels (nodes, lcs=None, char='#', trace=False):
     """
     Get a list of plot-labels (strings) for the given nodes,
     by removing the 'largest_common_string' from their node-names.
@@ -725,7 +725,7 @@ def get_plot_labels (nodes, lcs=None, trace=False):
         ss = names                     # just return the node-names
     else:
         ss = []
-        char = '#'
+        # char = '#'
         for i,name in enumerate(names):
             label = name.replace(lcs,char)      
             if label==char:                  # the node-name is the entire lcs...
@@ -859,7 +859,7 @@ if __name__ == '__main__':
        select = [2,3,4]
        nn = get_node_names(cc, select=select, trace=True)
        lcs = get_largest_common_string(nn, trace=True)
-       get_plot_labels(cc, lcs=lcs, trace=True)
+       get_plot_labels(cc, lcs=lcs, char='&', trace=True)
 
    #------------------------------------------------
 

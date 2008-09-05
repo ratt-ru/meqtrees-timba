@@ -69,16 +69,30 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
    if not is_node(node):
       ss = '\n** QRNH.node_help('+str(type(node))+'): not a node **\n'
       return ss
+   rr = node.initrec()
 
-   ss = '<dl><dt>'
+   # Start the html string (ss):
+   ss = ''
+
+   #..........................................
+   # Image(s) (html tags) first, if required:
+   key = 'qimage'
+   if rr.has_key(key):
+      if isinstance(rr[key],str):
+         s1 = replace_html_chars(rr[key])
+         # ss += '<br>'
+         ss += str(s1)
+         ss += '<br>'
+
+   #..........................................
+   # Start the 
+   ss += '<dl><dt>'
    ss += 'MeqNode: '
    ss += format_nodestring(node)+':'
    ss += '<dd>'
 
    #..........................................
-   # Get the generic description of the node, according to its class: 
-
-   rr = node.initrec()
+   # Get the generic description of the node, according to its class:
    ss = class_help (node.classname,
                     header=ss, rr=rr,
                     detail=detail,
@@ -167,6 +181,7 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
                  'qhelp',
                  # 'qdummynode',
                  'qspecific','qsemispec',
+                 'qimage',
                  'qviewer','qbookmark']:
          pass
 
@@ -219,6 +234,7 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
    #..........................................
    # Closing:
    ss += '</dl><br>\n'
+
 
    #..........................................
    # Attach to quickref_help field of the node state record:
@@ -278,6 +294,9 @@ def format_child (node, trace=False):
    ss += '</font>'
    return ss
 
+
+#===================================================================================
+# The meat of this module:
 #===================================================================================
 
 def class_help (cname, header=None, rr=None,
@@ -494,8 +513,20 @@ def class_help (cname, header=None, rr=None,
 
    #---------------------------------------------------------------------------
 
-   elif cname in ['MeqCoordTransform','MeqAzEl','MeqLST','MeqLMN','MeqLMRaDec']:
+
+   elif cname in ['MeqAzEl']:
+      gen += """Calculates Azimuth (North through East) and Elevation
+      from RA,DEC (tensor node),
+      given an Earth position tensor node (ITRF coordinates X,Y,Z).
+      The latter may also be given by observatory name (e.g. 'WSRT').
+      The <font color='red'>safe</font> syntax is Meq.AzEl(radec=radec, xyz=xyz)
+      or Meq.AzEl(radec, observatory=..). 
+      The result is a tensor node with two vellsets (Az,El).
+      """
+
+   elif cname in ['MeqCoordTransform','MeqLST','MeqLMN','MeqLMRaDec']:
       pass
+
    elif cname in ['MeqObjectRADec','MeqParAngle','MeqRaDec','MeqUVW']:
       pass
 

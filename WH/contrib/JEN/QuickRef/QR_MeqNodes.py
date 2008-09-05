@@ -31,6 +31,7 @@ But it may also be used stand-alone.
 #   - 07 jun 2008: import EasyTwig as ET
 #   - 09 jun 2008: implemented make_helpnodes
 #   - 30 jul 2008: removed QRU.MeqNode() etc
+#   - 05 sep 2008: implemented 'coordinates'
 #
 # Description:
 #
@@ -38,19 +39,24 @@ But it may also be used stand-alone.
 #
 # Problem nodes:
 #
-#   MeqNElements()           multiple children give error
+#   MeqNElements           multiple children give error
 #   (Axis reduction nodes do not work on multiple children...?)
-#   MeqMod()                 crashes the browser/server
-#   MeqRandomNoise()         crashes the browser/server
+#   MeqMod                 crashes the browser/server
+#   MeqRandomNoise         crashes the browser/server
 #
-#   MeqPaster()              does not paste
-#   MeqSelector()            index=[1,2] not supported          
+#   MeqPaster              does not paste
+#   MeqSelector            index=[1,2] not supported          
 #
 # Workaround exists:
 #
-#   MeqMatrix22()            use of children=[...] gives error
-#   MeqConjugateTranspose()  use of children=[...] gives error
+#   MeqMatrix22            use of children=[...] gives error
+#   MeqConjugateTranspose  use of children=[...] gives error
 #
+# Misc:
+#
+#   MeqAzEl                Meq.AzEl(radec,..) and (radec=radec,..) give the same result
+#                          (the 2nd form is confusing, and should be discouraged,
+#                           and NOT used in the wiki example!)
 #
 #% $Id$ 
 #
@@ -85,7 +91,7 @@ from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 
-# import math
+import math
 # import random
 import numpy
 
@@ -93,6 +99,8 @@ import numpy
 #******************************************************************************** 
 # TDLCompileMenu (included in QuickRef menu):
 #********************************************************************************
+
+WNB_observatories = 'ALMA ARECIBO ATCA BIMA CLRO DRAO DWL GB GBT GMRT IRAM PDB IRAM_PDB JCMT MOPRA MOST NRAO12M NRAO_GBT PKS VLA VLBA WSRT'.split(' ')
 
 
 oo = TDLCompileMenu("QR_MeqNodes topics:",
@@ -148,7 +156,16 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                             TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
                                       ET.twig_names(first='t'), more=str),
                             toggle='opt_visualization'),
-                    TDLOption('opt_transforms',"transforms",False),
+                    TDLMenu("coordinates",
+                            TDLOption('opt_coordinates_RA',"input Right Ascension (rad)",
+                                      [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5], more=float),
+                            TDLOption('opt_coordinates_DEC',"input Declination (rad)",
+                                      [1.0,0.0,-1.0,math.pi/2], more=float),
+                            TDLOption('opt_coordinates_observatory',"Observatory",
+                                      WNB_observatories, more=str),
+                            TDLOption('opt_coord_azel',"Az/El",False),
+                            toggle='opt_coordinates'),
+                    # TDLOption('opt_transforms',"transforms",False),
                     TDLOption('opt_flowcontrol',"flowcontrol",False),
                     
                     TDLMenu("help",
@@ -159,7 +176,6 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
 
 # Assign the menu to an attribute, for outside visibility:
 itsTDLCompileMenu = oo
-
 
 #********************************************************************************
 # Top function, called from QuickRef.py:
@@ -200,8 +216,8 @@ def QR_MeqNodes (ns, rider):
       cc.append(visualization (ns, rider))
    if override or opt_flowcontrol:
       cc.append(flowcontrol (ns, rider))
-   if override or opt_transforms:
-      cc.append(transforms (ns, rider))
+   if override or opt_coordinates:
+      cc.append(coordinates (ns, rider))
 
    if override or opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
@@ -232,14 +248,11 @@ def make_helpnodes (ns, rider):
 
 
 #================================================================================
-# transforms_... 
+# coordinates_... 
 #================================================================================
 
-def transforms (ns, rider):
+def coordinates (ns, rider):
    """
-   MeqUVBrick
-   MeqUVInterpol
-   MeqVisPhaseShift
    MeqCoordTransform
    MeqAzEl
    MeqLST
@@ -249,6 +262,70 @@ def transforms (ns, rider):
    MeqParAngle
    MeqRaDec
    MeqUVW
+   
+   """
+   stub = QRU.on_entry(ns, rider, coordinates)
+   cc = []
+   override = opt_alltopics
+   if override or opt_coord_azel:
+      cc.append(coord_azel (ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#--------------------------------------------------------------------------------
+
+def coord_azel (ns, rider):
+   """
+   Coordinate transform from RA,DEC to Azimuth,Elevation.
+   It uses the AIPS++/Casa Measures module, written by Wim Brouw.
+   It uses the time in the request domain (assuming that this is MJD?)
+   See also: <A href='http://www.astron.nl/meqwiki/MeqAzEl'>meqwiki</A>
+   
+   <tip>
+   The Meq.AzEl nodes are tensor nodes, i.e. they have two vellsets (RA amd DEC).
+   Toggle between them with the right-click menu.
+   </tip>
+
+   <tip>
+   The (ITRF) Earth coordinates in this example are those of a VLA antenna.
+   Compare the Az/El results with those of the VLA observatory.
+   </tip>
+   """
+
+   stub = QRU.on_entry(ns, rider, coord_azel)
+   cc = []
+   
+   ra = QRU.getopt(globals(), 'opt_coordinates_RA', rider)
+   dec = QRU.getopt(globals(), 'opt_coordinates_DEC', rider)
+   obs = QRU.getopt(globals(), 'opt_coordinates_observatory', rider)
+   RA = stub('RA') << ra
+   DEC = stub('DEC') << dec
+   radec = stub('RADEC') << Meq.Composer(RA,DEC)
+   cc.append(radec)
+
+   cc.append(stub('azel')('observatory') << Meq.AzEl (radec, observatory=obs))
+
+   # Use the Earth coordinates of a VLA antenna:
+   x = stub('x') << -1597262.96
+   y = stub('y') << -5043205.54
+   z = stub('z') << 3554901.34
+   xyz = stub('xyz')('VLA antenna') << Meq.Composer(x,y,z)
+   cc.append(xyz)
+   cc.append(stub('azel')('xyz') << Meq.AzEl (radec=radec, xyz=xyz))
+   # cc.append(stub('azel')('xyz') << Meq.AzEl (xyz, radec))
+   
+   return QRU.on_exit (ns, rider, cc)
+
+
+
+#================================================================================
+# transforms_... 
+#================================================================================
+
+def transforms (ns, rider):
+   """
+   MeqUVBrick
+   MeqUVInterpol
+   MeqVisPhaseShift
    
    """
    stub = QRU.on_entry(ns, rider, transforms)

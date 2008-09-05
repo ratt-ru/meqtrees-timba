@@ -79,6 +79,7 @@ import numpy
 
 oo = TDLCompileMenu("QR_PyNodePlot topics:",
                     TDLOption('opt_alltopics',"override: include all topics",False),
+                    TDLOption('opt_document_image',"include images in the documentation",False),
                                         
                     TDLMenu("PyNodePlot",
                             TDLOption('opt_PNP_alltopics',
@@ -307,21 +308,27 @@ def PyNodePlot_basic (ns, rider):
    nodes = EB.bundle(ns,'cloud_n6s1')
    qhelp = """The simplest possible call (node = PNP.pynode_Plot(ns, nodes))
    produces a plot with default settings."""
-   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp))
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp,
+                             document=opt_document_image))
    
    kwargs = dict(title='custom_title',ylabel='custom_ylabel',
+                 document=opt_document_image,
                  xlabel='custom_xlabel', legend=['line1','line2'])
    qhelp = """Demonstrates custom labels and legend"""
-   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp, **PNP.kwargs2legend(**kwargs)))
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp,
+                             **PNP.kwargs2legend(**kwargs)))
                              
    kwargs = dict(color='red', marker='triangle', markersize=10, fontsize=15)
    qhelp = """Demonstrates custom markers"""
-   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp, **PNP.kwargs2legend(**kwargs)))
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp,
+                             **PNP.kwargs2legend(**kwargs)))
 
    kwargs = dict(annotate=False, xmin=-5, xmax=4, ymin=-10, ymax=10,
+                 document=opt_document_image,
                  plot_ellipse_stddev=True, plot_circle_mean=True)
    qhelp = """Demonstrates mean/stddev indications, and plot-window"""
-   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp, **PNP.kwargs2legend(**kwargs)))
+   cc.append(PNP.pynode_Plot(ns, nodes, qhelp=qhelp,
+                             **PNP.kwargs2legend(**kwargs)))
 
    return QRU.on_exit (ns, rider, cc,
                        viewer='Pylab Plotter')
@@ -415,6 +422,7 @@ def PyNodePlot_advanced (ns, rider):
    psg.append(record(x='{u}', y='{v}', z='{w}', color='green'))
    psg.append(record(x='{u}', y='{ruv}', color='blue'))
    kwargs = dict(title='uvw-coverage(green) and ruv(blue)',
+                 document=opt_document_image,
                  zlabel='w (wavelengths)',
                  ylabel='v/ruv (wavelengths)',
                  xlabel='u (wavelengths)')
@@ -425,6 +433,7 @@ def PyNodePlot_advanced (ns, rider):
    psg.append(record(x='{produv}', y='{sumuv}', color='magenta', legend='sumuv vs produv'))
    psg.append(record(x='{sumuv}', y='{produv}', color='cyan', legend='produv vs sumuv'))
    kwargs = dict(title='produv (u*v) and sumuv (u+v)',
+                 document=opt_document_image,
                  ylabel='produv/sumuv',
                  xlabel='sumuv/produv')
    gs = record(produv='{u}*{v}', sumuv='{u}+{v}')                                                            
@@ -467,10 +476,12 @@ def PyNodePlot_scalars (ns, rider):
    znodes = EB.bundle(ns,'cloud_n6s1')
 
    cc.append(PNP.pynode_Plot(ns, xnodes+ynodes, groupspecs='XXYY',
+                             document=opt_document_image,
                              qviewer=[True, 'Record Browser'],
                              xlabel='xlabel', color='green'))
 
    cc.append(PNP.pynode_Plot(ns, xnodes+ynodes+znodes, groupspecs='XXYYZZ',
+                             document=opt_document_image,
                              qviewer=[True, 'Record Browser']))
 
    return QRU.on_exit (ns, rider, cc,
@@ -495,6 +506,7 @@ def PyNodePlot_complex (ns, rider):
    cc = []
    cxnodes = EB.bundle(ns,'cloud_n6r1')
    cc.append(PNP.pynode_Plot(ns, cxnodes, groupspecs='CY',
+                             document=opt_document_image,
                              qviewer=['Pylab Plotter','Record Browser']))
    if False:
       # NB: This does not work (yet), see string2groupspecs()
@@ -544,12 +556,12 @@ def PyNodePlot_tensors (ns, rider):
    cc = []
    nodes = EB.bundle(ns,'range_4', n=5, nodename='range', stddev=1.0)
    cc = []
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='YY'))
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XY'))
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XYZ'))
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_1'))
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_32'))
-   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_213'))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='YY', document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XY', document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='XYZ', document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_1', document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_32', document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, nodes, groupspecs='VELLS_213', document=opt_document_image))
    return QRU.on_exit (ns, rider, cc,
                        viewer='Pylab Plotter')
 
@@ -596,6 +608,7 @@ def PyNodePlot_concat (ns, rider):
    cc.append(PNNG.pynode_NamedGroup(ns, ynodes, groupspecs='YY'))
 
    cc.append(PNP.pynode_Plot(ns, cc, plotspecs='XY',
+                             document=opt_document_image,
                              qviewer=['Pylab Plotter','Record Browser'],
                              title='Plot YY vs XX',
                              xlabel='x-coord from pynode_XX',
@@ -660,6 +673,7 @@ def PyNodePlot_nonodes (ns, rider):
                title='nonodes')
 
    cc.append(PNP.pynode_Plot(ns, groupspecs=gs, plotspecs=ps,
+                             document=opt_document_image,
                              qviewer=['Pylab Plotter','Record Browser']))
 
    return QRU.on_exit (ns, rider, cc, viewer='Pylab Plotter')
@@ -678,6 +692,15 @@ def PlotVIS22 (ns, rider):
    """
    Standard plot of the 4 elements (visibilities) of 2x2 cohaerency matrices.
    """
+   # <center>
+   # This is a test for the inclusion of images
+   # NB: The width/height works for the browser, but NOT the hardcopy....
+   # <img src='ionos_refrac.png' width='20' height='10'>
+   # <img src='iono.jpg' width='20' height='20'>
+   # <br><img src='iono.jpg' width='20' height='10'>
+   # </center>
+
+
    stub = QRU.on_entry(ns, rider, PlotVIS22)
    cc = []
 
@@ -714,13 +737,14 @@ def PlotVIS22_linear (ns, rider):
 
    qhelp = None
 
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L', legend=legend, qhelp=qhelp))
-   
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG_annotate', qhelp=qhelp))
-
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV', qhelp=qhelp))
-
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_QUV', qhelp=qhelp))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L', legend=legend,
+                             qhelp=qhelp, document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_OFFDIAG_annotate',
+                             qhelp=qhelp, document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_IQUV',
+                             qhelp=qhelp, document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22L_QUV',
+                             qhelp=qhelp, document=opt_document_image))
 
    return QRU.on_exit (ns, rider, cc,
                        viewer='Pylab Plotter')
@@ -743,10 +767,14 @@ def PlotVIS22_circular (ns, rider):
    legend = ['IQUV='+str(IQUV)]
    legend.append('L='+str(L)+', M='+str(M))
 
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_OFFDIAG_annotate'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV'))
-   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_QUV'))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C',
+                             document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_OFFDIAG_annotate',
+                             document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV',
+                             document=opt_document_image))
+   cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_QUV',
+                             document=opt_document_image))
 
    return QRU.on_exit (ns, rider, cc,
                        viewer='Pylab Plotter')
@@ -792,15 +820,20 @@ def PlotVIS22_play (ns, rider):
                    pzd=pzd, polrep=polrep)
 
    if polrep=='circular':
-      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C', legend=legend))
-      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV', legend=legend))
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C',
+                                legend=legend, document=opt_document_image))
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22C_IQUV',
+                                legend=legend, document=opt_document_image))
    else:
-      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22', legend=legend))
-      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22_IQUV', legend=legend))
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22',
+                                legend=legend, document=opt_document_image))
+      cc.append(PNP.pynode_Plot(ns, coh, 'VIS22_IQUV',
+                                legend=legend, document=opt_document_image))
 
    uu = ns.Search(tags='ucoord', subtree=coh)
    vv = ns.Search(tags='vcoord', subtree=coh)
    cc.append(PNP.pynode_Plot(ns, uu+vv, 'XXYY', color='cyan',
+                             document=opt_document_image,
                              xlabel='u (wavelengths)',
                              ylabel='v (wavelengths)',
                              title='uv-coverage', legend=legend))
@@ -810,6 +843,7 @@ def PlotVIS22_play (ns, rider):
    # ll += [ns<<0.0]
    # mm += [ns<<0.0]
    cc.append(PNP.pynode_Plot(ns, ll+mm, 'XXYY', color='green',
+                             document=opt_document_image,
                              include_origin=True,
                              # xmin=min(0.0,1.1*L), xmax=max(0.0,1.1*L),
                              # ymin=min(0.0,1.1*M), ymax=max(0.0,1.1*M),
