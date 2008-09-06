@@ -32,6 +32,7 @@ except:
   from qwt import *
 from numarray import *
 import numarray.ieeespecial as ieee
+import numarray.mlab as mlab
 from UVPAxis import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
@@ -182,6 +183,7 @@ class QwtImageDisplay(QwtPlot):
         'Save Display in PNG Format': 321,
         'Select X-Section Display': 322,
         'Show Full Data Range': 323,
+        'Toggle axis rotate': 324,
         }
 
     xsection_menu_table = {
@@ -287,6 +289,7 @@ class QwtImageDisplay(QwtPlot):
         self.show_x_sections = False
         self.flag_range = False
         self.axes_flip = False
+        self.axes_rotate = False
         self.setResults = True
         self.y_solver_offset = []
         self.metrics_plot = []
@@ -612,6 +615,10 @@ class QwtImageDisplay(QwtPlot):
       if menuid == self.menu_table['Toggle axis flip']:
         self.toggleAxis()
         self._menu.setItemChecked(menuid,self.axes_flip)
+        return True
+      if menuid == self.menu_table['Toggle axis rotate']:
+        self.toggleAxisRotate()
+        self._menu.setItemChecked(menuid,self.axes_rotate)
         return True
       if menuid == self.menu_table['Toggle ColorBar']:
         if self.toggle_color_bar == 1:
@@ -1227,6 +1234,8 @@ class QwtImageDisplay(QwtPlot):
 
       toggle_id = self.menu_table['Toggle axis flip']
       self._menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Toggle axis rotate']
+      self._menu.setItemVisible(toggle_id, False)
 
     def setSpectrumMarkers(self, marker_parms, marker_labels):
       """ inserts marker lines between 'combined image' spectra """
@@ -1319,6 +1328,24 @@ class QwtImageDisplay(QwtPlot):
         self.axes_flip = False
       else:
         self.axes_flip = True
+
+# delete any cross sections
+      self.delete_cross_sections()
+
+      if self._vells_plot:
+        if not self.original_flag_array is None:
+          self.setFlagsData (self.original_flag_array)
+        self.plot_vells_array(self.original_array, self.original_label)
+      if not self._vells_plot and self._plot_type is None:
+        self.array_plot(self.original_label, self.original_array)
+    # toggleAxis()
+
+    def toggleAxisRotate(self):
+      """ sets flag to rotate image displays by 90 deg counterclockwise"""
+      if self.axes_rotate:
+        self.axes_rotate = False
+      else:
+        self.axes_rotate = True
 
 # delete any cross sections
       self.delete_cross_sections()
@@ -1444,6 +1471,8 @@ class QwtImageDisplay(QwtPlot):
 # can't flip axes with a scalar!
       toggle_id = self.menu_table['Toggle axis flip']
       self._menu.setItemVisible(toggle_id, False)
+      toggle_id = self.menu_table['Toggle axis rotate']
+      self._menu.setItemVisible(toggle_id, False)
 
       self.replot()
       _dprint(3,'called replot in report_scalar_value')
@@ -1483,7 +1512,10 @@ class QwtImageDisplay(QwtPlot):
           xpos_value = None
           ypos_value = None
           if not self.first_axis_inc is None:
-            xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
+            if self.axes_rotate:
+              xpos = int((self.vells_axis_parms[self.x_parm][1]- xpos) / self.first_axis_inc)
+            else:
+              xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
             vells_axis_grids = self.vells_axis_parms[self.x_parm][4]
             if not vells_axis_grids is None:
               xpos1 = int((xpos1 -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
@@ -1866,7 +1898,10 @@ class QwtImageDisplay(QwtPlot):
               self.y_arrayloc = xpos
               if self._vells_plot:
                 if not self.first_axis_inc is None:
-                  xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
+                  if self.axes_rotate:
+                    xpos = int((self.vells_axis_parms[self.x_parm][1]- xpos) / self.first_axis_inc)
+                  else:
+                    xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
                 else:
 # this inversion does not seem to work properly for scaled
 # (vellsets) data, so use the above if possible
@@ -2188,7 +2223,10 @@ class QwtImageDisplay(QwtPlot):
           if self.complex_type:
             delta_vells = 2.0 * delta_vells
           x_step = delta_vells / shape[0] 
-          start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
+          if self.axes_rotate:
+            start_x = self.vells_axis_parms[self.x_parm][1] - 0.5 * x_step
+          else:
+            start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
           x_indices = []
           if self.complex_type:
             for i in range(shape[0] / 2 ):
@@ -2196,11 +2234,17 @@ class QwtImageDisplay(QwtPlot):
                 x_indices.append(start_x + i * x_step)
             for i in range(shape[0] / 2, shape[0] ):
               if self.raw_array[i - shape[0]/2 ,self.xsect_ypos] != self.nan_inf_value:
-                x_indices.append(start_x + i * x_step)
+                if self.axes_rotate:
+                  x_indices.append(start_x - i * x_step)
+                else:
+                  x_indices.append(start_x + i * x_step)
           else:
             for i in range(shape[0]):
               if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
-                x_indices.append(start_x + i * x_step)
+                if self.axes_rotate:
+                  x_indices.append(start_x - i * x_step)
+                else:
+                  x_indices.append(start_x + i * x_step)
           self.x_index = array(x_indices)
           delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
           y_step = delta_vells / shape[1] 
@@ -2323,7 +2367,14 @@ class QwtImageDisplay(QwtPlot):
         else:
           _dprint(3, 'calling self.plotImage.setData with self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm] ', self.vells_axis_parms[self.x_parm], ' ', self.vells_axis_parms[self.y_parm])
 
-          self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
+          if self.axes_rotate:
+            temp_x_axis_parms = self.vells_axis_parms[self.x_parm]
+            begin = temp_x_axis_parms[1]
+            end = temp_x_axis_parms[0]
+            x_range = (begin, end)
+            self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.y_parm])
+          else:
+            self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
       else:
         self.plotImage.setData(self.raw_image)
 
@@ -2882,6 +2933,21 @@ class QwtImageDisplay(QwtPlot):
 # for vectors, this is a pain as e.g. (8,) and (8,1) have
 # different 'formal' ranks but really are the same 1-D vectors
 # I'm not sure that the following covers all bases, but we are getting close
+
+# first test for real or complex
+      self.complex_type = False
+      if plot_array.type() == Complex32:
+        self.complex_type = True;
+      if plot_array.type() == Complex64:
+        self.complex_type = True;
+      if self.complex_type:
+        toggle_id = self.menu_table['Toggle axis rotate']
+        self._menu.setItemVisible(toggle_id, False)
+
+# do an image rotation?
+      if not self.complex_type and self.axes_rotate:
+        plot_array = mlab.rot90(plot_array, 1)
+
       self.is_vector = False;
       actual_array_rank = 0
       num_elements = 1
@@ -2928,14 +2994,6 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemVisible(toggle_id, False)
           self.emit(PYSIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
 
-# test for real or complex
-      self.complex_type = False
-      complex_type = False;
-      if plot_array.type() == Complex32:
-        complex_type = True;
-      if plot_array.type() == Complex64:
-        complex_type = True;
-      self.complex_type = complex_type
       if self.complex_type: 
         self.complex_image = plot_array
 
@@ -3016,7 +3074,7 @@ class QwtImageDisplay(QwtPlot):
             temp_str = "m: %-.3g+ %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
         else:
           temp_str = "m: %-.3g" % plot_array.mean()
-        temp_str1 = "sd: %-.3g" % standard_deviation(plot_array,complex_type )
+        temp_str1 = "sd: %-.3g" % standard_deviation(plot_array,self.complex_type )
         self.array_parms = temp_str + " " + temp_str1
 
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
@@ -3031,6 +3089,10 @@ class QwtImageDisplay(QwtPlot):
             if self.array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
+#           if self.axes_rotate:
+#             temp = self.x_parm
+#             self.x_parm = self.y_parm
+#             self.y_parm = temp
             self.myXScale = ComplexScaleDraw(start_value=self.vells_axis_parms[self.x_parm][0], end_value=self.vells_axis_parms[self.x_parm][1])
             self.complex_divider = self.vells_axis_parms[self.x_parm][1]
 
@@ -3046,6 +3108,10 @@ class QwtImageDisplay(QwtPlot):
             else:
               title_addition = ': (real followed by imaginary)'
             self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
+            # reverse direction of x coordinates?
+            self.setAxisOptions(QwtPlot.xBottom, QwtAutoScale.None)
+#           if self.axes_rotate:
+#             self.setAxisOptions(QwtPlot.xBottom, QwtAutoScale.Inverted)
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = self.vells_axis_parms[self.y_parm][2]
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
@@ -3089,6 +3155,10 @@ class QwtImageDisplay(QwtPlot):
             if self.array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
+            if self.axes_rotate:
+              temp = self.x_parm
+              self.x_parm = self.y_parm
+              self.y_parm = temp
             _dprint(3, 'self.x_parm self.y_parm ', self.x_parm, ' ', self.y_parm)
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
             self.delta_vells = delta_vells
@@ -3099,6 +3169,10 @@ class QwtImageDisplay(QwtPlot):
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = self.vells_axis_parms[self.y_parm][2]
             self.setAxisTitle(QwtPlot.yLeft, self._y_title)
+            # reverse direction of x coordinates?
+            self.setAxisOptions(QwtPlot.xBottom, QwtAutoScale.None)
+            if self.axes_rotate:
+              self.setAxisOptions(QwtPlot.xBottom, QwtAutoScale.Inverted)
           else:
             if self.solver_display is True:
               if not self.array_flip:
@@ -3146,6 +3220,8 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle Warp Display']
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle axis flip']
+        self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle axis rotate']
         self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle Plot Legend']
         self._menu.setItemVisible(toggle_id, True)
@@ -3459,6 +3535,9 @@ class QwtImageDisplay(QwtPlot):
       if flip_axes and not self.axes_flip:
         axes = arange(incoming_flag_array.rank)[::-1]
         flag_array = transpose(incoming_flag_array, axes)
+        if not self.complex_type and self.axes_rotate:
+          temp_flag_array = flag_array.copy()
+          flag_array = mlab.rot90(temp_flag_array, 1)
 
 # figure out type and rank of incoming array
       flag_is_vector = False;
@@ -3560,6 +3639,9 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle axis flip']
         self._menu.insertItem("Toggle axis flip", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
+        toggle_id = self.menu_table['Toggle axis rotate']
+        self._menu.insertItem("Toggle l,m axis rotate", toggle_id)
+        self._menu.setItemVisible(toggle_id, False)
         toggle_id = self.menu_table['Toggle log axis for chi_0']
         self._menu.insertItem("Toggle log axis for chi_0", toggle_id)
         self._menu.setItemVisible(toggle_id, False)
@@ -3614,6 +3696,8 @@ class QwtImageDisplay(QwtPlot):
 # do this here?
         if self.chi_zeros is None:
           toggle_id = self.menu_table['Toggle axis flip']
+          self._menu.setItemVisible(toggle_id, True)
+          toggle_id = self.menu_table['Toggle axis rotate']
           self._menu.setItemVisible(toggle_id, True)
         else:
           toggle_id = self.menu_table['Toggle log axis for chi_0']
