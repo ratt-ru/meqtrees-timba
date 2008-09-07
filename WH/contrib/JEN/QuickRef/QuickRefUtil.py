@@ -558,7 +558,7 @@ def on_entry(ns, rider, func, trace=False):
     qhelp += rider.check_html_tags(func.__doc__, include_style=False)
     rider.insert_help (path, qhelp, append=False)
 
-    stub = EN.unique_stub(ns, rider.nodestubname(short=True))
+    stub = EN.unique_stub(ns, rider.nodestubname(short=False))
     
     if trace:
         print '\n** .on_entry():',path,'->',str(stub)
@@ -884,6 +884,7 @@ def helpnode (ns, rider,
               node=None,
               help=None,
               func=None,
+              folder='helpnodes',
               trace=False):
     """
     A help-node is a dummy node with a quickref_help field.
@@ -942,10 +943,33 @@ def helpnode (ns, rider,
     # Make a bookmark with a suitable viewer:
     viewer = 'QuickRef Display'           
     node.initrec().qviewer = viewer
-    JEN_bookmarks.create(node, page=name, folder='helpnodes', viewer=viewer)
+    JEN_bookmarks.create(node, page=name, folder=folder, viewer=viewer)
     return node
 
+#---------------------------------------------------------------------------
 
+def this_module (ns, rider, name='QuickRef'):
+    ss = 'QuickRef module: '+name+':<br>'
+    if 'QR_' in name:
+        ss += 'It may be called from the module QuickRef.py. But it may also be used stand-alone.'
+
+    ss += """
+    <li> Load the TDL script into the meqbrowser.
+    <li> Using TDL Options, select categories to be included,
+    and customize parameters and input children.
+        
+    <li> Compile: The tree will appear in the left panel.
+    (NB: the state record of each node has a quickref_help field)
+    <li> Use the bookmarks to select one or more views.
+    
+    <li> Use TDL Exec to execute the tree: The views will come alive.
+    <li> Use TDL Exec to show or print or save the hierarchical help
+    for the selected categories.
+    """
+    return helpnode (ns, rider,
+                     name='how_to_use_this_module',
+                     help=ss, folder=None,
+                     trace=False)
 
 
 #=================================================================================

@@ -130,8 +130,15 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                             TDLOption('opt_multimath_twig3',"3rd twig (child node)",
                                       ET.twig_names(include=[None]), more=str),
                             toggle='opt_multimath'),
-                    TDLOption('opt_leaves',"Leaf nodes (no children)",False),
-                    TDLOption('opt_tensor',"Tensor nodes (multiple vellsets)",False),
+                    TDLMenu("Leaf nodes (no children)",
+                            TDLMenu("FITS images",
+                                    toggle='opt_leaves_FITS'),
+                            toggle='opt_leaves'),
+                    TDLMenu("Tensor nodes (multiple vellsets)",
+                            TDLOption('opt_tensor_manipulation',"Tensor manipulation",False),
+                            TDLOption('opt_tensor_matrix',"Matrix operations",False),
+                            TDLOption('opt_tensor_matrix22',"Operations on 2x2 matrices",False),
+                            toggle='opt_tensor'),
                     TDLOption('opt_axisreduction',"axisreduction",False),
                     TDLMenu("resampling",
                             TDLOption('opt_resampling_MeqModRes_twig',
@@ -267,16 +274,7 @@ def make_helpnodes (ns, rider):
 
 def coordinates (ns, rider):
    """
-   MeqCoordTransform
-   MeqAzEl
-   MeqLST
-   MeqLMN
-   MeqLMRaDec
-   MeqObjectRADec (A?)
-   MeqParAngle
-   MeqRaDec
-   MeqUVW
-   
+   Nodes that to (mostly astronomical) coordinate transforms.
    """
    stub = QRU.on_entry(ns, rider, coordinates)
    cc = []
@@ -306,13 +304,27 @@ def coord_azel (ns, rider, radec=None):
    """
    Coordinate transform nodes that involve Earth-related coordinates like
    Azimuth, Elevation, Latitude, Longitude, Local Sidereal Time (LST) etc.
-   They use the AIPS++/Casa Measures module, written by Wim Brouw.
-   They use the time in the request domain (assuming MJD)
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.AzEl(radec, observatory='WSRT')</A> -> azel (rad)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Parangle(radec, observatory='WSRT')</A> -> rad
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.LST(observatory='ATCA')</A> -> hrs(?)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.LongLat(observatory='VLA')</A> -> longlat (rad)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.RaDec(azel, observatory='WSRT')</A> -> radec
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ObjectRADec(obj_name='JUPITER')</A> -> radec
+
+   The nodes that accept observatory=name(string) will also accept xyz=xyz(tensor node),
+   giving ITRF Earth position coordinates. In this case, the radec argument must be specified explicitly(!)
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.AzEl(radec=radec, xyz=xyz)</A> -> azel (rad)
+
+   These nodes use the AIPS++/Casa Measures module, written by Wim Brouw.
+   They use the time values of the request domain (assuming MJD).
    See also: <A href='http://www.astron.nl/meqwiki/AllNodes'>meqwiki/MeqAllNodes</A>
    
    <tip>
-   The Meq.AzEl nodes are tensor nodes, i.e. they have two vellsets (RA amd DEC).
-   Toggle between them with the right-click menu.
+   The Meq.AzEl nodes are tensor nodes, i.e. their results have two vellsets (RA amd DEC).
+   The same is true for radec, azel, longlat etc.
+   You may toggle between multiple vellsets of a node with the right-click menu.
    </tip>
 
    <tip>
@@ -354,6 +366,11 @@ def coord_azel (ns, rider, radec=None):
 def coord_lmn (ns, rider, radec=None):
    """
    Coordinate transform nodes related to relative sky coordinates (l,m,n).
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.LMN(radec0, radec)</A> -> lmn
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.LMRaDec(radec_0=radec0, lm=lm)</A> -> radec
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ObjectRADec(obj_name='JUPITER')</A> -> radec
+
    They use the AIPS++/Casa Measures module, written by Wim Brouw.
    See also: <A href='http://www.astron.nl/meqwiki/MeqAllNodes'>meqwiki/MeqAllNodes</A>
 
@@ -379,6 +396,9 @@ def coord_lmn (ns, rider, radec=None):
    lm = stub('LM') << Meq.Composer(L,M)
    cc.append(lm)
    cc.append(stub('LMRaDec') << Meq.LMRaDec(radec_0=radec0, lm=lm))
+
+   qhelp = 'Difference between the input radec, and after converting to (l,m) and back'
+   cc.append(stub('diff') << Meq.Subtract(cc[-1], radec, qhelp=qhelp))
    
    return QRU.on_exit (ns, rider, cc, show_recurse=True)
 
@@ -401,18 +421,6 @@ def transforms (ns, rider):
    # cc.append(transforms_FFT (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
-#--------------------------------------------------------------------------------
-
-def transforms_astro (ns, rider):
-   """
-   Astronomical coordinate transform nodes...
-   """
-   stub = QRU.on_entry(ns, rider, transforms_astro)
-   cc = []
-   return QRU.on_exit (ns, rider, cc)
-
-
-#--------------------------------------------------------------------------------
 
 #================================================================================
 # flowcontrol_... 
@@ -420,10 +428,7 @@ def transforms_astro (ns, rider):
 
 def flowcontrol (ns, rider):
    """
-   MeqReqSeq
-   MeqReqMux
-   MeqSink
-   MeqVisDataMux
+   Nodes that control the issuing of requests to children:
    """
    stub = QRU.on_entry(ns, rider, flowcontrol)
    cc = []
@@ -436,6 +441,13 @@ def flowcontrol (ns, rider):
 
 def flowcontrol_reqseq (ns, rider):
    """
+   Nodes that control the issuing of requests to children:
+   
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ReqSeq()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ReqMux()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sink()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.VisDataMux</A> 
+
    The MeqReqSeq (Request Sequencer) node issues its request to its children one
    by one (rather than simultaneously, as other nodes do), in the order of the child list.
    When finished, it passes on the result of only one of the children, which may be
@@ -531,6 +543,11 @@ def solving (ns, rider):
    Measurement Equation, but also to solve for (arbitrary subsets of) its parameters.
    This is treated in detail in a separate module (QR_solving). For completeness,
    we show a single simple example here.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Parm()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Condeq()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Solver()</A> 
+
    """
    stub = QRU.on_entry(ns, rider, solving)
    cc = []
@@ -541,6 +558,10 @@ def solving (ns, rider):
 
 def solving_ab (ns, rider):
    """
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Parm()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Condeq()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Solver()</A> 
+
    Demonstration of solving for two unknown parameters (a,b),
    using two linear equations (each represented by a Condeq node):
    <li> condeq 0:  a + b = p (=10)
@@ -616,9 +637,16 @@ def flagging (ns, rider):
   
 def flagging_simple (ns, rider):
    """
-   Demonstration of simple flagging. A zero-criterion (zerocrit) is calculated
+   Demonstration of simple flagging.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ZeroFlagger()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.MergeFlags()</A> 
+
+   A zero-criterion (zerocrit) is calculated
    by a little subtree. This calculates the abs(diff) from the mean of the
    input, and then subtracts 'nsigma' times its stddev.
+
+
    The ZeroFlagger(oper=GE) flags all domain cells whose zcrit value is >= 0.
    Other behaviour can be specified with oper=LE or GT or LT.
    The MergeFlags node merges the new flags with the original flags of the input.
@@ -659,7 +687,12 @@ def flagging_simple (ns, rider):
 
 def compounder (ns, rider):
    """
-   The MeqCompounder node interpolates ....
+   The compounder implements an implicit function.
+   The first child should give the grid points and the second child should give the higher
+   dimensional function. 
+   
+   <li> <A href='http://www.astron.nl/meqwiki/MeqCompounder'>Meq.Compounder(common_axes=.., node=..)</A> 
+
    The extra_axes argument should be a MeqComposer that bundles the extra (coordinate) children,
    described by the common_axes argument (e.g. [hiid('L'),hiid('M')].                  
    """
@@ -677,6 +710,9 @@ def compounder (ns, rider):
   
 def compounder_simple (ns, rider):
    """
+
+   <li> <A href='http://www.astron.nl/meqwiki/MeqCompounder'>Meq.Compounder(common_axes=.., node=..)</A> 
+
    Demonstration of a 'grid' of compounders, which sample a grid of points (L,M)
    of a 2D gaussian input twig (subtree): 'gaussian_LM' -> exp(-(L**2+M**2)).
    Execute with a 2D (f,t) domain.
@@ -743,6 +779,9 @@ def compounder_simple (ns, rider):
   
 def compounder_advanced (ns, rider):
    """
+
+   <li> <A href='http://www.astron.nl/meqwiki/MeqCompounder'>Meq.Compounder(common_axes=.., node=..)</A> 
+
    Explore the behaviour of the compounder if the function is not
    sampled at a point (L,M) but over a sampling-domain of finite
    size. This is done by using MeqGrid nodes rather than MeqConstant
@@ -817,6 +856,10 @@ def compounder_advanced (ns, rider):
 def resampling (ns, rider):
    """
    The number of cells in the domain may be changed locally:
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ModRes(c, num_cells=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Resampler(c, mode=1)</A> 
+   
    ...
    <li> The MeqModRes(child, num_cells=[2,3]) node changes the number
    of cells in the domain of the REQUEST that it issues to its child.
@@ -852,6 +895,9 @@ def resampling (ns, rider):
 def resampling_experiment (ns, rider,
                            twig=None, num_cells=[2,3], mode=1):
    """
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ModRes(c, num_cells=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Resampler(c, mode=1)</A> 
+
    The experiment shows the difference between the twig, and after
    a sequence of ModRes and Resample. Obviously, the differences are
    smaller when the twig is smoother and/or when num_cells is larger.
@@ -903,15 +949,25 @@ def axisreduction (ns, rider):
 
 def axisreduction_single (ns, rider):
    """
-   Demonstration of basic axisreduction, on one child, with a single vellset.
+   Demonstration of basic axisreduction, on one child (c), with a single vellset.
    The reduction is done along all available axes (the default), producing a
    single-number Result.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Nelements(c)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sum(c)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Mean</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Product</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.StdDev(c)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Rms(c)</A> (same as StdDev) 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Min(c)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Max(c)</A> 
+
    """
    stub = QRU.on_entry(ns, rider, axisreduction_single)
    twig_name = 'f'
    twig = ET.twig(ns, twig_name)
    cc = [twig]
-   # NB: Left out: 'Rms', which is the same as 'SteDev'...
+   # NB: Left out: 'Rms', which is the same as 'StdDev'...
    for q in ['Nelements','Sum','Mean','Product','StdDev','Min','Max']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
@@ -948,6 +1004,9 @@ def axisreduction_multiple (ns, rider):
 def axisreduction_axes (ns, rider):
    """
    Demonstration of more advanced axisreduction, along a subset of the available axes.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sum(c, reduction_axes=..)</A> 
+
    If one or more reduction_axes are specified, the reduction is only
    along the specified axes (e.g. reduction_axes=['time'] reduces only
    the time-axis to length 1. The default is all available axes, of course. 
@@ -998,9 +1057,13 @@ def tensor (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor)
    cc = []
-   cc.append(tensor_manipulation (ns, rider))
-   cc.append(tensor_matrix (ns, rider))
-   cc.append(tensor_matrix22 (ns, rider))
+   override = opt_alltopics
+   if override or opt_tensor_manipulation:
+      cc.append(tensor_manipulation (ns, rider)) 
+   if override or opt_tensor_matrix:
+      cc.append(tensor_matrix (ns, rider))
+   if override or opt_tensor_matrix22:
+      cc.append(tensor_matrix22 (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
@@ -1009,6 +1072,11 @@ def tensor (ns, rider):
 def tensor_manipulation (ns, rider):
    """
    Manipulation of 'tensor' nodes, i.e. nodes with multiple vellsets.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Composer(*cc)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Selector(c, index=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Paster(children=[c0,c1], index=..)</A> 
+
    """
    stub = QRU.on_entry(ns, rider, tensor_manipulation)
    cc = []
@@ -1037,15 +1105,15 @@ def tensor_manipulation (ns, rider):
       cc.append(stub('Selector')(index) << Meq.Selector(cc[0], index=index,
                                                         qhelp=qhelp))
 
-   if False:
+   if True:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
       c1 = ET.twig(ns,'prod_f2t2')
       index = 1
       qhelp = """Make a new node, in which the vellset from the
       second child (c1) is pasted at the specified (index) position
       among the vellsets of its first child (c0)"""
-      cc.append(stub('Paster')(index) << Meq.Selector(children=[cc[0],c1],
-                                                      index=index, qhelp=qhelp))
+      cc.append(stub('Paster')(index) << Meq.Paster(children=[cc[0],c1],
+                                                    index=index, qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -1055,6 +1123,11 @@ def tensor_matrix (ns, rider):
    """
    Nodes with multiple vellsets can be treated as matrices.
    There are some specialised nodes that do matrix operations.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.MatrixMultiply(*mm)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Transpose(m)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ConjTranspose(m)</A> 
+   
    <remark>
    For the moment, only 2x2 matrices can be inverted, since
    this was easiest to program by hand (see MatrixInvert22).
@@ -1090,6 +1163,11 @@ def tensor_matrix22 (ns, rider):
    Because the 2x2 cohaerency matrix and the 2x2 Jones matrix play an important
    role in the radio-astronomical Measurement Equation (M.E.), there are a few
    specialized nodes that deal with 2x2 matrices.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Matrix22(m0,m1,m2,m3)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.MatrixInvert22(m)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ConjTranspose(m)</A> 
+
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix22)
    elements = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
@@ -1128,11 +1206,15 @@ def leaves (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves)
    cc = []
+   override = opt_alltopics
+   
    cc.append(leaves_constant (ns, rider))
    cc.append(leaves_parm (ns, rider))
    cc.append(leaves_gridsFTLM (ns, rider))
    cc.append(leaves_gridsXYZetc (ns, rider))
    cc.append(leaves_noise (ns, rider))
+   if override or opt_leaves_FITS:
+      cc.append(leaves_FITS (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
@@ -1142,6 +1224,9 @@ def leaves_constant (ns, rider):
    A Constant node may represent a real or a complex constant.
    It can also be a tensor node, i.e. containing an N-dimensional array of vellsets.
    There are various ways to define one.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Constant(value(s))</A> 
+
    """
    stub = QRU.on_entry(ns, rider, leaves_constant)
    cc = []
@@ -1181,6 +1266,8 @@ def leaves_constant (ns, rider):
 def leaves_parm (ns, rider):
    """
    MeqParm nodes represent M.E. parameters, which may be solved for.
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Parm(default)</A> 
+
    """
    stub = QRU.on_entry(ns, rider, leaves_parm)
    cc = []
@@ -1194,6 +1281,10 @@ def leaves_noise (ns, rider):
    """
    Noise nodes generate noisy cell values. The arguments are passed as
    keyword arguments in the node constructor (or as children?)
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.GaussNoise(stddev=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.RandomNoise(lower=.., upper=..)</A> 
+
    """
    stub = QRU.on_entry(ns, rider, leaves_noise)
    cc = []
@@ -1214,6 +1305,10 @@ def leaves_gridsFTLM (ns, rider):
    Grid nodes fill in the cells of the requested domain with the
    values of the specified axis (time, freq, L, M, X, Y, Z, etc).
    They are created by:  ns[nodename] << Meq.Grid(axis='M')
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Freq()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Time()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Grid(axis='M')</A> 
 
    The two default axes (time and freq) also have dedicated Grid nodes,
    called MeqTime and MeqFreq, e.g.:  ns[nodename] << Meq.Freq()
@@ -1252,6 +1347,8 @@ def leaves_gridsXYZetc (ns, rider):
    values of the specified axis (time, freq, L, M, X, Y, Z, etc).
    They are created by:  ns[nodename] << Meq.Grid(axis='M')
 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Grid(axis='M')</A> 
+
    The two default axes (time and freq) also have dedicated Grid nodes,
    called MeqTime and MeqFreq, e.g.:  ns[nodename] << Meq.Freq()
 
@@ -1283,26 +1380,32 @@ def leaves_spigot (ns, rider):
    It is twinned with the MeqSink, which writes uv-data back into the MS,
    and generates a sequence of requests with suitable time-freq domains
    (snippets). See also....
-   MeqVisDataMux:
-   MeqFITSSpigot:
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Spigot()</A> 
+
    """
    stub = QRU.on_entry(ns, rider, leaves_spigot)
    cc = []
    cc.append(stub(axis) << Meq.Spigot())
    return QRU.on_exit (ns, rider, cc)
 
+
 #--------------------------------------------------------------------------------
 
 def leaves_FITS (ns, rider):
    """
-   There are various nodes to read images from FITS files.
-   MeqFITSReader:
-   MeqFITSImage:
-   MeqFITSSpigot:
+   There are various nodes to read/write images from/to FITS files.
+
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSReader(filename=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSWriter(filename=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSSpigot(filename=..)</A> 
+
    """
    stub = QRU.on_entry(ns, rider, leaves_FITS)
    cc = []
-   cc.append(stub(axis) << Meq.FITSReader())
+   filename = 'Sun.fits'
+   cc.append(stub('FITSReader') << Meq.FITSReader(filename=filename))
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1343,7 +1446,12 @@ def unops (ns, rider):
 
 def unops_elementary (ns, rider, twig=None):
    """
-   Elementary unary math operations.
+   Elementary unary math operations (on c, a single child node):
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Negate(c)</A> -> (-c)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Invert(c)</A> -> (1/c)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Exp(c)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Log(c)</A> -> (e-log) 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sqrt(c)</A> 
    """
    stub = QRU.on_entry(ns, rider, unops_elementary)
    cc = [twig]
@@ -1356,7 +1464,10 @@ def unops_elementary (ns, rider, twig=None):
 
 def unops_goniometric (ns, rider, twig=None):
    """
-   (Tri-)Goniometric functions (Sin, Cos, Tan) turn an angle (rad) into a fraction.
+   (Tri-)Goniometric functions turn an angle (c, rad) into a fraction:
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sin(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Cos(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Tan(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_goniometric)
    cc = [twig]
@@ -1375,9 +1486,11 @@ def unops_goniometric (ns, rider, twig=None):
 
 def unops_invgoniometric (ns, rider, twig=None):
    """
-   (Tri-)Goniometric functions (Sin, Cos, Tan) turn an angle (rad) into a fraction.
-   The inverses (tri-)Goniometric functions (Asin, Acos, Atan) turn a fraction into
+   The inverses (tri-)Goniometric functions turn a fraction (c) into
    an angle (rad). The abs inputs of Asin and Acos must be smaller than one, of course. 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Asin(c)</A> -> rad
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Acos(c)</A> -> rad
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Atan(c)</A> -> rad
 
    <remark>
    Applying first the function and then its inverse should yield the original input
@@ -1401,7 +1514,12 @@ def unops_invgoniometric (ns, rider, twig=None):
 
 def unops_hyperbolic (ns, rider, twig=None):
    """
-   Hyperbolic functions.
+   Hyperbolic functions:
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sinh(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Cosh(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Tanh(c)</A>
+
+   Note the demonstration: Cosh(x)**2 - Sinh(x)**2 = 1 
    """
    stub = QRU.on_entry(ns, rider, unops_hyperbolic)
    cc = [twig]
@@ -1410,7 +1528,7 @@ def unops_hyperbolic (ns, rider, twig=None):
       
    sh2 = stub('sh2') << Meq.Sqr(cc[1])
    ch2 = stub('ch2') << Meq.Sqr(cc[2])
-   qhelp = 'Cosh(x)**2 - Sinh(x)**2 = 1'
+   qhelp = 'Demonstrates: Cosh(x)**2 - Sinh(x)**2 = 1'
    cc.append(stub('ch2-sh2') << Meq.Subtract(ch2,sh2, qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc, node_help=True)
@@ -1419,12 +1537,24 @@ def unops_hyperbolic (ns, rider, twig=None):
 
 def unops_complex (ns, rider, twig=None):
    """
-   Complex unary math operations on a (usually) complex child.
+   Complex unary math operations on a (usually) complex child (c):
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Abs(c)</A> -> real
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Norm(c)</A> -> same as Abs
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Arg(c)</A> -> real (rad)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Real(c)</A> -> real
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Imag(c)</A> -> real
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Conj(c)</A> conj(a+jb) -> a-jb
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Exp(c)</A>
+   exp(a+jb) -> exp(a)*exp(jb) = exp(a)*(cos(b)+jsin(b))
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Log(c)</A>
+   ln(r*exp(js)) -> ln(r) + j(s + 2kpi) (k = integer)  
+
+   Most math node take complex children, of course, or produce complex results. 
    """
    stub = QRU.on_entry(ns, rider, unops_complex)
    twig = ET.twig(ns,'cx_ft')                # override input twig...
    cc = [twig]
-   for q in ['Abs','Norm','Arg','Real','Imag','Conj','Exp','Log']:
+   for q in ['Abs','Arg','Real','Imag','Conj','Exp','Log']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
 
@@ -1432,7 +1562,15 @@ def unops_complex (ns, rider, twig=None):
 
 def unops_power (ns, rider, twig=None):
    """
-   Nodes that take some power of its child.
+   Nodes that take some power of its child (c):
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sqr(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow2(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow3(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow4(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow5(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow6(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow7(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow8(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_power)
    cc = [twig]
@@ -1445,6 +1583,10 @@ def unops_power (ns, rider, twig=None):
 def unops_misc (ns, rider, twig=None):
    """
    Miscellaneous unary math operations.
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Ceil(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Floor(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Identity(c)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Stripper(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_misc)
    cc = [twig]
@@ -1463,9 +1605,14 @@ def unops_misc (ns, rider, twig=None):
 
 def binops (ns, rider):
    """
-   Binary math operations (two children: lhs, rhs).
-   The operations are performed cell-by-cell.
+   Binary math operations (two children, e.g. lhs,rhs).
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Subtract(lhs,rhs)</A> -> (lhs-rhs)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Divide(lhs,rhs)</A> -> (lhs/rhs)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow(lhs,rhs)</A> -> (lhs**rhs)
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ToComplex(real,imag)</A> -> complex
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Polar(ampl,phase)</A> -> complex
 
+   The operations are performed cell-by-cell.
    The following rules apply:
    <li> If the first child (left-hand-side, lhs) has a result with multiple vellsets
    ('tensor-node'), there are two possibilities: If the second child (rhs) is a
@@ -1478,8 +1625,8 @@ def binops (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, binops)
    print '\n** rider.path()=',rider.path(),' stub=',str(stub)
-   lhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_lhs',rider), nodename='lhs')   # left-hand side (child)
-   rhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_rhs',rider), nodename='rhs')   # right-hand side (child)
+   lhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_lhs',rider), nodename='lhs') 
+   rhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_rhs',rider), nodename='rhs') 
    cc = [lhs,rhs]
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
    # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
@@ -1495,9 +1642,13 @@ def binops (ns, rider):
 
 def multimath (ns, rider):
    """
-   Math operations on an arbitrary number (one or more) of children.
-   The operation is performed cell-by-cell.
+   Math operations on an arbitrary number (one or more) of children (*cc).
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Add(*cc)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Multiply(*cc)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.WSum(children=cc, weights=ww)</A>
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.WMean(children=cc, weights=ww)</A>
 
+   The operation is performed cell-by-cell.
    The following rules apply:
    <li> If the number of children is two, the same rules apply as for binary
    operations (see binops).
@@ -1513,10 +1664,10 @@ def multimath (ns, rider):
    # Make the child-related vectors (ignore the ones with opt=None):
    twigs = [ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig1',rider))]
    weights = [1.0]
-   if QRU.getopt(globals(), 'opt_multimath_twig2',rider):
+   if opt_multimath_twig2:
       twigs.append(ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig2',rider)))
       weights.append(2.0)
-   if QRU.getopt(globals(), 'opt_multimath_twig3',rider):
+   if opt_multimath_twig3:
       twigs.append(ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig3',rider)))
       weights.append(3.0)
 
@@ -1525,7 +1676,7 @@ def multimath (ns, rider):
 
    # First the simple ones:
    for q in ['Add','Multiply']:
-      cc.append(stub(q) << getattr(Meq,q)(children=twigs))
+      cc.append(stub(q) << getattr(Meq,q)(*twigs))
 
    # Then the weighted ones:
    for q in ['WSum','WMean']:
@@ -1560,12 +1711,14 @@ def _define_forest (ns, **kwargs):
    TDLRuntimeMenu(":")
 
    global rootnodename
-   rootnodename = 'QuickRef'                    # The name of the node to be executed...
+   rootnodename = 'QR_MeqNodes'                 # The name of the node to be executed...
    global rider                                 # used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # CollatedHelpRecord object
+   node = QRU.this_module (ns, rider, name='QR_MeqNodes')
    QRU.on_exit (ns, rider,
                 nodes=[QR_MeqNodes(ns, rider)],
                 mode='group')
+
 
    # Finished:
    return True
