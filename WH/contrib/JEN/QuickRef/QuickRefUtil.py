@@ -948,23 +948,90 @@ def helpnode (ns, rider,
 
 #---------------------------------------------------------------------------
 
-def this_module (ns, rider, name='QuickRef'):
-    ss = 'QuickRef module: '+name+':<br>'
+def how_to_use_this_module (ns, rider, name='QuickRef', topic=None):
+    """
+    Make a 'how-to' help-node for this QuickRef module.
+    Called from define_forest() in each QR module.
+    """
+    ss = '<br><br>QuickRef module: <font size="10"><b>'+str(name)+'</b></font>: '
+    if isinstance(topic,str):
+        ss += topic
     if 'QR_' in name:
-        ss += 'It may be called from the module QuickRef.py. But it may also be used stand-alone.'
+        ss += '<br><br>(It may be called from the module QuickRef.py. But it may also be used stand-alone)'
 
     ss += """
-    <li> Load the TDL script into the meqbrowser.
-    <li> Using TDL Options, select categories to be included,
-    and customize parameters and input children.
-        
-    <li> Compile: The tree will appear in the left panel.
-    (NB: the state record of each node has a quickref_help field)
-    <li> Use the bookmarks to select one or more views.
+    <br><br>QuickRef modules offer MeqTree documentation,
+    <i>and live demonstrations</i>, in the form of user-selectable 'topics'.
+    For each selected topic, a <i>view</i> is generated in the form of a
+    bookmarked page.
+    Each <i>view</i> shows the results of a few selected MeqNodes
+    in the little subtree that illustrates the topic.
+    In addition, each <i>view</i> includes a text panel that shows the
+    available documentation for the topic, complete with a full
+    description of the relevant MeqNodes.
+    The documentation for all the selected topics is collected in a
+    single hierarchical document, which may be printed or browsed
+    as a whole (see below).
+
+    Using a QuickRef module has the following steps:
     
-    <li> Use TDL Exec to execute the tree: The views will come alive.
-    <li> Use TDL Exec to show or print or save the hierarchical help
-    for the selected categories.
+    <li> <b>Load</b> its TDL script into the meqbrowser (unless you
+    are reading a hardcopy of the documentation, you have already done
+    that).
+
+    <li> Use the 'TDL Options' menu to <b>select one or more
+    topics</b>, and to customize their parameter values (if any).
+
+    <li> Use the <b>compile</b> button (or the blue button) to compile
+    the tree, i.e. to generate the C++ nodes that are to be executed.
+
+    <ol><i>
+    <li> The tree will appear in the leftmost panel of the browser. It
+    may be browsed, and the state of individual nodes may be
+    inspected (before and after execution). 
+    </i></ol>
+
+    <li> Use the <b>bookmarks</b> menu to select one or more
+    <i>views</i>. Note the text panel that explains its topic, and gives
+    information about its MeqNodes etc.
+    
+    Use the 'TDL Exec' menu to execute the tree in various ways:
+    
+    <li> <b>execute</b>: A single request will be given to the root node of
+    the tree. The parameters of the request domain may be modified
+    with the 'runtime options' menu at the top of the popup execute
+    panel.
+
+    <li> <b>execute sequence</b>: Execute a sequence of requests. The
+    sequence parameters may be modified with the 'runtime options'.
+
+    <li> Specific QuickRef modules may have other execution modes.
+
+    <ol><i>
+    <li>The <i>views</i> will now show the results of those MeqNodes
+    that illustrate the topic.  Use the right-click menu to inspect
+    the various panels in detail.
+    </i></ol>
+
+    Below the separator <b>m</b>, the 'TDL Exec' menu offers a number of
+    ways to manipulate the hierarchical documentation for the selected
+    topics:
+
+    <li> <b>print hardcopy</b>: This is a convenient way of making
+    hardcopy subsets of the MeqTree documentation that may be perused
+    in the train, in bed, in the woods etc.  The printer name may be
+    modified with the 'runtime options' menu.
+
+    <li> <b>save doc to QuickRef html</b>: The resulting file
+    QuickRef.html may be opened with an html browser. In this mode,
+    the various html links (e.g. to the meqwiki pages) actually work,
+    and any supporting images are displayed (this is not the case in
+    the meqbrowser panels, at least until we move from Qt3 to Qt4).
+
+    <li> <b>show doc</b>: show the (html) documentation on the screen
+    (debugging only)
+
+    Enjoy.
     """
     return helpnode (ns, rider,
                      name='how_to_use_this_module',

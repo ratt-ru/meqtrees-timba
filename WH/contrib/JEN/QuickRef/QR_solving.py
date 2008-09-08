@@ -1,17 +1,10 @@
 """
 QuickRef module: QR_solving.py
-Demonstration(s) of solving for MeqParm values in MeqTrees.
-It may be called from the module QuickRef.py.
-But it may also be used stand-alone.
--- Load the TDL script into the meqbrowser.
--- Using TDL Options, select categories to be included,
-.    and customize parameters and input children.
--- Compile: The tree will appear in the left panel.
-.    (NB: the state record of each node has a quickref_help field)
--- Use the bookmarks to select one or more views.
--- Use TDL Exec to execute the tree: The views will come alive.
--- Use TDL Exec to show or print or save the hierarchical help
-.    for the selected categories.
+
+Solving for MeqParm values in MeqTrees.
+
+Click on the top bookmark ('help_on__how_to_use_this_module')
+
 """
 
 # file: ../JEN/demo/QR_solving.py:
@@ -121,6 +114,8 @@ itsTDLCompileMenu = oo
 #********************************************************************************
 # Top-level function, called from QuickRef.py:
 #********************************************************************************
+
+header = 'QR_solving'                    # used in exec functions at the bottom
 
 def QR_solving (ns, rider):
    """
@@ -357,6 +352,12 @@ def _define_forest (ns, **kwargs):
    rootnodename = 'QR_solving'                  # The name of the node to be executed...
    global rider                                 # used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # CollatedHelpRecord object
+
+   # Make a 'how-to' help-node for the top bookmark:
+   QRU.how_to_use_this_module (ns, rider, name='QR_solving',
+                               topic='solving for MeqParm values')
+
+   # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
                nodes=[QR_solving(ns, rider)])
 
@@ -379,17 +380,14 @@ def _tdl_job_execute_sequence (mqs, parent):
 def _tdl_job_m (mqs, parent):
    return QRU._tdl_job_m (mqs, parent)
 
-def _tdl_job_print_doc (mqs, parent):
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QR_solving')
-
 def _tdl_job_print_hardcopy (mqs, parent):
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_solving')
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
+
+def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
 def _tdl_job_show_doc (mqs, parent):
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QR_solving')
-
-def _tdl_job_save_doc (mqs, parent):
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QR_solving')
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 
 

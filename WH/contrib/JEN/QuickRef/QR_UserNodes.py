@@ -1,19 +1,9 @@
 """
 QuickRef module: QR_UserNodes.py:
 
-User-defined nodes:
+User-defined MeqNodes
 
-This module may be called from the module QuickRef.py.
-But it may also be used stand-alone.
--- Load the TDL script into the meqbrowser.
--- Using TDL Options, select categories to be included,
-.    and customize parameters and input children.
--- Compile: The tree will appear in the left panel.
-.    (NB: the state record of each node has a quickref_help field)
--- Use the bookmarks to select one or more views.
--- Use TDL Exec to execute the tree: The views will come alive.
--- Use TDL Exec to show or print or save the hierarchical help
-.    for the selected categories.
+Click on the top bookmark ('help_on__how_to_use_this_module')
 """
 
 # file: ../JEN/demo/QR_UserNodes.py:
@@ -243,6 +233,12 @@ def _define_forest (ns, **kwargs):
    rootnodename = 'QR_UserNodes'                 # The name of the node to be executed...
    global rider                                  # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)        # the rider is a CollatedHelpRecord object
+
+   # Make a 'how-to' help-node for the top bookmark:
+   QRU.how_to_use_this_module (ns, rider, name='QR_UserNodes',
+                               topic='user-defined MeqNodes')
+
+   # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
                 nodes=[QR_UserNodes(ns, rider)],
                 mode='group')
@@ -271,22 +267,17 @@ def _tdl_job_m (mqs, parent):
    """Dummy tdl job that acts as separator in the TDL exec menu.""" 
    return QRU._tdl_job_m (mqs, parent)
 
-def _tdl_job_print_doc (mqs, parent):
-   """Print the specified subset of the help doc on the screen"""
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header='QR_UserNodes')
-
 def _tdl_job_print_hardcopy (mqs, parent):
    """Print a hardcopy of the specified subset of the help doc on the printer.
    NB: The printer may be customized with the runtime options."""
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header='QR_UserNodes')
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
+
+def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
 def _tdl_job_show_doc (mqs, parent):
    """Show the specified subset of the help doc in a popup"""
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header='QR_UserNodes')
-
-def _tdl_job_save_doc (mqs, parent):
-   """Save the specified subset of the help doc in a file"""
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename='QR_UserNodes')
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 
 

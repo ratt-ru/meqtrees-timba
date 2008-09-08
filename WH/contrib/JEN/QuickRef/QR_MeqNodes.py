@@ -1,17 +1,7 @@
 """
 QuickRef module: QR_MeqNodes.py
 Gives an overview over all available MeqNodes.
-It may be called from the module QuickRef.py.
-But it may also be used stand-alone.
--- Load the TDL script into the meqbrowser.
--- Using TDL Options, select categories to be included,
-.    and customize parameters and input children.
--- Compile: The tree will appear in the left panel.
-.    (NB: the state record of each node has a quickref_help field)
--- Use the bookmarks to select one or more views.
--- Use TDL Exec to execute the tree: The views will come alive.
--- Use TDL Exec to show or print or save the hierarchical help
-.    for the selected categories.
+Click on the top bookmark ('help_on__how_to_use_this_module')
 """
 
 # file: ../JEN/QuickRef/QR_MeqNodes.py:
@@ -1714,11 +1704,15 @@ def _define_forest (ns, **kwargs):
    rootnodename = 'QR_MeqNodes'                 # The name of the node to be executed...
    global rider                                 # used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # CollatedHelpRecord object
-   node = QRU.this_module (ns, rider, name='QR_MeqNodes')
+
+   # Make a 'how-to' help-node for the top bookmark:
+   QRU.how_to_use_this_module (ns, rider, name='QR_MeqNodes',
+                               topic='Overview of all available MeqNodes')
+
+   # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
                 nodes=[QR_MeqNodes(ns, rider)],
                 mode='group')
-
 
    # Finished:
    return True
@@ -1742,18 +1736,14 @@ def _tdl_job_execute_sequence (mqs, parent):
 def _tdl_job_m (mqs, parent):
    return QRU._tdl_job_m (mqs, parent)
 
-# def _tdl_job_print_doc (mqs, parent):
-#    return QRU._tdl_job_print_doc (mqs, parent, rider, header=header)
-
 def _tdl_job_print_hardcopy (mqs, parent):
    return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
-
-def _tdl_job_show_doc (mqs, parent):
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
    return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
+def _tdl_job_show_doc (mqs, parent):
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 
 #=====================================================================================

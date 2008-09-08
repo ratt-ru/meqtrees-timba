@@ -3,23 +3,17 @@ QuickRef module: QR_template.py:
 
 Template for the generation of QR_... modules.
 
-Just:
-- make a copy with a new name (e.g. QR_<name>.py),
-- replace the word QR_template with QR_<newname>,
+Click on the top bookmark ('help_on__how_to_use_this_module')
+
+Instructions for using this template:
+- make a copy to a file with a new name (e.g. QR_<name>.py)
+- open this file
+- replace the word QR_template with QR_<name>
 - remove the parts that are marked 'remove'
 .   (they generate the general template documentation)
-and add content.
+- remove these instructions
+- add content.
 
-This module may be called from the module QuickRef.py.
-But it may also be used stand-alone.
--- Load the TDL script into the meqbrowser.
--- Using TDL Options, select categories to be included,
-.    and customize parameters and input (nodes).
--- Compile: The tree will appear in the leftmost panel.
--- Use the bookmarks menu to select one or more views.
--- Use TDL Exec to execute the tree: The views will come alive.
--- Use TDL Exec to show or print or save the hierarchical help
-.    for the selected categories.
 """
 
 # file: ../JEN/QuickRef/QR_template.py:
@@ -29,7 +23,7 @@ But it may also be used stand-alone.
 # Short description:
 #
 # History:
-#   - 11 jun 2008: creation (from QR-template.py)
+#   - 01 oct 2008: creation (from QR-template.py)
 #
 # Description:
 #
@@ -381,9 +375,15 @@ def _define_forest (ns, **kwargs):
    TDLRuntimeMenu(":")
 
    global rootnodename
-   rootnodename = 'QuickRef'                 # The name of the node to be executed...
+   rootnodename = 'QR_template'                 # The name of the node to be executed...
    global rider                                 # global because it is used in tdl_jobs
    rider = QRU.create_rider(rootnodename)       # the rider is a CollatedHelpRecord object
+
+   # Make a 'how-to' help-node for the top bookmark:
+   QRU.how_to_use_this_module (ns, rider, name='QR_template',
+                               topic='template for QR modules')
+
+   # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
                 nodes=[QR_template(ns, rider)],
                 mode='group')
@@ -414,22 +414,17 @@ def _tdl_job_m (mqs, parent):
    """Dummy tdl job that acts as separator in the TDL exec menu.""" 
    return QRU._tdl_job_m (mqs, parent)
 
-def _tdl_job_print_doc (mqs, parent):
-   """Print the specified subset of the help doc on the screen"""
-   return QRU._tdl_job_print_doc (mqs, parent, rider, header=header)
-
 def _tdl_job_print_hardcopy (mqs, parent):
    """Print a hardcopy of the specified subset of the help doc on the printer.
    NB: The printer may be customized with the runtime options."""
    return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
+def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
+   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
+
 def _tdl_job_show_doc (mqs, parent):
    """Show the specified subset of the help doc in a popup"""
    return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
-
-def _tdl_job_save_doc (mqs, parent):
-   """Save the specified subset of the help doc in a file"""
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
 
 
 
