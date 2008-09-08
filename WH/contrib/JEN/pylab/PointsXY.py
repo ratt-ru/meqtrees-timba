@@ -989,7 +989,7 @@ if __name__ == '__main__':
                        # dxx=5*[1.0], dyy=5*[-1.0],
                        name='quiver', plot_type='quiver', **kwargs)
         
-    # pts = PointsXY(pylab.array(range(6)), name='numarray', **kwargs)
+    # pts = PointsXY(pylab.array(range(6)), name='pylab/numpy.array', **kwargs)
     # pts = PointsXY(-2, name='scalar', **kwargs)
     # pts = PointsXY(3+5j, name='complex scalar', **kwargs)
     # pts = PointsXY([3,-2+1.5j], name='complex list', **kwargs)
