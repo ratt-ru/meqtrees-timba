@@ -143,9 +143,7 @@ def QR_execution (ns, rider):
    if opt_helpnodes:
       cc.append(make_helpnodes (ns, rider))
 
-   return QRU.on_exit (ns, rider, cc,
-                      parentclass='ReqSeq', result_index=0,
-                      bookmark='parent', viewer='Record Browser')
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 

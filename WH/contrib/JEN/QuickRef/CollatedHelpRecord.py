@@ -79,10 +79,14 @@ class CollatedHelpRecord (object):
       Derive a nodestub name from the current path.
       If short=True, keep it short....
       """
-      ss = self.path2name (n=2, trace=trace)
+      name = self.path2name (n=2, trace=trace)
       if short:
-         ss = ss[0] + '_' + self.path2name (n=1, trace=trace)
-      return ss
+         # ss = name[0] + '_' + self.path2name (n=1, trace=trace)
+         ss = name.split('_')
+         name = ss[0][:4]             # the first 4 chars only
+         if len(ss)>1:
+            name += '_'+ss[1][:4]
+      return name
 
    def path2name (self, n=None, trace=False):
       """

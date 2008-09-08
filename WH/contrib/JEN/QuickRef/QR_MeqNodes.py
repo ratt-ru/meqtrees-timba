@@ -154,6 +154,7 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                                       [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
                             toggle='opt_flagging'),
                     TDLOption('opt_solving',"solving",False),
+                    TDLOption('opt_spigot2sink',"spigot2sink (MS)",False),
                     TDLMenu("visualization",
                             TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
                                       ET.twig_names(first='t'), more=str),
@@ -223,6 +224,8 @@ def QR_MeqNodes (ns, rider):
       cc.append(flagging (ns, rider))
    if override or opt_solving:
       cc.append(solving (ns, rider))
+   if override or opt_spigot2sink:
+      cc.append(spigot2sink (ns, rider))
    if override or opt_visualization:
       cc.append(visualization (ns, rider))
    if override or opt_flowcontrol:
@@ -255,6 +258,69 @@ def make_helpnodes (ns, rider):
 #********************************************************************************
 # Topics and their subtopics:
 #********************************************************************************
+
+#================================================================================
+# spigot2sink_... 
+#================================================================================
+
+def spigot2sink (ns, rider):
+   """
+   The MeqSpigot reads data from an AIPS++/Casa Measurement Set (uv-data).
+   It is twinned with the MeqSink, which writes uv-data back into the MS,
+   and generates a sequence of requests with suitable time-freq domains
+   (snippets).
+   See also <A href='http://www.astron.nl/meqwiki/StreamControl'>StreamControl()</A>
+   
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Spigot()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.VisDataMux()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sink()</A>
+
+   Make MeqSpigot nodes per ifr, for reading visibility data from the
+   specified 'tile' columns of the VisTile interface.
+   Note that tile columns are NOT the same as MS columns! If relevant,
+   the latter are specified in the request.
+   - The (tile) input_col can be 'DATA','PREDICT','RESIDUALS' (and 'FLAGS'?)
+   However, only the 'DATA' column can be populated at this time...(!)
+   - Sometimes, not all 4 corrs are available. For XX/YY only, use:
+   - If only XX/YY available: MS_corr_index = [0,-1,-1,1]
+   - If all 4 corr available: MS_corr_index = [0,-1,-1,3]
+   - etc
+   For missing corrs, the spigot still returns a 2x2 tensor node, but with
+   empty results {}. These are interpreted as zeroes, e.g. in matrix
+   multiplication. After that, the results ar no longer empty, so that cannot
+   be used for detecting missing corrs! Empty results are ignored by condeqs etc
+   See also the wiki-pages...
+  
+   """
+   stub = QRU.on_entry(ns, rider, spigot2sink, stubname='s2s')
+   # msname = '3C286-10705290.MS'
+   nstat = 3
+   cc = []
+   sinks = []
+   for p in range(nstat-1):
+      for q in range(p,nstat):
+         spigot = stub('Spigot')(p)(q) << Meq.Spigot(station_1_index=p,
+                                                     input_column='DATA',
+                                                     # corr_index=[0,1,2,3],
+                                                     # flag_bit=4,
+                                                     # input_column=input_col)
+                                                     station_2_index=q)
+         sink = stub('Sink')(p,q) << Meq.Sink(spigot,
+                                              # output_col=output_col,
+                                              # corr_index=self._MS_corr_index,
+                                              station_1_index=p,
+                                              station_2_index=q)
+         print '-',str(sink)
+         sinks.append(sink)
+         if p==0:
+            cc.append(spigot)
+            cc.append(sink)
+         
+   # The single VisDataMux node is the actual interface node.
+   # The name 'VisDataMux' is expected by tdl_job_execute_MS()
+   vdm = ns['VisDataMux'] << Meq.VisDataMux(*sinks)
+   # cc.append(vdm)
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -1364,24 +1430,6 @@ def leaves_gridsXYZetc (ns, rider):
 
 #--------------------------------------------------------------------------------
 
-def leaves_spigot (ns, rider):
-   """
-   The MeqSpigot reads data from an AIPS++/Casa Measurement Set (uv-data).
-   It is twinned with the MeqSink, which writes uv-data back into the MS,
-   and generates a sequence of requests with suitable time-freq domains
-   (snippets). See also....
-
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Spigot()</A> 
-
-   """
-   stub = QRU.on_entry(ns, rider, leaves_spigot)
-   cc = []
-   cc.append(stub(axis) << Meq.Spigot())
-   return QRU.on_exit (ns, rider, cc)
-
-
-#--------------------------------------------------------------------------------
-
 def leaves_FITS (ns, rider):
    """
    There are various nodes to read/write images from/to FITS files.
@@ -1421,7 +1469,8 @@ def unops (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, unops)
    twig = ET.twig (ns, QRU.getopt(globals(), 'opt_unops_twig',rider),
-                   nodename='unops_single_child')
+                   help='single child for unary math nodes', 
+                   nodename='unops_child')
    cc = [] 
    cc.append(unops_elementary (ns, rider, twig))
    cc.append(unops_goniometric (ns, rider, twig))
@@ -1463,12 +1512,12 @@ def unops_goniometric (ns, rider, twig=None):
    cc = [twig]
 
    for q in ['Sin','Cos','Tan']:
-      cc.append(stub(q) << getattr(Meq,q)(twig))
+      cc.append(stub(q+'(c)') << getattr(Meq,q)(twig))
 
    s2 = stub('s2') << Meq.Sqr(cc[1])
    c2 = stub('c2') << Meq.Sqr(cc[2])
-   qhelp = 'Cos(x)**2 + Sin(x)**2 = 1'
-   cc.append(stub('s2+c2') << Meq.Add(s2,c2, qhelp=qhelp))
+   qhelp = 'Cos(c)**2 + Sin(c)**2 = 1'
+   cc.append(stub('(sin**2+cos**2)') << Meq.Add(s2,c2, qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -1482,22 +1531,28 @@ def unops_invgoniometric (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Acos(c)</A> -> rad
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Atan(c)</A> -> rad
 
-   <remark>
-   Applying first the function and then its inverse should yield the original input
-   <b>(which it does NOT in case of Acos(Cos(x))....!?)</b>
-   </remark>
+   <tip>
+   Applying first the function and then its inverse should yield the original input.
+   </tip>
    """
    stub = QRU.on_entry(ns, rider, unops_invgoniometric)
    cc = [twig]
 
    for q in ['Asin','Acos','Atan']:
-      cc.append(stub(q) << getattr(Meq,q)(twig))
+      cc.append(stub(q+'(c)') << getattr(Meq,q)(twig))
 
-   qhelp = 'Applying a function to its inverse should yield unity'
-   cc.append(stub('AsinSin') << Meq.Asin(cc[0], qhelp=qhelp))
-   cc.append(stub('AcosCos') << Meq.Acos(cc[1], qhelp=qhelp))
-   cc.append(stub('AtanTan') << Meq.Atan(cc[2], qhelp=qhelp))
-   
+   qhelp = 'Applying a function to its inverse should yield the input'
+   sin = stub('Sin(c)') << Meq.Sin(twig)
+   cos = stub('Cos(c)') << Meq.Cos(twig)
+   tan = stub('Tan(c)') << Meq.Tan(twig)
+   asinsin = stub('Asin(Sin(c))') << Meq.Asin(sin)
+   acoscos = stub('Acos(Cos(c))') << Meq.Acos(cos)
+   atantan = stub('Atan(Tan(c))') << Meq.Atan(tan)
+   cc.append(stub('Asin(Sin(c))-c') << Meq.Subtract(children=[asinsin,twig], qhelp=qhelp))
+   cc.append(stub('Acos(Cos(c))-c') << Meq.Subtract(children=[acoscos,twig], qhelp=qhelp))
+   cc.append(stub('Atan(Tan(c))-c') << Meq.Subtract(children=[atantan,twig], qhelp=qhelp))
+
+
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1514,12 +1569,12 @@ def unops_hyperbolic (ns, rider, twig=None):
    stub = QRU.on_entry(ns, rider, unops_hyperbolic)
    cc = [twig]
    for q in ['Sinh','Cosh','Tanh']:
-      cc.append(stub(q) << getattr(Meq,q)(twig))
+      cc.append(stub(q+'(c)') << getattr(Meq,q)(twig))
       
-   sh2 = stub('sh2') << Meq.Sqr(cc[1])
-   ch2 = stub('ch2') << Meq.Sqr(cc[2])
-   qhelp = 'Demonstrates: Cosh(x)**2 - Sinh(x)**2 = 1'
-   cc.append(stub('ch2-sh2') << Meq.Subtract(ch2,sh2, qhelp=qhelp))
+   sh2 = stub('sinh**2') << Meq.Sqr(cc[1])
+   ch2 = stub('cosh**2') << Meq.Sqr(cc[2])
+   qhelp = 'Demonstrates: Cosh(c)**2 - Sinh(c)**2 = 1'
+   cc.append(stub('(cosh**2-sinh**2)') << Meq.Subtract(ch2,sh2, qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc, node_help=True)
 
@@ -1545,7 +1600,7 @@ def unops_complex (ns, rider, twig=None):
    twig = ET.twig(ns,'cx_ft')                # override input twig...
    cc = [twig]
    for q in ['Abs','Arg','Real','Imag','Conj','Exp','Log']:
-      cc.append(stub(q) << getattr(Meq,q)(twig))
+      cc.append(stub(q+'(c)') << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc)
 
 #--------------------------------------------------------------------------------
@@ -1581,9 +1636,9 @@ def unops_misc (ns, rider, twig=None):
    stub = QRU.on_entry(ns, rider, unops_misc)
    cc = [twig]
    for q in ['Ceil','Floor','Identity']:
-      cc.append(stub(q) << getattr(Meq,q)(twig, qbookmark=True))
+      cc.append(stub(q+'(c)') << getattr(Meq,q)(twig, qbookmark=True))
 
-   cc.append(stub('Stripper') << Meq.Stripper(twig, qviewer=[True, 'Record Browser']))
+   cc.append(stub('Stripper(c)') << Meq.Stripper(twig, qviewer=[True, 'Record Browser']))
 
    return QRU.on_exit (ns, rider, cc, node_help=True)
 
@@ -1613,15 +1668,15 @@ def binops (ns, rider):
 
    The input children may be selected here, for experimentation.
    """
-   stub = QRU.on_entry(ns, rider, binops)
-   print '\n** rider.path()=',rider.path(),' stub=',str(stub)
+   stub = QRU.on_entry(ns, rider, binops, stubname='binops')
    lhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_lhs',rider), nodename='lhs') 
    rhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_rhs',rider), nodename='rhs') 
    cc = [lhs,rhs]
+   for q in ['Subtract','Divide','Pow']:
+      cc.append(stub(q+'(lhs,rhs)') << getattr(Meq,q)(lhs,rhs))
+   cc.append(stub('ToComplex(r,i)') << Meq.ToComplex(lhs,rhs))
+   cc.append(stub('Polar(a,p)') << Meq.Polar(lhs,rhs))
    # Problem: MeqMod() crashes the meqserver.... Needs integer children??
-   # for q in ['Subtract','Divide','Pow','ToComplex','Polar','Mod']:
-   for q in ['Subtract','Divide','Pow','ToComplex','Polar']:
-      cc.append(stub(q) << getattr(Meq,q)(lhs,rhs))
    return QRU.on_exit (ns, rider, cc, node_help=True)
 
 
@@ -1648,7 +1703,7 @@ def multimath (ns, rider):
 
    The number and type of children may be selected here, for experimentation.
    """
-   stub = QRU.on_entry(ns, rider, multimath)
+   stub = QRU.on_entry(ns, rider, multimath, stubname='multimath')
    cc = []
 
    # Make the child-related vectors (ignore the ones with opt=None):
@@ -1730,6 +1785,10 @@ def _tdl_job_execute (mqs, parent):
 def _tdl_job_execute_sequence (mqs, parent):
    """Execute a sequence of requests""" 
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
+
+def _tdl_job_execute_MS (mqs, parent):
+   """Execute a Measurement Set (MS)""" 
+   return QRU._tdl_job_execute_MS (mqs, parent, vdm_node='VisDataMux')
 
 #--------------------------------------------------------------------------------
 

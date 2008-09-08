@@ -396,6 +396,48 @@ def minmax (vmin, vmax, offset=0.0):
 #----------------------------------------------------------------------------
 #----------------------------------------------------------------------------
 
+
+def _tdl_job_execute_MS (mqs, parent, vdm_node='VisDataMux', trace=True):
+    """
+    Execute an MS (see Meow.MSUtils.py)
+    """
+    
+    # Create inputrec:
+    rec = record()
+    rec.ms_name          = '3C286-10705290.MS',        # QuickRef MS filename
+    rec.data_column_name = 'DATA'
+    # rec.tile_segments    = tile_segments;
+    # rec.tile_size        = tile_size;
+    # rec.tile_size = tiling;
+    # rec.selection = self.subset_selector.create_selection_record();
+    # rec.apply_hanning = self.ms_apply_hanning;
+    # Form top-level record
+    inputrec = record(ms=rec)
+    # inputrec.python_init = 'Meow.ReadVisHeader';
+    # inputrec.mt_queue_size = ms_queue_size;
+
+    # Create outputrec:
+    rec = record()
+    # rec.write_flags = self.ms_write_flags;
+    # rec.data_column = self.output_column;
+    # outputrec = record(ms=rec,mt_queue_size=ms_queue_size);
+    outputrec = record(ms=rec)
+
+    # Create_io_request, and execute:
+    req = meq.request()
+    req.input = inputrec
+    req.output = outputrec
+    result = mqs.execute(vdm_node, req, wait=False)
+
+    if trace:
+        print '\n** _tdl_job_execute_MS(',vdm_node,') ->',result,'\n'
+        print '  req.input =',req.input
+        print '  req.output =',req.output
+        print
+    return result
+
+#----------------------------------------------------------------------------
+
 def _tdl_job_execute (mqs, parent, rootnode='QuickRefUtil', trace=True):
     """
     Execute the forest with the domain (axes) specified by runopt_exec_domain.
@@ -538,7 +580,7 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
 #-------------------------------------------------------------------------------
 
 
-def on_entry(ns, rider, func, trace=False):
+def on_entry(ns, rider, func, stubname=None, trace=False):
     """
     The function QuickRefUtil.on_entry(ns, rider, QR_function) is called upon entry
     of all functions 'QR_function' in QR_... modules. It expects the arguments
@@ -558,7 +600,11 @@ def on_entry(ns, rider, func, trace=False):
     qhelp += rider.check_html_tags(func.__doc__, include_style=False)
     rider.insert_help (path, qhelp, append=False)
 
-    stub = EN.unique_stub(ns, rider.nodestubname(short=False))
+    # Make a node-stub, for the topic nodes:
+    if not isinstance(stubname,str):
+        # If no stubname given, make one automatically:
+        stubname = rider.nodestubname(short=True)
+    stub = EN.unique_stub(ns, stubname)
     
     if trace:
         print '\n** .on_entry():',path,'->',str(stub)

@@ -861,6 +861,8 @@ def twig (ns, spec,
             qhelp += '  (stddev='+str(stddev)+')'
         if noise:
             qhelp += '  (noise='+str(noise)+')'
+        if isinstance(help,str):
+            qhelp += '  ('+str(help)+')'
         key = 'qhelp' 
         if not node.initrec().has_key(key):
             # Attach only if the node does not have a qhelp field yet

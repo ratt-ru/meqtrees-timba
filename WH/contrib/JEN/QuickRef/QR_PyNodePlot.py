@@ -269,10 +269,7 @@ def PyNodePlot (ns, rider):
    if len(cc)>0:
       bookmark = cc[0]
 
-   return QRU.on_exit (ns, rider, cc, 
-                       # bookmark=bookmark,
-                       viewer='Pylab Plotter',
-                       parentclass='ReqSeq', result_index=0)
+   return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 
