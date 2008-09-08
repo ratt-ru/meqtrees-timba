@@ -8,7 +8,7 @@
 #
 # History:
 #    - 29 apr 2007: creation, from TDL_Expression.py
-#    - 02 sep 2008: removed numarray
+#    - 02 sep 2008: removed num-array
 #
 # Remarks:
 #

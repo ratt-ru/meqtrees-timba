@@ -34,7 +34,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-import numarray
+import numpy
 import math
 import random
 import Meow
@@ -243,7 +243,7 @@ def phase_parm (tdeg,fdeg):
   """helper function to create a t/f parm for phase, including constraints.
   Placeholder until Maaijke implements periodic constraints.
   """;
-  polc = meq.polc(numarray.zeros((tdeg+1,fdeg+1))*0.0,
+  polc = meq.polc(numpy.zeros((tdeg+1,fdeg+1))*0.0,
             scale=array([3600.,8e+8,0,0,0,0,0,0]));
   shape = [tdeg+1,fdeg+1];
   # work out constraints on coefficients

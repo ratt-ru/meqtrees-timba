@@ -111,7 +111,7 @@ def plot_pen(key=None):
 
 if __name__ == '__main__':
     print '\n*******************\n** Local test of TDL_radio_conventions.py :\n'
-    from numarray import *
+    from numpy import *
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
     

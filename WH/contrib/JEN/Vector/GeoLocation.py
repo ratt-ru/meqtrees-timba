@@ -30,7 +30,6 @@ from Timba.Meq import meq
 
 # from Timba.Contrib.JEN.Grunt import display
 from Timba.Contrib.JEN.Vector import Vector
-# from num array import *      # replaced with numpy
 from numpy import *
 from copy import deepcopy
 

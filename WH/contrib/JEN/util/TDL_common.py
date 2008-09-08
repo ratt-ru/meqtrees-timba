@@ -624,7 +624,7 @@ def common_quals(cc=[], trace=False):
 #========================================================================
 
 if __name__ == '__main__':
-    from numarray import *
+    from numpy import *
     from Timba.Contrib.JEN import MG_JEN_exec
     ns = NodeScope()
     nsim = ns.Subscope('_')

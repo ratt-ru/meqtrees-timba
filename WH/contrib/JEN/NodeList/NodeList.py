@@ -55,7 +55,7 @@ from Timba.Contrib.JEN import MG_JEN_dataCollect
 from Timba.Contrib.JEN.Grunt import display
 
 from copy import deepcopy
-from numarray import array
+from numpy import array
 
 #======================================================================================
 

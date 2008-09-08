@@ -26,7 +26,7 @@
 #
 
 import fileinput
-from numarray import *
+from numpy import *
 
 k = 0
 data = []

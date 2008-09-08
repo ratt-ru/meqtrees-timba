@@ -43,7 +43,7 @@
 
 from Timba.TDL import *
 # from copy import deepcopy
-from numarray import *
+from numpy import *
 from math import *
 
 # from Timba.Contrib.JEN.util import TDL_common

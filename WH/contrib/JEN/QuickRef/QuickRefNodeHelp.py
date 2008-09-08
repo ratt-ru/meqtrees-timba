@@ -228,7 +228,7 @@ def node_help (node, detail=1, rider=None, mode='html', trace=False):
 
       else:
          ss += ' - '+str(key)+' = '+str(v)
-         ss += ' (numarray?)'
+         ss += ' (numpy array?)'
          ss += '<br>'
 
    #..........................................

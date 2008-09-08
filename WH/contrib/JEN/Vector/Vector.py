@@ -31,7 +31,6 @@ from Timba.Meq import meq
 import Meow
 
 from Timba.Contrib.JEN.Grunt import display
-# from num array import *   replaced with numpy
 from numpy import *
 from copy import deepcopy
 
@@ -91,7 +90,7 @@ class Vector (Meow.Parameterization):
 
   
     # The following is only for testing: It is assumed that the items
-    # in elem are numeric, so we can turn them into a numarray.array:
+    # in elem are numeric, so we can turn them into a numpy.array:
     self._test = None
     if test:
       self._test = dict(test=test, elem=[]) 

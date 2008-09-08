@@ -179,16 +179,16 @@ def format_record(rr, txt=None, ss=None, level=0, full=False, mode='str'):
         ss = '\n** format_record(): '+str(txt)+' ('+str(type(rr))+'):'
         
     for key in rr.keys():
-        if getattr(rr[key],'mean',None):              # e.g. numarray...
+        if getattr(rr[key],'mean',None):              # e.g. numpy...
             vv = rr[key]
             # print dir(vv)
             nel = vv.nelements()
             stddev = 0.0
             if nel>1:
-                if getattr(vv,'stddev',None):    # numarray...
-                    stddev = vv.stddev()
-                elif getattr(vv,'std',None):     # numpy
+                if getattr(vv,'std',None):           # numpy
                     stddev = vv.std()
+                # elif getattr(vv,'stddev',None):    # num array...
+                #     stddev = vv.stddev()
                 else:
                     stddev = '??'
             ss += prefix+str(key)+': n='+str(nel)

@@ -140,8 +140,8 @@ def contam_error1(ctrl, perr, resid, color='red'):
 
 if __name__ == '__main__':
     print '\n*******************\n** Local test of: pylab_peeling.py:\n'
-    # from numarray import *
-    # from numarray.linear_algebra import *
+    # from numpy import *
+    # from num-array.linear_algebra import *
     # from Timba.Trees import TDL_display
     # from Timba.Trees import JEN_record
 

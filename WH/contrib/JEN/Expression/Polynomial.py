@@ -7,7 +7,7 @@
 #
 # History:
 #    - 05may2007: creation, from Expression.py
-#    - 02sep2008: removed numarray
+#    - 02sep2008: removed num-array
 #
 # Remarks:
 #
