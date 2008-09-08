@@ -30,7 +30,8 @@ from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Vector import Vector
 
-from numarray import *
+# from num array import *  replaced with numpy
+from numpy import *
 
 Settings.forest_state.cache_policy = 100
 

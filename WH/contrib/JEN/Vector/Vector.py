@@ -31,7 +31,8 @@ from Timba.Meq import meq
 import Meow
 
 from Timba.Contrib.JEN.Grunt import display
-from numarray import *
+# from num array import *   replaced with numpy
+from numpy import *
 from copy import deepcopy
 
 Settings.forest_state.cache_policy = 100
