@@ -121,9 +121,15 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                                       ET.twig_names(include=[None]), more=str),
                             toggle='opt_multimath'),
                     TDLMenu("Leaf nodes (no children)",
-                            TDLMenu("FITS images",
-                                    toggle='opt_leaves_FITS'),
                             toggle='opt_leaves'),
+                    TDLMenu("Interaction with FITS files",
+                            TDLMenu("FITSImage",
+                                    TDLOption('opt_FITS_Image_mode',"mode",
+                                              [1,2,3], more=int),
+                                    TDLOption('opt_FITS_Image_cutoff',"0.0<cutoff level<1.0",
+                                              [1.0,0.9,0.5,0.1,0.0], more=float),
+                                    toggle='opt_FITS_Image'),
+                            toggle='opt_FITS'),
                     TDLMenu("Tensor nodes (multiple vellsets)",
                             TDLOption('opt_tensor_manipulation',"Tensor manipulation",False),
                             TDLOption('opt_tensor_matrix',"Matrix operations",False),
@@ -154,7 +160,11 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                                       [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
                             toggle='opt_flagging'),
                     TDLOption('opt_solving',"solving",False),
-                    TDLOption('opt_spigot2sink',"spigot2sink (MS)",False),
+                    TDLMenu("spigot2sink (MS)",
+                            TDLOption('opt_s2s_nstat',"nr of stations in array",
+                                      [5,3,4,5,6,7,8,9,10,14], more=int),
+                            TDLOption('opt_s2s_pynodePlot',"make 4-corrs plot",False),
+                            toggle='opt_s2s'),
                     TDLMenu("visualization",
                             TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
                                       ET.twig_names(first='t'), more=str),
@@ -212,6 +222,8 @@ def QR_MeqNodes (ns, rider):
       cc.append(multimath (ns, rider))
    if override or opt_leaves:             
       cc.append(leaves (ns, rider))
+   if override or opt_FITS:
+      cc.append(FITS (ns, rider))
    if override or opt_tensor:
       cc.append(tensor (ns, rider))
    if override or opt_axisreduction:
@@ -224,7 +236,7 @@ def QR_MeqNodes (ns, rider):
       cc.append(flagging (ns, rider))
    if override or opt_solving:
       cc.append(solving (ns, rider))
-   if override or opt_spigot2sink:
+   if override or opt_s2s:
       cc.append(spigot2sink (ns, rider))
    if override or opt_visualization:
       cc.append(visualization (ns, rider))
@@ -265,61 +277,77 @@ def make_helpnodes (ns, rider):
 
 def spigot2sink (ns, rider):
    """
-   The MeqSpigot reads data from an AIPS++/Casa Measurement Set (uv-data).
-   It is twinned with the MeqSink, which writes uv-data back into the MS,
-   and generates a sequence of requests with suitable time-freq domains
-   (snippets).
-   See also <A href='http://www.astron.nl/meqwiki/StreamControl'>StreamControl()</A>
+   The MeqSpigot reads data from an AIPS++/Casa Measurement Set (MS, uv-data).
+   It is twinned with the MeqSink, which (optionally) writes uv-data back into the MS,
+   and generates a sequence of requests with suitable time-freq domains (snippets).
+   See also <A href='http://www.astron.nl/meqwiki/StreamControl'>StreamControl()</A>.
    
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Spigot()</A> 
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.VisDataMux()</A> 
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sink()</A>
+   <li> <A href='http://www.astron.nl/meqwiki/StreamControl'>Meq.Spigot()</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/StreamControl'>Meq.Sink()</A>
+   <li> <A href='http://www.astron.nl/meqwiki/StreamControl'>Meq.VisDataMux()</A> 
 
-   Make MeqSpigot nodes per ifr, for reading visibility data from the
-   specified 'tile' columns of the VisTile interface.
-   Note that tile columns are NOT the same as MS columns! If relevant,
-   the latter are specified in the request.
-   - The (tile) input_col can be 'DATA','PREDICT','RESIDUALS' (and 'FLAGS'?)
-   However, only the 'DATA' column can be populated at this time...(!)
-   - Sometimes, not all 4 corrs are available. For XX/YY only, use:
-   - If only XX/YY available: MS_corr_index = [0,-1,-1,1]
-   - If all 4 corr available: MS_corr_index = [0,-1,-1,3]
-   - etc
-   For missing corrs, the spigot still returns a 2x2 tensor node, but with
-   empty results {}. These are interpreted as zeroes, e.g. in matrix
-   multiplication. After that, the results ar no longer empty, so that cannot
-   be used for detecting missing corrs! Empty results are ignored by condeqs etc
-   See also the wiki-pages...
-  
+   In the various low-threshold 'frameworks' (see modules QR_Meow and QR_Calico),
+   the interaction with the MS will be hidden to the user. A full treatment of
+   all the details and possibilities is given in the module QR_MS. Here, we show
+   the simplest possible case: Spigot/Sink pairs are created for a small subset
+   of ifrs, and the results are displayed in various ways. Use the <b>execute MS</b>
+   option in the runtime menu to read a sequence of timeslots from a smallish MS,
+   which is a short WSRT observation of 3c286 @ 21cm.
+
+   <tip>
+   Use the pynodePlot option to make a plot of the 4 corrs of all ifrs in a single
+   real-vs-imag plot. Note that the XX(=I+Q) are larger than the YY(=I-Q), due to
+   the ~10% linear polarisation. The XY(=U+iV) and YX(=U-iV) show the same. 
+   </tip>
+
+   The MeqSink nodes are the children of a single VisDataMux node,
+   which is the root node that is executed by <b>execute MS</b>.  The
+   request contains the MS name and any other instructions for reading
+   the MS. The VisDataMux then generates a sequence of snippet
+   (timeslot) requests to its children (the MeqSinks).
    """
+
    stub = QRU.on_entry(ns, rider, spigot2sink, stubname='s2s')
+   nstat = QRU.getopt(globals(), 'opt_s2s_nstat', rider)
+   pynodePlot = QRU.getopt(globals(), 'opt_s2s_pynodePlot', rider)
    # msname = '3C286-10705290.MS'
-   nstat = 3
+   nstat = 5
    cc = []
+   crosscorrs = []
    sinks = []
    for p in range(nstat-1):
       for q in range(p,nstat):
-         spigot = stub('Spigot')(p)(q) << Meq.Spigot(station_1_index=p,
-                                                     input_column='DATA',
-                                                     # corr_index=[0,1,2,3],
-                                                     # flag_bit=4,
-                                                     # input_column=input_col)
-                                                     station_2_index=q)
-         sink = stub('Sink')(p,q) << Meq.Sink(spigot,
+         node = stub('Spigot')(p)(q) << Meq.Spigot(station_1_index=p,
+                                                   input_column='DATA',
+                                                   # corr_index=[0,1,2,3],
+                                                   # flag_bit=4,
+                                                   # input_column=input_col)
+                                                   station_2_index=q)
+         if not p==q:
+            crosscorrs.append(node)                # subset for pynode
+         if p==0:
+            cc.append(node)                        # subset to be published
+         node = stub('Sink')(p,q) << Meq.Sink(node,
                                               # output_col=output_col,
                                               # corr_index=self._MS_corr_index,
                                               station_1_index=p,
                                               station_2_index=q)
-         print '-',str(sink)
-         sinks.append(sink)
-         if p==0:
-            cc.append(spigot)
-            cc.append(sink)
-         
+         sinks.append(node)
+
+   post = None
+   if pynodePlot:
+      qhelp = None
+      document = True
+      cc.append(PNP.pynode_Plot(ns, crosscorrs, 'VIS22'))
+      # cc.append(PNP.pynode_Plot(ns, crosscorrs, 'VIS22_IQUV'))
+      post = cc[-1]
+            
    # The single VisDataMux node is the actual interface node.
    # The name 'VisDataMux' is expected by tdl_job_execute_MS()
-   vdm = ns['VisDataMux'] << Meq.VisDataMux(*sinks)
-   # cc.append(vdm)
+   if post:
+      vdm = ns['VisDataMux'] << Meq.VisDataMux(post=post, *sinks)
+   else:
+      vdm = ns['VisDataMux'] << Meq.VisDataMux(*sinks)
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1269,8 +1297,6 @@ def leaves (ns, rider):
    cc.append(leaves_gridsFTLM (ns, rider))
    cc.append(leaves_gridsXYZetc (ns, rider))
    cc.append(leaves_noise (ns, rider))
-   if override or opt_leaves_FITS:
-      cc.append(leaves_FITS (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
@@ -1430,20 +1456,64 @@ def leaves_gridsXYZetc (ns, rider):
 
 #--------------------------------------------------------------------------------
 
-def leaves_FITS (ns, rider):
-   """
-   There are various nodes to read/write images from/to FITS files.
+#================================================================================
+# unops_... (Unary operations)
+#================================================================================
 
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSReader(filename=..)</A> 
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSWriter(filename=..)</A> 
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A> 
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.FITSSpigot(filename=..)</A> 
+def FITS (ns, rider):
+   """
+   There are various nodes to interact with FITS files.
+
+   <li> <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSReader(filename=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSWriter(filename=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSSpigot(filename=..)</A> 
 
    """
-   stub = QRU.on_entry(ns, rider, leaves_FITS)
+   stub = QRU.on_entry(ns, rider, FITS)
+   cc = [] 
+   override = opt_alltopics
+   if True or override or opt_FITS_Image:
+      cc.append(FITS_Image(ns, rider))
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+#----------------------------------------------------------------------------------------------
+
+def FITS_Image (ns, rider):
+   """
+   The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A>
+   node is used to read in a sky image in terms of fluxes (IQUV) and the phase center RA,DEC.
+
+   The 'cutoff' is a value within 0 and 1, to represent the cutoff flux ratio to reduce the size of the image.
+   For example, a cutoff of 0.2 will imply that only the rectangular area containing 20% of the total
+   pixels with highest flux (including the peak) will be selected 
+
+   Note: this node could only be used with a real sky image with 4 coordinate axes l,m,Stokes and Freq.
+   If your image does not have all 4 axes, you can add a degenerate axes to your image using AIPS++
+   images tool (adddegaxes).
+
+   If mode=1, the result is a 'sixpack', i.e. it contains 6 vellsets with elements RA,DEC,I,Q,U,V.  
+   If mode=2, the result has a single StokesI vellset.  
+
+   """
+   stub = QRU.on_entry(ns, rider, FITS_Image, stubname='FITSImage')
    cc = []
    filename = 'Sun.fits'
-   cc.append(stub('FITSReader') << Meq.FITSReader(filename=filename))
+   # filename = QRU.getopt(globals(),'opt_FITS_Image_filename',rider)
+   cutoff = QRU.getopt(globals(),'opt_FITS_Image_cutoff',rider)
+   mode = QRU.getopt(globals(),'opt_FITS_Image_mode',rider)
+   cc.append(stub('StokesI')('mode=2') << Meq.FITSImage(filename=filename,
+                                                        cutoff=cutoff, mode=2))
+   cc.append(stub('StokesI')('mode=2')('0.5*cutoff') << Meq.FITSImage(filename=filename,
+                                                                      cutoff=cutoff/2.0, mode=2))
+   sixpack = stub('sixpack') << Meq.FITSImage(filename=filename,
+                                              cutoff=cutoff, mode=1)
+   cc.append(sixpack('RA') << Meq.Selector(sixpack, index=0))
+   cc.append(sixpack('DEC') << Meq.Selector(sixpack, index=1))
+   cc.append(sixpack('StokesI') << Meq.Selector(sixpack, index=2))
+   cc.append(sixpack('StokesQ') << Meq.Selector(sixpack, index=3))
+   cc.append(sixpack('StokesU') << Meq.Selector(sixpack, index=4))
+   cc.append(sixpack('StokesV') << Meq.Selector(sixpack, index=5))
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1770,6 +1840,8 @@ def _define_forest (ns, **kwargs):
                 mode='group')
 
    # Finished:
+   # Write the documentation to file QuickRef.html
+   QRU.save_to_QuickRef_html (rider)
    return True
    
 

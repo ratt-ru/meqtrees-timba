@@ -244,6 +244,7 @@ def _define_forest (ns, **kwargs):
                 mode='group')
 
    # Finished:
+   QRU.save_to_QuickRef_html(rider)
    return True
 
 

@@ -189,8 +189,13 @@ def nodestub (ns, rootname, *quals, **kwquals):
     .    stub = EeasyNode.nodestub (ns, rootname, *quals, **kwquals)
     Return a nodestub with the given rootname and any qualifiers.
     """
+    trace = True
+    trace = False
+    
     s = '\n** EasyNode.nodestub('+str(rootname)+','+str(quals)+','+str(kwquals)+')'
     stub = ns[rootname]
+    if trace:
+        print s,'->',str(stub)
     
     if not isinstance(kwquals,dict):
         kwquals = dict()
@@ -204,8 +209,6 @@ def nodestub (ns, rootname, *quals, **kwquals):
         kwquals.__delitem__('quals')
 
     # Look for a specific keword argument(s):
-    trace = True
-    trace = False
     if kwquals.has_key('trace'):
         trace = kwquals['trace']
         kwquals.__delitem__('trace')

@@ -389,7 +389,8 @@ def _define_forest (ns, **kwargs):
                 mode='group')
 
    # Finished:
-   QRU.ET.EN.bundle_orphans(ns)
+   QRU.ET.EN.bundle_orphans(ns)                 # in QRU.on_exit(ns, rider)....
+   QRU.save_to_QuickRef_html(rider)             # in QRU.on_exit(ns, rider)....
    return True
 
 
@@ -415,15 +416,26 @@ def _tdl_job_m (mqs, parent):
    return QRU._tdl_job_m (mqs, parent)
 
 def _tdl_job_print_hardcopy (mqs, parent):
-   """Print a hardcopy of the specified subset of the help doc on the printer.
-   NB: The printer may be customized with the runtime options."""
+   """
+   Print a hardcopy of the specified subset of the help doc on the printer.
+   NB: The printer may be customized with the runtime options.
+   NB: As an alternative, the file QuickRef.html may be printed from the
+   html browser (assuming that the file is updated automatically).
+   """
    return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
 def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
+   """
+   NB: This should be done automatically in all QR_ modules...
+   """
+   # return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
+   return QRU.save_to_QuickRef_html (rider)
 
 def _tdl_job_show_doc (mqs, parent):
-   """Show the specified subset of the help doc in a popup"""
+   """
+   Show the specified subset of the help doc in a popup.
+   Obselete...?
+   """
    return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
 
 

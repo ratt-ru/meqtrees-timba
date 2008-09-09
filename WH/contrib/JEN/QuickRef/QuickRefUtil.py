@@ -515,7 +515,7 @@ def _tdl_job_m (mqs, parent):
 
 #----------------------------------------------------------------------------
 
-def _tdl_job_print_doc (mqs, parent, rr=None, header='QuickRefUtil'):
+def _tdl_job_print_doc (mqs=None, parent=None, rr=None, header='QuickRefUtil'):
     """Print the formatted help from the rider (rr) on the screen
     """
     if rr==None:
@@ -525,7 +525,7 @@ def _tdl_job_print_doc (mqs, parent, rr=None, header='QuickRefUtil'):
 
 #----------------------------------------------------------------------------
 
-def _tdl_job_print_hardcopy (mqs, parent, rr=None, header='QuickRefUtil'):
+def _tdl_job_print_hardcopy (mqs=None, parent=None, rr=None, header='QuickRefUtil'):
     """Print a hardcopy of the formatted help from the rider (rr).
     """
     if rr==None:
@@ -545,7 +545,7 @@ def _tdl_job_print_hardcopy (mqs, parent, rr=None, header='QuickRefUtil'):
 
 #----------------------------------------------------------------------------
 
-def _tdl_job_show_doc (mqs, parent, rr=None, header='QuickRefUtil'):
+def _tdl_job_show_doc (mqs=None, parent=None, rr=None, header='QuickRefUtil'):
     """Show the formatted help from the rider (rr) on a popup window.
     """
     if rr==None:
@@ -557,7 +557,7 @@ def _tdl_job_show_doc (mqs, parent, rr=None, header='QuickRefUtil'):
 
 #----------------------------------------------------------------------------
 
-def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
+def _tdl_job_save_doc (mqs=None, parent=None, rr=None, filename='QuickRefUtil'):
     """Save the formatted help from the rider (rr) in a html file.
     """
     if rr==None:
@@ -566,6 +566,15 @@ def _tdl_job_save_doc (mqs, parent, rr=None, filename='QuickRefUtil'):
     filename = 'QuickRef'      # use standard filename for easy web-browser refresh
     filename = rr.save_html(filename)
     return True
+
+#----------------------------------------------------------------------------
+
+def save_to_QuickRef_html (rider, filename='QuickRef'):
+    """
+    Save the formatted help from the rider in the file QuickRef.html.
+    This function should be called at the end of each QR_ module...
+    """
+    return rider.save_html(filename)
 
 
 

@@ -647,7 +647,15 @@ class Cells (object):
     self._cells = cells
 
     # Extract the actual list of axes, in the correct order, e.g. ['freq','time']
-    axes = list(cells['domain']['axis_map'])
+    # print '\n** cells =',cells
+    domain = cells['domain']
+    # print '- domain =',domain
+    if domain.has_key('axis_map'):
+      axes = list(cells['domain']['axis_map'])
+    else:
+      axes = ['time','freq']
+    # print '- axes =',axes
+
     cs = cells['cell_size']
     self._axes = []
     for i,axis in enumerate(axes):
@@ -658,7 +666,10 @@ class Cells (object):
     # Make the correct shape (list):
     self._shape = []
     for key in self._axes:
-      self._shape.append(len(cs[key]))
+      if isinstance(cs[key],(list,tuple)):
+        self._shape.append(len(cs[key]))
+      else:
+        self._shape.append(1)
 
     # Count the number of cells:
     self._len = 1

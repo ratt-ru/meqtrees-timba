@@ -1029,6 +1029,7 @@ def _define_forest (ns, **kwargs):
 
    # Finished:
    QRU.ET.EN.bundle_orphans(ns)
+   QRU.save_to_QuickRef_html(rider)
    return True
 
 

@@ -359,9 +359,10 @@ def _define_forest (ns, **kwargs):
 
    # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
-               nodes=[QR_solving(ns, rider)])
+                nodes=[QR_solving(ns, rider)])
 
    # Finished:
+   QRU.save_to_QuickRef_html(rider)
    return True
    
 #--------------------------------------------------------------------------------
