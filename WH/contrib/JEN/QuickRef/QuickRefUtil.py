@@ -685,6 +685,7 @@ def on_exit (ns, rider, nodes=None,
              viewer='Result Plotter',
              node_help=True,
              help=None,
+             finished=False,
              trace=False):
     """
     <function_code>
@@ -721,6 +722,8 @@ def on_exit (ns, rider, nodes=None,
     <li> show_forest_state[=False]: If True, bookmark the forest state record 
     <li> viewer[='Result Plotter']: The default viewer to be used by the bookmark(s).
     <li> bookmark_bundle_help[=True]: Also bookmark the bundle help (with QuickRef Display)
+    <li> finished[=False]: If True, perform finishing touches like bundling orphan nodes
+    and generating html documentation.
     <li> trace[=False]: If True, print tracing messages (debugging)
     
     NB: This function is called at the exit of all functions in QR_... modules.
@@ -920,6 +923,11 @@ def on_exit (ns, rider, nodes=None,
 
     if trace:
         print '** QRU.on_exit() ->',str(parent),'\n'
+
+    # Finishing touches at the lowest level .on_exit():
+    if finished:
+        EN.bundle_orphans(ns)                 # 
+        save_to_QuickRef_html(rider)          #
 
     #.......................................................................
     # The LAST statement: Shorten the rider path again (last statement)

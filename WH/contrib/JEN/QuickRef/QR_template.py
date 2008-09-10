@@ -386,11 +386,9 @@ def _define_forest (ns, **kwargs):
    # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
                 nodes=[QR_template(ns, rider)],
-                mode='group')
+                mode='group', finished=True)
 
    # Finished:
-   QRU.ET.EN.bundle_orphans(ns)                 # in QRU.on_exit(ns, rider)....
-   QRU.save_to_QuickRef_html(rider)             # in QRU.on_exit(ns, rider)....
    return True
 
 
@@ -404,8 +402,15 @@ def _tdl_job_execute (mqs, parent):
    TDLRuntimeOptions (see QuickRefUtils.py)"""
    return QRU._tdl_job_execute (mqs, parent, rootnode=rootnodename)
 
+
 def _tdl_job_execute_sequence (mqs, parent):
    return QRU._tdl_job_execute_sequence (mqs, parent, rootnode=rootnodename)
+
+
+if False:
+   def _tdl_job_execute_MS (mqs, parent):
+      """Execute a Measurement Set (MS)""" 
+      return QRU._tdl_job_execute_MS (mqs, parent, vdm_node='VisDataMux')
 
 #--------------------------------------------------------------------------------
 # Some functions to dispose of the specified subset of the documentation:
@@ -414,6 +419,8 @@ def _tdl_job_execute_sequence (mqs, parent):
 def _tdl_job_m (mqs, parent):
    """Dummy tdl job that acts as separator in the TDL exec menu.""" 
    return QRU._tdl_job_m (mqs, parent)
+
+
 
 def _tdl_job_print_hardcopy (mqs, parent):
    """
@@ -424,12 +431,15 @@ def _tdl_job_print_hardcopy (mqs, parent):
    """
    return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
+
+
 def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
    """
    NB: This should be done automatically in all QR_ modules...
    """
-   # return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
-   return QRU.save_to_QuickRef_html (rider)
+   return QRU.save_to_QuickRef_html (rider, filename=None)
+
+
 
 def _tdl_job_show_doc (mqs, parent):
    """

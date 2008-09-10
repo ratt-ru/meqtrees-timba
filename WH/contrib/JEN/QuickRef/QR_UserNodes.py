@@ -241,10 +241,9 @@ def _define_forest (ns, **kwargs):
    # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
                 nodes=[QR_UserNodes(ns, rider)],
-                mode='group')
+                mode='group', finished=True)
 
    # Finished:
-   QRU.save_to_QuickRef_html(rider)
    return True
 
 
@@ -274,7 +273,7 @@ def _tdl_job_print_hardcopy (mqs, parent):
    return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
 def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
+   return QRU.save_to_QuickRef_html (rider, filename=None)
 
 def _tdl_job_show_doc (mqs, parent):
    """Show the specified subset of the help doc in a popup"""

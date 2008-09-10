@@ -123,6 +123,8 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                     TDLMenu("Leaf nodes (no children)",
                             toggle='opt_leaves'),
                     TDLMenu("Interaction with FITS files",
+                            TDLMenu("write/read results to/from FITS file",
+                            toggle='opt_FITS_RW'),
                             TDLMenu("FITSImage",
                                     TDLOption('opt_FITS_Image_mode',"mode",
                                               [1,2,3], more=int),
@@ -1473,9 +1475,36 @@ def FITS (ns, rider):
    stub = QRU.on_entry(ns, rider, FITS)
    cc = [] 
    override = opt_alltopics
-   if True or override or opt_FITS_Image:
+   if override or opt_FITS_RW:
+      cc.append(FITS_RW(ns, rider))
+   if override or opt_FITS_Image:
       cc.append(FITS_Image(ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
+
+#----------------------------------------------------------------------------------------------
+
+def FITS_RW (ns, rider):
+   """
+   The first(!) VellSet of a MeqNode Result may be written to a named
+   FITS file. Its Cells is also written. 
+   
+   <li><A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSWrite(filename=..)</A>
+   <li><A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSRead(filename=..)</A>
+
+   In the following, we first write the vellset in the result of a MeqNode to the
+   file 'FITS_RW.fits'. We then read it again, and compare the input and output.
+   """
+   stub = QRU.on_entry(ns, rider, FITS_RW)
+   cc = []
+   cc.append(ET.twig(ns, 'f+t+L+M'))
+   filename = 'FITS_RW.fits'
+   cc.append(stub('FITSWriter') << Meq.FITSWriter(cc[-1], filename=filename))
+   cc.append(stub('FITSReader') << Meq.FITSReader(filename=filename))
+   cc.append(stub('ReqSeq') << Meq.ReqSeq(cc[-2],cc[-1], result_index=1))
+   cc.append(stub('diff') << Meq.Subtract(cc[1],cc[0]))
+   return QRU.on_exit (ns, rider, cc, parentclass='ReqSeq')
+
+
 
 #----------------------------------------------------------------------------------------------
 
@@ -1483,17 +1512,26 @@ def FITS_Image (ns, rider):
    """
    The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A>
    node is used to read in a sky image in terms of fluxes (IQUV) and the phase center RA,DEC.
+   This node was developed for use with the MeqUVBrick (mode=1), but can also be used (with some care)
+   for other purposes.
 
-   The 'cutoff' is a value within 0 and 1, to represent the cutoff flux ratio to reduce the size of the image.
+   The 'cutoff' is the cutoff flux (value between 0 and 1), used to reduce the size of the image.
    For example, a cutoff of 0.2 will imply that only the rectangular area containing 20% of the total
-   pixels with highest flux (including the peak) will be selected 
+   pixels with highest flux (including the peak) will be selected.  
 
-   Note: this node could only be used with a real sky image with 4 coordinate axes l,m,Stokes and Freq.
+   Note: This node can only be used with a real sky image with 4 coordinate axes l,m,Stokes and Freq.
    If your image does not have all 4 axes, you can add a degenerate axes to your image using AIPS++
-   images tool (adddegaxes).
+   images tool (adddegaxes). 
 
-   If mode=1, the result is a 'sixpack', i.e. it contains 6 vellsets with elements RA,DEC,I,Q,U,V.  
-   If mode=2, the result has a single StokesI vellset.  
+   <li>If <b>mode=1</b>: the result is a 'sixpack', i.e. it contains 6
+   vellsets with elements RA,DEC,I,Q,U,V. In this demonstration, it
+   has been split into 6 nodes, using MeqSelector. 
+
+   <li>If <b>mode=2</b>: the result has a single vellset (StokesI). 
+
+   <remark>
+   Note how the (l,m) coordinate ranges of the results are affected by the cutoff value.
+   </remark>
 
    """
    stub = QRU.on_entry(ns, rider, FITS_Image, stubname='FITSImage')
@@ -1837,11 +1875,9 @@ def _define_forest (ns, **kwargs):
    # Execute the top-level function, and dispose of the resulting tree:
    QRU.on_exit (ns, rider,
                 nodes=[QR_MeqNodes(ns, rider)],
-                mode='group')
+                mode='group', finished=True)
 
    # Finished:
-   # Write the documentation to file QuickRef.html
-   QRU.save_to_QuickRef_html (rider)
    return True
    
 
@@ -1871,7 +1907,7 @@ def _tdl_job_print_hardcopy (mqs, parent):
    return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
 
 def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
-   return QRU._tdl_job_save_doc (mqs, parent, rider, filename=header)
+   return QRU.save_to_QuickRef_html (rider, filename=None)
 
 def _tdl_job_show_doc (mqs, parent):
    return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
