@@ -1085,11 +1085,10 @@ int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
 			   }
 					memcpy((*cells)[ii],&colarr[1],sizeof(double)*((size_t)((*naxes)[ii])));
          /* since we have only stored the abs value of first point
-            and the offsets of others, calculate absolute values */
-
-        for (jj=1; jj<(*naxes)[ii]; jj++) {
+            and the offsets of others, calculate absolute values : DONT*/
+       /* for (jj=1; jj<(*naxes)[ii]; jj++) {
           (*cells)[ii][jj]+=(*cells)[ii][0];
-        }
+        } */
 				}
 			 }
 
@@ -1354,7 +1353,7 @@ int write_fits_file(const char *filename,  double **arr,  int nvells, double **c
 				 /* copy column names */
 				 sprintf(ttype[ii],"Ax %ld",ii);
 				 /* form of data */
-				 sprintf(tform[ii],"1E");
+				 sprintf(tform[ii],"1D");
 				 /*tunit is not needed, so we just null terminate */
 				 strcpy(tunit[ii],"\0");
 			 }
@@ -1434,6 +1433,7 @@ int write_fits_file(const char *filename,  double **arr,  int nvells, double **c
        free(keycomm);
 			return 0;
 }
+
 
 /* filename: file name
  * cutoff: cutoff to truncate the image
