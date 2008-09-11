@@ -50,10 +50,10 @@ def _define_forest_1 (ns,**kwargs):
   # and a linear-n-freq thingy with size-3 tiles
   ns.c = Meq.Freq() + Meq.Time();
   ns.x = Meq.Parm(0,node_groups='Parm',tiling=record(time=2));
-  ns.y = Meq.Parm(meq.polc([0,0],shape=(1,2)),node_groups='Parm',tiling=record(time=3));
+  ns.y = Meq.Parm(meq.polc([0,0]),node_groups='Parm',tiling=record(time=3));
   
   ns.solver <<Meq. Solver(
-        num_iter=30,epsilon=1e-5,debug_level=10,solvable=["x","y"],
+        num_iter=3,epsilon=1e-5,debug_level=10,solvable=["x","y"],
         children = ns.condeq << Meq.Condeq(ns.x+ns.y,ns.c) );
                 
 
@@ -70,7 +70,7 @@ def _define_forest_2 (ns,**kwargs):
         num_iter=30,epsilon=1e-5,debug_level=10,solvable=["x","y"],
         children = ns.condeq << Meq.Condeq(ns.x+ns.y,ns.c) );
     
-_define_forest = _define_forest_2
+_define_forest = _define_forest_1
     
 
 def _test_forest (mqs,parent,**kwargs):

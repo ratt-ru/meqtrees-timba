@@ -25,7 +25,6 @@
 
 
 #include <MeqNodes/CasaParmTable.h>
-#include <MeqNodes/CompiledFunklet.h>
 #include <MEQ/Meq.h>
 #include <MEQ/Domain.h>
 #include <MEQ/Polc.h>
@@ -247,11 +246,6 @@ int CasaParmTable::getFunklets (vector<Funklet::Ref> &funklets,
 		funkref<<= new Spline(fromParmMatrix(valCol(i)),dom,
 				      axis,offset,scale,diffCol(i),weightCol(i),rowNums(i));
 	      }
-	    else
-	      {
-		funkref<<= new CompiledFunklet(fromParmMatrix(valCol(i)),defaultFunkletAxes,defaultFunkletOffset,defaultFunkletScale
-					      ,diffCol(i),weightCol(i),rowNums(i),ftypeCol(i));
-	      }
 	    
 	  }
 	  funkref().setDomain(Domain(stCol(i), etCol(i), sfCol(i), efCol(i)));
@@ -429,12 +423,7 @@ Funklet::DbId CasaParmTable::putCoeff (const string & parmName,const Funklet & f
   tsCol.put   (rownr, polc.getScale(Axis::TIME));
   diffCol.put (rownr, polc.getPerturbation());
   weightCol.put(rownr, polc.getWeight());
-  if(polc.objectType()==TpMeqCompiledFunklet){
-    funklettypeCol.put(rownr,polc.getFunction());
-
-  }
-  else
-    funklettypeCol.put(rownr,polc.objectType().toString());
+  funklettypeCol.put(rownr,polc.objectType().toString());
 
   if(polc.objectType()==TpMeqPolcLog){
     if(!itsTable.actualTableDesc().isColumn(ColLScale)){

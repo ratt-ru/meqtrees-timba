@@ -182,8 +182,6 @@ DMI::BObj * __construct_MeqGridPoints (int n) { return n>0 ? new Meq::GridPoints
 DMI::BObj * __construct_MeqResampler (int n) { return n>0 ? new Meq::Resampler [n] : new Meq::Resampler; }
 #include "ModRes.h"
 DMI::BObj * __construct_MeqModRes (int n) { return n>0 ? new Meq::ModRes [n] : new Meq::ModRes; }
-#include "CompiledFunklet.h"
-DMI::BObj * __construct_MeqCompiledFunklet (int n) { return n>0 ? new Meq::CompiledFunklet [n] : new Meq::CompiledFunklet; }
 #include "FITSImage.h"
 DMI::BObj * __construct_MeqFITSImage (int n) { return n>0 ? new Meq::FITSImage [n] : new Meq::FITSImage; }
 #include "Compounder.h"
@@ -192,8 +190,6 @@ DMI::BObj * __construct_MeqCompounder (int n) { return n>0 ? new Meq::Compounder
 DMI::BObj * __construct_MeqFITSWriter (int n) { return n>0 ? new Meq::FITSWriter [n] : new Meq::FITSWriter; }
 #include "FITSReader.h"
 DMI::BObj * __construct_MeqFITSReader (int n) { return n>0 ? new Meq::FITSReader [n] : new Meq::FITSReader; }
-#include "Functional.h"
-DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional [n] : new Meq::Functional; }
 #include "FITSSpigot.h"
 DMI::BObj * __construct_MeqFITSSpigot (int n) { return n>0 ? new Meq::FITSSpigot [n] : new Meq::FITSSpigot; }
 #include "FITSDataMux.h"
@@ -610,9 +606,6 @@ DMI::BObj * __construct_MeqBessel (int n) { return n>0 ? new Meq::Bessel [n] : n
         AtomicID::registerId(-1163,"Num")+
         AtomicID::registerId(-1644,"Upsample")+
         AtomicID::registerId(-1600,"Downsample")+
-        AtomicID::registerId(-1583,"MeqCompiledFunklet")+
-        TypeInfoReg::addToRegistry(-1583,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1583,__construct_MeqCompiledFunklet)+
         AtomicID::registerId(-1653,"MeqFITSImage")+
         TypeInfoReg::addToRegistry(-1653,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1653,__construct_MeqFITSImage)+
@@ -629,9 +622,6 @@ DMI::BObj * __construct_MeqBessel (int n) { return n>0 ? new Meq::Bessel [n] : n
         AtomicID::registerId(-1677,"MeqFITSReader")+
         TypeInfoReg::addToRegistry(-1677,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1677,__construct_MeqFITSReader)+
-        AtomicID::registerId(-1673,"MeqFunctional")+
-        TypeInfoReg::addToRegistry(-1673,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1673,__construct_MeqFunctional)+
         AtomicID::registerId(-1689,"MeqFITSSpigot")+
         TypeInfoReg::addToRegistry(-1689,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1689,__construct_MeqFITSSpigot)+

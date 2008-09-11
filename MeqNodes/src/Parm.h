@@ -27,7 +27,6 @@
 #include <MEQ/Node.h>
 #include <MEQ/Vells.h>
 #include <MEQ/Funklet.h>
-#include <MeqNodes/CompiledFunklet.h>
 #include <MEQ/ComposedPolc.h>
 #include <MEQ/Spline.h>
 #include <MEQ/Polc.h>
@@ -42,6 +41,7 @@
 #endif
 #include <TimBase/lofar_vector.h>
 #include <MEQ/MeqVocabulary.h>
+#include <MeqNodes/TID-MeqNodes.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
 #pragma aidgroup MeqNodes

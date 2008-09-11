@@ -107,12 +107,10 @@
         Do(Meq::GridPoints,arg) separator \
         Do(Meq::Resampler,arg) separator \
         Do(Meq::ModRes,arg) separator \
-        Do(Meq::CompiledFunklet,arg) separator \
         Do(Meq::FITSImage,arg) separator \
         Do(Meq::Compounder,arg) separator \
         Do(Meq::FITSWriter,arg) separator \
         Do(Meq::FITSReader,arg) separator \
-        Do(Meq::Functional,arg) separator \
         Do(Meq::FITSSpigot,arg) separator \
         Do(Meq::FITSDataMux,arg) separator \
         Do(Meq::PrivateFunction,arg) separator \

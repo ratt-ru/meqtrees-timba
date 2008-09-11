@@ -179,25 +179,6 @@ namespace Meq { class Ceil; };
               };
             };
 #endif
-#ifndef _defined_id_TpMeqCompiledFunklet
-#define _defined_id_TpMeqCompiledFunklet 1
-const DMI::TypeId TpMeqCompiledFunklet(-1583);    // from /home/mevius/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
-const int TpMeqCompiledFunklet_int = -1583;
-namespace Meq { class CompiledFunklet; };
-            namespace DMI {
-              template<>
-              class DMIBaseTypeTraits<Meq::CompiledFunklet> : public TypeTraits<Meq::CompiledFunklet>
-              {
-                public:
-                enum { isContainable = true };
-                enum { typeId = TpMeqCompiledFunklet_int };
-                enum { TypeCategory = TypeCategories::DYNAMIC };
-                enum { ParamByRef = true, ReturnByRef = true };
-                typedef const Meq::CompiledFunklet & ContainerReturnType;
-                typedef const Meq::CompiledFunklet & ContainerParamType;
-              };
-            };
-#endif
 #ifndef _defined_id_TpMeqComposer
 #define _defined_id_TpMeqComposer 1
 const DMI::TypeId TpMeqComposer(-1442);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h:30
@@ -613,25 +594,6 @@ namespace Meq { class Freq; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::Freq & ContainerReturnType;
                 typedef const Meq::Freq & ContainerParamType;
-              };
-            };
-#endif
-#ifndef _defined_id_TpMeqFunctional
-#define _defined_id_TpMeqFunctional 1
-const DMI::TypeId TpMeqFunctional(-1673);         // from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
-const int TpMeqFunctional_int = -1673;
-namespace Meq { class Functional; };
-            namespace DMI {
-              template<>
-              class DMIBaseTypeTraits<Meq::Functional> : public TypeTraits<Meq::Functional>
-              {
-                public:
-                enum { isContainable = true };
-                enum { typeId = TpMeqFunctional_int };
-                enum { TypeCategory = TypeCategories::DYNAMIC };
-                enum { ParamByRef = true, ReturnByRef = true };
-                typedef const Meq::Functional & ContainerReturnType;
-                typedef const Meq::Functional & ContainerParamType;
               };
             };
 #endif

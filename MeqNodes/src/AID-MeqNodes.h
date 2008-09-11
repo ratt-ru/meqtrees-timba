@@ -383,11 +383,6 @@ const int AidMeqBessel_int = -1734;
 const DMI::AtomicID AidMeqCeil(-1437);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
 const int AidMeqCeil_int = -1437;
 #endif
-#ifndef _defined_id_AidMeqCompiledFunklet
-#define _defined_id_AidMeqCompiledFunklet 1
-const DMI::AtomicID AidMeqCompiledFunklet(-1583); // from /home/mevius/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
-const int AidMeqCompiledFunklet_int = -1583;
-#endif
 #ifndef _defined_id_AidMeqComposer
 #define _defined_id_AidMeqComposer 1
 const DMI::AtomicID AidMeqComposer(-1442);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h:30
@@ -497,11 +492,6 @@ const int AidMeqFloor_int = -1436;
 #define _defined_id_AidMeqFreq 1
 const DMI::AtomicID AidMeqFreq(-1420);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Freq.h:30
 const int AidMeqFreq_int = -1420;
-#endif
-#ifndef _defined_id_AidMeqFunctional
-#define _defined_id_AidMeqFunctional 1
-const DMI::AtomicID AidMeqFunctional(-1673);      // from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
-const int AidMeqFunctional_int = -1673;
 #endif
 #ifndef _defined_id_AidMeqGaussNoise
 #define _defined_id_AidMeqGaussNoise 1

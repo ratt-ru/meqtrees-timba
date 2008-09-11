@@ -71,7 +71,8 @@ class PiercePoints(MIM_model):
                 cos_el = Meq.Cos(el);
                 sin_el = Meq.Sin(el);
                 diff = ns['diff'](src,station);
-                if  not diff.initialized():
+                diff_vector = diff;
+		if  not diff.initialized():
                     diff_vector = diff << Meq.Composer(Meq.MatrixMultiply(Meq.Composer(cos_el*sin_az,
                                                                           cos_el*cos_az,
                                                                           sin_el,dims=[1,3]),

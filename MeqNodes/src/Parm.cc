@@ -497,18 +497,9 @@ namespace Meq {
     pfunklet = findRelevantFunklet(funkref,ndomain);
     FailWhen(!pfunklet,"no funklets found for specified domain");
     cdebug(2)<<"found relevant funklet, type "<<pfunklet->objectType()<<endl;
-    if(pfunklet->objectType()!=TpMeqCompiledFunklet && pfunklet->hasField(FFunction))
-      {
-        cdebug(3)<<"function found in state, creating new compiled funklet"<<endl;
-        funkref<<=new CompiledFunklet(*pfunklet);
-        pfunklet = funkref.dewr_p();
-      }
-    else
-      {
 	if(force_shape_)
 	  pfunklet->setCoeffShape(shape_);
 	funkref<<=pfunklet;
-      }
 
     if(splined_ && isSolvable()){
 
@@ -724,17 +715,10 @@ namespace Meq {
     if( pfunklet )
       {
 
-	if(pfunklet->objectType()==TpMeqCompiledFunklet  || pfunklet->hasField(FFunction))
-	  {
-	    cdebug(4)<<"function found in state, creating new compiled funklet"<<endl;
-	    its_funklet_<<= new CompiledFunklet(*pfunklet);
-
-	  }
+	if(pfunklet->hasField(FClass) && (*pfunklet)[FClass].as<string>()=="MeqPolcLog")
+	  its_funklet_<<= new PolcLog(*pfunklet);
 	else
-	  if(pfunklet->hasField(FClass) && (*pfunklet)[FClass].as<string>()=="MeqPolcLog")
-	    its_funklet_<<= new PolcLog(*pfunklet);
-	  else
-	    its_funklet_<<= new Polc(*pfunklet);
+	  its_funklet_<<= new Polc(*pfunklet);
 
 
 	cdebug(2)<<"new funklet set via state\n";
