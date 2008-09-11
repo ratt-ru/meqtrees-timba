@@ -40,6 +40,9 @@ Click on the top bookmark ('help_on__how_to_use_this_module')
 #   MeqRaDec               crashes the meqserver...!            
 #   MeqObjectRADec         Measures cannot find the planetary data table DE200
 #
+#   MeqFITSWriter/Reader   Something goes wrong in the writing and reading of the
+#                          coordinates (time,freq, etc). See FITS_RW() below.
+#
 # Workaround exists:
 #
 #   MeqMatrix22            use of children=[...] gives error
@@ -125,12 +128,14 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                     TDLMenu("Interaction with FITS files",
                             TDLMenu("write/read results to/from FITS file",
                             toggle='opt_FITS_RW'),
-                            TDLMenu("FITSImage",
-                                    TDLOption('opt_FITS_Image_mode',"mode",
-                                              [1,2,3], more=int),
-                                    TDLOption('opt_FITS_Image_cutoff',"0.0<cutoff level<1.0",
+                            TDLMenu("FITSImage (mode=1)",
+                                    TDLOption('opt_FITSImage_cutoff_mode1',"0.0<cutoff level<1.0",
                                               [1.0,0.9,0.5,0.1,0.0], more=float),
-                                    toggle='opt_FITS_Image'),
+                                    toggle='opt_FITSImage_mode1'),
+                            TDLMenu("FITSImage (mode=2)",
+                                    TDLOption('opt_FITSImage_cutoff_mode2',"0.0<cutoff level<1.0",
+                                              [1.0,0.9,0.5,0.1,0.0], more=float),
+                                    toggle='opt_FITSImage_mode2'),
                             toggle='opt_FITS'),
                     TDLMenu("Tensor nodes (multiple vellsets)",
                             TDLOption('opt_tensor_manipulation',"Tensor manipulation",False),
@@ -1477,8 +1482,10 @@ def FITS (ns, rider):
    override = opt_alltopics
    if override or opt_FITS_RW:
       cc.append(FITS_RW(ns, rider))
-   if override or opt_FITS_Image:
-      cc.append(FITS_Image(ns, rider))
+   if override or opt_FITSImage_mode1:
+      cc.append(FITSImage_mode1(ns, rider))
+   if override or opt_FITSImage_mode2:
+      cc.append(FITSImage_mode2(ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #----------------------------------------------------------------------------------------------
@@ -1488,27 +1495,89 @@ def FITS_RW (ns, rider):
    The first(!) VellSet of a MeqNode Result may be written to a named
    FITS file. Its Cells is also written. 
    
-   <li><A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSWrite(filename=..)</A>
-   <li><A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSRead(filename=..)</A>
+   <li><A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSWriter(filename=..)</A>
+   <li><A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSReadr(filename=..)</A>
 
    In the following, we first write the vellset in the result of a MeqNode to the
    file 'FITS_RW.fits'. We then read it again, and compare the input and output.
+
+   <error>
+   Something goes wrong in the writing and reading of the coordinates (time,freq, etc).
+   In the MeqFitsReader node state, the result cells has a (slightly) different
+   grid than the cells of the input request.
+   Predictably, the difference between input and output results in an error.
+   </error>
+
+   <tip>
+   Experiment with request domains with different dimensions (e.g. L,M),
+   and different nrs of cells.
+   </tip>
    """
    stub = QRU.on_entry(ns, rider, FITS_RW)
    cc = []
    cc.append(ET.twig(ns, 'f+t+L+M'))
    filename = 'FITS_RW.fits'
    cc.append(stub('FITSWriter') << Meq.FITSWriter(cc[-1], filename=filename))
-   cc.append(stub('FITSReader') << Meq.FITSReader(filename=filename))
-   cc.append(stub('ReqSeq') << Meq.ReqSeq(cc[-2],cc[-1], result_index=1))
-   cc.append(stub('diff') << Meq.Subtract(cc[1],cc[0]))
-   return QRU.on_exit (ns, rider, cc, parentclass='ReqSeq')
+   cc.append(stub('FITSReader') << Meq.FITSReader(filename=filename,
+                                                  qviewer=[True,'Record Browser']))
+   qhelp = 'Make sure that the writer node is executed before the reader node.'
+   reqseq = stub('ReqSeq') << Meq.ReqSeq(cc[-2],cc[-1], result_index=1, qhelp=qhelp)
+   qhelp = 'The difference between the input (twig) and the result read from FITS:' 
+   cc.append(stub('diff') << Meq.Subtract(reqseq,cc[0], qhelp=qhelp))
+   return QRU.on_exit (ns, rider, cc)
 
 
 
 #----------------------------------------------------------------------------------------------
 
-def FITS_Image (ns, rider):
+def FITSImage_mode1 (ns, rider):
+   """
+   The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A>
+   node is used to read in a sky image in terms of fluxes (IQUV) and the phase center RA,DEC.
+   This node was developed for use with the MeqUVBrick (mode=1), but can also be used (with some care)
+   for other purposes.
+
+   The 'cutoff' is the cutoff flux (value between 0 and 1), used to reduce the size of the image.
+   For example, a cutoff of 0.2 will imply that only the rectangular area containing 20% of the total
+   pixels with highest flux (including the peak) will be selected.  
+
+   Note: This node can only be used with a real sky image with 4 coordinate axes l,m,Stokes and Freq.
+   If your image does not have all 4 axes, you can add a degenerate axes to your image using AIPS++
+   images tool (adddegaxes). See ....
+
+   <li>If <b>mode=1</b>: the result is a 'sixpack', i.e. it contains 6
+   vellsets with elements RA,DEC,I,Q,U,V. In this demonstration, it
+   has been split into 6 nodes, using MeqSelector. 
+
+   <tip>
+   Look at the difference between the cells of the input request (2D, freq, time) and the
+   result (3D, freq, L, M). What happens downstream?
+   </tip>
+
+   <remark>
+   Note how the (l,m) coordinate ranges of the results are affected by the cutoff value.
+   </remark>
+
+   """
+   stub = QRU.on_entry(ns, rider, FITSImage_mode1, stubname='FITSImage')
+   cc = []
+   filename = 'Sun.fits'
+   # filename = QRU.getopt(globals(),'opt_FITSImage_filename',rider)
+   cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff_mode1',rider)
+   sixpack = stub('sixpack') << Meq.FITSImage(filename=filename,
+                                              cutoff=cutoff, mode=1)
+   cc.append(sixpack('RA') << Meq.Selector(sixpack, index=0))
+   cc.append(sixpack('DEC') << Meq.Selector(sixpack, index=1))
+   cc.append(sixpack('StokesI') << Meq.Selector(sixpack, index=2))
+   cc.append(sixpack('StokesQ') << Meq.Selector(sixpack, index=3))
+   cc.append(sixpack('StokesU') << Meq.Selector(sixpack, index=4))
+   cc.append(sixpack('StokesV') << Meq.Selector(sixpack, index=5))
+   return QRU.on_exit (ns, rider, cc)
+
+
+#----------------------------------------------------------------------------------------------
+
+def FITSImage_mode2 (ns, rider):
    """
    The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A>
    node is used to read in a sky image in terms of fluxes (IQUV) and the phase center RA,DEC.
@@ -1529,29 +1598,25 @@ def FITS_Image (ns, rider):
 
    <li>If <b>mode=2</b>: the result has a single vellset (StokesI). 
 
+   <tip>
+   Look at the difference between the cells of the input request (2D, freq, time) and the
+   result (3D, freq, L, M). What happens downstream?
+   </tip>
+
    <remark>
    Note how the (l,m) coordinate ranges of the results are affected by the cutoff value.
    </remark>
 
    """
-   stub = QRU.on_entry(ns, rider, FITS_Image, stubname='FITSImage')
+   stub = QRU.on_entry(ns, rider, FITSImage_mode2, stubname='FITSImage')
    cc = []
    filename = 'Sun.fits'
-   # filename = QRU.getopt(globals(),'opt_FITS_Image_filename',rider)
-   cutoff = QRU.getopt(globals(),'opt_FITS_Image_cutoff',rider)
-   mode = QRU.getopt(globals(),'opt_FITS_Image_mode',rider)
+   # filename = QRU.getopt(globals(),'opt_FITSImage_filename',rider)
+   cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff_mode2',rider)
    cc.append(stub('StokesI')('mode=2') << Meq.FITSImage(filename=filename,
                                                         cutoff=cutoff, mode=2))
    cc.append(stub('StokesI')('mode=2')('0.5*cutoff') << Meq.FITSImage(filename=filename,
                                                                       cutoff=cutoff/2.0, mode=2))
-   sixpack = stub('sixpack') << Meq.FITSImage(filename=filename,
-                                              cutoff=cutoff, mode=1)
-   cc.append(sixpack('RA') << Meq.Selector(sixpack, index=0))
-   cc.append(sixpack('DEC') << Meq.Selector(sixpack, index=1))
-   cc.append(sixpack('StokesI') << Meq.Selector(sixpack, index=2))
-   cc.append(sixpack('StokesQ') << Meq.Selector(sixpack, index=3))
-   cc.append(sixpack('StokesU') << Meq.Selector(sixpack, index=4))
-   cc.append(sixpack('StokesV') << Meq.Selector(sixpack, index=5))
    return QRU.on_exit (ns, rider, cc)
 
 
