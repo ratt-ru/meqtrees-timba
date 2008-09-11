@@ -560,40 +560,30 @@ def class_help (cname, header=None, rr=None,
       See also: <A href='http://www.astron.nl/meqwiki/AllNodes'>meqwiki/AllNodes</A>
       """
 
-   #---------------------------------------------------------------------------
-
    elif cname in ['MeqFITSImage']:
-      gen += """This node is used to read in a sky image (e.g. an extended source)
-      in terms of fluxes (IQUV) and the phase center RA,DEC.
-      The initrec of this node requires two parameters, filename and cutoff.
-      The latter is value between 0 and 1, to represent the cutoff flux ratio
-      to reduce the size of the image. For example, a cutoff of 0.2 will imply
-      that only the rectangular area containing 20% of the total pixels with
-      highest flux (including the peak) will be selected 
-      Note: this node could only be used with a real sky image with 4
-      coordinate axes l,m,Stokes and Freq. If your image does not have all 4 axes,
-      you can add a degenerate axes to your image using AIPS++ images tool (adddegaxes).
-      There are two modes:
+      gen += """This node is used to read in a sky image from a FITS file.
       If mode=1, a Sixpack (RA,Dec,I,Q,U,V) is returned.
-      If mode=2, only a single VellSet is returned. 
+      If mode=2, only a single VellSet is returned.
+      In both cases, the nr of dimensions and the nr of cells in the result are
+      determined by the FITS image, not the request(!).
+      This can be dealt with by means of a MeqResampler node.
       See also: <A href='http://www.astron.nl/meqwiki/MeqImage'>meqwiki/MeqImage</A>
       """
-      
+
+   #---------------------------------------------------------------------------
+
    elif cname in ['MeqFITSWriter']:
-      gen += """This node is used to save a Result to a FITS file.
-      The (first) VellSet and the Cells will be saved in the FITS file.
-      The initrec of this node requires one parameter, filename.
-      If this file already exists, the node will fail.
-      However, you can prepend a ! to your filename so that it will be
-      overwritten by default. For example, instead of giving myfile.fits,
-      you can give !myfile.fits so that the file will be overwritten the next time you run this node. 
+      gen += """Save (the first VellSet of) the Result of its child in a FITS file.
+      It also saves the Cells.
       See also: <A href='http://www.astron.nl/meqwiki/MeqImage'>meqwiki/MeqImage</A>
       """
 
    elif cname in ['MeqFITSReader']:
-      gen += """This node is used to read in a FITS file and convert the values to a Result
-      that includes one VellSet and Cells. The initrec of this node requires one parameter,
-      filename: The name of the FITS file to be read. 
+      gen += """Read in a FITS file and convert the values to a Result
+      that includes one VellSet, and Cells.
+      Note that the nr of dimensions and the nr of cells in the result are
+      determined by information in the FITS image, NOT the request(!).
+      This can be dealt with by means of a MeqResampler node.
       See also: <A href='http://www.astron.nl/meqwiki/MeqImage'>meqwiki/MeqImage</A>
       """
 

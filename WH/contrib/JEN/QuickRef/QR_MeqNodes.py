@@ -37,6 +37,9 @@ Click on the top bookmark ('help_on__how_to_use_this_module')
 #   MeqPaster              does not paste
 #   MeqSelector            index=[1,2] not supported
 #
+#   MeqResampler           server crashes when changing mode 1 -> 2
+#                          FitsImage()
+#
 #   MeqRaDec               crashes the meqserver...!            
 #   MeqObjectRADec         Measures cannot find the planetary data table DE200
 #
@@ -129,12 +132,14 @@ oo = TDLCompileMenu("QR_MeqNodes topics:",
                             TDLMenu("write/read results to/from FITS file",
                             toggle='opt_FITS_RW'),
                             TDLMenu("FITSImage (mode=1)",
-                                    TDLOption('opt_FITSImage_cutoff_mode1',"0.0<cutoff level<1.0",
+                                    TDLOption('opt_FITSImage_cutoff',"0.0<cutoff level<1.0",
                                               [1.0,0.9,0.5,0.1,0.0], more=float),
-                                    toggle='opt_FITSImage_mode1'),
+                                    toggle='opt_FITSImage'),
                             TDLMenu("FITSImage (mode=2)",
                                     TDLOption('opt_FITSImage_cutoff_mode2',"0.0<cutoff level<1.0",
                                               [1.0,0.9,0.5,0.1,0.0], more=float),
+                                    TDLOption('opt_FITSImage_resampler_mode',"ReSampler mode",
+                                              [1,2], more=int),
                                     toggle='opt_FITSImage_mode2'),
                             toggle='opt_FITS'),
                     TDLMenu("Tensor nodes (multiple vellsets)",
@@ -977,17 +982,18 @@ def resampling (ns, rider):
    num_cells = [QRU.getopt(globals(), 'opt_resampling_MeqModRes_num_time',rider),
                 QRU.getopt(globals(), 'opt_resampling_MeqModRes_num_freq',rider)]
    mode = QRU.getopt(globals(), 'opt_resampling_MeqResampler_mode',rider)
-   cc.append(resampling_experiment (ns, rider, twig, num_cells, mode))
+   cc.append(resampling_experiment (ns, rider, twig=twig,
+                                    num_cells=num_cells, mode=mode))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
-def resampling_experiment (ns, rider,
-                           twig=None, num_cells=[2,3], mode=1):
+def resampling_experiment (ns, rider, twig=None,
+                           num_cells=[2,3], mode=1):
    """
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.ModRes(c, num_cells=..)</A> 
-   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Resampler(c, mode=1)</A> 
+   <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Resampler(c, mode=..)</A> 
 
    The experiment shows the difference between the twig, and after
    a sequence of ModRes and Resample. Obviously, the differences are
@@ -996,15 +1002,15 @@ def resampling_experiment (ns, rider,
    MeqResampler mode, by modifying the TDLOptions and recompiling and
    re-executing.
    """
-   stub = QRU.on_entry(ns, rider, resampling_experiment)
+   stub = QRU.on_entry(ns, rider, resampling_experiment, stubname='resexp')
    cc = [twig]
 
    qhelp = """This copy of the input is needed for display, since the
    resolution of the request changes."""
    cc.append(stub('original') << Meq.Identity(twig, qhelp=qhelp))
 
-   cc.append(stub('modres')(num_cells) << Meq.ModRes(twig, num_cells=num_cells))
-   cc.append(stub('resamp')(mode=mode) << Meq.Resampler(cc[-1], mode=mode))
+   cc.append(stub('ModRes')(num_cells) << Meq.ModRes(twig, num_cells=num_cells))
+   cc.append(stub('Resampler')(mode=mode) << Meq.Resampler(cc[-1], mode=mode))
    cc.insert(0, stub('diff') << Meq.Subtract(cc[-1],cc[1]))
    return QRU.on_exit (ns, rider, cc, parentclass='ReqSeq',
                        node_help=True, show_recurse=True)
@@ -1482,8 +1488,8 @@ def FITS (ns, rider):
    override = opt_alltopics
    if override or opt_FITS_RW:
       cc.append(FITS_RW(ns, rider))
-   if override or opt_FITSImage_mode1:
-      cc.append(FITSImage_mode1(ns, rider))
+   if override or opt_FITSImage:
+      cc.append(FITSImage(ns, rider))
    if override or opt_FITSImage_mode2:
       cc.append(FITSImage_mode2(ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -1516,10 +1522,18 @@ def FITS_RW (ns, rider):
    stub = QRU.on_entry(ns, rider, FITS_RW)
    cc = []
    cc.append(ET.twig(ns, 'f+t+L+M'))
-   filename = 'FITS_RW.fits'
+   # filename = '!FITS_RW.fits'            # The exclamation mark is to allow rewrite....
+   filename = 'FITS_RW.fits'  
    cc.append(stub('FITSWriter') << Meq.FITSWriter(cc[-1], filename=filename))
    cc.append(stub('FITSReader') << Meq.FITSReader(filename=filename,
                                                   qviewer=[True,'Record Browser']))
+   qhelp = 'Make the result cells equal to the request cells'
+   if True: 
+      # Diff still gives an error...
+      cc.append(stub('ReSampler')(mode=1) << Meq.Resampler(cc[-1], mode=1, qhelp=qhelp))
+   else:
+      # Diff is OK, but has a constant offset....
+      cc.append(stub('ReSampler')(mode=2) << Meq.Resampler(cc[-1], mode=2, qhelp=qhelp))
    qhelp = 'Make sure that the writer node is executed before the reader node.'
    reqseq = stub('ReqSeq') << Meq.ReqSeq(cc[-2],cc[-1], result_index=1, qhelp=qhelp)
    qhelp = 'The difference between the input (twig) and the result read from FITS:' 
@@ -1530,42 +1544,48 @@ def FITS_RW (ns, rider):
 
 #----------------------------------------------------------------------------------------------
 
-def FITSImage_mode1 (ns, rider):
+def FITSImage (ns, rider):
    """
-   The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A>
+   The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=..)</A>
    node is used to read in a sky image in terms of fluxes (IQUV) and the phase center RA,DEC.
-   This node was developed for use with the MeqUVBrick (mode=1), but can also be used (with some care)
-   for other purposes.
+   (NB: If your image does not contain all 4 Stokes planes, you can add a degenerate axes.
+   See the meqwiki via the above link).
+   This node was developed for use with the MeqUVBrick, but can also be used (with some care)
+   for other purposes. See also FITSImage_mode2().
 
-   The 'cutoff' is the cutoff flux (value between 0 and 1), used to reduce the size of the image.
-   For example, a cutoff of 0.2 will imply that only the rectangular area containing 20% of the total
+   The 'cutoff' is the cutoff flux (value between 0 and 1), used to minimise the size of the image.
+   (This is important for the UVBrick operation).
+   For example, a cutoff of 0.2 will imply that only the rectangular area containing the 20% 
    pixels with highest flux (including the peak) will be selected.  
 
-   Note: This node can only be used with a real sky image with 4 coordinate axes l,m,Stokes and Freq.
-   If your image does not have all 4 axes, you can add a degenerate axes to your image using AIPS++
-   images tool (adddegaxes). See ....
-
-   <li>If <b>mode=1</b>: the result is a 'sixpack', i.e. it contains 6
+   <li>If <b>mode=1</b>: The result is a 'sixpack', i.e. it contains 6
    vellsets with elements RA,DEC,I,Q,U,V. In this demonstration, it
-   has been split into 6 nodes, using MeqSelector. 
-
-   <tip>
-   Look at the difference between the cells of the input request (2D, freq, time) and the
-   result (3D, freq, L, M). What happens downstream?
-   </tip>
+   has been split into 6 nodes, using MeqSelector.
 
    <remark>
-   Note how the (l,m) coordinate ranges of the results are affected by the cutoff value.
+   Note how the (l,m) coordinate ranges, and the number of (l,m)
+   pixels of the results are affected by the cutoff value.  What about
+   the nr of cells?
    </remark>
 
+   <warning>
+   The domain (nr of dimensions and nr of cells) of the
+   result of MeqFITSImage is determined by the FITS image, NOT by the
+   request (check this in its state record). If not handles correctly,
+   this will cause problems downstream.
+   </warning>
+
    """
-   stub = QRU.on_entry(ns, rider, FITSImage_mode1, stubname='FITSImage')
+   stub = QRU.on_entry(ns, rider, FITSImage, stubname='FITSImage')
    cc = []
    filename = 'Sun.fits'
-   # filename = QRU.getopt(globals(),'opt_FITSImage_filename',rider)
-   cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff_mode1',rider)
+   cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff',rider)
+   qhelp = 'Default (assume mode=1)'
    sixpack = stub('sixpack') << Meq.FITSImage(filename=filename,
-                                              cutoff=cutoff, mode=1)
+                                              qhelp=qhelp,
+                                              qviewer=[True,'Record Browser'],
+                                              cutoff=cutoff)
+   cc.append(sixpack)
    cc.append(sixpack('RA') << Meq.Selector(sixpack, index=0))
    cc.append(sixpack('DEC') << Meq.Selector(sixpack, index=1))
    cc.append(sixpack('StokesI') << Meq.Selector(sixpack, index=2))
@@ -1579,45 +1599,48 @@ def FITSImage_mode1 (ns, rider):
 
 def FITSImage_mode2 (ns, rider):
    """
-   The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=..)</A>
+   The <A href='http://www.astron.nl/meqwiki/MeqImage'>Meq.FITSImage(filename=.., cutoff=.., mode=2)</A>
    node is used to read in a sky image in terms of fluxes (IQUV) and the phase center RA,DEC.
    This node was developed for use with the MeqUVBrick (mode=1), but can also be used (with some care)
-   for other purposes.
+   for other purposes. See also FITS_MeqImage().
 
    The 'cutoff' is the cutoff flux (value between 0 and 1), used to reduce the size of the image.
    For example, a cutoff of 0.2 will imply that only the rectangular area containing 20% of the total
    pixels with highest flux (including the peak) will be selected.  
 
-   Note: This node can only be used with a real sky image with 4 coordinate axes l,m,Stokes and Freq.
-   If your image does not have all 4 axes, you can add a degenerate axes to your image using AIPS++
-   images tool (adddegaxes). 
-
-   <li>If <b>mode=1</b>: the result is a 'sixpack', i.e. it contains 6
-   vellsets with elements RA,DEC,I,Q,U,V. In this demonstration, it
-   has been split into 6 nodes, using MeqSelector. 
-
    <li>If <b>mode=2</b>: the result has a single vellset (StokesI). 
 
-   <tip>
-   Look at the difference between the cells of the input request (2D, freq, time) and the
-   result (3D, freq, L, M). What happens downstream?
-   </tip>
-
    <remark>
-   Note how the (l,m) coordinate ranges of the results are affected by the cutoff value.
+   Note how the (l,m) coordinate ranges, and the number of (l,m)
+   pixels of the results are affected by the cutoff value.  What about
+   the nr of cells?
    </remark>
 
+   <warning>
+   The domain (nr of dimensions and nr of cells) of the
+   result of MeqFITSImage is determined by the FITS image, NOT by the
+   request (check this in its state record). If not handles correctly,
+   this will cause problems downstream.
+   </warning>
+
    """
-   stub = QRU.on_entry(ns, rider, FITSImage_mode2, stubname='FITSImage')
+   stub = QRU.on_entry(ns, rider, FITSImage_mode2, stubname='FITSIm(2)')
    cc = []
    filename = 'Sun.fits'
-   # filename = QRU.getopt(globals(),'opt_FITSImage_filename',rider)
+
    cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff_mode2',rider)
+   mode = QRU.getopt(globals(),'opt_FITSImage_resampler_mode',rider)
+   
    cc.append(stub('StokesI')('mode=2') << Meq.FITSImage(filename=filename,
+                                                        qviewer=[True,'Record Browser'],
                                                         cutoff=cutoff, mode=2))
-   cc.append(stub('StokesI')('mode=2')('0.5*cutoff') << Meq.FITSImage(filename=filename,
-                                                                      cutoff=cutoff/2.0, mode=2))
-   return QRU.on_exit (ns, rider, cc)
+   qhelp = 'Resample the result to the request domain/cells'
+   cc.append(stub('Resampler') << Meq.Resampler(cc[-1], mode=mode,
+                                                qviewer=[True,'Record Browser'],
+                                                qhelp=qhelp))
+   
+   # Make sure that the Resampler is executed last:
+   return QRU.on_exit (ns, rider, cc, parentclass='ReqSeq')
 
 
 
