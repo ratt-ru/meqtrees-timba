@@ -79,10 +79,10 @@ class QuickRefTDLMenu (object):
       self._name = str(name)
       self._menudef = dict(type='menu', key=name, prompt=prompt,
                            order=[], menu=dict())
-      self._current = self._menudef
-      # self.add_menu(name, prompt=prompt)
+      self._current_submenu = self._menudef
       self._TDLmenu = None
       self._oblist = dict()
+      self._complete = False
       return None
 
    def oneliner (self):
@@ -102,61 +102,77 @@ class QuickRefTDLMenu (object):
 
    #--------------------------------------------------------------------------
 
-   def add_option (self, relkey, prompt=None, choice=[], more=None, trace=True):
+   def add_option (self, relkey, prompt, choice,
+                   help='help', more=None, trace=True):
       """
       Add an TDLOption definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
       """
+      if self._complete:
+         return False
       # TDLOption('opt_input_twig',"input twig",
       #           ET.twig_names(), more=str),
-      key = self._current['key'] + '.' + relkey
-      self._current['order'].append(key)
-      optdef = dict(type='option', key=key, prompt=prompt,
+      key = self._current_submenu['key'] + '.' + relkey
+      self._current_submenu['order'].append(key)
+      optdef = dict(type='option', key=key,
+                    prompt=prompt, help=help,
                     choice=choice, more=more)
-      self._current['menu'][key] = optdef
+      self._current_submenu['menu'][key] = optdef
       if trace:
-         print '** add_option(',relkey,') ->',optdef
+         print '** .add_option(',relkey,') ->',optdef
       return key
 
    #--------------------------------------------------------------------------
 
-   def add_menu (self, relkey, prompt=None, trace=True):
+   def add_submenu (self, relkey, prompt,
+                    help='help', trace=True):
       """
       Add an TDLMenu definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
-      Then go 'down' one level, i.e. set self._current to the new menu. Subsequent to
+      Then go 'down' one level, i.e. set self._current_submenu to the new menu. Subsequent to
       add_menu() or add_option will now add the new definitions to the new menu.
       """
-      # TDLMenu("topic1",
-      #        TDLOption('opt_topic1_alltopics',
-      #                  "override: include all topic1 sub-topics",False),
-      #        TDLOption('opt_topic1_subtopic1', "topic1 subtopic1",False),
-      #        toggle='opt_topic1'),
-      key = self._current['key'] + '.' + relkey
-      self._current['order'].append(key)
-      menudef = dict(type='menu', key=key, order=[], menu=dict())
-      self._current['menu'][key] = menudef
-      self._current = self._current['menu'][key]           # go down one level
+      if self._complete:
+         return False
+      key = self._current_submenu['key'] + '.' + relkey
+      self._current_submenu['order'].append(key)
+      menudef = dict(type='menu', key=key,
+                     prompt=prompt, help=help,
+                     order=[], menu=dict())
+      self._current_submenu['menu'][key] = menudef
+      self._current_submenu = self._current_submenu['menu'][key]           # go down one level
       if trace:
-         print '** add_menu(',relkey,') ->',self._current
+         print '** .add_submenu(',relkey,') ->',self._current_submenu
       return key
 
    #--------------------------------------------------------------------------
 
-   def revert (self, trace=True):
+   def end_of_submenu (self, radio=False, trace=True):
       """
-      Revert self._current to one level higher (done after a menu is complete).
+      Revert self._current_submenu to one level higher (done after a menu is complete).
       Subsequent to add_menu() or add_option will now add the new definitions
       to the higher-level menu.
+      If radio=True, make the submenu options mutually exclusive 
       """
-      oldkey = self._current['key']
+      if radio:
+         self.radio_buttons(trace=trace)
+      oldkey = self._current_submenu['key']
       ss = oldkey.split('.')
       newkey =  oldkey.replace('.'+ss[-1],'')
       if trace:
-         print '** revert(): ',oldkey,'->',newkey
+         print '** .end_of_submenu(): ',oldkey,'->',newkey
          # print self._menudef
-      self._current = self.find_defrec(newkey)
+      self._current_submenu = self.find_defrec(newkey)
       return newkey
+
+   #--------------------------------------------------------------------------
+
+   def radio_buttons (self, keys='*', trace=False):
+      """Make the specified keys ('*'=all, default) of the current submenu
+      into mutually exclusive 'radio buttons'.
+      """
+      print '\n** .radio_buttons(',keys,'): not implemented yet\n'
+      return True
 
    #--------------------------------------------------------------------------
 
@@ -180,24 +196,37 @@ class QuickRefTDLMenu (object):
 
    #--------------------------------------------------------------------------
 
-   def make_TDLMenu (self, rr=None, level=0, trace=True):
+   def TDLMenu (self, trace=False):
+      """Return the complete TDLMenu object. Create it if necessary.""" 
+      if self._complete:                         # already created
+         return self._TDLMenu                    # just return it
+      self._complete = True                      # disable any further additions
+      return self._make_TDLMenu(trace=trace)     # create from self._menudef
+
+   #--------------------------------------------------------------------------
+
+   def _make_TDLMenu (self, rr=None, level=0, trace=True):
       """
       Recursive routine to generate actual TDLOption/Menu objects.
       The input rr is assumed to be a menu definition record.
       """
-      if not isinstance(rr,dict):
-         rr = self._menudef
+      if level==0:
+         if trace:
+            print '\n** _make_TDLMenu():'
+         if not isinstance(rr,dict):
+            rr = self._menudef
+
       prefix = level*'..'
 
       oblist = []
       for key in rr['order']:
          dd = rr['menu'][key]                   # menu/option definition record
          if trace:
-            print prefix,key,':',dd
+            print prefix,key,':',dd['type']
          if dd['type']=='option':
             tdlob = TDLMenu(key, dd['prompt'], dd['choice'], more=dd['more'])
          elif dd['type']=='menu':
-            tdlob = self.make_TDLMenu(dd, level=level+1)        # recursive
+            tdlob = self._make_TDLMenu(dd, level=level+1, trace=trace)  # recursive
          else:
             pass
          oblist.append(tdlob)
@@ -206,32 +235,39 @@ class QuickRefTDLMenu (object):
          
       # Make the TDLMenu object from the accumulated oblist:
       menu = None
-      # menu = TDLOption(rr['prompt'], *oblist, toggle=rr['key'])
+      menu = TDLMenu(rr['key'], rr['prompt'], *oblist)
+      ## menu = TDLMenu(rr['key'], rr['prompt'], *oblist, toggle=rr['key'])
+      # menu = TDLMenu(rr['key'], rr['prompt'], toggle=rr['key'], *oblist)
+      if trace:
+         print prefix,'-> menu =',menu
       return menu
 
-   #--------------------------------------------------------------------------
 
-   def TDLMenu (self, name=None):
-      return self._TDLMenu
+   # TDLMenu("topic1",
+   #        TDLOption('opt_topic1_alltopics',
+   #                  "override: include all topic1 sub-topics",False),
+   #        TDLOption('opt_topic1_subtopic1', "topic1 subtopic1",False),
+   #        toggle='opt_topic1'),
+
 
 #******************************************************************************** 
 # TDLCompileMenu (included in QuickRef menu):
 #********************************************************************************
 
 new = True
-oo = None
 
 if new:
    QRM = QuickRefTDLMenu ('xxx')
    QRM.show('init')
    QRM.add_option('aa','prompt',range(4))
    QRM.add_option('bb','prompt',range(4))
-   QRM.add_menu('cc','PROMPT')
+   QRM.add_submenu('cc','PROMPT')
    QRM.add_option('aa','prompt',range(4))
    QRM.add_option('bb','prompt',range(4))
-   if True:
-      QRM.revert()
-      QRM.add_option('dd','prompt',range(4))
+   QRM.end_of_submenu()
+   QRM.add_option('dd','prompt',range(4))
+   QRM.end_of_submenu()
+   itsTDLCompileMenu = QRM.TDLMenu(trace=True)
    
 else:
    oo = TDLCompileMenu("QR_test topics:",
@@ -262,8 +298,8 @@ else:
                        
                        toggle='opt_QR_test')
 
-# Assign the menu to an attribute, for outside visibility:
-itsTDLCompileMenu = oo
+   # Assign the menu to an attribute, for outside visibility:
+   itsTDLCompileMenu = oo
 
 
 
@@ -543,9 +579,10 @@ def _define_forest (ns, **kwargs):
                                topic='template for QR modules')
 
    # Execute the top-level function, and dispose of the resulting tree:
-   QRU.on_exit (ns, rider,
-                nodes=[QR_test(ns, rider)],
-                mode='group', finished=True)
+   if False:
+      QRU.on_exit (ns, rider,
+                   nodes=[QR_test(ns, rider)],
+                   mode='group', finished=True)
 
    # Finished:
    return True
