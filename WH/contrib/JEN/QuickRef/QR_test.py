@@ -73,20 +73,40 @@ import numpy
 
 #******************************************************************************** 
 
-class QuickRefTDLMenu (object):
+class TDLOptionManager (object):
+   """
+   Object for managing TDL options in a module.
+   """
 
-   def __init__(self, name, prompt=None):
-      self._name = str(name)
-      self._menudef = dict(type='menu', key=name, prompt=prompt,
+   def __init__(self, name='modulename', prompt=None):
+
+      self._name = name
+
+      # The following field is expected by OMS TDLOption() etc,
+      # but it is set when calling the function .TDLMenu() below:
+      self.tdloption_namespace = None
+
+      # The menu structure is defined in a definition record first: 
+      self._menudef = dict(type='menu', key=self._name,
+                           prompt=prompt or self._name,
+                           symbol=name.replace('.','_'),
                            order=[], menu=dict())
-      self._current_submenu = self._menudef
-      self._TDLmenu = None
-      self._oblist = dict()
+      self._current_submenu = self._menudef   
+
+      # The definition record is used to generate the actual TDLOption objects.
+      self._TDLmenu = None                    # the final TDLMenu 
+      self._oblist = dict()                   # record of TDLOption objects
+
+      # Set when the final self._TDLMenu is generated.
+      # It then inhibits further additions.
       self._complete = False
+      
       return None
 
+   #--------------------------------------------------------------------------
+
    def oneliner (self):
-      return 'QuickRefTDLMenu: '+str(self._name)
+      return 'TDLOptionManager: '+str(self._name)
 
    #--------------------------------------------------------------------------
 
@@ -102,20 +122,20 @@ class QuickRefTDLMenu (object):
 
    #--------------------------------------------------------------------------
 
-   def add_option (self, relkey, prompt, choice,
-                   help='help', more=None, trace=True):
+   def add_option (self, relkey, choice,
+                   prompt=None, help='help',
+                   more=None, trace=True):
       """
       Add an TDLOption definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
       """
       if self._complete:
          return False
-      # TDLOption('opt_input_twig',"input twig",
-      #           ET.twig_names(), more=str),
       key = self._current_submenu['key'] + '.' + relkey
       self._current_submenu['order'].append(key)
-      optdef = dict(type='option', key=key,
-                    prompt=prompt, help=help,
+      symbol = self.key2symbol(key)
+      optdef = dict(type='option', key=key, symbol=symbol,
+                    prompt=(prompt or symbol), help=help,
                     choice=choice, more=more)
       self._current_submenu['menu'][key] = optdef
       if trace:
@@ -124,8 +144,21 @@ class QuickRefTDLMenu (object):
 
    #--------------------------------------------------------------------------
 
-   def add_submenu (self, relkey, prompt,
-                    help='help', trace=True):
+   def key2symbol(self, key):
+      """
+      Helper function to convert the given key (i.e. self._menudef field name)
+      to the TDLOption symbol used in the module (accessible via globals)
+      NB: The reverse function would be unreliable, since not
+      all underscores (_) should be replaced by dots (.).
+      """
+      symbol = 'opt_'+key.replace('.','_')
+      return symbol
+
+   #--------------------------------------------------------------------------
+
+   def start_of_submenu (self, relkey,
+                    prompt=None, help='help',
+                    trace=True):
       """
       Add an TDLMenu definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
@@ -136,13 +169,14 @@ class QuickRefTDLMenu (object):
          return False
       key = self._current_submenu['key'] + '.' + relkey
       self._current_submenu['order'].append(key)
-      menudef = dict(type='menu', key=key,
-                     prompt=prompt, help=help,
+      symbol = self.key2symbol(key)
+      menudef = dict(type='menu', key=key, symbol=symbol,
+                     prompt=(prompt or symbol), help=help,
                      order=[], menu=dict())
       self._current_submenu['menu'][key] = menudef
       self._current_submenu = self._current_submenu['menu'][key]           # go down one level
       if trace:
-         print '** .add_submenu(',relkey,') ->',self._current_submenu
+         print '** .start_of_submenu(',relkey,') ->',self._current_submenu
       return key
 
    #--------------------------------------------------------------------------
@@ -196,12 +230,18 @@ class QuickRefTDLMenu (object):
 
    #--------------------------------------------------------------------------
 
-   def TDLMenu (self, trace=False):
+   def TDLMenu (self, namespace=None, trace=False):
       """Return the complete TDLMenu object. Create it if necessary.""" 
       if self._complete:                         # already created
          return self._TDLMenu                    # just return it
+      # Create the TDLMenu from the self._menudef record:
+      # This field is expected by OMS:
+      if trace:
+         print '\n** _make_TDLMenu(namespace=',namespace,'):'
+      print EF.format_record(self._menudef,'menudef')
+      self.tdloption_namespace = namespace
       self._complete = True                      # disable any further additions
-      return self._make_TDLMenu(trace=trace)     # create from self._menudef
+      return self._make_TDLMenu(trace=trace)
 
    #--------------------------------------------------------------------------
 
@@ -224,7 +264,9 @@ class QuickRefTDLMenu (object):
          if trace:
             print prefix,key,':',dd['type']
          if dd['type']=='option':
-            tdlob = TDLMenu(key, dd['prompt'], dd['choice'], more=dd['more'])
+            tdlob = TDLOption(symbol=dd['symbol'], name=dd['prompt'],
+                              value=dd['choice'], more=dd['more'],
+                              namespace=self)
          elif dd['type']=='menu':
             tdlob = self._make_TDLMenu(dd, level=level+1, trace=trace)  # recursive
          else:
@@ -234,14 +276,17 @@ class QuickRefTDLMenu (object):
          self._oblist[key] = tdlob
          
       # Make the TDLMenu object from the accumulated oblist:
-      menu = None
-      menu = TDLMenu(rr['key'], rr['prompt'], *oblist)
-      ## menu = TDLMenu(rr['key'], rr['prompt'], *oblist, toggle=rr['key'])
-      # menu = TDLMenu(rr['key'], rr['prompt'], toggle=rr['key'], *oblist)
+      print rr['prompt']
+      if level>0:
+         menu = TDLMenu(rr['prompt'], toggle=rr['symbol'], namespace=self, *oblist)
+      else:
+         menu = TDLCompileMenu(rr['prompt'], toggle=rr['symbol'], namespace=self, *oblist)
       if trace:
-         print prefix,'-> menu =',menu
+         print prefix,'-> (sub)menu =',rr['symbol'],' (n=',len(oblist),')',str(menu)
       return menu
 
+   # TDLOption('opt_input_twig',"input twig",
+   #           ET.twig_names(), more=str),
 
    # TDLMenu("topic1",
    #        TDLOption('opt_topic1_alltopics',
@@ -250,24 +295,64 @@ class QuickRefTDLMenu (object):
    #        toggle='opt_topic1'),
 
 
+   #--------------------------------------------------------------------------
+
+   def getopt(self, key, rider=None, globals=None, trace=False):
+      """Get the current value of the specified (key) TDLOption.
+      """
+      value = None
+      # cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff',rider)
+      return value
+
+
+
 #******************************************************************************** 
 # TDLCompileMenu (included in QuickRef menu):
 #********************************************************************************
 
 new = True
 
-if new:
-   QRM = QuickRefTDLMenu ('xxx')
-   QRM.show('init')
-   QRM.add_option('aa','prompt',range(4))
-   QRM.add_option('bb','prompt',range(4))
-   QRM.add_submenu('cc','PROMPT')
-   QRM.add_option('aa','prompt',range(4))
-   QRM.add_option('bb','prompt',range(4))
-   QRM.end_of_submenu()
-   QRM.add_option('dd','prompt',range(4))
-   QRM.end_of_submenu()
-   itsTDLCompileMenu = QRM.TDLMenu(trace=True)
+if False:
+   # Basic testing
+   TOM = TDLOptionManager ()
+   TOM.show('init')
+   TOM.add_option('aa', range(4))
+   TOM.add_option('bb', range(4))
+   TOM.start_of_submenu('cc')
+   TOM.add_option('aa', range(2,4))
+   TOM.add_option('bb', range(1,4))
+   TOM.end_of_submenu()
+   TOM.add_option('dd', range(4))
+   TOM.end_of_submenu()
+   menu = TOM.TDLMenu(trace=True)
+   print '\n -->',menu,'\n'
+
+elif new:
+   # TOM version of below:
+   TOM = TDLOptionManager ('QR_test')
+   TOM.add_option('alltopics', False)
+   TOM.add_option('input_twig', ET.twig_names(), more=str)
+
+   TOM.start_of_submenu('topic1')
+   TOM.add_option('alltopics', False)
+   TOM.add_option('subtopic1', False)
+   TOM.end_of_submenu()
+
+   TOM.start_of_submenu('topic2')
+   TOM.add_option('alltopics', False)
+   TOM.add_option('subtopic2', False)
+   TOM.end_of_submenu()
+
+   TOM.start_of_submenu('helpnodes')
+   TOM.add_option('allhelpnodes', False)
+   TOM.add_option('helpnode_on_entry', False)
+   TOM.add_option('helpnode_on_exit', False)
+   TOM.add_option('helpnode_helpnode', False)
+   TOM.add_option('helpnode_twig', False)
+   TOM.end_of_submenu()
+
+   # TOM.end_of_submenu()
+   itsTDLCompileMenu = TOM.TDLMenu(trace=True)
    
 else:
    oo = TDLCompileMenu("QR_test topics:",
@@ -660,6 +745,10 @@ if __name__ == '__main__':
 
    ns = NodeScope()
    rider = QRU.create_rider()             # CollatedHelpRecord object
+
+   if 0:
+      print EF.format_record(globals(),'globals')
+
    if 0:
       QR_test(ns, 'test', rider=rider)
       if 1:
