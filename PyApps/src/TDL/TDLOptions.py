@@ -969,6 +969,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     if self._items is None:
       raise RuntimeError,"option menu '%s' not initialized, this should be impossible!"%self._title;
     if self._toggle:
+      # print self._title,type(self._title)
       item = QCheckListItem(parent,after,self._title,QCheckListItem.CheckBox);
       item.setExpandable(True);
       self._old_value = self.value;
