@@ -78,24 +78,31 @@ class TDLOptionManager (object):
    Object for managing TDL options in a module.
    """
 
-   def __init__(self, name='modulename', prompt=None):
+   def __init__(self, name='modulename', prompt=None, mode='compile'):
 
       self._name = name
+      self._mode = 'compile'                   # alternative: 'runtime'
 
       # The following field is expected by OMS TDLOption() etc,
       # but it is set when calling the function .TDLMenu() below:
       self.tdloption_namespace = None
 
       # The menu structure is defined in a definition record first: 
+      symbol = self.key2symbol(self._name)
       self._menudef = dict(type='menu', key=self._name,
-                           prompt=prompt or self._name,
-                           symbol=name.replace('.','_'),
+                           prompt=prompt or symbol,
+                           symbol=symbol,
                            order=[], menu=dict())
       self._current_submenu = self._menudef   
 
       # The definition record is used to generate the actual TDLOption objects.
       self._TDLmenu = None                    # the final TDLMenu 
       self._oblist = dict()                   # record of TDLOption objects
+      self._lastval = dict()                  # last values (see .find_changed())
+
+      # The fields of self._menudef are called keys. They contain dots(.)
+      # The option/menu names are derived from keys by .key2symbol(key)
+      self._keys = dict()                     # menudef field-names[symbol]
 
       # Set when the final self._TDLMenu is generated.
       # It then inhibits further additions.
@@ -106,59 +113,68 @@ class TDLOptionManager (object):
    #--------------------------------------------------------------------------
 
    def oneliner (self):
-      return 'TDLOptionManager: '+str(self._name)
-
-   #--------------------------------------------------------------------------
-
-   def show (self, txt=None, full=False):
-      """
-      """
-      ss = '\n'
-      ss += '\n'+self.oneliner()
-      ss += '\n'+str(self._menudef)
-      ss += '\n'
-      print ss
+      ss = 'TDLOptionManager: '+str(self._name)
+      ss += '  mode='+str(self._mode)
+      ss += '  nobj='+str(len(self._oblist))
+      ss += '  nkey='+str(len(self._keys.keys()))
+      if self.tdloption_namespace:
+         ss += ' ('+str(self.tdloption_namespace)+')'
       return ss
 
    #--------------------------------------------------------------------------
 
+   def show (self, txt=None, full=True):
+      """
+      """
+      ss = '\n'
+      ss += '\n** '+self.oneliner()
+      if txt:
+         ss += '   ('+str(txt)+')'
+      ss += '\n * self.tdloption_namespace: '+str(self.tdloption_namespace)
+      ss += '\n * self._oblist: '+str(len(self._oblist))
+      ss += '\n * self._keys: '+str(len(self._keys.keys()))
+      if full:
+         for symbol in self.symbols():
+            ss += '\n   - '+str(symbol)+' : '+str(self._keys[symbol])
+      ss += '\n**\n'
+      print ss
+      return ss
+
+
+   #--------------------------------------------------------------------------
+   # Option/menu definition functions:
+   #--------------------------------------------------------------------------
+
    def add_option (self, relkey, choice,
-                   prompt=None, help='help',
-                   more=None, trace=True):
+                   prompt=None, help='help', more=None,
+                   callback=None,
+                   prepend=False, trace=True):
       """
       Add an TDLOption definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
+      If prepend=True, prepend it to the already specified list of options.
       """
       if self._complete:
-         return False
+         raise ValueError,'** TOM.add_option(): TDLMenu is complete'
+
       key = self._current_submenu['key'] + '.' + relkey
-      self._current_submenu['order'].append(key)
       symbol = self.key2symbol(key)
       optdef = dict(type='option', key=key, symbol=symbol,
                     prompt=(prompt or symbol), help=help,
+                    callback=callback,
                     choice=choice, more=more)
       self._current_submenu['menu'][key] = optdef
+      self.order(key, prepend=prepend, trace=trace)
+
       if trace:
          print '** .add_option(',relkey,') ->',optdef
       return key
 
    #--------------------------------------------------------------------------
 
-   def key2symbol(self, key):
-      """
-      Helper function to convert the given key (i.e. self._menudef field name)
-      to the TDLOption symbol used in the module (accessible via globals)
-      NB: The reverse function would be unreliable, since not
-      all underscores (_) should be replaced by dots (.).
-      """
-      symbol = 'opt_'+key.replace('.','_')
-      return symbol
-
-   #--------------------------------------------------------------------------
-
    def start_of_submenu (self, relkey,
-                    prompt=None, help='help',
-                    trace=True):
+                         prompt=None, help='help',
+                         prepend=False, trace=True):
       """
       Add an TDLMenu definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
@@ -166,30 +182,35 @@ class TDLOptionManager (object):
       add_menu() or add_option will now add the new definitions to the new menu.
       """
       if self._complete:
-         return False
+         raise ValueError,'** TOM.start_of_submenu(): TDLMenu is complete'
+
       key = self._current_submenu['key'] + '.' + relkey
-      self._current_submenu['order'].append(key)
       symbol = self.key2symbol(key)
       menudef = dict(type='menu', key=key, symbol=symbol,
                      prompt=(prompt or symbol), help=help,
                      order=[], menu=dict())
+      self.order(key, prepend=prepend, trace=trace)
       self._current_submenu['menu'][key] = menudef
       self._current_submenu = self._current_submenu['menu'][key]           # go down one level
+
       if trace:
          print '** .start_of_submenu(',relkey,') ->',self._current_submenu
       return key
 
    #--------------------------------------------------------------------------
 
-   def end_of_submenu (self, radio=False, trace=True):
+   def end_of_submenu (self, ctrl=True, radio=False, trace=True):
       """
       Revert self._current_submenu to one level higher (done after a menu is complete).
       Subsequent to add_menu() or add_option will now add the new definitions
       to the higher-level menu.
+      If ctrl=True, add a group control menu item. 
       If radio=True, make the submenu options mutually exclusive 
       """
       if radio:
          self.radio_buttons(trace=trace)
+      if ctrl:
+         self.group_control(trace=trace)
       oldkey = self._current_submenu['key']
       ss = oldkey.split('.')
       newkey =  oldkey.replace('.'+ss[-1],'')
@@ -201,33 +222,79 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def radio_buttons (self, keys='*', trace=False):
-      """Make the specified keys ('*'=all, default) of the current submenu
-      into mutually exclusive 'radio buttons'.
+   def key2symbol(self, key):
       """
-      print '\n** .radio_buttons(',keys,'): not implemented yet\n'
-      return True
+      Helper function to convert the given key (i.e. self._menudef field name)
+      to the TDLOption symbol used in the module (accessible via globals)
+      NB: The reverse function would be unreliable, since not
+      all underscores (_) should be replaced by dots (.).
+      """
+      symbol = 'opt'
+      if self._mode=='runtime':
+         symbol = 'runopt'
+      symbol += '_'+key.replace('.','_')
+      return symbol
 
    #--------------------------------------------------------------------------
 
-   def find_defrec (self, key, rr=None, level=0, trace=False):
-      """
-      Find the defrec with the specified key in self._menudef
-      """
-      if not isinstance(rr,dict):
-         rr = self._menudef
-      if rr['key']==key:
-         return rr
-      if key1 in rr['order']:
-         return rr['menu'][key1]
-      for key1 in rr['order']:
-         dd = rr['menu'][key1]
-         if dd['type']=='menu':
-            result = self.find_defrec(key, dd, level=level+1, trace=trace)
-            if isinstance(result,dict):
-               return result
-      return False
+   def symbols (self):
+      """Return the list of option/menu names (symbols)"""
+      return self._keys.keys()
 
+   #--------------------------------------------------------------------------
+
+   def order(self, key=None, prepend=False, trace=False):
+      """Helper function to get or update (append/prepend) the order-list
+      of the current menu.
+      """
+      if key:
+         if prepend:
+            self._current_submenu['order'].insert(0,key)
+         else:
+            self._current_submenu['order'].append(key) 
+      return self._current_submenu['order'] 
+
+
+   #--------------------------------------------------------------------------
+   # Convenience control of (groups of) options:  
+   #--------------------------------------------------------------------------
+
+   def group_control (self, trace=False):
+      """Add a group-control button to the current submenu.
+      """
+      self._current_submenu['ctrl'] = self._current_submenu['order']
+      self.add_option ('group_ctrl',
+                       [' ','select all','select none','revert to defaults'],
+                       prompt='group control',
+                       help=None, more=None,
+                       callback=self.callback_group_control,
+                       prepend=True, trace=trace)
+      if trace:
+         print '\n** .group_control() -> ',self._current_submenu['ctrl']
+      return True
+
+   #..........................................................................
+
+   def callback_group_control (self, value):
+      print '\n** .callback_group_control(',value,')\n'
+      self.find_changed()
+      print
+      return None
+   
+   #--------------------------------------------------------------------------
+
+   def radio_buttons (self, trace=False):
+      """Make the already specified options of the current submenu into
+      mutually exclusive 'radio buttons'.
+      """
+      self._current_submenu['radio'] = self._current_submenu['order']
+      if trace:
+         print '\n** .radio_buttons() -> ',self._current_submenu['radio']
+      return True
+
+
+   #--------------------------------------------------------------------------
+   # Make the TDLMenu (create actual TDLOption objects) from self._menudef:
    #--------------------------------------------------------------------------
 
    def TDLMenu (self, namespace=None, trace=False):
@@ -241,7 +308,11 @@ class TDLOptionManager (object):
       print EF.format_record(self._menudef,'menudef')
       self.tdloption_namespace = namespace
       self._complete = True                      # disable any further additions
-      return self._make_TDLMenu(trace=trace)
+      # self._keys = dict()
+      # self._oblist = dict()
+      menu = self._make_TDLMenu(trace=trace)
+      self.find_changed()                        # save the current values
+      return menu
 
    #--------------------------------------------------------------------------
 
@@ -267,23 +338,40 @@ class TDLOptionManager (object):
             tdlob = TDLOption(symbol=dd['symbol'], name=dd['prompt'],
                               value=dd['choice'], more=dd['more'],
                               namespace=self)
+            self._keys[dd['symbol']] = dd['key']
+            if dd['callback']:
+               tdlob.when_changed(dd['callback'])
+               print '\n**',dir(tdlob),'\n'
+               print '** tdlob.symbol=',tdlob.symbol
+            self._oblist[key] = tdlob
+
          elif dd['type']=='menu':
             tdlob = self._make_TDLMenu(dd, level=level+1, trace=trace)  # recursive
          else:
-            pass
+            s = '** option type not recognosed: '+str(dd['type'])
+            raise ValueError,s
          oblist.append(tdlob)
-         # Add to the flat record of TDLOption objects:
-         self._oblist[key] = tdlob
          
       # Make the TDLMenu object from the accumulated oblist:
-      print rr['prompt']
       if level>0:
          menu = TDLMenu(rr['prompt'], toggle=rr['symbol'], namespace=self, *oblist)
+      elif self._mode=='runtime':
+         menu = TDLRuntimeMenu(rr['prompt'], toggle=rr['symbol'], namespace=self, *oblist)
       else:
          menu = TDLCompileMenu(rr['prompt'], toggle=rr['symbol'], namespace=self, *oblist)
+      self._keys[rr['symbol']] = rr['key']
+      self._oblist[rr['key']] = menu
+         
       if trace:
          print prefix,'-> (sub)menu =',rr['symbol'],' (n=',len(oblist),')',str(menu)
+         for key1 in ['ctrl','radio']:
+            if rr.has_key(key1):
+               print prefix,'(',key1,':',rr[key1],')'
+
+      # Return the TDLMenu object:
       return menu
+
+
 
    # TDLOption('opt_input_twig',"input twig",
    #           ET.twig_names(), more=str),
@@ -295,13 +383,117 @@ class TDLOptionManager (object):
    #        toggle='opt_topic1'),
 
 
+
+   #--------------------------------------------------------------------------
+   # Helper functions for option/value/defrec retrieval:
    #--------------------------------------------------------------------------
 
-   def getopt(self, key, rider=None, globals=None, trace=False):
-      """Get the current value of the specified (key) TDLOption.
+   def find_changed(self, trace=False):
+      """Find the key/symbol of the TDLObject whose value has changed
+      since the last time this function was called.
       """
-      value = None
-      # cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff',rider)
+      if trace:
+         print '\n** .find_changed():'
+
+      changed = []
+      for key in self._oblist.keys():
+         ob = self._oblist[key]
+         if trace:
+            print '-',key,'=',ob.value
+         if self._lastval.has_key(key):
+            lastval = self._lastval[key]
+            if not ob.value==lastval:
+               print '***',key,'=',ob.value,' (was:',lastval,')'
+               changed.append(key)
+         self._lastval[key] = ob.value
+
+      # Deal with the result:
+      if len(changed)==0:
+         return False
+      elif len(changed)==1:
+         return changed[0]
+      else:
+         return False
+         # raise ValueError,'more than one option has changed??'
+
+   #--------------------------------------------------------------------------
+
+   def find_defrec (self, key, rr=None, level=0, trace=False):
+      """
+      Find the defenition record with the specified key in self._menudef
+      """
+      if not isinstance(rr,dict):
+         rr = self._menudef
+      if rr['key']==key:
+         return rr
+      if key1 in rr['order']:
+         return rr['menu'][key1]
+      for key1 in rr['order']:
+         dd = rr['menu'][key1]
+         if dd['type']=='menu':
+            result = self.find_defrec(key, dd, level=level+1, trace=trace)
+            if isinstance(result,dict):
+               return result
+      return False
+
+   #--------------------------------------------------------------------------
+
+   def find_symbol(self, substring, severe=True, trace=False):
+      """
+      Return an existing symbol (option name) that contains the given substring.
+      If severe=True, throw an exeption if not found or ambiguous.
+      """
+      ss = []
+      for s in self.symbols():
+         if substring in s:
+            ss.append(s)
+      s = '** TOM.find_symbol('+substring+'): -> '
+      if len(ss)==1:
+         if trace:
+            print s,ss[0]
+         return ss[0]
+      # Found zero or more than one:
+      s += str(ss)
+      if severe:
+         raise ValueError,s
+      print '\n',s,'\n'
+      return ss
+      
+
+   #--------------------------------------------------------------------------
+
+   def getopt(self, name, rider=None, globals=None, trace=False):
+      """Get the current value of the specified (name) TDLOption name/symbol.
+      Only a part of the symbol/name is required, as long as it is not ambiguous.
+      If rider is defined, make a qhelp string and add it (see QuickRefUtil.py)
+      """
+      symbol = self.find_symbol(name, severe=True, trace=trace)
+      key = self._keys[symbol]
+      value = self._oblist[key].value
+
+      if globals:
+         ## cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff',rider)
+         # Read the value from globals (If the name does not exist, notrec is returned):
+         # NB: Not recommended (perverse coupling)
+         notrec = '_UnDef_'
+         value = globals.get(symbol, notrec)
+
+      if rider:
+         # See QuickRefUtil.py
+         qhelp = ''
+         qhelp += '<font color="red" size=2>'
+         qhelp += '** TDLOption: '+str(symbol)+' = '
+         if isinstance(value,str):
+            qhelp += '"'+str(value)+'"'
+         else:
+            qhelp += str(value)
+         qhelp += '</font>'
+         qhelp += '<br>'
+         path = rider.path()   
+         rider.insert_help (path, qhelp, append=True)
+         
+      if trace:
+         print '** TOM.getopt(',key,') -> ',value
       return value
 
 
@@ -341,6 +533,7 @@ elif new:
    TOM.start_of_submenu('topic2')
    TOM.add_option('alltopics', False)
    TOM.add_option('subtopic2', False)
+   TOM.radio_buttons(trace=True)
    TOM.end_of_submenu()
 
    TOM.start_of_submenu('helpnodes')
@@ -351,8 +544,22 @@ elif new:
    TOM.add_option('helpnode_twig', False)
    TOM.end_of_submenu()
 
-   # TOM.end_of_submenu()
+   TOM.end_of_submenu()
+   TOM.show('before .TDLMenu()')
    itsTDLCompileMenu = TOM.TDLMenu(trace=True)
+   TOM.show('after .TDLMenu()')
+
+   if True:
+      TOM.find_symbol('subtopic2',trace=True)
+      TOM.find_symbol('2_alltopics',trace=True)
+      # TOM.find_symbol('alltopics',trace=True)
+      # TOM.find_symbol('xxx',trace=True)
+
+   if True:
+      TOM.getopt('subtopic2', trace=True)
+
+   TOM.find_changed(trace=True)
+   TOM.find_changed(trace=True)
    
 else:
    oo = TDLCompileMenu("QR_test topics:",
@@ -650,9 +857,9 @@ def topic2_subtopic2 (ns, rider):
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
-   TDLRuntimeMenu(":")
-   TDLRuntimeMenu("QR_test runtime options:", QRU)
-   TDLRuntimeMenu(":")
+   # TDLRuntimeMenu(":")
+   # TDLRuntimeMenu("QR_test runtime options:", QRU)
+   # TDLRuntimeMenu(":")
 
    global rootnodename
    rootnodename = 'QR_test'                 # The name of the node to be executed...
