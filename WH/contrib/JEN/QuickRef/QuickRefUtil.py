@@ -64,6 +64,7 @@ import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
 import CollatedHelpRecord
+import TDLOptionManager           # move to JEN/control/ later....?
 
 from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
 from Timba.Contrib.JEN.QuickRef import EasyNode as EN

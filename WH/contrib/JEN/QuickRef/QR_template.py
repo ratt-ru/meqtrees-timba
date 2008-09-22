@@ -71,40 +71,18 @@ from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 import numpy
 
 
-#******************************************************************************** 
-# TDLCompileMenu (included in QuickRef menu):
+#********************************************************************************
+# Start the TDLCompileMenu (TCM): It is added to throughout.
 #********************************************************************************
 
-oo = TDLCompileMenu("QR_template topics:",
-                    TDLOption('opt_alltopics',"override: include all topics",True),
+QR_module = 'QR_template'
+TCM = QRU.TDLOptionManager.TDLOptionManager(QR_module, prompt=QR_module+' topics')
 
-                    TDLOption('opt_input_twig',"input twig",
-                              ET.twig_names(), more=str),
 
-                    TDLMenu("topic1",
-                            TDLOption('opt_topic1_alltopics',
-                                      "override: include all topic1 sub-topics",False),
-                            TDLOption('opt_topic1_subtopic1', "topic1 subtopic1",False),
-                            toggle='opt_topic1'),
+# Start the file/doc header to be used in exec functions at the bottom.
+# It may be modified, depending on the selection of topics.
+QR_header = QR_module
 
-                    TDLMenu("topic2",
-                            TDLOption('opt_topic2_alltopics',
-                                      "override: include all topic2 sub-topics",False),
-                            TDLOption('opt_topic2_subtopic1', "topic2 subtopic1",False),
-                            toggle='opt_topic2'),
-
-                    TDLMenu("help",
-                            TDLOption('opt_allhelpnodes',"override: include all helpnodes",False),
-                            TDLOption('opt_helpnode_on_entry',"help on QuickRefUtil.on_entry()", False),
-                            TDLOption('opt_helpnode_on_exit',"help on QuickRefUtil.on_exit()", False),
-                            TDLOption('opt_helpnode_helpnode',"help on QuickRefUtil.helpnode()", False),
-                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                            toggle='opt_helpnodes'),
-                    
-                    toggle='opt_QR_template')
-
-# Assign the menu to an attribute, for outside visibility:
-itsTDLCompileMenu = oo
 
 
 
@@ -112,10 +90,14 @@ itsTDLCompileMenu = oo
 # Top-level function, called from QuickRef.py:
 #********************************************************************************
 
-header = 'QR_template'                    # used in exec functions at the bottom
+TCM.add_option('arg1', range(3))
+TCM.add_option('arg2', [-0.1,0.001])
+TCM.add_option('arg3', [12,-4.5,complex(3,4),'aa',None], more=False)
+
+
+#--------------------------------------------------------------------------------
 
 def QR_template (ns, rider):
-# def toplevel (ns, rider):
    """
    NB: This text should be replaced with an overall explanation of the
    MeqTree functionality that is covered in this QR module.
@@ -151,46 +133,21 @@ def QR_template (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, QR_template)
    cc = []
-   override = opt_alltopics
-   global header
+   # global QR_header
 
-   # Edit this part:
-   if override or opt_topic1:
-      cc.append(topic1 (ns, rider))
-   if override or opt_topic2:
-      cc.append(topic2 (ns, rider))
-
-   if opt_helpnodes:
-      cc.append(make_helpnodes (ns, rider))
-
-   return QRU.on_exit (ns, rider, cc, mode='group')
-
-
-#********************************************************************************
-
-def make_helpnodes (ns, rider):
-   """
-   It is possible to define nodes that have no other function than to carry
-   a help-text in the quickref_help field of its state record. A bookmark is
-   generated automatically, with the 'QuickRef Display' viewer.
-   The help-text is also added to the subset of documentation that is accumulated
-   by the rider.
-   """
-   stub = QRU.on_entry(ns, rider, make_helpnodes)
+   # Remove this part:
+   arg1 = TCM.getopt(QR_module+'_arg1', rider) 
+   arg2 = TCM.getopt(QR_module+'_arg2', rider) 
+   arg3 = TCM.getopt(QR_module+'_arg3', rider) 
    
-   override = opt_alltopics or opt_allhelpnodes
-   cc = []
-
-   # Replace this part:
-   if override or opt_helpnode_on_entry:
-      cc.append(QRU.helpnode (ns, rider, func=QRU.on_entry))
-   if override or opt_helpnode_on_exit:
-      cc.append(QRU.helpnode (ns, rider, func=QRU.on_exit))
-   if override or opt_helpnode_helpnode:
-      cc.append(QRU.helpnode (ns, rider, func=QRU.helpnode))
-   if override or opt_helpnode_twig:
-      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
-
+   # Edit this part:
+   if TCM.getopt(QR_module+'_topic1'):
+      cc.append(topic1 (ns, rider))
+   if TCM.getopt(QR_module+'_topic2'):
+      cc.append(topic2 (ns, rider))
+   if TCM.getopt(QR_module+'_help'):
+      cc.append(HELP (ns, rider))
+      
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
@@ -198,6 +155,21 @@ def make_helpnodes (ns, rider):
 #================================================================================
 # topic1:
 #================================================================================
+
+# Add to the TDLCompileMenu:
+TCM.start_of_submenu('topic1')
+TCM.add_option('twig', ET.twig_names())
+TCM.add_option('arg1', range(2))
+TCM.add_option('arg2', range(3))
+
+TCM.start_of_submenu('subtopic1')
+TCM.add_option('arg1', range(2))
+TCM.add_option('arg2', range(5))
+TCM.end_of_submenu()
+
+TCM.end_of_submenu()
+
+#--------------------------------------------------------------------------------
 
 def topic1 (ns, rider):
    """
@@ -224,9 +196,13 @@ def topic1 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic1)
    cc = []
-   override = opt_alltopics
 
-   if override or opt_topic1_subtopic1:
+   # Remove this part:
+   twig = TCM.getopt('_topic1_twig', rider)
+   arg1 = TCM.getopt('_topic1_arg1', rider) 
+   arg2 = TCM.getopt('_topic1_arg2', rider) 
+
+   if TCM.getopt('topic1_subtopic1'):
       cc.append(topic1_subtopic1 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -250,6 +226,10 @@ def topic1_subtopic1 (ns, rider):
    stub = QRU.on_entry(ns, rider, topic1_subtopic1)
    cc = []
 
+   # Remove this part:
+   arg1 = TCM.getopt('topic1_subtopic1_arg1', rider) 
+   arg2 = TCM.getopt('topic1_subtopic1_arg2', rider) 
+
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -259,17 +239,31 @@ def topic1_subtopic1 (ns, rider):
 # topic2:
 #================================================================================
 
+# Add to the TDLCompileMenu:
+TCM.start_of_submenu('topic2')
+TCM.add_option('arg1', range(2))
+TCM.add_option('arg2', range(3), more=False)
+TCM.add_option('subtopic1')
+TCM.add_option('subtopic2')
+TCM.end_of_submenu()
+
+#--------------------------------------------------------------------------------
+
 def topic2 (ns, rider):
    """
    topic2 covers ....
    """
    stub = QRU.on_entry(ns, rider, topic2)
    cc = []
-   override = opt_alltopics
 
-   if override or opt_topic2_subtopic1:
+   # Remove this part:
+   arg1 = TCM.getopt('topic2_arg1', rider) 
+   arg2 = TCM.getopt('topic2_arg2', rider) 
+
+   # Replace this part:
+   if TCM.getopt('topic2_subtopic1'):
       cc.append(topic2_subtopic1 (ns, rider))
-   if override or opt_topic2_subtopic2:
+   if TCM.getopt('topic2_subtopic2'):
       cc.append(topic2_subtopic2 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -293,16 +287,20 @@ def topic2_subtopic2 (ns, rider):
    topic2_subtopic2 treats ....
 
    <warning>
-   ... text enclosed in 'html' warning tags is rendered like this ...
+   ... text enclosed in html 'warning' tags is rendered like this ...
    </warning>
 
    <error>
-   ... text enclosed in 'html' error tags is rendered like this ...
+   ... text enclosed in html 'error' tags is rendered like this ...
    </error>
 
    <remark>
-   ... text enclosed in 'html' remark tags is rendered like this ...
+   ... text enclosed in html 'remark' tags is rendered like this ...
    </remark>
+
+   <tip>
+   ... text enclosed in html 'tip' tags is rendered like this ...
+   </tip>
 
    Text enclosed in 'html' function_code tags may be used to include the function body in the help.
    Just copy the entire function body between the tags in the function doc-string (making sure that
@@ -328,8 +326,6 @@ def topic2_subtopic2 (ns, rider):
    \"\"\"
    return QRU.on_exit (ns, rider, cc, help=bhelp)
    </function_code>
-
-
    """
 
    stub = QRU.on_entry(ns, rider, topic2_subtopic2)
@@ -354,6 +350,47 @@ def topic2_subtopic2 (ns, rider):
 
 
 
+#********************************************************************************
+# Recommended: some general help(nodes) for this module
+#********************************************************************************
+
+# Add to the TDLCompileMenu:
+TCM.start_of_submenu('help')
+TCM.add_option('on_entry', prompt='help on QRU.on_entry()')
+TCM.add_option('on_exit', prompt='help on QRU.on_exit()')
+TCM.add_option('helpnode', prompt='help on QRU.helpnode()')
+TCM.add_option('twig', prompt='help on ET.twig()')
+TCM.radio_buttons(trace=True)
+TCM.end_of_submenu()
+
+
+#--------------------------------------------------------------------------------
+
+def HELP (ns, rider):
+   """
+   It is possible to define nodes that have no other function than to carry
+   a help-text in the quickref_help field of its state record. A bookmark is
+   generated automatically, with the 'QuickRef Display' viewer.
+   The help-text is also added to the subset of documentation that is accumulated
+   by the rider.
+   """
+   # NB: Avoid the string 'help' in the function name....!!
+   stub = QRU.on_entry(ns, rider, HELP)
+   cc = []
+
+   # Replace this part:
+   if TCM.getopt('_help_on_entry'):
+      cc.append(QRU.helpnode (ns, rider, func=QRU.on_entry))
+   if TCM.getopt('_help_on_exit'):
+      cc.append(QRU.helpnode (ns, rider, func=QRU.on_exit))
+   if TCM.getopt('_help_helpnode'):
+      cc.append(QRU.helpnode (ns, rider, func=QRU.helpnode))
+   if TCM.getopt('_help_twig'):
+      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
+
+   return QRU.on_exit (ns, rider, cc, mode='group')
+
+
 
 
 
@@ -366,6 +403,11 @@ def topic2_subtopic2 (ns, rider):
 # Just load it into the browser, and compile/execute it.
 #********************************************************************************
 #********************************************************************************
+
+# Make the accumulated TDLCompileMenu:
+itsTDLCompileMenu = TCM.TDLMenu()
+
+#--------------------------------------------------------------------------------
 
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
@@ -429,7 +471,7 @@ def _tdl_job_print_hardcopy (mqs, parent):
    NB: As an alternative, the file QuickRef.html may be printed from the
    html browser (assuming that the file is updated automatically).
    """
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=QR_header)
 
 
 
@@ -446,7 +488,7 @@ def _tdl_job_show_doc (mqs, parent):
    Show the specified subset of the help doc in a popup.
    Obselete...?
    """
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=QR_header)
 
 
 

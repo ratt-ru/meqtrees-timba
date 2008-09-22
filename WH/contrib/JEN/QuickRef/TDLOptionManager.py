@@ -15,7 +15,11 @@ TDLOptionManager.py:
 #
 # Remarks:
 #
+# NB: The callback functions in a TDLMenu object are NOT called
+#     when a menu is opened or closed by clicking on its toggle box......
 #
+# TDL Separator (None in TDLOption list) does not work.... ignored for the moment
+# See .add_separator()
 #
 #% $Id$ 
 #
@@ -73,7 +77,7 @@ class TDLOptionManager (object):
 
       # Group control:
       self._lastval = dict()                  # last values (see .find_changed())
-      self._shapshot = dict()                 # snapshot values (see .make_snapshot())
+      self._snapshot = dict()                 # snapshot values (see .make_snapshot())
 
       # The fields of self._menudef are called keys. They contain dots(.)
       # The option/menu names are derived from keys by .key2symbol(key)
@@ -116,10 +120,14 @@ class TDLOptionManager (object):
    # Option/menu definition functions:
    #--------------------------------------------------------------------------
 
-   def add_option (self, relkey, choice,
-                   prompt=None, help='help', more=None,
+   def add_option (self, relkey,
+                   choice=None,              # 2nd
+                   prompt=None,              # 3rd
+                   more=True,                # use the type of default (choice[0])
+                   help='not yet supported',
                    callback=None,
-                   prepend=False, trace=True):
+                   prepend=False,
+                   trace=False):
       """
       Add an TDLOption definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
@@ -128,27 +136,101 @@ class TDLOptionManager (object):
       if self._complete:
          raise ValueError,'** TOM.add_option(): TDLMenu is complete'
 
+      # Make a list of callback functions (may be empty):
+      if not callback:
+         callback = []
+      elif not isinstance(callback,list):
+         callback = [callback]
+      callback.append(self.callback_update_lastval)
+
+      # Check the choice of option values:
+      # (The default is the value used in .revert_to_defaults())
+      default = None
+      selectable = False
+      if choice==None:                       # not specified
+         choice = False                      # add un-selected toggle box
+         selectable = True
+      if isinstance(choice, bool):           # True/False: add toggle box
+         default = choice                    # 
+         selectable = True
+      elif not isinstance(choice, list):     # e.g. numeric, or string, or ..?
+         choice = [choice]                   # make a list (necessary?)
+         default = choice[0]                 # the first item
+      else:
+         default = choice[0]                 # the first item
+
+      # If more=True, use the type of default:
+      if isinstance(more, bool):
+         if more==True:
+            if isinstance(default,bool):
+               more = bool
+            elif isinstance(default,int):
+               more = int
+            elif isinstance(default,float):
+               more = float
+            elif isinstance(default,complex):
+               more = complex
+            else:
+               more = None                  # type not recognized...
+         else:                       
+            more = None
+
+      # Finally, make the option definition record:
       key = self._current_submenu['key'] + '.' + relkey
       symbol = self.key2symbol(key)
       optdef = dict(type='option', key=key, symbol=symbol,
-                    prompt=(prompt or symbol), help=help,
+                    prompt=(prompt or relkey),
+                    help=help,
                     callback=callback,
+                    default=default,
+                    selectable=selectable,
                     choice=choice, more=more)
       self._current_submenu['menu'][key] = optdef
       self.order(key, prepend=prepend, trace=trace)
 
+      # Finished:
       if trace:
          print '\n** .add_option(',relkey,') ->',optdef
+         print '    current_submenu:\n      ',self._current_submenu
+         
+      # Return the symbol. It can be used in the module, to read the option value:
+      return symbol
+
+   #--------------------------------------------------------------------------
+
+   def add_separator (self, trace=False):
+      """
+      Add an TDLOption separator definition to the menu definitions.
+      """
+      if self._complete:
+         raise ValueError,'** TOM.add_separator(): TDLMenu is complete'
+      
+      self._current_submenu['sepcount'] += 1
+      key = self._current_submenu['key'] + '.separator'
+      key += str(self._current_submenu['sepcount'])
+      optdef = dict(type='separator', key=key)
+      if True:
+         # Temporarily disabled...
+         print '\n** TOM.add_separator(): Ignored until it works (OMS)....\n'
+         return key
+      self._current_submenu['menu'][key] = optdef
+      self.order(key, trace=trace)
+
+      if trace:
+         print '\n** .add_separator() ->',optdef
          print '    current_submenu:\n      ',self._current_submenu
       return key
 
    #--------------------------------------------------------------------------
 
-   def start_of_submenu (self, relkey,
-                         prompt=None, help='help',
+   def start_of_submenu (self, relkey,            
+                         prompt=None,             # 2nd
+                         default=None,            # 3rd
+                         help='not yet supported',
                          topmenu=False,
+                         group_control=True,
                          prepend=False,
-                         trace=True):
+                         trace=False):
       """
       Add an TDLMenu definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
@@ -164,9 +246,24 @@ class TDLOptionManager (object):
          if self._complete:
             raise ValueError,'** TOM.start_of_submenu(): TDLMenu is complete'
 
+      # Make a list of callback functions (may be empty):
+      # NB: This does not work, since the callback functions are NOT called
+      #     when a menu is opened or closed by clicking on its toggle box......
+      callback = [self.callback_update_lastval]
+
+      # The default is the toggle value (see .revert_to_defaults())
+      if not isinstance(default,bool):
+         default = False          # default: select and open the menu....
+
+      # Finally, make the menu definition record:
       symbol = self.key2symbol(key)
       menudef = dict(type='menu', key=key, symbol=symbol,
-                     prompt=(prompt or symbol), help=help,
+                     prompt=(prompt or relkey),
+                     help=help,
+                     default=default,    
+                     selectable=True,
+                     callback=callback,
+                     sepcount=0,
                      order=[], menu=dict())
 
       if topmenu:                  # topmenu==True ONLY when called from .__init__()
@@ -177,24 +274,28 @@ class TDLOptionManager (object):
          self.order(key, prepend=prepend, trace=trace)                 
          self._current_submenu = self._current_submenu['menu'][key]           # go down one level
 
+      # Optional: Insert a 'group control' option:
+      if group_control:
+         self.group_control(trace=trace)
+
+      # Finished:
       if trace:
          print '\n** .start_of_submenu(',relkey,') -> current_submenu =',self._current_submenu
-      return key
+
+      # Return the symbol. It may be used in the module...
+      return symbol
 
    #--------------------------------------------------------------------------
 
-   def end_of_submenu (self, ctrl=True, radio=False, trace=True):
+   def end_of_submenu (self, radio_buttons=False, trace=False):
       """
       Revert self._current_submenu to one level higher (done after a menu is complete).
       Subsequent to add_menu() or add_option will now add the new definitions
       to the higher-level menu.
-      If ctrl=True, add a group control menu item. 
-      If radio=True, make the submenu options mutually exclusive 
+      If radio_buttons=True, make the submenu options mutually exclusive 
       """
-      if radio:
+      if radio_buttons:
          self.radio_buttons(trace=trace)
-      if ctrl:
-         self.group_control(trace=trace)
       oldkey = self._current_submenu['key']
       newkey = self.menukey(oldkey)
       if trace:
@@ -251,17 +352,17 @@ class TDLOptionManager (object):
 
 
    #--------------------------------------------------------------------------
-   # Convenience control of (groups of) options:  
+   # Functions dealing with group control:  
    #--------------------------------------------------------------------------
 
    def group_control (self, trace=False):
       """Add a group-control button to the current submenu.
       """
-      self._current_submenu['ctrl'] = self._current_submenu['order']    # ....??
       choice = ['-','select all','select none','revert to defaults',
-                'make snapshot','revert to snapshot']
-      self.add_option ('group_ctrl', choice,
-                       prompt='group control',
+                'revert to snapshot','-','help','show defrec']
+      choice.extend(['-','make snapshot'])                     # for safety....
+      self.add_option ('group_control', choice,
+                       prompt='(group control)',
                        help=None, more=None,
                        callback=self.callback_group_control,
                        prepend=True, trace=trace)
@@ -272,72 +373,151 @@ class TDLOptionManager (object):
    #..........................................................................
 
    def callback_group_control (self, value):
-      print '\n** .callback_group_control(',value,')\n'
-      key = self.find_changed()
-      print 'key=',key
+      """
+      Called whenever a group_control option is changed
+      """
+      trace = False
+      # trace = True
+      if trace:
+         print '\n** .callback_group_control(',value,')\n'
+
+      key = self.find_changed(lookfor=['group_control'], trace=trace)
+      if trace:
+         print '  changed: key =',key
+
       if isinstance(key,str):
          menukey = self.menukey(key)
-         print 'menukey=',menukey
-         menu = self.find_defrec(menukey, trace=True)
-         # print EF.format_record(menu)
-         print '** menu[order] =',menu['order']
+         if trace:
+            print '  its menukey =',menukey
+         menu = self.find_defrec(menukey, trace=trace)
          if value=='select all':
-            print value
+            self.select_group (menu, True, trace=trace)
          elif value=='select none':
-            print value
+            self.select_group (menu, False, trace=trace)
          elif value=='revert to defaults':
-            print value
+            self.make_snapshot(menu, trace=trace)          # FIRST make snapshot...!?
+            self.revert_to_defaults(menu, trace=trace)
          elif value=='make snapshot':
-            print value
+            self.make_snapshot(menu, trace=trace)
          elif value=='revert to snapshot':
-            print value
+            self.revert_to_snapshot(menu, trace=trace)
+         elif value=='show defrec':
+            print EF.format_record(menu)
          elif value=='-':
-            print 'empty'
+            pass
+         elif value=='help':
+            print '\n   ** help on the use of group control **  \n'
          else:
             print 'value not recognised: ',value,type(value),len(value)
-         if True:
-            # Always reset the option value
-            print key,self._oblist.keys()
-            option = self._oblist[key]
-            option.set_value('-', callback=False)
+         # Always reset the group control option value to '-':
+         self.setopt(key, '-', trace=trace)
+
+      # Finished:
       return None
-   
+
+   #..........................................................................
+
+   def callback_update_lastval (self, value):
+      """Called whenever an option value is changed. This is necessary
+      to make .find_changed() work properly for .group_control().
+      """
+      trace = False
+      # trace = True
+      if trace:
+         print '\n** .callback_update_lastval(',value,')\n'
+      self.update_lastval()
+      return None
+
+
+   #--------------------------------------------------------------------------
+   # Functions dealing with radio-buttons:
    #--------------------------------------------------------------------------
 
    def radio_buttons (self, trace=False):
-      """Make the already specified options of the current submenu into
-      mutually exclusive 'radio buttons'.
+      """Make the 'selectable' options and/or submenus of the current submenu
+      into mutually exclusive 'radio buttons': One (and only one) of them will
+      be selected at all times. 
       """
-      self._current_submenu['radio'] = self._current_submenu['order']
+      # First find the selectable items:
+      keys = []
+      for key in self._current_submenu['order']:
+         rr = self._current_submenu['menu'][key]
+         if rr['selectable']:
+            keys.append(key)
+
+      # Then make them into radio items:
+      for key in keys:
+         rr = self._current_submenu['menu'][key]
+         rr['radio_group'] = keys
+         # The callback should be executed BEFORE .callback_update_lastval():
+         rr['callback'].insert(0,self.callback_radio_button)
+      
       if trace:
-         print '\n** .radio_buttons() -> ',self._current_submenu['radio']
+         print '\n** .radio_buttons():',keys
       return True
 
+   #--------------------------------------------------------------------------
 
-   #--------------------------------------------------------------------------
+   def callback_radio_button(self, value):
+      """Called whenever a 'radio button' is changed. Make sure that only one
+      TDLOption of its 'radio-group' is selected. See .radion_buttons() above.
+      """
+      trace = False
+      # trace = True
+      if trace:
+         print '\n** .callback_radio_button(',value,'):'
+
+      key = self.find_changed(trace=trace)
+      if trace:
+         print '  changed: key =',key
+
+      if isinstance(key,str):
+         menukey = self.menukey(key)
+         option = self.find_defrec(key, trace=trace)
+         keys = option['radio_group']
+         # First deselect all items in the 'radio-group':
+         for key1 in keys:
+            self.setopt(key1, False, callback=False, trace=trace)
+         # Then select a single one:
+         if value:                     # TDLOption[key] is selected
+            self.setopt(key, True, callback=False, trace=trace)
+         else:                         # select the first of the keys
+            self.setopt(keys[0], True, callback=False, trace=trace)
+         # Update self._lastval
+         self.update_lastval(trace=trace)
+            
+      return None
+
+
+   #==========================================================================
    # Make the TDLMenu (create actual TDLOption objects) from self._menudef:
-   #--------------------------------------------------------------------------
+   #==========================================================================
 
    def TDLMenu (self, namespace=None, trace=False):
       """Return the complete TDLMenu object. Create it if necessary.""" 
       if self._complete:                         # already created
          return self._TDLMenu                    # just return it
-      # Create the TDLMenu from the self._menudef record:
-      # This field is expected by OMS:
+
+      # Disable any further additions of options or menus:
+      self._complete = True
+      self._current_submenu = None               # overkill?
+
       if trace:
          print '\n** _make_TDLMenu(namespace=',namespace,'):'
-      print EF.format_record(self._menudef,'menudef')
-      self.tdloption_namespace = namespace
-      self._complete = True                      # disable any further additions
-      # self._keys = dict()
-      # self._oblist = dict()
+
+      # This field is expected by OMS:
+      if isinstance(namespace,str):
+         self.tdloption_namespace = namespace
+         
+      # Create the TDLMenu from the self._menudef record:
       menu = self._make_TDLMenu(trace=trace)
-      self.find_changed()                        # save the current values
+
+      self.find_changed()                        # fill self._lastval ....
       return menu
 
    #--------------------------------------------------------------------------
 
-   def _make_TDLMenu (self, rr=None, level=0, trace=True):
+   def _make_TDLMenu (self, rr=None, level=0, trace=False):
       """
       Recursive routine to generate actual TDLOption/Menu objects.
       The input rr is assumed to be a menu definition record.
@@ -355,23 +535,26 @@ class TDLOptionManager (object):
          dd = rr['menu'][key]                   # menu/option definition record
          if trace:
             print prefix,key,':',dd['type']
+
          if dd['type']=='option':
             tdlob = TDLOption(symbol=dd['symbol'], name=dd['prompt'],
                               value=dd['choice'], more=dd['more'],
                               namespace=self)
             self._keys[dd['symbol']] = dd['key']
-            if dd['callback']:
-               tdlob.when_changed(dd['callback'])
-               print '\n**',dir(tdlob),'\n'
-               print '** tdlob.symbol=',tdlob.symbol
             self._oblist[key] = tdlob
-
+         elif dd['type']=='separator':
+            tdlob = None
          elif dd['type']=='menu':
             tdlob = self._make_TDLMenu(dd, level=level+1, trace=trace)  # recursive
          else:
             s = '** option type not recognosed: '+str(dd['type'])
             raise ValueError,s
-         oblist.append(tdlob)
+
+         # Finishing touches on the TDLOption object:
+         if tdlob:
+            for callback in dd['callback']:  # assume a list of callback functions
+               tdlob.when_changed(callback)
+         oblist.append(tdlob)                # append the object (or None) to the list
          
       # Make the TDLMenu object from the accumulated oblist:
       if level>0:
@@ -393,45 +576,80 @@ class TDLOptionManager (object):
       return menu
 
 
-
-   # TDLOption('opt_input_twig',"input twig",
-   #           ET.twig_names(), more=str),
-
-   # TDLMenu("topic1",
-   #        TDLOption('opt_topic1_alltopics',
-   #                  "override: include all topic1 sub-topics",False),
-   #        TDLOption('opt_topic1_subtopic1', "topic1 subtopic1",False),
-   #        toggle='opt_topic1'),
-
-
-
    #--------------------------------------------------------------------------
    # Helper functions for option/value/defrec retrieval:
    #--------------------------------------------------------------------------
 
-   def find_changed(self, trace=False):
+   def update_lastval (self, trace=False):
+      """
+      Update self._lastval with the current values of all TDLOption objects.
+      Called from .callback_update_lastval()
+      """
+      if trace:
+         print '\n** .update_lastval():'
+
+      for key in self._oblist.keys():
+         ob = self._oblist[key]
+         if trace:
+            if self._lastval.has_key(key):
+               lastval = self._lastval[key]
+               if not ob.value==lastval:
+                  print '-',key,'=',ob.value,'!= lastval=',lastval
+         self._lastval[key] = ob.value
+
+      if trace:
+         print '**\n'
+      return True
+
+   #--------------------------------------------------------------------------
+
+   def find_changed(self, lookfor=None, trace=False):
       """Find the key/symbol of the TDLObject whose value has changed
       since the last time this function was called.
       """
       if trace:
-         print '\n** .find_changed():'
+         print '\n** .find_changed(',lookfor,'):'
 
       changed = []
       for key in self._oblist.keys():
          ob = self._oblist[key]
-         if trace:
-            print '-',key,'=',ob.value
          if self._lastval.has_key(key):
             lastval = self._lastval[key]
             if not ob.value==lastval:
-               print '***',key,'=',ob.value,' (was:',lastval,')'
+               if trace:
+                  print '******* changed:',key,'=',ob.value,' (lastval:',lastval,')'
                changed.append(key)
+            elif trace:
+               print '-',key,'=',ob.value,' (=lastval:',lastval,')'
+               
          self._lastval[key] = ob.value
 
       # Deal with the result:
-      if len(changed)==1:
+      if trace:
+         print '  ->',changed
+
+      if len(changed)==1:               # The normal (unambiguous) case
+         if trace: print
          return changed[0]
+
+      # Look for changed keys that contain specific substring(s):
+      if lookfor:
+         if not isinstance(lookfor,list):
+            lookfor = [lookfor]
+         kk = []
+         for key in changed:
+            for substring in lookfor:
+               if substring in key:
+                  kk.append(key)
+                  if trace:
+                     print '- lookfor:',substring,'-> kk =',kk
+         if len(kk)==1:
+            if trace: print
+            return kk[0]
+
+      # Still no good (zero, or more than one):
       return False
+
 
    #--------------------------------------------------------------------------
    
@@ -445,6 +663,7 @@ class TDLOptionManager (object):
          if not isinstance(rr,dict):
             rr = self._menudef
 
+      # prefix = level*'..'
       if rr['key']==key:
          return rr
       if key in rr['order']:
@@ -459,6 +678,67 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
+   def select_group (self, menu, tf=None, level=0, trace=False):
+      """Select (tf=True) or deselect (tf=False) all selectable options/menus
+      below the given menu defrec
+      """
+      if level==0:
+         if trace:
+            print '\n** select_group(tf=',tf,'):'
+         if not isinstance(menu,dict):
+            menu = self._menudef
+
+      # Select/deselect submenus and selectable options: 
+      prefix = level*'..'
+      for key in menu['order']:
+         dd = menu['menu'][key]
+         changed = False
+         if dd['type']=='menu':
+            self.select_group(dd, tf, level=level+1, trace=trace)  # ..first..?
+            changed = self.setopt(key, tf, trace=False)
+         # elif not dd['type']=='option':
+         #    pass         # just in case....
+         elif isinstance(dd['choice'],bool):
+            # These options have a toggle box
+            changed = self.setopt(key, tf, trace=False)
+         if trace and changed:
+            print prefix,'- changed:',key,'->',tf
+
+      # Finally, select/deselect the menu itself:
+      changed = self.setopt(menu['key'], tf, trace=False)
+      if trace and changed:
+         print '-- changed:',menu['key'],'->',tf
+        
+      return False
+
+   #--------------------------------------------------------------------------
+
+   def make_snapshot (self, menu=None, level=0, trace=False):
+      """
+      Below the given menu defrec, copy all the option values to
+      self._snapshot. See also .revert_to_snapshot()
+      """
+      if level==0:
+         if trace:
+            print '\n** make_snapshot():'
+         if not isinstance(menu,dict):
+            menu = self._menudef
+
+      prefix = level*'..'
+      for key in menu['order']:
+         dd = menu['menu'][key]
+         if self._oblist.has_key(key):
+            ob = self._oblist[key]
+            self._snapshot[key] = ob.value
+            if trace:
+               print prefix,key,': snapshot =',ob.value
+         # Recursive:
+         if dd['type']=='menu':
+            self.make_snapshot(dd, level=level+1, trace=trace)
+      return False
+
+   #--------------------------------------------------------------------------
+
    def revert_to_snapshot (self, menu=None, level=0, trace=False):
       """
       Below the given menu defrec, set all options to the snapshot values.
@@ -466,21 +746,65 @@ class TDLOptionManager (object):
       """
       if level==0:
          if trace:
-            print '\n** find_defrec(',key,'):'
+            print '\n** revert_to_snapshot():'
+         if len(self._snapshot)==0:
+            print '\n** .revert_to_snapshot(): no snapshot available yet'
          if not isinstance(menu,dict):
             menu = self._menudef
 
-      if menu['key']==key:
-         return menu
-      if key in menu['order']:
-         return menu['menu'][key]
-      for key1 in menu['order']:
-         dd = menu['menu'][key1]
+      prefix = level*'..'
+      for key in menu['order']:
+         dd = menu['menu'][key]
+         if self._oblist.has_key(key):
+            if self._snapshot.has_key(key):
+               changed = self.setopt(key, self._snapshot[key], trace=False)
+               if trace and changed:
+                  print prefix,'- changed:',key,'->',self._snapshot[key]
+         # Recursive:
          if dd['type']=='menu':
-            result = self.find_defrec(key, dd, level=level+1, trace=trace)
-            if isinstance(result,dict):
-               return result
+            self.revert_to_snapshot(dd, level=level+1, trace=trace)
       return False
+
+   #--------------------------------------------------------------------------
+
+   def revert_to_defaults (self, menu=None, level=0, trace=False):
+      """
+      Below the given menu defrec, set all options to the defaults values.
+      See also .make_defaults()
+      """
+      if level==0:
+         if trace:
+            print '\n** revert_to_defaults():'
+         if not isinstance(menu,dict):
+            menu = self._menudef
+
+      prefix = level*'..'
+      for key in menu['order']:
+         dd = menu['menu'][key]
+         if dd.has_key('default'):
+            default = dd['default']
+            changed = self.setopt(key, default, trace=False)
+            if trace and changed:
+               print prefix,'- changed:',key,'->',default,'(=default)'
+         # Recursive:
+         if dd['type']=='menu':
+            self.revert_to_defaults(dd, level=level+1, trace=trace)
+      return False
+
+   #--------------------------------------------------------------------------
+
+   def setopt(self, key, value, callback=False, trace=False):
+      """Set the specified option (key) to a new value
+      """
+      changed = False
+      if self._oblist.has_key(key):
+         option = self._oblist[key]
+         was = option.value
+         changed = (not value==was)
+         if trace and changed:
+            print '- .setopt(',key,value,callback,') changed ->',value,'  (was:',was,')'
+         option.set_value(value, callback=callback)
+      return changed
 
    #--------------------------------------------------------------------------
 
@@ -492,23 +816,27 @@ class TDLOptionManager (object):
       ss = []
       for s in self.symbols():
          if substring in s:
-            ss.append(s)
-      s = '** TOM.find_symbol('+substring+'): -> '
-      if len(ss)==1:
+            aa = s.split(substring)
+            if aa[-1]=='':              # substring is at the end of s
+               ss.append(s)             # accept
+
+      s = '\n** TOM.find_symbol('+substring+'): -> '
+      if len(ss)==1:                    # OK
          if trace:
-            print s,ss[0]
+            print s,ss[0],'\n'
          return ss[0]
-      # Found zero or more than one:
+
+      # Problem: Found zero items, or more than one:
       s += str(ss)
       if severe:
          raise ValueError,s
-      print '\n',s,'\n'
+      print s,'\n'
       return ss
       
 
    #--------------------------------------------------------------------------
 
-   def getopt(self, name, rider=None, globals=None, trace=False):
+   def getopt(self, name, rider=None, trace=False):
       """Get the current value of the specified (name) TDLOption name/symbol.
       Only a part of the symbol/name is required, as long as it is not ambiguous.
       If rider is defined, make a qhelp string and add it (see QuickRefUtil.py)
@@ -517,15 +845,10 @@ class TDLOptionManager (object):
       key = self._keys[symbol]
       value = self._oblist[key].value
 
-      if globals:
-         ## cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff',rider)
-         # Read the value from globals (If the name does not exist, notrec is returned):
-         # NB: Not recommended (perverse coupling)
-         notrec = '_UnDef_'
-         value = globals.get(symbol, notrec)
-
       if rider:
-         # See QuickRefUtil.py
+         # The rider is a concept used in QuickRef modules.
+         # It collects information for the documentation, etc.
+         # See also QuickRefUtil.getopt()
          qhelp = ''
          qhelp += '<font color="red" size=2>'
          qhelp += '** TDLOption: '+str(symbol)+' = '
@@ -583,12 +906,13 @@ if __name__ == '__main__':
    if 0:
       print EF.format_record(globals(),'globals')
 
-   if 0:
+   if 1:
       # Basic testing
       TOM = TDLOptionManager ()
       TOM.show('init')
       TOM.add_option('aa', range(4))
       TOM.add_option('bb', range(4))
+      # TOM.add_separator(trace=True)
       TOM.start_of_submenu('cc')
       TOM.add_option('aa', range(2,4))
       TOM.add_option('bb', range(1,4))
@@ -600,7 +924,7 @@ if __name__ == '__main__':
    
 
 
-   if True:
+   if 0:
       # TOM version of below:
       TOM = TDLOptionManager ('TOM')
       TOM.add_option('alltopics', False)
@@ -643,8 +967,9 @@ if __name__ == '__main__':
       if True:
          TOM.getopt('subtopic2', trace=True)
 
-      TOM.find_changed(trace=True)
-      TOM.find_changed(trace=True)
+      if False:
+         TOM.find_changed(trace=True)
+         TOM.find_changed(trace=True)
    
             
    print '\n** End of standalone test of: TDLOptionManager.py:\n' 

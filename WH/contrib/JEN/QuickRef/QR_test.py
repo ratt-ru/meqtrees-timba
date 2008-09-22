@@ -91,6 +91,7 @@ if new:
 
    TOM.start_of_submenu('topic1')
    TOM.add_option('alltopics', False)
+   # TOM.add_separator()
    TOM.add_option('subtopic1', False)
    TOM.end_of_submenu()
 
@@ -113,17 +114,18 @@ if new:
    itsTDLCompileMenu = TOM.TDLMenu(trace=True)
    TOM.show('after .TDLMenu()')
 
-   if True:
+   if False:
       TOM.find_symbol('subtopic2',trace=True)
       TOM.find_symbol('2_alltopics',trace=True)
       # TOM.find_symbol('alltopics',trace=True)
       # TOM.find_symbol('xxx',trace=True)
 
-   if True:
+   if False:
       TOM.getopt('subtopic2', trace=True)
 
-   TOM.find_changed(trace=True)
-   TOM.find_changed(trace=True)
+   if False:
+      TOM.find_changed(trace=True)
+      TOM.find_changed(trace=True)
    
 else:
    oo = TDLCompileMenu("QR_test topics:",
