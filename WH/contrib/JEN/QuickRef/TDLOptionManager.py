@@ -9,7 +9,9 @@ TDLOptionManager.py:
 # Short description:
 #
 # History:
-#   - 15 sep 2008: creation 
+#   - 15 sep 2008: creation
+#   - 26 sep 2008: implemented hide/unhide
+#   - 26 sep 2008: implemented master/slave
 #
 # Description:
 #
@@ -70,7 +72,7 @@ class TDLOptionManager (object):
 
    Each (sub)menu optionally has a 'group control' option, which allows
    the manipulation of all options/menus below that level:
-   - select all/none
+   - select all/none (submenus)
    - hide/unhide (those options that are nominally hidden
    - make/revertto a 'snapshot' (i.e. collection of current values)
    - revert to the original default values (i.e. the first values)
@@ -191,21 +193,24 @@ class TDLOptionManager (object):
       selectable = False
       if choice==None:                       # not specified
          choice = False                      # add un-selected toggle box
-         selectable = True
+         # selectable = True
       if isinstance(choice, bool):           # True/False: add toggle box
          default = choice                    # 
-         selectable = True
+         # selectable = True
       elif not isinstance(choice, list):     # e.g. numeric, or string, or ..?
          choice = [choice]                   # make a list (necessary?)
          default = choice[0]                 # the first item
       else:
          default = choice[0]                 # the first item
+      selectable = False                     # OPTIONS SHOULD NOT BE GROUP-SELECTABLE!!! (only menus)
 
       # If more=True, use the type of default:
       if isinstance(more, bool):
          if more==True:
             if isinstance(default,bool):
                more = bool
+            elif isinstance(default,str):
+               more = str
             elif isinstance(default,int):
                more = int
             elif isinstance(default,float):
@@ -220,13 +225,20 @@ class TDLOptionManager (object):
       # The 'nominal' hide switch must be boolean:
       hide = self.check_nominal_hide (hide, master=master, trace=trace)
 
+      # Make a default doc/help string:
+      if not isinstance(help,str):
+         help = ''
+         if master:
+            help += ' (slaved to '+str(master)+')'
+         if hide:
+            help += ' (nominally hidden)'
+
       # Finally, make the option definition record:
       menukey = self._current_submenu['key']
       key = menukey + self._keysep + relkey
       symbol = self.key2symbol(key)
-      if not isinstance(help,str):          # no help/doc string specified
-         help = '(symbol='+str(symbol)+')'  # 
-      optdef = dict(type='option', key=key, symbol=symbol,
+      optdef = dict(type='option', key=key,
+                    symbol=symbol, relkey=relkey,
                     prompt=(prompt or relkey),
                     help=help,
                     callback=callback,
@@ -249,14 +261,16 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def check_nominal_hide (self, hide, master=None, trace=False):
+   def check_nominal_hide (self, hide, master=None,
+                           hide_slave=True, trace=False):
       """Check the nominal option/menu hide switch.
       Called by .add_option() and .start_of_submenu() 
       """
       if not isinstance(hide,bool):         # not explicitly specified
          hide = False                       # assume False (do not hide)
-         if isinstance(master,str):         # but a slave option/menu
-            hide = True                     # should normally be hidden 
+         if hide_slave:         
+            if isinstance(master,str):         # but a slave option/menu
+               hide = True                     # should normally be hidden 
       return hide
 
    #--------------------------------------------------------------------------
@@ -291,6 +305,7 @@ class TDLOptionManager (object):
                          default=None,            # 3rd
                          nest=None,
                          hide=None,
+                         disable=False,
                          master=None,
                          help=None,
                          topmenu=False,
@@ -322,15 +337,20 @@ class TDLOptionManager (object):
       # The 'nominal' hide switch must be boolean:
       hide = self.check_nominal_hide (hide, master=master, trace=trace)
 
+      # Make a default doc/help string:
+      if not isinstance(help,str):
+         help = '(summary=...)'
+         if master:
+            help = '(slaved to '+str(master)+')'
+
       # Finally, make the menu definition record:
       symbol = self.key2symbol(key)
-      if not isinstance(help,str):
-         help = '(symbol='+str(symbol)+')'
-      menudef = dict(type='menu', key=key, symbol=symbol,
+      menudef = dict(type='menu', key=key,
+                     symbol=symbol, relkey=relkey,
                      prompt=(prompt or relkey),
                      help=help,
                      default=default,
-                     hide=hide,
+                     hide=hide, disable=disable,
                      master=master, slaves=[],
                      menukey=menukey,
                      selectable=True,
@@ -348,7 +368,7 @@ class TDLOptionManager (object):
 
       # Optional: Insert a 'group control' option:
       if group_control:
-         self.group_control(trace=trace)
+         self.insert_group_control(trace=trace)
 
       # Finished:
       if trace:
@@ -365,7 +385,7 @@ class TDLOptionManager (object):
       If not, try to correct the situation.
       Called from .start_of_submenu()
       """
-      trace = True
+      # trace = True
       s = '\n** .check_current_submenu(nest='+str(nest)+'): '
 
       key = self._current_submenu['key'] 
@@ -430,7 +450,6 @@ class TDLOptionManager (object):
 
    def end_of_submenu (self, check=None, trace=False):
       """
-      .....Semi-obsolete.....
       Revert self._current_submenu to one level higher (done after a menu is complete).
       Subsequent to add_menu() or add_option will now add the new definitions
       to the higher-level menu.
@@ -494,11 +513,14 @@ class TDLOptionManager (object):
    # Functions dealing with group control:  
    #--------------------------------------------------------------------------
 
-   def group_control (self, trace=False):
+   def insert_group_control (self, trace=False):
       """Add a group-control button to the current submenu.
       """
-      choice = ['-','select all','select none','revert to defaults',
-                'revert to snapshot','-','help','show defrec']
+      choice = ['-','select all submenus','select none',
+                'hide this submenu','hide nominal','unhide everything',
+                'revert to defaults',
+                'revert to snapshot',
+                '-','help','show defrec']
       choice.extend(['-','make snapshot'])                     # for safety....
       self.add_option ('group_control', choice,
                        prompt='(group control)',
@@ -506,7 +528,7 @@ class TDLOptionManager (object):
                        callback=self.callback_group_control,
                        prepend=True, trace=trace)
       if trace:
-         print '\n** .group_control() -> ',self._current_submenu['ctrl']
+         print '\n** .insert_group_control() -> ',self._current_submenu['ctrl']
       return True
 
    #..........................................................................
@@ -530,12 +552,18 @@ class TDLOptionManager (object):
             print '  its menukey =',menukey
          # menu = self.find_defrec(menukey, trace=trace)   # old
          menu = self._defrecs[menukey]
-         if value=='select all':
+         if value=='select all submenus':
             self.select_group (menu, True, trace=trace)
          elif value=='select none':
             self.select_group (menu, False, trace=trace)
+         elif value=='hide this submenu':
+            self.hide_submenu (menu, trace=trace)
+         elif value=='hide nominal':
+            self.hide_unhide (menu, hide=True, trace=trace)
+         elif value=='unhide everything':
+            self.hide_unhide (menu, hide=False, trace=trace)
          elif value=='revert to defaults':
-            self.make_snapshot(menu, trace=trace)          # FIRST make snapshot...!?
+            self.make_snapshot(menu, trace=trace)          # FIRST make a new snapshot...!?
             self.revert_to_defaults(menu, trace=trace)
          elif value=='make snapshot':
             self.make_snapshot(menu, trace=trace)
@@ -576,7 +604,7 @@ class TDLOptionManager (object):
       for key in keys:
          rr = self._current_submenu['menu'][key]
          rr['radio_group'] = keys
-         # The callback should be executed BEFORE .callback_update_lastval():
+         # Make it the first callback ....?
          rr['callback'].insert(0,self.callback_radio_button)
       
       if trace:
@@ -640,7 +668,13 @@ class TDLOptionManager (object):
       # Create the TDLMenu from the self._menudef record:
       menu = self._make_TDLMenu(trace=trace)
 
-      # Add callback function(s) in the right order:
+      # Disable all items with defrec['disable']==True:
+      self.disable_if_specified(trace=trace)
+
+      # Hide all the 'nominally hidden' items (defrec['hide']==True):
+      self.hide_unhide(hide=True, trace=trace)
+
+      # Add callback function(s) in the correct order:
       self.add_callbacks(trace=trace)
 
       self.find_changed()                        # fill self._lastval ....
@@ -673,10 +707,6 @@ class TDLOptionManager (object):
                               doc=dd['help'],
                               namespace=self)
             self._keys[dd['symbol']] = dd['key']
-            if dd['hide']:
-               tdlob.hide()
-            if dd['disable']:
-               tdlob.disable()
             self._tdlobjects[key] = tdlob
             self._defrecs[key] = dd
 
@@ -731,21 +761,35 @@ class TDLOptionManager (object):
    def collect_slaves (self, trace=False):
       """Assign the slaves to they masters (by key).
       """
-      trace = True
+      # trace = True
       if trace:
-         print '\n** .add_callbacks():'
+         print '\n** .collect_slaves():'
 
       for key in self._tdlobjects.keys():
          defrec = self._defrecs[key]
-         # print EF.format_record(defrec)
          mkey = defrec['master']
-         if trace:
-            print '- mkey =',mkey
          if isinstance(mkey,str):
-            mrec = self._defrecs[mkey]
-            mrec['slaves'].append(key)
-            if trace:
-               print '-',len(mrec['slaves']),': assigned slave (',key,') to master:',mkey
+            mrec = self._defrecs[mkey]           # the master's definition record
+            if defrec['type']=='option':
+               mrec['slaves'].append(key)        # append its key to the masters's list of slaves
+               if trace:
+                  print '-',len(mrec['slaves']),': assigned slave (',key,') to master:',mkey
+
+            elif defrec['type']=='menu':
+               # Make master/slave connections between the corresponding items
+               # (i.e. with the same relkey) of the master and slave menus.
+               ignore = ['group_control'] 
+               for key1 in defrec['order']:
+                  rec1 = self._defrecs[key1]
+                  relkey = rec1['relkey']
+                  if rec1['type']=='option' and (not relkey in ignore):
+                     # print '-',key,key1,' relkey=',relkey,':'
+                     for key2 in mrec['order']:
+                        rec2 = self._defrecs[key2]
+                        if rec2['relkey']==relkey:       # same relative key
+                           rec2['slaves'].append(key1)   # append its key to the masters's list of slaves
+                           if trace:
+                              print '-',len(rec2['slaves']),': assigned slave (',key1,') to master:',key2
       if trace:
          print '**\n'
       return True
@@ -755,7 +799,7 @@ class TDLOptionManager (object):
    def add_callbacks (self, trace=False):
       """Add callback functions to the various options, in the correct order
       """
-      trace = True
+      # trace = True
       if trace:
          print '\n** .add_callbacks():'
 
@@ -787,6 +831,14 @@ class TDLOptionManager (object):
                print '-',len(slaves),'slaves of master(',key,'):  ',slaves
             cbs.append(self.callback_update_slaves)
 
+         # It is often convenient to have the selected value in the custom box,
+         # so that it may be edited (without having to be copied first).
+         # This is especially desirable for string values, e.g. expressions
+         if defrec['type']=='option':                          # options only
+            # if defrec['more']:                               # has custom field
+            if defrec['more']==str:                            # strings only...?
+               cbs.append(self.callback_copy_to_custom_value)
+
          # Always make this one the LAST callback in the list:
          # NB: This does not work for menus, since the callback functions are NOT called
          #     when a menu is opened or closed by clicking on its toggle box......
@@ -811,14 +863,36 @@ class TDLOptionManager (object):
       It changes its slaves (option(s)/menu(s)) to the same value.
       """
       trace = False
-      trace = True
+      # trace = True
       if trace:
          print '\n** .callback_update_slaves(',value,'):'
       key = self.find_changed(trace=trace)
       if trace:
          print '  changed: key =',key
+      if isinstance(key,str):
+         master = self._defrecs[key]
+         if trace:
+            print EF.format_record(master)
+         for key in master['slaves']:
+            self.setopt(key, value, trace=trace)
       return True
-   
+
+   #..........................................................................
+
+   def callback_copy_to_custom_value (self, value):
+      """Copy the current value to the custom value
+      """
+      trace = False
+      # trace = True
+      if trace:
+         print '\n** .callback_copy_to_custom_value(',value,'):'
+      key = self.find_changed(trace=trace)
+      if trace:
+         print '  changed: key =',key
+      if isinstance(key,str):
+         self.copy_to_custom_value (key)
+      return True
+
    #..........................................................................
 
    def callback_update_lastval (self, value):
@@ -859,6 +933,28 @@ class TDLOptionManager (object):
          print '**\n'
       return True
 
+   #-------------------------------------------------------------------------
+
+   def disable_if_specified (self, trace=False):
+      """
+      Disable all TDLOption objects that have defrec['disable']=True.
+      Called from .make_TDLMenu()
+      """
+      if trace:
+         print '\n** .disable_if_specified():'
+
+      for key in self._tdlobjects.keys():
+         defrec = self._defrecs[key]
+         if defrec.has_key('disable'):
+            if defrec['disable']:
+               self._tdlobjects[key].disable()
+               if trace:
+                  print '- disabled:',key
+
+      if trace:
+         print '**\n'
+      return True
+
 
    #==========================================================================
    # Group operations on/below a given menu:
@@ -880,12 +976,14 @@ class TDLOptionManager (object):
          dd = menu['menu'][key]
          changed = False
          if dd['type']=='menu':
-            self.select_group(dd, tf, level=level+1, trace=trace)  # ..first..?
+            # Recursive:
+            self.select_group(dd, tf, level=level+1, trace=trace)
             changed = self.setopt(key, tf, trace=False)
-         # elif not dd['type']=='option':
-         #    pass         # just in case....
-         elif isinstance(dd['choice'],bool):
-            # These options have a toggle box
+         elif not dd.has_key('selectable'):
+            # Just in case:
+            pass
+         elif dd['selectable']:
+            # Only 'selectable' options (default is False)
             changed = self.setopt(key, tf, trace=False)
          if trace and changed:
             print prefix,'- changed:',key,'->',tf
@@ -975,12 +1073,61 @@ class TDLOptionManager (object):
          # Recursive:
          if dd['type']=='menu':
             self.revert_to_defaults(dd, level=level+1, trace=trace)
-      return False
+      return True
 
    #-----------------------------------------------------------------------------
 
-   def hide (self, value=True, menu=None, trace=False):
-      """Hide/unhide the specified option/menu"""
+   def hide_submenu (self, menu=None, trace=False):
+      """Hide/unhide the 'nominally hidden' the specified menu,
+      except if it is the root menu!
+      (unhide it with the general unhide)
+      """
+      # trace = True
+
+      key = menu['key']
+      tdlob = self._tdlobjects[key]
+      tdlob.hide()       
+      if trace:
+         print '\n** hide_submenu:',key
+
+      # Make sure that the root menu remains visible
+      rootkey = self._menudef['key']
+      tdlob = self._tdlobjects[rootkey]
+      tdlob.show()       
+      if trace:
+         print '** unhide root menu:',rootkey,'\n'
+      return True
+
+   #-----------------------------------------------------------------------------
+
+   def hide_unhide (self, menu=None, hide=True, level=0, trace=False):
+      """Hide/unhide the 'nominally hidden' items below the specified
+      option/menu. (i.e. those items that have hide=True in their defrec).
+      If hide=False, unhide (i.e. show) everything.
+      """
+      # trace = True
+      if level==0:
+         if trace:
+            print '\n** .hide_unhide(',hide,'):'
+         if not isinstance(menu,dict):
+            menu = self._menudef
+
+      prefix = level*'..'
+      for key in menu['order']:
+         tdlob = self._tdlobjects[key]
+         dd = menu['menu'][key]
+         if hide==False:                             # i.e. unhide
+            tdlob.show()                             # show all options/menus
+            if trace:
+               print prefix,'- unhide:',key
+         else:
+            if dd['hide']:                           # nominally hidden
+               tdlob.hide()                          # hide it
+               if trace:
+                  print prefix,'- hide:',key
+         # Recursive:
+         if dd['type']=='menu':
+            self.hide_unhide (dd, hide=hide, level=level+1, trace=trace)
       return True
 
 
@@ -1100,12 +1247,31 @@ class TDLOptionManager (object):
       if self._tdlobjects.has_key(key):
          option = self._tdlobjects[key]
          was = option.value
-         changed = (not value==was)
-         if trace and changed:
-            print '- .setopt(',key,value,callback,') changed ->',value,'  (was:',was,')'
          option.set_value(value, callback=callback)
+         changed = (not option.value==was)
+         if trace and changed:
+            print '- .setopt(',key,value,callback,') changed ->',option.value,'  (was:',was,')'
       return changed
 
+   #--------------------------------------------------------------------------
+
+   def copy_to_custom_value (self, key, trace=False):
+      """Copy the current value of the specified (key) option
+      to its custom-value field (if it has one).
+      (so that it can be edited, rather than copied)
+      """
+      # trace = True
+      option = self._tdlobjects[key]
+      defrec = self._defrecs[key]
+      # print EF.format_record(defrec)
+      more = defrec['more']
+      # print '--- more =',more,more==str
+      if more:
+         option.set_custom_value(option.value, select=False)
+         if trace:
+            print '\n** copy_to_custom_value(',key,') ->',option.value,'  (more =',more,')'
+      return True
+         
 
    #--------------------------------------------------------------------------
 
@@ -1177,71 +1343,42 @@ def test_basic(TCM, trace=False, full=False):
    """
    key = TCM.add_option('master', range(4))
    TCM.add_option('slave', range(4), master=key)
+   TCM.add_option('boolean_opt', True)
+   TCM.add_option('string_opt', ['first','second','third'])
    TCM.start_of_submenu('cc')
    TCM.start_of_submenu('dd')
+   # TCM.add_separator(trace=True)
    TCM.start_of_submenu('gg')
+
    level = TCM.current_menu_level()
    TCM.start_of_submenu('hh', nest=level-1)
    TCM.add_option('bb', range(4))
+
    if trace:
       TCM.show('test_basic()', full=full)
    return True
    
 #------------------------------------------------------------
 
-def test_xxx(TCM, trace=False, full=False):
+def test_slavemenu(TCM, trace=False, full=False):
    """Test:
    """
+   key = TCM.start_of_submenu('master')
    TCM.add_option('aa', range(4))
-   TCM.add_option('bb', range(4))
-   # TCM.add_separator(trace=True)
-   
-   TCM.start_of_submenu('cc')
-   TCM.add_option('aa', range(2,4))
-   TCM.add_option('bb', range(1,4))
+   TCM.add_option('bb', range(4), disable=True)
+   TCM.add_option('cc', range(4))
 
-   TCM.end_of_submenu()
-   TCM.add_option('dd', range(4))
+   for i in range(10):
+      TCM.start_of_submenu('slave_'+str(i), nest='master', master=key)
+      TCM.add_option('aa', range(4))
+      TCM.add_option('bb', range(4))
+      TCM.add_option('cc', range(4))
+      # TCM.end_of_submenu()               # alternative for nest='master'
 
-   TCM.end_of_submenu()
+   if trace:
+      TCM.show('test_slavemenu()', full=full)
    return True
-
-
-#------------------------------------------------------------
-
-def test_yyy(TCM, trace=False, full=False):
-   """Test:
-   """
-   TCM.add_option('alltopics', False)
-   TCM.add_option('arg1', range(5), more=int)
-      
-   TCM.start_of_submenu('topic1')
-   TCM.add_option('alltopics', False)
-   TCM.add_option('arg1', range(5), more=int)
-   TCM.add_option('subtopic1', False)
-   TCM.add_option('arg1', range(5), more=int)
-   TCM.end_of_submenu()
    
-   TCM.start_of_submenu('topic2')
-   TCM.add_option('alltopics', False)
-   TCM.add_option('subtopic2', False)
-   TCM.add_option('arg1', range(5), more=int)
-   TCM.radio_buttons(trace=True)
-   TCM.end_of_submenu()
-   
-   TCM.start_of_submenu('helpnodes')
-   TCM.add_option('allhelpnodes', False)
-   TCM.add_option('helpnode_on_entry', False)
-   TCM.add_option('helpnode_on_exit', False)
-   TCM.add_option('helpnode_helpnode', False)
-   TCM.add_option('helpnode_twig', False)
-   TCM.add_option('arg1', range(5), more=int)
-   TCM.end_of_submenu()
-   
-   TCM.end_of_submenu()
-   return True
-
-
 
 #------------------------------------------------------------
 
@@ -1268,7 +1405,8 @@ TCM = None
 # Enable for testing:
 if 1:
    TCM = create_TCM(trace=True, full=False)
-   test_basic(TCM, trace=False, full=False)
+   # test_basic(TCM, trace=False, full=False)
+   test_slavemenu(TCM, trace=False, full=False)
    menu = make_TDLCompileMenu (TCM, trace=True, full=False)
    
 
@@ -1281,24 +1419,23 @@ if 1:
 
 if __name__ == '__main__':
 
-   print '\n** Start of standalone test of: TDLOptionManager.py:\n' 
+   print '\n****************************************************'
+   print '** Start of standalone test of: TDLOptionManager.py:'
+   print '****************************************************\n' 
 
    # ns = NodeScope()
    # rider = QRU.create_rider()             # CollatedHelpRecord object
 
    TCM = create_TCM(trace=True, full=False)
 
-   if 1:
-      test_basic(TCM, trace=False, full=False)
-
    if 0:
-      test_xxx(TCM, trace=False, full=False)
-
-   if 0:
-      test_yyy(TCM, trace=False, full=False)
+      test_basic(TCM, trace=True, full=False)
 
    if 1:
-      make_TDLCompileMenu (TCM, trace=True, full=False)
+      test_slavemenu(TCM, trace=False, full=False)
+
+   if 1:
+      make_TDLCompileMenu (TCM, trace=False, full=False)
 
    
    #--------------------------------------------------------
