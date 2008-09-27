@@ -72,7 +72,7 @@ import numpy
 
 
 #********************************************************************************
-# Start the TDLCompileMenu (TCM): It is added to throughout.
+# Start the TDLCompileMenu (TCM): It is added-to throughout.
 #********************************************************************************
 
 QR_module = 'QR_template'
@@ -132,20 +132,20 @@ def QR_template (ns, rider):
    Its syntax is given below.
    """
    stub = QRU.on_entry(ns, rider, QR_template)
+   prefix = QR_module+'.'
    cc = []
-   # global QR_header
 
    # Remove this part:
-   arg1 = TCM.getopt(QR_module+'_arg1', rider) 
-   arg2 = TCM.getopt(QR_module+'_arg2', rider) 
-   arg3 = TCM.getopt(QR_module+'_arg3', rider) 
+   arg1 = TCM.getopt(prefix+'arg1', rider) 
+   arg2 = TCM.getopt(prefix+'arg2', rider) 
+   arg3 = TCM.getopt(prefix+'arg3', rider) 
    
    # Edit this part:
-   if TCM.getopt(QR_module+'_topic1'):
+   if TCM.getopt(prefix+'topic1'):
       cc.append(topic1 (ns, rider))
-   if TCM.getopt(QR_module+'_topic2'):
+   if TCM.getopt(prefix+'topic2'):
       cc.append(topic2 (ns, rider))
-   if TCM.getopt(QR_module+'_help'):
+   if TCM.getopt(prefix+'HELP'):
       cc.append(HELP (ns, rider))
       
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -157,17 +157,11 @@ def QR_template (ns, rider):
 #================================================================================
 
 # Add to the TDLCompileMenu:
-TCM.start_of_submenu('topic1')
+TCM.start_of_submenu('topic1', level=QR_module)
 TCM.add_option('twig', ET.twig_names())
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3))
 
-TCM.start_of_submenu('subtopic1')
-TCM.add_option('arg1', range(2))
-TCM.add_option('arg2', range(5))
-TCM.end_of_submenu()
-
-TCM.end_of_submenu()
 
 #--------------------------------------------------------------------------------
 
@@ -198,17 +192,23 @@ def topic1 (ns, rider):
    cc = []
 
    # Remove this part:
-   twig = TCM.getopt('_topic1_twig', rider)
-   arg1 = TCM.getopt('_topic1_arg1', rider) 
-   arg2 = TCM.getopt('_topic1_arg2', rider) 
+   twig = TCM.getopt('.topic1.twig', rider)
+   arg1 = TCM.getopt('.topic1.arg1', rider) 
+   arg2 = TCM.getopt('.topic1.arg2', rider) 
 
-   if TCM.getopt('topic1_subtopic1'):
+   if TCM.getopt('topic1.subtopic1'):
       cc.append(topic1_subtopic1 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
+
+TCM.start_of_submenu('subtopic1', level='topic1')
+TCM.add_option('arg1', range(2))
+TCM.add_option('arg2', range(5))
+
+#--------------------------------------------------------------------------------
 
 def topic1_subtopic1 (ns, rider):
    """
@@ -227,8 +227,8 @@ def topic1_subtopic1 (ns, rider):
    cc = []
 
    # Remove this part:
-   arg1 = TCM.getopt('topic1_subtopic1_arg1', rider) 
-   arg2 = TCM.getopt('topic1_subtopic1_arg2', rider) 
+   arg1 = TCM.getopt('topic1.subtopic1.arg1', rider) 
+   arg2 = TCM.getopt('topic1.subtopic1.arg2', rider) 
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -240,12 +240,9 @@ def topic1_subtopic1 (ns, rider):
 #================================================================================
 
 # Add to the TDLCompileMenu:
-TCM.start_of_submenu('topic2')
+TCM.start_of_submenu('topic2', level=QR_module)
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3), more=False)
-TCM.add_option('subtopic1')
-TCM.add_option('subtopic2')
-TCM.end_of_submenu()
 
 #--------------------------------------------------------------------------------
 
@@ -257,19 +254,25 @@ def topic2 (ns, rider):
    cc = []
 
    # Remove this part:
-   arg1 = TCM.getopt('topic2_arg1', rider) 
-   arg2 = TCM.getopt('topic2_arg2', rider) 
+   arg1 = TCM.getopt('.topic2.arg1', rider) 
+   arg2 = TCM.getopt('.topic2.arg2', rider) 
 
    # Replace this part:
-   if TCM.getopt('topic2_subtopic1'):
+   if TCM.getopt('topic2.subtopic1'):
       cc.append(topic2_subtopic1 (ns, rider))
-   if TCM.getopt('topic2_subtopic2'):
+   if TCM.getopt('topic2.subtopic2'):
       cc.append(topic2_subtopic2 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
 #================================================================================
+
+TCM.start_of_submenu('subtopic1', level='topic2')
+TCM.add_option('arg1', range(2))
+TCM.add_option('arg2', range(5))
+
+#--------------------------------------------------------------------------------
 
 def topic2_subtopic1 (ns, rider):
    """
@@ -281,6 +284,12 @@ def topic2_subtopic1 (ns, rider):
    return QRU.on_exit (ns, rider, cc)
 
 #================================================================================
+
+TCM.start_of_submenu('subtopic2', level='topic2')
+TCM.add_option('arg1', range(2))
+TCM.add_option('arg2', range(5))
+
+#--------------------------------------------------------------------------------
 
 def topic2_subtopic2 (ns, rider):
    """
@@ -355,13 +364,12 @@ def topic2_subtopic2 (ns, rider):
 #********************************************************************************
 
 # Add to the TDLCompileMenu:
-TCM.start_of_submenu('help')
-TCM.add_option('on_entry', prompt='help on QRU.on_entry()')
-TCM.add_option('on_exit', prompt='help on QRU.on_exit()')
-TCM.add_option('helpnode', prompt='help on QRU.helpnode()')
-TCM.add_option('twig', prompt='help on ET.twig()')
-TCM.radio_buttons(trace=True)
-TCM.end_of_submenu()
+TCM.start_of_submenu('HELP', level=QR_module)
+TCM.add_option('on_entry', prompt='help on QRU.on_entry()', selectable=True)
+TCM.add_option('on_exit', prompt='help on QRU.on_exit()', selectable=True)
+TCM.add_option('helpnode', prompt='help on QRU.helpnode()', selectable=True)
+TCM.add_option('twig', prompt='help on ET.twig()', selectable=True)
+## TCM.radio_buttons(trace=True)
 
 
 #--------------------------------------------------------------------------------
@@ -379,13 +387,13 @@ def HELP (ns, rider):
    cc = []
 
    # Replace this part:
-   if TCM.getopt('_help_on_entry'):
+   if TCM.getopt('HELP.on_entry'):
       cc.append(QRU.helpnode (ns, rider, func=QRU.on_entry))
-   if TCM.getopt('_help_on_exit'):
+   if TCM.getopt('HELP.on_exit'):
       cc.append(QRU.helpnode (ns, rider, func=QRU.on_exit))
-   if TCM.getopt('_help_helpnode'):
+   if TCM.getopt('HELP.helpnode'):
       cc.append(QRU.helpnode (ns, rider, func=QRU.helpnode))
-   if TCM.getopt('_help_twig'):
+   if TCM.getopt('HELP.twig'):
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -406,6 +414,7 @@ def HELP (ns, rider):
 
 # Make the accumulated TDLCompileMenu:
 itsTDLCompileMenu = TCM.TDLMenu()
+itsTCM = TCM
 
 #--------------------------------------------------------------------------------
 
