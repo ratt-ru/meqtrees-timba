@@ -170,7 +170,8 @@ def format_float(v, name=None, nsig=4, trace=False):
 # Format a record:
 #================================================================================
 
-def format_record(rr, txt=None, ss=None, level=0, full=False, mode='str'):
+def format_record(rr, txt=None, ss=None, recurse=1000,
+                  level=0, full=False, mode='str'):
     """
     Format the given record
     """
@@ -204,7 +205,12 @@ def format_record(rr, txt=None, ss=None, level=0, full=False, mode='str'):
     for key in rr.keys():
         if isinstance(rr[key],dict):
             ss += prefix+str(key)+':'
-            ss = format_record(rr[key], ss=ss, level=level+1, full=full)
+            if level>recurse:
+                ss += '  (level='+str(level)+' > recurse='+str(recurse)+')'
+            else:
+                ss = format_record(rr[key], ss=ss,
+                                   recurse=recurse,
+                                   level=level+1, full=full)
 
     if level==0:
         ss += '\n**\n'
