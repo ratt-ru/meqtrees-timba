@@ -194,9 +194,9 @@ class TDLOptionManager (object):
       """Integrate (the contents of) the given TDLOptionManager object
       with the current one.
       """
-      key = TCM._name
-      self._menudef['order'].append(key)
-      self._menudef['menu'][key] = TCM._menudef
+      # key = TCM._name
+      # self._menudef['order'].append(key)
+      # self._menudef['menu'][key] = TCM._menudef
       return True
       
 
@@ -287,6 +287,7 @@ class TDLOptionManager (object):
                     hide=hide, disable=disable,
                     master=master, slaves=[],
                     menukey=menukey,
+                    level=self.current_menu_level(),
                     selectable=selectable,
                     choice=choice, more=more)
       self._current_submenu['menu'][key] = optdef
@@ -378,11 +379,13 @@ class TDLOptionManager (object):
       if topmenu:                  # topmenu==True ONLY when called from .__init__()
          self._complete = False
          key = relkey
+         level = 0
          menukey = ''              # ...?
       else:
-         self.check_current_submenu(level, trace=trace)
+         relkey = self.check_current_submenu(relkey, level, trace=trace)
          menukey = self._current_submenu['key']
          key = menukey + self._keysep + relkey
+         level = 1+self.current_menu_level()
          if self._complete:
             raise ValueError,'** TOM.start_of_submenu(): TDLMenu is complete'
 
@@ -413,6 +416,7 @@ class TDLOptionManager (object):
                      master=master, slaves=[],
                      menukey=menukey,
                      selectable=True,
+                     level=level,
                      callback=callback,
                      sepcount=0,
                      order=[], menu=dict())
@@ -438,52 +442,67 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def check_current_submenu(self, level=None, trace=False):
+   def check_current_submenu(self, relkey, level=None, trace=False):
       """Check whether the current submenu is the expected one.
       The given 'level' can be None, a string or an integer (pos or neg).
       If not, try to correct the situation.
-      Called from .start_of_submenu()
+      The level (name) may also be derived from the relative key (relkey),
+      which is expected to have dot ('.') separators.
+      Called only from .start_of_submenu()
       """
       # trace = True
-      s = '\n** .check_current_submenu(level='+str(level)+'): '
+      s = '\n** .check_current_submenu(relkey='+str(relkey)+', level='+str(level)+'): '
 
       key = self._current_submenu['key'] 
       s += '(current key='+str(key)+') '
 
-      if level==None:                        # not specified
+      # First make sure that level is a string:
+      ss = relkey.split('.')  
+      if len(ss)>1:                         # e.g. 'menu.relkey'
+         level = relkey.replace('.'+ss[-1],'')    # level-string is relkey without the last bit
+         level = level.replace('.',self._keysep)  # replace dots (.) by keysep (e.g. '|')
+         relkey = ss[-1]                    # the last bit is the actual relkey
+
+      elif level==None:                     # level not specified
          if trace:
             print s,'no level specified, keep menu:',key
-         return True                        # nothing to check
-      elif isinstance(level,int):            # e.g. level=0 (base menu) etc
+         return relkey                      # nothing to check
+
+      elif isinstance(level,int):           # e.g. level=0 (base menu) etc
          ss = key.split(self._keysep)
-         if level>=0:                        # the absolute level (in the current branch!)
-            level = ss[level]                 #
+         if level>=0:                       # the absolute level (in the current branch!)
+            level = ss[level]               #
             if trace:
                print s,'integer level (pos: absolute level) converted to:',level
          else:                              # <0: descend one or more levels
-            level = ss[level-1]               # a little confusing: ss[-1] would be the current menu
+            level = ss[level-1]             # a little confusing: ss[-1] would be the current menu
             if trace:
                print s,'integer level (neg: relative to current level) converted to:',level
+
       elif not isinstance(level,str):
          s += 'level not a string'
          raise ValueError,s
+
       
-      # Deal with string level:
-      ss = key.split(level)
+      # Then deal with the string level:
+      ss = key.split(level)                  # [left,right] part of key w.r.t. level-string 
       if len(ss)==1:
          s += 'menu not found: ss='+str(ss)
          raise ValueError,s
-      elif ss[-1]=='':                      # level is at the end of key
+      elif ss[-1]=='':                       # level-string is at the end of key
          if trace:
             print s,'current menu is OK:',key
-         return True                        # the current submenu is OK
+         return relkey                       # the current submenu is OK
 
-      # Find the new self._current_submenu record:
+      # Finally find the new self._current_submenu record:
       newkey = ss[0]+level                   # new menu key (not complete)
       self._current_submenu = self.find_defrec(newkey)
+
+      # Finished:
       if trace:
-         print s,'-> new current menu:',newkey,'->',self._current_submenu['key']
-      return True
+         print s,' -> relkey =',relkey
+         print '    -> key of new current menu(',newkey,') ->',self._current_submenu['key']
+      return relkey                    # Return the (possibly modified) relkey:
       
 
    #--------------------------------------------------------------------------
@@ -493,6 +512,8 @@ class TDLOptionManager (object):
 
    def current_menu_key(self, trace=False):
       """Return the (defrec) key of the current submenu"""
+      # if not getattr(self, self._current_submenu, None):
+      #    return self._name
       return self._current_submenu['key']
 
    def current_menu_level(self, trace=False):
@@ -503,6 +524,8 @@ class TDLOptionManager (object):
 
    def current_menu_symbol(self, trace=False):
       """Return the (global) symbol of the current submenu"""
+      # if not getattr(self, self._current_submenu, None):
+      #    return self.key2symbol(self._name)
       return self._current_submenu['symbol']
 
    #--------------------------------------------------------------------------
@@ -575,7 +598,7 @@ class TDLOptionManager (object):
    def insert_group_control (self, trace=False):
       """Add a group-control button to the current submenu.
       """
-      choice = ['-','select all submenus','select none',
+      choice = ['-','select all selectables','select none',
                 '-','hide this submenu','hide nominal','unhide everything',
                 '-','revert to defaults','revert to snapshot',
                 '-','help','show defrec']
@@ -610,7 +633,7 @@ class TDLOptionManager (object):
             print '  its menukey =',menukey
          # menu = self.find_defrec(menukey, trace=trace)   # old
          menu = self._defrecs[menukey]
-         if value=='select all submenus':
+         if value=='select all selectables':
             self.select_group (menu, True, trace=trace)
          elif value=='select none':
             self.select_group (menu, False, trace=trace)
@@ -1404,23 +1427,35 @@ class TDLOptionManager (object):
       for key in self._defrecs.keys():
          dd = self._defrecs[key]
          if dd['type']=='menu':
-            s = '['
+            level = dd['level']
+            s = ' '
+            s += level*'..'
+            s += '('+str(level)+')'
+            s += ' summary: ['
             first = True
             for key1 in dd['order']:
                dd1 = self._defrecs[key1]
                relkey1 = dd1['relkey']
-               if dd1['type']=='option' and (not relkey1 in ignore):
-                  v = self._tdlobjects[key1].value
+               v = self._tdlobjects[key1].value
+               if relkey1 in ignore:
+                  pass
 
-                  if first:
-                     first = False
+               elif dd1['type']=='menu':
+                  if not first: s += ', '
+                  first = False
+                  if v:
+                     s += '+'
                   else:
-                     s += ', '
-
+                     s += '-'
+                     
+               elif dd1['type']=='option':
+                  if not first: s += ', '
+                  first = False
                   if isinstance(v,str):
-                     s += v[:ncmax]
+                     s += '"'+v[:ncmax]
                      if len(v)>ncmax:
                         s += '..'
+                     s += '"'
                   else:
                      s += str(v)
             s += ']'
