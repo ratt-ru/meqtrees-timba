@@ -22,6 +22,7 @@ Click on the top bookmark ('help_on__how_to_use_this_module')
 #   - 09 jun 2008: implemented make_helpnodes
 #   - 30 jul 2008: removed QRU.MeqNode() etc
 #   - 05 sep 2008: implemented 'coordinates'
+#   - 30 sep 2008: switched to TDLOptionManager
 #
 # Description:
 #
@@ -95,127 +96,140 @@ import math
 import numpy
 
 
+#********************************************************************************
+# Some preliminaries:
+#********************************************************************************
+
+QR_module = 'QR_template'
+
+# Start the file/doc header to be used in exec functions at the bottom.
+# It may be modified, depending on the selection of topics.
+QR_header = QR_module
+
+# Start the TDLCompileMenu (TCM): It is added-to throughout.
+TCM = QRU.TDLOptionManager.TDLOptionManager(QR_module, prompt=QR_module+' topics')
+
+
+
+
+
+
 #******************************************************************************** 
 # TDLCompileMenu (included in QuickRef menu):
 #********************************************************************************
 
-WNB_observatories = 'ALMA ARECIBO ATCA BIMA CLRO DRAO DWL GB GBT GMRT IRAM PDB IRAM_PDB JCMT MOPRA MOST NRAO12M NRAO_GBT PKS VLA VLBA WSRT'.split(' ')
-
-WNB_ssobjs = 'SUN MOON MERCURIUS VENUS MARS JUPITER SATURNUS URANUS NEPTUNUS PLUTO'.split(' ')
-
-
-oo = TDLCompileMenu("QR_MeqNodes topics:",
-                    # TDLOption_user_level,               # ... needs some thought ...
-                    # TDLOption('opt_allcats',"all",True),
-                    TDLOption('opt_alltopics',"override: include all topics",True),
-                    TDLMenu("Unary math (unops) nodes (one child)",
-                            TDLOption('opt_unops_twig',"input twig (child node)",
-                                      ET.twig_names(), more=str),
-                            toggle='opt_unops'),
-                    TDLMenu("Binary math (binops) nodes (two children)",
-                            TDLOption('opt_binops_lhs',"lhs twig (child node)",
-                                      ET.twig_names(), more=str),
-                            TDLOption('opt_binops_rhs',"rhs twig (child node)",
-                                      ET.twig_names(), more=str),
-                            toggle='opt_binops'),
-                    TDLMenu("Multimath: one or more children",
-                            TDLOption('opt_multimath_twig1',"1st twig (child node)",
-                                      ET.twig_names(), more=str),
-                            TDLOption('opt_multimath_twig2',"2nd twig (child node)",
-                                 ET.twig_names(include=[None]), more=str),
-                            TDLOption('opt_multimath_twig3',"3rd twig (child node)",
-                                      ET.twig_names(include=[None]), more=str),
-                            toggle='opt_multimath'),
-                    TDLMenu("Leaf nodes (no children)",
-                            toggle='opt_leaves'),
-                    TDLMenu("Interaction with FITS files",
-                            TDLMenu("write/read results to/from FITS file",
-                            toggle='opt_FITS_RW'),
-                            TDLMenu("FITSImage (mode=1)",
-                                    TDLOption('opt_FITSImage_cutoff',"0.0<cutoff level<1.0",
-                                              [1.0,0.9,0.5,0.1,0.0], more=float),
-                                    toggle='opt_FITSImage'),
-                            TDLMenu("FITSImage (mode=2)",
-                                    TDLOption('opt_FITSImage_cutoff_mode2',"0.0<cutoff level<1.0",
-                                              [1.0,0.9,0.5,0.1,0.0], more=float),
-                                    TDLOption('opt_FITSImage_resampler_mode',"ReSampler mode",
-                                              [1,2], more=int),
-                                    toggle='opt_FITSImage_mode2'),
-                            toggle='opt_FITS'),
-                    TDLMenu("Tensor nodes (multiple vellsets)",
-                            TDLOption('opt_tensor_manipulation',"Tensor manipulation",False),
-                            TDLOption('opt_tensor_matrix',"Matrix operations",False),
-                            TDLOption('opt_tensor_matrix22',"Operations on 2x2 matrices",False),
-                            toggle='opt_tensor'),
-                    TDLOption('opt_axisreduction',"axisreduction",False),
-                    TDLMenu("resampling",
-                            TDLOption('opt_resampling_MeqModRes_twig',
-                                      "input twig (child node) of MeqModRes",
-                                      ET.twig_names(first='f+t'), more=str),
-                            TDLOption('opt_resampling_MeqModRes_num_freq',
-                                      "nr of freq cells for MeqModRes num_cells [nt,nf]",
-                                      [4,1,2,3,5,6,10,20,50], more=int),
-                            TDLOption('opt_resampling_MeqModRes_num_time',
-                                      "nr of time cells for MeqModRes num_cells [nt,nf]",
-                                      [4,1,2,3,5,6,10,20,50], more=int),
-                            TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
-                                      [1,2]),
-                            toggle='opt_resampling'),
-                    TDLMenu("compounder",
-                            TDLOption('opt_compounder_simple',"simple",False),
-                            TDLOption('opt_compounder_advanced',"advanced",False),
-                            toggle='opt_compounder'),
-                    TDLMenu("flagging",
-                            TDLOption('opt_flagging_twig',"input twig (child node)",
-                                      ET.twig_names('noise', first='noise_3'), more=str),
-                            TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
-                                      [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
-                            toggle='opt_flagging'),
-                    TDLOption('opt_solving',"solving",False),
-                    TDLMenu("spigot2sink (MS)",
-                            TDLOption('opt_s2s_nstat',"nr of stations in array",
-                                      [5,3,4,5,6,7,8,9,10,14], more=int),
-                            TDLOption('opt_s2s_pynodePlot',"make 4-corrs plot",False),
-                            toggle='opt_s2s'),
-                    TDLMenu("visualization",
-                            TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
-                                      ET.twig_names(first='t'), more=str),
-                            toggle='opt_visualization'),
-                    TDLMenu("coordinates",
-                            TDLOption('opt_coordinates_RA',"input Right Ascension (rad)",
-                                      [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5], more=float),
-                            TDLOption('opt_coordinates_DEC',"input Declination (rad)",
-                                      [1.0,0.0,-1.0,math.pi/2], more=float),
-                            TDLOption('opt_coordinates_ssobj',"(override) RA,DEC from Solar System object",
-                                      WNB_ssobjs+[None], more=str),
-                            TDLMenu("Earth-related",
-                                    TDLOption('opt_coordinates_observatory',"Observatory",
-                                              WNB_observatories, more=str),
-                                    toggle='opt_coord_azel'),
-                            TDLMenu("image-related",
-                                    TDLOption('opt_coordinates_RA0',"RA of phase centre (rad)",
-                                              [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5], more=float),
-                                    TDLOption('opt_coordinates_DEC0',"DEC of phase centre (rad)",
-                                              [1.0,0.0,-1.0,math.pi/2], more=float),
-                                    toggle='opt_coord_lmn'),
-                            toggle='opt_coordinates'),
-                    # TDLOption('opt_transforms',"transforms",False),
-                    TDLOption('opt_flowcontrol',"flowcontrol",False),
+if False:
+   oo = TDLCompileMenu("QR_MeqNodes topics:",
+                       # TDLOption_user_level,               # ... needs some thought ...
+                       # TDLOption('allcats',"all",True),
+                       TDLOption('opt_alltopics',"override: include all topics",True),
+                       TDLMenu("Unary math (unops) nodes (one child)",
+                               TDLOption('opt_unops_twig',"input twig (child node)",
+                                         ET.twig_names(), more=str),
+                               toggle='opt_unops'),
+                       TDLMenu("Binary math (binops) nodes (two children)",
+                               TDLOption('opt_binops_lhs',"lhs twig (child node)",
+                                         ET.twig_names(), more=str),
+                               TDLOption('opt_binops_rhs',"rhs twig (child node)",
+                                         ET.twig_names(), more=str),
+                               toggle='opt_binops'),
+                       TDLMenu("Multimath: one or more children",
+                               TDLOption('opt_multimath_twig1',"1st twig (child node)",
+                                         ET.twig_names(), more=str),
+                               TDLOption('opt_multimath_twig2',"2nd twig (child node)",
+                                         ET.twig_names(include=[None]), more=str),
+                               TDLOption('opt_multimath_twig3',"3rd twig (child node)",
+                                         ET.twig_names(include=[None]), more=str),
+                               toggle='opt_multimath'),
+                       TDLMenu("Leaf nodes (no children)",
+                               toggle='opt_leaves'),
+                       TDLMenu("Interaction with FITS files",
+                               TDLMenu("write/read results to/from FITS file",
+                                       toggle='opt_FITS_RW'),
+                               TDLMenu("FITSImage (mode=1)",
+                                       TDLOption('opt_FITSImage_cutoff',"0.0<cutoff level<1.0",
+                                                 [1.0,0.9,0.5,0.1,0.0], more=float),
+                                       toggle='opt_FITSImage'),
+                               TDLMenu("FITSImage (mode=2)",
+                                       TDLOption('opt_FITSImage_cutoff_mode2',"0.0<cutoff level<1.0",
+                                                 [1.0,0.9,0.5,0.1,0.0], more=float),
+                                       TDLOption('opt_FITSImage_resampler_mode',"ReSampler mode",
+                                                 [1,2], more=int),
+                                       toggle='opt_FITSImage_mode2'),
+                               toggle='opt_FITS'),
+                       TDLMenu("Tensor nodes (multiple vellsets)",
+                               TDLOption('opt_tensor_manipulation',"Tensor manipulation",False),
+                               TDLOption('opt_tensor_matrix',"Matrix operations",False),
+                               TDLOption('opt_tensor_matrix22',"Operations on 2x2 matrices",False),
+                               toggle='opt_tensor'),
+                       TDLOption('opt_axisreduction',"axisreduction",False),
+                       TDLMenu("resampling",
+                               TDLOption('opt_resampling_MeqModRes_twig',
+                                         "input twig (child node) of MeqModRes",
+                                         ET.twig_names(first='f+t'), more=str),
+                               TDLOption('opt_resampling_MeqModRes_num_freq',
+                                         "nr of freq cells for MeqModRes num_cells [nt,nf]",
+                                         [4,1,2,3,5,6,10,20,50], more=int),
+                               TDLOption('opt_resampling_MeqModRes_num_time',
+                                         "nr of time cells for MeqModRes num_cells [nt,nf]",
+                                         [4,1,2,3,5,6,10,20,50], more=int),
+                               TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
+                                         [1,2]),
+                               toggle='opt_resampling'),
+                       TDLMenu("compounder",
+                               TDLOption('opt_compounder_simple',"simple",False),
+                               TDLOption('opt_compounder_advanced',"advanced",False),
+                               toggle='opt_compounder'),
+                       TDLMenu("flagging",
+                               TDLOption('opt_flagging_twig',"input twig (child node)",
+                                         ET.twig_names('noise', first='noise_3'), more=str),
+                               TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
+                                         [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
+                               toggle='opt_flagging'),
+                       TDLOption('opt_solving',"solving",False),
+                       TDLMenu("spigot2sink (MS)",
+                               TDLOption('opt_s2s_nstat',"nr of stations in array",
+                                         [5,3,4,5,6,7,8,9,10,14], more=int),
+                               TDLOption('opt_s2s_pynodePlot',"make 4-corrs plot",False),
+                               toggle='opt_s2s'),
+                       TDLMenu("visualization",
+                               TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
+                                         ET.twig_names(first='t'), more=str),
+                               toggle='opt_visualization'),
+                       TDLMenu("coordinates",
+                               TDLOption('opt_coordinates_RA',"input Right Ascension (rad)",
+                                         [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5], more=float),
+                               TDLOption('opt_coordinates_DEC',"input Declination (rad)",
+                                         [1.0,0.0,-1.0,math.pi/2], more=float),
+                               TDLOption('opt_coordinates_ssobj',"(override) RA,DEC from Solar System object",
+                                         WNB_ssobjs+[None], more=str),
+                               TDLMenu("Earth-related",
+                                       TDLOption('opt_coordinates_observatory',"Observatory",
+                                                 WNB_observatories, more=str),
+                                       toggle='opt_coord_azel'),
+                               TDLMenu("image-related",
+                                       TDLOption('opt_coordinates_RA0',"RA of phase centre (rad)",
+                                                 [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5], more=float),
+                                       TDLOption('opt_coordinates_DEC0',"DEC of phase centre (rad)",
+                                                 [1.0,0.0,-1.0,math.pi/2], more=float),
+                                       toggle='opt_coord_lmn'),
+                               toggle='opt_coordinates'),
+                       # TDLOption('opt_transforms',"transforms",False),
+                       TDLOption('opt_flowcontrol',"flowcontrol",False),
                     
-                    TDLMenu("help",
-                            TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
-                            toggle='opt_helpnodes'),
-
-                    toggle='opt_QR_MeqNodes')
-
-# Assign the menu to an attribute, for outside visibility:
-itsTDLCompileMenu = oo
+                       TDLMenu("help",
+                               TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+                               toggle='opt_helpnodes'),
+                       
+                       toggle='opt_QR_MeqNodes')
+   
+   # Assign the menu to an attribute, for outside visibility:
+   itsTDLCompileMenu = oo
 
 #********************************************************************************
 # Top function, called from QuickRef.py:
 #********************************************************************************
 
-header = 'QR_MeqNodes'
 
 def QR_MeqNodes (ns, rider):
    """
@@ -223,41 +237,40 @@ def QR_MeqNodes (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, QR_MeqNodes)
    cc = []
-   override = opt_alltopics
-   global header
-   
-   if override or opt_unops:
+   prefix = TCM.getopt_prefix(QR_MeqNodes)
+
+   if TCM.getopt(prefix+'unops'):
       cc.append(unops (ns, rider))
-   if override or opt_binops:
+   if TCM.getopt(prefix+'binops'):
       cc.append(binops (ns, rider))
-   if override or opt_multimath:
+   if TCM.getopt(prefix+'multimath'):
       cc.append(multimath (ns, rider))
-   if override or opt_leaves:             
+   if TCM.getopt(prefix+'leaves'):
       cc.append(leaves (ns, rider))
-   if override or opt_FITS:
+   if TCM.getopt(prefix+'FITS'):
       cc.append(FITS (ns, rider))
-   if override or opt_tensor:
+   if TCM.getopt(prefix+'tensor'):
       cc.append(tensor (ns, rider))
-   if override or opt_axisreduction:
+   if TCM.getopt(prefix+'axisreduction'):
       cc.append(axisreduction (ns, rider))
-   if override or opt_resampling:
+   if TCM.getopt(prefix+'resampling'):
       cc.append(resampling (ns, rider))
-   if override or opt_compounder:
+   if TCM.getopt(prefix+'compounder'):
       cc.append(compounder (ns, rider))
-   if override or opt_flagging:
+   if TCM.getopt(prefix+'flagging'):
       cc.append(flagging (ns, rider))
-   if override or opt_solving:
+   if TCM.getopt(prefix+'solving'):
       cc.append(solving (ns, rider))
-   if override or opt_s2s:
+   if TCM.getopt(prefix+'spigot2sink'):
       cc.append(spigot2sink (ns, rider))
-   if override or opt_visualization:
+   if TCM.getopt(prefix+'visualization'):
       cc.append(visualization (ns, rider))
-   if override or opt_flowcontrol:
+   if TCM.getopt(prefix+'flowcontrol'):
       cc.append(flowcontrol (ns, rider))
-   if override or opt_coordinates:
+   if TCM.getopt(prefix+'coordinates'):
       cc.append(coordinates (ns, rider))
 
-   if override or opt_helpnodes:
+   if TCM.getopt(prefix+'HELP'):
       cc.append(make_helpnodes (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -265,13 +278,19 @@ def QR_MeqNodes (ns, rider):
 
 
 #********************************************************************************
+# General help:
+#********************************************************************************
 
-def make_helpnodes (ns, rider):
+# TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+
+
+def HELP (ns, rider):
    """
    helpnodes...
    """
-   stub = QRU.on_entry(ns, rider, make_helpnodes)
-   
+   stub = QRU.on_entry(ns, rider, HELP)
+   prefix = TCM.getopt_prefix(HELP)
+
    cc = []
    if opt_helpnode_twig:
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
@@ -279,13 +298,23 @@ def make_helpnodes (ns, rider):
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
+
 #********************************************************************************
 # Topics and their subtopics:
 #********************************************************************************
 
+
 #================================================================================
 # spigot2sink_... 
 #================================================================================
+
+TCM.start_of_submenu(QR_module+'spigot2sink')
+TCM.add_option('nstat', [5,3,4,5,6,7,8,9,10,14],
+               "nr of stations in array", more=int)
+TCM.add_option('pynodePlot', False,
+               "make 4-corrs plot")
+
+#-------------------------------------------------------------------------------
 
 def spigot2sink (ns, rider):
    """
@@ -320,8 +349,10 @@ def spigot2sink (ns, rider):
    """
 
    stub = QRU.on_entry(ns, rider, spigot2sink, stubname='s2s')
-   nstat = QRU.getopt(globals(), 'opt_s2s_nstat', rider)
-   pynodePlot = QRU.getopt(globals(), 'opt_s2s_pynodePlot', rider)
+   prefix = TCM.getopt_prefix(spigot2sink)
+   
+   nstat = TCM.getopt(prefix+'s2s_nstat', rider)
+   pynodePlot = TCM.getopt(prefix+'s2s_pynodePlot', rider)
    # msname = '3C286-10705290.MS'
    nstat = 5
    cc = []
@@ -368,18 +399,30 @@ def spigot2sink (ns, rider):
 # coordinates_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'coordinates')
+WNB_ssobjs = 'SUN MOON MERCURIUS VENUS MARS JUPITER SATURNUS URANUS NEPTUNUS PLUTO'.split(' ')
+TCM.add_option('ssobj', WNB_ssobjs+[None],
+               "(override) RA,DEC from Solar System object", more=str)
+TCM.add_option('RA', [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5],
+               "input Right Ascension (rad)", more=float)
+TCM.add_option('DEC', [1.0,0.0,-1.0,math.pi/2],
+               "input Declination (rad)", more=float)
+
+#-------------------------------------------------------------------------------
+
 def coordinates (ns, rider):
    """
    Nodes that to (mostly astronomical) coordinate transforms.
    """
    stub = QRU.on_entry(ns, rider, coordinates)
    cc = []
-   override = opt_alltopics
+   prefix = TCM.getopt_prefix(coordinates)
 
    # Get the radec (RA,DEC) node here, and pass it down:
-   ssobj = QRU.getopt(globals(), 'opt_coordinates_ssobj', rider)
-   ra = QRU.getopt(globals(), 'opt_coordinates_RA', rider)
-   dec = QRU.getopt(globals(), 'opt_coordinates_DEC', rider)
+   ssobj = TCM.getopt(prefix+'coordinates_ssobj', rider)
+   ra = TCM.getopt(prefix+'coordinates_RA', rider)
+   dec = TCM.getopt(prefix+'coordinates_DEC', rider)
+
    if False and ssobj:                                           # temporarily disabled
       # Measures cannot find the planetary data table DE200
       radec = stub('radec') << Meq.ObjectRADec(obj_name=ssobj)
@@ -388,15 +431,23 @@ def coordinates (ns, rider):
       DEC = stub('DEC') << dec
       radec = stub('radec') << Meq.Composer(RA,DEC)
 
-   if override or opt_coord_azel:
-      cc.append(coord_azel (ns, rider, radec=radec))
-   if override or opt_coord_lmn:
-      cc.append(coord_lmn (ns, rider, radec=radec))
+   if TCM.getopt(prefix+'coordinates_azel'):
+      cc.append(coordinates_azel (ns, rider, radec=radec))
+   if TCM.getopt(prefix+'coordinates_lmn'):
+      cc.append(coordinates_lmn (ns, rider, radec=radec))
+
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
 
-def coord_azel (ns, rider, radec=None):
+TCM.start_of_submenu('coordinates_azel', "Earth-related")     
+WNB_observatories = 'ALMA ARECIBO ATCA BIMA CLRO DRAO DWL GB GBT GMRT IRAM PDB IRAM_PDB JCMT MOPRA MOST NRAO12M NRAO_GBT PKS VLA VLBA WSRT'.split(' ')
+TCM.add_option('observatory', WNB_observatories,
+               "Observatory name", more=False)
+
+#--------------------------------------------------------------------------------
+
+def coordinates_azel (ns, rider, radec=None):
    """
    Coordinate transform nodes that involve Earth-related coordinates like
    Azimuth, Elevation, Latitude, Longitude, Local Sidereal Time (LST) etc.
@@ -429,12 +480,13 @@ def coord_azel (ns, rider, radec=None):
    </tip>
    """
 
-   stub = QRU.on_entry(ns, rider, coord_azel)
+   stub = QRU.on_entry(ns, rider, coordinates_azel)
    cc = []
+   prefix = TCM.getopt_prefix(coordinates_azel)
 
    cc.append(radec)
    
-   obs = QRU.getopt(globals(), 'opt_coordinates_observatory', rider)
+   obs = TCM.getopt(prefix+'coordinates_observatory', rider)
 
    cc.append(stub('AzEl')('observatory') << Meq.AzEl(radec, observatory=obs))
    if False:
@@ -456,10 +508,17 @@ def coord_azel (ns, rider, radec=None):
    
    return QRU.on_exit (ns, rider, cc, show_recurse=True)
 
+#--------------------------------------------------------------------------------
+
+TCM.start_of_submenu('coordinates_lmn', "image-related")
+TCM.add_option('RA0', [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5],
+               "RA of phase centre (rad)", more=float)
+TCM.add_option('DEC0', [1.0,0.0,-1.0,math.pi/2],
+               "DEC of phase centre (rad)", more=float)
 
 #--------------------------------------------------------------------------------
 
-def coord_lmn (ns, rider, radec=None):
+def coordinates_lmn (ns, rider, radec=None):
    """
    Coordinate transform nodes related to relative sky coordinates (l,m,n).
 
@@ -476,13 +535,14 @@ def coord_lmn (ns, rider, radec=None):
    </tip>
    """
 
-   stub = QRU.on_entry(ns, rider, coord_lmn)
+   stub = QRU.on_entry(ns, rider, coordinates_lmn)
    cc = []
+   prefix = TCM.getopt_prefix(coordinates_lmn)
 
    cc.append(radec)
 
-   ra0 = QRU.getopt(globals(), 'opt_coordinates_RA0', rider)
-   dec0 = QRU.getopt(globals(), 'opt_coordinates_DEC0', rider)
+   ra0 = TCM.getopt(prefix+'coordinates_RA0', rider)
+   dec0 = TCM.getopt(prefix+'coordinates_DEC0', rider)
    radec0 = stub('radec0') << Meq.Composer(ra0,dec0)
    cc.append(radec0)
    
@@ -504,6 +564,12 @@ def coord_lmn (ns, rider, radec=None):
 # transforms_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'transforms')
+# TCM.add_option('')
+# TCM.add_option('')
+
+#-------------------------------------------------------------------------------
+
 def transforms (ns, rider):
    """
    MeqUVBrick
@@ -513,14 +579,23 @@ def transforms (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, transforms)
    cc = []
+   prefix = TCM.getopt_prefix(transforms)
+   
    # cc.append(transforms_coord (ns, rider))
    # cc.append(transforms_FFT (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
+
 #================================================================================
 # flowcontrol_... 
 #================================================================================
+
+TCM.start_of_submenu(QR_module+'flowcontrol')
+# TCM.add_option('')
+# TCM.add_option('')
+
+#-------------------------------------------------------------------------------
 
 def flowcontrol (ns, rider):
    """
@@ -528,6 +603,8 @@ def flowcontrol (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flowcontrol)
    cc = []
+   prefix = TCM.getopt_prefix(flowcontrol)
+
    cc.append(flowcontrol_reqseq (ns, rider))
    # cc.append(flowcontrol_reqmux (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -551,6 +628,7 @@ def flowcontrol_reqseq (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flowcontrol_reqseq)
    cc = []
+   prefix = TCM.getopt_prefix(flowcontrol_reqseq)
 
    children = []
    for i in range(5):
@@ -571,6 +649,16 @@ def flowcontrol_reqseq (ns, rider):
 # visualization_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'visualization')
+# TCM.add_option('')
+# TCM.add_option('')
+
+                               TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
+                                         ET.twig_names(first='t'), more=str),
+                               toggle='opt_visualization'),
+
+#-------------------------------------------------------------------------------
+
 def visualization (ns, rider):
    """
    MeqComposer (inpector)
@@ -582,6 +670,8 @@ def visualization (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, visualization)
    cc = []
+   prefix = TCM.getopt_prefix(visualization)
+
    cc.append(visualization_inspector(ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
@@ -608,8 +698,9 @@ def visualization_inspector (ns, rider):
    For more control, check out the PyNodePlots.
    """
    stub = QRU.on_entry(ns, rider, visualization_inspector)
+   prefix = TCM.getopt_prefix(visualization_inspector)
    
-   tname = QRU.getopt(globals(), 'opt_visualization_inspector_twig', rider)
+   tname = TCM.getopt(prefix+'visualization_inspector_twig', rider)
    twig = ET.twig(ns, tname)
    cc = []
    plot_label = []
@@ -633,6 +724,12 @@ def visualization_inspector (ns, rider):
 # solving_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'solving')
+# TCM.add_option('')
+# TCM.add_option('')
+
+#-------------------------------------------------------------------------------
+
 def solving (ns, rider):
    """
    The purpose of MeqTrees is not only to allow the implementation of an arbitrary
@@ -646,6 +743,7 @@ def solving (ns, rider):
 
    """
    stub = QRU.on_entry(ns, rider, solving)
+   prefix = TCM.getopt_prefix(solving)
    cc = []
    cc.append(solving_ab (ns, rider))    
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -674,6 +772,7 @@ def solving_ab (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, solving_ab)
    cc = []
+   prefix = TCM.getopt_prefix(solving_ab)
 
    a = stub('a') << Meq.Parm(0, tags='solvable')
    b = stub('b') << Meq.Parm(0, tags='solvable')
@@ -717,6 +816,18 @@ def solving_ab (ns, rider):
 # flagging_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'flagging')
+TCM.add_option('')
+TCM.add_option('')
+
+                               TDLOption('opt_flagging_twig',"input twig (child node)",
+                                         ET.twig_names('noise', first='noise_3'), more=str),
+                               TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
+                                         [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
+                               toggle='opt_flagging'),
+
+#-------------------------------------------------------------------------------
+
 def flagging (ns, rider):
    """
    MeqZeroFlagger
@@ -724,6 +835,8 @@ def flagging (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flagging)
    cc = []
+   prefix = TCM.getopt_prefix(flagging)
+
    cc.append(flagging_simple (ns, rider))
    # cc.append(flagging_merge (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -749,8 +862,9 @@ def flagging_simple (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flagging_simple)
    cc = []
+   prefix = TCM.getopt_prefix(flagging_simple)
 
-   cc.append(stub('input') << Meq.Exp(ET.twig(ns, QRU.getopt(globals(), 'opt_flagging_twig',rider))))
+   cc.append(stub('input') << Meq.Exp(ET.twig(ns, TCM.getopt(prefix+'flagging_twig',rider))))
    cc.append(stub('mean') << Meq.Mean(cc[0]))
    cc.append(stub('stddev') << Meq.StdDev(cc[0]))
    stddev = cc[-1]
@@ -760,7 +874,7 @@ def flagging_simple (ns, rider):
    cc.append(stub('absdev') << Meq.Abs(dev, qhelp=qhelp))
    absdev = cc[-1]
    
-   nsigma = QRU.getopt(globals(), 'opt_flagging_nsigma',rider)
+   nsigma = TCM.getopt(prefix+'flagging_nsigma',rider)
    cc.append(stub('abscrit') << Meq.Multiply(nsigma,stddev))
 
    qhelp ="""The zero-criterion is the absolute deviation from the mean,
@@ -781,6 +895,12 @@ def flagging_simple (ns, rider):
 # compounder_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'compounder')
+# TCM.add_option('')
+# TCM.add_option('')
+
+#-------------------------------------------------------------------------------
+
 def compounder (ns, rider):
    """
    The compounder implements an implicit function.
@@ -794,11 +914,13 @@ def compounder (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, compounder)
    cc = []
-   override = opt_alltopics
-   if override or opt_compounder_simple:
+   prefix = TCM.getopt_prefix(compounder)
+
+   if TCM.getopt(prefix+'simple'):
       cc.append(compounder_simple (ns, rider))
-   if override or opt_compounder_advanced:
+   if TCM.getopt(prefix+'advanced'):
       cc.append(compounder_advanced (ns, rider))
+
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
@@ -828,6 +950,7 @@ def compounder_simple (ns, rider):
    </remark>
    """
    stub = QRU.on_entry(ns, rider, compounder_simple)
+   prefix = TCM.getopt_prefix(compounder_simple)
 
    twigspec = 'gaussian_LM'
    twig_LM = ET.twig(ns,twigspec)
@@ -892,6 +1015,7 @@ def compounder_advanced (ns, rider):
    </remark>
    """
    stub = QRU.on_entry(ns, rider, compounder_advanced)
+   prefix = TCM.getopt_prefix(compounder_advanced)
 
    twigspec = 'gaussian_LM'
    twig_LM = ET.twig(ns,twigspec)
@@ -949,6 +1073,26 @@ def compounder_advanced (ns, rider):
 # resampling_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'resampling')
+# TCM.add_option('')
+# TCM.add_option('')
+
+
+                               TDLOption('opt_resampling_MeqModRes_twig',
+                                         "input twig (child node) of MeqModRes",
+                                         ET.twig_names(first='f+t'), more=str),
+                               TDLOption('opt_resampling_MeqModRes_num_freq',
+                                         "nr of freq cells for MeqModRes num_cells [nt,nf]",
+                                         [4,1,2,3,5,6,10,20,50], more=int),
+                               TDLOption('opt_resampling_MeqModRes_num_time',
+                                         "nr of time cells for MeqModRes num_cells [nt,nf]",
+                                         [4,1,2,3,5,6,10,20,50], more=int),
+                               TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
+                                         [1,2]),
+                               toggle='opt_resampling'),
+
+#-------------------------------------------------------------------------------
+
 def resampling (ns, rider):
    """
    The number of cells in the domain may be changed locally:
@@ -977,11 +1121,12 @@ def resampling (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, resampling)
    cc = []
+   prefix = TCM.getopt_prefix(resampling)
 
-   twig = ET.twig (ns, QRU.getopt(globals(), 'opt_resampling_MeqModRes_twig',rider))
-   num_cells = [QRU.getopt(globals(), 'opt_resampling_MeqModRes_num_time',rider),
-                QRU.getopt(globals(), 'opt_resampling_MeqModRes_num_freq',rider)]
-   mode = QRU.getopt(globals(), 'opt_resampling_MeqResampler_mode',rider)
+   twig = ET.twig (ns, TCM.getopt(prefix+'resampling_MeqModRes_twig',rider))
+   num_cells = [TCM.getopt(prefix+'resampling_MeqModRes_num_time',rider),
+                TCM.getopt(prefix+'resampling_MeqModRes_num_freq',rider)]
+   mode = TCM.getopt(prefix+'resampling_MeqResampler_mode',rider)
    cc.append(resampling_experiment (ns, rider, twig=twig,
                                     num_cells=num_cells, mode=mode))
 
@@ -1003,6 +1148,7 @@ def resampling_experiment (ns, rider, twig=None,
    re-executing.
    """
    stub = QRU.on_entry(ns, rider, resampling_experiment, stubname='resexp')
+   prefix = TCM.getopt_prefix(resampling_experiment)
    cc = [twig]
 
    qhelp = """This copy of the input is needed for display, since the
@@ -1022,6 +1168,12 @@ def resampling_experiment (ns, rider, twig=None,
 # axisreduction_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'axisreduction')
+# TCM.add_option('')
+# TCM.add_option('')
+
+#-------------------------------------------------------------------------------
+
 def axisreduction (ns, rider):
    """
    Axisreduction nodes reduce the values of all domain cells to a smaller
@@ -1037,6 +1189,8 @@ def axisreduction (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, axisreduction)
    cc = []
+   prefix = TCM.getopt_prefix(axisreduction)
+
    cc.append(axisreduction_single (ns, rider))
    cc.append(axisreduction_multiple (ns, rider))
    cc.append(axisreduction_axes (ns, rider))
@@ -1061,6 +1215,8 @@ def axisreduction_single (ns, rider):
 
    """
    stub = QRU.on_entry(ns, rider, axisreduction_single)
+   prefix = TCM.getopt_prefix(axisreduction_single)
+
    twig_name = 'f'
    twig = ET.twig(ns, twig_name)
    cc = [twig]
@@ -1083,6 +1239,7 @@ def axisreduction_multiple (ns, rider):
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
    stub = QRU.on_entry(ns, rider, axisreduction_multiple)
+   prefix = TCM.getopt_prefix(axisreduction_multiple)
 
    democlass = 'Sum'
    help = record(f=democlass+' over the cells of a single vellset, of its single child',
@@ -1112,6 +1269,7 @@ def axisreduction_axes (ns, rider):
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
    stub = QRU.on_entry(ns, rider, axisreduction_axes)
+   prefix = TCM.getopt_prefix(axisreduction_axes)
 
    twig_name = 'ft'
    twig = ET.twig(ns, twig_name)
@@ -1142,6 +1300,12 @@ def axisreduction_axes (ns, rider):
 # tensor_... 
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'tensor')
+# TCM.add_option('')
+# TCM.add_option('')
+
+#-------------------------------------------------------------------------------
+
 def tensor (ns, rider):
    """
    Many node classes can handle Results with multiple vellsets.
@@ -1154,13 +1318,15 @@ def tensor (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor)
    cc = []
-   override = opt_alltopics
-   if override or opt_tensor_manipulation:
+   prefix = TCM.getopt_prefix(tensor)
+
+   if TCM.getopt(prefix+'manipulation'):
       cc.append(tensor_manipulation (ns, rider)) 
-   if override or opt_tensor_matrix:
+   if TCM.getopt(prefix+'matrix'):
       cc.append(tensor_matrix (ns, rider))
-   if override or opt_tensor_matrix22:
+   if TCM.getopt(prefix+'matrix22'):
       cc.append(tensor_matrix22 (ns, rider))
+
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 
@@ -1177,6 +1343,7 @@ def tensor_manipulation (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor_manipulation)
    cc = []
+   prefix = TCM.getopt_prefix(tensor_manipulation)
 
    c0 = ET.twig(ns,'f', nodename='c0')
    c1 = ET.twig(ns,'t', nodename='c1')
@@ -1233,6 +1400,7 @@ def tensor_matrix (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix)
    cc = []
+   prefix = TCM.getopt_prefix(tensor_matrix)
 
    qhelp = """Make a tensor node with a 2x3 array of vellsets.
    This can be treated as a 2x3 matrix. Note the use of
@@ -1267,8 +1435,10 @@ def tensor_matrix22 (ns, rider):
 
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix22)
-   elements = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
    cc = []
+   prefix = TCM.getopt_prefix(tensor_matrix22)
+
+   elements = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
 
    qhelp = """Make a complex 2x2 diagonal matrix."""
    # NB: Matrix22(children=elements) gives an error.... 
@@ -1295,6 +1465,11 @@ def tensor_matrix22 (ns, rider):
 # leaves_...
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'leaves')
+# TCM.add_option('')
+# TCM.add_option('')
+
+#-------------------------------------------------------------------------------
 
 def leaves (ns, rider):
    """
@@ -1303,13 +1478,19 @@ def leaves (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves)
    cc = []
-   override = opt_alltopics
-   
-   cc.append(leaves_constant (ns, rider))
-   cc.append(leaves_parm (ns, rider))
-   cc.append(leaves_gridsFTLM (ns, rider))
-   cc.append(leaves_gridsXYZetc (ns, rider))
-   cc.append(leaves_noise (ns, rider))
+   prefix = TCM.getopt_prefix(leaves)
+
+   if TCM.getopt(prefix+'constant'):
+      cc.append(leaves_constant (ns, rider))
+   if TCM.getopt(prefix+'parm'):
+      cc.append(leaves_parm (ns, rider))
+   if TCM.getopt(prefix+'gridsFTLM'):
+      cc.append(leaves_gridsFTLM (ns, rider))
+   if TCM.getopt(prefix+'gridsXYZetc'):
+      cc.append(leaves_gridsXYZetc (ns, rider))
+   if TCM.getopt(prefix+'noise'):
+      cc.append(leaves_noise (ns, rider))
+
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
@@ -1325,6 +1506,7 @@ def leaves_constant (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_constant)
    cc = []
+   prefix = TCM.getopt_prefix(leaves_constant)
    
    v = 0.5
    cc.append(ns << v)
@@ -1366,6 +1548,8 @@ def leaves_parm (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_parm)
    cc = []
+   prefix = TCM.getopt_prefix(leaves_parm)
+
    cc.append(stub('basic') << Meq.Parm(2.5))
    return QRU.on_exit (ns, rider, cc)
 
@@ -1383,6 +1567,8 @@ def leaves_noise (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_noise)
    cc = []
+   prefix = TCM.getopt_prefix(leaves_noise)
+
    cc.append(stub('stddev') << Meq.GaussNoise(stddev=2.0))
 
    # NB: Mean does not work...
@@ -1422,6 +1608,7 @@ def leaves_gridsFTLM (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_gridsFTLM)
    cc = []
+   prefix = TCM.getopt_prefix(leaves_gridsFTLM)
 
    for q in ['Freq','Time']:
       cc.append(stub(q) << getattr(Meq,q)())
@@ -1460,6 +1647,8 @@ def leaves_gridsXYZetc (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_gridsXYZetc)
    cc = []
+   prefix = TCM.getopt_prefix(leaves_gridsXYZetc)
+
    for axis in ['X','Y','Z']:
       cc.append(stub(axis) << Meq.Grid(axis=axis))
    cc.append(stub('X+Y+Z') << Meq.Add(cc[0],cc[1],cc[2]))
@@ -1467,11 +1656,15 @@ def leaves_gridsXYZetc (ns, rider):
    return QRU.on_exit (ns, rider, cc)
 
 
-#--------------------------------------------------------------------------------
+
 
 #================================================================================
-# unops_... (Unary operations)
+# FITS_... (interaction with FITS files)
 #================================================================================
+
+TCM.start_of_submenu(QR_module+'FITS',"Interaction with FITS files")
+
+#-------------------------------------------------------------------------------
 
 def FITS (ns, rider):
    """
@@ -1485,14 +1678,21 @@ def FITS (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITS)
    cc = [] 
-   override = opt_alltopics
-   if override or opt_FITS_RW:
+   prefix = TCM.getopt_prefix(FITS)
+
+   if TCM.getopt(prefix+'FITS_RW'):
       cc.append(FITS_RW(ns, rider))
-   if override or opt_FITSImage:
+   if TCM.getopt(prefix+'FITSImage'):
       cc.append(FITSImage(ns, rider))
-   if override or opt_FITSImage_mode2:
+   if TCM.getopt(prefix+'FITSImage_mode2'):
       cc.append(FITSImage_mode2(ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
+
+#----------------------------------------------------------------------------------------------
+
+TCM.start_of_submenu('FITS_RW', "write/read results to/from FITS file")
+TCM.add_option('filename', 'FITS_RW.fits',
+               "The name of the FITS file", more=False)  
 
 #----------------------------------------------------------------------------------------------
 
@@ -1521,6 +1721,8 @@ def FITS_RW (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITS_RW)
    cc = []
+   prefix = TCM.getopt_prefix(FITS_RW)
+
    cc.append(ET.twig(ns, 'f+t+L+M'))
    # filename = '!FITS_RW.fits'            # The exclamation mark is to allow rewrite....
    filename = 'FITS_RW.fits'  
@@ -1541,6 +1743,12 @@ def FITS_RW (ns, rider):
    return QRU.on_exit (ns, rider, cc)
 
 
+
+#----------------------------------------------------------------------------------------------
+
+TCM.start_of_submenu('FITS_FITSImage', "FITSImage (mode=1)")
+TCM.add_option('cutoff', [1.0,0.9,0.5,0.1,0.0],
+               "0.0<cutoff level<1.0", more=float)
 
 #----------------------------------------------------------------------------------------------
 
@@ -1578,8 +1786,10 @@ def FITSImage (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITSImage, stubname='FITSImage')
    cc = []
+   prefix = TCM.getopt_prefix(FITSImage)
+
    filename = 'Sun.fits'
-   cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff',rider)
+   cutoff = TCM.getopt(prefix+'cutoff',rider)
    qhelp = 'Default (assume mode=1)'
    sixpack = stub('sixpack') << Meq.FITSImage(filename=filename,
                                               qhelp=qhelp,
@@ -1594,6 +1804,14 @@ def FITSImage (ns, rider):
    cc.append(sixpack('StokesV') << Meq.Selector(sixpack, index=5))
    return QRU.on_exit (ns, rider, cc)
 
+
+#----------------------------------------------------------------------------------------------
+
+TCM.start_of_submenu('FITS_FITSImage_mode2', "FITSImage (mode=2)")
+TCM.add_option('cutoff', [1.0,0.9,0.5,0.1,0.0],
+               "0.0<cutoff level<1.0", more=float)
+TCM.add_option('resampler_mode', [1,2],
+               "ReSampler mode", more=int)
 
 #----------------------------------------------------------------------------------------------
 
@@ -1626,10 +1844,13 @@ def FITSImage_mode2 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITSImage_mode2, stubname='FITSIm(2)')
    cc = []
+   prefix = TCM.getopt_prefix(FITSImage_mode2)
+
+   
    filename = 'Sun.fits'
 
-   cutoff = QRU.getopt(globals(),'opt_FITSImage_cutoff_mode2',rider)
-   mode = QRU.getopt(globals(),'opt_FITSImage_resampler_mode',rider)
+   cutoff = TCM.getopt(prefix+'FITSImage_cutoff_mode2',rider)
+   mode = TCM.getopt(prefix+'FITSImage_resampler_mode',rider)
    
    cc.append(stub('StokesI')('mode=2') << Meq.FITSImage(filename=filename,
                                                         qviewer=[True,'Record Browser'],
@@ -1649,6 +1870,11 @@ def FITSImage_mode2 (ns, rider):
 # unops_... (Unary operations)
 #================================================================================
 
+TCM.start_of_submenu(QR_module+'unops')
+TCM.add_option('twig', ET.twig_names(),
+               "input twig (child node)", more=str)
+
+#-------------------------------------------------------------------------------
 
 def unops (ns, rider):
    """
@@ -1664,17 +1890,27 @@ def unops (ns, rider):
    of the function value vs its argument. 
    """
    stub = QRU.on_entry(ns, rider, unops)
-   twig = ET.twig (ns, QRU.getopt(globals(), 'opt_unops_twig',rider),
+   prefix = TCM.getopt_prefix(unops)
+   
+   twig = ET.twig (ns, TCM.getopt(prefix+'twig',rider),
                    help='single child for unary math nodes', 
                    nodename='unops_child')
-   cc = [] 
-   cc.append(unops_elementary (ns, rider, twig))
-   cc.append(unops_goniometric (ns, rider, twig))
-   cc.append(unops_invgoniometric (ns, rider, twig))
-   cc.append(unops_hyperbolic (ns, rider, twig))
-   cc.append(unops_power (ns, rider, twig))
-   cc.append(unops_misc (ns, rider, twig))
-   cc.append(unops_complex (ns, rider, twig))
+   cc = []
+   if TCM.getopt(prefix+'elementary'):
+      cc.append(unops_elementary (ns, rider, twig))
+   if TCM.getopt(prefix+'goniometric'):
+      cc.append(unops_goniometric (ns, rider, twig))
+   if TCM.getopt(prefix+'invgoniometric'):
+      cc.append(unops_invgoniometric (ns, rider, twig))
+   if TCM.getopt(prefix+'hyperbolic'):
+      cc.append(unops_hyperbolic (ns, rider, twig))
+   if TCM.getopt(prefix+'power'):
+      cc.append(unops_power (ns, rider, twig))
+   if TCM.getopt(prefix+'misc'):
+      cc.append(unops_misc (ns, rider, twig))
+   if TCM.getopt(prefix+'complex'):
+      cc.append(unops_complex (ns, rider, twig))
+      
    return QRU.on_exit (ns, rider, cc, mode='group')
 
 #--------------------------------------------------------------------------------
@@ -1689,6 +1925,8 @@ def unops_elementary (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sqrt(c)</A> 
    """
    stub = QRU.on_entry(ns, rider, unops_elementary)
+   prefix = TCM.getopt_prefix(unops_elementary)
+
    cc = [twig]
    for q in ['Negate','Invert','Exp','Log','Sqrt']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
@@ -1705,6 +1943,7 @@ def unops_goniometric (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Tan(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_goniometric)
+   prefix = TCM.getopt_prefix(unops_goniometric)
    cc = [twig]
 
    for q in ['Sin','Cos','Tan']:
@@ -1732,6 +1971,7 @@ def unops_invgoniometric (ns, rider, twig=None):
    </tip>
    """
    stub = QRU.on_entry(ns, rider, unops_invgoniometric)
+   prefix = TCM.getopt_prefix(unops_invgoniometric)
    cc = [twig]
 
    for q in ['Asin','Acos','Atan']:
@@ -1763,6 +2003,7 @@ def unops_hyperbolic (ns, rider, twig=None):
    Note the demonstration: Cosh(x)**2 - Sinh(x)**2 = 1 
    """
    stub = QRU.on_entry(ns, rider, unops_hyperbolic)
+   prefix = TCM.getopt_prefix(unops_hyperbolic)
    cc = [twig]
    for q in ['Sinh','Cosh','Tanh']:
       cc.append(stub(q+'(c)') << getattr(Meq,q)(twig))
@@ -1793,6 +2034,8 @@ def unops_complex (ns, rider, twig=None):
    Most math node take complex children, of course, or produce complex results. 
    """
    stub = QRU.on_entry(ns, rider, unops_complex)
+   prefix = TCM.getopt_prefix(unops_complex)
+
    twig = ET.twig(ns,'cx_ft')                # override input twig...
    cc = [twig]
    for q in ['Abs','Arg','Real','Imag','Conj','Exp','Log']:
@@ -1814,6 +2057,8 @@ def unops_power (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow8(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_power)
+   prefix = TCM.getopt_prefix(unops_power)
+
    cc = [twig]
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
@@ -1830,6 +2075,8 @@ def unops_misc (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Stripper(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_misc)
+   prefix = TCM.getopt_prefix(unops_misc)
+
    cc = [twig]
    for q in ['Ceil','Floor','Identity']:
       cc.append(stub(q+'(c)') << getattr(Meq,q)(twig, qbookmark=True))
@@ -1843,6 +2090,14 @@ def unops_misc (ns, rider, twig=None):
 #================================================================================
 # binops
 #================================================================================
+
+TCM.start_of_submenu(QR_module+'binops')
+TCM.add_option('binops_lhs', ET.twig_names(),
+               "lhs twig (child node)", more=str)
+TCM.add_option('binops_rhs', ET.twig_names(),
+               "rhs twig (child node)", more=str)
+
+#-------------------------------------------------------------------------------
 
 def binops (ns, rider):
    """
@@ -1865,8 +2120,10 @@ def binops (ns, rider):
    The input children may be selected here, for experimentation.
    """
    stub = QRU.on_entry(ns, rider, binops, stubname='binops')
-   lhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_lhs',rider), nodename='lhs') 
-   rhs = ET.twig(ns, QRU.getopt(globals(), 'opt_binops_rhs',rider), nodename='rhs') 
+   prefix = TCM.getopt_prefix(binops)
+
+   lhs = ET.twig(ns, TCM.getopt(prefix+'binops_lhs',rider), nodename='lhs') 
+   rhs = ET.twig(ns, TCM.getopt(prefix+'binops_rhs',rider), nodename='rhs') 
    cc = [lhs,rhs]
    for q in ['Subtract','Divide','Pow']:
       cc.append(stub(q+'(lhs,rhs)') << getattr(Meq,q)(lhs,rhs))
@@ -1880,6 +2137,16 @@ def binops (ns, rider):
 #================================================================================
 # multimath
 #================================================================================
+
+TCM.start_of_submenu(QR_module+'multimath')
+TCM.add_option('multimath_twig1', ET.twig_names(),
+               "1st twig (child node)", more=str)
+TCM.add_option('multimath_twig2'ET.twig_names(include=[None]),
+               "2nd twig (child node)", more=str)
+TCM.add_option('multimath_twig3'ET.twig_names(include=[None]),
+               "3rd twig (child node)", more=str)
+
+#-------------------------------------------------------------------------------
 
 def multimath (ns, rider):
    """
@@ -1901,15 +2168,16 @@ def multimath (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, multimath, stubname='multimath')
    cc = []
+   prefix = TCM.getopt_prefix(multimath)
 
    # Make the child-related vectors (ignore the ones with opt=None):
-   twigs = [ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig1',rider))]
+   twigs = [ET.twig(ns,TCM.getopt(prefix+'multimath_twig1',rider))]
    weights = [1.0]
    if opt_multimath_twig2:
-      twigs.append(ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig2',rider)))
+      twigs.append(ET.twig(ns,TCM.getopt(prefix+'multimath_twig2',rider)))
       weights.append(2.0)
    if opt_multimath_twig3:
-      twigs.append(ET.twig(ns,QRU.getopt(globals(), 'opt_multimath_twig3',rider)))
+      twigs.append(ET.twig(ns,TCM.getopt(prefix+'multimath_twig3',rider)))
       weights.append(3.0)
 
    # Attach the input twigs to the bundle, for inspection.
@@ -1943,6 +2211,10 @@ def multimath (ns, rider):
 # Standalone forest:
 #================================================================================
 
+# Make the accumulated TDLCompileMenu:
+itsTDLCompileMenu = TCM.TDLMenu()
+
+#--------------------------------------------------------------------------------
 
 def _define_forest (ns, **kwargs):
    """Definition of a 'forest' of one or more trees"""
@@ -1992,13 +2264,13 @@ def _tdl_job_m (mqs, parent):
    return QRU._tdl_job_m (mqs, parent)
 
 def _tdl_job_print_hardcopy (mqs, parent):
-   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=header)
+   return QRU._tdl_job_print_hardcopy (mqs, parent, rider, header=QR_header)
 
 def _tdl_job_save_doc_to_QuickRef_html (mqs, parent):
    return QRU.save_to_QuickRef_html (rider, filename=None)
 
 def _tdl_job_show_doc (mqs, parent):
-   return QRU._tdl_job_show_doc (mqs, parent, rider, header=header)
+   return QRU._tdl_job_show_doc (mqs, parent, rider, header=QR_header)
 
 
 #=====================================================================================
