@@ -173,12 +173,13 @@ def format_float(v, name=None, nsig=4, trace=False):
 def format_record(rr, txt=None, ss=None, recurse=1000,
                   level=0, full=False, mode='str'):
     """
-    Format the given record
+    Recursively format the given record (rr)
     """
-    prefix = '\n ..'+(level*'..')+' '
+    prefix = '\n '+(level*'..')+' - '
     if level==0:
         ss = '\n** format_record(): '+str(txt)+' ('+str(type(rr))+'):'
         
+    # First do the non-dict fields:
     for key in rr.keys():
         if getattr(rr[key],'mean',None):              # e.g. numpy...
             vv = rr[key]
@@ -202,11 +203,12 @@ def format_record(rr, txt=None, ss=None, recurse=1000,
         elif not isinstance(rr[key],dict):
             ss += prefix+str(key)+' ('+str(type(rr[key]))+') = '+str(rr[key])
 
+    # Then do the dict fields:
     for key in rr.keys():
         if isinstance(rr[key],dict):
             ss += prefix+str(key)+':'
             if level>recurse:
-                ss += '  (level='+str(level)+' > recurse='+str(recurse)+')'
+                ss += '                        ** STOPPED RECURSION (level='+str(level)+' > recurse='+str(recurse)+') **'
             else:
                 ss = format_record(rr[key], ss=ss,
                                    recurse=recurse,

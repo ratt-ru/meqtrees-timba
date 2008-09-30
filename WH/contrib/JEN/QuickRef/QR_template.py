@@ -72,16 +72,20 @@ import numpy
 
 
 #********************************************************************************
-# Start the TDLCompileMenu (TCM): It is added-to throughout.
+# Some preliminaries:
 #********************************************************************************
 
+# Make a variable with the module name:
 QR_module = 'QR_template'
-TCM = QRU.TDLOptionManager.TDLOptionManager(QR_module, prompt=QR_module+' topics')
-
 
 # Start the file/doc header to be used in exec functions at the bottom.
 # It may be modified, depending on the selection of topics.
 QR_header = QR_module
+
+# Start the TDLCompileMenu (TCM): It is added-to throughout.
+TCM = QRU.TDLOptionManager.TDLOptionManager(QR_module, prompt=QR_module+' topics')
+
+
 
 
 
@@ -132,8 +136,8 @@ def QR_template (ns, rider):
    Its syntax is given below.
    """
    stub = QRU.on_entry(ns, rider, QR_template)
-   prefix = QR_module+'.'
    cc = []
+   prefix = TCM.getopt_prefix(QR_template)
 
    # Remove this part:
    arg1 = TCM.getopt(prefix+'arg1', rider) 
@@ -156,8 +160,7 @@ def QR_template (ns, rider):
 # topic1:
 #================================================================================
 
-# Add to the TDLCompileMenu:
-TCM.start_of_submenu('topic1', level=QR_module)
+TCM.start_of_submenu(QR_module+'_topic1')
 TCM.add_option('twig', ET.twig_names())
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3))
@@ -179,10 +182,12 @@ def topic1 (ns, rider):
      def topic1 (ns, rider):
           stub = QRU.on_entry(ns, rider, topic1)
           cc = []
-          override = opt_topic1_alltopics
-          if override or opt_topic1_subtopic:
+          prefix = TCM.getopt_prefix(topic1)
+          arg1 = TCM.getopt(prefix+'arg1', rider) 
+          arg2 = TCM.getopt(prefix+'arg2', rider) 
+          if TCM.getopt(prefix+'subtopic1'):
               cc.append(topic1_subtopic (ns, rider))
-          return QRU.on_exit (ns, rider, cc)
+          return QRU.on_exit (ns, rider, cc, mode='group')
    </function_code>
 
    It is sometimes useful to read some general TDLCompileOptions here, and pass
@@ -190,13 +195,14 @@ def topic1 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic1)
    cc = []
+   prefix = TCM.getopt_prefix(topic1)
 
    # Remove this part:
-   twig = TCM.getopt('.topic1.twig', rider)
-   arg1 = TCM.getopt('.topic1.arg1', rider) 
-   arg2 = TCM.getopt('.topic1.arg2', rider) 
+   twig = TCM.getopt(prefix+'twig', rider)
+   arg1 = TCM.getopt(prefix+'arg1', rider) 
+   arg2 = TCM.getopt(prefix+'arg2', rider) 
 
-   if TCM.getopt('topic1.subtopic1'):
+   if TCM.getopt(prefix+'subtopic1'):
       cc.append(topic1_subtopic1 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -204,7 +210,7 @@ def topic1 (ns, rider):
 
 #================================================================================
 
-TCM.start_of_submenu('subtopic1', level='topic1')
+TCM.start_of_submenu('topic1_subtopic1')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(5))
 
@@ -225,10 +231,11 @@ def topic1_subtopic1 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic1_subtopic1)
    cc = []
+   prefix = TCM.getopt_prefix(topic1_subtopic1)
 
    # Remove this part:
-   arg1 = TCM.getopt('topic1.subtopic1.arg1', rider) 
-   arg2 = TCM.getopt('topic1.subtopic1.arg2', rider) 
+   arg1 = TCM.getopt(prefix+'arg1', rider) 
+   arg2 = TCM.getopt(prefix+'arg2', rider) 
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -239,8 +246,7 @@ def topic1_subtopic1 (ns, rider):
 # topic2:
 #================================================================================
 
-# Add to the TDLCompileMenu:
-TCM.start_of_submenu('topic2', level=QR_module)
+TCM.start_of_submenu(QR_module+'_topic2')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3), more=False)
 
@@ -252,15 +258,16 @@ def topic2 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic2)
    cc = []
+   prefix = TCM.getopt_prefix(topic2)
 
    # Remove this part:
-   arg1 = TCM.getopt('.topic2.arg1', rider) 
-   arg2 = TCM.getopt('.topic2.arg2', rider) 
+   arg1 = TCM.getopt(prefix+'arg1', rider) 
+   arg2 = TCM.getopt(prefix+'arg2', rider) 
 
    # Replace this part:
-   if TCM.getopt('topic2.subtopic1'):
+   if TCM.getopt(prefix+'subtopic1'):
       cc.append(topic2_subtopic1 (ns, rider))
-   if TCM.getopt('topic2.subtopic2'):
+   if TCM.getopt(prefix+'subtopic2'):
       cc.append(topic2_subtopic2 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -268,7 +275,7 @@ def topic2 (ns, rider):
 
 #================================================================================
 
-TCM.start_of_submenu('subtopic1', level='topic2')
+TCM.start_of_submenu('topic2_subtopic1')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(5))
 
@@ -283,9 +290,11 @@ def topic2_subtopic1 (ns, rider):
 
    return QRU.on_exit (ns, rider, cc)
 
+
+
 #================================================================================
 
-TCM.start_of_submenu('subtopic2', level='topic2')
+TCM.start_of_submenu('topic2_subtopic2')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(5))
 
@@ -339,6 +348,11 @@ def topic2_subtopic2 (ns, rider):
 
    stub = QRU.on_entry(ns, rider, topic2_subtopic2)
    cc = []
+   prefix = TCM.getopt_prefix(topic2_subtopic2)
+
+   # Remove this part:
+   arg1 = TCM.getopt(prefix+'arg1', rider) 
+   arg2 = TCM.getopt(prefix+'arg2', rider) 
 
    twig = ET.twig(ns,'f')
 
@@ -353,7 +367,31 @@ def topic2_subtopic2 (ns, rider):
    It is also possible to append extra bundle help
    via the .on_exit() help argument.
    """
+
    return QRU.on_exit (ns, rider, cc, help=bhelp)
+
+
+#================================================================================
+
+TCM.start_of_submenu('topic2_subtopic2_subsubtopic1')
+TCM.add_option('arg1', range(2))
+TCM.add_option('arg2', range(5))
+
+#--------------------------------------------------------------------------------
+
+def topic2_subtopic2_subsubtopic1 (ns, rider):
+   """
+   topic2_subtopic2_subsubtopic1 treats ....
+   """
+   stub = QRU.on_entry(ns, rider, topic2_subtopic2_subsubtopic1)
+   cc = []
+   prefix = TCM.getopt_prefix(topic2_subtopic2_subsubtopic1)
+
+   # Remove this part:
+   arg1 = TCM.getopt(prefix+'arg1', rider) 
+   arg2 = TCM.getopt(prefix+'arg2', rider) 
+
+   return QRU.on_exit (ns, rider, cc)
 
 
 
@@ -363,13 +401,11 @@ def topic2_subtopic2 (ns, rider):
 # Recommended: some general help(nodes) for this module
 #********************************************************************************
 
-# Add to the TDLCompileMenu:
-TCM.start_of_submenu('HELP', level=QR_module)
+TCM.start_of_submenu(QR_module+'_HELP')
 TCM.add_option('on_entry', prompt='help on QRU.on_entry()', selectable=True)
 TCM.add_option('on_exit', prompt='help on QRU.on_exit()', selectable=True)
 TCM.add_option('helpnode', prompt='help on QRU.helpnode()', selectable=True)
 TCM.add_option('twig', prompt='help on ET.twig()', selectable=True)
-## TCM.radio_buttons(trace=True)
 
 
 #--------------------------------------------------------------------------------
@@ -385,15 +421,16 @@ def HELP (ns, rider):
    # NB: Avoid the string 'help' in the function name....!!
    stub = QRU.on_entry(ns, rider, HELP)
    cc = []
+   prefix = TCM.getopt_prefix(HELP)
 
    # Replace this part:
-   if TCM.getopt('HELP.on_entry'):
+   if TCM.getopt(prefix+'on_entry'):
       cc.append(QRU.helpnode (ns, rider, func=QRU.on_entry))
-   if TCM.getopt('HELP.on_exit'):
+   if TCM.getopt(prefix+'on_exit'):
       cc.append(QRU.helpnode (ns, rider, func=QRU.on_exit))
-   if TCM.getopt('HELP.helpnode'):
+   if TCM.getopt(prefix+'helpnode'):
       cc.append(QRU.helpnode (ns, rider, func=QRU.helpnode))
-   if TCM.getopt('HELP.twig'):
+   if TCM.getopt(prefix+'twig'):
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
    return QRU.on_exit (ns, rider, cc, mode='group')

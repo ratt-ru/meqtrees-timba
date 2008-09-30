@@ -12,6 +12,7 @@ TDLOptionManager.py:
 #   - 15 sep 2008: creation
 #   - 26 sep 2008: implemented hide/unhide
 #   - 26 sep 2008: implemented master/slave
+#   - 30 sep 2008: removed symbol (use key instead)
 #
 # Description:
 #
@@ -97,15 +98,8 @@ class TDLOptionManager (object):
       self._name = name
       self._mode = 'compile'                   # alternative: 'runtime'
 
-      # Separator chars are used to build hierarchical names:
-      self._symsep = '_'           # separator char used for symbol names 
-      self._symsep = '|'           # separator char used for symbol names 
-      # self._symsep = ':'           # separator char used for symbol names 
-
-      self._keysep = '.'           # separator char used for (defrec) keys                 
-      # self._keysep = '|'           # separator char used for (defrec) keys                 
-      # self._keysep = ':'           # separator char used for (defrec) keys                 
-      self._keysep = self._symsep
+      # A separator char is used to build hierarchical names:
+      self._keysep = '_'
 
       # The following field is expected by OMS TDLOption() etc,
       # but it is set when calling the function .TDLMenu() below:
@@ -113,20 +107,16 @@ class TDLOptionManager (object):
 
       # The menu structure is defined in a hierarchical definition record:
       self._menudef = dict()
+      self._defrecs = dict()                  # record of definition records
       self.start_of_submenu(self._name, prompt=prompt, topmenu=True)
 
       # The definition record is used to generate the actual TDLOption objects.
       self._TDLmenu = None                    # the final TDLMenu 
       self._tdlobjects = dict()               # record of TDLOption objects
-      self._defrecs = dict()                  # record of definition recorsd
 
       # Group control:
       self._lastval = dict()                  # last values (see .find_changed())
       self._snapshot = dict()                 # snapshot values (see .make_snapshot())
-
-      # The fields of self._menudef are called keys. They contain dots(.)
-      # The option/menu names are derived from keys by .key2symbol(key)
-      self._keys = dict()                     # menudef field-names[symbol]
 
       # The menus from other TCM's may be added/inserted:
       self._TCMlist = []
@@ -140,7 +130,7 @@ class TDLOptionManager (object):
       ss += '  mode='+str(self._mode)
       ss += '  ndef='+str(len(self._defrecs))
       ss += '  nobj='+str(len(self._tdlobjects))
-      ss += '  nkey='+str(len(self._keys.keys()))
+      ss += '  nkey='+str(len(self.keys()))
       if self.tdloption_namespace:
          ss += ' ('+str(self.tdloption_namespace)+')'
       return ss
@@ -157,10 +147,10 @@ class TDLOptionManager (object):
       ss += '\n * self.tdloption_namespace: '+str(self.tdloption_namespace)
       ss += '\n * self._defrecs: '+str(len(self._defrecs))
       ss += '\n * self._tdlobjects: '+str(len(self._tdlobjects))
-      ss += '\n * self._keys: '+str(len(self._keys.keys()))
+      ss += '\n * self.keys(): '+str(len(self.keys()))
       if full:
-         for symbol in self.symbols():
-            ss += '\n   - '+str(symbol)+' : '+str(self._keys[symbol])
+         for key in self.keys():
+            ss += '\n   - '+str(key)+': '
       ss += '\n * self._TCMlist ('+str(len(self._TCMlist))+'):'
       for tcm in self._TCMlist:
          ss += '\n   '+str(tcm.oneliner())
@@ -187,18 +177,6 @@ class TDLOptionManager (object):
       self._TCMlist.insert(index,TCM)
       return True
 
-
-   #----------------------------------------------------------------
-
-   def integrate_TCM (self, TCM, trace=False):
-      """Integrate (the contents of) the given TDLOptionManager object
-      with the current one.
-      """
-      # key = TCM._name
-      # self._menudef['order'].append(key)
-      # self._menudef['menu'][key] = TCM._menudef
-      return True
-      
 
    #==========================================================================
    # Option/menu definition functions:
@@ -275,23 +253,23 @@ class TDLOptionManager (object):
             help += ' (nominally hidden)'
 
       # Finally, make the option definition record:
-      menukey = self._current_submenu['key']
-      key = menukey + self._keysep + relkey
-      symbol = self.key2symbol(key)
+      itsmenukey = self._current_submenu['key']
+      key = itsmenukey + self._keysep + relkey
       optdef = dict(type='option', key=key,
-                    symbol=symbol, relkey=relkey,
+                    relkey=relkey,
                     prompt=(prompt or relkey),
                     help=help,
                     callback=callback,
                     default=default,
                     hide=hide, disable=disable,
                     master=master, slaves=[],
-                    menukey=menukey,
+                    itsmenukey=itsmenukey,
                     level=self.current_menu_level(),
                     selectable=selectable,
                     choice=choice, more=more)
       self._current_submenu['menu'][key] = optdef
-      self.order(key, prepend=prepend, trace=trace)
+      self.current_order(key, prepend=prepend, trace=trace)
+      self._defrecs[key] = optdef
 
       # Finished:
       if trace:
@@ -348,7 +326,7 @@ class TDLOptionManager (object):
          print '\n** TOM.add_separator(): Ignored until it works (OMS)....\n'
          return key
       self._current_submenu['menu'][key] = optdef
-      self.order(key, trace=trace)
+      self.current_order(key, trace=trace)
 
       if trace:
          print '\n** .add_separator() ->',optdef
@@ -379,13 +357,14 @@ class TDLOptionManager (object):
       if topmenu:                  # topmenu==True ONLY when called from .__init__()
          self._complete = False
          key = relkey
+         key = 'copt_'+relkey      # <----
          level = 0
-         menukey = ''              # ...?
+         itsmenukey = ''              # ...?
       else:
          relkey = self.check_current_submenu(relkey, level, trace=trace)
-         menukey = self._current_submenu['key']
-         key = menukey + self._keysep + relkey
-         level = 1+self.current_menu_level()
+         itsmenukey = self._current_submenu['key']
+         key = itsmenukey + self._keysep + relkey
+         level = self.current_menu_level()
          if self._complete:
             raise ValueError,'** TOM.start_of_submenu(): TDLMenu is complete'
 
@@ -406,15 +385,14 @@ class TDLOptionManager (object):
             help = '(slaved to '+str(master)+')'
 
       # Finally, make the menu definition record:
-      symbol = self.key2symbol(key)
       menudef = dict(type='menu', key=key,
-                     symbol=symbol, relkey=relkey,
+                     relkey=relkey,
                      prompt=(prompt or relkey),
                      help=help,
                      default=default,
                      hide=hide, disable=disable,
                      master=master, slaves=[],
-                     menukey=menukey,
+                     itsmenukey=itsmenukey,
                      selectable=True,
                      level=level,
                      callback=callback,
@@ -426,8 +404,9 @@ class TDLOptionManager (object):
          self._current_submenu = self._menudef
       else:
          self._current_submenu['menu'][key] = menudef
-         self.order(key, prepend=prepend, trace=trace)                 
+         self.current_order(key, prepend=prepend, trace=trace)                 
          self._current_submenu = self._current_submenu['menu'][key]           # go down one level
+      self._defrecs[key] = menudef
 
       # Optional: Insert a 'group control' option:
       if group_control:
@@ -522,12 +501,6 @@ class TDLOptionManager (object):
       ss = key.split(self._keysep)
       return len(ss)-1
 
-   def current_menu_symbol(self, trace=False):
-      """Return the (global) symbol of the current submenu"""
-      # if not getattr(self, self._current_submenu, None):
-      #    return self.key2symbol(self._name)
-      return self._current_submenu['symbol']
-
    #--------------------------------------------------------------------------
 
    def end_of_submenu (self, check=None, trace=False):
@@ -549,39 +522,19 @@ class TDLOptionManager (object):
       """From the given key, derive the key of its menu defrec,
       by removing the part after the last separator char (self._keysep)
       """
-      ss = key.split(self._keysep)
-      if len(ss)>1:
-         mkey =  key.replace(self._keysep+ss[-1],'')
-      else:
-         mkey = key
-      return mkey
+      return self._defrecs[key]['itsmenukey']
 
    #--------------------------------------------------------------------------
 
-   def key2symbol(self, key):
-      """
-      Helper function to convert the given key (i.e. self._menudef field name)
-      to the TDLOption symbol used in the module (accessible via globals)
-      NB: The reverse function would be unreliable, since not
-      all self._keysep chars (e.g. '.') should be replaced by self._symsep chars
-      """
-      symbol = 'opt'
-      if self._mode=='runtime':
-         symbol = 'runopt'
-      symbol += self._symsep+key.replace(self._keysep,self._symsep)
-      return symbol
+   def keys (self):
+      """Return the list of option/menu keys"""
+      return self._defrecs.keys()
 
    #--------------------------------------------------------------------------
 
-   def symbols (self):
-      """Return the list of option/menu names (symbols)"""
-      return self._keys.keys()
-
-   #--------------------------------------------------------------------------
-
-   def order(self, key=None, prepend=False, trace=False):
+   def current_order(self, key=None, prepend=False, trace=False):
       """Helper function to get or update (append/prepend) the order-list
-      of the current menu.
+      of the current submenu.
       """
       if key:
          if prepend:
@@ -628,11 +581,10 @@ class TDLOptionManager (object):
          print '  changed: key =',key
 
       if isinstance(key,str):
-         menukey = self.itsmenukey(key)
+         itsmenukey = self.itsmenukey(key)
          if trace:
-            print '  its menukey =',menukey
-         # menu = self.find_defrec(menukey, trace=trace)   # old
-         menu = self._defrecs[menukey]
+            print '  itsmenukey =',itsmenukey
+         menu = self._defrecs[itsmenukey]
          if value=='select all selectables':
             self.select_group (menu, True, trace=trace)
          elif value=='select none':
@@ -651,7 +603,7 @@ class TDLOptionManager (object):
          elif value=='revert to snapshot':
             self.revert_to_snapshot(menu, trace=trace)
          elif value=='show defrec':
-            print EF.format_record(menu, menukey, recurse=1)
+            print EF.format_record(menu, itsmenukey, recurse=1)
          elif value=='-':
             pass
          elif value=='help':
@@ -708,8 +660,7 @@ class TDLOptionManager (object):
          print '  changed: key =',key
 
       if isinstance(key,str):
-         menukey = self.itsmenukey(key)
-         # option = self.find_defrec(key, trace=trace)     # old
+         itsmenukey = self.itsmenukey(key)
          option = self._defrecs[key]
          keys = option['radio_group']
          # First deselect all items in the 'radio-group':
@@ -784,13 +735,12 @@ class TDLOptionManager (object):
             print prefix,key,':',dd['type']
 
          if dd['type']=='option':
-            tdlob = TDLOption(symbol=dd['symbol'], name=dd['prompt'],
+            tdlob = TDLOption(symbol=dd['key'], name=dd['prompt'],
                               value=dd['choice'], more=dd['more'],
                               doc=dd['help'],
                               namespace=self)
-            self._keys[dd['symbol']] = dd['key']
+            # Attach the option object to a flat record:
             self._tdlobjects[key] = tdlob
-            self._defrecs[key] = dd
 
          elif dd['type']=='menu':
             tdlob = self._make_TDLMenu(dd, level=level+1, trace=trace)  # recursive
@@ -812,12 +762,12 @@ class TDLOptionManager (object):
 
       # Make the TDLMenu object from the accumulated oblist:
       if level>0:                                   # a submenu
-         menu = TDLMenu(rr['prompt'], toggle=rr['symbol'],
+         menu = TDLMenu(rr['prompt'], toggle=rr['key'],
                         summary=rr['help'],
                         namespace=self, *oblist)
 
       elif self._mode=='runtime':                   # The root TDLCompile Menu:
-         menu = TDLRuntimeMenu(rr['prompt'], toggle=rr['symbol'],
+         menu = TDLRuntimeMenu(rr['prompt'], toggle=rr['key'],
                                summary=rr['help'],
                                namespace=self, *oblist)
 
@@ -826,16 +776,15 @@ class TDLOptionManager (object):
             # Add the menus from the TCM_list:
             for tcm in self._TCMlist:
                oblist.append(tcm.TDLMenu())
-         menu = TDLCompileMenu(rr['prompt'], toggle=rr['symbol'],
+         menu = TDLCompileMenu(rr['prompt'], toggle=rr['key'],
                                summary=rr['help'],
                                namespace=self, *oblist)
 
-      self._keys[rr['symbol']] = rr['key']
+      # Attach the menu object to a flat record:
       self._tdlobjects[rr['key']] = menu
-      self._defrecs[rr['key']] = rr
          
       if trace:
-         print prefix,'-> (sub)menu =',rr['symbol'],' (n=',len(oblist),')',str(menu)
+         print prefix,'-> (sub)menu =',rr['key'],' (n=',len(oblist),')',str(menu)
          for key1 in ['ctrl','radio']:
             if rr.has_key(key1):
                print prefix,'(',key1,':',rr[key1],')'
@@ -1229,11 +1178,11 @@ class TDLOptionManager (object):
    #================================================================================
 
    def find_changed (self, lookfor=None, trace=False):
-      """Find the key/symbol of the TDLObject whose value has changed
+      """Find the key of the TDLObject whose value has changed
       since the last time this function was called.
       """
       if trace:
-         print '\n** .find_changed(',lookfor,'):'
+         print '\n** .find_changed(lookfor=',lookfor,'):'
 
       changed = []
       for key in self._tdlobjects.keys():
@@ -1303,19 +1252,19 @@ class TDLOptionManager (object):
 
    #----------------------------------------------------------------------------
 
-   def find_symbol(self, substring, severe=True, trace=False):
+   def find_key(self, substring, severe=True, trace=False):
       """
-      Return an existing symbol (option name) that contains the given substring.
+      Return an existing key (option/menu name) that contains the given substring.
       If severe=True, throw an exeption if not found or ambiguous.
       """
       ss = []
-      for s in self.symbols():
-         if substring in s:
-            aa = s.split(substring)
+      for key in self.keys():
+         if substring in key:
+            aa = key.split(substring)
             if aa[-1]=='':              # substring is at the end of s
-               ss.append(s)             # accept
+               ss.append(key)           # accept
 
-      s = '\n** .find_symbol('+substring+'): -> '
+      s = '\n** .find_key('+substring+'): -> '
       if len(ss)==1:                    # OK
          if trace:
             print s,ss[0],'\n'
@@ -1344,7 +1293,11 @@ class TDLOptionManager (object):
       if self._tdlobjects.has_key(key):
          option = self._tdlobjects[key]
          was = option.value
-         option.set_value(value, callback=callback)
+         defrec = self._defrecs[key]
+         if defrec['disable']:
+            print '\n** .setopt(',value,'): not changed (disabled):',key,'=',was,'\n'
+         else:
+            option.set_value(value, callback=callback)
          changed = (not option.value==was)
          if trace and changed:
             print '- .setopt(',key,value,callback,') changed ->',option.value,'  (was:',was,')'
@@ -1371,21 +1324,42 @@ class TDLOptionManager (object):
          
    #--------------------------------------------------------------------------
 
-   def getopt(self, name, rider=None, severe=True, trace=False):
-      """Get the current value of the specified (name) TDLOption name/symbol.
-      Only a part of the symbol/name is required, as long as it is not ambiguous.
+   def getopt_prefix (self, func, trace=False):
+      """A little service: Make a getopt() prefix from the name of the given function.
+      NB: This requires that all submenu names are the same as the names of the functions
+      in which the various options are used. This should always be possible....
+      """
+      s = str(func.func_name)
+      s = '_'+s                    # OK, always has copt_ in front....
+      s += '_'
+      if trace:
+         print '** TCM.prefix(',type(func),'): ->',s
+      return s
+
+   #--------------------------------------------------------------------------
+
+   def getopt(self, name, rider=None, func=None, severe=True, trace=False):
+      """Get the current value of the specified (name) TDLOption name.
+      Only a part of the name is required, as long as it is not ambiguous.
       If rider is defined, make a qhelp string and add it (see QuickRefUtil.py)
       """
-      namin = name
-      if True:
-         # A little service: Replace other separators with the correct one:  
-         name = name.replace('.',self._symsep)
-         name = name.replace(':',self._symsep)
-         name = name.replace('|',self._symsep)
 
-      symbol = self.find_symbol(name, severe=severe, trace=trace)
-      if isinstance(symbol,str):
-         key = self._keys[symbol]
+      if func:
+         # A little (optional) service: Use the name of the given function
+         # (if provided) to make a prefix to the given name, to make it unique.
+         # This allows calling .getopt() with just the relative name of the option. 
+         name = self.getopt_prefix(func)+name
+         
+      namin = name
+      if False:
+         pass
+         # A little service: Replace other separators with the correct one:  
+         # name = name.replace('.',self._symsep)
+         # name = name.replace(':',self._symsep)
+         # name = name.replace('|',self._symsep)
+
+      key = self.find_key(name, severe=severe, trace=trace)
+      if isinstance(key,str):
          value = self._tdlobjects[key].value
       else:
          # This may happen during testing (severe=False):
@@ -1398,7 +1372,7 @@ class TDLOptionManager (object):
          # See also QuickRefUtil.getopt()
          qhelp = ''
          qhelp += '<font color="red" size=2>'
-         qhelp += '** TDLOption: '+str(symbol)+' = '
+         qhelp += '** TDLOption: '+str(key)+' = '
          if isinstance(value,str):
             qhelp += '"'+str(value)+'"'
          else:
@@ -1409,7 +1383,7 @@ class TDLOptionManager (object):
          rider.insert_help (path, qhelp, append=True)
          
       if trace:
-         print '** TOM.getopt(',namin,'):',name,':',symbol,':',key,':',(symbol==key),'-> value =',value
+         print '** TOM.getopt(',namin,'):',name,' (key=',key,') -> value =',value
       return value
 
    #--------------------------------------------------------------------------
@@ -1428,10 +1402,10 @@ class TDLOptionManager (object):
          dd = self._defrecs[key]
          if dd['type']=='menu':
             level = dd['level']
-            s = ' '
-            s += level*'..'
-            s += '('+str(level)+')'
-            s += ' summary: ['
+            s = '   '
+            s += level*'*'
+            s += ' ('+str(level)+')'
+            s += ' summary=['
             first = True
             for key1 in dd['order']:
                dd1 = self._defrecs[key1]
@@ -1505,30 +1479,54 @@ def make_TDLCompileMenu (TCM, trace=True, full=False):
 #------------------------------------------------------------
 #------------------------------------------------------------
 
-def test_basic(TCM, trace=False, full=False):
+def test_basic(TCM, trace=False, full=False,
+               test_find_key=False,
+               test_find_defrec=False,
+               test_getopt=False):
    """Test:
    """
    key = TCM.add_option('master', range(4))
    TCM.add_option('slave', range(4), master=key)
+   # TCM.add_option('boolean_opt', True)
+
+   TCM.start_of_submenu('cc')
+   # TCM.add_separator(trace=True)
+
+   TCM.start_of_submenu('dd')
    TCM.add_option('boolean_opt', True)
    TCM.add_option('string_opt', ['first','second','third'])
-   TCM.start_of_submenu('cc')
-   TCM.start_of_submenu('dd')
-   # TCM.add_separator(trace=True)
+   TCM.end_of_submenu(trace=True)
+
    TCM.start_of_submenu('gg')
 
    level = TCM.current_menu_level()
    TCM.start_of_submenu('hh', level=level-1)
    TCM.add_option('bb', range(4))
 
+   #----------------------------------------------------------
+
    if trace:
-      TCM.show('test_basic()', full=full)
+      TCM.show('test_basic(): after', full=full)
+      print EF.format_record(TCM._menudef,'TCM._menudef', recurse=1)
+
+   #----------------------------------------------------------
+   # Optional: test of specific functions:
+   #----------------------------------------------------------
+      
+   if test_find_key:
+      TCM.find_key('dd', severe=False, trace=True)
+
+   if test_getopt:
+      menu = make_TDLCompileMenu (TCM, trace=True, full=False)
+      TCM.getopt('0.aa', severe=False, trace=True)
+      TCM.getopt('0_aa', severe=False, trace=True)
+      TCM.getopt('aa', severe=False, trace=True)
+      
    return True
    
 #------------------------------------------------------------
 
-def test_slavemenu(TCM, trace=False, full=False,
-                   test_getopt=False):
+def test_slavemenu(TCM, trace=False, full=False):
    """Test:
    """
    key = TCM.start_of_submenu('master')
@@ -1545,15 +1543,6 @@ def test_slavemenu(TCM, trace=False, full=False,
 
    if trace:
       TCM.show('test_slavemenu()', full=full)
-
-   if test_getopt:
-      menu = make_TDLCompileMenu (TCM, trace=True, full=False)
-      sep = TCM._symsep
-      TCM.getopt('0'+sep+'aa', severe=False, trace=True)
-      TCM.getopt('0.aa', severe=False, trace=True)
-      TCM.getopt('0_aa', severe=False, trace=True)
-      TCM.getopt('aa', severe=False, trace=True)
-      
    return True
    
 
@@ -1582,12 +1571,11 @@ TCM = None
 # Enable for testing:
 if 0:
    TCM = create_TCM(trace=True, full=False)
-   test_slavemenu(TCM, trace=False, full=False)
+   # test_basic(TCM, trace=True, full=False)
+   test_slavemenu(TCM, trace=True, full=False)
    if 0:
       TCM1 = create_TCM('append', trace=True, full=False)
       test_basic(TCM1, trace=False, full=False)
-      # print EF.format_record(TCM._menudef, 'TCM._menudef', recurse=1)
-      # print EF.format_record(TCM1._menudef, 'TCM1._menudef', recurse=1)
       TCM.append_TCM(TCM1)
    menu = make_TDLCompileMenu (TCM, trace=True, full=False)
    
@@ -1610,14 +1598,15 @@ if __name__ == '__main__':
 
    TCM = create_TCM(trace=True, full=False)
 
+   if 1:
+      test_basic(TCM, trace=True, full=True,
+                 test_find_key=True,
+                 test_getopt=False)
+
    if 0:
-      test_basic(TCM, trace=True, full=False)
+      test_slavemenu(TCM, trace=False, full=False)
 
-   if 1:
-      test_slavemenu(TCM, trace=False, full=False,
-                     test_getopt=True)
-
-   if 1:
+   if 0:
       make_TDLCompileMenu (TCM, trace=False, full=False)
 
    
@@ -1626,10 +1615,10 @@ if __name__ == '__main__':
    #--------------------------------------------------------
 
    if 0:
-      TCM.find_symbol('subtopic2',trace=True)
-      TCM.find_symbol('2_alltopics',trace=True)
-      # TCM.find_symbol('alltopics',trace=True)
-      # TCM.find_symbol('xxx',trace=True)
+      TCM.find_key('subtopic2',trace=True)
+      TCM.find_key('2_alltopics',trace=True)
+      # TCM.find_key('alltopics',trace=True)
+      # TCM.find_key('xxx',trace=True)
 
    if 0:
       TCM.getopt('subtopic2', trace=True)
