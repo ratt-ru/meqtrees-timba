@@ -31,6 +31,7 @@ from Timba.GUI.pixmaps import pixmaps
 from QwtPlotImage import *
 from math import log
 from math import exp
+import numpy
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='QwtColorBar');
@@ -83,7 +84,7 @@ class QwtColorBar(QwtPlot):
         self.is_active = False
         self.log_scale = False
         self.ampl_phase = False
-        self.bar_array = reshape(arange(self.max), (1,256))
+        self.bar_array = numpy.reshape(numpy.arange(self.max), (1,256))
         self.y_scale = (self.min, self.max)
         self.plotImage.setData(self.bar_array, None, self.y_scale)
 

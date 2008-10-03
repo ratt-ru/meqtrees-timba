@@ -92,11 +92,34 @@ class FullRealImag (object):
         )
       );
     # make parmgroups for diagonal and off-diagonal terms
+    subgroups = [
+      ParmGroup.Subgroup("XX",[jones(p,zz) for zz in "rxx","ixx" for p in stations]),
+      ParmGroup.Subgroup("YY",[jones(p,zz) for zz in "ryy","iyy" for p in stations]),
+      ParmGroup.Subgroup("real part",[jones(p,zz) for zz in "rxx","ryy" for p in stations]),
+      ParmGroup.Subgroup("imaginary part",[jones(p,zz) for zz in "ixx","iyy" for p in stations])
+    ];
+    subgroups += [
+      ParmGroup.Subgroup("station %s"%p,[jones(p,zz) for zz in "rxx","ixx","ryy","iyy" ])
+      for p in stations
+    ];
     self.pg_diag  = ParmGroup.ParmGroup(label+"_diag",
-            [ jones(p,zz) for p in stations for zz in "rxx","ixx","ryy","iyy" ],
+            [ jones(p,zz) for zz in "rxx","ixx","ryy","iyy" for p in stations ],
+            subgroups = subgroups,
             table_name="%s_diag.fmep"%label,bookmark=False);
+            
+    subgroups = [
+      ParmGroup.Subgroup("XY",[jones(p,zz) for zz in "rxy","ixy" for p in stations]),
+      ParmGroup.Subgroup("YX",[jones(p,zz) for zz in "ryx","iyx" for p in stations]),
+      ParmGroup.Subgroup("real part",[jones(p,zz) for zz in "rxy","ryx" for p in stations]),
+      ParmGroup.Subgroup("imaginary part",[jones(p,zz) for zz in "ixy","iyx" for p in stations])
+    ];
+    subgroups += [
+      ParmGroup.Subgroup("station %s"%p,[jones(p,zz) for zz in "rxy","ixy","ryx","iyx" ])
+      for p in stations
+    ];
     self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",
-            [ jones(p,zz) for p in stations for zz in "rxy","ixy","ryx","iyx" ],
+            [ jones(p,zz) for zz in "rxy","ixy","ryx","iyx" for p in stations ],
+            subgroups = subgroups,
             table_name="%s_offdiag.fmep"%label,bookmark=False);
 
     # make bookmarks

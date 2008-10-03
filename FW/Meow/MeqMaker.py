@@ -60,10 +60,12 @@ def _modopts (mod,opttype='compile'):
     return [];
 
 class MeqMaker (object):
-  def __init__ (self,namespace='me',solvable=False):
+  def __init__ (self,namespace='me',solvable=False,use_decomposition=None,use_jones_inspectors=None):
     self.tdloption_namespace = namespace;
     self._uv_jones_list = [];
     self._sky_jones_list = [];
+    self._uv_vpm_list = [];
+    self._sky_vpm_list = [];
     self._compile_options = [];
     self._runtime_options = None;
     self._sky_models = None;
@@ -71,22 +73,38 @@ class MeqMaker (object):
     self._solvable = solvable;
     self._inspectors = [];
     
-    self.use_decomposition = True;
-    self._compile_options.append(
-      TDLOption('use_decomposition',"Use source coherency decomposition, if available",True,namespace=self,
-        doc="""If your source models are heavy on point sources, then an alternative form of the M.E. --
-        where the source coherency is decomposed into per-station contributions -- may produce 
-        faster and/or more compact trees. Check this option to enable. Your mileage may vary."""
+    other_opt = [];
+    if use_decomposition is None:
+      self.use_decomposition = True;
+      self.use_decomposition_opt = \
+        TDLOption('use_decomposition',"Use source coherency decomposition, if available",True,namespace=self,
+          doc="""If your source models are heavy on point sources, then an alternative form of the M.E. --
+          where the source coherency is decomposed into per-station contributions -- may produce 
+          faster and/or more compact trees. Check this option to enable. Your mileage may vary."""
+        );
+      other_opt.append(self.use_decomposition_opt);
+    else:
+      self.use_decomposition = use_decomposition;
+
+    if use_jones_inspectors is None:
+      self.use_jones_inspectors = True;
+      self.use_jones_inspectors_opt = \
+        TDLOption('use_jones_inspectors',"Enable inspectors for Jones modules",True,namespace=self,
+          doc="""If enabled, then your trees will automatically include inspector nodes for all
+          Jones terms. This will slow things down somewhat -- perhaps a lot, in an MPI configuration --
+          so you might want to disable this in production trees."""
+        );
+      other_opt.append(self.use_jones_inspectors__opt);
+    else:
+      self.use_jones_inspectors = use_jones_inspectors;
+      
+    other_opt.append(
+      TDLMenu("Include time & bandwidth smearing",
+        TDLOption('smearing_count',"Apply to N brightest sources only",["all",10,100],more=int,namespace=self),
+        namespace=self,toggle='use_smearing',default=True,
       )
     );
-    self.use_jones_inspectors = True;
-    self._compile_options.append(
-      TDLOption('use_jones_inspectors',"Enable inspectors for Jones modules",True,namespace=self,
-        doc="""If enabled, then your trees will automatically include inspector nodes for all
-        Jones terms. This will slow things down somewhat -- perhaps a lot, in an MPI configuration --
-        so you might want to disable this in production trees."""
-      )
-    );
+    self._compile_options.append(TDLMenu("Measurement Equation options",*other_opt));
 
   def compile_options (self):
     return self._compile_options;
@@ -100,10 +118,26 @@ class MeqMaker (object):
 
   def add_uv_jones (self,label,name,modules,pointing=None):
     return self._add_jones_modules(label,name,True,pointing,modules);
+  
+  def add_vis_proc_module (self,label,name,modules):
+    return self._add_vpm_modules(label,name,True,modules);
 
   def add_sky_jones (self,label,name,modules,pointing=None):
     return self._add_jones_modules(label,name,False,pointing,modules);
 
+  class VPMTerm (object):
+    """Essentially a record representing one VPM in an ME.
+    A VPM has the following fields:
+      label:      a label (e.g. "G", "E", etc.)
+      name:       a descriprive name
+      modules:    a list of possible modules implementing the Jones set
+    """;
+    def __init__ (self,label,name,modules):
+      self.label      = label;
+      self.name       = name;
+      self.modules    = modules;
+      self.base_node  = None;
+  
   class JonesTerm (object):
     """Essentially a record representing one Jones term in an ME.
     A Jones term has the following fields:
@@ -124,6 +158,21 @@ class MeqMaker (object):
     def __init__ (self,label,name,modules,pointing_modules=None):
       MeqMaker.JonesTerm.__init__(self,label,name,modules);
       self.pointing_modules = pointing_modules;
+
+  def _add_vpm_modules (self,label,name,is_uvplane,modules):
+    if not modules:
+      raise RuntimeError,"No modules specified for %s"%name;
+    if not isinstance(modules,(list,tuple)):
+      modules = [ modules ];
+    # make option menus for selecting a visiblity processor
+    mainmenu = self._module_selector("Use %s"%name,label,modules);
+    self._compile_options.append(mainmenu);
+    # Add to internal list
+    term = self.VPMTerm(label,name,modules);
+    if is_uvplane:
+      self._uv_vpm_list.append(term);
+    else:
+      self._sky_jones_list.append(term);
 
   def _add_jones_modules (self,label,name,is_uvplane,pointing,modules):
     if not modules:
@@ -170,6 +219,10 @@ class MeqMaker (object):
       for jt in self._uv_jones_list:
         mod,name = self._get_selected_module(jt.label,jt.modules), \
                    "%s Jones (%s) options"%(jt.label,jt.name);
+        mods.append((mod,name,None,None));
+      for vpm in self._uv_vpm_list:
+        mod,name = self._get_selected_module(vpm.label,vpm.modules), \
+                   "%s options"%vpm.name;
         mods.append((mod,name,None,None));
       # now go through list and pull in options from each active module
       for mod,name,submod,subname in mods:
@@ -255,7 +308,7 @@ class MeqMaker (object):
       self._source_list = module.source_list(ns);
       # print [src.name for src in sources];
     return self._source_list;
-
+  
   def _add_inspector (self,inspector_node,name=None):
     """adds an inspector node to internal list, and creates a bookmark page for it.""";
     self._inspectors.append(inspector_node);
@@ -311,34 +364,35 @@ class MeqMaker (object):
         elif Jj:
           qual_list = [stations];
           if sources:
-            qual_list.insert(0,sources);
+            qual_list.insert(0,[src for src in sources if Jj(src,stations[0]).initialized()]);
           jones_inspectors.append(
               ns.inspector(jt.label) << StdTrees.define_inspector(Jj,*qual_list));
         # add inspectors to internal list
         for insp in jones_inspectors:
           self._add_inspector(insp);
-      # see if module has created any solvejobs; create one automatically if not
-      if self._solvable:
-        if ParmGroup.num_solvejobs() == prev_num_solvejobs:
-          parms = jt.base_node.search(tags="solvable");
-          if parms:
-            pg = ParmGroup.ParmGroup(jt.label,parms);
-            ParmGroup.SolveJob("solve_%s"%jt.label,"Solve for %s"%jt.label,pg);
+      ## NB: this is too messy, let's always use solvejobs instead
+      ## see if module has created any solvejobs; create one automatically if not
+      #if self._solvable:
+        #if ParmGroup.num_solvejobs() == prev_num_solvejobs:
+          #parms = jt.base_node.search(tags="solvable");
+          #if parms:
+            #pg = ParmGroup.ParmGroup(jt.label,parms);
+            #ParmGroup.SolveJob("solve_%s"%jt.label,"Solve for %s"%jt.label,pg);
     return jt.base_node;
 
   def make_predict_tree (self,ns,sources=None):
     """makes predict trees using the sky model and ME.
     'ns' is a node scope
     'sources' is a list of sources; the current sky model is used if None.
-    'stations' is a list of stations; the global Meow.Context station list is used if None.
-      NB: Since the internal Jones trees are initialized only once, the 'stations' argument
-      should be the same if both make_predict_tree() and correct_uv_data() are invoked.
     Returns a base node which should be qualified with a station pair.
     """;
     stations = Meow.Context.array.stations();
     ifrs = Meow.Context.array.ifrs();
     # use sky model if no source list is supplied
     sources = sources or self.get_source_list(ns);
+    smearing = self.use_smearing;
+    if smearing and self.smearing_count != "all":
+      smearing = self.smearing_count;
 
     # are we using decomposition? Then form up an alternate tree for decomposable sources.
     dec_sky = None;
@@ -382,7 +436,13 @@ class MeqMaker (object):
           sqrtvis = src.sqrt_visibilities();
           C = sqrtcorrvis(src);
           Ct = sqrtcorrvis_conj(src);
-          jones_chain = uvchain + skychain.get(src.name,[]);
+          # make a skyjones(src,p) node containing a product of all the sky-Jones
+          skchain = skychain.get(src.name,[]);
+          if len(skchain) > 1:
+            for p in stations:
+              ns.skyjones(src,p) << Meq.MatrixMultiply(*[j(p) for j in skchain]);
+            skchain = [ ns.skyjones(src) ];
+          jones_chain = uvchain + skchain;
           # if there's a real jones chain, multiply all the matrices
           if jones_chain:
             for p in stations:
@@ -407,7 +467,7 @@ class MeqMaker (object):
           dec_sky = ns.visibility('sky');
         Parallelization.add_visibilities(dec_sky,[ns.corrupt_vis(src) for src in dec_sources],ifrs);
         if not sources:
-          return dec_sky;
+          return self._apply_vpm_list(ns,dec_sky);
     
     # now, proceed to build normal trees for non-decomposable sources
     # corrupt_sources will be replaced with a new source list every time
@@ -445,12 +505,29 @@ class MeqMaker (object):
     # now, if we also have a contribution from decomposable sources, add it here
     if dec_sky:
       vis = ns.visibility('sky');
-      vis2 = allsky.visibilities();
+      vis2 = allsky.visibilities(smearing=smearing);
       for p,q in ifrs:
         vis(p,q) << dec_sky(p,q) + vis2(p,q);
     else:
-      vis = allsky.visibilities();
-      
+      vis = allsky.visibilities(smearing=smearing);
+    
+    # now chain up any visibility processors
+    return self._apply_vpm_list(ns,vis);
+          
+  def _apply_vpm_list (self,ns,vis):
+    # chains up any visibility processors, and applies them to the visibilities.
+    # Returns new visibilities.
+    for vpm in self._uv_vpm_list:
+      module = self._get_selected_module(vpm.label,vpm.modules);
+      if module:
+        inspectors = [];
+        nodes = vis(vpm.label);
+        if module.process_visibilities(nodes,vis,ns=getattr(ns,vpm.label).Subscope(),
+             tags=vpm.label,label=vpm.label,inspectors=inspectors) is not None:
+          # add inspectors to internal list
+          for insp in inspectors:
+            self._add_inspector(insp);
+          vis = nodes;
     return vis;
 
   make_tree = make_predict_tree; # alias for compatibility with older code
@@ -468,24 +545,51 @@ class MeqMaker (object):
     """;
     stations = Meow.Context.array.stations();
     ifrs = Meow.Context.array.ifrs();
-
+    
+    # apply vpm corrections, if any
+    for vpm in self._uv_vpm_list:
+      module = self._get_selected_module(vpm.label,vpm.modules);
+      if module and hasattr(module,'correct_visibilities'):
+        inspectors = [];
+        nodes = inputs(vpm.label);
+        if module.correct_visibilities(nodes,inputs,ns=getattr(ns,vpm.label).Subscope(),
+             tags=vpm.label,label=vpm.label,inspectors=inspectors) is not None:
+          # add inspectors to internal list
+          for insp in inspectors:
+            self._add_inspector(insp);
+          inputs = nodes;
+          
     # now build up a correction chain for every station
     correction_chains = dict([(p,[]) for p in stations]);
 
-    # first, invert all sky Jones terms
+    # first, collect all sky Jones terms
     if sky_correct is not None:
       for jt in self._sky_jones_list:
-        Jj = self._get_jones_nodes(ns,jt,stations,sources=[sky_correct]);
+        # if using coherency decomposition, we will already have defined a "uvjones" node
+        # containing a product of all the sky-Jones terms, so use that
+        skyjones = ns.skyjones(sky_correct); 
+        if skyjones(stations[0]).initialized():
+          for p in stations:
+            correction_chains[p].insert(0,skyjones(p));
+        else:
+          Jj = self._get_jones_nodes(ns,jt,stations,sources=[sky_correct]);
+          if Jj:
+            Jj = Jj(sky_correct);
+            for p in stations:
+              correction_chains[p].insert(0,Jj(p));
+
+    # now collect all uv-Jones and add them to the chains
+    # if using coherency decomposition, we will already have defined a "uvjones" node
+    # containing a product of all the uv-Jones terms, so use that
+    if ns.uvjones(stations[0]).initialized():
+      for p in stations:
+        correction_chains[p].insert(0,ns.uvjones(p));
+    else:
+      for jt in self._uv_jones_list:
+        Jj = self._get_jones_nodes(ns,jt,stations);
         if Jj:
           for p in stations:
-            correction_chains[p].insert(0,Jj(sky_correct,p));
-
-    # now invert all uv-Jones and add them to the chains
-    for jt in self._uv_jones_list:
-      Jj = self._get_jones_nodes(ns,jt,stations);
-      if Jj:
-        for p in stations:
-          correction_chains[p].insert(0,Jj(p));
+            correction_chains[p].insert(0,Jj(p));
 
     # get base node for output visibilities. The variable will be replaced by a new name
     if outputs is None:

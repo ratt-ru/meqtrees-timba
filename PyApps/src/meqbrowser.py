@@ -100,7 +100,6 @@ importPlugin('svg_plotter');
 importPlugin('pylab_plotter');
 importPlugin('collections_plotter');
 importPlugin('history_plotter');
-importPlugin('parm_plotter');
 importPlugin('parmfiddler');
 # importPlugin('TableInspector');
 importPlugin('stream_control');

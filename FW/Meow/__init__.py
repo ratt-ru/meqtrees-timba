@@ -51,8 +51,8 @@ else:
   from Parm import Parm
   
   import Bookmarks
-  import Utils
   import MSUtils
+  import Utils
 
   __all__ = [
               CorruptComponent,

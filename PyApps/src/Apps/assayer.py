@@ -36,7 +36,7 @@ import traceback
 import time
 import cPickle
 import os
-import numarray
+import Timba.array
 
 _dbg = verbosity(0,name='assayer');
 _dprint = _dbg.dprint;
@@ -556,7 +556,7 @@ def normalize_value (value):
   elif isinstance(value,dmi.array_class):
     cp = value.copy();
     cp.__class__ = dmi.array_class;
-    return cp;    # returns normal numarray
+    return cp;    # returns normal Timba.array
   else:
     return value;
 
@@ -605,9 +605,18 @@ def compare_value (a,b,tol=1e-6,field=None):
         raise DataMismatch(field,"shapes",a.shape,b.shape);
       diff = abs(a-b)
       scale = (abs(a)+abs(b))/2;
-      numarray.Error.pushMode(dividebyzero="ignore");
-      maxdiff = numarray.where(scale!=0,diff/scale,diff).max();  # max relative difference
-      numarray.Error.popMode();
+      ## KLUDGE START
+      ## this is replaced by 
+      # with Timba.array.errstate(divide="ignore"):
+      #   maxdiff = Timba.array.where(scale!=0,diff/scale,diff).max();  # max relative difference
+      ## as of Python 2.5. But for 2.4, we have to do:
+      est = Timba.array.errstate(divide="ignore");
+      est.__enter__();
+      try:
+        maxdiff = Timba.array.where(scale!=0,diff/scale,diff).max();
+      finally:
+        est.__exit__(None,None,None);
+      ## KLUDGE END
       # diff = abs(a-b).max();
       # maxdiff = max(abs(a).max(),abs(b).max())*tol;
       if maxdiff <= tol:

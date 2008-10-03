@@ -31,10 +31,13 @@ from Timba.Meq import meq
 from Timba.Contrib.MXM import TDL_Funklet  # needed for type Funklet.... 
 import sys
 import traceback
-from numarray import *
+from Timba.array import *
 
-def array_double (*args,**kw):
-  return array(typecode=dmi.arr_double,*args,**kw);
+def array_double (value,shape=None):
+  arr = Timba.array.array(value,dtype=Timba.array.float64);
+  if shape:
+    arr.shape = shape;
+  return arr;
 
 _dbg = TDLimpl._dbg;
 _dprint = _dbg.dprint;
@@ -162,7 +165,7 @@ class _MeqGen (TDLimpl.ClassGen):
         break;
     else:
       children = map(float,children);
-    return Meq.Constant(value=dmi.array(children,shape=[2,2]));
+    return Meq.Constant(value=Timba.array.array(children).reshape((2,2)));
     
   def ConjTranspose (self,arg,**kw):
     "conjugate (hermitian) transpose";

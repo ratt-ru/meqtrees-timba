@@ -31,7 +31,6 @@ from Timba import utils
 from Timba.GUI import widgets
 
 from qt import *
-from numarray import *
 
 global has_vtk
 has_vtk = False
@@ -201,7 +200,7 @@ class plot_handler:
 
   def create_ND_Controls(self, array_shape, labels=None, parms=None, num_axes=2):
     """ this function adds the extra GUI control buttons etc if we are
-        displaying data for a numarray of dimension 3 or greater 
+        displaying data for a numpy array of dimension 3 or greater 
     """
     if num_axes == 2:
       if not self.ND_Controls_3D is None:

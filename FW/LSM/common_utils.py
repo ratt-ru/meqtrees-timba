@@ -27,7 +27,7 @@
 import math
 from Timba.Meq import meq
 from Timba.TDL import *
-import numarray
+import Timba.array
 ##############################################
 ### common definitions for the GUI
 ### and utility functions
@@ -149,8 +149,8 @@ def radToRA(rad):
   mins=int(tmpval)
   tmpval=tmpval-mins
   tmpval=tmpval*60
-  sec=int(tmpval)
-  return [hr%24,mins%60,sec%60]
+  sec=tmpval
+  return [hr%24,mins%60,sec]
 
 ####### Radians to Dec=[hr,min,sec]
 ## Rad=(hr+min/60+sec/60*60)*pi/180
@@ -167,8 +167,8 @@ def radToDec(rad):
   mins=int(tmpval)
   tmpval=tmpval-mins
   tmpval=tmpval*60
-  sec=int(tmpval)
-  return [mult*(hr%180),mins%60,sec%60]
+  sec=tmpval
+  return [mult*(hr%180),mins%60,sec]
 
 
 ########## metric form
@@ -225,7 +225,7 @@ def rec_parse(myrec):
      new_dict[kk]=gg
    elif isinstance(myrec[kk],meq.record):
      new_dict[kk]=rec_parse(myrec[kk])
-   elif isinstance(myrec[kk],numarray.numarraycore.NumArray): # meq.array
+   elif isinstance(myrec[kk],type(Timba.array.array(0))): 
      # just serialize the value
      #new_dict[kk+'_isarray']=pickle.dumps(myrec[kk])
      #print myrec[kk].__class__
@@ -393,13 +393,13 @@ def is_meqpolc(obj):
 def serialize_funklet(fnklt):
  #print fnklt
  return fnklt
- coeff=fnklt['coeff'] # this is a numarray
+ coeff=fnklt['coeff'] # this is a Timba.array
  if coeff.size()>1:
   return coeff.tolist()
  else: # return scalar
   #print "coeff=",coeff
-  #print "sum=",coeff.getreal()
-  return coeff.getreal()
+  #print "sum=",coeff.real
+  return coeff.real
  # is we have a compiled funklet, we can return a dict
  # to be done
   
@@ -582,9 +582,9 @@ def get_default_parms(nd):
  if irec.has_key('default_value'):
   cf=irec['default_value']
   # this need to be a scalar
-  if cf.nelements()>=1:
+  if cf.size>=1:
      #my_val=cf.tolist().pop(0)
-     my_val=numarray.ravel(cf)[0]
+     my_val=Timba.array.ravel(cf)[0]
   else: #scalar
      my_val=float(cf)
  elif irec.has_key('init_funklet'):
@@ -592,14 +592,14 @@ def get_default_parms(nd):
   fn=irec['init_funklet']
   if(is_meqpolc(fn)):
    cf=fn['coeff'] 
-   if cf.nelements()>=1:
-     my_val=numarray.ravel(cf)[0]
+   if cf.size>=1:
+     my_val=Timba.array.ravel(cf)[0]
    else: #scalar
      my_val=float(cf)
   elif(is_meqpolclog(fn)):
    cf=fn['coeff'] 
-   if cf.nelements()>=1:
-     my_val=numarray.ravel(cf)[0]
+   if cf.size>=1:
+     my_val=Timba.array.ravel(cf)[0]
    else: #scalar
      my_val=float(cf)
    # return exponent
@@ -621,23 +621,23 @@ def get_stokes_I_parms(nd):
        fn=irec['init_funklet']
        if (is_meqpolc(fn)):
          cf=fn['coeff']
-         if cf.nelements()>=1:
-            my_I=numarray.ravel(cf)[0]
+         if cf.size>=1:
+            my_I=Timba.array.ravel(cf)[0]
          else: #scalar
             my_I=float(cf)
          my_SI=0
        elif (is_meqpolclog(fn)):
          cf=fn['coeff']
-         if cf.nelements()>=1:
-           my_I=numarray.ravel(cf)[0]
+         if cf.size>=1:
+           my_I=Timba.array.ravel(cf)[0]
          else: #scalar
            my_I=float(cf)
          # return exponent
          my_I=math.pow(10,my_I)
-         if cf.nelements()>=2:
+         if cf.size>=2:
            ## NOTE: the SI can have a polynomial, but for the moment we ignore 
            ## higher order terms
-           my_SI=numarray.ravel(cf)[1]
+           my_SI=Timba.array.ravel(cf)[1]
          else: #scalar
            my_SI=0
        fr=fn['axis_list']

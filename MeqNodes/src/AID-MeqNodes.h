@@ -798,6 +798,11 @@ const int AidMeqSubtract_int = -1461;
 const DMI::AtomicID AidMeqSum(-1499);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Sum.h:29
 const int AidMeqSum_int = -1499;
 #endif
+#ifndef _defined_id_AidMeqTFSmearFactor
+#define _defined_id_AidMeqTFSmearFactor 1
+const DMI::AtomicID AidMeqTFSmearFactor(-1748);   // from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
+const int AidMeqTFSmearFactor_int = -1748;
+#endif
 #ifndef _defined_id_AidMeqTan
 #define _defined_id_AidMeqTan 1
 const DMI::AtomicID AidMeqTan(-1417);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Tan.h:29
@@ -847,6 +852,11 @@ const int AidMeqUVW_int = -1421;
 #define _defined_id_AidMeqVisPhaseShift 1
 const DMI::AtomicID AidMeqVisPhaseShift(-1517);   // from /home/brentjens/LOFAR/Timba/MeqNodes/src/VisPhaseShift.h:31
 const int AidMeqVisPhaseShift_int = -1517;
+#endif
+#ifndef _defined_id_AidMeqVisPhaseShiftArg
+#define _defined_id_AidMeqVisPhaseShiftArg 1
+const DMI::AtomicID AidMeqVisPhaseShiftArg(-1747);// from /home/oms/Timba/MeqNodes/src/VisPhaseShiftArg.h:32
+const int AidMeqVisPhaseShiftArg_int = -1747;
 #endif
 #ifndef _defined_id_AidMeqWMean
 #define _defined_id_AidMeqWMean 1

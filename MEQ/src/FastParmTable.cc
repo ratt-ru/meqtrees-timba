@@ -22,6 +22,7 @@
 //# $Id: CasaParmTable.cc 5418 2007-07-19 16:49:13Z oms $
 
 #include <MEQ/FastParmTable.h>
+#include <MEQ/Polc.h>
 
 #ifdef HAVE_FASTPARMTABLE
 
@@ -60,7 +61,9 @@ FastParmTable::FastParmTable (const string& tablename,bool)
     throwErrno("can't stat '%s/domains'");
   int ndom = stat_buf.st_size/sizeof(DomainEntry);
   domain_list_.reserve((ndom/1024+1)*1024);
+  domain_ref_list_.reserve((ndom/1024+1)*1024);
   domain_list_.resize(ndom);
+  domain_ref_list_.resize(ndom);
   // read them in
   if( ndom )
   {
@@ -120,7 +123,7 @@ void FastParmTable::makeKey (char *key,const string& name,int domain_index)
   key[keySize(name)-1] = 0;
 }
 
-int FastParmTable::getFunklet (Funklet::Ref &ref,datum db_key)
+int FastParmTable::getFunklet (Funklet::Ref &ref,datum db_key,int domain_index)
 {
   datum db_data = gdbm_fetch(fdb_,db_key);
   if( !db_data.dptr )
@@ -134,34 +137,55 @@ int FastParmTable::getFunklet (Funklet::Ref &ref,datum db_key)
   // use a try-block to deallocate db_data.dptr on any exception
   try
   {
-    // make funklet from the data block
-    size_t *dptr = reinterpret_cast<size_t*>(db_data.dptr);
-    int nblocks = dptr[0];
-    size_t *block_sizes = dptr+1;
-    // check for data size sanity
-    size_t totsize = sizeof(size_t)*(nblocks+1);
-    if( db_data.dsize < int(totsize) )
-      Throw("malformed funklet block in database");
-    // check for exact size
-    for( int i=0; i<nblocks; i++ )
-      totsize += block_sizes[i];
-    if( db_data.dsize != int(totsize) )
-      Throw("malformed funklet block in database");
-    // now allocate blocks and copy data to them
-    char *dataptr = reinterpret_cast<char*>(block_sizes+nblocks);
-    BlockSet bset;
-    for( int i=0; i<nblocks; i++ )
+    // shortcut for 0-deg polcs -- only c00 is stored
+    if( db_data.dsize == sizeof(double) )
     {
-      SmartBlock *block = new SmartBlock(block_sizes[i]);
-      bset.pushNew().attach(block);
-      memcpy(block->data(),dataptr,block_sizes[i]);
-      dataptr += block_sizes[i];
+      double c00 = *reinterpret_cast<double*>(db_data.dptr);
+      Polc *polc = new Polc(c00,defaultPolcPerturbation,defaultPolcWeight,-1);
+      ref <<= polc;
+      const Domain *pdom;
+      if( domain_ref_list_[domain_index].valid() )
+        pdom = domain_ref_list_[domain_index].deref_p();
+      else
+        pdom = &( domain_list_[domain_index].makeDomain(domain_ref_list_[domain_index]) );
+      polc->setDomain(*pdom);
+      polc->setDbId(domain_index);
+      free(db_data.dptr);
+      db_data.dptr = 0;
+      return 1;
     }
-    // free data buffer
-    free(db_data.dptr);
-    db_data.dptr = 0;
-    // create funklet from blockset
-    ref.copy(DynamicTypeManager::construct(0,bset));
+    // generic funklet stored as blockset
+    else
+    {
+      // make funklet from the data block
+      size_t *dptr = reinterpret_cast<size_t*>(db_data.dptr);
+      int nblocks = dptr[0];
+      size_t *block_sizes = dptr+1;
+      // check for data size sanity
+      size_t totsize = sizeof(size_t)*(nblocks+1);
+      if( db_data.dsize < int(totsize) )
+        Throw("malformed funklet block in database");
+      // check for exact size
+      for( int i=0; i<nblocks; i++ )
+        totsize += block_sizes[i];
+      if( db_data.dsize != int(totsize) )
+        Throw("malformed funklet block in database");
+      // now allocate blocks and copy data to them
+      char *dataptr = reinterpret_cast<char*>(block_sizes+nblocks);
+      BlockSet bset;
+      for( int i=0; i<nblocks; i++ )
+      {
+        SmartBlock *block = new SmartBlock(block_sizes[i]);
+        bset.pushNew().attach(block);
+        memcpy(block->data(),dataptr,block_sizes[i]);
+        dataptr += block_sizes[i];
+      }
+      // free data buffer
+      free(db_data.dptr);
+      db_data.dptr = 0;
+      // create funklet from blockset
+      ref.copy(DynamicTypeManager::construct(0,bset));
+    }
     return 1;
   }
   catch(...)
@@ -175,11 +199,12 @@ int FastParmTable::getFunklet (Funklet::Ref &ref,datum db_key)
 
 int FastParmTable::getFunklet (Funklet::Ref &ref,const string& parmName,int domain_index)
 {
+  Thread::Mutex::Lock lock(mutex_);
   size_t keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,domain_index);
   datum db_key = { key,keysize }; 
-  return getFunklet(ref,db_key);
+  return getFunklet(ref,db_key,domain_index);
 }
 
 int FastParmTable::getFunklets (vector<Funklet::Ref> &funklets,const string& parmName,const Domain& domain)
@@ -219,7 +244,7 @@ int FastParmTable::getFunklets (vector<Funklet::Ref> &funklets,const string& par
     if( domain_match_[i] )
     {
       *key_dom = i;
-      getFunklet(funklets[ifunk],db_key);
+      getFunklet(funklets[ifunk],db_key,i);
       if( Debug(3) )
       {
         const Funklet &funk = *funklets[ifunk];
@@ -230,7 +255,8 @@ int FastParmTable::getFunklets (vector<Funklet::Ref> &funklets,const string& par
       }
       ifunk++;
     }
-  return nfunk;
+  funklets.resize(ifunk);
+  return ifunk;
 }
 
 Funklet::DbId FastParmTable::putCoeff (const string& parmName, const Funklet& funklet,
@@ -274,45 +300,61 @@ Funklet::DbId FastParmTable::putCoeff (const string& parmName, const Funklet& fu
     domain_list_.reserve((dom_id/1024+1)*1024); // keep sizing up in large chunks
     domain_list_.resize(dom_id+1);
     domain_list_[dom_id] = de;
+    domain_ref_list_.reserve((dom_id/1024+1)*1024); // keep sizing up in large chunks
+    domain_ref_list_.resize(dom_id+1);
+    domain_ref_list_[dom_id].attach(domain);
     dprintf(2)("created new domain %d\n",dom_id);
-  }
-  // now store the funklet
-  BlockSet bset;
-  funklet.toBlock(bset);
-  // work out required size of data block
-  size_t totsize = (bset.size()+1)*sizeof(size_t);
-  for( BlockSet::const_iterator iter = bset.begin(); iter != bset.end(); iter++ )
-    totsize += (*iter)->size();
-  // allocate block
-  BlockRef bref(new SmartBlock(totsize));
-  // store header info (# blocks and block sizes)
-  size_t *pdata = bref().pdata<size_t>();
-  *pdata = bset.size();
-  pdata++;
-  // pdata points to start of block size array, cdata points to start of data area
-  char *cdata = reinterpret_cast<char*>(pdata+bset.size());
-  // fill both from the blockset
-  for( BlockSet::const_iterator iter = bset.begin(); iter != bset.end(); iter++,pdata++ )
-  {
-    size_t sz = *pdata = (*iter)->size();
-    memcpy(cdata,(*iter)->data(),sz);
-    cdata += sz;
   }
   // build up funklet database key
   size_t keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,dom_id);
   datum db_key = { key,keysize }; 
-  // store block in database
-  // NB: this is the place to check for domain_is_key, but I won't bother just now
-  datum db_data = { bref().cdata(),bref().size() };
-  if( gdbm_store(fdb_,db_key,db_data,GDBM_REPLACE)<0 )
-    throwGdbm("error writing to '%s/funklets'");
+  // now store the funklet
+  const Polc *polc = dynamic_cast<const Polc*>(&funklet);
+  // 0-degree polcs just have their c00 stored
+  if( polc && polc->isConstant() )
+  {
+    double c00 = polc->getCoeff0();
+    datum db_data = { reinterpret_cast<char*>(&c00),sizeof(c00) };
+    if( gdbm_store(fdb_,db_key,db_data,GDBM_REPLACE)<0 )
+      throwGdbm("error writing to '%s/funklets'");
+  }
+  else
+  {
+    BlockSet bset;
+    funklet.toBlock(bset);
+    // work out required size of data block
+    size_t totsize = (bset.size()+1)*sizeof(size_t);
+    for( BlockSet::const_iterator iter = bset.begin(); iter != bset.end(); iter++ )
+      totsize += (*iter)->size();
+    // allocate block
+    BlockRef bref(new SmartBlock(totsize));
+    // store header info (# blocks and block sizes)
+    size_t *pdata = bref().pdata<size_t>();
+    *pdata = bset.size();
+    pdata++;
+    // pdata points to start of block size array, cdata points to start of data area
+    char *cdata = reinterpret_cast<char*>(pdata+bset.size());
+    // fill both from the blockset
+    for( BlockSet::const_iterator iter = bset.begin(); iter != bset.end(); iter++,pdata++ )
+    {
+      size_t sz = *pdata = (*iter)->size();
+      memcpy(cdata,(*iter)->data(),sz);
+      cdata += sz;
+    }
+    // store block in database
+    // NB: this is the place to check for domain_is_key, but I won't bother just now
+    datum db_data = { bref().cdata(),bref().size() };
+    if( gdbm_store(fdb_,db_key,db_data,GDBM_REPLACE)<0 )
+      throwGdbm("error writing to '%s/funklets'");
+  }
   return dom_id; 
 }
 
 void FastParmTable::deleteFunklet (const string &parmName,int domain_index)
 {
+  Thread::Mutex::Lock lock(mutex_);
   size_t keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,domain_index);
@@ -323,6 +365,7 @@ void FastParmTable::deleteFunklet (const string &parmName,int domain_index)
 
 void FastParmTable::deleteAllFunklets (const string &parmName)
 {
+  Thread::Mutex::Lock lock(mutex_);
   size_t keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,0);
@@ -349,6 +392,7 @@ static void decomposeKey (const datum &key,string &name,int &domain_index)
 
 bool FastParmTable::firstFunklet (string &name,int &domain_index)
 {
+  Thread::Mutex::Lock lock(mutex_);
   if( prev_key.dptr )
     free(prev_key.dptr);
   // get first DB key, return false if None
@@ -365,6 +409,7 @@ bool FastParmTable::firstFunklet (string &name,int &domain_index)
 // Note that iteration is not thread-safe, so get a lock on the mutex first.
 bool FastParmTable::nextFunklet (string &name,int &domain_index)
 {
+  Thread::Mutex::Lock lock(mutex_);
   FailWhen(!prev_key.dptr,"must initiate iteration with firstFunklet() before calling nextFunklet()");
   // get next key and deallocate previous
   datum key = gdbm_nextkey(fdb_,prev_key);
@@ -421,22 +466,21 @@ bool FastParmTable::DomainEntry::overlaps (const Domain &dom) const
   {
     if( defined[i] && dom.isDefined(i) )
     {
-      if( start[i] > dom.end(i) ||
-          end[i] < dom.start(i)  )
+      if( start[i] >= dom.end(i) ||
+          end[i] <= dom.start(i)  )
         return false;
     }
   }
   return true;
 }
 
-const Domain & FastParmTable::DomainEntry::makeDomain (ObjRef &ref) const
+const Domain & FastParmTable::DomainEntry::makeDomain (Domain::Ref &domref) const
 {
-  Domain *dom = new Domain;
-  ref <<= dom;
+  Domain &dom = domref <<= new Domain;
   for( int i=0; i<Axis::MaxAxis; i++ )
     if( defined[i] )
-      dom->defineAxis(i,start[i],end[i]);
-  return *dom;
+      dom.defineAxis(i,start[i],end[i]);
+  return dom;
 }
 
 

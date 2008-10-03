@@ -41,7 +41,6 @@ from Timba.GUI.browsers import *
 from Timba import Grid
 
 from qt import *
-from numarray import *
 from Timba.Plugins.display_image import *
 from Timba.Plugins.realvsimag import *
 from Timba.Plugins.plotting_functions import *
@@ -225,7 +224,7 @@ class ResultPlotter(GriddedPlugin):
       self._spectrum_data.setActivePlot(self.active_image_index)
     plot_label = self._spectrum_data.getPlotLabel()
     plot_data = self._spectrum_data.getActivePlotArray()
-    self._visu_plotter.array_plot(plot_label, plot_data, False)
+    self._visu_plotter.array_plot(plot_data, data_label=plot_label,flip_axes=False)
 
     _dprint(2, 'exiting plotSpectra');
 
@@ -969,7 +968,7 @@ class ResultPlotter(GriddedPlugin):
       self._y_title = 'Value'
       self._x_title = 'Iteration Nr'
       title = self.label + " Solver Incremental Solution"
-    self._visu_plotter.array_plot(title, self._solver_array)
+    self._visu_plotter.array_plot(self._solver_array,data_label=title)
 
   def test_vells_scalar (self, data_array, data_label):
     """ test if incoming Vells contains only a scalar value """
@@ -1042,7 +1041,7 @@ class ResultPlotter(GriddedPlugin):
     self._spectrum_data.setActivePlot(menuid)
     plot_label = self._spectrum_data.getPlotLabel()
     plot_data = self._spectrum_data.getActivePlotArray()
-    self._visu_plotter.array_plot(plot_label, plot_data, False)
+    self._visu_plotter.array_plot(plot_data, data_label=plot_label, flip_axes=False)
 
   def setSelectedAxes (self,first_axis, second_axis, third_axis=-1):
     """ callback to handle a request from the N-dimensional
@@ -1055,11 +1054,11 @@ class ResultPlotter(GriddedPlugin):
       if not self._visu_plotter is None:
         self._visu_plotter.delete_cross_sections()
         self._visu_plotter.setAxisParms(axis_parms)
-        self._visu_plotter.array_plot(" ", plot_array)
+        self._visu_plotter.array_plot(plot_array)
       else:
         if not self.ND_plotter is None:
           self.ND_plotter.delete_vtk_renderer()
-          self.ND_plotter.array_plot(" ", plot_array)
+          self.ND_plotter.array_plot(plot_array)
           self.ND_plotter.setAxisParms(axis_parms)
 
 
@@ -1072,10 +1071,10 @@ class ResultPlotter(GriddedPlugin):
       plot_array = self._vells_data.getActiveData().copy()
       if not self._visu_plotter is None:
         self._visu_plotter.reset_color_bar(True)
-        self._visu_plotter.array_plot('data: '+ display_string, plot_array)
+        self._visu_plotter.array_plot(plot_array, data_label='data: '+ display_string)
       else:
         if not self.ND_plotter is None:
-          self.ND_plotter.array_plot('data: '+ display_string, plot_array)
+          self.ND_plotter.array_plot(plot_array, data_label='data: '+ display_string)
 
   def adjust_selector (self):
     """ instantiate and/or adjust contents of ResultsRange object """
@@ -1154,7 +1153,7 @@ class ResultPlotter(GriddedPlugin):
 
   def set_ND_controls (self, labels=None, parms=None, num_axes=2):
     """ this function adds the extra GUI control buttons etc if we are
-        displaying data for a numarray of dimension 3 or greater """
+        displaying data for a numpy array of dimension 3 or greater """
 
     self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 
@@ -1163,6 +1162,16 @@ class ResultPlotter(GriddedPlugin):
 
   def show_3D_Display(self, display_flag_3D):
     if not has_vtk:
+      return
+    if self._vells_data is None:
+      Message = '3D displays are not yet implemented for this data type'
+      mb_color = QMessageBox("result_plotter.py",
+                 Message,
+                 QMessageBox.Warning,
+                 QMessageBox.Ok | QMessageBox.Default,
+                 QMessageBox.NoButton,
+                 QMessageBox.NoButton)
+      mb_color.exec_loop()
       return
     axis_increments = None
     if not display_flag_3D:
@@ -1199,7 +1208,7 @@ class ResultPlotter(GriddedPlugin):
     if plot_array.min() == plot_array.max():
       return
     
-    self.ND_plotter.array_plot(" ", plot_array)
+    self.ND_plotter.array_plot(plot_array)
     self.ND_plotter.setAxisParms(self.axis_parms)
     if not axis_increments is None:
       self.ND_plotter.setAxisIncrements(axis_increments)

@@ -33,12 +33,12 @@ import DLFCN
 sys.setdlopenflags(DLFCN.RTLD_NOW | DLFCN.RTLD_GLOBAL);
 
 import string
-import numarray
+import Timba.array
 import types
 import weakref
 import re
 import new
-from numarray import array
+from Timba.array import array
 
 import Timba
 from Timba.utils import *
@@ -376,7 +376,7 @@ class record (dict):
           eq = (a==b);
           if isinstance(eq,int):
             return eq;
-          return numarray.alltrue(eq.getflat());
+          return Timba.array.alltrue(eq.ravel());
         elif isinstance(a,(list,tuple)):
           if len(a) != len(b):
 ##            print 'length mismatch';
@@ -471,13 +471,13 @@ def make_scope (scope):
 # Other classes  
 
 # array_class
-#   use class object from numarray (array() itself is only a function)
-array_class = type(numarray.array(0));
+#   use class object from array module (array() itself is only a function)
+array_class = type(Timba.array.array(0));
 
 # shortcuts for array types 
-arr_double = numarray.Float64;
-arr_dcomplex = numarray.Complex64;
-arr_int32 = numarray.Int32;
+arr_double = Timba.array.float64;
+arr_dcomplex = Timba.array.complex128;
+arr_int32 = Timba.array.int32;
 
 def is_array (x):
   return isinstance(x,array_class);

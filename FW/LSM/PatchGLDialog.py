@@ -37,7 +37,7 @@ except:
 #from OpenGL.GL import *
 #from OpenGL.GLU import *
 import sys
-import numarray
+import Timba.array
 
 #############################################################
 class PatchGL(QGLWidget):
@@ -423,8 +423,8 @@ class PatchGLDialog(QDialog):
 ########################################################################
 def main(args):
   app=QApplication(args)
-  my_arr=numarray.fromfunction(lambda x,y: (x**2+y**2)/100.0,(12,14)) 
-  my_lims=my_arr.getshape()
+  my_arr=Timba.array.fromfunction(lambda x,y: (x**2+y**2)/100.0,(12,14)) 
+  my_lims=my_arr.shape
   win=PatchGLDialog(None,"Patch",1,0,my_arr,my_lims)
   win.show()
   app.connect(app,SIGNAL("lastWindowClosed()"),

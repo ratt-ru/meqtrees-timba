@@ -112,7 +112,7 @@ class SixpackComponent (SkyComponent):
         uvppw=self._fft_pad_factor);
     return brick;
     
-  def make_visibilities (self,nodes,array,observation):
+  def make_visibilities (self,nodes,array,observation,**kw):
     observation = Context.get_observation(observation);
     array = Context.get_array(array);
     coherency = self.ns.coherency;

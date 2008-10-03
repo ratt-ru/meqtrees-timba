@@ -110,20 +110,61 @@ void MSSeqOutputChannel::flushOutputTiles ()
         putColumn(predictcol_,msrow,tile.predict()(LoRange::all(),LoRange::all(),tm.tile_row));
       if( tile.defined(VTile::RESIDUALS) && rescol_.valid )
         putColumn(rescol_,msrow,tile.residuals()(LoRange::all(),LoRange::all(),tm.tile_row));
-      if( write_flags_ )
+      if( write_bitflag_ || write_legacy_flags_ )
       {
-        rowFlagCol_.put(msrow,tile.rowflag(tm.tile_row)&flagmask_ != 0);
-        if( tile.defined(VTile::FLAGS) )
+        if( use_bitflag_col_ )
         {
-          LoMat_int int_flags = tile.flags()(LoRange::all(),LoRange::all(),tm.tile_row);
-          LoMat_bool flags( int_flags.shape() );
-          flags = blitz::cast<bool>(int_flags & flagmask_ );
-          if( flip_freq_ )
-            flags.reverseSelf(blitz::secondDim);
-          Matrix<Bool> aips_flags;
-          B2A::copyArray(aips_flags,flags);
-//          cdebug(6)<<"writing to FLAG column: "<<aips_flags<<endl;
-          flagCol_.putSlice(msrow,column_slicer_,aips_flags);
+          // read in the bitflag columns
+          int rowflag = rowBitflagCol_(msrow);
+          Matrix<Int> abitflags;
+          bitflagCol_.getSlice(msrow,column_slicer_,abitflags);
+          // if writing bitflags, apply masks and write back
+          if( write_bitflag_ )
+          {
+            rowflag = (rowflag&ms_flagmask_)|(tile.rowflag(tm.tile_row)&tile_flagmask_?tile_bitflag_:0);
+            rowBitflagCol_.put(msrow,rowflag);
+            for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++ )
+              (*iter) &= ms_flagmask_;
+            if( tile.defined(VTile::FLAGS) && tile_flagmask_ )
+            {
+              LoMat_int int_flags = tile.flags()(LoRange::all(),LoRange::all(),tm.tile_row);
+              int_flags = where(int_flags&tile_flagmask_,tile_bitflag_,0);
+              if( flip_freq_ )
+                int_flags.reverseSelf(blitz::secondDim);
+              Matrix<Int> abitflags_add;
+              B2A::copyArray(abitflags_add,int_flags);
+              Matrix<Int>::const_iterator iter2 = abitflags_add.begin();
+              for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++,iter2++ )
+                (*iter) |= (*iter2);
+            }
+            bitflagCol_.putSlice(msrow,column_slicer_,abitflags);
+          }
+          // if writing legacy flags, apply legacy flagmasks and write
+          if( write_legacy_flags_ )
+          {
+            rowFlagCol_.put(msrow,(rowflag&legacy_flagmask_) != 0);
+            Matrix<Bool> aflags(abitflags.shape());
+            Matrix<Int>::const_iterator iter2 = abitflags.begin();
+            for( Matrix<Bool>::iterator iter = aflags.begin(); iter != aflags.end(); iter++,iter2++ )
+              (*iter) = ((*iter2)&legacy_flagmask_) != 0;
+            flagCol_.putSlice(msrow,column_slicer_,aflags);
+          }
+        }
+        else if( write_legacy_flags_ ) // write legacy FLAG column based on the tile_flagmask_
+        {
+          rowFlagCol_.put(msrow,(tile.rowflag(tm.tile_row)&tile_flagmask_) != 0);
+          if( tile.defined(VTile::FLAGS) )
+          {
+            LoMat_int int_flags = tile.flags()(LoRange::all(),LoRange::all(),tm.tile_row);
+            LoMat_bool flags( int_flags.shape() );
+            flags = blitz::cast<bool>(int_flags & tile_flagmask_ );
+            if( flip_freq_ )
+              flags.reverseSelf(blitz::secondDim);
+            Matrix<Bool> aips_flags;
+            B2A::copyArray(aips_flags,flags);
+  //          cdebug(6)<<"writing to FLAG column: "<<aips_flags<<endl;
+            flagCol_.putSlice(msrow,column_slicer_,aips_flags);
+          }
         }
       }
     }

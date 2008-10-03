@@ -46,17 +46,18 @@
 #
 
 from UVPAxis import *
-from numarray import *
+import numpy
+import math
 from qt import *
 
 class ComplexColorMap:
 
   def __init__(self, numColors):
 # create arrays for holding colormap values
-#    self._itsComplexColormap = zeros((numColors*numColors), UInt32)
+#    self._itsComplexColormap = numpy.zeros((numColors*numColors), numpy.uint32)
     self._itsComplexColormap = []
-    self._itsRealIndex = zeros((numColors),UInt32)
-    self._itsImagIndex = zeros((numColors),UInt32)
+    self._itsRealIndex = numpy.zeros((numColors),numpy.uint32)
+    self._itsImagIndex = numpy.zeros((numColors),numpy.uint32)
     for i in range(numColors):
       self._itsRealIndex[i] = i;
       self._itsImagIndex[i] = numColors*i;
@@ -84,7 +85,7 @@ class ComplexColorMap:
 
   # The complex color table;
     for i in range(numColors):
-      green  = fabs(min_color + slope*(float(i)-numColors/2));
+      green  = abs(min_color + slope*(float(i)-numColors/2));
       if green < min_color:
         green = min_color 
       if green > max_color:
@@ -95,7 +96,7 @@ class ComplexColorMap:
         Blueim = Green>>1
 
       for r in range(numColors):
-        red  = fabs(min_color + slope*(float(r)-numColors/2));
+        red  = abs(min_color + slope*(float(r)-numColors/2));
         if red < min_color:
           red = min_color;
         if red > max_color:

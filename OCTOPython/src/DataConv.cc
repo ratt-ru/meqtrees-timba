@@ -30,9 +30,9 @@
 #include <DMI/NumArray.h>
 #include <DMI/List.h>
 #include <DMI/DynamicTypeManager.h>
-#define Bool NumarrayBool
-#include <numarray/libnumarray.h>
-#undef Bool
+// #define Bool NumarrayBool
+#include <numpy/ndarrayobject.h>
+// #undef Bool
 
 using Debug::ssprintf;
 using std::endl;
@@ -271,33 +271,33 @@ static TypeId numarrayToTypeId (int num)
 {
   switch( num )
   {
-    case tBool:       return Tpbool;   
-    case tUInt8:      return Tpuchar;
-    case tInt16:      return Tpshort;
-    case tInt32:      return Tpint;
-    case tFloat32:    return Tpfloat;
-    case tFloat64:    return Tpdouble;
-    case tComplex32:  return Tpfcomplex;
-    case tComplex64:  return Tpdcomplex;
+    case NPY_BOOL:            return Tpbool;   
+    case NPY_UBYTE:           return Tpuchar;
+    case PyArray_INT16:       return Tpshort;
+    case PyArray_INT32:       return Tpint;
+    case PyArray_FLOAT32:     return Tpfloat;
+    case PyArray_FLOAT64:     return Tpdouble;
+    case PyArray_COMPLEX64:   return Tpfcomplex;
+    case PyArray_COMPLEX128:  return Tpdcomplex;
     default:
-      throwError(Type,ssprintf("numarray type %d not supported by dmi",num));
+      throwError(Type,ssprintf("NumPy type %d not supported by dmi",num));
   }
 }
 
-static NumarrayType typeIdToNumarray (TypeId tid)
+static int typeIdToNumarray (TypeId tid)
 {
   switch( tid.id() )
   {
-    case Tpbool_int:      return tBool;   
-    case Tpuchar_int:     return tUInt8;
-    case Tpshort_int:     return tInt16;
-    case Tpint_int:       return tInt32;
-    case Tpfloat_int:     return tFloat32;
-    case Tpdouble_int:    return tFloat64;
-    case Tpfcomplex_int:  return tComplex32;
-    case Tpdcomplex_int:  return tComplex64;
+    case Tpbool_int:      return NPY_BOOL;   
+    case Tpuchar_int:     return NPY_UBYTE;
+    case Tpshort_int:     return PyArray_INT16;
+    case Tpint_int:       return PyArray_INT32;
+    case Tpfloat_int:     return PyArray_FLOAT32;
+    case Tpdouble_int:    return PyArray_FLOAT64;
+    case Tpfcomplex_int:  return PyArray_COMPLEX64;
+    case Tpdcomplex_int:  return PyArray_COMPLEX128;
     default:
-      throwError(Type,"dmi type "+tid.toString()+" no supported by numarray");
+      throwError(Type,"dmi type "+tid.toString()+" not supported by NumPy");
   }
 }
 
@@ -306,15 +306,15 @@ static NumarrayType typeIdToNumarray (TypeId tid)
 // -----------------------------------------------------------------------
 int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
 {
-  // create object
+  // create output NumArray 
   DMI::NumArray &arr = arref <<= createSubclass<DMI::NumArray>(pyobj);
-  // get input array object
-  PyArrayObject *pyarr = NA_InputArray(pyobj,tAny,NUM_C_ARRAY); // new ref
-  PyObjectRef pyarr_ref((PyObject*)pyarr); // attach here for auto-cleanup
-  if( !pyarr ) 
-    throwErrorOpt(Type,"NA_InputArray fails, perhaps object is not an array");
+  // make array object with guaranteed C-array properties. This takes
+  // care of strides, etc. NumPy will only copy data if the input array is not suitable.
+  PyObjectRef pyarr_ref = PyArray_FromAny(pyobj,NULL,0,0,NPY_CARRAY_RO,NULL);
+  if( !pyarr_ref ) 
+    throwErrorOpt(Type,"PyArray_FromAny fails, perhaps object is not an array");
   // figure out array shape
-  uint ndim = pyarr->nd;
+  uint ndim = PyArray_NDIM(*pyarr_ref);
   if( ndim>MaxLorrayRank )
     throwError(Type,ssprintf("array of rank %d, maximum supported is %d",ndim,MaxLorrayRank));
   // create shape of output array -- but do note that 0-dimensional 
@@ -322,16 +322,16 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
   LoShape shape((ndim?ndim:1)|LoShape::SETRANK);
   if( ndim )
     for( uint i=0; i<ndim; i++ )
-      shape[i] = pyarr->dimensions[i];
+      shape[i] = PyArray_DIM(*pyarr_ref,i);
   else
     shape[0] = 1;
-  TypeId tid = numarrayToTypeId(pyarr->descr->type_num);
-  ulong nb = ulong(pyarr->itemsize)*shape.product();
+  TypeId tid = numarrayToTypeId(PyArray_TYPE(*pyarr_ref));
+  ulong nb = PyArray_NBYTES(*pyarr_ref);
   // init DMI::NumArray
   cdebug(3)<<"pyToArray("<<ObjStr(pyobj)<<": type "<<tid<<", shape "<<shape<<", "<<nb<<" bytes\n";
   arr.init(tid,shape,DMI::NOZERO);
   
-  memcpy(arr.getDataPtr(),NA_OFFSETDATA(pyarr),nb);
+  memcpy(arr.getDataPtr(),PyArray_DATA(*pyarr_ref),nb);
   arr.validateContent(true);
 
   // success
@@ -763,7 +763,7 @@ PyObject * pyFromRecord (const DMI::Record &dr)
 
 // -----------------------------------------------------------------------
 // pyFromArray
-// converts a DMI::NumArray to a Numarray instance
+// converts a DMI::NumArray to a NumPy array
 // -----------------------------------------------------------------------
 PyObject * pyFromArray (const DMI::NumArray &da)
 {
@@ -809,39 +809,24 @@ PyObject * pyFromArray (const DMI::NumArray &da)
         throwErrorOpt(Runtime,"failed to call dmi_type() for "+objtype.toString());
     }
     // create array
-    NumarrayType typecode = typeIdToNumarray(da.elementType());
-// 20/01/05: get rid of transpose here since NumArrays are in C order now
-// this is the old version: column-major ordering
-//     maybelong dims[rank];
-//     maybelong strides[rank];
-//     maybelong stride = da.elementSize();
-//     for( int i=0; i<rank; i++ )
-//     {
-//       strides[i] = stride;
-//       stride *= dims[i] = da.shape()[i];
-//     }
-//    PyObjectRef pyarr = (PyObject*)
-//        NA_NewAllStrides(rank,dims,strides,typecode,
-//                         const_cast<void*>(da.getConstDataPtr()),
-//                         0,NUM_LITTLE_ENDIAN,0,1);
-
-//  this is the new version: only specify shape (C order by default)
-    maybelong dims[rank];
+    int typecode = typeIdToNumarray(da.elementType());
+    npy_intp dims[rank];
     for( int i=0; i<rank; i++ )
       dims[i] = da.shape()[i];
-    PyObjectRef pyarr = (PyObject*)
-      NA_vNewArray(const_cast<void*>(da.getConstDataPtr()),typecode,rank,dims); // new ref
-    // reclassify
-    if( objtype != TpDMINumArray )
+    PyObjectRef pyarr;
+    // if creating a plain array, use SimpleNew
+    if( objtype == TpDMINumArray )
+      pyarr = PyArray_SimpleNew(rank,dims,typecode);
+    else
     {
-      cdebug(3)<<"pyFromArray: recasting array to "<<objtype<<endl;
-      PyObjectRef args = Py_BuildValue("(OO)",*pyarr,*realclass); // new ref
-      if( !args )
-        throwErrorOpt(Runtime,"failed to create dmi_coerce() args tuple for "+objtype.toString());
-      PyObjectRef result = PyObject_CallObject(*py_dmisyms.dmi_coerce,*args);
-      if( !result )
-        throwErrorOpt(Runtime,"failed to call dmi_coerce() for "+objtype.toString());
+      // creating subclass of ndarray. Old way was to use dmi_coerce to change class later,
+      // but numpy doesn't allow this, so we use New instead
+      pyarr = PyArray_New(reinterpret_cast<PyTypeObject*>(*realclass),rank,dims,typecode,0,0,0,0,0);
+      if( !pyarr )
+        throwErrorOpt(Runtime,"failed to create numpy array for "+objtype.toString());
     }
+    // copy data to python array
+    memcpy(PyArray_DATA(*pyarr),da.getConstDataPtr(),PyArray_NBYTES(*pyarr)); // new ref
     return ~pyarr; // steal our ref since we need to return a NEW REF
   }
 }
@@ -964,11 +949,13 @@ void initDataConv ()
     return;
   initialized = true;
   
-  if( sizeof(bool) != sizeof(NumarrayBool) )
+  if( sizeof(bool) != sizeof(npy_bool) )
   {
     Py_FatalError("C++ bool != numarray bool, conversion code must be implemented");
   }
-  import_libnumarray();
+  // import the numpy API
+  import_array();
+  // PyObjectRef numpyref = PyImport_ImportModule("numpy");
 }
 
 }; // namespace OctoPython

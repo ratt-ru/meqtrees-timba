@@ -1170,8 +1170,8 @@ class editParm(QDialog):
       
     def slotcmdAddRow(self):
         array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx+1,self._ny));
-#       something I have to do , since increasing size of a numarray does strange things with values
+        array2=Timba.array.resize(array1,(self._nx+1,self._ny));
+#       something I have to do , since increasing size of a Timba.array does strange things with values
         for i in range(self._nx):
             for j in range(self._ny):
                 array2[i,j]=self._coeff[i][j];
@@ -1187,7 +1187,7 @@ class editParm(QDialog):
 
     def slotcmdAddCol(self):
         array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx,self._ny+1));
+        array2=Timba.array.resize(array1,(self._nx,self._ny+1));
         for i in range(self._nx):
             for j in range(self._ny):
                 array2[i,j]=self._coeff[i][j];
@@ -1203,7 +1203,7 @@ class editParm(QDialog):
         if self._nx<=1:
             return;
         array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx-1,self._ny));
+        array2=Timba.array.resize(array1,(self._nx-1,self._ny));
         self._coeff=array2;
         self._nx-=1;
         self.funkgrid.setNumRows(self._nx);
@@ -1216,7 +1216,7 @@ class editParm(QDialog):
         if self._ny<=1:
             return;
         array1=self._coeff;
-        array2=numarray.resize(array1,(self._nx,self._ny-1));
+        array2=Timba.array.resize(array1,(self._nx,self._ny-1));
         self._coeff=array2;
         self._ny-=1;
         self.funkgrid.setNumRows(self._nx);
@@ -1234,7 +1234,7 @@ class editParm(QDialog):
 
     def slotcmdOK(self, set_default=0):
 #       #print self.parent._funklet.coeff;
-        array1=numarray.resize(self.parent._funklet.coeff,(self._nx,self._ny));
+        array1=Timba.array.resize(self.parent._funklet.coeff,(self._nx,self._ny));
         self.parent._funklet.coeff=array1;
         for i in range(self._nx):
             for j in range(self._ny):

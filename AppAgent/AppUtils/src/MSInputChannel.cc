@@ -255,6 +255,12 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   // do we have a WEIGHT_SPECTRUM column at all?
   const TableDesc & tabledesc = selms_.tableDesc();
   has_weights_ = tabledesc.isColumn("WEIGHT_SPECTRUM");
+  
+  // do we have a BITFLAG column?
+  has_bitflags_ = tabledesc.isColumn("BITFLAG") && tabledesc.isColumn("BITFLAG_ROW"); 
+  dprintf(1)(has_bitflags_?"Found BITFLAG extension in this MS, will look for flags there":"No BITFLAG extension found, using standard FLAG column");
+  if( !has_bitflags_ )
+    flagmask_ = 0;
 
   // process the TIME column to figure out the tiling
   ROScalarColumn<Double> timeCol(selms_,"TIME");
@@ -381,8 +387,10 @@ int MSInputChannel::init (const DMI::Record &params)
 //        " with "+FTileSegments.toString()+">1");
   if( !tilesize_ && !tilesegs_ )
     tilesize_ = 1;
-  // clear flags?
-  clear_flags_ = params[FClearFlags].as<bool>(false);
+  // bitflag mask
+  flagmask_ = params[FFlagMask].as<int>(-1);
+  legacy_bitflag_ = params[FLegacyBitflag].as<int>(1);
+  tile_bitflag_ = params[FTileBitflag].as<int>(2);
   // hanning tapering?
   apply_hanning_ = params[FApplyHanning].as<bool>(false);
 
@@ -504,8 +512,6 @@ int MSInputChannel::refillStream ()
         LoMat_double uvwmat = B2A::refAipsToBlitz<double,2>(uvwmat1);
         Cube<Complex> datacube1 = ROArrayColumn<Complex>(table, dataColName_).getColumn();
         LoCube_fcomplex datacube = B2A::refAipsToBlitzComplex<3>(datacube1);
-        Cube<Bool> flagcube1 = ROArrayColumn<Bool>(table,"FLAG").getColumn();
-        LoCube_bool flagcube = B2A::refAipsToBlitz<bool,3>(flagcube1);
         // apply taper
 //        if( apply_hanning_ )
 //        {
@@ -531,9 +537,52 @@ int MSInputChannel::refillStream ()
             }
           datacube.reference(tapered_data);
         }
+        LoCube_int bitflagcube;
+        LoVec_int bitflagvec;
+        bool hasflags = false;
+        // read bitflag columns, if available
+        if( has_bitflags_ & flagmask_ )
+        {
+          Cube<Int> bitflagcube1 = ROArrayColumn<Int>(table,"BITFLAG").getColumn();
+          B2A::copyArray(bitflagcube,bitflagcube1);
+          bitflagcube &= flagmask_;
+          Vector<Int> bitflagvec1 = ROScalarColumn<Int>(table,"BITFLAG_ROW").getColumn();
+          B2A::copyArray(bitflagvec,bitflagvec1);
+          bitflagvec &= flagmask_;
+          if( tile_bitflag_ )
+          {
+            bitflagcube = where(bitflagcube,tile_bitflag_,0);
+            bitflagvec = where(bitflagvec,tile_bitflag_,0);
+          }
+          hasflags = true;
+        }
+        // read legacy flag columns, if available
+        if( legacy_bitflag_ )
+        {
+          Cube<Bool> flagcube1 = ROArrayColumn<Bool>(table,"FLAG").getColumn();
+          LoCube_bool flagcube = B2A::refAipsToBlitz<bool,3>(flagcube1);
+          if( !hasflags ) // array not initialized above
+          {
+            bitflagcube.resize(flagcube.shape());
+            bitflagcube = where(flagcube,legacy_bitflag_,0);
+          }
+          else
+            bitflagcube |= where(flagcube,legacy_bitflag_,0);
+          Vector<Bool> bitflagrow1 = ROScalarColumn<Bool>(table,"FLAG_ROW").getColumn();
+          LoVec_bool bitflagrow = B2A::refAipsToBlitz<bool,1>(bitflagrow1);
+          if( !hasflags )
+          {
+            bitflagvec.resize(bitflagrow.shape());
+            bitflagvec = where(bitflagrow,legacy_bitflag_,0);
+          }
+          else
+            bitflagvec |= where(bitflagrow,legacy_bitflag_,0);
+          hasflags = true;
+        }
         // apply channel selection
         datacube.reference(datacube(ALL,CHANS,ALL));
-        flagcube.reference(flagcube(ALL,CHANS,ALL));
+        if( hasflags )
+          bitflagcube.reference(bitflagcube(ALL,CHANS,ALL));
         // check weightcube shape (WSRT gets it wrong), disable weights on first error
         if( has_weights_ && weightcube.shape() != datacube.shape() )
         {
@@ -545,7 +594,8 @@ int MSInputChannel::refillStream ()
         if( flip_freq_ )
         {
           datacube.reverseSelf(blitz::secondDim);
-          flagcube.reverseSelf(blitz::secondDim);
+          if( hasflags )
+            bitflagcube.reverseSelf(blitz::secondDim);
           if( has_weights_ )
             weightcube.reverseSelf(blitz::secondDim);
         }
@@ -569,7 +619,6 @@ int MSInputChannel::refillStream ()
             ptile->wrowflag() = FlagMissing;
           }
           ptile->winterval()(ntimes) = intCol(i);
-          ptile->wrowflag()(ntimes)  = rowflagCol(i) && !clear_flags_ ? 1 : 0;
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
           ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,ALL,i);
           if( has_weights_ )
@@ -578,10 +627,16 @@ int MSInputChannel::refillStream ()
             ptile->wweight()(ALL,ALL,ntimes) = weightcube(ALL,ALL,i);
             cdebug(6)<<"weights for timeslot after assignment "<<ptile->wweight()(ALL,ALL,ntimes)<<endl;
           }
-          if( clear_flags_ )
-            ptile->wflags()(ALL,ALL,ntimes) = 0;
+          if( hasflags )
+          {
+            ptile->wrowflag()(ntimes) = bitflagvec(i);
+            ptile->wflags()(ALL,ALL,ntimes) = bitflagcube(ALL,ALL,i);
+          }
           else
-            ptile->wflags()(ALL,ALL,ntimes) = where(flagcube(ALL,ALL,i),1,0);
+          {
+            ptile->wrowflag()(ntimes) = 0;
+            ptile->wflags()(ALL,ALL,ntimes) = 0;
+          }
           ptile->wseqnr()(ntimes) = rownums(i);
         }
         current_timeslot_++;

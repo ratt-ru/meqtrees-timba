@@ -42,6 +42,9 @@ class SkyComponent (Parameterization):
         raise TypeError,"direction: Direction object or (ra,dec) tuple expected";
       ra,dec = direction;
       self.direction = Direction(ns,name,ra,dec);
+    # If the source uses station decomposition (i.e. if the sqrt_visibilities() method has been called), 
+    # this will be set to True.
+    self.using_station_decomposition = False;
     
   def radec (self):
     """Returns ra-dec two-pack for this component's direction""";
@@ -49,8 +52,11 @@ class SkyComponent (Parameterization):
     
   def lmn (self,dir0=None):
     return self.direction.lmn(dir0);
+  
+  def get_solvables (self):
+    return Parameterization.get_solvables(self) + self.direction.get_solvables();
     
-  def make_visibilities (self,nodes,array,observation):
+  def make_visibilities (self,nodes,array,observation,**kw):
     """Abstract method.
     Creates nodes computing nominal visibilities of this component 
     Actual nodes are then created as nodes(name,sta1,sta2) for all array.ifrs().
@@ -79,7 +85,7 @@ class SkyComponent (Parameterization):
     (if decomposition is not supported).""";
     return None;
     
-  def visibilities  (self,array=None,observation=None,nodes=None):
+  def visibilities  (self,array=None,observation=None,nodes=None,smearing=False,**kw):
     """Creates nodes computing visibilities of component.
     'array' is an IfrArray object, or None if the global context is to be used.
     'observation' is an Observation object, or None if the global context is 
@@ -89,13 +95,16 @@ class SkyComponent (Parameterization):
     Otherwise 'nodes' is supposed to refer to an unqualified node, and 
     visibility nodes are created as nodes(p,q).
     Returns the actual unqualified visibility node that was created, i.e. 
-    either 'nodes' itself, or the automatically named nodes""";
+    either 'nodes' itself, or the automatically named nodes
+    The 'smearing' argument is passed to the component's make_visibilitis() function.
+    If True, this tells it to apply time/bandwidth smearing correction
+    """;
     observation = Context.get_observation(observation);
     array = Context.get_array(array);
     if nodes is None:
       nodes = self.ns.visibility.qadd(observation.radec0());
     if not nodes(*(array.ifrs()[0])).initialized():
-      self.make_visibilities(nodes,array,observation);
+      self.make_visibilities(nodes,array,observation,smearing=smearing,**kw);
     return nodes;
     
   def corrupt (self,jones,per_station=True,label=None):

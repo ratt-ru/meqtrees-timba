@@ -25,7 +25,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-from numarray import *
+from Timba.array import *
 import Meow
 
 def create_polc(c00=0.0,deg_f=0,deg_t=0):
@@ -38,7 +38,19 @@ def create_polc(c00=0.0,deg_f=0,deg_t=0):
 # type of polc object  
 POLC_TYPE = type(meq.polc(0));
 
-def resolve_parameter (name,node,value,tags=[],solvable=True):
+def resolve_parameter (name,node,value,tags=[],solvable=True,solvables=None):
+  """Helper function, resolves 'value' to a parameter-like node.
+  'name' is a parameter name (only uased for error messages)
+  'node' is an uninitialized node stub
+  'value' specifies the parameter.
+      (a) If value is numeric, creates a Meq.Constant() and binds it to 'node'.
+      (b) If value is a node, returns it as-is.
+      (c) If value is a Meow.Parm specification, creates a Meq.Parm(), and binds it to 'node'. If
+          'solvable' is True, create Meq.Parm will have a 'solvable' tag.
+  'solvables' may be None, or a list. If it is a list, then any solvable parameters 
+      will be appended to this list. In case (c) this is the created Parm (if solvable=True). In
+      case (b) a search will be performed on the node to extract any solvable parameters.
+  """
   # make sure tags is a list, and add name
   if isinstance(tags,str):
     tags = tags.split(" ");
@@ -48,11 +60,16 @@ def resolve_parameter (name,node,value,tags=[],solvable=True):
   if isinstance(value,(int,float,complex)):
     return node << Meq.Constant(value=value,tags=tags);
   elif is_node(value):
+    if solvables is not None:
+      solvables += value.search(tags="solvable");
     return value;
   elif isinstance(value,Meow.Parm):
     if solvable:
       tags.append("solvable");
-    return node << value.make(tags);
+    node << value.make(tags);
+    if solvables is not None and solvable:
+      solvables.append(node);
+    return node;
   else:
     raise TypeError,"Parameter '"+name+"' can only be defined as a constant, a node, or a Meow.Parm";
   
@@ -82,6 +99,9 @@ class Parameterization (object):
       self.ns = ns.QualScope(*self._quals,**self._kwquals);
     else:
       self.ns = ns;
+    # this will be a list of Parms that are used for any parameters. 
+    # if empty, then all parameters are constants
+    self._solvables = [];
     
   def _add_parm (self,name,value,tags=[],solvable=True):
     """Adds an entry for parameter named 'name'. No nodes are created yet;
@@ -126,9 +146,13 @@ class Parameterization (object):
       self._add_parm(name,value,tags,solvable=solvable);
     # now define the node
     nodename = nodename or name;
-    self._parmnodes[name] = resolve_parameter(name,self.ns[nodename],
-                                              value,tags,solvable);
-    return self._parmnodes[name];
+    parmnode = self._parmnodes[name] = resolve_parameter(name,self.ns[nodename],
+                                              value,tags,solvable,self._solvables);
+    return parmnode;
+    
+  def get_solvables (self):
+    """Returns list of solvable parameters for this object""";
+    return self._solvables;
 
   def _get_constant (self,name):
     """Returns constant corresponding to given parm, or None if parm is non-constant""";

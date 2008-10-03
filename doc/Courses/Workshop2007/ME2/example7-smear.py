@@ -29,6 +29,7 @@ from Timba.Meq import meq
 import math
 
 import Meow
+import Meow.Utils
 import Meow.StdTrees
 
 import sky_models

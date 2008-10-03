@@ -30,9 +30,10 @@ try:
   from Qwt4 import *
 except:
   from qwt import *
-from numarray import *
-import numarray.ieeespecial as ieee
-import numarray.mlab as mlab
+
+import numpy
+import math
+
 from UVPAxis import *
 from ComplexColorMap import *
 from ComplexScaleDraw import *
@@ -82,26 +83,26 @@ def standard_deviation(incoming_array,complex_type):
     if complex_type:
       incoming_mean = incoming_array.mean()
       temp_array = incoming_array - incoming_mean
-      abs_array = abs(temp_array)
+      abs_array = numpy.abs(temp_array)
 # get the conjugate of temp_array ...
 # note: we need to add a test if temp_array has a value 0+0j somewhere,
 # so do the following:
-      temp1 = less_equal(abs_array,0.0)
+      temp1 = numpy.less_equal(abs_array,0.0)
       temp_array = temp_array + temp1
       temp_array_conj = (abs_array * abs_array) / temp_array
       temp_array = temp_array * temp_array_conj
       mean = temp_array.mean()
-      std_dev = sqrt(mean)
+      std_dev = math.sqrt(mean)
       std_dev = abs(std_dev)
       return std_dev
     else:
-      return incoming_array.stddev()
+      return incoming_array.std()
 
 def linearX(nx, ny):
-    return repeat(arange(nx, typecode = Float32)[:, NewAxis], ny, -1)
+    return repeat(numpy.arange(nx, typecode = numpy.float32)[:, numpy.newaxis], ny, -1)
 
 def linearY(nx, ny):
-    return repeat(arange(ny, typecode = Float32)[NewAxis, :], nx, 0)
+    return repeat(numpy.arange(ny, typecode = numpy.float32)[numpy.newaxis, :], nx, 0)
 
 def rectangle(nx, ny, scale):
     # swap axes in the fromfunction call
@@ -112,7 +113,7 @@ def rectangle(nx, ny, scale):
     def test(y, x):
         return cos(s*(x-x0))*sin(s*(y-y0))
 
-    result = fromfunction(test, (ny, nx))
+    result = numpy.fromfunction(test, (ny, nx))
     return result
 
 #  distance from (5,5) squared
@@ -124,7 +125,7 @@ def RealDist(x,y):
   return (x)**2  
 def ImagDist(x,y):
   return (x-29)**2  
-#m = fromfunction(dist, (10,10))
+#m = numpy.fromfunction(dist, (10,10))
 
 
     
@@ -298,7 +299,7 @@ class QwtImageDisplay(QwtPlot):
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
         self.plotLayout().setAlignCanvasToScales(1)
-        self.setTitle('QwtImageDisplay')
+#       self.setTitle('QwtImageDisplay')
 
         self.label = ''
         self.vells_menu_items = 0
@@ -789,7 +790,7 @@ class QwtImageDisplay(QwtPlot):
           self.cleanup()
           self.enable_axes()
         self.reset_zoom()
-        self.array_plot(self.solver_title, self.solver_array)
+        self.array_plot(self.solver_array,data_label=self.solver_title)
         if not self.display_solution_distances: 
           self.add_solver_metrics()
           self.toggleMetrics()
@@ -1303,7 +1304,7 @@ class QwtImageDisplay(QwtPlot):
         self.replot()
     
       if replot:
-        self.array_plot(self._window_title, self.complex_image, False)
+        self.array_plot(self.complex_image,data_label=self._window_title, flip_axes=False)
       _dprint(3, 'exiting reset_zoom')
       return
 
@@ -1337,7 +1338,7 @@ class QwtImageDisplay(QwtPlot):
           self.setFlagsData (self.original_flag_array)
         self.plot_vells_array(self.original_array, self.original_label)
       if not self._vells_plot and self._plot_type is None:
-        self.array_plot(self.original_label, self.original_array)
+        self.array_plot(self.original_array,data_label=self.original_label)
     # toggleAxis()
 
     def toggleAxisRotate(self):
@@ -1355,7 +1356,7 @@ class QwtImageDisplay(QwtPlot):
           self.setFlagsData (self.original_flag_array)
         self.plot_vells_array(self.original_array, self.original_label)
       if not self._vells_plot and self._plot_type is None:
-        self.array_plot(self.original_label, self.original_array)
+        self.array_plot(self.original_array, data_label=self.original_label)
     # toggleAxis()
 
     def updatePlotParameters(self):
@@ -1405,8 +1406,8 @@ class QwtImageDisplay(QwtPlot):
       """
       self._vells_plot = False
       self.reset_zoom()
-      dummy_array = zeros(shape=(2,2),type=Float32)
-      self.array_plot(data_label, dummy_array)
+      dummy_array = numpy.zeros(shape=(2,2),type=numpy.float32)
+      self.array_plot(dummy_array,data_label=data_label)
       self.zooming = False
       self.set_xaxis_title(' ')
       self.set_yaxis_title(' ')
@@ -1837,7 +1838,7 @@ class QwtImageDisplay(QwtPlot):
                   array_curve_number = self.array_curve_number - 1
                   self.metrics_index = 0 
                   if shape[1] > 1:
-                    self.metrics_index = array_curve_number % shape[1]
+                    self.metrics_index = numpy.array_curve_number % shape[1]
                     array_curve_number = int(array_curve_number / shape[1])
                   if array_curve_number == 0:
                     self.curve_info = "vector sum " 
@@ -2138,11 +2139,11 @@ class QwtImageDisplay(QwtPlot):
           q_flag_size = 10
 
 # create x_index defaults for array plots 
-        self.x_array = zeros(shape[0], Float32)
+        self.x_array = numpy.zeros(shape[0], numpy.float32)
         if self.complex_type:
-          self.x_index = arange(2* shape[0])
+          self.x_index = numpy.arange(2* shape[0])
         else:
-          self.x_index = arange(shape[0])
+          self.x_index = numpy.arange(shape[0])
         self.x_index = self.x_index + 0.5
 
         _dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
@@ -2162,7 +2163,7 @@ class QwtImageDisplay(QwtPlot):
         except:
           self.delete_cross_sections()
           return
-        self.x_array = array(x_values)
+        self.x_array = numpy.array(x_values)
         self.setAxisAutoScale(QwtPlot.yRight)
         if self.toggle_log_display:
           self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
@@ -2170,8 +2171,8 @@ class QwtImageDisplay(QwtPlot):
           self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
 
 # create x_index defaults for array plots 
-        self.y_array = zeros(shape[1], Float32)
-        self.y_index = arange(shape[1])
+        self.y_array = numpy.zeros(shape[1], numpy.float32)
+        self.y_index = numpy.arange(shape[1])
         self.y_index = self.y_index + 0.5
 
         _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
@@ -2245,7 +2246,7 @@ class QwtImageDisplay(QwtPlot):
                   x_indices.append(start_x - i * x_step)
                 else:
                   x_indices.append(start_x + i * x_step)
-          self.x_index = array(x_indices)
+          self.x_index = numpy.array(x_indices)
           delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
           y_step = delta_vells / shape[1] 
           start_y = self.vells_axis_parms[self.y_parm][0] + 0.5 * y_step
@@ -2333,10 +2334,10 @@ class QwtImageDisplay(QwtPlot):
     def display_image(self, image):
       if self.complex_type:
         (nx,ny) = image.shape
-        real_array =  image.getreal()
-        self.raw_array = array(shape=(nx*2,ny),type=real_array.type());
+        real_array =  image.real
+        self.raw_array = numpy.empty(shape=(nx*2,ny),dtype=real_array.dtype);
         self.raw_array[:nx,:] = real_array
-        self.raw_array[nx:,:] = image.getimag()
+        self.raw_array[nx:,:] = image.imag
       else:
         self.raw_array = image
       self.raw_image = image
@@ -2409,7 +2410,7 @@ class QwtImageDisplay(QwtPlot):
         self.metrics_plot = []
         shape = self.metrics_rank.shape
         for i in range(shape[1]):
-          plot_data= zeros(shape[0], Int32)
+          plot_data= numpy.zeros(shape[0], numpy.int32)
           for j in range(shape[0]):
             plot_data[j] = self.metrics_rank[j,i]
 # add solver metrics info?
@@ -2465,8 +2466,8 @@ class QwtImageDisplay(QwtPlot):
         self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.None)
 
       for i in range(shape[1]):
-        plot_data= zeros(shape[0], Float32)
-        chi_data= zeros(shape[0], Float32)
+        plot_data= numpy.zeros(shape[0], numpy.float32)
+        chi_data= numpy.zeros(shape[0], numpy.float32)
         for j in range(shape[0]):
           plot_data[j] = self.chi_vectors[j,i]
           chi_data[j] = self.chi_zeros[j,i]
@@ -2510,8 +2511,8 @@ class QwtImageDisplay(QwtPlot):
         toggle_id = self.menu_table['Toggle Metrics Display']
         self._menu.setItemVisible(toggle_id, False)
         for i in range(shape[1]):
-          plot_data1= zeros(shape[0], Float32)
-          chi_data1= zeros(shape[0], Float32)
+          plot_data1= numpy.zeros(shape[0], numpy.float32)
+          chi_data1= numpy.zeros(shape[0], numpy.float32)
           for j in range(shape[0]):
             plot_data1[j] = self.sum_incr_soln_norm[j,i]
             chi_data1[j] = self.chi_zeros[j,i]
@@ -2551,8 +2552,8 @@ class QwtImageDisplay(QwtPlot):
           curve.setSymbolList(symbolList)
 
         for i in range(shape[1]):
-          plot_data2= zeros(shape[0], Float32)
-          chi_data2= zeros(shape[0], Float32)
+          plot_data2= numpy.zeros(shape[0], numpy.float32)
+          chi_data2= numpy.zeros(shape[0], numpy.float32)
           for j in range(shape[0]):
             plot_data2[j] = self.incr_soln_norm[j,i]
             chi_data2[j] = self.chi_zeros[j,i]
@@ -2607,9 +2608,9 @@ class QwtImageDisplay(QwtPlot):
             eigenvalues = eigens[0]
             eigenlist = list(eigenvalues)
             eigenlist.sort(reverse=True)
-            sorted_eigenvalues = array(eigenlist)
+            sorted_eigenvalues = numpy.array(eigenlist)
             shape = eigenvalues.shape
-            x_data = arange(shape[0])
+            x_data = numpy.arange(shape[0])
             curve = QwtPlotCurveSizes(self)
             curve.setPen(QPen(Qt.black, 2))
             curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
@@ -2817,7 +2818,7 @@ class QwtImageDisplay(QwtPlot):
         self.initSpectrumContextMenu()
     # end plot_data()
 
-    def plot_vells_array (self, data_array, data_label=" "):
+    def plot_vells_array (self, data_array, data_label=''):
       """ plot a Vells data array """
 # no legends by default
       toggle_id = self.menu_table['Toggle Plot Legend']
@@ -2826,7 +2827,7 @@ class QwtImageDisplay(QwtPlot):
       if not self.source_marker is None:
         self.removeMarker(self.source_marker)
       self.source_marker  = None
-      self.array_plot(data_label, data_array)
+      self.array_plot(data_array, data_label=data_label)
 
     def setVellsParms(self, vells_axis_parms, axis_labels):
       self.vells_axis_parms = vells_axis_parms
@@ -2864,7 +2865,7 @@ class QwtImageDisplay(QwtPlot):
       self.zooming = True
       self.adjust_color_bar = True
 
-    def array_plot (self, data_label, incoming_plot_array, flip_axes=True):
+    def array_plot (self, incoming_plot_array, data_label='', flip_axes=True):
       """ Figure out shape, rank dimension etc of an array and
           plot it. This is perhaps the main method of this class. """
 
@@ -2887,7 +2888,10 @@ class QwtImageDisplay(QwtPlot):
 
 # set title
       self._window_title = data_label  
-      self.setTitle(self.label+ ' ' + self._window_title)
+      if self.label == '' and  self._window_title == '':
+        pass
+      else:
+        self.setTitle(self.label+ ' ' + self._window_title)
 
 # do we have solver data?
       if self._window_title.find('Solver Incremental') >= 0:
@@ -2925,8 +2929,8 @@ class QwtImageDisplay(QwtPlot):
       else:
         self.array_flip = self.axes_flip
       if self.array_flip:
-        axes = arange(incoming_plot_array.rank)[::-1]
-        plot_array = transpose(incoming_plot_array, axes)
+        axes = numpy.arange(incoming_plot_array.ndim)[::-1]
+        plot_array = numpy.transpose(incoming_plot_array, axes)
 #       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
 
 # figure out type and rank of incoming array
@@ -2936,9 +2940,9 @@ class QwtImageDisplay(QwtPlot):
 
 # first test for real or complex
       self.complex_type = False
-      if plot_array.type() == Complex32:
+      if plot_array.dtype == numpy.complex64:
         self.complex_type = True;
-      if plot_array.type() == Complex64:
+      if plot_array.dtype == numpy.complex128:
         self.complex_type = True;
       if self.complex_type:
         toggle_id = self.menu_table['Toggle axis rotate']
@@ -2946,7 +2950,7 @@ class QwtImageDisplay(QwtPlot):
 
 # do an image rotation?
       if not self.complex_type and self.axes_rotate:
-        plot_array = mlab.rot90(plot_array, 1)
+        plot_array = numpy.rot90(plot_array, 1)
 
       self.is_vector = False;
       actual_array_rank = 0
@@ -2967,20 +2971,20 @@ class QwtImageDisplay(QwtPlot):
 # check for NaNs and Infs etc
       self.has_nans_infs = False
       self.nan_inf_value = -0.1e-6
-      nan_test = ieee.isnan(plot_array)
+      nan_test = numpy.isnan(plot_array)
       if nan_test.max() > 0:
         self.has_nans_infs = True
         self.set_flag_toggles_active(True)
         self.setFlagsData(nan_test,False)
 
-      inf_test = ieee.isinf(plot_array)
+      inf_test = numpy.isinf(plot_array)
       if inf_test.max() > 0:
         self.has_nans_infs = True
         self.set_flag_toggles_active(True)
         self.setFlagsData(inf_test,False)
       if self.has_nans_infs:
-        keep = ~ieee.isnan(plot_array) & ~ieee.isinf(plot_array)
-        delete = ieee.isnan(plot_array) | ieee.isinf(plot_array)
+        keep = ~numpy.isnan(plot_array) & ~numpy.isinf(plot_array)
+        delete = numpy.isnan(plot_array) | numpy.isinf(plot_array)
         self.nan_inf_value = plot_array[keep].mean() + -0.1e-6
         plot_array[delete] = self.nan_inf_value
 
@@ -3281,7 +3285,7 @@ class QwtImageDisplay(QwtPlot):
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           x_step = delta_vells / num_elements 
           start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
-          self.x_index = zeros(num_elements, Float32)
+          self.x_index = numpy.zeros(num_elements, numpy.float32)
           for j in range(num_elements):
             self.x_index[j] = start_x + j * x_step
           self._x_title = self.vells_axis_parms[self.x_parm][2]
@@ -3290,14 +3294,14 @@ class QwtImageDisplay(QwtPlot):
           if self._x_title is None:
             self._x_title = 'Array/Channel/Sequence Number'
           self.setAxisTitle(QwtPlot.xBottom, self._x_title)
-          self.x_index = arange(num_elements)
+          self.x_index = numpy.arange(num_elements)
           self.x_index = self.x_index + 0.5
 # if we are plotting a single iteration solver solution
 # plot on 'locations' of solver parameters. Use 'self.metrics_rank'
 # as test, but don't plot metrics in this case
           if not self.metrics_rank is None:
             self.x_index = self.x_index + 0.5
-        flattened_array = reshape(plot_array,(num_elements,))
+        flattened_array = numpy.reshape(plot_array,(num_elements,))
 #       _dprint(3, 'plotting flattened array ', flattened_array)
 
 # we have a complex vector
@@ -3323,8 +3327,8 @@ class QwtImageDisplay(QwtPlot):
           plot_curve=self.curve(self.yCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
                      QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
-          self.x_array =  flattened_array.getreal()
-          self.y_array =  flattened_array.getimag()
+          self.x_array =  flattened_array.real
+          self.y_array =  flattened_array.imag
           if not self._flags_array is None:
             self.yCrossSection_flag = self.insertCurve('flag_imaginaries')
             self.xrCrossSection_flag = self.insertCurve('flag_reals')
@@ -3340,15 +3344,15 @@ class QwtImageDisplay(QwtPlot):
                      QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
           if self.ampl_phase:
             abs_array = abs(flattened_array)
-            phase_array = arctan2(self.y_array,self.x_array)
+            phase_array = numpy.arctan2(self.y_array,self.x_array)
             self.x_array = abs_array
             self.y_array = phase_array
           if not self._flags_array is None:
-            flags_x_array = compress(self._flags_array==0,self.x_array)
-            flags_y_array = compress(self._flags_array==0,self.y_array)
+            flags_x_array = numpy.compress(self._flags_array==0,self.x_array)
+            flags_y_array = numpy.compress(self._flags_array==0,self.y_array)
             self.setCurveData(self.yCrossSection_flag, self.x_index, self.y_array)
             self.setCurveData(self.xrCrossSection_flag, self.x_index, self.x_array)
-            flags_x_index = compress(self._flags_array==0,self.x_index)
+            flags_x_index = numpy.compress(self._flags_array==0,self.x_index)
             self.setCurveData(self.yCrossSection, flags_x_index, flags_y_array)
             self.setCurveData(self.xrCrossSection, flags_x_index, flags_x_array)
             axis_diff = abs(flags_y_array.max() - flags_y_array.min())
@@ -3397,9 +3401,9 @@ class QwtImageDisplay(QwtPlot):
 
 # stuff for flags
           if not self._flags_array is None:
-            self.flags_x_index = compress(self._flags_array!=0,self.x_index)
-            self.flags_r_values = compress(self._flags_array!=0,self.x_array)
-            self.flags_i_values = compress(self._flags_array!=0,self.y_array)
+            self.flags_x_index = numpy.compress(self._flags_array!=0,self.x_index)
+            self.flags_r_values = numpy.compress(self._flags_array!=0,self.x_array)
+            self.flags_i_values = numpy.compress(self._flags_array!=0,self.y_array)
             self.real_flag_vector = self.insertCurve('real_flags')
             self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
             self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
@@ -3416,6 +3420,7 @@ class QwtImageDisplay(QwtPlot):
             plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.setCurveData(self.imag_flag_vector, self.flags_x_index, self.flags_i_values)
+            
             if self.flag_toggle:
               self.curve(self.real_flag_vector).setEnabled(True)
               self.curve(self.imag_flag_vector).setEnabled(True)
@@ -3452,15 +3457,15 @@ class QwtImageDisplay(QwtPlot):
             plot_curve=self.curve(self.xrCrossSection_flag)
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
                      QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
-            flags_x_array = compress(self._flags_array==0,self.x_array)
-            flags_x_index = compress(self._flags_array==0,self.x_index)
+            flags_x_array = numpy.compress(self._flags_array==0,self.x_array)
+            flags_x_index = numpy.compress(self._flags_array==0,self.x_index)
             axis_diff = abs(flags_x_array.max() - flags_x_array.min())
             self.setCurveData(self.xrCrossSection_flag, self.x_index, self.x_array)
             self.setCurveData(self.xrCrossSection, flags_x_index, flags_x_array)
 
 # stuff for flags
-            self.flags_x_index = compress(self._flags_array!= 0, self.x_index)
-            self.flags_r_values = compress(self._flags_array!= 0, self.x_array)
+            self.flags_x_index = numpy.compress(self._flags_array!= 0, self.x_index)
+            self.flags_r_values = numpy.compress(self._flags_array!= 0, self.x_array)
             self.real_flag_vector = self.insertCurve('real_flags')
             self.setCurvePen(self.real_flag_vector, QPen(Qt.black))
             self.setCurveStyle(self.real_flag_vector, QwtCurve.Dots)
@@ -3520,12 +3525,12 @@ class QwtImageDisplay(QwtPlot):
     def convert_to_AP(self, real_imag_image):
       """ convert real/imag complex array to amplitude/phase equivalent """
       a_p_image = real_imag_image.copy()
-      real_array = a_p_image.getreal()
-      imag_array = a_p_image.getimag()
-      abs_array = abs(a_p_image)
-      phase_array = arctan2(imag_array,real_array)
-      a_p_image.setreal(abs_array)
-      a_p_image.setimag(phase_array)
+      real_array = a_p_image.real
+      imag_array = a_p_image.imag
+      abs_array = numpy.abs(a_p_image)
+      phase_array = numpy.arctan2(imag_array,real_array)
+      a_p_image.real = abs_array
+      a_p_image.imag = phase_array
       return a_p_image
 
     def setFlagsData (self, incoming_flag_array, flip_axes=True):
@@ -3533,11 +3538,11 @@ class QwtImageDisplay(QwtPlot):
       flag_array = incoming_flag_array
       self.original_flag_array = incoming_flag_array
       if flip_axes and not self.axes_flip:
-        axes = arange(incoming_flag_array.rank)[::-1]
-        flag_array = transpose(incoming_flag_array, axes)
+        axes = numpy.arange(incoming_flag_array.ndim)[::-1]
+        flag_array = numpy.transpose(incoming_flag_array, axes)
         if not self.complex_type and self.axes_rotate:
           temp_flag_array = flag_array.copy()
-          flag_array = mlab.rot90(temp_flag_array, 1)
+          flag_array = numpy.rot90(temp_flag_array, 1)
 
 # figure out type and rank of incoming array
       flag_is_vector = False;
@@ -3564,7 +3569,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemChecked(toggle_id, self.flag_toggle)
       else:
         num_elements = n_rows*n_cols
-        self._flags_array = reshape(flag_array,(num_elements,))
+        self._flags_array = flag_array.reshape(num_elements);
         if self.flag_toggle is None:
           self.flag_toggle = True
           toggle_id = self.menu_table['toggle flagged data for plane ']
@@ -3729,29 +3734,29 @@ class QwtImageDisplay(QwtPlot):
                                                                                 
     def timerEvent(self, e):
       if self.test_complex:
-        m = fromfunction(RealDist, (30,20))
-        n = fromfunction(ImagDist, (30,20))
-        vector_array = zeros((30,1), Complex64)
+        m = numpy.fromfunction(RealDist, (30,20))
+        n = numpy.fromfunction(ImagDist, (30,20))
+        vector_array = numpy.zeros((30,1), numpy.complex128)
         shape = m.shape
         for i in range(shape[0]):
           for j in range(shape[1]):
             m[i,j] = m[i,j] + self.index * random.random()
             n[i,j] = n[i,j] + 3 * self.index * random.random()
-        a = zeros((shape[0],shape[1]), Complex64)
-        a.setreal(m)
-        a.setimag(n)         
+        a = numpy.zeros((shape[0],shape[1]), numpy.complex128)
+        a.real = m
+        a.imag = n         
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
           _dprint(2, 'plotting complex vector with shape ',vector_array.shape);
-          self.array_plot('test_vector_complex', vector_array)
+          self.array_plot(vector_array,data_label='test_vector_complex')
         else:
           _dprint(2, 'plotting complex array with shape ',a.shape);
-          self.array_plot('test_image_complex',a)
+          self.array_plot(a,data_label='test_image_complex')
           self.test_complex = False
       else:
-        vector_array = zeros((30,1), Float32)
-        m = fromfunction(dist, (30,20))
+        vector_array = numpy.zeros((30,1), numpy.float32)
+        m = numpy.fromfunction(dist, (30,20))
         shape = m.shape
         for i in range(shape[0]):
           for j in range(shape[1]):
@@ -3760,17 +3765,17 @@ class QwtImageDisplay(QwtPlot):
           vector_array[i,0] = m[i,0]
         if self.index % 2 == 0:
           _dprint(2, 'plotting real array with shape ',m.shape);
-          self.array_plot('test_image',m)
+          self.array_plot(m,data_label='test_image')
         else:
           _dprint(2, 'plotting real vector with shape ', vector_array.shape);
-          self.array_plot('test_vector', vector_array)
+          self.array_plot(vector_array,data_label='test_vector')
           self.test_complex = True
 
       self.index = self.index + 1
     # timerEvent()
 
 def make():
-    demo = QwtImageDisplay('plot_key')
+    demo = QwtImageDisplay()
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
@@ -3778,6 +3783,7 @@ def make():
 
 # or
 # uncomment the following lines 
+# (note: you must have the pyfits module installed)
 #   try:
 #     import pyfits
 #     image = pyfits.open('./xntd_diff.fits')
@@ -3791,7 +3797,7 @@ def make():
 #         selector.append(0)
 #     tuple_selector = tuple(selector)
 #     plot_array = image[0].data[tuple_selector]
-#     demo.array_plot('diff', plot_array)
+#     demo.array_plot(plot_array, data_label='diff')
 #   except:
 #     print 'Exception while importing pyfits module:'
 #     traceback.print_exc();

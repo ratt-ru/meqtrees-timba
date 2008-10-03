@@ -31,7 +31,6 @@ from Timba import utils
 from Timba.GUI import widgets
 
 from qt import *
-from numarray import *
 
 global has_vtk
 has_vtk = False
@@ -126,7 +125,7 @@ def create_ND_Plotter (layout, layout_parent):
 
 def create_ND_Controls (layout, layout_parent, array_shape, ND_Controls, ND_plotter, labels=None, parms=None, num_axes=2):
   """ this function adds the extra GUI control buttons etc if we are
-        displaying data for a numarray of dimension 3 or greater 
+        displaying data for a Timba.array of dimension 3 or greater 
   """
   if not ND_Controls is None:
     ND_Controls.reparent(QWidget(), 0, QPoint())

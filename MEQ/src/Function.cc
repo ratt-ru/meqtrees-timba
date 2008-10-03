@@ -191,17 +191,19 @@ int Function::getResult (Result::Ref &resref,
       }
       // no value found?
       if( !values[i] )
-      {
-        FailWhen(!allow_missing_data_,"child '"+label.toString()+"' returned missing data, which is not allowed in this Function node");
         nmissing++;
-      }
     }
-    // if everything is missing, then we return no data for this VellSet
-    // (unless we have a special case of a Function with no children)
-    if( nrch && nmissing == nrch )
+    // If every child value is missing, then we return no data for this VellSet
+    // Otherwise, we have a case of some values present, and some missing. This is only supported by some node classes:
+    // these will have called allowMissingData() in their constructor. If this is not supported, then we return no
+    // data as well.
+    if( nmissing )
     {
-      missing_planes++;
-      continue;
+      if( nmissing == nrch || !allow_missing_data_ )
+      {
+        missing_planes++;
+        continue;
+      }
     }
     // continue evaluation only if no fails popped up
     if( !vellset.isFail() )

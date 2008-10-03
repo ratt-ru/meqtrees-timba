@@ -13,6 +13,11 @@
 const DMI::AtomicID AidApply(-1730);              // from /home/oms/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:38
 const int AidApply_int = -1730;
 #endif
+#ifndef _defined_id_AidBitflag
+#define _defined_id_AidBitflag 1
+const DMI::AtomicID AidBitflag(-1743);            // from /home/oms/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:36
+const int AidBitflag_int = -1743;
+#endif
 #ifndef _defined_id_AidCalibrated
 #define _defined_id_AidCalibrated 1
 const DMI::AtomicID AidCalibrated(-1275);         // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
@@ -102,6 +107,11 @@ const int AidInput_int = -1036;
 #define _defined_id_AidIteration 1
 const DMI::AtomicID AidIteration(-1266);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
 const int AidIteration_int = -1266;
+#endif
+#ifndef _defined_id_AidLegacy
+#define _defined_id_AidLegacy 1
+const DMI::AtomicID AidLegacy(-1745);             // from /home/oms/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:36
+const int AidLegacy_int = -1745;
 #endif
 #ifndef _defined_id_AidMS
 #define _defined_id_AidMS 1
@@ -212,6 +222,11 @@ const int AidTime_int = -1126;
 #define _defined_id_AidType 1
 const DMI::AtomicID AidType(-1085);               // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 const int AidType_int = -1085;
+#endif
+#ifndef _defined_id_AidUse
+#define _defined_id_AidUse 1
+const DMI::AtomicID AidUse(-1587);                // from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
+const int AidUse_int = -1587;
 #endif
 #ifndef _defined_id_AidVDSID
 #define _defined_id_AidVDSID 1

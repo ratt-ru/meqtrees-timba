@@ -23,7 +23,8 @@
 #
 
 from qt import *
-from numarray import *
+import numpy
+import sys
 try:
   from Qwt4 import *
 except:
@@ -100,9 +101,9 @@ def make():
     curve_a.setPen(QPen(Qt.blue, 2))
 
     # create some data
-    x_array = zeros(20, Float32)
-    y_array = zeros(20, Float32)
-    symbol_sizes = zeros(20, Int32)
+    x_array = numpy.zeros(20, numpy.float32)
+    y_array = numpy.zeros(20, numpy.float32)
+    symbol_sizes = numpy.zeros(20, numpy.int32)
     symbolList=[]
     for i in range(20):
       x_array[i] = 1.0 * i

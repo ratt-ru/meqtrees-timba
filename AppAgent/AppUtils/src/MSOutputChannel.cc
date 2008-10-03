@@ -222,30 +222,44 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   null_bitflag_cell_.resize(origshape);
   null_bitflag_cell_.set(0);
   // setup parameters from default record
-  write_flags_       = params_[FWriteFlags].as<bool>(false);
-  flagmask_          = params_[FFlagMask].as<int>(0xFFFFFFFF);
-  datacol_.name      = params_[FDataColumn].as<string>("");
-  predictcol_.name   = params_[FPredictColumn].as<string>("");
-  rescol_.name       = params_[FResidualsColumn].as<string>("");
+  write_bitflag_      = params_[FWriteBitflag].as<bool>(true);
+  write_legacy_flags_ = params_[FWriteLegacyFlags].as<bool>(true);
+  legacy_flagmask_    = params_[FLegacyFlagMask].as<int>(0xFFFFFFFF);
+  ms_flagmask_        = params_[FMSFlagMask].as<int>(0xFFFFFFFF);
+  tile_flagmask_      = params_[FTileFlagMask].as<int>(0xFFFFFFFF);
+  tile_bitflag_       = params_[FTileBitflag].as<int>(1);
+  use_bitflag_col_    = params_[FUseBitflagColumn].as<bool>(true);
+  datacol_.name       = params_[FDataColumn].as<string>("");
+  predictcol_.name    = params_[FPredictColumn].as<string>("");
+  rescol_.name        = params_[FResidualsColumn].as<string>("");
   // and override them from the header
   if( header[FOutputParams].exists() )
   {
     const DMI::Record &hparm = header[FOutputParams].as<DMI::Record>();
-    write_flags_       = hparm[FWriteFlags].as<bool>(write_flags_);
-    flagmask_          = hparm[FFlagMask].as<int>(flagmask_);
-    datacol_.name      = hparm[FDataColumn].as<string>(datacol_.name);
-    predictcol_.name   = hparm[FPredictColumn].as<string>(predictcol_.name);
-    rescol_.name       = hparm[FResidualsColumn].as<string>(rescol_.name);
+    write_bitflag_      = hparm[FWriteBitflag].as<bool>(write_bitflag_);
+    write_legacy_flags_ = hparm[FWriteLegacyFlags].as<bool>(write_legacy_flags_);
+    legacy_flagmask_    = hparm[FLegacyFlagMask].as<int>(legacy_flagmask_);
+    ms_flagmask_        = hparm[FMSFlagMask].as<int>(ms_flagmask_);
+    tile_flagmask_      = hparm[FTileFlagMask].as<int>(tile_flagmask_);
+    tile_bitflag_       = hparm[FTileBitflag].as<int>(tile_bitflag_);
+    use_bitflag_col_    = hparm[FUseBitflagColumn].as<bool>(use_bitflag_col_);
+    datacol_.name       = hparm[FDataColumn].as<string>(datacol_.name);
+    predictcol_.name    = hparm[FPredictColumn].as<string>(predictcol_.name);
+    rescol_.name        = hparm[FResidualsColumn].as<string>(rescol_.name);
   }
   // setup columns
   setupDataColumn(datacol_);
   setupDataColumn(predictcol_);
   setupDataColumn(rescol_);
-  if( write_flags_ )
+  // attach to FLAG columns if writing to them
+  if( write_legacy_flags_ )
   {
     rowFlagCol_.attach(ms_,"FLAG_ROW");
     flagCol_.attach(ms_,"FLAG");
-    // setup the BITFLAG column
+  }
+  // setup the BITFLAG columns if needed
+  if( use_bitflag_col_ && ( write_bitflag_ || write_legacy_flags_ ) )
+  {
     const TableDesc &td = ms_.tableDesc();
     if( !td.isColumn("BITFLAG") ) 
     {
@@ -264,19 +278,33 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
         // create a tiled storage manager with the same shape
         TiledColumnStMan stman("Tiled_BITFLAG",acc.tileShape(0));
         cdebug(1)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()
-                 <<", TiledColumnStMan data manager with shape "<<acc.tileShape(0)<<endl;
+                <<", TiledColumnStMan data manager with shape "<<acc.tileShape(0)<<endl;
         ms_.addColumn(coldesc,stman);
       }
       // else add using a standard data manager
       else
       {
         cdebug(1)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()
-                 <<" using the default data manager"<<endl;
+                <<" using the default data manager"<<endl;
         ms_.addColumn(coldesc);
       }
     }
     cdebug(2)<<"attaching to column BITFLAG";
     bitflagCol_.attach(ms_,"BITFLAG");
+    // write bitflag names, if provided
+    if( write_bitflag_ )
+    {
+      std::vector<string> bitflag_names;
+      params_[FBitflagName].get_vector(bitflag_names);
+      if( bitflag_names.size() )
+      {
+        Vector<String> anames(bitflag_names.size());
+        for( uint i=0; i<bitflag_names.size(); i++ )
+          anames[i] = bitflag_names[i];
+        // put name into the bitflag column
+        bitflagCol_.rwKeywordSet().define("NAMES",anames);
+      }
+    }
     // setup the BITFLAG_ROW column
     if( !td.isColumn("BITFLAG_ROW") ) 
     {
@@ -293,8 +321,6 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   cdebug(2)<<"  orig shape: "<<origshape<<endl;
   cdebug(2)<<"  channels: "<<channels_[0]<<"-"<<channels_[1]<<endl;
   cdebug(2)<<"  correlations: "<<ncorr<<endl;
-  cdebug(2)<<"  write_flags: "<<write_flags_<<endl;
-  cdebug(2)<<"  flagmask: "<<flagmask_<<endl;
   cdebug(2)<<"  colname_data: "<<datacol_.name<<endl;
   cdebug(2)<<"  colname_predict: "<<predictcol_.name<<endl;
   cdebug(2)<<"  colname_residuals: "<<rescol_.name<<endl;
@@ -351,22 +377,58 @@ void MSOutputChannel::doPutTile (const VTile &tile)
     int irow = iter.seqnr();
     cdebug(5)<<"  writing to table row "<<irow<<endl;
     // write flags if required
-    if( write_flags_ )
+    if( write_bitflag_ || write_legacy_flags_ )
     {
-      rowFlagCol_.put(irow,rowflag&flagmask_ != 0);
-      LoMat_bool flags( iter.flags().shape() );
-      flags = blitz::cast<bool>(iter.flags() & flagmask_ );
-      if( flip_freq_ )
-        flags.reverseSelf(blitz::secondDim);
-      Matrix<Bool> aflags;
-      Matrix<Int> abitflags;
-      B2A::copyArray(aflags,flags);
-      B2A::copyArray(abitflags,iter.flags());
-      // cdebug(6)<<"writing to FLAG column: "<<aflags<<endl;
-      flagCol_.putSlice(irow,column_slicer_,aflags);
-      if( !bitflagCol_.isDefined(irow) )
-        bitflagCol_.put(irow,null_bitflag_cell_);
-      bitflagCol_.putSlice(irow,column_slicer_,abitflags);
+      if( use_bitflag_col_ )
+      {
+        // read in current bitflag column
+        int rflag = (rowBitflagCol_(irow)&ms_flagmask_)|(rowflag&tile_flagmask_?tile_bitflag_:0);
+        Matrix<Int> abitflags;
+        bitflagCol_.getSlice(irow,column_slicer_,abitflags);
+        // if writing bitflags, apply masks and write out
+        if( write_bitflag_ )
+        {
+          rflag = (rflag&ms_flagmask_)|(rowflag&tile_flagmask_?tile_bitflag_:0);
+          rowBitflagCol_.put(irow,rflag);
+          for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++ )
+            (*iter) &= ms_flagmask_;
+          if( tile_flagmask_ )
+          {
+            Matrix<Int> abitflags_add;
+            LoMat_int tileflags(iter.flags().shape());
+            tileflags = where(iter.flags()&tile_flagmask_,tile_bitflag_,0);
+            if( flip_freq_ )
+              tileflags.reverseSelf(blitz::secondDim);
+            B2A::copyArray(abitflags_add,tileflags);
+            Matrix<Int>::const_iterator iter2 = abitflags_add.begin();
+            for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++,iter2++ )
+              (*iter) |= (*iter2);
+          }
+          bitflagCol_.putSlice(irow,column_slicer_,abitflags);
+        }
+        // if writing legacy flags, apply masks and write out
+        if( write_legacy_flags_ )
+        {
+          rowFlagCol_.put(irow,(rflag&legacy_flagmask_) != 0);
+          Matrix<Bool> aflags(abitflags.shape());
+          Matrix<Int>::const_iterator iter2 = abitflags.begin();
+          for( Matrix<Bool>::iterator iter = aflags.begin(); iter != aflags.end(); iter++,iter2++ )
+            (*iter) = ((*iter2)&legacy_flagmask_) != 0;
+          flagCol_.putSlice(irow,column_slicer_,aflags);
+        } 
+      }
+      else if ( write_legacy_flags_ )
+      // write legacy FLAG/FLAG_ROW columns based on the tile_flagmask
+      {
+        rowFlagCol_.put(irow,(rowflag&tile_flagmask_) != 0);
+        LoMat_bool flags( iter.flags().shape() );
+        flags = blitz::cast<bool>(iter.flags() & tile_flagmask_ );
+        if( flip_freq_ )
+          flags.reverseSelf(blitz::secondDim);
+        Matrix<Bool> aflags;
+        B2A::copyArray(aflags,flags);
+        flagCol_.putSlice(irow,column_slicer_,aflags);
+      }
     }
     if( tile.defined(VTile::DATA) && datacol_.valid )
       putColumn(datacol_,irow,iter.data());

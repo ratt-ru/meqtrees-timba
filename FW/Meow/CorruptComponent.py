@@ -102,11 +102,11 @@ class CorruptComponent(SkyComponent):
       vis(sta1,sta2) << Meq.MatrixMultiply(*terms);
     return vis;
     
-  def make_visibilities  (self,nodes,array,observation):
+  def make_visibilities  (self,nodes,array,observation,**kw):
     """Creates nodes computing visibilities of component corrupted by
     attached Jones terms.
     """;
-    nomvis = self.skycomp.visibilities(array,observation);
+    nomvis = self.skycomp.visibilities(array,observation,**kw);
     # do we have extra jones terms?
     if self.jones_list():
       self.apply_jones(nodes,nomvis,array.ifrs());

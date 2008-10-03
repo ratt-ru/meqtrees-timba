@@ -30,6 +30,7 @@ from Timba.TDL import *
 from Timba.LSM.LSM import LSM
 from Timba.utils import curry
 import traceback
+import sets
 import Meow
 
 # constants for available LSM formats
@@ -78,10 +79,14 @@ class MeowLSM (object):
       self._compile_opts.append(format_opt);
       self._compile_opts.append(
         TDLOption("max_sources","Restrict to N brightest sources",
-                  [5,10,20],more=int,namespace=self)
+                  ["all",5,10,20],more=int,namespace=self)
       );
       self._compile_opts.append(
         TDLMenu("Make solvable source parameters",
+          TDLOption("solve_subset","For which sources",["all"],more=str,
+            doc="""You may give a list of source names (separated by spaces) to
+            make only those particular sources solvable. For large models this 
+            is probably a very good idea.""",namespace=self),
           TDLOption("solve_I","I",False,namespace=self),
           TDLOption("solve_Q","Q",False,namespace=self),
           TDLOption("solve_U","U",False,namespace=self),
@@ -90,6 +95,7 @@ class MeowLSM (object):
           TDLOption("solve_pos","position",False,namespace=self),
           TDLOption("solve_RM","rotation measure",False,namespace=self),
           TDLOption("solve_shape","shape (for extended sources)",False,namespace=self),
+          toggle='solvable_sources',namespace=self,
         ));
       save_opt = TDLOption("save_native","Save LSM in native format",False,namespace=self);
       self._compile_opts.append(save_opt);
@@ -98,6 +104,13 @@ class MeowLSM (object):
                                      namespace=self);
       self._compile_opts.append(save_filename_opt);
       save_opt.when_changed(save_filename_opt.show);
+      save_txt_opt = TDLOption("save_text","Save LSM in text (hms/dms) format",False,namespace=self);
+      self._compile_opts.append(save_txt_opt);
+      save_txt_filename_opt = TDLOption("save_text_filename","Filename to save as",
+                                     TDLFileSelect("*.txt",exist=False),
+                                     namespace=self);
+      self._compile_opts.append(save_txt_filename_opt);
+      save_txt_opt.when_changed(save_txt_filename_opt.show);
 
       def _select_format (format):
         if format == NATIVE:
@@ -150,6 +163,9 @@ class MeowLSM (object):
     # save if needed
     if self.save_native and self.save_native_filename:
       self.lsm.save(self.save_native_filename);
+    # save if needed
+    if self.save_text and self.save_text_filename:
+      self.lsm.save_as_extlist(self.save_text_filename,ns,prefix='');
       
     if self.export_karma:
       try:
@@ -173,26 +189,35 @@ class MeowLSM (object):
     if self.lsm is None:
       self.load(ns);
 
+    if self.solve_subset == "all":
+      solvable_source_set = None;
+    else:
+      solvable_source_set = sets.Set(self.solve_subset.split(" "));
+      
     parm = Meow.Parm(tags="source solvable");
-    if self.solve_I:
-      kw.setdefault("I",parm);
-    if self.solve_Q:
-      kw.setdefault("Q",parm);
-    if self.solve_U:
-      kw.setdefault("U",parm);
-    if self.solve_V:
-      kw.setdefault("V",parm);
-    if self.solve_spi:
-      kw.setdefault("spi",parm);
-    if self.solve_RM:
-      kw.setdefault("RM",parm);
-    if self.solve_pos:
-      kw.setdefault("ra",parm);
-      kw.setdefault("dec",parm);
-    if self.solve_shape:
-      kw.setdefault("sx",parm);
-      kw.setdefault("sy",parm);
-      kw.setdefault("phi",parm);
+    # make copy of kw dict to be used for sources not in solvable set
+    kw_nonsolve = dict(kw);
+    # and update kw dict to be used for sources in solvable set
+    if self.solvable_sources:
+      if self.solve_I:
+        kw.setdefault("I",parm);
+      if self.solve_Q:
+        kw.setdefault("Q",parm);
+      if self.solve_U:
+        kw.setdefault("U",parm);
+      if self.solve_V:
+        kw.setdefault("V",parm);
+      if self.solve_spi:
+        kw.setdefault("spi",parm);
+      if self.solve_RM:
+        kw.setdefault("RM",parm);
+      if self.solve_pos:
+        kw.setdefault("ra",parm);
+        kw.setdefault("dec",parm);
+      if self.solve_shape:
+        kw.setdefault("sx",parm);
+        kw.setdefault("sy",parm);
+        kw.setdefault("phi",parm);
 
     # make Meow list
     source_model = []
@@ -201,8 +226,14 @@ class MeowLSM (object):
   ### eX, eY : multiply by 2
   ### eP: change sign
 
-    plist = self.lsm.queryLSM(count=max_sources or self.max_sources);
-
+    max_sources = max_sources or self.max_sources or 0;
+    if max_sources == "all":
+      max_sources = None;
+    if not max_sources:
+      plist = self.lsm.queryLSM(count=9999999);  # all=1 returns unsorted list, so use a large count instead
+    else:
+      plist = self.lsm.queryLSM(count=max_sources);
+   
     for pu in plist:
       src = {};
       ( src['ra'],src['dec'],
@@ -219,31 +250,43 @@ class MeowLSM (object):
       if not src['RM']:
         src['RM'] = None;
       ## construct parms or constants for source attributes
+      ## if source is in solvable set (solvable_source_set of None means all are solvable),
+      ## use the kw dict, else use the nonsolve dict for source parameters
+      if solvable_source_set is None or pu.name in solvable_source_set:
+        solvable = True;
+        kwdict = kw;
+      else:
+        solvable = False;
+        kwdict = kw_nonsolve;
       for key,value in src.iteritems():
-        meowparm = kw.get(key);
+        meowparm = kwdict.get(key);
         if isinstance(meowparm,Meow.Parm):
           src[key] = meowparm.new(value);
         elif meowparm is not None:
           src[key] = value;
 
-      direction = Meow.Direction(ns,pu.name,src['ra'],src['dec']);
+      direction = Meow.Direction(ns,pu.name,src['ra'],src['dec'],static=True);
 
       if eX or eY or eP:
         # Gaussians
-        source_model.append(
-          Meow.GaussianSource(ns,name=pu.name,
-              I=src['I'],Q=src['Q'],U=src['U'],V=src['V'],
-              direction=direction,
-              spi=src['spi'],freq0=src['freq0'],
-              size=[src['sx'],src['sy']],phi=src['phi']));
+        if eY:
+          size,phi = [src['sx'],src['sy']],src['phi'];
+        else:
+          size,phi = src['sx'],None;
+        src = Meow.GaussianSource(ns,name=pu.name,
+                I=src['I'],Q=src['Q'],U=src['U'],V=src['V'],
+                direction=direction,
+                spi=src['spi'],freq0=src['freq0'],
+                size=size,phi=phi);
       else:
-        # point Sources
-        source_model.append(
-          Meow.PointSource(ns,name=pu.name,
-              I=src['I'],Q=src['Q'],U=src['U'],V=src['V'],
-              direction=direction,
-              spi=src['spi'],freq0=src['freq0'],RM=src['RM']));
-
+        src = Meow.PointSource(ns,name=pu.name,
+                I=src['I'],Q=src['Q'],U=src['U'],V=src['V'],
+                direction=direction,
+                spi=src['spi'],freq0=src['freq0'],RM=src['RM']);
+              
+      src.solvable = solvable;
+      source_model.append(src);
+      
     return source_model
 
 

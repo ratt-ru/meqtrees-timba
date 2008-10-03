@@ -26,6 +26,7 @@
 
 from dmi import *
 import re
+import Timba.array
 
 # this returns a string repr of a container
 def _contToRepr (value,prec=None):
@@ -65,9 +66,13 @@ def str_complex (x,prec=None):
 # Map of inline conversion methods. Only available for those types for which
 # a complete & brief string form is available.
 # No methods are defined for containers
-TypeToInline = dict.fromkeys((bool,int,long),lambda x,prec=None:str(x));
+TypeToInline = dict.fromkeys((bool,int,long,Timba.array.int32,Timba.array.uint8),lambda x,prec=None:str(x));
 TypeToInline[float] = str_float;
+TypeToInline[Timba.array.float32] = str_float;
+TypeToInline[Timba.array.float64] = str_float;
 TypeToInline[complex] = str_complex;
+TypeToInline[Timba.array.complex64] = str_complex;
+TypeToInline[Timba.array.complex128] = str_complex;
 TypeToInline[hiid] = lambda x,prec=None:'`'+str(x)+'`';
 TypeToInline[str]  = lambda x,prec=None:'"'+re.sub('\n','\\\\n',x)+'"';
 
@@ -80,7 +85,7 @@ def _nonefunc (*args,**kwargs):
 TypeToRepr = TypeToInline.copy();
 for tp in (dict,tuple,list):
   TypeToRepr[tp] = _contToRepr;
-TypeToRepr[array_class] = lambda value,prec=None: "<array:%s:%s>" % (str(value.type()),",".join(map(str,value.shape)));  
+TypeToRepr[array_class] = lambda value,prec=None: "<array:%s:%s>" % (value.dtype.name,",".join(map(str,value.shape)));  
 TypeToRepr[conv_error] = lambda ce,prec=None: ce.details();
 TypeToRepr[message]    = lambda msg,prec=None: class_name(msg) + ": "+str(msg.msgid);
 
@@ -112,7 +117,7 @@ class dmi_repr (object):
         return None;
       else:
         return ''.join(('[',','.join(res),']'));
-    if value.nelements() <= self.inline_arr:
+    if value.size <= self.inline_arr:
       s = list_to_str(value.tolist(),prec=prec);
       if s:
         if len(value.shape) > 1:
@@ -121,7 +126,7 @@ class dmi_repr (object):
     return (None,False);
   
   def _arrReprString (self,value):
-    return ("[array %s: %s]" % (str(value.type()),"x".join(map(str,value.shape))),False);
+    return ("[array %s: %s]" % (value.dtype.name,"x".join(map(str,value.shape))),False);
   
   def _arrToRepr (self,value,prec=None):
     res = self._arrToInline(value,prec=prec);

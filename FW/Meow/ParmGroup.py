@@ -21,6 +21,15 @@ def namify (arg):
 
 _all_parmgroups = [];
 
+class Subgroup (object):
+  def __init__ (self,name,nodes):
+    self.name = name;
+    self.nodes = ParmGroup._sort_members(nodes);
+    self.solvable = True;
+  
+  def set_solvable (self,solvable):
+    self.solvable = solvable;
+
 class ParmGroup (object):
   class Controller (object):
     """A ParmGroup Controller implements a number of TDLOptions associated with the ParmGroup,
@@ -41,40 +50,61 @@ class ParmGroup (object):
       if self._individual:
         self._parm_opts = {};
         for parm in self.pg.nodes:
-          opts = self._parm_opts[parm.name] = record();
-          opts.tdloption_namespace = (label+"."+parm.name).replace(":","_");
-          # solvable parm options
-          parm_sopts = [
-                TDLOption('time_deg','Polynomial degree, time',[0,1,2,3],more=int,namespace=opts),
-                TDLOption('freq_deg','Polynomial degree, freq',[0,1,2,3],more=int,namespace=opts),
-                TDLOption('subtile_time','Solution subinterval (subtile), time',[None],more=int,namespace=opts),
-                TDLOption('subtile_freq','Solution subinterval (subtile), freq',[None],more=int,namespace=opts)
-          ];
-          parm_solv = TDLMenu("Solve for %s"%parm.name,
-                TDLOption('initial_value','Override initial value',[None,0.],more=float,namespace=opts),
-                toggle='solvable',open=True,namespace=opts,
-                *parm_sopts
-              )
-          # hide solvables
-          def show_hide_sopts (show):
-            # print 'showing',show,parm_sopts;
-            for opt in parm_sopts:
-              opt.show(show);
-          parm_solv.when_changed(show_hide_sopts);
-          self._option_list.append(parm_solv);
+          opt = self._add_individual_parm(parm);
+          sopts.append(opt);
+          self._option_list.append(opt);
+        self.solve_by_subgroup = False;
+        self.solve_by_individual = True;
       # else provide a common equivalent applying to all parms
       else:
         # we do have individual solvability toggles
-        self._parm_opts = {};
-        parm_sopts = [];
-        for parm in self.pg.nodes:
-          opts = self._parm_opts[parm.name] = record();
-          opts.tdloption_namespace = (label+"."+parm.name).replace(":","_");
-          parm_sopts.append(TDLOption("solvable",
-                      "Solve for %s"%parm.name,True,namespace=opts));
-        somenu = TDLMenu('Toggle solvability of individual parms',*parm_sopts)
-        self._option_list.append(somenu);
-        sopts.append(somenu);
+        # add controls for subgroups
+        self._parm_solvability_toggles = dict();
+        if self.pg.subgroups:
+          subgroup_optlist = [];
+          self._subgroup_opts = {};
+          for subgroup in self.pg.subgroups:
+            subgroup.controller = self;
+            opts = self._subgroup_opts[subgroup.name] = record();
+            opts.tdloption_namespace = (self.label+"."+subgroup.name).replace(":","_");
+            opt = TDLOption('solvable',"Solve for %s"%subgroup.name,True,namespace=opts);
+            opt.when_changed(subgroup.set_solvable);
+            subgroup_optlist.append(opt);
+          subgroup_toggles = TDLMenu('Select solvability by subgroup',
+              toggle='solve_by_subgroup',default=True,namespace=self,
+              *subgroup_optlist);
+          self._option_list.append(subgroup_toggles);
+          sopts.append(subgroup_toggles);
+        else:
+          self.solve_by_subgroup = False;
+          subgroup_toggles = None;
+        # add individual toggles for parms
+        if not self.pg.individual_toggles:
+          self.solve_by_individual = False;
+        else:
+          self._parm_solvability_toggles = dict();
+          self._parm_opts = {};
+          parm_sopts = [];
+          for parm in self.pg.nodes:
+            opt = self._add_nonindividual_parm(parm);
+            parm_sopts.append(opt);
+          if subgroup_toggles:
+            parm_toggles = TDLMenu('Select solvability of individual parms',
+              toggle='solve_by_individual',default=False,namespace=self,
+              *parm_sopts);
+            def parm_toggles_changed (enabled):
+              if enabled:
+                subgroup_toggles.set(False);
+            def subgroup_toggles_changed (enabled):
+              if enabled:
+                parm_toggles.set(False);
+            parm_toggles.when_changed(parm_toggles_changed);
+            subgroup_toggles.when_changed(subgroup_toggles_changed);
+          else:
+            parm_toggles = TDLMenu('Toggle solvability of individual parms',*parm_sopts);
+            self.solve_by_individual = True;
+          self._option_list.append(parm_toggles);
+          sopts.append(parm_toggles);
         self._option_list.append(TDLOption('initial_value',
                                   'Override initial value',[None,0.],more=float,namespace=self));
         so = [  TDLOption('time_deg','Polynomial degree, time',[0,1,2,3],more=int,namespace=self),
@@ -119,7 +149,35 @@ class ParmGroup (object):
         for opt in sopts:
           opt.show(show);
       self._optmenu.when_changed(show_hide_sopts);
-
+      
+    def _add_individual_parm (self,parm):
+      opts = self._parm_opts[parm.name] = record();
+      opts.tdloption_namespace = (self.label+"."+parm.name).replace(":","_");
+      # solvable parm options
+      parm_sopts = [
+            TDLOption('time_deg','Polynomial degree, time',[0,1,2,3],more=int,namespace=opts),
+            TDLOption('freq_deg','Polynomial degree, freq',[0,1,2,3],more=int,namespace=opts),
+            TDLOption('subtile_time','Solution subinterval (subtile), time',[None],more=int,namespace=opts),
+            TDLOption('subtile_freq','Solution subinterval (subtile), freq',[None],more=int,namespace=opts)
+      ];
+      parm_solv = TDLMenu("Solve for %s"%parm.name,
+            TDLOption('initial_value','Override initial value',[None,0.],more=float,namespace=opts),
+            toggle='solvable',open=True,namespace=opts,
+            *parm_sopts
+          );
+      # hide solvables
+      def show_hide_sopts (show):
+        # print 'showing',show,parm_sopts;
+        for opt in parm_sopts:
+          opt.show(show);
+      parm_solv.when_changed(show_hide_sopts);
+      return parm_solv;
+    
+    def _add_nonindividual_parm (self,parm):
+      opts = self._parm_opts[parm.name] = record();
+      opts.tdloption_namespace = (self.label+"."+parm.name).replace(":","_");
+      return TDLOption("solvable","Solve for %s"%parm.name,True,namespace=opts);
+                       
     def runtime_options (self,submenu=True):
       return [ self._optmenu ];
 
@@ -127,6 +185,8 @@ class ParmGroup (object):
       if msname:
         self.table_name = os.path.join(msname,os.path.basename(self.table_name));
         self._table_name_option.set_value(self.table_name);
+        for node in self.pg.nodes:
+          node.initrec().table_name = self.table_name;
 
     def _fill_state_record (self,state):
       """Fills a state record with common options""";
@@ -181,8 +241,25 @@ class ParmGroup (object):
       else:
         cmdlist = [];
         if solvable:
-          solvables = [ parm.name for parm in self.pg.nodes if self._parm_opts[parm.name].solvable ];
-          nonsolvables = [ parm.name for parm in self.pg.nodes if not self._parm_opts[parm.name].solvable ];
+          if self.solve_by_subgroup:
+            solvables = [];
+            nonsolvables = [];
+            for parm in self.pg.nodes:
+              solvable = True;
+              for sg in self.pg.parm_subgroups.get(parm.name,[]):
+                if not sg.solvable:
+                  solvable = False;
+                  break;
+              if solvable:
+                solvables.append(parm.name);
+              else:
+                nonsolvables.append(parm.name);
+          elif self.solve_by_individual:
+            solvables = [ parm.name for parm in self.pg.nodes if self._parm_opts[parm.name].solvable ];
+            nonsolvables = [ parm.name for parm in self.pg.nodes if not self._parm_opts[parm.name].solvable ];
+          else:
+            solvables = [parm.name for parm in self.pg.nodes ];
+            nonsolvables = [];
         else:
           solvables = [];
           nonsolvables = [ parm.name for parm in self.pg.nodes ];
@@ -216,25 +293,59 @@ class ParmGroup (object):
       try:    os.system("rm -fr "+self.table_name);
       except: pass;
 
-  def __init__ (self,label,nodes=[],name=None,
-                     individual=False,bookmark=True,
-                     table_name="calibration.mep",table_in_ms=True,
-                     **kw):
-    self.label = label;
-    self.name  = name or label;
-    # sort nodes by name
-    sorted_nodes = list(nodes);
+  def _sort_members (members):
+    sorted_members = list(members);
     # define comparison function that sorts by qualifier as well
     def int_or_str(x):
       try: return int(x);
       except: return x;
-    sorted_nodes.sort(lambda a,b:
+    sorted_members.sort(lambda a,b:
         cmp(map(int_or_str,a.name.split(':')),map(int_or_str,b.name.split(':'))));
+    return sorted_members;
+  _sort_members = staticmethod(_sort_members);
+  
+  def __init__ (self,label,members=[],name=None,
+                     subgroups=None,
+                     individual=False,individual_toggles=True,bookmark=True,
+                     table_name="calibration.mep",table_in_ms=True,
+                     **kw):
+    """Creates a ParmGroup.
+    'label' is the label of the group
+    'members' is a list of MeqParm nodes
+    'name'  is a descriptive name for the group. If not set, label is used.
+    'subgroups' is a list of Subgroup objects, if parms are to be subgrouped
+    'individual' is True if individual options are to be provided per parameter. Note that
+                this is incompatible with subgroups
+    'individual_toggles' is True if individual solvasbility toggles are to be provided in addition to
+                subgroups. 
+    'bookmark' is True if bookmarks for the parameters are to be automatically provided
+    'table_name' is the name of a MEP table
+    'table_in_ms' is True if the table should reside inside the current MS (in which case the MS selector
+                from the global Meow.Context is invoked to get the name of the MS)
+    """
+    self.label = label;
+    self.name  = name or label;
+    # sort gropup members by name
+    self.nodes = sorted_nodes = self._sort_members(members);
+    # now collect list of subgroups
+    self.subgroups = subgroups or [];
+    self.individual_toggles = individual_toggles;
+    if subgroups and individual:
+      raise TypeError,"cannot combine subgroups and individual parameters";
+    self.parm_subgroups = dict();
+    for sg in self.subgroups:
+      for parm in sg.nodes:
+        self.parm_subgroups.setdefault(parm.name,[]).append(sg);
     self.nodes = sorted_nodes;
     # various properties
+    if table_in_ms and Context.mssel and Context.mssel.msname:
+      table_name = os.path.join(Context.mssel.msname,os.path.basename(table_name));
     self.table_name = table_name;
     self._table_in_ms = table_in_ms;
     self._individual = individual;
+    # put table name into the parms
+    for node in self.nodes:
+      node.initrec().table_name = table_name;
     # create bookmarks (if specified as a [W,H], it gives the number of parms to bookmark)
     if bookmark:
       if isinstance(bookmark,tuple) and len(bookmark) == 2:
@@ -247,8 +358,8 @@ class ParmGroup (object):
     global _all_parmgroups;
     _all_parmgroups.append(self);
 
-  def add (self,*nodes):
-    self.nodes += nodes;
+  def add (self,*members):
+    self.nodes += list(members);
 
   def make_controller (self,label=None,**kw):
     return self.Controller(self,label,**kw);

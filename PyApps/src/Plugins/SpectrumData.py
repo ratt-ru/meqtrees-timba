@@ -25,7 +25,7 @@
 #
 
 import sys
-from numarray import *
+import numpy
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='SpectrumData');
@@ -79,8 +79,8 @@ class SpectrumData:
          plot_label = 'spectra:' + combined_display_label
 
 # flip plot array for screen display
-       axes = arange(incoming_data[i].rank)[::-1]
-       plot_array = transpose(incoming_data[i], axes)
+       axes = numpy.arange(incoming_data[i].ndim)[::-1]
+       plot_array = numpy.transpose(incoming_data[i], axes)
 
 # has plot array been stored?
        if len(self._plot_labels) == 0:
@@ -112,7 +112,7 @@ class SpectrumData:
        self.y_marker_step = shape[1]
        self.num_y_markers = plot_dict_size
        _dprint(3,' self.y_marker_step ', self.y_marker_step)
-       temp_array = zeros((shape[0], plot_dict_size * shape[1]), self._plot_dict[0].type())
+       temp_array = numpy.zeros((shape[0], plot_dict_size * shape[1]),dtype=self._plot_dict[0].dtype)
        for i in range(plot_dict_size):
          dummy_array =  self._plot_dict[i]
          for j in range(shape[0]):

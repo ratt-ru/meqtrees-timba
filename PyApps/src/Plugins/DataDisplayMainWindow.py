@@ -28,10 +28,10 @@ try:
   from Qwt4 import *
 except:
   from qwt import *
-from numarray import *
 import chartplot
 import random
 import traceback
+import numpy
 
 class DisplayMainWindow(QMainWindow):
   """ This class enables the display of a collection
@@ -182,9 +182,9 @@ class DisplayMainWindow(QMainWindow):
     # stuff for tests
     self.seq_num = 0
     self._gain = 0
-    self._array = zeros((128,), Float32)
-    self._array_imag = zeros((128,), Float32)
-    self._array_complex = zeros((128,), Complex32)
+    self._array = numpy.zeros((128,), numpy.float32)
+    self._array_imag = numpy.zeros((128,), numpy.float32)
+    self._array_complex = numpy.zeros((128,), numpy.complex64)
     self.startTimer(time)
 
   def timerEvent(self, e):
@@ -209,8 +209,8 @@ class DisplayMainWindow(QMainWindow):
         for j in range(self._array.shape[0]):
           self._array[j] = 11 * random.random()
           self._array_imag[j] = 6 * random.random()
-        self._array_complex.setreal(self._array)
-        self._array_complex.setimag(self._array_imag)
+        self._array_complex.real = self._array
+        self._array_complex.imag = self._array_imag
         data_dict['value'] = self._array_complex
       else:
         for j in range(self._array.shape[0]):
@@ -231,8 +231,8 @@ class DisplayMainWindow(QMainWindow):
           for k in range(self._array.shape[0]):
             self._array[k] = gain * random.random()
             self._array_imag[k] = gain * random.random()
-          self._array_complex.setreal(self._array)
-          self._array_complex.setimag(self._array_imag)
+          self._array_complex.real = self._array
+          self._array_complex.imag = self._array_imag
           data_dict['value'][j] = self._array_complex.copy()
       self.updateEvent(data_dict)
 

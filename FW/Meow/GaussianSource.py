@@ -36,29 +36,22 @@ class GaussianSource(PointSource):
                I=0.0,Q=None,U=None,V=None,
                spi=None,freq0=None,
                RM=None,
-               size=None,phi=0,symmetric=False):
+               size=None,phi=0):
     PointSource.__init__(self,ns,name,direction,I,Q,U,V,
                         spi,freq0,RM);
     # create polc(s) for size
-    self._symmetric = symmetric;
-    if symmetric:
-      self._add_parm('sigma',size,tags='shape');
-    else:
+    if isinstance(size,(list,tuple)) and len(size) == 2:
+      self._symmetric = False;
       # setup orientation
       # note: the orientation angle, phi, of the major axis
       # is defined in the direction East through South; i.e.
       # an angle of zero defines a Gaussian oriented east-west
       self._add_parm('phi',phi,tags='shape');
-      if isinstance(size,(int,float)):
-        s1 = s2 = size;
-      elif isinstance(size,(tuple,list)):
-        if len(size) != 2:
-          raise TypeError,"size: one or two numeric values expected";
-        s1,s2 = size;
-      else:
-        raise TypeError,"size: one or two numeric values expected";
-      self._add_parm('sigma1',s1,tags="shape");
-      self._add_parm('sigma2',s2,tags="shape");
+      self._add_parm('sigma1',size[0],tags="shape");
+      self._add_parm('sigma2',size[1],tags="shape");
+    else:
+      self._symmetric = True;
+      self._add_parm('sigma',size,tags='shape');
     
   def is_symmetric (self):
     return self._symmetric;

@@ -28,7 +28,6 @@ try:
   from Qwt4 import *
 except:
   from qwt import *
-from numarray import *
 import printfilter
 import plot_printer
 from display_image import *
@@ -46,7 +45,6 @@ class ZoomPopup(QWidget):
     fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
     QWidget.__init__(self, parent, name, fl)
     self.setCaption('Channel ' + str(CurveNumber))
-    self.setCaption('Hi hi')
     self._parent = parent
     self._d_zoomActive = self._d_zoom = False
     self._curve_number = CurveNumber
@@ -220,7 +218,7 @@ class ZoomPopup(QWidget):
           self._plotter.set_flag_toggles_active(True,False)
       else:
         self._plotter.set_flag_toggles_active(False,False)
-      self._plotter.array_plot (self._zoom_plot_label, self._y_values, flip_axes=True)
+      self._plotter.array_plot(incoming_plot_array=self._y_values, flip_axes=True)
 
 #     self.get_max()
       self._plotter.replot()
@@ -259,6 +257,7 @@ class ZoomPopup(QWidget):
     else:
       self._zoom_plot_label = self._data_label + ": " + self._array_label + " Sequence (oldest to most recent)"
     self._plotter.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
+    self.setCaption(self._zoom_plot_label)
 
   def plotMouseMoved(self, e):
     """	Gets x and y position of the mouse on the plot according to axis' value
@@ -286,9 +285,10 @@ class ZoomPopup(QWidget):
 
 def main(args):
     app = QApplication(args)
-    x_values = array([1.0,2.0,3.0,4.0])
-    y_values = array([15.0,25.0,35.0,45.0])
-    demo = ZoomPopup(1, x_values, y_values,Qt.yellow,None, None )
+    x_values = numpy.array([1.0,2.0,3.0,4.0])
+    y_values = numpy.array([15.0,25.0,35.0,45.0])
+    flags = numpy.array([0.0,0.0,0.0,0.0])
+    demo = ZoomPopup(1, x_values, y_values,flags, Qt.yellow,None, None )
     demo.show()
     app.setMainWidget(demo)
     app.exec_loop()

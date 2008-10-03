@@ -149,10 +149,27 @@ class MSOutputChannel : public FileChannel
     //##ModelId=3E2D5FF503A1
     DMI::Record params_;
     
-    //##ModelId=3E2D5FF60047
-    bool write_flags_;
-    //##ModelId=3E2D5FF600B0
-    int flagmask_;
+    // true if we use the (nonstandard) BITFLAG/BITFLAG_ROW columns
+    bool use_bitflag_col_;
+    
+    // true if we're writing to BITFLAG/BITFLAG_ROW columns. (If False, then we're probably
+    // just refilling the legacy FLAG columns based on BITFLAG.)
+    bool write_bitflag_;
+    
+    // If using bitflags, then output MS bitflag is
+    //    input_ms_bitflag&ms_flagmask | where(tile_flags&tile_flagmask,tile_bitflag,0)
+    int  ms_flagmask_;
+    int  tile_flagmask_;
+    int  tile_bitflag_;
+    
+    // true if legacy FLAG/FLAG_ROW columns need to be filled
+    bool write_legacy_flags_;
+    
+    // If using bitflags, then legacy FLAG/FLAG_ROW columns will be filled with
+    //   bitflag&legacy_flagmask
+    // If not using bitflags, then legacy columns will be filled with
+    //   tile_flag&tile_flagmask
+    int  legacy_flagmask_;
     
     //##ModelId=3E2D61D901E8
     int tilecount_;

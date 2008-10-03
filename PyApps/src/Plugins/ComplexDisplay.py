@@ -37,8 +37,8 @@ from ComplexColorMap import *
                                                                                 
   if itsComplexSpectrum.min() != itsComplexSpectrum.max()):
 # get real and imaginary arrays
-    real_image = itsComplexSpectrum.getreal()
-    imag_image = itsComplexSpectrum.getimag()
+    real_image = itsComplexSpectrum.real
+    imag_image = itsComplexSpectrum.imag
     for i in range(N):
       for j in range(N):
           // SOMETIMES colre > Ncol ?!?!?!

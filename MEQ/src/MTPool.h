@@ -153,17 +153,18 @@ namespace Meq
         // given NodeNursery
         void clearQueue (const NodeNursery &client);
 
-        // gets next work order on from the queue.
+        // gets next work order from the queue.
         // !!! The caller must obtain a lock on cond() before calling this.
+        // If head of queue has a WO with a depth>=mindepth, returns the WO.
+        // If head of queue has a WO with a depth<mindepth, returns 0.
         // If queue is empty OR too many threads are busy and wait=false, returns 0.
         // If queue is empty and wait=true, marks thread as idle and
-        // waits for an order indefinitely (a return value of 0 will
-        // cancel the thread)
+        // waits for an order indefinitely.
         // The work order will have its nodelock set, so WorkOrder::execute()
         // may be called immediately.
         // Ownership of order object is transferred to caller.
         // If returning a WO, marks thread as busy.
-        AbstractWorkOrder * getWorkOrder (bool wait=true);
+        AbstractWorkOrder * getWorkOrder (bool wait=true,int mindepth=0);
         
         // finishes with work order, deallocates object
         void finishWithWorkOrder (AbstractWorkOrder *wo);

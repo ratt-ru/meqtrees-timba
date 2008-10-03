@@ -28,6 +28,7 @@ import Meow
 from Meow import Context
 from Meow import Jones,ParmGroup,Bookmarks
 from Meow.Parameterization import resolve_parameter
+import sets
 
 class DiagAmplPhase (object):
   def __init__ (self):
@@ -60,14 +61,9 @@ class FullRealImag (object):
   def __init__ (self,label):
     self.tdloption_namespace = label+".fullrealimag";
     subset_opt = TDLOption('subset',"Apply this Jones term to a subset of sources",
-        [None],more=str,namespace=self,doc="""Selects a subset of sources to which this 
-        Jones term is applied. 'None' applies to all sources.
-        You may specify individual indices (0-based) separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive), or ":M" (0 to M), or "N:" (N to last).
-        Example subset: ":3 5 8 10:12 16:".""");
-    self._subset_parser = Meow.Utils.ListOptionParser(minval=0,name="sources");
-    subset_opt.set_validator(self._subset_parser.validator);
+        ["all"],more=str,namespace=self,doc="""Selects a subset of sources to which this 
+        Jones term is applied. Enter soure names separated by space""");
     self.options = [ subset_opt ];
-    self.subset = None;
 
   def compile_options (self):
     return self.options;
@@ -75,9 +71,9 @@ class FullRealImag (object):
   def compute_jones (self,jones,sources,stations=None,tags=None,label='',**kw):
     stations = stations or Context.array.stations();
     # figure out which sources to apply to
-    if self.subset:
-      srclist = self._subset_parser.parse_list(self.subset);
-      sources = [ sources[i] for i in srclist ];
+    if self.subset != "all":
+      srcset = sets.Set(self.subset.split(" "));
+      sources = [ src for src in sources if src.name in srcset ];
     # create parm definitions for each jones element
     tags = NodeTags(tags) + "solvable";
     diag_real = Meq.Parm(1,tags=tags+"diag real");
@@ -140,7 +136,7 @@ class IntrinsicFR (object):
         Jones term is applied. 'None' applies to all sources.
         You may specify individual indices (0-based) separated by commas or spaces, or ranges, e.g. "M:N" (M to N inclusive), or ":M" (0 to M), or "N:" (N to last).
         Example subset: ":3 5 8 10:12 16:".""");
-    self._subset_parser = Meow.Utils.ListOptionParser(minval=0,name="sources");
+    self._subset_parser = Meow.OptionTools.ListOptionParser(minval=0,name="sources");
     subset_opt.set_validator(self._subset_parser.validator);
     self.options = [ subset_opt ];
     self.subset = None;

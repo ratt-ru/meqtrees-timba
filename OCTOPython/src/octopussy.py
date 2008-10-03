@@ -38,7 +38,7 @@ octopython = Timba.octopython
 from Timba.dmi import *
 from Timba.utils import *
 
-import numarray
+import Timba.array
 import string
 import time
 import threading
@@ -483,7 +483,7 @@ class proxy_wp_thread(proxy_wp):
 
 if __name__ == "__main__":
   import time
-  import numarray
+  import Timba.array
   if '-qt' in sys.argv:
     import qt_threading
     thread_api = qt_threading; 
@@ -546,7 +546,7 @@ if __name__ == "__main__":
   print "message1",msg1,payload;
   wp1.send(msg1,wp2.address());
   
-  arr = numarray.array([1,2,3,4,5,6],shape=[3,2]);
+  arr = Timba.array.array([1,2,3,4,5,6]).reshape((3,2));
   subseq = ([1,2,3],['x','y','z'],[hiid('a'),hiid('b')]);
   subrec = record({'x':0,'y':arr});
   payload = record({'a':0,'b':arr,'c_d':2,'e':subseq,'f':subrec,'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);

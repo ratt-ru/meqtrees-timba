@@ -200,7 +200,7 @@ void * Brigade::workerLoop ()
 }
 // gets a AbstractWorkOrder from the brigade queue
 // assume we have a lock on cond()
-AbstractWorkOrder * Brigade::getWorkOrder (bool wait)
+AbstractWorkOrder * Brigade::getWorkOrder (bool wait,int mindepth)
 {
   WorkerData &wd = workerData();
   while( true )
@@ -225,6 +225,11 @@ AbstractWorkOrder * Brigade::getWorkOrder (bool wait)
       AbstractWorkOrder *pwo = wo_queue_.front();
       int depth = pwo->depth();
       dprintf(2)("head of WO queue is %s\n",pwo->sdebug().c_str());
+      if( depth < mindepth )
+      {
+        dprintf(2)("mindepth is %d, so returning 0\n",mindepth);
+        return 0;
+      }
       // first case is us waking up from idle
       if( wd.state == IDLE )
       {

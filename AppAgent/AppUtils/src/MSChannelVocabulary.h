@@ -33,7 +33,8 @@
 
 #pragma aid DDID VDSID Selection Tile Snippet String Column Size Format Increment
 #pragma aid Vis Input Output Params Start End Write Flags Flag Mask Segments
-#pragma aid Time Data Predict Residuals Column Name Message Type
+#pragma aid Use Bitflag Column Legacy
+#pragma aid Time Data Predict Residuals Column Name Message Type 
 #pragma aid Throw Error Domain start string Original Shape Flip Clear Extent
 #pragma aid Raw Non Calibrated Predict Residuals Iteration Cwd Apply Hanning
 
@@ -64,13 +65,20 @@ namespace MSChannel
        FTileFormat        = AidTile|AidFormat,
        FOriginalDataShape = AidOriginal|AidData|AidShape,
        FFlipFreq          = AidFlip|AidFreq,
-       FClearFlags        = AidClear|AidFlags,
        FApplyHanning      = AidApply|AidHanning,
 
        FOutputParams      = AidMS|AidOutput|AidParams,
                           
-       FWriteFlags        = AidWrite|AidFlags,
        FFlagMask          = AidFlag|AidMask,
+       FWriteBitflag      = AidWrite|AidBitflag,
+       FWriteLegacyFlags  = AidWrite|AidLegacy|AidFlags,
+       FLegacyBitflag     = AidLegacy|AidBitflag,
+       FLegacyFlagMask    = AidLegacy|AidFlag|AidMask,
+       FMSFlagMask        = AidMS|AidFlag|AidMask,
+       FTileFlagMask      = AidTile|AidFlag|AidMask,
+       FTileBitflag       = AidTile|AidBitflag,
+       FUseBitflagColumn  = AidUse|AidBitflag|AidColumn,
+       FBitflagName       = AidBitflag|AidName,
        FDataColumn        = AidData|AidColumn,
        FPredictColumn     = AidPredict|AidColumn,
        FResidualsColumn   = AidResiduals|AidColumn,

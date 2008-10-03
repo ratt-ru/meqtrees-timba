@@ -22,13 +22,10 @@
 # or write to the Free Software Foundation, Inc., 
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-print """WARNING: the Meow.Utils module is deprecated. Please port your scripts
-to the newer, better, slimmer Meow.MSUtils. """;
-
 
 from Timba.TDL import *
 from Timba.Meq import meq
-import numarray
+import Timba.array
 import math
 import random
 import Meow
@@ -391,7 +388,7 @@ def phase_parm (tdeg,fdeg):
   """helper function to create a t/f parm for phase, including constraints.
   Placeholder until Maaijke implements periodic constraints.
   """;
-  polc = meq.polc(numarray.zeros((tdeg+1,fdeg+1))*0.0,
+  polc = meq.polc(Timba.array.zeros((tdeg+1,fdeg+1))*0.0,
             scale=array([3600.,8e+8,0,0,0,0,0,0]));
   shape = [tdeg+1,fdeg+1];
   # work out constraints on coefficients

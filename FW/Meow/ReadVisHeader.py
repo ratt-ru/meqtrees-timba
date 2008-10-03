@@ -42,7 +42,7 @@ def process_vis_header (hdr):
     except: pass;
     # antenna positions
     pos = hdr.antenna_pos;
-    if pos.rank != 2 or pos.shape[0] != 3:
+    if pos.ndim != 2 or pos.shape[0] != 3:
 	raise ValueError,'incorrectly shaped antenna_pos';
     nant = pos.shape[1];
     coords = ('x','y','z');

@@ -412,7 +412,7 @@ class Inspector(qt.QDialog):
     def fit(self):
         self.get_selected();
         dom = self.getdomain();
-        shape = self.getshape();
+        shape = self.shape;
         save = self._save.isChecked();
         self.parmTable.deselect_parms(self._mqs);
         self.parmTable.select_parms(self._mqs, self._selected);

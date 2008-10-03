@@ -25,8 +25,6 @@
 #
 
 import sys
-from numarray import *
-
 # is numpy available?
 global has_numpy
 has_numpy = False
@@ -35,6 +33,8 @@ try:
   has_numpy = True
 except:
   has_numpy = False
+
+import math
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='SolverData');
@@ -84,20 +84,20 @@ class SolverData:
 # find out how many records in each metric field
          num_metrics = len(metrics)
          num_metrics_rec =  len(metrics[0])
-         self.solver_offsets = zeros((num_metrics_rec), Int32)
-         self.metrics_rank = zeros((num_metrics,num_metrics_rec), Int32)
-         self.metrics_unknowns = zeros((num_metrics,num_metrics_rec), Int32)
+         self.solver_offsets = numpy.zeros((num_metrics_rec), numpy.int32)
+         self.metrics_rank = numpy.zeros((num_metrics,num_metrics_rec), numpy.int32)
+         self.metrics_unknowns = numpy.zeros((num_metrics,num_metrics_rec), numpy.int32)
          self.metrics_covar = []
-         self.metrics_chi_0 = zeros((num_metrics,num_metrics_rec), Float64)
-         self.metrics_chi = zeros((num_metrics,num_metrics_rec), Float64)
-         self.metrics_fit = zeros((num_metrics,num_metrics_rec), Float64)
-         self.metrics_mu = zeros((num_metrics,num_metrics_rec), Float64)
-         self.metrics_stddev = zeros((num_metrics,num_metrics_rec), Float64)
-         self.metrics_flag = zeros((num_metrics,num_metrics_rec), Bool)
-         self.vector_sum = zeros((num_metrics,num_metrics_rec), Float64)
-         self.incr_soln_norm = zeros((num_metrics,num_metrics_rec), Float64)
-         self.sum_incr_soln_norm = zeros((num_metrics,num_metrics_rec), Float64)
-         self.iteration_number = zeros((num_metrics), Int32)
+         self.metrics_chi_0 = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.metrics_chi = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.metrics_fit = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.metrics_mu = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.metrics_stddev = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.metrics_flag = numpy.zeros((num_metrics,num_metrics_rec), numpy.bool_)
+         self.vector_sum = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.incr_soln_norm = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.sum_incr_soln_norm = numpy.zeros((num_metrics,num_metrics_rec), numpy.float64)
+         self.iteration_number = numpy.zeros((num_metrics), numpy.int32)
          for i in range(num_metrics):
            if i > 0:
              for j in range(shape[1]):
@@ -123,8 +123,8 @@ class SolverData:
                   sum_array_test = sum_array_test + self.chi_array[i,k] * self.chi_array[i,k]
                   self.vector_sum[i,j] = self.vector_sum[i,j] + self.chi_array[i,k] * self.chi_array[i,k]
                   sum_array = sum_array + self._solver_array[i,k] * self._solver_array[i,k]
-               self.vector_sum[i,j] = sqrt(self.vector_sum[i,j])
-               self.incr_soln_norm[i,j] = sqrt(sum_array)
+               self.vector_sum[i,j] = math.sqrt(self.vector_sum[i,j])
+               self.incr_soln_norm[i,j] = math.sqrt(sum_array)
                if i == 0:
                  self.sum_incr_soln_norm[i,j] = self.sum_incr_soln_norm[i,j] + self.incr_soln_norm[i,j] 
                else:
@@ -144,7 +144,7 @@ class SolverData:
 # find out how many records in each metric field
          num_debug = len(debug_array)
          num_nonlin =  len(debug_array[0].nonlin)
-         self.nonlin = zeros((num_nonlin, num_debug), Float64)
+         self.nonlin = numpy.zeros((num_nonlin, num_debug), numpy.float64)
          for j in range(num_debug):
            debug_rec = debug_array[j]
            nonlin = debug_rec.nonlin
@@ -209,7 +209,7 @@ class SolverData:
      """ calculate eigenvalues and eigenvectors of co-variance matrix """
 
      try:
-       import numarray.linear_algebra as la
+       import numpy.linalg as la
      except:
        return False
      if self.metrics_covar is None:
@@ -232,9 +232,9 @@ class SolverData:
              self.eigenvectors.append(None)
            else:
              # gets both eigenvalues and eigenvectors
-             self.eigenvectors.append(la.eigenvectors(covar))
+             self.eigenvectors.append(la.eig(covar))
              # for moment, just get eigenvalues
-#            self.eigenvectors.append(la.eigenvalues(covar))
+#            self.eigenvectors.append(la.eigvals(covar))
          return True
 
    def getConditionNumbers(self):

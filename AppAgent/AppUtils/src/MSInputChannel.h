@@ -51,7 +51,15 @@ using namespace VisVocabulary;
 //##                                         (default is "DATA", but can use, 
 //##                                           e.g., "MODEL_DATA")
 //##    +--[FTileSize]           (int)       tile size (default: 1 timeslot)
-//##    +--[FClearFlags]         (bool)      clear all input flags
+//##    +--[FFlagMask]           (int)       apply flag mask to input bitflags (if available). 0 for no flags. 
+//##                                         Default is -1 (all flags).
+//##    +--[FLegacyBitflag]      (int)       bitflag(s) corresponding to legacy FLAG column (default 1). 
+//##                                         0 to ignore legacy flags.
+//##    +--[FTileBitflag]        (int)       tile bitflag to set corresponding to input bitflags (default 2).
+//##                                         If 0, then tile bitflag is 
+//##                                           ms_bitflags&flag_mask | (ms_legacy_flag?legacy_bitflag:0) 
+//##                                         If !=0, then tile bitflag is 
+//##                                           (ms_bitflags&flag_mask?tile_bitflag:0).| (ms_legacy_flag?legacy_bitflag:0)
 //##    +--[FApplyHanning]       (bool)      apply Hanning taper to input data
 //##    +--[FSelection]          (record)    determines MS selection:
 //##       +--[FDDID]              (int)     selects data description ID 
@@ -156,7 +164,10 @@ class MSInputChannel : public FileChannel
       //## must be flipped. This flag is set in fillHeader()
       bool flip_freq_;
       
-      bool clear_flags_;
+      bool has_bitflags_;
+      int flagmask_;
+      int legacy_bitflag_;
+      int tile_bitflag_;
       
       bool apply_hanning_;
       

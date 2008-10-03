@@ -40,8 +40,8 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
 
+import numpy
 from qt import *
-from numarray import *
 from Timba.Plugins.display_image import *
 from Timba.Plugins.realvsimag import *
 from Timba.Plugins.plotting_functions import *
@@ -222,23 +222,23 @@ class HistoryPlotter(GriddedPlugin):
     if self._rec.history.has_key('value'):
       (self._plot_array, self._flag_plot_array) = self.create_plot_array(self._rec.history['value'])
       try:
-        _dprint(3, 'plot_array rank and shape ', self._plot_array.rank, ' ', self._plot_array.shape)
+        _dprint(3, 'plot_array rank and shape ', self._plot_array.ndim, ' ', self._plot_array.shape)
       except: pass;
       if self._plot_array is None:
         return
       self.actual_rank = 0
       shape = self._plot_array.shape
-      for i in range(self._plot_array.rank):
+      for i in range(self._plot_array.ndim):
         if shape[i] > 1:
           self.actual_rank = self.actual_rank + 1
       _dprint(3, 'plot_array actual rank ', self.actual_rank)
       self.create_image_plotters()
 
-      if self._plot_array.rank > 2:
+      if self._plot_array.ndim > 2:
         if self.array_selector is None:
           second_axis = None
           first_axis = None
-          for i in range(self._plot_array.rank-1,-1,-1):
+          for i in range(self._plot_array.ndim-1,-1,-1):
             if self._plot_array.shape[i] > 1:
               if second_axis is None:
                 second_axis = i
@@ -246,7 +246,7 @@ class HistoryPlotter(GriddedPlugin):
                 if first_axis is None:
                   first_axis = i
           self.array_selector = []
-          for i in range(self._plot_array.rank):
+          for i in range(self._plot_array.ndim):
             if not first_axis is None and i == first_axis:
               axis_slice = slice(0,self._plot_array.shape[first_axis])
               self.array_selector.append(axis_slice)
@@ -257,16 +257,16 @@ class HistoryPlotter(GriddedPlugin):
               self.array_selector.append(0)
         self.array_tuple = tuple(self.array_selector)
         _dprint(3, 'array_selector tuple ', self.array_tuple)
-        self._plotter.array_plot(self.label +' data', self._plot_array[self.array_tuple])
+        self._plotter.array_plot(self._plot_array[self.array_tuple],data_label=self.label +' data')
         self.addTupleFlags()
       else:
-        if self._plot_array.rank == 2:
+        if self._plot_array.ndim == 2:
           self._plotter.set_yaxis_title('Sequence Number')
           self._plotter.set_xaxis_title('Array Values')
-        if self._plot_array.rank == 1:
+        if self._plot_array.ndim == 1:
           self._plotter.set_yaxis_title('Values')
           self._plotter.set_xaxis_title('Sequence Number')
-        self._plotter.array_plot(self.label+ ' data', self._plot_array)
+        self._plotter.array_plot(self._plot_array, data_label=self.label+ ' data')
         if not self._flag_plot_array is None and self._flag_plot_array.max() > 0:
           self._plotter.setFlagsData(self._flag_plot_array)
           self._plotter.handleFlagToggle(False)
@@ -338,8 +338,8 @@ class HistoryPlotter(GriddedPlugin):
       if len(max_dims) == 0:
 # we have a sequence of scalars
         if plot_array is None:
-          temp_array = asarray(data_array)
-          plot_array = resize(temp_array,list_length)
+          temp_array = numpy.asarray(data_array)
+          plot_array = numpy.resize(temp_array,list_length)
         else:
           plot_array[i] = data_array
       else:
@@ -349,12 +349,12 @@ class HistoryPlotter(GriddedPlugin):
           array_dims.append(list_length)
           for j in range(len(max_dims)):
             array_dims.append(max_dims[j])
-          plot_array = zeros(array_dims, data_array.type()) 
-          flag_plot_array = zeros(array_dims, Int32)
+          plot_array = numpy.zeros(array_dims,dtype=data_array.dtype) 
+          flag_plot_array = numpy.zeros(array_dims, numpy.int32)
           flag_plot_array = flag_plot_array + 1 
         array_selector = []
         array_selector.append(i)
-        for j in range(data_array.rank):
+        for j in range(data_array.ndim):
           axis_slice = slice(0,data_array.shape[j])
           array_selector.append(axis_slice)
         array_tuple = tuple(array_selector)
@@ -366,14 +366,14 @@ class HistoryPlotter(GriddedPlugin):
   def setArraySelector (self,lcd_number, slider_value, display_string):
     self.array_selector[lcd_number] = slider_value
     self.array_tuple = tuple(self.array_selector)
-    self._plotter.array_plot(self.label + ' data ', self._plot_array[self.array_tuple])
+    self._plotter.array_plot(self._plot_array[self.array_tuple],data_label=self.label + ' data ')
     self.addTupleFlags()
 
   def setSelectedAxes (self,first_axis,second_axis,third_axis=-1):
-    self.array_selector = create_array_selector(self._plotter, self._plot_array.rank, self._plot_array.shape, first_axis,second_axis,third_axis)
+    self.array_selector = create_array_selector(self._plotter, self._plot_array.ndim, self._plot_array.shape, first_axis,second_axis,third_axis)
     self.array_tuple = tuple(self.array_selector)
     _dprint(3, 'array_selector tuple ', self.array_tuple)
-    self._plotter.array_plot(self.label+ ' data', self._plot_array[self.array_tuple])
+    self._plotter.array_plot(self._plot_array[self.array_tuple],data_label=self.label+ ' data')
     self.addTupleFlags()
 
   def addTupleFlags(self):
@@ -395,18 +395,18 @@ class HistoryPlotter(GriddedPlugin):
       QObject.connect(self._plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
       self._wtop = self.layout_parent;       
-    _dprint(3,'array has rank and shape: ', self._plot_array.rank, ' ', self._plot_array.shape)
+    _dprint(3,'array has rank and shape: ', self._plot_array.ndim, ' ', self._plot_array.shape)
     if self.actual_rank > 2:
       _dprint(3,'array has actual rank and shape: ', self.actual_rank, ' ', self._plot_array.shape)
       _dprint(3,'so an ND Controller GUI is needed')
-      self._plotter.set_original_array_rank(self._plot_array.rank)
+      self._plotter.set_original_array_rank(self._plot_array.ndim)
       self.set_ND_controls()
   # create_image_plotters
 
 
   def set_ND_controls (self, labels=None, parms=None, num_axes=2):
     """ this function adds the extra GUI control buttons etc if we are
-        displaying data for a numarray of dimension 3 or greater """
+        displaying data for a numpy array of dimension 3 or greater """
 
     _dprint(3, 'plot_array shape ', self._plot_array.shape)
     self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self._plot_array.shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)

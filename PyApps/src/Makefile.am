@@ -37,7 +37,6 @@ guidir = $(pythondir)/Timba/GUI
 meqdir = $(pythondir)/Timba/Meq
 plugindir = $(pythondir)/Timba/Plugins
 glishdir = $(libexecdir)/glish/plugins
-treedir= $(pythondir)/Timba/Trees
 dist_bin_SCRIPTS = meqbrowser.py 
 
 dist_python_SCRIPTS = 
@@ -57,10 +56,10 @@ dist_meq_SCRIPTS = Meq/__init__.py \
   
 dist_plugin_SCRIPTS = \
   Plugins/ComplexColorMap.py   Plugins/__init__.py             Plugins/plot_printer.py     \
-  Plugins/ComplexDisplay.py    Plugins/array_plotter.py        Plugins/pyfits.py          \
+  Plugins/ComplexDisplay.py    Plugins/array_plotter.py        \
   Plugins/ComplexScaleDraw.py  Plugins/display_image.py        Plugins/realvsimag.py      \
   Plugins/ErrorBar.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py \
-  Plugins/parm_plotter.py    Plugins/UVPAxis.py            Plugins/node_execute.py     \
+  Plugins/UVPAxis.py            Plugins/node_execute.py     \
   Plugins/parmfiddler.py     Plugins/guiplot2dnodesettings.py      Plugins/dialog_window_config.py    \
   Plugins/history_plotter.py Plugins/svg_plotter.py
   
@@ -69,9 +68,6 @@ dist_grid_SCRIPTS = Grid/__init__.py \
   Grid/CellBlock.py Grid/Cell.py Grid/Debug.py
 
 dist_glish_SCRIPTS = Plugins/MSinfo.g
-
-dist_tree_SCRIPTS = Trees/__init__.py Trees/TDL_common.py\
-   Trees/TDL_Cohset.py Trees/TDL_Joneset.py Trees/TDL_Sixpack.py
 
 include $(lofar_sharedir)/Makefile.aids
 include $(top_srcdir)/Makefile.common

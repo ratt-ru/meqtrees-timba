@@ -26,8 +26,9 @@
 from Timba.TDL import *
 import Context
 import Jones
-import Utils
 import Bookmarks
+import Utils
+import sets
 
 class _BaseTree (object):
   def __init__ (self,ns,array=None,observation=None):
@@ -66,8 +67,9 @@ class ResidualTree (_BaseTree):
     return outputs;
 
 class SolveTree (ResidualTree):
-  def __init__ (self,ns,predict,array=None,observation=None,residuals=None):
+  def __init__ (self,ns,predict,solve_ifrs=None,array=None,observation=None,residuals=None):
     ResidualTree.__init__(self,ns,predict,array,observation);
+    self._solve_ifrs = solve_ifrs or self.array.ifrs();
     self._make_residuals = residuals;
 
   def outputs (self,inputs=None):
@@ -92,21 +94,26 @@ class SolveTree (ResidualTree):
     if not solver.initialized():
       self._solver_name = solver.name;
       # create condeqs and request sequencers
-      for p,q in self.array.ifrs():
+      for p,q in self._solve_ifrs:
         inp  = self._inputs(p,q);
         pred = self._predict(p,q);
         pred.initrec().cache_num_active_parents = 1;
         self.ns.ce(p,q) << Meq.Condeq(inp,pred);
       # create optimal poll order for condeqs, for efficient parallelization
-      # (i.e. poll child 1:2, 3:4, 5:6, ..., 13:14,
-      # then the rest)
-      cpo = [];
-      for i in range(len(self.array.stations())/2):
-        (p,q) = self.array.stations()[i*2:(i+1)*2];
-        cpo.append(self.ns.ce(p,q).name);
+      # (i.e. poll child 1:2, 3:4, 5:6, ..., 13:14 then the rest)
+      # however, since _solve_ifrs may be a subset, we'll have to be a bit more clever
+      polled = sets.Set();
+      poll_order = [];
+      for p,q in self._solve_ifrs:
+        if p not in polled and q not in polled:
+          poll_order.append(self.ns.ce(p,q).name);
+          polled.add(p);
+          polled.add(q);
+          if len(poll_order) >= len(self.array.stations())/2:
+            break;
       # add condeqs to solver
-      solver << Meq.Solver(children=[self.ns.ce(p,q) for p,q in self.array.ifrs()],
-                           child_poll_order=cpo);
+      solver << Meq.Solver(children=[self.ns.ce(p,q) for p,q in self._solve_ifrs],
+                           child_poll_order=poll_order);
     return solver;
  
   def sequencers (self,inputs=None,outputs=None):
@@ -287,12 +294,12 @@ def make_sinks (ns,outputs,array=None,
                 post=None,
                 vdm=None,
                 spigots=True,
-                flag_bit=1,output_col='DATA',**kw):
+                output_col='DATA',**kw):
   array = array or Context.array;
   if not array:
     raise ValueError,"array not specified in global Meow.Context, or in this function call";
   # make sinks
-  sink = array.sinks(children=outputs,flag_bit=flag_bit,output_col=output_col,**kw);
+  sink = array.sinks(children=outputs,output_col=output_col,**kw);
   # make vdm
   if vdm is None:
     vdm = ns.VisDataMux;

@@ -25,7 +25,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-from numarray import *
+from Timba.array import *
 import os
 import random
 
@@ -35,15 +35,26 @@ from Meow import Bookmarks,Context
 import Meow.StdTrees
 
 # MS options first
-mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,has_output=False,tile_sizes=[10,100,200],flags=False,hanning=True);
+mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,flags=True,has_output=False,tile_sizes=[10,100,200]);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
 # MS run-time options
-TDLRuntimeMenu("MS/data selection options",*mssel.runtime_options());
-## also possible:
+TDLRuntimeMenu("Data selection & flag handling",*mssel.runtime_options());
 
 TDLCompileOption('do_invert_phase',"Invert phases in input data",True,
      doc="""Inverts phases in the input data. Some e.g. WSRT MSs require this."""),
+opt = TDLRuntimeOption('do_transfer_flags',"Convert legacy FLAG column into output flagset",False,
+     doc="""If true, then the current contents of the FLAG column will be converted into a 
+     flagset. You can select an output flagset via the menu above.""");
+
+def enable_transfer_flags (enable):
+  mssel.write_flags_opt.set(enable);
+  mssel.write_flags_opt.show(enable);
+  if enable:
+    mssel.read_flags_opt.set(True);
+    mssel.read_legacy_flag_opt.set(True);
+  
+opt.when_changed(enable_transfer_flags);
 
 def _define_forest(ns):
   ANTENNAS = mssel.get_antenna_set(range(1,15));
@@ -67,9 +78,9 @@ def _define_forest(ns):
   Bookmarks.make_node_folder("Input visibilities by baseline",
     [ spigots(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 
-  # add sink
-  vdm = ns.VisDataMux << Meq.VisDataMux(post=inspector);
-  vdm.add_stepchildren(*[spigots0(p,q) for p,q in array.ifrs()]);
+  # add sinks
+  Meow.StdTrees.make_sinks(ns,spigots,
+                           post=[inspector],output_col='');
   
   # add imaging options
   imsel = mssel.imaging_selector(npix=512,arcmin=72);
@@ -77,6 +88,8 @@ def _define_forest(ns):
 
 def _tdl_job_view_MS (mqs,parent,**kw):
   req = mssel.create_io_request();
+  if do_transfer_flags:
+    req.output.ms.tile_flag_mask |= 1;
   mqs.execute('VisDataMux',req,wait=False);
 
 

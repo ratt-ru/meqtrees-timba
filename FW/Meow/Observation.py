@@ -35,7 +35,11 @@ class Observation (object):
   nodes of the phase center).
   """;
   def __init__(self,ns,circular=False,linear=False,
+               phase_centre=None,
                quals=[],kwquals={}):
+    """Creates an Observation object.
+    If phase_centre is known and static, it may be passed in here
+    """
     self.ns = ns;
     if circular and linear:
       raise ValueError,"either circular=True or linerar=True must be specified, not both";
@@ -43,11 +47,11 @@ class Observation (object):
     self._quals = quals;
     self._kwquals = kwquals;
     self.phase_centre = self.phase_center = \
-        Direction(ns,None,0,0,quals=quals,kwquals=kwquals);
+        Direction(ns,None,static=bool(phase_centre),quals=quals,kwquals=kwquals,*(phase_centre or (0,0)));
 
   def circular (self):
     return self._circular;
-    
+  
   def radec0 (self):
     """returns radec node for the phase center direction""";
     return self.phase_centre.radec();

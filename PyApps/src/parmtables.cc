@@ -25,6 +25,7 @@
 
 #include <OCTOPython/OctoPython.h>
 #include <MEQ/FastParmTable.h>
+#include <MEQ/Domain.h>
 
 namespace ParmTables
 {
@@ -100,10 +101,11 @@ static PyObject * PyFPT_domain_list (PyFPT * self)
       PyObjectRef pylist = PyList_New(list.size());
       for( uint i=0; i<list.size(); i++ )
       {
-        ObjRef domref;
+        Domain::Ref domref;
         list[i].makeDomain(domref);
+        ObjRef ref = domref;
         // pyFromDMI returns new ref, SET_ITEM steals it
-        PyList_SET_ITEM(*pylist,i,pyFromDMI(domref));
+        PyList_SET_ITEM(*pylist,i,pyFromDMI(ref));
       }
       self->domain_list = pylist;
     }
@@ -284,9 +286,10 @@ static PyObject * PyFPT_put_funklet (PyFPT* self,PyObject *args)
       const FastParmTable::DomainList &domlist = self->table->domainList();
       for( uint i=ndom0; i<domlist.size(); i++ )
       {
-        ObjRef domref;
+        Domain::Ref domref;
         domlist[i].makeDomain(domref);
-        PyObjectRef pydom = pyFromDMI(domref);
+        ObjRef ref = domref;
+        PyObjectRef pydom = pyFromDMI(ref);
         PyList_Append(*self->domain_list,*pydom);
       }
     }

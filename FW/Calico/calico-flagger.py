@@ -25,7 +25,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-from numarray import *
+from Timba.array import *
 import os
 import random
 
@@ -36,13 +36,19 @@ import Meow.Utils
 import Meow.StdTrees
 import Meow.Context
 
-def abs_clip (inputs,threshold):
+def abs_clip (inputs,maxval=None,minval=None):
   # flag condition is abs(x) >= threshold
   flagged = inputs("absclip");
   for p,q in Meow.Context.array.ifrs():
     inp = inputs(p,q);
-    fc = flagged("fc",p,q) << Meq.Abs(inp) - threshold;
-    flagged(p,q) << Meq.MergeFlags(inp,Meq.ZeroFlagger(fc,flag_bit=2,oper="GE"));
+    flaggers = [];
+    if maxval is not None:
+      fc = flagged("fc1",p,q) << Meq.Abs(inp) - maxval;
+      flaggers.append(flagged("zf1",p,q) << Meq.ZeroFlagger(fc,flag_bit=4,oper="GE"));
+    if minval is not None:
+      fc = flagged("fc2",p,q) << Meq.Abs(inp) - minval;
+      flaggers.append(flagged("zf2",p,q) << Meq.ZeroFlagger(fc,flag_bit=4,oper="LE"));
+    flagged(p,q) << Meq.MergeFlags(inp,*flaggers);
   return flagged;
 
 def rms_clip (inputs,threshold_sigmas):
@@ -51,10 +57,10 @@ def rms_clip (inputs,threshold_sigmas):
   for p,q in Meow.Context.array.ifrs():
     inp = inputs(p,q);
     a = flagged("abs",p,q) << Meq.Abs(inp);
-    stddev_a = flagged("stddev",p,q) << Meq.StdDev(a);
     delta = flagged("delta",p,q) << Meq.Abs(a-Meq.Mean(a));
+    stddev_a = flagged("stddev",p,q) << Meq.StdDev(delta);
     fc = flagged("fc",p,q) << delta - threshold_sigmas*stddev_a;
-    flagged(p,q) << Meq.MergeFlags(inp,Meq.ZeroFlagger(fc,flag_bit=2,oper="GE"));
+    flagged(p,q) << Meq.MergeFlags(inp,Meq.ZeroFlagger(fc,flag_bit=4,oper="GE"));
   return flagged;
 
 # MS options first
@@ -65,10 +71,11 @@ TDLCompileOptions(*mssel.compile_options());
 TDLRuntimeOptions(*mssel.runtime_options());
 ## also possible:
 
-TDLCompileOption('clear_ms_flags',"Ignore flags already in MS",False);
 TDLCompileOption('flag_xx_yy',"Flag on XX/YY values only",True);
 TDLCompileOption('flag_all_corrs',"Merge flags across all correlations",True);
-TDLCompileOption('flag_abs',"Flag on absolute value >=",[None,1.,2.],more=float);
+TDLCompileOption('avg_freq',"Average input over frequency",True);
+TDLCompileOption('flag_absmax',"Flag on absolute value >=",[None,1.,2.],more=float);
+TDLCompileOption('flag_absmin',"Flag on absolute value <=",[None,1.,2.],more=float);
 TDLCompileOption('flag_rms',"Flag on rms sigmas >= ",[None,3.,5.,10.],more=float);
 
 def _define_forest(ns):
@@ -77,13 +84,7 @@ def _define_forest(ns):
   observation = Meow.Observation(ns);
   Meow.Context.set(array,observation);
 
-  # make spigots, but tell them to ignore MS flags or not via 'flag_bit'
-  if clear_ms_flags:
-    flag_mask = 0;
-  else:
-    flag_mask = -1;
-  outputs = spigots = array.spigots(corr=mssel.get_corr_index(),
-                                    flag_mask=flag_mask,row_flag_mask=flag_mask);
+  outputs = spigots = array.spigots(corr=mssel.get_corr_index(),flag_bit=1);
   Meow.Bookmarks.make_node_folder("Input visibilities by baseline",
     [ spigots(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 
@@ -92,6 +93,12 @@ def _define_forest(ns):
     outputs = ns.xxyy;
     for p,q in array.ifrs():
       outputs(p,q) << Meq.Selector(spigots(p,q),index=[0,3],multi=True);
+      
+  # add freq averaging if needed
+  if avg_freq:
+    for p,q in array.ifrs():
+      ns.freqavg(p,q) << Meq.Mean(outputs(p,q),reduction_axes=['freq']);
+    outputs = ns.freqavg;
   
   # make an inspector for spigots, we'll add more to this list
   inspectors = [
@@ -99,14 +106,15 @@ def _define_forest(ns):
   ];
 
   # flag on absolute value first
-  if flag_abs is not None:
-    outputs = abs_clip(outputs,flag_abs);
+  if flag_absmax is not None or flag_absmin is not None:
+    outputs = abs_clip(outputs,flag_absmax,flag_absmin);
     inspectors.append(Meow.StdTrees.vis_inspector(ns.inspect('abs'),outputs,bookmark=False));
 
   # then flag on rms
   if flag_rms is not None:
     outputs = rms_clip(outputs,flag_rms);
     inspectors.append(Meow.StdTrees.vis_inspector(ns.inspect('rms'),outputs,bookmark=False));
+    
   # recreate 2x2 result (if only flagging on xx/yy)
   if flag_xx_yy:
     for p,q in array.ifrs():
@@ -116,15 +124,22 @@ def _define_forest(ns):
       ns.make4corr(p,q) << Meq.Matrix22(xx,0,0,yy);
     outputs = ns.make4corr;
       
-  # merge flags if asked
+  # merge flags across correlations if asked
   if flag_all_corrs:
     for p,q in array.ifrs():
-      ns.mergeflags(p,q) << Meq.MergeFlags(outputs(p,q));
-    outputs = ns.mergeflags;
-    inspectors.append(Meow.StdTrees.vis_inspector(ns.inspect('output'),outputs,bookmark=False));
+      ns.mergecorrflags(p,q) << Meq.MergeFlags(outputs(p,q));
+    outputs = ns.mergecorrflags;
     
+  # finally, merge flags with spigots (so that we can inspect output flags with original data)
+  for p,q in array.ifrs():
+    ns.output(p,q) << Meq.MergeFlags(spigots(p,q),outputs(p,q));
+  outputs = ns.output;
+  inspectors.append(Meow.StdTrees.vis_inspector(ns.inspect('output'),outputs,bookmark=False));
+  
   # make sinks and vdm
-  Meow.StdTrees.make_sinks(ns,outputs,post=inspectors);
+  flagbit = mssel.get_output_flagbit();
+  Meow.StdTrees.make_sinks(ns,outputs,
+                           post=inspectors,output_col='');
   Meow.Bookmarks.make_node_folder("Output visibilities by baseline",
     [ outputs(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 

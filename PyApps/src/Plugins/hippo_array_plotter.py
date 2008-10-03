@@ -36,7 +36,7 @@ from qt import *
 import sihippo
 print "HippoDraw version " + sihippo.__version__
 from sihippo import *
-from numarray import *
+from Timba.array import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='hippo_array_plotter');
@@ -89,7 +89,7 @@ class HippoArrayPlotter(GriddedPlugin):
 # figure out type and rank of incoming array
     is_vector = False;
     array_dim = len(plot_array.shape)
-    array_rank = plot_array.rank
+    array_rank = plot_array.ndim
     if array_rank == 1:
       is_vector = True;
     n_rows = plot_array.shape[0]
@@ -212,11 +212,11 @@ class HippoArrayPlotter(GriddedPlugin):
 
     if complex_type:
 #extract real component
-      real_array = dataitem.data.getreal()
+      real_array = dataitem.data.real
       self._label = "real data value"
       self.display_data(real_array)
 #extract imaginary component
-      imag_array = dataitem.data.getimag()
+      imag_array = dataitem.data.imag
       self._label = "imag data value"
       self.display_data(imag_array)
     else:

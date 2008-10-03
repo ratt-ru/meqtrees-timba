@@ -75,6 +75,10 @@ class _OurConfigParser (ConfigParser.RawConfigParser):
 # create global config object
 config = _OurConfigParser();
 
+def enable_save_config (enable=True):
+  global _config_save_enabled;
+  _config_save_enabled = enable;
+
 def save_config ():
   global _config_save_enabled;
   if not _config_save_enabled:
@@ -257,6 +261,7 @@ class _TDLBaseOption (object):
   def set_name (self,name):
     """Changes option name""";
     self.name = name;
+    self._lvitem and self._lvitem.setText(0,name);
 
   def set_doc (self,doc):
     """Changes option documentation string""";
@@ -399,8 +404,10 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     value = bool(value);
     if save and self.config_name:
       set_config(self.config_name,int(value));
+ #   print self.name,value,self._lvitem;
     if self._lvitem and set_lvitem:
       self._lvitem.setOn(value);
+ #     print self.name,value,self._lvitem;
     self._set(value,callback=callback);
 
   def make_listview_item (self,parent,after,executor=None):
@@ -787,7 +794,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     doc = kw.get('doc');
     name = kw.get('name',None) or title;
     self._summary = kw.get('summary',None);
-    self._is_open = kw.get('open',False);
+    self._is_open = kw.get('open',None);
     self._toggle = kw.get('toggle',None);
     self._exclusive = kw.get('exclusive',None);
     namespace = kw.get('namespace');
@@ -805,7 +812,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     # parent, else only init the TDLBaseOption parent
     _dprint(2,"creating menu",title,"name",name);
     if self._toggle:
-      _TDLBoolOptionItem.__init__(self,namespace,self._toggle,self._is_open,
+      _TDLBoolOptionItem.__init__(self,namespace,self._toggle,self._is_open or False,
                                   name=name,config_name=config_name,doc=doc,nonexclusive=nonexclusive);
     else:
       _TDLBaseOption.__init__(self,name=name,namespace=namespace,doc=doc);
@@ -974,13 +981,16 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       item.setExpandable(True);
       self._old_value = self.value;
       item.setOn(self.value);
-      item.setOpen(self.value);
+      if self._is_open is None:
+        item.setOpen(self.value);
+      else:
+        item.setOpen(self._is_open);
       item._on_click = item._on_press = self._check_item;
     else:
       item = QListViewItem(parent,after);
       item.setText(0,self._title);
       item.setExpandable(True);
-      item.setOpen(self._is_open);
+      item.setOpen(self._is_open or False);
     if self._summary:
       item.setText(1,self._summary);
     # loop over items

@@ -74,6 +74,8 @@ for( a in argv )
     img_chanstart := as_integer(a);
   else if( a =~ s/^img_chanstep=// )
     img_chanstep := as_integer(a);
+  else if( a =~ s/^select=// )
+    select := a;
 }
 if( select != '' )
   select := spaste('( ',select,' ) && ANTENNA1 != ANTENNA2');

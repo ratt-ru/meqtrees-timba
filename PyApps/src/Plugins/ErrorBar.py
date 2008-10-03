@@ -30,7 +30,8 @@
 import math
 import random
 import sys
-from numarray import *
+import numpy
+
 from qt import *
 try:
   from Qwt4 import *
@@ -194,14 +195,14 @@ def main(args):
 
 def make():
 
-# use numarray to create demo arrays 
+# use numpy arrays to create demo arrays 
     num_points = 50
-    x = zeros((num_points,), Float32)  
-    y = zeros((num_points,), Float32)  
-    err = zeros((num_points,), Float32)  
+    x = numpy.zeros((num_points,), numpy.float32)  
+    y = numpy.zeros((num_points,), numpy.float32)  
+    err = numpy.zeros((num_points,), numpy.float32)  
     for i in range(0, num_points) :
         x[i] = 0.1*i;
-        y[i] = sin(x[i]);
+        y[i] = math.sin(x[i]);
         err[i] = abs(0.5 * y[i])
 
 # create a QwtPlot object

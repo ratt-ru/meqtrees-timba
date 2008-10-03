@@ -25,10 +25,19 @@
 #define MEQNODES_FASTPARMTABLE_H
 
 #include <config.h>
-#ifdef HAVE_GDBM
-#define HAVE_FASTPARMTABLE 1
 
-#include <gdbm.h>
+#ifdef HAVE_QDBM
+  #define HAVE_FASTPARMTABLE 1
+  #include <hovel.h>
+#else
+  #ifdef HAVE_GDBM
+    #define HAVE_FASTPARMTABLE 1
+    #include <gdbm.h>
+  #endif
+#endif
+
+#ifdef HAVE_FASTPARMTABLE 
+
 #include <MEQ/ParmTable.h>
 
 namespace Meq {
@@ -50,9 +59,8 @@ public:
       // returns True if dom overlaps self
       bool overlaps (const Domain &dom) const;
       
-      // makes a Meq::Domain object from the domain entry.
-      // attaches it to the ref, and returns it.
-      const Domain & makeDomain (ObjRef &dom) const;
+      // makes a Meq::Domain object from the domain entry, attaches to ref
+      const Domain & makeDomain (Domain::Ref &domref) const;
       
     private:
       bool   defined[Axis::MaxAxis];
@@ -60,6 +68,7 @@ public:
       double end[Axis::MaxAxis];
   };
   typedef std::vector<DomainEntry> DomainList;
+  typedef std::vector<Domain::Ref> DomainObjectList;
   
     //##ModelId=3F86886F02B7
   explicit FastParmTable (const string& tableName,bool create_new=false);
@@ -119,13 +128,14 @@ private:
   
   // list of known domains
   DomainList domain_list_;
+  DomainObjectList domain_ref_list_;
   std::vector<bool>        domain_match_;
 
   // this is used by first/nextFunklet
   datum prev_key;
   
   // internal function, gets funklet with given DB key
-  int getFunklet (Funklet::Ref &ref,datum db_key);
+  int getFunklet (Funklet::Ref &ref,datum db_key,int domain_index);
   
   // helper function, returns DB key size, given a parmname
   int keySize (const string &name)
@@ -144,6 +154,6 @@ private:
 
 } // namespace Meq
 
-#endif // HAVE_GDBM
+#endif // HAVE_FASTPARMTABLE
 
 #endif

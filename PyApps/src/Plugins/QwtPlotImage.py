@@ -38,7 +38,10 @@ try:
   from Qwt4 import *
 except:
   from qwt import *
-from numarray import *
+
+import numpy
+import math
+
 from UVPAxis import *
 from ImageScaler import *
 from ComplexColorMap import *
@@ -52,7 +55,7 @@ _dprintf = _dbg.dprintf;
 # from scipy.pilutil
 # note: low is set to 1, so that we can save a value of 0 for a flagged pixel
 def bytescale(data, limits, high=255, low=1):
-    if data.type() == UInt8:
+    if data.dtype == numpy.uint8:
         return data
     high = high - low
     if limits[0] is None:
@@ -61,20 +64,20 @@ def bytescale(data, limits, high=255, low=1):
         limits[1] = data.max()
     scale = high *1.0 / (limits[1]-limits[0] or 1)
     internal_data = data.copy()
-    temp1 = less_equal(data,limits[1])
-    temp2 = greater(data,limits[1])
+    temp1 = numpy.less_equal(data,limits[1])
+    temp2 = numpy.greater(data,limits[1])
     internal_data = data * temp1 + temp2 * limits[1]
-    temp1 = greater_equal(internal_data,limits[0])
-    temp2 = less(internal_data,limits[0])
+    temp1 = numpy.greater_equal(internal_data,limits[0])
+    temp2 = numpy.less(internal_data,limits[0])
     internal_data = internal_data * temp1 + temp2 * limits[0]
-    bytedata = ((internal_data*1.0-limits[0])*scale + 0.4999).astype(UInt8) + asarray(low).astype(UInt8)
+    bytedata = ((internal_data*1.0-limits[0])*scale + 0.4999).astype(numpy.uint8) + numpy.asarray(low).astype(numpy.uint8)
     return bytedata
 
 # called by the QwtImagePlot class
 def square(n, min, max):
-    t = arange(min, max, float(max-min)/(n-1))
+    t = numpy.arange(min, max, float(max-min)/(n-1))
     #return outer(cos(t), sin(t))
-    return cos(t)*sin(t)[:,NewAxis]
+    return numpy.cos(t)*numpy.sin(t)[:,numpy.newaxis]
 # square()
 
 
@@ -174,10 +177,10 @@ class QwtPlotImage(QwtPlotMappedItem):
            self.i_cmax = max
 
     def setImageRange(self, image):
-      if image.type() == Complex32 or image.type() == Complex64:
+      if image.dtype == numpy.complex64 or image.dtype == numpy.complex128:
         self.complex = True
-        imag_array =  image.getimag()
-        real_array =  image.getreal()
+        imag_array =  image.imag
+        real_array =  image.real
         min = real_array.min()
         max = real_array.max()
         if abs(max - min) < 0.00005:
@@ -236,15 +239,15 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.raw_image = image
 
     def setFlaggedImageRange(self):
-      if self.raw_image.type() == Complex32 or self.raw_image.type() == Complex64:
+      if self.raw_image.dtype == numpy.complex64 or self.raw_image.dtype == numpy.complex128:
         (nx,ny) = self.raw_image.shape
-        real_array =  self.raw_image.getreal()
-        imag_array =  self.raw_image.getimag()
+        real_array =  self.raw_image.real
+        imag_array =  self.raw_image.imag
         real_flagged_array = real_array - self._flags_array * real_array
         imag_flagged_array = imag_array - self._flags_array * imag_array
-        flagged_image = array(shape=(nx,ny),type=self.raw_image.type())
-        flagged_image.setreal(real_flagged_array)
-        flagged_image.setimag(imag_flagged_array)
+        flagged_image = numpy.zeros(shape=(nx,ny),dtype=self.raw_image.dtype)
+        flagged_image.real = real_flagged_array
+        flagged_image.imag = imag_flagged_array
       else:
         flagged_image = self.raw_image - self._flags_array * self.raw_image
       self.setImageRange(flagged_image)
@@ -286,9 +289,9 @@ class QwtPlotImage(QwtPlotMappedItem):
     def to_QImage(self, image):
 # convert to 8 bit image
       image_for_display = None
-      if image.type() == Complex32 or image.type() == Complex64:
+      if image.dtype == numpy.complex64 or image.dtype == numpy.complex128:
         self.complex = True
-        real_array =  image.getreal()
+        real_array =  image.real
         if self.log_scale:
           temp_array = self.convert_to_log(real_array)
           if not self.r_cmin is None and not self.r_cmax is None:
@@ -300,9 +303,9 @@ class QwtPlotImage(QwtPlotMappedItem):
           limits = [self.r_cmin,self.r_cmax]
           byte_image = bytescale(real_array,limits)
         (nx,ny) = real_array.shape
-        image_for_display = array(shape=(nx*2,ny),type=byte_image.type());
+        image_for_display = numpy.empty(shape=(nx*2,ny),dtype=byte_image.dtype);
         image_for_display[:nx,:] = byte_image
-        imag_array =  image.getimag()
+        imag_array =  image.imag
         if self.log_scale:
           temp_array = self.convert_to_log(imag_array)
           if not self.i_cmin is None and not self.i_cmax is None:
@@ -383,12 +386,12 @@ class QwtPlotImage(QwtPlotMappedItem):
 
     def setFlagQimage(self):
       (nx,ny) = self._image_for_display.shape
-      image_for_display = array(shape=(nx,ny),type=self._image_for_display.type())
+      image_for_display = numpy.zeros(shape=(nx,ny),dtype=self._image_for_display.dtype)
       if self.complex:
-        image_for_display[:nx/2,:] = where(self._flags_array,0,self._image_for_display[:nx/2,:])
-        image_for_display[nx/2:,:] = where(self._flags_array,0,self._image_for_display[nx/2:,:])
+        image_for_display[:nx/2,:] = numpy.where(self._flags_array,0,self._image_for_display[:nx/2,:])
+        image_for_display[nx/2:,:] = numpy.where(self._flags_array,0,self._image_for_display[nx/2:,:])
       else:
-        image_for_display = where(self._flags_array,0,self._image_for_display)
+        image_for_display = numpy.where(self._flags_array,0,self._image_for_display)
 
       self.flags_Qimage = toQImage(image_for_display).mirror(0, 1)
 
@@ -412,8 +415,8 @@ class QwtPlotImage(QwtPlotMappedItem):
 
       if image.min() != image.max():
 # get real and imaginary arrays
-        real_image = image.getreal()
-        imag_image = image.getimag()
+        real_image = image.real
+        imag_image = image.imag
         shape = image.shape
         Ncol = self.ComplexColorMap.getNumberOfColors()
         bits_per_pixel = 32
@@ -440,7 +443,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         shape = data_array.shape
         _dprint(3, 'array shape is ', shape)
         shape0 = shape[0]
-        if data_array.type() == Complex32 or data_array.type() == Complex64:
+        if data_array.dtype == numpy.complex64 or data_array.dtype == numpy.complex128:
           self.complex = True
           shape0 = 2 * shape[0]
         if xScale:
@@ -579,16 +582,16 @@ class QwtImagePlot(QwtPlot):
     # __init__()
 
     def updateDisplay(self):
-	# calculate 3 NumPy arrays
-        x = arange(-1.0 * self.gain*pi, self.gain*pi, 0.01)
-        y = pi*sin(x)
-        z = self.gain * self.gain*pi*cos(x)*cos(x)*sin(x)
-	# copy the data
-	self.setCurveData(self.cSin, x, y)
-	self.setCurveData(self.cCos, x, z)
-        # image
-        self.plotImage.setData(
-            square(512,-1.0 * self.gain*pi, self.gain*pi), (-1.0*self.gain*pi, self.gain*pi), (-1.0*self.gain*pi, self.gain*pi))
+      # calculate 3 NumPy arrays
+      x = numpy.arange(-1.0 * self.gain*math.pi, self.gain*math.pi, 0.01)
+      y = math.pi*numpy.sin(x)
+      z = self.gain * self.gain*math.pi*numpy.cos(x)*numpy.cos(x)*numpy.sin(x)
+      # copy the data
+      self.setCurveData(self.cSin, x, y)
+      self.setCurveData(self.cCos, x, z)
+      # image
+      self.plotImage.setData(
+            square(512,-1.0 * self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi))
 
     def start_timer(self, time):
       """ start a timer going to update the image every 1/10 sec """

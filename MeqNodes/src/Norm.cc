@@ -1,4 +1,4 @@
-//# Norm.cc: Take norm of a node
+//# Norm.cc: Takes Frobenius norm (sqrt-of-sum-squares) of a tensor
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -30,17 +30,28 @@ namespace Meq {
 
 //##ModelId=400E53550241
 Norm::Norm()
+: TensorFunction(1)
 {}
 
 //##ModelId=400E53550242
 Norm::~Norm()
 {}
 
-//##ModelId=400E53550246
-Vells Norm::evaluate (const Request&,const LoShape &,
-		     const vector<const Vells*>& values)
+LoShape Norm::getResultDims (const vector<const LoShape *> &)
 {
-  return norm(*(values[0]));
+  // result is always scalar
+  return LoShape();
+}
+
+
+void Norm::evaluateTensors (std::vector<Vells> & out,   
+     const std::vector<std::vector<const Vells *> > &args )
+{
+  out[0] = Vells();
+  const std::vector<const Vells *> &argvec = args[0];
+  for( uint i=0; i<argvec.size(); i++ )
+    out[0] += sqr(*argvec[i]);
+  out[0] = sqrt(out[0]);
 }
 
 } // namespace Meq

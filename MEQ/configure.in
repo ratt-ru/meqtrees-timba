@@ -57,8 +57,14 @@ lofar_PACKAGE(VisCube)
 dnl
 dnl Check for external packages
 dnl
-lofar_EXTERNAL(gdbm,0,gdbm.h,,)
 lofar_EXTERNAL(qdbm,0,hovel.h,,/usr /usr/local /usr/include/qdbm)
+dnl only look for gdbm if qdbm is not found
+[if test "$HAVE_QDBM_TRUE" != ""; then ]
+  lofar_EXTERNAL(gdbm,0,gdbm.h,,)
+[else]
+  AC_DEFINE([HAVE_GDBM],[0],[using qdbm instead])
+  AM_CONDITIONAL([HAVE_GDBM],[test false])
+[fi]
 
 dnl
 dnl Output Makefiles

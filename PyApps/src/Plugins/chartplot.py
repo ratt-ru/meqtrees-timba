@@ -28,7 +28,9 @@ try:
   from Qwt4 import *
 except:
   from qwt import *
-from numarray import *
+
+import numpy
+
 import zoomwin
 import printfilter
 import random
@@ -247,10 +249,10 @@ class ChartPlot(QWidget):
     """ changes sizes and values of arrays used to store x-axis 
         values for plot
     """
-    self._x1 = zeros((self._ArraySize,), Float32)
-    self._x2 = zeros((self._ArraySize,), Float32)
-    self._x3 = zeros((self._ArraySize,), Float32)
-    self._x4 = zeros((self._ArraySize,), Float32)
+    self._x1 = numpy.zeros((self._ArraySize,), numpy.float32)
+    self._x2 = numpy.zeros((self._ArraySize,), numpy.float32)
+    self._x3 = numpy.zeros((self._ArraySize,), numpy.float32)
+    self._x4 = numpy.zeros((self._ArraySize,), numpy.float32)
 
     # layout parameter for x_axis offsets 
     if self._ArraySize > 6 * self._x_displacement:
@@ -625,8 +627,8 @@ class ChartPlot(QWidget):
           #removes 1 from the number of zoom opened
           self._zoomcount = self._zoomcount - 1
         elif not self._pause[curve_no]:  #replot the zoom
-          chart = array(self._chart_data[curve_no][self._data_index])
-          flags = array(self._flag_data[curve_no][self._data_index])
+          chart = numpy.array(self._chart_data[curve_no][self._data_index])
+          flags = numpy.array(self._flag_data[curve_no][self._data_index])
           self._Zoom[curve_no].update_plot(chart,flags)
 #         self._Zoom[curve_no]._plotter.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
           self._Zoom[curve_no]._plotter.replot()
@@ -744,9 +746,9 @@ class ChartPlot(QWidget):
       self._indexzoom[crv] = True
 
       #open a zoom of the selected curve
-      PlotArraySize = self._x1.nelements()
-      chart = array(self._chart_data[crv][self._data_index])
-      flags = array(self._flag_data[crv][self._data_index])
+      PlotArraySize = self._x1.size
+      chart = numpy.array(self._chart_data[crv][self._data_index])
+      flags = numpy.array(self._flag_data[crv][self._data_index])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv+self._ref_chan, self._x1, chart, flags, pen, self)
       if not self._source is None:
         self._Zoom[crv].setCaption(self._source)
@@ -891,10 +893,14 @@ class ChartPlot(QWidget):
 
     # do we have an incoming dictionary?
     q_pos_str = "Sequence Number " + str( data_dict['sequence_number'])
-    self._source = data_dict['source']
+    new_chart_flags = None
+    try:
+      self._source = data_dict['source']
+      new_chart_flags = data_dict['flags']
+    except:
+      pass
     channel_no = data_dict['channel']
     new_chart_val = data_dict['value']
-    new_chart_flags = data_dict['flags']
     has_keys = True
     add_vells_menu = False
     try:
@@ -932,9 +938,14 @@ class ChartPlot(QWidget):
             self._vells_menu_id = self._vells_menu_id + 1
             self._vells_keys[menu_label] = 1
 
+      incoming_data = None
+      incoming_flags = None
       if has_keys:
-        incoming_data = new_chart_val[keys]
-        incoming_flags = new_chart_flags[keys]
+        try:
+          incoming_data = new_chart_val[keys]
+          incoming_flags = new_chart_flags[keys]
+        except:
+          pass
       else:
         incoming_data = new_chart_val
         incoming_flags = new_chart_flags
@@ -987,7 +998,9 @@ class ChartPlot(QWidget):
         num_elements = 1
         for i in range(len(incoming_data.shape)):
           num_elements = num_elements * incoming_data.shape[i]
-        flattened_array = reshape(incoming_data.copy(),(num_elements,))
+
+        flattened_array = incoming_data.copy()
+        flattened_array.shape = (num_elements,)
         if num_elements > 1 and incoming_data.shape[0] == 1:
           if  self._data_label is None:
             self._plotter.setAxisTitle(QwtPlot.xBottom, "Frequency Spectrum per Tile Block (Relative Scale)")
@@ -1001,9 +1014,9 @@ class ChartPlot(QWidget):
         self._updated_data[channel] = True
 
         if incoming_flags is None:
-          flattened_array = zeros((num_elements,), Int32)
+          flattened_array = numpy.zeros((num_elements,), numpy.int32)
         else:
-          flattened_array = reshape(incoming_flags.copy(),(num_elements,))
+          flattened_array = numpy.reshape(incoming_flags.copy(),(num_elements,))
         if self._append_data: 
           for i in range(len(flattened_array)):
             self._flag_data[channel][keys].append(flattened_array[i])
@@ -1116,13 +1129,13 @@ class ChartPlot(QWidget):
       for channel in range(self._nbcrv):
         if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
           try:
-            chart = array(self._chart_data[channel][self._data_index])
+            chart = numpy.array(self._chart_data[channel][self._data_index])
             #print 'shape chart ', chart.shape, ' ', chart
           except:
             self._updated_data[channel] = False
             pass
           try:
-            flags = array(self._flag_data[channel][self._data_index])
+            flags = numpy.array(self._flag_data[channel][self._data_index])
           except:
             self._updated_data[channel] = False
             pass
@@ -1130,9 +1143,9 @@ class ChartPlot(QWidget):
           if chart.shape[0] < 1:
             self._updated_data[channel] = False
           if self._updated_data[channel]:
-            test_chart = compress(flags==0,chart)
+            test_chart = numpy.compress(flags==0,chart)
             if test_chart.shape[0] > 0:
-              if chart.type() == Complex32 or chart.type() == Complex64:
+              if chart.dtype == numpy.complex64 or chart.dtype == numpy.complex128:
                 toggle_id = self.menu_table['Complex Data']
                 self._menu.setItemVisible(toggle_id, True)
                 complex_chart = test_chart.copy()
@@ -1141,15 +1154,15 @@ class ChartPlot(QWidget):
                   cplx_chart = abs(complex_chart)
                 elif self._real:
                   self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
-                  cplx_chart = complex_chart.getreal()
+                  cplx_chart = complex_chart.real
                 elif self._imaginary:
                   self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
-                  cplx_chart = complex_chart.getimag()
+                  cplx_chart = complex_chart.imag
                 else:
                   self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
-                  real_chart = complex_chart.getreal()
-                  imag_chart = complex_chart.getimag()
-                  cplx_chart = arctan2(imag_chart,real_chart)
+                  real_chart = complex_chart.real
+                  imag_chart = complex_chart.imag
+                  cplx_chart = numpy.arctan2(imag_chart,real_chart)
                 tmp_max = cplx_chart.max()
                 tmp_min = cplx_chart.min()
               else:
@@ -1198,28 +1211,28 @@ class ChartPlot(QWidget):
         else:
           temp_off = (channel % (self._nbcrv/4)) * self._offset
 
-        chart = array(self._chart_data[channel][self._data_index])
-        flags = array(self._flag_data[channel][self._data_index])
-        if chart.type() == Complex32 or chart.type() == Complex64:
+        chart = numpy.array(self._chart_data[channel][self._data_index])
+        flags = numpy.array(self._flag_data[channel][self._data_index])
+        if chart.dtype == numpy.complex64 or chart.dtype == numpy.complex128:
           complex_chart = chart.copy()
           if self._amplitude:
             self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
             cplx_chart = abs(complex_chart)
           elif self._real:
             self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.blue))
-            cplx_chart = complex_chart.getreal()
+            cplx_chart = complex_chart.real
           elif self._imaginary:
             self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.gray))
-            cplx_chart = complex_chart.getimag()
+            cplx_chart = complex_chart.imag
           else:
             self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.green))
-            real_chart = complex_chart.getreal()
-            imag_chart = complex_chart.getimag()
-            cplx_chart = arctan2(imag_chart,real_chart)
+            real_chart = complex_chart.real
+            imag_chart = complex_chart.imag
+            cplx_chart = numpy.arctan2(imag_chart,real_chart)
           # don't display flagged data
           if self._ignore_flagged_data:
-            x_plot_values = compress(flags==0,temp_x)
-            y_plot_values = compress(flags==0,cplx_chart)
+            x_plot_values = numpy.compress(flags==0,temp_x)
+            y_plot_values = numpy.compress(flags==0,cplx_chart)
             if y_plot_values.shape[0] == 0:
               y_plot_values = None
           else:
@@ -1234,8 +1247,8 @@ class ChartPlot(QWidget):
           self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.black))
           # don't display flagged data
           if self._ignore_flagged_data:
-            x_plot_values = compress(flags==0,temp_x)
-            y_plot_values = compress(flags==0,chart)
+            x_plot_values = numpy.compress(flags==0,temp_x)
+            y_plot_values = numpy.compress(flags==0,chart)
             if y_plot_values.shape[0] == 0:
               y_plot_values = None
           else:
@@ -1291,7 +1304,7 @@ class ChartPlot(QWidget):
   def start_test_timer(self, time):
     # stuff for tests
     self.counter = 1.0
-    self._array = zeros((128,), Float32)
+    self._array = numpy.zeros((128,), numpy.float32)
     self.startTimer(time)
 
   def timerEvent(self, e):

@@ -29,7 +29,7 @@ from Meow import Parameterization
 import Context
 
 
-def gain_ap_matrix (jones,ampl=1.,phase=0.,tags=[],series=None):
+def gain_ap_matrix (jones,ampl=1.,phase=0.,tags=[],series=None,solvable=True):
   """Creates an amplitude-phase gain matrix of the form:
         ( ax*e^{i*px}       0      )
         (     0       ay*e^{i*p_y} )
@@ -43,20 +43,21 @@ def gain_ap_matrix (jones,ampl=1.,phase=0.,tags=[],series=None):
   # create matrix per-station, or just a single matrix
   if series:
     for p in series:
-      xa = Parameterization.resolve_parameter("ampl",jones(p,'xa'),ampl,tags=tags);
-      xp = Parameterization.resolve_parameter("phase",jones(p,'xp'),phase,tags=tags);
-      ya = Parameterization.resolve_parameter("ampl",jones(p,'ya'),ampl,tags=tags);
-      yp = Parameterization.resolve_parameter("phase",jones(p,'yp'),phase,tags=tags);
+      xa = Parameterization.resolve_parameter("ampl",jones(p,'xa'),ampl,tags=tags,solvable=solvable);
+      #print "tags here",tags;
+      xp = Parameterization.resolve_parameter("phase",jones(p,'xp'),phase,tags=tags,solvable=solvable);
+      ya = Parameterization.resolve_parameter("ampl",jones(p,'ya'),ampl,tags=tags,solvable=solvable);
+      yp = Parameterization.resolve_parameter("phase",jones(p,'yp'),phase,tags=tags,solvable=solvable);
       jones(p) << Meq.Matrix22(
         jones(p,"x") << Meq.Polar(xa,xp),
         0,0,
         jones(p,"y") << Meq.Polar(ya,yp)
       );
   else:
-    xa = Parameterization.resolve_parameter("ampl",jones('xa'),ampl,tags=tags);
-    xp = Parameterization.resolve_parameter("phase",jones('xp'),phase,tags=tags);
-    ya = Parameterization.resolve_parameter("ampl",jones('ya'),ampl,tags=tags);
-    yp = Parameterization.resolve_parameter("phase",jones('yp'),phase,tags=tags);
+    xa = Parameterization.resolve_parameter("ampl",jones('xa'),ampl,tags=tags,solvable=solvable);
+    xp = Parameterization.resolve_parameter("phase",jones('xp'),phase,tags=tags,solvable=solvable);
+    ya = Parameterization.resolve_parameter("ampl",jones('ya'),ampl,tags=tags,solvable=solvable);
+    yp = Parameterization.resolve_parameter("phase",jones('yp'),phase,tags=tags,solvable=solvable);
     jones << Meq.Matrix22(
       jones("x") << Meq.Polar(xa,xp),
       0,0,

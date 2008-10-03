@@ -81,7 +81,7 @@ define(LOFAR_EXT_LIB,m4_tolower(patsubst([$1], [.*/])))
 ifelse($2, [], [lfr_option=0], [lfr_option=$2])
 ifelse($3, [], [lfr_hdr=""], [lfr_hdr=$3])
 ifelse($4, [], [lfr_libs=LOFAR_EXT_LIB], [lfr_libs=$4])
-ifelse($5, [], [lfr_search=""], [lfr_search=$5])
+ifelse($5, [], [lfr_search=""], [lfr_search="$5"])
 AC_ARG_WITH([LOFAR_EXT_LIB],
 	[  --with-LOFAR_EXT_LIB[[=PFX]]        path to $1 directory],
 	[with_external=$withval
@@ -328,22 +328,36 @@ else
   done
 # Now search for the libraries.
   lfr_depend=
-  lfr_ext_lib=
   if test "$lfr_external_libdir" != ""; then
     for lib in $lfr_libsc
     do
-      if test "$lfr_ext_lib" != "no" ; then
-        ]AC_CHECK_FILE([$lfr_external_libdir/lib$lib.so],
-			[lfr_ext_lib=$lfr_external_libdir],
-			[lfr_ext_lib=no])[
-        if test "$lfr_ext_lib" == "no" ; then
-          ]AC_CHECK_FILE([$lfr_external_libdir/lib$lib.a],
-			[lfr_ext_lib=$lfr_external_libdir],
-			[lfr_ext_lib=no])[
-          lfr_depend="$lfr_depend $lfr_external_libdir/lib$lib.a"
-        else
-          lfr_depend="$lfr_depend $lfr_external_libdir/lib$lib.so"
+      lfr_ext_lib=no
+      for bdir0 in $lfr_external_libdir $lfr_slist
+        do
+        for bdir in $bdir0 $bdir0/$lfr_libdext
+        do
+          ]AC_CHECK_FILE([$bdir/lib$lib.so],
+                          [lfr_ext_lib=$bdir],
+                          [lfr_ext_lib=no])[
+          if test "$lfr_ext_lib" == "no" ; then
+            ]AC_CHECK_FILE([$bdir/lib$lib.a],
+                          [lfr_ext_lib=$bdir],
+                          [lfr_ext_lib=no])[
+            if test "$lfr_ext_lib" != "no" ; then
+              lfr_depend="$lfr_depend $bdir/lib$lib.a"
+              break;
+            fi
+          else
+            lfr_depend="$lfr_depend $bdir/lib$lib.so"
+            break;
+          fi
+        done
+        if test "$lfr_ext_lib" != "no" ; then
+          break
         fi
+      done
+      if test "$lfr_ext_lib" == "no" ; then
+        break
       fi
     done
   fi

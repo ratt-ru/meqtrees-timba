@@ -39,7 +39,7 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI.treebrowser import NodeAction
 import Timba.GUI.app_proxy_gui 
 from Timba import Grid
-from numarray import *
+from Timba.array import *
 from Timba.Meq import meq
 from time import sleep, time
 from qt import *

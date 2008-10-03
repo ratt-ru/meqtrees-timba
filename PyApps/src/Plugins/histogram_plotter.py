@@ -1,4 +1,3 @@
-#!/usr/bin/python
 
 # modules that are imported
 
@@ -38,8 +37,8 @@ try:
   from Qwt4 import *
 except:
   from qwt import *
-from numarray import *
-import numarray.nd_image
+
+import numpy
 
 from plot_printer import *
 
@@ -141,21 +140,21 @@ class QwtHistogramPlotter(QwtPlot):
 
 # figure out type and rank of incoming array
       complex_type = False
-      if input_array.type() == Complex32:
+      if input_array.dtype == numpy.complex64:
             complex_type = True;
-      if input_array.type() == Complex64:
+      if input_array.dtype == numpy.complex128:
             complex_type = True;
       histogram_in = None
       if complex_type:
 #        histogram_in = abs(input_array)
-        histogram_in = input_array.getreal()
+        histogram_in = input_array.real
         self.setAxisTitle(QwtPlot.xBottom, 'array value (real=black, red=imag) ')
       else:
         self.setAxisTitle(QwtPlot.xBottom, 'array value ')
         histogram_in = input_array
       array_min = histogram_in.min()
       array_max = histogram_in.max()
-      histogram_array = numarray.nd_image.histogram(histogram_in, array_min, array_max, num_bins)
+      histogram_array = numpy.histogram(histogram_in, bins=num_bins)
 
 # remove any previous curves
       self.removeCurves()
@@ -164,8 +163,8 @@ class QwtHistogramPlotter(QwtPlot):
       self.setAxisAutoScale(QwtPlot.yLeft)
 
 # we have created bins, now generate a Qwt curve for each bin
-      histogram_curve_x = zeros(4 * num_bins, Float32) 
-      histogram_curve_y = zeros(4 * num_bins, Float32) 
+      histogram_curve_x = numpy.zeros(4 * num_bins, numpy.float32) 
+      histogram_curve_y = numpy.zeros(4 * num_bins, numpy.float32) 
       bin_incr = (array_max - array_min) / num_bins
       curve_index = 0
       for i in range(num_bins):
@@ -174,9 +173,9 @@ class QwtHistogramPlotter(QwtPlot):
         histogram_curve_x[curve_index] = bin_start
         histogram_curve_y[curve_index] = 0
         histogram_curve_x[curve_index+1] = bin_start
-        histogram_curve_y[curve_index+1] = histogram_array[i]
+        histogram_curve_y[curve_index+1] = histogram_array[0][i]
         histogram_curve_x[curve_index+2] = bin_end
-        histogram_curve_y[curve_index+2] = histogram_array[i]
+        histogram_curve_y[curve_index+2] = histogram_array[0][i]
         histogram_curve_x[curve_index+3] = bin_end
         histogram_curve_y[curve_index+3] = 0
         curve_index = curve_index + 4
@@ -188,12 +187,12 @@ class QwtHistogramPlotter(QwtPlot):
 # add in histogram for imaginary stuff if we have a complex array
       if complex_type:
 #        real_array_max = array_max
-        histogram_in = input_array.getimag()
+        histogram_in = input_array.imag
         array_min = histogram_in.min()
         array_max = histogram_in.max()
-        histogram_array = numarray.nd_image.histogram(histogram_in, array_min, array_max, num_bins)
-        histogram_curve_x_im = zeros(4 * num_bins, Float32) 
-        histogram_curve_y_im = zeros(4 * num_bins, Float32) 
+        histogram_array = numpy.histogram(histogram_in, bins=num_bins)
+        histogram_curve_x_im = numpy.zeros(4 * num_bins, numpy.float32) 
+        histogram_curve_y_im = numpy.zeros(4 * num_bins, numpy.float32) 
         bin_incr = (array_max - array_min) / num_bins
         curve_index = 0
 #        array_min = array_min + real_array_max
@@ -203,9 +202,9 @@ class QwtHistogramPlotter(QwtPlot):
           histogram_curve_x_im[curve_index] = bin_start
           histogram_curve_y_im[curve_index] = 0
           histogram_curve_x_im[curve_index+1] = bin_start
-          histogram_curve_y_im[curve_index+1] = histogram_array[i]
+          histogram_curve_y_im[curve_index+1] = histogram_array[0][i]
           histogram_curve_x_im[curve_index+2] = bin_end
-          histogram_curve_y_im[curve_index+2] = histogram_array[i]
+          histogram_curve_y_im[curve_index+2] = histogram_array[0][i]
           histogram_curve_x_im[curve_index+3] = bin_end
           histogram_curve_y[curve_index+3] = 0
           curve_index = curve_index + 4
@@ -251,7 +250,7 @@ class QwtHistogramPlotter(QwtPlot):
       printer.setOutputToFile(True)
       printer.setOutputFileName('histogram_plot.ps')
       if printer.setup():
-          filter = PrintFilter()
+          filter = printfilter.PrintFilter()
           if (QPrinter.GrayScale == printer.colorMode()):
               filter.setOptions(QwtPlotPrintFilter.PrintAll
                                 & ~QwtPlotPrintFilter.PrintCanvasBackground)
@@ -370,15 +369,15 @@ class QwtHistogramPlotter(QwtPlot):
       if self.test_complex:
         m = fromfunction(RealDist, (30,20))
         n = fromfunction(ImagDist, (30,20))
-        vector_array = zeros((30,1), Complex64)
+        vector_array = numpy.zeros((30,1), numpy.complex128)
         shape = m.shape
         for i in range(shape[0]):
           for j in range(shape[1]):
             m[i,j] = m[i,j] + self.index * random.random()
             n[i,j] = n[i,j] + 3 * self.index * random.random()
-        a = zeros((shape[0],shape[1]), Complex64)
-        a.setreal(m)
-        a.setimag(n)         
+        a = zeros((shape[0],shape[1]), complex128)
+        a.real = m
+        a.imag = n         
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
@@ -389,7 +388,7 @@ class QwtHistogramPlotter(QwtPlot):
           _dprint(2, 'plotting vector');
           self.histogram_plot ('histogram of complex vector', vector_array, self.num_bins)
       else:
-        vector_array = zeros((30,1), Float32)
+        vector_array = numpy.zeros((30,1), numpy.float32)
         m = fromfunction(dist, (30,20))
         shape = m.shape
         for i in range(shape[0]):

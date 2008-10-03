@@ -29,7 +29,7 @@ import sys
 import random
 import qt
 import traceback
-from math import *
+import math 
 
 #test if vtk has been installed
 global has_vtk
@@ -37,7 +37,7 @@ has_vtk = False
 try:
   import vtk
   from vtk.qt.QVTKRenderWindowInteractor import *
-  from Timba.Plugins.vtkImageImportFromNumarray import *
+  from Timba.Plugins.vtkImageImportFromNumpy import *
   has_vtk = True
 except:
   print ' '
@@ -52,7 +52,8 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba.Plugins.ResultsRange import *
 from Timba import Grid
-import numarray 
+
+import numpy 
 
 rendering_control_instructions = \
 '''
@@ -114,6 +115,7 @@ class vtk_qt_3d_display(qt.QWidget):
     self.winsplitter = qt.QSplitter(self,"WinSplitter")
     self.winsplitter.setOrientation(qt.QSplitter.Vertical)
     self.winsplitter.setHandleWidth(10)
+#   self.winsplitter.setOpaqueResize(True)
     self.winlayout.addWidget(self.winsplitter)
 #-----------------------------
 
@@ -612,18 +614,18 @@ class vtk_qt_3d_display(qt.QWidget):
 # this more quickly.)
     num_ys = 300
     num_xs = 300
-    image_numarray = numarray.ones((1,num_ys,num_xs),type=numarray.Float32)
+    image_numarray = numpy.ones((1,num_ys,num_xs),dtype=numpy.float32)
     for k in range(num_ys):
       k_dist = abs (k - num_ys/2)
       for i in range(num_xs):         
         i_dist = abs (i - num_xs/2)
-        dist = sqrt(k_dist*k_dist + i_dist*i_dist)         
+        dist = math.sqrt(k_dist*k_dist + i_dist*i_dist)         
         if dist == 0:
           image_numarray[0,k,i] = 1.0 * iteration         
         else:
-          image_numarray[0,k,i] =  iteration * sin(dist) / dist
+          image_numarray[0,k,i] =  iteration * math.sin(dist) / dist
 
-    self.array_plot(' ', image_numarray)
+    self.array_plot(image_numarray)
 
   def define_image(self, iteration=1):
 #    num_arrays = 2
@@ -634,7 +636,7 @@ class vtk_qt_3d_display(qt.QWidget):
     array_dim = 64
     axis_slice = slice(0,array_dim)
     gain = 1.0 / num_arrays
-    image_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    image_numarray = numpy.ones((num_arrays,array_dim,array_dim),dtype=numpy.float32)
     array_selector = []
     array_selector.append(0)
     array_selector.append(axis_slice)
@@ -646,7 +648,7 @@ class vtk_qt_3d_display(qt.QWidget):
       image_numarray[array_tuple] = iteration * k * gain
       if k < max_distance:
         array_selector[0] = k + 1
-    self.array_plot(' ', image_numarray)
+    self.array_plot(image_numarray)
 
   def define_complex_image(self, iteration=1):
 #    num_arrays = 2
@@ -657,9 +659,9 @@ class vtk_qt_3d_display(qt.QWidget):
     array_dim = 64
     axis_slice = slice(0,array_dim)
     gain = 1.0 / num_arrays
-    image_cx_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Complex32)
-    image_r_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
-    image_i_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    image_cx_numarray = numpy.ones((num_arrays,array_dim,array_dim),dtype=numpy.complex64)
+    image_r_numarray = numpy.ones((num_arrays,array_dim,array_dim),dtype=numpy.float32)
+    image_i_numarray = numpy.ones((num_arrays,array_dim,array_dim),dtype=numpy.float32)
     array_selector = []
     array_selector.append(0)
     array_selector.append(axis_slice)
@@ -671,9 +673,9 @@ class vtk_qt_3d_display(qt.QWidget):
       image_i_numarray[array_tuple] = iteration * gain / (k+1)
       if k < max_distance:
         array_selector[0] = k + 1
-    image_cx_numarray.setreal(image_r_numarray)
-    image_cx_numarray.setimag(image_i_numarray)
-    self.array_plot(' ', image_cx_numarray)
+    image_cx_numarray.real = image_r_numarray
+    image_cx_numarray.imag = image_i_numarray
+    self.array_plot(image_cx_numarray)
 
   def define_complex_image1(self, iteration=1):
     num_arrays = 20
@@ -681,9 +683,9 @@ class vtk_qt_3d_display(qt.QWidget):
     axis_slice = slice(1,array_dim)
     axis_slice1 = slice(1,array_dim-1)
     gain = 1.0 / num_arrays
-    image_cx_numarray = numarray.zeros((num_arrays,array_dim,array_dim),type=numarray.Complex32)
-    image_r_numarray = numarray.zeros((num_arrays,array_dim,array_dim),type=numarray.Float32)
-    image_i_numarray = numarray.zeros((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    image_cx_numarray = numpy.zeros((num_arrays,array_dim,array_dim),dtype=numpy.complex64)
+    image_r_numarray = numpy.zeros((num_arrays,array_dim,array_dim),dtype=numpy.float32)
+    image_i_numarray = numpy.zeros((num_arrays,array_dim,array_dim),dtype=numpy.float32)
     array_selector = []
     array_selector.append(0)
     array_selector.append(axis_slice)
@@ -695,9 +697,9 @@ class vtk_qt_3d_display(qt.QWidget):
       image_i_numarray[array_tuple] = iteration * gain / (k+1)
       if k < max_distance:
         array_selector[0] = k + 1
-    image_cx_numarray.setreal(image_r_numarray)
-    image_cx_numarray.setimag(image_i_numarray)
-    self.array_plot(' ', image_cx_numarray)
+    image_cx_numarray.real = image_r_numarray
+    image_cx_numarray.imag = image_i_numarray
+    self.array_plot(image_cx_numarray)
 
 #=============================
 # VTK code for test array
@@ -705,29 +707,29 @@ class vtk_qt_3d_display(qt.QWidget):
   def define_random_image(self):
     num_arrays = 93
     array_dim = 64
-    image_numarray = numarray.ones((num_arrays,array_dim,array_dim),type=numarray.Float32)
+    image_numarray = numpy.ones((num_arrays,array_dim,array_dim),dtype=numpy.float32)
     for k in range(num_arrays):
       for i in range(array_dim):
         for j in range(array_dim):
           image_numarray[k,i,j] = random.random()
-    self.array_plot(' ', image_numarray)
+    self.array_plot(image_numarray)
 
-  def array_plot(self, caption, inc_array, dummy_parm=False):
-    """ convert an incoming numarray into a format that can
+  def array_plot(self, inc_array, data_label='', dummy_parm=False):
+    """ convert an incoming numpy into a format that can
         be plotted with VTK
     """
     # first make sure that VTK can really show something useful for the
     # array. Make sure all dimension shapes are 500 or less
     shape = inc_array.shape
     len_shape = len(shape)
-    incs = numarray.ones(len_shape)
+    incs = numpy.ones(len_shape)
     resize_image = False
     for i in range(len_shape):
       if shape[i] > 500:
         resize_image = True
         incs[i] = 1 + (shape[i] / 500)
     if resize_image:
-      if inc_array.rank == 2:
+      if inc_array.ndim == 2:
         incoming_array = inc_array[::incs[0],::incs[1]]
       else:
         incoming_array = inc_array[::incs[0],::incs[1],::incs[2]]
@@ -742,18 +744,18 @@ class vtk_qt_3d_display(qt.QWidget):
     else:
       incoming_array = inc_array
     
-    if incoming_array.rank == 2:
-        temp_array = numarray.ones((1,incoming_array.shape[0],incoming_array.shape[1]),type=incoming_array.type()) 
+    if incoming_array.ndim == 2:
+        temp_array = numpy.ones((1,incoming_array.shape[0],incoming_array.shape[1]),dtype=incoming_array.dtype) 
         temp_array[0,:incoming_array.shape[0],:incoming_array.shape[1]] = incoming_array
         incoming_array = temp_array
     plot_array = None
 # convert a complex array to reals followed by imaginaries
-    if incoming_array.type() == numarray.Complex32 or incoming_array.type() == numarray.Complex64:
-        real_array =  incoming_array.getreal()
-        imag_array =  incoming_array.getimag()
+    if incoming_array.dtype == numpy.complex64 or incoming_array.dtype == numpy.complex128:
+        real_array =  incoming_array.real
+        imag_array =  incoming_array.imag
         (nx,ny,nz) = real_array.shape
 
-        image_for_display = numarray.zeros(shape=(nx,ny,nz*2),type=real_array.type());
+        image_for_display = numpy.zeros(shape=(nx,ny,nz*2),dtype=real_array.dtype);
         image_for_display[:nx,:ny,:nz] = real_array[:nx,:ny,:nz]
         image_for_display[:nx,:ny,nz:] = imag_array[:nx,:ny,:nz]
         plot_array = image_for_display
@@ -761,7 +763,7 @@ class vtk_qt_3d_display(qt.QWidget):
     else:
         plot_array = incoming_array
         self.complex_plot = False
-    if plot_array.rank == 3 and plot_array.shape[0] == 1:
+    if plot_array.ndim == 3 and plot_array.shape[0] == 1:
       self.warped_surface = True
       if  plot_array.min() != self.data_min or plot_array.max() != self.data_max:
         self.data_min = plot_array.min()
@@ -777,8 +779,8 @@ class vtk_qt_3d_display(qt.QWidget):
     else:
       self.warped_surface = False
     if self.image_array is None:
-      self.image_array = vtkImageImportFromNumarray()
-      if plot_array.rank > 3:
+      self.image_array = vtkImageImportFromNumpy()
+      if plot_array.ndim > 3:
         self.image_array.SetArray(plot_array[0])
       else:
         self.image_array.SetArray(plot_array)
@@ -796,7 +798,7 @@ class vtk_qt_3d_display(qt.QWidget):
       self.lut.SetTableRange(plot_array.min(), plot_array.max())
       self.lut.ForceBuild()
     else:
-      if plot_array.rank > 3:
+      if plot_array.ndim > 3:
         self.image_array.SetArray(plot_array[0])
       else:
         self.image_array.SetArray(plot_array)
@@ -836,11 +838,11 @@ class vtk_qt_3d_display(qt.QWidget):
 
   def testEvent(self):
     self.iteration = self.iteration + 1
-#   self.define_random_image()
+    self.define_random_image()
 #   self.define_image(self.iteration)
 #   self.define_complex_image(self.iteration)
 #   self.define_complex_image1(self.iteration)
-    self.define_sinx_image(self.iteration)
+#   self.define_sinx_image(self.iteration)
 
   def two_D_Event(self):
     self.emit(PYSIGNAL("show_2D_Display"),(0,))

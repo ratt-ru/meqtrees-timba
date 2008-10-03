@@ -214,6 +214,10 @@ DMI::BObj * __construct_MeqStationBeam (int n) { return n>0 ? new Meq::StationBe
 DMI::BObj * __construct_MeqShapeletVisTf (int n) { return n>0 ? new Meq::ShapeletVisTf [n] : new Meq::ShapeletVisTf; }
 #include "Bessel.h"
 DMI::BObj * __construct_MeqBessel (int n) { return n>0 ? new Meq::Bessel [n] : new Meq::Bessel; }
+#include "VisPhaseShiftArg.h"
+DMI::BObj * __construct_MeqVisPhaseShiftArg (int n) { return n>0 ? new Meq::VisPhaseShiftArg [n] : new Meq::VisPhaseShiftArg; }
+#include "TFSmearFactor.h"
+DMI::BObj * __construct_MeqTFSmearFactor (int n) { return n>0 ? new Meq::TFSmearFactor [n] : new Meq::TFSmearFactor; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -669,6 +673,12 @@ DMI::BObj * __construct_MeqBessel (int n) { return n>0 ? new Meq::Bessel [n] : n
         TypeInfoReg::addToRegistry(-1734,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1734,__construct_MeqBessel)+
         AtomicID::registerId(-1601,"Order")+
+        AtomicID::registerId(-1747,"MeqVisPhaseShiftArg")+
+        TypeInfoReg::addToRegistry(-1747,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1747,__construct_MeqVisPhaseShiftArg)+
+        AtomicID::registerId(-1748,"MeqTFSmearFactor")+
+        TypeInfoReg::addToRegistry(-1748,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1748,__construct_MeqTFSmearFactor)+
     0;
     return res;
   }

@@ -35,14 +35,9 @@ try:
   from Qwt4 import *
 except:
   from qwt import *
-from numarray import *
+import numpy
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
-
-from math import sin
-from math import cos
-from math import pow
-from math import sqrt
 
 # local python Error Bar class
 from ErrorBar import *
@@ -813,13 +808,13 @@ class realvsimag_plotter(object):
           point and a line pointing to the point """
 
       # compute circle that will run through average value
-      x_pos = zeros((73,),Float64)
-      y_pos = zeros((73,),Float64)
+      x_pos = numpy.zeros((73,),numpy.float64)
+      y_pos = numpy.zeros((73,),numpy.float64)
       angle = -5.0
       for j in range(0, 73 ) :
         angle = angle + 5.0
-        x_pos[j] = x_cen + radius * cos(angle/57.2957795)
-        y_pos[j] = y_cen + radius * sin(angle/57.2957795)
+        x_pos[j] = x_cen + radius * math.cos(angle/57.2957795)
+        y_pos[j] = y_cen + radius * math.sin(angle/57.2957795)
 
 # get the key for this circle
       circle_key = item_tag + '_circle'
@@ -854,8 +849,8 @@ class realvsimag_plotter(object):
 
       # compute line that will go from centre of circle to 
       # position of average value
-      x1_pos = zeros((2,),Float64)
-      y1_pos = zeros((2,),Float64)
+      x1_pos = numpy.zeros((2,),numpy.float64)
+      y1_pos = numpy.zeros((2,),numpy.float64)
       x1_pos[0] = x_cen
       y1_pos[0] = y_cen
       x1_pos[1] = avg_r
@@ -1226,22 +1221,22 @@ class realvsimag_plotter(object):
       data_r_f = []
       data_i_f = []
 # start_pos gives the first position of a member of an individual
-# numarray in the larger combined list
+# numpy array in the larger combined list
       start_pos = []
       start_flags_pos = []
       for i in range(0, num_plot_arrays):
-# make sure we are using a numarray
-        array_representation = asarray(self._data_values[i])
+# make sure we are using a numpy array
+        array_representation = numpy.asarray(self._data_values[i])
         xx_r = None
         xx_i = None
         if i == 0:
           start_pos.append(0)
         else:
           start_pos.append(len(data_r))
-        if array_representation.type() == Complex64:
+        if array_representation.dtype == numpy.complex128:
           _dprint(2,'array is complex')
-          xx_r = array_representation.getreal()
-          xx_i = array_representation.getimag()
+          xx_r = array_representation.real
+          xx_i = array_representation.imag
         else:
           xx_r = array_representation
           self._is_complex = False
@@ -1250,14 +1245,14 @@ class realvsimag_plotter(object):
         num_elements = 1
         for j in range(0, array_dim):
           num_elements = num_elements * xx_r.shape[j]
-        flattened_array_r = reshape(xx_r,(num_elements,))
+        flattened_array_r = numpy.reshape(xx_r,(num_elements,))
 
 # handle flags if present
         flattened_array_f = None
 #       if not self._data_flags is None:
-#         xx_f = asarray(self._data_flags[i])
+#         xx_f = numpy.asarray(self._data_flags[i])
         if self._plot_flags:
-          xx_f = zeros( (num_elements,), type='Float32' )
+          xx_f = numpy.zeros( (num_elements,), dtype=numpy.float32 )
           for k in range(0, num_elements):
             if k % 2 == 0:
               xx_f[k] = 1
@@ -1265,7 +1260,7 @@ class realvsimag_plotter(object):
           num_flag_elements = 1
           for j in range(0, flag_array_dim):
             num_flag_elements = num_flag_elements * xx_f.shape[j]
-          flattened_array_f = reshape(xx_f,(num_elements,))
+          flattened_array_f = numpy.reshape(xx_f,(num_elements,))
           if i == 0:
             start_flags_pos.append(0)
           else:
@@ -1276,7 +1271,7 @@ class realvsimag_plotter(object):
             if flattened_array_f[j] > 0:                      
               data_r_f.append(flattened_array_r[j])
         if xx_i != None:
-          flattened_array_i = reshape(xx_i,(num_elements,))
+          flattened_array_i = numpy.reshape(xx_i,(num_elements,))
           for j in range(0, num_elements): 
             data_i.append(flattened_array_i[j])
             if not flattened_array_f is None:
@@ -1595,14 +1590,14 @@ class realvsimag_plotter(object):
 # plot mean circles in real vs imaginary plot?
         if not self.errors_plot and self.plot_mean_circles:
 # get means of real and imaginary numbers
-          real_array = asarray(data_r)
+          real_array = numpy.asarray(data_r)
           mean_r = real_array.mean()
-          imag_array = asarray(data_i)
+          imag_array = numpy.asarray(data_i)
           mean_i = imag_array.mean()
 # compute radius to mean
-          x_sq = pow(mean_r, 2)
-          y_sq = pow(mean_i, 2)
-          radius = sqrt(x_sq + y_sq)
+          x_sq = math.pow(mean_r, 2)
+          y_sq = math.pow(mean_i, 2)
+          radius = math.sqrt(x_sq + y_sq)
 # plot the mean circle
           self.compute_circles (current_item_tag+'mean', radius, 0.0, 0.0)
 # plot an 'arrow' if requested
@@ -1616,9 +1611,9 @@ class realvsimag_plotter(object):
           mean_r = real_array.mean()
           imag_array = asarray(data_i)
           mean_i = imag_array.mean()
-          complex_data = zeros( (len(data_r),), type='Complex64' )
-          complex_data.setreal(real_array)
-          complex_data.setimag(imag_array)
+          complex_data = numpy.zeros( (len(data_r),), dtype=numpy.complex128 )
+          complex_data.real = real_array
+          complex_data.imag = imag_array
           radius = standard_deviation(complex_data)
 # plot the stddev circle
           self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i)
@@ -1700,11 +1695,11 @@ class realvsimag_plotter(object):
       self.set_compute_std_dev_circles()
 
       item_tag = 'test'
-      xx = self._radius * cos(self._angle/57.2957795)
-      yy = self._radius * sin(self._angle/57.2957795)
+      xx = self._radius * math.cos(self._angle/57.2957795)
+      yy = self._radius * math.sin(self._angle/57.2957795)
 
-      x_pos = zeros((20,),Float64)
-      y_pos = zeros((20,),Float64)
+      x_pos = numpy.zeros((20,),numpy.float64)
+      y_pos = numpy.zeros((20,),numpy.float64)
       for j in range(0,20) :
         x_pos[j] = xx + random.random()
         y_pos[j] = yy + random.random()
@@ -1742,9 +1737,9 @@ class realvsimag_plotter(object):
         self.compute_circles (item_tag, radius)
         self.compute_arrow (item_tag, avg_r, avg_i)
       if self.plot_stddev_circles:
-        complex_data = zeros( (len(x_pos),), type='Complex64' )
-        complex_data.setreal(x_pos)
-        complex_data.setimag(y_pos)
+        complex_data = numpy.zeros( (len(x_pos),), dtype=numpy.complex128 )
+        complex_data.real = x_pos
+        complex_data.imag = y_pos
         radius = standard_deviation(complex_data)
         self.setup_circle(item_tag + 'stddev')
         self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i)
@@ -1767,10 +1762,10 @@ class realvsimag_plotter(object):
 
       self.gain = 0.95 * self.gain
       num_points = 10
-      x_pos = zeros((num_points,),Float64)
-      y_pos = zeros((num_points,),Float64)
-      x_err = zeros((num_points,),Float64)
-      y_err = zeros((num_points,),Float64)
+      x_pos = numpy.zeros((num_points,),numpy.float64)
+      y_pos = numpy.zeros((num_points,),numpy.float64)
+      x_err = numpy.zeros((num_points,),numpy.float64)
+      y_err = numpy.zeros((num_points,),numpy.float64)
       for j in range(0,num_points) :
         x_pos[j] = self._radius + 3 * random.random()
         y_pos[j] = self._radius + 2 * random.random()

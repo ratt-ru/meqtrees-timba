@@ -24,7 +24,9 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from numarray import *
+import sys
+import numpy
+import math
 
 # Maps a double interval into an integer interval
 
@@ -86,10 +88,10 @@ class ImageScaler:
 #  want to limit the returned value, use the limTransform method.
     temp_array = None
     if self.d_log:
-        temp_array = around((log(x) - self.d_x1) * self.d_cnv)
+        temp_array = numpy.around((numpy.log(x) - self.d_x1) * self.d_cnv)
     else:
-        temp_array = around((x - self.d_x1) * self.d_cnv)
-    return self.d_y1 + temp_array.astype(Int32)
+        temp_array = numpy.around((x - self.d_x1) * self.d_cnv)
+    return self.d_y1 + temp_array.astype(numpy.int32)
 
 
   def setDblRange(self, d1, d2, lg=False):
@@ -109,8 +111,8 @@ class ImageScaler:
         elif d2 > self.LogMax: 
            d2 = self.LogMax
         
-        self.d_x1 = log(d1);
-        self.d_x2 = log(d2);
+        self.d_x1 = math.log(d1);
+        self.d_x2 = math.log(d2);
     else:
         self.d_log = False
         self.d_x1 = d1
@@ -140,9 +142,9 @@ class ImageScaler:
     if self.d_cnv == 0.0:
        return 0.0;
     else:
-       temp_array = self.d_x1 + ((y - self.d_y1) / self.d_cnv).astype(Float64) 
+       temp_array = self.d_x1 + ((y - self.d_y1) / self.d_cnv).astype(numpy.float64) 
        if self.d_log: 
-           return exp(temp_array)
+           return numpy.exp(temp_array)
        else:
            return temp_array
 
@@ -158,7 +160,7 @@ class ImageScaler:
           x = self.LogMax
       elif x < self.LogMin:
           x = self.LogMin
-      x = log(x)
+      x = numpy.log(x)
     
     if  x > max(self.d_x1, self.d_x2):
       x = max(self.d_x1, self.d_x2);
@@ -166,7 +168,7 @@ class ImageScaler:
       x = min(self.d_x1, self.d_x2);
 
     if self.d_log:
-      return self.transform(exp(x))
+      return self.transform(numpy.exp(x))
     else:
       return self.transform(x)
 
@@ -178,14 +180,14 @@ class ImageScaler:
 # linear mapping:<dd>i1 + (i2 - i1) / (d2 - d1) * (x - d1)
 # logarithmic mapping:<dd>i1 + (i2 - i1) / log(d2 / d1) * log(x / d1)
     if self.d_log:
-       rv = float(self.d_y1) + (log(x) - self.d_x1) * self.d_cnv;    
+       rv = float(self.d_y1) + (numpy.log(x) - self.d_x1) * self.d_cnv;    
     else:
        rv = float(self.d_y1) + (x - self.d_x1) * self.d_cnv;
     return rv;
 
 
 def main(args):
-  b = 1 + array(range(1000))
+  b = 1 + numpy.array(range(1000))
   c = 1.0 * b
   a = ImageScaler(1, 256, c.min(), c.max(), True)
   print a.logarithmic()

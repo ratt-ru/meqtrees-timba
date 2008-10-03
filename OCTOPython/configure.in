@@ -52,11 +52,17 @@ dnl Check for LOFAR specific things
 dnl
 lofar_GENERAL
 lofar_BLITZ(1)
-dnl lofar_PACKAGE(TimBase)
-dnl lofar_PACKAGE(DMI)
 lofar_PACKAGE(OCTOPUSSY)
 lofar_PYTHON(1)
-
+dnl Check for numpy
+AC_MSG_CHECKING([for numpy include path])
+ac_numpy_include=`python -c "import numpy;print numpy.get_include()"`
+AC_MSG_RESULT($ac_numpy_include)
+if test $ac_numpy_include = ""; then
+  AC_MSG_ERROR([the Python numpy package is required, please install it])
+else
+  CXXFLAGS="$CXXFLAGS -I$ac_numpy_include"
+fi
 dnl
 dnl Output Makefiles
 dnl

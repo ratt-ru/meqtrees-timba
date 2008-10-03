@@ -1756,6 +1756,25 @@ namespace Meq { class Sum; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqTFSmearFactor
+#define _defined_id_TpMeqTFSmearFactor 1
+const DMI::TypeId TpMeqTFSmearFactor(-1748);      // from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
+const int TpMeqTFSmearFactor_int = -1748;
+namespace Meq { class TFSmearFactor; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::TFSmearFactor> : public TypeTraits<Meq::TFSmearFactor>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqTFSmearFactor_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::TFSmearFactor & ContainerReturnType;
+                typedef const Meq::TFSmearFactor & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqTan
 #define _defined_id_TpMeqTan 1
 const DMI::TypeId TpMeqTan(-1417);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Tan.h:29
@@ -1943,6 +1962,25 @@ namespace Meq { class VisPhaseShift; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::VisPhaseShift & ContainerReturnType;
                 typedef const Meq::VisPhaseShift & ContainerParamType;
+              };
+            };
+#endif
+#ifndef _defined_id_TpMeqVisPhaseShiftArg
+#define _defined_id_TpMeqVisPhaseShiftArg 1
+const DMI::TypeId TpMeqVisPhaseShiftArg(-1747);   // from /home/oms/Timba/MeqNodes/src/VisPhaseShiftArg.h:32
+const int TpMeqVisPhaseShiftArg_int = -1747;
+namespace Meq { class VisPhaseShiftArg; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::VisPhaseShiftArg> : public TypeTraits<Meq::VisPhaseShiftArg>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqVisPhaseShiftArg_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::VisPhaseShiftArg & ContainerReturnType;
+                typedef const Meq::VisPhaseShiftArg & ContainerParamType;
               };
             };
 #endif

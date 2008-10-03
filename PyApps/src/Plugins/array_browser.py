@@ -53,10 +53,10 @@ class ArrayTable(QTable):
 
   # changes content
   def set_array (self,arr):
-    if not 1<=arr.rank<=2:
+    if not 1<=arr.ndim<=2:
       raise TypeError,"illegal array dimensionality";
     self._arr = arr;
-    self._rank = arr.rank;
+    self._rank = arr.ndim;
     _dprint(3,"rank is", self._rank);
     if self._rank == 1:   
       ncol = 1;
@@ -144,7 +144,7 @@ class ArrayBrowser(GriddedPlugin):
   _icon = pixmaps.matrix;
   viewer_name = "Array Browser";
   def is_viewable (data):
-    try: return 1 <= data.rank <=2;
+    try: return 1 <= data.ndim <=2;
     except: return False;
   is_viewable = staticmethod(is_viewable);
   

@@ -24,7 +24,7 @@
 
 from Timba.TDL import *
 from Timba.Meq import meq
-from numarray import *
+from Timba.array import *
 import os
 
 import Meow

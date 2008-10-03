@@ -255,7 +255,7 @@ class HierBrowser (object):
           if len(value) > 1 or not inlined:
             i0.cache_content(value);
         elif isinstance(value,array_class):
-          if value.nelements() > 1 or not inlined:
+          if value.size > 1 or not inlined:
             i0.cache_content(value);
         # dicts and messages always cached for expansion
         elif isinstance(value,(dict,message)):

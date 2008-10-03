@@ -1,4 +1,4 @@
-//# Norm.h: Take norm of a node
+//# Norm.h: Takes Frobenius norm (sqrt-of-sum-squares) of a tensor
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -23,7 +23,7 @@
 #ifndef MEQNODES_NORM_H
 #define MEQNODES_NORM_H
     
-#include <MEQ/Function.h>
+#include <MEQ/TensorFunction.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -33,7 +33,7 @@ namespace Meq {
 
 
 //##ModelId=400E5304007E
-class Norm : public Function1
+class Norm : public TensorFunction
 {
 public:
     //##ModelId=400E53550241
@@ -46,10 +46,16 @@ public:
     virtual TypeId objectType() const
     { return TpMeqNorm; }
 
-  // Evaluate the value for the given request.
-    //##ModelId=400E53550246
-  virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
+protected:
+  // method required by TensorFunction
+  // Returns shape of result.
+  // Also check child results for consistency
+  virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+    
+  // method required by TensorFunction
+  // Evaluates for a given set of children values
+  virtual void evaluateTensors (std::vector<Vells> & out,   
+       const std::vector<std::vector<const Vells *> > &args);
 };
 
 

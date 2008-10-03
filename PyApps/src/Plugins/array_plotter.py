@@ -50,8 +50,8 @@ try:
 except:
   pass
 
+import numpy
 
-from numarray import *
 from qt import *
 try:
   from Qwt4 import *
@@ -189,7 +189,7 @@ class ArrayPlotter(GriddedPlugin):
 
     self.actual_rank = 0
     self.array_shape = self.dataitem.data.shape
-    self.array_rank = self.dataitem.data.rank
+    self.array_rank = self.dataitem.data.ndim
     for i in range(len(self.array_shape)):
       if self.array_shape[i] > 1:
         self.actual_rank = self.actual_rank + 1
@@ -217,16 +217,16 @@ class ArrayPlotter(GriddedPlugin):
         if not second_axis is None:
           self.array_selector = create_array_selector(None, self.array_rank, self.data.shape, first_axis,second_axis, -1)
       self.array_tuple = tuple(self.array_selector)
-      self.twoD_plotter.array_plot('data', self.data[self.array_tuple])
+      self.twoD_plotter.array_plot(self.data[self.array_tuple],data_label='data')
     else:
-      self.twoD_plotter.array_plot('data', self.data)
+      self.twoD_plotter.array_plot(self.data,data_label='data')
 
 
   def plot_3D_array (self, display_flag_3D):
 # first figure out the actual rank of the array we are plotting
     self.actual_rank = 0
     self.array_shape = self.dataitem.data.shape
-    self.array_rank = self.dataitem.data.rank
+    self.array_rank = self.dataitem.data.ndim
     for i in range(len(self.array_shape)):
       if self.array_shape[i] > 1:
         self.actual_rank = self.actual_rank + 1
@@ -262,7 +262,7 @@ class ArrayPlotter(GriddedPlugin):
     if plot_array.min() == plot_array.max():
       return
     else:
-      self.ND_plotter.array_plot('data ', plot_array)
+      self.ND_plotter.array_plot(plot_array, data_label='data ')
 
 # enable & highlight the cell
     self.enable();
@@ -277,11 +277,11 @@ class ArrayPlotter(GriddedPlugin):
     if not self.twoD_plotter is None:
       # reset color bar request - just in case
       self.twoD_plotter.reset_color_bar(True)
-      self.twoD_plotter.array_plot('data', self.data[self.array_tuple])
+      self.twoD_plotter.array_plot(self.data[self.array_tuple],data_label='data')
     else:
       if not self.ND_plotter is None:
         self.ND_plotter.delete_vtk_renderer()
-        self.ND_plotter.array_plot('data ', self.data[self.array_tuple])
+        self.ND_plotter.array_plot(self.data[self.array_tuple],data_label='data ')
         axis_parms = []
         axis_parms.append('axis ' + str(first_axis))
         axis_parms.append('axis ' + str(second_axis))
@@ -297,9 +297,9 @@ class ArrayPlotter(GriddedPlugin):
     if not self.twoD_plotter is None:
       # reset color bar request - just in case
       self.twoD_plotter.reset_color_bar(True)
-      self.twoD_plotter.array_plot('data ', self.data[self.array_tuple])
+      self.twoD_plotter.array_plot(self.data[self.array_tuple],data_label='data')
     else:
-      self.ND_plotter.array_plot('data ', self.data[self.array_tuple])
+      self.ND_plotter.array_plot(self.data[self.array_tuple],data_label='data ')
 
   def ND_controller_showDisplay(self, show_self):
     """ tells ND_Controller to show or hide itself """
@@ -308,7 +308,7 @@ class ArrayPlotter(GriddedPlugin):
 
   def set_ND_controls (self, labels=None, parms=None, num_axes=2):
     """ this function adds the extra GUI control buttons etc if we are
-        displaying data for a numarray of dimension 3 or greater """
+        displaying data for a numpy array of dimension 3 or greater """
 
     self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 

@@ -42,7 +42,7 @@ from PatchDialog import *
 
 from common_utils import *
 
-import numarray
+import Timba.array
 
 ##########################################################################
 #################################################################
@@ -427,8 +427,8 @@ class Axes:
 
 
     # create two arrays
-    xcarr=numarray.zeros((x_ticks+1,y_ticks+1))
-    ycarr=numarray.zeros((x_ticks+1,y_ticks+1))
+    xcarr=Timba.array.zeros((x_ticks+1,y_ticks+1))
+    ycarr=Timba.array.zeros((x_ticks+1,y_ticks+1))
     ii=0
     for xc in xgridvals:
      jj=0
@@ -722,7 +722,7 @@ class PatchDisplay:
     self.cview.default_freq_index,\
     self.cview.default_time_index)
  
-   # the return type should be a numarray
+   # the return type should be a Timba.array
    byarr=punit.sp.getValue(self.cview.default_mode,\
     self.cview.default_freq_index,\
     self.cview.default_time_index)
@@ -764,7 +764,7 @@ class PatchDisplay:
     self.cview.default_freq_index,\
     self.cview.default_time_index)
  
-   # the return type should be a numarray
+   # the return type should be a Timba.array
    byarr=punit.sp.getValue(self.cview.default_mode,\
     self.cview.default_freq_index,\
     self.cview.default_time_index)
@@ -776,7 +776,7 @@ class PatchDisplay:
   except:
    pass
 
-  # create an Image from the given numarray
+  # create an Image from the given Timba.array
  # size x_dim by y_dim
  def createArrayImage(self,narray,x_dim,y_dim):
    # first find min,max values
@@ -789,7 +789,7 @@ class PatchDisplay:
    # fill image with White
    im.fill(qRgb(255,255,255))
    # set pixel values for only non-zero elements
-   [nz_x,nz_y]=numarray.nonzero(narray)
+   [nz_x,nz_y]=Timba.array.nonzero(narray)
    for ci in range(len(nz_x)):
      cl=self.getRGB(narray[nz_x[ci]][nz_y[ci]]-minval,maxval)
      # flip the image in the y direction

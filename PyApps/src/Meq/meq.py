@@ -28,7 +28,7 @@
 from Timba import dmi
 from Timba.dmi import *
 
-from numarray import *
+from Timba.array import *
 from Timba.Meq import meqds
 from Timba import mequtils
 
@@ -57,11 +57,17 @@ def node (classname,name,children=None,groups=None,**kwargs):
     self.node_groups = make_hiid_list(groups);
   return rec;
   
-def array_double (*args,**kw):
-  return array(typecode=arr_double,*args,**kw);
+def array_double (value,shape=None):
+  arr = array(value,dtype=arr_double);
+  if shape:
+    arr.shape = shape;
+  return arr;
 
-def array_complex (*args,**kw):
-  return array(typecode=arr_dcomplex,*args,**kw);
+def array_complex (value,shape=None):
+  return array(value,dtype=arr_dcomplex);
+  if shape:
+    arr.shape = shape;
+  return arr;
   
 def polc (coeff,shape=None,offset=None,scale=None,domain=None,
           weight=None,dbid=None,pert=1e-6,subclass=_polc_type):
@@ -80,7 +86,7 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
     coeff = float(coeff);
     rec.coeff = array(coeff);
   elif is_array(coeff):
-    if len(coeff.getshape()) > 2:
+    if len(coeff.shape) > 2:
       raise TypeError,'coeff array must be one- or two-dimensional';
 ##    if coeff.type() not in (arr_double,arr_dcomplex):
 ##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
@@ -102,7 +108,7 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
         raise ValueError,'offset array must be one-dimensional';
       rec.offset  = array_double(offset,shape=shape);
     elif is_array(offset):
-      if len(offset.getshape()) > 1:
+      if len(offset.shape) > 1:
         raise TypeError,'offset array must be one-dimensional';
       rec.offset = array_double(offset);
   if scale is not None:
@@ -111,7 +117,7 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
         raise ValueError,'scale array must be one-dimensional';
       rec.scale  = array_double(scale,shape=shape);
     elif is_array(scale):
-      if len(scale.getshape()) > 1:
+      if len(scale.shape) > 1:
         raise TypeError,'scale array must be one-dimensional';
       rec.scale = array_double(scale);
 
@@ -157,7 +163,7 @@ def composedpolc(coeff=0.,shape=None,offset=None,scale=None,domain=None,
 ##      coeff = float(coeff);
 ##    rec.coeff = array(coeff);
 ##  elif is_array(coeff):
-##    if len(coeff.getshape()) > 2:
+##    if len(coeff.shape) > 2:
 ##      raise TypeError,'coeff array must be one- or two-dimensional';
 ##    if coeff.type() not in (arr_double,arr_dcomplex):
 ##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
@@ -227,7 +233,7 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
   # first, figure out grid
   # (a) grid specified explicitly
   if grid is not None and len(grid):
-    if grid.rank != 1:
+    if grid.ndim != 1:
       raise TypeError,'%s_grid must be a vector'%axisname;
     if num is not None and num != len(grid):
       raise ValueError,'both num_%s and %s_grid specified but do not match'%(axisname,axisname);
@@ -254,24 +260,24 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
     if dom is None:
       raise ValueError,'domain must be specified to use num_%s'%axisname;
     step = (dom[1]-dom[0])/num;
-    grid = dom[0] + (numarray.arange(num)+0.5)*step;
+    grid = dom[0] + (Timba.array.arange(num)+0.5)*step;
     # set cell size if not specified
     if cellsize is None or not len(cellsize):
-      cellsize = numarray.zeros([num],arr_double) + step;
+      cellsize = Timba.array.zeros([num],arr_double) + step;
     segs = record(start_index=0,end_index=num-1);
   else:
     raise ValueError,'either num_%s or %s_grid must be specified'%(axisname,axisname);
   # resolve cell size if not specified
   # use distance to nearest grid point as the cell size
   if cellsize is None or not len(cellsize):
-    cellsize = numarray.zeros([num],arr_double);
-    x = array([ 2*grid[0]-grid[1]] + grid.getflat() + [2*grid[-1]-grid[-2]]);
+    cellsize = Timba.array.zeros([num],arr_double);
+    x = array([ 2*grid[0]-grid[1]] + grid.ravel + [2*grid[-1]-grid[-2]]);
     d1 = grid - x[:-2];
     d2 = x[2:] - grid;
     for i in range(num):
       cellsize[i] = min(d1[i],d2[i]);
   elif len(cellsize) == 1:
-    cellsize = numarray.zeros([num],arr_double) + cellsize[0];
+    cellsize = Timba.array.zeros([num],arr_double) + cellsize[0];
   elif len(cellsize) != num:
     raise ValueError,'length of %s_cell_size does not conform to grid shape'%axisname;
   return (grid,cellsize,segs);
@@ -376,7 +382,7 @@ def shape (arg0=None,*args,**kw):
   if isinstance(arg0,_cells_type):
     return shape(**dict([(axis,int(isinstance(grid,float)) or len(grid)) for axis,grid in arg0.grid.iteritems()]));
   elif isinstance(arg0,dmi.array_class):
-    return arg0.getshape();
+    return arg0.shape;
   else:
     # form up shape from arguments
     if isinstance(arg0,(int,long)):
@@ -393,10 +399,12 @@ def shape (arg0=None,*args,**kw):
   
 def _vells (shape,typecode,value=None):
   """Creates a Meq::Vells of the given shape.""";
-  if value is None:
-    arr = array(typecode=typecode,shape=shape);
+  if isinstance(value,(type(None),bool,int,float,complex)):
+    arr = _vells_type.__new__(_vells_type,shape=shape,dtype=typecode);
+    arr.fill(value or 0);
   else:
-    arr = array(value,typecode=typecode,shape=shape);
+    arr = _vells_type.__new__(_vells_type,shape=shape,dtype=typecode,buffer=value);
+  print arr,type(arr);
   return dmi_coerce(arr,_vells_type);
   
 def vells (shape,is_complex=False,value=None):
@@ -420,8 +428,7 @@ def flagvells (shape,value=None):
 
 def flags (shape):
   """Creates a Meq::FlagVells of the given shape.""";
-  arr = array(typecode=arr_int32,shape=shape);
-  return dmi_coerce(arr,_vells_type);
+  return flagvells(shape,0);
   
 def vellset (mainval,**kw):
   """Creates a VellSet from the given main value""";
@@ -438,7 +445,7 @@ def result (vellset=None,cells=None):
   
 
 # # #-- meq.result() -------------------------------------------------------------
-# # # Creates a Meq::Result, data should be numarray, matching the cells grid?? 
+# # # Creates a Meq::Result, data should be Timba.array, matching the cells grid?? 
 # def result (cells=None,data=None,rqid=hiid(0)):
 #   # decompose domain into axis ranges
 #   if cells is not None:

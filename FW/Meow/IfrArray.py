@@ -235,11 +235,11 @@ class IfrArray (object):
       if self._ms_uvw:
         # read UVWs from MS
         # first station gets (0,0,0), the rest is via subtraction
-        p = self.stations()[0];
-        uvw(p) << Meq.Composer(0,0,0);
-        uvw(p)._multiproc = True; # hint to parallelizer to clone this node on all processors
-        for iq,q in enumerate(self.stations()[1:]):
-          spigdef = Meq.Spigot(station_1_index=0,station_2_index=iq+1,input_col='UVW');
+        ip0,p0 = self.station_index()[0];
+        uvw(p0) << Meq.Composer(0,0,0);
+        uvw(p0)._multiproc = True; # hint to parallelizer to clone this node on all processors
+        for iq,q in self.station_index()[1:]:
+          spigdef = Meq.Spigot(station_1_index=ip0,station_2_index=iq,input_col='UVW');
           if self._resamplers:
             uvw(q) << Meq.Resampler(uvw(q,"res") << spigdef,mode=1);
           else:

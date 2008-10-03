@@ -34,7 +34,7 @@ from Timba.Meq import meqds
 import time
 import math
 import copy
-import numarray
+import Timba.array
 from qt import *
 from qtext import *
 
@@ -121,9 +121,9 @@ class Profiler (PersistentCurrier):
     def __init__ (self,name,ps=None,cs=None,count=1):
       self.name = name;
       if ps is None:
-        ps = numarray.zeros((3,2));
+        ps = Timba.array.zeros((3,2));
       if cs is None:
-        cs = numarray.zeros((2,6));
+        cs = Timba.array.zeros((2,6));
       self.ps,self.cs,self.count = ps,cs,count;
     def __iadd__ (self,other):
       self.ps = self.ps + other.ps;
@@ -187,7 +187,7 @@ class Profiler (PersistentCurrier):
           avg = 0;
         col += 1;
         self._content += [tot,int(count),avg ];
-      cs = list(se.cs.getflat());
+      cs = list(se.cs.ravel);
       for val in cs:
         self.setText(col,str(val)); 
         col += 1;

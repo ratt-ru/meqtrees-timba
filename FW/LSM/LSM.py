@@ -1565,8 +1565,7 @@ class LSM:
     # read mdl.dsc and "MDL_O_DEF" on how I did this
     ff=open(infile_name,mode="rb")
     #### read header -- 512 bytes
-    gfh=numarray.fromfile(ff,'b',(512,1))
-    gfh=gfh.flat
+    gfh=Timba.array.fromfile(ff,dtype=Timba.array.uint8,count=512)
     ## type
     ftype=gfh[0:4].tostring()
     ## length
@@ -1594,8 +1593,7 @@ class LSM:
     print "%s: read header type=%s, length=%d, version=%d, created=%s@%s, updated=%s@%s x %d, node name=%s"%(infile_name,ftype,fhlen,fver,crdate,crtime,rrdate,rrtime,rcount,nname)
 
     ####### Model Header -- 64 bytes 
-    mdh=numarray.fromfile(ff,'b',(64,1))
-    mdh=mdh.flat 
+    mdh=Timba.array.fromfile(ff,dtype=Timba.array.uint8,count=64)
 
     ### Max. # of lines in model or disk version
     maxlin=struct.unpack('i',mdh[12:16])
@@ -1641,8 +1639,7 @@ class LSM:
     ########## Models -- 56 bytes
     for ii in range(0,nsources):
     #for ii in range(0,4):
-       mdl=numarray.fromfile(ff,'b',(56,1))
-       mdl=mdl.flat
+       mdl=Timba.array.fromfile(ff,dtype=Timba.array.uint8,count=56)
 
        ### Amplitude (Stokes I)
        sI=struct.unpack('f',mdl[0:4])
@@ -1997,6 +1994,8 @@ class LSM:
    (?P<col15>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source minor axis: rad
    \s+             # skip white space
    (?P<col16>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)   # ext source position angle : rad
+   \s+             # skip white space
+   (?P<col17>[-+]?(\d+(\.\d*)?|\d*\.\d+)([eE][-+]?\d+)?)?   # reference frequency
    [\S\s]*""",re.VERBOSE)
 
 
@@ -2032,10 +2031,8 @@ class LSM:
     kk=kk+1
 
     # print sI,sQ,sU,sV,SI,RM;
-    if f0==None:
-     freq0=1e6
-    else:
-     freq0=f0
+    freq0 = v.group('col17');
+    freq0 = (freq0 and eval(freq0)) or f0 or 1e6; 
     if (ignore_pol==True or (sQ==0 and sU==0 and sV==0 and RM==0)):
      my_sixpack=LSM_Sixpack.newstar_source(ns,punit=s.name,I0=sI, SI=SI, f0=1e6, RA=source_RA, Dec=source_Dec,trace=0)
     elif (SI==0 and RM==0):
@@ -2132,28 +2129,29 @@ class LSM:
  ## NAME RA(hours, min, sec) DEC(degrees, min, sec) sI sQ sU sV SI RM eX eY eP
  ## ra0,dec0: phase center in radians
  ## count: select the first brightest 'count' sources only 
- ### f0: reference freq for beam calculation
- def save_as_extlist(self,outfile_name,ns,count=0,f0=None):
+ ## f0: reference freq for beam calculation
+ ## prefix: added to front of source name
+ def save_as_extlist(self,outfile_name,ns,count=0,f0=None,prefix="C"):
   # get all PUnits (assume all sources)
-  if count==0:
+  if not count:
    plist=self.queryLSM(all=1)
   else:
    plist=self.queryLSM(count=count)
 
   f=open(outfile_name, 'w')
-  # gaussian params
-  # exp( -(l^2+m^2)/a^2)
-  # a = c/ (25.0 * f)
-  if f0==None:
-   f0=323875000.0;
-  a=3e8/(25.0*f0) 
-  for pu in plist:
+  f.write("## this is an LSM text (hms/dms) file\n");
+  f.write("## fields are (where h:m:s is RA, d:m:s is Dec):\n");
+  f.write("## name h m s d m s I Q U V spectral_index RM extent_X(rad) extent_Y(rad) pos_angle(rad) freq0\n");
+  # sort list by I fluxes
+  plist = [ (pu,pu.getEssentialParms(ns)[2]) for pu in plist ];
+  plist.sort(lambda a,b:cmp(b[1],a[1]));
+  for pu,iflux in plist:
      (ra,dec,sI,sQ,sU,sV,SIn,f0,RM)=pu.getEssentialParms(ns)
      (eX,eY,eP)=pu.getExtParms()
      # get degrees
      [r_hr,r_min,r_sec]=common_utils.radToRA(ra)
      [d_hr,d_min,d_sec]=common_utils.radToDec(dec)
-     strline ='C'+str(pu.name)+' '+str(r_hr)+' '+str(r_min)+' '+str(r_sec)+' '+str(d_hr)+' '+str(d_min)+' '+str(d_sec)+' '+str(sI)+' '+str(sQ)+' '+str(sU)+' '+str(sV)+' '+str(SIn)+' '+str(RM)+' '+str(eX)+' '+str(eY)+' '+str(eP)+'\n';
+     strline =prefix+str(pu.name)+' '+str(r_hr)+' '+str(r_min)+' '+str(r_sec)+' '+str(d_hr)+' '+str(d_min)+' '+str(d_sec)+' '+str(sI)+' '+str(sQ)+' '+str(sU)+' '+str(sV)+' '+str(SIn)+' '+str(RM)+' '+str(eX)+' '+str(eY)+' '+str(eP)+' '+str(f0)+'\n';
      f.write(strline)
  
   f.close()
@@ -2164,7 +2162,7 @@ class LSM:
  ## count: select the first brightest 'count' sources only 
  def export_karma_annotations(self,outfile_name,ns=None,count=0):
   # get all PUnits (assume all sources)
-  if count==0:
+  if not count:
    plist=self.queryLSM(all=1)
   else:
    plist=self.queryLSM(count=count)

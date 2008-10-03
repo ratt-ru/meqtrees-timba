@@ -37,7 +37,6 @@ from Timba.GUI.browsers import *
 from Timba import Grid
 
 from qt import *
-from numarray import *
 from Timba.Plugins.DataDisplayMainWindow import *
 
 from VellsData import *

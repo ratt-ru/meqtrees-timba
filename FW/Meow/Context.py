@@ -28,6 +28,8 @@ array = None;
 observation = None;
 vdm = None;
 mssel = None;
+correlations = ["XX","XY","YX","YY" ];
+active_correlations = ["XX","XY","YX","YY" ];
 
 def set (array=None,observation=None):
   """Sets the global Meow context."""

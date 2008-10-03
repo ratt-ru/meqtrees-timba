@@ -93,9 +93,12 @@ def import_tdl_module (filename,text=None):
     prior_mods = sets.Set(sys.modules.keys());
     modname = '__tdlruntime';
     try:
+      TDLOptions.enable_save_config(False);
       imp.acquire_lock();
       _tdlmod = imp.load_source(modname,filename,infile);
     finally:
+      TDLOptions.enable_save_config(True);
+      TDLOptions.save_config();
       imp.release_lock();
       infile.close();
       _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
@@ -150,6 +153,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
   """;
   _dprint(1,"defining forest");
   try:
+    TDLOptions.enable_save_config(False);
     ns = TDL.NodeScope();
     # module here, call functions
     errlist = [];
@@ -220,9 +224,13 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       if isinstance(res,str):
         msg += "\n" + res;
 
+    TDLOptions.enable_save_config(True);
+    TDLOptions.save_config();
     return (tdlmod,ns,msg);
   # CumulativeError exceptions returned as is  
   except TDL.CumulativeError:
+    TDLOptions.enable_save_config(True);
+    TDLOptions.save_config();
     _dprint(0,'cumulative error defining forest from TDL file:',filename);
     traceback.print_exc();
     args = sys.exc_info()[1].args;
@@ -232,6 +240,8 @@ def run_forest_definition (mqs,filename,tdlmod,text,
   # Other exceptions wrapped in a CumulativeError, and
   # location information is added in
   except:
+    TDLOptions.enable_save_config(True);
+    TDLOptions.save_config();
     (etype,exc,tb) = sys.exc_info();
     _dprint(0,'exception defining forest from TDL file:',filename);
     traceback.print_exception(etype,exc,tb);

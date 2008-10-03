@@ -43,7 +43,7 @@ from PatchDialog import *
 from common_utils import *
 from canvas_inner import *
 
-import numarray
+import Timba.array
 
 ##########################################################################
 
@@ -398,7 +398,7 @@ class MyCanvasView(QCanvasView):
         lims=punit.sp.getValueSize(self.default_mode,\
          self.default_freq_index,\
          self.default_time_index)
-        # the return type should be a numarray
+        # the return type should be a Timba.array
         my_arr=punit.sp.getValue(self.default_mode,\
          self.default_freq_index,\
          self.default_time_index)

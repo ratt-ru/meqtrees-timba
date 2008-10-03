@@ -25,8 +25,6 @@
 #
 
 import sys
-from numarray import *
-import numarray.ieeespecial as ieee
 
 from Timba.utils import verbosity
 from Timba.Plugins.plotting_functions import *
@@ -339,7 +337,7 @@ class VellsData:
      if not self.initialSelection:
        tag = self._key_menu_labels[self.start_vells_id + 1]
        data = self._plot_vells_dict[tag]
-       rank = data.rank
+       rank = data.ndim
        shape = data.shape
        self.setInitialSelectedAxes(rank,shape)
        _dprint(3, 'called setInitialSelectedAxes')
@@ -420,7 +418,7 @@ class VellsData:
      else:
        key = "[" + str(self._active_plane) + "]" 
      try:
-       rank = self._plot_vells_dict[key].rank
+       rank = self._plot_vells_dict[key].ndim
        shape = self._plot_vells_dict[key].shape
        if rank != self.rank or shape != self.shape:
          self.setInitialSelectedAxes (rank, shape)
@@ -430,7 +428,7 @@ class VellsData:
        selected_array =  self._plot_vells_dict[key]
      else:
        _dprint(3, 'self.array_tuple ',  self.array_tuple)
-       _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].rank)
+       _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].ndim)
        _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] min and max: ', self._plot_vells_dict[key][self.array_tuple].min(), ' ', self._plot_vells_dict[key][self.array_tuple].max())
        selected_array =  self._plot_vells_dict[key][self.array_tuple]
      if self._request_full_image:
@@ -465,7 +463,7 @@ class VellsData:
 
      # create NaN
      try:
-       full_array = full_array  * ieee.nan
+       full_array = full_array  * NAN
      except:
        pass
 
@@ -604,7 +602,7 @@ class VellsData:
      self.array_selector = []
      self.array_tuple = None
      try:
-       rank = self.getActiveData().rank
+       rank = self.getActiveData().ndim
        if rank <= 2:
          return
        else:
@@ -633,8 +631,8 @@ class VellsData:
        self.data_max = data_array
      else:
        if data_array.type() == Complex32 or data_array.type() == Complex64:
-         real_array = data_array.getreal()
-         imag_array = data_array.getimag()
+         real_array = data_array.real
+         imag_array = data_array.imag
          real_min = real_array.min()
          real_max = real_array.max()
          imag_min = imag_array.min()
