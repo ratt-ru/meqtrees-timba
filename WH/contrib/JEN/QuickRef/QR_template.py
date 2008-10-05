@@ -160,7 +160,8 @@ def QR_template (ns, rider):
 # topic1:
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'_topic1')
+TCM.start_of_submenu('topic1',
+                     prompt='topic1')
 TCM.add_option('twig', ET.twig_names())
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3))
@@ -210,7 +211,8 @@ def topic1 (ns, rider):
 
 #================================================================================
 
-TCM.start_of_submenu('topic1_subtopic1')
+TCM.start_of_submenu('subtopic1', menu='topic1',
+                     prompt='subtopic1 of topic1')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(5))
 
@@ -246,7 +248,8 @@ def topic1_subtopic1 (ns, rider):
 # topic2:
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'_topic2')
+TCM.start_of_submenu('topic2',
+                     prompt='topic2')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3), more=False)
 
@@ -275,7 +278,8 @@ def topic2 (ns, rider):
 
 #================================================================================
 
-TCM.start_of_submenu('topic2_subtopic1')
+TCM.start_of_submenu('subtopic1', menu='topic2',
+                     prompt='subtopic1 of topic2')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(5))
 
@@ -294,7 +298,8 @@ def topic2_subtopic1 (ns, rider):
 
 #================================================================================
 
-TCM.start_of_submenu('topic2_subtopic2')
+TCM.start_of_submenu('subtopic2', menu='topic2',
+                     prompt='subtopic2 of topic2')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(5))
 
@@ -373,7 +378,8 @@ def topic2_subtopic2 (ns, rider):
 
 #================================================================================
 
-TCM.start_of_submenu('topic2_subtopic2_subsubtopic1')
+TCM.start_of_submenu('subsubtopic1', menu='subtopic2',
+                     prompt='subsubtopic1 of subtopic2 (of topic2)')
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(5))
 
@@ -401,7 +407,7 @@ def topic2_subtopic2_subsubtopic1 (ns, rider):
 # Recommended: some general help(nodes) for this module
 #********************************************************************************
 
-TCM.start_of_submenu(QR_module+'_HELP')
+TCM.start_of_submenu('HELP')
 TCM.add_option('on_entry', prompt='help on QRU.on_entry()', selectable=True)
 TCM.add_option('on_exit', prompt='help on QRU.on_exit()', selectable=True)
 TCM.add_option('helpnode', prompt='help on QRU.helpnode()', selectable=True)

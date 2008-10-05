@@ -100,7 +100,7 @@ import numpy
 # Some preliminaries:
 #********************************************************************************
 
-QR_module = 'QR_template'
+QR_module = 'QR_MeqNodes'
 
 # Start the file/doc header to be used in exec functions at the bottom.
 # It may be modified, depending on the selection of topics.
@@ -239,6 +239,10 @@ def QR_MeqNodes (ns, rider):
    cc = []
    prefix = TCM.getopt_prefix(QR_MeqNodes)
 
+   #=================================================
+   # return QRU.on_exit (ns, rider, cc, mode='group')
+   #=================================================
+
    if TCM.getopt(prefix+'unops'):
       cc.append(unops (ns, rider))
    if TCM.getopt(prefix+'binops'):
@@ -281,7 +285,8 @@ def QR_MeqNodes (ns, rider):
 # General help:
 #********************************************************************************
 
-# TDLOption('opt_helpnode_twig',"help on EasyTwig.twig()", False),
+TCM.start_of_submenu('HELP')
+TCM.add_option('twig', prompt="help on EasyTwig.twig()")
 
 
 def HELP (ns, rider):
@@ -292,7 +297,7 @@ def HELP (ns, rider):
    prefix = TCM.getopt_prefix(HELP)
 
    cc = []
-   if opt_helpnode_twig:
+   if TCM.getopt(prefix+'twig'):
       cc.append(QRU.helpnode (ns, rider, func=ET.twig))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -308,7 +313,7 @@ def HELP (ns, rider):
 # spigot2sink_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'spigot2sink')
+TCM.start_of_submenu('spigot2sink')
 TCM.add_option('nstat', [5,3,4,5,6,7,8,9,10,14],
                "nr of stations in array", more=int)
 TCM.add_option('pynodePlot', False,
@@ -399,7 +404,7 @@ def spigot2sink (ns, rider):
 # coordinates_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'coordinates')
+TCM.start_of_submenu('coordinates')
 WNB_ssobjs = 'SUN MOON MERCURIUS VENUS MARS JUPITER SATURNUS URANUS NEPTUNUS PLUTO'.split(' ')
 TCM.add_option('ssobj', WNB_ssobjs+[None],
                "(override) RA,DEC from Solar System object", more=str)
@@ -440,7 +445,8 @@ def coordinates (ns, rider):
 
 #--------------------------------------------------------------------------------
 
-TCM.start_of_submenu('coordinates_azel', "Earth-related")     
+TCM.start_of_submenu('azel', menu='coordinates',
+                     prompt='Earth-related')     
 WNB_observatories = 'ALMA ARECIBO ATCA BIMA CLRO DRAO DWL GB GBT GMRT IRAM PDB IRAM_PDB JCMT MOPRA MOST NRAO12M NRAO_GBT PKS VLA VLBA WSRT'.split(' ')
 TCM.add_option('observatory', WNB_observatories,
                "Observatory name", more=False)
@@ -510,7 +516,8 @@ def coordinates_azel (ns, rider, radec=None):
 
 #--------------------------------------------------------------------------------
 
-TCM.start_of_submenu('coordinates_lmn', "image-related")
+TCM.start_of_submenu('lmn', menu='coordinates',
+                     prompt='image-related')
 TCM.add_option('RA0', [0.0,1.0,-1.0,math.pi/2,math.pi,math.pi*1.5],
                "RA of phase centre (rad)", more=float)
 TCM.add_option('DEC0', [1.0,0.0,-1.0,math.pi/2],
@@ -564,7 +571,7 @@ def coordinates_lmn (ns, rider, radec=None):
 # transforms_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'transforms')
+TCM.start_of_submenu('transforms')
 # TCM.add_option('')
 # TCM.add_option('')
 
@@ -591,7 +598,7 @@ def transforms (ns, rider):
 # flowcontrol_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'flowcontrol')
+TCM.start_of_submenu('flowcontrol')
 # TCM.add_option('')
 # TCM.add_option('')
 
@@ -649,13 +656,9 @@ def flowcontrol_reqseq (ns, rider):
 # visualization_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'visualization')
-# TCM.add_option('')
-# TCM.add_option('')
-
-                               TDLOption('opt_visualization_inspector_twig',"input twig (child node)",
-                                         ET.twig_names(first='t'), more=str),
-                               toggle='opt_visualization'),
+TCM.start_of_submenu('visualization')
+TCM.add_option('inspector_twig', ET.twig_names(first='t'),
+               "input twig (child node)", more=str)
 
 #-------------------------------------------------------------------------------
 
@@ -724,7 +727,7 @@ def visualization_inspector (ns, rider):
 # solving_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'solving')
+TCM.start_of_submenu('solving')
 # TCM.add_option('')
 # TCM.add_option('')
 
@@ -816,15 +819,11 @@ def solving_ab (ns, rider):
 # flagging_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'flagging')
-TCM.add_option('')
-TCM.add_option('')
-
-                               TDLOption('opt_flagging_twig',"input twig (child node)",
-                                         ET.twig_names('noise', first='noise_3'), more=str),
-                               TDLOption('opt_flagging_nsigma',"nsigma (times stddev)",
-                                         [5.0,1.0,2.0,3.0,4.0,7.0,9.0], more=str),
-                               toggle='opt_flagging'),
+TCM.start_of_submenu('flagging')
+TCM.add_option('twig', ET.twig_names('noise', first='noise_3'),
+               "input twig (child node)", more=str)
+TCM.add_option('nsigma', [5.0,1.0,2.0,3.0,4.0,7.0,9.0], 
+               "nsigma (times stddev)", more=str)
 
 #-------------------------------------------------------------------------------
 
@@ -895,7 +894,7 @@ def flagging_simple (ns, rider):
 # compounder_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'compounder')
+TCM.start_of_submenu('compounder')
 # TCM.add_option('')
 # TCM.add_option('')
 
@@ -1073,23 +1072,15 @@ def compounder_advanced (ns, rider):
 # resampling_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'resampling')
-# TCM.add_option('')
-# TCM.add_option('')
-
-
-                               TDLOption('opt_resampling_MeqModRes_twig',
-                                         "input twig (child node) of MeqModRes",
-                                         ET.twig_names(first='f+t'), more=str),
-                               TDLOption('opt_resampling_MeqModRes_num_freq',
-                                         "nr of freq cells for MeqModRes num_cells [nt,nf]",
-                                         [4,1,2,3,5,6,10,20,50], more=int),
-                               TDLOption('opt_resampling_MeqModRes_num_time',
-                                         "nr of time cells for MeqModRes num_cells [nt,nf]",
-                                         [4,1,2,3,5,6,10,20,50], more=int),
-                               TDLOption('opt_resampling_MeqResampler_mode',"mode for MeqResampler",
-                                         [1,2]),
-                               toggle='opt_resampling'),
+TCM.start_of_submenu('resampling')
+TCM.add_option('MeqModRes_twig', ET.twig_names(first='f+t'),
+               "input twig (child node) of MeqModRes", more=str)
+TCM.add_option('MeqModRes_num_freq', [4,1,2,3,5,6,10,20,50],
+               "nr of freq cells for MeqModRes num_cells [nt,nf]", more=int)
+TCM.add_option('MeqModRes_num_time', [4,1,2,3,5,6,10,20,50],
+               "nr of time cells for MeqModRes num_cells [nt,nf]", more=int)
+TCM.add_option('MeqResampler_mode', [1,2],
+               "mode for MeqResampler", more=False)
 
 #-------------------------------------------------------------------------------
 
@@ -1168,7 +1159,7 @@ def resampling_experiment (ns, rider, twig=None,
 # axisreduction_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'axisreduction')
+TCM.start_of_submenu('axisreduction')
 # TCM.add_option('')
 # TCM.add_option('')
 
@@ -1300,7 +1291,7 @@ def axisreduction_axes (ns, rider):
 # tensor_... 
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'tensor')
+TCM.start_of_submenu('tensor')
 # TCM.add_option('')
 # TCM.add_option('')
 
@@ -1465,7 +1456,7 @@ def tensor_matrix22 (ns, rider):
 # leaves_...
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'leaves')
+TCM.start_of_submenu('leaves')
 # TCM.add_option('')
 # TCM.add_option('')
 
@@ -1662,7 +1653,7 @@ def leaves_gridsXYZetc (ns, rider):
 # FITS_... (interaction with FITS files)
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'FITS',"Interaction with FITS files")
+TCM.start_of_submenu('FITS', prompt="Interaction with FITS files")
 
 #-------------------------------------------------------------------------------
 
@@ -1690,7 +1681,8 @@ def FITS (ns, rider):
 
 #----------------------------------------------------------------------------------------------
 
-TCM.start_of_submenu('FITS_RW', "write/read results to/from FITS file")
+TCM.start_of_submenu('RW', menu='FITS',
+                     prompt="write/read results to/from FITS file")
 TCM.add_option('filename', 'FITS_RW.fits',
                "The name of the FITS file", more=False)  
 
@@ -1746,7 +1738,8 @@ def FITS_RW (ns, rider):
 
 #----------------------------------------------------------------------------------------------
 
-TCM.start_of_submenu('FITS_FITSImage', "FITSImage (mode=1)")
+TCM.start_of_submenu('FITSImage', menu='FITS',
+                     prompt="FITSImage (mode=1)")
 TCM.add_option('cutoff', [1.0,0.9,0.5,0.1,0.0],
                "0.0<cutoff level<1.0", more=float)
 
@@ -1807,7 +1800,8 @@ def FITSImage (ns, rider):
 
 #----------------------------------------------------------------------------------------------
 
-TCM.start_of_submenu('FITS_FITSImage_mode2', "FITSImage (mode=2)")
+TCM.start_of_submenu('FITSImage_mode2', menu='FITS',
+                     prompt="FITSImage (mode=2)")
 TCM.add_option('cutoff', [1.0,0.9,0.5,0.1,0.0],
                "0.0<cutoff level<1.0", more=float)
 TCM.add_option('resampler_mode', [1,2],
@@ -1870,7 +1864,7 @@ def FITSImage_mode2 (ns, rider):
 # unops_... (Unary operations)
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'unops')
+TCM.start_of_submenu('unops')
 TCM.add_option('twig', ET.twig_names(),
                "input twig (child node)", more=str)
 
@@ -1910,8 +1904,13 @@ def unops (ns, rider):
       cc.append(unops_misc (ns, rider, twig))
    if TCM.getopt(prefix+'complex'):
       cc.append(unops_complex (ns, rider, twig))
-      
+
    return QRU.on_exit (ns, rider, cc, mode='group')
+
+
+#--------------------------------------------------------------------------------
+
+TCM.start_of_submenu('elementary', menu='unops')
 
 #--------------------------------------------------------------------------------
 
@@ -1935,6 +1934,10 @@ def unops_elementary (ns, rider, twig=None):
 
 #-----------------------------------------#--------------------------------------------------------------------------------
 
+TCM.start_of_submenu('goniometric', menu='unops')
+      
+#--------------------------------------------------------------------------------
+
 def unops_goniometric (ns, rider, twig=None):
    """
    (Tri-)Goniometric functions turn an angle (c, rad) into a fraction:
@@ -1957,6 +1960,10 @@ def unops_goniometric (ns, rider, twig=None):
    return QRU.on_exit (ns, rider, cc)
 
 #-----------------------------------------#--------------------------------------------------------------------------------
+
+TCM.start_of_submenu('invgoniometric', menu='unops')
+
+#--------------------------------------------------------------------------------
 
 def unops_invgoniometric (ns, rider, twig=None):
    """
@@ -1993,6 +2000,10 @@ def unops_invgoniometric (ns, rider, twig=None):
 
 #--------------------------------------------------------------------------------
 
+TCM.start_of_submenu('hyperbolic', menu='unops')
+
+#--------------------------------------------------------------------------------
+
 def unops_hyperbolic (ns, rider, twig=None):
    """
    Hyperbolic functions:
@@ -2014,6 +2025,10 @@ def unops_hyperbolic (ns, rider, twig=None):
    cc.append(stub('(cosh**2-sinh**2)') << Meq.Subtract(ch2,sh2, qhelp=qhelp))
 
    return QRU.on_exit (ns, rider, cc, node_help=True)
+
+#--------------------------------------------------------------------------------
+
+TCM.start_of_submenu('power', menu='unops')
 
 #--------------------------------------------------------------------------------
 
@@ -2044,6 +2059,10 @@ def unops_complex (ns, rider, twig=None):
 
 #--------------------------------------------------------------------------------
 
+TCM.start_of_submenu('misc', menu='unops')
+
+#--------------------------------------------------------------------------------
+
 def unops_power (ns, rider, twig=None):
    """
    Nodes that take some power of its child (c):
@@ -2063,6 +2082,10 @@ def unops_power (ns, rider, twig=None):
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
    return QRU.on_exit (ns, rider, cc, bookmark_bundle_help=False)
+
+#--------------------------------------------------------------------------------
+
+TCM.start_of_submenu('complex', menu='unops')
 
 #--------------------------------------------------------------------------------
 
@@ -2091,7 +2114,7 @@ def unops_misc (ns, rider, twig=None):
 # binops
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'binops')
+TCM.start_of_submenu('binops')
 TCM.add_option('binops_lhs', ET.twig_names(),
                "lhs twig (child node)", more=str)
 TCM.add_option('binops_rhs', ET.twig_names(),
@@ -2138,12 +2161,12 @@ def binops (ns, rider):
 # multimath
 #================================================================================
 
-TCM.start_of_submenu(QR_module+'multimath')
+TCM.start_of_submenu('multimath')
 TCM.add_option('multimath_twig1', ET.twig_names(),
                "1st twig (child node)", more=str)
-TCM.add_option('multimath_twig2'ET.twig_names(include=[None]),
+TCM.add_option('multimath_twig2', ET.twig_names(include=[None]),
                "2nd twig (child node)", more=str)
-TCM.add_option('multimath_twig3'ET.twig_names(include=[None]),
+TCM.add_option('multimath_twig3', ET.twig_names(include=[None]),
                "3rd twig (child node)", more=str)
 
 #-------------------------------------------------------------------------------

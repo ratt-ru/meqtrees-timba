@@ -108,6 +108,7 @@ class TDLOptionManager (object):
       # The menu structure is defined in a hierarchical definition record:
       self._menudef = dict()
       self._defrecs = dict()                  # record of definition records
+      self._keyorder = []
       self.start_of_submenu(self._name, prompt=prompt, topmenu=True)
 
       # The definition record is used to generate the actual TDLOption objects.
@@ -253,7 +254,7 @@ class TDLOptionManager (object):
             help += ' (nominally hidden)'
 
       # Finally, make the option definition record:
-      itsmenukey = self._current_submenu['key']
+      itsmenukey = self._current_menurec['key']
       key = itsmenukey + self._keysep + relkey
       optdef = dict(type='option', key=key,
                     relkey=relkey,
@@ -267,14 +268,15 @@ class TDLOptionManager (object):
                     level=self.current_menu_level(),
                     selectable=selectable,
                     choice=choice, more=more)
-      self._current_submenu['menu'][key] = optdef
+      self._current_menurec['menu'][key] = optdef
       self.current_order(key, prepend=prepend, trace=trace)
       self._defrecs[key] = optdef
+      self._keyorder.append(key)
 
       # Finished:
       if trace:
          print '\n** .add_option(',relkey,') ->',optdef
-         # print '    current_submenu:\n      ',self._current_submenu
+         # print '    current_submenu:\n      ',self._current_menurec
          
       # Return the full key (e.g. for master/slave assignments).
       return key
@@ -317,32 +319,32 @@ class TDLOptionManager (object):
       if self._complete:
          raise ValueError,'** TOM.add_separator(): TDLMenu is complete'
       
-      self._current_submenu['sepcount'] += 1
-      key = self._current_submenu['key'] + '.separator'
-      key += str(self._current_submenu['sepcount'])
+      self._current_menurec['sepcount'] += 1
+      key = self._current_menurec['key'] + '.separator'
+      key += str(self._current_menurec['sepcount'])
       optdef = dict(type='separator', key=key)
       if True:
          # Temporarily disabled...
          print '\n** TOM.add_separator(): Ignored until it works (OMS)....\n'
          return key
-      self._current_submenu['menu'][key] = optdef
+      self._current_menurec['menu'][key] = optdef
       self.current_order(key, trace=trace)
 
       if trace:
          print '\n** .add_separator() ->',optdef
-         print '    current_submenu:\n      ',self._current_submenu
+         print '    current_submenu:\n      ',self._current_menurec
       return key
 
    #--------------------------------------------------------------------------
 
-   def start_of_submenu (self, relkey,            
-                         prompt=None,             # 2nd
-                         default=None,            # 3rd
-                         level=None,
+   def start_of_submenu (self, relkey,
+                         menu=None,               # 2nd            
+                         prompt=None,             # 3nd
+                         default=None,            # 4rd
+                         help=None,
                          hide=None,
                          disable=False,
                          master=None,
-                         help=None,
                          topmenu=False,
                          callback=None,      
                          group_control=True,
@@ -351,22 +353,22 @@ class TDLOptionManager (object):
       """
       Add an TDLMenu definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
-      The self._current_submenu to the new menu.
+      The self._current_menurec to the new menu.
       """
 
       if topmenu:                  # topmenu==True ONLY when called from .__init__()
          self._complete = False
-         key = relkey
-         key = 'copt_'+relkey      # <----
          level = 0
-         itsmenukey = ''              # ...?
+         itsmenukey = 'copt'       # i.e. Compile menu 
+         key = itsmenukey + self._keysep + relkey
+      elif self._complete:
+         raise ValueError,'** TCM.start_of_submenu(): TDLMenu is complete'
       else:
-         relkey = self.check_current_submenu(relkey, level, trace=trace)
-         itsmenukey = self._current_submenu['key']
+         self.check_current_menurec(menu, trace=trace)
+         # relkey = self.check_current_menurec(relkey, level, trace=trace)
+         itsmenukey = self._current_menurec['key']
          key = itsmenukey + self._keysep + relkey
          level = self.current_menu_level()
-         if self._complete:
-            raise ValueError,'** TOM.start_of_submenu(): TDLMenu is complete'
 
       # The default is the toggle value (see .revert_to_defaults())
       if not isinstance(default,bool):
@@ -399,14 +401,15 @@ class TDLOptionManager (object):
                      sepcount=0,
                      order=[], menu=dict())
 
-      if topmenu:                  # topmenu==True ONLY when called from .__init__()
+      if topmenu:                          # topmenu==True ONLY when called from .__init__()
          self._menudef = menudef
-         self._current_submenu = self._menudef
+         self._current_menurec = self._menudef
       else:
-         self._current_submenu['menu'][key] = menudef
+         self._current_menurec['menu'][key] = menudef
          self.current_order(key, prepend=prepend, trace=trace)                 
-         self._current_submenu = self._current_submenu['menu'][key]           # go down one level
+         self._current_menurec = self._current_menurec['menu'][key]           # go down one level
       self._defrecs[key] = menudef
+      self._keyorder.append(key)
 
       # Optional: Insert a 'group control' option:
       if group_control:
@@ -414,75 +417,62 @@ class TDLOptionManager (object):
 
       # Finished:
       if trace:
-         print '\n** .start_of_submenu(',relkey,') -> current_submenu =',self._current_submenu
+         print '\n** .start_of_submenu(',relkey,') -> current_submenu =',self._current_menurec
 
       # Return the full key (e.g. for master/slave assignments).
       return key
 
    #--------------------------------------------------------------------------
 
-   def check_current_submenu(self, relkey, level=None, trace=False):
-      """Check whether the current submenu is the expected one.
-      The given 'level' can be None, a string or an integer (pos or neg).
-      If not, try to correct the situation.
-      The level (name) may also be derived from the relative key (relkey),
-      which is expected to have dot ('.') separators.
-      Called only from .start_of_submenu()
+   def check_current_menurec(self, menu, severe=True, trace=False):
+      """Check whether the given string (menu) is at the end of self._current_menurec['key']. 
+      If not, search back (down the self._menudef record) until found.
+      If not found, or menu==None, use the top-level menu.
+      This function is called ONLY from .start_of_submenu()
       """
       # trace = True
-      s = '\n** .check_current_submenu(relkey='+str(relkey)+', level='+str(level)+'): '
-
-      key = self._current_submenu['key'] 
-      s += '(current key='+str(key)+') '
-
-      # First make sure that level is a string:
-      ss = relkey.split('.')  
-      if len(ss)>1:                         # e.g. 'menu.relkey'
-         level = relkey.replace('.'+ss[-1],'')    # level-string is relkey without the last bit
-         level = level.replace('.',self._keysep)  # replace dots (.) by keysep (e.g. '|')
-         relkey = ss[-1]                    # the last bit is the actual relkey
-
-      elif level==None:                     # level not specified
-         if trace:
-            print s,'no level specified, keep menu:',key
-         return relkey                      # nothing to check
-
-      elif isinstance(level,int):           # e.g. level=0 (base menu) etc
-         ss = key.split(self._keysep)
-         if level>=0:                       # the absolute level (in the current branch!)
-            level = ss[level]               #
-            if trace:
-               print s,'integer level (pos: absolute level) converted to:',level
-         else:                              # <0: descend one or more levels
-            level = ss[level-1]             # a little confusing: ss[-1] would be the current menu
-            if trace:
-               print s,'integer level (neg: relative to current level) converted to:',level
-
-      elif not isinstance(level,str):
-         s += 'level not a string'
-         raise ValueError,s
-
-      
-      # Then deal with the string level:
-      ss = key.split(level)                  # [left,right] part of key w.r.t. level-string 
-      if len(ss)==1:
-         s += 'menu not found: ss='+str(ss)
-         raise ValueError,s
-      elif ss[-1]=='':                       # level-string is at the end of key
-         if trace:
-            print s,'current menu is OK:',key
-         return relkey                       # the current submenu is OK
-
-      # Finally find the new self._current_submenu record:
-      newkey = ss[0]+level                   # new menu key (not complete)
-      self._current_submenu = self.find_defrec(newkey)
-
-      # Finished:
       if trace:
-         print s,' -> relkey =',relkey
-         print '    -> key of new current menu(',newkey,') ->',self._current_submenu['key']
-      return relkey                    # Return the (possibly modified) relkey:
-      
+         print '\n** .check_current_menurec(menu='+str(menu)+'): '
+
+      if not isinstance(menu,str):               # no menu specified
+         self._current_menurec = self._menudef   # use the top-level menu 
+         if trace:
+            print '  menu not specified: use top-level menu'
+         return True                 
+
+      # Search up the current branch of the self._menurec tree:
+      level = 0
+      while True:
+         level += 1
+         prefix = level*'..'
+         if level>10:                          # just in case...
+            print prefix,'max level exceeded...(?): escape the loop'
+            return False
+
+         menukey = self._current_menurec['key'] 
+         if not menu in menukey:               # the specified menu cannot be found
+            s = '** menu: '+menu+' not found in: '+menukey
+            if severe:
+               raise ValueError,s              # menu should be in menukey! 
+            else:
+               self._current_menurec = self._menudef   # use the top-level menu 
+               if trace:
+                  print prefix,s,' (use lowest level)'
+               return False
+
+         ss = menukey.split(menu)              # split on <menu>
+         if ss[-1]=='':                        # <menu> is at the end of menukey
+            if trace:
+               print prefix,': menu at the end of: ',menukey,' (found it)'
+            return True                        # OK, keep self._current_menurec
+
+         # Not yet found: go up one level:
+         itsmenukey = self._current_menurec['itsmenukey'] 
+         self._current_menurec = self._defrecs[itsmenukey]
+
+      # It should never get to this point:
+      return False
+
 
    #--------------------------------------------------------------------------
    # The following convenience functions may be used for menu=...
@@ -491,9 +481,8 @@ class TDLOptionManager (object):
 
    def current_menu_key(self, trace=False):
       """Return the (defrec) key of the current submenu"""
-      # if not getattr(self, self._current_submenu, None):
-      #    return self._name
-      return self._current_submenu['key']
+      return self._current_menurec['key']
+
 
    def current_menu_level(self, trace=False):
       """Return the absolute level of the current submenu"""
@@ -505,15 +494,15 @@ class TDLOptionManager (object):
 
    def end_of_submenu (self, check=None, trace=False):
       """
-      Revert self._current_submenu to one level higher (done after a menu is complete).
+      Revert self._current_menurec to one level higher (done after a menu is complete).
       Subsequent to add_menu() or add_option will now add the new definitions
       to the higher-level menu.
       """
-      oldkey = self._current_submenu['key']
+      oldkey = self._current_menurec['key']
       newkey = self.itsmenukey(oldkey)
       if trace:
          print '** .end_of_submenu(): ',oldkey,'->',newkey
-      self._current_submenu = self.find_defrec(newkey)
+      self._current_menurec = self.find_defrec(newkey)
       return newkey
 
    #--------------------------------------------------------------------------
@@ -528,7 +517,8 @@ class TDLOptionManager (object):
 
    def keys (self):
       """Return the list of option/menu keys"""
-      return self._defrecs.keys()
+      return self._keyorder
+      # return self._defrecs.keys()
 
    #--------------------------------------------------------------------------
 
@@ -538,10 +528,10 @@ class TDLOptionManager (object):
       """
       if key:
          if prepend:
-            self._current_submenu['order'].insert(0,key)
+            self._current_menurec['order'].insert(0,key)
          else:
-            self._current_submenu['order'].append(key) 
-      return self._current_submenu['order'] 
+            self._current_menurec['order'].append(key) 
+      return self._current_menurec['order'] 
 
 
    #--------------------------------------------------------------------------
@@ -562,7 +552,7 @@ class TDLOptionManager (object):
                        callback=self.callback_group_control,
                        prepend=True, trace=trace)
       if trace:
-         print '\n** .insert_group_control() -> ',self._current_submenu['ctrl']
+         print '\n** .insert_group_control() -> ',self._current_menurec['ctrl']
       return True
 
    #..........................................................................
@@ -628,14 +618,14 @@ class TDLOptionManager (object):
       """
       # First find the selectable items:
       keys = []
-      for key in self._current_submenu['order']:
-         rr = self._current_submenu['menu'][key]
+      for key in self._current_menurec['order']:
+         rr = self._current_menurec['menu'][key]
          if rr['selectable']:
             keys.append(key)
 
       # Then make them into radio items:
       for key in keys:
-         rr = self._current_submenu['menu'][key]
+         rr = self._current_menurec['menu'][key]
          rr['radio_group'] = keys
          # Make it the first callback ....?
          rr['callback'].insert(0,self.callback_radio_button)
@@ -688,7 +678,7 @@ class TDLOptionManager (object):
 
       # Disable any further additions of options or menus:
       self._complete = True
-      self._current_submenu = None               # overkill?
+      self._current_menurec = None               # overkill?
 
       if trace:
          print '\n** _make_TDLMenu(namespace=',namespace,'):'
@@ -1272,6 +1262,11 @@ class TDLOptionManager (object):
 
       # Problem: Found zero items, or more than one:
       if severe:
+         if True:
+            self.show('problem', full=True)
+            print '\n** keys:'
+            for key in self.keys():
+               print '  -',key
          s += str(ss)
          raise ValueError,s
       else:
@@ -1329,11 +1324,12 @@ class TDLOptionManager (object):
       NB: This requires that all submenu names are the same as the names of the functions
       in which the various options are used. This should always be possible....
       """
+      # trace = True
       s = str(func.func_name)
       s = '_'+s                    # OK, always has copt_ in front....
       s += '_'
       if trace:
-         print '** TCM.prefix(',type(func),'): ->',s
+         print '\n** TCM.prefix(',type(func),'): ->',s
       return s
 
    #--------------------------------------------------------------------------
@@ -1343,7 +1339,7 @@ class TDLOptionManager (object):
       Only a part of the name is required, as long as it is not ambiguous.
       If rider is defined, make a qhelp string and add it (see QuickRefUtil.py)
       """
-
+      # trace = True
       if func:
          # A little (optional) service: Use the name of the given function
          # (if provided) to make a prefix to the given name, to make it unique.
@@ -1479,12 +1475,15 @@ def make_TDLCompileMenu (TCM, trace=True, full=False):
 #------------------------------------------------------------
 #------------------------------------------------------------
 
-def test_basic(TCM, trace=False, full=False,
+def test_basic(trace=False, full=False,
                test_find_key=False,
                test_find_defrec=False,
                test_getopt=False):
-   """Test:
+   """Test the basic stuff:
    """
+   TCM = create_TCM (name='basic',
+                     trace=trace, full=full)
+   
    key = TCM.add_option('master', range(4))
    TCM.add_option('slave', range(4), master=key)
    # TCM.add_option('boolean_opt', True)
@@ -1492,15 +1491,15 @@ def test_basic(TCM, trace=False, full=False,
    TCM.start_of_submenu('cc')
    # TCM.add_separator(trace=True)
 
-   TCM.start_of_submenu('dd')
+   TCM.start_of_submenu('dd', menu='cc')
    TCM.add_option('boolean_opt', True)
    TCM.add_option('string_opt', ['first','second','third'])
-   TCM.end_of_submenu(trace=True)
+   # TCM.end_of_submenu(trace=True)
 
    TCM.start_of_submenu('gg')
 
    level = TCM.current_menu_level()
-   TCM.start_of_submenu('hh', level=level-1)
+   TCM.start_of_submenu('hh', menu='gg')
    TCM.add_option('bb', range(4))
 
    #----------------------------------------------------------
@@ -1522,20 +1521,23 @@ def test_basic(TCM, trace=False, full=False,
       TCM.getopt('0_aa', severe=False, trace=True)
       TCM.getopt('aa', severe=False, trace=True)
       
-   return True
+   return TCM
    
 #------------------------------------------------------------
 
-def test_slavemenu(TCM, trace=False, full=False):
+def test_slavemenu(trace=False, full=False):
    """Test:
    """
+   TCM = create_TCM (name='slavemenu',
+                     trace=trace, full=full)
+
    key = TCM.start_of_submenu('master')
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4), disable=True)
    TCM.add_option('cc', range(4))
 
    for i in range(3):
-      TCM.start_of_submenu('slave_'+str(i), level='master', master=key)
+      TCM.start_of_submenu('slave_'+str(i), menu='master', master=key)
       TCM.add_option('aa', range(4))
       TCM.add_option('bb', range(4))
       TCM.add_option('cc', range(4), disable=(i==1))
@@ -1543,7 +1545,7 @@ def test_slavemenu(TCM, trace=False, full=False):
 
    if trace:
       TCM.show('test_slavemenu()', full=full)
-   return True
+   return TCM
    
 
 #------------------------------------------------------------
@@ -1569,13 +1571,12 @@ def _define_forest (ns, **kwargs):
 
 TCM = None
 # Enable for testing:
-if 0:
-   TCM = create_TCM(trace=True, full=False)
-   # test_basic(TCM, trace=True, full=False)
-   test_slavemenu(TCM, trace=True, full=False)
+if 1:
+   # TCM = create_TCM(trace=True, full=False)
+   # TCM = test_basic(trace=True, full=False)
+   TCM = test_slavemenu(trace=True, full=False)
    if 0:
       TCM1 = create_TCM('append', trace=True, full=False)
-      test_basic(TCM1, trace=False, full=False)
       TCM.append_TCM(TCM1)
    menu = make_TDLCompileMenu (TCM, trace=True, full=False)
    
@@ -1596,15 +1597,16 @@ if __name__ == '__main__':
    # ns = NodeScope()
    # rider = QRU.create_rider()             # CollatedHelpRecord object
 
-   TCM = create_TCM(trace=True, full=False)
-
-   if 1:
-      test_basic(TCM, trace=True, full=True,
-                 test_find_key=True,
-                 test_getopt=False)
+   if 0:
+      TCM = create_TCM(trace=True, full=False)
 
    if 0:
-      test_slavemenu(TCM, trace=False, full=False)
+      TCM = test_basic(trace=True, full=True,
+                       test_find_key=True,
+                       test_getopt=False)
+
+   if 1:
+      TCM = test_slavemenu(trace=True, full=True)
 
    if 0:
       make_TDLCompileMenu (TCM, trace=False, full=False)
