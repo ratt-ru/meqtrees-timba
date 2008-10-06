@@ -364,8 +364,7 @@ class TDLOptionManager (object):
       elif self._complete:
          raise ValueError,'** TCM.start_of_submenu(): TDLMenu is complete'
       else:
-         self.check_current_menurec(menu, trace=trace)
-         # relkey = self.check_current_menurec(relkey, level, trace=trace)
+         self._check_current_menurec(menu, trace=trace)
          itsmenukey = self._current_menurec['key']
          key = itsmenukey + self._keysep + relkey
          level = self.current_menu_level()
@@ -424,7 +423,7 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def check_current_menurec(self, menu, severe=True, trace=False):
+   def _check_current_menurec(self, menu, severe=True, trace=False):
       """Check whether the given string (menu) is at the end of self._current_menurec['key']. 
       If not, search back (down the self._menudef record) until found.
       If not found, or menu==None, use the top-level menu.
@@ -518,7 +517,6 @@ class TDLOptionManager (object):
    def keys (self):
       """Return the list of option/menu keys"""
       return self._keyorder
-      # return self._defrecs.keys()
 
    #--------------------------------------------------------------------------
 
@@ -686,6 +684,9 @@ class TDLOptionManager (object):
       # This field is expected by OMS:
       if isinstance(namespace,str):
          self.tdloption_namespace = namespace
+
+      # Weed out:
+      self._weedout(trace=trace)
          
       # Create the TDLMenu from the self._menudef record:
       self._TDLMenu = self._make_TDLMenu(trace=trace)
@@ -702,6 +703,30 @@ class TDLOptionManager (object):
       # Last: fill self._lastval ....
       self.find_changed()
       return self._TDLMenu
+
+   #--------------------------------------------------------------------------
+
+   def _weedout (self, trace=False):
+      """Weed out the fields of self._menudef prior to making TDL objects
+      """
+      # trace = True
+      if trace:
+         print '\n** ._weedout():'
+
+      for key in self._defrecs.keys():
+         dd = self._defrecs[key]
+         if dd['type']=='menu':
+            if len(dd['order'])==1:
+               # Ignore group_control option in empty menus:
+               item = self._defrecs[dd['order'][0]]
+               if item['type']=='option' and item['relkey']=='group_control':
+                  self._defrecs[item['key']]['type'] = 'ignore'
+                  if trace:
+                     print '-- ignore: ',item['key']
+      
+      if trace:
+         print '**\n'
+      return True
 
    #--------------------------------------------------------------------------
 
@@ -729,25 +754,22 @@ class TDLOptionManager (object):
                               value=dd['choice'], more=dd['more'],
                               doc=dd['help'],
                               namespace=self)
-            # Attach the option object to a flat record:
             self._tdlobjects[key] = tdlob
+            oblist.append(tdlob)
 
          elif dd['type']=='menu':
             tdlob = self._make_TDLMenu(dd, level=level+1, trace=trace)  # recursive
+            oblist.append(tdlob)
 
          elif dd['type']=='separator':
-            tdlob = None
+            oblist.append(None)
+
+         elif dd['type']=='ignore':
+            pass
 
          else:
             s = '** option type not recognised: '+str(dd['type'])
             raise ValueError,s
-
-         # Finishing touches on the TDLOption object:
-         # (see also .add_callbacks() below)
-         if tdlob:
-            pass
-         # Append the object (or None) to the list for the menu:
-         oblist.append(tdlob)
          
 
       # Make the TDLMenu object from the accumulated oblist:
@@ -1146,20 +1168,21 @@ class TDLOptionManager (object):
 
       prefix = level*'..'
       for key in menu['order']:
-         tdlob = self._tdlobjects[key]
-         dd = menu['menu'][key]
-         if hide==False:                             # i.e. unhide
-            tdlob.show()                             # show all options/menus
-            if trace:
-               print prefix,'- unhide:',key
-         else:
-            if dd['hide']:                           # nominally hidden
-               tdlob.hide()                          # hide it
+         if self._tdlobjects.has_key(key):
+            tdlob = self._tdlobjects[key]
+            dd = menu['menu'][key]
+            if hide==False:                             # i.e. unhide
+               tdlob.show()                             # show all options/menus
                if trace:
-                  print prefix,'- hide:',key
-         # Recursive:
-         if dd['type']=='menu':
-            self.hide_unhide (dd, hide=hide, level=level+1, trace=trace)
+                  print prefix,'- unhide:',key
+            else:
+               if dd['hide']:                           # nominally hidden
+                  tdlob.hide()                          # hide it
+                  if trace:
+                     print prefix,'- hide:',key
+            # Recursive:
+            if dd['type']=='menu':
+               self.hide_unhide (dd, hide=hide, level=level+1, trace=trace)
       return True
 
 
@@ -1404,30 +1427,31 @@ class TDLOptionManager (object):
             s += ' summary=['
             first = True
             for key1 in dd['order']:
-               dd1 = self._defrecs[key1]
-               relkey1 = dd1['relkey']
-               v = self._tdlobjects[key1].value
-               if relkey1 in ignore:
-                  pass
+               if self._tdlobjects.has_key(key1):
+                  dd1 = self._defrecs[key1]
+                  relkey1 = dd1['relkey']
+                  v = self._tdlobjects[key1].value
+                  if relkey1 in ignore:
+                     pass
 
-               elif dd1['type']=='menu':
-                  if not first: s += ', '
-                  first = False
-                  if v:
-                     s += '+'
-                  else:
-                     s += '-'
+                  elif dd1['type']=='menu':
+                     if not first: s += ', '
+                     first = False
+                     if v:
+                        s += '+'
+                     else:
+                        s += '-'
                      
-               elif dd1['type']=='option':
-                  if not first: s += ', '
-                  first = False
-                  if isinstance(v,str):
-                     s += '"'+v[:ncmax]
-                     if len(v)>ncmax:
-                        s += '..'
-                     s += '"'
-                  else:
-                     s += str(v)
+                  elif dd1['type']=='option':
+                     if not first: s += ', '
+                     first = False
+                     if isinstance(v,str):
+                        s += '"'+v[:ncmax]
+                        if len(v)>ncmax:
+                           s += '..'
+                        s += '"'
+                     else:
+                        s += str(v)
             s += ']'
             if isinstance(dd['master'],str):
                s += '   (slaved to: '+str(dd['master'])+')'
@@ -1571,7 +1595,7 @@ def _define_forest (ns, **kwargs):
 
 TCM = None
 # Enable for testing:
-if 1:
+if 0:
    # TCM = create_TCM(trace=True, full=False)
    # TCM = test_basic(trace=True, full=False)
    TCM = test_slavemenu(trace=True, full=False)

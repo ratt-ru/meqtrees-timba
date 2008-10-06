@@ -94,9 +94,11 @@ TCM = QRU.TDLOptionManager.TDLOptionManager(QR_module, prompt=QR_module+' topics
 # Top-level function, called from QuickRef.py:
 #********************************************************************************
 
-TCM.add_option('arg1', range(3))
+TCM.add_option('arg1', range(3),
+               prompt=None, help='help')
 TCM.add_option('arg2', [-0.1,0.001])
-TCM.add_option('arg3', [12,-4.5,complex(3,4),'aa',None], more=False)
+TCM.add_option('arg3', [12,-4.5,complex(3,4),'aa',None],
+               more=False)
 
 
 #--------------------------------------------------------------------------------
@@ -135,6 +137,7 @@ def QR_template (ns, rider):
    convenient way, and returns the resulting parent node of the bundle.
    Its syntax is given below.
    """
+   
    stub = QRU.on_entry(ns, rider, QR_template)
    cc = []
    prefix = TCM.getopt_prefix(QR_template)
@@ -160,8 +163,7 @@ def QR_template (ns, rider):
 # topic1:
 #================================================================================
 
-TCM.start_of_submenu('topic1',
-                     prompt='topic1')
+TCM.start_of_submenu('topic1', prompt='topic1')
 TCM.add_option('twig', ET.twig_names())
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3))
@@ -212,8 +214,9 @@ def topic1 (ns, rider):
 #================================================================================
 
 TCM.start_of_submenu('subtopic1', menu='topic1',
-                     prompt='subtopic1 of topic1')
-TCM.add_option('arg1', range(2))
+prompt='subtopic1 of topic1')
+TCM.add_option('arg1', range(2),
+prompt=None, help='help')
 TCM.add_option('arg2', range(5))
 
 #--------------------------------------------------------------------------------
