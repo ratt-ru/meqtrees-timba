@@ -29,9 +29,10 @@ from Timba.Meq import meq
 import Meow
 
 class ListOptionParser (object):
-  def __init__ (self,minval=None,maxval=None,name=""):
+  def __init__ (self,minval=None,maxval=None,name="",allow_names=False):
     self.minval,self.maxval = minval,maxval;
     self.name = name or "index";
+    self.allow_names = allow_names;
     
   def set_min (self,minval):
     self.minval = minval;
@@ -60,6 +61,7 @@ class ListOptionParser (object):
     else:
       maxval = 0;
     subset = [];
+    names = [];
     for spec in re.split("[\s,]+",value):
       if spec:
         # single number
@@ -71,7 +73,11 @@ class ListOptionParser (object):
         # [number]:[number]
         match = re.match("^(\d+)?:(\d+)?$",spec);
         if not match:
-          raise ValueError,"illegal %s '%s'"%(self.name,spec);
+          if self.allow_names:
+            names.append(spec);
+            continue;
+          else:
+            raise ValueError,"illegal %s '%s'"%(self.name,spec);
         if match.group(1):
           index1 = int(match.group(1));
         elif self.minval is not None:
@@ -83,12 +89,15 @@ class ListOptionParser (object):
         elif self.maxval is not None:
           index2 = self.maxval;
         else:
-          raise ValueError,"illegal %s '%s'"%(self.name,spec);
+          index2 = index1;
         index1,minval,maxval = self._validate_index(index1,minval,maxval);
         index2,minval,maxval = self._validate_index(index2,minval,maxval);
         # add to subset
         subset += range(index1,index2+1);
-    return subset;
+    if self.allow_names:
+      return subset,names;
+    else:
+      return subset;
 
   def validator (self,value):
     self.parse_list(value);

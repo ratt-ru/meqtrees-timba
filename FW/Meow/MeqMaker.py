@@ -358,7 +358,7 @@ class MeqMaker (object):
                                           tags=jt.label,label=jt.label,
                                           inspectors=inspectors);
       # if module does not make its own inspectors, add automatic ones
-      if self.use_jones_inspectors:
+      if Jj and self.use_jones_inspectors:
         if inspectors:
           jones_inspectors += inspectors;
         elif Jj:

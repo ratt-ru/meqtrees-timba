@@ -96,7 +96,9 @@ def longest_prefix (*strings):
   if len(strings) == 1:
     return strings[0];
   # sort by length
-  strings = [ pair[1] for pair in sorted([(len(s),s) for s in strings]) ];
+  lenlist = [ (len(s),s) for s in strings ];
+  lenlist.sort();
+  strings = [ pair[1] for pair in lenlist ];
   for i,ch in enumerate(strings[0]):
     for s1 in strings[1:]:
       if s1[i] != ch:

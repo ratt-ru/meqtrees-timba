@@ -32,6 +32,7 @@ from Timba.utils import curry
 import traceback
 import sets
 import Meow
+import Meow.OptionTools
 
 # constants for available LSM formats
 # these are also used as labels in the GUI
@@ -77,16 +78,23 @@ class MeowLSM (object):
                  [ NATIVE,NEWSTAR,NVSS,CLEAN,TEXT_RAD,TEXT_DMS,VIZIER,OR_GSM,SKA ],
                  namespace=self);
       self._compile_opts.append(format_opt);
-      self._compile_opts.append(
-        TDLOption("max_sources","Restrict to N brightest sources",
-                  ["all",5,10,20],more=int,namespace=self)
-      );
+      subset_opt = TDLOption('lsm_subset',"Use subset of LSM sources",
+          ["all"],more=str,namespace=self,doc="""Selects a subset of sources from the
+          LSM. You may specify sources by name (separated by spaces), or by number
+          (in order of decreasing brightness), or as ranges, e.g. "M:N" (M to N inclusive), or ":M" (0 to M), or "N:" (N to last).""");
+      self._subset_parser = Meow.OptionTools.ListOptionParser(minval=0,
+                              name="source",allow_names=True);
+      subset_opt.set_validator(self._subset_parser.validator);
+      self._compile_opts.append(subset_opt);
+      solve_subset_opt = TDLOption("solve_subset","For which sources",["all"],
+            more=str,namespace=self,
+            doc="""You may give a list of source names (separated by spaces), or by number
+          (in order of decreasing brightness), or as ranges, e.g. "M:N" (M to N inclusive), or ":M" (0 to M), or "N:" (N to last)."""); 
+      self._solve_subset_parser = Meow.OptionTools.ListOptionParser(minval=0,
+                                  name="source",allow_names=True);
       self._compile_opts.append(
         TDLMenu("Make solvable source parameters",
-          TDLOption("solve_subset","For which sources",["all"],more=str,
-            doc="""You may give a list of source names (separated by spaces) to
-            make only those particular sources solvable. For large models this 
-            is probably a very good idea.""",namespace=self),
+          solve_subset_opt,
           TDLOption("solve_I","I",False,namespace=self),
           TDLOption("solve_Q","Q",False,namespace=self),
           TDLOption("solve_U","U",False,namespace=self),
@@ -120,9 +128,10 @@ class MeowLSM (object):
       self._compile_opts.append(
         TDLOption("show_gui","Show LSM GUI",False,namespace=self)
       );
-      self._compile_opts.append(TDLOption("export_karma","Export LSM as Karma annotations file",
-                                     TDLFileSelect("*.ann",exist=False,default=None),
-                                     namespace=self));
+      self._compile_opts.append(TDLOption("export_karma",
+                                  "Export LSM as Karma annotations file",
+                                  TDLFileSelect("*.ann",exist=False,default=None),
+                                  namespace=self));
       
     return self._compile_opts;
 
@@ -169,30 +178,43 @@ class MeowLSM (object):
       
     if self.export_karma:
       try:
-        self.lsm.export_karma_annotations(self.export_karma,ns,count=self.max_sources);
+        self.lsm.export_karma_annotations(self.export_karma,ns);
       except:
         traceback.print_exc();
         pass;
 
     if self.show_gui:
-      self.lsm.display(count=self.max_sources)
+      self.lsm.display()
 
   def source_list (self,ns,max_sources=None,**kw):
     """Reads LSM and returns a list of Meow objects.
     ns is node scope in which they will be created.
-    Keyword arguments may be used to indicate which of the source attributes are to be created
-    as Parms, use e.g. I=Meow.Parm(tags="flux") for this.
+    Keyword arguments may be used to indicate which of the source attributes are to be
+    created as Parms, use e.g. I=Meow.Parm(tags="flux") for this.
     The use_parms option may override this.
     """;
     if self.filename is None:
       return [];
     if self.lsm is None:
       self.load(ns);
-
-    if self.solve_subset == "all":
-      solvable_source_set = None;
+    # all=1 returns unsorted list, so use a large count instead, to get a sorted list
+    plist = self.lsm.queryLSM(count=9999999);
+    # extract subset
+    if self.lsm_subset != "all":
+      self._subset_parser.set_max(len(plist)-1);
+      indices,names = self._subset_parser.parse_list(self.lsm_subset);
+      source_set = sets.Set(names);
+      source_set.update([plist[i].name for i in indices]);
     else:
-      solvable_source_set = sets.Set(self.solve_subset.split(" "));
+      source_set = None;
+    # extratc solvable subset
+    if self.solve_subset != "all":
+      self._solve_subset_parser.set_max(len(plist)-1);
+      indices,names = self._solve_subset_parser.parse_list(self.solve_subset);
+      solvable_source_set = sets.Set(names);
+      solvable_source_set.update([plist[i].name for i in indices]);
+    else:
+      solvable_source_set = None;
       
     parm = Meow.Parm(tags="source solvable");
     # make copy of kw dict to be used for sources not in solvable set
@@ -225,16 +247,9 @@ class MeowLSM (object):
   ## Note: conversion from AIPS++ componentlist Gaussians to Gaussian Nodes
   ### eX, eY : multiply by 2
   ### eP: change sign
-
-    max_sources = max_sources or self.max_sources or 0;
-    if max_sources == "all":
-      max_sources = None;
-    if not max_sources:
-      plist = self.lsm.queryLSM(count=9999999);  # all=1 returns unsorted list, so use a large count instead
-    else:
-      plist = self.lsm.queryLSM(count=max_sources);
-   
     for pu in plist:
+      if source_set is not None and pu.name not in source_set:
+        continue;
       src = {};
       ( src['ra'],src['dec'],
         src['I'],src['Q'],src['U'],src['V'],

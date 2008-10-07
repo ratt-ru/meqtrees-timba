@@ -74,6 +74,8 @@ class FullRealImag (object):
     if self.subset != "all":
       srcset = sets.Set(self.subset.split(" "));
       sources = [ src for src in sources if src.name in srcset ];
+    if not sources:
+      return None;
     # create parm definitions for each jones element
     tags = NodeTags(tags) + "solvable";
     diag_real = Meq.Parm(1,tags=tags+"diag real");

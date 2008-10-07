@@ -88,7 +88,7 @@ class GaussianSource(PointSource):
           b*sin_phi,b*cos_phi);
     return xfm;
 
-  def make_visibilities (self,nodes,array,observation):
+  def make_visibilities (self,nodes,array,observation,smearing=False):
     array = Context.get_array(array);
     observation = Context.get_observation(observation);
     dir0 = observation.phase_centre;
@@ -120,4 +120,4 @@ class GaussianSource(PointSource):
       v1s = v1sq(*ifr) << Meq.Selector(uv1s,index=1); 
       gcoh(*ifr) << fluxscale * Meq.Exp((u1s+v1s)*m_iwlsq);
     # phase shift to source position
-    self.direction.make_phase_shift(nodes,gcoh,array,dir0);
+    self.direction.make_phase_shift(nodes,gcoh,array,dir0,smearing=smearing);
