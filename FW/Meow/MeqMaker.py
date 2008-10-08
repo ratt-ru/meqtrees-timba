@@ -94,7 +94,7 @@ class MeqMaker (object):
           Jones terms. This will slow things down somewhat -- perhaps a lot, in an MPI configuration --
           so you might want to disable this in production trees."""
         );
-      other_opt.append(self.use_jones_inspectors__opt);
+      other_opt.append(self.use_jones_inspectors_opt);
     else:
       self.use_jones_inspectors = use_jones_inspectors;
       
