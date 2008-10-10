@@ -31,7 +31,7 @@ import Meow
 import Meow.StdTrees
 
 # MS options first
-mssel = Meow.MSUtils.MSSelector(has_input=False,tile_sizes=[8,16,32],flags=True);
+mssel = Meow.MSUtils.MSSelector(has_input=False,tile_sizes=[8,16,32],flags=False);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
 # MS run-time options

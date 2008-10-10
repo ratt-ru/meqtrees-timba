@@ -36,17 +36,19 @@ class LMDirection (Direction):
   (the phase center of the global observation in Meow.Context, by default).
   """;
   def __init__(self,ns,name,l,m,dir0=None,
-               quals=[],kwquals={}):
+               static=True,quals=[],kwquals={}):
     Parameterization.__init__(self,ns,name,
                               quals=quals,kwquals=kwquals);
     self._dir0 = Context.get_dir0(dir0);
     self._add_parm('l',l,tags="direction");
     self._add_parm('m',m,tags="direction");
-    if isinstance(l,(int,float)) and isinstance(m,(int,float)):
-      self._add_parm('n',math.sqrt(1-l*l-m*m),tags="direction");
-      self._const_n = True;
+    self.static = static;
+    if static and self._is_constant('l') and self._is_constant('m'):
+      n = math.sqrt(1-l*l-m*m);
+      self._add_parm('n',n,tags="direction");
+      self.static = l,m,n;
     else:
-      self._const_n = False;
+      self.static = None;
       
   def radec (self):
     """Returns ra-dec two-pack for this direction.""";
@@ -68,11 +70,11 @@ class LMDirection (Direction):
     moment it is not used.""";
     lmn = self.ns.lmn;
     if not lmn.initialized():
-      l,m = self._lm();
-      if self._const_n:
-        n = self._parm("n");
+      if self.static:
+        lmn << Meq.Constant(value=self.static);
       else:
+        l,m = self._lm();
         n = self.ns.n << Meq.Sqrt(1-Meq.Sqr(l)-Meq.Sqr(m));
-      lmn << Meq.Composer(l,m,n);
+        lmn << Meq.Composer(l,m,n);
     return lmn;
     
