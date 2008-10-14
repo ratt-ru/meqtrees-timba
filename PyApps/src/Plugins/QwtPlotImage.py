@@ -239,17 +239,22 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.raw_image = image
 
     def setFlaggedImageRange(self):
+      (nx,ny) = self.raw_image.shape
+      num_elements = nx * ny
+      flattened_flags = numpy.reshape(self._flags_array.copy(),(num_elements,))
       if self.raw_image.dtype == numpy.complex64 or self.raw_image.dtype == numpy.complex128:
-        (nx,ny) = self.raw_image.shape
         real_array =  self.raw_image.real
         imag_array =  self.raw_image.imag
-        real_flagged_array = real_array - self._flags_array * real_array
-        imag_flagged_array = imag_array - self._flags_array * imag_array
-        flagged_image = numpy.zeros(shape=(nx,ny),dtype=self.raw_image.dtype)
+        flattened_real_array = numpy.reshape(real_array.copy(),(num_elements,))
+        flattened_imag_array = numpy.reshape(imag_array.copy(),(num_elements,))
+        real_flagged_array = numpy.compress(flattened_flags == 0, flattened_real_array)
+        imag_flagged_array = numpy.compress(flattened_flags == 0, flattened_imag_array)
+        flagged_image = numpy.zeros(shape=real_flagged_array.shape,dtype=self.raw_image.dtype)
         flagged_image.real = real_flagged_array
         flagged_image.imag = imag_flagged_array
       else:
-        flagged_image = self.raw_image - self._flags_array * self.raw_image
+        flattened_array = numpy.reshape(self.raw_image.copy(),(num_elements,))
+        flagged_image = numpy.compress(flattened_flags == 0, flattened_array)
       self.setImageRange(flagged_image)
     # setFlaggedImageRange
 
