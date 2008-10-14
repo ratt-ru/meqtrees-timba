@@ -198,7 +198,15 @@ class VellsData:
      if self.scalar_data and len(self.rq_label) > 0:
        self.scalar_string = self.rq_label + "\n"
 
-     self._number_of_planes = len(vells_rec["vellsets"])
+     try:
+       self._number_of_planes = len(vells_rec["vellsets"])
+     except:
+       print '*** failure to get number of planes'
+       if len(self.rq_label) > 0:
+         self.scalar_string = self.rq_label + ' has no data'
+       else:
+         self.scalar_string = 'has no data'
+       return
      _dprint(3, 'number of planes ', self._number_of_planes)
      id = self.start_vells_id
      self.dims = None
@@ -263,6 +271,13 @@ class VellsData:
          if len(self.rq_label) > 0:
            plot_string = plot_string + " " + self.rq_label
          self._plot_labels[menu_label] = plot_string
+       else:
+         # there's no actual data, so return
+         if len(self.rq_label) > 0:
+           self.scalar_string = self.rq_label + ' has no data'
+         else:
+           self.scalar_string = 'has no data'
+         return
        
        if vells_rec.vellsets[i].has_key("perturbed_value"):
          try:
