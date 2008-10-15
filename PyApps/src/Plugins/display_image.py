@@ -158,7 +158,7 @@ class QwtImageDisplay(QwtPlot):
     menu_table = {
         'toggle flagged data for plane ': 200,
         'toggle blink of flagged data for plane ': 201,
-        'Toggle display range to that of flagged image for plane ': 202,
+        'Set display range to that of unflagged data for plane ': 202,
         'Modify Plot Parameters': 299,
         'Toggle Plot Legend': 300,
         'Toggle ColorBar': 301,
@@ -881,7 +881,7 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemChecked(menuid,self.flag_blink)
 	return True
 
-      if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
+      if menuid == self.menu_table['Set display range to that of unflagged data for plane ']:
         if self.flag_range:
           self.setFlagRange(False)
         else:
@@ -1008,7 +1008,7 @@ class QwtImageDisplay(QwtPlot):
       self._menu.setItemEnabled(toggle_id, flag_setting)
       self._menu.setItemVisible(toggle_id, flag_setting)
 
-      self._toggle_range_label = "Toggle display range to that of flagged image for plane "
+      self._toggle_range_label = "Set display range to that of unflagged data for plane "
       toggle_id = self.menu_table[self._toggle_range_label]
       if flag_plane is None:
         self._menu.insertItem(self._toggle_range_label,toggle_id)
@@ -1039,7 +1039,7 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemVisible(toggle_id, flag_setting)
 
         if image_display:
-          toggle_range_label = "Toggle display range to that of flagged image for plane "
+          toggle_range_label = "Set display range to that of unflagged data for plane "
           toggle_id = self.menu_table[toggle_range_label]
           self._menu.setItemEnabled(toggle_id, flag_setting)
           self._menu.setItemVisible(toggle_id, flag_setting)
