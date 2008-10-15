@@ -795,18 +795,28 @@ class MSSelector (object):
     rec = record();
     rec.write_bitflag = self.ms_write_flags;
     if self.ms_write_flags:
-      # flag labels 
-      if self.new_bitflag_labels:
-        rec.bitflag_name = self.new_bitflag_labels;
-      # output masks
-      rec.tile_bitflag = self.get_output_bitflag();
-      rec.tile_flag_mask = FLAG_FULL & ~3; # bitflags 1|2 = input flags
-      if self.ms_write_flag_policy == FLAG_ADD:
-        rec.ms_flag_mask = FLAG_FULL;
-      elif self.ms_write_flag_policy == FLAG_REPLACE:
-        rec.ms_flag_mask = FLAG_FULL & ~rec.tile_bitflag;
-      elif self.ms_write_flag_policy == FLAG_REPLACE_ALL:
-        rec.ms_flag_mask  = 0;
+      # in replace-all mode, kill all other flagsets
+      if self.ms_write_flag_policy == FLAG_REPLACE_ALL:
+        # reset labels
+        if isinstance(self.ms_write_bitflag,str):
+          rec.bitflag_name = [ self.ms_write_bitflag ];
+        else:
+          rec.bitflag_name = [ "FLAG0" ];
+        # reset masks
+        rec.tile_bitflag = 1;
+        rec.tile_flag_mask = FLAG_FULL & ~3; # bitflags 1|2 = input flags
+        rec.ms_flag_mask = 0;
+      # add/replace flagset mode
+      else:
+        if self.new_bitflag_labels:
+          rec.bitflag_name = self.new_bitflag_labels;
+        # output masks
+        rec.tile_bitflag = self.get_output_bitflag();
+        rec.tile_flag_mask = FLAG_FULL & ~3; # bitflags 1|2 = input flags
+        if self.ms_write_flag_policy == FLAG_ADD:
+          rec.ms_flag_mask = FLAG_FULL;
+        elif self.ms_write_flag_policy == FLAG_REPLACE:
+          rec.ms_flag_mask = FLAG_FULL & ~rec.tile_bitflag;
     # legacy flag handling
     rec.write_legacy_flags = self.ms_write_legacy_flags;
     if self.ms_write_legacy_flags:

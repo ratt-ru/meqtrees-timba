@@ -45,6 +45,11 @@ class SkyComponent (Parameterization):
     # If the source uses station decomposition (i.e. if the sqrt_visibilities() method has been called), 
     # this will be set to True.
     self.using_station_decomposition = False;
+    # if source should include a time/bandwidth smearing correction, this will be true
+    self.smearing = False;
+    
+  def enable_smearing (self, smearing=True):
+    self.smearing = smearing;
     
   def radec (self):
     """Returns ra-dec two-pack for this component's direction""";
@@ -85,7 +90,7 @@ class SkyComponent (Parameterization):
     (if decomposition is not supported).""";
     return None;
     
-  def visibilities  (self,array=None,observation=None,nodes=None,smearing=False,**kw):
+  def visibilities  (self,array=None,observation=None,nodes=None,**kw):
     """Creates nodes computing visibilities of component.
     'array' is an IfrArray object, or None if the global context is to be used.
     'observation' is an Observation object, or None if the global context is 
@@ -96,15 +101,13 @@ class SkyComponent (Parameterization):
     visibility nodes are created as nodes(p,q).
     Returns the actual unqualified visibility node that was created, i.e. 
     either 'nodes' itself, or the automatically named nodes
-    The 'smearing' argument is passed to the component's make_visibilitis() function.
-    If True, this tells it to apply time/bandwidth smearing correction
     """;
     observation = Context.get_observation(observation);
     array = Context.get_array(array);
     if nodes is None:
       nodes = self.ns.visibility.qadd(observation.radec0());
     if not nodes(*(array.ifrs()[0])).initialized():
-      self.make_visibilities(nodes,array,observation,smearing=smearing,**kw);
+      self.make_visibilities(nodes,array,observation,**kw);
     return nodes;
     
   def corrupt (self,jones,per_station=True,label=None):

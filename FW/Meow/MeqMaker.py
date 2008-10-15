@@ -390,10 +390,12 @@ class MeqMaker (object):
     ifrs = Meow.Context.array.ifrs();
     # use sky model if no source list is supplied
     sources = sources or self.get_source_list(ns);
-    smearing = self.use_smearing;
-    if smearing and self.smearing_count != "all":
-      smearing = self.smearing_count;
-
+    if self.use_smearing:
+      count = self.smearing_count;
+      if count == "all":
+        count = len(sources);
+      for src in sources[0:count]:
+        src.enable_smearing();
     # are we using decomposition? Then form up an alternate tree for decomposable sources.
     dec_sky = None;
     if self.use_decomposition:
@@ -470,9 +472,12 @@ class MeqMaker (object):
           return self._apply_vpm_list(ns,dec_sky);
     
     # now, proceed to build normal trees for non-decomposable sources
-    # corrupt_sources will be replaced with a new source list every time
-    # a Jones term is applied
-    corrupt_sources = sources;
+    # an important optimization when solving for sky terms is to put all the corrupt sources in one patch,
+    # and all the uncorrupted sources in another. 
+    # These two lists will contain the two sets of sources, and will be updated as we apply each
+    # sky Jones in turn
+    uncorrupted_sources = [ (src.name,src) for src in sources ];
+    corrupted_sources = []; 
 
     # apply all sky Jones terms
     for jt in self._sky_jones_list:
@@ -480,21 +485,42 @@ class MeqMaker (object):
       # if this Jones is enabled (Jj not None), corrupt each source
       if Jj:
         corr_sources = [];
-        for src,src0 in zip(corrupt_sources,sources):
-          jones = Jj(src0.name);
-          # do not corrupt if Jones term is not initialized
+        uncorr_sources = [];
+        for name,src in uncorrupted_sources:
+          jones = Jj(name);
+          # if Jones term is initialized, corrupt and append to corr_sources
+          # if not initialized, then append to uncorr_sources 
+          if jones(stations[0]).initialized():
+            corr_sources.append((name,src.corrupt(jones)));
+          else:
+            uncorr_sources.append((name,src));
+        for name,src in corrupted_sources:
+          jones = Jj(name);
+          # if Jones term is initialized, corrupt and append to corr_sources
+          # if not initialized, then append to corr_sources anyway, since we're already corrupted
           if jones(stations[0]).initialized():
             src = src.corrupt(jones);
-          corr_sources.append(src);
-        corrupt_sources = corr_sources;
+          corr_sources.append((name,src));
+        uncorrupted_sources = uncorr_sources;
+        corrupted_sources = corr_sources;
+    # discard name component from list
+    corrupted_sources = map(lambda a:a[1],corrupted_sources);
+    uncorrupted_sources = map(lambda a:a[1],uncorrupted_sources);
+    # if solvable, make two patches
+    if self._solvable and corrupted_sources and uncorrupted_sources:
+      sky_sources = [
+        Meow.Patch(ns,'sky-c',Meow.Context.observation.phase_centre,components=corrupted_sources),
+        Meow.Patch(ns,'sky-nc',Meow.Context.observation.phase_centre,components=uncorrupted_sources)
+      ];
+    else:
+      sky_sources = corrupted_sources + uncorrupted_sources;
 
     # now form up patch
     if dec_sky:
       patchname = 'sky2';
     else:
       patchname = 'sky';
-    allsky = Meow.Patch(ns,patchname,Meow.Context.observation.phase_centre);
-    allsky.add(*corrupt_sources);
+    allsky = Meow.Patch(ns,patchname,Meow.Context.observation.phase_centre,components=sky_sources);
 
     # add uv-plane effects
     for jt in self._uv_jones_list:
@@ -505,11 +531,11 @@ class MeqMaker (object):
     # now, if we also have a contribution from decomposable sources, add it here
     if dec_sky:
       vis = ns.visibility('sky');
-      vis2 = allsky.visibilities(smearing=smearing);
+      vis2 = allsky.visibilities();
       for p,q in ifrs:
         vis(p,q) << dec_sky(p,q) + vis2(p,q);
     else:
-      vis = allsky.visibilities(smearing=smearing);
+      vis = allsky.visibilities();
     
     # now chain up any visibility processors
     return self._apply_vpm_list(ns,vis);

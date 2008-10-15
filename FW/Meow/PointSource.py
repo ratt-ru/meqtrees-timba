@@ -168,12 +168,12 @@ class PointSource(SkyComponent):
             coh << coh1*.5;
     return coh;
 
-  def make_visibilities (self,nodes,array=None,observation=None,smearing=False,**kw):
+  def make_visibilities (self,nodes,array=None,observation=None,**kw):
     observation = observation or Context.observation;
     # create lambda to return the same coherency at all baselines
     cohnode = lambda p,q: self.coherency(observation);
     # use direction's phase shift method
-    self.direction.make_phase_shift(nodes,cohnode,array,observation.phase_center,smearing=smearing);
+    self.direction.make_phase_shift(nodes,cohnode,array,observation.phase_center,smearing=self.smearing);
    
   def is_station_decomposable (self):
     """Check the type -- subclasses are not necessarily decomposable.""";

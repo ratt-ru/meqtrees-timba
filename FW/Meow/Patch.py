@@ -28,28 +28,22 @@ import Context
 import Parallelization
 
 class Patch (SkyComponent):
-  def __init__(self,ns,name,direction):
+  def __init__(self,ns,name,direction,components=[]):
     SkyComponent.__init__(self,ns,name,direction);
-    self._components = [];
+    self._components = list(components);
     
   def add (self,*comps):
     """adds components to patch""";
     self._components += comps;
     
-  def make_visibilities (self,nodes,array,observation,smearing=False,**kw):
+  def make_visibilities (self,nodes,array,observation,**kw):
     array = Context.get_array(array);
     ifrs = array.ifrs();
     # no components -- use 0
     if not self._components:
       [ nodes(*ifr) << 0.0 for ifr in ifrs ];
     else:
-      # instantiate visibility nodes (so that solvables come into being if needed)
-      # if smearing is an int, smear the first N sources
-      # else smear the first 0 sources (smearing=False), or all sources (=True)
-      if not isinstance(smearing,int):
-        smearing = int(smearing) and 999999999;
-      cv_list = [ (comp,comp.visibilities(array,observation,smearing=(i<smearing))) 
-                  for i,comp in enumerate(self._components) ];
+      cv_list = [ (comp,comp.visibilities(array,observation)) for comp in self._components ];
       # determine which componentsn are now solvable
       solvables = [ vis for comp,vis in cv_list if comp.get_solvables() ];
       nonsolvables = [ vis for comp,vis in cv_list if not comp.get_solvables() ];
