@@ -83,8 +83,14 @@ class FullRealImag (object):
     offdiag_real = Meq.Parm(0,tags=tags+"offdiag real");
     offdiag_imag = Meq.Parm(0,tags=tags+"offdiag imag");
     # loop over sources
+    parms_diag = [];
+    parms_offdiag = [];
+    subgroups_diag = [];
+    subgroups_offdiag = [];
     for src in sources:
       # now loop to create nodes
+      sgdiag = [];
+      sgoff = [];
       for p in stations:
         jj = jones(src,p);
         jj << Meq.Matrix22(
@@ -105,15 +111,27 @@ class FullRealImag (object):
               jj("iyy") << diag_imag
           )
         );
+        # add to list of parms for groups and subgroups
+        parms = [ jj(zz) for zz in "rxx","ixx","ryy","iyy" ]
+        parms_diag += parms;
+        sgdiag += parms;
+        parms = [ jj(zz) for zz in "rxy","ixy","ryx","iyx" ];
+        parms_offdiag += parms;
+        sgoff  += parms;
+      # add subgroup for this source
+      subgroups_diag.append(ParmGroup.Subgroup(src.name,sgdiag));
+      subgroups_offdiag.append(ParmGroup.Subgroup(src.name,sgoff));
+    # re-sort by name
+    subgroups_diag.sort(lambda a,b:cmp(a.name,b.name));
+    subgroups_offdiag.sort(lambda a,b:cmp(a.name,b.name));
+    
     # make parmgroups for diagonal and off-diagonal terms
-    self.pg_diag  = ParmGroup.ParmGroup(label+"_diag",
-            [ jones(src,p,zz) for src in sources for p in stations 
-                              for zz in "rxx","ixx","ryy","iyy" ],
-            table_name="%s_diag.fmep"%label,bookmark=False);
-    self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",
-            [ jones(src,p,zz) for src in sources for p in stations 
-                              for zz in "rxy","ixy","ryx","iyx" ],
-            table_name="%s_offdiag.fmep"%label,bookmark=False);
+    self.pg_diag  = ParmGroup.ParmGroup(label+"_diag",parms_diag,
+                      subgroups=subgroups_diag,
+                      table_name="%s_diag.fmep"%label,bookmark=False);
+    self.pg_offdiag  = ParmGroup.ParmGroup(label+"_offdiag",parms_offdiag,
+                      subgroups=subgroups_offdiag,
+                      table_name="%s_offdiag.fmep"%label,bookmark=False);
 
     # make bookmarks
     Bookmarks.make_node_folder("%s diagonal terms"%label,

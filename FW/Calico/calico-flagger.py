@@ -137,7 +137,6 @@ def _define_forest(ns):
   inspectors.append(Meow.StdTrees.vis_inspector(ns.inspect('output'),outputs,bookmark=False));
   
   # make sinks and vdm
-  flagbit = mssel.get_output_flagbit();
   Meow.StdTrees.make_sinks(ns,outputs,
                            post=inspectors,output_col='');
   Meow.Bookmarks.make_node_folder("Output visibilities by baseline",
