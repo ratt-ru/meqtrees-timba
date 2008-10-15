@@ -2626,6 +2626,7 @@ class QwtImageDisplay(QwtPlot):
             x_data = numpy.arange(shape[0])
             curve = QwtPlotCurveSizes(self)
             curve.setPen(QPen(Qt.black, 2))
+            curve.setTitle('eigenvalues')
             curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
                QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
             curve.setStyle(Qt.SolidLine)
