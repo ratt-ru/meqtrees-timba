@@ -270,10 +270,10 @@ class HistoryPlotter(GriddedPlugin):
         if not self._flag_plot_array is None and self._flag_plot_array.max() > 0:
           self._plotter.setFlagsData(self._flag_plot_array)
           self._plotter.handleFlagToggle(False)
-          self._plotter.handleFlagRange(False)
+          self._plotter.handleFlagRange()
         else:
           self._plotter.handleFlagToggle(True)
-          self._plotter.handleFlagRange(True)
+          self._plotter.handleFlagRange()
 
     else:
       Message = "MeqHistoryCollect node lacks a value field."
@@ -380,10 +380,10 @@ class HistoryPlotter(GriddedPlugin):
     if not self._flag_plot_array is None and self._flag_plot_array[self.array_tuple].max() > 0:
       self._plotter.setFlagsData(self._flag_plot_array[self.array_tuple])
       self._plotter.handleFlagToggle(False)
-      self._plotter.handleFlagRange(False)
+      self._plotter.handleFlagRange()
     else:
       self._plotter.handleFlagToggle(True)
-      self._plotter.handleFlagRange(True)
+      self._plotter.handleFlagRange()
 
   def create_image_plotters(self):
     _dprint(3,'starting create_image_plotters')
