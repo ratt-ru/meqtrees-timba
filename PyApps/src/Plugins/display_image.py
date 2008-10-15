@@ -288,7 +288,7 @@ class QwtImageDisplay(QwtPlot):
         self.array_selector = None
         self.original_flag_array = None
         self.show_x_sections = False
-        self.flag_range = False
+        self.flag_range = True
         self.axes_flip = False
         self.axes_rotate = False
         self.setResults = True
@@ -703,6 +703,7 @@ class QwtImageDisplay(QwtPlot):
             self.display_image(ampl_phase_image)
           else:
             self.display_image(self.complex_image)
+          self.handleFlagRange()
         return True
       if menuid == self.menu_table['Toggle logarithmic range for data']:
         if self.toggle_log_display == False:
@@ -726,8 +727,7 @@ class QwtImageDisplay(QwtPlot):
         self.insert_array_info()
         if self.show_x_sections:
           self.calculate_cross_sections()
-        self.replot()
-        _dprint(3, 'called replot in handle_basic_menu_id')
+        self.handleFlagRange()
         return True
 
       if menuid == self.menu_table['Toggle Metrics Display']:
@@ -882,9 +882,12 @@ class QwtImageDisplay(QwtPlot):
 	return True
 
       if menuid == self.menu_table['Toggle display range to that of flagged image for plane ']:
-        self.handleFlagRange(self.flag_range)
+        if self.flag_range:
+          self.setFlagRange(False)
+        else:
+          self.setFlagRange(True)
         self._menu.setItemChecked(menuid,self.flag_range)
-        self.replot()
+        self.handleFlagRange()
         _dprint(3, 'called replot in handle_flag_toggles')
 	return True
 
@@ -918,12 +921,19 @@ class QwtImageDisplay(QwtPlot):
           else:
             self.curve(self.xrCrossSection).setEnabled(True)
 
-    def handleFlagRange(self, flag_range):
+    def setFlagRange(self,flag_range=True):
+      """ callback to adjust flag_range """
+      self.flag_range = flag_range
+      return
+
+    def handleFlagRange(self):
       """ callback to adjust display range of flagged data """
       if self.is_vector:
         return
-      if flag_range == False:
-        self.flag_range = True
+      if self._flags_array is None:
+        self.replot()
+        return
+      if self.flag_range:
         self.plotImage.setFlaggedImageRange()
         self.plotImage.updateImage(self.raw_image)
         flag_image_limits = self.plotImage.getRealImageRange()
@@ -932,7 +942,6 @@ class QwtImageDisplay(QwtPlot):
           flag_image_limits = self.plotImage.getImagImageRange()
           self.emit(PYSIGNAL("max_image_range"),(flag_image_limits, 1, self.toggle_log_display,self.ampl_phase))
       else:
-        self.flag_range = False
         self.plotImage.setImageRange(self.raw_image)
         self.plotImage.updateImage(self.raw_image)
         image_limits = self.plotImage.getRealImageRange()
@@ -940,6 +949,8 @@ class QwtImageDisplay(QwtPlot):
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
           self.emit(PYSIGNAL("max_image_range"),(image_limits, 1, self.toggle_log_display,self.ampl_phase))
+      # finally, replot
+      self.replot()
 
     def setAxisParms(self, axis_parms):
       self.first_axis_parm = axis_parms[0]
@@ -1005,6 +1016,7 @@ class QwtImageDisplay(QwtPlot):
         self._menu.changeItem(toggle_id, self._toggle_range_label+str(flag_plane))
       self._menu.setItemEnabled(toggle_id, flag_setting)
       self._menu.setItemVisible(toggle_id, flag_setting)
+      self._menu.setItemChecked(toggle_id, self.flag_range)
 
     def set_flag_toggles_active(self, flag_setting=False,image_display=True):
       """ sets menu options for flagging to visible """
@@ -1031,6 +1043,7 @@ class QwtImageDisplay(QwtPlot):
           toggle_id = self.menu_table[toggle_range_label]
           self._menu.setItemEnabled(toggle_id, flag_setting)
           self._menu.setItemVisible(toggle_id, flag_setting)
+          self._menu.setItemChecked(toggle_id, self.flag_range)
 
     def initVellsContextMenu (self):
       """ intitialize context menu for selection of Vells data """
@@ -2828,6 +2841,7 @@ class QwtImageDisplay(QwtPlot):
         self.removeMarker(self.source_marker)
       self.source_marker  = None
       self.array_plot(data_array, data_label=data_label)
+      self.handleFlagRange()
 
     def setVellsParms(self, vells_axis_parms, axis_labels):
       self.vells_axis_parms = vells_axis_parms
@@ -3561,6 +3575,7 @@ class QwtImageDisplay(QwtPlot):
           n_cols = flag_array.shape[1]
 
       if flag_is_vector == False:
+        self._flags_array = flag_array
         self.plotImage.setFlagsArray(flag_array)
         if self.flag_toggle is None:
           self.flag_toggle = True
@@ -3571,7 +3586,7 @@ class QwtImageDisplay(QwtPlot):
         num_elements = n_rows*n_cols
         self._flags_array = flag_array.reshape(num_elements);
         if self.flag_toggle is None:
-          self.flag_toggle = True
+          self.flag_toggle = False
           toggle_id = self.menu_table['toggle flagged data for plane ']
           self._menu.setItemChecked(toggle_id, self.flag_toggle)
 
