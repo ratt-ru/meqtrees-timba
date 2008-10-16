@@ -26,12 +26,12 @@
 from Timba.TDL import *
 from Timba.Meq import meqds
 from Timba.Meq import meq
-from numarray import *
+import numpy 
 
 def create_polc(c00=0.0,degree_f=0,degree_t=0):
   """helper function to create a t/f polc with the given c00 coefficient,
   and with given order in t/f""";
-  polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0);
+  polc = meq.polc(numpy.zeros((degree_t+1, degree_f+1))*0.0);
   polc.coeff[0,0] = c00;
   return polc;
 
@@ -40,6 +40,12 @@ def tpolc (mep_beam_weights,tdeg,c00=0.0):
                   node_groups='Parm',
 #                 node_groups='Parm', save_all=True,
                   table_name=mep_beam_weights)
+
+def wfpolc (mep_beam_weights, fdeg, tdeg,c00=0.0):
+  return Meq.Parm(create_polc(degree_f=fdeg,degree_t=tdeg,c00=c00),
+                  node_groups='Parm',
+                  table_name = mep_beam_weights)
+
 
 def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
 
@@ -63,8 +69,8 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
     ns.sample_wt_im_y(k) << -1.0 * Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_yy(k)],common_axes=[hiid('l'),hiid('m')])
 
     # I want to solve for these parameters
-    ns.beam_wt_re_y(k) << tpolc(mep_beam_weights,0)
-    ns.beam_wt_im_y(k) << tpolc(mep_beam_weights,0)
+    ns.beam_wt_re_y(k) << wfpolc(mep_beam_weights,3,0)
+    ns.beam_wt_im_y(k) << wfpolc(mep_beam_weights,3,0)
 
     # we need to assign the weights we've extracted as initial guesses
     # to the Parm - can only be done by solving according to Oleg
@@ -88,8 +94,8 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
     ns.sample_wt_im_x(k) << -1.0 * Meq.Compounder(children=[ns.lm_beam,ns.resampler_image_im_xx(k)],common_axes=[hiid('l'),hiid('m')])
 
     # I want to solve for these parameters
-    ns.beam_wt_re_x(k) << tpolc(mep_beam_weights,0)
-    ns.beam_wt_im_x(k) << tpolc(mep_beam_weights,0)
+    ns.beam_wt_re_x(k) << wfpolc(mep_beam_weights,3,0)
+    ns.beam_wt_im_x(k) << wfpolc(mep_beam_weights,3,0)
     ns.condeq_wt_re_x(k) << Meq.Condeq(children=(ns.sample_wt_re_x(k), ns.beam_wt_re_x(k)))
     ns.condeq_wt_im_x(k) << Meq.Condeq(children=(ns.sample_wt_im_x(k), ns.beam_wt_im_x(k)))
     ns.solver_wt_re_x(k)<<Meq.Solver(ns.condeq_wt_re_x(k),num_iter=50,epsilon=1e-4,solvable=ns.beam_wt_re_x(k),save_funklets=True,last_update=True)
@@ -143,7 +149,7 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
   # find peak values
   ns.resampler_im_x << Meq.Resampler(ns.im_x,dep_mask = 0xff)
   ns.im_x_max << Meq.Compounder(children=[ns.lm_beam,ns.resampler_im_x],common_axes=[hiid('l'),hiid('m')])
-  ns.im_x_max_fit << tpolc(mep_beam_weights,0,1.0)
+  ns.im_x_max_fit << wfpolc(mep_beam_weights,3,0,1.0)
   ns.condeq_im_x_max << Meq.Condeq(children=(ns.im_x_max_fit, ns.im_x_max))
   ns.solver_im_x_max <<Meq.Solver(ns.condeq_im_x_max,num_iter=50,epsilon=1e-4,solvable=ns.im_x_max_fit,save_funklets=True,last_update=True)
   parm_solvers.append(ns.solver_im_x_max)
@@ -151,7 +157,7 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
 
   ns.resampler_im_y << Meq.Resampler(ns.im_y,dep_mask = 0xff)
   ns.im_y_max << Meq.Compounder(children=[ns.lm_beam,ns.resampler_im_y],common_axes=[hiid('l'),hiid('m')])
-  ns.im_y_max_fit << tpolc(mep_beam_weights,0,1.0)
+  ns.im_y_max_fit << wfpolc(mep_beam_weights,3,0,1.0)
   ns.condeq_im_y_max << Meq.Condeq(children=(ns.im_y_max_fit, ns.im_y_max))
   ns.solver_im_y_max <<Meq.Solver(ns.condeq_im_y_max,num_iter=50,epsilon=1e-4,solvable=ns.im_y_max_fit,save_funklets=True,last_update=True)
   parm_solvers.append(ns.solver_im_y_max)
@@ -163,7 +169,7 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
   # now set up equations to solve for X and Y weights so that difference
   # between above x and y beams and voltage gaussian is minimized
   if do_fit:
-    ns.gauss_x_max_fit << tpolc(mep_beam_weights,0,1.0)
+    ns.gauss_x_max_fit << wfpolc(mep_beam_weights,2,0,1.0)
     ns.condeq_gauss_x_norm_max << Meq.Condeq(children=(ns.im_x_max, ns.gauss_x_max_fit))
     ns.solver_gauss_x_norm_max <<Meq.Solver(ns.condeq_gauss_x_norm_max,num_iter=50,epsilon=1e-4,solvable=ns.gauss_x_max_fit,save_funklets=True,last_update=True)
 
@@ -175,7 +181,7 @@ def setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit=False):
     solver_x = ns.req_solver_x << Meq.ReqSeq(ns.solver_x,ns.solver_gauss_x_norm_max)
 #   solver_x = ns.req_solver_x << Meq.ReqSeq(ns.solver_x, ns.solver_im_x_max)
 
-    ns.gauss_y_max_fit << tpolc(mep_beam_weights,0,1.0)
+    ns.gauss_y_max_fit << wfpolc(mep_beam_weights,2,0,1.0)
     ns.condeq_gauss_y_norm_max << Meq.Condeq(children=(ns.im_y_max, ns.gauss_y_max_fit))
     ns.solver_gauss_y_norm_max <<Meq.Solver(ns.condeq_gauss_y_norm_max,num_iter=50,epsilon=1e-4,solvable=ns.gauss_y_max_fit,save_funklets=True,last_update=True)
 
