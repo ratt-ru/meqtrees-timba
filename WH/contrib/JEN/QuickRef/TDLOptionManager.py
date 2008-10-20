@@ -13,6 +13,7 @@ TDLOptionManager.py:
 #   - 26 sep 2008: implemented hide/unhide
 #   - 26 sep 2008: implemented master/slave
 #   - 30 sep 2008: removed symbol (use key instead)
+#   - 19 oct 2008: save/restore current_values
 #
 # Description:
 #
@@ -95,11 +96,35 @@ class TDLOptionManager (object):
 
    def __init__(self, name='modulename', prompt=None, mode='compile'):
 
-      self._name = name
+      if isinstance(name,str):
+         self._name = name
+         if True:
+            # If name is __file__, remove the path and extension:
+            self._name = self._name.replace('.py','')
+            self._name = self._name.split('/')[-1]
+         self._prompt = prompt
+      else:                                    # assume name is a TCM object
+         self._name = name._name               #   use its name
+         self._prompt = name._prompt           #   use its prompt
+         if isinstance(prompt,str):            # specified explicitly
+            self._prompt = prompt              #   override
+
       self._mode = 'compile'                   # alternative: 'runtime'
 
       # A separator char is used to build hierarchical names:
       self._keysep = '_'
+
+      self.clear()    # NB: separate .clear() function causes problems!!
+
+      self._savefile = self._name+'.tcm'       # see .save/restore_current_values()
+      self.restore_current_values('.__init__()', trace=False)
+
+      return None
+
+   #--------------------------------------------------------------------------
+
+   def clear(self, trace=False):
+      """Clear the object"""
 
       # The following field is expected by OMS TDLOption() etc,
       # but it is set when calling the function .TDLMenu() below:
@@ -109,7 +134,7 @@ class TDLOptionManager (object):
       self._menudef = dict()
       self._defrecs = dict()                  # record of definition records
       self._keyorder = []
-      self.start_of_submenu(self._name, prompt=prompt, topmenu=True)
+      self.start_of_submenu(self._name, prompt=self._prompt, topmenu=True)
 
       # The definition record is used to generate the actual TDLOption objects.
       self._TDLmenu = None                    # the final TDLMenu 
@@ -148,10 +173,17 @@ class TDLOptionManager (object):
       ss += '\n * self.tdloption_namespace: '+str(self.tdloption_namespace)
       ss += '\n * self._defrecs: '+str(len(self._defrecs))
       ss += '\n * self._tdlobjects: '+str(len(self._tdlobjects))
+
+      ss += '\n * self._lastval: '+str(len(self._lastval))
+      if full:
+         for key in self._lastval.keys():
+            ss += '\n   - '+str(key)+' = '+str(self._lastval[key])
+
       ss += '\n * self.keys(): '+str(len(self.keys()))
       if full:
          for key in self.keys():
             ss += '\n   - '+str(key)+': '
+
       ss += '\n * self._TCMlist ('+str(len(self._TCMlist))+'):'
       for tcm in self._TCMlist:
          ss += '\n   '+str(tcm.oneliner())
@@ -267,6 +299,7 @@ class TDLOptionManager (object):
                     itsmenukey=itsmenukey,
                     level=self.current_menu_level(),
                     selectable=selectable,
+                    ignore=False,
                     choice=choice, more=more)
       self._current_menurec['menu'][key] = optdef
       self.current_order(key, prepend=prepend, trace=trace)
@@ -322,7 +355,7 @@ class TDLOptionManager (object):
       self._current_menurec['sepcount'] += 1
       key = self._current_menurec['key'] + '.separator'
       key += str(self._current_menurec['sepcount'])
-      optdef = dict(type='separator', key=key)
+      optdef = dict(type='separator', key=key, ignore=False)
       if True:
          # Temporarily disabled...
          print '\n** TOM.add_separator(): Ignored until it works (OMS)....\n'
@@ -344,6 +377,7 @@ class TDLOptionManager (object):
                          help=None,
                          hide=None,
                          disable=False,
+                         ignore=False,
                          master=None,
                          topmenu=False,
                          callback=None,      
@@ -550,7 +584,7 @@ class TDLOptionManager (object):
                        callback=self.callback_group_control,
                        prepend=True, trace=trace)
       if trace:
-         print '\n** .insert_group_control() -> ',self._current_menurec['ctrl']
+         print '\n** .insert_group_control() -> ',self._current_menurec['key']
       return True
 
    #..........................................................................
@@ -671,6 +705,7 @@ class TDLOptionManager (object):
 
    def TDLMenu (self, namespace=None, trace=False):
       """Return the complete TDLMenu object. Create it if necessary.""" 
+
       if self._complete:                         # already created
          return self._TDLMenu                    # just return it
 
@@ -700,8 +735,9 @@ class TDLOptionManager (object):
       # Add callback function(s) in the correct order:
       self.add_callbacks(trace=trace)
 
-      # Last: fill self._lastval ....
-      self.find_changed()
+      # Finishing touches:
+      self.find_changed()                     # misused to fill self._lastval ....
+      self.save_current_values('.TDLMenu()', trace=trace)
       return self._TDLMenu
 
    #--------------------------------------------------------------------------
@@ -720,7 +756,7 @@ class TDLOptionManager (object):
                # Ignore group_control option in empty menus:
                item = self._defrecs[dd['order'][0]]
                if item['type']=='option' and item['relkey']=='group_control':
-                  self._defrecs[item['key']]['type'] = 'ignore'
+                  self._defrecs[item['key']]['ignore'] = True
                   if trace:
                      print '-- ignore: ',item['key']
       
@@ -749,11 +785,17 @@ class TDLOptionManager (object):
          if trace:
             print prefix,key,':',dd['type']
 
+         if dd.has_key('ignore') and dd['ignore']:
+            pass
+
          if dd['type']=='option':
             tdlob = TDLOption(symbol=dd['key'], name=dd['prompt'],
                               value=dd['choice'], more=dd['more'],
                               doc=dd['help'],
                               namespace=self)
+            if self._lastval.has_key(dd['key']):
+               # Assume from .restore_current_values()
+               tdlob.set_value(self._lastval[dd['key']], callback=False)
             self._tdlobjects[key] = tdlob
             oblist.append(tdlob)
 
@@ -763,9 +805,6 @@ class TDLOptionManager (object):
 
          elif dd['type']=='separator':
             oblist.append(None)
-
-         elif dd['type']=='ignore':
-            pass
 
          else:
             s = '** option type not recognised: '+str(dd['type'])
@@ -793,11 +832,14 @@ class TDLOptionManager (object):
                                namespace=self, *oblist)
 
       # Attach the menu object to a flat record:
+      if self._lastval.has_key(rr['key']):
+         # Assume from .restore_current_values()
+         menu.set_value(self._lastval[rr['key']], callback=False)
       self._tdlobjects[rr['key']] = menu
          
       if trace:
          print prefix,'-> (sub)menu =',rr['key'],' (n=',len(oblist),')',str(menu)
-         for key1 in ['ctrl','radio']:
+         for key1 in ['group_control','radio']:
             if rr.has_key(key1):
                print prefix,'(',key1,':',rr[key1],')'
 
@@ -953,7 +995,11 @@ class TDLOptionManager (object):
       # trace = True
       if trace:
          print '\n** .callback_update_lastval(',value,')\n'
-      self.update_lastval()
+      self.update_lastval(trace=trace)
+      
+      # Do this each time an option value is changed:
+      self.save_current_values('callback_update_lastval()', trace=trace)
+
       return None
 
 
@@ -986,6 +1032,83 @@ class TDLOptionManager (object):
          self.set_menu_summaries(trace=trace)
 
       return True
+
+   #-------------------------------------------------------------------------
+
+   def save_current_values(self, txt=None, trace=False):
+      """Save the current values in a file"""
+      # filename = 'save_lastval.tmp'
+      filename = self._savefile
+      if trace:
+         print '\n** .save_current_values(',filename,'): ',txt
+      self.update_lastval(trace=trace)
+      # savefile = open(filename,'wb')
+      # savefile.write(self._lastval)            # cannot write dict, just strings
+      savefile = open(filename,'w')
+      ss = []
+      for key in self._lastval.keys():
+         v = self._lastval[key]
+         s = str(key)
+         s += '#'+str(type(v)).split("'")[1]
+         s += '#'+str(v)+'\n'
+         if trace:
+            print '  -',s
+         ss.append(s)
+      savefile.writelines(ss)
+      savefile.close()
+      return filename
+
+   #........................................................................
+      
+   def restore_current_values(self, txt=None, severe=True, trace=False):
+      """Restore the current values from a file"""
+      # filename = 'save_lastval.tmp'
+      filename = self._savefile
+      if trace:
+         print '\n** .restore_current_values(',filename,severe,'): ',txt
+         self.show('before .restore_current_values()')
+
+      # Restore only if the specified file exists:
+      try:
+         savefile = open(filename,'r')
+      except:
+         print '\n** .restore_current_values(',filename,'): problem opening file\n'
+         return False
+      
+      ## self._lastval = dict()         # NOT a good idea...!
+      for line in savefile:
+         ss = line.split('#')
+         key = ss[0]
+         typ = ss[1]
+         v = line.replace(key+'#'+typ+'#','')
+         v = v.replace('\n','')
+         if typ=='bool':
+            v = (v=='True')            # NB: v = bool(v) ALWAYS gives True!!!!
+         elif typ=='str':
+            v = v
+         elif typ=='int':
+            v = int(v)
+         elif typ=='float':
+            v = float(v)
+         elif typ=='complex':
+            v = complex(v)
+         elif severe:
+            s = '\n** .restore_current_values(): type not recognized: '+typ+' (key='+key+')='+v
+            raise ValueError,s
+         else:
+            v = '?'+v+'?'
+         self._lastval[key] = v
+         if trace:
+            print '  -- lastval[',key,'] = ',v,type(v)
+         if self._tdlobjects.has_key(key):
+            self.setopt(key, v, callback=False, trace=trace)
+            if trace:
+               print '   --- tdlobject: ',key,' = ',self._tdlobjects[key].value
+      savefile.close()
+      if trace:
+         self.show('after .restore_current_values()')
+      return filename
+      
 
    #-------------------------------------------------------------------------
 
@@ -1368,22 +1491,28 @@ class TDLOptionManager (object):
          # (if provided) to make a prefix to the given name, to make it unique.
          # This allows calling .getopt() with just the relative name of the option. 
          name = self.getopt_prefix(func)+name
-         
       namin = name
-      if False:
-         pass
-         # A little service: Replace other separators with the correct one:  
-         # name = name.replace('.',self._symsep)
-         # name = name.replace(':',self._symsep)
-         # name = name.replace('|',self._symsep)
-
+         
       key = self.find_key(name, severe=severe, trace=trace)
-      if isinstance(key,str):
-         value = self._tdlobjects[key].value
-      else:
+      source = None
+      if not isinstance(key,str):
          # This may happen during testing (severe=False):
-         key = '<not found>'
-         value = '<not found>'
+         key = '<key not found>'
+         value = '<key not found>'
+      elif self._tdlobjects.has_key(key):
+         value = self._tdlobjects[key].value
+         source = 'tdlobject'
+      elif self._lastval.has_key(key):            # see .restore_current_values()
+         value = self._lastval[key]
+         source = 'lastval'
+      elif self._defrecs.has_key(key):            # .....?
+         dd = self._defrecs[key]
+         value = dd['default']
+         source = 'defrec[default]'
+      else:
+         # This should not happen, really..
+         s = '** invalid key: '+str(key)
+         raise ValueError,s
 
       if rider:
          # The rider is a concept used in QuickRef modules.
@@ -1402,7 +1531,7 @@ class TDLOptionManager (object):
          rider.insert_help (path, qhelp, append=True)
          
       if trace:
-         print '** TOM.getopt(',namin,'):',name,' (key=',key,') -> value =',value
+         print '** .getopt(',namin,'):',name,' (key=',key,') -> value =',value,'   (source=',source,')'
       return value
 
    #--------------------------------------------------------------------------
@@ -1457,7 +1586,8 @@ class TDLOptionManager (object):
                s += '   (slaved to: '+str(dd['master'])+')'
             if dd['hide']:
                s += '   (nominally hidden)'
-            self._tdlobjects[key].set_summary(s)
+            if self._tdlobjects.has_key(key):
+               self._tdlobjects[key].set_summary(s)
             if trace:
                print '-',key,':',s
       if trace:
@@ -1565,7 +1695,6 @@ def test_slavemenu(trace=False, full=False):
       TCM.add_option('aa', range(4))
       TCM.add_option('bb', range(4))
       TCM.add_option('cc', range(4), disable=(i==1))
-      ## TCM.end_of_submenu()               # alternative for level='master'
 
    if trace:
       TCM.show('test_slavemenu()', full=full)
@@ -1573,6 +1702,107 @@ def test_slavemenu(trace=False, full=False):
    
 
 #------------------------------------------------------------
+#------------------------------------------------------------
+
+def testfunc (ns, TCM=None, menu=None, trace=False):
+   """Test
+   """
+   submenu = 'testfunc'
+   TCM.start_of_submenu(submenu, menu=menu)
+   TCM.add_option('ifunc', range(5))
+   TCM.add_option('bb', range(4))
+   TCM.add_option('cc', range(4))
+
+   prefix = TCM.getopt_prefix(testfunc)
+   ifunc = TCM.getopt(prefix+'ifunc', trace=trace)
+   
+   if ifunc==1:
+      test_subfunc1 (ns, TCM=TCM, menu=submenu, trace=trace)
+   elif ifunc==2:
+      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
+   elif ifunc==3:
+      test_subfunc1 (ns, TCM=TCM, menu=submenu, trace=trace)
+      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
+   elif ifunc==4:
+      test_master(ns, TCM=TCM, menu=submenu, trace=trace)
+   else:
+      pass
+
+   if trace:
+      TCM.show('testfunc()', full=True)
+      print '** prefix =',prefix
+      print EF.format_record(TCM._menudef,'TCM._menudef', recurse=10)
+   return True
+   
+#------------------------------------------------------------
+
+def test_subfunc1 (ns, TCM=None, menu=None, trace=False):
+   """Test
+   """
+   if trace:
+      print '\n** test_subfunc1():'
+   TCM.start_of_submenu('test_subfunc1', menu=menu)
+   TCM.add_option('AA', range(4))
+
+   ns.subfunc1 << 1.0
+
+   prefix = TCM.getopt_prefix(test_subfunc1, trace=trace)
+   return True
+   
+#------------------------------------------------------------
+
+def test_subfunc2 (ns, TCM=None, menu=None, trace=False):
+   """Test
+   """
+   if trace:
+      print '\n** test_subfunc1():'
+   TCM.start_of_submenu('test_subfunc2', menu=menu)
+   TCM.add_option('BB', range(4))
+
+   ns.subfunc2 << 2.0
+
+   prefix = TCM.getopt_prefix(test_subfunc2, trace=trace)
+   return True
+   
+#------------------------------------------------------------
+#------------------------------------------------------------
+
+def test_master(ns, TCM=None, menu=None, trace=False):
+   """Master function (calls slaves)
+   """
+   if trace:
+      print '\n** test_master(',menu,'):'
+   submenu = 'test_master'
+   key = TCM.start_of_submenu(submenu, menu=menu)
+   TCM.add_option('aa', range(4))
+   TCM.add_option('bb', range(4), disable=True)
+   TCM.add_option('cc', range(4))
+
+   for i in range(3):
+      test_slave(ns, TCM=TCM, menu=submenu, qual=i, master=key, trace=True)
+   return True
+
+#------------------------------------------------------------
+
+def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
+   """Slave function (called by master)
+   """
+   if trace:
+      print '\n** test_slave(',menu,qual,master,'):'
+      
+   submenu = 'test_slave'
+   if not qual==None:
+      submenu += '_'+str(qual)
+      
+   key = TCM.start_of_submenu(submenu, menu=menu, master=master)
+   if trace:
+      print '  submenu =',submenu,' (menukey =',key,')'
+   
+   TCM.add_option('aa', range(4))
+   TCM.add_option('bb', range(4))
+   TCM.add_option('cc', range(4), disable=(qual==2))
+   return True
+   
 
 
 #********************************************************************************
@@ -1582,28 +1812,35 @@ def test_slavemenu(trace=False, full=False):
 #********************************************************************************
 #********************************************************************************
 
+# TCM = None
+itsTDLCompileMenu = None
+# TDLCompileOption('yyy', 'YYY', range(4))
+
+if 1:
+   # Generation of context-dependent TDLOptions, using the same function as in
+   # _define_forest():
+   TCM = TDLOptionManager(__file__)
+   ns = NodeScope()
+   testfunc (ns, TCM=TCM, trace=False)
+   itsTDLCompileMenu = TCM.TDLMenu(trace=False)
+   # TCM.save_current_values('outside', trace=True)         # make part of .TDLMenu()
+
+   
+#------------------------------------------------------------------------------
+
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
 
-   # NB: When the test-functions are executed inside _define_forest(),
-   #     the menu does not appear in the browser....
+   print '\n**********************'
+   print '** _define_forest():' 
+   print '**********************\n'
 
    node = ns.dummy << 1.0
+
+   testfunc (ns, TCM=TDLOptionManager(TCM), trace=False)       
+
    return True
 
-#-------------------------------------------------------------------------------
-
-TCM = None
-# Enable for testing:
-if 0:
-   # TCM = create_TCM(trace=True, full=False)
-   # TCM = test_basic(trace=True, full=False)
-   TCM = test_slavemenu(trace=True, full=False)
-   if 0:
-      TCM1 = create_TCM('append', trace=True, full=False)
-      TCM.append_TCM(TCM1)
-   menu = make_TDLCompileMenu (TCM, trace=True, full=False)
-   
 
 
 #********************************************************************************
@@ -1622,18 +1859,24 @@ if __name__ == '__main__':
    # rider = QRU.create_rider()             # CollatedHelpRecord object
 
    if 0:
+      # TCM = TDLOptionManager('testing')
       TCM = create_TCM(trace=True, full=False)
 
-   if 0:
+   if 1:
       TCM = test_basic(trace=True, full=True,
                        test_find_key=True,
                        test_getopt=False)
 
-   if 1:
+   if 0:
       TCM = test_slavemenu(trace=True, full=True)
 
-   if 0:
+   if 1:
       make_TDLCompileMenu (TCM, trace=False, full=False)
+      if 1:
+         TCM.save_current_values(trace=True)
+         if 1:
+            TCM.restore_current_values(trace=True)
+
 
    
    #--------------------------------------------------------
