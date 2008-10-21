@@ -1419,7 +1419,7 @@ class QwtImageDisplay(QwtPlot):
       """
       self._vells_plot = False
       self.reset_zoom()
-      dummy_array = numpy.zeros(shape=(2,2),type=numpy.float32)
+      dummy_array = numpy.zeros(shape=(2,2),dtype=numpy.float32)
       self.array_plot(dummy_array,data_label=data_label)
       self.zooming = False
       self.set_xaxis_title(' ')
@@ -2089,11 +2089,11 @@ class QwtImageDisplay(QwtPlot):
         keys = self.curveKeys()
         for j in range(len(keys)):
           plot_curve=self.curve(keys[j])
-          if self.curveTitle(keys[j]) == 'imaginaries':
+          if self.curveTitle(keys[j]) == 'imaginaries' or self.curveTitle(keys[j]) == 'phase':
             self.setCurvePen(keys[j], QPen(Qt.blue, q_line_size))
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
                   QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
-          if self.curveTitle(keys[j]) == 'reals':
+          if self.curveTitle(keys[j]) == 'reals' or self.curveTitle(keys[j]) == 'amplitude':
             self.setCurvePen(keys[j], QPen(Qt.black, q_line_size))
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
                   QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
@@ -3327,11 +3327,13 @@ class QwtImageDisplay(QwtPlot):
           if self.ampl_phase:
             self.setAxisTitle(QwtPlot.yLeft, 'Value: Amplitude (black line / red dots)')
             self.setAxisTitle(QwtPlot.yRight, 'Value: Phase (blue line / green dots)')
+            self.yCrossSection = self.insertCurve('phase')
+            self.xrCrossSection = self.insertCurve('amplitude')
           else:
             self.setAxisTitle(QwtPlot.yLeft, 'Value: real (black line / red dots)')
             self.setAxisTitle(QwtPlot.yRight, 'Value: imaginary (blue line / green dots)')
-          self.yCrossSection = self.insertCurve('imaginaries')
-          self.xrCrossSection = self.insertCurve('reals')
+            self.yCrossSection = self.insertCurve('imaginaries')
+            self.xrCrossSection = self.insertCurve('reals')
           self.setCurvePen(self.xrCrossSection, QPen(Qt.black, q_line_size))
           self.setCurvePen(self.yCrossSection, QPen(Qt.blue, q_line_size))
           self.setCurveYAxis(self.xrCrossSection, QwtPlot.yLeft)
@@ -3345,8 +3347,12 @@ class QwtImageDisplay(QwtPlot):
           self.x_array =  flattened_array.real
           self.y_array =  flattened_array.imag
           if not self._flags_array is None:
-            self.yCrossSection_flag = self.insertCurve('flag_imaginaries')
-            self.xrCrossSection_flag = self.insertCurve('flag_reals')
+            if self.ampl_phase:
+              self.yCrossSection_flag = self.insertCurve('flag_phase')
+              self.xrCrossSection_flag = self.insertCurve('flag_amplitude')
+            else:
+              self.yCrossSection_flag = self.insertCurve('flag_imaginaries')
+              self.xrCrossSection_flag = self.insertCurve('flag_reals')
             self.setCurvePen(self.xrCrossSection_flag, QPen(Qt.black, q_line_size))
             self.setCurvePen(self.yCrossSection_flag, QPen(Qt.blue, q_line_size))
             self.setCurveYAxis(self.xrCrossSection_flag, QwtPlot.yLeft)
