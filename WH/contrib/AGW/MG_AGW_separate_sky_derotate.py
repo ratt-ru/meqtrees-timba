@@ -73,7 +73,10 @@ TDLCompileOption('do_fit','make gaussian fit',[True, False])
 if do_fit:
   Settings.forest_state = record(bookmarks=[
     record(name='Results',page=[
-      record(udi="/node/IQUV",viewer="Result Plotter",pos=(0,0))]),
+      record(udi="/node/observed",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/observed_derot",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/pol_orig",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/IQUV_orig",viewer="Result Plotter",pos=(1,0))]),
     record(name='Fits',page=[
       record(udi="/node/solver_x",viewer="Result Plotter",pos=(0,0)),
       record(udi="/node/solver_y",viewer="Result Plotter",pos=(0,1)),
@@ -83,9 +86,12 @@ if do_fit:
 else:
   Settings.forest_state = record(bookmarks=[
     record(name='Results',page=[
-      record(udi="/node/IQUV",viewer="Result Plotter",pos=(0,0))])])
+      record(udi="/node/observed",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/observed_derot",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/pol_orig",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/IQUV_orig",viewer="Result Plotter",pos=(1,0))])])
 
-mep_beam_weights = 'beam_weights_rotate' + str(l_beam) + '_' + str(m_beam) + '.mep'
+mep_beam_weights = 'beam_weights_rotate_' + str(l_beam) + '_' + str(m_beam) + '.mep'
 
 
 ########################################################
@@ -114,6 +120,12 @@ def _define_forest(ns):
 # freeze beam position over 'tile' interval by getting the mean over interval
   pa = ns.ParAngle_mean << Meq.Mean(ns.ParAngle)
 # pa = ns.ParAngle << Meq.Constant(0.05)
+  cospa = ns << Meq.Cos(pa);
+  sinpa = ns << Meq.Sin(pa);
+  ns.pa_rotate << Meq.Matrix22(cospa,-sinpa,sinpa,cospa)
+  ns.pa_rotate_t << Meq.ConjTranspose(ns.pa_rotate)
+  ns.pa_inv << Meq.Matrix22(cospa,sinpa,-sinpa,cospa);
+  ns.pa_inv_t << Meq.ConjTranspose(ns.pa_inv);
 
   # define desired half-intensity width of power pattern (HPBW)
   # as we are fitting total intensity I pattern (here .021 rad = 74.8 arcmin)
@@ -155,77 +167,91 @@ def _define_forest(ns):
 # corresponding gaussian voltage response
   ns.sqrt_gauss << Meq.Sqrt(ns.gaussian)
 
-
 # get beam data
   num_beams = read_in_FPA_beams(ns,fpa_directory)
   # now determine weights for individual beams
   parms_req_mux, solver_x, solver_y = setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit)
 
-
-  # now attempt to de-rotate the I image
-  ns.l << Meq.Grid(axis=2);     # returns l(l) = l
-  ns.m << Meq.Grid(axis=3);     # returns m(m) = m
-  ns.lm_pre_rot << Meq.Composer(ns.l,ns.m)    # returns an lm 2-vector
-
-  ns.P << Meq.Matrix22(Meq.Cos(pa),-Meq.Sin(pa),Meq.Sin(pa),Meq.Cos(pa)) 
-  ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
-  ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
-  ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
-  ns.lm_rot << Meq.Composer(Meq.Grid(axis=0),Meq.Grid(axis=1),ns.l_rot,ns.m_rot)
-# the ns.lm_rot contains L'M' AzEl grid positions as a function of the
-# original grid. So, I think that the resampling etc being done below
-# gets the data from the L'M' grid but puts the result on the original 
-# LM grid. 
-
-  ns.resampler_xx_real << Meq.Resampler(Meq.Real(ns.norm_voltage_sum_xx),dep_mask = 0xff)
-  ns.xx_real << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xx_real],common_axes=[hiid('l'),hiid('m')])
-  ns.resampler_xx_imag << Meq.Resampler(Meq.Imag(ns.norm_voltage_sum_xx),dep_mask = 0xff)
-  ns.xx_imag << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xx_imag],common_axes=[hiid('l'),hiid('m')])
-  ns.resampler_xy_real << Meq.Resampler(Meq.Real(ns.norm_voltage_sum_xy),dep_mask = 0xff)
-  ns.xy_real << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xy_real],common_axes=[hiid('l'),hiid('m')])
-  ns.resampler_xy_imag << Meq.Resampler(Meq.Imag(ns.norm_voltage_sum_xy),dep_mask = 0xff)
-  ns.xy_imag << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xy_imag],common_axes=[hiid('l'),hiid('m')])
-  ns.resampler_yx_real << Meq.Resampler(Meq.Real(ns.norm_voltage_sum_yx),dep_mask = 0xff)
-  ns.yx_real << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yx_real],common_axes=[hiid('l'),hiid('m')])
-  ns.resampler_yx_imag << Meq.Resampler(Meq.Imag(ns.norm_voltage_sum_yx),dep_mask = 0xff)
-  ns.yx_imag << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yx_imag],common_axes=[hiid('l'),hiid('m')])
-  ns.resampler_yy_real << Meq.Resampler(Meq.Real(ns.norm_voltage_sum_yy),dep_mask = 0xff)
-  ns.yy_real << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yy_real],common_axes=[hiid('l'),hiid('m')])
-  ns.resampler_yy_imag << Meq.Resampler(Meq.Imag(ns.norm_voltage_sum_yy),dep_mask = 0xff)
-  ns.yy_imag << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yy_imag],common_axes=[hiid('l'),hiid('m')])
-
-  ns.xx << Meq.ToComplex(ns.xx_real, ns.xx_imag)
-  ns.xy << Meq.ToComplex(ns.xy_real, ns.xy_imag)
-  ns.yx << Meq.ToComplex(ns.yx_real, ns.yx_imag)
-  ns.yy << Meq.ToComplex(ns.yy_real, ns.yy_imag)
-  ns.E << Meq.Matrix22(ns.xx, ns.xy, ns.yx, ns.yy)
+  ns.E << Meq.Matrix22(ns.norm_voltage_sum_xx, ns.norm_voltage_sum_xy,ns.norm_voltage_sum_yx, ns.norm_voltage_sum_yy)
   ns.Et << Meq.ConjTranspose(ns.E)
 
  # sky brightness
   ns.B0 << 0.5 * Meq.Matrix22(1.0, 0.0, 0.0, 1.0)
 
   # observe!
-  ns.observed << Meq.MatrixMultiply(ns.E, ns.B0, ns.Et)
+  ns.observed << Meq.MatrixMultiply(ns.E, ns.pa_rotate,ns.B0, ns.pa_rotate_t,ns.Et)
 
-  # extract I,Q,U,V etc
-  ns.IpQ << Meq.Selector(ns.observed,index=0)        # XX = (I+Q)/2
-  ns.ImQ << Meq.Selector(ns.observed,index=3)        # YY = (I-Q)/2
+
+  # extract voltage responses
+  ns.xx << Meq.Selector(ns.observed,index=0)  # XX = (I+Q)/2
+  ns.xy << Meq.Selector(ns.observed,index=1)  # YY = (I-Q)/2
+  ns.yx << Meq.Selector(ns.observed,index=2)  # XY = (U+iV)/2
+  ns.yy << Meq.Selector(ns.observed,index=3)  # YX = (U-iV)/2
+  ns.xx_r << Meq.Real(ns.xx)
+  ns.xy_r << Meq.Real(ns.xy)
+  ns.yx_r << Meq.Real(ns.yx)
+  ns.yy_r << Meq.Real(ns.yy)
+  ns.xx_i << Meq.Imag(ns.xx)
+  ns.xy_i << Meq.Imag(ns.xy)
+  ns.yx_i << Meq.Imag(ns.yx)
+  ns.yy_i << Meq.Imag(ns.yy)
+                           
+# now attempt to de-rotate the I image
+  ns.l << Meq.Grid(axis=2);     # returns l(l) = l
+  ns.m << Meq.Grid(axis=3);     # returns m(m) = m
+  ns.lm_pre_rot << Meq.Composer(ns.l,ns.m)    # returns an lm 2-vector
+
+  ns.rot_lm << Meq.MatrixMultiply(ns.pa_rotate,ns.lm_pre_rot);    # rotated lm
+  ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
+  ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
+  ns.lm_rot << Meq.Composer(Meq.Grid(axis=0),Meq.Grid(axis=1),ns.l_rot,ns.m_rot)
+
+  ns.resampler_xx_r << Meq.Resampler(ns.xx_r,dep_mask = 0xff)
+  ns.xx_orig_r << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xx_r],common_axes=[hiid('l'),hiid('m')])
+  ns.resampler_xy_r << Meq.Resampler(ns.xy_r,dep_mask = 0xff)
+  ns.xy_orig_r << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xy_r],common_axes=[hiid('l'),hiid('m')])
+  ns.resampler_yx_r << Meq.Resampler(ns.yx_r,dep_mask = 0xff)
+  ns.yx_orig_r << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yx_r],common_axes=[hiid('l'),hiid('m')])
+  ns.resampler_yy_r << Meq.Resampler(ns.yy_r,dep_mask = 0xff)
+  ns.yy_orig_r << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yy_r],common_axes=[hiid('l'),hiid('m')])
+  ns.resampler_xx_i << Meq.Resampler(ns.xx_i,dep_mask = 0xff)
+  ns.xx_orig_i << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xx_i],common_axes=[hiid('l'),hiid('m')])
+  ns.resampler_xy_i << Meq.Resampler(ns.xy_i,dep_mask = 0xff)
+  ns.xy_orig_i << Meq.Compounder(children=[ns.lm_rot,ns.resampler_xy_i],common_axes=[hiid('l'),hiid('m')])
+  ns.resampler_yx_i << Meq.Resampler(ns.yx_i,dep_mask = 0xff)
+  ns.yx_orig_i << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yx_i],common_axes=[hiid('l'),hiid('m')])
+  ns.resampler_yy_i << Meq.Resampler(ns.yy_i,dep_mask = 0xff)
+  ns.yy_orig_i << Meq.Compounder(children=[ns.lm_rot,ns.resampler_yy_i],common_axes=[hiid('l'),hiid('m')])
+  ns.vis_orig << Meq.Matrix22(Meq.ToComplex(ns.xx_orig_r,ns.xx_orig_i),Meq.ToComplex(ns.xy_orig_r,ns.xy_orig_i),Meq.ToComplex(ns.yx_orig_r,ns.yx_orig_i),Meq.ToComplex(ns.yy_orig_r,ns.yy_orig_i))
+ #de-rotate
+  ns.observed_derot << Meq.MatrixMultiply(ns.pa_inv,ns.vis_orig,ns.pa_inv_t)
+
+ # extract I,Q,U,V etc
+  ns.IpQ << Meq.Selector(ns.observed_derot,index=0)  # XX = (I+Q)/2
+  ns.ImQ << Meq.Selector(ns.observed_derot,index=3)  # YY = (I-Q)/2
   ns.I << Meq.Add(ns.IpQ,ns.ImQ)                     # I = XX + YY
   ns.Q << Meq.Subtract(ns.IpQ,ns.ImQ)                # Q = XX - YY
 
-  ns.UpV << Meq.Selector(ns.observed,index=1)        # XY = (U+iV)/2
-  ns.UmV << Meq.Selector(ns.observed,index=2)        # YX = (U-iV)/2
+  ns.UpV << Meq.Selector(ns.observed_derot,index=1)  # XY = (U+iV)/2
+  ns.UmV << Meq.Selector(ns.observed_derot,index=2)  # YX = (U-iV)/2
   ns.U << Meq.Add(ns.UpV,ns.UmV)                     # U = XY + YX
   ns.iV << Meq.Subtract(ns.UpV,ns.UmV)               # iV = XY - YX  <----!!
   ns.V << ns.iV / 1j                                 # V = iV / i
-                                                     # (note: i => j in Python)
 
-  ns.IQUV_complex << Meq.Composer(ns.I, ns.Q,ns.U, ns.V)
-  IQUV = ns.IQUV << Meq.Real(ns.IQUV_complex)
+  ns.I_real << Meq.Real(ns.I)
+  ns.Q_real << Meq.Real(ns.Q)
+  ns.U_real << Meq.Real(ns.U)
+  ns.V_real << Meq.Real(ns.V)
+
+  ns.IQUV_orig << Meq.Matrix22(ns.I_real,ns.Q_real,ns.U_real,ns.V_real)
+  ns.Q_sqr << Meq.Sqr(ns.Q_real)
+  ns.U_sqr << Meq.Sqr(ns.U_real)
+  ns.pol_orig << Meq.Sqrt(ns.Q_sqr + ns.U_sqr)
+
   if do_fit:
-    ns.req_seq<<Meq.ReqSeq(parms_req_mux, solver_x, solver_y, IQUV)
+    ns.req_seq<<Meq.ReqSeq(parms_req_mux, solver_x, solver_y, ns.IQUV_orig, ns.pol_orig)
   else:
-    ns.req_seq<<Meq.ReqSeq(parms_req_mux, IQUV)
+    ns.req_seq<<Meq.ReqSeq(parms_req_mux, ns.IQUV_orig, ns.pol_orig)
 
 ########################################################################
 def _test_forest(mqs,parent):
@@ -240,11 +266,11 @@ def _test_forest(mqs,parent):
 
 # any large time range will do: we observe the changes in the beam
 # pattern in timesteps of 3600s, or 1 hr
-  delta_t = 900.0 * 2
+  delta_t = 900.0 * 16
 # delta_t = 3600.0
   # t0 = -1200.0 + 0.5 * delta_t
-  # Approx start of 2001
-  t0 = 4485011731.14 - delta_t       
+  # Approx start of 2007
+  t0 = 4674314227.58 - 1.5 * delta_t       
   t1 = t0 + delta_t
 
   f0 = 800.0
@@ -254,12 +280,13 @@ def _test_forest(mqs,parent):
   l_range = [-0.15,0.15];
   lm_num = 101;
   counter = 0
-  for i in range(16):
+# for i in range(16):
 # for i in range(8):
 # for i in range(32):
+  for i in range(3):
       t0 = t0 + delta_t
-      t1 = t0 + delta_t
-      mqs.clearcache('IQUV',recursive=True)
+      t1 = t1 + delta_t
+      mqs.clearcache('IQUV_orig',recursive=True)
       request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],l_range,m_range], nr_cells = [1,1,lm_num,lm_num])
       counter = counter + 1
 # execute request
