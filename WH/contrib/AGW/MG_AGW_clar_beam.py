@@ -32,7 +32,7 @@ import Meow.Bookmarks
 
 # setup a few bookmarks
 Settings.forest_state = record(bookmarks=[
-  Meow.Bookmarks.PlotPage("CLAR Beam",["beam_rot"],["AzEl"])
+  Meow.Bookmarks.PlotPage("CLAR Beam",["beam_rot"],["AzEl"],["rot_lm"])
 ]);
 
 # Timba.TDL.Settings.forest_state is a standard TDL name. 
@@ -101,14 +101,14 @@ def _define_forest (ns):
   laxis = ns.laxis << Meq.Grid(axis=2);
   maxis = ns.maxis << Meq.Grid(axis=3);
 
+# these nodes are needed for both options
+  ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
+  ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
+  ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
+  ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
+
 # attempt to de-rotate the beam in AzEl coordinates to sky coordinates
   if pre_rotate:
-    ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
-
-    ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
-    ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
-    ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
-  
     ns.l_sq << Meq.Sqr(ns.l_rot - ns.centre)
     ns.m_sq << Meq.Sqr(ns.m_rot - ns.centre)
     ns.m_sq_sin << Meq.Multiply(ns.m_sq, ns.sine_el_sq)
@@ -127,13 +127,7 @@ def _define_forest (ns):
     ns.exp_gain << Meq.Exp((ns.l_and_m_sq * ns.ln_16) / Meq.Sqr(ns.HPBW))
 
 # attempt to de-rotate the beam in AzEl coordinates to sky coordinates
-    ns.lm_pre_rot << Meq.Composer(laxis,maxis)    # returns an lm 2-vector
-
-    ns.rot_lm << Meq.MatrixMultiply(ns.P,ns.lm_pre_rot);    # rotated lm
-    ns.l_rot << Meq.Selector(ns.rot_lm,index=0)
-    ns.m_rot << Meq.Selector(ns.rot_lm,index=1)
     ns.lm_rot << Meq.Composer(Meq.Grid(axis=0),Meq.Grid(axis=1),ns.l_rot,ns.m_rot)
-
     ns.resampler << Meq.Resampler(ns.exp_gain,dep_mask = 0xff)
     ns.beam_rot << Meq.Compounder(children=[ns.lm_rot,ns.resampler],common_axes=[hiid('l'),hiid('m')])
 
