@@ -100,6 +100,7 @@ class TDLOptionManager (object):
          self._name = name
          if True:
             # If name is __file__, remove the path and extension:
+            self._name = self._name.replace('.pyo','')
             self._name = self._name.replace('.py','')
             self._name = self._name.split('/')[-1]
          self._prompt = prompt
@@ -223,7 +224,7 @@ class TDLOptionManager (object):
                    selectable=False,
                    disable=False,
                    master=None,              # optional: key of 'master' option
-                   help=None,
+                   help='---',                # help=None,
                    callback=None,
                    prepend=False,
                    trace=False):
@@ -281,7 +282,7 @@ class TDLOptionManager (object):
       if not isinstance(help,str):
          help = ''
          if master:
-            help += ' (slaved to '+str(master)+')'
+            help += ' (slaved)'
          if hide:
             help += ' (nominally hidden)'
 
@@ -356,10 +357,12 @@ class TDLOptionManager (object):
       key = self._current_menurec['key'] + '.separator'
       key += str(self._current_menurec['sepcount'])
       optdef = dict(type='separator', key=key, ignore=False)
+
       if True:
-         # Temporarily disabled...
+         # -------------------- Temporarily disabled...
          print '\n** TOM.add_separator(): Ignored until it works (OMS)....\n'
          return key
+
       self._current_menurec['menu'][key] = optdef
       self.current_order(key, trace=trace)
 
@@ -374,7 +377,8 @@ class TDLOptionManager (object):
                          menu=None,               # 2nd            
                          prompt=None,             # 3nd
                          default=None,            # 4rd
-                         help=None,
+                         qual=None,
+                         help='-',                # help=None,
                          hide=None,
                          disable=False,
                          ignore=False,
@@ -389,6 +393,16 @@ class TDLOptionManager (object):
       of the 'current' menu name, and the specified 'relative' key (relkey).
       The self._current_menurec to the new menu.
       """
+
+      # If relkey is a function, use the function name:
+      # NB: How to recognise a function...?
+      if not isinstance(relkey, str):
+         relkey = relkey.func_name
+
+      # If a qualifier is specified, append it to the menu relkey.
+      # (this is used for groups of similar menus)
+      if not qual==None:
+         relkey += '_'+str(qual)
 
       if topmenu:                  # topmenu==True ONLY when called from .__init__()
          self._complete = False
@@ -417,7 +431,7 @@ class TDLOptionManager (object):
       if not isinstance(help,str):
          help = '(summary=...)'
          if master:
-            help = '(slaved to '+str(master)+')'
+            help = '(slaved)'
 
       # Finally, make the menu definition record:
       menudef = dict(type='menu', key=key,
@@ -643,34 +657,36 @@ class TDLOptionManager (object):
    # Functions dealing with radio-buttons:
    #--------------------------------------------------------------------------
 
-   def radio_buttons (self, trace=False):
+   def make_into_radio_buttons (self, trace=False):
       """Make the 'selectable' options and/or submenus of the current submenu
       into mutually exclusive 'radio buttons': One (and only one) of them will
       be selected at all times. 
       """
+      if trace:
+         print '\n** .make_into_radio_buttons():'
+
       # First find the selectable items:
       keys = []
       for key in self._current_menurec['order']:
          rr = self._current_menurec['menu'][key]
-         if rr['selectable']:
+         if isinstance(rr['default'],bool):        # ... this criterion may be a bit shaky...
             keys.append(key)
 
       # Then make them into radio items:
       for key in keys:
          rr = self._current_menurec['menu'][key]
          rr['radio_group'] = keys
-         # Make it the first callback ....?
-         rr['callback'].insert(0,self.callback_radio_button)
+         rr['callback'].append(self.callback_radio_button)
       
       if trace:
-         print '\n** .radio_buttons():',keys
+         print '** .make_into_radio_buttons() -> (',len(keys),') ',keys,'\n'
       return True
 
    #--------------------------------------------------------------------------
 
    def callback_radio_button(self, value):
-      """Called whenever a 'radio button' is changed. Make sure that only one
-      TDLOption of its 'radio-group' is selected. See .radion_buttons() above.
+      """Called whenever a 'radio button' is changed. Make sure that only one TDLOption
+      of its 'radio-group' is selected. See .make_into_radion_buttons() above.
       """
       trace = False
       # trace = True
@@ -685,14 +701,17 @@ class TDLOptionManager (object):
          itsmenukey = self.itsmenukey(key)
          option = self._defrecs[key]
          keys = option['radio_group']
+
          # First deselect all items in the 'radio-group':
          for key1 in keys:
             self.setopt(key1, False, callback=False, trace=trace)
+
          # Then select a single one:
          if value:                     # TDLOption[key] is selected
             self.setopt(key, True, callback=False, trace=trace)
          else:                         # select the first of the keys
             self.setopt(keys[0], True, callback=False, trace=trace)
+
          # Update self._lastval
          self.update_lastval(trace=trace)
             
@@ -1480,20 +1499,29 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def getopt(self, name, rider=None, func=None, severe=True, trace=False):
-      """Get the current value of the specified (name) TDLOption name.
+   def getopt(self, name, prefix=None, rider=None, severe=True, trace=False):
+      """Get the current value of the specified (name) TDLOption symbol name.
       Only a part of the name is required, as long as it is not ambiguous.
       If rider is defined, make a qhelp string and add it (see QuickRefUtil.py)
       """
       # trace = True
-      if func:
-         # A little (optional) service: Use the name of the given function
-         # (if provided) to make a prefix to the given name, to make it unique.
-         # This allows calling .getopt() with just the relative name of the option. 
-         name = self.getopt_prefix(func)+name
-      namin = name
-         
-      key = self.find_key(name, severe=severe, trace=trace)
+
+      # First find the (unique) key: 
+      unique_name = name                 
+      if not prefix==None:
+         # A prefix may be specified to make the name unique.
+         if not isinstance(prefix, str):          # assume function...
+            # If prefix is a function, use the function name
+            unique_name = self.getopt_prefix(prefix)+name
+         else:
+            if not prefix[-1]==self._keysep:
+               # Make sure that the prefix has the correct last char:
+               # (This allows the use of the submenu name as prefix)
+               prefix += self._keysep
+            unique_name = prefix+name
+      key = self.find_key(unique_name, severe=severe, trace=trace)
+
+      # Get its value:
       source = None
       if not isinstance(key,str):
          # This may happen during testing (severe=False):
@@ -1531,7 +1559,7 @@ class TDLOptionManager (object):
          rider.insert_help (path, qhelp, append=True)
          
       if trace:
-         print '** .getopt(',namin,'):',name,' (key=',key,') -> value =',value,'   (source=',source,')'
+         print '** .getopt(',name,'):',unique_name,' (key=',key,') -> value =',value,'   (source=',source,')'
       return value
 
    #--------------------------------------------------------------------------
@@ -1583,7 +1611,7 @@ class TDLOptionManager (object):
                         s += str(v)
             s += ']'
             if isinstance(dd['master'],str):
-               s += '   (slaved to: '+str(dd['master'])+')'
+               s += '   (slaved)'
             if dd['hide']:
                s += '   (nominally hidden)'
             if self._tdlobjects.has_key(key):
@@ -1707,31 +1735,86 @@ def test_slavemenu(trace=False, full=False):
 def testfunc (ns, TCM=None, menu=None, trace=False):
    """Test
    """
-   submenu = 'testfunc'
-   TCM.start_of_submenu(submenu, menu=menu)
-   TCM.add_option('ifunc', range(5))
-   TCM.add_option('bb', range(4))
-   TCM.add_option('cc', range(4))
-
-   prefix = TCM.getopt_prefix(testfunc)
-   ifunc = TCM.getopt(prefix+'ifunc', trace=trace)
    
-   if ifunc==1:
-      test_subfunc1 (ns, TCM=TCM, menu=submenu, trace=trace)
-   elif ifunc==2:
-      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
-   elif ifunc==3:
-      test_subfunc1 (ns, TCM=TCM, menu=submenu, trace=trace)
-      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
-   elif ifunc==4:
-      test_master(ns, TCM=TCM, menu=submenu, trace=trace)
-   else:
-      pass
+   # Define menus and options for this function:
+   submenu = TCM.start_of_submenu(testfunc, menu=menu)
+   TCM.add_option('test', ['subfunc1','subfunc2','subfunc12',
+                           'master_slaves','radio_buttons',
+                           'all'], more=False,
+                  prompt='select a test to be performed',
+                  help='this is the help')
+   TCM.add_option('trace', False,
+                  prompt='if True, show progress messages')
+   TCM.add_option('recurse', [10,1,2,3,4],
+                  prompt='depth of show_record')
 
+   # Get the relevant option values:
+   test = TCM.getopt('test', testfunc, trace=True)
+   trace = TCM.getopt('trace', testfunc, trace=True)
+   recurse = TCM.getopt('recurse', testfunc, trace=True)
+
+   # Execute the specified test:
+   if False:
+      pass
+   elif test=='subfunc1':
+      test_subfunc1 (ns, TCM=TCM, menu=submenu, trace=trace)
+   elif test=='subfunc2':
+      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
+   elif test=='subfunc12':
+      test_subfunc1 (ns, TCM=TCM, menu=submenu, trace=trace)
+      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
+   elif test=='master_slaves':
+      test_master(ns, TCM=TCM, menu=submenu, trace=trace)
+   elif test=='radio_buttons':
+      test_radio_buttons(ns, TCM=TCM, menu=submenu, trace=trace)
+   elif test=='all':
+      test_subfunc1 (ns, TCM=TCM, menu=submenu, trace=trace)
+      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
+      test_master(ns, TCM=TCM, menu=submenu, trace=trace)
+      test_radio_buttons(ns, TCM=TCM, menu=submenu, trace=trace)
+      # NB: This does NOT work, but is desirable....
+      TCM.make_into_radio_buttons(trace=True)
+   else:
+      s = 'test not recocnized: '+test
+      raise ValueError,s
+
+   # Create some nodes:
+   ns.testfunc << 1.0
+
+   # Finished:
    if trace:
       TCM.show('testfunc()', full=True)
-      print '** prefix =',prefix
-      print EF.format_record(TCM._menudef,'TCM._menudef', recurse=10)
+      print EF.format_record(TCM._menudef,'TCM._menudef',
+                             recurse=recurse)
+   return True
+   
+#------------------------------------------------------------
+
+def test_radio_buttons (ns, TCM=None, menu=None, trace=False):
+   """Test
+   """
+   if trace:
+      print '\n** test_radio_buttons():'
+
+   submenu = TCM.start_of_submenu(test_radio_buttons, menu=menu)
+   # NB: The initial values should be radioed too ....!
+   TCM.add_option('radio_1', True)
+   TCM.add_option('radio_2', True)
+   TCM.add_option('radio_3', True)
+   TCM.make_into_radio_buttons(trace=True)
+
+   # NB: The non-radio one is included in the radio-group the second time around
+   # How is this possible, if we start from scratch with self._menudef......??
+   TCM.add_option('non_radio', False)
+   
+   # Get the relevant option values:
+   TCM.getopt('radio_1', test_radio_buttons, trace=True)
+   TCM.getopt('radio_2', test_radio_buttons, trace=True)
+   TCM.getopt('radio_3', test_radio_buttons, trace=True)
+   TCM.getopt('non_radio', test_radio_buttons, trace=True)
+
+   # Create some nodes:
+   ns.test_radio_buttons << 1.0
    return True
    
 #------------------------------------------------------------
@@ -1741,12 +1824,15 @@ def test_subfunc1 (ns, TCM=None, menu=None, trace=False):
    """
    if trace:
       print '\n** test_subfunc1():'
-   TCM.start_of_submenu('test_subfunc1', menu=menu)
+
+   submenu = TCM.start_of_submenu('test_subfunc1', menu=menu)
    TCM.add_option('AA', range(4))
 
-   ns.subfunc1 << 1.0
+   # Get the relevant option values:
+   TCM.getopt('AA', test_subfunc1, trace=True)
 
-   prefix = TCM.getopt_prefix(test_subfunc1, trace=trace)
+   # Create some nodes:
+   ns.test_subfunc1 << 1.0
    return True
    
 #------------------------------------------------------------
@@ -1756,12 +1842,15 @@ def test_subfunc2 (ns, TCM=None, menu=None, trace=False):
    """
    if trace:
       print '\n** test_subfunc1():'
-   TCM.start_of_submenu('test_subfunc2', menu=menu)
+
+   submenu = TCM.start_of_submenu('test_subfunc2', menu=menu)
    TCM.add_option('BB', range(4))
 
-   ns.subfunc2 << 2.0
+   # Get the relevant option values:
+   TCM.getopt('BB', test_subfunc2, trace=True)
 
-   prefix = TCM.getopt_prefix(test_subfunc2, trace=trace)
+   # Create some nodes:
+   ns.test_subfunc2 << 2.0
    return True
    
 #------------------------------------------------------------
@@ -1772,14 +1861,21 @@ def test_master(ns, TCM=None, menu=None, trace=False):
    """
    if trace:
       print '\n** test_master(',menu,'):'
-   submenu = 'test_master'
-   key = TCM.start_of_submenu(submenu, menu=menu)
+   submenu = TCM.start_of_submenu('test_master', menu=menu)
+   TCM.add_option('nslaves', range(4))
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4), disable=True)
    TCM.add_option('cc', range(4))
 
-   for i in range(3):
-      test_slave(ns, TCM=TCM, menu=submenu, qual=i, master=key, trace=True)
+   # Get the relevant option values:
+   nslaves = TCM.getopt('nslaves', test_master, trace=True)
+
+   # Create some nodes:
+   ns.test_master << 2.0
+
+   for i in range(nslaves):
+      test_slave(ns, TCM=TCM, menu=submenu, qual=i,
+                 master=submenu, trace=True)
    return True
 
 #------------------------------------------------------------
@@ -1790,17 +1886,18 @@ def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
    if trace:
       print '\n** test_slave(',menu,qual,master,'):'
       
-   submenu = 'test_slave'
-   if not qual==None:
-      submenu += '_'+str(qual)
-      
-   key = TCM.start_of_submenu(submenu, menu=menu, master=master)
-   if trace:
-      print '  submenu =',submenu,' (menukey =',key,')'
-   
+   submenu = TCM.start_of_submenu('test_slave', qual=qual,
+                                  menu=menu, master=master)
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4))
    TCM.add_option('cc', range(4), disable=(qual==2))
+
+   # Get the relevant option values:
+   aa = TCM.getopt('aa', submenu, trace=True)
+
+   # Create some nodes:
+   ns[submenu] << 2.0
+
    return True
    
 
@@ -1812,28 +1909,19 @@ def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
 #********************************************************************************
 #********************************************************************************
 
-# TCM = None
 itsTDLCompileMenu = None
-# TDLCompileOption('yyy', 'YYY', range(4))
-
 if 1:
-   # Generation of context-dependent TDLOptions, using the same function as in
-   # _define_forest():
+   # Only use for testing (otherwise it will appear in every menu)!
    TCM = TDLOptionManager(__file__)
    ns = NodeScope()
    testfunc (ns, TCM=TCM, trace=False)
    itsTDLCompileMenu = TCM.TDLMenu(trace=False)
-   # TCM.save_current_values('outside', trace=True)         # make part of .TDLMenu()
 
    
 #------------------------------------------------------------------------------
 
 def _define_forest (ns, **kwargs):
    """Define a standalone forest for standalone use of this QR module"""
-
-   print '\n**********************'
-   print '** _define_forest():' 
-   print '**********************\n'
 
    node = ns.dummy << 1.0
 
