@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 #
 # Copyright (C) 2002-2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -23,19 +22,22 @@
 
 # Short description:
 # We read in a group of focal plane array beams, 
-# and form a combined, weighted beam. The weights
-# are found by getting complex values at a specified
-# L,M location in the X  and Y (|| poln) beams and then
-# taking the conjugate transpose. This is called phase 
-# conjugate weighting.
+# and form a combined, weighted beam with phase-conjugate weighting.
+# The weights are found by getting complex values at specified
+# L,M location in the X (|| poln) beams and then
+# taking the conjugate transpose.
 
-# We use these weights as an initial starting guess for the
-# weights to be used to obtain a nice Gaussian beam. These weights
-# are given to the solver, which then proceeds to solve for
-# the optimum weights. This script finds the 'best' gaussian
-# beam at a single L,M. We store the weights for this beam in
-# a 'mep' table.
-# This script solves for gains of X and Y beams separately
+# We then pretend that we are observing with an AzEl mounted telescope
+# at the VLA site and calculate the change in phased-up beam
+# shape as we track a specific off-boresight RA/DEC point over
+# an 8 hr 'VLA' observation. The constant L,M (RA/DEC) position
+# has to be translated into the L',M' frame of the Az/El mount.
+
+# We then re-rotate the phased-up beam so that
+# we see what the beam looks like in the frame of the sky.
+
+# History:
+# - 07 Mar 2007: creation:
 
 #=======================================================================
 # Import of Python / TDL modules:
@@ -45,12 +47,15 @@ from Timba.TDL import *
 from Timba.Meq import meqds
 from Timba.Meq import meq
 from Meow import Bookmarks,Utils
-from make_multi_dim_request import *
 from handle_beams import *
+from make_multi_dim_request import *
 from MG_AGW_setup_array_weights import *
 
-from numarray import *
 import os
+
+
+# to force caching put 100
+#Settings.forest_state.cache_policy = 100
 
 # get position of phase up point in L and M
 TDLCompileMenu('L and M position of phased-up beam',
@@ -59,146 +64,156 @@ TDLCompileMenu('L and M position of phased-up beam',
 );
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_noise','gauss_array_pats_defocus','gauss_array_pats_offset','veidt_fpa_180', 'veidt_fpa_30','veidt_fpa_180_low_res', 'veidt_fpa_180_low_res_noise','veidt_fpa_180_noise'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
 
 # Attempt to 'form' a Gaussian beam?
 TDLCompileOption('do_fit','make gaussian fit',[True, False])
 
-
-#setup a bookmark for display of results with some 'Result' Plotters
+# define default desired half-intensity width of power pattern (HPBW)
+# as we are fitting total intensity I pattern (here .021 rad = 74.8 arcmin)
+beam_width = 0.021747 # beam FWHM
 if do_fit:
   Settings.forest_state = record(bookmarks=[
     record(name='Results',page=[
-      record(udi="/node/IQUV",viewer="Result Plotter",pos=(0,0))]),
+      record(udi="/node/pol_sky",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/IQUV_sky",viewer="Result Plotter",pos=(0,0))]),
     record(name='Fits',page=[
       record(udi="/node/solver_x",viewer="Result Plotter",pos=(0,0)),
       record(udi="/node/solver_y",viewer="Result Plotter",pos=(0,1)),
       record(udi="/node/condeq_x",viewer="Result Plotter",pos=(1,0)),
       record(udi="/node/condeq_y",viewer="Result Plotter",pos=(1,1)),
       record(udi="/node/sqrt_gauss",viewer="Result Plotter",pos=(2,0))])]);
+
+# beam_width = 0.02098           # default: veidt fpa 180 width
+# if fpa_directory.find('gauss_array_pats') >= 0:
+#   if fpa_directory.find('gauss_array_pats_offset') >= 0:
+#     print 'using gauss array pats offset width for fit'
+#     beam_width = 0.02178
+#   else:
+#     print 'using gauss array pats width for fit'
+#     beam_width = 0.02081
+# if fpa_directory.find('veidt_fpa_180') >= 0:
+#   print 'using veidt fpa 180 width for fit'
+#   beam_width = 0.02098
+# if fpa_directory.find('veidt_fpa_30') >= 0:
+#   print 'using veidt fpa 30 width for fit'
+#   beam_width = 0.02179
+
 else:
   Settings.forest_state = record(bookmarks=[
     record(name='Results',page=[
-      record(udi="/node/IQUV",viewer="Result Plotter",pos=(0,0))])])
-
-# to force caching put 100
-#Settings.forest_state.cache_policy = 100
+      record(udi="/node/pol_sky",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/IQUV_sky",viewer="Result Plotter",pos=(1,0))])])
 
 if do_fit:
   mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '.mep'
 else:
   mep_beam_weights = 'beam_weights_' + str(l_beam) + '_' + str(m_beam) + '_conj.mep'
 
-def create_polc(c00=0.0,degree_f=0,degree_t=0):
-  """helper function to create a t/f polc with the given c00 coefficient,
-  and with given order in t/f""";
-  polc = meq.polc(zeros((degree_t+1, degree_f+1))*0.0);
-  polc.coeff[0,0] = c00;
-  return polc;
-
-def tpolc (tdeg,c00=0.0):
-  return Meq.Parm(create_polc(degree_f=0,degree_t=tdeg,c00=c00),
-                  node_groups='Parm',
-#                 node_groups='Parm', save_all=True,
-                  table_name=mep_beam_weights)
 
 ########################################################
 def _define_forest(ns):  
-# first, make sure that any previous version of the mep table is
 
-  # constant for half-intensity determination
-  ns.ln_16 << Meq.Constant(-2.7725887)
-
-  # define desired half-intensity width of Total Intensity pattern (HPBW)
-  #(here .021 rad = 74.8 arcmin)
-  ns.fwhm << Meq.Constant(0.021747) # beam FWHM                 
+  ns.fwhm << Meq.Constant(beam_width) # beam FWHM
   ns.width_factor << Meq.Constant(1.0)
   ns.width << ns.width_factor * ns.fwhm
 
-  # L, M values for l_beam and m_beam are obtained from the TDLCompileMenu
+
+  # values for l_beam and m_beam are obtained from the TDLCompileMenu
   ns.l_beam_c << ns.fwhm * l_beam
   ns.m_beam_c << ns.fwhm * m_beam
 
   ns.lm_beam << Meq.Composer(ns.l_beam_c,ns.m_beam_c);
 
-  # setup for fitting the phased up beam to a gaussian
+
+# setup for fitting the phased up beam to a gaussian
   laxis = ns.laxis << Meq.Grid(axis=2);
   maxis = ns.maxis << Meq.Grid(axis=3);
 
-  # total intensity gaussian to which we want to optimize beams
+# constant for half-intensity determination
+  ns.ln_16 << Meq.Constant(-2.7725887)
+
+# total intensity gaussian to which we want to optimize beams
   ns.lm_x_sq << Meq.Sqr(laxis - ns.l_beam_c) + Meq.Sqr(maxis - ns.m_beam_c)
   ns.gaussian << Meq.Exp((ns.lm_x_sq * ns.ln_16)/Meq.Sqr(ns.width));
 
-  # corresponding gaussian voltage response
+# corresponding gaussian voltage response
   ns.sqrt_gauss << Meq.Sqrt(ns.gaussian)
 
-  # load up individual beams of focal plane array 
+# get beam data
   num_beams = read_in_FPA_beams(ns,fpa_directory)
-
- # now determine weights for individual beams
+  # now determine weights for individual beams
   parms_req_mux, solver_x, solver_y = setup_separate_array_weights(ns, num_beams, mep_beam_weights, do_fit)
 
   ns.E << Meq.Matrix22(ns.norm_voltage_sum_xx, ns.norm_voltage_sum_xy,ns.norm_voltage_sum_yx, ns.norm_voltage_sum_yy)
   ns.Et << Meq.ConjTranspose(ns.E)
 
-  # sky brightness
+ # sky brightness
   ns.B0 << 0.5 * Meq.Matrix22(1.0, 0.0, 0.0, 1.0)
 
   # observe!
   ns.observed << Meq.MatrixMultiply(ns.E, ns.B0, ns.Et)
-
-  # extract I,Q,U,V etc
-  ns.IpQ << Meq.Selector(ns.observed,index=0)        # XX = (I+Q)/2
-  ns.ImQ << Meq.Selector(ns.observed,index=3)        # YY = (I-Q)/2
+  ns.IpQ << Meq.Selector(ns.observed,index=0)  # XX = (I+Q)/2
+  ns.ImQ << Meq.Selector(ns.observed,index=3)  # YY = (I-Q)/2
   ns.I << Meq.Add(ns.IpQ,ns.ImQ)                     # I = XX + YY
   ns.Q << Meq.Subtract(ns.IpQ,ns.ImQ)                # Q = XX - YY
 
-  ns.UpV << Meq.Selector(ns.observed,index=1)        # XY = (U+iV)/2
-  ns.UmV << Meq.Selector(ns.observed,index=2)        # YX = (U-iV)/2
+  ns.UpV << Meq.Selector(ns.observed,index=1)  # XY = (U+iV)/2
+  ns.UmV << Meq.Selector(ns.observed,index=2)  # YX = (U-iV)/2
   ns.U << Meq.Add(ns.UpV,ns.UmV)                     # U = XY + YX
   ns.iV << Meq.Subtract(ns.UpV,ns.UmV)               # iV = XY - YX  <----!!
   ns.V << ns.iV / 1j                                 # V = iV / i
-                                                     # (note: i => j in Python)
 
-  ns.IQUV_complex << Meq.Composer(ns.I, ns.Q,ns.U, ns.V)
-  ns.IQUV << Meq.Real(ns.IQUV_complex)
+  ns.I_real << Meq.Real(ns.I)
+  ns.Q_real << Meq.Real(ns.Q)
+  ns.U_real << Meq.Real(ns.U)
+  ns.V_real << Meq.Real(ns.V)
+
+  ns.IQUV_sky << Meq.Matrix22(ns.I_real,ns.Q_real,ns.U_real,ns.V_real)
+  ns.Q_sqr << Meq.Sqr(ns.Q_real)
+  ns.U_sqr << Meq.Sqr(ns.U_real)
+  ns.pol_sky << Meq.Sqrt(ns.Q_sqr + ns.U_sqr)
+
   if do_fit:
-    ns.req_seq<<Meq.ReqSeq(parms_req_mux, solver_x, solver_y, ns.IQUV)
+    ns.req_seq<<Meq.ReqSeq(parms_req_mux, solver_x, solver_y, ns.IQUV_sky, ns.pol_sky)
   else:
-    ns.req_seq<<Meq.ReqSeq(parms_req_mux, ns.IQUV)
+    ns.req_seq<<Meq.ReqSeq(parms_req_mux, ns.IQUV_sky, ns.pol_sky)
 
-  # want the aips++ imager to generate images in the sequence I,Q,U,V
+  # If you want the aips++ imager to generate images in the sequence I,Q,U,V
   # make sure that the newsimulator setspwindow method uses
   # stokes='XX XY YX YY' and not stokes='RR RL LR LL'. If you
   # do the latter you will get the images rolled out in the
   # order I,U,V,Q!
 
-########################################################################
-def _test_forest(mqs,parent,wait=False):
 
-# obliterate any previous table so nothing strange happens in succeeding steps
+
+########################################################################
+def _test_forest(mqs,parent):
+
+# delete any previous version if the mep file ...
+  print 'trying to delete file ', mep_beam_weights
   try:
     command = "rm -rf "+ mep_beam_weights
-    print 'issuing OS command ', command
     os.system(command)
+    print 'issued OS command ', command
   except:   pass
 
-# any large time and frequency range will do
-  t0 = 0.0;
+  t0 = 0.0
   t1 = 1.5e70
 
-  f0 = 0.5
-  f1 = 5000.0e6
+  f0 = 800.0
+  f1 = 1300.0
 
-  lm_range = [-0.15,0.15];
+  m_range = [-0.15,0.15];
+  l_range = [-0.15,0.15];
   lm_num = 101;
   counter = 0
-  request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],lm_range,lm_range], nr_cells = [1,1,lm_num,lm_num])
+  request = make_multi_dim_request(counter=counter, dom_range = [[f0,f1],[t0,t1],l_range,m_range], nr_cells = [1,1,lm_num,lm_num])
 # execute request
-  mqs.meq('Node.Execute',record(name='req_seq',request=request),wait);
-########################################################################
+  mqs.meq('Node.Execute',record(name='req_seq',request=request),wait=False);
+#####################################################################
 
-if __name__ == '__main__':
+if __name__=='__main__':
  # run in batch mode?
  if '-run' in sys.argv:
    from Timba.Apps import meqserver
@@ -222,4 +237,3 @@ if __name__ == '__main__':
   _define_forest(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
-
