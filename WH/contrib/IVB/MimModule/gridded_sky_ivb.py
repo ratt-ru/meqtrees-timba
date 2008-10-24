@@ -100,6 +100,27 @@ def star8_model (ns,basename,l0,m0,dl,dm,nsrc,I):
           model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy,I));
   return model;
 
+def single_grid_model_tan (ns,basename,l0,m0,dl,dm,nsrc,I):
+  """Returns a single grid of calibrators""";
+  model = [ point_source(ns,basename+"+0+0",l0,m0,I) ];
+  for dx in range(-nsrc,nsrc+1):
+    for dy in range(-nsrc,nsrc+1):
+      if dx or dy:
+        name = "%s%+d%+d" % (basename,dx,dy);
+        # correct l and m coordinates for TAN projection
+        # angles are in radians
+        l_tan = l0+dl*dx
+        m_tan = m0+dm*dy
+        th_tan=math.sqrt(l_tan**2 + m_tan**2)
+        phi=math.atan2(l_tan,m_tan)
+        theta_prime = math.tan(th_tan) 
+        l_prime = theta_prime* math.sin(phi)
+        m_prime = theta_prime* math.cos(phi)
+        model.append(point_source(ns,name,l_prime, m_prime, I));
+	print l_prime
+	print m_prime
+  return model;
+
 def single_grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
   """Returns a single grid of calibrators""";
   model = [ point_source(ns,basename+"+0+0",l0,m0,I) ];
@@ -107,7 +128,18 @@ def single_grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
     for dy in range(-nsrc,nsrc+1):
       if dx or dy:
         name = "%s%+d%+d" % (basename,dx,dy);
-        model.append(point_source(ns,name,l0+dl*dx,m0+dm*dy,I));
+        # correct l and m coordinates for SIN projection
+        # angles are in radians
+        l_sin = l0+dl*dx
+        m_sin = m0+dm*dy
+        th_sin=math.sqrt(l_sin**2 + m_sin**2)
+        phi=math.atan2(l_sin,m_sin)
+        theta_prime = math.sin(th_sin) 
+        l_prime = theta_prime* math.sin(phi)
+        m_prime = theta_prime* math.cos(phi)
+        model.append(point_source(ns,name,l_prime, m_prime, I));
+	print l_prime
+	print m_prime
   return model;
 
 def double_grid_model (ns,basename,l0,m0,dl,dm,nsrc,I):
@@ -158,6 +190,19 @@ def source_list (ns,basename="S",l0=None,m0=None):
                        grid_step*ARCMIN,grid_step*ARCMIN,
                        (grid_size-1)/2,source_flux);
   return filter(lambda x:x,sources);
+
+def de_project (ns,l0,m0,dl,dm,dx,dy):
+  # correct l and m coordinates for TAN projection
+  # angles are in radians
+  l_tan = l0+dl*dx
+  m_tan = m0+dm*dy
+  th_tan=math.sqrt(l_tan**2 + m_tan**2)
+  phi=math.atan2(l_tan,m_tan)
+  theta_prime = math.tan(th_tan) 
+  l_prime = theta_prime* math.sin(phi)
+  m_prime = theta_prime* math.cos(phi)
+  return l_prime
+
 
 # model options
 model_option = TDLCompileOption("model_func","Sky model type",
