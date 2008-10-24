@@ -34,6 +34,14 @@ TDLOptionManager.py:
 #
 # -) different behaviour of disabled options: cannot be changed ever...!
 #
+# -) It would be very nice if TDLOption when_changed callback functions would have
+#    an optional second argument, which would give the key/symbol of the option.
+#        def callback(self, value, key):
+#           .... do something ....
+#    Obviously, if only for backward compatibility, when_changed() should test
+#    each callback functions on the number of arguments it expects (1 or 2).
+#    
+#
 #% $Id$ 
 #
 #
@@ -63,7 +71,10 @@ from Timba.Meq import meq
 
 from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
-import math
+# The following functions are supported in ._evaluate() expressions:
+import math                 # support math.cos() etc
+from math import *          # support cos() etc
+import numpy                # support numpy.cos() etc
 
 
 #******************************************************************************** 
@@ -118,15 +129,24 @@ class TDLOptionManager (object):
          if isinstance(prompt,str):            # specified explicitly
             self._prompt = prompt              #   override
 
-      self._mode = 'compile'                   # alternative: 'runtime'
+      self._mode = mode                        # 'compile' or 'runtime'
 
       # A separator char is used to build hierarchical names:
       self._keysep = '_'
+      
+      self._serr = '** ERROR ** in: '          # error string (see ._evaluate())
 
-      self.clear()    # NB: separate .clear() function causes problems!!
+      self.clear()    # NB: Such a separate .clear() function causes problems if called again....?
 
+      # AFTER clear():
       self._savefile = self._name+'.tcm'       # see .save/restore_current_values()
       self.restore_current_values('.__init__()', trace=False)
+
+      # Runtime options are collected in a separate instantiation:
+      # It can be accessed as TCM.TRM.add_option(...) etc
+      self.TRM = None
+      if self._mode=='compile':
+         self.TRM = TDLOptionManager(self._name, mode='runtime')
 
       return None
 
@@ -156,6 +176,7 @@ class TDLOptionManager (object):
       # The menus from other TCM's may be added/inserted:
       self._TCMlist = []
 
+      self._empty = True
       return None
 
    #--------------------------------------------------------------------------
@@ -163,9 +184,12 @@ class TDLOptionManager (object):
    def oneliner (self):
       ss = 'TDLOptionManager: '+str(self._name)
       ss += '  mode='+str(self._mode)
-      ss += '  ndef='+str(len(self._defrecs))
-      ss += '  nobj='+str(len(self._tdlobjects))
-      ss += '  nkey='+str(len(self.keys()))
+      if self._empty:
+         ss += '  empty'
+      else:
+         ss += '  ndef='+str(len(self._defrecs))
+         ss += '  nobj='+str(len(self._tdlobjects))
+         ss += '  nkey='+str(len(self.keys()))
       if self.tdloption_namespace:
          ss += ' ('+str(self.tdloption_namespace)+')'
       return ss
@@ -196,6 +220,8 @@ class TDLOptionManager (object):
       ss += '\n * self._TCMlist ('+str(len(self._TCMlist))+'):'
       for tcm in self._TCMlist:
          ss += '\n   '+str(tcm.oneliner())
+      if self.TRM:
+         ss += '\n * TRM: '+str(self.TRM.oneliner())
       ss += '\n**\n'
       print ss
       return ss
@@ -230,9 +256,10 @@ class TDLOptionManager (object):
                    more=True,                # use the type of default (choice[0])
                    hide=None,
                    selectable=False,
+                   vmin=None, vmax=None,     # range-test
                    disable=False,
                    master=None,              # optional: key of 'master' option
-                   help='---',                # help=None,
+                   help=None,                # help=None,
                    callback=None,
                    prepend=False,
                    trace=False):
@@ -253,8 +280,8 @@ class TDLOptionManager (object):
       # (The default is the value used in .revert_to_defaults())
       default = None
       if choice==None:                       # choice not specified
-         choice = False                      # add un-selected toggle box
-      if isinstance(choice, bool):           # True/False: add toggle box
+         choice = [None]
+      elif isinstance(choice, bool):         # True/False: add toggle box
          default = choice                    # 
       elif not isinstance(choice, list):     # e.g. numeric, or string, or ..?
          choice = [choice]                   # make a list (necessary?)
@@ -300,12 +327,16 @@ class TDLOptionManager (object):
       callback = self.check_callback (callback, trace=trace)
 
       # Make a default doc/help string:
+      level = self.current_menu_level()
+      prefix = (level*'.')+'| '
       if not isinstance(help,str):
-         help = ''
-         if master:
-            help += ' (slaved)'
-         if hide:
-            help += ' (nominally hidden)'
+         help = prefix
+      else:
+         help = prefix+help
+      if master:
+         help += ' (slaved)'
+      if hide:
+         help += ' (nominally hidden)'
 
       # Finally, make the option definition record:
       itsmenukey = self._current_menurec['key']
@@ -316,10 +347,11 @@ class TDLOptionManager (object):
                     help=help,
                     callback=callback,
                     default=default,
+                    vmin=vmin, vmax=vmax,
                     hide=hide, disable=disable,
                     master=master, slaves=[],
                     itsmenukey=itsmenukey,
-                    level=self.current_menu_level(),
+                    level=level,
                     selectable=selectable,
                     ignore=False,
                     choice=choice, more=more)
@@ -334,6 +366,7 @@ class TDLOptionManager (object):
          # print '    current_submenu:\n      ',self._current_menurec
          
       # Return the full key (e.g. for master/slave assignments).
+      self._empty = False
       return key
 
    #--------------------------------------------------------------------------
@@ -399,7 +432,7 @@ class TDLOptionManager (object):
                          prompt=None,             # 3nd
                          default=None,            # 4rd
                          qual=None,
-                         help='-',                # help=None,
+                         help=None,     
                          hide=None,
                          disable=False,
                          ignore=False,
@@ -449,16 +482,20 @@ class TDLOptionManager (object):
       callback = self.check_callback (callback, trace=trace)
 
       # Make a default doc/help string:
+      prefix = (level*'*')+' '
       if not isinstance(help,str):
-         help = '(summary=...)'
-         if master:
-            help = '(slaved)'
+         help = prefix+relkey
+      else:
+         help = prefix+help
+      if master:
+         help += '(slaved)'
+      help = help.upper()                 # convert to upper-case...!?
 
       # Finally, make the menu definition record:
       menudef = dict(type='menu', key=key,
                      relkey=relkey,
                      prompt=(prompt or relkey),
-                     help=help,
+                     help=help, 
                      default=default,
                      hide=hide, disable=disable,
                      master=master, slaves=[],
@@ -488,6 +525,7 @@ class TDLOptionManager (object):
          print '\n** .start_of_submenu(',relkey,') -> current_submenu =',self._current_menurec
 
       # Return the full key (e.g. for master/slave assignments).
+      self._empty = False
       return key
 
    #--------------------------------------------------------------------------
@@ -750,6 +788,9 @@ class TDLOptionManager (object):
       if self._complete:                         # already created
          return self._TDLMenu                    # just return it
 
+      if self._empty:                            # no options/menus
+         return None
+
       # Disable any further additions of options or menus:
       self._complete = True
       self._current_menurec = None               # overkill?
@@ -779,6 +820,11 @@ class TDLOptionManager (object):
       # Finishing touches:
       self.find_changed()                     # misused to fill self._lastval ....
       self.save_current_values('.TDLMenu()', trace=trace)
+
+      # Generate runtime menus/options (if any):
+      if self.TRM:
+         menu = self.TRM.TDLMenu(namespace=namespace, trace=trace) 
+      
       return self._TDLMenu
 
    #--------------------------------------------------------------------------
@@ -856,12 +902,12 @@ class TDLOptionManager (object):
       # Make the TDLMenu object from the accumulated oblist:
       if level>0:                                   # a submenu
          menu = TDLMenu(rr['prompt'], toggle=rr['key'],
-                        summary=rr['help'],
+                        doc=rr['help'],
                         namespace=self, *oblist)
 
       elif self._mode=='runtime':                   # The root TDLCompile Menu:
          menu = TDLRuntimeMenu(rr['prompt'], toggle=rr['key'],
-                               summary=rr['help'],
+                               doc=rr['help'],
                                namespace=self, *oblist)
 
       else:                                         # The root TDLCompile Menu:
@@ -870,7 +916,7 @@ class TDLOptionManager (object):
             for tcm in self._TCMlist:
                oblist.append(tcm.TDLMenu())
          menu = TDLCompileMenu(rr['prompt'], toggle=rr['key'],
-                               summary=rr['help'],
+                               doc=rr['help'],
                                namespace=self, *oblist)
 
       # Attach the menu object to a flat record:
@@ -965,13 +1011,19 @@ class TDLOptionManager (object):
                print '-',len(slaves),'slaves of master(',key,'):  ',slaves
             cbs.append(self.callback_update_slaves)
 
-         # It is often convenient to have the selected value in the custom box,
-         # so that it may be edited (without having to be copied first).
-         # This is especially desirable for string values, e.g. expressions
          if defrec['type']=='option':                          # options only
-            # if defrec['more']:                               # has custom field
+            # It is often convenient to have the selected value in the custom box,
+            # so that it may be edited (without having to be copied first).
+            # This is especially desirable for string values, e.g. expressions
             if defrec['more']==str:                            # strings only...?
+               # if defrec['more']:                              # has custom field
                cbs.append(self.callback_copy_to_custom_value)
+            # Test the new value if necessary:
+            cv = False
+            cv |= (not defrec['vmin']==None)
+            cv |= (not defrec['vmax']==None)
+            if cv:
+               cbs.append(self.callback_check_value)
 
          # Always make this one the LAST callback in the list:
          # NB: This does not work for menus, since the callback functions are NOT called
@@ -1029,6 +1081,26 @@ class TDLOptionManager (object):
 
    #..........................................................................
 
+   def callback_check_value (self, value):
+      """Check the new value of the modified option.
+      This is better than having a separate .set_validator() function...
+      """
+      trace = False
+      trace = True
+      if trace:
+         print '\n** .callback_check_value(',value,'):'
+      key = self.find_changed(trace=False)
+      if trace:
+         print '  changed: key =',key
+      if isinstance(key,str):
+         dd = self._defrecs[key]
+         vmin = dd['vmin']
+         vmax = dd['vmax']
+         print '-- (vmin,vmax) =',(vmin,vmax)
+      return True
+
+   #..........................................................................
+
    def callback_update_lastval (self, value):
       """Called whenever an option value is changed. This is necessary
       to make .find_changed() work properly for .group_control().
@@ -1039,14 +1111,18 @@ class TDLOptionManager (object):
          print '\n** .callback_update_lastval(',value,')\n'
 
       # Do a test-evaluate if value is a string like 'eval(....)'
-      # NB: This does NOT change the value itself! 
-      self._evaluate(value, trace=True)
-         
-      self.update_lastval(trace=trace)
-      
-      # Do this each time an option value is changed:
-      self.save_current_values('callback_update_lastval()', trace=trace)
-
+      r = self._evaluate(value, severe=False, trace=trace)
+      if (isinstance(r,str) and (not r==value)):    # error in evaluation
+         key = self.find_changed(trace=trace)   
+         if isinstance(key,str):               
+            self.setopt(key, r, trace=trace)    
+            self.copy_to_custom_value(key)          # remove self._serr
+         self.update_lastval(trace=trace)           # changes menu summary        
+            
+      else:                                         # evaluation OK
+         self.update_lastval(trace=trace)
+         # Do this each time an option value is changed:
+         self.save_current_values('callback_update_lastval()', trace=trace)
       return None
 
 
@@ -1060,6 +1136,7 @@ class TDLOptionManager (object):
       Update self._lastval with the current values of all TDLOption objects.
       Called from .callback_update_lastval()
       """
+      # trace = True
       if trace:
          print '\n** .update_lastval():'
 
@@ -1068,8 +1145,9 @@ class TDLOptionManager (object):
          if trace:
             if self._lastval.has_key(key):
                lastval = self._lastval[key]
+               print '-',key,'=',ob.value,lastval
                if not ob.value==lastval:
-                  print '-',key,'=',ob.value,'!= lastval=',lastval
+                  print '--',key,'=',ob.value,'!= lastval=',lastval
          self._lastval[key] = ob.value
 
       if trace:
@@ -1370,6 +1448,7 @@ class TDLOptionManager (object):
       """Find the key of the TDLObject whose value has changed
       since the last time this function was called.
       """
+      # trace = True
       if trace:
          print '\n** .find_changed(lookfor=',lookfor,'):'
 
@@ -1384,8 +1463,8 @@ class TDLOptionManager (object):
                changed.append(key)
             elif trace:
                print '-',key,'=',ob.value,' (=lastval:',lastval,')'
-               
-         self._lastval[key] = ob.value
+         # Update self._lastval.....?? NOT a good idea!    
+         # self._lastval[key] = ob.value
 
       # Deal with the result:
       if trace:
@@ -1495,6 +1574,7 @@ class TDLOptionManager (object):
             print '\n** .setopt(',value,'): not changed (disabled):',key,'=',was,'\n'
          else:
             option.set_value(value, callback=callback)
+            ## self.copy_to_custom_value(key)
          changed = (not option.value==was)
          if trace and changed:
             print '- .setopt(',key,value,callback,') changed ->',option.value,'  (was:',was,')'
@@ -1510,13 +1590,14 @@ class TDLOptionManager (object):
       # trace = True
       option = self._tdlobjects[key]
       defrec = self._defrecs[key]
-      # print EF.format_record(defrec)
       more = defrec['more']
-      # print '--- more =',more,more==str
-      if more:
-         option.set_custom_value(option.value, select=False)
+      if more:                                       # custom field is present
+         value = option.value
+         if isinstance(value,str):
+            value = value.replace(self._serr,'')     # remove error string (if present)
+         option.set_custom_value(value, select=False)
          if trace:
-            print '\n** copy_to_custom_value(',key,') ->',option.value,'  (more =',more,')'
+            print '\n** copy_to_custom_value(',key,') ->',option.value,value,'  (more=',more,')'
       return True
          
    #--------------------------------------------------------------------------
@@ -1596,7 +1677,7 @@ class TDLOptionManager (object):
          rider.insert_help (path, qhelp, append=True)
 
       # Evaluate if value is a string like 'eval(....)':
-      value = self._evaluate(value, trace=trace)
+      value = self._evaluate(value, severe=False, trace=trace)
          
       if trace:
          print '** .getopt(',name,'):',unique_name,' (key=',key,') -> value =',value,'   (source=',source,')'
@@ -1604,23 +1685,32 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def _evaluate(self, value, trace=False):
+   def _evaluate(self, value, severe=True, trace=False):
       """Evaluate the input value if it is a string like 'eval(....)'
       If not, just return the input value.
+      The math functions are supported (import math as *):
+      ['__doc__', '__file__', '__name__', 'acos', 'asin', 'atan', 'atan2', 'ceil', 'cos', 'cosh',
+      'degrees', 'e', 'exp', 'fabs', 'floor', 'fmod', 'frexp', 'hypot', 'ldexp', 'log', 'log10',
+      'modf', 'pi', 'pow', 'radians', 'sin', 'sinh', 'sqrt', 'tan', 'tanh']
       """
-      trace = True
+      # trace = True
       if isinstance(value,str):
-         vv = value.split('eval(')
+         vv = value.replace(self._serr,'')      # remove error string (if present)
+         vv = vv.split('eval(')                 
          if len(vv)>1 and vv[0] == '':          # 'eval(' at the start 
             seval = vv[1][:len(vv[1])-1]        # remove closing bracket ')'
             try:
                valout = eval(seval)
                if trace:
-                  print '----- eval(',seval,') -> ',valout
+                  print '\n----- eval(',seval,') -> ',type(valout),valout,'\n'
                return valout
             except:
-               s = '** error in: eval('+str(seval)+')'
-               raise ValueError,s
+               s = self._serr+'eval('+str(seval)+')'
+               if severe:
+                  raise ValueError,s
+               else:
+                  print '\n',s,'\n'
+                  return s
       # If not evaluable, return the input value
       return value
 
@@ -1639,11 +1729,7 @@ class TDLOptionManager (object):
       for key in self._defrecs.keys():
          dd = self._defrecs[key]
          if dd['type']=='menu':
-            level = dd['level']
-            s = '   '
-            s += level*'*'
-            s += ' ('+str(level)+')'
-            s += ' summary=['
+            s = '  >> ['
             first = True
             for key1 in dd['order']:
                if self._tdlobjects.has_key(key1):
@@ -1664,6 +1750,7 @@ class TDLOptionManager (object):
                   elif dd1['type']=='option':
                      if not first: s += ', '
                      first = False
+                     v = self._evaluate(v, severe=False, trace=trace)
                      if isinstance(v,str):
                         s += '"'+v[:ncmax]
                         if len(v)>ncmax:
@@ -1706,15 +1793,15 @@ def testfunc (ns, TCM=None, menu=None, trace=False):
    
    # Define menus and options for this function:
    submenu = TCM.start_of_submenu(testfunc, menu=menu)
-   TCM.add_option('test', ['types','subfunc2',
-                           'master_slaves','radio_buttons',
-                           'all'], more=False,
+   TCM.add_option('test', ['test_types','test_check_value',
+                           'test_master_slaves','test_radio_buttons',
+                           'test_all'], more=False,
                   prompt='select a test to be performed',
-                  help='this is the help')
+                  help='the menu will be reconfigured accordingly')
    TCM.add_option('trace', False,
                   prompt='if True, show progress messages')
    TCM.add_option('recurse', [10,1,2,3,4],
-                  prompt='depth of show_record')
+                  prompt='max depth of show_record')
 
    # Get the relevant option values:
    test = TCM.getopt('test', testfunc, trace=True)
@@ -1724,20 +1811,20 @@ def testfunc (ns, TCM=None, menu=None, trace=False):
    # Execute the specified test:
    if False:
       pass
-   elif test=='types':
+   elif test=='test_types':
       test_types (ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='subfunc2':
-      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='master_slaves':
+   elif test=='test_check_value':
+      test_check_value (ns, TCM=TCM, menu=submenu, trace=trace)
+   elif test=='test_master_slaves':
       test_master(ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='radio_buttons':
+   elif test=='test_radio_buttons':
       test_radio_buttons(ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='all':
+   elif test=='test_all':
       test_types (ns, TCM=TCM, menu=submenu, trace=trace)
-      test_subfunc2 (ns, TCM=TCM, menu=submenu, trace=trace)
+      test_check_value (ns, TCM=TCM, menu=submenu, trace=trace)
       test_master(ns, TCM=TCM, menu=submenu, trace=trace)
       test_radio_buttons(ns, TCM=TCM, menu=submenu, trace=trace)
-      # NB: This does NOT work, but is desirable....
+      # NB: This does NOT work, but is desirable....                .............
       TCM.make_into_radio_buttons(trace=True)
    else:
       s = 'test not recocnized: '+test
@@ -1790,20 +1877,30 @@ def test_types (ns, TCM=None, menu=None, trace=False):
    if trace:
       print '\n** test_types():'
 
-   submenu = TCM.start_of_submenu('test_types', menu=menu)
-   TCM.add_option('bool', True)
+   submenu = TCM.start_of_submenu('test_types', menu=menu,
+                                  help='Test option values of various types')
+   TCM.add_option('bool', True,
+                  help='make toggle-box')
    TCM.add_option('int', range(4))
-   TCM.add_option('float', [0.123456789, math.pi])
-   TCM.add_option('complex', [complex(1,2)])
+   TCM.add_option('float', [0.123456789, math.pi],
+                  help='nr of significant digits?')
+   TCM.add_option('complex', [complex(1,2)],
+                  help='more=complex not supported (yet?)')
    TCM.add_option('str', ['aa','bb','cc'])
-   TCM.add_option('mixed', [1,1.89,complex(2,3),'string',None])
-   TCM.add_option('None', None)                                   # makes toggle box ...??
-   TCM.add_option('[None]', [None])             
+   TCM.add_option('mixed', [1,1.89,complex(2,3),'string',None],
+                  help='mixed types: custom value can ONLY have the type of the first value!')
+   TCM.add_option('None', None,
+                  help='choice not specified')                          
+   TCM.add_option('[None]', [None], help='recommended')             
    TCM.add_option('eval()', ['eval(-0.123456789)',
                              'eval(2*math.pi)',
+                             'eval(2*mat.pi)',           # deliberate error...
                              'eval(numpy.pi)',
-                             'eval(math.cos(4.5))',
-                             'eval(complex(2,3))'])
+                             'eval(cos(2*pi))',
+                             'eval(complex(2,3))'],
+                  help="""evaluate python expressions, with implicit math functions
+                  and explict math (e.g. math.cos() and numpy. (e.g. numpy.sin()) funcions
+                  """)
 
    # Get the relevant option values:
    # keys = TCM.get_current_menu_option_keys()
@@ -1820,20 +1917,20 @@ def test_types (ns, TCM=None, menu=None, trace=False):
    
 #------------------------------------------------------------
 
-def test_subfunc2 (ns, TCM=None, menu=None, trace=False):
+def test_check_value (ns, TCM=None, menu=None, trace=False):
    """Test
    """
    if trace:
-      print '\n** test_subfunc2():'
+      print '\n** test_check_value():'
 
-   submenu = TCM.start_of_submenu('test_subfunc2', menu=menu)
-   TCM.add_option('BB', range(4))
+   submenu = TCM.start_of_submenu('test_check_value', menu=menu)
+   TCM.add_option('int', range(10), vmin=-1, vmax=3)
 
    # Get the relevant option values:
-   TCM.getopt('BB', test_subfunc2, trace=True)
+   TCM.getopt('int', test_check_value, trace=True)
 
    # Create some nodes:
-   ns.test_subfunc2 << 2.0
+   ns.test_check_value << 2.0
    return True
    
 #------------------------------------------------------------
@@ -1844,7 +1941,8 @@ def test_master(ns, TCM=None, menu=None, trace=False):
    """
    if trace:
       print '\n** test_master(',menu,'):'
-   submenu = TCM.start_of_submenu('test_master', menu=menu)
+   submenu = TCM.start_of_submenu('test_master', menu=menu,
+                                  help='Test of master-slave options')
    TCM.add_option('nslaves', range(4))
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4), disable=True)
@@ -1870,7 +1968,8 @@ def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
       print '\n** test_slave(',menu,qual,master,'):'
       
    submenu = TCM.start_of_submenu('test_slave', qual=qual,
-                                  menu=menu, master=master)
+                                  menu=menu, master=master,
+                                  help='this is a slaved menu')
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4))
    TCM.add_option('cc', range(4), disable=(qual==2))
@@ -1913,8 +2012,13 @@ if 1:
       # Use of TCM to specify options INSIDE functions:
       ns = NodeScope()
       testfunc (ns, TCM=TCM, trace=False)
+   if 0:
+      TCM.TRM.start_of_submenu('TRM', help='runtime options/menus')
+      TCM.TRM.add_option('aa',range(3))
+      TCM.TRM.add_option('bb',range(3))
    if 1:
       itsTDLCompileMenu = TCM.TDLMenu(trace=False)
+   TCM.show('finished')
 
    
 #------------------------------------------------------------------------------
