@@ -59,9 +59,6 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
-from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyNode as EN
-from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
@@ -140,19 +137,18 @@ def QR_template (ns, rider):
    
    stub = QRU.on_entry(ns, rider, QR_template)
    cc = []
-   prefix = TCM.getopt_prefix(QR_template)
 
    # Remove this part:
-   arg1 = TCM.getopt(prefix+'arg1', rider) 
-   arg2 = TCM.getopt(prefix+'arg2', rider) 
-   arg3 = TCM.getopt(prefix+'arg3', rider) 
+   arg1 = TCM.getopt('arg1', QR_template, rider) 
+   arg2 = TCM.getopt('arg2', QR_template, rider) 
+   arg3 = TCM.getopt('arg3', QR_template, rider) 
    
    # Edit this part:
-   if TCM.getopt(prefix+'topic1'):
+   if TCM.getopt('topic1', QR_template):
       cc.append(topic1 (ns, rider))
-   if TCM.getopt(prefix+'topic2'):
+   if TCM.getopt('topic2', QR_template):
       cc.append(topic2 (ns, rider))
-   if TCM.getopt(prefix+'HELP'):
+   if TCM.getopt('HELP', QR_template):
       cc.append(HELP (ns, rider))
       
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -164,7 +160,7 @@ def QR_template (ns, rider):
 #================================================================================
 
 TCM.start_of_submenu('topic1', prompt='topic1')
-TCM.add_option('twig', ET.twig_names())
+TCM.add_option('twig', QRU.ET.twig_names())
 TCM.add_option('arg1', range(2))
 TCM.add_option('arg2', range(3))
 
@@ -185,10 +181,9 @@ def topic1 (ns, rider):
      def topic1 (ns, rider):
           stub = QRU.on_entry(ns, rider, topic1)
           cc = []
-          prefix = TCM.getopt_prefix(topic1)
-          arg1 = TCM.getopt(prefix+'arg1', rider) 
-          arg2 = TCM.getopt(prefix+'arg2', rider) 
-          if TCM.getopt(prefix+'subtopic1'):
+          arg1 = TCM.getopt('arg1', topic1, rider) 
+          arg2 = TCM.getopt('arg2', topic1, rider) 
+          if TCM.getopt('subtopic1', topic1):
               cc.append(topic1_subtopic (ns, rider))
           return QRU.on_exit (ns, rider, cc, mode='group')
    </function_code>
@@ -198,14 +193,13 @@ def topic1 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic1)
    cc = []
-   prefix = TCM.getopt_prefix(topic1)
 
    # Remove this part:
-   twig = TCM.getopt(prefix+'twig', rider)
-   arg1 = TCM.getopt(prefix+'arg1', rider) 
-   arg2 = TCM.getopt(prefix+'arg2', rider) 
+   twig = TCM.getopt('twig', topic1, rider)
+   arg1 = TCM.getopt('arg1', topic1, rider) 
+   arg2 = TCM.getopt('arg2', topic1, rider) 
 
-   if TCM.getopt(prefix+'subtopic1'):
+   if TCM.getopt('subtopic1', topic1):
       cc.append(topic1_subtopic1 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -236,11 +230,10 @@ def topic1_subtopic1 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic1_subtopic1)
    cc = []
-   prefix = TCM.getopt_prefix(topic1_subtopic1)
 
    # Remove this part:
-   arg1 = TCM.getopt(prefix+'arg1', rider) 
-   arg2 = TCM.getopt(prefix+'arg2', rider) 
+   arg1 = TCM.getopt('arg1', topic1_subtopic1, rider) 
+   arg2 = TCM.getopt('arg2', topic1_subtopic1, rider) 
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -264,16 +257,15 @@ def topic2 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic2)
    cc = []
-   prefix = TCM.getopt_prefix(topic2)
 
    # Remove this part:
-   arg1 = TCM.getopt(prefix+'arg1', rider) 
-   arg2 = TCM.getopt(prefix+'arg2', rider) 
+   arg1 = TCM.getopt('arg1', topic2, rider) 
+   arg2 = TCM.getopt('arg2', topic2, rider) 
 
    # Replace this part:
-   if TCM.getopt(prefix+'subtopic1'):
+   if TCM.getopt('subtopic1', topic2):
       cc.append(topic2_subtopic1 (ns, rider))
-   if TCM.getopt(prefix+'subtopic2'):
+   if TCM.getopt('subtopic2', topic2):
       cc.append(topic2_subtopic2 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -337,7 +329,7 @@ def topic2_subtopic2 (ns, rider):
    stub = QRU.on_entry(ns, rider, topic2_subtopic2)
    cc = []
 
-   twig = ET.twig(ns,'f')
+   twig = QRU.ET.twig(ns,'f')
 
    for q in ['Sin','Cos','Tan']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
@@ -356,13 +348,12 @@ def topic2_subtopic2 (ns, rider):
 
    stub = QRU.on_entry(ns, rider, topic2_subtopic2)
    cc = []
-   prefix = TCM.getopt_prefix(topic2_subtopic2)
 
    # Remove this part:
-   arg1 = TCM.getopt(prefix+'arg1', rider) 
-   arg2 = TCM.getopt(prefix+'arg2', rider) 
+   arg1 = TCM.getopt('arg1', topic2_subtopic2, rider) 
+   arg2 = TCM.getopt('arg2', topic2_subtopic2, rider) 
 
-   twig = ET.twig(ns,'f')
+   twig = QRU.ET.twig(ns,'f')
 
    for q in ['Sin','Cos','Tan']:
       cc.append(stub(q) << getattr(Meq,q)(twig))
@@ -394,11 +385,10 @@ def topic2_subtopic2_subsubtopic1 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, topic2_subtopic2_subsubtopic1)
    cc = []
-   prefix = TCM.getopt_prefix(topic2_subtopic2_subsubtopic1)
 
    # Remove this part:
-   arg1 = TCM.getopt(prefix+'arg1', rider) 
-   arg2 = TCM.getopt(prefix+'arg2', rider) 
+   arg1 = TCM.getopt('arg1', topic2_subtopic2_subsubtopic1, rider) 
+   arg2 = TCM.getopt('arg2', topic2_subtopic2_subsubtopic1, rider) 
 
    return QRU.on_exit (ns, rider, cc)
 
@@ -414,7 +404,7 @@ TCM.start_of_submenu('HELP')
 TCM.add_option('on_entry', prompt='help on QRU.on_entry()', selectable=True)
 TCM.add_option('on_exit', prompt='help on QRU.on_exit()', selectable=True)
 TCM.add_option('helpnode', prompt='help on QRU.helpnode()', selectable=True)
-TCM.add_option('twig', prompt='help on ET.twig()', selectable=True)
+TCM.add_option('twig', prompt='help on QRU.ET.twig()', selectable=True)
 
 
 #--------------------------------------------------------------------------------
@@ -430,17 +420,16 @@ def HELP (ns, rider):
    # NB: Avoid the string 'help' in the function name....!!
    stub = QRU.on_entry(ns, rider, HELP)
    cc = []
-   prefix = TCM.getopt_prefix(HELP)
 
    # Replace this part:
-   if TCM.getopt(prefix+'on_entry'):
+   if TCM.getopt('on_entry', HELP):
       cc.append(QRU.helpnode (ns, rider, func=QRU.on_entry))
-   if TCM.getopt(prefix+'on_exit'):
+   if TCM.getopt('on_exit', HELP):
       cc.append(QRU.helpnode (ns, rider, func=QRU.on_exit))
-   if TCM.getopt(prefix+'helpnode'):
+   if TCM.getopt('helpnode', HELP):
       cc.append(QRU.helpnode (ns, rider, func=QRU.helpnode))
-   if TCM.getopt(prefix+'twig'):
-      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
+   if TCM.getopt('twig', HELP):
+      cc.append(QRU.helpnode (ns, rider, func=QRU.ET.twig))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
 

@@ -86,8 +86,6 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
-from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyNode as EN
 
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
 
@@ -123,44 +121,43 @@ def QR_MeqNodes (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, QR_MeqNodes)
    cc = []
-   prefix = TCM.getopt_prefix(QR_MeqNodes)
 
    #=================================================
    # return QRU.on_exit (ns, rider, cc, mode='group')
    #=================================================
 
-   if TCM.getopt(prefix+'unops'):
+   if TCM.getopt('unops', QR_MeqNodes):
       cc.append(unops (ns, rider))
-   if TCM.getopt(prefix+'binops'):
+   if TCM.getopt('binops', QR_MeqNodes):
       cc.append(binops (ns, rider))
-   if TCM.getopt(prefix+'multimath'):
+   if TCM.getopt('multimath', QR_MeqNodes):
       cc.append(multimath (ns, rider))
-   if TCM.getopt(prefix+'leaves'):
+   if TCM.getopt('leaves', QR_MeqNodes):
       cc.append(leaves (ns, rider))
-   if TCM.getopt(prefix+'FITS'):
+   if TCM.getopt('FITS', QR_MeqNodes):
       cc.append(FITS (ns, rider))
-   if TCM.getopt(prefix+'tensor'):
+   if TCM.getopt('tensor', QR_MeqNodes):
       cc.append(tensor (ns, rider))
-   if TCM.getopt(prefix+'axisreduction'):
+   if TCM.getopt('axisreduction', QR_MeqNodes):
       cc.append(axisreduction (ns, rider))
-   if TCM.getopt(prefix+'resampling'):
+   if TCM.getopt('resampling', QR_MeqNodes):
       cc.append(resampling (ns, rider))
-   if TCM.getopt(prefix+'compounder'):
+   if TCM.getopt('compounder', QR_MeqNodes):
       cc.append(compounder (ns, rider))
-   if TCM.getopt(prefix+'flagging'):
+   if TCM.getopt('flagging', QR_MeqNodes):
       cc.append(flagging (ns, rider))
-   if TCM.getopt(prefix+'solving'):
+   if TCM.getopt('solving', QR_MeqNodes):
       cc.append(solving (ns, rider))
-   if TCM.getopt(prefix+'spigot2sink'):
+   if TCM.getopt('spigot2sink', QR_MeqNodes):
       cc.append(spigot2sink (ns, rider))
-   if TCM.getopt(prefix+'visualization'):
+   if TCM.getopt('visualization', QR_MeqNodes):
       cc.append(visualization (ns, rider))
-   if TCM.getopt(prefix+'flowcontrol'):
+   if TCM.getopt('flowcontrol', QR_MeqNodes):
       cc.append(flowcontrol (ns, rider))
-   if TCM.getopt(prefix+'coordinates'):
+   if TCM.getopt('coordinates', QR_MeqNodes):
       cc.append(coordinates (ns, rider))
 
-   if TCM.getopt(prefix+'HELP'):
+   if TCM.getopt('HELP', QR_MeqNodes):
       cc.append(HELP (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -180,11 +177,10 @@ def HELP (ns, rider):
    helpnodes...
    """
    stub = QRU.on_entry(ns, rider, HELP)
-   prefix = TCM.getopt_prefix(HELP)
 
    cc = []
-   if TCM.getopt(prefix+'twig'):
-      cc.append(QRU.helpnode (ns, rider, func=ET.twig))
+   if TCM.getopt('twig', HELP):
+      cc.append(QRU.helpnode (ns, rider, func=QRU.ET.twig))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
 
@@ -242,10 +238,9 @@ def spigot2sink (ns, rider):
    """
 
    stub = QRU.on_entry(ns, rider, spigot2sink, stubname='s2s')
-   prefix = TCM.getopt_prefix(spigot2sink)
    
-   nstat = TCM.getopt(prefix+'nstat', rider)
-   pynodePlot = TCM.getopt(prefix+'pynodePlot', rider)
+   nstat = TCM.getopt('nstat', spigot2sink, rider)
+   pynodePlot = TCM.getopt('pynodePlot', spigot2sink, rider)
    # msname = '3C286-10705290.MS'
    nstat = 5
    cc = []
@@ -309,12 +304,11 @@ def coordinates (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, coordinates)
    cc = []
-   prefix = TCM.getopt_prefix(coordinates)
 
    # Get the radec (RA,DEC) node here, and pass it down:
-   ssobj = TCM.getopt(prefix+'ssobj', rider)
-   ra = TCM.getopt(prefix+'RA', rider)
-   dec = TCM.getopt(prefix+'DEC', rider)
+   ssobj = TCM.getopt('ssobj', coordinates, rider)
+   ra = TCM.getopt('RA', coordinates, rider)
+   dec = TCM.getopt('DEC', coordinates, rider)
 
    if False and ssobj:                                           # temporarily disabled
       # Measures cannot find the planetary data table DE200
@@ -324,9 +318,9 @@ def coordinates (ns, rider):
       DEC = stub('DEC') << dec
       radec = stub('radec') << Meq.Composer(RA,DEC)
 
-   if TCM.getopt(prefix+'azel'):
+   if TCM.getopt('azel', coordinates):
       cc.append(coordinates_azel (ns, rider, radec=radec))
-   if TCM.getopt(prefix+'lmn'):
+   if TCM.getopt('lmn', coordinates):
       cc.append(coordinates_lmn (ns, rider, radec=radec))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -376,11 +370,10 @@ def coordinates_azel (ns, rider, radec=None):
 
    stub = QRU.on_entry(ns, rider, coordinates_azel)
    cc = []
-   prefix = TCM.getopt_prefix(coordinates_azel)
 
    cc.append(radec)
    
-   obs = TCM.getopt(prefix+'observatory', rider)
+   obs = TCM.getopt('observatory', coordinates_azel, rider)
 
    cc.append(stub('AzEl')('observatory') << Meq.AzEl(radec, observatory=obs))
    if False:
@@ -432,12 +425,11 @@ def coordinates_lmn (ns, rider, radec=None):
 
    stub = QRU.on_entry(ns, rider, coordinates_lmn)
    cc = []
-   prefix = TCM.getopt_prefix(coordinates_lmn)
 
    cc.append(radec)
 
-   ra0 = TCM.getopt(prefix+'RA0', rider)
-   dec0 = TCM.getopt(prefix+'DEC0', rider)
+   ra0 = TCM.getopt('RA0', coordinates_lmn, rider)
+   dec0 = TCM.getopt('DEC0', coordinates_lmn, rider)
    radec0 = stub('radec0') << Meq.Composer(ra0,dec0)
    cc.append(radec0)
    
@@ -474,7 +466,6 @@ def transforms (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, transforms)
    cc = []
-   prefix = TCM.getopt_prefix(transforms)
    
    # cc.append(transforms_coord (ns, rider))
    # cc.append(transforms_FFT (ns, rider))
@@ -498,7 +489,6 @@ def flowcontrol (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flowcontrol)
    cc = []
-   prefix = TCM.getopt_prefix(flowcontrol)
 
    cc.append(flowcontrol_reqseq (ns, rider))
    # cc.append(flowcontrol_reqmux (ns, rider))
@@ -523,7 +513,6 @@ def flowcontrol_reqseq (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flowcontrol_reqseq)
    cc = []
-   prefix = TCM.getopt_prefix(flowcontrol_reqseq)
 
    children = []
    for i in range(5):
@@ -559,7 +548,6 @@ def visualization (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, visualization)
    cc = []
-   prefix = TCM.getopt_prefix(visualization)
 
    cc.append(visualization_inspector(ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -567,7 +555,7 @@ def visualization (ns, rider):
 #--------------------------------------------------------------------------------
 
 TCM.start_of_submenu('inspector', menu='visualization')
-TCM.add_option('twig', ET.twig_names(first='t'),
+TCM.add_option('twig', QRU.ET.twig_names(first='t'),
                prompt="input twig (child node)",
                help='help')
 
@@ -594,10 +582,9 @@ def visualization_inspector (ns, rider):
    For more control, check out the PyNodePlots.
    """
    stub = QRU.on_entry(ns, rider, visualization_inspector)
-   prefix = TCM.getopt_prefix(visualization_inspector)
    
-   tname = TCM.getopt(prefix+'twig', rider)
-   twig = ET.twig(ns, tname)
+   tname = TCM.getopt('twig', visualization_inspector, rider)
+   twig = QRU.ET.twig(ns, tname)
    cc = []
    plot_label = []
    children = []
@@ -639,10 +626,9 @@ def solving (ns, rider):
 
    """
    stub = QRU.on_entry(ns, rider, solving)
-   prefix = TCM.getopt_prefix(solving)
    cc = []
 
-   if TCM.getopt(prefix+'ab'):
+   if TCM.getopt('ab', solving):
       cc.append(solving_ab (ns, rider))
       
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -675,7 +661,6 @@ def solving_ab (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, solving_ab)
    cc = []
-   prefix = TCM.getopt_prefix(solving_ab)
 
    a = stub('a') << Meq.Parm(0, tags='solvable')
    b = stub('b') << Meq.Parm(0, tags='solvable')
@@ -730,11 +715,10 @@ def flagging (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flagging)
    cc = []
-   prefix = TCM.getopt_prefix(flagging)
 
-   if TCM.getopt(prefix+'simple'):
+   if TCM.getopt('simple', flagging):
       cc.append(flagging_simple (ns, rider))
-   # if TCM.getopt(prefix+'merge'):
+   # if TCM.getopt('merge', flagging):
       # cc.append(flagging_merge (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
@@ -742,7 +726,7 @@ def flagging (ns, rider):
 #--------------------------------------------------------------------------------
 
 TCM.start_of_submenu('simple', menu='flagging')
-TCM.add_option('twig', ET.twig_names('noise', first='noise_3'),
+TCM.add_option('twig', QRU.ET.twig_names('noise', first='noise_3'),
                prompt="input twig (child node)",
                help='help')
 TCM.add_option('nsigma', [5.0,1.0,2.0,3.0,4.0,7.0,9.0], 
@@ -769,9 +753,8 @@ def flagging_simple (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, flagging_simple)
    cc = []
-   prefix = TCM.getopt_prefix(flagging_simple)
 
-   cc.append(stub('input') << Meq.Exp(ET.twig(ns, TCM.getopt(prefix+'twig',rider))))
+   cc.append(stub('input') << Meq.Exp(QRU.ET.twig(ns, TCM.getopt('twig', flagging_simple, rider))))
    cc.append(stub('mean') << Meq.Mean(cc[0]))
    cc.append(stub('stddev') << Meq.StdDev(cc[0]))
    stddev = cc[-1]
@@ -781,7 +764,7 @@ def flagging_simple (ns, rider):
    cc.append(stub('absdev') << Meq.Abs(dev, qhelp=qhelp))
    absdev = cc[-1]
    
-   nsigma = TCM.getopt(prefix+'nsigma',rider)
+   nsigma = TCM.getopt('nsigma', flagging_simple, rider)
    cc.append(stub('abscrit') << Meq.Multiply(nsigma,stddev))
 
    qhelp ="""The zero-criterion is the absolute deviation from the mean,
@@ -819,11 +802,10 @@ def compounder (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, compounder)
    cc = []
-   prefix = TCM.getopt_prefix(compounder)
 
-   if TCM.getopt(prefix+'simple'):
+   if TCM.getopt('simple', compounder):
       cc.append(compounder_simple (ns, rider))
-   if TCM.getopt(prefix+'advanced'):
+   if TCM.getopt('advanced', compounder):
       cc.append(compounder_advanced (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -859,10 +841,9 @@ def compounder_simple (ns, rider):
    </remark>
    """
    stub = QRU.on_entry(ns, rider, compounder_simple)
-   prefix = TCM.getopt_prefix(compounder_simple)
 
    twigspec = 'gaussian_LM'
-   twig_LM = ET.twig(ns,twigspec)
+   twig_LM = QRU.ET.twig(ns,twigspec)
    common_axes = [hiid('L'),hiid('M')]
    LL = []
    ll = []
@@ -928,10 +909,9 @@ def compounder_advanced (ns, rider):
    </remark>
    """
    stub = QRU.on_entry(ns, rider, compounder_advanced)
-   prefix = TCM.getopt_prefix(compounder_advanced)
 
    twigspec = 'gaussian_LM'
-   twig_LM = ET.twig(ns,twigspec)
+   twig_LM = QRU.ET.twig(ns,twigspec)
    common_axes = [hiid('L'),hiid('M')]
    zz = []
 
@@ -945,8 +925,8 @@ def compounder_advanced (ns, rider):
                                                         qhelp=qhelp,
                                                         common_axes=common_axes))
    axes = 'GridLM'
-   L = ET.twig(ns,'L')
-   M = ET.twig(ns,'M')
+   L = QRU.ET.twig(ns,'L')
+   M = QRU.ET.twig(ns,'M')
    extra_axes = stub('extra_axes')(axes) << Meq.Composer(L,M)
    qhelp = 'This compounder samples the function at MeqGrids L and M.'
    zz.append(stub('compounder')(axes) << Meq.Compounder(extra_axes, twig_LM,
@@ -954,7 +934,7 @@ def compounder_advanced (ns, rider):
                                                         common_axes=common_axes))
    axes = 'GridL'
    m = 1
-   L = ET.twig(ns,'L')
+   L = QRU.ET.twig(ns,'L')
    M = ns << m
    extra_axes = stub('extra_axes')(axes)(m) << Meq.Composer(L,M)
    qhelp = 'This compounder samples the function at MeqGridL and M='+str(m)+'.'
@@ -964,7 +944,7 @@ def compounder_advanced (ns, rider):
 
    axes = 'GridM'
    l = 1
-   M = ET.twig(ns,'M')
+   M = QRU.ET.twig(ns,'M')
    L = ns << l
    extra_axes = stub('extra_axes')(l)(axes) << Meq.Composer(L,M)
    qhelp = 'This compounder samples the function at MeqGridM and L='+str(l)+'.'
@@ -987,7 +967,7 @@ def compounder_advanced (ns, rider):
 #================================================================================
 
 TCM.start_of_submenu('resampling')
-TCM.add_option('MeqModRes_twig', ET.twig_names(first='f+t'),
+TCM.add_option('MeqModRes_twig', QRU.ET.twig_names(first='f+t'),
                "input twig (child node) of MeqModRes", more=str)
 TCM.add_option('MeqModRes_num_freq', [4,1,2,3,5,6,10,20,50],
                "nr of freq cells for MeqModRes num_cells [nt,nf]", more=int)
@@ -1026,12 +1006,11 @@ def resampling (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, resampling)
    cc = []
-   prefix = TCM.getopt_prefix(resampling)
 
-   twig = ET.twig (ns, TCM.getopt(prefix+'MeqModRes_twig',rider))
-   num_cells = [TCM.getopt(prefix+'MeqModRes_num_time',rider),
-                TCM.getopt(prefix+'MeqModRes_num_freq',rider)]
-   mode = TCM.getopt(prefix+'MeqResampler_mode',rider)
+   twig = QRU.ET.twig (ns, TCM.getopt('MeqModRes_twig',rider))
+   num_cells = [TCM.getopt('MeqModRes_num_time', resampling, rider),
+                TCM.getopt('MeqModRes_num_freq', resampling, rider)]
+   mode = TCM.getopt('MeqResampler_mode', resampling, rider)
    cc.append(resampling_experiment (ns, rider, twig=twig,
                                     num_cells=num_cells, mode=mode))
 
@@ -1053,7 +1032,6 @@ def resampling_experiment (ns, rider, twig=None,
    re-executing.
    """
    stub = QRU.on_entry(ns, rider, resampling_experiment, stubname='resexp')
-   prefix = TCM.getopt_prefix(resampling_experiment)
    cc = [twig]
 
    qhelp = """This copy of the input is needed for display, since the
@@ -1092,13 +1070,12 @@ def axisreduction (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, axisreduction)
    cc = []
-   prefix = TCM.getopt_prefix(axisreduction)
 
-   if TCM.getopt('single'):
+   if TCM.getopt('single', axisreduction):
       cc.append(axisreduction_single (ns, rider))
-   if TCM.getopt('multiple'):
+   if TCM.getopt('multiple', axisreduction):
       cc.append(axisreduction_multiple (ns, rider))
-   if TCM.getopt('axes'):
+   if TCM.getopt('axes', axisreduction):
       cc.append(axisreduction_axes (ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
@@ -1125,10 +1102,9 @@ def axisreduction_single (ns, rider):
 
    """
    stub = QRU.on_entry(ns, rider, axisreduction_single)
-   prefix = TCM.getopt_prefix(axisreduction_single)
 
    twig_name = 'f'
-   twig = ET.twig(ns, twig_name)
+   twig = QRU.ET.twig(ns, twig_name)
    cc = [twig]
    # NB: Left out: 'Rms', which is the same as 'StdDev'...
    for q in ['Nelements','Sum','Mean','Product','StdDev','Min','Max']:
@@ -1152,14 +1128,13 @@ def axisreduction_multiple (ns, rider):
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
    stub = QRU.on_entry(ns, rider, axisreduction_multiple)
-   prefix = TCM.getopt_prefix(axisreduction_multiple)
 
    democlass = 'Sum'
    help = record(f=democlass+' over the cells of a single vellset, of its single child',
                  range_5=democlass+' over the cells of multiple vellsets, from a tensor child')
    cc = []
    for twig_name in help.keys():
-      twig = ET.twig(ns, twig_name)
+      twig = QRU.ET.twig(ns, twig_name)
       cc.append(twig)
       qhelp = help[twig_name]
       cc.append(stub(democlass)(twig_name) << getattr(Meq,democlass)(twig, qhelp=qhelp))
@@ -1186,10 +1161,9 @@ def axisreduction_axes (ns, rider):
    This demonstration uses only one of the relevant MeqNodes (MeqSum).
    """
    stub = QRU.on_entry(ns, rider, axisreduction_axes)
-   prefix = TCM.getopt_prefix(axisreduction_axes)
 
    twig_name = 'ft'
-   twig = ET.twig(ns, twig_name)
+   twig = QRU.ET.twig(ns, twig_name)
    ntwig = stub('nelem') << Meq.NElements(twig)
    cc = [twig,ntwig]
 
@@ -1233,13 +1207,12 @@ def tensor (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor)
    cc = []
-   prefix = TCM.getopt_prefix(tensor)
 
-   if TCM.getopt(prefix+'manipulation'):
+   if TCM.getopt('manipulation', tensor):
       cc.append(tensor_manipulation (ns, rider)) 
-   if TCM.getopt(prefix+'matrix'):
+   if TCM.getopt('matrix', tensor):
       cc.append(tensor_matrix (ns, rider))
-   if TCM.getopt(prefix+'matrix22'):
+   if TCM.getopt('matrix22', tensor):
       cc.append(tensor_matrix22 (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -1262,11 +1235,10 @@ def tensor_manipulation (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor_manipulation)
    cc = []
-   prefix = TCM.getopt_prefix(tensor_manipulation)
 
-   c0 = ET.twig(ns,'f', nodename='c0')
-   c1 = ET.twig(ns,'t', nodename='c1')
-   c2 = ET.twig(ns,'ft', nodename='c2')
+   c0 = QRU.ET.twig(ns,'f', nodename='c0')
+   c1 = QRU.ET.twig(ns,'t', nodename='c1')
+   c2 = QRU.ET.twig(ns,'ft', nodename='c2')
    elements = [c0,c1,c2]
 
    qhelp = """Make a tensor node by combining the vellsets in the
@@ -1290,7 +1262,7 @@ def tensor_manipulation (ns, rider):
 
    if True:
       # Problem: Does not work... (nr of vells stays the same). But index is the correct keyword...
-      c1 = ET.twig(ns,'prod_f2t2')
+      c1 = QRU.ET.twig(ns,'prod_f2t2')
       index = 1
       qhelp = """Make a new node, in which the vellset from the
       second child (c1) is pasted at the specified (index) position
@@ -1323,7 +1295,6 @@ def tensor_matrix (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix)
    cc = []
-   prefix = TCM.getopt_prefix(tensor_matrix)
 
    qhelp = """Make a tensor node with a 2x3 array of vellsets.
    This can be treated as a 2x3 matrix. Note the use of
@@ -1363,9 +1334,8 @@ def tensor_matrix22 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, tensor_matrix22)
    cc = []
-   prefix = TCM.getopt_prefix(tensor_matrix22)
 
-   elements = [ET.twig(ns,'cx_ft'),0,0,ET.twig(ns,'cx_tf')]
+   elements = [QRU.ET.twig(ns,'cx_ft'),0,0,QRU.ET.twig(ns,'cx_tf')]
 
    qhelp = """Make a complex 2x2 diagonal matrix."""
    # NB: Matrix22(children=elements) gives an error.... 
@@ -1403,17 +1373,16 @@ def leaves (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves)
    cc = []
-   prefix = TCM.getopt_prefix(leaves)
 
-   if TCM.getopt(prefix+'constant'):
+   if TCM.getopt('constant', leaves):
       cc.append(leaves_constant (ns, rider))
-   if TCM.getopt(prefix+'parm'):
+   if TCM.getopt('parm', leaves):
       cc.append(leaves_parm (ns, rider))
-   if TCM.getopt(prefix+'gridsFTLM'):
+   if TCM.getopt('gridsFTLM', leaves):
       cc.append(leaves_gridsFTLM (ns, rider))
-   if TCM.getopt(prefix+'gridsXYZetc'):
+   if TCM.getopt('gridsXYZetc', leaves):
       cc.append(leaves_gridsXYZetc (ns, rider))
-   if TCM.getopt(prefix+'noise'):
+   if TCM.getopt('noise', leaves):
       cc.append(leaves_noise (ns, rider))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -1435,7 +1404,6 @@ def leaves_constant (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_constant)
    cc = []
-   prefix = TCM.getopt_prefix(leaves_constant)
    
    v = 0.5
    cc.append(ns << v)
@@ -1481,7 +1449,6 @@ def leaves_parm (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_parm)
    cc = []
-   prefix = TCM.getopt_prefix(leaves_parm)
 
    cc.append(stub('basic') << Meq.Parm(2.5))
    return QRU.on_exit (ns, rider, cc)
@@ -1504,7 +1471,6 @@ def leaves_noise (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_noise)
    cc = []
-   prefix = TCM.getopt_prefix(leaves_noise)
 
    cc.append(stub('stddev') << Meq.GaussNoise(stddev=2.0))
 
@@ -1549,7 +1515,6 @@ def leaves_gridsFTLM (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_gridsFTLM)
    cc = []
-   prefix = TCM.getopt_prefix(leaves_gridsFTLM)
 
    for q in ['Freq','Time']:
       cc.append(stub(q) << getattr(Meq,q)())
@@ -1592,12 +1557,11 @@ def leaves_gridsXYZetc (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, leaves_gridsXYZetc)
    cc = []
-   prefix = TCM.getopt_prefix(leaves_gridsXYZetc)
 
    for axis in ['X','Y','Z']:
       cc.append(stub(axis) << Meq.Grid(axis=axis))
    cc.append(stub('X+Y+Z') << Meq.Add(cc[0],cc[1],cc[2]))
-   cc.append(stub('f+t+Y') << Meq.Add(ET.twig(ns,'t'), ET.twig(ns,'f'), cc[1]))
+   cc.append(stub('f+t+Y') << Meq.Add(QRU.ET.twig(ns,'t'), QRU.ET.twig(ns,'f'), cc[1]))
    return QRU.on_exit (ns, rider, cc)
 
 
@@ -1623,13 +1587,12 @@ def FITS (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITS)
    cc = [] 
-   prefix = TCM.getopt_prefix(FITS)
 
-   if TCM.getopt(prefix+'RW'):
+   if TCM.getopt('RW', FITS):
       cc.append(FITS_RW(ns, rider))
-   if TCM.getopt(prefix+'FITSImage'):
+   if TCM.getopt('FITSImage', FITS):
       cc.append(FITSImage(ns, rider))
-   if TCM.getopt(prefix+'FITSImage_mode2'):
+   if TCM.getopt('FITSImage_mode2', FITS):
       cc.append(FITSImage_mode2(ns, rider))
    return QRU.on_exit (ns, rider, cc, mode='group')
 
@@ -1668,9 +1631,8 @@ def FITS_RW (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITS_RW)
    cc = []
-   prefix = TCM.getopt_prefix(FITS_RW)
 
-   cc.append(ET.twig(ns, 'f+t+L+M'))
+   cc.append(QRU.ET.twig(ns, 'f+t+L+M'))
    # filename = '!FITS_RW.fits'            # The exclamation mark is to allow rewrite....
    filename = 'FITS_RW.fits'  
    cc.append(stub('FITSWriter') << Meq.FITSWriter(cc[-1], filename=filename))
@@ -1735,10 +1697,9 @@ def FITSImage (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITSImage, stubname='FITSImage')
    cc = []
-   prefix = TCM.getopt_prefix(FITSImage)
 
    filename = 'Sun.fits'
-   cutoff = TCM.getopt(prefix+'cutoff',rider)
+   cutoff = TCM.getopt('cutoff', FITSImage, rider)
    qhelp = 'Default (assume mode=1)'
    sixpack = stub('sixpack') << Meq.FITSImage(filename=filename,
                                               qhelp=qhelp,
@@ -1796,13 +1757,11 @@ def FITSImage_mode2 (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, FITSImage_mode2, stubname='FITSIm(2)')
    cc = []
-   prefix = TCM.getopt_prefix(FITSImage_mode2)
-
    
    filename = 'Sun.fits'
 
-   cutoff = TCM.getopt(prefix+'cutoff',rider)
-   mode = TCM.getopt(prefix+'Resampler_mode',rider)
+   cutoff = TCM.getopt('cutoff', FITSImage_mode2, rider)
+   mode = TCM.getopt('Resampler_mode', FITSImage_mode2, rider)
    
    cc.append(stub('StokesI')('mode=2') << Meq.FITSImage(filename=filename,
                                                         qviewer=[True,'Record Browser'],
@@ -1823,7 +1782,7 @@ def FITSImage_mode2 (ns, rider):
 #================================================================================
 
 TCM.start_of_submenu('unops')
-TCM.add_option('twig', ET.twig_names(),
+TCM.add_option('twig', QRU.ET.twig_names(),
                prompt="input twig (child node)",
                help='help')
 
@@ -1843,25 +1802,24 @@ def unops (ns, rider):
    of the function value vs its argument. 
    """
    stub = QRU.on_entry(ns, rider, unops)
-   prefix = TCM.getopt_prefix(unops)
    
-   twig = ET.twig (ns, TCM.getopt(prefix+'twig',rider),
+   twig = QRU.ET.twig (ns, TCM.getopt('twig', unops, rider),
                    help='single child for unary math nodes', 
                    nodename='unops_child')
    cc = []
-   if TCM.getopt(prefix+'elementary'):
+   if TCM.getopt('elementary', unops):
       cc.append(unops_elementary (ns, rider, twig))
-   if TCM.getopt(prefix+'goniometric'):
+   if TCM.getopt('goniometric', unops):
       cc.append(unops_goniometric (ns, rider, twig))
-   if TCM.getopt(prefix+'invgoniometric'):
+   if TCM.getopt('invgoniometric', unops):
       cc.append(unops_invgoniometric (ns, rider, twig))
-   if TCM.getopt(prefix+'hyperbolic'):
+   if TCM.getopt('hyperbolic', unops):
       cc.append(unops_hyperbolic (ns, rider, twig))
-   if TCM.getopt(prefix+'power'):
+   if TCM.getopt('power', unops):
       cc.append(unops_power (ns, rider, twig))
-   if TCM.getopt(prefix+'misc'):
+   if TCM.getopt('misc', unops):
       cc.append(unops_misc (ns, rider, twig))
-   if TCM.getopt(prefix+'complex'):
+   if TCM.getopt('complex', unops):
       cc.append(unops_complex (ns, rider, twig))
 
    return QRU.on_exit (ns, rider, cc, mode='group')
@@ -1883,7 +1841,6 @@ def unops_elementary (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Sqrt(c)</A> 
    """
    stub = QRU.on_entry(ns, rider, unops_elementary)
-   prefix = TCM.getopt_prefix(unops_elementary)
 
    cc = [twig]
    for q in ['Negate','Invert','Exp','Log','Sqrt']:
@@ -1905,7 +1862,6 @@ def unops_goniometric (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Tan(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_goniometric)
-   prefix = TCM.getopt_prefix(unops_goniometric)
    cc = [twig]
 
    for q in ['Sin','Cos','Tan']:
@@ -1937,7 +1893,6 @@ def unops_invgoniometric (ns, rider, twig=None):
    </tip>
    """
    stub = QRU.on_entry(ns, rider, unops_invgoniometric)
-   prefix = TCM.getopt_prefix(unops_invgoniometric)
    cc = [twig]
 
    for q in ['Asin','Acos','Atan']:
@@ -1973,7 +1928,6 @@ def unops_hyperbolic (ns, rider, twig=None):
    Note the demonstration: Cosh(x)**2 - Sinh(x)**2 = 1 
    """
    stub = QRU.on_entry(ns, rider, unops_hyperbolic)
-   prefix = TCM.getopt_prefix(unops_hyperbolic)
    cc = [twig]
    for q in ['Sinh','Cosh','Tanh']:
       cc.append(stub(q+'(c)') << getattr(Meq,q)(twig))
@@ -2008,9 +1962,8 @@ def unops_complex (ns, rider, twig=None):
    Most math node take complex children, of course, or produce complex results. 
    """
    stub = QRU.on_entry(ns, rider, unops_complex)
-   prefix = TCM.getopt_prefix(unops_complex)
 
-   twig = ET.twig(ns,'cx_ft')                # override input twig...
+   twig = QRU.ET.twig(ns,'cx_ft')                # override input twig...
    cc = [twig]
    for q in ['Abs','Arg','Real','Imag','Conj','Exp','Log']:
       cc.append(stub(q+'(c)') << getattr(Meq,q)(twig))
@@ -2035,7 +1988,6 @@ def unops_power (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Pow8(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_power)
-   prefix = TCM.getopt_prefix(unops_power)
 
    cc = [twig]
    for q in ['Sqr','Pow2','Pow3','Pow4','Pow5','Pow6','Pow7','Pow8']:
@@ -2057,7 +2009,6 @@ def unops_misc (ns, rider, twig=None):
    <li> <A href='http://www.astron.nl/meqwiki/AllNodes'>Meq.Stripper(c)</A>
    """
    stub = QRU.on_entry(ns, rider, unops_misc)
-   prefix = TCM.getopt_prefix(unops_misc)
 
    cc = [twig]
    for q in ['Ceil','Floor','Identity']:
@@ -2074,10 +2025,10 @@ def unops_misc (ns, rider, twig=None):
 #================================================================================
 
 TCM.start_of_submenu('binops')
-TCM.add_option('binops_lhs', ET.twig_names(), more=str,
+TCM.add_option('binops_lhs', QRU.ET.twig_names(), more=str,
                prompt="lhs twig (child node)", 
                help='help')
-TCM.add_option('binops_rhs', ET.twig_names(), more=str,
+TCM.add_option('binops_rhs', QRU.ET.twig_names(), more=str,
                prompt="rhs twig (child node)", 
                help='help')
 
@@ -2104,10 +2055,9 @@ def binops (ns, rider):
    The input children may be selected here, for experimentation.
    """
    stub = QRU.on_entry(ns, rider, binops, stubname='binops')
-   prefix = TCM.getopt_prefix(binops)
 
-   lhs = ET.twig(ns, TCM.getopt(prefix+'binops_lhs',rider), nodename='lhs') 
-   rhs = ET.twig(ns, TCM.getopt(prefix+'binops_rhs',rider), nodename='rhs') 
+   lhs = QRU.ET.twig(ns, TCM.getopt('binops_lhs', binops, rider), nodename='lhs') 
+   rhs = QRU.ET.twig(ns, TCM.getopt('binops_rhs', binops, rider), nodename='rhs') 
    cc = [lhs,rhs]
    for q in ['Subtract','Divide','Pow']:
       cc.append(stub(q+'(lhs,rhs)') << getattr(Meq,q)(lhs,rhs))
@@ -2123,13 +2073,13 @@ def binops (ns, rider):
 #================================================================================
 
 TCM.start_of_submenu('multimath')
-TCM.add_option('twig1', ET.twig_names(),
+TCM.add_option('twig1', QRU.ET.twig_names(),
                prompt="1st twig (child node)",
                help='help')
-TCM.add_option('twig2', ET.twig_names(include=[None]),
+TCM.add_option('twig2', QRU.ET.twig_names(include=[None]),
                prompt="2nd twig (child node)",
                help='help')
-TCM.add_option('twig3', ET.twig_names(include=[None]),
+TCM.add_option('twig3', QRU.ET.twig_names(include=[None]),
                prompt="3rd twig (child node)",
                help='help')
 
@@ -2155,16 +2105,15 @@ def multimath (ns, rider):
    """
    stub = QRU.on_entry(ns, rider, multimath, stubname='multimath')
    cc = []
-   prefix = TCM.getopt_prefix(multimath)
 
    # Make the child-related vectors (ignore the ones with opt=None):
-   twigs = [ET.twig(ns,TCM.getopt(prefix+'twig1',rider))]
+   twigs = [QRU.ET.twig(ns,TCM.getopt('twig1', multimath, rider))]
    weights = [1.0]
-   if TCM.getopt(prefix+'twig2'):
-      twigs.append(ET.twig(ns,TCM.getopt(prefix+'twig2',rider)))
+   if TCM.getopt('twig2', multimath):
+      twigs.append(QRU.ET.twig(ns,TCM.getopt('twig2', multimath, rider)))
       weights.append(2.0)
-   if TCM.getopt(prefix+'twig3'):
-      twigs.append(ET.twig(ns,TCM.getopt(prefix+'twig3',rider)))
+   if TCM.getopt('twig3', multimath):
+      twigs.append(QRU.ET.twig(ns,TCM.getopt('twig3', multimath, rider)))
       weights.append(3.0)
 
    # Attach the input twigs to the bundle, for inspection.
