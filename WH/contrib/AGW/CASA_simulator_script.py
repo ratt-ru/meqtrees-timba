@@ -5,21 +5,25 @@ import random
 import numpy
 import os
 
-# basic parameters
-RA0          = "0h7m0.0"     # field centre
-DEC0         = "33d00m00s"   # field centre
-Freq         = "1400MHz"     # reference frequency
-FOV          =  5            # field of view in arcmin
-Diameter     = 25.0          # dish diameter in metres
-num_dishes   = 30            # number of dishes in the array
-num_sources  = 10            # number of sources to observe
+# basic parameters - things which are most likely to be changed
+observatory  = 'VLA'         # where the telescope is situated
+RA0          = "0h7m0.0"     # field centre RA
+DEC0         = "33d00m00s"   # field centre DEC
+Freq         = "1400MHz"     # frequency at lower edge of band
 num_channels = 16            # number of channels
 channel_inc  = '5.0MHz'      # channel increment
+Diameter     = 25.0          # dish diameter in metres
+num_dishes   = 30            # number of dishes in the array
+Stokes       = 'RR,RL,LR,LL' # Stokes parameters - other option is 'XX,XY,YX,YY'
 int_time     = '60s'         # integration period
+ref_time = me.epoch('IAT','2007/01/01')  # a reference time
+starttime    = -14400.0      # start of obs, in seconds relative to ref_time
+scanlength   =  28800.0      # length of observation, in sec
+FOV          =  5            # field of view in arcmin
+num_sources  = 10            # number of sources to observe, randomized over FOV
 
 clname = 'mymodel.cl'        # file for component list
-msname = 'CASA_demo.MS'      # name of measurement set
-holderdir    = './';
+msname = 'CASA_demo.MS'      # name of measurement set to create
 
 # first delete old MS, test images, etc
 print '*** deleting previous stuff ***'
@@ -62,38 +66,32 @@ sm.open(msname)
 print 'opened MS'
 sm.setspwindow(spwname='SKA', freq=Freq,
 		      deltafreq=channel_inc, freqresolution=channel_inc, 
-		      nchannels=num_channels, stokes='RR,RL,LR,LL');
-posvla = me.observatory('VLA');
-sm.setconfig(telescopename='VLA', 
+		      nchannels=num_channels, stokes=Stokes)
+posvla = me.observatory(observatory);
+sm.setconfig(telescopename=observatory, 
        x=xx, y=yy,z=zz, dishdiameter=diam.tolist(), mount='ALT-AZ',
        coordsystem='local', referencelocation=posvla)
 
 dir0 = me.direction("J2000",  RA0, DEC0)
-
 sm.setfield(sourcename='test_image', sourcedirection=dir0)
-
-ref_time = me.epoch('IAT', '2007/01/01');
-sm.settimes(integrationtime=int_time, usehourangle=True, referencetime=ref_time);
-
+sm.settimes(integrationtime=int_time, usehourangle=True, referencetime=ref_time)
 sm.setlimits(shadowlimit=0.001, elevationlimit='8.0deg')
-sm.setauto(autocorrwt=0.0);
+sm.setauto(autocorrwt=0.0)
 
-starttime=-14400.0;
-scanlength=28800.0
-scan=0;
-while(starttime<14400):
-      sm.observe('test_image', 'SKA',
-		    starttime=str(starttime)+'s',
-		    stoptime=str(starttime+scanlength)+'s');
-      me.doframe(ref_time);
-      me.doframe(posvla);
-      hadec=me.direction('hadec', qa.time(str(starttime+scanlength/2)+'s'),
-			  DEC0);
-      print 'HADec: ', me.dirshow(hadec);
-      azel=me.measure(hadec,'azel');
-      print 'AzEl:  ', me.dirshow(azel);
-      sm.setdata(msselect='SCAN_NUMBER=='+ str(scan));
-      sm.predict(complist=clname);
-      starttime=starttime+scanlength;
-      scan=scan+1
-sm.done();
+scan=0
+endtime = starttime + scanlength
+while(starttime<endtime):
+  print ' **** observing'
+  sm.observe('test_image', 'SKA', starttime=str(starttime)+'s', 
+                                  stoptime=str(starttime+scanlength)+'s')
+  me.doframe(ref_time)
+  me.doframe(posvla)
+  hadec=me.direction('hadec', qa.time(str(starttime+scanlength/2)+'s'), DEC0)
+  azel=me.measure(hadec,'azel')
+  sm.setdata(msselect='SCAN_NUMBER=='+ str(scan))
+  print ' **** predicting'
+  sm.predict(complist=clname)
+  starttime=starttime+scanlength
+  scan=scan+1
+
+sm.done()
