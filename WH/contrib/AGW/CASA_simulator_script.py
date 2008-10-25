@@ -19,6 +19,7 @@ int_time     = '60s'         # integration period
 ref_time = me.epoch('IAT','2007/01/01')  # a reference time
 starttime    = -14400.0      # start of obs, in seconds relative to ref_time
 scanlength   =  28800.0      # length of observation, in sec
+noise        =  '0.1Jy'      # add some noise. Use '0.0Jy' if no noise wanted
 FOV          =  5            # field of view in arcmin
 num_sources  = 10            # number of sources to observe, randomized over FOV
 
@@ -93,5 +94,10 @@ while(starttime<endtime):
   sm.predict(complist=clname)
   starttime=starttime+scanlength
   scan=scan+1
+
+if noise != '0.0Jy':
+  print ' **** corrupting'
+  sm.setnoise(mode='simplenoise', simplenoise=noise)
+  sm.corrupt();
 
 sm.done()
