@@ -54,7 +54,7 @@ from Timba.Meq import meq
 
 Settings.forest_state.cache_policy = 100
 
-from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
+from Timba.Contrib.JEN.Easy import EasyFormat as EF
 from Timba.Contrib.JEN.QuickRef import QuickRefNodeHelp as QRNH
 
 import copy

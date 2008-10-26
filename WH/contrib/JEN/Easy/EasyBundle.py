@@ -53,9 +53,9 @@ Settings.forest_state.bookmarks = []
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
-from Timba.Contrib.JEN.QuickRef import EasyNode as EN
-from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
+from Timba.Contrib.JEN.Easy import EasyNode as EN
+from Timba.Contrib.JEN.Easy import EasyTwig as ET
+from Timba.Contrib.JEN.Easy import EasyFormat as EF
 
 import copy
 import math

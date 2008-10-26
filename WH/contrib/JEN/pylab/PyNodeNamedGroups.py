@@ -63,9 +63,9 @@ import Meow.Bookmarks
 
 from math import *   # for ._evaluate()
 from Timba.Contrib.JEN.pylab import ChildResult
-from Timba.Contrib.JEN.QuickRef import EasyNode as EN
-from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyBundle as EB
+from Timba.Contrib.JEN.Easy import EasyNode as EN
+from Timba.Contrib.JEN.Easy import EasyTwig as ET
+from Timba.Contrib.JEN.Easy import EasyBundle as EB
 
 import inspect
 import random

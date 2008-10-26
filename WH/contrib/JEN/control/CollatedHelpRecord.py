@@ -1,4 +1,4 @@
-# file: ../JEN/demo/CollatedHelpRecord.py:
+# file: ../JEN/control/CollatedHelpRecord.py:
 #
 # Author: J.E.Noordam
 #
@@ -8,6 +8,7 @@
 #   - 03 jun 2008: creation (from QuickRef.py)
 #   - 01 jul 2008: implemented .orphans()
 #   - 16 jul 2008: format_html()
+#   - 25 oct 2008: moved to ../JEN/control/
 #
 # Remarks:
 #

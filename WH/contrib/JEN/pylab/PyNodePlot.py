@@ -75,10 +75,10 @@ from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import Figure
 from Timba.Contrib.JEN.pylab import Graphics
 
-from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
-from Timba.Contrib.JEN.QuickRef import EasyNode as EN
-from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyBundle as EB
+from Timba.Contrib.JEN.Easy import EasyFormat as EF
+from Timba.Contrib.JEN.Easy import EasyNode as EN
+from Timba.Contrib.JEN.Easy import EasyTwig as ET
+from Timba.Contrib.JEN.Easy import EasyBundle as EB
 
 
 import inspect

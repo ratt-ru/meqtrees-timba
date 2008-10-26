@@ -46,11 +46,9 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 # NB: Do NOT use this one in here (circular)
-## from Timba.Contrib.JEN.QuickRef import EasyNode as EN
+## from Timba.Contrib.JEN.Easy import EasyNode as EN
 
-# from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
-# from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
+from Timba.Contrib.JEN.Easy import EasyFormat as EF
 
 
 # import math
