@@ -31,7 +31,7 @@ TDLOptionManager.py:
 # -) TDL Separator (None in TDLOption list) does not work.... ignored for the moment
 #    See .add_separator()
 #
-# -) more=complex not yet supported...?
+# -) more=complex  not yet supported...?
 #
 # -) different behaviour of disabled options: cannot be changed ever...!
 #
@@ -41,6 +41,8 @@ TDLOptionManager.py:
 #           .... do something ....
 #    Obviously, if only for backward compatibility, when_changed() should test
 #    each callback functions on the number of arguments it expects (1 or 2).
+#
+# -) The help/doc string behaves very strange if multiline....
 #    
 #
 #% $Id$ 
@@ -70,7 +72,7 @@ TDLOptionManager.py:
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
+from Timba.Contrib.JEN.Easy import EasyFormat as EF
 
 # The following functions are supported in ._evaluate() expressions:
 import math                 # support math.cos() etc
@@ -114,7 +116,7 @@ class TDLOptionManager (object):
    
    """
 
-   def __init__(self, name='modulename', prompt=None, mode='compile'):
+   def __init__(self, name='modulename', prompt=None, mode='compile', rider=None):
 
       self._dummy = False                      # see below
       if isinstance(name,str):
@@ -139,50 +141,50 @@ class TDLOptionManager (object):
       
       self._serr = '** ERROR ** in: '          # error string (see ._evaluate())
 
+      # Placeholder for attaching a rider object.....
+      # See CollatedHelpRecord.py (e.g. QuickRef)
+      self.rider = rider
+
       # Runtime options are collected in a separate instantiation:
       # It can be accessed as TCM.TRM.add_option(...) etc
       self.TRM = None
       if self._mode=='compile':
-         self.TRM = TDLOptionManager(self._name, mode='runtime')
+         self.TRM = TDLOptionManager(self._name, mode='runtime', rider=self.rider)
 
-      self.clear()    # NB: Such a separate .clear() function causes problems if called again....?
+      # The following part could be moved to a self.clear() function
+      # (however, this gives problems when cleared outside __init__()...)
+      # Perhaps such a function is not really necessary...
+      if True:
+         # The opbject is empty if no menus/options are defined:
+         self._empty = True
 
-      # AFTER clear():
+         # The following field is expected by OMS TDLOption() etc,
+         # but it is set when calling the function .TDLMenu() below:
+         self.tdloption_namespace = None
+
+         # The menu structure is defined in a hierarchical definition record:
+         self._menudef = dict()
+         self._defrecs = dict()                  # record of definition records
+         self._keyorder = []
+         self.start_of_submenu(self._name, prompt=self._prompt, topmenu=True)
+
+         # The definition record is used to generate the actual TDLOption objects.
+         self._TDLmenu = None                    # the final TDLMenu 
+         self._tdlobjects = dict()               # record of TDLOption objects
+
+         # Group control:
+         self._lastval = dict()                  # last values (see .find_changed())
+         self._snapshot = dict()                 # snapshot values (see .make_snapshot())
+
+         # The menus from other TCM's may be added/inserted:
+         self._TCMlist = []
+
       self._savefile = self._name+'.TCM'       # see .save/restore_current_values()
       if self._mode=='runtime':
          self._savefile = self._name+'.TRM'    # see .save/restore_current_values()
       self.restore_current_values('.__init__()', trace=False)
       self._enable_save_current_values = False # disabled while reading tdlconfig file
 
-      return None
-
-   #--------------------------------------------------------------------------
-
-   def clear(self, trace=False):
-      """Clear the object"""
-
-      # The following field is expected by OMS TDLOption() etc,
-      # but it is set when calling the function .TDLMenu() below:
-      self.tdloption_namespace = None
-
-      # The menu structure is defined in a hierarchical definition record:
-      self._menudef = dict()
-      self._defrecs = dict()                  # record of definition records
-      self._keyorder = []
-      self.start_of_submenu(self._name, prompt=self._prompt, topmenu=True)
-
-      # The definition record is used to generate the actual TDLOption objects.
-      self._TDLmenu = None                    # the final TDLMenu 
-      self._tdlobjects = dict()               # record of TDLOption objects
-
-      # Group control:
-      self._lastval = dict()                  # last values (see .find_changed())
-      self._snapshot = dict()                 # snapshot values (see .make_snapshot())
-
-      # The menus from other TCM's may be added/inserted:
-      self._TCMlist = []
-
-      self._empty = True
       return None
 
    #--------------------------------------------------------------------------
@@ -196,6 +198,10 @@ class TDLOptionManager (object):
          ss += '  ndef='+str(len(self._defrecs))
          ss += '  nobj='+str(len(self._tdlobjects))
          ss += '  nkey='+str(len(self.keys()))
+         if self.TRM:
+            ss += ' (TRM)'
+         if self.rider:
+            ss += ' (rider)'
       if self.tdloption_namespace:
          ss += ' ('+str(self.tdloption_namespace)+')'
       return ss
@@ -209,25 +215,36 @@ class TDLOptionManager (object):
       ss += '\n** '+self.oneliner()
       if txt:
          ss += '   ('+str(txt)+')'
-      ss += '\n * self.tdloption_namespace: '+str(self.tdloption_namespace)
-      ss += '\n * self._defrecs: '+str(len(self._defrecs))
-      ss += '\n * self._tdlobjects: '+str(len(self._tdlobjects))
+      ss += '\n * self.tdloption_namespace (expected by OMS): '+str(self.tdloption_namespace)
+      ss += '\n * self._defrecs: n='+str(len(self._defrecs))
+      ss += '\n * self._tdlobjects: n='+str(len(self._tdlobjects))
+      ss += '\n * self.keys(): n='+str(len(self.keys()))
+      if full and (not len(self._lastval.keys())==len(self.keys())):
+         for key in self.keys():
+            ss += '\n   - '+str(key)+': '
 
-      ss += '\n * self._lastval: '+str(len(self._lastval))
+      ss += '\n * self._TCMlist (n='+str(len(self._TCMlist))+'):'
+      for tcm in self._TCMlist:
+         ss += '\n   '+str(tcm.oneliner())
+      if self.rider:
+         ss += '\n * self.rider: '+str(self.rider.oneliner())
+      else:
+         ss += '\n * self.rider = '+str(self.rider)
+
+      ss += '\n * self._lastval: n='+str(len(self._lastval))
       if full:
          for key in self._lastval.keys():
             ss += '\n   - '+str(key)+' = '+str(self._lastval[key])
 
-      ss += '\n * self.keys(): '+str(len(self.keys()))
-      if full:
-         for key in self.keys():
-            ss += '\n   - '+str(key)+': '
-
-      ss += '\n * self._TCMlist ('+str(len(self._TCMlist))+'):'
-      for tcm in self._TCMlist:
-         ss += '\n   '+str(tcm.oneliner())
       if self.TRM:
-         ss += '\n * TRM: '+str(self.TRM.oneliner())
+         ss += '\n * self.TRM: '+str(self.TRM.oneliner())
+         if full:
+            ss1 = self.TRM.show(txt=txt, full=True).split('\n')
+            for s1 in ss1:
+               ss += '\n     '+s1
+      else:
+         ss += '\n * self.TRM = '+str(self.TRM)
+
       ss += '\n**\n'
       print ss
       return ss
@@ -265,7 +282,7 @@ class TDLOptionManager (object):
                    vmin=None, vmax=None,     # range-test
                    disable=False,
                    master=None,              # optional: key of 'master' option
-                   help=None,                # help=None,
+                   help='<nohelp>',
                    callback=None,
                    prepend=False,
                    trace=False):
@@ -335,14 +352,19 @@ class TDLOptionManager (object):
       # Make a default doc/help string:
       level = self.current_menu_level()
       prefix = (level*'.')+'| '
-      if not isinstance(help,str):
-         help = prefix
-      else:
-         help = prefix+help
-      if master:
-         help += ' (slaved)'
-      if hide:
-         help += ' (nominally hidden)'
+      help = prefix+str(help)
+      if True:
+         # The following is to make sure that the top line of the help is always visible....
+         help += ' ..............................................................................'
+      if True:
+         if master:
+            help += '\n - this option is slaved to: '+str(master)
+         if hide:
+            help += '\n - this option is nominally hidden'
+         if not vmin==None:
+            help += '\n - vmin = '+str(vmin)
+         if not vmax==None:
+            help += '\n - vmax = '+str(vmax)
 
       # Finally, make the option definition record:
       itsmenukey = self._current_menurec['key']
@@ -467,7 +489,7 @@ class TDLOptionManager (object):
       if topmenu:                  # topmenu==True ONLY when called from .__init__()
          self._complete = False
          level = 0
-         itsmenukey = 'copt'       # i.e. Compile menu 
+         itsmenukey = self._mode[0]+'opt'        # i.e. copt (compile) or ropt (runtime)
          key = itsmenukey + self._keysep + relkey
       elif self._complete:
          raise ValueError,'** TCM.start_of_submenu(): TDLMenu is complete'
@@ -490,12 +512,17 @@ class TDLOptionManager (object):
       # Make a default doc/help string:
       prefix = (level*'*')+' '
       if not isinstance(help,str):
-         help = prefix+relkey
-      else:
-         help = prefix+help
-      if master:
-         help += '(slaved)'
+         help = relkey
       help = help.upper()                 # convert to upper-case...!?
+      if not self._mode=='compile':
+         help = '('+str(self._mode)+') '+help
+      help = prefix+help
+      help += '============================================================'
+      if True:
+         if master:
+            help += '\n - this submenu is slaved to submenu: '+str(master)
+         if hide:
+            help += '\n - this submenu is nominally hidden'
 
       # Finally, make the menu definition record:
       menudef = dict(type='menu', key=key,
@@ -657,9 +684,21 @@ class TDLOptionManager (object):
                 '-','revert to defaults','revert to snapshot',
                 '-','help','show defrec']
       choice.extend(['-','make snapshot'])                     # for safety....
+      help = """Manipulate the options in (and below!) this submenu:
+      - select all selectables:
+      - select none:
+      - hide this submenu:
+      - hide nominal:
+      - unhide everything:
+      - revert to defaults:
+      - revert to snapshot:
+      - help:
+      - show defrec:
+      - make_snapshot:
+      """ 
       self.add_option ('group_control', choice,
                        prompt='(group control)',
-                       help=None, more=False,
+                       help=help, more=False,
                        callback=self.callback_group_control,
                        prepend=True, trace=trace)
       if trace:
@@ -955,7 +994,8 @@ class TDLOptionManager (object):
          defrec = self._defrecs[key]
          mkey = defrec['master']
          if isinstance(mkey,str):
-            mrec = self._defrecs[mkey]           # the master's definition record
+            mrec = self._defrecs[mkey]           # its master's definition record
+
             if defrec['type']=='option':
                mrec['slaves'].append(key)        # append its key to the masters's list of slaves
                if trace:
@@ -966,12 +1006,12 @@ class TDLOptionManager (object):
                # (i.e. with the same relkey) of the master and slave menus.
                ignore = ['group_control'] 
                for key1 in defrec['order']:
-                  rec1 = self._defrecs[key1]
+                  rec1 = self._defrecs[key1]             # slave option defrec
                   relkey = rec1['relkey']
                   if rec1['type']=='option' and (not relkey in ignore):
                      # print '-',key,key1,' relkey=',relkey,':'
                      for key2 in mrec['order']:
-                        rec2 = self._defrecs[key2]
+                        rec2 = self._defrecs[key2]       # master option defrec
                         if rec2['relkey']==relkey:       # same relative key
                            rec2['slaves'].append(key1)   # append its key to the masters's list of slaves
                            if trace:
@@ -1092,7 +1132,7 @@ class TDLOptionManager (object):
       This is better than having a separate .set_validator() function...
       """
       trace = False
-      trace = True
+      # trace = True
       if trace:
          print '\n** .callback_check_value(',value,'):'
       key = self.find_changed(trace=False)
@@ -1102,7 +1142,14 @@ class TDLOptionManager (object):
          dd = self._defrecs[key]
          vmin = dd['vmin']
          vmax = dd['vmax']
-         print '-- (vmin,vmax) =',(vmin,vmax)
+         s1 = '\n\n****\n **** The specified value (='+str(value)+') is set to: '
+         s2 = '   for option: '+str(key)+'\n****\n\n'
+         if value<vmin:
+            print s1,'vmin =',str(vmin),s2
+            self.setopt(key, vmin, trace=False)
+         if value>vmax:
+            print s1,'vmax =',str(vmax),s2
+            self.setopt(key, vmax, trace=False)
       return True
 
    #..........................................................................
@@ -1215,7 +1262,7 @@ class TDLOptionManager (object):
          return False
 
       if True or trace:
-         print '\n** .restore_current_values(',filename,severe,self._dummy,'): ',txt
+         print '\n** .restore_current_values(',filename,severe,self._dummy,'): ',txt,'\n'
          # self.show('before .restore_current_values()')
       
       ## self._lastval = dict()         # NOT a good idea...!
@@ -1747,7 +1794,9 @@ class TDLOptionManager (object):
       for key in self._defrecs.keys():
          dd = self._defrecs[key]
          if dd['type']=='menu':
-            s = '  >> ['
+            level = dd['level']
+            s = ' '+level*'*'
+            s += ' SUMMARY:  ['
             first = True
             for key1 in dd['order']:
                if self._tdlobjects.has_key(key1):
@@ -1778,10 +1827,6 @@ class TDLOptionManager (object):
                         s += EF.format_value(v, nsig=2)
                         # s += str(v)
             s += ']'
-            if isinstance(dd['master'],str):
-               s += '   (slaved)'
-            if dd['hide']:
-               s += '   (nominally hidden)'
             if self._tdlobjects.has_key(key):
                self._tdlobjects[key].set_summary(s)
             if trace:
@@ -1828,7 +1873,7 @@ def testfunc (ns, TCM=None, menu=None, trace=False):
 
    # Execute the specified test:
    if False:
-      pass
+      pass                          # manual disable (testing only)
    elif test=='test_types':
       test_types (ns, TCM=TCM, menu=submenu, trace=trace)
    elif test=='test_check_value':
@@ -2013,8 +2058,10 @@ def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
 
 itsTDLCompileMenu = None
 TCM = TDLOptionManager(__file__)
-if 0:
+enabled_testing = False
+if 1:
    # Only use for testing (otherwise it will appear in every menu)!
+   enabled_testing = True
    if 0:
       # Regular (OMS) option definition
       TDLCompileMenu('TDLCompileMenu()',
@@ -2042,7 +2089,14 @@ if 0:
 #------------------------------------------------------------------------------
 
 def _define_forest (ns, **kwargs):
-   """Define a standalone forest for standalone use of this QR module"""
+   """Define a standalone forest for standalone use of this QR module
+   """
+
+   if not enabled_testing:
+      print '\n**************************************************************'
+      print '** TDLOptionManager _define_forest(): testing not enabled yet!!'
+      print '**************************************************************\n'
+      return False
 
    node = ns.dummy << 1.0
 

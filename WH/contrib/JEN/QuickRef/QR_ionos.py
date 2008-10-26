@@ -50,9 +50,6 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.QuickRef import QuickRefUtil as QRU
-from Timba.Contrib.JEN.QuickRef import EasyTwig as ET
-from Timba.Contrib.JEN.QuickRef import EasyNode as EN
-from Timba.Contrib.JEN.QuickRef import EasyFormat as EF
 
 from Timba.Contrib.JEN.pylab import PyNodeNamedGroups as PNNG
 from Timba.Contrib.JEN.pylab import PyNodePlot as PNP
@@ -354,7 +351,7 @@ def thinlayer_TEC (ns, rider):
       if True:
          s = 'PSF width (wvl/baseline)'
          if psfmin>derrmin:
-            s += ' (min='+EN.EF.format_value(psfmin)+'arcmin)'
+            s += ' (min='+QRU.EF.format_value(psfmin)+'arcmin)'
             legend.append(s)
          else:
             psg.append(record(y='{psf}', x='{xx}', color='blue',
