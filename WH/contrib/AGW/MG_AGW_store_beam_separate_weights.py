@@ -64,7 +64,7 @@ TDLCompileMenu('L and M position of phased-up beam',
 );
 
 # get directory with GRASP focal plane array beams
-TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_defocus','veidt_fpa_180', 'veidt_fpa_30'],more=str)
+TDLCompileOption('fpa_directory','directory with focal plane array files',['gauss_array_pats','gauss_array_pats_noise','gauss_array_pats_defocus','gauss_array_pats_offset','veidt_fpa_180', 'veidt_fpa_30','veidt_fpa_180_low_res', 'veidt_fpa_180_low_res_noise','veidt_fpa_180_noise'],more=str)
 
 # Attempt to 'form' a Gaussian beam?
 TDLCompileOption('do_fit','make gaussian fit',[True, False])
@@ -201,8 +201,9 @@ def _test_forest(mqs,parent):
   t0 = 0.0
   t1 = 1.5e70
 
-  f0 = 800.0
-  f1 = 1300.0
+  f0 = 800.0e6
+  f1 = 1600.0e6
+
 
   m_range = [-0.15,0.15];
   l_range = [-0.15,0.15];
