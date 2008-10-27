@@ -64,28 +64,31 @@ class Clump (object):
    Examples are ParmClump, JonesClump and VisClump.
    """
 
-   def __init__(self, name='clump', qual=None, quals=None,
-                ns=None, TCM=None, copy=None):
+   def __init__(self, name='Clump', qual=None,
+                quals=None, ns=None, TCM=None,
+                use=None, init=True):
       """
-      Inialise the Clump object.
+      Initialize the Clump object, according to its type (see .init()).
+      If another Clump of the same class is specified (use), use its
+      defining characteristics (self._quals etc)
       """
 
-      # If another Clump object is given (copy), copy its contents
-      if not isinstance(copy,type(self)):
-         copy = None
+      # If another Clump object is given (use), use its contents
+      if not isinstance(use,type(self)):
+         use = None
       
       # The Clum node names are derived from name and qualifier:
       self._name = str(name)       
       self._qual = qual  
-      if copy:
+      if use:
          if not isinstance(name,str):
-            self._name = '('+copy._name+')'
+            self._name = '('+use._name+')'
          if qual==None:
-            self._qual = copy._qual
+            self._qual = use._qual
 
-      # The nr of Clump nodes is defined by the list of qualifiers:
-      if copy:
-         self._quals = copy._quals
+      # The 'size' of the Clump is defined by the list of qualifiers:
+      if use:
+         self._quals = use._quals
       elif quals==None:
          self._quals = range(3)                # for testing
       elif isinstance(quals,tuple):
@@ -93,29 +96,37 @@ class Clump (object):
       elif not isinstance(quals,list):         # assume Clump of one
          self._quals = [quals]                 #
 
-      # Initialize the object history:
-      self.history(clear=True)
-
       # Make sure that it has a nodescope (ns):
       self._ns = ns
-      if copy:
-         self._ns = copy._ns
+      if use:
+         self._ns = use._ns
       elif not ns:
          # If not supplied, make a local one.
          self._ns = NodeScope()
 
       # Make sure that it has an TDLOptionManager (TCM):
       self._TCM = TCM
-      if copy:
-         self._TCM = copy._TCM
+      if use:
+         self._TCM = use._TCM
       elif not self._TCM:
          # If not supplied, make a local one.
          self._TCM = TOM.TDLOptionManager(self._name)
 
-      # Initialize with suitable nodes:
-      if not copy:
+      # The nodes may be composed into a single tensor node.
+      # In that case, the following qualifier will be used.
+      # The list self._nodequals always has the same length as self._nodes.
+      self._tensor_qual = 'tensor'+str(len(self._quals))
+      self._composed = False            # see .compose() and .decompose()
+      self._nodequals = self._quals     # self._nodequals is used for node generation
+
+      # Initialize the object history:
+      self.history(clear=True)
+
+      # Finally: Initialize with suitable nodes (if required):
+      # The function .init() is re-implemented in derived classes.
+      # NB: See .copy() for an example where init=False.
+      if init:
          self._init()
-         self._composed = False        # see .compose() and .decompose()
 
       return None
 
@@ -135,11 +146,10 @@ class Clump (object):
 
       self._nodes = []
       stub = self.nodestub()
-      for i,qual in enumerate(self._quals):
+      for i,qual in enumerate(self._nodequals):
          node = stub(qual) << Meq.Constant(i)
          self._nodes.append(node)
-      if trace:
-         print self.show('.clear()')
+
       self.history('.init()', trace=trace)
 
       # The LAST statement:
@@ -151,21 +161,19 @@ class Clump (object):
    def copy (self, trace=False):
       """Return a copy of this clump.
       """
-      new = Clump(copy=self)
+      # Create a new Clump of the same type(!)..........
+      # Do NOT initialize, because we will copy the nodes.
+      new = Clump(use=self, init=False)
 
       # Copy the nodes:
-      self._nodes = []
-      stub = self.nodestub()
-      for i,qual in enumerate(self._quals):
+      new._nodes = []
+      stub = new.nodestub()
+      for i,qual in enumerate(self._nodequals):
          node = stub(qual) << Meq.Identity(self._nodes[i])
-         new._node.append(node)
-         
-      # Copy state information:
-      new._composed = self._composed
-
-      self.history('.copy()', trace=trace)
-      clump.history('.copy()', trace=trace)
-      return clump
+         new._nodes.append(node)
+      s = 'copied from: '+self.oneliner()
+      new.history(s, trace=trace)
+      return new
 
 
    #==========================================================================
@@ -173,7 +181,13 @@ class Clump (object):
    #==========================================================================
 
    def oneliner (self):
-      ss = 'Clump: '+str(self._name)
+      ss = str(type(self)).split('.')[1].split("'")[0]+':'
+      ss += ' '+str(self._name)
+      if self._qual:
+         ss += ' qual='+str(self._qual)
+      ss += '  size='+str(self.size())
+      if self._composed:
+         ss += '  (composed: '+self._tensor_qual+')'
       return ss
 
    #--------------------------------------------------------------------------
@@ -185,12 +199,25 @@ class Clump (object):
       ss += '\n** '+self.oneliner()
       if txt:
          ss += '   ('+str(txt)+')'
+      ss += '\n * nodes (.len()='+str(self.len())+', .size()='+str(self.size())+'):'
+      if full:
+         for node in self:
+            ss += '\n   - '+str(node)
       if self._TCM:
          ss += '\n * self._TCM: '+str(self._TCM.oneliner())
-      ss += self.history(format=True, prefix=' | ')
+      ss += self.history(format=True, prefix='   | ')
       ss += '\n**\n'
       print ss
       return ss
+
+   #-------------------------------------------------------------------------
+
+   def show_tree (self, index=-1, full=True):
+      """Show the specified (index) subtree.
+      """
+      node = self._nodes[index]
+      print EN.format_tree(node, full=full)
+      return True
 
    #-------------------------------------------------------------------------
 
@@ -202,9 +229,7 @@ class Clump (object):
       if clear:
          self._history = []
          s = '** Object history of: '
-         s += str(type(self))+':'
-         s += ' '+str(self._name)
-         s += ' '+str(self._qual)
+         s += self.oneliner()
          self._history.append(s)
          if trace:
             print '** .history(clear)'
@@ -233,10 +258,7 @@ class Clump (object):
    def nodestub (self, qual=None, trace=False):
       """Convenience function to generate a (unique) nodestub.
       """
-      if qual:
-         stub = EN.unique_stub(self._ns, self._name, self._qual, qual)
-      else:
-         stub = EN.unique_stub(self._ns, self._name, self._qual)
+      stub = EN.unique_stub(self._ns, self._name, self._qual, qual)
       if trace:
          print '\n** .nodestub(',qual,') ->',str(stub)
       return stub
@@ -260,8 +282,6 @@ class Clump (object):
    def __getitem__(self, index):
       """Get the specified (index) node.
       """
-      if True:
-         print '.__getitem__(',index,') ->',str(self._nodes[index])
       return self._nodes[index]
 
 
@@ -274,10 +294,11 @@ class Clump (object):
       See also .decompose()
       """
       if not self._composed:               # Only if in 'decomposed' state
-         stub = self.nodestub('compose')
+         stub = self.nodestub('composed')(self._tensor_qual)
          node = stub << Meq.Composer(*self._nodes)
          self._nodes = [node]              # a list of a single node
          self._composed = True             # set the switch
+         self._nodequals = [self._tensor_qual]
          self.history('.compose()', trace=trace)
       return True
 
@@ -288,17 +309,33 @@ class Clump (object):
       The reverse of .compose()
       """
       if self._composed:                   # ONLY if in 'composed' state
+         self._composed = False            # set the switch
+         self._nodequals = self._quals
          tensor = self._nodes[0]
          self._nodes = []
-         stub = self.nodestub('decompose')
-         for index,qual in enumerate(self._quals):
+         stub = self.nodestub('decomposed')
+         for index,qual in enumerate(self._nodequals):
             node = stub(qual) << Meq.Selector(tensor, index=index)
             self._nodes.append(node)
-         self._composed = False            # set the switch
          self.history('.decompose()', trace=trace)
       return True
 
    #-------------------------------------------------------------------------
+
+   def bundle (self, name=None, combine='Composer', trace=False):
+      """Return a single node that bundles the Clump nodes,
+      using the specified bundling mechanism (e.g. MeqComposer).
+      """
+      hist = '.bundle('+str(name)+','+str(combine)+'): '
+      if not self._composed:
+         stub = self.nodestub('bundle')
+         node = stub << getattr(Meq,combine)(*self._nodes)
+      elif combine=='Composer':
+         node = self._nodes[0]         # OK
+      else:
+         pass                          # decompose first....?
+      self.history(hist, trace=trace)
+      return node
 
    #-------------------------------------------------------------------------
 
@@ -311,9 +348,9 @@ class Clump (object):
    # Unops and binops:
    #=========================================================================
 
-   def apply_unops (self, unops, trace=False):
+   def apply_unop (self, unops, trace=False):
       """
-      Apply one or more unary operation(s) (e.g. MeqCos()) on its nodes.
+      Apply one or more unary operation(s) (e.g. MeqCos) on its nodes.
       """
       # First condition the list of unary operations:
       if isinstance(unops,tuple):
@@ -324,24 +361,26 @@ class Clump (object):
       # Then apply in order of specification:
       for unop in unops:
          stub = self.nodestub(unop)
-         if self._composed:
-            self._nodes[0] = stub('tensor') << getattr(Meq,unop)(self._nodes[0])
-         else:
-            for i,qual in enumerate(self._quals):
-               self._nodes[i] = stub(qual) << getattr(Meq,unop)(self._nodes[i])
+         for i,qual in enumerate(self._nodequals):
+            self._nodes[i] = stub(qual) << getattr(Meq,unop)(self._nodes[i])
          self.history('.unops('+unop+')', trace=trace)
 
       return True
 
    #-------------------------------------------------------------------------
 
-
-   def apply_binops (self, rhs=None, trace=False):
-      """Apply zero or more unary operations (e.g. MeqCos()) on its nodes.
+   def apply_binop (self, binop=None, rhs=None, trace=False):
+      """Apply a binary operation (e.g. MeqAdd) between its nodes
+      and the given right-hand-side (rhs). The latter may be various
+      things: a Clump, a node, a number etc.
       """
-      stub = self.nodestub()
-      self.history('.binops()', trace=trace)
-
+      hist = '.binop('+str(binop)+') '
+      if is_node(rhs):
+         hist += 'node '+rhs.name
+         stub = self.nodestub(binop)(rhs.name)
+         for i,qual in enumerate(self._nodequals):
+            self._nodes[i] = stub(qual) << getattr(Meq,binop)(self._nodes[i],rhs)
+      self.history(hist, trace=trace)
       return True
 
       
@@ -401,7 +440,7 @@ def _define_forest (ns, **kwargs):
    """The expected function just calls do_define_forest().
    The latter is used outside _define_forest() also (see below)
    """
-   if not enabled_testing:
+   if not enable_testing:
       print '\n**************************************************************'
       print '** TDLOptionManager _define_forest(): testing not enabled yet!!'
       print '**************************************************************\n'
@@ -422,9 +461,9 @@ def do_define_forest (ns, TCM):
 
 itsTDLCompileMenu = None
 TCM = TOM.TDLOptionManager(__file__)
-enabled_testing = False
-# enabled_testing = True        # normally, this statement will be commented out
-if enabled_testing:
+enable_testing = False
+# enable_testing = True        # normally, this statement will be commented out
+if enable_testing:
    # Only use for testing (otherwise it will appear in every menu)!
    if 0:
       # Regular (OMS) option definition
@@ -467,16 +506,37 @@ if __name__ == '__main__':
    # rider = QRU.create_rider()             # CollatedHelpRecord object
 
    if 1:
-      cp = Clump('testing')
+      cp = Clump()
       cp.show('creation', full=True)
-      if 1:
-         for index in [0,1,-1,5]:
-            print '-- cp[',index,'] -> ',cp[index]
+
+   if 1:
+      for node in cp:
+         print str(node)
+   if 0:
+      for index in [0,1,-1,5]:
+         print '-- cp[',index,'] -> ',str(cp[index])
+   if 0:
+      cp.show_tree(-1, full=True)
 
    if 0:
-      cp.apply_unops('Cos')
-      cp.apply_binops()
-            
+      cp.compose()
+      cp.show('.compose()')
+      if 0:
+         cp.decompose()
+         cp.show('.decompose()')
+
+   if 0:
+      unops = 'Cos'
+      unops = ['Cos','Sin']
+      cp.apply_unop(unops)
+
+   if 1:
+      rhs = ns.rhs << Meq.Constant(2.3)
+      cp.apply_binop('Add', rhs=rhs)
+
+   if 1:
+      cp.show('final', full=True)
+      
    print '\n** End of standalone test of: Clump.py:\n' 
 
 #=====================================================================================

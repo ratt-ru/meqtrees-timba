@@ -72,7 +72,7 @@ def unique_stub (ns, rootname, *quals, **kwquals):
     """
     Syntax:
     .    stub = EeasyNode.unique_stub (ns, rootname, *quals, **kwquals)
-    Return a unique (i.e. uninitialized) nodestub with the speciified
+    Return a unique (i.e. uninitialized) nodestub with the specified
     rootname and qualifiers. If one already exists, modify the rootname
     (or the qualifiers?) until the resulting stub-name does not exist yet.
     
@@ -82,6 +82,7 @@ def unique_stub (ns, rootname, *quals, **kwquals):
     """
     
     # First make a nodestub:
+    print '---- quals=',quals
     stub = nodestub(ns, rootname, *quals, **kwquals)
 
     # Decode the uniquifying parameter from the rootname (see below):
@@ -222,7 +223,9 @@ def nodestub (ns, rootname, *quals, **kwquals):
     
     # Attach the list of un-named qualifiers (quals):
     if len(quals)>0:
-        stub = stub(*quals)
+        for qual in quals:
+            if not qual==None:
+                stub = stub(qual)
 
     # Attach the dict of keyword qualifiers:
     # print '-',rootname,': kwquals=',kwquals,len(kwquals)

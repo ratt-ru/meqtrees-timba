@@ -2119,9 +2119,9 @@ def do_define_forest (ns, TCM=None):
 
 itsTDLCompileMenu = None
 TCM = TDLOptionManager(__file__)
-enabled_testing = False
-enabled_testing = True        # normally, this statement will be commented out
-if enabled_testing:
+enable_testing = False
+# enable_testing = True        # normally, this statement will be commented out
+if enable_testing:
    # Only use for testing (otherwise it will appear in every menu)!
    if 0:
       # Regular (OMS) option definition
