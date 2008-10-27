@@ -43,6 +43,10 @@ TDLOptionManager.py:
 #    each callback functions on the number of arguments it expects (1 or 2).
 #
 # -) The help/doc string behaves very strange if multiline....
+#
+# -) If choice[0]==True/False, the option value cannoot be modified...?
+#    This might be some interaction with OMS automatically making a toggle-box
+#    if choice=boolean...
 #    
 #
 #% $Id$ 
@@ -313,19 +317,26 @@ class TDLOptionManager (object):
          default = choice[0]                 # the first item
 
       # Deal with some special cases:
-      if isinstance(choice, list): 
+      if isinstance(choice,list):            # e.g. not if choice=True/False (see above)
+         # Complex values are not properly supported yet:
          for i,v in enumerate(choice):
             if isinstance(v,complex):
                choice[i] = 'eval'+str(v)
-         default = choice[0]                 # the first item
+         # If choice[0]=True/False, the value cannot be modified...
+         if choice[0]==False:
+            choice.insert(0,0)
+         elif choice[0]==True:
+            choice.insert(0,1)
+         # Redo, because choice[0] might have changed
+         default = choice[0]
 
       # If more=True, use the type of default:
       if isinstance(more, bool):
          if more==True:
             if isinstance(default,bool):
-               more = bool
+               more = None                   # more cannot be bool....
             elif default==None:
-               more = None                    # ....?
+               more = None                   # ....?
             elif isinstance(default,str):
                more = str
             elif isinstance(default,int):
@@ -456,14 +467,14 @@ class TDLOptionManager (object):
    #--------------------------------------------------------------------------
 
    def start_of_submenu (self, relkey,
-                         menu=None,               # 2nd            
-                         prompt=None,             # 3nd
-                         default=None,            # 4rd
+                         prompt=None,             # 2nd
+                         default=None,            # 3rd
                          qual=None,
                          help=None,     
                          hide=None,
                          disable=False,
                          ignore=False,
+                         menu=None,                       
                          master=None,
                          topmenu=False,
                          callback=None,      
@@ -480,6 +491,7 @@ class TDLOptionManager (object):
       # NB: How to recognise a function...?
       if not isinstance(relkey, str):
          relkey = relkey.func_name
+         # relkey += '()'                     # causes problems.....?
 
       # If a qualifier is specified, append it to the menu relkey.
       # (this is used for groups of similar menus)
@@ -555,7 +567,7 @@ class TDLOptionManager (object):
 
       # Finished:
       if trace:
-         print '\n** .start_of_submenu(',relkey,') -> current_submenu =',self._current_menurec
+         print EF.format_record(menudef,'start_of_submenu('+str(key)+')', recurse=0)
 
       # Return the full key (e.g. for master/slave assignments).
       self._empty = False
@@ -566,7 +578,8 @@ class TDLOptionManager (object):
    def _check_current_menurec(self, menu, severe=True, trace=False):
       """Check whether the given string (menu) is at the end of self._current_menurec['key']. 
       If not, search back (down the self._menudef record) until found.
-      If not found, or menu==None, use the top-level menu.
+      If not found, use the top-level menu.
+      If menu=None (not specified), do nothing
       This function is called ONLY from .start_of_submenu()
       """
       # trace = True
@@ -574,9 +587,8 @@ class TDLOptionManager (object):
          print '\n** .check_current_menurec(menu='+str(menu)+'): '
 
       if not isinstance(menu,str):               # no menu specified
-         self._current_menurec = self._menudef   # use the top-level menu 
          if trace:
-            print '  menu not specified: use top-level menu'
+            print '  menu not specified: do nothing'
          return True                 
 
       # Search up the current branch of the self._menurec tree:
@@ -631,17 +643,18 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def end_of_submenu (self, check=None, trace=False):
+   def end_of_submenu (self, trace=False):
       """
       Revert self._current_menurec to one level higher (done after a menu is complete).
       Subsequent to add_menu() or add_option will now add the new definitions
       to the higher-level menu.
       """
+      # trace = True
       oldkey = self._current_menurec['key']
       newkey = self.itsmenukey(oldkey)
       if trace:
          print '** .end_of_submenu(): ',oldkey,'->',newkey
-      self._current_menurec = self.find_defrec(newkey)
+      self._current_menurec = self.find_defrec(newkey, trace=trace)
       return newkey
 
    #--------------------------------------------------------------------------
@@ -784,7 +797,10 @@ class TDLOptionManager (object):
          rr['callback'].append(self.callback_radio_button)
       
       if trace:
-         print '** .make_into_radio_buttons() -> (',len(keys),') ',keys,'\n'
+         print '** .make_into_radio_buttons() -> (',len(keys),'): '
+         for key in keys:
+            print '  --',key
+         print
       return True
 
    #--------------------------------------------------------------------------
@@ -1571,18 +1587,26 @@ class TDLOptionManager (object):
          if not isinstance(rr,dict):
             rr = self._menudef
 
-      # prefix = level*'..'
+      result = False
+      prefix = level*'..'
       if rr['key']==key:
-         return rr
-      if key in rr['order']:
-         return rr['menu'][key]
-      for key1 in rr['order']:
-         dd = rr['menu'][key1]
-         if dd['type']=='menu':   # Recursive:
-            result = self.find_defrec(key, dd, level=level+1, trace=trace)
-            if isinstance(result,dict):
-               return result
-      return False
+         result = rr
+      elif key in rr['order']:
+         result = rr['menu'][key]
+      else:
+         for key1 in rr['order']:
+            dd = rr['menu'][key1]
+            if dd['type']=='menu':                     # Recursive:
+               result = self.find_defrec(key, dd, level=level+1, trace=trace)
+               if isinstance(result,dict): break
+            if isinstance(result,dict): break
+
+      if trace:
+         if isinstance(result,dict):
+            print EF.format_record(result,'find_defrec('+str(key)+')', recurse=0)
+         else:
+            print '\n** find_defrec(',key,') -> result =',result
+      return result
 
    #----------------------------------------------------------------------------
 
@@ -1668,7 +1692,9 @@ class TDLOptionManager (object):
    #--------------------------------------------------------------------------
 
    def getopt_prefix (self, func, trace=False):
-      """A little service: Make a getopt() prefix from the name of the given function.
+      """
+      Semi-obsolete...
+      A little service: Make a getopt() prefix from the name of the given function.
       NB: This requires that all submenu names are the same as the names of the functions
       in which the various options are used. This should always be possible....
       """
@@ -1745,7 +1771,7 @@ class TDLOptionManager (object):
       value = self._evaluate(value, severe=False, trace=trace)
          
       if trace:
-         print '** .getopt(',name,'):',unique_name,' (key=',key,') -> value =',value,'   (source=',source,')'
+         print '** .getopt(',name,'):',unique_name,' -> value =',value,'   (source=',source,')'
       return value
 
    #--------------------------------------------------------------------------
@@ -1846,72 +1872,17 @@ class TDLOptionManager (object):
 #********************************************************************************
 #********************************************************************************
 #********************************************************************************
-# Test-functions:
+# Test-functions called from do_define_forest()
 #********************************************************************************
 
 
-def testfunc (ns, TCM=None, menu=None, trace=False):
-   """Test
-   """
-   
-   # Define menus and options for this function:
-   submenu = TCM.start_of_submenu(testfunc, menu=menu)
-   TCM.add_option('test', ['test_types','test_check_value',
-                           'test_master_slaves','test_radio_buttons',
-                           'test_all'], more=False,
-                  prompt='select a test to be performed',
-                  help='the menu will be reconfigured accordingly')
-   TCM.add_option('trace', False,
-                  prompt='if True, show progress messages')
-   TCM.add_option('recurse', [10,1,2,3,4],
-                  prompt='max depth of show_record')
-
-   # Get the relevant option values:
-   test = TCM.getopt('test', testfunc, trace=True)
-   trace = TCM.getopt('trace', testfunc, trace=True)
-   recurse = TCM.getopt('recurse', testfunc, trace=True)
-
-   # Execute the specified test:
-   if False:
-      pass                          # manual disable (testing only)
-   elif test=='test_types':
-      test_types (ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='test_check_value':
-      test_check_value (ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='test_master_slaves':
-      test_master(ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='test_radio_buttons':
-      test_radio_buttons(ns, TCM=TCM, menu=submenu, trace=trace)
-   elif test=='test_all':
-      test_types (ns, TCM=TCM, menu=submenu, trace=trace)
-      test_check_value (ns, TCM=TCM, menu=submenu, trace=trace)
-      test_master(ns, TCM=TCM, menu=submenu, trace=trace)
-      test_radio_buttons(ns, TCM=TCM, menu=submenu, trace=trace)
-      # NB: This does NOT work, but is desirable....                .............
-      TCM.make_into_radio_buttons(trace=True)
-   else:
-      s = 'test not recocnized: '+test
-      raise ValueError,s
-
-   # Create some nodes:
-   ns.testfunc << 1.0
-
-   # Finished:
-   if trace:
-      TCM.show('testfunc()', full=True)
-      print EF.format_record(TCM._menudef,'TCM._menudef',
-                             recurse=recurse)
-   return True
-   
-#------------------------------------------------------------
-
-def test_radio_buttons (ns, TCM=None, menu=None, trace=False):
+def test_radio_buttons (ns, TCM=None, trace=False):
    """Test
    """
    if trace:
       print '\n** test_radio_buttons():'
 
-   submenu = TCM.start_of_submenu(test_radio_buttons, menu=menu)
+   submenu = TCM.start_of_submenu(test_radio_buttons)
    # NB: The initial values should be radioed too ....!
    TCM.add_option('radio_1', True)
    TCM.add_option('radio_2', True)
@@ -1923,25 +1894,27 @@ def test_radio_buttons (ns, TCM=None, menu=None, trace=False):
    TCM.add_option('non_radio', False)
    
    # Get the relevant option values:
-   TCM.getopt('radio_1', test_radio_buttons, trace=True)
-   TCM.getopt('radio_2', test_radio_buttons, trace=True)
-   TCM.getopt('radio_3', test_radio_buttons, trace=True)
-   TCM.getopt('non_radio', test_radio_buttons, trace=True)
+   TCM.getopt('radio_1', submenu, trace=True)
+   TCM.getopt('radio_2', submenu, trace=True)
+   TCM.getopt('radio_3', submenu, trace=True)
+   TCM.getopt('non_radio', submenu, trace=True)
 
    # Create some nodes:
    ns.test_radio_buttons << 1.0
+
+   # The LAST statement:
+   TCM.end_of_submenu()
    return True
    
 #------------------------------------------------------------
 
-def test_types (ns, TCM=None, menu=None, trace=False):
+def test_types (ns, TCM=None, trace=False):
    """Test
    """
    if trace:
       print '\n** test_types():'
 
-   submenu = TCM.start_of_submenu('test_types', menu=menu,
-                                  help='Test option values of various types')
+   submenu = TCM.start_of_submenu(test_types)
    TCM.add_option('bool', True,
                   help='make toggle-box')
    TCM.add_option('int', range(4))
@@ -1972,66 +1945,74 @@ def test_types (ns, TCM=None, menu=None, trace=False):
    keys.append('eval()')
    keys.append('[None]')
    for key in keys:
-      TCM.getopt(key, test_types, trace=True)
+      TCM.getopt(key, submenu, trace=True)
 
    # Create some nodes:
    ns.test_types << 1.0
+
+   # The LAST statement:
+   TCM.end_of_submenu()
    return True
    
 #------------------------------------------------------------
 
-def test_check_value (ns, TCM=None, menu=None, trace=False):
+def test_check_value (ns, TCM=None, trace=False):
    """Test
    """
    if trace:
       print '\n** test_check_value():'
 
-   submenu = TCM.start_of_submenu('test_check_value', menu=menu)
+   submenu = TCM.start_of_submenu(test_check_value)
    TCM.add_option('int', range(10), vmin=-1, vmax=3)
 
    # Get the relevant option values:
-   TCM.getopt('int', test_check_value, trace=True)
+   TCM.getopt('int', submenu, trace=True)
 
    # Create some nodes:
    ns.test_check_value << 2.0
+
+   # The LAST statement:
+   TCM.end_of_submenu()
    return True
    
 #------------------------------------------------------------
 #------------------------------------------------------------
 
-def test_master(ns, TCM=None, menu=None, trace=False):
+def test_master(ns, TCM=None, trace=False):
    """Master function (calls slaves)
    """
    if trace:
-      print '\n** test_master(',menu,'):'
-   submenu = TCM.start_of_submenu('test_master', menu=menu,
-                                  help='Test of master-slave options')
+      print '\n** test_master():'
+   submenu = TCM.start_of_submenu(test_master)
    TCM.add_option('nslaves', range(4))
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4), disable=True)
    TCM.add_option('cc', range(4))
 
    # Get the relevant option values:
-   nslaves = TCM.getopt('nslaves', test_master, trace=True)
+   nslaves = TCM.getopt('nslaves', submenu, trace=True)
 
    # Create some nodes:
    ns.test_master << 2.0
 
+   # Create the slaves (menus and nodes):
    for i in range(nslaves):
-      test_slave(ns, TCM=TCM, menu=submenu, qual=i,
-                 master=submenu, trace=True)
+      test_slave(ns, TCM=TCM, qual=i, master=submenu, trace=True)
+      
+   # The LAST statement:
+   TCM.end_of_submenu()
    return True
 
 #------------------------------------------------------------
 
-def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
+def test_slave(ns, TCM=None, qual=0, master=None, trace=False):
    """Slave function (called by master)
    """
    if trace:
-      print '\n** test_slave(',menu,qual,master,'):'
+      print '\n** test_slave(',qual,master,'):'
       
-   submenu = TCM.start_of_submenu('test_slave', qual=qual,
-                                  menu=menu, master=master,
+   submenu = TCM.start_of_submenu(test_slave, qual=qual,
+                                  master=master,
                                   help='this is a slaved menu')
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4))
@@ -2043,6 +2024,8 @@ def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
    # Create some nodes:
    ns[submenu] << 2.0
 
+   # The LAST statement:
+   TCM.end_of_submenu()
    return True
    
 
@@ -2054,14 +2037,92 @@ def test_slave(ns, TCM=None, menu=None, qual=0, master=None, trace=False):
 #********************************************************************************
 #********************************************************************************
 
-# The TDLOptionManager allows many ways to input options:
+def _define_forest (ns, **kwargs):
+   """
+   The expected function just calls do_define_forest()
+   """
+   if not enabled_testing:
+      print '\n**************************************************************'
+      print '** TDLOptionManager _define_forest(): testing not enabled yet!!'
+      print '**************************************************************\n'
+      return False
+   return do_define_forest (ns, TCM=TDLOptionManager(TCM))       
+
+
+#------------------------------------------------------------------------------
+
+def do_define_forest (ns, TCM=None):
+   """The function that does the work for _define_forest()
+   It is also used outside _define_forest() (see below)
+   """
+   
+   # Define menus and options for this function:
+   submenu = TCM.start_of_submenu(do_define_forest)
+   TCM.add_option('test', ['test_types','test_check_value',
+                           'test_master_slaves','test_radio_buttons',
+                           'test_all'], more=False,
+                  prompt='select a test to be performed',
+                  help='the menu will be reconfigured accordingly')
+   TCM.add_option('radio', [False,True], 
+                  prompt='if True, make mutually exclusive')
+   TCM.add_option('trace', [False,True], more=False,
+                  prompt='if True, show progress messages')
+   TCM.add_option('recurse', [10,1,2,3,4],
+                  prompt='max depth of show_record')
+
+   # Get the relevant option values:
+   test = TCM.getopt('test', submenu, trace=True)
+   radio = TCM.getopt('radio', submenu, trace=True)
+   trace = TCM.getopt('trace', submenu, trace=True)
+   recurse = TCM.getopt('recurse', submenu, trace=True)
+
+   # Execute the specified test:
+   if False:
+      pass                          # manual disable (testing only)
+   elif test=='test_types':
+      test_types (ns, TCM=TCM, trace=trace)
+   elif test=='test_check_value':
+      test_check_value (ns, TCM=TCM, trace=trace)
+   elif test=='test_master_slaves':
+      test_master(ns, TCM=TCM, trace=trace)
+   elif test=='test_radio_buttons':
+      test_radio_buttons(ns, TCM=TCM, trace=trace)
+   elif test=='test_all':
+      test_types (ns, TCM=TCM, trace=trace)
+      test_check_value (ns, TCM=TCM, trace=trace)
+      test_master(ns, TCM=TCM, trace=trace)
+      test_radio_buttons(ns, TCM=TCM, trace=trace)
+   else:
+      s = 'test not recocnized: '+test
+      raise ValueError,s
+
+   if radio:
+      # Make the selected functions mutually exclusive:
+      # (this is only useful if there is more than one, of course)
+      # NB: This still does not work properly.....
+      TCM.make_into_radio_buttons(trace=True)
+
+   # Create some nodes:
+   ns.do_define_forest << 1.0
+
+   # Finished:
+   if trace:
+      TCM.show('do_define_forest()', full=True)
+      print EF.format_record(TCM._menudef,'TCM._menudef', recurse=recurse)
+      
+   # The LAST statement:
+   TCM.end_of_submenu()
+   return True
+   
+#------------------------------------------------------------------------------
+
 
 itsTDLCompileMenu = None
 TCM = TDLOptionManager(__file__)
 enabled_testing = False
-if 1:
+enabled_testing = True        # normally, this statement will be commented out
+if enabled_testing:
    # Only use for testing (otherwise it will appear in every menu)!
-   enabled_testing = True
    if 0:
       # Regular (OMS) option definition
       TDLCompileMenu('TDLCompileMenu()',
@@ -2076,7 +2137,7 @@ if 1:
    if 1:
       # Use of TCM to specify options INSIDE functions:
       ns = NodeScope()
-      testfunc (ns, TCM=TCM, trace=False)
+      do_define_forest (ns, TCM=TCM)
    if 0:
       TCM.TRM.start_of_submenu('TRM', help='runtime options/menus')
       TCM.TRM.add_option('aa',range(3))
@@ -2086,25 +2147,6 @@ if 1:
    TCM.show('finished')
 
    
-#------------------------------------------------------------------------------
-
-def _define_forest (ns, **kwargs):
-   """Define a standalone forest for standalone use of this QR module
-   """
-
-   if not enabled_testing:
-      print '\n**************************************************************'
-      print '** TDLOptionManager _define_forest(): testing not enabled yet!!'
-      print '**************************************************************\n'
-      return False
-
-   node = ns.dummy << 1.0
-
-   testfunc (ns, TCM=TDLOptionManager(TCM), trace=False)       
-
-   return True
-
-
 
 #********************************************************************************
 #********************************************************************************
