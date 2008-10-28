@@ -698,19 +698,19 @@ class TDLOptionManager (object):
                 '-','help','show defrec']
       choice.extend(['-','make snapshot'])                     # for safety....
       help = """Manipulate the options in (and below!) this submenu:
-      - select all selectables:
-      - select none:
-      - hide this submenu:
-      - hide nominal:
-      - unhide everything:
-      - revert to defaults:
-      - revert to snapshot:
-      - help:
-      - show defrec:
-      - make_snapshot:
+      - select all selectables:  i.e. those menus/options with toggle boxes
+      - select none:             de-select all selectables
+      - hide this submenu:       hide this submenu (undo with unhide)
+      - hide nominal:            hide all nominally hidden option
+      - unhide everything:       unhide all hidden menus/options
+      - revert to defaults:      revert to the original default values
+      - revert to snapshot:      revert to the snapshot values (see below) 
+      - help:                    print this help-text
+      - show defrec:             (debugging) show the definition record 
+      - make snapshot:           save a 'snapshot' of the current values
       """ 
       self.add_option ('group_control', choice,
-                       prompt='(group control)',
+                       prompt='(*)',
                        help=help, more=False,
                        callback=self.callback_group_control,
                        prepend=True, trace=trace)
