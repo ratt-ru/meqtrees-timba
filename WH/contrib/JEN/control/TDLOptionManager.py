@@ -938,6 +938,7 @@ class TDLOptionManager (object):
             pass
 
          if dd['type']=='option':
+            print '----- create TDLOption:',dd['key'],dd['prompt']
             tdlob = TDLOption(symbol=dd['key'], name=dd['prompt'],
                               value=dd['choice'], more=dd['more'],
                               doc=dd['help'],
@@ -962,11 +963,13 @@ class TDLOptionManager (object):
 
       # Make the TDLMenu object from the accumulated oblist:
       if level>0:                                   # a submenu
+         print '--- create TDLMenu:',rr['key'],rr['prompt']
          menu = TDLMenu(rr['prompt'], toggle=rr['key'],
                         doc=rr['help'],
                         namespace=self, *oblist)
 
       elif self._mode=='runtime':                   # The root TDLCompile Menu:
+         print '--- create TDLRuntimeMenu:',rr['key'],rr['prompt']
          menu = TDLRuntimeMenu(rr['prompt'], toggle=rr['key'],
                                doc=rr['help'],
                                namespace=self, *oblist)
@@ -976,6 +979,7 @@ class TDLOptionManager (object):
             # Add the menus from the TCM_list:
             for tcm in self._TCMlist:
                oblist.append(tcm.TDLMenu())
+         print '--- create TDLCompileMenu:',rr['key'],rr['prompt']
          menu = TDLCompileMenu(rr['prompt'], toggle=rr['key'],
                                doc=rr['help'],
                                namespace=self, *oblist)
@@ -2041,12 +2045,14 @@ def _define_forest (ns, **kwargs):
    """
    The expected function just calls do_define_forest()
    """
-   if not enabled_testing:
+   if not enable_testing:
       print '\n**************************************************************'
       print '** TDLOptionManager _define_forest(): testing not enabled yet!!'
       print '**************************************************************\n'
       return False
-   return do_define_forest (ns, TCM=TDLOptionManager(TCM))       
+   node = ns.dummy << 2.3
+   do_define_forest (ns, TCM=TDLOptionManager(TCM))       
+   return True
 
 
 #------------------------------------------------------------------------------
