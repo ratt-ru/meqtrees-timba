@@ -119,6 +119,29 @@ int Sink::getResult (Result::Ref &resref,
   TypeId coltype;
   LoShape colshape; 
   int ncorr = tileref->ncorr();
+  // Check if we have a special case of 1 input VellSet (i.e. a scalar) 
+  // This usually needs to be treated as a 2x2 matrix. (In the strange case
+  // where only a single output correlation needs to be generated, this can
+  // be effected by setting output_icorrs to [N,-1,-1,-1].)
+  // res_vs[i] will contain a pointer to vellset #i, or 0 if the vellset is 0. 
+  // If only one vellset came in, we'll duplicate pointers to it for the diagonal elements,
+  // and set off-diagonals to 0.
+  const VellSet *res_vs[std::max(nvs,4)];
+  if( nvs == 1 )
+  {
+    res_vs[0] = res_vs[3] = &( resref->vellSet(0) );
+    res_vs[1] = res_vs[2] = 0;
+    nvs = 4;
+  }
+  else
+  {
+    // fill res_vs[i] with pointer to vellset #i. If fewer than four vellsets,
+    // fill remainder with 0 
+    for( int ivs = 0; ivs < nvs; ivs++ )
+      res_vs[ivs] = &( resref->vellSet(ivs) );
+    for( int ivs = nvs; ivs < 4; ivs++ )
+      res_vs[ivs] = 0;
+  }
   for( int ivs = 0; ivs < nvs; ivs++ )
   {
     int icorr = mapOutputCorr(ivs);
@@ -150,9 +173,9 @@ int Sink::getResult (Result::Ref &resref,
         colshape = pformat->shape(output_col);
         colshape.push_back(ptile->nrow()); // add third dimension to column shape
       }
-      const VellSet &vellset = resref->vellSet(ivs);
+      const VellSet * pvs = res_vs[ivs];
       // process null vellset -- store zeroes to output column
-      if( vellset.isNull() )
+      if( !pvs || pvs->isNull() )
       {
         if( coltype == Tpdouble )
           zeroTileColumn(static_cast<double*>(coldata),colshape,cur_range,icorr);
@@ -162,7 +185,7 @@ int Sink::getResult (Result::Ref &resref,
       else // non-0 vellset
       {
         // get the values out, and copy them to tile column
-        const Vells &vells = resref->vellSet(ivs).getValue();
+        const Vells &vells = pvs->getValue();
         FailWhen(vells.rank()>2,"illegal Vells rank");
         if( vells.isReal() ) // real values
         {
