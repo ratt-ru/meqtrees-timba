@@ -82,7 +82,7 @@ def unique_stub (ns, rootname, *quals, **kwquals):
     """
     
     # First make a nodestub:
-    print '---- quals=',quals
+    # print '---- quals=',quals
     stub = nodestub(ns, rootname, *quals, **kwquals)
 
     # Decode the uniquifying parameter from the rootname (see below):
