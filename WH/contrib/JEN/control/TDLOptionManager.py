@@ -159,9 +159,6 @@ class TDLOptionManager (object):
       # (however, this gives problems when cleared outside __init__()...)
       # Perhaps such a function is not really necessary...
       if True:
-         # The opbject is empty if no menus/options are defined:
-         self._empty = True
-
          # The following field is expected by OMS TDLOption() etc,
          # but it is set when calling the function .TDLMenu() below:
          self.tdloption_namespace = None
@@ -171,6 +168,10 @@ class TDLOptionManager (object):
          self._defrecs = dict()                  # record of definition records
          self._keyorder = []
          self.start_of_submenu(self._name, prompt=self._prompt, topmenu=True)
+
+         # The opbject is empty if no menus/options are defined:
+         # NB: Set the switch AFTER defining the topmenu (topmenu=True)
+         self._empty = True
 
          # The definition record is used to generate the actual TDLOption objects.
          self._TDLmenu = None                    # the final TDLMenu 
@@ -640,6 +641,21 @@ class TDLOptionManager (object):
       key = self.current_menu_key()
       ss = key.split(self._keysep)
       return len(ss)-1
+
+   #--------------------------------------------------------------------------
+
+   def submenu_is_selected(self, trace=False):
+      """Test whether the current submenu is selected (toggle=True).
+      This is used in functions (after the definition of its options)
+      to decide whether or not to execute the 'body' of the function,
+      i.e. the generation of actual MeqNodes etc.
+      """
+      trace = True
+      key = self.current_menu_key(trace=False)
+      tf = self.getopt(key)
+      if trace:
+         print '\n** .submenu_is_selected():',tf,' ('+key+')'
+      return tf
 
    #--------------------------------------------------------------------------
 
@@ -1969,11 +1985,10 @@ def test_check_value (ns, TCM=None, trace=False):
    submenu = TCM.start_of_submenu(test_check_value)
    TCM.add_option('int', range(10), vmin=-1, vmax=3)
 
-   # Get the relevant option values:
-   TCM.getopt('int', submenu, trace=True)
-
-   # Create some nodes:
-   ns.test_check_value << 2.0
+   if TCM.submenu_is_selected(trace=True):
+      TCM.getopt('int', submenu, trace=True)
+      # Create some nodes:
+      ns.test_check_value << 2.0
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -2126,6 +2141,7 @@ def do_define_forest (ns, TCM=None):
 itsTDLCompileMenu = None
 TCM = TDLOptionManager(__file__)
 enable_testing = False
+
 # enable_testing = True        # normally, this statement will be commented out
 if enable_testing:
    # Only use for testing (otherwise it will appear in every menu)!
