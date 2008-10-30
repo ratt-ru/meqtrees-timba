@@ -88,6 +88,8 @@ def main(args):
   d.setKey("Donkey")
 
   app.setMainWidget( m_treeView)
+  rect = QApplication.desktop().geometry();
+  m_treeView.move(rect.center() - m_treeView.rect().center())
   m_treeView.show()
   app.exec_loop()
 
