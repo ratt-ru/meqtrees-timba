@@ -703,16 +703,15 @@ class ResultPlotter(GriddedPlugin):
 
 # add this data set to internal list for later replay
     if process_result:
-# no longer check for label matching - this was an annoyance more than
-# anything as nothing would be added if we wanted to re-run for
-# some reason
-#     label_found = False
-#     if len(self.data_list_labels) > 0:
-#       for i in range(len(self.data_list_labels)):
-#         if self.data_list_labels[i] == self.label:
-#           label_found = True
-#     if not label_found and self.max_list_length > 0:
-      if self.max_list_length > 0:
+# check for label matching - this is necessary as a node may be called
+# by multiple parents, and thus send the same result to the display
+# more than once
+      label_found = False
+      if len(self.data_list_labels) > 0:
+        for i in range(len(self.data_list_labels)):
+          if self.data_list_labels[i] == self.label:
+            label_found = True
+      if not label_found and self.max_list_length > 0:
         self.data_list.append(self._rec)
         self.data_list_labels.append(self.label)
         if len(self.data_list_labels) > self.max_list_length:

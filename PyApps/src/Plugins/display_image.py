@@ -1084,6 +1084,9 @@ class QwtImageDisplay(QwtPlot):
 
       if self._vells_menu is None:
         self._vells_menu =  VellsView()
+        rect = QApplication.desktop().geometry();
+        self._vells_menu.move(rect.center() - self._vells_menu.rect().center())
+
         vells_root = VellsElement( self._vells_menu, "result" )
         QObject.connect(self._vells_menu,PYSIGNAL("selected_vells_id"),self.update_vells_display);
         self._vells_menu.hide()
