@@ -160,6 +160,18 @@ def _define_forest (ns, **kwargs):
 
    return True
 
+#---------------------------------------------------------------
+
+def _tdl_job_execute (mqs, parent):
+    """Execute the forest, starting at the node 'rootnode'
+    """
+    # domain = meq.domain(1.0e8,1.1e8,1,10)                            # (f1,f2,t1,t2)
+    domain = meq.domain(1,10,-10,10)                            # (f1,f2,t1,t2)
+    cells = meq.cells(domain, num_freq=11, num_time=21)
+    request = meq.request(cells, rqtype='ev')
+    result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
+    return result
+       
 #------------------------------------------------------------------------------
 
 
@@ -171,8 +183,8 @@ def do_define_forest (ns, TCM):
    TCM.add_option('opt',[1,2,3])
 
    if TCM.submenu_is_selected():
-      tc = templateClump(ns=ns, TCM=TCM)
-      tc.show('do_define_forest', full=True)
+      cp = templateClump(ns=ns, TCM=TCM)
+      cp.show('do_define_forest', full=True)
       opt = TCM.getopt('opt', submenu, trace=True)
       if opt==1:
          ns.testopt1 << 1.0
@@ -184,6 +196,8 @@ def do_define_forest (ns, TCM):
       else:
          # Define at least one node
          ns.do_define_forest << 1.0
+      cp.inspector()
+      cp.rootnode()
 
    # The LAST statement:
    TCM.end_of_submenu()
