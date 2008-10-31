@@ -74,6 +74,7 @@ class Clump (object):
                 treequals=None,
                 ns=None, TCM=None,
                 use=None, init=True,
+                trace=False,
                 **kwargs):
       """
       Initialize the Clump object, according to its type (see .init()).
@@ -82,6 +83,7 @@ class Clump (object):
       """
       # Make a short version of the type name (e.g. Clump)
       self._typename = str(type(self)).split('.')[1].split("'")[0]
+      self._trace = trace
 
       # If another Clump object is given (use), use its contents
       if not isinstance(use,type(self)):
@@ -163,54 +165,61 @@ class Clump (object):
       # Nodes without parents (e.g. visualisation) are collected on the way:
       self._orphans = []                    # see self.rootnode()
 
+      # See .on_entry(), .execute_body(), .end_of_body(), .on_exit() 
+      self._ctrl = None
+
       # A Clump objects operates in 'stages'. See self.unique_nodestub().
       self._stagename = None                # name of the current stage 
       self._stagecounter = -1               # number of the current stage
 
-      # See self..unique_nodestub()
+      # See self.unique_nodestub()
       self._stubtree = None
 
       # Finally: Initialize with suitable nodes (if required):
       # The function .init() is re-implemented in derived classes.
       # NB: See .copy() for an example where init=False.
+      self._nodes = []
       if init:
-         self.init()
+         self.init(trace=self._trace)
 
       return None
 
    #--------------------------------------------------------------------------
 
-   def init (self, trace=False):
+   def init (self, **kwargs):
       """Initialize the object with suitable nodes.
       Called from __init__() only
       Place-holder: To be re-implemented for derived classes.
       """
-      submenu = self.start_of_object_submenu()
-      self._TCM.add_option('initype', ['real','complex','parm',
+      kwargs['select'] = True
+      ctrl = self.on_entry(self.init, **kwargs)
+      
+      self._TCM.add_option('initype', ['const_real','const_complex',
+                                       'parm',
                                        'freq','time','freq+time'],
                            prompt='init node type')
 
-      initype = self._TCM.getopt('initype', submenu)
-      self._nodes = []
-      stub = self.unique_nodestub()
-      for i,qual in enumerate(self._nodequals):
-         if initype=='parm':
-            node = stub(qual) << Meq.Parm(i)
-         elif initype=='freq':
-            node = stub(qual) << Meq.Freq()
-         elif initype=='time':
-            node = stub(qual) << Meq.Time()
-         elif initype=='freq+time':
-            node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
-                                         self._ns << Meq.Time())
-         else:
-            node = stub(qual) << Meq.Constant(i)
-         self._nodes.append(node)
-      self.history('.init()', trace=trace)
+      if self.execute_body():
+         initype = self.getopt('initype')
+         self._nodes = []
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self._nodequals):
+            if initype=='parm':
+               node = stub(qual) << Meq.Parm(i)
+            elif initype=='freq':
+               node = stub(qual) << Meq.Freq()
+            elif initype=='time':
+               node = stub(qual) << Meq.Time()
+            elif initype=='freq+time':
+               node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
+                                            self._ns << Meq.Time())
+            else:
+               node = stub(qual) << Meq.Constant(i)
+            self._nodes.append(node)
+         self.end_of_body(ctrl)
 
       # The LAST statement:
-      self.end_of_object_submenu()
-      return True
+      return self.on_exit(ctrl)
 
    #-------------------------------------------------------------------------
 
@@ -362,6 +371,7 @@ class Clump (object):
       ss += '\n * self._slavemaster = '+str(self._slavemaster)
       #.....................................................
 
+      ss += '\n * self._ctrl: '+str(self._ctrl)
       ss += self.history(format=True, prefix='   | ')
       ss += self.show_specific()
       ss += '\n**\n'
@@ -392,9 +402,9 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
-   def history (self, append=None, prefix='',
-                clear=False, format=False, 
-                show=False, trace=False):
+   def history (self, append=None, show_node=False,
+                prefix='', format=False, 
+                clear=False, show=False, trace=False):
       """Interact with the object history (a list of strings).
       """
       clear |= (self._history==None)             # the first time
@@ -406,17 +416,21 @@ class Clump (object):
          if trace:
             print '** .history(clear)'
 
+      # Append a new list item to self._history()
       if isinstance(append,str):
-         if append[0]=='|':
-            s = '    '+str(append)
-         else:
-            s = ' -- '+str(append)
-            ilast = self.len()-1
-            s += '   -> node['+str(ilast)+']: '+str(self._nodes[ilast])
-         self._history.append(s)
+         self._history.append(' -- '+str(append))
          if trace:
             print '** .history(append): ',self._history[-1]
 
+      # Append the current node to the last line/item: 
+      if show_node:
+         ilast = self.len()-1
+         s = '   -> '+str(self._nodes[ilast])
+         self._history[-1] += s
+         if trace:
+            print '** .history(show_node): ',self._history[-1]
+
+      # Format the history into a multi-line string (ss):
       if show or format:
          ss = ''
          for line in self._history:
@@ -457,49 +471,97 @@ class Clump (object):
 
 
    #=========================================================================
-   # Convenience functions for use in Clump methods 
+   # Standard ontrol functions for use in Clump (stage) methods.
    #=========================================================================
 
-   def start_of_body(self, func=None, *args, **kwargs):
+   def on_entry (self, func=None, **kwargs):
+      """To be called at the start of a Clump stage-method,
+      Its (mandatory!) counterpart is .on_exit()
+      Syntax: ctrl = self.on_entry(func, **kwargs)
+      """
+      if func==None:
+         func = self.start_of_body                   # for testing only
+      kwargs.setdefault('trace', False)
+      ctrl = dict(funcname=str(func.func_name),
+                  submenu=None, trace=kwargs['trace'],
+                  kwargs=kwargs)
+      if kwargs.has_key('select'):
+         ctrl['submenu'] = self._TCM.start_of_submenu(self._name,
+                                                      default=kwargs['select'],
+                                                      master=self._slavemaster,
+                                                      qual=self._qual)
+      # The ctrl record used by other control functions downstream.
+      # The opening ones use self._ctrl, but the closing ones have to use
+      # the ctrl argument (since self._ctrl may be overwritten by other
+      # functions that are called in the function body (AFTER all .getopt() calls!)
+      self._ctrl = ctrl
+      if self._ctrl['trace']:
+         print '\n ** .on_entry(func, **kwargs): \n   ctrl =',ctrl
+      return ctrl
+
+   #--------------------------------------------------------------------------
+
+   def execute_body(self):
       """To be called at the start of the 'body' of a Clump stage-method,
-      i.e. AFTER any self._TCM menu and option definitions,
-      and AFTER any 'if self._TCM.submenu_selected:' statement.
-      Syntax: self._start_of_body(func, arg1, arg2, **kwargs)
+      i.e. AFTER any self._TCM menu and option definitions.
+      Its (mandatory!) counterpart is self.end_of_body(ctrl)
+      It uses the record self._ctrl, defined in .on_entr()
       """
-      func = self.start_of_body         # temporary
-      name = func.func_name
-      print '\n ** start_of_body(',name, args, kwargs,'):'
+      if self._ctrl['trace']:
+         print '** .execute_body(): funcname=',self._ctrl['funcname']
+      if self._TCM.submenu_is_selected(trace=False):
+         if self._ctrl['trace']:
+            print '    - selected: execute the function body'
+         self._stagecounter += 1
+         self._stagename = self._ctrl['funcname']
+         s = ''
+         s += str(self._stagename)
+         s += ' ('+str(self._stagecounter)+'): '
+         s += self._ctrl['funcname']+'()'
+         self.history(append=s, trace=self._ctrl['trace'])
+         return True                   # execute the body
+      return False                     # do not execute
+
+   #..........................................................................
+
+   def getopt (self, name):
+      """Get the specified (name) TDL option value.
+      This function is ONLY called AFTER self.execute_body()==True.
+      It use the record self._ctrl that is defined in .on_entry()
+      """
+      value = self._TCM.getopt(name, self._ctrl['submenu'])
+      if self._ctrl['trace']:
+         print '    - .getopt(',name,self._ctrl['submenu'],') -> ',type(value),value
+      return value
+
+   #--------------------------------------------------------------------------
+
+   def end_of_body(self, ctrl):
+      """
+      To be called at the end of the body of a Clump stage-method.
+      Counterpart of .execute_body()
+      """
+      self.history(show_node=True, trace=ctrl['trace'])
+      if ctrl['trace']:
+         print '** .end_of_body(ctrl): funcname=',ctrl['funcname']
       return True
 
-   #--------------------------------------------------------------------------
+   #..........................................................................
 
-   def end_of_body(self, func, result=None, **kwargs):
-      """To be called at the end of the body of a Clump stage-method,
-      (but inside any 'if self._TCM.submenu_selected:' block).
-      Syntax: self._end_of_body(func, [result,] **kwargs)
+   def on_exit(self, ctrl, result=None):
       """
-      return True
-
-   #--------------------------------------------------------------------------
-
-   def start_of_object_submenu(self, trace=False):
-      """Convenience function to be called from .init() etc.
-      It generates the submenu that controls the object,
-      in an organised way (this avoids errors when re-implementing
-      .init() in derived classes.
+      To be called at the end of a Clump stage-method.
+      Counterpart of ctrl = self.on_entry(func, **kwargs)
+      Syntax: return self.on_exit(ctrl, result[=None])
       """
-      self._object_submenu = self._TCM.start_of_submenu(self._name,
-                                                 master=self._slavemaster,
-                                                 qual=self._qual)
-      return self._object_submenu
+      if ctrl['submenu']:
+         self._TCM.end_of_submenu()
+      if ctrl['trace']:
+         print '** .on_exit(ctrl, result=',result,'): funcname=',ctrl['funcname'],'\n'
+      return result
+
 
    #--------------------------------------------------------------------------
-
-   def end_of_object_submenu(self, trace=False):
-      """Counterpart of .start_of_object_submenu().
-      """
-      return self._TCM.end_of_submenu()
-
    #--------------------------------------------------------------------------
 
    def unique_nodestub (self, stagename=None, qual=None, help=None, trace=False):
@@ -509,8 +571,6 @@ class Clump (object):
       be orphaned. They are used to carry quickref-help information, which
       can be used in the various bookmark pages.
       """
-      self._stagecounter += 1
-      self._stagename = str(stagename)
       stub = EN.unique_stub(self._ns, self._name, self._qual, qual)
       if False:
          ## parent.initrec().quickref_help = rider.format_html(path=rider.path())
@@ -540,10 +600,8 @@ class Clump (object):
       if len(self._orphans)>0:
          nodes = [node]
          nodes.extend(self._orphans)
-         print '+++++',nodes
          # use MeqComposer? or MeqReqSeq? or stepchildren?
          node = self._ns[name] << Meq.ReqSeq(children=nodes)
-         print 'rootnode',str(node)
       self.history('.rootnode('+str(name)+')', trace=trace)
       return node
 
@@ -859,10 +917,9 @@ if __name__ == '__main__':
    print '****************************************************\n' 
 
    ns = NodeScope()
-   # rider = QRU.create_rider()             # CollatedHelpRecord object
 
    if 1:
-      cp = Clump(master='xxx')
+      cp = Clump(trace=True)
       cp.show('creation', full=True)
 
    if 0:
@@ -915,13 +972,13 @@ if __name__ == '__main__':
       cp.show('.rootnode()')
       print '->',str(node)
 
-   if 1:
+   if 0:
       cp.show('final', full=True)
 
    #-------------------------------------------------------------------
 
    if 0:
-      cp.start_of_body('func', 1,5,8, a=6, b=7)
+      cp.execute_body(None, a=6, b=7)
    
       
    print '\n** End of standalone test of: Clump.py:\n' 

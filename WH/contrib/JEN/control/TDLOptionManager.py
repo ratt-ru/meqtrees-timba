@@ -650,7 +650,7 @@ class TDLOptionManager (object):
       to decide whether or not to execute the 'body' of the function,
       i.e. the generation of actual MeqNodes etc.
       """
-      trace = True
+      # trace = True
       key = self.current_menu_key(trace=False)
       tf = self.getopt(key)
       if trace:
