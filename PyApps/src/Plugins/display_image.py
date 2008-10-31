@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 #% $Id$ 
 
 #
@@ -530,6 +529,7 @@ class QwtImageDisplay(QwtPlot):
           toggle_id = self.menu_table['Undo Last Zoom']
           self._menu.setItemVisible(toggle_id, False)
         self.replot()
+        #print'called replot in setPlotParms'
         _dprint(3, 'called replot in setPlotParms')
 
     def initSpectrumContextMenu(self):
@@ -641,6 +641,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.changeItem(menuid, 'Show Color Display')
         self.plotImage.updateImage(self.raw_image)
         self.replot()
+        #print 'called first replot after Toggle Color/GrayScale Display in handle_basic_menu_id'
         _dprint(3, 'called replot in handle_basic_menu_id')
         return True
       if menuid == self.menu_table['Toggle ND Controller']:
@@ -739,6 +740,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.changeItem(menuid, 'Show Solver Metrics')
         self.toggleMetrics()
         self.replot()
+        #print 'called second replot after Toggle Metrics Display in handle_basic_menu_id'
         _dprint(3, 'called replot in handle_basic_menu_id')
         return True
 
@@ -751,6 +753,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemChecked(menuid, False)
         self.test_plot_array_sizes()
         self.replot()
+        #print 'called third replot after Toggle log axis for chi_0 in handle_basic_menu_id'
         return True
 
       if menuid == self.menu_table['Toggle log axis for solution vector']:
@@ -762,6 +765,7 @@ class QwtImageDisplay(QwtPlot):
           self._menu.setItemChecked(menuid, False)
         self.test_plot_array_sizes()
         self.replot()
+        #print 'called fourth replot after Toggle log axis for solution vector in handle_basic_menu_id'
         return True
 
       if menuid == self.menu_table['Toggle chi-square surfaces display']:
@@ -868,6 +872,7 @@ class QwtImageDisplay(QwtPlot):
         self._menu.setItemChecked(menuid, self.flag_toggle)
         self.replot()
         _dprint(3, 'called replot in handle_flag_toggles')
+        #print 'called replot in handle_flag_toggles'
 	return True
 
       if menuid == self.menu_table['toggle blink of flagged data for plane ']:
@@ -888,7 +893,6 @@ class QwtImageDisplay(QwtPlot):
           self.setFlagRange(True)
         self._menu.setItemChecked(menuid,self.flag_range)
         self.handleFlagRange()
-        _dprint(3, 'called replot in handle_flag_toggles')
 	return True
 
 # if we get here ...
@@ -901,6 +905,8 @@ class QwtImageDisplay(QwtPlot):
       else:
         self.flag_toggle = False
       if self.real_flag_vector is None:
+        if self.show_x_sections:
+          self.calculate_cross_sections()
         self.plotImage.setDisplayFlag(self.flag_toggle)
       else:
         self.curve(self.real_flag_vector).setEnabled(self.flag_toggle)
@@ -932,6 +938,7 @@ class QwtImageDisplay(QwtPlot):
         return
       if self._flags_array is None:
         self.replot()
+        #print 'called replot in handleFlagRange'
         return
       if self.flag_range:
         self.plotImage.setFlaggedImageRange()
@@ -951,6 +958,7 @@ class QwtImageDisplay(QwtPlot):
           self.emit(PYSIGNAL("max_image_range"),(image_limits, 1, self.toggle_log_display,self.ampl_phase))
       # finally, replot
       self.replot()
+      #print 'called second replot in handleFlagRange'
 
     def setAxisParms(self, axis_parms):
       self.first_axis_parm = axis_parms[0]
@@ -1318,6 +1326,7 @@ class QwtImageDisplay(QwtPlot):
 # as both axes will have changed even if nothing to unzoom.
       if do_replot:
         self.replot()
+        #print 'called replot in reset_zoom'
     
       if replot:
         self.array_plot(self.complex_image,data_label=self._window_title, flip_axes=False)
@@ -1336,6 +1345,7 @@ class QwtImageDisplay(QwtPlot):
         self._menu.changeItem(menuid, 'Hide Plot Legends')
       self.setAutoLegend(self.setlegend)
       self.replot()
+      #print 'called replot in toggleLegend'
       _dprint(3, 'called replot in toggleLegend')
     # toggleLegend()
 
@@ -1391,6 +1401,7 @@ class QwtImageDisplay(QwtPlot):
       self.plotImage.updateImage(self.raw_image)
       self.replot()
       _dprint(3, 'called replot in setImageRange')
+      #print 'called replot in setImageRange'
     # setImageRange
 	
 
@@ -1403,6 +1414,7 @@ class QwtImageDisplay(QwtPlot):
         self.handleFlagToggle(self.flag_toggle)
       self.replot()
       _dprint(3, 'called replot in timerEvent_blink')
+      #print 'called replot in timerEvent_blink'
 
     def update_vells_display(self, menuid):
       if self.handle_basic_menu_id(menuid):
@@ -1493,6 +1505,7 @@ class QwtImageDisplay(QwtPlot):
 
       self.replot()
       _dprint(3,'called replot in report_scalar_value')
+      #print'called replot in report_scalar_value'
       self._vells_plot = True
 
     def printplot(self):
@@ -1745,6 +1758,7 @@ class QwtImageDisplay(QwtPlot):
       self.insert_array_info()
       self.replot()
       _dprint(3, 'called replot in refresh_marker_display ')
+      #print 'called replot in refresh_marker_display '
     # refresh_marker_display()
 
     def insert_marker_lines(self):
@@ -1793,6 +1807,7 @@ class QwtImageDisplay(QwtPlot):
           self.removeMarker(self.source_marker)
           self.source_marker = None
           self.replot()
+          #print 'called replot in onMouseMoved'
 
     def infoDisplay(self, message, xpos, ypos):
       """ Display text under cursor in plot
@@ -2021,6 +2036,7 @@ class QwtImageDisplay(QwtPlot):
               self.test_plot_array_sizes()
             self.replot()
             _dprint(3, 'called replot in onMouseReleased');
+            #print 'called replot in onMouseReleased'
     # onMouseReleased()
 
     def resizeEvent(self, event):
@@ -2132,6 +2148,7 @@ class QwtImageDisplay(QwtPlot):
             if self.xrCrossSection is None or self.xiCrossSection is None:
               self.calculate_cross_sections()
           self.replot()
+          #print 'called replot in modify_xsection_display' 
         return
 
     def calculate_cross_sections(self):
@@ -2145,6 +2162,10 @@ class QwtImageDisplay(QwtPlot):
 
         shape = self.raw_array.shape
         _dprint(3, 'shape is ', shape)
+        no_flags = True
+        if not self._flags_array is None:
+          if self.flag_toggle:
+            no_flags = False
         q_line_size = 2
         q_symbol_size = 5
         q_flag_size = 20
@@ -2165,21 +2186,41 @@ class QwtImageDisplay(QwtPlot):
         _dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
         try:
           x_values = []
+          x_index = []
           if self.complex_type:
             for i in range(shape[0] / 2 ):
               if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
-                x_values.append(self.raw_array[i,self.xsect_ypos])
+                if no_flags:
+                  x_values.append(self.raw_array[i,self.xsect_ypos])
+                  x_index.append(i+0.5)
+                else:
+                  if self._flags_array[i,self.xsect_ypos] == 0:
+                    x_values.append(self.raw_array[i,self.xsect_ypos])
+                    x_index.append(i+0.5)
             for i in range(shape[0] / 2, shape[0] ):
               if self.raw_array[i - shape[0]/2 ,self.xsect_ypos] != self.nan_inf_value:
-                x_values.append(self.raw_array[i,self.xsect_ypos])
+                if no_flags:
+                  x_values.append(self.raw_array[i,self.xsect_ypos])
+                  x_index.append(i+0.5)
+                else:
+                  if self._flags_array[i- shape[0]/2,self.xsect_ypos] == 0:
+                    x_values.append(self.raw_array[i,self.xsect_ypos])
+                    x_index.append(i+0.5)
           else:
             for i in range(shape[0]):
               if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
-                x_values.append(self.raw_array[i,self.xsect_ypos])
+                if no_flags:
+                  x_values.append(self.raw_array[i,self.xsect_ypos])
+                  x_index.append(i+0.5)
+                else:
+                  if self._flags_array[i,self.xsect_ypos] == 0:
+                    x_values.append(self.raw_array[i,self.xsect_ypos])
+                    x_index.append(i+0.5)
         except:
           self.delete_cross_sections()
           return
         self.x_array = numpy.array(x_values)
+        self.x_index = numpy.array(x_index)
         self.setAxisAutoScale(QwtPlot.yRight)
         if self.toggle_log_display:
           self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.Logarithmic)
@@ -2187,18 +2228,28 @@ class QwtImageDisplay(QwtPlot):
           self.setAxisOptions(QwtPlot.yRight, QwtAutoScale.None)
 
 # create x_index defaults for array plots 
-        self.y_array = numpy.zeros(shape[1], numpy.float32)
-        self.y_index = numpy.arange(shape[1])
-        self.y_index = self.y_index + 0.5
-
-        _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
         try:
+          _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
+          y_values = []
+          y_index = []
           for i in range(shape[1]):
-#           if self.raw_array[self.xsect_xpos,i] != self.nan_inf_value:
-              self.y_array[i] = self.raw_array[self.xsect_xpos,i]
+            if self.raw_array[self.xsect_xpos,i] != self.nan_inf_value:
+              if no_flags:
+                y_values.append(self.raw_array[self.xsect_xpos,i])
+                y_index.append(i+0.5)
+              else:
+                if self.complex_type:
+                 flag_loc = self.xsect_xpos - shape[0]/2
+                else:
+                  flag_loc =  self.xsect_xpos
+                if self._flags_array[flag_loc,i] == 0:
+                  y_values.append(self.raw_array[self.xsect_xpos,i])
+                  y_index.append(i+0.5)
         except:
           self.delete_cross_sections()
           return
+        self.y_array = numpy.array(y_values)
+        self.y_index = numpy.array(y_index)
         self.setAxisAutoScale(QwtPlot.xTop)
         if self.toggle_log_display:
           self.setAxisOptions(QwtPlot.xTop, QwtAutoScale.Logarithmic)
@@ -2248,26 +2299,55 @@ class QwtImageDisplay(QwtPlot):
           if self.complex_type:
             for i in range(shape[0] / 2 ):
               if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
-                x_indices.append(start_x + i * x_step)
+                if no_flags:
+                  x_indices.append(start_x + i * x_step)
+                else:
+                  if self._flags_array[i,self.xsect_ypos] == 0:
+                    x_indices.append(start_x + i * x_step)
             for i in range(shape[0] / 2, shape[0] ):
               if self.raw_array[i - shape[0]/2 ,self.xsect_ypos] != self.nan_inf_value:
-                if self.axes_rotate:
-                  x_indices.append(start_x - i * x_step)
+                if no_flags:
+                  if self.axes_rotate:
+                    x_indices.append(start_x - i * x_step)
+                  else:
+                    x_indices.append(start_x + i * x_step)
                 else:
-                  x_indices.append(start_x + i * x_step)
+                  if self._flags_array[i- shape[0]/2,self.xsect_ypos] == 0:
+                    if self.axes_rotate:
+                      x_indices.append(start_x - i * x_step)
+                    else:
+                      x_indices.append(start_x + i * x_step)
           else:
             for i in range(shape[0]):
               if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
-                if self.axes_rotate:
-                  x_indices.append(start_x - i * x_step)
+                if no_flags:
+                  if self.axes_rotate:
+                    x_indices.append(start_x - i * x_step)
+                  else:
+                    x_indices.append(start_x + i * x_step)
                 else:
-                  x_indices.append(start_x + i * x_step)
+                  if self._flags_array[i,self.xsect_ypos] == 0:
+                    if self.axes_rotate:
+                      x_indices.append(start_x - i * x_step)
+                    else:
+                      x_indices.append(start_x + i * x_step)
           self.x_index = numpy.array(x_indices)
           delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
           y_step = delta_vells / shape[1] 
           start_y = self.vells_axis_parms[self.y_parm][0] + 0.5 * y_step
+          y_indices = []
           for i in range(shape[1]):
-            self.y_index[i] = start_y + i * y_step
+            if self.raw_array[self.xsect_xpos,i] != self.nan_inf_value:
+              if no_flags:
+                y_indices.append(start_y + i * y_step)
+              else:
+                if self.complex_type:
+                 flag_loc = self.xsect_xpos - shape[0]/2
+                else:
+                  flag_loc =  self.xsect_xpos
+                if self._flags_array[flag_loc,i] == 0:
+                  y_indices.append(start_y + i * y_step)
+          self.y_index = numpy.array(y_indices)
 
         self.log_offset = 0.0
         if self.toggle_log_display:
@@ -2334,6 +2414,7 @@ class QwtImageDisplay(QwtPlot):
       if curve:
         curve.setEnabled(not curve.enabled())
         self.replot()
+        #print 'called replot in toggleCurve'
         _dprint(3, 'called replot in toggleCurve');
     # toggleCurve()
 
@@ -3288,6 +3369,7 @@ class QwtImageDisplay(QwtPlot):
           if not self.metrics_rank is None:
             self.add_solver_metrics()
             self.replot()
+            #print 'called first replot in array_plot' 
             return
 
         if self._vells_plot:
@@ -3522,6 +3604,7 @@ class QwtImageDisplay(QwtPlot):
 
 # do the replot
         self.replot()
+        #print 'called final replot in array_plot'
         _dprint(3, 'called replot in array_plot');
     # array_plot()
 

@@ -29,6 +29,7 @@ from math import sin
 from math import cos
 from math import pow
 from math import sqrt
+import string
 
 # modules that are imported
 from Timba.dmi import *
@@ -697,21 +698,20 @@ class ResultPlotter(GriddedPlugin):
         self.reset_plot_stuff()
 
         return
-    
-# update display with current data
-    process_result = self.process_data()
 
-# add this data set to internal list for later replay
-    if process_result:
 # check for label matching - this is necessary as a node may be called
 # by multiple parents, and thus send the same result to the display
 # more than once
-      label_found = False
-      if len(self.data_list_labels) > 0:
-        for i in range(len(self.data_list_labels)):
-          if self.data_list_labels[i] == self.label:
-            label_found = True
-      if not label_found and self.max_list_length > 0:
+    label_found = False
+    if len(self.data_list_labels) > 0:
+      for i in range(len(self.data_list_labels)):
+        if self.data_list_labels[i] == self.label:
+          label_found = True
+    if not label_found and self.max_list_length > 0:
+# update display with current data
+      process_result = self.process_data()
+# add this data set to internal list for later replay if result was OK
+      if process_result:
         self.data_list.append(self._rec)
         self.data_list_labels.append(self.label)
         if len(self.data_list_labels) > self.max_list_length:
@@ -733,12 +733,19 @@ class ResultPlotter(GriddedPlugin):
     if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
       self.create_layout_stuff()
       if self._rec.has_key("vellsets"):
-        self.plot_vells_data()
+        process_result = self.plot_vells_data()
+        if not process_result:
+          Message = "The result record for this node had no valid data, so no plot can be made."
+          cache_message = QLabel(Message,self.wparent())
+          cache_message.setTextFormat(Qt.RichText)
+          self._wtop = cache_message
+          self.set_widgets(cache_message)
+          self.reset_plot_stuff()
       else:
         if self._visu_plotter is None:
           self.create_2D_plotter()
         self.plot_solver()
-      process_result = True
+        process_result = True
 
 # otherwise we are dealing with a set of visualization data
     else:
@@ -802,9 +809,12 @@ class ResultPlotter(GriddedPlugin):
         if not self._visu_plotter is None:
           self._visu_plotter.hide()
         Message =  self._vells_data.getScalarString()
-        self.QTextEdit.setText(Message)
-        self.QTextEdit.show()
-        return
+        if Message.find("has no data") > -1:
+          return False
+        else:
+          self.QTextEdit.setText(Message)
+          self.QTextEdit.show()
+          return True
 
       self._vells_plot = True
 
@@ -855,6 +865,7 @@ class ResultPlotter(GriddedPlugin):
         self._visu_plotter.setFlagColour(black_colour)
         self._visu_plotter.plot_vells_array(plot_data, plot_label)
 
+      return True
     # end plot_vells_data()
 
   def test_for_flags(self):
@@ -1020,9 +1031,12 @@ class ResultPlotter(GriddedPlugin):
       if not self._visu_plotter is None:
         self._visu_plotter.hide()
       Message =  self._vells_data.getScalarString()
-      self.QTextEdit.setText(Message)
-      self.QTextEdit.show()
-      return
+      if Message.find("has no data") > -1:
+        return 
+      else:
+        self.QTextEdit.setText(Message)
+        self.QTextEdit.show()
+        return
     else:
       if not self.test_vells_scalar(plot_data, plot_label):
         if not self.QTextEdit is None:
