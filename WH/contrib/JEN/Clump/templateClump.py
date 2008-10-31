@@ -100,31 +100,112 @@ class templateClump(Clump.Clump):
 
    #--------------------------------------------------------------------------
 
-   def init (self, trace=False):
-      """Reimplementation of placeholder function in Clump.
-      Initialize the object with suitable nodes.
-      Called from __init__() only
+   def init (self, **kwargs):
+      """Initialize the object with suitable nodes.
+      Re-implemented version of the function in the baseclass (Clump).
       """
-      submenu = self.start_of_object_submenu()
-      self._TCM.add_option('opt1', range(1,4))
-      self._TCM.add_option('opt2', range(1,4))
-
-      self._TCM.getopt('opt1', submenu)
-      self._TCM.getopt('opt2', submenu)
+      kwargs['select'] = True
+      ctrl = self.on_entry(self.init, **kwargs)
       
-      self._nodes = []
-      stub = self.unique_nodestub()
-      for i,qual in enumerate(self._nodequals):
-         node = stub(qual) << Meq.Parm(i)
-         self._nodes.append(node)
+      self._TCM.add_option('initype', ['const_real','const_complex',
+                                       'parm',
+                                       'freq','time','freq+time'],
+                           prompt='init node type')
 
-      self.history('.init()', trace=trace)
+      if self.execute_body():
+         initype = self.getopt('initype')
+         self._nodes = []
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self._nodequals):
+            if initype=='parm':
+               node = stub(qual) << Meq.Parm(i)
+            elif initype=='freq':
+               node = stub(qual) << Meq.Freq()
+            elif initype=='time':
+               node = stub(qual) << Meq.Time()
+            elif initype=='freq+time':
+               node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
+                                            self._ns << Meq.Time())
+            else:
+               node = stub(qual) << Meq.Constant(i)
+            self._nodes.append(node)
+         # Mandatory counterpart of self.execute_body()
+         self.end_of_body(ctrl)
 
-      # The LAST statement:
-      self.end_of_object_submenu()
-      return True
+      # Mandatory counterpart of self.on_entry()
+      return self.on_exit(ctrl)
 
 
+
+      
+   #=========================================================================
+   # Some example-functions (to be removed or canibalized):
+   #=========================================================================
+
+   def example1 (self, **kwargs):
+      """
+      Example1: A method without an explicit menu.
+      """
+      # kwargs['select'] = True          # optional: makes the function selectable     
+      ctrl = self.on_entry(self.example1, **kwargs)
+
+      if self.execute_body():
+         self._ns.example1 << Meq.Constant(1.9)
+         # Generate some nodes:
+         node1 = self._ns.example1_opt1 << Meq.Constant(1.1)
+         node2 = self._ns.example1_opt2 << Meq.Constant(2.2)
+         # Mandatory counterpart of self.execute_body()
+         self.end_of_body(ctrl)
+
+      # Mandatory counterpart of self.on_entry()
+      return self.on_exit(ctrl)
+
+   #--------------------------------------------------------------------
+
+   def example2 (self, **kwargs):
+      """
+      Example2: A method with a menu and options
+      """
+      kwargs['select'] = True    # mandatory if it contains a menu.....!?                   
+      ctrl = self.on_entry(self.example2, **kwargs)
+      self._TCM.add_option('opt1', range(3))
+      self._TCM.add_option('opt2', range(3))
+
+      if self.execute_body():
+         # Read the option valies:
+         opt1 = self.getopt('opt1')
+         opt2 = self.getopt('opt2')
+         # Generate some nodes:
+         node1 = self._ns.example2_opt1 << Meq.Constant(opt1)
+         node2 = self._ns.example2_opt2 << Meq.Constant(opt2)
+         # Mandatory counterpart of self.execute_body()
+         self.end_of_body(ctrl)
+
+      # Mandatory counterpart of self.on_entry()
+      return self.on_exit(ctrl)
+
+   #--------------------------------------------------------------------
+
+   def example3 (self, **kwargs):
+      """
+      Example3: Master-slaves
+      """
+      kwargs['select'] = False     # mandatory if it contains a menu.....!?                   
+      ctrl = self.on_entry(self.example3, **kwargs)
+      self._TCM.add_option('slaves', range(3),
+                           prompt='nr of slaved ojects')
+
+      if self.execute_body():
+         slaves = self.getopt('slaves')
+         for i in range(slaves):
+            cp = Clump('slave', qual=i,
+                       master=ctrl['submenu'],
+                       ns=self._ns, TCM=self._TCM)
+         # Mandatory counterpart of self.execute_body()
+         self.end_of_body(ctrl)
+
+      # Mandatory counterpart of self.on_entry()
+      return self.on_exit(ctrl)
 
 
 #********************************************************************************
@@ -180,24 +261,19 @@ def do_define_forest (ns, TCM):
    It is used twice, outside and inside _define_forest() 
    """
    submenu = TCM.start_of_submenu(do_define_forest)
-   TCM.add_option('opt',[1,2,3])
+   TCM.add_option('opt1',[1,2,3])
+   TCM.add_option('opt2',[1,2,3])
 
    if TCM.submenu_is_selected():
-      cp = templateClump(ns=ns, TCM=TCM)
-      cp.show('do_define_forest', full=True)
-      opt = TCM.getopt('opt', submenu, trace=True)
-      if opt==1:
-         ns.testopt1 << 1.0
-      elif opt==2:
-         ns.testopt2 << 2.0
-      elif opt==3:
-         ns.testopt1 << 3.0
-         ns.testopt2 << 3.0
-      else:
-         # Define at least one node
-         ns.do_define_forest << 1.0
+      cp = templateClump(ns=ns, TCM=TCM, trace=True)
+      opt1 = TCM.getopt('opt1', submenu, trace=True)
+      opt2 = TCM.getopt('opt2', submenu, trace=True)
+      cp.example1(select=True)
+      cp.example2(select=False)
+      cp.example3()
       cp.inspector()
       cp.rootnode()
+      # cp.show('do_define_forest', full=True)
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -211,7 +287,7 @@ itsTDLCompileMenu = None
 TCM = Clump.TOM.TDLOptionManager(__file__)
 enable_testing = False
 
-enable_testing = True        # normally, this statement will be commented out
+# enable_testing = True        # normally, this statement will be commented out
 if enable_testing:
    cp = do_define_forest (NodeScope(), TCM=TCM)
    itsTDLCompileMenu = TCM.TDLMenu(trace=False)

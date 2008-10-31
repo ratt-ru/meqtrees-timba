@@ -1648,21 +1648,26 @@ class TDLOptionManager (object):
             print s,ss[0],'\n'
          return ss[0]
 
-      # Problem: Found zero items, or more than one:
-      if severe:
-         if True:
+      else:
+         # Problem: Found zero items, or more than one:
+         if severe:
+            # Print some diagnostic information:
             self.show('problem', full=True)
             print '\n** keys:'
             for key in self.keys():
                print '  -',key
-         s += str(ss)
-         raise ValueError,s
-      else:
-         print s,len(ss),'matches found:'
-         for s in ss:
-            print '   --',s
+         if len(ss)==0:
+            s += 'PROBLEM: no matches found(!):'
+         else:
+            s += 'PROBLEM: multiple matches found(!):'
+         print s
+         for s1 in ss:
+            print '   --',s1
          print
-         return ss
+         if severe:
+            raise ValueError,s
+         else:
+            return ss
       
 
    #================================================================================
