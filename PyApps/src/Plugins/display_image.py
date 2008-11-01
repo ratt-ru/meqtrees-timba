@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#i/usr/bin/env python
 
 #% $Id$ 
 
@@ -869,7 +869,11 @@ class QwtImageDisplay(QwtPlot):
 # toggle flags display	
       if menuid == self.menu_table['toggle flagged data for plane ']:
         self.handleFlagToggle(self.flag_toggle)
-        self._menu.setItemChecked(menuid, self.flag_toggle)
+        # this has really become convoluted
+        if self.is_vector:
+          self._menu.setItemChecked(menuid, self.flag_toggle)
+        else:
+          self._menu.setItemChecked(menuid, not self.flag_toggle)
         self.replot()
         _dprint(3, 'called replot in handle_flag_toggles')
         #print 'called replot in handle_flag_toggles'
@@ -1434,8 +1438,9 @@ class QwtImageDisplay(QwtPlot):
       """
       self._vells_plot = False
       self.reset_zoom()
-      dummy_array = numpy.zeros(shape=(2,2),dtype=numpy.float32)
+      dummy_array = numpy.zeros(shape=(1,),dtype=numpy.float32)
       self.array_plot(dummy_array,data_label=data_label)
+      self.removeCurves()
       self.zooming = False
       self.set_xaxis_title(' ')
       self.set_yaxis_title(' ')
@@ -1447,6 +1452,9 @@ class QwtImageDisplay(QwtPlot):
       self.setAxisAutoScale(QwtPlot.yRight)
       self.enableAxis(QwtPlot.yLeft, False)
       self.enableAxis(QwtPlot.xBottom, False)
+      self.enableGridX(False)
+      self.enableGridY(False)
+
       self._x_auto_scale = True
       self._y_auto_scale = True
       if scalar_data is None:
@@ -1461,8 +1469,6 @@ class QwtImageDisplay(QwtPlot):
       self.source_marker = self.insertMarker()
       ylb = self.axisScale(QwtPlot.yLeft).lBound()
       xlb = self.axisScale(QwtPlot.xBottom).lBound()
-      yhb = self.axisScale(QwtPlot.yLeft).hBound()
-      xhb = self.axisScale(QwtPlot.xBottom).hBound()
       self.setMarkerPos(self.source_marker, xlb+0.1, ylb+1.0)
       self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
       fn = self.fontInfo().family()
@@ -1505,7 +1511,6 @@ class QwtImageDisplay(QwtPlot):
 
       self.replot()
       _dprint(3,'called replot in report_scalar_value')
-      #print'called replot in report_scalar_value'
       self._vells_plot = True
 
     def printplot(self):
@@ -1686,6 +1691,8 @@ class QwtImageDisplay(QwtPlot):
     def reportCoordinates(self, x, y):
         """Format mouse coordinates as real world plot coordinates.
         """
+        if self.scalar_display:
+          return
         result = ''
         if self.display_solution_distances:
           metrics_rank = "rank: " + str(self.metrics_rank[self.array_index,self.metrics_index]) + "\n"
@@ -3674,7 +3681,8 @@ class QwtImageDisplay(QwtPlot):
           self.flag_toggle = True
           self.plotImage.setDisplayFlag(self.flag_toggle)
           toggle_id = self.menu_table['toggle flagged data for plane ']
-          self._menu.setItemChecked(toggle_id, self.flag_toggle)
+          # this has really become convoluted
+          self._menu.setItemChecked(toggle_id, not self.flag_toggle)
       else:
         num_elements = n_rows*n_cols
         self._flags_array = flag_array.reshape(num_elements);
