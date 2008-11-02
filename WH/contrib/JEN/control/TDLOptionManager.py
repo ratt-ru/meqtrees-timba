@@ -2070,8 +2070,15 @@ def _define_forest (ns, **kwargs):
       print '** TDLOptionManager _define_forest(): testing not enabled yet!!'
       print '**************************************************************\n'
       return False
-   node = ns.dummy << 2.3
+
+   # Remove any bookmarks that were set in the first pass:
+   Settings.forest_state.bookmarks = []
+
+   # The second pass:
    do_define_forest (ns, TCM=TDLOptionManager(TCM))       
+
+   # Create at least one node (just in case):
+   node = ns.dummy << 2.3
    return True
 
 
@@ -2164,6 +2171,7 @@ if enable_testing:
    if 1:
       # Use of TCM to specify options INSIDE functions:
       ns = NodeScope()
+      # This is the first pass (the second is inside _define_forest()) 
       do_define_forest (ns, TCM=TCM)
    if 0:
       TCM.TRM.start_of_submenu('TRM', help='runtime options/menus')

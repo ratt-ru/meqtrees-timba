@@ -90,21 +90,20 @@ class templateClump(Clump.Clump):
 
 
    #--------------------------------------------------------------------------
-   # The function .initial_nodes() must be re-implemented for 'leaf' Clumps,
+   # The function .make_leaf_nodes() must be re-implemented for 'leaf' Clumps,
    # i.e. Clump classes that contain leaf nodes. An example is given below,
-   # ans may be canibalized for derived (leaf) Clump clases.
-   # However, the vast majority of Clump classes read their nodes from an
-   # input Clump. For such classes, the default Clump.initial_nodes() is
-   # sufficient, so just delete the re-implementation below.
+   # and may be canibalized for derived (leaf) Clump clases.
+   # However, this is not necessary for 'non-leaf' Clump classes, which read
+   # their nodes from an input Clump. So just delete the re-implementation below.
    #--------------------------------------------------------------------------
 
-   def initial_nodes (self, **kwargs):
+   def make_leaf_nodes (self, **kwargs):
       """Fill the Clump object with nodes.
       Re-implemented version of the function in the baseclass (Clump).
       """
-      kwargs['select'] = True
-      prompt = 'initial_nodes()'
-      help = None
+      kwargs['select'] = True     # Enforce menu if a user-choice is needed
+      prompt = self._typename+' '+self._name
+      help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.init, prompt, help, **kwargs)
       
       self._TCM.add_option('initype', ['const_real','const_complex',
@@ -225,8 +224,8 @@ class templateClump(Clump.Clump):
 
 
 def _define_forest (ns, **kwargs):
-   """The expected function just calls do_define_forest().
-   The latter is used outside _define_forest() also (see below)
+   """The expected function just calls do_define_forest() for its second pass.
+   For the first pass, see elsewhere in this module.
    """
    if not enable_testing:
       print '\n**************************************************************'
@@ -234,17 +233,14 @@ def _define_forest (ns, **kwargs):
       print '**************************************************************\n'
       return False
 
-   # Execute the function that does the actual work. It is the same
-   # function that was called outside _define_forest(), where the
-   # TDLOptions/Menus were configured (in TCM) and generated.
-   # This second run uses the existing option values, which are
-   # transferred by means of diskfiles (.TCM and .TRM)
-   # It also re-defines the options/menus in a dummy TDLOptionManager,
-   # but these are NOT converted into TDLOption/Menu objects. 
+   # Remove any bookmarks that were generated in the first pass:
+   Settings.forest_state.bookmarks = []
 
+   # The second pass through do_define_forest():
+   # NB: NO TDLOptions are generated after this pass.
    do_define_forest (ns, TCM=Clump.TOM.TDLOptionManager(TCM))       
 
-   # Generate at least one node:
+   # Generate at least one node (just in case):
    node = ns.dummy << 1.0
 
    return True

@@ -2,6 +2,10 @@
 Clump.py: Base-class for an entire zoo of derived classes that
 represent 'clumps' of trees, i.e. sets of similar nodes.
 Examples are ParmClump, JonesClump and VisClump.
+A strong emphasis is on the possibilities for linking Clump-nodes
+(and their option menus!) together in various ways. To a large
+extent, the Clump configuration of the Clumps may be controlled
+by the user via the menus. 
 """
 
 # file: ../JEN/Clump/Clump.py:
@@ -115,13 +119,11 @@ class Clump (object):
 
       #......................................................................
       # Make sure of the Clump node definition attributes:
-      #......................................................................
-
-      # Transfer information from the input Clump (if any).
+      # First transfer information from the input Clump (if supplied).
       self.transfer_clump_definition(clump, trace=trace)
 
-      # In the case that there is no input Clump, supply local defaults
-      # for some attributes that have not been defined yet.
+      # Then supply local defaults for some attributes that have not been
+      # defined yet (i.e. in the case that there is no input Clump):
 
       if not isinstance(self._name,str):       
          self._name = self._typename           # e.g. 'Clump'    
@@ -129,7 +131,7 @@ class Clump (object):
          clump_counter += 1
          self._name += str(clump_counter)      # automatic name
 
-      if not ns:
+      if not self._ns:
          self._ns = NodeScope()      
 
       if not self._TCM:               
@@ -139,14 +141,7 @@ class Clump (object):
          self._treequals = range(3)            # for testing
       #......................................................................
 
-
-      # Each Clump object has a special submenu, which is
-      # started in .start_of_object_submenu(), which may be called
-      # from .init() if that function defines any options,
-      # or from another function (which one?)
-      # In any case, any function that calls .start_of_submenu()
-      # must end with: self.end_of_object_submenu()
-      self._object_submenu = None   
+      # ....??
       self._slavemaster = None
       if isinstance(kwargs,dict):
          if kwargs.has_key('master'):
@@ -170,7 +165,7 @@ class Clump (object):
       self._submenucounter = -1
 
       #......................................................................
-      # Make sure of the Clump nodes themselves:
+      # Fill self._nodes (the Clump tree nodes) etc.
       #......................................................................
 
       # The list of actual Clump tree nodes, and their qualifiers:
@@ -182,24 +177,37 @@ class Clump (object):
       # In that case, the following qualifier will be used.
       # The list self._nodequals always has the same length as self._nodes.
       self._tensor_qual = 'tensor'+str(len(self._treequals))
-      self._composed = False            # see .compose() and .decompose()
+      self._composed = False                    # see .compose() and .decompose()
 
-      # Finally: Initialize the Clump with suitable nodes
-      # This function is re-implemented in derived classes 
-      self.initial_nodes(**kwargs)
-      #......................................................................
+      # The following bit guarantees that .make_leaf_nodes() does not have to be
+      # re-implemented for non-leaf Clumps, while still keeping the possibility
+      # if leaf Clumps that only use the input Clump for definition information
+      # (i.e. self._treequals, not its tree nodes):
+      key = 'leaf'
+      self._object_is_selected = True           # default: selected (..?)     
+      if kwargs.has_key(key):                   # Explicit keyword 'leaf=True/False'
+         if kwargs[key]:                        # leaf==True
+            self.make_leaf_nodes(**kwargs)
+         else:                                  # leaf=False (...?)
+            self.transfer_clump_nodes(**kwargs) # Assume input Clump (error if not)
+            self.make_object_selection_submenu(**kwargs)
+      elif self._input_clump:                   # An input Clump has been supplied                     
+         self.transfer_clump_nodes(**kwargs)      
+         self.make_object_selection_submenu(**kwargs)
+      else:
+         self.make_leaf_nodes(**kwargs)
 
+      # Finished:
       return None
 
 
-   #--------------------------------------------------------------------------
-   # Functions that transfer information from an input Clump:
-   #--------------------------------------------------------------------------
+   #==========================================================================
+   # Functions that deal with the input Clump (if any)
+   #==========================================================================
 
    def transfer_clump_definition(self, clump, trace=False):
       """Transfer the clump definition information from the given Clump.
       Most attributes are transferred ONLY if not yet defined
-      (e.g. by means of the input **kwargs (see .__init__())
       Some attributes (like self._treequals) are transferred always(!)
       """
       self._input_clump = clump
@@ -222,46 +230,93 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
-   def transfer_clump_nodes(self, trace=False):
-      """Transfer the clump nodes (etc) from the given Clump.
-      Called from self.initial_nodes() in most defived classes.
+   def transfer_clump_nodes(self, **kwargs):
+      """Transfer the clump nodes (etc) from the given input Clump.
+      Called from self.__init__() only.
       """
-      clump = self._input_clump
+      clump = self._input_clump                 # convenience
+      if not clump:
+         s = '** Clump: An input Clump should have been provided!'
+         raise ValueError,s
+
+      # Make sure that self._nodes is a COPY of clump._nodes
+      # (so clump._nodes is not modified when self._nodes is).
+      self._nodes = []
+      for i,node in enumerate(clump._nodes):
+         self._nodes.append(node)
+
       self._composed = clump._composed
-      self._nodes = clump._nodes
       self._nodequals = clump._nodequals
       self._stubtree = clump._stubtree
       self._orphans = clump._orphans
       return True
 
    #--------------------------------------------------------------------------
-   # Initial Clump nodes:
-   #--------------------------------------------------------------------------
 
-   def initial_nodes (self, **kwargs):
-      """Fill self._nodes with initial nodes.
-      Called from __init__() only
-      Place-holder: To be re-implemented for derived 'leaf' Clump classes.
+   def daisy_chain(self, trace=False):
+      """Return the object itself, or its self._input_clump.
+      The latter if it has a menu, but is NOT selected by the user.
+      This is useful for making daisy-chains of Clump objects, where
+      the user determines whether a particular Clump is included.
+      Syntax:  cp = Clump(cp).daisy_chain()
       """
-      # If an input Clump has been defined, use its nodes,
-      # unless it is explicitly specified that this object
-      # is a 'leaf' Clump (used for testing only)
-      kwargs.setdefault('leaf', False)
-      if self._input_clump:
-         if not kwargs['leaf']:
-            return self.transfer_clump_nodes()
-      # elif not kwargs['leaf']:
-      #    s = '** An input Clump should be provided!'
-      #    raise ValueError,s
+      selected = self._object_is_selected
+      if trace:
+         print '\n ** .daisy_chain(selected=',selected,'): ',self.oneliner()
+         print '     self._input_clump =',self._input_clump
+      if self._input_clump and (not selected):
+         if trace:
+            print '     -> input clump: ',self._input_clump.oneliner()
+         return self._input_clump
+      if trace:
+         print '     -> itself'
+      return self
 
-      # Otherwise, just fill it with simple Constant nodes:
-      self._nodes = []
-      stub = self.unique_nodestub()
-      for i,qual in enumerate(self._nodequals):
-         node = stub(qual) << Meq.Constant(i)
-         self._nodes.append(node)
+   #==========================================================================
+   # The function that fills this object with (initial) tree nodes.
+   # (either from the input Clump object, or with leaf nodes of some kind.)
+   #==========================================================================
 
-      return True
+   def make_leaf_nodes (self, **kwargs):
+      """Fill self._nodes with initial nodes.
+      Called from self.__init__() only.
+      Place-holder: To be re-implemented for derived 'leaf' Clump classes.
+      (This is NOT necessary for 'non-leaf' Clump classes, i.e. the ones that
+      continue with the tree nodes of an input Clump. This is the majority).
+      """
+      kwargs['select'] = True
+      prompt = self._typename+' '+self._name
+      help = 'make leaf nodes for: '+self.oneliner()
+      ctrl = self.on_entry(self.make_leaf_nodes,
+                           prompt, help, **kwargs)
+      if self.execute_body():
+         self._nodes = []
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self._nodequals):
+            node = stub(qual) << Meq.Constant(i)
+            self._nodes.append(node)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
+   #----------------------------------------------------------------------
+
+   def make_object_selection_submenu (self, **kwargs):
+      """
+      Make a submenu for this Clump object, which can be used for selecting it.
+      This function is an alternative for .make_leaf_nodes().
+      Called from self.__init__() only.
+      """
+      prompt = self._typename+' '+self._name
+      help = '(de-)select: '+self.oneliner()
+      ctrl = self.on_entry(self.make_object_selection_submenu,
+                           prompt, help, **kwargs)
+      self._object_is_selected = False
+      if self.execute_body():
+         # NB: .execute_body() makes the menu, controlled by kwargs['select']
+         self._object_is_selected = True
+         self.end_of_body(ctrl)
+      return self.on_exit(ctrl)
 
 
    #=========================================================================
@@ -396,10 +451,14 @@ class Clump (object):
       if full:
          for key in self._kwargs.keys():
             ss += '\n   - '+key+' = '+str(self._kwargs[key])
-      ss += '\n > self._clump (input): '+str(self._clump)
+      if self._input_clump:
+         ss += '\n > self._input_clump: '+str(self._input_clump.oneliner())
+      else:
+         ss += '\n > self._input_clump = '+str(self._input_clump)
       #.....................................................
 
       ss += '\n * Generic (baseclass Clump):'
+      ss += '\n * self._object_is_selected: '+str(self._object_is_selected)    
       ss += '\n * self._name: '+str(self._name)
       ss += '\n * self._qual: '+str(self._qual)
       ss += '\n * self._kwqual: '+str(self._kwqual)
@@ -437,7 +496,6 @@ class Clump (object):
          ss += '\n * self._TCM: '+str(self._TCM.oneliner())
       else:
          ss += '\n * self._TCM = '+str(self._TCM)
-      ss += '\n * self._object_submenu = '+str(self._object_submenu)
       ss += '\n * self._slavemaster = '+str(self._slavemaster)
       #.....................................................
 
@@ -890,9 +948,9 @@ class Clump (object):
 
 
 def _define_forest (ns, **kwargs):
-   """
-   The expected function just calls do_define_forest().
-   The latter is used outside _define_forest() also (see below)
+   """The standard/expected(OMS) function _define_forest() just calls
+   the function do_define_forest() for its second pass.
+   For the first pass, see elsewhere in this module.
    """
    if not enable_testing:
       print '\n**************************************************************'
@@ -900,18 +958,20 @@ def _define_forest (ns, **kwargs):
       print '**************************************************************\n'
       return False
 
-   # Execute the function that does the actual work. It is the same
-   # function that was called outside _define_forest(), where the
-   # TDLOptions/Menus were configured (in TCM) and generated.
-   # This second run uses the existing option values, which are
-   # transferred by means of diskfiles (.TCM and .TRM)
-   # It also re-defines the options/menus in a dummy TDLOptionManager,
-   # but these are NOT converted into TDLOption/Menu objects. 
+   # Remove any bookmarks that were generated in the first pass:
+   Settings.forest_state.bookmarks = []
 
+   # Execute the function that does the actual work.
+   # It is the second pass though the same  function
+   # that was called outside _define_forest().
+   # This second pass uses the existing option values,
+   # which are transferred by means of diskfiles (.TCM and .TRM)
+   # NO TDLOptions are created after this pass!
    do_define_forest (ns, TCM=TOM.TDLOptionManager(TCM))       
 
    # Generate at least one node:
-   node = ns.dummy << 1.0
+   # self._typename = str(type(self)).split('.')[1].split("'")[0]
+   node = ns[name] << 1.0
 
    return True
 
@@ -940,12 +1000,12 @@ def do_define_forest (ns, TCM):
 
    # The function body:
    if TCM.submenu_is_selected():
-      cp = Clump(ns=ns, TCM=TCM, trace=True)
-      cp.apply_unops('Cos', select=False, trace=True)
+      cp = Clump(ns=ns, TCM=TCM, trace=True, select=True)
+      # cp.apply_unops('Cos', select=False, trace=True)
       # cp.apply_unops('Sin', select=True, trace=True)
       # cp.apply_unops('Exp', trace=True)
       # cp.apply_binop('Add', 2.3, select=True, trace=True)
-      cp.inspector()
+      # cp.inspector()
       cp.rootnode()
       cp.show('do_define_forest()', full=True)
 
@@ -962,10 +1022,11 @@ TCM = TOM.TDLOptionManager(__file__)
 enable_testing = False
 
 
-# enable_testing = True        # normally, this statement will be commented out
+enable_testing = True        # normally, this statement will be commented out
 if enable_testing:
-   ns = NodeScope()
-   cp = do_define_forest (ns, TCM=TCM)
+   # This is the first pass (the second is inside _define_forest()) 
+   cp = do_define_forest (ns=NodeScope(), TCM=TCM)
+   # Actual TDLOptions are only creates after the first pass:
    itsTDLCompileMenu = TCM.TDLMenu(trace=False)
 
    
@@ -1051,11 +1112,18 @@ if __name__ == '__main__':
    if 1:
       cp.show('final', full=True)
 
+   if 1:
+      cp1 = Clump(cp, select=True).daisy_chain(trace=True)
+      cp1.show('daisy_chain()', full=True)
+
    #-------------------------------------------------------------------
 
    if 0:
       cp.execute_body(None, a=6, b=7)
    
+   # print 'Clump.__module__ =',Clump.__module__
+   # print 'Clump.__class__ =',Clump.__class__
+   # print dir(Clump)
       
    print '\n** End of standalone test of: Clump.py:\n' 
 
