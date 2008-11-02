@@ -61,21 +61,11 @@ class templateClump(Clump.Clump):
    Derived class
    """
 
-   def __init__(self, name=None,
-                qual=None, kwqual=None,
-                treequals=None,
-                ns=None, TCM=None,
-                use=None, init=True,
-                **kwargs):
+   def __init__(self, clump=None, **kwargs):
       """
       Derived from class Clump.
       """
-      Clump.Clump.__init__(self, name=name,
-                           qual=qual, kwqual=kwqual,
-                           treequals=treequals,
-                           ns=ns, TCM=TCM,
-                           use=use, init=init,
-                           **kwargs)
+      Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
 
    #-------------------------------------------------------------------------
@@ -92,20 +82,30 @@ class templateClump(Clump.Clump):
 
    #-------------------------------------------------------------------------
 
-   def newinstance(self, name=None, qual=None, init=False):
+   def newinstance(self, name=None, qual=None):
       """Reimplementation of placeholder function in base-class Clump.
       Make a new instance of this derived class (templateClump).
       """
-      return templateClump(name=name, qual=qual, use=self, init=init)
+      return templateClump(clump=self, name=name, qual=qual)
+
 
    #--------------------------------------------------------------------------
+   # The function .initial_nodes() must be re-implemented for 'leaf' Clumps,
+   # i.e. Clump classes that contain leaf nodes. An example is given below,
+   # ans may be canibalized for derived (leaf) Clump clases.
+   # However, the vast majority of Clump classes read their nodes from an
+   # input Clump. For such classes, the default Clump.initial_nodes() is
+   # sufficient, so just delete the re-implementation below.
+   #--------------------------------------------------------------------------
 
-   def init (self, **kwargs):
-      """Initialize the object with suitable nodes.
+   def initial_nodes (self, **kwargs):
+      """Fill the Clump object with nodes.
       Re-implemented version of the function in the baseclass (Clump).
       """
       kwargs['select'] = True
-      ctrl = self.on_entry(self.init, **kwargs)
+      prompt = 'initial_nodes()'
+      help = None
+      ctrl = self.on_entry(self.init, prompt, help, **kwargs)
       
       self._TCM.add_option('initype', ['const_real','const_complex',
                                        'parm',
@@ -147,7 +147,9 @@ class templateClump(Clump.Clump):
       Example1: A method without an explicit menu.
       """
       # kwargs['select'] = True          # optional: makes the function selectable     
-      ctrl = self.on_entry(self.example1, **kwargs)
+      prompt = 'example1()'
+      help = None
+      ctrl = self.on_entry(self.example1, prompt, help, **kwargs)
 
       if self.execute_body():
          self._ns.example1 << Meq.Constant(1.9)
@@ -167,7 +169,10 @@ class templateClump(Clump.Clump):
       Example2: A method with a menu and options
       """
       kwargs['select'] = True    # mandatory if it contains a menu.....!?                   
-      ctrl = self.on_entry(self.example2, **kwargs)
+      prompt = 'example2()'
+      help = None
+      ctrl = self.on_entry(self.example2, prompt, help, **kwargs)
+
       self._TCM.add_option('opt1', range(3))
       self._TCM.add_option('opt2', range(3))
 
@@ -191,7 +196,10 @@ class templateClump(Clump.Clump):
       Example3: Master-slaves
       """
       kwargs['select'] = False     # mandatory if it contains a menu.....!?                   
-      ctrl = self.on_entry(self.example3, **kwargs)
+      prompt = 'example3()'
+      help = None
+      ctrl = self.on_entry(self.example3, prompt, help, **kwargs)
+
       self._TCM.add_option('slaves', range(3),
                            prompt='nr of slaved ojects')
 
