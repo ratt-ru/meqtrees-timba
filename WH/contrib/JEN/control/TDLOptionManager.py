@@ -945,6 +945,7 @@ class TDLOptionManager (object):
       prefix = level*'..'
 
       oblist = []
+      norder = len(rr['order'])                 # length
       for key in rr['order']:
          dd = rr['menu'][key]                   # menu/option definition record
          if trace:
@@ -954,16 +955,20 @@ class TDLOptionManager (object):
             pass
 
          if dd['type']=='option':
-            # print '----- create TDLOption:',dd['key'],dd['prompt']
-            tdlob = TDLOption(symbol=dd['key'], name=dd['prompt'],
+            if dd['relkey']=='group_control' and norder==1:
+               # ignore group_control if it is the only menu-item
+               pass
+            else:
+               # print '----- create TDLOption:',dd['key'],dd['prompt']
+               tdlob = TDLOption(symbol=dd['key'], name=dd['prompt'],
                               value=dd['choice'], more=dd['more'],
                               doc=dd['help'],
                               namespace=self)
-            if self._lastval.has_key(dd['key']):
-               # Assume from .restore_current_values()
-               tdlob.set_value(self._lastval[dd['key']], callback=False)
-            self._tdlobjects[key] = tdlob
-            oblist.append(tdlob)
+               if self._lastval.has_key(dd['key']):
+                  # Assume from .restore_current_values()
+                  tdlob.set_value(self._lastval[dd['key']], callback=False)
+               self._tdlobjects[key] = tdlob
+               oblist.append(tdlob)
 
          elif dd['type']=='menu':
             tdlob = self._make_TDLMenu(dd, level=level+1, trace=trace)  # recursive

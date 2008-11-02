@@ -115,7 +115,9 @@ class Clump (object):
 
       # Organising principles:
       self._ns = kwargs['ns']
+      if kwargs['ns']: kwargs['ns'] = True
       self._TCM = kwargs['TCM']
+      if kwargs['TCM']: kwargs['TCM'] = True
 
       #......................................................................
       # Make sure of the Clump node definition attributes:
@@ -196,6 +198,10 @@ class Clump (object):
          self.make_object_selection_submenu(**kwargs)
       else:
          self.make_leaf_nodes(**kwargs)
+
+      if len(self._nodes)==0:
+         s = '\n** No tree nodes in: '+self.oneliner(),'\n'
+         raise ValueError,s
 
       # Finished:
       return None
@@ -289,11 +295,14 @@ class Clump (object):
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.make_leaf_nodes,
                            prompt, help, **kwargs)
-      if self.execute_body():
+
+      # Execute always, to ensure that the leaf Clump has nodes:
+      if self.execute_body(always=True):              
          self._nodes = []
-         stub = self.unique_nodestub()
+         stub = self.unique_nodestub('const')
          for i,qual in enumerate(self._nodequals):
-            node = stub(qual) << Meq.Constant(i)
+            v = float(i)
+            node = stub(c=v)(qual) << Meq.Constant(v)
             self._nodes.append(node)
          self.end_of_body(ctrl)
          
@@ -486,6 +495,7 @@ class Clump (object):
          ss += '\n   - node[-1]= '+str(self._nodes[-1])
                                        
       #.....................................................
+      ss += '\n * self._stubtree: '+str(self._stubtree)
       ss += '\n * self._orphans (n='+str(len(self._orphans))+'):'
       for i,node in enumerate(self._orphans):
          ss += '\n   - '+str(node)
@@ -639,17 +649,13 @@ class Clump (object):
                   submenu=None, trace=kwargs['trace'],
                   kwargs=kwargs)
 
-      if kwargs.has_key('select'):
+      if kwargs.has_key('select') and isinstance(kwargs['select'],bool):
          self._submenucounter += 1
          name = ctrl['funcname']+'_'+str(self._submenucounter)
-         if not isinstance(help,str):
-            help = ''
-            ignore = ['trace','select']
-            for key in kwargs.keys():
-               if not key in ignore:
-                  help += '_'+str(key)+'='+str(kwargs[key])
          if not isinstance(prompt,str):
             prompt = ctrl['funcname']+'()'
+         if not isinstance(help,str):
+            help = ctrl['funcname']+'()'
          ctrl['submenu'] = self._TCM.start_of_submenu(name,
                                                       prompt=prompt,
                                                       help=help,
@@ -663,12 +669,20 @@ class Clump (object):
       # functions that are called in the function body (AFTER all .getopt() calls!)
       self._ctrl = ctrl
       if self._ctrl['trace']:
-         print '\n ** .on_entry(func, **kwargs): \n   ctrl =',ctrl
+         rr = dict()
+         for key in ctrl.keys():
+            if not key in ['kwargs']:
+               rr[key] = ctrl[key]
+         kwargs = ctrl['kwargs']
+         print '\n ** .on_entry(func, **kwargs):'
+         print '    (',self.oneliner(),')'
+         print '    (ctrl[kwargs] =',rr,')'
+         print '    (ctrl(rest) =',rr,')'
       return ctrl
 
    #--------------------------------------------------------------------------
 
-   def execute_body(self):
+   def execute_body(self, always=False):
       """To be called at the start of the 'body' of a Clump stage-method,
       i.e. AFTER any self._TCM menu and option definitions.
       Its (mandatory!) counterpart is self.end_of_body(ctrl)
@@ -677,8 +691,10 @@ class Clump (object):
       execute = True
       if isinstance(self._ctrl['submenu'],str):
          execute = self._TCM.submenu_is_selected(trace=False)
+      if always:                        
+         execute = True                              # override (e.g. leaf nodes)
       if self._ctrl['trace']:
-         print '** .execute_body(): funcname=',self._ctrl['funcname'],' execute=',execute
+         print '** .execute_body(always=',always,'): funcname=',self._ctrl['funcname'],' execute=',execute
       if execute:
          self._stagecounter += 1
          self._stagename = self._ctrl['funcname']
@@ -729,8 +745,9 @@ class Clump (object):
    #--------------------------------------------------------------------------
    #--------------------------------------------------------------------------
 
-   def unique_nodestub (self, qual=None, enclose=None,
-                        help=None, trace=False):
+   def unique_nodestub (self, name=None, qual=None,
+                        enclose=None, help=None,
+                        trace=False):
       """
       Convenience function to generate a (unique) nodestub.
       The stub is then initialized (which helps the uniqueness determination!)
@@ -738,20 +755,30 @@ class Clump (object):
       be orphaned. They are used to carry quickref-help information, which
       can be used in the various bookmark pages.
       """
-      name = self._name
-      if enclose:                                  # e.g. ['Cos(',')']
-         name = self._nodes[0].basename
-         name = enclose[0]+name+enclose[1]
+      if not isinstance(name,str):
+         if enclose:                                                 # e.g. ['Cos(',')']
+            name =  enclose[0] + self._nodes[0].basename + enclose[1]
+         else:
+            name = self._name
       stub = EN.unique_stub(self._ns, name, self._qual, qual)
+
+      # Initialize the stub (uniqueness criterion!):
       if not self._stubtree:                       # the first one
          node = stub << Meq.Constant(-0.123456789)
       else:                                        # subsequent ones
          node = stub << Meq.Identity(self._stubtree)
-      # node.initrec().quickref_help = rider.format_html(path=rider.path())
+         
+      # Attach the help (view with QuickRef viewer)
+      if isinstance(help,str):
+         # format, and attach some extra info....?
+         ## help = rider.format_html(path=rider.path())
+         node.initrec().quickref_help = help
+
+      # Replace the rootnode of the stub-tree:
       self._stubtree = node
          
       if trace:
-         print '\n** .unique_nodestub(',qual,') ->',str(stub)
+         print '\n** .unique_nodestub(',name,qual,enclose,') ->',str(stub)
       return stub
 
 
@@ -765,8 +792,11 @@ class Clump (object):
       the internal nodes (self._nodes, self._stubtree and self._orphans)
       as its children. The internal state of the object is not changed.
       """
-      nodes = self._nodes                   # the Clump tree nodes
-      nodes.append(self._stubtree)          # the tree of stubs
+      nodes = []
+      for node in self._nodes:              # the Clump tree nodes
+         nodes.append(node)
+      if is_node(self._stubtree):
+         nodes.append(self._stubtree)       # the tree of stubs
       if len(self._orphans)>0:
          nodes.extend(self._orphans)        # any orphans
       # use MeqComposer? or MeqReqSeq? or stepchildren?
@@ -854,7 +884,7 @@ class Clump (object):
       Apply one or more unary operation(s) (e.g. MeqCos) on its nodes.
       """
       prompt = '.apply_unops('+str(unops)+')'
-      help = prompt
+      help = None
       ctrl = self.on_entry(self.apply_unops, prompt, help, **kwargs)
 
       if self.execute_body():
@@ -882,28 +912,26 @@ class Clump (object):
       """
       prompt = 'apply_binop('+str(binop)+')'
       if isinstance(rhs,(int,float,complex)):       # rhs is a number
-         help = str(rhs)+' '
+         help = 'rhs = constant = '+str(rhs)
       elif is_node(rhs):                            # rhs is a node
-         help = 'node '+str(rhs.name)
+         help = 'rhs = node: '+str(rhs.name)
       elif isinstance(rhs,type(self)):              # rhs is a Clump object
-         help = rhs.oneliner()
+         help = 'rhs = '+rhs.oneliner()
       ctrl = self.on_entry(self.apply_binop, prompt, help, **kwargs)
 
       if self.execute_body():
-         binop = kwargs['binop']                    # error if binop not specified
-         rhs = kwargs['rhs']                        # error if rhs not specified
-
          if isinstance(rhs,(int,float,complex)):    # rhs is a number
-            rhs = self._ns << Meq.Constant(rhs)     # convert to MeqConstant
+            stub = EN.unique_stub(self._ns, 'c='+str(rhs))
+            rhs = stub << Meq.Constant(rhs)         # convert to MeqConstant
          
          if is_node(rhs):                           # rhs is a node
-            stub = self.unique_nodestub(binop)(rhs.name)
+            stub = self.unique_nodestub()(binop)(rhs.name)
             for i,qual in enumerate(self._nodequals):
                self._nodes[i] = stub(qual) << getattr(Meq,binop)(self._nodes[i],rhs)
 
          elif isinstance(rhs,type(self)):           # rhs is a Clump object
             if self.commensurate(rhs, severe=True):
-               stub = self.unique_nodestub(binop)(rhs._name)
+               stub = self.unique_nodestub()(binop)(rhs._name)
                for i,qual in enumerate(self._nodequals):
                   self._nodes[i] = stub(qual) << getattr(Meq,binop)(self._nodes[i],rhs._nodes[i])
          self.end_of_body(ctrl)
@@ -925,8 +953,13 @@ class Clump (object):
       if self.execute_body():
          bundle = self.bundle (name='inspector', qual=None,
                                combine='Composer', trace=False)
-         bundle.initrec().plot_label = self._treequals
+         labels = []
+         for qual in self._treequals:
+            labels.append(str(qual))
+         bundle.initrec().plot_label = labels
+         
          self._orphans.append(bundle)
+         
          if not isinstance(bookpage,str):
             bookpage = self._name
          JEN_bookmarks.create(bundle,
@@ -971,6 +1004,7 @@ def _define_forest (ns, **kwargs):
 
    # Generate at least one node:
    # self._typename = str(type(self)).split('.')[1].split("'")[0]
+   name = 'Clump'
    node = ns[name] << 1.0
 
    return True
@@ -1000,11 +1034,12 @@ def do_define_forest (ns, TCM):
 
    # The function body:
    if TCM.submenu_is_selected():
-      cp = Clump(ns=ns, TCM=TCM, trace=True, select=True)
-      # cp.apply_unops('Cos', select=False, trace=True)
+      cp = Clump(ns=ns, TCM=TCM, trace=True)
+      # cp.show('do_define_forest(creation)', full=True)
+      cp.apply_unops('Cos', select=False, trace=True)
       # cp.apply_unops('Sin', select=True, trace=True)
       # cp.apply_unops('Exp', trace=True)
-      # cp.apply_binop('Add', 2.3, select=True, trace=True)
+      cp.apply_binop('Add', 2.3, select=True, trace=True)
       # cp.inspector()
       cp.rootnode()
       cp.show('do_define_forest()', full=True)
@@ -1022,7 +1057,7 @@ TCM = TOM.TDLOptionManager(__file__)
 enable_testing = False
 
 
-enable_testing = True        # normally, this statement will be commented out
+# enable_testing = True        # normally, this statement will be commented out
 if enable_testing:
    # This is the first pass (the second is inside _define_forest()) 
    cp = do_define_forest (ns=NodeScope(), TCM=TCM)

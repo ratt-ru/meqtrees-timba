@@ -104,17 +104,19 @@ class templateClump(Clump.Clump):
       kwargs['select'] = True     # Enforce menu if a user-choice is needed
       prompt = self._typename+' '+self._name
       help = 'make leaf nodes for: '+self.oneliner()
-      ctrl = self.on_entry(self.init, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.make_leaf_nodes,
+                           prompt, help, **kwargs)
       
       self._TCM.add_option('initype', ['const_real','const_complex',
                                        'parm',
                                        'freq','time','freq+time'],
                            prompt='init node type')
 
-      if self.execute_body():
+      # Execute always, to ensure that the leaf Clump has nodes!
+      if self.execute_body(always=True):           
          initype = self.getopt('initype')
          self._nodes = []
-         stub = self.unique_nodestub()
+         stub = self.unique_nodestub(initype)
          for i,qual in enumerate(self._nodequals):
             if initype=='parm':
                node = stub(qual) << Meq.Parm(i)
@@ -291,7 +293,7 @@ itsTDLCompileMenu = None
 TCM = Clump.TOM.TDLOptionManager(__file__)
 enable_testing = False
 
-# enable_testing = True        # normally, this statement will be commented out
+enable_testing = True        # normally, this statement will be commented out
 if enable_testing:
    cp = do_define_forest (NodeScope(), TCM=TCM)
    itsTDLCompileMenu = TCM.TDLMenu(trace=False)
