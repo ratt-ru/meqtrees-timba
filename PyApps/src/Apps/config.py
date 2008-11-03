@@ -40,18 +40,19 @@ _user_file = os.path.expanduser("~/.timba.conf");
 class DualConfigParser (object):
   """A dual config parser taking into account both system-wide files
   and user defaults. Any changes are stored in the user defaults."""
-  def __init__ (self,section):
-    self.defsection = section;
+  def __init__ (self):
     self.syscp = ConfigParser();
     self.syscp.read(_system_files);
     self.usercp = ConfigParser();
     self.usercp.read([_user_file]);
+    
+  def add_section(self,section):
     if not self.syscp.has_section(section):
       self.syscp.add_section(section);
     if not self.usercp.has_section(section):
       self.usercp.add_section(section);
-    
-  def _get (self,method,option,default=None,section=None):
+      
+  def _get (self,method,section,option,default=None):
     section = section or self.defsection;
     # try user defaults
     try:
@@ -67,27 +68,12 @@ class DualConfigParser (object):
         return default;
       # no default, so re-raise the error 
       raise error;
-      
-  def has_option (self,option,section=None):
-    section = section or self.defsection;
-    return self.syscp.has_option(section,option) or \
-      self.usercp.has_option(section,option);
   
-  def get (self,option,default=None,section=None):
-    return self._get('get',option,default,section);
-  def getint (self,option,default=None,section=None):
-    return self._get('getint',option,default,section);
-  def getfloat (self,option,default=None,section=None):
-    return self._get('getfloat',option,default,section=None);
-  def getbool (self,option,default=None,section=None):
-    return self._get('getboolean',option,default,section);
-  
-  def set (self,option,value,section=None,save=True):
-    section = section or self.defsection;
+  def set (self,section,option,value,save=True):
     value = str(value);
     # try to get option first, and do nothing if no change
     try:
-      if self.get(option,section=section) == value:
+      if self.get(section,option) == value:
         return;
     except (NoSectionError,NoOptionError):
       pass;
@@ -99,11 +85,41 @@ class DualConfigParser (object):
     if save:
       self.usercp.write(file(_user_file,"w"));
       
-Config = None; 
+  def has_option (self,section,option):
+    return self.syscp.has_option(section,option) or \
+      self.usercp.has_option(section,option);
       
-def init (name):
-  global Config;
-  Config = DualConfigParser(name);
+  def get (self,section,option,default=None):
+    return self._get('get',option,default,section);
+      
+  
+class SectionParser (object):
+  """A section parser is basically a ConfigParser with a default section name.""";
+  def __init__ (self,parser,section):
+    """Creates a SectionParser from a DualConfigParser and a section name""";
+    self.parser = parser;
+    parser.add_section(section);
+    self.section = section;
+
+  def has_option (self,option,section=None):
+    return self.parser.has_option(section or self.section,option);
+  def get (self,option,default=None,section=None):
+    return self.parser._get('get',section or self.section,option,default);
+  def getint (self,option,default=None,section=None):
+    return self.parser._get('getint',section or self.section,option,default);
+  def getfloat (self,option,default=None,section=None):
+    return self.parser._get('getfloat',section or self.section,option,default);
+  def getbool (self,option,default=None,section=None):
+    return self.parser._get('getboolean',section or self.section,option,default);
+  def set (self,option,value,section=None,save=True):
+    return self.parser.set(section or self.section,option,value,save=save);
+      
+Config = DualConfigParser(); 
+_section_parsers = {};
+      
+def section (name):
+  global _section_parsers;
+  return _section_parsers.setdefault(name,SectionParser(Config,name));
 
 if __name__ == '__main__':
   conf = Config('test');

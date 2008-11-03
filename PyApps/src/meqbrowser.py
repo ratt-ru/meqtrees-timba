@@ -69,8 +69,6 @@ import sys
 from Timba.Apps import app_defaults
 from Timba.Apps import config
 
-config.init('meqbrowser');
-
 from Timba import qt_threading
 from Timba import octopussy
 from Timba.Apps import meqserver

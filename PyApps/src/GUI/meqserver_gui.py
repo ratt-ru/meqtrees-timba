@@ -40,7 +40,6 @@ from Timba.GUI import servers_dialog
 from Timba.GUI import widgets 
 from Timba.GUI import VisProgressMeter 
 from Timba.GUI import SolverProgressMeter 
-from Timba.Apps.config import Config
 from Timba import Grid
 from Timba import TDL
 
@@ -52,6 +51,9 @@ import os
 import os.path
 import signal
 import traceback
+
+import Timba.Apps.config
+Config = Timba.Apps.config.section("meqbrowser");
 
 _dbg = verbosity(0,name='gui');
 _dprint = _dbg.dprint;
