@@ -354,7 +354,7 @@ class MSReadFlagSelector (MSFlagSelector):
     self._opts += self.read_bitflag_opts;
     
   def update (self):
-    self.bitflag_labels = self.flagsets.names();
+    self.bitflag_labels = (self.flagsets and self.flagsets.names()) or [];
     self.bitflag_bits   = [ self.flagsets.flagmask(name) for name in self.bitflag_labels ];
     nlab = min(len(self.read_bitflag_opts),len(self.bitflag_labels));
     for opt,label in zip(self.read_bitflag_opts,self.bitflag_labels):
