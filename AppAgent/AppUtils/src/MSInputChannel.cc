@@ -541,7 +541,7 @@ int MSInputChannel::refillStream ()
         LoVec_int bitflagvec;
         bool hasflags = false;
         // read bitflag columns, if available
-        if( has_bitflags_ & flagmask_ )
+        if( has_bitflags_ && flagmask_ )
         {
           Cube<Int> bitflagcube1 = ROArrayColumn<Int>(table,"BITFLAG").getColumn();
           B2A::copyArray(bitflagcube,bitflagcube1);
