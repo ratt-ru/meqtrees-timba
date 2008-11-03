@@ -24,6 +24,8 @@
 #ifndef DMI_Container_h
 #define DMI_Container_h 1
 
+#include "config.h"
+
 // Some notes on hooks.
 // Container can define an innumerable amount of inlined accessor
 // methods (basically, for all types known to the system).
@@ -530,11 +532,6 @@ class Container : public BObj
 
         //##ModelId=3DB934CC02E9
           Hook & operator= (const Hook &right);
-          
-          #if LOFAR_DEBUG
-          // in debug mode, this string describes the hook
-          mutable std::string debug_info;
-          #endif
     };
 
     //##ModelId=3F549251022F

@@ -72,9 +72,6 @@ static inline string idToString (const DMI::HIID &id)
 // common init code for constructors
 void DMI::Container::Hook::initialize (const DMI::Container *pnc,const HIID &id1,bool nonconst)
 {
-#if LOFAR_DEBUG
-  debug_info = "<" + pnc->sdebug(0) + ">" + idToString(id1);
-#endif
   nc = const_cast<DMI::Container *>(pnc);
   nclock0.relock(nc->mutex());
   nc_writable = nonconst;
@@ -170,9 +167,6 @@ const void * DMI::Container::Hook::resolveTarget (int flags,TypeId hint) const
 //##ModelId=4017F6250392
 bool DMI::Container::Hook::nextContainer (const HIID &next_id,bool nothrow) const
 {
-#if LOFAR_DEBUG
-  debug_info += idToString(next_id);
-#endif
   
   // apply index so that we resolve the hook to a target
   resolveTarget();
@@ -929,9 +923,6 @@ string DMI::Container::Hook::sdebug (int detail,const string &prefix,const char 
   string out = name;
   if( addressed )
     out += "&";
-#if LOFAR_DEBUG
-  out += debug_info;
-#else
   if( nc_writable || !(ncref0 || ncptr0) ) // case (a) or (d), empty chain (see comments in Container.h)
   {
     out += "<" + nc->sdebug(detail,prefix) +">";
@@ -948,7 +939,6 @@ string DMI::Container::Hook::sdebug (int detail,const string &prefix,const char 
     for( LinkChain::const_iterator iter = chain.begin(); iter != chain.end(); iter++ )
       out += idToString(iter->id);
   }
-#endif
   return out;
 }
 
