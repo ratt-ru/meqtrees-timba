@@ -41,14 +41,15 @@ starttime    = -14400.0      # start of obs, in seconds relative to ref_time
 scanlength   =  28800.0      # length of observation, in sec
 noise        =  '0.0Jy'      # add some noise. Use '0.0Jy' if no noise wanted
 FOV          =  5            # field of view in arcmin
-num_sources  = 10            # number of sources to observe, randomized over FOV
+num_sources  = 20            # number of sources to observe, randomized over FOV
 
 clname = 'mymodel.cl'        # file for component list
 msname = 'CASA_demo.MS'      # name of measurement set to create
 
 # first delete old MS, test images, etc
 print '*** deleting previous stuff ***'
-os.system("/bin/rm -rf CASA_demo.MS mymodel.cl")
+system_call = "/bin/rm -rf " + msname + " " + clname
+os.system(system_call)
 
 # create sources with randomized offsets from field centre
 dec_offset=[]
