@@ -150,15 +150,11 @@ class Clump (object):
       ident = self._typename+'_'+self._name
       if not self._TCM:               
          self._TCM = TOM.TDLOptionManager(ident)
-      if self._input_clump: 
-         self._TCM.start_of_submenu(ident)
+      # if self._input_clump: 
+      #    self._TCM.start_of_submenu(ident)
 
       if not self._ns:
          self._ns = NodeScope()      
-
-      # The tree nodes may be 'composed' into a single tensor node.
-      # In that case, the following node qualifier will be used.
-      self._tensor_qual = 'tensor'+str(len(self._treequals))
 
       #......................................................................
       # Fill self._nodes (the Clump tree nodes) etc.
@@ -172,6 +168,10 @@ class Clump (object):
          self._nodes = []                       # nodes (separate or composed)
          self._nodequals = self._treequals      # node qualifiers
          self._composed = False                 # see .compose() and .decompose()
+
+      # The tree nodes may be 'composed' into a single tensor node.
+      # In that case, the following node qualifier will be used.
+      self._tensor_qual = 'tensor'+str(len(self._treequals))
 
       # Execute the main function of the Clump object.
       # This function is re-implemented in derived Clump classes.
@@ -201,7 +201,9 @@ class Clump (object):
          print '\n** transfer_clump_definition(): clump=',type(clump)
 
       self._input_clump = clump
-      if isinstance(clump,type(self)):
+
+      # if isinstance(clump,type(self)):    # too restrictive! type==Clump would be OK...
+      if clump:
          # Most attributes are transferred ONLY if not yet defined
          # (e.g. by means of the input **kwargs (see .__init__())
          if not isinstance(self._name,str):
@@ -216,8 +218,11 @@ class Clump (object):
             self._TCM = clump._TCM
             # self._TCM.current_menu_key(trace=trace)
             # self._TCM.current_menu_level(trace=trace)
+
          # Some attributes are transferred always(!):
          self._treequals = clump._treequals
+         self._stagecounter = 1+clump._stagecounter         # <--------!!
+         self._stagename = clump._stagename                 # <--------!!
       return True
 
    #--------------------------------------------------------------------------
@@ -280,6 +285,7 @@ class Clump (object):
       they usually have statements in the 'body' that generate nodes, and they
       may return some result.
       """
+      kwargs['select'] = False
       prompt = self._typename+' '+self._name
       help = '(de-)select: '+self.oneliner()
       ctrl = self.on_entry(self.main, prompt, help, **kwargs)
@@ -287,8 +293,19 @@ class Clump (object):
       if self.execute_body():
          # NB: .execute_body() makes the menu, controlled by kwargs['select']
          self._object_is_selected = True
+         if True:
+            # As an illustration, add some operation:
+            self.apply_unops('Cos', select=False)
          self.end_of_body(ctrl)
       return self.on_exit(ctrl, result=None)
+
+   #-------------------------------------------------------------------------
+
+   def newinstance(self, **kwargs):
+      """Make a new instance of this class. Called by .link().
+      This function should be re-implemented in derived classes.
+      """
+      return Clump(clump=self, **kwargs)
 
 
    #=========================================================================
@@ -372,22 +389,6 @@ class Clump (object):
          # Optionally, apply one or more unary operations
          new.apply_unops(unops=unops, trace=trace)
       return new
-
-   #-------------------------------------------------------------------------
-
-   def newinstance(self, name=None, qual=None, init=False):
-      """Make a new instance of this class. Called by .link().
-      This function should be re-implemented in derived classes.
-      """
-      return Clump(name=name, qual=qual, clump=self, init=init)
-
-   #-------------------------------------------------------------------------
-
-   def deepcopy (self, name=None, qual=None, trace=False):
-      """Version of .link(), in which an Identity operation is applied
-      to the nodes of the new object. This may not be very useful....?
-      """
-      return self.link (name=name, qual=qual, unops='Identity', trace=trace)
 
 
    #==========================================================================
@@ -614,7 +615,9 @@ class Clump (object):
 
       if kwargs.has_key('select') and isinstance(kwargs['select'],bool):
          self._submenucounter += 1
-         name = ctrl['funcname']+'_'+str(self._submenucounter)
+         name = ctrl['funcname']
+         name += '_'+str(self._submenucounter)
+         name += str(self._stagecounter)
          if not isinstance(prompt,str):
             prompt = ctrl['funcname']+'()'
          if not isinstance(help,str):
@@ -1005,7 +1008,13 @@ class Clump (object):
       return self.on_exit(ctrl)
 
 
+
+
+
+
 #********************************************************************************
+#********************************************************************************
+# Derived class LeafClump:
 #********************************************************************************
 
 class LeafClump(Clump):
@@ -1027,7 +1036,7 @@ class LeafClump(Clump):
       # is defined by self._treequals, the list of tree qualifiers.
       # If an input Clump is supplied (clump), the treequals list is
       # copied from it. But if not, it may be specified by means of
-      # a keyword kwargs[treequals]. 
+      # a keyword kwargs[treequals].
       
       kwargs.setdefault('treequals', None)
       tqs = kwargs['treequals']          # convenience
@@ -1065,14 +1074,15 @@ class LeafClump(Clump):
 
    #-------------------------------------------------------------------------
 
-   def newinstance(self, name=None, qual=None):
+   def newinstance(self, **kwargs):
       """Reimplementation of placeholder function in base-class Clump.
       Make a new instance of this derived class (templateClump).
+      NB: For a LeafClump, this might not be very useful....
       """
-      return LeafClump(clump=self, name=name, qual=qual)
+      return LeafClump(clump=self, **kwargs)
 
    #-------------------------------------------------------------------------
-   # Its main function:
+   # Re-implementation of its main function (called from Clump.__init__())
    #-------------------------------------------------------------------------
 
    def main (self, **kwargs):
@@ -1096,6 +1106,11 @@ class LeafClump(Clump):
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
+
+
+
+
+
 
 
 
@@ -1167,6 +1182,7 @@ def do_define_forest (ns, TCM):
       cp.apply_unops('Sin', select=True, trace=True)
       cp.apply_unops('Exp', trace=True)
       cp.apply_binop('Add', 2.3, select=True, trace=True)
+      cp = Clump(cp, select=True).daisy_chain()
       cp = Clump(cp, select=True).daisy_chain()
       # cp.inspector()
       # cp.plot_clump()

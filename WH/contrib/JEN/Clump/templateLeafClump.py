@@ -1,10 +1,10 @@
 """
-templateClump.py: Base-class for an entire zoo of derived classes that
+templateLeafClump.py: Base-class for an entire zoo of derived classes that
 represent Clumps in which the nodes are leaf nodes.
 Examples are ParmClump, JonesClump and SpigotClump.
 """
 
-# file: ../JEN/Clump/templateClump.py:
+# file: ../JEN/Clump/templateLeafClump.py:
 #
 # Author: J.E.Noordam
 #
@@ -55,7 +55,7 @@ import math                 # support math.cos() etc
 #********************************************************************************
 #********************************************************************************
 
-class templateClump(Clump.LeafClump):
+class templateLeafClump(Clump.LeafClump):
    """
    Derived class
    """
@@ -81,113 +81,57 @@ class templateClump(Clump.LeafClump):
 
    def newinstance(self, **kwargs):
       """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (templateClump).
+      Make a new instance of this derived class (templateLeafClump).
       """
-      return templateClump(clump=self, **kwargs)
+      return templateLeafClump(clump=self, **kwargs)
 
 
-   #=========================================================================
-   # Re-implementation of its main function (called from Clump.__init__())
-   #=========================================================================
+   #==========================================================================
+   # The function .main() must be re-implemented for 'leaf' Clumps,
+   # i.e. Clump classes that contain leaf nodes. An example is given below,
+   # and may be canibalized for derived (leaf) Clump clases.
+   #==========================================================================
 
    def main (self, **kwargs):
-      """Re-implementation of the place-holder function in class Clump.
-      It is itself a place-holder, to be re-implemented in derived classes.
-      This function is called in Clump.__init__().
+      """Fill the LeafClump object with suitable leaf nodes.
+      Re-implemented version of the function in the baseclass (LeafClump).
       """
-      # kwargs['select'] = True          # optional: makes the function selectable     
-      prompt = 'prompt'
-      help = 'help'
+      prompt = self._typename+' '+self._name
+      help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.main, prompt, help, **kwargs)
+      
+      self._TCM.add_option('initype', ['const_real','const_complex',
+                                       'parm',
+                                       'freq','time','freq+time'],
+                           prompt='init node type')
 
-      if self.execute_body():
-         self._ns.example1 << Meq.Constant(1.9)
-         # Generate some nodes:
-         node1 = self._ns.example1_opt1 << Meq.Constant(1.1)
-         node2 = self._ns.example1_opt2 << Meq.Constant(2.2)
+      # Execute always, to ensure that the leaf Clump has nodes!
+      if self.execute_body(always=True):           
+         initype = self.getopt('initype')
+         self._nodes = []
+         stub = self.unique_nodestub(initype)
+         for i,qual in enumerate(self._nodequals):
+            if initype=='parm':
+               node = stub(qual) << Meq.Parm(i)
+            elif initype=='freq':
+               node = stub(qual) << Meq.Freq()
+            elif initype=='time':
+               node = stub(qual) << Meq.Time()
+            elif initype=='freq+time':
+               node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
+                                            self._ns << Meq.Time())
+            else:
+               node = stub(qual) << Meq.Constant(i)
+            self._nodes.append(node)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
       return self.on_exit(ctrl)
+
+
 
       
-   #=========================================================================
-   # Some example-functions (to be removed or canibalized):
-   #=========================================================================
-
-   def example1 (self, **kwargs):
-      """
-      Example1: A method without an explicit menu.
-      """
-      # kwargs['select'] = True          # optional: makes the function selectable     
-      prompt = 'example1()'
-      help = None
-      ctrl = self.on_entry(self.example1, prompt, help, **kwargs)
-
-      if self.execute_body():
-         self._ns.example1 << Meq.Constant(1.9)
-         # Generate some nodes:
-         node1 = self._ns.example1_opt1 << Meq.Constant(1.1)
-         node2 = self._ns.example1_opt2 << Meq.Constant(2.2)
-         # Mandatory counterpart of self.execute_body()
-         self.end_of_body(ctrl)
-
-      # Mandatory counterpart of self.on_entry()
-      return self.on_exit(ctrl)
-
-   #--------------------------------------------------------------------
-
-   def example2 (self, **kwargs):
-      """
-      Example2: A method with a menu and options
-      """
-      kwargs['select'] = True    # mandatory if it contains a menu.....!?                   
-      prompt = 'example2()'
-      help = None
-      ctrl = self.on_entry(self.example2, prompt, help, **kwargs)
-
-      self._TCM.add_option('opt1', range(3))
-      self._TCM.add_option('opt2', range(3))
-
-      if self.execute_body():
-         # Read the option valies:
-         opt1 = self.getopt('opt1')
-         opt2 = self.getopt('opt2')
-         # Generate some nodes:
-         node1 = self._ns.example2_opt1 << Meq.Constant(opt1)
-         node2 = self._ns.example2_opt2 << Meq.Constant(opt2)
-         # Mandatory counterpart of self.execute_body()
-         self.end_of_body(ctrl)
-
-      # Mandatory counterpart of self.on_entry()
-      return self.on_exit(ctrl)
-
-   #--------------------------------------------------------------------
-
-   def example3 (self, **kwargs):
-      """
-      Example3: Master-slaves
-      """
-      kwargs['select'] = False     # mandatory if it contains a menu.....!?                   
-      prompt = 'example3()'
-      help = None
-      ctrl = self.on_entry(self.example3, prompt, help, **kwargs)
-
-      self._TCM.add_option('slaves', range(3),
-                           prompt='nr of slaved ojects')
-
-      if self.execute_body():
-         slaves = self.getopt('slaves')
-         for i in range(slaves):
-            cp = Clump('slave', qual=i,
-                       master=ctrl['submenu'],
-                       ns=self._ns, TCM=self._TCM)
-         # Mandatory counterpart of self.execute_body()
-         self.end_of_body(ctrl)
-
-      # Mandatory counterpart of self.on_entry()
-      return self.on_exit(ctrl)
 
 
 #********************************************************************************
@@ -204,7 +148,7 @@ def _define_forest (ns, **kwargs):
    """
    if not enable_testing:
       print '\n**************************************************************'
-      print '** templateClump: _define_forest(): testing not enabled yet!!'
+      print '** templateLeafClump: _define_forest(): testing not enabled yet!!'
       print '**************************************************************\n'
       return False
 
@@ -240,17 +184,9 @@ def do_define_forest (ns, TCM):
    It is used twice, outside and inside _define_forest() 
    """
    submenu = TCM.start_of_submenu(do_define_forest)
-   TCM.add_option('opt1',[1,2,3])
-   TCM.add_option('opt2',[1,2,3])
 
    if TCM.submenu_is_selected():
-      cp = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-      cp = templateClump(cp, trace=True)
-      opt1 = TCM.getopt('opt1', submenu, trace=True)
-      opt2 = TCM.getopt('opt2', submenu, trace=True)
-      cp.example1(select=True)
-      cp.example2(select=False)
-      cp.example3()
+      cp = templateLeafClump(ns=ns, TCM=TCM, trace=True)
       cp.inspector()
       cp.rootnode()
       # cp.show('do_define_forest', full=True)
@@ -283,14 +219,13 @@ if enable_testing:
 if __name__ == '__main__':
 
    print '\n****************************************************'
-   print '** Start of standalone test of: templateClump.py:'
+   print '** Start of standalone test of: templateLeafClump.py:'
    print '****************************************************\n' 
 
    ns = NodeScope()
 
    if 1:
-      cp = Clump.LeafClump(trace=True)
-      cp = templateClump(cp, trace=True)
+      cp = templateLeafClump(trace=True)
       cp.show('creation', full=True)
 
    if 0:
@@ -301,7 +236,7 @@ if __name__ == '__main__':
 
    
       
-   print '\n** End of standalone test of: templateClump.py:\n' 
+   print '\n** End of standalone test of: templateLeafClump.py:\n' 
 
 #=====================================================================================
 
