@@ -118,6 +118,7 @@ def _define_forest (ns):
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
   stas = array.stations();
   # get phase centre from MS, setup observation
+  print mssel.get_phase_dir();
   observation = Meow.Observation(ns,phase_centre=mssel.get_phase_dir());
   Meow.Context.set(array,observation);
   # get active correlations from MS

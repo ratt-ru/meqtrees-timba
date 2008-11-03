@@ -40,16 +40,21 @@ try:
   TABLE = pyrap_tables.table
   print "Meow.MSUtils: using the pyrap_tables module"
 except:
-  # else try the old pycasatable/aips++ thing
   try:
-    import pycasatable
-    TABLE = pycasatable.table
-    print "Meow.MSUtils: using the pycasatable module. WARNING: this is deprecated."
-    print "Please install pyrap and casacore!"
+    import pyrap.tables
+    TABLE = pyrap.tables.table
+    print "Meow.MSUtils: using the pyrap.tables module"
   except:
-    TABLE = None;
-    print "Meow.MSUtils: no tables module found, GUI functionality will be reduced"
-    print "Please install pyrap and casacore!"
+    # else try the old pycasatable/aips++ thing
+    try:
+      import pycasatable
+      TABLE = pycasatable.table
+      print "Meow.MSUtils: using the pycasatable module. WARNING: this is deprecated."
+      print "Please install pyrap and casacore!"
+    except:
+      TABLE = None;
+      print "Meow.MSUtils: no tables module found, GUI functionality will be reduced"
+      print "Please install pyrap and casacore!"
 
 def find_exec (execname):
   path = os.environ.get('PATH') or os.defpath;
@@ -195,6 +200,10 @@ class MSContentSelector (object):
     """Returns the field number""";
     return self.field_index or 0;
   
+  def get_ddid (self):
+    """Returns the field number""";
+    return self.ddid_index or 0;
+  
   def get_taql_string (self):
     return self.ms_taql_str or '';
 
@@ -286,6 +295,123 @@ class MSContentSelector (object):
     return isinstance(value,int) and \
           value >= 1 and \
           value <= self.ms_ddid_numchannels[self.ddid_index];
+
+class MSFlagSelector (object):
+  """Abstract base class for flags electors""";
+  def __init__ (self,namespace):
+    """Creates options for selecting a subset of flags in an MS.
+    legacy: if True, options to include legacy flags will be provided.
+    namespace:  the TDLOption namespace name, used to qualify TDL options created here.
+        If making multiple selectors, you must give them different namespace names
+    """;
+    self.tdloption_namespace = namespace;
+    self._opts = [];
+    self.flagsets = None;
+    self.bitflag_labels = [];
+    self.bitflag_bits   = [ 1<<bit for bit in FLAGBITS ];
+    
+  def option_list (self):
+    """Returns list of all TDL options"""
+    return self._opts;
+    
+  def update_flagsets (self,flagsets):
+    self.flagsets = flagsets;
+    flagsets.when_changed(self.update);
+    
+  def update(self):
+    pass;
+
+class MSReadFlagSelector (MSFlagSelector):
+  def __init__ (self,legacy=True,namespace='ms_rfl',
+    label="Include flagset %s",
+    doc="Include this flagset in the overall data flags."):
+    """Creates options for selecting a subset of flags in an MS.
+    legacy: if True, options to include legacy flags will be provided.
+    namespace:  the TDLOption namespace name, used to qualify TDL options created here.
+        If making multiple selectors, you must give them different namespace names
+    """;
+    MSFlagSelector.__init__(self,namespace);
+    self._label = label;
+    # option to read legacy flags
+    if legacy:
+      self.read_legacy_flag_opt = TDLOption('read_legacy_flags',
+          "Include legacy FLAG column",True,namespace=self,
+          doc="""If enabled, then data flags in the standard AIPS++ FLAG column will
+          be included in the overall set of data flags. 
+          Normally you would only work with flagsets and ignore the FLAG column.
+          """);
+      self._opts.append(self.read_legacy_flag_opt);
+    else:
+      self.read_legacy_flags = False;
+      self.read_legacy_flag_opt = None;
+    self.read_bitflag_opts = [ 
+        TDLOption('read_bitflag_%d'%bit,
+                  "MS bitflag %d"%bit,True,namespace=self,
+                  doc=doc) 
+      for bit in FLAGBITS ];
+    for opt in self.read_bitflag_opts:
+      opt.hide(); 
+    self._opts += self.read_bitflag_opts;
+    
+  def update (self):
+    self.bitflag_labels = self.flagsets.names();
+    self.bitflag_bits   = [ self.flagsets.flagmask(name) for name in self.bitflag_labels ];
+    nlab = min(len(self.read_bitflag_opts),len(self.bitflag_labels));
+    for opt,label in zip(self.read_bitflag_opts,self.bitflag_labels):
+      opt.set_name(self._label%label);
+      opt.show();
+    for opt in self.read_bitflag_opts[len(self.bitflag_labels):]:
+      opt.hide();
+      
+  def get_flagmask (self):
+    flagmask = 0;
+    for bit in range(len(self.bitflag_bits)):
+      if getattr(self,'read_bitflag_%d'%bit,True):
+        flagmask |= self.bitflag_bits[bit];
+    return flagmask;
+      
+  def selected_flagsets (self):
+    return [ fs for i,fs in enumerate(self.bitflag_labels) 
+              if getattr(self,'read_bitflag_%d'%i,True) ];
+  
+
+class MSWriteFlagSelector (MSFlagSelector):
+  def __init__ (self,namespace='ms_wfl'):
+    """Creates options for selecting an output flagset of an MS.
+    namespace:  the TDLOption namespace name, used to qualify TDL options created here.
+        If making multiple selectors, you must give them different namespace names
+    """;
+    MSFlagSelector.__init__(self,namespace);
+    if TABLE is not None:
+      # For the output, either we already have a BITFLAG column, in which
+      # case we'll get a list of bitflag labels from there when the MS is selected,
+      # or we don't, in which case we need only provide one default name
+      self.write_bitflag_opt = TDLOption("write_bitflag","Output flagset",
+                                          ["FLAG0"],more=str,namespace=self,
+        doc="""If new data flags are generated within the tree, they may be stored in an existing
+        or new flagset. Select the output flagset here""");
+    else:
+      # No table support, so we'll just ask for a bit number
+      self.write_bitflag_opt = TDLOption("write_bitflag","Output bitflag",
+                                          range(16),more=int,namespace=self,
+        doc="""If new data flags are generated within the tree, they may be stored in an existing
+        or new flagset. Select the output flagset here by specifying a bit number.""");
+    self._has_new_bitflag_label = self.flagsets = None;
+    self._opts.append(self.write_bitflag_opt);
+    
+  def update (self):
+    self.bitflag_labels = self.flagsets.names();
+    self.bitflag_bits   = [ self.flagsets.flagmask(name) for name in self.bitflag_labels ];
+    self.write_bitflag_opt.set_option_list(self.bitflag_labels);
+      
+  def get_flagmask (self):
+    bitflag = self.write_bitflag;
+    if isinstance(bitflag,str):
+      return self.flagsets.flagmask(bitflag,create=True);
+    else:
+      return 1<<bitflag;
+
+
 
 class MSSelector (object):
   _corr_1 = "1";
@@ -412,29 +538,11 @@ class MSSelector (object):
     self.subset_selector = self.make_subset_selector(namespace);
     self._opts += self.subset_selector.option_list();
     # setup flag-related options
-    self.bitflag_labels = [];
-    self.new_bitflag_labels = [];
-    self.legacy_bitflag_opts = [];
-    self.write_bitflag_opt = self.write_legacy_flags_opt = None;
-    self._has_new_bitflag_label = None;
+    self._flag_selectors = [];
+    self.flagsets = None;
     if flags or read_flags:
-      # option to read legacy flags
-      self.read_legacy_flag_opt = TDLOption('ms_read_legacy_flags',
-            "Include legacy FLAG column",True,namespace=self,
-            doc="""If enabled, then data flags in the standard AIPS++ FLAG column will
-            be included in the overall set of data flags. 
-            Normally you would only work with flagsets and ignore the FLAG column, however, for
-            some applications (such as transferring the current FLAG column into a MeqTree flagset),
-            you may need to enable this option.
-            """);
-      self.read_bitflag_opts = [ 
-          TDLOption('ms_read_bitflag_%d'%bit,
-                    "MS bitflag %d"%bit,True,namespace=self,
-                    doc="""Include this flagset in the overall data flags.""") 
-        for bit in FLAGBITS ];
-      for opt in self.read_bitflag_opts:
-        opt.hide(); 
-      # add them as a submenu
+      self.read_flag_selector = self.make_read_flag_selector('ms_rfl',legacy=True);
+      # add into submenu
       self.read_flags_opt = TDLMenu("Read flags from MS",
         toggle="ms_read_flags",default=True,namespace=self,open=False,
         doc="""If the Measurement Set contains data flags, enable this option to propagate the flags
@@ -444,102 +552,34 @@ class MSSelector (object):
         arbitrary labels. Via the suboptions within this menu, you may choose to include or exclude 
         each flagset from the overall set of active data flags.
         """,
-        *([self.read_legacy_flag_opt]+self.read_bitflag_opts)
+        *self.read_flag_selector.option_list()
         );
       self._opts.append(self.read_flags_opt);
     else:
-      self.ms_read_flags = self.ms_read_legacy_flags = False;
-      self.read_legacy_flag_opt = None;
-      self.read_bitflag_opts = [];
+      self.ms_read_flags = self.read_flag_selector = None;
     if flags or write_flags:
-      if TABLE is not None:
-        # For the output, either we already have a BITFLAG column, in which
-        # case we'll get a list of bitflag labels from there when the MS is selected,
-        # or we don't, in which case we need only provide one default name
-        self.write_bitflag_opt = TDLOption("ms_write_bitflag","Output flagset",
-                                           ["FLAG0"],more=str,namespace=self,
-          doc="""If new data flags are generated within the tree, they may be stored in an existing
-          or new flagset. Select the output flagset here""");
-        self.write_bitflag_opt.when_changed(self._set_output_bitflag_label);
-        self.new_bitflag_labels = ["FLAG0"];
-      else:
-        # No table support, so we'll just ask for a bit number
-        self.write_bitflag_opt = TDLOption("ms_write_bitflag","Output bitflag",
-                                           range(16),more=int,namespace=self,
-          doc="""If new data flags are generated within the tree, they may be stored in an existing
-          or new flagset. Select the output flagset here by specifying a bit number.""");
+      self.write_flag_selector = self.make_write_flag_selector('ms_wfl');
       self.write_flags_opt = TDLMenu("Write output flagset",
         toggle='ms_write_flags',default=False,namespace=self,
         doc="""If new data flags are generated within the tree, they may be written out to the
         Measurement Set. Enable this option to write flags to the MS.""",
-        *(self.write_bitflag_opt,
-          TDLOption("ms_write_flag_policy",
-                    "Output flagset policy",[FLAG_ADD,FLAG_REPLACE,FLAG_REPLACE_ALL],namespace=self,
-                    doc="""Flags generated within the tree may be added to an existing flagset, may
-                    replace a flagset, or may replace a flagset while clearing all other flagsets."""),
-          )
+        *( self.write_flag_selector.option_list() +
+           [ TDLOption("ms_write_flag_policy",
+                    "Output flagset policy",[FLAG_ADD,FLAG_REPLACE],namespace=self,
+                    doc="""Flags generated within the tree may be added to an existing flagset, or may
+                    replace a flagset.""")]
+         )
         );
       self._opts.append(self.write_flags_opt);
     else:
       self.ms_write_flags = False;
-      self.ms_write_bitflag = 0;
+      self.ms_write_flag_selector = None;
       self.ms_write_replace_flags = False;
-    if flags or write_legacy_flags:
-      self.legacy_bitflag_opts = [
-          TDLOption('ms_write_legacy_bitflag_%d'%bit,
-                    "Include flagset %d"%bit,True,namespace=self)
-          for bit in FLAGBITS ];
-      for opt in self.legacy_bitflag_opts:
-        opt.hide(); 
-      if TABLE is not None:
-        self.legacy_bitflag_opts[0].set_name("Include flagset FLAG0");
-      self.write_legacy_flags_opt = TDLMenu("Fill legacy FLAG column",
-            toggle="ms_write_legacy_flags",default=True,open=False,namespace=self,
-            doc="""You may overwrite the standard AIPS++ FLAG column by a combination of flagsets.
-            Tools such as the imager are not aware of flagsets, and only look at the FLAG column.
-            Via this option, you can choose which flagsets will be put into the FLAG column.
-            """,
-            *self.legacy_bitflag_opts);
-      self._opts.append(self.write_legacy_flags_opt);
-    else:
-      self.ms_write_legacy_flags = False;
     # add callbacks
     self._when_changed_callbacks = [];
     # if TABLE exists, set up interactivity for MS options
     if TABLE:
       ms_option.set_validator(self._select_new_ms);
-      
-  def _set_output_bitflag_label (self,label):
-    # called when a new output bitflag label has been selected
-    if label not in self.bitflag_labels:
-      self._has_new_bitflag_label = label;
-      self.new_bitflag_labels = list(self.bitflag_labels) + [label];
-      for opt,label in zip(self.legacy_bitflag_opts,self.new_bitflag_labels):
-        opt.set_name("Include flagset %s"%label);
-        opt.show();
-      for opt in self.legacy_bitflag_opts[len(self.new_bitflag_labels):]:
-        opt.hide();
-    else:
-      self._has_new_bitflag_label = None;
-      self.new_bitflag_labels = self.bitflag_labels;
-      for opt,label in zip(self.legacy_bitflag_opts,self.bitflag_labels):
-        opt.set_name("Include flagset %s"%label);
-        opt.show();
-      for opt in self.legacy_bitflag_opts[len(self.bitflag_labels):]:
-        opt.hide();
-        
-  def _set_input_bitflag_labels (self,labels):
-    self.bitflag_labels = labels;
-    if self._has_new_bitflag_label is not None:
-      self._set_output_bitflag_label(self._has_new_bitflag_label);
-    if self.write_bitflag_opt:
-      self.write_bitflag_opt.set_option_list(self.new_bitflag_labels);
-    nlab = min(len(self.read_bitflag_opts),len(self.bitflag_labels));
-    for opt,label in zip(self.read_bitflag_opts,self.bitflag_labels):
-      opt.set_name("Include flagset %s"%label);
-      opt.show();
-    for opt in self.read_bitflag_opts[len(self.bitflag_labels):]:
-      opt.hide();
       
   def when_changed (self,callback):
     # if tables are available, callbacks will be called by _select_new_ms()
@@ -578,7 +618,7 @@ class MSSelector (object):
     """Returns the list of antenna names from the current MS. If pycasatable
     is not available, this will be empty""";
     if self.ms_antenna_sel:
-      subset = self._parse_antenna_subset(self.ms_antenna_sel);
+      subset = parse_antenna_subset(self.ms_antenna_sel,self.ms_antenna_names);
       if self.ms_antenna_names:
         return [self.ms_antenna_names[index] for index in subset];
       else:
@@ -598,7 +638,7 @@ class MSSelector (object):
   def get_antenna_set (self,default=None):
     """Returns the set of selected antenna indices from the current MS, or None
     if no selection info is available."""
-    subset = self.ms_antenna_sel and self._parse_antenna_subset(self.ms_antenna_sel);
+    subset = self.ms_antenna_sel and parse_antenna_subset(self.ms_antenna_sel,self.ms_antenna_names);
     if subset:
       if self.ms_antenna_names:
         return [(index,self.ms_antenna_names[index]) for index in subset];
@@ -617,10 +657,10 @@ class MSSelector (object):
   def get_correlations (self):
     return [ self.ms_corr_names[icorr] for icorr in self.get_corr_index() if icorr >= 0 ];
 
-  def make_subset_selector (self,namespace):
+  def make_subset_selector (self,namespace,**kw):
     """Makes an MSContentSelector object connected to this MS selector."""
     sel = MSContentSelector(ddid=self._ddid,field=self._field,
-                            channels=self._channels,namespace=namespace);
+                            channels=self._channels,namespace=namespace,**kw);
     # extra selectors needs to be initialized with existing info
     if TABLE and self._content_selectors:
       sel._update_from_other(self.subset_selector);
@@ -628,25 +668,33 @@ class MSSelector (object):
     self._content_selectors.append(sel);
     return sel;
     
+  def make_read_flag_selector (self,namespace,**kw):
+    """Makes an MSReadFlagSelector object connected to this MS selector."""
+    sel = MSReadFlagSelector(namespace=namespace,**kw);
+    # extra selectors needs to be initialized with existing info
+    if self.flagsets:
+      sel.update_flagsets(self.flagsets);
+    self._flag_selectors.append(sel);
+    return sel;
+    
+  def make_write_flag_selector (self,namespace,**kw):
+    """Makes an MSWriteFlagSelector object connected to this MS selector."""
+    sel = MSWriteFlagSelector(namespace=namespace,**kw);
+    # extra selectors needs to be initialized with existing info
+    if self.flagsets:
+      sel.update_flagsets(self.flagsets);
+    self._flag_selectors.append(sel);
+    return sel;
+    
   def get_input_flagmask (self):
     if not self.ms_read_flags:
       return 0;
-    flagmask = 0;
-    for bit in FLAGBITS:
-      if getattr(self,'ms_read_bitflag_%d'%bit,True):
-        flagmask |= (1<<bit);
-    return flagmask;
+    return self.read_flag_selector.get_flagmask();
       
   def get_output_bitflag (self):
     if not self.ms_write_flags:
       return 0;
-    bitflag = self.ms_write_bitflag;
-    if isinstance(bitflag,str):
-      try: 
-        bitflag = self.new_bitflag_labels.index(bitflag);
-      except:
-        bitflag = 0;
-    return 1<<bitflag;
+    return self.write_flag_selector.get_flagmask();
       
   def _select_new_ms (self,msname):
     """This callback is called whenever a new MS is selected. Returns False if
@@ -666,6 +714,10 @@ class MSSelector (object):
       antnames = anttable.getcol('NAME');
       prefix = len(longest_prefix(*antnames));
       self.ms_antenna_names = [ name[prefix:] for name in antnames ];
+      # some broken MSs do not have unique antenna names -- replace them with indices if so
+      if len(sets.Set(self.ms_antenna_names)) < len(self.ms_antenna_names):
+        print "Warning! This MS does not define unique ANTENNA names. Using antenna indices instead.";
+        self.ms_antenna_names = [ str(i) for i in range(len(self.ms_antenna_names)) ];
       if self.antsel_option:
         self.antsel_option.set_option_list([None,"0:%d"%(len(self.ms_antenna_names)-1)]);
         self.antsel_option.show();
@@ -681,12 +733,10 @@ class MSSelector (object):
       else:
         corrlist = [self._corr_2x2,self._corr_2x2_diag,self._corr_2,self._corr_1];
       self.corrsel_option.set_option_list(corrlist);
-      # bitflag labels
-      try:
-        bitflag_labels = ms.getcolkeyword('BITFLAG','NAMES');
-      except:
-        bitflag_labels = [];
-      self._set_input_bitflag_labels(bitflag_labels);
+      # get flagsets and notify flag selectors
+      self.flagsets = get_flagsets(ms);
+      for sel in self._flag_selectors:
+        sel.update_flagsets(self.flagsets);
       # notify content selectors
       for sel in self._content_selectors:
         sel._select_new_ms(ms);
@@ -694,54 +744,16 @@ class MSSelector (object):
       # notify callbacks
       for cb in self._when_changed_callbacks:
         cb(msname);
+      ms.close();
       return True;
     except:
       print "error reading MS",msname;
       traceback.print_exc();
       return False;
-
-  def _parse_antenna_subset (self,value):
-    if not value:
-      return None;
-    if self.ms_antenna_names:
-      nant = len(self.ms_antenna_names);
-    else:
-      nant = 1;     # unreasonably large...
-    subset = [];
-    for spec in re.split("[\s,]+",value):
-      if spec:
-        # single number
-        match = re.match("^\d+$",spec);
-        if match:
-          index = int(spec);
-          # if antennas not known, accept any index
-          if not self.ms_antenna_names:
-            nant = max(nant,index+1);
-          if index < 0 or index >= nant:
-            raise ValueError,"illegal antenna specifier '%s'"%spec;
-          subset.append(index);
-          continue;
-        # [number]:[number]
-        match = re.match("^(\d+)?:(\d+)?$",spec);
-        if not match:
-          raise ValueError,"illegal antenna specifier '%s'"%spec;
-        index1 = 0;
-        index2 = nant-1;
-        if match.group(1):
-          index1 = int(match.group(1));
-        if match.group(2):
-          index2 = int(match.group(2));
-        if not self.ms_antenna_names:
-          nant = max(nant,index1+1,index2+1);
-        if index1<0 or index2<0 or index1>=nant or index2>=nant or index1>index2:
-          raise ValueError,"illegal antenna specifier '%s'"%spec;
-        # add to subset
-        subset += range(index1,index2+1);
-    return subset;
-
+      
   def _antenna_sel_validator (self,value):
     try:
-      antenna_subset = self._parse_antenna_subset(value);
+      antenna_subset = parse_antenna_subset(value,self.ms_antenna_names);
       return True;
     except:
       print "error parsing antenna selection '%s'"%value;
@@ -779,11 +791,9 @@ class MSSelector (object):
     rec.legacy_bitflag = 0;
     if self.ms_read_flags:
       rec.tile_bitflag = 2;
-      if self.ms_read_legacy_flags:
+      if self.read_flag_selector.read_legacy_flags:
         rec.legacy_bitflag = 1;
-      for bit in FLAGBITS:
-        if getattr(self,'ms_read_bitflag_%d'%bit,True):
-          rec.flag_mask |= (1<<bit);
+      rec.flag_mask = self.read_flag_selector.get_flagmask();
     # form top-level record
     iorec = record(ms=rec);
     iorec.python_init = 'Meow.ReadVisHeader';
@@ -795,35 +805,13 @@ class MSSelector (object):
     rec = record();
     rec.write_bitflag = self.ms_write_flags;
     if self.ms_write_flags:
-      # in replace-all mode, kill all other flagsets
-      if self.ms_write_flag_policy == FLAG_REPLACE_ALL:
-        # reset labels
-        if isinstance(self.ms_write_bitflag,str):
-          rec.bitflag_name = [ self.ms_write_bitflag ];
-        else:
-          rec.bitflag_name = [ "FLAG0" ];
-        # reset masks
-        rec.tile_bitflag = 1;
-        rec.tile_flag_mask = FLAG_FULL & ~3; # bitflags 1|2 = input flags
-        rec.ms_flag_mask = 0;
-      # add/replace flagset mode
-      else:
-        if self.new_bitflag_labels:
-          rec.bitflag_name = self.new_bitflag_labels;
-        # output masks
-        rec.tile_bitflag = self.get_output_bitflag();
-        rec.tile_flag_mask = FLAG_FULL & ~3; # bitflags 1|2 = input flags
-        if self.ms_write_flag_policy == FLAG_ADD:
-          rec.ms_flag_mask = FLAG_FULL;
-        elif self.ms_write_flag_policy == FLAG_REPLACE:
-          rec.ms_flag_mask = FLAG_FULL & ~rec.tile_bitflag;
-    # legacy flag handling
-    rec.write_legacy_flags = self.ms_write_legacy_flags;
-    if self.ms_write_legacy_flags:
-      rec.legacy_flag_mask = 0;
-      for bit in FLAGBITS:
-        if getattr(self,'ms_write_legacy_bitflag_%d'%bit,True):
-          rec.legacy_flag_mask |= (1<<bit);
+      # output masks
+      rec.tile_bitflag = self.get_output_bitflag();
+      rec.tile_flag_mask = FLAG_FULL & ~3; # bitflags 1|2 = input flags
+      if self.ms_write_flag_policy == FLAG_ADD:
+        rec.ms_flag_mask = FLAG_FULL;
+      elif self.ms_write_flag_policy == FLAG_REPLACE:
+        rec.ms_flag_mask = FLAG_FULL & ~rec.tile_bitflag;
     if self.ms_has_output and self.output_column:
       rec.data_column = self.output_column;
     return record(ms=rec,mt_queue_size=ms_queue_size);
@@ -1102,3 +1090,186 @@ class ImagingSelector (object):
     print "MSUtils: imager args are",args;
     # run script
     os.spawnvp(os.P_NOWAIT,_IMAGER,args);
+
+# keep a global map of flagsets associated with each MS,
+# so that different "customers" can always deal with the same flagset object
+_flagset_map = {};
+def get_flagsets (ms):
+  global _flagset_map;
+  msname = ms.name();
+  fs = _flagset_map.get(msname,None);
+  if fs is None:
+    fs = _flagset_map[msname] = Flagsets(ms);
+  return fs;
+
+class Flagsets (object):
+  """Flagsets implements a class to manage an MS's flagsets""";
+  def __init__ (self,ms):
+    """Flagsets is constructed from an MS.""";
+    self.msname = ms.name();
+    self._wc_callbacks = [];
+    if not 'BITFLAG' in ms.colnames():
+      self.names = self.names = self.order = None;
+    else:
+      kws = ms.colkeywordnames('BITFLAG');
+      self.bits  = {};
+      # scan FLAGSET_xxx keywords and populate name->bitmask mappings
+      for kw in kws:
+        match = re.match('^FLAGSET_(.*)$',kw);
+        if match:
+          name = match.group(1);
+          bit = ms.getcolkeyword('BITFLAG',kw);
+          if isinstance(bit,int):
+            self.bits[name] = bit;
+          else:
+            print "Warning: unexpected type (%s) for %s keyword of BITFLAG column, ignoring"%(type(order),kw);
+      # have we found any FLAGSET_ specs?
+      if self.bits:
+        order = 'FLAGSETS' in kws and ms.getcolkeyword('BITFLAG','FLAGSETS');
+        if isinstance(order,str):
+          order = order.split(',');
+        else:
+          print "Warning: unexpected type (%s) for FLAGSETS keyword of BITFLAG column, ignoring"%type(order);
+          order = [];
+        # form up "natural" order by comparing bitmasks
+        bitwise_order = list(self.bits.iterkeys());
+        bitwise_order.sort(lambda a,b:cmp(self.bits[a],self.bits[b]));
+        # if an order is specified, make sure it is actually valid,
+        # and add any elements from bitwise_order that are not present
+        self.order = [ fs for fs in order if fs in self.bits ] + \
+                     [ fs for fs in bitwise_order if fs not in order ];
+        # if order was fixed compared to what was in MS, write back to MS
+        if ms.iswritable() and self.order != order:
+          ms._putkeyword('BITFLAG','FLAGSETS',-1,False,','.join(self.order));
+          ms.flush();
+      # else if no flagsets found, try the old-style NAMES keyword
+      elif 'NAMES' in kws:
+        names = ms.getcolkeyword('BITFLAG','NAMES');
+        if isinstance(names,(list,tuple)):
+          self.order = map(str,names);
+          bit = 1;
+          for name in self.order:
+            self.bits[name] = bit;
+            bit <<= 1;
+          if ms.iswritable():
+            ms._putkeyword('BITFLAG','FLAGSETS',-1,False,','.join(self.order));
+            for name,bit in self.bits.iteritems():
+              ms._putkeyword('BITFLAG','FLAGSET_%s'%name,-1,False,bit);
+            ms.flush();
+      else:
+        self.order = [];
+        
+  def when_changed (self,callback):
+    self._wc_callbacks.append(callback);
+    callback();
+  
+  def names (self):
+    """Returns a list of flagset names, in the order in which they were
+    created. Returns None if BITFLAG column is missing (so flagsets are
+    not available.)""";
+    return self.order;
+  
+  def flagmask (self,name,create=False):
+    """Returns flagmask corresponding to named flagset. If flagset does not exist:
+      * if create is True, creates a new one
+      * if create is False, raises exception
+    """;
+    # lookup flagbit, return if found
+    if self.bits is None:
+      raise TypeError,"MS does not contain a BITFLAG column, cannot use flagsets""";
+    bit = self.bits.get(name,None);
+    if bit is not None:
+      return bit;
+    # raise exception if not allowed to create a new one
+    if not create:
+      raise ValueError,"Flagset '%s' not found"%name;
+    # find empty bit
+    for bitnum in range(32):
+      bit = 1<<bitnum;
+      if bit not in self.bits.values():
+        self.order.append(name);
+        self.bits[name] = bit;
+        ms = TABLE(self.msname,readonly=False);
+        ms._putkeyword('BITFLAG','FLAGSETS',-1,False,','.join(self.order));
+        ms._putkeyword('BITFLAG','FLAGSET_%s'%name,-1,False,bit);
+        ms.flush();
+        for callback in self._wc_callbacks:
+          callback();
+        return bit;
+    # no free bit found, bummer
+    raise ValueError,"Too many flagsets in MS, cannot create another one";
+    
+  def remove_flagset (self,*fsnames):
+    """Removes the named flagset(s). Returns flagmask corresponding to the removed
+    flagsets.""";
+    # lookup all flagsets, raise error if any not found
+    if self.bits is None:
+      raise TypeError,"MS does not contain a BITFLAG column, cannot use flagsets""";
+    removing = [];
+    for fs in fsnames:
+      bit = self.bits.get(fs,None);
+      if bit is None:
+        raise ValueError,"Flagset '%s' not found"%fs;
+      removing.append((fs,bit));
+    if not removing:
+      return;
+    # remove items, form up mask of bitflags to be cleared
+    ms = TABLE(self.msname,readonly=False);
+    mask = 0;
+    for name,bit in removing:
+      mask |= bit;
+      del self.bits[name];
+      del self.order[self.order.index(name)];
+      ms.removecolkeyword('BITFLAG','FLAGSET_%s'%name);
+    # write new list of bitflags
+    ms._putkeyword('BITFLAG','FLAGSETS',-1,False,','.join(self.order));
+    ms.flush();
+    for callback in self._wc_callbacks:
+      callback();
+    return mask;
+    
+def parse_antenna_spec (spec,names=None):
+  """Parses string containing antenna number or name, returns number""";
+  match = re.match("^(\d+)|([^:,\s]+)$",spec);
+  if match:
+    number,name = match.group(1,2);
+    if number is not None:
+      number = int(number);
+      if number >=0 and (not names or number < len(names)):
+        return number;
+    elif names and name in names:
+      return names.index(name);
+  raise ValueError,"illegal antenna specifier '%s'"%spec;
+
+def parse_antenna_subset (value,names=None):
+  if not value:
+    return None;
+  if names:
+    nant = len(names);
+  else:
+    nant = 1;     # unreasonably large...
+  subset = [];
+  for spec in re.split("[\s,]+",value):
+    # single element 
+    if spec.find(':') < 0:
+      index = parse_antenna_spec(spec);
+      if not names:
+        nant = max(nant,index+1);
+      subset.append(index);
+      continue;
+    # range from:to
+    else:
+      spec1,spec2 = spec.split(':',1);
+      index1 = 0;
+      index2 = nant-1;
+      if spec1:
+        index1 = parse_antenna_spec(spec1);
+      if spec2:
+        index2 = parse_antenna_spec(spec2);
+      if not names:
+        nant = max(nant,index1+1,index2+1);
+      if index1>index2:
+        raise ValueError,"illegal antenna specifier '%s'"%spec;
+      # add to subset
+      subset += range(index1,index2+1);
+  return subset;
