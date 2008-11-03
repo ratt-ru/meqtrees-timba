@@ -66,24 +66,41 @@ else
       valid-timba-versions
       return
     fi
+    # find versions matching $1 pattern
     versions="`valid-timba-versions $1`"
+    # none found: return
     if [ -z "$versions" ]; then
       echo "No MeqTree version matching $TIMBA_PATH/install/*$1* found"
       echo "You need to re-run timba-setup <version>"
       echo -n "where version is one of: "
       valid-timba-versions
       echo ""
-    elif [ "$versions" != "${versions% *}" ]; then
-      echo "Multiple MeqTree versions matching $TIMBA_PATH/install/*$1* found"
-      echo "You need to re-run timba-setup <version>"
-      echo "where version is one of: $versions"
-    else
-      export PATH=$TIMBA_PATH/install/$versions/bin:$PRE_TIMBA_PATH
-      export PYTHONPATH=$TIMBA_PATH/install/$versions/libexec/python:.:$PRE_TIMBA_PYTHONPATH
-      export LD_LIBRARY_PATH=$TIMBA_PATH/install/$versions/lib:$PRE_TIMBA_LD_LIBRARY_PATH
-      echo "Using MeqTree version $TIMBA_PATH/install/$versions"
-      export TIMBA_CURRENT_VERSION="$versions"
+      return
     fi
+    # single version found: use that
+    if [ "$versions" == "${versions% *}" ]; then
+      version=$versions
+    # else multiple versions found. Check for an exact match
+    else
+      unset version
+      for v in $versions; do
+        if [ "$v" == "$1" -o "${v#*-}" == "$1" ]; then
+          version=$v
+          break
+        fi
+      done
+      if [ -z "$version" ]; then
+        echo "Multiple MeqTree versions matching $TIMBA_PATH/install/*$1* found"
+        echo "You need to re-run timba-setup <version>"
+        echo "where version is one of: $versions"
+        return
+      fi
+    fi
+    export PATH=$TIMBA_PATH/install/$version/bin:$PRE_TIMBA_PATH
+    export PYTHONPATH=$TIMBA_PATH/install/$version/libexec/python:.:$PRE_TIMBA_PYTHONPATH
+    export LD_LIBRARY_PATH=$TIMBA_PATH/install/$version/lib:$PRE_TIMBA_LD_LIBRARY_PATH
+    echo "Using MeqTree version $TIMBA_PATH/install/$version"
+    export TIMBA_CURRENT_VERSION="$version"
   }
   _timba-setup()
   {
