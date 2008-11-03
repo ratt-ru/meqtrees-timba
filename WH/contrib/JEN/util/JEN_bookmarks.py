@@ -89,6 +89,7 @@ def create (node=None, name=None,
     - viewer = 'Result Plotter'   (default)
     - viewer = 'Collections Plotter'
     - viewer = 'History Plotter'
+    - viewer = 'QuickRef Display'
     - viewer = 'ParmFiddler'
     - viewer = 'Record Browser'
     - viewer = 'Executor'

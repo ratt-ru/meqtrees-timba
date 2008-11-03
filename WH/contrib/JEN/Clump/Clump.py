@@ -16,6 +16,7 @@ by the user via the menus.
 #
 # History:
 #   - 25 oct 2008: creation
+#   - 03 nov 2008: added class LeafClump
 #
 # Description:
 #
@@ -83,7 +84,6 @@ class Clump (object):
       kwargs.setdefault('name', None)
       kwargs.setdefault('qual', None)
       kwargs.setdefault('kwqual', dict())
-      kwargs.setdefault('treequals', None)
       kwargs.setdefault('ns', None)
       kwargs.setdefault('TCM', None)
       kwargs.setdefault('select', None)
@@ -100,47 +100,12 @@ class Clump (object):
       self._qual = kwargs['qual']  
       self._kwqual = kwargs['kwqual']
 
-      # The 'size' of the Clump (i.e. the number of its trees)
-      # is defined by the list of tree qualifiers:
-      # NB: This is NOT necessarily the number of nodes.
-      tqs = kwargs['treequals']
-      if tqs==None:                      # not specified
-         self._treequals = None    
-      elif isinstance(tqs,tuple):        # tuple -> list
-         self._treequals = list(tqs)
-      elif not isinstance(tqs,list):     # assume str or numeric?
-         self._tqs = [tqs]               # make a list of one
-      else:                              # tqs is a list
-         self._treequals = tqs           # just copy the list
-
       # Organising principles:
       self._ns = kwargs['ns']
       if kwargs['ns']: kwargs['ns'] = True
       self._TCM = kwargs['TCM']
       if kwargs['TCM']: kwargs['TCM'] = True
 
-      #......................................................................
-      # Make sure of the Clump node definition attributes:
-      # First transfer information from the input Clump (if supplied).
-      self.transfer_clump_definition(clump, trace=trace)
-
-      # Then supply local defaults for some attributes that have not been
-      # defined yet (i.e. in the case that there is no input Clump):
-
-      if not isinstance(self._name,str):       
-         self._name = self._typename           # e.g. 'Clump'    
-         global clump_counter
-         clump_counter += 1
-         self._name += str(clump_counter)      # automatic name
-
-      if not self._ns:
-         self._ns = NodeScope()      
-
-      if not self._TCM:               
-         self._TCM = TOM.TDLOptionManager(self._name)
-
-      if self._treequals==None:
-         self._treequals = range(3)            # for testing
       #......................................................................
 
       # ....??
@@ -167,38 +132,53 @@ class Clump (object):
       self._submenucounter = -1
 
       #......................................................................
+      # Make sure of the Clump node definition attributes:
+      # First transfer information from the input Clump (if supplied).
+      # Then supply local defaults for some attributes that have not been
+      # defined yet (i.e. in the case that there is no input Clump):
+      #......................................................................
+
+      self.transfer_clump_definition(clump, trace=trace)
+
+      if not isinstance(self._name,str):       
+         self._name = self._typename           # e.g. 'Clump'    
+
+      global clump_counter
+      clump_counter += 1
+      self._name += str(clump_counter)
+
+      ident = self._typename+'_'+self._name
+      if not self._TCM:               
+         self._TCM = TOM.TDLOptionManager(ident)
+      if self._input_clump: 
+         self._TCM.start_of_submenu(ident)
+
+      if not self._ns:
+         self._ns = NodeScope()      
+
+      # The tree nodes may be 'composed' into a single tensor node.
+      # In that case, the following node qualifier will be used.
+      self._tensor_qual = 'tensor'+str(len(self._treequals))
+
+      #......................................................................
       # Fill self._nodes (the Clump tree nodes) etc.
       #......................................................................
 
       # The list of actual Clump tree nodes, and their qualifiers:
       # (if self._composed, both lists have length one.)
-      self._nodequals = self._treequals
-      self._nodes = []
-
-      # The nodes may be composed into a single tensor node.
-      # In that case, the following qualifier will be used.
-      # The list self._nodequals always has the same length as self._nodes.
-      self._tensor_qual = 'tensor'+str(len(self._treequals))
-      self._composed = False                    # see .compose() and .decompose()
-
-      # The following bit guarantees that .make_leaf_nodes() does not have to be
-      # re-implemented for non-leaf Clumps, while still keeping the possibility
-      # if leaf Clumps that only use the input Clump for definition information
-      # (i.e. self._treequals, not its tree nodes):
-      key = 'leaf'
-      self._object_is_selected = True           # default: selected (..?)     
-      if kwargs.has_key(key):                   # Explicit keyword 'leaf=True/False'
-         if kwargs[key]:                        # leaf==True
-            self.make_leaf_nodes(**kwargs)
-         else:                                  # leaf=False (...?)
-            self.transfer_clump_nodes(**kwargs) # Assume input Clump (error if not)
-            self.make_object_selection_submenu(**kwargs)
-      elif self._input_clump:                   # An input Clump has been supplied                     
-         self.transfer_clump_nodes(**kwargs)      
-         self.make_object_selection_submenu(**kwargs)
+      if self._input_clump:
+         self.transfer_clump_nodes(**kwargs)
       else:
-         self.make_leaf_nodes(**kwargs)
+         self._nodes = []                       # nodes (separate or composed)
+         self._nodequals = self._treequals      # node qualifiers
+         self._composed = False                 # see .compose() and .decompose()
 
+      # Execute the main function of the Clump object.
+      # This function is re-implemented in derived Clump classes.
+      self._object_is_selected = True           # default: selected (..?)     
+      self.main(**kwargs)
+
+      # Some final checks:
       if len(self._nodes)==0:
          s = '\n** No tree nodes in: '+self.oneliner(),'\n'
          raise ValueError,s
@@ -216,20 +196,26 @@ class Clump (object):
       Most attributes are transferred ONLY if not yet defined
       Some attributes (like self._treequals) are transferred always(!)
       """
+      trace = True
+      if trace:
+         print '\n** transfer_clump_definition(): clump=',type(clump)
+
       self._input_clump = clump
       if isinstance(clump,type(self)):
          # Most attributes are transferred ONLY if not yet defined
          # (e.g. by means of the input **kwargs (see .__init__())
-         if self._ns==None:
-            self._ns = clump._ns
-         if self._TCM==None:
-            self._TCM = clump._TCM
          if not isinstance(self._name,str):
             self._name = '('+clump._name+')'
          if self._qual==None:
             self._qual = clump._qual
          if self._kwqual==None:
             self._kwqual = clump._kwqual
+         if self._ns==None:
+            self._ns = clump._ns
+         if self._TCM==None:
+            self._TCM = clump._TCM
+            # self._TCM.current_menu_key(trace=trace)
+            # self._TCM.current_menu_level(trace=trace)
          # Some attributes are transferred always(!):
          self._treequals = clump._treequals
       return True
@@ -279,53 +265,30 @@ class Clump (object):
       return self
 
    #==========================================================================
-   # The function that fills this object with (initial) tree nodes.
-   # (either from the input Clump object, or with leaf nodes of some kind.)
+   # Placeholder for the main function of the Clump object.
+   # (to be re-implemented in derived classes)
    #==========================================================================
 
-   def make_leaf_nodes (self, **kwargs):
-      """Fill self._nodes with initial nodes.
-      Called from self.__init__() only.
-      Place-holder: To be re-implemented for derived 'leaf' Clump classes.
-      (This is NOT necessary for 'non-leaf' Clump classes, i.e. the ones that
-      continue with the tree nodes of an input Clump. This is the majority).
+   def main (self, **kwargs):
       """
-      kwargs['select'] = True
-      prompt = self._typename+' '+self._name
-      help = 'make leaf nodes for: '+self.oneliner()
-      ctrl = self.on_entry(self.make_leaf_nodes,
-                           prompt, help, **kwargs)
-
-      # Execute always, to ensure that the leaf Clump has nodes:
-      if self.execute_body(always=True):              
-         self._nodes = []
-         stub = self.unique_nodestub('const')
-         for i,qual in enumerate(self._nodequals):
-            v = float(i)
-            node = stub(c=v)(qual) << Meq.Constant(v)
-            self._nodes.append(node)
-         self.end_of_body(ctrl)
-         
-      return self.on_exit(ctrl)
-
-   #----------------------------------------------------------------------
-
-   def make_object_selection_submenu (self, **kwargs):
-      """
-      Make a submenu for this Clump object, which can be used for selecting it.
-      This function is an alternative for .make_leaf_nodes().
-      Called from self.__init__() only.
+      The main function of this object, called from Clump.__init__().
+      It is a placeholder, to be re-implemented by derived classes. 
+      It has standard structure that is recommended for all such functions,
+      which has services like making a submenu for this Clump object,
+      which can be used for selecting it.
+      Actual re-implementations in derived classes may have a menu with options,
+      they usually have statements in the 'body' that generate nodes, and they
+      may return some result.
       """
       prompt = self._typename+' '+self._name
       help = '(de-)select: '+self.oneliner()
-      ctrl = self.on_entry(self.make_object_selection_submenu,
-                           prompt, help, **kwargs)
-      self._object_is_selected = False
+      ctrl = self.on_entry(self.main, prompt, help, **kwargs)
+      self._object_is_selected = False                          # <---- !!
       if self.execute_body():
          # NB: .execute_body() makes the menu, controlled by kwargs['select']
          self._object_is_selected = True
          self.end_of_body(ctrl)
-      return self.on_exit(ctrl)
+      return self.on_exit(ctrl, result=None)
 
 
    #=========================================================================
@@ -943,25 +906,42 @@ class Clump (object):
    # Visualization:
    #=========================================================================
 
+   def visualise (self, bookpage=None, folder=None, **kwargs):
+      """Make an inspector node for its nodes, and make a bookmark.
+      """
+      kwargs['select']=True
+      prompt = self._name+' visualise()'
+      help = 'Select various forms of Clump visualization'
+      ctrl = self.on_entry(self.visualise, prompt, help, **kwargs)
+
+      if self.execute_body():
+         self.inspector(select=True)
+         self.plot_clump(select=False)
+         self.plot_family(select=False)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
+   #---------------------------------------------------------------------
+
    def inspector (self, bookpage=None, folder=None, **kwargs):
       """Make an inspector node for its nodes, and make a bookmark.
       """
-      prompt = 'inspector()'
+      prompt = self._name+' inspector()'
       help = None
       ctrl = self.on_entry(self.inspector, prompt, help, **kwargs)
 
       if self.execute_body():
          bundle = self.bundle (name='inspector', qual=None,
                                combine='Composer', trace=False)
-         labels = []
-         for qual in self._treequals:
-            labels.append(str(qual))
-         bundle.initrec().plot_label = labels
+         bundle.initrec().plot_label = self._treequals     # list of strings!
          
          self._orphans.append(bundle)
          
          if not isinstance(bookpage,str):
-            bookpage = self._name
+            bookpage = 'Inspector'
+         if not isinstance(folder,str):
+            folder = self._name
          JEN_bookmarks.create(bundle,
                               name=bookpage, folder=folder,
                               viewer='Collections Plotter')
@@ -969,6 +949,153 @@ class Clump (object):
          
       return self.on_exit(ctrl)
 
+   #---------------------------------------------------------------------
+
+   def plot_clump (self, index='*', bookpage=None, folder=None,
+                   viewer='Result Plotter', **kwargs):
+      """Plot the specified (index) subset of the members of self._nodes
+      with the specified viewer [=Result Plotter=],
+      on the specified bookpage and folder.
+      """
+      prompt = self._name+' plot_clump()'
+      help = None
+      ctrl = self.on_entry(self.plot_clump, prompt, help, **kwargs)
+
+      if self.execute_body():
+         if not isinstance(bookpage,str):
+            bookpage = 'Clump['+str(index)+']'
+         nodes = []
+         for node in self._nodes:
+            nodes.append(node)
+         if not isinstance(folder,str):
+            folder = self._name
+         JEN_bookmarks.create(nodes,
+                              name=bookpage, folder=folder,
+                              viewer=viewer)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
+   #---------------------------------------------------------------------
+
+   def plot_family (self, index=0, recurse=2,
+               bookpage=None, folder=None,
+               viewer='Result Plotter', **kwargs):
+      """Plot the plot_family (parent, child(ren), etc) of the specified (index) tree node
+      down to the specified recursion level [=2]
+      with the specified viewer [=Result Plotter=],
+      on the specified bookpage and folder.
+      """
+      prompt = self._name+' plot_family()'
+      help = None
+      ctrl = self.on_entry(self.plot_family, prompt, help, **kwargs)
+
+      if self.execute_body():
+         if not isinstance(bookpage,str):
+            nodequal = self._nodequals[index]
+            bookpage = 'Family['+str(nodequal)+']'
+         if not isinstance(folder,str):
+            folder = self._name
+         JEN_bookmarks.create(self._nodes[index],
+                              recurse=recurse,
+                              name=bookpage, folder=folder,
+                              viewer=viewer)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
+
+#********************************************************************************
+#********************************************************************************
+
+class LeafClump(Clump):
+   """
+   Derived from class Clump. It is itself a base-class for all Clump-classes
+   that start with leaf-nodes, i.e. nodes that have no children.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class Clump.
+      """
+      # Make sure that a visible option/selection menu is generated
+      # for all LeafClump classes.
+      kwargs['select'] = True
+
+      # The 'size' of the Clump (i.e. the number of its trees, which
+      # is NOT necessarily the number of nodes, see self._composed)
+      # is defined by self._treequals, the list of tree qualifiers.
+      # If an input Clump is supplied (clump), the treequals list is
+      # copied from it. But if not, it may be specified by means of
+      # a keyword kwargs[treequals]. 
+      
+      kwargs.setdefault('treequals', None)
+      tqs = kwargs['treequals']          # convenience
+      if tqs==None:                      # treequals not specified
+         self._treequals = range(3)      # for testing
+      elif isinstance(tqs,tuple):        # tuple -> list
+         self._treequals = list(tqs)
+      elif not isinstance(tqs,list):     # assume str or numeric?
+         self._tqs = [tqs]               # make a list of one
+      else:                              # tqs is a list
+         self._treequals = tqs           # just copy the list
+
+      # Make sure that treequals are strings:
+      # (otherwise the inspector-labels give trouble).
+      for i,qual in enumerate(self._treequals):
+         self._treequals[i] = str(qual)
+         
+
+      # The following executes the function self.main(**kwargs),
+      # which is re-implemented below.
+      Clump.__init__(self, clump=clump, **kwargs)
+      return None
+
+   #-------------------------------------------------------------------------
+   # Specific re-implementations of some Clump functions.
+   #-------------------------------------------------------------------------
+
+   def show_specific(self):
+      """
+      Format the specific (non-generic) contents of the derived class.
+      Re-implementation of function in baseclass Clump.
+      """
+      ss = '\n + Specific (derived class '+str(self._typename)+'):'
+      return ss
+
+   #-------------------------------------------------------------------------
+
+   def newinstance(self, name=None, qual=None):
+      """Reimplementation of placeholder function in base-class Clump.
+      Make a new instance of this derived class (templateClump).
+      """
+      return LeafClump(clump=self, name=name, qual=qual)
+
+   #-------------------------------------------------------------------------
+   # Its main function:
+   #-------------------------------------------------------------------------
+
+   def main (self, **kwargs):
+      """Re-implementation of the place-holder function in class Clump.
+      It is itself a place-holder, to be re-implemented in classse derived
+      from LeafClump, to generate suitable leaf nodes.
+      This function is called in Clump.__init__().
+      """
+      prompt = self._typename+' '+self._name
+      help = 'make leaf nodes for: '+self.oneliner()
+      ctrl = self.on_entry(self.main, prompt, help, **kwargs)
+
+      # Execute always, to ensure that the leaf Clump has nodes:
+      if self.execute_body(always=True):              
+         self._nodes = []
+         stub = self.unique_nodestub('const')
+         for i,qual in enumerate(self._nodequals):
+            v = float(i)
+            node = stub(c=v)(qual) << Meq.Constant(v)
+            self._nodes.append(node)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
 
 
 
@@ -1034,13 +1161,17 @@ def do_define_forest (ns, TCM):
 
    # The function body:
    if TCM.submenu_is_selected():
-      cp = Clump(ns=ns, TCM=TCM, trace=True)
+      cp = LeafClump(ns=ns, TCM=TCM, trace=True)
       # cp.show('do_define_forest(creation)', full=True)
       cp.apply_unops('Cos', select=False, trace=True)
-      # cp.apply_unops('Sin', select=True, trace=True)
-      # cp.apply_unops('Exp', trace=True)
+      cp.apply_unops('Sin', select=True, trace=True)
+      cp.apply_unops('Exp', trace=True)
       cp.apply_binop('Add', 2.3, select=True, trace=True)
+      cp = Clump(cp, select=True).daisy_chain()
       # cp.inspector()
+      # cp.plot_clump()
+      # cp.plot_family()
+      # cp.visualise()               # make VisualClump class....?
       cp.rootnode()
       cp.show('do_define_forest()', full=True)
 
@@ -1057,7 +1188,7 @@ TCM = TOM.TDLOptionManager(__file__)
 enable_testing = False
 
 
-# enable_testing = True        # normally, this statement will be commented out
+enable_testing = True        # normally, this statement will be commented out
 if enable_testing:
    # This is the first pass (the second is inside _define_forest()) 
    cp = do_define_forest (ns=NodeScope(), TCM=TCM)
@@ -1083,7 +1214,7 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      cp = Clump(trace=True)
+      cp = LeafClump(trace=True)
       cp.show('creation', full=True)
 
    if 0:
@@ -1144,12 +1275,16 @@ if __name__ == '__main__':
       cp.show('.rootnode()')
       print '->',str(node)
 
-   if 1:
+   if 0:
       cp.show('final', full=True)
 
    if 1:
-      cp1 = Clump(cp, select=True).daisy_chain(trace=True)
-      cp1.show('daisy_chain()', full=True)
+      cp1 = Clump(cp, select=True)
+      cp1.show('cp1 = Clump(cp)', full=True)
+
+   if 0:
+      cp = Clump(cp, select=True).daisy_chain(trace=True)
+      cp.show('daisy_chain()', full=True)
 
    #-------------------------------------------------------------------
 

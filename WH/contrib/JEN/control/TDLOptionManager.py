@@ -632,15 +632,23 @@ class TDLOptionManager (object):
    #--------------------------------------------------------------------------
 
    def current_menu_key(self, trace=False):
-      """Return the (defrec) key of the current submenu"""
-      return self._current_menurec['key']
+      """Return the (defrec) key of the current submenu
+      """
+      key = self._current_menurec['key']
+      if trace:
+         print '** TCM.current_menu_key =',key
+      return key
 
 
    def current_menu_level(self, trace=False):
-      """Return the absolute level of the current submenu"""
+      """Return the absolute level of the current submenu
+      """
       key = self.current_menu_key()
       ss = key.split(self._keysep)
-      return len(ss)-1
+      level = len(ss)-1
+      if trace:
+         print '** TCM.current_menu_level =',level
+      return level
 
    #--------------------------------------------------------------------------
 
