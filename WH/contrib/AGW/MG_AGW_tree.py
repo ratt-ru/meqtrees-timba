@@ -41,7 +41,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.Meq import meqds
-from numarray import *
+import numpy
 
 # setup a bookmark for display of results.
 Settings.forest_state = record(bookmarks=[
@@ -74,7 +74,7 @@ def _define_forest (ns):
 # first create 2x2 polc
 # The 'polc' array will be used to store the coefficients a,b,c,d
 # for the polynomial fit in x and y (a +bx +cy +dxy) that we will do below
-  polc_array = zeros((2,2), Float64)
+  polc_array = numpy.zeros((2,2), numpy.float64)
 # initially we guess the coefficients a=1, and b,c,d = 0
   polc_array[0,0] = 1.0
 
