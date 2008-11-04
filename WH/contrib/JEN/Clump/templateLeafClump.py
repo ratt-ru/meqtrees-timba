@@ -87,18 +87,18 @@ class templateLeafClump(Clump.LeafClump):
 
 
    #==========================================================================
-   # The function .main() must be re-implemented for 'leaf' Clumps,
+   # The function .initexec() must be re-implemented for 'leaf' Clumps,
    # i.e. Clump classes that contain leaf nodes. An example is given below,
    # and may be canibalized for derived (leaf) Clump clases.
    #==========================================================================
 
-   def main (self, **kwargs):
+   def initexec (self, **kwargs):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
       prompt = self._typename+' '+self._name
       help = 'make leaf nodes for: '+self.oneliner()
-      ctrl = self.on_entry(self.main, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
       
       self._TCM.add_option('initype', ['const_real','const_complex',
                                        'parm',

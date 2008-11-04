@@ -87,10 +87,10 @@ class templateClump(Clump.LeafClump):
 
 
    #=========================================================================
-   # Re-implementation of its main function (called from Clump.__init__())
+   # Re-implementation of its initexec function (called from Clump.__init__())
    #=========================================================================
 
-   def main (self, **kwargs):
+   def initexec (self, **kwargs):
       """Re-implementation of the place-holder function in class Clump.
       It is itself a place-holder, to be re-implemented in derived classes.
       This function is called in Clump.__init__().
@@ -98,7 +98,7 @@ class templateClump(Clump.LeafClump):
       # kwargs['select'] = True          # optional: makes the function selectable     
       prompt = 'prompt'
       help = 'help'
-      ctrl = self.on_entry(self.main, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
 
       if self.execute_body():
          self._ns.example1 << Meq.Constant(1.9)
