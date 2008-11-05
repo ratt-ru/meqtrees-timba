@@ -4,28 +4,26 @@ import time
 from qt import *
 
 import Purr.Editors
-from Purr import Config,dprint,dprintf
-from Purr import PurrLogo
+from Purr import Config,pixmaps,dprint,dprintf
 
 class MainWindow (QMainWindow):
-  def __init__ (self,parent,purrer):
+  def __init__ (self,parent,purrer,hide_on_close=False):
     QMainWindow.__init__(self,parent);
+    self._hide_on_close = hide_on_close;
     self.purrer = purrer;
     self.setCaption("PURR");
-    self.setIcon(PurrLogo.purr_logo.pm());
+    self.setIcon(pixmaps.purr_logo.pm());
     cw = QWidget(self);
     self.setCentralWidget(cw);
     cwlo = QVBoxLayout(cw);
     cwlo.setMargin(5);
-    # logo.setPixmap(PurrLogo.purr_logo.pm());
-    # toplo.addWidget(logo);
     about_btn = QPushButton("About PURR...",cw);
     about_btn.setFlat(True);
-    about_btn.setIconSet(PurrLogo.purr_logo.iconset());
+    about_btn.setIconSet(pixmaps.purr_logo.iconset());
     cwlo.addWidget(about_btn);
     self._about_dialog = QMessageBox("About PURR","",QMessageBox.NoIcon,
                         QMessageBox.Ok,QMessageBox.NoButton,QMessageBox.NoButton,cw);
-    self._about_dialog.setIconPixmap(PurrLogo.purr_logo.pm()); 
+    self._about_dialog.setIconPixmap(pixmaps.purr_logo.pm()); 
     self.connect(about_btn,SIGNAL("clicked()"),self._about_dialog.exec_loop);
     cwlo.addSpacing(5);
     self.wwatchbtn = QCheckBox("pounce on new/updated files",cw);
@@ -87,6 +85,14 @@ class MainWindow (QMainWindow):
     sz = ev.size();
     Config.set('main-window-width',sz.width());
     Config.set('main-window-height',sz.height());
+    
+  def closeEvent (self,ev):
+    if self._hide_on_close:
+      ev.ignore();
+      self.hide();
+      self.new_entry_dialog.hide();
+    else:
+      return QMainWindow.closeEvent(self,ev);
     
   def setLogTitle (self,title):
     self.logtitle = title or "Unnamed";
@@ -177,6 +183,7 @@ class MainWindow (QMainWindow):
     dprint(2,"new data products:",[dp.filename for dp in dps]);
     if self.new_entry_dialog.addDataProducts(dps):
       dprint(2,"showing dialog");
+      self.show();
       self.new_entry_dialog.show();
       
   def _make_time_label (self,timestamp):

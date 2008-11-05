@@ -34,6 +34,7 @@ import Meow
 from Meow import Bookmarks,Context
 import Meow.StdTrees
 import Calico.Flagger
+import Purr.Purrer
 
 try:
   import qt
@@ -87,8 +88,15 @@ def progress_callback (current,total):
 
 def _sigchild_handler (signal,frame):
   # check if glish process has exited
+  global glish_pid;
+  print "got SIGCHILD";
   if glish_pid:
-    pid,stat = os.waitpid(glish_pid,os.WNOHANG);
+    try:
+      pid,stat = os.waitpid(glish_pid,os.WNOHANG);
+    except:
+      print "waitpid exception";
+      return;
+    print pid,stat;
     if pid: 
       glish_pid = None;
       # re-enable the relevant options
@@ -155,11 +163,13 @@ def run_autoflagger (mqs,parent,**kw):
   else:
     plotdev = False;
   # install a SIGCHLD handler if needed
+  global sigchld_handler_installed;
   if not sigchld_handler_installed:
     old_sigchld_handler = signal.signal(signal.SIGCHLD,_sigchild_handler);
     sigchld_handler_installed = True;
   # pop up status window
   if qt and parent:
+    global autoflag_msgbox;
     if not autoflag_msgbox:
       autoflag_msgbox = qt.QMessageBox("Running autoflag","",qt.QMessageBox.Information,
                                   qt.QMessageBox.Ok,qt.QMessageBox.NoButton,qt.QMessageBox.NoButton,
@@ -174,6 +184,7 @@ def run_autoflagger (mqs,parent,**kw):
   # run the autoflagger
   for opt in ms_job_options:
     opt.disable();
+  global glish_pid;
   glish_pid = af.run(plotdev=plotdev,devfile=autoflag_plotdev_file,         # plotscr=plotscr,
                       reset=autoflag_reset,trial=autoflag_trial,wait=False);
 
@@ -446,6 +457,8 @@ TDLRuntimeMenu("Get flag statistics",
 
 
 def _define_forest(ns,parent=None,**kw):
+  Purr.Purrer.run(parent,mssel.msname);
+  
   ANTENNAS = mssel.get_antenna_set(range(15));
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
   observation = Meow.Observation(ns);

@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import sys
 import signal
 from qt import *
@@ -7,8 +9,6 @@ import Timba.utils
 
 # runs Purr standalone
 if __name__ == "__main__":
-   # tell verbosity class to not parse argv -- we do it ourselves here
-  Timba.utils.verbosity.disable_argv(); 
   # parse options is the first thing we should do
   from optparse import OptionParser
   usage = "usage: %prog [options] <directories to watch>"
@@ -39,5 +39,3 @@ if __name__ == "__main__":
   purrer.watchDirectories(dirnames);
   app.exec_loop(); 
   print "PURR exiting normally, goodbye!";
-
-  

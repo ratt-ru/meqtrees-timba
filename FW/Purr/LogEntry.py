@@ -6,7 +6,7 @@ import re
 import sets
 
 import Purr
-from Purr import dprint,dprintf;
+from Purr import dprint,dprintf
 
 class DataProduct (object):
   def __init__ (self,filename,policy="copy",comment="",rename=None,orig_filename=None,timestamp=None):

@@ -4,6 +4,10 @@ _verbosity = Timba.utils.verbosity(name="purr");
 dprint = _verbosity.dprint;
 dprintf = _verbosity.dprintf;
 
+import Timba.GUI.pixmaps 
+pixmaps = Timba.GUI.pixmaps.PixmapCache("purr");
+
+
 import Timba.Apps.config
 Config = Timba.Apps.config.section("Purr");
 
@@ -13,4 +17,4 @@ from Editors import *
 from Purrer import *
 
 import Parsers
-import PurrLogo
+

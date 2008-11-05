@@ -5,8 +5,7 @@ import os
 import os.path
 import sets
 
-from Purr import Config
-from Purr import PurrLogo
+from Purr import Config,pixmaps
 import Purr.LogEntry
 
 class LogEntryEditor (QWidget):
@@ -43,12 +42,21 @@ class LogEntryEditor (QWidget):
     lo_top.addWidget(self.wdplv);
     ndplv.addColumn("action");
     ndplv.setColumnAlignment(0,Qt.AlignHCenter);
-    ndplv.addColumn("filename");
-    ndplv.addColumn("rename");
+    ndplv.addColumn("filename",120);
+    ndplv.setColumnAlignment(1,Qt.AlignRight);
+    ndplv.addColumn("rename",120);
+    ndplv.setColumnAlignment(2,Qt.AlignRight);
     ndplv.addColumn("comment");
     ndplv.setSorting(-1);
+    # sort out resizing modes
+    ndplv.header().setMovingEnabled(False);
+    ndplv.header().setResizeEnabled(False,0);
     ndplv.setResizeMode(QListView.LastColumn);
+    # setup other properties of the listview
     ndplv.setAllColumnsShowFocus(True);
+    ndplv.setShowToolTips(True); 
+    ndplv.setDefaultRenameAction(QListView.Accept); 
+    ndplv.setSelectionMode(QListView.NoSelection);
     ndplv.header().show();
     ndplv.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
     self.connect(ndplv,SIGNAL("clicked(QListViewItem*,const QPoint &,int)"),self._lv_item_clicked);
@@ -57,7 +65,8 @@ class LogEntryEditor (QWidget):
     
   # The keys of this dict are valid DataProduct policies.
   # The values are the "next" polciy when cycling through
-  _policies = dict(copy="move",move="ignore",ignore="copy");
+  _policy_cycle = dict(copy="move",move="ignore",ignore="copy");
+  _policy_icons = dict(copy='copy',move='move',ignore='grey_round_cross');
     
   def reset (self):
     self.entry = self._timestamp = None;
@@ -71,10 +80,32 @@ class LogEntryEditor (QWidget):
     if not item:
       return;
     if column == 0:
-      item._policy = self._policies[item._policy];
-      item.setText(0,item._policy);
+      self._setItemPolicy(item,self._policy_cycle.get(item._policy,"copy"));
     elif column in [2,3]:
       item.startRename(column);
+      
+  def _setItemPolicy (self,item,policy):
+    item._policy = policy;
+    item.setText(0,policy);
+    pmname = self._policy_icons.get(item._policy);
+    pixmap = getattr(pixmaps,pmname,None);
+    if pixmap:
+      item.setPixmap(0,pixmap.pm());
+    else:
+      item.setPixmap(0,None);
+      
+  def _makeDPItem (self,dp,after):
+    item = QListViewItem(self.wdplv,after);
+    item._filename = dp.filename;
+    self._setItemPolicy(item,dp.policy);
+    item.setText(1,os.path.basename(dp.filename));
+    item.setText(2,os.path.basename(dp.rename or filename));
+    item.setText(3,dp.comment or "");
+    item.setRenameEnabled(2,True);
+    item.setRenameEnabled(3,True);
+    self.dpitems[dp.filename] = item;
+    return item;
+  
     
   def updateEntry (self,timestamp=None):
     """Updates entry object with current content of dialog. Creates new LogEntry if needed.
@@ -112,18 +143,6 @@ class LogEntryEditor (QWidget):
       item = self._makeDPItem(dp,item);
     self.setTimestamp(entry.timestamp);
     self.showColumn(0,False);
-  
-  def _makeDPItem (self,dp,after):
-    item = QListViewItem(self.wdplv,after);
-    item._filename = dp.filename;
-    item._policy = dp.policy;
-    item.setText(0,dp.policy);
-    item.setText(1,os.path.basename(dp.filename));
-    item.setText(2,os.path.basename(dp.rename or filename));
-    item.setRenameEnabled(2,True);
-    item.setRenameEnabled(3,True);
-    self.dpitems[dp.filename] = item;
-    return item;
   
   def addDataProducts(self,dps):
     # this flag will be set if any new files are added, or if existing
@@ -168,7 +187,6 @@ class NewLogEntryDialog (QDialog):
       QToolTip.__init__(self,parent);
       self.parent = parent;
     def maybeTip (self,pos):
-      print "maybetip",pos;
       parent = self.parent;
       if parent._has_tip:
         rect = QRect(pos.x()-20,pos.y()-20,40,40);
@@ -178,7 +196,7 @@ class NewLogEntryDialog (QDialog):
   def __init__ (self,parent,*args):
     QDialog.__init__(self,parent,*args);
     self.setCaption("PURR: New Log Entry");
-    self.setIcon(PurrLogo.purr_logo.pm());
+    self.setIcon(pixmaps.purr_logo.pm());
     self.setModal(False);
     # create pop-up tip
     self._has_tip = None;

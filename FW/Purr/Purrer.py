@@ -1,3 +1,8 @@
+# TODO:
+# - add default comment to default policies
+# - think of including verbatim code snippets in HTML
+# - tools can write to ".purr.newentry" to automatically pop up and populate the NewEntry dialog
+
 import sys
 import os
 import os.path
@@ -38,10 +43,11 @@ def make_pattern_list (patterns):
   
 
 class Purrer (QObject):
-  def __init__ (self,parent,dirname):
+  def __init__ (self,parent,dirname,hide_on_close=False):
     QObject.__init__(self,parent);
-    self._mainwin = Purr.MainWindow((isinstance(parent,QWidget) and parent) or None,self);
-    self._default_policies = {};
+    self._mainwin = Purr.MainWindow((isinstance(parent,QWidget) and parent) or None,
+                        self,hide_on_close=hide_on_close);
+    self._default_dp_props = {};
     self._dir_timestamps  = {};
     self._file_timestamps = {};
     self._new_dps = sets.Set();
@@ -69,6 +75,9 @@ class Purrer (QObject):
     
   def mainwin (self):
     return self._mainwin;
+  
+  def close (self):
+    self.mainwin().close();
   
   def loadDirectory (self,dirname):
     """Attaches Purr to a directory (typically, an MS), and loads content""";
@@ -198,17 +207,21 @@ class Purrer (QObject):
   def newLogEntry (self,entry):
     """This is called when a new log entry is created""";
     self.entries.append(entry);
-    entry.save(self.logdir);
-    self.timestamp = self.last_scan_timestamp;
-    self.save();
-    self.updatePoliciesFromEntry(entry);
+    QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
+    try:
+      entry.save(self.logdir);
+      self.timestamp = self.last_scan_timestamp;
+      self.save();
+      self.updatePoliciesFromEntry(entry);
+    finally:
+      QApplication.restoreOverrideCursor();
       
   def updatePoliciesFromEntry (self,entry):
     # populate default policies and renames based on entry list
     for dp in entry.dps:
       # add default policy
       basename = os.path.basename(dp.orig_filename or dp.filename);
-      self._default_policies[basename] = dp.policy,os.path.basename(dp.filename);
+      self._default_dp_props[basename] = dp.policy,os.path.basename(dp.filename),dp.comment;
       # add files to watch lists
       if dp.policy != 'ignore':
         self._file_timestamps[dp.orig_filename] = dp.timestamp;
@@ -216,7 +229,6 @@ class Purrer (QObject):
                   dp.orig_filename,time.strftime("%x %X",time.localtime(dp.timestamp)));
   
   def save (self):
-    # save index
     outfile = file(self.indexfile,"wt");
     Purr.Parsers.writeLogIndex(outfile,self.title,self.timestamp,self.entries);
     # now go through data products, and update our timestamp maps
@@ -228,12 +240,16 @@ class Purrer (QObject):
     self.entries = entries;
     self.mainwin().setEntries(self.entries);
     if save:
-      self.save();
+      QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
+      try: 
+        self.save();
+      finally:
+        QApplication.restoreOverrideCursor();
     # populate default policies and renames based on entry list
-    self._default_policies = {};
+    self._default_dp_props = {};
     for entry in entries:
       self.updatePoliciesFromEntry(entry);
-    dprint(4,"default policies:",self._default_policies);
+    dprint(4,"default policies:",self._default_dp_props);
       
   def _rescan (self):
     """Checks files and directories on watchlist for updates, rescans them for new data products""";
@@ -309,12 +325,29 @@ class Purrer (QObject):
     dps = [];
     for filename in newstuff:
       basename = os.path.basename(filename);
-      policy,rename = self._default_policies.get(basename,("copy",None));
-      dprintf(4,"%s: default policy is %s,%s\n",basename,policy,rename);
-      dps.append(Purr.DataProduct(filename,policy=policy,rename=rename));
+      policy,rename,comment = self._default_dp_props.get(basename,("copy",None,""));
+      dprintf(4,"%s: default policy is %s,%s,%s\n",basename,policy,rename,comment);
+      dps.append(Purr.DataProduct(filename,policy=policy,rename=rename,comment=comment));
     self.mainwin().newDataProducts(dps);
 
-def runSlaved (parent):
-  """Runs Purr as a slave of the given widget""";
-  pass;
+  _running_purr = _running_purr_dir = None;
+    
+  def run (parent,dirname):
+    """Runs Purr as a slave of the given widget""";
+    if Purrer._running_purr:
+      if dirname == Purrer._running_purr_dir:
+        return Purrer._running_purr;
+      else:
+        Purrer._running_purr.close();
+        Purrer._running_purr = None;
+    
+    dirnames = [ dirname,'.' ];
   
+    Purrer._running_purr = Purrer(parent,dirnames[0],hide_on_close=True);
+    Purrer._running_purr.mainwin().show();  
+    Purrer._running_purr.watchDirectories(dirnames);
+    Purrer._running_purr_dir = dirname;
+    
+    return Purrer._running_purr;
+
+  run = staticmethod(run);

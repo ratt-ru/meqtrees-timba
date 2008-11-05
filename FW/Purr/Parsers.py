@@ -48,8 +48,11 @@ def writeLogEntryIndex (fobj,entry,relpath="",full=False):
         dpattrs['relpath'] = relpath;
         dpattrs['basename'] = os.path.basename(dp.filename);
         fobj.write("""
-        <P><A CLASS="DP" HREF="%(relpath)s%(filename)s" ORIG="%(orig_filename)s" POLICY="%(policy)s" TIMESTAMP=%(timestamp)d>%(basename)s</A>:
-          <A CLASS="DPCOMMENT">%(comment)s</A></P>\n"""%dpattrs);
+        <P><A CLASS="DP" HREF="%(relpath)s%(filename)s" ORIG="%(orig_filename)s" POLICY="%(policy)s" TIMESTAMP=%(timestamp)d>%(basename)s</A>"""%dpattrs);
+        if dp.comment:
+          fobj.write(""": <A CLASS="DPCOMMENT">%s</A></P>\n"""%dp.comment);
+        else:
+          fobj.write("</P>\n");
   # write footer
   if full:
     fobj.write("</BODY></HTML>\n");
