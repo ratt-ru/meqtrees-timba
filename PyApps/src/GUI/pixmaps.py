@@ -3012,6 +3012,9 @@ __icons_loaded = False;
 def load_icons (appname):
   """load all icons found in path, subdirs 'icons/appname'""";
   # loop over system path
+  global __icons_loaded;
+  if __icons_loaded:
+    return;
   for path in sys.path:
     path = path or '.';
     # for each entry, try <entry>/icons/<appname>'
@@ -3052,3 +3055,56 @@ class __PixmapHook(object):
     return globals().setdefault(name,QPixmapWrapper());
 
 pixmaps = __PixmapHook();
+
+# define a Pixmap cache
+class PixmapCache (object):
+  def __init__ (self,appname):
+    self._appname = appname;
+    self._loaded = None;
+    self._pixmaps = {};
+    
+  def __getattr__(self,name):
+    # try to access attribute anyway, to see if we have one
+    try: return dict.__getattr__(self,name);
+    except AttributeError: pass;
+    # try to load pixmaps
+    self._load();
+    # try to access pixmap
+    pm = self._pixmaps.get(name,None);
+    if pm:
+      return pm;
+    else:
+      raise AttributeError,"no such pixmap: %s"%name;
+    
+  def _load (self):
+    """load all icons found in path, subdirs 'icons/appname'""";
+    # loop over system path
+    if self._loaded:
+      return;
+    for path in sys.path:
+      path = path or '.';
+      # for each entry, try <entry>/icons/<appname>'
+      trydir = os.path.join(path,'icons',self._appname);
+      _dprint(3,'trying icon path',trydir);
+      try: files = os.listdir(trydir);
+      except: continue;
+      _dprint(3,len(files),'entries in',trydir);
+      # loop over all files
+      nicons = 0;
+      for f in files:
+        (name,ext) = os.path.splitext(f);     # check extension
+        if ext in ('.png','.xpm','.gif'):
+          f = os.path.join(trydir,f);
+          try: pm = QPixmap(f);
+          except: 
+            _dprint(3,'error loading icon',name,sys.exc_value());
+            continue;
+          # register pixmap 
+          self._pixmaps[name] = QPixmapWrapper(pm);
+          nicons += 1;
+          _dprint(4,'loaded icon',f);
+        else:
+          _dprint(4,'ignoring entry',f);
+      _dprint(1,nicons,'icons loaded from ',trydir);
+      self._loaded = True;
+

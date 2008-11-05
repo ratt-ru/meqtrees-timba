@@ -64,6 +64,8 @@ ln-s ../../../PyApps/src/tdlrun.py
 ln-s ../../../PyApps/src/trut
 ln-s ../../../PyApps/src/trutify
 ln-s ../../../PyApps/src/trut.py
+ln-s ../../../FW/Purr/purr.py
+
 
 if [ -f meqserver-mpi ]; then
   echo "meqserver-mpi exists";
@@ -89,6 +91,7 @@ cd python
 ln-s ../../../../FW/Meow
 ln-s ../../../../FW/Siamese
 ln-s ../../../../FW/Calico
+ln-s ../../../../FW/Purr
 ln-s ../../../../PyApps/src/meqbrowser.py
 makedir Timba
 cd Timba
@@ -124,3 +127,8 @@ ln-s ../../../../../PyApps/src/TDL
 ln-s ../../../../../PyApps/src/Trees
 ln-s ../../../../../PyApps/src/Trut
 ln-s ../../../../../OCTOPython/src/utils.py
+cd ..
+makedir icons
+cd icons
+ln -s ../../../../../PyApps/src/icons/treebrowser
+ln -s ../../../../../FW/Purr/icons/purr

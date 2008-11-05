@@ -662,7 +662,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       
   def _sigchld_handler (self,sig,stackframe):
     _dprint(0,'got signal',sig);
-    wstat = os.waitpid(-1,os.WNOHANG);
+    try:
+      wstat = os.waitpid(-1,os.WNOHANG);
+    except:
+      return;
     if wstat:
       (pid,st) = wstat;
       if not pid:   # pid 0 means we got a STOP/CONT signal, ignore
