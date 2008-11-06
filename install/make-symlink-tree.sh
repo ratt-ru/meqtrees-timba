@@ -130,5 +130,5 @@ ln-s ../../../../../OCTOPython/src/utils.py
 cd ..
 makedir icons
 cd icons
-ln -s ../../../../../PyApps/src/icons/treebrowser
-ln -s ../../../../../PyApps/src/icons/purr
+ln-s ../../../../../PyApps/src/icons/treebrowser
+ln-s ../../../../../PyApps/src/icons/purr
