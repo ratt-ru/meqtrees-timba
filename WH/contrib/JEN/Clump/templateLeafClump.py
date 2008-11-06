@@ -52,6 +52,7 @@ import math                 # support math.cos() etc
 # import numpy                # support numpy.cos() etc
 
 
+
 #********************************************************************************
 #********************************************************************************
 
@@ -136,79 +137,28 @@ class templateLeafClump(Clump.LeafClump):
 
 #********************************************************************************
 #********************************************************************************
-# Standalone forest (i.e. not part of QuickRef.py) of this QR_module.
-# Just load it into the browser, and compile/execute it.
+# Function called from _define_forest() in ClumpExec.py
 #********************************************************************************
 #********************************************************************************
-
-
-def _define_forest (ns, **kwargs):
-   """The expected function just calls do_define_forest() for its second pass.
-   For the first pass, see elsewhere in this module.
-   """
-   if not enable_testing:
-      print '\n**************************************************************'
-      print '** templateLeafClump: _define_forest(): testing not enabled yet!!'
-      print '**************************************************************\n'
-      return False
-
-   # Remove any bookmarks that were generated in the first pass:
-   Settings.forest_state.bookmarks = []
-
-   # The second pass through do_define_forest():
-   # NB: NO TDLOptions are generated after this pass.
-   do_define_forest (ns, TCM=Clump.TOM.TDLOptionManager(TCM))       
-
-   # Generate at least one node (just in case):
-   node = ns.dummy << 1.0
-
-   return True
-
-#---------------------------------------------------------------
-
-def _tdl_job_execute (mqs, parent):
-    """Execute the forest, starting at the node 'rootnode'
-    """
-    # domain = meq.domain(1.0e8,1.1e8,1,10)                            # (f1,f2,t1,t2)
-    domain = meq.domain(1,10,-10,10)                            # (f1,f2,t1,t2)
-    cells = meq.cells(domain, num_freq=11, num_time=21)
-    request = meq.request(cells, rqtype='ev')
-    result = mqs.meq('Node.Execute',record(name='rootnode', request=request))
-    return result
-       
-#------------------------------------------------------------------------------
-
 
 def do_define_forest (ns, TCM):
-   """The function that does the actual work for _define_forest()
-   It is used twice, outside and inside _define_forest() 
+   """
+   Testing function for the class(es) in this module.
+   It is called by ClumpExec.py
    """
    submenu = TCM.start_of_submenu(do_define_forest)
 
+   cp = None
    if TCM.submenu_is_selected():
       cp = templateLeafClump(ns=ns, TCM=TCM, trace=True)
-      cp.inspector()
-      cp.rootnode()
-      # cp.show('do_define_forest', full=True)
+      cp.visualize()
 
    # The LAST statement:
    TCM.end_of_submenu()
-   return True
+   return cp
 
-#------------------------------------------------------------------------------
 
-# This bit is executed whenever the module is imported (blue button etc)
 
-itsTDLCompileMenu = None
-TCM = Clump.TOM.TDLOptionManager(__file__)
-enable_testing = False
-
-enable_testing = True        # normally, this statement will be commented out
-if enable_testing:
-   cp = do_define_forest (NodeScope(), TCM=TCM)
-   itsTDLCompileMenu = TCM.TDLMenu(trace=False)
-
-   
 
 #********************************************************************************
 #********************************************************************************
