@@ -78,6 +78,9 @@ import Timba.utils
 #from Timba.GUI.pixmaps import pixmaps
 #app_proxy_gui.set_splash_screen(pixmaps.trees_splash.pm,"Starting MeqTimba Brower");
 
+# ugly, but for some reason Purr objects to being imported from within TDL
+try: import Purr
+except: pass;
 
 def importPlugin (name):
   name = 'Timba.Plugins.'+name;

@@ -64,7 +64,7 @@ ln-s ../../../PyApps/src/tdlrun.py
 ln-s ../../../PyApps/src/trut
 ln-s ../../../PyApps/src/trutify
 ln-s ../../../PyApps/src/trut.py
-ln-s ../../../FW/Purr/purr.py
+ln-s ../../../PyApps/src/Purr/purr.py
 
 
 if [ -f meqserver-mpi ]; then
@@ -91,7 +91,7 @@ cd python
 ln-s ../../../../FW/Meow
 ln-s ../../../../FW/Siamese
 ln-s ../../../../FW/Calico
-ln-s ../../../../FW/Purr
+ln-s ../../../../PyApps/src/Purr
 ln-s ../../../../PyApps/src/meqbrowser.py
 makedir Timba
 cd Timba
@@ -131,4 +131,4 @@ cd ..
 makedir icons
 cd icons
 ln -s ../../../../../PyApps/src/icons/treebrowser
-ln -s ../../../../../FW/Purr/icons/purr
+ln -s ../../../../../PyApps/src/icons/purr

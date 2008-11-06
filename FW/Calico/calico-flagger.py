@@ -34,6 +34,7 @@ import Meow
 from Meow import Bookmarks,Context
 import Meow.StdTrees
 import Calico.Flagger
+import Purr
 import Purr.Purrer
 
 try:
@@ -45,6 +46,7 @@ except:
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,read_flags=True,has_output=False,tile_sizes=[10,100,200]);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
+TDLCompileOption("run_purr","Start Purr on this MS",True);
 
 # add a subset selector for the "flag subset" option
 flag_subset = mssel.make_subset_selector('mssel_flag');
@@ -89,14 +91,12 @@ def progress_callback (current,total):
 def _sigchild_handler (signal,frame):
   # check if glish process has exited
   global glish_pid;
-  print "got SIGCHILD";
   if glish_pid:
     try:
       pid,stat = os.waitpid(glish_pid,os.WNOHANG);
     except:
-      print "waitpid exception";
-      return;
-    print pid,stat;
+      # glish is already dead, but someone else reaped it for us...
+      pid,stat = 0,0;
     if pid: 
       glish_pid = None;
       # re-enable the relevant options
@@ -457,7 +457,8 @@ TDLRuntimeMenu("Get flag statistics",
 
 
 def _define_forest(ns,parent=None,**kw):
-  Purr.Purrer.run(parent,mssel.msname);
+  if run_purr:
+    Purr.run(parent,mssel.msname);
   
   ANTENNAS = mssel.get_antenna_set(range(15));
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);

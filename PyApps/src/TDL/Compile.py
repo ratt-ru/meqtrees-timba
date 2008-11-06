@@ -44,8 +44,25 @@ _dbg = verbosity(0,name='tdlc');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
 
-# this holds a list of all modules imported from TDL scripts
+# this holds a list or set of all modules imported from TDL scripts
 _tdlmodlist = [];
+# this hold the set of all modules imported before a script is compiled
+_prior_compile_modules = sets.Set();
+
+def _update_modlist ():
+  """updates the list of modules imported since _prior_compile_modules
+  was set up. Stores this in _tdlmodlist""";
+  global _tdlmodlist;
+  global _prior_compile_modules;
+  _tdlmodlist = sets.Set(sys.modules.iterkeys()) - _prior_compile_modules;
+  modlist = list(_tdlmodlist);
+  modlist.sort();
+  _dprint(1,'TDL run imported',len(_tdlmodlist),"modules:",modlist);
+  _tdlmodlist = sets.Set([name for name in _tdlmodlist 
+                          if not getattr(sys.modules[name],'_tdl_no_reimport',False)]);
+  modlist = list(_tdlmodlist);
+  modlist.sort();
+  _dprint(1,'of which',len(_tdlmodlist),"modules are re-importable:",modlist);
 
 # this is information about ourselves
 _MODULE_FILENAME = Timba.utils.extract_stack()[-1][0];
@@ -90,7 +107,8 @@ def import_tdl_module (filename,text=None):
       try: del sys.modules[m];
       except KeyError: pass;
     # remember which modules are imported
-    prior_mods = sets.Set(sys.modules.keys());
+    global _prior_compile_modules;
+    _prior_compile_modules = sets.Set(sys.modules.iterkeys());
     modname = '__tdlruntime';
     try:
       TDLOptions.enable_save_config(False);
@@ -101,8 +119,7 @@ def import_tdl_module (filename,text=None):
       TDLOptions.save_config();
       imp.release_lock();
       infile.close();
-      _tdlmodlist = sets.Set(sys.modules.keys()) - prior_mods;
-      _dprint(1,'TDL run imported',_tdlmodlist);
+      _update_modlist();
     return (_tdlmod,text);
     
   # CumulativeError exceptions returned as is  
@@ -165,6 +182,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     predefine_func = getattr(tdlmod,'_tdl_predefine',None);
     if callable(predefine_func):
       predef_result = predefine_func(mqs,parent,**predef_args);
+      _update_modlist();
     else:
       predef_result = None;
     # inspect the define function to support older scripts that only
@@ -185,6 +203,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       args = {};
     # call the define function
     define_func(ns,**args);
+    _update_modlist();
     # resolve the nodescope
     ns.Resolve();
     # do we have an error list? show it
@@ -221,6 +240,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     postdefine_func = getattr(tdlmod,'_tdl_postdefine',None);
     if callable(postdefine_func):
       res = postdefine_func(mqs,parent,**postdef_args);
+      _update_modlist();
       if isinstance(res,str):
         msg += "\n" + res;
 
@@ -229,6 +249,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     return (tdlmod,ns,msg);
   # CumulativeError exceptions returned as is  
   except TDL.CumulativeError:
+    _update_modlist();
     TDLOptions.enable_save_config(True);
     TDLOptions.save_config();
     _dprint(0,'cumulative error defining forest from TDL file:',filename);
@@ -240,6 +261,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
   # Other exceptions wrapped in a CumulativeError, and
   # location information is added in
   except:
+    _update_modlist();
     TDLOptions.enable_save_config(True);
     TDLOptions.save_config();
     (etype,exc,tb) = sys.exc_info();
@@ -250,6 +272,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     ns.AddError(exc,traceback.extract_tb(tb),error_limit=None);
     # re-raise as a CumulativeError
     raise TDL.CumulativeError(*ns.GetErrors());
+
     
     
 def compile_file (mqs,filename,text=None,parent=None,wait=True,
