@@ -44,7 +44,7 @@ TEXT_RAD  = "text file (rad)";
 TEXT_DMS  = "text file (hms/dms)";
 VIZIER = "VizieR file";
 OR_GSM = "OR_GSM file";
-SKA = "Jarvis SKA file";
+SKA = "SKA model catalog file";
 
 class MeowLSM (object):
   def __init__ (self,filename=None,format=NATIVE,include_options=True,option_namespace='lsm'):
