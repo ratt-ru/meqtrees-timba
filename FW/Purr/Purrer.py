@@ -1,5 +1,8 @@
+_tdl_no_reimport = True;
+
 # TODO:
-# - add default comment to default policies
+# - move Purr to PyApps, integrate into browser
+#   - will need to provide TDLGUI services to TDL scripts
 # - think of including verbatim code snippets in HTML
 # - tools can write to ".purr.newentry" to automatically pop up and populate the NewEntry dialog
 
@@ -44,7 +47,7 @@ def make_pattern_list (patterns):
 
 class Purrer (QObject):
   def __init__ (self,parent,dirname,hide_on_close=False):
-    QObject.__init__(self,parent);
+    QObject.__init__(self);
     self._mainwin = Purr.MainWindow((isinstance(parent,QWidget) and parent) or None,
                         self,hide_on_close=hide_on_close);
     self._default_dp_props = {};
@@ -78,6 +81,9 @@ class Purrer (QObject):
   
   def close (self):
     self.mainwin().close();
+    # delete main window
+    dum = QWidget();
+    self.mainwin().reparent(dum,0,QPoint());
   
   def loadDirectory (self,dirname):
     """Attaches Purr to a directory (typically, an MS), and loads content""";
@@ -330,24 +336,30 @@ class Purrer (QObject):
       dps.append(Purr.DataProduct(filename,policy=policy,rename=rename,comment=comment));
     self.mainwin().newDataProducts(dps);
 
-  _running_purr = _running_purr_dir = None;
-    
+  _running_purr = None;
+  
   def run (parent,dirname):
     """Runs Purr as a slave of the given widget""";
-    if Purrer._running_purr:
-      if dirname == Purrer._running_purr_dir:
-        return Purrer._running_purr;
-      else:
-        Purrer._running_purr.close();
-        Purrer._running_purr = None;
+    # Find out if Purr is already running on this dirname.
+    # We can't use global variables for this, since (if we're called from within TDL) 
+    # everything gets re-imported by TDL, so investigate parent instead.
+    purr = Purrer._running_purr;
+    if purr:
+      if purr.dirname == dirname:
+        dprint(1,"already running Purr on",dirname,"showing windows");
+        purr.mainwin().show();
+        return purr;
+      dprint(1,"Purr running on",purr.dirname,"closing");
+      purr.close();
+      Purrer._running_purr = None;
     
     dirnames = [ dirname,'.' ];
   
-    Purrer._running_purr = Purrer(parent,dirnames[0],hide_on_close=True);
-    Purrer._running_purr.mainwin().show();  
-    Purrer._running_purr.watchDirectories(dirnames);
-    Purrer._running_purr_dir = dirname;
+    dprint(1,"Starting new Purr on",dirname);
+    purr = Purrer._running_purr = Purrer(parent,dirnames[0],hide_on_close=True);
+    purr.mainwin().show();  
+    purr.watchDirectories(dirnames);
     
-    return Purrer._running_purr;
+    return purr;
 
   run = staticmethod(run);

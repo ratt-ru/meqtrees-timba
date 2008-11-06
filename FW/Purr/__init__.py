@@ -1,3 +1,5 @@
+_tdl_no_reimport = True;
+
 # init debug printing
 import Timba.utils
 _verbosity = Timba.utils.verbosity(name="purr");
@@ -15,6 +17,7 @@ from LogEntry import DataProduct,LogEntry
 from MainWindow import MainWindow
 from Editors import *
 from Purrer import *
-
 import Parsers
+
+run = Purrer.run
 

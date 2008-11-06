@@ -1,3 +1,5 @@
+_tdl_no_reimport = True;
+
 import time
 import os.path
 from HTMLParser import HTMLParser

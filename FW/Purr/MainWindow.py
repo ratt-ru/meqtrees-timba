@@ -1,3 +1,5 @@
+_tdl_no_reimport = True;
+
 import os.path
 import time
 

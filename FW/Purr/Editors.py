@@ -1,3 +1,4 @@
+_tdl_no_reimport = True;
 
 from qt import *
 import time
