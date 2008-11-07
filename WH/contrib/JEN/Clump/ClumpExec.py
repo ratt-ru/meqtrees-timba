@@ -52,13 +52,15 @@ import math                 # support math.cos() etc
 
 #==============================================================================
 # Import a ClumpClass to be used in the 2-pass system:
+# NB: Un-commenting more than one is OK. ClumpClass refers to the last one.
 #==============================================================================
 
 
 
-# from Timba.Contrib.JEN.Clump import Clump as ClumpClass
+from Timba.Contrib.JEN.Clump import Clump as ClumpClass 
+
 # from Timba.Contrib.JEN.Clump import templateClump as ClumpClass
-from Timba.Contrib.JEN.Clump import templateLeafClump as ClumpClass
+# from Timba.Contrib.JEN.Clump import templateLeafClump as ClumpClass
 
 # from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
 # from Timba.Contrib.JEN.Clump import templateParmClump as ClumpClass

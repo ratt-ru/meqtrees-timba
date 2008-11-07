@@ -96,9 +96,7 @@ class templateClump(Clump.LeafClump):
       This function is called in Clump.__init__().
       """
       # kwargs['select'] = True          # optional: makes the function selectable     
-      prompt = 'prompt'
-      help = 'help'
-      ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.initexec, **kwargs)
 
       if self.execute_body():
          self._ns.example1 << Meq.Constant(1.9)
@@ -209,24 +207,26 @@ def do_define_forest (ns, TCM):
    Testing function for the class(es) in this module.
    It is called by ClumpExec.py
    """
-   submenu = TCM.start_of_submenu(do_define_forest)
+   submenu = TCM.start_of_submenu(do_define_forest,
+                                  prompt=__file__.split('/')[-1],
+                                  help=__file__)
    TCM.add_option('opt1',[1,2,3])
    TCM.add_option('opt2',[1,2,3])
 
-   cp = None
+   clump = None
    if TCM.submenu_is_selected():
-      cp = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-      cp = templateClump(cp, trace=True)
+      clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
+      clump = templateClump(clump, trace=True)
       opt1 = TCM.getopt('opt1', submenu, trace=True)
       opt2 = TCM.getopt('opt2', submenu, trace=True)
-      cp.example1(select=True)
-      cp.example2(select=False)
-      cp.example3()
-      cp.inspector()
+      clump.example1(select=True)
+      clump.example2(select=False)
+      clump.example3()
+      clump.inspector()
 
    # The LAST statement:
    TCM.end_of_submenu()
-   return cp
+   return clump
 
    
 
@@ -248,15 +248,15 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      cp = Clump.LeafClump(trace=True)
-      cp = templateClump(cp, trace=True)
-      cp.show('creation', full=True)
+      clump = Clump.LeafClump(trace=True)
+      clump = templateClump(clump, trace=True)
+      clump.show('creation', full=True)
 
    if 0:
-      cp.compose()
+      clump.compose()
 
    if 0:
-      cp.show('final', full=True)
+      clump.show('final', full=True)
 
    
       

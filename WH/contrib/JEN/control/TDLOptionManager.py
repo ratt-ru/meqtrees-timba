@@ -108,7 +108,7 @@ class TDLOptionManager (object):
 
    Options may be linked in various ways:
    - radio buttons (only one of a group can be selected)
-   - master/slave relationship: whenever the master option is changed,
+   - master/slave relationship: whenever the slaveof option is changed,
    its slave option(s) will be set to the same value.
 
    The master/slave option is very useful for the control of multiple
@@ -286,7 +286,7 @@ class TDLOptionManager (object):
                    selectable=False,
                    vmin=None, vmax=None,     # range-test
                    disable=False,
-                   master=None,              # optional: key of 'master' option
+                   slaveof=None,              # optional: key of 'master' option
                    help='<nohelp>',
                    callback=None,
                    prepend=False,
@@ -294,7 +294,7 @@ class TDLOptionManager (object):
       """
       Add an TDLOption definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
-      If master is a valid option key, this option will be slaved to it.
+      If slaveof is a valid option key, this option will be slaved to it.
       If prepend=True, prepend it to the already specified list of options.
       """
       # trace = True
@@ -356,7 +356,7 @@ class TDLOptionManager (object):
             more = None
 
       # The 'nominal' hide switch must be boolean:
-      hide = self.check_nominal_hide (hide, master=master, trace=trace)
+      hide = self.check_nominal_hide (hide, slaveof=slaveof, trace=trace)
 
       # Make sure that callback is a list (may be empty):
       callback = self.check_callback (callback, trace=trace)
@@ -369,8 +369,8 @@ class TDLOptionManager (object):
          # The following is to make sure that the top line of the help is always visible....
          help += ' ..............................................................................'
       if True:
-         if master:
-            help += '\n - this option is slaved to: '+str(master)
+         if slaveof:
+            help += '\n - this option is slaved to: '+str(slaveof)
          if hide:
             help += '\n - this option is nominally hidden'
          if not vmin==None:
@@ -389,7 +389,7 @@ class TDLOptionManager (object):
                     default=default,
                     vmin=vmin, vmax=vmax,
                     hide=hide, disable=disable,
-                    master=master, slaves=[],
+                    slaveof=slaveof, slaves=[],
                     itsmenukey=itsmenukey,
                     level=level,
                     selectable=selectable,
@@ -411,7 +411,7 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def check_nominal_hide (self, hide, master=None,
+   def check_nominal_hide (self, hide, slaveof=None,
                            hide_slave=True, trace=False):
       """Check the nominal option/menu hide switch.
       Called by .add_option() and .start_of_submenu() 
@@ -419,7 +419,7 @@ class TDLOptionManager (object):
       if not isinstance(hide,bool):         # not explicitly specified
          hide = False                       # assume False (do not hide)
          if hide_slave:         
-            if isinstance(master,str):         # but a slave option/menu
+            if isinstance(slaveof,str):         # but a slave option/menu
                hide = True                     # should normally be hidden 
       return hide
 
@@ -476,7 +476,7 @@ class TDLOptionManager (object):
                          disable=False,
                          ignore=False,
                          menu=None,                       
-                         master=None,
+                         slaveof=None,
                          topmenu=False,
                          callback=None,      
                          group_control=True,
@@ -517,7 +517,7 @@ class TDLOptionManager (object):
          default = False          # default: select and open the menu....
 
       # The 'nominal' hide switch must be boolean:
-      hide = self.check_nominal_hide (hide, master=master, trace=trace)
+      hide = self.check_nominal_hide (hide, slaveof=slaveof, trace=trace)
 
       # Make sure that callback is a list (may be empty):
       callback = self.check_callback (callback, trace=trace)
@@ -532,8 +532,8 @@ class TDLOptionManager (object):
       help = prefix+help
       help += '============================================================'
       if True:
-         if master:
-            help += '\n - this submenu is slaved to submenu: '+str(master)
+         if slaveof:
+            help += '\n - this submenu is slaved to submenu: '+str(slaveof)
          if hide:
             help += '\n - this submenu is nominally hidden'
 
@@ -544,7 +544,7 @@ class TDLOptionManager (object):
                      help=help, 
                      default=default,
                      hide=hide, disable=disable,
-                     master=master, slaves=[],
+                     slaveof=slaveof, slaves=[],
                      itsmenukey=itsmenukey,
                      selectable=True,
                      level=level,
@@ -1041,7 +1041,7 @@ class TDLOptionManager (object):
 
       for key in self._tdlobjects.keys():
          defrec = self._defrecs[key]
-         mkey = defrec['master']
+         mkey = defrec['slaveof']
          if isinstance(mkey,str):
             mrec = self._defrecs[mkey]           # its master's definition record
 
@@ -2034,7 +2034,7 @@ def test_master(ns, TCM=None, trace=False):
 
    # Create the slaves (menus and nodes):
    for i in range(nslaves):
-      test_slave(ns, TCM=TCM, qual=i, master=submenu, trace=True)
+      test_slave(ns, TCM=TCM, qual=i, slaveof=submenu, trace=True)
       
    # The LAST statement:
    TCM.end_of_submenu()
@@ -2042,14 +2042,14 @@ def test_master(ns, TCM=None, trace=False):
 
 #------------------------------------------------------------
 
-def test_slave(ns, TCM=None, qual=0, master=None, trace=False):
+def test_slave(ns, TCM=None, qual=0, slaveof=None, trace=False):
    """Slave function (called by master)
    """
    if trace:
-      print '\n** test_slave(',qual,master,'):'
+      print '\n** test_slave(',qual,slaveof,'):'
       
    submenu = TCM.start_of_submenu(test_slave, qual=qual,
-                                  master=master,
+                                  slaveof=slaveof,
                                   help='this is a slaved menu')
    TCM.add_option('aa', range(4))
    TCM.add_option('bb', range(4))
@@ -2219,7 +2219,7 @@ if __name__ == '__main__':
 
    if 1:
       key = TCM.add_option('master', range(4))
-      TCM.add_option('slave', range(4), master=key)
+      TCM.add_option('slave', range(4), slaveof=key)
       # TCM.add_option('boolean_opt', True)
 
       TCM.start_of_submenu('cc')
@@ -2240,10 +2240,10 @@ if __name__ == '__main__':
    if 1:
       TCM.show('after', full=True)
 
-   if 1:
+   if 0:
       print EF.format_record(TCM._menudef,'TCM._menudef', recurse=1)
 
-   if 1:
+   if 0:
       menu = TCM.TDLMenu(trace=True)
       TCM.show('make_TDLCompileMenu()', full=True)
       if 0:

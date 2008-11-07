@@ -62,6 +62,7 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 import math                 # support math.cos() etc
 # from math import *          # support cos() etc
 # import numpy                # support numpy.cos() etc
+import random
 
 clump_counter = -1          # used in Clump.__init__()
 
@@ -86,7 +87,13 @@ class Clump (object):
       trace = kwargs.get('trace',False)
 
       # Make a short version of the actual type name (e.g. Clump)
-      self._typename = str(type(self)).split('.')[1].split("'")[0]
+      if False:                                # for testing only
+         print str(type(self))
+         # e.g. <class 'Timba.Contrib.JEN.Clump.Clump.LeafClump'>
+         print str(type(self)).split('.')
+         print str(type(self)).split('.')[-1]
+         print str(type(self)).split('.')[-1].split("'")
+      self._typename = str(type(self)).split('.')[-1].split("'")[0]
 
       # The Clump node names are derived from name and qualifier:
       self._name = kwargs.get('name',None)       
@@ -280,11 +287,10 @@ class Clump (object):
       Actual re-implementations in derived classes may have a menu with options,
       they usually have statements in the 'body' that generate nodes, and they
       may return some result.
+      See also templateClump.py and templateLeafClump.py
       """
       kwargs['select'] = False
-      prompt = self._typename+' '+self._name
-      help = '(de-)select: '+self.oneliner()
-      ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.initexec, **kwargs)
       self._object_is_selected = False                          # <---- !!
       if self.execute_body():
          # NB: .execute_body() makes the menu, controlled by kwargs['select']
@@ -613,20 +619,26 @@ class Clump (object):
          self._submenucounter += 1                   # increment
          self._stagecounter += 1                     # increment
          self._opscounter = -1                       # reset
-         name = ctrl['funcname']
+         fname = ctrl['funcname']                    # convenience
+         name = fname
          name += '_'+str(self._submenucounter)
          name += str(self._stagecounter)
          name += str(self._opscounter)
          name += str(self._copycounter)
          if not isinstance(prompt,str):
-            prompt = ctrl['funcname']+'()'
+            prompt = fname+'()'
+            if fname=='initexec':                    # special case
+               prompt = self._name+':'
          if not isinstance(help,str):
-            help = ctrl['funcname']+'()'
+            help = fname+'()'
+            if fname=='intexec':                     # special case
+               help = 'in/exclude: '+self.oneliner()
+         # help + = '  (clump: '+self._name+')'        # ..?
          ctrl['submenu'] = self._TCM.start_of_submenu(name,
                                                       prompt=prompt,
                                                       help=help,
                                                       default=select,
-                                                      master=self._slavemaster,
+                                                      slaveof=self._slavemaster,
                                                       qual=self._qual)
 
       # The ctrl record used by other control functions downstream.
@@ -961,7 +973,7 @@ class Clump (object):
       """
       binop = kwargs['binop']
       rhs = kwargs['rhs']                           # 'other'?
-      prompt = 'apply_binop('+str(binop)+')'
+      prompt = '.apply_binop('+str(binop)+')'
       if isinstance(rhs,(int,float,complex)):       # rhs is a number
          help = 'rhs = constant = '+str(rhs)
       elif is_node(rhs):                            # rhs is a node
@@ -990,6 +1002,70 @@ class Clump (object):
          
       return self.on_exit(ctrl)
 
+   #-------------------------------------------------------------------------
+
+   def add_noise (self, **kwargs):
+      """Add Gaussian noise with the specified stddev.
+      """
+      # This is an example of an (as yet unexplored) feature: 
+      # NB: Should we allow for the external specification of stddev,
+      # which would then avoid the menu (kwargs['select']=None),
+      # but execute always (with the specified stddev)
+      # stddev = kwargs.get('stddev', None) 
+
+      prompt = '.add_noise()'
+      help = 'Add Gaussian noise'
+      ctrl = self.on_entry(self.add_noise, prompt, help, **kwargs)
+
+      self._TCM.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
+
+      if self.execute_body():
+         stddev = self.getopt('stddev')
+         if stddev>0.0:
+            stub = self.unique_nodestub('add_noise','stddev='+str(stddev))
+            for i,qual in enumerate(self._nodequals):
+               noise = stub('noise')(qual) << Meq.GaussNoise(stddev=stddev)
+               self._nodes[i] = stub(qual) << Meq.Add(self._nodes[i],noise)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
+   #-------------------------------------------------------------------------
+
+   def scatter (self, **kwargs):
+      """Add different random (stddev) constants to the tree nodes.
+      If stddev is complex, the scatter constants are complex too.
+      """
+      prompt = '.scatter()'
+      help = 'Add different (stddev) constants to the tree nodes'
+      ctrl = self.on_entry(self.scatter, prompt, help, **kwargs)
+
+      self._TCM.add_option('stddev_real', [0.1,1.0,10.0,0.0])
+      self._TCM.add_option('stddev_imag', [0.0,0.1,1.0,10.0])
+
+      if self.execute_body():
+         real = max(0.0,self.getopt('stddev_real'))
+         imag = max(0.0,self.getopt('stddev_imag'))
+         if real>0.0 or imag>0.0:
+            if imag>0.0:
+               stddev = complex(real,imag)
+               stub = self.unique_nodestub('scatter','stddev='+str(stddev))
+            else:
+               stub = self.unique_nodestub('scatter','stddev='+str(real))
+            for i,qual in enumerate(self._nodequals):
+               rscat = random.gauss(0.0, real)
+               if imag>0.0:
+                  iscat = random.gauss(0.0, imag)
+                  scat = EF.format_value(complex(rscat,iscat), nsig=2)
+                  scat = stub('scat='+scat)(qual) << Meq.ToComplex(rscat,iscat)
+               else:
+                  scat = EF.format_value(rscat, nsig=2)
+                  scat = stub('scat='+scat)(qual) << Meq.Constant(rscat)
+               self._nodes[i] = stub(qual) << Meq.Add(self._nodes[i],scat)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
 
    #=========================================================================
    # Visualization:
@@ -1009,14 +1085,14 @@ class Clump (object):
       bookpage = kwargs.get('bookpage', None)
       folder = kwargs.get('folder', None)
 
-      prompt = self._name+' visualise()'
+      prompt = '.visualise()'
       help = 'Select various forms of Clump visualization'
       ctrl = self.on_entry(self.visualise, prompt, help, **kwargs)
 
       if self.execute_body():
          self.inspector(**kwargs)
-         self.plot_clump(**kwargs)
-         self.plot_family(**kwargs)
+         self.plot_node_results(**kwargs)
+         self.plot_node_family(**kwargs)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1029,7 +1105,7 @@ class Clump (object):
       bookpage = kwargs.get('bookpage', 'inspector')
       folder = kwargs.get('folder', self._name)
 
-      prompt = self._name+' inspector()'
+      prompt = '.inspector()'
       help = None
       ctrl = self.on_entry(self.inspector, prompt, help, **kwargs)
 
@@ -1046,7 +1122,7 @@ class Clump (object):
 
    #---------------------------------------------------------------------
 
-   def plot_clump (self, **kwargs):
+   def plot_node_results (self, **kwargs):
       """Plot the specified (index) subset of the members of self._nodes
       with the specified viewer [=Result Plotter=],
       on the specified bookpage and folder.
@@ -1056,9 +1132,9 @@ class Clump (object):
       folder = kwargs.get('folder', None)
       viewer = kwargs.get('viewer', 'Result Plotter')
 
-      prompt = self._name+' plot_clump()'
+      prompt = '.plot_node_results()'
       help = None
-      ctrl = self.on_entry(self.plot_clump, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.plot_node_results, prompt, help, **kwargs)
 
       if self.execute_body():
          if not isinstance(bookpage,str):
@@ -1077,8 +1153,8 @@ class Clump (object):
 
    #---------------------------------------------------------------------
 
-   def plot_family (self, **kwargs):
-      """Plot the plot_family (parent, child(ren), etc) of the specified (index) tree node
+   def plot_node_family (self, **kwargs):
+      """Plot the plot_node_family (parent, child(ren), etc) of the specified (index) tree node
       down to the specified recursion level [=2]
       with the specified viewer [=Result Plotter=],
       on the specified bookpage and folder.
@@ -1089,9 +1165,9 @@ class Clump (object):
       folder = kwargs.get('folder', None)
       viewer = kwargs.get('viewer', 'Result Plotter')
 
-      prompt = self._name+' plot_family()'
+      prompt = '.plot_node_family()'
       help = None
-      ctrl = self.on_entry(self.plot_family, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.plot_node_family, prompt, help, **kwargs)
 
       if self.execute_body():
          if not isinstance(bookpage,str):
@@ -1143,6 +1219,8 @@ class LeafClump(Clump):
       tqs = kwargs['treequals']          # convenience
       if tqs==None:                      # treequals not specified
          self._treequals = range(3)      # for testing
+      elif isinstance(tqs,str):          # string -> list of chars (..?)
+         self._treequals = list(tqs)  
       elif isinstance(tqs,tuple):        # tuple -> list
          self._treequals = list(tqs)
       elif not isinstance(tqs,list):     # assume str or numeric?
@@ -1187,16 +1265,17 @@ class LeafClump(Clump):
    #-------------------------------------------------------------------------
 
    def initexec (self, **kwargs):
-      """Re-implementation of the place-holder function in class Clump.
+      """
+      Re-implementation of the place-holder function in class Clump.
       It is itself a place-holder, to be re-implemented in classse derived
       from LeafClump, to generate suitable leaf nodes.
       This function is called in Clump.__init__().
+      See also templateLeafClump.py
       """
-      prompt = self._typename+' '+self._name
       help = 'make leaf nodes for: '+self.oneliner()
-      ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
-      # Execute always, to ensure that the leaf Clump has nodes:
+      # Execute always (always=True), to ensure that the leaf Clump has nodes:
       if self.execute_body(always=True):              
          self._nodes = []
          stub = self.unique_nodestub('const')
@@ -1229,28 +1308,33 @@ def do_define_forest (ns, TCM):
    It is called by ClumpExec.py
    """
    # Definition of menus and options:
-   submenu = TCM.start_of_submenu(do_define_forest)
+   submenu = TCM.start_of_submenu(do_define_forest,
+                                  prompt=__file__.split('/')[-1],
+                                  help=__file__)
 
    # The function body:
-   cp = None
+   clump = None
    if TCM.submenu_is_selected():
-      cp = LeafClump(ns=ns, TCM=TCM, trace=True)
-      # cp.show('do_define_forest(creation)', full=True)
-      cp.apply_unops(unops='Cos', select=False, trace=True)
-      cp.apply_unops(unops='Sin', select=True, trace=True)
-      cp.apply_unops(unops='Exp', trace=True)
-      cp.apply_binop(binop='Add', rhs=2.3, select=True, trace=True)
-      # cp = Clump(cp, select=True).daisy_chain()
-      # cp = Clump(cp, select=True).daisy_chain()
-      cp.inspector()
-      # cp.plot_clump()
-      # cp.plot_family()
-      # cp.visualise()               # make VisualClump class....?
-      # cp.compare(cp)
+      clump = LeafClump(ns=ns, TCM=TCM, trace=True)
+      # clump.show('do_define_forest(creation)', full=True)
+      ## clump.add_noise(stddev=0.0, trace=True)
+      # clump.add_noise(select=True, trace=True)
+      clump.scatter(select=True, trace=True)
+      # clump.apply_unops(unops='Cos', select=False, trace=True)
+      # clump.apply_unops(unops='Sin', select=True, trace=True)
+      # clump.apply_unops(unops='Exp', trace=True)
+      # clump.apply_binop(binop='Add', rhs=2.3, select=True, trace=True)
+      # clump = Clump(clump, select=True).daisy_chain()
+      # clump = Clump(clump, select=True).daisy_chain()
+      # clump.inspector()
+      # clump.plot_node_results()
+      # clump.plot_node_family()
+      clump.visualise()               # make VisualClump class....?
+      # clump.compare(clump)
 
    # The LAST statement:
    TCM.end_of_submenu()
-   return cp
+   return clump
 
 
 #********************************************************************************
@@ -1268,103 +1352,122 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      cp = LeafClump(trace=True)
-      cp.show('creation', full=True)
+      clump = LeafClump(trace=True)
+      clump.show('creation', full=True)
 
    if 0:
-      print '** print str(cp) ->',str(cp)
-      print '** print cp ->',cp
+      print '** print str(clump) ->',str(clump)
+      print '** print clump ->',clump
 
    if 0:
-      for node in cp:
+      for node in clump:
          print str(node)
    if 0:
       for index in [0,1,-1]:
-         print '-- cp[',index,'] -> ',str(cp[index])
-      # print '-- cp[78] -> ',str(cp[78])
+         print '-- clump[',index,'] -> ',str(clump[index])
+      # print '-- clump[78] -> ',str(clump[78])
 
    if 0:
-      cp.show_tree(-1, full=True)
+      clump.show_tree(-1, full=True)
 
    if 0:
-      print '.compose() ->',cp.compose()
-      cp.show('.compose()')
+      print '.compose() ->',clump.compose()
+      clump.show('.compose()')
       if 1:
-         print '.decompose() ->',cp.decompose()
-         cp.show('.decompose()')
+         print '.decompose() ->',clump.decompose()
+         clump.show('.decompose()')
 
    if 0:
-      new = cp.copy(unops='Cos')
+      new = clump.copy(unops='Cos')
       new.show('new', full=True)
 
    if 0:
       unops = 'Cos'
       # unops = ['Cos','Cos','Cos']
       unops = ['Cos','Sin']
-      cp.apply_unops(unops=unops, trace=True)    
-      # cp.apply_unops()                       # error
-      # cp.apply_unops(unops=unops, trace=True)
-      # cp.apply_unops(unops=unops, select=True, trace=True)
+      clump.apply_unops(unops=unops, trace=True)    
+      # clump.apply_unops()                       # error
+      # clump.apply_unops(unops=unops, trace=True)
+      # clump.apply_unops(unops=unops, select=True, trace=True)
 
    if 0:
       rhs = math.pi
       # rhs = ns.rhs << Meq.Constant(2.3)
-      # rhs = Clump('RHS', clump=cp)
-      cp.apply_binop(binop='Add', rhs=rhs, trace=True)
+      # rhs = Clump('RHS', clump=clump)
+      clump.apply_binop(binop='Add', rhs=rhs, trace=True)
 
    if 0:
       treequals = range(5)
       treequals = ['a','b','c']
-      cp3 = LeafClump(treequals=treequals)
-      cp.commensurate(cp3, severe=False, trace=True)
-      cp3.show('.commensurate()')
-
-   if 1:
-      print cp.bundle()
-      cp.show('.bundle()')
+      clump3 = LeafClump(treequals=treequals)
+      clump.commensurate(clump3, severe=False, trace=True)
+      clump3.show('.commensurate()')
 
    if 0:
-      node = cp.inspector()
-      cp.show('.inspector()')
+      print clump.bundle()
+      clump.show('.bundle()')
+
+   if 1:
+      clump.add_noise(trace=True)
+      # clump.add_noise(stddev=0.1, trace=True)   <---!
+      clump.show('.add_noise()')
+
+   if 0:
+      node = clump.inspector()
+      clump.show('.inspector()')
       print '->',str(node)
 
    if 0:
-      node = cp.rootnode() 
-      cp.show('.rootnode()')
+      node = clump.rootnode() 
+      clump.show('.rootnode()')
       print '->',str(node)
 
    if 0:
-      cp1 = Clump(cp, select=True)
-      cp1.show('cp1 = Clump(cp)', full=True)
+      clump1 = Clump(clump, select=True)
+      clump1.show('clump1 = Clump(clump)', full=True)
 
    if 0:
-      cp = Clump(cp, select=True).daisy_chain(trace=True)
-      cp.show('daisy_chain()', full=True)
+      clump = Clump(clump, select=True).daisy_chain(trace=True)
+      clump.show('daisy_chain()', full=True)
 
    if 1:
-      cp.show('final', full=True)
+      clump.show('final', full=True)
 
    #-------------------------------------------------------------------
    # Some lower-level tests:
    #-------------------------------------------------------------------
 
    if 0:
-      cp.execute_body(None, a=6, b=7)
+      clump.execute_body(None, a=6, b=7)
 
    if 0:
-      cp.get_indices(trace=True)
-      cp.get_indices('*',trace=True)
-      cp.get_indices(2, trace=True)
-      cp.get_indices([2],trace=True)
+      clump.get_indices(trace=True)
+      clump.get_indices('*',trace=True)
+      clump.get_indices(2, trace=True)
+      clump.get_indices([2],trace=True)
 
-   if 1:
-      cp.get_nodes(subset=0, trace=True)
+   if 0:
+      clump.get_nodes(subset=0, trace=True)
    
    # print 'Clump.__module__ =',Clump.__module__
    # print 'Clump.__class__ =',Clump.__class__
    # print dir(Clump)
       
    print '\n** End of standalone test of: Clump.py:\n' 
+
+#=====================================================================================
+# Things to be done:
+#
+# .remove(subset): remove the specified subset of tree nodes
+# .append(nodes)/insert(nodes)
+# .(de)select(subset): temporarily (de)select a subset of tree nodes
+#
+# callbacks, executed from .end_of_body()
+#   This would solve the daisy-chain problem of non-inclusion
+#   i.e. if one wants the next daisy to work only on the last one,
+#   and be ignored when the last one is not selected....
+#
+# make master/slave on entire clump (recurse>1): (slaveof)
 
 #=====================================================================================
 

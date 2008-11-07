@@ -97,28 +97,27 @@ class templateLeafClump(Clump.LeafClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      prompt = self._typename+' '+self._name
       help = 'make leaf nodes for: '+self.oneliner()
-      ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
+      ctrl = self.on_entry(self.initexec, help=help, **kwargs)
       
-      self._TCM.add_option('initype', ['const_real','const_complex',
+      self._TCM.add_option('leaftype', ['const_real','const_complex',
                                        'parm',
                                        'freq','time','freq+time'],
-                           prompt='init node type')
+                           prompt='leaf node type')
 
-      # Execute always, to ensure that the leaf Clump has nodes!
+      # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
-         initype = self.getopt('initype')
+         leaftype = self.getopt('leaftype')
          self._nodes = []
-         stub = self.unique_nodestub(initype)
+         stub = self.unique_nodestub(leaftype)
          for i,qual in enumerate(self._nodequals):
-            if initype=='parm':
+            if leaftype=='parm':
                node = stub(qual) << Meq.Parm(i)
-            elif initype=='freq':
+            elif leaftype=='freq':
                node = stub(qual) << Meq.Freq()
-            elif initype=='time':
+            elif leaftype=='time':
                node = stub(qual) << Meq.Time()
-            elif initype=='freq+time':
+            elif leaftype=='freq+time':
                node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
                                             self._ns << Meq.Time())
             else:
@@ -146,16 +145,17 @@ def do_define_forest (ns, TCM):
    Testing function for the class(es) in this module.
    It is called by ClumpExec.py
    """
-   submenu = TCM.start_of_submenu(do_define_forest)
-
-   cp = None
+   submenu = TCM.start_of_submenu(do_define_forest,
+                                  prompt=__file__.split('/')[-1],
+                                  help=__file__)
+   clump = None
    if TCM.submenu_is_selected():
-      cp = templateLeafClump(ns=ns, TCM=TCM, trace=True)
-      cp.visualize()
+      clump = templateLeafClump(ns=ns, TCM=TCM, trace=True)
+      clump.visualize()
 
    # The LAST statement:
    TCM.end_of_submenu()
-   return cp
+   return clump
 
 
 
@@ -174,15 +174,24 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
+   if 0:
+      clump = templateLeafClump(trace=True)
+   else:
+      tqs = list('abcd')
+      tqs = 'abcd'
+      # tqs = ['a','b','c','d']
+      # tqs = ['abcd']
+      # tqs = range(8,15)
+      clump = templateLeafClump(treequals=tqs, trace=True)
+
    if 1:
-      cp = templateLeafClump(trace=True)
-      cp.show('creation', full=True)
+      clump.show('creation', full=True)
 
    if 0:
-      cp.compose()
+      clump.compose()
 
    if 0:
-      cp.show('final', full=True)
+      clump.show('final', full=True)
 
    
       
