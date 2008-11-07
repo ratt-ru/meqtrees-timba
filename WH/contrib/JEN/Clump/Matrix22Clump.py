@@ -1,17 +1,16 @@
 """
-templateLeafClump.py: Base-class for an entire zoo of derived classes that
-represent Clumps in which the nodes are leaf nodes.
-Examples are ParmClump, JonesClump and SpigotClump.
+Matrix22Clump.py: Base-class Clump classes that deal with 2x2 matrices
+e.g. Jones matrices and cohaerency matrices
 """
 
-# file: ../JEN/Clump/templateLeafClump.py:
+# file: ../JEN/Clump/Matrix22Clump.py:
 #
 # Author: J.E.Noordam
 #
 # Short description:
 #
 # History:
-#   - 03 nov 2008: creation (from templateClump.py)
+#   - 07 nov 2008: creation (from templateLeafClump.py)
 #
 # Description:
 #
@@ -56,14 +55,14 @@ import math                 # support math.cos() etc
 #********************************************************************************
 #********************************************************************************
 
-class templateLeafClump(Clump.LeafClump):
+class Matrix22Clump(Clump.LeafClump):
    """
    Derived class
    """
 
    def __init__(self, clump=None, **kwargs):
       """
-      Derived from class Clump.
+      Derived from class LeafClump.
       """
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
@@ -82,9 +81,9 @@ class templateLeafClump(Clump.LeafClump):
 
    def newinstance(self, **kwargs):
       """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (templateLeafClump).
+      Make a new instance of this derived class (Matrix22Clump).
       """
-      return templateLeafClump(clump=self, **kwargs)
+      return Matrix22Clump(clump=self, **kwargs)
 
 
    #==========================================================================
@@ -94,34 +93,22 @@ class templateLeafClump(Clump.LeafClump):
    #==========================================================================
 
    def initexec (self, **kwargs):
-      """Fill the LeafClump object with suitable leaf nodes.
+      """
+      Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
       
-      self._TCM.add_option('leaftype', ['const_real','const_complex',
-                                       'parm',
-                                       'freq','time','freq+time'],
-                           prompt='leaf node type')
-
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
-         leaftype = self.getopt('leaftype')
          self._nodes = []
-         stub = self.unique_nodestub(leaftype)
+         stub = self.unique_nodestub()
          for i,qual in enumerate(self._nodequals):
-            if leaftype=='parm':
-               node = stub(qual) << Meq.Parm(i)
-            elif leaftype=='freq':
-               node = stub(qual) << Meq.Freq()
-            elif leaftype=='time':
-               node = stub(qual) << Meq.Time()
-            elif leaftype=='freq+time':
-               node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
-                                            self._ns << Meq.Time())
-            else:
-               node = stub(qual) << Meq.Constant(i)
+            node = stub(qual) << Meq.Matrix22(complex(1.0,0.0),
+                                              complex(0.0,0.0),
+                                              complex(0.0,0.0),
+                                              complex(1.0,0.0))
             self._nodes.append(node)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
@@ -130,6 +117,40 @@ class templateLeafClump(Clump.LeafClump):
       return self.on_exit(ctrl)
 
 
+
+   #=========================================================================
+   #=========================================================================
+
+   def add_noise (self, **kwargs):
+      """
+      Add Gaussian noise with the specified stddev.
+      """
+      prompt = '.add_noise()'
+      help = 'Add Gaussian noise'
+      ctrl = self.on_entry(self.add_noise, prompt, help, **kwargs)
+
+      self._TCM.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
+      self._TCM.add_option('unops', [None,'Exp',['Exp','Exp']], more=False)
+
+      if self.execute_body():
+         stddev = self.getopt('stddev')
+         unops = self.getopt('unops')
+         if stddev>0.0:
+            stub = self.unique_nodestub('add_noise','stddev='+str(stddev))
+            for i,qual in enumerate(self._nodequals):
+               cc = []
+               for elem in ['00','10','01','11']:
+                  real = stub('real')(qual)(elem) << Meq.GaussNoise(stddev=stddev)
+                  imag = stub('imag')(qual)(elem) << Meq.GaussNoise(stddev=stddev)
+                  noise = stub('noise')(qual)(elem) << Meq.ToComplex(real,imag)
+                  cc.append(noise)
+               noise = stub('noise')(qual) << Meq.Matrix22(*cc)
+               self._nodes[i] = stub(qual) << Meq.Add(self._nodes[i],noise)
+            if unops:
+               self.apply_unops(unops=unops)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
 
       
 
@@ -150,10 +171,11 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      clump = templateLeafClump(ns=ns, TCM=TCM,
-                                name='GgainY', default=2.3,
-                                treequals=range(10)+list('ABCD'),         # WSRT
-                                trace=True)
+      clump = Matrix22Clump(ns=ns, TCM=TCM,
+                            name='GJones',
+                            treequals=range(10)+list('ABCD'),         # WSRT
+                            trace=True)
+      clump.add_noise(select=True)
       clump.visualize()
 
    # The LAST statement:
@@ -172,18 +194,20 @@ def do_define_forest (ns, TCM):
 if __name__ == '__main__':
 
    print '\n****************************************************'
-   print '** Start of standalone test of: templateLeafClump.py:'
+   print '** Start of standalone test of: Matrix22Clump.py:'
    print '****************************************************\n' 
 
    ns = NodeScope()
 
    if 0:
-      clump = templateLeafClump(trace=True)
+      clump = Matrix22Clump(trace=True)
    else:
       tqs = range(10) + list('ABCD')
-      clump = templateLeafClump(treequals=tqs,
-                                name='test',
-                                trace=True)
+      clump = Matrix22Clump(treequals=tqs,
+                            name='GJones',
+                            trace=True)
+
+      clump = Matrix22Clump(treequals=tqs, trace=True)
 
    if 1:
       clump.show('creation', full=True)
@@ -196,7 +220,7 @@ if __name__ == '__main__':
 
    
       
-   print '\n** End of standalone test of: templateLeafClump.py:\n' 
+   print '\n** End of standalone test of: Matrix22Clump.py:\n' 
 
 #=====================================================================================
 

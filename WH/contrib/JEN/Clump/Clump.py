@@ -137,12 +137,11 @@ class Clump (object):
 
       self.transfer_clump_definition(clump, trace=trace)
 
-      if not isinstance(self._name,str):       
-         self._name = self._typename           # e.g. 'Clump'    
-
-      global clump_counter
-      clump_counter += 1
-      self._name += str(clump_counter)
+      if not isinstance(self._name,str):    # Generate an automatic name, if necessary      
+         self._name = self._typename        # e.g. 'Clump'     
+         global clump_counter
+         clump_counter += 1
+         self._name += str(clump_counter)
 
       if not self._TCM:               
          ident = self._typename+'_'+self._name
@@ -611,7 +610,7 @@ class Clump (object):
       ctrl = dict(funcname=str(func.func_name),
                   submenu=None,
                   # kwargs=kwargs,                     # ...??
-                  kwargs='not in ctrl',                # for the moment
+                  # kwargs='not in ctrl',                # for the moment
                   trace=trace)
 
       # if kwargs.has_key('select') and isinstance(kwargs['select'],bool):
@@ -646,15 +645,6 @@ class Clump (object):
       # the ctrl argument (since self._ctrl may be overwritten by other
       # functions that are called in the function body (AFTER all .getopt() calls!)
       self._ctrl = ctrl
-      if trace:
-         rr = dict()
-         for key in ctrl.keys():
-            if not key in ['kwargs']:
-               rr[key] = ctrl[key]
-         print '\n ** .on_entry(func, **kwargs):'
-         print '    (',self.oneliner(),')'
-         print '    (ctrl[kwargs] =',ctrl['kwargs'],')'
-         print '    (ctrl(rest) =',rr,')'
       return ctrl
 
    #--------------------------------------------------------------------------
@@ -740,7 +730,7 @@ class Clump (object):
       self._opscounter += 1
       at = '@'+str(self._stagecounter)
       at += '-'+str(self._opscounter)
-      qual.insert(0, at)
+      # qual.insert(0, at)                   # NB: This pollutes Parm names etc...
       if not self._qual==None:
          if isinstance(self._qual,list):
             qual.extend(self._qual)
@@ -748,6 +738,7 @@ class Clump (object):
             qual.append(self._qual)
 
       # Make the unique nodestub:
+      # NB: Note that kwquals are not yet supported here.......!!
       stub = EN.unique_stub(self._ns, self._name, *qual)
 
       # Initialize the stub (uniqueness criterion!):
@@ -932,6 +923,18 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
+   #============================================================================
+   # Solver support functions:
+   #=========================================================================
+
+   def solvable_parms (self, trace=False):
+      """
+      Place-holder function, expected in all Clump classes.
+      This version always return an emply list.
+      See also ParmClump.py
+      """
+      return []
+
 
    #=========================================================================
    # Apply arbitrary unary (unops) or binary (binops) operaions to the nodes:
@@ -1006,6 +1009,7 @@ class Clump (object):
 
    def add_noise (self, **kwargs):
       """Add Gaussian noise with the specified stddev.
+      To be re-implemented in derived classes like Matrix22Clump etc.
       """
       # This is an example of an (as yet unexplored) feature: 
       # NB: Should we allow for the external specification of stddev,
@@ -1072,27 +1076,22 @@ class Clump (object):
    #=========================================================================
 
    def visualize (self, **kwargs):
-      """Alias for self.visualise (avoids a lot of aggravation...)
-      """
-      return self.visualise (**kwargs)
-
-   #................................................................
-
-   def visualise (self, **kwargs):
-      """Make an inspector node for its nodes, and make a bookmark.
+      """Choice of various forms of visualization.
       """
       kwargs['select']=True
       bookpage = kwargs.get('bookpage', None)
       folder = kwargs.get('folder', None)
 
-      prompt = '.visualise()'
+      prompt = '.visualize()'
       help = 'Select various forms of Clump visualization'
-      ctrl = self.on_entry(self.visualise, prompt, help, **kwargs)
+      print '\n**',help,'\n'
+      ctrl = self.on_entry(self.visualize, prompt, help, **kwargs)
 
       if self.execute_body():
          self.inspector(**kwargs)
          self.plot_node_results(**kwargs)
          self.plot_node_family(**kwargs)
+         self.plot_node_bundle(**kwargs)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1102,11 +1101,12 @@ class Clump (object):
    def inspector (self, **kwargs):
       """Make an inspector node for its nodes, and make a bookmark.
       """
-      bookpage = kwargs.get('bookpage', 'inspector')
-      folder = kwargs.get('folder', self._name)
+      kwargs['select'] = True
+      bookpage = kwargs.get('bookpage', None)
+      folder = kwargs.get('folder', None)
 
       prompt = '.inspector()'
-      help = None
+      help = 'make an inspector-plot (Collections Plotter) of the tree nodes'
       ctrl = self.on_entry(self.inspector, prompt, help, **kwargs)
 
       if self.execute_body():
@@ -1116,6 +1116,26 @@ class Clump (object):
          JEN_bookmarks.create(bundle,
                               name=bookpage, folder=folder,
                               viewer='Collections Plotter')
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
+   #---------------------------------------------------------------------
+
+   def plot_node_bundle (self, **kwargs):
+      """Make a plot for the bundle (Composer) of its nodes, and make a bookmark.
+      """
+      bookpage = kwargs.get('bookpage', None)
+      folder = kwargs.get('folder', None)
+
+      prompt = '.plot_node_bundle()'
+      help = 'plot the bundle (MeqComposer) of all tree nodes'
+      ctrl = self.on_entry(self.plot_node_bundle, prompt, help, **kwargs)
+
+      if self.execute_body():
+         bundle = self.bundle()
+         self._orphans.append(bundle)
+         JEN_bookmarks.create(bundle, name=bookpage, folder=folder)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1133,7 +1153,7 @@ class Clump (object):
       viewer = kwargs.get('viewer', 'Result Plotter')
 
       prompt = '.plot_node_results()'
-      help = None
+      help = 'plot the results of the tree nodes on the same page' 
       ctrl = self.on_entry(self.plot_node_results, prompt, help, **kwargs)
 
       if self.execute_body():
@@ -1166,7 +1186,8 @@ class Clump (object):
       viewer = kwargs.get('viewer', 'Result Plotter')
 
       prompt = '.plot_node_family()'
-      help = None
+      help = """Plot the family (itself, its children etc) of the specified [=0] tree node,
+      to the specified [=2] recursion depth"""
       ctrl = self.on_entry(self.plot_node_family, prompt, help, **kwargs)
 
       if self.execute_body():
@@ -1329,7 +1350,7 @@ def do_define_forest (ns, TCM):
       # clump.inspector()
       # clump.plot_node_results()
       # clump.plot_node_family()
-      clump.visualise()               # make VisualClump class....?
+      clump.visualize()               # make VisualClump class....?
       # clump.compare(clump)
 
    # The LAST statement:

@@ -1,17 +1,15 @@
 """
-templateLeafClump.py: Base-class for an entire zoo of derived classes that
-represent Clumps in which the nodes are leaf nodes.
-Examples are ParmClump, JonesClump and SpigotClump.
+ParmClump.py: A Clump of MeqParms, e.g. Ggain:0...D
 """
 
-# file: ../JEN/Clump/templateLeafClump.py:
+# file: ../JEN/Clump/ParmClump.py:
 #
 # Author: J.E.Noordam
 #
 # Short description:
 #
 # History:
-#   - 03 nov 2008: creation (from templateClump.py)
+#   - 07 nov 2008: creation (from templateClump.py)
 #
 # Description:
 #
@@ -56,7 +54,7 @@ import math                 # support math.cos() etc
 #********************************************************************************
 #********************************************************************************
 
-class templateLeafClump(Clump.LeafClump):
+class ParmClump(Clump.LeafClump):
    """
    Derived class
    """
@@ -65,6 +63,7 @@ class templateLeafClump(Clump.LeafClump):
       """
       Derived from class Clump.
       """
+      self._default = kwargs.get('default',0.0)
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
 
@@ -76,15 +75,17 @@ class templateLeafClump(Clump.LeafClump):
       Re-implementation of function in baseclass Clump.
       """
       ss = '\n + Specific (derived class '+str(self._typename)+'):'
+      ss += '\n + self._default = '+str(self._default)
+      ss += '\n + self._solvable = '+str(self._solvable)
       return ss
 
    #-------------------------------------------------------------------------
 
    def newinstance(self, **kwargs):
       """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (templateLeafClump).
+      Make a new instance of this derived class (ParmClump).
       """
-      return templateLeafClump(clump=self, **kwargs)
+      return ParmClump(clump=self, **kwargs)
 
 
    #==========================================================================
@@ -97,32 +98,63 @@ class templateLeafClump(Clump.LeafClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      help = 'make leaf nodes for: '+self.oneliner()
+      help = 'definition of a set of similar MeqParms: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
       
-      self._TCM.add_option('leaftype', ['const_real','const_complex',
-                                       'parm',
-                                       'freq','time','freq+time'],
-                           prompt='leaf node type')
+      self._TCM.add_option('fdeg', range(6),
+                           help='freq deg of polc',
+                           prompt='freq deg')
+      self._TCM.add_option('tdeg', range(6),
+                           help='time deg of polc',
+                           prompt='time deg')
+
+      self._TCM.add_option('nftile', [None,1,2,3,4,5,10], more=int,
+                           help="size (freq-cells) of solving subtile")
+      self._TCM.add_option('nttile', [None,1,2,3,4,5,10], more=int,
+                           help="size (time-cells) of solving subtile")
+
+      self._TCM.add_option('solvable', False,
+                           prompt='solvable')
+      
+      self._TCM.add_option('use_previous', True, hide=True,
+                           help='if True, use the previous solution',
+                           prompt='use_previous')
+      self._TCM.add_option('mepfile', [None,'test.mep'], more=str, hide=True,
+                           help='name of the file that contains the parmtable',
+                           prompt='.mep file')
 
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
-         leaftype = self.getopt('leaftype')
+
+         tdeg = self.getopt('tdeg')
+         fdeg = self.getopt('fdeg')
+         mepfile = self.getopt('mepfile')
+         use_previous = self.getopt('use_previous')
+         nt = self.getopt('nttile')
+         nf = self.getopt('nftile')
+         tiling = record(freq=nf, time=nt)
+
+         # See .__init__()
+         default = self._default   
+
+         # See self.solvable_parms()
+         self._solvable = self.getopt('solvable')
+
          self._nodes = []
-         stub = self.unique_nodestub(leaftype)
+         self._parmnames = []
+         stub = self.unique_nodestub()
          for i,qual in enumerate(self._nodequals):
-            if leaftype=='parm':
-               node = stub(qual) << Meq.Parm(i)
-            elif leaftype=='freq':
-               node = stub(qual) << Meq.Freq()
-            elif leaftype=='time':
-               node = stub(qual) << Meq.Time()
-            elif leaftype=='freq+time':
-               node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
-                                            self._ns << Meq.Time())
-            else:
-               node = stub(qual) << Meq.Constant(i)
+            node = stub(qual) << Meq.Parm(default,
+                                          shape=[tdeg+1,fdeg+1],
+                                          tiling=tiling,
+                                          table_name=mepfile,
+                                          use_previous=use_previous,
+                                          # tags=['tag1','tag2'],
+                                          node_groups='Parm')
             self._nodes.append(node)
+            self._parmnames.append(node.name)
+            # print '\n -',str(node),' initrec: ',node.initrec()
+
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
@@ -130,8 +162,26 @@ class templateLeafClump(Clump.LeafClump):
       return self.on_exit(ctrl)
 
 
+   #============================================================================
 
-      
+   def solvable_parms (self, trace=False):
+      """
+      Re-implementation of the Clump placeholder function.
+      If solvable: Return a list of solvable parm-names.
+      Otherwise, return an empty list.
+      """
+      # trace = True
+      # self._solvable = True                    # for testing
+      result = []
+      if self._solvable:
+         result = self._parmnames
+      if trace:
+         print '\n ** .solvable_parms(): '+str(self._solvable)+','+str(len(result))+'/'+str(self.size())+':'
+         if result: print '    ->',result
+      return result
+
+
+
 
 
 #********************************************************************************
@@ -150,10 +200,10 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      clump = templateLeafClump(ns=ns, TCM=TCM,
-                                name='GgainY', default=2.3,
-                                treequals=range(10)+list('ABCD'),         # WSRT
-                                trace=True)
+      clump = ParmClump(ns=ns, TCM=TCM,
+                        name='GgainY', default=2.3,
+                        treequals=range(10)+list('ABCD'),         # WSRT
+                        trace=True)
       clump.visualize()
 
    # The LAST statement:
@@ -172,18 +222,22 @@ def do_define_forest (ns, TCM):
 if __name__ == '__main__':
 
    print '\n****************************************************'
-   print '** Start of standalone test of: templateLeafClump.py:'
+   print '** Start of standalone test of: ParmClump.py:'
    print '****************************************************\n' 
 
    ns = NodeScope()
 
    if 0:
-      clump = templateLeafClump(trace=True)
+      clump = ParmClump(trace=True)
    else:
       tqs = range(10) + list('ABCD')
-      clump = templateLeafClump(treequals=tqs,
-                                name='test',
-                                trace=True)
+      clump = ParmClump(treequals=tqs,
+                        name='GgainX',
+                        default=1.0,
+                        trace=True)
+
+   if 1:
+      clump.solvable_parms(trace=True)
 
    if 1:
       clump.show('creation', full=True)
@@ -196,7 +250,7 @@ if __name__ == '__main__':
 
    
       
-   print '\n** End of standalone test of: templateLeafClump.py:\n' 
+   print '\n** End of standalone test of: ParmClump.py:\n' 
 
 #=====================================================================================
 
