@@ -82,17 +82,12 @@ class Clump (object):
       defining characteristics (self._treequals etc)
       """
 
-      kwargs.setdefault('select', None)
-
-      trace = kwargs.get('trace',False)
+      # These need a little more thought:
+      kwargs.setdefault('select', None)                 # <------- !!?
+      trace = kwargs.get('trace',False)                 # <------- !!?
+      self._slavemaster = kwargs.get('master',None)   # <------- !!?
 
       # Make a short version of the actual type name (e.g. Clump)
-      if False:                                # for testing only
-         print str(type(self))
-         # e.g. <class 'Timba.Contrib.JEN.Clump.Clump.LeafClump'>
-         print str(type(self)).split('.')
-         print str(type(self)).split('.')[-1]
-         print str(type(self)).split('.')[-1].split("'")
       self._typename = str(type(self)).split('.')[-1].split("'")[0]
 
       # The Clump node names are derived from name and qualifier:
@@ -100,11 +95,14 @@ class Clump (object):
       self._qual = kwargs.get('qual',None)  
       self._kwqual = kwargs.get('kwqual',dict())
 
-      self._slavemaster = kwargs.get('master',None)
-
       # Organising principles:
       self._ns = kwargs.get('ns',None)
       self._TCM = kwargs.get('TCM',None)
+
+      # The data description controls the behaviour of Clump-functions
+      # that perform 'generic' operations (like add_noise().
+      # It is passed from Clump to Clump, and modified when appropriate.
+      self._datadesc = dict(complex=False, shape=[1])
 
       #......................................................................
 
@@ -121,16 +119,14 @@ class Clump (object):
       # See .on_entry(), .execute_body(), .end_of_body(), .on_exit() 
       self._ctrl = None
 
-      # A Clump objects operates in 'stages'. See self.unique_nodestub().
-      self._stagename = None                # name of the current stage 
-      self._stagecounter = -1               # number of the current stage
-      self._opscounter = -1                 # operation nr
-      self._submenucounter = -1             # ...?
-      self._copycounter = 0                 # the number of times this object has been copied
+      # A Clump objects operates in successive named/counted 'stages'.
+      # This is used to generate nodenames: See self.unique_nodestub().
+      # Some of this information is passed from clump to clump.
+      self._stage = dict(name=None, count=-1, ops=-1, ncopy=0, isubmenu=-1) 
 
       #......................................................................
-      # Make sure of the Clump node definition attributes:
-      # First transfer information from the input Clump (if supplied).
+      # Transfer definition information from the input Clump (if supplied).
+      # This includes self._datadesc and self._treequals etc 
       # Then supply local defaults for some attributes that have not been
       # defined yet (i.e. in the case that there is no input Clump):
       #......................................................................
@@ -214,13 +210,14 @@ class Clump (object):
             # self._TCM.current_menu_level(trace=trace)
 
          # Some attributes are transferred always(!):
+         self._datadesc = clump._datadesc
          self._treequals = clump._treequals
          self._treelabels = clump._treelabels
-         self._stagecounter = 1+clump._stagecounter         # <--------!!
-         self._opscounter = -1                              # reset
-         self._stagename = clump._stagename                 # <--------!!
-         clump._copycounter += 1
-         self._copycounter = clump._copycounter             # <--------!!
+         self._stage['count'] = 1+clump._stage['count']         # <--------!!
+         self._stage['ops'] = -1                                # reset
+         self._stage['name'] = clump._stage['name']             # <--------!!
+         clump._stage['ncopy'] += 1
+         self._stage['ncopy'] = clump._stage['ncopy']           # <--------!!
       return True
 
    #--------------------------------------------------------------------------
@@ -398,8 +395,8 @@ class Clump (object):
          ss += '  slaved'
       if self._composed:
          ss += '  (composed: '+self._tensor_qual+')'
-      ss += ' stage'+str(self._stagecounter)+':'+str(self._stagename)
-      ss += ' (copied:'+str(self._copycounter)+')'
+      # ss += ' stage'+str(self._stage['count'])+':'+str(self._stage['name'])
+      # ss += ' (copied:'+str(self._stage['ncopy'])+')'
       return ss
 
    #--------------------------------------------------------------------------
@@ -425,11 +422,9 @@ class Clump (object):
       ss += '\n * self._name = '+str(self._name)
       ss += '\n * self._qual = '+str(self._qual)
       ss += '\n * self._kwqual = '+str(self._kwqual)
-      ss += '\n * self._stagename = '+str(self._stagename)
-      ss += '\n * self._stagecounter = '+str(self._stagecounter)
-      ss += '\n * self._opscounter = '+str(self._opscounter)
-      ss += '\n * self._copycounter = '+str(self._copycounter)
-      ss += '\n * self._submenucounter = '+str(self._submenucounter)
+
+      ss += '\n * self._stage = '+str(self._stage)
+      ss += '\n * self._datadesc = '+str(self._datadesc)
 
       nmax = 20
       qq = self._treequals
@@ -506,6 +501,7 @@ class Clump (object):
                 clear=False, show=False, trace=False):
       """Interact with the object history (a list of strings).
       """
+      trace = True
       clear |= (self._history==None)             # the first time
       if clear:
          self._history = []
@@ -520,6 +516,8 @@ class Clump (object):
          self._history.append(' -- '+str(append))
          if trace:
             print '   >> .history(append): ',self._history[-1]
+      elif show_node:
+         self._history.append(' -- (noappend) ')
 
       # Append the current node to the last line/item: 
       if show_node:
@@ -615,15 +613,15 @@ class Clump (object):
 
       # if kwargs.has_key('select') and isinstance(kwargs['select'],bool):
       if isinstance(select,bool):
-         self._submenucounter += 1                   # increment
-         self._stagecounter += 1                     # increment
-         self._opscounter = -1                       # reset
+         self._stage['isubmenu'] += 1                   # increment
+         self._stage['count'] += 1                     # increment
+         self._stage['ops'] = -1                       # reset
          fname = ctrl['funcname']                    # convenience
          name = fname
-         name += '_'+str(self._submenucounter)
-         name += str(self._stagecounter)
-         name += str(self._opscounter)
-         name += str(self._copycounter)
+         name += '_'+str(self._stage['isubmenu'])
+         name += str(self._stage['count'])
+         name += str(self._stage['ops'])
+         name += str(self._stage['ncopy'])
          if not isinstance(prompt,str):
             prompt = fname+'()'
             if fname=='initexec':                    # special case
@@ -663,24 +661,25 @@ class Clump (object):
       if self._ctrl['trace']:
          print '** .execute_body(always=',always,'): funcname=',self._ctrl['funcname'],' execute=',execute
       if execute:
-         self._stagecounter += 1                     # increment
-         self._opscounter = -1                       # reset
-         self._stagename = self._ctrl['funcname']
-         s = '{@'+str(self._stagecounter)
-         s += ':'+str(self._stagename)+'}:  '
+         self._stage['count'] += 1                     # increment
+         self._stage['ops'] = -1                       # reset
+         self._stage['name'] = self._ctrl['funcname']
+         s = '{@'+str(self._stage['count'])
+         s += ':'+str(self._stage['name'])+'}:  '
          s += self._ctrl['funcname']+'()'
          self.history(append=s, trace=self._ctrl['trace'])
       return execute
 
    #..........................................................................
 
-   def getopt (self, name):
+   def getopt (self, name, trace=False):
       """Get the specified (name) TDL option value.
       This function is ONLY called AFTER self.execute_body()==True.
       It use the record self._ctrl that is defined in .on_entry()
       """
+      trace = True
       value = self._TCM.getopt(name, self._ctrl['submenu'])
-      if self._ctrl['trace']:
+      if trace or self._ctrl['trace']:
          print '    - .getopt(',name,self._ctrl['submenu'],') -> ',type(value),value
       return value
 
@@ -727,9 +726,9 @@ class Clump (object):
 
       # Make a list of qualifiers:
       qual = list(qual)
-      self._opscounter += 1
-      at = '@'+str(self._stagecounter)
-      at += '-'+str(self._opscounter)
+      self._stage['ops'] += 1
+      at = '@'+str(self._stage['count'])
+      at += '-'+str(self._stage['ops'])
       # qual.insert(0, at)                   # NB: This pollutes Parm names etc...
       if not self._qual==None:
          if isinstance(self._qual,list):
@@ -935,6 +934,22 @@ class Clump (object):
       """
       return []
 
+   #--------------------------------------------------------------------------
+
+   def insert_reqseqs (self, node, trace=False):
+      """ Insert a ReqSeq (in every tree!) that issues a request first to
+      the given node (e.g. a solver node), and then to the current tree node.
+      NB: The fact that there is a ReqSeq in every tree seems wasteful, but
+      it synchronises the processing in the different trees of the Clump....
+      """
+      if is_node(node):
+         stub = self.unique_nodestub('reqseq')
+         for i,qual in enumerate(self._nodequals):
+            self._nodes[i] = stub(qual) << Meq.ReqSeq(node, self[i],
+                                                      result_index=1,
+                                                      cache_num_active_parents=1)
+         self.history('.insert_reqseqs('+str(node)+')', show_node=True)
+      return True
 
    #=========================================================================
    # Apply arbitrary unary (unops) or binary (binops) operaions to the nodes:
@@ -1429,6 +1444,11 @@ if __name__ == '__main__':
       clump.show('.bundle()')
 
    if 1:
+      node = ns.dummysolver << Meq.Constant(67)
+      clump.insert_reqseqs(node, trace=True)
+      clump.show('.insert_reqseqs()')
+
+   if 0:
       clump.add_noise(trace=True)
       # clump.add_noise(stddev=0.1, trace=True)   <---!
       clump.show('.add_noise()')

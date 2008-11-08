@@ -98,22 +98,22 @@ class SolverUnit(Clump.Clump):
    #=========================================================================
 
    def initexec (self, **kwargs):
-      """Re-implementation of the place-holder function in class Clump.
-      It is itself a place-holder, to be re-implemented in derived classes.
-      This function is called in Clump.__init__().
+      """
+      Implement the solver tree.
       """
       kwargs['select'] = True          # optional: makes the function selectable     
       ctrl = self.on_entry(self.initexec, **kwargs)
 
-      self._TCM.add_option('niter',[3,5,10,20,1,2],
-                           help='nr of solver iterations')
+      self._TCM.add_option('num_iter',[3,5,10,20,1,2],
+                           help='(max) nr of solver iterations')
 
+      solver = None
       if self.execute_body():
-         niter = self.getopt('niter')
+         num_iter = self.getopt('num_iter')
          
          stub = self.unique_nodestub()
          condeqs = []
-         print self._other.oneliner()
+         # print self._other.oneliner()
          for i,qual in enumerate(self._nodequals):
             node = stub('condeq')(qual) << Meq.Condeq(self[i],
                                                       self._other[i]) 
@@ -122,15 +122,21 @@ class SolverUnit(Clump.Clump):
 
          solvable = self.solvable_parms()
          solvable.extend(self._other.solvable_parms())
-         print '\n** solvable =',solvable
-         node = stub('solver') << Meq.Solver(children=condeqs, niter=3,
-                                             solvable=solvable)
-         self._solver = node
-         self._orphans.append(node)
+         solver = stub('solver') << Meq.Solver(children=condeqs,
+                                               num_iter=num_iter,
+                                               solvable=solvable)
+         self._solver = solver
+         # Insert ReqSeq node(s) in the trees of the input clump.
+         # These will issue a request first to the solver,
+         # but pass on the result of the trees.
+         self._input_clump.insert_reqseqs(solver)
+         ## self._orphans.append(solver)               # alternative...?
+
+         # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
-      return self.on_exit(ctrl)
+      return self.on_exit(ctrl, result=solver)
 
 
    #======================================================================
