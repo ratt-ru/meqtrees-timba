@@ -392,6 +392,31 @@ class Flagger (Timba.dmi.verbosity):
       ms.putcol('FLAG_ROW',(bfr&flagmask).astype(Timba.array.dtype('bool')),row0,nrows);
     if progress_callback:
       progress_callback(ms.nrows(),ms.nrows());
+      
+  def clear_legacy_flags (self,progress_callback=None):
+    """Clears the legacy FLAG/FLAG_ROW columns.
+    """;
+    ms = self._reopen();
+    self.dprintf(1,"clearing legacy FLAG/FLAG_ROW column\n");
+    # now go through MS and fill the column
+    # go through rows of the MS in chunks
+    shape = list(ms.getcol('FLAG',0,1).shape);
+    shape[0] = self.chunksize
+    fzero  = Timba.array.zeros(shape,dtype='bool');
+    frzero = Timba.array.zeros((self.chunksize,),dtype='bool');
+    for row0 in range(0,ms.nrows(),self.chunksize):
+      if progress_callback:
+        progress_callback(row0,ms.nrows());
+      nrows = min(self.chunksize,ms.nrows()-row0);
+      if nrows < self.chunksize:
+        fzero = fzero[:nrows,:,:];
+        frzero = frzero[:nrows];
+      self.dprintf(2,"filling rows %d:%d\n",row0,row0+nrows-1);
+      ms.putcol('FLAG',fzero,row0,nrows);
+      ms.putcol('FLAG_ROW',frzero,row0,nrows);
+    if progress_callback:
+      progress_callback(ms.nrows(),ms.nrows());
+
   
   def autoflagger (self,*args,**kw):
     return Flagger.AutoFlagger(self,*args,**kw);

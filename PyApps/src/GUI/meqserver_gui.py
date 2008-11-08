@@ -42,6 +42,8 @@ from Timba.GUI import VisProgressMeter
 from Timba.GUI import SolverProgressMeter 
 from Timba import Grid
 from Timba import TDL
+import Timba.TDL.GUI
+import Purr.MainWindow
 
 import weakref
 import math
@@ -92,8 +94,12 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self,PYSIGNAL("process.status"),self.ce_ProcessStatus);
     QObject.connect(self,PYSIGNAL("result.node.get.state"),self.ce_NodeState);
     QObject.connect(self,PYSIGNAL("result.get.node.list"),self.ce_LoadNodeList);
+    # init internal state
+    self._purr = None;
     
   def populate (self,main_parent=None,*args,**kwargs):
+    # register ourselves with TDL services
+    Timba.TDL.GUI.meqbrowser = self;
     # init icons
     pixmaps.load_icons('treebrowser');
     
@@ -191,6 +197,17 @@ class meqserver_gui (app_proxy_gui):
     # disable TDL job controls while running
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._tb_jobs.setDisabled);
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_runtdl.setDisabled);
+    
+    # add Purr button
+    qa = QAction(pixmaps.purr_logo.iconset(),"Show Purr window",0,self.qa_viewpanels);
+    QObject.connect(qa,SIGNAL("activated()"),self.show_purr_window);
+    tb_purr = QToolButton(self.maintoolbar);
+    tb_purr.setIconSet(pixmaps.purr_logo.iconset());
+    tb_purr.setTextLabel("Purr");
+    tb_purr.setUsesTextLabel(True);
+    tb_purr.setTextPosition(QToolButton.BesideIcon);
+    QToolTip.add(tb_purr,"Shows the Purr tool");
+    QObject.connect(tb_purr,SIGNAL("clicked()"),self.show_purr_window);
     
     # make a TDLErrorFloat for errors
     self._tdlgui_error_window = tdlgui.TDLErrorFloat(self);
@@ -1176,6 +1193,9 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       # change browser path
       curpath = os.getcwd();
       os.chdir(path);
+      # notify purr, if running
+      if self._purr:
+        self._purr.attachDirectory(path);
       if not os.path.samefile(path,curpath):
         self.log_message("browser working directory is now "+path);
     if kernel and self.app.current_server:
@@ -1374,10 +1394,21 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self.setCaption(caption);
     if self.app.current_server:
       self.treebrowser.update_app_state(self.app.current_server.state);
+      
+  def show_purr_window (self):
+    if not self._purr:
+      self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
+    self._purr.show();
+    self._purr.raiseW();
 
-# register NodeBrowser at low priority for now (still experimental),
-# but eventually we'll make it the default viewer
-# Grid.Services.registerViewer(meqds.NodeClass(),NodeBrowser,priority=30);
+  def attach_purr (self,dirname,watchdirs,show=False,pounce=None):
+    if not self._purr:
+      self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
+    self._purr.attachDirectory(dirname,watchdirs);
+    if show:
+      self._purr.show();
+    if pounce is not None:
+      self._purr.enablePounce(pounce);
 
 # register reloadables
 reloadableModule(__name__);

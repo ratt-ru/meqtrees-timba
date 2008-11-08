@@ -12,52 +12,6 @@ _verbosity = Timba.utils.verbosity(name="purrparse");
 dprint = _verbosity.dprint;
 dprintf = _verbosity.dprintf;
 
-def writeLogEntryIndex (fobj,entry,relpath="",full=False):
-  # form up attributes for % operator
-  attrs = dict(entry.__dict__);
-  attrs['timestr'] = time.strftime("%x %X",time.localtime(entry.timestamp));
-  attrs['relpath'] = relpath;
-  # write HTML header if asked
-  if full:
-    fobj.write("""<HTML><BODY>
-    <TITLE>%(title)s</TITLE>\n"""%attrs);
-  # write log entry heading
-  fobj.write("""
-    <H2><A CLASS="TITLE" TIMESTAMP=%(timestamp)d>%(title)s</A></H2>
-    
-    <P>Logged on %(timestr)s</P>\n
-    
-    <A CLASS="COMMENTS">\n"""%attrs);
-  # add comments
-  for cmt in entry.comment.split("\n"):
-    fobj.write("""
-      <P>%s</P>\n"""%cmt);
-  fobj.write("""
-    </A>\n""");
-  # add data products
-  if entry.dps:
-    if [ dp for dp in entry.dps if dp.policy != "ignore" ]:
-      fobj.write("""
-      <H3>Data products</H3>\n""");
-    for dp in entry.dps:
-      dpattrs = dict(dp.__dict__);
-      # write empty anchor for ignored products
-      if dp.policy == "ignore":
-        fobj.write("""
-        <A CLASS="DP" HREF="%(filename)s" POLICY="ignore"></A>\n"""%dpattrs);
-      # write normal anchor for normal products
-      else:
-        dpattrs['relpath'] = relpath;
-        dpattrs['basename'] = os.path.basename(dp.filename);
-        fobj.write("""
-        <P><A CLASS="DP" HREF="%(relpath)s%(filename)s" ORIG="%(orig_filename)s" POLICY="%(policy)s" TIMESTAMP=%(timestamp)d>%(basename)s</A>"""%dpattrs);
-        if dp.comment:
-          fobj.write(""": <A CLASS="DPCOMMENT">%s</A></P>\n"""%dp.comment);
-        else:
-          fobj.write("</P>\n");
-  # write footer
-  if full:
-    fobj.write("</BODY></HTML>\n");
     
 def writeLogIndex (fobj,title,timestamp,entries):
   fobj.write("""<HTML><BODY>\n
@@ -67,13 +21,13 @@ def writeLogIndex (fobj,title,timestamp,entries):
     
     """%(title,timestamp,title));
   for entry in entries:
-    writeLogEntryIndex(fobj,entry,os.path.join(os.path.basename(entry.pathname),""));
+    fobj.write(entry.renderIndex(os.path.join(os.path.basename(entry.pathname),"")));
   fobj.write("</BODY></HTML>\n");
 
 class LogIndexParser (HTMLParser):
   def reset (self):
     HTMLParser.reset(self);
-    self.title = None;
+    self.title = "";
     self.timestamp = None;
     self.curclass = None;
     
@@ -110,7 +64,7 @@ class LogIndexParser (HTMLParser):
       self.timestamp = int(timestamp);
     
   def _handle_end_TITLE (self,data):
-    if self.title is None:
+    if not self.title:
       self.title = data;
   
   def handle_data (self,data):
@@ -132,6 +86,10 @@ class LogIndexParser (HTMLParser):
       self.end();
     
 class LogEntryIndexParser (LogIndexParser):
+  def __init__ (self,dirname):
+    LogIndexParser.__init__(self);
+    self._dirname = dirname;
+  
   def reset (self):
     LogIndexParser.reset(self);
     self.comments = None;
@@ -142,13 +100,15 @@ class LogEntryIndexParser (LogIndexParser):
     self._add_data_product();
     LogIndexParser.end(self);
     
-  def _handle_start_DP (self,href=None,orig=None,policy=None,timestamp=0,**kw):
+  def _handle_start_DP (self,filename=None,src=None,policy=None,quiet=False,
+                        timestamp=0,comment="",render=None,**kw):
     # dispence with previous DP tag, if any
     self._add_data_product();  
-    if href is None:
-      raise ValueError,"illegal HREF attribute in <A CLASS=\"DP\"> tag";
     # setup data for this tag
-    self._new_dp = Purr.DataProduct(href,timestamp=int(timestamp),policy=policy,orig_filename=orig);
+    self._new_dp = Purr.DataProduct(filename=filename,sourcepath=src,
+                      timestamp=int(timestamp),comment=comment,
+                      fullpath=os.path.join(self._dirname,filename),
+                      policy=policy,render=render,quiet=quiet);
   
   def _handle_end_TITLE (self,data):
     self.title = data;

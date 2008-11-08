@@ -8,6 +8,7 @@ import sets
 
 from Purr import Config,pixmaps
 import Purr.LogEntry
+import Purr.Render
 
 class LogEntryEditor (QWidget):
   """This is a base class providing a widget for log entry editing.
@@ -16,6 +17,7 @@ class LogEntryEditor (QWidget):
   def __init__ (self,parent):
     QWidget.__init__(self,parent);
     lo_top = QVBoxLayout(self);
+    lo_top.setResizeMode(QLayout.Minimum);
     lo_top.setMargin(5);
     # create comment editor
     # create title and timestamp label, hide timestamp until it is set (below)
@@ -27,31 +29,55 @@ class LogEntryEditor (QWidget):
     lo_topline.addWidget(self.wtimestamp);
     # add title editor
     self.wtitle   = QLineEdit(self);
-    lo_top.addWidget(self.wtitle);
+    lo_top.addWidget(self.wtitle); 
+    self.connect(self.wtitle,SIGNAL("textChanged(const QString&)"),self._titleChanged);
     # add comment editor
     lo_top.addSpacing(5);
     lo_top.addWidget(QLabel("Comment:",self));
     self.wcomment = QTextEdit(self);
+    self.wcomment.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
+    self.connect(self.wcomment,SIGNAL("textChanged()"),self._commentChanged);
     lo_top.addWidget(self.wcomment);
     # generate frame for the "Data products" listview
     lo_top.addSpacing(5);
-    lo_top.addWidget(QLabel("""<P>Data products are listed below. Click on the "action" column to select
-          what to do with a product. Click on the "rename" column to rename the product.
-          Click "comment" to enter a comment.</P>""",self));
+    dpline = QWidget(self);
+    lo_top.addWidget(dpline);
+    dpline.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
+    lo_dpline = QHBoxLayout(dpline);
+    dp_tip_text = """<P>"Data products" are files that will be archived along with this log entry. If "pounce" 
+      is enabled, PURR will watch your directories for new or updated files, and insert them in this list
+      automatically. You can also click on "Add..." to add files manually.</P>
+      
+      <P>Click on the "action" column to select what to do with a file. Click on the "rename" column 
+      to archive the file under a different name. Click "comment" to enter a comment for the file.</P>""";
+    label = QLabel("Data products:",dpline)
+    QToolTip.add(label,dp_tip_text);
+    lo_dpline.addWidget(label);
+    lo_dpline.addStretch(1);
+    self.wnewdp = QPushButton(pixmaps.folder_open.iconset(),"Add...",dpline);
+    self.connect(self.wnewdp,SIGNAL("clicked()"),self._showAddDialog);
+    self._add_dp_dialog = None;
+    lo_dpline.addWidget(self.wnewdp);
     # create DP listview
     ndplv = self.wdplv = QListView(self);
+    ndplv.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     lo_top.addWidget(self.wdplv);
-    ndplv.addColumn("action");
-    ndplv.setColumnAlignment(0,Qt.AlignHCenter);
-    ndplv.addColumn("filename",120);
-    ndplv.setColumnAlignment(1,Qt.AlignRight);
-    ndplv.addColumn("rename",120);
-    ndplv.setColumnAlignment(2,Qt.AlignRight);
-    ndplv.addColumn("comment");
+    # insert columns, and numbers for them
+    self.ColAction   = ndplv.columns(); ndplv.addColumn("action");
+    self.ColFilename = ndplv.columns(); ndplv.addColumn("filename",120);
+    self.ColRename   = ndplv.columns(); ndplv.addColumn("rename",120);
+    self.ColRender   = ndplv.columns(); ndplv.addColumn("render");
+    self.ColComment  = ndplv.columns(); ndplv.addColumn("comment");
+    ndplv.setColumnAlignment(self.ColAction,Qt.AlignHCenter);
+    ndplv.setColumnAlignment(self.ColFilename,Qt.AlignRight);
+    ndplv.setColumnAlignment(self.ColRename,Qt.AlignRight);
+    ndplv.setColumnAlignment(self.ColRender,Qt.AlignHCenter);
+    ndplv.setColumnAlignment(self.ColComment,Qt.AlignLeft);
     ndplv.setSorting(-1);
     # sort out resizing modes
     ndplv.header().setMovingEnabled(False);
-    ndplv.header().setResizeEnabled(False,0);
+    ndplv.header().setResizeEnabled(False,self.ColAction);
+    ndplv.header().setResizeEnabled(False,self.ColRender);
     ndplv.setResizeMode(QListView.LastColumn);
     # setup other properties of the listview
     ndplv.setAllColumnsShowFocus(True);
@@ -69,6 +95,11 @@ class LogEntryEditor (QWidget):
   _policy_cycle = dict(copy="move",move="ignore",ignore="copy");
   _policy_icons = dict(copy='copy',move='move',ignore='grey_round_cross');
     
+  def hideEvent (self,event):
+    QWidget.hideEvent(self,event);
+    if self._add_dp_dialog:
+      self._add_dp_dialog.hide();
+    
   def reset (self):
     self.entry = self._timestamp = None;
     self.wtimestamp.hide();
@@ -76,37 +107,130 @@ class LogEntryEditor (QWidget):
     self.setEntryComment("No comment");
     self.wdplv.clear();
     self.dpitems = {};
+    self._default_dir = ".";
+    self._title_changed = self._comment_changed = False;
+    self._last_auto_comment = None;
+    
+  def setDefaultDirs (self,*dirnames):
+    self._default_dirs = dirnames;
+    
+  class AddDataProductDialog (QFileDialog):
+    """This is a file selection dialog with an extra quick-jump combobox for 
+    multiple directories""";
+    def __init__ (self,parent):
+      QFileDialog.__init__(self);
+      self.setCaption("PURR: Add Data Products");
+      self.setMode(QFileDialog.ExistingFiles);
+      self.dirlist = None;
+      # make quick-jump combobox
+      self.wlabel = QLabel("Quick jump:",self);
+      self.wdirlist = QComboBox(False,self);
+      self.wdirlist.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
+      self.connect(self.wdirlist,SIGNAL("activated(const QString &)"),self.setDir);
+      self.addWidgets(self.wlabel,self.wdirlist,None);
+      # connect signals (translates into a PYSIGNAL with string arguments)
+      self.connect(self,SIGNAL("filesSelected(const QStringList&)"),self._filesSelected);
+    
+    def setDirList (self,dirlist):
+      if dirlist != self.dirlist:
+        self.dirlist = dirlist;
+        self.wdirlist.clear();
+        for dirname in dirlist:
+          self.wdirlist.insertItem(dirname);
+        self.wlabel.setShown(len(dirlist)>1);
+        self.wdirlist.setShown(len(dirlist)>1);
+          
+    def _filesSelected (self,filelist):
+      self.emit(PYSIGNAL("filesSelected()"),tuple(map(str,filelist)))
+  
+  def _showAddDialog (self):
+    if not self._add_dp_dialog:
+      self._add_dp_dialog = self.AddDataProductDialog(self);
+      self.connect(self._add_dp_dialog,PYSIGNAL("filesSelected()"),
+                   self,PYSIGNAL("filesSelected()"));
+      # add quick-jump combobox
+    self._add_dp_dialog.setDirList(self._default_dirs);
+    self._add_dp_dialog.show();
+    self._add_dp_dialog.raiseW();
     
   def _lv_item_clicked (self,item,point,column):
     if not item:
       return;
-    if column == 0:
+    if column == self.ColAction:
       self._setItemPolicy(item,self._policy_cycle.get(item._policy,"copy"));
-    elif column in [2,3]:
+    elif column == self.ColRender:
+      item._render = (item._render+1)%len(item._renderers);
+      item.setText(self.ColRender,item._renderers[item._render]);
+    elif column in [self.ColRename,self.ColComment]:
       item.startRename(column);
       
   def _setItemPolicy (self,item,policy):
+    pmname = self._policy_icons.get(policy);
+    if pmname is None:
+      policy = "copy";
+      pmname = self._policy_icons.get(policy);
     item._policy = policy;
-    item.setText(0,policy);
-    pmname = self._policy_icons.get(item._policy);
+    item.setText(self.ColAction,policy);
     pixmap = getattr(pixmaps,pmname,None);
     if pixmap:
-      item.setPixmap(0,pixmap.pm());
+      item.setPixmap(self.ColAction,pixmap.pm());
     else:
-      item.setPixmap(0,None);
+      item.setPixmap(self.ColAction,None);
       
   def _makeDPItem (self,dp,after):
     item = QListViewItem(self.wdplv,after);
-    item._filename = dp.filename;
+    item._sourcepath = dp.sourcepath;
     self._setItemPolicy(item,dp.policy);
-    item.setText(1,os.path.basename(dp.filename));
-    item.setText(2,os.path.basename(dp.rename or filename));
-    item.setText(3,dp.comment or "");
-    item.setRenameEnabled(2,True);
-    item.setRenameEnabled(3,True);
-    self.dpitems[dp.filename] = item;
+    item.setText(self.ColFilename,os.path.basename(dp.sourcepath));
+    item.setText(self.ColRename,dp.filename);
+    item.setText(self.ColComment,dp.comment or "");
+    item.setRenameEnabled(self.ColRename,True);
+    item.setRenameEnabled(self.ColComment,True);
+    # get list of available renderers
+    item._renderers = Purr.Render.getRenderers(dp.fullpath or dp.sourcepath);
+    item._render = 0;
+    item.setText(self.ColRender,item._renderers[0]);
+    # add to map of items
+    self.dpitems[item._sourcepath] = item;
     return item;
   
+  def _titleChanged (self,*dum):
+    self._title_changed = True;
+    
+  def _commentChanged (self,*dum):
+    self._comment_changed = True;
+  
+  def suggestTitle(self,title):
+    """Suggests a title for the entry.
+    If title has been manually edited, suggestion is ignored.""";
+    if not self._title_changed or not str(self.wtitle.text()):
+      self.wtitle.setText(title);
+      self._title_changed = False;
+    
+  def addComment(self,comment):
+    # get current comment text
+    if self._comment_changed:
+      cur_comment = str(self.wcomment.text());
+      cpos = self.wcomment.getCursorPosition();
+    else:
+      cur_comment = "";
+      cpos = None;
+    # always add newline to new comment
+    comment += "\n";
+    # no current comments? Replace
+    if not cur_comment:
+      cur_comment = comment;
+    # else was last comment auto-added here? Do not start paragraph
+    elif self._last_auto_comment and cur_comment.endswith(self._last_auto_comment):
+      cur_comment += comment;
+    # else start a new paragraph and add comment
+    else:
+      cur_comment += "\n"+comment;
+    self._last_auto_comment = comment;
+    # update widget
+    self.wcomment.setText(cur_comment);
+    if cpos:
+      cpos = self.wcomment.setCursorPosition(*cpos);
     
   def updateEntry (self,timestamp=None):
     """Updates entry object with current content of dialog. Creates new LogEntry if needed.
@@ -119,8 +243,10 @@ class LogEntryEditor (QWidget):
     dps = [];
     item = self.wdplv.firstChild();
     while item:
-      dps.append(Purr.DataProduct(item._filename,policy=item._policy,
-                               rename=str(item.text(2)),comment=str(item.text(3))));
+      dps.append(Purr.DataProduct(sourcepath=item._sourcepath,policy=item._policy,
+                                  filename=str(item.text(self.ColRename)),
+                                  render=str(item.text(self.ColRender)),
+                                  comment=str(item.text(self.ColComment))));
       item = item.nextSibling();
     if self.entry:
       self.entry.update(title,comment,dps,timestamp=timestamp);
@@ -135,6 +261,7 @@ class LogEntryEditor (QWidget):
     self.setEntryTitle(entry.title);
     self.setEntryComment(entry.comment);
     self.wdplv.clear();
+    self.dpitems = {};
     item = None;
     # non-ignored items first
     for dp in [ dp for dp in entry.dps if dp.policy != 'ignore' ]:
@@ -146,11 +273,15 @@ class LogEntryEditor (QWidget):
     self.showColumn(0,False);
   
   def addDataProducts(self,dps):
-    # this flag will be set if any new files are added, or if existing
-    # files (that have been checked on) are updated
+    """Adds data products to dialog.
+      dps is a list of (dp,quiet) pairs. The quiet flag indicates that a DP is to be added
+      quietly (i.e. no need to show the dialog)
+    """;
+    # this flag will be set if any new non-quiet dps are added, or if existing
+    # non-quiet dps (that have been checked on) are updated
     updated = False;
     for dp in dps:
-      item = self.dpitems.get(dp.filename);
+      item = self.dpitems.get(dp.sourcepath);
       if not item:
         # ignore DPs added to end, non-ingored added to head
         if dp.policy == "ignore":
@@ -158,7 +289,7 @@ class LogEntryEditor (QWidget):
         else:
           after = None;
         item = self._makeDPItem(dp,after);
-      updated = updated or item._policy != "ignore";
+      updated = updated or (not dp.quiet and item._policy != "ignore");
     return updated;
       
   def entryTitle (self):
@@ -204,11 +335,14 @@ class NewLogEntryDialog (QDialog):
     self._dialog_tip = self.DialogTip(self);
     # create editor
     lo = QVBoxLayout(self);
+    lo.setResizeMode(QLayout.Minimum);
     self.editor = LogEntryEditor(self);
+    self.connect(self.editor,PYSIGNAL("filesSelected()"),self,PYSIGNAL("filesSelected()"));
     lo.addWidget(self.editor);
     lo.addSpacing(5);
     # create button bar
     btnfr = QFrame(self);
+    btnfr.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
     btnfr.setMargin(5);
     lo.addWidget(btnfr);
     lo.addSpacing(5);
@@ -223,6 +357,7 @@ class NewLogEntryDialog (QDialog):
     btnfr_lo.addWidget(cancelbtn,1);
     self.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
     # resize selves
+    self.setMinimumSize(256,512);
     width = Config.getint('entry-editor-width',256);
     height = Config.getint('entry-editor-height',256);
     self.resize(QSize(width,height));
@@ -246,11 +381,20 @@ class NewLogEntryDialog (QDialog):
     
   def addDataProducts (self,dps):
     updated = self.editor.addDataProducts(dps);
-    if updated:
-      self._has_tip = """<P>This dialog popped up because new data products
-        have been detected and pounced on. If you dislike this behaviour, disable the
-        "pounce" option in the main PURR window.<P>""";
+#    if updated:
+#      self._has_tip = """<P>This dialog popped up because new data products
+#        have been detected and pounced on. If you dislike this behaviour, disable the
+#        "pounce" option in the main PURR window.<P>""";
     return updated;
+  
+  def suggestTitle(self,title):
+    self.editor.suggestTitle(title);
+    
+  def addComment(self,comment):
+    self.editor.addComment(comment);
+    
+  def setDefaultDirs (self,*dirs):
+    self.editor.setDefaultDirs(*dirs);
     
   def addNewEntry (self):
     # confirm with user

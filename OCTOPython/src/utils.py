@@ -144,7 +144,6 @@ class verbosity:
       stream.write(self.dheader(-3));
       stream.write(string.join(map(str,args),' ')+'\n'); 
   def dprintf(self,level,format,*args):
-#    print format,args;
     if level <= self.verbose:
       stream = self.stream or sys.stderr;
       try: s = format % args;

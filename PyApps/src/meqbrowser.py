@@ -56,7 +56,7 @@ if __name__ == "__main__":
   for optstr in (options.verbose or []):
     opt = optstr.split("=") + ['1'];
     context,level = opt[:2];
-    Timba.utils.verbosity.set_verbosity_level(context,level);
+    Timba.utils.verbosity.set_verbosity_level(context,int(level));
 
   print "Welcome to the MeqTree Browser!";
   print "Please wait a second while the GUI starts up.";

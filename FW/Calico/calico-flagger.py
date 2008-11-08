@@ -34,8 +34,7 @@ import Meow
 from Meow import Bookmarks,Context
 import Meow.StdTrees
 import Calico.Flagger
-import Purr
-import Purr.Purrer
+import Timba.TDL.GUI
 
 try:
   import qt
@@ -317,6 +316,24 @@ def clear_flagset (mqs,parent,**kw):
   finally:
     progress_callback(100,100);
 
+def clear_legacy_flags (mqs,parent,**kw):
+  if not flagger:
+    raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  if qt and parent:
+    if qt.QMessageBox.question(parent,"Clearing FLAG/FLAG_ROW","""<P>This will clear all 
+          flags from the FLAG/FLAG_ROW columns. Click OK to proceed.</P>""",
+          qt.QMessageBox.Ok,qt.QMessageBox.Cancel) != qt.QMessageBox.Ok:
+      return;
+  # open progress meter if GUI available
+  init_progress_dialog(parent,"Clearing flags");
+  # execute flagging
+  try:
+    flagger.clear_legacy_flags(progress_callback=progress_callback);
+    flagger.close();
+  finally:
+    progress_callback(100,100);
+
+
 def remove_flagset (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
@@ -345,10 +362,11 @@ fill_opt            = TDLRuntimeJob(fill_legacy_flags,"Fill FLAG/FLAG_ROW from t
 get_stat_opt        = TDLRuntimeJob(get_flag_stats,"Get statistics")
 clear_fs_opt        = TDLRuntimeJob(clear_flagset,"Clear selected flagset(s)",
   doc="""Clears all flags in the selected flagset(s), but does not remove the flagsets.""");
+clear_legacy_opt    = TDLRuntimeJob(clear_legacy_flags,"Clear flags from FLAG/FLAG_ROW columns");
 remove_fs_opt       = TDLRuntimeJob(remove_flagset,"Remove selected flagset(s)",
   doc="""Completely removes the selected flagsets.""");
 
-ms_job_options = [ view_ms_opt,run_autoflagger_opt,flag_ms_opt,transfer_opt,
+ms_job_options = [ view_ms_opt,run_autoflagger_opt,flag_ms_opt,transfer_opt,clear_legacy_opt,
                    get_stat_opt,clear_fs_opt,remove_fs_opt ];
 
 
@@ -381,9 +399,9 @@ TDLRuntimeMenu("Remove or clear flagset(s)",
   );
 
 fill_flag_selector = mssel.make_read_flag_selector(namespace='fill_fl',legacy=False);
-TDLRuntimeMenu("Fill FLAG/FLAG_ROW column from flagset(s)",
+TDLRuntimeMenu("Change the FLAG/FLAG_ROW columns",
   *(fill_flag_selector.option_list() +
-    [fill_opt])
+    [fill_opt,clear_legacy_opt])
   );
   
 TDLRuntimeMenu("Run autoflagger (fills FLAG/FLAG_ROW column)",
@@ -458,7 +476,8 @@ TDLRuntimeMenu("Get flag statistics",
 
 def _define_forest(ns,parent=None,**kw):
   if run_purr:
-    Purr.run(parent,mssel.msname);
+    Timba.TDL.GUI.log_message("starting purr");
+    Timba.TDL.GUI.purr(mssel.msname,[mssel.msname,'.']);
   
   ANTENNAS = mssel.get_antenna_set(range(15));
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);

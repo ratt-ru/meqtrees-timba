@@ -15,11 +15,12 @@ import traceback
 import fnmatch
 import sets
 import signal
-from qt import *
 
 import Purr
-from Purr import Config,dprint,dprintf;
 import Purr.Parsers
+import Purr.Render
+import Purr.Plugins
+from Purr import Config,dprint,dprintf;
 
 def parse_pattern_list (liststr):
   """Parses a list of filename patterns of the form "Description=ptt,patt,...;Description=patt,...
@@ -45,93 +46,93 @@ def make_pattern_list (patterns):
   return ";".join(pattstrs);
   
 
-class Purrer (QObject):
-  def __init__ (self,parent,dirname,hide_on_close=False):
-    QObject.__init__(self);
-    self._mainwin = Purr.MainWindow((isinstance(parent,QWidget) and parent) or None,
-                        self,hide_on_close=hide_on_close);
-    self._default_dp_props = {};
-    self._dir_timestamps  = {};
-    self._file_timestamps = {};
-    self._new_dps = sets.Set();
-    # load directory content
-    self.loadDirectory(dirname);
-    self._timer = None;
+class Purrer (object):
+  def __init__ (self,dirname,watchdirs=None):
     # load and parse configuration
-    watch = Config.get("watch-patterns","TDL configuration=.tdl.conf;Image=*fits");
+    # watched files
+    watch = Config.get("watch-patterns","Images=*fits,*FITS");
     self._watch = parse_pattern_list(watch);
     self._watch_patterns = sets.Set();
     for desc,patts in self._watch:
       self._watch_patterns.update(patts);
     dprint(1,"watching patterns",self._watch_patterns);
-    ignore = Config.get("ignore-patterns","Internal Purr files=.purr.*;MeqTree logs=meqtree.log;Python files=*.py*;Backup files=*~,*.bck");
+    # quietly watched files (dialog is not popped up)
+    watch = Config.get("watch-patterns-quiet","TDL configuration=.tdl.conf");
+    self._quiet = parse_pattern_list(watch);
+    self._quiet_patterns = sets.Set();
+    for desc,patts in self._quiet:
+      self._quiet_patterns.update(patts);
+    dprint(1,"quietly watching patterns",self._quiet_patterns);
+    # merge into watch set 
+    self._watch_patterns.update(self._quiet_patterns);
+    # ignored files 
+    ignore = Config.get("ignore-patterns","Hidden files=.*;MeqTree logs=meqtree.log;Python files=*.py*;Backup files=*~,*.bck");
     self._ignore = parse_pattern_list(ignore);
     self._ignore_patterns = sets.Set();
     for desc,patts in self._ignore:
       self._ignore_patterns.update(patts);
     dprint(1,"ignoring patterns",self._ignore_patterns);
-    self._watching = False;
-    # create a timer
-    if not self._timer:
-      self._timer = QTimer(self);
-      self.connect(self._timer,SIGNAL("timeout()"),self._rescan);
+    # attach to directories
+    self._attach(dirname,watchdirs);
     
-  def mainwin (self):
-    return self._mainwin;
-  
-  def close (self):
-    self.mainwin().close();
-    # delete main window
-    dum = QWidget();
-    self.mainwin().reparent(dum,0,QPoint());
-  
-  def loadDirectory (self,dirname):
-    """Attaches Purr to a directory (typically, an MS), and loads content""";
+  def _attach (self,dirname,watchdirs=None):
+    """Attaches Purr to a directory (typically, an MS), and loads content.
+    Returns False if nothing new has been loaded (because directory is the same),
+    or True otherwise.""";
+    dirname = os.path.abspath(dirname);
     dprint(1,"attaching to directory",dirname);
     self.dirname = dirname;
-    self.logdir = os.path.join(dirname,"purr");
-    self.title = "Unnamed log";
-    self.timestamp = self.last_scan_timestamp = time.time();
-    # create directory if it doesn't exist
-    # error will be thrown if this is not possible
-    if not os.path.exists(self.logdir):
-      os.mkdir(self.logdir);
-      dprint(1,"created",self.logdir);
+    self.logdir = os.path.join(self.dirname,"purrlog");
     self.indexfile = os.path.join(self.logdir,"index.html");
-    if os.path.exists(self.indexfile):
-      try:
-        parser = Purr.Parsers.LogIndexParser();
-        for line in file(self.indexfile):
-          parser.feed(line);
-        self.title = parser.title or self.title;
-        self.timestamp = parser.timestamp or self.timestamp;
-        dprintf(2,"attached log '%s', timestamp %s\n",
-                  self.title,time.strftime("%x %X",time.localtime(self.timestamp)));
-      except:
-        traceback.print_exc();
-        print "Error parsing %s, reverting to defaults"%self.indexfile;
-    # load log entries
-    entries = [];
-    for fname in os.listdir(self.logdir):
-      pathname = os.path.join(self.logdir,fname);
-      if Purr.LogEntry.isValidPathname(pathname):
+    self.logtitle = "Unnamed log";
+    self.timestamp = self.last_scan_timestamp = time.time();
+    # reset internal state
+    self.autopounce = False;
+    self.watched_dirs = [];
+    self.entries = [];
+    self._default_dp_props = {};
+    self._dir_timestamps  = {};
+    self._file_timestamps = {};
+    self._new_dps = sets.Set();
+    # load log state if log directory already exists
+    if os.path.exists(self.logdir):
+      _busy = Purr.BusyIndicator();
+      if os.path.exists(self.indexfile):
         try:
-          entry = Purr.LogEntry(load=pathname);
+          parser = Purr.Parsers.LogIndexParser();
+          for line in file(self.indexfile):
+            parser.feed(line);
+          self.logtitle = parser.title or self.logtitle;
+          self.timestamp = parser.timestamp or self.timestamp;
+          dprintf(2,"attached log '%s', timestamp %s\n",
+                    self.logtitle,time.strftime("%x %X",time.localtime(self.timestamp)));
         except:
-          print "Error loading entry %s, skipping"%fname;
           traceback.print_exc();
-          continue;
-        entries.append(entry);
-      else:
-        dprint(2,fname,"is not a valid Purr entry");
-    # sort log entires by timestamp
-    entries.sort(lambda a,b:cmp(a.timestamp,b.timestamp));
-    self.setEntries(entries,save=False);
-    # populate listview
-    self.mainwin().setLogTitle(self.title);
-    self.mainwin().setDirName(self.dirname,self.logdir);
+          print "Error parsing %s, reverting to defaults"%self.indexfile;
+      # load log entries
+      entries = [];
+      for fname in os.listdir(self.logdir):
+        pathname = os.path.join(self.logdir,fname);
+        if Purr.LogEntry.isValidPathname(pathname):
+          try:
+            entry = Purr.LogEntry(load=pathname);
+            dprint(2,"loaded log entry",pathname);
+          except:
+            print "Error loading entry %s, skipping"%fname;
+            traceback.print_exc();
+            continue;
+          entries.append(entry);
+        else:
+          dprint(2,fname,"is not a valid Purr entry");
+      # sort log entires by timestamp
+      entries.sort(lambda a,b:cmp(a.timestamp,b.timestamp));
+      self.setLogEntries(entries,save=False);
+    # start watching the specified directories
+    if watchdirs is None:
+      watchdirs = [dirname];
+    self.watchDirectories(watchdirs);
   
-  def setWatchedFiles (self,watch,ignore=[]):
+  def setWatchedFilePatterns (self,watch,ignore=[]):
     self._watch = watch;
     self._ignore = ignore;
     self._watch_patterns = sets.Set();
@@ -145,12 +146,24 @@ class Purrer (QObject):
     Config.set("watch-patterns",make_pattern_list(self._watch));
     Config.set("ignore-patterns",make_pattern_list(self._ignore));
     
+  def isIgnored (self,filename):
+    return bool([ patt for patt in self._ignore_patterns if fnmatch.fnmatch(filename,patt) ]);
+    
+  def isQuiet (self,filename):
+    return bool([ patt for patt in self._quiet_patterns if fnmatch.fnmatch(filename,patt) ]);
+    
   def watchDirectories (self,dirs):
     """Starts watching the specified directories for changes"""
+    # see if we're alredy watching this exact set of directories -- do nothing if so
+    newset = sets.Set([Purr.canonizePath(dd) for dd in dirs]);
+    if newset == sets.Set(self.watched_dirs):
+      dprint(1,"watchDirectories: no change to set of dirs");
+      return;
     # collect timestamps of specified directories
+    self.watched_dirs = [];
     self._new_dps = sets.Set();
     for dirname in dirs:
-      dirname = os.path.abspath(os.path.realpath(dirname));
+      dirname = Purr.canonizePath(dirname);
       try:
         mtime = os.path.getmtime(dirname);
         fileset = sets.Set(os.listdir(dirname));
@@ -158,6 +171,7 @@ class Purrer (QObject):
         print "Error accessing %s, will not be watched"%dirname;
         traceback.print_exc();
         continue;
+      self.watched_dirs.append(dirname);
       self._dir_timestamps[dirname] = self.timestamp,fileset;
       dprintf(2,"watching directory %s, mtime %s, %d files\n",
                  dirname,time.strftime("%x %X",time.localtime(mtime)),len(fileset));
@@ -167,9 +181,11 @@ class Purrer (QObject):
         dprintf(2,"%s modified since last run, checking for new files\n",dirname);
         for fname in fileset:
           # ignore files from ignore list
-          if [ patt for patt in self._ignore_patterns if fnmatch.fnmatch(fname,patt) ]:
+          if self.isIgnored(fname):
             dprintf(5,"%s: matches ignore list, skipping\n",fname);
             continue;
+          # see if it's in the quiet set
+          quiet = self.isQuiet(fname);
           fullname = os.path.join(dirname,fname);
           if os.path.isdir(fullname):
             continue;
@@ -179,86 +195,85 @@ class Purrer (QObject):
             print "Error getting ctime for %s, ignoring"%fname;
             continue;
           if ctime > self.timestamp:
-            dprintf(4,"%s: new data product (created %s)\n",
-                    fullname,time.strftime("%x %X",time.localtime(ctime)));
-            self._new_dps.add(fullname);
+            dprintf(4,"%s: new data product (created %s), quiet=%d\n",
+                    fullname,time.strftime("%x %X",time.localtime(ctime)),quiet);
+            self._new_dps.add((fullname,quiet));
       # generate list of files to be watched for changes
       watchset = sets.Set();
       for patt in self._watch_patterns:
         watchset.update(fnmatch.filter(fileset,patt));
       for fname in watchset:
         fullname = os.path.join(dirname,fname);
-        self._file_timestamps[fullname] = mtime = self.timestamp;
-        dprintf(2,"watching file %s, timestamp %s\n",
-                  fullname,time.strftime("%x %X",time.localtime(mtime)));
-    # start watching
-    self.enableWatching();
+        quiet = self.isQuiet(os.path.basename(fname));
+        self._file_timestamps[fullname] = self.timestamp,quiet;
+        dprintf(2,"watching file %s, timestamp %s, quiet %d\n",
+                  fullname,time.strftime("%x %X",time.localtime(self.timestamp)),quiet);
       
-  def enableWatching (self,enable=True):
-    if not self._watching and enable:
-      self._rescan();
-    self._watching = enable;
-    if enable and (self._dir_timestamps or self._file_timestamps):
-      self._timer.start(2000);
-      dprintf(1,"starting timer\n");
-    else:
-      self._timer.stop();
-      dprintf(1,"stopping timer\n");
-      
-  def setTitle (self,title):
-    self.title = title;
-    self.mainwin().setLogTitle(title);
-    self.save();
+  def setLogTitle (self,title,save=True):
+    self.logtitle = title;
+    if save:
+      self.save();
   
-  def newLogEntry (self,entry):
+  def addLogEntry (self,entry,save=True):
     """This is called when a new log entry is created""";
     self.entries.append(entry);
-    QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
-    try:
-      entry.save(self.logdir);
-      self.timestamp = self.last_scan_timestamp;
-      self.save();
-      self.updatePoliciesFromEntry(entry);
-    finally:
-      QApplication.restoreOverrideCursor();
-      
-  def updatePoliciesFromEntry (self,entry):
-    # populate default policies and renames based on entry list
-    for dp in entry.dps:
-      # add default policy
-      basename = os.path.basename(dp.orig_filename or dp.filename);
-      self._default_dp_props[basename] = dp.policy,os.path.basename(dp.filename),dp.comment;
-      # add files to watch lists
-      if dp.policy != 'ignore':
-        self._file_timestamps[dp.orig_filename] = dp.timestamp;
-        dprintf(4,"watching file %s, timestamp %s\n",
-                  dp.orig_filename,time.strftime("%x %X",time.localtime(dp.timestamp)));
-  
-  def save (self):
-    outfile = file(self.indexfile,"wt");
-    Purr.Parsers.writeLogIndex(outfile,self.title,self.timestamp,self.entries);
-    # now go through data products, and update our timestamp maps
-      
-  def _editLogEntry (self):
-    pass;
-  
-  def setEntries (self,entries,save=True):
-    self.entries = entries;
-    self.mainwin().setEntries(self.entries);
+    _busy = Purr.BusyIndicator();
+    # create directory if it doesn't exist
+    # error will be thrown if this is not possible
+    if not os.path.exists(self.logdir):
+      os.mkdir(self.logdir);
+      dprint(1,"created",self.logdir);
+    Purr.progressMessage("Saving new log entry");
+    entry.save(self.logdir);
+    self.timestamp = self.last_scan_timestamp;
     if save:
-      QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
-      try: 
-        self.save();
-      finally:
-        QApplication.restoreOverrideCursor();
+      self.save();
+    self.updatePoliciesFromEntry(entry);
+      
+  def getLogEntries (self):
+    return self.entries;
+      
+  def setLogEntries (self,entries,save=True):
+    self.entries = entries;
+    if save:
+      self.save();
     # populate default policies and renames based on entry list
     self._default_dp_props = {};
     for entry in entries:
       self.updatePoliciesFromEntry(entry);
     dprint(4,"default policies:",self._default_dp_props);
       
-  def _rescan (self):
-    """Checks files and directories on watchlist for updates, rescans them for new data products""";
+  def updatePoliciesFromEntry (self,entry):
+    # populate default policies and renames based on entry list
+    for dp in entry.dps:
+      # add default policy
+      basename = os.path.basename(dp.sourcepath);
+      self._default_dp_props[basename] = dp.policy,dp.filename,dp.comment;
+      # add files to watch lists
+      if dp.policy != 'ignore':
+        # if adding new file, quiet flag will be from dp
+        # for old files, quiet flag is preserved
+        mtime,quiet = self._file_timestamps.get(dp.sourcepath,(None,dp.quiet));
+        self._file_timestamps[dp.sourcepath] = dp.timestamp,quiet;
+        dprintf(4,"watching file %s, timestamp %s\n",
+                  dp.sourcepath,time.strftime("%x %X",time.localtime(dp.timestamp)));
+  
+  def save (self):
+    # create directory if it doesn't exist
+    # error will be thrown if this is not possible
+    _busy = Purr.BusyIndicator();
+    if not os.path.exists(self.logdir):
+      os.mkdir(self.logdir);
+      dprint(1,"created",self.logdir);
+    outfile = file(self.indexfile,"wt");
+    Purr.progressMessage("Generating %s"%self.indexfile);
+    Purr.Parsers.writeLogIndex(outfile,self.logtitle,self.timestamp,self.entries);
+    Purr.progressMessage("Wrote %s"%self.indexfile);
+      
+  def rescan (self):
+    """Checks files and directories on watchlist for updates, rescans them for new data products.
+    If any are found, returns them.
+    """;
     dprint(5,"starting rescan");
     newstuff = sets.Set();   # this accumulates names of new or changed files
     if self._new_dps:
@@ -296,18 +311,19 @@ class Purrer (QObject):
         if os.path.isdir(newfile):
           dprintf(5,"%s: is a directory, skipping\n",newfile);
           continue;
-        # ignore files from ignore list
-        if [ patt for patt in self._ignore_patterns if fnmatch.fnmatch(newfile,patt) ]:
+        in_watchlist = [ patt for patt in self._watch_patterns if fnmatch.fnmatch(newfile,patt) ];
+        # ignore files not matching watchlist, but matching ignore list
+        if not in_watchlist and self.isIgnored(newfile):
           dprintf(5,"%s: matches ignore list, skipping\n",newfile);
           continue;
         # add file to list of new products
-        fullname = os.path.abspath(os.path.realpath(os.path.join(dirname,newfile)));
-        newstuff.add(os.path.join(dirname,newfile));
-        dprintf(4,"%s: new data product\n",newfile);
+        quiet = self.isQuiet(newfile);
+        newstuff.add((os.path.join(dirname,newfile),quiet));
+        dprintf(4,"%s: new data product, quiet=%d\n",newfile,quiet);
       # reset timestamp and fileset
       self._dir_timestamps[dirname] = mtime1,fileset1;
     # now go through watched files, check for mtime changes
-    for filename,mtime in list(self._file_timestamps.iteritems()):
+    for filename,(mtime,quiet) in list(self._file_timestamps.iteritems()):
       if not os.path.exists(filename):
         dprintf(4,"%s no longer exists, will stop watching\n",filename);
         del self._file_timestamps[filename];
@@ -324,42 +340,21 @@ class Purrer (QObject):
         dprintf(5,"file %s: no change to mtime\n",filename);
         continue;
       # else add to data products
-      dprintf(4,"%s: new data product\n",filename);
-      newstuff.add(filename);
-      self._file_timestamps[filename] = mtime1;
+      dprintf(4,"%s: new data product, quiet=%d\n",filename,quiet);
+      newstuff.add((filename,quiet));
+      self._file_timestamps[filename] = mtime1,quiet;
     # if we have new data products, send them to the main window
+    return self.makeDataProducts(*newstuff);
+
+  def makeDataProducts (self,*files):
+    """makes a list of DPs from a list of (filename,quiet) pairs""";
     dps = [];
-    for filename in newstuff:
-      basename = os.path.basename(filename);
-      policy,rename,comment = self._default_dp_props.get(basename,("copy",None,""));
-      dprintf(4,"%s: default policy is %s,%s,%s\n",basename,policy,rename,comment);
-      dps.append(Purr.DataProduct(filename,policy=policy,rename=rename,comment=comment));
-    self.mainwin().newDataProducts(dps);
+    for filename,quiet in files:
+      sourcepath = Purr.canonizePath(filename);
+      filename = os.path.basename(filename);
+      policy,filename,comment = self._default_dp_props.get(filename,("copy",filename,""));
+      dprintf(4,"%s: default policy is %s,%s,%s\n",sourcepath,policy,filename,comment);
+      dps.append(Purr.DataProduct(filename=filename,sourcepath=sourcepath,
+                                  policy=policy,comment=comment,quiet=quiet));
+    return dps;
 
-  _running_purr = None;
-  
-  def run (parent,dirname):
-    """Runs Purr as a slave of the given widget""";
-    # Find out if Purr is already running on this dirname.
-    # We can't use global variables for this, since (if we're called from within TDL) 
-    # everything gets re-imported by TDL, so investigate parent instead.
-    purr = Purrer._running_purr;
-    if purr:
-      if purr.dirname == dirname:
-        dprint(1,"already running Purr on",dirname,"showing windows");
-        purr.mainwin().show();
-        return purr;
-      dprint(1,"Purr running on",purr.dirname,"closing");
-      purr.close();
-      Purrer._running_purr = None;
-    
-    dirnames = [ dirname,'.' ];
-  
-    dprint(1,"Starting new Purr on",dirname);
-    purr = Purrer._running_purr = Purrer(parent,dirnames[0],hide_on_close=True);
-    purr.mainwin().show();  
-    purr.watchDirectories(dirnames);
-    
-    return purr;
-
-  run = staticmethod(run);

@@ -5,7 +5,10 @@ import signal
 from qt import *
 
 import Purr
+import Purr.MainWindow
 import Timba.utils
+
+import Purr.Render
 
 # runs Purr standalone
 if __name__ == "__main__":
@@ -31,11 +34,12 @@ if __name__ == "__main__":
   if not options.no_cwd and '.' not in dirnames:
     dirnames.append('.');
 
-  purrer = Purr.Purrer(None,dirnames[0]);
-  app.setMainWidget(purrer.mainwin());
-  purrer.mainwin().show();
+  purrwin = Purr.MainWindow.MainWindow(None);
+  purrwin.attachDirectory(dirnames[0],dirnames);
+  purrwin.enablePounce(True);
+  app.setMainWidget(purrwin);
+  purrwin.show();
   QObject.connect(app,SIGNAL("lastWindowClosed()"),app,SLOT("quit()"));
   
-  purrer.watchDirectories(dirnames);
   app.exec_loop(); 
   print "PURR exiting normally, goodbye!";
