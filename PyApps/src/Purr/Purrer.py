@@ -206,7 +206,7 @@ class Purrer (object):
         fullname = os.path.join(dirname,fname);
         quiet = self.isQuiet(os.path.basename(fname));
         self._file_timestamps[fullname] = self.timestamp,quiet;
-        dprintf(2,"watching file %s, timestamp %s, quiet %d\n",
+        dprintf(3,"watching file %s, timestamp %s, quiet %d\n",
                   fullname,time.strftime("%x %X",time.localtime(self.timestamp)),quiet);
       
   def setLogTitle (self,title,save=True):

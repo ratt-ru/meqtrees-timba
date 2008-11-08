@@ -322,8 +322,8 @@ class FITSRenderer (CachingRenderer):
          <TR><TD>sigma:</TD><TD>%g</TD></TR>"""%(rec.datamean,rec.datastd);
     if rec.clipmin is not None:
       html_cmt += """
-         <TR><TD>clipping:</TD><TD>%.2f%%</TD></TR>
-         <TR><TD>clip range:</TD><TD>%g,%g</TD></TR>"""%(self.hclip,rec.clipmin,rec.clipmax);
+         <TR><TD>clipping:</TD><TD>%g%%</TD></TR>
+         <TR><TD>clip range:</TD><TD>%g,%g</TD></TR>"""%(self.hclip*100,rec.clipmin,rec.clipmax);
     html_cmt += """\n
        </TABLE>""";
     return html_img,html_cmt;
@@ -379,8 +379,6 @@ class FITSRenderer (CachingRenderer):
             "      <TD>%s</TD>"%html_img,
             "      <TD>%s</TD>"%comment, 
             "    </TR>\n" ]);
-      # add divisor
-      html += "   <TR><HR></TR>\n"
     return self.writeCache(cachekey,html);
   
   def renderThumbnail (self,relpath=""):

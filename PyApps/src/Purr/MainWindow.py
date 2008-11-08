@@ -46,11 +46,14 @@ class MainWindow (QMainWindow):
     self.connect(self.wpounce,SIGNAL("toggled(bool)"),self.enablePounce);
     toplo.addWidget(self.wpounce,1);
     about_btn = QPushButton("About...",cw);
+    about_btn.setMinimumWidth(128);
     about_btn.setFlat(True);
     about_btn.setIconSet(pixmaps.purr_logo.iconset());
     toplo.addWidget(about_btn);
     self._about_dialog = QMessageBox("About PURR","""
-        <P>PURR (<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions) is a tool for
+        <P>PURR ("<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions", or
+        "<B>P</B>URR <B>U</B>sually <B>R</B>emembers <B>R</B>eductions", for those working with the
+        development version) is a tool for
         automatically keeping a log of your data reduction operations. PURR will watch your working directories
         for new files (called "data products"), and upon seeing any, it will "pounce" -- that is, offer
         you the option of saving them to a log, along with descriptive comments. It will then
@@ -68,6 +71,7 @@ class MainWindow (QMainWindow):
     self.title_label = QLabel("Log title: none",cw);
     title_lo.addWidget(self.title_label,1);
     self.wrename = QPushButton("Rename...",cw);
+    self.wrename.setMinimumWidth(128);
     self.wrename.setFlat(True);
     self.wrename.setEnabled(False);
     self.connect(self.wrename,SIGNAL("clicked()"),self._renameLogDialog);
@@ -202,7 +206,9 @@ class MainWindow (QMainWindow):
     self.wnewbtn.setEnabled(True);
     self.wrename.setEnabled(True);
     self._about_dialog.setText("""
-    <P>PURR (<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions) is a tool for
+    <P>PURR ("<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions", or
+    "<B>P</B>URR <B>U</B>sually <B>R</B>emembers <B>R</B>eductions", for those working with the
+    development version) is a tool for
     automatically keeping a log of your data reduction operations. PURR will watch your working directories
     (<tt>%s</tt>) for new files (called "data products"), and upon seeing any, it will "pounce" -- that is, offer
     you the option of saving them to a log, along with descriptive comments. It will then
