@@ -104,8 +104,8 @@ class SolverUnit(Clump.Clump):
       kwargs['select'] = True          # optional: makes the function selectable     
       ctrl = self.on_entry(self.initexec, **kwargs)
 
-      self._TCM.add_option('num_iter',[3,5,10,20,1,2],
-                           help='(max) nr of solver iterations')
+      self.add_option('num_iter',[3,5,10,20,1,2],
+                      help='(max) nr of solver iterations')
 
       solver = None
       if self.execute_body():

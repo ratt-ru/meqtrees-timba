@@ -278,25 +278,28 @@ class TDLOptionManager (object):
    # Option/menu definition functions:
    #==========================================================================
 
-   def add_option (self, relkey,
-                   choice=None,              # 2nd
-                   prompt=None,              # 3rd
-                   more=True,                # use the type of default (choice[0])
-                   hide=None,
-                   selectable=False,
-                   vmin=None, vmax=None,     # range-test
-                   disable=False,
-                   slaveof=None,              # optional: key of 'master' option
-                   help='<nohelp>',
-                   callback=None,
-                   prepend=False,
-                   trace=False):
+   def add_option (self, relkey, choice=None, **kwargs):
       """
       Add an TDLOption definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
       If slaveof is a valid option key, this option will be slaved to it.
       If prepend=True, prepend it to the already specified list of options.
       """
+
+      # Read the arguments from kwargs:
+      prompt = kwargs.get('prompt', None)
+      help = kwargs.get('help', '<hohelp>')
+      more = kwargs.get('more', True)                # if True: use type of choice[0]
+      hide = kwargs.get('hide', None)
+      vmin = kwargs.get('vmin', None)                # range test
+      vmax = kwargs.get('vmax', None)                # range test
+      disable = kwargs.get('disable', False)
+      slaveof = kwargs.get('slaveof', None)          # key of its master (if any)
+      callback = kwargs.get('callback', None)
+      selectable = kwargs.get('selectable', False)
+      prepend = kwargs.get('prepend', False)
+      trace = kwargs.get('trace', False)
+      
       # trace = True
       if trace:
          print '\n** .add_option(',relkey,'):'
@@ -465,29 +468,51 @@ class TDLOptionManager (object):
          print '    current_submenu:\n      ',self._current_menurec
       return key
 
+
+   #--------------------------------------------------------------------------
    #--------------------------------------------------------------------------
 
-   def start_of_submenu (self, relkey,
-                         prompt=None,             # 2nd
-                         default=None,            # 3rd
-                         qual=None,
-                         help=None,     
-                         hide=None,
-                         disable=False,
-                         ignore=False,
-                         menu=None,                       
-                         slaveof=None,
-                         topmenu=False,
-                         callback=None,      
-                         group_control=True,
-                         prepend=False,
-                         trace=False):
+   def start_of_submenu_old (self, relkey,
+                             prompt=None,             # 2nd
+                             default=None,            # 3rd
+                             qual=None,
+                             help=None,     
+                             hide=None,
+                             disable=False,
+                             ignore=False,
+                             menu=None,                       
+                             slaveof=None,
+                             topmenu=False,
+                             callback=None,      
+                             group_control=True,
+                             prepend=False,
+                             trace=False):
+      return False
+
+
+   def start_of_submenu (self, relkey, **kwargs):
       """
       Add an TDLMenu definition to the menu definitions. Its name is a concatanation
       of the 'current' menu name, and the specified 'relative' key (relkey).
       The self._current_menurec to the new menu.
       """
-
+      # Get the keyword arguments:
+      prompt = kwargs.get('prompt', None)
+      default = kwargs.get('default', None)
+      qual = kwargs.get('qual', None)
+      help = kwargs.get('help', None)
+      hide = kwargs.get('hide', None)
+      disable = kwargs.get('disable', False)
+      fixture = kwargs.get('fixture', False)
+      ignore = kwargs.get('ignore', False)
+      menu = kwargs.get('menu', None)
+      slaveof = kwargs.get('slaveof', None)
+      callback = kwargs.get('callback', None)
+      group_control = kwargs.get('group_control', True)
+      prepend = kwargs.get('prepend', False)
+      topmenu = kwargs.get('topmenu', False)
+      trace = kwargs.get('trace', False)
+      
       # If relkey is a function, use the function name:
       # NB: How to recognise a function...?
       if not isinstance(relkey, str):
@@ -543,7 +568,9 @@ class TDLOptionManager (object):
                      prompt=(prompt or relkey),
                      help=help, 
                      default=default,
-                     hide=hide, disable=disable,
+                     hide=hide,
+                     disable=disable,
+                     fixture=fixture,
                      slaveof=slaveof, slaves=[],
                      itsmenukey=itsmenukey,
                      selectable=True,
@@ -1120,6 +1147,15 @@ class TDLOptionManager (object):
             if cv:
                cbs.append(self.callback_check_value)
 
+         # Some menus (options?) are 'fixtures', i.e. their value is always
+         # changed back to the value of defrec['fixture'] [=True].
+         # This is used for menus which should always be selected
+         # (NB: we cannot use 'disable' for this, because all its options
+         # will then be disbled as well...is that true?)
+         if defrec.has_key('fixture'):
+            if defrec['fixture']:
+               cbs.append(self.callback_fixture)
+
          # Always make this one the LAST callback in the list:
          # NB: This does not work for menus, since the callback functions are NOT called
          #     when a menu is opened or closed by clicking on its toggle box......
@@ -1199,6 +1235,25 @@ class TDLOptionManager (object):
          if value>vmax:
             print s1,'vmax =',str(vmax),s2
             self.setopt(key, vmax, trace=False)
+      return True
+
+   #..........................................................................
+
+   def callback_fixture (self, value):
+      """Change the value back to defrec['fixture'] [=True]
+      """
+      trace = False
+      # trace = True
+      if trace:
+         print '\n** .callback_fixture(',value,'):'
+      key = self.find_changed(trace=False)
+      if trace:
+         print '  changed: key =',key
+      if isinstance(key,str):
+         fix = self._defrecs[key]['fixture']
+         if trace:
+            print '    -> changed ',key,' back to:',fix,'\n'
+         self.setopt(key, fix, trace=False)
       return True
 
    #..........................................................................
@@ -1746,11 +1801,15 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
-   def getopt(self, name, prefix=None, rider=None, severe=True, trace=False):
+   def getopt(self, name, prefix=None, **kwargs):
+   # def getopt(self, name, prefix=None, rider=None, severe=True, trace=False):
       """Get the current value of the specified (name) TDLOption symbol name.
       Only a part of the name is required, as long as it is not ambiguous.
       If rider is defined, make a qhelp string and add it (see QuickRefUtil.py)
       """
+      trace = kwargs.get('trace',False)
+      severe = kwargs.get('severe',True)
+      rider = kwargs.get('rider',None)
       # trace = True
 
       # First find the (unique) key: 
@@ -1768,26 +1827,43 @@ class TDLOptionManager (object):
             unique_name = prefix+name
       key = self.find_key(unique_name, severe=severe, trace=False)
 
-      # Get its value:
+      # Then get its value:
       source = None
       if not isinstance(key,str):
          # This may happen during testing (severe=False):
          key = '<key not found>'
          value = '<key not found>'
+
+      elif kwargs.has_key('override'):
+         trace = True
+         source = 'overridden'
+         value = kwargs['override']
+         if True:
+            # Set the option value to the override value also
+            # NB: This way does not work in a 'dryrun' scheme
+            # Perhaps there are other ways?
+            # For the moment, override works well enough....
+            if self._tdlobjects.has_key(key):
+               self.setopt(key, value, trace=trace)
+
       elif self._tdlobjects.has_key(key):
          value = self._tdlobjects[key].value
          source = 'tdlobject'
+
       elif self._lastval.has_key(key):            # see .restore_current_values()
          value = self._lastval[key]
          source = 'lastval'
+
       elif self._defrecs.has_key(key):            # .....?
          dd = self._defrecs[key]
          value = dd['default']
          source = 'defrec[default]'
+
       else:
          # This should not happen, really..
          s = '** invalid key: '+str(key)
          raise ValueError,s
+
 
       if rider:
          # The rider is a concept used in QuickRef modules.

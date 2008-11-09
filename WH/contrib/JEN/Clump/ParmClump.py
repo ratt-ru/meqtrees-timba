@@ -101,27 +101,27 @@ class ParmClump(Clump.LeafClump):
       help = 'definition of a set of similar MeqParms: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
       
-      self._TCM.add_option('fdeg', range(6),
-                           help='freq deg of polc',
-                           prompt='freq deg')
-      self._TCM.add_option('tdeg', range(6),
-                           help='time deg of polc',
-                           prompt='time deg')
+      self.add_option('fdeg', range(6),
+                      help='freq deg of polc',
+                      prompt='freq deg')
+      self.add_option('tdeg', range(6),
+                      help='time deg of polc',
+                      prompt='time deg')
 
-      self._TCM.add_option('nftile', [None,1,2,3,4,5,10], more=int,
-                           help="size (freq-cells) of solving subtile")
-      self._TCM.add_option('nttile', [None,1,2,3,4,5,10], more=int,
-                           help="size (time-cells) of solving subtile")
+      self.add_option('nftile', [None,1,2,3,4,5,10], more=int,
+                      help="size (freq-cells) of solving subtile")
+      self.add_option('nttile', [None,1,2,3,4,5,10], more=int,
+                      help="size (time-cells) of solving subtile")
 
-      self._TCM.add_option('solvable', False,
-                           prompt='solvable')
+      self.add_option('solvable', False,
+                      prompt='solvable')
       
-      self._TCM.add_option('use_previous', True, hide=True,
-                           help='if True, use the previous solution',
-                           prompt='use_previous')
-      self._TCM.add_option('mepfile', [None,'test.mep'], more=str, hide=True,
-                           help='name of the file that contains the parmtable',
-                           prompt='.mep file')
+      self.add_option('use_previous', True, hide=True,
+                      help='if True, use the previous solution',
+                      prompt='use_previous')
+      self.add_option('mepfile', [None,'test.mep'], more=str, hide=True,
+                      help='name of the file that contains the parmtable',
+                      prompt='.mep file')
 
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
@@ -203,6 +203,7 @@ def do_define_forest (ns, TCM):
       clump = ParmClump(ns=ns, TCM=TCM,
                         name='GgainY', default=2.3,
                         treequals=range(10)+list('ABCD'),         # WSRT
+                        tdeg=2,                                   # override
                         trace=True)
       clump.visualize()
 

@@ -58,11 +58,9 @@ from Timba.Contrib.JEN.Easy import EasyFormat as EF
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
 
-
 import math                 # support math.cos() etc
-# from math import *          # support cos() etc
-# import numpy                # support numpy.cos() etc
-import random
+import numpy                # support numpy.prod() etc
+import random               # e.g. random.gauss()
 
 clump_counter = -1          # used in Clump.__init__()
 
@@ -92,6 +90,7 @@ class Clump (object):
 
       # The Clump node names are derived from name and qualifier:
       self._name = kwargs.get('name',None)       
+      self._name = kwargs.get('name', self._typename)   # better...?     
       self._qual = kwargs.get('qual',None)  
       self._kwqual = kwargs.get('kwqual',dict())
 
@@ -102,7 +101,7 @@ class Clump (object):
       # The data description controls the behaviour of Clump-functions
       # that perform 'generic' operations (like add_noise().
       # It is passed from Clump to Clump, and modified when appropriate.
-      self._datadesc = dict(complex=False, shape=[1])
+      self._datadesc = dict(complex=False, dims=[1])
 
       #......................................................................
 
@@ -131,7 +130,7 @@ class Clump (object):
       # defined yet (i.e. in the case that there is no input Clump):
       #......................................................................
 
-      self.transfer_clump_definition(clump, trace=trace)
+      self.transfer_clump_definition(clump, trace=False)
 
       if not isinstance(self._name,str):    # Generate an automatic name, if necessary      
          self._name = self._typename        # e.g. 'Clump'     
@@ -176,6 +175,32 @@ class Clump (object):
       # Finished:
       return None
 
+   #--------------------------------------------------------------------------
+
+   def datadesc (self):
+      """Return self._datadesc, after calculating all the derived values,
+      and checking for consistency. 
+      """
+      dd = self._datadesc
+      if isinstance(dd['dims'],int):               # tensor dimensions
+         dd['dims'] = [dd['dims']]
+
+      # Derived attributes:
+      dims = dd['dims']
+      dd['nelem'] = numpy.prod(dims)               # nr of tensor elements
+      dd['elems'] = range(dd['nelem'])
+      for i,elem in enumerate(dd['elems']):
+         dd['elems'][i] = str(elem)
+
+      # Some special cases:
+      if len(dims)==2:                             # e.g. [2,2]
+         dd['elems'] = []
+         for i in range(dims[0]):
+            for j in range(dims[1]):
+               dd['elems'].append(str(i)+str(j))
+
+      # Always return the self-consistent datadesc:
+      return self._datadesc
 
    #==========================================================================
    # Functions that deal with the input Clump (if any)
@@ -186,7 +211,7 @@ class Clump (object):
       Most attributes are transferred ONLY if not yet defined
       Some attributes (like self._treequals) are transferred always(!)
       """
-      trace = True
+      # trace = True
       if trace:
          print '\n** transfer_clump_definition(): clump=',type(clump)
 
@@ -210,9 +235,9 @@ class Clump (object):
             # self._TCM.current_menu_level(trace=trace)
 
          # Some attributes are transferred always(!):
-         self._datadesc = clump._datadesc
-         self._treequals = clump._treequals
-         self._treelabels = clump._treelabels
+         self._datadesc = clump.datadesc()                      # note the function!
+         self._treequals = clump._treequals                     # ..include in datadesc?
+         self._treelabels = clump._treelabels                   # ..include in datadesc?
          self._stage['count'] = 1+clump._stage['count']         # <--------!!
          self._stage['ops'] = -1                                # reset
          self._stage['name'] = clump._stage['name']             # <--------!!
@@ -424,7 +449,7 @@ class Clump (object):
       ss += '\n * self._kwqual = '+str(self._kwqual)
 
       ss += '\n * self._stage = '+str(self._stage)
-      ss += '\n * self._datadesc = '+str(self._datadesc)
+      ss += '\n * self._datadesc = '+str(self.datadesc())
 
       nmax = 20
       qq = self._treequals
@@ -501,7 +526,7 @@ class Clump (object):
                 clear=False, show=False, trace=False):
       """Interact with the object history (a list of strings).
       """
-      trace = True
+      # trace = True
       clear |= (self._history==None)             # the first time
       if clear:
          self._history = []
@@ -513,11 +538,16 @@ class Clump (object):
 
       # Append a new list item to self._history()
       if isinstance(append,str):
-         self._history.append(' -- '+str(append))
+         s = ' -- '
+         s += self._name+':    '
+         s += str(append)
+         self._history.append(s)
          if trace:
             print '   >> .history(append): ',self._history[-1]
       elif show_node:
-         self._history.append(' -- (noappend) ')
+         # self._history.append(' --   (append=None) ')
+         # self.history('(append=None)')
+         self.history('last Clump tree node:')
 
       # Append the current node to the last line/item: 
       if show_node:
@@ -605,17 +635,22 @@ class Clump (object):
 
       trace = kwargs.get('trace',False)
       select = kwargs.get('select',None)
+      fixture = kwargs.get('fixture',False)
       ctrl = dict(funcname=str(func.func_name),
                   submenu=None,
-                  # kwargs=kwargs,                     # ...??
-                  # kwargs='not in ctrl',                # for the moment
                   trace=trace)
 
-      # if kwargs.has_key('select') and isinstance(kwargs['select'],bool):
+      # The kwargs information is used for option overrides in
+      # the functions .add_option() and .execute_body()
+      self._kwargs = kwargs                          # temporary
+      self._override_keys = []
+      self._override = dict()
+
+      # Make the menu for the calling function:
       if isinstance(select,bool):
-         self._stage['isubmenu'] += 1                   # increment
-         self._stage['count'] += 1                     # increment
-         self._stage['ops'] = -1                       # reset
+         self._stage['isubmenu'] += 1                # increment
+         self._stage['count'] += 1                   # increment
+         self._stage['ops'] = -1                     # reset
          fname = ctrl['funcname']                    # convenience
          name = fname
          name += '_'+str(self._stage['isubmenu'])
@@ -636,6 +671,7 @@ class Clump (object):
                                                       help=help,
                                                       default=select,
                                                       slaveof=self._slavemaster,
+                                                      fixture=fixture,
                                                       qual=self._qual)
 
       # The ctrl record used by other control functions downstream.
@@ -647,12 +683,23 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
+   def add_option (self, relkey, choice=None, **kwargs):
+      """Add an option to the current menu. The purpose of this function
+      is mainly to hide the use of 'self._TCM' to the Clump user/developer.
+      In the future it might be useful to put some extra features here...
+      """
+      self._override_keys.append(relkey)          # see .execute_body()
+      return self._TCM.add_option(relkey, choice, **kwargs)
+
+   #--------------------------------------------------------------------------
+
    def execute_body(self, always=False):
       """To be called at the start of the 'body' of a Clump stage-method,
       i.e. AFTER any self._TCM menu and option definitions.
       Its (mandatory!) counterpart is self.end_of_body(ctrl)
       It uses the record self._ctrl, defined in .on_entr()
       """
+      self.check_for_overrides()
       execute = True
       if isinstance(self._ctrl['submenu'],str):
          execute = self._TCM.submenu_is_selected(trace=False)
@@ -670,17 +717,48 @@ class Clump (object):
          self.history(append=s, trace=self._ctrl['trace'])
       return execute
 
+   #--------------------------------------------------------------------------
+
+   def check_for_overrides (self):
+      """Check whether self._kwargs (see .on_entry(**kwargs)) contains
+      any of the option (rel)keys accumulated in .add_option(key),
+      and put these override values in the dict self._override.
+      The latter is then used in .getopt(key) to return the override value
+      rather than the option value.
+      """
+      ovr = dict()
+      for key in self._override_keys:
+         if self._kwargs.has_key(key):
+            ovr[key] = self._kwargs[key]
+      if len(ovr)>0:
+         self.history('.override: '+str(ovr))
+      self._override = ovr                    # see .getopt()
+      self._override_keys = []                # reset
+      self._kwargs = None                     # reset
+      return True
+
+
    #..........................................................................
 
-   def getopt (self, name, trace=False):
-      """Get the specified (name) TDL option value.
+   def getopt (self, relkey, trace=False):
+      """Get the specified (relkey) TDL option value.
       This function is ONLY called AFTER self.execute_body()==True.
       It use the record self._ctrl that is defined in .on_entry()
       """
       trace = True
-      value = self._TCM.getopt(name, self._ctrl['submenu'])
+      override = self._override.has_key(relkey)
+      if override:
+         value = self._TCM.getopt(relkey, self._ctrl['submenu'],
+                                  override=self._override[relkey])
+      else:
+         value = self._TCM.getopt(relkey, self._ctrl['submenu'])
+
       if trace or self._ctrl['trace']:
-         print '    - .getopt(',name,self._ctrl['submenu'],') -> ',type(value),value
+         s = '.getopt('+str(relkey)+') -> '+str(type(value))+' '+str(value)
+         if override:
+            s += ' (overridden by kwarg)'
+         print s
+         self.history(s)
       return value
 
    #--------------------------------------------------------------------------
@@ -1036,7 +1114,7 @@ class Clump (object):
       help = 'Add Gaussian noise'
       ctrl = self.on_entry(self.add_noise, prompt, help, **kwargs)
 
-      self._TCM.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
+      self.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
 
       if self.execute_body():
          stddev = self.getopt('stddev')
@@ -1059,8 +1137,8 @@ class Clump (object):
       help = 'Add different (stddev) constants to the tree nodes'
       ctrl = self.on_entry(self.scatter, prompt, help, **kwargs)
 
-      self._TCM.add_option('stddev_real', [0.1,1.0,10.0,0.0])
-      self._TCM.add_option('stddev_imag', [0.0,0.1,1.0,10.0])
+      self.add_option('stddev_real', [0.1,1.0,10.0,0.0])
+      self.add_option('stddev_imag', [0.0,0.1,1.0,10.0])
 
       if self.execute_body():
          real = max(0.0,self.getopt('stddev_real'))
@@ -1099,7 +1177,7 @@ class Clump (object):
 
       prompt = '.visualize()'
       help = 'Select various forms of Clump visualization'
-      print '\n**',help,'\n'
+      # print '\n**',help,'\n'
       ctrl = self.on_entry(self.visualize, prompt, help, **kwargs)
 
       if self.execute_body():
@@ -1243,6 +1321,7 @@ class LeafClump(Clump):
       # Make sure that a visible option/selection menu is generated
       # for all LeafClump classes.
       kwargs['select'] = True
+      kwargs['fixture'] = True
 
       # The 'size' of the Clump (i.e. the number of its trees, which
       # is NOT necessarily the number of nodes, see self._composed)
@@ -1251,8 +1330,8 @@ class LeafClump(Clump):
       # copied from it. But if not, it may be specified by means of
       # a keyword kwargs[treequals].
       
-      kwargs.setdefault('treequals', None)
-      tqs = kwargs['treequals']          # convenience
+      # kwargs.setdefault('treequals', None)
+      tqs = kwargs.get('treequals',None)  
       if tqs==None:                      # treequals not specified
          self._treequals = range(3)      # for testing
       elif isinstance(tqs,str):          # string -> list of chars (..?)
@@ -1311,13 +1390,24 @@ class LeafClump(Clump):
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
+      self._datadesc['complex'] = kwargs.get('complex',False)
+      self._datadesc['dims'] = kwargs.get('dims',1)
+      dd = self.datadesc()
+
       # Execute always (always=True), to ensure that the leaf Clump has nodes:
       if self.execute_body(always=True):              
          self._nodes = []
          stub = self.unique_nodestub('const')
          for i,qual in enumerate(self._nodequals):
-            v = float(i)
-            node = stub(c=v)(qual) << Meq.Constant(v)
+            cc = []
+            for k,elem in enumerate(dd['elems']):
+               if dd['complex']:
+                  v = complex(k+i,i/10.)
+               else:
+                  v = float(k+i)
+               node = stub(c=v)(qual)(elem) << Meq.Constant(v)
+               cc.append(node)
+            node = stub(nelem=dd['nelem'])(qual) << Meq.Composer(*cc)
             self._nodes.append(node)
          self.end_of_body(ctrl)
          

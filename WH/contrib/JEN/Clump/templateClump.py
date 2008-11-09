@@ -145,8 +145,8 @@ class templateClump(Clump.LeafClump):
       help = None
       ctrl = self.on_entry(self.example2, prompt, help, **kwargs)
 
-      self._TCM.add_option('opt1', range(3))
-      self._TCM.add_option('opt2', range(3))
+      self.add_option('opt1', range(3))
+      self.add_option('opt2', range(3))
 
       if self.execute_body():
          # Read the option valies:
@@ -172,8 +172,8 @@ class templateClump(Clump.LeafClump):
       help = None
       ctrl = self.on_entry(self.example3, prompt, help, **kwargs)
 
-      self._TCM.add_option('slaves', range(3),
-                           prompt='nr of slaved ojects')
+      self.add_option('slaves', range(3),
+                      prompt='nr of slaved ojects')
 
       if self.execute_body():
          slaves = self.getopt('slaves')

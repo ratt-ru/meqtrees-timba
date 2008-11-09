@@ -100,10 +100,10 @@ class templateLeafClump(Clump.LeafClump):
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
       
-      self._TCM.add_option('leaftype', ['const_real','const_complex',
-                                       'parm',
-                                       'freq','time','freq+time'],
-                           prompt='leaf node type')
+      self.add_option('leaftype', ['const_real','const_complex',
+                                   'parm',
+                                   'freq','time','freq+time'],
+                      prompt='leaf node type')
 
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           

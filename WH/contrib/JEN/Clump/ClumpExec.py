@@ -63,9 +63,9 @@ from Timba.Contrib.JEN.Clump import Clump as ClumpClass
 # from Timba.Contrib.JEN.Clump import templateLeafClump as ClumpClass
 
 from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
-from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
+# from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
 
-from Timba.Contrib.JEN.Clump import AddNoise as ClumpClass
+from Timba.Contrib.JEN.Clump import CorruptClump as ClumpClass
 
 # from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
 # from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass
