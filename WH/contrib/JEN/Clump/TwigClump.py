@@ -1,15 +1,15 @@
 """
-ParmClump.py: A Clump of MeqParms, e.g. Ggain:0...D
+TwigClump.py: Make (one-tree?) Clumps from EasyTwigs 
 """
 
-# file: ../JEN/Clump/ParmClump.py:
+# file: ../JEN/Clump/TwigClump.py:
 #
 # Author: J.E.Noordam
 #
 # Short description:
 #
 # History:
-#   - 07 nov 2008: creation (from templateClump.py)
+#   - 03 nov 2008: creation (from templateClump.py)
 #
 # Description:
 #
@@ -44,6 +44,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Clump import Clump
+from Timba.Contrib.JEN.Easy import EasyTwig as ET
 
 import math                 # support math.cos() etc
 # from math import *          # support cos() etc
@@ -54,14 +55,14 @@ import math                 # support math.cos() etc
 #********************************************************************************
 #********************************************************************************
 
-class ParmClump(Clump.LeafClump):
+class Twig(Clump.LeafClump):
    """
    Derived class
    """
 
    def __init__(self, clump=None, **kwargs):
       """
-      Derived from class LeafClump.
+      Derived from class Clump.
       """
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
@@ -77,62 +78,24 @@ class ParmClump(Clump.LeafClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      help = 'definition of a set of similar MeqParms: '+self.oneliner()
+      # The data-description may be defined by means of kwargs: 
+      dd = self.datadesc(treequals=['twig']),
+
+      help = 'make twig (leaf) node for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
-
-      default = kwargs.get('default',0.0)
-
-      self.add_option('fdeg', range(6),
-                      help='freq deg of polc',
-                      prompt='freq deg')
-      self.add_option('tdeg', range(6),
-                      help='time deg of polc',
-                      prompt='time deg')
-
-      self.add_option('nftile', [None,1,2,3,4,5,10], more=int,
-                      help="size (freq-cells) of solving subtile")
-      self.add_option('nttile', [None,1,2,3,4,5,10], more=int,
-                      help="size (time-cells) of solving subtile")
-
-      self.add_option('solvable', False,
-                      prompt='solvable')
       
-      self.add_option('use_previous', True, hide=True,
-                      help='if True, use the previous solution',
-                      prompt='use_previous')
-      self.add_option('mepfile', [None,'test.mep'], more=str, hide=True,
-                      help='name of the file that contains the parmtable',
-                      prompt='.mep file')
+      self.add_option('twig', ET.twig_names(first='t'),
+                      prompt='EasyTwig')
 
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
-
-         tdeg = self.getopt('tdeg')
-         fdeg = self.getopt('fdeg')
-         mepfile = self.getopt('mepfile')
-         use_previous = self.getopt('use_previous')
-         nt = self.getopt('nttile')
-         nf = self.getopt('nftile')
-         tiling = record(freq=nf, time=nt)
-
-         # See self.solvable_parms()
-         self._solvable = self.getopt('solvable')
-
+         twig = self.getopt('twig')
          self._nodes = []
-         self._parmnames = []
-         stub = self.unique_nodestub()
+         # stub = self.unique_nodestub(twig)
          for i,qual in enumerate(self._nodequals):
-            node = stub(qual) << Meq.Parm(default,
-                                          shape=[tdeg+1,fdeg+1],
-                                          tiling=tiling,
-                                          table_name=mepfile,
-                                          use_previous=use_previous,
-                                          # tags=['tag1','tag2'],
-                                          node_groups='Parm')
+            node = ET.twig(self._ns, twig)
             self._nodes.append(node)
-            self._parmnames.append(node.name)
-            # print '\n -',str(node),' initrec: ',node.initrec()
-
+         self.visualize()
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
@@ -140,26 +103,8 @@ class ParmClump(Clump.LeafClump):
       return self.on_exit(ctrl)
 
 
-   #============================================================================
 
-   def solvable_parms (self, trace=False):
-      """
-      Re-implementation of the Clump placeholder function.
-      If solvable: Return a list of solvable parm-names.
-      Otherwise, return an empty list.
-      """
-      # trace = True
-      # self._solvable = True                    # for testing
-      result = []
-      if self._solvable:
-         result = self._parmnames
-      if trace:
-         print '\n ** .solvable_parms(): '+str(self._solvable)+','+str(len(result))+'/'+str(self.size())+':'
-         if result: print '    ->',result
-      return result
-
-
-
+      
 
 
 #********************************************************************************
@@ -178,12 +123,7 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      clump = ParmClump(ns=ns, TCM=TCM,
-                        name='GgainY', default=2.3,
-                        treequals=range(10)+list('ABCD'),         # WSRT
-                        tdeg=2,                                   # override
-                        trace=True)
-      clump.visualize()
+      clump = Twig(ns=ns, TCM=TCM, trace=True)
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -201,27 +141,13 @@ def do_define_forest (ns, TCM):
 if __name__ == '__main__':
 
    print '\n****************************************************'
-   print '** Start of standalone test of: ParmClump.py:'
+   print '** Start of standalone test of: TwigClump.py:'
    print '****************************************************\n' 
 
    ns = NodeScope()
-   TCM = None
-   if 1:
-      TCM = Clump.TOM.TDLOptionManager()
-      print TCM.oneliner()
-
-   if 0:
-      clump = ParmClump(trace=True)
-   else:
-      tqs = range(10) + list('ABCD')
-      clump = ParmClump(treequals=tqs,
-                        # ns=ns, TCM=TCM,
-                        name='GgainX',
-                        default=1.0,
-                        trace=True)
 
    if 1:
-      clump.solvable_parms(trace=True)
+      clump = Twig(twig='f+t', trace=True)
 
    if 1:
       clump.show('creation', full=True)
@@ -234,7 +160,7 @@ if __name__ == '__main__':
 
    
       
-   print '\n** End of standalone test of: ParmClump.py:\n' 
+   print '\n** End of standalone test of: TwigClump.py:\n' 
 
 #=====================================================================================
 

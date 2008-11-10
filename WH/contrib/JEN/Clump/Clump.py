@@ -83,7 +83,15 @@ class Clump (object):
       # These need a little more thought:
       kwargs.setdefault('select', None)                 # <------- !!?
       trace = kwargs.get('trace',False)                 # <------- !!?
-      self._slavemaster = kwargs.get('master',None)   # <------- !!?
+
+      self._slaveof = kwargs.get('slaveof',None)        # <------- !!?
+
+      self._input_kwargs = kwargs
+      if False:
+         for key in ['TCM','ns']:
+            if self._input_kwargs[key]:
+               self._input_kwargs[key] = True
+         
 
       # Make a short version of the actual type name (e.g. Clump)
       self._typename = str(type(self)).split('.')[-1].split("'")[0]
@@ -130,6 +138,8 @@ class Clump (object):
       # Some of this information is passed from clump to clump.
       self._stage = dict(name=None, count=-1, ops=-1, ncopy=0, isubmenu=-1) 
 
+      self._override = dict()
+
       #......................................................................
       # Transfer definition information from the input Clump (if supplied).
       # This includes self._datadesc etc 
@@ -160,10 +170,8 @@ class Clump (object):
       # (if self._composed, both lists have length one.)
       if self._input_clump:
          self.transfer_clump_nodes()
-      else:
-         self._nodes = []                       # nodes (separate or composed)
-         self._nodequals = self._datadesc['treequals']      # node qualifiers
-         self._composed = False                 # see .compose() and .decompose()
+      # else:
+      #    self._nodes = []                       # nodes (separate or composed)
 
       # The tree nodes may be 'composed' into a single tensor node.
       # In that case, the following node qualifier will be used.
@@ -171,7 +179,6 @@ class Clump (object):
 
       # Execute the main function of the Clump object.
       # This function is re-implemented in derived Clump classes.
-      # self._object_is_selected = True           # default: selected (..?)     
       self._object_is_selected = False           # see .execute_body()     
       self.initexec(**kwargs)
 
@@ -224,6 +231,9 @@ class Clump (object):
          dd['treelabels'] = []
          for i,qual in enumerate(dd['treequals']):
             dd['treelabels'].append(str(qual))
+         # The nodes are generated using self._nodequals
+         self._nodequals = dd['treequals']         # node qualifiers
+         self._composed = False                    # see .compose() and .decompose()
 
       # Plotting information:
       if color:
@@ -439,7 +449,7 @@ class Clump (object):
       if not self._qual==None:
          ss += ' qual='+str(self._qual)
       ss += '  size='+str(self.size())
-      if self._slavemaster:
+      if self._slaveof:
          ss += '  slaved'
       if self._composed:
          ss += '  (composed: '+self._tensor_qual+')'
@@ -457,10 +467,15 @@ class Clump (object):
       if txt:
          ss += '   ('+str(txt)+')'
 
+      #.....................................................
       if self._input_clump:
          ss += '\n > self._input_clump: '+str(self._input_clump.oneliner())
       else:
          ss += '\n > self._input_clump = '+str(self._input_clump)
+
+      ss += '\n > self._input_kwargs = '+str(self._input_kwargs)
+      ss += '\n > self._override = '+str(self._override)
+
       #.....................................................
 
       ss += '\n * Generic (baseclass Clump):'
@@ -468,6 +483,8 @@ class Clump (object):
       ss += '\n * self._name = '+str(self._name)
       ss += '\n * self._qual = '+str(self._qual)
       ss += '\n * self._kwqual = '+str(self._kwqual)
+
+      ss += '\n * self._slaveof: '+str(self._slaveof)
 
       ss += '\n * self._stage = '+str(self._stage)
       
@@ -504,7 +521,6 @@ class Clump (object):
          ss += '\n * self._TCM: '+str(self._TCM.oneliner())
       else:
          ss += '\n * self._TCM = '+str(self._TCM)
-      ss += '\n * self._slavemaster = '+str(self._slavemaster)
       #.....................................................
 
       ss += '\n * self._ctrl: '+str(self._ctrl)
@@ -550,11 +566,13 @@ class Clump (object):
 
    def history (self, append=None,
                 show_node=False,
-                level=0, prefix='', format=False, 
+                prefix='', format=False, 
                 clear=False, show=False, trace=False):
       """Interact with the object history (a list of strings).
       """
       # trace = True
+      level = self._TCM.current_menu_level()
+
       clear |= (self._history==None)             # the first time
       if clear:
          self._history = []
@@ -667,7 +685,7 @@ class Clump (object):
       select = kwargs.get('select',None)
       fixture = kwargs.get('fixture',False)
       ctrl = dict(funcname=str(func.func_name),
-                  submenu=None, menulevel=0,
+                  submenu=None,
                   trace=trace)
       fname = ctrl['funcname']                       # convenience
 
@@ -678,15 +696,27 @@ class Clump (object):
       self._override = dict()
 
       # Make the menu for the calling function:
-      if isinstance(select,bool):
+      # NB: ALWAYS generate a menu, otherwise there may be option clashes!
+      if True:
+         hide = None
+         default = select
+         if select==None:                            # if not selectable, execute always
+            hide = True         
+            default = True
+            ### fixture = True                           # NOT a good idea!
+
+         # Make a unique submenu name:
          self._stage['isubmenu'] += 1                # increment
          self._stage['count'] += 1                   # increment
          self._stage['ops'] = -1                     # reset
          name = fname
+         # if fname=='intexec':                        # special case
+         #    name += '_'+str(self._typename)          # 'initexec' is very common 
          name += '_'+str(self._stage['isubmenu'])
          name += str(self._stage['count'])
          name += str(self._stage['ops'])
          name += str(self._stage['ncopy'])
+
          if not isinstance(prompt,str):
             prompt = fname+'()'
             if fname=='initexec':                    # special case
@@ -695,15 +725,14 @@ class Clump (object):
             help = fname+'()'
             if fname=='intexec':                     # special case
                help = 'in/exclude: '+self.oneliner()
-         # help + = '  (clump: '+self._name+')'        # ..?
          ctrl['submenu'] = self._TCM.start_of_submenu(name,
                                                       prompt=prompt,
                                                       help=help,
                                                       default=select,
-                                                      slaveof=self._slavemaster,
+                                                      hide=hide,
+                                                      slaveof=self._slaveof,
                                                       fixture=fixture,
                                                       qual=self._qual)
-         ctrl['menulevel'] = self._TCM.current_menu_level()
 
       # The ctrl record used by other control functions downstream.
       # The opening ones use self._ctrl, but the closing ones have to use
@@ -749,9 +778,7 @@ class Clump (object):
             s = '.'+fname+'(): '                     # note the ':'
             if isinstance(hist,str):
                s += '('+hist+')  '
-            self.history(append=s,
-                         level=self._ctrl['menulevel'],
-                         trace=self._ctrl['trace'])
+            self.history(append=s, trace=self._ctrl['trace'])
       return execute
 
    #--------------------------------------------------------------------------
@@ -795,7 +822,7 @@ class Clump (object):
          if override:
             s += ' (overridden by kwarg)'
          print s
-         self.history(s, level=self._ctrl['menulevel'])
+         self.history(s)
       return value
 
    #--------------------------------------------------------------------------
@@ -810,9 +837,7 @@ class Clump (object):
          s = '.'+fname+'()'
          if isinstance(hist,str):
             s += ' ('+hist+')  '
-         self.history(s, show_node=True,
-                      level=ctrl['menulevel'],
-                      trace=ctrl['trace'])
+         self.history(s, show_node=True, trace=ctrl['trace'])
       if ctrl['trace']:
          print '** .end_of_body(ctrl): fname=',fname
       return True
@@ -1396,13 +1421,13 @@ class LeafClump(Clump):
       This function is called in Clump.__init__().
       See also templateLeafClump.py
       """
-      help = 'make leaf nodes for: '+self.oneliner()
-      ctrl = self.on_entry(self.initexec, help=help, **kwargs)
-
       # The data-description may be defined by means of kwargs: 
       dd = self.datadesc(complex=kwargs.get('complex',False),
                          treequals=kwargs.get('treequals',range(3)),
                          dims=kwargs.get('dims',1))
+
+      help = 'make leaf nodes for: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
       # Execute always (always=True), to ensure that the leaf Clump has nodes:
       if self.execute_body(always=True):

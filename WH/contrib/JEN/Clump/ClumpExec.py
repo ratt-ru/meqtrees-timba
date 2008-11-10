@@ -59,25 +59,33 @@ import math                 # support math.cos() etc
 
 from Timba.Contrib.JEN.Clump import Clump as ClumpClass 
 
-# from Timba.Contrib.JEN.Clump import templateClump as ClumpClass
+from Timba.Contrib.JEN.Clump import templateClump as ClumpClass
 # from Timba.Contrib.JEN.Clump import templateLeafClump as ClumpClass
+from Timba.Contrib.JEN.Clump import TwigClump as ClumpClass
 
-from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
+# from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
+from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
 
-from Timba.Contrib.JEN.Clump import CorruptClump as ClumpClass
+# from Timba.Contrib.JEN.Clump import CorruptClump as ClumpClass
 
+# The base-class has all the specific functions, e.g. .visualize()
 # from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import WSRTJonesClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import VLAJonesClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import ATCAJonesClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import LOFARJonesClump as ClumpClass
 
+# The following contain multiple classes (GJones,FJones,EJones etc):
+# from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass
+# from Timba.Contrib.JEN.Clump import WSRTJones as ClumpClass
+# from Timba.Contrib.JEN.Clump import VLAJones as ClumpClass
+# from Timba.Contrib.JEN.Clump import ATCAJones as ClumpClass
+# from Timba.Contrib.JEN.Clump import LOFARJones as ClumpClass
+
+# Specific operations: .corrupt(jones), .correct(), .shiftPhaseCentre()
+# Also: visualize() reimplementation
 # from Timba.Contrib.JEN.Clump import VisClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import templateVisClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import PeelingVisClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import FlaggingVisClump as ClumpClass
+
+# from Timba.Contrib.JEN.Clump import SpigotClump as ClumpClass
+# from Timba.Contrib.JEN.Clump import PeelingUnit as ClumpClass
+# from Timba.Contrib.JEN.Clump import CatIISubtractUnit as ClumpClass
+# from Timba.Contrib.JEN.Clump import FlaggingUnit as ClumpClass
 
 
 #------------------------------------------------------------------------------

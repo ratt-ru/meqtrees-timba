@@ -69,24 +69,6 @@ class AddNoise(Clump.Clump):
       Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
 
-   #-------------------------------------------------------------------------
-
-   def show_specific(self):
-      """
-      Format the specific (non-generic) contents of the derived class.
-      Re-implementation of function in baseclass Clump.
-      """
-      ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      return ss
-
-   #-------------------------------------------------------------------------
-
-   def newinstance(self, **kwargs):
-      """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (AddNoise).
-      """
-      return AddNoise(clump=self, **kwargs)
-
 
    #==========================================================================
    # The function .initexec() must be re-implemented for 'leaf' Clumps,
@@ -105,14 +87,13 @@ class AddNoise(Clump.Clump):
 
       dd = self.datadesc()                 # data description record
       self.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
-      self.add_option('unops', [None,'Exp'], more=False)
+      self.add_option('unops', [None,'Exp','Exp Exp','Sin Cos'], more=str)
 
       if self.execute_body():
-         stddev = self.getopt('stddev')
-
+         stddev = max(0.0, self.getopt('stddev'))
          unops = self.getopt('unops')
          if isinstance(unops,str):
-            unops = [unops]
+            unops = unops.split(' ')
             
          if stddev>0.0:
             stub = self.unique_nodestub('stddev='+str(stddev))
@@ -170,24 +151,6 @@ class Scatter(Clump.Clump):
       """
       Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
-
-   #-------------------------------------------------------------------------
-
-   def show_specific(self):
-      """
-      Format the specific (non-generic) contents of the derived class.
-      Re-implementation of function in baseclass Clump.
-      """
-      ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      return ss
-
-   #-------------------------------------------------------------------------
-
-   def newinstance(self, **kwargs):
-      """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (Scatter).
-      """
-      return Scatter(clump=self, **kwargs)
 
 
    #==========================================================================
@@ -265,10 +228,10 @@ def do_define_forest (ns, TCM):
                               complex=True,
                               dims=[2,2],
                               trace=True)
-      clump = AddNoise(clump, select=True, trace=True).daisy_chain()
-      # clump.visualize()
-      clump = Scatter(clump, select=True, trace=True).daisy_chain()
-      # clump.visualize()
+      select = None
+      # select = True
+      clump = AddNoise(clump, select=select, trace=True).daisy_chain()
+      clump = Scatter(clump, select=select, trace=True).daisy_chain()
 
    # The LAST statement:
    TCM.end_of_submenu()

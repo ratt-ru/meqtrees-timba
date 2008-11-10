@@ -194,6 +194,13 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
 
+   def __str__(self):
+      """Print conversion. Return the object oneliner().
+      """
+      return self.oneliner()
+
+   #--------------------------------------------------------------------------
+
    def oneliner (self):
       ss = 'TDLOptionManager: '+str(self._name)
       ss += '  mode='+str(self._mode)
@@ -471,24 +478,6 @@ class TDLOptionManager (object):
 
    #--------------------------------------------------------------------------
    #--------------------------------------------------------------------------
-
-   def start_of_submenu_old (self, relkey,
-                             prompt=None,             # 2nd
-                             default=None,            # 3rd
-                             qual=None,
-                             help=None,     
-                             hide=None,
-                             disable=False,
-                             ignore=False,
-                             menu=None,                       
-                             slaveof=None,
-                             topmenu=False,
-                             callback=None,      
-                             group_control=True,
-                             prepend=False,
-                             trace=False):
-      return False
-
 
    def start_of_submenu (self, relkey, **kwargs):
       """

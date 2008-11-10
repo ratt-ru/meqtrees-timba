@@ -55,7 +55,7 @@ import math                 # support math.cos() etc
 #********************************************************************************
 #********************************************************************************
 
-class templateClump(Clump.LeafClump):
+class templateClump(Clump.Clump):
    """
    Derived class
    """
@@ -64,26 +64,8 @@ class templateClump(Clump.LeafClump):
       """
       Derived from class Clump.
       """
-      Clump.LeafClump.__init__(self, clump=clump, **kwargs)
+      Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
-
-   #-------------------------------------------------------------------------
-
-   def show_specific(self):
-      """
-      Format the specific (non-generic) contents of the derived class.
-      Re-implementation of function in baseclass Clump.
-      """
-      ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      return ss
-
-   #-------------------------------------------------------------------------
-
-   def newinstance(self, **kwargs):
-      """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (templateClump).
-      """
-      return templateClump(clump=self, **kwargs)
 
 
    #=========================================================================
@@ -96,13 +78,16 @@ class templateClump(Clump.LeafClump):
       This function is called in Clump.__init__().
       """
       # kwargs['select'] = True          # optional: makes the function selectable     
-      ctrl = self.on_entry(self.initexec, **kwargs)
+      prompt=None
+      help=None
+      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
       if self.execute_body():
          self._ns.example1 << Meq.Constant(1.9)
          # Generate some nodes:
-         node1 = self._ns.example1_opt1 << Meq.Constant(1.1)
-         node2 = self._ns.example1_opt2 << Meq.Constant(2.2)
+         stub = self.unique_nodestub()
+         node1 = stub('node1') << Meq.Constant(1.1)
+         node2 = stub('node2') << Meq.Constant(2.2)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
@@ -124,10 +109,10 @@ class templateClump(Clump.LeafClump):
       ctrl = self.on_entry(self.example1, prompt, help, **kwargs)
 
       if self.execute_body():
-         self._ns.example1 << Meq.Constant(1.9)
          # Generate some nodes:
-         node1 = self._ns.example1_opt1 << Meq.Constant(1.1)
-         node2 = self._ns.example1_opt2 << Meq.Constant(2.2)
+         stub = self.unique_nodestub()
+         node1 = stub('node1') << Meq.Constant(1.1)
+         node2 = stub('node2') << Meq.Constant(2.2)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
@@ -153,8 +138,9 @@ class templateClump(Clump.LeafClump):
          opt1 = self.getopt('opt1')
          opt2 = self.getopt('opt2')
          # Generate some nodes:
-         node1 = self._ns.example2_opt1 << Meq.Constant(opt1)
-         node2 = self._ns.example2_opt2 << Meq.Constant(opt2)
+         stub = self.unique_nodestub()
+         node1 = stub('opt1') << Meq.Constant(opt1)
+         node2 = stub('opt2') << Meq.Constant(opt2)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
@@ -178,9 +164,10 @@ class templateClump(Clump.LeafClump):
       if self.execute_body():
          slaves = self.getopt('slaves')
          for i in range(slaves):
-            cp = Clump('slave', qual=i,
-                       master=ctrl['submenu'],
-                       ns=self._ns, TCM=self._TCM)
+            cp = Clump.Clump(clump=self,
+                             name='slave', qual=i,
+                             slaveof=ctrl['submenu'],
+                             ns=self._ns, TCM=self._TCM)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 

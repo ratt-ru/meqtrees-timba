@@ -45,6 +45,7 @@ from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Clump import Clump
 from Timba.Contrib.JEN.Clump import ParmClump
+from Timba.Contrib.JEN.Clump import TwigClump
 
 import Meow.Bookmarks
 from Timba.Contrib.JEN.util import JEN_bookmarks
@@ -69,6 +70,7 @@ class SolverUnit(Clump.Clump):
       whose tree nodes provide the inputs for the Condeq(s). 
       """
       self._other = other
+      self._solver = None
       Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
 
@@ -83,14 +85,6 @@ class SolverUnit(Clump.Clump):
       ss += '\n + other = '+other.oneliner()
       ss += '\n + self._solver = '+str(self._solver)
       return ss
-
-   #-------------------------------------------------------------------------
-
-   def newinstance(self, **kwargs):
-      """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (SolverUnit).
-      """
-      return SolverUnit(clump=self, **kwargs)
 
 
    #=========================================================================
@@ -207,9 +201,10 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-      other = ParmClump.ParmClump(clump, name='parms', trace=True)
-      su = SolverUnit(clump, other, name='SU', trace=True)
+      # clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
+      clump = TwigClump.Twig(ns=ns, TCM=TCM, twig='f+t', trace=True)
+      other = ParmClump.ParmClump(clump, trace=True)
+      su = SolverUnit(clump, other, trace=True)
       su.visualize()
 
    # The LAST statement:
@@ -236,9 +231,10 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      clump = Clump.LeafClump(trace=True)
+      # clump = Clump.LeafClump(trace=True)
+      clump = TwigClump.Twig(twig='f+t', trace=True)
       clump.show('creation', full=True)
-      other = ParmClump.ParmClump(clump, name='other', trace=True)
+      other = ParmClump.ParmClump(clump, trace=True)
       other.show('other', full=True)
       sc = SolverUnit(clump, other, trace=True)
       sc.show('SolverUnit', full=True)
