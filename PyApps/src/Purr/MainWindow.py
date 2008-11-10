@@ -17,6 +17,65 @@ class BusyIndicator (object):
   def __del__ (self):
     QApplication.restoreOverrideCursor();
 
+class HTMLViewerDialog (QDialog):
+  """This class implements a dialog to view a piece of HTML text.""";
+  def __init__ (self,parent,config_name=None,buttons=[],*args):
+    """Creates dialog.
+    'config_name' is used to get/set default window size from Config object
+    'buttons' can be a list of names to provide custom buttons at the bottom
+    of the dialog. When a button is clicked, the dialog emits PYSIGNAL("name()").
+    A "Close" button is always provided, this simply hides the dialog.
+    """;
+    QDialog.__init__(self,parent,*args);
+    self.setModal(False);
+    lo = QVBoxLayout(self);
+    # create viewer
+    self.viewer = QTextEdit(self);
+    lo.addWidget(self.viewer);
+    self.viewer.setReadOnly(True);
+    self.viewer.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
+    # make a QMimeSourceFactory for the viewer -- needed to resolve image links
+    self.viewer_msf = QMimeSourceFactory();
+    self.viewer.setMimeSourceFactory(self.viewer_msf);
+    lo.addSpacing(5);
+    # create button bar
+    btnfr = QFrame(self);
+    btnfr.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
+    btnfr.setMargin(5);
+    lo.addWidget(btnfr);
+    lo.addSpacing(5);
+    btnfr_lo = QHBoxLayout(btnfr);
+    btnfr_lo.setMargin(5);
+    # add user buttons
+    self._user_buttons = {};
+    for name in buttons:
+      btn = self._user_buttons[name] = QPushButton(name,btnfr);
+      self.connect(btn,SIGNAL("clicked()"),self,PYSIGNAL(name+"()"));
+      btnfr_lo.addWidget(btn,1);
+    # add a Close button
+    btnfr_lo.addStretch(100);
+    closebtn = QPushButton("Close",btnfr);
+    self.connect(closebtn,SIGNAL("clicked()"),self.hide);
+    btnfr_lo.addWidget(closebtn,1);
+    # resize selves
+    self.config_name = config_name or "html-viewer";
+    width = Config.getint('%s-width'%self.config_name,256);
+    height = Config.getint('%s-height'%self.config_name,512);
+    self.resize(QSize(width,height));
+    
+  def resizeEvent (self,ev):
+    QDialog.resizeEvent(self,ev);
+    sz = ev.size();
+    Config.set('%s-width'%self.config_name,sz.width());
+    Config.set('%s-height'%self.config_name,sz.height());
+    
+  def setDocument (self,text,path='.'):
+    """Sets the HTML text to be displayed. 'path' can be used to give a relative path for
+    resolving images in the text""";
+    self.viewer_msf.setFilePath(QStringList(path));
+    self.viewer.setText(text);
+
+
 class MainWindow (QMainWindow):
   def __init__ (self,parent,hide_on_close=False):
     QMainWindow.__init__(self,parent);
@@ -70,20 +129,31 @@ class MainWindow (QMainWindow):
     title_lo = QHBoxLayout(cwlo);
     self.title_label = QLabel("Log title: none",cw);
     title_lo.addWidget(self.title_label,1);
-    self.wrename = QPushButton("Rename...",cw);
-    self.wrename.setMinimumWidth(128);
+    self.wrename = QPushButton("Rename",cw);
+    self.wrename.setMinimumWidth(80);
     self.wrename.setFlat(True);
     self.wrename.setEnabled(False);
     self.connect(self.wrename,SIGNAL("clicked()"),self._renameLogDialog);
     title_lo.addWidget(self.wrename,0);
+    title_lo.addSpacing(5);
+    self.wviewlog = QPushButton("View",cw);
+    self.wviewlog.setMinimumWidth(80);
+    self.wviewlog.setFlat(True);
+    self.wviewlog.setEnabled(False);
+    # log viewer dialog
+    self.viewer_dialog = HTMLViewerDialog(self,config_name="log-viewer",buttons=["Regenerate"]);
+    self._viewer_timestamp = None;
+    self.connect(self.wviewlog,SIGNAL("clicked()"),self._showViewerDialog);
+    self.connect(self.viewer_dialog,PYSIGNAL("Regenerate()"),self._regenerateLog);
+    title_lo.addWidget(self.wviewlog,0);
     cwlo.addSpacing(5);
     # listview of log entries
     self.elv = QListView(cw);
     cwlo.addWidget(self.elv);
-    self.elv.addColumn("date/time");
-    self.elv.addColumn("title",128);
-    self.elv.addColumn("comment",128);
-    self.elv.header().hide();
+    self.elv.addColumn("date");
+    self.elv.addColumn("entry title",128);
+    self.elv.addColumn("comment",-1);
+    self.elv.header().show();
     self.elv.setAllColumnsShowFocus(True);
     self.elv.setShowToolTips(True);
     self.elv.setSorting(-1);
@@ -91,17 +161,21 @@ class MainWindow (QMainWindow):
     self.elv.setColumnAlignment(2,Qt.AlignLeft|Qt.AlignTop);
     self.elv.setSelectionMode(QListView.Extended);
     self.connect(self.elv,SIGNAL("selectionChanged()"),self._entrySelectionChanged);
+    self.connect(self.elv,SIGNAL("doubleClicked(QListViewItem*,const QPoint&,int)"),self._viewEntryItem);
+    self.connect(self.elv,SIGNAL("returnPressed(QListViewItem*)"),self._viewEntryItem);
+    self.connect(self.elv,SIGNAL("spacePressed(QListViewItem*)"),self._viewEntryItem);
     # buttons at bottom
     cwlo.addSpacing(5);
     btnlo = QHBoxLayout(cwlo);
-    self.wnewbtn = QPushButton("New...",cw);
+    self.wnewbtn = QPushButton("New entry...",cw);
     self.wnewbtn.setFlat(True);
     self.wnewbtn.setEnabled(False);
     btnlo.addWidget(self.wnewbtn);
     btnlo.addSpacing(5);
-    self.weditbtn = QPushButton("Edit...",cw);
+    self.weditbtn = QPushButton("View entry...",cw);
     self.weditbtn.setFlat(True);
     self.weditbtn.setEnabled(False);
+    self.connect(self.weditbtn,SIGNAL("clicked()"),self._viewEntryItem);
     btnlo.addWidget(self.weditbtn);
     btnlo.addSpacing(5);
     self.wdelbtn = QPushButton("Delete",cw);
@@ -119,6 +193,12 @@ class MainWindow (QMainWindow):
     self.connect(self.new_entry_dialog,PYSIGNAL("filesSelected()"),self._addDPFiles);
     self.connect(self.wnewbtn,SIGNAL("clicked()"),self.new_entry_dialog.show);
     self.connect(self.new_entry_dialog,PYSIGNAL("shown()"),self._checkPounceStatus);
+    # entry viewer dialog
+    self.view_entry_dialog = Purr.Editors.ExistingLogEntryDialog(self);
+    self.connect(self.view_entry_dialog,PYSIGNAL("previous()"),self._viewPrevEntry);
+    self.connect(self.view_entry_dialog,PYSIGNAL("next()"),self._viewNextEntry);
+    self.connect(self.view_entry_dialog,PYSIGNAL("filesSelected()"),self._addDPFilesToOldEntry);
+    self.connect(self.view_entry_dialog,PYSIGNAL("entryChanged()"),self._entryChanged);
     # resize selves
     width = Config.getint('main-window-width',512);
     height = Config.getint('main-window-height',512);
@@ -181,7 +261,12 @@ class MainWindow (QMainWindow):
       self.new_entry_dialog.hide();
       self.new_entry_dialog.reset();
       self.new_entry_dialog.setDefaultDirs(*purrer.watched_dirs);
+      self.view_entry_dialog.setDefaultDirs(*purrer.watched_dirs);
+      self.view_entry_dialog.hide();
+      self._viewing_ientry = None;
       self._setEntries(self.purrer.getLogEntries());
+      self._viewer_timestamp = None;
+      self._updateViewer();
       self._updateNames();
       # set autopounce property from purrer. Reset _pounce to false -- this will cause
       # checkPounceStatus() into a rescan if autopounce is on.
@@ -192,6 +277,7 @@ class MainWindow (QMainWindow):
   def setLogTitle (self,title):
     self.purrer.setLogTitle(title);
     self._updateNames();
+    self._updateViewer();
     
   def enablePounce (self,enable=True):
     if enable and not self.purrer:
@@ -205,25 +291,62 @@ class MainWindow (QMainWindow):
   def _updateNames (self):
     self.wnewbtn.setEnabled(True);
     self.wrename.setEnabled(True);
+    self.wviewlog.setEnabled(True);
     self._about_dialog.setText("""
     <P>PURR ("<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions", or
     "<B>P</B>URR <B>U</B>sually <B>R</B>emembers <B>R</B>eductions", for those working with the
     development version) is a tool for
     automatically keeping a log of your data reduction operations. PURR will watch your working directories
-    (<tt>%s</tt>) for new files (called "data products"), and upon seeing any, it will "pounce" -- that is, offer
+    for new files (called "data products"), and upon seeing any, it will "pounce" -- that is, offer
     you the option of saving them to a log, along with descriptive comments. It will then
     generate an HTML page with a rendering of your log and data products.</P>
     
-    <P>Your current log resides in <tt>%s</tt>. Point your browser to <tt>index.html</tt> therein.</P>
-    """%(", ".join(self.purrer.watched_dirs),self.purrer.logdir));
+    <P>Your current log resides in:<PRE>  <tt>%s</tt></PRE>To see your log in all its HTML-rendered glory, point your browser to <tt>index.html</tt> therein, or use the handy "View" button provided by PURR.</P>
+    
+    <P>Your current working directories are:</P>
+    <P>%s</P>
+    """%(self.purrer.logdir,
+      "".join([ "<PRE>  <tt>%s</tt></PRE>"%name for name in self.purrer.watched_dirs ])
+    ));
     self.dir_label.setText("Directory: %s"%self.purrer.dirname);
-    self.title_label.setText("Log title: <B>%s</B>"%(self.purrer.logtitle or "Unnamed log"));
+    title = self.purrer.logtitle or "Unnamed log"
+    self.title_label.setText("Log title: <B>%s</B>"%title);
+    self.viewer_dialog.setCaption(title);
+    
+  def _showViewerDialog (self):
+    self._updateViewer(True);
+    self.viewer_dialog.show();
+    
+  def _updateViewer (self,force=False):
+    """Updates the viewer dialog.
+    If dialog is not visible and force=False, does nothing.
+    Otherwise, checks the mtime of the current purrer index.html file against self._viewer_timestamp.
+    If it is newer, reloads it.
+    """;
+    if not force and not self.viewer_dialog.isVisible():
+      return;
+    # default text if nothing is found
+    text = "<P>Nothing in the log yet. Try adding some entries first.</P>";
+    try:
+      mtime = os.path.getmtime(self.purrer.indexfile);
+    except:
+      mtime = None;
+    # return if file is older than our content
+    if mtime and mtime < (self._viewer_timestamp or 0):
+      return;
+    busy = BusyIndicator();
+    try:
+      text = file(self.purrer.indexfile).read();
+    except:
+      pass;
+    self.viewer_dialog.setDocument(text,os.path.dirname(self.purrer.indexfile));
+    self._viewer_timestamp = mtime;
     
   def _setEntries (self,entries):
     self.elv.clear();
     item = None;
-    for entry in entries:
-      item = self._addEntryItem(entry,item);
+    for i,entry in enumerate(entries):
+      item = self._addEntryItem(entry,i,item);
       
   def _renameLogDialog (self):
     (title,ok) = QInputDialog.getText("PURR: Rename Log",
@@ -268,37 +391,93 @@ class MainWindow (QMainWindow):
     if do_show:
       self.new_entry_dialog.show();
         
-        
   def _addDPFiles (self,*files):
     """callback to add DPs corresponding to files.""";
     # quiet flag is always true
     self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts(*[(file,True) for file in files]));
     
+  def _addDPFilesToOldEntry (self,*files):
+    """callback to add DPs corresponding to files.""";
+    # quiet flag is always true
+    self.view_entry_dialog.addDataProducts(self.purrer.makeDataProducts(*[(file,True) for file in files]));
+    
   def _entrySelectionChanged (self):
     nsel = 0;
     item = self.elv.firstChild();
+    selected = [];
     while item:
       if self.elv.isSelected(item):
-        nsel += 1;
+        selected.append(item);
       item = item.nextSibling();
-    self.weditbtn.setEnabled(nsel == 1);
-    self.wdelbtn.setEnabled(nsel);
+    self.weditbtn.setEnabled(len(selected) == 1);
+    self.wdelbtn.setEnabled(bool(selected));
+      
+  def _viewEntryItem (self,item=None,*dum):
+    """Pops up the viewer dialog for the entry associated with the given item.
+    If 'item' is None, looks for a selected item in the listview.
+    The dum arguments are for connecting this to QListView signals such as doubleClicked().
+    """;
+    # if item not set, look for selected items in listview. Only 1 must be selected.
+    select = True;
+    if item is None:
+      item = self.elv.firstChild();
+      selected = [];
+      while item:
+        if self.elv.isSelected(item):
+          selected.append(item);
+        item = item.nextSibling();
+      if len(selected) != 1:
+        return;
+      item = selected[0];
+      selcect = False; # already selected
+    # show dialog
+    ientry = getattr(item,'_ientry',None);
+    if ientry is not None:
+      self._viewEntryNumber(ientry,select=True);
+      
+  def _viewEntryNumber (self,ientry,select=True):
+    """views entry #ientry. Also selects entry in listview if select=True""";
+    # pass entry to viewer dialog
+    self._viewing_ientry = ientry;
+    entry = self.purrer.entries[ientry];
+    self.view_entry_dialog.viewEntry(entry,has_prev=(ientry>0),has_next=(ientry<len(self.purrer.entries)-1));
+    self.view_entry_dialog.show();
+    # select entry in listview
+    if select:
+      self.elv.clearSelection();
+      item = self.elv.firstChild();
+      for i in range(ientry):
+        item = item and item.nextSibling();
+      self.elv.setSelected(item,True);
+     
+  def _viewPrevEntry (self):
+    if self._viewing_ientry is not None and self._viewing_ientry > 0:
+      self._viewEntryNumber(self._viewing_ientry-1);
+    
+  def _viewNextEntry (self):
+    if self._viewing_ientry is not None and self._viewing_ientry < len(self.purrer.entries)-1:
+      self._viewEntryNumber(self._viewing_ientry+1);
     
   def _deleteSelectedEntries (self):
     remaining_entries = [];
     del_entries = [];
     item = self.elv.firstChild();
+    hide_viewer = False;
     while item:
       if self.elv.isSelected(item):
-        del_entries.append(item._entry);
+        del_entries.append(item._ientry);
+        if self._viewing_ientry == item._ientry:
+          hide_viewer = True;
       else:
-        remaining_entries.append(item._entry);
+        remaining_entries.append(item._ientry);
       item = item.nextSibling();
     if not del_entries:
       return;
+    del_entries = [ self.purrer.entries[i] for i in del_entries ];
+    remaining_entries = [ self.purrer.entries[i] for i in remaining_entries ];
     # ask for confirmation
     if len(del_entries) == 1:
-      msg = """<P>Permanently delete the log entry "%s"?</P>"""%del_entries[0].title;
+      msg = """<P><NOBR>Permanently delete the log entry</NOBR> "%s"?</P>"""%del_entries[0].title;
       if del_entries[0].dps:
         msg += """<P>%d data product(s) saved with this 
                   entry will be deleted as well.</P>"""%len(del_entries[0].dps);
@@ -312,19 +491,24 @@ class MainWindow (QMainWindow):
     if QMessageBox.question(self,"Deleting log entries",msg,
           QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
       return;
+    if hide_viewer:
+      self.view_entry_dialog.hide();
     # reset entries in purrer and in our log window
     self._setEntries(remaining_entries);
     self.purrer.setLogEntries(remaining_entries);
+    # log will have changed, so update the viewer
+    self._updateViewer();
     # delete entry files
     for entry in del_entries:
       entry.remove_directory();
       
-  def _addEntryItem (self,entry,after):
+  def _addEntryItem (self,entry,number,after):
     item = QListViewItem(self.elv,after);
     item.setText(0,self._make_time_label(entry.timestamp));
-    item.setText(1," "+entry.title);
-    item.setText(2," "+entry.comment);
-    item._entry = entry;
+    item.setText(1," "+(entry.title or ""));
+    comment = " "+(entry.comment or "");
+    item.setText(2,comment);
+    item._ientry = number;
     return item;
 
   def _make_time_label (self,timestamp):
@@ -332,7 +516,23 @@ class MainWindow (QMainWindow):
     
   def _newLogEntry (self,entry):
     """This is called when a new log entry is created""";
-    self._addEntryItem(entry,self.elv.lastItem());
+    self._addEntryItem(entry,len(self.purrer.entries),self.elv.lastItem());
     self.purrer.addLogEntry(entry);
+    # log will have changed, so update the viewer
+    self._updateViewer();
     self.show();
     
+  def _entryChanged (self,entry):
+    """This is called when a log entry is changed""";
+    self.purrer.save();
+    # log will have changed, so update the viewer
+    self._updateViewer();
+    
+  def _regenerateLog (self):
+    if QMessageBox.question(self.viewer_dialog,"Regenerate log","""<P><NOBR>Do you really want to regenerate the
+      entire</NOBR> log? This can be a time-consuming operation.</P>""",
+          QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
+      return;
+    self.purrer.save(refresh=True);
+    self._updateViewer();
+  

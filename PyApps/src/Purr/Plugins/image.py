@@ -9,17 +9,23 @@ PIL is available from http://www.pythonware.com/products/pil/. On Debian-based s
   
 import os.path
 import traceback
+import sets
 
 from Purr.Render import DefaultRenderer
 
 class ImageRenderer (DefaultRenderer):
   """This class renders PIL-compatible image data products.""";
+  _extensions = sets.Set([
+    "jpg","jpeg","png","gif","xpm","ppm","pbm","pnm","tiff","tif"
+  ]);
+  
   def canRender (filename):
-    """We can render it if PIL can read it.""";
-    try:
-      PIL.Image.open(filename).getdata();
+    """Check extensions.""";
+    name,ext = os.path.splitext(filename);
+    ext = ext.lstrip('.').lower();
+    if ext in ImageRenderer._extensions:
       return 100;
-    except:
+    else:
       return False;
   canRender = staticmethod(canRender);
     
@@ -34,8 +40,8 @@ class ImageRenderer (DefaultRenderer):
   DefaultRenderer.addOption("image-thumbnail-width",512,dtype=int,doc="Maximum width of thumbnails");
   DefaultRenderer.addOption("image-thumbnail-height",256,dtype=int,doc="Maximum height of thumbnails");
   
-  def __init__ (self,dp):
-    DefaultRenderer.__init__(self,dp);
+  def __init__ (self,dp,**kw):
+    DefaultRenderer.__init__(self,dp,**kw);
     Purr.progressMessage("rendering %s"%dp.filename,sub=True);
     img = PIL.Image.open(dp.fullpath);
     # If image format is not compatible with browsers, save it in PNG format.

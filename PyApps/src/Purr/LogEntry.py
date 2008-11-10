@@ -13,7 +13,7 @@ class DataProduct (object):
   def __init__ (self,filename=None,sourcepath=None,fullpath=None,
       policy="copy",comment="",
       timestamp=None,render=None,
-      quiet=False):
+      quiet=False,archived=False):
     # This is the absolute pathname to the original data product
     self.sourcepath = Purr.canonizePath(sourcepath);
     # Base filename (w/o path) of data product within the log storage area.
@@ -32,11 +32,68 @@ class DataProduct (object):
     self.render = render;
     # if True, DP is watched quietly (i.e. Purr does not pop up windows on update)
     self.quiet = quiet;
+    # if True, DP has already been archived. This is False for new DPs until they're saved.
+    self.archived = archived;
+    
+  def subproduct_dir (self):
+    """Returns name of subdirectory used to store subproducts of this data product
+    during rendering.""";
+    return self.fullpath+".purr-products";
   
+  def remove_file (self):
+    """Removes archived file associated with this DP""";
+    if not self.fullpath or not self.archived:
+      raise RuntimeError,"""Can't remove a non-archived data product""";
+    try: 
+      os.remove(self.fullpath);
+    except:
+      print "Error removing %s: %s"%(self.fullpath,sys.exc_info()[1]);
+
+  def remove_subproducts (self):
+    """Removes all archived files subproducts associated with this DP""";
+    if not self.fullpath or not self.archived:
+      raise RuntimeError,"""Can't remove a non-archived data product""";
+    for root, dirs, files in os.walk(self.subproduct_dir(),topdown=False):
+      for name in files:
+        try: 
+          os.remove(os.path.join(root, name)); 
+        except: 
+          pass;
+    for name in dirs:
+      try: 
+        os.remove(os.path.join(root, name)); 
+      except: 
+        pass;
+      
+  def rename (self,newname):
+    # rename file if needed
+    if newname == self.filename:
+      return;
+    if not self.fullpath or not self.archived:
+      raise RuntimeError,"""Can't rename a non-archived data product""";
+    dirname = os.path.dirname(self.fullpath);
+    newpath = os.path.join(dirname,newname);
+    oldsubname = self.subproduct_dir();
+    try:
+      os.rename(self.fullpath,newpath);
+    except:
+      print "Error renaming %s to %s: %s"%(self.fullpath,newpath,sys.exc_info()[1]);
+      return;
+    self.fullpath = newpath;
+    self.filename = newname;
+    # rename subproducts, if they exist
+    if os.path.exists(oldsubname):
+      newsubname = self.subproduct_dir();
+      try:
+        os.rename(oldsubname,newsubname);
+      except:
+        print "Error renaming %s to %s: %s"%(oldsubname,newsubname,sys.exc_info()[1]);
+
 class LogEntry (object):
   """This represents a LogEntry object""";
-  def __init__ (self,timestamp=None,title=None,comment=None,dps=[],load=None):
-    self.timestamp,self.title,self.comment,self.dps = timestamp,title,comment,dps;
+  def __init__ (self,timestamp=None,title="",comment="",dps=[],load=None):
+    self.title,self.comment,self.dps = title,comment,dps;
+    self.timestamp = timestamp or int(time.time());
     self.pathname = None;
     # This is None for unsaved entries, and the pathname of the index.html file once
     # the entry is saved.
@@ -58,6 +115,17 @@ class LogEntry (object):
     return os.path.isdir(name) and LogEntry._entry_re.match(name);
   isValidPathname = staticmethod(isValidPathname);
   
+  def update (self,title=None,comment=None,dps=None,timestamp=None):
+    self.updated = True;
+    if title is not None:
+      self.title = title;
+    if comment is not None:
+      self.comment = comment;
+    if dps is not None:
+      self.dps = dps;
+    if timestamp is not None:
+      self.timestamp = timestamp;
+  
   def load (self,pathname):
     """Loads entry from directory.""";
     match = self. _entry_re.match(pathname);
@@ -73,9 +141,16 @@ class LogEntry (object):
     for line in file(self.index_file):
       parser.feed(line);
     # set things up from parser
-    self.timestamp,self.title,self.comment,self.dps = \
-            parser.timestamp,parser.title,parser.comments,parser.dps;
+    try:
+      self.timestamp = int(float(parser.timestamp));
+    except:
+      self.timestamp = int(time.time());
+    self.title = getattr(parser,'title',None) or "Malformed entry, probably needs to be deleted";
+    self.comment = getattr(parser,'comments',None) or "";
+    self.dps = getattr(parser,'dps',[]);
     self.pathname = pathname;
+    # see if any data products have been removed on us
+    self.dps = [ dp for dp in self.dps if os.path.exists(dp.fullpath) ];
     # see if the cached include file is up-to-date
     self.cached_include = cache = os.path.join(pathname,'index.include.html');
     mtime = (os.path.exists(cache) or 0) and os.path.getmtime(cache);
@@ -88,11 +163,12 @@ class LogEntry (object):
     # mark entry as unchanged, if renderers are older than index
     self.updated = (Purr.Render.youngest_renderer > os.path.getmtime(self.index_file));
       
-  def save (self,dirname=None):
+  def save (self,dirname=None,refresh=False):
     """Saves entry in the given directory. Data products will be copied over if not
     residing in that directory.
+    If refresh=True, all caches will be ignored and everything will be rerendered from scratch.
     """;
-    if not self.updated:
+    if not refresh and not self.updated:
       return;
     if dirname:
       self.pathname = pathname = os.path.join(dirname,
@@ -101,6 +177,9 @@ class LogEntry (object):
       raise ValueError,"Cannot save entry: pathname not specified";
     else:
       pathname = self.pathname;
+    # set timestamp
+    if not self.timestamp:
+      self.timestamp = int(time.time());
     # get canonized path to output directory
     pathname = Purr.canonizePath(pathname);
     # now save content
@@ -111,12 +190,12 @@ class LogEntry (object):
     # copy data products as needed
     dps = [];
     for dp in self.dps:
-      # if fullpath is set, this indicates a previously saved data product, so ignore it
-      if dp.fullpath:
+      # if archived, this indicates a previously saved data product, so ignore it
+      if dp.archived:
         dps.append(dp);
         continue;
       # ignored data product -- keep in list, but do nothing else
-      if dp.policy == "ignore":
+      if dp.policy == "ignore" or dp.policy == "banish":
         dps.append(dp);
         continue;
       # file missing for some reason (perhaps it got removed on us?) skip data product entirely
@@ -165,6 +244,7 @@ class LogEntry (object):
           os.system("/bin/rm -fr %s"%sourcepath);
       # success, set timestamp and append
       dp.timestamp = os.path.getmtime(destname);
+      dp.archived = True;
       dps.append(dp);
     # reset list of data products
     self.dps = dps;
@@ -172,7 +252,7 @@ class LogEntry (object):
     self.cached_include = os.path.join(pathname,'index.include.html');
     self.cached_include_valid = False;  # cache will need to be regenerated now
     self.index_file = os.path.join(pathname,"index.html");
-    file(self.index_file,"wt").write(self.renderIndex());
+    file(self.index_file,"wt").write(self.renderIndex(refresh=refresh));
     self.updated = False;
     
   def remove_directory (self):
@@ -185,13 +265,17 @@ class LogEntry (object):
   def timeLabel (self):
     return time.strftime("%x %X",time.localtime(self.timestamp));
    
-  def renderIndex (self,relpath=""):
+  def renderIndex (self,relpath="",refresh=False):
     """Returns HTML index code for this entry.
     If relpath is empty, renders complete index.html file.
     If relpath is not empty, then index is being included into a top-level log, and
     relpath should be passed to all sub-renderers.
-    In this case the entry may make use of its cached_include file, if that is valid.""";
+    In this case the entry may make use of its cached_include file, if that is valid.
+    If refresh=True, all caches will be ignored and everything will be rerendered from scratch.
+    """;
     # check if cache can be used
+    if refresh:
+      self.cached_include_valid = False;
     if relpath and self.cached_include_valid:
       try:
         dprintf(2,"using include cache %s\n",self.cached_include);
@@ -215,7 +299,7 @@ class LogEntry (object):
         <H2>%(title)s</H2>"""%attrs;
     # write comments
     html += """
-        <DIV ALIGN=right><P>Logged on %(timestr)s</P></DIV>\n
+        <DIV ALIGN=right><P><SMALL>Logged on %(timestr)s</SMALL></P></DIV>\n
         
         <A CLASS="COMMENTS">\n"""%attrs;
     # add comments
@@ -244,7 +328,7 @@ class LogEntry (object):
             <A CLASS="DP" FILENAME="%(filename)s" SRC="%(sourcepath)s" POLICY="%(policy)s" QUIET=%(quiet)d TIMESTAMP=%(timestamp)d RENDER="%(render)s" COMMENT="%(comment)s"></A>\n"""%dpattrs;
         # render a table row
         if dp.policy != "ignore":
-          renderer = Purr.Render.makeRenderer(dp.render,dp);
+          renderer = Purr.Render.makeRenderer(dp.render,dp,refresh=refresh);
           html += Purr.Render.renderInTable(renderer,relpath);
       if have_real_dps:
         html += """

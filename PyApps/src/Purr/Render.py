@@ -24,10 +24,10 @@ def renderDefault (dp,relpath):
 
 class DefaultRenderer (object):
   # this gives a short ID for the class (used in GUIs and such)
-  renderer_id = "default";
+  renderer_id = "link";
   
   # this gives a documentation string. You can use rich text here
-  renderer_doc = """<P>The "default" renderer shows data products as simple HTML links.<P>""";
+  renderer_doc = """<P>The "link" renderer shows data products as simple HTML links.<P>""";
   
   # this is set (by addRenderer() below) to the file modification time of the module containing
   # the renderer. Decisions on whether to re-render costly products are made based on this mtime.
@@ -43,11 +43,14 @@ class DefaultRenderer (object):
     return 1000000;
   canRender = staticmethod(canRender);
   
-  def __init__ (self,dp):
+  def __init__ (self,dp,refresh=False):
     """A renderer is initialized with a LogEntry.DataProduct object.
     If a renderer has been initialized, it is guaranteed to be used, so any "heavy" activity
-    such as making of thumbnails, etc. can already be undertaken here."""
+    such as making of thumbnails, etc. can already be undertaken here.
+    If refresh=True, any document caches should be ignored and everything should be rerendered from scratch.
+    """
     self.dp = dp;
+    self.refresh = refresh;
     # setup some convenient attributes
     # filename: base filename of DP (w/o path)
     self.filename  = dp.filename;
@@ -59,16 +62,24 @@ class DefaultRenderer (object):
     self.basepath  = os.path.splitext(dp.fullpath)[0];
     # modification time of DP
     self.file_mtime = os.path.getmtime(dp.fullpath);
+    #
     
   def subproductPath (self,ext):
-    """Makes a subproduct filename by appending 'ext' to the basename determined in __init__.
+    """Makes a subproduct filename by appending 'ext' to the subproduct directory.
     Returns a (filename,fullpath) tuple.""";
-    return self.basename+ext,self.basepath+ext;
+    ext = ext.lstrip("-");
+    basename = os.path.join(os.path.basename(self.dp.subproduct_dir()),ext);
+    fullpath = os.path.join(self.dp.subproduct_dir(),ext);
+    return basename,fullpath;
   
   def subproductUpToDate (self,fpath):
     """Returns True if the path is up-to-date w.r.t. our data product: i.e. exists, and is no older 
     than the DP itself, or the module itself (the last check ensures that subproducts are remade
     if the rendering code changes.)""";
+    if self.refresh:
+      return False;
+    if not os.path.exists(self.dp.subproduct_dir()):
+      os.mkdir(self.dp.subproduct_dir());
     if os.path.exists(fpath) and os.path.getmtime(fpath) >= max(self.file_mtime,self.module_mtime):
       dprintf(3,"subproduct %s is up-to-date, no need to remake\n",fpath);
       return True;
@@ -219,14 +230,14 @@ def getRenderers (filename):
       renderers.append((priority,rdrid));
   # sort by priority
   renderers.sort(lambda a,b:cmp(a[0],b[0]));
-  # return list of IDs. Note that "default" should always be available and working
-  return [ a[1] for a in renderers ] or ["default"];
+  # return list of IDs. Note that "none" should always be available and working
+  return [ a[1] for a in renderers ] or ["link"];
   
-def makeRenderer (rdrid,dp):
+def makeRenderer (rdrid,dp,refresh=False):
   """Creates a renderer object with the given rdrid, and attaches it the given DP.
   Failing that, creates a default renderer.""";
   try:
-    return available_renderers[rdrid][0](dp);
+    return available_renderers[rdrid][0](dp,refresh=refresh);
   except:
     print """Error creating renderer %s for %s:"""%(rdrid,dp.fullpath);
     traceback.print_exc();

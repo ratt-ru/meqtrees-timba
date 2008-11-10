@@ -13,8 +13,8 @@ class CachingRenderer (DefaultRenderer):
   def _cacheFileExtension (self,cachetype,relpath):
     return ("-cache-%s-rel-%s.html"%(cachetype,bool(relpath))).lower();
   
-  def __init__ (self,dp):
-    DefaultRenderer.__init__(self,dp);
+  def __init__ (self,dp,refresh=False):
+    DefaultRenderer.__init__(self,dp,refresh=refresh);
     self.rendercache = {};
     self._regenerated = False;
     
@@ -33,24 +33,25 @@ class CachingRenderer (DefaultRenderer):
     cache_ext = self._cacheFileExtension(cachetype,relpath);
     filename,path = self.subproductPath(cache_ext);
     cachekey = path;
-    # check already read cache
-    content = self.rendercache.get(path,None);
-    if content is not None:
-      return content;
-    # if cache file is up-to-date, attempt to read content
-    if self.subproductUpToDate(path):
-      dprintf(3,"render cache %s is up-to-date, reading in\n",path);
-      try:
-        content = file(path).read();
-      except:
-        print "Error reading render cache file",path,", will regenerate";
-        traceback.print_exc();
-    else:
-      dprintf(3,"render cache %s is out of date, will regenerate\n",path);
-    # read content? cache and return
-    if content is not None:
-      self.rendercache[path] = content;
-      return path,content;
+    # check already read cache, unless we're in refresh mode
+    if not self.refresh:
+      content = self.rendercache.get(path,None);
+      if content is not None:
+        return content;
+      # if cache file is up-to-date, attempt to read content
+      if self.subproductUpToDate(path):
+        dprintf(3,"render cache %s is up-to-date, reading in\n",path);
+        try:
+          content = file(path).read();
+        except:
+          print "Error reading render cache file",path,", will regenerate";
+          traceback.print_exc();
+      else:
+        dprintf(3,"render cache %s is out of date, will regenerate\n",path);
+      # read content? cache and return
+      if content is not None:
+        self.rendercache[path] = content;
+        return path,content;
     # else regenerate
     if not self._regenerated:
       self.regenerate();
