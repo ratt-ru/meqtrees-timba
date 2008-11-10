@@ -171,7 +171,8 @@ class Clump (object):
 
       # Execute the main function of the Clump object.
       # This function is re-implemented in derived Clump classes.
-      self._object_is_selected = True           # default: selected (..?)     
+      # self._object_is_selected = True           # default: selected (..?)     
+      self._object_is_selected = False           # see .execute_body()     
       self.initexec(**kwargs)
 
       # Some final checks:
@@ -361,13 +362,10 @@ class Clump (object):
       """
       kwargs['select'] = False
       ctrl = self.on_entry(self.initexec, **kwargs)
-      self._object_is_selected = False                          # <---- !!
+
       if self.execute_body():
-         # NB: .execute_body() makes the menu, controlled by kwargs['select']
-         self._object_is_selected = True
-         if True:
-            # As an illustration, add some operation:
-            self.apply_unops(unops='Cos', select=False)
+         # As an illustration, add some operation:
+         self.apply_unops(unops='Cos', select=False)
          self.end_of_body(ctrl)
       return self.on_exit(ctrl, result=None)
 
@@ -536,8 +534,7 @@ class Clump (object):
       Placeholder for re-implementation in derived class.
       """
       ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      ss += '\n + aa'
-      ss += '\n + bb'
+      ss += '\n + ...'
       return ss
 
    #-------------------------------------------------------------------------
@@ -553,7 +550,7 @@ class Clump (object):
 
    def history (self, append=None,
                 show_node=False,
-                prefix='', format=False, 
+                level=0, prefix='', format=False, 
                 clear=False, show=False, trace=False):
       """Interact with the object history (a list of strings).
       """
@@ -571,6 +568,8 @@ class Clump (object):
       if isinstance(append,str):
          s = ' -- '
          s += self._name+':    '
+         s += (level*'-')
+         s += '{'+str(level)+'} '
          s += str(append)
          self._history.append(s)
          if trace:
@@ -578,7 +577,7 @@ class Clump (object):
       elif show_node:
          # self._history.append(' --   (append=None) ')
          # self.history('(append=None)')
-         self.history('last Clump tree node:')
+         self.history('last Clump tree node:', level=level)
 
       # Append the current node to the last line/item: 
       if show_node:
@@ -668,8 +667,9 @@ class Clump (object):
       select = kwargs.get('select',None)
       fixture = kwargs.get('fixture',False)
       ctrl = dict(funcname=str(func.func_name),
-                  submenu=None,
+                  submenu=None, menulevel=0,
                   trace=trace)
+      fname = ctrl['funcname']                       # convenience
 
       # The kwargs information is used for option overrides in
       # the functions .add_option() and .execute_body()
@@ -682,7 +682,6 @@ class Clump (object):
          self._stage['isubmenu'] += 1                # increment
          self._stage['count'] += 1                   # increment
          self._stage['ops'] = -1                     # reset
-         fname = ctrl['funcname']                    # convenience
          name = fname
          name += '_'+str(self._stage['isubmenu'])
          name += str(self._stage['count'])
@@ -704,6 +703,7 @@ class Clump (object):
                                                       slaveof=self._slavemaster,
                                                       fixture=fixture,
                                                       qual=self._qual)
+         ctrl['menulevel'] = self._TCM.current_menu_level()
 
       # The ctrl record used by other control functions downstream.
       # The opening ones use self._ctrl, but the closing ones have to use
@@ -724,7 +724,7 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
-   def execute_body(self, always=False):
+   def execute_body(self, always=False, hist=True):
       """To be called at the start of the 'body' of a Clump stage-method,
       i.e. AFTER any self._TCM menu and option definitions.
       Its (mandatory!) counterpart is self.end_of_body(ctrl)
@@ -732,20 +732,26 @@ class Clump (object):
       """
       self.check_for_overrides()
       execute = True
+      fname = self._ctrl['funcname']                 # convenience
       if isinstance(self._ctrl['submenu'],str):
          execute = self._TCM.submenu_is_selected(trace=False)
       if always:                        
          execute = True                              # override (e.g. leaf nodes)
       if self._ctrl['trace']:
-         print '** .execute_body(always=',always,'): funcname=',self._ctrl['funcname'],' execute=',execute
+         print '** .execute_body(always=',always,'): fname=',fname,' execute=',execute
       if execute:
-         self._stage['count'] += 1                     # increment
-         self._stage['ops'] = -1                       # reset
-         self._stage['name'] = self._ctrl['funcname']
-         s = '{@'+str(self._stage['count'])
-         s += ':'+str(self._stage['name'])+'}:  '
-         s += self._ctrl['funcname']+'()'
-         self.history(append=s, trace=self._ctrl['trace'])
+         if fname=='initexec':                       # a special case
+            self._object_is_selected = True          # see .__init__() and .daisy_chain()
+         self._stage['count'] += 1                   # increment
+         self._stage['ops'] = -1                     # reset
+         self._stage['name'] = fname                 # .....?
+         if hist:
+            s = '.'+fname+'(): '                     # note the ':'
+            if isinstance(hist,str):
+               s += '('+hist+')  '
+            self.history(append=s,
+                         level=self._ctrl['menulevel'],
+                         trace=self._ctrl['trace'])
       return execute
 
    #--------------------------------------------------------------------------
@@ -789,19 +795,26 @@ class Clump (object):
          if override:
             s += ' (overridden by kwarg)'
          print s
-         self.history(s)
+         self.history(s, level=self._ctrl['menulevel'])
       return value
 
    #--------------------------------------------------------------------------
 
-   def end_of_body(self, ctrl):
+   def end_of_body(self, ctrl, hist=True):
       """
       To be called at the end of the body of a Clump stage-method.
       Counterpart of .execute_body()
       """
-      self.history(show_node=True, trace=ctrl['trace'])
+      fname = ctrl['funcname']                       # convenience
+      if hist:
+         s = '.'+fname+'()'
+         if isinstance(hist,str):
+            s += ' ('+hist+')  '
+         self.history(s, show_node=True,
+                      level=ctrl['menulevel'],
+                      trace=ctrl['trace'])
       if ctrl['trace']:
-         print '** .end_of_body(ctrl): funcname=',ctrl['funcname']
+         print '** .end_of_body(ctrl): fname=',fname
       return True
 
    #..........................................................................
@@ -812,10 +825,11 @@ class Clump (object):
       Counterpart of ctrl = self.on_entry(func, **kwargs)
       Syntax: return self.on_exit(ctrl, result[=None])
       """
+      fname = ctrl['funcname']                       # convenience
       if ctrl['submenu']:
          self._TCM.end_of_submenu()
       if ctrl['trace']:
-         print '** .on_exit(ctrl, result=',result,'): funcname=',ctrl['funcname'],'\n'
+         print '** .on_exit(ctrl, result=',result,'): fname=',fname,'\n'
       return result
 
 
@@ -1066,28 +1080,35 @@ class Clump (object):
 
    def apply_unops (self, **kwargs):
       """
-      Apply one or more unary operation(s) (e.g. MeqCos) on its nodes.
+      Apply one or more unary operation(s) (e.g. Cos) on its nodes.
+      Multiple unops may be specified as a list, or string with blanks
+      between the operations (e.g. 'Sin Cos Exp').
+      The operations are applied in the order of specification
+      (i.e. the reverse of the usual scientific notation!)
       """
-      if not kwargs.has_key('unops'):
-         pass                               # error?
-      unops = kwargs['unops']
+      # Make sure that unops is a list:
+      unops = kwargs.get('unops', None)
+      if isinstance(unops,tuple):
+         unops = list(unops)
+      elif isinstance(unops,str):
+         unops = unops.split(' ')
+      else:
+         s = '** invalid unops: '+str(unops)
+         raise ValueError,s
+
       prompt = '.apply_unops('+str(unops)+')'
       help = None
       ctrl = self.on_entry(self.apply_unops, prompt, help, **kwargs)
 
-      if self.execute_body():
-         # Make sure that unops is a list:
-         if isinstance(unops,tuple):
-            unops = list(unops)
-         elif isinstance(unops,str):
-            unops = [unops]
-
+      hist = 'unops='+str(unops)
+      if self.execute_body(hist=hist):
          # Apply in order of specification:
          for unop in unops:
             stub = self.unique_nodestub(unop+'()')
             for i,qual in enumerate(self._nodequals):
                self._nodes[i] = stub(qual) << getattr(Meq,unop)(self._nodes[i])
-         self.end_of_body(ctrl)
+         hist = 'end_of_body'
+         self.end_of_body(ctrl, hist=hist)
 
       return self.on_exit(ctrl)
 
@@ -1109,7 +1130,8 @@ class Clump (object):
          help = 'rhs = '+rhs.oneliner()
       ctrl = self.on_entry(self.apply_binop, prompt, help, **kwargs)
 
-      if self.execute_body():
+      hist = 'binop='+str(binop)
+      if self.execute_body(hist=hist):
          if isinstance(rhs,(int,float,complex)):    # rhs is a number
             stub = self.unique_nodestub('constant')
             rhs = stub('='+str(rhs)) << Meq.Constant(rhs) # convert to MeqConstant
@@ -1125,72 +1147,8 @@ class Clump (object):
                for i,qual in enumerate(self._nodequals):
                   self._nodes[i] = stub(qual) << getattr(Meq,binop)(self._nodes[i],
                                                                     rhs._nodes[i])
-         self.end_of_body(ctrl)
-         
-      return self.on_exit(ctrl)
-
-   #-------------------------------------------------------------------------
-
-   def add_noise (self, **kwargs):
-      """Add Gaussian noise with the specified stddev.
-      To be re-implemented in derived classes like Matrix22Clump etc.
-      """
-      # This is an example of an (as yet unexplored) feature: 
-      # NB: Should we allow for the external specification of stddev,
-      # which would then avoid the menu (kwargs['select']=None),
-      # but execute always (with the specified stddev)
-      # stddev = kwargs.get('stddev', None) 
-
-      prompt = '.add_noise()'
-      help = 'Add Gaussian noise'
-      ctrl = self.on_entry(self.add_noise, prompt, help, **kwargs)
-
-      self.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
-
-      if self.execute_body():
-         stddev = self.getopt('stddev')
-         if stddev>0.0:
-            stub = self.unique_nodestub('add_noise','stddev='+str(stddev))
-            for i,qual in enumerate(self._nodequals):
-               noise = stub('noise')(qual) << Meq.GaussNoise(stddev=stddev)
-               self._nodes[i] = stub(qual) << Meq.Add(self._nodes[i],noise)
-         self.end_of_body(ctrl)
-         
-      return self.on_exit(ctrl)
-
-   #-------------------------------------------------------------------------
-
-   def scatter (self, **kwargs):
-      """Add different random (stddev) constants to the tree nodes.
-      If stddev is complex, the scatter constants are complex too.
-      """
-      prompt = '.scatter()'
-      help = 'Add different (stddev) constants to the tree nodes'
-      ctrl = self.on_entry(self.scatter, prompt, help, **kwargs)
-
-      self.add_option('stddev_real', [0.1,1.0,10.0,0.0])
-      self.add_option('stddev_imag', [0.0,0.1,1.0,10.0])
-
-      if self.execute_body():
-         real = max(0.0,self.getopt('stddev_real'))
-         imag = max(0.0,self.getopt('stddev_imag'))
-         if real>0.0 or imag>0.0:
-            if imag>0.0:
-               stddev = complex(real,imag)
-               stub = self.unique_nodestub('scatter','stddev='+str(stddev))
-            else:
-               stub = self.unique_nodestub('scatter','stddev='+str(real))
-            for i,qual in enumerate(self._nodequals):
-               rscat = random.gauss(0.0, real)
-               if imag>0.0:
-                  iscat = random.gauss(0.0, imag)
-                  scat = EF.format_value(complex(rscat,iscat), nsig=2)
-                  scat = stub('scat='+scat)(qual) << Meq.ToComplex(rscat,iscat)
-               else:
-                  scat = EF.format_value(rscat, nsig=2)
-                  scat = stub('scat='+scat)(qual) << Meq.Constant(rscat)
-               self._nodes[i] = stub(qual) << Meq.Add(self._nodes[i],scat)
-         self.end_of_body(ctrl)
+         hist = 'end_of_body'
+         self.end_of_body(ctrl, hist=hist)
          
       return self.on_exit(ctrl)
 
@@ -1352,6 +1310,8 @@ class Clump (object):
       return self._rider
 
 
+
+
    #=========================================================================
    # copy() obsolete?
    # NB: it is sufficient to create a new Clump object, using the present
@@ -1445,7 +1405,8 @@ class LeafClump(Clump):
                          dims=kwargs.get('dims',1))
 
       # Execute always (always=True), to ensure that the leaf Clump has nodes:
-      if self.execute_body(always=True):              
+      if self.execute_body(always=True):
+         nelem = dd['nelem']
          self._nodes = []
          stub = self.unique_nodestub('const')
          for i,qual in enumerate(self._nodequals):
@@ -1455,9 +1416,13 @@ class LeafClump(Clump):
                   v = complex(k+i,i/10.)
                else:
                   v = float(k+i)
-               node = stub(c=v)(qual)(elem) << Meq.Constant(v)
+               if nelem==1:
+                  node = stub(c=v)(qual) << Meq.Constant(v)
+               else:
+                  node = stub(c=v)(qual)(elem) << Meq.Constant(v)
                cc.append(node)
-            node = stub(nelem=dd['nelem'])(qual) << Meq.Composer(*cc)
+            if nelem>1:
+               node = stub(nelem=nelem)(qual) << Meq.Composer(*cc)
             self._nodes.append(node)
          self.end_of_body(ctrl)
          
@@ -1493,18 +1458,12 @@ def do_define_forest (ns, TCM):
    if TCM.submenu_is_selected():
       clump = LeafClump(ns=ns, TCM=TCM, trace=True)
       # clump.show('do_define_forest(creation)', full=True)
-      ## clump.add_noise(stddev=0.0, trace=True)
-      # clump.add_noise(select=True, trace=True)
-      clump.scatter(select=True, trace=True)
-      # clump.apply_unops(unops='Cos', select=False, trace=True)
+      clump.apply_unops(unops='Cos', select=False, trace=True)
       # clump.apply_unops(unops='Sin', select=True, trace=True)
       # clump.apply_unops(unops='Exp', trace=True)
       # clump.apply_binop(binop='Add', rhs=2.3, select=True, trace=True)
       # clump = Clump(clump, select=True).daisy_chain()
       # clump = Clump(clump, select=True).daisy_chain()
-      # clump.inspector()
-      # clump.plot_node_results()
-      # clump.plot_node_family()
       clump.visualize()               # make VisualClump class....?
       # clump.compare(clump)
 
@@ -1562,10 +1521,11 @@ if __name__ == '__main__':
       new = clump.copy(unops='Cos')
       new.show('new', full=True)
 
-   if 0:
+   if 1:
       unops = 'Cos'
       # unops = ['Cos','Cos','Cos']
-      unops = ['Cos','Sin']
+      unops = 'Cos Sin'
+      # unops = ['Cos','Sin']
       clump.apply_unops(unops=unops, trace=True)    
       # clump.apply_unops()                       # error
       # clump.apply_unops(unops=unops, trace=True)
@@ -1592,11 +1552,6 @@ if __name__ == '__main__':
       node = ns.dummysolver << Meq.Constant(67)
       clump.insert_reqseqs(node, trace=True)
       clump.show('.insert_reqseqs()')
-
-   if 0:
-      clump.add_noise(trace=True)
-      # clump.add_noise(stddev=0.1, trace=True)   <---!
-      clump.show('.add_noise()')
 
    if 0:
       node = clump.inspector()
