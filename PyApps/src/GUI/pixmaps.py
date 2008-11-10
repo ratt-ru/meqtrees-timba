@@ -3062,6 +3062,7 @@ class PixmapCache (object):
     self._appname = appname;
     self._loaded = None;
     self._pixmaps = {};
+    self._pixmaps['_default'] = QPixmapWrapper();
     
   def __getattr__(self,name):
     # try to access attribute anyway, to see if we have one
@@ -3074,7 +3075,7 @@ class PixmapCache (object):
     if pm:
       return pm;
     else:
-      raise AttributeError,"no such pixmap: %s"%name;
+      return QPixmapWrapper();
     
   def _load (self):
     """load all icons found in path, subdirs 'icons/appname'""";

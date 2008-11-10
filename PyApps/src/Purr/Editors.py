@@ -1,5 +1,3 @@
-_tdl_no_reimport = True;
-
 from qt import *
 import time
 import os
@@ -76,11 +74,22 @@ class LogEntryEditor (QWidget):
     ndplv.setAllColumnsShowFocus(True);
     ndplv.setShowToolTips(True); 
     ndplv.setDefaultRenameAction(QListView.Accept); 
-    ndplv.setSelectionMode(QListView.NoSelection);
+    ndplv.setSelectionMode(QListView.Single);
     ndplv.header().show();
     ndplv.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
-    self.connect(ndplv,SIGNAL("clicked(QListViewItem*,const QPoint &,int)"),self._itemClicked);
+    self.connect(ndplv,SIGNAL("mouseButtonClicked(int,QListViewItem*,const QPoint &,int)"),self._itemClicked);
     self.connect(ndplv,SIGNAL("itemRenamed(QListViewItem*,int)"),self._itemRenamed);
+    self.connect(ndplv,SIGNAL('contextMenuRequested(QListViewItem*,const QPoint &,int)'),
+                     self._showItemContextMenu);
+    # create popup menu for existing DPs
+    self._archived_dp_menu = menu = QPopupMenu();
+    qa = QAction(pixmaps.editpaste.iconset(),"Copy archived file location to clipboard",0,menu);
+    QObject.connect(qa,SIGNAL("activated()"),self._copyItemToClipboard);
+    qa.addTo(self._archived_dp_menu);
+    qa = QAction(pixmaps.editcopy.iconset(),"Restore file from archive",0,menu);
+    QObject.connect(qa,SIGNAL("activated()"),self._restoreItemFromArchive);
+    qa.addTo(self._archived_dp_menu);
+    self._current_item = None;
     # other internal init
     self.reset();
     
@@ -109,7 +118,7 @@ class LogEntryEditor (QWidget):
       
   # The keys of this dict are valid policies for new data products
   # The values are the "next" policy when cycling through
-  _policy_cycle = dict(copy="move",move="ignore",ignore="copy",banish="copy");
+  _policy_cycle = dict(copy="move",move="ignore",ignore="banish",banish="copy");
   _policy_icons = dict(copy='copy',move='move',ignore='grey_round_cross',banish='red_round_cross');
   # The keys of this dict are valid policies for archived data products
   # The values are the "next" policy when cycling through
@@ -207,8 +216,8 @@ class LogEntryEditor (QWidget):
     self._add_dp_dialog.show();
     self._add_dp_dialog.raiseW();
     
-  def _itemClicked (self,item,point,column):
-    if not item:
+  def _itemClicked (self,button,item,point,column):
+    if not item or button != Qt.LeftButton:
       return;
     if column == self.ColAction:
       self._setItemPolicy(item,item._policy_cycle.get(item._policy,"copy"));
@@ -221,6 +230,68 @@ class LogEntryEditor (QWidget):
       self.emit(PYSIGNAL("updated()"),());
     elif column in [self.ColRename,self.ColComment]:
       item.startRename(column);
+  
+  def _showItemContextMenu (self,item,point,col):
+    """Callback for contextMenuRequested() signal. Pops up item menu, if defined""";
+    menu = getattr(item,'_menu',None);
+    if menu: 
+      # self._current_item tells callbacks what item the menu was referring to
+      self._current_item = item;
+      self.wdplv.clearSelection();
+      self.wdplv.setSelected(item,True);
+      menu.exec_loop(point);
+    else:
+      self._current_item = None;
+      
+  def _copyItemToClipboard (self):
+    """Callback for item menu.""";
+    if self._current_item is None:
+      return;
+    dp = getattr(self._current_item,'_dp',None);
+    if dp and dp.archived:
+      QApplication.clipboard().setText(dp.fullpath,QClipboard.Clipboard);
+      QApplication.clipboard().setText(dp.fullpath,QClipboard.Selection);
+  
+  def _restoreItemFromArchive (self):
+    """Callback for item menu.""";
+    if self._current_item is None:
+      return;
+    dp = getattr(self._current_item,'_dp',None);
+    if dp and dp.archived:
+      msg = """<P>Do you really want to restore <tt>%s</tt> from 
+            archived file <tt>%s</tt>?</P>"""%(dp.sourcepath,dp.filename);
+      exists = os.path.exists(dp.sourcepath);
+      if exists:
+        msg += """<P>Current file exists, and will be overwritten.</P>""";
+        if QMessageBox.warning(self,"Restoring from archive",msg,
+            QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
+          return;
+      else:
+        if QMessageBox.question(self,"Restoring from archive",msg,
+            QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
+          return;
+      busy = Purr.BusyIndicator();
+      # remove file if in the way
+      if exists:
+        if os.system("/bin/rm -fr %s"%dp.sourcepath):
+          busy = None;
+          QMessageBox.warning(self,"Error removing file","""<P>
+            There was an error removing %s. Archived version was not restored. 
+            The text console may have more information.</P>"""%dp.sourcepath,
+            QMessageBox.Ok);
+          return;
+      # copy over archived file
+      if os.system("/bin/cp -a %s %s"%(dp.fullpath,dp.sourcepath)):
+        busy = None;
+        QMessageBox.warning(self,"Error copying file","""<P>
+          There was an error copying the archived version to %s. The text console may have more information.</P>"""%dp.sourcepath,
+          QMessageBox.Ok);
+        return;
+      busy = None;
+      QMessageBox.information(self,"Restored file","""<P>Restored %s from archive.</P>"""%dp.sourcepath,
+        QMessageBox.Ok);
+      
+      
       
   def _itemRenamed (self,item,col):
     self.updated = True;
@@ -248,8 +319,9 @@ class LogEntryEditor (QWidget):
       item._policy_icons = self._policy_icons_archived;
       self._setItemPolicy(item,"keep");
       item._dp = dp;    # indicates old DP which may be updated
+      item._menu = self._archived_dp_menu;
     else:
-      item._policy_cycle = self._policy_icons;
+      item._policy_cycle = self._policy_cycle;
       item._policy_icons = self._policy_icons;
       self._setItemPolicy(item,dp.policy);
       item._dp = None;  # indicates new DP needs to be created
@@ -437,7 +509,7 @@ class LogEntryEditor (QWidget):
     item = None;
     # non-ignored items first
     for dp in entry.dps:
-      if dp.policy not in [ "ignore","banish" ]:
+      if not dp.ignored:
         item = self._makeDPItem(dp,item);
       else:
         item = None;
@@ -520,8 +592,8 @@ class NewLogEntryDialog (QDialog):
     lo.addWidget(btnfr);
     lo.addSpacing(5);
     btnfr_lo = QHBoxLayout(btnfr);
-    newbtn = QPushButton("Add new entry",btnfr);
-    cancelbtn = QPushButton("Cancel",btnfr);
+    newbtn = QPushButton(pixmaps.filesave.iconset(),"Add new entry",btnfr);
+    cancelbtn = QPushButton(pixmaps.grey_round_cross.iconset(),"Cancel",btnfr);
     QObject.connect(newbtn,SIGNAL("clicked()"),self.addNewEntry);
     QObject.connect(cancelbtn,SIGNAL("clicked()"),self.hide);
     btnfr_lo.setMargin(5);
@@ -606,9 +678,9 @@ class ExistingLogEntryDialog (QDialog):
     lo.addWidget(btnfr);
     lo.addSpacing(5);
     btnfr_lo = QHBoxLayout(btnfr);
-    self.wsave = QPushButton("Save",btnfr);
+    self.wsave = QPushButton(pixmaps.filesave.iconset(),"Save",btnfr);
     QObject.connect(self.wsave,SIGNAL("clicked()"),self._saveEntry);
-    cancelbtn = QPushButton("Cancel",btnfr);
+    cancelbtn = QPushButton(pixmaps.grey_round_cross.iconset(),"Cancel",btnfr);
     QObject.connect(cancelbtn,SIGNAL("clicked()"),self._cancelEntry);
     btnfr_lo.setMargin(5);
     btnfr_lo.addWidget(self.wsave,1);
@@ -636,19 +708,19 @@ class ExistingLogEntryDialog (QDialog):
     lo.addSpacing(5);
     btnfr_lo = QHBoxLayout(btnfr);
     btnfr_lo.setMargin(5);
-    btn = self.wprev = QPushButton("<< Prev",btnfr);
+    btn = self.wprev = QPushButton(pixmaps.previous.iconset(),"Prev",btnfr);
     QObject.connect(btn,SIGNAL("clicked()"),self,PYSIGNAL("previous()"));
     btnfr_lo.addWidget(btn,1);
     btnfr_lo.addSpacing(5);
-    btn = self.wnext = QPushButton("Next >>",btnfr);
+    btn = self.wnext = QPushButton(pixmaps.next.iconset(),"Next",btnfr);
     QObject.connect(btn,SIGNAL("clicked()"),self,PYSIGNAL("next()"));
     btnfr_lo.addWidget(btn,1);
     btnfr_lo.addSpacing(5);
-    btn = self.wedit = QPushButton("Edit",btnfr);
+    btn = self.wedit = QPushButton(pixmaps.edit.iconset(),"Edit",btnfr);
     QObject.connect(btn,SIGNAL("clicked()"),self._editEntry);
     btnfr_lo.addWidget(btn,1);
     btnfr_lo.addStretch(1)
-    btn = self.wclose = QPushButton("Close",btnfr);
+    btn = self.wclose = QPushButton(pixmaps.grey_round_cross.iconset(),"Close",btnfr);
     QObject.connect(btn,SIGNAL("clicked()"),self.hide);
     btnfr_lo.setMargin(5);
     btnfr_lo.addWidget(btn,1);
@@ -667,6 +739,7 @@ class ExistingLogEntryDialog (QDialog):
     Config.set('entry-viewer-height',sz.height());
     
   def viewEntry (self,entry,has_prev=True,has_next=True):
+    busy = Purr.BusyIndicator();
     self.entry = entry;
     self.setCaption(entry.title);
     self.viewer_msf.setFilePath(QStringList(entry.pathname));

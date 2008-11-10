@@ -22,7 +22,7 @@ class HTMLViewerDialog (QDialog):
   def __init__ (self,parent,config_name=None,buttons=[],*args):
     """Creates dialog.
     'config_name' is used to get/set default window size from Config object
-    'buttons' can be a list of names to provide custom buttons at the bottom
+    'buttons' can be a list of names or (QPixmapWrapper,name) tuples to provide custom buttons at the bottom
     of the dialog. When a button is clicked, the dialog emits PYSIGNAL("name()").
     A "Close" button is always provided, this simply hides the dialog.
     """;
@@ -49,12 +49,17 @@ class HTMLViewerDialog (QDialog):
     # add user buttons
     self._user_buttons = {};
     for name in buttons:
-      btn = self._user_buttons[name] = QPushButton(name,btnfr);
+      if isinstance(name,str):
+        btn = QPushButton(name,btnfr);
+      elif isinstance(name,(list,tuple)):
+        pixmap,name = name;
+        btn = QPushButton(pixmap.iconset(),name,btnfr);
+      self._user_buttons[name] = btn;
       self.connect(btn,SIGNAL("clicked()"),self,PYSIGNAL(name+"()"));
       btnfr_lo.addWidget(btn,1);
     # add a Close button
     btnfr_lo.addStretch(100);
-    closebtn = QPushButton("Close",btnfr);
+    closebtn = QPushButton(pixmaps.grey_round_cross.iconset(),"Close",btnfr);
     self.connect(closebtn,SIGNAL("clicked()"),self.hide);
     btnfr_lo.addWidget(closebtn,1);
     # resize selves
@@ -77,6 +82,37 @@ class HTMLViewerDialog (QDialog):
 
 
 class MainWindow (QMainWindow):
+  
+  about_message = """
+    <P>PURR ("<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions", for those working with
+    a stable version, or "<B>P</B>URR <B>U</B>sually <B>R</B>emembers <B>R</B>eductions", for those 
+    working with a development version, or "<B>P</B>URR <B>U</B>sed to <B>R</B>emember <B>R</B>eductions", 
+    for those working with a broken version) is a tool for
+    automatically keeping a log of your data reduction operations. PURR will watch your working directories
+    for new files (called "data products"), and upon seeing any, it can "pounce" -- that is, offer
+    you the option of saving them to a log, along with descriptive comments. It will then
+    generate an HTML page with a rendering of your log and data products.</P>
+  """;
+  
+  pounce_help = \
+      """<P>This control determines what PURR does about updated files.</P>
+      
+      <P>If <B>pounce & show</B> is selected, PURR will periodically check your working directories for new
+      or updated files, and pop up the "New Log Entry" dialog when it detects any.</P>
+      
+      <P><B>Pounce</B> alone is less obtrusive. PURR will watch for files and quietly add them to the "New Log Entry" dialog, but will not display the dialog. You can display the dialog yourself by
+      clicking on "New entry".</P>
+      
+      <P>If <B>ignore</B> is selected, PURR will not watch for changes at all. In this mode, you can use the "Rescan" button to check for new or updated files.</P>
+      """;
+
+  # constants for autopounce modes
+  PounceIgnore = 0;
+  PouncePounce = 1;
+  PounceShow = 2;
+  # labels for the pounce mode combobox
+  pounce_labels = [ "ignore","pounce","pounce & show" ];
+  
   def __init__ (self,parent,hide_on_close=False):
     QMainWindow.__init__(self,parent);
     self._hide_on_close = hide_on_close;
@@ -84,7 +120,8 @@ class MainWindow (QMainWindow):
     Purr.BusyIndicator = BusyIndicator;
     # autopounce is on if GUI checkbox is on
     # pounce is on if autopounce is on, or the new Entry dialog is visible.
-    self._autopounce = self._pounce = False;
+    self._autopounce = self.PounceShow;
+    self._pounce = False;
     # we keep a small stack of previously active purrers. This makes directory changes
     # faster (when going back and forth between dirs)
     # current purrer
@@ -100,23 +137,27 @@ class MainWindow (QMainWindow):
     cwlo = QVBoxLayout(cw);
     cwlo.setMargin(5);
     toplo = QHBoxLayout(cwlo);
-    self.wpounce = QCheckBox("pounce on new/updated files",cw);
-    self.wpounce.setChecked(self._autopounce);
-    self.connect(self.wpounce,SIGNAL("toggled(bool)"),self.enablePounce);
+    label = QLabel("Updated files:",cw);
+    toplo.addWidget(label);
+    toplo.addSpacing(5);
+    self.wpounce = QComboBox(cw);
+    QToolTip.add(self.wpounce,self.pounce_help);
+    self.wpounce.insertStrList(self.pounce_labels);
+    self.wpounce.setCurrentItem(self._autopounce);
+    self.connect(self.wpounce,SIGNAL("activated(int)"),self.setPounceMode);
     toplo.addWidget(self.wpounce,1);
+    toplo.addSpacing(5);
+    wrescan = QPushButton(pixmaps.blue_round_reload.iconset(),"Rescan",cw);
+    QToolTip.add(wrescan,"Checks your working directories for new or updated files.");
+    self.connect(wrescan,SIGNAL("clicked()"),self._forceRescan);
+    toplo.addWidget(wrescan);
+    toplo.addStretch(1);
     about_btn = QPushButton("About...",cw);
     about_btn.setMinimumWidth(128);
     about_btn.setFlat(True);
     about_btn.setIconSet(pixmaps.purr_logo.iconset());
     toplo.addWidget(about_btn);
-    self._about_dialog = QMessageBox("About PURR","""
-        <P>PURR ("<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions", or
-        "<B>P</B>URR <B>U</B>sually <B>R</B>emembers <B>R</B>eductions", for those working with the
-        development version) is a tool for
-        automatically keeping a log of your data reduction operations. PURR will watch your working directories
-        for new files (called "data products"), and upon seeing any, it will "pounce" -- that is, offer
-        you the option of saving them to a log, along with descriptive comments. It will then
-        generate an HTML page with a rendering of your log and data products.</P>
+    self._about_dialog = QMessageBox("About PURR",self.about_message + """
         <P>PURR is not watching any directories right now. Click on the "pounce" option to start
         watching your current directory.</P>""",
         QMessageBox.NoIcon,
@@ -130,18 +171,21 @@ class MainWindow (QMainWindow):
     self.title_label = QLabel("Log title: none",cw);
     title_lo.addWidget(self.title_label,1);
     self.wrename = QPushButton("Rename",cw);
+    QToolTip.add(self.wrename,"Click to edit log title");
     self.wrename.setMinimumWidth(80);
     self.wrename.setFlat(True);
     self.wrename.setEnabled(False);
     self.connect(self.wrename,SIGNAL("clicked()"),self._renameLogDialog);
     title_lo.addWidget(self.wrename,0);
     title_lo.addSpacing(5);
-    self.wviewlog = QPushButton("View",cw);
+    self.wviewlog = QPushButton(pixmaps.openbook.iconset(),"View",cw);
+    QToolTip.add(self.wviewlog,"Click to see an HTML rendering of the log");
     self.wviewlog.setMinimumWidth(80);
     self.wviewlog.setFlat(True);
     self.wviewlog.setEnabled(False);
     # log viewer dialog
-    self.viewer_dialog = HTMLViewerDialog(self,config_name="log-viewer",buttons=["Regenerate"]);
+    self.viewer_dialog = HTMLViewerDialog(self,config_name="log-viewer",
+          buttons=[(pixmaps.blue_round_reload,"Regenerate")]);
     self._viewer_timestamp = None;
     self.connect(self.wviewlog,SIGNAL("clicked()"),self._showViewerDialog);
     self.connect(self.viewer_dialog,PYSIGNAL("Regenerate()"),self._regenerateLog);
@@ -167,18 +211,21 @@ class MainWindow (QMainWindow):
     # buttons at bottom
     cwlo.addSpacing(5);
     btnlo = QHBoxLayout(cwlo);
-    self.wnewbtn = QPushButton("New entry...",cw);
+    self.wnewbtn = QPushButton(pixmaps.filenew.iconset(),"New entry...",cw);
+    QToolTip.add(self.wnewbtn,"Click to add a new log entry");
     self.wnewbtn.setFlat(True);
     self.wnewbtn.setEnabled(False);
     btnlo.addWidget(self.wnewbtn);
     btnlo.addSpacing(5);
-    self.weditbtn = QPushButton("View entry...",cw);
+    self.weditbtn = QPushButton(pixmaps.filefind.iconset(),"View entry...",cw);
+    QToolTip.add(self.weditbtn,"Click to view or edit the selected log entry");
     self.weditbtn.setFlat(True);
     self.weditbtn.setEnabled(False);
     self.connect(self.weditbtn,SIGNAL("clicked()"),self._viewEntryItem);
     btnlo.addWidget(self.weditbtn);
     btnlo.addSpacing(5);
-    self.wdelbtn = QPushButton("Delete",cw);
+    self.wdelbtn = QPushButton(pixmaps.editdelete.iconset(),"Delete",cw);
+    QToolTip.add(self.wdelbtn,"Click to delete the selected log entry or entries");
     self.wdelbtn.setFlat(True);
     self.wdelbtn.setEnabled(False);
     self.connect(self.wdelbtn,SIGNAL("clicked()"),self._deleteSelectedEntries);
@@ -270,7 +317,7 @@ class MainWindow (QMainWindow):
       self._updateNames();
       # set autopounce property from purrer. Reset _pounce to false -- this will cause
       # checkPounceStatus() into a rescan if autopounce is on.
-      self.enablePounce(purrer.autopounce);
+      self.setPounceMode(purrer.autopounce);
       self._pounce = False;
       self._checkPounceStatus();
     
@@ -279,28 +326,21 @@ class MainWindow (QMainWindow):
     self._updateNames();
     self._updateViewer();
     
-  def enablePounce (self,enable=True):
-    if enable and not self.purrer:
+  def setPounceMode (self,enable=PounceShow):
+    enable = int(enable)%len(self.pounce_labels);
+    if enable != self.PounceIgnore and not self.purrer:
       self.attachDirectory('.');
     self._autopounce = enable;
     if self.purrer:
       self.purrer.autopounce = enable;
-    self.wpounce.setChecked(enable);
+    self.wpounce.setCurrentItem(enable%len(self.pounce_labels));
     self._checkPounceStatus();
     
   def _updateNames (self):
     self.wnewbtn.setEnabled(True);
     self.wrename.setEnabled(True);
     self.wviewlog.setEnabled(True);
-    self._about_dialog.setText("""
-    <P>PURR ("<B>P</B>URR is <B>U</B>seful for <B>R</B>emembering <B>R</B>eductions", or
-    "<B>P</B>URR <B>U</B>sually <B>R</B>emembers <B>R</B>eductions", for those working with the
-    development version) is a tool for
-    automatically keeping a log of your data reduction operations. PURR will watch your working directories
-    for new files (called "data products"), and upon seeing any, it will "pounce" -- that is, offer
-    you the option of saving them to a log, along with descriptive comments. It will then
-    generate an HTML page with a rendering of your log and data products.</P>
-    
+    self._about_dialog.setText(self.about_message + """
     <P>Your current log resides in:<PRE>  <tt>%s</tt></PRE>To see your log in all its HTML-rendered glory, point your browser to <tt>index.html</tt> therein, or use the handy "View" button provided by PURR.</P>
     
     <P>Your current working directories are:</P>
@@ -355,7 +395,7 @@ class MainWindow (QMainWindow):
       self.setLogTitle(title);
       
   def _checkPounceStatus (self):
-    pounce = self._autopounce or self.new_entry_dialog.isVisible();
+    pounce = self._autopounce != self.PounceIgnore or self.new_entry_dialog.isVisible();
     # rescan, if going from not-pounce to pounce
     if pounce and not self._pounce:
       self._rescan();
@@ -363,15 +403,18 @@ class MainWindow (QMainWindow):
     # start timer -- we need it running to check the purr pipe, anyway
     self._timer.start(2000);
       
-  def _rescan (self):
+  def _forceRescan (self):
+    self._rescan(force=True);
+    
+  def _rescan (self,force=False):
     # if pounce is on, tell the Purrer to rescan directories
-    if self._pounce:
+    if self._pounce or force:
       dps = self.purrer.rescan();
       if dps:
         filenames = [dp.filename for dp in dps];
         dprint(2,"new data products:",filenames);
-        self.message("pounced on "+", ".join(filenames));
-        if self.new_entry_dialog.addDataProducts(dps):
+        self.message("Pounced on "+", ".join(filenames));
+        if self.new_entry_dialog.addDataProducts(dps) and (force or self._autopounce == self.PounceShow):
           dprint(2,"showing dialog");
           self.new_entry_dialog.show();
     # else read stuff from pipe
@@ -383,7 +426,8 @@ class MainWindow (QMainWindow):
       elif command == "comment":
         self.new_entry_dialog.addComment(content);
       elif command == "pounce":
-        self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts((content,not show)));
+        self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts(
+                                              [(content,not show)],unbanish=True));
       else:
         print "Unknown command received from Purr pipe: ",line;
         continue;
@@ -394,12 +438,14 @@ class MainWindow (QMainWindow):
   def _addDPFiles (self,*files):
     """callback to add DPs corresponding to files.""";
     # quiet flag is always true
-    self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts(*[(file,True) for file in files]));
+    self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts(
+                          [(file,True) for file in files],unbanish=True));
     
   def _addDPFilesToOldEntry (self,*files):
     """callback to add DPs corresponding to files.""";
     # quiet flag is always true
-    self.view_entry_dialog.addDataProducts(self.purrer.makeDataProducts(*[(file,True) for file in files]));
+    self.view_entry_dialog.addDataProducts(self.purrer.makeDataProducts(
+                          [(file,True) for file in files],unbanish=True));
     
   def _entrySelectionChanged (self):
     nsel = 0;
@@ -418,6 +464,7 @@ class MainWindow (QMainWindow):
     The dum arguments are for connecting this to QListView signals such as doubleClicked().
     """;
     # if item not set, look for selected items in listview. Only 1 must be selected.
+    busy = Purr.BusyIndicator();
     select = True;
     if item is None:
       item = self.elv.firstChild();

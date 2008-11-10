@@ -1,3 +1,5 @@
+Version = "1.0";
+
 import os.path
 
 # init debug printing

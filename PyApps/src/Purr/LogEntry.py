@@ -34,6 +34,9 @@ class DataProduct (object):
     self.quiet = quiet;
     # if True, DP has already been archived. This is False for new DPs until they're saved.
     self.archived = archived;
+    # if True, dp is ignored (policy is "ignore" or "banish")
+    # not that policy cannot be changed after a DP has been created
+    self.ignored = policy in ("ignore","banish");
     
   def subproduct_dir (self):
     """Returns name of subdirectory used to store subproducts of this data product
@@ -145,7 +148,9 @@ class LogEntry (object):
       self.timestamp = int(float(parser.timestamp));
     except:
       self.timestamp = int(time.time());
-    self.title = getattr(parser,'title',None) or "Malformed entry, probably needs to be deleted";
+    self.title = getattr(parser,'title',None);
+    if self.title is None:
+      self.title = "Malformed entry, probably needs to be deleted";
     self.comment = getattr(parser,'comments',None) or "";
     self.dps = getattr(parser,'dps',[]);
     self.pathname = pathname;
@@ -191,11 +196,8 @@ class LogEntry (object):
     dps = [];
     for dp in self.dps:
       # if archived, this indicates a previously saved data product, so ignore it
-      if dp.archived:
-        dps.append(dp);
-        continue;
-      # ignored data product -- keep in list, but do nothing else
-      if dp.policy == "ignore" or dp.policy == "banish":
+      # if ignored, no need to save the DP -- but keep it in list
+      if dp.archived or dp.ignored:
         dps.append(dp);
         continue;
       # file missing for some reason (perhaps it got removed on us?) skip data product entirely
@@ -308,7 +310,7 @@ class LogEntry (object):
     html += """    </A>\n""";
     # add data products
     if self.dps:
-      have_real_dps = bool([ dp for dp in self.dps if dp.policy != "ignore" ]);
+      have_real_dps = bool([ dp for dp in self.dps if not dp.ignored ]);
       if have_real_dps:
         html += """
         <H3>Data products</H3>
@@ -317,9 +319,9 @@ class LogEntry (object):
         dpattrs = dict(dp.__dict__);
         # if generating complete index, write empty anchor for each DP
         if not relpath:
-          if dp.policy == "ignore":
+          if dp.ignored:
             html += """
-            <A CLASS="DP" SRC="%(sourcepath)s" POLICY="ignore"></A>\n"""%dpattrs;
+            <A CLASS="DP" SRC="%(sourcepath)s" POLICY="%(policy)s"></A>\n"""%dpattrs;
           # write normal anchor for normal products
           else:
             dpattrs['relpath'] = relpath;
@@ -327,7 +329,7 @@ class LogEntry (object):
             html += """
             <A CLASS="DP" FILENAME="%(filename)s" SRC="%(sourcepath)s" POLICY="%(policy)s" QUIET=%(quiet)d TIMESTAMP=%(timestamp)d RENDER="%(render)s" COMMENT="%(comment)s"></A>\n"""%dpattrs;
         # render a table row
-        if dp.policy != "ignore":
+        if not dp.ignored:
           renderer = Purr.Render.makeRenderer(dp.render,dp,refresh=refresh);
           html += Purr.Render.renderInTable(renderer,relpath);
       if have_real_dps:

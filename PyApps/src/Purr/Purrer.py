@@ -1,8 +1,6 @@
 _tdl_no_reimport = True;
 
 # TODO:
-# - changing an MEP table while Purr is away does not case it to be pounced on upon
-#   restart
 # - add option to copy a DP from the archive
 # - add a "banish" policy: stop pouncing
 # - think of including verbatim code snippets in HTML
@@ -71,7 +69,7 @@ class Purrer (object):
       try:
         return os.path.getmtime(self.path);
       except:
-        _print_exc("Error doing getmtime(%s)"%self.path);
+        _printexc("Error doing getmtime(%s)"%self.path);
         traceback.print_exc();
         return None;
       
@@ -113,7 +111,7 @@ class Purrer (object):
       try:
         self.fileset = sets.Set(os.listdir(self.path));
       except:
-        _print_exc("Error doing listdir(%s)"%self.path);
+        _printexc("Error doing listdir(%s)"%self.path);
         traceback.print_exc();
         self.fileset = None;  # this indicates a read error
         return;
@@ -130,7 +128,7 @@ class Purrer (object):
           try:
             ctime = os.path.getctime(fullname);
           except:
-            _print_exc("Error getting ctime for %s, ignoring",fname);
+            _printexc("Error getting ctime for %s, ignoring",fname);
             continue;
           if ctime > self.mtime:
             dprintf(4,"%s: new file (created %s)\n",fullname,
@@ -153,13 +151,24 @@ class Purrer (object):
         try:
           fileset1 = sets.Set(os.listdir(self.path));
         except:
-          _print_exc("Error doing listdir(%s)"%self.path);
+          _printexc("Error doing listdir(%s)"%self.path);
           traceback.print_exc();
           self.fileset = None;
           return None;
         newfiles.update(fileset1.difference(self.fileset));
         self.fileset = fileset1;
-      return [ os.path.join(self.path,filename) for filename in newfiles ];
+      # skip new files with older timestamps -- these may have been restored from the archive
+      nfs = [];
+      for file in newfiles:
+        path = os.path.join(self.path,file);
+        try:
+          mtime = os.path.getmtime(path);
+        except:
+          _printexc("Error doing getmtime(%s), omitting"%path);
+          continue;
+        if mtime >= self.mtime:
+          nfs.append(path);
+      return nfs;
     
   class WatchedSubdir (WatchedDir):
     """A WatchedSubdir represents a directory being watched for updates
@@ -240,7 +249,7 @@ class Purrer (object):
     # merge into watch set 
     self._watch_patterns.update(self._quiet_patterns);
     # ignored files 
-    ignore = Config.get("ignore-patterns","Hidden files=.*;MeqTree logs=meqtree.log;Python files=*.py*;Backup files=*~,*.bck");
+    ignore = Config.get("ignore-patterns","Hidden files=.*;Purr logs=purrlog;MeqTree logs=meqtree.log;Python files=*.py*;Backup files=*~,*.bck");
     self._ignore = parse_pattern_list(ignore);
     self._ignore_patterns = sets.Set();
     for desc,patts in self._ignore:
@@ -339,6 +348,8 @@ class Purrer (object):
       return;
     # collect timestamps of specified directories
     self.watchers = {};
+    dprintf(2,"scanning directories, our timestamp is %s\n",
+              time.strftime("%x %X",time.localtime(self.timestamp)));
     for dirname in newset:
       wdir = Purrer.WatchedDir(dirname,mtime=self.timestamp,
               watch_patterns=self._watch_patterns,ignore_patterns=self._ignore_patterns);
@@ -414,7 +425,7 @@ class Purrer (object):
       basename = os.path.basename(dp.sourcepath);
       self._default_dp_props[basename] = dp.policy,dp.filename,dp.comment;
       # make new watchers for non-ignored files
-      if dp.policy != 'ignore' and dp.sourcepath not in self.watchers:
+      if not dp.ignored and dp.sourcepath not in self.watchers:
         wfile = Purrer.WatchedFile(dp.sourcepath,quiet=dp.quiet,mtime=dp.timestamp);
         self.watchers[dp.sourcepath] = wfile;
         dprintf(4,"watching file %s, timestamp %s\n",
@@ -470,11 +481,13 @@ class Purrer (object):
         newstuff[newfile] = quiet and newstuff.get(newfile,False);
         dprintf(4,"%s: new data product, quiet=%d\n",newfile,quiet);
     # if we have new data products, send them to the main window
-    return self.makeDataProducts(*newstuff.iteritems());
+    return self.makeDataProducts(newstuff.iteritems());
           
 
-  def makeDataProducts (self,*files):
-    """makes a list of DPs from a list of (filename,quiet) pairs""";
+  def makeDataProducts (self,files,unbanish=False):
+    """makes a list of DPs from a list of (filename,quiet) pairs.
+    If unbanish is False, DPs with a default "banish" policy will be skipped
+    """;
     dps = [];
     for filename,quiet in files:
       filename = filename.rstrip('/');
@@ -482,6 +495,11 @@ class Purrer (object):
       filename = os.path.basename(filename);
       policy,filename,comment = self._default_dp_props.get(filename,("copy",filename,""));
       dprintf(4,"%s: default policy is %s,%s,%s\n",sourcepath,policy,filename,comment);
+      if policy == "banish":
+        if unbanish:
+          policy = "copy";
+        else:
+          continue;
       dps.append(Purr.DataProduct(filename=filename,sourcepath=sourcepath,
                                   policy=policy,comment=comment,quiet=quiet));
     return dps;

@@ -1408,7 +1408,9 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     if show:
       self._purr.show();
     if pounce is not None:
-      self._purr.enablePounce(pounce);
+      if isinstance(pounce,bool):
+        pounce = (pounce or self._purr.PounceIgnore) and self._purr.PounceShow;
+      self._purr.setPounceMode(pounce);
 
 # register reloadables
 reloadableModule(__name__);
