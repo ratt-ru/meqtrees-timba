@@ -176,7 +176,10 @@ class SolverUnit(Clump.Clump):
       ctrl = self.on_entry(self.plot_solver, prompt, help, **kwargs)
 
       if self.execute_body():
-         JEN_bookmarks.create(self._solver, name=bookpage, folder=folder)
+         if is_node(self._solver):
+            JEN_bookmarks.create(self._solver, name=bookpage, folder=folder)
+         else:
+            self.history('self._solver is not a node, but: '+str(self._solver))
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -202,7 +205,7 @@ def do_define_forest (ns, TCM):
    clump = None
    if TCM.submenu_is_selected():
       # clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-      clump = TwigClump.Twig(ns=ns, TCM=TCM, twig='f+t', trace=True)
+      clump = TwigClump.Twig(ns=ns, TCM=TCM, trace=True)
       other = ParmClump.ParmClump(clump, trace=True)
       su = SolverUnit(clump, other, trace=True)
       su.visualize()

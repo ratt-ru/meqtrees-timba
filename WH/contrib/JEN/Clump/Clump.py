@@ -1265,7 +1265,8 @@ class Clump (object):
 
       if self.execute_body():
          if not isinstance(bookpage,str):
-            bookpage = 'Clump['+str(index)+']'
+            bookpage = self[0].basename
+            bookpage += '['+str(index)+']'
          nodes = []
          for node in self._nodes:
             nodes.append(node)
@@ -1299,8 +1300,10 @@ class Clump (object):
 
       if self.execute_body():
          if not isinstance(bookpage,str):
+            bookpage = (recurse*'+')
+            bookpage += self[0].basename
             nodequal = self._nodequals[index]
-            bookpage = 'Family['+str(nodequal)+']'
+            bookpage += '['+str(nodequal)+']'
          if not isinstance(folder,str):
             folder = self._name
          JEN_bookmarks.create(self._nodes[index],
@@ -1310,6 +1313,7 @@ class Clump (object):
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
+
 
    #=========================================================================
    # Interaction with the (user-defined) rider:
@@ -1334,34 +1338,6 @@ class Clump (object):
          return self._rider[key]
       return self._rider
 
-
-
-
-   #=========================================================================
-   # copy() obsolete?
-   # NB: it is sufficient to create a new Clump object, using the present
-   # one as input.
-   # Especially since VisClump etc is defined by datadesc and rider...
-   #=========================================================================
-
-   def copy_obsolete (self, **kwargs):
-      """
-      Return a new instance of this class, with the same size, treequals, ns and TCM.
-      If no name is specified, derive a new name by enclosing self._name in brackets.
-      The nodes are copied, possibly after applying one or more unary operations
-      (unops) on them.
-      NB: It does NOT matter whether the clump is 'composed' (i.e. a single tensor node)
-      """
-      name = kwargs.get('name',None)
-      unops = kwargs.get('unops',None)
-      if not isinstance('name',str):
-         name = 'copy('+self._name+')'
-
-      # Create a new Clump of the same (possibly derived) type:
-      new = self.newinstance(**kwargs)
-      if unops:
-         new.apply_unops(unops=unops)
-      return new
 
 
 

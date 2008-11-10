@@ -53,6 +53,7 @@ import math                 # support math.cos() etc
 
 
 #********************************************************************************
+# Class Twig:
 #********************************************************************************
 
 class Twig(Clump.LeafClump):
@@ -104,7 +105,65 @@ class Twig(Clump.LeafClump):
 
 
 
-      
+ #********************************************************************************
+# Class Polynomial:
+#********************************************************************************
+
+class Polynomial(Clump.LeafClump):
+   """
+   Derived class
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class Clump.
+      """
+      Clump.LeafClump.__init__(self, clump=clump, **kwargs)
+      return None
+
+
+   #==========================================================================
+   # The function .initexec() must be re-implemented for 'leaf' Clumps,
+   # i.e. Clump classes that contain leaf nodes. An example is given below,
+   # and may be canibalized for derived (leaf) Clump clases.
+   #==========================================================================
+
+   def initexec (self, **kwargs):
+      """Fill the LeafClump object with suitable leaf nodes.
+      Re-implemented version of the function in the baseclass (LeafClump).
+      """
+      # The data-description may be defined by means of kwargs: 
+      dd = self.datadesc(treequals=['poly']),
+
+      help = 'make twig (leaf) node for: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, help=help, **kwargs)
+
+      choice = ['f','t','ft','f2','t2','f2t','ft2','f2t2']
+      self.add_option('poly', choice,
+                      prompt='EasyTwig.polyparm')
+
+      # Execute always (always=True) , to ensure that the leaf Clump has nodes!
+      if self.execute_body(always=True):           
+         poly = self.getopt('poly')
+         self._nodes = []
+         # stub = self.unique_nodestub(twig)
+         for i,qual in enumerate(self._nodequals):
+            node = ET.twig(self._ns, 'polyparm_'+poly)
+            self._nodes.append(node)
+         if True:
+            parms = self._ns.Search(tags='polyparm')
+            for parm in parms:
+               self.history('--> parm: '+str(parm))
+         self.visualize()
+         # Mandatory counterpart of self.execute_body()
+         self.end_of_body(ctrl)
+
+      # Mandatory counterpart of self.on_entry()
+      return self.on_exit(ctrl)
+
+
+
+           
 
 
 #********************************************************************************
@@ -123,7 +182,8 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      clump = Twig(ns=ns, TCM=TCM, trace=True)
+      # clump = Twig(ns=ns, TCM=TCM, trace=True)
+      clump = Polynomial(ns=ns, TCM=TCM, trace=True)
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -146,8 +206,11 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
-   if 1:
+   if 0:
       clump = Twig(twig='f+t', trace=True)
+
+   if 1:
+      clump = Polynomial(poly='f2', trace=True)
 
    if 1:
       clump.show('creation', full=True)
