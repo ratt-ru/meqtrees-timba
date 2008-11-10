@@ -77,7 +77,7 @@ class Clump (object):
       """
       Initialize the Clump object, according to its type (see .init()).
       If another Clump of the same class is specified (use), use its
-      defining characteristics (self._treequals etc)
+      defining characteristics (in self._datadesc etc)
       """
 
       # These need a little more thought:
@@ -101,7 +101,14 @@ class Clump (object):
       # The data description controls the behaviour of Clump-functions
       # that perform 'generic' operations (like add_noise().
       # It is passed from Clump to Clump, and modified when appropriate.
-      self._datadesc = dict(complex=False, dims=[1])
+      self._datadesc = dict()
+      self.datadesc(complex=False, dims=[1], treequals=range(3),
+                    plotcolor='red', plotsymbol='cross', plotzize=1)
+
+      # A Clump object has a "rider", i.e. a dict that contains user-defined
+      # information, and is passed on from Clump to Clump.
+      # All interactions with the rider should use the function self.rider()
+      self._rider = dict()
 
       #......................................................................
 
@@ -125,7 +132,7 @@ class Clump (object):
 
       #......................................................................
       # Transfer definition information from the input Clump (if supplied).
-      # This includes self._datadesc and self._treequals etc 
+      # This includes self._datadesc etc 
       # Then supply local defaults for some attributes that have not been
       # defined yet (i.e. in the case that there is no input Clump):
       #......................................................................
@@ -155,7 +162,7 @@ class Clump (object):
          self.transfer_clump_nodes()
       else:
          self._nodes = []                       # nodes (separate or composed)
-         self._nodequals = self._treequals      # node qualifiers
+         self._nodequals = self._datadesc['treequals']      # node qualifiers
          self._composed = False                 # see .compose() and .decompose()
 
       # The tree nodes may be 'composed' into a single tensor node.
@@ -177,14 +184,55 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
-   def datadesc (self):
+   def datadesc (self, **kwargs):
       """Return self._datadesc, after calculating all the derived values,
       and checking for consistency. 
       """
-      dd = self._datadesc
-      if isinstance(dd['dims'],int):               # tensor dimensions
-         dd['dims'] = [dd['dims']]
+      is_complex = kwargs.get('complex',None) 
+      dims = kwargs.get('dims',None) 
+      color = kwargs.get('plotcolor',None) 
+      symbol = kwargs.get('plotsymbol',None) 
+      size = kwargs.get('plotsize',None) 
+      tqs = kwargs.get('treequals',None) 
 
+      dd = self._datadesc                          # convenience
+
+      if isinstance(is_complex,bool):              # data type
+         dd['complex'] = is_complex            
+
+      if dims:                                     # tensor dimensions
+         if isinstance(dims,int):                 
+            dd['dims'] = [dims]
+         elif isinstance(dims,(list,tuple)):   
+            dd['dims'] = list(dims)
+         else:
+            s = '** dims should be integer or list'
+            raise ValueError,s
+
+      if not tqs==None:                            # Clump tree qualifiers
+         if isinstance(tqs,str):                   # string 
+            dd['treequals'] = list(tqs)            # -> list of chars (..?)
+         elif isinstance(tqs,tuple):               # tuple -> list
+            dd['treequals'] = list(tqs)
+         elif not isinstance(tqs,list):            # assume str or numeric?
+            self._tqs = [tqs]                      # make a list of one
+         else:                                     # tqs is a list
+            dd['treequals'] = tqs                  # just copy the list
+         # Make a list of (string) tree labels from treequals:
+         # (e.g. inspector-labels give require this).
+         dd['treelabels'] = []
+         for i,qual in enumerate(dd['treequals']):
+            dd['treelabels'].append(str(qual))
+
+      # Plotting information:
+      if color:
+         dd['plotcolor'] = color
+      if symbol:
+         dd['plotsymbol'] = symbol
+      if size:
+         dd['plotsize'] = size
+
+      #..........................................................
       # Derived attributes:
       dims = dd['dims']
       dd['nelem'] = numpy.prod(dims)               # nr of tensor elements
@@ -199,7 +247,8 @@ class Clump (object):
             for j in range(dims[1]):
                dd['elems'].append(str(i)+str(j))
 
-      # Always return the self-consistent datadesc:
+      #..........................................................
+      # Always return a copy (!) of the self-consistent datadesc:
       return self._datadesc
 
    #==========================================================================
@@ -209,7 +258,7 @@ class Clump (object):
    def transfer_clump_definition(self, clump, trace=False):
       """Transfer the clump definition information from the given Clump.
       Most attributes are transferred ONLY if not yet defined
-      Some attributes (like self._treequals) are transferred always(!)
+      Some attributes (like self._datadesc) are transferred always(!)
       """
       # trace = True
       if trace:
@@ -235,14 +284,14 @@ class Clump (object):
             # self._TCM.current_menu_level(trace=trace)
 
          # Some attributes are transferred always(!):
-         self._datadesc = clump.datadesc()                      # note the function!
-         self._treequals = clump._treequals                     # ..include in datadesc?
-         self._treelabels = clump._treelabels                   # ..include in datadesc?
+         self._datadesc = clump.datadesc().copy()               # .... copy()!
          self._stage['count'] = 1+clump._stage['count']         # <--------!!
          self._stage['ops'] = -1                                # reset
          self._stage['name'] = clump._stage['name']             # <--------!!
          clump._stage['ncopy'] += 1
          self._stage['ncopy'] = clump._stage['ncopy']           # <--------!!
+         self._rider.update(clump._rider)                       # .update()?
+         # self._rider.update(clump.rider())                      # .update()?
       return True
 
    #--------------------------------------------------------------------------
@@ -337,7 +386,7 @@ class Clump (object):
 
    def commensurate(self, other, severe=False, trace=False):
       """Return True if the given (other) Clump is commensurate,
-      i.e. it has the same self._nodequals (NOT self._treequals!)
+      i.e. it has the same self._nodequals (NOT self._datadesc['treequals']!)
       """
       cms = True
       if not self.size()==other.size():
@@ -381,29 +430,6 @@ class Clump (object):
       return self.on_exit(ctrl, result=new)
 
 
-   #=========================================================================
-   # copy()
-   #=========================================================================
-
-   def copy (self, **kwargs):
-      """
-      Return a new instance of this class, with the same size, treequals, ns and TCM.
-      If no name is specified, derive a new name by enclosing self._name in brackets.
-      The nodes are copied, possibly after applying one or more unary operations
-      (unops) on them.
-      NB: It does NOT matter whether the clump is 'composed' (i.e. a single tensor node)
-      """
-      name = kwargs.get('name',None)
-      unops = kwargs.get('unops',None)
-      if not isinstance('name',str):
-         name = 'copy('+self._name+')'
-
-      # Create a new Clump of the same (possibly derived) type:
-      new = self.newinstance(**kwargs)
-      if unops:
-         new.apply_unops(unops=unops)
-      return new
-
 
    #==========================================================================
    # Various text display functions:
@@ -415,13 +441,10 @@ class Clump (object):
       if not self._qual==None:
          ss += ' qual='+str(self._qual)
       ss += '  size='+str(self.size())
-      # ss += '  treequals=['+str(self._treequals[0])+'..'+str(self._treequals[-1])+']'
       if self._slavemaster:
          ss += '  slaved'
       if self._composed:
          ss += '  (composed: '+self._tensor_qual+')'
-      # ss += ' stage'+str(self._stage['count'])+':'+str(self._stage['name'])
-      # ss += ' (copied:'+str(self._stage['ncopy'])+')'
       return ss
 
    #--------------------------------------------------------------------------
@@ -449,15 +472,12 @@ class Clump (object):
       ss += '\n * self._kwqual = '+str(self._kwqual)
 
       ss += '\n * self._stage = '+str(self._stage)
-      ss += '\n * self._datadesc = '+str(self.datadesc())
+      
+      ss += '\n * self._datadesc:'
+      dd = self._datadesc
+      for key in dd.keys():
+         ss += '\n   - '+str(key)+' = '+str(dd[key])
 
-      nmax = 20
-      qq = self._treequals
-      ss += '\n * self._treequals(n='+str(len(qq))+','+str(len(self._treelabels))+'): '
-      if len(qq)<=nmax:
-         ss += str(qq)
-      else:
-         ss += str(qq[:nmax])+'...'+str(qq[-1])
       #.....................................................
 
       ss += '\n * self._nodes (.len()='+str(self.len())+', .size()='+str(self.size())+'):'
@@ -491,7 +511,18 @@ class Clump (object):
 
       ss += '\n * self._ctrl: '+str(self._ctrl)
       ss += self.history(format=True, prefix='   | ')
+
+      #.....................................................
       ss += self.show_specific()
+      ss += '\n % self._rider (user-defined information):'
+      rr = self._rider
+      for key in rr.keys():
+         if getattr(rr[key],'oneliner',None):
+            ss += '\n   - '+str(key)+' = '+str(rr[key].oneliner())
+         else:
+            ss += '\n   - '+str(key)+' = '+str(EF.format_value(rr[key]))
+
+      #.....................................................
       ss += '\n**\n'
       if doprint:
          print ss
@@ -587,7 +618,7 @@ class Clump (object):
    def size(self):
       """Return the number of trees in the Clump (even if in a tensor)
       """
-      return len(self._treequals)
+      return len(self._datadesc['treequals'])
 
    #--------------------------------------------------------------------------
    #--------------------------------------------------------------------------
@@ -985,12 +1016,12 @@ class Clump (object):
          tensor = self._nodes[0]
          nodes = []
          stub = self.unique_nodestub('decomposed')
-         for index,qual in enumerate(self._treequals):
+         for index,qual in enumerate(self._datadesc['treequals']):
             node = stub(qual) << Meq.Selector(tensor, index=index)
             nodes.append(node)
          self._nodes = nodes
          self._composed = False            # set the switch
-         self._nodequals = self._treequals
+         self._nodequals = self._datadesc['treequals']
          self.history('.decompose()', trace=kwargs.get('trace',False))
       return self._nodes
 
@@ -1204,7 +1235,7 @@ class Clump (object):
 
       if self.execute_body():
          bundle = self.bundle()
-         bundle.initrec().plot_label = self._treelabels     # list of strings!
+         bundle.initrec().plot_label = self._datadesc['treelabels']     # list of strings!
          self._orphans.append(bundle)
          JEN_bookmarks.create(bundle,
                               name=bookpage, folder=folder,
@@ -1297,12 +1328,75 @@ class Clump (object):
          
       return self.on_exit(ctrl)
 
+   #=========================================================================
+   # Interaction with the (user-defined) rider:
+   #=========================================================================
+
+   def rider (self, key=None, **kwargs):
+      """The rider contains arbitrary user-defined information.
+      """
+      trace = kwargs.get('trace',False)
+      severe = kwargs.get('severe',True)
+      rr = self._rider                     # convenience
+
+      if isinstance(key,str):
+         if kwargs.has_key('new'):
+            self._rider[key] = kwargs['new']
+         elif not rr.has_key(key):
+            if severe:
+               s = '** rider does not have key: '+str(key)
+               raise ValueError,s
+            else:
+               return None                 # .....?
+         return self._rider[key]
+      return self._rider
+
+
+   #=========================================================================
+   # copy() obsolete?
+   # NB: it is sufficient to create a new Clump object, using the present
+   # one as input.
+   # Especially since VisClump etc is defined by datadesc and rider...
+   #=========================================================================
+
+   def copy_obsolete (self, **kwargs):
+      """
+      Return a new instance of this class, with the same size, treequals, ns and TCM.
+      If no name is specified, derive a new name by enclosing self._name in brackets.
+      The nodes are copied, possibly after applying one or more unary operations
+      (unops) on them.
+      NB: It does NOT matter whether the clump is 'composed' (i.e. a single tensor node)
+      """
+      name = kwargs.get('name',None)
+      unops = kwargs.get('unops',None)
+      if not isinstance('name',str):
+         name = 'copy('+self._name+')'
+
+      # Create a new Clump of the same (possibly derived) type:
+      new = self.newinstance(**kwargs)
+      if unops:
+         new.apply_unops(unops=unops)
+      return new
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
 #********************************************************************************
 #********************************************************************************
 # Derived class LeafClump:
@@ -1323,57 +1417,12 @@ class LeafClump(Clump):
       kwargs['select'] = True
       kwargs['fixture'] = True
 
-      # The 'size' of the Clump (i.e. the number of its trees, which
-      # is NOT necessarily the number of nodes, see self._composed)
-      # is defined by self._treequals, the list of tree qualifiers.
-      # If an input Clump is supplied (clump), the treequals list is
-      # copied from it. But if not, it may be specified by means of
-      # a keyword kwargs[treequals].
-      
-      # kwargs.setdefault('treequals', None)
-      tqs = kwargs.get('treequals',None)  
-      if tqs==None:                      # treequals not specified
-         self._treequals = range(3)      # for testing
-      elif isinstance(tqs,str):          # string -> list of chars (..?)
-         self._treequals = list(tqs)  
-      elif isinstance(tqs,tuple):        # tuple -> list
-         self._treequals = list(tqs)
-      elif not isinstance(tqs,list):     # assume str or numeric?
-         self._tqs = [tqs]               # make a list of one
-      else:                              # tqs is a list
-         self._treequals = tqs           # just copy the list
-
-      # Make a list of (string) tree labels from treequals:
-      # (e.g. inspector-labels give require this).
-      self._treelabels = []
-      for i,qual in enumerate(self._treequals):
-         self._treelabels.append(str(qual))
-         
       # The following executes the function self.initexec(**kwargs),
       # which is re-implemented below.
       Clump.__init__(self, clump=clump, **kwargs)
+      
       return None
 
-   #-------------------------------------------------------------------------
-   # Specific re-implementations of some Clump functions.
-   #-------------------------------------------------------------------------
-
-   def show_specific(self):
-      """
-      Format the specific (non-generic) contents of the derived class.
-      Re-implementation of function in baseclass Clump.
-      """
-      ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      return ss
-
-   #-------------------------------------------------------------------------
-
-   def newinstance(self, **kwargs):
-      """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (templateClump).
-      NB: For a LeafClump, this might not be very useful....
-      """
-      return LeafClump(clump=self, **kwargs)
 
    #-------------------------------------------------------------------------
    # Re-implementation of its initexec function (called from Clump.__init__())
@@ -1390,9 +1439,10 @@ class LeafClump(Clump):
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
-      self._datadesc['complex'] = kwargs.get('complex',False)
-      self._datadesc['dims'] = kwargs.get('dims',1)
-      dd = self.datadesc()
+      # The data-description may be defined by means of kwargs: 
+      dd = self.datadesc(complex=kwargs.get('complex',False),
+                         treequals=kwargs.get('treequals',range(3)),
+                         dims=kwargs.get('dims',1))
 
       # Execute always (always=True), to ensure that the leaf Clump has nodes:
       if self.execute_body(always=True):              
@@ -1482,6 +1532,11 @@ if __name__ == '__main__':
       clump.show('creation', full=True)
 
    if 0:
+      clump.rider('aa', new=56)
+      clump.rider('bb', new='56')
+      clump.rider('clump', new=clump)
+
+   if 0:
       print '** print str(clump) ->',str(clump)
       print '** print clump ->',clump
 
@@ -1533,7 +1588,7 @@ if __name__ == '__main__':
       print clump.bundle()
       clump.show('.bundle()')
 
-   if 1:
+   if 0:
       node = ns.dummysolver << Meq.Constant(67)
       clump.insert_reqseqs(node, trace=True)
       clump.show('.insert_reqseqs()')
@@ -1567,6 +1622,9 @@ if __name__ == '__main__':
    #-------------------------------------------------------------------
    # Some lower-level tests:
    #-------------------------------------------------------------------
+
+   if 0:
+      print getattr(clump,'oneline',None)
 
    if 0:
       clump.execute_body(None, a=6, b=7)

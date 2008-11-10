@@ -143,6 +143,8 @@ class AddNoise(Clump.Clump):
                      noise = noise(unop) << getattr(Meq,unop)(noise)
                self._nodes[i] = stub(qual) << Meq.Add(self[i], noise)
 
+            self.visualize(select=False)
+
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -234,6 +236,8 @@ class Scatter(Clump.Clump):
                   scat = stub('scat')(qual) << Meq.Composer(*cc)     
                self._nodes[i] = stub(qual) << Meq.Add(self[i], scat)
 
+            self.visualize(select=False)
+
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -261,10 +265,10 @@ def do_define_forest (ns, TCM):
                               complex=True,
                               dims=[2,2],
                               trace=True)
-      clump = AddNoise(clump, select=True, trace=True)
-      clump.visualize()
-      clump = Scatter(clump, select=True, trace=True)
-      clump.visualize()
+      clump = AddNoise(clump, select=True, trace=True).daisy_chain()
+      # clump.visualize()
+      clump = Scatter(clump, select=True, trace=True).daisy_chain()
+      # clump.visualize()
 
    # The LAST statement:
    TCM.end_of_submenu()
