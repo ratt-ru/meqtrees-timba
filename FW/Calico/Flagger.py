@@ -31,6 +31,8 @@ else:
   _GLISH = None;
   print "Calico flagger: glish not found, autoflag will not be available";
 
+_addbitflagcol = MSUtils.find_exec('addbitflagcol');
+
 # Various argument-formatting methods to use with the Flagger.AutoFlagger class
 # below. These really should be static methods of the class, but that doesn't work
 # with Python (specifically, I cannot include them into static member dicts)
@@ -140,6 +142,16 @@ class Flagger (Timba.dmi.verbosity):
       self.flagsets = MSUtils.get_flagsets(ms);
       self.dprintf(1,"flagsets are %s\n",self.flagsets.names());
     return self.ms;
+    
+  def add_bitflags (self,wait=True):
+    if not self.has_bitflags:
+      global _addbitflagcol; 
+      if not _addbitflagcol:
+        raise RuntimeError,"cannot find addbitflagcol utility in $PATH";
+      self.close();
+      self.dprintf(1,"running addbitflagcol\n");
+      if os.spawnvp(os.P_WAIT,_addbitflagcol,['addbitflagcol',self.msname]):
+        raise RuntimeError,"addbitflagcol failed";
       
   def remove_flagset (self,*fsnames):
     self._reopen();

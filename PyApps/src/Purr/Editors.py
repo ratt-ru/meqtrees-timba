@@ -534,8 +534,7 @@ class LogEntryEditor (QWidget):
   
   def addDataProducts(self,dps):
     """Adds data products to dialog.
-      dps is a list of (dp,quiet) pairs. The quiet flag indicates that a DP is to be added
-      quietly (i.e. no need to show the dialog)
+      dps is a list of DP objects
     """;
     # this flag will be set if any new non-quiet dps are added, or if existing
     # non-quiet dps (that have been checked on) are updated
@@ -550,7 +549,7 @@ class LogEntryEditor (QWidget):
         else:
           after = None;
         item = self._makeDPItem(dp,after);
-      updated = updated or (not dp.quiet and item._policy != "ignore");
+      updated = updated or not (dp.ignored or dp.quiet);
     return updated;
       
   def entryTitle (self):

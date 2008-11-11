@@ -120,7 +120,7 @@ class MainWindow (QMainWindow):
     Purr.BusyIndicator = BusyIndicator;
     # autopounce is on if GUI checkbox is on
     # pounce is on if autopounce is on, or the new Entry dialog is visible.
-    self._autopounce = self.PounceShow;
+    self._autopounce = self.PounceIgnore;
     self._pounce = False;
     # we keep a small stack of previously active purrers. This makes directory changes
     # faster (when going back and forth between dirs)
@@ -296,12 +296,13 @@ class MainWindow (QMainWindow):
         self.purrer_stack.pop(i);
         self.purrer_stack.insert(0,purrer);
         # update purrer with watched directories, in case they have changed
-        purrer.watchDirectories(watchdirs);
+        if watchdirs:
+          purrer.watchDirectories(watchdirs);
         break;
     # no purrer found, make a new one
     else:
       dprint(1,"creating new Purrer object");
-      purrer = Purr.Purrer(dirname,watchdirs);
+      purrer = Purr.Purrer(dirname,watchdirs or (dirname,));
       self.purrer_stack.insert(0,purrer);
       # discard end of stack
       self.purrer_stack = self.purrer_stack[:3];

@@ -50,13 +50,6 @@ TDLCompileOption("run_purr","Start Purr on this MS",True);
 # add a subset selector for the "flag subset" option
 flag_subset = mssel.make_subset_selector('mssel_flag');
 
-# _open_ms will be called whenever a new MS is selected
-flagger = None;
-def _open_ms (msname):
-  global flagger;
-  flagger = Calico.Flagger.Flagger(msname,verbose=5,chunksize=50000);
-  flagger.close();
-mssel.when_changed(_open_ms);
 
 # The view_ms job simply cycles through the measurement set
 def view_ms (mqs,parent,**kw):
@@ -187,10 +180,18 @@ def run_autoflagger (mqs,parent,**kw):
   glish_pid = af.run(plotdev=plotdev,devfile=autoflag_plotdev_file,         # plotscr=plotscr,
                       reset=autoflag_reset,trial=autoflag_trial,wait=False);
 
+
+def add_bitflags (mqs,parent,**kw):
+  if not flagger:
+    raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  flagger.add_bitflags();
+
 # The flag_ms job uses Calico.Flagger to flag subsets of the MS
 def flag_ms (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  if not check_bitflag_column():
+    return;
   arg = dict();
   # form up list of antennas
   if flag_antennas:
@@ -233,6 +234,8 @@ stat_msgbox = None;
 def transfer_legacy_flags (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  if not check_bitflag_column():
+    return;
   replace = (transfer_flag_policy == "replace");
   # open progress meter if GUI available
   init_progress_dialog(parent,"Transferring legacy flags");
@@ -287,6 +290,8 @@ def get_flag_stats (mqs,parent,**kw):
 def fill_legacy_flags (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  if not check_bitflag_column():
+    return;
   # open progress meter if GUI available
   init_progress_dialog(parent,"Filling legacy flag column");
   # execute flagging
@@ -300,6 +305,8 @@ def fill_legacy_flags (mqs,parent,**kw):
 def clear_flagset (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  if not check_bitflag_column():
+    return;
   if qt and parent:
     fsets = remove_flag_selector.selected_flagsets();
     if qt.QMessageBox.question(parent,"Clearing flagsets","""<P>This will clear all 
@@ -337,6 +344,8 @@ def clear_legacy_flags (mqs,parent,**kw):
 def remove_flagset (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  if not check_bitflag_column():
+    return;
   fsets = remove_flag_selector.selected_flagsets();
   if qt and parent:
     if qt.QMessageBox.question(parent,"Removing flagsets","""<P>This will completely 
@@ -355,6 +364,9 @@ def remove_flagset (mqs,parent,**kw):
     progress_callback(100,100);
 
 view_ms_opt         = TDLRuntimeJob(view_ms,"View MS data & flags");
+add_bitflag_opt      = TDLRuntimeJob(add_bitflags,"Initialize bitflag columns in this MS",
+  doc="""This MS does not contain any bitflag columns. Once you have initialized
+  these columns, advanced flagging options will become available.""");
 run_autoflagger_opt = TDLRuntimeJob(run_autoflagger,"Run the autoflagger");
 flag_ms_opt         = TDLRuntimeJob(flag_ms,"Run the flagger");
 transfer_opt        = TDLRuntimeJob(transfer_legacy_flags,"Transfer FLAG/FLAG_ROW column into this flagset")
@@ -367,7 +379,8 @@ remove_fs_opt       = TDLRuntimeJob(remove_flagset,"Remove selected flagset(s)",
   doc="""Completely removes the selected flagsets.""");
 
 ms_job_options = [ view_ms_opt,run_autoflagger_opt,flag_ms_opt,transfer_opt,clear_legacy_opt,
-                   get_stat_opt,clear_fs_opt,remove_fs_opt ];
+                   get_stat_opt,clear_fs_opt,remove_fs_opt,add_bitflag_opt ];
+
 
 
 TDLRuntimeMenu("View MS data & flags",
@@ -375,7 +388,7 @@ TDLRuntimeMenu("View MS data & flags",
      [ view_ms_opt ]));
 
 flag_flag_selector = mssel.make_write_flag_selector(namespace='flag_fl');
-TDLRuntimeMenu("Flag or unflag a subset of the data",
+flag_menu = TDLRuntimeMenu("Flag or unflag a subset of the data",
   *([ TDLOption('flag_antennas',"Antenna(s)",[None],more=str),
       TDLOption('flag_baselines',"Baseline(s)",[None],more=str),
       TDLMenu("Time range",
@@ -393,18 +406,18 @@ TDLRuntimeMenu("Flag or unflag a subset of the data",
 
 remove_flag_selector = mssel.make_read_flag_selector(namespace='rm_fl',
     legacy=False,label="Flagset %s",doc="");
-TDLRuntimeMenu("Remove or clear flagset(s)",
+remove_menu = TDLRuntimeMenu("Remove or clear flagset(s)",
   *(remove_flag_selector.option_list() +
     [clear_fs_opt,remove_fs_opt])
   );
 
 fill_flag_selector = mssel.make_read_flag_selector(namespace='fill_fl',legacy=False);
-TDLRuntimeMenu("Change the FLAG/FLAG_ROW columns",
+change_menu = TDLRuntimeMenu("Change the FLAG/FLAG_ROW columns",
   *(fill_flag_selector.option_list() +
     [fill_opt,clear_legacy_opt])
   );
   
-TDLRuntimeMenu("Run autoflagger (fills FLAG/FLAG_ROW column)",
+autoflag_menu = TDLRuntimeMenu("Run autoflagger (fills FLAG/FLAG_ROW column)",
   TDLOption('autoflag_column',"MS column",["DATA","MODEL_DATA","CORRECTED_DATA"]),
   TDLMenu("Use sliding time median method (\"timemed\")",toggle='autoflag_timemed',
      *[ TDLOption('autoflag_timemed_thr',"Flagging threshold (sigmas)",5.,more=float),
@@ -458,7 +471,7 @@ TDLRuntimeMenu("Run autoflagger (fills FLAG/FLAG_ROW column)",
   );
 
 transfer_flag_selector = mssel.make_write_flag_selector(namespace='xfer_fl');
-TDLRuntimeMenu("Transfer FLAG/FLAG_ROW column into a flagset",
+transfer_menu = TDLRuntimeMenu("Transfer FLAG/FLAG_ROW column into a flagset",
   *(transfer_flag_selector.option_list() +
     [ TDLOption('transfer_flag_policy',"Replace or add to flagset",["replace","add to"]),
       transfer_opt ]
@@ -466,11 +479,27 @@ TDLRuntimeMenu("Transfer FLAG/FLAG_ROW column into a flagset",
 );
 
 stat_flag_selector = mssel.make_read_flag_selector(namespace='stat_fl',legacy=True);
-TDLRuntimeMenu("Get flag statistics",
+stat_menu = TDLRuntimeMenu("Get flag statistics",
   *(stat_flag_selector.option_list() +
     [ get_stat_opt ]
   )
 );
+# insert add bitflags job last
+TDLRuntimeOptions(add_bitflag_opt);
+
+# _open_ms will be called whenever a new MS is selected
+flagger = None;
+def _open_ms (msname):
+  global flagger;
+  # init a flagger
+  flagger = Calico.Flagger.Flagger(msname,verbose=5,chunksize=50000);
+  # show/hide bitflag-related options
+  add_bitflag_opt.show(not flagger.has_bitflags);
+  for opt in flag_menu,remove_menu,fill_opt,transfer_menu:
+    opt.show(flagger.has_bitflags);
+  # close flagger
+  flagger.close();
+mssel.when_changed(_open_ms);
 
 
 

@@ -246,8 +246,6 @@ class Purrer (object):
     for desc,patts in self._quiet:
       self._quiet_patterns.update(patts);
     dprint(1,"quietly watching patterns",self._quiet_patterns);
-    # merge into watch set 
-    self._watch_patterns.update(self._quiet_patterns);
     # ignored files 
     ignore = Config.get("ignore-patterns","Hidden files=.*;Purr logs=purrlog;MeqTree logs=meqtree.log;Python files=*.py*;Backup files=*~,*.bck");
     self._ignore = parse_pattern_list(ignore);
