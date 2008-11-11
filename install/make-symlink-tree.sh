@@ -65,6 +65,8 @@ ln-s ../../../PyApps/src/trut
 ln-s ../../../PyApps/src/trutify
 ln-s ../../../PyApps/src/trut.py
 ln-s ../../../PyApps/src/Purr/purr.py
+ln-s ../../../TimBase/src/gprof-run
+ln-s ../../../AppAgent/AppUtils/build/$flavour/src/.libs/addbitflagcol
 
 
 if [ -f meqserver-mpi ]; then
