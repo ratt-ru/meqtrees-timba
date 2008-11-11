@@ -476,7 +476,7 @@ class Purrer (object):
         # add file to list of new products. Since a file may be reported by multiple
         # watchers, make the quiet flag a logical AND of all the quiet flags (i.e. DP will be
         # marked as quiet only if all watchers report it as quiet).
-        newstuff[newfile] = quiet and newstuff.get(newfile,False);
+        newstuff[newfile] = quiet and newstuff.get(newfile,True);
         dprintf(4,"%s: new data product, quiet=%d\n",newfile,quiet);
     # if we have new data products, send them to the main window
     return self.makeDataProducts(newstuff.iteritems());
