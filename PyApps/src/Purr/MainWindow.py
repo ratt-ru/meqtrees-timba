@@ -165,12 +165,19 @@ class MainWindow (QMainWindow):
     self._about_dialog.setIconPixmap(pixmaps.purr_logo.pm()); 
     self.connect(about_btn,SIGNAL("clicked()"),self._about_dialog.exec_loop);
     cwlo.addSpacing(5);
-    self.dir_label = QLabel("Directory: none",cw);
-    cwlo.addWidget(self.dir_label);
-    title_lo = QHBoxLayout(cwlo);
-    self.title_label = QLabel("Log title: none",cw);
+    logframe = QFrame(cw);
+    cwlo.addWidget(logframe);
+    log_lo = QVBoxLayout(logframe);
+    log_lo.setMargin(5);
+    logframe.setFrameStyle(QFrame.Box|QFrame.Raised);
+#    logframe.setFrameShape(QFrame.Panel);
+    logframe.setLineWidth(1);
+    self.dir_label = QLabel("Directory: none",logframe);
+    log_lo.addWidget(self.dir_label);
+    title_lo = QHBoxLayout(log_lo);
+    self.title_label = QLabel("Log title: none",logframe);
     title_lo.addWidget(self.title_label,1);
-    self.wrename = QPushButton("Rename",cw);
+    self.wrename = QPushButton("Rename",logframe);
     QToolTip.add(self.wrename,"Click to edit log title");
     self.wrename.setMinimumWidth(80);
     self.wrename.setFlat(True);
@@ -178,7 +185,7 @@ class MainWindow (QMainWindow):
     self.connect(self.wrename,SIGNAL("clicked()"),self._renameLogDialog);
     title_lo.addWidget(self.wrename,0);
     title_lo.addSpacing(5);
-    self.wviewlog = QPushButton(pixmaps.openbook.iconset(),"View",cw);
+    self.wviewlog = QPushButton(pixmaps.openbook.iconset(),"View",logframe);
     QToolTip.add(self.wviewlog,"Click to see an HTML rendering of the log");
     self.wviewlog.setMinimumWidth(80);
     self.wviewlog.setFlat(True);
@@ -535,7 +542,7 @@ class MainWindow (QMainWindow):
         ndp += len(entry.dps);
       if ndp:
         msg += """<P>%d data product(s) saved with these entries will be deleted as well.</P>"""%ndp;
-    if QMessageBox.question(self,"Deleting log entries",msg,
+    if QMessageBox.warning(self,"Deleting log entries",msg,
           QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
       return;
     if hide_viewer:

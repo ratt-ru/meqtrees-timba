@@ -13,31 +13,46 @@ class LogEntryEditor (QWidget):
   """;
   def __init__ (self,parent):
     QWidget.__init__(self,parent);
-    lo_top = QVBoxLayout(self);
+    # create splitter
+    lo = QVBoxLayout(self);
+    self.wsplitter = QSplitter(self);
+    self.wsplitter.setOrientation(Qt.Vertical);
+    self.wsplitter.setChildrenCollapsible(False);
+    self.wsplitter.setFrameStyle(QFrame.Box|QFrame.Raised);
+    self.wsplitter.setLineWidth(2);
+    lo.addWidget(self.wsplitter);
+    # create pane for comment editor
+    editorpane = QWidget(self.wsplitter);
+    lo_top = QVBoxLayout(editorpane);
     lo_top.setResizeMode(QLayout.Minimum);
     lo_top.setMargin(5);
     # create comment editor
     # create title and timestamp label, hide timestamp until it is set (below)
     lo_topline = QHBoxLayout(lo_top);
-    self.wtoplabel = QLabel("Entry title:",self);
-    self.wtimestamp = QLabel("",self);
+    self.wtoplabel = QLabel("Entry title:",editorpane);
+    self.wtimestamp = QLabel("",editorpane);
     lo_topline.addWidget(self.wtoplabel);
     lo_topline.addStretch(1);
     lo_topline.addWidget(self.wtimestamp);
     # add title editor
-    self.wtitle   = QLineEdit(self);
+    self.wtitle   = QLineEdit(editorpane);
     lo_top.addWidget(self.wtitle); 
     self.connect(self.wtitle,SIGNAL("textChanged(const QString&)"),self._titleChanged);
     # add comment editor
     lo_top.addSpacing(5);
-    lo_top.addWidget(QLabel("Comments:",self));
-    self.wcomment = QTextEdit(self);
+    lo_top.addWidget(QLabel("Comments:",editorpane));
+    self.wcomment = QTextEdit(editorpane);
     self.wcomment.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     self.connect(self.wcomment,SIGNAL("textChanged()"),self._commentChanged);
     lo_top.addWidget(self.wcomment);
     # generate frame for the "Data products" listview
-    lo_top.addSpacing(5);
-    dpline = QWidget(self);
+    # lo_top.addSpacing(5);
+    # create pane for comment editor
+    dppane = QWidget(self.wsplitter);
+    lo_top = QVBoxLayout(dppane);
+    lo_top.setResizeMode(QLayout.Minimum);
+    lo_top.setMargin(5);
+    dpline = QWidget(dppane);
     lo_top.addWidget(dpline);
     dpline.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
     lo_dpline = QHBoxLayout(dpline);
@@ -50,7 +65,7 @@ class LogEntryEditor (QWidget):
     self._add_dp_dialog = None;
     lo_dpline.addWidget(self.wnewdp);
     # create DP listview
-    ndplv = self.wdplv = QListView(self);
+    ndplv = self.wdplv = QListView(dppane);
     ndplv.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     lo_top.addWidget(self.wdplv);
     # insert columns, and numbers for them
@@ -708,7 +723,7 @@ class ExistingLogEntryDialog (QDialog):
     lo.addSpacing(5);
     btnfr_lo = QHBoxLayout(btnfr);
     btnfr_lo.setMargin(5);
-    btn = self.wprev = QPushButton(pixmaps.previous.iconset(),"Prev",btnfr);
+    btn = self.wprev = QPushButton(pixmaps.previous.iconset(),"Previous",btnfr);
     QObject.connect(btn,SIGNAL("clicked()"),self,PYSIGNAL("previous()"));
     btnfr_lo.addWidget(btn,1);
     btnfr_lo.addSpacing(5);
