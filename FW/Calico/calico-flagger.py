@@ -185,6 +185,7 @@ def add_bitflags (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
   flagger.add_bitflags();
+  mssel.reload();
 
 # The flag_ms job uses Calico.Flagger to flag subsets of the MS
 def flag_ms (mqs,parent,**kw):
@@ -364,7 +365,7 @@ def remove_flagset (mqs,parent,**kw):
     progress_callback(100,100);
 
 view_ms_opt         = TDLRuntimeJob(view_ms,"View MS data & flags");
-add_bitflag_opt      = TDLRuntimeJob(add_bitflags,"Initialize bitflag columns in this MS",
+add_bitflag_opt     = TDLRuntimeJob(add_bitflags,"Initialize bitflag columns in this MS",
   doc="""This MS does not contain any bitflag columns. Once you have initialized
   these columns, advanced flagging options will become available.""");
 run_autoflagger_opt = TDLRuntimeJob(run_autoflagger,"Run the autoflagger");
@@ -380,8 +381,6 @@ remove_fs_opt       = TDLRuntimeJob(remove_flagset,"Remove selected flagset(s)",
 
 ms_job_options = [ view_ms_opt,run_autoflagger_opt,flag_ms_opt,transfer_opt,clear_legacy_opt,
                    get_stat_opt,clear_fs_opt,remove_fs_opt,add_bitflag_opt ];
-
-
 
 TDLRuntimeMenu("View MS data & flags",
   *( mssel.runtime_options() +
@@ -485,7 +484,7 @@ stat_menu = TDLRuntimeMenu("Get flag statistics",
   )
 );
 # insert add bitflags job last
-TDLRuntimeOptions(add_bitflag_opt);
+# TDLRuntimeOptions(add_bitflag_opt);
 
 # _open_ms will be called whenever a new MS is selected
 flagger = None;

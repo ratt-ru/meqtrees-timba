@@ -695,7 +695,13 @@ class MSSelector (object):
     if not self.ms_write_flags:
       return 0;
     return self.write_flag_selector.get_flagmask();
-      
+  
+  def reload (self):
+    msname = getattr(self,'_msname',None);
+    if msname:
+      self._msname = None;
+      self._select_new_ms(msname);
+    
   def _select_new_ms (self,msname):
     """This callback is called whenever a new MS is selected. Returns False if
     table is malformed or n/a""";

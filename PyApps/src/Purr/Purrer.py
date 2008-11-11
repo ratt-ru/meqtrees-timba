@@ -157,9 +157,12 @@ class Purrer (object):
           return None;
         newfiles.update(fileset1.difference(self.fileset));
         self.fileset = fileset1;
-      # skip new files with older timestamps -- these may have been restored from the archive
+      # skip new files in ignore list
+      # also skip new files with older timestamps -- these may have been restored from the archive
       nfs = [];
       for file in newfiles:
+        if matches_patterns(file,self.ignore_patterns) and not matches_patterns(file,self.watch_patterns):
+          continue;
         path = os.path.join(self.path,file);
         try:
           mtime = os.path.getmtime(path);
@@ -247,7 +250,7 @@ class Purrer (object):
       self._quiet_patterns.update(patts);
     dprint(1,"quietly watching patterns",self._quiet_patterns);
     # ignored files 
-    ignore = Config.get("ignore-patterns","Hidden files=.*;Purr logs=purrlog;MeqTree logs=meqtree.log;Python files=*.py*;Backup files=*~,*.bck");
+    ignore = Config.get("ignore-patterns","Hidden files=.*;Purr logs=purrlog;MeqTree logs=meqtree.log;Python files=*.py*;Backup files=*~,*.bck;CASA tables=table.f*,table.dat,table.info,table.lock");
     self._ignore = parse_pattern_list(ignore);
     self._ignore_patterns = sets.Set();
     for desc,patts in self._ignore:

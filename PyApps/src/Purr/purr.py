@@ -2,6 +2,8 @@
 
 import sys
 import signal
+import os.path
+
 from qt import *
 
 import Purr
@@ -33,6 +35,10 @@ if __name__ == "__main__":
   dirnames = list(rem_args);
   if not options.no_cwd and '.' not in dirnames:
     dirnames.append('.');
+    
+  if not os.path.isdir(dirnames[0]):
+    print "Argument must be an existing directory name";
+    sys.exit(1);
 
   purrwin = Purr.MainWindow.MainWindow(None);
   purrwin.attachDirectory(dirnames[0],dirnames);

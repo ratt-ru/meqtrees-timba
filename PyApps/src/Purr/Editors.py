@@ -549,7 +549,6 @@ class LogEntryEditor (QWidget):
         else:
           after = None;
         item = self._makeDPItem(dp,after);
-      print dp.ignored,dp.quiet;
       updated = updated or not (dp.ignored or dp.quiet);
     return updated;
       
