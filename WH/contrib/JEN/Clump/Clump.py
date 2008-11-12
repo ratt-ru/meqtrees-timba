@@ -106,13 +106,6 @@ class Clump (object):
       self._ns = kwargs.get('ns',None)
       self._TCM = kwargs.get('TCM',None)
 
-      # The data description controls the behaviour of Clump-functions
-      # that perform 'generic' operations (like add_noise().
-      # It is passed from Clump to Clump, and modified when appropriate.
-      self._datadesc = dict()
-      self.datadesc(complex=False, dims=[1], treequals=range(3),
-                    plotcolor='red', plotsymbol='cross', plotzize=1)
-
       # A Clump object has a "rider", i.e. a dict that contains user-defined
       # information, and is passed on from Clump to Clump.
       # All interactions with the rider should use the function self.rider()
@@ -126,6 +119,9 @@ class Clump (object):
 
       # Nodes without parents (e.g. visualisation) are collected on the way:
       self._orphans = []                    # see self.rootnode()
+
+      # Any ParmClumps are passed along (e.g. see SolverUnit.py)
+      self._ParmClumps = []
 
       # See self.unique_nodestub()
       self._stubtree = None
@@ -169,9 +165,22 @@ class Clump (object):
       # The list of actual Clump tree nodes, and their qualifiers:
       # (if self._composed, both lists have length one.)
       if self._input_clump:
-         self.transfer_clump_nodes()
-      # else:
-      #    self._nodes = []                       # nodes (separate or composed)
+         if kwargs.get('transfer_clump_nodes',True):
+            self.transfer_clump_nodes()
+         else:
+            self._nodequals = self._datadesc['treequals']
+            self._composed = False
+            
+      elif not getattr(self,'_datadesc',None):
+         # The data description controls the behaviour of Clump-functions
+         # that perform 'generic' operations (like add_noise().
+         # It is passed from Clump to Clump, and modified when appropriate.
+         # Usually, this is done in the class LeafClump, or copied from input.
+         # The following is just in case......
+         self._datadesc = dict()
+         self.datadesc(complex=False, dims=[1], treequals=range(3),
+                       plotcolor='red', plotsymbol='cross', plotzize=1)
+
 
       # The tree nodes may be 'composed' into a single tensor node.
       # In that case, the following node qualifier will be used.
@@ -190,6 +199,7 @@ class Clump (object):
       # Finished:
       return None
 
+   #--------------------------------------------------------------------------
    #--------------------------------------------------------------------------
 
    def datadesc (self, **kwargs):
@@ -316,20 +326,22 @@ class Clump (object):
          s = '** Clump: An input Clump should have been provided!'
          raise ValueError,s
 
-      # Make sure that self._nodes is a COPY of clump._nodes
-      # (so clump._nodes is not modified when self._nodes is).
-      self._nodes = []
-      for i,node in enumerate(clump._nodes):
-         self._nodes.append(node)
+      if getattr(clump,'_nodes',None):
+         # Make sure that self._nodes is a COPY of clump._nodes
+         # (so clump._nodes is not modified when self._nodes is).
+         self._nodes = []
+         for i,node in enumerate(clump._nodes):
+            self._nodes.append(node)
 
-      self._composed = clump._composed
-      self._nodequals = clump._nodequals
-      self._stubtree = clump._stubtree
-      self._orphans = clump._orphans
+         self._composed = clump._composed
+         self._nodequals = clump._nodequals
+         self._stubtree = clump._stubtree
+         self._orphans = clump._orphans
+         self._ParmClumps = clump._ParmClumps
       
-      self._history = clump.history()          # note the use of the function
-      self.history('The end of the pre-history copied from: '+clump.oneliner())
-      self.history('....................................')
+         self._history = clump.history()          # note the use of the function
+         self.history('The end of the pre-history copied from: '+clump.oneliner())
+         self.history('....................................')
       return True
 
    #--------------------------------------------------------------------------
@@ -510,6 +522,11 @@ class Clump (object):
          ss += '\n   - node[-1]= '+str(self._nodes[-1])
                                        
       #.....................................................
+      ss += '\n * self._ParmClumps (n='+str(len(self._ParmClumps))+'):'
+      for i,pc in enumerate(self._ParmClumps):
+         ss += '\n   - '+str(pc.oneliner())
+
+      #.....................................................
       ss += '\n * (rootnode of) self._stubtree: '+str(self._stubtree)
       ss += '\n * self._orphans (n='+str(len(self._orphans))+'):'
       for i,node in enumerate(self._orphans):
@@ -629,6 +646,14 @@ class Clump (object):
       """Return the number of nodes in the Clump (=1 if a tensor)
       """
       return len(self._nodes)
+
+   #--------------------------------------------------------------------------
+
+   def indices(self):
+      """Return the list of indices [0,1,2,...] of the actual tree nodes.
+      If composed, this will be [0] (referring to a single tensor node).
+      """
+      return range(self.len())
 
    #--------------------------------------------------------------------------
 
@@ -1375,8 +1400,16 @@ class LeafClump(Clump):
       """
       # Make sure that a visible option/selection menu is generated
       # for all LeafClump classes.
-      kwargs['select'] = True
-      kwargs['fixture'] = True
+      kwargs['select'] = True                           # always make a clump selection menu
+      kwargs['fixture'] = True                          # this clump is always selected
+      kwargs['transfer_clump_nodes'] = False            # see Clump.__init___()
+
+      # The data-description may be defined by means of kwargs:
+      self._datadesc = dict()
+      treequals = range(3)           # default list of tree qualifiers
+      dd = self.datadesc(complex=kwargs.get('complex',False),
+                         treequals=kwargs.get('treequals',treequals),
+                         dims=kwargs.get('dims',1))
 
       # The following executes the function self.initexec(**kwargs),
       # which is re-implemented below.
@@ -1397,10 +1430,6 @@ class LeafClump(Clump):
       This function is called in Clump.__init__().
       See also templateLeafClump.py
       """
-      # The data-description may be defined by means of kwargs: 
-      dd = self.datadesc(complex=kwargs.get('complex',False),
-                         treequals=kwargs.get('treequals',range(3)),
-                         dims=kwargs.get('dims',1))
 
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)

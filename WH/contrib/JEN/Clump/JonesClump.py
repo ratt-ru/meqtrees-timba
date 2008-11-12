@@ -1,15 +1,16 @@
 """
-TwigClump.py: Make (one-tree?) Clumps from EasyTwigs 
+JonesClump.py: Base-class for an entire zoo of derived classes that
+represent 2x2 Jones matrices (hhich describe instrumental effects)
 """
 
-# file: ../JEN/Clump/TwigClump.py:
+# file: ../JEN/Clump/JonesClump.py:
 #
 # Author: J.E.Noordam
 #
 # Short description:
 #
 # History:
-#   - 03 nov 2008: creation (from templateClump.py)
+#   - 11 nov 2008: creation (from templateLeafClump.py)
 #
 # Description:
 #
@@ -44,7 +45,8 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Clump import Clump
-from Timba.Contrib.JEN.Easy import EasyTwig as ET
+from Timba.Contrib.JEN.Clump import ParmClump
+from Timba.Contrib.JEN.Clump import CorruptClump
 
 import math                 # support math.cos() etc
 # from math import *          # support cos() etc
@@ -53,10 +55,10 @@ import math                 # support math.cos() etc
 
 
 #********************************************************************************
-# Class Twig:
+# JonesClump.JonesClump is the baseclass of all Jones Clumps, and the template
 #********************************************************************************
 
-class Twig(Clump.LeafClump):
+class JonesClump(Clump.LeafClump):
    """
    Derived class
    """
@@ -79,83 +81,50 @@ class Twig(Clump.LeafClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      # The data-description may be defined by means of kwargs: 
-      dd = self.datadesc(treequals=['twig']),
-
-      help = 'make twig (leaf) node for: '+self.oneliner()
-      ctrl = self.on_entry(self.initexec, help=help, **kwargs)
-      
-      self.add_option('twig', ET.twig_names(first='t'),
-                      prompt='EasyTwig')
-
-      # Execute always (always=True) , to ensure that the leaf Clump has nodes!
-      if self.execute_body(always=True):           
-         twig = self.getopt('twig')
-         self._nodes = []
-         # stub = self.unique_nodestub(twig)
-         for i,qual in enumerate(self._nodequals):
-            node = ET.twig(self._ns, twig)
-            self._nodes.append(node)
-         self.visualize()
-         # Mandatory counterpart of self.execute_body()
-         self.end_of_body(ctrl)
-
-      # Mandatory counterpart of self.on_entry()
-      return self.on_exit(ctrl)
-
-
-
- #********************************************************************************
-# Class Polynomial:
-#********************************************************************************
-
-class Polynomial(Clump.LeafClump):
-   """
-   Derived class
-   """
-
-   def __init__(self, clump=None, **kwargs):
-      """
-      Derived from class Clump.
-      """
-      Clump.LeafClump.__init__(self, clump=clump, **kwargs)
-      return None
-
-
-   #==========================================================================
-   # The function .initexec() must be re-implemented for 'leaf' Clumps,
-   # i.e. Clump classes that contain leaf nodes. An example is given below,
-   # and may be canibalized for derived (leaf) Clump clases.
-   #==========================================================================
-
-   def initexec (self, **kwargs):
-      """Fill the LeafClump object with suitable leaf nodes.
-      Re-implemented version of the function in the baseclass (LeafClump).
-      """
-      # The data-description may be defined by means of kwargs: 
-      dd = self.datadesc(treequals=['poly'])
-
+      treequals = range(8,10)+list('AB')          # default treequals (WSRT)
+      dd = self.datadesc(complex=True, dims=[2,2],
+                         treequals=kwargs.get('treequals', treequals))
       prompt = None
-      help = 'make twig (leaf) node for: '+self.oneliner()
+      help = 'define Jones matrix: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
-      choice = ['f','t','ft','f2','t2','f2t','ft2','f2t2']
-      self.add_option('poly', choice,
-                      prompt='EasyTwig.polyparm')
-
+      self.add_option('elemtype',['amphas','realimag'])
+      
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
-      if self.execute_body(always=True):           
-         poly = self.getopt('poly')
+      if self.execute_body(always=True):
+         elemtype = self.getopt('elemtype')
+
+         # Create ParmClumps:
+         if elemtype=='amphas':
+            gerrX = ParmClump.ParmClump(self, name='gerrX', default=1.0)
+            perrX = ParmClump.ParmClump(self, name='perrX', default=0.0)
+            gerrY = ParmClump.ParmClump(self, name='gerrY', default=1.0)
+            perrY = ParmClump.ParmClump(self, name='perrY', default=0.0)
+            self._ParmClumps.extend([gerrX,perrX,gerrY,perrY])
+         elif elemtype=='realimag':
+            rerrX = ParmClump.ParmClump(self, name='rerrX', default=1.0)
+            ierrX = ParmClump.ParmClump(self, name='ierrX', default=0.0)
+            rerrY = ParmClump.ParmClump(self, name='rerrY', default=1.0)
+            ierrY = ParmClump.ParmClump(self, name='ierrY', default=0.0)
+            self._ParmClumps.extend([rerrX,ierrX,rerrY,ierrY])
+
+         # Generate nodes:
          self._nodes = []
-         # stub = self.unique_nodestub(twig)
+         stub = self.unique_nodestub()
          for i,qual in enumerate(self._nodequals):
-            node = ET.twig(self._ns, 'polyparm_'+poly)
+            elem00 = complex(1,0)
+            elem01 = complex(0,0)
+            elem10 = complex(0,0)
+            elem11 = complex(1,0)
+            if elemtype=='amphas':                
+               elem00 = stub(qual)('00') << Meq.Polar(gerrX[i],perrX[i])
+               elem11 = stub(qual)('11') << Meq.Polar(gerrY[i],perrY[i])
+            elif elemtype=='realimag':
+               elem00 = stub(qual)('00') << Meq.ToComplex(rerrX[i],ierrX[i])
+               elem11 = stub(qual)('11') << Meq.ToComplex(rerrY[i],ierrY[i])
+            node = stub(qual) << Meq.Matrix22(elem00, elem01,
+                                              elem10, elem11)
             self._nodes.append(node)
-         if True:
-            parms = self._ns.Search(tags='polyparm')
-            for parm in parms:
-               self.history('--> parm: '+str(parm))
-         self.visualize()
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
@@ -164,7 +133,92 @@ class Polynomial(Clump.LeafClump):
 
 
 
-           
+#********************************************************************************
+# JonesClump.XXXJones is a multiplication of Jones Clumps
+#********************************************************************************
+
+class XXXJones(JonesClump):
+   """
+   Baseclass for classes like WSRTJones, VLAJones etc.
+   Just replace .initexec() with your own seqience of JonesClumps.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class Clump.
+      """
+      JonesClump.__init__(self, clump=clump, **kwargs)
+      return None
+
+
+   #==========================================================================
+   # The function .initexec() must be re-implemented for 'leaf' Clumps,
+   # i.e. Clump classes that contain leaf nodes. An example is given below,
+   # and may be canibalized for derived (leaf) Clump clases.
+   #==========================================================================
+
+   def initexec (self, **kwargs):
+      """Fill the LeafClump object with suitable leaf nodes.
+      Re-implemented version of the function in the baseclass (LeafClump).
+      """
+      treequals = range(8,10)+list('AB')          # default treequals (WSRT)
+      dd = self.datadesc(complex=True, dims=[2,2],
+                         treequals=kwargs.get('treequals', treequals))
+      prompt = None
+      help = 'define product of zero or more Jones matrices: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
+
+      self.add_option('AJones', True)
+      self.add_option('BJones', True)
+      self.add_option('CJones', True)
+
+      if self.execute_body(always=True):
+         jj = []
+         if self.getopt('AJones'):
+            jj.append(JonesClump(self, name='AJones'))
+         if self.getopt('BJones'):
+            jj.append(JonesClump(self, name='BJones'))
+         if self.getopt('CJones'):
+            jj.append(JonesClump(self, name='CJones'))
+
+         self.make_single_jones(jj)
+         self.end_of_body(ctrl)
+
+      # Mandatory counterpart of self.on_entry()
+      return self.on_exit(ctrl)
+
+
+   #----------------------------------------------------------------------------
+
+   def make_single_jones(self, jj):
+      """Make a single Jones matrix from the ones collected in .initexex()
+      """
+      self._nodes = []
+      if len(jj)==0:
+         s = '** At least ONE JonesClump should be selected'
+         raise ValueError,s
+
+      elif len(jj)==1:
+         # one only: copy its nodes
+         for i,qual in enumerate(self._nodequals):
+            self._nodes.append(jj[0][i])
+      
+      else:
+         # more than one: MatrixMyultiply
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self._nodequals):
+            cc = []
+            for jones in jj:
+               cc.append(jones[i])
+            node = stub(qual) << Meq.MatrixMultiply(*cc)
+            self._nodes.append(node)
+         
+      # Copy all the ParmClumps into a single list:
+      for jones in jj:
+         jones.show('make_single_jones()')
+         self._ParmClumps.extend(jones._ParmClumps)
+      return True
+      
 
 
 #********************************************************************************
@@ -183,8 +237,14 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      # clump = Twig(ns=ns, TCM=TCM, trace=True)
-      clump = Polynomial(ns=ns, TCM=TCM, trace=True)
+      if 1:
+         clump = JonesClump(ns=ns, TCM=TCM,
+                            trace=True)
+      else:
+         clump = XXXJones(ns=ns, TCM=TCM, trace=True)
+         
+      # clump = CorruptClump.AddNoise(clump).daisy_chain()
+      clump.visualize()
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -202,16 +262,15 @@ def do_define_forest (ns, TCM):
 if __name__ == '__main__':
 
    print '\n****************************************************'
-   print '** Start of standalone test of: TwigClump.py:'
+   print '** Start of standalone test of: JonesClump.py:'
    print '****************************************************\n' 
 
    ns = NodeScope()
 
    if 0:
-      clump = Twig(twig='f+t', trace=True)
-
-   if 1:
-      clump = Polynomial(poly='f2', trace=True)
+      clump = JonesClump(trace=True)
+   else:
+      clump = XXXJones(trace=True)
 
    if 1:
       clump.show('creation', full=True)
@@ -224,7 +283,7 @@ if __name__ == '__main__':
 
    
       
-   print '\n** End of standalone test of: TwigClump.py:\n' 
+   print '\n** End of standalone test of: JonesClump.py:\n' 
 
 #=====================================================================================
 

@@ -122,16 +122,17 @@ class ParmClump(Clump.LeafClump):
          self._parmnames = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self._nodequals):
-            node = stub(qual) << Meq.Parm(default,
-                                          shape=[tdeg+1,fdeg+1],
-                                          tiling=tiling,
-                                          table_name=mepfile,
-                                          use_previous=use_previous,
-                                          # tags=['tag1','tag2'],
-                                          node_groups='Parm')
+            qd = 'dflt='+str(default)
+            node = stub(qual)(qd) << Meq.Parm(default,
+                                              shape=[tdeg+1,fdeg+1],
+                                              tiling=tiling,
+                                              table_name=mepfile,
+                                              use_previous=use_previous,
+                                              # tags=['tag1','tag2'],
+                                              node_groups='Parm')
             self._nodes.append(node)
             self._parmnames.append(node.name)
-            # print '\n -',str(node),' initrec: ',node.initrec()
+            print '\n -',str(node),' initrec: ',node.initrec()
 
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
@@ -181,9 +182,12 @@ def do_define_forest (ns, TCM):
       clump = ParmClump(ns=ns, TCM=TCM,
                         name='GgainY', default=2.3,
                         treequals=range(10)+list('ABCD'),         # WSRT
-                        tdeg=2,                                   # override
+                        # tdeg=2,                                   # override
                         trace=True)
-      clump.visualize()
+      if True:
+         for i in clump.indices():
+            node = ns.test(i) << Meq.Identity(clump[i])
+      # clump.visualize()
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -219,12 +223,15 @@ if __name__ == '__main__':
                         name='GgainX',
                         default=1.0,
                         trace=True)
-
-   if 1:
-      clump.solvable_parms(trace=True)
-
    if 1:
       clump.show('creation', full=True)
+
+   if 1:
+      clump1 = ParmClump(clump, name='other')
+      clump1.show('clump1')
+
+   if 0:
+      clump.solvable_parms(trace=True)
 
    if 0:
       clump.compose()

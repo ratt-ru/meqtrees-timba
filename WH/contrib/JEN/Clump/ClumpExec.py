@@ -61,25 +61,25 @@ from Timba.Contrib.JEN.Clump import Clump as ClumpClass
 
 from Timba.Contrib.JEN.Clump import templateClump as ClumpClass
 # from Timba.Contrib.JEN.Clump import templateLeafClump as ClumpClass
-from Timba.Contrib.JEN.Clump import TwigClump as ClumpClass
+# from Timba.Contrib.JEN.Clump import TwigClump as ClumpClass
 
-# from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
+from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
 # from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
 
 # from Timba.Contrib.JEN.Clump import CorruptClump as ClumpClass
 
-# The base-class has all the specific functions, e.g. .visualize()
-# from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
+#### The base-class has all the specific functions, e.g. .visualize()
+from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
 
-# The following contain multiple classes (GJones,FJones,EJones etc):
+#### The following contain multiple classes (GJones,FJones,EJones etc):
 # from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass
 # from Timba.Contrib.JEN.Clump import WSRTJones as ClumpClass
 # from Timba.Contrib.JEN.Clump import VLAJones as ClumpClass
 # from Timba.Contrib.JEN.Clump import ATCAJones as ClumpClass
 # from Timba.Contrib.JEN.Clump import LOFARJones as ClumpClass
 
-# Specific operations: .corrupt(jones), .correct(), .shiftPhaseCentre()
-# Also: visualize() reimplementation
+#### Specific operations: .corrupt(jones), .correct(), .shiftPhaseCentre()
+#### Also: visualize() reimplementation
 # from Timba.Contrib.JEN.Clump import VisClump as ClumpClass
 
 # from Timba.Contrib.JEN.Clump import SpigotClump as ClumpClass

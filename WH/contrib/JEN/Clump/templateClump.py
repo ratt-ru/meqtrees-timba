@@ -78,8 +78,8 @@ class templateClump(Clump.Clump):
       This function is called in Clump.__init__().
       """
       # kwargs['select'] = True          # optional: makes the function selectable     
-      prompt=None
-      help=None
+      prompt = None
+      help = '<help>'
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
       if self.execute_body():

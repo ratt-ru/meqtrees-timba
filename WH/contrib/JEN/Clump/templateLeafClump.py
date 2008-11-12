@@ -11,7 +11,7 @@ Examples are ParmClump, JonesClump and SpigotClump.
 # Short description:
 #
 # History:
-#   - 03 nov 2008: creation (from templateClump.py)
+#   - 11 nov 2008: creation (from template_LeafClump.py)
 #
 # Description:
 #
@@ -68,24 +68,6 @@ class templateLeafClump(Clump.LeafClump):
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
 
-   #-------------------------------------------------------------------------
-
-   def show_specific(self):
-      """
-      Format the specific (non-generic) contents of the derived class.
-      Re-implementation of function in baseclass Clump.
-      """
-      ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      return ss
-
-   #-------------------------------------------------------------------------
-
-   def newinstance(self, **kwargs):
-      """Reimplementation of placeholder function in base-class Clump.
-      Make a new instance of this derived class (templateLeafClump).
-      """
-      return templateLeafClump(clump=self, **kwargs)
-
 
    #==========================================================================
    # The function .initexec() must be re-implemented for 'leaf' Clumps,
@@ -97,6 +79,12 @@ class templateLeafClump(Clump.LeafClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
+      # The data-description may be defined by means of kwargs: 
+      treequals = range(3)           # default list of tree qualifiers
+      dd = self.datadesc(complex=kwargs.get('complex',False),
+                         treequals=kwargs.get('treequals',treequals),
+                         dims=kwargs.get('dims',[1]))
+
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
       
