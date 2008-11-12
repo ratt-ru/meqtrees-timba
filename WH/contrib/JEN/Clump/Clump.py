@@ -344,6 +344,30 @@ class Clump (object):
          self.history('....................................')
       return True
 
+   #==========================================================================
+   # Fuctions that depend on whether or not the Clump has been selected:
+   #==========================================================================
+
+   def append_if_selected(self, clist=[], trace=False):
+      """If selected, append the object to the input list (clist).
+      Otherwise, do nothing. Always return the list.
+      Syntax:  clist = Clump(cp).append_if_selected(clist=[])
+      """
+      selected = self._object_is_selected
+      if not isinstance(clist,list):
+         clist = []
+      s = '\n ** .append_if_selected('+str(len(clist))+') (selected='+str(selected)+')'
+      if selected:
+         clist.append(self)
+         if trace:
+            s += ' append: '+self.oneliner()
+            self.history(s, trace=True)
+      elif trace:
+         s += ' not appended'
+         self.history(s, trace=True)
+      # Always return the list:
+      return clist
+
    #--------------------------------------------------------------------------
 
    def daisy_chain(self, trace=False):
@@ -784,16 +808,23 @@ class Clump (object):
       Its (mandatory!) counterpart is self.end_of_body(ctrl)
       It uses the record self._ctrl, defined in .on_entr()
       """
+
       self.check_for_overrides()
-      execute = True
+
       fname = self._ctrl['funcname']                 # convenience
-      if isinstance(self._ctrl['submenu'],str):
-         execute = self._TCM.submenu_is_selected(trace=False)
-      if always:                        
-         execute = True                              # override (e.g. leaf nodes)
+
+      execute = True                      
+      if not always:                        
+         if isinstance(self._ctrl['submenu'],str):
+            execute = self._TCM.submenu_is_selected(trace=False)
+
       if self._ctrl['trace']:
          print '** .execute_body(always=',always,'): fname=',fname,' execute=',execute
-      if execute:
+
+      if not execute:
+         if fname=='initexec':                       # a special case
+            self._object_is_selected = False         # see .__init__() and .daisy_chain()
+      else:
          if fname=='initexec':                       # a special case
             self._object_is_selected = True          # see .__init__() and .daisy_chain()
          self._stage['count'] += 1                   # increment
@@ -1401,7 +1432,6 @@ class LeafClump(Clump):
       # Make sure that a visible option/selection menu is generated
       # for all LeafClump classes.
       kwargs['select'] = True                           # always make a clump selection menu
-      kwargs['fixture'] = True                          # this clump is always selected
       kwargs['transfer_clump_nodes'] = False            # see Clump.__init___()
 
       # The data-description may be defined by means of kwargs:
@@ -1430,6 +1460,7 @@ class LeafClump(Clump):
       This function is called in Clump.__init__().
       See also templateLeafClump.py
       """
+      kwargs['fixture'] = True              # this clump is always selected
 
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)

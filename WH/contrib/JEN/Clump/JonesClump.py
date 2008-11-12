@@ -95,18 +95,23 @@ class JonesClump(Clump.LeafClump):
          elemtype = self.getopt('elemtype')
 
          # Create ParmClumps:
+         pc = []
          if elemtype=='amphas':
             gerrX = ParmClump.ParmClump(self, name='gerrX', default=1.0)
             perrX = ParmClump.ParmClump(self, name='perrX', default=0.0)
             gerrY = ParmClump.ParmClump(self, name='gerrY', default=1.0)
             perrY = ParmClump.ParmClump(self, name='perrY', default=0.0)
-            self._ParmClumps.extend([gerrX,perrX,gerrY,perrY])
+            pc.extend([gerrX,perrX,gerrY,perrY])
          elif elemtype=='realimag':
             rerrX = ParmClump.ParmClump(self, name='rerrX', default=1.0)
             ierrX = ParmClump.ParmClump(self, name='ierrX', default=0.0)
             rerrY = ParmClump.ParmClump(self, name='rerrY', default=1.0)
             ierrY = ParmClump.ParmClump(self, name='ierrY', default=0.0)
-            self._ParmClumps.extend([rerrX,ierrX,rerrY,ierrY])
+            pc.extend([rerrX,ierrX,rerrY,ierrY])
+
+         self._ParmClumps.extend(pc)
+         for c in pc:
+            self._orphans.extend(c._orphans)
 
          # Generate nodes:
          self._nodes = []
@@ -168,18 +173,11 @@ class XXXJones(JonesClump):
       help = 'define product of zero or more Jones matrices: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
-      self.add_option('AJones', True)
-      self.add_option('BJones', True)
-      self.add_option('CJones', True)
-
       if self.execute_body(always=True):
          jj = []
-         if self.getopt('AJones'):
-            jj.append(JonesClump(self, name='AJones'))
-         if self.getopt('BJones'):
-            jj.append(JonesClump(self, name='BJones'))
-         if self.getopt('CJones'):
-            jj.append(JonesClump(self, name='CJones'))
+         JonesClump(self, name='AJones').append_if_selected(jj)
+         JonesClump(self, name='BJones').append_if_selected(jj)
+         JonesClump(self, name='CJones').append_if_selected(jj)
 
          self.make_single_jones(jj)
          self.end_of_body(ctrl)
@@ -193,10 +191,13 @@ class XXXJones(JonesClump):
    def make_single_jones(self, jj):
       """Make a single Jones matrix from the ones collected in .initexex()
       """
+      
       self._nodes = []
       if len(jj)==0:
-         s = '** At least ONE JonesClump should be selected'
-         raise ValueError,s
+         self.history('empty Jones list: make a 2x2 complex unit matrix')
+         stub = self.unique_nodestub('unitmatrix')
+         node = stub(qual) << Meq.Matrix22(complex(1,0), complex(0,0),
+                                           complex(0,0), complex(1,0))
 
       elif len(jj)==1:
          # one only: copy its nodes
@@ -215,6 +216,7 @@ class XXXJones(JonesClump):
          
       # Copy all the ParmClumps into a single list:
       for jones in jj:
+         self.history('include Jones: '+jones.oneliner())
          jones.show('make_single_jones()')
          self._ParmClumps.extend(jones._ParmClumps)
       return True
@@ -237,7 +239,7 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      if 1:
+      if 0:
          clump = JonesClump(ns=ns, TCM=TCM,
                             trace=True)
       else:

@@ -63,6 +63,7 @@ class ParmClump(Clump.LeafClump):
       """
       Derived from class LeafClump.
       """
+      kwargs['fixture'] = True              # A ParmClump is always selected
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
 
@@ -132,7 +133,7 @@ class ParmClump(Clump.LeafClump):
                                               node_groups='Parm')
             self._nodes.append(node)
             self._parmnames.append(node.name)
-            print '\n -',str(node),' initrec: ',node.initrec()
+            # print '\n -',str(node),' initrec: ',node.initrec()
 
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
