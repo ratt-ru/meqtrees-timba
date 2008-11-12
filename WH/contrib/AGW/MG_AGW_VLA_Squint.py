@@ -129,7 +129,12 @@ def _define_forest (ns):
     pa= ns.ParAngle(p) << Meq.ParAngle(observation.phase_centre.radec(), array.xyz(p))
     ns.CosPa(p) << Meq.Cos(pa)
     ns.SinPa(p) << Meq.Sin(pa)
-#   ns.rot_matrix(p) << Meq.Matrix22(ns.CosPa(p),-1.0 * ns.SinPa(p),ns.SinPa(p),ns.CosPa(p))
+# we have a fixed position/vector on the (Ra,Dec) sky and want to obtain the 
+# position in the 'rotated' AzEl coordinate frame, which is rotated 
+# counter-clockwise relative to the sky by the parallactic angle
+# (see http://mathworld.wolfram.com/RotationMatrix.html and
+# http://www.petermeadows.com/html/parallactic.html), so we
+# use the following form of the rotation matrix ...
     ns.rot_matrix(p) << Meq.Matrix22(ns.CosPa(p), ns.SinPa(p), -1.0 * ns.SinPa(p),ns.CosPa(p))
 
 # here are the full pointing equations ...
