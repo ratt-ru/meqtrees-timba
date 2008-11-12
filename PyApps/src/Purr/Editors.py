@@ -98,11 +98,11 @@ class LogEntryEditor (QWidget):
                      self._showItemContextMenu);
     # create popup menu for existing DPs
     self._archived_dp_menu = menu = QPopupMenu();
-    qa = QAction(pixmaps.editpaste.iconset(),"Copy archived file location to clipboard",0,menu);
-    QObject.connect(qa,SIGNAL("activated()"),self._copyItemToClipboard);
-    qa.addTo(self._archived_dp_menu);
-    qa = QAction(pixmaps.editcopy.iconset(),"Restore file from archive",0,menu);
+    qa = QAction(pixmaps.editcopy.iconset(),"Restore file from this entry's archived copy",0,menu);
     QObject.connect(qa,SIGNAL("activated()"),self._restoreItemFromArchive);
+    qa.addTo(self._archived_dp_menu);
+    qa = QAction(pixmaps.editpaste.iconset(),"Copy location of archived copy to clipboard",0,menu);
+    QObject.connect(qa,SIGNAL("activated()"),self._copyItemToClipboard);
     qa.addTo(self._archived_dp_menu);
     self._current_item = None;
     # other internal init
@@ -126,8 +126,8 @@ class LogEntryEditor (QWidget):
       <DT><B>banish</B></DT><DD>data product will not appear in the log, and PURR will stop
       watching it (you can un-banish a data product later by adding it via the 
       "Add..." button.)</DD>
-      <DT><B>keep</B></DT><DD>(for existing products only) retain data product.</DD>
-      <DT><B>remove</B></DT><DD>(for existing products only) remove data product.</DD>
+      <DT><B>keep</B></DT><DD>(for existing products only) retain data product with this log entry.</DD>
+      <DT><B>remove</B></DT><DD>(for existing products only) remove data product from this log entry.</DD>
       </DL>
       """;
       
@@ -274,7 +274,7 @@ class LogEntryEditor (QWidget):
     dp = getattr(self._current_item,'_dp',None);
     if dp and dp.archived:
       msg = """<P>Do you really want to restore <tt>%s</tt> from 
-            archived file <tt>%s</tt>?</P>"""%(dp.sourcepath,dp.filename);
+            this entry's archived copy of <tt>%s</tt>?</P>"""%(dp.sourcepath,dp.filename);
       exists = os.path.exists(dp.sourcepath);
       if exists:
         msg += """<P>Current file exists, and will be overwritten.</P>""";
@@ -291,7 +291,7 @@ class LogEntryEditor (QWidget):
         if os.system("/bin/rm -fr %s"%dp.sourcepath):
           busy = None;
           QMessageBox.warning(self,"Error removing file","""<P>
-            There was an error removing %s. Archived version was not restored. 
+            There was an error removing %s. Archived copy was not restored. 
             The text console may have more information.</P>"""%dp.sourcepath,
             QMessageBox.Ok);
           return;
@@ -303,7 +303,8 @@ class LogEntryEditor (QWidget):
           QMessageBox.Ok);
         return;
       busy = None;
-      QMessageBox.information(self,"Restored file","""<P>Restored %s from archive.</P>"""%dp.sourcepath,
+      QMessageBox.information(self,"Restored file","""<P>Restored %s from this entry's 
+          archived copy.</P>"""%dp.sourcepath,
         QMessageBox.Ok);
       
       
@@ -483,12 +484,12 @@ class LogEntryEditor (QWidget):
       # first remove all items marked for removal, in case their names clash with
       # new or renamed items
       for item,dp in zip(self._dpitem_list,self.entry.dps):
-        if item._policy == "remove":
+        if item and item._policy == "remove":
           dp.remove_file();
           dp.remove_subproducts();
       # now go and change remaining items
       for item,dp in zip(self._dpitem_list,self.entry.dps):
-        if item._policy != "remove":
+        if item and item._policy != "remove":
           dp.render  = str(item.text(self.ColRender));
           dp.comment = str(item.text(self.ColComment));
           dp.rename(str(item.text(self.ColRename)));
@@ -515,7 +516,7 @@ class LogEntryEditor (QWidget):
     busy = Purr.BusyIndicator();
     self.entry = entry;
     self.setEntryTitle(entry.title);
-    self.setEntryComment(entry.comment);
+    self.setEntryComment(entry.comment.replace("\n","\n\n"));
     self.wdplv.clear();
     self.dpitems = {};
     # this will be a parallel list of items corresponding to each DP
@@ -706,6 +707,12 @@ class ExistingLogEntryDialog (QDialog):
     self.viewer_panel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     self.wstack.addWidget(self.viewer_panel);
     lo = QVBoxLayout(self.viewer_panel);
+    label = QLabel("""<P>Below is an HTML rendering of your log entry. Note that this window 
+      is only a bare-bones viewer, not a real browser. You can't click on links! To get access
+      to this entry's data products, click the Edit button below.
+      </P>""",self.viewer_panel);
+    label.setMargin(5);
+    lo.addWidget(label);
     self.viewer = QTextEdit(self.viewer_panel);
     self.viewer.setReadOnly(True);
     self.viewer.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);

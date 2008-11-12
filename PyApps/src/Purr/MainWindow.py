@@ -22,14 +22,19 @@ class HTMLViewerDialog (QDialog):
   def __init__ (self,parent,config_name=None,buttons=[],*args):
     """Creates dialog.
     'config_name' is used to get/set default window size from Config object
-    'buttons' can be a list of names or (QPixmapWrapper,name) tuples to provide custom buttons at the bottom
-    of the dialog. When a button is clicked, the dialog emits PYSIGNAL("name()").
+    'buttons' can be a list of names or (QPixmapWrapper,name[,tooltip]) tuples to provide 
+    custom buttons at the bottom of the dialog. When a button is clicked, the dialog 
+    emits PYSIGNAL("name()").
     A "Close" button is always provided, this simply hides the dialog.
     """;
     QDialog.__init__(self,parent,*args);
     self.setModal(False);
     lo = QVBoxLayout(self);
     # create viewer
+    self.label = QLabel(self);
+    self.label.setMargin(5);
+    lo.addWidget(self.label);
+    self.label.hide();
     self.viewer = QTextEdit(self);
     lo.addWidget(self.viewer);
     self.viewer.setReadOnly(True);
@@ -52,8 +57,14 @@ class HTMLViewerDialog (QDialog):
       if isinstance(name,str):
         btn = QPushButton(name,btnfr);
       elif isinstance(name,(list,tuple)):
-        pixmap,name = name;
+        if len(name) < 3:
+          pixmap,name = name;
+          tip = None;
+        else:
+          pixmap,name,tip = name;
         btn = QPushButton(pixmap.iconset(),name,btnfr);
+        if tip:
+          QToolTip.add(btn,tip);
       self._user_buttons[name] = btn;
       self.connect(btn,SIGNAL("clicked()"),self,PYSIGNAL(name+"()"));
       btnfr_lo.addWidget(btn,1);
@@ -79,7 +90,13 @@ class HTMLViewerDialog (QDialog):
     resolving images in the text""";
     self.viewer_msf.setFilePath(QStringList(path));
     self.viewer.setText(text);
-
+    
+  def setLabel (self,label=None):
+    if label is None:
+      self.label.hide();
+    else:
+      self.label.setText(label);
+      self.label.show();
 
 class MainWindow (QMainWindow):
   
@@ -192,7 +209,11 @@ class MainWindow (QMainWindow):
     self.wviewlog.setEnabled(False);
     # log viewer dialog
     self.viewer_dialog = HTMLViewerDialog(self,config_name="log-viewer",
-          buttons=[(pixmaps.blue_round_reload,"Regenerate")]);
+          buttons=[(pixmaps.blue_round_reload,"Regenerate",
+                   """<P>Regenerates your log's HTML code from scratch. This can be useful if
+                   your PURR version has changed, or if there was an error of some kind
+                   the last time the files were generated.</P>
+                   """)]);
     self._viewer_timestamp = None;
     self.connect(self.wviewlog,SIGNAL("clicked()"),self._showViewerDialog);
     self.connect(self.viewer_dialog,PYSIGNAL("Regenerate()"),self._regenerateLog);
@@ -388,6 +409,12 @@ class MainWindow (QMainWindow):
     except:
       pass;
     self.viewer_dialog.setDocument(text,os.path.dirname(self.purrer.indexfile));
+    self.viewer_dialog.setLabel("""<P>Below is your full HTML-rendered log. Note that this window 
+      is only a bare-bones viewer, not a real browser. You can't
+      click on links, or do anything else besides simply look. For a fully-functional view, use your
+      browser to look at the index file residing here:<BR>
+      <tt>%s</tt></P> 
+      """%self.purrer.indexfile);
     self._viewer_timestamp = mtime;
     
   def _setEntries (self,entries):

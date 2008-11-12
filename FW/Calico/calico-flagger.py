@@ -191,8 +191,6 @@ def add_bitflags (mqs,parent,**kw):
 def flag_ms (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
-  if not check_bitflag_column():
-    return;
   arg = dict();
   # form up list of antennas
   if flag_antennas:
@@ -235,8 +233,6 @@ stat_msgbox = None;
 def transfer_legacy_flags (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
-  if not check_bitflag_column():
-    return;
   replace = (transfer_flag_policy == "replace");
   # open progress meter if GUI available
   init_progress_dialog(parent,"Transferring legacy flags");
@@ -291,8 +287,6 @@ def get_flag_stats (mqs,parent,**kw):
 def fill_legacy_flags (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
-  if not check_bitflag_column():
-    return;
   # open progress meter if GUI available
   init_progress_dialog(parent,"Filling legacy flag column");
   # execute flagging
@@ -306,8 +300,6 @@ def fill_legacy_flags (mqs,parent,**kw):
 def clear_flagset (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
-  if not check_bitflag_column():
-    return;
   if qt and parent:
     fsets = remove_flag_selector.selected_flagsets();
     if qt.QMessageBox.question(parent,"Clearing flagsets","""<P>This will clear all 
@@ -345,8 +337,6 @@ def clear_legacy_flags (mqs,parent,**kw):
 def remove_flagset (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
-  if not check_bitflag_column():
-    return;
   fsets = remove_flag_selector.selected_flagsets();
   if qt and parent:
     if qt.QMessageBox.question(parent,"Removing flagsets","""<P>This will completely 
