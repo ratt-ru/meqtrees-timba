@@ -152,6 +152,10 @@ class Flagger (Timba.dmi.verbosity):
       self.dprintf(1,"running addbitflagcol\n");
       if os.spawnvp(os.P_WAIT,_addbitflagcol,['addbitflagcol',self.msname]):
         raise RuntimeError,"addbitflagcol failed";
+      # reopen and close to pick up new BITFLAG column
+      self._reopen();
+      self.close();
+      
       
   def remove_flagset (self,*fsnames):
     self._reopen();
@@ -169,6 +173,34 @@ class Flagger (Timba.dmi.verbosity):
     stats = self.flag(flag=flag,get_stats=True,include_legacy_stats=legacy,**kw);
     self.dprintf(1,"stats: %.2f%% of rows and %.2f%% of correlations are flagged\n",stats[0]*100,stats[1]*100);
     return stats;
+  
+  def _get_bitflag_col (self,ms,row0,nrows,shape=None):
+    """helper method. Gets the bitflag column at the specified location. On error (presumably,
+    column is missing), returns zero array of specified shape. If shape is not specified,
+    queries the DATA column to obtain it.""";
+    try:
+      return ms.getcol('BITFLAG',row0,nrows);
+    except:
+      if not shape:
+        shape = ms.getcol('DATA',row0,nrows).shape;
+      return numpy.zeros(shape,dtype=numpy.int32);
+  
+  def _get_submss (self,ms):
+    """Helper method. Splits MS into subsets by DATA_DESC_ID. 
+    Returns list of (ddid,nrows,subms) tuples, where subms is a subset of the MS with the given DDID,
+    and nrows is the number of rows in preceding submss (which is needed for progress stats)
+    """;
+    nddids = TABLE(os.path.join(ms.name(),'DATA_DESCRIPTION'),readonly=True).nrows();
+    # build up list of (ddid,nrows,subms) pairs.
+    # subms is a subset of the MS with the given DDID
+    # nrows is the number of rows in preceding submss (need for progress stats)
+    sub_mss = [];
+    nrows = 0;
+    for ddid in range(nddids):
+      subms = ms.query("DATA_DESC_ID==%d"%ddid);
+      sub_mss.append((ddid,nrows,subms));
+      nrows += subms.nrows();
+    return sub_mss;
 
   def flag (self,flag=1,unflag=0,create=False,transfer=False,
           get_stats=False,include_legacy_stats=False,
@@ -206,11 +238,13 @@ class Flagger (Timba.dmi.verbosity):
     else:
       self.dprintf(2,"no bitflags in MS, using legacy FLAG/FLAG_ROW columns\n",unflag);
     # form up list of TaQL expressions for subset selectors
+    single_ddid = None;
     queries = [];
     if taql:
       queries.append(taql);
     if ddid is not None:
       queries.append("DATA_DESC_ID==%d"%ddid);
+      single_ddid = ddid;
     if fieldid is not None:
       queries.append("FIELD_ID==%d"%ddid);
     if antennas is not None:
@@ -261,109 +295,119 @@ class Flagger (Timba.dmi.verbosity):
       flagrows = False;
     self.dprintf(2,"correlation selection is %s\n",corrs);
     stat_rows_nfl = stat_rows = stat_pixels = stat_pixels_nfl = 0;
+    # make list of sub-MSs
+    if single_ddid is not None:
+      sub_mss = [ (single_ddid,0,ms) ];
+    else:
+      sub_mss = self._get_submss(ms);
+    nrow_tot = ms.nrows();
     # go through rows of the MS in chunks
-    for row0 in range(0,ms.nrows(),self.chunksize):
+    for ddid,irow_prev,ms in sub_mss:
+      self.dprintf(2,"processing MS subset for ddid %d\n",ddid);
       if progress_callback:
-        progress_callback(row0,ms.nrows());
-      nrows = min(self.chunksize,ms.nrows()-row0);
-      self.dprintf(2,"flagging rows %d:%d\n",row0,row0+nrows-1);
-      # get mask of matching baselines
-      if baselines:
-        # init mask of all-false
-        rowmask = numpy.zeros(nrows,dtype=numpy.bool);
-        a1 = ms.getcol('ANTENNA1',row0,nrows);
-        a2 = ms.getcol('ANTENNA2',row0,nrows);
-        # update mask
-        for p,q in baselines:
-          rowmask |= (a1==p) & (a2==q);
-        self.dprintf(2,"baseline selection leaves %d rows\n",len(rowmask.nonzero()[0]));
-      # else select all rows
-      else:
-        rowmask = numpy.s_[:];
-        self.dprintf(2,"no baseline selection applied, flagging %d rows\n",nrows);
-      # form up subsets for channel/correlation selector
-      subsets = [ (rowmask,ch,corrs) for ch in multichan ];
-      # first, handle statistics mode
-      if get_stats:
-        # collect row stats
-        if include_legacy_stats:
-          lfr  = ms.getcol('FLAG_ROW',row0,nrows)[rowmask];
-          lf   = ms.getcol('FLAG',row0,nrows);
+        progress_callback(irow_prev,nrow_tot);
+      for row0 in range(0,ms.nrows(),self.chunksize):
+        if progress_callback:
+          progress_callback(irow_prev+row0,nrow_tot);
+        nrows = min(self.chunksize,ms.nrows()-row0);
+        self.dprintf(2,"flagging rows %d:%d\n",row0,row0+nrows-1);
+        # get mask of matching baselines
+        if baselines:
+          # init mask of all-false
+          rowmask = numpy.zeros(nrows,dtype=numpy.bool);
+          a1 = ms.getcol('ANTENNA1',row0,nrows);
+          a2 = ms.getcol('ANTENNA2',row0,nrows);
+          # update mask
+          for p,q in baselines:
+            rowmask |= (a1==p) & (a2==q);
+          self.dprintf(2,"baseline selection leaves %d rows\n",len(rowmask.nonzero()[0]));
+        # else select all rows
         else:
-          lfr = lf = 0;
-        if flag:
-          bfr = ms.getcol('BITFLAG_ROW',row0,nrows)[rowmask];
-          lfr = lfr + ((bfr&flag)!=0);
-          bf = ms.getcol('BITFLAG',row0,nrows);
-        stat_rows     += lfr.size;
-        stat_rows_nfl += lfr.sum();
-        for subset in subsets:
+          rowmask = numpy.s_[:];
+          self.dprintf(2,"no baseline selection applied, flagging %d rows\n",nrows);
+        # form up subsets for channel/correlation selector
+        subsets = [ (rowmask,ch,corrs) for ch in multichan ];
+        # first, handle statistics mode
+        if get_stats:
+          # collect row stats
           if include_legacy_stats:
-            lfm = lf[subset];
+            lfr  = ms.getcol('FLAG_ROW',row0,nrows)[rowmask];
+            lf   = ms.getcol('FLAG',row0,nrows);
           else:
-            lfm = 0;
+            lfr = lf = 0;
           if flag:
-            lfm = lfm + (bf[subset]&flag)!=0;
-          stat_pixels     += lfm.size;
-          stat_pixels_nfl += lfm.sum();
-      # second, handle transfer-flags mode
-      elif transfer:
-        bf = ms.getcol('BITFLAG_ROW',row0,nrows);
-        bfm = bf[rowmask];
-        if unflag:
-          bfm &= ~unflag;
-        lf = ms.getcol('FLAG_ROW',row0,nrows)[rowmask];
-        bf[rowmask] = numpy.where(lf,bfm|flag,bfm);
-        stat_rows     += lf.size;
-        stat_rows_nfl += lf.sum();
-        ms.putcol('BITFLAG_ROW',bf,row0,nrows);
-        bf = ms.getcol('BITFLAG',row0,nrows);
-        lf = ms.getcol('FLAG',row0,nrows);
-        for subset in subsets:
-          bfm = bf[subset];
+            bfr = ms.getcol('BITFLAG_ROW',row0,nrows)[rowmask];
+            lfr = lfr + ((bfr&flag)!=0);
+            bf = self._get_bitflag_col(ms,row0,nrows);
+          stat_rows     += lfr.size;
+          stat_rows_nfl += lfr.sum();
+          for subset in subsets:
+            if include_legacy_stats:
+              lfm = lf[subset];
+            else:
+              lfm = 0;
+            if flag:
+              lfm = lfm + (bf[subset]&flag)!=0;
+            stat_pixels     += lfm.size;
+            stat_pixels_nfl += lfm.sum();
+        # second, handle transfer-flags mode
+        elif transfer:
+          bf = ms.getcol('BITFLAG_ROW',row0,nrows);
+          bfm = bf[rowmask];
           if unflag:
             bfm &= ~unflag;
-          lfm = lf[subset]
-          bf[subset] = numpy.where(lfm,bfm|flag,bfm);
-          stat_pixels     += lfm.size;
-          stat_pixels_nfl += lfm.sum();
-        ms.putcol('BITFLAG',bf,row0,nrows);
-      # else, are we flagging whole rows?
-      elif flagrows:
-        if self.has_bitflags:
-          bfr = ms.getcol('BITFLAG_ROW',row0,nrows);
-          if unflag:
-            bfr[rowmask] &= ~unflag;
-            # if unflaging, also have to clear flags from BITFLAG too
-            bf = ms.getcol('BITFLAG',row0,nrows);
-            bf[rowmask,:,:] &= ~unflag;
-            ms.putcol('BITFLAG',bf,row0,nrows);
-          if flag:
-            bfr[rowmask] |= flag;
-          ms.putcol('BITFLAG_ROW',bfr,row0,nrows);
-        else:
-          lf = ms.getcol('FLAG_ROW',row0,nrows);
-          lf[rowmask] = (flag!=0);
-          ms.putcol('FLAG_ROW',lf,row0,nrows);
-      # else flagging individual correlations or channels
-      else: 
-        # apply flagmask
-        if self.has_bitflags:
-          bf = ms.getcol('BITFLAG',row0,nrows);
-          if unflag:
-            for subset in subsets:
-              bf[subset] &= ~unflag;
-          if flag:
-            for subset in subsets:
-              bf[subset] |= flag;
-          ms.putcol('BITFLAG',bf,row0,nrows);
-        else:
-          bf = ms.getcol('FLAG',row0,nrows);
+          lf = ms.getcol('FLAG_ROW',row0,nrows)[rowmask];
+          bf[rowmask] = numpy.where(lf,bfm|flag,bfm);
+          stat_rows     += lf.size;
+          stat_rows_nfl += lf.sum();
+          ms.putcol('BITFLAG_ROW',bf,row0,nrows);
+          lf = ms.getcol('FLAG',row0,nrows);
+          bf = self._get_bitflag_col(ms,row0,nrows,lf.shape);
           for subset in subsets:
-            bf[subset] = (flag!=0);
-          ms.putcol('FLAG',bf,row0,nrows);
+            bfm = bf[subset];
+            if unflag:
+              bfm &= ~unflag;
+            lfm = lf[subset]
+            bf[subset] = numpy.where(lfm,bfm|flag,bfm);
+            stat_pixels     += lfm.size;
+            stat_pixels_nfl += lfm.sum();
+          ms.putcol('BITFLAG',bf,row0,nrows);
+        # else, are we flagging whole rows?
+        elif flagrows:
+          if self.has_bitflags:
+            bfr = ms.getcol('BITFLAG_ROW',row0,nrows);
+            if unflag:
+              bfr[rowmask] &= ~unflag;
+              # if unflaging, also have to clear flags from BITFLAG too
+              bf = self._get_bitflag_col(ms,row0,nrows);
+              bf[rowmask,:,:] &= ~unflag;
+              ms.putcol('BITFLAG',bf,row0,nrows);
+            if flag:
+              bfr[rowmask] |= flag;
+            ms.putcol('BITFLAG_ROW',bfr,row0,nrows);
+          else:
+            lf = ms.getcol('FLAG_ROW',row0,nrows);
+            lf[rowmask] = (flag!=0);
+            ms.putcol('FLAG_ROW',lf,row0,nrows);
+        # else flagging individual correlations or channels
+        else: 
+          # apply flagmask
+          if self.has_bitflags:
+            bf = self._get_bitflag_col(ms,row0,nrows);
+            if unflag:
+              for subset in subsets:
+                bf[subset] &= ~unflag;
+            if flag:
+              for subset in subsets:
+                bf[subset] |= flag;
+            ms.putcol('BITFLAG',bf,row0,nrows);
+          else:
+            bf = ms.getcol('FLAG',row0,nrows);
+            for subset in subsets:
+              bf[subset] = (flag!=0);
+            ms.putcol('FLAG',bf,row0,nrows);
     if progress_callback:
-      progress_callback(ms.nrows(),ms.nrows());
+      progress_callback(nrow_tot,nrow_tot);
     stat0 = (stat_rows and stat_rows_nfl/float(stat_rows)) or 0;
     stat1 = (stat_pixels and stat_pixels_nfl/float(stat_pixels)) or 0;
     return stat0,stat1;
@@ -392,18 +436,25 @@ class Flagger (Timba.dmi.verbosity):
       raise TypeError,"flagmask argument must be int, str or sequence";
     self.dprintf(1,"filling legacy FLAG/FLAG_ROW using bitmask 0x%d\n",flagmask);
     # now go through MS and fill the column
+    # get list of per-DDID subsets
+    sub_mss = self._get_submss(ms);
+    nrow_tot = ms.nrows();
     # go through rows of the MS in chunks
-    for row0 in range(0,ms.nrows(),self.chunksize):
+    for ddid,irow_prev,ms in sub_mss:
+      self.dprintf(2,"processing MS subset for ddid %d\n",ddid);
       if progress_callback:
-        progress_callback(row0,ms.nrows());
-      nrows = min(self.chunksize,ms.nrows()-row0);
-      self.dprintf(2,"filling rows %d:%d\n",row0,row0+nrows-1);
-      bf  = ms.getcol('BITFLAG',row0,nrows);
-      bfr = ms.getcol('BITFLAG_ROW',row0,nrows);
-      ms.putcol('FLAG',(bf&flagmask).astype(Timba.array.dtype('bool')),row0,nrows);
-      ms.putcol('FLAG_ROW',(bfr&flagmask).astype(Timba.array.dtype('bool')),row0,nrows);
+        progress_callback(irow_prev,nrow_tot);
+      for row0 in range(0,ms.nrows(),self.chunksize):
+        if progress_callback:
+          progress_callback(irow_prev+row0,nrow_tot);
+        nrows = min(self.chunksize,ms.nrows()-row0);
+        self.dprintf(2,"filling rows %d:%d\n",row0,row0+nrows-1);
+        bf = self._get_bitflag_col(ms,row0,nrows,ms.getcol('FLAG').shape);
+        bfr = ms.getcol('BITFLAG_ROW',row0,nrows);
+        ms.putcol('FLAG',(bf&flagmask).astype(Timba.array.dtype('bool')),row0,nrows);
+        ms.putcol('FLAG_ROW',(bfr&flagmask).astype(Timba.array.dtype('bool')),row0,nrows);
     if progress_callback:
-      progress_callback(ms.nrows(),ms.nrows());
+      progress_callback(nrow_tot,nrow_tot);
       
   def clear_legacy_flags (self,progress_callback=None):
     """Clears the legacy FLAG/FLAG_ROW columns.
@@ -416,19 +467,26 @@ class Flagger (Timba.dmi.verbosity):
     shape[0] = self.chunksize
     fzero  = Timba.array.zeros(shape,dtype='bool');
     frzero = Timba.array.zeros((self.chunksize,),dtype='bool');
-    for row0 in range(0,ms.nrows(),self.chunksize):
+    # now go through MS and fill the column
+    # get list of per-DDID subsets
+    sub_mss = self._get_submss(ms);
+    nrow_tot = ms.nrows();
+    # go through each sub-MS, and through rows of the sub-MS in chunks
+    for ddid,irow_prev,ms in sub_mss:
+      self.dprintf(2,"processing MS subset for ddid %d\n",ddid);
       if progress_callback:
-        progress_callback(row0,ms.nrows());
-      nrows = min(self.chunksize,ms.nrows()-row0);
-      if nrows < self.chunksize:
-        fzero = fzero[:nrows,:,:];
-        frzero = frzero[:nrows];
-      self.dprintf(2,"filling rows %d:%d\n",row0,row0+nrows-1);
-      ms.putcol('FLAG',fzero,row0,nrows);
-      ms.putcol('FLAG_ROW',frzero,row0,nrows);
+        progress_callback(irow_prev,nrow_tot);
+      for row0 in range(0,ms.nrows(),self.chunksize):
+        if progress_callback:
+          progress_callback(row0+irow_prev,ms.nrows());
+        nrows = min(self.chunksize,ms.nrows()-row0);
+        self.dprintf(2,"filling rows %d:%d\n",row0,row0+nrows-1);
+        fl = ms.getcol('FLAG',row0,nrows);
+        fl[:,:,:] = False;
+        ms.putcol('FLAG',fl,row0,nrows);
+        ms.putcol('FLAG_ROW',Timba.array.zeros((nrows,),dtype='bool'),row0,nrows);
     if progress_callback:
-      progress_callback(ms.nrows(),ms.nrows());
-
+      progress_callback(nrow_tot,nrow_tot);
   
   def autoflagger (self,*args,**kw):
     return Flagger.AutoFlagger(self,*args,**kw);

@@ -741,6 +741,7 @@ class MSSelector (object):
       self.corrsel_option.set_option_list(corrlist);
       # get flagsets and notify flag selectors
       self.flagsets = get_flagsets(ms);
+      self.flagsets.load(ms);
       for sel in self._flag_selectors:
         sel.update_flagsets(self.flagsets);
       # notify content selectors
@@ -1113,6 +1114,8 @@ class Flagsets (object):
   def __init__ (self,ms):
     """Flagsets is constructed from an MS.""";
     self.msname = ms.name();
+    
+  def load (self,ms):
     self._wc_callbacks = [];
     if not 'BITFLAG' in ms.colnames():
       self.order = None;

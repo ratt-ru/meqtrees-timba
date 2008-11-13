@@ -316,6 +316,25 @@ def clear_flagset (mqs,parent,**kw):
   finally:
     progress_callback(100,100);
 
+def clear_bitflags (mqs,parent,**kw):
+  if not flagger:
+    raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
+  if qt and parent:
+    fsets = remove_flag_selector.selected_flagsets();
+    if qt.QMessageBox.question(parent,"Clearing bitflags","""<P>This will clear all bitflags in
+          all flagsets. Click OK to proceed.</P>""",
+          qt.QMessageBox.Ok,qt.QMessageBox.Cancel) != qt.QMessageBox.Ok:
+      return;
+  # open progress meter if GUI available
+  init_progress_dialog(parent,"Clearing bitflags");
+  # execute flagging
+  try:
+    flagger.unflag(-1,
+                   progress_callback=progress_callback);
+    flagger.close();
+  finally:
+    progress_callback(100,100);
+
 def clear_legacy_flags (mqs,parent,**kw):
   if not flagger:
     raise RuntimeError,"Flagger not available, perhaps MS was not specified?";
@@ -363,6 +382,8 @@ flag_ms_opt         = TDLRuntimeJob(flag_ms,"Run the flagger");
 transfer_opt        = TDLRuntimeJob(transfer_legacy_flags,"Transfer FLAG/FLAG_ROW column into this flagset")
 fill_opt            = TDLRuntimeJob(fill_legacy_flags,"Fill FLAG/FLAG_ROW from these flagsets")
 get_stat_opt        = TDLRuntimeJob(get_flag_stats,"Get statistics")
+clear_bf_opt        = TDLRuntimeJob(clear_bitflags,"Clear all bitflags",
+  doc="""Clears all bitflag columns completely. Use this option if your BITFLAG columns are in error somehow""");
 clear_fs_opt        = TDLRuntimeJob(clear_flagset,"Clear selected flagset(s)",
   doc="""Clears all flags in the selected flagset(s), but does not remove the flagsets.""");
 clear_legacy_opt    = TDLRuntimeJob(clear_legacy_flags,"Clear flags from FLAG/FLAG_ROW columns");
@@ -370,7 +391,7 @@ remove_fs_opt       = TDLRuntimeJob(remove_flagset,"Remove selected flagset(s)",
   doc="""Completely removes the selected flagsets.""");
 
 ms_job_options = [ view_ms_opt,run_autoflagger_opt,flag_ms_opt,transfer_opt,clear_legacy_opt,
-                   get_stat_opt,clear_fs_opt,remove_fs_opt,add_bitflag_opt ];
+                   get_stat_opt,clear_bf_opt,clear_fs_opt,remove_fs_opt,add_bitflag_opt ];
 
 TDLRuntimeMenu("View MS data & flags",
   *( mssel.runtime_options() +
@@ -397,7 +418,7 @@ remove_flag_selector = mssel.make_read_flag_selector(namespace='rm_fl',
     legacy=False,label="Flagset %s",doc="");
 remove_menu = TDLRuntimeMenu("Remove or clear flagset(s)",
   *(remove_flag_selector.option_list() +
-    [clear_fs_opt,remove_fs_opt])
+    [clear_fs_opt,remove_fs_opt,clear_bf_opt])
   );
 
 fill_flag_selector = mssel.make_read_flag_selector(namespace='fill_fl',legacy=False);
