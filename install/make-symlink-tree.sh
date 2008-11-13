@@ -82,7 +82,7 @@ END
 fi
 
 cd ../lib
-for libname in `find ../../../ -name "*so" -o -name "*.so.[0-9]*" | grep -v svn-base | grep -v symlinked-$flavour | grep $flavour`; do
+for libname in `find ../../../ -name "*so" -o -name "*.so.[0-9]*" | grep -v svn-base | grep -v symlinked-$flavour | grep /$flavour/`; do
   ln-s $libname
 done
 
