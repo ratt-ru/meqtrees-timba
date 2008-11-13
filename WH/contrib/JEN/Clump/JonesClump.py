@@ -109,9 +109,10 @@ class JonesClump(Clump.LeafClump):
             ierrY = ParmClump.ParmClump(self, name='ierrY', default=0.0)
             pc.extend([rerrX,ierrX,rerrY,ierrY])
 
-         self._ParmClumps.extend(pc)
+         # Connect orphans, stubtree etc, and add the ParmClumps to
+         # its own list of ParmClumps (self._ParmClumps).
          for c in pc:
-            self._orphans.extend(c._orphans)
+            self.connect_grafted_clump(c)
 
          # Generate nodes:
          self._nodes = []
@@ -214,11 +215,13 @@ class XXXJones(JonesClump):
             node = stub(qual) << Meq.MatrixMultiply(*cc)
             self._nodes.append(node)
          
-      # Copy all the ParmClumps into a single list:
+      # Connect orphans, stubtree etc, and add the ParmClumps to
+      # its own list of ParmClumps (self._ParmClumps).
       for jones in jj:
-         self.history('include Jones: '+jones.oneliner())
-         jones.show('make_single_jones()')
-         self._ParmClumps.extend(jones._ParmClumps)
+         # self.history('include Jones: '+jones.oneliner())
+         # jones.show('make_single_jones()')
+         self.connect_grafted_clump(jones)
+
       return True
       
 

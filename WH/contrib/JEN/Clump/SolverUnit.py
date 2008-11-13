@@ -103,8 +103,15 @@ class SolverUnit(Clump.Clump):
 
       solver = None
       if self.execute_body():
+
+         # Connect orphans, stubtree etc, and transfer ParmClumps!
+         # But ONLY if this clump is actually executed (i.e. selected) 
+         self.connect_grafted_clump (self._other)
+
+         # Get option values:
          num_iter = self.getopt('num_iter')
-         
+
+         # Make MeqCondeqs:
          stub = self.unique_nodestub()
          condeqs = []
          # print self._other.oneliner()
@@ -114,12 +121,24 @@ class SolverUnit(Clump.Clump):
             self._nodes[i] = node
             condeqs.append(node)
 
-         solvable = self.solvable_parms()
-         solvable.extend(self._other.solvable_parms())
+         # Make MeqSolver:
+         if True:
+            solvable = []
+            for pc in self._ParmClumps:
+               ss = pc.solspec(select=True)
+               solvable.extend(ss)
+               s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
+               s += 'solvable MeqParms from: '+pc.oneliner()
+               self.history(s)
+         else:
+            # Obsolete...?
+            solvable = self.solvable_parms()
+            solvable.extend(self._other.solvable_parms())
          solver = stub('solver') << Meq.Solver(children=condeqs,
                                                num_iter=num_iter,
                                                solvable=solvable)
          self._solver = solver
+
          # Insert ReqSeq node(s) in the trees of the input clump.
          # These will issue a request first to the solver,
          # but pass on the result of the trees.
@@ -204,8 +223,8 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    clump = None
    if TCM.submenu_is_selected():
-      # clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-      clump = TwigClump.Twig(ns=ns, TCM=TCM, trace=True)
+      clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
+      # clump = TwigClump.Twig(ns=ns, TCM=TCM, trace=True)
       other = ParmClump.ParmClump(clump, trace=True)
       su = SolverUnit(clump, other, trace=True)
       su.visualize()
@@ -234,8 +253,8 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      # clump = Clump.LeafClump(trace=True)
-      clump = TwigClump.Twig(twig='f+t', trace=True)
+      clump = Clump.LeafClump(trace=True)
+      # clump = TwigClump.Twig(twig='f+t', trace=True)
       clump.show('creation', full=True)
       other = ParmClump.ParmClump(clump, trace=True)
       other.show('other', full=True)

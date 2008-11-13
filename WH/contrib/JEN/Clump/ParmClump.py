@@ -67,6 +67,17 @@ class ParmClump(Clump.LeafClump):
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
 
+   #-------------------------------------------------------------------------
+
+   def show_specific(self):
+      """
+      Format the specific (non-generic) contents of the class.
+      Placeholder for re-implementation in derived class.
+      """
+      ss = '\n + Specific (derived class '+str(self._typename)+'):'
+      ss += '\n + MeqParm[0].initrec(): '+str(self[0].initrec())
+      # ss += '\n + ...'
+      return ss
 
    #==========================================================================
    # The function .initexec() must be re-implemented for 'leaf' Clumps,
@@ -75,13 +86,90 @@ class ParmClump(Clump.LeafClump):
    #==========================================================================
 
    def initexec (self, **kwargs):
-      """Fill the LeafClump object with suitable leaf nodes.
+      """Fill the ParmClump object with suitable MeqParm nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
       help = 'definition of a set of similar MeqParms: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
       default = kwargs.get('default',0.0)
+
+      if False:
+         # See self.solspec() below
+         self.add_option('fdeg', range(6),
+                         help='freq deg of polc',
+                         prompt='freq deg')
+         self.add_option('tdeg', range(6),
+                         help='time deg of polc',
+                         prompt='time deg')
+         
+         self.add_option('nftile', [None,1,2,3,4,5,10], more=int,
+                         help="size (freq-cells) of solving subtile")
+         self.add_option('nttile', [None,1,2,3,4,5,10], more=int,
+                         help="size (time-cells) of solving subtile")
+         
+         self.add_option('solvable', False,
+                         prompt='solvable')
+      
+      self.add_option('use_previous', True, hide=True,
+                      help='if True, use the previous solution',
+                      prompt='use_previous')
+      self.add_option('mepfile', [None,'test.mep'], more=str, hide=True,
+                      help='name of the file that contains the parmtable',
+                      prompt='.mep file')
+
+      # Execute always (always=True) , to ensure that the leaf Clump has nodes!
+      if self.execute_body(always=True):           
+
+         mepfile = self.getopt('mepfile')
+         use_previous = self.getopt('use_previous')
+         if False:
+            tdeg = self.getopt('tdeg')
+            fdeg = self.getopt('fdeg')
+            nt = self.getopt('nttile')
+            nf = self.getopt('nftile')
+            tiling = record(freq=nf, time=nt)
+            # See self.solvable_parms()
+            self._solvable = self.getopt('solvable')
+
+         self._nodes = []
+         self._parmnames = []
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self._nodequals):
+            qd = 'dflt='+str(default)
+            node = stub(qual)(qd) << Meq.Parm(default,
+                                              table_name=mepfile,
+                                              use_previous=use_previous,
+                                              # shape=[2,1],                # testing...
+                                              # tiling=tiling,
+                                              # tags=['tag1','tag2'],
+                                              node_groups='Parm')
+            self._nodes.append(node)
+            self._parmnames.append(node.name)
+            # print '\n -',str(node),' initrec: ',node.initrec()
+
+         # A ParmClump object is itself the only entry in its list of ParmClumps:
+         self._ParmClumps = [self]
+
+         # Mandatory counterpart of self.execute_body()
+         self.end_of_body(ctrl)
+
+      # Mandatory counterpart of self.on_entry()
+      return self.on_exit(ctrl)
+
+
+   #============================================================================
+   #============================================================================
+
+   
+   def solspec (self, **kwargs):
+      """
+      A menu for the specification of the solving parameters for its MeqParms.
+      It returns a list of solvable parms, to be given to a MeqSolver. 
+      """
+      help = 'specify solving parameters for the MeqParms of: '+self.oneliner()
+      ctrl = self.on_entry(self.solspec, help=help, **kwargs)
+
 
       self.add_option('fdeg', range(6),
                       help='freq deg of polc',
@@ -95,56 +183,45 @@ class ParmClump(Clump.LeafClump):
       self.add_option('nttile', [None,1,2,3,4,5,10], more=int,
                       help="size (time-cells) of solving subtile")
 
-      self.add_option('solvable', False,
-                      prompt='solvable')
-      
-      self.add_option('use_previous', True, hide=True,
-                      help='if True, use the previous solution',
-                      prompt='use_previous')
-      self.add_option('mepfile', [None,'test.mep'], more=str, hide=True,
-                      help='name of the file that contains the parmtable',
-                      prompt='.mep file')
-
-      # Execute always (always=True) , to ensure that the leaf Clump has nodes!
+      solvable = []         # return a list of solvable MeqParm names
       if self.execute_body(always=True):           
 
          tdeg = self.getopt('tdeg')
          fdeg = self.getopt('fdeg')
-         mepfile = self.getopt('mepfile')
-         use_previous = self.getopt('use_previous')
          nt = self.getopt('nttile')
          nf = self.getopt('nftile')
          tiling = record(freq=nf, time=nt)
 
-         # See self.solvable_parms()
-         self._solvable = self.getopt('solvable')
-
-         self._nodes = []
-         self._parmnames = []
-         stub = self.unique_nodestub()
          for i,qual in enumerate(self._nodequals):
-            qd = 'dflt='+str(default)
-            node = stub(qual)(qd) << Meq.Parm(default,
-                                              shape=[tdeg+1,fdeg+1],
-                                              tiling=tiling,
-                                              table_name=mepfile,
-                                              use_previous=use_previous,
-                                              # tags=['tag1','tag2'],
-                                              node_groups='Parm')
-            self._nodes.append(node)
-            self._parmnames.append(node.name)
-            # print '\n -',str(node),' initrec: ',node.initrec()
-
-         # Mandatory counterpart of self.execute_body()
+            rr = self._nodes[i].initrec()
+            if i==0:
+               print '  initrec(before):',rr
+            rr.shape = [tdeg+1,fdeg+1]          # change rr.init_funklet too?
+            rr.tiling = tiling,
+            if i==0:
+               print '  - tiling =',rr.tiling
+               print '  - shape =',rr.shape
+               print '  initrec(after):',self._nodes[i].initrec()
+            solvable.append(self._nodes[i].name)
+         if True:
+            print '\n** Solvable MeqParms for: ',self.oneliner()
+            for i,name in enumerate(solvable):
+               print '-',name
+            print
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
-      return self.on_exit(ctrl)
+      return self.on_exit(ctrl, result=solvable)
 
 
    #============================================================================
 
-   def solvable_parms (self, trace=False):
+   
+
+
+   #============================================================================
+
+   def solvable_parms_obsolete (self, trace=False):
       """
       Re-implementation of the Clump placeholder function.
       If solvable: Return a list of solvable parm-names.
@@ -183,11 +260,11 @@ def do_define_forest (ns, TCM):
       clump = ParmClump(ns=ns, TCM=TCM,
                         name='GgainY', default=2.3,
                         treequals=range(10)+list('ABCD'),         # WSRT
-                        # tdeg=2,                                   # override
+                        select=True,
                         trace=True)
-      if True:
-         for i in clump.indices():
-            node = ns.test(i) << Meq.Identity(clump[i])
+      solvable = clump.solspec(select=True)
+                        # tdeg=2,                                   # override
+      print '\n** solvable =',solvable,'\n'
       # clump.visualize()
 
    # The LAST statement:
@@ -227,9 +304,14 @@ if __name__ == '__main__':
    if 1:
       clump.show('creation', full=True)
 
-   if 1:
+   if 0:
       clump1 = ParmClump(clump, name='other')
       clump1.show('clump1')
+
+   if 1:
+      solvable = clump.solspec()
+      print '-> solvable =',solvable
+      clump.show('after solspec()')
 
    if 0:
       clump.solvable_parms(trace=True)

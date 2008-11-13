@@ -64,12 +64,12 @@ from Timba.Contrib.JEN.Clump import templateClump as ClumpClass
 # from Timba.Contrib.JEN.Clump import TwigClump as ClumpClass
 
 from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
+from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
 
 # from Timba.Contrib.JEN.Clump import CorruptClump as ClumpClass
 
 #### The base-class has all the specific functions, e.g. .visualize()
-from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
+# from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
 
 #### The following contain multiple classes (GJones,FJones,EJones etc):
 # from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass

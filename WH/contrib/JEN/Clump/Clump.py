@@ -106,13 +106,10 @@ class Clump (object):
       self._ns = kwargs.get('ns',None)
       self._TCM = kwargs.get('TCM',None)
 
-      # A Clump object has a "rider", i.e. a dict that contains user-defined
-      # information, and is passed on from Clump to Clump.
-      # All interactions with the rider should use the function self.rider()
-      self._rider = dict()
-
-      #......................................................................
-
+      # A Clump objects operates in successive named/counted 'stages'.
+      # This is used to generate nodenames: See self.unique_nodestub().
+      # Some of this information is passed from clump to clump.
+      self._stage = dict(name=None, count=-1, ops=-1, ncopy=0, isubmenu=-1) 
 
       # A Clump object maintains a history of itself:
       self._history = None                  # see self.history()
@@ -123,18 +120,17 @@ class Clump (object):
       # Any ParmClumps are passed along (e.g. see SolverUnit.py)
       self._ParmClumps = []
 
-      # See self.unique_nodestub()
-      self._stubtree = None
-
       # See .on_entry(), .execute_body(), .end_of_body(), .on_exit() 
       self._ctrl = None
 
-      # A Clump objects operates in successive named/counted 'stages'.
-      # This is used to generate nodenames: See self.unique_nodestub().
-      # Some of this information is passed from clump to clump.
-      self._stage = dict(name=None, count=-1, ops=-1, ncopy=0, isubmenu=-1) 
-
+      # This is used to override option values by means of arguments:
       self._override = dict()
+
+      # A Clump object has a "rider", i.e. a dict that contains user-defined
+      # information, and is passed on from Clump to Clump.
+      # All interactions with the rider should use the function self.rider()
+      self._rider = dict()
+
 
       #......................................................................
       # Transfer definition information from the input Clump (if supplied).
@@ -157,6 +153,10 @@ class Clump (object):
 
       if not self._ns:
          self._ns = NodeScope()      
+
+      # Initialise self._stubtree (see .unique_nodestub()):
+      self._stubtree = None
+      self.unique_nodestub()
 
       #......................................................................
       # Fill self._nodes (the Clump tree nodes) etc.
@@ -332,18 +332,38 @@ class Clump (object):
          self._nodes = []
          for i,node in enumerate(clump._nodes):
             self._nodes.append(node)
-
          self._composed = clump._composed
          self._nodequals = clump._nodequals
+
+         # Connect orphans, stubtrees, history, ParmClumps etc
          self._stubtree = clump._stubtree
          self._orphans = clump._orphans
          self._ParmClumps = clump._ParmClumps
-      
+
+         # NB: Move this bit to self.connect_with_clump() (with indent?)
          self._history = clump.history()          # note the use of the function
          self.history('The end of the pre-history copied from: '+clump.oneliner())
          self.history('....................................')
       return True
 
+
+   #--------------------------------------------------------------------------
+
+   def connect_grafted_clump (self, clump, trace=False):
+      """Connect the given clump, assuming it is grafted on the main steam,
+      e.g. when JonesClumps are used to correct VisClumps.
+      Thus, this is slightly different from what is done in the function
+      self.transfer_clump_nodes(), which merely continues the mainstream.
+      """
+      stub = self.unique_nodestub('connect')
+      node = stub('stubtree') << Meq.Add(self._stubtree, clump._stubtree)
+      self._orphans.extend(clump._orphans)                 # group them first?
+      self._ParmClumps.extend(clump._ParmClumps)       
+      s = '.connect_with_clump(): '+str(clump.oneliner())
+      self.history(s)
+      return True
+
+   
    #==========================================================================
    # Fuctions that depend on whether or not the Clump has been selected:
    #==========================================================================
@@ -1467,6 +1487,7 @@ class LeafClump(Clump):
 
       # Execute always (always=True), to ensure that the leaf Clump has nodes:
       if self.execute_body(always=True):
+         dd = self.datadesc()
          nelem = dd['nelem']
          self._nodes = []
          stub = self.unique_nodestub('const')
@@ -1582,7 +1603,7 @@ if __name__ == '__main__':
       new = clump.copy(unops='Cos')
       new.show('new', full=True)
 
-   if 1:
+   if 0:
       unops = 'Cos'
       # unops = ['Cos','Cos','Cos']
       unops = 'Cos Sin'
