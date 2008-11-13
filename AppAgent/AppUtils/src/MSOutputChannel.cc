@@ -261,61 +261,14 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   if( use_bitflag_col_ && ( write_bitflag_ || write_legacy_flags_ ) )
   {
     const TableDesc &td = ms_.tableDesc();
-    if( !td.isColumn("BITFLAG") ) 
+    if( td.isColumn("BITFLAG") && td.isColumn("BITFLAG_ROW") )
     {
-      ArrayColumnDesc<Int> coldesc("BITFLAG",
-                            "added by MSOutputAgent",
-                            null_bitflag_cell_.shape(),
-                            ColumnDesc::Direct|ColumnDesc::FixedShape);
-      const ColumnDesc &cd = td.columnDesc("FLAG");
-      // tiled column -- add a tiled data manager
-      string dmtype = cd.dataManagerType();
-      if( dmtype.length() > 5 && !dmtype.compare(0,5,"Tiled") )
-      {
-        // get tile shape from storage manager of FLAG column
-        ROTiledStManAccessor acc(ms_,cd.dataManagerGroup());
-        IPosition tileShape(acc.tileShape(0));
-        // create a tiled storage manager with the same shape
-        TiledColumnStMan stman("Tiled_BITFLAG",acc.tileShape(0));
-        cdebug(1)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()
-                <<", TiledColumnStMan data manager with shape "<<acc.tileShape(0)<<endl;
-        ms_.addColumn(coldesc,stman);
-      }
-      // else add using a standard data manager
-      else
-      {
-        cdebug(1)<<"creating new column BITFLAG, shape "<<null_bitflag_cell_.shape()
-                <<" using the default data manager"<<endl;
-        ms_.addColumn(coldesc);
-      }
+      cdebug(2)<<"attaching to columns BITFLAG and BITFLAG_ROW\n";
+      bitflagCol_.attach(ms_,"BITFLAG");
+      rowBitflagCol_.attach(ms_,"BITFLAG_ROW");
     }
-    cdebug(2)<<"attaching to column BITFLAG";
-    bitflagCol_.attach(ms_,"BITFLAG");
-    // write bitflag names, if provided
-    if( write_bitflag_ )
-    {
-      std::vector<string> bitflag_names;
-      params_[FBitflagName].get_vector(bitflag_names);
-      if( bitflag_names.size() )
-      {
-        Vector<String> anames(bitflag_names.size());
-        for( uint i=0; i<bitflag_names.size(); i++ )
-          anames[i] = bitflag_names[i];
-        // put name into the bitflag column
-        bitflagCol_.rwKeywordSet().define("NAMES",anames);
-      }
-    }
-    // setup the BITFLAG_ROW column
-    if( !td.isColumn("BITFLAG_ROW") ) 
-    {
-      cdebug(2)<<"creating new column BITFLAG_ROW"<<endl;
-      ScalarColumnDesc<Int> coldesc("BITFLAG_ROW",
-                              "added by MSOutputAgent");
-      IncrementalStMan stman("ISM_BITFLAG_ROW");
-      ms_.addColumn(coldesc,stman);
-    }
-    cdebug(2)<<"attaching to column BITFLAG_ROW\n";
-    rowBitflagCol_.attach(ms_,"BITFLAG_ROW");
+    else
+      use_bitflag_col_ = false;
   }
   cdebug(2)<<"got header for MS "<<msname_<<endl;
   cdebug(2)<<"  orig shape: "<<origshape<<endl;
@@ -384,30 +337,52 @@ void MSOutputChannel::doPutTile (const VTile &tile)
         // read in current bitflag column
         int rflag = (rowBitflagCol_(irow)&ms_flagmask_)|(rowflag&tile_flagmask_?tile_bitflag_:0);
         Matrix<Int> abitflags;
-        bitflagCol_.getSlice(irow,column_slicer_,abitflags);
+        bool has_abitflags = false;
+        try
+        {
+          bitflagCol_.getSlice(irow,column_slicer_,abitflags);
+          has_abitflags = true;
+        }
+        // error probably means uninitialized column, we'll fill it below
+        catch( std::exception &exc )
+        {
+          cdebug(1)<<"Failed to read BITFLAG/BITFLAG_ROW, assuming null bitflags\n";
+          cdebug(1)<<"Error was: "<<exc.what()<<endl;
+        }
         // if writing bitflags, apply masks and write out
         if( write_bitflag_ )
         {
           rflag = (rflag&ms_flagmask_)|(rowflag&tile_flagmask_?tile_bitflag_:0);
           rowBitflagCol_.put(irow,rflag);
-          for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++ )
-            (*iter) &= ms_flagmask_;
+          if( has_abitflags )
+          {
+            for( Matrix<Int>::iterator miter = abitflags.begin(); miter != abitflags.end(); miter++ )
+              (*miter) &= ms_flagmask_;
+          }
           if( tile_flagmask_ )
           {
-            Matrix<Int> abitflags_add;
             LoMat_int tileflags(iter.flags().shape());
             tileflags = where(iter.flags()&tile_flagmask_,tile_bitflag_,0);
             if( flip_freq_ )
               tileflags.reverseSelf(blitz::secondDim);
-            B2A::copyArray(abitflags_add,tileflags);
-            Matrix<Int>::const_iterator iter2 = abitflags_add.begin();
-            for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++,iter2++ )
-              (*iter) |= (*iter2);
+            if( has_abitflags )
+            {
+              Matrix<Int> abitflags_add;
+              B2A::copyArray(abitflags_add,tileflags);
+              Matrix<Int>::const_iterator iter2 = abitflags_add.begin();
+              for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++,iter2++ )
+                (*iter) |= (*iter2);
+            }
+            else
+            {
+              B2A::copyArray(abitflags,tileflags);
+              has_abitflags = true;
+            }
           }
           bitflagCol_.putSlice(irow,column_slicer_,abitflags);
         }
         // if writing legacy flags, apply masks and write out
-        if( write_legacy_flags_ )
+        if( write_legacy_flags_ && has_abitflags )
         {
           rowFlagCol_.put(irow,(rflag&legacy_flagmask_) != 0);
           Matrix<Bool> aflags(abitflags.shape());

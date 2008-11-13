@@ -543,18 +543,27 @@ int MSInputChannel::refillStream ()
         // read bitflag columns, if available
         if( has_bitflags_ && flagmask_ )
         {
-          Cube<Int> bitflagcube1 = ROArrayColumn<Int>(table,"BITFLAG").getColumn();
-          B2A::copyArray(bitflagcube,bitflagcube1);
-          bitflagcube &= flagmask_;
-          Vector<Int> bitflagvec1 = ROScalarColumn<Int>(table,"BITFLAG_ROW").getColumn();
-          B2A::copyArray(bitflagvec,bitflagvec1);
-          bitflagvec &= flagmask_;
-          if( tile_bitflag_ )
+          try
           {
-            bitflagcube = where(bitflagcube,tile_bitflag_,0);
-            bitflagvec = where(bitflagvec,tile_bitflag_,0);
+            Cube<Int> bitflagcube1 = ROArrayColumn<Int>(table,"BITFLAG").getColumn();
+            Vector<Int> bitflagvec1 = ROScalarColumn<Int>(table,"BITFLAG_ROW").getColumn();
+            B2A::copyArray(bitflagcube,bitflagcube1);
+            bitflagcube &= flagmask_;
+            B2A::copyArray(bitflagvec,bitflagvec1);
+            bitflagvec &= flagmask_;
+            if( tile_bitflag_ )
+            {
+              bitflagcube = where(bitflagcube,tile_bitflag_,0);
+              bitflagvec = where(bitflagvec,tile_bitflag_,0);
+            }
+            hasflags = true;
           }
-          hasflags = true;
+          // error probably means column is there, but is variable shape and hasn't been initialized yet
+          catch( std::exception &exc )
+          {
+            cdebug(2)<<"Failed to read BITFLAG/BITFLAG_ROW, assuming null bitflags\n";
+            cdebug(2)<<"Error was: "<<exc.what()<<endl;
+          }
         }
         // read legacy flag columns, if available
         if( legacy_bitflag_ )

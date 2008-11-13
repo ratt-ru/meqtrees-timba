@@ -117,30 +117,52 @@ void MSSeqOutputChannel::flushOutputTiles ()
           // read in the bitflag columns
           int rowflag = rowBitflagCol_(msrow);
           Matrix<Int> abitflags;
-          bitflagCol_.getSlice(msrow,column_slicer_,abitflags);
+          bool has_abitflags = false;
+          try
+          {
+            bitflagCol_.getSlice(msrow,column_slicer_,abitflags);
+            has_abitflags = true;
+          }
+          // error probably means uninitialized column, we'll fill it below
+          catch( std::exception &exc )
+          {
+            cdebug(1)<<"Failed to read BITFLAG/BITFLAG_ROW, assuming null bitflags\n";
+            cdebug(1)<<"Error was: "<<exc.what()<<endl;
+          }
           // if writing bitflags, apply masks and write back
           if( write_bitflag_ )
           {
             rowflag = (rowflag&ms_flagmask_)|(tile.rowflag(tm.tile_row)&tile_flagmask_?tile_bitflag_:0);
             rowBitflagCol_.put(msrow,rowflag);
-            for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++ )
-              (*iter) &= ms_flagmask_;
+            if( has_abitflags )
+            {
+              for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++ )
+                (*iter) &= ms_flagmask_;
+            }
             if( tile.defined(VTile::FLAGS) && tile_flagmask_ )
             {
               LoMat_int int_flags = tile.flags()(LoRange::all(),LoRange::all(),tm.tile_row);
               int_flags = where(int_flags&tile_flagmask_,tile_bitflag_,0);
               if( flip_freq_ )
                 int_flags.reverseSelf(blitz::secondDim);
-              Matrix<Int> abitflags_add;
-              B2A::copyArray(abitflags_add,int_flags);
-              Matrix<Int>::const_iterator iter2 = abitflags_add.begin();
-              for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++,iter2++ )
-                (*iter) |= (*iter2);
+              if( has_abitflags )
+              {
+                Matrix<Int> abitflags_add;
+                B2A::copyArray(abitflags_add,int_flags);
+                Matrix<Int>::const_iterator iter2 = abitflags_add.begin();
+                for( Matrix<Int>::iterator iter = abitflags.begin(); iter != abitflags.end(); iter++,iter2++ )
+                  (*iter) |= (*iter2);
+              }
+              else
+              {
+                B2A::copyArray(abitflags,int_flags);
+                has_abitflags = true;
+              }
             }
             bitflagCol_.putSlice(msrow,column_slicer_,abitflags);
           }
           // if writing legacy flags, apply legacy flagmasks and write
-          if( write_legacy_flags_ )
+          if( write_legacy_flags_ && has_abitflags )
           {
             rowFlagCol_.put(msrow,(rowflag&legacy_flagmask_) != 0);
             Matrix<Bool> aflags(abitflags.shape());
