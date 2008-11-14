@@ -219,26 +219,6 @@ class ParmClump(Clump.LeafClump):
    
 
 
-   #============================================================================
-
-   def solvable_parms_obsolete (self, trace=False):
-      """
-      Re-implementation of the Clump placeholder function.
-      If solvable: Return a list of solvable parm-names.
-      Otherwise, return an empty list.
-      """
-      # trace = True
-      # self._solvable = True                    # for testing
-      result = []
-      if self._solvable:
-         result = self._parmnames
-      if trace:
-         print '\n ** .solvable_parms(): '+str(self._solvable)+','+str(len(result))+'/'+str(self.size())+':'
-         if result: print '    ->',result
-      return result
-
-
-
 
 
 #********************************************************************************
@@ -312,9 +292,6 @@ if __name__ == '__main__':
       solvable = clump.solspec()
       print '-> solvable =',solvable
       clump.show('after solspec()')
-
-   if 0:
-      clump.solvable_parms(trace=True)
 
    if 0:
       clump.compose()

@@ -1078,10 +1078,11 @@ class Clump (object):
       The internal state of the object is not changed.
       """
       combine = kwargs.get('combine','Composer')
+      name = kwargs.get('name',combine)
       wgt = kwargs.get('weights',None)                 # for WSum,WMean
 
-      stub = self.unique_nodestub(combine)
-      qual = 'bundle'+str(len(self._nodes))
+      stub = self.unique_nodestub(name)
+      qual = 'n='+str(len(self._nodes))
       if not self._composed:                              
          if wgt:
             node = stub(qual) << getattr(Meq,combine)(children=self._nodes,
@@ -1094,8 +1095,8 @@ class Clump (object):
          s = hist+' Clump is in composed state **'
          raise ValueError,s
       
-      hist = '.bundle('+str(combine)+'): '
-      self.history(hist, trace=kwargs.get('trace',False))
+      hist = '.bundle('+str(combine)+')'
+      # self.history(hist, trace=kwargs.get('trace',False))
       return node
 
    #-------------------------------------------------------------------------
@@ -1146,19 +1147,9 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
-   #============================================================================
+   #=========================================================================
    # Solver support functions:
    #=========================================================================
-
-   def solvable_parms (self, trace=False):
-      """
-      Place-holder function, expected in all Clump classes.
-      This version always return an emply list.
-      See also ParmClump.py
-      """
-      return []
-
-   #--------------------------------------------------------------------------
 
    def insert_reqseqs (self, node, trace=False):
       """ Insert a ReqSeq (in every tree!) that issues a request first to
@@ -1258,6 +1249,44 @@ class Clump (object):
    # Visualization:
    #=========================================================================
 
+   def make_bookmark (self, nodes, name=None,
+                      bookpage=None, folder=None,
+                      recurse=0,
+                      viewer='Result Plotter', ):
+      """Make a bookmark for the specified nodes, with the specified
+      bookpage[=None], folder[=None] and viewer[='Result Plotter']
+      """
+      if not isinstance(folder,str):
+         folder = self._name
+      JEN_bookmarks.create(nodes,
+                           name=(name or bookpage),
+                           folder=folder,
+                           recurse=recurse,
+                           viewer=viewer)
+      # Alternative: Meow bookmarks.....
+      return True
+
+   #--------------------------------------------------------------------
+
+   def make_bookmark_help(self, node, help=None, bookmark=True, trace=False):
+      """Attach the given help to the quickref_help field of the given node
+      and make a bookmark with the QuickRef Viewer.
+      If bookmark=False, just attach the help, but do not make the bookmark.
+      """
+      # trace = True
+      initrec = node.initrec()
+      if trace:
+         print '\n** make_bookmark_help(',str(node),'): initrec =',initrec
+      initrec.quickref_help = str(help)
+      if trace:
+         print '   -> ',node.initrec(),'\n'
+      if bookmark:
+         self.make_bookmark(node, viewer='QuickRef Display')
+      return node
+
+   #---------------------------------------------------------------------
+   #---------------------------------------------------------------------
+
    def visualize (self, **kwargs):
       """Choice of various forms of visualization.
       """
@@ -1292,13 +1321,13 @@ class Clump (object):
       help = 'make an inspector-plot (Collections Plotter) of the tree nodes'
       ctrl = self.on_entry(self.inspector, prompt, help, **kwargs)
 
-      if self.execute_body():
-         bundle = self.bundle()
+      if self.execute_body(hist=False):
+         bundle = self.bundle(name='inspector')
          bundle.initrec().plot_label = self._datadesc['treelabels']     # list of strings!
          self._orphans.append(bundle)
-         JEN_bookmarks.create(bundle,
-                              name=bookpage, folder=folder,
-                              viewer='Collections Plotter')
+         self.make_bookmark(bundle,
+                            name=bookpage, folder=folder,
+                            viewer='Collections Plotter')
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1315,10 +1344,10 @@ class Clump (object):
       help = 'plot the bundle (MeqComposer) of all tree nodes'
       ctrl = self.on_entry(self.plot_node_bundle, prompt, help, **kwargs)
 
-      if self.execute_body():
+      if self.execute_body(hist=False):
          bundle = self.bundle()
          self._orphans.append(bundle)
-         JEN_bookmarks.create(bundle, name=bookpage, folder=folder)
+         self.make_bookmark(bundle, name=bookpage, folder=folder)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1339,7 +1368,7 @@ class Clump (object):
       help = 'plot the results of the tree nodes on the same page' 
       ctrl = self.on_entry(self.plot_node_results, prompt, help, **kwargs)
 
-      if self.execute_body():
+      if self.execute_body(hist=False):
          if not isinstance(bookpage,str):
             bookpage = self[0].basename
             bookpage += '['+str(index)+']'
@@ -1348,9 +1377,9 @@ class Clump (object):
             nodes.append(node)
          if not isinstance(folder,str):
             folder = self._name
-         JEN_bookmarks.create(nodes,
-                              name=bookpage, folder=folder,
-                              viewer=viewer)
+         self.make_bookmark(nodes,
+                            name=bookpage, folder=folder,
+                            viewer=viewer)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1374,7 +1403,7 @@ class Clump (object):
       to the specified [=2] recursion depth"""
       ctrl = self.on_entry(self.plot_node_family, prompt, help, **kwargs)
 
-      if self.execute_body():
+      if self.execute_body(hist=False):
          if not isinstance(bookpage,str):
             bookpage = (recurse*'+')
             bookpage += self[0].basename
@@ -1382,10 +1411,10 @@ class Clump (object):
             bookpage += '['+str(nodequal)+']'
          if not isinstance(folder,str):
             folder = self._name
-         JEN_bookmarks.create(self._nodes[index],
-                              recurse=recurse,
-                              name=bookpage, folder=folder,
-                              viewer=viewer)
+            self.make_bookmark(self._nodes[index],
+                               recurse=recurse,
+                               name=bookpage, folder=folder,
+                               viewer=viewer)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)

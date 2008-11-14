@@ -97,7 +97,6 @@ class Twig(Clump.LeafClump):
             node = ET.twig(self._ns, twig)
             self._nodes.append(node)
          self.visualize()
-         # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
@@ -156,7 +155,6 @@ class Polynomial(Clump.LeafClump):
             for parm in parms:
                self.history('--> parm: '+str(parm))
          self.visualize()
-         # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
@@ -181,10 +179,16 @@ def do_define_forest (ns, TCM):
    submenu = TCM.start_of_submenu(do_define_forest,
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
+   TCM.add_option('class',['TwigClump','Polynomial'],
+                  prompt='test TwigClump class')
+   
    clump = None
    if TCM.submenu_is_selected():
-      # clump = Twig(ns=ns, TCM=TCM, trace=True)
-      clump = Polynomial(ns=ns, TCM=TCM, trace=True)
+      test_class = TCM.getopt('class', submenu)
+      if test_class=='Polynomial':
+         clump = Polynomial(ns=ns, TCM=TCM, trace=True)
+      else:
+         clump = Twig(ns=ns, TCM=TCM, trace=True)
 
    # The LAST statement:
    TCM.end_of_submenu()

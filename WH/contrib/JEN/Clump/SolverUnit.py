@@ -96,10 +96,13 @@ class SolverUnit(Clump.Clump):
       Implement the solver tree.
       """
       kwargs['select'] = True          # optional: makes the function selectable     
-      ctrl = self.on_entry(self.initexec, **kwargs)
+      solver_help = kwargs.get('help','SolverUnit')
+      ctrl = self.on_entry(self.initexec, **kwargs)  
 
       self.add_option('num_iter',[3,5,10,20,1,2],
                       help='(max) nr of solver iterations')
+      help = 'if True(=1), make bookpage () in foder: '+str(self._name)
+      self.add_option('make_bookmark', [True], help=help)
 
       solver = None
       if self.execute_body():
@@ -110,6 +113,7 @@ class SolverUnit(Clump.Clump):
 
          # Get option values:
          num_iter = self.getopt('num_iter')
+         make_bookmark = self.getopt('make_bookmark')
 
          # Make MeqCondeqs:
          stub = self.unique_nodestub()
@@ -122,30 +126,29 @@ class SolverUnit(Clump.Clump):
             condeqs.append(node)
 
          # Make MeqSolver:
-         if True:
-            solvable = []
-            for pc in self._ParmClumps:
-               ss = pc.solspec(select=True)
-               solvable.extend(ss)
-               s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
-               s += 'solvable MeqParms from: '+pc.oneliner()
-               self.history(s)
-         else:
-            # Obsolete...?
-            solvable = self.solvable_parms()
-            solvable.extend(self._other.solvable_parms())
+         solvable = []
+         for pc in self._ParmClumps:
+            ss = pc.solspec(select=True)
+            solvable.extend(ss)
+            s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
+            s += 'solvable MeqParms from: '+pc.oneliner()
+            self.history(s)
          solver = stub('solver') << Meq.Solver(children=condeqs,
                                                num_iter=num_iter,
                                                solvable=solvable)
-         self._solver = solver
+
+         # Optionally, make a ReqSeq for solver visualization:
+         reqseq_node = solver
+         if make_bookmark:
+            reqseq_node = self.make_solver_bookpage(stub, solver=solver,
+                                                    condeqs=condeqs,
+                                                    solvable=solvable,
+                                                    help=solver_help)
 
          # Insert ReqSeq node(s) in the trees of the input clump.
          # These will issue a request first to the solver,
-         # but pass on the result of the trees.
-         self._input_clump.insert_reqseqs(solver)
-         ## self._orphans.append(solver)               # alternative...?
-
-         # Mandatory counterpart of self.execute_body()
+         # but pass on the result of the trees (result_index=1).
+         self._input_clump.insert_reqseqs(reqseq_node)
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
@@ -153,56 +156,67 @@ class SolverUnit(Clump.Clump):
 
 
    #======================================================================
-   # Visualization:
    #======================================================================
-      
-   def visualize (self, **kwargs):
-      """Choice of various forms of visualization.
-      Reimplementation of Clump function.
+
+   def make_solver_bookpage(self, stub, solver,
+                            condeqs=None, solvable=None,
+                            help=None, trace=False):
+      """Make a bookpage for this solver, showing the solver itself,
+      the MeqCondeqs, the solvable MeqParms, and QuickRef help
       """
-      kwargs['select'] = True
-      bookpage = kwargs.get('bookpage', None)
-      folder = kwargs.get('folder', None)
+      nodes = [solver]                              # should be first!
+      viewer = ['Result Plotter']
+      help = str(help)                              # just in case
 
-      prompt = '.visualize()'
-      help = 'Select various forms of SolverUnit (Clump) visualization'
-      print '\n**',help,'\n'
-      ctrl = self.on_entry(self.visualize, prompt, help, **kwargs)
-
-      if self.execute_body():
-         self.inspector(**kwargs)
-         self.plot_node_results(**kwargs)
-         self.plot_node_family(**kwargs)
-         self.plot_node_bundle(**kwargs)
-         self.plot_solver(**kwargs)
-         self.end_of_body(ctrl)
-         
-      return self.on_exit(ctrl)
-
-
-   #---------------------------------------------------------------------
-
-   def plot_solver (self, **kwargs):
-      """Plot the result of its solver node, and make a bookmark.
-      """
-      kwargs['select'] = True
-      bookpage = kwargs.get('bookpage', None)
-      folder = kwargs.get('folder', None)
-
-      prompt = '.plot_solver()'
-      help = 'make a plot (Result Plotter) of its solver node'
-      print '\n**',help,'\n'
-      ctrl = self.on_entry(self.plot_solver, prompt, help, **kwargs)
-
-      if self.execute_body():
-         if is_node(self._solver):
-            JEN_bookmarks.create(self._solver, name=bookpage, folder=folder)
+      if condeqs:
+         nn = len(condeqs)
+         help += '\n\n** MeqCondeq node(s):'
+         for i,c in enumerate(condeqs):
+            help += '\n  - '+str(i)+': '+str(c)
+         if nn==1:
+            node = stub('condeq') << Meq.Identity(condeqs[0])
+         elif nn>1:
+            node = stub('condeqs') << Meq.Composer(*condeqs)
+            if True:
+               # Make a quick-view: sum(abs(condeq))
+               cc = []
+               for c in condeqs:
+                  cc.append(Meq.Abs(c))
+               sumabs = stub('sum(abs(condeq))') << Meq.Add(*cc)
+               nodes.append(sumabs)
+               viewer.append('Result Plotter')
          else:
-            self.history('self._solver is not a node, but: '+str(self._solver))
-         self.end_of_body(ctrl)
-         
-      return self.on_exit(ctrl)
+            node = stub('no_condeqs') << Meq.Constant(-0.123456789)
+         nodes.append(node)
+         viewer.append('Result Plotter')
 
+      if solvable:
+         nn = len(solvable)
+         help += '\n\n** Solvable MeqParm node name(s):'
+         for i,c in enumerate(solvable):
+            help += '\n  - '+str(i)+': '+str(c)
+         if nn==0:
+            node = stub('no_solvable_parms') << Meq.Constant(-0.123456789)
+         elif nn==1:
+            node = stub('solvable_parm') << Meq.Identity(solvable[0])
+         else:
+            node = stub('solvable_parms') << Meq.Composer(*solvable)
+         nodes.append(node)
+         viewer.append('Result Plotter')
+
+      if help:
+         nodes.append(self.make_bookmark_help(solver, help, bookmark=False))
+         viewer.append('QuickRef Display')
+
+      # Make the bookpage:
+      print len(nodes)
+      print len(viewer)
+      for i,node in enumerate(nodes):
+         print '-',str(node),viewer[i]
+      self.make_bookmark(nodes, viewer=viewer)
+      reqseq_node = stub('reqseq') << Meq.ReqSeq(children=nodes) 
+      return reqseq_node
+            
 
 
 
@@ -221,13 +235,21 @@ def do_define_forest (ns, TCM):
    submenu = TCM.start_of_submenu(do_define_forest,
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
+
+   help = '<help>'
+   TCM.add_option('test', ['straight','twig'], more=False,
+                  prompt='select a test', help=help)
+   
    clump = None
    if TCM.submenu_is_selected():
-      clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-      # clump = TwigClump.Twig(ns=ns, TCM=TCM, trace=True)
+      test = TCM.getopt('test', submenu)
+      if test=='twig':
+         clump = TwigClump.Twig(ns=ns, TCM=TCM, trace=True)
+      else:
+         clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
       other = ParmClump.ParmClump(clump, trace=True)
-      su = SolverUnit(clump, other, trace=True)
-      su.visualize()
+      help = test
+      su = SolverUnit(clump, other, help=help, trace=True)
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -253,10 +275,10 @@ if __name__ == '__main__':
    ns = NodeScope()
 
    if 1:
-      clump = Clump.LeafClump(trace=True)
-      # clump = TwigClump.Twig(twig='f+t', trace=True)
+      # clump = Clump.LeafClump(trace=True)
+      clump = TwigClump.Twig(twig='f+t', trace=True)
       clump.show('creation', full=True)
-      other = ParmClump.ParmClump(clump, trace=True)
+      other = ParmClump.ParmClump(clump, name='other', trace=True)
       other.show('other', full=True)
       sc = SolverUnit(clump, other, trace=True)
       sc.show('SolverUnit', full=True)
