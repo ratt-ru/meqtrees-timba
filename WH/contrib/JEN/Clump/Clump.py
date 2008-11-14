@@ -1314,16 +1314,18 @@ class Clump (object):
       the given help-string. It returns the new help string.
       """
       if is_node(node):
+         if not isinstance(ignore,list):
+            ignore = []
+         for key in ['class']:
+            if not key in ignore:
+               ignore.append(key)
          indent = '\n'+str(prefix)+'      '
-         help += indent+'* node.initrec() of:   '+str(node)+':'
+         help += indent+'| node.initrec() of:   '+str(node)+':'
          rr = node.initrec() 
          for key in rr.keys():
-            v = rr[key]
-            help += indent+'    - '+key
             if not key in ignore:
-               help += ' = '+str(v)
-            else:
-               help += ': '+str(type(v))
+               help += indent+'|   - '+key+' = '+str(rr[key])
+         help += indent+'| ignored: '+str(ignore)
       return help
 
    #---------------------------------------------------------------------

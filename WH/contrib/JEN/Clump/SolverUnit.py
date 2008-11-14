@@ -164,67 +164,88 @@ class SolverUnit(Clump.Clump):
       """Make a bookpage for this solver, showing the solver itself,
       the MeqCondeqs, the solvable MeqParms, and QuickRef help
       """
+      help = str(help)                              # just in case
+      if not isinstance(condeqs,list):
+         condeqs = []
+      if not isinstance(solvable,list):
+         solvable = []
+      nc = len(condeqs)
+      ns = len(solvable)
+
+      #............................
       nodes = [solver]                              # should be first!
       viewer = ['Result Plotter']
-      help = str(help)                              # just in case
-
-      help += '\n\n** MeqSolver:'
+      help += '\n\n** MeqSolver settings:'
       help = self.initrec2help(solver, help, ignore=['solvable'])
 
-      if condeqs:
-         help += '\n\n** MeqCondeq node(s):'
-         for i,c in enumerate(condeqs):
-            help += '\n  - '+str(i)+': '+str(c)
-
-         help += '\n\n  The two (lhs and rhs) children of MeqCondeq[0]:'
+      #............................
+      help += '\n\n** MeqCondeq nodes ('+str(nc)+'):'
+      help += '\n The results of individual MeqCondeqs may be inspected.'
+      help += '\n - Right-click on the panel, and use "Change Selected Vells".'
+      help += '\n - Use the full list of relevant MeqCondeq nodes below for key.'
+      help += '\n If there is more than one MeqCondeq, the quality of the fit'
+      help += '\n   may be rapidly assessed by means of the sum(abs(condeq)) node.'
+      if nc>0:
+         help += '\n MeqCondeqs have two children (lhs and rhs):'
          cc = condeqs[0].children
          help += '\n     - lhs:  '+str(cc[0][1])
          help += '\n     - rhs:  '+str(cc[1][1])
 
-         nn = len(condeqs)
-         if nn==1:
-            node = stub('condeq') << Meq.Identity(condeqs[0])
-         elif nn>1:
-            node = stub('condeqs') << Meq.Composer(*condeqs)
-            if True:
-               # Make a quick-view: sum(abs(condeq))
-               cc = []
-               for c in condeqs:
-                  cc.append(Meq.Abs(c))
-               sumabs = stub('sum(abs(condeq))') << Meq.Add(*cc)
-               nodes.append(sumabs)
-               viewer.append('Result Plotter')
-         else:
-            node = stub('no_condeqs') << Meq.Constant(-0.123456789)
-         nodes.append(node)
-         viewer.append('Result Plotter')
-
-      if solvable:
-         nn = len(solvable)
-         help += '\n\n** Solvable MeqParm node(s):'
-         for i,c in enumerate(solvable):
-            help += '\n  - '+str(i)+': '+str(c)
-         help += '\n'
+      #............................
+      help += '\n\n** MeqParm nodes ('+str(ns)+'):'
+      help += '\n The results of individual MeqParms may be inspected.'
+      help += '\n - Right-click on the panel, and use "Change Selected Vells".'
+      help += '\n - Use the full list of relevant MeqParm nodes below for key.'
+      if ns>0:
+         help += '\n MeqParm settings (initrec):'
          help = self.initrec2help(solvable[0], help, ignore=[])
-         if nn==0:
-            node = stub('no_solvable_parms') << Meq.Constant(-0.123456789)
-         elif nn==1:
+         help += '\n NB: The first MeqParm only (the others are assumed to be the same...)'
+
+      #............................
+      help += '\n\n** Full list of '+str(ns)+' solvable MeqParm nodes:'
+      for i,c in enumerate(solvable):
+         help += '\n  - '+str(i)+': '+str(c)
+
+      #............................
+      help += '\n\n** Full list of '+str(nc)+' MeqCondeq nodes:'
+      for i,c in enumerate(condeqs):
+         help += '\n  - '+str(i)+': '+str(c)
+
+      #............................
+      if ns==0:
+         help += '\n\n********* NO SOLVABLE MeqParms *********\n\n'
+      else:
+         if ns==1:
             node = stub('solvable_parm') << Meq.Identity(solvable[0])
          else:
             node = stub('solvable_parms') << Meq.Composer(*solvable)
          nodes.append(node)
          viewer.append('Result Plotter')
 
-      if help:
-         help += self.history(format=True)
-         nodes.append(self.make_bookmark_help(solver, help, bookmark=False))
-         viewer.append('QuickRef Display')
+      #............................
+      if nc==0:
+         help += '\n\n********* NO MeqCondeqs *********\n\n'
+      else:
+         if nc==1:
+            node = stub('condeq') << Meq.Identity(condeqs[0])
+         else:
+            node = stub('condeqs') << Meq.Composer(*condeqs)
+            cc = []
+            for c in condeqs:
+               cc.append(Meq.Abs(c))
+            sumabs = stub('sum(abs(condeq))') << Meq.Add(*cc)
+            nodes.append(sumabs)
+            viewer.append('Result Plotter')
+         nodes.append(node)
+         viewer.append('Result Plotter')
 
+      #............................
+      help += self.history(format=True)
+      nodes.append(self.make_bookmark_help(solver, help, bookmark=False))
+      viewer.append('QuickRef Display')
+         
+      #............................
       # Make the bookpage:
-      print len(nodes)
-      print len(viewer)
-      for i,node in enumerate(nodes):
-         print '-',str(node),viewer[i]
       self.make_bookmark(nodes, viewer=viewer)
       reqseq_node = stub('reqseq') << Meq.ReqSeq(children=nodes) 
       return reqseq_node
