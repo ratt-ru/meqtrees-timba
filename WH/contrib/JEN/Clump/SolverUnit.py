@@ -82,7 +82,7 @@ class SolverUnit(Clump.Clump):
       Re-implementation of function in baseclass Clump.
       """
       ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      ss += '\n + other = '+other.oneliner()
+      ss += '\n + other = '+self._other.oneliner()
       ss += '\n + self._solver = '+str(self._solver)
       return ss
 
@@ -96,7 +96,6 @@ class SolverUnit(Clump.Clump):
       Implement the solver tree.
       """
       kwargs['select'] = True          # optional: makes the function selectable     
-      solver_help = kwargs.get('help','SolverUnit')
       ctrl = self.on_entry(self.initexec, **kwargs)  
 
       self.add_option('num_iter',[3,5,10,20,1,2],
@@ -114,6 +113,7 @@ class SolverUnit(Clump.Clump):
          # Get option values:
          num_iter = self.getopt('num_iter')
          make_bookmark = self.getopt('make_bookmark')
+         solver_help = kwargs.get('help',self.oneliner())
 
          # Make MeqCondeqs:
          stub = self.unique_nodestub()
@@ -168,11 +168,20 @@ class SolverUnit(Clump.Clump):
       viewer = ['Result Plotter']
       help = str(help)                              # just in case
 
+      help += '\n\n** MeqSolver:'
+      help = self.initrec2help(solver, help, ignore=['solvable'])
+
       if condeqs:
-         nn = len(condeqs)
          help += '\n\n** MeqCondeq node(s):'
          for i,c in enumerate(condeqs):
             help += '\n  - '+str(i)+': '+str(c)
+
+         help += '\n\n  The two (lhs and rhs) children of MeqCondeq[0]:'
+         cc = condeqs[0].children
+         help += '\n     - lhs:  '+str(cc[0][1])
+         help += '\n     - rhs:  '+str(cc[1][1])
+
+         nn = len(condeqs)
          if nn==1:
             node = stub('condeq') << Meq.Identity(condeqs[0])
          elif nn>1:
@@ -192,9 +201,11 @@ class SolverUnit(Clump.Clump):
 
       if solvable:
          nn = len(solvable)
-         help += '\n\n** Solvable MeqParm node name(s):'
+         help += '\n\n** Solvable MeqParm node(s):'
          for i,c in enumerate(solvable):
             help += '\n  - '+str(i)+': '+str(c)
+         help += '\n'
+         help = self.initrec2help(solvable[0], help, ignore=[])
          if nn==0:
             node = stub('no_solvable_parms') << Meq.Constant(-0.123456789)
          elif nn==1:
@@ -205,6 +216,7 @@ class SolverUnit(Clump.Clump):
          viewer.append('Result Plotter')
 
       if help:
+         help += self.history(format=True)
          nodes.append(self.make_bookmark_help(solver, help, bookmark=False))
          viewer.append('QuickRef Display')
 
@@ -216,8 +228,6 @@ class SolverUnit(Clump.Clump):
       self.make_bookmark(nodes, viewer=viewer)
       reqseq_node = stub('reqseq') << Meq.ReqSeq(children=nodes) 
       return reqseq_node
-            
-
 
 
 
@@ -237,19 +247,26 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
 
    help = '<help>'
-   TCM.add_option('test', ['straight','twig'], more=False,
+   TCM.add_option('test', ['straight','twig','polyparm'], more=False,
                   prompt='select a test', help=help)
    
    clump = None
    if TCM.submenu_is_selected():
       test = TCM.getopt('test', submenu)
+      help = test
       if test=='twig':
          clump = TwigClump.Twig(ns=ns, TCM=TCM, trace=True)
+         other = ParmClump.ParmClump(clump, trace=True)
+      elif test=='polyparm':
+         other = TwigClump.Polynomial(ns=ns, TCM=TCM, trace=True)
+         clump = Clump.LeafClump(other, trace=True)
       else:
          clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-      other = ParmClump.ParmClump(clump, trace=True)
-      help = test
+         other = ParmClump.ParmClump(clump, trace=True)
+      clump.show('creation', full=True)
+      other.show('creation', full=True)
       su = SolverUnit(clump, other, help=help, trace=True)
+      su.show('creation', full=True)
 
    # The LAST statement:
    TCM.end_of_submenu()

@@ -194,20 +194,10 @@ class ParmClump(Clump.LeafClump):
 
          for i,qual in enumerate(self._nodequals):
             rr = self._nodes[i].initrec()
-            if i==0:
-               print '  initrec(before):',rr
-            rr.shape = [tdeg+1,fdeg+1]          # change rr.init_funklet too?
+            rr.shape = [tdeg+1,fdeg+1] 
             rr.tiling = tiling,
-            if i==0:
-               print '  - tiling =',rr.tiling
-               print '  - shape =',rr.shape
-               print '  initrec(after):',self._nodes[i].initrec()
-            solvable.append(self._nodes[i].name)
-         if True:
-            print '\n** Solvable MeqParms for: ',self.oneliner()
-            for i,name in enumerate(solvable):
-               print '-',name
-            print
+            solvable.append(self._nodes[i])
+
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
@@ -217,6 +207,59 @@ class ParmClump(Clump.LeafClump):
    #============================================================================
 
    
+
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
+# Derived class ListClump:
+#********************************************************************************
+
+class ParmListClump(ParmClump):
+   """
+   A ParmClump may also be created from a list of nodes.
+   They do not have to be MeqParms. The nodescope is searched for MeqParms.
+   """
+
+   def __init__(self, clist=None, **kwargs):
+      """
+      Derived from class ParmClump.
+      """
+      # The data-description may be defined by means of kwargs:
+      self._datadesc = dict()
+      dd = self.datadesc(complex=kwargs.get('complex',False),
+                         dims=kwargs.get('dims',1))
+
+      ParmClump.__init__(self, clump=clist, **kwargs)
+      return None
+
+
+   #-------------------------------------------------------------------------
+   # Re-implementation of its initexec function (called from Clump.__init__())
+   #-------------------------------------------------------------------------
+
+   def initexec (self, **kwargs):
+      """
+      The input list of nodes has been transferred in Clump.__init__(),
+      and self._datadesc has been defined etc.
+      Search for MeqParms:
+      - First check if the input nodes are MeqParms 
+      - If not, search the nodescope for MeqParms.
+      """
+      parms = []
+      for node in self._nodes:
+         if node.classname=='MeqParm':
+            parms.append(node)
+
+      if len(parms)==0:
+         parms = self._ns.Search(class_name='MeqParm')
+
+      if len(parms)==0:
+         s = '** no MeqParms found'
+         raise ValueError,s
+      else:
+         self._ParmClumps = [self]
+
+      return True
 
 
 
@@ -254,6 +297,7 @@ def do_define_forest (ns, TCM):
 
 
 
+
 #********************************************************************************
 #********************************************************************************
 # Standalone test (without the browser):
@@ -274,13 +318,24 @@ if __name__ == '__main__':
 
    if 0:
       clump = ParmClump(trace=True)
-   else:
+
+   if 1:
+      cc = []
+      for i in range(4):
+         node = ns.ddd(i) << Meq.Parm(i)
+         cc.append(node)
+      clump = ParmListClump(cc, ns=ns, name='polyparm', trace=True)
+
+   if 0:
       tqs = range(10) + list('ABCD')
       clump = ParmClump(treequals=tqs,
                         # ns=ns, TCM=TCM,
                         name='GgainX',
                         default=1.0,
                         trace=True)
+
+   #--------------------------------------------------------
+   
    if 1:
       clump.show('creation', full=True)
 
@@ -288,7 +343,7 @@ if __name__ == '__main__':
       clump1 = ParmClump(clump, name='other')
       clump1.show('clump1')
 
-   if 1:
+   if 0:
       solvable = clump.solspec()
       print '-> solvable =',solvable
       clump.show('after solspec()')

@@ -134,6 +134,7 @@ class Clump (object):
 
       #......................................................................
       # Transfer definition information from the input Clump (if supplied).
+      # (NB: clump may also be a list of nodes, e.g. for ParmClump...)
       # This includes self._datadesc etc 
       # Then supply local defaults for some attributes that have not been
       # defined yet (i.e. in the case that there is no input Clump):
@@ -165,13 +166,15 @@ class Clump (object):
       # The list of actual Clump tree nodes, and their qualifiers:
       # (if self._composed, both lists have length one.)
       if self._input_clump:
-         if kwargs.get('transfer_clump_nodes',True):
+         if isinstance(self._input_clump,list):
+            self.transfer_clump_nodes()
+         elif kwargs.get('transfer_clump_nodes',True):
             self.transfer_clump_nodes()
          else:
             self._nodequals = self._datadesc['treequals']
             self._composed = False
             
-      elif not getattr(self,'_datadesc',None):
+      elif getattr(self,'_datadesc',None):
          # The data description controls the behaviour of Clump-functions
          # that perform 'generic' operations (like add_noise().
          # It is passed from Clump to Clump, and modified when appropriate.
@@ -272,6 +275,7 @@ class Clump (object):
       # Always return a copy (!) of the self-consistent datadesc:
       return self._datadesc
 
+
    #==========================================================================
    # Functions that deal with the input Clump (if any)
    #==========================================================================
@@ -280,6 +284,7 @@ class Clump (object):
       """Transfer the clump definition information from the given Clump.
       Most attributes are transferred ONLY if not yet defined
       Some attributes (like self._datadesc) are transferred always(!)
+      (NB: the given clump may also be a list of nodes!)
       """
       # trace = True
       if trace:
@@ -287,8 +292,12 @@ class Clump (object):
 
       self._input_clump = clump
 
-      # if isinstance(clump,type(self)):    # too restrictive! type==Clump would be OK...
-      if clump:
+      if isinstance(clump,(list,tuple)):
+         # clump may also be a list of nodes (see ParmClump.py)
+         self._input_clump = list(clump)                        # tuple -> list
+         print self.datadesc(treequals=range(len(clump)), trace=True)
+         
+      elif clump:
          # Most attributes are transferred ONLY if not yet defined
          # (e.g. by means of the input **kwargs (see .__init__())
          if not isinstance(self._name,str):
@@ -301,8 +310,6 @@ class Clump (object):
             self._ns = clump._ns
          if self._TCM==None:
             self._TCM = clump._TCM
-            # self._TCM.current_menu_key(trace=trace)
-            # self._TCM.current_menu_level(trace=trace)
 
          # Some attributes are transferred always(!):
          self._datadesc = clump.datadesc().copy()               # .... copy()!
@@ -322,11 +329,25 @@ class Clump (object):
       Called from self.__init__() only.
       """
       clump = self._input_clump                 # convenience
-      if not clump:
+
+      if isinstance(clump, list):
+         self._nodes = []
+         self._nodequals = []
+         for i,node in enumerate(clump):
+            if not is_node(node):
+               s = '** input node is not a node, but: '+str(type(node))
+               raise ValueError,s
+            self._nodes.append(node)
+            self._nodequals.append(i)
+            print '---',str(node)
+         self._composed = False
+         self.history('Created from list of nodes', show_node=True, trace=True)
+
+      elif not clump:
          s = '** Clump: An input Clump should have been provided!'
          raise ValueError,s
 
-      if getattr(clump,'_nodes',None):
+      elif getattr(clump,'_nodes',None):
          # Make sure that self._nodes is a COPY of clump._nodes
          # (so clump._nodes is not modified when self._nodes is).
          self._nodes = []
@@ -524,7 +545,9 @@ class Clump (object):
          ss += '   ('+str(txt)+')'
 
       #.....................................................
-      if self._input_clump:
+      if isinstance(self._input_clump, list):
+         ss += '\n > self._input_clump: list of '+str(len(self._input_clump))+' nodes'
+      elif self._input_clump:
          ss += '\n > self._input_clump: '+str(self._input_clump.oneliner())
       else:
          ss += '\n > self._input_clump = '+str(self._input_clump)
@@ -1284,6 +1307,25 @@ class Clump (object):
          self.make_bookmark(node, viewer='QuickRef Display')
       return node
 
+   #---------------------------------------------------------------------------
+
+   def initrec2help (self, node, help=[], ignore=[], prefix='', trace=False):
+      """Helper function to add the contents of node.initrec() to
+      the given help-string. It returns the new help string.
+      """
+      if is_node(node):
+         indent = '\n'+str(prefix)+'      '
+         help += indent+'* node.initrec() of:   '+str(node)+':'
+         rr = node.initrec() 
+         for key in rr.keys():
+            v = rr[key]
+            help += indent+'    - '+key
+            if not key in ignore:
+               help += ' = '+str(v)
+            else:
+               help += ': '+str(type(v))
+      return help
+
    #---------------------------------------------------------------------
    #---------------------------------------------------------------------
 
@@ -1542,6 +1584,46 @@ class LeafClump(Clump):
 
 
 
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
+# Derived class ListClump:
+#********************************************************************************
+
+class ListClump(Clump):
+   """
+   A Clump may also be created from a list of nodes.
+   """
+
+   def __init__(self, clist=None, **kwargs):
+      """
+      Derived from class Clump.
+      """
+      # The data-description may be defined by means of kwargs:
+      self._datadesc = dict()
+      dd = self.datadesc(complex=kwargs.get('complex',False),
+                         dims=kwargs.get('dims',1))
+
+      Clump.__init__(self, clump=clist, **kwargs)
+      return None
+
+
+   #-------------------------------------------------------------------------
+   # Re-implementation of its initexec function (called from Clump.__init__())
+   #-------------------------------------------------------------------------
+
+   def initexec (self, **kwargs):
+      """
+      The input list of nodes has been transferred in Clump.__init__(),
+      and self._datadesc has been defined etc.
+      So this re-implementation does absolutely nothing.
+      But see also class ParmClump.ParmListClump....
+      """
+      return True
+
+
+
+
 
 
 
@@ -1597,8 +1679,17 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
-   if 1:
+   if 0:
       clump = LeafClump(trace=True)
+
+   if 1:
+      cc = []
+      for i in range(4):
+         node = ns.ddd(i) << Meq.Constant(i)
+         cc.append(node)
+      clump = ListClump(cc, ns=ns, trace=True)
+
+   if 1:
       clump.show('creation', full=True)
 
    if 0:

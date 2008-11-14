@@ -44,6 +44,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Clump import Clump
+from Timba.Contrib.JEN.Clump import ParmClump
 from Timba.Contrib.JEN.Easy import EasyTwig as ET
 
 import math                 # support math.cos() etc
@@ -146,18 +147,22 @@ class Polynomial(Clump.LeafClump):
       if self.execute_body(always=True):           
          poly = self.getopt('poly')
          self._nodes = []
-         # stub = self.unique_nodestub(twig)
          for i,qual in enumerate(self._nodequals):
             node = ET.twig(self._ns, 'polyparm_'+poly)
             self._nodes.append(node)
-         if True:
-            parms = self._ns.Search(tags='polyparm')
-            for parm in parms:
-               self.history('--> parm: '+str(parm))
+
+         # Make a ParmClump object from its MeqParms: 
+         parms = self._ns.Search(tags='polyparm')
+         for parm in parms:
+            self.history('--> parm: '+str(parm))
+         plc = ParmClump.ParmListClump(parms,
+                                       ns=self._ns, TCM=self._TCM,
+                                       name='polyparm')
+         self._ParmClumps = [plc]
+
          self.visualize()
          self.end_of_body(ctrl)
 
-      # Mandatory counterpart of self.on_entry()
       return self.on_exit(ctrl)
 
 
