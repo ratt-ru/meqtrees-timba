@@ -454,8 +454,7 @@ class MainWindow (QMainWindow):
           self.new_entry_dialog.show();
     # else read stuff from pipe
     do_show = False;
-    for line in self.purrpipe.read():
-      command,show,content = line.split(":",2);
+    for command,show,content in self.purrpipe.read():
       if command == "title":
         self.new_entry_dialog.suggestTitle(content);
       elif command == "comment":
@@ -464,9 +463,9 @@ class MainWindow (QMainWindow):
         self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts(
                                               [(content,not show)],unbanish=True));
       else:
-        print "Unknown command received from Purr pipe: ",line;
+        print "Unknown command received from Purr pipe: ",command;
         continue;
-      do_show = do_show or int(show);
+      do_show = do_show or show;
     if do_show:
       self.new_entry_dialog.show();
         

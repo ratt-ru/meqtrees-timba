@@ -31,9 +31,13 @@ class Pipe (object):
     """writes a title tag to the Purr pipe""";
     self._write("title:%d:%s\n"%(int(show),title));
     return self;
-    
-  def comment (self,comment,show=False):
+  
+  def comment (self,comment,show=False,endline=True,newpar=False):
     """writes a comment tag to the Purr pipe""";
+    if not endline:
+      comment += "<NOBR>";
+    if newpar:
+      comment += "<BR>";
     self._write("comment:%d:%s\n"%(int(show),comment));
     return self;
     
@@ -49,7 +53,10 @@ class Pipe (object):
     
   # reader section
   def read (self):
-    """Checks if anything has arrived in the pipe file, returns list of strings""";
+    """Checks if anything has arrived in the pipe file, returns list of 
+    (command,show,content) tuples.
+    Special tags added in comment() above are replaced.
+    """;
     # read file is set to None on error, so that we stop reading
     if self.pipefile_read is None:
       return [];
@@ -72,9 +79,32 @@ class Pipe (object):
       traceback.print_exc();
       self.pipefile_read = None;
       return [];
-    # strip newlines and return
-    return [ line.rstrip() for line in lines ];
-      
+    # parse lines 
+    cmds = [];
+    for line in lines:
+      tokens = line.rstrip().split(":",2);
+      if len(tokens) < 3:
+        continue;
+      command,show,content = tokens;
+      # convert 'show' to bool
+      try:
+        show = bool(int(show));
+      except:
+        show = False;
+      # if 'comment' command, parse content string
+      if command == "comment":
+        # <BR> inserts new paragraph (double-newline)
+        content = content.replace("<BR>","\n\n");
+        # <NOBR> blocks newline at end, which is otherwise implictly added...
+        if content.endswith("<NOBR>"):
+          content = content[:-6];
+        # ...here
+        elif not content.endswith("\n"):
+          content += "\n";
+      # add to list of contents
+      # print "read %s:%d:%s:"%(command,show,content);
+      cmds.append((command,show,content));
+    return cmds;
   
 def open (dirname):
   return Pipe(dirname);

@@ -153,7 +153,12 @@ class LogEntryEditor (QWidget):
     self.wdplv.clear();
     self.dpitems = {};
     self._default_dir = ".";
-    self._title_changed = self._comment_changed = False;
+    # _title_changed is True if title was changed or edited manually
+    # _comment_changed is True if comment was changed or edited manually
+    # _commend_edited is True if comment was eddited since the last time something was
+    #   added with addComment()
+    self._title_changed = self._comment_changed = self._comment_edited = False;
+    # _last_auto_comment is the last comment to have been added via addComment()
     self._last_auto_comment = None;
     self.updated = False;
     
@@ -307,8 +312,6 @@ class LogEntryEditor (QWidget):
           archived copy.</P>"""%dp.sourcepath,
         QMessageBox.Ok);
       
-      
-      
   def _itemRenamed (self,item,col):
     self.updated = True;
     self.emit(PYSIGNAL("updated()"),());
@@ -378,35 +381,36 @@ class LogEntryEditor (QWidget):
     self.emit(PYSIGNAL("updated()"),());
     
   def _commentChanged (self,*dum):
-    self._comment_changed = self.updated = True;
+    self._comment_changed = self._comment_edited = self.updated = True;
     self.emit(PYSIGNAL("updated()"),());
   
-  def suggestTitle(self,title):
+  def suggestTitle (self,title):
     """Suggests a title for the entry.
     If title has been manually edited, suggestion is ignored.""";
     if not self._title_changed or not str(self.wtitle.text()):
       self.wtitle.setText(title);
       self._title_changed = False;
     
-  def addComment(self,comment):
-    # get current comment text
+  def addComment (self,comment):
+    # get current comment text, if nothing was changed at all, use empty text
     if self._comment_changed:
       cur_comment = str(self.wcomment.text());
       cpos = self.wcomment.getCursorPosition();
     else:
       cur_comment = "";
       cpos = None;
-    # always add newline to new comment
-    comment += "\n";
     # no current comments? Replace
     if not cur_comment:
       cur_comment = comment;
-    # else was last comment auto-added here? Do not start paragraph
+    # else does the comment still end with the last auto-added string? Simply
+    # append our comment then
     elif self._last_auto_comment and cur_comment.endswith(self._last_auto_comment):
       cur_comment += comment;
-    # else start a new paragraph and add comment
+    # else user must've edited the end of the comment. Start a new paragraph and append our
+    # comment
     else:
-      cur_comment += "\n"+comment;
+      cur_comment += "\n\n"+comment;
+    self._comment_edited = False;
     self._last_auto_comment = comment;
     # update widget
     self.wcomment.setText(cur_comment);
