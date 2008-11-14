@@ -3,8 +3,15 @@ import sys
 import os
 import os.path
 
-args = sys.argv;
+args = list(sys.argv);
 args[0] = 'lwimager';
+# insert cachesize option
+for arg in args:
+  if arg.startswith("cachesize="):
+    break;
+else:
+  args.append("cachesize=512");
+
 retcode = os.spawnvp(os.P_WAIT,args[0],args);
 
 if not retcode:
