@@ -27,6 +27,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 from Timba.array import *
 import os
+import time
 import signal
 
 import Meow
@@ -173,12 +174,15 @@ def run_autoflagger (mqs,parent,**kw):
         <P>More information may be available on the text console.</P>
         """);
     autoflag_msgbox.show();
+  # form up command file
+  cmdfile = time.strftime("autoflag-%m%d-%M%S.g",time.localtime(time.time()));
+  cmdfile = os.path.join(mssel.msname,cmdfile);
   # run the autoflagger
   for opt in ms_job_options:
     opt.disable();
   global glish_pid;
   glish_pid = af.run(plotdev=plotdev,devfile=autoflag_plotdev_file,         # plotscr=plotscr,
-                      reset=autoflag_reset,trial=autoflag_trial,wait=False);
+                     reset=autoflag_reset,trial=autoflag_trial,cmdfile=cmdfile,wait=False);
 
 
 def add_bitflags (mqs,parent,**kw):
@@ -197,14 +201,14 @@ def flag_ms (mqs,parent,**kw):
     arg['antennas'] = Meow.MSUtils.parse_antenna_subset(flag_antennas,mssel.ms_antenna_names);
   # form up list of baselines
   if flag_baselines:
-    arg['baselines'] = [];
+    arg['baselines'] = baselines = [];
     for spec in re.split("[\s,]+",flag_baselines):
       spec1,spec2 = spec.split('-',1);
       index1 = Meow.MSUtils.parse_antenna_subset(spec1,mssel.ms_antenna_names);
       index2 = Meow.MSUtils.parse_antenna_subset(spec2,mssel.ms_antenna_names);
       if index1 > index2:
         raise ValueError,"Illegal baseline specifier '%s'"%spec;
-      arg['baselines.append((index1,index2));']
+      baselines.append((index1[0],index2[0]));
   # form up time range
   if flag_reltime:
     arg['reltime'] = (flag_time0,flag_time1);
@@ -212,8 +216,10 @@ def flag_ms (mqs,parent,**kw):
   arg['ddid'] = flag_subset.get_ddid();
   arg['fieldid'] = flag_subset.get_field();
   arg['taql'] = flag_subset.get_taql_string();
-  chan0,chan1,chanstep = flag_subset.get_channels();
-  arg['channels'] = slice(chan0,chan1+1,chanstep);
+  chans = flag_subset.get_channels();
+  if chans:
+    chan0,chan1,chanstep = chans;
+    arg['channels'] = slice(chan0,chan1+1,chanstep);
   # form up flag/unflag arg['ments']
   if flag_action == 'flag':
     arg['flag'] = flag_flag_selector.get_flagmask();
@@ -243,6 +249,7 @@ def transfer_legacy_flags (mqs,parent,**kw):
     flagger.close();
   finally:
     progress_callback(100,100);
+  msg = "%.2f%% of rows and %.2f%% of correlations are flagged."%(stats[0]*100,stats[1]*100);
   if qt and parent:
     global stat_msgbox;
     if not stat_msgbox:
@@ -254,7 +261,7 @@ def transfer_legacy_flags (mqs,parent,**kw):
       <P>%.2f%% of individual correlations are flagged.</P>"""%(stats[0]*100,stats[1]*100));
     stat_msgbox.show();
   else:
-    print "%.2f%% of rows and %.2f%% of correlations are flagged\n"%(stats[0]*100,stats[1]*100);
+    print msg;
   
 # The get_flag_stats job uses Calico.Flagger to get flag statistics and display them
 def get_flag_stats (mqs,parent,**kw):
@@ -270,6 +277,7 @@ def get_flag_stats (mqs,parent,**kw):
     flagger.close();
   finally:
     progress_callback(100,100);
+  msg = "%.2f%% of rows and %.2f%% of correlations are flagged."%(stats[0]*100,stats[1]*100);
   if qt and parent:
     global stat_msgbox;
     if not stat_msgbox:
@@ -281,7 +289,7 @@ def get_flag_stats (mqs,parent,**kw):
       <P>%.2f%% of individual correlations are flagged.</P>"""%(stats[0]*100,stats[1]*100));
     stat_msgbox.show();
   else:
-    print "%.2f%% of rows and %.2f%% of correlations are flagged\n"%(stats[0]*100,stats[1]*100);
+    print msg;
 
 # The fill_legacy_flags job uses Calico.Flagger to fill legacy flags from bitflags
 def fill_legacy_flags (mqs,parent,**kw):
@@ -512,6 +520,7 @@ def _open_ms (msname):
 mssel.when_changed(_open_ms);
 
 
+import Purr.Pipe
 
 def _define_forest(ns,parent=None,**kw):
   if run_purr:

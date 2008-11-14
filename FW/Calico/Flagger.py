@@ -5,6 +5,7 @@ import tempfile
 import os
 
 from Meow import MSUtils
+import Purr.Pipe
 
 # figure out which table implementation to use -- try pyrap/casacore first
 try:
@@ -141,9 +142,10 @@ class Flagger (Timba.dmi.verbosity):
       self.has_bitflags = 'BITFLAG' in ms.colnames();
       self.flagsets = MSUtils.get_flagsets(ms);
       self.dprintf(1,"flagsets are %s\n",self.flagsets.names());
+      self.purrpipe = Purr.Pipe.Pipe(self.msname);
     return self.ms;
     
-  def add_bitflags (self,wait=True):
+  def add_bitflags (self,wait=True,purr=True):
     if not self.has_bitflags:
       global _addbitflagcol; 
       if not _addbitflagcol:
@@ -152,26 +154,67 @@ class Flagger (Timba.dmi.verbosity):
       self.dprintf(1,"running addbitflagcol\n");
       if os.spawnvp(os.P_WAIT,_addbitflagcol,['addbitflagcol',self.msname]):
         raise RuntimeError,"addbitflagcol failed";
+      # report to purr
+      if purr:
+        self.purrpipe.title("Flagging").comment("Adding bitflag columns.");
       # reopen and close to pick up new BITFLAG column
       self._reopen();
       self.close();
       
-      
-  def remove_flagset (self,*fsnames):
+  def remove_flagset (self,*fsnames,**kw):
     self._reopen();
     mask = self.flagsets.remove_flagset(*fsnames);
-    self.unflag(mask);
+    # report to purr
+    if kw.get('purr',True):
+      self.purrpipe.title("Flagging").comment("Removing flagset(s) %s."%(','.join(fsnames)));
+    self.unflag(mask,purr=False);
 
+  def flag (self,flag=1,*args,**kw):
+    kw.setdefault('purr',True);
+    if kw['purr']:
+      if isinstance(flag,int):
+        fset = "bitflag %x"%flag;
+      else:
+        fset = "flagset %s"%flag;
+      self.purrpipe.title("Flagging").comment("Flagging %s"%fset,endline=False);
+    return self._flag(flag=flag,unflag=0,*args,**kw);
+  
   def unflag (self,unflag=-1,*args,**kw):
-    return self.flag(flag=0,unflag=unflag,*args,**kw);
+    kw.setdefault('purr',True);
+    if kw['purr']:
+      if isinstance(unflag,int):
+        fset = "bitflag %x"%unflag;
+      else:
+        fset = "flagset %s"%unflag;
+      self.purrpipe.title("Flagging").comment("Unflagging %s"%fset,endline=False);
+    return self._flag(flag=0,unflag=unflag,*args,**kw);
   
   def transfer (self,flag=1,replace=False,*args,**kw):
     unflag = (replace and flag) or 0;
-    return self.flag(flag=flag,unflag=unflag,transfer=True,*args,**kw);
+    kw.setdefault('purr',True);
+    if kw['purr']:
+      if isinstance(flag,int):
+        fset = "bitflag %x"%flag;
+      else:
+        fset = "flagset %s"%flag;
+      self.purrpipe.title("Flagging").comment("Transferring FLAG/FLAG_ROW to %s"%fset,endline=False);
+    return self._flag(flag=flag,unflag=unflag,transfer=True,*args,**kw);
   
   def get_stats(self,flag=0,legacy=False,**kw):
-    stats = self.flag(flag=flag,get_stats=True,include_legacy_stats=legacy,**kw);
-    self.dprintf(1,"stats: %.2f%% of rows and %.2f%% of correlations are flagged\n",stats[0]*100,stats[1]*100);
+    kw.setdefault('purr',True);
+    if kw['purr']:
+      if isinstance(flag,int) and flag:
+        fset = "bitflag %x"%flag;
+      else:
+        fset = "flagset %s"%flag;
+      if legacy:
+        fset += ", plus FLAG/FLAG_ROW";
+      self.purrpipe.title("Flagging").comment("Getting flag stats for %s"%fset,endline=False);
+    stats = self._flag(flag=flag,get_stats=True,include_legacy_stats=legacy,**kw);
+    msg = "%.2f%% of rows and %.2f%% of correlations are flagged."%(stats[0]*100,stats[1]*100);
+    if kw['purr']:
+      self.purrpipe.comment(msg);
+    self.dprint(1,"stats: ",msg);
     return stats;
   
   def _get_bitflag_col (self,ms,row0,nrows,shape=None):
@@ -202,7 +245,7 @@ class Flagger (Timba.dmi.verbosity):
       nrows += subms.nrows();
     return sub_mss;
 
-  def flag (self,flag=1,unflag=0,create=False,transfer=False,
+  def _flag (self,flag=1,unflag=0,create=False,transfer=False,
           get_stats=False,include_legacy_stats=False,
           ddid=None,fieldid=None,
           channels=None,multichan=None,corrs=None,
@@ -211,7 +254,9 @@ class Flagger (Timba.dmi.verbosity):
           time=None,reltime=None,
           taql=None,
           progress_callback=None,
+          purr=False
           ):
+    """Internal _flag method does the actual work.""";
     ms = self._reopen();
     if not self.has_bitflags:
       if transfer:
@@ -267,11 +312,18 @@ class Flagger (Timba.dmi.verbosity):
     # form up TaQL string, and extract subset of table
     if queries:
       query = ' && '.join(queries);
+      purr and self.purrpipe.comment("; effective MS selection is \"%s\""%query,endline=False);
       self.dprintf(2,"selection string is %s\n",query);
       ms = ms.query(query);
       self.dprintf(2,"query reduces MS to %d rows\n",ms.nrows());
     else:
       self.dprintf(2,"no selection applied\n");
+    # check list of baselines
+    if baselines:
+      baselines = [ (int(p),int(q)) for p,q in baselines ];
+      purr and self.purrpipe.comment("; baseline subset is %s"%
+        " ".join(["%d-%d"%(p,q) for p,q in baselines]),
+        endline=False);
     
     # this will be true if only whole rows are being selected. If channel/correlation
     # criteria are supplied, this will be set to False below
@@ -286,13 +338,18 @@ class Flagger (Timba.dmi.verbosity):
       else:
         flagrows = False;
         multichan = [ channels ];
+        purr and self.purrpipe.comment("; channels are %s"%channels,endline=False);
     else:
+      purr and self.purrpipe.comment("; channels are %s"%(', '.join(map(str,multichan))),endline=False);
       flagrows = False;
     self.dprintf(2,"channel selection is %s\n",multichan);
     if corrs is None:
       corrs = numpy.s_[:];
     else:
+      purr and self.purrpipe.comment("; correlations %s"%corrs,endline=False);
       flagrows = False;
+    print "purr is",purr;
+    purr and self.purrpipe.comment(".");
     self.dprintf(2,"correlation selection is %s\n",corrs);
     stat_rows_nfl = stat_rows = stat_pixels = stat_pixels_nfl = 0;
     # make list of sub-MSs
@@ -412,7 +469,7 @@ class Flagger (Timba.dmi.verbosity):
     stat1 = (stat_pixels and stat_pixels_nfl/float(stat_pixels)) or 0;
     return stat0,stat1;
       
-  def set_legacy_flags (self,flags,progress_callback=None):
+  def set_legacy_flags (self,flags,progress_callback=None,purr=True):
     """Fills the legacy FLAG/FLAG_ROW column by applying the specified flagmask
     to bitflags.
     * if flags is an int, it is used as a bitflag mask
@@ -425,13 +482,17 @@ class Flagger (Timba.dmi.verbosity):
     if isinstance(flags,str):
       flagmask = self.flagsets.flagmask(flags);
       self.dprintf(1,"filling legacy FLAG/FLAG_ROW using flagset %s\n",flags);
+      purr and self.purrpipe.title("Flagging").comment("Filling FLAG/FLAG_ROW from flagset %s."%flags);
     elif isinstance(flags,(list,tuple)):
       flagmask = 0;
       for fl in flags:
         flagmask |= self.flagsets.flagmask(fl);
       self.dprintf(1,"filling legacy FLAG/FLAG_ROW using flagsets %s\n",flags);
+      purr and self.purrpipe.title("Flagging").comment("Filling FLAG/FLAG_ROW from flagsets %s."%','.join(flags));
     elif isinstance(flags,int):
       flagmask = flags;
+      self.dprintf(1,"filling legacy FLAG/FLAG_ROW using flagsets %s\n",flags);
+      purr and self.purrpipe.title("Flagging").comment("Filling FLAG/FLAG_ROW from bitflags %x."%flags);
     else:
       raise TypeError,"flagmask argument must be int, str or sequence";
     self.dprintf(1,"filling legacy FLAG/FLAG_ROW using bitmask 0x%d\n",flagmask);
@@ -456,11 +517,12 @@ class Flagger (Timba.dmi.verbosity):
     if progress_callback:
       progress_callback(nrow_tot,nrow_tot);
       
-  def clear_legacy_flags (self,progress_callback=None):
+  def clear_legacy_flags (self,progress_callback=None,purr=True):
     """Clears the legacy FLAG/FLAG_ROW columns.
     """;
     ms = self._reopen();
     self.dprintf(1,"clearing legacy FLAG/FLAG_ROW column\n");
+    purr and self.purrpipe.title("Flagging").comment("Clearing FLAG/FLAG_ROW columns");
     # now go through MS and fill the column
     # go through rows of the MS in chunks
     shape = list(ms.getcol('FLAG',0,1).shape);
@@ -570,7 +632,7 @@ class Flagger (Timba.dmi.verbosity):
     def setselect (self,**kw):
       self._cmd(self._setmethod('setselect',kw));
       
-    def run (self,wait=True,**kw):
+    def run (self,wait=True,cmdfile=None,purr=True,**kw):
       runcmd = self._setmethod('run',kw);
       # init list of command strings
       cmds = [ "include 'autoflag.g'","af:=autoflag('%s');"%self.flagger.msname ];
@@ -586,12 +648,20 @@ class Flagger (Timba.dmi.verbosity):
         self.flagger.dprint(2,cmd);
       if _GLISH is None:
         raise RuntimeError,"glish not found, so cannot run autoflagger";
+      # write commands to temporary file and run glish
+      if cmdfile:
+        fobj = file(cmdfile,"wt");
+      else:
+        fh,cmdfile = tempfile.mkstemp(prefix="autoflag",suffix=".g");
+        fobj = os.fdopen(fh,"wt");
+      cmds += [ "shell('rm -f %s')"%cmdfile,"exit" ];
+      fobj.writelines([line+"\n" for line in cmds]);
+      fobj.close();
+      # write to pipe
+      purr and self.flagger.purrpipe.title("Flagging").comment("Running autoflagger.").pounce(cmdfile);
       # tell flagger to detach from MS
       self.flagger.close();
-      # write commands to temporary file and run glish
-      fh,cmdfile = tempfile.mkstemp(prefix="autoflag",suffix=".g");
-      cmds += [ "shell('rm -f %s')"%cmdfile,"exit" ];
-      os.fdopen(fh,"wt").writelines([line+"\n" for line in cmds]);
+      # spawn glish
       self.flagger.dprintf(3,"temp glish command file is %s\n"%cmdfile);
       waitcode = (wait and os.P_WAIT) or os.P_NOWAIT;
       return os.spawnvp(waitcode,_GLISH,['glish','-l',cmdfile]);
