@@ -214,37 +214,25 @@ class ParmClump(Clump.LeafClump):
 # Derived class ListClump:
 #********************************************************************************
 
-class ParmListClump(ParmClump):
+class ParmListClump(Clump.ListClump, ParmClump):
    """
-   A ParmClump may also be created from a list of nodes.
+   A ParmClump may also be created from a list of nodes (nodelist).
    They do not have to be MeqParms. The nodescope is searched for MeqParms.
    """
 
-   def __init__(self, clist=None, **kwargs):
+   def __init__(self, nodelist=None, **kwargs):
       """
-      Derived from class ParmClump.
+      Derived from classes Clump.ListClump and ParmClump.
       """
-      # The data-description may be defined by means of kwargs:
-      self._datadesc = dict()
-      dd = self.datadesc(complex=kwargs.get('complex',False),
-                         dims=kwargs.get('dims',1))
+      #.................................................
+      # NB: This calls the .initexec() function of class ParmClump!
+      Clump.ListClump.__init__(self, nodelist, **kwargs)
+      # There is NO need to call ParmClump.__init__()
+      #.................................................
 
-      ParmClump.__init__(self, clump=clist, **kwargs)
-      return None
-
-
-   #-------------------------------------------------------------------------
-   # Re-implementation of its initexec function (called from Clump.__init__())
-   #-------------------------------------------------------------------------
-
-   def initexec (self, **kwargs):
-      """
-      The input list of nodes has been transferred in Clump.__init__(),
-      and self._datadesc has been defined etc.
-      Search for MeqParms:
-      - First check if the input nodes are MeqParms 
-      - If not, search the nodescope for MeqParms.
-      """
+      # Search for MeqParms:
+      # - First check if the input nodes are MeqParms 
+      # - If not, search the nodescope for MeqParms.
       parms = []
       for node in self._nodes:
          if node.classname=='MeqParm':
@@ -259,7 +247,8 @@ class ParmListClump(ParmClump):
       else:
          self._ParmClumps = [self]
 
-      return True
+      # self.history('Created from list of nodes', show_node=True)
+      return None
 
 
 
@@ -343,7 +332,7 @@ if __name__ == '__main__':
       clump1 = ParmClump(clump, name='other')
       clump1.show('clump1')
 
-   if 0:
+   if 1:
       solvable = clump.solspec()
       print '-> solvable =',solvable
       clump.show('after solspec()')

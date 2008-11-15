@@ -133,10 +133,10 @@ class Polynomial(Clump.LeafClump):
       Re-implemented version of the function in the baseclass (LeafClump).
       """
       # The data-description may be defined by means of kwargs: 
-      dd = self.datadesc(treequals=['poly'])
+      dd = self.datadesc(treequals=['polytwig'])
 
       prompt = None
-      help = 'make twig (leaf) node for: '+self.oneliner()
+      help = 'make polynomial twig (leaf) node for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
       choice = ['f','t','ft','f2','t2','f2t','ft2','f2t2']

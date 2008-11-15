@@ -63,14 +63,16 @@ class SolverUnit(Clump.Clump):
    A processing unit with a MeqSolver
    """
 
-   def __init__(self, clump=None, other=None, **kwargs):
+   def __init__(self, clump=None, rhs=None, **kwargs):
       """
       Derived from class Clump. The required inputs are two Clumps,
-      representing 'Measured' and 'Predicted' (in some order),
-      whose tree nodes provide the inputs for the Condeq(s). 
+      representing the left-hand side (lhs) and right-hand side (rhs)
+      of the MeqCondeq nodes that generate equations. The lhs is the
+      input clump, i.e. its nodes are copied into the SolverUnit Clump.
+      A new clump (self._rhs) is creates so that its trees may be grown
+      without affecting the input Clump itself.
       """
-      self._other = other
-      self._solver = None
+      self._rhs = Clump.Clump(rhs, name='rhs', select=None)
       Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
 
@@ -82,8 +84,7 @@ class SolverUnit(Clump.Clump):
       Re-implementation of function in baseclass Clump.
       """
       ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      ss += '\n + other = '+self._other.oneliner()
-      ss += '\n + self._solver = '+str(self._solver)
+      ss += '\n + self._rhs = '+self._rhs.oneliner()
       return ss
 
 
@@ -100,28 +101,57 @@ class SolverUnit(Clump.Clump):
 
       self.add_option('num_iter',[3,5,10,20,1,2],
                       help='(max) nr of solver iterations')
-      help = 'if True(=1), make bookpage () in foder: '+str(self._name)
-      self.add_option('make_bookmark', [True], help=help)
+      help = 'if True, make bookpage () in foder: '+str(self._name)
+      self.add_option('make_bookmark', True, help=help)
+
+      help = 'If True, operate on a single tensor node' 
+      self.add_option('compose', False, hide=False, help=help)
+
+      help = """If specified, apply unary operation(s) to the input first.
+      For instance for converting complex numbers into phases or log(ampl)."""
+      self.add_option('unops', [None, 'Arg','Log','Cos'],
+                      more=str, hide=False, help=help)
+
+      help = """If specified, change the freq/time resolution (nr of cells)
+      of the domain, so that fewer equations have to be generated (with higher S/N)."""
+      self.add_option('resample_time', [None,5,4,3,2,1],
+                      more=int, hide=False, help=help)
+      self.add_option('resample_freq', [None,5,4,3,2,1],
+                      more=int, hide=False, help=help)
 
       solver = None
       if self.execute_body():
 
-         # Connect orphans, stubtree etc, and transfer ParmClumps!
-         # But ONLY if this clump is actually executed (i.e. selected) 
-         self.connect_grafted_clump (self._other)
-
          # Get option values:
+         compose = self.getopt('compose')
+         unops = self.getopt('unops')
+         resample_time = self.getopt('resample_time')
+         resample_freq = self.getopt('resample_freq')
          num_iter = self.getopt('num_iter')
          make_bookmark = self.getopt('make_bookmark')
          solver_help = kwargs.get('help',self.oneliner())
 
+         if compose:
+            self.compose()
+            self._rhs.compose()
+
+         if unops:
+            self.apply_unops(unops=unops, select=None)
+            self._rhs.apply_unops(unops=unops, select=None)
+            self.history('....'+str(unops)+'....')
+
+         num_cells = [resample_time, resample_freq]
+         if not num_cells==[None,None]:
+            # cc.append(stub('ModRes')(num_cells) << Meq.ModRes(twig, num_cells=num_cells))
+            # cc.append(stub('Resampler')(mode=mode) << Meq.Resampler(cc[-1], mode=mode))
+            pass
+
          # Make MeqCondeqs:
          stub = self.unique_nodestub()
          condeqs = []
-         # print self._other.oneliner()
+         # print self._rhs.oneliner()
          for i,qual in enumerate(self._nodequals):
-            node = stub('condeq')(qual) << Meq.Condeq(self[i],
-                                                      self._other[i]) 
+            node = stub('condeq')(qual) << Meq.Condeq(self[i],self._rhs[i]) 
             self._nodes[i] = node
             condeqs.append(node)
 
@@ -149,6 +179,13 @@ class SolverUnit(Clump.Clump):
          # These will issue a request first to the solver,
          # but pass on the result of the trees (result_index=1).
          self._input_clump.insert_reqseqs(reqseq_node)
+
+         # Connect orphans, stubtree etc, and transfer ParmClumps!
+         # But ONLY if this clump is actually executed (i.e. selected) 
+         self.connect_grafted_clump (self._rhs)
+         self._input_clump.connect_grafted_clump (self)
+         self._rhs.show('inside')
+
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
@@ -179,27 +216,29 @@ class SolverUnit(Clump.Clump):
       help = self.initrec2help(solver, help, ignore=['solvable'])
 
       #............................
-      help += '\n\n** MeqCondeq nodes ('+str(nc)+'):'
-      help += '\n The results of individual MeqCondeqs may be inspected.'
-      help += '\n - Right-click on the panel, and use "Change Selected Vells".'
-      help += '\n - Use the full list of relevant MeqCondeq nodes below for key.'
-      help += '\n If there is more than one MeqCondeq, the quality of the fit'
-      help += '\n   may be rapidly assessed by means of the sum(abs(condeq)) node.'
+      help += """\n\n** MeqParm nodes ("""+str(ns)+"""):
+      The results of individual MeqParms may be inspected.
+      - Right-click on the panel, and use 'Change Selected Vells'.
+      - Use the full list of relevant MeqParm nodes below for key.
+      """
+      if ns>0:
+         help += '\n MeqParm settings (initrec):'
+         help = self.initrec2help(solvable[0], help, ignore=[])
+         help += '\n NB: The first MeqParm only (the others are assumed to be the same...)'
+
+      #............................
+      help += """\n\n** MeqCondeq nodes ("""+str(nc)+"""):
+      The results of individual MeqCondeqs may be inspected.
+      - Right-click on the panel, and use 'Change Selected Vells'.
+      - Use the full list of relevant MeqCondeq nodes below for key.
+      If there is more than one MeqCondeq, the quality of the fit
+      may be rapidly assessed by means of the sum(abs(condeq)) node.
+      """
       if nc>0:
          help += '\n MeqCondeqs have two children (lhs and rhs):'
          cc = condeqs[0].children
          help += '\n     - lhs:  '+str(cc[0][1])
          help += '\n     - rhs:  '+str(cc[1][1])
-
-      #............................
-      help += '\n\n** MeqParm nodes ('+str(ns)+'):'
-      help += '\n The results of individual MeqParms may be inspected.'
-      help += '\n - Right-click on the panel, and use "Change Selected Vells".'
-      help += '\n - Use the full list of relevant MeqParm nodes below for key.'
-      if ns>0:
-         help += '\n MeqParm settings (initrec):'
-         help = self.initrec2help(solvable[0], help, ignore=[])
-         help += '\n NB: The first MeqParm only (the others are assumed to be the same...)'
 
       #............................
       help += '\n\n** Full list of '+str(ns)+' solvable MeqParm nodes:'
@@ -240,14 +279,17 @@ class SolverUnit(Clump.Clump):
          viewer.append('Result Plotter')
 
       #............................
+      # Make the reqseq BEFOFE the solver is appended to nodes (below):
+      reqseq_node = stub('reqseq') << Meq.ReqSeq(children=nodes) 
+
+      #............................
+      # Make the bookpage (last):
       help += self.history(format=True)
       nodes.append(self.make_bookmark_help(solver, help, bookmark=False))
       viewer.append('QuickRef Display')
-         
-      #............................
-      # Make the bookpage:
       self.make_bookmark(nodes, viewer=viewer)
-      reqseq_node = stub('reqseq') << Meq.ReqSeq(children=nodes) 
+
+      # Return:
       return reqseq_node
 
 
@@ -268,25 +310,26 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
 
    help = '<help>'
-   TCM.add_option('test', ['straight','twig','polyparm'], more=False,
-                  prompt='select a test', help=help)
+   TCM.add_option('test', ['straight','twig','polyparm'],
+                  more=False, help=help,
+                  prompt='select a test')
    
    clump = None
    if TCM.submenu_is_selected():
       test = TCM.getopt('test', submenu)
       help = test
       if test=='twig':
-         clump = TwigClump.Twig(ns=ns, TCM=TCM, trace=True)
-         other = ParmClump.ParmClump(clump, trace=True)
+         clump = TwigClump.Twig(ns=ns, TCM=TCM, name='lhs', trace=True)
+         rhs = ParmClump.ParmClump(clump, name='rhs', trace=True)
       elif test=='polyparm':
-         other = TwigClump.Polynomial(ns=ns, TCM=TCM, trace=True)
-         clump = Clump.LeafClump(other, trace=True)
+         rhs = TwigClump.Polynomial(ns=ns, TCM=TCM, name='rhs', trace=True)
+         clump = Clump.LeafClump(rhs, name='lhs', trace=True)
       else:
-         clump = Clump.LeafClump(ns=ns, TCM=TCM, trace=True)
-         other = ParmClump.ParmClump(clump, trace=True)
+         clump = Clump.LeafClump(ns=ns, TCM=TCM, name='lhs', trace=True)
+         rhs = ParmClump.ParmClump(clump, name='rhs', trace=True)
       clump.show('creation', full=True)
-      other.show('creation', full=True)
-      su = SolverUnit(clump, other, help=help, trace=True)
+      rhs.show('creation', full=True)
+      su = SolverUnit(clump, rhs, help=help, trace=True)
       su.show('creation', full=True)
 
    # The LAST statement:
@@ -316,9 +359,9 @@ if __name__ == '__main__':
       # clump = Clump.LeafClump(trace=True)
       clump = TwigClump.Twig(twig='f+t', trace=True)
       clump.show('creation', full=True)
-      other = ParmClump.ParmClump(clump, name='other', trace=True)
-      other.show('other', full=True)
-      sc = SolverUnit(clump, other, trace=True)
+      rhs = ParmClump.ParmClump(clump, name='rhs', trace=True)
+      rhs.show('rhs', full=True)
+      sc = SolverUnit(clump, rhs, trace=True)
       sc.show('SolverUnit', full=True)
 
    if 1:
