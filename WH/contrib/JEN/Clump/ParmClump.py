@@ -178,9 +178,9 @@ class ParmClump(Clump.LeafClump):
                       help='time deg of polc',
                       prompt='time deg')
 
-      self.add_option('nftile', [None,1,2,3,4,5,10], more=int,
+      self.add_option('nfreq_subtile', [None,1,2,3,4,5,10], more=int, hide=True,
                       help="size (freq-cells) of solving subtile")
-      self.add_option('nttile', [None,1,2,3,4,5,10], more=int,
+      self.add_option('ntime_subtile', [None,1,2,3,4,5,10], more=int, hide=True,
                       help="size (time-cells) of solving subtile")
 
       solvable = []         # return a list of solvable MeqParm names
@@ -188,8 +188,8 @@ class ParmClump(Clump.LeafClump):
 
          tdeg = self.getopt('tdeg')
          fdeg = self.getopt('fdeg')
-         nt = self.getopt('nttile')
-         nf = self.getopt('nftile')
+         nt = self.getopt('ntime_subtile')
+         nf = self.getopt('nfreq_subtile')
          tiling = record(freq=nf, time=nt)
 
          for i,qual in enumerate(self._nodequals):
@@ -242,8 +242,7 @@ class ParmListClump(Clump.ListClump, ParmClump):
          parms = self._ns.Search(class_name='MeqParm')
 
       if len(parms)==0:
-         s = '** no MeqParms found'
-         raise ValueError,s
+         self.ERROR('** no MeqParms found')
       else:
          self._ParmClumps = [self]
 

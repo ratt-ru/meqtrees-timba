@@ -220,8 +220,7 @@ class Clump (object):
          elif isinstance(dims,(list,tuple)):   
             dd['dims'] = list(dims)
          else:
-            s = '** dims should be integer or list'
-            raise ValueError,s
+            self.ERROR('** dims should be integer or list')
 
       if not tqs==None:                            # Clump tree qualifiers
          if isinstance(tqs,str):                   # string 
@@ -317,8 +316,7 @@ class Clump (object):
       """
       clump = self._input_clump                 # convenience
       if not clump:
-         s = '** Clump: An input Clump should have been provided!'
-         raise ValueError,s
+         self.ERROR('** Clump: An input Clump should have been provided!')
 
       elif getattr(clump,'_nodes',None):
          # Make sure that self._nodes is a COPY of clump._nodes
@@ -344,17 +342,34 @@ class Clump (object):
    #--------------------------------------------------------------------------
 
    def connect_grafted_clump (self, clump, trace=False):
-      """Connect the given clump, assuming it is grafted on the main steam,
-      e.g. when JonesClumps are used to correct VisClumps.
-      Thus, this is slightly different from what is done in the function
-      self.transfer_clump_nodes(), which merely continues the mainstream.
+      """Connect the loose ends (orphans, stubtree, ParmClumps) of the given
+      clump, e.g. when JonesClumps are used to correct VisClumps.
+      This is similar to, but slightly different from, what is done in the
+      function self.transfer_clump_nodes(), which merely continues the mainstream.
       """
       stub = self.unique_nodestub('connect')
-      node = stub('stubtree') << Meq.Add(self._stubtree, clump._stubtree)
+      self._stubtree = stub('stubtree') << Meq.Add(self._stubtree,
+                                                   clump._stubtree)
       self._orphans.extend(clump._orphans)                 # group them first?
       self._ParmClumps.extend(clump._ParmClumps)       
-      s = '.connect_with_clump(): '+str(clump.oneliner())
-      self.history(s)
+      self.history('.connect_grafted_clump(): '+str(clump.oneliner()))
+      return True
+
+   #--------------------------------------------------------------------------
+
+   def backconnect_to_clump (self, clump=None, trace=False):
+      """Connect the loose ends (orphans, stubtree, but NO ParmClumps!) of the
+      current clump to another one, e.g. the input clump (=default).
+      This is the reverse of .connect_grafted_clump().
+      """
+      if clump==None:
+         clump = self._input_clump
+      stub = clump.unique_nodestub('backconnect')
+      clump._stubtree = stub('stubtree') << Meq.Add(self._stubtree,
+                                                    clump._stubtree)
+      clump._orphans.extend(self._orphans)                 # group them first?
+      self.history('.backconnect_to_clump(): '+str(clump.oneliner()))
+      clump.history('.backconnect_from_clump(): '+str(self.oneliner()))
       return True
 
    
@@ -461,7 +476,7 @@ class Clump (object):
          s = '\n** '+self.oneliner()+'   ** NOT COMMENSURATE ** with:'
          s += '\n   '+other.oneliner()+'\n'
          if severe:
-            raise ValueError,s
+            self.ERROR(s)
          if trace:
             print s
       return cms
@@ -553,14 +568,14 @@ class Clump (object):
       if full:
          nmax = 2
          for i in range(min(nmax,n)):
-            ss += '\n   - '+str(self._nodes[i])
+            ss += '\n   - '+str(self[i])
          if n>nmax:
             if n>nmax+1:
                ss += '\n       ...'
-            ss += '\n   - '+str(self._nodes[-1])
+            ss += '\n   - '+str(self[-1])
       else:
-         ss += '\n   - node[0] = '+str(self._nodes[0])
-         ss += '\n   - node[-1]= '+str(self._nodes[-1])
+         ss += '\n   - node[0] = '+str(self[0])
+         ss += '\n   - node[-1]= '+str(self[-1])
                                        
       #.....................................................
       ss += '\n * self._ParmClumps (n='+str(len(self._ParmClumps))+'):'
@@ -658,7 +673,7 @@ class Clump (object):
       # Append the current node to the last line/item: 
       if show_node:
          ilast = self.len()-1
-         s = '   -> '+str(self._nodes[ilast])
+         s = '   -> '+str(self[ilast])
          self._history[-1] += s
          if trace:
             print '   >> .history(show_node): ',self._history[-1]
@@ -678,13 +693,46 @@ class Clump (object):
       # Always return the currently accumulated history (except when format=True)
       return self._history
 
+   #--------------------------------------------------------------------------
+   #--------------------------------------------------------------------------
+
+      def ERROR (self, s):
+         """Raise a ValueError in an organised way, i.e. while giving
+         information that may help in its solution. The program is stopped.
+         """
+         s1 = '**ERROR ** '+str(s)
+         self.history(s1)
+         self.show(s1)
+         raise ValueError,s1
+
+   #--------------------------------------------------------------------------
+
+      def WARNING (self, s):
+         """Issue a warning in an organised way: Print it conspiciously and
+         put it in the object history.
+         """
+         s1 = '**ERROR ** '+str(s)
+         self.history(s1)
+         print '\n            ',s1,'\n'
+         return s1
+
+   #--------------------------------------------------------------------------
+
+      def REMARK (self, s):
+         """Make a remark in an organised way:
+         Print it, and put it in the object history.
+         """
+         s1 = '-- REMARK: '+str(s)
+         self.history(s1, trace=True)
+         return s1
+
 
    #=========================================================================
    # Some general helper functions
    #=========================================================================
 
    def len(self):
-      """Return the number of nodes in the Clump (=1 if a tensor)
+      """Return the number of tree nodes in the Clump (=1 if composed)
       """
       return len(self._nodes)
 
@@ -704,17 +752,16 @@ class Clump (object):
       return len(self._datadesc['treequals'])
 
    #--------------------------------------------------------------------------
-   #--------------------------------------------------------------------------
 
    def __getitem__(self, index):
-      """Get the specified (index) node.
+      """Get the specified (index) node. Syntax: node = clump[i]
       """
       return self._nodes[index]
 
    #--------------------------------------------------------------------------
 
    def __str__(self):
-      """Print conversion. Return the object oneliner().
+      """Print-conversion. Syntax: print str(clump) prints clump.oneliner().
       """
       return self.oneliner()
 
@@ -1000,11 +1047,11 @@ class Clump (object):
          if subset=='*':
             ii = range(self.size())
          else:
-            raise ValueError,s
+            self.ERROR(s)
       elif isinstance(subset,int):
          ii = range(min(subset,self.size()))      # ..../??
       elif not isinstance(subset,(list,tuple)):
-         raise ValueError,s
+         self.ERROR(s)
       else:
          ii = list(subset)
 
@@ -1012,9 +1059,9 @@ class Clump (object):
       imax = self.size()
       for i in ii:
          if not isinstance(i,int):
-            raise ValueError,s
+            self.ERROR(s)
          elif i<0 or i>imax:
-            raise ValueError,s
+            self.ERROR(s)
 
       # Finished:
       if trace:
@@ -1030,7 +1077,7 @@ class Clump (object):
       ii = self.get_indices(subset, trace=trace)
       nodes = []
       for i in ii:
-         nodes.append(self._nodes[i])
+         nodes.append(self[i])
          if trace:
             print '-',str(nodes[-1])
       return nodes
@@ -1090,10 +1137,9 @@ class Clump (object):
          else:
             node = stub(qual) << getattr(Meq,combine)(*self._nodes)
       elif combine=='Composer':
-         node = stub('tensor') << Meq.Identity(self._nodes[0]) 
+         node = stub('tensor') << Meq.Identity(self[0]) 
       else:
-         s = hist+' Clump is in composed state **'
-         raise ValueError,s
+         self.ERROR(hist+' Clump is in composed state **')
       
       hist = '.bundle('+str(combine)+')'
       # self.history(hist, trace=kwargs.get('trace',False))
@@ -1176,6 +1222,17 @@ class Clump (object):
          self.history('.insert_reqseqs('+str(node)+')', show_node=True)
       return True
 
+   #-------------------------------------------------------------------------
+
+   def solspec(self, trace=False):
+      """Get all the solvable parameters from the entries of self._ParmClumps.
+      """
+      ss = []
+      for pc in self._ParmClumps:
+         ss = pc.solspec(select=True)
+         solvable.extend(ss)
+      return ss
+
    #=========================================================================
    # Apply arbitrary unary (unops) or binary (binops) operaions to the nodes:
    #=========================================================================
@@ -1195,26 +1252,37 @@ class Clump (object):
       elif isinstance(unops,str):
          unops = unops.split(' ')       # 'Cos Sin' -> ['Cos','Sin']
       else:
-         s = '** invalid unops: '+str(unops)
-         raise ValueError,s
+         self.ERROR('** invalid unops: '+str(unops))
 
       prompt = '.apply_unops('+str(unops)+')'
       help = None
       ctrl = self.on_entry(self.apply_unops, prompt, help, **kwargs)
 
       hist = 'unops='+str(unops)
-      self.history('before execute_body()'+hist)
-      if self.execute_body(hist=hist):
+      always = kwargs.get('always',False)
+      if self.execute_body(always=always, hist=hist):
          # Apply in order of specification:
          for unop in unops:
             stub = self.unique_nodestub(unop+'()')
             for i,qual in enumerate(self._nodequals):
-               self._nodes[i] = stub(qual) << getattr(Meq,unop)(self._nodes[i])
+               self._nodes[i] = stub(qual) << getattr(Meq,unop)(self[i])
          hist = 'end_of_body'
-         self.history('in execute_body()'+hist)
          self.end_of_body(ctrl, hist=hist)
 
       return self.on_exit(ctrl)
+
+   #-------------------------------------------------------------------------
+
+   def resample (self, **kwargs):
+      """
+      Apply MeqResampler to its nodes, using the specified mode[=1]
+      """
+      mode = kwargs.get('mode',1)
+      stub = self.unique_nodestub('resampled')(mode=mode)
+      for i,qual in enumerate(self._nodequals):
+         self._nodes[i] = stub(qual) << Meq.Resampler(self[i], mode=mode)
+      self.history('.resample(mode='+str(mode)+')', show_node=True)
+      return True
 
    #-------------------------------------------------------------------------
 
@@ -1235,7 +1303,8 @@ class Clump (object):
       ctrl = self.on_entry(self.apply_binop, prompt, help, **kwargs)
 
       hist = 'binop='+str(binop)
-      if self.execute_body(hist=hist):
+      always = kwargs.get('always',False)
+      if self.execute_body(always=always, hist=hist):
          if isinstance(rhs,(int,float,complex)):    # rhs is a number
             stub = self.unique_nodestub('constant')
             rhs = stub('='+str(rhs)) << Meq.Constant(rhs) # convert to MeqConstant
@@ -1243,14 +1312,13 @@ class Clump (object):
          if is_node(rhs):                           # rhs is a node
             stub = self.unique_nodestub(binop, 'samenode')
             for i,qual in enumerate(self._nodequals):
-               self._nodes[i] = stub(qual) << getattr(Meq,binop)(self._nodes[i],rhs)
+               self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs)
 
          elif isinstance(rhs,type(self)):           # rhs is a Clump object
             if self.commensurate(rhs, severe=True):
                stub = self.unique_nodestub(binop, rhs._typename)
                for i,qual in enumerate(self._nodequals):
-                  self._nodes[i] = stub(qual) << getattr(Meq,binop)(self._nodes[i],
-                                                                    rhs._nodes[i])
+                  self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs[i])
          hist = 'end_of_body'
          self.end_of_body(ctrl, hist=hist)
          
@@ -1444,7 +1512,7 @@ class Clump (object):
             bookpage += '['+str(nodequal)+']'
          if not isinstance(folder,str):
             folder = self._name
-            self.make_bookmark(self._nodes[index],
+            self.make_bookmark(self[index],
                                recurse=recurse,
                                name=bookpage, folder=folder,
                                viewer=viewer)
@@ -1469,8 +1537,7 @@ class Clump (object):
             self._rider[key] = kwargs['new']
          elif not rr.has_key(key):
             if severe:
-               s = '** rider does not have key: '+str(key)
-               raise ValueError,s
+               self.ERROR('** rider does not have key: '+str(key))
             else:
                return None                 # .....?
          return self._rider[key]
@@ -1596,18 +1663,15 @@ class ListClump(Clump):
       if is_node(nodelist):                  # A single node
          nn = [nodelist]                     
       elif not isinstance(nodelist,(list,tuple)):
-         s = '** nodelist should be a list, tuple or node'
-         raise ValueError,s
+         self.ERROR('** nodelist should be a list, tuple or node')
       else:
          for i,node in enumerate(nodelist):
             if not is_node(node):
-               s = '** not a node, but: '+str(type(node))
-               raise ValueError,s
+               self.ERROR('** not a node, but: '+str(type(node)))
             nn.append(node)
 
       if len(nn)==0:
-         s = '** nodelist is empty'
-         raise ValueError,s
+         self.ERROR('** nodelist is empty')
 
       # The data-description may be defined by means of kwargs:
       self._datadesc = dict()
@@ -1740,14 +1804,14 @@ if __name__ == '__main__':
          print '.decompose() ->',clump.decompose()
          clump.show('.decompose()')
 
-   if 0:
-      new = clump.copy(unops='Cos')
-      new.show('new', full=True)
+   if 1:
+      clump.resample(mode=2)
+      clump.show('.resample()', full=True)
 
    if 0:
       unops = 'Cos'
       # unops = ['Cos','Cos','Cos']
-      unops = 'Cos Sin'
+      # unops = 'Cos Sin'
       # unops = ['Cos','Sin']
       clump.apply_unops(unops=unops, trace=True)    
       # clump.apply_unops()                       # error

@@ -50,59 +50,79 @@ import math                 # support math.cos() etc
 # import numpy                # support numpy.cos() etc
 
 
+
+
+
 #==============================================================================
-# Import a ClumpClass to be used in the 2-pass system:
-# NB: Un-commenting more than one is OK. ClumpClass refers to the last one.
+# Choice of Clump Class, whose .do_define_forest() is to be executed:
 #==============================================================================
-
-
-
-from Timba.Contrib.JEN.Clump import Clump as ClumpClass 
-
-from Timba.Contrib.JEN.Clump import templateClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import templateLeafClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import TwigClump as ClumpClass
-
-# from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
-from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
-
-# from Timba.Contrib.JEN.Clump import CorruptClump as ClumpClass
-
-#### The base-class has all the specific functions, e.g. .visualize()
-# from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
-
-#### The following contain multiple classes (GJones,FJones,EJones etc):
-# from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import WSRTJones as ClumpClass
-# from Timba.Contrib.JEN.Clump import VLAJones as ClumpClass
-# from Timba.Contrib.JEN.Clump import ATCAJones as ClumpClass
-# from Timba.Contrib.JEN.Clump import LOFARJones as ClumpClass
-
-#### Specific operations: .corrupt(jones), .correct(), .shiftPhaseCentre()
-#### Also: visualize() reimplementation
-# from Timba.Contrib.JEN.Clump import VisClump as ClumpClass
-
-# from Timba.Contrib.JEN.Clump import SpigotClump as ClumpClass
-# from Timba.Contrib.JEN.Clump import PeelingUnit as ClumpClass
-# from Timba.Contrib.JEN.Clump import CatIISubtractUnit as ClumpClass
-# from Timba.Contrib.JEN.Clump import FlaggingUnit as ClumpClass
-
-
-#------------------------------------------------------------------------------
-# First pass:
-# This bit is executed whenever the module is imported (blue button etc)
-#------------------------------------------------------------------------------
-
 
 TCM = TOM.TDLOptionManager(__file__)
+cc = ['Clump','templateClump','CorruptClump',
+      'templateLeafClump','ParmClump','TwigClump',
+      'SolverUnit',
+      'JonesClump']
+TCM.add_option('ClumpClass',cc)
+
+cc = TCM.getopt('ClumpClass')
+if cc=='Clump':
+   from Timba.Contrib.JEN.Clump import Clump as ClumpClass
+elif cc=='templateClump':
+   from Timba.Contrib.JEN.Clump import templateClump as ClumpClass
+elif cc=='CorruptClump':
+   from Timba.Contrib.JEN.Clump import CorruptClump as ClumpClass
+
+elif cc=='templateLeafClump':
+   from Timba.Contrib.JEN.Clump import templateLeafClump as ClumpClass
+elif cc=='ParmClump':
+   from Timba.Contrib.JEN.Clump import ParmClump as ClumpClass
+elif cc=='TwigClump':
+   from Timba.Contrib.JEN.Clump import TwigClump as ClumpClass
+
+elif cc=='SolverUnit':
+   from Timba.Contrib.JEN.Clump import SolverUnit as ClumpClass
+
+elif cc=='JonesClump':
+   # The base-class has all the specific functions, e.g. .visualize()
+   from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
+
+   #### The following contain multiple classes (GJones,FJones,EJones etc):
+   # from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass
+   # from Timba.Contrib.JEN.Clump import WSRTJones as ClumpClass
+   # from Timba.Contrib.JEN.Clump import VLAJones as ClumpClass
+   # from Timba.Contrib.JEN.Clump import ATCAJones as ClumpClass
+   # from Timba.Contrib.JEN.Clump import LOFARJones as ClumpClass
+
+# elif cc=='VisClump':
+   # Specific operations: .corrupt(jones), .correct(), .shiftPhaseCentre()
+   # Also: visualize() reimplementation
+   # from Timba.Contrib.JEN.Clump import VisClump as ClumpClass
+
+   # from Timba.Contrib.JEN.Clump import SpigotClump as ClumpClass
+   # from Timba.Contrib.JEN.Clump import PeelingUnit as ClumpClass
+   # from Timba.Contrib.JEN.Clump import CatIISubtractUnit as ClumpClass
+   # from Timba.Contrib.JEN.Clump import FlaggingUnit as ClumpClass
+
+else:
+   s = '** Clump class not recognised: '+cc
+   raise ValueError,s
+
+
+#==============================================================================
+# First pass through .do_define_forest():
+# NB: Only here are actual TDLOption objects generated.
+#==============================================================================
+
 ns = NodeScope().Subscope('dryrun')
 clump = ClumpClass.do_define_forest (ns=ns, TCM=TCM)
 itsTDLCompileMenu = TCM.TDLMenu(trace=False)
 
 
-#------------------------------------------------------------------------------
-# Second pass:
-#------------------------------------------------------------------------------
+#==============================================================================
+# Second pass through .do_define_forest(), using ._define_forest()
+# NB: This part generates nodes in the browser, but no TDLOption objects.
+# Also, a rootnode (named 'rootnode') is generated, to be executed.
+#==============================================================================
 
 def _define_forest (ns, **kwargs):
    """
