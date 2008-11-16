@@ -32,6 +32,7 @@ Baseline                         1682       ; from /home/rnijboer/LOFAR/Timba/Me
 Batch                            1563       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:13
 Beam                             1178       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
 Begin                            1643       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
+BF                               1749       ; from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:33
 Bind                             1079       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
 Bit                              1293       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 Bitflag                          1743       ; from /home/oms/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:36
@@ -65,6 +66,7 @@ Chunks                           1625       ; from /home/oms/alt/LOFAR/Timba/Meq
 Class                            1371       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:30
 Clear                            1353       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 Client                           1097       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:24
+Clip                             1751       ; from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:33
 Closed                           1252       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
 Code                             1120       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
 Coeff                            1356       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
@@ -315,7 +317,7 @@ MeqBeam                          1594       ; from /home/sarod/LOFAR/Timba/MeqNo
 MeqCelestialBody                 1714       ; from /home/sarod/Timba/MeqNodes/src/CelestialBody.h:30
 MeqCells                         1339       ; from /home/oms/LOFAR/Timba/MEQ/src/Cells.h:35
 MeqClient                        1544       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
-#MeqCompiledFunklet              1583       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
+MeqCompiledFunklet               1583       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/CompiledFunklet.h:18
 MeqComposedPolc                  1582       ; from /home/oms/LOFAR/Timba/MEQ/src/ComposedPolc.h:9
 #MeqComposer                     1442       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Composer.h:30
 #MeqCompounder                   1664       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Compounder.h:32
@@ -344,7 +346,7 @@ MeqDomain                        1294       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqFreq                         1420       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Freq.h:30
 MeqFuncTest                      1571       ; from /home/mevius/LOFAR/Timba/MEQ/src/FuncTest.h:11
 MeqFunction                      1283       ; from /home/oms/LOFAR/Timba/MEQ/src/Function.h:29
-#MeqFunctional                   1673       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
+MeqFunctional                    1673       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
 MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src/Funklet.h:31
 #MeqGaussNoise                   1449       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
 #MeqGrid                         1681       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Grid.h:30
@@ -451,6 +453,7 @@ MeqVisDataMux                    1585       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqVisPhaseShiftArg             1747       ; from /home/oms/Timba/MeqNodes/src/VisPhaseShiftArg.h:32
 MeqWAvg                          1503       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WAvg.h:30
 #MeqWMean                        1504       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WMean.h:30
+#MeqWSRTCos3Beam                 1750       ; from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:32
 #MeqWSum                         1502       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/WSum.h:30
 #MeqZeroFlagger                  1434       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
 Message                          1269       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:36
