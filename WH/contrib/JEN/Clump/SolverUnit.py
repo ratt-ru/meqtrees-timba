@@ -72,7 +72,9 @@ class SolverUnit(Clump.Clump):
       A new clump (self._rhs) is creates so that its trees may be grown
       without affecting the input Clump itself.
       """
-      self._rhs = Clump.Clump(rhs, name='rhs', select=None)
+      self._rhs = Clump.Clump(rhs, name='rhs_copy',
+                              hide=True,
+                              makemenu=False)
       Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
 

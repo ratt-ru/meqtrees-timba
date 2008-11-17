@@ -87,11 +87,6 @@ class Clump (object):
       self._slaveof = kwargs.get('slaveof',None)        # <------- !!?
 
       self._input_kwargs = kwargs
-      if False:
-         for key in ['TCM','ns']:
-            if self._input_kwargs[key]:
-               self._input_kwargs[key] = True
-         
 
       # Make a short version of the actual type name (e.g. Clump)
       self._typename = str(type(self)).split('.')[-1].split("'")[0]
@@ -177,7 +172,7 @@ class Clump (object):
       # the datadesc will usually have been created in the derived class.
       # If there still is no datadesc at this point, create a default one:
             
-      if not getattr(self,'_datadesc',None):         # does not exist yet
+      if not getattr(self,'_datadesc',None):     # does not exist yet
          self._datadesc = dict()
          self.datadesc(complex=False, dims=[1], treequals=range(3),
                        plotcolor='red', plotsymbol='cross', plotzize=1)
@@ -209,6 +204,8 @@ class Clump (object):
       size = kwargs.get('plotsize',None) 
       tqs = kwargs.get('treequals',None) 
 
+      if not getattr(self,'_datadesc',None):       # does not exist yet
+         self._datadesc = dict()
       dd = self._datadesc                          # convenience
 
       if isinstance(is_complex,bool):              # data type
@@ -351,7 +348,7 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
-   def connect_loose_ends (self, clump=None, trace=False):
+   def connect_loose_ends (self, clump=None, full=True, trace=False):
       """Connect the loose ends (orphans, stubtree, but NO ParmClumps!) of the
       current clump to another one, e.g. the input clump (=default).
       This is the reverse of .connect_grafted_clump().
@@ -360,9 +357,10 @@ class Clump (object):
          clump = self._input_clump
       clump.graft_to_stubtree(self._stubtree)
       clump._orphans.extend(self._orphans)                 # group them first?
-      clump.copy_history(self)
-      self.history('.connect_loose_ends() to: '+str(clump.oneliner()))
-      clump.history('.connected loose ends of: '+str(self.oneliner()))
+      if full:
+         clump.copy_history(self)
+         self.history('.connect_loose_ends() to: '+str(clump.oneliner()))
+         clump.history('.connected loose ends of: '+str(self.oneliner()))
       return True
 
    
@@ -370,10 +368,10 @@ class Clump (object):
    # Fuctions that depend on whether or not the Clump has been selected:
    #==========================================================================
 
-   def append_if_selected(self, clist=[], trace=False):
+   def append_if_selected(self, clist=[], notsel=None, trace=False):
       """If selected, append the object to the input list (clist).
-      Otherwise, do nothing. Always return the list.
-      Syntax:  clist = Clump(cp).append_if_selected(clist=[])
+      Otherwise, append it to the 'not-selected' (notsel) list, if supplied.
+      Syntax:  clist = Clump(cp).append_if_selected(clist=[], notsel=[])
       """
       selected = self._object_is_selected
       if not isinstance(clist,list):
@@ -383,10 +381,13 @@ class Clump (object):
          clist.append(self)
          if trace:
             s += ' append: '+self.oneliner()
-            self.history(s, trace=True)
-      elif trace:
-         s += ' not appended'
-         self.history(s, trace=True)
+            self.history(s)
+      else:
+         if isinstance(notsel,list):
+            notsel.append(self)
+         if trace:
+            s += ' not appended'
+            self.history(s)
       # Always return the list:
       return clist
 
@@ -639,7 +640,7 @@ class Clump (object):
       for s in clump.history():
          ss = s.split('}')
          s1 = ss[-1]
-         self.history('|....'+s1, trace=True)
+         self.history('|....'+s1)
       return True
 
    #--------------------------------------------------------------------------
@@ -709,7 +710,7 @@ class Clump (object):
       """
       s1 = '** ERROR ** '+str(s)
       print '\n',s1,'\n'
-      self.history(s1)
+      self.history(s1, trace=True)
       self.show(s1)
       raise ValueError,s1
 
@@ -720,7 +721,7 @@ class Clump (object):
       put it in the object history.
       """
       s1 = '** WARNING ** '+str(s)
-      self.history(s1)
+      self.history(s1, trace=True)
       print '\n            ',s1,'\n'
       return s1
 
@@ -803,7 +804,9 @@ class Clump (object):
          func = self.start_of_body                   # for testing only
 
       trace = kwargs.get('trace',False)
-      select = kwargs.get('select',None)
+      hide = kwargs.get('hide',False)
+      makemenu = kwargs.get('makemenu',True)
+      select = kwargs.get('select',True)
       fixture = kwargs.get('fixture',False)
       ctrl = dict(funcname=str(func.func_name),
                   submenu=None,
@@ -817,15 +820,9 @@ class Clump (object):
       self._override = dict()
 
       # Make the menu for the calling function:
-      # NB: ALWAYS generate a menu, otherwise there may be option clashes!
-      if True:
-         hide = None
-         default = select
-         if select==None:                            # if not selectable, execute always
-            hide = True         
-            default = True
-            ### fixture = True                           # NOT a good idea!
-
+      # NB: if any options are defined in this module, always makemenu=True,
+      # otherwise there is a high probablility of option name clashes!
+      if makemenu:
          # Make a unique submenu name:
          self._stage['isubmenu'] += 1                # increment
          self._stage['count'] += 1                   # increment
@@ -849,8 +846,7 @@ class Clump (object):
          ctrl['submenu'] = self._TCM.start_of_submenu(name,
                                                       prompt=prompt,
                                                       help=help,
-                                                      # default=select,
-                                                      default=default,
+                                                      default=select,
                                                       hide=hide,
                                                       slaveof=self._slaveof,
                                                       fixture=fixture,
@@ -875,7 +871,7 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
-   def execute_body(self, always=False, hist=True):
+   def execute_body(self, always=False, hist=False):
       """To be called at the start of the 'body' of a Clump stage-method,
       i.e. AFTER any self._TCM menu and option definitions.
       Its (mandatory!) counterpart is self.end_of_body(ctrl)
@@ -938,7 +934,7 @@ class Clump (object):
       This function is ONLY called AFTER self.execute_body()==True.
       It use the record self._ctrl that is defined in .on_entry()
       """
-      trace = True
+      # trace = True
       override = self._override.has_key(relkey)
       if override:
          value = self._TCM.getopt(relkey, self._ctrl['submenu'],
@@ -1594,12 +1590,11 @@ class LeafClump(Clump):
       kwargs['select'] = True                           # always make a clump selection menu
       kwargs['transfer_clump_nodes'] = False            # see Clump.__init___()
 
-      # The data-description may be defined by means of kwargs:
-      self._datadesc = dict()
-      treequals = range(3)           # default list of tree qualifiers
-      dd = self.datadesc(complex=kwargs.get('complex',False),
-                         treequals=kwargs.get('treequals',treequals),
-                         dims=kwargs.get('dims',1))
+      # The data-description may be (re-)defined by means of kwargs:
+      if not getattr(self,'_datadesc',None):
+         self.datadesc(complex=kwargs.get('complex',False),
+                       treequals=kwargs.get('treequals',range(3)),
+                       dims=kwargs.get('dims',1))
 
       # The following executes the function self.initexec(**kwargs),
       # which is re-implemented below.
@@ -1668,7 +1663,6 @@ class ListClump(Clump):
       """
       Derived from class Clump.
       """
-
       # Check the input nodelist:
       nn = []
       if is_node(nodelist):                  # A single node
@@ -1685,10 +1679,9 @@ class ListClump(Clump):
          self.ERROR('** nodelist is empty')
 
       # The data-description may be defined by means of kwargs:
-      self._datadesc = dict()
-      dd = self.datadesc(complex=kwargs.get('complex',False),
-                         treequals=range(len(nn)), 
-                         dims=kwargs.get('dims',1))
+      self.datadesc(complex=kwargs.get('complex',False),
+                    treequals=range(len(nn)), 
+                    dims=kwargs.get('dims',1))
 
       # Fill the Clump with the nodes from nn: 
       self._nodes = []

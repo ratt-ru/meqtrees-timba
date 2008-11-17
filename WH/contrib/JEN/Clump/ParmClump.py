@@ -63,7 +63,16 @@ class ParmClump(Clump.LeafClump):
       """
       Derived from class LeafClump.
       """
-      kwargs['fixture'] = True              # A ParmClump is always selected
+      self._ParmClumps = []
+      ## kwargs['fixture'] = True              # A ParmClump is always selected
+
+      rr = dict() 
+      rr['default'] = kwargs.get('default', 0.0)
+      rr['use_previous'] = kwargs.get('use_previous', True)
+      rr['table_name'] = kwargs.get('table_name', None) 
+      rr['node_groups'] = 'Parm'
+      self._MeqParm_parms = rr
+
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
 
@@ -75,9 +84,13 @@ class ParmClump(Clump.LeafClump):
       Placeholder for re-implementation in derived class.
       """
       ss = '\n + Specific (derived class '+str(self._typename)+'):'
+      ss += '\n + self._MeqParm_parms: '
+      rr = self._MeqParm_parms
+      for key in rr.keys():
+         ss += '\n   - '+str(key)+' = '+str(rr[key])
       ss += '\n + MeqParm[0].initrec(): '+str(self[0].initrec())
-      # ss += '\n + ...'
       return ss
+
 
    #==========================================================================
    # The function .initexec() must be re-implemented for 'leaf' Clumps,
@@ -92,61 +105,30 @@ class ParmClump(Clump.LeafClump):
       help = 'definition of a set of similar MeqParms: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
-      default = kwargs.get('default',0.0)
-
       if False:
-         # See self.solspec() below
-         self.add_option('fdeg', range(6),
-                         help='freq deg of polc',
-                         prompt='freq deg')
-         self.add_option('tdeg', range(6),
-                         help='time deg of polc',
-                         prompt='time deg')
-         
-         self.add_option('nftile', [None,1,2,3,4,5,10], more=int,
-                         help="size (freq-cells) of solving subtile")
-         self.add_option('nttile', [None,1,2,3,4,5,10], more=int,
-                         help="size (time-cells) of solving subtile")
-         
-         self.add_option('solvable', False,
-                         prompt='solvable')
-      
-      self.add_option('use_previous', True, hide=True,
-                      help='if True, use the previous solution',
-                      prompt='use_previous')
-      self.add_option('mepfile', [None,'test.mep'], more=str, hide=True,
-                      help='name of the file that contains the parmtable',
-                      prompt='.mep file')
+         self.add_option('use_previous', True,
+                         hide=True,
+                         help='if True, use the previous solution',
+                         prompt='use_previous')
+         self.add_option('table_name', [None,'test.mep'],
+                         more=str,
+                         hide=True,
+                         help='name of the file that contains the parmtable',
+                         prompt='.mep file')
 
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
 
-         mepfile = self.getopt('mepfile')
-         use_previous = self.getopt('use_previous')
-         if False:
-            tdeg = self.getopt('tdeg')
-            fdeg = self.getopt('fdeg')
-            nt = self.getopt('nttile')
-            nf = self.getopt('nftile')
-            tiling = record(freq=nf, time=nt)
-            # See self.solvable_parms()
-            self._solvable = self.getopt('solvable')
+         default = self._MeqParm_parms['default']
+         rr = self._MeqParm_parms
+         rr.__delitem__('default')
 
          self._nodes = []
-         self._parmnames = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self._nodequals):
             qd = 'dflt='+str(default)
-            node = stub(qual)(qd) << Meq.Parm(default,
-                                              table_name=mepfile,
-                                              use_previous=use_previous,
-                                              # shape=[2,1],                # testing...
-                                              # tiling=tiling,
-                                              # tags=['tag1','tag2'],
-                                              node_groups='Parm')
+            node = stub(qual)(qd) << Meq.Parm(default, **rr)
             self._nodes.append(node)
-            self._parmnames.append(node.name)
-            # print '\n -',str(node),' initrec: ',node.initrec()
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
          self._ParmClumps = [self]
