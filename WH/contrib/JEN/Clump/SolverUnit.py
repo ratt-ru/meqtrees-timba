@@ -179,6 +179,15 @@ class SolverUnit(Clump.Clump):
             s += 'solvable MeqParms from: '+pc.oneliner()
             self.history(s)
 
+         if len(solvable)==0:
+            self.WARNING('No solvable MeqParms specified! (using defaults)')
+            ss = self._ParmClumps[0].solspec(always=True)
+            solvable = ss
+            s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
+            s += '(default!) solvable MeqParms from: '+pc.oneliner()
+            self.history(s)
+            
+
 
          # Make MeqSolver:
          solver = stub('solver') << Meq.Solver(children=condeqs,
@@ -205,7 +214,8 @@ class SolverUnit(Clump.Clump):
          # but pass on the result of the trees (result_index=1).
          self._input_clump.insert_reqseqs(node, 'solver_graft:'+self._name)
 
-         self.backconnect_to_clump(self._input_clump)
+         # Clear up some loose ends:
+         self.connect_loose_ends()
          self.end_of_body(ctrl)
 
       # Mandatory counterpart of self.on_entry()
@@ -350,18 +360,19 @@ def do_define_forest (ns, TCM):
       test = TCM.getopt('test', submenu)
       help = test
       if test=='twig':
-         clump = TwigClump.Twig(ns=ns, TCM=TCM, name='lhs', trace=True)
-         rhs = ParmClump.ParmClump(clump, name='rhs', trace=True)
+         clump = TwigClump.Twig(ns=ns, TCM=TCM, name='LHS', trace=True)
+         rhs = ParmClump.ParmClump(clump, name='RHS', trace=True)
       elif test=='polyparm':
-         rhs = TwigClump.Polynomial(ns=ns, TCM=TCM, name='rhs', trace=True)
-         clump = Clump.LeafClump(rhs, name='lhs', trace=True)
+         rhs = TwigClump.Polynomial(ns=ns, TCM=TCM, name='RHS', trace=True)
+         clump = Clump.LeafClump(rhs, name='LHS', trace=True)
       else:
-         clump = Clump.LeafClump(ns=ns, TCM=TCM, name='lhs', trace=True)
-         rhs = ParmClump.ParmClump(clump, name='rhs', trace=True)
+         clump = Clump.LeafClump(ns=ns, TCM=TCM, name='LHS', trace=True)
+         rhs = ParmClump.ParmClump(clump, name='RHS', trace=True)
       clump.show('creation', full=True)
-      rhs.show('creation', full=True)
+      rhs.show('before SolverUnit', full=True)
       su = SolverUnit(clump, rhs, help=help, trace=True)
       su.show('creation', full=True)
+      rhs.show('after SolverUnit', full=True)
 
    # The LAST statement:
    TCM.end_of_submenu()

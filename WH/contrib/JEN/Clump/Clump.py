@@ -328,16 +328,11 @@ class Clump (object):
          self._nodequals = clump._nodequals
 
          # Connect orphans, stubtrees, history, ParmClumps etc
-         self._stubtree = clump._stubtree
+         self.graft_to_stubtree(clump._stubtree)
          self._orphans = clump._orphans
          self._ParmClumps = clump._ParmClumps
-
-         # NB: Move this bit to self.connect_with_clump() (with indent?)
-         self._history = clump.history()          # note the use of the function
-         self.history('The end of the pre-history copied from: '+clump.oneliner())
-         self.history('....................................')
+         self.copy_history(clump, clear=True)
       return True
-
 
    #--------------------------------------------------------------------------
 
@@ -347,29 +342,27 @@ class Clump (object):
       This is similar to, but slightly different from, what is done in the
       function self.transfer_clump_nodes(), which merely continues the mainstream.
       """
-      stub = self.unique_nodestub('connect')
-      self._stubtree = stub('stubtree') << Meq.Add(self._stubtree,
-                                                   clump._stubtree)
+      self.graft_to_stubtree(clump._stubtree)
       self._orphans.extend(clump._orphans)                 # group them first?
       self._ParmClumps.extend(clump._ParmClumps)       
+      self.copy_history(clump)
       self.history('.connect_grafted_clump(): '+str(clump.oneliner()))
       return True
 
    #--------------------------------------------------------------------------
 
-   def backconnect_to_clump (self, clump=None, trace=False):
+   def connect_loose_ends (self, clump=None, trace=False):
       """Connect the loose ends (orphans, stubtree, but NO ParmClumps!) of the
       current clump to another one, e.g. the input clump (=default).
       This is the reverse of .connect_grafted_clump().
       """
       if clump==None:
          clump = self._input_clump
-      stub = clump.unique_nodestub('backconnect')
-      clump._stubtree = stub('stubtree') << Meq.Add(self._stubtree,
-                                                    clump._stubtree)
+      clump.graft_to_stubtree(self._stubtree)
       clump._orphans.extend(self._orphans)                 # group them first?
-      self.history('.backconnect_to_clump(): '+str(clump.oneliner()))
-      clump.history('.backconnect_from_clump(): '+str(self.oneliner()))
+      clump.copy_history(self)
+      self.history('.connect_loose_ends() to: '+str(clump.oneliner()))
+      clump.history('.connected loose ends of: '+str(self.oneliner()))
       return True
 
    
@@ -636,6 +629,20 @@ class Clump (object):
       return True
 
    #-------------------------------------------------------------------------
+   #-------------------------------------------------------------------------
+
+   def copy_history(self, clump, clear=False, trace=False):
+      """Copy the history of the given clump in an organised way:
+      """
+      if clear:
+         self.history(clear=clear)
+      for s in clump.history():
+         ss = s.split('}')
+         s1 = ss[-1]
+         self.history('|....'+s1, trace=True)
+      return True
+
+   #--------------------------------------------------------------------------
 
    def history (self, append=None,
                 show_node=False,
@@ -700,7 +707,8 @@ class Clump (object):
       """Raise a ValueError in an organised way, i.e. while giving
       information that may help in its solution. The program is stopped.
       """
-      s1 = '**ERROR ** '+str(s)
+      s1 = '** ERROR ** '+str(s)
+      print '\n',s1,'\n'
       self.history(s1)
       self.show(s1)
       raise ValueError,s1
@@ -711,7 +719,7 @@ class Clump (object):
       """Issue a warning in an organised way: Print it conspiciously and
       put it in the object history.
       """
-      s1 = '**ERROR ** '+str(s)
+      s1 = '** WARNING ** '+str(s)
       self.history(s1)
       print '\n            ',s1,'\n'
       return s1
@@ -1023,7 +1031,7 @@ class Clump (object):
 
       # Initialize the stub (uniqueness criterion!):
       if not self._stubtree:                       # the first one
-         node = stub << Meq.Constant(-0.123456789)
+         node = stub << Meq.Constant(-0.1223456789)
       else:                                        # subsequent ones
          node = stub << Meq.Identity(self._stubtree)
          
@@ -1039,6 +1047,16 @@ class Clump (object):
          print '\n** .unique_nodestub(',qual,') ->',str(stub)
       return stub
 
+   #-------------------------------------------------------------------------
+
+   def graft_to_stubtree(self, node):
+      """Helper function to graft the given node (usually the rootnode
+      of the stubtree of another clump) to its own self._stubtree.
+      """
+      stub = self.unique_nodestub()
+      self._stubtree = stub('graft_to_stubtree') << Meq.Add(self._stubtree,node)
+      return True
+      
 
    #=========================================================================
    # Functions dealing with subsets (of the tree nodes):

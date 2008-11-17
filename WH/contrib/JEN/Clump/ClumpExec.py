@@ -145,8 +145,8 @@ def _define_forest (ns, **kwargs):
    else:
       rootnode = ns.rootnode << Meq.Constant(-0.123456789)
 
-   if True:
-      # Some random testing:
+   if False:
+      # Some testing on the side:
       stub = Clump.EN.unique_stub(ns, 'cexec', quals='a')
       node = stub << 1.222
 

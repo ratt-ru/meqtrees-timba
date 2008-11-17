@@ -168,7 +168,8 @@ class ParmClump(Clump.LeafClump):
       It returns a list of solvable parms, to be given to a MeqSolver. 
       """
       help = 'specify solving parameters for the MeqParms of: '+self.oneliner()
-      ctrl = self.on_entry(self.solspec, help=help, **kwargs)
+      prompt = 'solve for: '+self._name
+      ctrl = self.on_entry(self.solspec, prompt=prompt, help=help, **kwargs)
 
 
       self.add_option('fdeg', range(6),
@@ -178,13 +179,16 @@ class ParmClump(Clump.LeafClump):
                       help='time deg of polc',
                       prompt='time deg')
 
-      self.add_option('nfreq_subtile', [None,1,2,3,4,5,10], more=int, hide=True,
+      self.add_option('nfreq_subtile', [None,1,2,3,4,5,10], more=int,
+                      hide=True,
                       help="size (freq-cells) of solving subtile")
-      self.add_option('ntime_subtile', [None,1,2,3,4,5,10], more=int, hide=True,
+      self.add_option('ntime_subtile', [None,1,2,3,4,5,10], more=int,
+                      hide=True,
                       help="size (time-cells) of solving subtile")
 
-      solvable = []         # return a list of solvable MeqParm names
-      if self.execute_body(always=True):           
+      solvable = []                        # return a list of solvable MeqParm names
+      always = kwargs.get('always',False)  # see e.g. SolverUnit.py
+      if self.execute_body(always=always):           
 
          tdeg = self.getopt('tdeg')
          fdeg = self.getopt('fdeg')

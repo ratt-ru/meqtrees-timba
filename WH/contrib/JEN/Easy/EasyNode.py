@@ -221,14 +221,13 @@ def nodestub (ns, rootname, *quals, **kwquals):
         if not isinstance(kwquals,dict):
             kwquals = dict()
     
-    # Attach the list of un-named qualifiers (quals):
+    # Attach un-named qualifiers (quals), if any:
     if len(quals)>0:
         for qual in quals:
             if not qual==None:
                 stub = stub(qual)
 
-    # Attach the dict of keyword qualifiers:
-    # print '-',rootname,': kwquals=',kwquals,len(kwquals)
+    # Attach keyword qualifiers (kwquals), if any:
     if len(kwquals)>0:
         stub = stub(**kwquals)
 

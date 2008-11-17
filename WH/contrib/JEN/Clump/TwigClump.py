@@ -80,8 +80,6 @@ class Twig(Clump.LeafClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      # The data-description may be defined by means of kwargs: 
-      dd = self.datadesc(treequals=['twig']),
 
       help = 'make twig (leaf) node for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
@@ -92,6 +90,9 @@ class Twig(Clump.LeafClump):
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
          twig = self.getopt('twig')
+         # dd = self.datadesc(treequals=[twig]),
+         dd = self.datadesc(treequals=[0]),
+
          self._nodes = []
          # stub = self.unique_nodestub(twig)
          for i,qual in enumerate(self._nodequals):
@@ -139,8 +140,6 @@ class Polynomial(Clump.LeafClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      # The data-description may be defined by means of kwargs: 
-      dd = self.datadesc(treequals=['polytwig'])
 
       prompt = None
       help = 'make polynomial twig (leaf) node for: '+self.oneliner()
@@ -153,19 +152,26 @@ class Polynomial(Clump.LeafClump):
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
          poly = self.getopt('poly')
+         # dd = self.datadesc(treequals=[poly])
+         dd = self.datadesc(treequals=[0])
+         
          self._nodes = []
+         stub = self.unique_nodestub('polyparm')
          for i,qual in enumerate(self._nodequals):
-            node = ET.twig(self._ns, 'polyparm_'+poly)
+            spec = 'polyparm_'+poly
+            node = ET.twig(self._ns, spec, nodestub=stub(poly))
             self._nodes.append(node)
 
          # Make a ParmClump object from its MeqParms: 
          parms = self._ns.Search(tags='polyparm')
+         # self.history('ns.Search(tags=polyparm) -> n='+str(len(parms))+':')
          for parm in parms:
             self.history('--> parm: '+str(parm))
          plc = ParmClump.ParmListClump(parms,
                                        ns=self._ns, TCM=self._TCM,
-                                       name='polyparm')
+                                       name='PolyParm')
          self._ParmClumps = [plc]
+         plc.connect_loose_ends(self)
 
          self.visualize()
          self.end_of_body(ctrl)
@@ -191,14 +197,14 @@ def do_define_forest (ns, TCM):
    submenu = TCM.start_of_submenu(do_define_forest,
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
-   TCM.add_option('class',['TwigClump','Polynomial'],
+   TCM.add_option('test_class',['TwigClump','Polynomial'],
                   prompt='test TwigClump class')
    
    clump = None
    if TCM.submenu_is_selected():
-      test_class = TCM.getopt('class', submenu)
+      test_class = TCM.getopt('test_class', submenu)
       if test_class=='Polynomial':
-         clump = Polynomial(ns=ns, TCM=TCM, trace=True)
+         clump = Polynomial(ns=ns, name='XXX', TCM=TCM, trace=True)
       else:
          clump = Twig(ns=ns, TCM=TCM, trace=True)
 
