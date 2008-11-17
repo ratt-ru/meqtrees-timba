@@ -43,7 +43,9 @@ ClumpExec.py: TDL Script that executes Clump scripts.
 from Timba.TDL import *
 from Timba.Meq import meq
 
-from Timba.Contrib.JEN.control import TDLOptionManager as TOM
+# from Timba.Contrib.JEN.control import TDLOptionManager as TOM
+
+from Timba.Contrib.JEN.Clump import Clump 
 
 import math                 # support math.cos() etc
 # from math import *          # support cos() etc
@@ -57,7 +59,7 @@ import math                 # support math.cos() etc
 # Choice of Clump Class, whose .do_define_forest() is to be executed:
 #==============================================================================
 
-TCM = TOM.TDLOptionManager(__file__)
+TCM = Clump.TOM.TDLOptionManager(__file__)
 cc = ['Clump','templateClump','CorruptClump',
       'templateLeafClump','ParmClump','TwigClump',
       'SolverUnit',
@@ -134,7 +136,7 @@ def _define_forest (ns, **kwargs):
 
    # The second pass through do_define_forest():
    # NB: NO TDLOptions are generated after this pass.
-   localTCM = TOM.TDLOptionManager(TCM)
+   localTCM = Clump.TOM.TDLOptionManager(TCM)
    clump = ClumpClass.do_define_forest (ns, TCM=localTCM)
 
    if clump:
@@ -143,8 +145,10 @@ def _define_forest (ns, **kwargs):
    else:
       rootnode = ns.rootnode << Meq.Constant(-0.123456789)
 
-   # Generate at least one node (just in case):
-   node = ns.dummy << 1.0
+   if True:
+      # Some random testing:
+      stub = Clump.EN.unique_stub(ns, 'cexec', quals='a')
+      node = stub << 1.222
 
    return True
 

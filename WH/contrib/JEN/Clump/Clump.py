@@ -497,7 +497,7 @@ class Clump (object):
       new = None
       if self.execute_body():
          new = self.copy()                                    # <-----!!
-         new.apply_binop(binop=binop, rhs=clump, **kwargs)    # <-----!!
+         new.apply_binop(binop, clump, **kwargs)              # <-----!!
          self._orphans.extend(new._orphans)                   # <---- !!
          self.end_of_body(ctrl)
 
@@ -696,35 +696,35 @@ class Clump (object):
    #--------------------------------------------------------------------------
    #--------------------------------------------------------------------------
 
-      def ERROR (self, s):
-         """Raise a ValueError in an organised way, i.e. while giving
-         information that may help in its solution. The program is stopped.
-         """
-         s1 = '**ERROR ** '+str(s)
-         self.history(s1)
-         self.show(s1)
-         raise ValueError,s1
+   def ERROR (self, s):
+      """Raise a ValueError in an organised way, i.e. while giving
+      information that may help in its solution. The program is stopped.
+      """
+      s1 = '**ERROR ** '+str(s)
+      self.history(s1)
+      self.show(s1)
+      raise ValueError,s1
 
    #--------------------------------------------------------------------------
 
-      def WARNING (self, s):
-         """Issue a warning in an organised way: Print it conspiciously and
-         put it in the object history.
-         """
-         s1 = '**ERROR ** '+str(s)
-         self.history(s1)
-         print '\n            ',s1,'\n'
-         return s1
+   def WARNING (self, s):
+      """Issue a warning in an organised way: Print it conspiciously and
+      put it in the object history.
+      """
+      s1 = '**ERROR ** '+str(s)
+      self.history(s1)
+      print '\n            ',s1,'\n'
+      return s1
 
    #--------------------------------------------------------------------------
 
-      def REMARK (self, s):
-         """Make a remark in an organised way:
-         Print it, and put it in the object history.
-         """
-         s1 = '-- REMARK: '+str(s)
-         self.history(s1, trace=True)
-         return s1
+   def REMARK (self, s):
+      """Make a remark in an organised way:
+      Print it, and put it in the object history.
+      """
+      s1 = '-- REMARK: '+str(s)
+      self.history(s1, trace=True)
+      return s1
 
 
    #=========================================================================
@@ -998,18 +998,28 @@ class Clump (object):
       # Make a list of qualifiers:
       qual = list(qual)
       self._stage['ops'] += 1
-      at = '@'+str(self._stage['count'])
-      at += '-'+str(self._stage['ops'])
-      # qual.insert(0, at)                   # NB: This pollutes Parm names etc...
+
+      if False:
+         # NB: This pollutes Parm names etc...
+         at = '@'+str(self._stage['count'])
+         at += '-'+str(self._stage['ops'])
+         qual.insert(0, at)
+
       if not self._qual==None:
          if isinstance(self._qual,list):
             qual.extend(self._qual)
          else:
             qual.append(self._qual)
 
+      # Deal with the node name:
+      name = self._name                            # default name
+      if kwqual.has_key('name'):                   # specified explicitly
+         if isinstance(kwqual['name'],str):
+            name += ':'+kwqual['name']             # use if string
+         kwqual.__delitem__('name')                # delete from kwqual
+
       # Make the unique nodestub:
-      # NB: Note that kwquals are not yet supported here.......!!
-      stub = EN.unique_stub(self._ns, self._name, *qual)
+      stub = EN.unique_stub(self._ns, name, *qual, **kwqual)
 
       # Initialize the stub (uniqueness criterion!):
       if not self._stubtree:                       # the first one
@@ -1207,14 +1217,14 @@ class Clump (object):
    # Solver support functions:
    #=========================================================================
 
-   def insert_reqseqs (self, node, trace=False):
+   def insert_reqseqs (self, node, name=None, trace=False):
       """ Insert a ReqSeq (in every tree!) that issues a request first to
       the given node (e.g. a solver node), and then to the current tree node.
       NB: The fact that there is a ReqSeq in every tree seems wasteful, but
       it synchronises the processing in the different trees of the Clump....
       """
       if is_node(node):
-         stub = self.unique_nodestub('reqseq')
+         stub = self.unique_nodestub(name=name)
          for i,qual in enumerate(self._nodequals):
             self._nodes[i] = stub(qual) << Meq.ReqSeq(node, self[i],
                                                       result_index=1,
@@ -1237,92 +1247,75 @@ class Clump (object):
    # Apply arbitrary unary (unops) or binary (binops) operaions to the nodes:
    #=========================================================================
 
-   def apply_unops (self, **kwargs):
+   def apply_unops (self, unops, **kwargs):
       """
-      Apply one or more unary operation(s) (e.g. Cos) on its nodes.
+      Apply one or more unary operation(s) (e.g. Cos(..)) on its nodes.
       Multiple unops may be specified as a list, or string with blanks
       between the operations (e.g. 'Sin Cos Exp').
       The operations are applied in the order of specification
       (i.e. the reverse of the usual scientific notation!)
       """
-      # Make sure that unops is a list:
-      unops = kwargs.get('unops', None)
-      if isinstance(unops,tuple):
-         unops = list(unops)
-      elif isinstance(unops,str):
-         unops = unops.split(' ')       # 'Cos Sin' -> ['Cos','Sin']
-      else:
+      # First make sure that unops is a list:
+      if isinstance(unops,str):
+         unops = unops.split(' ')                    # 'Cos Sin' -> ['Cos','Sin']
+      elif not isinstance(unops,(list,tuple)):
          self.ERROR('** invalid unops: '+str(unops))
 
-      prompt = '.apply_unops('+str(unops)+')'
-      help = None
-      ctrl = self.on_entry(self.apply_unops, prompt, help, **kwargs)
+      # Apply in order of specification:
+      sunops = '..'
+      for unop in unops:
+         if not isinstance(unop,str):
+            self.ERROR('unop is not a string: '+str(type(unop)+str(unop)))
+         unop = unop.replace('Meq','')               # just in case....
+         sunops = unop+'('+sunops+')'
+         stub = self.unique_nodestub(unop+'()', **kwargs)
+         for i,qual in enumerate(self._nodequals):
+            self._nodes[i] = stub(qual) << getattr(Meq,unop)(self[i],**kwargs)
 
-      hist = 'unops='+str(unops)
-      always = kwargs.get('always',False)
-      if self.execute_body(always=always, hist=hist):
-         # Apply in order of specification:
-         for unop in unops:
-            stub = self.unique_nodestub(unop+'()')
-            for i,qual in enumerate(self._nodequals):
-               self._nodes[i] = stub(qual) << getattr(Meq,unop)(self[i])
-         hist = 'end_of_body'
-         self.end_of_body(ctrl, hist=hist)
-
-      return self.on_exit(ctrl)
-
-   #-------------------------------------------------------------------------
-
-   def resample (self, **kwargs):
-      """
-      Apply MeqResampler to its nodes, using the specified mode[=1]
-      """
-      mode = kwargs.get('mode',1)
-      stub = self.unique_nodestub('resampled')(mode=mode)
-      for i,qual in enumerate(self._nodequals):
-         self._nodes[i] = stub(qual) << Meq.Resampler(self[i], mode=mode)
-      self.history('.resample(mode='+str(mode)+')', show_node=True)
+      hist = '.apply_unops('+str(unops)
+      for key in kwargs.keys():
+         hist += ', '+str(key)+'='+str(kwargs[key])
+      hist += '): '
+      if len(unops)>1:
+         hist += sunops
+      self.history(hist, show_node=True)
       return True
 
    #-------------------------------------------------------------------------
 
-   def apply_binop (self, **kwargs):
+   def apply_binop (self, binop, rhs, **kwargs):
       """Apply a binary operation (binop, e.g. 'Add') between its nodes
       and the given right-hand-side (rhs). The latter may be various
       things: a Clump, a node, a number etc.
       """
-      binop = kwargs['binop']
-      rhs = kwargs['rhs']                           # 'other'?
-      prompt = '.apply_binop('+str(binop)+')'
-      if isinstance(rhs,(int,float,complex)):       # rhs is a number
-         help = 'rhs = constant = '+str(rhs)
-      elif is_node(rhs):                            # rhs is a node
-         help = 'rhs = node: '+str(rhs.name)
-      elif isinstance(rhs,type(self)):              # rhs is a Clump object
-         help = 'rhs = '+rhs.oneliner()
-      ctrl = self.on_entry(self.apply_binop, prompt, help, **kwargs)
+      if not isinstance(binop,str):
+         self.ERROR('binop is not a string: '+str(type(binop)+str(binop)))
+      binop = binop.replace('Meq','')            # just in case....
 
-      hist = 'binop='+str(binop)
-      always = kwargs.get('always',False)
-      if self.execute_body(always=always, hist=hist):
-         if isinstance(rhs,(int,float,complex)):    # rhs is a number
-            stub = self.unique_nodestub('constant')
-            rhs = stub('='+str(rhs)) << Meq.Constant(rhs) # convert to MeqConstant
+      hist = None
+      if isinstance(rhs,(int,float,complex)):    # rhs is a number
+         srhs = EF.format_value(rhs)
+         hist = 'rhs='+srhs
+         stub = self.unique_nodestub(binop, srhs)
+         for i,qual in enumerate(self._nodequals):
+            self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs)
          
-         if is_node(rhs):                           # rhs is a node
-            stub = self.unique_nodestub(binop, 'samenode')
+      elif is_node(rhs):                         # rhs is a node
+         hist = 'rhs='+str(rhs.name)
+         stub = self.unique_nodestub(binop, rhs.classname)
+         for i,qual in enumerate(self._nodequals):
+            self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs)
+
+      elif isinstance(rhs,type(self)):           # rhs is a Clump object
+         if self.commensurate(rhs, severe=True):
+            hist = 'rhs='+rhs.oneliner()
+            stub = self.unique_nodestub(binop, rhs._typename)
             for i,qual in enumerate(self._nodequals):
-               self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs)
+               self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs[i])
 
-         elif isinstance(rhs,type(self)):           # rhs is a Clump object
-            if self.commensurate(rhs, severe=True):
-               stub = self.unique_nodestub(binop, rhs._typename)
-               for i,qual in enumerate(self._nodequals):
-                  self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs[i])
-         hist = 'end_of_body'
-         self.end_of_body(ctrl, hist=hist)
-         
-      return self.on_exit(ctrl)
+      hist = '.apply_binop('+str(binop)+', '+str(hist)+')'
+      self.history(hist, show_node=True)
+      return True
 
 
    #=========================================================================
@@ -1382,7 +1375,7 @@ class Clump (object):
          for key in rr.keys():
             if not key in ignore:
                help += indent+'|   - '+key+' = '+str(rr[key])
-         help += indent+'| ignored: '+str(ignore)
+         help += indent+'| (ignored: '+str(ignore)+')'
       return help
 
    #---------------------------------------------------------------------
@@ -1736,10 +1729,10 @@ def do_define_forest (ns, TCM):
    if TCM.submenu_is_selected():
       clump = LeafClump(ns=ns, TCM=TCM, trace=True)
       # clump.show('do_define_forest(creation)', full=True)
-      clump.apply_unops(unops='Cos', select=False, trace=True)
-      # clump.apply_unops(unops='Sin', select=True, trace=True)
-      # clump.apply_unops(unops='Exp', trace=True)
-      # clump.apply_binop(binop='Add', rhs=2.3, select=True, trace=True)
+      clump.apply_unops('Cos')
+      # clump.apply_unops('Sin')
+      # clump.apply_unops('Exp')
+      # clump.apply_binop('Add', 2.3, select=True, trace=True)
       # clump = Clump(clump, select=True).daisy_chain()
       # clump = Clump(clump, select=True).daisy_chain()
       clump.visualize()               # make VisualClump class....?
@@ -1764,10 +1757,10 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
-   if 0:
+   if 1:
       clump = LeafClump(trace=True)
 
-   if 1:
+   if 0:
       cc = []
       for i in range(4):
          node = ns.ddd(i) << Meq.Constant(i)
@@ -1805,24 +1798,22 @@ if __name__ == '__main__':
          clump.show('.decompose()')
 
    if 1:
-      clump.resample(mode=2)
-      clump.show('.resample()', full=True)
-
-   if 0:
       unops = 'Cos'
-      # unops = ['Cos','Cos','Cos']
-      # unops = 'Cos Sin'
+      unops = ['Cos','Cos','Cos']
+      unops = 'Cos Sin'
+      unops = 'MeqCos'
       # unops = ['Cos','Sin']
-      clump.apply_unops(unops=unops, trace=True)    
+      clump.apply_unops(unops)    
+      clump.apply_unops('Resampler', mode=2)    
       # clump.apply_unops()                       # error
-      # clump.apply_unops(unops=unops, trace=True)
-      # clump.apply_unops(unops=unops, select=True, trace=True)
 
-   if 0:
+   if 1:
       rhs = math.pi
       # rhs = ns.rhs << Meq.Constant(2.3)
       # rhs = Clump('RHS', clump=clump)
-      clump.apply_binop(binop='Add', rhs=rhs, trace=True)
+      clump.apply_binop('Add', rhs)
+      clump.apply_binop('Add', clump)
+      clump.apply_binop('Add', ns<<3.4)
 
    if 0:
       treequals = range(5)
