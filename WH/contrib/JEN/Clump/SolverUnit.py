@@ -173,23 +173,7 @@ class SolverUnit(Clump.Clump):
             condeqs.append(node)
 
          # Get solvable MeqParms (from its ParmClumps, if any):
-         solvable = []
-         for pc in self._ParmClumps:
-            ss = pc.solspec(select=True)
-            solvable.extend(ss)
-            s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
-            s += 'solvable MeqParms from: '+pc.oneliner()
-            self.history(s)
-
-         if len(solvable)==0:
-            self.WARNING('No solvable MeqParms specified! (using defaults)')
-            ss = self._ParmClumps[0].solspec(always=True)
-            solvable = ss
-            s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
-            s += '(default!) solvable MeqParms from: '+pc.oneliner()
-            self.history(s)
-            
-
+         solvable = self.get_solvable()
 
          # Make MeqSolver:
          solver = stub('solver') << Meq.Solver(children=condeqs,

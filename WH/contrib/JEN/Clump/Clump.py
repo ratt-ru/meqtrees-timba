@@ -1153,13 +1153,14 @@ class Clump (object):
       wgt = kwargs.get('weights',None)                 # for WSum,WMean
 
       stub = self.unique_nodestub(name)
-      qual = 'n='+str(len(self._nodes))
-      if not self._composed:                              
+      qual = 'n='+str(self.size())
+      if not self._composed:
+         cc = self._nodes
          if wgt:
-            node = stub(qual) << getattr(Meq,combine)(children=self._nodes,
+            node = stub(qual) << getattr(Meq,combine)(children=cc,
                                                       weights=wgt)
          else:
-            node = stub(qual) << getattr(Meq,combine)(*self._nodes)
+            node = stub(qual) << getattr(Meq,combine)(*cc)
       elif combine=='Composer':
          node = stub('tensor') << Meq.Identity(self[0]) 
       else:
@@ -1248,18 +1249,43 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
-   def solspec(self, trace=False):
+   def get_solvable(self, trace=False):
       """Get all the solvable parameters from the entries of self._ParmClumps.
       """
-      ss = []
+      solvable = []
       for pc in self._ParmClumps:
          ss = pc.solspec(select=True)
          solvable.extend(ss)
-      return ss
+         s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
+         s += 'solvable MeqParms from: '+pc.oneliner()
+         self.history(s)
+
+      if len(solvable)==0:
+         self.WARNING('No solvable MeqParms specified! (using defaults)')
+         ss = self._ParmClumps[0].solspec(always=True)
+         solvable = ss
+         s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
+         s += '(default!) solvable MeqParms from: '+pc.oneliner()
+         self.history(s)
+         
+      # Return list of solvable MeqParms:
+      return solvable   
 
    #=========================================================================
    # Apply arbitrary unary (unops) or binary (binops) operaions to the nodes:
    #=========================================================================
+
+   def check_unops(self, unops):
+      """Helper function to make sure that the given unops is a list
+      of unary operations, e.g. ['Sin','Cos'].
+      """
+      if isinstance(unops,str):
+         unops = unops.split(' ')                    # 'Cos Sin' -> ['Cos','Sin']
+      elif not isinstance(unops,(list,tuple)):
+         self.ERROR('** invalid unops: '+str(unops))
+      return unops
+
+   #-------------------------------------------------------------------------
 
    def apply_unops (self, unops, **kwargs):
       """
@@ -1268,14 +1294,18 @@ class Clump (object):
       between the operations (e.g. 'Sin Cos Exp').
       The operations are applied in the order of specification
       (i.e. the reverse of the usual scientific notation!)
+      If replace==False, do NOT replace 
+      Always return the list of nodes.
       """
       # First make sure that unops is a list:
-      if isinstance(unops,str):
-         unops = unops.split(' ')                    # 'Cos Sin' -> ['Cos','Sin']
-      elif not isinstance(unops,(list,tuple)):
-         self.ERROR('** invalid unops: '+str(unops))
+      unops = self.check_unops(unops)
+      replace = kwargs.get('replace',True)
 
       # Apply in order of specification:
+      cc = []
+      for i,qual in enumerate(self._nodequals):
+         cc.append(self[i])
+
       sunops = '..'
       for unop in unops:
          if not isinstance(unop,str):
@@ -1284,16 +1314,21 @@ class Clump (object):
          sunops = unop+'('+sunops+')'
          stub = self.unique_nodestub(unop+'()', **kwargs)
          for i,qual in enumerate(self._nodequals):
-            self._nodes[i] = stub(qual) << getattr(Meq,unop)(self[i],**kwargs)
+            cc[i] = stub(qual) << getattr(Meq,unop)(cc[i],**kwargs))
 
-      hist = '.apply_unops('+str(unops)
-      for key in kwargs.keys():
-         hist += ', '+str(key)+'='+str(kwargs[key])
-      hist += '): '
-      if len(unops)>1:
-         hist += sunops
-      self.history(hist, show_node=True)
-      return True
+      if replace:
+         self._nodes = cc                  # replace self._nodes
+         # Make a history entry:
+         hist = '.apply_unops('+str(unops)
+         for key in kwargs.keys():
+            hist += ', '+str(key)+'='+str(kwargs[key])
+         hist += '): '
+         if len(unops)>1:
+            hist += sunops
+         self.history(hist, show_node=True)
+
+      # Always return the list of nodes
+      return cc
 
    #-------------------------------------------------------------------------
 
@@ -1412,6 +1447,7 @@ class Clump (object):
          self.plot_node_results(**kwargs)
          self.plot_node_family(**kwargs)
          self.plot_node_bundle(**kwargs)
+         self.plot_summary(**kwargs)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1439,6 +1475,53 @@ class Clump (object):
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
+
+
+   #---------------------------------------------------------------------
+
+   def plot_summary (self, **kwargs):
+      """Plot a summary of its nodes
+      """
+      kwargs['select'] = True
+
+      prompt = '.plot_summary()'
+      help = 'make a summary plot of the tree nodes'
+      ctrl = self.on_entry(self.plot_summary, prompt, help, **kwargs)
+
+      if self.execute_body(hist=False):
+         bookpage = kwargs.get('bookpage', None)
+         folder = kwargs.get('folder', None)
+         name = kwargs.get('name', None)
+         if not isinstance(name,str):
+            name = 'summary'
+
+         node = self[0]
+         if self.size()>1:
+            cc = self.apply_unops('Abs', replace=False)
+            stub = self.unique_nodestub()
+            sumabs = stub('sumabs') << Meq.Add(*cc)
+            cc = self.get_nodes(prepend=sumabs)
+            node = stub(name) << Meq.Composer(*cc)
+            self.make_bookmark(node, name=bookpage, folder=folder)
+         self.end_of_body(ctrl)
+         
+      return self.on_exit(ctrl)
+
+   #---------------------------------------------------------------------
+
+   def get_nodes(self, append=None, prepend=None):
+      """Helper function to get a list (copy) of its nodes.
+      """
+      cc = []
+      for node in self._nodes:
+         cc.append(node)
+      if is_node(append):
+         cc.append(append)
+      if isinstance(append,list)):
+         cc.extend(append)
+      if is_node(prepend):
+         cc.insert(0,prepend)
+      return cc
 
    #---------------------------------------------------------------------
 

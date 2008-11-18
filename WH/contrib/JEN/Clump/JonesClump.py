@@ -60,7 +60,7 @@ import math                 # support math.cos() etc
 
 class JonesClump(Clump.LeafClump):
    """
-   Derived class
+   Derived class from LeafClump.
    """
 
    def __init__(self, clump=None, **kwargs):
@@ -75,6 +75,9 @@ class JonesClump(Clump.LeafClump):
       treequals = ['RT8','RT9','RTA','RTB']       # default treequals (WSRT)
       self.datadesc(treequals=kwargs.get('treequals', treequals))
 
+      # Polarization representation:
+      self._polrep = kwargs.get('polrep', None)
+      
       # This needs a little thought...:
       rr = dict()
       for key in ['use_previous','table_name']:
@@ -85,50 +88,78 @@ class JonesClump(Clump.LeafClump):
 
    #-------------------------------------------------------------------------
 
+   def polrep (self):
+      """Return the uv-data polarization representation that is assumed by
+      this Jones matrix (linear[=default], circular, None).
+      """
+      return self._polrep
+
+   #-------------------------------------------------------------------------
+
    def show_specific(self):
       """
       Format the specific (non-generic) contents of the class.
       Placeholder for re-implementation in derived class.
       """
       ss = '\n + Specific (derived class '+str(self._typename)+'):'
+      ss += '\n + self._polrep: '+str(self._polrep)
       ss += '\n + self._MeqParm_parms: '
       rr = self._MeqParm_parms
       for key in rr.keys():
          ss += '\n   - '+str(key)+' = '+str(rr[key])
       return ss
 
+   #--------------------------------------------------------------------------
+
+   def ParmClump(self, name, default=0.0, single=False, trace=False):
+      """Helper function to create a ParmClump in an organised way.
+      If single=True, make a ParmClump with only one MeqParm.
+      Otherwise, there will be one for each station.
+      """
+      clump = ParmClump.ParmClump(self, name=name,
+                                  default=default,
+                                  single=single,
+                                  hide=True,
+                                  **self._MeqParm_parms)
+      # Connect all the loose ends:
+      self.connect_grafted_clump(clump)
+      return clump
+
+
    #==========================================================================
-   # The function .initexec() must be re-implemented for 'leaf' Clumps,
-   # i.e. Clump classes that contain leaf nodes. An example is given below,
-   # and may be canibalized for derived (leaf) Clump clases.
+   # To be re-implemented in derived classes
    #==========================================================================
 
    def initexec (self, **kwargs):
-      """Fill the LeafClump object with suitable leaf nodes.
-      Re-implemented version of the function in the baseclass (LeafClump).
+      """
+      This is an example of how to fill a JonesClump with 2x2 matrices.
+      To be re-implemented in derived classes (e.g. see WSRTJones.py,
+      or the XXXJones class below). 
+      NB: This particular example is used as a basis for diagonal Jones
+      matrices like GJones and BJones, so do not change it!
+      
       """
       prompt = 'Jones: '+self._name
       help = 'define Jones matrix: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
+      # Menu option(s) (the menu itself is generated in .on_entry()):
       self.add_option('mode',['amphas','realimag'])
 
-      # Execute always (always=True) , to ensure that the leaf Clump has nodes!
-      # if self.execute_body(always=True):
       if self.execute_body():
          mode = self.getopt('mode')
 
          # Create ParmClumps:
          if mode=='amphas':
-            gerrX = self.ParmClump(name='gerrX', default=1.0)
-            perrX = self.ParmClump(name='perrX', default=0.0)
-            gerrY = self.ParmClump(name='gerrY', default=1.0)
-            perrY = self.ParmClump(name='perrY', default=0.0)
+            gerrX = self.ParmClump('gerrX', default=1.0)
+            perrX = self.ParmClump('perrX', default=0.0)
+            gerrY = self.ParmClump('gerrY', default=1.0)
+            perrY = self.ParmClump('perrY', default=0.0)
          elif mode=='realimag':
-            rerrX = self.ParmClump(name='rerrX', default=1.0)
-            ierrX = self.ParmClump(name='ierrX', default=0.0)
-            rerrY = self.ParmClump(name='rerrY', default=1.0)
-            ierrY = self.ParmClump(name='ierrY', default=0.0)
+            rerrX = self.ParmClump('rerrX', default=1.0)
+            ierrX = self.ParmClump('ierrX', default=0.0)
+            rerrY = self.ParmClump('rerrY', default=1.0)
+            ierrY = self.ParmClump('ierrY', default=0.0)
 
          # Generate nodes:
          self._nodes = []
@@ -147,25 +178,9 @@ class JonesClump(Clump.LeafClump):
             node = stub(qual) << Meq.Matrix22(elem00, elem01,
                                               elem10, elem11)
             self._nodes.append(node)
-         # Mandatory counterpart of self.execute_body()
+
          self.end_of_body(ctrl)
-
-      # Mandatory counterpart of self.on_entry()
       return self.on_exit(ctrl)
-
-   #--------------------------------------------------------------------------
-   #--------------------------------------------------------------------------
-
-   def ParmClump(self, name, default=0.0):
-      """Helper function to create a ParmClump in an organised way.
-      """
-      clump = ParmClump.ParmClump(self, name=name,
-                                  default=default,
-                                  hide=True,
-                                  **self._MeqParm_parms)
-      # self._ParmClumps.append(clump)
-      self.connect_grafted_clump(clump)
-      return clump
 
 
 
@@ -175,7 +190,8 @@ class JonesClump(Clump.LeafClump):
 
 class XXXJones(JonesClump):
    """
-   Baseclass for classes like WSRTJones, VLAJones etc.
+   This JonesClump represents a sequence (multiplication) of JonesClumps,
+   It is a baseclass for classes like WSRTJones, VLAJones etc.
    Just replace .initexec() with your own sequence of JonesClumps.
    """
 
@@ -188,15 +204,10 @@ class XXXJones(JonesClump):
 
 
    #==========================================================================
-   # The function .initexec() must be re-implemented for 'leaf' Clumps,
-   # i.e. Clump classes that contain leaf nodes. An example is given below,
-   # and may be canibalized for derived (leaf) Clump clases.
-   #==========================================================================
 
    def initexec (self, **kwargs):
-      """Fill the LeafClump object with suitable leaf nodes.
+      """
       Re-implemented version of the function in the baseclass (LeafClump).
-      To be re-implemented in instrument-specific XXXJones classes.
       """
       prompt = 'Jones: '+str(self._name)
       help = """Specify a sequence (product) of zero or more Jones matrices.
@@ -216,22 +227,31 @@ class XXXJones(JonesClump):
       if self.execute_body(always=True):
          for key in ['use_previous','table_name']:
             self._MeqParm_parms[key] = self.getopt(key)
-         treequals = range(8,10)+list('AB')          # default treequals (WSRT)
-         self.datadesc(treequals=kwargs.get('treequals', treequals))
-         jj = []
-         notsel = []
-         JonesClump(self, name='AJones').append_if_selected(jj, notsel)
-         JonesClump(self, name='BJones').append_if_selected(jj, notsel)
-         JonesClump(self, name='CJones').append_if_selected(jj, notsel)
+            
+         (jj,notsel) = self.make_jones_sequence(**kwargs)
          self.make_single_jones(jj, notsel)
-         self.end_of_body(ctrl)
 
-      # Mandatory counterpart of self.on_entry()
+         self.end_of_body(ctrl)
       return self.on_exit(ctrl)
 
 
    #----------------------------------------------------------------------------
-   #----------------------------------------------------------------------------
+
+   def make_jones_sequence(self, **kwargs):
+      """Function to be re-implemented in derived classes.
+      """
+      treequals = range(8,10)+list('AB')          # default treequals (WSRT)
+      self.datadesc(treequals=kwargs.get('treequals', treequals))
+      jj = []
+      notsel = []
+      JonesClump(self, name='AJones').append_if_selected(jj, notsel)
+      JonesClump(self, name='BJones').append_if_selected(jj, notsel)
+      JonesClump(self, name='CJones').append_if_selected(jj, notsel)
+      return (jj,notsel)
+
+
+   #============================================================================
+   #============================================================================
 
    def make_single_jones(self, jj, notsel=None):
       """Make a single Jones matrix from the ones collected in .initexex()
@@ -271,6 +291,21 @@ class XXXJones(JonesClump):
          # jones.show('make_single_jones()')
          self.connect_grafted_clump(jones)
 
+      # Check the polarization representations (linear/circular/None):
+      self._polrep = None                 # polrep of combined Jones
+      for jones in jj:
+         pol = jones.polrep()
+         if pol==None:                    # jones is not pol-specific
+            pass
+         elif not pol in ['linear','circular']:
+            print jones.oneliner()
+            self.ERROR('Jones polrep not recognized: '+str(pol))
+         elif self._polrep==None:         # combined polrep not (yet) specific
+            self._polrep = pol
+         elif not pol==self._polrep:      # not compatible
+            print jones.oneliner()
+            self.ERROR('Jones polreps are incompatible: '+str(pol)+ '!= '+str(self._polrep))
+
       # Deal with the Jones matrices that were NOT selected:
       if isinstance(notsel,list):
          for jones in notsel:
@@ -296,14 +331,18 @@ def do_define_forest (ns, TCM):
    submenu = TCM.start_of_submenu(do_define_forest,
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
+   TCM.add_option('jones',
+                  ['XXXJones','JonesClump'],
+                  prompt='test WSRT Jones:')
    clump = None
    if TCM.submenu_is_selected():
-      if 0:
+      jones = TCM.getopt('jones', submenu)
+      if jones=='JonesClump':
          clump = JonesClump(ns=ns, TCM=TCM)
-      else:
+      elif jones=='XXXJones':
          clump = XXXJones(ns=ns, TCM=TCM)
          
-      # clump = CorruptClump.AddNoise(clump).daisy_chain()
+      # clump = CorruptClump.Scatter(clump).daisy_chain()
       clump.visualize()
 
    # The LAST statement:

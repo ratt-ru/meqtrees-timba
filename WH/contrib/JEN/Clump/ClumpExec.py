@@ -63,7 +63,8 @@ TCM = Clump.TOM.TDLOptionManager(__file__)
 cc = ['Clump','templateClump','CorruptClump',
       'templateLeafClump','ParmClump','TwigClump',
       'SolverUnit',
-      'JonesClump']
+      'JonesClump','WSRTJones',
+      'VisClump','SpigotClump','VisuVisClump']
 TCM.add_option('ClumpClass',cc)
 
 cc = TCM.getopt('ClumpClass')
@@ -87,6 +88,22 @@ elif cc=='SolverUnit':
 elif cc=='JonesClump':
    # The base-class has all the specific functions, e.g. .visualize()
    from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
+elif cc=='WSRTJones':
+   # Contains specific WSRT Jones matrices. 
+   from Timba.Contrib.JEN.Clump import WSRTJones as ClumpClass
+
+elif cc=='VisClump':
+   # The base-class has all the specific functions, e.g. .visualize()
+   # Also the connection with MeqVisDataMux/MeqSink
+   from Timba.Contrib.JEN.Clump import VisClump as ClumpClass
+elif cc=='SpigotClump':
+   # Various forms of reading from a MS, including OMS Meow
+   from Timba.Contrib.JEN.Clump import SpigotClump as ClumpClass
+elif cc=='VisuVisClump':
+   # Contains all the specific visualization modes for VisClumps.
+   # Including PyNodePlot (slow) and MeqDataCollect (semi-obsolete)
+   from Timba.Contrib.JEN.Clump import VisuVisClump as ClumpClass
+
 
    #### The following contain multiple classes (GJones,FJones,EJones etc):
    # from Timba.Contrib.JEN.Clump import templateJonesClump as ClumpClass

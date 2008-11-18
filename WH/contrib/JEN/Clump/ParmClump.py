@@ -105,6 +105,7 @@ class ParmClump(Clump.LeafClump):
       help = 'definition of a set of similar MeqParms: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
+      #..........................................................
       if False:
          self.add_option('use_previous', True,
                          hide=True,
@@ -115,6 +116,7 @@ class ParmClump(Clump.LeafClump):
                          hide=True,
                          help='name of the file that contains the parmtable',
                          prompt='.mep file')
+      #..........................................................
 
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
@@ -123,6 +125,12 @@ class ParmClump(Clump.LeafClump):
          rr = self._MeqParm_parms
          rr.__delitem__('default')
 
+         # If single, generate only a single MeqParm:
+         single = kwargs.get('single',False)
+         if single:
+            self.datadesc(treequals='*')
+
+         # Generate the MeqParm node(s):
          self._nodes = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self._nodequals):
@@ -257,8 +265,7 @@ def do_define_forest (ns, TCM):
       clump = ParmClump(ns=ns, TCM=TCM,
                         name='GgainY', default=2.3,
                         treequals=range(10)+list('ABCD'),         # WSRT
-                        select=True,
-                        trace=True)
+                        select=True)
       solvable = clump.solspec(select=True)
                         # tdeg=2,                                   # override
       print '\n** solvable =',solvable,'\n'
@@ -286,25 +293,26 @@ if __name__ == '__main__':
 
    ns = NodeScope()
    TCM = None
-   if 1:
+   if 0:
       TCM = Clump.TOM.TDLOptionManager()
       print TCM.oneliner()
 
    if 0:
       clump = ParmClump(trace=True)
 
-   if 1:
+   if 0:
       cc = []
       for i in range(4):
          node = ns.ddd(i) << Meq.Parm(i)
          cc.append(node)
       clump = ParmListClump(cc, ns=ns, name='polyparm', trace=True)
 
-   if 0:
+   if 1:
       tqs = range(10) + list('ABCD')
       clump = ParmClump(treequals=tqs,
                         # ns=ns, TCM=TCM,
                         name='GgainX',
+                        single=True,
                         default=1.0,
                         trace=True)
 
@@ -317,7 +325,7 @@ if __name__ == '__main__':
       clump1 = ParmClump(clump, name='other')
       clump1.show('clump1')
 
-   if 1:
+   if 0:
       solvable = clump.solspec()
       print '-> solvable =',solvable
       clump.show('after solspec()')
