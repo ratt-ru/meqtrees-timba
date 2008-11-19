@@ -475,29 +475,6 @@ class Clump (object):
             print s
       return cms
 
-   #--------------------------------------------------------------------
-         
-   def compare (self, clump, **kwargs):
-      """
-      Compare (Subtract, Divide) its nodes with the corresponding
-      nodes of another Clump. Return a new Clump object with the result.
-      """
-      kwargs['select'] = True
-      binop = kwargs.get('binop','Subtract')
-      prompt = '.compare('+binop+')'
-      help = clump.oneliner()
-      ctrl = self.on_entry(self.compare, prompt, help, **kwargs)
-
-      new = None
-      if self.execute_body():
-         new = self.copy()                                    # <-----!!
-         new.apply_binop(binop, clump, **kwargs)              # <-----!!
-         self._orphans.extend(new._orphans)                   # <---- !!
-         self.end_of_body(ctrl)
-
-      return self.on_exit(ctrl, result=new)
-
-
 
    #==========================================================================
    # Various text display functions:
@@ -1095,7 +1072,7 @@ class Clump (object):
    #---------------------------------------------------------------------
 
    def get_nodelist(self, subset='*',
-                    unops=None,
+                    # unops=None,
                     append=None, prepend=None,
                     nodelist=None, trace=False):
       """Helper function to get a list (copy) of (a subset of) its nodes.
@@ -1121,7 +1098,7 @@ class Clump (object):
          cc.insert(0,prepend)
 
       if trace:
-         print '\n** get_nodes(',subset,str(append),str(prepend),'):',self.oneliner()
+         print '\n** get_nodes(',subset,str(append),str(prepend),nodelist,'):',self.oneliner()
          for i,node in enumerate(cc):
             print '  -',i,':',str(node)
          print
@@ -1308,7 +1285,7 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
-   def apply_unops (self, unops, nodelist=None, **kwargs):
+   def apply_unops (self, unops, nodelist=None, replace=True, **kwargs):
       """
       Apply one or more unary operation(s) (e.g. Cos(..)) on its nodes.
       Multiple unops may be specified as a list, or string with blanks
@@ -1320,12 +1297,15 @@ class Clump (object):
       """
       # First make sure that unops is a list:
       unops = self.check_unops(unops)
-      replace = kwargs.get('replace',True)
 
       # Get the list of nodes on which to apply unops:
       cc = self.get_nodelist(nodelist=nodelist)
+      # This can also be an external nodelist, in which case the
+      # internal self._nodes are ignored and unaffected (replace=False)
+      if isinstance(nodelist,(list,tuple)):
+         replace = False
 
-      # Apply in order of specification:
+      # Apply unops in order of specification:
       sunops = '..'
       for unop in unops:
          if not isinstance(unop,str):
@@ -1348,22 +1328,22 @@ class Clump (object):
             hist += sunops
          self.history(hist, show_node=True)
 
-      # Always return the list of nodes
+      # Always return the resulting list of nodes
       return cc
 
    #-------------------------------------------------------------------------
 
-   def apply_binop (self, binop, rhs, **kwargs):
+   def apply_binop (self, binop, rhs, replace=True, **kwargs):
       """Apply a binary operation (binop, e.g. 'Add') between its nodes
       and the given right-hand-side (rhs). The latter may be various
       things: a Clump, a node, a number, a list, etc.
+      Always return the resulting list of nodes.
+      If replace=False, do not replace self._nodes with new nodes.
       """
       if not isinstance(binop,str):
          self.ERROR('binop is not a string: '+str(type(binop)+str(binop)))
 
       binop = binop.replace('Meq','')            # just in case....
-      replace = kwargs.get('replace',True)
-
       hist = None
       cc = []
       if isinstance(rhs,(int,float,complex)):    # rhs is a number
@@ -1374,18 +1354,20 @@ class Clump (object):
             cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs))
          
       elif isinstance(rhs,list):                 # rhs is a list
-         stub = self.unique_nodestub(binop, srhs)
          if not len(rhs)==self.size():
             self.ERROR('length mismatch: '+str(len(rhs))+'!='+str(self.size()))
          elif is_node(rhs[0]):                     # a list of nodes
             hist = 'rhs is list, rhs[0]='+str(rhs[0].name)
+            stub = self.unique_nodestub(binop)
             for i,qual in enumerate(self._nodequals):
-               cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs[i]))
+               cc.append(stub(qual)(str(rhs[i].name)) << getattr(Meq,binop)(self[i],rhs[i]))
          elif isinstance(rhs[0],(int,float,complex)): # a list of numbers
             srhs = EF.format_value(rhs[0])
             hist = 'rhs is list, rhs[0]='+srhs
+            stub = self.unique_nodestub(binop)
             for i,qual in enumerate(self._nodequals):
-               cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs[i]))
+               srhs = EF.format_value(rhs[i])
+               cc.append(stub(qual)(srhs) << getattr(Meq,binop)(self[i],rhs[i]))
          else:
             self.ERROR('** type of rhs[0] not recognised: '+str(type(rhs[0])))
 
@@ -1411,7 +1393,7 @@ class Clump (object):
          hist = '.apply_binop('+str(binop)+', '+str(hist)+')'
          self.history(hist, show_node=True)
 
-      # Always return the list of nodes:
+      # Always return the resulting list of nodes:
       return cc
 
 
@@ -1475,8 +1457,35 @@ class Clump (object):
          help += indent+'| (ignored: '+str(ignore)+')'
       return help
 
-   #---------------------------------------------------------------------
-   #---------------------------------------------------------------------
+
+   #=====================================================================
+   #=====================================================================
+         
+   def compare (self, clump, **kwargs):
+      """
+      Compare (Subtract, Divide) its nodes with the corresponding
+      nodes of another Clump. Return a new Clump object with the result.
+      """
+      kwargs['select'] = True
+      binop = kwargs.get('binop','Subtract')
+      prompt = '.compare('+binop+')'
+      help = clump.oneliner()
+      ctrl = self.on_entry(self.compare, prompt, help, **kwargs)
+
+      new = None
+      if self.execute_body():
+         # if not self.commesurate(clump):
+         new = self.copy()                                    # <-----!!
+         new.apply_binop(binop, clump, replace=False)              # <-----!!
+         self._orphans.extend(new._orphans)                   # <---- !!
+         # self.sumabs()
+         self.end_of_body(ctrl)
+
+      return self.on_exit(ctrl, result=new)
+
+   #=====================================================================
+   # Visualization:
+   #=====================================================================
 
    def visualize (self, **kwargs):
       """Choice of various forms of visualization.
@@ -1914,9 +1923,11 @@ if __name__ == '__main__':
          print '-- clump[',index,'] -> ',str(clump[index])
       # print '-- clump[78] -> ',str(clump[78])
 
-   if 1:
+   if 0:
       # clump.get_nodelist(subset=0, trace=True)
       cc = clump.get_nodelist(trace=True)
+      cc = clump.get_nodelist(nodelist=range(3), trace=True)
+      cc = clump.get_nodelist(append=(ns<<4), prepend=(ns<<4), trace=True)
       print '-> cc=',len(cc),' cc[0]: ',str(cc[0])
       
    if 0:
@@ -1933,19 +1944,24 @@ if __name__ == '__main__':
       unops = 'Cos'
       unops = ['Cos','Cos','Cos']
       unops = 'Cos Sin'
-      unops = 'MeqCos'
+      # unops = 'MeqCos'
       # unops = ['Cos','Sin']
-      clump.apply_unops(unops)    
-      clump.apply_unops('Resampler', mode=2)    
+      # clump.apply_unops(unops)    
+      cc = clump.apply_unops(unops, replace=False)    
+      cc = clump.apply_unops('Exp', nodelist=cc)    
+      # clump.apply_unops('Resampler', mode=2)    
       # clump.apply_unops()                       # error
+      print '-> cc=',len(cc),' cc[0]: ',str(cc[0])
 
-   if 0:
-      rhs = math.pi
-      # rhs = ns.rhs << Meq.Constant(2.3)
-      # rhs = Clump('RHS', clump=clump)
-      clump.apply_binop('Add', rhs)
+   if 1:
+      clump.apply_binop('Add', math.pi)
       clump.apply_binop('Add', clump)
       clump.apply_binop('Add', ns<<3.4)
+      clump.apply_binop('Add', clump.indices())
+      cc = clump.apply_unops('Exp')    
+      clump.apply_binop('Add', cc)
+      clump.apply_binop('Add', 4.5, replace=False)
+      print '-> cc=',len(cc),' cc[0]: ',str(cc[0])
 
    if 0:
       treequals = range(5)
