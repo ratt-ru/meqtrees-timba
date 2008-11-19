@@ -2,6 +2,7 @@ _tdl_no_reimport = True;
 
 import os.path
 import time
+import socket
 
 from qt import *
 
@@ -294,6 +295,8 @@ class MainWindow (QMainWindow):
       self.hide();
       self.new_entry_dialog.hide();
     else:
+      if self.purrer:
+        self.purrer.detach();
       return QMainWindow.closeEvent(self,ev);
     
   def message (self,msg,ms=2000,sub=False):
@@ -304,6 +307,9 @@ class MainWindow (QMainWindow):
       self._prev_msg = msg;
     self.statusBar().message(msg,ms);
     QApplication.eventLoop().processEvents(QEventLoop.ExcludeUserInput);
+      
+  def detachDirectory (self):
+    self.purrer and self.purrer.detach();
     
   def attachDirectory (self,dirname,watchdirs=None):
     """Attaches Purr to the given directory. If watchdirs is None,
@@ -324,14 +330,22 @@ class MainWindow (QMainWindow):
     else:
       dprint(1,"creating new Purrer object");
       purrer = Purr.Purrer(dirname,watchdirs or (dirname,));
+      # check that we could attach, display message if not
+      if not purrer.attached:
+        QMessageBox.warning(self,"Catfight!","""<P><NOBR>It appears that another PURR process (%s)</NOBR>
+          is already attached to <tt>%s</tt>, so we're not allowed to touch it. You should exit the other PURR
+          process first.</P>
+          <P>If no other PURR is running, then it may be that a previous PURR did not exit cleanly and left a lock file behind. In this case you must remove the following file manually:</P>
+          <P><tt>%s</tt></P>"""%(purrer.other_lock,os.path.abspath(dirname),purrer.lockfile),QMessageBox.Ok);
+        return False;
       self.purrer_stack.insert(0,purrer);
       # discard end of stack
       self.purrer_stack = self.purrer_stack[:3];
     # have we changed the current purrer? Update our state then
-    self.message("Attached to directory %s"%purrer.dirname);
     # reopen pipe
     self.purrpipe = Purr.Pipe.open(purrer.dirname);
     if purrer is not self.purrer:
+      self.message("Attached to directory %s"%purrer.dirname);
       dprint(1,"current Purrer changed, updating state");
       self.purrer = purrer;
       self.new_entry_dialog.hide();
@@ -349,6 +363,7 @@ class MainWindow (QMainWindow):
       self.setPounceMode(purrer.autopounce);
       self._pounce = False;
       self._checkPounceStatus();
+    return True;
     
   def setLogTitle (self,title):
     self.purrer.setLogTitle(title);
@@ -588,6 +603,7 @@ class MainWindow (QMainWindow):
     item.setText(0,self._make_time_label(entry.timestamp));
     item.setText(1," "+(entry.title or ""));
     comment = " "+(entry.comment or "");
+    # comment = comment.replace("\n","<BR>");
     item.setText(2,comment);
     item._ientry = number;
     return item;

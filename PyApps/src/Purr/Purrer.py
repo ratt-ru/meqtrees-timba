@@ -8,6 +8,7 @@ _tdl_no_reimport = True;
 import sys
 import os
 import os.path
+import socket
 import re
 import time
 import traceback
@@ -20,6 +21,9 @@ import Purr.Parsers
 import Purr.Render
 import Purr.Plugins
 from Purr import Config,dprint,dprintf;
+
+# this string is used to create lock files
+_lockstring = "%s:%d"%(socket.gethostname(),os.getpid());
 
 def parse_pattern_list (liststr):
   """Parses a list of filename patterns of the form "Description=ptt,patt,...;Description=patt,...
@@ -269,7 +273,20 @@ class Purrer (object):
         self._subdir_patterns.append((desc,dir_patt,canary_patt));
     dprint(1,"watching subdirectories",self._subdir_patterns);
     # attach to directories
+    self.attached = False;    # will be True when we successfully attach
+    self.other_lock = None;   # will be not None if another PURR holds a lock on this directory
     self._attach(dirname,watchdirs);
+    
+  def __del__ (self):
+    self.detach();
+    
+  def detach (self):
+    if self.attached:
+      try:
+        os.remove(self.lockfile);
+      except:
+        pass;
+      self.attached = False;
     
   def _attach (self,dirname,watchdirs=None):
     """Attaches Purr to a directory (typically, an MS), and loads content.
@@ -288,6 +305,25 @@ class Purrer (object):
     self.entries = [];
     self._default_dp_props = {};
     self.watchers = {};
+    # check that we hold a lock on the directory
+    self.lockfile = os.path.join(self.dirname,".purrlock");
+    try:
+      other_lock = file(self.lockfile).read();
+    except:
+      other_lock = None;
+    global _lockstring;
+    if other_lock:
+      if other_lock != _lockstring:
+        dprint(1,"not attaching to %s: lock held by %s"%(self.dirname,other_lock));
+        self.other_lock = other_lock;
+        self.attached = False;
+        return False;
+    # no lock, write our own
+    else:
+      try:
+        file(self.lockfile,'w').write(_lockstring);
+      except:
+        pass;
     # load log state if log directory already exists
     if os.path.exists(self.logdir):
       _busy = Purr.BusyIndicator();
@@ -325,6 +361,8 @@ class Purrer (object):
     if watchdirs is None:
       watchdirs = [dirname];
     self.watchDirectories(watchdirs);
+    self.attached = True;
+    return True;
   
   def setWatchedFilePatterns (self,watch,ignore=[]):
     self._watch = watch;
@@ -456,6 +494,8 @@ class Purrer (object):
     """Checks files and directories on watchlist for updates, rescans them for new data products.
     If any are found, returns them.
     """;
+    if not self.attached:
+      return;
     dprint(5,"starting rescan");
     newstuff = {};   # this accumulates names of new or changed files. Keys are paths, values are 'quiet' flag.
     # store timestamp of scan

@@ -62,11 +62,11 @@ class DataProduct (object):
           os.remove(os.path.join(root, name)); 
         except: 
           pass;
-    for name in dirs:
-      try: 
-        os.remove(os.path.join(root, name)); 
-      except: 
-        pass;
+      for name in dirs:
+        try: 
+          os.remove(os.path.join(root, name)); 
+        except: 
+          pass;
       
   def rename (self,newname):
     # rename file if needed
@@ -82,15 +82,11 @@ class DataProduct (object):
     except:
       print "Error renaming %s to %s: %s"%(self.fullpath,newpath,sys.exc_info()[1]);
       return;
+    # remove subproducts, if they exist -- need to re-render with new name anyway
+    self.remove_subproducts();
+    # set new paths and names
     self.fullpath = newpath;
     self.filename = newname;
-    # rename subproducts, if they exist
-    if os.path.exists(oldsubname):
-      newsubname = self.subproduct_dir();
-      try:
-        os.rename(oldsubname,newsubname);
-      except:
-        print "Error renaming %s to %s: %s"%(oldsubname,newsubname,sys.exc_info()[1]);
 
 class LogEntry (object):
   """This represents a LogEntry object""";
