@@ -37,6 +37,7 @@ from Meow.Parameterization import resolve_parameter
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,read_flags=True,hanning=True);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
+TDLCompileOption("run_purr","Start Purr on this MS",True);
 # MS run-time options
 TDLRuntimeMenu("Data selection & flag handling",*mssel.runtime_options());
 ## also possible:
@@ -90,10 +91,14 @@ meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
 # these will show up in the menu automatically
 
 # E - beam
+# add a fixed primary beam first
 import wsrt_beams
+import solvable_pointing_errors
+meqmaker.add_sky_jones('E0','primary beam',[wsrt_beams],
+  pointing=solvable_pointing_errors);
+# then add differential gains
 import solvable_sky_jones
-meqmaker.add_sky_jones('E','beam',[
-    wsrt_beams,
+meqmaker.add_sky_jones('E','differential gains',[
     solvable_sky_jones.FullRealImag('E')]);
 
 # B - bandpass, G - gain
@@ -112,13 +117,20 @@ meqmaker.add_vis_proc_module('IC','interferometer biases',[ifr_based_errors.IfrB
 # very important -- insert meqmaker's options properly
 TDLCompileOptions(*meqmaker.compile_options());
 
-def _define_forest (ns):
+import Purr.Pipe
+
+def _define_forest(ns,parent=None,**kw):
+  if run_purr:
+    Timba.TDL.GUI.purr(mssel.msname,[mssel.msname,'.']);
+  # create Purr pipe
+  global purrpipe;
+  purrpipe = Purr.Pipe.Pipe(mssel.msname);
+  
   # get antennas from MS
   ANTENNAS = mssel.get_antenna_set(range(1,15));
   array = Meow.IfrArray(ns,ANTENNAS,mirror_uvw=False);
   stas = array.stations();
   # get phase centre from MS, setup observation
-  print mssel.get_phase_dir();
   observation = Meow.Observation(ns,phase_centre=mssel.get_phase_dir());
   Meow.Context.set(array,observation);
   # get active correlations from MS
@@ -222,19 +234,25 @@ def _define_forest (ns):
     [ outputs(p,q) for p,q in array.ifrs() ],sorted=True,ncol=2,nrow=2);
 
   if not do_solve:
-    global _run_tree;
     if do_subtract:
       name = "Generate residuals";
+      comment = "Generated residual visibilities.";
     elif do_correct:
       name = "Generate corrected data";
+      comment = "Generated corrected visibilities.";
     else:
       name = None;
     if name:
+      # make a TDL job to runsthe tree
+      def run_tree (mqs,parent,**kw):
+        global tile_size;
+        purrpipe.title("Calibrating").comment(comment);
+        mqs.execute(Context.vdm.name,mssel.create_io_request(tile_size),wait=False);
       TDLRuntimeMenu(name,
         TDLOption('tile_size',"Tile size, in timeslots",[10,60,120,240],more=int,
                   doc="""Input data is sliced by time, and processed in chunks (tiles) of
                   the indicated size. Larger tiles are faster, but use more memory."""),
-        TDLRuntimeJob(_run_tree,name)
+        TDLRuntimeJob(run_tree,name)
       );
 
   # very important -- insert meqmaker's runtime options properly
@@ -245,11 +263,5 @@ def _define_forest (ns):
     TDLRuntimeOptions(*ParmGroup.get_solvejob_options());
   # finally, setup imaging options
   imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
-  TDLRuntimeMenu("Imaging options",*imsel.option_list());
-
-
-# runs the tree
-def _run_tree (mqs,parent,**kw):
-  mqs.execute(Context.vdm.name,mssel.create_io_request(tile_size),wait=False);
-
+  TDLRuntimeMenu("Make an image from this MS",*imsel.option_list());
 
