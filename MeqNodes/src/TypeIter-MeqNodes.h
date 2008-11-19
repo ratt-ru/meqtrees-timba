@@ -124,7 +124,8 @@
         Do(Meq::ShapeletVisTf,arg) separator \
         Do(Meq::Bessel,arg) separator \
         Do(Meq::VisPhaseShiftArg,arg) separator \
-        Do(Meq::TFSmearFactor,arg)
+        Do(Meq::TFSmearFactor,arg) separator \
+        Do(Meq::WSRTCos3Beam,arg)
 
 #define DoForAllNumericTypes_MeqNodes(Do,arg,separator) \
         

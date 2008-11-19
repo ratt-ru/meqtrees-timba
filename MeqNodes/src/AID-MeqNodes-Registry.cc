@@ -218,6 +218,8 @@ DMI::BObj * __construct_MeqBessel (int n) { return n>0 ? new Meq::Bessel [n] : n
 DMI::BObj * __construct_MeqVisPhaseShiftArg (int n) { return n>0 ? new Meq::VisPhaseShiftArg [n] : new Meq::VisPhaseShiftArg; }
 #include "TFSmearFactor.h"
 DMI::BObj * __construct_MeqTFSmearFactor (int n) { return n>0 ? new Meq::TFSmearFactor [n] : new Meq::TFSmearFactor; }
+#include "WSRTCos3Beam.h"
+DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3Beam [n] : new Meq::WSRTCos3Beam; }
     using namespace DMI;
   
     int aidRegistry_MeqNodes ()
@@ -679,6 +681,12 @@ DMI::BObj * __construct_MeqTFSmearFactor (int n) { return n>0 ? new Meq::TFSmear
         AtomicID::registerId(-1748,"MeqTFSmearFactor")+
         TypeInfoReg::addToRegistry(-1748,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1748,__construct_MeqTFSmearFactor)+
+        AtomicID::registerId(-1750,"MeqWSRTCos3Beam")+
+        TypeInfoReg::addToRegistry(-1750,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1750,__construct_MeqWSRTCos3Beam)+
+        AtomicID::registerId(-1749,"BF")+
+        AtomicID::registerId(-1023,"R")+
+        AtomicID::registerId(-1751,"Clip")+
     0;
     return res;
   }

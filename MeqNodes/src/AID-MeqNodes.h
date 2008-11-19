@@ -38,6 +38,11 @@ const int AidAxes_int = -1346;
 const DMI::AtomicID AidAz(-1710);                 // from /home/sarod/Timba/MeqNodes/src/RADec.h:53
 const int AidAz_int = -1710;
 #endif
+#ifndef _defined_id_AidBF
+#define _defined_id_AidBF 1
+const DMI::AtomicID AidBF(-1749);                 // from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:33
+const int AidBF_int = -1749;
+#endif
 #ifndef _defined_id_AidBalanced
 #define _defined_id_AidBalanced 1
 const DMI::AtomicID AidBalanced(-1668);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
@@ -77,6 +82,11 @@ const int AidCells_int = -1291;
 #define _defined_id_AidClear 1
 const DMI::AtomicID AidClear(-1353);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:39
 const int AidClear_int = -1353;
+#endif
+#ifndef _defined_id_AidClip
+#define _defined_id_AidClip 1
+const DMI::AtomicID AidClip(-1751);               // from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:33
+const int AidClip_int = -1751;
 #endif
 #ifndef _defined_id_AidColin
 #define _defined_id_AidColin 1
@@ -863,6 +873,11 @@ const int AidMeqVisPhaseShiftArg_int = -1747;
 const DMI::AtomicID AidMeqWMean(-1504);           // from /home/mevius/LOFAR/Timba/MeqNodes/src/WMean.h:30
 const int AidMeqWMean_int = -1504;
 #endif
+#ifndef _defined_id_AidMeqWSRTCos3Beam
+#define _defined_id_AidMeqWSRTCos3Beam 1
+const DMI::AtomicID AidMeqWSRTCos3Beam(-1750);    // from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:32
+const int AidMeqWSRTCos3Beam_int = -1750;
+#endif
 #ifndef _defined_id_AidMeqWSum
 #define _defined_id_AidMeqWSum 1
 const DMI::AtomicID AidMeqWSum(-1502);            // from /home/mevius/LOFAR/Timba/MeqNodes/src/WSum.h:30
@@ -977,6 +992,11 @@ const int AidProfile_int = -1433;
 #define _defined_id_AidQuota 1
 const DMI::AtomicID AidQuota(-1627);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:35
 const int AidQuota_int = -1627;
+#endif
+#ifndef _defined_id_AidR
+#define _defined_id_AidR 1
+const DMI::AtomicID AidR(-1023);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+const int AidR_int = -1023;
 #endif
 #ifndef _defined_id_AidRA
 #define _defined_id_AidRA 1

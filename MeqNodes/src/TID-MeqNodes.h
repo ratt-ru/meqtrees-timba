@@ -2003,6 +2003,25 @@ namespace Meq { class WMean; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqWSRTCos3Beam
+#define _defined_id_TpMeqWSRTCos3Beam 1
+const DMI::TypeId TpMeqWSRTCos3Beam(-1750);       // from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:32
+const int TpMeqWSRTCos3Beam_int = -1750;
+namespace Meq { class WSRTCos3Beam; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::WSRTCos3Beam> : public TypeTraits<Meq::WSRTCos3Beam>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqWSRTCos3Beam_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::WSRTCos3Beam & ContainerReturnType;
+                typedef const Meq::WSRTCos3Beam & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqWSum
 #define _defined_id_TpMeqWSum 1
 const DMI::TypeId TpMeqWSum(-1502);               // from /home/mevius/LOFAR/Timba/MeqNodes/src/WSum.h:30
