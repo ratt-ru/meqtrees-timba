@@ -1058,7 +1058,7 @@ class Clump (object):
    # Functions dealing with subsets (of the tree nodes):
    #=========================================================================
 
-   def get_indices(self, subset='*', severe=True, trace=False):
+   def get_indices(self, subset='*', severe=True, nodelist=None, trace=False):
       """Return a list of valid tree indices, according to subset[='*'].
       If subset is an integer, return that many (regularly spaced) indices.
       If subset is a list, check their validity.
@@ -1092,19 +1092,40 @@ class Clump (object):
          print s,'->',ii
       return ii
 
+   #---------------------------------------------------------------------
 
-   #-------------------------------------------------------------------------
-
-   def get_nodes(self, subset='*', trace=False):
-      """Return the specified (subset) subset of the tree nodes.
+   def get_nodelist(self, subset='*',
+                    unops=None,
+                    append=None, prepend=None,
+                    nodelist=None, trace=False):
+      """Helper function to get a list (copy) of (a subset of) its nodes.
+      If nodelist is supplied, use that instead (multi-purpos function).
+      If append or prepend are nodes, append/prepend them to the list.
       """
-      ii = self.get_indices(subset, trace=trace)
-      nodes = []
-      for i in ii:
-         nodes.append(self[i])
-         if trace:
-            print '-',str(nodes[-1])
-      return nodes
+      cc = []
+      if isinstance(nodelist,(list,tuple)):
+         # ii = self.get_indices(subset, nodelist=nodelist, trace=trace)   # <----??
+         for i,node in enumerate(nodelist):
+            # Test whether node is a node (or a number?)
+            cc.append(node)
+      else:
+         ii = self.get_indices(subset, trace=trace)
+         for i in ii:
+            cc.append(self[i])
+
+      if is_node(append):
+         cc.append(append)
+      if isinstance(append,list):
+         cc.extend(append)
+      if is_node(prepend):
+         cc.insert(0,prepend)
+
+      if trace:
+         print '\n** get_nodes(',subset,str(append),str(prepend),'):',self.oneliner()
+         for i,node in enumerate(cc):
+            print '  -',i,':',str(node)
+         print
+      return cc
 
 
    #=========================================================================
@@ -1287,7 +1308,7 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
-   def apply_unops (self, unops, **kwargs):
+   def apply_unops (self, unops, nodelist=None, **kwargs):
       """
       Apply one or more unary operation(s) (e.g. Cos(..)) on its nodes.
       Multiple unops may be specified as a list, or string with blanks
@@ -1301,11 +1322,10 @@ class Clump (object):
       unops = self.check_unops(unops)
       replace = kwargs.get('replace',True)
 
-      # Apply in order of specification:
-      cc = []
-      for i,qual in enumerate(self._nodequals):
-         cc.append(self[i])
+      # Get the list of nodes on which to apply unops:
+      cc = self.get_nodelist(nodelist=nodelist)
 
+      # Apply in order of specification:
       sunops = '..'
       for unop in unops:
          if not isinstance(unop,str):
@@ -1314,11 +1334,12 @@ class Clump (object):
          sunops = unop+'('+sunops+')'
          stub = self.unique_nodestub(unop+'()', **kwargs)
          for i,qual in enumerate(self._nodequals):
-            cc[i] = stub(qual) << getattr(Meq,unop)(cc[i],**kwargs))
+            cc[i] = stub(qual) << getattr(Meq,unop)(cc[i],**kwargs)
 
+      # Replace self._nodes, if required (default):
       if replace:
-         self._nodes = cc                  # replace self._nodes
-         # Make a history entry:
+         self._nodes = cc  
+         # Make an  object history entry (only if replaced):
          hist = '.apply_unops('+str(unops)
          for key in kwargs.keys():
             hist += ', '+str(key)+'='+str(kwargs[key])
@@ -1335,36 +1356,63 @@ class Clump (object):
    def apply_binop (self, binop, rhs, **kwargs):
       """Apply a binary operation (binop, e.g. 'Add') between its nodes
       and the given right-hand-side (rhs). The latter may be various
-      things: a Clump, a node, a number etc.
+      things: a Clump, a node, a number, a list, etc.
       """
       if not isinstance(binop,str):
          self.ERROR('binop is not a string: '+str(type(binop)+str(binop)))
+
       binop = binop.replace('Meq','')            # just in case....
+      replace = kwargs.get('replace',True)
 
       hist = None
+      cc = []
       if isinstance(rhs,(int,float,complex)):    # rhs is a number
          srhs = EF.format_value(rhs)
          hist = 'rhs='+srhs
          stub = self.unique_nodestub(binop, srhs)
          for i,qual in enumerate(self._nodequals):
-            self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs)
+            cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs))
          
+      elif isinstance(rhs,list):                 # rhs is a list
+         stub = self.unique_nodestub(binop, srhs)
+         if not len(rhs)==self.size():
+            self.ERROR('length mismatch: '+str(len(rhs))+'!='+str(self.size()))
+         elif is_node(rhs[0]):                     # a list of nodes
+            hist = 'rhs is list, rhs[0]='+str(rhs[0].name)
+            for i,qual in enumerate(self._nodequals):
+               cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs[i]))
+         elif isinstance(rhs[0],(int,float,complex)): # a list of numbers
+            srhs = EF.format_value(rhs[0])
+            hist = 'rhs is list, rhs[0]='+srhs
+            for i,qual in enumerate(self._nodequals):
+               cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs[i]))
+         else:
+            self.ERROR('** type of rhs[0] not recognised: '+str(type(rhs[0])))
+
       elif is_node(rhs):                         # rhs is a node
          hist = 'rhs='+str(rhs.name)
          stub = self.unique_nodestub(binop, rhs.classname)
          for i,qual in enumerate(self._nodequals):
-            self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs)
+            cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs))
 
       elif isinstance(rhs,type(self)):           # rhs is a Clump object
          if self.commensurate(rhs, severe=True):
             hist = 'rhs='+rhs.oneliner()
             stub = self.unique_nodestub(binop, rhs._typename)
             for i,qual in enumerate(self._nodequals):
-               self._nodes[i] = stub(qual) << getattr(Meq,binop)(self[i],rhs[i])
+               cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs[i]))
+      else:
+         self.ERROR('** type of rhs not recognised: '+str(type(rhs)))
 
-      hist = '.apply_binop('+str(binop)+', '+str(hist)+')'
-      self.history(hist, show_node=True)
-      return True
+      # Replace self._nodes, if required (default):
+      if replace:
+         self._nodes = cc                        # replace self._nodes
+         # Make an  object history entry (only if replaced):
+         hist = '.apply_binop('+str(binop)+', '+str(hist)+')'
+         self.history(hist, show_node=True)
+
+      # Always return the list of nodes:
+      return cc
 
 
    #=========================================================================
@@ -1500,28 +1548,12 @@ class Clump (object):
             cc = self.apply_unops('Abs', replace=False)
             stub = self.unique_nodestub()
             sumabs = stub('sumabs') << Meq.Add(*cc)
-            cc = self.get_nodes(prepend=sumabs)
+            cc = self.get_nodelist(prepend=sumabs)
             node = stub(name) << Meq.Composer(*cc)
             self.make_bookmark(node, name=bookpage, folder=folder)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
-
-   #---------------------------------------------------------------------
-
-   def get_nodes(self, append=None, prepend=None):
-      """Helper function to get a list (copy) of its nodes.
-      """
-      cc = []
-      for node in self._nodes:
-         cc.append(node)
-      if is_node(append):
-         cc.append(append)
-      if isinstance(append,list)):
-         cc.extend(append)
-      if is_node(prepend):
-         cc.insert(0,prepend)
-      return cc
 
    #---------------------------------------------------------------------
 
@@ -1876,11 +1908,17 @@ if __name__ == '__main__':
    if 0:
       for node in clump:
          print str(node)
+
    if 0:
       for index in [0,1,-1]:
          print '-- clump[',index,'] -> ',str(clump[index])
       # print '-- clump[78] -> ',str(clump[78])
 
+   if 1:
+      # clump.get_nodelist(subset=0, trace=True)
+      cc = clump.get_nodelist(trace=True)
+      print '-> cc=',len(cc),' cc[0]: ',str(cc[0])
+      
    if 0:
       clump.show_tree(-1, full=True)
 
@@ -1891,7 +1929,7 @@ if __name__ == '__main__':
          print '.decompose() ->',clump.decompose()
          clump.show('.decompose()')
 
-   if 1:
+   if 0:
       unops = 'Cos'
       unops = ['Cos','Cos','Cos']
       unops = 'Cos Sin'
@@ -1901,7 +1939,7 @@ if __name__ == '__main__':
       clump.apply_unops('Resampler', mode=2)    
       # clump.apply_unops()                       # error
 
-   if 1:
+   if 0:
       rhs = math.pi
       # rhs = ns.rhs << Meq.Constant(2.3)
       # rhs = Clump('RHS', clump=clump)
@@ -1962,8 +2000,6 @@ if __name__ == '__main__':
       clump.get_indices(2, trace=True)
       clump.get_indices([2],trace=True)
 
-   if 0:
-      clump.get_nodes(subset=0, trace=True)
    
    # print 'Clump.__module__ =',Clump.__module__
    # print 'Clump.__class__ =',Clump.__class__

@@ -733,7 +733,7 @@ class TDLOptionManager (object):
       """Add a group-control button to the current submenu.
       """
       choice = ['-','select all selectables','select none',
-                '-','hide this submenu','hide nominal','unhide everything',
+                '-','hide this submenu','hide nominal','unhide',
                 '-','revert to defaults','revert to snapshot',
                 '-','help','show defrec']
       choice.extend(['-','make snapshot'])                     # for safety....
@@ -742,7 +742,7 @@ class TDLOptionManager (object):
       - select none:             de-select all selectables
       - hide this submenu:       hide this submenu (undo with unhide)
       - hide nominal:            hide all nominally hidden option
-      - unhide everything:       unhide all hidden menus/options
+      - unhide:                  unhide hidden menus/options 
       - revert to defaults:      revert to the original default values
       - revert to snapshot:      revert to the snapshot values (see below) 
       - help:                    print this help-text
@@ -786,7 +786,7 @@ class TDLOptionManager (object):
             self.hide_submenu (menu, trace=trace)
          elif value=='hide nominal':
             self.hide_unhide (menu, hide=True, trace=trace)
-         elif value=='unhide everything':
+         elif value=='unhide':
             self.hide_unhide (menu, hide=False, trace=trace)
          elif value=='revert to defaults':
             self.make_snapshot(menu, trace=trace)          # FIRST make a new snapshot...!?
