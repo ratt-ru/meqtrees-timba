@@ -2,7 +2,6 @@ _tdl_no_reimport = True;
 
 import os.path
 import time
-import socket
 
 from qt import *
 
@@ -468,21 +467,22 @@ class MainWindow (QMainWindow):
           dprint(2,"showing dialog");
           self.new_entry_dialog.show();
     # else read stuff from pipe
-    do_show = False;
-    for command,show,content in self.purrpipe.read():
-      if command == "title":
-        self.new_entry_dialog.suggestTitle(content);
-      elif command == "comment":
-        self.new_entry_dialog.addComment(content);
-      elif command == "pounce":
-        self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts(
-                                              [(content,not show)],unbanish=True));
-      else:
-        print "Unknown command received from Purr pipe: ",command;
-        continue;
-      do_show = do_show or show;
-    if do_show:
-      self.new_entry_dialog.show();
+    if self.purrpipe:
+      do_show = False;
+      for command,show,content in self.purrpipe.read():
+        if command == "title":
+          self.new_entry_dialog.suggestTitle(content);
+        elif command == "comment":
+          self.new_entry_dialog.addComment(content);
+        elif command == "pounce":
+          self.new_entry_dialog.addDataProducts(self.purrer.makeDataProducts(
+                                                [(content,not show)],unbanish=True));
+        else:
+          print "Unknown command received from Purr pipe: ",command;
+          continue;
+        do_show = do_show or show;
+      if do_show:
+        self.new_entry_dialog.show();
         
   def _addDPFiles (self,*files):
     """callback to add DPs corresponding to files.""";

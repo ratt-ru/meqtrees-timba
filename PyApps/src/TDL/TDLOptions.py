@@ -337,8 +337,8 @@ class _TDLOptionItem(_TDLBaseOption):
     """initializes the option. This is called when the option is placed into a
     run-time or compile-time menu.""";
     _TDLBaseOption.init(self,owner,runtime);
-    if owner:
-      self.config_name = '.'.join((owner,self.config_name));
+    if owner and self.config_name is not None:
+        self.config_name = '.'.join((owner,self.config_name));
 
   def collect_log (self,log):
     """called to collect a recursive log of all options. This version adds an entry
@@ -859,8 +859,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
         # item is an option: add to list, steal from global lists
         elif isinstance(item,_TDLBaseOption):
           _dprint(3,"menu: ",item.name);
-          self._steal_items(False,lambda item0:item is item0);
-          self._steal_items(True,lambda item0:item is item0);
+          self._items += _steal_items(compile_options,lambda item0:item is item0) + \
+                         _steal_items(runtime_options,lambda item0:item is item0);
           # append to list, if not stolen
           if not ( self._items and self._items[-1] is item ):
             self._items.append(item);
@@ -878,25 +878,9 @@ class _TDLSubmenu (_TDLBoolOptionItem):
               item.when_changed(curry(self._exclusive_item_selected,item));
           # init the item
           item.init(owner,runtime);
-        # item is a module: steal items from that module
-        elif inspect.ismodule(item):
-          owner = os.path.basename(item.__file__).split('.')[0];
-          _dprint(3,"menu: stealing items from module",owner);
-          # now steal items from this namespace's runtime or compile-time options
-          self._steal_items(runtime,lambda item0:item0.owner == owner);
-        # item is a namespace: steal items from that namespace
+        # else try to steal items from the module
         else:
-          namespace = None;
-          if isinstance(item,dict):
-            _dprint(3,"menu: stealing items from ",item);
-            namespace = item;
-          else:
-            _dprint(3,"menu: stealing items from ",getattr(item,'__name__','?'));
-            namespace = getattr(item,'__dict__',None);
-            if not namespace:
-              raise TypeError,"invalid item type '%s' in option menu '%s'"%(type(item),self._title);
-          # now steal items from this namespace's runtime or compile-time options
-          self._steal_items(runtime,lambda item0:item0.namespace is namespace);
+          self._items += TDLStealOptions(item,runtime);
       self._items0 = None;
 
   def set_exclusive (self,item,setitem=True,save=True):
@@ -934,22 +918,6 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       for item in self._items:
         if isinstance(item,_TDLBaseOption):
           item.collect_log(log);
-
-  def _steal_items (self,runtime,predicate):
-    """helper function: steals items matching the given predicate""";
-    if runtime:
-      option_list = runtime_options;
-    else:
-      option_list = compile_options;
-    steal_items = [];
-    for i,item0 in enumerate(option_list):
-      if isinstance(item0,_TDLBaseOption) and predicate(item0):
-        _dprint(3,"menu: stealing ",item0.name);
-        steal_items.insert(0,i);
-        self._items.append(item0);
-    # delete stolen items
-    for i in steal_items:
-      del option_list[i];
 
   def expand (self,expand=True):
     self._is_open = expand;
@@ -1004,6 +972,55 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     item._on_click = item._on_press = self._check_item;
     parent._ends_with_separator = False;
     return self.set_listview_item(item);
+    
+def _steal_items (itemlist,predicate):
+  """helper function: steals option items matching the given predicate, from the given
+  list (which will usuaally be either the global runtime_options or compile_options
+  list).
+  Returns list of stolen items, or [] if none.
+  list.""";
+  items = [];
+  steal_items = [];  # list of indices of stolen items
+  for i,item0 in enumerate(itemlist):
+    if isinstance(item0,_TDLBaseOption) and predicate(item0):
+      _dprint(3,"menu: stealing ",item0.name);
+      steal_items.insert(0,i);
+      items.append(item0);
+  # delete stolen items
+  for i in steal_items:
+    del itemlist[i];
+  return items;
+    
+def TDLStealOptions (obj,is_runtime=False):
+  """Steals options from the given object.
+  If is_runtime is False, steals compile-time options, else steals runtime options.
+  Returns list of stolen options, or [] if none are found."""
+  # determine which global list we steal options from
+  optlist = (is_runtime and runtime_options) or compile_options;
+  # is it a module? Steal options whose owner is the module
+  if inspect.ismodule(obj):
+    owner = os.path.basename(obj.__file__).split('.')[0];
+    _dprint(3,"menu: stealing items from module",owner);
+    # now steal items from this namespace's runtime or compile-time options
+    return _steal_items(optlist,lambda item:item.owner == owner);
+  # else object is a dict, or has a __dict__ attribute: steal items from that dict
+  else:
+    namespace = None;
+    if isinstance(obj,dict):
+      _dprint(3,"menu: stealing items from ",obj);
+      namespace = obj;
+    else:
+      _dprint(3,"menu: stealing items from ",getattr(obj,'__name__','?'));
+      namespace = getattr(obj,'__dict__',None);
+    if namespace:
+      return _steal_items(optlist,lambda item:item.namespace is namespace);
+  # fall through here on error
+  name = getattr(obj,"__name__",None);
+  if name:
+    name = " '%s'"%name;
+  else:
+    name = "";
+  raise TypeError,"cannot steal options from object%s of type %s"%(name,type(obj));
 
 def populate_option_listview (listview,option_items,executor=None):
   listview.clear();

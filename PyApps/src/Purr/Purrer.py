@@ -8,7 +8,6 @@ _tdl_no_reimport = True;
 import sys
 import os
 import os.path
-import socket
 import re
 import time
 import traceback
@@ -23,7 +22,7 @@ import Purr.Plugins
 from Purr import Config,dprint,dprintf;
 
 # this string is used to create lock files
-_lockstring = "%s:%d"%(socket.gethostname(),os.getpid());
+_lockstring = "%s:%d"%(os.uname()[1],os.getpid());
 
 def parse_pattern_list (liststr):
   """Parses a list of filename patterns of the form "Description=ptt,patt,...;Description=patt,...
