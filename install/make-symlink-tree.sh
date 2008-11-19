@@ -129,6 +129,7 @@ ln-s ../../../../../PyApps/src/TDL
 ln-s ../../../../../PyApps/src/Trees
 ln-s ../../../../../PyApps/src/Trut
 ln-s ../../../../../OCTOPython/src/utils.py
+ln-s ../../../../../OCTOPython/src/array.py
 cd ..
 makedir icons
 cd icons
