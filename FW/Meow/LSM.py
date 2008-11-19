@@ -33,6 +33,8 @@ import traceback
 import sets
 import Meow
 import Meow.OptionTools
+import Meow.Context
+from math import *
 
 # constants for available LSM formats
 # these are also used as labels in the GUI
@@ -78,10 +80,33 @@ class MeowLSM (object):
                  [ NATIVE,NEWSTAR,NVSS,CLEAN,TEXT_RAD,TEXT_DMS,VIZIER,OR_GSM,SKA ],
                  namespace=self);
       self._compile_opts.append(format_opt);
+      beam_opt = TDLOption("beam_expr","Primary beam expression",
+        [ None,
+          "cos(min(65*fq*r,1.0881))**6   # WSRT",
+          "max(cos(65*fq*r)**6,.01)      # NEWSTAR",
+        ],more=str,namespace=self,
+        doc="""This is the primary power beam expression used to convert I flux 
+        as given by the LSM (i.e. intrinsic) to apparent I. If specified, then LSM sources 
+        will be sorted by apparent rather than intrinsic flux. The sort order is important
+        for the "LSM subset" option below.
+        
+        Note that this "beam correction" only affects sorting of the sources. The actual 
+        source fluxes used in your tree will always be taken directly from the LSM (since 
+        trees can incorporate primary beam terms of their own.)
+        
+        The beam expression can be any valid Python expression (all functions from the 
+        math module are available). The variables 'r' and 'fq' refer to the source distance 
+        from field centre (in radians) and reference frequency (in GHz), respectively.
+        
+        If your LSM already contains apparent fluxes, or you're not interested in sorting 
+        the sources, set this option to 'None'.""");
+      self._compile_opts.append(beam_opt);
+      
       subset_opt = TDLOption('lsm_subset',"Use subset of LSM sources",
           ["all"],more=str,namespace=self,doc="""Selects a subset of sources from the
           LSM. You may specify sources by name (separated by spaces), or by number
-          (in order of decreasing brightness), or as ranges, e.g. "M:N" (M to N inclusive), or ":M" (0 to M), or "N:" (N to last).""");
+          (in order of decreasing brightness), or as ranges, e.g. "M:N" (M to N inclusive), 
+          or ":M" (0 to M), or "N:" (N to last).""");
       self._subset_parser = Meow.OptionTools.ListOptionParser(minval=0,
                               name="source",allow_names=True);
       subset_opt.set_validator(self._subset_parser.validator);
@@ -199,20 +224,49 @@ class MeowLSM (object):
       self.load(ns);
     # all=1 returns unsorted list, so use a large count instead, to get a sorted list
     plist = self.lsm.queryLSM(count=9999999);
+    
+    # parse the beam expression
+    if self.beam_expr is not None:
+      try:
+        beam_func = eval("lambda r,fq:"+self.beam_expr);
+      except:
+        raise RuntimeError,"invalid beam expression";
+    else:
+      beam_func = None;
+    
+    # make list of direction,punit,I,I_apparent tuples
+    srclist = [];
+    for pu in plist:
+      ra,dec,I,Q,U,V,spi,freq0,RM = pu.getEssentialParms(ns);
+      direction = Meow.Direction(ns,pu.name,ra,dec,static=True);
+      Iapp = I;
+      if beam_func is not None:
+      # if phase centre is already set (i.e. static), then lmn will be computed here, and we
+      # can apply a beam expression
+        lmn = direction.lmn_static();
+        if lmn is not None:
+          r = sqrt(lmn[0]**2+lmn[1]**2);
+          Iapp = I*beam_func(r,freq0*1e-9 or 1.4);  # use 1.4 GHz if ref frequency not specified
+      # append to list
+      srclist.append((direction,pu,I,Iapp));
+    # sort list by decreasing apparent flux
+    srclist.sort(lambda a,b:cmp(b[3],a[3]));
+    
     # extract subset
     if self.lsm_subset != "all":
-      self._subset_parser.set_max(len(plist)-1);
+      self._subset_parser.set_max(len(srclist)-1);
       indices,names = self._subset_parser.parse_list(self.lsm_subset);
       source_set = sets.Set(names);
-      source_set.update([plist[i].name for i in indices]);
+      source_set.update([srclist[i][1].name for i in indices]);
     else:
       source_set = None;
-    # extratc solvable subset
+      
+    # extract solvable subset
     if self.solve_subset != "all":
-      self._solve_subset_parser.set_max(len(plist)-1);
+      self._solve_subset_parser.set_max(len(srclist)-1);
       indices,names = self._solve_subset_parser.parse_list(self.solve_subset);
       solvable_source_set = sets.Set(names);
-      solvable_source_set.update([plist[i].name for i in indices]);
+      solvable_source_set.update([srclist[i][1].name for i in indices]);
     else:
       solvable_source_set = None;
       
@@ -247,9 +301,10 @@ class MeowLSM (object):
   ## Note: conversion from AIPS++ componentlist Gaussians to Gaussian Nodes
   ### eX, eY : multiply by 2
   ### eP: change sign
-    for pu in plist:
+    for direction,pu,I,Iapp in srclist:
       if source_set is not None and pu.name not in source_set:
         continue;
+      print "%-20s %12f %12f"%(pu.name,I,Iapp);
       src = {};
       ( src['ra'],src['dec'],
         src['I'],src['Q'],src['U'],src['V'],
@@ -279,8 +334,6 @@ class MeowLSM (object):
           src[key] = meowparm.new(value);
         elif meowparm is not None:
           src[key] = value;
-
-      direction = Meow.Direction(ns,pu.name,src['ra'],src['dec'],static=True);
 
       if eX or eY or eP:
         # Gaussians

@@ -33,6 +33,7 @@ import os
 import os.path
 import Meow
 import sets
+import math
 
 # figure out which table implementation to use -- try pyrap/casacore first
 try:
@@ -65,18 +66,16 @@ def find_exec (execname):
   return None;
 
 # figure out if we have an imager
-_lwi = find_exec('lwimager');
-if _lwi:
-  _IMAGER = "python";
-  print "Meow.MSUtils: found %s, will use that for imaging"%_lwi;
-else:
-  _gli = find_exec('glish');
-  if _gli:
-    _IMAGER = 'glish';
-    print "Meow.MSUtils: found %s, will use glish scripts for imaging"%_gli;
-  else:
-    _IMAGER = None;
-    print "Meow.MSUtils: no imager found";
+_lwimager = find_exec('lwimager');
+if _lwimager:
+  print "Meow.MSUtils: found %s, can use it for imaging"%_lwimager;
+
+_glish = find_exec('glish');
+if _glish:
+  print "Meow.MSUtils: found %s, can use AIPS++ imager"%_glish;
+
+if not _lwimager and not _glish:
+  print "Meow.MSUtils: no imager found";
   
 # figure out if we have a visualizer
 #_VISUALIZER = None;
@@ -861,19 +860,24 @@ class ImagingSelector (object):
     namespace:  the TDLOption namespace name, used to qualify TDL options created here.
         If making multiple selectors, you must give them different namespace names.
     """;
-    global _IMAGER;
-    if not _IMAGER:
+    global _lwimager;
+    global _glish;
+    if not _lwimager and not _glish:
       def do_nothing (mqs,parent,**kw):
         None;
-      self._opts = [ TDLJob(do_nothing,"No imager found, please install casarest or aips++") ];
+      self._opts = [ TDLJob(do_nothing,"No lwimager or glish found, please install casarest or aips++") ];
       return;
+    self._opts = [];
     self.tdloption_namespace = namespace;
     self.mssel = mssel;
+    # add imager
+    if _lwimager and _glish:
+      self._opts.append(TDLOption('imager_type',"Imager to use",["lwimager","AIPS++ imager"],namespace=self));
     # add imaging column option
     self.img_col_option = TDLOption('imaging_column',"Image type or column",
                           list(mssel.ms_data_columns)+["psf"],more=str,namespace=self);
     mssel.output_col_option.when_changed(curry(self.img_col_option.set_value,save=False));
-    self._opts = [ self.img_col_option ];
+    self._opts.append(self.img_col_option);
     
     chan_menu = TDLMenu("Output channel selection",
         TDLOption('imaging_nchan',"Number of output channels",[1],more=int,namespace=self),
@@ -909,7 +913,12 @@ class ImagingSelector (object):
       chan_opt,
       chan_menu,
       TDLOption('imaging_weight',"Imaging weights",
-                ["default","natural","uniform","briggs"],namespace=self),
+                ["default","natural","uniform","briggs","radial"],namespace=self),
+      TDLMenu("Apply Gaussian taper to visibilities",toggle='imaging_taper_gauss',namespace=self,
+            *( TDLOption('imaging_taper_bmaj',"Major axis (arcsec)",[12],more=float,namespace=self),
+               TDLOption('imaging_taper_bmin',"Minor axis (arcsec)",[12],more=float,namespace=self),
+               TDLOption('imaging_taper_bpa',"Position angle (deg)",[0],more=float,namespace=self),
+            )),
       TDLOption('imaging_stokes',"Stokes parameters to image",
                 ["I","IQUV"],namespace=self)
     ];
@@ -975,7 +984,6 @@ class ImagingSelector (object):
                   that either arcmin or cellsize may be specified, not both.
     """;
     # choose selector based on custom MS select option
-    global _IMAGER;
     if self.imaging_custom_ms_select:
       selector = self.subset_selector;
     else:
@@ -1007,19 +1015,19 @@ class ImagingSelector (object):
     else:
       imgmode = "channel";
     # form up initial argument list to run imaging script
-    if _IMAGER == 'glish':
+    if self.imager_type == "lwimager":
+      _IMAGER = "python";
+      script_name = os.path.join(Meow._meow_path,'make_dirty_image.py');
+      args = [ 'python',script_name,'data='+col ];
+      offset = 0;
+    else:
+      _IMAGER = "glish";
       script_name = os.path.join(Meow._meow_path,'make_dirty_image.g');
       script_name = os.path.realpath(script_name);  # glish don't like symlinks...
       args = [ 'glish','-l',
         script_name,
         col ];
       offset = 1;
-    elif _IMAGER == 'python':
-      script_name = os.path.join(Meow._meow_path,'make_dirty_image.py');
-      args = [ 'python',script_name,'data='+col ];
-      offset = 0;
-    else:
-      args = [];
     # these arguments are common to both imagers
     args += \
       [ 'ms='+self.mssel.msname,
@@ -1031,6 +1039,13 @@ class ImagingSelector (object):
         'spwid=%d'%(selector.get_spectral_window()+offset),
         'field=%d'%(selector.get_field()+offset),
         'padding=%f'%self.imaging_padding,
+      ];
+    # add taper arguments, if dealing with glish
+    if _IMAGER == "glish" and self.imaging_taper_gauss:
+      args += [ 
+        'filter_bmaj=%farcsec'%self.imaging_taper_bmaj,
+        'filter_bmin=%farcsec'%self.imaging_taper_bmin,
+        'filter_bpa=%fdeg'%self.imaging_taper_bpa
       ];
     # add w-proj arguments
     if self.imaging_enable_wproj:

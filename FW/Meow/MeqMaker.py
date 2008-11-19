@@ -27,6 +27,7 @@
 from Timba.TDL import *
 from Timba.Meq import meq
 import math
+import sets
 import inspect
 
 import Meow
@@ -47,14 +48,14 @@ def _modname (obj):
 def _modopts (mod,opttype='compile'):
   """for the given module, returns a list of compile/runtime options suitable for passing
   to TDLMenu. If the module implements a compile/runtime_options() method, uses that,
-  else simply uses the module itself.""";
+  else steals options from the module itself.""";
   modopts = getattr(mod,opttype+'_options',None);
   # if module defines an xx_options() callable, use that
   if callable(modopts):
     return list(modopts());
   # else if this is a true module, it may have options to be stolen, so insert as is
   elif inspect.ismodule(mod):
-    return [ mod ];
+    return TDLStealOptions(mod,is_runtime=(opttype!='compile'));
   # else item is an object emulating a module, so insert nothing
   else:
     return [];
@@ -150,6 +151,7 @@ class MeqMaker (object):
       self.name       = name;
       self.modules    = modules;
       self.base_node  = None;
+      self.solvable   = False;
 
   class SkyJonesTerm (JonesTerm):
     """SkyJonesTerm represents a sky-Jones term.
@@ -230,9 +232,11 @@ class MeqMaker (object):
           modopts = _modopts(mod,'runtime');
           # add submenu for submodule
           if submod:
-            modopts.append(TDLMenu(subname,_modopts(submod,'runtime')));
-          if nest:
-            self._runtime_options.append(TDLMenu(name,modopts));
+            submodopts = _modopts(submod,'runtime');
+            if submodopts:
+              modopts.append(TDLMenu(subname,*submodopts));
+          if nest and modopts:
+            self._runtime_options.append(TDLMenu(name,*modopts));
           else:
             self._runtime_options += modopts;
     return self._runtime_options;
@@ -316,18 +320,23 @@ class MeqMaker (object):
       name = inspector_node.name.replace('_',' ');
     Meow.Bookmarks.Page(name).add(inspector_node,viewer="Collections Plotter");
 
-  def _get_jones_nodes (self,ns,jt,stations,sources=None):
+  def _get_jones_nodes (self,ns,jt,stations,sources=None,solvable_sources=sets.Set()):
     """Returns the Jones nodes associated with the given JonesTerm ('jt'). If
     the term has been disabled (through compile-time options), returns None.
     'stations' is a list of stations.
     'sources' is a list of source (for sky-Jones only).
+    Return value is tuple of (basenode,solvable). Basenode should be qualified
+    with source (if sky-Jones) and station to obtain the Jones term. Solvable is True
+    if the Jones set is to be treated as potentially solvable.
+    If basenode==None, the given JonesTerm is not implemented and may be omitted from the ME.
     """;
     if jt.base_node is None:
       module = self._get_selected_module(jt.label,jt.modules);
       if not module:
-        return None;
+        return None,False;
       prev_num_solvejobs = ParmGroup.num_solvejobs();  # to keep track of whether module creates its own
       jones_inspectors = [];
+      jt.solvable = False;
       # For sky-Jones terms, see if this module has pointing offsets enabled
       if isinstance(jt,self.SkyJonesTerm):
         dlm = None;
@@ -338,8 +347,9 @@ class MeqMaker (object):
             dlm = ns[jt.label]('dlm');
             inspectors = [];
             dlm = pointing_module.compute_pointings(dlm,stations=stations,tags=jt.label,
-                                                    label=jt.label,
+                                                    label=jt.label+'pe',
                                                     inspectors=inspectors);
+            pointing_solvable = getattr(pointing_module,'solvable',True);
             if inspectors:
               jones_inspectors += inspectors;
             elif dlm:
@@ -354,9 +364,11 @@ class MeqMaker (object):
       Jj = ns[jt.label];    # create name hint for nodes
       inspectors = [];
       jt.base_node = Jj = module.compute_jones(Jj,sources=sources,stations=stations,
-                                          pointing_offsets=dlm,
+                                          pointing_offsets=dlm,solvable_sources=solvable_sources,
                                           tags=jt.label,label=jt.label,
                                           inspectors=inspectors);
+      # ignoring the pointing-solvable attribute for now
+      jt.solvable = getattr(module,'solvable',True);
       # if module does not make its own inspectors, add automatic ones
       if Jj and self.use_jones_inspectors:
         if inspectors:
@@ -378,7 +390,7 @@ class MeqMaker (object):
           #if parms:
             #pg = ParmGroup.ParmGroup(jt.label,parms);
             #ParmGroup.SolveJob("solve_%s"%jt.label,"Solve for %s"%jt.label,pg);
-    return jt.base_node;
+    return jt.base_node,jt.solvable;
 
   def make_predict_tree (self,ns,sources=None):
     """makes predict trees using the sky model and ME.
@@ -407,7 +419,7 @@ class MeqMaker (object):
         # it by that source's sqrt-visibility
         skychain = {};
         for jt in self._sky_jones_list:
-          Jj = self._get_jones_nodes(ns,jt,stations,sources=dec_sources);
+          Jj,solvable = self._get_jones_nodes(ns,jt,stations,sources=dec_sources);
           # if this Jones is enabled (Jj not None), add it to chain of each source
           if Jj:
             for src in dec_sources:
@@ -419,7 +431,7 @@ class MeqMaker (object):
         # now, form up a chain of uv-Jones terms
         uvchain = [];
         for jt in self._uv_jones_list:
-          Jj = self._get_jones_nodes(ns,jt,stations);
+          Jj,solvable = self._get_jones_nodes(ns,jt,stations);
           if Jj:
             uvchain.insert(0,Jj);
         if uvchain:
@@ -471,42 +483,39 @@ class MeqMaker (object):
         if not sources:
           return self._apply_vpm_list(ns,dec_sky);
     
-    # now, proceed to build normal trees for non-decomposable sources
-    # an important optimization when solving for sky terms is to put all the corrupt sources in one patch,
-    # and all the uncorrupted sources in another. 
-    # These two lists will contain the two sets of sources, and will be updated as we apply each
-    # sky Jones in turn
-    uncorrupted_sources = [ (src.name,src) for src in sources ];
-    corrupted_sources = []; 
+    # Now, proceed to build normal trees for non-decomposable sources.
+    # An important optimization when solving for sky terms is to put all the sources containing
+    # solvable corruptions in one patch, and the rest in another 
+    # (this makes optimal use of cache when solving for the corruption).
+    # This list will contain a list of (name,src) tuples, and will be updated as each sky-Jones term is applied
+    sourcelist = [ (src.name,src) for src in sources ];
+    # This set will contain names of sources to which solvable sky-Jones were been applied
+    solvable_skyjones = sets.Set();
 
     # apply all sky Jones terms
     for jt in self._sky_jones_list:
-      Jj = self._get_jones_nodes(ns,jt,stations,sources=sources);
+      Jj,solvable = self._get_jones_nodes(ns,jt,stations,sources=sources,solvable_sources=solvable_skyjones);
       # if this Jones is enabled (Jj not None), corrupt each source
       if Jj:
-        corr_sources = [];
-        uncorr_sources = [];
-        for name,src in uncorrupted_sources:
+        newlist = [];
+        # go through sourcs, and make new list of corrupted sources.
+        # note that not every source is necessarily corrupted
+        # print jt.label,solvable,len(solvable_skyjones);
+        for name,src in sourcelist:
           jones = Jj(name);
           # if Jones term is initialized, corrupt and append to corr_sources
           # if not initialized, then append to uncorr_sources 
           if jones(stations[0]).initialized():
-            corr_sources.append((name,src.corrupt(jones)));
-          else:
-            uncorr_sources.append((name,src));
-        for name,src in corrupted_sources:
-          jones = Jj(name);
-          # if Jones term is initialized, corrupt and append to corr_sources
-          # if not initialized, then append to corr_sources anyway, since we're already corrupted
-          if jones(stations[0]).initialized():
             src = src.corrupt(jones);
-          corr_sources.append((name,src));
-        uncorrupted_sources = uncorr_sources;
-        corrupted_sources = corr_sources;
-    # discard name component from list
-    corrupted_sources = map(lambda a:a[1],corrupted_sources);
-    uncorrupted_sources = map(lambda a:a[1],uncorrupted_sources);
-    # if solvable, make two patches
+            if solvable:
+              solvable_skyjones.add(name);
+          newlist.append((name,src));
+        # update list
+        sourcelist = newlist;
+    # now make two separate lists of sources with solvable corruptions, and sources without
+    corrupted_sources = [ src for name,src in sourcelist if name in solvable_skyjones ];
+    uncorrupted_sources = [ src for name,src in sourcelist if name not in solvable_skyjones ];     
+    # if we're solvable, and both lists are populated, make two patches
     if self._solvable and corrupted_sources and uncorrupted_sources:
       sky_sources = [
         Meow.Patch(ns,'sky-c',Meow.Context.observation.phase_centre,components=corrupted_sources),
@@ -524,7 +533,7 @@ class MeqMaker (object):
 
     # add uv-plane effects
     for jt in self._uv_jones_list:
-      Jj = self._get_jones_nodes(ns,jt,stations);
+      Jj,solvable = self._get_jones_nodes(ns,jt,stations);
       if Jj:
         allsky = allsky.corrupt(Jj);
 
@@ -598,7 +607,7 @@ class MeqMaker (object):
           for p in stations:
             correction_chains[p].insert(0,skyjones(p));
         else:
-          Jj = self._get_jones_nodes(ns,jt,stations,sources=[sky_correct]);
+          Jj,solvable = self._get_jones_nodes(ns,jt,stations,sources=[sky_correct]);
           if Jj:
             Jj = Jj(sky_correct);
             for p in stations:
@@ -612,7 +621,7 @@ class MeqMaker (object):
         correction_chains[p].insert(0,ns.uvjones(p));
     else:
       for jt in self._uv_jones_list:
-        Jj = self._get_jones_nodes(ns,jt,stations);
+        Jj,solvable = self._get_jones_nodes(ns,jt,stations);
         if Jj:
           for p in stations:
             correction_chains[p].insert(0,Jj(p));

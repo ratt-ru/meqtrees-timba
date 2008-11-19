@@ -23,6 +23,9 @@ img_chanstep := 1;
 wprojplanes := 0;
 padding := 1.0;
 fitsname := '';
+filter_bmaj := '';
+filter_bmin := '';
+filter_bpa := '';
 
 # parse command line
 for( a in argv )
@@ -60,6 +63,12 @@ for( a in argv )
     wprojplanes := as_integer(a);
   else if( a =~ s/^padding=// )
     padding := as_float(a);
+  else if( a =~ s/^filter_bmaj=// )
+    filter_bmaj := a;
+  else if( a =~ s/^filter_bmin=// )
+    filter_bmin := a;
+  else if( a =~ s/^filter_bpa=// )
+    filter_bpa := a;
   else if( a =~ s/^chanmode=// )
     chanmode := a;
   else if( a =~ s/^nchan=// )
@@ -101,6 +110,9 @@ myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell,
 
 if( weighting != 'default' )
   myimager.weight(weighting); 
+  
+if( filter_bmaj != '' )
+  myimager.filter('gaussian',filter_bmaj,filter_bmin,filter_bpa);
   
 if( wprojplanes > 0 )
   myimager.setoptions(ftmachine='wproject', wprojplanes=wprojplanes,cache=500000000,padding=padding);

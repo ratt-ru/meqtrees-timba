@@ -30,6 +30,14 @@ import Jones
 import Context
 from math import cos,sin,sqrt
 
+def radec_to_lmn (ra,dec,ra0,dec0):
+  """Returns l,m,n corresponding to direction ra,dec w.r.t. direction ra0,dec0""";
+  l = cos(dec) * sin(ra-ra0);
+  m = sin(dec) * cos(dec0) - cos(dec) * sin(dec0) * cos(ra-ra0);
+  n = sqrt(1 - l*l - m*m );
+  return l,m,n;
+
+
 class Direction (Parameterization):
   """A Direction represents an absolute direction on the sky, in ra,dec (radians).
   'name' may be None, this usually identifies the phase centre.
@@ -95,10 +103,7 @@ class Direction (Parameterization):
     lmn = self.static_lmn.get((ra0,dec0),None);
     if lmn is None:
       ra,dec = self.radec_static();
-      l = cos(dec) * sin(ra-ra0);
-      m = sin(dec) * cos(dec0) - cos(dec) * sin(dec0) * cos(ra-ra0);
-      n = sqrt(1 - l*l - m*m );
-      lmn = self.static_lmn[(ra0,dec0)] = l,m,n;
+      lmn = self.static_lmn[(ra0,dec0)] = radec_to_lmn(ra,dec,ra0,dec0);
     return lmn;
     
   def _lmn_component (self,name,dir0,index):
