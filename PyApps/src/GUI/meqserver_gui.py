@@ -1038,6 +1038,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   def closeEvent (self,event):
     if self._verify_quit():
       event.accept();
+      if self._purr:
+        self._purr.detachDirectory();
       mainapp().quit();
     else:
       event.ignore();
