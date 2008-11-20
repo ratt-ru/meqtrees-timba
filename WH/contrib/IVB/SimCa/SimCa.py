@@ -5,23 +5,22 @@ from Meow import Context
 from Meow import ParmGroup,Bookmarks
 from Meow import MeqMaker
 
+Settings.forest_state.cache_policy = 100
+
 # import the virtual sky models and LSM module
 import Meow.LSM
 #from Timba.Contrib.IVB.MimModule import gridded_sky_ivb
 #@Leiden:
 import gridded_sky_ivb
-#import central_point_source
-#from Timba.Contrib.OMS.Siamese import gridded_sky
 
 # import the modules for Jones matrices
-#from Timba.Contrib.OMS.Calico import solvable_jones
-#@Leiden:
-import solvable_jones;
+#### latest MeqTree version: 
+## All of Oleg's frameworks have moved to Timba.FW
+## call them directly with only framework name
+from Calico import solvable_jones;
 from Timba.Contrib.MXM.MimModule import solvable_sky_jones;
-#from Timba.Contrib.IVB.KolMIM import ZJones_ivb
-#@Leiden:
 import ZJones_ivb
-from Timba.Contrib.OMS.Siamese import oms_gain_models
+from Siamese import oms_gain_models
 
 Settings.forest_state.cache_policy = 0;
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=[1,10,50],flags=False);
