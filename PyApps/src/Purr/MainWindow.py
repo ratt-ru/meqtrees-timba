@@ -328,14 +328,17 @@ class MainWindow (QMainWindow):
     # no purrer found, make a new one
     else:
       dprint(1,"creating new Purrer object");
-      purrer = Purr.Purrer(dirname,watchdirs or (dirname,));
-      # check that we could attach, display message if not
-      if not purrer.attached:
+      try:
+        purrer = Purr.Purrer(dirname,watchdirs or (dirname,));
+      except Purr.Purrer.LockedError,err:
+        # check that we could attach, display message if not
         QMessageBox.warning(self,"Catfight!","""<P><NOBR>It appears that another PURR process (%s)</NOBR>
           is already attached to <tt>%s</tt>, so we're not allowed to touch it. You should exit the other PURR
-          process first.</P>
-          <P>If no other PURR is running, then it may be that a previous PURR did not exit cleanly and left a lock file behind. In this case you must remove the following file manually:</P>
-          <P><tt>%s</tt></P>"""%(purrer.other_lock,os.path.abspath(dirname),purrer.lockfile),QMessageBox.Ok);
+          process first.</P>"""%(err.args[0],os.path.abspath(dirname)),QMessageBox.Ok);
+        return False;
+      except Purr.Purrer.LockFailError,err:
+        QMessageBox.warning(self,"Failed to lock directory","""<P><NOBR>PURR was unable to obtain a lock</NOBR>
+          on directory <tt>%s</tt> (error was "%s"). The most likely cause is insufficient permissions.</P>"""%(os.path.abspath(dirname),err.args[0]),QMessageBox.Ok);
         return False;
       self.purrer_stack.insert(0,purrer);
       # discard end of stack

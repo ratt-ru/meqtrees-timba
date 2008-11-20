@@ -14,6 +14,7 @@ import traceback
 import fnmatch
 import sets
 import signal
+import fcntl
 
 import Purr
 import Purr.Parsers
@@ -274,18 +275,33 @@ class Purrer (object):
     # attach to directories
     self.attached = False;    # will be True when we successfully attach
     self.other_lock = None;   # will be not None if another PURR holds a lock on this directory
+    self.lockfile_fd = None;
+    self.lockfile_fobj = None;
     self._attach(dirname,watchdirs);
     
   def __del__ (self):
     self.detach();
     
   def detach (self):
-    if self.attached:
+    if self.lockfile_fobj:
       try:
-        os.remove(self.lockfile);
+        self.lockfile_fobj.close();
+        self.lockfile_fd = None;
       except:
         pass;
-      self.attached = False;
+    if self.lockfile_fd:
+      try:
+        os.close(self.lockfile_fd);
+        self.lockfile_fd = None;
+      except:
+        pass;
+    self.attached = False;
+      
+  class LockedError (RuntimeError):
+    pass;
+  
+  class LockFailError (RuntimeError):
+    pass;
     
   def _attach (self,dirname,watchdirs=None):
     """Attaches Purr to a directory (typically, an MS), and loads content.
@@ -304,25 +320,31 @@ class Purrer (object):
     self.entries = [];
     self._default_dp_props = {};
     self.watchers = {};
+    self.attached = False;
     # check that we hold a lock on the directory
     self.lockfile = os.path.join(self.dirname,".purrlock");
+    # try to open lock file for r/w
     try:
-      other_lock = file(self.lockfile).read();
+      self.lockfile_fd = os.open(self.lockfile,os.O_RDWR);
     except:
-      other_lock = None;
+      raise Purrer.LockFailError("failed to open lock file %s for writing"%self.lockfile);
+    # try to acquire lock on the lock file
+    try:
+      fcntl.lockf(self.lockfile_fd,fcntl.LOCK_EX|fcntl.LOCK_NB);
+    except:
+      other_lock = os.fdopen(self.lockfile_fd,'r').read();
+      self.lockfile_fd = None;
+      raise Purrer.LockedError(other_lock);
+    # got lock, write our ID to the lock file
     global _lockstring;
-    if other_lock:
-      if other_lock != _lockstring:
-        dprint(1,"not attaching to %s: lock held by %s"%(self.dirname,other_lock));
-        self.other_lock = other_lock;
-        self.attached = False;
-        return False;
-    # no lock, write our own
-    else:
-      try:
-        file(self.lockfile,'w').write(_lockstring);
-      except:
-        pass;
+    try:
+      self.lockfile_fobj = os.fdopen(self.lockfile_fd,'w');
+      self.lockfile_fobj.write(_lockstring);
+      self.lockfile_fobj.flush();
+      os.fsync(self.lockfile_fd);
+    except:
+      raise;
+#      raise Purrer.LockFailError("cannot write to lock file %s"%self.lockfile);
     # load log state if log directory already exists
     if os.path.exists(self.logdir):
       _busy = Purr.BusyIndicator();
