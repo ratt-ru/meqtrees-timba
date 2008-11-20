@@ -59,7 +59,7 @@ class ParmClump(Clump.LeafClump):
    Derived class
    """
 
-   def __init__(self, clump=None, **kwargs):
+   def __init__(self, clump=None, default=0.0, **kwargs):
       """
       Derived from class LeafClump.
       """
@@ -67,7 +67,7 @@ class ParmClump(Clump.LeafClump):
       ## kwargs['fixture'] = True              # A ParmClump is always selected
 
       rr = dict() 
-      rr['default'] = kwargs.get('default', 0.0)
+      rr['default'] = default
       rr['use_previous'] = kwargs.get('use_previous', True)
       rr['table_name'] = kwargs.get('table_name', None) 
       rr['node_groups'] = 'Parm'
@@ -139,7 +139,8 @@ class ParmClump(Clump.LeafClump):
             self._nodes.append(node)
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
-         self._ParmClumps = [self]
+         # self._ParmClumps = [self]
+         self.ParmClumps(append=self)
 
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
@@ -198,14 +199,13 @@ class ParmClump(Clump.LeafClump):
       return self.on_exit(ctrl, result=solvable)
 
 
-   #============================================================================
 
    
 
 #********************************************************************************
 #********************************************************************************
 #********************************************************************************
-# Derived class ListClump:
+# Derived class ParmListClump:
 #********************************************************************************
 
 class ParmListClump(Clump.ListClump, ParmClump):
@@ -238,9 +238,29 @@ class ParmListClump(Clump.ListClump, ParmClump):
       if len(parms)==0:
          self.ERROR('** no MeqParms found')
       else:
-         self._ParmClumps = [self]
+         # self._ParmClumps = [self]
+         self.ParmClumps(append=self)
 
       # self.history('Created from list of nodes', show_node=True)
+      return None
+
+
+#********************************************************************************
+#********************************************************************************
+#********************************************************************************
+# Derived class PolyParm:
+#********************************************************************************
+
+class PolyParm(ParmClump):
+   """
+   Contains the coefficients of a 1D polynomial c0 + c1*x + c2*x*x + ....
+   """
+
+   def __init__(self, nodelist=None, **kwargs):
+      """
+      Derived from clas ParmClump.
+      """
+      Clump.ParmClump.__init__(self, nodelist, **kwargs)
       return None
 
 
@@ -260,12 +280,27 @@ def do_define_forest (ns, TCM):
    submenu = TCM.start_of_submenu(do_define_forest,
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
+   TCM.add_option('test_class',['ParmClump','ParmListClump','PolyParm'],
+                                prompt='class to be tested:')
    clump = None
    if TCM.submenu_is_selected():
-      clump = ParmClump(ns=ns, TCM=TCM,
-                        name='GgainY', default=2.3,
-                        treequals=range(10)+list('ABCD'),         # WSRT
-                        select=True)
+      jones = TCM.getopt('test_class', submenu)
+
+      if test_class=='PolyParm':
+         pass
+      elif test_class=='ParmListClump':
+         cc = []
+         for i in range(4):
+            node = ns.ddd(i) << Meq.Parm(i)
+            cc.append(node)
+         clump = ParmListClump(cc, ns=ns, name='polyparm', trace=True)
+      else:
+         clump = ParmClump(ns=ns, TCM=TCM,
+                           name='GgainY', default=2.3,
+                           treequals=range(10)+list('ABCD'),         # WSRT
+                           tdeg=4, fdeg=[4,5],                       # override
+                           select=True)
+
       solvable = clump.solspec(select=True)
                         # tdeg=2,                                   # override
       print '\n** solvable =',solvable,'\n'
@@ -312,8 +347,9 @@ if __name__ == '__main__':
       clump = ParmClump(treequals=tqs,
                         # ns=ns, TCM=TCM,
                         name='GgainX',
-                        single=True,
                         default=1.0,
+                        # single=True,
+                        tdeg=4, fdeg=[4,5],                       # override
                         trace=True)
 
    #--------------------------------------------------------
@@ -325,9 +361,12 @@ if __name__ == '__main__':
       clump1 = ParmClump(clump, name='other')
       clump1.show('clump1')
 
-   if 0:
+   if 1:
       solvable = clump.solspec()
-      print '-> solvable =',solvable
+      print '-> solvable:'
+      for i,node in enumerate(solvable):
+         print '-',i,':',str(node)
+      print
       clump.show('after solspec()')
 
    if 0:

@@ -290,6 +290,8 @@ class SolverUnit(Clump.Clump):
       else:
          if nc==1:
             node = stub('condeq') << Meq.Identity(condeqs[0])
+         elif True:
+            node = self.plot_summary (nodelist=condeqs)
          else:
             node = stub('condeqs') << Meq.Composer(*condeqs)
             cc = []

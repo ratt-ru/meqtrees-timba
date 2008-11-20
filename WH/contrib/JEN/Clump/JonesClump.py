@@ -111,16 +111,17 @@ class JonesClump(Clump.LeafClump):
 
    #--------------------------------------------------------------------------
 
-   def ParmClump(self, name, default=0.0, single=False, trace=False):
+   def ParmClump(self, name, default=0.0, **kwargs):
       """Helper function to create a ParmClump in an organised way.
       If single=True, make a ParmClump with only one MeqParm.
       Otherwise, there will be one for each station.
       """
       clump = ParmClump.ParmClump(self, name=name,
                                   default=default,
-                                  single=single,
-                                  hide=True,
-                                  **self._MeqParm_parms)
+                                  **kwargs)
+                                  # single=single,
+                                  # hide=True,
+                                  # **self._MeqParm_parms)
       # Connect all the loose ends:
       self.connect_grafted_clump(clump)
       return clump
@@ -134,13 +135,68 @@ class JonesClump(Clump.LeafClump):
       """
       This is an example of how to fill a JonesClump with 2x2 matrices.
       To be re-implemented in derived classes (e.g. see WSRTJones.py,
-      or the XXXJones class below). 
-      NB: This particular example is used as a basis for diagonal Jones
-      matrices like GJones and BJones, so do not change it!
-      
+      or the XXXJones, GJones, BJones classes below). 
       """
       prompt = 'Jones: '+self._name
       help = 'define Jones matrix: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
+
+      if self.execute_body():
+
+         # Create ParmClumps:
+         r00 = self.ParmClump('real00', default=1.0)
+         i00 = self.ParmClump('imag00', default=0.0)
+         r10 = self.ParmClump('real10', default=1.0)
+         i10 = self.ParmClump('imag10', default=0.0)
+         r01 = self.ParmClump('real01', default=1.0)
+         i01 = self.ParmClump('imag01', default=0.0)
+         r11 = self.ParmClump('real11', default=1.0)
+         i11 = self.ParmClump('imag11', default=0.0)
+
+         # Generate nodes:
+         self._nodes = []
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self._nodequals):
+            elem00 = stub(qual)('00') << Meq.ToComplex(r00[i],i00[i])
+            elem01 = stub(qual)('10') << Meq.ToComplex(r01[i],i01[i])
+            elem10 = stub(qual)('01') << Meq.ToComplex(r01[i],i01[i])
+            elem11 = stub(qual)('11') << Meq.ToComplex(r11[i],i11[i])
+            node = stub(qual) << Meq.Matrix22(elem00, elem01,
+                                              elem10, elem11)
+            self._nodes.append(node)
+
+         self.end_of_body(ctrl)
+      return self.on_exit(ctrl)
+
+
+
+#********************************************************************************
+# GJones (electronic gain):
+#********************************************************************************
+
+class GJones(JonesClump):
+   """
+   Derived class from JonesClump.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class LeafClump.
+      """
+      JonesClump.__init__(self, clump=clump, **kwargs)
+      return None
+
+
+   #==========================================================================
+
+   def initexec (self, **kwargs):
+      """
+      GJones represents electronic gain. It is a uv-plane effect.
+      Rather generic, so most telescopes just reuse this class
+      (e.g. see WSRTJones.py).
+      """
+      prompt = 'GJones: '+self._name
+      help = 'define GJones matrix: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
       # Menu option(s) (the menu itself is generated in .on_entry()):
@@ -183,7 +239,83 @@ class JonesClump(Clump.LeafClump):
       return self.on_exit(ctrl)
 
 
+#********************************************************************************
+# BJones (electronic bandpass):
+#********************************************************************************
 
+class BJones(JonesClump):
+   """
+   Derived class from JonesClump.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class JonesClump.
+      """
+      JonesClump.__init__(self, clump=clump, **kwargs)
+      return None
+
+
+   #==========================================================================
+
+   def initexec (self, **kwargs):
+      """
+      GJones represents electronic bandpass. It is a uv-plane effect.
+      Rather generic, so most telescopes just reuse this class
+      (e.g. see WSRTJones.py).
+      """
+      prompt = 'BJones: '+self._name
+      help = 'define BJones matrix: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
+
+      # Menu option(s) (the menu itself is generated in .on_entry()):
+      self.add_option('mode',['amphas','realimag'])
+
+      if self.execute_body():
+         mode = self.getopt('mode')
+
+         pp = dict(nfreq_subtile=[1,2],
+                   ntime_subtile=[None],
+                   fdeg=0,
+                   tdeg=[1,2])
+
+         # Create ParmClumps:
+         if mode=='amphas':
+            gerrX = self.ParmClump('gerrX', default=1.0, **pp)
+            perrX = self.ParmClump('perrX', default=0.0, **pp)
+            gerrY = self.ParmClump('gerrY', default=1.0, **pp)
+            perrY = self.ParmClump('perrY', default=0.0, **pp)
+         elif mode=='realimag':
+            rerrX = self.ParmClump('rerrX', default=1.0, **pp)
+            ierrX = self.ParmClump('ierrX', default=0.0, **pp)
+            rerrY = self.ParmClump('rerrY', default=1.0, **pp)
+            ierrY = self.ParmClump('ierrY', default=0.0, **pp)
+
+         # Generate nodes:
+         self._nodes = []
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self._nodequals):
+            elem00 = complex(1,0)
+            elem01 = complex(0,0)
+            elem10 = complex(0,0)
+            elem11 = complex(1,0)
+            if mode=='amphas':                
+               elem00 = stub(qual)('00') << Meq.Polar(gerrX[i],perrX[i])
+               elem11 = stub(qual)('11') << Meq.Polar(gerrY[i],perrY[i])
+            elif mode=='realimag':
+               elem00 = stub(qual)('00') << Meq.ToComplex(rerrX[i],ierrX[i])
+               elem11 = stub(qual)('11') << Meq.ToComplex(rerrY[i],ierrY[i])
+            node = stub(qual) << Meq.Matrix22(elem00, elem01,
+                                              elem10, elem11)
+            self._nodes.append(node)
+
+         self.end_of_body(ctrl)
+      return self.on_exit(ctrl)
+
+
+
+#********************************************************************************
+#********************************************************************************
 #********************************************************************************
 # JonesClump.XXXJones is a multiplication of Jones Clumps
 #********************************************************************************
@@ -311,10 +443,12 @@ class XXXJones(JonesClump):
          for jones in notsel:
             # print '- not selected:',jones.oneliner()
             jones.connect_loose_ends (self, full=False)
-            
 
+      # Finished:
       return True
       
+
+
 
 
 #********************************************************************************
@@ -332,15 +466,20 @@ def do_define_forest (ns, TCM):
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
    TCM.add_option('jones',
-                  ['XXXJones','JonesClump'],
+                  ['XXXJones','JonesClump',
+                   'GJones','BJones'],
                   prompt='test WSRT Jones:')
    clump = None
    if TCM.submenu_is_selected():
       jones = TCM.getopt('jones', submenu)
-      if jones=='JonesClump':
-         clump = JonesClump(ns=ns, TCM=TCM)
+      if jones=='GJones':
+         clump = GJones(ns=ns, TCM=TCM)
+      elif jones=='BJones':
+         clump = BJones(ns=ns, TCM=TCM)
       elif jones=='XXXJones':
          clump = XXXJones(ns=ns, TCM=TCM)
+      else:
+         clump = JonesClump(ns=ns, TCM=TCM)
          
       # clump = CorruptClump.Scatter(clump).daisy_chain()
       clump.visualize()

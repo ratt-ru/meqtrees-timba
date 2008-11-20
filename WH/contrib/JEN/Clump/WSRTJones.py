@@ -111,7 +111,7 @@ class GJones(JonesClump.JonesClump):
       kwargs['name'] = 'GJones'
       kwargs['qual'] = 'WSRT'
       kwargs['polrep'] = None
-      JonesClump.JonesClump.__init__(self, clump=clump, **kwargs)
+      JonesClump.GJones.__init__(self, clump=clump, **kwargs)
       return None
 
 
@@ -130,7 +130,7 @@ class BJones(JonesClump.JonesClump):
       kwargs['name'] = 'BJones'
       kwargs['qual'] = 'WSRT'
       kwargs['polrep'] = None
-      JonesClump.JonesClump.__init__(self, clump=clump, **kwargs)
+      JonesClump.BJones.__init__(self, clump=clump, **kwargs)
       return None
 
 
@@ -204,12 +204,17 @@ class FJones(JonesClump.JonesClump):
       return self.on_exit(ctrl)
 
 
+
+
+
+#*****************************************************************************      
+#*****************************************************************************      
 #*****************************************************************************      
 #*****************************************************************************      
 
 class XJones(JonesClump.JonesClump):
    """
-   Derived class
+   Derived class 
    """
 
    def __init__(self, clump=None, **kwargs):
@@ -295,7 +300,7 @@ def do_define_forest (ns, TCM):
 
    TCM.add_option('jones',
                   ['WSRTJones',
-                   'RJones','EJones','FJones',
+                   'RJones','EJones','ZJones',
                    'GJones','BJones','FJones'],
                   prompt='test WSRT Jones:')
    clump = None

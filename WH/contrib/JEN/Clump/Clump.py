@@ -61,6 +61,7 @@ from Timba.Contrib.JEN.util import JEN_bookmarks
 import math                 # support math.cos() etc
 import numpy                # support numpy.prod() etc
 import random               # e.g. random.gauss()
+import copy
 
 clump_counter = -1          # used in Clump.__init__()
 
@@ -550,7 +551,7 @@ class Clump (object):
                                        
       #.....................................................
       ss += '\n * self._ParmClumps (n='+str(len(self._ParmClumps))+'):'
-      for i,pc in enumerate(self._ParmClumps):
+      for i,pc in enumerate(self.ParmClumps()):
          ss += '\n   - '+str(pc.oneliner())
 
       #.....................................................
@@ -844,6 +845,17 @@ class Clump (object):
       In the future it might be useful to put some extra features here...
       """
       self._override_keys.append(relkey)          # see .execute_body()
+      if True:
+         # The option choice may be overridden via the input kwargs:
+         if self._input_kwargs.has_key(relkey):
+            v = self._input_kwargs[relkey]
+            was = copy.copy(choice)
+            if isinstance(v,list):                # e.g. [2,3]
+               choice = v                         # replace choice
+               kwargs['more'] = None              # do not allow other values 
+            else:                                 # e.g. 2
+               choice.insert(0,v)                 # make it the default
+            print '\n** add_option(',relkey+'):',was,'->',choice,'\n'
       return self._TCM.add_option(relkey, choice, **kwargs)
 
    #--------------------------------------------------------------------------
@@ -1072,11 +1084,12 @@ class Clump (object):
    #---------------------------------------------------------------------
 
    def get_nodelist(self, subset='*',
-                    # unops=None,
+                    unops=None, 
                     append=None, prepend=None,
                     nodelist=None, trace=False):
       """Helper function to get a list (copy) of (a subset of) its nodes.
       If nodelist is supplied, use that instead (multi-purpos function).
+      If unops is specified, apply one or more unary operations.
       If append or prepend are nodes, append/prepend them to the list.
       """
       cc = []
@@ -1090,6 +1103,11 @@ class Clump (object):
          for i in ii:
             cc.append(self[i])
 
+      if unops:
+         # Optionally, apply one or more unary operations:
+         cc = self.apply_unops (unops, nodelist=cc, replace=False)
+
+      # Optionally, append/prepend nodes:
       if is_node(append):
          cc.append(append)
       if isinstance(append,list):
@@ -1141,7 +1159,7 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
-   def bundle (self, **kwargs):
+   def bundle (self, nodelist=None, **kwargs):
       """Return a single node that bundles the Clump nodes, using the
       specified combining node (default: combine='Composer').
       The internal state of the object is not changed.
@@ -1153,7 +1171,7 @@ class Clump (object):
       stub = self.unique_nodestub(name)
       qual = 'n='+str(self.size())
       if not self._composed:
-         cc = self._nodes
+         cc = self.get_nodelist(nodelist=nodelist)
          if wgt:
             node = stub(qual) << getattr(Meq,combine)(children=cc,
                                                       weights=wgt)
@@ -1220,11 +1238,7 @@ class Clump (object):
                       trace=kwargs.get('trace',False))
       return self._nodes
 
-   #-------------------------------------------------------------------------
 
-   #-------------------------------------------------------------------------
-
-   #-------------------------------------------------------------------------
 
    #=========================================================================
    # Solver support functions:
@@ -1247,11 +1261,27 @@ class Clump (object):
 
    #-------------------------------------------------------------------------
 
+   def ParmClumps(self, append=None, trace=False):
+      """Access to the internal list of ParmClumps
+      """
+      if isinstance(append,list):
+         self._ParmClumps.extend(append)
+      elif append:
+         self._ParmClumps.append(append)
+      if trace:
+         print '\n** ParmClumps'+len(self._ParmClumps)+':'+self.oneliner()
+         for i,pc in enumerate(self._ParmClumps):
+            print '-',i,':',str(pc)
+         print
+      return self._ParmClumps
+
+   #-------------------------------------------------------------------------
+
    def get_solvable(self, trace=False):
       """Get all the solvable parameters from the entries of self._ParmClumps.
       """
       solvable = []
-      for pc in self._ParmClumps:
+      for pc in self.ParmClumps():
          ss = pc.solspec(select=True)
          solvable.extend(ss)
          s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
@@ -1260,13 +1290,18 @@ class Clump (object):
 
       if len(solvable)==0:
          self.WARNING('No solvable MeqParms specified! (using defaults)')
-         ss = self._ParmClumps[0].solspec(always=True)
+         ss = self.ParmClumps()[0].solspec(always=True)
          solvable = ss
          s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
          s += '(default!) solvable MeqParms from: '+pc.oneliner()
          self.history(s)
          
       # Return list of solvable MeqParms:
+      if trace:
+         print '\n** .solvable():'
+         for i,node in enumerate(solvable):
+            print '-',i,':',str(node)
+         print
       return solvable   
 
    #=========================================================================
@@ -1458,30 +1493,6 @@ class Clump (object):
       return help
 
 
-   #=====================================================================
-   #=====================================================================
-         
-   def compare (self, clump, **kwargs):
-      """
-      Compare (Subtract, Divide) its nodes with the corresponding
-      nodes of another Clump. Return a new Clump object with the result.
-      """
-      kwargs['select'] = True
-      binop = kwargs.get('binop','Subtract')
-      prompt = '.compare('+binop+')'
-      help = clump.oneliner()
-      ctrl = self.on_entry(self.compare, prompt, help, **kwargs)
-
-      new = None
-      if self.execute_body():
-         # if not self.commesurate(clump):
-         new = self.copy()                                    # <-----!!
-         new.apply_binop(binop, clump, replace=False)              # <-----!!
-         self._orphans.extend(new._orphans)                   # <---- !!
-         # self.sumabs()
-         self.end_of_body(ctrl)
-
-      return self.on_exit(ctrl, result=new)
 
    #=====================================================================
    # Visualization:
@@ -1503,7 +1514,6 @@ class Clump (object):
          self.inspector(**kwargs)
          self.plot_node_results(**kwargs)
          self.plot_node_family(**kwargs)
-         self.plot_node_bundle(**kwargs)
          self.plot_summary(**kwargs)
          self.end_of_body(ctrl)
          
@@ -1511,7 +1521,7 @@ class Clump (object):
 
    #---------------------------------------------------------------------
 
-   def inspector (self, **kwargs):
+   def inspector (self, nodelist=None, **kwargs):
       """Make an inspector node for its nodes, and make a bookmark.
       """
       kwargs['select'] = True
@@ -1522,21 +1532,23 @@ class Clump (object):
       help = 'make an inspector-plot (Collections Plotter) of the tree nodes'
       ctrl = self.on_entry(self.inspector, prompt, help, **kwargs)
 
+      node = self[0]
       if self.execute_body(hist=False):
-         bundle = self.bundle(name='inspector')
-         bundle.initrec().plot_label = self._datadesc['treelabels']     # list of strings!
-         self._orphans.append(bundle)
-         self.make_bookmark(bundle,
+         cc = self.get_nodelist(nodelist=nodelist)
+         node = self.bundle(name='inspector', nodelist=cc)
+         node.initrec().plot_label = self._datadesc['treelabels']     # list of strings!
+         self._orphans.append(node)
+         self.make_bookmark(node,
                             name=bookpage, folder=folder,
                             viewer='Collections Plotter')
          self.end_of_body(ctrl)
          
-      return self.on_exit(ctrl)
+      return self.on_exit(ctrl, result=node)
 
 
    #---------------------------------------------------------------------
 
-   def plot_summary (self, **kwargs):
+   def plot_summary (self, nodelist=None, **kwargs):
       """Plot a summary of its nodes
       """
       kwargs['select'] = True
@@ -1545,6 +1557,7 @@ class Clump (object):
       help = 'make a summary plot of the tree nodes'
       ctrl = self.on_entry(self.plot_summary, prompt, help, **kwargs)
 
+      node = self[0]
       if self.execute_body(hist=False):
          bookpage = kwargs.get('bookpage', None)
          folder = kwargs.get('folder', None)
@@ -1552,37 +1565,42 @@ class Clump (object):
          if not isinstance(name,str):
             name = 'summary'
 
-         node = self[0]
-         if self.size()>1:
-            cc = self.apply_unops('Abs', replace=False)
-            stub = self.unique_nodestub()
-            sumabs = stub('sumabs') << Meq.Add(*cc)
-            cc = self.get_nodelist(prepend=sumabs)
-            node = stub(name) << Meq.Composer(*cc)
-            self.make_bookmark(node, name=bookpage, folder=folder)
+         unops = ['Stripper','Abs']
+         cc = self.get_nodelist(nodelist=nodelist, unops=unops)
+         stub = self.unique_nodestub()
+         sumabs = stub('sumabs') << Meq.Add(*cc)
+         cc = self.get_nodelist(prepend=sumabs)
+         node = stub(name) << Meq.Composer(*cc)
+         self._orphans.append(node)
+         self.make_bookmark(node, name=bookpage, folder=folder)
          self.end_of_body(ctrl)
          
-      return self.on_exit(ctrl)
+      return self.on_exit(ctrl, result=node)
+
 
    #---------------------------------------------------------------------
-
-   def plot_node_bundle (self, **kwargs):
-      """Make a plot for the bundle (Composer) of its nodes, and make a bookmark.
-      """
-      bookpage = kwargs.get('bookpage', None)
-      folder = kwargs.get('folder', None)
-
-      prompt = '.plot_node_bundle()'
-      help = 'plot the bundle (MeqComposer) of all tree nodes'
-      ctrl = self.on_entry(self.plot_node_bundle, prompt, help, **kwargs)
-
-      if self.execute_body(hist=False):
-         bundle = self.bundle()
-         self._orphans.append(bundle)
-         self.make_bookmark(bundle, name=bookpage, folder=folder)
-         self.end_of_body(ctrl)
          
-      return self.on_exit(ctrl)
+   def compare (self, clump, **kwargs):
+      """
+      Compare (Subtract, Divide) its nodes with the corresponding
+      nodes of another Clump, or list of nodes, or list of numbers.
+      Make a plot_summary() plot.
+      Return the list of resulting nodes.
+      """
+      kwargs['select'] = True
+      binop = kwargs.get('binop','Subtract')
+      prompt = '.compare('+binop+')'
+      help = clump.oneliner()
+      ctrl = self.on_entry(self.compare, prompt, help, **kwargs)
+
+      node = self[0]
+      if self.execute_body():
+         cc = self.apply_binop(binop, clump, replace=False)
+         node = self.plot_summary(nodelist=cc)
+         self._orphans.append(node)              
+         self.end_of_body(ctrl)
+
+      return self.on_exit(ctrl, result=node)
 
    #---------------------------------------------------------------------
 
@@ -1953,7 +1971,7 @@ if __name__ == '__main__':
       # clump.apply_unops()                       # error
       print '-> cc=',len(cc),' cc[0]: ',str(cc[0])
 
-   if 1:
+   if 0:
       clump.apply_binop('Add', math.pi)
       clump.apply_binop('Add', clump)
       clump.apply_binop('Add', ns<<3.4)
@@ -1985,6 +2003,16 @@ if __name__ == '__main__':
       print '->',str(node)
 
    if 0:
+      node = clump.plot_summary()
+      clump.show('.plot_summary()')
+      print '->',str(node)
+
+   if 1:
+      node = clump.compare(clump)
+      clump.show('.compare(itself)')
+      print '->',str(node)
+
+   if 0:
       node = clump.rootnode() 
       clump.show('.rootnode()')
       print '->',str(node)
@@ -2003,6 +2031,22 @@ if __name__ == '__main__':
    #-------------------------------------------------------------------
    # Some lower-level tests:
    #-------------------------------------------------------------------
+
+   if 0:
+      ss = dir(clump)
+      print ss
+      for s in ss:
+         a = getattr(clump,s,None)
+         if not isinstance(s,str):
+            print '-',s,type(a)
+         elif s[0]=='_':
+            if s[1]=='_':
+               print '*',s
+            else:
+               print '-',s,type(a)
+         else:
+            print '-',s
+         
 
    if 0:
       print getattr(clump,'oneline',None)

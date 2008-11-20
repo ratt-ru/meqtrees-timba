@@ -170,7 +170,8 @@ class Polynomial(Clump.LeafClump):
          plc = ParmClump.ParmListClump(parms,
                                        ns=self._ns, TCM=self._TCM,
                                        name='PolyParm')
-         self._ParmClumps = [plc]
+         # self._ParmClumps = [plc]
+         self.ParmClumps(append=plc)
          plc.connect_loose_ends(self)
 
          self.visualize()
