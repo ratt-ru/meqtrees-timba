@@ -90,14 +90,14 @@ class Twig(Clump.LeafClump):
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
          twig = self.getopt('twig')
-         # dd = self.datadesc(treequals=[twig]),
-         dd = self.datadesc(treequals=[0]),
+         # dd = self.core.datadesc(treequals=[twig]),
+         dd = self.core.datadesc(treequals=[0]),
 
-         self._nodes = []
+         self.core._nodes = []
          # stub = self.unique_nodestub(twig)
-         for i,qual in enumerate(self._nodequals):
-            node = ET.twig(self._ns, twig)
-            self._nodes.append(node)
+         for i,qual in enumerate(self.nodequals()):
+            node = ET.twig(self.core._ns, twig)
+            self.core._nodes.append(node)
          self.visualize()
          self.end_of_body(ctrl)
 
@@ -152,25 +152,25 @@ class Polynomial(Clump.LeafClump):
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
          poly = self.getopt('poly')
-         # dd = self.datadesc(treequals=[poly])
-         dd = self.datadesc(treequals=[0])
+         # dd = self.core.datadesc(treequals=[poly])
+         dd = self.core.datadesc(treequals=[0])
          
-         self._nodes = []
+         self.core._nodes = []
          stub = self.unique_nodestub('polyparm')
-         for i,qual in enumerate(self._nodequals):
+         for i,qual in enumerate(self.nodequals()):
             spec = 'polyparm_'+poly
-            node = ET.twig(self._ns, spec, nodestub=stub(poly))
-            self._nodes.append(node)
+            node = ET.twig(self.core._ns, spec, nodestub=stub(poly))
+            self.core._nodes.append(node)
 
          # Make a ParmClump object from its MeqParms: 
-         parms = self._ns.Search(tags='polyparm')
+         parms = self.core._ns.Search(tags='polyparm')
          # self.history('ns.Search(tags=polyparm) -> n='+str(len(parms))+':')
          for parm in parms:
             self.history('--> parm: '+str(parm))
          plc = ParmClump.ParmListClump(parms,
-                                       ns=self._ns, TCM=self._TCM,
+                                       ns=self.core._ns, TCM=self.core._TCM,
                                        name='PolyParm')
-         # self._ParmClumps = [plc]
+         # self.core._ParmClumps = [plc]
          self.ParmClumps(append=plc)
          plc.connect_loose_ends(self)
 

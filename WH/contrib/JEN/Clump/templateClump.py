@@ -83,7 +83,7 @@ class templateClump(Clump.Clump):
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
       if self.execute_body():
-         self._ns.example1 << Meq.Constant(1.9)
+         self.core._ns.example1 << Meq.Constant(1.9)
          # Generate some nodes:
          stub = self.unique_nodestub()
          node1 = stub('node1') << Meq.Constant(1.1)
@@ -167,7 +167,7 @@ class templateClump(Clump.Clump):
             cp = Clump.Clump(clump=self,
                              name='slave', qual=i,
                              slaveof=ctrl['submenu'],
-                             ns=self._ns, TCM=self._TCM)
+                             ns=self.core._ns, TCM=self.core._TCM)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 

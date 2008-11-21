@@ -81,9 +81,9 @@ class templateLeafClump(Clump.LeafClump):
       """
       # The data-description may be defined by means of kwargs: 
       treequals = range(3)           # default list of tree qualifiers
-      dd = self.datadesc(complex=kwargs.get('complex',False),
-                         treequals=kwargs.get('treequals',treequals),
-                         dims=kwargs.get('dims',[1]))
+      dd = self.core.datadesc(complex=kwargs.get('complex',False),
+                              treequals=kwargs.get('treequals',treequals),
+                              dims=kwargs.get('dims',[1]))
 
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
@@ -96,9 +96,9 @@ class templateLeafClump(Clump.LeafClump):
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
          leaftype = self.getopt('leaftype')
-         self._nodes = []
+         self.core._nodes = []
          stub = self.unique_nodestub(leaftype)
-         for i,qual in enumerate(self._nodequals):
+         for i,qual in enumerate(self.nodequals()):
             if leaftype=='parm':
                node = stub(qual) << Meq.Parm(i)
             elif leaftype=='freq':
@@ -106,11 +106,11 @@ class templateLeafClump(Clump.LeafClump):
             elif leaftype=='time':
                node = stub(qual) << Meq.Time()
             elif leaftype=='freq+time':
-               node = stub(qual) << Meq.Add(self._ns << Meq.Freq(),
-                                            self._ns << Meq.Time())
+               node = stub(qual) << Meq.Add(self.ns() << Meq.Freq(),
+                                            self.ns() << Meq.Time())
             else:
                node = stub(qual) << Meq.Constant(i)
-            self._nodes.append(node)
+            self.core._nodes.append(node)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 

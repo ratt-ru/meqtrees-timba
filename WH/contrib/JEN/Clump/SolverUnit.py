@@ -78,17 +78,6 @@ class SolverUnit(Clump.Clump):
       Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
 
-   #-------------------------------------------------------------------------
-
-   def show_specific(self):
-      """
-      Format the specific (non-generic) contents of the derived class.
-      Re-implementation of function in baseclass Clump.
-      """
-      ss = '\n + Specific (derived class '+str(self._typename)+'):'
-      ss += '\n + self._rhs = '+self._rhs.oneliner()
-      return ss
-
 
    #=========================================================================
    # Re-implementation of its initexec function (called from Clump.__init__())
@@ -104,7 +93,7 @@ class SolverUnit(Clump.Clump):
       self.add_option('num_iter',[3,5,10,20,1,2],
                       help='(max) nr of solver iterations')
 
-      help = 'if True/1, make bookpage () in foder: '+str(self._name)
+      help = 'if True/1, make bookpage () in foder: '+str(self.name())
       self.add_option('make_bookmark', [True,False], help=help, hide=True,
                       prompt='make solver bookmark')
 
@@ -167,9 +156,9 @@ class SolverUnit(Clump.Clump):
          stub = self.unique_nodestub()
          condeqs = []
          # print self._rhs.oneliner()
-         for i,qual in enumerate(self._nodequals):
+         for i,qual in enumerate(self.nodequals()):
             node = stub('condeq')(qual) << Meq.Condeq(self[i],self._rhs[i]) 
-            self._nodes[i] = node
+            self[i] = node
             condeqs.append(node)
 
          # Get solvable MeqParms (from its ParmClumps, if any):
@@ -198,7 +187,7 @@ class SolverUnit(Clump.Clump):
          # Insert ReqSeq node(s) in the trees of the input clump.
          # These will issue a request first to the solver,
          # but pass on the result of the trees (result_index=1).
-         self._input_clump.insert_reqseqs(node, 'solver_graft:'+self._name)
+         self.input_clump().insert_reqseqs(node, 'solver_graft:'+self.name())
 
          # Clear up some loose ends:
          self.connect_loose_ends()
@@ -316,7 +305,7 @@ class SolverUnit(Clump.Clump):
       solver = self.make_bookmark_help(solver, help, bookmark=False)
       nodes.append(solver)
       viewer.append('QuickRef Display')
-      self.make_bookmark(nodes, name=self._name, viewer=viewer)
+      self.make_bookmark(nodes, name=self.name(), viewer=viewer)
 
       # Return:
       return branch_node

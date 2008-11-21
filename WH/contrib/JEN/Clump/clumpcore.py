@@ -312,22 +312,7 @@ class clumpcore (object):
          self.copy_history(clump, clear=True)
       return True
 
-   #--------------------------------------------------------------------------
-
-   def connect_grafted_clump (self, clump, trace=False):
-      """Connect the loose ends (orphans, stubtree, ParmClumps) of the given
-      clump, e.g. when JonesClumps are used to correct VisClumps.
-      This is similar to, but slightly different from, what is done in the
-      function self.transfer_clump_nodes(), which merely continues the mainstream.
-      """
-      self.graft_to_stubtree(clump._stubtree)
-      self._orphans.extend(clump._orphans)                 # group them first?
-      self._ParmClumps.extend(clump._ParmClumps)       
-      self.copy_history(clump)
-      self.history('.connect_grafted_clump(): '+str(clump.oneliner()))
-      return True
-
-   #-------------------------------------------------------------------------
+   #========================================================================
 
    def graft_to_stubtree(self, node):
       """Helper function to graft the given node (usually the rootnode
@@ -337,75 +322,8 @@ class clumpcore (object):
       self._stubtree = stub('graft_to_stubtree') << Meq.Add(self._stubtree,node)
       return True
       
-   #--------------------------------------------------------------------------
-
-   def connect_loose_ends (self, clump=None, full=True, trace=False):
-      """Connect the loose ends (orphans, stubtree, but NO ParmClumps!) of the
-      current clump to another one, e.g. the input clump (=default).
-      This is the reverse of .connect_grafted_clump().
-      """
-      if clump==None:
-         clump = self._input_clump
-      clump.graft_to_stubtree(self._stubtree)
-      clump._orphans.extend(self._orphans)                 # group them first?
-      if full:
-         clump.copy_history(self)
-         self.history('.connect_loose_ends() to: '+str(clump.oneliner()))
-         clump.history('.connected loose ends of: '+str(self.oneliner()))
-      return True
-
-   
-   #==========================================================================
-   # Fuctions that depend on whether or not the Clump has been selected:
-   #==========================================================================
-
-   def append_if_selected(self, clist=[], notsel=None, trace=False):
-      """If selected, append the object to the input list (clist).
-      Otherwise, append it to the 'not-selected' (notsel) list, if supplied.
-      Syntax:  clist = Clump(cp).append_if_selected(clist=[], notsel=[])
-      """
-      selected = self._object_is_selected
-      if not isinstance(clist,list):
-         clist = []
-      s = '\n ** .append_if_selected('+str(len(clist))+') (selected='+str(selected)+')'
-      if selected:
-         clist.append(self)
-         if trace:
-            s += ' append: '+self.oneliner()
-            self.history(s)
-      else:
-         if isinstance(notsel,list):
-            notsel.append(self)
-         if trace:
-            s += ' not appended'
-            self.history(s)
-      # Always return the list:
-      return clist
-
-   #--------------------------------------------------------------------------
-
-   def daisy_chain(self, trace=False):
-      """Return the object itself, or its self._input_clump.
-      The latter if it has a menu, but is NOT selected by the user.
-      This is useful for making daisy-chains of Clump objects, where
-      the user determines whether a particular Clump is included.
-      Syntax:  cp = Clump(cp).daisy_chain()
-      """
-      selected = self._object_is_selected
-      if trace:
-         print '\n ** .daisy_chain(selected=',selected,'): ',self.oneliner()
-         print '     self._input_clump =',self._input_clump
-      if self._input_clump and (not selected):
-         if trace:
-            print '     -> input clump: ',self._input_clump.oneliner()
-         return self._input_clump
-      if trace:
-         print '     -> itself'
-      return self
-
 
    #=========================================================================
-   # Functions for comparison with another Clump object
    #=========================================================================
 
    def commensurate(self, other, severe=False, trace=False):
@@ -434,14 +352,6 @@ class clumpcore (object):
    #=========================================================================
    # Some general helper functions
    #=========================================================================
-
-   def indices(self):
-      """Return the list of indices [0,1,2,...] of the actual tree nodes.
-      If composed, this will be [0] (referring to a single tensor node).
-      """
-      return range(len(self))
-
-   #--------------------------------------------------------------------------
 
    def size(self):
       """Return the number of trees in the Clump (even if in a tensor)
@@ -674,7 +584,6 @@ class clumpcore (object):
       return self._history
 
    #=========================================================================
-   # Interaction with the (user-defined) rider:
    #=========================================================================
 
    def rider (self, key=None, **kwargs):
@@ -730,219 +639,9 @@ class clumpcore (object):
 
 
    #=========================================================================
-   # Standard ontrol functions for use in Clump (stage) methods.
    #=========================================================================
 
-   def on_entry (self, func=None, prompt=None, help=None, **kwargs):
-      """To be called at the start of a Clump stage-method,
-      Its (mandatory!) counterpart is .on_exit()
-      Syntax: ctrl = self.on_entry(func, prompt, help, **kwargs)
-      """
-      if func==None:
-         func = self.start_of_body                   # for testing only
-
-      trace = kwargs.get('trace',False)
-      hide = kwargs.get('hide',False)
-      makemenu = kwargs.get('makemenu',True)
-      select = kwargs.get('select',True)
-      fixture = kwargs.get('fixture',False)
-      ctrl = dict(funcname=str(func.func_name),
-                  submenu=None,
-                  trace=trace)
-      fname = ctrl['funcname']                       # convenience
-
-      # The kwargs information is used for option overrides in
-      # the functions .add_option() and .execute_body()
-      self._kwargs = kwargs                          # temporary
-      self._override_keys = []
-      self._override = dict()
-
-      # Make the menu for the calling function:
-      # NB: if any options are defined in this module, always makemenu=True,
-      # otherwise there is a high probablility of option name clashes!
-      if makemenu:
-         # Make a unique submenu name:
-         self._stage['isubmenu'] += 1                # increment
-         self._stage['count'] += 1                   # increment
-         self._stage['ops'] = -1                     # reset
-         name = fname
-         # if fname=='intexec':                        # special case
-         #    name += '_'+str(self._typename)          # 'initexec' is very common 
-         name += '_'+str(self._stage['isubmenu'])
-         name += str(self._stage['count'])
-         name += str(self._stage['ops'])
-         name += str(self._stage['ncopy'])
-
-         if not isinstance(prompt,str):
-            prompt = fname+'()'
-            if fname=='initexec':                    # special case
-               prompt = self._name+':'
-         if not isinstance(help,str):
-            help = fname+'()'
-            if fname=='intexec':                     # special case
-               help = 'in/exclude: '+self.oneliner()
-         ctrl['submenu'] = self._TCM.start_of_submenu(name,
-                                                      prompt=prompt,
-                                                      help=help,
-                                                      default=select,
-                                                      hide=hide,
-                                                      slaveof=self._slaveof,
-                                                      fixture=fixture,
-                                                      qual=self._qual)
-
-      # The ctrl record used by other control functions downstream.
-      # The opening ones use self._ctrl, but the closing ones have to use
-      # the ctrl argument (since self._ctrl may be overwritten by other
-      # functions that are called in the function body (AFTER all .getopt() calls!)
-      self._ctrl = ctrl
-      return ctrl
-
-   #--------------------------------------------------------------------------
-
-   def add_option (self, relkey, choice=None, **kwargs):
-      """Add an option to the current menu. The purpose of this function
-      is mainly to hide the use of 'self._TCM' to the Clump user/developer.
-      In the future it might be useful to put some extra features here...
-      """
-      self._override_keys.append(relkey)          # see .execute_body()
-      if True:
-         # The option choice may be overridden via the input kwargs:
-         if self._input_kwargs.has_key(relkey):
-            v = self._input_kwargs[relkey]
-            was = copy.copy(choice)
-            if isinstance(v,list):                # e.g. [2,3]
-               choice = v                         # replace choice
-               kwargs['more'] = None              # do not allow other values 
-            else:                                 # e.g. 2
-               choice.insert(0,v)                 # make it the default
-            print '\n** add_option(',relkey+'):',was,'->',choice,'\n'
-      return self._TCM.add_option(relkey, choice, **kwargs)
-
-   #--------------------------------------------------------------------------
-
-   def execute_body(self, always=False, hist=False):
-      """To be called at the start of the 'body' of a Clump stage-method,
-      i.e. AFTER any self._TCM menu and option definitions.
-      Its (mandatory!) counterpart is self.end_of_body(ctrl)
-      It uses the record self._ctrl, defined in .on_entr()
-      """
-
-      self.check_for_overrides()
-
-      fname = self._ctrl['funcname']                 # convenience
-
-      execute = True                      
-      if not always:                        
-         if isinstance(self._ctrl['submenu'],str):
-            execute = self._TCM.submenu_is_selected(trace=False)
-
-      if self._ctrl['trace']:
-         print '** .execute_body(always=',always,'): fname=',fname,' execute=',execute
-
-      if not execute:
-         if fname=='initexec':                       # a special case
-            self._object_is_selected = False         # see .__init__() and .daisy_chain()
-      else:
-         if fname=='initexec':                       # a special case
-            self._object_is_selected = True          # see .__init__() and .daisy_chain()
-         self._stage['count'] += 1                   # increment
-         self._stage['ops'] = -1                     # reset
-         self._stage['name'] = fname                 # .....?
-         if hist:
-            s = '.'+fname+'(): '                     # note the ':'
-            if isinstance(hist,str):
-               s += '('+hist+')  '
-            self.history(append=s, trace=self._ctrl['trace'])
-      return execute
-
-   #--------------------------------------------------------------------------
-
-   def check_for_overrides (self):
-      """Check whether self._kwargs (see .on_entry(**kwargs)) contains
-      any of the option (rel)keys accumulated in .add_option(key),
-      and put these override values in the dict self._override.
-      The latter is then used in .getopt(key) to return the override value
-      rather than the option value.
-      """
-      ovr = dict()
-      for key in self._override_keys:
-         if self._kwargs.has_key(key):
-            ovr[key] = self._kwargs[key]
-      if len(ovr)>0:
-         self.history('.override: '+str(ovr))
-      self._override = ovr                    # see .getopt()
-      self._override_keys = []                # reset
-      self._kwargs = None                     # reset
-      return True
-
-
-   #..........................................................................
-
-   def getopt (self, relkey, trace=False):
-      """Get the specified (relkey) TDL option value.
-      This function is ONLY called AFTER self.execute_body()==True.
-      It use the record self._ctrl that is defined in .on_entry()
-      """
-      # trace = True
-      override = self._override.has_key(relkey)
-      if override:
-         value = self._TCM.getopt(relkey, self._ctrl['submenu'],
-                                  override=self._override[relkey])
-      else:
-         value = self._TCM.getopt(relkey, self._ctrl['submenu'])
-
-      if trace or self._ctrl['trace']:
-         s = '.getopt(\''+str(relkey)+'\') ->'
-         # s += ' '+str(type(value))
-         s += ' '+str(value)
-         if override:
-            s += ' (overridden by kwarg)'
-         print s
-         self.history(s)
-      return value
-
-   #--------------------------------------------------------------------------
-
-   def end_of_body(self, ctrl, hist=True):
-      """
-      To be called at the end of the body of a Clump stage-method.
-      Counterpart of .execute_body()
-      """
-      fname = ctrl['funcname']                       # convenience
-      if hist:
-         s = '.'+fname+'()'
-         if isinstance(hist,str):
-            s += ' ('+hist+')  '
-         self.history(s, show_node=True, trace=ctrl['trace'])
-      if ctrl['trace']:
-         print '** .end_of_body(ctrl): fname=',fname
-      return True
-
-   #..........................................................................
-
-   def on_exit(self, ctrl, result=None):
-      """
-      To be called at the end of a Clump stage-method.
-      Counterpart of ctrl = self.on_entry(func, **kwargs)
-      Syntax: return self.on_exit(ctrl, result[=None])
-      """
-      fname = ctrl['funcname']                       # convenience
-      if ctrl['submenu']:
-         self._TCM.end_of_submenu()
-      if ctrl['trace']:
-         print '** .on_exit(ctrl, result=',result,'): fname=',fname,'\n'
-      return result
-
-
-   #--------------------------------------------------------------------------
-   #--------------------------------------------------------------------------
-
-
-   #=========================================================================
-   # Functions dealing with subsets (of the tree nodes):
-   #=========================================================================
-
-   def get_indices(self, subset='*', severe=True, nodelist=None, trace=False):
+   def indices(self, subset='*', severe=True, nodelist=None, trace=False):
       """Return a list of valid tree indices, according to subset[='*'].
       If subset is an integer, return that many (regularly spaced) indices.
       If subset is a list, check their validity.
@@ -976,50 +675,8 @@ class clumpcore (object):
          print s,'->',ii
       return ii
 
-   #---------------------------------------------------------------------
-
-   def get_nodelist(self, subset='*',
-                    unops=None, 
-                    append=None, prepend=None,
-                    nodelist=None, trace=False):
-      """Helper function to get a list (copy) of (a subset of) its nodes.
-      If nodelist is supplied, use that instead (multi-purpos function).
-      If unops is specified, apply one or more unary operations.
-      If append or prepend are nodes, append/prepend them to the list.
-      """
-      cc = []
-      if isinstance(nodelist,(list,tuple)):
-         # ii = self.get_indices(subset, nodelist=nodelist, trace=trace)   # <----??
-         for i,node in enumerate(nodelist):
-            # Test whether node is a node (or a number?)
-            cc.append(node)
-      else:
-         ii = self.get_indices(subset, trace=trace)
-         for i in ii:
-            cc.append(self[i])
-
-      if unops:
-         # Optionally, apply one or more unary operations:
-         cc = self.apply_unops (unops, nodelist=cc, replace=False)
-
-      # Optionally, append/prepend nodes:
-      if is_node(append):
-         cc.append(append)
-      if isinstance(append,list):
-         cc.extend(append)
-      if is_node(prepend):
-         cc.insert(0,prepend)
-
-      if trace:
-         print '\n** get_nodes(',subset,str(append),str(prepend),nodelist,'):',self.oneliner()
-         for i,node in enumerate(cc):
-            print '  -',i,':',str(node)
-         print
-      return cc
-
 
    #=========================================================================
-   # To and from tensor nodes:
    #=========================================================================
 
    def rootnode (self, **kwargs):
@@ -1034,7 +691,7 @@ class clumpcore (object):
          nodes.append(node)
       hist += str(len(nodes))+' tree nodes '
 
-      stub = self.unique_nodestub('rootnode')
+      stub = self._ns.rootnode
       if is_node(self._stubtree):
          node = stub('stubtree') << Meq.Identity(self._stubtree) 
          nodes.append(node)                 # include the tree of stubs
@@ -1052,124 +709,9 @@ class clumpcore (object):
       self.history(hist, trace=kwargs.get('trace',False))
       return rootnode
 
-   #-------------------------------------------------------------------------
-
-   def bundle (self, nodelist=None, **kwargs):
-      """Return a single node that bundles the Clump nodes, using the
-      specified combining node (default: combine='Composer').
-      The internal state of the object is not changed.
-      """
-      combine = kwargs.get('combine','Composer')
-      name = kwargs.get('name',combine)
-      wgt = kwargs.get('weights',None)                 # for WSum,WMean
-
-      node = None
-      hist = '.bundle('+str(combine)+') '
-      if isinstance(nodelist,list):                    # external list
-         cc = self.get_nodelist(nodelist=nodelist)     #   bundle it
-         hist += 'external, n='+str(len(cc))
-      elif not self._composed:                         # not in composed state
-         cc = self.get_nodelist()                      #   bundle self._nodes
-      elif combine=='Composer':                        # already the desired bundle
-         node = self[0]                                #   just return it
-      else:                                            # wrong bundle
-         cc = self.decompose(replace=False)            #   decompose it first
-         hist += 'rebundled'
-
-      # Make the bundle node:
-      if node==None:
-         stub = self.unique_nodestub(name)
-         qual = 'n='+str(self.size())
-         if wgt:                                       # assume WSum or WMean
-            node = stub(qual) << getattr(Meq,combine)(children=cc,
-                                                      weights=wgt)
-         else:
-            node = stub(qual) << getattr(Meq,combine)(*cc)
-         hist += ' [0]='+str(cc[0])
-         hist += ' -> '+str(node)
-         self.history(hist)
-         
-      # Always return the single bundle node:
-      return node
-
-   #-------------------------------------------------------------------------
-
-   def compose (self, replace=True, **kwargs):
-      """
-      Compose the list of clump nodes into a single tensor node.
-      If replace=False, do Not change the state of the Clump object itself.
-      Always return the single tensor node. See also .decompose().
-      """
-
-      if self._composed:                   # already in composed state
-         node = self._nodes[0]             # return node
-         replace = False
-      else:
-         qual = 'composed'+str(self.size())
-         stub = self.unique_nodestub(qual)
-         node = stub('composed') << Meq.Composer(*self._nodes)
-
-      if replace:
-         self._nodes = [node]              # a list of a single node
-         self._composed = True             # set the switch
-         self._nodequals = [qual]
-         self.history('.compose()', show_node=True,
-                      trace=kwargs.get('trace',False))
-      # Always return the single tensor node:
-      return node
-
-   #-------------------------------------------------------------------------
-
-   def decompose (self, replace=True, **kwargs):
-      """
-      The reverse of .compose(). Decompose the single tensor node of the
-      'composed' state into a list of separate tree nodes.
-      If replace=False, do not change the state of the Clump object itself.
-      Always returns the list of separate tree nodes.
-      """
-      if not self._composed:               # already in de-composed state
-         cc = self.get_nodelist()          # return list 
-         replace = False
-      else:             
-         tensor = self._nodes[0]           # the single tensor node
-         stub = self.unique_nodestub('decomposed')
-         cc = []
-         for index,qual in enumerate(self._datadesc['treequals']):
-            node = stub(qual) << Meq.Selector(tensor, index=index)
-            cc.append(node)
-
-      if replace:
-         self._nodes = cc
-         cc = self.get_nodelist()          # return list 
-         self._composed = False            # set the switch
-         self._nodequals = self._datadesc['treequals']
-         self.history('.decompose()', show_node=True,
-                      trace=kwargs.get('trace',False))
-      # Always return the list of decomposed nodes:
-      return cc
-
-
 
    #=========================================================================
-   # Solver support functions:
    #=========================================================================
-
-   def insert_reqseqs (self, node, name=None, trace=False):
-      """ Insert a ReqSeq (in every tree!) that issues a request first to
-      the given node (e.g. a solver node), and then to the current tree node.
-      NB: The fact that there is a ReqSeq in every tree seems wasteful, but
-      it synchronises the processing in the different trees of the Clump....
-      """
-      if is_node(node):
-         stub = self.unique_nodestub(name=name)
-         for i,qual in enumerate(self._nodequals):
-            self._nodes[i] = stub(qual) << Meq.ReqSeq(node, self[i],
-                                                           result_index=1,
-                                                           cache_num_active_parents=1)
-         self.history('.insert_reqseqs('+str(node)+')', show_node=True)
-      return True
-
-   #-------------------------------------------------------------------------
 
    def ParmClumps(self, append=None, trace=False):
       """Access to the internal list of ParmClumps
@@ -1184,36 +726,6 @@ class clumpcore (object):
             print '-',i,':',str(pc)
          print
       return self._ParmClumps
-
-   #-------------------------------------------------------------------------
-
-   def get_solvable(self, trace=False):
-      """Get all the solvable parameters from the entries of self._ParmClumps.
-      """
-      solvable = []
-      for pc in self.ParmClumps():
-         ss = pc.solspec(select=True)
-         solvable.extend(ss)
-         s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
-         s += 'solvable MeqParms from: '+pc.oneliner()
-         self.history(s)
-
-      if len(solvable)==0:
-         self.WARNING('No solvable MeqParms specified! (using defaults)')
-         ss = self.ParmClumps()[0].solspec(always=True)
-         solvable = ss
-         s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
-         s += '(default!) solvable MeqParms from: '+pc.oneliner()
-         self.history(s)
-         
-      # Return list of solvable MeqParms:
-      if trace:
-         print '\n** .solvable():'
-         for i,node in enumerate(solvable):
-            print '-',i,':',str(node)
-         print
-      return solvable   
-
 
 
 
@@ -1237,6 +749,11 @@ if __name__ == '__main__':
 
    if 1:
       core.show(full=True)
+
+   if 1:
+      node = core.rootnode() 
+      core.show('.rootnode()')
+      print '->',str(node)
 
    #-------------------------------------------------------------------
    # Some lower-level tests:

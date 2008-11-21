@@ -63,8 +63,6 @@ class ParmClump(Clump.LeafClump):
       """
       Derived from class LeafClump.
       """
-      self._ParmClumps = []
-      ## kwargs['fixture'] = True              # A ParmClump is always selected
 
       rr = dict() 
       rr['default'] = default
@@ -83,7 +81,7 @@ class ParmClump(Clump.LeafClump):
       Format the specific (non-generic) contents of the class.
       Placeholder for re-implementation in derived class.
       """
-      ss = '\n + Specific (derived class '+str(self._typename)+'):'
+      ss = '\n + Specific (derived class '+str(self.typename())+'):'
       ss += '\n + self._MeqParm_parms: '
       rr = self._MeqParm_parms
       for key in rr.keys():
@@ -126,15 +124,14 @@ class ParmClump(Clump.LeafClump):
          rr.__delitem__('default')
 
          # Generate the MeqParm node(s):
-         self._nodes = []
+         self.core._nodes = []
          stub = self.unique_nodestub()
-         for i,qual in enumerate(self._nodequals):
+         for i,qual in enumerate(self.nodequals()):
             qd = 'dflt='+str(default)
             node = stub(qual)(qd) << Meq.Parm(default, **rr)
-            self._nodes.append(node)
+            self.core._nodes.append(node)
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
-         # self._ParmClumps = [self]
          self.ParmClumps(append=self)
 
          # Mandatory counterpart of self.execute_body()
@@ -154,7 +151,7 @@ class ParmClump(Clump.LeafClump):
       It returns a list of solvable parms, to be given to a MeqSolver. 
       """
       help = 'specify solving parameters for the MeqParms of: '+self.oneliner()
-      prompt = 'solve for: '+self._name
+      prompt = 'solve for: '+self.name()
       ctrl = self.on_entry(self.solspec, prompt=prompt, help=help, **kwargs)
 
 
@@ -182,11 +179,11 @@ class ParmClump(Clump.LeafClump):
          nf = self.getopt('nfreq_subtile')
          tiling = record(freq=nf, time=nt)
 
-         for i,qual in enumerate(self._nodequals):
-            rr = self._nodes[i].initrec()
+         for i,qual in enumerate(self.nodequals()):
+            rr = self[i].initrec()
             rr.shape = [tdeg+1,fdeg+1] 
             rr.tiling = tiling,
-            solvable.append(self._nodes[i])
+            solvable.append(self[i])
 
          self.end_of_body(ctrl)
 
@@ -223,17 +220,16 @@ class ParmListClump(Clump.ListClump, ParmClump):
       # - First check if the input nodes are MeqParms 
       # - If not, search the nodescope for MeqParms.
       parms = []
-      for node in self._nodes:
+      for node in self.core._nodes:
          if node.classname=='MeqParm':
             parms.append(node)
 
       if len(parms)==0:
-         parms = self._ns.Search(class_name='MeqParm')
+         parms = self.ns().Search(class_name='MeqParm')
 
       if len(parms)==0:
          self.ERROR('** no MeqParms found')
       else:
-         # self._ParmClumps = [self]
          self.ParmClumps(append=self)
 
       # self.history('Created from list of nodes', show_node=True)
@@ -272,16 +268,16 @@ class PolyParm(ParmClump):
 
          # Generate the MeqParm node(s):
          rr = dict()
-         self._nodes = []
+         self.core._nodes = []
          stub = self.unique_nodestub()
          treequals = []
          for i in range(ndeg):
             qual = i
             treequals.append(qual)
             node = stub(qual) << Meq.Parm(0.0, **rr)
-            self._nodes.append(node)
+            self.core._nodes.append(node)
 
-         self.datadesc(treequals=treequals)
+         self.core.datadesc(treequals=treequals)
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
          self.ParmClumps(append=self)
@@ -302,7 +298,7 @@ class PolyParm(ParmClump):
       stub = self.unique_nodestub(name=name)
       if isinstance(x,int):
          x = float(x)
-      for i,node in enumerate(self._nodes):
+      for i,node in enumerate(self.core._nodes):
          terms.append(self[i])
          if i==1:
             terms[-1] = stub(i) << Meq.Multiply(terms[-1],x)

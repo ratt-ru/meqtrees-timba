@@ -85,7 +85,7 @@ class AddNoise(Clump.Clump):
       help = 'Add gaussian noise'
       ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
 
-      dd = self.datadesc()                 # data description record
+      dd = self.core.datadesc()                 # data description record
       self.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
       self.add_option('unops', [None,'Exp','Exp Exp','Sin Cos'], more=str)
 
@@ -98,7 +98,7 @@ class AddNoise(Clump.Clump):
          if stddev>0.0:
             stub = self.unique_nodestub('stddev='+str(stddev))
             nelem = dd['nelem']
-            for i,qual in enumerate(self._nodequals):
+            for i,qual in enumerate(self.nodequals()):
                if nelem==1:
                   if dd['complex']:
                      real = stub('real')(qual) << Meq.GaussNoise(stddev=stddev)
@@ -122,7 +122,7 @@ class AddNoise(Clump.Clump):
                   # Apply one or more unary operation(s), if required (e.g. Exp):
                   for unop in unops:
                      noise = noise(unop) << getattr(Meq,unop)(noise)
-               self._nodes[i] = stub(qual) << Meq.Add(self[i], noise)
+               self[i] = stub(qual) << Meq.Add(self[i], noise)
 
             self.visualize(select=False)
 
@@ -167,14 +167,14 @@ class Scatter(Clump.Clump):
       help = 'Add different (stddev) constants to the tree nodes'
       ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
 
-      dd = self.datadesc()                 # data description record
+      dd = self.core.datadesc()                 # data description record
       self.add_option('stddev', [0.1,1.0,10.0,0.0])
 
       if self.execute_body():
          stddev = max(0.0,self.getopt('stddev'))
          if stddev>0.0:
             stub = self.unique_nodestub('stddev='+str(stddev))
-            for i,qual in enumerate(self._nodequals):
+            for i,qual in enumerate(self.nodequals()):
                nelem = dd['nelem']
                cc = []
                for elem in dd['elems']:  
@@ -197,7 +197,7 @@ class Scatter(Clump.Clump):
 
                if nelem>1:
                   scat = stub('scat')(qual) << Meq.Composer(*cc)     
-               self._nodes[i] = stub(qual) << Meq.Add(self[i], scat)
+               self[i] = stub(qual) << Meq.Add(self[i], scat)
 
             self.visualize(select=False)
 

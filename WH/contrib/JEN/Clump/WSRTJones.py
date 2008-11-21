@@ -81,7 +81,7 @@ class WSRTJones(JonesClump.XXXJones):
       """
       # 
       treequals = range(10)+list('ABCD')          # default treequals (WSRT)
-      self.datadesc(treequals=kwargs.get('treequals', treequals))
+      self.core.datadesc(treequals=kwargs.get('treequals', treequals))
 
       jj = []
       notsel = []
@@ -160,7 +160,7 @@ class FJones(JonesClump.JonesClump):
       Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      prompt = 'Jones: '+self._name
+      prompt = 'Jones: '+self.name()
       help = 'define FJones matrix: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
@@ -190,15 +190,15 @@ class FJones(JonesClump.JonesClump):
             neg = stub('neg') << Meq.Negate(sin)
             node = stub('single') << Meq.Matrix22(cos, sin,
                                                   neg, cos)
-         self._nodes = []
-         for i,qual in enumerate(self._nodequals):
+         self.core._nodes = []
+         for i,qual in enumerate(self.nodequals()):
             if mode=='multiple':
                cos = stub('cos')(qual) << Meq.Cos(farot[i])
                sin = stub('sin')(qual) << Meq.Sin(farot[i])
                neg = stub('neg')(qual) << Meq.Negate(sin)
                node = stub(qual) << Meq.Matrix22(cos, sin,
                                                  neg, cos)
-            self._nodes.append(node)
+            self.core._nodes.append(node)
 
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
@@ -235,7 +235,7 @@ class XJones(JonesClump.JonesClump):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      prompt = 'Jones: '+self._name
+      prompt = 'Jones: '+self.name()
       help = 'define Jones matrix: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
@@ -257,9 +257,9 @@ class XJones(JonesClump.JonesClump):
             ierrY = self.ParmClump(name='ierrY', default=0.0)
 
          # Generate nodes:
-         self._nodes = []
+         self.core._nodes = []
          stub = self.unique_nodestub()
-         for i,qual in enumerate(self._nodequals):
+         for i,qual in enumerate(self.nodequals()):
             elem00 = complex(1,0)
             elem01 = complex(0,0)
             elem10 = complex(0,0)
@@ -272,7 +272,7 @@ class XJones(JonesClump.JonesClump):
                elem11 = stub(qual)('11') << Meq.ToComplex(rerrY[i],ierrY[i])
             node = stub(qual) << Meq.Matrix22(elem00, elem01,
                                               elem10, elem11)
-            self._nodes.append(node)
+            self.core._nodes.append(node)
          # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 

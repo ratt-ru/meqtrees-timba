@@ -157,7 +157,7 @@ def _define_forest (ns, **kwargs):
    clump = ClumpClass.do_define_forest (ns, TCM=localTCM)
 
    if clump:
-      clump.rootnode()
+      clump.core.rootnode()
       clump.show('ClumpExec._define_forest()', full=True)
    else:
       rootnode = ns.rootnode << Meq.Constant(-0.123456789)
