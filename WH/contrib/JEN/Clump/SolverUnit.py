@@ -72,9 +72,7 @@ class SolverUnit(Clump.Clump):
       A new clump (self._rhs) is creates so that its trees may be grown
       without affecting the input Clump itself.
       """
-      self._rhs = Clump.Clump(rhs, name='rhs_copy',
-                              hide=True,
-                              makemenu=False)
+      self._rhs = rhs.copy()
       Clump.Clump.__init__(self, clump=clump, **kwargs)
       return None
 
@@ -150,7 +148,7 @@ class SolverUnit(Clump.Clump):
          if unops:
             # Optionally, apply unary operation(s) to both lhs and rhs:
             self.apply_unops(unops)
-            self._rhs.apply_unops(unops)
+            self._rhs.apply_unops(unops)  
 
          # Make the MeqCondeq(s):
          stub = self.unique_nodestub()

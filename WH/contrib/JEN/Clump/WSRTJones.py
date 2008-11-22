@@ -81,7 +81,7 @@ class WSRTJones(JonesClump.XXXJones):
       """
       # 
       treequals = range(10)+list('ABCD')          # default treequals (WSRT)
-      self.core.datadesc(treequals=kwargs.get('treequals', treequals))
+      self.datadesc(treequals=kwargs.get('treequals', treequals))
 
       jj = []
       notsel = []
@@ -190,15 +190,13 @@ class FJones(JonesClump.JonesClump):
             neg = stub('neg') << Meq.Negate(sin)
             node = stub('single') << Meq.Matrix22(cos, sin,
                                                   neg, cos)
-         self.core._nodes = []
          for i,qual in enumerate(self.nodequals()):
             if mode=='multiple':
                cos = stub('cos')(qual) << Meq.Cos(farot[i])
                sin = stub('sin')(qual) << Meq.Sin(farot[i])
                neg = stub('neg')(qual) << Meq.Negate(sin)
-               node = stub(qual) << Meq.Matrix22(cos, sin,
-                                                 neg, cos)
-            self.core._nodes.append(node)
+               self[i] = stub(qual) << Meq.Matrix22(cos, sin,
+                                                    neg, cos)
 
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
@@ -257,7 +255,6 @@ class XJones(JonesClump.JonesClump):
             ierrY = self.ParmClump(name='ierrY', default=0.0)
 
          # Generate nodes:
-         self.core._nodes = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
             elem00 = complex(1,0)
@@ -270,13 +267,10 @@ class XJones(JonesClump.JonesClump):
             elif mode=='realimag':
                elem00 = stub(qual)('00') << Meq.ToComplex(rerrX[i],ierrX[i])
                elem11 = stub(qual)('11') << Meq.ToComplex(rerrY[i],ierrY[i])
-            node = stub(qual) << Meq.Matrix22(elem00, elem01,
+            self[i] = stub(qual) << Meq.Matrix22(elem00, elem01,
                                               elem10, elem11)
-            self.core._nodes.append(node)
-         # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
 
-      # Mandatory counterpart of self.on_entry()
       return self.on_exit(ctrl)
 
 

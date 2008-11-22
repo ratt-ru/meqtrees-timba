@@ -68,12 +68,12 @@ class JonesClump(Clump.LeafClump):
       Derived from class LeafClump.
       """
       # This should be in every JonesClump class:
-      self.core.datadesc(complex=True, dims=[2,2])
+      self.datadesc(complex=True, dims=[2,2])
 
       # This bit is instrument-specific:
       treequals = range(8,10)+list('AB')          # default treequals (WSRT)
       treequals = ['RT8','RT9','RTA','RTB']       # default treequals (WSRT)
-      self.core.datadesc(treequals=kwargs.get('treequals', treequals))
+      self.datadesc(treequals=kwargs.get('treequals', treequals))
 
       # Polarization representation:
       self._polrep = kwargs.get('polrep', None)
@@ -139,16 +139,14 @@ class JonesClump(Clump.LeafClump):
          i11 = self.ParmClump('imag11', default=0.0)
 
          # Generate nodes:
-         self.core._nodes = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
             elem00 = stub(qual)('00') << Meq.ToComplex(r00[i],i00[i])
             elem01 = stub(qual)('10') << Meq.ToComplex(r01[i],i01[i])
             elem10 = stub(qual)('01') << Meq.ToComplex(r01[i],i01[i])
             elem11 = stub(qual)('11') << Meq.ToComplex(r11[i],i11[i])
-            node = stub(qual) << Meq.Matrix22(elem00, elem01,
-                                              elem10, elem11)
-            self.core._nodes.append(node)
+            self[i] = stub(qual) << Meq.Matrix22(elem00, elem01,
+                                                 elem10, elem11)
 
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
@@ -203,7 +201,6 @@ class GJones(JonesClump):
             ierrY = self.ParmClump('ierrY', default=0.0)
 
          # Generate nodes:
-         self.core._nodes = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
             elem00 = complex(1,0)
@@ -216,9 +213,8 @@ class GJones(JonesClump):
             elif mode=='realimag':
                elem00 = stub(qual)('00') << Meq.ToComplex(rerrX[i],ierrX[i])
                elem11 = stub(qual)('11') << Meq.ToComplex(rerrY[i],ierrY[i])
-            node = stub(qual) << Meq.Matrix22(elem00, elem01,
-                                              elem10, elem11)
-            self.core._nodes.append(node)
+            self[i] = stub(qual) << Meq.Matrix22(elem00, elem01,
+                                                 elem10, elem11)
 
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
@@ -277,7 +273,6 @@ class BJones(JonesClump):
             ierrY = self.ParmClump('ierrY', default=0.0, **pp)
 
          # Generate nodes:
-         self.core._nodes = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
             elem00 = complex(1,0)
@@ -290,10 +285,8 @@ class BJones(JonesClump):
             elif mode=='realimag':
                elem00 = stub(qual)('00') << Meq.ToComplex(rerrX[i],ierrX[i])
                elem11 = stub(qual)('11') << Meq.ToComplex(rerrY[i],ierrY[i])
-            node = stub(qual) << Meq.Matrix22(elem00, elem01,
-                                              elem10, elem11)
-            self.core._nodes.append(node)
-
+            self[i] = stub(qual) << Meq.Matrix22(elem00, elem01,
+                                                 elem10, elem11)
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
 
@@ -358,7 +351,7 @@ class XXXJones(JonesClump):
       """Function to be re-implemented in derived classes.
       """
       treequals = range(8,10)+list('AB')          # default treequals (WSRT)
-      self.core.datadesc(treequals=kwargs.get('treequals', treequals))
+      self.datadesc(treequals=kwargs.get('treequals', treequals))
       jj = []
       notsel = []
       JonesClump(self, name='AJones').append_if_selected(jj, notsel)
@@ -376,20 +369,17 @@ class XXXJones(JonesClump):
       classes that are derived from XXXJones. It contains more specialist code,
       which should not be seen by the uninitiated.
       """
-      
-      self.core._nodes = []
       if len(jj)==0:
          self.history('empty Jones list: make a 2x2 complex unit matrix')
          stub = self.unique_nodestub('unitmatrix')
          for i,qual in enumerate(self.nodequals()):
-            node = stub(qual) << Meq.Matrix22(complex(1,0), complex(0,0),
-                                              complex(0,0), complex(1,0))
-            self.core._nodes.append(node)
+            self[i] = stub(qual) << Meq.Matrix22(complex(1,0), complex(0,0),
+                                                 complex(0,0), complex(1,0))
 
       elif len(jj)==1:
          # one only: copy its nodes
          for i,qual in enumerate(self.nodequals()):
-            self.core._nodes.append(jj[0][i])
+            self[i] = jj[0][i]
       
       else:
          # more than one: MatrixMyultiply
@@ -398,11 +388,10 @@ class XXXJones(JonesClump):
             cc = []
             for jones in jj:
                cc.append(jones[i])
-            node = stub(qual) << Meq.MatrixMultiply(*cc)
-            self.core._nodes.append(node)
+            self[i] = stub(qual) << Meq.MatrixMultiply(*cc)
          
       # Connect orphans, stubtree etc, and add the ParmClumps to
-      # its own list of ParmClumps (self.core._ParmClumps).
+      # its own list of ParmClumps (self.ParmClumps()).
       for jones in jj:
          # self.history('include Jones: '+jones.oneliner())
          # jones.show('make_single_jones()')

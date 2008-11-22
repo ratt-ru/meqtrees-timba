@@ -80,7 +80,7 @@ class Clump (object):
       """
       Initialize the Clump object, according to its type (see .init()).
       If another Clump of the same class is specified (use), use its
-      defining characteristics (in self.core._datadesc etc)
+      defining characteristics (in self.datadesc() etc)
       """
       # Every Clump object has a clumpcore object:
       typename = str(type(self)).split('.')[-1].split("'")[0]
@@ -138,7 +138,7 @@ class Clump (object):
       self.core._orphans.extend(clump.core._orphans)                 # group them first?
       self.core._ParmClumps.extend(clump.core._ParmClumps)       
       self.core.copy_history(clump)
-      self.history('.connect_grafted_clump(): '+str(clump.oneliner()))
+      self.history('.connect_grafted_clump(): '+clump)
       return True
 
    #--------------------------------------------------------------------------
@@ -154,10 +154,23 @@ class Clump (object):
       clump.core._orphans.extend(self.core._orphans)         # group them first?
       if full:
          clump.core.copy_history(self)
-         self.history('.connect_loose_ends() to: '+str(clump.oneliner()))
-         clump.history('.connected loose ends of: '+str(self.oneliner()))
+         self.history('.connect_loose_ends() to: '+clump)
+         clump.history('.connected loose ends of: '+self)
       return True
 
+   #--------------------------------------------------------------------------
+
+   def copy(self, name=None, **kwargs):
+       """Return a 'working copy' of itself, i.e. a copy that may be modified
+       without changing this clump itself. See e.g. SolverUnit.py.
+       """
+       if not isinstance(name,str):
+           name = 'copy('+self.name()+')'
+       clump = Clump.Clump(self, name=name,
+                           hide=True, makemenu=False)
+       clump.history('.copy() of: '+self)
+       # self.history('copied to: '+clump)
+       return clump
    
    #==========================================================================
    # Fuctions that depend on whether or not the Clump has been selected:
@@ -215,6 +228,7 @@ class Clump (object):
 
    def oneliner (self):
       ss = self.core.oneliner()
+      # ss += '...'
       return ss
 
    #--------------------------------------------------------------------------
@@ -228,19 +242,39 @@ class Clump (object):
       ss += '\n** '+self.oneliner()
       if txt:
          ss += '   ('+str(txt)+')'
+      prefix = '\n     '
 
       #.....................................................
-      ss += '\n'+self.core.show(full=full, doprint=False)
+      ss += self.core.show(full=full, doprint=False)
 
       #.....................................................
       ss += self.show_specific()
-      ss += '\n % self.core._rider (user-defined information):'
+
+      #.....................................................
+      ss += prefix+' + Local attributes (start with self._):'
+      cc = dir(self)
+      for s in cc:
+          a = getattr(clump,s,None)
+          if s[0:2]=='__':
+              # ss += prefix+'   - '+s
+              pass  
+          elif not s[0]=='_':
+              # ss += prefix+'   - '+s
+              pass
+          elif getattr(a,'oneliner',None):
+              ss += prefix+'   - '+s+' = '+str(a.oneliner())
+          else:
+              ss += prefix+'   - '+s+' = '+str(EF.format_value(a))
+      
+      #.....................................................
+      ss += prefix+' + self.rider(): (carries user-defined information):'
       rr = self.rider()
+      ss += ' (len='+str(len(rr))+')'
       for key in rr.keys():
          if getattr(rr[key],'oneliner',None):
-            ss += '\n   - '+str(key)+' = '+str(rr[key].oneliner())
+            ss += prefix+'   - '+str(key)+' = '+str(rr[key].oneliner())
          else:
-            ss += '\n   - '+str(key)+' = '+str(EF.format_value(rr[key]))
+            ss += prefix+'   - '+str(key)+' = '+str(EF.format_value(rr[key]))
 
       #.....................................................
       ss += '\n**\n'
@@ -255,30 +289,11 @@ class Clump (object):
       Format the specific (non-generic) contents of the class.
       Placeholder for re-implementation in derived class.
       """
-      ss = '\n + Specific (derived class '+str(self.typename())+'):'
-      ss += '\n + ...'
-      if True:
-         cc = dir(self)
-         for s in cc:
-            a = getattr(clump,s,None)
-            if not isinstance(s,str):
-               print '-',s,type(a)
-               ss += '\n + '+s
-            elif s[0]=='_':
-               if s[1]=='_':
-                  # print '*',s
-                  # ss += '\n + '+s
-                  pass
-               else:
-                  ss += '\n + '+s+'  ('+str(type(a))+')'
-            else:
-               # ss += '\n + '+s
-               # print '-',s
-               pass
+      ss = '\n ++ Specific (derived class '+str(self.typename())+'):'
+      # ss += '\n    + ...'
       return ss
 
 
-   #=========================================================================
    #=========================================================================
 
    def rider (self, key=None, **kwargs):
@@ -295,11 +310,22 @@ class Clump (object):
    
    #=========================================================================
 
+   def datadesc (self, **kwargs):
+      """Interact with the data description record.
+      """
+      return self.core.datadesc(**kwargs)
+   
+   #=========================================================================
+
    def ERROR (self, s):
       """Raise a ValueError in an organised way, i.e. while giving
       information that may help in its solution. The program is stopped.
       """
-      self.core.ERROR(s)
+      s1 = '** ERROR ** '+str(s)
+      print '\n',s1,'\n'
+      self.history(s1, trace=True)
+      self.show(s1)
+      raise ValueError,s1
 
    #--------------------------------------------------------------------------
 
@@ -307,7 +333,10 @@ class Clump (object):
       """Issue a warning in an organised way: Print it conspiciously and
       put it in the object history.
       """
-      self.core.WARNING(s)
+      s1 = '** WARNING ** '+str(s)
+      self.history(s1, trace=True)
+      print '\n            ',s1,'\n'
+      return s1
 
    #--------------------------------------------------------------------------
 
@@ -315,7 +344,9 @@ class Clump (object):
       """Make a remark in an organised way:
       Print it, and put it in the object history.
       """
-      self.core.REMARK(s)
+      s1 = '-- REMARK: '+str(s)
+      self.history(s1, trace=True)
+      return s1
 
 
    #=========================================================================
@@ -357,8 +388,34 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
+   def __add__(self, node):
+      """Add (append) the given node(s) to the list self.core._nodes.
+      Syntax: clump + node   or: clump + [node1,node2,...]
+      NB: Not recommended, because it requires: self.core._nodes = []
+      Better to have self.core._nodes to be a list of the correct length always.
+      """
+      was = len(self)
+      if True:
+          self.WARNING('\n** Use of clump.__add__(node) is disabled!!\n')
+      else:
+          nodes = []
+          if is_node(node):
+              self.core._nodes += [node]
+          elif isinstance(node,list):
+              self.core._nodes += node
+          elif isinstance(node,tuple):
+              self.core._nodes += list(node)
+          else:
+              self.ERROR('** not a node(list), but: '+str(type(node))) 
+      # print '\n** __add__(): ',was,'->',len(self)
+      return len(self)
+
+   #--------------------------------------------------------------------------
+
    def __getitem__(self, index):
       """Get the specified (index) node. Syntax: node = clump[i]
+      NB: This is a VERY important function, with many uses.
+      See 'Learning Python', pp 329-330.
       """
       return self.core._nodes[index]
 
@@ -366,14 +423,21 @@ class Clump (object):
 
    def __setitem__(self, index, node):
       """Replace the specified (index) node. Syntax: clump[i] = node
+      Make sure that self.core._nodes is a list of the right length.
       """
+      if not getattr(self.core,'_nodes',None):     # does not exist yet
+          self.core._nodes = self.size()*[None]
+      elif len(self)==0:                          # has zero length
+          self.core._nodes = self.size()*[None]
+      elif index<0 or index>=len(self):
+          self.ERROR('node index out of range: '+str(index)+'/'+str(len(self)))
       self.core._nodes[index] = node
       return None
 
    #--------------------------------------------------------------------------
 
    def __str__(self):
-      """Print-conversion. Syntax: print str(clump) prints clump.oneliner().
+      """Print-conversion. Syntax: print clump, prints clump.oneliner().
       """
       return self.oneliner()
 
@@ -715,7 +779,7 @@ class Clump (object):
          cc.insert(0,prepend)
 
       if trace:
-         print '\n** get_nodes(',subset,str(append),str(prepend),nodelist,'):',self.oneliner()
+         print '\n** get_nodes(',subset,str(append),str(prepend),nodelist,'):',self
          for i,node in enumerate(cc):
             print '  -',i,':',str(node)
          print
@@ -778,14 +842,13 @@ class Clump (object):
          node = cc[0]                           # return node
          replace = False
       else:
-         qual = 'composed'+str(self.size())
-         stub = self.unique_nodestub(qual)
-         node = stub('composed') << Meq.Composer(*cc)
+         stub = self.unique_nodestub('composed')
+         node = stub(n=self.size()) << Meq.Composer(*cc)
 
       if replace:
          self.core._nodes = [node]              # a list of a single node
          self.core._composed = True             # set the switch
-         self.core._nodequals = [qual]
+         self.core._nodequals = [0]
          self.history('.compose()', show_node=True,
                       trace=kwargs.get('trace',False))
       # Always return the single tensor node:
@@ -814,13 +877,38 @@ class Clump (object):
       if replace:
          self.core._nodes = cc
          self.core._composed = False            # set the switch
-         self.core.datadesc._nodequals = self.treequals()
+         self.core._nodequals = self.treequals()
          self.history('.decompose()', show_node=True,
                       trace=kwargs.get('trace',False))
       # Always return the list of decomposed nodes:
       return cc
 
 
+   #=========================================================================
+
+   def commensurate(self, other, severe=False, trace=False):
+      """Return True if the given (other) Clump is commensurate,
+      i.e. it has the same self._nodequals (NOT self._datadesc['treequals']!)
+      """
+      cms = True
+      if not self.size()==other.size():
+         cms = False
+      else:
+         snq = self.nodequals()
+         onq = other.nodequals()
+         for i,qual in enumerate(snq):
+            if not qual==onq[i]:
+               cms = False
+               break
+      if not cms:
+         s = '\n** '+self.oneliner()+'   ** NOT COMMENSURATE ** with:'
+         s += '  '+other.oneliner()+'\n'
+         if severe:
+            self.ERROR(s)
+         if trace:
+            self.history(s)
+            print s
+      return cms
 
    #=========================================================================
    # Solver support functions:
@@ -840,6 +928,22 @@ class Clump (object):
                                                cache_num_active_parents=1)
          self.history('.insert_reqseqs('+str(node)+')', show_node=True)
       return True
+
+   #-------------------------------------------------------------------------
+
+   def ParmClumps(self, append=None, trace=False):
+      """Access to the internal list of ParmClumps
+      """
+      if isinstance(append,list):
+         self.core._ParmClumps.extend(append)
+      elif append:
+         self.core._ParmClumps.append(append)
+      if trace:
+         print '\n** ParmClumps'+len(self.core._ParmClumps)+':'+self.oneliner()
+         for i,pc in enumerate(self.core._ParmClumps):
+            print '-',i,':',str(pc)
+         print
+      return self.core._ParmClumps
 
    #-------------------------------------------------------------------------
 
@@ -980,7 +1084,7 @@ class Clump (object):
             cc.append(stub(qual) << getattr(Meq,binop)(self[i],rhs))
 
       elif isinstance(rhs,type(self)):           # rhs is a Clump object
-         if self.core.commensurate(rhs, severe=True):
+         if self.commensurate(rhs, severe=True):
             hist = 'rhs='+rhs.oneliner()
             stub = self.unique_nodestub(binop, rhs.typename())
             for i,qual in enumerate(self.nodequals()):
@@ -1272,12 +1376,6 @@ class LeafClump(Clump):
       kwargs['select'] = True                           # always make a clump selection menu
       kwargs['transfer_clump_nodes'] = False            # see Clump.__init___()
 
-      # The data-description may be (re-)defined by means of kwargs:
-      if False:
-          self.core.datadesc(complex=kwargs.get('complex',False),
-                             treequals=kwargs.get('treequals',range(3)),
-                             dims=kwargs.get('dims',1))
-
       # The following executes the function self.initexec(**kwargs),
       # which is re-implemented below.
       Clump.__init__(self, clump=clump, **kwargs)
@@ -1302,11 +1400,15 @@ class LeafClump(Clump):
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
+      # The data-description may be (re-)defined by means of kwargs:
+      self.datadesc(complex=kwargs.get('complex',False),
+                    treequals=kwargs.get('treequals',range(3)),
+                    dims=kwargs.get('dims',1))
+
       # Execute always (always=True), to ensure that the leaf Clump has nodes:
       if self.execute_body(always=True):
-         dd = self.core.datadesc()
+         dd = self.datadesc()
          nelem = dd['nelem']
-         self.core._nodes = []
          stub = self.unique_nodestub('const')
          for i,qual in enumerate(self.nodequals()):
             cc = []
@@ -1322,7 +1424,7 @@ class LeafClump(Clump):
                cc.append(node)
             if nelem>1:
                node = stub(nelem=nelem)(qual) << Meq.Composer(*cc)
-            self.core._nodes.append(node)
+            self[i] = node
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1347,7 +1449,7 @@ class ListClump(Clump):
       """
       # Check the input nodelist:
       nn = []
-      if is_node(nodelist):                  # A single node
+      if is_node(nodelist):                    # A single node
          nn = [nodelist]                     
       elif not isinstance(nodelist,(list,tuple)):
          self.ERROR('** nodelist should be a list, tuple or node')
@@ -1356,30 +1458,13 @@ class ListClump(Clump):
             if not is_node(node):
                self.ERROR('** not a node, but: '+str(type(node)))
             nn.append(node)
-
       if len(nn)==0:
          self.ERROR('** nodelist is empty')
+      self._input_nodelist = nn                # used in .initexec()
 
-      # The data-description may be defined by means of kwargs:
-      self.core.datadesc(complex=kwargs.get('complex',False),
-                         treequals=range(len(nn)), 
-                         dims=kwargs.get('dims',1))
-
-      # Fill the Clump with the nodes from nn: 
-      self.core._nodes = []
-      self.core._nodequals = []
-      for i,node in enumerate(nn):
-         self.core._nodes.append(node)
-         self.core._nodequals.append(i)
-      self.core._composed = False
-
-      #...................................................
       # Create the Clump:
-      kwargs['transfer_clump_nodes'] = False            # see Clump.__init___()
+      kwargs['transfer_clump_nodes'] = False   # required!
       Clump.__init__(self, **kwargs)
-      #...................................................
-
-      self.history('Created from list of nodes', show_node=True)
       return None
 
 
@@ -1387,8 +1472,25 @@ class ListClump(Clump):
 
    def initexec (self, **kwargs):
       """
-      Re-implementation of the function in class Clump. It does even less.
+      Re-implementation of the function in class Clump.
+      It puts the nodes from the input nodelist into the Clump.
       """
+      nn = self._input_nodelist        # see .__init__() above
+      
+      # The data-description may be defined by means of kwargs:
+      self.datadesc(complex=kwargs.get('complex',False),
+                    treequals=range(len(nn)), 
+                    dims=kwargs.get('dims',1))
+
+      # Fill the Clump with the input nodelist: 
+      self.core._nodes = []
+      self.core._nodequals = []
+      for i,node in enumerate(nn):
+         self.core._nodes.append(node)
+         self.core._nodequals.append(i)
+      self.core._composed = False
+      
+      self.history('Created from list of nodes', show_node=True)
       return None
 
 
@@ -1450,10 +1552,10 @@ if __name__ == '__main__':
 
    ns = NodeScope()
 
-   if 1:
+   if 0:
       clump = Clump(trace=True)
 
-   if 0:
+   if 1:
       clump = LeafClump(trace=True)
 
    if 0:
@@ -1466,7 +1568,13 @@ if __name__ == '__main__':
    if 1:
       clump.show('creation', full=True)
 
-   if 1:
+   if 0:
+       node = ns << 4.5
+       clump + node 
+       clump + [node] 
+       clump + [node,node,node] 
+
+   if 0:
        print '\n** len(clump) -> ',len(clump)
 
    if 0:
@@ -1476,6 +1584,7 @@ if __name__ == '__main__':
 
    if 0:
       print '** print str(clump) ->',str(clump)
+      print '** print repr(clump) ->',repr(clump)
       print '** print clump ->',clump
 
    if 0:
@@ -1516,7 +1625,7 @@ if __name__ == '__main__':
       unops = 'Cos Sin'
       # unops = 'MeqCos'
       # unops = ['Cos','Sin']
-      # clump.apply_unops(unops)    
+      clump.apply_unops(unops)    
       cc = clump.apply_unops(unops, replace=False)    
       cc = clump.apply_unops('Exp', nodelist=cc)    
       # clump.apply_unops('Resampler', mode=2)    
@@ -1537,10 +1646,10 @@ if __name__ == '__main__':
       treequals = range(5)
       treequals = ['a','b','c']
       clump3 = LeafClump(treequals=treequals)
-      clump.core.commensurate(clump3, severe=False, trace=True)
+      clump.commensurate(clump3, severe=False)
       clump3.show('.commensurate()')
 
-   if 0:
+   if 1:
       if True:
          node = clump.compose()
          clump.show('.compose() -> '+str(node))
@@ -1575,28 +1684,13 @@ if __name__ == '__main__':
       clump = Clump(clump, select=True).daisy_chain(trace=True)
       clump.show('daisy_chain()', full=True)
 
-   if 0:
+   if 1:
       clump.show('final', full=True)
 
    #-------------------------------------------------------------------
    # Some lower-level tests:
    #-------------------------------------------------------------------
 
-   if 0:
-      ss = dir(clump)
-      print ss
-      for s in ss:
-         a = getattr(clump,s,None)
-         if not isinstance(s,str):
-            print '-',s,type(a)
-         elif s[0]=='_':
-            if s[1]=='_':
-               print '*',s
-            else:
-               print '-',s,type(a)
-         else:
-            print '-',s
-         
 
    if 0:
       print getattr(clump,'oneline',None)

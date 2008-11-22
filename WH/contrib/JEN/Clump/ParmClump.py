@@ -124,12 +124,10 @@ class ParmClump(Clump.LeafClump):
          rr.__delitem__('default')
 
          # Generate the MeqParm node(s):
-         self.core._nodes = []
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
             qd = 'dflt='+str(default)
-            node = stub(qual)(qd) << Meq.Parm(default, **rr)
-            self.core._nodes.append(node)
+            self[i] = stub(qual)(qd) << Meq.Parm(default, **rr)
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
          self.ParmClumps(append=self)
@@ -216,21 +214,21 @@ class ParmListClump(Clump.ListClump, ParmClump):
       # There is NO need to call ParmClump.__init__()
       #.................................................
 
-      # Search for MeqParms:
-      # - First check if the input nodes are MeqParms 
-      # - If not, search the nodescope for MeqParms.
+      # Check if the input nodes are MeqParms 
       parms = []
-      for node in self.core._nodes:
+      for node in self.get_nodelist():
          if node.classname=='MeqParm':
             parms.append(node)
 
+      # If not MeqParms, search the nodescope for MeqParms.
       if len(parms)==0:
+         # NB: This cannot be right! What about .solspec()????      
+         self.ERROR('** the nodes are NOT MeqParms')
          parms = self.ns().Search(class_name='MeqParm')
 
       if len(parms)==0:
          self.ERROR('** no MeqParms found')
-      else:
-         self.ParmClumps(append=self)
+      self.ParmClumps(append=self)
 
       # self.history('Created from list of nodes', show_node=True)
       return None
@@ -268,16 +266,14 @@ class PolyParm(ParmClump):
 
          # Generate the MeqParm node(s):
          rr = dict()
-         self.core._nodes = []
          stub = self.unique_nodestub()
          treequals = []
          for i in range(ndeg):
             qual = i
             treequals.append(qual)
-            node = stub(qual) << Meq.Parm(0.0, **rr)
-            self.core._nodes.append(node)
+            self[i] = stub(qual) << Meq.Parm(0.0, **rr)
 
-         self.core.datadesc(treequals=treequals)
+         self.datadesc(treequals=treequals)
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
          self.ParmClumps(append=self)
@@ -298,7 +294,8 @@ class PolyParm(ParmClump):
       stub = self.unique_nodestub(name=name)
       if isinstance(x,int):
          x = float(x)
-      for i,node in enumerate(self.core._nodes):
+
+      for i,node in enumerate(self.get_nodelist()):
          terms.append(self[i])
          if i==1:
             terms[-1] = stub(i) << Meq.Multiply(terms[-1],x)

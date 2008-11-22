@@ -85,7 +85,7 @@ class AddNoise(Clump.Clump):
       help = 'Add gaussian noise'
       ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
 
-      dd = self.core.datadesc()                 # data description record
+      dd = self.datadesc()                 # data description record
       self.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
       self.add_option('unops', [None,'Exp','Exp Exp','Sin Cos'], more=str)
 
@@ -167,7 +167,7 @@ class Scatter(Clump.Clump):
       help = 'Add different (stddev) constants to the tree nodes'
       ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
 
-      dd = self.core.datadesc()                 # data description record
+      dd = self.datadesc()                 # data description record
       self.add_option('stddev', [0.1,1.0,10.0,0.0])
 
       if self.execute_body():

@@ -178,12 +178,12 @@ class clumpcore (object):
       """Return self._datadesc, after calculating all the derived values,
       and checking for consistency. 
       """
+      tqs = kwargs.get('treequals',None) 
       is_complex = kwargs.get('complex',None) 
       dims = kwargs.get('dims',None) 
       color = kwargs.get('plotcolor',None) 
       symbol = kwargs.get('plotsymbol',None) 
       size = kwargs.get('plotsize',None) 
-      tqs = kwargs.get('treequals',None) 
 
       if not getattr(self,'_datadesc',None):       # does not exist yet
          self._datadesc = dict()
@@ -324,30 +324,6 @@ class clumpcore (object):
       
 
    #=========================================================================
-   #=========================================================================
-
-   def commensurate(self, other, severe=False, trace=False):
-      """Return True if the given (other) Clump is commensurate,
-      i.e. it has the same self._nodequals (NOT self._datadesc['treequals']!)
-      """
-      cms = True
-      if not self.size()==other.size():
-         cms = False
-      else:
-         snq = self._nodequals
-         onq = other._nodequals
-         for i,qual in enumerate(snq):
-            if not qual==onq[i]:
-               cms = False
-               break
-      if not cms:
-         s = '\n** '+self.oneliner()+'   ** NOT COMMENSURATE ** with:'
-         s += '\n   '+other.oneliner()+'\n'
-         if severe:
-            self.ERROR(s)
-         if trace:
-            print s
-      return cms
 
    #=========================================================================
    # Some general helper functions
@@ -414,10 +390,11 @@ class clumpcore (object):
       if not self._qual==None:
          ss += ' qual='+str(self._qual)
       ss += '  size='+str(self.size())
+      ss += '  len()='+str(len(self))
+      if self._composed:
+         ss += '(composed)'
       if self._slaveof:
          ss += '  slaved'
-      if self._composed:
-         ss += '  (composed)'
       return ss
 
    #--------------------------------------------------------------------------
@@ -427,9 +404,9 @@ class clumpcore (object):
       Format a summary of the contents of the object.
       If doprint=True, print it also.  
       """
-      ss = ''
       if not prefix[0]=='\n':
           prefix = '\n'+prefix
+      ss = prefix+' Generic (all Clump classes):'
       
       #.....................................................
       if isinstance(self._input_clump, list):
@@ -444,7 +421,6 @@ class clumpcore (object):
 
       #.....................................................
 
-      ss += prefix+' * Generic (baseclass Clump):'
       ss += prefix+' * self.core._object_is_selected: '+str(self._object_is_selected)    
       ss += prefix+' * self.core._name = '+str(self._name)
       ss += prefix+' * self.core._qual = '+str(self._qual)
@@ -500,7 +476,7 @@ class clumpcore (object):
       ss += self.history(format=True, prefix='   | ')
 
       #.....................................................
-      ss += prefix+'**\n'
+      # ss += prefix+'**'
       if doprint:
          print ss
       return ss
@@ -642,28 +618,30 @@ class clumpcore (object):
    #=========================================================================
 
    def indices(self, subset='*', severe=True, nodelist=None, trace=False):
-      """Return a list of valid tree indices, according to subset[='*'].
+      """Return a list of valid tree (node) indices, according to subset[='*'].
+      NB: In the 'composed' state, the result will be [0].
       If subset is an integer, return that many (regularly spaced) indices.
       If subset is a list, check their validity.
       If subset is a string (e.g. '*'), decode it.
       """
+      trace = True
       s = '.indices('+str(subset)+'):'
 
       # Turn subset into a list:
       if isinstance(subset,str):
          if subset=='*':
-            ii = range(self.size())
+            ii = range(len(self))
          else:
             self.ERROR(s)
       elif isinstance(subset,int):
-         ii = range(min(subset,self.size()))      # ..../??
+         ii = range(min(subset,len(self)))  
       elif not isinstance(subset,(list,tuple)):
          self.ERROR(s)
       else:
          ii = list(subset)
 
       # Check the list elements:
-      imax = self.size()
+      imax = len(self)
       for i in ii:
          if not isinstance(i,int):
             self.ERROR(s)
@@ -711,21 +689,6 @@ class clumpcore (object):
 
 
    #=========================================================================
-   #=========================================================================
-
-   def ParmClumps(self, append=None, trace=False):
-      """Access to the internal list of ParmClumps
-      """
-      if isinstance(append,list):
-         self._ParmClumps.extend(append)
-      elif append:
-         self._ParmClumps.append(append)
-      if trace:
-         print '\n** ParmClumps'+len(self._ParmClumps)+':'+self.oneliner()
-         for i,pc in enumerate(self._ParmClumps):
-            print '-',i,':',str(pc)
-         print
-      return self._ParmClumps
 
 
 
@@ -781,6 +744,7 @@ if __name__ == '__main__':
             print '-',s
                
    print '\n** End of standalone test of: clumpcore.py:\n' 
+
 
 #=====================================================================================
 # Things to be done:

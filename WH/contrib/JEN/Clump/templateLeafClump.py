@@ -81,9 +81,9 @@ class templateLeafClump(Clump.LeafClump):
       """
       # The data-description may be defined by means of kwargs: 
       treequals = range(3)           # default list of tree qualifiers
-      dd = self.core.datadesc(complex=kwargs.get('complex',False),
-                              treequals=kwargs.get('treequals',treequals),
-                              dims=kwargs.get('dims',[1]))
+      dd = self.datadesc(complex=kwargs.get('complex',False),
+                         treequals=kwargs.get('treequals',treequals),
+                         dims=kwargs.get('dims',[1]))
 
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
@@ -96,25 +96,20 @@ class templateLeafClump(Clump.LeafClump):
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
          leaftype = self.getopt('leaftype')
-         self.core._nodes = []
          stub = self.unique_nodestub(leaftype)
          for i,qual in enumerate(self.nodequals()):
             if leaftype=='parm':
-               node = stub(qual) << Meq.Parm(i)
+               self[i] = stub(qual) << Meq.Parm(i)
             elif leaftype=='freq':
-               node = stub(qual) << Meq.Freq()
+               self[i] = stub(qual) << Meq.Freq()
             elif leaftype=='time':
-               node = stub(qual) << Meq.Time()
+               self[i] = stub(qual) << Meq.Time()
             elif leaftype=='freq+time':
-               node = stub(qual) << Meq.Add(self.ns() << Meq.Freq(),
+               self[i] = stub(qual) << Meq.Add(self.ns() << Meq.Freq(),
                                             self.ns() << Meq.Time())
             else:
-               node = stub(qual) << Meq.Constant(i)
-            self.core._nodes.append(node)
-         # Mandatory counterpart of self.execute_body()
+               self[i] = stub(qual) << Meq.Constant(i)
          self.end_of_body(ctrl)
-
-      # Mandatory counterpart of self.on_entry()
       return self.on_exit(ctrl)
 
 
