@@ -67,22 +67,28 @@ class JonesClump(Clump.LeafClump):
       """
       Derived from class LeafClump.
       """
-      # This should be in every JonesClump class:
-      self.datadesc(complex=True, dims=[2,2])
+      # All Jones matrices are 2x2 and complex.
+      # The kwargs are picked up in Clump.__init__() below.
+      kwargs['dims'] = [2,2]
+      kwargs['complex'] = True
 
-      # This bit is instrument-specific:
+      # The form of some Jones matrices depends on the
+      # polarization representation (linear,circular)
+      # This may be specified by means of kwargs.
+      self._polrep = kwargs.get('polrep', None)   # default: not specific 
+
+      # Use the WSRT array as the default (overridden by kwargs):
       treequals = range(8,10)+list('AB')          # default treequals (WSRT)
       treequals = ['RT8','RT9','RTA','RTB']       # default treequals (WSRT)
-      self.datadesc(treequals=kwargs.get('treequals', treequals))
+      kwargs.setdefault('treequals', treequals)
 
-      # Polarization representation:
-      self._polrep = kwargs.get('polrep', None)
-      
+      # Make a dict of MeqParm arguments (used in Meq.Parm() below)
       # This needs a little thought...:
       rr = dict()
       for key in ['use_previous','table_name']:
          rr['use_previous'] = kwargs.get('use_previous', True)
       self._MeqParm_parms = rr
+
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
 
@@ -139,8 +145,11 @@ class JonesClump(Clump.LeafClump):
          i11 = self.ParmClump('imag11', default=0.0)
 
          # Generate nodes:
+         # r00.show('inside')
+         # self.show('inside')
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
+            # print '-',i,qual,r00[i],i00[i]
             elem00 = stub(qual)('00') << Meq.ToComplex(r00[i],i00[i])
             elem01 = stub(qual)('10') << Meq.ToComplex(r01[i],i01[i])
             elem10 = stub(qual)('01') << Meq.ToComplex(r01[i],i01[i])
@@ -318,6 +327,9 @@ class XXXJones(JonesClump):
    def initexec (self, **kwargs):
       """
       Re-implemented version of the function in the baseclass (LeafClump).
+      NB: This function is generic. Classes derived from XXXJones should
+      re-implement .make_jones_sequence() below.
+      See e.g. class WSRTJones.WSRTJones.
       """
       prompt = 'Jones: '+str(self.name())
       help = """Specify a sequence (product) of zero or more Jones matrices.
@@ -348,10 +360,17 @@ class XXXJones(JonesClump):
    #----------------------------------------------------------------------------
 
    def make_jones_sequence(self, **kwargs):
-      """Function to be re-implemented in derived classes.
+      """Function to be re-implemented in classes derived from XXXJones.
+      See e.g. the class WSRTJones.WSRTJones, or VLAJones.VLAJones.
+      Called by .initexec() above (which is generic in XXXJones classes). 
       """
-      treequals = range(8,10)+list('AB')          # default treequals (WSRT)
+      # The number and names of the stations/antennas of the array are
+      # specified by means of a list of station/antenna tree qualifiers.
+      treequals = range(8,10)+list('AB')                   # default: WSRT 
       self.datadesc(treequals=kwargs.get('treequals', treequals))
+
+      # Make a list of JonesClumps in the correct order (of the M.E.).
+      # The ones selected (by the user) will be matrix-multiplied. 
       jj = []
       notsel = []
       JonesClump(self, name='AJones').append_if_selected(jj, notsel)
@@ -481,7 +500,14 @@ if __name__ == '__main__':
 
    if 0:
       clump = JonesClump(trace=True)
-   else:
+
+   if 1:
+      clump = GJones(trace=True)
+
+   if 1:
+      clump = BJones(trace=True)
+
+   if 0:
       clump = XXXJones(trace=True)
 
    if 1:

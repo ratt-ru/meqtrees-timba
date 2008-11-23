@@ -81,12 +81,12 @@ class ParmClump(Clump.LeafClump):
       Format the specific (non-generic) contents of the class.
       Placeholder for re-implementation in derived class.
       """
-      ss = '\n + Specific (derived class '+str(self.typename())+'):'
-      ss += '\n + self._MeqParm_parms: '
+      ss = '\n + self._MeqParm_parms: '
       rr = self._MeqParm_parms
       for key in rr.keys():
          ss += '\n   - '+str(key)+' = '+str(rr[key])
-      ss += '\n + MeqParm[0].initrec(): '+str(self[0].initrec())
+      if is_node(self[0]):
+         ss += '\n + MeqParm[0].initrec(): '+str(self[0].initrec())
       return ss
 
 
@@ -237,19 +237,20 @@ class ParmListClump(Clump.ListClump, ParmClump):
 #********************************************************************************
 #********************************************************************************
 #********************************************************************************
-# Derived class PolyParm:
+# Derived class PolyCoeff:
 #********************************************************************************
 
-class PolyParm(ParmClump):
+class PolyCoeff(ParmClump):
    """
-   Contains the coefficients of a 1D polynomial c0 + c1*x + c2*x*x + ....
+   Contains the coefficients of a 2D polynomial c0 + c1*x + c2*x*x + ....
    """
 
-   def __init__(self, nodelist=None, **kwargs):
+   def __init__(self, **kwargs):
       """
       Derived from clas ParmClump.
       """
-      ParmClump.__init__(self, nodelist, **kwargs)
+      
+      ParmClump.__init__(self, **kwargs)
       return None
 
    #--------------------------------------------------------------------
@@ -260,35 +261,44 @@ class PolyParm(ParmClump):
       help = 'definition of ndeg MeqParm polynomial coeff: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
-      if self.execute_body(always=True):           
+      self._xdeg = max(0,kwargs.get('xdeg',0))    # degree in x-direction
+      self._ydeg = max(0,kwargs.get('ydeg',0))    # degree in y-direction
 
-         ndeg = kwargs.get('ndeg',1)
+      if self.execute_body(always=True):           
 
          # Generate the MeqParm node(s):
          rr = dict()
+         default = 0.0
          stub = self.unique_nodestub()
-         treequals = []
-         for i in range(ndeg):
-            qual = i
-            treequals.append(qual)
-            self[i] = stub(qual) << Meq.Parm(0.0, **rr)
-
-         self.datadesc(treequals=treequals)
+         self._terms = dict()
+         self.clear()
+         for i in range(self._xdeg):
+            for j in range(self._ydeg):
+               qual = str(i)+str(j)
+               node = stub(qual) << Meq.Parm(default, **rr)
+               self._terms[qual] = node           # see .effixy() 
+               self.append(node)
+               
+         # Adjust the data-description:
+         self.datadesc(treequals=self._terms.keys())
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
          self.ParmClumps(append=self)
 
-         # Mandatory counterpart of self.execute_body()
          self.end_of_body(ctrl)
-
-      # Mandatory counterpart of self.on_entry()
       return self.on_exit(ctrl)
 
 
    #----------------------------------------------------------------------------
 
-   def effix (self, x=0.0, name='effix', trace=False):
-      """Return a node that represents f(x), for given value/node x.
+   def factor(self, qual='00', x=0, y=0, trace=False):
+      """
+      """
+
+   #----------------------------------------------------------------------------
+
+   def effixy (self, x=0.0, y=0.0, name='effixy', trace=False):
+      """Return a node that represents f(x,y), for given values/nodes (x,y).
       """
       terms = []
       stub = self.unique_nodestub(name=name)
@@ -337,17 +347,17 @@ def do_define_forest (ns, TCM):
    submenu = TCM.start_of_submenu(do_define_forest,
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
-   TCM.add_option('test_class',['ParmClump','ParmListClump','PolyParm'],
+   TCM.add_option('test_class',['ParmClump','ParmListClump','PolyCoeff'],
                                 prompt='class to be tested:')
    clump = None
    if TCM.submenu_is_selected():
       test_class = TCM.getopt('test_class', submenu)
 
-      if test_class=='PolyParm':
-         clump = PolyParm(ndeg=3, ns=ns, trace=True)
+      if test_class=='PolyCoeff':
+         clump = PolyCoeff(ndeg=3, ns=ns, trace=True)
          if True:
             for x in [3,-4]:
-               node = clump.effix(x)
+               node = clump.effixy(x)
                print '.effix(',x,') -> ',str(node)
 
       elif test_class=='ParmListClump':
@@ -395,13 +405,17 @@ if __name__ == '__main__':
       TCM = Clump.TOM.TDLOptionManager()
       print TCM.oneliner()
 
-   if 0:
-      clump = ParmClump(trace=True)
-
    if 1:
-      clump = PolyParm(ndeg=3, trace=True)
+      c1 = None
+      if 1:
+         c1 = Clump.LeafClump(treequals=range(5))
+         c1.show('input clump (c1)')
+      clump = ParmClump(c1, trace=True)
+
+   if 0:
+      clump = PolyCoeff(ndeg=3, trace=True)
       for x in [3,-4]:
-         node = clump.effix(x)
+         node = clump.effixy(x)
          print '.effix(',x,') -> ',str(node)
 
    if 0:

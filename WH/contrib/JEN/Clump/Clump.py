@@ -79,8 +79,8 @@ class Clump (object):
    def __init__(self, clump=None, **kwargs):
       """
       Initialize the Clump object, according to its type (see .init()).
-      If another Clump of the same class is specified (use), use its
-      defining characteristics (in self.datadesc() etc)
+      If another Clump of the same class is specified (use), transfer its
+      defining characteristics (datadesc etc), and possibly its nodes.
       """
       # Every Clump object has a clumpcore object:
       typename = str(type(self)).split('.')[-1].split("'")[0]
@@ -134,11 +134,11 @@ class Clump (object):
       This is similar to, but slightly different from, what is done in the
       function self.transfer_clump_nodes(), which merely continues the mainstream.
       """
-      self.core.graft_to_stubtree(clump._stubtree)
-      self.core._orphans.extend(clump.core._orphans)                 # group them first?
+      self.core.graft_to_stubtree(clump.core._stubtree)
+      self.core._orphans.extend(clump.core._orphans)             # group them first?
       self.core._ParmClumps.extend(clump.core._ParmClumps)       
       self.core.copy_history(clump)
-      self.history('.connect_grafted_clump(): '+clump)
+      self.history('.connect_grafted_clump(): '+str(clump))
       return True
 
    #--------------------------------------------------------------------------
@@ -248,13 +248,14 @@ class Clump (object):
       ss += self.core.show(full=full, doprint=False)
 
       #.....................................................
+      ss += prefix+'++ Specific (derived class '+str(self.typename())+'):'
       ss += self.show_specific()
 
       #.....................................................
       ss += prefix+' + Local attributes (start with self._):'
       cc = dir(self)
       for s in cc:
-          a = getattr(clump,s,None)
+          a = getattr(self,s,None)
           if s[0:2]=='__':
               # ss += prefix+'   - '+s
               pass  
@@ -263,6 +264,14 @@ class Clump (object):
               pass
           elif getattr(a,'oneliner',None):
               ss += prefix+'   - '+s+' = '+str(a.oneliner())
+          elif isinstance(a,dict):
+              ss += prefix+'   - '+s+':'
+              for key in a.keys():
+                  v = a[key]
+                  if getattr(v,'oneliner',None):
+                      ss += prefix+'     - '+str(key)+' = '+str(v.oneliner())
+                  else:
+                      ss += prefix+'     - '+str(key)+' = '+str(EF.format_value(v))
           else:
               ss += prefix+'   - '+s+' = '+str(EF.format_value(a))
       
@@ -283,14 +292,15 @@ class Clump (object):
       return ss
 
    #-------------------------------------------------------------------------
+   #-------------------------------------------------------------------------
 
    def show_specific(self):
       """
       Format the specific (non-generic) contents of the class.
       Placeholder for re-implementation in derived class.
       """
-      ss = '\n ++ Specific (derived class '+str(self.typename())+'):'
-      # ss += '\n    + ...'
+      ss = ''
+      ss += '\n      + ...'
       return ss
 
 
@@ -388,6 +398,33 @@ class Clump (object):
 
    #--------------------------------------------------------------------------
 
+   def clear(self):
+       """Clear the internal node-list [].
+       """
+       self.core._nodes = []
+       self._nodequals = []
+       return True
+
+   #--------------------------------------------------------------------------
+
+   def append(self, node=None, clear=False):
+       """Append the given node(s) to the internal list.
+       If clear=True, set the internal list to [] first.
+       NB: the user should keep track of treequals/nodequals!!
+       Still, this is safer than using .__add__() below.
+       """
+       if clear:
+           self.clear()
+       if is_node(node):
+           self.core._nodes.append(node)
+       elif isinstance(node,list):
+           self.core._nodes.extend(node)
+       else:
+           self.ERROR('the node is not a node, but: '+str(type(node)))
+       return len(self)
+
+   #--------------------------------------------------------------------------
+
    def __add__(self, node):
       """Add (append) the given node(s) to the list self.core._nodes.
       Syntax: clump + node   or: clump + [node1,node2,...]
@@ -417,7 +454,14 @@ class Clump (object):
       NB: This is a VERY important function, with many uses.
       See 'Learning Python', pp 329-330.
       """
-      return self.core._nodes[index]
+      if not getattr(self.core,'_nodes',None):     # does not exist yet
+          self.core._nodes = self.size()*[None]
+      elif index<0 or index>=len(self):
+          self.ERROR('node index out of range: '+str(index)+'/'+str(len(self)))
+      node = self.core._nodes[index]
+      if not is_node(node):
+          self.history('.__getitem__('+str(index)+'): node = '+str(node), trace=True)
+      return node
 
    #--------------------------------------------------------------------------
 
@@ -951,7 +995,7 @@ class Clump (object):
       """Get all the solvable parameters from the entries of self.core._ParmClumps.
       """
       solvable = []
-      for pc in self.core.ParmClumps():
+      for pc in self.ParmClumps():
          ss = pc.solspec(select=True)
          solvable.extend(ss)
          s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
@@ -960,7 +1004,7 @@ class Clump (object):
 
       if len(solvable)==0:
          self.WARNING('No solvable MeqParms specified! (using defaults)')
-         ss = self.core.ParmClumps()[0].solspec(always=True)
+         ss = self.ParmClumps()[0].solspec(always=True)
          solvable = ss
          s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
          s += '(default!) solvable MeqParms from: '+pc.oneliner()
@@ -1371,15 +1415,11 @@ class LeafClump(Clump):
       """
       Derived from class Clump.
       """
-      # Make sure that a visible option/selection menu is generated
-      # for all LeafClump classes.
+      # The following (among many other things) executes the function
+      # self.initexec(**kwargs), which is re-implemented below.
       kwargs['select'] = True                           # always make a clump selection menu
       kwargs['transfer_clump_nodes'] = False            # see Clump.__init___()
-
-      # The following executes the function self.initexec(**kwargs),
-      # which is re-implemented below.
       Clump.__init__(self, clump=clump, **kwargs)
-      
       return None
 
 
@@ -1399,11 +1439,6 @@ class LeafClump(Clump):
 
       help = 'make leaf nodes for: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
-
-      # The data-description may be (re-)defined by means of kwargs:
-      self.datadesc(complex=kwargs.get('complex',False),
-                    treequals=kwargs.get('treequals',range(3)),
-                    dims=kwargs.get('dims',1))
 
       # Execute always (always=True), to ensure that the leaf Clump has nodes:
       if self.execute_body(always=True):
@@ -1461,6 +1496,7 @@ class ListClump(Clump):
       if len(nn)==0:
          self.ERROR('** nodelist is empty')
       self._input_nodelist = nn                # used in .initexec()
+      kwargs['treequals'] = range(len(nn))
 
       # Create the Clump:
       kwargs['transfer_clump_nodes'] = False   # required!
@@ -1475,17 +1511,10 @@ class ListClump(Clump):
       Re-implementation of the function in class Clump.
       It puts the nodes from the input nodelist into the Clump.
       """
-      nn = self._input_nodelist        # see .__init__() above
-      
-      # The data-description may be defined by means of kwargs:
-      self.datadesc(complex=kwargs.get('complex',False),
-                    treequals=range(len(nn)), 
-                    dims=kwargs.get('dims',1))
-
       # Fill the Clump with the input nodelist: 
       self.core._nodes = []
       self.core._nodequals = []
-      for i,node in enumerate(nn):
+      for i,node in enumerate(self._input_nodelist):
          self.core._nodes.append(node)
          self.core._nodequals.append(i)
       self.core._composed = False
@@ -1556,7 +1585,11 @@ if __name__ == '__main__':
       clump = Clump(trace=True)
 
    if 1:
-      clump = LeafClump(trace=True)
+      c1 = None 
+      if 1:
+          c1 = Clump(treequals=range(5))
+          c1.show()
+      clump = LeafClump(c1, trace=True)
 
    if 0:
       cc = []
@@ -1684,7 +1717,7 @@ if __name__ == '__main__':
       clump = Clump(clump, select=True).daisy_chain(trace=True)
       clump.show('daisy_chain()', full=True)
 
-   if 1:
+   if 0:
       clump.show('final', full=True)
 
    #-------------------------------------------------------------------

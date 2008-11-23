@@ -68,17 +68,15 @@ class clumpcore (object):
    def __init__(self, clump=None, typename='<typename>', **kwargs):
       """
       """
+      # Keep the inputs for later reference:
+      self._input_clump = clump
+      self._typename = typename
+      self._input_kwargs = kwargs
 
       # These need a little more thought:
       kwargs.setdefault('select', None)                 # <------- !!?
       trace = kwargs.get('trace',False)                 # <------- !!?
-
       self._slaveof = kwargs.get('slaveof',None)        # <------- !!?
-
-      self._input_kwargs = kwargs
-
-      # Make a short version of the actual type name (e.g. Clump)
-      self._typename = typename
 
       # The Clump node names are derived from name and qualifier:
       self._name = kwargs.get('name',None)       
@@ -123,7 +121,7 @@ class clumpcore (object):
       # defined yet (i.e. in the case that there is no input Clump):
       #......................................................................
 
-      self.transfer_clump_definition(clump, trace=False)
+      self.transfer_clump_definition(trace=False)
 
       if not isinstance(self._name,str):    # Generate an automatic object name, if necessary      
          self._name = self._typename        # e.g. 'Clump'     
@@ -146,6 +144,8 @@ class clumpcore (object):
       #......................................................................
 
       self._nodes = []
+      self._composed = False
+      self._nodequals = []
       if self._input_clump:
          if kwargs.get('transfer_clump_nodes',True):
             self.transfer_clump_nodes()
@@ -163,8 +163,12 @@ class clumpcore (object):
             
       if not getattr(self,'_datadesc',None):     # does not exist yet
          self._datadesc = dict()
-         self.datadesc(complex=False, dims=[1], treequals=range(3),
-                       plotcolor='red', plotsymbol='cross', plotzize=1)
+         self.datadesc(complex=kwargs.get('complex',False),
+                       treequals=kwargs.get('treequals',range(3)), 
+                       plotcolor=kwargs.get('plotcolor','red'),
+                       plotsymbol=kwargs.get('plotsymbol','cross'),
+                       plotsize=kwargs.get('plotsize',1),
+                       dims=kwargs.get('dims',1))
 
       self._object_is_selected = False           # see .execute_body()
 
@@ -181,17 +185,19 @@ class clumpcore (object):
       tqs = kwargs.get('treequals',None) 
       is_complex = kwargs.get('complex',None) 
       dims = kwargs.get('dims',None) 
-      color = kwargs.get('plotcolor',None) 
-      symbol = kwargs.get('plotsymbol',None) 
-      size = kwargs.get('plotsize',None) 
+      plotcolor = kwargs.get('plotcolor',None) 
+      plotsymbol = kwargs.get('plotsymbol',None) 
+      plotsize = kwargs.get('plotsize',None) 
 
       if not getattr(self,'_datadesc',None):       # does not exist yet
          self._datadesc = dict()
-      dd = self._datadesc                          # convenience
+      dd = self._datadesc                     # convenience
 
+      #..........................................................
       if isinstance(is_complex,bool):              # data type
          dd['complex'] = is_complex            
 
+      #..........................................................
       if dims:                                     # tensor dimensions
          if isinstance(dims,int):                 
             dd['dims'] = [dims]
@@ -200,6 +206,7 @@ class clumpcore (object):
          else:
             self.ERROR('** dims should be integer or list')
 
+      #..........................................................
       if not tqs==None:                            # Clump tree qualifiers
          if isinstance(tqs,str):                   # string 
             dd['treequals'] = list(tqs)            # -> list of chars (..?)
@@ -214,17 +221,20 @@ class clumpcore (object):
          dd['treelabels'] = []
          for i,qual in enumerate(dd['treequals']):
             dd['treelabels'].append(str(qual))
+
          # The nodes are generated using self._nodequals
          self._nodequals = dd['treequals']         # node qualifiers
          self._composed = False                    # see .compose() and .decompose()
+         self._nodes = len(self._nodequals)*[None] # make a list of the correct length
 
+      #..........................................................
       # Plotting information:
-      if color:
-         dd['plotcolor'] = color
-      if symbol:
-         dd['plotsymbol'] = symbol
-      if size:
-         dd['plotsize'] = size
+      if plotcolor:
+         dd['plotcolor'] = plotcolor
+      if plotsymbol:
+         dd['plotsymbol'] = plotsymbol
+      if plotsize:
+         dd['plotsize'] = max(1,plotsize)
 
       #..........................................................
       # Derived attributes:
@@ -242,6 +252,32 @@ class clumpcore (object):
                dd['elems'].append(str(i)+str(j))
 
       #..........................................................
+      # Check the internal consistency:
+
+      if not getattr(self,'_composed',None):
+          self._composed = False
+
+      tqs = dd['treequals']
+      if not getattr(self,'_nodequals',None):
+          self._nodequals = tqs
+          self._composed = False
+      elif not isinstance(self._nodequals,list):
+          self._nodequals = tqs
+          self._composed = False
+      elif not len(self._nodequals)==len(tqs):
+          self._nodequals = tqs
+          self._composed = False
+
+      nqs = self._nodequals
+      if not getattr(self,'_nodes',None):
+         self._nodes = len(nqs)*[None]
+      elif not isinstance(self._nodes,list):
+         self._nodes = len(nqs)*[None]
+      elif not len(self._nodes)==len(nqs):
+         self._nodes = len(nqs)*[None]
+
+
+      #..........................................................
       # Always return a copy (!) of the self-consistent datadesc:
       return self._datadesc
 
@@ -250,39 +286,40 @@ class clumpcore (object):
    # Functions that deal with the input Clump (if any)
    #==========================================================================
 
-   def transfer_clump_definition(self, clump, trace=False):
+   def transfer_clump_definition(self, trace=False):
       """Transfer the clump definition information from the given Clump.
       Most attributes are transferred ONLY if not yet defined
       Some attributes (like self._datadesc) are transferred always(!)
       """
+      clump = self._input_clump              # convenience
+
       # trace = True
       if trace:
-         print '\n** transfer_clump_definition(): clump=',type(clump)
-
-      self._input_clump = clump
-
-      if clump:
+         print '\n** transfer_clump_definition(): clump=',type(clump),clump
+         
+      if not clump==None:
          # Most attributes are transferred ONLY if not yet defined
          # (e.g. by means of the input **kwargs (see .__init__())
          if not isinstance(self._name,str):
-            self._name = '('+clump._name+')'
+            self._name = '('+clump.core._name+')'
          if self._qual==None:
-            self._qual = clump._qual
+            self._qual = clump.core._qual
          if self._kwqual==None:
-            self._kwqual = clump._kwqual
+            self._kwqual = clump.core._kwqual
          if self._ns==None:
-            self._ns = clump._ns
+            self._ns = clump.core._ns
          if self._TCM==None:
-            self._TCM = clump._TCM
+            self._TCM = clump.core._TCM
 
          # Some attributes are transferred always(!):
          self._datadesc = clump.datadesc().copy()               # .... copy()!
-         self._stage['count'] = 1+clump._stage['count']         # <--------!!
+         self.datadesc()
+         self._stage['count'] = 1+clump.core._stage['count']         # <--------!!
          self._stage['ops'] = -1                                # reset
-         self._stage['name'] = clump._stage['name']             # <--------!!
-         clump._stage['ncopy'] += 1
-         self._stage['ncopy'] = clump._stage['ncopy']           # <--------!!
-         self._rider.update(clump._rider)                       # .update()?
+         self._stage['name'] = clump.core._stage['name']             # <--------!!
+         clump.core._stage['ncopy'] += 1
+         self._stage['ncopy'] = clump.core._stage['ncopy']           # <--------!!
+         self._rider.update(clump.core._rider)                       # .update()?
          # self._rider.update(clump.rider())                      # .update()?
       return True
 
@@ -312,6 +349,7 @@ class clumpcore (object):
          self.copy_history(clump, clear=True)
       return True
 
+
    #========================================================================
 
    def graft_to_stubtree(self, node):
@@ -324,6 +362,62 @@ class clumpcore (object):
       
 
    #=========================================================================
+
+   def unique_nodestub (self, *qual, **kwqual):
+      """
+      Convenience function to generate a (unique) nodestub for tree nodes.
+      The stub is then initialized (which helps the uniqueness determination!)
+      and attached to the internal subtree of stub-nodes, which would otherwise
+      be orphaned. They are used to carry quickref-help information, which
+      can be used in the various bookmark pages.
+      """
+      trace = False
+      # trace = True
+
+      # Make a list of qualifiers:
+      qual = list(qual)
+      self._stage['ops'] += 1
+
+      if False:
+         # NB: This pollutes Parm names etc...
+         at = '@'+str(self._stage['count'])
+         at += '-'+str(self._stage['ops'])
+         qual.insert(0, at)
+
+      if not self._qual==None:
+         if isinstance(self._qual,list):
+            qual.extend(self._qual)
+         else:
+            qual.append(self._qual)
+
+      # Deal with the node name:
+      name = self._name                            # default name
+      if kwqual.has_key('name'):                   # specified explicitly
+         if isinstance(kwqual['name'],str):
+            name += ':'+kwqual['name']             # use if string
+         kwqual.__delitem__('name')                # delete from kwqual
+
+      # Make the unique nodestub:
+      stub = EN.unique_stub(self._ns, name, *qual, **kwqual)
+
+      # Initialize the stub (uniqueness criterion!):
+      if not self._stubtree:                       # the first one
+         node = stub << Meq.Constant(-0.1223456789)
+      else:                                        # subsequent ones
+         node = stub << Meq.Identity(self._stubtree)
+         
+      # Attach the help (view with QuickRef viewer)
+      # format, and attach some extra info....?
+         ## help = rider.format_html(path=rider.path())
+      # node.initrec().quickref_help = help
+
+      # Replace the rootnode of the stub-tree:
+      self._stubtree = node
+
+      if trace:
+         print '\n** .unique_nodestub(',qual,') ->',str(stub)
+      return stub
+
 
    #=========================================================================
    # Some general helper functions
@@ -434,6 +528,9 @@ class clumpcore (object):
       dd = self._datadesc
       for key in dd.keys():
          ss += prefix+'   - '+str(key)+' = '+str(dd[key])
+
+      ss += prefix+' * self.core._composed: '+str(self._composed)
+      ss += prefix+' * self.core._nodequals: '+str(self._nodequals)
 
       #.....................................................
 
