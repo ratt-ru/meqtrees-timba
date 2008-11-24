@@ -832,6 +832,7 @@ class ExistingLogEntryDialog (QDialog):
       return;
     busy = Purr.BusyIndicator();
     self.editor.updateEntry();
+    self.updated = False;
     self.setCaption(self.entry.title);
     self.viewer.setText(file(self.entry.index_file).read());
     self.wstack.raiseWidget(self.viewer_panel);
