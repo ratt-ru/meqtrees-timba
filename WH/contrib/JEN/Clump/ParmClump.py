@@ -64,30 +64,25 @@ class ParmClump(Clump.LeafClump):
       Derived from class LeafClump.
       """
 
-      rr = dict() 
-      rr['default'] = default
-      rr['use_previous'] = kwargs.get('use_previous', True)
-      rr['table_name'] = kwargs.get('table_name', None) 
-      rr['node_groups'] = 'Parm'
-      self._MeqParm_parms = rr
+      # The following are used in the Meq.Parm() constructor:
+      # See .initexec() below
+      self._default = default
+      mpp = dict()
+      mpp['use_previous'] = kwargs.get('use_previous', True) 
+      mpp['table_name'] = kwargs.get('table_name', None) 
+      self._MeqParm_parms = mpp
+
+      # The following are used in .solspec() to modify MeqParm.initrec()
+      # See also the helper function .make_choice()
+      ssp = dict()
+      keys = ['tdeg','fdeg','ntime_subtile','nfreq_subtile']
+      for key in keys:
+         if kwargs.has_key(key):
+            ssp[key] = kwargs[key]
+      self._solspec_parms = ssp
 
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
       return None
-
-   #-------------------------------------------------------------------------
-
-   def show_specific(self):
-      """
-      Format the specific (non-generic) contents of the class.
-      Placeholder for re-implementation in derived class.
-      """
-      ss = '\n + self._MeqParm_parms: '
-      rr = self._MeqParm_parms
-      for key in rr.keys():
-         ss += '\n   - '+str(key)+' = '+str(rr[key])
-      if is_node(self[0]):
-         ss += '\n + MeqParm[0].initrec(): '+str(self[0].initrec())
-      return ss
 
 
    #==========================================================================
@@ -103,31 +98,18 @@ class ParmClump(Clump.LeafClump):
       help = 'definition of a set of similar MeqParms: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, help=help, **kwargs)
 
-      #..........................................................
-      if False:
-         self.add_option('use_previous', True,
-                         hide=True,
-                         help='if True, use the previous solution',
-                         prompt='use_previous')
-         self.add_option('table_name', [None,'test.mep'],
-                         more=str,
-                         hide=True,
-                         help='name of the file that contains the parmtable',
-                         prompt='.mep file')
-      #..........................................................
-
       # Execute always (always=True) , to ensure that the leaf Clump has nodes!
       if self.execute_body(always=True):           
 
-         default = self._MeqParm_parms['default']
-         rr = self._MeqParm_parms
-         rr.__delitem__('default')
+         mpp = self._MeqParm_parms
+         default = self._default
 
          # Generate the MeqParm node(s):
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
             qd = 'dflt='+str(default)
-            self[i] = stub(qual)(qd) << Meq.Parm(default, **rr)
+            self[i] = stub(qual)(qd) << Meq.Parm(default, **mpp)
+            print '-',i,qual,qd,str(self[i])
 
          # A ParmClump object is itself the only entry in its list of ParmClumps:
          self.ParmClumps(append=self)
@@ -142,33 +124,62 @@ class ParmClump(Clump.LeafClump):
    #============================================================================
    #============================================================================
 
+   def get_choice (self, key, choice=None, trace=False):
+      """Helper function to make a choice list for the named (key) TDLOption.
+      Normally, the specified choice list is used, but this may be modified by
+      means of ParmClump constructor kwargs in two ways:
+      - if key=value, prepend value to the choice list. This makes it the default.
+      - if key=[list], use that as the choice list.
+      """
+      ssp = self._solspec_parms                # convenience
+      hist = 'solspec('+str(key)+'): '
+      if not ssp.has_key(key):                 # not specified by kwargs
+         cc = choice                           # use the default choice
+         hist += 'use default choice -> '+str(cc)
+      else:
+         c = ssp[key]
+         if isinstance(c,list):
+            cc = c
+            hist += 'use external (kwargs) choice -> '+str(cc) 
+         else:
+            cc = [c] + choice
+            hist += 'use external (kwargs) default (='+str(c)+') -> '+str(cc) 
+      self.history(hist, trace=trace)
+      return cc
+            
+   #----------------------------------------------------------------------------
    
    def solspec (self, **kwargs):
       """
       A menu for the specification of the solving parameters for its MeqParms.
-      It returns a list of solvable parms, to be given to a MeqSolver. 
+      It returns a list of solvable parms, to be given to a MeqSolver.
+      This routine called by the solver object(!), not the ParmClump constructor.
+      This means that the menu-options are also settable in the solver!! 
       """
       help = 'specify solving parameters for the MeqParms of: '+self.oneliner()
       prompt = 'solve for: '+self.name()
       ctrl = self.on_entry(self.solspec, prompt=prompt, help=help, **kwargs)
 
-
-      self.add_option('fdeg', range(6),
+      self.add_option('fdeg', self.get_choice('fdeg', range(6)),
                       help='freq deg of polc',
                       prompt='freq deg')
-      self.add_option('tdeg', range(6),
+
+      self.add_option('tdeg', self.get_choice('tdeg', range(6)),
                       help='time deg of polc',
                       prompt='time deg')
 
-      self.add_option('nfreq_subtile', [None,1,2,3,4,5,10], more=int,
-                      hide=True,
+      choice = self.get_choice('nfreq_subtile', [None,1,2,3,4,5,10])
+      self.add_option('nfreq_subtile', choice, more=int,
+                      # hide=True,
                       help="size (freq-cells) of solving subtile")
-      self.add_option('ntime_subtile', [None,1,2,3,4,5,10], more=int,
-                      hide=True,
+
+      choice = self.get_choice('ntime_subtile', [None,1,2,3,4,5,10])
+      self.add_option('ntime_subtile', choice, more=int,
+                      # hide=True,
                       help="size (time-cells) of solving subtile")
 
-      solvable = []                        # return a list of solvable MeqParm names
-      always = kwargs.get('always',False)  # see e.g. SolverUnit.py
+      solvable = []                               # return a list of solvable MeqParm names
+      always = kwargs.get('always',False)         # see e.g. SolverUnit.py
       if self.execute_body(always=always):           
 
          tdeg = self.getopt('tdeg')
@@ -222,12 +233,20 @@ class ParmListClump(Clump.ListClump, ParmClump):
 
       # If not MeqParms, search the nodescope for MeqParms.
       if len(parms)==0:
-         # NB: This cannot be right! What about .solspec()????      
-         self.ERROR('** the nodes are NOT MeqParms')
-         parms = self.ns().Search(class_name='MeqParm')
-
-      if len(parms)==0:
-         self.ERROR('** no MeqParms found')
+         nodes = self.ns().Search(class_name='MeqParm')
+         parms = []
+         for node in nodes:
+            if node.classname=='MeqParm':
+               parms.append(node)
+         if len(parms)==0:
+            self.ERROR('** no MeqParms found')
+         else:
+            np = len(parms)
+            self.datadesc(treequals=range(np))
+            self.core._nodes = parms
+            self.history('used '+str(np)+' MeqParms found in nodescope')
+ 
+      # A ParmClump object is itself the only entry in its list of ParmClumps:
       self.ParmClumps(append=self)
 
       # self.history('Created from list of nodes', show_node=True)
@@ -410,7 +429,8 @@ if __name__ == '__main__':
       if 1:
          c1 = Clump.LeafClump(treequals=range(5))
          c1.show('input clump (c1)')
-      clump = ParmClump(c1, trace=True)
+      # clump = ParmClump(c1, trace=True)
+      clump = ParmClump(c1, trace=True, tdeg=[2,3], nfreq_subtile=2)
 
    if 0:
       clump = PolyCoeff(ndeg=3, trace=True)
@@ -437,7 +457,7 @@ if __name__ == '__main__':
 
    #--------------------------------------------------------
    
-   if 0:
+   if 1:
       clump.show('creation', full=True)
 
    if 0:
@@ -448,7 +468,7 @@ if __name__ == '__main__':
       solvable = clump.solspec()
       print '-> solvable:'
       for i,node in enumerate(solvable):
-         print '-',i,':',str(node)
+         print '-',i,':',str(node),'\n    ',node.initrec()
       print
       clump.show('after solspec()')
 

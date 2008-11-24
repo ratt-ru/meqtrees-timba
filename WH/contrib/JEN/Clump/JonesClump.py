@@ -250,8 +250,9 @@ class BJones(JonesClump):
 
    def initexec (self, **kwargs):
       """
-      GJones represents electronic bandpass. It is a uv-plane effect.
-      Rather generic, so most telescopes just reuse this class
+      BJones represents electronic bandpass. It is a uv-plane effect.
+      
+      It is rather generic, so most telescopes just reuse this class.
       (e.g. see WSRTJones.py).
       """
       prompt = 'BJones: '+self.name()
@@ -264,22 +265,23 @@ class BJones(JonesClump):
       if self.execute_body():
          mode = self.getopt('mode')
 
-         pp = dict(nfreq_subtile=[1,2],
-                   ntime_subtile=[None],
-                   fdeg=0,
-                   tdeg=[1,2])
+         # Specify the .solspec() parameters (see class ParmClump)
+         ssp = dict(nfreq_subtile=[1,2],
+                    ntime_subtile=[None],
+                    fdeg=0,
+                    tdeg=[1,2])
 
          # Create ParmClumps:
          if mode=='amphas':
-            gerrX = self.ParmClump('gerrX', default=1.0, **pp)
-            perrX = self.ParmClump('perrX', default=0.0, **pp)
-            gerrY = self.ParmClump('gerrY', default=1.0, **pp)
-            perrY = self.ParmClump('perrY', default=0.0, **pp)
+            gerrX = self.ParmClump('gerrX', default=1.0, **ssp)
+            perrX = self.ParmClump('perrX', default=0.0, **ssp)
+            gerrY = self.ParmClump('gerrY', default=1.0, **ssp)
+            perrY = self.ParmClump('perrY', default=0.0, **ssp)
          elif mode=='realimag':
-            rerrX = self.ParmClump('rerrX', default=1.0, **pp)
-            ierrX = self.ParmClump('ierrX', default=0.0, **pp)
-            rerrY = self.ParmClump('rerrY', default=1.0, **pp)
-            ierrY = self.ParmClump('ierrY', default=0.0, **pp)
+            rerrX = self.ParmClump('rerrX', default=1.0, **ssp)
+            ierrX = self.ParmClump('ierrX', default=0.0, **ssp)
+            rerrY = self.ParmClump('rerrY', default=1.0, **ssp)
+            ierrY = self.ParmClump('ierrY', default=0.0, **ssp)
 
          # Generate nodes:
          stub = self.unique_nodestub()
@@ -501,7 +503,7 @@ if __name__ == '__main__':
    if 0:
       clump = JonesClump(trace=True)
 
-   if 1:
+   if 0:
       clump = GJones(trace=True)
 
    if 1:
@@ -512,6 +514,11 @@ if __name__ == '__main__':
 
    if 1:
       clump.show('creation', full=True)
+
+   if 1:
+      p0 = clump.ParmClumps()[0]
+      p0.solspec()
+      p0.show('p0', full=True)
 
    if 0:
       clump.compose()
