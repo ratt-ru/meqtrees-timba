@@ -182,16 +182,24 @@ class clumpcore (object):
       """Return self._datadesc, after calculating all the derived values,
       and checking for consistency. 
       """
-      tqs = kwargs.get('treequals',None) 
       is_complex = kwargs.get('complex',None) 
       dims = kwargs.get('dims',None) 
+      tqs = kwargs.get('treequals',None) 
       plotcolor = kwargs.get('plotcolor',None) 
       plotsymbol = kwargs.get('plotsymbol',None) 
       plotsize = kwargs.get('plotsize',None) 
 
       if not getattr(self,'_datadesc',None):       # does not exist yet
-         self._datadesc = dict()
-      dd = self._datadesc                     # convenience
+         self._datadesc = dict(complex=kwargs.get('complex',False), 
+                               dims=kwargs.get('dims',1), 
+                               treequals=kwargs.get('treequals',range(3)), 
+                               plotcolor=kwargs.get('plotcolor','red'), 
+                               plotsymbol=kwargs.get('plotsymbol','cross'), 
+                               plotsize=kwargs.get('plotsize',1))
+         self._composed = False
+         self._nodequals = []
+         self._nodes = []
+      dd = self._datadesc                          # convenience
 
       #..........................................................
       if isinstance(is_complex,bool):              # data type
@@ -269,6 +277,7 @@ class clumpcore (object):
           self._composed = False
 
       nqs = self._nodequals
+      print 'nqs =',nqs
       if not getattr(self,'_nodes',None):
          self._nodes = len(nqs)*[None]
       elif not isinstance(self._nodes,list):
@@ -333,19 +342,19 @@ class clumpcore (object):
       if not clump:
          self.ERROR('** Clump: An input Clump should have been provided!')
 
-      elif getattr(clump,'_nodes',None):
+      if True:
          # Make sure that self._nodes is a COPY of clump._nodes
          # (so clump._nodes is not modified when self._nodes is).
          self._nodes = []
-         for i,node in enumerate(clump._nodes):
+         for i,node in enumerate(clump.core._nodes):
             self._nodes.append(node)
-         self._composed = clump._composed
-         self._nodequals = clump._nodequals
+         self._composed = clump.core._composed
+         self._nodequals = clump.core._nodequals
 
          # Connect orphans, stubtrees, history, ParmClumps etc
-         self.graft_to_stubtree(clump._stubtree)
-         self._orphans = clump._orphans
-         self._ParmClumps = clump._ParmClumps
+         self.graft_to_stubtree(clump.core._stubtree)
+         self._orphans = clump.core._orphans
+         self._ParmClumps = clump.core._ParmClumps
          self.copy_history(clump, clear=True)
       return True
 

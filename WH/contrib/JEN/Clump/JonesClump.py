@@ -371,8 +371,8 @@ class XXXJones(JonesClump):
 
       # Make a list of JonesClumps in the correct order (of the M.E.).
       # The ones selected (by the user) will be matrix-multiplied. 
-      jj = []
-      notsel = []
+      jj = []                       # list of selected Jones matrices
+      notsel = []                   # list of not selected ones
       JonesClump(self, name='AJones').append_if_selected(jj, notsel)
       JonesClump(self, name='BJones').append_if_selected(jj, notsel)
       JonesClump(self, name='CJones').append_if_selected(jj, notsel)

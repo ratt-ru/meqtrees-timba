@@ -77,20 +77,25 @@ class WSRTJones(JonesClump.XXXJones):
    #------------------------------------------------------------------------
 
    def make_jones_sequence(self, **kwargs):
-      """Function to be re-implemented in derived classes.
+      """Function to be re-implemented in classes derived from XXXJones.
+      Called by .initexec() above (which is generic in XXXJones classes). 
       """
-      # 
-      treequals = range(10)+list('ABCD')          # default treequals (WSRT)
+      # The number and names of the stations/antennas of the array are
+      # specified by means of a list of station/antenna tree qualifiers.
+      treequals = range(10)+list('ABCD')          # list of WSRT telescopes
       self.datadesc(treequals=kwargs.get('treequals', treequals))
 
-      jj = []
-      notsel = []
+      # Make a list of JonesClumps in the correct order (of the M.E.).
+      # The ones selected (by the user) will be matrix-multiplied. 
+      jj = []                       # list of selected Jones matrices
+      notsel = []                   # list of not selected ones
       # EJones(self).append_if_selected(jj, notsel)
       # RJones(self).append_if_selected(jj, notsel)
       FJones(self).append_if_selected(jj, notsel)
       GJones(self).append_if_selected(jj, notsel)
       BJones(self).append_if_selected(jj, notsel)
       # DJones(self).append_if_selected(jj, notsel)
+
       return (jj,notsel)
 
 
@@ -99,7 +104,7 @@ class WSRTJones(JonesClump.XXXJones):
 #*****************************************************************************      
 #*****************************************************************************      
 
-class GJones(JonesClump.JonesClump):
+class GJones(JonesClump.GJones):
    """
    Represents electronic gain.
    """
@@ -118,7 +123,7 @@ class GJones(JonesClump.JonesClump):
 #*****************************************************************************      
 #*****************************************************************************      
 
-class BJones(JonesClump.JonesClump):
+class BJones(JonesClump.BJones):
    """
    Represents electronic bandpass.
    """
@@ -335,8 +340,16 @@ if __name__ == '__main__':
 
    if 1:
       clump = WSRTJones(trace=True)
-   else:
+
+
+   if 0:
       clump = GJones(trace=True)
+
+   if 0:
+      clump = BJones(trace=True)
+
+   if 0:
+      clump = FJones(trace=True)
 
    if 1:
       clump.show('creation', full=True)

@@ -86,14 +86,15 @@ class AddNoise(Clump.Clump):
       ctrl = self.on_entry(self.initexec, prompt, help, **kwargs)
 
       dd = self.datadesc()                 # data description record
+      print dd
       self.add_option('stddev', [0.001,0.01,0.1,1.0,10.0,0.0])
       self.add_option('unops', [None,'Exp','Exp Exp','Sin Cos'], more=str)
 
       if self.execute_body():
+         self.show('inside')
          stddev = max(0.0, self.getopt('stddev'))
          unops = self.getopt('unops')
-         if isinstance(unops,str):
-            unops = unops.split(' ')
+         unops = self.check_unops(unops)
             
          if stddev>0.0:
             stub = self.unique_nodestub('stddev='+str(stddev))
@@ -118,10 +119,10 @@ class AddNoise(Clump.Clump):
                      cc.append(noise)
                   noise = stub('noise')(qual) << Meq.Composer(*cc)     
 
-               if isinstance(unops,list):
-                  # Apply one or more unary operation(s), if required (e.g. Exp):
-                  for unop in unops:
-                     noise = noise(unop) << getattr(Meq,unop)(noise)
+               # Apply zero or more unary operation(s), if required (e.g. Exp):
+               print '-',i,qual,str(noise)
+               for unop in unops:
+                  noise = noise(unop) << getattr(Meq,unop)(noise)
                self[i] = stub(qual) << Meq.Add(self[i], noise)
 
             self.visualize(select=False)
@@ -256,19 +257,27 @@ if __name__ == '__main__':
 
    if 1:
       tqs = range(10) + list('ABCD')
-      tqs = None
+      # tqs = None
       clump = Clump.LeafClump(trace=True,
                               complex=True,
                               dims=[2,2],
                               treequals=tqs)
-      clump = AddNoise(clump, trace=True)
-      clump = Scatter(clump, trace=True)
       clump.show('creation', full=True)
+
+   if 0:
+      clump = Clump.Clump(clump, trace=True)
+      clump.show('Clump', full=True)
+
+   if 1:
+      clump = AddNoise(clump, trace=True)
+
+   if 1:
+      clump = Scatter(clump, trace=True)
 
    if 0:
       clump.compose()
 
-   if 0:
+   if 1:
       clump.show('final', full=True)
 
    

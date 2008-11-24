@@ -154,8 +154,8 @@ class Clump (object):
       clump.core._orphans.extend(self.core._orphans)         # group them first?
       if full:
          clump.core.copy_history(self)
-         self.history('.connect_loose_ends() to: '+clump)
-         clump.history('.connected loose ends of: '+self)
+         self.history('.connect_loose_ends() to: '+str(clump))
+         clump.history('.connected loose ends of: '+str(self))
       return True
 
    #--------------------------------------------------------------------------
@@ -168,8 +168,8 @@ class Clump (object):
            name = 'copy('+self.name()+')'
        clump = Clump.Clump(self, name=name,
                            hide=True, makemenu=False)
-       clump.history('.copy() of: '+self)
-       # self.history('copied to: '+clump)
+       clump.history('.copy() of: '+str(self))
+       # self.history('copied to: '+str(clump))
        return clump
    
    #==========================================================================
@@ -522,6 +522,19 @@ class Clump (object):
        return self.core._TCM
 
    
+   #=========================================================================
+   # Helper functions for node generation:
+   #=========================================================================
+
+   def unique_nodestub (self, *qual, **kwqual):
+      """
+      Convenience function to generate a (unique) nodestub for tree nodes.
+      The stub is then initialized (which helps the uniqueness determination!)
+      and attached to the internal subtree of stub-nodes, which would otherwise
+      be orphaned. They are used to carry quickref-help information, which
+      can be used in the various bookmark pages.
+      """
+      return self.core.unique_nodestub (*qual, **kwqual)
 
 
    #=========================================================================
@@ -725,65 +738,6 @@ class Clump (object):
       if ctrl['trace']:
          print '** .on_exit(ctrl, result=',result,'): fname=',fname,'\n'
       return result
-
-
-   #=========================================================================
-   #=========================================================================
-
-   def unique_nodestub (self, *qual, **kwqual):
-      """
-      Convenience function to generate a (unique) nodestub for tree nodes.
-      The stub is then initialized (which helps the uniqueness determination!)
-      and attached to the internal subtree of stub-nodes, which would otherwise
-      be orphaned. They are used to carry quickref-help information, which
-      can be used in the various bookmark pages.
-      """
-      trace = False
-      # trace = True
-
-      # Make a list of qualifiers:
-      qual = list(qual)
-      self.core._stage['ops'] += 1
-
-      if False:
-         # NB: This pollutes Parm names etc...
-         at = '@'+str(self.core._stage['count'])
-         at += '-'+str(self.core._stage['ops'])
-         qual.insert(0, at)
-
-      if not self.core._qual==None:
-         if isinstance(self.core._qual,list):
-            qual.extend(self.core._qual)
-         else:
-            qual.append(self.core._qual)
-
-      # Deal with the node name:
-      name = self.name()                            # default name
-      if kwqual.has_key('name'):                   # specified explicitly
-         if isinstance(kwqual['name'],str):
-            name += ':'+kwqual['name']             # use if string
-         kwqual.__delitem__('name')                # delete from kwqual
-
-      # Make the unique nodestub:
-      stub = EN.unique_stub(self.core._ns, name, *qual, **kwqual)
-
-      # Initialize the stub (uniqueness criterion!):
-      if not self.core._stubtree:                       # the first one
-         node = stub << Meq.Constant(-0.1223456789)
-      else:                                        # subsequent ones
-         node = stub << Meq.Identity(self.core._stubtree)
-         
-      # Attach the help (view with QuickRef viewer)
-      # format, and attach some extra info....?
-         ## help = rider.format_html(path=rider.path())
-      # node.initrec().quickref_help = help
-
-      # Replace the rootnode of the stub-tree:
-      self.core._stubtree = node
-
-      if trace:
-         print '\n** .unique_nodestub(',qual,') ->',str(stub)
-      return stub
 
 
    #=========================================================================
@@ -1027,7 +981,9 @@ class Clump (object):
       """Helper function to make sure that the given unops is a list
       of unary operations, e.g. ['Sin','Cos'].
       """
-      if isinstance(unops,str):
+      if unops==None:
+          unops = []
+      elif isinstance(unops,str):
          unops = unops.split(' ')                    # 'Cos Sin' -> ['Cos','Sin']
       elif not isinstance(unops,(list,tuple)):
          self.ERROR('** invalid unops: '+str(unops))
@@ -1266,7 +1222,7 @@ class Clump (object):
       kwargs['select'] = True
 
       prompt = '.plot_sumabs()'
-      help = 'make a summary plot of the tree nodes'
+      help = 'make a sum(abs()) plot of the tree nodes'
       ctrl = self.on_entry(self.plot_sumabs, prompt, help, **kwargs)
 
       node = self[0]
@@ -1275,12 +1231,12 @@ class Clump (object):
          folder = kwargs.get('folder', None)
          name = kwargs.get('name', None)
          if not isinstance(name,str):
-            name = 'summary'
+            name = 'sumabs'
 
          unops = ['Stripper','Abs']
          cc = self.get_nodelist(nodelist=nodelist, unops=unops)
          stub = self.unique_nodestub()
-         sumabs = stub('sumabs') << Meq.Add(*cc)
+         sumabs = stub('sum(abs())') << Meq.Add(*cc)
          cc = self.get_nodelist(prepend=sumabs)
          node = stub(name) << Meq.Composer(*cc)
          self.core._orphans.append(node)
