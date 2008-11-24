@@ -32,6 +32,7 @@ import Meow
 import Meow.StdTrees
 from Meow import Context,ParmGroup,Bookmarks
 from Meow.Parameterization import resolve_parameter
+import Meow.LSM
 
 # MS options first
 mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,read_flags=True,hanning=True);
@@ -94,12 +95,12 @@ meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
 # add a fixed primary beam first
 import wsrt_beams
 import solvable_pointing_errors
-meqmaker.add_sky_jones('E0','primary beam',[wsrt_beams],
+meqmaker.add_sky_jones('E','primary beam',[wsrt_beams],
   pointing=solvable_pointing_errors);
 # then add differential gains
 import solvable_sky_jones
-meqmaker.add_sky_jones('E','differential gains',[
-    solvable_sky_jones.FullRealImag('E')]);
+meqmaker.add_sky_jones('dE','differential gains',[
+    solvable_sky_jones.FullRealImag('dE')]);
 
 # B - bandpass, G - gain
 import solvable_jones
@@ -264,4 +265,6 @@ def _define_forest(ns,parent=None,**kw):
   # finally, setup imaging options
   imsel = mssel.imaging_selector(npix=512,arcmin=meqmaker.estimate_image_size());
   TDLRuntimeMenu("Make an image from this MS",*imsel.option_list());
-
+  
+  # and close meqmaker -- this exports annotations, etc
+  meqmaker.close();

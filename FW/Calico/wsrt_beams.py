@@ -107,25 +107,25 @@ def compute_jones (Jones,sources,stations=None,label="beam",pointing_offsets=Non
   
   # this dict will hold LM tuples (or nodes) for each source.
   lmsrc = {};
-  # if custom pointing is specified, recompute lm
-  if wsrt_custom_pointing:
-    global pointing;
-    pointing = Meow.Direction(ns,"pointing",wsrt_pointing_ra,wsrt_pointing_dec,static=True);
-    for src in sources:
-      radec_st = src.direction.radec_static();
-      # if source direction is static, compute lm on-the-fly
-      if radec_st:
-        lmsrc[src.name] = radec_to_lmn(radec_st[0],radec_st[1],
-                            wsrt_pointing_ra,wsrt_pointing_dec)[0:2];
-      # else use build-in method, which will creat nodes
-      else:
-        lmsrc[src.name] = src.direction.lm(pointing);
-  # else populate dict with source's default LM direction (i.e. w.r.t. phase centre)
-  else:
-    for src in sources:
+  # see if sources have a "beam_lm" attribute, use that for beam offsets
+  log = file("e.log","wt");
+  for src in sources:
+    lm = src.get_attr("beam_lm",None);
+    if lm:
+      l,m = lmsrc[src.name] = lm;
+      log.write("%s l=%.14g m=%.14g r=%.14g (from model)\n"
+                  %(src.name,l,m,sqrt(l*l+m*m)));
+      src.set_attr(label+'r',math.sqrt(l**2+m**2)/math.pi*(180*60));
+    # else try to use static lm coordinates
+    else:
+      # else try to use static lm coordinates
       lmnst = src.direction.lmn_static();
       if lmnst:
-        lmsrc[src.name] = lmnst[0:2];
+        l,m = lmsrc[src.name] = lmnst[0:2];
+        src.set_attr(label+'r',math.sqrt(l**2+m**2)/math.pi*(180*60));
+        log.write("%s l=%.14g m=%.14g r=%.14g (computed)\n"
+                    %(src.name,l,m,sqrt(l*l+m*m)));
+      # else use lmn node
       else:
         lmsrc[src.name] = src.direction.lm();
     
@@ -200,13 +200,6 @@ _wsrt_option_menu = TDLCompileMenu('WSRT beam model options',
     the gain goes up again. This is a physically incorrect model, but you may need to enable this
     if working with NEWSTAR-derived models, since fluxes of far-off sources will have been estimated with
     this incorrect beam."""),
-  TDLMenu("Override default pointing centre",
-    toggle='wsrt_custom_pointing',default=False,
-    doc="""By default, the phase centre is taken to be the pointing direction. If the true
-    pointing centre is different, you can specify it here.""",
-    *(TDLOption('wsrt_pointing_ra',"Pointing RA (rad)",[0.],more=float),
-      TDLOption('wsrt_pointing_dec',"Pointing Dec (rad)",[0.],more=float)
-    ))
 );
 
 def _show_option_menus (model):

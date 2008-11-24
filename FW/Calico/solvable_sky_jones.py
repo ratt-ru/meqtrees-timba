@@ -29,6 +29,7 @@ from Meow import Context
 from Meow import Jones,ParmGroup,Bookmarks
 from Meow.Parameterization import resolve_parameter
 import sets
+import Meow.MeqMaker 
 
 class DiagAmplPhase (object):
   def __init__ (self):
@@ -60,10 +61,9 @@ class DiagAmplPhase (object):
 class FullRealImag (object):
   def __init__ (self,label):
     self.tdloption_namespace = label+".fullrealimag";
-    subset_opt = TDLOption('subset',"Apply this Jones term to a subset of sources",
-        ["all"],more=str,namespace=self,doc="""Selects a subset of sources to which this 
-        Jones term is applied. Enter soure names separated by space""");
-    self.options = [ subset_opt ];
+    self.subset_selector = Meow.MeqMaker.SourceSubsetSelector("Apply this Jones term to a subset of sources",
+                            tdloption_namespace=self.tdloption_namespace);
+    self.options = self.subset_selector.options;
 
   def compile_options (self):
     return self.options;
@@ -71,11 +71,7 @@ class FullRealImag (object):
   def compute_jones (self,jones,sources,stations=None,tags=None,label='',**kw):
     stations = stations or Context.array.stations();
     # figure out which sources to apply to
-    if self.subset != "all":
-      srcset = sets.Set(self.subset.split(" "));
-      sources = [ src for src in sources if src.name in srcset ];
-    if not sources:
-      return None;
+    sources = self.subset_selector.filter(sources);
     # create parm definitions for each jones element
     tags = NodeTags(tags) + "solvable";
     diag_real = Meq.Parm(1,tags=tags+"diag real");
