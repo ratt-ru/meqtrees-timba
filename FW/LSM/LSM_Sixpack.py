@@ -126,6 +126,7 @@ class Sixpack:
         pp.setdefault('RM',0)
         pp.setdefault('f0',1e6)
         pp.setdefault('type','point')
+        pp.setdefault('lm',None);
         
 
         self.__label=pp['label']
@@ -202,6 +203,9 @@ class Sixpack:
     def iquv(self, ns=None):
         """return the 4pack from the six node stubs"""
         return self.__iquv
+    
+    def lm(self, ns=None):
+        return self.__lm
 
 
     def radec(self, ns=None):

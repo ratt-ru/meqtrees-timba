@@ -85,6 +85,8 @@ class PUnit:
 
   self.__sixpack=None
   self._nodes=None# buffer to store any nodes associated with this PUnit,
+  # added kludge to carry LMs around
+  self._lm = None;
  
  # change type (point: flag=POINT_TYPE, patch: flag=PATCH_TYPE)
  def setType(self,flag):
@@ -148,7 +150,6 @@ class PUnit:
    [ra,dec,I]=extract_parms(mysixpack,ns)
    [I,Q,U,V,SI,f0,RM]=extract_polarization_parms(mysixpack,ns,absolute=1)
    return (I,Q,U,V,SI,f0,RM)
-
 
 
  def getEssentialParms(self,ns):
@@ -381,6 +382,9 @@ class LSM:
    p.sp.set_staticRA(kw['ra'])
   if kw.has_key('dec'):
    p.sp.set_staticDec(kw['dec'])
+  
+   p._lm = kw.get('lm',None);
+  
 
 
 
@@ -1632,6 +1636,10 @@ class LSM:
 
     print "%s: read model header lines=%d, pointer=%d, sources=%d, type=%d, epoch=%f RA=%f, DEC=%f (rad) Freq=%f Hz"%(infile_name,maxlin,modptr,nsources,mtype,mepoch,ra0,dec0,freq0)
 
+    log = file('lsm.log','wt');
+    print 'ra0=%.14f dec0=%.14f'%(ra0,dec0);
+    log.write('ra0=%.14f dec0=%.14f\n'%(ra0,dec0));
+    
 
     # temp dict to hold unique nodenames
     unamedict={}
@@ -1652,10 +1660,12 @@ class LSM:
        ### M offset 
        mm=struct.unpack('f',mdl[8:12])
        mm=mm[0]
-
+       
        ### Identification
        id=struct.unpack('i',mdl[12:16])
        id=id[0]
+       
+       log.write('%d: l=%.14f m=%.14f r=%.14f\n'%(id,ll,mm,math.sqrt(ll*ll+mm*mm)));
 
        ### Q fraction
        sQ=struct.unpack('f',mdl[16:20])
@@ -1744,7 +1754,7 @@ class LSM:
             my_sixpack.sixpack(ns)
             self.add_source(s,brightness=sI,
                      sixpack=my_sixpack,
-                     ra=source_RA, dec=source_Dec)
+                     ra=source_RA, dec=source_Dec,lm=(ll,mm))
           else:
            pass
  
@@ -1780,7 +1790,7 @@ class LSM:
             my_sixpack.sixpack(ns)
             self.add_source(s,brightness=sI,
                      sixpack=my_sixpack,
-                     ra=source_RA, dec=source_Dec)
+                     ra=source_RA, dec=source_Dec,lm=(ll,mm))
 
  
        else:
@@ -1812,7 +1822,7 @@ class LSM:
           my_sixpack.sixpack(ns)
           self.add_source(s,brightness=sI,
                    sixpack=my_sixpack,
-                   ra=source_RA, dec=source_Dec)
+                   ra=source_RA, dec=source_Dec,lm=(ll,mm))
  
 
     ff.close()

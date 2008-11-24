@@ -415,7 +415,6 @@ def extract_parms(sixpack,ns):
  #print "RA,Dec,App.Bri=",myra,mydec,mybr
  return [myra,mydec,mybr]
 
-
 # utility function to extract polarization percentage [Q,U,V]
 # MeqParm information from a TDL_Sixpack
 # sixpack=sixpack object (in composed form)
