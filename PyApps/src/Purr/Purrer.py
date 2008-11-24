@@ -328,7 +328,7 @@ class Purrer (QObject):
     self.lockfile = os.path.join(self.dirname,".purrlock");
     # try to open lock file for r/w
     try:
-      self.lockfile_fd = os.open(self.lockfile,os.O_RDWR);
+      self.lockfile_fd = os.open(self.lockfile,os.O_RDWR|os.O_CREAT);
     except:
       raise Purrer.LockFailError("failed to open lock file %s for writing"%self.lockfile);
     # try to acquire lock on the lock file

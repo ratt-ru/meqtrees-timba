@@ -685,9 +685,9 @@ class MainWindow (QMainWindow):
     # (ignored entries only carry information about DPs to be ignored)
     if not entry.ignore:
       lastitem = self.elv.lastItem();
-      while isinstance(lastitem.parent(),QListViewItem):
+      while lastitem and isinstance(lastitem.parent(),QListViewItem):
         lastitem = lastitem.parent();
-      self._addEntryItem(entry,len(self.purrer.entries),lastitem);
+      self._addEntryItem(entry,len(self.purrer.entries)-1,lastitem);
     # log will have changed, so update the viewer
     if not entry.ignore:
       self._updateViewer();
