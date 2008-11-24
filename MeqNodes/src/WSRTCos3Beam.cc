@@ -72,7 +72,7 @@ Vells WSRTCos3Beam::evaluate (const Request &request,const LoShape &,
   
   // broken NEWSTAR-style clipping
   if( clip_ < 0 )
-    return max(abs(pow3(cos((bf*r)*freq))),clip_,-1,-1);
+    return max(abs(pow3(cos((bf*r)*freq))),-clip_,-1,-1);
   // proper argument clipping
   else
     return pow3(cos(min((bf*r)*freq,argclip_,-1,-1)));
