@@ -41,7 +41,7 @@ static void referenceDataWithStride (void *parr,void *data,const LoShape & shape
   blitz::Array<T,N> tmp(static_cast<T*>(data),shape,stride,blitz::neverDeleteData);
   static_cast<blitz::Array<T,N>*>(parr)->reference(tmp);
 }
-DMI::NumArrayFuncs::AssignWithStride DMI::NumArrayFuncs::assignerWithStride[NumTypes][MaxLorrayRank] =
+DMI::NumArrayFuncs::AssignWithStride DMI::NumArrayFuncs::assignerWithStride[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &referenceDataWithStride<T,N>
   DoForAllArrayTypes1(OneLine,)

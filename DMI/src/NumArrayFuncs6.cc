@@ -41,7 +41,7 @@ static void referenceData (void *parr,void *data,const LoShape & shape)
   blitz::Array<T,N> tmp(static_cast<T*>(data),shape,blitz::neverDeleteData);
   static_cast<blitz::Array<T,N>*>(parr)->reference(tmp);
 }
-DMI::NumArrayFuncs::AssignDataReference DMI::NumArrayFuncs::assignerDataReference[NumTypes][MaxLorrayRank] =
+DMI::NumArrayFuncs::AssignDataReference DMI::NumArrayFuncs::assignerDataReference[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &referenceData<T,N>
   DoForAllArrayTypes1(OneLine,)

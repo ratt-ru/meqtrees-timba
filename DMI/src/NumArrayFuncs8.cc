@@ -41,7 +41,7 @@ static void returnShapeOfArray (LoShape &shape,const void *ptr)
 { 
   shape = static_cast<const blitz::Array<T,N>*>(ptr)->shape(); 
 }
-DMI::NumArrayFuncs::ShapeOfArray DMI::NumArrayFuncs::shapeOfArray[NumTypes][MaxLorrayRank] =
+DMI::NumArrayFuncs::ShapeOfArray DMI::NumArrayFuncs::shapeOfArray[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &returnShapeOfArray<T,N>
   DoForAllArrayTypes1(OneLine,)

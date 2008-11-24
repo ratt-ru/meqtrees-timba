@@ -42,7 +42,7 @@ static void deleteArray (void *parr)
 { 
   delete static_cast<blitz::Array<T,N>*>(parr); 
 }
-DMI::NumArrayFuncs::Destructor DMI::NumArrayFuncs::destructor[NumTypes][MaxLorrayRank] =
+DMI::NumArrayFuncs::Destructor DMI::NumArrayFuncs::destructor[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &deleteArray<T,N>
   DoForAllArrayTypes1(OneLine,)

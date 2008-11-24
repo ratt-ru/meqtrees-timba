@@ -91,30 +91,31 @@ typedef AtomicID TypeId;
         Do(bool,arg) 
 #endif
 
-// arrays are supported for a limited subset of scalar types (for Glish
-// compatibility)
 
-#ifndef DoForAllArrayTypes
-// These are the type iterators for all arrayable types
-// NB: for now, strings are disabled, until Ger adds the template instantiation
-#define DoForAllArrayTypes_Sep(Do,arg,sep) Do(bool,arg) sep Do(uchar,arg) sep Do(short,arg) sep Do(int,arg) sep Do(float,arg) sep Do(double,arg) sep Do(dcomplex,arg) sep Do(fcomplex,arg) 
-#define DoForAllArrayTypes(Do,arg) DoForAllArrayTypes_Sep(Do,arg,;)
-#define DoForAllArrayTypes1(Do,arg) Do(bool,arg), Do(uchar,arg), Do(short,arg), Do(int,arg), Do(float,arg), Do(double,arg), Do(dcomplex,arg), Do(fcomplex,arg)
+//// 241108: commenting this out, as type iterators are defined in TimBase/src/Lorrays-Blitz.h
+// arrays are supported for a limited subset of scalar types 
+// 
+// #ifndef DoForAllArrayTypes
+// // These are the type iterators for all arrayable types
+// // NB: for now, strings are disabled, until Ger adds the template instantiation
+// #define DoForAllArrayTypes_Sep(Do,arg,sep) Do(bool,arg) sep Do(uchar,arg) sep Do(short,arg) sep Do(int,arg) sep Do(float,arg) sep Do(double,arg) sep Do(dcomplex,arg) sep Do(fcomplex,arg) 
+// #define DoForAllArrayTypes(Do,arg) DoForAllArrayTypes_Sep(Do,arg,;)
+// #define DoForAllArrayTypes1(Do,arg) Do(bool,arg), Do(uchar,arg), Do(short,arg), Do(int,arg), Do(float,arg), Do(double,arg), Do(dcomplex,arg), Do(fcomplex,arg)
+// 
+// // Another iterator for numeric but non-arrayble types (this is needed
+// // for, e.g., template instantiation, where you define a specialization for
+// // arrayable types, and want to instantiate the non-arrayable ones from
+// // the default template)
+// #define DoForAllNonArrayTypes_Sep(Do,arg,sep) Do(char,arg) sep Do(ushort,arg) sep Do(uint,arg) sep Do(long,arg) sep Do(ulong,arg) sep Do(longlong,arg) sep Do(ulonglong,arg) sep Do(ldouble,arg) 
+// #define DoForAllNonArrayTypes(Do,arg) DoForAllNonArrayTypes_Sep(Do,arg,;)
+// #endif
 
-// Another iterator for numeric but non-arrayble types (this is needed
-// for, e.g., template instantiation, where you define a specialization for
-// arrayable types, and want to instantiate the non-arrayable ones from
-// the default template)
-#define DoForAllNonArrayTypes_Sep(Do,arg,sep) Do(char,arg) sep Do(ushort,arg) sep Do(uint,arg) sep Do(long,arg) sep Do(ulong,arg) sep Do(longlong,arg) sep Do(ulonglong,arg) sep Do(ldouble,arg) 
-#define DoForAllNonArrayTypes(Do,arg) DoForAllNonArrayTypes_Sep(Do,arg,;)
-#endif
+// define typelist of arrayable types. 
 
-// define typelist of arrayable types. A limited subset is supported for now,
-// for compatibility with Glish
 namespace DMI_TL
 {
   using namespace Loki::TL;
-  typedef TYPELIST_8(bool,uchar,short,int,float,double,dcomplex,fcomplex)
+  typedef TYPELIST_6(bool,int,float,double,dcomplex,fcomplex)
             Arrayables;
 }
 

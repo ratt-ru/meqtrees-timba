@@ -24,6 +24,7 @@
 //
 
 #include "NumArrayFuncs.h"
+#include "TID-DMI.h"
     
   // Methods for the method table are naturally implemented via
   // templates. Refer to DMI::NumArray.cc to see how they are populated.
@@ -31,6 +32,26 @@
 // populate the method tables via the DoForAll macros
 #define OneLine(T,arg) { DoForAllArrayRanks1(OneElement,T) }
   
+  
+using std::string;
+
+namespace DMI
+{
+namespace NumArrayFuncs
+{
+// templated method to placement-new allocate an Lorray(N,T)
+template<class T,int N>
+static void newArrayPlacement (void *where)
+{ 
+  new (where) blitz::Array<T,N>; 
+}
+
+AllocatorPlacement allocatorPlacement[NumArrayTypes][MaxLorrayRank] =
+{
+#define OneElement(N,T) &newArrayPlacement<T,N>
+  DoForAllArrayTypes1(OneLine,)
+#undef OneElement
+};
 
 // templated method to allocate an empty Lorray(N,T)
 template<class T,int N>
@@ -38,7 +59,8 @@ static void * newArrayDefault ()
 { 
   return new blitz::Array<T,N>; 
 }
-DMI::NumArrayFuncs::AllocatorDefault DMI::NumArrayFuncs::allocatorDefault[NumTypes][MaxLorrayRank] =
+
+AllocatorDefault allocatorDefault[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &newArrayDefault<T,N>
   DoForAllArrayTypes1(OneLine,)
@@ -46,16 +68,20 @@ DMI::NumArrayFuncs::AllocatorDefault DMI::NumArrayFuncs::allocatorDefault[NumTyp
 };
 
   
-// templated method to placement-new allocate an Lorray(N,T)
-template<class T,int N>
-static void newArrayPlacement (void *where)
-{ 
-  new (where) blitz::Array<T,N>; 
-}
-DMI::NumArrayFuncs::AllocatorPlacement DMI::NumArrayFuncs::allocatorPlacement[NumTypes][MaxLorrayRank] =
-{
-#define OneElement(N,T) &newArrayPlacement<T,N>
-  DoForAllArrayTypes1(OneLine,)
-#undef OneElement
-};
 
+int typeIndices[NumTypes];
+
+bool initTypeIndices ()
+{
+  for(int i=0; i<NumTypes; i++)
+    typeIndices[i] = -1;
+  int i0 = 0;
+  #define addIndex(type,arg) typeIndices[-(Tp##type##_int-Tpbool_int)] = i0++;
+  DoForAllArrayTypes(addIndex,)
+  #undef addIndex
+  return true;
+}
+
+bool _initialized_typeindices = initTypeIndices();
+
+}};

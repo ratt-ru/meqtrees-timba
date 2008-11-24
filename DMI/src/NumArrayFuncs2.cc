@@ -38,7 +38,7 @@ static void * newArrayWithData (void *where,void *data,const LoShape & shape)
 { 
   return new (where) blitz::Array<T,N>(static_cast<T*>(data),shape,blitz::neverDeleteData); 
 } 
-DMI::NumArrayFuncs::AllocatorWithData DMI::NumArrayFuncs::allocatorWithData[NumTypes][MaxLorrayRank] =
+DMI::NumArrayFuncs::AllocatorWithData DMI::NumArrayFuncs::allocatorWithData[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &newArrayWithData<T,N>
   DoForAllArrayTypes1(OneLine,)

@@ -40,7 +40,7 @@ static void deletePlacementArray (void *parr)
   typedef blitz::Array<T,N> ArrType;
   static_cast<ArrType*>(parr)->~ArrType(); 
 }
-DMI::NumArrayFuncs::Destructor DMI::NumArrayFuncs::destructor_inplace[NumTypes][MaxLorrayRank] =
+DMI::NumArrayFuncs::Destructor DMI::NumArrayFuncs::destructor_inplace[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &deletePlacementArray<T,N>
   DoForAllArrayTypes1(OneLine,)

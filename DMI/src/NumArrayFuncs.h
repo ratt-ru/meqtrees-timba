@@ -40,6 +40,7 @@
 #define DMI_NUMARRAYFUNCS_H
 
 #include <TimBase/Lorrays.h>
+#include <DMI/TID-DMI.h>
 
 #ifndef LORRAYS_USE_BLITZ
   #error This version of NumArray requires Blitz Lorrays
@@ -51,12 +52,21 @@ namespace DMI
 //##ModelId=3DB949AE00C5
 namespace NumArrayFuncs
 {
+  // converts a type id into a numeric offset into the table above
   const int NumTypes = 17;  // CHANGE THIS IF NEW TYPES ARE ADDED!!!
+  extern int typeIndices[NumTypes];
+  
+  using Debug::getDebugContext;
   
   // converts a type id into a numeric offset into the table above
-    //##ModelId=3E9BD9180129
   inline int typeIndex (int tid)  // CHANGE THIS IF Tpbool CHANGES!!!
-  { return -32 - tid; }
+  { 
+    int index = -(tid-Tpbool_int); 
+    FailWhen1(index < 0 || index >= NumTypes,Debug::ssprintf("illegal array type %d",tid));
+    index = typeIndices[index];
+    FailWhen1(index < 0,Debug::ssprintf("illegal array type %d",tid));
+    return index;
+  }
   
 
   // OK, setup some circus hoops. Rank & type of NumArray is set at runtime,
@@ -86,17 +96,17 @@ namespace NumArrayFuncs
     //##ModelId=3F5487DA015B
   typedef void (*ShapeOfArray)(LoShape &,const void*);
   
-  extern AllocatorWithData    allocatorWithData     [NumTypes][MaxLorrayRank];
-  extern AllocatorDefault     allocatorDefault      [NumTypes][MaxLorrayRank];
-  extern AllocatorPlacement   allocatorPlacement    [NumTypes][MaxLorrayRank];
-  extern AssignWithStride     assignerWithStride    [NumTypes][MaxLorrayRank];
-  extern AssignDataReference  assignerDataReference [NumTypes][MaxLorrayRank];
-  extern Destructor           destructor            [NumTypes][MaxLorrayRank];
-  extern Destructor           destructor_inplace    [NumTypes][MaxLorrayRank];
+  extern AllocatorWithData    allocatorWithData     [NumArrayTypes][MaxLorrayRank];
+  extern AllocatorDefault     allocatorDefault      [NumArrayTypes][MaxLorrayRank];
+  extern AllocatorPlacement   allocatorPlacement    [NumArrayTypes][MaxLorrayRank];
+  extern AssignWithStride     assignerWithStride    [NumArrayTypes][MaxLorrayRank];
+  extern AssignDataReference  assignerDataReference [NumArrayTypes][MaxLorrayRank];
+  extern Destructor           destructor            [NumArrayTypes][MaxLorrayRank];
+  extern Destructor           destructor_inplace    [NumArrayTypes][MaxLorrayRank];
     //##ModelId=3F5487DA023F
-  extern ArrayCopier          copier                [NumTypes][MaxLorrayRank];
+  extern ArrayCopier          copier                [NumArrayTypes][MaxLorrayRank];
     //##ModelId=3F5487DA0273
-  extern ShapeOfArray         shapeOfArray          [NumTypes][MaxLorrayRank];
+  extern ShapeOfArray         shapeOfArray          [NumArrayTypes][MaxLorrayRank];
   
   // These methods do a lookup & call into each method table
     //##ModelId=3E9BD918015A

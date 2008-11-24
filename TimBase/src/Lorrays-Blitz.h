@@ -58,13 +58,35 @@
 //  
 #ifndef DoForAllArrayTypes
 
-#define DoForAllArrayTypes(Do,arg) DoForAllNumericTypes(Do,arg) Do(string,arg)
-#define DoForAllArrayTypes1(Do,arg) DoForAllNumericTypes1(Do,arg), Do(string,arg)
-#define DoForAllArrayTypes_Sep(Do,arg,sep) DoForAllNumericTypes_Sep(Do,arg,sep) sep Do(string,arg)
+#define DoForAllArrayTypes_Sep(Do,arg,sep) \
+            Do(bool,arg) sep \
+            Do(int,arg) sep \
+            Do(float,arg) sep \
+            Do(double,arg) sep \
+            Do(fcomplex,arg) sep \
+            Do(dcomplex,arg) 
+            
+#define DoForAllArrayTypes(Do,arg) DoForAllArrayTypes_Sep(Do,arg,;)
+        
+#define DoForAllArrayTypes1(Do,arg) \
+            Do(bool,arg) , \
+            Do(int,arg) , \
+            Do(float,arg) , \
+            Do(double,arg) , \
+            Do(fcomplex,arg) , \
+            Do(dcomplex,arg)  
 
-#define DoForAllNonArrayTypes(Do,arg) ;
-#define DoForAllNonArrayTypes1(Do,arg) 
-#define DoForAllNonArrayTypes_Sep(Do,arg,sep)  
+const int NumArrayTypes = 6;
+
+// Another iterator for numeric but non-arrayble types (this is needed
+// for, e.g., template instantiation, where you define a specialization for
+// arrayable types, and want to instantiate the non-arrayable ones from
+// the default template)
+#define DoForAllNonArrayTypes_Sep(Do,arg,sep) Do(char,arg) sep Do(uchar,sep) sep Do(ushort,arg) sep \
+Do(short,arg) sep Do(uint,arg) sep Do(long,arg) sep Do(ulong,arg) sep Do(longlong,arg) sep \
+Do(ulonglong,arg) sep Do(ldouble,arg) 
+
+#define DoForAllNonArrayTypes(Do,arg) DoForAllNonArrayTypes_Sep(Do,arg,;)
 
 #endif
 
@@ -115,18 +137,18 @@ DoForAllArrayTypes(Using_arrays,)
 
     
 // if you change this also make sure you change the two macros below    
-const uint MaxLorrayRank = 5;
+const uint MaxLorrayRank = 10;
 
 // Define type iterator macros for arrays
 #define DoForAllArrayRanks(Do,arg) \
-  Do(1,arg); Do(2,arg); Do(3,arg); Do(4,arg); Do(5,arg); 
-//  Do(6,arg); Do(7,arg); Do(8,arg); Do(9,arg); Do(10,arg); 
+  Do(1,arg); Do(2,arg); Do(3,arg); Do(4,arg); Do(5,arg); \
+  Do(6,arg); Do(7,arg); Do(8,arg); Do(9,arg); Do(10,arg); 
 //  Do(11,arg); 
 //  Do(12,arg); Do(13,arg); Do(14,arg); Do(15,arg); Do(16,arg); 
 
 #define DoForAllArrayRanks1(Do,arg) \
-  Do(1,arg), Do(2,arg), Do(3,arg), Do(4,arg), Do(5,arg) 
-//  Do(6,arg), Do(7,arg), Do(8,arg), Do(9,arg), Do(10,arg)
+  Do(1,arg), Do(2,arg), Do(3,arg), Do(4,arg), Do(5,arg), \
+  Do(6,arg), Do(7,arg), Do(8,arg), Do(9,arg), Do(10,arg)
 //  , Do(11,arg), 
 //  Do(12,arg), Do(13,arg), Do(14,arg), Do(15,arg), Do(16,arg) 
   

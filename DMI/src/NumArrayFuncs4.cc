@@ -40,7 +40,7 @@ static void copyArrayImpl (void *target,const void *source)
   *static_cast<blitz::Array<T,N>*>(target) = 
     *static_cast<const blitz::Array<T,N>*>(source); 
 }
-DMI::NumArrayFuncs::ArrayCopier DMI::NumArrayFuncs::copier[NumTypes][MaxLorrayRank] =
+DMI::NumArrayFuncs::ArrayCopier DMI::NumArrayFuncs::copier[NumArrayTypes][MaxLorrayRank] =
 {
 #define OneElement(N,T) &copyArrayImpl<T,N>
   DoForAllArrayTypes1(OneLine,)
