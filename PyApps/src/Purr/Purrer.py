@@ -1,8 +1,10 @@
-_tdl_no_reimport = True;
-
 # TODO:
-# - add option to copy a DP from the archive
-# - add a "banish" policy: stop pouncing
+# - add right-click options to New Entry menu: delete DP
+# - store settings (such as pounce mode) inside the log
+# - add a "Change dir" button. Integrate the catfight dialog into the
+#   main window
+# - in the browser: do not tell Purr to attach to a new directory
+#   until the user presses the Purr button.
 # - think of including verbatim code snippets in HTML
 
 import sys
@@ -20,7 +22,8 @@ import Purr
 import Purr.Parsers
 import Purr.Render
 import Purr.Plugins
-from Purr import Config,dprint,dprintf;
+from Purr import Config,dprint,dprintf
+from qt import QObject,PYSIGNAL
 
 # this string is used to create lock files
 _lockstring = "%s:%d"%(os.uname()[1],os.getpid());
@@ -55,26 +58,25 @@ def _printexc (message,*args):
 def matches_patterns (filename,patterns):
   return bool([ patt for patt in patterns if fnmatch.fnmatch(filename,patt) ]);
 
-class Purrer (object):
-  class WatchedFile (object):
+class Purrer (QObject):
+  class WatchedFile (QObject):
     """A WatchedFile represents a single file being watched for changes."""
     def __init__ (self,path,quiet=None,mtime=None):
       """Creates watched file at 'path'. The 'quiet' flag is simply stored.
       If 'mtime' is not None, this will be the file's last-changed timestamp.
       If 'mtime' is None, it will use os.path.getmtime().
       """
+      QObject.__init__(self);
       self.path = path;
       self.quiet = quiet;
       self.mtime = mtime or self.getmtime();
       
     def getmtime (self):
       """Returns the file's modification time.
-      Returns None on access error."""
+      Returns None on access error (i.e. file doesn't exist)"""
       try:
         return os.path.getmtime(self.path);
       except:
-        _printexc("Error doing getmtime(%s)"%self.path);
-        traceback.print_exc();
         return None;
       
     def isUpdated (self):
@@ -238,6 +240,7 @@ class Purrer (object):
       return (newfiles and [self.path]) or [];
     
   def __init__ (self,dirname,watchdirs=None):
+    QObject.__init__(self);
     # load and parse configuration
     # watched files
     watch = Config.get("watch-patterns","Images=*fits,*FITS,*jpg,*png;TDL configuration=.tdl.conf");
@@ -378,6 +381,9 @@ class Purrer (object):
       # sort log entires by timestamp
       entries.sort(lambda a,b:cmp(a.timestamp,b.timestamp));
       self.setLogEntries(entries,save=False);
+      # update own timestamp
+      if entries:
+        self.timestamp = max(self.timestamp,entries[-1].timestamp);
     # start watching the specified directories
     if watchdirs is None:
       watchdirs = [dirname];
@@ -407,7 +413,6 @@ class Purrer (object):
       dprint(1,"watchDirectories: no change to set of dirs");
       return;
     # collect timestamps of specified directories
-    self.watchers = {};
     dprintf(2,"scanning directories, our timestamp is %s\n",
               time.strftime("%x %X",time.localtime(self.timestamp)));
     for dirname in newset:
@@ -451,25 +456,32 @@ class Purrer (object):
   
   def addLogEntry (self,entry,save=True):
     """This is called when a new log entry is created""";
-    self.entries.append(entry);
-    _busy = Purr.BusyIndicator();
-    # create directory if it doesn't exist
+    # create log directory if it doesn't exist
     # error will be thrown if this is not possible
+    _busy = Purr.BusyIndicator();
     if not os.path.exists(self.logdir):
       os.mkdir(self.logdir);
       dprint(1,"created",self.logdir);
-    Purr.progressMessage("Saving new log entry");
-    entry.save(self.logdir);
-    self.timestamp = self.last_scan_timestamp;
-    if save:
-      self.save();
+    # ignored entries are only there to carry info on ignored data products
+    # All we do is save them, and update DP policies based on them
+    if entry.ignore:
+      entry.save(self.logdir);
+    # proper entries are added to list
+    else:
+      self.entries.append(entry);
+      Purr.progressMessage("Saving new log entry");
+      entry.save(self.logdir);
+      self.timestamp = self.last_scan_timestamp;
+      # and our log may need to be regenerated
+      if save:
+        self.save();
     self.updatePoliciesFromEntry(entry);
       
   def getLogEntries (self):
     return self.entries;
       
   def setLogEntries (self,entries,save=True):
-    self.entries = entries;
+    self.entries = [ entry for entry in entries if not entry.ignore ];
     if save:
       self.save();
     # populate default policies and renames based on entry list
@@ -529,6 +541,7 @@ class Purrer (object):
       if newfiles is None:  
         dprintf(2,"access error on %s, will no longer be watched",watcher.path);
         del self.watchers[path];
+        self.emit(PYSIGNAL("disappearedFile()"),(path,));
         continue;
       dprintf(5,"%s: %d new file(s)\n",watcher.path,len(newfiles));
       # Now go through files and add them to the newstuff dict

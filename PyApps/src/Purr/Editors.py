@@ -145,13 +145,17 @@ class LogEntryEditor (QWidget):
     if self._add_dp_dialog:
       self._add_dp_dialog.hide();
     
+  def resetDPs (self):
+    self.wdplv.clear();
+    self.dpitems = {};
+    self.policies_updated = False;
+    
   def reset (self):
+    self.resetDPs();
     self.entry = self._timestamp = None;
     self.wtimestamp.hide();
     self.setEntryTitle("Untitled entry");
     self.setEntryComment("No comment");
-    self.wdplv.clear();
-    self.dpitems = {};
     self._default_dir = ".";
     # _title_changed is True if title was changed or edited manually
     # _comment_changed is True if comment was changed or edited manually
@@ -231,8 +235,9 @@ class LogEntryEditor (QWidget):
       self._add_dp_dialog = self.AddDataProductDialog(self);
       self.connect(self._add_dp_dialog,PYSIGNAL("filesSelected()"),
                    self,PYSIGNAL("filesSelected()"));
-      # add quick-jump combobox
+    # add quick-jump combobox
     self._add_dp_dialog.setDirList(self._default_dirs);
+    self._add_dp_dialog.rereadDir();
     self._add_dp_dialog.show();
     self._add_dp_dialog.raiseW();
     
@@ -242,6 +247,7 @@ class LogEntryEditor (QWidget):
     if column == self.ColAction:
       self._setItemPolicy(item,item._policy_cycle.get(item._policy,"copy"));
       self.updated = True;
+      self.policies_updated = True;
       self.emit(PYSIGNAL("updated()"),());
     elif column == self.ColRender:
       item._render = (item._render+1)%len(item._renderers);
@@ -278,39 +284,7 @@ class LogEntryEditor (QWidget):
       return;
     dp = getattr(self._current_item,'_dp',None);
     if dp and dp.archived:
-      msg = """<P>Do you really want to restore <tt>%s</tt> from 
-            this entry's archived copy of <tt>%s</tt>?</P>"""%(dp.sourcepath,dp.filename);
-      exists = os.path.exists(dp.sourcepath);
-      if exists:
-        msg += """<P>Current file exists, and will be overwritten.</P>""";
-        if QMessageBox.warning(self,"Restoring from archive",msg,
-            QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
-          return;
-      else:
-        if QMessageBox.question(self,"Restoring from archive",msg,
-            QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
-          return;
-      busy = Purr.BusyIndicator();
-      # remove file if in the way
-      if exists:
-        if os.system("/bin/rm -fr %s"%dp.sourcepath):
-          busy = None;
-          QMessageBox.warning(self,"Error removing file","""<P>
-            There was an error removing %s. Archived copy was not restored. 
-            The text console may have more information.</P>"""%dp.sourcepath,
-            QMessageBox.Ok);
-          return;
-      # copy over archived file
-      if os.system("/bin/cp -a %s %s"%(dp.fullpath,dp.sourcepath)):
-        busy = None;
-        QMessageBox.warning(self,"Error copying file","""<P>
-          There was an error copying the archived version to %s. The text console may have more information.</P>"""%dp.sourcepath,
-          QMessageBox.Ok);
-        return;
-      busy = None;
-      QMessageBox.information(self,"Restored file","""<P>Restored %s from this entry's 
-          archived copy.</P>"""%dp.sourcepath,
-        QMessageBox.Ok);
+      dp.restore_from_archive(parent=self);
       
   def _itemRenamed (self,item,col):
     self.updated = True;
@@ -515,6 +489,21 @@ class LogEntryEditor (QWidget):
     else:
       return Purr.LogEntry(time.time(),title,comment,dps);
     
+  def updateIgnoredEntry (self):
+    # now, append any new DPs from items (for new entries, all DPs will be new)
+    item = self.wdplv.firstChild();
+    dps = [];
+    while item:
+      if item._dp is None: # None means a new DP
+        # set all policies to ignore, unless already set to banish
+        if item._policy != "banish":
+          self._setItemPolicy(item,"ignore");
+        dps.append(Purr.DataProduct(sourcepath=item._sourcepath,policy=item._policy,
+                                    comment=str(item.text(self.ColComment))));
+      item = item.nextSibling();
+    # return new entry
+    return Purr.LogEntry(time.time(),dps=dps,ignore=True);
+    
   def setEntry (self,entry=None):
     """Populates the dialog with contents of an existing entry.""";
     busy = Purr.BusyIndicator();
@@ -556,7 +545,17 @@ class LogEntryEditor (QWidget):
         item = self._makeDPItem(dp,after);
       updated = updated or not (dp.ignored or dp.quiet);
     return updated;
-      
+  
+  def dropDataProducts (self,*pathnames):
+    """Drops new (i.e. non-archived) DP items matching the given pathnames.""";
+    trash = QListView(None);
+    for path in pathnames:
+      item = self.dpitems.get(path,None);
+      # _dp=None indicates a non-archived data product, so we can remove it
+      if item and item._dp is None:
+        self.wdplv.takeItem(item);
+        trash.insertItem(item);
+  
   def entryTitle (self):
     return self.wtitle.text();
   
@@ -601,6 +600,7 @@ class NewLogEntryDialog (QDialog):
     lo = QVBoxLayout(self);
     lo.setResizeMode(QLayout.Minimum);
     self.editor = LogEntryEditor(self);
+    self.dropDataProducts = self.editor.dropDataProducts;
     self.connect(self.editor,PYSIGNAL("filesSelected()"),self,PYSIGNAL("filesSelected()"));
     lo.addWidget(self.editor);
     lo.addSpacing(5);
@@ -612,13 +612,23 @@ class NewLogEntryDialog (QDialog):
     lo.addSpacing(5);
     btnfr_lo = QHBoxLayout(btnfr);
     newbtn = QPushButton(pixmaps.filesave.iconset(),"Add new entry",btnfr);
-    cancelbtn = QPushButton(pixmaps.grey_round_cross.iconset(),"Cancel",btnfr);
+    QToolTip.add(newbtn,"""<P>Saves new log entry, along with any data products not marked
+      as "ignore" or "banish".<P>""");
+    self.ignorebtn = QPushButton(pixmaps.grey_round_cross.iconset(),"Ignore all",btnfr);
+    self.ignorebtn.setEnabled(False);
+    QToolTip.add(self.ignorebtn,"""<P>Tells PURR to ignore all listed data products. PURR
+      will not pounce on these files again until they have been modified.<P>""");
+    cancelbtn = QPushButton(pixmaps.red_round_cross.iconset(),"Cancel",btnfr);
+    QToolTip.add(cancelbtn,"""<P>Hides this dialog.<P>""");
     QObject.connect(newbtn,SIGNAL("clicked()"),self.addNewEntry);
+    QObject.connect(self.ignorebtn,SIGNAL("clicked()"),self.ignoreAllDataProducts);
     QObject.connect(cancelbtn,SIGNAL("clicked()"),self.hide);
     btnfr_lo.setMargin(5);
-    btnfr_lo.addWidget(newbtn,1);
+    btnfr_lo.addWidget(newbtn,2);
     btnfr_lo.addStretch(1);
-    btnfr_lo.addWidget(cancelbtn,1);
+    btnfr_lo.addWidget(self.ignorebtn,2);
+    btnfr_lo.addStretch(1);
+    btnfr_lo.addWidget(cancelbtn,2);
     self.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
     # resize selves
     self.setMinimumSize(256,512);
@@ -645,6 +655,7 @@ class NewLogEntryDialog (QDialog):
     
   def addDataProducts (self,dps):
     updated = self.editor.addDataProducts(dps);
+    self.ignorebtn.setEnabled(True);
     return updated;
   
   def suggestTitle(self,title):
@@ -655,6 +666,19 @@ class NewLogEntryDialog (QDialog):
     
   def setDefaultDirs (self,*dirs):
     self.editor.setDefaultDirs(*dirs);
+    
+  def ignoreAllDataProducts (self):
+    # confirm with user
+    if QMessageBox.question(self,"Ignoring all data products","""<P><NOBR>Do you really
+          want to ignore all data products</NOBR> listed here? PURR will ignore these
+          files until they have been modified again.""",
+          QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
+      return;
+    # add entry
+    entry = self.editor.updateIgnoredEntry();
+    self.emit(PYSIGNAL("newLogEntry()"),(entry,));
+    self.editor.resetDPs();
+    self.hide();
     
   def addNewEntry (self):
     # if some naming conflicts have been resolved, return -- user will need to re-save
@@ -690,6 +714,7 @@ class ExistingLogEntryDialog (QDialog):
     self.connect(self.editor,PYSIGNAL("updated()"),self._entryUpdated);
     self.connect(self.editor,PYSIGNAL("filesSelected()"),self,PYSIGNAL("filesSelected()"));
     lo.addWidget(self.editor);
+    self.dropDataProducts = self.editor.dropDataProducts;
     # create button bar for editor
     btnfr = QFrame(self.editor_panel);
     btnfr.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
@@ -756,6 +781,7 @@ class ExistingLogEntryDialog (QDialog):
     self.resize(QSize(width,height));
     # other init
     self.entry = None;
+    self.updated = False;
     
   def resizeEvent (self,ev):
     QDialog.resizeEvent(self,ev);
@@ -764,8 +790,13 @@ class ExistingLogEntryDialog (QDialog):
     Config.set('entry-viewer-height',sz.height());
     
   def viewEntry (self,entry,has_prev=True,has_next=True):
+    # if editing previous entry, ask for confirmation
+    if self.updated:
+      self.show();
+      self._saveEntry();
     busy = Purr.BusyIndicator();
     self.entry = entry;
+    self.updated = False;
     self.setCaption(entry.title);
     self.viewer_msf.setFilePath(QStringList(entry.pathname));
     self.viewer.setText(file(self.entry.index_file).read());

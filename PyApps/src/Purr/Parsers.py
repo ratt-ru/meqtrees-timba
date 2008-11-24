@@ -74,12 +74,27 @@ class LogIndexParser (HTMLParser):
       self.title = data;
   
   def handle_data (self,data):
-    dprint(4,"data",data);
-    data = data.rstrip();
-    if data and self.curclass is not None:
-      if self.curdata:
+    dprintf(4,"data: {%s}\n",data);
+    # if curclass is None, we're not accumulating data, just skip it
+    if self.curclass is None:
+      return;
+    # is there anything here except whitespace? Append to data, but
+    # replace newlines with spaces
+    if data.rstrip():
+      self.curdata += data.replace("\n"," ");
+    # else all space. Append a single space to curdata, if it doesn't
+    # already end in a space
+    else:
+      if self.curdata and self.curdata[-1] not in "\n ":
         self.curdata += " ";
-      self.curdata += data;
+  
+  _entity_dict = dict(lt="<",gt=">");
+  
+  def handle_entityref (self,name):
+    dprintf(4,"entityref: {%s}\n",name);
+    data = self._entity_dict.get(name,None);
+    if data:
+      self.handle_data(data);
       
   def handle_endtag (self,tag):
     dprint(4,"end tag",tag);
@@ -121,20 +136,21 @@ class LogEntryIndexParser (LogIndexParser):
         quiet = bool(int(quiet));
       except:
         quiet = bool(quiet);
+    comment = comment.replace("&lt;","<").replace("&gt;",">");
     self._new_dp = Purr.DataProduct(filename=filename,sourcepath=src,
                       timestamp=timestamp,comment=comment,
                       fullpath=os.path.join(self._dirname,filename or ""),
                       policy=policy,render=render,quiet=quiet,archived=True);
   
   def _handle_end_TITLE (self,data):
-    self.title = data;
+    self.title = data.replace("&lt;","<").replace("&gt;",">");
     
   def _handle_end_COMMENTS (self,data):
-    self.comments = data;
+    self.comments = data.replace("&lt;","<").replace("&gt;",">");
     
   def _handle_end_DPCOMMENT (self,data):
     if self._new_dp:
-      self._new_dp.comment = data;
+      self._new_dp.comment = data.replace("&lt;","<").replace("&gt;",">");
       self._add_data_product();
     
   def _add_data_product (self):

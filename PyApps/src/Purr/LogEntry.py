@@ -87,13 +87,60 @@ class DataProduct (object):
     # set new paths and names
     self.fullpath = newpath;
     self.filename = newname;
+    
+  def restore_from_archive (self,parent=None):
+    """Function to restore a DP from archived copy
+    Asks for confirmation along the way if parent is not None
+    (in which case it will be the parent widget for confirmation dialogs)
+    """;
+    from qt import QMessageBox;
+    exists = os.path.exists(self.sourcepath);
+    if parent:
+      msg = """<P>Do you really want to restore <tt>%s</tt> from 
+            this entry's archived copy of <tt>%s</tt>?</P>"""%(self.sourcepath,self.filename);
+      exists = os.path.exists(self.sourcepath);
+      if exists:
+        msg += """<P>Current file exists, and will be overwritten.</P>""";
+        if QMessageBox.warning(parent,"Restoring from archive",msg,
+            QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
+          return False;
+      else:
+        if QMessageBox.question(parent,"Restoring from archive",msg,
+            QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
+          return False;
+    busy = Purr.BusyIndicator();
+    # remove file if in the way
+    if exists:
+      if os.system("/bin/rm -fr %s"%self.sourcepath):
+        busy = None;
+        if parent:
+          QMessageBox.warning(parent,"Error removing file","""<P>
+            There was an error removing %s. Archived copy was not restored. 
+            The text console may have more information.</P>"""%self.sourcepath,
+            QMessageBox.Ok);
+        return False;
+    # copy over archived file
+    if os.system("/bin/cp -a %s %s"%(self.fullpath,self.sourcepath)):
+      busy = None;
+      if parent:
+        QMessageBox.warning(parent,"Error copying file","""<P>
+          There was an error copying the archived version to %s. The text console may have more information.</P>"""%self.sourcepath,
+          QMessageBox.Ok);
+      return False;
+    busy = None;
+    if parent:
+      QMessageBox.information(parent,"Restored file","""<P>Restored %s from this entry's 
+          archived copy.</P>"""%self.sourcepath,
+        QMessageBox.Ok);
+    return True;
 
 class LogEntry (object):
   """This represents a LogEntry object""";
-  def __init__ (self,timestamp=None,title="",comment="",dps=[],load=None):
+  def __init__ (self,timestamp=None,title="",comment="",dps=[],load=None,ignore=False):
     self.title,self.comment,self.dps = title,comment,dps;
     self.timestamp = timestamp or int(time.time());
     self.pathname = None;
+    self.ignore = ignore;
     # This is None for unsaved entries, and the pathname of the index.html file once
     # the entry is saved.
     # If the entry is edited, this is reset to None again.
@@ -108,7 +155,7 @@ class LogEntry (object):
     if load:
       self.load(load);
     
-  _entry_re = re.compile(".*/entry-(\d\d\d\d)(\d\d)(\d\d)-(\d\d)(\d\d)(\d\d)$");
+  _entry_re = re.compile(".*/(entry|ignore)-(\d\d\d\d)(\d\d)(\d\d)-(\d\d)(\d\d)(\d\d)$");
   
   def isValidPathname (name):
     return os.path.isdir(name) and LogEntry._entry_re.match(name);
@@ -130,6 +177,7 @@ class LogEntry (object):
     match = self. _entry_re.match(pathname);
     if not match:
       return None;
+    self.ignore = (match.group(1) == "ignore");
     if not os.path.isdir(pathname):
       raise ValueError,"%s: not a directory"%pathname;
     if not os.access(pathname,os.R_OK|os.W_OK):
@@ -137,8 +185,12 @@ class LogEntry (object):
     # parse index.html file
     parser = Purr.Parsers.LogEntryIndexParser(pathname);
     self.index_file = os.path.join(pathname,'index.html');
-    for line in file(self.index_file):
-      parser.feed(line);
+    for i,line in enumerate(file(self.index_file)):
+      try:
+        parser.feed(line);
+      except:
+        dprintf(0,"parse error at line %d of %s\n",i,self.index_file);
+        raise;
     # set things up from parser
     try:
       self.timestamp = int(float(parser.timestamp));
@@ -173,7 +225,9 @@ class LogEntry (object):
       return;
     if dirname:
       self.pathname = pathname = os.path.join(dirname,
-                        time.strftime("entry-%Y%m%d-%H%M%S",time.localtime(self.timestamp)));
+                        ((self.ignore and "ignore") or "entry")+
+                        time.strftime("-%Y%m%d-%H%M%S",
+                                      time.localtime(self.timestamp)));
     elif not self.pathname:
       raise ValueError,"Cannot save entry: pathname not specified";
     else:
@@ -286,6 +340,15 @@ class LogEntry (object):
     attrs['timestr'] = time.strftime("%x %X",time.localtime(self.timestamp));
     attrs['relpath'] = relpath;
     html = "";
+    # replace title and comments for ignored entries
+    if self.ignore:
+      attrs['title'] = "This is not a real log entry";
+      attrs['comment'] = """This entry was saved by PURR because the user
+      chose to ignore and/or banish some data products. PURR has stored this
+      information here for its opwn internal and highly nefarious purposes. 
+      This entry is will not appear in the log.""";
+    # replace < and > in title and comments
+    attrs['title'] = attrs['title'].replace("<","&lt;").replace(">","&gt;");
     # write header if asked
     if not relpath:
       html += """<HTML><BODY>
@@ -302,6 +365,7 @@ class LogEntry (object):
         <A CLASS="COMMENTS">\n"""%attrs;
     # add comments
     for cmt in self.comment.split("\n"):
+      cmt = cmt.replace("<","&lt;").replace(">","&gt;");
       html += """      <P>%s</P>\n"""%cmt;
     html += """    </A>\n""";
     # add data products
@@ -313,11 +377,13 @@ class LogEntry (object):
         <TABLE BORDER=1 FRAME=box RULES=all CELLPADDING=5>\n""";
       for dp in self.dps:
         dpattrs = dict(dp.__dict__);
+        dpattrs['comment'] = dpattrs['comment'].replace("<","&lt;").\
+                        replace(">","&gt;").replace('"',"''");
         # if generating complete index, write empty anchor for each DP
         if not relpath:
           if dp.ignored:
             html += """
-            <A CLASS="DP" SRC="%(sourcepath)s" POLICY="%(policy)s"></A>\n"""%dpattrs;
+            <A CLASS="DP" SRC="%(sourcepath)s" POLICY="%(policy)s" COMMENT="%(comment)s"></A>\n"""%dpattrs;
           # write normal anchor for normal products
           else:
             dpattrs['relpath'] = relpath;

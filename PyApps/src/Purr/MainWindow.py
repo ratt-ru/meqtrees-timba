@@ -7,6 +7,7 @@ from qt import *
 
 import Purr
 import Purr.Editors
+import Purr.LogEntry
 import Purr.Pipe
 from Purr import Config,pixmaps,dprint,dprintf
 
@@ -232,10 +233,22 @@ class MainWindow (QMainWindow):
     self.elv.setResizeMode(QListView.LastColumn);
     self.elv.setColumnAlignment(2,Qt.AlignLeft|Qt.AlignTop);
     self.elv.setSelectionMode(QListView.Extended);
+    self.elv.setRootIsDecorated(True);
     self.connect(self.elv,SIGNAL("selectionChanged()"),self._entrySelectionChanged);
     self.connect(self.elv,SIGNAL("doubleClicked(QListViewItem*,const QPoint&,int)"),self._viewEntryItem);
     self.connect(self.elv,SIGNAL("returnPressed(QListViewItem*)"),self._viewEntryItem);
     self.connect(self.elv,SIGNAL("spacePressed(QListViewItem*)"),self._viewEntryItem);
+    self.connect(self.elv,SIGNAL('contextMenuRequested(QListViewItem*,const QPoint &,int)'),
+                     self._showItemContextMenu);
+    # create popup menu for data product
+    self._archived_dp_menu = menu = QPopupMenu(self);
+    qa = QAction(pixmaps.editcopy.iconset(),"Restore file from this entry's archived copy",0,menu);
+    QObject.connect(qa,SIGNAL("activated()"),self._restoreItemFromArchive);
+    qa.addTo(self._archived_dp_menu);
+    qa = QAction(pixmaps.editpaste.iconset(),"Copy location of archived copy to clipboard",0,menu);
+    QObject.connect(qa,SIGNAL("activated()"),self._copyItemToClipboard);
+    qa.addTo(self._archived_dp_menu);
+    self._current_item = None;
     # buttons at bottom
     cwlo.addSpacing(5);
     btnlo = QHBoxLayout(cwlo);
@@ -343,6 +356,11 @@ class MainWindow (QMainWindow):
       self.purrer_stack.insert(0,purrer);
       # discard end of stack
       self.purrer_stack = self.purrer_stack[:3];
+      # attach signals
+      self.connect(purrer,PYSIGNAL("disappearedFile()"),
+                   self.new_entry_dialog.dropDataProducts);
+      self.connect(purrer,PYSIGNAL("disappearedFile()"),
+                   self.view_entry_dialog.dropDataProducts);
     # have we changed the current purrer? Update our state then
     # reopen pipe
     self.purrpipe = Purr.Pipe.open(purrer.dirname);
@@ -504,7 +522,7 @@ class MainWindow (QMainWindow):
     item = self.elv.firstChild();
     selected = [];
     while item:
-      if self.elv.isSelected(item):
+      if self.elv.isSelected(item) and item._ientry is not None:
         selected.append(item);
       item = item.nextSibling();
     self.weditbtn.setEnabled(len(selected) == 1);
@@ -516,23 +534,25 @@ class MainWindow (QMainWindow):
     The dum arguments are for connecting this to QListView signals such as doubleClicked().
     """;
     # if item not set, look for selected items in listview. Only 1 must be selected.
-    busy = Purr.BusyIndicator();
     select = True;
     if item is None:
       item = self.elv.firstChild();
       selected = [];
       while item:
-        if self.elv.isSelected(item):
+        if self.elv.isSelected(item) and item._ientry is not None:
           selected.append(item);
         item = item.nextSibling();
       if len(selected) != 1:
         return;
       item = selected[0];
-      selcect = False; # already selected
+      select = False; # already selected
+    else:
+      # make sure item is open -- the click will cause it to close
+      item.setOpen(True);
     # show dialog
     ientry = getattr(item,'_ientry',None);
     if ientry is not None:
-      self._viewEntryNumber(ientry,select=True);
+      self._viewEntryNumber(ientry,select=select);
       
   def _viewEntryNumber (self,ientry,select=True):
     """views entry #ientry. Also selects entry in listview if select=True""";
@@ -556,7 +576,36 @@ class MainWindow (QMainWindow):
   def _viewNextEntry (self):
     if self._viewing_ientry is not None and self._viewing_ientry < len(self.purrer.entries)-1:
       self._viewEntryNumber(self._viewing_ientry+1);
-    
+      
+  def _showItemContextMenu (self,item,point,col):
+    """Callback for contextMenuRequested() signal. Pops up item menu, if defined""";
+    menu = getattr(item,'_menu',None);
+    if menu: 
+      # self._current_item tells callbacks what item the menu was referring to
+      self._current_item = item;
+      self.elv.clearSelection();
+      self.elv.setSelected(item,True);
+      menu.exec_loop(point);
+    else:
+      self._current_item = None;
+      
+  def _copyItemToClipboard (self):
+    """Callback for item menu.""";
+    if self._current_item is None:
+      return;
+    dp = getattr(self._current_item,'_dp',None);
+    if dp and dp.archived:
+      QApplication.clipboard().setText(dp.fullpath,QClipboard.Clipboard);
+      QApplication.clipboard().setText(dp.fullpath,QClipboard.Selection);
+      
+  def _restoreItemFromArchive (self):
+    """Callback for item menu.""";
+    if self._current_item is None:
+      return;
+    dp = getattr(self._current_item,'_dp',None);
+    if dp and dp.archived:
+      dp.restore_from_archive(parent=self);
+  
   def _deleteSelectedEntries (self):
     remaining_entries = [];
     del_entries = [];
@@ -584,7 +633,7 @@ class MainWindow (QMainWindow):
       msg = """<P>Permanently delete the %d selected log entries?</P>"""%len(del_entries);
       ndp = 0;
       for entry in del_entries:
-        ndp += len(entry.dps);
+        ndp += len(filter(lambda dp:not dp.ignored,entry.dps));
       if ndp:
         msg += """<P>%d data product(s) saved with these entries will be deleted as well.</P>"""%ndp;
     if QMessageBox.warning(self,"Deleting log entries",msg,
@@ -606,21 +655,43 @@ class MainWindow (QMainWindow):
     item.setText(0,self._make_time_label(entry.timestamp));
     item.setText(1," "+(entry.title or ""));
     comment = " "+(entry.comment or "");
-    # comment = comment.replace("\n","<BR>");
     item.setText(2,comment);
     item._ientry = number;
+    item._dp = None;
+    # now make subitems for DPs
+    subitem = None;
+    for dp in entry.dps:
+      if not dp.ignored:
+        subitem = self._addDPSubItem(dp,item,subitem);
+    item.setOpen(False);
     return item;
+    
+  def _addDPSubItem (self,dp,parent,after):
+    item = QListViewItem(parent,after);
+    item.setText(1,dp.filename);
+    item.setText(2,dp.comment or "");
+    item._ientry = None;
+    item._dp = dp;
+    item._menu = self._archived_dp_menu;
 
   def _make_time_label (self,timestamp):
     return time.strftime("%b %d %H:%M",time.localtime(timestamp));
     
   def _newLogEntry (self,entry):
     """This is called when a new log entry is created""";
-    self._addEntryItem(entry,len(self.purrer.entries),self.elv.lastItem());
+    # add entry to purrer
     self.purrer.addLogEntry(entry);
+    # add entry to listview if it is not an ignored entry
+    # (ignored entries only carry information about DPs to be ignored)
+    if not entry.ignore:
+      lastitem = self.elv.lastItem();
+      while isinstance(lastitem.parent(),QListViewItem):
+        lastitem = lastitem.parent();
+      self._addEntryItem(entry,len(self.purrer.entries),lastitem);
     # log will have changed, so update the viewer
-    self._updateViewer();
-    self.show();
+    if not entry.ignore:
+      self._updateViewer();
+      self.show();
     
   def _entryChanged (self,entry):
     """This is called when a log entry is changed""";

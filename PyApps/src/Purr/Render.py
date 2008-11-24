@@ -80,11 +80,18 @@ class DefaultRenderer (object):
       return False;
     if not os.path.exists(self.dp.subproduct_dir()):
       os.mkdir(self.dp.subproduct_dir());
-    if os.path.exists(fpath) and os.path.getmtime(fpath) >= max(self.file_mtime,self.module_mtime):
+## This caused many re-rendering whenever a plugin got recompiled, so I disabled it.
+## Need to add a control for re-rendering.
+##    if os.path.exists(fpath) and os.path.getmtime(fpath) >= max(self.file_mtime,self.module_mtime):
+    if os.path.exists(fpath) and os.path.getmtime(fpath) >= self.file_mtime:
       dprintf(3,"subproduct %s is up-to-date, no need to remake\n",fpath);
       return True;
     else:
       dprintf(3,"subproduct %s is out of date, need to remake\n",fpath);
+      dprintf(4,"subproduct timestamp %s, file %s, module %s\n",
+        time.strftime("%x %X",time.localtime((os.path.exists(fpath) or 0) and os.path.getmtime(fpath))),
+        time.strftime("%x %X",time.localtime(self.file_mtime)),
+        time.strftime("%x %X",time.localtime(self.module_mtime)));
       return False;
   
   def subproduct (self,ext):
@@ -164,6 +171,7 @@ class DefaultRenderer (object):
       items.append(link);
     comment = self.dp.comment or "";
     if comment:
+      comment = comment.replace("<","&lt;").replace(">","&gt;");
       items.append(comment);
     if items:
       return "<P>"+": ".join((items))+"</P>";
