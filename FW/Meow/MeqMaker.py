@@ -35,6 +35,19 @@ from Meow import StdTrees
 from Meow import ParmGroup
 from Meow import Parallelization
 
+_annotation_label_doc = """The following directives may be embedded in the format string:
+  '%N':       source name
+  '%#':       source ordinal number 
+  '%Rr':      source distance from phase centre (if position is fixed), in radians
+  '%Rd':        same, in degrees
+  '%Rm':        same, in arcmin
+  '%Rs':        same, in arcsec
+  '%I','%Q','%U','%V': 
+              source fluxes
+  '%attr':    value of source attribute 'attr', empty string if no such attribute
+  '%(attr)format':  value of source attribute 'attr' ('attr' can also be one of N,#,Rr,Rd, etc.),
+              converted using the specified %format a-la printf().
+  '%%': '%' character""";
 
 def _modname (obj):
   if hasattr(obj,'name'):
@@ -71,6 +84,7 @@ class MeqMaker (object):
     self._runtime_options = None;
     self._sky_models = None;
     self._source_list = None;
+    self.export_kvis = False;
     self._solvable = solvable;
     self._inspectors = [];
     
@@ -116,6 +130,19 @@ class MeqMaker (object):
     self._compile_options.append(
         self._module_selector("Sky model","sky",modules,use_toggle=False));
     self._sky_models = modules;
+    global _annotation_label_doc;
+    self._compile_options.append(
+      TDLMenu("Export sky model as kvis annotations",toggle="export_kvis",
+                  default=False,namespace=self,
+              *(TDLOption("export_karma_filename","Filename",
+                          TDLFileSelect("*.ann",exist=False,default=None),namespace=self),
+                TDLOption("export_karma_label","Label format",
+                          [None,"%N","%N I=%(I).3g","%N Ia=%(Iapp).3g"],more=str,namespace=self,
+                          doc="This determines the format of source labels."+_annotation_label_doc),
+                TDLOption("export_karma_incremental","Export each N sources as a separate file",
+                          ["all",10,50],more=int,namespace=self)
+              ))
+    );
 
   def add_uv_jones (self,label,name,modules,pointing=None):
     return self._add_jones_modules(label,name,True,pointing,modules);
@@ -310,7 +337,9 @@ class MeqMaker (object):
       if not module:
         raise RuntimeError,"No source list supplied and no sky model set up";
       self._source_list = module.source_list(ns);
-      # print [src.name for src in sources];
+      # add indices to source attrubutes (used by the %# directive when exporting  annotations)
+      for isrc,src in enumerate(self._source_list):
+        src.set_attr("#",isrc);
     return self._source_list;
   
   def _add_inspector (self,inspector_node,name=None):
@@ -348,7 +377,7 @@ class MeqMaker (object):
             inspectors = [];
             dlm = pointing_module.compute_pointings(dlm,stations=stations,tags=jt.label,
                                                     label=jt.label+'pe',
-                                                    inspectors=inspectors);
+                                                    inspectors=inspectors,meqmaker=self);
             pointing_solvable = getattr(pointing_module,'solvable',True);
             if inspectors:
               jones_inspectors += inspectors;
@@ -366,6 +395,7 @@ class MeqMaker (object):
       jt.base_node = Jj = module.compute_jones(Jj,sources=sources,stations=stations,
                                           pointing_offsets=dlm,solvable_sources=solvable_sources,
                                           tags=jt.label,label=jt.label,
+                                          meqmaker=self,
                                           inspectors=inspectors);
       # ignoring the pointing-solvable attribute for now
       jt.solvable = getattr(module,'solvable',True);
@@ -667,3 +697,129 @@ class MeqMaker (object):
     self._add_inspector(ns.inspector('output'),name='Inspect corrected data/residuals');
 
     return outputs;
+    
+  def close (self):
+    if self.export_kvis and self._source_list and self.export_karma_filename:
+      if self.export_karma_incremental and self.export_karma_incremental != "all":
+        filename,ext = os.path.splitext(self.export_karma_filename);
+        for i0 in range(0,len(self._source_list),self.export_karma_incremental):
+          i1 = min(i0+self.export_karma_incremental,len(self._source_list));
+          export_karma_annotations(self._source_list[i0:i1],
+            filename="%s-%d-%d%s"%(filename,i0,i1-1,ext),
+            label_format=self.export_karma_label);
+      else:
+        export_karma_annotations(self._source_list,
+            self.export_karma_filename,label_format=self.export_karma_label);
+    
+class SourceSubsetSelector (object):
+  def __init__ (self,title,tdloption_namespace=None,doc=None):
+    if tdloption_namespace:
+      self.tdloption_namespace = tdloption_namespace;
+    self.subset_enabled = False;
+    global _annotation_label_doc;
+    subset_opt = TDLMenu(title,toggle='subset_enabled',namespace=self,doc=doc,
+      *( 
+        TDLOption('source_subset',"Sources",["all"],more=str,namespace=self,
+                  doc="""Enter source names separated by space."""),
+        TDLMenu("Annotate selected sources",doc="""If you're exporting annotations for your sky model,
+    you may choose to mark the selected sources using different colours and/or labels""",
+          *(
+            TDLOption('annotation_symbol_color',"Colour of source markers",
+                      ["default","red","green","blue","yellow","purple","cyan","white"],more=str,namespace=self),
+            TDLOption('annotation_label_color',"Colour of labels",
+                      ["default","red","green","blue","yellow","purple","cyan","white"],more=str,namespace=self),
+            TDLOption('annotation_label',"Label format",
+                      ["default",None,"%N","%N I=%(I).3g","%N Ia=%(Iapp).3g"],more=str,namespace=self,
+                      doc="Overrides default annotation labels for selected sources.\n"+
+                          _annotation_label_doc)
+          )
+        )
+      ));
+    self._src_set = None;
+    self.options = [ subset_opt ];
+
+  def filter (self,srclist):
+    if not self.subset_enabled:
+      return [];
+    if not self._src_set:
+      self._src_set = sets.Set(self.source_subset.split(" "));
+    # make list
+    srclist = [ src for src in srclist if src.name in self._src_set ];
+    # apply annotations
+    if self.annotation_symbol_color != "default":
+      [ src.set_attr('ANNOTATION_SYMBOL_COLOR',self.annotation_symbol_color) for src in srclist ];
+    if self.annotation_label_color != "default":
+      [ src.set_attr('ANNOTATION_LABEL_COLOR',self.annotation_label_color) for src in srclist ];
+    if self.annotation_label != "default":
+      [ src.set_attr('ANNOTATION_LABEL',self.annotation_label) for src in srclist ];
+    return srclist;
+    
+def export_karma_annotations (sources,filename,
+      label_format="%N",
+      sym_color='yellow',
+      lbl_color='blue'):
+  """Exports a list of sources as a Karma annotations file. 
+  label_format is used to generate source labels.\n"""+_annotation_label_doc;
+  f = file(filename,'wt');
+  f.write('COORD W\nPA STANDARD\nCOLOR GREEN\nFONT hershey12\n');
+  # calculate default size for crosses
+  xcross=0.01;
+  for src in sources:
+    # can only plot static-position sources
+    radec = src.direction.radec_static();
+    if not radec:
+      continue;
+    # convert position to degrees
+    ra_d=radec[0]/math.pi*180.0;
+    dec_d=radec[1]/math.pi*180.0;
+    # write symbol for source
+    color = src.get_attr("ANNOTATION_SYMBOL_COLOR",sym_color);
+    f.write('COLOR %s\n'%color);
+    # GaussianSources get ellipses
+    if isinstance(src,Meow.GaussianSource):
+      if src.is_symmetric():
+        sx = sy = src.get_value("sigma") or 0;
+      else:
+        sx = src.get_value("sigma1") or 0;
+        sy = src.get_value("sigma2") or 0;
+      pa = src.get_value("phi") or 0;
+      f.write('ELLIPSE %.12f %.12f %f %f %f\n'%(ra_d,dec_d,sx/math.pi*180.0,sy/math.pi*180.0,pa/math.pi*180.0));
+    # else assume point source and do a cross
+    else:
+      f.write('CROSS %.12f %.12f %f %f\n'%(ra_d,dec_d,xcross,xcross));
+    # now generate label
+    label = src.get_attr('ANNOTATION_LABEL',label_format);
+    if label:
+      attrs = dict(src.attrs);
+      # populate attribute dict
+      attrs['%'] = '%';
+      attrs['N'] = src.name;
+      for st in "IQUV":
+        attrs[st] = src.get_value(st) or 0;
+      lmn = src.direction.lmn_static();
+      if lmn:
+        R = math.sqrt(lmn[0]**2+lmn[1]**2);
+        attrs['Rr'] = R;
+        R = R/math.pi*180;
+        attrs['Rd'] = R;
+        attrs['Rm'] = R*60;
+        attrs['Rs'] = R*3600;
+      # sort attributes by decreasing length (to make sure that %xyz is replaced before %xy).
+      attrkeys = attrs.keys();
+      attrkeys.sort(lambda a,b:cmp(len(b),len(a)));
+      # now for each attribute, replace entry in format string
+      for key in attrkeys:
+        # replace simple %attr directives
+        label = label.replace('%'+key,str(attrs[key]));
+      # now replace remaining entries
+      try:
+        label = label%attrs;
+      except:
+        pass;
+      # newlines
+      label = label.replace("\n","\\\n");
+      if label:
+        color = src.get_attr("ANNOTATION_LABEL_COLOR",lbl_color);
+        f.write('COLOR %s\n'%color);
+        f.write('TEXT %.12f %.12f %s\n'%(ra_d,dec_d,label));
+  f.close()

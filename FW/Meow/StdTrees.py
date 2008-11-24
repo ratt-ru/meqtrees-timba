@@ -67,10 +67,11 @@ class ResidualTree (_BaseTree):
     return outputs;
 
 class SolveTree (ResidualTree):
-  def __init__ (self,ns,predict,solve_ifrs=None,array=None,observation=None,residuals=None):
+  def __init__ (self,ns,predict,solve_ifrs=None,array=None,observation=None,residuals=None,bookmarks=True):
     ResidualTree.__init__(self,ns,predict,array,observation);
     self._solve_ifrs = solve_ifrs or self.array.ifrs();
     self._make_residuals = residuals;
+    self.bookmarks = bookmarks;
 
   def outputs (self,inputs=None):
     """Makes solver tree, returns the set of reqseq output nodes.
@@ -114,6 +115,9 @@ class SolveTree (ResidualTree):
       # add condeqs to solver
       solver << Meq.Solver(children=[self.ns.ce(p,q) for p,q in self._solve_ifrs],
                            child_poll_order=poll_order);
+      # add solver bookmark
+      if self.bookmarks:
+        Bookmarks.Page("Solver").add(solver,viewer="Result Plotter");
     return solver;
  
   def sequencers (self,inputs=None,outputs=None):

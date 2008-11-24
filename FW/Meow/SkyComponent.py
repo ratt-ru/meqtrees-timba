@@ -47,9 +47,17 @@ class SkyComponent (Parameterization):
     self.using_station_decomposition = False;
     # if source should include a time/bandwidth smearing correction, this will be true
     self.smearing = False;
+    # user-defined attributes. May be used for anything.
+    self.attrs = {};
     
   def enable_smearing (self, smearing=True):
     self.smearing = smearing;
+    
+  def set_attr (self,attr,value):
+    self.attrs[attr] = value;
+    
+  def get_attr (self,attr,default=None):
+    return self.attrs.get(attr,default);
     
   def radec (self):
     """Returns ra-dec two-pack for this component's direction""";

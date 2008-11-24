@@ -40,7 +40,7 @@ POLC_TYPE = type(meq.polc(0));
 
 def resolve_parameter (name,node,value,tags=[],solvable=True,solvables=None):
   """Helper function, resolves 'value' to a parameter-like node.
-  'name' is a parameter name (only uased for error messages)
+  'name' is a parameter name (only used for error messages)
   'node' is an uninitialized node stub
   'value' specifies the parameter.
       (a) If value is numeric, creates a Meq.Constant() and binds it to 'node'.
@@ -123,6 +123,18 @@ class Parameterization (object):
        not is_node(value):
       raise TypeError,"argument must be a constant, a node, or a Meow.Parm";
     self._parmdefs[name] = (value,tags,solvable);
+    
+  def get_value (self,name):
+    """Gets default value for named parm, or None if it is a node or a funklet.""";
+    if name not in self._parmdefs:
+      raise KeyError,"unknown Meow parm '"+name+"'";
+    value,tags,solvable = self._parmdefs[name];
+    # now figure out the value
+    if isinstance(value,Meow.Parm):
+      value = value.value;
+    if isinstance(value,(int,float,complex)):
+      return value;
+    return None;
     
   def _parm (self,name,value=None,tags=[],nodename=None,solvable=True):
     """Returns node representing parameter 'name'.

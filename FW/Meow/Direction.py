@@ -32,9 +32,18 @@ from math import cos,sin,sqrt
 
 def radec_to_lmn (ra,dec,ra0,dec0):
   """Returns l,m,n corresponding to direction ra,dec w.r.t. direction ra0,dec0""";
+## our old formula, perhaps unjustly suspected by me
+## See purrlog for 3C147_spw0, entries of Nov 21.
   l = cos(dec) * sin(ra-ra0);
   m = sin(dec) * cos(dec0) - cos(dec) * sin(dec0) * cos(ra-ra0);
-  n = sqrt(1 - l*l - m*m );
+## Sarod's formula from LSM.common_utils. Doesn't seem to work right!
+#  l = sin(ra-ra0)*math.cos(dec);
+#   sind0 = sin(dec0);
+#   if sind0 != 0:
+#     m = -(cos(ra-ra0)*cos(dec)-cos(dec0))/math.sin(dec0);
+#   else:
+#     m = 0
+  n = sqrt(1-l*l-m*m);
   return l,m,n;
 
 

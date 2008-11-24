@@ -34,6 +34,7 @@ import sets
 import Meow
 import Meow.OptionTools
 import Meow.Context
+import math
 from math import *
 
 # constants for available LSM formats
@@ -130,33 +131,24 @@ class MeowLSM (object):
           TDLOption("solve_shape","shape (for extended sources)",False,namespace=self),
           toggle='solvable_sources',namespace=self,
         ));
-      save_opt = TDLOption("save_native","Save LSM in native format",False,namespace=self);
-      self._compile_opts.append(save_opt);
-      save_filename_opt = TDLOption("save_native_filename","Filename to save as",
+      save_opt = TDLMenu("Save LSM in native format",toggle="save_native",default=False,namespace=self,
+                          *( TDLOption("save_native_filename","Filename",
                                      TDLFileSelect("*.lsm",exist=False),
-                                     namespace=self);
-      self._compile_opts.append(save_filename_opt);
-      save_opt.when_changed(save_filename_opt.show);
-      save_txt_opt = TDLOption("save_text","Save LSM in text (hms/dms) format",False,namespace=self);
+                             namespace=self),));
+      self._compile_opts.append(save_opt);
+      save_txt_opt = TDLMenu("Save LSM in text (hms/dms) format",toggle="save_text",
+                            default=False,namespace=self,
+                          *( TDLOption("save_text","Filename",False,namespace=self),));
       self._compile_opts.append(save_txt_opt);
-      save_txt_filename_opt = TDLOption("save_text_filename","Filename to save as",
-                                     TDLFileSelect("*.txt",exist=False),
-                                     namespace=self);
-      self._compile_opts.append(save_txt_filename_opt);
-      save_txt_opt.when_changed(save_txt_filename_opt.show);
-
+      
       def _select_format (format):
         if format == NATIVE:
           save_opt.set_value(False,save=False);
       format_opt.when_changed(_select_format);
 
-      self._compile_opts.append(
+      self._compile_opts += [
         TDLOption("show_gui","Show LSM GUI",False,namespace=self)
-      );
-      self._compile_opts.append(TDLOption("export_karma",
-                                  "Export LSM as Karma annotations file",
-                                  TDLFileSelect("*.ann",exist=False,default=None),
-                                  namespace=self));
+      ];
       
     return self._compile_opts;
 
@@ -201,13 +193,6 @@ class MeowLSM (object):
     if self.save_text and self.save_text_filename:
       self.lsm.save_as_extlist(self.save_text_filename,ns,prefix='');
       
-    if self.export_karma:
-      try:
-        self.lsm.export_karma_annotations(self.export_karma,ns);
-      except:
-        traceback.print_exc();
-        pass;
-
     if self.show_gui:
       self.lsm.display()
 
@@ -351,10 +336,14 @@ class MeowLSM (object):
                 I=src['I'],Q=src['Q'],U=src['U'],V=src['V'],
                 direction=direction,
                 spi=src['spi'],freq0=src['freq0'],RM=src['RM']);
+                
+      # check for beam LM
+      if pu._lm is not None:
+        src.set_attr('beam_lm',pu._lm);
               
       src.solvable = solvable;
+      src.set_attr('Iapp',Iapp);
       source_model.append(src);
       
-    return source_model
-
+    return source_model;
 
