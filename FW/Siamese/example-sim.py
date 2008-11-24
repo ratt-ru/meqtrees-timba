@@ -55,9 +55,9 @@ meqmaker = MeqMaker.MeqMaker();
 
 # specify available sky models
 # these will show up in the menu automatically
-import gridded_sky
-import transient_sky
-import fitsimage_sky
+from Siamese.OMS import gridded_sky
+from Siamese.OMS import transient_sky
+from Siamese.OMS import fitsimage_sky
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 
@@ -67,22 +67,22 @@ meqmaker.add_sky_models([gridded_sky,transient_sky,fitsimage_sky,lsm]);
 # these will show up in the menu automatically
 
 # Ncorr - correct for N
-import oms_n_inverse
+from Siamese.OMS import oms_n_inverse
 meqmaker.add_sky_jones('Ncorr','n-term correction',oms_n_inverse);
 
 # Z - ionosphere
-import oms_ionosphere
+from Siamese.OMS import oms_ionosphere
 meqmaker.add_sky_jones('Z','ionosphere',oms_ionosphere);
 
 # E - beam
-import wsrt_beams
-import sarod_cs1_beams
-import oms_pointing_errors
+from Siamese.OMS import wsrt_beams
+from Siamese import sarod_cs1_beams
+from Siamese.OMS import oms_pointing_errors
 meqmaker.add_sky_jones('E','beam',[wsrt_beams,sarod_cs1_beams],
                                   pointing=oms_pointing_errors);
 
 # G - gains
-import oms_gain_models
+from Siamese.OMS import oms_gain_models
 meqmaker.add_uv_jones('G','gains/phases',oms_gain_models);
 
 # very important -- insert meqmaker's options properly
