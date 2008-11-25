@@ -585,12 +585,12 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       Config.set('meqserver-path',pathname);
     Config.set('meqserver-args',args);
     if not os.path.isfile(pathname) or not os.access(pathname,os.X_OK):
-      self.log_message("can't start kernel \"%s\": not an executable file" % (pathname,), \
+      self.log_message("can't start meqserver \"%s\": not an executable file" % (pathname,), \
         category=Logger.Error);
       return;
-    self.log_message("starting kernel process \"%s %s\" and waiting for connection"%(pathname,args));
+    self.log_message("starting meqserver process \"%s %s\" and waiting for connection"%(pathname,args));
     self._kernel_pid = self._kernel_pid0 = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
-    _dprint(0,"started kernel process",self._kernel_pid);
+    _dprint(0,"started meqserver process",self._kernel_pid);
     self._kernel_pathname = pathname;
     self._connect_timer.start(8000,True);  # start an 8-second timer
     self._check_connection_status();
@@ -607,12 +607,15 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     try:
       timeout_dialog = self._timeout_dialog;
     except AttributeError:
-      timeout_dialog = self._timeout_dialog = QMessageBox("""Kernel timed out""",
-        """<p>We have started a local kernel process (pid %s), but we can't 
-        establish a connection to it. This may be due to an out-of-date
-        kernel build, or to a bug somewhere. You can try killing and
-        restarting the kernel process. If you're sure your build is up-to-date, 
-        then please report this as a bug.</p>""" % str(self._kernel_pid0),
+      timeout_dialog = self._timeout_dialog = QMessageBox("""meqserver timed out""",
+        """<p>We have started a local meqserver process (pid %s), but we can't 
+        establish a connection to it. This may be due to any one of the following reasons:</P>
+        <ul> 
+        <li>an out-of-date meqserver build.</li>
+        <li>leftover meqbrowser, meqserver or child processes such as glish can sometimes interfere with the connection. Try a <tt>ps x</tt> to see what's running, and kill any old processes.</li>
+        <li>a genuine bug -- please report this.</li>
+        </ul>
+        <P>You can also try killing and restarting the kernel process itself.</p>""" % str(self._kernel_pid0),
         QMessageBox.Critical,
         QMessageBox.Ok,QMessageBox.NoButton,QMessageBox.NoButton,
         self);
@@ -688,7 +691,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       if not pid:   # pid 0 means we got a STOP/CONT signal, ignore
         return;
       if pid == self._kernel_pid:
-        msg = "kernel process " + str(pid);
+        msg = "meqserver process " + str(pid);
         self._kernel_pid = None;
         cat = Logger.Error;
         self._check_connection_status();
@@ -706,7 +709,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   def _verify_quit (self):
     if self._connected and self._kernel_pid:
       res = QMessageBox.warning(self,"Quit browser",
-        """<p>We have started a kernel process (pid %d) from this browser. 
+        """<p>We have started a meqserver process (pid %d) from this browser. 
         Would you like to quit the browser only, or kill the kernel as 
         well?</p>""" % (self._kernel_pid,),
         "&Quit only","Quit && &kill","Cancel",1,2);
