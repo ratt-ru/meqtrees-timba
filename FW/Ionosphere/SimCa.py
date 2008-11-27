@@ -58,7 +58,8 @@ meqmaker = MeqMaker.MeqMaker(solvable=do_solve and run_option=='calibrate');
 # specify available sky models
 # these will show up in the menu automatically
 from Calico import central_point_source
-from Siamese import gridded_sky
+#from Siamese import gridded_sky
+from Ionosphere import gridded_sky
 
 
 
