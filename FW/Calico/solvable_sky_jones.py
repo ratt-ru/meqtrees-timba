@@ -32,29 +32,69 @@ import sets
 import Meow.MeqMaker 
 
 class DiagAmplPhase (object):
-  def __init__ (self):
-    self.options = [];
+  def __init__ (self,label):
+    self.tdloption_namespace = label+".diagamplphase";
+    subset_opt = TDLOption('subset',"Apply this Jones term to a subset of sources",
+        ["all"],more=str,namespace=self,doc="""Selects a subset of sources to which this 
+        Jones term is applied. Enter soure names separated by space""");
+    self.options = [ subset_opt ];
 
   def runtime_options (self):
     return self.options;
 
-  def compute_jones (self,nodes,stations=None,tags=None,label='',**kw):
+##  def compute_jones (self,nodes,stations=None,tags=None,label='',**kw):
+##    stations = stations or Context.array.stations();
+##    g_ampl_def = Meow.Parm(1);
+##    g_phase_def = Meow.Parm(0);
+##    nodes = Jones.gain_ap_matrix(nodes,g_ampl_def,g_phase_def,tags=tags,series=stations);
+
+##    # make parmgroups for phases and gains
+##    self.pg_phase = ParmGroup.ParmGroup(label+"_phase",
+##                    nodes.search(tags="solvable phase"),
+##                    table_name="%s_phase.fmep"%label,bookmark=4);
+##    self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",
+##                    nodes.search(tags="solvable ampl"),
+##                    table_name="%s_ampl.fmep"%label,bookmark=4);
+
+##    # make solvejobs
+##    ParmGroup.SolveJob("cal_"+label+"_phase","Calibrate %s phases"%label,self.pg_phase);
+##    ParmGroup.SolveJob("cal_"+label+"_ampl","Calibrate %s amplitudes"%label,self.pg_ampl);
+
+  def compute_jones (self,nodes,sources,stations=None,tags=None,label='',**kw):
     stations = stations or Context.array.stations();
+    # figure out which sources to apply to
+    if self.subset != "all":
+      srcset = sets.Set(self.subset.split(" "));
+      sources = [ src for src in sources if src.name in srcset ];
+    if not sources:
+      return None;
+
     g_ampl_def = Meow.Parm(1);
     g_phase_def = Meow.Parm(0);
-    nodes = Jones.gain_ap_matrix(nodes,g_ampl_def,g_phase_def,tags=tags,series=stations);
+    # loop over sources
+    #print "tags",tags
+    subgroups_phase = [];
+    subgroups_ampl = [];
+    for src in sources:
+      #print  srci,src,self.solve_source,(srci==self.solve_source)
+      jones = Jones.gain_ap_matrix(nodes(src),g_ampl_def,g_phase_def,tags=tags,series=stations);
+      # add subgroup for this source
+      subgroups_phase.append(ParmGroup.Subgroup(src.name,nodes(src).search(tags="solvable phase")));
+      subgroups_ampl.append(ParmGroup.Subgroup(src.name,nodes(src).search(tags="solvable ampl")));
 
     # make parmgroups for phases and gains
     self.pg_phase = ParmGroup.ParmGroup(label+"_phase",
                     nodes.search(tags="solvable phase"),
-                    table_name="%s_phase.fmep"%label,bookmark=4);
+                    subgroups = subgroups_phase,                    
+                    table_name="%s_phase.mep"%label,bookmark=4);
     self.pg_ampl  = ParmGroup.ParmGroup(label+"_ampl",
                     nodes.search(tags="solvable ampl"),
-                    table_name="%s_ampl.fmep"%label,bookmark=4);
+                    subgroups = subgroups_ampl,                 
+                    table_name="%s_ampl.mep"%label,bookmark=4);
 
-    # make solvejobs
     ParmGroup.SolveJob("cal_"+label+"_phase","Calibrate %s phases"%label,self.pg_phase);
     ParmGroup.SolveJob("cal_"+label+"_ampl","Calibrate %s amplitudes"%label,self.pg_ampl);
+
 
     return nodes;
 
