@@ -960,8 +960,8 @@ class ImagingSelector (object):
     # add center
     self._opts.append(TDLOption('imaging_phasecenter',"Phase center",["default"],namespace=self,more=str,
         doc="""You can center the image on a particular point in the sky. The default is
-        the phase center (as defined by the MS.) To override this, enter a direction string 
-        such as 'j2000, 05h30m, -30.2deg'"""));
+        the phase center of the observation. To override this, enter a direction string 
+        of the form, e.g., 'J2000,05h35m10s,-30deg15m30s'"""));
     # add MS subset selector, if needed
     if subset:
       self.subset_selector = mssel.make_subset_selector(namespace);
