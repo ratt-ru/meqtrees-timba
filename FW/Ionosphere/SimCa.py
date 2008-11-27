@@ -58,10 +58,6 @@ meqmaker = MeqMaker.MeqMaker(solvable=do_solve and run_option=='calibrate');
 # specify available sky models
 # these will show up in the menu automatically
 from Ionosphere import gridded_sky
-
-
-
-
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 meqmaker.add_sky_models([lsm,gridded_sky]);
@@ -73,6 +69,11 @@ meqmaker.add_uv_jones('G','receiver gains/phases',
 
 meqmaker.add_uv_jones('B','bandpass',
   [ solvable_jones.DiagAmplPhase()]);
+
+# simulate G Jones
+from Siamese.OMS import oms_gain_models
+meqmaker.add_uv_jones('G_sim','simulate receiver gains/phases',
+                      [ oms_gain_models]);
 
 meqmaker.add_sky_jones('Z','iono',[ZJones.ZJones()]);
 from Calico import solvable_sky_jones;
