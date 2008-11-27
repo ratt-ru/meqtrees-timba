@@ -57,8 +57,6 @@ meqmaker = MeqMaker.MeqMaker(solvable=do_solve and run_option=='calibrate');
 
 # specify available sky models
 # these will show up in the menu automatically
-from Calico import central_point_source
-#from Siamese import gridded_sky
 from Ionosphere import gridded_sky
 
 
@@ -66,7 +64,7 @@ from Ionosphere import gridded_sky
 
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
-meqmaker.add_sky_models([central_point_source,lsm,gridded_sky]);
+meqmaker.add_sky_models([lsm,gridded_sky]);
 
 from Calico import solvable_jones;
 meqmaker.add_uv_jones('G','receiver gains/phases',
