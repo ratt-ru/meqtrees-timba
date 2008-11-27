@@ -711,6 +711,25 @@ namespace Meq { class Imag; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqInterpolCoeff
+#define _defined_id_TpMeqInterpolCoeff 1
+const DMI::TypeId TpMeqInterpolCoeff(-1752);      // from /home/fba/Timba/MeqNodes/src/InterpolCoeff.h:36
+const int TpMeqInterpolCoeff_int = -1752;
+namespace Meq { class InterpolCoeff; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::InterpolCoeff> : public TypeTraits<Meq::InterpolCoeff>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqInterpolCoeff_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::InterpolCoeff & ContainerReturnType;
+                typedef const Meq::InterpolCoeff & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqInvert
 #define _defined_id_TpMeqInvert 1
 const DMI::TypeId TpMeqInvert(-1507);             // from /home/assendorp/LOFAR/Timba/MeqNodes/src/Invert.h:29

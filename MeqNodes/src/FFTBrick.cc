@@ -48,6 +48,8 @@
 
 namespace Meq {
   
+const HIID FAxesIn = AidAxes|AidIn;
+const HIID FAxesOut = AidAxes|AidOut;
 
 FFTBrick::FFTBrick()
   : Node(1),     // exactly 1 child expected
@@ -63,10 +65,7 @@ FFTBrick::FFTBrick()
   Axis::addAxis("V");
 };
 
-FFTBrick::~FFTBrick()
-{
-};
-
+FFTBrick::~FFTBrick(){};
 
 int FFTBrick::getResult (Result::Ref &resref,
 			const std::vector<Result::Ref> &child_results,
@@ -110,7 +109,7 @@ int FFTBrick::getResult (Result::Ref &resref,
   // planes per a single input plane, we add an extra tensor dimension of 
   // size 4
   Result::Dims dims = childres.dims();
-  dims.push_back(4);
+  dims.push_back(1);
   
   // make a new Result
   Result & result = resref <<= new Result(dims);
@@ -121,22 +120,22 @@ int FFTBrick::getResult (Result::Ref &resref,
   {
     const VellSet &vs_input = childres.vellSet(ivs);
     // create 4 new output VellSets
-    VellSet * pvs_output[4];
-    for( int i=0; i<4; i++,ovs++ )
+    VellSet * pvs_output[1];
+    for( int i=0; i<1; i++,ovs++ )
       pvs_output[i] = &( result.setNewVellSet(ovs) );
     
     // if the input VellSet is a null, make null outputs and continue
     if( vs_input.isNull() )
     {
       Vells::Ref null_vells(DMI::ANONWR);
-      for( int i=0; i<4; i++,ovs++ )
+      for( int i=0; i<1; i++,ovs++ )
         pvs_output[i]->setValue(null_vells);
       continue;
     }
       
     // ok, we have actual values (main + possibly perturbed). 
     // Setup copies of spid/perturbations.
-    for( int i=0; i<4; i++ )
+    for( int i=0; i<1; i++ )
     {
       pvs_output[i]->setNumPertSets(vs_input.numPertSets());
       pvs_output[i]->copySpids(vs_input);
@@ -145,11 +144,11 @@ int FFTBrick::getResult (Result::Ref &resref,
     
     // Now FFT all values
     // this holds the 4 result Vells for each FFT
-    Vells::Ref output_vells[4];
+    Vells::Ref output_vells[1];
     
     // FFT the main value
     doFFT(output_vells,vs_input.getValue());
-    for( int i=0; i<4; i++ )
+    for( int i=0; i<1; i++ )
       pvs_output[i]->setValue(output_vells[i]);
     
     // FFT each perturbed value
@@ -157,12 +156,12 @@ int FFTBrick::getResult (Result::Ref &resref,
       for( int ipert=0; ipset<vs_input.numSpids(); ipert++ )
       {
         doFFT(output_vells,vs_input.getPerturbedValue(ipert,ipset));
-        for( int i=0; i<4; i++ )
+        for( int i=0; i<1; i++ )
           pvs_output[i]->setPerturbedValue(ipert,output_vells[i],ipset);
       }
       
     // finalize shapes of output vellsets
-    for( int i=0; i<4; i++ )
+    for( int i=0; i<1; i++ )
       pvs_output[i]->verifyShape();
   }
   
@@ -221,7 +220,7 @@ BZ_DECLARE_STENCIL4(make_interpolation_planes,U,V,UV,X)
   UV = (X(-1,-1) + X(-1,+1) + X(+1,-1) + X(+1,+1))/4;
 BZ_END_STENCIL_WITH_SHAPE(shape(-1,-1),shape(+1,+1))
 
-void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
+void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
 {
   Vells::Shape input_shape = input_vells.shape();
   if ( _inaxis0>=input_shape.size() && _inaxis1>=input_shape.size() ) {
@@ -229,10 +228,6 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
     //    "one or both input axes are not present in input Vells");
     // No input shape, just a constant input value.
     output_vells[0] <<= new Vells(make_dcomplex(0.0));
-    // create additional Vells for higher order interpolation coefficients
-    output_vells[1] <<= new Vells(make_dcomplex(0.0));
-    output_vells[2] <<= new Vells(make_dcomplex(0.0));
-    output_vells[3] <<= new Vells(make_dcomplex(0.0));
   } else {
   
   // check that input axes are present
@@ -272,19 +267,21 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
   VellsSlicer<dcomplex,2> padded_input_slicer(padded_vells,_inaxis0,_inaxis1);
   for( ; padded_input_slicer.valid(); padded_input_slicer.incr(),input_slicer.incr())
   {
-    Assert(input_slicer.valid()); // must be true since all other axes have the same shape
+    Assert(input_slicer.valid()); 
+    // must be true since all other axes have the same shape
     const blitz::Array<dcomplex,2> in_arr = input_slicer();
     blitz::Array<dcomplex,2> pad_arr = padded_input_slicer();
-    
+    //dcomplex aa,bb,cc;
+    //aa=in_arr(257,255);bb=in_arr(257,257);cc=in_arr(255,257);
+    //std::cout<<"Array values\t"<<__real__ aa<<"\t"<<__real__ bb
+    //     <<"\t"<<__real__ cc<<"\n"<<std::flush;
+
     pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
-        in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));
-    
+        in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));    
     pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1)) = 
         in_arr(makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
-    
     pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
         in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
-
     pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1)) = 
         in_arr(makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
   };
@@ -351,112 +348,28 @@ void FFTBrick::doFFT (Vells::Ref output_vells[4],const Vells &input_vells)
   // ok, now we need to reshuffle the fft_result and generate interpolation
   // planes. Create 4 output Vells for this
   Vells & vells0  = output_vells[0] <<= new Vells(make_dcomplex(0.0),output_shape,true);
-  // create additional Vells for higher order interpolation coefficients
-  Vells & vells0u = output_vells[1] <<= new Vells(make_dcomplex(0.0),output_shape,false);
-  Vells & vells0v = output_vells[2] <<= new Vells(make_dcomplex(0.0),output_shape,false);
-  Vells & vells0uv = output_vells[3] <<= new Vells(make_dcomplex(0.0),output_shape,false);
 
   // Reshuffle fft'd data around, and fill in the interpolation planes
   // This is similar to the operation above.
   // We'll use VellsSlicers to repeat this for all other dimensions
   ConstVellsSlicer<dcomplex,2> fft_slicer(fft_vells,_outaxis0,_outaxis1);
   VellsSlicer<dcomplex,2> result_slicer(vells0,_outaxis0,_outaxis1);
-  VellsSlicer<dcomplex,2> iu_slicer(vells0u,_outaxis0,_outaxis1);
-  VellsSlicer<dcomplex,2> iv_slicer(vells0v,_outaxis0,_outaxis1);
-  VellsSlicer<dcomplex,2> iuv_slicer(vells0uv,_outaxis0,_outaxis1);
   for( ; fft_slicer.valid(); 
-       fft_slicer.incr(),result_slicer.incr(),iu_slicer.incr(),
-       iv_slicer.incr(),iuv_slicer.incr() )
+       fft_slicer.incr(),result_slicer.incr())
   {
     Assert(result_slicer.valid()); // must be true since all other axes have the same shape
-    Assert(iu_slicer.valid()); // must be true since all other axes have the same shape
-    Assert(iv_slicer.valid()); // must be true since all other axes have the same shape
-    Assert(iuv_slicer.valid()); // must be true since all other axes have the same shape
     const blitz::Array<dcomplex,2> fft_arr = fft_slicer();
     blitz::Array<dcomplex,2> out_arr = result_slicer();
-    blitz::Array<dcomplex,2> u_arr = iu_slicer();
-    blitz::Array<dcomplex,2> v_arr = iv_slicer();
-    blitz::Array<dcomplex,2> uv_arr = iuv_slicer();
-    
     // reshuffle fft data into output array
     out_arr(makeLoRange(0,nu1-2),makeLoRange(0,nv1-2)) = 
         fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(nv-nv1+1,nv-1));
-    
     out_arr(makeLoRange(0,nu1-2),makeLoRange(nv1-1,nv-1)) = 
         fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(0,nv-nv1));
-    
     out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(0,nv1-2)) = 
         fft_arr(makeLoRange(0,nu-nu1),makeLoRange(nv-nv1+1,nv-1));
-    
     out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(nv1-1,nv-1)) = 
         fft_arr(makeLoRange(0,nu-nu1),makeLoRange(0,nv-nv1));
-    
-    // fill in interpolation coeffs
-    // use the Blitz stencil defined above for the central area
-    blitz::applyStencil(make_interpolation_planes(),u_arr,v_arr,uv_arr,out_arr);
-        
-    // the stencil leaves the edges alone, so we have to compute them separately
-    
-//     for (int i = 1; i < nu-1; i++)
-//       for (int j = 1; j < nv-1; j++)
-//       {
-//         u_arr(i,j)  = (out_arr(i+1,j) + out_arr(i-1,j))/2.;
-//         v_arr(i,j)  = (out_arr(i,j+1) + out_arr(i,j-1))/2.;
-//         uv_arr(i,j) = (out_arr(i+1,j+1) + out_arr(i-1,j+1) +
-// 	 	       out_arr(i+1,j-1) + out_arr(i-1,j-1))/4.;
-// 
-//       }
-    // Assume periodicity: value at '-1' equals 'nu-1' or 'nv-1'
-    //                     value at 'nu', 'nv' equals '0'
-    // Check this!
 
-    for (int i = 1; i < nu-1; i++)
-    {
-        u_arr(i,0) = (out_arr(i+1,0) + out_arr(i-1,0))/2.;
-        v_arr(i,0) = (out_arr(i,1) + out_arr(i,nv-1))/2.;
-        uv_arr(i,0) = (out_arr(i+1,1) + out_arr(i-1,1) +
-		       out_arr(i+1,nv-1) + out_arr(i-1,nv-1))/4.;
-
-        u_arr(i,nv-1) = (out_arr(i+1,nv-1) + out_arr(i-1,nv-1))/2.;
-        v_arr(i,nv-1) = (out_arr(i,0) + out_arr(i,nv-2))/2.;
-        uv_arr(i,nv-1) = (out_arr(i+1,0) + out_arr(i-1,0) +
-		       out_arr(i+1,nv-2) + out_arr(i-1,nv-2))/4.;
-
-    };
-
-    for (int j = 1; j < nv-1; j++)
-    {
-      u_arr(0,j) = (out_arr(1,j) + out_arr(nu-1,j))/2.;
-      v_arr(0,j) = (out_arr(0,j+1) + out_arr(0,j-1))/2.;
-      uv_arr(0,j) = (out_arr(1,j+1) + out_arr(nu-1,j+1) +
-		     out_arr(1,j-1) + out_arr(nu-1,j-1))/4.;
-
-      u_arr(nu-1,j) = (out_arr(0,j) + out_arr(nu-2,j))/2.;
-      v_arr(nu-1,j) = (out_arr(nu-1,j+1) + out_arr(nu-1,j-1))/2.;
-      uv_arr(nu-1,j) = (out_arr(0,j+1) + out_arr(nu-2,j+1) +
-		        out_arr(0,j-1) + out_arr(nu-2,j-1))/4.;
-
-    };
-
-    u_arr(0,0) = (out_arr(1,0) + out_arr(nu-1,0))/2.;
-    v_arr(0,0) = (out_arr(0,1) + out_arr(0,nv-1))/2.;
-    uv_arr(0,0) = (out_arr(1,1) + out_arr(nu-1,1) +
-		   out_arr(1,nv-1) + out_arr(nu-1,nv-1))/4.;
-
-    u_arr(0,nv-1) = (out_arr(1,nv-1) + out_arr(nu-1,nv-1))/2.;
-    v_arr(0,nv-1) = (out_arr(0,0) + out_arr(0,nv-2))/2.;
-    uv_arr(0,nv-1) = (out_arr(1,0) + out_arr(nu-1,0) +
-		      out_arr(1,nv-2) + out_arr(nu-1,nv-2))/4.;
-
-    u_arr(nu-1,0) = (out_arr(0,0) + out_arr(nu-2,0))/2.;
-    v_arr(nu-1,0) = (out_arr(nu-1,1) + out_arr(nu-1,nv-1))/2.;
-    uv_arr(nu-1,0) = (out_arr(0,1) + out_arr(nu-2,1) +
-		      out_arr(0,nv-1) + out_arr(nu-2,nv-1))/4.;
-
-    u_arr(nu-1,nv-1) = (out_arr(0,nv-1) + out_arr(nu-2,nv-1))/2.;
-    v_arr(nu-1,nv-1) = (out_arr(nu-1,0) + out_arr(nu-1,nv-2))/2.;
-    uv_arr(nu-1,nv-1) = (out_arr(0,0) + out_arr(nu-2,0) +
-		         out_arr(0,nv-2) + out_arr(nu-2,nv-2))/4.;
   }
   }
 }

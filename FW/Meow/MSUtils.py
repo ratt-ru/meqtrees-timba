@@ -873,6 +873,10 @@ class ImagingSelector (object):
     # add imager
     if _lwimager and _glish:
       self._opts.append(TDLOption('imager_type',"Imager to use",["lwimager","AIPS++ imager"],namespace=self));
+    elif _lwimager:
+      self.imager_type = "lwimager";
+    elif _glish:
+      self.imager_type = "aips++";
     # add imaging column option
     self.img_col_option = TDLOption('imaging_column',"Image type or column",
                           list(mssel.ms_data_columns)+["psf"],more=str,namespace=self);

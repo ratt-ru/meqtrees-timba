@@ -104,6 +104,7 @@
         Do(Meq::PatchComposer,arg) separator \
         Do(Meq::FFTBrick,arg) separator \
         Do(Meq::UVInterpolWave,arg) separator \
+        Do(Meq::InterpolCoeff,arg) separator \
         Do(Meq::GridPoints,arg) separator \
         Do(Meq::Resampler,arg) separator \
         Do(Meq::ModRes,arg) separator \

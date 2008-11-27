@@ -38,7 +38,9 @@ def source_list (ns,basename="S",l0=None,m0=None):
   """Creates and returns selected model""";
   img = FITSImageComponent(ns,basename+'IMG',filename=image_filename,
                            direction=Context.observation.phase_centre);
-  img.set_options(fft_pad_factor=2);
+  img.set_options(fft_pad_factor=pad_factor);
   return [ img ];
 
+
 TDLCompileOption("image_filename","FITS image file",TDLFileSelect("*.fits"));
+TDLCompileOption("pad_factor","Padding factor",[1,2],more=float);

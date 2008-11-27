@@ -176,6 +176,8 @@ DMI::BObj * __construct_MeqPatchComposer (int n) { return n>0 ? new Meq::PatchCo
 DMI::BObj * __construct_MeqFFTBrick (int n) { return n>0 ? new Meq::FFTBrick [n] : new Meq::FFTBrick; }
 #include "UVInterpolWave.h"
 DMI::BObj * __construct_MeqUVInterpolWave (int n) { return n>0 ? new Meq::UVInterpolWave [n] : new Meq::UVInterpolWave; }
+#include "InterpolCoeff.h"
+DMI::BObj * __construct_MeqInterpolCoeff (int n) { return n>0 ? new Meq::InterpolCoeff [n] : new Meq::InterpolCoeff; }
 #include "GridPoints.h"
 DMI::BObj * __construct_MeqGridPoints (int n) { return n>0 ? new Meq::GridPoints [n] : new Meq::GridPoints; }
 #include "Resampler.h"
@@ -571,15 +573,7 @@ DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3
         AtomicID::registerId(-1508,"MeqUVInterpol")+
         TypeInfoReg::addToRegistry(-1508,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1508,__construct_MeqUVInterpol)+
-        AtomicID::registerId(-1685,"Brick")+
-        AtomicID::registerId(-1523,"UVInterpol")+
-        AtomicID::registerId(-1099,"Count")+
-        AtomicID::registerId(-1524,"Additional")+
-        AtomicID::registerId(-1527,"UVImage")+
-        AtomicID::registerId(-1528,"UVZ")+
-        AtomicID::registerId(-1526,"UVDelta")+
-        AtomicID::registerId(-1540,"UVCurvature")+
-        AtomicID::registerId(-1550,"Method")+
+        AtomicID::registerId(-1753,"UVInterpol_method")+
         AtomicID::registerId(-1568,"MeqStokes")+
         TypeInfoReg::addToRegistry(-1568,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1568,__construct_MeqStokes)+
@@ -596,6 +590,12 @@ DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3
         AtomicID::registerId(-1688,"MeqUVInterpolWave")+
         TypeInfoReg::addToRegistry(-1688,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1688,__construct_MeqUVInterpolWave)+
+        AtomicID::registerId(-1754,"UVInterpolWave_method")+
+        AtomicID::registerId(-1356,"Coeff")+
+        AtomicID::registerId(-1685,"Brick")+
+        AtomicID::registerId(-1752,"MeqInterpolCoeff")+
+        TypeInfoReg::addToRegistry(-1752,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1752,__construct_MeqInterpolCoeff)+
         AtomicID::registerId(-1666,"MeqGridPoints")+
         TypeInfoReg::addToRegistry(-1666,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1666,__construct_MeqGridPoints)+
@@ -671,6 +671,7 @@ DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3
         TypeInfoReg::addToRegistry(-1694,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1694,__construct_MeqShapeletVisTf)+
         AtomicID::registerId(-1729,"Modes")+
+        AtomicID::registerId(-1550,"Method")+
         AtomicID::registerId(-1734,"MeqBessel")+
         TypeInfoReg::addToRegistry(-1734,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1734,__construct_MeqBessel)+

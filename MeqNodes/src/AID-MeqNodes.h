@@ -8,11 +8,6 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqNodes ();
 
-#ifndef _defined_id_AidAdditional
-#define _defined_id_AidAdditional 1
-const DMI::AtomicID AidAdditional(-1524);         // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
-const int AidAdditional_int = -1524;
-#endif
 #ifndef _defined_id_AidAng
 #define _defined_id_AidAng 1
 const DMI::AtomicID AidAng(-1701);                // from /home/twillis/Timba/MeqNodes/src/LMRaDec.h:30
@@ -88,6 +83,11 @@ const int AidClear_int = -1353;
 const DMI::AtomicID AidClip(-1751);               // from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:33
 const int AidClip_int = -1751;
 #endif
+#ifndef _defined_id_AidCoeff
+#define _defined_id_AidCoeff 1
+const DMI::AtomicID AidCoeff(-1356);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
+const int AidCoeff_int = -1356;
+#endif
 #ifndef _defined_id_AidColin
 #define _defined_id_AidColin 1
 const DMI::AtomicID AidColin(-1637);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:36
@@ -117,11 +117,6 @@ const int AidConverged_int = -1589;
 #define _defined_id_AidConvergence 1
 const DMI::AtomicID AidConvergence(-1626);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:35
 const int AidConvergence_int = -1626;
-#endif
-#ifndef _defined_id_AidCount
-#define _defined_id_AidCount 1
-const DMI::AtomicID AidCount(-1099);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
-const int AidCount_int = -1099;
 #endif
 #ifndef _defined_id_AidCoupling
 #define _defined_id_AidCoupling 1
@@ -532,6 +527,11 @@ const int AidMeqIdentity_int = -1678;
 #define _defined_id_AidMeqImag 1
 const DMI::AtomicID AidMeqImag(-1427);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Imag.h:29
 const int AidMeqImag_int = -1427;
+#endif
+#ifndef _defined_id_AidMeqInterpolCoeff
+#define _defined_id_AidMeqInterpolCoeff 1
+const DMI::AtomicID AidMeqInterpolCoeff(-1752);   // from /home/fba/Timba/MeqNodes/src/InterpolCoeff.h:36
+const int AidMeqInterpolCoeff_int = -1752;
 #endif
 #ifndef _defined_id_AidMeqInvert
 #define _defined_id_AidMeqInvert 1
@@ -1138,35 +1138,20 @@ const int AidTop_int = -1400;
 const DMI::AtomicID AidTotal(-1139);              // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:32
 const int AidTotal_int = -1139;
 #endif
-#ifndef _defined_id_AidUVCurvature
-#define _defined_id_AidUVCurvature 1
-const DMI::AtomicID AidUVCurvature(-1540);        // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
-const int AidUVCurvature_int = -1540;
+#ifndef _defined_id_AidUVInterpolWave_method
+#define _defined_id_AidUVInterpolWave_method 1
+const DMI::AtomicID AidUVInterpolWave_method(-1754);// from /home/fba/Timba/MeqNodes/src/UVInterpolWave.h:36
+const int AidUVInterpolWave_method_int = -1754;
 #endif
-#ifndef _defined_id_AidUVDelta
-#define _defined_id_AidUVDelta 1
-const DMI::AtomicID AidUVDelta(-1526);            // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
-const int AidUVDelta_int = -1526;
-#endif
-#ifndef _defined_id_AidUVImage
-#define _defined_id_AidUVImage 1
-const DMI::AtomicID AidUVImage(-1527);            // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
-const int AidUVImage_int = -1527;
-#endif
-#ifndef _defined_id_AidUVInterpol
-#define _defined_id_AidUVInterpol 1
-const DMI::AtomicID AidUVInterpol(-1523);         // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
-const int AidUVInterpol_int = -1523;
+#ifndef _defined_id_AidUVInterpol_method
+#define _defined_id_AidUVInterpol_method 1
+const DMI::AtomicID AidUVInterpol_method(-1753);  // from /home/fba/Timba/MeqNodes/src/UVInterpol.h:36
+const int AidUVInterpol_method_int = -1753;
 #endif
 #ifndef _defined_id_AidUVW
 #define _defined_id_AidUVW 1
 const DMI::AtomicID AidUVW(-1123);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 const int AidUVW_int = -1123;
-#endif
-#ifndef _defined_id_AidUVZ
-#define _defined_id_AidUVZ 1
-const DMI::AtomicID AidUVZ(-1528);                // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
-const int AidUVZ_int = -1528;
 #endif
 #ifndef _defined_id_AidUVppw
 #define _defined_id_AidUVppw 1

@@ -58,7 +58,7 @@ class SixpackComponent (SkyComponent):
     else:
       self._fluxscale = None;
     self._fft_pad_factor = 1.0;
-    self._interpol_method = 1;
+    self._interpol_method = 2;
     self._interpol_debug = True;
     
   def sixpack (self):
@@ -111,17 +111,26 @@ class SixpackComponent (SkyComponent):
         axes_in=(hiid('l'),hiid('m')),axes_out=(hiid('u'),hiid('v')),
         uvppw=self._fft_pad_factor);
     return brick;
+
+  def coeffbrick (self):
+    coeffs = self.ns.InterpolCoeff;
+    if not coeffs.initialized():
+      coeffs << Meq.InterpolCoeff(self.uvbrick(),
+        axes_in=(hiid('u'),hiid('v')),axes_out=(hiid('u'),hiid('v')));
+    return coeffs;
+
     
-  def make_visibilities (self,nodes,array,observation,**kw):
+  def make_visibilities (self,nodes,array,observation):
     observation = Context.get_observation(observation);
     array = Context.get_array(array);
     coherency = self.ns.coherency;
     if not coherency(array.ifrs()[0]).initialized():
       # create a brick
-      brick = self.uvbrick();
       uvw = array.uvw_ifr(observation.phase_center);
       for ifr in array.ifrs():
-        coherency(*ifr) << Meq.UVInterpolWave(brick=brick,uvw=uvw(*ifr),
+        coherency(*ifr) << Meq.UVInterpolWave(brick=self.uvbrick(),
+                            uvw=uvw(*ifr),
+			    coeff=self.coeffbrick(),
                             method=self._interpol_method,
                             additional_info=self._interpol_debug);
     self.direction.make_phase_shift(nodes,coherency,array,observation.phase_center);

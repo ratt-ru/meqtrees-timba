@@ -1,4 +1,4 @@
-//# FFTBrick.h: Parameter with polynomial coefficients
+//# InterpolCoeff.h: Parameter with polynomial coefficients
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,10 +19,10 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
-//# $Id$
+//# $Id: InterpolCoeff.h  fba $
 
-#ifndef MEQNODES_FFTBRICK_H
-#define MEQNODES_FFTBRICK_H
+#ifndef MEQNODES_INTERPOLCOEFF_H
+#define MEQNODES_INTERPOLCOEFF_H
 
 //# Includes
 #include <MEQ/Node.h>
@@ -34,25 +34,24 @@
 #include <MeqNodes/AID-MeqNodes.h>
 
 #pragma aidgroup MeqNodes
-#pragma types #Meq::FFTBrick
+#pragma types #Meq::InterpolCoeff
 
 #pragma aid Axes In Out
-#pragma aids UVppw
 
 namespace Meq {
 
-class FFTBrick: public Node
+class InterpolCoeff: public Node
 	       //class FFTBrick: public ReductionFunction
 {
 public:
   // The default constructor.
   // The object should be filled by the init method.
-  FFTBrick();
+  InterpolCoeff();
 
-  virtual ~FFTBrick();
+  virtual ~InterpolCoeff();
 
   virtual TypeId objectType() const
-  { return TpMeqFFTBrick; }
+  { return TpMeqInterpolCoeff; }
 
   // Get the requested result of the Node.
   virtual int getResult (Result::Ref &resref, 
@@ -68,14 +67,12 @@ public:
   
   // helper function to perform a single FFT.
   // returns four outputs: the FFT, plus higher-order interpolation planes
-  void doFFT (Vells::Ref output_vells[1],const Vells &input_vells);
+  void doCalcCoeff (Vells::Ref output_vells[4],const Vells &input_vells);
      
   // which 2 axes are treated as an input plane?
   std::vector<HIID> _in_axis_id;
   // which 2 axes are treated as the output plane?
   std::vector<HIID> _out_axis_id;
-
-  double _uvppw;
   
   // axis numbers -- filled in by getResult()
   uint _inaxis0; 
@@ -88,7 +85,6 @@ public:
   // NB: for historical reasons, we'll use l,m to name variables referring to 
   // the input axes, and u,v when referring to the output axes. The real axes
   // in use are of course determined above.
-  int nl,nm,nl1,nm1;
   int nu,nv,nu1,nv1;
    
 };
