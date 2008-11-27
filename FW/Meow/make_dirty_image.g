@@ -26,6 +26,7 @@ fitsname := '';
 filter_bmaj := '';
 filter_bmin := '';
 filter_bpa := '';
+phasecenter := '';
 
 # parse command line
 for( a in argv )
@@ -69,6 +70,8 @@ for( a in argv )
     filter_bmin := a;
   else if( a =~ s/^filter_bpa=// )
     filter_bpa := a;
+  else if( a =~ s/^phasecenter=// )
+    phasecenter := a;
   else if( a =~ s/^chanmode=// )
     chanmode := a;
   else if( a =~ s/^nchan=// )
@@ -103,7 +106,8 @@ myimager.setdata(mode=chanmode,
              msselect=select,
              async=F);
 
-myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell, 
+myimager.setimage(nx=npix,ny=npix,cellx=cell,celly=cell,
+  phasecenter=phasecenter,
   stokes=stokes,mode=mode,
   fieldid=fieldid,spwid=spwid,
   nchan=img_nchan,start=img_chanstart,step=img_chanstep);

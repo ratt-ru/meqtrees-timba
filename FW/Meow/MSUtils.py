@@ -957,6 +957,11 @@ class ImagingSelector (object):
       eliminated. Note that this option does not work right with all versions
       of the aips++ imager, but the only way to find out is to give it a try.""",
       ));
+    # add center
+    self._opts.append(TDLOption('imaging_phasecenter',"Phase center",["default"],namespace=self,more=str,
+        doc="""You can center the image on a particular point in the sky. The default is
+        the phase center (as defined by the MS.) To override this, enter a direction string 
+        such as 'j2000, 05h30m, -30.2deg'"""));
     # add MS subset selector, if needed
     if subset:
       self.subset_selector = mssel.make_subset_selector(namespace);
@@ -1040,16 +1045,23 @@ class ImagingSelector (object):
         'field=%d'%(selector.get_field()+offset),
         'padding=%f'%self.imaging_padding,
       ];
-    # add taper arguments, if dealing with glish
-    if _IMAGER == "glish" and self.imaging_taper_gauss:
-      args += [ 
-        'filter_bmaj=%farcsec'%self.imaging_taper_bmaj,
-        'filter_bmin=%farcsec'%self.imaging_taper_bmin,
-        'filter_bpa=%fdeg'%self.imaging_taper_bpa
-      ];
+    # add taper arguments
+    if self.imaging_taper_gauss:
+      if _IMAGER == "glish":
+        args += [ 
+          'filter_bmaj=%farcsec'%self.imaging_taper_bmaj,
+          'filter_bmin=%farcsec'%self.imaging_taper_bmin,
+          'filter_bpa=%fdeg'%self.imaging_taper_bpa
+        ];
+      else:
+        args.append("filter=%farcsec,%farcsec,%fdeg"%
+            (self.imaging_taper_bmaj,self.imaging_taper_bmin,self.imaging_taper_bpa));
     # add w-proj arguments
     if self.imaging_enable_wproj:
       args.append("wprojplanes=%d"%self.imaging_wprojplanes);
+    # add phase center
+    if self.imaging_phasecenter and self.imaging_phasecenter != "default":
+      args.append("phasecenter=%s"%self.imaging_phasecenter.replace(" ",""));
     # add channel arguments for setdata
     chans = selector.get_channels();
     totchan = selector.get_total_channels() or self.imaging_totchan;
