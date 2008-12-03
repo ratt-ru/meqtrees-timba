@@ -47,6 +47,7 @@ class DisplayMainWindow(QMainWindow):
     self._plot_label = plot_label
     self._result_range = None
     self._png_number = 0
+    self._grab_name = ''
 
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
@@ -54,6 +55,10 @@ class DisplayMainWindow(QMainWindow):
 
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
+    try:
+      self._grab_name = data_dict['source'] + '_'
+    except:
+      self._grab_name = ''
     if not self._ChartPlot.has_key(data_type):
       self._ChartPlot[data_type] = chartplot.ChartPlot(num_curves=self._num_curves, parent=self)
       self._ChartPlot[data_type].setDataLabel(data_type)
@@ -74,6 +79,7 @@ class DisplayMainWindow(QMainWindow):
         self._ChartPlot[data_type].setPlotLabel(self._plot_label)
       self._ChartPlot[data_type].show()
     self._ChartPlot[data_type].updateEvent(data_dict)
+    self._ChartPlot[data_type].setSource(self._grab_name)
 
   def report_auto_value(self, auto_offset_value):
     self.emit(PYSIGNAL("auto_offset_value"),(auto_offset_value,))
@@ -137,7 +143,7 @@ class DisplayMainWindow(QMainWindow):
   def grab_display(self, data_type):
     self._png_number = self._png_number + 1
     png_str = str(self._png_number)
-    save_file = data_type + png_str + '.png'
+    save_file = self._grab_name + data_type + ' '+ png_str + '.png'
     save_file_no_space= save_file.replace(' ','_')
     try:
       result = QPixmap.grabWidget(self._ChartPlot[data_type]).save(save_file_no_space, "PNG")

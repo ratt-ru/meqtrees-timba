@@ -635,9 +635,9 @@ class ResultPlotter(GriddedPlugin):
     self.png_number = self.png_number + 1
     png_str = str(self.png_number)
     if title is None:
-      save_file = './meqbrowser' + png_str + '.png'
+      save_file = self._node_name + './meqbrowser' + png_str + '.png'
     else:
-      save_file = title + png_str + '.png'
+      save_file = self._node_name + title + png_str + '.png'
     save_file_no_space= save_file.replace(' ','_')
     result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
 
@@ -665,6 +665,12 @@ class ResultPlotter(GriddedPlugin):
       self._plot_label = self._rec.plot_label
     except:
       self._plot_label = None
+
+# get the name of the node - used for saving images
+    try:
+      self._node_name = self._rec.name + '_'
+    except:
+      self._node_name = ''
 
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...

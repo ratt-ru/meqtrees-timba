@@ -84,6 +84,7 @@ class ChartPlot(QWidget):
     self._plot_label = None
     self._complex_marker = None
     self._ignore_flagged_data = True
+    self._zoom_png_number = 0
 
     #Create the plot widget
     self._y_title = "Value (Relative Scale)"
@@ -770,10 +771,18 @@ class ChartPlot(QWidget):
 
 
   def grab_zoom_display(self, title, crvtemp):
-    if title is None:
-      save_file = './meqbrowser.png'
+    self._zoom_png_number = self._zoom_png_number + 1
+    png_str = '_' + str(self._zoom_png_number)
+    if not self._source is None:
+      if title is None:
+        save_file = self._source + '_' + './meqbrowser.png'
+      else:
+        save_file = self._source + '_' + title + png_str + '.png'
     else:
-      save_file = title + '.png'
+      if title is None:
+        save_file = './meqbrowser.png'
+      else:
+        save_file = title + png_str + '.png'
     save_file_no_space= save_file.replace(' ','_')
     result = QPixmap.grabWidget(self._Zoom[crvtemp-self._ref_chan]).save(save_file_no_space, "PNG")
 
@@ -898,6 +907,7 @@ class ChartPlot(QWidget):
       self._source = data_dict['source']
       new_chart_flags = data_dict['flags']
     except:
+      self._source = None
       pass
     channel_no = data_dict['channel']
     new_chart_val = data_dict['value']
