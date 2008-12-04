@@ -56,12 +56,21 @@ import math                 # support math.cos() etc
 
 class ParmClump(Clump.LeafClump):
    """
-   Derived class
+   Contains a group of (usually similar) MeqParm nodes.
+   This class has a number of methods to facilitate the
+   specification of how its MeqParms should be solved for.
    """
 
-   def __init__(self, clump=None, default=0.0, **kwargs):
+   def __init__(self, clump=None, default=0.0,
+                constraint=None,
+                nodelist=None, **kwargs):
       """
-      Derived from class LeafClump.
+      Derived from class LeafClump. There are two modes:
+      - If a nodelist is given, use those, assuming that they
+      are MeqParms (..). See class PListClump below.
+      - Else a clump should be given. A group of MeqParm nodes
+      is generated for each of its tree qualifiers (treequals), 
+      and with the specified (kwargs) MeqParm arguments. 
       """
 
       # The following are used in the Meq.Parm() constructor:
@@ -81,14 +90,15 @@ class ParmClump(Clump.LeafClump):
             ssp[key] = kwargs[key]
       self._solspec_parms = ssp
 
-      Clump.LeafClump.__init__(self, clump=clump, **kwargs)
+      # Constraints may be specified. They are used to generate constraint
+      # equations in the form of condeq nodes. See self.constrain()
+      self._constraint = constraint
+
+      Clump.LeafClump.__init__(self, clump=clump, nodelist=nodelist, **kwargs)
       return None
 
 
    #==========================================================================
-   # The function .initexec() must be re-implemented for 'leaf' Clumps,
-   # i.e. Clump classes that contain leaf nodes. An example is given below,
-   # and may be canibalized for derived (leaf) Clump clases.
    #==========================================================================
 
    def initexec (self, **kwargs):
@@ -199,8 +209,39 @@ class ParmClump(Clump.LeafClump):
       # Mandatory counterpart of self.on_entry()
       return self.on_exit(ctrl, result=solvable)
 
+   #================================================================
 
+   def constrain (self, condeqs=[], trace=False):
+      """If any constraints have been specified, add the resulting
+      MeqCondeq nodes to the given list (condeqs). Return the list.
+      """
+      cs = self._constraint                 # convenience
+      if not isinstance(cs, dict):
+         cs = dict()
 
+      if not isinstance(condeqs,list):
+         condeqs = []
+
+      if cs.has_key('sum'):
+         value = cs['sum']
+         stub = self.unique_nodestub('constraint','sum')
+         lhs = stub('lhs=sum') << Meq.Add(*self.get_nodelist())
+         rhs = stub(rhs=value) << Meq.Constant(value)
+         node = stub(value) << Meq.Condeq(lhs,rhs)
+         condeqs.append(node)
+         self.history('constraint: sum='+str(value)+' -> '+str(node))
+
+      if cs.has_key('prod'):
+         value = cs['prod']
+         stub = self.unique_nodestub('constraint','prod')
+         lhs = stub('lhs=prod') << Meq.Multiply(*self.get_nodelist())
+         rhs = stub(rhs=value) << Meq.Constant(value)
+         node = stub(value) << Meq.Condeq(lhs,rhs)
+         condeqs.append(node)
+         self.history('constraint: prod='+str(value)+' -> '+str(node))
+
+      # Always return the (possibly updated) list of condeqs
+      return condeqs
    
 
 #********************************************************************************
@@ -209,48 +250,38 @@ class ParmClump(Clump.LeafClump):
 # Derived class ParmListClump:
 #********************************************************************************
 
-class ParmListClump(Clump.ListClump, ParmClump):
+class PListClump(Clump.LeafClump):
    """
-   A ParmClump may also be created from a list of nodes (nodelist).
-   They do not have to be MeqParms. The nodescope is searched for MeqParms.
+   A LeafClump that is created with a list of nodes (nodelist), which are
+   serached for MeqParm nodes upstream. The latter are put into a ParmClump.
    """
 
    def __init__(self, nodelist=None, **kwargs):
       """
-      Derived from classes Clump.ListClump and ParmClump.
+      NB: The kwargs are passed on to its ParmClump. They may include
+      ParmClump specs like 'tdeg' and 'nfreq_subtile' etc.
+      They may also contain things like ns and TCM.
       """
-      #.................................................
-      # NB: This calls the .initexec() function of class ParmClump!
-      Clump.ListClump.__init__(self, nodelist, **kwargs)
-      # There is NO need to call ParmClump.__init__()
-      #.................................................
+      
+      Clump.LeafClump.__init__(self, nodelist=nodelist, **kwargs)
 
-      # Check if the input nodes are MeqParms 
-      parms = []
-      for node in self.get_nodelist():
-         if node.classname=='MeqParm':
-            parms.append(node)
-
-      # If not MeqParms, search the nodescope for MeqParms.
+      # Search the nodes (subtrees) for MeqParms:
+      parms = self.search_nodescope(class_name='MeqParm')
       if len(parms)==0:
-         nodes = self.ns().Search(class_name='MeqParm')
-         parms = []
-         for node in nodes:
-            if node.classname=='MeqParm':
-               parms.append(node)
-         if len(parms)==0:
-            self.ERROR('** no MeqParms found')
-         else:
-            np = len(parms)
-            self.datadesc(treequals=range(np))
-            self.core._nodes = parms
-            self.history('used '+str(np)+' MeqParms found in nodescope')
- 
-      # A ParmClump object is itself the only entry in its list of ParmClumps:
-      self.ParmClumps(append=self)
+         self.ERROR('no MeqParms found')
+         
+      # Make a new ParmClump with the MeqParms
+      if kwargs.has_key('name'):
+         kwargs['name'] = '{'+str(kwargs['name'])+'}'
+      else:
+         kwargs['name'] = '{upstream}'
+      pc = ParmClump(nodelist=parms, **kwargs)
+      self.ParmClumps(append=pc)
 
-      # self.history('Created from list of nodes', show_node=True)
       return None
+
+
+
 
 
 #********************************************************************************
@@ -384,7 +415,7 @@ def do_define_forest (ns, TCM):
          for i in range(4):
             node = ns.ddd(i) << Meq.Parm(i)
             cc.append(node)
-         clump = ParmListClump(cc, ns=ns, name='polyparm', trace=True)
+         clump = PListClump(cc, ns=ns, name='polyparm', trace=True)
 
       else:
          clump = ParmClump(ns=ns, TCM=TCM,
@@ -430,7 +461,10 @@ if __name__ == '__main__':
          c1 = Clump.LeafClump(treequals=range(5))
          c1.show('input clump (c1)')
       # clump = ParmClump(c1, trace=True)
-      clump = ParmClump(c1, trace=True, tdeg=[2,3], nfreq_subtile=2)
+      clump = ParmClump(c1,
+                        tdeg=[2,3], nfreq_subtile=2,
+                        constraint=dict(sum=-1, prod=3),
+                        trace=True)
 
    if 0:
       clump = PolyCoeff(ndeg=3, trace=True)
@@ -443,7 +477,11 @@ if __name__ == '__main__':
       for i in range(4):
          node = ns.ddd(i) << Meq.Parm(i)
          cc.append(node)
-      clump = ParmListClump(cc, ns=ns, name='polyparm', trace=True)
+      cc[1] = ns << Meq.Cos(cc[1])
+      clump = PListClump(cc, ns=ns, name='polyparm',
+                         tdeg=[6,7],
+                         trace=True)
+      clump.ParmClumps()[0].show()
 
    if 0:
       tqs = range(10) + list('ABCD')
@@ -465,12 +503,19 @@ if __name__ == '__main__':
       clump1.show('clump1')
 
    if 1:
-      solvable = clump.solspec()
+      pc = clump.ParmClumps()[0]
+      solvable = pc.solspec()
       print '-> solvable:'
       for i,node in enumerate(solvable):
          print '-',i,':',str(node),'\n    ',node.initrec()
       print
       clump.show('after solspec()')
+      pc.show('after solspec()')
+
+   if 1:
+      pc = clump.ParmClumps()[0]
+      pc.constrain()
+      pc.show('after constrain()')
 
    if 0:
       clump.compose()

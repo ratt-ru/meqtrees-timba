@@ -403,7 +403,7 @@ class clumpcore (object):
       name = self._name                            # default name
       if kwqual.has_key('name'):                   # specified explicitly
          if isinstance(kwqual['name'],str):
-            name += ':'+kwqual['name']             # use if string
+            name = kwqual['name']                  # use if string
          kwqual.__delitem__('name')                # delete from kwqual
 
       # Make the unique nodestub:
@@ -548,7 +548,7 @@ class clumpcore (object):
       ss += ', .size()='+str(self.size())+'):'
       n = len(self._nodes)
       if full:
-         nmax = 2
+         nmax = 3
          for i in range(min(nmax,n)):
             ss += prefix+'   - '+str(self[i])
          if n>nmax:

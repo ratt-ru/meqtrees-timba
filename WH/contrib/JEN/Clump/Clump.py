@@ -91,8 +91,9 @@ class Clump (object):
       # Initialise self.core._stubtree:
       self.unique_nodestub()
 
-      # Execute the required function:
-      self.initexec(**kwargs)
+      # Execute the required function, if required:
+      if kwargs.get('execute_initexec',True):
+          self.initexec(**kwargs)
 
       # Finished:
       return None
@@ -272,6 +273,13 @@ class Clump (object):
                       ss += prefix+'     - '+str(key)+' = '+str(v.oneliner())
                   else:
                       ss += prefix+'     - '+str(key)+' = '+str(EF.format_value(v))
+          elif isinstance(a,list):
+              if is_node(a[0]):
+                  ss += prefix+'   - '+s+' (list of '+str(len(a))+' nodes):'
+                  for i,node in enumerate(a):
+                      ss += prefix+'     - '+str(i)+': '+str(node)
+              else:
+                  ss += prefix+'   - '+s+' = '+str(EF.format_value(a))
           else:
               ss += prefix+'   - '+s+' = '+str(EF.format_value(a))
       
@@ -972,6 +980,34 @@ class Clump (object):
          print
       return solvable   
 
+   #------------------------------------------------------------------------
+
+   def search_nodescope (self, class_name=None,
+                         name=None, tags=None,
+                         return_names=False,
+                         trace=False):
+      """Search the nodescope for the specified nodes, starting at the
+      tree nodes of this clump (subtree=nodelist). Possible arguments
+      are class_name[=None], name[=None] (can have wildcards: a.*) or
+      tags[=None] (str or list). If more are specified, only the nodes
+      that have all the specs are returned (i.e. AND).
+      NB: Without any arguments, ALL the nodes in the subtrees are found!
+      Returns a list of zero or more nodes (default: return_names=False)
+      or node-names (if return_names==True).
+      """
+      nodes = self.ns().Search(class_name=class_name,
+                               name=name, tags=tags,
+                               subtree=self.get_nodelist(),
+                               return_names=return_names)
+      s = '.search_nodescope('+str(class_name)+','+str(name)+','+str(tags)+'):'
+      s += ' found '+str(len(nodes))+' nodes'
+      self.history(s, trace=trace)
+      if trace:
+          for i,node in enumerate(nodes):
+              print '-',i,str(node)
+          print
+      return nodes
+
 
    #=========================================================================
    # Apply arbitrary unary (unops) or binary (binops) operaions to the nodes:
@@ -988,6 +1024,30 @@ class Clump (object):
       elif not isinstance(unops,(list,tuple)):
          self.ERROR('** invalid unops: '+str(unops))
       return unops
+
+   #------------------------------------------------------------------------
+
+   def assure_list(self, x, append=None, prepend=None, trace=False):
+      """Helper function to make sure that the given variable (x) is a list.
+      Optionally, prepend/append other list elements.
+      """
+      if x==None:
+          x = []
+      elif isinstance(x,tuple):
+          x =list(x)
+      elif not isinstance(x,list):
+          x = [x]
+          
+      if not append==None:
+          if isinstance(append,list):
+              x.extend(append)
+          else:
+              x.append(append)
+
+      if not prepend==None:
+          x.insert(0,prepend)
+
+      return x
 
    #-------------------------------------------------------------------------
 
@@ -1367,15 +1427,46 @@ class LeafClump(Clump):
    that start with leaf-nodes, i.e. nodes that have no children.
    """
 
-   def __init__(self, clump=None, **kwargs):
+   def __init__(self, clump=None, nodelist=None, **kwargs):
       """
       Derived from class Clump.
       """
+      if nodelist:
+          # Check the input nodelist:
+          nn = []
+          if is_node(nodelist):                    # A single node
+              nn = [nodelist]                     
+          elif not isinstance(nodelist,(list,tuple)):
+              self.ERROR('** nodelist should be a list, tuple or node')
+          else:
+              for i,node in enumerate(nodelist):
+                  if not is_node(node):
+                      self.ERROR('** not a node, but: '+str(type(node)))
+                  nn.append(node)
+          if len(nn)==0:
+              self.ERROR('** nodelist is empty')
+          self._input_nodelist = nn            
+          kwargs['treequals'] = range(len(nn))
+          kwargs['execute_initexec'] = False
+
+      #...................................................................
       # The following (among many other things) executes the function
       # self.initexec(**kwargs), which is re-implemented below.
       kwargs['select'] = True                           # always make a clump selection menu
       kwargs['transfer_clump_nodes'] = False            # see Clump.__init___()
       Clump.__init__(self, clump=clump, **kwargs)
+      #...................................................................
+
+      if nodelist:
+          # Fill the Clump with the input nodelist: 
+          self.core._nodes = []
+          self.core._nodequals = []
+          for i,node in enumerate(self._input_nodelist):
+              self.core._nodes.append(node)
+              self.core._nodequals.append(i)
+          self.core._composed = False
+          self.history('Created from list of nodes', show_node=True)
+          
       return None
 
 
@@ -1400,7 +1491,7 @@ class LeafClump(Clump):
       if self.execute_body(always=True):
          dd = self.datadesc()
          nelem = dd['nelem']
-         stub = self.unique_nodestub('const')
+         stub = self.unique_nodestub('const', name='dummy')
          for i,qual in enumerate(self.nodequals()):
             cc = []
             for k,elem in enumerate(dd['elems']):
@@ -1409,7 +1500,7 @@ class LeafClump(Clump):
                else:
                   v = float(k+i)
                if nelem==1:
-                  node = stub(c=v)(qual) << Meq.Constant(v)
+                  node = stub(c=v)(qual) << Meq.Constant(v, tags=['leaf',str(i)])
                else:
                   node = stub(c=v)(qual)(elem) << Meq.Constant(v)
                cc.append(node)
@@ -1420,63 +1511,6 @@ class LeafClump(Clump):
          
       return self.on_exit(ctrl)
 
-
-
-
-#********************************************************************************
-#********************************************************************************
-#********************************************************************************
-# Derived class ListClump:
-#********************************************************************************
-
-class ListClump(Clump):
-   """
-   A Clump may also be created from a list of nodes.
-   """
-
-   def __init__(self, nodelist, **kwargs):
-      """
-      Derived from class Clump.
-      """
-      # Check the input nodelist:
-      nn = []
-      if is_node(nodelist):                    # A single node
-         nn = [nodelist]                     
-      elif not isinstance(nodelist,(list,tuple)):
-         self.ERROR('** nodelist should be a list, tuple or node')
-      else:
-         for i,node in enumerate(nodelist):
-            if not is_node(node):
-               self.ERROR('** not a node, but: '+str(type(node)))
-            nn.append(node)
-      if len(nn)==0:
-         self.ERROR('** nodelist is empty')
-      self._input_nodelist = nn                # used in .initexec()
-      kwargs['treequals'] = range(len(nn))
-
-      # Create the Clump:
-      kwargs['transfer_clump_nodes'] = False   # required!
-      Clump.__init__(self, **kwargs)
-      return None
-
-
-   #------------------------------------------------------------------------
-
-   def initexec (self, **kwargs):
-      """
-      Re-implementation of the function in class Clump.
-      It puts the nodes from the input nodelist into the Clump.
-      """
-      # Fill the Clump with the input nodelist: 
-      self.core._nodes = []
-      self.core._nodequals = []
-      for i,node in enumerate(self._input_nodelist):
-         self.core._nodes.append(node)
-         self.core._nodequals.append(i)
-      self.core._composed = False
-      
-      self.history('Created from list of nodes', show_node=True)
-      return None
 
 
 
@@ -1540,19 +1574,28 @@ if __name__ == '__main__':
    if 0:
       clump = Clump(trace=True)
 
-   if 1:
+   if 0:
       c1 = None 
-      if 1:
+      if 0:
           c1 = Clump(treequals=range(5))
           c1.show()
       clump = LeafClump(c1, trace=True)
+      if 1:
+          clump.search_nodescope(trace=True)
+          clump.search_nodescope(tags='leaf', trace=True)
+          clump.search_nodescope(tags=['leaf','1'], trace=True)
+          clump.search_nodescope(tags='lef', trace=True)
+          clump.search_nodescope(name='d*', trace=True)
+          clump.search_nodescope(name='d.*', trace=True)
+          clump.search_nodescope(class_name='MeqParm', trace=True)
+          clump.search_nodescope(class_name='MeqParm', tags='leaf', trace=True)
 
-   if 0:
+   if 1:
       cc = []
       for i in range(4):
           node = ns.ddd(i) << Meq.Constant(i)
           cc.append(node)
-      clump = ListClump(cc, ns=ns, trace=True)
+      clump = LeafClump(nodelist=cc, ns=ns, trace=True)
 
    if 1:
       clump.show('creation', full=True)
@@ -1638,7 +1681,7 @@ if __name__ == '__main__':
       clump.commensurate(clump3, severe=False)
       clump3.show('.commensurate()')
 
-   if 1:
+   if 0:
       if True:
          node = clump.compose()
          clump.show('.compose() -> '+str(node))
