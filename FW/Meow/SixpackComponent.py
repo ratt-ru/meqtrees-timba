@@ -130,7 +130,6 @@ class SixpackComponent (SkyComponent):
       for ifr in array.ifrs():
         coherency(*ifr) << Meq.UVInterpolWave(brick=self.uvbrick(),
                             uvw=uvw(*ifr),
-			    coeff=self.coeffbrick(),
                             method=self._interpol_method,
                             additional_info=self._interpol_debug);
     self.direction.make_phase_shift(nodes,coherency,array,observation.phase_center);
