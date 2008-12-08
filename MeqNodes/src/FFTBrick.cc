@@ -220,6 +220,21 @@ BZ_DECLARE_STENCIL4(make_interpolation_planes,U,V,UV,X)
   UV = (X(-1,-1) + X(-1,+1) + X(+1,-1) + X(+1,+1))/4;
 BZ_END_STENCIL_WITH_SHAPE(shape(-1,-1),shape(+1,+1))
 
+// Helper function for on-the-fly casting of Blitz arrays from double to dcomplex.
+// I cannot get blitz to do this using normal expressions, so here's a version using
+// iterators
+inline void copyDoubleToComplex ( 
+      blitz::Array<dcomplex,2> &out,const LoRange &i1,const LoRange &j1,
+      const blitz::Array<double,2> &in,const LoRange &i0,const LoRange &j0)
+{
+  blitz::Array<dcomplex,2> out1 = out(i1,j1);
+  blitz::Array<double,2> in1 = in(i0,j0);
+  blitz::Array<dcomplex,2>::iterator iter_out = out1.begin();
+  blitz::Array<double,2>::iterator iter_in = in1.begin();
+  for( ; iter_out != out1.end(); ++iter_out,++iter_in)
+    *iter_out = *iter_in + 0.i;
+}
+
 void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
 {
   Vells::Shape input_shape = input_vells.shape();
@@ -253,40 +268,8 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
   FailWhen(input_shape[_inaxis0]!=nl && input_shape[_inaxis1]!=nm,
       "one or both input axes are collapsed in input Vells, this is not yet supported");
   
-  // Make a padded Vells to be used as input for the FFT
-  Vells::Shape padded_shape = input_shape;
-  padded_shape[_inaxis0] = nu;
-  padded_shape[_inaxis1] = nv;
-	//SBY: changed false to true to reset memory
-  Vells padded_vells(make_dcomplex(0.0),padded_shape,true); // filled in below
-
-  // Rearrange the data and pad with zeros
-  // set up VellsSlicers over input vells and over padded vells, so that
-  // we go over all other axes
-  ConstVellsSlicer<dcomplex,2> input_slicer(input_vells,_inaxis0,_inaxis1);
-  VellsSlicer<dcomplex,2> padded_input_slicer(padded_vells,_inaxis0,_inaxis1);
-  for( ; padded_input_slicer.valid(); padded_input_slicer.incr(),input_slicer.incr())
-  {
-    Assert(input_slicer.valid()); 
-    // must be true since all other axes have the same shape
-    const blitz::Array<dcomplex,2> in_arr = input_slicer();
-    blitz::Array<dcomplex,2> pad_arr = padded_input_slicer();
-    //dcomplex aa,bb,cc;
-    //aa=in_arr(257,255);bb=in_arr(257,257);cc=in_arr(255,257);
-    //std::cout<<"Array values\t"<<__real__ aa<<"\t"<<__real__ bb
-    //     <<"\t"<<__real__ cc<<"\n"<<std::flush;
-
-    pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
-        in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));    
-    pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1)) = 
-        in_arr(makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
-    pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
-        in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
-    pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1)) = 
-        in_arr(makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
-  };
-  // figure out output vells shape and create intermediate Vells for the 
-  // FFT result
+  // figure out output vells shape and create Vells for the output, and
+  // for the intermediate FFT result
   int maxrank = std::max(_outaxis0,_outaxis1);
   Vells::Shape output_shape = input_shape;
   output_shape.resize(maxrank+1,1); // resize to max rank and fill with 1s
@@ -294,45 +277,101 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
   output_shape[_inaxis1] = 1;
   output_shape[_outaxis0] = nu;     // fill output axes
   output_shape[_outaxis1] = nv;
+  // output vells (and also padded input vells)
+  Vells & vells0  = output_vells[0] <<= new Vells(make_dcomplex(0.0),output_shape,true);
+  // intermediate FFT result
   Vells fft_vells(make_dcomplex(0.0),output_shape,false); // no need to fill it, fft will do it
 
+  // Rearrange the data and pad with zeros
+  // set up VellsSlicers over input vells and over padded vells, so that
+  // we go over all other axes.
+  // Do separate code for cases of real and complex input
+  if( input_vells.isReal() )
+  {
+    ConstVellsSlicer<double,2> input_slicer(input_vells,_inaxis0,_inaxis1);
+    VellsSlicer<dcomplex,2> padded_input_slicer(vells0,_outaxis0,_outaxis1);
+    for( ; padded_input_slicer.valid(); padded_input_slicer.incr(),input_slicer.incr())
+    {
+      Assert(input_slicer.valid()); 
+      // must be true since all other axes have the same shape
+      const blitz::Array<double,2> in_arr = input_slicer();
+      blitz::Array<dcomplex,2> pad_arr = padded_input_slicer();
+      copyDoubleToComplex(pad_arr,makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1),
+            in_arr,makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));
+      copyDoubleToComplex(pad_arr,makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1), 
+            in_arr,makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
+      copyDoubleToComplex(pad_arr,makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1),
+            in_arr,makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
+      copyDoubleToComplex(pad_arr,makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1),
+            in_arr,makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
+/*      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
+          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1))+0.i;
+      pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1)) = 
+          in_arr(makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1))+0.i;
+      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
+          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2))+0.i;
+      pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1)) = 
+          in_arr(makeLoRange(0,nl1-2),makeLoRange(0,nm1-2))+0.i;*/
+    };
+  }
+  else // complex input
+  {
+    ConstVellsSlicer<dcomplex,2> input_slicer(input_vells,_inaxis0,_inaxis1);
+    VellsSlicer<dcomplex,2> padded_input_slicer(vells0,_outaxis0,_outaxis1);
+    for( ; padded_input_slicer.valid(); padded_input_slicer.incr(),input_slicer.incr())
+    {
+      Assert(input_slicer.valid()); 
+      // must be true since all other axes have the same shape
+      const blitz::Array<dcomplex,2> in_arr = input_slicer();
+      blitz::Array<dcomplex,2> pad_arr = padded_input_slicer();
+      //dcomplex aa,bb,cc;
+      //aa=in_arr(257,255);bb=in_arr(257,257);cc=in_arr(255,257);
+      //std::cout<<"Array values\t"<<__real__ aa<<"\t"<<__real__ bb
+      //     <<"\t"<<__real__ cc<<"\n"<<std::flush;
+  
+      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
+          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));    
+      pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1)) = 
+          in_arr(makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
+      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
+          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
+      pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1)) = 
+          in_arr(makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
+    };
+  }
   // Prepare the FFT
   // compute array strides (using the Vells' convenience function)
-  Vells::Strides input_strides;
-  padded_vells.computeStrides(input_strides);
-  Vells::Strides output_strides;
-  fft_vells.computeStrides(output_strides);
+  // they're the same for input (padded) and output vells
+  Vells::Strides strides;
+  vells0.computeStrides(strides);
   
   // fill in the FFT'd dimensions
   fftw_iodim fft_dims[2];
   fft_dims[0].n = nu;
-  fft_dims[0].is = input_strides[_inaxis0];
-  fft_dims[0].os = output_strides[_outaxis0];
+  fft_dims[0].is = fft_dims[0].os = strides[_outaxis0];
   fft_dims[1].n = nv;
-  fft_dims[1].is = input_strides[_inaxis1];
-  fft_dims[1].os = output_strides[_outaxis1];
+  fft_dims[1].is = fft_dims[1].os = strides[_outaxis1];
   // fill in the other (non-FFT'd) dimensions
   // first, figure out how many "other" dimensions are present
   int num_other_dims = 0;
-  for( uint i=0; i<padded_shape.size(); i++ )
-    if( i != _inaxis0 && i != _inaxis1 && padded_shape[i]>1 )
+  for( uint i=0; i<output_shape.size(); i++ )
+    if( i != _outaxis0 && i != _outaxis1 && output_shape[i]>1 )
       num_other_dims++;
   fftw_iodim other_dims[num_other_dims];
   int idim=0;
   // note that the output axes will be skipped in this loop, 
-  // since we check for padded_shape[i]>1, and the FailWhen() statement
+  // since we check for output_shape[i]>1, and the FailWhen() statement
   // above ensures that output axes are either the same as input, or degenerate
-  for( uint i=0; i<padded_shape.size(); i++ )
-    if( i != _inaxis0 && i != _inaxis1 && padded_shape[i]>1 )
+  for( uint i=0; i<output_shape.size(); i++ )
+    if( i != _outaxis0 && i != _outaxis1 && output_shape[i]>1 )
     {
-      other_dims[idim].n  = padded_shape[i];
-      other_dims[idim].is = input_strides[i];
-      other_dims[idim].os = output_strides[i];
+      other_dims[idim].n  = output_shape[i];
+      other_dims[idim].is = other_dims[idim].os = strides[i];
       idim++;
     }
   
   // get pointers to data from padded_vells and fft_result
-  fftw_complex *pdata_in = static_cast<fftw_complex*>(const_cast<void*>(padded_vells.getConstDataPtr()));
+  fftw_complex *pdata_in = static_cast<fftw_complex*>(vells0.getDataPtr());
   fftw_complex *pdata_out = static_cast<fftw_complex*>(fft_vells.getDataPtr());
 
   // define & execute FFT
@@ -341,14 +380,6 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
   fftw_execute(p);
   fftw_destroy_plan(p);
   
-  // destroy the padded_vells since we no longer need it. This will free
-  // up some memory.
-  padded_vells = Vells();
-  
-  // ok, now we need to reshuffle the fft_result and generate interpolation
-  // planes. Create 4 output Vells for this
-  Vells & vells0  = output_vells[0] <<= new Vells(make_dcomplex(0.0),output_shape,true);
-
   // Reshuffle fft'd data around, and fill in the interpolation planes
   // This is similar to the operation above.
   // We'll use VellsSlicers to repeat this for all other dimensions

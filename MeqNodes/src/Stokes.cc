@@ -63,32 +63,57 @@ namespace Meq {
     const Vells::Shape &shape = vsI.shape();
 
     const Vells &vellsI = vsI.getValue();
-    const Vells &vellsQ = vsQ.getValue();
-    const Vells &vellsU = vsU.getValue();
-    const Vells &vellsV = vsV.getValue();
-
-    Vells vellsc0 = Vells(double(0.0),shape,true);
-
-    // For now consider Linear Polarization
-    Vells vellsXX = tocomplex((vellsI + vellsQ)/2,vellsc0);
-    Vells vellsXY = tocomplex(vellsU/2,vellsV/2);
-    Vells vellsYX = tocomplex(vellsU/2,-vellsV/2);
-    Vells vellsYY = tocomplex((vellsI-vellsQ)/2,vellsc0);
-
-    resref <<= new Result(4);
-
-    VellSet& vs0 = resref().setNewVellSet(0);
-    VellSet& vs1 = resref().setNewVellSet(1);
-    VellSet& vs2 = resref().setNewVellSet(2);
-    VellSet& vs3 = resref().setNewVellSet(3);
-
-    vs0.setValue(vellsXX);
-    vs1.setValue(vellsXY);
-    vs2.setValue(vellsYX);
-    vs3.setValue(vellsYY);
-
+    
+    // if no U/V polarization, form up diagonal matrix
+    if( vsU.isNull() && vsV.isNull() ) 
+    {
+      // if no Q, even easier, form up a scalar
+      if( vsQ.isNull() )
+      {
+        resref <<= new Result(1);
+        resref().setNewVellSet(0).setValue(vellsI/2);
+      }
+      // else diagonal matrix
+      else
+      {
+        const Vells &vellsQ = vsQ.getValue();
+        resref <<= new Result(4);
+        resref().setNewVellSet(0).setValue((vellsI+vellsQ)/2);
+        resref().setNewVellSet(1); // null XY
+        resref().setNewVellSet(2); // null YX
+        resref().setNewVellSet(3).setValue((vellsI-vellsQ)/2);
+      }
+    }
+    // full 2x2 matrix
+    else
+    {
+      const Vells &vellsQ = vsQ.getValue();
+      const Vells &vellsU = vsU.getValue();
+      const Vells &vellsV = vsV.getValue();
+  
+      Vells vellsc0 = Vells(double(0.0),shape,true);
+  
+      // For now consider Linear Polarization
+      Vells vellsXX = (vellsI + vellsQ)/2;
+      Vells vellsXY = tocomplex(vellsU/2,vellsV/2);
+      Vells vellsYX = tocomplex(vellsU/2,-vellsV/2);
+      Vells vellsYY = (vellsI-vellsQ)/2;
+  
+      resref <<= new Result(4);
+  
+      VellSet& vs0 = resref().setNewVellSet(0);
+      VellSet& vs1 = resref().setNewVellSet(1);
+      VellSet& vs2 = resref().setNewVellSet(2);
+      VellSet& vs3 = resref().setNewVellSet(3);
+  
+      vs0.setValue(vellsXX);
+      vs1.setValue(vellsXY);
+      vs2.setValue(vellsYX);
+      vs3.setValue(vellsYY);
+  
+      resref().setDims(LoShape(2,2));
+    }
     resref().setCells(cells);
-    resref().setDims(LoShape(2,2));
     
     return 0;
     

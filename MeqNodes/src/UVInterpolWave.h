@@ -84,13 +84,11 @@ class UVInterpolWave: public Node  {
     uint _outaxis0;
     uint _outaxis1;
 
+    // OMS: removed the three coeff parameters
     void doInterpol(Vells & output_vells,
 		    const Vells &input_vells_u,
 		    const Vells &input_vells_v,
 		    const Vells &input_vells_X, 
-		    const Vells &Coeffvellsu, 
-		    const Vells &Coeffvellsv, 
-		    const Vells &Coeffvellsuv, 
 		    const Cells &rcells, 
 		    const Cells &brickcells);
     static dcomplex bilinear(double s, double t, 

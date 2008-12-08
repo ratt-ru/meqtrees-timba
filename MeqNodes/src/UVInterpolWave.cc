@@ -34,11 +34,13 @@
 #include <MEQ/VellsSlicer.h>
 
 namespace Meq {
-  static const HIID child_labels[] = { AidBrick, AidUVW, AidCoeff};
+  static const HIID child_labels[] = { AidBrick,AidUVW,AidCoeff };
   static const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
   
   UVInterpolWave::UVInterpolWave():
-    Node(num_children,child_labels),
+    // OMS: the "2" below means that only the first two children (Brick and UVW) 
+    // are mandatory
+    Node(num_children,child_labels,2),
     _method(1)
   {
     _in1_axis_id.resize(3);
@@ -64,14 +66,20 @@ namespace Meq {
 				 const std::vector<Result::Ref> &child_results,
 				 const Request &request,bool newreq)
   {  
-    // Check that there are 2 results first, maybe have 3 
-    // inputs later for the convolution as well...
-    Assert(child_results.size()==3);
+    if( child_results.size()==2 )
+    {
+      // OMS: 2 children, no coeffs
+    }
+    else
+    {
+      // OMS: 3 children, so child_results[2] are the coeffs
+    }
     // this is from fftbrick and second from uvw antenna track
     const Result & FFTbrickUV = child_results.at(0);
     const Result & BaselineUV = child_results.at(1);
-    const Result & CoeffsUV = child_results.at(2);
-  
+// OMS: commented this out, has to be optional    
+//    const Result & CoeffsUV = child_results.at(2);
+//  
     // figure out the axes: for now assume that there are only 
     // time for Baselines and nothing for brick.
     // Not sure yet how many there will be...
@@ -87,7 +95,8 @@ namespace Meq {
     // uniformly gridded
     const Cells & BaselineCells = BaselineUV.cells();
     const Cells & FFTbrickCells = FFTbrickUV.cells();
-    const Cells & CoeffCells = CoeffsUV.cells();
+  // OMS: commented this out, has to be optional
+  // const Cells & CoeffCells = CoeffsUV.cells();
     FailWhen(//Check that the time is there for the  baseline.
 	     !BaselineCells.isDefined(_inaxis3) ,
       "Time not defined in the antenna cell");
@@ -113,7 +122,13 @@ namespace Meq {
     // What is the dimensions of the result
     // out put is a vector for each nu and time
     Result::Dims dims(FFTbrickUV.dims());
-    dims.resize(dims.size()-1);
+    
+    // OMS: removed this. The purpose of this statement was to remove
+    // the last dimension (which was interpolation coeffs) from the result shape.
+    // But now that FFTBrickUV no longer includes the coeffs, the result dims
+    // must be the same as the FFTBrickUV dims
+    // dims.resize(dims.size()-1);
+    
     // Making the results now:
     // First allocate a new results and ref to output
     Result & result = resref <<= new Result(dims);
@@ -128,20 +143,20 @@ namespace Meq {
       {
 	// Get reference to input vells...
 	const VellSet &brick_input = FFTbrickUV.vellSet(ivs);
-	const VellSet &coeff_inputu = CoeffsUV.vellSet(4*ivs+1);
-	const VellSet &coeff_inputv = CoeffsUV.vellSet(4*ivs+2);
-	const VellSet &coeff_inputuv= CoeffsUV.vellSet(4*ivs+3);
-	// Create the output vells
-	VellSet &output_vell_set =  result.setNewVellSet(ovs) ;ovs++;
+// OMS: commented this out, should be made optional
+//	const VellSet &coeff_inputu = CoeffsUV.vellSet(4*ivs+1);
+//	const VellSet &coeff_inputv = CoeffsUV.vellSet(4*ivs+2);
+//	const VellSet &coeff_inputuv= CoeffsUV.vellSet(4*ivs+3);
 	//std::cout<<dims<<"\t"<<ovs<<"\t"<<ivs<<"\n";
-	// if the input VellSet is a null, make null outputs and continue
+	VellSet &output_vell_set = result.setNewVellSet(ovs);
+        ovs++;
+	// OMS: if the input VellSet is a null, then output at corresponding
+        // position should also be null. Allocating output_vell_set and not filling
+        // it produces a null, which is exactly what we want, so we just continue here.
 	if( brick_input.isNull() )
-	  {
-	    // Ignore this for now... might be making a mistake...
-	    //Vells::Ref null_vells(DMI::ANONWR);
-	    //output_vell_set.setValue(null_vells);ovs++;
-	    //continue;
-	  }
+          continue;
+        
+	// Create the output vells
 	
 	// actual values (main + possibly perturbed on the X vell 
 	// only for now...). 
@@ -156,8 +171,8 @@ namespace Meq {
 					     tfshape,true));
 	doInterpol(output_vells,
 		   us_input_uv.getValue(),vs_input_uv.getValue(),
-		   brick_input.getValue(),coeff_inputu.getValue(),
-		   coeff_inputv.getValue(),coeff_inputuv.getValue(),
+        // OMS: removed coeff arguments
+		   brick_input.getValue(),
 		   rcells,FFTbrickCells);
 	
 	// Interpolate each perturbed value
@@ -172,10 +187,8 @@ namespace Meq {
 	      doInterpol(output_vells,
 			 us_input_uv.getValue(),
 			 vs_input_uv.getValue(),
+                         // OMS: removed coeff arguments
 			 brick_input.getPerturbedValue(ipert,ipset),
-			 coeff_inputu.getPerturbedValue(ipert,ipset),
-			 coeff_inputv.getPerturbedValue(ipert,ipset),
-			 coeff_inputuv.getPerturbedValue(ipert,ipset),
 			 rcells,FFTbrickCells);
 	    }
 	
@@ -204,38 +217,26 @@ namespace Meq {
 				  const Vells &input_vells_u,
 				  const Vells &input_vells_v,
 				  const Vells &input_vells_grid, 
-				  const Vells &CoeffvellsU, 
-				  const Vells &CoeffvellsV, 
-				  const Vells &CoeffvellsUV, 
+                                  // OMS: removed coeff arguments
 				  const Cells &rcells, 
 				  const Cells &brickcells){
     // This does not support yet that there might not be a frequency 
     // or a time axis, we have to add that at some point!!!
     ConstVellsSlicer<dcomplex,3> grid_slicer(input_vells_grid,
 					     _inaxis0,_inaxis1,_inaxis2);
-    ConstVellsSlicer<dcomplex,3> interp_sliceru(CoeffvellsU,
-						Axis::FREQ,_inaxis1,_inaxis2);
-    ConstVellsSlicer<dcomplex,3> interp_slicerv(CoeffvellsV,
-						Axis::FREQ,_inaxis1,_inaxis2);
-    ConstVellsSlicer<dcomplex,3> interp_sliceruv(CoeffvellsUV,
-						 Axis::FREQ,_inaxis1,_inaxis2);
+    // OMS: removed coeff slicers
     ConstVellsSlicer<double,1> u_slicer(input_vells_u,Axis::TIME);
     ConstVellsSlicer<double,1> v_slicer(input_vells_v,Axis::TIME);
  
-    blitz::Array<dcomplex,3> farru = interp_sliceru();    
-    blitz::Array<dcomplex,3> farrv = interp_slicerv();    
-    blitz::Array<dcomplex,3> farruv= interp_sliceruv();
     blitz::Array<dcomplex,3> garr = grid_slicer();
     blitz::Array<double,1> u_arr = u_slicer();
     blitz::Array<double,1> v_arr = v_slicer();
+    // OMS: removed coeff arrays
 
     // We are assuming that any other parameters
     // are the same in the UV and that U and V are dependent of time 
     // axis only given that u and v are in meters...
     Assert(grid_slicer.valid()); 
-    Assert(interp_sliceru.valid()); 
-    Assert(interp_slicerv.valid()); 
-    Assert(interp_sliceruv.valid()); 
     Assert(u_slicer.valid()); 
     Assert(v_slicer.valid()); 
 
@@ -268,18 +269,12 @@ namespace Meq {
 	};
 	s = (uc-uu(ia))/(uu(ib)-uu(ia));
 	t = (vc-vv(ja))/(vv(jb)-vv(ja));
-	if (_method == 1) arrout(i,j)= bilinear(s,t,
+        // OMS: removed check of _method, since only bilinear is available
+        // without coeffs. Once you have the coeffs as optional arguments,
+        // you can put the if(method) statement and the call to bicubic back in
+	arrout(i,j)= bilinear(s,t,
 					       garr(0,ia,ja),garr(0,ia,jb),
 					       garr(0,ib,jb),garr(0,ib,ja));
-	if (_method == 2) arrout(i,j)=BiCubic(s,t,
-					     garr(0,ia,ja),garr(0,ia,jb), 
-					     garr(0,ib,jb),garr(0,ib,ja),
-					     farru(0,ia,ja),farru(0,ia,jb), 
-					     farru(0,ib,jb), farru(0,ib,ja),
-					     farrv(0,ia,ja), farrv(0,ia,jb), 
-					     farrv(0,ib,jb), farrv(0,ib,ja),
-					     farruv(0,ia,ja), farruv(0,ia,jb), 
-					     farruv(0,ib,jb), farruv(0,ib,ja));
       }
     }
     

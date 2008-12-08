@@ -55,6 +55,8 @@ void WSRTCos3Beam::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   // in first-model mode, compute argument clip
   if( clip_ > 0 )
     argclip_ = std::acos(std::pow(std::min(clip_,1.),1/3.));
+  else if( clip_ == 0 )
+    argclip_ = 0;
 }
 
 
@@ -74,8 +76,10 @@ Vells WSRTCos3Beam::evaluate (const Request &request,const LoShape &,
   if( clip_ < 0 )
     return max(abs(pow3(cos((bf*r)*freq))),-clip_,-1,-1);
   // proper argument clipping
-  else
+  else if( argclip_ > 0 )
     return pow3(cos(min((bf*r)*freq,argclip_,-1,-1)));
+  else
+    return pow3(cos((bf*r)*freq));
 }
 
 } // namespace Meq
