@@ -82,6 +82,7 @@ class Clump (object):
       If another Clump of the same class is specified (use), transfer its
       defining characteristics (datadesc etc), and possibly its nodes.
       """
+      
       # Every Clump object has a clumpcore object:
       typename = str(type(self)).split('.')[-1].split("'")[0]
       self.core = clumpcore.clumpcore (clump,
@@ -130,14 +131,15 @@ class Clump (object):
    #==========================================================================
 
    def connect_grafted_clump (self, clump, trace=False):
-      """Connect the loose ends (orphans, stubtree, ParmClumps) of the given
-      clump, e.g. when JonesClumps are used to correct VisClumps.
+      """Connect the loose ends (orphans, stubtree, ParmClumps, rider) of the
+      given clump, e.g. when JonesClumps are used to correct VisClumps.
       This is similar to, but slightly different from, what is done in the
       function self.transfer_clump_nodes(), which merely continues the mainstream.
       """
       self.core.graft_to_stubtree(clump.core._stubtree)
       self.core._orphans.extend(clump.core._orphans)             # group them first?
       self.core._ParmClumps.extend(clump.core._ParmClumps)       
+      self.core._rider.update(clump.core._rider)                 # .update()?
       self.core.copy_history(clump)
       self.history('.connect_grafted_clump(): '+str(clump))
       return True
@@ -173,6 +175,7 @@ class Clump (object):
        # self.history('copied to: '+str(clump))
        return clump
    
+
    #==========================================================================
    # Fuctions that depend on whether or not the Clump has been selected:
    #==========================================================================
@@ -257,16 +260,17 @@ class Clump (object):
       cc = dir(self)
       for s in cc:
           a = getattr(self,s,None)
+          sa = 'self.'+s
           if s[0:2]=='__':
-              # ss += prefix+'   - '+s
+              # ss += prefix+'   - '+sa
               pass  
           elif not s[0]=='_':
-              # ss += prefix+'   - '+s
+              # ss += prefix+'   - '+sa
               pass
           elif getattr(a,'oneliner',None):
-              ss += prefix+'   - '+s+' = '+str(a.oneliner())
+              ss += prefix+'   - '+sa+' = '+str(a.oneliner())
           elif isinstance(a,dict):
-              ss += prefix+'   - '+s+':'
+              ss += prefix+'   - '+sa+':'
               for key in a.keys():
                   v = a[key]
                   if getattr(v,'oneliner',None):
@@ -275,13 +279,13 @@ class Clump (object):
                       ss += prefix+'     - '+str(key)+' = '+str(EF.format_value(v))
           elif isinstance(a,list):
               if is_node(a[0]):
-                  ss += prefix+'   - '+s+' (list of '+str(len(a))+' nodes):'
+                  ss += prefix+'   - '+sa+' (list of '+str(len(a))+' nodes):'
                   for i,node in enumerate(a):
                       ss += prefix+'     - '+str(i)+': '+str(node)
               else:
-                  ss += prefix+'   - '+s+' = '+str(EF.format_value(a))
+                  ss += prefix+'   - '+sa+' = '+str(EF.format_value(a))
           else:
-              ss += prefix+'   - '+s+' = '+str(EF.format_value(a))
+              ss += prefix+'   - '+sa+' = '+str(EF.format_value(a))
       
       #.....................................................
       ss += prefix+' + self.rider(): (carries user-defined information):'
@@ -567,12 +571,6 @@ class Clump (object):
                   trace=trace)
       fname = ctrl['funcname']                       # convenience
 
-      # The kwargs information is used for option overrides in
-      # the functions .add_option() and .execute_body()
-      self.core._kwargs = kwargs                          # temporary
-      self.core._override_keys = []
-      self.core._override = dict()
-
       # Make the menu for the calling function:
       # NB: if any options are defined in this module, always makemenu=True,
       # otherwise there is a high probablility of option name clashes!
@@ -616,20 +614,33 @@ class Clump (object):
    def add_option (self, relkey, choice=None, **kwargs):
       """Add an option to the current menu. The purpose of this function
       is mainly to hide the use of 'self.core._TCM' to the Clump user/developer.
-      In the future it might be useful to put some extra features here...
+      Normally, the specified choice list is used, but this may be modified by
+      means of the Clump constructor input **kwargs in two ways:
+      - if kwargs[relkey]=value, prepend value to the choice list. This makes it the default.
+      - if kwargs[relkey]=[list], use that as the new (exclusive, more=None) choice list.
+      In the future some more features may be added here...
       """
-      self.core._override_keys.append(relkey)          # see .execute_body()
+
       if True:
-         # The option choice may be overridden via the input kwargs:
+         # The option choice may be augmented/overridden via the input_kwargs:
          if self.core._input_kwargs.has_key(relkey):
             v = self.core._input_kwargs[relkey]
-            was = copy.copy(choice)
+            hist = '.add_option('+str(relkey)+'): '
             if isinstance(v,list):                # e.g. [2,3]
                choice = v                         # replace choice
                kwargs['more'] = None              # do not allow other values 
+               hist += 'use external (kwargs) choice -> '+str(choice) 
             else:                                 # e.g. 2
                choice.insert(0,v)                 # make it the default
-            print '\n** add_option(',relkey+'):',was,'->',choice,'\n'
+               hist += 'use external (kwargs) default (='+str(v)+') -> '+str(choice) 
+            self.history(hist, trace=False)
+
+      if True:
+          # If the option prompt is the option (rel)key, it is easier to modify the
+          # option choice with the input **kwargs (using this option name)
+          kwargs['prompt'] = None                 # use the option relkey by default
+
+      # Its TDL(Compile)OptionManager (TCM) does the real work:
       return self.core._TCM.add_option(relkey, choice, **kwargs)
 
    #--------------------------------------------------------------------------
@@ -640,8 +651,6 @@ class Clump (object):
       Its (mandatory!) counterpart is self.end_of_body(ctrl)
       It uses the record self.core._ctrl, defined in .on_entr()
       """
-
-      self.check_for_overrides()
 
       fname = self.core._ctrl['funcname']                 # convenience
 
@@ -669,48 +678,21 @@ class Clump (object):
             self.history(append=s, trace=self.core._ctrl['trace'])
       return execute
 
-   #--------------------------------------------------------------------------
-
-   def check_for_overrides (self):
-      """Check whether self.core._kwargs (see .on_entry(**kwargs)) contains
-      any of the option (rel)keys accumulated in .add_option(key),
-      and put these override values in the dict self.core._override.
-      The latter is then used in .getopt(key) to return the override value
-      rather than the option value.
-      """
-      ovr = dict()
-      for key in self.core._override_keys:
-         if self.core._kwargs.has_key(key):
-            ovr[key] = self.core._kwargs[key]
-      if len(ovr)>0:
-         self.history('.override: '+str(ovr))
-      self.core._override = ovr                    # see .getopt()
-      self.core._override_keys = []                # reset
-      self.core._kwargs = None                     # reset
-      return True
-
-
    #..........................................................................
 
    def getopt (self, relkey, trace=False):
       """Get the specified (relkey) TDL option value.
       This function is ONLY called AFTER self.execute_body()==True.
-      It use the record self.core._ctrl that is defined in .on_entry()
+      It uses the record self.core._ctrl that is defined in .on_entry()
       """
       # trace = True
-      override = self.core._override.has_key(relkey)
-      if override:
-         value = self.core._TCM.getopt(relkey, self.core._ctrl['submenu'],
-                                  override=self.core._override[relkey])
-      else:
-         value = self.core._TCM.getopt(relkey, self.core._ctrl['submenu'])
+
+      value = self.core._TCM.getopt(relkey, self.core._ctrl['submenu'])
 
       if trace or self.core._ctrl['trace']:
          s = '.getopt(\''+str(relkey)+'\') ->'
          # s += ' '+str(type(value))
          s += ' '+str(value)
-         if override:
-            s += ' (overridden by kwarg)'
          print s
          self.history(s)
       return value
@@ -965,12 +947,15 @@ class Clump (object):
          self.history(s)
 
       if len(solvable)==0:
-         self.WARNING('No solvable MeqParms specified! (using defaults)')
-         ss = self.ParmClumps()[0].solspec(always=True)
-         solvable = ss
-         s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
-         s += '(default!) solvable MeqParms from: '+pc.oneliner()
-         self.history(s)
+         if len(self.ParmClumps())==0:
+             self.WARNING('No ParmClumps found (simulation?)')
+         else:
+             self.WARNING('No solvable MeqParms specified! (using defaults)')
+             ss = self.ParmClumps()[0].solspec(always=True)
+             solvable = ss
+             s = 'Got '+str(len(ss))+' (total='+str(len(solvable))+') '
+             s += '(default!) solvable MeqParms from: '+pc.oneliner()
+             self.history(s)
          
       # Return list of solvable MeqParms:
       if trace:
@@ -1511,6 +1496,32 @@ class LeafClump(Clump):
          
       return self.on_exit(ctrl)
 
+
+   #---------------------------------------------------------------------------
+   #---------------------------------------------------------------------------
+
+   def extract_bracketed (self, string, bb='{}', enclose=False, trace=False):
+      """Helper function to extract a list of zero or more bracketed
+      substrings from the given string. E.g. {..} or [..].
+      Usually used to analyse math expressions (see ParmClump.py)
+      The opening and closing brackets bb[='{}'] are given as 2-char strings.
+      If enclose=True, enclose the resulting substring(s) in theit bracket.
+      """
+      if trace:
+         print '\n** extract_bracketed(',bb,enclose,'):',string
+      cc = []
+      ss = string.split(bb[0])          # split on opening bracket (e.g. { or [)
+      if len(ss)>1:
+         for s1 in ss:
+            s2 = s1.split(bb[1])        # split on closing bracket (e.g. } or ])
+            if len(s2)>1:
+               substring = s2[0]
+               if enclose:
+                  substring = bb[0]+substring+bb[1]
+               cc.append(substring)
+      if trace:
+         print '-> cc=',cc,'\n'
+      return cc
 
 
 

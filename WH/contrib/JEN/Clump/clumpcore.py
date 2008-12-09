@@ -277,7 +277,7 @@ class clumpcore (object):
           self._composed = False
 
       nqs = self._nodequals
-      print 'nqs =',nqs
+      # print 'nqs =',nqs
       if not getattr(self,'_nodes',None):
          self._nodes = len(nqs)*[None]
       elif not isinstance(self._nodes,list):
@@ -321,15 +321,14 @@ class clumpcore (object):
             self._TCM = clump.core._TCM
 
          # Some attributes are transferred always(!):
-         self._datadesc = clump.datadesc().copy()               # .... copy()!
+         self._datadesc = clump.datadesc().copy()                    # .... copy()!
          self.datadesc()
          self._stage['count'] = 1+clump.core._stage['count']         # <--------!!
-         self._stage['ops'] = -1                                # reset
+         self._stage['ops'] = -1                                     # reset
          self._stage['name'] = clump.core._stage['name']             # <--------!!
          clump.core._stage['ncopy'] += 1
          self._stage['ncopy'] = clump.core._stage['ncopy']           # <--------!!
          self._rider.update(clump.core._rider)                       # .update()?
-         # self._rider.update(clump.rider())                      # .update()?
       return True
 
    #--------------------------------------------------------------------------
@@ -398,6 +397,7 @@ class clumpcore (object):
             qual.extend(self._qual)
          else:
             qual.append(self._qual)
+      # print '\n** qual =',qual,' (',self._qual,')'
 
       # Deal with the node name:
       name = self._name                            # default name
@@ -551,12 +551,17 @@ class clumpcore (object):
          nmax = 3
          for i in range(min(nmax,n)):
             ss += prefix+'   - '+str(self[i])
+            if i==0:
+               for child in self[i].children:
+                  ss += prefix+'     - '+str(child[1])
          if n>nmax:
             if n>nmax+1:
                ss += prefix+'       ...'
             ss += prefix+'   - '+str(self[-1])
       else:
          ss += prefix+'   - node[0] = '+str(self[0])
+         for child in self[0].children:
+            ss += prefix+'     - '+str(child[1])
          ss += prefix+'   - node[-1]= '+str(self[-1])
                                        
       #.....................................................
@@ -670,19 +675,31 @@ class clumpcore (object):
 
    def rider (self, key=None, **kwargs):
       """The rider contains arbitrary user-defined information.
+      It is passed (rider.update(rider)) from clump to clump.
+      See .transfer_clump_definition() above.
       """
       trace = kwargs.get('trace',False)
+      trace = False
       severe = kwargs.get('severe',True)
-      rr = self._rider                # convenience
+      rr = self._rider                         # convenience
+
       if isinstance(key,str):
-         if kwargs.has_key('new'):
-            self._rider[key] = kwargs['new']
-         elif not rr.has_key(key):
-            if severe:
-               self.ERROR('** rider does not have key: '+str(key))
-            else:
-               return None                 # .....?
-         return self._rider[key]
+         if kwargs.has_key('set'):             # set to kwargs['set']
+            self._rider[key] = kwargs['set']
+         elif rr.has_key(key):
+            return self._rider[key]
+         elif kwargs.has_key('default'):
+            return kwargs['default']
+         elif severe:
+            self.ERROR('** rider does not have key: '+str(key))
+         else:
+            return None                        # .....?
+
+      if trace:
+         print '\n** rider of:',self.oneliner()
+         for key in rr.keys():
+            print '-',key,' = ',rr[key]
+         print
       return self._rider
 
    #=========================================================================

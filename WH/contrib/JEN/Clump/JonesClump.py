@@ -72,6 +72,19 @@ class JonesClump(Clump.LeafClump):
       kwargs['dims'] = [2,2]
       kwargs['complex'] = True
 
+      # Its MeqParms may be simulated (MeqFunctionals): 
+      self._simulate = kwargs.get('simulate',False)
+      if self._simulate:
+         # Append the qualifier 'simul' to all nodes:
+         qual = 'simul'
+         key = 'qual'
+         if not kwargs.has_key(key):
+            kwargs[key] = qual
+         elif isinstance(kwargs[key],list):
+            kwargs[key].append(qual)
+         else:
+            kwargs[key] = [kwargs[key],qual]
+
       # The form of some Jones matrices depends on the
       # polarization representation (linear,circular)
       # This may be specified by means of kwargs.
@@ -90,6 +103,7 @@ class JonesClump(Clump.LeafClump):
       self._MeqParm_parms = rr
 
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
+
       return None
 
    #-------------------------------------------------------------------------
@@ -100,23 +114,49 @@ class JonesClump(Clump.LeafClump):
       """
       return self._polrep
 
+   #-------------------------------------------------------------------------
+
+   def get_solspec_choice_parameters(self):
+      """Placeholder function for the specification of solspec parameters.
+      """
+      # The following dict is a placeholder for "solspec" parameters,
+      # which are given as **kwargs arguments to ParmClump constructors.
+      # It may be re-specified in .__init__() of derived JonesClump classes.
+      ssp = dict()
+      return ssp
+
    #--------------------------------------------------------------------------
 
-   def ParmClump(self, name, default=0.0, **kwargs):
+   def ParmClump(self, name, default=0.0, trace=False):
       """Helper function to create a ParmClump in an organised way.
-      If single=True, make a ParmClump with only one MeqParm.
-      Otherwise, there will be one for each station.
       """
+      # NB: The following function will be re-implemented in a derived class
+      self._solspec_choice = self.get_solspec_choice_parameters()
       clump = ParmClump.ParmClump(self, name=name,
                                   default=default,
-                                  **kwargs)
-                                  # single=single,
-                                  # hide=True,
-                                  # **self._MeqParm_parms)
-      # Connect all the loose ends:
-      self.connect_grafted_clump(clump)
+                                  simulate=self._simulate,
+                                  **self._solspec_choice)
+      if trace:
+         clump.show('JonesClump.ParmClump()')
+      self.connect_grafted_clump(clump)       # connect the loose ends:
       return clump
 
+   #--------------------------------------------------------------------------
+
+   def PFunctionalClump(self, name, expr, varvals=None, trace=False):
+      """Helper function to create a PFunctionalClump in an organised way.
+      """
+      # NB: The following function will be re-implemented in a derived class
+      self._solspec_choice = self.get_solspec_choice_parameters()
+      clump = ParmClump.PFunctionalClump(name=name,
+                                         expr=expr, varvals=varvals,
+                                         TCM=self.TCM(), ns=self.ns(),
+                                         simulate=self._simulate,
+                                         **self._solspec_choice)
+      if trace:
+         clump.show('JonesClump.PFunctionalClump()')
+      self.connect_grafted_clump(clump)      # connect the loose ends
+      return clump
 
    #==========================================================================
    # To be re-implemented in derived classes
@@ -177,6 +217,20 @@ class GJones(JonesClump):
       """
       JonesClump.__init__(self, clump=clump, **kwargs)
       return None
+
+   #-------------------------------------------------------------------------
+
+   def get_solspec_choice_parameters(self):
+      """Re-implementation of the function in JonesClump.
+      Specify the relevant choice of solution-specification parameters that
+      will be offered in the .solspec() function of its ParmClump ojects.
+      (A list repaces the default choice, a number is used as default.) 
+      """
+      ssp = dict(nfreq_subtile=[None],   # solve over all freq cells 
+                 ntime_subtile=[5,10],   # size of subtile solutions
+                 fdeg=0,                 # default: no freq dependence
+                 tdeg=[1,2])             # solve for low-order time polynomial
+      return ssp
 
 
    #==========================================================================
@@ -245,13 +299,26 @@ class BJones(JonesClump):
       JonesClump.__init__(self, clump=clump, **kwargs)
       return None
 
+   #-------------------------------------------------------------------------
+
+   def get_solspec_choice_parameters(self):
+      """Re-implementation of the function in JonesClump.
+      Specify the relevant choice of solution-specification parameters that
+      will be offered in the .solspec() function of its ParmClump ojects.
+      (A list repaces the default choice, a number is used as default.) 
+      """
+      ssp = dict(ntime_subtile=[None],   # solve over all freq cells 
+                 nfreq_subtile=[5,10],   # size of subtile solutions
+                 fdeg=0,                 # default: no freq dependence
+                 tdeg=[1,2])             # solve for low-order time polynomial
+      return ssp
+
 
    #==========================================================================
 
    def initexec (self, **kwargs):
       """
       BJones represents electronic bandpass. It is a uv-plane effect.
-      
       It is rather generic, so most telescopes just reuse this class.
       (e.g. see WSRTJones.py).
       """
@@ -265,23 +332,17 @@ class BJones(JonesClump):
       if self.execute_body():
          mode = self.getopt('mode')
 
-         # Specify the .solspec() parameters (see class ParmClump)
-         ssp = dict(nfreq_subtile=[1,2],
-                    ntime_subtile=[None],
-                    fdeg=0,
-                    tdeg=[1,2])
-
          # Create ParmClumps:
          if mode=='amphas':
-            gerrX = self.ParmClump('gerrX', default=1.0, **ssp)
-            perrX = self.ParmClump('perrX', default=0.0, **ssp)
-            gerrY = self.ParmClump('gerrY', default=1.0, **ssp)
-            perrY = self.ParmClump('perrY', default=0.0, **ssp)
+            gerrX = self.ParmClump('gerrX', default=1.0)
+            perrX = self.ParmClump('perrX', default=0.0)
+            gerrY = self.ParmClump('gerrY', default=1.0)
+            perrY = self.ParmClump('perrY', default=0.0)
          elif mode=='realimag':
-            rerrX = self.ParmClump('rerrX', default=1.0, **ssp)
-            ierrX = self.ParmClump('ierrX', default=0.0, **ssp)
-            rerrY = self.ParmClump('rerrY', default=1.0, **ssp)
-            ierrY = self.ParmClump('ierrY', default=0.0, **ssp)
+            rerrX = self.ParmClump('rerrX', default=1.0)
+            ierrX = self.ParmClump('ierrX', default=0.0)
+            rerrY = self.ParmClump('rerrY', default=1.0)
+            ierrY = self.ParmClump('ierrY', default=0.0)
 
          # Generate nodes:
          stub = self.unique_nodestub()
@@ -300,6 +361,36 @@ class BJones(JonesClump):
                                                  elem10, elem11)
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
+
+
+
+#************************************************************************************
+
+class BcJones(BJones):
+   """
+   Version of BJones that gives a channel-by-channel solution.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class BJones.
+      """
+      BJones.__init__(self, clump=clump, **kwargs)
+      return None
+
+   #-------------------------------------------------------------------------
+
+   def get_solspec_choice_parameters(self):
+      """Re-implementation of the function in JonesClump/BJones.
+      Specify the relevant choice of solution-specification parameters that
+      will be offered in the .solspec() function of its ParmClump ojects.
+      (A list repaces the default choice, a number is used as default.) 
+      """
+      ssp = dict(ntime_subtile=[None],   # solve over all time cells 
+                 nfreq_subtile=[1],      # channel-by-channel solution
+                 fdeg=0,                 # default: no freq dependence
+                 tdeg=[1,2])             # solve for low-order time polynomial
+      return ssp
 
 
 
@@ -375,9 +466,9 @@ class XXXJones(JonesClump):
       # The ones selected (by the user) will be matrix-multiplied. 
       jj = []                       # list of selected Jones matrices
       notsel = []                   # list of not selected ones
-      JonesClump(self, name='AJones').append_if_selected(jj, notsel)
-      JonesClump(self, name='BJones').append_if_selected(jj, notsel)
-      JonesClump(self, name='CJones').append_if_selected(jj, notsel)
+      JonesClump(self, name='AJones', **kwargs).append_if_selected(jj, notsel)
+      JonesClump(self, name='BJones', **kwargs).append_if_selected(jj, notsel)
+      JonesClump(self, name='CJones', **kwargs).append_if_selected(jj, notsel)
       return (jj,notsel)
 
 
@@ -464,17 +555,20 @@ def do_define_forest (ns, TCM):
                   ['XXXJones','JonesClump',
                    'GJones','BJones'],
                   prompt='test WSRT Jones:')
+   TCM.add_option('simulate',False)
+
    clump = None
    if TCM.submenu_is_selected():
       jones = TCM.getopt('jones', submenu)
+      simulate = TCM.getopt('simulate', submenu)
       if jones=='GJones':
-         clump = GJones(ns=ns, TCM=TCM)
+         clump = GJones(ns=ns, TCM=TCM, simulate=simulate)
       elif jones=='BJones':
-         clump = BJones(ns=ns, TCM=TCM)
+         clump = BJones(ns=ns, TCM=TCM, simulate=simulate)
       elif jones=='XXXJones':
-         clump = XXXJones(ns=ns, TCM=TCM)
+         clump = XXXJones(ns=ns, TCM=TCM, simulate=simulate)
       else:
-         clump = JonesClump(ns=ns, TCM=TCM)
+         clump = JonesClump(ns=ns, TCM=TCM, simulate=simulate)
          
       # clump = CorruptClump.Scatter(clump).daisy_chain()
       clump.visualize()
@@ -499,23 +593,27 @@ if __name__ == '__main__':
    print '****************************************************\n' 
 
    ns = NodeScope()
+   simulate = False
 
    if 0:
-      clump = JonesClump(trace=True)
+      clump = JonesClump(simulate=simulate, trace=True)
 
    if 0:
-      clump = GJones(trace=True)
+      clump = GJones(simulate=simulate, trace=True)
+
+   if 0:
+      clump = BJones(simulate=simulate, trace=True)
 
    if 1:
-      clump = BJones(trace=True)
+      clump = BcJones(simulate=simulate, trace=True)
 
    if 0:
-      clump = XXXJones(trace=True)
+      clump = XXXJones(simulate=simulate, trace=True)
 
    if 1:
       clump.show('creation', full=True)
 
-   if 1:
+   if 0:
       p0 = clump.ParmClumps()[0]
       p0.solspec()
       p0.show('p0', full=True)

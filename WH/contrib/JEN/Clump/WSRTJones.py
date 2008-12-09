@@ -49,16 +49,44 @@ from Timba.Contrib.JEN.Clump import ParmClump
 # from Timba.Contrib.JEN.Clump import CorruptClump
 
 import math                 # support math.cos() etc
-# from math import *          # support cos() etc
-# import numpy                # support numpy.cos() etc
+import numpy                # support numpy.array() etc
 
 
 
-#********************************************************************************
-#********************************************************************************
 
 #********************************************************************************
-# WSRTJones.XXXJones is a multiplication of Jones Clumps
+#********************************************************************************
+#********************************************************************************      
+
+
+def fill_WSRT_rider(clump, **kwargs):
+   """Helper function, to be called by all WSRTJones classes.
+   It fills the 'rider' dict of the given (WSRT) JonesClump
+   with WSRT-related information like telescope positions etc.
+   """
+   trace = kwargs.get('trace', False)
+
+   # 1D positions of the WSRT telescopes (m):
+   if clump.rider('xpos', default=None)==None:      # do only once
+      sep9A = kwargs.get('sep9A', 72.0)             # separation 9-A (m)
+      xx = numpy.array(range(14))*144.0
+      xx[10] = xx[9] + sep9A                        # A
+      xx[11] = xx[10] + 72                          # B
+      xx[12] = xx[9] + (xx[10]-xx[0])               # C
+      xx[13] = xx[12] + 72                          # D
+      clump.rider('sep9A', set=sep9A)
+      clump.rider('xpos', set=xx)
+
+   if trace:
+      clump.rider(trace=True)
+   return None
+   
+
+
+
+#*****************************************************************************      
+#********************************************************************************
+# WSRTJones.WSRTJones is a multiplication of (WSRT) Jones Clumps
 #********************************************************************************
 
 class WSRTJones(JonesClump.XXXJones):
@@ -72,6 +100,7 @@ class WSRTJones(JonesClump.XXXJones):
       Derived from class Clump.
       """
       JonesClump.XXXJones.__init__(self, clump=clump, **kwargs)
+      # fill_WSRT_rider(self, **kwargs):
       return None
 
    #------------------------------------------------------------------------
@@ -89,12 +118,13 @@ class WSRTJones(JonesClump.XXXJones):
       # The ones selected (by the user) will be matrix-multiplied. 
       jj = []                       # list of selected Jones matrices
       notsel = []                   # list of not selected ones
-      # EJones(self).append_if_selected(jj, notsel)
-      # RJones(self).append_if_selected(jj, notsel)
-      FJones(self).append_if_selected(jj, notsel)
-      GJones(self).append_if_selected(jj, notsel)
-      BJones(self).append_if_selected(jj, notsel)
-      # DJones(self).append_if_selected(jj, notsel)
+      # EJones(self, **kwargs).append_if_selected(jj, notsel)
+      # RJones(self, **kwargs).append_if_selected(jj, notsel)
+      FJones(self, **kwargs).append_if_selected(jj, notsel)
+      GJones(self, **kwargs).append_if_selected(jj, notsel)
+      BJones(self, **kwargs).append_if_selected(jj, notsel)
+      BcJones(self, **kwargs).append_if_selected(jj, notsel)
+      # DJones(self, **kwargs).append_if_selected(jj, notsel)
 
       return (jj,notsel)
 
@@ -117,6 +147,7 @@ class GJones(JonesClump.GJones):
       kwargs['qual'] = 'WSRT'
       kwargs['polrep'] = None
       JonesClump.GJones.__init__(self, clump=clump, **kwargs)
+      fill_WSRT_rider(self, **kwargs)
       return None
 
 
@@ -136,8 +167,26 @@ class BJones(JonesClump.BJones):
       kwargs['qual'] = 'WSRT'
       kwargs['polrep'] = None
       JonesClump.BJones.__init__(self, clump=clump, **kwargs)
+      fill_WSRT_rider(self, **kwargs)
       return None
 
+#----------------------------------------------------------------------------
+
+class BcJones(JonesClump.BcJones):
+   """
+   Represents channel-by-channel electronic bandpass.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Just use the JonesClump base class, with a different name.
+      """
+      kwargs['name'] = 'BcJones'
+      kwargs['qual'] = 'WSRT'
+      kwargs['polrep'] = None
+      JonesClump.BcJones.__init__(self, clump=clump, **kwargs)
+      fill_WSRT_rider(self, **kwargs)
+      return None
 
 
 #*****************************************************************************      
@@ -156,53 +205,56 @@ class FJones(JonesClump.JonesClump):
       kwargs['qual'] = 'WSRT'
       kwargs['polrep'] = 'linear'
       JonesClump.JonesClump.__init__(self, clump=clump, **kwargs)
+      fill_WSRT_rider(self, **kwargs)
       return None
+
+   #-------------------------------------------------------------------------
+
+   def get_solspec_choice_parameters(self):
+      """Re-implementation of the function in JonesClump.
+      Specify the relevant choice of solution-specification parameters that
+      will be offered in the .solspec() function of its ParmClump ojects.
+      (A list repaces the default choice, a number is used as default.) 
+      """
+      ssp = dict(nfreq_subtile=[None],   # solve over all freq cells 
+                 ntime_subtile=[None],   # solve over all time cells
+                 fdeg=[1,2],             # solve for low-order freq polynomial
+                 tdeg=[1,2])             # solve for low-order time polynomial
+      return ssp
+
 
    #==========================================================================
 
    def initexec (self, **kwargs):
       """
       Fill the LeafClump object with suitable leaf nodes.
-      Re-implemented version of the function in the baseclass (LeafClump).
+      The faraday rotation is a low-order polynomial over the 3km 1D array.
       """
-      prompt = 'Jones: '+self.name()
+
+      prompt = 'FJones: '+self.name()
       help = 'define FJones matrix: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
-      self.add_option('mode',['single','multiple'])
+      self.add_option('poly',['{p0}+{p1}*[x]',
+                              '{p0}+{p1}*[x]+{p2}*[x]*[x]'],
+                      help='low-order polynomial over 1D array')
 
       if self.execute_body():
-         mode = self.getopt('mode')
+         poly = self.getopt('poly')
 
-         # Create ParmClumps:
-         if mode=='single':
-            # Assume that the Faraday rotation is the same for all telescopes
-            farot = self.ParmClump(name='farot', default=0.0, single=True)
-         elif mode=='multiple':
-            # Assume that the Faraday rotation is different for all telescopes
-            farot = self.ParmClump(name='farot', default=0.0)
-
+         # Make a Clump with parametrized MeqFunctionals:
+         fill_WSRT_rider(self, **kwargs)                        # makes xpos
+         varvals = dict(x=self.rider('xpos'))
+         farot = self.PFunctionalClump('farot', expr=poly, varvals=varvals)
+         
          # Generate nodes:
          stub = self.unique_nodestub()
-         if mode=='single':                
-            print str(farot[0])
-            print farot[0].initrec();
-            node = farot[0]
-            cos = stub('cos') << Meq.Cos(node)
-            print str(cos)
-            sin = stub('sin') << Meq.Sin(farot[0])
-            print str(sin)
-            neg = stub('neg') << Meq.Negate(sin)
-            node = stub('single') << Meq.Matrix22(cos, sin,
-                                                  neg, cos)
          for i,qual in enumerate(self.nodequals()):
-            if mode=='multiple':
-               cos = stub('cos')(qual) << Meq.Cos(farot[i])
-               sin = stub('sin')(qual) << Meq.Sin(farot[i])
-               neg = stub('neg')(qual) << Meq.Negate(sin)
-               self[i] = stub(qual) << Meq.Matrix22(cos, sin,
-                                                    neg, cos)
-
+            cos = stub('cos')(qual) << Meq.Cos(farot[i])
+            sin = stub('sin')(qual) << Meq.Sin(farot[i])
+            neg = stub('neg')(qual) << Meq.Negate(sin)
+            self[i] = stub(qual) << Meq.Matrix22(cos, sin,
+                                                 neg, cos)
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
 
@@ -225,20 +277,33 @@ class XJones(JonesClump.JonesClump):
       Derived from class JonesClump.
       """
       JonesClump.JonesClump.__init__(self, clump=clump, **kwargs)
+      fill_WSRT_rider(self, **kwargs)
       return None
+
+   #-------------------------------------------------------------------------
+
+   def get_solspec_choice_parameters(self):
+      """Re-implementation of the function in JonesClump.
+      Specify the relevant choice of solution-specification parameters that
+      will be offered in the .solspec() function of its ParmClump ojects.
+      (A list repaces the default choice, a number is used as default.) 
+      """
+      ssp = dict(nfreq_subtile=[None],   # solve over all freq cells 
+                 ntime_subtile=[5,10],   # size of subtile solutions
+                 fdeg=0,                 # default: no freq dependence
+                 tdeg=[1,2])             # solve for low-order time polynomial
+      return ssp
+
 
 
    #==========================================================================
-   # The function .initexec() must be re-implemented for 'leaf' Clumps,
-   # i.e. Clump classes that contain leaf nodes. An example is given below,
-   # and may be canibalized for derived (leaf) Clump clases.
    #==========================================================================
 
    def initexec (self, **kwargs):
       """Fill the LeafClump object with suitable leaf nodes.
       Re-implemented version of the function in the baseclass (LeafClump).
       """
-      prompt = 'Jones: '+self.name()
+      prompt = 'XJones: '+self.name()
       help = 'define Jones matrix: '+self.oneliner()
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
@@ -299,20 +364,27 @@ def do_define_forest (ns, TCM):
 
    TCM.add_option('jones',
                   ['WSRTJones',
-                   'RJones','EJones','ZJones',
-                   'GJones','BJones','FJones'],
+                   # 'RJones','EJones','ZJones',
+                   'GJones','BJones','BcJones','FJones'],
                   prompt='test WSRT Jones:')
+   TCM.add_option('simulate',False)
+
    clump = None
    if TCM.submenu_is_selected():
       jones = TCM.getopt('jones', submenu)
+      simulate = TCM.getopt('simulate', submenu)
+      treequals = range(10)+list('ABCD')          # list of WSRT telescopes
+
       if jones=='WSRTJones':
-         clump = WSRTJones(ns=ns, TCM=TCM)
+         clump = WSRTJones(ns=ns, TCM=TCM, treequals=treequals, simulate=simulate)
       elif jones=='GJones':
-         clump = GJones(ns=ns, TCM=TCM)
+         clump = GJones(ns=ns, TCM=TCM, treequals=treequals, simulate=simulate)
       elif jones=='BJones':
-         clump = BJones(ns=ns, TCM=TCM)
+         clump = BJones(ns=ns, TCM=TCM, treequals=treequals, simulate=simulate)
+      elif jones=='BcJones':
+         clump = BcJones(ns=ns, TCM=TCM, treequals=treequals, simulate=simulate)
       elif jones=='FJones':
-         clump = FJones(ns=ns, TCM=TCM)
+         clump = FJones(ns=ns, TCM=TCM, treequals=treequals, simulate=simulate)
                   
       # clump = CorruptClump.Scatter(clump).daisy_chain()
       clump.visualize()
@@ -337,22 +409,42 @@ if __name__ == '__main__':
    print '****************************************************\n' 
 
    ns = NodeScope()
+   treequals = range(10)+list('ABCD')          # list of WSRT telescopes
+   simulate = False
+
+   if 0:
+      clump = WSRTJones(treequals=treequals,
+                        simulate=simulate,
+                        trace=True)
+
+   if 0:
+      clump = GJones(treequals=treequals,
+                     simulate=simulate,
+                     trace=True)
+
+   if 0:
+      clump = BJones(treequals=treequals,
+                     simulate=simulate,
+                     trace=True)
 
    if 1:
-      clump = WSRTJones(trace=True)
-
-
-   if 0:
-      clump = GJones(trace=True)
+      clump = FJones(treequals=treequals,
+                     simulate=simulate,
+                     trace=True)
 
    if 0:
-      clump = BJones(trace=True)
+      clump = XJones(treequals=treequals,
+                     simulate=simulate,
+                     trace=True)
 
-   if 0:
-      clump = FJones(trace=True)
-
+   #------------------------------------------------
    if 1:
       clump.show('creation', full=True)
+   #------------------------------------------------
+
+   if 0:
+      pc = clump.ParmClumps()[0]
+      pc.show('PC[0]')
 
    if 0:
       clump.show('final', full=True)
