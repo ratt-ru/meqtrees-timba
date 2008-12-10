@@ -86,12 +86,12 @@ class ImageRenderer (DefaultRenderer):
     # else thumbnail is same as full image (because image was small enough), insert directly
     elif self.thumbnail is self.fullimage:
       fname = relpath+self.fullimage;
-      return """<IMG SRC=%s ALT="%s"></IMG>"""%(fname,os.path.basename(self.filename));
+      return """<IMG SRC="%s" ALT="%s"></IMG>"""%(fname,os.path.basename(self.filename));
     # else return thumbnail linking to full image
     else:
       tname = relpath+self.thumbnail;
       fname = relpath+self.fullimage;
-      return """<A HREF=%s><IMG SRC=%s ALT="%s"></A>"""%(fname,tname,os.path.basename(self.filename));
+      return """<A HREF="%s"><IMG SRC="%s" ALT="%s"></A>"""%(fname,tname,os.path.basename(self.filename));
 
 # register ourselves with Purr
 import Purr.Render

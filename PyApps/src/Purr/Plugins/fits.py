@@ -291,12 +291,12 @@ class FITSRenderer (CachingRenderer):
     # else thumbnail is same as full image (because image was small enough), insert directly
     elif not thumb:
       fname = relpath+image;
-      return """<IMG SRC=%s ALT="%s"></IMG>"""%(fname,os.path.basename(image));
+      return """<IMG SRC="%s" ALT="%s"></IMG>"""%(fname,os.path.basename(image));
     # else return thumbnail linking to full image
     else:
       tname = relpath+thumb;
       fname = relpath+image;
-      return """<A HREF=%s><IMG SRC=%s ALT="%s"></A>"""%(fname,tname,os.path.basename(image));
+      return """<A HREF="%s"><IMG SRC="%s" ALT="%s"></A>"""%(fname,tname,os.path.basename(image));
   
   def _renderImageRec (self,rec,relpath,include_size=False):
     # get HTML code for image and histograms
@@ -338,7 +338,7 @@ class FITSRenderer (CachingRenderer):
     # else regenerate
     html = CachingRenderer.renderLink(self,relpath);
     if self.headerfile is not None:
-      html += " (<A HREF=%s%s>header</A>)"%(relpath,self.headerfile);
+      html += """ (<A HREF="%s%s">header</A>)"""%(relpath,self.headerfile);
     # save to cache
     return self.writeCache(cachekey,html);
   

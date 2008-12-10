@@ -20,7 +20,7 @@ dprintf = _verbosity.dprintf;
 
 def renderDefault (dp,relpath):
   """Fall-back rendering method (if all else fails), renders DP as a link""";
-  return """<A HREF=%s%s>%s</A>"""%(relpath,dp.filename,dp.filename);
+  return """<A HREF="%s%s">%s</A>"""%(relpath,dp.filename,dp.filename);
 
 class DefaultRenderer (object):
   # this gives a short ID for the class (used in GUIs and such)
