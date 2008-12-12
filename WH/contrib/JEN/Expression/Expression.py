@@ -9,6 +9,8 @@
 # History:
 #    - 29 apr 2007: creation, from TDL_Expression.py
 #    - 02 sep 2008: removed num-array
+#    - 05 dec 2008: added qnode argument to .MeqFunctional()
+#
 #
 # Remarks:
 #
@@ -810,12 +812,13 @@ class Expression (Meow.Parameterization):
     # Turn the Expression into a MeqFunctional node:
     #============================================================================
 
-    def MeqFunctional (self, bookpage=False, show=False):
+    def MeqFunctional (self, bookpage=False, qnode=None, show=False):
         """Turn the expression into a MeqFunctional node,
         i.e. an expression of its children."""
 
-        self._vars2nodes()        
-        qnode = self.ns['Expr_MeqFunctional']
+        self._vars2nodes()
+        if qnode==None:
+            qnode = self.ns['Expr_MeqFunctional']
         # if not qnode.initialized():
         if qnode.must_define_here(self):
             function = deepcopy(self._expanded)
@@ -1543,19 +1546,23 @@ if __name__ == '__main__':
             e0.FunckDiff(show=True)
             e0.display()
 
-    if 0:
+    if 1:
         # e2 = Expression(ns, 'e2', '{a}*[t]-{a}**{f}+[m]+[Xat]')
         e2 = Expression(ns, 'e2', '{a}*[t]-{a}**{f}')
         e2.modparm('{a}', '[f]*{c}/{b}+{d}')
         e2.modparm('{b}', 447)
-        e2.modparm('{c}', 47)
-        e2.modparm('{d}', (ns << Meq.Parm(-56)))
+        # e2.modparm('{b}', 448)
+        # e2.modparm('{c}', 47)
+        # e2.modparm('{d}', (ns << Meq.Parm(-56)))
         e2.display()
         if 0:
             e2.MeqNode()
             e2.display()
         if 0:
             e2.FunkletParm()
+            e2.display()
+        if 1:
+            e2.MeqFunctional(show=True)
             e2.display()
         if 0:
             e2.MeqCompounder(show=True)

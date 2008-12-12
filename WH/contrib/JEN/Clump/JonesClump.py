@@ -48,9 +48,11 @@ from Timba.Contrib.JEN.Clump import Clump
 from Timba.Contrib.JEN.Clump import ParmClump
 from Timba.Contrib.JEN.Clump import CorruptClump
 
+from Timba.Contrib.JEN.Expression import Expression
+
 import math                 # support math.cos() etc
 # from math import *          # support cos() etc
-# import numpy                # support numpy.cos() etc
+# import numpy                # 
 
 
 
@@ -122,8 +124,24 @@ class JonesClump(Clump.LeafClump):
       # The following dict is a placeholder for "solspec" parameters,
       # which are given as **kwargs arguments to ParmClump constructors.
       # It may be re-specified in .__init__() of derived JonesClump classes.
-      ssp = dict()
-      return ssp
+      scp = dict()
+      # set_scp (scp, 'tdeg', value, help=None)
+      # set_scp (scp, 'fdeg', value, help=None)
+      # set_scp (scp, 'nfreq_subtile', value, help=None)
+      # set_scp (scp, 'ntime_subtile', value, help=None)
+      return scp
+
+   #..........................................................................
+
+   def set_scp (self, rr, name, value, help=None):
+      """Helper function to be called from .get_solspec_choice_parameters()
+      """
+      rr[name] = value
+      hname = 'optionhelp'
+      if not isinstance(help,str):
+         help = 'autohelp'               # generate automatic help, using value
+      rr[hname] = help
+      return rr
 
    #--------------------------------------------------------------------------
 
@@ -203,6 +221,61 @@ class JonesClump(Clump.LeafClump):
 
 
 #********************************************************************************
+# JJones (The most general case: 4 complex elements):
+#********************************************************************************
+
+class JJones(JonesClump):
+   """
+   Derived class from JonesClump.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class LeafClump.
+      """
+      JonesClump.__init__(self, clump=clump, **kwargs)
+      return None
+
+
+   #==========================================================================
+
+   def initexec (self, **kwargs):
+      """
+      JJones is the most general Jones matrix for a uv-plane effect.
+      It contains 8 ParmClumps for the real and imaginary parts of its
+      4 complex matrix elements.
+      """
+      prompt = 'JJones: '+self.name()
+      help = 'define Jones matrix: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
+
+      if self.execute_body():
+
+         # Create ParmClumps:
+         r00 = self.ParmClump('real00', default=1.0)
+         i00 = self.ParmClump('imag00', default=0.0)
+         r10 = self.ParmClump('real10', default=1.0)
+         i10 = self.ParmClump('imag10', default=0.0)
+         r01 = self.ParmClump('real01', default=1.0)
+         i01 = self.ParmClump('imag01', default=0.0)
+         r11 = self.ParmClump('real11', default=1.0)
+         i11 = self.ParmClump('imag11', default=0.0)
+
+         # Generate nodes:
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self.nodequals()):
+            elem00 = stub(qual)('00') << Meq.ToComplex(r00[i],i00[i])
+            elem01 = stub(qual)('10') << Meq.ToComplex(r01[i],i01[i])
+            elem10 = stub(qual)('01') << Meq.ToComplex(r01[i],i01[i])
+            elem11 = stub(qual)('11') << Meq.ToComplex(r11[i],i11[i])
+            self[i] = stub(qual) << Meq.Matrix22(elem00, elem01,
+                                                 elem10, elem11)
+
+         self.end_of_body(ctrl)
+      return self.on_exit(ctrl)
+
+
+#********************************************************************************
 # GJones (electronic gain):
 #********************************************************************************
 
@@ -226,11 +299,11 @@ class GJones(JonesClump):
       will be offered in the .solspec() function of its ParmClump ojects.
       (A list repaces the default choice, a number is used as default.) 
       """
-      ssp = dict(nfreq_subtile=[None],   # solve over all freq cells 
+      scp = dict(nfreq_subtile=[None],   # solve over all freq cells 
                  ntime_subtile=[5,10],   # size of subtile solutions
                  fdeg=0,                 # default: no freq dependence
                  tdeg=[1,2])             # solve for low-order time polynomial
-      return ssp
+      return scp
 
 
    #==========================================================================
@@ -307,11 +380,11 @@ class BJones(JonesClump):
       will be offered in the .solspec() function of its ParmClump ojects.
       (A list repaces the default choice, a number is used as default.) 
       """
-      ssp = dict(ntime_subtile=[None],   # solve over all freq cells 
+      scp = dict(ntime_subtile=[None],   # solve over all freq cells 
                  nfreq_subtile=[5,10],   # size of subtile solutions
                  fdeg=0,                 # default: no freq dependence
                  tdeg=[1,2])             # solve for low-order time polynomial
-      return ssp
+      return scp
 
 
    #==========================================================================
@@ -386,12 +459,111 @@ class BcJones(BJones):
       will be offered in the .solspec() function of its ParmClump ojects.
       (A list repaces the default choice, a number is used as default.) 
       """
-      ssp = dict(ntime_subtile=[None],   # solve over all time cells 
+      scp = dict(ntime_subtile=[None],   # solve over all time cells 
                  nfreq_subtile=[1],      # channel-by-channel solution
                  fdeg=0,                 # default: no freq dependence
                  tdeg=[1,2])             # solve for low-order time polynomial
-      return ssp
+      return scp
 
+
+
+#********************************************************************************
+# EJones (primary beamshape):
+#********************************************************************************
+
+class EJones(JonesClump):
+   """
+   Derived class from JonesClump.
+   """
+
+   def __init__(self, clump=None, **kwargs):
+      """
+      Derived from class JonesClump.
+      """
+      JonesClump.__init__(self, clump=clump, **kwargs)
+      return None
+
+   #-------------------------------------------------------------------------
+
+   def get_solspec_choice_parameters(self):
+      """Re-implementation of the function in JonesClump.
+      Specify the relevant choice of solution-specification parameters that
+      will be offered in the .solspec() function of its ParmClump ojects.
+      (A list repaces the default choice, a number is used as default.) 
+      """
+      scp = dict(ntime_subtile=[None],   # solve over all freq cells 
+                 nfreq_subtile=[5,10],   # size of subtile solutions
+                 fdeg=0,                 # default: no freq dependence
+                 tdeg=[1,2])             # solve for low-order time polynomial
+      return scp
+
+
+   #==========================================================================
+
+   def initexec (self, **kwargs):
+      """
+      EJones represents the primary beamshape. It is an image-plane effect.
+      """
+      prompt = 'EJones: '+self.name()
+      help = 'define EJones matrix: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
+
+      # Menu option(s) (the menu itself is generated in .on_entry()):
+      # self.add_option('mode',['amphas','realimag'])
+      # exp(-([f]*25/3e8)(1.1*([l]-{l0})**2 + 0.9*([m]-{m0})**2)
+      beamshape = 'exp(-([f]*25/3e8)(1.1*[l]**2 + 0.9*[m]**2))'       # no parameters
+      beamshape = '[l]+[m]'
+      self._beamshape = beamshape
+
+      if self.execute_body():
+         # mode = self.getopt('mode')
+
+         # Create ParmClumps:
+         # E = Expression.Expression(self.ns(), self.name(), beamshape)
+         # pc = E.ParmClump()...?
+
+         # Generate nodes:
+         stub = self.unique_nodestub()
+         for i,qual in enumerate(self.nodequals()):
+            Ename = self.name()+'_'+str(qual)
+            E = Expression.Expression(self.ns(), Ename, beamshape)
+            self[i] = E.MeqFunctional(qnode=stub(qual), show=False)
+ 
+         self.end_of_body(ctrl)
+      return self.on_exit(ctrl)
+
+   #--------------------------------------------------------------------------
+
+   def jonesLM (self, L=None, M=None, LM=None, **kwargs):
+      """Create and return a new JonesClump for EJones in the given direction (L,M).
+      It uses the (L,M)-dependent nodes that were defined in .initexec() above.
+      The L,M coordinates may be numbers, or nodes, or a composer (L,M).
+      NB: All image-plane JonesClumps have this function!
+      NB: If the position (L,M) is outside the 'validity area' of the JonesClump,
+      return a basis JonesClump that represents the (relative?) 'complex gain' in
+      this direction.
+      NB: Some internal bookkeeping avoids duplication of JonesClumps....
+      """
+      common_axes = [hiid('L'),hiid('M')]
+      if LM:
+         stub = self.unique_nodestub()  
+         extra_axes = LM
+      elif is_node(L):
+         stub = self.unique_nodestub()  
+         extra_axes = stub('extra_axes') << Meq.Composer(L,M)
+      else:
+         stub = self.unique_nodestub()(L=L)(M=M)  
+         extra_axes = stub('extra_axes') << Meq.Composer(L,M)
+
+      clump = JonesClump(self, name='jonesLM')
+      for i,qual in enumerate(self.nodequals()):
+         node = stub('compounder')(qual) << Meq.Compounder(extra_axes, self[i],
+                                                           common_axes=common_axes)
+         clump[i] = node
+      clump.show('jonesLM')
+      return clump
+
+   
 
 
 #********************************************************************************
@@ -553,7 +725,7 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    TCM.add_option('jones',
                   ['XXXJones','JonesClump',
-                   'GJones','BJones'],
+                   'GJones','BJones','EJones'],
                   prompt='test WSRT Jones:')
    TCM.add_option('simulate',False)
 
@@ -565,6 +737,8 @@ def do_define_forest (ns, TCM):
          clump = GJones(ns=ns, TCM=TCM, simulate=simulate)
       elif jones=='BJones':
          clump = BJones(ns=ns, TCM=TCM, simulate=simulate)
+      elif jones=='EJones':
+         clump = EJones(ns=ns, TCM=TCM, simulate=simulate)
       elif jones=='XXXJones':
          clump = XXXJones(ns=ns, TCM=TCM, simulate=simulate)
       else:
@@ -598,13 +772,20 @@ if __name__ == '__main__':
    if 0:
       clump = JonesClump(simulate=simulate, trace=True)
 
+   if 1:
+      clump = JJones(simulate=simulate, trace=True)
+
    if 0:
       clump = GJones(simulate=simulate, trace=True)
 
    if 0:
+      clump = EJones(simulate=simulate, trace=True)
+      c01 = clump.jonesLM(0,1)
+
+   if 0:
       clump = BJones(simulate=simulate, trace=True)
 
-   if 1:
+   if 0:
       clump = BcJones(simulate=simulate, trace=True)
 
    if 0:

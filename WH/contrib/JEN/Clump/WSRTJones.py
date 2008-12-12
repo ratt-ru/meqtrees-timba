@@ -216,11 +216,11 @@ class FJones(JonesClump.JonesClump):
       will be offered in the .solspec() function of its ParmClump ojects.
       (A list repaces the default choice, a number is used as default.) 
       """
-      ssp = dict(nfreq_subtile=[None],   # solve over all freq cells 
+      scp = dict(nfreq_subtile=[None],   # solve over all freq cells 
                  ntime_subtile=[None],   # solve over all time cells
                  fdeg=[1,2],             # solve for low-order freq polynomial
                  tdeg=[1,2])             # solve for low-order time polynomial
-      return ssp
+      return scp
 
 
    #==========================================================================
@@ -288,11 +288,11 @@ class XJones(JonesClump.JonesClump):
       will be offered in the .solspec() function of its ParmClump ojects.
       (A list repaces the default choice, a number is used as default.) 
       """
-      ssp = dict(nfreq_subtile=[None],   # solve over all freq cells 
+      scp = dict(nfreq_subtile=[None],   # solve over all freq cells 
                  ntime_subtile=[5,10],   # size of subtile solutions
                  fdeg=0,                 # default: no freq dependence
                  tdeg=[1,2])             # solve for low-order time polynomial
-      return ssp
+      return scp
 
 
 
