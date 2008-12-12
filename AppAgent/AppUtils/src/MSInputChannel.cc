@@ -146,9 +146,13 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
     IPosition ip0(1,channels_[0]),ip1(1,channels_[1]),iinc(1,channel_incr_);
     Array<Double> ch_freq1 = ch_freq(ip0,ip1,iinc);
     Array<Double> ch_width1 = abs(ch_width(ip0,ip1,iinc));
+    // if hanning taper is in effect, channel width needs to be multiplied by 5/4
+    // (Ger's rule of thumb)
+    if( apply_hanning_ )
+      ch_width1 *= 1.25;
     // recompute # channels since an increment may have been applied
     num_channels_ = ch_freq1.nelements();
-    // if frequencies are in decreasing order, freq axis needs to be flipped
+    // if frequencies are in decreasing order, freq axis needs to be flippedApplyHanning
     if( ch_freq1(IPosition(1,0)) > ch_freq1(IPosition(1,num_channels_-1)) )
     {
       dprintf(2)("reversing frequency channel\n");
@@ -393,6 +397,8 @@ int MSInputChannel::init (const DMI::Record &params)
   tile_bitflag_ = params[FTileBitflag].as<int>(2);
   // hanning tapering?
   apply_hanning_ = params[FApplyHanning].as<bool>(false);
+  // phase inversion?
+  invert_phases_ = params[FInvertPhases].as<bool>(false);
 
   openMS(header,*pselection);  
 
@@ -425,6 +431,11 @@ void MSInputChannel::close (const string &str)
 // declare blitz stencil for Hanning tapering
 BZ_DECLARE_STENCIL2(hanning_stencil,A,B)
   A = (.5*B(0,0,0) + .25*B(0,1,0) + .25*B(0,-1,0));
+BZ_END_STENCIL_WITH_SHAPE(blitz::shape(0,-1,0),blitz::shape(0,1,0))
+
+// declare blitz stencil for flags when using Hanning tapering
+BZ_DECLARE_STENCIL2(hanning_flag_stencil,A,B)
+  A = (B(0,0,0)|B(0,1,0)|B(0,-1,0));
 BZ_END_STENCIL_WITH_SHAPE(blitz::shape(0,-1,0),blitz::shape(0,1,0))
 
 //##ModelId=3DF9FECD021B
@@ -511,6 +522,9 @@ int MSInputChannel::refillStream ()
         Matrix<Double> uvwmat1 = ROArrayColumn<Double>(table, "UVW").getColumn();
         LoMat_double uvwmat = B2A::refAipsToBlitz<double,2>(uvwmat1);
         Cube<Complex> datacube1 = ROArrayColumn<Complex>(table, dataColName_).getColumn();
+        // invert phases if asked to
+        if( invert_phases_ )
+          datacube1 = conj(datacube1);
         LoCube_fcomplex datacube = B2A::refAipsToBlitzComplex<3>(datacube1);
         // apply taper
 //        if( apply_hanning_ )
@@ -521,22 +535,7 @@ int MSInputChannel::refillStream ()
 //          datacube.reference(tapered_data);
 //          cdebug(0)<<"after: "<<abs(datacube(0,10,0));
 //        }
-        if( apply_hanning_ )
-        {
-          LoShape shape = datacube.shape();
-          LoCube_fcomplex tapered_data(shape);
-          for( int i=0; i<shape[0]; i++ )
-            for( int j=0; j<shape[2]; j++ )
-            {
-              tapered_data(i,0,j) = datacube(i,0,j);
-              tapered_data(i,shape[1]-1,j) = datacube(i,shape[1]-1,j);
-              for( int k=1; k<shape[1]-1; k++ )
-                tapered_data(i,k,j) = .50*datacube(i,k,j)+
-                                      .25*datacube(i,k-1,j)+
-                                      .25*datacube(i,k+1,j);
-            }
-          datacube.reference(tapered_data);
-        }
+        // build up flag cube
         LoCube_int bitflagcube;
         LoVec_int bitflagvec;
         bool hasflags = false;
@@ -587,6 +586,31 @@ int MSInputChannel::refillStream ()
           else
             bitflagvec |= where(bitflagrow,legacy_bitflag_,0);
           hasflags = true;
+        }
+        // apply Hanning taper if asked to
+        if( apply_hanning_ )
+        {
+          LoShape shape = datacube.shape();
+          LoCube_fcomplex tapered_data(shape);
+//          LoCube_int tapered_flags(shape);
+          for( int i=0; i<shape[0]; i++ )
+            for( int j=0; j<shape[2]; j++ )
+            {
+              tapered_data(i,0,j) = datacube(i,0,j);
+              tapered_data(i,shape[1]-1,j) = datacube(i,shape[1]-1,j);
+              for( int k=1; k<shape[1]-1; k++ )
+                tapered_data(i,k,j) = .50*datacube(i,k,j)+
+                                      .25*datacube(i,k-1,j)+
+                                      .25*datacube(i,k+1,j);
+//              if( hasflags )
+//                for( int k=1; k<shape[1]-1; k++ )
+//                  tapered_flags(i,k,j) = bitflagcube(i,k,j)|
+//                                         bitflagcube(i,k-1,j)|
+//                                         bitflagcube(i,k+1,j);
+            }
+          datacube.reference(tapered_data);
+//          if( hasflags )
+//            bitflagcube.reference(tapered_flags);
         }
         // apply channel selection
         datacube.reference(datacube(ALL,CHANS,ALL));

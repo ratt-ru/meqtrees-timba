@@ -103,6 +103,11 @@ const int AidIncrement_int = -1598;
 const DMI::AtomicID AidInput(-1036);              // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
 const int AidInput_int = -1036;
 #endif
+#ifndef _defined_id_AidInvert
+#define _defined_id_AidInvert 1
+const DMI::AtomicID AidInvert(-1102);             // from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:11
+const int AidInvert_int = -1102;
+#endif
 #ifndef _defined_id_AidIteration
 #define _defined_id_AidIteration 1
 const DMI::AtomicID AidIteration(-1266);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
@@ -152,6 +157,11 @@ const int AidOutput_int = -1241;
 #define _defined_id_AidParams 1
 const DMI::AtomicID AidParams(-1277);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 const int AidParams_int = -1277;
+#endif
+#ifndef _defined_id_AidPhases
+#define _defined_id_AidPhases 1
+const DMI::AtomicID AidPhases(-1755);             // from /home/oms/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:36
+const int AidPhases_int = -1755;
 #endif
 #ifndef _defined_id_AidPredict
 #define _defined_id_AidPredict 1

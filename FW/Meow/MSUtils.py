@@ -439,7 +439,7 @@ class MSSelector (object):
                 field=[0],
                 channels=True,
                 flags=False,read_flags=False,write_flags=False,write_legacy_flags=False,
-                hanning=False,
+                hanning=False,invert_phases=False,
                 namespace='ms_sel'
                 ):
     """Creates an MSSelector object
@@ -458,6 +458,7 @@ class MSSelector (object):
                 if flags or read_flags, a "read flags" option will be provided.
                 if flags or write_legacy_flags, a "fill legacy flags" option will be provided.
     hanning:    if True, an apply Hanning tapering option will be provided
+    invert_phases: if True, an invert phases option will be provided
     namespace:  the TDLOption namespace name, used to qualify TDL options created here.
         If making multiple selectors, you must give them different namespace names.
     """;
@@ -532,6 +533,11 @@ class MSSelector (object):
                                   False,namespace=self));
     else:
       self.ms_apply_hanning = None;
+    if invert_phases:
+      self._opts.append(TDLOption('ms_invert_phases',"Invert phases in input",
+                                  False,namespace=self));
+    else:
+      self.ms_invert_phases = None;
     # add a default content selector
     self._ddid,self._field,self._channels = ddid,field,channels;
     self.subset_selector = self.make_subset_selector(namespace);
@@ -793,6 +799,8 @@ class MSSelector (object):
     rec.selection = self.subset_selector.create_selection_record();
     if self.ms_apply_hanning is not None:
       rec.apply_hanning = self.ms_apply_hanning;
+    if self.ms_invert_phases is not None:
+      rec.invert_phases = self.ms_invert_phases;
     rec.flag_mask = 0;
     rec.legacy_bitflag = 0;
     if self.ms_read_flags:

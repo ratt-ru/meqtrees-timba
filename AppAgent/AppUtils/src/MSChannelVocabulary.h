@@ -33,7 +33,7 @@
 
 #pragma aid DDID VDSID Selection Tile Snippet String Column Size Format Increment
 #pragma aid Vis Input Output Params Start End Write Flags Flag Mask Segments
-#pragma aid Use Bitflag Column Legacy
+#pragma aid Use Bitflag Column Legacy Invert Phases
 #pragma aid Time Data Predict Residuals Column Name Message Type 
 #pragma aid Throw Error Domain start string Original Shape Flip Clear Extent
 #pragma aid Raw Non Calibrated Predict Residuals Iteration Cwd Apply Hanning
@@ -66,6 +66,7 @@ namespace MSChannel
        FOriginalDataShape = AidOriginal|AidData|AidShape,
        FFlipFreq          = AidFlip|AidFreq,
        FApplyHanning      = AidApply|AidHanning,
+       FInvertPhases      = AidInvert|AidPhases,
 
        FOutputParams      = AidMS|AidOutput|AidParams,
                           

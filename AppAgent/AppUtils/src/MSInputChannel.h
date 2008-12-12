@@ -170,6 +170,7 @@ class MSInputChannel : public FileChannel
       int tile_bitflag_;
       
       bool apply_hanning_;
+      bool invert_phases_;
       
       //## true is MS has a valid WEIGHT_SPECTRUM column
       bool has_weights_;
