@@ -1247,13 +1247,14 @@ class Clump (object):
 
       node = self[0]
       if self.execute_body(hist=False):
-         cc = self.get_nodelist(nodelist=nodelist)
-         node = self.bundle(name='inspector', nodelist=cc)
-         node.initrec().plot_label = self.core._datadesc['treelabels']     # list of strings!
-         self.core._orphans.append(node)
-         self.make_bookmark(node,
-                            name=bookpage, folder=folder,
-                            viewer='Collections Plotter')
+         if is_node(self[0]): 
+             cc = self.get_nodelist(nodelist=nodelist)
+             node = self.bundle(name='inspector', nodelist=cc)
+             node.initrec().plot_label = self.core._datadesc['treelabels']     # list of strings!
+             self.core._orphans.append(node)
+             self.make_bookmark(node,
+                                name=bookpage, folder=folder,
+                                viewer='Collections Plotter')
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl, result=node)
@@ -1272,20 +1273,20 @@ class Clump (object):
 
       node = self[0]
       if self.execute_body(hist=False):
-         bookpage = kwargs.get('bookpage', None)
-         folder = kwargs.get('folder', None)
-         name = kwargs.get('name', None)
-         if not isinstance(name,str):
-            name = 'sumabs'
-
-         unops = ['Stripper','Abs']
-         cc = self.get_nodelist(nodelist=nodelist, unops=unops)
-         stub = self.unique_nodestub()
-         sumabs = stub('sum(abs())') << Meq.Add(*cc)
-         cc = self.get_nodelist(prepend=sumabs)
-         node = stub(name) << Meq.Composer(*cc)
-         self.core._orphans.append(node)
-         self.make_bookmark(node, name=bookpage, folder=folder)
+         if is_node(self[0]):
+             bookpage = kwargs.get('bookpage', None)
+             folder = kwargs.get('folder', None)
+             name = kwargs.get('name', None)
+             if not isinstance(name,str):
+                 name = 'sumabs'
+             unops = ['Stripper','Abs']
+             cc = self.get_nodelist(nodelist=nodelist, unops=unops)
+             stub = self.unique_nodestub()
+             sumabs = stub('sum(abs())') << Meq.Add(*cc)
+             cc = self.get_nodelist(prepend=sumabs)
+             node = stub(name) << Meq.Composer(*cc)
+             self.core._orphans.append(node)
+             self.make_bookmark(node, name=bookpage, folder=folder)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl, result=node)
@@ -1332,15 +1333,16 @@ class Clump (object):
       ctrl = self.on_entry(self.plot_node_results, prompt, help, **kwargs)
 
       if self.execute_body(hist=False):
-         if not isinstance(bookpage,str):
-            bookpage = self[0].basename
-            bookpage += '['+str(index)+']'
-         nodes = self.get_nodelist()
-         if not isinstance(folder,str):
-            folder = self.name()
-         self.make_bookmark(nodes,
-                            name=bookpage, folder=folder,
-                            viewer=viewer)
+         if is_node(self[0]): 
+             if not isinstance(bookpage,str):
+                 bookpage = self[0].basename
+                 bookpage += '['+str(index)+']'
+             nodes = self.get_nodelist()
+             if not isinstance(folder,str):
+                 folder = self.name()
+             self.make_bookmark(nodes,
+                                name=bookpage, folder=folder,
+                                viewer=viewer)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)
@@ -1365,17 +1367,18 @@ class Clump (object):
       ctrl = self.on_entry(self.plot_node_family, prompt, help, **kwargs)
 
       if self.execute_body(hist=False):
-         if not isinstance(bookpage,str):
-            bookpage = (recurse*'+')
-            bookpage += self[0].basename
-            nodequal = self.nodequals()[index]
-            bookpage += '['+str(nodequal)+']'
-         if not isinstance(folder,str):
-            folder = self.name()
-            self.make_bookmark(self[index],
-                               recurse=recurse,
-                               name=bookpage, folder=folder,
-                               viewer=viewer)
+         if is_node(self[0]): 
+             if not isinstance(bookpage,str):
+                 bookpage = (recurse*'+')
+                 bookpage += self[0].basename
+                 nodequal = self.nodequals()[index]
+                 bookpage += '['+str(nodequal)+']'
+             if not isinstance(folder,str):
+                 folder = self.name()
+             self.make_bookmark(self[index],
+                                recurse=recurse,
+                                name=bookpage, folder=folder,
+                                viewer=viewer)
          self.end_of_body(ctrl)
          
       return self.on_exit(ctrl)

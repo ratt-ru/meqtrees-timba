@@ -551,7 +551,7 @@ class clumpcore (object):
          nmax = 3
          for i in range(min(nmax,n)):
             ss += prefix+'   - '+str(self[i])
-            if i==0:
+            if is_node(self[i]) and i==0:
                for child in self[i].children:
                   ss += prefix+'     - '+str(child[1])
          if n>nmax:
@@ -560,8 +560,9 @@ class clumpcore (object):
             ss += prefix+'   - '+str(self[-1])
       else:
          ss += prefix+'   - node[0] = '+str(self[0])
-         for child in self[0].children:
-            ss += prefix+'     - '+str(child[1])
+         if is_node(self[0]):
+            for child in self[0].children:
+               ss += prefix+'     - '+str(child[1])
          ss += prefix+'   - node[-1]= '+str(self[-1])
                                        
       #.....................................................

@@ -176,47 +176,20 @@ class JonesClump(Clump.LeafClump):
       self.connect_grafted_clump(clump)      # connect the loose ends
       return clump
 
+
    #==========================================================================
-   # To be re-implemented in derived classes
+   # Placeholder, to be re-implemented in derived classes
    #==========================================================================
 
    def initexec (self, **kwargs):
       """
-      This is an example of how to fill a JonesClump with 2x2 matrices.
+      Placeholder that creates dummy entries (None) for all Clump trees.
       To be re-implemented in derived classes (e.g. see WSRTJones.py,
       or the XXXJones, GJones, BJones classes below). 
       """
-      prompt = 'Jones: '+self.name()
-      help = 'define Jones matrix: '+self.oneliner()
-      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
-
-      if self.execute_body():
-
-         # Create ParmClumps:
-         r00 = self.ParmClump('real00', default=1.0)
-         i00 = self.ParmClump('imag00', default=0.0)
-         r10 = self.ParmClump('real10', default=1.0)
-         i10 = self.ParmClump('imag10', default=0.0)
-         r01 = self.ParmClump('real01', default=1.0)
-         i01 = self.ParmClump('imag01', default=0.0)
-         r11 = self.ParmClump('real11', default=1.0)
-         i11 = self.ParmClump('imag11', default=0.0)
-
-         # Generate nodes:
-         # r00.show('inside')
-         # self.show('inside')
-         stub = self.unique_nodestub()
-         for i,qual in enumerate(self.nodequals()):
-            # print '-',i,qual,r00[i],i00[i]
-            elem00 = stub(qual)('00') << Meq.ToComplex(r00[i],i00[i])
-            elem01 = stub(qual)('10') << Meq.ToComplex(r01[i],i01[i])
-            elem10 = stub(qual)('01') << Meq.ToComplex(r01[i],i01[i])
-            elem11 = stub(qual)('11') << Meq.ToComplex(r11[i],i11[i])
-            self[i] = stub(qual) << Meq.Matrix22(elem00, elem01,
-                                                 elem10, elem11)
-
-         self.end_of_body(ctrl)
-      return self.on_exit(ctrl)
+      for i,qual in enumerate(self.nodequals()):
+         self[i] = None
+      return True
 
 
 
@@ -513,7 +486,13 @@ class EJones(JonesClump):
       # exp(-([f]*25/3e8)(1.1*([l]-{l0})**2 + 0.9*([m]-{m0})**2)
       beamshape = 'exp(-([f]*25/3e8)(1.1*[l]**2 + 0.9*[m]**2))'       # no parameters
       beamshape = '[l]+[m]'
+      beamshape = '[l]*[t]+[m]*[f]'
+
       self._beamshape = beamshape
+      self.history('EJones beamshape = '+str(self._beamshape))
+
+      self._validity = '([l]*[l]+[m]*[m])<1.2'
+      self.history('EJones validity area: '+str(self._validity))
 
       if self.execute_body():
          # mode = self.getopt('mode')
@@ -544,26 +523,97 @@ class EJones(JonesClump):
       this direction.
       NB: Some internal bookkeeping avoids duplication of JonesClumps....
       """
-      common_axes = [hiid('L'),hiid('M')]
       if LM:
          stub = self.unique_nodestub()  
          extra_axes = LM
-      elif is_node(L):
+      elif is_node(L) and is_node(M):
          stub = self.unique_nodestub()  
          extra_axes = stub('extra_axes') << Meq.Composer(L,M)
-      else:
+      elif isinstance(L,(float,int)) and isinstance(M,(float,int)):
+         LMname = '(L='+str(L)+',M='+str(M)+')'
          stub = self.unique_nodestub()(L=L)(M=M)  
          extra_axes = stub('extra_axes') << Meq.Composer(L,M)
+      else:
+         s = 'type of (L,M) not recocnised: '+str(type(L))+','+str(type(M)) 
+         raise ValueError,s
 
-      clump = JonesClump(self, name='jonesLM')
-      for i,qual in enumerate(self.nodequals()):
-         node = stub('compounder')(qual) << Meq.Compounder(extra_axes, self[i],
-                                                           common_axes=common_axes)
-         clump[i] = node
-      clump.show('jonesLM')
+      # Check if a clump with this particular LMname already exists:
+      clump = self.JonesClumps(LMname)
+      if clump:
+         # The clump LMname has been defined already. Return it.
+         pass
+      elif not self.inside_validity_area(L,M):
+         # The given (L,M) may be outside the validity-area of the EJones:
+         clump = self.outside_validity_area(LMname)
+      else:
+         # Create a JonesClump with MeqCompounder nodes for (L,M):
+         clump = JonesClump(self, name=LMname)
+         common_axes = [hiid('L'),hiid('M')]
+         for i,qual in enumerate(self.nodequals()):
+            node = stub('compounder')(qual) << Meq.Compounder(extra_axes, self[i],
+                                                              common_axes=common_axes)
+            self.core._orphans.append(node)           # temporary
+            clump[i] = node
+         self.JonesClumps(LMname, clump)              # keep for (possible) later use
+
+      # Always return a JonesClump for the given (L,M):
       return clump
 
+
+   #----------------------------------------------------------------------------
+
+   def inside_validity_area(self, L, M, trace=False):
+      """Check whether (L,M) is outside the given validity-area of the EJones.
+      Return True (inside) or False (outside).
+      If no self._validity python expression found, return True (assume inside).
+      """
+      if not getattr(self,'_validity',None):      # no expression found
+         return True                                # assume inside....
+      expr = self._validity                       # Asssume python expression
+      if trace:
+         print '\n** outside_validity_area(',L,M,'):',expr
+      expr = expr.replace('[l]',str(L))
+      expr = expr.replace('[m]',str(M))
+      try:
+         inside = eval(expr)
+      except:
+         print '\n** outside_validity_area(',L,M,'):',expr,'  (ERROR)'
+      if trace:
+         print '       -> inside =',inside,'\n'
+      # Return True or False
+      return inside
+
+   #----------------------------------------------------------------------------
+
+   def outside_validity_area(self, LMname):
+      """If (L,M) is outside the given validity-area of the EJones,
+      return a general JonesClump that solves for the complex gain
+      in that direction (i.e. peeling if sources in the beam sidelobes).
+      """
+      clump = JJones(self, name=LMname)
+      self.JonesClumps(LMname, clump)              # keep for (possible) later use
+      self.history('outside validity area: '+clump.oneliner())
+      return clump
+
+   #----------------------------------------------------------------------------
    
+   def JonesClumps (self, key=None, clump=None):
+      """Helper function to provide access to the dict of JonesClumps
+      that is kept for later reference.
+      """
+      if not getattr(self,'_JonesClumps',None):    # not yet created
+         self._JonesClumps = dict()                   # create the dict
+      rr = self._JonesClumps                       # convenience
+      if not isinstance(key,str):                  # no key specified:
+         return self._JonesClumps                     # return the entire dict
+      elif clump:                                  # a new clump is given
+         rr[key] = clump                           #   store it
+         # clump.show('.JonesClump('+key+')')      # temporary
+         ## self.connect_grafted_clump(clump)         # .... NOT a good idea .....??
+      elif not rr.has_key(key):
+         return None                               # key not found, return None
+      return rr[key]                               # Return the stored clump:
+      
 
 
 #********************************************************************************
@@ -724,8 +774,11 @@ def do_define_forest (ns, TCM):
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
    TCM.add_option('jones',
-                  ['XXXJones','JonesClump',
-                   'GJones','BJones','EJones'],
+                  ['GJones','JJones',
+                   'BJones','BcJones',
+                   'EJones',
+                   'XXXJones',
+                   'JonesClump'],
                   prompt='test WSRT Jones:')
    TCM.add_option('simulate',False)
 
@@ -735,17 +788,23 @@ def do_define_forest (ns, TCM):
       simulate = TCM.getopt('simulate', submenu)
       if jones=='GJones':
          clump = GJones(ns=ns, TCM=TCM, simulate=simulate)
+      elif jones=='JJones':
+         clump = JJones(ns=ns, TCM=TCM, simulate=simulate)
       elif jones=='BJones':
          clump = BJones(ns=ns, TCM=TCM, simulate=simulate)
+      elif jones=='BcJones':
+         clump = BcJones(ns=ns, TCM=TCM, simulate=simulate)
       elif jones=='EJones':
          clump = EJones(ns=ns, TCM=TCM, simulate=simulate)
+         c01 = clump.jonesLM(0,1)
+         c11 = clump.jonesLM(-1,1)
       elif jones=='XXXJones':
          clump = XXXJones(ns=ns, TCM=TCM, simulate=simulate)
       else:
          clump = JonesClump(ns=ns, TCM=TCM, simulate=simulate)
          
       # clump = CorruptClump.Scatter(clump).daisy_chain()
-      clump.visualize()
+      # clump.visualize()
 
    # The LAST statement:
    TCM.end_of_submenu()
@@ -768,18 +827,21 @@ if __name__ == '__main__':
 
    ns = NodeScope()
    simulate = False
+   # simulate = True
 
    if 0:
       clump = JonesClump(simulate=simulate, trace=True)
 
-   if 1:
+   if 0:
       clump = JJones(simulate=simulate, trace=True)
 
    if 0:
       clump = GJones(simulate=simulate, trace=True)
 
-   if 0:
+   if 1:
       clump = EJones(simulate=simulate, trace=True)
+      c01 = clump.jonesLM(0,1)
+      c01 = clump.jonesLM(-1,1)
       c01 = clump.jonesLM(0,1)
 
    if 0:
