@@ -22,6 +22,10 @@
 # or write to the Free Software Foundation, Inc., 
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+"""This implements a Jones module for WSRT beams.
+  See also analytic_beams in Siamese.OMS for an alternative. 
+  The two modules will eventually be merged.
+""";
 
 from Timba.TDL import *
 from Meow.Direction import radec_to_lmn

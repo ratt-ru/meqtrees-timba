@@ -23,13 +23,14 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+"""This is a Sky Model module.
+This implements a sky model with a single central point source.
+""";
+
 from Timba.TDL import *
 import Meow
-from Meow import ParmGroup
 
-TDLCompileOption("spectral_index","Spectral index, 3C343",[None,0.],more=float,
-    doc="""Spectral index of source, use None for a flat spectrum""");
-TDLCompileOption("spectral_index1","Spectral index, 3C343.1",[None,0.],more=float,
+TDLCompileOption("spectral_index","Spectral index",[None,0.],more=float,
     doc="""Spectral index of source, use None for a flat spectrum""");
 TDLCompileOption("ref_freq","SpI reference frequency, MHz",1421,more=float);
 
@@ -38,39 +39,28 @@ options = [];
 def runtime_options ():
   return options;
 
-def source_list (ns):
+def source_list (ns,name="cps"):
   # figure out spectral index parameters
   if spectral_index is not None:
     spi_def = Meow.Parm(spectral_index);
     freq0_def  = ref_freq;
   else:
     spi_def = freq0_def = None;
-  if spectral_index1 is not None:
-    spi_def1 = Meow.Parm(spectral_index1);
-    freq0_def1  = ref_freq;
-  else:
-    spi_def1 = freq0_def1 = None;
-  # and flux parameters
   i_def = Meow.Parm(1);
   quv_def = Meow.Parm(0);
 
-  dir1 = Meow.Direction(ns,"3C343.1",4.356645791155902,1.092208429052697);
-  dir0 = Meow.Direction(ns,"3C343",4.3396003966265599,1.0953677174056471);
-
-  src1 = Meow.PointSource(ns,"3C343.1",dir1,
-          I=Meow.Parm(6.02061051),Q=Meow.Parm(0.0179716185),
-          U=quv_def,V=quv_def,
-          spi=spi_def1,freq0=freq0_def1);
-  src0 = Meow.PointSource(ns,"3C343",dir0,
-          I=Meow.Parm(1.83336309),Q=Meow.Parm(0.0241450607),
-          U=quv_def,V=quv_def,
-          spi=spi_def1,freq0=freq0_def1);
+  srcdir = Meow.LMDirection(ns,name,0,0);
+  src = Meow.PointSource(ns,name,srcdir,I=i_def,Q=quv_def,U=quv_def,V=quv_def,spi=spi_def,freq0=freq0_def);
 
   ## define a parmgroup for source parameters
-  pg_src = ParmGroup.ParmGroup("source",
-              src1.coherency().search(tags="solvable") + src0.coherency().search(tags="solvable"),
-              table_name="sources.mep");
-  
-  ParmGroup.SolveJob("cal_sources","Calibrate sources",pg_src);
+  ## now make a solvejobs for the source
+  #pg_src = ParmGroup("source",
+              #src.coherency().search(tags="solvable"),
+              #table_name="sources.mep",
+              #individual=True,
+              #bookmark=True);
+  ## now make a solvejobs for the source
+  #options.append(pg_src.make_solvejob_menu("Calibrate source fluxes"));
 
-  return [ src1,src0 ];
+  return [ src ];
+

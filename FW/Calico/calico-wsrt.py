@@ -35,7 +35,8 @@ from Meow.Parameterization import resolve_parameter
 import Meow.LSM
 
 # MS options first
-mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,read_flags=True,hanning=True);
+mssel = Context.mssel = Meow.MSUtils.MSSelector(has_input=True,tile_sizes=None,read_flags=True,
+                  hanning=True,invert_phases=True);
 # MS compile-time options
 TDLCompileOptions(*mssel.compile_options());
 TDLCompileOption("run_purr","Start Purr on this MS",True);
@@ -62,8 +63,6 @@ TDLCompileMenu("What do we want to do",
   cal_toggle,
   TDLOption('do_subtract',"Subtract sky model and generate residuals",True),
   TDLOption('do_correct',"Correct the data or residuals",True),
-  TDLOption('do_invert_phase',"Invert phases in input data",True,
-     doc="""Inverts phases in the input data. Some e.g. WSRT MSs require this."""),
 );
 do_correct_sky = False;
   #TDLOption('do_correct_sky',"...include sky-Jones correction for first source in model",True));
@@ -81,29 +80,28 @@ cal_toggle.when_changed(enable_calibration);
 
 # specify available sky models
 # these will show up in the menu automatically
-import central_point_source
-import model_3C343
+from Calico.OMS import central_point_source
 import Meow.LSM
 lsm = Meow.LSM.MeowLSM(include_options=False);
 
-meqmaker.add_sky_models([central_point_source,model_3C343,lsm]);
+meqmaker.add_sky_models([central_point_source,lsm]);
 
 # now add optional Jones terms
 # these will show up in the menu automatically
 
 # E - beam
 # add a fixed primary beam first
-import wsrt_beams
-import solvable_pointing_errors
+from Calico.OMS import wsrt_beams
+from Calico.OMS import solvable_pointing_errors
 meqmaker.add_sky_jones('E','primary beam',[wsrt_beams],
   pointing=solvable_pointing_errors);
 # then add differential gains
-import solvable_sky_jones
+from Calico.OMS import solvable_sky_jones
 meqmaker.add_sky_jones('dE','differential gains',[
     solvable_sky_jones.FullRealImag('dE')]);
 
 # B - bandpass, G - gain
-import solvable_jones
+from Calico.OMS import solvable_jones
 meqmaker.add_uv_jones('B','bandpass',
   [ solvable_jones.DiagAmplPhase(),
     solvable_jones.FullRealImag() ]);
@@ -111,7 +109,7 @@ meqmaker.add_uv_jones('G','receiver gains/phases',
   [ solvable_jones.DiagAmplPhase(),
     solvable_jones.FullRealImag() ]);
 
-import ifr_based_errors
+from Calico.OMS import ifr_based_errors
 meqmaker.add_vis_proc_module('IG','interferometer gains',[ifr_based_errors.IfrGains()]);
 meqmaker.add_vis_proc_module('IC','interferometer biases',[ifr_based_errors.IfrBiases()]);
 
@@ -139,11 +137,6 @@ def _define_forest(ns,parent=None,**kw):
   
   # make spigot nodes
   spigots = spigots0 = outputs = array.spigots(corr=mssel.get_corr_index());
-  # invert phases if necessary
-  if do_invert_phase:
-    for p,q in array.ifrs():
-      ns.conj_spigot(p,q) << Meq.Conj(spigots(p,q));
-    spigots = ns.conj_spigot;
 
   # ...and an inspector for them
   Meow.StdTrees.vis_inspector(ns.inspector('input'),spigots,

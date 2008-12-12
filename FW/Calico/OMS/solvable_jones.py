@@ -22,6 +22,14 @@
 # or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+"""This implements generic solvable Jones modules.
+  DiagAmplPhase is a diagonal matrix, with separate solvable groups for
+      amplitudes and phases
+  FullRealImag is a full 2x2 matric, with separate solvable groups for
+      diagonal and off-diagonal terms.
+DiagAmplPhase is currently untested. In any case the solver shows poor convergence
+for this type of matrix decomposition, so FullRealImag is preferred.
+""";
 
 from Timba.TDL import *
 import Meow

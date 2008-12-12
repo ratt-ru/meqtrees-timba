@@ -22,6 +22,10 @@
 # or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+"""This implements two Visibility Processing modules.
+IfrGains implements solvable ifr-based gains
+IfrBiases implements solvable ifr-based biases
+""";
 
 from Timba.TDL import *
 import Meow

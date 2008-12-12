@@ -22,6 +22,12 @@
 # or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+"""This implements Jones modules related to polarization.
+  DecoupledLeakage
+  CoupledLeakage
+This has not been actively used, since for polarization it is easier to use
+a solvable_jones.FullRealImag for the bandpass, and solve for all coefficients.
+""";
 
 from Timba.TDL import *
 import Meow
