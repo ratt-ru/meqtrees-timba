@@ -122,7 +122,21 @@ def _sigchild_handler (signal,frame):
 # The run_autoflagger job is a wrapper around glish+autoflag tool
 def run_autoflagger (mqs,parent,**kw):
   af = flagger.autoflagger();
+  # get column ID in autoflag terms
   column = dict(DATA='DATA',MODEL_DATA='MODEL',CORRECTED_DATA='CORR')[autoflag_column];
+  # setup call to setdata()
+  if autoflag_setdata:
+    field = (autoflag_setdata_fieldid != "all" and autoflag_setdata_fieldid) or None;
+    # channels is "all" (in which case we set "None" to use default), or "first,last" or "first last"
+    start,nchan = None,None;
+    if autoflag_setdata_chan != "all":
+#      try:
+        chan = map(int,re.split("[ ,]",autoflag_setdata_chan,1));
+        start,nchan = chan[0],chan[1]-chan[0]+1;
+ #     except:
+        pass;
+    af.setdata(spwid=autoflag_setdata_spwid,field=field,start=start,nchan=nchan,msselect=autoflag_setdata_msselect);
+  # setup calls to individual flagging methods
   if autoflag_timemed:
     af.settimemed(thr=autoflag_timemed_thr,hw=autoflag_timemed_hw,
                   norow=not autoflag_timemed_flagrow,
@@ -135,7 +149,12 @@ def run_autoflagger (mqs,parent,**kw):
                   expr=autoflag_freqmed_expr,fignore=autoflag_freqmed_fignore,column=column);
   if autoflag_newtimemed:
     af.setnewtimemed(thr=autoflag_newtimemed_thr,
-                  expr=autoflag_newtimemed_thr,fignore=autoflag_newtimemed_fignore,column=column);
+                  expr=autoflag_newtimemed_expr,fignore=autoflag_newtimemed_fignore,column=column);
+  if autoflag_sprej:
+    spwid = (autoflag_sprej_spwid != "all" and autoflag_sprej_spwid) or None;
+    af.setsprej(rowthr=autoflag_sprej_rowthr,rowhw=autoflag_sprej_rowhw,
+                ndeg=autoflag_sprej_ndeg,spwid=spwid,chan=[autoflag_sprej_chan0,autoflag_sprej_chan1],
+                expr=autoflag_sprej_expr,fignore=autoflag_sprej_fignore,column=column);
   if autoflag_uvbin:
     plotchan = autoflag_uvbin_plotchan;
     if plotchan is None:
@@ -177,6 +196,9 @@ def run_autoflagger (mqs,parent,**kw):
   # form up command file
   cmdfile = time.strftime("autoflag-%m%d-%M%S.g",time.localtime(time.time()));
   cmdfile = os.path.join(mssel.msname,cmdfile);
+  # save commands
+  if autoflag_save:
+    af.save(autoflag_save);
   # run the autoflagger
   for opt in ms_job_options:
     opt.disable();
@@ -462,6 +484,16 @@ autoflag_menu = TDLRuntimeMenu("Run autoflagger (fills FLAG/FLAG_ROW column)",
         TDLOption('autoflag_newtimemed_expr' ,"Flagging expression",["ABS I","ABS Q"],more=str),
         TDLOption('autoflag_newtimemed_fignore' ,"Ignore existing flags",False)
      ]),
+  TDLMenu("Use spectral rejection method (\"sprej\")",toggle='autoflag_sprej',
+     *[ TDLOption('autoflag_sprej_rowthr',"Flagging threshold (sigmas)",3.,more=float),
+        TDLOption('autoflag_sprej_rowhw' ,"Row window half-width (timeslots)",6,more=int),
+        TDLOption('autoflag_sprej_ndeg' ,"Degree of polynomial fit",2,more=int),
+        TDLOption('autoflag_sprej_spwid' ,"Spectral window ID",["all"],more=int),
+        TDLOption('autoflag_sprej_chan0' ,"Starting channel for fit",[0],more=int),
+        TDLOption('autoflag_sprej_chan1' ,"Ending channel for fit",[1],more=int),
+        TDLOption('autoflag_sprej_expr' ,"Flagging expression",["ABS I","ABS Q"],more=str),
+        TDLOption('autoflag_sprej_fignore' ,"Ignore existing flags",False)
+     ]),
   TDLMenu("Use UV-binner method (\"uvbin\")",toggle='autoflag_uvbin',
      *[ TDLOption('autoflag_uvbin_thr',"Probability cutoff (i.e. ratio of points to be flagged",[0,0.01],default=0.01,more=float),
         TDLOption('autoflag_uvbin_minpop' ,"Bin count cutoff",[0,1,10],more=int),
@@ -477,6 +509,12 @@ autoflag_menu = TDLRuntimeMenu("Run autoflagger (fills FLAG/FLAG_ROW column)",
 #     *[ TDLOption('autoflag_plotscr_nx',"Plots per window (horizontal)",[1,2,3,4],more=int,default=2),
 #        TDLOption('autoflag_plotscr_ny',"Plots per window (vertical)",[1,2,3,4],more=int,default=2),
 #     ]),
+  TDLMenu("Restrict to subset of data",toggle='autoflag_setdata',
+     *[ TDLOption('autoflag_setdata_fieldid',"Field ID",["all"],more=int),
+        TDLOption('autoflag_setdata_spwid',"Spectral window ID",[0],more=int),
+        TDLOption('autoflag_setdata_chan' ,"Channels (\"all\" or start,end)",["all"],more=str),
+        TDLOption('autoflag_setdata_msselect' ,"Additional TaQL selection string",[None],more=str),
+     ]),
   TDLMenu("Produce hardcopy flag report",toggle='autoflag_plotdev',
      *[ TDLOption('autoflag_plotdev_nx',"Plots per window (horizontal)",[1,2,3,4],more=int,default=2),
         TDLOption('autoflag_plotdev_ny',"Plots per window (vertical)",[1,2,3,4],more=int,default=2),
@@ -484,7 +522,7 @@ autoflag_menu = TDLRuntimeMenu("Run autoflagger (fills FLAG/FLAG_ROW column)",
      ]),
   TDLOption('autoflag_reset',"Reset existing flags",False),
   TDLOption('autoflag_trial',"Trial run only, do not write flags",False),
-  TDLOption('autoflag_save',"Save flagging commands to file",['default.af'],more=str),
+  TDLOption('autoflag_save',"Save flagging commands to file",[None,'default.af'],more=str),
   run_autoflagger_opt,
   );
 

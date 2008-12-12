@@ -71,7 +71,7 @@ def _format_ilist (arg,argname):
   if isinstance(arg,str):
     return "'%s'"%arg;
   elif isinstance(arg,(list,tuple)):
-    return "[%s]"%(','.join([_format_list(x,argname) for x in arg]));
+    return "[%s]"%(','.join([_format_ilist(x,argname) for x in arg]));
   elif isinstance(arg,bool):
     return _format_bool(arg,argname);
   elif isinstance(arg,int):
@@ -396,7 +396,8 @@ class Flagger (Timba.dmi.verbosity):
             bfr = ms.getcol('BITFLAG_ROW',row0,nrows)[rowmask];
             lfr = lfr + ((bfr&flag)!=0);
             bf = self._get_bitflag_col(ms,row0,nrows);
-          stat_rows     += lfr.size;
+          # size seems to be a method or an attribute depending on numpy version :(
+          stat_rows     += (callable(lfr.size) and lfr.size()) or lfr.size;
           stat_rows_nfl += lfr.sum();
           for subset in subsets:
             if include_legacy_stats:
@@ -405,7 +406,8 @@ class Flagger (Timba.dmi.verbosity):
               lfm = 0;
             if flag:
               lfm = lfm + (bf[subset]&flag)!=0;
-            stat_pixels     += lfm.size;
+            # size seems to be a method or an attribute depending on numpy version :(
+            stat_pixels     += (callable(lfm.size) and lfm.size()) or lfm.size;
             stat_pixels_nfl += lfm.sum();
         # second, handle transfer-flags mode
         elif transfer:
@@ -415,7 +417,8 @@ class Flagger (Timba.dmi.verbosity):
             bfm &= ~unflag;
           lf = ms.getcol('FLAG_ROW',row0,nrows)[rowmask];
           bf[rowmask] = numpy.where(lf,bfm|flag,bfm);
-          stat_rows     += lf.size;
+            # size seems to be a method or an attribute depending on numpy version :(
+          stat_rows     += (callable(lf.size) and lf.size()) or lf.size;
           stat_rows_nfl += lf.sum();
           ms.putcol('BITFLAG_ROW',bf,row0,nrows);
           lf = ms.getcol('FLAG',row0,nrows);
@@ -426,7 +429,8 @@ class Flagger (Timba.dmi.verbosity):
               bfm &= ~unflag;
             lfm = lf[subset]
             bf[subset] = numpy.where(lfm,bfm|flag,bfm);
-            stat_pixels     += lfm.size;
+            # size seems to be a method or an attribute depending on numpy version :(
+            stat_pixels     += (callable(lfm.size) and lfm.size()) or lfm.size;
             stat_pixels_nfl += lfm.sum();
           ms.putcol('BITFLAG',bf,row0,nrows);
         # else, are we flagging whole rows?
@@ -596,13 +600,16 @@ class Flagger (Timba.dmi.verbosity):
                                 plotchan=_format_plotchan,econoplot=_format_bool,
                                 column="'%s'",expr="'%s'",fignore=_format_bool);
     _setsprej_dict      = dict(ndeg="%d",rowthr="%g",rowhw="%d",norow=_format_bool,
-                                spwid=_format_list,fq=_format_2N,chan=_format_2N,
+                                spwid=_format_ilist,fq=_format_2N,chan=_format_ilist,
                                 column="'%s'",expr="'%s'",fignore=_format_bool);
     _setselect_dict     = dict(spwid=_format_ilist,field=_format_ilist,
-                                fq=_format_2N,chan=_format_2N,corr=_format_list,
-                                ant=_format_ilist,baseline=_format_ilist,timerng=_format_list,
-                                autocorr=_format_bool,timeslot=_format_list,dtime="%g",
-                                quack=_format_bool,unflag=_format_bool,clip=_format_clip);
+                               fq=_format_2N,chan=_format_2N,corr=_format_list,
+                               ant=_format_ilist,baseline=_format_ilist,timerng=_format_list,
+                               autocorr=_format_bool,timeslot=_format_list,dtime="%g",
+                               quack=_format_bool,unflag=_format_bool,clip=_format_clip);
+    _setdata_dict       = dict(spwid=_format_ilist,field=_format_ilist,
+                               nchan=_format_ilist,start=_format_ilist,
+                               mode="'%s'",msselect="'%s'");
     _run_dict           = dict(plotscr=_format_list,plotdev=_format_list,devfile="'%s'",
                                 reset=_format_bool,trial=_format_bool);
     
@@ -610,13 +617,14 @@ class Flagger (Timba.dmi.verbosity):
       argdict = getattr(self,'_%s_dict'%methodname);
       args = [];
       for kw,value in kwargs.iteritems():
-        format = argdict.get(kw,None);
-        if format is None:
-          raise TypeError,"Autoflagger: invalid keyword '%s' passed to method %s()"%(kw,methodname);
-        elif callable(format):
-          args.append("%s=%s"%(kw,format(value,kw)));
-        else:
-          args.append("%s=%s"%(kw,format%value));
+        if value is not None:
+          format = argdict.get(kw,None);
+          if format is None:
+            raise TypeError,"Autoflagger: invalid keyword '%s' passed to method %s()"%(kw,methodname);
+          elif callable(format):
+            args.append("%s=%s"%(kw,format(value,kw)));
+          else:
+            args.append("%s=%s"%(kw,format%value));
       return "af.%s(%s);"%(methodname,','.join(args)); 
       
     def settimemed (self,**kw):
@@ -631,6 +639,14 @@ class Flagger (Timba.dmi.verbosity):
       self._cmd(self._setmethod('setuvbin',kw));
     def setselect (self,**kw):
       self._cmd(self._setmethod('setselect',kw));
+    def setdata (self,**kw):
+      if kw.get("nchan",None) is not None:
+        kw["mode"] = "channel";
+      # else if any other arguments are specified, set mode to "spwids", as this effectively
+      # causes the flagger to select on everything except channels
+      elif [ x for x in kw.itervalues() if x is not None ]:
+        kw["mode"] = "spwids";
+      self._cmd(self._setmethod('setdata',kw));
       
     def run (self,wait=True,cmdfile=None,purr=True,**kw):
       runcmd = self._setmethod('run',kw);
@@ -654,7 +670,8 @@ class Flagger (Timba.dmi.verbosity):
       else:
         fh,cmdfile = tempfile.mkstemp(prefix="autoflag",suffix=".g");
         fobj = os.fdopen(fh,"wt");
-      cmds += [ "shell('rm -f %s')"%cmdfile,"exit" ];
+#      cmds.append("shell('rm -f %s')"%cmdfile);
+      cmds.append("exit");
       fobj.writelines([line+"\n" for line in cmds]);
       fobj.close();
       # write to pipe
