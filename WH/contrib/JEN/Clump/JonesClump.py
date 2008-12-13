@@ -161,6 +161,23 @@ class JonesClump(Clump.LeafClump):
 
    #--------------------------------------------------------------------------
 
+   def PExpressionClump(self, Expression=None, default=0.0, trace=False):
+      """Helper function to create a ParmClump using the given Expression object.
+      """
+      # NB: The following function will be re-implemented in a derived class
+      self._solspec_choice = self.get_solspec_choice_parameters()
+      clump = ParmClump.ParmClump(Expression=Expression,
+                                  default=default,
+                                  TCM=self.TCM(), ns=self.ns(),
+                                  simulate=self._simulate,
+                                  **self._solspec_choice)
+      if trace:
+         clump.show('JonesClump.PExpressionClump()')
+      self.connect_grafted_clump(clump)       # connect the loose ends:
+      return clump
+
+   #--------------------------------------------------------------------------
+
    def PFunctionalClump(self, name, expr, varvals=None, trace=False):
       """Helper function to create a PFunctionalClump in an organised way.
       """
@@ -486,7 +503,7 @@ class EJones(JonesClump):
       # exp(-([f]*25/3e8)(1.1*([l]-{l0})**2 + 0.9*([m]-{m0})**2)
       beamshape = 'exp(-([f]*25/3e8)(1.1*[l]**2 + 0.9*[m]**2))'       # no parameters
       beamshape = '[l]+[m]'
-      beamshape = '[l]*[t]+[m]*[f]'
+      beamshape = '[l]*[t]+[m]*[f]+{p00}'
 
       self._beamshape = beamshape
       self.history('EJones beamshape = '+str(self._beamshape))
@@ -498,15 +515,26 @@ class EJones(JonesClump):
          # mode = self.getopt('mode')
 
          # Create ParmClumps:
-         # E = Expression.Expression(self.ns(), self.name(), beamshape)
-         # pc = E.ParmClump()...?
+         EX = Expression.Expression(self.ns(), self.name()+'_X', beamshape)
+         EY = Expression.Expression(self.ns(), self.name()+'_Y', beamshape)
+         pcX = self.PExpressionClump(EX)
+         pcY = self.PExpressionClump(EY)
 
          # Generate nodes:
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
-            Ename = self.name()+'_'+str(qual)
-            E = Expression.Expression(self.ns(), Ename, beamshape)
-            self[i] = E.MeqFunctional(qnode=stub(qual), show=False)
+            EXname = self.name()+'_X_'+str(qual)
+            EYname = self.name()+'_Y_'+str(qual)
+            EX = Expression.Expression(self.ns(), EXname, beamshape)
+            pcX.replace_Expression_parms(EX)
+            EY = Expression.Expression(self.ns(), EYname, beamshape)
+            pcY.replace_Expression_parms(EY)
+            XX = EX.MeqFunctional(qnode=stub(qual)('X'), show=False)
+            YY = EY.MeqFunctional(qnode=stub(qual)('Y'), show=False)
+            print str(XX),str(YY)
+            self[i] = stub(qual) << Meq.Matrix22(Meq.ToComplex(XX,0),0,
+                                                 0,Meq.ToComplex(YY,0))
+            print str(self[i])
  
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
@@ -840,9 +868,10 @@ if __name__ == '__main__':
 
    if 1:
       clump = EJones(simulate=simulate, trace=True)
-      c01 = clump.jonesLM(0,1)
-      c01 = clump.jonesLM(-1,1)
-      c01 = clump.jonesLM(0,1)
+      if False:
+         c01 = clump.jonesLM(0,1)
+         c01 = clump.jonesLM(-1,1)
+         c01 = clump.jonesLM(0,1)
 
    if 0:
       clump = BJones(simulate=simulate, trace=True)

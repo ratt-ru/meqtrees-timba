@@ -468,8 +468,14 @@ class Clump (object):
       """
       if not getattr(self.core,'_nodes',None):     # does not exist yet
           self.core._nodes = self.size()*[None]
+      elif isinstance(index,str):
+          tqs = self.treequals()
+          if not index in tqs:
+              self.ERROR('node index '+str(index)+' not in treequals '+str(tqs))
+          index = tqs.index(index)
       elif index<0 or index>=len(self):
           self.ERROR('node index out of range: '+str(index)+'/'+str(len(self)))
+
       node = self.core._nodes[index]
       if not is_node(node):
           self.history('.__getitem__('+str(index)+'): node = '+str(node), trace=True)

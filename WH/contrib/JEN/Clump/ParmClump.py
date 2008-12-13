@@ -68,11 +68,15 @@ class ParmClump(Clump.LeafClump):
                 constraint=None,
                 nodelist=None,
                 simulate=False,
+                Expression=None,
                 **kwargs):
       """
       Derived from class LeafClump. There are two modes:
       - If a nodelist is given, use those, assuming that they
       are MeqParms (..). See class PListClump below.
+      - Elif an Expression object is given, its parameters {..}
+      are turned into MeqParms (simulated if required), and the
+      Expression {..} are replaced with MeqParm/MeqFunctional nodes.
       - Else a clump should be given. A group of MeqParm nodes
       is generated for each of its tree qualifiers (treequals), 
       and with the specified (kwargs) MeqParm arguments.
@@ -101,9 +105,36 @@ class ParmClump(Clump.LeafClump):
          # equations in the form of condeq nodes. See self.constrain()
          self._constraint = constraint
 
+      # Special case: an Expression object is given (see Expression.py)
+      # Its parameter names {..} are turned into treequals. 
+      if Expression:
+         self._Expression = Expression
+         expr = self._Expression.expression()
+         pnames = self.extract_bracketed (expr, bb='{}', enclose=False)
+         if len(pnames)==0:
+            self.ERROR('no parms {..} in Expression')
+         kwargs['treequals'] = pnames
+         kwargs['name'] = Expression.name
+
       Clump.LeafClump.__init__(self, clump=clump, nodelist=nodelist, **kwargs)
       return None
 
+
+   #=========================================================================
+
+   def replace_Expression_parms (self, Expression, trace=False):
+      """Replace the parameters {..} in the given Expression object
+      with the MeqParm/MeqFunctional nodes of this ParmClump.
+      It is assumed that the {..} parms have the same names as its treequals.
+      (i.e. that this ParmClump has been created by the same Expression,
+      see .__init__() above).
+      """
+      trace = True
+      for pname in self.treequals():
+         Expression.modparm('{'+pname+'}', self[pname])
+      if trace:
+         Expression.display('replace_Expression_parms()')
+      return True
 
    #==========================================================================
    #==========================================================================
@@ -562,7 +593,7 @@ if __name__ == '__main__':
                         constraint=dict(sum=-1, prod=3),
                         trace=True)
 
-   if 1:
+   if 0:
       # c1 = Clump.LeafClump(treequals=range(5))
       expr = '{p0}+{p1}'
       expr = '7+{p0}+{p1}-9'
@@ -571,6 +602,19 @@ if __name__ == '__main__':
                                varvals=dict(x=4, y=range(5)),
                                simulate=False,
                                trace=True)
+
+   if 1:
+      # c1 = Clump.LeafClump(treequals=range(5))
+      expr = '{p0}+{p1}'
+      # expr = '7+{p0}+{p1}-9'
+      expr = '{p0}+{p1}*[t]+[f]'
+      E = Expression.Expression(ns, 'test', expr)
+      clump = ParmClump(Expression=E,
+                        # simulate=True,
+                        trace=True)
+      clump.replace_Expression_parms (E, trace=True)
+      E.display('after')             # .display locks Expression
+
 
    if 0:
       cc = []
