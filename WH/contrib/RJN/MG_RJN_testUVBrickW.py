@@ -3,7 +3,7 @@
 ########
 ## This script needs to be run in the MeqBrowser,
 
-# The script compares resut from the FFTBrick / UVInterpolateWave
+# The script compares results from the FFTBrick / UVInterpolateWave
 #    with that of the DFT node.
 # There is a solver node that solves for the source position in the DFT node
 # The CondEq node compares the Result form the UVInterpolateWave and the DFT nodes
