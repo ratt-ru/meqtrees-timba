@@ -45,13 +45,19 @@ import re
 import math
 import random
 
-# for Bookmarks and more (UVW) get JEN's forest state script
-from Timba.Trees import JEN_bookmarks
-
 # Get TDL and Meq for the Kernel
 from Timba.TDL import * 
 from Timba.Meq import meq
 
+# Define Bookmarks
+Settings.forest_state = record(bookmarks=[
+    record(name='Results',page=[
+      record(udi="/node/corr",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/interpol",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/fft",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/image",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/Condeq",viewer="Result Plotter",pos=(2,0)),
+      record(udi="/node/pspredict",viewer="Result Plotter",pos=(2,1))])]);
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
@@ -203,18 +209,9 @@ def _define_forest(ns):
  #solvables.append('M');
  solver_root = ns['Solver']<<Meq.Solver(children=[cond_root],num_iter=100,debug_level=20,solvable=solvables);
 
- # Define Bookmarks
- JEN_bookmarks.create(corr_root,page="Image",viewer="Result Plotter");
- JEN_bookmarks.create(fft_root,page="UVBrick",viewer="Result Plotter");
- JEN_bookmarks.create(interpol_root,udi="cache/result/uvinterpol_map",page="UVBrick",viewer="Result Plotter");
- JEN_bookmarks.create(image_root,page="Image",viewer="Result Plotter");
- JEN_bookmarks.create(interpol_root,page="Freq Time Result",viewer="Result Plotter");
- JEN_bookmarks.create(cond_root,page="Freq Time Result",viewer="Result Plotter");
- JEN_bookmarks.create(pspredict,page="Freq Time Result",viewer="Result Plotter");
-
 ########################################################################
 
-def _test_forest(mqs,parent):
+def _test_forest(mqs,parent,wait=False):
 
  # Create the Request Cells
  f0 = 1200.0e6
@@ -234,12 +231,12 @@ def _test_forest(mqs,parent):
 
  # And execute the Tree ...
  args=record(name='Solver', request=request1);
- mqs.meq('Node.execute', args, wait=False);
+ mqs.meq('Node.execute', args, wait);
    
 
 ########################################################################
 
-def _tdl_job_subtract(mqs,parent):
+def _tdl_job_subtract(mqs,parent,wait=False):
  # srcnames is global: to be used inside _define_forest, _test_forest, and outside of them
  global srcnames   
  
@@ -263,7 +260,7 @@ def _tdl_job_subtract(mqs,parent):
 
  # And execute the Tree ...
  args=record(name='Condeq', request=request1);
- mqs.meq('Node.execute', args, wait=False);
+ mqs.meq('Node.execute', args, wait);
 
 #####################################################################
 
