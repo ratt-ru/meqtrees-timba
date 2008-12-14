@@ -49,25 +49,31 @@ script_name = 'MG_RJN_UVBrick_FITS.py'
 import math
 import random
 
-from Timba.Trees import JEN_bookmarks
-
 # Get TDL and Meq for the Kernel
 from Timba.TDL import * 
 from Timba.Meq import meq
 
+# Define Bookmarks
+Settings.forest_state = record(bookmarks=[
+    record(name='Results',page=[
+      record(udi="/node/corr",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/image",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/fft",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/interpol",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/resampler",viewer="Result Plotter",pos=(2,0))])]);
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
 
+# get FITS file
+TDLCompileOption('fits_file','fits file with image ' ,['point_source.fits','point_source_cube.fits','source1a.fits','clean.fits'],more=str)
 
 ########################################################
 def _define_forest(ns):  
     
  # Construction of a Phase Center Two-Pack (RA, DEC)
  # RA and Dec coordinates of the Patch Phase Center
- #RA_0 = 4.35664870004
- #Dec_0 = 1.09220644132
- RA_0 = 1.45965879284;
- Dec_0 = 0.384111972073;
+ RA_0 = 4.35664870004
+ Dec_0 = 1.09220644132
  ra0 = ns.ra0 << RA_0;
  dec0 = ns.dec0 << Dec_0;
  radec0 = ns.radec0 << Meq.Composer(ra0,dec0);
@@ -105,12 +111,12 @@ def _define_forest(ns):
  myuvw = ns.uvw(s1=1,s2=2) << Meq.Subtract(uvw1,uvw2);
 
  # Define the factor of padding zeros to be added
- padfactor = 30.0;
+ padfactor = 1.0;
 
  # Create the SixPack for the FITS Image
  # Image (Sixpack)
  home_dir = os.environ['HOME']
- infile_name = home_dir + '/Timba/WH/contrib/RJN/source1a.fits'
+ infile_name = home_dir + '/Timba/WH/contrib/RJN/' + fits_file
  image_root = ns.image << Meq.FITSImage(filename=infile_name,cutoff=1.0);
 
  # Select the 4 Stokes planes
@@ -137,17 +143,9 @@ def _define_forest(ns):
  
  resampler_root = ns.resampler << Meq.Resampler(interpol_root);
 
- # Define Bookmarks
- JEN_bookmarks.create(corr_root,page="Image",viewer="Result Plotter");
- JEN_bookmarks.create(fft_root,page="UVBrick",viewer="Result Plotter");
- JEN_bookmarks.create(interpol_root,udi="cache/result/uvinterpol_map",page="UVBrick",viewer="Result Plotter");
- JEN_bookmarks.create(image_root,page="Image",viewer="Result Plotter");
- JEN_bookmarks.create(interpol_root,page="Freq Time Result",viewer="Result Plotter");
- JEN_bookmarks.create(resampler_root,page="Freq Time Result",viewer="Result Plotter");
-
 ########################################################################
 
-def _test_forest(mqs,parent):
+def _test_forest(mqs,parent,wait=False):
 
  # Create the Request Cells
  f0 = 100.0e6
@@ -166,7 +164,7 @@ def _test_forest(mqs,parent):
 
  # And execute the Tree ...
  args=record(name='resampler', request=request1);
- mqs.meq('Node.execute', args, wait=False);
+ mqs.meq('Node.execute', args, wait);
    
 
 #####################################################################
