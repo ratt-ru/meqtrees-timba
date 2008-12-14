@@ -52,11 +52,18 @@ import math
 import random
 
 from Timba.Contrib.RJN import RJN_sixpack
-from Timba.Trees import JEN_bookmarks
 
 # Get TDL and Meq for the Kernel
 from Timba.TDL import * 
 from Timba.Meq import meq
+
+# Define Bookmarks
+Settings.forest_state = record(bookmarks=[
+    record(name='Results',page=[
+      record(udi="/node/corr",viewer="Result Plotter",pos=(0,0)),
+      record(udi="/node/fft",viewer="Result Plotter",pos=(0,1)),
+      record(udi="/node/patch",viewer="Result Plotter",pos=(1,0)),
+      record(udi="/node/interpol",viewer="Result Plotter",pos=(2,0))])]);
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
@@ -222,19 +229,12 @@ def _define_forest(ns):
  # If (Additional_Info = True) the UV interpolation tracks are plotted on the UV plane
  #
  #UVInterpol
- interpol_root = ns.interpol << Meq.UVInterpol(Method=1,brick=fft_root,uvw=myuvw,additional_info=True);
+#interpol_root = ns.interpol << Meq.UVInterpol(Method=1,brick=fft_root,uvw=myuvw,additional_info=True);
  
-
- # Define Bookmarks
- JEN_bookmarks.create(corr_root,page="Patch Image",viewer="Result Plotter");
- JEN_bookmarks.create(fft_root,page="UVBrick",viewer="Result Plotter");
- JEN_bookmarks.create(interpol_root,udi="cache/result/uvinterpol_map",page="UVBrick",viewer="Result Plotter");
- JEN_bookmarks.create(patch_root,page="Patch Image",viewer="Result Plotter");
- JEN_bookmarks.create(interpol_root,page="Freq Time Result",viewer="Result Plotter");
 
 ########################################################################
 
-def _test_forest(mqs,parent):
+def _test_forest(mqs,parent,wait=False):
 
  # Create the Request Cells
  f0 = 1350.0e6
@@ -252,15 +252,16 @@ def _test_forest(mqs,parent):
  request1 = meq.request(cells=cells, eval_mode=0 );
 
  # And execute the Tree ...
- args=record(name='interpol', request=request1);
- mqs.meq('Node.execute', args, wait=False);
+#args=record(name='interpol', request=request1);
+ args=record(name='fft', request=request1);
+ mqs.meq('Node.execute', args, wait);
    
 
 #####################################################################
 
 if __name__=='__main__':
   ns=NodeScope()
-  define_forest(ns)
+  _define_forest(ns)
   ns.Resolve()
   print "Added %d nodes" % len(ns.AllNodes())
   
