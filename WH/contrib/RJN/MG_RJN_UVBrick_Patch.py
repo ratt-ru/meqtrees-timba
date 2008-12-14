@@ -62,8 +62,8 @@ Settings.forest_state = record(bookmarks=[
     record(name='Results',page=[
       record(udi="/node/corr",viewer="Result Plotter",pos=(0,0)),
       record(udi="/node/fft",viewer="Result Plotter",pos=(0,1)),
-      record(udi="/node/patch",viewer="Result Plotter",pos=(1,0)),
-      record(udi="/node/interpol",viewer="Result Plotter",pos=(2,0))])]);
+#     record(udi="/node/interpol",viewer="Result Plotter",pos=(1,1)),
+      record(udi="/node/patch",viewer="Result Plotter",pos=(1,0))])]);
 
 # to force caching put 100
 Settings.forest_state.cache_policy = 100
