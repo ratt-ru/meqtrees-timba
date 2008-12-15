@@ -1,6 +1,6 @@
 """
 WSRTJones.py: Contains all WSRT-specific Jones matrices (G,D,F,E etc),
-and WSRTJones.WSRTJones(XXXJones) to produce a Jones sequence (multiplication).
+and WSRTJones.WSRTJones(UVPJones) to produce a Jones sequence (multiplication).
 """
 
 # file: ../JEN/Clump/WSRTJones.py:
@@ -45,6 +45,7 @@ from Timba.TDL import *
 from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Clump import JonesClump
+# from Timba.Contrib.JEN.Clump import IMPJones
 from Timba.Contrib.JEN.Clump import ParmClump
 # from Timba.Contrib.JEN.Clump import CorruptClump
 
@@ -89,7 +90,7 @@ def fill_WSRT_rider(clump, **kwargs):
 # WSRTJones.WSRTJones is a multiplication of (WSRT) Jones Clumps
 #********************************************************************************
 
-class WSRTJones(JonesClump.XXXJones):
+class WSRTJones(JonesClump.UVPJones):
    """
    This JonesClump represents a sequence (multiplication) of JonesClumps,
    specific for the Westerbork Synthesis Radio Telescope (WSRT).
@@ -99,15 +100,15 @@ class WSRTJones(JonesClump.XXXJones):
       """
       Derived from class Clump.
       """
-      JonesClump.XXXJones.__init__(self, clump=clump, **kwargs)
+      JonesClump.UVPJones.__init__(self, clump=clump, **kwargs)
       # fill_WSRT_rider(self, **kwargs):
       return None
 
    #------------------------------------------------------------------------
 
    def make_jones_sequence(self, **kwargs):
-      """Function to be re-implemented in classes derived from XXXJones.
-      Called by .initexec() above (which is generic in XXXJones classes). 
+      """Function to be re-implemented in classes derived from UVPJones.
+      Called by .initexec() above (which is generic in UVPJones classes). 
       """
       # The number and names of the stations/antennas of the array are
       # specified by means of a list of station/antenna tree qualifiers.
@@ -211,15 +212,18 @@ class FJones(JonesClump.JonesClump):
    #-------------------------------------------------------------------------
 
    def get_solspec_choice_parameters(self):
-      """Re-implementation of the function in JonesClump.
-      Specify the relevant choice of solution-specification parameters that
-      will be offered in the .solspec() function of its ParmClump ojects.
-      (A list repaces the default choice, a number is used as default.) 
+      """Re-implementation of the method in JonesClump. Specify the relevant
+      choice of solution-specification parameters that will be offered in the
+      .solspec() method of its ParmClump ojects.
+      Syntax: A list value replaces the entire choice, a number is just used as
+      the default, i.e. it is offered as the first value of the default choice list.
+      An object-specific help-text may also be offered here. 
       """
-      scp = dict(nfreq_subtile=[None],   # solve over all freq cells 
-                 ntime_subtile=[None],   # solve over all time cells
-                 fdeg=[1,2],             # solve for low-order freq polynomial
-                 tdeg=[1,2])             # solve for low-order time polynomial
+      scp = JonesClump.get_solspec_choice_parameters(self)
+      self.set_scp (scp, 'tdeg', [1,2], help='solve for low-order time polynomial')
+      self.set_scp (scp, 'fdeg', [1,2], help='solve for low-order freq polynomial')
+      self.set_scp (scp, 'nfreq_subtile', [None], help='solve over all freq cells')
+      self.set_scp (scp, 'ntime_subtile', [None], help='solve over all time cells')
       return scp
 
 
@@ -245,8 +249,8 @@ class FJones(JonesClump.JonesClump):
          # Make a Clump with parametrized MeqFunctionals:
          fill_WSRT_rider(self, **kwargs)                        # makes xpos
          varvals = dict(x=self.rider('xpos'))
-         farot = self.PFunctionalClump('farot', expr=poly, varvals=varvals)
-         
+         farot = self.make_PFunctionalClump('farot', expr=poly,
+                                            varvals=varvals)
          # Generate nodes:
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
@@ -283,17 +287,19 @@ class XJones(JonesClump.JonesClump):
    #-------------------------------------------------------------------------
 
    def get_solspec_choice_parameters(self):
-      """Re-implementation of the function in JonesClump.
-      Specify the relevant choice of solution-specification parameters that
-      will be offered in the .solspec() function of its ParmClump ojects.
-      (A list repaces the default choice, a number is used as default.) 
+      """Re-implementation of the method in JonesClump. Specify the relevant
+      choice of solution-specification parameters that will be offered in the
+      .solspec() method of its ParmClump ojects.
+      Syntax: A list value replaces the entire choice, a number is just used as
+      the default, i.e. it is offered as the first value of the default choice list.
+      An object-specific help-text may also be offered here. 
       """
-      scp = dict(nfreq_subtile=[None],   # solve over all freq cells 
-                 ntime_subtile=[5,10],   # size of subtile solutions
-                 fdeg=0,                 # default: no freq dependence
-                 tdeg=[1,2])             # solve for low-order time polynomial
+      scp = JonesClump.get_solspec_choice_parameters(self)
+      self.set_scp (scp, 'tdeg', [1,2], help='solve for low-order time polynomial')
+      self.set_scp (scp, 'fdeg', 0, help='default: no freq dependence')
+      self.set_scp (scp, 'nfreq_subtile', [None], help='solve over all freq cells')
+      self.set_scp (scp, 'ntime_subtile', [5,10], help='size of subtile solutions')
       return scp
-
 
 
    #==========================================================================
@@ -314,15 +320,15 @@ class XJones(JonesClump.JonesClump):
 
          # Create ParmClumps:
          if mode=='amphas':
-            gerrX = self.ParmClump(name='gerrX', default=1.0)
-            perrX = self.ParmClump(name='perrX', default=0.0)
-            gerrY = self.ParmClump(name='gerrY', default=1.0)
-            perrY = self.ParmClump(name='perrY', default=0.0)
+            gerrX = self.make_ParmClump(name='gerrX', default=1.0)
+            perrX = self.make_ParmClump(name='perrX', default=0.0)
+            gerrY = self.make_ParmClump(name='gerrY', default=1.0)
+            perrY = self.make_ParmClump(name='perrY', default=0.0)
          elif mode=='realimag':
-            rerrX = self.ParmClump(name='rerrX', default=1.0)
-            ierrX = self.ParmClump(name='ierrX', default=0.0)
-            rerrY = self.ParmClump(name='rerrY', default=1.0)
-            ierrY = self.ParmClump(name='ierrY', default=0.0)
+            rerrX = self.make_ParmClump(name='rerrX', default=1.0)
+            ierrX = self.make_ParmClump(name='ierrX', default=0.0)
+            rerrY = self.make_ParmClump(name='rerrY', default=1.0)
+            ierrY = self.make_ParmClump(name='ierrY', default=0.0)
 
          # Generate nodes:
          stub = self.unique_nodestub()
@@ -386,6 +392,7 @@ def do_define_forest (ns, TCM):
       elif jones=='FJones':
          clump = FJones(ns=ns, TCM=TCM, treequals=treequals, simulate=simulate)
                   
+      solvable = clump.get_solvable(trace=True)
       # clump = CorruptClump.Scatter(clump).daisy_chain()
       clump.visualize()
 

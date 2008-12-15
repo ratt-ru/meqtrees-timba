@@ -219,10 +219,13 @@ class ParmClump(Clump.LeafClump):
       It returns a list of solvable parms, to be given to a MeqSolver.
       This routine called by the solver object(!), not the ParmClump constructor.
       This means that the menu-options are also settable in the solver!!
+      (NB:, the option choices and help strings may be overridden via the
+      constructor kwargs, see for instance JonesClump.py, and also Clump method
+      .add_option() in Clump.py, and the global function set_scp() below)
       If self._simulate (simulation mode), just return [].
       """
       solvable = []                               # return a list of solvable MeqParm names
-      if self._simulate:                         # in simulation mode
+      if self._simulate:                          # in simulation mode
          return solvable                          # do nothing
       
       help = 'specify solving parameters for the MeqParms of: '+self.oneliner()
@@ -302,7 +305,41 @@ class ParmClump(Clump.LeafClump):
 
       # Always return the (possibly updated) list of condeqs
       return condeqs
-   
+
+
+
+
+#*****************************************************************************
+# Helper function, called from other modules (e.g. see JonesClump.py)
+#*****************************************************************************
+
+def set_scp (scp, key, value, help=None):
+   """Helper function to set solspec_choice_parameters in the given dict (scp)
+   in an organised way. It sets the value of the specified (key) field, and
+   generates some context-sensitive automatic help if no specific help string
+   is specified. See for instance JonesClump.py.
+   This dict (scp) should be used as **kwargs in ParmClump.solspec(), see above.
+   """
+   # Set the specified value:
+   scp[key] = value
+
+   # Make sure that optionhelp is a dict:
+   hkey = 'optionhelp'
+   if not scp.has_key(hkey):
+      scp[hkey] = dict()
+   elif not isinstance(scp[hkey],dict):
+      scp[hkey] = dict()
+
+   # If no help-string is supplied, generate context-sensitive automatic help:
+   if not isinstance(help,str):
+      if key in ['fdeg','tdeg']:
+         help = None                                    # temporary
+      elif key in ['nfreq_subtile','ntime_subtile']:
+         help = None                                    # temporary
+      else:
+         help = '<autohelp>'       
+   scp[hkey][key] = help
+   return scp
 
 
 

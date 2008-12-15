@@ -628,7 +628,8 @@ class Clump (object):
       """
 
       if True:
-         # The option choice may be augmented/overridden via the input_kwargs:
+         # The option choice may be augmented/overridden via the input_kwargs
+         # supplied to the ParmClump constructor .__init__() above.
          if self.core._input_kwargs.has_key(relkey):
             v = self.core._input_kwargs[relkey]
             hist = '.add_option('+str(relkey)+'): '
@@ -640,6 +641,18 @@ class Clump (object):
                choice.insert(0,v)                 # make it the default
                hist += 'use external (kwargs) default (='+str(v)+') -> '+str(choice) 
             self.history(hist, trace=False)
+
+      if True:
+         # The option help  may be overridden via the input_kwargs:
+         # supplied to the ParmClump constructor .__init__() above.
+          hh = self.core._input_kwargs.get('optionhelp', None)
+          if isinstance(hh,dict):
+              help = hh.get(relkey,None)
+              if isinstance(help,str):
+                  kwargs['help'] = help
+                  hist = '.add_option('+str(relkey)+'): '
+                  hist += 'use external (kwargs) help: '+help 
+                  self.history(hist, trace=True)
 
       if True:
           # If the option prompt is the option (rel)key, it is easier to modify the
