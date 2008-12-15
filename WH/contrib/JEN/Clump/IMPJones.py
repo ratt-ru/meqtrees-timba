@@ -45,7 +45,7 @@ from Timba.Meq import meq
 
 from Timba.Contrib.JEN.Clump import JonesClump
 from Timba.Contrib.JEN.Clump import ParmClump
-from Timba.Contrib.JEN.Clump import CorruptClump
+# from Timba.Contrib.JEN.Clump import CorruptClump
 
 from Timba.Contrib.JEN.Expression import Expression
 
@@ -56,17 +56,19 @@ import math                 # support math.cos() etc
 
 
 #********************************************************************************
-# IMPJones.IMPJones is the baseclass of all IMPJones Clumps
+# The baseclass of all IMPJonesClumps. They contain the methods that are needed
+# to generate a JonesClump with MeqCompounder nodes, that is valid for a
+# specific direction (L,M).
 #********************************************************************************
 
-class IMPJones(JonesClump):
+class IMPJonesClump(JonesClump):
    """
-   Derived class from IMPJones.
+   Derived class from JonesClump.
    """
 
    def __init__(self, clump=None, **kwargs):
       """
-      Derived from class IMPJones.
+      Derived from class JonesClump.
       """
       JonesClump.JonesClump.__init__(self, clump=clump, **kwargs)
       return None
@@ -75,14 +77,15 @@ class IMPJones(JonesClump):
    #-------------------------------------------------------------------------
 
    def get_solspec_choice_parameters(self):
-      """Re-implementation of the method in IMPJones. Specify the relevant
+      """Re-implementation of the method in JonesClump. This is a better
+      default for image-plane effects (...). Specify the relevant
       choice of solution-specification parameters that will be offered in the
       .solspec() method of its ParmClump ojects.
       Syntax: A list value replaces the entire choice, a number is just used as
       the default, i.e. it is offered as the first value of the default choice list.
       An object-specific help-text may also be offered here. 
       """
-      scp = IMPJones.get_solspec_choice_parameters(self)
+      scp = JonesClump.get_solspec_choice_parameters(self)
       self.set_scp (scp, 'tdeg', [1,2], help='solve for low-order time polynomial')
       self.set_scp (scp, 'fdeg', [1,2], help='solve for low-order freq polynomial')
       self.set_scp (scp, 'ntime_subtile', [None], help='solve over all time cells')
@@ -225,26 +228,6 @@ class IMPJones(JonesClump):
       self.history('outside validity area: '+clump.oneliner())
       return clump
 
-   #----------------------------------------------------------------------------
-   
-   def IMPJoness (self, key=None, clump=None):
-      """Helper function to provide access to the dict of IMPJoness
-      that is kept for later reference.
-      """
-      if not getattr(self,'_IMPJoness',None):    # not yet created
-         self._IMPJoness = dict()                   # create the dict
-      rr = self._IMPJoness                       # convenience
-      if not isinstance(key,str):                  # no key specified:
-         return self._IMPJoness                     # return the entire dict
-      elif clump:                                  # a new clump is given
-         rr[key] = clump                           #   store it
-         # clump.show('.IMPJones('+key+')')      # temporary
-         ## self.connect_grafted_clump(clump)         # .... NOT a good idea .....??
-      elif not rr.has_key(key):
-         return None                               # key not found, return None
-      return rr[key]                               # Return the stored clump:
-      
-
 
 
 
@@ -343,12 +326,12 @@ class EJones(IMPJones):
 # the (L,M) versions of image-plane ones.  
 #********************************************************************************
 
-class UVPJones(IMPJones):
+class IMPJones(IMPJonesClump):
    """
-   This IMPJones represents a sequence (multiplication) of IMPJoness
+   This IMPJones represents a sequence (multiplication) of JonesClumps
    that represent uv-plane effects (for image-plane, see IMPJones.py)
    For derived classes, just replace .initexec() with your own sequence of
-   uv-plane IMPJoness.
+   uv-plane JonesClumps.
    """
 
    def __init__(self, clump=None, **kwargs):
@@ -364,11 +347,11 @@ class UVPJones(IMPJones):
    def initexec (self, **kwargs):
       """
       Re-implemented version of the function in the baseclass (LeafClump).
-      NB: This function is generic. Classes derived from UVPJones should
+      NB: This function is generic. Classes derived from IMPJones should
       just re-implement its method .make_jones_sequence() below.
       See e.g. class WSRTJones.WSRTJones.
       """
-      prompt = 'UVPJones: '+str(self.name())
+      prompt = 'IMPJones: '+str(self.name())
       help = """Specify a sequence (product) of zero or more Jones matrices.
       If zero are selected, a placeholder 2x2 (constant) unit-matrix is used.
       """
@@ -394,16 +377,16 @@ class UVPJones(IMPJones):
    #----------------------------------------------------------------------------
 
    def make_jones_sequence(self, **kwargs):
-      """Function to be re-implemented in classes derived from UVPJones.
+      """Function to be re-implemented in classes derived from IMPJones.
       See e.g. the class WSRTJones.WSRTJones, or VLAJones.VLAJones.
-      Called by .initexec() above (which is generic in UVPJones classes). 
+      Called by .initexec() above (which is generic in IMPJones classes). 
       """
       # The number and names of the stations/antennas of the array are
       # specified by means of a list of station/antenna tree qualifiers.
       treequals = range(8,10)+list('AB')                   # default: WSRT 
       self.datadesc(treequals=kwargs.get('treequals', treequals))
 
-      # Make a list of IMPJoness in the correct order (of the M.E.).
+      # Make a list of JonesClumps in the correct order (of the M.E.).
       # The ones selected (by the user) will be matrix-multiplied. 
       jj = []                       # list of selected Jones matrices
       notsel = []                   # list of not selected ones
@@ -419,7 +402,7 @@ class UVPJones(IMPJones):
    def make_single_jones(self, jj, notsel=None):
       """Make a single Jones matrix from the ones collected in .initexex()
       This function is generic, i.e. it should NOT be re-implemented in
-      classes that are derived from UVPJones. It contains more specialist code,
+      classes that are derived from IMPJones. It contains more specialist code,
       which should not be seen by the uninitiated.
       """
       if len(jj)==0:

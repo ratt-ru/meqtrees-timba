@@ -748,7 +748,7 @@ class clumpcore (object):
       If subset is a list, check their validity.
       If subset is a string (e.g. '*'), decode it.
       """
-      trace = True
+      # trace = True
       s = '.indices('+str(subset)+'):'
 
       # Turn subset into a list:

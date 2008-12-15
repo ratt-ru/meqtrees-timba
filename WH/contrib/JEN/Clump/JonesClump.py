@@ -97,6 +97,9 @@ class JonesClump(Clump.LeafClump):
       treequals = ['RT8','RT9','RTA','RTB']       # default treequals (WSRT)
       kwargs.setdefault('treequals', treequals)
 
+      # A JonesClump may have an internal list of JonesClumps
+      self._JonesClumps = []                      # create an empty list
+
       Clump.LeafClump.__init__(self, clump=clump, **kwargs)
 
       return None
@@ -154,9 +157,9 @@ class JonesClump(Clump.LeafClump):
                                   default=default,
                                   simulate=self._simulate,
                                   **self._solspec_choice)
+      self.connect_grafted_clump(clump)       # connect the loose ends:
       if trace:
          clump.show('JonesClump.ParmClump()')
-      self.connect_grafted_clump(clump)       # connect the loose ends:
       return clump
 
    #--------------------------------------------------------------------------
@@ -171,9 +174,9 @@ class JonesClump(Clump.LeafClump):
                                   TCM=self.TCM(), ns=self.ns(),
                                   simulate=self._simulate,
                                   **self._solspec_choice)
+      self.connect_grafted_clump(clump)       # connect the loose ends:
       if trace:
          clump.show('JonesClump.make_PExpressionClump()')
-      self.connect_grafted_clump(clump)       # connect the loose ends:
       return clump
 
    #--------------------------------------------------------------------------
@@ -188,10 +191,57 @@ class JonesClump(Clump.LeafClump):
                                          TCM=self.TCM(), ns=self.ns(),
                                          simulate=self._simulate,
                                          **self._solspec_choice)
+      self.connect_grafted_clump(clump)      # connect the loose ends
       if trace:
          clump.show('JonesClump.PFunctionalClump()')
-      self.connect_grafted_clump(clump)      # connect the loose ends
       return clump
+
+
+   #=========================================================================
+   # Functions related to its internal list of JonesClumps (if any):
+   #=========================================================================
+
+   def JonesClumps(self, append=None, trace=False):
+      """Access to the internal list of JonesClumps
+      """
+      if isinstance(append,list):
+         self._JonesClumps.extend(append)
+      elif append:
+         self._JonesClumps.append(append)
+      if trace:
+         print '\n** JonesClumps'+len(self._JonesClumps)+':'+self.oneliner()
+         for i,jc in enumerate(self._JonesClumps):
+            print '-',i,':',str(jc)
+         print
+      return self._JonesClumps
+
+
+   #----------------------------------------------------------------------------
+   
+   def get_JonesClump (self, key=None, trace=False):
+      """Return the specified (key) JonesClump, or None.
+      """
+      for i,jc in enumerate(self._JonesClumps):
+         if key==jc.name():                       # by name
+            return jc
+         elif key==i:                             # by index
+            return jc
+      return None                                 # not found
+
+   #----------------------------------------------------------------------------
+   
+   def make_single_JonesClump (self, trace=False):
+      """Return a single JonesClump, by default just itself.
+      To be re-implemented in some derived classes:
+      - UVPJones multiplies the entries of self._JonesClumps
+      - IMPJones does the same for the given direction (L,M)
+      A manufactured JonesClump is kept in self._single_JonesClump
+      """
+      # Default implementation: just return itself.
+      if trace:
+         print '.make_JonesClump() -> itself:',self.oneliner()
+      return self
+
 
 
    #==========================================================================
@@ -204,9 +254,14 @@ class JonesClump(Clump.LeafClump):
       To be re-implemented in derived classes (e.g. see WSRTJones.py,
       or the UVPJones, GJones, BJones classes below). 
       """
-      for i,qual in enumerate(self.nodequals()):
-         self[i] = None
-      return True
+      prompt = 'JonesClump: '+self.name()
+      help = 'define JonesClump: '+self.oneliner()
+      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
+      if self.execute_body(always=True):
+         for i,qual in enumerate(self.nodequals()):
+            self[i] = None
+         self.end_of_body(ctrl)
+      return self.on_exit(ctrl)
 
 
 
@@ -465,195 +520,6 @@ class BcJones(BJones):
       return scp
 
 
-#********************************************************************************
-# EJones (primary beamshape):
-#********************************************************************************
-
-class EJones(JonesClump):
-   """
-   Derived class from JonesClump.
-   """
-
-   def __init__(self, clump=None, **kwargs):
-      """
-      Derived from class JonesClump.
-      """
-      JonesClump.__init__(self, clump=clump, **kwargs)
-      return None
-
-   #-------------------------------------------------------------------------
-
-   def get_solspec_choice_parameters(self):
-      """Re-implementation of the method in JonesClump. Specify the relevant
-      choice of solution-specification parameters that will be offered in the
-      .solspec() method of its ParmClump ojects.
-      Syntax: A list value replaces the entire choice, a number is just used as
-      the default, i.e. it is offered as the first value of the default choice list.
-      An object-specific help-text may also be offered here. 
-      """
-      scp = JonesClump.get_solspec_choice_parameters(self)
-      self.set_scp (scp, 'tdeg', [1,2], help='solve for low-order time polynomial')
-      self.set_scp (scp, 'fdeg', [1,2], help='solve for low-order freq polynomial')
-      self.set_scp (scp, 'ntime_subtile', [None], help='solve over all time cells')
-      self.set_scp (scp, 'nfreq_subtile', [None], help='solve over all freq cells')
-      return scp
-
-
-   #==========================================================================
-
-   def initexec (self, **kwargs):
-      """
-      EJones represents the primary beamshape. It is an image-plane effect.
-      """
-      prompt = 'EJones: '+self.name()
-      help = 'define EJones matrix: '+self.oneliner()
-      ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
-
-      # Menu option(s) (the menu itself is generated in .on_entry()):
-      # self.add_option('mode',['amphas','realimag'])
-      # exp(-([f]*25/3e8)(1.1*([l]-{l0})**2 + 0.9*([m]-{m0})**2)
-      beamshape = 'exp(-([f]*25/3e8)(1.1*[l]**2 + 0.9*[m]**2))'       # no parameters
-      beamshape = '[l]+[m]'
-      beamshape = '[l]*[t]+[m]*[f]+{p00}'
-
-      self._beamshape = beamshape
-      self.history('EJones beamshape = '+str(self._beamshape))
-
-      self._validity = '([l]*[l]+[m]*[m])<1.2'
-      self.history('EJones validity area: '+str(self._validity))
-
-      if self.execute_body():
-         # mode = self.getopt('mode')
-
-         # Create ParmClumps:
-         EX = Expression.Expression(self.ns(), self.name()+'_X', beamshape)
-         EY = Expression.Expression(self.ns(), self.name()+'_Y', beamshape)
-         pcX = self.make_PExpressionClump(EX)
-         pcY = self.make_PExpressionClump(EY)
-
-         # Generate nodes:
-         stub = self.unique_nodestub()
-         for i,qual in enumerate(self.nodequals()):
-            EXname = self.name()+'_X_'+str(qual)
-            EYname = self.name()+'_Y_'+str(qual)
-            EX = Expression.Expression(self.ns(), EXname, beamshape)
-            pcX.replace_Expression_parms(EX)
-            EY = Expression.Expression(self.ns(), EYname, beamshape)
-            pcY.replace_Expression_parms(EY)
-            XX = EX.MeqFunctional(qnode=stub(qual)('X'), show=False)
-            YY = EY.MeqFunctional(qnode=stub(qual)('Y'), show=False)
-            print str(XX),str(YY)
-            self[i] = stub(qual) << Meq.Matrix22(Meq.ToComplex(XX,0),0,
-                                                 0,Meq.ToComplex(YY,0))
-            print str(self[i])
- 
-         self.end_of_body(ctrl)
-      return self.on_exit(ctrl)
-
-   #--------------------------------------------------------------------------
-
-   def jonesLM (self, L=None, M=None, LM=None, **kwargs):
-      """Create and return a new JonesClump for EJones in the given direction (L,M).
-      It uses the (L,M)-dependent nodes that were defined in .initexec() above.
-      The L,M coordinates may be numbers, or nodes, or a composer (L,M).
-      NB: All image-plane JonesClumps have this function!
-      NB: If the position (L,M) is outside the 'validity area' of the JonesClump,
-      return a basis JonesClump that represents the (relative?) 'complex gain' in
-      this direction.
-      NB: Some internal bookkeeping avoids duplication of JonesClumps....
-      """
-      if LM:
-         stub = self.unique_nodestub()  
-         extra_axes = LM
-      elif is_node(L) and is_node(M):
-         stub = self.unique_nodestub()  
-         extra_axes = stub('extra_axes') << Meq.Composer(L,M)
-      elif isinstance(L,(float,int)) and isinstance(M,(float,int)):
-         LMname = '(L='+str(L)+',M='+str(M)+')'
-         stub = self.unique_nodestub()(L=L)(M=M)  
-         extra_axes = stub('extra_axes') << Meq.Composer(L,M)
-      else:
-         s = 'type of (L,M) not recocnised: '+str(type(L))+','+str(type(M)) 
-         raise ValueError,s
-
-      # Check if a clump with this particular LMname already exists:
-      clump = self.JonesClumps(LMname)
-      if clump:
-         # The clump LMname has been defined already. Return it.
-         pass
-      elif not self.inside_validity_area(L,M):
-         # The given (L,M) may be outside the validity-area of the EJones:
-         clump = self.outside_validity_area(LMname)
-      else:
-         # Create a JonesClump with MeqCompounder nodes for (L,M):
-         clump = JonesClump(self, name=LMname)
-         common_axes = [hiid('L'),hiid('M')]
-         for i,qual in enumerate(self.nodequals()):
-            node = stub('compounder')(qual) << Meq.Compounder(extra_axes, self[i],
-                                                              common_axes=common_axes)
-            self.core._orphans.append(node)           # temporary
-            clump[i] = node
-         self.JonesClumps(LMname, clump)              # keep for (possible) later use
-
-      # Always return a JonesClump for the given (L,M):
-      return clump
-
-
-   #----------------------------------------------------------------------------
-
-   def inside_validity_area(self, L, M, trace=False):
-      """Check whether (L,M) is outside the given validity-area of the EJones.
-      Return True (inside) or False (outside).
-      If no self._validity python expression found, return True (assume inside).
-      """
-      if not getattr(self,'_validity',None):      # no expression found
-         return True                                # assume inside....
-      expr = self._validity                       # Asssume python expression
-      if trace:
-         print '\n** outside_validity_area(',L,M,'):',expr
-      expr = expr.replace('[l]',str(L))
-      expr = expr.replace('[m]',str(M))
-      try:
-         inside = eval(expr)
-      except:
-         print '\n** outside_validity_area(',L,M,'):',expr,'  (ERROR)'
-      if trace:
-         print '       -> inside =',inside,'\n'
-      # Return True or False
-      return inside
-
-   #----------------------------------------------------------------------------
-
-   def outside_validity_area(self, LMname):
-      """If (L,M) is outside the given validity-area of the EJones,
-      return a general JonesClump that solves for the complex gain
-      in that direction (i.e. peeling if sources in the beam sidelobes).
-      """
-      clump = JJones(self, name=LMname)
-      self.JonesClumps(LMname, clump)              # keep for (possible) later use
-      self.history('outside validity area: '+clump.oneliner())
-      return clump
-
-   #----------------------------------------------------------------------------
-   
-   def JonesClumps (self, key=None, clump=None):
-      """Helper function to provide access to the dict of JonesClumps
-      that is kept for later reference.
-      """
-      if not getattr(self,'_JonesClumps',None):    # not yet created
-         self._JonesClumps = dict()                   # create the dict
-      rr = self._JonesClumps                       # convenience
-      if not isinstance(key,str):                  # no key specified:
-         return self._JonesClumps                     # return the entire dict
-      elif clump:                                  # a new clump is given
-         rr[key] = clump                           #   store it
-         # clump.show('.JonesClump('+key+')')      # temporary
-         ## self.connect_grafted_clump(clump)         # .... NOT a good idea .....??
-      elif not rr.has_key(key):
-         return None                               # key not found, return None
-      return rr[key]                               # Return the stored clump:
-      
-
 
 #********************************************************************************
 #********************************************************************************
@@ -684,7 +550,7 @@ class UVPJones(JonesClump):
       """
       Re-implemented version of the function in the baseclass (LeafClump).
       NB: This function is generic. Classes derived from UVPJones should
-      just re-implement its method .make_jones_sequence() below.
+      just re-implement the method .make_jones_sequence() below.
       See e.g. class WSRTJones.WSRTJones.
       """
       prompt = 'UVPJones: '+str(self.name())
@@ -694,17 +560,17 @@ class UVPJones(JonesClump):
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
       self.add_option('use_previous', True,
-                      hide=True,
+                      # hide=True,
                       help='if True, use the previous solution',
                       prompt='use_previous')
       self.add_option('table_name', [None,'test.mep'], more=str,
-                      hide=True,
+                      # hide=True,
                       help='name of the file that contains the parmtable',
                       prompt='.mep file')
       
       if self.execute_body(always=True):
-         (jj,notsel) = self.make_jones_sequence(**kwargs)
-         self.make_single_jones(jj, notsel)
+         self.make_jones_sequence(**kwargs)        # make the list self._JonesClumps
+         self.make_single_JonesClump(firsttime=True, trace=False)  # multiply them
          self.end_of_body(ctrl)
 
       return self.on_exit(ctrl)
@@ -719,28 +585,35 @@ class UVPJones(JonesClump):
       """
       # The number and names of the stations/antennas of the array are
       # specified by means of a list of station/antenna tree qualifiers.
-      treequals = range(8,10)+list('AB')                   # default: WSRT 
+      treequals = range(1,5) 
       self.datadesc(treequals=kwargs.get('treequals', treequals))
 
       # Make a list of JonesClumps in the correct order (of the M.E.).
-      # The ones selected (by the user) will be matrix-multiplied. 
-      jj = []                       # list of selected Jones matrices
-      notsel = []                   # list of not selected ones
-      JonesClump(self, name='AJones', **kwargs).append_if_selected(jj, notsel)
-      JonesClump(self, name='BJones', **kwargs).append_if_selected(jj, notsel)
-      JonesClump(self, name='CJones', **kwargs).append_if_selected(jj, notsel)
-      return (jj,notsel)
+      # The ones selected (by the user) will be matrix-multiplied.
+      self.JonesClumps(JonesClump(self, name='AJones', **kwargs))
+      self.JonesClumps(JonesClump(self, name='BJones', **kwargs))
+      self.JonesClumps(JonesClump(self, name='CJones', **kwargs))
+      return True
 
 
    #============================================================================
    #============================================================================
 
-   def make_single_jones(self, jj, notsel=None):
-      """Make a single Jones matrix from the ones collected in .initexex()
-      This function is generic, i.e. it should NOT be re-implemented in
-      classes that are derived from UVPJones. It contains more specialist code,
-      which should not be seen by the uninitiated.
+   def make_single_JonesClump(self, firsttime=False, trace=False):
+      """Make a single JonesClump by multiplying the ones collected in .initexex()
+      This is a re-implementation of the JonesClump method of the same name.
       """
+      
+      if not firsttime:
+         return self
+      
+      jj = []                                   # list of selected Jones matrices
+      notsel = []                               # list of not selected ones
+      self._selected_JonesClumps = []
+      for i,jc in enumerate(self.JonesClumps()):
+         jc.append_if_selected(jj, notsel)
+         self._selected_JonesClumps.append(jc.is_selected())
+
       if len(jj)==0:
          self.history('empty Jones list: make a 2x2 complex unit matrix')
          stub = self.unique_nodestub('unitmatrix')
@@ -766,7 +639,7 @@ class UVPJones(JonesClump):
       # its own list of ParmClumps (self.make_ParmClumps()).
       for jones in jj:
          # self.history('include Jones: '+jones.oneliner())
-         # jones.show('make_single_jones()')
+         # jones.show('make_JonesClump()')
          self.connect_grafted_clump(jones)
 
       # Check the polarization representations (linear/circular/None):
@@ -874,15 +747,8 @@ if __name__ == '__main__':
    if 0:
       clump = JJones(simulate=simulate, trace=True)
 
-   if 1:
-      clump = GJones(simulate=simulate, trace=True)
-
    if 0:
-      clump = EJones(simulate=simulate, trace=True)
-      if False:
-         c01 = clump.jonesLM(0,1)
-         c01 = clump.jonesLM(-1,1)
-         c01 = clump.jonesLM(0,1)
+      clump = GJones(simulate=simulate, trace=True)
 
    if 0:
       clump = BJones(simulate=simulate, trace=True)
@@ -890,8 +756,8 @@ if __name__ == '__main__':
    if 0:
       clump = BcJones(simulate=simulate, trace=True)
 
-   if 0:
-      clump = UVPJones(simulate=simulate, trace=True)
+   if 1:
+      clump = UVPJones(simulate=simulate, trace=False)
 
    if 1:
       clump.show('creation', full=True)

@@ -164,28 +164,36 @@ class Clump (object):
    #--------------------------------------------------------------------------
 
    def copy(self, name=None, **kwargs):
-       """Return a 'working copy' of itself, i.e. a copy that may be modified
-       without changing this clump itself. See e.g. SolverUnit.py.
-       """
-       if not isinstance(name,str):
-           name = 'copy('+self.name()+')'
-       clump = Clump.Clump(self, name=name,
-                           hide=True, makemenu=False)
-       clump.history('.copy() of: '+str(self))
-       # self.history('copied to: '+str(clump))
-       return clump
+      """Return a 'working copy' of itself, i.e. a copy that may be modified
+      without changing this clump itself. See e.g. SolverUnit.py.
+      """
+      if not isinstance(name,str):
+          name = 'copy('+self.name()+')'
+      clump = Clump.Clump(self, name=name,
+                          hide=True, makemenu=False)
+      clump.history('.copy() of: '+str(self))
+      # self.history('copied to: '+str(clump))
+      return clump
    
 
    #==========================================================================
    # Fuctions that depend on whether or not the Clump has been selected:
    #==========================================================================
 
+   def is_selected(self):
+      """Return Trus or False, depending on whether the object is selected
+      """
+      return self.core._object_is_selected
+
+   #---------------------------------------------------------------------
+
    def append_if_selected(self, clist=[], notsel=None, trace=False):
       """If selected, append the object to the input list (clist).
       Otherwise, append it to the 'not-selected' (notsel) list, if supplied.
       Syntax:  clist = Clump(cp).append_if_selected(clist=[], notsel=[])
       """
-      selected = self.core._object_is_selected
+      # selected = self.core._object_is_selected
+      selected = self.is_selected()
       if not isinstance(clist,list):
          clist = []
       s = '\n ** .append_if_selected('+str(len(clist))+') (selected='+str(selected)+')'
@@ -212,7 +220,8 @@ class Clump (object):
       the user determines whether a particular Clump is included.
       Syntax:  cp = Clump(cp).daisy_chain()
       """
-      selected = self.core._object_is_selected
+      # selected = self.core._object_is_selected
+      selected = self.is_selected()
       if trace:
          print '\n ** .daisy_chain(selected=',selected,'): ',self.oneliner()
          print '     self.core._input_clump =',self.core._input_clump
@@ -278,10 +287,17 @@ class Clump (object):
                   else:
                       ss += prefix+'     - '+str(key)+' = '+str(EF.format_value(v))
           elif isinstance(a,list):
-              if is_node(a[0]):
-                  ss += prefix+'   - '+sa+' (list of '+str(len(a))+' nodes):'
-                  for i,node in enumerate(a):
-                      ss += prefix+'     - '+str(i)+': '+str(node)
+              if len(a)>0:
+                  if is_node(a[0]):
+                      ss += prefix+'   - '+sa+' (list of '+str(len(a))+' nodes):'
+                      for i,node in enumerate(a):
+                          ss += prefix+'     - '+str(i)+': '+str(node)
+                  elif getattr(a[0],'oneliner',None):
+                      ss += prefix+'   - '+sa+' (list of '+str(len(a))+' objects):'
+                      for i,obj in enumerate(a):
+                          ss += prefix+'     - '+str(i)+': '+str(obj.oneliner())
+                  else:
+                      ss += prefix+'   - '+sa+' = '+str(EF.format_value(a))
               else:
                   ss += prefix+'   - '+sa+' = '+str(EF.format_value(a))
           else:
@@ -375,16 +391,16 @@ class Clump (object):
    #=========================================================================
 
    def name (self):
-       """Return the object name.
-       """
-       return self.core._name
+      """Return the object name.
+      """
+      return self.core._name
 
    #--------------------------------------------------------------------------
 
    def typename (self):
-       """Return a short version of the object type name.
-       """
-       return self.core._typename
+      """Return a short version of the object type name.
+      """
+      return self.core._typename
 
    #--------------------------------------------------------------------------
 
@@ -411,29 +427,29 @@ class Clump (object):
    #--------------------------------------------------------------------------
 
    def clear(self):
-       """Clear the internal node-list [].
-       """
-       self.core._nodes = []
-       self._nodequals = []
-       return True
+      """Clear the internal node-list [].
+      """
+      self.core._nodes = []
+      self._nodequals = []
+      return True
 
    #--------------------------------------------------------------------------
 
    def append(self, node=None, clear=False):
-       """Append the given node(s) to the internal list.
-       If clear=True, set the internal list to [] first.
-       NB: the user should keep track of treequals/nodequals!!
-       Still, this is safer than using .__add__() below.
-       """
-       if clear:
-           self.clear()
-       if is_node(node):
-           self.core._nodes.append(node)
-       elif isinstance(node,list):
-           self.core._nodes.extend(node)
-       else:
-           self.ERROR('the node is not a node, but: '+str(type(node)))
-       return len(self)
+      """Append the given node(s) to the internal list.
+      If clear=True, set the internal list to [] first.
+      NB: the user should keep track of treequals/nodequals!!
+      Still, this is safer than using .__add__() below.
+      """
+      if clear:
+          self.clear()
+      if is_node(node):
+          self.core._nodes.append(node)
+      elif isinstance(node,list):
+          self.core._nodes.extend(node)
+      else:
+          self.ERROR('the node is not a node, but: '+str(type(node)))
+      return len(self)
 
    #--------------------------------------------------------------------------
 
@@ -506,38 +522,38 @@ class Clump (object):
    #-------------------------------------------------------------------------
 
    def treequals (self):
-       """Return the list of Clump tree qualifiers.
-       """
-       return self.core._datadesc['treequals']
+      """Return the list of Clump tree qualifiers.
+      """
+      return self.core._datadesc['treequals']
 
    #-------------------------------------------------------------------------
 
    def nodequals (self):
-       """Return the list of actual node qualifiers.
-       """
-       return self.core._nodequals
+      """Return the list of actual node qualifiers.
+      """
+      return self.core._nodequals
 
    
    #-------------------------------------------------------------------------
 
    def input_clump (self):
-       """Return the input Clump object
-       """
-       return self.core._input_clump
+      """Return the input Clump object
+      """
+      return self.core._input_clump
 
    #-------------------------------------------------------------------------
 
    def ns (self):
-       """Return the internal nodescope
-       """
-       return self.core._ns
+      """Return the internal nodescope
+      """
+      return self.core._ns
 
    #-------------------------------------------------------------------------
 
    def TCM (self):
-       """Return the internal TDLOptionManager object.
-       """
-       return self.core._TCM
+      """Return the internal TDLOptionManager object.
+      """
+      return self.core._TCM
 
    
    #=========================================================================
@@ -682,16 +698,16 @@ class Clump (object):
          print '** .execute_body(always=',always,'): fname=',fname,' execute=',execute
 
       if not execute:
-         if fname=='initexec':                       # a special case
+         if fname=='initexec':                            # a special case
             self.core._object_is_selected = False         # see .__init__() and .daisy_chain()
       else:
-         if fname=='initexec':                       # a special case
+         if fname=='initexec':                            # a special case
             self.core._object_is_selected = True          # see .__init__() and .daisy_chain()
          self.core._stage['count'] += 1                   # increment
          self.core._stage['ops'] = -1                     # reset
          self.core._stage['name'] = fname                 # .....?
          if hist:
-            s = '.'+fname+'(): '                     # note the ':'
+            s = '.'+fname+'(): '                          # note the ':'
             if isinstance(hist,str):
                s += '('+hist+')  '
             self.history(append=s, trace=self.core._ctrl['trace'])
@@ -967,7 +983,7 @@ class Clump (object):
 
       if len(solvable)==0:
          if len(self.ParmClumps())==0:
-             self.WARNING('No ParmClumps found (simulation?)')
+             self.WARNING('No ParmClumps found')
          else:
              self.WARNING('No solvable MeqParms specified! (using defaults)')
              ss = self.ParmClumps()[0].solspec(always=True)
@@ -978,7 +994,7 @@ class Clump (object):
          
       # Return list of solvable MeqParms:
       if trace:
-         print '\n** .solvable():'
+         print '\n** .solvable():',len(solvable)
          for i,node in enumerate(solvable):
             print '-',i,':',str(node)
          print

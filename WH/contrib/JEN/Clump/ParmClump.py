@@ -129,7 +129,7 @@ class ParmClump(Clump.LeafClump):
       (i.e. that this ParmClump has been created by the same Expression,
       see .__init__() above).
       """
-      trace = True
+      # trace = True
       for pname in self.treequals():
          Expression.modparm('{'+pname+'}', self[pname])
       if trace:

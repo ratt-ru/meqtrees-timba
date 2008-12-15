@@ -117,17 +117,15 @@ class WSRTJones(JonesClump.UVPJones):
 
       # Make a list of JonesClumps in the correct order (of the M.E.).
       # The ones selected (by the user) will be matrix-multiplied. 
-      jj = []                       # list of selected Jones matrices
-      notsel = []                   # list of not selected ones
-      # EJones(self, **kwargs).append_if_selected(jj, notsel)
-      # RJones(self, **kwargs).append_if_selected(jj, notsel)
-      FJones(self, **kwargs).append_if_selected(jj, notsel)
-      GJones(self, **kwargs).append_if_selected(jj, notsel)
-      BJones(self, **kwargs).append_if_selected(jj, notsel)
-      BcJones(self, **kwargs).append_if_selected(jj, notsel)
-      # DJones(self, **kwargs).append_if_selected(jj, notsel)
+      # self.JonesClumps(EJones(self, **kwargs))
+      # self.JonesClumps(RJones(self, **kwargs))
+      self.JonesClumps(FJones(self, **kwargs))
+      self.JonesClumps(GJones(self, **kwargs))
+      self.JonesClumps(BJones(self, **kwargs))
+      self.JonesClumps(BcJones(self, **kwargs))
+      # self.JonesClumps(DJones(self, **kwargs))
 
-      return (jj,notsel)
+      return True
 
 
 
