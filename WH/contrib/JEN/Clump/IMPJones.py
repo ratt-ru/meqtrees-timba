@@ -1,5 +1,5 @@
 """
-IMPJones.py: Base-class for JonesClumps that represent image-plane effects.
+IMPJones.py: JonesClump classes that represent image-plane effects.
 """
 
 # file: ../JEN/Clump/IMPJones.py:
@@ -61,7 +61,7 @@ import math                 # support math.cos() etc
 # specific direction (L,M).
 #********************************************************************************
 
-class IMPJonesClump(JonesClump):
+class IMPJonesClump(JonesClump.JonesClump):
    """
    Derived class from JonesClump.
    """
@@ -85,7 +85,7 @@ class IMPJonesClump(JonesClump):
       the default, i.e. it is offered as the first value of the default choice list.
       An object-specific help-text may also be offered here. 
       """
-      scp = JonesClump.get_solspec_choice_parameters(self)
+      scp = JonesClump.JonesClump.get_solspec_choice_parameters(self)
       self.set_scp (scp, 'tdeg', [1,2], help='solve for low-order time polynomial')
       self.set_scp (scp, 'fdeg', [1,2], help='solve for low-order freq polynomial')
       self.set_scp (scp, 'ntime_subtile', [None], help='solve over all time cells')
@@ -104,9 +104,9 @@ class IMPJonesClump(JonesClump):
       ctrl = self.on_entry(self.initexec, prompt=prompt, help=help, **kwargs)
 
       # Menu option(s) (the menu itself is generated in .on_entry()):
-      # self.add_option('mode',['amphas','realimag'])
+      ## self.add_option('mode',['amphas','realimag'])
       # exp(-([f]*25/3e8)(1.1*([l]-{l0})**2 + 0.9*([m]-{m0})**2)
-      beamshape = 'exp(-([f]*25/3e8)(1.1*[l]**2 + 0.9*[m]**2))'       # no parameters
+      # beamshape = 'exp(-([f]*25/3e8)(1.1*[l]**2 + 0.9*[m]**2))'       # no parameters
       beamshape = '[l]+[m]'
       beamshape = '[l]*[t]+[m]*[f]+{p00}'
 
@@ -117,7 +117,7 @@ class IMPJonesClump(JonesClump):
       self.history('EJones validity area: '+str(self._validity))
 
       if self.execute_body():
-         # mode = self.getopt('mode')
+         ## mode = self.getopt('mode')
 
          # Create ParmClumps:
          EX = Expression.Expression(self.ns(), self.name()+'_X', beamshape)
@@ -136,26 +136,26 @@ class IMPJonesClump(JonesClump):
             pcY.replace_Expression_parms(EY)
             XX = EX.MeqFunctional(qnode=stub(qual)('X'), show=False)
             YY = EY.MeqFunctional(qnode=stub(qual)('Y'), show=False)
-            print str(XX),str(YY)
             self[i] = stub(qual) << Meq.Matrix22(Meq.ToComplex(XX,0),0,
                                                  0,Meq.ToComplex(YY,0))
-            print str(self[i])
  
          self.end_of_body(ctrl)
       return self.on_exit(ctrl)
 
-   #--------------------------------------------------------------------------
-
-   def jonesLM (self, L=None, M=None, LM=None, **kwargs):
-      """Create and return a new IMPJones for EJones in the given direction (L,M).
+   #----------------------------------------------------------------------------
+   
+   def make_JonesClump(self, L=None, M=None, LM=None, trace=False):
+      """Return a JonesClump that is valid for the given direction (L,M).
       It uses the (L,M)-dependent nodes that were defined in .initexec() above.
       The L,M coordinates may be numbers, or nodes, or a composer (L,M).
       NB: All image-plane IMPJoness have this function!
       NB: If the position (L,M) is outside the 'validity area' of the IMPJones,
-      return a basis IMPJones that represents the (relative?) 'complex gain' in
+      return a basic JonesClump that represents the (relative?) 'complex gain' in
       this direction.
       NB: Some internal bookkeeping avoids duplication of IMPJoness....
       """
+      
+      # Make sure of an extra_axes composer node (L,M)
       if LM:
          stub = self.unique_nodestub()  
          extra_axes = LM
@@ -164,36 +164,36 @@ class IMPJonesClump(JonesClump):
          extra_axes = stub('extra_axes') << Meq.Composer(L,M)
       elif isinstance(L,(float,int)) and isinstance(M,(float,int)):
          LMname = '(L='+str(L)+',M='+str(M)+')'
-         stub = self.unique_nodestub()(L=L)(M=M)  
+         stub = self.unique_nodestub()(LMname)  
          extra_axes = stub('extra_axes') << Meq.Composer(L,M)
       else:
          s = 'type of (L,M) not recocnised: '+str(type(L))+','+str(type(M)) 
          raise ValueError,s
 
-      # Check if a clump with this particular LMname already exists:
-      clump = self.IMPJoness(LMname)
-      if clump:
-         # The clump LMname has been defined already. Return it.
-         pass
-      elif not self.inside_validity_area(L,M):
+
+      # Create the output JonesClump:
+      if not self.inside_validity_area(L,M):
          # The given (L,M) may be outside the validity-area of the EJones:
          clump = self.outside_validity_area(LMname)
       else:
          # Create a IMPJones with MeqCompounder nodes for (L,M):
-         clump = IMPJones(self, name=LMname)
+         clump = JonesClump.JonesClump(self, name=LMname)
          common_axes = [hiid('L'),hiid('M')]
          for i,qual in enumerate(self.nodequals()):
             node = stub('compounder')(qual) << Meq.Compounder(extra_axes, self[i],
                                                               common_axes=common_axes)
-            self.core._orphans.append(node)           # temporary
+            # self.core._orphans.append(node)           # temporary
             clump[i] = node
-         self.IMPJoness(LMname, clump)              # keep for (possible) later use
 
-      # Always return a IMPJones for the given (L,M):
+      # Always return a JonesClump for the given (L,M):
+      if trace:
+         print '.make_JonesClump(',L,M,LM,') -> ',clump.oneliner()
       return clump
 
 
-   #----------------------------------------------------------------------------
+   #============================================================================
+   # Functions related to the validity-area of this image-plane effect
+   #============================================================================
 
    def inside_validity_area(self, L, M, trace=False):
       """Check whether (L,M) is outside the given validity-area of the EJones.
@@ -223,20 +223,23 @@ class IMPJonesClump(JonesClump):
       return a general IMPJones that solves for the complex gain
       in that direction (i.e. peeling if sources in the beam sidelobes).
       """
-      clump = JJones(self, name=LMname)
-      self.IMPJoness(LMname, clump)              # keep for (possible) later use
+      clump = JonesClump.JJones(self, name=LMname)
       self.history('outside validity area: '+clump.oneliner())
       return clump
 
 
 
 
+
+
+#********************************************************************************
+#********************************************************************************
 #********************************************************************************
 #********************************************************************************
 # EJones (primary beamshape):
 #********************************************************************************
 
-class EJones(IMPJones):
+class EJones(IMPJonesClump):
    """
    Derived class from IMPJones.
    """
@@ -245,25 +248,8 @@ class EJones(IMPJones):
       """
       Derived from class IMPJones.
       """
-      IMPJones.__init__(self, clump=clump, **kwargs)
+      IMPJonesClump.__init__(self, clump=clump, **kwargs)
       return None
-
-   #-------------------------------------------------------------------------
-
-   def get_solspec_choice_parameters(self):
-      """Re-implementation of the method in IMPJones. Specify the relevant
-      choice of solution-specification parameters that will be offered in the
-      .solspec() method of its ParmClump ojects.
-      Syntax: A list value replaces the entire choice, a number is just used as
-      the default, i.e. it is offered as the first value of the default choice list.
-      An object-specific help-text may also be offered here. 
-      """
-      scp = IMPJones.get_solspec_choice_parameters(self)
-      self.set_scp (scp, 'tdeg', [1,2], help='solve for low-order time polynomial')
-      self.set_scp (scp, 'fdeg', [1,2], help='solve for low-order freq polynomial')
-      self.set_scp (scp, 'ntime_subtile', [None], help='solve over all time cells')
-      self.set_scp (scp, 'nfreq_subtile', [None], help='solve over all freq cells')
-      return scp
 
 
    #==========================================================================
@@ -318,27 +304,34 @@ class EJones(IMPJones):
       return self.on_exit(ctrl)
 
 
+
+
+
+
+
 #********************************************************************************
 #********************************************************************************
 #********************************************************************************
-# IMPJones.IMPJones is a multiplication of JonesClumps that are valid for a
-# specific sky direction (L,M). It may contain uv-plane JonesClumps, and
-# the (L,M) versions of image-plane ones.  
 #********************************************************************************
 
-class IMPJones(IMPJonesClump):
+class FullJones(JonesClump.JonesClump):
    """
-   This IMPJones represents a sequence (multiplication) of JonesClumps
-   that represent uv-plane effects (for image-plane, see IMPJones.py)
-   For derived classes, just replace .initexec() with your own sequence of
-   uv-plane JonesClumps.
+   The FullJones class represents a sequence (multiplication) of all the
+   (uv-plane) JonesClumps and (image-plane) IMPJonesClumps that fully describe
+   the instrumental effects of a given radio telescope.
+   For derived classes (e.g. WSRTJones or VLAJones etc) , just reimplement
+   the method .define_jones_sequence() with one that contains another
+   sequence of JonesClumps and IMPJonesClumps.
    """
 
    def __init__(self, clump=None, **kwargs):
       """
-      Derived from class Clump.
+      Derived from class JonesClump.
       """
-      IMPJones.__init__(self, clump=clump, **kwargs)
+      self._IMPJonesClumps = []       # list of image-plane IMPJonesClumps
+      self._JonesClumps = []          # list of uv-plane JonesClumps
+      self._UVPJones = None           # JonesClump with multiplied uv-plane matrices
+      JonesClump.JonesClump.__init__(self, clump=clump, **kwargs)
       return None
 
 
@@ -347,11 +340,11 @@ class IMPJones(IMPJonesClump):
    def initexec (self, **kwargs):
       """
       Re-implemented version of the function in the baseclass (LeafClump).
-      NB: This function is generic. Classes derived from IMPJones should
-      just re-implement its method .make_jones_sequence() below.
+      NB: This function is generic. Classes derived from FullJones should
+      just re-implement its method .define_jones_sequence() below.
       See e.g. class WSRTJones.WSRTJones.
       """
-      prompt = 'IMPJones: '+str(self.name())
+      prompt = 'FullJones: '+str(self.name())
       help = """Specify a sequence (product) of zero or more Jones matrices.
       If zero are selected, a placeholder 2x2 (constant) unit-matrix is used.
       """
@@ -367,8 +360,7 @@ class IMPJones(IMPJonesClump):
                       prompt='.mep file')
       
       if self.execute_body(always=True):
-         (jj,notsel) = self.make_jones_sequence(**kwargs)
-         self.make_single_jones(jj, notsel)
+         self.define_jones_sequence(**kwargs)
          self.end_of_body(ctrl)
 
       return self.on_exit(ctrl)
@@ -376,64 +368,132 @@ class IMPJones(IMPJonesClump):
 
    #----------------------------------------------------------------------------
 
-   def make_jones_sequence(self, **kwargs):
-      """Function to be re-implemented in classes derived from IMPJones.
+   def define_jones_sequence(self, **kwargs):
+      """Function to be re-implemented in classes derived from UVPJones.
       See e.g. the class WSRTJones.WSRTJones, or VLAJones.VLAJones.
-      Called by .initexec() above (which is generic in IMPJones classes). 
       """
       # The number and names of the stations/antennas of the array are
       # specified by means of a list of station/antenna tree qualifiers.
-      treequals = range(8,10)+list('AB')                   # default: WSRT 
+      treequals = range(1,5) 
       self.datadesc(treequals=kwargs.get('treequals', treequals))
 
       # Make a list of JonesClumps in the correct order (of the M.E.).
-      # The ones selected (by the user) will be matrix-multiplied. 
-      jj = []                       # list of selected Jones matrices
-      notsel = []                   # list of not selected ones
-      IMPJones(self, name='AJones', **kwargs).append_if_selected(jj, notsel)
-      IMPJones(self, name='BJones', **kwargs).append_if_selected(jj, notsel)
-      IMPJones(self, name='CJones', **kwargs).append_if_selected(jj, notsel)
-      return (jj,notsel)
+      # The ones selected (by the user) will be matrix-multiplied.
+
+      # First the image-plane effects:
+      self._IMPJonesClumps.append(IMPJonesClump(self, name='XJones', **kwargs))
+      self._IMPJonesClumps.append(IMPJonesClump(self, name='YJones', **kwargs))
+      self._IMPJonesClumps.append(IMPJonesClump(self, name='ZJones', **kwargs))
+
+      # Then the uv-plane effects:
+      self._JonesClumps.append(JonesClump.JonesClump(self, name='AJones', **kwargs))
+      self._JonesClumps.append(JonesClump.JonesClump(self, name='BJones', **kwargs))
+      self._JonesClumps.append(JonesClump.JonesClump(self, name='CJones', **kwargs))
+
+      return True
 
 
    #============================================================================
    #============================================================================
 
-   def make_single_jones(self, jj, notsel=None):
+   def make_JonesClump(self, L=None, M=None, LM=None, trace=False):
       """Make a single Jones matrix from the ones collected in .initexex()
       This function is generic, i.e. it should NOT be re-implemented in
       classes that are derived from IMPJones. It contains more specialist code,
       which should not be seen by the uninitiated.
       """
-      if len(jj)==0:
-         self.history('empty Jones list: make a 2x2 complex unit matrix')
-         stub = self.unique_nodestub('unitmatrix')
-         for i,qual in enumerate(self.nodequals()):
-            self[i] = stub(qual) << Meq.Matrix22(complex(1,0), complex(0,0),
-                                                 complex(0,0), complex(1,0))
 
-      elif len(jj)==1:
-         # one only: copy its nodes
+      # First make a single uv-plane JonesClump:
+      self.make_UVPJones(trace=trace)
+
+      # Then get the list of L,M-manifestations of the selected
+      # (image-plane) IMPJonesClumps:
+      jj = []                                   # list of selected Jones matrices
+      notsel = []                               # list of not selected ones
+      for i,jc in enumerate(self._IMPJonesClumps):
+         if jc.is_selected():
+            jj.append(jc.make_JonesClump(L=L, M=M, LM=LM, trace=trace))
+         else:
+            notsel.append(jc)
+
+      # Make a single JonesClump that is valid for the given (L,M):
+      if len(jj)==0:                            # No IMPJonesClumps selected:
+         if not self._UVPJones==False:
+            clump = self._UVPJones              # use the uv-plane effects only
+         else:
+            self.history('empty Jones list: make a 2x2 complex unit matrix')
+            stub = self.unique_nodestub('unitmatrix')
+            for i,qual in enumerate(self.nodequals()):
+               self[i] = stub(qual) << Meq.Matrix22(complex(1,0), complex(0,0),
+                                                    complex(0,0), complex(1,0))
+
+      elif len(jj)==1 and self._UVPJones==False:
+         clump = self                           # use the one IMPJonesClump
+
+      else:                                     # MatrixMyultiply
+         clump = JonesClump.JonesClump(self, name='IMPJones')
+         stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
-            self[i] = jj[0][i]
+            cc = []
+            if self._UVPJones:
+               cc.append(self._UVPJones[i])     # the uv-plane jones
+            for jones in jj:
+               cc.append(jones[i])              # the image-plane jones
+            clump[i] = stub(qual) << Meq.MatrixMultiply(*cc)
+         self. check_polarization(jj, trace=trace)
+
+      # Almost finished:
+      self.deal_with_notsel(notsel, trace=trace) 
+      return clump
       
-      else:
-         # more than one: MatrixMyultiply
+
+   #----------------------------------------------------------------------------
+
+   def make_UVPJones(self, trace=False):
+      """Make a uv-plane JonesClump by matrix-multiplication of the (selected)
+      uv-plane JonesClumps in the list self._JonesClumps.
+      Put the result in self._UVPJones (i.e. do this only once).
+      If none selected, self._UVPJones = False (...?)
+      """
+      if not self._UVPJones==None:
+         return True                               # do only once
+         
+      # First get the list of selected (uv-plane) JonesClumps:
+      jj = []                                   # list of selected Jones matrices
+      notsel = []                               # list of not selected ones
+      for i,jc in enumerate(self._JonesClumps):
+         if jc.is_selected():
+            jj.append(jc)
+         else:
+            notsel.append(jc)
+
+      if len(jj)==0:                            # None selected: 
+         self._UVPJones = False
+         self.history('no uv-plane Jones matrices selected')
+
+      elif len(jj)==1:                          # only one selected: use itself
+         self._UVPJones = self
+      
+      else:                                     # more than one: MatrixMyultiply
+         clump = JonesClump.JonesClump(self, name='UVPJones')
          stub = self.unique_nodestub()
          for i,qual in enumerate(self.nodequals()):
             cc = []
             for jones in jj:
                cc.append(jones[i])
-            self[i] = stub(qual) << Meq.MatrixMultiply(*cc)
-         
-      # Connect orphans, stubtree etc, and add the ParmClumps to
-      # its own list of ParmClumps (self.make_ParmClumps()).
-      for jones in jj:
-         # self.history('include Jones: '+jones.oneliner())
-         # jones.show('make_single_jones()')
-         self.connect_grafted_clump(jones)
+            clump[i] = stub(qual) << Meq.MatrixMultiply(*cc)
+         self. check_polarization(jj, trace=trace)
+         self._UVPJones = clump
 
-      # Check the polarization representations (linear/circular/None):
+      # Almost finished:
+      self.deal_with_notsel(notsel, trace=False) 
+      return True
+
+   #---------------------------------------------------------------------
+         
+   def check_polarization(self, jj, trace=False): 
+      """Check the polarization representations (linear/circular/None)
+      """
       self._polrep = None                 # polrep of combined Jones
       for jones in jj:
          pol = jones.polrep()
@@ -447,16 +507,22 @@ class IMPJones(IMPJonesClump):
          elif not pol==self._polrep:      # not compatible
             print jones.oneliner()
             self.ERROR('Jones polreps are incompatible: '+str(pol)+ '!= '+str(self.polrep()))
+      return True
+   
 
-      # Deal with the Jones matrices that were NOT selected:
+   #--------------------------------------------------------------------
+   
+   def deal_with_notsel(self, notsel, trace=False): 
+      """Deal with the Jones matrices that were NOT selected"""
       if isinstance(notsel,list):
          for jones in notsel:
             # print '- not selected:',jones.oneliner()
             jones.connect_loose_ends (self, full=False)
-
-      # Finished:
       return True
       
+
+
+
 
 
 
@@ -476,8 +542,8 @@ def do_define_forest (ns, TCM):
                                   prompt=__file__.split('/')[-1],
                                   help=__file__)
    TCM.add_option('jones',
-                   ['EJones',
-                   'IMPJones'],
+                   ['IMPJonesClump','EJones',
+                   'FullJones'],
                   prompt='test Jones:')
    TCM.add_option('simulate',False)
 
@@ -485,12 +551,16 @@ def do_define_forest (ns, TCM):
    if TCM.submenu_is_selected():
       jones = TCM.getopt('jones', submenu)
       simulate = TCM.getopt('simulate', submenu)
-      if jones=='EJones':
+      if jones=='IMPJonesClump':
+         clump = IMPJonesClump(ns=ns, TCM=TCM, simulate=simulate)
+         c01 = clump.jonesLM(0,1)
+         # c11 = clump.jonesLM(-1,1)
+      elif jones=='EJones':
          clump = EJones(ns=ns, TCM=TCM, simulate=simulate)
          c01 = clump.jonesLM(0,1)
          c11 = clump.jonesLM(-1,1)
       else:
-         clump = IMPJones(ns=ns, TCM=TCM, simulate=simulate)
+         clump = FullJones(ns=ns, TCM=TCM, simulate=simulate)
          
       solvable = clump.get_solvable(trace=True)
       # clump = CorruptClump.Scatter(clump).daisy_chain()
@@ -519,8 +589,13 @@ if __name__ == '__main__':
    simulate = False
    # simulate = True
 
-   if 0:
-      clump = IMPJones(simulate=simulate, trace=True)
+   if 1:
+      clump = IMPJonesClump(simulate=simulate, trace=True)
+      if True:
+         c01 = clump.make_JonesClump(0,1)
+         c01.show('c01', full=True)
+         # c01 = clump.jonesLM(-1,1)
+         # c01 = clump.jonesLM(0,1)
 
    if 0:
       clump = EJones(simulate=simulate, trace=True)
@@ -529,10 +604,13 @@ if __name__ == '__main__':
          c01 = clump.jonesLM(-1,1)
          c01 = clump.jonesLM(0,1)
 
+   if 0:
+      clump = FullJones(simulate=simulate, trace=True)
+
    if 1:
       clump.show('creation', full=True)
 
-   if 1:
+   if 0:
       solvable = clump.get_solvable(trace=True)
 
    if 0:

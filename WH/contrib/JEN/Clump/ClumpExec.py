@@ -63,7 +63,7 @@ TCM = Clump.TOM.TDLOptionManager(__file__)
 cc = ['Clump','templateClump','CorruptClump',
       'templateLeafClump','ParmClump','TwigClump',
       'SolverUnit',
-      'JonesClump','WSRTJones',
+      'JonesClump','IMPJones','WSRTJones',
       'VisClump','SpigotClump','VisuVisClump']
 TCM.add_option('ClumpClass',cc)
 
@@ -88,6 +88,9 @@ elif cc=='SolverUnit':
 elif cc=='JonesClump':
    # The base-class has all the specific functions, e.g. .visualize()
    from Timba.Contrib.JEN.Clump import JonesClump as ClumpClass
+elif cc=='IMPJones':
+   # Image-plane effects and FullJones
+   from Timba.Contrib.JEN.Clump import IMPJones as ClumpClass
 elif cc=='WSRTJones':
    # Contains specific WSRT Jones matrices. 
    from Timba.Contrib.JEN.Clump import WSRTJones as ClumpClass
