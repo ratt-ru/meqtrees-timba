@@ -40,8 +40,6 @@ from Timba.GUI import browsers
 
 from Timba.ParmDB import *
 
-from Timba.Contrib.MXM.TDL_Funklet import *
-
 from qt import *
 from qttable import *
 import os

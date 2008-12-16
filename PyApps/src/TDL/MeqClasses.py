@@ -28,7 +28,6 @@ from Timba import dmi
 from Timba.TDL import TDLimpl
 from TDLimpl import *
 from Timba.Meq import meq
-from Timba.Contrib.MXM import TDL_Funklet  # needed for type Funklet.... 
 import sys
 import traceback
 from Timba.array import *
@@ -57,8 +56,8 @@ class _MeqGen (TDLimpl.ClassGen):
     
   def Parm (self,funklet=None,**kw):
     if funklet is not None:
-      if isinstance(funklet,TDL_Funklet.Funklet):
-        funklet = funklet.get_meqfunklet();
+#      if isinstance(funklet,TDL_Funklet.Funklet):
+#        funklet = funklet.get_meqfunklet();
       if isinstance(funklet,dmi.dmi_type('MeqFunklet')):
         #        kw['default_funklet'] = funklet;
         kw['init_funklet'] = funklet;

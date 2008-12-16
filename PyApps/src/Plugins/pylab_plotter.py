@@ -132,8 +132,8 @@ if has_pylab:
    def make_plot(self, plot_defs):
      """Make a pylab plot from all items in plot_defs.
      """
-     from Timba.Contrib.JEN.pylab import PyNodePlot
-     PyNodePlot.make_pylab_figure(plot_defs, figob=self.fig)
+#     from Timba.Contrib.JEN.pylab import PyNodePlot
+#     PyNodePlot.make_pylab_figure(plot_defs, figob=self.fig)
      return None
 
 #========================================================================
