@@ -549,6 +549,7 @@ def do_define_forest (ns, TCM):
                                   help=__file__)
    TCM.add_option('test_class',['ParmClump',
                                 'PListClump',
+                                'PExpressionClump',
                                 'PFunctionalClump'],
                                 prompt='class to be tested:')
 
@@ -565,7 +566,21 @@ def do_define_forest (ns, TCM):
             node = ns.ddd(i) << Meq.Parm(i)
             cc.append(node)
          clump = PListClump(cc, name='polyparm',
-                            ns=ns, TCM=TCM, trace=True)
+                            ns=ns, TCM=TCM,
+                            trace=True)
+
+      elif test_class=='PExpressionClump':
+         expr = '{p0}+{p1}'
+         # expr = '7+{p0}+{p1}-9'
+         expr = '{p0}+{p1}*[t]+[f]'
+         E = Expression.Expression(ns, 'test', expr)
+         clump = ParmClump(Expression=E,
+                           # simulate=True,
+                           ns=ns, TCM=TCM,
+                           trace=True)
+         clump.replace_Expression_parms (E, trace=True)
+         E.display('after')                         # NB: .display() locks Expression
+
 
       elif test_class=='PFunctionalClump':
          expr = '{p0}+{p1}'
@@ -576,7 +591,8 @@ def do_define_forest (ns, TCM):
                                   varvals=dict(x=range(5), y=range(5)),
                                   simulate=simulate,
                                   # simexpr=simexpr,                   # override default
-                                  ns=ns, TCM=TCM, trace=True)
+                                  ns=ns, TCM=TCM,
+                                  trace=True)
 
       else:
          simexpr = '[t]*{1~0.1}+[f]*{2~0.1}'
@@ -631,7 +647,6 @@ if __name__ == '__main__':
                         trace=True)
 
    if 0:
-      # c1 = Clump.LeafClump(treequals=range(5))
       expr = '{p0}+{p1}'
       expr = '7+{p0}+{p1}-9'
       expr = '{p0}+{p1}*[x]+[y]'
@@ -641,7 +656,6 @@ if __name__ == '__main__':
                                trace=True)
 
    if 1:
-      # c1 = Clump.LeafClump(treequals=range(5))
       expr = '{p0}+{p1}'
       # expr = '7+{p0}+{p1}-9'
       expr = '{p0}+{p1}*[t]+[f]'
@@ -650,7 +664,7 @@ if __name__ == '__main__':
                         # simulate=True,
                         trace=True)
       clump.replace_Expression_parms (E, trace=True)
-      E.display('after')             # .display locks Expression
+      E.display('after')                # NB: .display() locks Expression!
 
 
    if 0:

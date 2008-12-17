@@ -554,6 +554,7 @@ def do_define_forest (ns, TCM):
       if jones=='IMPJonesClump':
          clump = IMPJonesClump(ns=ns, TCM=TCM, simulate=simulate)
          c01 = clump.jonesLM(0,1)
+         c01.show('c01', full=True)
          # c11 = clump.jonesLM(-1,1)
       elif jones=='EJones':
          clump = EJones(ns=ns, TCM=TCM, simulate=simulate)
@@ -593,7 +594,7 @@ if __name__ == '__main__':
       clump = IMPJonesClump(simulate=simulate, trace=True)
       if True:
          c01 = clump.make_JonesClump(0,1)
-         c01.show('c01', full=True)
+         # c01.show('c01', full=True)
          # c01 = clump.jonesLM(-1,1)
          # c01 = clump.jonesLM(0,1)
 
