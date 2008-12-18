@@ -1,5 +1,0 @@
-#!/bin/sh
-# 2006.09.21
-
-glish FILES_GLISH/view_image.g FILES_MS/WSRT_MOD1.MS.IM/image 512 1.0 100 0.10 0.05 -0.1 0.1 0.0 1
-

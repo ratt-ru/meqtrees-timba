@@ -1,9 +1,0 @@
-[/home/oms/Workshop2007/Intro2/demo3-mod-vis.py]
-tile_size = 30
-
-[/home/oms/Workshop2007/Intro2/demo1-sinks.py]
-tile_size = 5
-
-[/home/oms/Workshop2007/Intro2/demo2-spigots.py]
-tile_size = 10
-

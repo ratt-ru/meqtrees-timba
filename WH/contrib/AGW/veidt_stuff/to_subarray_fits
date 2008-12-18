@@ -1,8 +1,0 @@
-./create_sub_array.py horn_array_grid_with_struts_y_pol.grd cut_array_ys_ 0 0 0 1
-./create_sub_array.py horn_array_grid_with_struts_y_pol.grd cut_array_ys_ 0 0 0 2
-./create_sub_array.py horn_array_grid_with_struts_y_pol.grd cut_array_ys_ 0 0 0 3
-./create_sub_array.py horn_array_grid_with_struts_y_pol.grd cut_array_ys_ 0 0 0 4
-./create_sub_array.py horn_array_grid_with_struts_x_pol.grd cut_array_xs_ 0 0 0 1
-./create_sub_array.py horn_array_grid_with_struts_x_pol.grd cut_array_xs_ 0 0 0 2
-./create_sub_array.py horn_array_grid_with_struts_x_pol.grd cut_array_xs_ 0 0 0 3
-./create_sub_array.py horn_array_grid_with_struts_x_pol.grd cut_array_xs_ 0 0 0 4

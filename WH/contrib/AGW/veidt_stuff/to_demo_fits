@@ -1,8 +1,0 @@
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_y_pol.grd horn_array_ys_ 0 0 0 1
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_y_pol.grd horn_array_ys_ 0 0 0 2
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_y_pol.grd horn_array_ys_ 0 0 0 3
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_y_pol.grd horn_array_ys_ 0 0 0 4
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_x_pol.grd horn_array_xs_ 0 0 0 1
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_x_pol.grd horn_array_xs_ 0 0 0 2
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_x_pol.grd horn_array_xs_ 0 0 0 3
-./grasp2fits_cmplx_multi.py horn_array_grid_with_struts_x_pol.grd horn_array_xs_ 0 0 0 4
