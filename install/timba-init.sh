@@ -56,6 +56,12 @@ else
   if [ "$PRE_TIMBA_PYTHONPATH" == "" ]; then
     export PRE_TIMBA_PYTHONPATH=$PYTHONPATH
   fi
+  if ! echo $PYTHONPATH|grep Cattery >/dev/null; then
+    export CATTERYPATH=$HOME/Cattery
+    echo "using Cattery $CATTERYPATH"
+  else
+    unset $CATTERYPATH
+  fi
 
   timba-setup()
   {
@@ -97,7 +103,7 @@ else
       fi
     fi
     export PATH=$TIMBA_PATH/install/$version/bin:$PRE_TIMBA_PATH
-    export PYTHONPATH=$TIMBA_PATH/install/$version/libexec/python:.:$PRE_TIMBA_PYTHONPATH
+    export PYTHONPATH=$CATTERYPATH:$TIMBA_PATH/install/$version/libexec/python:.:$PRE_TIMBA_PYTHONPATH
     export LD_LIBRARY_PATH=$TIMBA_PATH/install/$version/lib:$PRE_TIMBA_LD_LIBRARY_PATH
     echo "Using MeqTree version $TIMBA_PATH/install/$version"
     export TIMBA_CURRENT_VERSION="$version"

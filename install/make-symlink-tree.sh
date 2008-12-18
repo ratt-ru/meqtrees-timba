@@ -90,22 +90,21 @@ cd ../libexec
 ln-s ../../../TimBase/build/$flavour/src/gprof-helper.so
 makedir python
 cd python
-ln-s ../../../../FW/Meow
-ln-s ../../../../FW/Siamese
-ln-s ../../../../FW/Calico
-ln-s ../../../../FW/Ionosphere
+#ln-s ../../../../FW/Meow
+#ln-s ../../../../FW/Siamese
+#ln-s ../../../../FW/Calico
+#ln-s ../../../../FW/Ionosphere
 ln-s ../../../../PyApps/src/Purr
 ln-s ../../../../PyApps/src/meqbrowser.py
 makedir Timba
 cd Timba
 ln-s ../../../../../PyApps/src/Apps
-ln-s ../../../../../WH/contrib Contrib
+ln-s ~/Waterhole/contrib Contrib
 ln-s ../../../../../OCTOPython/src/dmi.py
 ln-s ../../../../../OCTOPython/src/dmi_repr.py
 ln-s ../../../../../PyApps/src/Grid
 ln-s ../../../../../PyApps/src/GUI
 ln-s ../../../../../OCTOPython/src/__init__.py
-ln-s ../../../../../FW/LSM
 ln-s ../../../../../PyApps/src/Meq
 ln-s ../../../../../MeqServer/src/meqkernel.py
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so
