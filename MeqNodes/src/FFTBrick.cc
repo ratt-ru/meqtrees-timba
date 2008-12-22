@@ -173,9 +173,13 @@ int FFTBrick::getResult (Result::Ref &resref,
 
   const double du = 1.0 / dl / nu;
   const double dv = 1.0 / dm / nv;
-
+/*
+  // previous u domain
   const double umax = (nu-nu1+0.5)*du;
   const double umin = -(nu1-0.5)*du;
+*/
+  const double umax = (nu-nu1+1.5)*du;
+  const double umin = -(nu1-1.5)*du;
 
   const double vmax = (nv-nv1+0.5)*dv;
   const double vmin = -(nv1-0.5)*dv;
@@ -296,24 +300,44 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
       // must be true since all other axes have the same shape
       const blitz::Array<double,2> in_arr = input_slicer();
       blitz::Array<dcomplex,2> pad_arr = padded_input_slicer();
-      copyDoubleToComplex(pad_arr,makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1),
-            in_arr,makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));
-      copyDoubleToComplex(pad_arr,makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1), 
-            in_arr,makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
-      copyDoubleToComplex(pad_arr,makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1),
-            in_arr,makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
-      copyDoubleToComplex(pad_arr,makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1),
-            in_arr,makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
-/*      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
-          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1))+0.i;
-      pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1)) = 
-          in_arr(makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1))+0.i;
-      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
-          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2))+0.i;
-      pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1)) = 
-          in_arr(makeLoRange(0,nl1-2),makeLoRange(0,nm1-2))+0.i;*/
+/* AGW quadrant flip - part 1 */
+      uint j = nl1-2;
+      for( uint i=0; i<nl-nl1+1; i++ ){
+        copyDoubleToComplex(pad_arr,makeLoRange(j,j),makeLoRange(0,nm-nm1),
+            in_arr,makeLoRange(i,i),makeLoRange(nm1-1,nm-1));
+        copyDoubleToComplex(pad_arr,makeLoRange(j,j),makeLoRange(nv-nm1+1,nv-1),
+            in_arr,makeLoRange(i,i),makeLoRange(0,nm1-2));
+        j = j - 1;
+      }
+
+/*
+   // previous FFTBrick quadrant flip
+   copyDoubleToComplex(pad_arr,makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1), 
+        in_arr,makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
+   copyDoubleToComplex(pad_arr,makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1),
+        in_arr,makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
+*/
+
+/* AGW quadrant flip - part 2 */
+      j = nu-1;
+      for( uint i=nl1-1; i<nl; i++ ) {
+        copyDoubleToComplex(pad_arr,makeLoRange(j,j),makeLoRange(0,nm-nm1), 
+            in_arr,makeLoRange(i,i),makeLoRange(nm1-1,nm-1));
+        copyDoubleToComplex(pad_arr,makeLoRange(j,j),makeLoRange(nv-nm1+1,nv-1),
+            in_arr,makeLoRange(i,i),makeLoRange(0,nm1-2));
+        j = j - 1;
+      }
+
+/*
+   // previous FFTBrick quadrant flip
+   copyDoubleToComplex(pad_arr,makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1),
+        in_arr,makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));
+   copyDoubleToComplex(pad_arr,makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1),
+        in_arr,makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
+*/
     };
   }
+
   else // complex input
   {
     ConstVellsSlicer<dcomplex,2> input_slicer(input_vells,_inaxis0,_inaxis1);
@@ -328,15 +352,42 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
       //aa=in_arr(257,255);bb=in_arr(257,257);cc=in_arr(255,257);
       //std::cout<<"Array values\t"<<__real__ aa<<"\t"<<__real__ bb
       //     <<"\t"<<__real__ cc<<"\n"<<std::flush;
-  
-      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
-          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));    
+
+/* AGW quadrant flip - part 1 */
+      uint j = nl1-2;
+      for( uint i=0; i<nl-nl1+1; i++ ){
+        pad_arr(makeLoRange(j,j),makeLoRange(0,nm-nm1)) =
+            in_arr(makeLoRange(i,i),makeLoRange(nm1-1,nm-1));
+        pad_arr(makeLoRange(j,j),makeLoRange(nv-nm1+1,nv-1)) =
+            in_arr(makeLoRange(i,i),makeLoRange(0,nm1-2));
+        j = j - 1;
+      }
+
+/*
+      // previous version
       pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(0,nm-nm1)) = 
           in_arr(makeLoRange(0,nl1-2),makeLoRange(nm1-1,nm-1));
-      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
-          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
       pad_arr(makeLoRange(nu-nl1+1,nu-1),makeLoRange(nv-nm1+1,nv-1)) = 
           in_arr(makeLoRange(0,nl1-2),makeLoRange(0,nm1-2));
+*/
+
+/* AGW quadrant flip - part 2 */
+      j = nu-1;
+      for( uint i=nl1-1; i<nl; i++ ) {
+        pad_arr(makeLoRange(j,j),makeLoRange(0,nm-nm1)) = 
+            in_arr(makeLoRange(i,i),makeLoRange(nm1-1,nm-1));
+        pad_arr(makeLoRange(j,j),makeLoRange(nv-nm1+1,nv-1)) =
+            in_arr(makeLoRange(i,i),makeLoRange(0,nm1-2));
+        j = j - 1;
+      }
+
+/*
+      // previous version
+      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(0,nm-nm1)) = 
+          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(nm1-1,nm-1));    
+      pad_arr(makeLoRange(0,nl-nl1),makeLoRange(nv-nm1+1,nv-1)) = 
+          in_arr(makeLoRange(nl1-1,nl-1),makeLoRange(0,nm1-2));
+*/
     };
   }
   // Prepare the FFT
@@ -377,6 +428,8 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
   // define & execute FFT
   fftw_plan p;
   p = fftw_plan_guru_dft(2,fft_dims,num_other_dims,other_dims,pdata_in,pdata_out,FFTW_FORWARD,FFTW_ESTIMATE);
+
+// p = fftw_plan_dft_2d(nu, nv, pdata_in,pdata_out,FFTW_FORWARD,FFTW_ESTIMATE);
   fftw_execute(p);
   fftw_destroy_plan(p);
   
@@ -391,16 +444,37 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
     Assert(result_slicer.valid()); // must be true since all other axes have the same shape
     const blitz::Array<dcomplex,2> fft_arr = fft_slicer();
     blitz::Array<dcomplex,2> out_arr = result_slicer();
-    // reshuffle fft data into output array
-    out_arr(makeLoRange(0,nu1-2),makeLoRange(0,nv1-2)) = 
-        fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(nv-nv1+1,nv-1));
-    out_arr(makeLoRange(0,nu1-2),makeLoRange(nv1-1,nv-1)) = 
-        fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(0,nv-nv1));
-    out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(0,nv1-2)) = 
-        fft_arr(makeLoRange(0,nu-nu1),makeLoRange(nv-nv1+1,nv-1));
-    out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(nv1-1,nv-1)) = 
-        fft_arr(makeLoRange(0,nu-nu1),makeLoRange(0,nv-nv1));
 
+    // AGW reshuffle fft data into output array
+    uint j = nu1-2;
+    for( uint i=0; i<nu-nu1+1; i++ ){
+      out_arr(makeLoRange(j,j),makeLoRange(0,nv1-2)) = 
+        fft_arr(makeLoRange(i,i),makeLoRange(nv-nv1+1,nv-1));
+      out_arr(makeLoRange(j,j),makeLoRange(nv1-1,nv-1)) = 
+        fft_arr(makeLoRange(i,i),makeLoRange(0,nv-nv1));
+      j = j - 1;
+    }
+
+    j = nu-1;
+    for( uint i=nu-nu1+1; i<nu; i++ ) {
+      out_arr(makeLoRange(j,j),makeLoRange(0,nv1-2)) = 
+        fft_arr(makeLoRange(i,i),makeLoRange(nv-nv1+1,nv-1));
+      out_arr(makeLoRange(j,j),makeLoRange(nv1-1,nv-1)) = 
+        fft_arr(makeLoRange(i,i),makeLoRange(0,nv-nv1));
+      j = j - 1;
+    }
+/*
+    // previous FFTBrick reshuffle
+    // reshuffle fft data into output array
+    out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(0,nv1-2)) =
+        fft_arr(makeLoRange(0,nu-nu1),makeLoRange(nv-nv1+1,nv-1));
+    out_arr(makeLoRange(nu1-1,nu-1),makeLoRange(nv1-1,nv-1)) =
+        fft_arr(makeLoRange(0,nu-nu1),makeLoRange(0,nv-nv1));
+    out_arr(makeLoRange(0,nu1-2),makeLoRange(0,nv1-2)) =
+        fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(nv-nv1+1,nv-1));
+    out_arr(makeLoRange(0,nu1-2),makeLoRange(nv1-1,nv-1)) =
+        fft_arr(makeLoRange(nu-nu1+1,nu-1),makeLoRange(0,nv-nv1));
+*/
   }
   }
 }
