@@ -1317,26 +1317,29 @@ class ChartPlot(QWidget):
     self._array = numpy.zeros((128,), numpy.float32)
     self.startTimer(time)
 
+
   def timerEvent(self, e):
-#   self.counter = 1.0 + 1 * random.random()
-#   self.updateEvent(1, self.counter, 'xyz')
-#   self.counter = 1.0 + 1 * random.random()
-#   self.updateEvent(3, self.counter, 'xyz')
-#   self.counter = 1.0 + 1 * random.random()
-#   self.updateEvent(9, self.counter, 'xyz')
+    self.counter = self.counter + 1
+    test_array = numpy.zeros((128,), numpy.float32)
+    data_dict = {}
+    data_dict['source'] = 'abc'
+    data_dict['sequence_number'] = self.counter
+    data_dict['value'] = test_array
 
+    for i in range(test_array.shape[0]):
+      test_array[i] = 0.05 * random.random()
+    data_dict['channel'] = 1
+    self.updateEvent(data_dict)
 
-    for i in range(self._array.shape[0]):
-      self._array[i] = 0.05 * random.random()
-    self.updateEvent(1, self._array, 'spectra')
+    for i in range(test_array.shape[0]):
+      test_array[i] = 3 * random.random()
+    data_dict['channel'] = 3
+    self.updateEvent(data_dict)
 
-    for i in range(self._array.shape[0]):
-      self._array[i] = 3 * random.random()
-    self.updateEvent(3, self._array, 'spectra')
-
-    for i in range(self._array.shape[0]):
-      self._array[i] = 11 * random.random()
-    self.updateEvent(11, self._array, 'spectra')
+    for i in range(test_array.shape[0]):
+      test_array[i] = 11 * random.random()
+    data_dict['channel'] = 11
+    self.updateEvent(data_dict)
 
     return
 
