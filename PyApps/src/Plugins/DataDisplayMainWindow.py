@@ -24,14 +24,11 @@
 
 import sys
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
-import chartplot
 import random
 import traceback
 import numpy
+
+import chartplot
 
 class DisplayMainWindow(QMainWindow):
   """ This class enables the display of a collection
