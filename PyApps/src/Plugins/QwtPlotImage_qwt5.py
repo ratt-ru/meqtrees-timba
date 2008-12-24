@@ -42,8 +42,8 @@ import numpy
 import math
 
 #from UVPAxis import *
-#from ImageScaler import *
 #from ComplexColorMap import *
+from ImageScaler import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='QwtPlotImage');
