@@ -42,9 +42,9 @@ except:
 import numpy
 import math
 
-from UVPAxis import *
+#from UVPAxis import *
+#from ComplexColorMap import *
 from ImageScaler import *
-from ComplexColorMap import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='QwtPlotImage');
@@ -668,9 +668,10 @@ class QwtImagePlot(QwtPlot):
             else:
                 return
 
-        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-        self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-        self.replot()
+        if Qt.LeftButton == e.button() or Qt.RightButton == e.button():
+          self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+          self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+          self.replot()
 
     # onMouseReleased()
 
@@ -688,7 +689,7 @@ class QwtImagePlot(QwtPlot):
 def make():
     demo = QwtImagePlot()
     demo.resize(500, 300)
-    demo.start_timer(100)
+#   demo.start_timer(500)
     demo.show()
     return demo
 
