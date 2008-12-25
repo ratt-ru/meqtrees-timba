@@ -34,7 +34,7 @@ import numpy
 import math
 
 from UVPAxis import *
-from ComplexColorMap import *
+#from ComplexColorMap import *
 from ComplexScaleDraw import *
 from QwtPlotCurveSizes import *
 from QwtPlotImage import *
