@@ -136,7 +136,6 @@ def main(args):
     demo = QwtPlot()
     complex_divider = 50.0
 
-# the following two lines work fine in Qwt4
     myXScale = ComplexScaleDraw(start_value=0.0, end_value=complex_divider)
     demo.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
 
