@@ -345,6 +345,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.spy = Spy(self.canvas())
         self.prev_xpos = None
         self.prev_ypos = None
+        self.zoom_outline = Qwt.QwtPlotCurve()
 
 #       self.connect(self, SIGNAL("legendClicked(QwtPlotItem*)"),
 #                    self.toggleVisibility)
@@ -1781,11 +1782,35 @@ class QwtImageDisplay(Qwt.QwtPlot):
         y = y + self.y_marker_step
         self.setMarkerYPos(mY, y)
 
+    def closestCurve(self, pos):
+        """ from Gerard Vermeulen's EventFilterDemo.py example """
+        found, distance, point = None, 1e100, -1
+
+        for curve in self._plotter.itemList():
+            if isinstance(curve, Qwt.QwtPlotCurve):
+                i, d = curve.closestPoint(pos)
+                if d < distance:
+                    found = curve 
+                    point = i
+                    distance = d
+    
+        self.__showCursor(False)
+        self.__selectedCurve = None
+        self.__selectedPoint = -1
+
+        if found and distance < 10:
+            self.__selectedCurve = found
+            self.__selectedPoint = point
+            self.__showCursor(True)
+
+    # closestCurve
+
     def setPosition(self, position):
       """ callback to handle MouseMoved event """ 
       if self.scalar_display:
         return
 
+      self.position = position
       xpos = position.x()
       ypos = position.y()
       self.xpos = self.invTransform(Qwt.QwtPlot.xBottom, xpos)
@@ -1798,7 +1823,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
       try:
         self.getBounds()
-        if xPos < self.xlb-10 or xPos > self.xhb+10 or yPos > self.ylb+10 or yPos < self.yhb-10:
+        if xpos < self.xlb-10 or xpos > self.xhb+10 or ypos > self.ylb+10 or ypos < self.yhb-10:
           if self.mouse_pressed and not self.display_solution_distances:
 #           self.enableOutline(0)
             self.mouse_pressed = False
@@ -1865,21 +1890,19 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
-#       self.enableOutline(0)    # make sure outline is disabled by default
         if Qt.LeftButton == e.button():
+
             message = None
             self.mouse_pressed = True
             if self.is_vector: 
               if self.display_solution_distances:
             # Python semantics: self.pos = e.pos() does not work; force a copy
-                  xPos = e.pos().x()
-                  yPos = e.pos().y()
                   _dprint(2,'xPos yPos ', xPos, ' ', yPos);
 # We get information about the qwt plot curve that is
 # closest to the location of this mouse pressed event.
 # We are interested in the nearest curve_number and the index, or
 # sequence number of the nearest point in that curve.
-                  self.array_curve_number, distance, xVal, yVal, self.array_index = self.closestCurve(xPos, yPos)
+                  self.array_curve_number, distance, xVal, yVal, self.array_index = self.closestCurve(self.xpos, self.ypos)
                   _dprint(2,' self.array_curve_number, distance, xVal, yVal, aelf.array_index ', self.array_curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', self.array_index);
                   shape = self.metrics_rank.shape
                   array_curve_number = self.array_curve_number - 1
@@ -1901,26 +1924,24 @@ class QwtImageDisplay(Qwt.QwtPlot):
                     message = temp_str + temp_str1
               else:
             # Python semantics: self.pos = e.pos() does not work; force a copy
-                xPos = e.pos().x()
-                yPos = e.pos().y()
-                _dprint(2,'xPos yPos ', xPos, ' ', yPos);
+                _dprint(2,'xPos yPos ', self.xpos, ' ', self.ypos);
 # We get information about the qwt plot curve that is
 # closest to the location of this mouse pressed event.
 # We are interested in the nearest curve_number and the index, or
 # sequence number of the nearest point in that curve.
-                curve_number, distance, xVal, yVal, index = self.closestCurve(xPos, yPos)
+                curve_number, distance, xVal, yVal, index = self.closestCurve(self.xpos, self.ypos)
                 _dprint(2,' curve_number, distance, xVal, yVal, index ', curve_number, ' ', distance,' ', xVal, ' ', yVal, ' ', index);
                 message = self.reportCoordinates(xVal, yVal)
             else:
-              message = self.formatCoordinates(e.pos().x(), e.pos().y())
+              message = self.formatCoordinates(self.xpos, self.ypos)
             if not message is None:
-              self.infoDisplay(message, e.pos().x(), e.pos().y())
+              self.infoDisplay(message, self.xpos, self.ypos)
             if self.zooming:
-              self.xpos = e.pos().x()
-              self.ypos = e.pos().y()
-#             self.enableOutline(1)
-#             self.setOutlinePen(QPen(Qt.black))
-#             self.setOutlineStyle(Qwt.Rect)
+              self.press_xpos = self.xpos
+              self.press_ypos = self.ypos
+              self.xzoom_loc = [self.press_xpos]
+              self.yzoom_loc = [self.press_ypos]
+              self.zoom_outline.attach(self)
               if self.zoomStack == []:
                 self.zoomState = (
                     self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
@@ -1938,29 +1959,25 @@ class QwtImageDisplay(Qwt.QwtPlot):
             if self.active_image:
               if self.scalar_display:
                 return
-              xpos = e.pos().x()
-              ypos = e.pos().y()
-              xpos = self.invTransform(Qwt.QwtPlot.xBottom, xpos)
-              ypos = self.invTransform(Qwt.QwtPlot.yLeft, ypos)
-              self.x_arrayloc = ypos
-              self.y_arrayloc = xpos
+              self.x_arrayloc = self.ypos
+              self.y_arrayloc = self.xpos
               if self._vells_plot:
                 if not self.first_axis_inc is None:
                   if self.axes_rotate:
-                    xpos = int((self.vells_axis_parms[self.x_parm][1]- xpos) / self.first_axis_inc)
+                    xpos = int((self.vells_axis_parms[self.x_parm][1]- self.xpos) / self.first_axis_inc)
                   else:
-                    xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
+                    xpos = int((self.xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
                 else:
 # this inversion does not seem to work properly for scaled
 # (vellsets) data, so use the above if possible
-                  xpos = self.plotImage.xMap.limTransform(xpos)
+                  xpos = self.plotImage.xMap.limTransform(self.xpos)
                 if not self.second_axis_inc is None:
-                  ypos = int((ypos - self.vells_axis_parms[self.y_parm][0]) / self.second_axis_inc)
+                  ypos = int((self.ypos - self.vells_axis_parms[self.y_parm][0]) / self.second_axis_inc)
                 else:
-                  ypos = self.plotImage.yMap.limTransform(ypos)
+                  ypos = self.plotImage.yMap.limTransform(self.ypos)
               else:
-                xpos = int(xpos)
-                ypos = int(ypos)
+                xpos = int(self.xpos)
+                ypos = int(self.ypos)
               self.xsect_xpos = xpos
               self.xsect_ypos = ypos
               self.show_x_sections = True
@@ -1981,13 +1998,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.refresh_marker_display()
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for coordinate values
-            if self.zooming and abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y()) > 2:
-              self.setOutlineStyle(Qwt.Cross)
-              xmin = min(self.xpos, e.pos().x())
-              xmax = max(self.xpos, e.pos().x())
-              ymin = min(self.ypos, e.pos().y())
-              ymax = max(self.ypos, e.pos().y())
-              #print 'zoom: raw xmin xmax ymin ymax ', xmin, ' ', xmax, ' ', ymin, ' ', ymax
+            if self.zooming and abs(self.xpos - self.press_xpos) > 2 and abs(self.ypos - self.press_ypos) > 2:
+              xmin = min(self.xpos, self.press_xpos)
+              xmax = max(self.xpos, self.press_xpos)
+              ymin = min(self.ypos, self.press_ypos)
+              ymax = max(self.ypos, self.press_ypos)
+
               if self.xTopAxisEnabled():
                 xmin_t = self.invTransform(Qwt.QwtPlot.xTop, xmin)
                 xmax_t = self.invTransform(Qwt.QwtPlot.xTop, xmax)
@@ -3232,7 +3248,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
             if self.array_flip:
               self.x_parm = self.second_axis_parm
               self.y_parm = self.first_axis_parm
-            self.myXScale = ComplexScaleDraw(start_value=self.vells_axis_parms[self.x_parm][0], end_value=self.vells_axis_parms[self.x_parm][1])
+            self.setAxisScaleDraw(Qwt.QwtPlot.xBottom,ComplexScaleDraw(start_value=self.vells_axis_parms[self.x_parm][0], end_value=self.vells_axis_parms[self.x_parm][1]))
             self.complex_divider = self.vells_axis_parms[self.x_parm][1]
 
 #           self.setAxisScaleDraw(Qwt.QwtPlot.xBottom, self.myXScale)
@@ -3271,13 +3287,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
             else:
               self._y_title = 'Array/Channel Number'
             self.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
-            self.myXScale = ComplexScaleDraw(divisor=plot_array.shape[0])
+            self.setAxisScaleDraw(Qwt.QwtPlot.xBottom, ComplexScaleDraw(divisor=plot_array.shape[0]))
 #           self.setAxisScaleDraw(Qwt.QwtPlot.xBottom, self.myXScale)
 	    self.split_axis = plot_array.shape[0]
             _dprint(3,'testing self.y_marker_step ', self.y_marker_step)
 	    if not self.y_marker_step is None:
               _dprint(3, 'creating split Y scale for Y axis')
-              self.myYScale = ComplexScaleDraw(divisor=self.y_marker_step)
+              self.setAxisScaleDraw(Qwt.QwtPlot.yLeft,ComplexScaleDraw(divisor=self.y_marker_step))
 #             self.setAxisScaleDraw(Qwt.QwtPlot.yLeft, self.myYScale)
 
           if self.ampl_phase:
