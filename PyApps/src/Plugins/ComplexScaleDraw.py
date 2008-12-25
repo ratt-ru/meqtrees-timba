@@ -21,6 +21,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+import sys
+import numpy
 
 from qt import *
 try:
@@ -128,3 +130,39 @@ class ComplexScaleDraw(QwtScaleDraw):
 
     # draw()
 # class ComplexScaleDraw()
+
+def main(args):
+    app = QApplication(args)
+    demo = QwtPlot()
+    complex_divider = 50.0
+
+# the following two lines work fine in Qwt4
+    myXScale = ComplexScaleDraw(start_value=0.0, end_value=complex_divider)
+    demo.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
+
+    m = demo.insertMarker()
+    demo.setMarkerLineStyle(m, QwtMarker.VLine)
+    demo.setMarkerPos(m, complex_divider, 0.0)
+    demo.setMarkerLinePen(m, QPen(Qt.black, 2, Qt.SolidLine))
+
+    curve = demo.insertCurve("Data")
+    x_array = numpy.zeros(100, numpy.float32)
+    y_array = numpy.zeros(100, numpy.float32)
+    for i in range(100):
+      x_array[i] = 1.0 * i
+      y_array[i] = 2.0 * i
+    demo.setCurveData(curve, x_array, y_array)
+    demo.resize(600, 400)
+    demo.replot()
+    demo.show()
+    app.setMainWidget(demo)
+    app.exec_loop()
+# main()
+
+# Admire!
+if __name__ == '__main__':
+    main(sys.argv)
+
+# Local Variables: ***
+# mode: python ***
+# End: ***
