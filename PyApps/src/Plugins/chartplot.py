@@ -580,10 +580,6 @@ class ChartPlot(QWidget):
     if not self._popup_text.isVisible():
       self._popup_text.show()
     
-  def plotMouseMoved(self, e):
-    if self._popup_text.isVisible():
-      self._popup_text.hide()
-    return
 
   def closezoomfun(self):
     """ Set closezoom flag active to close all the zoom windows 
@@ -637,6 +633,11 @@ class ChartPlot(QWidget):
     if self._closezoom:
       toggle_id = self.menu_table['Close Popups']
       self._menu.setItemVisible(toggle_id, False)
+
+  def plotMouseMoved(self, e):
+    if self._popup_text.isVisible():
+      self._popup_text.hide()
+    return
 
   def plotMousePressed(self, e):
       """ callback to handle MousePressed event """

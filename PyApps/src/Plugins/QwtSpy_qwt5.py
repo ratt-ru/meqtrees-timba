@@ -34,14 +34,11 @@ class Spy(QObject):
     # __init__()
 
     def eventFilter(self, _, event):
-        # QEvent.MouseMove == 5
         if event.type() == QEvent.MouseMove:
-            self.emit(PYSIGNAL("MouseMove"), (event.pos(),))
-        # mouse press = 2 (Press)
-        if event.type() == 2:
+            self.emit(PYSIGNAL("MouseMove"), (event,))
+        if event.type() == QEvent.MouseButtonPress:
             self.emit(PYSIGNAL("MousePress"), (event,))
-        # mouse release = 3 (Release)
-        if event.type() == 3:
+        if event.type() == QEvent.MouseButtonRelease:
             self.emit(PYSIGNAL("MouseRelease"), (event,))
         return False
 

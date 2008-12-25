@@ -324,27 +324,25 @@ class ChartPlot(QWidget):
         found, distance, point, index = None, 1e100, -1, -1
         counter = -1
         for curve in self._plotter.itemList():
-            counter = counter + 1
             try:
               if isinstance(curve, Qwt.QwtPlotCurve):
+                counter = counter + 1
                 i, d = curve.closestPoint(pos)
                 if i >= 0 and d < distance:
-                  index = counter+1  # Qwt4 function had 1-based curve numbering
+                  index = counter 
                   found = curve
                   point = i
                   distance = d
-#                 print 'index is ', index, ' distance ', distance, 'values ', found.x(i), ' ', found.y(i)
             except:
               pass
 
         if found is None:
           return (None, None, None)
         else:
-          x = found.x(i)
-          y = found.y(i)
-          print 'curve should be ', index, ' ', x, ' ', y
+          x = found.x(point)
+          y = found.y(point)
+          #print 'closest curve is ', index, ' ', x, ' ', y
           return (index, x, y)
-
     # closestCurve
 
 
@@ -551,10 +549,10 @@ class ChartPlot(QWidget):
         Figures out where the cursor is, generates the appropriate text, 
         and puts it on the screen.
     """
-    closest_curve, xVal, yVal = self.closestCurve(self.position)
+    closest_curve, xVal, yVal = self.closestCurve(self.position_raw)
 
     #get value of where the mouse was released
-    p2x = self._plotter.invTransform(Qwt.QwtPlot.xBottom, self.xpos)
+    p2x = self._plotter.invTransform(Qwt.QwtPlot.xBottom, self.xpos_raw)
 
 # determine 'actual' x-axis position
     ref_point=0
@@ -568,30 +566,19 @@ class ChartPlot(QWidget):
       ref_point = int(p2x - (3*(self._ArraySize+self._x_displacement)))
 
     if self._phase:
-      temp_off = ((closest_curve-1) % (self._nbcrv/4) + 0.5 ) * self._offset
+      temp_off = ((closest_curve) % (self._nbcrv/4) + 0.5 ) * self._offset
     else:
-      temp_off = ((closest_curve-1) % (self._nbcrv/4)) * self._offset
+      temp_off = ((closest_curve) % (self._nbcrv/4)) * self._offset
     ref_value = yVal - temp_off
 
-    message = self.reportCoordinates(ref_point, ref_value, closest_curve-1)
-
-# lbl and lbl2 are used to compose text for the status bar and pop up display
-#   lbl2 = QString()
-#   lbl2.setNum(ref_point,'g',3)
-#   lbl = "Time = " + lbl2 + "s, Signal="
-#   lbl2.setNum(ref_value,'g',3)
-#   lbl += lbl2
-#   curve_num = QString()
-#   curve_num.setNum(closest_curve)
-#   popupmsg = QString()
-#   popupmsg = "Chart " + curve_num + "\n" + lbl + "\n" + self._position[closest_curve]
+    message = self.reportCoordinates(ref_point, ref_value, closest_curve)
 
     self._popup_text.setText(message)
     self._popup_text.adjustSize()
-    yhb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScale(Qwt.QwtPlot.yLeft).hBound())
-    ylb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScale(Qwt.QwtPlot.yLeft).lBound())
-    xhb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScale(Qwt.QwtPlot.xBottom).hBound())
-    xlb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScale(Qwt.QwtPlot.xBottom).lBound())
+    yhb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
+    ylb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
+    xhb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
+    xlb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
     height = self._popup_text.height()
     if self.ypos + height > ylb:
       ymove = self.ypos - 1.5 * height
@@ -606,12 +593,16 @@ class ChartPlot(QWidget):
     if not self._popup_text.isVisible():
       self._popup_text.show()
     
-  def plotMouseMoved(self, position):
+  def plotMouseMoved(self, e):
     if self._popup_text.isVisible():
       self._popup_text.hide()
-    self.xpos = self._plotter.invTransform(Qwt.QwtPlot.xBottom, position.x())
-    self.ypos = self._plotter.invTransform(Qwt.QwtPlot.yLeft, position.y())
-    self.position = QPoint(self.xpos,self.ypos)
+    self.xpos_raw = e.pos().x()
+    self.ypos_raw = e.pos().y()
+   # print 'Mov raw pos = ', self.xpos_raw, ' ', self.ypos_raw
+    self.xpos = self._plotter.invTransform(Qwt.QwtPlot.xBottom, self.xpos_raw)
+    self.ypos = self._plotter.invTransform(Qwt.QwtPlot.yLeft, self.ypos_raw)
+
+    self.position_raw = QPoint(self.xpos_raw,self.ypos_raw)
     if not self.xzoom_loc is None:
       self.xzoom_loc = [self.press_xpos, self.press_xpos,  self.xpos, self.xpos,self.press_xpos]
       self.yzoom_loc = [self.press_ypos, self.ypos,  self.ypos, self.press_ypos,self.press_ypos]
@@ -619,6 +610,7 @@ class ChartPlot(QWidget):
       self._plotter.replot()
 
   def closezoomfun(self):
+
     """ Set closezoom flag active to close all the zoom windows 
         once the user clicked
         the close_all_zoom button from the warning
@@ -672,17 +664,12 @@ class ChartPlot(QWidget):
 
   def plotMousePressed(self, e):
       """ callback to handle MousePressed event """
-      if Qt.MidButton == e.button():
-# We get information about the qwt plot curve that is
-# closest to the location of this mouse pressed event.
-# We are interested in the nearest curve_number and the index, or
-# sequence number of the nearest point in that curve.
-        curve_number, xVal, yVal = self.closestCurve(self.position)
-      # pop up zoom curve
-      elif Qt.LeftButton == e.button():
-#       self.infoDisplay()
+      if Qt.LeftButton == e.button():
+        self.infoDisplay()
         self.press_xpos = self.xpos
         self.press_ypos = self.ypos
+        self.press_xpos_raw = e.pos().x()
+        self.press_ypos_raw = e.pos().y()
         self.xzoom_loc = [self.press_xpos]
         self.yzoom_loc = [self.press_ypos]
         self.zoom_outline.attach(self._plotter)
@@ -693,7 +680,7 @@ class ChartPlot(QWidget):
               self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
               self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
               )
-      else:
+      elif Qt.RightButton == e.button():
         e.accept()
         self._menu.popup(e.globalPos());
     # plotMousePressed()
@@ -701,19 +688,18 @@ class ChartPlot(QWidget):
   def plotMouseReleased(self, e):
       """ callback to handle MouseReleased event """
       if Qt.LeftButton == e.button():
+        print 'left button released'
+        print 'release pos ', e.pos().x(), '  ', e.pos().y()
         if self._popup_text.isVisible():
           self._popup_text.hide()
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for no good reason
-        if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y()) > 2:
+        if abs(self.press_xpos_raw - e.pos().x()) > 2 and abs(self.press_ypos_raw - e.pos().y()) > 2:
+          print 'zooming'
           xmin = min(self.xpos, self.press_xpos)
           xmax = max(self.xpos, self.press_xpos)
           ymin = min(self.ypos, self.press_ypos)
           ymax = max(self.ypos, self.press_ypos)
-          if not self.xzoom_loc is None:
-            self.zoom_outline.detach()
-            self.xzoom_loc = None
-            self.yzoom_loc = None
           if xmin == xmax or ymin == ymax:
               return
           self.zoomStack.append(self.zoomState)
@@ -723,12 +709,14 @@ class ChartPlot(QWidget):
           toggle_id = self.menu_table['Reset zoomer']
           self._menu.setItemVisible(toggle_id, True)
           self._plotter.replot()
-        else:
-          self._plotter.replot()
+        if not self.xzoom_loc is None:
+          self.zoom_outline.detach()
+          self.xzoom_loc = None
+          self.yzoom_loc = None
       elif e.button() == Qt.MidButton:
-        closest_curve, xVal, yVal = self.closestCurve(self.position)
+        closest_curve, xVal, yVal = self.closestCurve(self.position_raw)
         # pop up a zoom curve
-        self.zoomcrv(closest_curve-1)
+        self.zoomcrv(closest_curve)
 
     # plotMouseReleased()
 
@@ -776,7 +764,6 @@ class ChartPlot(QWidget):
 
       #open a zoom of the selected curve
       PlotArraySize = self._x1.size
-      print 'crv ', crv, ' ', self._data_index
       chart = numpy.array(self._chart_data[crv][self._data_index])
       flags = numpy.array(self._flag_data[crv][self._data_index])
       self._Zoom[crv] = zoomwin.ZoomPopup(crv+self._ref_chan, self._x1, chart, flags, pen, self)
