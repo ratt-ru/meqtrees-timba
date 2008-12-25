@@ -74,11 +74,10 @@ class ComplexScaleDraw(Qwt.QwtScaleDraw):
         majLen = Qwt.QwtScaleDraw.tickLength(self,Qwt.QwtScaleDiv.MajorTick)
         medLen = Qwt.QwtScaleDraw.tickLength(self,Qwt.QwtScaleDiv.MediumTick)
         minLen = Qwt.QwtScaleDraw.tickLength(self,Qwt.QwtScaleDiv.MinorTick)
-        print 'majLen medLen ', majLen, ' ', medLen, ' ', minLen
-        print 'lengths ', majLen,' ', medLen,' ', minLen
+#       print 'majLen medLen ', majLen, ' ', medLen, ' ', minLen
+#       print 'lengths ', majLen,' ', medLen,' ', minLen
 #       minLen = Qwt.QwtScaleDraw.tickLength(self)
         self.offset = 0
-        self.divisor = self.end_value
         scldiv = Qwt.QwtScaleDraw.scaleDiv(self)
         # plot major ticks
         major_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MajorTick)
@@ -86,14 +85,18 @@ class ComplexScaleDraw(Qwt.QwtScaleDraw):
         major_count = len(major_ticks)
         for i in range(major_count):
             val = major_ticks[i]
-            print 'initial major val = ', val
-            v = val 
-            if val >= self.end_value:
-                v = val - self.delta 
+#           print 'initial major val = ', val
+            if not self.end_value is None:
+              v = val
+              if val >= self.end_value:
+                v = val - self.delta
+            else:
+              if not self.divisor is None:
+                v = val % self.divisor
             if self.offset == 0 and v != val:
                 self.offset = major_step - v % major_step
             val = val + self.offset
-            print 'final major val = ', val
+#           print 'final major val = ', val
             Qwt.QwtScaleDraw.drawTick(self, painter, val, minLen)
             Qwt.QwtScaleDraw.drawLabel(self, painter, val)
 
@@ -148,9 +151,9 @@ class ComplexScaleDraw(Qwt.QwtScaleDraw):
 #       else:
         if True:
             minor_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MinorTick)
-            print 'minor ticks ', minor_ticks
+#           print 'minor ticks ', minor_ticks
             medium_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MediumTick)
-            print 'medium ticks ', medium_ticks
+#           print 'medium ticks ', medium_ticks
             kmax = major_count - 1
             if kmax > 0:
                 majTick = major_ticks[0]
@@ -166,16 +169,10 @@ class ComplexScaleDraw(Qwt.QwtScaleDraw):
                             majTick += (major_ticks[kmax]
                                         + major_step)
                         hval = majTick - 0.5 * major_step
-                    if val >= self.end_value:
-                        val = val + self.offset
-                    if val > 2 * self.divisor:
-                        val = val - self.divisor
                     if abs(val-hval) < step_eps * major_step:
                         Qwt.QwtScaleDraw.drawTick(self,painter, val, medLen)
-                        print 'drew'
                     else:
                         Qwt.QwtScaleDraw.drawTick(self, painter, val, minLen)
-                        print '*drew'
 
 #       if Qwt.QwtScaleDraw.options(self) & Qwt.QwtScaleDraw.Backbone:
         if Qwt.QwtScaleDraw.Backbone:
@@ -196,8 +193,6 @@ def main(args):
 
     myXScale = ComplexScaleDraw(start_value=0.0, end_value=complex_divider)
     demo.setAxisScaleDraw(Qwt.QwtPlot.xBottom, myXScale)
-
-    print 'got to here'
 
     m = Qwt.QwtPlotMarker()
     m.attach(demo)
