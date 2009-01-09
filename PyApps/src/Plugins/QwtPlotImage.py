@@ -145,6 +145,10 @@ class QwtPlotImage(QwtPlotMappedItem):
         self._display_flags = display_flags
     # setDisplayFlag
 
+    def removeFlags(self):
+      self._flags_array = None
+    # removeFlags
+
     def getRealImageRange(self):
         return (self.r_cmin, self.r_cmax)
     # getRealImageRange

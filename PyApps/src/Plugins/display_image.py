@@ -3698,6 +3698,7 @@ class QwtImageDisplay(QwtPlot):
       self.flags_x_index = []
       self.flags_r_values = []
       self.flags_i_values = []
+      self.plotImage.removeFlags()
       self.plotImage.setDisplayFlag(False)
       self.flag_toggle = None
 
