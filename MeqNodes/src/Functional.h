@@ -70,6 +70,8 @@ protected:
 
   casa::CompiledFunction<casa::DComplex> * itsComplexFunction;
   casa::CompiledFunction<double> * itsRealFunction;
+  //casa::CompiledFunction<casa::DComplex> itsComplexFunction;
+  //casa::CompiledFunction<casa::Double> itsRealFunction;
   int Ndim_,Ninput_;
   string function_string_;
   std::vector<LoShape> shapes_;

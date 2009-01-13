@@ -198,6 +198,8 @@ DMI::BObj * __construct_MeqFITSSpigot (int n) { return n>0 ? new Meq::FITSSpigot
 DMI::BObj * __construct_MeqFITSDataMux (int n) { return n>0 ? new Meq::FITSDataMux [n] : new Meq::FITSDataMux; }
 #include "PrivateFunction.h"
 DMI::BObj * __construct_MeqPrivateFunction (int n) { return n>0 ? new Meq::PrivateFunction [n] : new Meq::PrivateFunction; }
+#include "Functional.h"
+DMI::BObj * __construct_MeqFunctional (int n) { return n>0 ? new Meq::Functional [n] : new Meq::Functional; }
 #include "MaxLocation.h"
 DMI::BObj * __construct_MeqMaxLocation (int n) { return n>0 ? new Meq::MaxLocation [n] : new Meq::MaxLocation; }
 #include "MinLocation.h"
@@ -638,6 +640,9 @@ DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3
         AtomicID::registerId(-1692,"MeqPrivateFunction")+
         TypeInfoReg::addToRegistry(-1692,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1692,__construct_MeqPrivateFunction)+
+        AtomicID::registerId(-1673,"MeqFunctional")+
+        TypeInfoReg::addToRegistry(-1673,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1673,__construct_MeqFunctional)+
         AtomicID::registerId(-1699,"MeqMaxLocation")+
         TypeInfoReg::addToRegistry(-1699,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1699,__construct_MeqMaxLocation)+

@@ -22,7 +22,7 @@ LOCALSRCS = \
     CasaParmTable.cc ParmTableUtils.cc ParmDBInterface.cc \
     FITSImage.cc Compounder.cc FITSWriter.cc FITSReader.cc \
     FITSSpigot.cc FITSDataMux.cc FITSUtils.cc \
-    PrivateFunction.cc MaxLocation.cc MinLocation.cc\
+    PrivateFunction.cc Functional.cc MaxLocation.cc MinLocation.cc\
     RADec.cc ObjectRADec.cc CoordTransform.cc LST.cc\
     StationBeam.cc ShapeletVisTf.cc Bessel.cc VisPhaseShiftArg.cc TFSmearFactor.cc WSRTCos3Beam.cc
 

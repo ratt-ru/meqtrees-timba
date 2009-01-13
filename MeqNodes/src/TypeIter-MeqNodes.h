@@ -115,6 +115,7 @@
         Do(Meq::FITSSpigot,arg) separator \
         Do(Meq::FITSDataMux,arg) separator \
         Do(Meq::PrivateFunction,arg) separator \
+        Do(Meq::Functional,arg) separator \
         Do(Meq::MaxLocation,arg) separator \
         Do(Meq::MinLocation,arg) separator \
         Do(Meq::RADec,arg) separator \

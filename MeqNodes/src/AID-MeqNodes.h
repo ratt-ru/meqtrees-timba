@@ -498,6 +498,11 @@ const int AidMeqFloor_int = -1436;
 const DMI::AtomicID AidMeqFreq(-1420);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Freq.h:30
 const int AidMeqFreq_int = -1420;
 #endif
+#ifndef _defined_id_AidMeqFunctional
+#define _defined_id_AidMeqFunctional 1
+const DMI::AtomicID AidMeqFunctional(-1673);      // from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
+const int AidMeqFunctional_int = -1673;
+#endif
 #ifndef _defined_id_AidMeqGaussNoise
 #define _defined_id_AidMeqGaussNoise 1
 const DMI::AtomicID AidMeqGaussNoise(-1449);      // from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31

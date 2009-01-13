@@ -597,6 +597,25 @@ namespace Meq { class Freq; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqFunctional
+#define _defined_id_TpMeqFunctional 1
+const DMI::TypeId TpMeqFunctional(-1673);         // from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
+const int TpMeqFunctional_int = -1673;
+namespace Meq { class Functional; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Functional> : public TypeTraits<Meq::Functional>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqFunctional_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Functional & ContainerReturnType;
+                typedef const Meq::Functional & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqGaussNoise
 #define _defined_id_TpMeqGaussNoise 1
 const DMI::TypeId TpMeqGaussNoise(-1449);         // from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31

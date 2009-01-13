@@ -32,7 +32,7 @@
 using namespace Meq::VellsMath;
 namespace Meq {
 
-
+ 
   const string NotAvailableString="Not Available";
   
   Functional::Functional()
@@ -133,9 +133,9 @@ namespace Meq {
     for(int i=0;i<Ninput_;i++)
       {
 	const LoShape dim = *(input_dims[i]);
-	FailWhen(dim.size() && dim.size()!=Ndims_[i],"child : wrong dimensions");
+	FailWhen(dim.size() && dim.size()!=uint(Ndims_[i]),"child : wrong dimensions");
 	shapes_[i]=dim;
-	for(int j= 0;j<Ndims_[i] && j<dim.size();j++)
+	for(int j= 0;j<Ndims_[i] && uint(j)<dim.size();j++)
 	  FailWhen(dim[j]<MaxN_[i][j],"child : wrong shape");
 
     
@@ -164,7 +164,7 @@ namespace Meq {
 	vector<int> mapv = vellsnr_[dim_nr];
 	LoShape shape = shapes_[childnr_[dim_nr]];
 	arraynr_[dim_nr]=0;
-	for(int imap = 0; imap<mapv.size()-1;imap++)
+	for(uint imap = 0; imap<mapv.size()-1;imap++)
 	  arraynr_[dim_nr]+=shape[imap]*mapv[imap];
 	arraynr_[dim_nr]+=mapv.back();
 	
