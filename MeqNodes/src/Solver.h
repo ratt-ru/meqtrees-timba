@@ -343,6 +343,7 @@ private:
     public:
       casa::LSQaips   solver;
       int             nuk;     // number of unknowns in this solver
+      int             neq;     // number of equations in this solver
       
       SolverSettings  settings;
       bool            use_debug;  // should the solver fill debug info?

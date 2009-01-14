@@ -525,6 +525,11 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
 }
 
 
+inline bool isvalid (double num)
+{ return !( isnan(num) || isinf(num) ); }
+
+inline bool isvalid (dcomplex num)
+{ return isvalid(creal(num)) && isvalid(cimag(num)); }
 
 // This is a helper function for fillEquations(). Note that this function
 // encapsulates the only difference in the code between the double
@@ -541,9 +546,21 @@ template<>
 inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
       const double &diff,const std::vector<Vells::ConstStridedIterator<double> > &deriv_iter,double weight)
 {
+  bool valid = isvalid(diff);
   // fill vectors of derivatives for each unknown
-  for( int i=0; i<npert; i++ )
-    deriv_real_ [i] = *deriv_iter[i];
+  for( int i=0; i<npert && valid; i++ )
+    valid &= isvalid( deriv_real_[i] = *deriv_iter[i] );
+  if( !valid )
+  {
+    if( Debug(3) )
+    {
+      cdebug(3)<<"equation for: ";
+        for( int i=0; i<npert; i++ )
+          ::Debug::getDebugStream()<<uk_index[i]<<" ";
+        ::Debug::getDebugStream()<<"contains NANs or INFs, omitting\n";
+    }
+    return;
+  }
   if( Debug(4) )
   {
     cdebug(4)<<"equation: ";
@@ -553,6 +570,7 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
   }
   // add equation to solver
   ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],weight,diff);
+  ss.neq++;
   num_equations_++;
 }
 
@@ -562,11 +580,26 @@ template<>
 inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
       const dcomplex &diff,const std::vector<Vells::ConstStridedIterator<dcomplex> > &deriv_iter,double weight)
 {
+  double re_diff = creal(diff); 
+  double im_diff = cimag(diff); 
+  // valid flag checks for inf or nan in equations
+  bool valid = isvalid(re_diff) && isvalid(im_diff);
   // fill vectors of derivatives for each unknown
-  for( int i=0; i<npert; i++ )
+  for( int i=0; i<npert && valid; i++ )
   {
-    deriv_real_[i] = creal(*deriv_iter[i]);
-    deriv_imag_[i] = cimag(*deriv_iter[i]);
+    valid &= isvalid( deriv_real_[i] = creal(*deriv_iter[i]) );
+    valid &= isvalid( deriv_imag_[i] = cimag(*deriv_iter[i]) );
+  }
+  if( !valid )
+  {
+    if( Debug(3) )
+    {
+      cdebug(3)<<"equation for: ";
+      for( int i=0; i<npert; i++ )
+        ::Debug::getDebugStream()<<uk_index[i]<<" ";
+      ::Debug::getDebugStream()<<"contains NANs or INFs, omitting\n";
+    }
+    return;
   }
   if( Debug(4) )
   {
@@ -578,19 +611,11 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
     ::Debug::getDebugStream()<<" -> "<<ssprintf("(%g,%g)\n",creal(diff),cimag(diff));
   }
   // add equation to solver
-  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],weight,creal(diff));
-  ss.solver.makeNorm(npert,uk_index,&deriv_imag_[0],weight,cimag(diff));
+  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],weight,re_diff);
+  ss.solver.makeNorm(npert,uk_index,&deriv_imag_[0],weight,im_diff);
+  ss.neq+=2;
   num_equations_+=2;
 }
-
-
-
-
-
-
-
-
-
 
 template<typename T>
 void Solver::fillEquations (const VellSet &vs)
@@ -1240,13 +1265,17 @@ void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
   // init other members
   use_debug = usedebug;
   converged = false;
+  chi0 = chi = 0;
+  neq = 0;
 }
 
 bool Solver::Subsolver::solve (int step)
 {
   solution = 0;
-  if( converged )
+  // if converged or no equations were generated, do nothing
+  if( converged || !neq )
     return true;
+  neq = 0;
   // get debug info -- only valid before a solveLoop() call
   uint nun=0,np=0,ncon=0,ner=0,rank_dbg=0;
   double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
