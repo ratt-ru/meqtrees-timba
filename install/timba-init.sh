@@ -58,9 +58,7 @@ else
   fi
   if ! echo $PYTHONPATH|grep Cattery >/dev/null; then
     export CATTERYPATH=$HOME/Cattery
-    echo "using Cattery $CATTERYPATH"
-  else
-    unset $CATTERYPATH
+    echo "Using Cattery $CATTERYPATH"
   fi
 
   timba-setup()
