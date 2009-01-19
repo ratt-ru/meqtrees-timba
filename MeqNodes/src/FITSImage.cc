@@ -40,7 +40,7 @@ const HIID FMode= AidMode;
 
 //##ModelId=400E5355029C
 FITSImage::FITSImage()
-	: Node(0),cutoff_(0.1),has_prev_result_(false),mode_(1)
+	: Node(0),cutoff_(1.0),has_prev_result_(false),mode_(1)
 {
 
 	//create 2 new axes -- Freq is already present

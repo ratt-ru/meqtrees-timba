@@ -291,11 +291,13 @@ int zero_image_float(long totalrows, long offset, long firstrow, long nrows,
     arr_dims->lpix[0]=xmin;
     arr_dims->lpix[1]=ymin;
     arr_dims->lpix[2]=0;
-    arr_dims->lpix[3]=0;
     arr_dims->hpix[0]=xmax;
     arr_dims->hpix[1]=ymax;
     arr_dims->hpix[2]=arr_dims->d[2]-1;
-    arr_dims->hpix[3]=arr_dims->d[3]-1;
+    if (arr_dims->naxis>3) {
+     arr_dims->lpix[3]=0;
+     arr_dims->hpix[3]=arr_dims->d[3]-1;
+    }
  
     return(0);  /* return successful status */
 
@@ -393,7 +395,6 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
 		return 0;
 }
  
-
 /* filename: file name
  * cutoff: cutoff to truncate the image
  * myarr: 4D data array of truncated image
@@ -403,6 +404,7 @@ int get_min_max(long totalrows, long offset, long firstrow, long nrows,
  * lspace: spacing in l axis
  * mspace: spacing in m axis
  * ra0,dec0: coords of phase centre
+ * fgrid,fspace: frequency grid,spacing
  * mode: 1 (shift grid if even), 2: no shift
  */
 int read_fits_file(const char *filename,double cutoff, double**myarr, long int *new_naxis, double **lgrid, double **mgrid, double **lspace, double **mspace, 
@@ -439,6 +441,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int ncoord;
 		double *pixelc, *imgc, *worldc, *phic, *thetac;
 		int *statc;
+    double freq0,deltaf;
 		double phi0,theta0,l0,m0;
 
 		int stat[NWCSFIX];
@@ -495,6 +498,12 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 
 		fits_get_img_dim(fptr, &naxis, &status);
+
+    // check
+    if (naxis<3 || naxis> 4) {
+			fprintf(stderr,"%s: %d: FITS file has invalid %d number of axes\n",__FILE__,__LINE__,naxis);
+      return 1;
+    }
 		if ((arr_dims.d=(long int*)calloc((size_t)naxis,sizeof(long int)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
 			return 1;
@@ -543,6 +552,8 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
     n_cols = 1;
 
+    /* if cutoff==1, no need to find the limits */
+    if (cutoff != 1.0) {
     /* define input column structure members for the iterator function */
     fits_iter_set_file(&cols[0], fptr);
     fits_iter_set_iotype(&cols[0], InputOutputCol);
@@ -570,12 +581,6 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 #ifdef DEBUG
     printf("Calling iterator function...%d\n", status);
 #endif
-
-		/* turn off scaling so that we copy the pixel values */
-		//bscale=1.0; bzero=0.0;
-    //fits_set_bscale(fptr,  bscale, bzero, &status);
-
-
     rows_per_loop = 0;  /* use default optimum number of rows */
     offset = 0;         /* process all the rows */
 		arr_dims.datatype=datatype;
@@ -593,33 +598,62 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
      arr_dims.hpix[1]=arr_dims.d[1]-1;
      arr_dims.lpix[0]=arr_dims.lpix[1]=0;
 		}
+    } else {
+     /* cutoff ==1, include whole image */
+     arr_dims.hpix[0]=arr_dims.d[0]-1;
+     arr_dims.hpix[1]=arr_dims.d[1]-1;
+     arr_dims.hpix[2]=arr_dims.d[2]-1;
+     arr_dims.lpix[0]=arr_dims.lpix[1]=arr_dims.lpix[2]=0;
+     if (naxis>3) {
+      arr_dims.hpix[3]=arr_dims.d[3]-1;
+      arr_dims.lpix[3]=0;
+     }
+    }
 		/* correct the coordinates for 1 indexing */
      arr_dims.hpix[0]++;
      arr_dims.hpix[1]++;
      arr_dims.hpix[2]++;
-     arr_dims.hpix[3]++;
      arr_dims.lpix[0]++;
      arr_dims.lpix[1]++;
      arr_dims.lpix[2]++;
-     arr_dims.lpix[3]++;
+     if (naxis>3) {
+      arr_dims.lpix[3]++;
+      arr_dims.hpix[3]++;
+     }
 
 #ifdef DEBUG
+    if (naxis>3) {
 	  printf("(%ld %ld %ld %ld) ",arr_dims.lpix[0],
 									arr_dims.lpix[1],	arr_dims.lpix[2], arr_dims.lpix[3]);
 	  printf(" to (%ld %ld %ld %ld)\n",arr_dims.hpix[0],
 									arr_dims.hpix[1],	arr_dims.hpix[2], arr_dims.hpix[3]);
+    } else {
+	  printf("(%ld %ld %ld) ",arr_dims.lpix[0],
+									arr_dims.lpix[1],	arr_dims.lpix[2]);
+	  printf(" to (%ld %ld %ld)\n",arr_dims.hpix[0],
+									arr_dims.hpix[1],	arr_dims.hpix[2]);
+  
+    }
 #endif
 	  /******* create new array **********/	
 		new_naxis[0]=arr_dims.hpix[0]-arr_dims.lpix[0]+1;
 		new_naxis[1]=arr_dims.hpix[1]-arr_dims.lpix[1]+1;
 		new_naxis[2]=arr_dims.hpix[2]-arr_dims.lpix[2]+1;
-		new_naxis[3]=arr_dims.hpix[3]-arr_dims.lpix[3]+1;
+    if (naxis>3) {
+		 new_naxis[3]=arr_dims.hpix[3]-arr_dims.lpix[3]+1;
+    }
 		/* calculate total number of pixels */
+    if (naxis>3) {
     totalpix=((arr_dims.hpix[0]-arr_dims.lpix[0]+1)
      *(arr_dims.hpix[1]-arr_dims.lpix[1]+1)
      *(arr_dims.hpix[2]-arr_dims.lpix[2]+1)
      *(arr_dims.hpix[3]-arr_dims.lpix[3]+1));
-
+    } else {
+    totalpix=((arr_dims.hpix[0]-arr_dims.lpix[0]+1)
+     *(arr_dims.hpix[1]-arr_dims.lpix[1]+1)
+     *(arr_dims.hpix[2]-arr_dims.lpix[2]+1));
+    }
+ 
 #ifdef DEBUG
 		printf("selecting %ld pixels\n",totalpix);
 #endif
@@ -645,15 +679,15 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 #endif
 		/* allocate memory for pixel/world coordinate arrays */
 		ncoord=new_naxis[0]*new_naxis[1]*1*1; /* consider only one plane fron freq, and stokes axes because RA,Dec will not change */
-  	if ((pixelc=(double*)calloc((size_t)ncoord*4,sizeof(double)))==0) {
+  	if ((pixelc=(double*)calloc((size_t)ncoord*naxis,sizeof(double)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
 			return 1;
 		}
-  	if ((imgc=(double*)calloc((size_t)ncoord*4,sizeof(double)))==0) {
+  	if ((imgc=(double*)calloc((size_t)ncoord*naxis,sizeof(double)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
 			return 1;
 		}
-  	if ((worldc=(double*)calloc((size_t)ncoord*4,sizeof(double)))==0) {
+  	if ((worldc=(double*)calloc((size_t)ncoord*naxis,sizeof(double)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
 			return 1;
 		}
@@ -672,6 +706,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 		/* fill up the pixel coordinate array */
     kk=0;
+    if (naxis>3) {
     for (ii=arr_dims.lpix[0];ii<=arr_dims.hpix[0];ii++)
      for (jj=arr_dims.lpix[1];jj<=arr_dims.hpix[1];jj++) {
 						 pixelc[kk+0]=(double)ii;
@@ -680,6 +715,16 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 						 pixelc[kk+3]=(double)1.0;
 						 kk+=4;
 		 }
+    } else {
+    for (ii=arr_dims.lpix[0];ii<=arr_dims.hpix[0];ii++)
+     for (jj=arr_dims.lpix[1];jj<=arr_dims.hpix[1];jj++) {
+						 pixelc[kk+0]=(double)ii;
+						 pixelc[kk+1]=(double)jj;
+						 pixelc[kk+2]=(double)1.0;
+						 kk+=3;
+		 }
+    }
+ 
 		/* now kk has passed the last pixel */
 #ifdef DEBUG
 		printf("total %d, created %d\n",ncoord,kk);
@@ -728,8 +773,8 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
              } else {
          /* dont really need ra and dec here */
          /* apply no shift and take header values as origin */
-	       *ra0=(worldc[0]+worldc[4*(ncoord-1)])*M_PI/360.0;
-	       *dec0=(worldc[1]+worldc[4*(ncoord-1)+1])*M_PI/360.0;
+	       *ra0=(worldc[0]+worldc[naxis*(ncoord-1)])*M_PI/360.0;
+	       *dec0=(worldc[1]+worldc[naxis*(ncoord-1)+1])*M_PI/360.0;
           l0=m0=0.0;
              }
 
@@ -762,11 +807,11 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		}
 
 		for (ii=0;ii<new_naxis[0];ii++) {
-					(*lgrid)[new_naxis[0]-ii-1]=(imgc[ii*4*new_naxis[1]]-l0)*M_PI/180.0;
+					(*lgrid)[new_naxis[0]-ii-1]=(imgc[ii*naxis*new_naxis[1]]-l0)*M_PI/180.0;
 		}
 		/* different strides */
 		for (ii=0;ii<new_naxis[1];ii++) {
-					(*mgrid)[ii]=(imgc[ii*4+1]-m0)*M_PI/180.0;
+					(*mgrid)[ii]=(imgc[ii*naxis+1]-m0)*M_PI/180.0;
 		}
 		/* calculate spacing */
 		for (ii=1;ii<new_naxis[0];ii++) {
@@ -781,52 +826,19 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 
 		/***** determinig frequencies ********/
-		if (ncoord<new_naxis[3]){ 
-			ncoord=new_naxis[3];
-      /* reallocate memory */
-  	if ((pixelc=(double*)realloc((void*)pixelc,(size_t)ncoord*4*sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
-  	if ((imgc=(double*)realloc((void*)imgc,(size_t)ncoord*4*sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
-  	if ((worldc=(double*)realloc((void*)worldc,(size_t)ncoord*4*sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
-		if ((phic=(double*)realloc((void*)phic,(size_t)ncoord*sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
-		if ((thetac=(double*)realloc((void*)thetac,(size_t)ncoord*sizeof(double)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
-		if ((statc=(int*)realloc((void*)statc,(size_t)ncoord*sizeof(int)))==0) {
-			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
-			return 1;
-		}
+    /* just use the header, because frequency is uniform */
+    if (naxis>3) { /* 4D array */
+     fits_read_key(fptr, TDOUBLE,"CRVAL4",&freq0,0,&status);
+     fits_read_key(fptr, TDOUBLE,"CDELT4",&deltaf,0,&status);
+    } else { /* 3d array */
+     fits_read_key(fptr, TDOUBLE,"CRVAL3",&freq0,0,&status);
+     fits_read_key(fptr, TDOUBLE,"CDELT3",&deltaf,0,&status);
+     /* update freq axes */
+     new_naxis[3]=new_naxis[2];
+     new_naxis[2]=1;
+    } 
 
-		}
-
-    kk=0;
-	  ncoord=new_naxis[3];
-    for (ii=1;ii<=new_naxis[3];ii++) {
-						 pixelc[kk+0]=(double)1; /* l */
-						 pixelc[kk+1]=(double)1; /* m */
-						 pixelc[kk+2]=(double)1.0; /* stokes */
-						 pixelc[kk+3]=(double)ii-1.0; /* freq */
-						 kk+=4;
-		 }
-		if (status = wcsp2s(wcs, ncoord, wcs->naxis, pixelc, imgc, phic, thetac,
-			 worldc, statc)) {
-			 fprintf(stderr,"wcsp2s ERROR %2d\n", status);
-			 /* Handle Invalid pixel coordinates. */
-			 if (status == 8) status = 0;
-	  }
-
+   
   	if ((*fgrid=(double*)calloc((size_t)new_naxis[3],sizeof(double)))==0) {
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
 			return 1;
@@ -835,27 +847,13 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 			fprintf(stderr,"%s: %d: no free memory\n",__FILE__,__LINE__);
 			return 1;
 		}
- /*   kk=0;
-    for (ii=1;ii<=new_naxis[3];ii++) {
-				printf("(%lf: %lf) : [%lf:%lf:%lf:%lf] : (%lf,%lf), [%lf:%lf:%lf:%lf] :: %d\n",pixelc[kk+0],pixelc[kk+1],
-				imgc[kk+0],imgc[kk+1],imgc[kk+2],imgc[kk+3],phic[kk/4],thetac[kk/4],
-				worldc[kk+0],worldc[kk+1],worldc[kk+2],worldc[kk+3],statc[kk/4]
-				);
-						 kk+=4;
-		 } */
 
-    kk=0;
-		for (ii=0;ii<new_naxis[3];ii++) {
-					(*fgrid)[ii]= worldc[kk+3];
-					kk+=4;
-		}
+    (*fgrid)[0]=freq0;
 		for (ii=1;ii<new_naxis[3];ii++) {
-					(*fspace)[ii]=(*fgrid)[ii]- (*fgrid)[ii-1];
+					(*fgrid)[ii]= freq0+((double)ii)*deltaf;
 		}
-		if (new_naxis[3]>1) {
-      (*fspace)[0]=(*fspace)[1];
-		} else {
-      (*fspace)[0]=1.0;
+		for (ii=0;ii<new_naxis[3];ii++) {
+					(*fspace)[ii]=deltaf;
 		}
 		/*************************************/
 
@@ -887,6 +885,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
     return(status);
 }
+
 
 
 int simple_read_fits_file(const char *filename,  double **arr,  double ***cells,
