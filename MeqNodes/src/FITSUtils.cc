@@ -441,7 +441,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int ncoord;
 		double *pixelc, *imgc, *worldc, *phic, *thetac;
 		int *statc;
-    double freq0,deltaf;
+    double freq0,deltaf,refpix;
 		double phi0,theta0,l0,m0;
 
 		int stat[NWCSFIX];
@@ -827,16 +827,23 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 		/***** determinig frequencies ********/
     /* just use the header, because frequency is uniform */
+    refpix=1; /* reference pixel for frequency */
     if (naxis>3) { /* 4D array */
      fits_read_key(fptr, TDOUBLE,"CRVAL4",&freq0,0,&status);
      fits_read_key(fptr, TDOUBLE,"CDELT4",&deltaf,0,&status);
+     fits_read_key(fptr, TDOUBLE,"CRPIX4",&refpix,0,&status);
     } else { /* 3d array */
      fits_read_key(fptr, TDOUBLE,"CRVAL3",&freq0,0,&status);
      fits_read_key(fptr, TDOUBLE,"CDELT3",&deltaf,0,&status);
+     fits_read_key(fptr, TDOUBLE,"CRPIX3",&refpix,0,&status);
      /* update freq axes */
      new_naxis[3]=new_naxis[2];
      new_naxis[2]=1;
     } 
+    /* if reference pixel is not 1, update reference freq at 1st pixel */
+    if (refpix!=1) {
+      freq0=freq0-(refpix-1)*deltaf;
+    }
 
    
   	if ((*fgrid=(double*)calloc((size_t)new_naxis[3],sizeof(double)))==0) {
