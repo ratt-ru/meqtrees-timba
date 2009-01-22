@@ -34,6 +34,7 @@ valid-timba-versions()
       _tvers="$_tvers $f"
     fi
   done
+  _tvers=${_tvers# }
   echo -n $_tvers
 }
 
@@ -47,13 +48,13 @@ elif [ -z "$timba_versions" ]; then
   echo "If MeqTrees are installed elsewhere, please set your TIMBA_PATH variable appropriately."
 else
   echo "Available MeqTree versions: $timba_versions";
-  if [ "$PRE_TIMBA_PATH" == "" ]; then
+  if [ "$PRE_TIMBA_PATH" = "" ]; then
     export PRE_TIMBA_PATH=$PATH
   fi
-  if [ "$PRE_TIMBA_LD_LIBRARY_PATH" == "" ]; then
+  if [ "$PRE_TIMBA_LD_LIBRARY_PATH" = "" ]; then
     export PRE_TIMBA_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
   fi
-  if [ "$PRE_TIMBA_PYTHONPATH" == "" ]; then
+  if [ "$PRE_TIMBA_PYTHONPATH" = "" ]; then
     export PRE_TIMBA_PYTHONPATH=$PYTHONPATH
   fi
   if ! echo $PYTHONPATH|grep Cattery >/dev/null; then
@@ -82,13 +83,13 @@ else
       return
     fi
     # single version found: use that
-    if [ "$versions" == "${versions% *}" ]; then
+    if [ "$versions" = "${versions% *}" ]; then
       version=$versions
     # else multiple versions found. Check for an exact match
     else
       unset version
       for v in $versions; do
-        if [ "$v" == "$1" -o "${v#*-}" == "$1" ]; then
+        if [ "$v" = "$1" -o "${v#*-}" = "$1" ]; then
           version=$v
           break
         fi
