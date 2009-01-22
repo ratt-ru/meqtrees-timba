@@ -22,6 +22,9 @@
 //# $Id$
 
 #include <MeqNodes/FITSUtils.h>
+
+//string comparison
+#include <string.h>
 //global mutex
 LOFAR::Thread::Mutex cfitsio_mutex;
 
@@ -424,7 +427,7 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int bitpix;
 
 		int ii,nkeys,jj,kk;
-		char card[81]; /*for keywords */
+		char card[FLEN_KEYWORD]; /*for keywords len= 81 */
 		int datatype=0;
 		long int totalpix;
 		double bscale,bzero;
@@ -826,13 +829,26 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 
 
 		/***** determinig frequencies ********/
+
     /* just use the header, because frequency is uniform */
     refpix=1; /* reference pixel for frequency */
     if (naxis>3) { /* 4D array */
-     fits_read_key(fptr, TDOUBLE,"CRVAL4",&freq0,0,&status);
-     fits_read_key(fptr, TDOUBLE,"CDELT4",&deltaf,0,&status);
-     fits_read_key(fptr, TDOUBLE,"CRPIX4",&refpix,0,&status);
-    } else { /* 3d array */
+     /* AIPS++ : freq is normally axis 4, AIPS: freq is normally axis 3 */
+     fits_read_key(fptr, TSTRING,"CTYPE4",card, 0, &status);
+     if (strstr(card,"FREQ")|| strstr(card,"freq")) {
+      fits_read_key(fptr, TDOUBLE,"CRVAL4",&freq0,0,&status);
+      fits_read_key(fptr, TDOUBLE,"CDELT4",&deltaf,0,&status);
+      fits_read_key(fptr, TDOUBLE,"CRPIX4",&refpix,0,&status);
+     } else {
+      fits_read_key(fptr, TDOUBLE,"CRVAL3",&freq0,0,&status);
+      fits_read_key(fptr, TDOUBLE,"CDELT3",&deltaf,0,&status);
+      fits_read_key(fptr, TDOUBLE,"CRPIX3",&refpix,0,&status);
+      /* update freq axes */
+      kk=new_naxis[3];
+      new_naxis[3]=new_naxis[2];
+      new_naxis[2]=kk;
+     }
+    } else { /* 3d array, freq MUST be axis 3 */
      fits_read_key(fptr, TDOUBLE,"CRVAL3",&freq0,0,&status);
      fits_read_key(fptr, TDOUBLE,"CDELT3",&deltaf,0,&status);
      fits_read_key(fptr, TDOUBLE,"CRPIX3",&refpix,0,&status);
