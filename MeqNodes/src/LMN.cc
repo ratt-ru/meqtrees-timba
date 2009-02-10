@@ -97,9 +97,10 @@ void LMN::evaluateTensors (std::vector<Vells> & out,
   else {
     Vells L1 = cos(vdec) * sin(vra-vra0);
     Vells M1 = sin(vdec) * cos(vdec0) - cos(vdec) * sin(vdec0) * cos(vra-vra0);
-    // perform 2D rotation consistent with WNB rotation matrix
-    L = L1 * cos(*pa_radians) - M1 * sin(*pa_radians);
-    M = L1 * sin(*pa_radians) + M1 * cos(*pa_radians);
+    // perform 2D rotation consistent with parallactic angle definition
+    // see http://mathworld.wolfram.com/RotationMatrix.html, eqn 3
+    L = L1 * cos(*pa_radians) + M1 * sin(*pa_radians);
+    M = (-1.0) * L1 * sin(*pa_radians) + M1 * cos(*pa_radians);
     N = sqrt(1 - sqr(L) - sqr(M));
   }
 }
