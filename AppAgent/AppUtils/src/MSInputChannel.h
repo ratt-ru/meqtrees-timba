@@ -179,6 +179,9 @@ class MSInputChannel : public FileChannel
     //##ModelId=3DFDFC060354
       int current_timeslot_;
       
+      // this gives the default exposure time associated with each timeslot
+      std::vector<double> exposure_times_;
+      
       // current MS chunk number. A chunk contains N timeslots (i.e. all
       // the per-ifr tiles for a particular time tile)
       int chunk_num_;

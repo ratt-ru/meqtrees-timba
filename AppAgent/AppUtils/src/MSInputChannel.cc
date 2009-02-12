@@ -274,12 +274,20 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   time_range_[0] = times(0);
   time_range_[1] = times(nrows-1);
   header[FTimeExtent] = time_range_;
+  // And also read the EXPOSURE column, and associate default exposure times with each timeslot.
+  // The reason for this is that missing rows (i.e. missing timeslots on some baselines) result
+  // in null exposure times, which causes great confusion down the line, so we fill in a default value
+  // instead
+  ROScalarColumn<Double> expCol(selms_,"EXPOSURE");
+  Vector<Double> exposures = expCol.getColumn();
 
   // times are sorted. We go over them to discover timeslots, i.e. "chunks" 
   // with the same timestamp. Every time we find a new timeslot, we check if
   //  (a) it's in a new tile (i.e. we've gone past the tilesize)
   //  (b) it's in a different segment (i.e. delta-t has changed)
   // The following variables are used:
+  // current timeslot
+  int current_ts = 0;       // # of current timeslot
   // current tile number
   int current_tile = 0;     // # of current tile
   // current segment within this tile (when using multiple segments per tile)
@@ -293,6 +301,9 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   // number of timeslots per each tile
   tile_sizes_.resize(nrows);     // make big enough, will resize back later
   tile_sizes_[0] = 0;            // first timeslot in first tile
+  // exposure per each timeslot
+  exposure_times_.resize(nrows);  // will resize back later
+  // starting time of each tile
   std::vector<double> start_times(nrows);
   // now loop over all times
   for( int i=0; i<nrows; i++ )
@@ -301,6 +312,8 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
     if( i && tm == curtime ) // skip if in same timeslot
       continue;
     // at this point we have a new timeslot
+    exposure_times_[current_ts] = exposures(i);
+    current_ts++;
     // this is its delta-t w.r.t. previous timeslot
     Double delta = tm - curtime;
     curtime = tm;
@@ -347,6 +360,8 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
     current_tile++;
   tile_sizes_.resize(current_tile);
   start_times.resize(current_tile);
+  // and resize the exposure times vector
+  exposure_times_.resize(current_ts);
   if( Debug(2) )
   {
     cdebug(2)<<"Found the following tiling: "<<endl;
@@ -650,6 +665,11 @@ int MSInputChannel::refillStream ()
             ptile->setTileId(ant1col(i),ant2col(i),current_tile_,vdsid_);
             // init all row flags to missing
             ptile->wrowflag() = FlagMissing;
+            // init all time intervals to the default exposure time for this timeslot. This will be overwritten
+            // by the actual exposure time just below, but if some rows of a tile are missing, it's important
+            // to have a default interval set. A similar procedure will be followed for the time column
+            // below
+            ptile->winterval()(ALL) = exposure_times_[current_timeslot_];
           }
           ptile->winterval()(ntimes) = intCol(i);
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
