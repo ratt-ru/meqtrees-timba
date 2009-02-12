@@ -404,7 +404,7 @@ def _vells (shape,typecode,value=None):
     arr.fill(value or 0);
   else:
     arr = _vells_type.__new__(_vells_type,shape=shape,dtype=typecode,buffer=value);
-  print arr,type(arr);
+  #print arr,type(arr);
   return dmi_coerce(arr,_vells_type);
   
 def vells (shape,is_complex=False,value=None):
@@ -512,7 +512,7 @@ def request (cells=None,rqtype=None,dataset_id=None,rqid=None,eval_mode=None):
     _meqdataset_id = rqid[5];
   else:
     _meqdataset_id = 0;
-  print 'rqid',rqid;
+  #print 'rqid',rqid;
   rec = _request_type(request_id=make_hiid(rqid));
   if cells is not None:
     if not isinstance(cells,_cells_type):
