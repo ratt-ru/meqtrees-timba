@@ -1,8 +1,3 @@
-# dummy index file
-
-
-# __all__ = [ all timba symbols, do we need them? ] 
-
 #
 #% $Id$ 
 #
@@ -29,3 +24,62 @@
 #
 
 __all__ = [ "dmi","utils","octopussy","octopython","dmi_repr" ];
+
+
+# list of optional packages which will be added to the include path
+_Packages = [ "Cattery" ];
+
+# list of locations where packages will be searched for
+_PackageLocations = [ "~","/usr/local/MeqTrees","/usr/local/lib/MeqTrees",
+                      "/usr/lib/MeqTrees" ];
+
+
+
+
+# mapping of package: path. Filled in as we find packages
+_packages = {};
+
+import sys
+import os
+import os.path
+
+def packages ():
+  """Returns mapping of available packages to their paths""";
+  return _packages;
+  # print "Using %s, set the %s_PATH environment variable to override this."%(path,package.upper());
+
+
+
+def _tryPackageDir (path,package):
+  """Tests if path refers to a valid directory, adds it to system include path if so.
+  Marks package as having this path.""";
+  if os.path.isdir(path):
+    sys.path.insert(0,path);
+    global _packages;
+    _packages[package] = path;
+    return True;
+  return False;
+
+def _setPackagePath (package):
+  """Finds the given package, by first looking in $PACKAGE_PATH, then checking for 
+  subdirectories of the standard _PackageLocations list.""";
+  # check for explicit PACKAGE_PATH first
+  path = os.environ.get('%s_PATH'%package.upper(),None);
+  if path:
+    if not _tryPackageDir(path,package):
+      print "Warning: your %s_PATH environment variable is set to"%package.upper();
+      print "%s, but this is not a valid directory."%path;
+      print "The %s package will not be available."%package;
+    return;
+  # else look in standard places
+  for path in _PackageLocations:
+    path = os.path.expanduser(path);
+    if _tryPackageDir(os.path.join(os.path.expanduser(path),package),package):
+      return;
+  # none found
+  print "Warning: No %s package found."%package;
+  print "If you have %s in a non-standard location, please set the %s_PATH environment"%(package,package.upper());
+  print "variable to point to it."
+
+for pkg in _Packages:
+  _setPackagePath(pkg);

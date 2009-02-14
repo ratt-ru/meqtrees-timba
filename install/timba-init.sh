@@ -57,10 +57,6 @@ else
   if [ "$PRE_TIMBA_PYTHONPATH" = "" ]; then
     export PRE_TIMBA_PYTHONPATH=$PYTHONPATH
   fi
-  if ! echo $PYTHONPATH|grep Cattery >/dev/null; then
-    export CATTERYPATH=$HOME/Cattery
-    echo "Using Cattery $CATTERYPATH"
-  fi
 
   timba-setup()
   {
