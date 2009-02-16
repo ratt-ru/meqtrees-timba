@@ -146,14 +146,24 @@ import pwd
 import socket
 
 def dump_log (message=None,filename='meqtree.log',filemode='a'):
-  fileobj = file(filename,filemode);
-  fileobj.write("\n###  %s\n"%time.asctime());
-  fileobj.write("### user %s on host %s\n"%(pwd.getpwuid(os.getuid())[0],socket.gethostname()));
-  fileobj.write("### script: %s\n"%current_scriptname);
-  fileobj.write("### cwd: %s\n"%os.getcwd());
-  if message:
-    fileobj.write("### %s\n"%message);
-  dump_options(fileobj);
+  try:
+    try:
+      fileobj = file(filename,filemode);
+    except IOError:
+      oldfile = filename;
+      filename = os.path.expanduser("~/"+filename);
+      _dprint(0,"Error opening %s, will try %s instead"%(oldfile,filename));
+      fileobj = file(filename,filemode);
+    fileobj.write("\n###  %s\n"%time.asctime());
+    fileobj.write("### user %s on host %s\n"%(pwd.getpwuid(os.getuid())[0],socket.gethostname()));
+    fileobj.write("### script: %s\n"%current_scriptname);
+    fileobj.write("### cwd: %s\n"%os.getcwd());
+    if message:
+      fileobj.write("### %s\n"%message);
+    dump_options(fileobj);
+  except IOError:
+    _dprint(0,"Error writing to %s. No log will be written."%filename);
+    
 
 def dump_options (fileobj):
   # dumps all current options into the file given by fileobj

@@ -30,8 +30,15 @@ options = {};
 
 import Timba.utils
 import os
+import sys
 
 if __name__ == "__main__":
+  if not os.access('.',os.W_OK):
+    print "You do not have write permissions to your current working directory,",os.getcwd();
+    print "MeqTrees must be run in from a directory you can write to, such as your home dir." ;
+    print "Please cd to a writable directory and try again." ;
+    sys.exit(1);
+  
   # tell verbosity class to not parse argv -- we do it ourselves here
   Timba.utils.verbosity.disable_argv(); 
   # parse options is the first thing we should do
@@ -91,23 +98,21 @@ def importPlugin (name):
     print '  This plugin will not be available.';
     
 ### import plug-ins
-importPlugin('node_execute');
+#importPlugin('node_execute');
 importPlugin('array_browser');
 importPlugin('array_plotter');
-importPlugin('histogram_plotter');
+#importPlugin('histogram_plotter');
 importPlugin('result_plotter');
 importPlugin('quickref_plotter');
 importPlugin('svg_plotter');
 importPlugin('pylab_plotter');
 importPlugin('collections_plotter');
 importPlugin('history_plotter');
-importPlugin('parmfiddler');
+#importPlugin('parmfiddler');
 # importPlugin('TableInspector');
-importPlugin('stream_control');
+#importPlugin('stream_control');
 
 def meqbrowse (debug={},**kwargs):
-  # parse command line -- old style
-#  remaining_args = app_defaults.parse_argv(sys.argv[1:]);
   args = dict(app_defaults.args);
   args['spawn'] = False;
   for d,l in debug.iteritems():

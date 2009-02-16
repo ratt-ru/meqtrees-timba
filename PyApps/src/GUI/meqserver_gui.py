@@ -748,7 +748,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     if not self._connected:
       QMessageBox.warning(self,"No kernel","Not connected to a MeqTree kernel.",QMessageBox.Ok);
       return;
-    self._tdltab_compile_file(None,self._main_tdlfile,show=False);
+    self._tdltab_compile_file(None,self._main_tdlfile,show=False,import_only=True);
     
     
   def _show_current_tdl_opts (self):
@@ -776,8 +776,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self.setMode(QFileDialog.ExistingFile);
       self.setFilters("TDL scripts (*.tdl *.py);;All files (*.*)");
       self.setViewMode(QFileDialog.Detail);
-      self._cwd = QCheckBox("working directory tracks script location",self);
-      self._cwd.setChecked(True);
+      self._cwd = QCheckBox("change directory to that of script",self);
+      self._cwd.setChecked(False);
       self.addWidgets(None,self._cwd,None);
       self._replace = QCheckBox("close all currently loaded scripts first",self);
       self._replace.setChecked(True);
@@ -809,8 +809,14 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
           tab.reparent(QWidget(),0,QPoint(0,0));
       # change working directory
       if dialog.get_change_wd():
-        # this potentially changes the dialog state, so we get filename above first
-        self.change_working_directory(os.path.dirname(filename),browser=True,kernel=True);
+        dirname = os.path.dirname(filename);
+        if os.access(dirname,os.W_OK):
+          self.change_working_directory(dirname,browser=True,kernel=True);
+        else:
+          QMessageBox.warning(self,"Cannot change directory","""
+            <P><NOBR>Cannot change working directory to </NOBR><tt>%s</tt>, as it is not writable.</P>
+            <P>Will keep using the current working directory, <tt>%s</tt>.</P>"""%(dirname,os.getcwd()),
+            "OK");
       # show this file
       self.show_tdl_file(filename,run=True);
       
@@ -952,7 +958,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._wait_cursor = None;
       raise;
     
-  def _tdltab_compile_file (self,origin_tab,filename,show=True):
+  def _tdltab_import_file (self,origin_tab,filename,show=True):
+    return self._tdltab_compile_file(origin_tab,filename,show=show,import_only=True);
+    
+  def _tdltab_compile_file (self,origin_tab,filename,show=True,import_only=False):
     # reset all tab icons
     for tab in self._tdl_tabs.itervalues():
       self.maintab.setTabIconSet(tab,QIconSet());
@@ -964,7 +973,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     else:
       if show:
         self.show_tab(tab);
-      self._tdl_compile_tab_contents(tab);
+      if import_only:
+        self._tdl_import_tab_contents(tab);
+      else:
+        self._tdl_compile_tab_contents(tab);
     
   def _tdltab_show (self,tab):
     self.show_tab(tab);
