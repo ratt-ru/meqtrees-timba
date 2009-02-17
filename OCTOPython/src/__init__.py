@@ -30,8 +30,10 @@ __all__ = [ "dmi","utils","octopussy","octopython","dmi_repr" ];
 _Packages = [ "Cattery" ];
 
 # list of locations where packages will be searched for
-_PackageLocations = [ "~","/usr/local/MeqTrees","/usr/local/lib/MeqTrees",
-                      "/usr/lib/MeqTrees" ];
+_PackageLocations = [ "~",
+  "/usr/local/MeqTrees","/usr/local/lib/MeqTrees","/usr/lib/MeqTrees",
+  "/usr/local/meqtrees","/usr/local/lib/meqtrees","/usr/lib/meqtrees",
+  ];
 
 
 
