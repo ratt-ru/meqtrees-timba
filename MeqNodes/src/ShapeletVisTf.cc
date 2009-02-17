@@ -38,6 +38,7 @@ namespace Meq {
 const HIID FFilename= AidFilename;
 const HIID FCutoff= AidCutoff;
 const HIID FMethod = AidMethod;
+const HIID FPhi = AidPhi;
 const HIID child_labels[] = { AidModes };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
@@ -54,6 +55,7 @@ ShapeletVisTf::ShapeletVisTf()
 {
  cutoff_=0.0;
  method_=0; //default rectangular
+ phi_=0.0; //default rectangular
 }
 
 //##ModelId=400E5355029D
@@ -78,6 +80,11 @@ void ShapeletVisTf::setStateImpl (DMI::Record::Ref &rec,bool initializing)
    cout<<"method="<<method_<<endl;
 #endif
    if (method_>1) method_=0; //default
+	}
+	if(rec[FPhi].get(phi_,initializing)) {
+#ifdef DEBUG
+   cout<<"phi="<<phi_<<endl;
+#endif
 	}
 }
 
@@ -137,6 +144,18 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 	blitz::Array<double,1> vax=incells.center(Axis::axis(AX2));
 
 
+  /**** rotation ***/
+  if (phi_ !=0) {
+   /** rotate **/
+	 blitz::Array<double,1> uax1=incells.center(Axis::axis(AX1));
+	 blitz::Array<double,1> vax1=incells.center(Axis::axis(AX2));
+   uax1=uax*cos(phi_)+vax*sin(phi_);
+   vax1=-uax*sin(phi_)+vax*cos(phi_);
+   uax=uax1;
+   vax=vax1;
+  }
+
+
 #ifdef DEBUG
 	cout<<"Grid "<<endl;
 	cout<<uax<<endl;
@@ -167,6 +186,7 @@ void ShapeletVisTf::evaluateTensors (std::vector<Vells> & out,
 
 	double *UV;
 	int *cplx;
+
 
 	if (Nu==1 && Nv==1) {
 #ifdef DEBUG

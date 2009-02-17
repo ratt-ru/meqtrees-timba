@@ -30,7 +30,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ShapeletVisTf
-#pragma aid Filename Cutoff Modes Method
+#pragma aid Filename Cutoff Modes Method Phi
 
 
 //defrec begin MeqShapeletVisTf
@@ -39,6 +39,7 @@
 //    method:
 //     0 : rectangular uv plane (default)
 //     1 : polar 
+//     phi: rotation angle (radians) 0 by default, calculated from the positive y axes
 ////
 ////defrec end
 //
@@ -78,6 +79,9 @@ private:
   //
   //cutoff weak modes
   double cutoff_;
+
+  // rotation
+  double phi_;
 
   // rectangular (0)  or polar (1)? 
   int method_;
