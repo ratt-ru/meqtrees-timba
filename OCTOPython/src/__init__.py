@@ -63,24 +63,25 @@ def _tryPackageDir (path,package):
   return False;
 
 def _setPackagePath (package):
-  """Finds the given package, by first looking in $PACKAGE_PATH, then checking for 
+  """Finds the given package, by first looking in $MEQTREES_PACKAGE_PATH, then checking for 
   subdirectories of the standard _PackageLocations list.""";
-  # check for explicit PACKAGE_PATH first
-  path = os.environ.get('%s_PATH'%package.upper(),None);
+  # check for explicit MEQTREES_PACKAGE_PATH first
+  varname = 'MEQTREES_%s_PATH'%package.upper()
+  path = os.environ.get(varname,None);
   if path:
     if not _tryPackageDir(path,package):
-      print "Warning: your %s_PATH environment variable is set to"%package.upper();
+      print "Warning: your %s environment variable is set to"%varname;
       print "%s, but this is not a valid directory."%path;
       print "The %s package will not be available."%package;
     return;
   # else look in standard places
   for path in _PackageLocations:
     path = os.path.expanduser(path);
-    if _tryPackageDir(os.path.join(os.path.expanduser(path),package),package):
+    if _tryPackageDir(os.path.join(path,package),package):
       return;
   # none found
   print "Warning: No %s package found."%package;
-  print "If you have %s in a non-standard location, please set the %s_PATH environment"%(package,package.upper());
+  print "If you have %s in a non-standard location, please set the %s environment"%(package,varname);
   print "variable to point to it."
 
 for pkg in _Packages:

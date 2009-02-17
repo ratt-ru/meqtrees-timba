@@ -12,10 +12,11 @@ def _tryWaterhole (path):
 
 def _setWaterholePath ():
   # check for explicit WATERHOLE_PATH first
-  path = os.environ.get('WATERHOLE_PATH',None);
+  varname = 'MEQTREES_WATERHOLE_PATH';
+  path = os.environ.get(varname,None);
   if path:
     if not _tryWaterhole(path):
-      print "Warning: your WATERHOLE_PATH environment variable is set to"
+      print "Warning: your %s environment variable is set to"%varname;
       print "%s, but this is not a valid directory."%path;
       print "The Waterhole will not be available."
     return;
@@ -34,6 +35,6 @@ def _setWaterholePath ():
   print "You may check out a Waterhole using the following command:"
   print "  $ cd ~; svn co svn://lofar9.astron.nl/var/svn/repos/trunk/Waterhole"
   print "If you have a Waterhole in a non-standard location, please set the"
-  print "WATERHOLE_PATH environment variable to point to it."
+  print "%s environment variable to point to it."%varname;
 
 _setWaterholePath();
