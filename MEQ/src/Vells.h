@@ -311,10 +311,12 @@ public:
     //##ModelId=3F8688700280
   // is it a null vells (representing 0)?
   bool isNull () const
-  { return !NumArray::valid() || ( isScalar() && isReal() && as<double>() == double(0) ); }
+  { return !NumArray::valid() || ( isScalar() && 
+    ( isReal() ? as<double>() == double(0) : as<dcomplex>() == make_dcomplex(0,0) ) ); }
   
   bool isUnity () const
-  { return isScalar() && isReal() && as<double>() == double(1); }
+  { return isScalar() && 
+    ( isReal() ? as<double>() == double(1) : as<dcomplex>() == make_dcomplex(1,0) ); }
   
   // does this Vells have flags attached?
   bool hasDataFlags () const
