@@ -871,6 +871,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QObject.connect(tab,PYSIGNAL("textModified()"),self._tdltab_modified);
       QObject.connect(tab,PYSIGNAL("fileClosed()"),self._tdltab_close);
       QObject.connect(tab,PYSIGNAL("showEditor()"),self._tdltab_show);
+      QObject.connect(tab,PYSIGNAL("importFile()"),self._tdltab_import_file);
       QObject.connect(tab,PYSIGNAL("compileFile()"),self._tdltab_compile_file);
       QObject.connect(tab,PYSIGNAL("fileChanged()"),self._tdltab_reset_label);
       QObject.connect(tab,PYSIGNAL("hasCompileOptions()"),self._tdltab_refresh_compile_options);

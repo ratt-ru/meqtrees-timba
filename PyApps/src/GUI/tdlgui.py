@@ -144,11 +144,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._qa_runmain = QAction(pixmaps.blue_round_reload.iconset(),
                               "&Save & compile main script",Qt.ALT+Qt.Key_R,self);
     QObject.connect(self._qa_runmain,SIGNAL("activated()"),self._run_main_file);
-    QObject.connect(self._tb_run,SIGNAL("clicked()"),self._run_main_file);
+    QObject.connect(self._tb_run,SIGNAL("clicked()"),self._import_main_file);
     self._qa_runmain.addTo(self._tb_runmenu);
     qa_runthis_as = QAction(pixmaps.blue_round_reload.iconset(),"Save & run this script as main script...",0,self);
     qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
-    QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._run_as_main_file);
+    QObject.connect(qa_runthis_as,SIGNAL("activated()"),self._import_as_main_file);
     qa_runthis_as.addTo(self._tb_runmenu);
 
     # Compile-time options and menu
@@ -322,19 +322,26 @@ class TDLEditor (QFrame,PersistentCurrier):
   def get_mainfile (self):
     return self._mainfile;
 
+  def _import_main_file (self):
+    # self._tb_opts.setOn(False);
+    self.clear_errors();
+    if self._mainfile and self._editor.isModified():
+      self._save_file();
+    self.emit(PYSIGNAL("importFile()"),(self,self._mainfile or self._filename,));
+
+  def _import_as_main_file (self):
+    self.clear_errors();
+    self._set_mainfile(None);
+    self._text_modified(self._editor.isModified());   # to reset labels
+    self.emit(PYSIGNAL("fileChanged()"),(self,));
+    self.emit(PYSIGNAL("importFile()"),(self,self._filename,));
+    
   def _run_main_file (self):
     # self._tb_opts.setOn(False);
     self.clear_errors();
     if self._mainfile and self._editor.isModified():
       self._save_file();
     self.emit(PYSIGNAL("compileFile()"),(self,self._mainfile or self._filename,));
-
-  def _run_as_main_file (self):
-    self.clear_errors();
-    self._set_mainfile(None);
-    self._text_modified(self._editor.isModified());   # to reset labels
-    self.emit(PYSIGNAL("fileChanged()"),(self,));
-    self.emit(PYSIGNAL("compileFile()"),(self,self._filename,));
 
   def _clear_transients (self):
     """if message box contains a transient message, clears it""";
