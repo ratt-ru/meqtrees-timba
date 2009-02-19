@@ -182,7 +182,7 @@ class ConnectMeqKernel(QDialog):
 
 
     def languageChange(self):
-        self.setCaption(self.__tr("Connect to MeqTrees kernel"))
+        self.setCaption(self.__tr("Connect to meqserver"))
         self.title_icon.setText(QString.null)
         self.title_label.setText(self.__tr( \
           """<p>Not connected to a MeqTrees kernel.</p>
@@ -193,10 +193,10 @@ class ConnectMeqKernel(QDialog):
 
         self.bg_connect.setTitle(self.__tr("Pick a connection method"))
         # self.btn_wait.setText(self.__tr("wait for local connection"))
-        self.btn_start.setText(self.__tr("start a local MeqTrees kernel:"))
+        self.btn_start.setText(self.__tr("start a local meqserver:"))
         self.start_browse.setText(self.__tr("Browse..."))
         self.start_default.setText(self.__tr("Reset"))
-        self.btn_remote.setText(self.__tr("connect to remote kernel:"))
+        self.btn_remote.setText(self.__tr("connect to remote meqserver:"))
         self.remote_host_lbl.setText(self.__tr("Host"))
         self.remote_port_lbl.setText(self.__tr("Port"))
         self.remote_port.setInputMask(self.__tr("#####; "))
@@ -245,7 +245,7 @@ class ConnectMeqKernel(QDialog):
         dialog.setMode(QFileDialog.ExistingFile);
         # dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
         dialog.setViewMode(QFileDialog.Detail);
-        dialog.setCaption("Select kernel executable");
+        dialog.setCaption("Select meqserver executable");
       else:
         dialog.rereadDir();
       if dialog.exec_loop() == QDialog.Accepted:

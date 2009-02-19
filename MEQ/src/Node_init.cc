@@ -156,10 +156,14 @@ void Node::init ()
   }
   catch( std::exception &exc )
   {
+    // deactivate node
+    wstate()[FControlStatus] = control_status_ &= ~CS_ACTIVE;
     ThrowMore(exc,"failed to init node '"+name()+"'");
   }
   catch( ... )
   {
+    // deactivate node
+    wstate()[FControlStatus] = control_status_ &= ~CS_ACTIVE;
     Throw("failed to init node '"+name()+"'");
   }
 }

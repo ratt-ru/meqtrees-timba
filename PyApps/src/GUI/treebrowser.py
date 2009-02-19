@@ -1039,7 +1039,7 @@ def define_treebrowser_actions (tb):
   # populate the toolbar
   # Refresh
   refresh = tb._qa_refresh = QAction(pixmaps.refresh.iconset(),"Refresh forest",Qt.Key_F2,parent);
-  refresh.setToolTip("This asks for an update of the current forest from the kernel");
+  refresh.setToolTip("This asks for an update of the current forest from the meqserver");
   refresh._is_enabled = lambda tb=tb: tb.is_connected;
   tb.add_action(refresh,10,callback=tb._request_nodelist);
   tb.add_separator(20);

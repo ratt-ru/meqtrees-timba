@@ -186,7 +186,7 @@ static PyObject * stop_octopussy (PyObject *, PyObject *args)
   // catch all exceptions below
   try 
   {
-    cout<<"=================== stopping OCTOPUSSY ========================\n";
+    cdebug(0)<<"=================== stopping OCTOPUSSY ========================\n";
     Octopussy::stopThread();
   }
   catchStandardErrors(NULL);

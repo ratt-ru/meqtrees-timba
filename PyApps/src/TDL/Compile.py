@@ -229,7 +229,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
             batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
 #        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
         msg = """Script has run successfully. %d node definitions 
-  (of which %d are root nodes) sent to the kernel.""" \
+  (of which %d are root nodes) sent to meqserver.""" \
           % (num_nodes,len(ns.RootNodes()));
       else:  
         msg = "Script has run successfully, but no nodes were defined.";    

@@ -230,7 +230,7 @@ class ServersDialog (QDialog):
       dialog.setMode(QFileDialog.ExistingFile);
       # dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
-      dialog.setCaption("Select kernel executable");
+      dialog.setCaption("Select meqserver executable");
     else:
       dialog.rereadDir();
     if dialog.exec_loop() == QDialog.Accepted:

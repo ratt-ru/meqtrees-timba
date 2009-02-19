@@ -335,12 +335,20 @@ void MeqServer::createNodeBatch (DMI::Record::Ref &out,DMI::Record::Ref &in)
       postError(exc);
     }
   }
-  postMessage(ssprintf("initializing %d nodes, please wait",nn));
-  forest.initAll();
+  // if no errors, initialize
+  if( !forest.numInitErrors() )
+  {
+    postMessage("initializing nodes, please wait");
+    forest.initAll();
+  }
   // form a response message
-  out[AidMessage] = ssprintf("created %d nodes",nn);
+  if( forest.numInitErrors() )
+    out[AidError] = ssprintf("%d nodes failed to initialize properly",
+                      forest.numInitErrors());
+  else
+    out[AidMessage] = ssprintf("successfully created %d nodes",nn);
   out[FForestChanged] = incrementForestSerial();
-  fillForestStatus(out(),in[FGetForestStatus].as<int>(0));
+  fillForestStatus(out(),in[FGetForestStatus].as<int>(1));
 }
 
 #ifdef HAVE_MPI
@@ -972,6 +980,7 @@ void MeqServer::fillForestStatus  (DMI::Record &rec,int level)
   #else
   fst[AidMPI|AidNum|AidProc] = 0;
   #endif
+  fst[AidNum|AidInit|AidErrors] = forest.numInitErrors();
   fst[AidBreakpoint] = forest_breakpoint_;
   fst[AidExecuting] = executing_;
   fst[AidDebug|AidLevel] = forest.debugLevel();

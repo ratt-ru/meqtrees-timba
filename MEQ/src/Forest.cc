@@ -38,6 +38,7 @@ InitDebugContext(Forest,"MeqForest");
 // forest state fields
 const HIID FAxisMap = AidAxis|AidMap;
 const HIID FAxisList = AidAxis|AidList;
+const HIID FNumInitErrors = AidNum|AidInit|AidErrors;
 const HIID FDebugLevel = AidDebug|AidLevel;
 const HIID FKnownSymdeps = AidKnown|AidSymdeps;
 const HIID FSymdeps = AidSymdeps;
@@ -67,6 +68,7 @@ Forest::Forest ()
   event_callback = 0;
   debug_level_ = 0;
   stop_flag_ = false;
+  wstate()[FNumInitErrors] = num_init_errors = 0;
   // default cache policy
   cache_policy_ = Node::CACHE_SMART;
   log_policy_ = Node::LOG_NOTHING;
@@ -82,6 +84,7 @@ Forest::Forest ()
 //##ModelId=400E53050193
 void Forest::clear ()
 {
+  wstate()[FNumInitErrors] = num_init_errors = 0;
   nodes.resize(1);
   name_map.clear();
   num_valid_nodes = 0;
@@ -137,10 +140,12 @@ NodeFace & Forest::create (int &node_index,DMI::Record::Ref &initrec,bool reinit
   }
   catch( std::exception &exc )
   {
+    wstate()[FNumInitErrors] = ++num_init_errors;
     ThrowMore(exc,"failed to create node '"+nodename +"' of class "+classname);
   }
   catch(...)
   {
+    wstate()[FNumInitErrors] = ++num_init_errors;
     Throw("failed to create node '"+nodename +"' of class "+classname);
   }
   // resize repository as needed, and put node into it
@@ -161,11 +166,31 @@ void Forest::initAll ()
   // call init() on all nodes
   for( uint i=0; i<nodes.size(); i++ )
     if( nodes[i].valid() )
-      nodes[i]().init();
+    {
+      try
+      {
+        nodes[i]().init();
+      }
+      catch( std::exception &exc )
+      {
+        wstate()[FNumInitErrors] = ++num_init_errors;
+        postError(exc);
+      }
+    }
   // call checkChildren() on all nodes
   for( uint i=0; i<nodes.size(); i++ )
     if( nodes[i].valid() )
-      nodes[i]().checkChildren();
+    {
+      try
+      {
+        nodes[i]().checkChildren();
+      }
+      catch( std::exception &exc )
+      {
+        wstate()[FNumInitErrors] = ++num_init_errors;
+        postError(exc);
+      }
+    }
 }
 
 //##ModelId=3F5F5CA300E0

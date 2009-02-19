@@ -57,7 +57,7 @@ class Profiler (PersistentCurrier):
     self._tb_collect.setTextLabel("Collect");
     self._tb_collect.setUsesTextLabel(True);
     self._tb_collect.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_collect,"Collect profiling stats from kernel");
+    QToolTip.add(self._tb_collect,"Collect profiling stats from meqserver");
     QObject.connect(self._tb_collect,SIGNAL("clicked()"),self.collect_stats);
    
     ## RESET button
@@ -66,7 +66,7 @@ class Profiler (PersistentCurrier):
     tb_reset.setTextLabel("Reset");
     tb_reset.setUsesTextLabel(True);
     tb_reset.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(tb_reset,"Reset kernel profiling stats");
+    QToolTip.add(tb_reset,"Reset meqserver's profiling stats");
     QObject.connect(tb_reset,SIGNAL("clicked()"),self.reset_stats);
     
     ## label     
@@ -270,7 +270,7 @@ class Profiler (PersistentCurrier):
     self._appgui.log_message("collecting profiling stats, please wait");
     self.clear();
     self._tb_collect.setEnabled(False);
-    self._label.setText("<i>(waiting for profiling stats from kernel)</i>");
+    self._label.setText("<i>(waiting for profiling stats from meqserver)</i>");
     meqds.request_nodelist(profiling_stats=True);
   
   def reset_stats (self):

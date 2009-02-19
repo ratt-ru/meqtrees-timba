@@ -132,7 +132,7 @@ class app_proxy (verbosity):
             path = filename;
             break;
       if not os.path.isfile(path) or not os.access(path,os.X_OK):
-        raise RuntimeError,"can't spawn kernel %s: not an executable file" % (path,);
+        raise RuntimeError,"can't spawn %s: not an executable file" % (path,);
       self.dprint(1,"spawning",path,args);
       self.serv_pid = os.spawnv(os.P_NOWAIT,path,[path]+args);
       self.dprint(1,"spawned external server, pid",self.serv_pid);

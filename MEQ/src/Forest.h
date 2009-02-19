@@ -137,6 +137,10 @@ class Forest
 
     int getStateDependMask () const
     { return depmask_state_; }
+    
+    // returns number of nodes that failed to initialize properly
+    int numInitErrors () const
+    { return num_init_errors; }
 
     // returns or sets the default cache policy
     int cachePolicy () const
@@ -340,6 +344,9 @@ class Forest
 
     // default log policy for nodes (see Meq::Node::LOG_POLICY for enums)
     int log_policy_;
+        
+    // number of init-errors (when creating/initializing nodes)
+    int num_init_errors;
 
     // logger object
     BOIO logger_;

@@ -876,11 +876,15 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
 #     elif not numerr and has_err:
 #       self._reset_maintab_label(logger);
 #     logger._numerr = numerr;
+    had_errors = getattr(self,'_had_errors',0);
     if numerr:
+      if not had_errors:
+        self.maintab.setTabIconSet(logger,logger._error_iconset);
+      self.maintab.setTabLabel(logger,logger._error_label%numerr);
       self.maintab.show();
-      self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
     else:
       self._reset_maintab_label(logger);
+    self._had_errors = numerr;
       
   # resets tab label to default values
   def _reset_maintab_label (self,tabwin,iconset=None,label=None):

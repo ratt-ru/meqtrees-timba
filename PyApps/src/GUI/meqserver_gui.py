@@ -422,7 +422,7 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self,PYSIGNAL("isConnected()"),collect_prof.setEnabled);
     
     debug_menu.insertSeparator();
-    attach_gdb = self._qa_attach_gdb = QAction("Attach binary debugger to kernel",0,self);
+    attach_gdb = self._qa_attach_gdb = QAction("Attach binary debugger to meqserver",0,self);
     attach_gdb.addTo(debug_menu);
     attach_gdb.setEnabled(False); # for now
     QObject.connect(attach_gdb,SIGNAL("activated()"),self._debug_kernel);
@@ -457,7 +457,7 @@ class meqserver_gui (app_proxy_gui):
  
     # subscribe to nodelist requests
     QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self.curry(
-      self.log_message,"fetching forest from kernel, please wait"));
+      self.log_message,"fetching forest from meqserver, please wait"));
     QObject.connect(self.treebrowser,PYSIGNAL("forestLoaded()"),self._notify_forest_loaded);
     # subscribe to updates of forest state
     meqds.subscribe_forest_state(self._update_forest_state);
@@ -543,7 +543,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     cmd0 = Config.get("debugger-command","ddd %f %p");
     cmd0 = cmd0.replace('%p',str(pid)).replace('%f',pathname);
     prompt = "Debugger command:";
-    (cmd,ok) = QInputDialog.getText("Attaching debugger to kernel",prompt,QLineEdit.Normal,cmd0);
+    (cmd,ok) = QInputDialog.getText("Attaching debugger to meqserver",prompt,QLineEdit.Normal,cmd0);
     if ok:
       cmd = str(cmd);
       # see if command has changed, write to config if so
@@ -612,10 +612,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         establish a connection to it. This may be due to any one of the following reasons:</P>
         <ul> 
         <li>an out-of-date meqserver build.</li>
-        <li>leftover meqbrowser, meqserver or child processes such as glish can sometimes interfere with the connection. Try a <tt>ps x</tt> to see what's running, and kill any old processes.</li>
+        <li>leftover meqbrowser, meqserver or child processes (such as glish) can sometimes interfere with the connection. Try a <tt>ps x</tt> to see what's running, and kill any old processes.</li>
         <li>a genuine bug -- please report this.</li>
         </ul>
-        <P>You can also try killing and restarting the kernel process itself.</p>""" % str(self._kernel_pid0),
+        <P>You can also try killing and restarting the meqserver process itself.</p>""" % str(self._kernel_pid0),
         QMessageBox.Critical,
         QMessageBox.Ok,QMessageBox.NoButton,QMessageBox.NoButton,
         self);
@@ -681,7 +681,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       os.kill(pid,signal.SIGKILL);
       
   def _sigchld_handler (self,sig,stackframe):
-    _dprint(0,'got signal',sig);
+    _dprint(1,'got signal',sig);
     try:
       wstat = os.waitpid(-1,os.WNOHANG);
     except:
@@ -710,7 +710,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     if self._connected and self._kernel_pid:
       res = QMessageBox.warning(self,"Quit browser",
         """<p>We have started a meqserver process (pid %d) from this browser. 
-        Would you like to quit the browser only, or kill the kernel as 
+        Would you like to quit the browser only, or kill the meqserver process as 
         well?</p>""" % (self._kernel_pid,),
         "&Quit only","Quit && &kill","Cancel",1,2);
       if res == 0:
@@ -746,7 +746,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QMessageBox.warning(self,"No TDL script","No TDL script has been loaded.",QMessageBox.Ok);
       return;
     if not self._connected:
-      QMessageBox.warning(self,"No kernel","Not connected to a MeqTree kernel.",QMessageBox.Ok);
+      QMessageBox.warning(self,"No meqserver","Not connected to a meqserver.",QMessageBox.Ok);
       return;
     self._tdltab_compile_file(None,self._main_tdlfile,show=False,import_only=True);
     
@@ -764,7 +764,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       QMessageBox.warning(self,"No TDL script","No TDL script has been loaded.",QMessageBox.Ok);
       return;
     if not self._connected:
-      QMessageBox.warning(self,"No kernel","Not connected to a MeqTree kernel.",QMessageBox.Ok);
+      QMessageBox.warning(self,"No meqserver","Not connected to a meqserver.",QMessageBox.Ok);
       return;
     tab = self._tdl_tabs.get(self._main_tdlfile,None);
     if tab:
@@ -1369,13 +1369,17 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     meqds.nodelist.load(meqnl);
     _dprintf(2,"loaded %d nodes into nodelist\n",len(meqds.nodelist));
     # re-update forest status, if available
-    try: fst = meqnl.forest_status;
-    except AttributeError: pass;
+    try: 
+      fst = meqnl.forest_status;
+      num_init_err = fst.num_init_errors;
+    except AttributeError: 
+      num_init_err = 0;
+      pass;
     else: self.treebrowser.update_forest_status(fst);
     # clear wait-cursor
     self._wait_cursor = None;
-    # if we have just compiled a script, show the jobs
-    if getattr(self,'_show_tdljobs_on_nodelist',False):
+    # if we have just compiled a script, and there are no init errors, show the jobs
+    if getattr(self,'_show_tdljobs_on_nodelist',False) and not num_init_err:
       self._show_tdljobs_on_nodelist = False;
       self._show_current_tdl_jobs();
       

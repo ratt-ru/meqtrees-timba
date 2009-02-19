@@ -163,11 +163,11 @@ class multiapp_proxy (verbosity):
             path = filename;
             break;
       if not os.path.isfile(path) or not os.access(path,os.X_OK):
-        raise RuntimeError,"can't spawn kernel %s: not an executable file" % (path,);
+        raise RuntimeError,"can't spawn %s: not an executable file" % (path,);
       self.dprint(1,"spawning",path,*args);
       self.serv_pid = os.spawnv(os.P_NOWAIT,path,[path]+args);
       self.auto_attach(pid=self.serv_pid);
-      self.dprint(1,"spawned external server, pid",self.serv_pid);
+      self.dprint(1,"spawned external app, pid",self.serv_pid);
       self.dprint(2,"waiting for Hello message from app");
       self._req_state = False;
     else: # no launch spec, simply wait for a connection, and request state when it's there
