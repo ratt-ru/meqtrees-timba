@@ -973,6 +973,11 @@ const int AidOutput_int = -1241;
 const DMI::AtomicID AidPA(-1702);                 // from /home/twillis/Timba/MeqNodes/src/LMN.h:31
 const int AidPA_int = -1702;
 #endif
+#ifndef _defined_id_AidPhi
+#define _defined_id_AidPhi 1
+const DMI::AtomicID AidPhi(-1756);                // from /home/sarod/Timba/MeqNodes/src/ShapeletVisTf.h:33
+const int AidPhi_int = -1756;
+#endif
 #ifndef _defined_id_AidPhi0
 #define _defined_id_AidPhi0 1
 const DMI::AtomicID AidPhi0(-1728);               // from /home/sarod/Timba/MeqNodes/src/StationBeam.h:35
