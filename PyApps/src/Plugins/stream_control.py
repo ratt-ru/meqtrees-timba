@@ -955,6 +955,6 @@ def define_mainmenu_actions (menu,parent):
   return;  # temporary while this plugin is broken
   _dprint(1,'defining stream control menu actions');
   global _qa_stream;
-  # add ourselves to the MeqTimba menu
-  _qa_stream.addTo(menu['MeqTimba']);
+  # add ourselves to the MeqTrees menu
+  _qa_stream.addTo(menu['MeqTrees']);
 

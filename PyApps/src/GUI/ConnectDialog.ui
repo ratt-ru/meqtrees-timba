@@ -13,7 +13,7 @@
         </rect>
     </property>
     <property name="caption">
-        <string>Connect to MeqTimba kernel</string>
+        <string>Connect to MeqTrees kernel</string>
     </property>
     <property name="sizeGripEnabled">
         <bool>false</bool>
@@ -69,7 +69,7 @@
                             <cstring>title_label</cstring>
                         </property>
                         <property name="text">
-                            <string>&lt;p&gt;Not connected to a MeqTimba kernel.&lt;/p&gt;
+                            <string>&lt;p&gt;Not connected to a MeqTrees kernel.&lt;/p&gt;
 &lt;p&gt;&lt;i&gt;If you will be starting a kernel locally using external tools, a connection should be established automatically.&lt;/i&gt;&lt;/p&gt;</string>
                         </property>
                     </widget>
@@ -114,7 +114,7 @@
                                 <cstring>btn_start</cstring>
                             </property>
                             <property name="text">
-                                <string>start a local MeqTimba kernel:</string>
+                                <string>start a local MeqTrees kernel:</string>
                             </property>
                         </widget>
                         <widget class="QLayoutWidget">

@@ -397,6 +397,6 @@ def define_mainmenu_actions (menu,parent):
   #return;  # temporary while this plugin is broken
   _dprint(1,'defining table inspector menu actions');
   global _qa_table;
-  # add ourselves to the MeqTimba menu
-  _qa_table.addTo(menu['MeqTimba']);
+  # add ourselves to the MeqTrees menu
+  _qa_table.addTo(menu['MeqTrees']);
 

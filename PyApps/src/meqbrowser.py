@@ -65,7 +65,7 @@ if __name__ == "__main__":
     context,level = opt[:2];
     Timba.utils.verbosity.set_verbosity_level(context,int(level));
 
-  print "Welcome to the MeqTree Browser!";
+  print "Welcome to the MeqTrees Browser!";
   print "Please wait a second while the GUI starts up.";
 
 import sys
@@ -83,7 +83,7 @@ from Timba.Apps import meqserver
 import Timba.utils
 #from Timba.GUI import app_proxy_gui
 #from Timba.GUI.pixmaps import pixmaps
-#app_proxy_gui.set_splash_screen(pixmaps.trees_splash.pm,"Starting MeqTimba Brower");
+#app_proxy_gui.set_splash_screen(pixmaps.trees_splash.pm,"Starting MeqTrees Brower");
 
 # ugly, but for some reason Purr objects to being imported from within TDL
 try: import Purr

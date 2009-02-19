@@ -182,10 +182,10 @@ class ConnectMeqKernel(QDialog):
 
 
     def languageChange(self):
-        self.setCaption(self.__tr("Connect to MeqTimba kernel"))
+        self.setCaption(self.__tr("Connect to MeqTrees kernel"))
         self.title_icon.setText(QString.null)
         self.title_label.setText(self.__tr( \
-          """<p>Not connected to a MeqTimba kernel.</p>
+          """<p>Not connected to a MeqTrees kernel.</p>
           <p><i>If you will be starting a kernel locally using external tools,
           a connection should be established automatically.</i></p>
           <p><i>Otherwise, select one of the connection methods below.</i></p>""" \
@@ -193,7 +193,7 @@ class ConnectMeqKernel(QDialog):
 
         self.bg_connect.setTitle(self.__tr("Pick a connection method"))
         # self.btn_wait.setText(self.__tr("wait for local connection"))
-        self.btn_start.setText(self.__tr("start a local MeqTimba kernel:"))
+        self.btn_start.setText(self.__tr("start a local MeqTrees kernel:"))
         self.start_browse.setText(self.__tr("Browse..."))
         self.start_default.setText(self.__tr("Reset"))
         self.btn_remote.setText(self.__tr("connect to remote kernel:"))

@@ -68,7 +68,7 @@ makeNodeDataItem = meqgui.makeNodeDataItem;
 #_mainapp = mainapp();
 #_splash_screen = QSplashScreen(pixmaps.trees48x48.pm());
 #_splash_screen.show();
-#_splash_screen.message("Starting MeqTimba Browser");
+#_splash_screen.message("Starting MeqTrees Browser");
 
 # global symbol: meqserver object; initialized when a meqserver_gui
 # is constructed
@@ -269,7 +269,7 @@ class meqserver_gui (app_proxy_gui):
     
     # build menu bar
     self._menus = {};
-    kernel_menu    = self._menus['MeqTimba'] = QPopupMenu(self);
+    kernel_menu    = self._menus['MeqTrees'] = QPopupMenu(self);
     tdl_menu       = self._tdlmenu = self._menus['TDL'] = QPopupMenu(self);
     debug_menu     = self._menus['Debug'] = QPopupMenu(self);
     view_menu      = self._menus['View'] = QPopupMenu(self);
@@ -277,7 +277,7 @@ class meqserver_gui (app_proxy_gui):
     help_menu      = self._menus['Help'] = QPopupMenu(self);
 
     menubar = self.menuBar();    
-    kernel_menu_id = menubar.insertItem("&MeqTimba",kernel_menu);
+    kernel_menu_id = menubar.insertItem("&MeqTrees",kernel_menu);
     kernel_menu_id = menubar.insertItem("&TDL",tdl_menu);
     debug_menu_id = menubar.insertItem("&Debug",debug_menu);
     window_menu_id = menubar.insertItem("&View",view_menu);
@@ -289,7 +289,7 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self,PYSIGNAL("isConnected()"),self.curry(menubar.setItemVisible,bookmarks_menu_id));
     menubar.setItemVisible(bookmarks_menu_id,False);
 
-    # --- MeqTimba menu
+    # --- MeqTrees menu
     connect = self._qa_connect = QAction("Attach to a meqserver...",Qt.CTRL+Qt.Key_A,self);
     connect.addTo(kernel_menu);
     stopkern = self._qa_stopkern = QAction(pixmaps.red_round_cross.iconset(),
