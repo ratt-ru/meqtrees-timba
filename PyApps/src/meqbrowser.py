@@ -104,13 +104,13 @@ importPlugin('array_plotter');
 #importPlugin('histogram_plotter');
 importPlugin('result_plotter');
 importPlugin('quickref_plotter');
-importPlugin('svg_plotter');
+# importPlugin('svg_plotter');
 importPlugin('pylab_plotter');
 importPlugin('collections_plotter');
-importPlugin('history_plotter');
-#importPlugin('parmfiddler');
+# importPlugin('history_plotter');
+# importPlugin('parmfiddler');
 # importPlugin('TableInspector');
-#importPlugin('stream_control');
+# importPlugin('stream_control');
 
 def meqbrowse (debug={},**kwargs):
   args = dict(app_defaults.args);

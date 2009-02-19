@@ -126,6 +126,6 @@ class QuickRefPlotter(GriddedPlugin):
     return
 
 
-Grid.Services.registerViewer(dmi_type('MeqResult',record),QuickRefPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass(),QuickRefPlotter,priority=22)
+#Grid.Services.registerViewer(dmi_type('MeqResult',record),QuickRefPlotter,priority=40)
+Grid.Services.registerViewer(meqds.NodeClass(),QuickRefPlotter,priority=40)
 

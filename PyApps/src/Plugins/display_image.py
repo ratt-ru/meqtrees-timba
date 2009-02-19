@@ -59,12 +59,7 @@ try:
 except:
 # print 'Exception while importing vtk module:'
 # traceback.print_exc();
-  print ' '
-  print '*** VTK not imported! ***'
-  print 'If you know that VTK has been installed on your system'
-  print 'make sure that your LD_LIBRARY_PATH includes the VTK  '
-  print 'libraries.'
-  print ' '
+  print 'pyvtk not found or fails to import. 3D visualization will not be available.'
 
 
 # compute standard deviation of a complex or real array

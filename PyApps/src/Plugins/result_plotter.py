@@ -1250,7 +1250,7 @@ class ResultPlotter(GriddedPlugin):
     self.colorbar = create_ColorBar(self.layout, self.layout_parent, self._visu_plotter, self.plotPrinter)
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass('MeqDataConcat'),ResultPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass(),ResultPlotter,priority=22)
+#Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)
+#Grid.Services.registerViewer(meqds.NodeClass('MeqDataConcat'),ResultPlotter,priority=10)
+Grid.Services.registerViewer(meqds.NodeClass(),ResultPlotter,priority=25)
 

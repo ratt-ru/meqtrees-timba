@@ -282,5 +282,5 @@ class CollectionsPlotter(GriddedPlugin):
     _dprint(3, 'exiting process_data')
 
 #Grid.Services.registerViewer(meqds.NodeClass('MeqComposer'),CollectionsPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass(),CollectionsPlotter,priority=22)
+Grid.Services.registerViewer(meqds.NodeClass(),CollectionsPlotter,priority=30)
 

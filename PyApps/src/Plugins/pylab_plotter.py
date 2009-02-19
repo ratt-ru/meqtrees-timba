@@ -358,8 +358,8 @@ class PylabPlotter(GriddedPlugin):
     self.results_selector.setLabel(self.label)
     self.results_selector.set_emit(True)
 
-Grid.Services.registerViewer(dmi_type('MeqResult',record),PylabPlotter,priority=10)
-Grid.Services.registerViewer(meqds.NodeClass(),PylabPlotter,priority=22)
+# Grid.Services.registerViewer(dmi_type('MeqResult',record),PylabPlotter,priority=50)
+Grid.Services.registerViewer(meqds.NodeClass(),PylabPlotter,priority=50)
 
 ########################################
 # stuff for testing
