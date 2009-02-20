@@ -777,6 +777,15 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
       }
     }
   }
+  catch( std::exception &exc )  // catch-all for errors 
+  {
+    // abort channels
+    input_channel_().abort();
+    if( output_channel_.valid() )
+      output_channel_().abort();
+    // add to error list
+    fail_list().addFail(exc);
+  }
   catch( ... )  // catch-all and cleanup for any errors not caught above
   {
     // post end event
@@ -798,7 +807,7 @@ int Meq::VisDataMux::pollChildren (Result::Ref &resref,
   {
     resref <<= new Result(1);
     resref().setVellSet(0,fail_list);
-    return RES_FAIL;
+    return RES_FAIL|getDependMask();
   }
   // normal exit -- return empty result
   return getDependMask();
