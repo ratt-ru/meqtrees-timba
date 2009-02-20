@@ -300,7 +300,7 @@ void NodeNursery::mt_waitForEndOfPoll ()
     return;
   Thread::Mutex::Lock lock(mt.child_poll_cond_);
   // loop until all children have returned a result
-  while( mt.child_retcount_ < mt.numchildren_ )
+  while( mt.child_retcount_ < mt.numchildren_ && !mt.abandon_ )
   {
     // else grab a work order for ourselves
     Thread::Mutex::Lock lock2(mt.cur_brigade_->cond());
@@ -377,7 +377,7 @@ int NodeNursery::awaitChildResult (int &rescode,Result::Ref &resref,const Reques
       if( !wo )
       {
         lock.relock(mt.child_poll_cond_);
-        if( mt.child_retcount_ < mt.numchildren_ )
+        if( mt.child_retcount_ < mt.numchildren_ && !mt.abandon_ )
         {
           MTPool::Brigade::markThreadAsBlocked(name());
           becomeIdle();
@@ -526,7 +526,7 @@ int NodeNursery::syncPoll (Result::Ref &resref,std::vector<Result::Ref> &childre
         // null from queue means either no more work orders, or too many busy threads busy
         // either way, sleep until a child has returned
         Thread::Mutex::Lock lock2(mt.child_poll_cond_);
-        if( mt.child_retcount_ < mt.numchildren_ )
+        if( mt.child_retcount_ < mt.numchildren_ && !mt.abandon_ )
         {
           MTPool::Brigade::markThreadAsBlocked(name());
           becomeIdle();
