@@ -444,6 +444,8 @@ MeqTFSmear                       1746       ; from /home/oms/Timba/MeqNodes/src/
 #MeqToComplex                    1413       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
 #MeqTranspose                    1521       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
 #MeqUVBrick                      1505       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/UVBrick.h:31
+MeqUVDegrid                      1757       ; from /home/fba/Timba/MeqNodes/src/UVDegrid.h:31
+#MeqUVDetaper                    1758       ; from /home/fba/Timba/MeqNodes/src/UVDetaper.h:31
 #MeqUVInterpol                   1508       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:33
 #MeqUVInterpolWave               1688       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpolWave.h:35
 #MeqUVW                          1421       ; from /home/oms/LOFAR/Timba/MeqNodes/src/UVW.h:31
