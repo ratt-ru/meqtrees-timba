@@ -763,7 +763,8 @@ static ObjRef flattenScalarList (const DMI::List &list,const HIID &field)
   // go through list and fill with data
   DMI::List::const_iterator iter = list.begin();
   for( int n=0; iter != list.end(); iter++,n++ )
-    arr(n) = iter->as<Container>()[field].as<T>(0);
+    if( iter->valid() )
+      arr(n) = iter->as<Container>()[field].as<T>(0);
   return res;
 }
 
@@ -775,16 +776,17 @@ static ObjRef flattenArrayList (const DMI::List &list,const HIID &field)
   DMI::List::const_iterator iter = list.begin();
   // go through list and compare shapes
   for( ; iter != list.end(); iter++ )
-  {
-    DMI::Record::Hook harr(iter->as<Container>(),field);
-    if( harr.exists() )
+    if( iter->valid() )
     {
-      const LoShape &shp = harr.as<DMI::NumArray>().shape();
-      FailWhen(shp.size() != N,"array rank mismatch when flattening list for field "+field.toString());
-      for( int i=0; i<N; i++ )
-        maxshape[i] = std::max(maxshape[i],shp[i]);
+      DMI::Record::Hook harr(iter->as<Container>(),field);
+      if( harr.exists() )
+      {
+        const LoShape &shp = harr.as<DMI::NumArray>().shape();
+        FailWhen(shp.size() != N,"array rank mismatch when flattening list for field "+field.toString());
+        for( int i=0; i<N; i++ )
+          maxshape[i] = std::max(maxshape[i],shp[i]);
+      }
     }
-  }
   // preallocate array
   LoShape outshape;
   outshape.resize(N+1);
@@ -797,18 +799,19 @@ static ObjRef flattenArrayList (const DMI::List &list,const HIID &field)
   int stride = blitz::product(maxshape);
   // go through list again and fill with data
   for( iter = list.begin(); iter != list.end(); iter++,pdata+=stride )
-  {
-    DMI::Record::Hook harr(iter->as<Container>(),field);
-    if( harr.exists() )
+    if( iter->valid() )
     {
-      const blitz::Array<T,N> & subarr = harr.as<DMI::NumArray>().getConstArray<T,N>();
-      // get slice of output to write to
-      blitz::Array<T,N> outslice(pdata,maxshape,blitz::neverDeleteData);
-      // subdomain of output to write to (in case this array is smaller)
-      blitz::RectDomain<N> dom(subarr.lbound(),subarr.ubound());
-      outslice(dom) = subarr;
+      DMI::Record::Hook harr(iter->as<Container>(),field);
+      if( harr.exists() )
+      {
+        const blitz::Array<T,N> & subarr = harr.as<DMI::NumArray>().getConstArray<T,N>();
+        // get slice of output to write to
+        blitz::Array<T,N> outslice(pdata,maxshape,blitz::neverDeleteData);
+        // subdomain of output to write to (in case this array is smaller)
+        blitz::RectDomain<N> dom(subarr.lbound(),subarr.ubound());
+        outslice(dom) = subarr;
+      }
     }
-  }
   return res;
 }
 
@@ -1048,8 +1051,9 @@ int Solver::getResult (Result::Ref &resref,
       debugList().addBack(pdbgvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
     for( int i=0; i<numSubsolvers(); i++ )
     {
-      pmetvec->put(i,subsolvers_[i].metrics);
-      if( pdbgvec )
+      if( subsolvers_[i].metrics.valid() )
+        pmetvec->put(i,subsolvers_[i].metrics);
+      if( pdbgvec && subsolvers_[i].debugrec.valid() )
         pdbgvec->put(i,subsolvers_[i].debugrec);
     }
     // fill in a Solver.Iter event (will be posted at top of loop,
@@ -1267,6 +1271,7 @@ void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
   converged = false;
   chi0 = chi = 0;
   neq = 0;
+  rank = 0;
 }
 
 bool Solver::Subsolver::solve (int step)
