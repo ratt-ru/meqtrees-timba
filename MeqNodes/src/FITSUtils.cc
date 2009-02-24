@@ -436,7 +436,9 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
 		int null_flag=0;
 
 
+
 		/* stuctures from WCSLIB */
+    char ctypeS[9];
 		struct wcsprm *wcs;
 		char *header;
 		int ncard,nreject,nwcs;
@@ -840,6 +842,12 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
       fits_read_key(fptr, TDOUBLE,"CDELT4",&deltaf,0,&status);
       fits_read_key(fptr, TDOUBLE,"CRPIX4",&refpix,0,&status);
      } else {
+      /* bummer, this is probably velocity, so need WCS to do the proper calculation */
+        strcpy(ctypeS, "FREQ-???");
+        ii = -1;
+        if ((status = wcssptr(wcs, &ii, ctypeS))) {
+          printf("wcssptr ERROR %d\n", status);
+      /* have no choice, use axis 3 */
       fits_read_key(fptr, TDOUBLE,"CRVAL3",&freq0,0,&status);
       fits_read_key(fptr, TDOUBLE,"CDELT3",&deltaf,0,&status);
       fits_read_key(fptr, TDOUBLE,"CRPIX3",&refpix,0,&status);
@@ -847,6 +855,31 @@ int read_fits_file(const char *filename,double cutoff, double**myarr, long int *
       kk=new_naxis[3];
       new_naxis[3]=new_naxis[2];
       new_naxis[2]=kk;
+
+        } else {
+
+      	pixelc[0]=(double)1.0;
+				pixelc[1]=(double)1.0;
+				pixelc[2]=(double)1.0;
+				pixelc[3]=(double)1.0;
+      	pixelc[4]=(double)1.0;
+				pixelc[5]=(double)1.0;
+				pixelc[6]=(double)1.0;
+				pixelc[7]=(double)2.0;
+ 
+  
+    		if (status = wcsp2s(wcs, 2, wcs->naxis, pixelc, imgc, phic, thetac,
+	  		 worldc, statc)) {
+	  		 fprintf(stderr,"wcsp2s ERROR %2d\n", status);
+	  		 /* Handle Invalid pixel coordinates. */
+	  		 if (status == 8) status = 0;
+	      }
+
+       //printf("World =%lf %lf\n",worldc[3],worldc[7]);
+         freq0=worldc[3];
+         deltaf=worldc[7]-worldc[3];
+         refpix=1;
+        }
      }
     } else { /* 3d array, freq MUST be axis 3 */
      fits_read_key(fptr, TDOUBLE,"CRVAL3",&freq0,0,&status);
