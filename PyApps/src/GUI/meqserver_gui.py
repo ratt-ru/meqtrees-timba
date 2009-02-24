@@ -37,6 +37,7 @@ from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
 from Timba.GUI import bookmarks 
 from Timba.GUI import servers_dialog
+from Timba.GUI import about_dialog
 from Timba.GUI import widgets 
 from Timba.GUI import VisProgressMeter 
 from Timba.GUI import SolverProgressMeter 
@@ -428,6 +429,10 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(attach_gdb,SIGNAL("activated()"),self._debug_kernel);
     
     # --- Help menu
+    qa_about = QAction("About MeqTrees...",0,self);
+    qa_about.addTo(help_menu);
+    self._about_dialog = about_dialog.AboutDialog(self);
+    QObject.connect(qa_about,SIGNAL("activated()"),self._about_dialog.exec_loop);
     help_menu.insertItem(self._whatsthisbutton.iconSet(),
                               "What's &This",self.whatsThis,Qt.SHIFT+Qt.Key_F1);
     
