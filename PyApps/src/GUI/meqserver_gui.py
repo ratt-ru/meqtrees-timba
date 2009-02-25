@@ -837,6 +837,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._main_tdlfile = pathname;
       self._enable_run_current();  # update GUI
       self._tdlgui_error_window.clear_errors();
+      self._update_app_state();
     tab = self._tdl_tabs.get(pathname,None);
     if tab is None:
       self._tb_jobs.hide();
@@ -1413,14 +1414,20 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
 
   def _update_app_state (self):
     app_proxy_gui._update_app_state(self);
-    # update window title
-    caption = "MeqBrowser";
     server = self.app.current_server;
+    # if server is active, update window caption accordingly
     if server:
-      caption = "%s: %s - %s"%(caption,str(server.session_name or server.addr),server.state);
-    self.setCaption(caption);
-    if self.app.current_server:
+      server_name = str(server.session_name) or '%s.%s'%(str(server.addr[0]),str(server.addr[2]));
+      if server.remote:
+        server_name += "@"+server.host;
+      caption = "MeqBrowser - %s (%s)"%(server_name,server.state);
+      if self._main_tdlfile:
+        caption += " - %s"%os.path.basename(self._main_tdlfile);
+      self.setCaption(caption);
       self.treebrowser.update_app_state(self.app.current_server.state);
+    else:
+      self.setCaption("MeqBrowser - not connected to a meqserver");
+      
       
   def show_purr_window (self):
     if not self._purr:
