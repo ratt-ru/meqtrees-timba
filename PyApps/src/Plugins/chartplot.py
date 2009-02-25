@@ -77,6 +77,7 @@ class ChartPlot(QWidget):
     self._source = None
     self._max_range = -10000
     self._do_fixed_scale = False
+    self.has_nans_infs = False
     self._data_label = None
     self.info_marker = None
     self.show_channel_labels = True
@@ -321,7 +322,6 @@ class ChartPlot(QWidget):
       self.change_flag_parms(menuid)
       return True
     if menuid == self.menu_table['Complex Data']:
-#     print 'in complex data callback'
       return True
 
 
@@ -1017,6 +1017,16 @@ class ChartPlot(QWidget):
             self._plotter.setAxisTitle(QwtPlot.xBottom, "Frequency Spectrum per Tile Block (Relative Scale)")
           else:
             self._plotter.setAxisTitle(QwtPlot.xBottom, self._data_label + " Frequency Spectrum per Tile Block (Relative Scale)")
+
+        # check for NaNs and Infs
+        self.has_nans_infs = False
+        nan_test = numpy.isnan(flattened_array)
+        inf_test = numpy.isinf(flattened_array)
+        if nan_test.max() > 0 or inf_test.max() > 0:
+          delete = nan_test | inf_test
+          keep = ~nan_test & ~inf_test
+          self.has_nans_infs = True
+
         if self._append_data: 
           for i in range(len(flattened_array)):
             self._chart_data[channel][keys].append(flattened_array[i])
@@ -1028,6 +1038,9 @@ class ChartPlot(QWidget):
           flattened_array = numpy.zeros((num_elements,), numpy.int32)
         else:
           flattened_array = numpy.reshape(incoming_flags.copy(),(num_elements,))
+
+        if self.has_nans_infs: 
+          flattened_array[delete] = 10
         if self._append_data: 
           for i in range(len(flattened_array)):
             self._flag_data[channel][keys].append(flattened_array[i])
@@ -1247,8 +1260,13 @@ class ChartPlot(QWidget):
             if y_plot_values.shape[0] == 0:
               y_plot_values = None
           else:
-            x_plot_values = temp_x
-            y_plot_values = cplx_chart
+            # can't display NaNs
+            if flags.max() == 10:
+              x_plot_values = numpy.compress(flags<10,temp_x)
+              y_plot_values = numpy.compress(flags<10,cplx_chart)
+            else:
+              x_plot_values = temp_x
+              y_plot_values = cplx_chart
 
           if not y_plot_values is None: 
             self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
@@ -1263,8 +1281,14 @@ class ChartPlot(QWidget):
             if y_plot_values.shape[0] == 0:
               y_plot_values = None
           else:
-            x_plot_values = temp_x
-            y_plot_values = chart
+            # can't display NaNs
+            if flags.max() == 10:
+              x_plot_values = numpy.compress(flags<10,temp_x)
+              y_plot_values = numpy.compress(flags<10,chart)
+            else:
+              x_plot_values = temp_x
+              y_plot_values = chart
+ 
 
           if not y_plot_values is None: 
             self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)

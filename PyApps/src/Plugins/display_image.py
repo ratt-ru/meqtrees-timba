@@ -212,6 +212,7 @@ class QwtImageDisplay(QwtPlot):
 
         self._vells_plot = False
 	self._flags_array = None
+	self._nan_flags_array = None
 	self.flag_toggle = None
 	self.flag_blink = False
 	self.full_data_range = False
@@ -935,7 +936,7 @@ class QwtImageDisplay(QwtPlot):
       """ callback to adjust display range of flagged data """
       if self.is_vector:
         return
-      if self._flags_array is None:
+      if self._flags_array is None and self._nan_flags_array is None:
         self.replot()
         #print 'called replot in handleFlagRange'
         return
@@ -1031,7 +1032,7 @@ class QwtImageDisplay(QwtPlot):
       toggle_flag_label = "toggle flagged data for plane "
       toggle_id = self.menu_table[toggle_flag_label]
       if self.has_nans_infs and self.is_vector == False:
-        info_label = "Flagged data has NaNs or Infs and cannot be shown explicitly"
+        info_label = toggle_flag_label + " NaNs or Infs are shown as white"
         self._menu.changeItem(toggle_id, info_label)
         self._menu.setItemVisible(toggle_id,flag_setting)
       else:
@@ -3073,22 +3074,18 @@ class QwtImageDisplay(QwtPlot):
       self.has_nans_infs = False
       self.nan_inf_value = -0.1e-6
       nan_test = numpy.isnan(plot_array)
-      if nan_test.max() > 0:
-        self.has_nans_infs = True
-        self.set_flag_toggles_active(True)
-        self.setFlagsData(nan_test,False)
-
       inf_test = numpy.isinf(plot_array)
-      if inf_test.max() > 0:
+      if nan_test.max() > 0 or inf_test.max() > 0:
         self.has_nans_infs = True
         self.set_flag_toggles_active(True)
-        self.setFlagsData(inf_test,False)
-      if self.has_nans_infs:
-        keep = ~numpy.isnan(plot_array) & ~numpy.isinf(plot_array)
-        delete = numpy.isnan(plot_array) | numpy.isinf(plot_array)
-        self.nan_inf_value = plot_array[keep].mean() + -0.1e-6
-        plot_array[delete] = self.nan_inf_value
-
+        delete = nan_test | inf_test
+        keep = ~nan_test & ~inf_test
+        self.setNanFlagsData(delete,False)
+#       self.nan_inf_value = abs(plot_array[keep].mean() + -0.1e-6)
+        if self.complex_type:
+          plot_array[delete] = complex(self.nan_inf_value,self.nan_inf_value)
+        else:
+          plot_array[delete] = self.nan_inf_value
 
 # I don't think we should ever see the N-D controller in the vector case.
 # If self.original_data_rank > 2 that means that the cells dimensions are
@@ -3433,6 +3430,23 @@ class QwtImageDisplay(QwtPlot):
                      QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
           self.x_array =  flattened_array.real
           self.y_array =  flattened_array.imag
+          if self.ampl_phase:
+            abs_array = abs(flattened_array)
+            phase_array = numpy.arctan2(self.y_array,self.x_array)
+            self.x_array = abs_array
+            self.y_array = phase_array
+          # never show NaNs
+          if not self._nan_flags_array is None:
+            if  self._flags_array is None:
+              self._flags_array = self._nan_flags_array
+            else:
+#           flags_array = self._nan_flags_array + self._flags_array
+              self._flags_array = self._nan_flags_array + self._flags_array
+#         else:
+#           flags_array = self._flags_array
+
+#           self.x_array = numpy.compress(self._nan_flags_array < 10, self.x_array)
+#           self.y_array = numpy.compress(self._nan_flags_array < 10, self.y_array)
           if not self._flags_array is None:
             if self.ampl_phase:
               self.yCrossSection_flag = self.insertCurve('flag_phase')
@@ -3450,11 +3464,6 @@ class QwtImageDisplay(QwtPlot):
             plot_curve=self.curve(self.yCrossSection_flag)
             plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
                      QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
-          if self.ampl_phase:
-            abs_array = abs(flattened_array)
-            phase_array = numpy.arctan2(self.y_array,self.x_array)
-            self.x_array = abs_array
-            self.y_array = phase_array
           if not self._flags_array is None:
             flags_x_array = numpy.compress(self._flags_array==0,self.x_array)
             flags_y_array = numpy.compress(self._flags_array==0,self.y_array)
@@ -3557,6 +3566,12 @@ class QwtImageDisplay(QwtPlot):
           plot_curve=self.curve(self.xrCrossSection)
           plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
                      QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
+          # never show NaNs
+          if not self._nan_flags_array is None:
+            if  self._flags_array is None:
+              self._flags_array = self._nan_flags_array
+            else:
+              self._flags_array = self._nan_flags_array + self._flags_array
           if not self._flags_array is None:
             self.xrCrossSection_flag = self.insertCurve('flag_reals')
             self.setCurvePen(self.xrCrossSection_flag, QPen(Qt.black, q_line_size))
@@ -3688,8 +3703,45 @@ class QwtImageDisplay(QwtPlot):
 
     # setFlagsData()
 
+    def setNanFlagsData (self, incoming_nan_flag_array, flip_axes=True):
+      """ figure out shape, rank etc of a flag array and plot it  """
+      nan_flag_array = incoming_nan_flag_array * 10
+      self.original_nan_flag_array = incoming_nan_flag_array
+      if flip_axes and not self.axes_flip:
+        axes = numpy.arange(incoming_nan_flag_array.ndim)[::-1]
+        nan_flag_array = numpy.transpose(incoming_nan_flag_array, axes)
+        if not self.complex_type and self.axes_rotate:
+          temp_flag_array = nan_flag_array.copy()
+          nan_flag_array = numpy.rot90(temp_flag_array, 1)
+
+# figure out type and rank of incoming array
+      nan_flag_is_vector = False;
+      actual_array_rank = 0
+      for i in range(len(nan_flag_array.shape)):
+        if nan_flag_array.shape[i] > 1:
+          actual_array_rank = actual_array_rank + 1
+      if actual_array_rank == 1:
+        nan_flag_is_vector = True;
+
+      n_rows = 1
+      n_cols = 1
+      if actual_array_rank == 1:
+        n_rows = nan_flag_array.shape[0]
+        if len(nan_flag_array.shape) > 1:
+          n_cols = nan_flag_array.shape[1]
+
+      if nan_flag_is_vector == False:
+        self._nan_flags_array = nan_flag_array
+        self.plotImage.setNanFlagsArray(nan_flag_array)
+        self.plotImage.setDisplayFlag(True)
+      else:
+        num_elements = n_rows*n_cols
+        self._nan_flags_array = nan_flag_array.reshape(num_elements);
+    # setNanFlagsData()
+
     def unsetFlagsData(self):
       self._flags_array = None
+      self._nan_flags_array = None
       self.flags_x_index = []
       self.flags_r_values = []
       self.flags_i_values = []

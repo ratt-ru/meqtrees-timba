@@ -53,8 +53,9 @@ _dprintf = _dbg.dprintf;
 
 
 # from scipy.pilutil
-# note: low is set to 1, so that we can save a value of 0 for a flagged pixel
-def bytescale(data, limits, high=255, low=1):
+# note: low is set to 2, so that we can save a value of 0 for a flagged pixel
+# and 1 for a pixel with NaNs or Infs
+def bytescale(data, limits, high=255, low=2):
     if data.dtype == numpy.uint8:
         return data
     high = high - low
@@ -90,6 +91,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.ValueAxis =  None
         self.ComplexColorMap = None
 	self._flags_array = None
+	self._nan_flags_array = None
         self._image_for_display = None
 	self._display_flags = False
         self.Qimage = None
@@ -103,6 +105,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.log_y_scale = False
         self.transform_offset = 0.0
         self.flag_colour = 0
+        self.nan_colour = 255
         self.lock_image_real = False
         self.lock_image_imag = False
     # __init__()
@@ -140,6 +143,10 @@ class QwtPlotImage(QwtPlotMappedItem):
 
     def setFlagsArray(self, flags_array):
       self._flags_array = flags_array
+
+    def setNanFlagsArray(self, flags_array):
+      self._nan_flags_array = flags_array
+      
       
     def setDisplayFlag(self, display_flags):
         self._display_flags = display_flags
@@ -147,6 +154,7 @@ class QwtPlotImage(QwtPlotMappedItem):
 
     def removeFlags(self):
       self._flags_array = None
+      self._nan_flags_array = None
     # removeFlags
 
     def getRealImageRange(self):
@@ -245,7 +253,10 @@ class QwtPlotImage(QwtPlotMappedItem):
     def setFlaggedImageRange(self):
       (nx,ny) = self.raw_image.shape
       num_elements = nx * ny
-      flattened_flags = numpy.reshape(self._flags_array.copy(),(num_elements,))
+      flags_array = self._flags_array.copy()
+      if not self._nan_flags_array is None:
+        flags_array = flags_array + self._nan_flags_array
+      flattened_flags = numpy.reshape(flags_array,(num_elements,))
       if self.raw_image.dtype == numpy.complex64 or self.raw_image.dtype == numpy.complex128:
         real_array =  self.raw_image.real
         imag_array =  self.raw_image.imag
@@ -294,7 +305,6 @@ class QwtPlotImage(QwtPlotMappedItem):
         second_limit = None
       return [first_limit, second_limit]
 
-
     def to_QImage(self, image):
 # convert to 8 bit image
       image_for_display = None
@@ -338,8 +348,17 @@ class QwtPlotImage(QwtPlotMappedItem):
           limits = [self.r_cmin,self.r_cmax]
           image_for_display = bytescale(image,limits)
 # turn image into a QImage, and return result	
+      if not self._nan_flags_array is None:
+        if self.complex:
+          image_for_display[:nx,:] = numpy.where(self._nan_flags_array,1,image_for_display[:nx,:])
+          image_for_display[nx:,:] = numpy.where(self._nan_flags_array,1,image_for_display[nx:,:])
+        else:
+          image_for_display = numpy.where(self._nan_flags_array,1,image_for_display)
       self._image_for_display = image_for_display
-      return toQImage(image_for_display).mirror(0, 1)
+      result = toQImage(image_for_display).mirror(0, 1)
+      if not self._nan_flags_array is None:
+        result.setColor(1, qRgb(self.nan_colour, self.nan_colour, self.nan_colour))
+      return result
 
     def toGrayScale(self, Qimage):
       for i in range(0, 256):
@@ -348,7 +367,7 @@ class QwtPlotImage(QwtPlotMappedItem):
     def toHippo(self, Qimage):
       dv = 255.0
       vmin = 1.0
-      for i in range(0, 256):
+      for i in range(2, 256):
         r = 1.0
         g = 1.0
         b = 1.0
@@ -390,17 +409,24 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.toGrayScale(self.Qimage)
 
 # compute flagged image if required
-      if not self._flags_array is None:
+      if not self._flags_array is None or not self._nan_flags_array is None:
         self.setFlagQimage()
 
     def setFlagQimage(self):
       (nx,ny) = self._image_for_display.shape
-      image_for_display = numpy.zeros(shape=(nx,ny),dtype=self._image_for_display.dtype)
-      if self.complex:
-        image_for_display[:nx/2,:] = numpy.where(self._flags_array,0,self._image_for_display[:nx/2,:])
-        image_for_display[nx/2:,:] = numpy.where(self._flags_array,0,self._image_for_display[nx/2:,:])
-      else:
-        image_for_display = numpy.where(self._flags_array,0,self._image_for_display)
+      image_for_display = self._image_for_display.copy()
+      if not self._flags_array is None:
+        if self.complex:
+          image_for_display[:nx/2,:] = numpy.where(self._flags_array,0,self._image_for_display[:nx/2,:])
+          image_for_display[nx/2:,:] = numpy.where(self._flags_array,0,self._image_for_display[nx/2:,:])
+        else:
+          image_for_display = numpy.where(self._flags_array,0,self._image_for_display)
+      if not self._nan_flags_array is None:
+        if self.complex:
+          image_for_display[:nx/2,:] = numpy.where(self._nan_flags_array,1,image_for_display[:nx/2,:])
+          image_for_display[nx/2:,:] = numpy.where(self._nan_flags_array,1,image_for_display[nx/2:,:])
+        else:
+          image_for_display = numpy.where(self._nan_flags_array,1,image_for_display)
 
       self.flags_Qimage = toQImage(image_for_display).mirror(0, 1)
 
@@ -414,6 +440,7 @@ class QwtPlotImage(QwtPlotMappedItem):
 
 # set zero to black to display flag image pixels in black 
       self.flags_Qimage.setColor(0, qRgb(self.flag_colour, self.flag_colour, self.flag_colour))
+      self.flags_Qimage.setColor(1, qRgb(self.nan_colour, self.nan_colour, self.nan_colour))
 
     def setBrentjensImage(self, image):
       absmin = abs(image.min())
