@@ -93,6 +93,12 @@ def import_tdl_module (filename,text=None):
     reload(Timba.TDL.Settings);
     # reset TDL script options
     TDLOptions.init_options(filename);
+    # remove .pyo file as that can have cached paths and directories may have changed
+    # (see bug 677)
+    try:
+      os.unlink(os.path.splitext(filename)[0]+'.pyo');
+    except:
+      pass;
     # open file
     infile = file(filename,'r');
     if text is None:
