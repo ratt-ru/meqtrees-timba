@@ -146,16 +146,18 @@ void ComposedPolc::validateContent (bool recursive)
         cdebug(2)<<"adding funklet with c00 "<<funklet.getCoeff0();
 	//check on shape
 	const LoShape fshape= funklet.getCoeffShape ();
-        for(int axisi= 0; axisi<Axis::MaxAxis;axisi++){
+        for(int axisi= 0; axisi<Axis::MaxAxis;axisi++)
+        {
 	    if(axisHasShape_[axisi]) continue;
 
 	    if(fshape.size()>axisi && fshape[axisi]>1 )
-	      { axisHasShape_[axisi]=1; continue;}
+	      axisHasShape_[axisi] |= 1; 
+              
 	    //cehck if domain changes around this axis
-	    if(!newdom.isDefined (axisi)) continue;
-	    if(newdom.start(axisi)!= funklet.domain().start(axisi) ||
-	       newdom.end(axisi)!= funklet.domain().end(axisi))
-	      { axisHasShape_[axisi]=1; continue;}
+	    if( newdom.isDefined(axisi) &&
+                ( newdom.start(axisi) != funklet.domain().start(axisi) ||
+	          newdom.end(axisi)   != funklet.domain().end(axisi)) )
+	      axisHasShape_[axisi] |= 2;
 	}
 	newdom=newdom.envelope(funklet.domain());
 
@@ -669,8 +671,13 @@ void ComposedPolc::validateContent (bool recursive)
       }//loop over funklets
     //also set shape of own coeff, for spid recovery
     Funklet::Ref partfunk = funklist.get(0);
-
     setCoeff(partfunk->coeff());
+    // and set axisHasShape_ flag
+    for( uint i=0; i<shape.size(); i++ )
+      if( shape[i] > 1 )
+        axisHasShape_[i] |= 1;
+      else
+        axisHasShape_[i] &= ~1;
   };
 
 }//namespace Meq
