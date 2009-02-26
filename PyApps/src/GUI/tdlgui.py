@@ -80,6 +80,7 @@ class TDLEditor (QFrame,PersistentCurrier):
 
   def __init__ (self,parent,close_button=False,error_window=None):
     QFrame.__init__(self,parent);
+    self._enabled = True;
     toplo = QVBoxLayout(self);
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     splitter = QSplitter(Qt.Vertical,self);
@@ -264,6 +265,11 @@ class TDLEditor (QFrame,PersistentCurrier):
   def __del__ (self):
     self.has_focus(False);
     
+  def disable_editor (self):
+    """Called before disabling the editor, as on some versions of PyQt
+    the object is not destroyed properly and keeps receving signals""";
+    self._enabled = False;
+    
   def show_compile_options (self):
     self._options_menu.show();
     
@@ -421,6 +427,8 @@ class TDLEditor (QFrame,PersistentCurrier):
   def _reset_errors (self,nerr):
     """helper method, resets error markers and such. Usually tied to a hasErrors() signal
     from an error window""";
+    if not self._enabled:
+      return;
     self._editor.markerDeleteAll(self.ErrorMarker);
     self._editor.markerDeleteAll(self.SubErrorMarker);
     self._editor.markerDeleteAll(self.CurrentErrorMarker);

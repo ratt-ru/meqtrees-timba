@@ -806,9 +806,10 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     if dialog.exec_loop() == QDialog.Accepted:
       filename = str(dialog.selectedFile());
       # close all TDL tabs if requested
-      for (path,tab) in self._tdl_tabs.items():
+      for (path,tab) in list(self._tdl_tabs.items()):
         self.maintab.showPage(tab);
         if tab.confirm_close():
+          tab.disable_editor();
           del self._tdl_tabs[path];
           self.maintab.removePage(tab);
           tab.reparent(QWidget(),0,QPoint(0,0));
@@ -997,7 +998,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self.maintab.setTabLabel(tab,name);
 
   def _tdltab_change (self,tab,pathname):
-    for (path,tab1) in self._tdl_tabs.iteritems():
+    for (path,tab1) in list(self._tdl_tabs.iteritems()):
       if tab is tab1:
         del self._tdl_tabs[path];
         self._tdl_tabs[pathname] = tab;
@@ -1043,7 +1044,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self.maintab.setTabIconSet(tab,QIconSet());
     
   def _tdltab_close (self,tab):
-    for (path,tab1) in self._tdl_tabs.iteritems():
+    for (path,tab1) in list(self._tdl_tabs.iteritems()):
       if tab is tab1:
         if path == self._main_tdlfile:
           self._main_tdlfile = None;
@@ -1051,6 +1052,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
           self._clear_tdl_jobs();
         self.maintab.showPage(tab);
         if tab.confirm_close():
+          tab.disable_editor();
           del self._tdl_tabs[path];
           self.maintab.removePage(tab);
           tab.reparent(QWidget(),0,QPoint(0,0));
