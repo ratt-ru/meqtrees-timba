@@ -169,13 +169,16 @@ class Floater (QMainWindow):
     fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
     QMainWindow.__init__(self,parent,"float",fl);
     self.setIcon(pixmaps.float_window.pm());
-  def hideEvent (self,ev):
-    _dprint(1,'hideEvent',ev);
-    self.emit(PYSIGNAL("hidden()"),());
+#  def hideEvent (self,ev):
+#    _dprint(0,'hideEvent',ev);
+#    self.emit(PYSIGNAL("hidden()"),());
   def closeEvent (self,ev):
-    _dprint(1,'closeEvent',ev);
-    self.hide();
-    ev.ignore();
+    _dprint(2,'closeEvent',ev);
+    self.emit(PYSIGNAL("closed()"),());
+    QMainWindow.closeEvent(self,ev);
+    
+#    self.hide();
+#    ev.ignore();
     
 _dataitems = {};
 _current_gw = None;

@@ -623,7 +623,7 @@ class RecordBrowser(HierBrowser,GriddedPlugin):
     context_menu = self.cell_menu();
     if context_menu is not None:
       context_menu.insertSeparator();
-      _dprint(0,self.get_precision());
+      _dprint(3,self.get_precision());
       menu = PrecisionPopupMenu(context_menu,prec=self.get_precision());
       context_menu.insertItem(pixmaps.precplus.iconset(),'Number format',menu);
       QWidget.connect(menu,PYSIGNAL("setPrecision()"),self._set_prec_from_menu);

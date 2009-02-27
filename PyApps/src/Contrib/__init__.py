@@ -6,7 +6,7 @@ def _tryWaterhole (path):
   if os.path.isdir(path):
     __path__.insert(0,os.path.join(path,"contrib"));
     print "Using Waterhole at %s"%path;
-    print "You may set the WATERHOLE_PATH environment variable to override this."
+    print "You may set the MEQTREES_WATERHOLE_PATH environment variable to override this."
     return True;
   return False;
 

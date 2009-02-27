@@ -136,6 +136,9 @@ class CellBlock (object):
     _dprint(2,id(self),': set content',widgets);
     # initialize cells with contents
     self._init_cells(self._cells,enable_viewers=enable_viewers);
+    # connect displayDataItem() signal from contents 
+    for w in widgets:
+      QWidget.connect(w,PYSIGNAL("displayDataItem()"),self._display_sub_item);
     
   def _allocate_grid (self,**kwds):
     """Allocates self._cells: a grid of cells from a workspace.
@@ -173,18 +176,6 @@ class CellBlock (object):
     elif len(self._captions) == len(cells):
       for (cell,capt) in zip(cells,self._captions):
         cell.set_caption(capt);
-    # connect displayDataItem() signal from contents so that they are
-    # a data item is added to the appropriate workspace. The avoid_pos
-    # argument ensures that this data item does not replace our own cells.
-    for (c,w) in cw:
-      QWidget.connect(w,PYSIGNAL("displayDataItem()"),self._display_sub_item);
-    # ugly kludge to get the layout system to do its stuff properly after
-    # viewer widget has been inserted.""";
-#     topwidget = cells[0].wtop().topLevelWidget();
-#     sz = topwidget.size();
-#     topwidget.resize(sz.width(),sz.height()+1);
-#     self._resize_back = curry(topwidget.resize,sz);
-#     QTimer.singleShot(200,self._resize_back);
                       
   def _display_sub_item (self,dataitem,kwargs):
     Timba.Grid.Services.addDataItem(dataitem,gw=self._gw,avoid_pos=self._gridpos,**kwargs);
@@ -194,7 +185,7 @@ class CellBlock (object):
     try: float_window = self._float_window;
     except AttributeError:
       self._float_window = float_window = Timba.Grid.Floater(self._gw.wtop());
-      QObject.connect(float_window,PYSIGNAL("hidden()"),self._unfloat);
+      QObject.connect(float_window,PYSIGNAL("closed()"),self._unfloat);
       float_window.setCaption(self._dataitem.name);
       # allocate single cell or grid
       if self._totsize == 1: 
@@ -216,13 +207,12 @@ class CellBlock (object):
   def close (self):
     Timba.Grid.Services.removeDataItem(self._dataitem);
     # destroy float, if any
-    try: float_window = self._float_window;
-    except AttributeError:
-      pass;
-    else:
+    float_window = getattr(self,'_float_window',None);
+    if float_window:
       float_window.hide();
       float_window.reparent(QWidget(),QPoint(0,0));
-    self._dataitem = self._float_grid = self._float_cells = self._float_window = None;
+      self._float_window = None;
+    self._dataitem = self._float_grid = self._float_cells = None;
     
   def _unfloat (self):
     _dprint(1,'unfloating cells');
@@ -269,11 +259,9 @@ class CellBlock (object):
   def unfloat_cells (self):
     """moves contents back to the grid""";
     _dprint(2,'hiding floater, unfloat call expected');
-    try: float_window = self._float_window;
-    except AttributeError: pass;
-    else:
-      if not float_window.isHidden():
-        float_window.hide();
+    float_window = getattr(self,'_float_window',None);
+    if self.float_window:
+      float_window.close();
    
   def grid_page (self):
     return self._cells[0].parent_page();
