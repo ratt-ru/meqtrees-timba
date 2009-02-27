@@ -29,7 +29,6 @@
 #include <images/Images/PagedImage.h>
 //#include <MeqNodes/ReductionFunction.h>
 
-
 #include <MeqNodes/TID-MeqNodes.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
@@ -40,60 +39,50 @@
 #pragma aids UVppw
 
 namespace Meq {
-
+  
 class FFTBrick: public Node
-	       //class FFTBrick: public ReductionFunction
-{
-public:
-  // The default constructor.
-  // The object should be filled by the init method.
-  FFTBrick();
-
-  virtual ~FFTBrick();
-
-  virtual TypeId objectType() const
-  { return TpMeqFFTBrick; }
-
-  // Get the requested result of the Node.
-  virtual int getResult (Result::Ref &resref, 
-                         const std::vector<Result::Ref> &childres,
-                         const Request &req,bool newreq);
-
+  //class FFTBrick: public ReductionFunction
+  {
+  public:
+    // The default constructor.
+    // The object should be filled by the init method.
+    FFTBrick();
+    virtual ~FFTBrick();
+    virtual TypeId objectType() const
+      { return TpMeqFFTBrick; }
+    // Get the requested result of the Node.
+    virtual int getResult (Result::Ref &resref, 
+			   const std::vector<Result::Ref> &childres,
+			   const Request &req,bool newreq);
   
- protected:
-
-  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-
- private:
+  protected:
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
-  // helper function to perform a single FFT.
-  // returns four outputs: the FFT, plus higher-order interpolation planes
-  void doFFT (Vells::Ref output_vells[1],const Vells &input_vells);
-     
-  // which 2 axes are treated as an input plane?
-  std::vector<HIID> _in_axis_id;
-  // which 2 axes are treated as the output plane?
-  std::vector<HIID> _out_axis_id;
-
-  double _uvppw;
-  
-  // axis numbers -- filled in by getResult()
-  uint _inaxis0; 
-  uint _inaxis1; 
-  uint _outaxis0;
-  uint _outaxis1;
-  
-  // thse are shared between getResult() and doFFT(), so declare them
-  // without _ prefix to make code more readable
-  // NB: for historical reasons, we'll use l,m to name variables referring to 
-  // the input axes, and u,v when referring to the output axes. The real axes
-  // in use are of course determined above.
-  int nl,nm,nl1,nm1;
-  int nu,nv,nu1,nv1;
-   
-};
-
-
+  private:
+    // helper function to perform a single FFT.
+    // returns four outputs: the FFT, plus higher-order interpolation planes
+    void doFFT (Vells::Ref output_vells[1],const Vells &input_vells);
+    
+    // which 2 axes are treated as an input plane?
+    std::vector<HIID> _in_axis_id;
+    // which 2 axes are treated as the output plane?
+    std::vector<HIID> _out_axis_id;
+    double _uvppw;
+    
+    // axis numbers -- filled in by getResult()
+    uint _inaxis0; 
+    uint _inaxis1; 
+    uint _outaxis0;
+    uint _outaxis1;
+    
+    // thse are shared between getResult() and doFFT(), so declare them
+    // without _ prefix to make code more readable
+    // NB: for historical reasons, we use l,m to name variables referring to 
+    // the input axes, and u,v when referring to the output axes. The real axes
+    // in use are of course determined above.
+    int nl,nm,nl1,nm1;
+    int nu,nv,nu1,nv1;
+  };
 } // namespace Meq
 
 #endif
