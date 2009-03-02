@@ -100,6 +100,7 @@ makedir Timba
 cd Timba
 ln-s ../../../../../PyApps/src/Apps
 ln-s ../../../../../PyApps/src/Contrib
+ln-s ../../../../../OCTOPython/src/version_info
 ln-s ../../../../../OCTOPython/src/dmi.py
 ln-s ../../../../../OCTOPython/src/dmi_repr.py
 ln-s ../../../../../PyApps/src/Grid

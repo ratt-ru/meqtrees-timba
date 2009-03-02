@@ -29,7 +29,16 @@ from Timba.GUI import meqgui
 from Timba.GUI.pixmaps import pixmaps
 from qt import *
 
-MEQTREE_VERSION  = "1.0";
+try:
+  from Timba.version_info.release import release
+except:
+  release = '';
+try:
+  from Timba.version_info.svn_revision import svn_revision
+  svn_revision = "<p align='right'>(svn revision %s)</p>"%svn_revision;
+except:
+  svn_revision = '';
+  
 
 class AboutDialog (QDialog):
     def __init__(self,parent=None,name=None,modal=0,fl=None):
@@ -106,21 +115,21 @@ class AboutDialog (QDialog):
         self.title_icon.setText(QString.null)
         self.title_label.setText(self.__tr( \
           """<h1>MeqTrees %s</h1>
-          <p>(C) 2002-2009 ASTRON<br>(Netherlands Institude for Radioastronomy)<br>
+          %s<p>(C) 2002-2009 ASTRON<br>(Netherlands Institude for Radioastronomy)<br>
           Oude Hoogeveensedijk 4<br>
           7991 PD Dwingeloo, The Netherlands<br>
           http://www.astron.nl</p>
           <p>With contributions from:<p><ul>
-          <li>Dominion Radio Astrophysical Observatory (NRC-HIA)</li>
-          <li>Oxford e-Research Centre<li>
           <li>Oxford Astrophysics<li>
+          <li>Oxford e-Research Centre<li>
+          <li>Dominion Radio Astrophysical Observatory (NRC-HIA)</li>
           <li>Sarod Yatawatta, Tony Willis, Maaijke Mevius,
           Ger van Diepen, Ronald Nijboer, Filipe Abdalla, Rob Assendorp, Ilse
           van Bemmel, Ian Heywood, Hans-Rainer Kloeckner, Rense Boomsma, Michiel
           Brentjens, Joris van Zwieten, Stef Salvini, Christopher Williams, Mike Sipior,
           James Anderson, George Heald,  Jan Noordam, Oleg Smirnov
           </ul>
-          """%MEQTREE_VERSION \
+          """%(release,svn_revision) \
           ));
 
         self.btn_ok.setText(self.__tr("&OK"))
