@@ -859,7 +859,9 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         return;
       _dprint(1,'Creating editor tab for',pathname);
       # create editor tab with item
-      tab = tdlgui.TDLEditor(self.maintab,close_button=True,error_window=self._tdlgui_error_window);
+      # only include close button for non-main files
+      tab = tdlgui.TDLEditor(self.maintab,close_button=(pathname != self._main_tdlfile),
+             error_window=self._tdlgui_error_window);
       label = os.path.basename(pathname);
       if mainfile:
         label = '(' + label + ')';
