@@ -11,7 +11,12 @@ liboctopython_la_SOURCES = \
 
 liboctopython_la_LDFLAGS = 
 
+all: $(srcdir)/version_info/svn_revision.py
 
+$(srcdir)/version_info/svn_revision.py:	FORCE
+	(cd $(top_srcdir); vv="`svnversion`"; echo "svn_revision='$$vv'" ) >$@
+	
+FORCE:
 
 check_PROGRAMS   		= 
 
