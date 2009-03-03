@@ -139,7 +139,7 @@ Solver::Solver()
   flag_mask_        (-1),
   do_save_funklets_ (false),
   do_last_update_   (false),
-  do_flush_tables_  (false),
+  do_flush_tables_  (true),
   max_num_iter_     (3),
   conv_quota_       (0.8),
   debug_lvl_        (DefaultDebugLevel),
@@ -1483,6 +1483,7 @@ void Solver::startWorkerThreads ()
   if( nt<2 )
     return;
   // start workers
+  wt_flush_tables_ = false;
   wt_num_active_ = 0;
   cdebug(0)<<"starting "<<nt-1<<" worker threads\n";
   worker_threads_.resize(nt-1);
@@ -1540,6 +1541,29 @@ void Solver::activateSubsolverWorkers ()
   if( !wt_exceptions_.empty() )
     throw wt_exceptions_;
 }
+
+// If a worker thread is available, wakes it up to flush parm tables
+// Otherwise flushes table directly in here. 
+void Solver::flushTablesInWorkerThread ()
+{
+#ifndef HAVE_PARMDB
+  // if no worker threads available, flush tables
+  if( worker_threads_.empty() )
+  {
+    ParmTableUtils::flushTables();
+  } 
+  // else wake a worker
+  else
+  {
+    Thread::Mutex::Lock lock(worker_mutex_);
+    cdebug(3)<<"T"<<Thread::self()<<" activating a worker to flush tables"<<endl;
+    wt_flush_tables_ = true;
+    worker_cond_.signal();
+    lock.release();
+  }
+#endif
+}
+
 
 // processes subsolvers in a loop, until all complete, or an exception
 // occurs.
@@ -1604,16 +1628,26 @@ void * Solver::workerLoop ()
   {
     // wait on condition variable until awoken with active subsolvers,
     // or with worker threads being stopped
-    while( wt_num_active_ <= 0 && mt_solve_ )
+    while( wt_num_active_ <= 0 && mt_solve_ && !wt_flush_tables_ )
       worker_cond_.wait();
     // stop condition
     if( !mt_solve_ )
       return 0;
-    // else subsolvers are active, release lock on completed_cond and
-    // go into work loop
-    lock.release();
-    processSolversLoop();
-    lock.relock(worker_cond_);
+    if( wt_flush_tables_ )
+    {
+#ifndef HAVE_PARMDB
+      ParmTableUtils::flushTables();
+#endif
+      wt_flush_tables_ = false;
+    }
+    else
+    {
+      // else subsolvers are active, release lock on completed_cond and
+      // go into work loop
+      lock.release();
+      processSolversLoop();
+      lock.relock(worker_cond_);
+    }
   }
 }
 

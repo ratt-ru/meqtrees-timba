@@ -449,6 +449,8 @@ private:
   // Process what we can in this thread, and returns when all jobs are 
   // complete.
   void activateSubsolverWorkers ();
+  // activates a worker thread to flush parm tables
+  void flushTablesInWorkerThread ();
   
   
   int wt_num_ss_;         // number of subsolvers taken by workers
@@ -456,6 +458,7 @@ private:
       // either with an exception, or when wt_num_ss_>=numSubsolvers(),
       // then it decrements this value. see processSolversLoop().
       // This value is also assigned to to wake up the worker threads.
+  bool wt_flush_tables_;  // flag: if true, worker was woken to call ParmTableUtils::flushTables();
   // condition var to signal when a worker thread is completed
   Thread::Condition worker_cond_;
   

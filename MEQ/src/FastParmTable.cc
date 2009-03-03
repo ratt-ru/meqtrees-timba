@@ -76,6 +76,14 @@ FastParmTable::FastParmTable (const string& tablename,bool)
   // create/open funklet database
   fdb_ = gdbm_open(const_cast<char*>((tablename+"/funklets").c_str()),
                     1024,GDBM_WRCREAT,0666,0);
+  // "bad magic number" indicates corruption from previous run, so flush it
+  if( !fdb_ && gdbm_errno == GDBM_BAD_MAGIC_NUMBER )
+  {
+    cerr<<"Warning: "<<tablename<<" appears to be corrupt. This may be due to the system crashing or being killed during a previous run. Creating a new, empty table.\n";
+    fdb_ = gdbm_open(const_cast<char*>((tablename+"/funklets").c_str()),
+                     1024,GDBM_NEWDB,0666,0);
+  }
+  // still an error? report as exception
   if( !fdb_ )
   {
     fclose(fdomains_);
