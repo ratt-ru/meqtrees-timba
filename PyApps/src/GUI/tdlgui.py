@@ -261,6 +261,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._modified = False;
     self._closed = False;
     self._error_at_line = {};
+    self._is_tree_in_sync = True;
 
   def __del__ (self):
     self.has_focus(False);
@@ -275,6 +276,19 @@ class TDLEditor (QFrame,PersistentCurrier):
     
   def show_runtime_options (self):
     self._jobmenu.show();
+    
+  def tree_is_in_sync (self,sync=True):
+    """Tells the editor wheether the current tree is in sync with the content of the script.
+    This is indicated by a visual cue on the toolbar.
+    """;
+    QToolTip.remove(self._tb_jobs);
+    if sync:
+      self._tb_jobs.setIconSet(pixmaps.gear.iconset());
+      QToolTip.add(self._tb_jobs,"Access run-time options & jobs defined by this TDL script");
+    else:
+      self._tb_jobs.setIconSet(pixmaps.exclaim_yellow_warning.iconset());
+      QToolTip.add(self._tb_jobs,"""Access run-time options & jobs defined by this TDL script.
+Warning! You have modified the script since it was last compiled, so the tree may be out of date.""");
   
   def _file_closed (self):
     self.emit(PYSIGNAL("fileClosed()"),(self,));
@@ -740,7 +754,7 @@ class TDLEditor (QFrame,PersistentCurrier):
               icon=pixmaps.gear);
       self.emit(PYSIGNAL("hasRuntimeOptions()"),(self,True));
     else:
-      self.emit(PYSIGNAL("hasCompileOptions()"),(self,False));
+      self.emit(PYSIGNAL("hasRuntimeOptions()"),(self,False));
       self._tb_jobs.hide();
 
     if joblist:
