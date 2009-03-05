@@ -22,6 +22,8 @@
 # a small class used to get mouse events to work in Qwt5 in basically
 # the same way we had things working with Qwt4
 
+# Adapted from a PyQwt example - thanks Gerard!
+
 from qt import *
 
 class Spy(QObject):
