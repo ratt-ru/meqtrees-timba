@@ -25,10 +25,7 @@
 #
 
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+import Qwt5 as Qwt
 import printfilter
 
 class plot_printer:
@@ -111,8 +108,8 @@ class plot_printer:
     if qprinter.setup():
         filter = printfilter.PrintFilter()
         if (QPrinter.GrayScale == qprinter.colorMode()):
-            filter.setOptions(QwtPlotPrintFilter.PrintAll
-                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
+            filter.setOptions(Qwt.QwtPlotPrintFilter.PrintAll
+                  & ~Qwt.QwtPlotPrintFilter.PrintCanvasBackground)
 # we have 'two' horizontal widgets - colorbar(s) and the display area
         hor_widgets = 2
         if is_single:

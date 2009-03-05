@@ -33,14 +33,11 @@ from Timba import Grid
 
 import sys
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
-
+from QwtSpy import *
+import Qwt5 as Qwt
 import numpy
 
-from plot_printer import *
+#from plot_printer import *
 
 import random
 
@@ -71,10 +68,10 @@ Button 2 (Right):Click the <b>right</b> mouse button in a display window to get 
 '''
 
 
-class QwtHistogramPlotter(QwtPlot):
+class QwtHistogramPlotter(Qwt.QwtPlot):
 
-    def __init__(self, parent=None):
-      QwtPlot.__init__(self, parent)
+    def __init__(self, plot_key="", parent=None):
+      Qwt.QwtPlot.__init__(self, parent)
 
       self.mainwin = parent and parent.topLevelWidget()
 
@@ -83,25 +80,26 @@ class QwtHistogramPlotter(QwtPlot):
       self.plotLayout().setCanvasMargin(0)
       self.plotLayout().setAlignCanvasToScales(1)
       self.setlegend = 1
-      self.setAutoLegend(self.setlegend)
-      self.enableLegend(True)
-      self.setLegendPos(Qwt.Right)
+#     self.setAutoLegend(self.setlegend)
+#     self.enableLegend(True)
+#     self.setLegendPos(Qwt.Right)
+# set fonts for titles
+      # first create copy of standard application font..
+      self.title_font = QFont(QApplication.font());
+      fi = QFontInfo(self.title_font);
+      # and scale it down to 70%
+      self.title_font.setPointSize(fi.pointSize()*0.7);
+
       # set axis titles
       self.title = None
-      self.source_marker = None
-      self.setTitle('Histogram')
-      self.setAxisTitle(QwtPlot.yLeft, 'number in bin')
-      self.zoomStack = []
-      self.connect(self,
-                     SIGNAL('plotMouseMoved(const QMouseEvent&)'),
-                     self.onMouseMoved)
-      self.connect(self,
-                     SIGNAL('plotMousePressed(const QMouseEvent&)'),
-                     self.onMousePressed)
-      self.connect(self,
-                     SIGNAL('plotMouseReleased(const QMouseEvent&)'),
-                     self.onMouseReleased)
-      self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
+      text = Qwt.QwtText('Histogram')
+      text.setFont(self.title_font)
+      self.setTitle(text)
+      text = Qwt.QwtText('number in bin')
+      text.setFont(self.title_font)
+      self.setTitle(text)
+      self.setAxisTitle(Qwt.QwtPlot.yLeft, text)
+#     self.zoomStack = []
 
 # set default background to  whatever QApplication sez it should be!
       self.setCanvasBackground(QApplication.palette().active().base())
@@ -124,10 +122,27 @@ class QwtHistogramPlotter(QwtPlot):
       QObject.connect(printer,SIGNAL("activated()"),self.printplot);
       printer.addTo(self.menu);
       QObject.connect(self.menu,SIGNAL("activated(int)"),self.update_display);
+
+
+      self.spy = Spy(self.canvas())
+      self.zoom_outline = Qwt.QwtPlotCurve()
+
+#       self.connect(self, SIGNAL("legendClicked(QwtPlotItem*)"),
+#                    self.toggleVisibility)
+
+      self.connect(self.spy,
+                     PYSIGNAL("MouseMove"),
+                     self.setPosition)
+      self.connect(self.spy,
+                     PYSIGNAL("MousePress"),
+                     self.onMousePressed)
+      self.connect(self.spy,
+                     PYSIGNAL("MouseRelease"),
+                     self.onMouseReleased)
+
       
       # add help facility
       QWhatsThis.add(self, display_histogram_instructions)
-
         
     # __init__()
 
@@ -146,12 +161,13 @@ class QwtHistogramPlotter(QwtPlot):
             complex_type = True;
       histogram_in = None
       if complex_type:
-#        histogram_in = abs(input_array)
         histogram_in = input_array.real
-        self.setAxisTitle(QwtPlot.xBottom, 'array value (real=black, red=imag) ')
+        text =Qwt.QwtText('array value (real=black, red=imag)')
       else:
-        self.setAxisTitle(QwtPlot.xBottom, 'array value ')
         histogram_in = input_array
+        text =Qwt.QwtText('array value')
+      text.setFont(self.title_font)
+      self.setAxisTitle(Qwt.QwtPlot.xBottom, text)
       array_min = histogram_in.min()
       array_max = histogram_in.max()
       histogram_array = numpy.histogram(histogram_in, bins=num_bins)
@@ -159,8 +175,8 @@ class QwtHistogramPlotter(QwtPlot):
 # remove any previous curves
       self.removeCurves()
 # make sure we are autoscaling in case a previous plot is being over-written
-      self.setAxisAutoScale(QwtPlot.xBottom)
-      self.setAxisAutoScale(QwtPlot.yLeft)
+      self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
+      self.setAxisAutoScale(Qwt.QwtPlot.yLeft)
 
 # we have created bins, now generate a Qwt curve for each bin
       histogram_curve_x = numpy.zeros(4 * num_bins, numpy.float32) 
@@ -180,9 +196,10 @@ class QwtHistogramPlotter(QwtPlot):
         histogram_curve_y[curve_index+3] = 0
         curve_index = curve_index + 4
       curve_key = 'histogram_curve'
-      curve_index = self.insertCurve(curve_key)
-      self.setCurvePen(curve_index, QPen(Qt.black, 2))
-      self.setCurveData(curve_index, histogram_curve_x, histogram_curve_y)
+      histo_curve = Qwt.QwtPlotCurve(curve_key)
+      histo_curve.setPen(QPen(Qt.black, 2))
+      histo_curve.setData(histogram_curve_x, histogram_curve_y)
+      histo_curve.attach(self)
 
 # add in histogram for imaginary stuff if we have a complex array
       if complex_type:
@@ -209,13 +226,19 @@ class QwtHistogramPlotter(QwtPlot):
           histogram_curve_y[curve_index+3] = 0
           curve_index = curve_index + 4
         curve_key = 'histogram_curve_imag'
-        curve_index_imag = self.insertCurve(curve_key)
-        self.setCurvePen(curve_index_imag, QPen(Qt.red, 2))
-        self.setCurveData(curve_index_imag, histogram_curve_x_im, histogram_curve_y_im)
+        imag_curve = Qwt.QwtPlotCurve(curve_key)
+        imag_curve.setPen(QPen(Qt.red, 2))
+        imag_curve.setData(histogram_curve_x_im, histogram_curve_y_im)
+        imag_curve.attach(self)
       self.replot()
      
     # histogram_plot()
 
+
+    def removeCurves(self):
+      for i in self.itemList():
+        if isinstance(i, Qwt.QwtPlotCurve):
+          i.detach()
 
     def report_scalar_value(self, data_label, scalar_data):
       """ report a scalar value in case where a vells plot has
@@ -224,19 +247,25 @@ class QwtHistogramPlotter(QwtPlot):
       Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
       _dprint(3,' scalar message ', Message)
       
-      if not self.source_marker is None:
-        self.removeMarker(self.source_marker)
-      self.source_marker = self.insertMarker()
-      ylb = self.axisScale(QwtPlot.yLeft).lBound()
-      xlb = self.axisScale(QwtPlot.xBottom).lBound()
-      yhb = self.axisScale(QwtPlot.yLeft).hBound()
-      xhb = self.axisScale(QwtPlot.xBottom).hBound()
-      self.setMarkerPos(self.source_marker, xlb+0.1, ylb+1.0)
-      self.setMarkerLabelAlign(self.source_marker, Qt.AlignRight | Qt.AlignTop)
+      text = Qwt.QwtText(Message)
       fn = self.fontInfo().family()
-      self.setMarkerLabel( self.source_marker, Message,
-         QFont(fn, 10, QFont.Bold, False),
-         Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+      text.setFont(QFont(fn, 10, QFont.Bold))
+      text.setColor(Qt.blue)
+      text.setBackgroundBrush(QBrush(Qt.yellow))
+
+      if not self.source_marker is None:
+        self.source_marker.detach()
+      self.source_marker = Qwt.QwtPlotMarker()
+      self.source_marker.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
+      self.source_marker.setLabel(text)
+
+      ylb = self.axisScale(Qwt.QwtPlot.yLeft).lBound()
+      xlb = self.axisScale(Qwt.QwtPlot.xBottom).lBound()
+      yhb = self.axisScale(Qwt.QwtPlot.yLeft).hBound()
+      xhb = self.axisScale(Qwt.QwtPlot.xBottom).hBound()
+
+      self.source_marker.setValue( xlb+0.1, ylb+1.0)
+      self.source_marker.attach(self)
       self.replot()
       _dprint(3,'called replot in report_scalar_value')
 
@@ -261,7 +290,7 @@ class QwtHistogramPlotter(QwtPlot):
     # printplot()
 
 
-    def onMouseMoved(self, e):
+    def setPosition(self, e):
         pass
 
     # onMouseMoved()
@@ -367,15 +396,15 @@ class QwtHistogramPlotter(QwtPlot):
                                                                                 
     def timerEvent(self, e):
       if self.test_complex:
-        m = fromfunction(RealDist, (30,20))
-        n = fromfunction(ImagDist, (30,20))
+        m = numpy.fromfunction(RealDist, (30,20))
+        n = numpy.fromfunction(ImagDist, (30,20))
         vector_array = numpy.zeros((30,1), numpy.complex128)
         shape = m.shape
         for i in range(shape[0]):
           for j in range(shape[1]):
             m[i,j] = m[i,j] + self.index * random.random()
             n[i,j] = n[i,j] + 3 * self.index * random.random()
-        a = zeros((shape[0],shape[1]), complex128)
+        a = numpy.zeros((shape[0],shape[1]), numpy.complex128)
         a.real = m
         a.imag = n         
         for i in range(shape[0]):
@@ -389,7 +418,7 @@ class QwtHistogramPlotter(QwtPlot):
           self.histogram_plot ('histogram of complex vector', vector_array, self.num_bins)
       else:
         vector_array = numpy.zeros((30,1), numpy.float32)
-        m = fromfunction(dist, (30,20))
+        m = numpy.fromfunction(dist, (30,20))
         shape = m.shape
         for i in range(shape[0]):
           for j in range(shape[1]):

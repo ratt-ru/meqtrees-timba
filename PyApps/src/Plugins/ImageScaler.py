@@ -186,6 +186,22 @@ class ImageScaler:
     return rv;
 
 
+  def transform(self, x):
+#  Transform a point in double interval into an point in the
+#  integer interval
+# param x value
+# return:
+# linear mapping:<dd>rint(i1 + (i2 - i1) / (d2 - d1) * (x - d1))
+# logarithmic mapping:<dd>rint(i1 + (i2 - i1) / log(d2 / d1) * log(x / d1))
+
+# warning The specified point is allowed to lie outside the intervals. If you
+# want to limit the returned value, use QwtDiMap::limTransform.
+    if self.d_log:
+        rv =  self.d_y1 + numpy.ceil((numpy.log(x) - self.d_x1) * self.d_cnv)
+    else:
+        rv = self.d_y1 + numpy.ceil((x - self.d_x1) * self.d_cnv)
+    return rv
+
 def main(args):
   b = 1 + numpy.array(range(1000))
   c = 1.0 * b

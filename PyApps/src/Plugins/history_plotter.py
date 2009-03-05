@@ -95,23 +95,22 @@ class HistoryPlotter(GriddedPlugin):
         }
 
   symbol_table = {
-        'none': QwtSymbol.None,
-        'rectangle': QwtSymbol.Rect,
-        'square': QwtSymbol.Rect,
-        'ellipse': QwtSymbol.Ellipse,
-        'dot': QwtSymbol.Ellipse,
-        'circle': QwtSymbol.Ellipse,
-	'xcross': QwtSymbol.XCross,
-	'cross': QwtSymbol.Cross,
-	'triangle': QwtSymbol.Triangle,
-	'diamond': QwtSymbol.Diamond,
+#       'none': Qwt.QwtSymbol.None,
+        'rectangle': Qwt.QwtSymbol.Rect,
+        'square': Qwt.QwtSymbol.Rect,
+        'ellipse': Qwt.QwtSymbol.Ellipse,
+        'dot': Qwt.QwtSymbol.Ellipse,
+        'circle': Qwt.QwtSymbol.Ellipse,
+	'xcross': Qwt.QwtSymbol.XCross,
+	'cross': Qwt.QwtSymbol.Cross,
+	'triangle': Qwt.QwtSymbol.Triangle,
+	'diamond': Qwt.QwtSymbol.Diamond,
         }
 
   line_style_table = {
-        'none': QwtCurve.NoCurve,
-        'lines' : QwtCurve.Lines,
-        'dots' : QwtCurve.Dots,
-#        'none': Qt.NoPen,
+        'none': Qwt.QwtPlotCurve.NoCurve,
+        'lines' : Qwt.QwtPlotCurve.Lines,
+        'dots' : Qwt.QwtPlotCurve.Dots,
         'SolidLine' : Qt.SolidLine,
         'DashLine' : Qt.DashLine,
         'DotLine' : Qt.DotLine,
