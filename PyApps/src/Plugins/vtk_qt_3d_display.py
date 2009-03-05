@@ -40,7 +40,9 @@ try:
   from Timba.Plugins.vtkImageImportFromNumpy import *
   has_vtk = True
 except:
-  print 'pyvtk not found. 3D visualization will not be available.'
+  print ' '
+  print '*** VTK not imported! ***'
+  print 'The system will assume that vtk is not present.'
 # traceback.print_exc();
 
 from Timba.dmi import *

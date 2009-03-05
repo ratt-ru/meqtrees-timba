@@ -53,10 +53,7 @@ except:
 import numpy
 
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+from Qwt5 import *
 from QwtPlotImage import *
 from QwtColorBar import *
 from ND_Controller import *

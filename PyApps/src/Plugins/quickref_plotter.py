@@ -125,7 +125,4 @@ class QuickRefPlotter(GriddedPlugin):
         self.QTextEdit.show()
     return
 
-
-#Grid.Services.registerViewer(dmi_type('MeqResult',record),QuickRefPlotter,priority=40)
 Grid.Services.registerViewer(meqds.NodeClass(),QuickRefPlotter,priority=40)
-

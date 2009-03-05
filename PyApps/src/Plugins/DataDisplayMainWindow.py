@@ -119,7 +119,7 @@ class DisplayMainWindow(QMainWindow):
     try:
       keys = self._ChartPlot.keys()
       for i in range(len(keys)):
-        self._ChartPlot[keys[i]]. update_vells_selector(menuid)
+        self._ChartPlot[keys[i]].update_vells_selector(menuid)
     except:
       pass
 

@@ -24,10 +24,9 @@
 
 import sys
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+
+import Qwt5 as Qwt
+from QwtSpy import *
 
 import numpy
 
@@ -77,7 +76,6 @@ class ChartPlot(QWidget):
     self._source = None
     self._max_range = -10000
     self._do_fixed_scale = False
-    self.has_nans_infs = False
     self._data_label = None
     self.info_marker = None
     self.show_channel_labels = True
@@ -86,37 +84,29 @@ class ChartPlot(QWidget):
     self._complex_marker = None
     self._ignore_flagged_data = True
     self._zoom_png_number = 0
+    self.has_nans_infs = False
+
+# create plotter
+    self._plotter = Qwt.QwtPlot(self)
+
+# set plotter fonts to same size as in display_image.py code
+    self.title_font = QFont(QApplication.font());
+    fi = QFontInfo(self.title_font);
+    # and scale it down to 70%
+    self.title_font.setPointSize(fi.pointSize()*0.7);
 
     #Create the plot widget
-    self._y_title = "Value (Relative Scale)"
-    self._x_title = "Time Sequence (Relative Scale)"
-    self._plotter = QwtPlot(self)
-    self._plotter.setAxisTitle(QwtPlot.yLeft, self._y_title)
-    self._plotter.setAxisTitle(QwtPlot.xBottom, self._x_title)
+    self._y_title = Qwt.QwtText("Value (Relative Scale)")
+    self._y_title.setFont(self.title_font)
+    self._x_title = Qwt.QwtText("Time Sequence (Relative Scale)")
+    self._x_title.setFont(self.title_font)
+    self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
+    self._plotter.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
 
-    # set plotter fonts to same size as in display_image.py code
-    font = QFont(QApplication.font());
-    fi = QFontInfo(font);
-    # and scale it down to 70%
-    font.setPointSize(fi.pointSize()*0.7);
-    # apply font to QwtPlot
-    self._plotter.setTitleFont(font);
-    for axis in range(0,4):
-      self._plotter.setAxisFont(axis,font);
-      self._plotter.setAxisTitleFont(axis,font);
-
-    # turn off grid
-    self._plotter.enableGridX(False)
-    self._plotter.enableGridY(False)
 
     #Set the background color
     self._plotter.setCanvasBackground(Qt.white)
     
-    #Legend
-    self._plotter.enableLegend(False)
-    self._plotter.enableOutline(True)
-    self._plotter.setOutlinePen(QPen(Qt.green))
-
     # we seem to need a layout for PyQt
     self.vbox_left = QVBoxLayout( self )
     self.vbox_left.setSpacing(10)
@@ -225,19 +215,24 @@ class ChartPlot(QWidget):
     self._vells_menu_id = 0
     self._vells_keys = {}
 
+
+    self.spy = Spy(self._plotter.canvas())
+    self.prev_xpos = None
+    self.prev_ypos = None
+    self.xzoom_loc = None
+    self.yzoom_loc = None
+    self.zoomStack = []
+    self.zoom_outline = Qwt.QwtPlotCurve()
+
+
     ########### Connections for Signals ############
+    self.connect(self.spy, PYSIGNAL("MouseMove"), self.plotMouseMoved)
+    self.connect(self.spy, PYSIGNAL("MousePress"), self.plotMousePressed)
+    self.connect(self.spy, PYSIGNAL("MouseRelease"), self.plotMouseReleased)
+
     self.connect(self._menu,SIGNAL("activated(int)"),self.emit_menu_signal);
     self.connect(self._complex_submenu,SIGNAL("activated(int)"),self.emit_complex_selector);
 
-    #get position where the mouse was pressed
-    self.connect(self._plotter, SIGNAL("plotMousePressed(const QMouseEvent &)"),
-        self.plotMousePressed)
-
-    #Get position of the mouse released to zoom or to create a zoom window by clicking on the signal 
-    self.connect(self._plotter, SIGNAL("plotMouseReleased(const QMouseEvent &)"),
-        self.plotMouseReleased)
-    self.connect(self._plotter, SIGNAL('plotMouseMoved(const QMouseEvent&)'),
-                     self.plotMouseMoved)
     # redisplay
     self.connect(self._display_refresh, SIGNAL("timeout()"), self.refresh_event)
 
@@ -322,7 +317,34 @@ class ChartPlot(QWidget):
       self.change_flag_parms(menuid)
       return True
     if menuid == self.menu_table['Complex Data']:
+#     print 'in complex data callback'
       return True
+
+  def closestCurve(self, pos):
+        """ from Gerard Vermeulen's EventFilterDemo.py example """
+        found, distance, point, index = None, 1e100, -1, -1
+        counter = -1
+        for curve in self._plotter.itemList():
+            try:
+              if isinstance(curve, Qwt.QwtPlotCurve):
+                counter = counter + 1
+                i, d = curve.closestPoint(pos)
+                if i >= 0 and d < distance:
+                  index = counter 
+                  found = curve
+                  point = i
+                  distance = d
+            except:
+              pass
+
+        if found is None:
+          return (None, None, None)
+        else:
+          x = found.x(point)
+          y = found.y(point)
+          #print 'closest curve is ', index, ' ', x, ' ', y
+          return (index, x, y)
+    # closestCurve
 
 
   def change_flag_parms(self, menuid):
@@ -371,25 +393,29 @@ class ChartPlot(QWidget):
       self._amplitude = True
       toggle_id = self.menu_table['Amplitude']
       self._complex_submenu.setItemChecked(toggle_id, self._amplitude)
-      self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
+      self._y_title.setText("Amplitude (Relative Scale)")
+      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
       self._complex_type = "Amplitude"
     if menuid == self.menu_table['Phase']:
       self._phase = True
       toggle_id = self.menu_table['Phase']
       self._complex_submenu.setItemChecked(toggle_id, self._phase)
-      self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
+      self._y_title.setText("Phase (Relative Scale)")
+      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
       self._complex_type = "Phase"
     if menuid == self.menu_table['Real']:
       self._real = True
       toggle_id = self.menu_table['Real']
       self._complex_submenu.setItemChecked(toggle_id, self._real)
-      self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
+      self._y_title.setText("Real (Relative Scale)")
+      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
       self._complex_type = "Real"
     if menuid == self.menu_table['Imaginary']:
       self._imaginary = True
       toggle_id = self.menu_table['Imaginary']
       self._complex_submenu.setItemChecked(toggle_id, self._imaginary)
-      self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
+      self._y_title.setText("Imaginary (Relative Scale)")
+      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
       self._complex_type = "Imaginary"
 
     self._do_fixed_scale = False
@@ -407,8 +433,8 @@ class ChartPlot(QWidget):
     
   def reset_zoom(self):
     """ resets data display so all data are visible """
-    self._plotter.setAxisAutoScale(QwtPlot.yLeft)
-    self._plotter.setAxisAutoScale(QwtPlot.xBottom)
+    self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
+    self._plotter.setAxisAutoScale(Qwt.QwtPlot.xBottom)
     self._plotter.replot()
     toggle_id = self.menu_table['Reset zoomer']
     self._menu.setItemVisible(toggle_id, False)
@@ -416,12 +442,14 @@ class ChartPlot(QWidget):
 
   def clear_plot(self):
     """ clear the plot of all displayed data """
-    # first remove any markers
-    for channel in range(self._nbcrv):
-      if not self._source_marker[channel] is None:
-        self._plotter.removeMarker(self._source_marker[channel]);
+    # remove any markers
+    for i in self._plotter.itemList():
+        if isinstance(i, Qwt.QwtPlotMarker):
+          i.detach()
     # remove current curves
-    self._plotter.removeCurves()
+    for i in self._plotter.itemList():
+        if isinstance(i, Qwt.QwtPlotCurve):
+          i.detach()
     # undo any zooming
     self.reset_zoom()
 #   self._plotter.replot()
@@ -432,8 +460,9 @@ class ChartPlot(QWidget):
 
   def setDataLabel(self, data_label):
     self._data_label = data_label
-    title = self._data_label + " " + self._x_title
-    self._plotter.setAxisTitle(QwtPlot.xBottom, title)
+    title = self._data_label + " " + self._x_title.text()
+    self._x_title.setText(title)
+    self._plotter.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
 
   def setPlotLabel(self, plot_label):
     self._plot_label = plot_label
@@ -471,8 +500,10 @@ class ChartPlot(QWidget):
           self._zoom_title[i] = "Data for Chart " + str(i)
           self._zoom_pen[i] = Qt.yellow
           self._main_pen[i] = Qt.black
-    	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
-    	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
+    	  self._crv_key[i] = Qwt.QwtPlotCurve("Chart " + str(i))
+    	  self._crv_key[i].setPen(QPen(self._main_pen[i]))
+    	  self._crv_key[i].attach(self._plotter)
+          
           self._chart_data[i] = {}
           self._flag_data[i] = {}
           self._start_offset_test[i] = {}
@@ -491,8 +522,9 @@ class ChartPlot(QWidget):
           self._mrk[i] = 0
           self._position[i] = ""
           self._main_pen[i] = Qt.black
-    	  self._crv_key[i] = self._plotter.insertCurve("Chart " + str(i))
-    	  self._plotter.setCurvePen(self._crv_key[i], QPen(self._main_pen[i]))
+    	  self._crv_key[i] = Qwt.QwtPlotCurve("Chart " + str(i))
+    	  self._crv_key[i].setPen(QPen(self._main_pen[i]))
+    	  self._crv_key[i].attach(self._plotter)
           self._chart_data[i] = {}
           self._flag_data[i] = {}
           self._start_offset_test[i] = {}
@@ -510,8 +542,8 @@ class ChartPlot(QWidget):
     if printer.setup():
       filter = printfilter.PrintFilter()
       if (QPrinter.GrayScale == printer.colorMode()):
-        filter.setOptions(QwtPlotPrintFilter.PrintAll
-                  & ~QwtPlotPrintFilter.PrintCanvasBackground)
+        filter.setOptions(Qwt.QwtPlotPrintFilter.PrintAll
+                  & ~Qwt.QwtPlotPrintFilter.PrintCanvasBackground)
       try:
         self._plotter.print_(printer, filter)
       except:
@@ -525,10 +557,10 @@ class ChartPlot(QWidget):
         Figures out where the cursor is, generates the appropriate text, 
         and puts it on the screen.
     """
-    closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(self.xpos, self.ypos)
+    closest_curve, xVal, yVal = self.closestCurve(self.position_raw)
 
     #get value of where the mouse was released
-    p2x = self._plotter.invTransform(QwtPlot.xBottom, self.xpos)
+    p2x = self._plotter.invTransform(Qwt.QwtPlot.xBottom, self.xpos_raw)
 
 # determine 'actual' x-axis position
     ref_point=0
@@ -542,30 +574,19 @@ class ChartPlot(QWidget):
       ref_point = int(p2x - (3*(self._ArraySize+self._x_displacement)))
 
     if self._phase:
-      temp_off = ((closest_curve-1) % (self._nbcrv/4) + 0.5 ) * self._offset
+      temp_off = ((closest_curve) % (self._nbcrv/4) + 0.5 ) * self._offset
     else:
-      temp_off = ((closest_curve-1) % (self._nbcrv/4)) * self._offset
+      temp_off = ((closest_curve) % (self._nbcrv/4)) * self._offset
     ref_value = yVal - temp_off
 
-    message = self.reportCoordinates(ref_point, ref_value, closest_curve-1)
-
-# lbl and lbl2 are used to compose text for the status bar and pop up display
-#   lbl2 = QString()
-#   lbl2.setNum(ref_point,'g',3)
-#   lbl = "Time = " + lbl2 + "s, Signal="
-#   lbl2.setNum(ref_value,'g',3)
-#   lbl += lbl2
-#   curve_num = QString()
-#   curve_num.setNum(closest_curve)
-#   popupmsg = QString()
-#   popupmsg = "Chart " + curve_num + "\n" + lbl + "\n" + self._position[closest_curve]
+    message = self.reportCoordinates(ref_point, ref_value, closest_curve)
 
     self._popup_text.setText(message)
     self._popup_text.adjustSize()
-    yhb = self._plotter.transform(QwtPlot.yLeft, self._plotter.axisScale(QwtPlot.yLeft).hBound())
-    ylb = self._plotter.transform(QwtPlot.yLeft, self._plotter.axisScale(QwtPlot.yLeft).lBound())
-    xhb = self._plotter.transform(QwtPlot.xBottom, self._plotter.axisScale(QwtPlot.xBottom).hBound())
-    xlb = self._plotter.transform(QwtPlot.xBottom, self._plotter.axisScale(QwtPlot.xBottom).lBound())
+    yhb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
+    ylb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
+    xhb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
+    xlb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
     height = self._popup_text.height()
     if self.ypos + height > ylb:
       ymove = self.ypos - 1.5 * height
@@ -582,6 +603,7 @@ class ChartPlot(QWidget):
     
 
   def closezoomfun(self):
+
     """ Set closezoom flag active to close all the zoom windows 
         once the user clicked
         the close_all_zoom button from the warning
@@ -627,41 +649,50 @@ class ChartPlot(QWidget):
           chart = numpy.array(self._chart_data[curve_no][self._data_index])
           flags = numpy.array(self._flag_data[curve_no][self._data_index])
           self._Zoom[curve_no].update_plot(chart,flags)
-#         self._Zoom[curve_no]._plotter.setMarkerLabel(self._mrk[curve_no], self._position[curve_no])
           self._Zoom[curve_no]._plotter.replot()
 
     if self._closezoom:
       toggle_id = self.menu_table['Close Popups']
       self._menu.setItemVisible(toggle_id, False)
 
-  def plotMouseMoved(self, e):
+  def plotMouseMoved(self, position):
     if self._popup_text.isVisible():
       self._popup_text.hide()
-    return
+    self.xpos_raw = position.x()
+    self.ypos_raw = position.y()
+   # print 'Mov raw pos = ', self.xpos_raw, ' ', self.ypos_raw
+    self.xpos = self._plotter.invTransform(Qwt.QwtPlot.xBottom, self.xpos_raw)
+    self.ypos = self._plotter.invTransform(Qwt.QwtPlot.yLeft, self.ypos_raw)
+
+    self.position_raw = QPoint(self.xpos_raw,self.ypos_raw)
+    if not self.xzoom_loc is None:
+      self.xzoom_loc = [self.press_xpos, self.press_xpos,  self.xpos, self.xpos,self.press_xpos]
+      self.yzoom_loc = [self.press_ypos, self.ypos,  self.ypos, self.press_ypos,self.press_ypos]
+      self.zoom_outline.setData(self.xzoom_loc,self.yzoom_loc)
+      self._plotter.replot()
 
   def plotMousePressed(self, e):
       """ callback to handle MousePressed event """
-      if Qt.MidButton == e.button():
-        xPos = e.pos().x()
-        yPos = e.pos().y()
-# We get information about the qwt plot curve that is
-# closest to the location of this mouse pressed event.
-# We are interested in the nearest curve_number and the index, or
-# sequence number of the nearest point in that curve.
-        curve_number, distance, xVal, yVal, index = self._plotter.closestCurve(xPos, yPos)
-      # pop up zoom curve
-      elif Qt.LeftButton == e.button():
-        self.xpos = e.pos().x()
-        self.ypos = e.pos().y()
+      if Qt.LeftButton == e.button():
         self.infoDisplay()
-        self._plotter.enableOutline(1)
-        self._plotter.setOutlinePen(QPen(Qt.black))
-        self._plotter.setOutlineStyle(Qwt.Rect)
-      else:
+        self.press_xpos = self.xpos
+        self.press_ypos = self.ypos
+        self.press_xpos_raw = e.pos().x()
+        self.press_ypos_raw = e.pos().y()
+        self.xzoom_loc = [self.press_xpos]
+        self.yzoom_loc = [self.press_ypos]
+        self.zoom_outline.attach(self._plotter)
+        if self.zoomStack == []:
+          self.zoomState = (
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
+              )
+      elif Qt.RightButton == e.button():
         e.accept()
         self._menu.popup(e.globalPos());
-
-    # onMousePressed()
+    # plotMousePressed()
 
   def plotMouseReleased(self, e):
       """ callback to handle MouseReleased event """
@@ -670,40 +701,30 @@ class ChartPlot(QWidget):
           self._popup_text.hide()
 # assume a change of <= 2 screen pixels is just due to clicking
 # left mouse button for no good reason
-        if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y()) > 2:
-          self._plotter.setOutlineStyle(Qwt.Cross)
-
-          xmin = min(self.xpos, e.pos().x())
-          xmax = max(self.xpos, e.pos().x())
-          ymin = min(self.ypos, e.pos().y())
-          ymax = max(self.ypos, e.pos().y())
-          xmin = self._plotter.invTransform(QwtPlot.xBottom, xmin)
-          xmax = self._plotter.invTransform(QwtPlot.xBottom, xmax)
-          ymin = self._plotter.invTransform(QwtPlot.yLeft, ymin)
-          ymax = self._plotter.invTransform(QwtPlot.yLeft, ymax)
-          self._plotter.enableOutline(0)
-          self._plotter.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-          self._plotter.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-          self.xmin = xmin
-          self.xmax = xmax
-          self.ymin = ymin
-          self.ymax = ymax
-          self.axis_xmin = xmin
-          self.axis_xmax = xmax
-          self.axis_ymin = ymin
-          self.axis_ymax = ymax
+        if abs(self.press_xpos_raw - e.pos().x()) > 2 and abs(self.press_ypos_raw - e.pos().y()) > 2:
+          xmin = min(self.xpos, self.press_xpos)
+          xmax = max(self.xpos, self.press_xpos)
+          ymin = min(self.ypos, self.press_ypos)
+          ymax = max(self.ypos, self.press_ypos)
+          if xmin == xmax or ymin == ymax:
+              return
+          self.zoomStack.append(self.zoomState)
+          self.zoomState = (xmin, xmax, ymin, ymax)
+          self._plotter.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
+          self._plotter.setAxisScale(Qwt.QwtPlot.yLeft, ymin, ymax)
           toggle_id = self.menu_table['Reset zoomer']
           self._menu.setItemVisible(toggle_id, True)
           self._plotter.replot()
-        else:
-          self._plotter.replot()
+        if not self.xzoom_loc is None:
+          self.zoom_outline.detach()
+          self.xzoom_loc = None
+          self.yzoom_loc = None
       elif e.button() == Qt.MidButton:
-        closest_curve, distance, xVal, yVal, index = self._plotter.closestCurve(e.pos().x(), e.pos().y())
+        closest_curve, xVal, yVal = self.closestCurve(self.position_raw)
         # pop up a zoom curve
-        self.zoomcrv(closest_curve-1)
-      self._plotter.setOutlineStyle(Qwt.Triangle)
+        self.zoomcrv(closest_curve)
 
-    # onMouseReleased()
+    # plotMouseReleased()
 
   def reportCoordinates(self, x, y, crv):
     """Format mouse coordinates as real world plot coordinates.
@@ -742,7 +763,7 @@ class ChartPlot(QWidget):
       self._zoomcount = self._zoomcount + 1
   
       #Get the color of the curve
-      pen = QPen(self._plotter.curvePen(crv))
+      pen = self._crv_key[crv].pen()
   
       #Put a flag to indicate wich zoom is open (for reploting)
       self._indexzoom[crv] = True
@@ -882,6 +903,7 @@ class ChartPlot(QWidget):
     """ Reduces the count of zoom windows opened
     """
     self._zoomcount = self._zoomcount - 1
+    print 'zoomCountmin: decrementing zoomcount to ',self._zoomcount
 
   def zoomPaused(self, crvtemp):
     self._pause[crvtemp-self._ref_chan] = not self._pause[crvtemp-self._ref_chan]
@@ -995,6 +1017,9 @@ class ChartPlot(QWidget):
 #       differ = len(self._chart_data[channel]) - (self._ArraySize-1)
 #       for i in range(differ):
 #         del self._chart_data[channel][0]
+
+        if scalar_data == numpy.inf or scalar_data == numpy.nan:
+          flag_data = 10  
         self._chart_data[channel][keys].append(scalar_data)
         self._flag_data[channel][keys].append(flag_data)
         self._updated_data[channel] = True
@@ -1014,10 +1039,10 @@ class ChartPlot(QWidget):
         flattened_array.shape = (num_elements,)
         if num_elements > 1 and incoming_data.shape[0] == 1:
           if  self._data_label is None:
-            self._plotter.setAxisTitle(QwtPlot.xBottom, "Frequency Spectrum per Tile Block (Relative Scale)")
+            self._x_title.setText("Frequency Spectrum per Tile Block (Relative Scale)")
           else:
-            self._plotter.setAxisTitle(QwtPlot.xBottom, self._data_label + " Frequency Spectrum per Tile Block (Relative Scale)")
-
+            self._x_title.setText(self._data_label + " Frequency Spectrum per Tile Block (Relative Scale)")
+          self._plotter.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
         # check for NaNs and Infs
         self.has_nans_infs = False
         nan_test = numpy.isnan(flattened_array)
@@ -1038,8 +1063,7 @@ class ChartPlot(QWidget):
           flattened_array = numpy.zeros((num_elements,), numpy.int32)
         else:
           flattened_array = numpy.reshape(incoming_flags.copy(),(num_elements,))
-
-        if self.has_nans_infs: 
+        if self.has_nans_infs:
           flattened_array[delete] = 10
         if self._append_data: 
           for i in range(len(flattened_array)):
@@ -1062,7 +1086,7 @@ class ChartPlot(QWidget):
     self._offset = 0
     self._max_range = -10000
     for channel in range(self._nbcrv):
-      self._plotter.curve(self._crv_key[channel]).setEnabled(False)
+      self._crv_key[channel].detach()
       self._updated_data[channel] = True
     self.reset_zoom()
     self._refresh_flag = True
@@ -1074,7 +1098,7 @@ class ChartPlot(QWidget):
     if self._do_fixed_scale:
       self._do_fixed_scale = False
       self._menu.changeItem(toggle_id,'Fixed Scale')
-      self._plotter.setAxisAutoScale(QwtPlot.yLeft)
+      self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
     else: 
       self._do_fixed_scale = True
       self._menu.changeItem(toggle_id, 'Auto Scale')
@@ -1116,7 +1140,7 @@ class ChartPlot(QWidget):
 
   def set_scale_values(self, max_value, min_value):
     if self._do_fixed_scale:
-      self._plotter.setAxisScale(QwtPlot.yLeft, min_value, max_value)
+      self._plotter.setAxisScale(Qwt.QwtPlot.yLeft, min_value, max_value)
       self._plotter.replot()
 
   def cancel_scale_request(self):
@@ -1124,7 +1148,7 @@ class ChartPlot(QWidget):
       self._do_fixed_scale = False
       toggle_id = self.menu_table['Fixed Scale']
       self._menu.changeItem(toggle_id,'Fixed Scale')
-      self._plotter.setAxisAutoScale(QwtPlot.yLeft)
+      self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
 
   def set_offset_value(self, offset_value):
     self._offset = offset_value
@@ -1174,19 +1198,20 @@ class ChartPlot(QWidget):
                 self._menu.setItemVisible(toggle_id, True)
                 complex_chart = test_chart.copy()
                 if self._amplitude:
-                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Amplitude (Relative Scale)")
+                  self._y_title.setText("Amplitude (Relative Scale)")
                   cplx_chart = abs(complex_chart)
                 elif self._real:
-                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Real (Relative Scale)")
+                  self._y_title.setText("Real (Relative Scale)")
                   cplx_chart = complex_chart.real
                 elif self._imaginary:
-                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Imaginary (Relative Scale)")
+                  self._y_title.setText("Imaginary (Relative Scale)")
                   cplx_chart = complex_chart.imag
                 else:
-                  self._plotter.setAxisTitle(QwtPlot.yLeft, "Phase (Relative Scale)")
+                  self._y_title.setText("Phase (Relative Scale)")
                   real_chart = complex_chart.real
                   imag_chart = complex_chart.imag
                   cplx_chart = numpy.arctan2(imag_chart,real_chart)
+                self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
                 tmp_max = cplx_chart.max()
                 tmp_min = cplx_chart.min()
               else:
@@ -1240,16 +1265,16 @@ class ChartPlot(QWidget):
         if chart.dtype == numpy.complex64 or chart.dtype == numpy.complex128:
           complex_chart = chart.copy()
           if self._amplitude:
-            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.red))
+            self._crv_key[channel].setPen(QPen(Qt.red))
             cplx_chart = abs(complex_chart)
           elif self._real:
-            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.blue))
+            self._crv_key[channel].setPen(QPen(Qt.blue))
             cplx_chart = complex_chart.real
           elif self._imaginary:
-            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.gray))
+            self._crv_key[channel].setPen(QPen(Qt.gray))
             cplx_chart = complex_chart.imag
           else:
-            self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.green))
+            self._crv_key[channel].setPen(QPen(Qt.green))
             real_chart = complex_chart.real
             imag_chart = complex_chart.imag
             cplx_chart = numpy.arctan2(imag_chart,real_chart)
@@ -1269,15 +1294,16 @@ class ChartPlot(QWidget):
               y_plot_values = cplx_chart
 
           if not y_plot_values is None: 
-            self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
-            self._plotter.curve(self._crv_key[channel]).setEnabled(True)
+            self._crv_key[channel].setData(x_plot_values , y_plot_values+temp_off)
+            self._crv_key[channel].attach(self._plotter)
             ylb = y_plot_values[0] + temp_off 
         else:
-          self._plotter.setCurvePen(self._crv_key[channel], QPen(Qt.black))
+          self._crv_key[channel].setPen(QPen(Qt.black))
           # don't display flagged data
           if self._ignore_flagged_data:
             x_plot_values = numpy.compress(flags==0,temp_x)
             y_plot_values = numpy.compress(flags==0,chart)
+            print 'length diffs ', temp_x.shape, y_plot_values
             if y_plot_values.shape[0] == 0:
               y_plot_values = None
           else:
@@ -1288,30 +1314,33 @@ class ChartPlot(QWidget):
             else:
               x_plot_values = temp_x
               y_plot_values = chart
- 
 
           if not y_plot_values is None: 
-            self._plotter.setCurveData(self._crv_key[channel], x_plot_values , y_plot_values+temp_off)
-            self._plotter.curve(self._crv_key[channel]).setEnabled(True)
+            self._crv_key[channel].setData( x_plot_values , y_plot_values+temp_off)
+            self._crv_key[channel].attach(self._plotter)
             ylb = y_plot_values[0] + temp_off 
 
         # update marker with info about the plot
         if not self._source_marker[channel] is None:
-          self._plotter.removeMarker(self._source_marker[channel]);
+          self._source_marker[channel].detach()
         if not y_plot_values is None and self.show_channel_labels:
           if not self._plot_label is None:
             message = self._plot_label[channel + self._ref_chan]
           else:
             message =  str(channel + self._ref_chan)
 # text marker giving source of point that was clicked
-          self._source_marker[channel] = self._plotter.insertMarker()
+          if self._source_marker[channel] is None:
+            self._source_marker[channel] = Qwt.QwtPlotMarker()
           xlb = temp_x[0]
-          self._plotter.setMarkerPos(self._source_marker[channel], xlb, ylb)
-          self._plotter.setMarkerLabelAlign(self._source_marker[channel], Qt.AlignRight | Qt.AlignTop)
+          self._source_marker[channel].setValue(xlb, ylb)
+          self._source_marker[channel].setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
           fn = self._plotter.fontInfo().family()
-          self._plotter.setMarkerLabel(self._source_marker[channel], message,
-            QFont(fn, 7, QFont.Bold, False),
-            Qt.blue, QPen(Qt.red, 2), QBrush(Qt.yellow))
+          text = Qwt.QwtText(message)
+          text.setColor(Qt.blue)
+          text.setBackgroundBrush(QBrush(Qt.yellow))
+          text.setFont(QFont(fn,7,QFont.Bold,False))
+          self._source_marker[channel].setLabel(text)
+          self._source_marker[channel].attach(self._plotter)
 	 
 # need to update any corresponding Zoom window     
 #        self._Zoom[channel].resize_x_axis(len(self._chart_data[channel]))
@@ -1337,11 +1366,9 @@ class ChartPlot(QWidget):
     return        # do nothing
 
   def start_test_timer(self, time):
+    self.counter = 0
     # stuff for tests
-    self.counter = 1.0
-    self._array = numpy.zeros((128,), numpy.float32)
     self.startTimer(time)
-
 
   def timerEvent(self, e):
     self.counter = self.counter + 1

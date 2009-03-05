@@ -25,16 +25,15 @@
 from qt import *
 import numpy
 import sys
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+import Qwt5 as Qwt
 
-class QwtPlotCurveSizes(QwtPlotCurve):
+
+
+class QwtPlotCurveSizes(Qwt.QwtPlotCurve):
     """ A QwtCurve with adjustable Symbols """
 
-    def __init__(self,parent,title=""):
-      QwtPlotCurve.__init__(self,parent,title)
+    def __init__(self):
+      Qwt.QwtPlotCurve.__init__(self)
       self.symbolSizes = None
       self.symbolList = None
 
@@ -43,8 +42,8 @@ class QwtPlotCurveSizes(QwtPlotCurve):
     def setData(self, xData, yData, symbolSizes=None):
       """ Override default QwtCurve setData method """
       self.symbolSizes = symbolSizes
-      QwtPlotCurve.setData(self,xData,yData)
-      QwtPlotCurve.curveChanged(self)
+      Qwt.QwtPlotCurve.setData(self,xData,yData)
+#     Qwt.QwtPlotCurve.curveChanged(self)
 
     def setSymbolList(self, symbolList):
       """ Override default QwtCurve symbols """
@@ -69,11 +68,11 @@ class QwtPlotCurveSizes(QwtPlotCurve):
         if not self.symbolList is None:
           width = self.symbolList[i].size().width()
           height = self.symbolList[i].size().height()
-          sizex = QwtPainter.metricsMap().screenToLayoutX(width)
-          sizey = QwtPainter.metricsMap().screenToLayoutY(height)
+          sizex = Qwt.QwtPainter.metricsMap().screenToLayoutX(width)
+          sizey = Qwt.QwtPainter.metricsMap().screenToLayoutY(height)
         else:
-          sizex = QwtPainter.metricsMap().screenToLayoutX(self.symbolSizes[i])
-          sizey = QwtPainter.metricsMap().screenToLayoutY(self.symbolSizes[i])
+          sizex = Qwt.QwtPainter.metricsMap().screenToLayoutX(self.symbolSizes[i])
+          sizey = Qwt.QwtPainter.metricsMap().screenToLayoutY(self.symbolSizes[i])
         rect.setSize(QSize(sizex, sizey))
 
         xi = xMap.transform(self.x(i));
@@ -88,15 +87,18 @@ class QwtPlotCurveSizes(QwtPlotCurve):
 # class QwtPlotCurveSizes()
 
 def make():
-    demo = QwtPlot('symbols demo')
-    curve = QwtPlotCurveSizes(parent=demo)
-    curve_a = QwtPlotCurveSizes(parent=demo)
+    demo = Qwt.QwtPlot()
+    demo.setTitle('Symbols Demo')
+    curve = QwtPlotCurveSizes()
+    curve.attach(demo)
+    curve_a = QwtPlotCurveSizes()
+    curve_a.attach(demo)
     # need to create a default symbol for the curves due to inner
     # workings of QwtCurve 
-    curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+    curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
              QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
     curve.setPen(QPen(Qt.blue, 2))
-    curve_a.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+    curve_a.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
              QBrush(Qt.black), QPen(Qt.black), QSize(5,5)))
     curve_a.setPen(QPen(Qt.blue, 2))
 
@@ -110,17 +112,20 @@ def make():
       y_array[i] = 2.0 * i
       symbol_sizes[i] = 3 + i
       if i%2 == 0:
-        symbolList.append(QwtSymbol(QwtSymbol.UTriangle,
+        symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.UTriangle,
              QBrush(Qt.black), QPen(Qt.black), QSize(3+i,3+i)))
       else:
-        symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
+        symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.DTriangle,
              QBrush(Qt.red), QPen(Qt.red), QSize(3+i,3+i)))
     curve.setData(x_array,y_array,symbol_sizes)
-    key = demo.insertCurve(curve)
     x_array = x_array + 10
     curve_a.setData(x_array,y_array)
     curve_a.setSymbolList(symbolList)
-    key1 = demo.insertCurve(curve_a)
+    grid = Qwt.QwtPlotGrid()
+    grid.setMajPen(QPen(Qt.black, 0, Qt.DotLine))
+    grid.setMinPen(QPen(Qt.gray, 0 , Qt.DotLine))
+
+    grid.attach(demo)
     demo.replot()
     return demo
 

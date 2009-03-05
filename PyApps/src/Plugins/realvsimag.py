@@ -31,17 +31,14 @@ import math
 import random
 import sys
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+from QwtSpy import *
+import Qwt5 as Qwt
 import numpy
 from Timba.GUI.pixmaps import pixmaps
 from guiplot2dnodesettings import *
 
 # local python Error Bar class
 from ErrorBar import *
-
 from plot_printer import *
                                                                                 
 from Timba.utils import verbosity
@@ -120,25 +117,24 @@ class realvsimag_plotter(object):
         }
 
   symbol_table = {
-        'none': QwtSymbol.None,
-        'rectangle': QwtSymbol.Rect,
-        'square': QwtSymbol.Rect,
-        'ellipse': QwtSymbol.Ellipse,
-        'dot': QwtSymbol.Ellipse,
-        'circle': QwtSymbol.Ellipse,
-	'xcross': QwtSymbol.XCross,
-	'cross': QwtSymbol.Cross,
-	'triangle': QwtSymbol.Triangle,
-	'diamond': QwtSymbol.Diamond,
+#        'none': Qwt.QwtSymbol.None,
+        'rectangle': Qwt.QwtSymbol.Rect,
+        'square': Qwt.QwtSymbol.Rect,
+        'ellipse': Qwt.QwtSymbol.Ellipse,
+        'dot': Qwt.QwtSymbol.Ellipse,
+        'circle': Qwt.QwtSymbol.Ellipse,
+	'xcross': Qwt.QwtSymbol.XCross,
+	'cross': Qwt.QwtSymbol.Cross,
+	'triangle': Qwt.QwtSymbol.Triangle,
+	'diamond': Qwt.QwtSymbol.Diamond,
         }
 
   line_style_table = {
-        'none': QwtCurve.NoCurve,
-        'lines' : QwtCurve.Lines,
-        'dots' : QwtCurve.Dots,
-#	'sticks' : QwtCurve.Sticks,
-#	'steps' : QwtCurve.Steps,
-#        'none': Qt.NoPen,
+        'none': Qwt.QwtPlotCurve.NoCurve,
+        'lines' : Qwt.QwtPlotCurve.Lines,
+        'dots' : Qwt.QwtPlotCurve.Dots,
+ 	'sticks' : Qwt.QwtPlotCurve.Sticks,
+ 	'steps' : Qwt.QwtPlotCurve.Steps,
         'SolidLine' : Qt.SolidLine,
         'DashLine' : Qt.DashLine,
         'DotLine' : Qt.DotLine,
@@ -168,7 +164,7 @@ class realvsimag_plotter(object):
         self.plot_key = plot_key
         
         # Initialize a QwPlot central widget
-        self.plot = QwtPlot(parent)
+        self.plot = Qwt.QwtPlot(parent)
         
         # create copy of standard application font..
         font = QFont(QApplication.font());
@@ -176,10 +172,10 @@ class realvsimag_plotter(object):
         # and scale it down to 70%
         font.setPointSize(fi.pointSize()*0.7);
         # apply font to QwtPlot
-        self.plot.setTitleFont(font);
-        for axis in range(0,4):
-          self.plot.setAxisFont(axis,font);
-          self.plot.setAxisTitleFont(axis,font);
+#       self.plot.setTitleFont(font);
+#       for axis in range(0,4):
+#         self.plot.setAxisFont(axis,font);
+#         self.plot.setAxisTitleFont(axis,font);
         
         self.plot.plotLayout().setCanvasMargin(0)
 
@@ -246,8 +242,8 @@ class realvsimag_plotter(object):
 
         self._plot_x_axis_label = 'Real Axis'
         self._plot_y_axis_label = 'Imaginary Axis'
-        self.plot.setAxisTitle(QwtPlot.xBottom, self._plot_x_axis_label)
-        self.plot.setAxisTitle(QwtPlot.yLeft, self._plot_y_axis_label)
+        self.plot.setAxisTitle(Qwt.QwtPlot.xBottom, self._plot_x_axis_label)
+        self.plot.setAxisTitle(Qwt.QwtPlot.yLeft, self._plot_y_axis_label)
         self.index = -1
         self._angle = 0.0
         self._radius = 20.0
@@ -266,10 +262,10 @@ class realvsimag_plotter(object):
         self.gain = 1.0
 
 # legends
-        self.setlegend = 0
-        self.plot.setAutoLegend(self.setlegend)
-        self.plot.enableLegend(False)
-        self.plot.setLegendPos(Qwt.Right)
+#       self.setlegend = 0
+#       self.plot.setAutoLegend(self.setlegend)
+#       self.plot.enableLegend(False)
+#       self.plot.setLegendPos(Qwt.Right)
 
 # set default background to  whatever QApplication sez it should be!
         self.plot.setCanvasBackground(QApplication.palette().active().base())
@@ -277,6 +273,12 @@ class realvsimag_plotter(object):
 
 # add on-line instructions
         QWhatsThis.add(self.plot, realvsimag_instructions)
+
+# attach a grid
+        self.grid = Qwt.QwtPlotGrid()
+        self.grid.setPen(QPen(Qt.black, 0, Qt.DotLine))
+        self.grid.attach(self.plot)
+
 
   # __init__()
 
@@ -298,14 +300,18 @@ class realvsimag_plotter(object):
   def __initTracking(self):
         """Initialize tracking
         """        
-        QObject.connect(self.plot,
-                     SIGNAL('plotMouseMoved(const QMouseEvent&)'),
+        self.spy = Spy(self.plot.canvas())
+
+        QObject.connect(self.spy,
+                     PYSIGNAL("MouseMove"),
                      self.onMouseMoved)
-        QObject.connect(self.plot, SIGNAL("plotMousePressed(const QMouseEvent&)"),
-                        self.slotMousePressed)
-        QObject.connect(self.plot,
-                     SIGNAL('plotMouseReleased(const QMouseEvent&)'),
-                     self.slotMouseReleased)
+        QObject.connect(self.spy,
+                     PYSIGNAL("MousePress"),
+                     self.onMousePressed)
+        QObject.connect(self.spy,
+                     PYSIGNAL("MouseRelease"),
+                     self.onMouseReleased)
+
 
 
         self.plot.canvas().setMouseTracking(True)
@@ -315,10 +321,10 @@ class realvsimag_plotter(object):
 
     # __initTracking()
 
-  def onMouseMoved(self, e):
-    xPos = e.pos().x()
-    yPos = e.pos().y()
-    if abs(self.xpos - e.pos().x()) > 2 and abs(self.ypos - e.pos().y())> 2:
+  def onMouseMoved(self, position):
+    xPos = position.x()
+    yPos = position.y()
+    if abs(self.xpos - position.x()) > 2 and abs(self.ypos - position.y())> 2:
 # we are zooming, so remove any markers
       self.timerEvent_marker()
     # onMouseMoved()
@@ -399,6 +405,11 @@ class realvsimag_plotter(object):
         QObject.connect(printer,SIGNAL("activated()"),self.printPlot);
         printer.addTo(self._menu);
   # __initContextMenu(self):
+
+  def removeMarkers(self):
+      for i in self.plot.itemList():
+        if isinstance(i, Qwt.QwtPlotMarker):
+          i.detach()
 
   def setResultsSelector(self):
     toggle_id = self.menu_table['Toggle results history']
@@ -579,11 +590,11 @@ class realvsimag_plotter(object):
 
     # toggleLegend()
 
-  def slotMousePressed(self, e):
+  def onMousePressed(self, e):
     """ Mouse press processing instructions go here"""
 
-    _dprint(2,' in slotMousePressed');
-    _dprint(3,' slotMousePressed event:',e);
+    _dprint(2,' in onMousePressed');
+    _dprint(3,' onMousePressed event:',e);
 # we use a middle mouse button pressed event to retrieve and display
 # information in the lower left corner of the plot about
 # the point closest to the location where the mouse was pressed
@@ -595,7 +606,6 @@ class realvsimag_plotter(object):
 #store coordinates for later zoom
         self.xpos = xPos
         self.ypos = yPos
-        self.plot.enableOutline(1)
         self.plot.setOutlinePen(QPen(Qt.black))
         self.plot.setOutlineStyle(Qwt.Rect)
         if self.zoomStack == []:
@@ -716,9 +726,9 @@ class realvsimag_plotter(object):
       # popup the menu
       self._menu.popup(e.globalPos());
             
-  # slotMousePressed
+  # onMousePressed
 
-  def slotMouseReleased(self, e):
+  def onMouseReleased(self, e):
     if Qt.LeftButton == e.button():
 # handle completion of zooming
 # assume a change of <= 2 screen pixels is just due to clicking
@@ -752,15 +762,14 @@ class realvsimag_plotter(object):
 
         self.zoomStack.append(self.zoomState)
         self.zoomState = (xmin, xmax, ymin, ymax)
-        self.plot.enableOutline(0)
 
       self.timerEvent_marker()
-  # slotMouseReleased()
+  # onMouseReleased()
 
   def timerEvent_marker(self):
     """ remove all markers, but reinsert the legend_plot
         marker if it exists """
-    self.plot.removeMarkers()
+    self.removeMarkers()
     if not self._legend_plot is None:
       self.legend_marker = self.plot.insertMarker()
       ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
@@ -787,8 +796,9 @@ class realvsimag_plotter(object):
           plot_color = self._stddev_circle_color
         else:
           plot_color = self._mean_circle_color
-        key_circle = self.plot.insertCurve(circle_key)
-        self._circle_dict[circle_key] = key_circle
+        curve = Qwt.QwtPlotCurve(circle_key)
+        self._circle_dict[circle_key] = curve
+        curve.attach(self.plot)
         line_thickness = 2
         circle_line_style = None
         if self.line_style_table.has_key(line_style):
@@ -797,10 +807,10 @@ class realvsimag_plotter(object):
           line_style = 'lines'
           circle_line_style = self.line_style_table[line_style]
         if line_style == 'lines' or line_style == 'dots' or line_style == 'none':
-          self.plot.setCurveStyle(key_circle, circle_line_style)
-          self.plot.setCurvePen(key_circle, QPen(plot_color,line_thickness))
+          curve.setStyle(circle_line_style)
+          curve.setPen(QPen(plot_color,line_thickness))
         else:
-          self.plot.setCurvePen(key_circle, QPen(plot_color,line_thickness,circle_line_style))
+          curve.setPen(QPen(plot_color,line_thickness))
 
 # compute points for two circles
   def compute_circles (self, item_tag, radius, x_cen=0.0, y_cen=0.0):
@@ -820,7 +830,7 @@ class realvsimag_plotter(object):
       circle_key = item_tag + '_circle'
       if self._circle_dict.has_key(circle_key):
         key_circle = self._circle_dict[circle_key] 
-        self.plot.setCurveData(key_circle, x_pos, y_pos)
+        key_circle.setData(x_pos, y_pos)
 
   def setup_arrow (self, item_tag, line_style='lines'):
       """ store plotting parameters for future
@@ -829,8 +839,9 @@ class realvsimag_plotter(object):
 # if this is a new item_tag, add a new arrow
       line_key = item_tag + '_arrow'
       if self._line_dict.has_key(line_key) == False: 
-        key_line = self.plot.insertCurve(line_key)
-        self._line_dict[line_key] = key_line
+        curve = Qwt.QwtPlotCurve(line_key)
+        self._line_dict[line_key] = curve
+        curve.attach(self.plot)
         line_thickness = 2
         arrow_line_style = None
         if self.line_style_table.has_key(line_style):
@@ -839,10 +850,10 @@ class realvsimag_plotter(object):
           line_style = 'lines'
           arrow_line_style = self.line_style_table[line_style]
         if line_style == 'lines' or line_style == 'dots' or line_style == 'none':
-          self.plot.setCurveStyle(key_line, arrow_line_style)
-          self.plot.setCurvePen(key_line, QPen(self._mean_circle_color,line_thickness))
+          curve.setStyle(arrow_line_style)
+          curve.setPen(QPen(self._mean_circle_color,line_thickness))
         else:
-          self.plot.setCurvePen(key_line, QPen(self._mean_circle_color,line_thickness,arrow_line_style))
+          curve.setPen(QPen(self._mean_circle_color,line_thickness,arrow_line_style))
 
   def compute_arrow (self, item_tag,avg_r, avg_i, x_cen=0.0, y_cen=0.0):
       """ compute plot values for arrows """
@@ -859,8 +870,8 @@ class realvsimag_plotter(object):
 # get the plot key for this arrow
       line_key = item_tag + '_arrow'
       if self._line_dict.has_key(line_key):
-        key_line = self._line_dict[line_key] 
-        self.plot.setCurveData(key_line, x1_pos, y1_pos)
+        curve = self._line_dict[line_key] 
+        curve.setData(x1_pos, y1_pos)
 
   def plot_data(self, visu_record, attribute_list=None, label=''):
       """ process incoming data and attributes into the
@@ -1399,14 +1410,14 @@ class realvsimag_plotter(object):
 # if we have x, y data
         if self._x_y_data:
 # key_plot is an integer
-          key_plot = self.plot.insertCurve(item_tag)
+          curve = QwtPlotCurve(item_tag)
 # store this integer value in the xy_plot_dict using the
 # item_tag string as key
-          self._xy_plot_dict[item_tag] = key_plot
+          self._xy_plot_dict[item_tag] = curve
 
 # using the integer 'key_plot' as index, set up various
 # plotting parameters for the curve - color, symbol, symbol size etc
-          self.plot.setCurvePen(key_plot, QPen(self._plot_color))
+          curve.setPen(QPen(self._plot_color))
           if not self.line_style_table.has_key(self.plot_line_style):
             Message = self.plot_line_style + " is not a valid line style.\n Using dots by default"
             self.plot_line_style = "dots"
@@ -1418,7 +1429,7 @@ class realvsimag_plotter(object):
                        QMessageBox.NoButton)
             mb_style.exec_loop()
           line_style = self.line_style_table[self.plot_line_style]
-          self.plot.setCurveStyle(key_plot, line_style)
+          curve.setStyle(line_style)
           plot_curve = self.plot.curve(key_plot)
           _dprint(3, 'self.plot_symbol ', self.plot_symbol)
           if not self.symbol_table.has_key(self.plot_symbol):
@@ -1451,11 +1462,11 @@ class realvsimag_plotter(object):
 # item_tag string as key. That way we we can distinguish from a
 # 'normal' xy plot in the update_plot method below 
           self._xy_plot_dict[item_tag] = -1
-# self.x_errors is a QwtErrorPlotCurve object
-          self.x_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
+# self.x_errors is a ErrorBarPlotCurve object
+          self.x_errors = ErrorBarPlotCurve(self.plot,self._plot_color,2);
           _dprint(3, 'self.x_errors set to ', self.x_errors)
           self.x_errors.setXErrors(True)
-# Insert this x error QwtErrorPlotCurve into the qwt plot
+# Insert this x error ErrorBarPlotCurve into the qwt plot
 # Insert a reference to its curve number in the 
 # x_errors_plot_dict. This dict is used when retrieving
 # label information from middle mouse button clicks
@@ -1464,10 +1475,10 @@ class realvsimag_plotter(object):
 # store a reference to this x error curve object in
 # a x_errors_dict using item_tag as key
           self._x_errors_dict[item_tag] = self.x_errors
-# self.y_errors is a QwtErrorPlotCurve object
-          self.y_errors = QwtErrorPlotCurve(self.plot,self._plot_color,2);
+# self.y_errors is a ErrorBarPlotCurve object
+          self.y_errors = ErrorBarPlotCurve(self.plot,self._plot_color,2);
           _dprint(3, 'self.y_errors set to ', self.y_errors)
-# insert this y error QwtErrorPlotCurve into the qwt plot
+# insert this y error ErrorBarPlotCurve into the qwt plot
 # Insert a reference to its curve number in the 
 # y_errors_plot_dict. This dict is used when retrieving
 # label information from middle mouse button clicks
@@ -1528,7 +1539,7 @@ class realvsimag_plotter(object):
             data_r = self._plotter_dict[data_key_r]
 
 # if we have found errors data, assign the errors data to the appropriate
-# x and y QwtErrorPlotCurve objects. These QwtErrorPlotCurve objects
+# x and y ErrorBarPlotCurve objects. These ErrorBarPlotCurve objects
 # are obtained from the x_errors_dict and y_errors_dict 
 # python dicts using the current_item_tag string as the key
         if not data_errors is None:
@@ -1563,7 +1574,7 @@ class realvsimag_plotter(object):
           _dprint(3, 'set data values in plot')
 
 # if we are plotting errors, we also need to assign these 
-# real/imaginary values to the appropriate QwtErrorPlotCurve objects
+# real/imaginary values to the appropriate ErrorBarPlotCurve objects
           if self.errors_plot:
             _dprint(3, 'setting data for errors plot')
 # convert real/imaginary data current_item_tag key to what
@@ -1571,7 +1582,7 @@ class realvsimag_plotter(object):
             location_value =  current_item_tag.find(self.value_tag)
             error_key = current_item_tag[:location_value] + self.error_tag + '_plot'
 # Assign the real/imaginary  data to the appropriate
-# x and y QwtErrorPlotCurve objects. These QwtErrorPlotCurve objects
+# x and y ErrorBarPlotCurve objects. These ErrorBarPlotCurve objects
 # are obtained from the x_errors_dict and y_errors_dict 
 # python dicts using the 'error_key' string iwe just derived
 # as the key
@@ -1662,18 +1673,16 @@ class realvsimag_plotter(object):
          flag_data_i = self._flags_i_dict[flag_data_i_string]
 
          if self.flag_plot_dict.has_key(plot_flag_r_keys[i]) == False:
-           key_flag_plot = self.plot.insertCurve(plot_flag_r_keys[i])
-           self.flag_plot_dict[plot_flag_r_keys[i]] = key_flag_plot
-
-           self.plot.setCurvePen(key_flag_plot, QPen(Qt.black))
-           self.plot.setCurveStyle(key_flag_plot, QwtCurve.Dots)
-           plot_flag_curve = self.plot.curve(key_flag_plot)
-           plot_flag_curve.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+           curve = Qwt.QwtPlotCurve(plot_flag_r_keys[i])
+           self.flag_plot_dict[plot_flag_r_keys[i]] = curve
+           curve.attach(self.plot)
+           curve.setPen(key_flag_plot, QPen(Qt.black))
+           curve.setStyle(key_flag_plot, QwtCurve.Dots)
+           curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.XCross, QBrush(Qt.black),
                      QPen(Qt.black), QSize(15, 15)))
          else:
-           key_flag_plot = self.flag_plot_dict[plot_flag_r_keys[i]]
-         if key_flag_plot >= 0:
-           self.plot.setCurveData(key_flag_plot, flag_data_r, flag_data_i)
+           curve = self.flag_plot_dict[plot_flag_r_keys[i]]
+           curve.setData(flag_data_r, flag_data_i)
 
   def remove_flags(self):
     """ routine to remove curves associated with flag data """
@@ -1681,8 +1690,8 @@ class realvsimag_plotter(object):
     if len(self.flag_plot_dict) > 0:
       plot_flag_keys = self.flag_plot_dict.keys()
       for i in range(0, len(plot_flag_keys)):
-         key_flag_plot = self.flag_plot_dict[plot_flag_keys[i]]
-         self.plot.removeCurve(key_flag_plot)
+         curve = self.flag_plot_dict[plot_flag_keys[i]]
+         curve.detach()
       self.flag_plot_dict = {}
 
 # a test routine
@@ -1711,19 +1720,19 @@ class realvsimag_plotter(object):
       self._mean_circle_color = self.color_table["blue"]
       self._stddev_circle_color = self.color_table["green"]
       if self._xy_plot_dict.has_key(plot_key) == False: 
-        key_plot = self.plot.insertCurve(plot_key)
-        self._xy_plot_dict[plot_key] = key_plot
-        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
-        self.plot.setCurveData(key_plot, x_pos, y_pos)
-        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
+        curve =Qwt.QwtPlotCurve(plot_key)
+        self._xy_plot_dict[plot_key] = curve
+        curve.attach(self.plot)
+        curve.setPen(QPen(self._plot_color))
+        curve.setData(x_pos, y_pos)
+        curve.setStyle(Qwt.QwtPlotCurve.Dots)
         self.plot.setTitle("Real vs Imaginary Demo")
-        plot_curve = self.plot.curve(key_plot)
         plot_symbol = self.symbol_table["circle"]
-        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
+        curve.setSymbol(Qwt.QwtSymbol(plot_symbol, QBrush(self._plot_color),
                      QPen(self._plot_color), QSize(10, 10)))
       else:
-        key_plot = self._xy_plot_dict[plot_key] 
-        self.plot.setCurveData(key_plot, x_pos, y_pos)
+        curve = self._xy_plot_dict[plot_key] 
+        curve.setData(x_pos, y_pos)
 
       avg_r = x_pos.mean()
       avg_i = y_pos.mean()
@@ -1775,38 +1784,27 @@ class realvsimag_plotter(object):
       # otherwise, replace old one
       plot_key = item_tag + '_plot'
       self._plot_color = self.color_table["red"]
-      if self._xy_plot_dict.has_key(plot_key) == False: 
-        key_plot = self.plot.insertCurve(plot_key)
-        self._xy_plot_dict[plot_key] = key_plot
-        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
-        self.plot.setCurveData(key_plot, x_pos, y_pos)
-        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
-        self.plot.setTitle("Errors Demo")
-        plot_curve = self.plot.curve(key_plot)
-        plot_symbol = self.symbol_table["circle"]
-        plot_curve.setSymbol(QwtSymbol(
-            QwtSymbol.Cross, QBrush(), QPen(Qt.yellow, 2), QSize(7, 7)))
+      if self._xy_plot_dict.has_key(plot_key):
+        self._xy_plot_dict[plot_key].detach()
+        
+      curve = ErrorBarPlotCurve(
+          x = x_pos,
+          y = y_pos,
+          dx = x_err,
+          dy = x_err,
+          curvePen = QPen(self._plot_color),
+          curveSymbol = Qwt.QwtSymbol(Qwt.QwtSymbol.Cross,
+                                    QBrush(),
+                                    QPen(Qt.yellow, 2),
+                                    QSize(7, 7)),
+          errorPen = QPen(Qt.blue, 2),
+          errorCap = 10,
+          errorOnTop = False,
+          )
+      curve.plotErrorsOnly()
 
-
-        self.x_errors = QwtErrorPlotCurve(self.plot,Qt.blue,2);
-# add in positions of data to the error curve
-        self.x_errors.setData(x_pos,y_pos);
-# add in errors to the error curve
-        self.x_errors.setXErrors(True)
-        self.x_errors.setErrors(x_err);
-        self.plot.insertCurve(self.x_errors);
-        self.y_errors = QwtErrorPlotCurve(self.plot,Qt.blue,2);
-        self.y_errors.setData(x_pos,y_pos);
-        self.y_errors.setErrors(x_err);
-        self.plot.insertCurve(self.y_errors);
-      else:
-        key_plot = self._xy_plot_dict[plot_key] 
-        self.plot.setCurveData(key_plot, x_pos, y_pos)
-
-        self.x_errors.setData(x_pos,y_pos);
-        self.x_errors.setErrors(x_err);
-        self.y_errors.setData(x_pos,y_pos);
-        self.y_errors.setErrors(x_err);
+      curve.attach(self.plot)
+      self._xy_plot_dict[plot_key] = curve
 
       if counter == 0:
         self.reset_zoom()
@@ -1827,20 +1825,20 @@ class realvsimag_plotter(object):
       plot_key = item_label + '_plot'
       self._plot_color = self.color_table["red"]
       if self._xy_plot_dict.has_key(plot_key) == False: 
-        key_plot = self.plot.insertCurve(plot_key)
-        self._xy_plot_dict[plot_key] = key_plot
-        self.plot.setCurvePen(key_plot, QPen(self._plot_color))
-        self.plot.setCurveData(key_plot, self.x_list, self.y_list)
-        self.plot.setCurveStyle(key_plot, QwtCurve.Dots)
-        self.plot.setAxisTitle(QwtPlot.xBottom, 'Time Sequence')
-        self.plot.setAxisTitle(QwtPlot.yLeft, 'MeqParm Fit')
-        plot_curve = self.plot.curve(key_plot)
+        curve = Qwt.QwtPlotCurve(plot_key)
+        self._xy_plot_dict[plot_key] = curve
+        curve.attach(self.plot)
+        curve.setPen(QPen(self._plot_color))
+        curve.setData(self.x_list, self.y_list)
+        curve.setStyle(Qwt.QwtPlotCurve.Dots)
+        self.plot.setAxisTitle(Qwt.QwtPlot.xBottom, 'Time Sequence')
+        self.plot.setAxisTitle(Qwt.QwtPlot.yLeft, 'MeqParm Fit')
         plot_symbol = self.symbol_table["circle"]
-        plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
+        curve.setSymbol(Qwt.QwtSymbol(plot_symbol, QBrush(self._plot_color),
                      QPen(self._plot_color), QSize(10, 10)))
       else:
-        key_plot = self._xy_plot_dict[plot_key] 
-        self.plot.setCurveData(key_plot, self.x_list, self.y_list)
+        curve = self._xy_plot_dict[plot_key] 
+        curve.setData(self.x_list, self.y_list)
 
       self.plot.replot()
 

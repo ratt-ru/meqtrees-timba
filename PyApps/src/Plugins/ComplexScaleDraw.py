@@ -1,4 +1,3 @@
-
 #% $Id$ 
 
 #
@@ -21,19 +20,16 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+
 import sys
+from qt import *
+import Qwt5 as Qwt
 import numpy
 
-from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
-
-class ComplexScaleDraw(QwtScaleDraw):
+class ComplexScaleDraw(Qwt.QwtScaleDraw):
     """ override default behaviour of QwtScaleDraw class """
     def __init__(self,start_value=None,end_value=None, divisor=None):
-        QwtScaleDraw.__init__(self)
+        Qwt.QwtScaleDraw.__init__(self)
         self.do_separator = True
         self.start_value = start_value
         self.end_value = end_value
@@ -47,7 +43,7 @@ class ComplexScaleDraw(QwtScaleDraw):
           self.delta = None
           self.start_value = None
           self.end_value = None
-    
+
     # __init__()
 
     def label(self, v):
@@ -57,27 +53,39 @@ class ComplexScaleDraw(QwtScaleDraw):
               v = v - self.delta
         else:
           if not self.divisor is None:
-	    v = v % self.divisor
-        return QwtScaleDraw.label(self, v)
+            v = v % self.divisor
+        return Qwt.QwtScaleDraw.label(self, v)
 
     def draw_separator(self, separator_flag=True):
         """ test to draw major tick mark at separation location """
         self.do_separator = separator_flag
 
-    def draw(self, painter):
-        """ Override default QwtScaleDraw generation of tickmarks """
+    def draw(self, painter, dummy):
+        # for some reason, in qwt 5 an extra parameter is needed
+        # in the above function definition. The corresponding
+        # C++ code offers several possibilities, but just a 'dummy'
+        # seems adequate ....
         # 1. paint real value ticks as done in C++ code
         # 2. paint imag value ticks with the shift depending on
         #    the dimension and tick spacing
         # 3. draw backbone, if needed
 
         step_eps = 1.0e-6    # constant value in the c++ equivalent
-        scldiv = QwtScaleDraw.scaleDiv(self)
-        majLen, medLen, minLen = QwtScaleDraw.tickLength(self)
+        majLen = Qwt.QwtScaleDraw.tickLength(self,Qwt.QwtScaleDiv.MajorTick)
+        medLen = Qwt.QwtScaleDraw.tickLength(self,Qwt.QwtScaleDiv.MediumTick)
+        minLen = Qwt.QwtScaleDraw.tickLength(self,Qwt.QwtScaleDiv.MinorTick)
+#       print 'majLen medLen ', majLen, ' ', medLen, ' ', minLen
+#       print 'lengths ', majLen,' ', medLen,' ', minLen
+#       minLen = Qwt.QwtScaleDraw.tickLength(self)
         self.offset = 0
-        # calculate and plot major ticks
-        for i in range(scldiv.majCnt()):
-            val = scldiv.majMark(i)
+        scldiv = Qwt.QwtScaleDraw.scaleDiv(self)
+        # plot major ticks
+        major_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MajorTick)
+        major_step = major_ticks[1] - major_ticks[0]
+        major_count = len(major_ticks)
+        for i in range(major_count):
+            val = major_ticks[i]
+#           print 'initial major val = ', val
             if not self.end_value is None:
               v = val
               if val >= self.end_value:
@@ -86,71 +94,126 @@ class ComplexScaleDraw(QwtScaleDraw):
               if not self.divisor is None:
                 v = val % self.divisor
             if self.offset == 0 and v != val:
-              self.offset = scldiv.majStep() - v % scldiv.majStep()
+                self.offset = major_step - v % major_step
             val = val + self.offset
-            QwtScaleDraw.drawTick(self, painter, val, majLen)
-            QwtScaleDraw.drawLabel(self, painter, val)
+#           print 'final major val = ', val
+            Qwt.QwtScaleDraw.drawTick(self, painter, val, minLen)
+            Qwt.QwtScaleDraw.drawLabel(self, painter, val)
 
         # also, optionally plot a major tick at the dividing point
         if self.do_separator:
-          QwtScaleDraw.drawTick(self,painter, self.separator, majLen)
-          QwtScaleDraw.drawLabel(self,painter,self.separator)
+          Qwt.QwtScaleDraw.drawTick(self,painter, self.separator, majLen)
+          Qwt.QwtScaleDraw.drawLabel(self,painter,self.separator)
 
-        # probably can't handle logs properly??
-        if scldiv.logScale():
-            for i in range(scldiv.minCnt()):
-                QwtScaleDraw.drawTick(
-                    self, painter, scldiv.minMark(i), minLen)
-        else:
-            # do minor ticks - no changes here yet compared to QwtScaleDraw
-            # But modifications are needed because the minor ticks 
-            # don't necessarily come out correctly
-            kmax = scldiv.majCnt() - 1
+        # plot medium ticks
+#       medium_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MediumTick)
+#       medium_step = medium_ticks[1] - medium_ticks[0]
+#       medium_count = len(medium_ticks)
+#       self.offset = 0
+#       print '\n\n'
+#       for i in range(medium_count):
+#           val = medium_ticks[i]
+#           print 'initial medium val = ', val
+#           v = val 
+#           if val >= self.end_value:
+#               v = val - self.delta 
+#           if self.offset == 0 and v != val:
+#               self.offset = medium_step - v % medium_step
+#           val = val + self.offset
+#           print 'final medium val = ', val
+#           Qwt.QwtScaleDraw.drawTick(self, painter, val, medLen)
+#           Qwt.QwtScaleDraw.drawLabel(self, painter, val)
+
+        minor_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MinorTick)
+        minor_step = minor_ticks[1] - minor_ticks[0]
+        minor_count = len(minor_ticks)
+#       self.offset = 0
+#       print '\n\n'
+#       for i in range(minor_count):
+#           val = minor_ticks[i]
+#           print 'initial minor val = ', val
+#           v = val 
+#           if val >= self.end_value:
+#               v = val - self.delta 
+#           if self.offset == 0 and v != val:
+#               self.offset = minor_step - v % minor_step
+#           val = val + self.offset
+#           print 'final minor val = ', val
+#           Qwt.QwtScaleDraw.drawTick(self, painter, val, majLen)
+#           Qwt.QwtScaleDraw.drawLabel(self, painter, val)
+
+        # can't handle logs properly, but so what?
+#       if scldiv.logScale():
+#           pass
+#           for i in range(scldiv.minCnt()):
+#               Qwt.QwtScaleDraw.drawTick(
+#                   self, painter, scldiv.minMark(i), minLen)
+#       else:
+        if True:
+            minor_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MinorTick)
+#           print 'minor ticks ', minor_ticks
+            medium_ticks = scldiv.ticks(Qwt.QwtScaleDiv.MediumTick)
+#           print 'medium ticks ', medium_ticks
+            kmax = major_count - 1
             if kmax > 0:
-                majTick = scldiv.majMark(0)
-                hval = majTick - 0.5 * scldiv.majStep()
+                majTick = major_ticks[0]
+                hval = majTick - 0.5 * major_step
                 k = 0
-                for i in range(scldiv.minCnt()):
-                    val = scldiv.minMark(i)
+                for i in range(minor_count):
+                    val = minor_ticks[i]
                     if  val > majTick:
                         if k < kmax:
                             k = k + 1
-                            majTick = scldiv.majMark(k)
+                            majTick = major_ticks[k]
                         else:
-                            majTick += (scldiv.majMark(kmax)
-                                        + scldiv.majStep())
-                        hval = majTick - 0.5 * scldiv.majStep()
-                    if abs(val-hval) < step_eps * scldiv.majStep():
-                        QwtScaleDraw.drawTick(self,painter, val, medLen)
+                            majTick += (major_ticks[kmax]
+                                        + major_step)
+                        hval = majTick - 0.5 * major_step
+                    if abs(val-hval) < step_eps * major_step:
+                        Qwt.QwtScaleDraw.drawTick(self,painter, val, medLen)
                     else:
-                        QwtScaleDraw.drawTick(self, painter, val, minLen)
+                        Qwt.QwtScaleDraw.drawTick(self, painter, val, minLen)
 
-        if QwtScaleDraw.options(self) & QwtScaleDraw.Backbone:
-            QwtScaleDraw.drawBackbone(self, painter)
-
+#       if Qwt.QwtScaleDraw.options(self) & Qwt.QwtScaleDraw.Backbone:
+        if Qwt.QwtScaleDraw.Backbone:
+            Qwt.QwtScaleDraw.drawBackbone(self, painter)
     # draw()
 # class ComplexScaleDraw()
 
+# stuff for testing
 def main(args):
     app = QApplication(args)
-    demo = QwtPlot()
+    demo = Qwt.QwtPlot()
+    grid = Qwt.QwtPlotGrid()
+    grid.attach(demo)
+    grid.setPen(QPen(Qt.black, 0, Qt.DotLine))
+    grid.enableX(True)
+    grid.enableY(True)
     complex_divider = 50.0
 
     myXScale = ComplexScaleDraw(start_value=0.0, end_value=complex_divider)
-    demo.setAxisScaleDraw(QwtPlot.xBottom, myXScale)
+    demo.setAxisScaleDraw(Qwt.QwtPlot.xBottom, myXScale)
 
-    m = demo.insertMarker()
-    demo.setMarkerLineStyle(m, QwtMarker.VLine)
-    demo.setMarkerPos(m, complex_divider, 0.0)
-    demo.setMarkerLinePen(m, QPen(Qt.black, 2, Qt.SolidLine))
+    m = Qwt.QwtPlotMarker()
+    m.attach(demo)
+    m.setValue(complex_divider, 0.0)
+    m.setLineStyle(Qwt.QwtPlotMarker.VLine)
+    m.setLabelAlignment(Qt.AlignRight | Qt.AlignBottom)
+    m.setLinePen(QPen(Qt.black, 2, Qt.SolidLine))
 
-    curve = demo.insertCurve("Data")
+    vector_array = numpy.zeros((100,), numpy.float32)
+    for i in range(100):
+      vector_array[i] = i
+
+    curve = Qwt.QwtPlotCurve('example data')
+    curve.attach(demo)
     x_array = numpy.zeros(100, numpy.float32)
     y_array = numpy.zeros(100, numpy.float32)
     for i in range(100):
       x_array[i] = 1.0 * i
       y_array[i] = 2.0 * i
-    demo.setCurveData(curve, x_array, y_array)
+    curve.setData(x_array,y_array)
+
     demo.resize(600, 400)
     demo.replot()
     demo.show()
@@ -158,10 +221,5 @@ def main(args):
     app.exec_loop()
 # main()
 
-# Admire!
 if __name__ == '__main__':
     main(sys.argv)
-
-# Local Variables: ***
-# mode: python ***
-# End: ***

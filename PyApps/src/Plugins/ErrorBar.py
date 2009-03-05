@@ -1,244 +1,317 @@
 #!/usr/bin/env python
 
-# This is a direct translation to python of Ion Vaslief's 
-# ErrorBar.cpp code from his 'qtiplot' package
+# This is Gerard Vermeulen's ErrorBarDemo.py script taken pretty well
+# line for line from the PyQwt 5 qt3examples directory.
+# Thanks to Gerard!
 
+# for debugging, requires: python configure.py  --trace ...
+if False:
+    import sip
+    sip.settracemask(0x3f)
 
-#% $Id$ 
-
-#
-# Copyright (C) 2002-2007
-# ASTRON (Netherlands Foundation for Research in Astronomy)
-# and The MeqTree Foundation
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands, seg@astron.nl
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
-import math
-import random
 import sys
-import numpy
+import qt
+import Qwt5 as Qwt
+from Qwt5.anynumpy import *
 
-from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
 
-class QwtErrorPlotCurve (QwtPlotCurve):
+class ErrorBarPlotCurve(Qwt.QwtPlotCurve):
 
-    def __init__(self, parent, penColor=Qt.black, lineThickness=2, lineStyle=Qt.SolidLine):
-        QwtPlotCurve.__init__(self, parent)
-        self.pen = QPen(penColor,lineThickness,lineStyle)
-        self.brush = QBrush(penColor)
-        self.cap = 10
-        self.type = 1
-        self.size = QSize(1,1)
-        self.plus = True
-        self.minus = True
-        self.through = False
-        # to prevent surprises when doing max(self.err) in boundingRect
-        self.err = [0.0]
-    # __init__()
+    def __init__(self,
+                 x = [], y = [], dx = None, dy = None,
+                 curvePen = qt.QPen(qt.Qt.NoPen),
+                 curveStyle = Qwt.QwtPlotCurve.Lines,
+                 curveSymbol = Qwt.QwtSymbol(),
+                 errorPen = qt.QPen(qt.Qt.NoPen),
+                 errorCap = 0,
+                 errorOnTop = False,
+                 ):
+        """A curve of x versus y data with error bars in dx and dy.
 
-    def boundingRect(self):
-        # poor man's boundingRect(). Feeling too lazy to loop or think
-        # about negative errors ...
-        # Errors are assumed to be all 'absolute', or positive 
-        # look at the C++ implementation of QwtCurve::boundingRect()
+        Horizontal error bars are plotted if dx is not None.
+        Vertical error bars are plotted if dy is not None.
 
-        # print min(self.err), max(self.err)
-        result = QwtCurve.boundingRect(self)
-        if self.type == 1:
-          result.setY1(result.y1() - max(self.err))
-          result.setY2(result.y2() + max(self.err))
-        else:
-          result.setX1(result.x1() - max(self.err))
-          result.setX2(result.x2() + max(self.err))
-        return result
-    # boundingRect()
+        x and y must be sequences with a shape (N,) and dx and dy must be
+        sequences (if not None) with a shape (), (N,), or (2, N):
+        - if dx or dy has a shape () or (N,), the error bars are given by
+          (x-dx, x+dx) or (y-dy, y+dy),
+        - if dx or dy has a shape (2, N), the error bars are given by
+          (x-dx[0], x+dx[1]) or (y-dy[0], y+dy[1]).
+
+        curvePen is the pen used to plot the curve
         
-    def draw(self, painter, xMap, yMap, ffrom, to):
+        curveStyle is the style used to plot the curve
+        
+        curveSymbol is the symbol used to plot the symbols
+        
+        errorPen is the pen used to plot the error bars
+        
+        errorCap is the size of the error bar caps
+        
+        errorOnTop is a boolean:
+        - if True, plot the error bars on top of the curve,
+        - if False, plot the curve on top of the error bars.
+        """
 
-      if ( not painter or self.dataSize() <= 0):
-        return
+        Qwt.QwtPlotCurve.__init__(self)
+        self.setData(x, y, dx, dy)
+        self.setPen(curvePen)
+        self.setStyle(curveStyle)
+        self.setSymbol(curveSymbol)
+        self.errorPen = errorPen
+        self.errorCap = errorCap
+        self.errorOnTop = errorOnTop
 
-      if (to < 0):
-        to = self.dataSize() - 1
-
-      if ( self.verifyRange(ffrom, to) > 0 ):
-        painter.save()
-        painter.setPen(self.pen)
-        painter.setBrush(self.brush)
-	self.drawErrorBars(painter, xMap, yMap, ffrom, to)
-        painter.restore()
-    # draw()
-
-    def drawErrorBars(self, painter, xMap, yMap, ffrom, to):
-      sh = int(self.size.height())
-      sw = int(self.size.width())
-
-      for i in range(ffrom, to+1):
-	xi = int(xMap.transform(self.x(i)))
-	yi = int(yMap.transform(self.y(i)))
-
-	if (self.type==1):
-	  yh = int(yMap.transform(self.y(i)+self.err[i]))
-	  yl = int(yMap.transform(self.y(i)-self.err[i]))
-	  yhl = int((yh+yl-sh)/2-self.pen.width())
-	  ylh = int((yh+yl+sh)/2+self.pen.width())
-
-	  if ((yl-yh)>sh):
-	    if self.plus:
-	      painter.drawLine(xi,yhl,xi,yh)
-	      painter.drawLine(xi-self.cap/2,yh,xi+self.cap/2,yh)
-	    if self.minus:
-	      painter.drawLine(xi,ylh,xi,yl)
-	      painter.drawLine(xi-self.cap/2,yl,xi+self.cap/2,yl)
-	    if self.through:
-              painter.drawLine(xi,yhl,xi,ylh)
-	elif (self.type==0):
-	  xp = int(xMap.transform(self.x(i)+self.err[i]))
-	  xm = int(xMap.transform(self.x(i)-self.err[i]))
-	  xpm = int((xp+xm+sw)/2+self.pen.width())
-	  xmp = int((xp+xm-sw)/2-self.pen.width())
-
-	  if (xp-xm)>sw:
-            if self.plus:
-		painter.drawLine(xp,yi,xpm,yi)
-		painter.drawLine(xp,yi-self.cap/2,xp,yi+self.cap/2)
-	    if self.minus:
-		painter.drawLine(xm,yi,xmp,yi)
-		painter.drawLine(xm,yi-self.cap/2,xm,yi+self.cap/2)
-	    if self.through:
-		painter.drawLine(xmp,yi,xpm,yi)
-    # drawErrorBars()
-
-
-    def throughSymbol(self):
-      return self.through
-
-    def drawThroughSymbol(self,yes=True):
-      self.through=yes
-
-    def minusSide(self):
-      return self.minus
-
-    def drawMinusSide(self,yes=False):
-      self.minus=yes
-
-    def plusSide(self):
-      return self.plus
-
-    def drawPlusSide(self,yes=False):
-      self.plus=yes
-
-    def errors(self):
-      return self.err
-
-    def setErrors(self, data):
-      self.err=data
-
-    def setSymbolSize(self, sz):
-      self.size=sz
-
-    def direction(self):
-      return self.type
-
-    def setXErrors(self,yes):
-      if yes: 
-        self.type=0   # error bars to be plotted along X Axis
+    # __init__()
+    def plotErrorsOnly(self, flag = True):
+      if flag:
+        self.setStyle(Qwt.QwtPlotCurve.NoCurve)
       else:
-        self.type=1   # error bars to be plotted along Y Axis
+        self.setStyle(Qwt.QwtPlotCurve.Lines)
 
-    def capLength(self):
-      return self.cap
+    def setData(self, x, y, dx = None, dy = None):
+        """Set x versus y data with error bars in dx and dy.
 
-    def setCapLength(self, t):
-      self.cap=t
+        Horizontal error bars are plotted if dx is not None.
+        Vertical error bars are plotted if dy is not None.
 
-    def width(self):
-      return self.pen.width()
+        x and y must be sequences with a shape (N,) and dx and dy must be
+        sequences (if not None) with a shape (), (N,), or (2, N):
+        - if dx or dy has a shape () or (N,), the error bars are given by
+          (x-dx, x+dx) or (y-dy, y+dy),
+        - if dx or dy has a shape (2, N), the error bars are given by
+          (x-dx[0], x+dx[1]) or (y-dy[0], y+dy[1]).
+        """
+        
+        self.__x = asarray(x, Float)
+        if len(self.__x.shape) != 1:
+            raise RuntimeError, 'len(asarray(x).shape) != 1'
 
+        self.__y = asarray(y, Float)
+        if len(self.__y.shape) != 1:
+            raise RuntimeError, 'len(asarray(y).shape) != 1'
+        if len(self.__x) != len(self.__y):
+            raise RuntimeError, 'len(asarray(x)) != len(asarray(y))' 
 
-    def setWidth(self, w):
-      self.pen.setWidth(w)
+        if dx is None:
+            self.__dx = None
+        else:
+            self.__dx = asarray(dx, Float)
+        if len(self.__dx.shape) not in [0, 1, 2]:
+            raise RuntimeError, 'len(asarray(dx).shape) not in [0, 1, 2]'
+            
+        if dy is None:
+            self.__dy = dy
+        else:
+            self.__dy = asarray(dy, Float)
+        if len(self.__dy.shape) not in [0, 1, 2]:
+            raise RuntimeError, 'len(asarray(dy).shape) not in [0, 1, 2]'
+        
+        Qwt.QwtPlotCurve.setData(self, self.__x, self.__y)
 
-    def color(self):
-      return self.pen.color()
+    # setData()
+        
+    def boundingRect(self):
+        """Return the bounding rectangle of the data, error bars included.
+        """
+        if self.__dx is None:
+            xmin = min(self.__x)
+            xmax = max(self.__x)
+        elif len(self.__dx.shape) in [0, 1]:
+            xmin = min(self.__x - self.__dx)
+            xmax = max(self.__x + self.__dx)
+        else:
+            xmin = min(self.__x - self.__dx[0])
+            xmax = max(self.__x + self.__dx[1])
 
-    def setColor(self, c):
-      self.pen.setColor(c)
+        if self.__dy is None:
+            ymin = min(self.__y)
+            ymax = max(self.__y)
+        elif len(self.__dy.shape) in [0, 1]:
+            ymin = min(self.__y - self.__dy)
+            ymax = max(self.__y + self.__dy)
+        else:
+            ymin = min(self.__y - self.__dy[0])
+            ymax = max(self.__y + self.__dy[1])
 
-# class QwtErrorPlotCurve 
+        return Qwt.QwtDoubleRect(xmin, ymin, xmax-xmin, ymax-ymin)
+        
+    # boundingRect()
 
+    def drawFromTo(self, painter, xMap, yMap, first, last = -1):
+        """Draw an interval of the curve, including the error bars
 
-# stuff below this is for testing
-def main(args):
-    app = QApplication(args)
-    demo = make()
-    app.setMainWidget(demo)
-    app.exec_loop()
+        painter is the QPainter used to draw the curve
+
+        xMap is the Qwt.QwtDiMap used to map x-values to pixels
+
+        yMap is the Qwt.QwtDiMap used to map y-values to pixels
+        
+        first is the index of the first data point to draw
+
+        last is the index of the last data point to draw. If last < 0, last
+        is transformed to index the last data point
+        """
+
+        if last < 0:
+            last = self.dataSize() - 1
+
+        if self.errorOnTop:
+            Qwt.QwtPlotCurve.drawFromTo(self, painter, xMap, yMap, first, last)
+
+        # draw the error bars
+        painter.save()
+        painter.setPen(self.errorPen)
+
+        # draw the error bars with caps in the x direction
+        if self.__dx is not None:
+            # draw the bars
+            if len(self.__dx.shape) in [0, 1]:
+                xmin = (self.__x - self.__dx)
+                xmax = (self.__x + self.__dx)
+            else:
+                xmin = (self.__x - self.__dx[0])
+                xmax = (self.__x + self.__dx[1])
+            y = self.__y
+            n, i, j = len(y), 0, 0
+            lines = qt.QPointArray(2*n)
+            while i < n:
+                yi = yMap.transform(y[i])
+                lines.setPoint(j, xMap.transform(xmin[i]), yi)
+                j += 1
+                lines.setPoint(j, xMap.transform(xmax[i]), yi)
+                j += 1; i += 1
+            painter.drawLineSegments(lines)
+            if self.errorCap > 0:
+                # draw the caps
+                cap = self.errorCap/2
+                n, i, j = len(y), 0, 0
+                lines = qt.QPointArray(4*n)
+                while i < n:
+                    yi = yMap.transform(y[i])
+                    lines.setPoint(j, xMap.transform(xmin[i]), yi - cap)
+                    j += 1
+                    lines.setPoint(j, xMap.transform(xmin[i]), yi + cap)
+                    j += 1
+                    lines.setPoint(j, xMap.transform(xmax[i]), yi - cap)
+                    j += 1
+                    lines.setPoint(j, xMap.transform(xmax[i]), yi + cap)
+                    j += 1; i += 1
+            painter.drawLineSegments(lines)
+
+        # draw the error bars with caps in the y direction
+        if self.__dy is not None:
+            # draw the bars
+            if len(self.__dy.shape) in [0, 1]:
+                ymin = (self.__y - self.__dy)
+                ymax = (self.__y + self.__dy)
+            else:
+                ymin = (self.__y - self.__dy[0])
+                ymax = (self.__y + self.__dy[1])
+            x = self.__x
+            n, i, j = len(x), 0, 0
+            lines = qt.QPointArray(2*n)
+            while i < n:
+                xi = xMap.transform(x[i])
+                lines.setPoint(j, xi, yMap.transform(ymin[i]))
+                j += 1
+                lines.setPoint(j, xi, yMap.transform(ymax[i]))
+                j += 1; i += 1
+            painter.drawLineSegments(lines)
+            # draw the caps
+            if self.errorCap > 0:
+                cap = self.errorCap/2
+                n, i, j = len(x), 0, 0
+                lines = qt.QPointArray(4*n)
+                while i < n:
+                    xi = xMap.transform(x[i])
+                    lines.setPoint(j, xi - cap, yMap.transform(ymin[i]))
+                    j += 1
+                    lines.setPoint(j, xi + cap, yMap.transform(ymin[i]))
+                    j += 1
+                    lines.setPoint(j, xi - cap, yMap.transform(ymax[i]))
+                    j += 1
+                    lines.setPoint(j, xi + cap, yMap.transform(ymax[i]))
+                    j += 1; i += 1
+            painter.drawLineSegments(lines)
+
+        painter.restore()
+
+        if not self.errorOnTop:
+            Qwt.QwtPlotCurve.drawFromTo(self, painter, xMap, yMap, first, last)
+
+    # drawFromTo()
+
+# class ErrorBarPlotCurve
+
 
 def make():
+    # create a plot with a white canvas
+    demo = Qwt.QwtPlot(Qwt.QwtText("Errorbar Demonstation"))
+    demo.setCanvasBackground(qt.Qt.white)
+    demo.plotLayout().setAlignCanvasToScales(True)
 
-# use numpy arrays to create demo arrays 
-    num_points = 50
-    x = numpy.zeros((num_points,), numpy.float32)  
-    y = numpy.zeros((num_points,), numpy.float32)  
-    err = numpy.zeros((num_points,), numpy.float32)  
-    for i in range(0, num_points) :
-        x[i] = 0.1*i;
-        y[i] = math.sin(x[i]);
-        err[i] = abs(0.5 * y[i])
-
-# create a QwtPlot object
-    demo = QwtPlot()
-
-# create std plot curve
-    plot = QwtPlotCurve(demo);
-# following line actually hides pen!
-    plot.setStyle(QwtCurve.NoCurve)
-# following gives blue line joining points
-#    plot.setPen(QPen(QColor(150, 150, 200), 2, Qt.SolidLine))
-    plot.setSymbol(QwtSymbol(
-            QwtSymbol.Cross, QBrush(), QPen(Qt.yellow, 2), QSize(7, 7)))
-    plot.setData(x,y);
-    demo.insertCurve(plot);
-# the standard plot data does get plotted!!
-
-# create error curve: error bars are plotted in red 
-# with line thickness 2
-#    errors = QwtErrorPlotCurve(demo,Qt.blue,2);
-#    errors = QwtErrorPlotCurve(demo);
-    errors = QwtErrorPlotCurve(demo,Qt.red,2);
-# add in positions of data to the error curve
-    errors.setData(x,y);
-# add in errors to the error curve
-    errors.setErrors(err);
-    demo.insertCurve(errors);
-#    errors.setXErrors(True)
-#    errors.drawThroughSymbol()
-    demo.resize(600, 600)
-    demo.replot();
+    grid = Qwt.QwtPlotGrid()
+    grid.attach(demo)
+    grid.setPen(qt.QPen(qt.Qt.black, 0, qt.Qt.DotLine))
+    
+    # calculate data and errors for a curve with error bars
+    x = arange(0, 10.1, 0.5, Float)
+    y = sin(x)
+    dy = 0.2 * abs(y)
+    # dy = (0.15 * abs(y), 0.25 * abs(y)) # uncomment for asymmetric error bars
+    dx = 0.2 # all error bars the same size
+    # errorOnTop = False # uncomment to draw the curve on top of the error bars
+    errorOnTop = True # uncomment to draw the error bars on top of the curve
+    curve = ErrorBarPlotCurve(
+        x = x,
+        y = y,
+        dx = dx,
+        dy = dy,
+        curvePen = qt.QPen(qt.Qt.black, 2),
+        curveSymbol = Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
+                                    qt.QBrush(qt.Qt.red),
+                                    qt.QPen(qt.Qt.black, 2),
+                                    qt.QSize(9, 9)),
+        errorPen = qt.QPen(qt.Qt.blue, 2),
+        errorCap = 10,
+        errorOnTop = errorOnTop,
+        )
+    curve.plotErrorsOnly()
+    curve.attach(demo)
+    demo.resize(400, 300)
     demo.show()
     return demo
+
 # make()
+
+
+def main(args):
+    app = qt.QApplication(args)
+    demo = make()
+    app.setMainWidget(demo)
+    zoomer = Qwt.QwtPlotZoomer(Qwt.QwtPlot.xBottom,
+                               Qwt.QwtPlot.yLeft,
+                               Qwt.QwtPicker.DragSelection,
+                               Qwt.QwtPicker.AlwaysOff,
+                               demo.canvas())
+    zoomer.setRubberBandPen(qt.QPen(qt.Qt.green))
+    picker = Qwt.QwtPlotPicker(Qwt.QwtPlot.xBottom,
+                               Qwt.QwtPlot.yLeft,
+                               Qwt.QwtPicker.NoSelection,
+                               Qwt.QwtPlotPicker.CrossRubberBand,
+                               Qwt.QwtPicker.AlwaysOn,
+                               demo.canvas())
+    picker.setTrackerPen(qt.QPen(qt.Qt.red))
+    sys.exit(app.exec_loop())
+
+# main()
+
 
 # Admire!
 if __name__ == '__main__':
     main(sys.argv)
 
+# Local Variables: ***
+# mode: python ***
+# End: ***

@@ -27,34 +27,33 @@
 # this code is taken from the PyQwt BodeDemo.py example
 
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+import Qwt5 as Qwt
 
-class PrintFilter(QwtPlotPrintFilter):
+class PrintFilter(Qwt.QwtPlotPrintFilter):
     def __init__(self):
-        QwtPlotPrintFilter.__init__(self)
+        Qwt.QwtPlotPrintFilter.__init__(self)
 
     # __init___()
     
-    def color(self, c, item, i):
-        if not (self.options() & QwtPlotPrintFilter.PrintCanvasBackground):
-            if item == QwtPlotPrintFilter.MajorGrid:
+#   def color(self, c, item, i):
+    def color(self, c, item):
+        if not (self.options() & Qwt.QwtPlotPrintFilter.PrintCanvasBackground):
+            if item == Qwt.QwtPlotPrintFilter.MajorGrid:
                 return Qt.darkGray
-            elif item == QwtPlotPrintFilter.MinorGrid:
+            elif item == Qwt.QwtPlotPrintFilter.MinorGrid:
                 return Qt.gray
-        if item == QwtPlotPrintFilter.Title:
+        if item == Qwt.QwtPlotPrintFilter.Title:
             return Qt.red
-        elif item == QwtPlotPrintFilter.AxisScale:
+        elif item == Qwt.QwtPlotPrintFilter.AxisScale:
             return Qt.green
-        elif item == QwtPlotPrintFilter.AxisTitle:
+        elif item == Qwt.QwtPlotPrintFilter.AxisTitle:
             return Qt.blue
         return c
 
     # color()
 
-    def font(self, f, item, i):
+#   def font(self, f, item, i):
+    def font(self, f, item):
         result = QFont(f)
         result.setPointSize(int(f.pointSize()*1.25))
         return result

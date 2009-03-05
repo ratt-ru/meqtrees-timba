@@ -406,7 +406,7 @@ class SvgPlotter(GriddedPlugin):
     self.results_selector.setLabel(self.label)
     self.results_selector.set_emit(True)
 
-# Grid.Services.registerViewer(dmi_type('MeqResult',record),SvgPlotter,priority=50)
+#Grid.Services.registerViewer(dmi_type('MeqResult',record),SvgPlotter,priority=10)
 Grid.Services.registerViewer(meqds.NodeClass(),SvgPlotter,priority=50)
 
 #############  test stuff from here on #########

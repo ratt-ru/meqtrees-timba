@@ -143,9 +143,7 @@ class SolverData:
          debug_array = incoming_data.solver_result.debug_array
 # find out how many records in each metric field
          num_debug = len(debug_array)
-         if num_debug:
-          
-           num_nonlin =  len(debug_array[0].nonlin)
+         num_nonlin =  len(debug_array[0].nonlin)
          self.nonlin = numpy.zeros((num_nonlin, num_debug), numpy.float64)
          for j in range(num_debug):
            debug_rec = debug_array[j]

@@ -34,10 +34,8 @@
 
 import sys
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+from QwtSpy import *
+import Qwt5 as Qwt
 
 import numpy
 import math
@@ -54,7 +52,7 @@ _dprintf = _dbg.dprintf;
 
 # from scipy.pilutil
 # note: low is set to 2, so that we can save a value of 0 for a flagged pixel
-# and 1 for a pixel with NaNs or Infs
+# and 1 for a pixel with Nans or Infs
 def bytescale(data, limits, high=255, low=2):
     if data.dtype == numpy.uint8:
         return data
@@ -81,17 +79,16 @@ def square(n, min, max):
     return numpy.cos(t)*numpy.sin(t)[:,numpy.newaxis]
 # square()
 
+class QwtPlotImage(Qwt.QwtPlotItem):
 
-class QwtPlotImage(QwtPlotMappedItem):
-
-    def __init__(self, parent):
-        QwtPlotItem.__init__(self, parent)
+    def __init__(self, parent, title = Qwt.QwtText()):
+        Qwt.QwtPlotItem.__init__(self)
         self.plot = parent
         self.display_type = "hippo"
         self.ValueAxis =  None
         self.ComplexColorMap = None
-	self._flags_array = None
-	self._nan_flags_array = None
+        self._flags_array = None
+        self._nan_flags_array = None
         self._image_for_display = None
 	self._display_flags = False
         self.Qimage = None
@@ -108,8 +105,17 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.nan_colour = 255
         self.lock_image_real = False
         self.lock_image_imag = False
+        if not isinstance(title, Qwt.QwtText):
+          self.title = Qwt.QwtText(str(title))
+        else:
+          self.title = title
+        self.setItemAttribute(Qwt.QwtPlotItem.Legend);
     # __init__()
     
+    def updateLegend(self, legend):
+        Qwt.QwtPlotItem.updateLegend(self, legend)
+        legend.find(self).setText(self.title)
+
     def setDisplayType(self, display_type):
       self.display_type = display_type
 #     _dprint(2,'display type set to ', self.display_type);
@@ -143,11 +149,10 @@ class QwtPlotImage(QwtPlotMappedItem):
 
     def setFlagsArray(self, flags_array):
       self._flags_array = flags_array
-
+      
     def setNanFlagsArray(self, flags_array):
       self._nan_flags_array = flags_array
-      
-      
+
     def setDisplayFlag(self, display_flags):
         self._display_flags = display_flags
     # setDisplayFlag
@@ -156,6 +161,8 @@ class QwtPlotImage(QwtPlotMappedItem):
       self._flags_array = None
       self._nan_flags_array = None
     # removeFlags
+
+    
 
     def getRealImageRange(self):
         return (self.r_cmin, self.r_cmax)
@@ -286,10 +293,9 @@ class QwtPlotImage(QwtPlotMappedItem):
       if scale_min == scale_max:
        scale_min = scale_min - 0.5 * scale_min
        scale_max = scale_max + 0.5 * scale_min
-      scaler = ImageScaler(1, 256, scale_min, scale_max, True)
-      self.dimap = QwtDiMap(1, 256, scale_min, scale_max, True)
+      self.dimap = ImageScaler(1, 256, scale_min, scale_max, True)
       _dprint(3, 'doing log transform of ', transform_image)
-      temp_image = scaler.iTransform(transform_image)
+      temp_image = self.dimap.iTransform(transform_image)
       _dprint(3, 'log transformed image ', temp_image)
       return temp_image
 
@@ -305,6 +311,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         second_limit = None
       return [first_limit, second_limit]
 
+
     def to_QImage(self, image):
 # convert to 8 bit image
       image_for_display = None
@@ -312,6 +319,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.complex = True
         real_array =  image.real
         if self.log_scale:
+          temp_array = self.convert_to_log(real_array)
           temp_array = self.convert_to_log(real_array)
           if not self.r_cmin is None and not self.r_cmax is None:
             limits = self.convert_limits([self.r_cmin,self.r_cmax])
@@ -343,11 +351,13 @@ class QwtPlotImage(QwtPlotMappedItem):
             limits = self.convert_limits([self.r_cmin,self.r_cmax])
           else:
             limits = [self.r_cmin, self.r_cmax] 
+          #print 'to_QImage log limits = ', limits
           image_for_display = bytescale(temp_array,limits)
         else:
           limits = [self.r_cmin,self.r_cmax]
+          #print 'to_QImage real limits = ', limits
           image_for_display = bytescale(image,limits)
-# turn image into a QImage, and return result	
+      # turn image into a QImage, and return result   
       if not self._nan_flags_array is None:
         if self.complex:
           image_for_display[:nx,:] = numpy.where(self._nan_flags_array,1,image_for_display[:nx,:])
@@ -355,7 +365,8 @@ class QwtPlotImage(QwtPlotMappedItem):
         else:
           image_for_display = numpy.where(self._nan_flags_array,1,image_for_display)
       self._image_for_display = image_for_display
-      result = toQImage(image_for_display).mirror(0, 1)
+      result = Qwt.toQImage(image_for_display).mirror(0, 1)
+      # always suppress NaNs
       if not self._nan_flags_array is None:
         result.setColor(1, qRgb(self.nan_colour, self.nan_colour, self.nan_colour))
       return result
@@ -421,6 +432,7 @@ class QwtPlotImage(QwtPlotMappedItem):
           image_for_display[nx/2:,:] = numpy.where(self._flags_array,0,self._image_for_display[nx/2:,:])
         else:
           image_for_display = numpy.where(self._flags_array,0,self._image_for_display)
+
       if not self._nan_flags_array is None:
         if self.complex:
           image_for_display[:nx/2,:] = numpy.where(self._nan_flags_array,1,image_for_display[:nx/2,:])
@@ -428,7 +440,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         else:
           image_for_display = numpy.where(self._nan_flags_array,1,image_for_display)
 
-      self.flags_Qimage = toQImage(image_for_display).mirror(0, 1)
+      self.flags_Qimage = Qwt.toQImage(image_for_display).mirror(0, 1)
 
 # set color scale a la HippoDraw Scale
       if self.display_type == "hippo":
@@ -475,6 +487,7 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.Qimage.mirror(0,1)
 
     def setData(self, data_array, xScale = None, yScale = None):
+        '*** setting data **** '
         self.complex = False
         shape = data_array.shape
         _dprint(3, 'array shape is ', shape)
@@ -483,27 +496,28 @@ class QwtPlotImage(QwtPlotMappedItem):
           self.complex = True
           shape0 = 2 * shape[0]
         if xScale:
-#           self.xMap = QwtDiMap(0, shape0, xScale[0], xScale[1])
-            self.xMap = QwtDiMap(0, shape0 - 1, xScale[0], xScale[1])
-#           self.plot.setAxisScale(QwtPlot.xBottom, *xScale)
+            self.xMap = ImageScaler(0, shape0 - 1, xScale[0], xScale[1])
+            self.xMap_draw = ImageScaler(0, shape0 - 1, xScale[0], xScale[1])
             temp_scale = (xScale[0],xScale[1])
-            self.plot.setAxisScale(QwtPlot.xBottom, *temp_scale)
+            self.plot.setAxisScale(Qwt.QwtPlot.xBottom, *temp_scale)
             _dprint(3, 'xScale is ', xScale)
         else:
-            self.xMap = QwtDiMap(0, shape0, 0, shape0 )
-            self.plot.setAxisScale(QwtPlot.xBottom, 0, shape0)
+            self.xMap = ImageScaler(0, shape0, 0, shape0 )
+            self.xMap_draw = ImageScaler(0, shape0, 0, shape0 )
+            self.plot.setAxisScale(Qwt.QwtPlot.xBottom, 0, shape0)
         if yScale:
             _dprint(3, 'yScale is ', yScale)
             _dprint(3, 'self.log_y_scale is ', self.log_y_scale)
-#           self.yMap = QwtDiMap(0, shape[1], yScale[0], yScale[1], self.log_y_scale)
-            self.yMap = QwtDiMap(0, shape[1]-1, yScale[0], yScale[1], self.log_y_scale)
-#           self.plot.setAxisScale(QwtPlot.yLeft, *yScale)
+
+            self.yMap = ImageScaler(0, shape[1]-1, yScale[0], yScale[1],self.log_y_scale)
+            self.yMap_draw = ImageScaler(0, shape[1]-1, yScale[0], yScale[1],self.log_y_scale)
             temp_scale = (yScale[0],yScale[1])
-            _dprint(3, 'Called setAxisScale(QwtPlot.yLeft) with ', temp_scale)
-            self.plot.setAxisScale(QwtPlot.yLeft, *temp_scale)
+            _dprint(3, 'Called setAxisScale(Qwt.QwtPlot.yLeft) with ', temp_scale)
+            self.plot.setAxisScale(Qwt.QwtPlot.yLeft, *temp_scale)
         else:
-            self.yMap = QwtDiMap(0, shape[1], 0, shape[1])
-            self.plot.setAxisScale(QwtPlot.yLeft, 0, shape[1])
+            self.yMap = ImageScaler(0, shape[1], 0, shape[1])
+            self.yMap_draw = ImageScaler(0, shape[1], 0, shape[1])
+            self.plot.setAxisScale(Qwt.QwtPlot.yLeft, 0, shape[1])
         if self.display_type == "brentjens":
           self.setBrentjensImage(data_array)
         else:
@@ -511,29 +525,51 @@ class QwtPlotImage(QwtPlotMappedItem):
         self.raw_image = data_array
     # setData()    
 
-    def drawImage(self, painter, xMap, yMap):
+    def update_yMap_draw(self, d1, d2):
+      self.yMap_draw.setDblRange(d1, d2, self.log_y_scale)
+
+    def update_xMap_draw(self, d1, d2):
+      self.xMap_draw.setDblRange(d1, d2, self.log_y_scale)
+
+    def get_xMap_draw_coords(self):
+      return (self.xMap_draw.d1(), self.xMap_draw.d2())
+
+    def get_yMap_draw_coords(self):
+      return (self.yMap_draw.d1(), self.yMap_draw.d2())
+
+    def draw(self, painter, xMap, yMap,rect):
         """Paint image to zooming to xMap, yMap
 
         Calculate (x1, y1, x2, y2) so that it contains at least 1 pixel,
         and copy the visible region to scale it to the canvas.
+
+        NOTE: we ignore the system-provided Maps and use our own 
+        'draw' maps
         """
         if self.Qimage is None:
           return
 
-        _dprint(3, 'incoming x map ranges ',xMap.d1(), ' ', xMap.d2())
-        _dprint(3, 'incoming y map ranges ',yMap.d1(), ' ', yMap.d2())
+        _dprint(3, 'incoming x map ranges ',xMap.s1(), ' ', xMap.s2())
+        _dprint(3, 'incoming y map ranges ',yMap.s1(), ' ', yMap.s2())
+#       print 'incoming x map ranges ',xMap.s1(), ' ', xMap.s2()
+#       print 'incoming y map ranges ',yMap.s1(), ' ', yMap.s2()
+#       print 'incoming x map draw ranges ',self.xMap_draw.d1(), ' ', self.xMap_draw.d2()
+#       print 'incoming y map draw ranges ',self.yMap_draw.d1(), ' ', self.yMap_draw.d2()
+#       print 'incoming self x map ranges ',self.xMap.d1(), ' ', self.xMap.d2()
+#       print 'incoming self y map ranges ',self.yMap.d1(), ' ', self.yMap.d2()
+
         # calculate y1, y2
         y1 = y2 = self.Qimage.height()
         _dprint(3, 'image height ', self.Qimage.height())
 #        y1 = y2 = self.Qimage.height() - 1
-#        print 'starting image height ', y1
-        y1 *= (self.yMap.d2() - yMap.d2())
+#       print 'starting image height ', y1
+        y1 *= (self.yMap.d2() - self.yMap_draw.d2())
         y1 /= (self.yMap.d2() - self.yMap.d1())
 #       y1 = max(0, int(y1-0.5))
         y1 = max(0, (y1-0.5))
         _dprint(3, 'float y1 ', y1)
         y1 = int(y1 + 0.5)
-        y2 *= (self.yMap.d2() - yMap.d1())
+        y2 *= (self.yMap.d2() - self.yMap_draw.d1())
         y2 /= (self.yMap.d2() - self.yMap.d1())
         _dprint(3, 'float y2 ', y2)
 #       y2 = min(self.Qimage.height(), int(y2+0.5))
@@ -543,12 +579,12 @@ class QwtPlotImage(QwtPlotMappedItem):
         # calculate x1, x2 - these are OK
         x1 = x2 = self.Qimage.width() 
 #       print 'starting image width ', x1
-        x1 *= (xMap.d1() - self.xMap.d1())
+        x1 *= (xMap.s1() - self.xMap.d1())
         x1 /= (self.xMap.d2() - self.xMap.d1())
         _dprint(3, 'float x1 ', x1)
 #       x1 = max(0, int(x1-0.5))
         x1 = max(0, int(x1))
-        x2 *= (xMap.d2() - self.xMap.d1())
+        x2 *= (self.xMap_draw.d2() - self.xMap.d1())
         x2 /= (self.xMap.d2() - self.xMap.d1())
         _dprint(3, 'float x2 ', x2)
         x2 = min(self.Qimage.width(), int(x2+0.5))
@@ -556,6 +592,8 @@ class QwtPlotImage(QwtPlotMappedItem):
         # copy
         xdelta = x2-x1
         ydelta = y2-y1
+#       print 'xdelta ydelta ', xdelta, ' ', ydelta
+#       print 'x1 y1 ', x1, ' ', y1
         # these tests seem necessary for the dummy 'scalar' displays
         if xdelta < 0:
           xdelta = self.Qimage.height()
@@ -567,9 +605,9 @@ class QwtPlotImage(QwtPlotMappedItem):
         else:
           image = self.Qimage.copy(x1, y1, xdelta, ydelta)
         # zoom
-        image = image.smoothScale(xMap.i2()-xMap.i1()+1, yMap.i1()-yMap.i2()+1)
+        image = image.smoothScale(xMap.p2()-xMap.p1()+1, yMap.p1()-yMap.p2()+1)
         # draw
-        painter.drawImage(xMap.i1(), yMap.i2(), image)
+        painter.drawImage(xMap.p1(), yMap.p2(), image)
 
     # drawImage()
 
@@ -577,45 +615,81 @@ class QwtPlotImage(QwtPlotMappedItem):
 
 # we test the QwtPlotImage class with class QwtImagePlot
 
-class QwtImagePlot(QwtPlot):
+class QwtImagePlot(Qwt.QwtPlot):
     def __init__(self, *args):
-        QwtPlot.__init__(self, *args)
+        Qwt.QwtPlot.__init__(self, *args)
 	# make a QwtPlot widget
         self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
         self.plotLayout().setAlignCanvasToScales(1)
 	self.setTitle('QwtImagePlot: (un)zoom & (un)hide')
-        self.setAutoLegend(0)
+#       self.setAutoLegend(0)
 	# set axis titles
-	self.setAxisTitle(QwtPlot.xBottom, 'time (s)')
-	self.setAxisTitle(QwtPlot.yLeft, 'frequency (Hz)')
+	self.setAxisTitle(Qwt.QwtPlot.xBottom, 'time (s)')
+	self.setAxisTitle(Qwt.QwtPlot.yLeft, 'frequency (Hz)')
 	# insert a few curves
-	self.cSin = self.insertCurve('y = pi*sin(x)')
-	self.cCos = self.insertCurve('y = 4*pi*sin(x)*cos(x)**2')
+	self.cSin = Qwt.QwtPlotCurve('y = pi*sin(x)')
+	self.cCos = Qwt.QwtPlotCurve('y = 4*pi*sin(x)*cos(x)**2')
+        self.cSin.attach(self)
+        self.cCos.attach(self)
 	# set curve styles
-	self.setCurvePen(self.cSin, QPen(Qt.green, 2))
-	self.setCurvePen(self.cCos, QPen(Qt.black, 2))
+        self.cSin.setPen(QPen(Qt.green, 2))
+        self.cCos.setPen(QPen(Qt.black, 2))
+        self.xzoom_loc = None
+        self.yzoom_loc = None
+
+	# attach a grid
+        grid = Qwt.QwtPlotGrid()
+        grid.attach(self)
+        grid.setPen(QPen(Qt.black, 0, Qt.DotLine))
+
+        # create zoom curve
+        self.zoom_outline = Qwt.QwtPlotCurve()
 
         # create and initialize an image display
         self.plotImage = QwtPlotImage(self)
+        self.plotImage.attach(self)
         self.gain = 2.0
         self.updateDisplay()
 
         self.zoomStack = []
-        self.connect(self,
-                     SIGNAL('plotMouseMoved(const QMouseEvent&)'),
-                     self.onMouseMoved)
-        self.connect(self,
-                     SIGNAL('plotMousePressed(const QMouseEvent&)'),
-                     self.onMousePressed)
-        self.connect(self,
-                     SIGNAL('plotMouseReleased(const QMouseEvent&)'),
-                     self.onMouseReleased)
-        self.connect(self, SIGNAL("legendClicked(long)"), self.toggleCurve)
-        
-        # replot
+        self.setMouseTracking(True)
+        self.spy = Spy(self.canvas())
+        self.prev_xpos = None
+        self.prev_ypos = None
+
+        self.connect(self, SIGNAL("legendClicked(QwtPlotItem*)"),
+                     self.toggleVisibility)
+
+        self.connect(self.spy,
+                     PYSIGNAL("MouseMove"),
+                     self.setPosition)
+        self.connect(self.spy,
+                     PYSIGNAL("MousePress"),
+                     self.onmousePressEvent)
+        self.connect(self.spy,
+                     PYSIGNAL("MouseRelease"),
+                     self.onmouseReleaseEvent)
 
     # __init__()
+
+    def toggleVisibility(self, plotItem):
+        """Toggle the visibility of a plot item
+        """
+        plotItem.setVisible(not plotItem.isVisible())
+        self.replot()
+
+    def setPosition(self, position):
+        self.xpos = self.invTransform(Qwt.QwtPlot.xBottom, position.x()) 
+        self.ypos = self.invTransform(Qwt.QwtPlot.yLeft, position.y()) 
+        if not self.xzoom_loc is None:
+            self.xzoom_loc = [self.press_xpos, self.press_xpos,  self.xpos, self.xpos,self.press_xpos]
+            self.yzoom_loc = [self.press_ypos, self.ypos,  self.ypos, self.press_ypos,self.press_ypos]
+            self.zoom_outline.setData(self.xzoom_loc,self.yzoom_loc)
+            self.replot()
+
+    # showCoordinates()
+
 
     def updateDisplay(self):
       # calculate 3 NumPy arrays
@@ -623,88 +697,87 @@ class QwtImagePlot(QwtPlot):
       y = math.pi*numpy.sin(x)
       z = self.gain * self.gain*math.pi*numpy.cos(x)*numpy.cos(x)*numpy.sin(x)
       # copy the data
-      self.setCurveData(self.cSin, x, y)
-      self.setCurveData(self.cCos, x, z)
+      self.cSin.setData(x, y)
+      self.cCos.setData(x, z)
       # image
       self.plotImage.setData(
             square(512,-1.0 * self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi))
 
+    def updateBarDisplay(self):
+      self.min = 0.0
+      self.max = 256.0
+      self.bar_array = numpy.reshape(numpy.arange(self.max), (1,256))
+      self.y_scale = (self.min, self.max)
+      self.plotImage.setData(self.bar_array, None, self.y_scale)
+
     def start_timer(self, time):
       """ start a timer going to update the image every 1/10 sec """
       self.timer = QTimer(self)
-      self.timer.connect(self.timer, SIGNAL('timeout()'), self.testEvent)
+#     self.timer.connect(self.timer, SIGNAL('timeout()'), self.testEvent)
       self.timer.start(time)
 
     def testEvent(self):
       """ change the gain factor and recalculate the image """
       self.gain = self.gain + 1.0
-      self.updateDisplay()
+#     self.updateDisplay()
+#     self.updateBarDisplay()
       self.replot()
 
 
-    def drawCanvasItems(self, painter, rectangle, maps, filter):
-        self.plotImage.drawImage(
-            painter, maps[QwtPlot.xBottom], maps[QwtPlot.yLeft])
-        QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
-
-    # drawCanvasItems()
-
-    def onMouseMoved(self, e):
-        pass
-
-    # onMouseMoved()
-
-    def onMousePressed(self, e):
+    def onmousePressEvent(self, e):
         if Qt.LeftButton == e.button():
             # Python semantics: self.pos = e.pos() does not work; force a copy
-            self.xpos = e.pos().x()
-            self.ypos = e.pos().y()
-            self.enableOutline(1)
-            self.setOutlinePen(QPen(Qt.black))
-            self.setOutlineStyle(Qwt.Rect)
+            self.press_xpos = self.xpos
+            self.press_ypos = self.ypos
+            self.xzoom_loc = [self.press_xpos]
+            self.yzoom_loc = [self.press_ypos]
+            self.zoom_outline.attach(self)
             self.zooming = 1
             if self.zoomStack == []:
                 self.zoomState = (
-                    self.axisScale(QwtPlot.xBottom).lBound(),
-                    self.axisScale(QwtPlot.xBottom).hBound(),
-                    self.axisScale(QwtPlot.yLeft).lBound(),
-                    self.axisScale(QwtPlot.yLeft).hBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
                     )
         elif Qt.RightButton == e.button():
             self.zooming = 0
         # fake a mouse move to show the cursor position
-        self.onMouseMoved(e)
+        #self.mouseMoveEvent(e)
 
-    # onMousePressed()
+    # mousePressEvent()
 
-    def onMouseReleased(self, e):
+    def onmouseReleaseEvent(self, e):
         if Qt.LeftButton == e.button():
-            xmin = min(self.xpos, e.pos().x())
-            xmax = max(self.xpos, e.pos().x())
-            ymin = min(self.ypos, e.pos().y())
-            ymax = max(self.ypos, e.pos().y())
-            self.setOutlineStyle(Qwt.Cross)
-            xmin = self.invTransform(QwtPlot.xBottom, xmin)
-            xmax = self.invTransform(QwtPlot.xBottom, xmax)
-            ymin = self.invTransform(QwtPlot.yLeft, ymin)
-            ymax = self.invTransform(QwtPlot.yLeft, ymax)
+            xmin = min(self.xpos, self.press_xpos)
+            xmax = max(self.xpos, self.press_xpos)
+            ymin = min(self.ypos, self.press_ypos)
+            ymax = max(self.ypos, self.press_ypos)
+            if not self.xzoom_loc is None:
+              self.zoom_outline.detach()
+              self.xzoom_loc = None
+              self.yzoom_loc = None
             if xmin == xmax or ymin == ymax:
                 return
             self.zoomStack.append(self.zoomState)
             self.zoomState = (xmin, xmax, ymin, ymax)
-            self.enableOutline(0)
         elif Qt.RightButton == e.button():
+            # we back up the zoom stack
             if len(self.zoomStack):
                 xmin, xmax, ymin, ymax = self.zoomStack.pop()
             else:
                 return
 
-        if Qt.LeftButton == e.button() or Qt.RightButton == e.button():
-          self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-          self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+        if e.button() != Qt.MidButton:
+          #print 'Release setting x range ', xmin, ' ', xmax
+          #print 'Release setting y range ', ymin, ' ', ymax
+          self.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
+          self.setAxisScale(Qwt.QwtPlot.yLeft, ymin, ymax)
+          self.plotImage.update_xMap_draw(xmin,xmax)
+          self.plotImage.update_yMap_draw(ymin,ymax)
           self.replot()
 
-    # onMouseReleased()
+    # mouseReleaseEvent()
 
     def toggleCurve(self, key):
         curve = self.curve(key)
@@ -720,7 +793,7 @@ class QwtImagePlot(QwtPlot):
 def make():
     demo = QwtImagePlot()
     demo.resize(500, 300)
-#   demo.start_timer(500)
+    demo.start_timer(500)
     demo.show()
     return demo
 

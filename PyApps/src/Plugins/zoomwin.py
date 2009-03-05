@@ -24,10 +24,10 @@
 
 import sys
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+
+from QwtSpy import *
+from Qwt5 import *
+
 import printfilter
 import plot_printer
 from display_image import *
@@ -48,6 +48,7 @@ class ZoomPopup(QWidget):
     self._parent = parent
     self._d_zoomActive = self._d_zoom = False
     self._curve_number = CurveNumber
+    self.curves = {}
 
     self._do_close = True   # enable closing by window manager
     self._do_pause = False   # pause mode is False at startup
@@ -58,18 +59,9 @@ class ZoomPopup(QWidget):
  
     #Create the plot for selected curve to zoom
     self._plotter = QwtImageDisplay(parent=self)
-    self._plotter. setZoomDisplay()
+    self._plotter.setZoomDisplay()
 
     self._zoom_plot_label = self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"
-#   self._plotter.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
-#   self._plotter.setAxisTitle(QwtPlot.yLeft, "Signal")
-#   self._plotter.setGridMajPen(QPen(Qt.white, 0, Qt.DotLine))
-
-#   self._plotter.setGridMinPen(QPen(Qt.gray, 0 , Qt.DotLine))
-
-#   label_char = 'G'
-#   label_prec = 5
-#   self._plotter.setAxisLabelFormat(QwtPlot.yLeft, label_char, label_prec)
 
     self._max_crv = -1  # negative value used to indicate that this display
     self._min_crv = -1  # is not being used
@@ -88,7 +80,6 @@ class ZoomPopup(QWidget):
     self.connect(self._plotter,PYSIGNAL('do_print'), self.plotPrinter.do_print)
     self.connect(self._plotter,PYSIGNAL('save_display'), self.handle_save_display)
 
-    self._x_values = x_values
     # insert flags ?   
     self._plotter.initVellsContextMenu()
     self.update_plot(y_values, flags)
@@ -101,10 +92,12 @@ class ZoomPopup(QWidget):
     ### instantiate the envelop that will show min/max deviations
     self._max_envelop = self._y_values
     self._min_envelop = self._y_values
-    self._max_crv =self._plotter.insertCurve("Zoomed max curve")
-    self._min_crv = self._plotter.insertCurve("Zoomed min curve")
-    self._plotter.setCurveData(self._max_crv,x_values,self._max_envelop)
-    self._plotter.setCurveData(self._min_crv,x_values,self._min_envelop)
+    self._max_crv = Qwt.QwtPlotCurve('Zoomed max curve')
+    self._max_crv.attach(self._plotter)
+    self._min_crv = Qwt.QwtPlotCurve('Zoomed min curve')
+    self._min_crv.attach(self._plotter)
+    self._max_crv.setData(x_values,self._max_envelop)
+    self._min_crv.setData(x_values,self._min_envelop)
     self._compare_max = True
 
   def do_compare(self):
@@ -115,10 +108,12 @@ class ZoomPopup(QWidget):
     else:
       self._max_envelop = self._y_values
       self._min_envelop = self._y_values
-      self._max_crv = self._plotter.insertCurve("Zoomed max curve")
-      self._min_crv = self._plotter.insertCurve("Zoomed min curve")
-      self._plotter.setCurveData(self._max_crv,self._x_values,self._max_envelop)
-      self._plotter.setCurveData(self._min_crv,self._x_values,self._min_envelop)
+      self._max_crv = Qwt.QwtPlotCurve('Zoomed max curve')
+      self._max_crv.attach(self._plotter)
+      self._min_crv = Qwt.QwtPlotCurve('Zoomed min curve')
+      self._min_crv.attach(self._plotter)
+      self._max_crv.setData(x_values,self._max_envelop)
+      self._min_crv.setData(x_values,self._min_envelop)
       self._compare_max = True
     self.reset_max()
 
@@ -126,8 +121,8 @@ class ZoomPopup(QWidget):
     if self._compare_max:
       self._max_envelop = 0.0
       self._min_envelop = 0.0
-      self._plotter.removeCurve(self._max_crv)
-      self._plotter.removeCurve(self._min_crv)
+      self._max_crv.detach()
+      self._min_crv.detach()
       self._compare_max = False
       self._max_crv = -1
       self._min_crv = -1

@@ -30,10 +30,7 @@
 
 import sys
 from qt import *
-try:
-  from Qwt4 import *
-except:
-  from qwt import *
+import Qwt5 as Qwt
 from Timba.GUI.pixmaps import pixmaps
 from BufferSizeDialog import *
 from FloatSpinBox import *
@@ -104,10 +101,10 @@ class ResultsRange(QWidget):
         # There seems to be occasional problems with some PyQwt versions not
         # handling the QwtSlider.BgSlot parameter
         try:
-          self.slider = QwtSlider(self, "", Qt.Vertical, QwtSlider.Right,
-                          QwtSlider.BgSlot)
+          self.slider = Qwt.QwtSlider(self, Qt.Vertical, Qwt.QwtSlider.RightScale,
+                          Qwt.QwtSlider.BgSlot)
         except:
-          self.slider = QwtSlider(self, "", Qt.Vertical, QwtSlider.Right)
+          self.slider = Qwt.QwtSlider(self, Qt.Vertical, Qwt.QwtSlider.RightScale)
         self.slider.setRange(self.minVal, self.maxVal)
         self.slider.setStep(self.minVal)
         self.connect(self.slider, SIGNAL("valueChanged(double)"), self.update_slider)
