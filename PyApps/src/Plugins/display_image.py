@@ -2016,7 +2016,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
             else:
               message = self.formatCoordinates(self.raw_xpos, self.raw_ypos)
             if not message is None:
-              self.infoDisplay(message, self.xpos, self.ypos)
+              self.infoDisplay(message, self.raw_xpos, self.raw_ypos)
             if self.zooming:
               self.press_xpos = self.xpos
               self.press_ypos = self.ypos
