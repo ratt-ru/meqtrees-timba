@@ -35,6 +35,9 @@ namespace Meq {
 class ParmTable
 {
 public:
+  virtual ~ParmTable ()
+  {}
+  
   // Get the parameter values for the given funklet and domain.
   // The matchDomain argument is set telling if the found parameter
   // matches the domain exactly.
