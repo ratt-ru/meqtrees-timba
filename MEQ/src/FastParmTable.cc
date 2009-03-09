@@ -112,14 +112,17 @@ void FastParmTable::flush ()
 
 void FastParmTable::throwErrno (const string &message)
 {
+  int errno0 = errno;
   char errbuf[256];
-  char *err = strerror_r(errno,errbuf,sizeof(errbuf));
-  Throw(Debug::ssprintf(message.c_str(),table_name_.c_str())+string(": ")+err);
+  char *err = strerror_r(errno0,errbuf,sizeof(errbuf));
+  Throw(Debug::ssprintf("%s: %s (errno=%d)",
+        Debug::ssprintf(message.c_str(),table_name_.c_str()).c_str(),err,errno0));
 }
 
 void FastParmTable::throwGdbm (const string &message)
 {
-  Throw(Debug::ssprintf(message.c_str(),table_name_.c_str())+string(": ")+gdbm_strerror(gdbm_errno));
+  Throw(Debug::ssprintf("%s: %s (gdbm_errno=%d)",
+        Debug::ssprintf(message.c_str(),table_name_.c_str()).c_str(),gdbm_strerror(gdbm_errno),gdbm_errno));
 }
 
 
