@@ -50,15 +50,19 @@ def packages ():
   return _packages;
   # print "Using %s, set the %s_PATH environment variable to override this."%(path,package.upper());
 
-
-
 def _tryPackageDir (path,package):
   """Tests if path refers to a valid directory, adds it to system include path if so.
   Marks package as having this path.""";
   if os.path.isdir(path):
     sys.path.insert(0,path);
+    # check for version info
+    try:
+      version = ' '.join(file(os.path.join(path,'version_info')));
+    except:
+      version = 'no version info';
+    # insert into packages
     global _packages;
-    _packages[package] = path;
+    _packages[package] = path,version;
     return True;
   return False;
 
