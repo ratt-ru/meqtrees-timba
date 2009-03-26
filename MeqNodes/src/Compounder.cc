@@ -844,7 +844,8 @@ int Compounder::build_axes_(Result::Ref &childres, int intime, int infreq) {
       cout<<"Axis "<<ch<<" 1 (in)="<<data<<endl;
 #endif
       //cen0=vl0.as<double,1>();
-      grid_[ch]=data(blitz::Range::all(),0);
+      //grid_[ch]=data(blitz::Range::all(),0);
+      grid_[ch]=data;
     } else  {
       blitz::Array<double,2> data=vl0.as<double,2>()(blitz::Range::all(),blitz::Range::all());
 #ifdef DEBUG
