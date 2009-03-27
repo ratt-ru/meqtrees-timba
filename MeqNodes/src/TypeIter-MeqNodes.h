@@ -98,6 +98,7 @@
         Do(Meq::Invert,arg) separator \
         Do(Meq::MatrixMultiply,arg) separator \
         Do(Meq::MatrixInvert22,arg) separator \
+        Do(Meq::UVDetaper,arg) separator \
         Do(Meq::UVBrick,arg) separator \
         Do(Meq::UVInterpol,arg) separator \
         Do(Meq::Stokes,arg) separator \

@@ -848,6 +848,11 @@ const int AidMeqTranspose_int = -1521;
 const DMI::AtomicID AidMeqUVBrick(-1505);         // from /home/mevius/LOFAR/Timba/MeqNodes/src/UVBrick.h:31
 const int AidMeqUVBrick_int = -1505;
 #endif
+#ifndef _defined_id_AidMeqUVDetaper
+#define _defined_id_AidMeqUVDetaper 1
+const DMI::AtomicID AidMeqUVDetaper(-1758);       // from /home/fba/Timba/MeqNodes/src/UVDetaper.h:31
+const int AidMeqUVDetaper_int = -1758;
+#endif
 #ifndef _defined_id_AidMeqUVInterpol
 #define _defined_id_AidMeqUVInterpol 1
 const DMI::AtomicID AidMeqUVInterpol(-1508);      // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:33

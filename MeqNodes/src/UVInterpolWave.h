@@ -65,7 +65,10 @@ class UVInterpolWave: public Node  {
 
   private:
     int _method;
-    // How many values in the u and v and t directions 
+    int griddivisions;
+    int weightsparam;
+    int cutoffparam;
+   // How many values in the u and v and t directions 
     int nu, nv, nt, nn;
     double tmin, tmax, fmin, fmax;
 

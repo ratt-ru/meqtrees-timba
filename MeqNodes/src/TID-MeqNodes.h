@@ -1927,6 +1927,25 @@ namespace Meq { class UVBrick; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqUVDetaper
+#define _defined_id_TpMeqUVDetaper 1
+const DMI::TypeId TpMeqUVDetaper(-1758);          // from /home/fba/Timba/MeqNodes/src/UVDetaper.h:31
+const int TpMeqUVDetaper_int = -1758;
+namespace Meq { class UVDetaper; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::UVDetaper> : public TypeTraits<Meq::UVDetaper>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqUVDetaper_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::UVDetaper & ContainerReturnType;
+                typedef const Meq::UVDetaper & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqUVInterpol
 #define _defined_id_TpMeqUVInterpol 1
 const DMI::TypeId TpMeqUVInterpol(-1508);         // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:33

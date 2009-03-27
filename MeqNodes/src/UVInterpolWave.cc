@@ -32,6 +32,7 @@
 #include <MEQ/Vells.h>
 #include <MEQ/Axis.h>
 #include <MEQ/VellsSlicer.h>
+#include <MeqNodes/UVDetaper.h>
 
 namespace Meq {
   static const HIID child_labels[] = { AidBrick,AidUVW,AidCoeff };
@@ -41,8 +42,12 @@ namespace Meq {
     // OMS: the "2" below means that only the first two children (Brick and UVW) 
     // are mandatory
     Node(num_children,child_labels,2),
-    _method(1)
+    _method(1),
+    griddivisions(10000)
   {
+    weightsparam = 3;
+    cutoffparam  = 2;
+
     _in1_axis_id.resize(3);
     _in1_axis_id[0] = "FREQ";
     _in1_axis_id[1] = "U";
@@ -77,9 +82,9 @@ namespace Meq {
     // this is from fftbrick and second from uvw antenna track
     const Result & FFTbrickUV = child_results.at(0);
     const Result & BaselineUV = child_results.at(1);
-// OMS: commented this out, has to be optional    
-//    const Result & CoeffsUV = child_results.at(2);
-//  
+    // OMS: commented this out, has to be optional    
+    //    const Result & CoeffsUV = child_results.at(2);
+    //  
     // figure out the axes: for now assume that there are only 
     // time for Baselines and nothing for brick.
     // Not sure yet how many there will be...
@@ -95,30 +100,30 @@ namespace Meq {
     // uniformly gridded
     const Cells & BaselineCells = BaselineUV.cells();
     const Cells & FFTbrickCells = FFTbrickUV.cells();
-  // OMS: commented this out, has to be optional
-  // const Cells & CoeffCells = CoeffsUV.cells();
+    // OMS: commented this out, has to be optional
+    // const Cells & CoeffCells = CoeffsUV.cells();
     FailWhen(//Check that the time is there for the  baseline.
 	     !BaselineCells.isDefined(_inaxis3) ,
-      "Time not defined in the antenna cell");
-
+	     "Time not defined in the antenna cell");
+    
     // Get the request cell reference
     const Cells& rcells = request.cells();
     // Get the number of cells in the uv plane
-    nu = FFTbrickCells.ncells(_inaxis1);
-    nv = FFTbrickCells.ncells(_inaxis2);
     nn = rcells.ncells(_inaxis0);
     nt = rcells.ncells(_inaxis3);
+    nu = FFTbrickCells.ncells(_inaxis1);
+    nv = FFTbrickCells.ncells(_inaxis2);
     tmin = min(rcells.cellStart(Axis::TIME));
     tmax = max(rcells.cellEnd(Axis::TIME));
     fmin = min(rcells.cellStart(Axis::FREQ));
     fmax = max(rcells.cellEnd(Axis::FREQ));
-
+    
     // Set Vells shape
     Vells::Shape tfshape;
     Axis::degenerateShape(tfshape,2);
     tfshape[Axis::TIME] = nt;
     tfshape[Axis::FREQ] = nn;
-
+    
     // What is the dimensions of the result
     // out put is a vector for each nu and time
     Result::Dims dims(FFTbrickUV.dims());
@@ -132,7 +137,7 @@ namespace Meq {
     // Making the results now:
     // First allocate a new results and ref to output
     Result & result = resref <<= new Result(dims);
-
+    
     int ovs = 0;  // counter of output VellSets
     // In this loop we look at each non-perturbed and each perturbed values
     // in the gridded_ uv VellSet in the input... Not considering perturbed 
@@ -143,7 +148,7 @@ namespace Meq {
       {
 	// Get reference to input vells...
 	const VellSet &brick_input = FFTbrickUV.vellSet(ivs);
-// OMS: commented this out, should be made optional
+	// OMS: commented this out, should be made optional
 //	const VellSet &coeff_inputu = CoeffsUV.vellSet(4*ivs+1);
 //	const VellSet &coeff_inputv = CoeffsUV.vellSet(4*ivs+2);
 //	const VellSet &coeff_inputuv= CoeffsUV.vellSet(4*ivs+3);
@@ -245,11 +250,84 @@ namespace Meq {
     blitz::Array<dcomplex,2> arrout = out_slicer();
    
     // Here we have to do the hard work!!!!!!!!!!!!!!!!!!!!!!!!!
-    int ulo=1,uhi=nt,vlo=1,vhi=nt;
+    blitz::Array<double,1> weights_arr(cutoffparam*griddivisions+1);
+    for (int i=0;i<=cutoffparam*griddivisions;i++){
+      weights_arr(i)=UVDetaper::sphfn(weightsparam,(2*cutoffparam),0,
+				      float(i)/(cutoffparam*griddivisions));
+      //std::cout<<i<<"\t"<<weights_arr(i)<<"\n"<<std::flush;
+    }
     const LoVec_double uu = brickcells.center(Axis::axis("U"));
     const LoVec_double vv = brickcells.center(Axis::axis("V"));
     const LoVec_double freq = rcells.center(Axis::FREQ);
     const double c0 = 299792458.;	
+
+    //const double du = uu(1)-uu(0); 
+    //const double dv = vv(1)-vv(0);
+    const double du = brickcells.cellSize(Axis::axis("U"))(0);
+    const double dv = brickcells.cellSize(Axis::axis("V"))(0);
+
+    //
+    double uc,vc;
+    int    ia,ja;
+    int    iu1,iu2,iv1,iv2;
+    double t,s;
+    for (int i=0;i<nt;i++){
+      for (int j=0;j<nn;j++){
+	uc = -u_arr(i)*freq(j)/c0;
+	vc = -v_arr(i)*freq(j)/c0;
+	double ucell = (uc-uu(0))/du;
+	double vcell = (vc-vv(0))/dv;
+        ia = floor(ucell);
+	ja = floor(vcell);
+	s = ucell - ia;
+	t = vcell - ja;
+	iu1=floor(ucell-cutoffparam)+1;
+	iu2=floor(ucell+cutoffparam);
+	iv1=floor(vcell-cutoffparam)+1;
+	iv2=floor(vcell+cutoffparam);
+	dcomplex arr_value=make_dcomplex(0.0);
+	double sum_weight=0.;
+	int inu,inv;
+	//std::cout<<nu<<"\t"<<nv<<"\t"<<u_arr(0)*freq(0)/c0
+	// <<"\t"<<iv1<<"\t"<<iv2<<"\n"<<std::flush;
+	for (int jj=iv1; jj<=iv2;jj++){
+          if( jj<0 || jj>=nv )
+            continue;
+	  inv = round(fabs(jj-vcell)* griddivisions);
+	  for (int ii=iu1;ii<=iu2;ii++){
+            if( ii<0 || ii>=nu )
+              continue;
+	    inu=round(fabs(ii-ucell)* griddivisions);
+	    double weight = weights_arr(inu)*weights_arr(inv);
+	    dcomplex arr_value1= weight*garr(0,ii,jj);
+	    //std::cout<<s<<"\t"<<t<<"\t"<<ia<<"\t"<<ib<<"\t"<<ii<<"\t"<<jj<<"\t"<<inu<<"\t"<<inv<<"\n";
+	    //std::cout<<"Weights values\t"<<weights_arr(inu)<<"\t"<<weights_arr(inv)<<"\n"<<std::flush;
+	    //std::cout<<"Array values \t"<<__real__ garr(0,ii,jj)<<"\t"<<__imag__ garr(0,ii,jj)<<"\n";
+	    //std::cout<<"Array values w weights\t"<<__real__ arr_value1<<"\t"<<__imag__ arr_value1<<"\n"<<std::flush; 
+	    arr_value  += weight*garr(0,ii,jj);
+	    sum_weight += weight;
+	    //*weights_arr(nv)*garr(0,ii,jj);
+	  }
+	}
+//	dcomplex arr_value2=bilinear(s,t,garr(0,ia,ja),garr(0,ia,jb),garr(0,ib,jb),garr(0,ib,ja));
+	//std::cout<<"Final values\t"<<__real__ arr_value<<"\t"<<__imag__arr_value<<"\n"<<std::flush; 
+	//std::cout<<"Final values\t"<<__real__ arr_value2<<"\t"<<__imag__ arr_value2<<"\n"<<std::flush; 
+	if (sum_weight == 0 )
+	{ 
+//          std::cout<< "This is a problem!!!"<<i<<"\t"<<j<<"\n"<<std::flush;
+          arrout(i,j) = make_dcomplex(0);
+        }
+        else
+	  arrout(i,j) = arr_value/sum_weight;
+	//arrout(i,j)=arr_value;
+ 	//std::cout<<"Final values\t"<<sum_weight<<"\n"<<std::flush; 
+	//std::cout<<"Final values\t"<<__real__ arrout(i,j)<<"\t"<<__imag__ arrout(i,j)<<"\n"<<std::flush; 
+	//double aa; std::cin>>aa;
+     }
+    }
+
+    /*
+    int ulo=1,uhi=nt,vlo=1,vhi=nt;
     double uc,vc;
     int    ia,ib,ja,jb;
     double t,s;
@@ -273,11 +351,11 @@ namespace Meq {
         // without coeffs. Once you have the coeffs as optional arguments,
         // you can put the if(method) statement and the call to bicubic back in
 	arrout(i,j)= bilinear(s,t,
-					       garr(0,ia,ja),garr(0,ia,jb),
-					       garr(0,ib,jb),garr(0,ib,ja));
+			      garr(0,ia,ja),garr(0,ia,jb),
+			      garr(0,ib,jb),garr(0,ib,ja));
       }
     }
-    
+    */
     // Here we have finished doing the hard work!!!!!!!!!!!!!!!!
     
   }

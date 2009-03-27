@@ -164,6 +164,8 @@ DMI::BObj * __construct_MeqInvert (int n) { return n>0 ? new Meq::Invert [n] : n
 DMI::BObj * __construct_MeqMatrixMultiply (int n) { return n>0 ? new Meq::MatrixMultiply [n] : new Meq::MatrixMultiply; }
 #include "MatrixInvert22.h"
 DMI::BObj * __construct_MeqMatrixInvert22 (int n) { return n>0 ? new Meq::MatrixInvert22 [n] : new Meq::MatrixInvert22; }
+#include "UVDetaper.h"
+DMI::BObj * __construct_MeqUVDetaper (int n) { return n>0 ? new Meq::UVDetaper [n] : new Meq::UVDetaper; }
 #include "UVBrick.h"
 DMI::BObj * __construct_MeqUVBrick (int n) { return n>0 ? new Meq::UVBrick [n] : new Meq::UVBrick; }
 #include "UVInterpol.h"
@@ -569,6 +571,9 @@ DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3
         AtomicID::registerId(-1522,"MeqMatrixInvert22")+
         TypeInfoReg::addToRegistry(-1522,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1522,__construct_MeqMatrixInvert22)+
+        AtomicID::registerId(-1758,"MeqUVDetaper")+
+        TypeInfoReg::addToRegistry(-1758,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1758,__construct_MeqUVDetaper)+
         AtomicID::registerId(-1505,"MeqUVBrick")+
         TypeInfoReg::addToRegistry(-1505,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1505,__construct_MeqUVBrick)+

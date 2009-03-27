@@ -16,7 +16,7 @@ LOCALSRCS = \
     Stripper.cc DataCollect.cc DataConcat.cc HistoryCollect.cc AzEl.cc LongLat.cc\
     BlitzRandom.cc NoiseNode.cc RandomNoise.cc GaussNoise.cc ZeroFlagger.cc StdDev.cc Rms.cc \
     WSum.cc WMean.cc Negate.cc Invert.cc \
-    MatrixMultiply.cc MatrixInvert22.cc UVBrick.cc UVInterpol.cc \
+    MatrixMultiply.cc MatrixInvert22.cc UVDetaper.cc UVBrick.cc UVInterpol.cc \
     Stokes.cc PatchComposer.cc FFTBrick.cc UVInterpolWave.cc InterpolCoeff.cc \
     GridPoints.cc Resampler.cc ModRes.cc \
     CasaParmTable.cc ParmTableUtils.cc ParmDBInterface.cc \
