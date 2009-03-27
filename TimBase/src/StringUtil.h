@@ -27,6 +27,8 @@
 #include <lofar_config.h>
 #include <string>
 #include <vector>
+#include <string.h>
+#include <stdlib.h>
 
 namespace LOFAR
 {

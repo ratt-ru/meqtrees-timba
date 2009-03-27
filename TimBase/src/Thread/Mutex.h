@@ -24,6 +24,10 @@
 #ifndef LOFAR_COMMON_THREAD_MUTEX_H
 #define LOFAR_COMMON_THREAD_MUTEX_H
 
+#ifdef DARWIN
+  #define PTHREAD_MUTEX_RECURSIVE_NP PTHREAD_MUTEX_RECURSIVE
+#endif
+
 //# Includes
 #include <TimBase/Thread/Thread.h>
 
@@ -324,9 +328,7 @@ namespace LOFAR
     //##ModelId=D4F415F7FEED
     inline int Mutex::lock () const
     {
-      dprintf(3)("%d: locking mutex %p\n",(int)self().id(),(void*)&mutex);
       int ret = pthread_mutex_lock(&mutex);
-      dprintf(3)("%d: locked mutex %p: %d\n",(int)self().id(),(void*)&mutex,ret);
       return ret;
     }
 
@@ -334,7 +336,6 @@ namespace LOFAR
     inline int Mutex::unlock () const
     {
       int ret = pthread_mutex_unlock(&mutex);
-      dprintf(3)("%d: unlocked mutex %p: %d\n",(int)self().id(),(void*)&mutex,ret);
       return ret;
     }
 

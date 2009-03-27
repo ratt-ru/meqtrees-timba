@@ -381,12 +381,12 @@ void * WPInterface::workerThread ()
   }
   catch( std::exception &exc )
   {
-    lprintf(0,AidLogFatal,"worker thread %d terminated with exception: %s",(int)Thread::self(),
+    lprintf(0,AidLogFatal,"worker thread %ld terminated with exception: %s",(long)Thread::self().id(),
           exceptionToString(exc).c_str());
   }
   catch( ... )
   {
-    lprintf(0,AidLogFatal,"worker thread %d terminated with unknown exception",(int)Thread::self());
+    lprintf(0,AidLogFatal,"worker thread %ld terminated with unknown exception",(long)Thread::self().id());
   }
   return 0;
 }
@@ -449,11 +449,9 @@ Thread::ThrID WPInterface::createWorker ()
   }
   num_worker_threads++;
   // wait for the worker thread to complete its startup
-  dprintf(2)("waiting for WT %d to complete initialization\n",(int)info.thr_id);
   stopwatch_reset;
   while( num_initialized_workers < num_worker_threads )
     worker_cond.wait();
-  dprintf(2)("WT %d startup complete after %s\n",(int)info.thr_id,stopwatch_dump);
   return info.thr_id;
 }
 #endif
@@ -587,7 +585,6 @@ void WPInterface::do_stop ()
     // join them
     for( int i=0; i<num_worker_threads; i++ )
     {
-      dprintf(2)("re-joining worker thread %d\n",(int)worker_threads[i].thr_id);
       worker_threads[i].thr_id.join();
     }
   }
@@ -1275,7 +1272,7 @@ string WPInterface::sdebug ( int detail,const string &,const char *nm ) const
     out += Debug::ssprintf("/%08x",this);
 #ifdef USE_THREADS
     if( num_worker_threads )
-      Debug::appendf(out,"T%d",(int)Thread::self());
+      Debug::appendf(out,"T%ld",(long)Thread::self().id());
 #endif
     Thread::Mutex::Lock lock(queue_cond);
     Debug::appendf(out,"Q:%d",queue().size());

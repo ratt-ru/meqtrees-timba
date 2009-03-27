@@ -31,8 +31,8 @@ import traceback
 
 # this ensures that C++ symbols (RTTI, DMI registries, etc.) are
 # shared across dynamically-loaded modules
-import DLFCN
-sys.setdlopenflags(DLFCN.RTLD_NOW | DLFCN.RTLD_GLOBAL);
+import dl
+sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 
 # sys.argv is not present when embedding a Python interpreter, but some
 # packages (i.e. numarray) seem to fall over when it is not found. So we

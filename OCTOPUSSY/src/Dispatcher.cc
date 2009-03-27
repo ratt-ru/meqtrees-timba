@@ -61,7 +61,7 @@ void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 #ifdef USE_THREADS
   if( DebugOctopussy::getDebugContext().check(2) )
   {
-    printf("thread %d: received signal %d (%s)\n",(int)Thread::self(),signum,sys_siglist[signum]);
+    printf("thread %ld: received signal %d (%s)\n",(long)Thread::self().id(),signum,sys_siglist[signum]);
   }
 #endif
   sigaddset(&raisedSignals,signum);
@@ -1238,7 +1238,7 @@ string Dispatcher::sdebug ( int detail,const string &,const char *name ) const
     if( detail>3 )
       out += Debug::ssprintf("/%08x",this);
 #ifdef USE_THREADS
-    Debug::appendf(out,"T%d",(int)Thread::self());
+    Debug::appendf(out,"T%ld",(long)Thread::self().id());
 #endif    
   }
   if( detail >= 1 || detail == -1 )   // normal detail

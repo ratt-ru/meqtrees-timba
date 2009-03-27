@@ -173,7 +173,7 @@ static PyObject * start_octopussy (PyObject *, PyObject *args)
   }
   catchStandardErrors(NULL);
   
-  return Py_BuildValue("i",int(thread_id)); // return NEW REF
+  return Py_BuildValue("l",long(thread_id.id())); // return NEW REF
 }
 
 // -----------------------------------------------------------------------

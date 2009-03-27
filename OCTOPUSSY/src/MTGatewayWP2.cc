@@ -333,12 +333,12 @@ void * MTGatewayWP::readerThread ()
   }
   catch( std::exception &exc )
   {
-    lprintf(0,AidLogError,"Reader thread %d terminated with exception %s",(int)Thread::self(),
+    lprintf(0,AidLogError,"Reader thread %ld terminated with exception %s",(long)Thread::self().id(),
         exceptionToString(exc).c_str());
   }
   catch( ... )
   {
-    lprintf(0,AidLogError,"Reader thread %d terminated with unknown exception",(int)Thread::self());
+    lprintf(0,AidLogError,"Reader thread %ld terminated with unknown exception",(long)Thread::self().id());
   }
   shutdownReaderThread();
   dprintf(3)("readerThread: exiting\n");

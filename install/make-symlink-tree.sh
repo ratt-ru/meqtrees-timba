@@ -82,7 +82,7 @@ END
 fi
 
 cd ../lib
-for libname in `find ../../../ -name "*so" -o -name "*.so.[0-9]*" | grep -v svn-base | grep -v symlinked-$flavour | grep /$flavour/`; do
+for libname in `find ../../../ -name "*so" -o name "*dylib" -o -name "*.so.[0-9]*" | grep -v svn-base | grep -v symlinked-$flavour | grep /$flavour/`; do
   ln-s $libname
 done
 
@@ -108,20 +108,24 @@ ln-s ../../../../../PyApps/src/GUI
 ln-s ../../../../../OCTOPython/src/__init__.py
 ln-s ../../../../../PyApps/src/Meq
 ln-s ../../../../../MeqServer/src/meqkernel.py
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.dylib
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so.0
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so.0.0.0
 ln-s ../../../../../OCTOPython/src/octopussy.py
+ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.dylib octopython.dylib
 ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.so octopython.so
 ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.so.0 octopython.so.0
 ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.so.0.0.0 octopython.so.0.0.0
 ln-s ../../../../../PyParmDB/src/ParmDB.py
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.dylib
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.so
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.so.0
 ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.so.0.0.0
 ln-s ../../../../../PyApps/src/Plugins
 ln-s ../../../../../PyApps/src/pretty_print.py
 ln-s ../../../../../MeqServer/src/pynode.py
+ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so.dylib
 ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so
 ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so.0
 ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so.0.0.0

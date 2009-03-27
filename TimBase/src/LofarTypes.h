@@ -26,6 +26,7 @@
 
 #include <TimBase/LofarTypedefs.h>
 #include <lofar_config.h>
+#include <stdlib.h>
 
 //# Make sure we include <sys/types.h> or <qglobal.h> if availabe. These files
 //# contain a number of typedefs for commonly used primitive data types. Some
@@ -49,7 +50,11 @@ namespace LOFAR
 #endif
   using ::ushort;
   using ::uint;
+#ifdef DARWIN
+  using TYPES::ulong;
+#else
   using ::ulong;
+#endif
   using TYPES::longlong;
   using TYPES::ulonglong;
   using TYPES::ldouble;

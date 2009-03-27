@@ -10,7 +10,7 @@ DMI::BObj * __construct_MeqConstant (int n) { return n>0 ? new Meq::Constant [n]
 DMI::BObj * __construct_MeqParm (int n) { return n>0 ? new Meq::Parm [n] : new Meq::Parm; }
 #include "Freq.h"
 DMI::BObj * __construct_MeqFreq (int n) { return n>0 ? new Meq::Freq [n] : new Meq::Freq; }
-#include "Time.h"
+#include "TimeNode.h"
 DMI::BObj * __construct_MeqTime (int n) { return n>0 ? new Meq::Time [n] : new Meq::Time; }
 #include "Grid.h"
 DMI::BObj * __construct_MeqGrid (int n) { return n>0 ? new Meq::Grid [n] : new Meq::Grid; }

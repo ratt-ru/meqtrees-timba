@@ -25,6 +25,7 @@
 #define COMMON_LOFARLOGGER_H
 
 #include <lofar_config.h>
+#include <string.h>
 #include <TimBase/StringUtil.h>
 
 //# Dependent of the availability of the log4Cplus package one set of macro's

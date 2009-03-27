@@ -66,7 +66,11 @@ int BOIO::open (const string &filename,int mode)
     case BOIO::APPEND:  mstr = "ab"; break;
     default:      Throw("open(): invalid mode");
   }
+  #ifdef DARWIN
+  fp = fopen(filename.c_str(),mstr);
+  #else
   fp = fopen64(filename.c_str(),mstr);
+  #endif
   FailWhen( !fp,"error opening boio file "+fname+": "+strerror(errno) );
   fname = filename;
   fmode = mode;

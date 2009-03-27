@@ -29,8 +29,8 @@ import sys
 
 # this ensures that C++ symbols (RTTI, DMI registries, etc.) are
 # shared across dynamically-loaded modules
-import DLFCN
-sys.setdlopenflags(DLFCN.RTLD_NOW | DLFCN.RTLD_GLOBAL);
+import dl
+sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 
 import string
 import Timba.array

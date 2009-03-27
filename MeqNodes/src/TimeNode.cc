@@ -21,7 +21,7 @@
 //#
 //# $Id$
 
-#include <MeqNodes/Time.h>
+#include <MeqNodes/TimeNode.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>

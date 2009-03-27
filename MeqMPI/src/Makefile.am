@@ -13,7 +13,7 @@ lib_LTLIBRARIES 	= libmeqmpi.la
 if HAVE_MPI
 libmeqmpi_la_SOURCES 	= $(DOCHDRS) $(LOCALSRCS) AID-MeqMPI-Registry.cc
 else
-libmeqmpi_la_SOURCES 	= 
+libmeqmpi_la_SOURCES 	= Dummy.cc
 endif
   
 libmeqmpi_la_LIBADD = 

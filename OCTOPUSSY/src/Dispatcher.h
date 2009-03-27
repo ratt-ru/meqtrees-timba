@@ -366,6 +366,9 @@ class Dispatcher : public OctopussyDebugContext
       static sigset_t raisedSignals,allSignals;
       // original sigactions for all signal_map
     //##ModelId=3DB9365A0179
+#ifdef DARWIN
+  #define _NSIG NSIG
+#endif
       static struct sigaction *orig_sigaction[_NSIG];
       // static signal handler
     //##ModelId=3DB9366D02BD

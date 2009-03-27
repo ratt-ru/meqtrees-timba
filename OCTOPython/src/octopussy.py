@@ -26,10 +26,10 @@
 #
 
 import sys
-import DLFCN
 # this ensures that C++ symbols (RTTI, DMI registries, etc.) are
 # shared across dynamically-loaded modules
-sys.setdlopenflags(DLFCN.RTLD_NOW | DLFCN.RTLD_GLOBAL);
+import dl
+sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 
 import Timba
 if not hasattr(Timba,'octopython'):

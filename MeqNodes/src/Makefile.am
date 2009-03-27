@@ -3,7 +3,7 @@ SUBDIRS	= .
 LOCALHDRS = 
 
 LOCALSRCS = \
-    Constant.cc Parm.cc Freq.cc Time.cc Grid.cc Selector.cc Composer.cc Paster.cc \
+    Constant.cc Parm.cc Freq.cc TimeNode.cc Grid.cc Selector.cc Composer.cc Paster.cc \
     Add.cc Subtract.cc Multiply.cc Divide.cc FMod.cc Sin.cc Cos.cc Exp.cc Pow.cc \
     Sqr.cc Asin.cc Acos.cc Sqrt.cc Conj.cc ToComplex.cc Polar.cc UVW.cc \
     LMN.cc Log.cc Cosh.cc Sinh.cc Tan.cc Tanh.cc VisPhaseShift.cc Condeq.cc \

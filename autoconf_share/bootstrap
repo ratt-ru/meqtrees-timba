@@ -78,7 +78,7 @@ fi
 # Initialize auto tools if configure.in exists.
 if [ -r configure.in ]; then
   set -x
-  aclocal -I ./autoconf_share \
+  aclocal-1.9 -I ./autoconf_share \
   && libtoolize --force --copy \
   && autoheader \
   && automake --foreign --add-missing --copy \

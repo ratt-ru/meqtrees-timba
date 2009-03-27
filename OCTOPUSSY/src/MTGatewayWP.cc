@@ -161,7 +161,7 @@ bool MTGatewayWP::start ()
   for( int i=0; i<NumWriterThreads; i++ )
   {
     Thread::ThrID tid = createWorker();
-    dprintf(1)("created worker thread %d\n",(int)tid);
+    dprintf(1)("created worker thread %ld\n",(long)tid.id());
   }
   
   // spawn several reader threads
@@ -172,7 +172,7 @@ bool MTGatewayWP::start ()
     info.self = this;
     info.thr_id = Thread::create(start_readerThread,&info);
     FailWhen(!info.thr_id,"failed to create reader thread");
-    dprintf(1)("created reader thread %d\n",(int)info.thr_id);
+    dprintf(1)("created reader thread %ld\n",(long)info.thr_id.id());
   }
   
   return false;

@@ -138,6 +138,7 @@ def meqbrowse (debug={},**kwargs):
   if not octopussy.is_running():
     octopussy.start(wait=True);
   # start meqserver
+  print "starting meqserver"
   args['gui'] = True;
   mqs = meqserver.meqserver(**args);
 

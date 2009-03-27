@@ -68,7 +68,19 @@ namespace Debug
   ContextMap *contexts = 0;
 
 #ifdef USE_THREADS
+#ifdef DARWIN
+  pthread_mutex_t levels_mutex;
+  bool _initLevelMutex ()
+  {
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&levels_mutex,&attr);
+  }
+  bool _level_mutex_init = _initLevelMutex(); 
+#else
   pthread_mutex_t levels_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 #define lockMutex(t) ::LOFAR::Thread::Mutex::Lock _##t##_lock(t##_mutex)
 #else
 #define lockMutex(t) 

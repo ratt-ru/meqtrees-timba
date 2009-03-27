@@ -30,6 +30,7 @@ To disable this warning use -Wno-deprecated.
 #endif
 
 #include <lofar_config.h>
+#include <stdlib.h>
 
 #include <TimBase/lofar_iostream.h>
 #include <TimBase/lofar_string.h>

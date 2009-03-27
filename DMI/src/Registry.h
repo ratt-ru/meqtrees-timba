@@ -33,8 +33,23 @@
 #ifdef USE_THREADS
 #include <TimBase/Thread/Mutex.h>
 #define lockMutex LOFAR::Thread::Mutex::Lock _lock(HostClass::_registry_mutex)
-#define declareMutex static pthread_mutex_t _registry_mutex
-#define defineMutex(Class) pthread_mutex_t Class::_registry_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+  #ifdef DARWIN
+    #define declareMutex static pthread_mutex_t _registry_mutex; \
+                         public: static bool _init_registry_mutex (); \
+                                 static bool _init_mutex_variable; \
+                         private: 
+    #define defineMutex(Class) pthread_mutex_t Class::_registry_mutex; \
+    bool Class::_init_registry_mutex () {\
+          pthread_mutexattr_t attr;\
+          pthread_mutexattr_init(&attr);\
+          pthread_mutexattr_settype(&attr,PTHREAD_MUTEX_RECURSIVE);\
+          pthread_mutex_init(&_registry_mutex,&attr);\
+          return true; } \
+    bool Class::_init_mutex_variable = Class::_init_registry_mutex(); 
+  #else
+    #define declareMutex static pthread_mutex_t _registry_mutex;
+    #define defineMutex(Class) pthread_mutex_t Class::_registry_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+  #endif
 #else
 #define lockMutex
 #define declareMutex

@@ -280,15 +280,20 @@ int32 Socket::initUnixSocket(bool		asServer)
     itsUnixAddr.sun_family = AF_UNIX;
     ASSERTSTR (path.length() < sizeof(itsUnixAddr.sun_path), 
 													"socket name too long");
-
-	memset (itsUnixAddr.sun_path, 0, sizeof(itsUnixAddr.sun_path));
+    memset (itsUnixAddr.sun_path, 0, sizeof(itsUnixAddr.sun_path));
+#ifdef DARWIN
+    if( path[0] == '=' )
+      path = "/tmp/"+path;
+    path.copy(itsUnixAddr.sun_path,sizeof(itsUnixAddr.sun_path));
+    itsUnixAddr.sun_len = path.length();
+#else
     if (path[0] == '=')  { // abstract socket name
 		path.substr(1).copy(itsUnixAddr.sun_path+1, sizeof(itsUnixAddr.sun_path)-1);
     }
     else  { // socket in filesystem
 		path.copy (itsUnixAddr.sun_path, sizeof(itsUnixAddr.sun_path));
 	}
-
+#endif
     // create socket
     itsSocketID = ::socket (PF_UNIX, SOCK_STREAM, 0);
     if (itsSocketID < 0) {

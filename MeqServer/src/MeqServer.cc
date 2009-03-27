@@ -48,7 +48,12 @@
 #include <MeqServer/Sink.h>
 #include <MeqServer/Spigot.h>
 
+#ifdef DARWIN
+#include <limits.h>
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
+#else
 #include <linux/unistd.h>
+#endif
 
 // TEST_PYTHON_CONVERSION: if defined, will test objects for
 // convertability to Python (see below)

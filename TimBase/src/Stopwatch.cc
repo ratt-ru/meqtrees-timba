@@ -31,7 +31,7 @@ namespace LOFAR
 {
 
   //##ModelId=3DB9546402FF
-  long Stopwatch::ticks_per_sec = sysconf(_SC_CLK_TCK);
+  clock_t Stopwatch::ticks_per_sec = sysconf(_SC_CLK_TCK);
   double Stopwatch::scale = double(1)/Stopwatch::ticks_per_sec;
   double Stopwatch::ns_scale = double(1e+6)/Stopwatch::ticks_per_sec;
   //##ModelId=3DB954640301
