@@ -978,6 +978,11 @@ const int AidOutput_int = -1241;
 const DMI::AtomicID AidPA(-1702);                 // from /home/twillis/Timba/MeqNodes/src/LMN.h:31
 const int AidPA_int = -1702;
 #endif
+#ifndef _defined_id_AidPadding
+#define _defined_id_AidPadding 1
+const DMI::AtomicID AidPadding(-1761);            // from /home/oms/Timba/MeqNodes/src/FFTBrick.h:38
+const int AidPadding_int = -1761;
+#endif
 #ifndef _defined_id_AidPhi
 #define _defined_id_AidPhi 1
 const DMI::AtomicID AidPhi(-1756);                // from /home/sarod/Timba/MeqNodes/src/ShapeletVisTf.h:33

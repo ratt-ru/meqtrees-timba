@@ -24,10 +24,14 @@
 #include <MeqNodes/UVDetaper.h>
 #include <MEQ/Vells.h>
 #include <MEQ/VellsSlicer.h>
+#include <MeqNodes/AID-MeqNodes.h>
 
 using namespace Meq::VellsMath;
 
 namespace Meq {  
+
+const HIID FPadding = AidPadding;
+
 
 //##ModelId=400E5355028C
 UVDetaper::UVDetaper()
@@ -35,74 +39,74 @@ UVDetaper::UVDetaper()
   //_method=1;
   weightsparam = 3;
   cutoffparam  = 2;
+  padding = 1;
 }
 
 //##ModelId=400E5355028D
 UVDetaper::~UVDetaper()
 {}
 
-//void UVDetaper::setStateImpl (DMI::Record::Ref& rec, bool initializing){
-//  Node::setStateImpl(rec,initializing);
-//  rec["UVDetaper_method"].get(_method,initializing);
-//};
-
+void UVDetaper::setStateImpl (DMI::Record::Ref& rec, bool initializing)
+{
+  Node::setStateImpl(rec,initializing);
+  rec[FPadding].get(padding,initializing);
+}
 
 int UVDetaper::getResult (Result::Ref &resref,
 			 const std::vector<Result::Ref> &child_results,
 			 const Request &request, bool newreq){
   const Result & Image = child_results.at(0);
   const Cells & ImCells = Image.cells();
-  const LoVec_double ll = ImCells.center(Axis::axis("L"));
-  const LoVec_double mm = ImCells.center(Axis::axis("M"));
-  const int nl = ImCells.ncells(Axis::axis("L"));
-  const int nm = ImCells.ncells(Axis::axis("M"));
+  int axis_l = Axis::axis("L");
+  int axis_m = Axis::axis("M");
+  const LoVec_double ll = ImCells.center(axis_l);
+  const LoVec_double mm = ImCells.center(axis_m);
+  const int nl = ImCells.ncells(axis_l);
+  const int nm = ImCells.ncells(axis_m);
 
   //sphfn(Int *ialf, Int *im, Int *iflag, float *eta, float *psi, Int *ierr);
-  int nr,jj; float fnorm = sphfn(weightsparam,(2*cutoffparam),1,0.0);
-  Vells::Shape ImageShape = Axis::matrixShape(Axis::axis("L"),
-					      Axis::axis("M"),nl,nm);
+  int nr,jj; 
+  double fnorm = sphfn(weightsparam,(2*cutoffparam),1,0.0);
   
   // Fill CorrVells and we are done...
   // Make Vells on l direction
-  Vells::Ref CorrVellsL;
-  ImageShape[Axis::axis("M")] = 1;
-  CorrVellsL <<= new Vells(make_dcomplex(1.0),ImageShape,false);
-    // Get a blitz array to input values
-  VellsSlicer<dcomplex,1> SlicerL(CorrVellsL,Axis::axis("M"));
-  blitz::Array<dcomplex,1> arr_l = SlicerL();
+  // Note that l center is at nl/2-1, m center is at nm/2
+  // (due to flipping of the l axis), so we have to fill them differently
+  Vells CorrVellsL(1.0,Axis::vectorShape(axis_l,nl),false);
+  // Get a flat pointer to array storage
+  double * arr_l = CorrVellsL.realStorage();
   // Input values with sphfn;
   nr = int(nl/2)+1;
   jj = nl - 1;
-  for (int i=1;i<=nr;i++){
-    float norm = 1.0/(nr - 1);
-    float eta = (nr - i)*norm;
-    float fx = sphfn(weightsparam,2*cutoffparam,1,eta);
-    arr_l(i-1) = make_dcomplex(fnorm/fx);
-    if (i > 1) {arr_l(jj)=arr_l(i-1);jj--;}
+  double norm = (1.0/padding)/(nr - 1);
+  for (int i=1;i<=nr;i++)
+  {
+    float  eta   = (nr - i)*norm;
+    double fx    = fnorm/sphfn(weightsparam,2*cutoffparam,1,eta);
+    if( i>1 )
+      arr_l[i-2]  = fx;
+    arr_l[jj--] = fx;
   }
 
   // Make Vells on m direction
-  Vells::Ref CorrVellsM;
-  // Make sure the correct shape
-  ImageShape[Axis::axis("L")] = 1;
-  ImageShape[Axis::axis("M")] = nm;
-  CorrVellsM <<= new Vells(make_dcomplex(1.0),ImageShape,false);
+  Vells CorrVellsM(1.0,Axis::vectorShape(axis_m,nm),false);
   // Get a blitz array to input values
-  VellsSlicer<dcomplex,1> SlicerM(CorrVellsM,Axis::axis("M"));
-  blitz::Array<dcomplex,1> arr_m = SlicerM();
+  double * arr_m = CorrVellsM.realStorage();
   // Input values with sphfn;
   nr = int(nm/2)+1;
   jj = nm - 1;
-  for (int i=1;i<=nr;i++){
-    float norm = 1.0/(nr - 1);
+  norm = (1.0/padding)/(nr - 1);
+  for (int i=1;i<=nr;i++)
+  {
     float eta = (nr - i)*norm;
-    float fx = sphfn(weightsparam,2*cutoffparam,1,eta);
-    arr_m(i-1) = make_dcomplex(fnorm/fx);
-    if (i > 1) {arr_m(jj)=arr_m(i-1);jj--;}
+    double fx = fnorm/sphfn(weightsparam,2*cutoffparam,1,eta);
+    arr_m[i-1] = fx;
+    if (i > 1)
+      arr_m[jj--] = fx;
   }
 
   // the final vells to be multiplied is L times M matrix
-  CorrVells <<= new Vells((*CorrVellsL)*(*CorrVellsM));
+  CorrVells <<= new Vells(CorrVellsL*CorrVellsM);
   int retcode = Function1::getResult(resref,child_results,request,newreq);
   CorrVells.detach();
   return retcode;

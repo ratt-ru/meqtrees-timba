@@ -64,10 +64,18 @@ class UVInterpolWave: public Node  {
     virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
   private:
-    int _method;
-    int griddivisions;
-    int weightsparam;
-    int cutoffparam;
+    // the resampling function lookup table (LUT) is static, since it's shared
+    // across all nodes
+    static LoVec_double weights_arr;
+    // these parameters determine the shape of the LUT
+    static int griddivisions;
+    static int weightsparam;
+    static int cutoffparam;
+    // this function fills the LUT (if not already filled)
+    static void fillWeightsArray ();
+    static Thread::Mutex weights_arr_mutex;
+    static bool weights_arr_filled;
+    
    // How many values in the u and v and t directions 
     int nu, nv, nt, nn;
     double tmin, tmax, fmin, fmax;

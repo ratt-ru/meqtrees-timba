@@ -594,6 +594,7 @@ DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3
         TypeInfoReg::addToRegistry(-1570,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1570,__construct_MeqFFTBrick)+
         AtomicID::registerId(-1207,"In")+
+        AtomicID::registerId(-1761,"Padding")+
         AtomicID::registerId(-1688,"MeqUVInterpolWave")+
         TypeInfoReg::addToRegistry(-1688,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1688,__construct_MeqUVInterpolWave)+

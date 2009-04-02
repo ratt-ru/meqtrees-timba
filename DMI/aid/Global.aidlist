@@ -514,6 +514,8 @@ Output                           1241       ; from /home/oms/LOFAR/Timba/AppAgen
 Override                         1337       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
 P                                1033       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 PA                               1702       ; from /home/twillis/Timba/MeqNodes/src/LMN.h:31
+Pad                              1760       ; from /home/oms/Timba/MeqNodes/src/FFTBrick.h:38
+Padding                          1761       ; from /home/oms/Timba/MeqNodes/src/FFTBrick.h:38
 Parameters                       1235       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:19
 Params                           1277       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 Parent                           1295       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:39

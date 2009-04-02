@@ -50,6 +50,7 @@ namespace Meq {
   
   const HIID FAxesIn = AidAxes|AidIn;
   const HIID FAxesOut = AidAxes|AidOut;
+  const HIID FPadding = AidPadding;
   
 FFTBrick::FFTBrick()
   : Node(1),     // exactly 1 child expected
@@ -402,7 +403,7 @@ void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
 void FFTBrick::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
   Node::setStateImpl(rec,initializing);
-  rec["UVppw"].get(_uvppw,initializing);
+  rec[FPadding].get(_uvppw,initializing);
 
   std::vector<HIID> in = _in_axis_id;
   if( rec[FAxesIn].get_vector(in,initializing) || initializing )

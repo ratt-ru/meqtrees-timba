@@ -38,31 +38,36 @@
 
 namespace Meq {    
 
-class UVDetaper : public Function1 {
- private:
-  //int _method;
-  Vells::Ref CorrVells;
-  int weightsparam;
-  int cutoffparam;
+class UVDetaper : public Function1 
+{
+  private:
+    //int _method;
+    Vells::Ref CorrVells;
+    int weightsparam;
+    int cutoffparam;
+    double padding;
 
-  //protected:
-  //virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  protected:
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
   
- public:
-  UVDetaper();
-  virtual ~UVDetaper();
-  virtual TypeId objectType() const
+  public:
+    UVDetaper();
+    
+    virtual ~UVDetaper();
+    
+    virtual TypeId objectType() const
     { return TpMeqUVDetaper; }
-  
-  // Evaluate the value for the given request.
-  virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
-  int getResult (Result::Ref &resref,
-		 const std::vector<Result::Ref> &child_results,
-		 const Request &request, bool newreq);
-  static int sphfn(int *ialf, int *im, int *iflag, float *eta, 
-		   float *psi, int *ierr);
-  static float sphfn(int ialf, int im, int flag, float eta);
+    
+    virtual Vells evaluate (const Request&,const LoShape &,
+                            const vector<const Vells*>& values);
+    
+    int getResult (Result::Ref &resref,
+                  const std::vector<Result::Ref> &child_results,
+                  const Request &request, bool newreq);
+    
+    static int sphfn(int *ialf, int *im, int *iflag, float *eta, 
+                    float *psi, int *ierr);
+    static float sphfn(int ialf, int im, int flag, float eta);
 };
  
  

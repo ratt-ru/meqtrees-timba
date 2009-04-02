@@ -41,12 +41,9 @@ namespace Meq {
   UVInterpolWave::UVInterpolWave():
     // OMS: the "2" below means that only the first two children (Brick and UVW) 
     // are mandatory
-    Node(num_children,child_labels,2),
-    _method(1),
-    griddivisions(10000)
+    Node(num_children,child_labels,2)
   {
-    weightsparam = 3;
-    cutoffparam  = 2;
+    fillWeightsArray();
 
     _in1_axis_id.resize(3);
     _in1_axis_id[0] = "FREQ";
@@ -64,7 +61,6 @@ namespace Meq {
   void UVInterpolWave::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   {
     Node::setStateImpl(rec,initializing);
-    rec["UVInterpol_method"].get(_method,initializing);
   };
   
   int UVInterpolWave::getResult (Result::Ref &resref,
@@ -203,8 +199,8 @@ namespace Meq {
     
     // Construct the result domain 
     Domain::Ref domain(DMI::ANONWR);
-    const Domain &BaselineUV_domain = BaselineCells.domain();
-    const Domain &FFTbrickUV_domain = FFTbrickCells.domain();
+//    const Domain &BaselineUV_domain = BaselineCells.domain();
+//    const Domain &FFTbrickUV_domain = FFTbrickCells.domain();
     // Copy the axis TIME and NU
     domain().defineAxis(Axis::TIME,tmin,tmax);
     domain().defineAxis(Axis::FREQ,fmin,fmax);
@@ -249,13 +245,6 @@ namespace Meq {
     VellsSlicer<dcomplex,2> out_slicer(output_vell,Axis::TIME,Axis::FREQ);
     blitz::Array<dcomplex,2> arrout = out_slicer();
    
-    // Here we have to do the hard work!!!!!!!!!!!!!!!!!!!!!!!!!
-    blitz::Array<double,1> weights_arr(cutoffparam*griddivisions+1);
-    for (int i=0;i<=cutoffparam*griddivisions;i++){
-      weights_arr(i)=UVDetaper::sphfn(weightsparam,(2*cutoffparam),0,
-				      float(i)/(cutoffparam*griddivisions));
-      //std::cout<<i<<"\t"<<weights_arr(i)<<"\n"<<std::flush;
-    }
     const LoVec_double uu = brickcells.center(Axis::axis("U"));
     const LoVec_double vv = brickcells.center(Axis::axis("V"));
     const LoVec_double freq = rcells.center(Axis::FREQ);
@@ -266,128 +255,76 @@ namespace Meq {
     const double du = brickcells.cellSize(Axis::axis("U"))(0);
     const double dv = brickcells.cellSize(Axis::axis("V"))(0);
 
-    //
-    double uc,vc;
-    int    ia,ja;
-    int    iu1,iu2,iv1,iv2;
-    double t,s;
     for (int i=0;i<nt;i++){
       for (int j=0;j<nn;j++){
-	uc = -u_arr(i)*freq(j)/c0;
-	vc = -v_arr(i)*freq(j)/c0;
-	double ucell = (uc-uu(0))/du;
-	double vcell = (vc-vv(0))/dv;
-        ia = floor(ucell);
-	ja = floor(vcell);
-	s = ucell - ia;
-	t = vcell - ja;
-	iu1=floor(ucell-cutoffparam)+1;
-	iu2=floor(ucell+cutoffparam);
-	iv1=floor(vcell-cutoffparam)+1;
-	iv2=floor(vcell+cutoffparam);
-	dcomplex arr_value=make_dcomplex(0.0);
-	double sum_weight=0.;
-	int inu,inv;
+        // convert u/v from meters into wavelengths
+	double ulambda = -u_arr(i)*freq(j)/c0;
+	double vlambda = -v_arr(i)*freq(j)/c0;
+        // ...and now into a fractional "cell" coordinate within our uvbrick
+	double ucell = (ulambda - uu(0))/du;
+	double vcell = (vlambda - vv(0))/dv;
+        // now determine the bounding box over which we convolve
+	int iu1 = int(floor(ucell-cutoffparam))+1;
+	int iu2 = int(floor(ucell+cutoffparam));
+	int iv1 = int(floor(vcell-cutoffparam))+1;
+	int iv2 = int(floor(vcell+cutoffparam));
+        // does our bounding box intersect the domain of our uv-brick at all?
+        // if not, insert zero at this point, and go on to the next point 
+        if( iu1 >= nu || iu2 < 0 || iv1 >= nv || iv2 < 0 )
+        {
+          arrout(i,j) = make_dcomplex(0);
+          continue;
+        }
+        // work out intersection of the bounding box with our overall uv-plane
+        iu1 = std::max(0,iu1);
+        iu2 = std::min(iu2,nu-1);
+        iv1 = std::max(0,iv1);
+        iv2 = std::min(iv2,nv-1);
+        // sums of values and sum of weights
+	dcomplex arr_value = make_dcomplex(0.0);
+	double sum_weight = 0.;
 	//std::cout<<nu<<"\t"<<nv<<"\t"<<u_arr(0)*freq(0)/c0
 	// <<"\t"<<iv1<<"\t"<<iv2<<"\n"<<std::flush;
-	for (int jj=iv1; jj<=iv2;jj++){
-          if( jj<0 || jj>=nv )
-            continue;
-	  inv = round(fabs(jj-vcell)* griddivisions);
-	  for (int ii=iu1;ii<=iu2;ii++){
-            if( ii<0 || ii>=nu )
-              continue;
-	    inu=round(fabs(ii-ucell)* griddivisions);
-	    double weight = weights_arr(inu)*weights_arr(inv);
-	    dcomplex arr_value1= weight*garr(0,ii,jj);
-	    //std::cout<<s<<"\t"<<t<<"\t"<<ia<<"\t"<<ib<<"\t"<<ii<<"\t"<<jj<<"\t"<<inu<<"\t"<<inv<<"\n";
-	    //std::cout<<"Weights values\t"<<weights_arr(inu)<<"\t"<<weights_arr(inv)<<"\n"<<std::flush;
-	    //std::cout<<"Array values \t"<<__real__ garr(0,ii,jj)<<"\t"<<__imag__ garr(0,ii,jj)<<"\n";
-	    //std::cout<<"Array values w weights\t"<<__real__ arr_value1<<"\t"<<__imag__ arr_value1<<"\n"<<std::flush; 
+	for( int jj=iv1; jj<=iv2; jj++)
+        {
+	  double weight_v = weights_arr(int(round(fabs(jj-vcell)* griddivisions)));
+	  for( int ii=iu1; ii<=iu2; ii++ )
+          {
+	    double weight_u = weights_arr(int(round(fabs(ii-ucell)* griddivisions)));
+            double weight = weight_v*weight_u;
 	    arr_value  += weight*garr(0,ii,jj);
 	    sum_weight += weight;
-	    //*weights_arr(nv)*garr(0,ii,jj);
 	  }
 	}
-//	dcomplex arr_value2=bilinear(s,t,garr(0,ia,ja),garr(0,ia,jb),garr(0,ib,jb),garr(0,ib,ja));
-	//std::cout<<"Final values\t"<<__real__ arr_value<<"\t"<<__imag__arr_value<<"\n"<<std::flush; 
-	//std::cout<<"Final values\t"<<__real__ arr_value2<<"\t"<<__imag__ arr_value2<<"\n"<<std::flush; 
-	if (sum_weight == 0 )
-	{ 
-//          std::cout<< "This is a problem!!!"<<i<<"\t"<<j<<"\n"<<std::flush;
+        // just in case we didn't sum anything...
+	if( sum_weight == 0 )
           arrout(i,j) = make_dcomplex(0);
-        }
         else
 	  arrout(i,j) = arr_value/sum_weight;
-	//arrout(i,j)=arr_value;
- 	//std::cout<<"Final values\t"<<sum_weight<<"\n"<<std::flush; 
-	//std::cout<<"Final values\t"<<__real__ arrout(i,j)<<"\t"<<__imag__ arrout(i,j)<<"\n"<<std::flush; 
-	//double aa; std::cin>>aa;
-     }
-    }
-
-    /*
-    int ulo=1,uhi=nt,vlo=1,vhi=nt;
-    double uc,vc;
-    int    ia,ib,ja,jb;
-    double t,s;
-    for (int i=0;i<nt;i++){
-      for (int j=0;j<nn;j++){
-	uc = -u_arr(i)*freq(j)/c0;
-	vc = -v_arr(i)*freq(j)/c0;
-	ia = 0;
-	ib = nu-1;
-	ja = 0;
-	jb = nv-1;
-	for (int i1 = 0; i1 < nu-1; i1++){
-	  if ((uu(i1)<=uc) && (uu(i1+1)>uc)) {ia = i1;ib = i1+1;};
-	};
-	for (int j1 = 0; j1 < nv-1; j1++){
-	  if ((vv(j1)<=vc) && (vv(j1+1)>vc)) {ja = j1; jb=j1+1;};
-	};
-	s = (uc-uu(ia))/(uu(ib)-uu(ia));
-	t = (vc-vv(ja))/(vv(jb)-vv(ja));
-        // OMS: removed check of _method, since only bilinear is available
-        // without coeffs. Once you have the coeffs as optional arguments,
-        // you can put the if(method) statement and the call to bicubic back in
-	arrout(i,j)= bilinear(s,t,
-			      garr(0,ia,ja),garr(0,ia,jb),
-			      garr(0,ib,jb),garr(0,ib,ja));
       }
     }
-    */
-    // Here we have finished doing the hard work!!!!!!!!!!!!!!!!
-    
   }
 
-  dcomplex UVInterpolWave::bilinear(double s, double t, 
-				    dcomplex fiaja, dcomplex fiajb, 
-				    dcomplex fibjb, dcomplex fibja )  {
-    return (1-t)*(1-s)*fiaja + s*(1-t)*fibja + t*(1-s)*fiajb + t*s*fibjb;   
-  };
-
-  dcomplex UVInterpolWave::BiCubic(double s, double t, 
-				   dcomplex fiaja, dcomplex fiajb, 
-				   dcomplex fibjb, dcomplex fibja, 
-				   dcomplex fuiaja, dcomplex fuiajb, 
-				   dcomplex fuibjb, dcomplex fuibja, 
-				   dcomplex fviaja, dcomplex fviajb, 
-				   dcomplex fvibjb, dcomplex fvibja, 
-				   dcomplex fuviaja, dcomplex fuviajb, 
-				   dcomplex fuvibjb, dcomplex fuvibja){
-    return (1-t)*(1-s)*fiaja + s*(1-t)*fibja 
-      + (1-s)*t*fiajb + t*s*fibjb
-      + t*s*s*(1-s)*(fibjb-fuibjb) + t*s*(1-s)*(1-s)*(fiajb-fuiajb)
-      + (1-t)*s*s*(1-s)*(fibja-fuibja) 
-      + (1-t)*s*(1-s)*(1-s)*(fiaja-fuiaja)
-      + t*t*s*(1-t)*(fibjb-fvibjb) + t*t*(1-t)*(1-s)*(fiajb-fviajb)
-      + (1-t)*s*t*(1-t)*(fibja-fvibja) 
-      + t*(1-t)*(1-t)*(1-s)*(fiaja-fviaja)
-      + t*t*(1-t)*s*s*(1-s)*(fibjb - fvibjb - fuibjb + fuvibjb)
-      + t*t*(1-t)*s*(1-s)*(1-s)*(fiajb - fviajb - fuiajb + fuviajb)
-      + t*(1-t)*(1-t)*s*s*(1-s)*(fibja - fvibja - fuibja + fuvibja)
-      + t*(1-t)*(1-t)*s*(1-s)*(1-s)*(fiaja - fviaja - fuiaja + fuviaja);
-  };
   
+  int UVInterpolWave::cutoffparam = 2;
+  int UVInterpolWave::griddivisions = 10000;
+  int UVInterpolWave::weightsparam = 3;
+  LoVec_double UVInterpolWave::weights_arr(cutoffparam*griddivisions+1);
+  bool UVInterpolWave::weights_arr_filled = false;
+  Thread::Mutex UVInterpolWave::weights_arr_mutex;
+  
+  void UVInterpolWave::fillWeightsArray ()
+  {
+    Thread::Mutex::Lock lock(weights_arr_mutex);
+    if( weights_arr_filled )
+      return;
+    for (int i=0;i<=cutoffparam*griddivisions;i++)
+    {
+      weights_arr(i)=UVDetaper::sphfn(weightsparam,(2*cutoffparam),0,
+				      float(i)/(cutoffparam*griddivisions));
+      //std::cout<<i<<"\t"<<weights_arr(i)<<"\n"<<std::flush;
+    }
+    weights_arr_filled = true;
+  }
   
 } // namespace Meq

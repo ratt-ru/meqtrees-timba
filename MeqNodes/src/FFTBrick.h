@@ -35,8 +35,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::FFTBrick
 
-#pragma aid Axes In Out
-#pragma aids UVppw
+#pragma aid Axes In Out Padding
 
 namespace Meq {
   
