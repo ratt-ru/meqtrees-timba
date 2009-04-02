@@ -65,30 +65,59 @@ Vells TFSmearFactor::evaluate (const Request&,const LoShape &,
 {
   Assert(values.size() == 2 );
   Vells argvells = ((*values[0]) - (*values[1]))/2;
-  const blitz::Array<double,2> &arg = argvells.as<double,2>();
-  int nt = arg.extent(0);
-  int nf = arg.extent(1);
+  // arg will refer to the incoming data as a rank-2 array
+  blitz::Array<double,2> arg;
+  int nt = argvells.extent(Axis::TIME);
+  int nf = argvells.extent(Axis::FREQ);
+  // rank 0: constant, return factor of 1 
+  if( argvells.rank() == 0 )
+    return Vells(1.0);
+  // rank 1: time array only, reshape
+  else if( argvells.rank() == 1 )
+  {
+    blitz::Array<double,2> arg2(argvells.realStorage(),
+                                LoShape2(nt,1),blitz::neverDeleteData);
+    arg.reference(arg2);
+  }
+  // rank 2: time-freq array
+  else if( argvells.rank() == 2 )
+  {
+    arg.reference(argvells.as<double,2>());
+  }
+  else
+    Throw("illegal rank of input array. I would expect my children to return a time-frequency result at most");
+  Vells factor(1.0);
   Vells dfreq(0.,arg.shape()),dtime(0.,arg.shape());
   // apply stencil in time, to get differences over the cells
-  blitz::Array<double,2> dtime_2 = dtime.as<double,2>();
-  blitz::Array<double,2> dtime_2_row0 = dtime_2(LoRange(0,1),LoRange::all());
-  blitz::Array<double,2> arg_row0 = arg(LoRange(0,1),LoRange::all());
-  blitz::applyStencil(TimeDiff1(),dtime_2_row0,arg_row0);
-  blitz::Array<double,2> dtime_2_row1 = dtime_2(LoRange(nt-2,nt-1),LoRange::all());
-  blitz::Array<double,2> arg_row1 = arg(LoRange(nt-2,nt-1),LoRange::all());
-  blitz::applyStencil(TimeDiff2(),dtime_2_row1,arg_row1);
-  blitz::applyStencil(TimeDiff(),dtime_2,arg);
+  if( nt > 1 )
+  {
+    blitz::Array<double,2> dtime_2 = dtime.as<double,2>();
+    blitz::Array<double,2> dtime_2_row0 = dtime_2(LoRange(0,1),LoRange::all());
+    blitz::Array<double,2> arg_row0 = arg(LoRange(0,1),LoRange::all());
+    blitz::applyStencil(TimeDiff1(),dtime_2_row0,arg_row0);
+    blitz::Array<double,2> dtime_2_row1 = dtime_2(LoRange(nt-2,nt-1),LoRange::all());
+    blitz::Array<double,2> arg_row1 = arg(LoRange(nt-2,nt-1),LoRange::all());
+    blitz::applyStencil(TimeDiff2(),dtime_2_row1,arg_row1);
+    if( nt > 2 )
+      blitz::applyStencil(TimeDiff(),dtime_2,arg);
+    factor *= sin(dtime)/dtime;
+  }
   // now apply stencil in freq
-  blitz::Array<double,2> dfreq_2 = dfreq.as<double,2>();
-  blitz::Array<double,2> dfreq_2_col0 = dfreq_2(LoRange::all(),LoRange(0,1));
-  blitz::Array<double,2> arg_col0 = arg(LoRange::all(),LoRange(0,1));
-  blitz::applyStencil(FreqDiff1(),dfreq_2_col0,arg_col0);
-  blitz::Array<double,2> dfreq_2_col1 = dfreq_2(LoRange::all(),LoRange(nf-2,nf-1));
-  blitz::Array<double,2> arg_col1 = arg(LoRange::all(),LoRange(nf-2,nf-1));
-  blitz::applyStencil(FreqDiff2(),dfreq_2_col1,arg_col1);
-  blitz::applyStencil(FreqDiff(),dfreq_2,arg);
+  if( nf > 1 )
+  {
+    blitz::Array<double,2> dfreq_2 = dfreq.as<double,2>();
+    blitz::Array<double,2> dfreq_2_col0 = dfreq_2(LoRange::all(),LoRange(0,1));
+    blitz::Array<double,2> arg_col0 = arg(LoRange::all(),LoRange(0,1));
+    blitz::applyStencil(FreqDiff1(),dfreq_2_col0,arg_col0);
+    blitz::Array<double,2> dfreq_2_col1 = dfreq_2(LoRange::all(),LoRange(nf-2,nf-1));
+    blitz::Array<double,2> arg_col1 = arg(LoRange::all(),LoRange(nf-2,nf-1));
+    blitz::applyStencil(FreqDiff2(),dfreq_2_col1,arg_col1);
+    if( nf > 2 )
+      blitz::applyStencil(FreqDiff(),dfreq_2,arg);
+    factor *= sin(dfreq)/dfreq;
+  }
   // take sines and compute smearing factors
-  return sin(dfreq)*sin(dtime)/(dfreq*dtime);
+  return factor;
 }
 
 
