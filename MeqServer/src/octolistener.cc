@@ -28,7 +28,7 @@
 #include <OCTOPUSSY/GWClientWP.h>
 #include <OCTOPUSSY/ListenerWP.h>
 #include <DMI/Global-Registry.h>
-#include <DMI/Exceptions.h>
+#include <DMI/Exception.h>
 #include <sys/types.h>
 #include <unistd.h>    
 

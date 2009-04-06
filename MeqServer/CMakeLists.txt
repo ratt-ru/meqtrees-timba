@@ -1,0 +1,44 @@
+MEQPACKAGE(MeqServer AppUtils MEQ MeqNodes VisCube OCTOPUSSY OCTOPython DMI TimBase)
+set(meqServer_includes
+    src/AID-MeqServer.h
+    src/MeqPython.h
+    src/MeqServer.h
+    src/MeqUtils.h
+    #src/PyFunctionNode.h
+    src/PyNode.h
+    src/PyTensorFuncNode.h
+    src/Sink.h
+    src/Spigot.h
+    src/TID-MeqServer.h
+    src/TypeIter-MeqServer.h
+    src/VisDataMux.h
+    src/VisHandlerNode.h
+)
+INCLUDE_SETUP(MeqServer ${meqServer_includes})
+
+# ---- library 
+set(meqServer_lib_src
+    src/AID-MeqServer-Registry.cc
+    src/MeqPython.cc
+    src/MeqServer.cc
+    src/mequtils.cc
+    src/octolistener.cc
+    #src/PyFunctionNode.cc
+    src/PyNode.cc
+    src/PyTensorFuncNode.cc
+    src/Sink.cc
+    src/Spigot.cc
+    src/VisDataMux.cc
+    src/VisHandlerNode.cc
+    )
+add_library(meqserver-lib ${meqServer_lib_src})
+install(TARGETS meqserver-lib DESTINATION ${LIBRARY_INSTALL_DIR})
+SET_TARGET_PROPERTIES(meqserver-lib PROPERTIES OUTPUT_NAME "meqserver")
+MEQPACKAGE_ADD_LIBRARIES(meqserver-lib)
+
+
+# -- executables
+add_executable(meqserver src/meqserver_main.cc)
+#message( libs=${MEQPACKAGE_LIBRARIES} )
+target_link_libraries(meqserver ${MEQPACKAGE_LIBRARIES})
+INSTALL(TARGETS meqserver RUNTIME DESTINATION bin)
