@@ -1,5 +1,5 @@
 # Meqtrees CMake Build File
-project(meqtrees)
+project(meqtrees CXX C)
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
@@ -19,6 +19,10 @@ ENDIF(NOT MEQTREES_INSTALL_DIR )
 IF(NOT PYTHON_INSTALL_DIR )
     SET( PYTHON_INSTALL_DIR "${MEQTREES_INSTALL_DIR}/Timba" )
 ENDIF(NOT PYTHON_INSTALL_DIR )
+
+IF(NOT INCLUDE_INSTALL_DIR )
+    SET( INCLUDE_INSTALL_DIR "include/meqtrees" )
+ENDIF(NOT INCLUDE_INSTALL_DIR )
 
 IF(NOT ICON_INSTALL_DIR )
     SET( ICON_INSTALL_DIR "${MEQTREES_INSTALL_DIR}/icons" )
