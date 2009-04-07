@@ -32,7 +32,7 @@ External Dependencies
 CMake attempts to find all the external dependencies in the project automatically.
 If you have these pacakges installed in an unusual place you may have to specify the locations
 through cmake variables. The variable is dependent on the package - for the names, look in the 
-relevant Find<packageNmae>.cmake files found in the cmake directory of the src code and the
+relevant Find<packageName>.cmake files found in the cmake directory of the src code and the
 system cmake module directory (usually /usr/share/cmake/Modules)
 
 The list of external dependency packages are specified by the dependencies variable set
@@ -44,7 +44,7 @@ Setting CMake Variables
 Various options and configurations are available by setting CMake variables
 CMake variables can be set by calling cmake with the -D option
 e.g.
-         cmake -DCMAKE_INSTALL_PREFIX=/usr -DCXX=gcc-4.2 <SRC_DIRECTORY>
+         cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_CXX_COMPILER=g++-4.2 <SRC_DIRECTORY>
 
 Build options
 --------------
@@ -66,17 +66,19 @@ Build options
     PYTHON_INSTALL_DIR=                 |  installation dir for meqtrees specific python scripts
                                         |  (default: MEQTREES_INSTALL_DIR/Timba )
 
+cmake specifc variables can be found here: http://www.cmake.org/Wiki/CMake_Useful_Variables
+
 Convenience Configuration Script
 ================================
-A script has been provided for convenience for the most common
+A script has been provided in the Tools/Build directory for convenience for the most common
 use cases. The function of the script is to create build product locations 
 and configure cmake appropriately.
 
 e.g. To create a debug build 
-> bootstrap_cmake debug
+> Tools/Build/bootstrap_cmake debug
 
 e.g. To create an optimised build
-> bootstrap_cmake release
+> Tools/Build/bootstrap_cmake release
 
 -------------------------------------- For Developers -----------------------------------------------------------------
 MEQTREES Specific MACROS
@@ -101,6 +103,9 @@ e.g. CMakeLists.txt for a simple MEQPACKAGE
 
     # Non-Exported Paths should be specified after the MEQPACKAGE macro
     INCLUDE_DIRECTORIES(${ADependencyNotExported_INCLUDE_DIR})                      # This INCLUDE directory will not be exported - local to this package only
+
+    # Export Header files myHeader.h and myHeader2.h to the MyPackage directory
+    INCLUDE_SETUP(MyPackage myHeader.h myHeader2.h)
 
     # mark libraries for export to other MeqPackages
     # with the MEQPACKAGE_ADD_LIBRARIES macro
