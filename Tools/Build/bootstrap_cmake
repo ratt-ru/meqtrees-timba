@@ -1,0 +1,144 @@
+#!/usr/bin/env perl
+#
+# convenience script to configure cmake build areas
+# Author: Chris Williams
+#
+sub usage {
+    print "Usage:\n",
+          "\t$0 [options] <debug|release> [cmake options]\n",
+          "Options:\n\t",
+          "-cmake <exe> : specify an alternative cmake executable\n",
+          "-name <name> : specify a specific name for the build (relative to top)\n",
+          "-src <dir>   : specify the src code directory tree\n",
+          "               default is the current directory\n",
+          "-top <dir>   : specify scratch area to place builds\n";
+          print "\nExamples:\n\t",
+          "$0 debug CXX=g++4.2 -DCMAKE_INSTALL_PREFIX=/usr\n\n",
+          "\tChoose an alternative compiler (via an environmental variable CXX)\n\t",
+          "and set an alternative CMAKE_INSTALL_PREFIX via a cmake define";
+}
+
+use Cwd;
+use strict;
+
+# defaults
+my $src=cwd();
+my $top;
+my $cmake="cmake";
+my $name;
+
+# - parse the command line arguments
+while ( $ARGV[0]=~/^-(.*)/ ) {
+    my $arg=$1;
+    shift @ARGV;
+    if ( $arg eq "cmake" ) {
+        $cmake=shift @ARGV;
+        die "cmake executable '$cmake' does not exist", if( ! -f $cmake );
+    }
+    elsif ( $arg eq "src" ) {
+        $src=shift @ARGV;
+    }
+    elsif ( $arg eq "top" ) {
+        $top=shift @ARGV;
+    }
+    elsif ( $arg eq "name" ) {
+        $name=shift @ARGV;
+    }
+    elsif ( $arg eq "help" ) {
+        usage();
+        exit 0;
+    }
+    else {    
+        print "unknown option -$arg\n";
+        exit 1;
+    }
+}
+die "src tree '$src' does not exist", if( ! -d $src );
+$top="$src/build", if ( ! defined $top );
+die "build directory top '$top' does not exist", if( ! -d $top );
+
+my $type=shift @ARGV;
+if( ! defined $type ) {
+    print("Error: must define a build type\n");
+    usage();
+    exit 1;
+}
+if( $type ne "debug" && $type ne "release" ) {
+    print "Error: unknown build type '$type'";
+    usage();
+    exit 1;
+}
+if( ! defined $name ) {
+    $name="";
+    # -- generate a suitable name
+    foreach my $arg ( @ARGV ) {
+        print $arg,"\n";
+        if( $arg=~/CMAKE_CXX_COMPILER=(.*)\s*$/ ) {
+            $name.="-".$1;
+        }
+    }
+    $name=$type.$name;
+}
+print "Configuring $name\n";
+
+my $build=CMakeBuild->new($top, $src, $cmake);
+$build->configure( $name , $type, @ARGV );
+print "build configured at ", $build->location($name), "\n";
+
+#
+# Object to do all the work
+#
+package CMakeBuild;
+use strict;
+
+sub new {
+    my $class=shift;
+    my $self={};
+    $self->{buildtop}=shift;
+    $self->{src}=shift;
+    $self->{cmake}=shift;
+    bless $self, $class;
+    return $self;
+}
+
+sub location {
+    my $self=shift;
+    my $name=shift;
+    return $self->{buildtop}."/".$name;
+}
+
+sub configure {
+    my $self=shift;
+    my $name=shift;
+    my $type=shift;
+
+    # -- check the type
+    $type=~tr[a-z][A-Z];
+    die( "build type not defined" ), if( !defined $type );
+
+    # -- create the development area
+    my $dir=$self->location($name);
+    if( ! -d $dir ) {
+        mkdir( $dir, 0700 ) or die "unable to create directory $dir : $!";
+    }
+    chdir $dir or die "unable to enter directory $dir : $1";
+
+    # -- run cmake with the correct options
+    my @cmds;
+    my @post=();
+    foreach my $arg ( @_ )
+    {
+        if( $arg=~/^-.*/ ) {
+            push @post, $arg;
+        }
+        else {
+            if( $arg=~/(.*)=(.*)/ ) {
+                $ENV{$1}=$2;
+            }
+        }
+    }
+    push @cmds, $self->{cmake}, "-DCMAKE_BUILD_TYPE=$type", @post, $self->{src};
+    print "executing @cmds\n";
+    system( @cmds );
+}
+
