@@ -23,7 +23,7 @@ ENDFOREACH(lib)
 
 # handle the QUIETLY and REQUIRED arguments and set WCSLIB_FOUND to TRUE if.
 # all listed variables are TRUE
-INCLUDE(FindPackageHandleStandardArgs)
+INCLUDE(FindPackageHandleCompat)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(WCSLIB DEFAULT_MSG WCSLIB_LIBRARIES WCSLIB_INCLUDE_DIR)
 
 IF(NOT WCSLIB_FOUND)

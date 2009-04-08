@@ -15,8 +15,6 @@
 #  BLAS95_LIBRARIES - uncached list of libraries (using full path name) # to link against to use BLAS95 interface
 #
 
-include(CheckFortranFunctionExists)
-
 macro(Check_Fortran_Libraries LIBRARIES _prefix _name _flags _list)
 # This macro checks for the existence of the combination of fortran libraries
 # given by _list.  If the combination is found, this macro checks (using the 

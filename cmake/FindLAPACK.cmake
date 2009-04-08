@@ -17,7 +17,6 @@
 
 #
  
-include(CheckFortranFunctionExists)
 set(LAPACK_FOUND FALSE)
 
 macro(Check_Lapack_Libraries LIBRARIES _prefix _name _flags _list _blas)

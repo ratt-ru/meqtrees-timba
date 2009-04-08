@@ -22,7 +22,7 @@ ENDFOREACH(lib)
 
 # handle the QUIETLY and REQUIRED arguments and set CFITSIO_FOUND to TRUE if.
 # all listed variables are TRUE
-INCLUDE(FindPackageHandleStandardArgs)
+INCLUDE(FindPackageHandleCompat)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(CFITSIO DEFAULT_MSG CFITSIO_LIBRARIES CFITSIO_INCLUDE_DIR)
 
 IF(NOT CFITSIO_FOUND)

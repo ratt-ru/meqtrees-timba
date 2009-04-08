@@ -1,37 +1,46 @@
 # Meqtrees CMake Build File
 project(meqtrees CXX C)
+
+# -- cmake version info
+cmake_minimum_required(VERSION 2.4)
+if(COMMAND cmake_policy)
+    if(POLICY CMP1234)
+        # policies not known to CMake 2.4 ...
+        cmake_policy(SET CMP1234 NEW)
+    endif(POLICY CMP1234)
+endif(COMMAND cmake_policy)
+
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
-cmake_minimum_required(VERSION 2.6)
 
 # options and defaults
-SET( BUILD_SHARED_LIBS TRUE )
+set( BUILD_SHARED_LIBS TRUE )
 
-IF(NOT LIBRARY_INSTALL_DIR )
-    SET( LIBRARY_INSTALL_DIR lib )
-ENDIF(NOT LIBRARY_INSTALL_DIR )
+if(NOT LIBRARY_INSTALL_DIR )
+    set( LIBRARY_INSTALL_DIR lib )
+endif(NOT LIBRARY_INSTALL_DIR )
 
-IF(NOT MEQTREES_INSTALL_DIR )
-    SET( MEQTREES_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/meqtrees" )
-ENDIF(NOT MEQTREES_INSTALL_DIR )
+if(NOT MEQTREES_INSTALL_DIR )
+    set( MEQTREES_INSTALL_DIR "${LIBRARY_INSTALL_DIR}/meqtrees" )
+endif(NOT MEQTREES_INSTALL_DIR )
 
-IF(NOT PYTHON_INSTALL_DIR )
-    SET( PYTHON_INSTALL_DIR "${MEQTREES_INSTALL_DIR}/Timba" )
-ENDIF(NOT PYTHON_INSTALL_DIR )
+if(NOT PYTHON_INSTALL_DIR )
+    set( PYTHON_INSTALL_DIR "${MEQTREES_INSTALL_DIR}/Timba" )
+endif(NOT PYTHON_INSTALL_DIR )
 
-IF(NOT INCLUDE_INSTALL_DIR )
-    SET( INCLUDE_INSTALL_DIR "include/meqtrees" )
-ENDIF(NOT INCLUDE_INSTALL_DIR )
+if(NOT INCLUDE_INSTALL_DIR )
+    set( INCLUDE_INSTALL_DIR "include/meqtrees" )
+endif(NOT INCLUDE_INSTALL_DIR )
 
-IF(NOT ICON_INSTALL_DIR )
-    SET( ICON_INSTALL_DIR "${MEQTREES_INSTALL_DIR}/icons" )
-ENDIF(NOT ICON_INSTALL_DIR )
+if(NOT ICON_INSTALL_DIR )
+    set( ICON_INSTALL_DIR "${MEQTREES_INSTALL_DIR}/icons" )
+endif(NOT ICON_INSTALL_DIR )
 
 # project version
-SET( ${PROJECT_NAME}_MAJOR_VERSION 1 )
-SET( ${PROJECT_NAME}_MINOR_VERSION 1 )
-SET( ${PROJECT_NAME}_PATCH_LEVEL 0 )
+set( ${PROJECT_NAME}_MAJOR_VERSION 1 )
+set( ${PROJECT_NAME}_MINOR_VERSION 1 )
+set( ${PROJECT_NAME}_PATCH_LEVEL 0 )
 
 # -- dependencies
 set(dependencies
@@ -45,15 +54,15 @@ set(dependencies
 )
 PACKAGE_DEPENDENCIES( ${dependencies} )
 
-IF(CASACORE_FOUND)
-    ADD_DEFINITIONS(-DHAVE_AIPSPP)
-ENDIF(CASACORE_FOUND)
+if(CASACORE_FOUND)
+    add_definitions(-DHAVE_AIPSPP)
+endif(CASACORE_FOUND)
 
 # -- compiler defaults
-ADD_DEFINITIONS(-DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_THREADS)
-IF(CMAKE_COMPILER_IS_GNUCC)
-ADD_DEFINITIONS(-Wno-deprecated -D_GNU_SOURCE  -Wno-unknown-pragmas)
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
+add_definitions(-DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_THREADS)
+if(CMAKE_COMPILER_IS_GNUCC)
+    add_definitions(-Wno-deprecated -D_GNU_SOURCE  -Wno-unknown-pragmas)
+endif(CMAKE_COMPILER_IS_GNUCC)
 
 # -- sub modules
 add_subdirectory(TimBase)

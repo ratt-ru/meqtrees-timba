@@ -24,7 +24,7 @@ ENDFOREACH(lib)
 
 # handle the QUIETLY and REQUIRED arguments and set FFTW3_FOUND to TRUE if.
 # all listed variables are TRUE
-INCLUDE(FindPackageHandleStandardArgs)
+INCLUDE(FindPackageHandleCompat)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(FFTW3 DEFAULT_MSG FFTW3_LIBRARIES FFTW3_INCLUDE_DIR)
 
 IF(NOT FFTW3_FOUND)
