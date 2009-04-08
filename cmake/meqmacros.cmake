@@ -8,24 +8,18 @@
 SET(BUILD_INCLUDE_DIR ${CMAKE_BINARY_DIR}/include)
 FILE(MAKE_DIRECTORY ${BUILD_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${BUILD_INCLUDE_DIR})
+
 MACRO(INCLUDE_SETUP dest)
   FILE(MAKE_DIRECTORY ${BUILD_INCLUDE_DIR}/${dest})
   FOREACH(file ${ARGN})
       GET_FILENAME_COMPONENT(filename ${file} NAME )
       SET(out_file ${BUILD_INCLUDE_DIR}/${dest}/${filename})
-      SET(varname INCLUDE_${dest})
-      LIST(APPEND ${varname} ${out_file} )
-      ADD_CUSTOM_COMMAND(
-          OUTPUT ${out_file}
-          COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${out_file}
-          DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${file}
-      )
-      SET_SOURCE_FILES_PROPERTIES(${out_file} PROPERTIES GENERATED 1)
-      #CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/${file} ${out_file} COPYONLY)
-      EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${out_file})
+      FILE(WRITE ${out_file}
+          "#include \"${CMAKE_CURRENT_SOURCE_DIR}/${file}\"\n"
+          )
+      INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${file} DESTINATION ${INCLUDE_INSTALL_DIR}/${dest} )
   ENDFOREACH(file)
-ENDMACRO(INCLUDE_SETUP)
-
+ENDMACRO(INCLUDE_SETUP dest)
 #
 # create the lofar_config.h
 # First argument is tha Lofar package name, subsequent are Lofar package dependencies
