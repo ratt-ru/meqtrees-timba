@@ -1,15 +1,8 @@
 # Meqtrees CMake Build File
 project(meqtrees CXX C)
 
-# -- cmake version info
-cmake_minimum_required(VERSION 2.4)
-if(COMMAND cmake_policy)
-    if(POLICY CMP1234)
-        # policies not known to CMake 2.4 ...
-        cmake_policy(SET CMP1234 NEW)
-    endif(POLICY CMP1234)
-endif(COMMAND cmake_policy)
-
+# -- cmake setup info
+cmake_minimum_required(VERSION 2.6)
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)

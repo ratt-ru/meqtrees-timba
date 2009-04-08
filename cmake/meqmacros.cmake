@@ -148,7 +148,12 @@ MACRO( MEQPACKAGE package )
             )
     ENDIF(MEQPACKAGE_${package}_DEPS)
     # -- all include directories defined before the macro call are exported
-    get_property( includes DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES )
+    IF(COMMAND GET_PROPERTY)
+        get_property( includes DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES )
+    ELSE(COMMAND GET_PROPERTY)
+        # -- cmake 2.4 compatablity, just include everything
+        set(includes ${CMAKE_INCLUDE_PATH})
+    ENDIF(COMMAND GET_PROPERTY)
     FOREACH(inc ${includes})
         FILE(APPEND ${MEQPACKAGE_FILE}
             "include_directories(${inc})\n"
