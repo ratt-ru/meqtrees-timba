@@ -51,9 +51,8 @@ set(dmi_loki_includes
    )
 INCLUDE_SETUP(DMI/Loki ${dmi_loki_includes})
 
-set(src 
+set(dmi_src 
         src/AID-DMI-Registry.cc
-        src/AID-Global-Registry.cc
         src/AtomicID.cc
         src/BlockSet.cc
         src/BObj.cc
@@ -66,7 +65,6 @@ set(src
         src/DynamicTypeManager.cc
         src/Exception.cc
         src/HIID.cc
-        #        src/HIIDSet.cc
         src/List.cc
         src/NumArray.cc
         src/NumArrayFuncs2.cc
@@ -85,6 +83,6 @@ set(src
         src/Vec.cc
 )
 
-add_library(dmi ${src})
+add_library(dmi ${dmi_src})
 install(TARGETS dmi DESTINATION ${LIBRARY_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(dmi ${CASACORE_LIBRARIES})
