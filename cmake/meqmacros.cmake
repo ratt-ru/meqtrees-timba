@@ -13,10 +13,12 @@ MACRO(INCLUDE_SETUP dest)
   FILE(MAKE_DIRECTORY ${BUILD_INCLUDE_DIR}/${dest})
   FOREACH(file ${ARGN})
       GET_FILENAME_COMPONENT(filename ${file} NAME )
+      SET(in_file ${CMAKE_CURRENT_BINARY_DIR}/${dest}_${filename})
       SET(out_file ${BUILD_INCLUDE_DIR}/${dest}/${filename})
-      FILE(WRITE ${out_file}
+      FILE(WRITE ${in_file}
           "#include \"${CMAKE_CURRENT_SOURCE_DIR}/${file}\"\n"
           )
+      CONFIGURE_FILE(${in_file} ${out_file} COPYONLY)
       INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${file} DESTINATION ${INCLUDE_INSTALL_DIR}/${dest} )
   ENDFOREACH(file)
 ENDMACRO(INCLUDE_SETUP dest)
