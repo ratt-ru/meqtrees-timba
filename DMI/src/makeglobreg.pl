@@ -34,7 +34,7 @@ open OUTFILE,">$outfile" or die "Can't open output file $outfile: $!";
 
 print OUTFILE <<______END_OF_QUOTE;
     // This file is generated automatically -- do not edit
-    #include "AtomicID.h"
+    #include "DMI/AtomicID.h"
     using namespace DMI;
 
     int aidRegistry_Global ()

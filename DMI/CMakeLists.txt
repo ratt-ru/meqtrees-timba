@@ -83,6 +83,13 @@ set(dmi_src
         src/Vec.cc
 )
 
-add_library(dmi ${dmi_src})
+set(dmi_aids_global_src ${CMAKE_CURRENT_BINARY_DIR}/AID-Global-Registry.cc)
+add_custom_command( OUTPUT ${dmi_aids_global_src}
+                    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/src/makeglobreg.pl aid/Global.aidlist ${dmi_aids_global_src}
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    DEPENDS aid/Global.aidlist src/makeglobreg.pl
+                  )
+
+add_library(dmi ${dmi_src} ${dmi_aids_global_src})
 install(TARGETS dmi DESTINATION ${LIBRARY_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(dmi ${CASACORE_LIBRARIES})
