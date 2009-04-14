@@ -38,7 +38,8 @@ UVDetaper::UVDetaper()
 { 
   //_method=1;
   weightsparam = 3;
-  cutoffparam  = 2;
+//  cutoffparam  = 2;
+  cutoffparam  = 4;
   padding = 1;
 }
 

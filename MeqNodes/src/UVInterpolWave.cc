@@ -306,7 +306,8 @@ namespace Meq {
   }
 
   
-  int UVInterpolWave::cutoffparam = 2;
+//  int UVInterpolWave::cutoffparam = 2;
+  int UVInterpolWave::cutoffparam = 4;
   int UVInterpolWave::griddivisions = 10000;
   int UVInterpolWave::weightsparam = 3;
   LoVec_double UVInterpolWave::weights_arr(cutoffparam*griddivisions+1);
