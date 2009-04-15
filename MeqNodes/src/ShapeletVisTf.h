@@ -30,7 +30,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ShapeletVisTf
-#pragma aid Filename Cutoff Modes Method Phi
+#pragma aid Filename Cutoff Modes Method Phi Scale
 
 
 //defrec begin MeqShapeletVisTf
@@ -80,8 +80,11 @@ private:
   //cutoff weak modes
   double cutoff_;
 
-  // rotation
+  // rotation in radians
   double phi_;
+
+  // scale == minor_axis/major_axis
+  double scale_;
 
   // rectangular (0)  or polar (1)? 
   int method_;

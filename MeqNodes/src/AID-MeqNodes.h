@@ -1058,6 +1058,11 @@ const int AidResult_int = -1242;
 const DMI::AtomicID AidSS(-1631);                 // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:36
 const int AidSS_int = -1631;
 #endif
+#ifndef _defined_id_AidScale
+#define _defined_id_AidScale 1
+const DMI::AtomicID AidScale(-1323);              // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
+const int AidScale_int = -1323;
+#endif
 #ifndef _defined_id_AidSeed
 #define _defined_id_AidSeed 1
 const DMI::AtomicID AidSeed(-1725);               // from /home/twillis/Timba/MeqNodes/src/GaussNoise.h:34

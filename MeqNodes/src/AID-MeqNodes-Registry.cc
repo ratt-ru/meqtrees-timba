@@ -684,6 +684,7 @@ DMI::BObj * __construct_MeqWSRTCos3Beam (int n) { return n>0 ? new Meq::WSRTCos3
         AtomicID::registerId(-1729,"Modes")+
         AtomicID::registerId(-1550,"Method")+
         AtomicID::registerId(-1756,"Phi")+
+        AtomicID::registerId(-1323,"Scale")+
         AtomicID::registerId(-1734,"MeqBessel")+
         TypeInfoReg::addToRegistry(-1734,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1734,__construct_MeqBessel)+
