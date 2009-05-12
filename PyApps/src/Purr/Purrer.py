@@ -61,15 +61,20 @@ def matches_patterns (filename,patterns):
 class Purrer (QObject):
   class WatchedFile (QObject):
     """A WatchedFile represents a single file being watched for changes."""
-    def __init__ (self,path,quiet=None,mtime=None):
+    def __init__ (self,path,quiet=None,mtime=None,survive_deletion=False):
       """Creates watched file at 'path'. The 'quiet' flag is simply stored.
       If 'mtime' is not None, this will be the file's last-changed timestamp.
       If 'mtime' is None, it will use os.path.getmtime().
+      The survive_deletion flag is used to mark watchers that should stay active even if the underlying file
+      disappears. Watchers for old data products are created with this flag.
       """
       QObject.__init__(self);
       self.path = path;
       self.quiet = quiet;
       self.mtime = mtime or self.getmtime();
+      self.survive_deletion = survive_deletion;
+      self.disappeared = False;
+      dprintf(3,"creating WatchedFile %s, mtime %s\n",self.path,time.strftime("%x %X",time.localtime(self.mtime)));
       
     def getmtime (self):
       """Returns the file's modification time.
@@ -85,6 +90,8 @@ class Purrer (QObject):
       mtime = self.getmtime();
       if mtime is None:
         return None;
+      # clear disappeared flag
+      self.disappeared = False;
       updated = (mtime or 0) > (self.mtime or 0);
       self.mtime = mtime;
       return updated;
@@ -170,13 +177,15 @@ class Purrer (QObject):
         if matches_patterns(file,self.ignore_patterns) and not matches_patterns(file,self.watch_patterns):
           continue;
         path = os.path.join(self.path,file);
-        try:
-          mtime = os.path.getmtime(path);
-        except:
-          _printexc("Error doing getmtime(%s), omitting"%path);
-          continue;
-        if mtime >= self.mtime:
-          nfs.append(path);
+        # try:
+        #  mtime = os.path.getmtime(path);
+        # except:
+        #  _printexc("Error doing getmtime(%s), omitting"%path);
+        #  continue;
+        # if mtime >= self.mtime:
+        ## Don't want to do the above check really: new files may actually have an mtime < dir mtime.
+        ## If file is new, that's reason enough to include it.
+        nfs.append(path);
       return nfs;
     
   class WatchedSubdir (WatchedDir):
@@ -323,6 +332,7 @@ class Purrer (QObject):
     self.entries = [];
     self._default_dp_props = {};
     self.watchers = {};
+    self.temp_watchers = {};
     self.attached = False;
     # check that we hold a lock on the directory
     self.lockfile = os.path.join(self.dirname,".purrlock");
@@ -432,10 +442,11 @@ class Purrer (QObject):
       for fname in watchset:
         quiet = matches_patterns(fname,self._quiet_patterns);
         fullname = Purr.canonizePath(os.path.join(dirname,fname));
-        wfile = Purrer.WatchedFile(fullname,quiet=quiet,mtime=self.timestamp);
-        self.watchers[fullname] = wfile;
-        dprintf(3,"watching file %s, timestamp %s, quiet %d\n",
-                  fullname,time.strftime("%x %X",time.localtime(wfile.mtime)),quiet);
+        if fullname not in self.watchers:
+          wfile = Purrer.WatchedFile(fullname,quiet=quiet,mtime=self.timestamp);
+          self.watchers[fullname] = wfile;
+          dprintf(3,"watching file %s, timestamp %s, quiet %d\n",
+                    fullname,time.strftime("%x %X",time.localtime(wfile.mtime)),quiet);
       # find subdirectories  matching the subdir_patterns, and watch them for changes
       for fname in wdir.fileset:
         fullname = Purr.canonizePath(os.path.join(dirname,fname));
@@ -462,6 +473,9 @@ class Purrer (QObject):
     if not os.path.exists(self.logdir):
       os.mkdir(self.logdir);
       dprint(1,"created",self.logdir);
+    # discard temporary watchers -- these are only used to keep track of 
+    # deleted files
+    self.temp_watchers = {};
     # ignored entries are only there to carry info on ignored data products
     # All we do is save them, and update DP policies based on them
     if entry.ignore:
@@ -496,12 +510,23 @@ class Purrer (QObject):
       # add default policy
       basename = os.path.basename(dp.sourcepath);
       self._default_dp_props[basename] = dp.policy,dp.filename,dp.comment;
+      dprintf(4,"file %s: default policy is %s\n",basename,dp.policy);
       # make new watchers for non-ignored files
-      if not dp.ignored and dp.sourcepath not in self.watchers:
-        wfile = Purrer.WatchedFile(dp.sourcepath,quiet=dp.quiet,mtime=dp.timestamp);
-        self.watchers[dp.sourcepath] = wfile;
-        dprintf(4,"watching file %s, timestamp %s\n",
-                  dp.sourcepath,time.strftime("%x %X",time.localtime(dp.timestamp)));
+      if not dp.ignored:
+        watcher = self.watchers.get(dp.sourcepath,None);
+        # if watcher already exists, update timestamp
+        if watcher:
+          if watcher.mtime < dp.timestamp:
+            watcher.mtime = dp.timestamp;
+            dprintf(4,"file %s, updating timestamp to %s\n",
+                      dp.sourcepath,time.strftime("%x %X",time.localtime(dp.timestamp)));
+        # else create new watcher
+        else:
+          wfile = Purrer.WatchedFile(dp.sourcepath,quiet=dp.quiet,mtime=dp.timestamp,survive_deletion=True);
+          self.watchers[dp.sourcepath] = wfile;
+          dprintf(4,"watching file %s, timestamp %s\n",
+                    dp.sourcepath,time.strftime("%x %X",time.localtime(dp.timestamp)));
+          
   
   def save (self,refresh=False):
     """Saves the log.
@@ -533,15 +558,20 @@ class Purrer (QObject):
     newstuff = {};   # this accumulates names of new or changed files. Keys are paths, values are 'quiet' flag.
     # store timestamp of scan
     self.last_scan_timestamp = time.time();
-    # go through watched directories, check for mtime changes
+    # go through watched files/directories, check for mtime changes
     for path,watcher in list(self.watchers.iteritems()):
       # get list of new files from watcher
       newfiles = watcher.newFiles();
       # None indicates access error, so drop it from watcher set
-      if newfiles is None:  
-        dprintf(2,"access error on %s, will no longer be watched",watcher.path);
-        del self.watchers[path];
-        self.emit(PYSIGNAL("disappearedFile()"),(path,));
+      if newfiles is None: 
+        if watcher.survive_deletion: 
+          dprintf(5,"access error on %s, but will still be watched",watcher.path);
+        else:
+          dprintf(2,"access error on %s, will no longer be watched",watcher.path);
+          del self.watchers[path];
+        if not watcher.disappeared:
+          self.emit(PYSIGNAL("disappearedFile()"),(path,));
+          watcher.disappeared = True;
         continue;
       dprintf(5,"%s: %d new file(s)\n",watcher.path,len(newfiles));
       # Now go through files and add them to the newstuff dict
@@ -554,7 +584,17 @@ class Purrer (QObject):
         # watchers, make the quiet flag a logical AND of all the quiet flags (i.e. DP will be
         # marked as quiet only if all watchers report it as quiet).
         newstuff[newfile] = quiet and newstuff.get(newfile,True);
-        dprintf(4,"%s: new data product, quiet=%d\n",newfile,quiet);
+        dprintf(4,"%s: new data product, quiet=%d (watcher quiet: %s)\n",newfile,quiet,watcher.quiet);
+        # add a watcher for this file to the temp_watchers list. this is used below
+        # to detect renamed and deleted files
+        self.temp_watchers[newfile] = Purrer.WatchedFile(newfile);
+    # now, go through temp_watchers to see if any newly pounced-on files have disappeared
+    for path,watcher in list(self.temp_watchers.iteritems()):
+      # get list of new files from watcher
+      if watcher.newFiles() is None:
+        dprintf(2,"access error on %s, marking as disappeared",watcher.path);
+        del self.temp_watchers[path];
+        self.emit(PYSIGNAL("disappearedFile()"),(path,));
     # if we have new data products, send them to the main window
     return self.makeDataProducts(newstuff.iteritems());
           

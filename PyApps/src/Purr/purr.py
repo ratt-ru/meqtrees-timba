@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# loading file into karma:
+#   ksend -add_connection unix 9975 multi_array kvis -load ARRAY:FILE0 img4096.fits
+# ls /tmp/.KARMA-connections for port number
+
 # runs Purr standalone
 if __name__ == "__main__":
   print "Welcome to PURR!"

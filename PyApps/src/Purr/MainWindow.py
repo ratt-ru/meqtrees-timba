@@ -287,6 +287,10 @@ class MainWindow (QMainWindow):
     self.connect(self.view_entry_dialog,PYSIGNAL("next()"),self._viewNextEntry);
     self.connect(self.view_entry_dialog,PYSIGNAL("filesSelected()"),self._addDPFilesToOldEntry);
     self.connect(self.view_entry_dialog,PYSIGNAL("entryChanged()"),self._entryChanged);
+    # saving a data product to an older entry will automatically drop it from the
+    # new entry dialog
+    self.connect(self.view_entry_dialog,PYSIGNAL("creatingDataProduct()"),
+                  self.new_entry_dialog.dropDataProducts);
     # resize selves
     width = Config.getint('main-window-width',512);
     height = Config.getint('main-window-height',512);
@@ -695,6 +699,7 @@ class MainWindow (QMainWindow):
     
   def _entryChanged (self,entry):
     """This is called when a log entry is changed""";
+    # resave the log
     self.purrer.save();
     # log will have changed, so update the viewer
     self._updateViewer();

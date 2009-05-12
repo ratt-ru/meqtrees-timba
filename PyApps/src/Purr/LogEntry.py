@@ -35,9 +35,15 @@ class DataProduct (object):
     # if True, DP has already been archived. This is False for new DPs until they're saved.
     self.archived = archived;
     # if True, dp is ignored (policy is "ignore" or "banish")
-    # not that policy cannot be changed after a DP has been created
+    # not that policy should not be changed after a DP has been created
     self.ignored = policy in ("ignore","banish");
-    
+  
+  def set_policy (self,policy):
+    if self.archived:
+      raise TypeError,"cannot change policy of archived DP";
+    self.policy = policy;
+    self.ignored = policy in ("ignore","banish");
+  
   def subproduct_dir (self):
     """Returns name of subdirectory used to store subproducts of this data product
     during rendering.""";

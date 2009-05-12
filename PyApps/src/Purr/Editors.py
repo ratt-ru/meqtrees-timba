@@ -8,6 +8,367 @@ from Purr import Config,pixmaps
 import Purr.LogEntry
 import Purr.Render
 
+def _makeUniqueFilename (taken_names,name):
+  """Helper function. Checks if name is in the set 'taken_names'.
+  If so, attepts to form up an untaken name (by adding numbered suffixes).
+  Adds name to taken_names.
+  """
+  if name in taken_names:
+    # try to form up new name
+    basename,ext = os.path.splitext(name);
+    num = 1;
+    name = "%s-%d%s"%(basename,num,ext);
+    while name in taken_names:
+      num += 1;
+      name = "%s-%d%s"%(basename,num,ext);
+  # finally, enter name into set
+  taken_names.add(name);
+  return name;
+
+class DPListView (QListView):
+  """This class implements a QListView for data products.
+  """;
+  def __init__ (self,*args):
+    QListView.__init__(self,*args);
+    # insert columns, and numbers for them
+    self.ColAction   = self.columns(); self.addColumn("action");
+    self.ColFilename = self.columns(); self.addColumn("filename",120);
+    self.ColRename   = self.columns(); self.addColumn("rename to",120);
+    self.ColRender   = self.columns(); self.addColumn("render");
+    self.ColComment  = self.columns(); self.addColumn("comment");
+    self.setColumnAlignment(self.ColAction,Qt.AlignHCenter);
+    self.setColumnAlignment(self.ColFilename,Qt.AlignRight);
+    self.setColumnAlignment(self.ColRename,Qt.AlignRight);
+    self.setColumnAlignment(self.ColRender,Qt.AlignHCenter);
+    self.setColumnAlignment(self.ColComment,Qt.AlignLeft);
+    self.setSorting(-1);
+    # sort out resizing modes
+    self.header().setMovingEnabled(False);
+    self.header().setResizeEnabled(False,self.ColAction);
+    self.header().setResizeEnabled(False,self.ColRender);
+    self.setResizeMode(QListView.LastColumn);
+    # setup other properties of the listview
+    self.setAcceptDrops(True);
+    self.setAllColumnsShowFocus(True);
+    self.setShowToolTips(True); 
+    self.setDefaultRenameAction(QListView.Accept); 
+    self.setSelectionMode(QListView.Single);
+    self.header().show();
+    self.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
+    self.connect(self,SIGNAL("mouseButtonClicked(int,QListViewItem*,const QPoint &,int)"),self._itemClicked);
+    self.connect(self,SIGNAL("itemRenamed(QListViewItem*,int)"),self._itemRenamed);
+    self.connect(self,SIGNAL('contextMenuRequested(QListViewItem*,const QPoint &,int)'),self._showItemContextMenu);
+    self.connect(self,PYSIGNAL("droppedFiles()"),self,PYSIGNAL("filesSelected()"));
+    # create popup menu for existing DPs
+    self._archived_dp_menu = menu = QPopupMenu();
+    qa = QAction(pixmaps.editcopy.iconset(),"Restore file from this entry's archived copy",0,menu);
+    QObject.connect(qa,SIGNAL("activated()"),self._restoreItemFromArchive);
+    qa.addTo(self._archived_dp_menu);
+    qa = QAction(pixmaps.editpaste.iconset(),"Copy location of archived copy to clipboard",0,menu);
+    QObject.connect(qa,SIGNAL("activated()"),self._copyItemToClipboard);
+    qa.addTo(self._archived_dp_menu);
+    # currently selected item
+    self._current_item = None;
+    # item onto which something was dropped
+    self._dropped_on = None;
+    # dictionary of listview items
+    # key is (path,archived) tuple, value is item
+    self.dpitems = {};
+    
+  # The keys of this dict are valid policies for new data products
+  # The values are the "next" policy when cycling through
+  _policy_cycle = dict(copy="move",move="ignore",ignore="banish",banish="copy");
+  _policy_icons = dict(copy='copy',move='move',ignore='grey_round_cross',banish='red_round_cross');
+  # The keys of this dict are valid policies for archived data products
+  # The values are the "next" policy when cycling through
+  _policy_cycle_archived = dict(keep="remove",remove="keep");
+  _policy_icons_archived = dict(keep="checkmark",remove="grey_round_cross");
+    
+  def _checkDragDropEvent (self,ev):
+    """Checks if event contains a file URL, accepts if it does, ignores if it doesn't""";
+    # get drag text
+    try:
+      url = str(ev.encodedData("text/plain"));
+    except:
+      url = '';
+    # accept event if drag text is a file URL
+    if url.startswith('file://'):
+      ev.accept();
+      return url;
+    else:
+      ev.ignore();
+      return None;
+    
+  def dragEnterEvent (self,ev):
+    """Process drag-enter event. Use function above to accept or ignore it"""
+    if self._checkDragDropEvent(ev):
+      QListView.dragEnterEvent(self,ev);
+      
+  def dropEvent (self,ev):
+    """Process drop event."""
+    # use function above to accept event if it contains a file URL
+    prefix = 'file://';
+    url = self._checkDragDropEvent(ev);
+    if url and url.startswith(prefix):
+      # see which item the event was dropped on
+      pos = self.viewport().mapFrom(self,ev.pos());
+      dropitem = self.itemAt(pos);
+#      print "dropped on",pos.x(),pos.y(),dropitem, \
+#        dropitem and hasattr(dropitem,'_dp') and (dropitem._dp.fullpath or dropitem._dp.sourcepath);
+      # url may be a list, split it up and remove 'file://' prefix
+      files = [ file[len(prefix):] for file in url.split('\n')];
+      # if event originated with ourselves, reorder items
+      if ev.source() is self:
+        self.reorderItems(dropitem,*files);
+      # else event is from someone else, accept the dropped files
+      else:
+        self._dropped_on = dropitem;
+        self.emit(PYSIGNAL("droppedFiles()"),tuple(files));
+        # if event originated with another DPListView, emit a draggedAwayFiles() signal on its behalf
+        if isinstance(ev.source(),DPListView):
+          ev.source().emit(PYSIGNAL("draggedAwayFiles()"),tuple(files));
+      
+  def dragObject (self):
+    """Called when a drag is started. Creates a text drag object from
+    selected files.""";
+    # collect list of selected files
+    filelist = [];
+    for item,dp in self.getItemDPList():
+      if item.isSelected():
+        filelist.append('file://'+(dp.fullpath or dp.sourcepath));
+    # generate drag object if list is not empty
+    if filelist:
+      text = "\n".join(filelist);
+      dobj = QTextDrag(text,self);
+      return dobj;
+    else:
+      return None;
+    
+  def clear (self):
+    QListView.clear(self);
+    self.dpitems = {};
+      
+  def _setItemPolicy (self,item,policy):
+    """Sets the policy of the given item""";
+    pmname = item._policy_icons.get(policy);
+    if pmname is None:
+      policy = "copy";
+      pmname = item._policy_icons.get(policy);
+    item._policy = policy;
+    # new DPs get their policy updated
+    item.setText(self.ColAction,policy);
+    pixmap = getattr(pixmaps,pmname,None);
+    if pixmap:
+      item.setPixmap(self.ColAction,pixmap.pm());
+    else:
+      item.setPixmap(self.ColAction,QPixmap());
+      
+  def getItemDPList (self):
+    """Returns list of item,dp pairs corresponding to content of listview.
+    Not-yet-saved items will have dp=None.""";
+    dplist = [];
+    item = self.firstChild();
+    while item:
+      dplist.append((item,item._dp));
+      item = item.nextSibling();
+    return dplist;
+      
+  def _makeDPItem (self,dp,after):
+    """Creates listview item for data product 'dp', inserts it after item 'after'""";
+    item = QListViewItem(self,after);
+    item.setDragEnabled(True);
+    item.setDropEnabled(True);
+    item._dp = dp;
+    # setup available policies for new or archived items, set initial policy
+    if dp.archived:
+      item._menu = self._archived_dp_menu;
+      item._policy_cycle = self._policy_cycle_archived;
+      item._policy_icons = self._policy_icons_archived;
+      self._setItemPolicy(item,"keep");
+    else:
+      item._policy_cycle = self._policy_cycle;
+      item._policy_icons = self._policy_icons;
+      self._setItemPolicy(item,dp.policy);
+    # set other columns
+    item.setText(self.ColFilename,os.path.basename(dp.sourcepath));
+    item.setText(self.ColComment,dp.comment or "");
+    item.setRenameEnabled(self.ColRename,True);
+    item.setRenameEnabled(self.ColComment,True);
+    # make sure new filenames are unique
+    filename = dp.filename;
+    if not dp.archived:
+      # form up set of taken names
+      taken_names = sets.Set();
+      for i0,dp0 in self.getItemDPList():
+        if dp0.policy not in ["remove","ignore","banish"]:
+          taken_names.add(str(i0.text(self.ColRename)));
+      # ensure uniqueness of filename
+      filename = _makeUniqueFilename(taken_names,filename);
+    item.setText(self.ColRename,filename);
+    # get list of available renderers
+    item._renderers = Purr.Render.getRenderers(dp.fullpath or dp.sourcepath);
+    item._render = 0;
+    # for archived items, try to find renderer in list
+    if dp.archived:
+      try:
+        item._render = item._renderers.index(dp.render);
+      except:
+        pass;
+    item.setText(self.ColRender,item._renderers[0]);
+    # add to map of items
+    self.dpitems[dp.fullpath or dp.sourcepath] = item;
+    return item;
+    
+  def _itemClicked (self,button,item,point,column):
+    if not item or button != Qt.LeftButton:
+      return;
+    if column == self.ColAction:
+      self._setItemPolicy(item,item._policy_cycle.get(item._policy,"copy"));
+      self.emit(PYSIGNAL("updated()"),());
+    elif column == self.ColRender:
+      item._render = (item._render+1)%len(item._renderers);
+      item.setText(self.ColRender,item._renderers[item._render]);
+      self.emit(PYSIGNAL("updated()"),());
+    elif column in [self.ColRename,self.ColComment]:
+      item.startRename(column);
+  
+  def _itemRenamed (self,item,col):
+    self.emit(PYSIGNAL("updated()"),());
+  
+  def _showItemContextMenu (self,item,point,col):
+    """Callback for contextMenuRequested() signal. Pops up item menu, if defined""";
+    menu = getattr(item,'_menu',None);
+    if menu: 
+      # self._current_item tells callbacks what item the menu was referring to
+      self._current_item = item;
+      self.clearSelection();
+      self.setSelected(item,True);
+      menu.exec_loop(point);
+    else:
+      self._current_item = None;
+      
+  def _copyItemToClipboard (self):
+    """Callback for item menu.""";
+    dp = self._current_item and getattr(self._current_item,'_dp',None);
+    if dp and dp.archived:
+      QApplication.clipboard().setText(dp.fullpath,QClipboard.Clipboard);
+      QApplication.clipboard().setText(dp.fullpath,QClipboard.Selection);
+  
+  def _restoreItemFromArchive (self):
+    """Callback for item menu.""";
+    dp = self._current_item and getattr(self._current_item,'_dp',None);
+    if dp and dp.archived:
+      dp.restore_from_archive(parent=self);
+        
+  def reorderItems(self,beforeitem,*files):
+    # determine after which item the items are to be inserted
+    if beforeitem:
+      after = beforeitem.itemAbove();
+    else:
+      after = self.lastItem();
+    # move items
+    for file in files:
+      item = self.dpitems.get(file,None);
+      if item:
+        # for some reason moveItem(None) does not move to the top as I would expect,
+        # so for this case some ugliness is required
+        if after:
+          item.moveItem(after);
+        else:
+          self.takeItem(item);
+          self.insertItem(item);
+        after = item;
+        self.emit(PYSIGNAL("updated()"),());
+    
+  def fillDataProducts(self,dps):
+    """Fills listview with existing data products""";
+    after = None;
+    for dp in dps:
+      if not dp.ignored:
+        after = self._makeDPItem(dp,after);
+      
+  def addDataProducts(self,dps):
+    """Adds new data products to listview. dps is a list of DP objects.
+    Returns True if new (non-quiet) DPs are added, or if existing non-quiet dps are updated.
+    (this usually tells the main window to wake up)
+    """;
+    busy = Purr.BusyIndicator();
+    wakeup = False;
+    # if these DPs were added as a result of a drag-and-drop, we need to insert them in FRONT of the
+    # dropped-on item (i.e. after the previous item)
+    if self._dropped_on:
+      after = item.itemAbove();
+      self._dropped_on = None;
+    # else insert at end (after=None)
+    else:
+      after = self.lastItem();
+    for dp in dps:
+      item = self.dpitems.get(dp.sourcepath);
+      # move item if it exists
+      if item:
+        item.moveItem(after);
+        after = item;
+      # else add new item
+      else:
+        after = self._makeDPItem(dp,after);
+      wakeup = wakeup or not (dp.ignored or dp.quiet);
+    self.emit(PYSIGNAL("updated()"),());
+    return wakeup;
+  
+  def dropDataProducts (self,*pathnames):
+    """Drops new (i.e. non-archived) DP items matching the given pathnames.""";
+    trash = QListView(None);
+    for path in pathnames:
+      item = self.dpitems.get(path);
+      if item and not item._dp.archived:
+        self.takeItem(item);
+        trash.insertItem(item);
+        del self.dpitems[path];
+        self.emit(PYSIGNAL("updated()"),());
+        
+  def resolveFilenameConflicts (self):
+    """Goes through list of DPs to make sure that their destination names
+    do not clash. Adjust names as needed. Returns True if some conflicts were resolved.
+    """
+    taken_names = sets.Set();
+    resolved = False;
+    # iterate through items
+    for item,dp in self.getItemDPList():
+      # only apply this to saved DPs
+      if dp.policy not in ["remove","ignore","banish"]:
+        name0 = str(item.text(self.ColRename));
+        name = _makeUniqueFilename(taken_names,name0);
+        if name != name0:
+          item.setText(self.ColRename,name);
+          resolved = True;
+          self.emit(PYSIGNAL("updated()"),());
+    return resolved;
+        
+  def buildDPList (self):
+    """Builds list of data products."""
+    dps = [];
+    itemlist = self.getItemDPList();
+    # first remove all items marked for removal, in case their names clash with new or renamed items
+    for item,dp in itemlist:
+      if dp and item._policy == "remove":
+        dp.remove_file();
+        dp.remove_subproducts();
+    # now, make list
+    for item,dp in itemlist:
+      if item._policy == "remove":
+        continue;
+      # update rendered and comment
+      dp.render  = str(item.text(self.ColRender));
+      dp.comment = str(item.text(self.ColComment));
+      # archived DPs may need to be renamed, for new ones simply set the name
+      if dp.archived:
+        dp.rename(str(item.text(self.ColRename)));
+      else:
+        dp.set_policy(item._policy);
+        dp.filename = str(item.text(self.ColRename));
+      dps.append(dp);
+    return dps;
+      
 class LogEntryEditor (QWidget):
   """This class provides a widget for editing log entries.
   """;
@@ -65,46 +426,13 @@ class LogEntryEditor (QWidget):
     self._add_dp_dialog = None;
     lo_dpline.addWidget(self.wnewdp);
     # create DP listview
-    ndplv = self.wdplv = QListView(dppane);
+    ndplv = self.wdplv = DPListView(dppane);
     ndplv.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     lo_top.addWidget(self.wdplv);
-    # insert columns, and numbers for them
-    self.ColAction   = ndplv.columns(); ndplv.addColumn("action");
-    self.ColFilename = ndplv.columns(); ndplv.addColumn("filename",120);
-    self.ColRename   = ndplv.columns(); ndplv.addColumn("rename to",120);
-    self.ColRender   = ndplv.columns(); ndplv.addColumn("render");
-    self.ColComment  = ndplv.columns(); ndplv.addColumn("comment");
-    ndplv.setColumnAlignment(self.ColAction,Qt.AlignHCenter);
-    ndplv.setColumnAlignment(self.ColFilename,Qt.AlignRight);
-    ndplv.setColumnAlignment(self.ColRename,Qt.AlignRight);
-    ndplv.setColumnAlignment(self.ColRender,Qt.AlignHCenter);
-    ndplv.setColumnAlignment(self.ColComment,Qt.AlignLeft);
-    ndplv.setSorting(-1);
-    # sort out resizing modes
-    ndplv.header().setMovingEnabled(False);
-    ndplv.header().setResizeEnabled(False,self.ColAction);
-    ndplv.header().setResizeEnabled(False,self.ColRender);
-    ndplv.setResizeMode(QListView.LastColumn);
-    # setup other properties of the listview
-    ndplv.setAllColumnsShowFocus(True);
-    ndplv.setShowToolTips(True); 
-    ndplv.setDefaultRenameAction(QListView.Accept); 
-    ndplv.setSelectionMode(QListView.Single);
-    ndplv.header().show();
-    ndplv.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
-    self.connect(ndplv,SIGNAL("mouseButtonClicked(int,QListViewItem*,const QPoint &,int)"),self._itemClicked);
-    self.connect(ndplv,SIGNAL("itemRenamed(QListViewItem*,int)"),self._itemRenamed);
-    self.connect(ndplv,SIGNAL('contextMenuRequested(QListViewItem*,const QPoint &,int)'),
-                     self._showItemContextMenu);
-    # create popup menu for existing DPs
-    self._archived_dp_menu = menu = QPopupMenu();
-    qa = QAction(pixmaps.editcopy.iconset(),"Restore file from this entry's archived copy",0,menu);
-    QObject.connect(qa,SIGNAL("activated()"),self._restoreItemFromArchive);
-    qa.addTo(self._archived_dp_menu);
-    qa = QAction(pixmaps.editpaste.iconset(),"Copy location of archived copy to clipboard",0,menu);
-    QObject.connect(qa,SIGNAL("activated()"),self._copyItemToClipboard);
-    qa.addTo(self._archived_dp_menu);
-    self._current_item = None;
+    # connect its signals
+    QObject.connect(self.wdplv,PYSIGNAL("updated()"),self.setUpdated);
+    QObject.connect(self.wdplv,PYSIGNAL("droppedFiles()"),self,PYSIGNAL("filesSelected()"));
+    QObject.connect(self.wdplv,PYSIGNAL("draggedAwayFiles()"),self,PYSIGNAL("draggedAwayFiles()"));
     # other internal init
     self.reset();
     
@@ -131,15 +459,6 @@ class LogEntryEditor (QWidget):
       </DL>
       """;
       
-  # The keys of this dict are valid policies for new data products
-  # The values are the "next" policy when cycling through
-  _policy_cycle = dict(copy="move",move="ignore",ignore="banish",banish="copy");
-  _policy_icons = dict(copy='copy',move='move',ignore='grey_round_cross',banish='red_round_cross');
-  # The keys of this dict are valid policies for archived data products
-  # The values are the "next" policy when cycling through
-  _policy_cycle_archived = dict(keep="remove",remove="keep");
-  _policy_icons_archived = dict(keep="checkmark",remove="grey_round_cross");
-    
   def hideEvent (self,event):
     QWidget.hideEvent(self,event);
     if self._add_dp_dialog:
@@ -147,11 +466,9 @@ class LogEntryEditor (QWidget):
     
   def resetDPs (self):
     self.wdplv.clear();
-    self.dpitems = {};
-    self.policies_updated = False;
     
   def reset (self):
-    self.resetDPs();
+    self.wdplv.clear();
     self.entry = self._timestamp = None;
     self.wtimestamp.hide();
     self.setEntryTitle("Untitled entry");
@@ -165,6 +482,11 @@ class LogEntryEditor (QWidget):
     # _last_auto_comment is the last comment to have been added via addComment()
     self._last_auto_comment = None;
     self.updated = False;
+    
+  def setUpdated (self,updated=True):
+    self.updated = updated;
+    if updated:
+      self.emit(PYSIGNAL("updated()"),());
     
   def setDefaultDirs (self,*dirnames):
     self._default_dirs = dirnames;
@@ -193,6 +515,17 @@ class LogEntryEditor (QWidget):
       self.connect(self,SIGNAL("filesSelected(const QStringList&)"),self._filesSelected);
       self.connect(self,SIGNAL("fileSelected(const QString&)"),self._fileSelected);
       self.connect(self,SIGNAL("fileHighlighted(const QString&)"),self._fileHighlighted);
+      # resize selves
+      self.config_name = "add-file-dialog";
+      width = Config.getint('%s-width'%self.config_name,768);
+      height = Config.getint('%s-height'%self.config_name,512);
+      self.resize(QSize(width,height));
+      
+    def resizeEvent (self,ev):
+      QFileDialog.resizeEvent(self,ev);
+      sz = ev.size();
+      Config.set('%s-width'%self.config_name,sz.width());
+      Config.set('%s-height'%self.config_name,sz.height());
       
     def show (self):
       QFileDialog.show(self);
@@ -240,123 +573,14 @@ class LogEntryEditor (QWidget):
     self._add_dp_dialog.rereadDir();
     self._add_dp_dialog.show();
     self._add_dp_dialog.raiseW();
-    
-  def _itemClicked (self,button,item,point,column):
-    if not item or button != Qt.LeftButton:
-      return;
-    if column == self.ColAction:
-      self._setItemPolicy(item,item._policy_cycle.get(item._policy,"copy"));
-      self.updated = True;
-      self.policies_updated = True;
-      self.emit(PYSIGNAL("updated()"),());
-    elif column == self.ColRender:
-      item._render = (item._render+1)%len(item._renderers);
-      item.setText(self.ColRender,item._renderers[item._render]);
-      self.updated = True;
-      self.emit(PYSIGNAL("updated()"),());
-    elif column in [self.ColRename,self.ColComment]:
-      item.startRename(column);
-  
-  def _showItemContextMenu (self,item,point,col):
-    """Callback for contextMenuRequested() signal. Pops up item menu, if defined""";
-    menu = getattr(item,'_menu',None);
-    if menu: 
-      # self._current_item tells callbacks what item the menu was referring to
-      self._current_item = item;
-      self.wdplv.clearSelection();
-      self.wdplv.setSelected(item,True);
-      menu.exec_loop(point);
-    else:
-      self._current_item = None;
-      
-  def _copyItemToClipboard (self):
-    """Callback for item menu.""";
-    if self._current_item is None:
-      return;
-    dp = getattr(self._current_item,'_dp',None);
-    if dp and dp.archived:
-      QApplication.clipboard().setText(dp.fullpath,QClipboard.Clipboard);
-      QApplication.clipboard().setText(dp.fullpath,QClipboard.Selection);
-  
-  def _restoreItemFromArchive (self):
-    """Callback for item menu.""";
-    if self._current_item is None:
-      return;
-    dp = getattr(self._current_item,'_dp',None);
-    if dp and dp.archived:
-      dp.restore_from_archive(parent=self);
-      
-  def _itemRenamed (self,item,col):
-    self.updated = True;
-    self.emit(PYSIGNAL("updated()"),());
-      
-  def _setItemPolicy (self,item,policy):
-    pmname = item._policy_icons.get(policy);
-    if pmname is None:
-      policy = "copy";
-      pmname = item._policy_icons.get(policy);
-    item._policy = policy;
-    item.setText(self.ColAction,policy);
-    pixmap = getattr(pixmaps,pmname,None);
-    if pixmap:
-      item.setPixmap(self.ColAction,pixmap.pm());
-    else:
-      item.setPixmap(self.ColAction,QPixmap());
-      
-  def _makeDPItem (self,dp,after):
-    item = QListViewItem(self.wdplv,after);
-    item._sourcepath = dp.sourcepath;
-    # setup available policies for new or archived items, set initial policy
-    if dp.archived:
-      item._policy_cycle = self._policy_cycle_archived;
-      item._policy_icons = self._policy_icons_archived;
-      self._setItemPolicy(item,"keep");
-      item._dp = dp;    # indicates old DP which may be updated
-      item._menu = self._archived_dp_menu;
-    else:
-      item._policy_cycle = self._policy_cycle;
-      item._policy_icons = self._policy_icons;
-      self._setItemPolicy(item,dp.policy);
-      item._dp = None;  # indicates new DP needs to be created
-    # set other columns
-    item.setText(self.ColFilename,os.path.basename(dp.sourcepath));
-    item.setText(self.ColComment,dp.comment or "");
-    item.setRenameEnabled(self.ColRename,True);
-    item.setRenameEnabled(self.ColComment,True);
-    # make sure new filenames are unique
-    filename = dp.filename;
-    if not dp.archived:
-      # form up set of taken names
-      taken_names = sets.Set();
-      i0 = self.wdplv.firstChild();
-      while i0:
-        if i0._policy not in ["remove","ignore","banish"]:
-          taken_names.add(str(i0.text(self.ColRename)));
-        i0 = i0.nextSibling();
-      # ensure uniqueness of filename
-      filename = self._makeUniqueFilename(taken_names,filename);
-    item.setText(self.ColRename,filename);
-    # get list of available renderers
-    item._renderers = Purr.Render.getRenderers(dp.fullpath or dp.sourcepath);
-    item._render = 0;
-    # for archived items, try to find renderer in list
-    if dp.archived:
-      try:
-        item._render = item._renderers.index(dp.render);
-      except:
-        pass;
-    item.setText(self.ColRender,item._renderers[0]);
-    # add to map of items
-    self.dpitems[item._sourcepath] = item;
-    return item;
   
   def _titleChanged (self,*dum):
-    self._title_changed = self.updated = True;
-    self.emit(PYSIGNAL("updated()"),());
+    self._title_changed = True;
+    self.setUpdated();
     
   def _commentChanged (self,*dum):
-    self._comment_changed = self._comment_edited = self.updated = True;
-    self.emit(PYSIGNAL("updated()"),());
+    self._comment_changed = self._comment_edited = True;
+    self.setUpdated();
   
   def suggestTitle (self,title):
     """Suggests a title for the entry.
@@ -393,48 +617,13 @@ class LogEntryEditor (QWidget):
     
   def countRemovedDataProducts (self):
     """Returns number of DPs marked for removal""";
-    nrm = 0;
-    item = self.wdplv.firstChild();
-    while item:
-      if item._policy == "remove":
-        nrm += 1;
-      item = item.nextSibling();
-    return nrm;
-      
-  def _makeUniqueFilename (self,taken_names,name):
-    """Helper function. Checks if name is in the set 'taken_names'.
-    If so, attepts to form up an untaken name (by adding numbered suffixes).
-    Adds name to taken_names.
-    """
-    if name in taken_names:
-      # try to form up new name
-      basename,ext = os.path.splitext(name);
-      num = 1;
-      name = "%s-%d%s"%(basename,num,ext);
-      while name in taken_names:
-        num += 1;
-        name = "%s-%d%s"%(basename,num,ext);
-    # finally, enter name into set
-    taken_names.add(name);
-    return name;
+    return len([item for item,dp in self.wdplv.getItemDPList() if dp.policy == "remove"]);
       
   def resolveFilenameConflicts (self,dialog=True):
     """Goes through list of DPs to make sure that their destination names
     do not clash. Applies new names. Returns True if some conflicts were resolved.
     If dialog is True, shows confirrmation dialog."""
-    taken_names = sets.Set();
-    resolved = False;
-    item = self.wdplv.firstChild();
-    # iterate through items
-    while item:
-      # only apply this to saved DPs
-      if item._policy not in ["remove","ignore","banish"]:
-        name0 = str(item.text(self.ColRename));
-        name = self._makeUniqueFilename(taken_names,name0);
-        if name != name0:
-          item.setText(self.ColRename,name);
-          resolved = True;
-      item = item.nextSibling();
+    resolved = self.wdplv.resolveFilenameConflicts();
     if resolved and dialog:
       QMessageBox.warning(self,"Filename conflicts","""<P>
         <NOBR>PURR has found duplicate destination filenames among your data products.</NOBR> 
@@ -442,7 +631,7 @@ class LogEntryEditor (QWidget):
         Please review the changes before saving this entry.
         </P>""",
         QMessageBox.Ok);
-    return resolved;  
+    return resolved;
     
   def updateEntry (self):
     """Updates entry object with current content of dialog. 
@@ -456,31 +645,12 @@ class LogEntryEditor (QWidget):
     comment = "\n".join([ pars.replace("\n"," ") for pars in comment.split("\n\n") ]);
     # go through data products and decide what to do with each one
     busy = Purr.BusyIndicator();
-    dps = [];
-    # if editing existing entry, build list of archived DPs first
-    if self.entry is not None:
-      # first remove all items marked for removal, in case their names clash with
-      # new or renamed items
-      for item,dp in zip(self._dpitem_list,self.entry.dps):
-        if item and item._policy == "remove":
-          dp.remove_file();
-          dp.remove_subproducts();
-      # now go and change remaining items
-      for item,dp in zip(self._dpitem_list,self.entry.dps):
-        if item and item._policy != "remove":
-          dp.render  = str(item.text(self.ColRender));
-          dp.comment = str(item.text(self.ColComment));
-          dp.rename(str(item.text(self.ColRename)));
-          dps.append(dp);
-    # now, append any new DPs from items (for new entries, all DPs will be new)
-    item = self.wdplv.firstChild();
-    while item:
-      if item._dp is None: # None means a new DP
-        dps.append(Purr.DataProduct(sourcepath=item._sourcepath,policy=item._policy,
-                                    filename=str(item.text(self.ColRename)),
-                                    render=str(item.text(self.ColRender)),
-                                    comment=str(item.text(self.ColComment))));
-      item = item.nextSibling();
+    # get list of DPs
+    dps = self.wdplv.buildDPList();
+    # emit signal for all newly-created DPs
+    for dp in dps:
+      if not dp.archived:
+        self.emit(PYSIGNAL("creatingDataProduct()"),(dp.sourcepath,));
     # update or return new entry
     if self.entry:
       self.entry.update(title=title,comment=comment,dps=dps);
@@ -490,17 +660,17 @@ class LogEntryEditor (QWidget):
       return Purr.LogEntry(time.time(),title,comment,dps);
     
   def updateIgnoredEntry (self):
-    # now, append any new DPs from items (for new entries, all DPs will be new)
-    item = self.wdplv.firstChild();
+    """Updates an ignore-entry object with current content of dialog, by
+    marking all data products for ignore."""
+    # collect new DPs from items 
     dps = [];
-    while item:
-      if item._dp is None: # None means a new DP
+    for item,dp in self.wdplv.getItemDPList():
+      if dp and not dp.archived: # None means a new DP
         # set all policies to ignore, unless already set to banish
-        if item._policy != "banish":
-          self._setItemPolicy(item,"ignore");
-        dps.append(Purr.DataProduct(sourcepath=item._sourcepath,policy=item._policy,
-                                    comment=str(item.text(self.ColComment))));
-      item = item.nextSibling();
+        if dp.policy != "banish":
+          self.wdplv._setItemPolicy(item,"ignore");
+          dp.set_policy("ignore");
+        dps.append(dp);
     # return new entry
     return Purr.LogEntry(time.time(),dps=dps,ignore=True);
     
@@ -511,18 +681,7 @@ class LogEntryEditor (QWidget):
     self.setEntryTitle(entry.title);
     self.setEntryComment(entry.comment.replace("\n","\n\n"));
     self.wdplv.clear();
-    self.dpitems = {};
-    # this will be a parallel list of items corresponding to each DP
-    # with None for ignored DPs (since they don't appear in the list when editing old entries)
-    self._dpitem_list = [];
-    item = None;
-    # non-ignored items first
-    for dp in entry.dps:
-      if not dp.ignored:
-        item = self._makeDPItem(dp,item);
-      else:
-        item = None;
-      self._dpitem_list.append(item);
+    self.wdplv.fillDataProducts(entry.dps);
     self.setTimestamp(entry.timestamp);
     self.updated = False;
   
@@ -530,31 +689,11 @@ class LogEntryEditor (QWidget):
     """Adds data products to dialog.
       dps is a list of DP objects
     """;
-    # this flag will be set if any new non-quiet dps are added, or if existing
-    # non-quiet dps (that have been checked on) are updated
-    busy = Purr.BusyIndicator();
-    updated = False;
-    for dp in dps:
-      item = self.dpitems.get(dp.sourcepath);
-      if not item:
-        # ignore DPs added to end, non-ignored added to head
-        if dp.policy == "ignore":
-          after = self.wdplv.lastItem();
-        else:
-          after = None;
-        item = self._makeDPItem(dp,after);
-      updated = updated or not (dp.ignored or dp.quiet);
-    return updated;
+    return self.wdplv.addDataProducts(dps);
   
   def dropDataProducts (self,*pathnames):
     """Drops new (i.e. non-archived) DP items matching the given pathnames.""";
-    trash = QListView(None);
-    for path in pathnames:
-      item = self.dpitems.get(path,None);
-      # _dp=None indicates a non-archived data product, so we can remove it
-      if item and item._dp is None:
-        self.wdplv.takeItem(item);
-        trash.insertItem(item);
+    return self.wdplv.dropDataProducts(*pathnames);
   
   def entryTitle (self):
     return self.wtitle.text();
@@ -602,6 +741,9 @@ class NewLogEntryDialog (QDialog):
     self.editor = LogEntryEditor(self);
     self.dropDataProducts = self.editor.dropDataProducts;
     self.connect(self.editor,PYSIGNAL("filesSelected()"),self,PYSIGNAL("filesSelected()"));
+    # connect draggedAwayFiles() signal so that files dragged away are removed from
+    # the list
+    self.connect(self.editor,PYSIGNAL("draggedAwayFiles()"),self.editor.dropDataProducts);
     lo.addWidget(self.editor);
     lo.addSpacing(5);
     # create button bar
@@ -614,11 +756,11 @@ class NewLogEntryDialog (QDialog):
     newbtn = QPushButton(pixmaps.filesave.iconset(),"Add new entry",btnfr);
     QToolTip.add(newbtn,"""<P>Saves new log entry, along with any data products not marked
       as "ignore" or "banish".<P>""");
-    self.ignorebtn = QPushButton(pixmaps.grey_round_cross.iconset(),"Ignore all",btnfr);
+    self.ignorebtn = QPushButton(pixmaps.red_round_cross.iconset(),"Ignore all",btnfr);
     self.ignorebtn.setEnabled(False);
     QToolTip.add(self.ignorebtn,"""<P>Tells PURR to ignore all listed data products. PURR
       will not pounce on these files again until they have been modified.<P>""");
-    cancelbtn = QPushButton(pixmaps.red_round_cross.iconset(),"Cancel",btnfr);
+    cancelbtn = QPushButton(pixmaps.grey_round_cross.iconset(),"Hide",btnfr);
     QToolTip.add(cancelbtn,"""<P>Hides this dialog.<P>""");
     QObject.connect(newbtn,SIGNAL("clicked()"),self.addNewEntry);
     QObject.connect(self.ignorebtn,SIGNAL("clicked()"),self.ignoreAllDataProducts);
@@ -674,7 +816,7 @@ class NewLogEntryDialog (QDialog):
           files until they have been modified again.""",
           QMessageBox.Yes,QMessageBox.No) != QMessageBox.Yes:
       return;
-    # add entry
+    # add ingore entry, which will store info on all ignored data products
     entry = self.editor.updateIgnoredEntry();
     self.emit(PYSIGNAL("newLogEntry()"),(entry,));
     self.editor.resetDPs();
@@ -713,6 +855,8 @@ class ExistingLogEntryDialog (QDialog):
     self.editor = LogEntryEditor(self.editor_panel);
     self.connect(self.editor,PYSIGNAL("updated()"),self._entryUpdated);
     self.connect(self.editor,PYSIGNAL("filesSelected()"),self,PYSIGNAL("filesSelected()"));
+    self.connect(self.editor,PYSIGNAL("creatingDataProduct()"),
+                 self,PYSIGNAL("creatingDataProduct()"));
     lo.addWidget(self.editor);
     self.dropDataProducts = self.editor.dropDataProducts;
     # create button bar for editor
