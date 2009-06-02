@@ -13,7 +13,7 @@ ENDIF (FFTW3_INCLUDE_DIR)
 FIND_PATH(FFTW3_INCLUDE_DIR fftw3.h )
 
 SET(FFTW3_NAMES 
-    fftw3l_threads
+    #    fftw3l_threads
     fftw3
     fftw3l
     )

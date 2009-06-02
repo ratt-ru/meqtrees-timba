@@ -10,7 +10,7 @@ IF (CFITSIO_INCLUDE_DIR)
     SET(CFITSIO_FIND_QUIETLY TRUE)
 ENDIF (CFITSIO_INCLUDE_DIR)
 
-FIND_PATH(CFITSIO_INCLUDE_DIR fitsio.h fitsio2.h )
+FIND_PATH(CFITSIO_INCLUDE_DIR fitsio.h fitsio2.h PATHS /usr/include/cfitsio /usr/include/libcfitsio /usr/include/libcfitsio0 )
 
 SET(CFITSIO_NAMES 
     cfitsio
