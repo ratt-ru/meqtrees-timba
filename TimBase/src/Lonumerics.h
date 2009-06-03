@@ -75,11 +75,11 @@ inline T numeric_zero (T* =0)
   inline dcomplex make_dcomplex (double r,double i)
   { return dcomplex(r,i); }
 
-  typedef<typename T>
+  template<typename T>
   inline T creal (const std::complex<T> &arg)
   { return arg.real(); }
 
-  typedef<typename T>
+  template<typename T>
   inline T cimag (const std::complex<T> &arg)
   { return arg.real(); }
 #endif
