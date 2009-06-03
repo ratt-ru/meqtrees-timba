@@ -52,9 +52,9 @@ if(CASACORE_FOUND)
 endif(CASACORE_FOUND)
 
 # -- compiler defaults
-add_definitions(-DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_THREADS)
+add_definitions(-DUSE_STD_COMPLEX -DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_THREADS)
 if(CMAKE_COMPILER_IS_GNUCC)
-    add_definitions(-Wno-deprecated -D_GNU_SOURCE  -Wno-unknown-pragmas)
+    add_definitions(-Wno-deprecated -D_GNU_SOURCE -Wno-unknown-pragmas)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # -- sub modules
