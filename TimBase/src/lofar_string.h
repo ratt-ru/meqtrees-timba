@@ -24,6 +24,8 @@
 #ifndef COMMON_STRING_H
 #define COMMON_STRING_H
 
+#include <cstdlib>
+#include <cstring>
 #include <string>
 
 namespace LOFAR

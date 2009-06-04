@@ -25,6 +25,10 @@
 #define COMMON_LORRAYS_H
 
 #include <lofar_config.h>
+#include <cstdlib>
+#include <typeinfo>
+#include <cctype>
+#include <climits>
     
 #ifndef COMMON_LONUMERICS_H
   #include <TimBase/Lonumerics.h>

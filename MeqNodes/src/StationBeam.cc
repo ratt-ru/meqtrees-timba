@@ -227,7 +227,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
    theta0 = M_PI/2-az_el(1); // declination from zenith
    phi0 = az_el(0)+phi0_; // azimuth rotated by 45
    //find k_0
-	 double k0[3];
+   double k0[3];
    double omega0=2*M_PI*f0_; //reference freq
    k0[0]=-sin(theta0)*cos(phi0)/c*omega0;
    k0[1]=-sin(theta0)*sin(phi0)/c*omega0;
@@ -238,7 +238,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
      //calculate delays and weights
      for (int nt=0; nt<wk.extent(0); nt++) {
         tau=k0[0]*p_(nt,0)+k0[1]*p_(nt,1)+k0[2]*p_(nt,2);
-        wk(nt)=make_dcomplex(cos(tau),sin(tau))/p_.extent(0); //conjugate, and normalize
+        wk(nt)=make_dcomplex(std::cos(tau),std::sin(tau))/(double)p_.extent(0); //conjugate, and normalize
      }
      // mutual copling makes w^H x v_k to w^H x C x v_k, so postmultiply w by C
      // to reduce cost

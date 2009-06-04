@@ -36,8 +36,6 @@
 #include <DMI/NumArray.h>
 #include <TimBase/BlitzToAips.h>
 
-class casa::String;
-
 namespace AIPSPP_Hooks 
 {
   using namespace DebugDMI;

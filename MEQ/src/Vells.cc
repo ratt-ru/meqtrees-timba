@@ -597,9 +597,13 @@ template<class T> inline T pow8(T x) { T t1 = x*x, t2=t1*t1; return t2*t2; }
 #ifdef USE_STD_COMPLEX
 
 template<typename T>
-inline double UNARY_MINUS_impl (T x)
+inline T UNARY_MINUS_impl (T x)
 { return -x; }
 
+inline double arg (const double x) 
+{
+    return std::arg(*reinterpret_cast<const std::complex<double>*>(&x));
+}
 #else
 
 // unary minus -- not defined for C99 _Complex, so implement explicitly

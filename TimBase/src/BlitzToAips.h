@@ -228,7 +228,7 @@ blitz::Array<T,N> refAipsToBlitz ( casa::Array<T> &in )
   return out;
 }
 
-#ifndef USE_STD_COMPLEX
+//#ifndef USE_STD_COMPLEX
 template<int N>
 inline blitz::Array<fcomplex,N> copyAipsToBlitzComplex ( const casa::Array<casa::Complex> &in )
 {
@@ -260,7 +260,7 @@ inline blitz::Array<dcomplex,N> refAipsToBlitzComplex ( casa::Array<casa::DCompl
   _refArray_cast(out,in);
   return out;
 }
-#endif
+//#endif
 
 
 // Copies data between arrays. Shapes must match to begin with

@@ -72,7 +72,7 @@ inline T numeric_zero (T* =0)
   inline fcomplex make_fcomplex (float r,float i)
   { return fcomplex(r,i); }
 
-  inline dcomplex make_dcomplex (double r,double i)
+  inline dcomplex make_dcomplex (double r,double i=0.0)
   { return dcomplex(r,i); }
 
   template<typename T>

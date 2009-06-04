@@ -462,7 +462,7 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B ){
         //handle scalar case as a special case
         if (nx0==1 || ny0==1) {
           if (nx0==1 && ny0==1) {
-            A=B(0,0)*nx0_*ny0_/(nx_*ny_); //divide by correct weight
+            A=B(0,0)*(double)(nx0_*ny0_/(nx_*ny_)); //divide by correct weight
             return 0;
           } else if(nx0==1) {
         	  for (int i=0; i<bx_[0].size();i++) {
@@ -569,7 +569,7 @@ Integrator::do_resample(blitz::Array<T,2> A,  blitz::Array<T,2> B,
         //handle scalar case as a special case
         if (nx0==1 || ny0==1) {
           if (nx0==1 && ny0==1) {
-            A=B(0,0)*nx0_*ny0_/(nx_*ny_); //divide by correct weight
+            A=B(0,0)*(double)(nx0_*ny0_/(nx_*ny_)); //divide by correct weight
             return 0;
           } else if(nx0==1) {
         	  for (int i=0; i<bx_[0].size();i++) {
@@ -988,8 +988,8 @@ void
     double delr=creal(del(k));
     double deli=cimag(del(k));
 
-    double dr=0;
-    double di=0;
+    double dr=0.0;
+    double di=0.0;
 		if (!(delr1==0 || delr==0 || ((delr) >0 && delr1<0)
 									 || (delr <0 && delr1>0) ))	 {
 		 double w1=2*h(k)+h(k-1);
@@ -1012,12 +1012,12 @@ void
 	//slopes at endpoints
 	d(0)=((2*h(0)+h(1))*del(0)-h(0)*del(1))/(h(0)+h(1));
 	if ((abs(d(0))> 3*abs(del(0)))) {
-			d(0)=3*del(0);
+			d(0)=3.0*del(0);
 	}
 
 	d(n-1)=((2*h(n-1)+h(n-2))*del(n-1)-h(n-1)*del(n-2))/(h(n-1)+h(n-2));
 	if ((abs(d(n-1))> 3*abs(del(n-1)))) {
-			d(n-1)=3*del(n-1);
+			d(n-1)=3.0*del(n-1);
 	}
 
 
@@ -1052,10 +1052,10 @@ void
 		double &hh=h(xindex(i)-1);
 		double aa=(3*hh-2*s)*s*s/(hh*hh*hh);
 		yout(i)=aa*yin(xindex(i))+(1-aa)*yin(xindex(i)-1);
-		if (d(xindex(i)) !=0) {
+		if (d(xindex(i)) !=0.0) {
 		  yout(i)+=s*s*(s-hh)/(hh*hh)*d(xindex(i));
 		}
-		if (d(xindex(i)-1) !=0) {
+		if (d(xindex(i)-1) !=0.0) {
 		  yout(i)+=s*(s-hh)*(s-hh)/(hh*hh)*d(xindex(i)-1);
 		}
 
