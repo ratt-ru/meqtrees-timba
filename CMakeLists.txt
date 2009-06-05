@@ -54,8 +54,10 @@ endif(CASACORE_FOUND)
 
 # -- compiler defaults
 add_definitions(-DUSE_STD_COMPLEX -DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_THREADS)
+SET(CPP_PLATFORM_LIBS)
 if(CMAKE_COMPILER_IS_GNUCC)
     add_definitions(-Wno-deprecated -D_GNU_SOURCE -Wno-unknown-pragmas)
+    SET(CPP_PLATFORM_LIBS util dl)
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # -- sub modules
