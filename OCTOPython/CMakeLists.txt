@@ -6,7 +6,7 @@ set(octopython_include
         src/TID-OctoPython.h
         src/TypeIter-OctoPython.h
 )
-INCLUDE_SETUP(OCTOPython ${octopython_include})
+INCLUDE_SETUP(OCTOPython ${octopython_include} ${PYTHON_NUMPY_INCLUDE_DIR})
 
 set(src 
         src/AID-OctoPython-Registry.cc

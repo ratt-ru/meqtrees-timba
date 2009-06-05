@@ -44,6 +44,7 @@ set(dependencies
                  FFTW3
                  CfitsIO
                  Threads
+                 PythonNumpy
 )
 PACKAGE_DEPENDENCIES( ${dependencies} )
 
