@@ -19,4 +19,6 @@ set(src
 add_library(octopython ${src})
 install(TARGETS octopython DESTINATION ${LIBRARY_INSTALL_DIR})
 install(FILES src/version_info/__init__.py DESTINATION ${PYTHON_INSTALL_DIR}/version_info)
+FILE(GLOB timbafiles "${CMAKE_CURRENT_SOURCE_DIR}/src/*.py")
+install(FILES ${timbafiles} DESTINATION ${PYTHON_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(octopython ${PYTHON_LIBRARIES})
