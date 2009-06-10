@@ -1,4 +1,4 @@
-INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH} )
+INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH} ${PYTHON_NUMPY_INCLUDE_DIR} )
 MEQPACKAGE( OCTOPython OCTOPUSSY DMI TimBase )
 set(octopython_include
         src/AID-OctoPython.h
@@ -6,7 +6,7 @@ set(octopython_include
         src/TID-OctoPython.h
         src/TypeIter-OctoPython.h
 )
-INCLUDE_SETUP(OCTOPython ${octopython_include} ${PYTHON_NUMPY_INCLUDE_DIR})
+INCLUDE_SETUP(OCTOPython ${octopython_include} )
 
 set(src 
         src/AID-OctoPython-Registry.cc
