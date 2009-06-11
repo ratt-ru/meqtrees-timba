@@ -33,6 +33,8 @@ set(meqServer_lib_src
     )
 add_library(meqserver-lib ${meqServer_lib_src})
 install(TARGETS meqserver-lib DESTINATION ${LIBRARY_INSTALL_DIR})
+FILE(GLOB timbafiles "${CMAKE_CURRENT_SOURCE_DIR}/src/*.py")
+install(FILES ${timbafiles} DESTINATION ${PYTHON_INSTALL_DIR})
 SET_TARGET_PROPERTIES(meqserver-lib PROPERTIES OUTPUT_NAME "meqserver")
 MEQPACKAGE_ADD_LIBRARIES(meqserver-lib)
 
