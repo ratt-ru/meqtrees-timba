@@ -75,4 +75,4 @@ set(timbase_src
 add_library(timbase ${timbase_src})
 install(TARGETS timbase DESTINATION ${LIBRARY_INSTALL_DIR})
 install(PROGRAMS src/gprof-run RENAME meqtrees-gprof-run DESTINATION bin)
-MEQPACKAGE_ADD_LIBRARIES(timbase)
+MEQPACKAGE_ADD_LIBRARIES(timbase ${BLITZ_LIBRARIES})

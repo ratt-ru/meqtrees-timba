@@ -67,5 +67,6 @@ set(meq_src
             src/VellsSlicerWithFlags.cc )
 
 add_library(meq ${meq_src})
+#target_link_libraries(meq ${MEQPACKAGE_LIBRARIES})
 install(TARGETS meq DESTINATION ${LIBRARY_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(meq)
