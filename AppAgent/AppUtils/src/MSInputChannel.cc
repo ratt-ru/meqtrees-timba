@@ -614,9 +614,9 @@ int MSInputChannel::refillStream ()
               tapered_data(i,0,j) = datacube(i,0,j);
               tapered_data(i,shape[1]-1,j) = datacube(i,shape[1]-1,j);
               for( int k=1; k<shape[1]-1; k++ )
-                tapered_data(i,k,j) = (fcomplex(.50)*datacube(i,k,j)+
-                                      fcomplex(.25)*datacube(i,k-1,j)+
-                                      fcomplex(.25)*datacube(i,k+1,j));
+                tapered_data(i,k,j) = (fcomplex(.50+0j)*datacube(i,k,j)+
+                                      fcomplex(.25+0j)*datacube(i,k-1,j)+
+                                      fcomplex(.25+0j)*datacube(i,k+1,j));
 //              if( hasflags )
 //                for( int k=1; k<shape[1]-1; k++ )
 //                  tapered_flags(i,k,j) = bitflagcube(i,k,j)|
