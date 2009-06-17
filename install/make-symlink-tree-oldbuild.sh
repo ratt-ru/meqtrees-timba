@@ -53,8 +53,10 @@ makedir libexec
 cd bin
 ln-s ../../../TimBase/src/gprof-run
 ln-s ../../../PyApps/src/meqbrowser.py
-if [ -f ../../../build/$flavour/MeqServer/meqserver ]; then
-  ln-s ../../../build/$flavour/MeqServer/meqserver
+if [ -f ../../../MeqServer/build/$flavour/src/.libs/meqserver ]; then
+  ln-s ../../../MeqServer/build/$flavour/src/.libs/meqserver
+elif [ -f ../../../MeqServer/build/$flavour/src/meqserver ]; then
+  ln-s ../../../MeqServer/build/$flavour/src/meqserver
 else
   echo "WARNING: meqserver binary not found"
 fi
@@ -64,7 +66,7 @@ ln-s ../../../PyApps/src/trutify
 ln-s ../../../PyApps/src/trut.py
 ln-s ../../../PyApps/src/Purr/purr.py
 ln-s ../../../TimBase/src/gprof-run
-ln-s ../../../build/$flavour/AppAgent/AppUtils/addbitflagcol
+ln-s ../../../AppAgent/AppUtils/build/$flavour/src/.libs/addbitflagcol
 
 
 if [ -f meqserver-mpi ]; then
@@ -80,13 +82,12 @@ END
 fi
 
 cd ../lib
-find ../../.. -name "*so" -o -name "*dylib"
-for libname in `find ../../.. -name "*so" -o -name "*dylib" | grep -v svn-base | grep -v symlinked-$flavour | grep /$flavour/`; do
+for libname in `find ../../../ -name "*so" -o name "*dylib" -o -name "*.so.[0-9]*" | grep -v svn-base | grep -v symlinked-$flavour | grep /$flavour/`; do
   ln-s $libname
 done
 
 cd ../libexec
-ln-s ../../../build/$flavour/TimBase/src/gprof-helper.so
+ln-s ../../../TimBase/build/$flavour/src/gprof-helper.so
 makedir python
 cd python
 #ln-s ../../../../FW/Meow
@@ -107,19 +108,27 @@ ln-s ../../../../../PyApps/src/GUI
 ln-s ../../../../../OCTOPython/src/__init__.py
 ln-s ../../../../../PyApps/src/Meq
 ln-s ../../../../../MeqServer/src/meqkernel.py
-ln-s ../../../../../build/$flavour/PyApps/mequtils.dylib
-ln-s ../../../../../build/$flavour/PyApps/mequtils.so
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.dylib
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so.0
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/mequtils.so.0.0.0
 ln-s ../../../../../OCTOPython/src/octopussy.py
-ln-s ../../../../../build/$flavour/OCTOPython/liboctopython.dylib octopython.dylib
-ln-s ../../../../../build/$flavour/OCTOPython/liboctopython.so octopython.so
+ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.dylib octopython.dylib
+ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.so octopython.so
+ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.so.0 octopython.so.0
+ln-s ../../../../../OCTOPython/build/$flavour/src/.libs/liboctopython.so.0.0.0 octopython.so.0.0.0
 ln-s ../../../../../PyParmDB/src/ParmDB.py
-ln-s ../../../../../build/$flavour/PyApps/parmtables.dylib
-ln-s ../../../../../build/$flavour/PyApps/parmtables.so
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.dylib
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.so
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.so.0
+ln-s ../../../../../PyApps/build/$flavour/src/.libs/parmtables.so.0.0.0
 ln-s ../../../../../PyApps/src/Plugins
 ln-s ../../../../../PyApps/src/pretty_print.py
 ln-s ../../../../../MeqServer/src/pynode.py
-ln-s ../../../../../build/$flavour/PyParmDB/pyparmdb.dylib
-ln-s ../../../../../build/$flavour/PyParmDB/pyparmdb.so
+ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so.dylib
+ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so
+ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so.0
+ln-s ../../../../../PyParmDB/build/$flavour/src/.libs/pyparmdb.so.0.0.0
 ln-s ../../../../../OCTOPython/src/qt_threading.py
 ln-s ../../../../../PyApps/src/TDL
 ln-s ../../../../../PyApps/src/Trees
