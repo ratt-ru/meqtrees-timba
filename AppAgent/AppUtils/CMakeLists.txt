@@ -21,3 +21,8 @@ set(appUtils_src
 add_library(apputils ${appUtils_src})
 install(TARGETS apputils DESTINATION ${LIBRARY_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(apputils)
+
+add_executable(addbitflagcol src/addbitflagcol.cc)
+target_link_libraries(addbitflagcol ${MEQPACKAGE_LIBRARIES} ${CPP_PLATFORM_LIBS})
+INSTALL(TARGETS addbitflagcol RUNTIME DESTINATION bin)
+
