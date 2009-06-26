@@ -31,8 +31,8 @@ _Packages = [ "Cattery" ];
 
 # list of locations where packages will be searched for
 _PackageLocations = [ "~","~/Frameworks/",
-  "/usr/local/MeqTrees","/usr/local/lib/MeqTrees","/usr/lib/MeqTrees",
-  "/usr/local/meqtrees","/usr/local/lib/meqtrees","/usr/lib/meqtrees",
+  "/usr/local/MeqTrees","/usr/local/lib/MeqTrees","/usr/lib/MeqTrees","/usr/lib64/MeqTrees","/usr/lib32/MeqTrees"
+  "/usr/local/meqtrees","/usr/local/lib/meqtrees","/usr/lib/meqtrees","/usr/lib64/meqtrees","/usr/lib32/meqtrees"
   ];
 
 
