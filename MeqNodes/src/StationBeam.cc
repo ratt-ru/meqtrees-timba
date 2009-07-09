@@ -214,7 +214,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
   Frame.set (mepoch);
   MDirection::Convert azel_converter = MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame));
   double theta0,phi0;
-  double c=2.99792e8;
+  double c=2.99792458e8;
   blitz::Array<dcomplex,1> wk;
   wk.resize(p_.extent(0));
   for( int ci=0; ci<ntime; ci++)  {
@@ -224,10 +224,10 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
    MDirection az_el_out(azel_converter());
    // convert ra, dec to Az El at given time
    Vector<Double> az_el = az_el_out.getValue().getAngle("rad").getValue();
-   theta0 = M_PI/2-az_el(1); // declination from zenith
+   theta0 = M_PI_2-az_el(1); // declination from zenith
    phi0 = az_el(0)+phi0_; // azimuth rotated by 45
    //find k_0
-   double k0[3];
+	 double k0[3];
    double omega0=2*M_PI*f0_; //reference freq
    k0[0]=-sin(theta0)*cos(phi0)/c*omega0;
    k0[1]=-sin(theta0)*sin(phi0)/c*omega0;
@@ -238,7 +238,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
      //calculate delays and weights
      for (int nt=0; nt<wk.extent(0); nt++) {
         tau=k0[0]*p_(nt,0)+k0[1]*p_(nt,1)+k0[2]*p_(nt,2);
-        wk(nt)=make_dcomplex(std::cos(tau),std::sin(tau))/(double)p_.extent(0); //conjugate, and normalize
+        wk(nt)=make_dcomplex(cos(tau),sin(tau))/(double)p_.extent(0); //conjugate, and normalize
      }
      // mutual copling makes w^H x v_k to w^H x C x v_k, so postmultiply w by C
      // to reduce cost
@@ -258,7 +258,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
      for( int ck=0; ck<naz; ck++)  {
        double phi=azval(ck); //no rotation here, because already rotated
        for( int cl=0; cl<nel; cl++)  {
-          double theta=M_PI/2-elval(cl);
+          double theta=M_PI_2-elval(cl);
 //std::cout<<"phi0="<<phi0<<" phi="<<phi<<" theta0="<<theta0<<" theta="<<theta<<std::endl;
           B(ci,cj,ck,cl)=make_dcomplex(0);
           //make array manifold vector
