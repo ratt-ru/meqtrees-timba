@@ -105,6 +105,8 @@ LoShape AzEl::getResultDims (const vector<const LoShape *> &input_dims)
 void AzEl::evaluateTensors (std::vector<Vells> & out,   
                             const std::vector<std::vector<const Vells *> > &args)
 {
+
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // create a frame for an Observatory, or a telescope station
   MeasFrame Frame; // create default frame 
 
@@ -113,7 +115,6 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
   // Get RA and DEC, and station positions
   const Vells& vra  = *(args[0][0]);
   const Vells& vdec = *(args[0][1]);
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
 
   if( obs_name_.empty() )
     {
