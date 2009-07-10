@@ -8,14 +8,14 @@ sub usage {
           "\t$0 [options] <debug|release> [cmake options]\n",
           "Options:\n\t",
           "-cmake <exe> : specify an alternative cmake executable\n",
-          "-name <name> : specify a specific name for the build (relative to top)\n",
-          "-src <dir>   : specify the src code directory tree\n",
-          "               default is the current directory\n",
-          "-top <dir>   : specify scratch area to place builds\n";
+          "\t-name <name> : specify a specific name for the build (relative to top)\n",
+          "\t-src <dir>   : specify the src code directory tree\n",
+          "\t               default is the current directory\n",
+          "\t-top <dir>   : specify scratch area to place builds\n";
           print "\nExamples:\n\t",
           "$0 debug CXX=g++4.2 -DCMAKE_INSTALL_PREFIX=/usr\n\n",
           "\tChoose an alternative compiler (via an environmental variable CXX)\n\t",
-          "and set an alternative CMAKE_INSTALL_PREFIX via a cmake define";
+          "and set an alternative CMAKE_INSTALL_PREFIX via a cmake define\n";
 }
 
 use Cwd;
@@ -139,6 +139,6 @@ sub configure {
     }
     push @cmds, $self->{cmake}, "-DCMAKE_BUILD_TYPE=$type", @post, $self->{src};
     print "executing @cmds\n";
-    system( @cmds );
+    system( @cmds ) == 0 or die("error running command '".$self->{cmake}."': $!\n");
 }
 
