@@ -45,6 +45,7 @@ set(dependencies
                  CfitsIO
                  Threads
                  PythonNumpy
+                 MPI
 )
 PACKAGE_DEPENDENCIES( ${dependencies} )
 
@@ -59,6 +60,9 @@ if(CMAKE_COMPILER_IS_GNUCC)
     add_definitions(-Wno-deprecated -D_GNU_SOURCE -Wno-unknown-pragmas)
     list(APPEND CPP_PLATFORM_LIBS util dl)
 endif(CMAKE_COMPILER_IS_GNUCC)
+IF(APPLE)
+    add_definitions(-DDARWIN)
+ENDIF(APPLE)
 
 # -- sub modules
 add_subdirectory(TimBase)
