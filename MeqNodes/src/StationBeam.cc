@@ -160,10 +160,6 @@ LoShape StationBeam::getResultDims (const vector<const LoShape *> &input_dims)
 void StationBeam::evaluateTensors (std::vector<Vells> & out,   
                             const std::vector<std::vector<const Vells *> > &args)
 {
-  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-  // create a frame for an Observatory, or a telescope station
-  MeasFrame Frame; // create default frame 
-
   const Vells& vra  = *(args[0][0]);
   const Vells& vdec = *(args[0][1]);
   const Vells& vx   = *(args[1][0]);
@@ -185,16 +181,7 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
   double f0_ =vf0.getScalar<double>();
  
 
-  // thanks to checks in getResultDims(), we can expect all 
-  // vectors to have the right sizes
-  // Get RA and DEC, and station positions
-  MPosition stnpos(MVPosition(x_,y_,z_),MPosition::ITRF);
-  Frame.set(stnpos); // tie this frame to station position
-
   const Cells& cells = resultCells();
-  // Get RA and DEC of location to be transformed to StationBeam (default is J2000).
-  // assume input ra and dec are in radians
-  MVDirection sourceCoord(ra_,dec_);
 
   int ntime = cells.ncells(Axis::TIME);
   int nfreq = cells.ncells(Axis::FREQ);
@@ -208,38 +195,37 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
   out[0] = Vells(make_dcomplex(0.0),cells.shape(),false);
   dcomplex* data = out[0].complexStorage();
   blitz::Array<dcomplex,4> B(data,blitz::shape(ntime,nfreq,naz,nel));
-  Quantum<double> qepoch(0, "s");
-  qepoch.setValue(time(0));
-  MEpoch mepoch(qepoch, MEpoch::UTC);
-  Frame.set (mepoch);
-  MDirection::Convert azel_converter = MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame));
   double theta0,phi0;
   double c=2.99792458e8;
   blitz::Array<dcomplex,1> wk;
+  blitz::Array<double,1> azval0;
+  blitz::Array<double,1> elval0;
   wk.resize(p_.extent(0));
+  azval0.resize(ntime);
+  elval0.resize(ntime);
+  // precompute all az,el values beforehand to save time
+  // AIPS++ lock will only be used there
+  precompute_azel(time,azval0,elval0,ra_,dec_,x_,y_,z_);
+
   for( int ci=0; ci<ntime; ci++)  {
-   qepoch.setValue (time(ci));
-   mepoch.set (qepoch);
-   Frame.set (mepoch);
-   MDirection az_el_out(azel_converter());
-   // convert ra, dec to Az El at given time
-   Vector<Double> az_el = az_el_out.getValue().getAngle("rad").getValue();
-   theta0 = M_PI_2-az_el(1); // declination from zenith
-   phi0 = az_el(0)+phi0_; // azimuth rotated by 45
+   phi0 = azval0(ci)+phi0_; // azimuth rotated by 45
+   theta0 = M_PI_2-elval0(ci); // declination from zenith
    //find k_0
 	 double k0[3];
    double omega0=2*M_PI*f0_; //reference freq
    k0[0]=-sin(theta0)*cos(phi0)/c*omega0;
    k0[1]=-sin(theta0)*sin(phi0)/c*omega0;
    k0[2]=-cos(theta0)/c*omega0;
-   for(int cj=0; cj<nfreq; cj++)  {
-     double omega=2*M_PI*freq(cj);
-     double tau;
-     //calculate delays and weights
-     for (int nt=0; nt<wk.extent(0); nt++) {
+   //calculate delays and weights
+   double tau;
+   for (int nt=0; nt<wk.extent(0); nt++) {
         tau=k0[0]*p_(nt,0)+k0[1]*p_(nt,1)+k0[2]*p_(nt,2);
         wk(nt)=make_dcomplex(cos(tau),sin(tau))/(double)p_.extent(0); //conjugate, and normalize
-     }
+   }
+
+   for(int cj=0; cj<nfreq; cj++)  {
+     double omega=2*M_PI*freq(cj);
+     double omega_c=omega/c;
      // mutual copling makes w^H x v_k to w^H x C x v_k, so postmultiply w by C
      // to reduce cost
      if (coupling_defined_) {
@@ -255,19 +241,23 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
         }
      }
 
+     //make array manifold vector here, to save time
      for( int ck=0; ck<naz; ck++)  {
        double phi=azval(ck); //no rotation here, because already rotated
+       double cphi=-cos(phi)*omega_c;
+       double sphi=-sin(phi)*omega_c;
        for( int cl=0; cl<nel; cl++)  {
           double theta=M_PI_2-elval(cl);
-//std::cout<<"phi0="<<phi0<<" phi="<<phi<<" theta0="<<theta0<<" theta="<<theta<<std::endl;
+          double stheta=sin(theta);
+          double ctheta=cos(theta);
           B(ci,cj,ck,cl)=make_dcomplex(0);
-          //make array manifold vector
           double kt[3];
-          kt[0]=-sin(theta)*cos(phi)/c*omega;
-          kt[1]=-sin(theta)*sin(phi)/c*omega;
-          kt[2]=-cos(theta)/c*omega;
-//std::cout<<"k0 ="<<k0[0]<<" "<<k0[1]<<" "<<k0[2]<<std::endl;
-//std::cout<<"k ="<<kt[0]<<" "<<kt[1]<<" "<<kt[2]<<std::endl;
+  //**        kt[0]=-sin(theta)*cos(phi)/c*omega;
+  //**        kt[1]=-sin(theta)*sin(phi)/c*omega;
+  //**        kt[2]=-cos(theta)/c*omega;
+          kt[0]=stheta*cphi;
+          kt[1]=stheta*sphi;
+          kt[2]=-ctheta*omega_c;
           dcomplex vk;
           for (int nt=0; nt<wk.extent(0); nt++) {
            tau=kt[0]*p_(nt,0)+kt[1]*p_(nt,1)+kt[2]*p_(nt,2);
@@ -279,5 +269,37 @@ void StationBeam::evaluateTensors (std::vector<Vells> & out,
    }
   }
 }
+
+
+void StationBeam::precompute_azel(const blitz::Array<double,1> time, blitz::Array<double,1> azval0, blitz::Array<double,1> elval0, double ra, double dec, double x, double y, double z) 
+{
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+  // create a frame for an Observatory, or a telescope station
+  MeasFrame Frame; // create default frame 
+
+  MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
+  Frame.set(stnpos); // tie this frame to station position
+
+  // assume input ra and dec are in radians
+  MVDirection sourceCoord(ra,dec);
+
+  Quantum<double> qepoch(0, "s");
+  qepoch.setValue(time(0));
+  MEpoch mepoch(qepoch, MEpoch::UTC);
+  Frame.set (mepoch);
+  MDirection::Convert azel_converter = MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::AZEL,Frame));
+  int ntime=time.extent(0);
+  for( int ci=0; ci<ntime; ci++)  {
+   qepoch.setValue (time(ci));
+   mepoch.set (qepoch);
+   Frame.set (mepoch);
+   MDirection az_el_out(azel_converter());
+   // convert ra, dec to Az El at given time
+   Vector<Double> az_el = az_el_out.getValue().getAngle("rad").getValue();
+   azval0(ci) = az_el(0);
+   elval0(ci)=az_el(1); 
+  }
+}
+
 
 } // namespace Meq

@@ -91,6 +91,9 @@ private:
   blitz::Array<double,2> p_;//array of coordinates
   blitz::Array<double,2> c_;//mutual coupling matrix
   int coupling_defined_;
+
+  // all the AIPS++ things are done here
+  void precompute_azel(const blitz::Array<double,1> time, blitz::Array<double,1> azval0, blitz::Array<double,1> elval0, double ra, double dec, double x, double y, double z);
 };
 
 
