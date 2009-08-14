@@ -113,14 +113,15 @@ void StationBeam::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     c_.resize(nx,nx);//mutual coupling matrix
     ci=0;
     int cj;
-    double dummy;
+    double dummy1,dummy2;
     while (!infd.eof() && ci<nx) {
-      c_(ci,ci)=1; // diagonal is 1
+      c_(ci,ci)=make_dcomplex(1.0,0.0); // diagonal is 1
       cj=0;
       while (!infd.eof() && cj<ci) {
         getline(infd,line);
-        sscanf(line.c_str(),"%lf %lf",&c_(ci,cj), &dummy); 
-        c_(cj,ci)=c_(ci,cj);
+        sscanf(line.c_str(),"%lf %lf",&dummy1, &dummy2); 
+        c_(ci,cj)=make_dcomplex(dummy1,dummy2);
+        c_(cj,ci)=make_dcomplex(dummy1,-dummy2);
         cj++;
       }
       ci++;

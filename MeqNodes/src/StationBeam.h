@@ -89,7 +89,7 @@ private:
   string coordfile_name_; //file to store coordinates
   string couplingfile_name_; //file for mutual coupling
   blitz::Array<double,2> p_;//array of coordinates
-  blitz::Array<double,2> c_;//mutual coupling matrix
+  blitz::Array<dcomplex,2> c_;//mutual coupling matrix
   int coupling_defined_;
 
   // all the AIPS++ things are done here
