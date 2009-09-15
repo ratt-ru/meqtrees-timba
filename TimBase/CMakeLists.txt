@@ -1,3 +1,4 @@
+INCLUDE_DIRECTORIES(${BLITZ_INCLUDE_DIR})
 MEQPACKAGE( TimBase )
 
 set(timbase_includes
