@@ -1,9 +1,12 @@
 # - Find casacore
+# 
 # Find the native CASACORE includes and library
 #
-#  CASACORE_INCLUDE_DIR - where to find casacore.h, etc.
-#  CASACORE_LIBRARIES   - List of libraries when using casacore.
-#  CASACORE_FOUND       - True if casacore found.
+#  CASACORE_INCLUDE_DIR  - where to find casacore.h, etc.
+#  CASACORE_LIBRARY_PATH - Specify to choose a non-standard location to
+#                          search for libraries
+#  CASACORE_LIBRARIES    - List of libraries when using casacore.
+#  CASACORE_FOUND        - True if casacore found.
 
 
 IF (CASACORE_INCLUDE_DIR)
@@ -39,7 +42,7 @@ SET(CASACORE_NAMES
     casa_images
 )
 FOREACH( lib ${CASACORE_NAMES} )
-    FIND_LIBRARY(CASACORE_LIBRARY_${lib} NAMES ${lib} )
+    FIND_LIBRARY(CASACORE_LIBRARY_${lib} NAMES ${lib} ENV CASACORE_LIBRARY_PATH )
     MARK_AS_ADVANCED(CASACORE_LIBRARY_${lib})
     LIST(APPEND CASACORE_LIBRARIES ${CASACORE_LIBRARY_${lib}})
 ENDFOREACH(lib)
