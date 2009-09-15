@@ -32,7 +32,8 @@ if app_defaults.include_gui:
   import Timba.qt_threading;
 
 try:
-  from qt import QObject,PYSIGNAL
+  from PyQt4.Qt import QObject,SIGNAL
+  from Kittens.widgets import PYSIGNAL
 except:
   print "Qt not available, substituting proxy types for QObject";
   from QObject import QObject,PYSIGNAL
@@ -52,13 +53,13 @@ import socket;
 
 class Client (QObject):
   def __init__ (self,name):
-    QObject.__init__(self,None,name);
+    QObject.__init__(self,None);
     self.host = socket.gethostname().split('.')[0];
     self.addr = None;
 
 class Server (QObject):
   def __init__ (self,addr,state=0,statestr=''):
-    QObject.__init__(self,None,str(addr));
+    QObject.__init__(self,None);
     self.addr = addr;
     self.state = state;
     self.statestr = statestr;
@@ -255,16 +256,16 @@ class multiapp_proxy (verbosity):
     if server and server is not self.current_server:
       self.detach_current_server();
       self.current_server = server;
-      server.emit(PYSIGNAL("attached()"),());
-      self.client.emit(PYSIGNAL("serverAttached()"),(server,));
+      server.emit(SIGNAL("attached"));
+      self.client.emit(SIGNAL("serverAttached"),server,);
       self._gui_event_handler(self.server_attach_event,None,server);
       self._auto_attach_pid = self._auto_attach_host = None;
       
   def detach_current_server (self):
     """Detaches from current server""";
     if self.current_server:
-      self.current_server.emit(PYSIGNAL("detached()"),());
-      self.client.emit(PYSIGNAL("serverDetached()"),(self.current_server,));
+      self.current_server.emit(SIGNAL("detached"));
+      self.client.emit(SIGNAL("serverDetached"),self.current_server,);
       self._gui_event_handler(self.server_detach_event,None,self.current_server);
       self.current_server = None;
       
@@ -277,7 +278,7 @@ class multiapp_proxy (verbosity):
     self.servers[addr] = server;
     self.dprint(2,"requesting state and status update");
     self.send_command("Request.State",destination=addr);
-    self.client.emit(PYSIGNAL("serverConnected()"),(server,));
+    self.client.emit(SIGNAL("serverConnected"),server,);
     self._gui_event_handler(self.hello_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     # is an auto-attach request in place?
@@ -291,13 +292,13 @@ class multiapp_proxy (verbosity):
     to disconnect a server""";
     server.state = server.process_state = None;
     server.statestr = '';
-    server.emit(PYSIGNAL("newState()"),());
-    server.emit(PYSIGNAL("disconnected()"),());
+    server.emit(SIGNAL("newState"));
+    server.emit(SIGNAL("disconnected"));
     self._gui_event_handler(self.bye_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     if server is self.current_server:
       self.detach_current_server();
-    self.client.emit(PYSIGNAL("serverDisconnected()"),(server,));
+    self.client.emit(SIGNAL("serverDisconnected"),server,);
     del self.servers[addr];
   
   def _hello_handler (self,msg):
@@ -321,7 +322,7 @@ class multiapp_proxy (verbosity):
       if fromaddr[2:3] == addr[2:3]:
         server.process_status = msg.msgid[2:];
         self.dprintf(5,"server %s, process status %s",addr,server.process_status);
-        server.emit(PYSIGNAL("processStatus()"),(server.process_status,));
+        server.emit(SIGNAL("processStatus"),server.process_status,);
         self._gui_event_handler(self.process_status_event,server.process_status,server);
     
   def _remote_down_handler (self,msg):
@@ -399,7 +400,7 @@ class multiapp_proxy (verbosity):
       self.dprint(2,'   event:',event);
       self.dprint(3,'   value:',value);
     # emit signals
-    server.emit(PYSIGNAL("event()"),(event,value));
+    server.emit(SIGNAL("event"),event,value);
     # forward to gui
     self._gui_event_handler(event,value,server);
     

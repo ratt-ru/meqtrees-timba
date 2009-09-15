@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 # MEQ Data Services
 
@@ -34,13 +35,18 @@ from Timba import mequtils
 import weakref
 import types
 import new
-import sets
 import re
 import time
 import copy
 import math
-from qt import *
 import traceback
+
+try:
+  from PyQt4.Qt import QObject,SIGNAL
+  from Kittens.widgets import PYSIGNAL
+except:
+  print "Qt not available, substituting proxy types for QObject";
+  from Timba.Apps.QObject import QObject,PYSIGNAL
 
 _dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;
@@ -136,7 +142,7 @@ class NodeList (QObject):
   
   class Node (QObject):
     def __init__ (self,ni,parent=None):
-      QObject.__init__(self,parent,"meqds.Node");
+      QObject.__init__(self,parent);
       self.nodeindex = ni;
       self.name = None;
       self.classname = None;
@@ -196,13 +202,13 @@ class NodeList (QObject):
         self.request_id = rqid;
       self.control_status_string = s;
       _dprint(6,"node",self.name,"update status %X"%(status,));
-      self.emit(PYSIGNAL("status()"),(self,old_status));
+      self.emit(SIGNAL("status"),self,old_status);
     def update_state (self,state,event=None):
       try: self.breakpoint = state.breakpoint;
       except AttributeError: pass;
       self.update_status(state.control_status,state.get('request_id',None));
       _dprint(5,"node",self.name,"update state (event ",event,")");
-      self.emit(PYSIGNAL("state()"),(self,state,event));
+      self.emit(SIGNAL("state"),self,state,event);
     # Adds a subscriber to node status changes
     def subscribe_status (self,callback):
       _dprint(4,"connecting status of node ",self.name," to ",callback);
@@ -221,7 +227,7 @@ class NodeList (QObject):
 
   # init node list
   def __init__ (self,meqnl=None,parent=None):
-    QObject.__init__(self,parent,"meqds.NodeList");
+    QObject.__init__(self,parent);
     self.serial = 0;
     if meqnl:
       self.load_meqlist(meqnl);
@@ -308,7 +314,7 @@ class NodeList (QObject):
     # compose list of root (i.e. parentless) nodes
     self._rootnodes = [ node for node in self._nimap.itervalues() if not node.parents ];
     # emit signal
-    self.emit(PYSIGNAL("loaded()"),(meqnl,));
+    self.emit(SIGNAL("loaded"),meqnl,);
     
 #  __init__ = busyCursorMethod(__init__);
   # return list of root nodes
@@ -529,7 +535,7 @@ def update_forest_state (fst,merge=False):
   axislist = fst.get('axis_list',None);
   if axislist:
     mequtils.set_axis_list(axislist);
-  _forest_state_obj.emit(PYSIGNAL("state()"),(_forest_state,));
+  _forest_state_obj.emit(SIGNAL("state"),_forest_state,);
   
 def set_forest_state (field,value):
   mqs().meq('Set.Forest.State',record(state=record(**{field:value})),wait=False);
@@ -541,7 +547,7 @@ def set_forest_state (field,value):
 def clear_forest ():
   mqs().meq('Clear.Forest',record(),wait=False);
   nodelist.clear();
-  nodelist.emit(PYSIGNAL("cleared()"),());
+  nodelist.emit(SIGNAL("cleared"));
 
 _req_nodelist_time = 0;
 
@@ -558,7 +564,7 @@ def request_nodelist (force=False,profiling_stats=False,sync=False):
   if profiling_stats:
     rec = copy.copy(rec);
     rec.profiling_stats = True;
-  nodelist.emit(PYSIGNAL("requested()"),());
+  nodelist.emit(SIGNAL("requested"));
   mqs().meq('Get.Node.List',rec,wait=False);
   global _req_nodelist_time;
   _req_nodelist_time = time.time();
@@ -611,7 +617,7 @@ def hold_node_state_requests ():
   """;
   global _holding_requests;
   if _holding_requests is None:
-    _holding_requests = sets.Set();
+    _holding_requests = set();
 
 def resume_node_state_requests ():
   """releases held requests.""";

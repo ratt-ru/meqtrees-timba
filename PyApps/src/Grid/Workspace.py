@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -33,11 +34,12 @@ from Timba.Grid.Debug import *
 from Timba import *
 
 import weakref
-import sets
 import re
 import gc
 import types
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 # ====== Grid.Workspace ======================================================
 # implements a multi-page, multi-panel viewing grid
@@ -53,22 +55,20 @@ class Workspace (object):
     self._dataitems = dict();
     # highlighted item
     self._highlight = None;
-    # highlight color
-    self._highlight_color = QApplication.palette().active().highlight();
     # currier
     self._currier = PersistentCurrier();
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
   
     self._maintab = QTabWidget(parent);
-    self._maintab.setTabPosition(QTabWidget.Top);
-    QWidget.connect(self._maintab,SIGNAL("currentChanged(QWidget*)"),self._set_layout_button);
+    self._maintab.setTabPosition(QTabWidget.North);
+    QWidget.connect(self._maintab,SIGNAL("currentChanged(int)"),self._set_layout_button);
     self.max_nx = max_nx;
     self.max_ny = max_ny;
     # set of parents for corners of the maintab (added on demand when GUI is built)
     self._tb_corners = {};
     #------ add page
-    newpage = self.add_tool_button(Qt.TopLeft,pixmaps.tab_new_raised.pm(),
+    newpage = self.add_tool_button(Qt.TopLeftCorner,pixmaps.tab_new_raised.icon(),
         tooltip="open new page. You can also drop data items here.",
         class_=self.DataDropButton,
         click=self.add_page);
@@ -76,7 +76,7 @@ class Workspace (object):
     QWidget.connect(newpage,PYSIGNAL("itemDropped()"),
         newpage._dropitem);
     #------ new panels button
-    self._new_panel = self.add_tool_button(Qt.TopLeft,pixmaps.view_right.pm(),
+    self._new_panel = self.add_tool_button(Qt.TopLeftCorner,pixmaps.view_right.icon(),
         tooltip="add more panels to this page. You can also drop data items here.",
         class_=self.DataDropButton,
         click=self._add_more_panels);
@@ -84,18 +84,18 @@ class Workspace (object):
     QWidget.connect(self._new_panel,PYSIGNAL("itemDropped()"),
         self._new_panel._dropitem);
     #------ align button
-    self.add_tool_button(Qt.TopLeft,pixmaps.view_split.pm(),
+    self.add_tool_button(Qt.TopLeftCorner,pixmaps.view_split.icon(),
         tooltip="align panels on this page",
         click=self._align_grid);
     #------ remove page
-    self.add_tool_button(Qt.TopRight,pixmaps.tab_remove.pm(),
+    self.add_tool_button(Qt.TopRightCorner,pixmaps.tab_remove.icon(),
         tooltip="remove this page",
         click=self.remove_current_page);
     # init first page
     self.add_page();
   
   # adds a tool button to one of the corners of the workspace viewer
-  def add_tool_button (self,corner,pixmap,tooltip=None,click=None,
+  def add_tool_button (self,corner,icon,tooltip=None,click=None,
                         leftside=False,class_=QToolButton):
     # create corner box on demand
     layout = self._tb_corners.get(corner,None);
@@ -105,16 +105,16 @@ class Workspace (object):
       layout.setMargin(2);
       self._maintab.setCornerWidget(parent,corner);
     # add button
-    button = class_(layout.mainWidget());
+    button = class_(layout.parentWidget());
     button._gw = weakref.proxy(self);
     if leftside:
       layout.insertWidget(0,button);
     else:
       layout.addWidget(button);
-    button.setPixmap(pixmap);
+    button.setIcon(icon);
     button.setAutoRaise(True);
     if tooltip:
-      QToolTip.add(button,tooltip);
+      button.setToolTip(tooltip);
     if callable(click):
       QWidget.connect(button,SIGNAL("clicked()"),click);
     return button;
@@ -124,57 +124,58 @@ class Workspace (object):
     
   def show (self,shown=True):
     self.wtop().setShown(shown);
-    self.wtop().emit(PYSIGNAL("shown()"),(shown,));
+    self.wtop().emit(SIGNAL("shown"),shown,);
   
   def hide (self):
     self.wtop().hide();
-    self.wtop().emit(PYSIGNAL("shown()"),(False,));
+    self.wtop().emit(SIGNAL("shown"),False,);
     
   def isVisible (self):
     return self.wtop().isVisible();
     
-  def add_page (self,name=None,iconset=None):
+  def add_page (self,name=None,icon=None):
     page = Timba.Grid.Page(self,self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     wpage = page.wtop();
     wpage._page = page;
-    _dprint(2,'name',name,'iconset',iconset);
+    _dprint(2,'name',name,'icon',icon);
+    index = self._maintab.count();
     # generate page name, if none is supplied
     if name is None:
-      name = 'Page '+str(self._maintab.count()+1);
+      name = 'Page %d'%(index+1);
       page.set_name(name,True); # auto_name = True
     else:
       page.set_name(name);
-    page.set_icon(iconset);
+    page.set_icon(icon);
     # add page to tab
-    iconset = iconset or QIconSet();
-    _dprint(2,'addTab:',name,iconset);
-    self._maintab.addTab(wpage,iconset,name);
-    self._maintab.setCurrentPage(self._maintab.count()-1);
+    icon = icon or QIcon();
+    _dprint(2,'addTab:',name,icon);
+    self._maintab.addTab(wpage,icon,name);
+    self._maintab.setCurrentIndex(index);
     QWidget.connect(wpage,PYSIGNAL("layoutChanged()"),self._set_layout_button);
-    wpage._change_icon = curry(self._maintab.setTabIconSet,wpage);
+    wpage._change_icon = curry(self._maintab.setTabIcon,index);
     QWidget.connect(wpage,PYSIGNAL("setIcon()"),wpage._change_icon);
-    wpage._rename = curry(self._maintab.setTabLabel,wpage);
+    wpage._rename = curry(self._maintab.setTabText,index);
     QWidget.connect(wpage,PYSIGNAL("setName()"),wpage._rename);
     return page;
     
   def remove_current_page (self):
-    ipage = self._maintab.currentPageIndex();
-    page = self._maintab.currentPage();
+    ipage = self._maintab.currentIndex();
+    page = self._maintab.currentWidget();
     page._page.clear();
     # if more than one page, then remove (else clear and rename only)
     if self._maintab.count()>1:
-      self._maintab.removePage(page);
+      self._maintab.removeTab(ipage);
     else:
       page._page.set_name("Page 1",True);
     # renumber remaining pages
     for i in range(ipage,self._maintab.count()):
-      wpage = self._maintab.page(i);
+      wpage = self._maintab.widget(i);
       page = wpage._page;
       if page.is_auto_name():
         page.set_name('Page '+str(i+1),True);
       
   def current_page (self):
-    return self._maintab.currentPage()._page;
+    return self._maintab.currentWidget()._page;
     
   def _align_grid (self):
     self.current_page().rearrange_cells();
@@ -182,20 +183,20 @@ class Workspace (object):
   def _add_more_panels (self):
     _dprint(5,"adding more panels");
     self.current_page().next_layout();
-  def _set_layout_button (self):
+  def _set_layout_button (self,*dum):
     page = self.current_page();
     (nlo,nx,ny) = page.current_layout();
     self._new_panel.setDisabled(nlo >= page.num_layouts());
   def clear (self):
     _dprint(5,'GriddedWorkspace: clearing');
-    self._maintab.page(0)._page.clear();
-    for p in range(1,self._maintab.count()):
-      page = self._maintab.page(p);
+    self._maintab.widget(0)._page.clear();
+    while self._maintab.count() > 1:
+      page = self._maintab.widget(self._maintab.count()-1);
       page._page.clear();
-      self._maintab.removePage(page);
+      self._maintab.removeTab(self._maintab.count()-1);
       
   def set_current_page (self,page):
-    self._maintab.showPage(page.wtop());
+    self._maintab.setCurrentWidget(page.wtop());
     
   def allocate_cells (self,nrow=1,ncol=1,position=None,avoid_pos=None,
                            newcell=False,newpage=False,udi=''):

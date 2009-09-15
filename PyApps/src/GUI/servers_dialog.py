@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #/usr/bin/python
 #
 #% $Id: connect_meqtimba_dialog.py 5418 2007-07-19 16:49:13Z oms $ 
@@ -26,92 +27,91 @@
 
 from Timba.GUI import meqgui
 from Timba.GUI.pixmaps import pixmaps
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
+
 import os
 import os.path
 
 class ServersDialog (QDialog):
   def __init__(self,parent=None,name=None,modal=0,fl=None):
     if fl is None:
-      fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
-      fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
-    
-    QDialog.__init__(self,parent,name,modal,fl)
+      fl = Qt.Dialog|Qt.WindowTitleHint;
+    QDialog.__init__(self,parent,Qt.Dialog|Qt.WindowTitleHint);
+    self.setModal(modal);
     
     self._default_path = "meqserver";
     
     self.image0 = pixmaps.trees48x48.pm();
-    if not name:
-        self.setName("ConnectDialog")
 
     # self.setSizeGripEnabled(0)
     lo_dialog = QVBoxLayout(self);
 
-    LayoutWidget = QWidget(self,"lo_top")
+    LayoutWidget = QWidget(self);
     lo_dialog.addWidget(LayoutWidget);
     LayoutWidget.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
     # LayoutWidget.setGeometry(QRect(10,10,472,400))
-    lo_top = QVBoxLayout(LayoutWidget,11,6,"lo_top")
+    lo_top = QVBoxLayout(LayoutWidget);
 
-    lo_title = QHBoxLayout(None,0,6,"lo_title")
+    lo_title = QHBoxLayout(None);
 
-    self.title_icon = QLabel(LayoutWidget,"title_icon")
-    self.title_icon.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,self.title_icon.sizePolicy().hasHeightForWidth()))
+    self.title_icon = QLabel(LayoutWidget)
+    self.title_icon.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed));
     self.title_icon.setPixmap(self.image0)
-    self.title_icon.setAlignment(QLabel.AlignCenter)
+    self.title_icon.setAlignment(Qt.AlignCenter)
     lo_title.addWidget(self.title_icon)
 
-    self.title_label = QLabel(LayoutWidget,"title_label")
+    self.title_label = QLabel(LayoutWidget)
+    self.title_label.setWordWrap(True);
     lo_title.addWidget(self.title_label)
     lo_top.addLayout(lo_title)
             
-    self.gb_servers = QGroupBox(1,Qt.Vertical,LayoutWidget,"gb_servers");
-    self.server_list = QListView(self.gb_servers);
+    self.gb_servers = QGroupBox(LayoutWidget);
+    lo = QVBoxLayout(self.gb_servers);
+    self.server_list = QTreeWidget(self.gb_servers);
+    lo.addWidget(self.server_list);
     # self.server_list.header().hide();
-    self.server_list.addColumn("server");
-    self.server_list.addColumn("stat");
-    self.server_list.addColumn("dir");
-    self.server_list.addColumn("script");
-    self.server_list.setAllColumnsShowFocus(True);
-    QObject.connect(self.server_list,SIGNAL("doubleClicked(QListViewItem*,const QPoint &,int)"),self._server_selected);
-    QObject.connect(self.server_list,SIGNAL("returnPressed(QListViewItem*)"),
-            self._server_selected);
+    self.server_list.setHeaderLabels(["server","stat","dir","script"]);
+    try:
+      self.server_list.setAllColumnsShowFocus(True);
+    except AttributeError:
+      pass;
+    QObject.connect(self.server_list,SIGNAL("itemActivated(QTreeWidgetItem*,int)"),self._server_selected);
     lo_top.addWidget(self.gb_servers)
 
-    self.gb_local = QGroupBox(1,Qt.Horizontal,LayoutWidget,"gb_local")
-
-    lo_start_grp = QWidget(self.gb_local)
-    lo_start = QHBoxLayout(lo_start_grp,0,6,"lo_start")
-    #lo_start_space = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Minimum)
-    #lo_start.addItem(lo_start_space)
+    self.gb_local = QGroupBox(LayoutWidget)
+    lo = QGridLayout(self.gb_local);
+    # lo.setSpacing(0);
     
-    lo_start_lbl = QLabel("program:",lo_start_grp);
-    lo_start.addWidget(lo_start_lbl)
-    self.start_pathname = QLineEdit(lo_start_grp,"start_pathname")
+    lo_start_lbl = QLabel("program:",self.gb_local);
+    lo.addWidget(lo_start_lbl,0,0)
+    self.start_pathname = QLineEdit(self.gb_local)
     self.start_pathname.setText(self._default_path);
     self.start_pathname.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Fixed);
     self.start_pathname.setMinimumSize(QSize(400,0))
-    lo_start.addWidget(self.start_pathname)
+    lo.addWidget(self.start_pathname,0,1)
 
-    lo_start_grp2 = QWidget(self.gb_local)
-    lo_start2 = QHBoxLayout(lo_start_grp2,0,6,"lo_start2")
+    #lo_start2.setContentsMargins(0,0,0,0);
     #lo_start_space2 = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Minimum)
     #lo_start2.addItem(lo_start_space2)
-    lo_start_lbl2 = QLabel("args:",lo_start_grp2);
-    lo_start2.addWidget(lo_start_lbl2)
-    self.start_args = QLineEdit(lo_start_grp2,"start_args")
-    lo_start2.addWidget(self.start_args);
+    lo_start_lbl2 = QLabel("args:",self.gb_local);
+    lo.addWidget(lo_start_lbl2,1,0)
+    self.start_args = QLineEdit(self.gb_local)
+    lo.addWidget(self.start_args,1,1);
     
     lo_start_grp3 = QWidget(self.gb_local);
-    lo_start3 = QHBoxLayout(lo_start_grp3,0,6,"lo_start3")
-    self.start_local = QPushButton(lo_start_grp3,"start_local");
-    lo_start3.addWidget(self.start_local,0);
+    lo.addWidget(lo_start_grp3,2,1);
+    lo_start3 = QHBoxLayout(lo_start_grp3)
+    #lo_start3.setContentsMargins(0,0,0,0);
+    self.start_local = QPushButton(self.gb_local);
+    lo.addWidget(self.start_local,2,0);
     self.start_local.setAutoDefault(1);
     self.start_local.setDefault(1);
     lo_start3.addStretch(1);
-    self.start_browse = QPushButton(lo_start_grp3,"start_browse")
+    self.start_browse = QPushButton(lo_start_grp3)
     lo_start3.addWidget(self.start_browse,0)
-    self.start_default = QPushButton(lo_start_grp3,"start_default")
+    self.start_default = QPushButton(lo_start_grp3)
     self.start_default.setEnabled(False);
     lo_start3.addWidget(self.start_default,0)
     QObject.connect(self.start_local,SIGNAL("clicked()"),
@@ -142,7 +142,7 @@ class ServersDialog (QDialog):
     
     lo_top.addWidget(self.gb_local)
 
-    lo_mainbtn = QHBoxLayout(None,0,6,"lo_mainbtn")
+    lo_mainbtn = QHBoxLayout(None)
     #lo_mainbtn_space = QSpacerItem(20,20,QSizePolicy.Expanding,QSizePolicy.Minimum)
     #lo_mainbtn.addItem(lo_mainbtn_space)
 
@@ -154,11 +154,11 @@ class ServersDialog (QDialog):
     #lo_mainbtn.addWidget(self.btn_ok)
 
     lo_mainbtn.addStretch(1);
-    self.btn_cancel = QPushButton(LayoutWidget,"btn_cancel")
-    self.btn_cancel.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,1,0,self.btn_cancel.sizePolicy().hasHeightForWidth()))
+    self.btn_cancel = QPushButton(LayoutWidget)
+    self.btn_cancel.setSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed);
     self.btn_cancel.setMinimumSize(QSize(60,0))
     self.btn_cancel.setAutoDefault(1)
-    self.btn_cancel.setIconSet(pixmaps.red_round_cross.iconset());
+    self.btn_cancel.setIcon(pixmaps.red_round_cross.icon());
     lo_mainbtn.addWidget(self.btn_cancel,0)
     
     #lo_space = QSpacerItem(20,20,QSizePolicy.Fixed,QSizePolicy.Expanding);
@@ -171,7 +171,7 @@ class ServersDialog (QDialog):
 
     #LayoutWidget.resize(QSize(489,330).expandedTo(LayoutWidget.minimumSizeHint()))
     #self.resize(QSize(489,330).expandedTo(self.minimumSizeHint()))
-    self.clearWState(Qt.WState_Polished)
+    # self.clearWState(Qt.WState_Polished)
     
     self.connect(self.btn_cancel,SIGNAL("clicked()"),self.reject)
     
@@ -183,8 +183,7 @@ class ServersDialog (QDialog):
 
 
   def languageChange(self):
-    self.setCaption(self.__tr("Attach to a meqserver"))
-    self.title_icon.setText(QString.null)
+    self.setWindowTitle(self.__tr("Attach to a meqserver"))
     self.title_label.setText(self.__tr( \
       """<p><i>Pick a running meqserver to attach to, or else start a new one
       using one of the methods below.</i></p>
@@ -225,47 +224,45 @@ class ServersDialog (QDialog):
   def browse_kernel_dialog (self):
     try: dialog = self._browse_dialog;
     except AttributeError:
-      self._browse_dialog = dialog = QFileDialog(self,"kernel dialog",True);
+      self._browse_dialog = dialog = QFileDialog(self,"Select meqserver binary");
       dialog.resize(500,dialog.height());
       dialog.setMode(QFileDialog.ExistingFile);
-      # dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
       dialog.setViewMode(QFileDialog.Detail);
-      dialog.setCaption("Select meqserver executable");
-    else:
-      dialog.rereadDir();
-    if dialog.exec_loop() == QDialog.Accepted:
-      self.start_pathname.setText(str(dialog.selectedFile()));
+    if dialog.exec_() == QDialog.Accepted:
+      self.start_pathname.setText(str(dialog.selectedFiles()[0]));
   
   def _server_selected (self,item,*dum):
-    self.emit(PYSIGNAL("serverSelected()"),(item._addr,));
+    self.emit(SIGNAL("serverSelected"),item._addr,);
     
   def _start_local_server_selected (self):
     pathname = str(self.start_pathname.text());
     args = str(self.start_args.text());
-    self.emit(PYSIGNAL("startKernel()"),(pathname,args));
+    self.emit(SIGNAL("startKernel"),pathname,args);
   
   def attach_to_server (self,addr):
-    item = self.server_list.firstChild();
-    while item:
+    for index in range(self.server_list.topLevelItemCount()):
+      item = self.server_list.topLevelItem(index);
       if item._addr == addr:
-        item.setPixmap(0,pixmaps.blue_round_rightarrow.pm());
+        item.setIcon(0,pixmaps.blue_round_rightarrow.icon());
       else:
-        item.setPixmap(0,QPixmap());
-      item = item.nextSibling();
+        item.setIcon(0,QIcon());
     
   def update_server_state (self,server,staterec=None):
     # find matching item
-    item = self.server_list.firstChild();
-    while item and item._addr != server.addr:
-      item = item.nextSibling();
+    for index in range(self.server_list.topLevelItemCount()):
+      item = self.server_list.topLevelItem(index);
+      if item._addr == server.addr:
+        break;
+    else:
+      item = index = None;
     # disconnected server: remove from list
     if server.state is None:
-      if item is not None:
-        self.server_list.takeItem(item);
+      if index is not None:
+        self.server_list.takeTopLevelItem(index);
     else:
       # connected server: add to list and/or change state
       if item is None:
-        item = QListViewItem(self.server_list);
+        item = QTreeWidgetItem(self.server_list);
         setattr(item,'_addr',server.addr);
       # change fields
       name = server.session_name or str(server.addr);

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -35,7 +36,6 @@ import imp
 import sys
 import re
 import traceback
-import sets
 import os
 import os.path
 import inspect
@@ -47,18 +47,18 @@ _dprintf = _dbg.dprintf;
 # this holds a list or set of all modules imported from TDL scripts
 _tdlmodlist = [];
 # this hold the set of all modules imported before a script is compiled
-_prior_compile_modules = sets.Set();
+_prior_compile_modules = set();
 
 def _update_modlist ():
   """updates the list of modules imported since _prior_compile_modules
   was set up. Stores this in _tdlmodlist""";
   global _tdlmodlist;
   global _prior_compile_modules;
-  _tdlmodlist = sets.Set(sys.modules.iterkeys()) - _prior_compile_modules;
+  _tdlmodlist = set(sys.modules.iterkeys()) - _prior_compile_modules;
   modlist = list(_tdlmodlist);
   modlist.sort();
   _dprint(1,'TDL run imported',len(_tdlmodlist),"modules:",modlist);
-  _tdlmodlist = sets.Set([name for name in _tdlmodlist 
+  _tdlmodlist = set([name for name in _tdlmodlist 
                           if not getattr(sys.modules[name],'_tdl_no_reimport',False)]);
   modlist = list(_tdlmodlist);
   modlist.sort();
@@ -114,7 +114,7 @@ def import_tdl_module (filename,text=None):
       except KeyError: pass;
     # remember which modules are imported
     global _prior_compile_modules;
-    _prior_compile_modules = sets.Set(sys.modules.iterkeys());
+    _prior_compile_modules = set(sys.modules.iterkeys());
     modname = '__tdlruntime';
     try:
       TDLOptions.enable_save_config(False);

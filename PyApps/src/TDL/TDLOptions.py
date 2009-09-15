@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$
 #
@@ -36,10 +37,10 @@ import time
 import re
 import glob
 
-
 # import Qt but ignore failures since we can also run stand-alone
 try:
-  from qt import *
+  from PyQt4.Qt import *
+  from Kittens.widgets import PYSIGNAL
 except:
   pass;
 
@@ -210,7 +211,7 @@ class _TDLBaseOption (object):
     self.is_runtime = None;
     # most options have an associated widget or QAction. This is stored here.
     self._qa      = None;
-    self._lvitem  = None;
+    self._twitem  = None;
 
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
@@ -235,13 +236,20 @@ class _TDLBaseOption (object):
     qa.setVisible(self.visible);
     return qa;
 
-  def set_listview_item (self,item):
-    """sets the option's QListViewItem. Makes it enabled or disabled as appropriate""";
-    self._lvitem = item;
+  def set_treewidget_item (self,item):
+    """sets the option's QTreeWidgetItem. Makes it enabled or disabled as appropriate""";
+    self._twitem = item;
     if self.doc:
-      item.setText(2,"     "+self.doc);
-    item.setEnabled(self.enabled);
-    item.setVisible(self.visible);
+      # add body tags to convert documentation to rich text
+      doc = "<body>"+self.doc+"</body>";
+      # set as tooltip
+      item.setToolTip(2,doc);
+      # set first line as column text
+      textdoc = QTextDocument();
+      textdoc.setHtml(doc);
+      item.setText(2,textdoc.begin().text());
+    item.setDisabled(not self.enabled);
+    item.setHidden(not self.visible);
     return item;
 
   def enable (self,enabled=True):
@@ -249,7 +257,7 @@ class _TDLBaseOption (object):
     _dprint(3,"enable item",self.name,":",enabled);
     self.enabled = enabled;
     self._qa and self._qa.setEnabled(enabled);
-    self._lvitem and self._lvitem.setEnabled(enabled);
+    self._twitem and self._twitem.setDisabled(not enabled);
     return enabled;
 
   def disable (self,disabled=True):
@@ -261,7 +269,7 @@ class _TDLBaseOption (object):
     _dprint(3,"show item",self.name,":",visible);
     self.visible = visible;
     self._qa and self._qa.setVisible(visible);
-    self._lvitem and self._lvitem.setVisible(visible);
+    self._twitem and self._twitem.setHidden(not visible);
     return visible;
 
   def hide (self,hidden=True):
@@ -271,24 +279,25 @@ class _TDLBaseOption (object):
   def set_name (self,name):
     """Changes option name""";
     self.name = name;
-    self._lvitem and self._lvitem.setText(0,name);
+    self._twitem and self._twitem.setText(0,name);
 
   def set_doc (self,doc):
     """Changes option documentation string""";
     self.doc = doc;
-    if self._lvitem:
-      self._lvitem.setText(2,doc);
+    if self._twitem:
+      self._twitem.setText(2,doc);
 
 class _TDLOptionSeparator (_TDLBaseOption):
   """This option simply inserts a separator into a menu""";
   def __init__ (self,namespace=None):
     _TDLBaseOption.__init__(self,name=None,namespace=namespace,doc=None);
 
-  def make_listview_item (self,parent,after,executor=None):
-    if not getattr(parent,'_ends_with_separator',True):
-      item = QListViewItem(parent,after);
-      item.setText(0,"-----------");
-      item.setEnabled(False);
+  def make_treewidget_item (self,parent,after,executor=None):
+    if not getattr(parent,'_ends_with_separator',False):
+      item = QTreeWidgetItem(parent,after);
+      item.setText(0,"-");
+      item.setFlags(0);
+      item.setFirstColumnSpanned(True);
       parent._ends_with_separator = True;
       return item;
     return None;
@@ -300,26 +309,17 @@ class _TDLJobItem (_TDLBaseOption):
     self.func = func;
     self.symbol = func.__name__;
 
-  class JobListViewItem (QListViewItem):
-    def paintCell (self,qp,cg,column,width,align):
-      # use bold font for jobs
-      oldfont = qp.font();
-      font = QFont(oldfont);
-      font.setBold(True);
-      qp.setFont(font);
-      QListViewItem.paintCell(self,qp,cg,column,width,align);
-      qp.setFont(oldfont);
-    def width (self,fm,lv,c):
-      return int(QListViewItem.width(self,fm,lv,c)*1.2);
-
-  def make_listview_item (self,parent,after,executor=None):
-    item = self.JobListViewItem(parent,after);
+  def make_treewidget_item (self,parent,after,executor=None):
+    item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name);
-    item.setPixmap(0,pixmaps.gear.pm());
+    item.setIcon(0,pixmaps.gear.icon());
+    font = item.font(0);
+    font.setBold(True);
+    item.setFont(0,font);
     item._on_click = curry(executor,self.func,self.name);
     item._close_on_click = True;
     parent._ends_with_separator = False;
-    return self.set_listview_item(item);
+    return self.set_treewidget_item(item);
 
 class _TDLOptionItem(_TDLBaseOption):
   def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None):
@@ -410,26 +410,25 @@ class _TDLBoolOptionItem (_TDLOptionItem):
         if _dbg.verbose > 2:
           traceback.print_exc();
 
-  def set (self,value,save=True,callback=True,set_lvitem=True):
+  def set (self,value,save=True,callback=True,set_twitem=True):
     value = bool(value);
     if save and self.config_name:
       set_config(self.config_name,int(value));
- #   print self.name,value,self._lvitem;
-    if self._lvitem and set_lvitem:
-      self._lvitem.setOn(value);
- #     print self.name,value,self._lvitem;
+    if self._twitem and set_twitem:
+      self._twitem.setCheckState(0,(value and Qt.Checked) or Qt.Unchecked);
     self._set(value,callback=callback);
 
-  def make_listview_item (self,parent,after,executor=None):
-    item = QCheckListItem(parent,after,self.name,QCheckListItem.CheckBox);
+  def make_treewidget_item (self,parent,after,executor=None):
+    item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name);
-    item.setOn(self.value);
+    item.setFlags(Qt.ItemIsSelectable|Qt.ItemIsUserCheckable|Qt.ItemIsEnabled);
+    item.setCheckState(0,(self.value and Qt.Checked) or Qt.Unchecked)
     item._on_click = item._on_press = self._check_item;
     parent._ends_with_separator = False;
-    return self.set_listview_item(item);
+    return self.set_treewidget_item(item);
 
   def _check_item (self):
-    self.set(self._lvitem.isOn(),set_lvitem=False);
+    self.set(self._twitem.checkState(0) == Qt.Checked,set_twitem=False);
 
 class TDLFileSelect (object):
   def __init__ (self,filenames="",default=None,exist=True):
@@ -511,11 +510,11 @@ class _TDLFileOptionItem (_TDLOptionItem):
   class FileDialog (QFileDialog):
     def done (self,result):
       if result:
-        self.emit(PYSIGNAL("selectedFile()"),(self.selectedFile(),));
+        self.emit(SIGNAL("selectedFile"),self.selectedFiles()[0]);
       QFileDialog.done(self,result);
 
-  def make_listview_item (self,parent,after,executor=None):
-    item = QListViewItem(parent,after);
+  def make_treewidget_item (self,parent,after,executor=None):
+    item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name+":");
     if self.value:
       item.setText(1,os.path.basename(self.value.rstrip("/")));
@@ -523,27 +522,27 @@ class _TDLFileOptionItem (_TDLOptionItem):
       item.setText(1,"<none>");
     # create file dialog
     self._file_dialog = file_dialog = \
-        self.FileDialog(".",self._filespec.filenames,item.listView());
+        self.FileDialog(item.treeWidget(),self.name,".",self._filespec.filenames);
     if isinstance(self._filespec,TDLDirSelect):
-      file_dialog.setMode(QFileDialog.DirectoryOnly);
+      file_dialog.setFileMode(QFileDialog.DirectoryOnly);
     elif self._filespec.exist:
-      file_dialog.setMode(QFileDialog.ExistingFile);
+      file_dialog.setFileMode(QFileDialog.ExistingFile);
     else:
-      file_dialog.setMode(QFileDialog.AnyFile);
+      file_dialog.setFileMode(QFileDialog.AnyFile);
     QObject.connect(file_dialog,PYSIGNAL("selectedFile()"),self._select_file);
     # make file selection dialog pop up when item is pressed
-    item._on_click = self._show_dialog;
+    item._on_click = item._on_press = self._show_dialog;
     parent._ends_with_separator = False;
-    return self.set_listview_item(item);
+    return self.set_treewidget_item(item);
 
   def _show_dialog (self):
-    self._file_dialog.rereadDir();
+#    self._file_dialog.setDirectory(self._file_dialog.directory());
     self._file_dialog.show();
 
   def _select_file (self,name):
     name = str(name);
     if self._validator(name):
-      self._lvitem.setText(1,os.path.basename(name.rstrip("/")));
+      self._twitem.setText(1,os.path.basename(name.rstrip("/")));
       self.set(name);
 
 class _TDLListOptionItem (_TDLOptionItem):
@@ -649,7 +648,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       self.option_list_desc.append(self._custom_value[1]);
     # rebuild menus, if already instantiated
     if self._submenu:
-      self._rebuild_submenu(self._lvitem.listView());
+      self._rebuild_submenu(self._twitem.treeWidget());
     # re-select previous value, or selected value
     if select is not None:
       self.set(select,save=False);
@@ -680,12 +679,11 @@ class _TDLListOptionItem (_TDLOptionItem):
     """selects value #ivalue in list""";
     self.selected = value = int(ivalue);
     _dprint(1,"set %s, #%d (%s), save=%s"%(self.name,value,self.get_option_desc(value),save));
-    if self._lvitem:
-      _dprint(1,"setting lvitem text");
-      self._lvitem.setText(1,self.get_option_desc(value));
+    if self._twitem:
+      _dprint(1,"setting twitem text");
+      self._twitem.setText(1,self.get_option_desc(value));
     if self._submenu:
-      for ival in range(self.num_options()):
-        self._submenu.setItemChecked(ival,ival==value);
+      self._submenu_qas[self.selected].setChecked(True);
     if save:
       set_config(self.config_name,self.get_option_str(value));
     self._set(self.get_option(value),callback=callback);
@@ -704,62 +702,85 @@ class _TDLListOptionItem (_TDLOptionItem):
       self.set(len(self.option_list)-1,save=save,callback=callback);
 
   def _rebuild_submenu (self,parent):
-    # create QPopupMenu for available options
-    self._submenu = submenu = QPopupMenu(parent);
-    submenu.setCheckable(True);
-    self._submenu_items = [];
+    # create QMenu for available options
+    self._submenu = submenu = QMenu(parent);
+    ag = QActionGroup(parent);
+    self._submenu_qas = [];
     self._submenu_editor = None;
     for ival in range(self.num_options()):
       if self._more is not None and ival == self.num_options()-1:
-        box = QHBox(self._submenu);
+        qaw = QWidgetAction(parent);
+        box = QWidget(parent);
+        qaw.setDefaultWidget(box);
+        box_lo = QHBoxLayout(box);
         spacer = QLabel("",box);
+        box_lo.addWidget(spacer);
         spacer.setMinimumWidth(32);
-        spacer.setBackgroundMode(Qt.PaletteButton);
+        box_lo.setContentsMargins(0,0,0,0);
+        box_lo.setSpacing(0);
+        #spacer.setBackgroundRole(QPalette.Button);
         #for color in self._submenu.paletteBackgroundColor(),spacer.paletteBackgroundColor():
-        #  print color.red(),color.green(),color.blue();
         self._submenu_editor = QLineEdit(self.get_option_desc(ival),box);
-        self._submenu_editor.setBackgroundMode(Qt.PaletteMidlight);
+        box_lo.addWidget(self._submenu_editor);
+        # self._submenu_editor.setBackgroundMode(Qt.PaletteMidlight);
         if self._more is int:
           self._submenu_editor.setValidator(QIntValidator(self._submenu_editor));
         elif self._more is float:
           self._submenu_editor.setValidator(QDoubleValidator(self._submenu_editor));
         # connect signal
-        QObject.connect(self._submenu_editor,SIGNAL("returnPressed()"),
+        QObject.connect(self._submenu_editor,SIGNAL("editingFinished()"),
                         self._set_submenu_custom_value);
-        submenu.insertItem("Custom:",ival);
-        submenu.insertItem(box);
+        qa = ag.addAction("Custom:");
+        qa.setCheckable(True);
+        self._submenu.addAction(qa);
+        self._submenu.addAction(qaw);
       else:
-        submenu.insertItem(self.get_option_desc(ival),ival);
-      submenu.setItemChecked(ival,ival==self.selected);
-    QObject.connect(submenu,SIGNAL("activated(int)"),self._activate_submenu_item);
+        qa = ag.addAction(self.get_option_desc(ival));
+        self._submenu.addAction(qa);
+      qa._ival = ival;
+      qa.setCheckable(True);
+      self._submenu_qas.append(qa);
+      if ival == self.selected:
+        qa.setChecked(True);
+    QObject.connect(ag,SIGNAL("triggered(QAction*)"),self._activate_submenu_action);
 
-  def make_listview_item (self,parent,after,executor=None):
+  def make_treewidget_item (self,parent,after,executor=None):
     """makes a listview entry for the item""";
     _dprint(3,"making listview item for",self.name);
-    item = QListViewItem(parent,after);
+    item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name+":");
     item.setText(1,self.get_option_desc(self.selected));
     # create QPopupMenu for available options
-    self._rebuild_submenu(item.listView());
+    self._rebuild_submenu(item.treeWidget());
     # make menu pop up when item is pressed
-    item._on_click = self._popup_menu;
+    item._on_click = item._on_press = self._popup_menu;
     parent._ends_with_separator = False;
-    return self.set_listview_item(item);
+    return self.set_treewidget_item(item);
 
   def _popup_menu (self):
     # figure out where to pop up the menu
-    listview = self._lvitem.listView();
-    pos = listview.itemRect(self._lvitem).topLeft();
-    pos.setX(pos.x()+listview.columnWidth(0));    # position in listview
+    tw = self._twitem.treeWidget();
+    pos = tw.visualItemRect(self._twitem).topLeft();
+    pos.setX(pos.x()+tw.header().sectionSize(0));    # position in listview
     # now map to global coordinates
-    self._submenu.popup(listview.mapToGlobal(pos));
+    self._submenu.popup(tw.mapToGlobal(pos));
+    _dprint(5,"returning from popup");
 
-  def _activate_submenu_item (self,selected):
+  def _activate_submenu_action (self,action):
+    selected = action._ival;
     # validate custom value
     if self._more is not None and selected == self.num_options()-1:
-      if not self._validator(self._custom_value[0]):
+      if not self._validator(self._custom_value[0]): 
+        self._popup_menu();
         return;
-    self.set(selected);
+      self.set(selected);
+      # keep menu popped up if selected custom value, but editor is empty
+      if not self._custom_value[1]:
+        _dprint(5,"forcing popup");
+        self._popup_menu();
+    else:
+      self.set(selected);
+      
 
   def _set_submenu_custom_value (self):
     # get value from editor
@@ -772,7 +793,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       # set as custom value
       self.set_custom_value(value,select=True);
       # update menu
-      self._activate_submenu_item(self.num_options()-1);
+      self._activate_submenu_action(self._submenu_qas[self.num_options()-1]);
       self._submenu.close();
     else:  # invalid value
       self._submenu_editor.setText(self._custom_value[1]);
@@ -931,44 +952,42 @@ class _TDLSubmenu (_TDLBoolOptionItem):
 
   def expand (self,expand=True):
     self._is_open = expand;
-    if self._lvitem:
-      self._lvitem.setOpen(expand);
+    if self._twitem:
+      self._twitem.setExpanded(expand);
 
   def set (self,value,**kw):
     if self._toggle:
       oldval = self.value;
       _TDLBoolOptionItem.set(self,value,**kw);
       # open/close menu when going from unset to set and vice versa
-      if self._lvitem:
-        self._lvitem.setOn(value);
+      if self._twitem:
+        self._twitem.setCheckState(0,(self.value and Qt.Checked) or Qt.Unchecked);
         if oldval != value:
-          self._lvitem.setOpen(value);
+          self._twitem.setExpanded(value);
 
   def set_summary (self,summary):
     self._summary = summary;
-    if self._lvitem:
-      self._lvitem.setText(1,summary or '');
+    if self._twitem:
+      self._twitem.setText(1,summary or '');
 
-  def make_listview_item (self,parent,after,executor=None):
+  def make_treewidget_item (self,parent,after,executor=None):
     """makes a listview entry for the menu""";
     if self._items is None:
       raise RuntimeError,"option menu '%s' not initialized, this should be impossible!"%self._title;
+    item = QTreeWidgetItem(parent,after);
+    item.setText(0,self._title);
+    item.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled);
     if self._toggle:
-      # print self._title,type(self._title)
-      item = QCheckListItem(parent,after,self._title,QCheckListItem.CheckBox);
-      item.setExpandable(True);
+      item.setFlags(item.flags()|Qt.ItemIsUserCheckable);
       self._old_value = self.value;
-      item.setOn(self.value);
+      item.setCheckState(0,(self.value and Qt.Checked) or Qt.Unchecked);
       if self._is_open is None:
-        item.setOpen(self.value);
+        item.setExpanded(self.value);
       else:
-        item.setOpen(self._is_open);
+        item.setExpanded(self._is_open or False);
       item._on_click = item._on_press = self._check_item;
     else:
-      item = QListViewItem(parent,after);
-      item.setText(0,self._title);
-      item.setExpandable(True);
-      item.setOpen(self._is_open or False);
+      item.setExpanded(self._is_open or False);
     if self._summary:
       item.setText(1,self._summary);
     # loop over items
@@ -976,12 +995,9 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     for subitem in self._items:
       _dprint(3,"adding",subitem,getattr(subitem,'name',''),"to item",self.name);
       subitem = subitem or _TDLOptionSeparator();
-      previtem = subitem.make_listview_item(item,previtem,executor=executor) or previtem;
+      previtem = subitem.make_treewidget_item(item,previtem,executor=executor) or previtem;
     parent._ends_with_separator = False;
-    return self.set_listview_item(item);
-    item._on_click = item._on_press = self._check_item;
-    parent._ends_with_separator = False;
-    return self.set_listview_item(item);
+    return self.set_treewidget_item(item);
     
 def _steal_items (itemlist,predicate):
   """helper function: steals option items matching the given predicate, from the given
@@ -1032,17 +1048,16 @@ def TDLStealOptions (obj,is_runtime=False):
     name = "";
   raise TypeError,"cannot steal options from object%s of type %s"%(name,type(obj));
 
-def populate_option_listview (listview,option_items,executor=None):
-  listview.clear();
+def populate_option_treewidget (tw,option_items,executor=None):
+  tw.clear();
   # populate listview
   previtem = None;
   for item in option_items:
-    # print item,getattr(item,'__name__','');
-    previtem = item.make_listview_item(listview,previtem,executor=executor);
+    previtem = item.make_treewidget_item(tw,previtem,executor=executor);
   # add callbacks
   # add to menu
   # menu.insertItem(listview);
-  return listview;
+  return tw;
 
 def _resolve_owner (calldepth=2):
   frame = sys._getframe(calldepth+1);

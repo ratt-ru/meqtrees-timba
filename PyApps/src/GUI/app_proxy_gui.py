@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -38,12 +39,14 @@ from Timba.GUI.widgets import *
 
 import sys
 import time
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
+
 import traceback
 import weakref
 import re
 import imp
-import sets
 import signal
 
 dmirepr = dmi_repr.dmi_repr();
@@ -58,7 +61,7 @@ _MessageCategories = {};
 # Does not work reliably, so:
 _reloading_enabled = False;
 
-_reloadables = sets.Set([ __name__,'app_pixmaps','dmi_repr','app_browsers','gridded_workspace','array_plotter']);
+_reloadables = set([ __name__,'app_pixmaps','dmi_repr','app_browsers','gridded_workspace','array_plotter']);
 def reloadableModule (name):
   _reloadables.add(name);
 
@@ -144,16 +147,18 @@ class Logger(HierBrowser):
           udi_root:   the UDI root name corresponding to this logger.
                       if None, then panel name is used instead.
     """;
-    self._vbox = QVBox(parent);
+    self._vbox = QWidget(parent);
+    self._vbox_lo = QVBoxLayout(self._vbox);
     # init the browser base class
     HierBrowser.__init__(self,self._vbox,name,udi_root=udi_root);
+    self._vbox_lo.addWidget(self.treeWidget());
     # add controls
     self._controlgrid = QWidget(self._vbox);
-    self._controlgrid_lo = QGridLayout(self._controlgrid,3,6);
-    self._controlgrid_lo.setColStretch(0,1000);
-    self._controlgrid_lo.setColSpacing(1,8);
-    self._controlgrid_lo.setColSpacing(3,8);
-    self._controlgrid_lo.setColSpacing(5,8);
+    self._vbox_lo.addWidget(self._controlgrid);
+    self._controlgrid_lo = QGridLayout(self._controlgrid); # ,3,6);
+    self._controlgrid_lo.setColumnStretch(0,1000);
+    for icol in 1,3,5:
+      self._controlgrid_lo.setColumnMinimumWidth(icol,8);
     self._controlgrid_lo.setSpacing(0);
     self.enabled = enable != False;
     # enable control
@@ -200,8 +205,7 @@ class Logger(HierBrowser):
       self._controlgrid_lo.addWidget(clear,2,6);
     # connect click callback
     if callable(click):
-      self._lv.connect(self._lv,
-        SIGNAL('mouseButtonClicked(int,QListViewItem*,const QPoint &,int)'),click);
+      QObject.connect(self.treeWidget(),SIGNAL('mouseButtonClicked()'),click);
     # event counter
     self._event_count = 0;        
     # set log limit        
@@ -209,9 +213,9 @@ class Logger(HierBrowser):
     # compile regex to match our udi pattern
     self._patt_udi = re.compile("/"+self._udi_root+"/(.*)$");
     # define get_drag_item methods for the listview
-    self.wlistview().get_drag_item = self.get_drag_item;
-    self.wlistview().get_drag_item = self.get_drag_item;
-    self.wlistview().header().hide();
+    self.treeWidget().get_drag_item = self.get_drag_item;
+    self.treeWidget().get_drag_item = self.get_drag_item;
+    self.treeWidget().header().hide();
     
   def event_count (self):
     return self._event_count;
@@ -226,7 +230,7 @@ class Logger(HierBrowser):
     self._enable.setChecked(not val);
     
   def connected (self,conn=True):
-    if conn and self._auto_clear is not None and self._auto_clear.isOn():
+    if conn and self._auto_clear is not None and self._auto_clear.isChecked():
       self.clear();
     
   def _enter_log_limit (self):
@@ -271,7 +275,7 @@ class Logger(HierBrowser):
       return;
     # # is scrolling enabled?
     # preserve_top_item = self._scroll is not None and not self._scroll.isOn() and \
-    #                    self.wlistview().itemAt(QPoint(0,0));
+    #                    self.treeWidget().itemAt(QPoint(0,0));
     # if label not specified, use a timestamp 
     self._event_count += 1;
     if label is None:
@@ -282,7 +286,7 @@ class Logger(HierBrowser):
     if udi is None and udi_key is None:
       udi_key = str(self._event_count);
     # create listview item
-    item = self.Item(self.wlistview(),label,msg,udi=udi,udi_key=udi_key, \
+    item = self.Item(self.treeWidget(),label,msg,udi=udi,udi_key=udi_key, \
       name=name,caption=caption,desc=desc or label);
     item._category = category;
     # if content is specified, cache it inside the item
@@ -297,13 +301,13 @@ class Logger(HierBrowser):
     # add pixmap according to category
     pm = self._LogPixmaps.get(category,None);
     if pm is not None:
-      item.setPixmap(2,pm.pm());
+      item.setIcon(2,pm.icon());
     # apply a log limit
     if self._limit is not None:
       self.apply_limit(self._limit);
     # if scroll is enabled, ensure item is visible
-    if self._scroll is None or self._scroll.isOn():
-      self.wlistview().ensureItemVisible(item);
+    if self._scroll is None or self._scroll.isChecked():
+      self.treeWidget().scrollToItem(item);
     return item;
     
   def _toggle_enable (self,en):
@@ -317,7 +321,7 @@ class EventLogger (Logger):
     # label = QLabel('Event mask:',self._controlgrid);
     # self._controlgrid_lo.addWidget(label,0,0);
     self._evmask_field  = QLineEdit(str(evmask),self._controlgrid);
-    self._controlgrid_lo.addMultiCellWidget(self._evmask_field,0,0,2,6);
+    self._controlgrid_lo.addWidget(self._evmask_field,0,0,2,6);
     self.wtop().connect(self._evmask_field,SIGNAL('returnPressed()'),
                         self._enter_mask);
     self.set_mask('*');
@@ -344,7 +348,7 @@ class EventLogger (Logger):
         maskstrings.append(str(hm));
     self._mask = ';'.join(maskstrings);
     self._evmask_field.setText(self._mask);
-    self.wtop().emit(PYSIGNAL('maskChanged()'),(self.wtop(),self._mask));
+    self.wtop().emit(SIGNAL("maskChanged"),self.wtop(),self._mask);
     
   def get_mask (self):
     return self._mask;
@@ -375,7 +379,7 @@ class MessageLogger (Logger):
   def __init__(self,*args,**kwargs):
     Logger.__init__(self,scroll=True,*args,**kwargs);
     self._num_err = 0;
-    self.wtop().connect(self._lv,SIGNAL('clicked(QListViewItem*)'),
+    self.wtop().connect(self._tw,SIGNAL('clicked(QTreeWidgetItem*)'),
                         self._clear_error_count);
     
   def add (self,msg,category=Logger.Normal,*args,**kwargs):
@@ -392,17 +396,40 @@ class MessageLogger (Logger):
       if self._num_err == 0:
         self._first_err = items[-1];
       self._num_err += 1;
-      self.wtop().emit(PYSIGNAL('hasErrors()'),(self.wtop(),self._num_err));
+      self.wtop().emit(SIGNAL("hasErrors"),self.wtop(),self._num_err);
       self._last_err = items[-1];
   def _clear_error_count (self):
     self._num_err = 0;
     self._first_err = self._last_err = None;
-    self.wtop().emit(PYSIGNAL('hasErrors()'),(self.wtop(),0));
+    self.wtop().emit(SIGNAL("hasErrors"),self.wtop(),0);
   def clear (self):
     Logger.clear(self);
     self._clear_error_count();
     
 
+#--------------------------------------------------------------
+#--- some custom event types
+#--------------------------------------------------------------
+EvType_AppMessage = QEvent.Type(QEvent.User + 1); 
+EvType_Callable   = QEvent.Type(QEvent.User + 2);
+
+class QAppMessageEvent (QEvent):
+  """This custom event class is used to pass a callable object into the main app thread."""
+  def __init__ (self,msg,value,server):
+    QEvent.__init__(self,EvType_AppMessage);
+    self.msg = msg;
+    self.value = value;
+    self.server = server;
+
+class QCallableEvent (QEvent):
+  """This custom event class is used to pass a callable object into the main app thread."""
+  def __init__ (self,func,*args,**kwargs):
+    QEvent.__init__(self,EvType_Callable);
+    self.func = func;
+    self.args = args;
+    self.kwargs = kwargs;
+  def call (self):
+    return self.func(*self.args,**self.kwargs);
 
 #--------------------------------------------------------------
 #--- app_proxy_gui() class
@@ -421,10 +448,6 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.app = app;
     self._connected = False;
     
-    #------ populate the GUI
-    global _splash_screen;
-    if _splash_screen is not None:
-      _splash_screen.finish(self);
     self.populate(size=size,*args,**kwargs);
     
     #------ set size 
@@ -444,42 +467,45 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     if poll_app:
       self.startTimer(poll_app);
       
+    global splash_screen;
+    if splash_screen is not None:
+      splash_screen.finish(self);
+      
     _dprint(2,"init complete");\
   
-  class PanelizedWindow (QVBox):
-    BackgroundMode = Qt.PaletteBackground;
+  class PanelizedWindow (QWidget):
     def __init__ (self,parent,name,shortname,icon,*args):
-      QVBox.__init__(self,parent,*args);
+      QWidget.__init__(self,parent,*args);
+      self._lo = QVBoxLayout(self);
+      self._lo.setSpacing(0);
       self.name = name;
       self.shortname = shortname;
       self.icon = icon;
       # build title "toolbar"
       titlebar = QFrame(self);
-      titlebar.setBackgroundMode(self.BackgroundMode);
+      self._lo.addWidget(titlebar);
+      titlebar.setLineWidth(0);
       titlebar.setFrameStyle(QFrame.Panel|QFrame.Raised);
       tblo = QHBoxLayout(titlebar);
       tblo.setMargin(2);
       self.populate_titlebar(titlebar,tblo);
     def populate_titlebar (self,titlebar,layout):
       icon = QLabel(titlebar);
-      pm = self.icon.pixmap();
+      pm = self.icon.pixmap(128,128);
       height = pm.height() + 4;
       icon.setPixmap(pm);
       icon.setMargin(0);
       icon.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
       icon.setFixedSize(height,height);
-      icon.setBackgroundMode(self.BackgroundMode);
       label = QLabel("<b>"+self.name+"</b>",titlebar);
       label.setMargin(0);
       label.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
       label.setFixedHeight(height);
-      label.setBackgroundMode(self.BackgroundMode);
       minbtn = QToolButton(titlebar);
-      minbtn.setIconSet(pixmaps.minimize_line.iconset());
+      minbtn.setIcon(pixmaps.minimize_line.icon());
       minbtn.setAutoRaise(True);
       minbtn.setFixedSize(height,height);
-      minbtn.setBackgroundMode(self.BackgroundMode);
-      QToolTip.add(minbtn,"Minimize this panel");
+      minbtn.setToolTip("Minimize this panel");
       QObject.connect(minbtn,SIGNAL("clicked()"),self.hide);
       layout.addSpacing(2);
       layout.addWidget(icon);
@@ -487,76 +513,72 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       layout.addWidget(label);
       layout.addWidget(minbtn);
     def resizeEvent (self,ev):
-      self.emit(PYSIGNAL("resized()"),());
-      return QVBox.resizeEvent(self,ev);
-    def show (self):
-      if self.isHidden():
+      self.emit(SIGNAL("resized"));
+      return QWidget.resizeEvent(self,ev);
+    def setVisible (self,visible):
+      _dprint(1,self.name,"visible",visible);
+      self.emit(SIGNAL("visible"),visible);
+      if visible:
         _dprint(1,'showing',self,self.parent());
-        self.emit(PYSIGNAL("visible()"),(True,));
-        self.emit(PYSIGNAL("shown()"),());
-      QVBox.show(self);
-    def hide (self):
-      if self.isShown():
+        self.emit(SIGNAL("shown"));
+      else:
         _dprint(1,'hiding',self,self.parent());
-        self.emit(PYSIGNAL("visible()"),(False,));
-        self.emit(PYSIGNAL("hidden()"),());
-      QVBox.hide(self);
-    def setShown (self,shown):
-      if shown: self.show();
-      else:     self.hide();
-    def setHidden (self,hidden):
-      if not hidden: self.show();
-      else:          self.hide();
-    def visQAction (self,parent):
+        self.emit(SIGNAL("hidden"));
+      QWidget.setVisible(self,visible);
+    def visQAction (self,parent=None):
       try: return self._qa_vis;
       except AttributeError: pass;
-      qa = self._qa_vis = QAction(self.icon,"Show/hide "+self.name,0,parent);
-      qa.setToggleAction(True);
-      qa.setOn(self.isVisible());
-      QObject.connect(qa,SIGNAL("toggled(bool)"),self.setShown);
-      QObject.connect(self,PYSIGNAL("visible()"),qa.setOn);
+      qa = self._qa_vis = QAction(self.icon,"Show/hide "+self.name,parent);
+      qa.setCheckable(True);
+      qa.setChecked(self.isVisible());
+      QObject.connect(qa,SIGNAL("triggered(bool)"),self.setVisible);
+      QObject.connect(self,PYSIGNAL("visible()"),qa.setChecked);
       return qa;
     def makeMinButton (self,parent):
       return self.MinimizedPanelButton(self,parent);
+    def addWidget (self,widget):
+      self._lo.addWidget(widget);
       
     class MinimizedPanelButton (QToolButton):
       def __init__ (self,panel,parent):
         QToolButton.__init__(self,parent);
         self._panel = panel;
         self._label = [ "("+panel.shortname+")",panel.shortname+" " ];
-        self.setIconSet(panel.icon);
-        self.setTextLabel(self._label[int(panel.isShown())]);
-        self.setTextPosition(QToolButton.BesideIcon);
-        self.setUsesTextLabel(True);
-        self.setShown(not panel.isVisible());
-        # self.setBackgroundMode(app_proxy_gui.PanelizedWindow.BackgroundMode);
-        QToolTip.add(self,"Show "+panel.name);
+        self.setIcon(panel.icon);
+        self.setText(self._label[int(panel.isVisible())]);
+        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+        self.setToolTip("Show "+panel.name);
         QObject.connect(self,SIGNAL("clicked()"),self._toggle);
         QObject.connect(panel,PYSIGNAL("visible()"),self._show_panel);
-        self._flashcolor = QColor("yellow");
+        self._default_palette = self.palette();
+        self._flash_palette   = QPalette(self.palette());
+        self._flash_palette.setBrush(QPalette.Background,QBrush(QColor("yellow")));
       def _toggle (self):
-        self._panel.setShown(not self._panel.isShown());
+        self._panel.setVisible(not self._panel.isVisible());
       def _show_panel (self,show):
         if show:
-          self.setTextLabel(self._label[1]);
+          self.setText(self._label[1]);
           self.setFixedWidth(self.width());
         else:
-          self.setTextLabel(self._label[0]);
-          self.setPaletteBackgroundColor(self._flashcolor);
-          QTimer.singleShot(300,self.unsetPalette);
+          self.setText(self._label[0]);
+          self.setPalette(self._flash_palette);
+          QTimer.singleShot(300,self._unsetPalette);
+      def _unsetPalette (self):
+        self.setPalette(self._default_palette);
       
   def populate (self,main_parent=None,*args,**kwargs):
     #------ main window contains a splitter
-    splitter = self.splitter = QSplitter(QSplitter.Horizontal,main_parent or self);
+    splitter = self.splitter = QSplitter(Qt.Horizontal,main_parent or self);
     splitter.setFrameStyle(QFrame.Box+QFrame.Plain);
     splitter.setChildrenCollapsible(True);
     
     #------ create top-level tab bar
-    self.maintab_panel = self.PanelizedWindow(splitter,"Tabbed Tools","Tabs",pixmaps.tabs.iconset());
+    self.maintab_panel = self.PanelizedWindow(splitter,"Tabbed Tools","Tabs",pixmaps.tabs.icon());
     self.maintab = maintab = QTabWidget(self.maintab_panel);
-    self.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._change_current_page);
-    maintab.setTabPosition(QTabWidget.Top);
-    splitter.setResizeMode(self.maintab_panel,QSplitter.KeepSize);
+    self.maintab_panel.addWidget(maintab);
+    self.connect(self.maintab,SIGNAL("currentChanged(int)"),self._change_current_page);
+    maintab.setTabPosition(QTabWidget.North);
+    splitter.setStretchFactor(splitter.indexOf(self.maintab_panel),0);
     _dprint(1,"parent is",self.maintab_panel.parent());
     
     #------ create a message log
@@ -566,22 +588,22 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     QObject.connect(self.msglog.wtop(),PYSIGNAL("cleared()"),
                     self.curry(self._reset_maintab_label,self.msglog.wtop()));
     QObject.connect(self.msglog.wtop(),PYSIGNAL("hasErrors()"),self._indicate_msglog_errors);
-    QObject.connect(self.msglog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self.msglog.treeWidget(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self,PYSIGNAL("isConnected()"),self.msglog.connected);
     # set current page to message log
     self._current_page = self.msglog.wtop();
     self.add_tab(self.msglog.wtop(),"Messages");
     self.msglog.wtop()._error_label = "%d errors";
-    self.msglog.wtop()._error_iconset = pixmaps.exclaim.iconset();
+    self.msglog.wtop()._error_icon = pixmaps.exclaim.icon();
     
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
           udi_root='event');
-    QObject.connect(self.eventlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self.eventlog.treeWidget(),PYSIGNAL("displayDataItem()"),self.display_data_item);
     QObject.connect(self,PYSIGNAL("isConnected()"),self.eventlog.connected);
     
     self.eventtab = QTabWidget(self.maintab);
-    self.eventtab.setTabPosition(QTabWidget.Bottom);
+    self.eventtab.setTabPosition(QTabWidget.South);
     self.add_tab(self.eventtab,"Events");
     
     #------ event window tab bar
@@ -593,18 +615,21 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.statusbar = self.statusBar();
     ## self.pause_button = QToolButton(self.statusbar);
     ## self.pause_button.setAutoRaise(True);
-    statholder = QHBox(self.statusbar);
-    statholder.setMargin(2);
+    statholder = QWidget(self.statusbar);
+    statholder_lo = QHBoxLayout(statholder);
+    statholder_lo.setMargin(2);
     self.status_icon  = QLabel(statholder);
     self.status_label = QLabel(statholder);
+    statholder_lo.addWidget(self.status_icon);
+    statholder_lo.addWidget(self.status_label);
     # self.status_icon.setFrameStyle(QFrame.NoFrame);
     self.status_icon.setMinimumWidth(20);
     self.status_icon.setMaximumWidth(20);
-    self.status_icon.setAlignment(QLabel.AlignVCenter|QLabel.AlignHCenter);
+    self.status_icon.setAlignment(Qt.AlignCenter);
     
                  
-    ##    self.pause_button.setIconSet(pixmaps.pause_normal.iconset());
-    ##    QToolTip.add(self.pause_button,"pause the application");
+    ##    self.pause_button.setIconSet(pixmaps.pause_normal.icon());
+    ##    self.pause_button.setToolTip("pause the application");
     ##    self.pause_button.setDisabled(True);
     ##    self.connect(self.pause_button,SIGNAL("clicked()"),self._press_pause);
     ##    self.pause_requested = None;
@@ -612,8 +637,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     #------ reload button
     if _reloading_enabled:
       reloadbtn = QToolButton(self.statusbar);
-      reloadbtn.setIconSet(pixmaps.reload_slick.iconset());
-      QToolTip.add(reloadbtn,"reload Python modules");
+      reloadbtn.setIcon(pixmaps.reload_slick.icon());
+      reloadbtn.setToolTip("reload Python modules");
       self.connect(reloadbtn,SIGNAL("clicked()"),reloadAllModules);
     
     # self.status_icon.setFrameStyle(QFrame.NoFrame);
@@ -623,12 +648,14 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.statusbar.addWidget(statholder);
     
     #------ gridded workspace
-    self.gw_panel = self.PanelizedWindow(splitter,"Gridded Viewers","Grid",pixmaps.view_split.iconset());
-    # separator
+    self.gw_panel = self.PanelizedWindow(splitter,"Gridded Viewers","Grid",pixmaps.view_split.icon());
+    ## separator
     sep = QFrame(self.gw_panel);
     sep.setFrameStyle(QFrame.HLine+QFrame.Sunken);
+    self.gw_panel.addWidget(sep);
     self.gw = gw = Grid.Workspace(self.gw_panel,max_nx=4,max_ny=4);
-    splitter.setResizeMode(self.gw_panel,QSplitter.Stretch);
+    self.gw_panel.addWidget(self.gw.wtop());
+    splitter.setStretchFactor(splitter.indexOf(self.gw_panel),1);
     self.gw_panel.hide();
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self.gw_panel.setShown);
     
@@ -645,7 +672,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
 #     QObject.connect(self.show_workspace_button,SIGNAL("clicked()"),self.gw.show);
 #     QObject.connect(self.show_workspace_button,PYSIGNAL("itemDropped()"),
 #                     self.xcurry(self.display_data_item,_argslice=slice(0,1)));
-#     QToolTip.add(self.show_workspace_button,"show the viewer panel. You can also drop data items here.");
+#     self.show_workspace_button.setToolTip("show the viewer panel. You can also drop data items here.");
     
     splitter.setSizes([200,600]);
 ##    self.maintab.setCornerWidget(self.pause_button,Qt.TopRight);
@@ -656,23 +683,24 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self._update_app_state();
     QMainWindow.show(self);
     
-  def add_tab (self,widget,label,iconset=None,index=-1):
+  def add_tab (self,widget,label,icon=None,index=-1):
     widget._default_label = label;
-    widget._default_iconset = iconset = iconset or QIconSet();
+    widget._default_icon  = icon = icon or QIcon();
     widget._default_index = index;
-    widget._show_qaction = QAction(iconset,label+" tab",0,self);
-    widget._show_qaction.setToggleAction(True);
-    widget._show_qaction.setOn(True);
-    self.maintab.insertTab(widget,iconset,label,index);
+    widget._show_qaction = QAction(icon,label+" tab",self);
+    widget._show_qaction.setCheckable(True);
+    widget._show_qaction.setChecked(True);
+    self.maintab.insertTab(index,widget,icon,label);
     QObject.connect(widget._show_qaction,SIGNAL("toggled(bool)"),
       self.curry(self.show_tab,widget));
       
-  def rename_tab (self,widget,label,iconset=None):
+  def rename_tab (self,widget,label,icon=None):
     widget._default_label = label;
-    self.maintab.setTabLabel(widget,label);
-    if iconset:
-      widget._default_iconset = iconset;
-      self.maintab.setTabIconSet(widget,iconset);
+    index = self.maintab.indexOf(widget);
+    self.maintab.setTabText(index,label);
+    if icon:
+      widget._default_icon = icon;
+      self.maintab.setTabIcon(index,icon);
     widget._show_qaction.setText(label);
     
   def show_tab (self,widget,show=True,switch=True):
@@ -680,21 +708,15 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     if show:
       if curindex<0:
         widget.show();
-        self.maintab.insertTab(widget,widget._default_iconset,widget._default_label,widget._default_index);
-        widget._show_qaction.setOn(True);
+        self.maintab.insertTab(widget._default_index,widget,widget._default_icon,widget._default_label);
+        widget._show_qaction.setChecked(True);
       if switch:
-        self.maintab.showPage(widget);
-    elif not show and curindex>=0:
+        self.maintab.setCurrentWidget(widget);
+    elif not show and curindex >= 0:
       widget._default_index = curindex;
       widget.hide();
-      self.maintab.removePage(widget);
-      widget._show_qaction.setOn(False);
-    
-#   def _gridded_workspace_shown (self,shown):
-#     page = self.maintab.currentPage();
-#     self.gw_visible[page] = shown;
-#     # "hide workspace" button only visible when workspace is hidden
-#     self.show_workspace_button.setHidden(shown)
+      self.maintab.removeTab(curindex);
+      widget._show_qaction.setChecked(False);
     
   def show_gridded_workspace (self,shown=True):
     _dprint(1,"showing",shown);
@@ -705,13 +727,14 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     return self.show_gridded_workspace(False);
     
 ##### slot: called when change-of-page occurs
-  def _change_current_page (self,page):
+  def _change_current_page (self,index):
+    page = self.maintab.widget(index);
     if page is not self._current_page:
       # clears message from status bar whenever a tab changes
-      self.statusbar.clear();
+      self.statusbar.clearMessage();
       # emit signals
-      self._current_page.emit(PYSIGNAL("leaving()"),());
-      page.emit(PYSIGNAL("entering()"),());
+      self._current_page.emit(SIGNAL("leaving"));
+      page.emit(SIGNAL("entering"));
       self._current_page = page;
 #       # show or hide the workspace
 #       if self.gw_visible.get(page,False):
@@ -729,8 +752,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
   MessageEventType = QEvent.User+1;
   def _relay_event (self,event,value,server):
     _dprint(5,'_relay_event:',event,value);
-    ev = QCustomEvent(self.MessageEventType);
-    ev.setData((event,value,server));
+    ev = QAppMessageEvent(event,value,server);
     QApplication.postEvent(self,ev);
     _dprint(5,'_relay_event: event posted');
     
@@ -741,7 +763,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
 
 ##### Qt customEvent handler maps to handleAppEvent(). This is used to relay events
   def customEvent (self,event):
-    self.handleAppEvent(*event.data());
+    self.handleAppEvent(event.msg,event.value,event.server);
 
 ##### event handler for app events from octopussy
   def handleAppEvent (self,ev,value,server):
@@ -811,7 +833,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       if int(ev0[-1]) >= 0:
         ev0 = ev0[:-1];
       # emit event as a PYSIGNAL so that registered handlers can get it
-      self.emit(PYSIGNAL(str(ev).lower()),(ev,value));
+      self.emit(SIGNAL(str(ev).lower()),ev,value);
       ## NB: 31/01/2008: removed this, since we always send an attach event
       ## finally, just in case we've somehow missed a Hello message,
       ## force a connected call signal
@@ -825,16 +847,16 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
   def _attached_server_event (self,ev,value,server):
     if not self._connected:
       self._connected = True;
-      self.emit(PYSIGNAL("connected()"),(value,));
-      self.emit(PYSIGNAL("isConnected()"),(True,));
+      self.emit(SIGNAL("connected"),value,);
+      self.emit(SIGNAL("isConnected"),True,);
       self.log_message("attached to server ("+str(server.addr)+")",category=Logger.Normal);
       self.gw.clear();
 
   def _detached_server_event (self,ev,value,server):
     if self._connected:
       self._connected = False;
-      self.emit(PYSIGNAL("disconnected()"),(value,));
-      self.emit(PYSIGNAL("isConnected()"),(False,));
+      self.emit(SIGNAL("disconnected"),value,);
+      self.emit(SIGNAL("isConnected"),False,);
       self.log_message("server detached",category=Logger.Normal);
     self._update_app_state();
       
@@ -850,9 +872,9 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       self.status_icon.setPixmap(pm.pm());
       # update window title        
       if self.app.current_server.addr is None:
-        self.setCaption(self.app.name()+" - "+state);
+        self.setWindowTitle(self.app.name()+" - "+state);
       else:
-        self.setCaption(str(self.app.current_server.addr)+" - "+state);
+        self.setWindowTitle(str(self.app.current_server.addr)+" - "+state);
 ####### slot: pause button pressed
 ##  def _press_pause (self):
 ##    if self.pause_requested is None:
@@ -865,37 +887,38 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
 ##    ## self.pause_button.setDown(True);
 ##### slot for the Event tab bar -- changes the label of a particular event logger
   def _change_eventlog_mask (self,logger,mask):
-    self.eventtab.setTabLabel(logger,str(mask));
+    self.eventtab.setTabText(self.eventtab.indexOf(logger),str(mask));
 ##### slot: adds error count to label of message logger
   def _indicate_msglog_errors (self,logger,numerr):
 #    try: has_err = logger._numerr > 0;
 #    except AttributeError: has_err = False;
 #    # only add when going from or to 0 errors
 #     if numerr and not has_err:
-#       self.maintab.changeTab(logger,logger._error_iconset,logger._error_label % numerr);
+#       self.maintab.changeTab(logger,logger._error_icon,logger._error_label % numerr);
 #     elif not numerr and has_err:
 #       self._reset_maintab_label(logger);
 #     logger._numerr = numerr;
+    index = self.maintab.indexOf(logger);
     had_errors = getattr(self,'_had_errors',0);
     if numerr:
       if not had_errors:
-        self.maintab.setTabIconSet(logger,logger._error_iconset);
-      self.maintab.setTabLabel(logger,logger._error_label%numerr);
+        self.maintab.setTabIcon(index,logger._error_icon);
+      self.maintab.setTabText(index,logger._error_label%numerr);
       self.maintab.show();
     else:
       self._reset_maintab_label(logger);
     self._had_errors = numerr;
       
   # resets tab label to default values
-  def _reset_maintab_label (self,tabwin,iconset=None,label=None):
-    if iconset is None:
-      iconset = tabwin._default_iconset;
-    self.maintab.changeTab(tabwin,iconset,label or tabwin._default_label);
+  def _reset_maintab_label (self,tabwin,icon=None,label=None):
+    index = self.maintab.indexOf(tabwin);
+    self.maintab.setTabIcon(index,icon or tabwin._default_icon);
+    self.maintab.setTabText(index,label or tabwin._default_label);
     
   def log_message(self,msg,content=None,category=Logger.Normal):
     self.msglog.add(msg,content=content,category=category);
-    if self.maintab.currentPage() is not self.msglog.wtop():
-      self.statusbar.message(msg,2000);
+    if self.maintab.currentWidget() is not self.msglog.wtop():
+      self.statusbar.showMessage(msg,2000);
 
   def await_gui_exit ():
     global MainApp,MainAppThread;
@@ -903,7 +926,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       MainAppThread.join();
     else:
       try:
-        MainApp.exec_loop(); 
+        MainApp.exec_(); 
       except KeyboardInterrupt: pass;
   await_gui_exit = staticmethod(await_gui_exit);  
   
@@ -967,20 +990,14 @@ class MainAppClass (QApplication):
     print 'signal',sig;
     self.quit();
   
-  # This event is used to pass a callable object into the main app thread.
-  # see customEvent() implementation, below
-  EvType_Callable = QEvent.User+2;
-  
   def customEvent(self,ev):
-    if ev.type() == self.EvType_Callable:
-      (func,args,kwargs) = ev.data();
-      func(*args,**kwargs);
+    if isinstance(ev,QCallableEvent):
+      ev.call();
       
   def postCallable(self,func,*args,**kwargs):
-    ev = QCustomEvent(self.EvType_Callable);
-    ev.setData((func,args,kwargs));
-    self.postEvent(self,ev);
+    self.postEvent(self,QCallableEvent(func,*args,**kwargs));
     
+ 
 def appgui (widget):
   """finds app_proxy_gui parent of given widget, or None if none""";
   appgui = widget;
@@ -995,19 +1012,18 @@ def mainapp ():
     MainApp = MainAppClass(sys.argv);
   return MainApp;
 
-_splash_screen = None;
-
+splash_screen = None;
 
 def set_splash_screen (pm,message=None):
   mainapp();
-  global _splash_screen;
-  _splash_screen = QSplashScreen(pm());
-  _splash_screen.show();
+  global splash_screen;
+  splash_screen = QSplashScreen(pm());
   if message is not None:
-    _splash_screen.message(message);
+    splash_screen.showMessage(message);
+  splash_screen.show();
 
 def mainapp_run ():
-  MainApp.exec_loop();
+  MainApp.exec_();
   
 def mainapp_threaded():
   """Creates the MainApp object and runs its event loop in its own thread. 
@@ -1018,7 +1034,7 @@ def mainapp_threaded():
     # start the app 
     MainApp = MainAppClass(sys.argv);
     # start the event loop thread
-    MainApp.exec_loop();
+    MainApp.exec_();
 
   if MainAppClass._started:
     return MainApp;

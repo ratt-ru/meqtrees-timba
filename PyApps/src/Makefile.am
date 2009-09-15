@@ -48,17 +48,17 @@ dist_app_SCRIPTS = Apps/__init__.py \
 
 dist_gui_SCRIPTS = GUI/__init__.py \
   GUI/app_proxy_gui.py  GUI/meqserver_gui.py  \
-  GUI/pixmaps.py        GUI/browsers.py       \
+  GUI/browsers.py       \
   GUI/treebrowser.py 
   
 dist_meq_SCRIPTS = Meq/__init__.py \
   Meq/meq.py Meq/meqds.py 
   
 dist_plugin_SCRIPTS = \
-  Plugins/ComplexColorMap.py   Plugins/__init__.py             Plugins/plot_printer.py     \
+  Plugins/ComplexColorMap.py   Plugins/__init__.py             Plugins/plot_printer_qt4.py     \
   Plugins/ComplexDisplay.py    Plugins/array_plotter.py        \
-  Plugins/ComplexScaleDraw.py  Plugins/display_image.py        Plugins/realvsimag.py      \
-  Plugins/ErrorBar.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py \
+  Plugins/ComplexScaleDraw_qt4.py  Plugins/display_image_qt4.py        Plugins/realvsimag_qt4.py      \
+  Plugins/ErrorBar_qt4.py          Plugins/hippo_array_plotter.py  Plugins/result_plotter.py \
   Plugins/UVPAxis.py            Plugins/node_execute.py     \
   Plugins/parmfiddler.py     Plugins/guiplot2dnodesettings.py      Plugins/dialog_window_config.py    \
   Plugins/history_plotter.py Plugins/svg_plotter.py
@@ -66,8 +66,6 @@ dist_plugin_SCRIPTS = \
 dist_grid_SCRIPTS = Grid/__init__.py \
   Grid/Services.py Grid/Workspace.py Grid/Page.py \
   Grid/CellBlock.py Grid/Cell.py Grid/Debug.py
-
-dist_glish_SCRIPTS = Plugins/MSinfo.g
 
 include $(lofar_sharedir)/Makefile.aids
 include $(top_srcdir)/Makefile.common

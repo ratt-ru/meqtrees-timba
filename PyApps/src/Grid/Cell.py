@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -33,11 +34,13 @@ from Timba.Grid.Debug import *
 import Timba.Grid.Services
 
 import weakref
-import sets
 import re
 import gc
 import types
-from qt import *
+
+from PyQt4.Qt import *
+import Kittens
+from Kittens.widgets import PYSIGNAL
 
 # ====== Grid.Cell ==============================================================
 # manages one cell of a gridded workspace
@@ -70,22 +73,22 @@ class Cell (object):
   """
   # define top-level cell widget class. This accepts data drops, 
   # displays context menus, has toolbars, etc.
-  DataDroppableMainWindow = DataDroppableWidget(QMainWindow);
-  class TopLevelWidget (DataDroppableMainWindow):
-    def __init__ (self,cell,parent,name=None):
-      Cell.DataDroppableMainWindow.__init__(self,parent,name,0);
+  DataDroppableQWidget = DataDroppableWidget(QWidget);
+  class TopLevelWidget (DataDroppableQWidget):
+    def __init__ (self,cell,parent):
+      Cell.DataDroppableQWidget.__init__(self,parent);
       self._cell = cell;
       self._menu = None;
     def set_context_menu (self,menu):
       self._menu = menu;
     def mousePressEvent (self,ev):
-      self.emit(PYSIGNAL("clicked()"),());
+      self.emit(SIGNAL("clicked"));
       ev.ignore();
     def contextMenuEvent (self,ev):
-      # self.emit(PYSIGNAL("clicked()"),());
+      # self.emit(SIGNAL("clicked"));
       ev.accept();
       if self._menu:
-        self._menu.exec_loop(ev.globalPos());
+        self._menu.exec_(ev.globalPos());
     def accept_drop_item_type (self,itemtype):
       return issubclass(itemtype,Timba.Grid.DataItem);
     def get_cell (self):
@@ -97,6 +100,7 @@ class Cell (object):
       self._grid_cell = cell;
       self._pressed = None;
       self._dragtimer = QTimer(self);
+      self._dragtimer.setSingleShot(True);
       QObject.connect(self._dragtimer,SIGNAL("timeout()"),self._timeout);
     # these are standard methods to support drags
     def get_drag_item (self,key):
@@ -111,7 +115,7 @@ class Cell (object):
       if ev.button() == Qt.LeftButton \
          and self._grid_cell.content_dataitem() is not None:
         self._pressed = ev.pos();
-        self._dragtimer.start(QApplication.startDragTime(),True);
+        self._dragtimer.start(QApplication.startDragTime());
       return QLabel.mousePressEvent(self,ev);
     # mouse released, cancel drag  
     def mouseReleaseEvent (self,ev):
@@ -121,7 +125,7 @@ class Cell (object):
     # mouse move, start drag if far enough      
     def mouseMoveEvent (self,ev):
       # start a drag if mouse has moved far enough
-      if self._pressed and ev.state() & Qt.LeftButton: 
+      if self._pressed and ev.buttons() & Qt.LeftButton: 
         dist = (self._pressed - ev.pos()).manhattanLength();
         if dist >= QApplication.startDragDistance():
           self._dragtimer.stop();
@@ -135,18 +139,12 @@ class Cell (object):
     def _start_drag (self):
       item = self._grid_cell.content_dataitem();
       if item is not None:
-        drag = QTextDrag(item.udi,self);
-        drag.drag();
+	drag = QDrag(self);
+	mimedata = QMimeData();
+	mimedata.setUrls([QUrl(item.udi)]);
+	drag.setMimeData(mimedata);
+        drag.exec_();
         
-  class QActionMem (QAction):
-    def __init__ (self,*args):
-      QAction.__init__(self,*args);
-      self._action_widgets = [];
-    def addedTo (self,widget,container):
-      self._action_widgets.append(widget);
-    def action_widgets (self):
-      return self._action_widgets;
-      
   def __init__ (self,parent,gridpos,page=None,fixed_cell=False,notitle=False,noviewer=False):
     """constructor. 
     parent:     parent widget
@@ -164,62 +162,61 @@ class Cell (object):
     self._content_widget = self._leader = self._udi = None;
     self._gridpos = gridpos;
     self._refresh_func = lambda:None;
-    self._highlight_colors = \
-      (QApplication.palette().active().highlight(),\
-       QApplication.palette().active().highlightedText()); \
     self._highlight = False;
     self._enabled = False;  
     self._dataitem = None;
     self._parent_page = page;
     # init widgets
-    wtop = self._wtop = self.TopLevelWidget(self,parent,'cell '+str(id(self))+' top');
-    wtop.setDockWindowsMovable(False);
+    wtop = self._wtop = self.TopLevelWidget(self,parent);
     wtop.hide();
+    self._wtop_lo = QVBoxLayout(wtop);
+    self._wtop_lo.setSpacing(0);
+    self._wtop_lo.setContentsMargins(0,0,0,0);
     self.enable_viewers(not noviewer);
     # --- build toolbar
-    self._toolbar = QToolBar("Panel tools",wtop,wtop);
+    self._toolbar = QToolBar("Panel tools",wtop);
+    self._wtop_lo.addWidget(self._toolbar);
     # icon button and popup menu    
-    self._icon_act = QAction("Panel &menu",QKeySequence(),wtop);
-    self._icon_act.addTo(self._toolbar);
+    self._icon_act = self._toolbar.addAction("Panel &menu",self.show_popup_menu);
     self._icon_act.setToolTip("Displays panel menu");
-    QObject.connect(self._icon_act,SIGNAL("activated()"),self.show_popup_menu);
     # refresh button
-    self._refresh = refresh = self.QActionMem(pixmaps.refresh.iconset(),"&Refresh contents",QKeySequence(),wtop);
+    self._refresh = refresh = self._toolbar.addAction(pixmaps.refresh.icon(),
+				"&Refresh contents",self._dorefresh);
     refresh.setToolTip("refresh contents of this panel");
-    refresh.addTo(self._toolbar);
-    QObject.connect(refresh,SIGNAL("activated()"),self._dorefresh);
-    self._refresh_btn = self._refresh.action_widgets()[-1];
     self._flashcolor = QColor("yellow");
     # stretchable label
-    self._toolbar.addSeparator();
     self._label = self.DraggableCellLabel(self,"(empty)",self._toolbar);
-    self._label.setAlignment(Qt.AlignLeft+Qt.AlignVCenter+Qt.SingleLine);
+    self._label.setAlignment(Qt.AlignLeft|Qt.AlignVCenter);
     self._label.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self._toolbar.addSeparator();
+    qaw = QWidgetAction(wtop);
+    qaw.setDefaultWidget(self._label);
+    self._toolbar.addAction(qaw);
+    self._toolbar.addSeparator();
     # pin button
-    pin_is = pixmaps.pin_up.iconset();
-    pin_is.setPixmap(pixmaps.pin_down.pm(),QIconSet.Automatic,QIconSet.Normal,QIconSet.On);
-    self._pin = pin = QAction(pin_is,"&Pin/unpin panel",QKeySequence(),wtop);
+    pin_icon = pixmaps.pin_up.icon();
+    pin_icon.addPixmap(pixmaps.pin_down.pm(),QIcon.Normal,QIcon.On);
+    self._pin = pin = self._toolbar.addAction(pin_icon,"&Pin/unpin panel");
     pin.setToolTip("pin (i.e. protect) or unpin this panel");
-    pin.setToggleAction(True);
-    pin.addTo(self._toolbar);
-    QObject.connect(pin,SIGNAL("activated()"),self._update_pin_menu);
+    pin.setCheckable(True);
     # float button
-    self._float_act = flt = QAction(pixmaps.float_window.iconset(),"&Float panel",QKeySequence(),wtop);
+    self._float_act = flt = self._toolbar.addAction(pixmaps.float_window.icon(),"&Float panel");
     flt.setToolTip("float this cell in a separate window");
     # flt.setToggleAction(True);
-    flt.addTo(self._toolbar);
-    QObject.connect(flt,SIGNAL("activated()"),self.wtop(),PYSIGNAL("float()"));
+    QObject.connect(flt,SIGNAL("triggered(bool=0)"),self.wtop(),PYSIGNAL("float()"));
     # close button
     self._toolbar.addSeparator();
-    self._close = close = QAction(pixmaps.cancel.iconset(),"&Close panel",QKeySequence(),wtop);
-    close.addTo(self._toolbar);
+    self._close = close = self._toolbar.addAction(pixmaps.cancel.icon(),"&Close panel",self.close);
     close.setToolTip("close this panel");
-    QObject.connect(close,SIGNAL("activated()"),self.close);
+    QObject.connect(close,SIGNAL("triggered(bool=0)"),self.close);
     # finalize toolbar setup
-    self._toolbar.setHorizontallyStretchable(True);
-    self._toolbar.setStretchableWidget(self._label);
-    self._toolbar.setMovingEnabled(False);
+    #self._toolbar.setHorizontallyStretchable(True);
+    #self._toolbar.setStretchableWidget(self._label);
+    self._toolbar.setMovable(False);
+    try: # early Qt4 versions do not have this function
+      self._toolbar.setFloatable(False);
+    except AttributeError:
+      pass;
     self._label.setEnabled(False);
     self._refresh.setVisible(False);
     self._pin.setVisible(False);
@@ -272,52 +269,49 @@ class Cell (object):
   def is_empty (self):
     return self._content_widget is None;
   def is_pinned (self):
-    return self._pin.isOn();
+    return self._pin.isChecked();
   def set_pinned (self,state=True):
-    self._pin.setOn(state);
-    self._update_pin_menu(state);
+    self._pin.setChecked(state);
   def show_popup_menu (self,point=None):
-    self._menu.exec_loop(point or QCursor.pos());
+    self._menu.exec_(point or QCursor.pos());
   def _toggle_pinned_state (self):
     self.set_pinned(not self.is_pinned());
-  def _update_pin_menu (self,state=None):
-    try: pinid = self._m_pin;
-    except: return;
-    if state is None:
-      state = self.is_pinned();
-    self._pin.setOn(state);
     
   # highlights a cell
   # pass in a QColor, or True for default color, or False value to disable highlights
-  def highlight (self,color=True):
+  def highlight (self,enable=True):
 #      wlist = [self._control_box] + self._control_box.children();
 #    wlist = (self._toolbar,self._label,self._label1);
     wlist = (self._label,);
-    if color:
-      color = self._highlight_colors;
+    if enable:
       for w in wlist:
         if isinstance(w,QWidget):
-          w.setPaletteBackgroundColor(color[0]);
-          w.setPaletteForegroundColor(color[1]);
+          if not self._highlight:
+            w._default_background = w.backgroundRole();
+            w._default_foreground = w.foregroundRole();
+          w.setBackgroundRole(QPalette.Highlight);
+          w.setForegroundRole(QPalette.HighlightedText);
       self._highlight = True;
     else:
       for w in wlist:
         if isinstance(w,QWidget):
-          w.unsetPalette();
+          if hasattr(w,'_default_background'):
+            w.setBackgroundRole(w._default_background);
+          if hasattr(w,'_default_foreground'):
+            w.setForegroundRole(w._default_foreground);
       self._highlight = False;
     # if we're a leader, grab the focus
     if not self._leader:
       self.wtop().setFocus();
-    self.wtop().emit(PYSIGNAL("highlight()"),(color,));
+    self.wtop().emit(SIGNAL("highlight"),enable,);
       
   def _dorefresh (self):
     if self._content_widget:
-      self._content_widget.emit(PYSIGNAL("refresh()"),());
+      self._content_widget.emit(SIGNAL("refresh"));
     
   def _clear_content (self):
     if self._content_widget:
-      dum = QWidget();
-      self._content_widget.reparent(dum, 0, QPoint())
+      self._content_widget.setParent(QWidget());
       self._content_widget = None;
       
   # wipe: deletes contents of cell, possibly in preparation for inserting 
@@ -334,7 +328,7 @@ class Cell (object):
     self.set_pinned(False);
     self._refresh_func = lambda:None;
     self.wtop().set_context_menu(None);
-    QToolTip.remove(self._label);
+    self._label.setToolTip('');
     self.highlight(False);
     self._label.setText("(empty)");
     self._label.setEnabled(False);
@@ -346,12 +340,12 @@ class Cell (object):
     if delete_content:
       self._clear_content();
       _dprint(5,id(self),': emitting wiped() signal');
-      self.wtop().emit(PYSIGNAL("wiped()"),());
+      self.wtop().emit(SIGNAL("wiped"));
     else:
       self._content_widget = None;
     if close:
       _dprint(5,id(self),': emitting closed() signal');
-      self.wtop().emit(PYSIGNAL("closed()"),());
+      self.wtop().emit(SIGNAL("closed"));
     # this is the last step
     self.disconnect_all();
 
@@ -376,7 +370,7 @@ class Cell (object):
       self.wtop().set_context_menu(self._menu);
     else:
       self.wtop().set_context_menu(None);
-    self.wtop().emit(PYSIGNAL("enable()"),(enable,));
+    self.wtop().emit(SIGNAL("enable"),enable,);
     
   def is_enabled (self):
     return self._enabled;
@@ -390,39 +384,32 @@ class Cell (object):
   # rebuild or clears menu
   def rebuild_menu (self,title,font=None,use_refresh=False):
     # create menu
-    self._menu = menu = QPopupMenu(self.wtop());
+    self._menu = menu = QMenu(self.wtop());
     if title:
-      tlab = QLabel(title,menu);
-      tlab.setAlignment(Qt.AlignCenter);
-      tlab.setFrameShape(QFrame.ToolBarPanel);
-      tlab.setFrameShadow(QFrame.Sunken);
-      self._m_title = self._menu.insertItem(tlab);
-      # self._menu.insertSeparator();
+      self._menu_label = Kittens.widgets.addMenuLabel(menu,title);
     if font:
-      self._font_menu = QPopupMenu(self.wtop());
-      self._m_fonts = {};
-      menu.insertItem(pixmaps.fontsizedown.iconset(),"Change font size",self._font_menu);
+      fontmenu = menu.addMenu(pixmaps.fontsizedown.icon(),"Change font size");
+      self._font_qas = {};
+      ag = QActionGroup(menu);
+      ag.setExclusive(True);
       # populate font menu
       ps = font.pointSize();
       if ps<0:
         ps = font.pixelSize();
       rng = range(min(4,ps),15) + range(16,max(26,ps),2);
       for sz in rng:
-        self._m_fonts[sz] = self._font_menu.insertItem(str(sz),
-                  self._menu_currier.curry(self.set_font_size,sz));
+	self._font_qas[sz] = qa = ag.addAction(str(sz));
+	qa.setCheckable(True);
+	fontmenu.addAction(qa);
+	QObject.connect(qa,SIGNAL("toggled(bool)"),self._menu_currier.curry(self.set_font_size,sz));
       self._reset_font_menu(ps);
-      # i1 = self._menu.insertItem("Larger font",self.increase_font);
-      # self._menu.setAccel(Qt.CTRL+Qt.Key_Plus,i1);
-      # i1 = self._menu.insertItem("Smaller font",self.decrease_font);
-      # self._menu.setAccel(Qt.CTRL+Qt.Key_Minus,i1);
     if self._enable_viewers and self._viewers_menu:
-      self._m_viewers = menu.insertItem(pixmaps.viewmag.iconset(),"View using",self._viewers_menu);
-    self._pin.addTo(menu);
-    self._pin.setOn(self.is_pinned());
-    self._float_act.addTo(menu);
+      menu.addMenu(self._viewers_menu);
+    menu.addAction(self._pin);
+    menu.addAction(self._float_act);
     if use_refresh:
-      self._refresh.addTo(menu);
-    self._close.addTo(menu);
+      menu.addAction(self._refresh);
+    menu.addAction(self._close);
     
   def adjust_font (self,incr):
     """adjusts content font size by 'incr' points""";
@@ -433,25 +420,28 @@ class Cell (object):
     else:
       self.set_font_size(font.pixelSize()+incr);
     
-  def set_font_size (self,size,dum=None):
-    """sets content font size. dum argument ignored, used for compatibility
-    with menu callbacks""";
+  def set_font_size (self,size,really_set=True):
+    """sets content font size. Really_set should be True to actually set the font, this 
+    is to make the method compatible with the toggled(bool) signal.""";
+    if not really_set:
+      return;
     font = QFont(self._content_widget.font());
     if font.pointSize() > 0:
       font.setPointSize(size);
     else:
       font.setPixelSize(size);
     self._content_widget.setFont(font);
-    self._content_widget.emit(PYSIGNAL("fontChanged()"),(font,));
-    self.wtop().emit(PYSIGNAL("fontChanged()"),(font,));
+    self._content_widget.emit(SIGNAL("fontChanged"),font,);
+    self.wtop().emit(SIGNAL("fontChanged"),font,);
     self._reset_font_menu(size);
     
   def _reset_font_menu (self,size):
-    for (sz,menu_id) in self._m_fonts.iteritems():
-      self._font_menu.setItemChecked(menu_id,sz==size);
+    qa = self._font_qas.get(size);
+    if qa:
+      qa.setChecked(True);
       
   def _change_viewer (self,dataitem,viewer):
-    self.wtop().emit(PYSIGNAL("changeViewer()"),(dataitem,viewer));
+    self.wtop().emit(SIGNAL("changeViewer"),dataitem,viewer);
     
   def exclusive_highlight (self):
     if self._dataitem:
@@ -473,7 +463,8 @@ class Cell (object):
     # insert new content
     self._clear_content();
     self._content_widget = widget;
-    self.wtop().setCentralWidget(widget);
+    widget.setParent(self.wtop());
+    self._wtop_lo.addWidget(widget);
     _dprint(5,id(self),': widget',widget,'added');
     # recreate currier for callbacks (discards old curries)
     self._menu_currier = PersistentCurrier();
@@ -487,18 +478,21 @@ class Cell (object):
       _dprint(5,id(self),': dataitem is',dataitem);
       self.clear_menu();
       # set icon for the menu button
-      self._icon_act.setIconSet(icon or pixmaps.viewmag.iconset());
+      self._icon_act.setIcon(icon or pixmaps.viewmag.icon());
       # build a "Display with" submenu 
       if len(dataitem.viewer_list) > 1:
-        vmenu = self._viewers_menu = QPopupMenu(self.wtop());
+        vmenu = self._viewers_menu = QMenu(self.wtop());
+	vmenu.setTitle("Display using");
+	vmenu.setIcon(pixmaps.viewmag.icon());
         for v in dataitem.viewer_list:
           # create entry for viewer
           name = getattr(v,'viewer_name',v.__name__);
           try: icon = v.icon();
-          except AttributeError: icon = QIconSet();
+          except AttributeError: icon = QIcon();
           func = self._menu_currier.xcurry(self._change_viewer,_args=(dataitem,v));
-          mid = vmenu.insertItem(icon,name,func);
-          vmenu.setItemChecked(mid,v is dataitem.viewer_obj.__class__);
+	  qa = vmenu.addAction(icon,name,func);
+	  qa.setCheckable(True);
+          qa.setChecked(v is dataitem.viewer_obj.__class__);
       else:
         self._viewers_menu = None;
       # build main/context menu
@@ -548,12 +542,12 @@ class Cell (object):
     
   def set_caption (self,caption):
     """sets the caption of a cell."""
-    QToolTip.add(self._label,caption);
+    self._label.setToolTip(caption);
     self._label.setText(caption);
     # set negative margin, to keep rich text from bloating the label's height
     self._label.setMargin(-20);
     # set menu title if menu is present
-    try: self._menu.changeItem(self._m_title,caption);
+    try: self._menu_label.setText(caption);
     except AttributeError: pass;
     
   def leader (self):
@@ -565,18 +559,18 @@ class Cell (object):
     
   def flash (self,flash=True):
     _dprint(5,id(self),': flash()');
-    self.wtop().emit(PYSIGNAL("flash()"),(flash,));
+    self.wtop().emit(SIGNAL("flash"),flash,);
     self.enable();
     if flash:
-      self._refresh_btn.setPaletteBackgroundColor(self._flashcolor);
-      # self._refresh.setIconSet(pixmaps.refresh_highlight.iconset());
+      # self._refresh_btn.setPaletteBackgroundColor(self._flashcolor);
+      self._refresh.setIcon(pixmaps.refresh_highlight.icon());
       QTimer.singleShot(300,self._unflash);
     else:
       self._unflash();
       
   def _unflash (self):
-    self._refresh_btn.unsetPalette();
-    # self._refresh.setIconSet(pixmaps.refresh.iconset());
+    # self._refresh_btn.unsetPalette();
+    self._refresh.setIcon(pixmaps.refresh.icon());
  
   def _refit_size (self):
     """ugly kludge to get the layout system to do its stuff properly after

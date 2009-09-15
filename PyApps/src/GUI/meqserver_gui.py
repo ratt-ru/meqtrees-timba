@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -31,7 +32,7 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba.Meq import meqds
 from Timba.GUI.browsers import *
 from Timba.GUI import treebrowser
-from Timba.GUI import tdlgui
+import Timba.GUI.TDL as tdlgui
 from Timba.GUI import profiler
 from Timba.GUI.procstatuswidget import *
 from Timba.GUI import meqgui 
@@ -48,7 +49,6 @@ import Purr.MainWindow
 
 import weakref
 import math
-import sets
 import re
 import os
 import os.path
@@ -88,6 +88,11 @@ class meqserver_gui (app_proxy_gui):
     global mqs;
     self.mqs = mqs = app;
     self.mqs.track_results(False);
+    # init internal state
+    self._purr = None;
+    self._is_tree_in_sync = False;
+    self._tdl_tabs = {};
+    self._wait_cursor = None;
     # init standard proxy GUI
     app_proxy_gui.__init__(self,app,*args,**kwargs);
     # add handlers for various application events
@@ -95,19 +100,14 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self,PYSIGNAL("process.status"),self.ce_ProcessStatus);
     QObject.connect(self,PYSIGNAL("result.node.get.state"),self.ce_NodeState);
     QObject.connect(self,PYSIGNAL("result.get.node.list"),self.ce_LoadNodeList);
-    # init internal state
-    self._purr = None;
-    self._is_tree_in_sync = False;
     
   def populate (self,main_parent=None,*args,**kwargs):
     # register ourselves with TDL services
     Timba.TDL.GUI.meqbrowser = self;
-    # init icons
-    pixmaps.load_icons('treebrowser');
     
     app_proxy_gui.populate(self,main_parent=main_parent,*args,**kwargs);
-    self.setCaption("MeqBrowser");
-    self.setIcon(pixmaps.trees48x48.pm());
+    self.setWindowTitle("MeqBrowser");
+    self.setWindowIcon(pixmaps.trees48x48.icon());
     self.set_verbose(self.get_verbose());
     
     # the _check_connection_status method is called every time we connect/disconnect/etc.
@@ -122,34 +122,35 @@ class meqserver_gui (app_proxy_gui):
       self.resize(QSize(width,height));
     
     # add Tree browser panel
-    self.tb_panel = self.PanelizedWindow(self.splitter,"Trees","Trees",pixmaps.view_tree.iconset());
+    self.tb_panel = self.PanelizedWindow(self.splitter,"Trees","Trees",pixmaps.view_tree.icon());
     self.treebrowser = treebrowser.TreeBrowser(self.tb_panel);
+    self.tb_panel.addWidget(self.treebrowser.wtop());
     QObject.connect(self.tb_panel,PYSIGNAL("visible()"),
           self.treebrowser.wtoolbar().setShown);
-    
-    # self.add_tab(self.treebrowser.wtop(),"Trees",index=1);
-    self.splitter.moveToFirst(self.tb_panel);
-    self.splitter.setResizeMode(self.tb_panel,QSplitter.KeepSize);
-    
-    self.splitter.setSizes([100,300,400]);
-    
+
     self.maintab_panel.show();
     self.gw_panel.hide();
     self.tb_panel.hide();
+      
+
+    self.splitter.insertWidget(0,self.tb_panel);
+    self.splitter.setStretchFactor(0,0);
+    
+    self.splitter.setSizes([100,300,400]);
     
     # add Snapshots tab
     self.resultlog = Logger(self,"node snapshot log",limit=1000,scroll=False,
           udi_root='snapshot');
-    self.resultlog.wtop()._newres_iconset  = pixmaps.gear.iconset();
+    self.resultlog.wtop()._newres_icon  = pixmaps.gear.icon();
     self.resultlog.wtop()._newres_label    = "Snapshots";
     self.resultlog.wtop()._newresults      = False;
     self.add_tab(self.resultlog.wtop(),"Snapshots",index=2);
-    QObject.connect(self.resultlog.wlistview(),PYSIGNAL("displayDataItem()"),self.display_data_item);
-    QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self._reset_resultlog_label);
+    QObject.connect(self.resultlog.treeWidget(),PYSIGNAL("displayDataItem()"),self.display_data_item);
+    QObject.connect(self.maintab,SIGNAL("currentChanged(int)"),self._reset_resultlog_label);
     
     # add Profiler tab
     self.profiler = profiler.Profiler(self,"tree profiler");
-    self.profiler.wtop()._busy_iconset  = pixmaps.clock.iconset();
+    self.profiler.wtop()._busy_icon  = pixmaps.clock.icon();
     self.profiler.wtop()._busy_label    = "Snapshots";
     self.add_tab(self.profiler.wtop(),"Profiler");
     self.show_tab(self.profiler.wtop(),False);
@@ -157,59 +158,51 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.profiler.wtop(),PYSIGNAL("collected()"),self._show_profiler);
     
     # create main toolbar
-    self.maintoolbar = QToolBar(self,"MainToolbar");
+    self.maintoolbar = QToolBar(self);
+    self.maintoolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
     self.qa_viewpanels = QActionGroup(self);
     self.qa_viewpanels.setExclusive(False);
     
     # populate it with view controls
     for panel in (self.tb_panel,self.maintab_panel,self.gw_panel):
       panel.visQAction(self.qa_viewpanels);
-      panel.makeMinButton(self.maintoolbar);
+      self.maintoolbar.addWidget(panel.makeMinButton(self.maintoolbar));
       
     # add TDL jobs button
-    self._tb_jobs = QToolButton(self.maintoolbar);
-    self._tb_jobs.setIconSet(pixmaps.gear.iconset());
-    self._tb_jobs.setTextLabel("TDL Exec");
-    self._tb_jobs.setUsesTextLabel(True);
-    self._tb_jobs.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_jobs,"Access run-time options & jobs defined by current TDL script");
-    self._tb_jobs.hide();
-    QObject.connect(self._tb_jobs,SIGNAL("clicked()"),self._show_current_tdl_jobs);
+    self._qa_jobs = self.maintoolbar.addAction(pixmaps.gear.icon(),"TDL Exec",self._show_current_tdl_jobs);
+#    self._qa_jobs.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self._qa_jobs.setToolTip("Access run-time options & jobs defined by current TDL script");
+    self._qa_jobs.setVisible(False);
     
     # add TDL run button
-    self._qa_runtdl = QAction(pixmaps.blue_round_reload.iconset(),"&Recompile current TDL script",Qt.CTRL+Qt.Key_R,self);
-    self._qa_runtdl.addTo(self.maintoolbar);
+    self._qa_runtdl = self.maintoolbar.addAction(pixmaps.blue_round_reload.icon(),
+                        "&Recompile current TDL script",self._run_current_tdl_script);
+    self._qa_runtdl.setIconText("Recompile");
+    self._qa_runtdl.setShortcut(Qt.CTRL+Qt.Key_R);
     QObject.connect(self,PYSIGNAL("isConnected()"),self._enable_run_current);
     self._enable_run_current(False);
-    QObject.connect(self._qa_runtdl,SIGNAL("activated()"),self._run_current_tdl_script);
     self._qa_runtdl.setWhatsThis("""This button re-runs the current TDL script, if one is loaded.""");
     self._qa_runtdl.setVisible(False);
     self._qa_runtdl.setEnabled(False);
     self._main_tdlfile = None; # this is used by _run_current
     
     # add TDL options button
-    self._tb_opts = QToolButton(self.maintoolbar);
-    self._tb_opts.setIconSet(pixmaps.wrench.iconset());
-    self._tb_opts.setTextLabel("TDL Options");
-    self._tb_opts.setUsesTextLabel(True);
-    self._tb_opts.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_opts,"Access compile-time options for current TDL script");
-    self._tb_opts.hide();
-    QObject.connect(self._tb_opts,SIGNAL("clicked()"),self._show_current_tdl_opts);
+    self._qa_opts = self.maintoolbar.addAction(pixmaps.wrench.icon(),"TDL Options",self._show_current_tdl_opts);
+    self._qa_opts.setToolTip("Access compile-time options for current TDL script");
+    self._qa_opts.setVisible(False);
     # disable TDL job controls while running
-    QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._tb_jobs.setDisabled);
+    QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_jobs.setDisabled);
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_runtdl.setDisabled);
     
+    # add what's this button at far right
+    dum = QWidget(self.maintoolbar);
+    dum.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
+    self.maintoolbar.addWidget(dum);
+    
     # add Purr button
-    qa = QAction(pixmaps.purr_logo.iconset(),"Show Purr window",0,self.qa_viewpanels);
-    QObject.connect(qa,SIGNAL("activated()"),self.show_purr_window);
-    tb_purr = QToolButton(self.maintoolbar);
-    tb_purr.setIconSet(pixmaps.purr_logo.iconset());
-    tb_purr.setTextLabel("Purr");
-    tb_purr.setUsesTextLabel(True);
-    tb_purr.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(tb_purr,"Shows the Purr tool");
-    QObject.connect(tb_purr,SIGNAL("clicked()"),self.show_purr_window);
+    qa_purr = self.maintoolbar.addAction(pixmaps.purr_logo.icon(),"Show Purr window",self.show_purr_window);
+    qa_purr.setIconText("Purr");
+    qa_purr.setToolTip("Shows the Purr tool");
     
     # make a TDLErrorFloat for errors
     self._tdlgui_error_window = tdlgui.TDLErrorFloat(self);
@@ -224,19 +217,21 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.maintab_panel,PYSIGNAL("shown()"),
                     self._tdlgui_error_window.show);
     # hide/show error float based on what kind of tab is selected
-    def _hide_or_show_error_float(widget):
+    def _hide_or_show_error_float(index):
+      widget = self.maintab.widget(index);
       if isinstance(widget,tdlgui.TDLEditor):
         self._tdlgui_error_window.show();
       else:
         self._tdlgui_error_window.hide();
-    QObject.connect(self.maintab,SIGNAL("currentChanged(QWidget*)"),self.curry(_hide_or_show_error_float));
+    QObject.connect(self.maintab,SIGNAL("currentChanged(int)"),self.curry(_hide_or_show_error_float));
     
-    # add what's this button at far right
-    dum = QWidget(self.maintoolbar);
-    self.maintoolbar.setStretchableWidget(dum);
-    self._whatsthisbutton = QWhatsThis.whatsThisButton(self.maintoolbar);
-    # self.moveDockWindow(self.maintoolbar,QMainWindow.DockTop);
-    self.moveDockWindow(self.treebrowser.wtoolbar(),QMainWindow.DockLeft);
+    # self.maintoolbar.setStretchableWidget(dum);
+    ### skip the what's this button
+    self._whatsthisaction = QWhatsThis.createAction(self);
+    self.maintoolbar.addAction(self._whatsthisaction);
+    ###
+    self.addToolBar(Qt.TopToolBarArea,self.maintoolbar);
+    self.addToolBar(Qt.LeftToolBarArea,self.treebrowser.wtoolbar());
     self.treebrowser.wtoolbar().hide();
     
 #     # add TDL editor panel
@@ -247,10 +242,12 @@ class meqserver_gui (app_proxy_gui):
     # excluse ubiquotous events from the event logger
     self.eventlog.set_mask('!node.status.*;!process.status;'+self.eventlog.get_mask());
     
-    meterbar = QVBox(self.statusbar);
+    meterbar = QWidget(self.statusbar);
+    meterbar_lo = QVBoxLayout(meterbar);
     self.statusbar.addWidget(meterbar); 
     # add a VisProgressMeter to status bar 
     self._visprogmeter = VisProgressMeter.VisProgressMeter(meterbar);
+    meterbar_lo.addWidget(self._visprogmeter);
     self._visprogmeter.hide();
     # self.statusbar.addWidget(self._visprogmeter); # ,2);
     self._visprogmeter.connect_app_signals(self);
@@ -260,6 +257,7 @@ class meqserver_gui (app_proxy_gui):
     self._solprogmeter.hide();
     # self.statusbar.addWidget(self._solprogmeter); # ,2);
     self._solprogmeter.connect_app_signals(self);
+    meterbar_lo.addWidget(self._solprogmeter);
     
     # add dummy stretch, and a memory size widget to status bar
     self._wstat = ProcStatusWidget(self.statusbar);
@@ -269,52 +267,10 @@ class meqserver_gui (app_proxy_gui):
     self.statusbar.addWidget(dum,10);
     self.statusbar.addWidget(self._wstat) #,0);
     
-    # build menu bar
-    self._menus = {};
-    kernel_menu    = self._menus['MeqTrees'] = QPopupMenu(self);
-    tdl_menu       = self._tdlmenu = self._menus['TDL'] = QPopupMenu(self);
-    debug_menu     = self._menus['Debug'] = QPopupMenu(self);
-    view_menu      = self._menus['View'] = QPopupMenu(self);
-    bookmarks_menu = self._menus['Bookmarks'] = QPopupMenu(self);
-    help_menu      = self._menus['Help'] = QPopupMenu(self);
-
-    menubar = self.menuBar();    
-    kernel_menu_id = menubar.insertItem("&MeqTrees",kernel_menu);
-    kernel_menu_id = menubar.insertItem("&TDL",tdl_menu);
-    debug_menu_id = menubar.insertItem("&Debug",debug_menu);
-    window_menu_id = menubar.insertItem("&View",view_menu);
-    bookmarks_menu_id = menubar.insertItem("&Bookmarks",bookmarks_menu);
-    menubar.insertSeparator();
-    help_menu_id = menubar.insertItem("&Help",help_menu);
-    
-    # some menus only available when connected
-    QObject.connect(self,PYSIGNAL("isConnected()"),self.curry(menubar.setItemVisible,bookmarks_menu_id));
-    menubar.setItemVisible(bookmarks_menu_id,False);
-
-    # --- MeqTrees menu
-    connect = self._qa_connect = QAction("Attach to a meqserver...",Qt.CTRL+Qt.Key_A,self);
-    connect.addTo(kernel_menu);
-    stopkern = self._qa_stopkern = QAction(pixmaps.red_round_cross.iconset(),
-                                        "&Stop current meqserver",Qt.CTRL+Qt.Key_S,self);
-    QObject.connect(stopkern,SIGNAL("activated()"),self._stop_kernel);
-    stopkern.setDisabled(True);
-    stopkern.addTo(kernel_menu);
-    
-    renamekern = self._qa_renamekern = QAction("&Rename current meqserver",0,self);
-    QObject.connect(renamekern,SIGNAL("activated()"),self._rename_kernel);
-    renamekern.setDisabled(True);
-    QObject.connect(self,PYSIGNAL("isConnected()"),stopkern.setEnabled);
-    QObject.connect(self,PYSIGNAL("isConnected()"),renamekern.setEnabled);
-    renamekern.addTo(kernel_menu);
-    
-    kernel_menu.insertSeparator();
-    self.treebrowser._qa_refresh.addTo(kernel_menu);
-    # self.treebrowser._qa_load.addTo(kernel_menu);
-    # self.treebrowser._qa_save.addTo(kernel_menu);
+    # create a servers dialog
     self._connect_dialog = servers_dialog.ServersDialog(self,\
         name="&Attach to a meqserver",modal=False);
     QObject.connect(self,PYSIGNAL("isConnected()"),self._connect_dialog.setHidden);
-    QObject.connect(connect,SIGNAL("activated()"),self._connect_dialog.show);
     QObject.connect(self._connect_dialog,PYSIGNAL("startKernel()"),self._start_kernel);
     QObject.connect(self._connect_dialog,PYSIGNAL("serverSelected()"),self._select_attach_kernel);
     # --- find path to kernel binary if not configured
@@ -330,81 +286,113 @@ class meqserver_gui (app_proxy_gui):
     ## NB: this shows the dialog BEFORE showing ourselves
     # self._connect_dialog.show();
     
+    # build menu bar
+    menubar = self.menuBar();
+    self._menus = {};
+    kernel_menu    = self._menus['MeqTrees']  = menubar.addMenu("&MeqTrees");
+    tdl_menu       = self._tdlmenu = self._menus['TDL'] = menubar.addMenu("&TDL");
+    debug_menu     = self._menus['Debug']     = menubar.addMenu("&Debug");
+    view_menu      = self._menus['View']      = menubar.addMenu("&View");
+    bookmarks_menu = self._menus['Bookmarks'] = menubar.addMenu("&Bookmarks");
+    menubar.addSeparator();
+    help_menu      = self._menus['Help']      = menubar.addMenu("&Help");
+
+    # some menus only available when connected
+    self._enable_bookmarks_menu = bookmarks_menu.menuAction().setVisible;
+    QObject.connect(self,PYSIGNAL("isConnected()"),self._enable_bookmarks_menu);
+    self._enable_bookmarks_menu(False);
+
+    # --- MeqTrees menu
+    connect  = self._qa_connect  = kernel_menu.addAction("Attach to a meqserver...",self._connect_dialog.show,Qt.CTRL+Qt.Key_A);
+    stopkern = self._qa_stopkern = kernel_menu.addAction(pixmaps.red_round_cross.icon(),
+                                            "&Stop current meqserver",self._stop_kernel,Qt.CTRL+Qt.Key_S);
+    stopkern.setDisabled(True);
+    QObject.connect(self,PYSIGNAL("isConnected()"),stopkern.setEnabled);
+    
+    renamekern = self._qa_renamekern = kernel_menu.addAction("&Rename current meqserver",self._rename_kernel);
+    renamekern.setDisabled(True);
+    QObject.connect(self,PYSIGNAL("isConnected()"),renamekern.setEnabled);
+    
+    kernel_menu.addSeparator();
+    kernel_menu.addAction(self.treebrowser._qa_refresh);
+    # self.treebrowser._qa_load.addTo(kernel_menu);
+    # self.treebrowser._qa_save.addTo(kernel_menu);
+    
     # --- TDL menu
-    syncedit = QAction("Sync to external editor",0,self);
-    syncedit.addTo(tdl_menu);
-    syncedit.setToggleAction(True);
+    syncedit = tdl_menu.addAction("Sync to external editor");
+    syncedit.setCheckable(True);
+    QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
+    QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.TDLEditor.set_external_sync);
     sync = Config.getbool('tdl-sync-to-external-editor',True);
-    syncedit.setOn(sync);
-    tdlgui.set_external_sync(sync);
+    syncedit.setChecked(sync);
     
-    showlnum = QAction("Show line numbers in editor",0,self);
-    showlnum.addTo(tdl_menu);
-    showlnum.setToggleAction(True);
+    showlnum = tdl_menu.addAction("Show line numbers in editor");
+    showlnum.setVisible(tdlgui.TDLEditor.SupportsLineNumbers);
+    showlnum.setCheckable(True);
+    QObject.connect(showlnum,SIGNAL("toggled(bool)"),self._show_tdl_line_numbers);
     show = Config.getbool('tdl-show-line-numbers',True);
-    showlnum.setOn(show);
+    showlnum.setChecked(show);
     
-    loadruntdl = QAction("&Load TDL script...",Qt.CTRL+Qt.Key_T,self);
-    loadruntdl.addTo(tdl_menu);
+    loadruntdl = tdl_menu.addAction("&Load TDL script...",self._load_tdl_script,Qt.CTRL+Qt.Key_T);
     QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
     loadruntdl.setEnabled(False);
-    QObject.connect(loadruntdl,SIGNAL("activated()"),self._load_tdl_script);
-    QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
-    QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.set_external_sync);
-    QObject.connect(showlnum,SIGNAL("toggled(bool)"),self._show_tdl_line_numbers);
-    self._qa_runtdl.addTo(tdl_menu);
+    self._qa_loadtdl_cwd = tdl_menu.addAction("Change to directory of TDL script when loading");
+    self._qa_loadtdl_cwd.setCheckable(True);
+    self._qa_loadtdl_cwd.setChecked(False);
+    
+    tdl_menu.addAction(self._qa_runtdl);
     # menu for tdl jobs is inserted when TDL script is run
     QObject.connect(self,PYSIGNAL("isConnected()"),self._clear_tdl_jobs);
-    self._mi_tdljobs = self._mi_tdlopts = None;
     
     # --- View menu
-    self.qa_viewpanels.addTo(view_menu);
-#     showgw = QAction(pixmaps.view_split.iconset(),"&Gridded workspace",Qt.Key_F3,self);
+    for qa in self.qa_viewpanels.actions():
+      view_menu.addAction(qa);
+#     showgw = QAction(pixmaps.view_split.icon(),"&Gridded workspace",Qt.Key_F3,self);
 #     showgw.addTo(view_menu);
-#     showgw.setToggleAction(True);
-#     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),showgw.setOn);
+#     showgw.setCheckable(True);
+#     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),showgw.setChecked);
 #     QObject.connect(showgw,SIGNAL("toggled(bool)"),self.gw.show);
-    view_menu.insertSeparator();
+    view_menu.addSeparator();
     # optional tab views
-    self.resultlog.wtop()._show_qaction.addTo(view_menu);
-    self.eventtab._show_qaction.addTo(view_menu);
-    self.profiler.wtop()._show_qaction.addTo(view_menu);
+    view_menu.addAction(self.resultlog.wtop()._show_qaction);
+    view_menu.addAction(self.eventtab._show_qaction);
+    view_menu.addAction(self.profiler.wtop()._show_qaction);
     
     self.show_tab(self.eventtab,False);
 #    self.tdledit._show_qaction.addTo(view_menu);
 #    self.show_tab(self.tdledit,False);
     # process status view
-    showps = QAction("&Process status",0,self);
-    showps.addTo(view_menu);
-    showps.setToggleAction(True);
-    showps.setOn(False);
+    showps = view_menu.addAction("&Process status");
+    showps.setCheckable(True);
+    showps.setChecked(False);
     QObject.connect(showps,SIGNAL("toggled(bool)"),self._wstat.setShown);
-    QObject.connect(self._wstat,PYSIGNAL("shown()"),showps.setOn);
+    QObject.connect(self._wstat,PYSIGNAL("shown()"),showps.setChecked);
+    
+    view_menu.addSeparator();
+    view_menu.addAction(qa_purr);
     
     # --- Bookmarks menu
-    self._qa_addbkmark = addbkmark = QAction(pixmaps.bookmark_add.iconset(),"Add bookmark",Qt.CTRL+Qt.Key_B,self);
-    addbkmark.addTo(bookmarks_menu);
-    self._qa_addpagemark = addpagemark = QAction(pixmaps.bookmark_toolbar.iconset(),"Add pagemark for this page",Qt.SHIFT+Qt.CTRL+Qt.Key_B,self);
-    addpagemark.addTo(bookmarks_menu);
-    # self._qa_autopublish = autopublish = QAction(pixmaps.publish.iconset(),"Auto-publish loaded bookmarks",0,self);
-    self._qa_autopublish = autopublish = QAction("Auto-publish loaded bookmarks",0,self);
+    self._qa_addbkmark   = addbkmark   = bookmarks_menu.addAction(pixmaps.bookmark_add.icon(),
+                                              "Add bookmark",self._add_bookmark,Qt.CTRL+Qt.Key_B);
+    self._qa_addpagemark = addpagemark = bookmarks_menu.addAction(pixmaps.bookmark_toolbar.icon(),
+                                              "Add pagemark for this page",self._add_pagemark,Qt.SHIFT+Qt.CTRL+Qt.Key_B);
+    # self._qa_autopublish = autopublish = QAction(pixmaps.publish.icon(),"Auto-publish loaded bookmarks",0,self);
+    # self._qa_autopublish = autopublish = QAction("Auto-publish loaded bookmarks",0,self);
     # autopublish.addTo(bookmarks_menu);
-    QObject.connect(addbkmark,SIGNAL("activated()"),self._add_bookmark);
-    QObject.connect(addpagemark,SIGNAL("activated()"),self._add_pagemark);
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
     QObject.connect(self.gw.wtop(),PYSIGNAL("shown()"),self._gw_reset_bookmark_actions);
     QObject.connect(self.gw.wtop(),PYSIGNAL("itemSelected()"),self._gw_reset_bookmark_actions);
-    QObject.connect(self.gw.wtop(),SIGNAL("currentChanged(QWidget*)"),self._gw_reset_bookmark_actions);
+    QObject.connect(self.gw.wtop(),SIGNAL("currentChanged(int)"),self._gw_reset_bookmark_actions);
     addbkmark.setEnabled(False);
     addpagemark.setEnabled(False);
-    autopublish.setToggleAction(True);
-    # autopublish.setOn(Config.getbool('autopublish-bookmarks',True));
-    autopublish.setOn(True);
+    # autopublish.setCheckable(True);
+    # autopublish.setChecked(Config.getbool('autopublish-bookmarks',True));
+    # autopublish.setChecked(True);
     # QObject.connect(autopublish,SIGNAL("toggled(bool)"),self.curry(Config.set,'autopublish-bookmarks'));
     # QObject.connect(autopublish,SIGNAL("toggled(bool)"),self._autopublish_bookmarks);
     self._autopublish_bookmarks(True);
     # bookmark manager
-    bookmarks_menu.insertSeparator();
+    bookmarks_menu.addSeparator();
     self._bookmarks = bookmarks.BookmarkFolder("main",self,menu=bookmarks_menu,gui_parent=self);
     # copy of current bookmark record
     self._bookmarks_rec = None;
@@ -413,34 +401,29 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self._bookmarks,PYSIGNAL("showPagemark()"),self._show_pagemark);
     
     # --- Debug menu
-    self.treebrowser._qa_dbg_verbosity.addTo(debug_menu);
-    debug_menu.insertSeparator();
-    self.treebrowser._qa_dbg_tools.addTo(debug_menu);
-    debug_menu.insertSeparator();
-    collect_prof = QAction("Collect profiling stats",0,self);
-    collect_prof.addTo(debug_menu);
+    for qa in self.treebrowser._qa_dbg_verbosity.actions():
+      debug_menu.addAction(qa);
+    debug_menu.addSeparator();
+    for qa in self.treebrowser._qa_dbg_tools.actions():
+      debug_menu.addAction(qa);
+    debug_menu.addSeparator();
+    collect_prof = debug_menu.addAction("Collect profiling stats",self.profiler.collect_stats);
     collect_prof.setEnabled(False); 
-    QObject.connect(collect_prof,SIGNAL("activated()"),self.profiler.collect_stats);
     QObject.connect(self,PYSIGNAL("isConnected()"),collect_prof.setEnabled);
     
-    debug_menu.insertSeparator();
-    attach_gdb = self._qa_attach_gdb = QAction("Attach binary debugger to meqserver",0,self);
-    attach_gdb.addTo(debug_menu);
+    debug_menu.addSeparator();
+    attach_gdb = self._qa_attach_gdb = debug_menu.addAction("Attach binary debugger to meqserver",self._debug_kernel);
     attach_gdb.setEnabled(False); # for now
-    QObject.connect(attach_gdb,SIGNAL("activated()"),self._debug_kernel);
     
     # --- Help menu
-    qa_about = QAction("About MeqTrees...",0,self);
-    qa_about.addTo(help_menu);
     self._about_dialog = about_dialog.AboutDialog(self);
-    QObject.connect(qa_about,SIGNAL("activated()"),self._about_dialog.exec_loop);
-    help_menu.insertItem(self._whatsthisbutton.iconSet(),
-                              "What's &This",self.whatsThis,Qt.SHIFT+Qt.Key_F1);
+    qa_about = help_menu.addAction("About MeqTrees...",self._about_dialog.exec_);
+    help_menu.addAction(self._whatsthisaction);
     
     # populate menus from plugins                          
     # scan all modules for define_mainmenu_actions methods, and call them all
     self._actions = {};
-    funcs = sets.Set();
+    funcs = set();
     for (name,mod) in sys.modules.iteritems():
       _dprint(4,'looking for mainmenu actions in',name);
       try: 
@@ -453,10 +436,8 @@ class meqserver_gui (app_proxy_gui):
       f(self._menus,self);
       
     # finally, add standard stuff to bottom of menus
-    kernel_menu.insertSeparator();
-    exit = QAction(pixmaps.exit.iconset(),"&Quit browser",Qt.CTRL+Qt.Key_Q,self);
-    exit.addTo(kernel_menu);
-    QObject.connect(exit,SIGNAL("activated()"),self.close);
+    kernel_menu.addSeparator();
+    exit = kernel_menu.addAction(pixmaps.exit.icon(),"&Quit browser",self.close,Qt.CTRL+Qt.Key_Q);
     ## NB: uncomment the line below to have Ctrl+C handled through the GUI
     ## (confirmation dialog will be displayed if running a kernel)
     # signal.signal(signal.SIGINT,self.xcurry(self.close));
@@ -486,10 +467,6 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self._connect_timer,SIGNAL("timeout()"),self._connection_timeout);
     # if a nodelist is requested by other means, the timer is stopped
     QObject.connect(meqds.nodelist,PYSIGNAL("requested()"),self._autoreq_timer.stop);
-    # tdl tabs
-    self._tdl_tabs = {};
-    # wait cursor object
-    self._wait_cursor = None;
     
   def show (self):
     app_proxy_gui.show(self);
@@ -519,7 +496,7 @@ class meqserver_gui (app_proxy_gui):
     
   def _show_profiler_busy (self):
     self.show_tab(self.profiler.wtop(),switch=False);
-    self._reset_maintab_label(self.profiler.wtop(),iconset=pixmaps.clock.iconset());
+    self._reset_maintab_label(self.profiler.wtop(),icon=pixmaps.clock.icon());
     QApplication.flush();
     
   def _autopublish_bookmarks (self,enabled):
@@ -598,7 +575,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self._kernel_pid = self._kernel_pid0 = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
     _dprint(0,"started meqserver process",self._kernel_pid);
     self._kernel_pathname = pathname;
-    self._connect_timer.start(8000,True);  # start an 8-second timer
+    self._connect_timer.setSingleShot(True);
+    self._connect_timer.start(8000);  # start an 8-second timer
     self._check_connection_status();
     # tell the client to attach as soon as it sees this pid
     self.app.auto_attach(pid=self._kernel_pid,host=None);
@@ -731,8 +709,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       
   def _clear_tdl_jobs (self,dum=False):
     """removes the TDL Jobs submenu, if it exists""";
-    self._tb_opts.hide();
-    self._tb_jobs.hide();
+    self._qa_opts.setVisible(False);
+    self._qa_jobs.setVisible(False);
     
   def _enable_run_current (self,dum=False):
     """enables/disables the Run TDL QAction. If kernel is connected and a TDL script
@@ -779,43 +757,34 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   class LoadTDLDialog (QFileDialog):
     def __init__ (self,*args):
       QFileDialog.__init__(self,*args);
-      self.setMode(QFileDialog.ExistingFile);
-      self.setFilters("TDL scripts (*.tdl *.py);;All files (*.*)");
+      self.setFileMode(QFileDialog.ExistingFile);
+      self.setDirectory(os.getcwd());
+      try:
+        self.setNameFilters(["TDL scripts (*.tdl *.py)","All files (*.*)"]);
+      except AttributeError:  # earlier versions of qt call it setFilters
+        self.setFilters(["TDL scripts (*.tdl *.py)","All files (*.*)"]);
       self.setViewMode(QFileDialog.Detail);
-      self._cwd = QCheckBox("change directory to that of script",self);
-      self._cwd.setChecked(False);
-      self.addWidgets(None,self._cwd,None);
-      self._replace = QCheckBox("close all currently loaded scripts first",self);
-      self._replace.setChecked(True);
-      self.addWidgets(None,self._replace,None);
-    def set_replace_visible (self,visible):
-      self._replace.setShown(visible);
-    def get_replace (self):
-      return self._replace.isOn();
-    def get_change_wd (self):
-      return self._cwd.isOn();
     
   def _load_tdl_script (self):
     try: dialog = self._run_tdl_dialog;
     except AttributeError:
-      self._run_tdl_dialog = dialog = self.LoadTDLDialog(self,"load tdl dialog",True);
+      self._run_tdl_dialog = dialog = self.LoadTDLDialog(self);
+      dialog.setModal(True);
       dialog.resize(800,500);
-    else:
-      dialog.rereadDir();
-    dialog.set_replace_visible(bool(self._tdl_tabs));
-    dialog.setCaption("Load TDL Script");
-    if dialog.exec_loop() == QDialog.Accepted:
-      filename = str(dialog.selectedFile());
-      # close all TDL tabs if requested
+    dialog.setWindowTitle("Load TDL Script");
+    if dialog.exec_() == QDialog.Accepted:
+      filename = str(dialog.selectedFiles()[0]);
+      # close all TDL tabs
       for (path,tab) in list(self._tdl_tabs.items()):
-        self.maintab.showPage(tab);
+        index = self.maintab.indexOf(tab);
+        self.maintab.setCurrentIndex(index);
         if tab.confirm_close():
           tab.disable_editor();
           del self._tdl_tabs[path];
-          self.maintab.removePage(tab);
-          tab.reparent(QWidget(),0,QPoint(0,0));
+          self.maintab.removeTab(index);
+          tab.setParent(QWidget());
       # change working directory
-      if dialog.get_change_wd():
+      if self._qa_loadtdl_cwd.isChecked():
         dirname = os.path.dirname(filename);
         if os.access(dirname,os.W_OK):
           self.change_working_directory(dirname,browser=True,kernel=True);
@@ -842,7 +811,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._update_app_state();
     tab = self._tdl_tabs.get(pathname,None);
     if tab is None:
-      self._tb_jobs.hide();
+      self._qa_jobs.setVisible(False);
       _dprint(1,'No tab open, loading',pathname);
     # try to load file into new tab
       try:
@@ -899,23 +868,20 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   def _tdltab_refresh_compile_options (self,tab,nopt=None):
     """called when a tab has a new TDL Options popup""";
     _dprint(2,"new compile options",nopt);
-    if nopt:
-      self._tb_opts.show();
-    else:
-      self._tb_opts.hide();
+    self._qa_opts.setVisible(bool(nopt));
     
   def _tdl_import_tab_contents (self,tab):
     self._main_tdlfile = tab.get_filename();
     QApplication.flush();
     try:
-      self._tb_opts.hide();
+      self._qa_opts.setVisible(False);
       self._wait_cursor = self.wait_cursor();
       if tab.import_content(show_options=True):
         # if compile options are available, actual compile will
         # proceed when user presses the recompile button, so we
         # can let the other signal handlers take care of it
         if tab.has_compile_options():
-          self._tb_opts.show();
+          self._qa_opts.setVisible(True);
           self._wait_cursor = None;
         # no options, initiate our own compile
         else:  
@@ -928,7 +894,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
             self._autoreq_disable_timer.start(1000);
             self.tb_panel.show();
             # show/hide the jobs button
-            self._tb_jobs.setShown(tab.has_runtime_options());
+            self._qa_jobs.setVisible(tab.has_runtime_options());
             # do not restore cursor: wait for nodelist
             # jobs window will be shown when the nodelist arrives
             if tab.has_runtime_options():
@@ -947,7 +913,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     QApplication.flush();
     try:
       self._wait_cursor = self.wait_cursor();
-      self._tb_jobs.hide();
+      self._qa_jobs.setVisible(False);
       if tab.compile_content():
         # since we were successful, a nodelist will have been requested
         # by compile_content(). We want to disable automatic nodelist requests
@@ -957,7 +923,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         self._autoreq_disable_timer.start(1000);
         self.tb_panel.show();
         # show/hide the jobs button
-        self._tb_jobs.setShown(tab.has_runtime_options());
+        self._qa_jobs.setVisible(tab.has_runtime_options());
         # jobs window will be shown when the nodelist arrives
         if tab.has_runtime_options():
           self._show_tdljobs_on_nodelist = True;
@@ -977,7 +943,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   def _tdltab_compile_file (self,origin_tab,filename,show=True,import_only=False):
     # reset all tab icons
     for tab in self._tdl_tabs.itervalues():
-      self.maintab.setTabIconSet(tab,QIconSet());
+      self.maintab.setTabIcon(self.maintab.indexOf(tab),QIcon());
     # load file as needed
     tab = self._tdl_tabs.get(filename,None);
     if tab is None:
@@ -1000,7 +966,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     name = os.path.basename(tab.get_filename());
     if tab.get_mainfile():
       name = '(' + name + ')';
-    self.maintab.setTabLabel(tab,name);
+    self.maintab.setTabText(self.maintab.indexOf(tab),name);
 
   def _tdltab_change (self,tab,pathname):
     for (path,tab1) in list(self._tdl_tabs.iteritems()):
@@ -1038,28 +1004,27 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
   def _tdltab_has_errors (self,tab,nerr):
     # nerr indicates the # of errors in that actual file
     if nerr:
-      self.maintab.setTabIconSet(tab,pixmaps.red_round_cross.iconset());
+      self.maintab.setTabIcon(self.maintab.indexOf(tab),pixmaps.red_round_cross.icon());
     else:
-      self.maintab.setTabIconSet(tab,QIconSet());
+      self.maintab.setTabIcon(self.maintab.indexOf(tab),QIcon());
     
   def _tdltab_modified (self,tab,mod):
     if mod:
       self.tree_is_in_sync(False);
-      self.maintab.setTabIconSet(tab,pixmaps.file_save.iconset());
+      self.maintab.setTabIcon(self.maintab.indexOf(tab),pixmaps.file_save.icon());
     else:
-      self.maintab.setTabIconSet(tab,QIconSet());
+      self.maintab.setTabIcon(self.maintab.indexOf(tab),QIcon());
       
   def tree_is_in_sync (self,sync):
     if sync != self._is_tree_in_sync:
       for (path,tab) in list(self._tdl_tabs.iteritems()):
         tab.tree_is_in_sync(sync);
-      QToolTip.remove(self._tb_jobs);
       if sync:
-        self._tb_jobs.setIconSet(pixmaps.gear.iconset());
-        QToolTip.add(self._tb_jobs,"Access run-time options & jobs defined by this TDL script");
+        self._qa_jobs.setIcon(pixmaps.gear.icon());
+        self._qa_jobs.setToolTip("Access run-time options & jobs defined by this TDL script");
       else:
-        self._tb_jobs.setIconSet(pixmaps.exclaim_yellow_warning.iconset());
-        QToolTip.add(self._tb_jobs,"""Access run-time options & jobs defined by this TDL script.
+        self._qa_jobs.setIcon(pixmaps.exclaim_yellow_warning.icon());
+        self._qa_jobs.setToolTip("""Access run-time options & jobs defined by this TDL script.
 Warning! You have modified the script since it was last compiled, so the tree may be out of date.""");
       self._is_tree_in_sync = sync;
     
@@ -1070,12 +1035,12 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           self._main_tdlfile = None;
           self._enable_run_current();  # update GUI
           self._clear_tdl_jobs();
-        self.maintab.showPage(tab);
+        self.maintab.setCurrentWidget(tab);
         if tab.confirm_close():
           tab.disable_editor();
           del self._tdl_tabs[path];
-          self.maintab.removePage(tab);
-          tab.reparent(QWidget(),0,QPoint(0,0));
+          self.maintab.removeTab(self.maintab.indexOf(tab));
+          tab.setParent(QWidget());
         return;
     raise ValueError,"tab not found in map";
 
@@ -1137,7 +1102,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           pagemark = self._bookmarks.addPage(name,pagelist);
           page.set_fragile_tag(pagemark);
           page.set_name(name);
-          page.set_icon(pixmaps.bookmark.iconset(),True);
+          page.set_icon(pixmaps.bookmark.icon(),True);
       else:
         caption = "Can't set pagemark";
         text = "Current page does not have any bookmarkable content";
@@ -1150,9 +1115,8 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     meqds.set_forest_state("bookmarks",self._bookmarks_rec);
     
   def _show_bookmark (self,udi,viewer):
-    pub = self._qa_autopublish.isOn();
     try:
-      item = meqgui.makeDataItem(udi,viewer=viewer,publish=pub);
+      item = meqgui.makeDataItem(udi,viewer=viewer,publish=True);
       Grid.addDataItem(item,show_gw=True);
     except:
       (exctype,excvalue,tb) = sys.exc_info();
@@ -1163,7 +1127,6 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         QMessageBox.Ok);
     
   def _show_pagemark (self,pagemark):
-    pub = self._qa_autopublish.isOn();
     self.gw.show();
     curpage = self.gw.current_page();
     # check if current page has content
@@ -1175,7 +1138,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           another copy in a new tab?</p>""",QMessageBox.Ok,QMessageBox.Cancel) \
            == QMessageBox.Cancel:
         return;
-      curpage = self.gw.add_page(pagemark.name,pixmaps.bookmark.iconset());
+      curpage = self.gw.add_page(pagemark.name,pixmaps.bookmark.icon());
     else: # no content, just use current page
       curpage.set_name(pagemark.name);
     # preset page layout
@@ -1188,7 +1151,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       for rec in pagemark.page:
         udi = getattr(rec,'udi',None);
         try:
-          item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer,publish=pub);
+          item = meqgui.makeDataItem(rec.udi,viewer=rec.viewer,publish=True);
           Grid.addDataItem(item,position=(0,rec.pos[0],rec.pos[1]));
           nrow = max(nrow,rec.pos[0]);
           ncol = max(ncol,rec.pos[1]);
@@ -1211,7 +1174,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       QMessageBox.warning(self,"Errors loading pagemark",message,QMessageBox.Ok);
     # self.gw.current_page().rearrange_cells();
     curpage.set_fragile_tag(pagemark);
-    curpage.set_icon(pixmaps.bookmark.iconset(),True);
+    curpage.set_icon(pixmaps.bookmark.icon(),True);
     
   def _gw_reset_bookmark_actions (self,dum=None):
     # figure out if Add bookmark is enabled
@@ -1221,11 +1184,11 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       if item:
         enable_bkmark = meqgui.isBookmarkable(item.udi);
         if enable_bkmark:
-          self._qa_addbkmark.setMenuText("Add bookmark for "+item.name);
+          self._qa_addbkmark.setText("Add bookmark for "+item.name);
       enable_pgmark = self.gw.current_page().has_content();
     self._qa_addbkmark.setEnabled(enable_bkmark);
     if not enable_bkmark:
-      self._qa_addbkmark.setMenuText("Add bookmark");
+      self._qa_addbkmark.setText("Add bookmark");
     self._qa_addpagemark.setEnabled(enable_pgmark);
         
   def change_working_directory(self,path,browser=True,kernel=True):
@@ -1253,13 +1216,15 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     app_proxy_gui._attached_server_event(self,ev,value,server);
     self._connect_dialog.attach_to_server(server.addr);
     self._wstat.show();
-    self._wstat.emit(PYSIGNAL("shown()"),(True,));
+    self._wstat.emit(SIGNAL("shown"),True,);
     self.treebrowser.clear();
     self.treebrowser.connected(True);  
     self.resultlog.connected(True);
     self._gw_reset_bookmark_actions();
     wtop = self.resultlog.wtop();
-    self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
+    index = self.maintab.indexOf(wtop);
+    self.maintab.setTabIcon(index,wtop._default_icon);
+    self.maintab.setTabText(index,wtop._default_label);
     meqds.request_forest_state();
       
   def _detached_server_event (self,ev,value,server):  
@@ -1269,12 +1234,14 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     self._autoreq_timer.stop();
     self._autoreq_sent = False;
     self._wstat.hide();
-    self._wstat.emit(PYSIGNAL("shown()"),(False,));
+    self._wstat.emit(SIGNAL("shown"),False,);
     self.treebrowser.connected(False);  
     self.resultlog.connected(False);
     self._gw_reset_bookmark_actions();
     wtop = self.resultlog.wtop();
-    self.maintab.changeTab(wtop,wtop._default_iconset,wtop._default_label);
+    index = self.maintab.indexOf(wtop);
+    self.maintab.setTabIcon(index,wtop._default_icon);
+    self.maintab.setTabText(index,wtop._default_label);
     
   def ce_ProcessStatus (self,ev,value):
     _dprint(5,'status:',ev,value);
@@ -1380,8 +1347,10 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       self.resultlog.add(txt,content=value,category=Logger.Event,
         udi=udi,name=name,desc=desc,caption=caption,viewopts=meqgui.defaultResultViewopts);
       wtop = self.resultlog.wtop();
-      if self.maintab.currentPage() is not wtop and not wtop._newresults:
-        self.maintab.changeTab(wtop,wtop._newres_iconset,wtop._newres_label);
+      if self.maintab.currentWidget() is not wtop and not wtop._newresults:
+	itab = self.maintab.indexOf(wtop);
+        self.maintab.setTabText(itab,wtop._newres_label);
+        self.maintab.setTabIcon(itab,wtop._newres_icon);
         wtop._newresults = True;
         
   def ce_LoadNodeList (self,ev,meqnl):
@@ -1403,7 +1372,8 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     except AttributeError: 
       num_init_err = 0;
       pass;
-    else: self.treebrowser.update_forest_status(fst);
+    else: 
+      self.treebrowser.update_forest_status(fst);
     # clear wait-cursor
     self._wait_cursor = None;
     # if we have just compiled a script, and there are no init errors, show the jobs
@@ -1429,10 +1399,11 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       _dprint(3,"bookmarks not changed in forest, ignoring");
     Grid.updateDataItem('/forest',fst);
     
-  def _reset_resultlog_label (self,tabwin):
+  def _reset_resultlog_label (self,index):
+    tabwin = self.maintab.widget(index);
     if tabwin is self.resultlog.wtop() and tabwin._newresults:
       self._reset_maintab_label(tabwin);
-    tabwin._newresults = False;
+      tabwin._newresults = False;
 
   def _update_app_state (self):
     app_proxy_gui._update_app_state(self);
@@ -1445,17 +1416,17 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       caption = "MeqBrowser - %s (%s)"%(server_name,server.state);
       if self._main_tdlfile:
         caption += " - %s"%os.path.basename(self._main_tdlfile);
-      self.setCaption(caption);
+      self.setWindowTitle(caption);
       self.treebrowser.update_app_state(self.app.current_server.state);
     else:
-      self.setCaption("MeqBrowser - not connected to a meqserver");
+      self.setWindowTitle("MeqBrowser - not connected to a meqserver");
       
       
   def show_purr_window (self):
     if not self._purr:
       self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
     self._purr.show();
-    self._purr.raiseW();
+    self._purr.raise_();
 
   def attach_purr (self,dirname,watchdirs,show=False,pounce=None):
     if not self._purr:

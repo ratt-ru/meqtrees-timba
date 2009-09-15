@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -33,11 +34,13 @@ from Timba.Grid.Debug import *
 from Timba import *
 
 import weakref
-import sets
 import re
 import gc
 import types
-from qt import *
+
+from PyQt4.Qt import *
+import Kittens.widgets
+from Kittens.widgets import PYSIGNAL
     
 # ====== Grid.Page ===========================================================
 # manages one page of a gridded workspace
@@ -45,13 +48,13 @@ from qt import *
 class Page (object):
   class GridRow (QSplitter):
     def __init__(self,parent):
-      QSplitter.__init__(self,QSplitter.Horizontal,parent);
+      QSplitter.__init__(self,Qt.Horizontal,parent);
       self._cells = [];
     def cells (self):
       return self._cells;
       
   def __init__ (self,gw,parent_widget,max_nx=5,max_ny=5,fixed_cells=False):
-    self._topgrid = QSplitter(QSplitter.Vertical,parent_widget);
+    self._topgrid = QSplitter(Qt.Vertical,parent_widget);
     self._gw = gw;
     self.max_nx     = max_nx;
     self.max_ny     = max_ny;
@@ -59,8 +62,8 @@ class Page (object):
     self._rows      = [];
     self._frag_tag = None;
     self._pagename = self._autoname = '';
-    self._iconset = QIconSet();
-    self._iconset_cou = False;
+    self._icon = QIcon();
+    self._icon_cou = False;
     # possible layout formats (nrow,ncol)
     self._layouts = [(1,1)];
     for i in range(2,self.max_nx+1):
@@ -87,11 +90,11 @@ class Page (object):
     # prepare layout
     self.set_layout(0);
     
-  def set_icon (self,iconset,clear_on_update=False):
-    _dprint(2,iconset);
-    self._iconset = iconset or QIconSet();
-    self._iconset_cou = clear_on_update;
-    self.wtop().emit(PYSIGNAL("setIcon()"),(self._iconset,));
+  def set_icon (self,icon,clear_on_update=False):
+    _dprint(2,icon);
+    self._icon = icon or QIcon();
+    self._icon_cou = clear_on_update;
+    self.wtop().emit(SIGNAL("setIcon"),self._icon,);
     
   def clear_icon (self):
     self.set_icon(None);
@@ -100,14 +103,14 @@ class Page (object):
     self.set_name(self._autoname);
     
   def get_icon (self):
-    return self._iconset;
+    return self._icon;
     
   def set_name (self,name,auto=False):
     _dprint(2,name,auto);
     self._pagename = name;
     if auto:
       self._autoname = name;
-    self.wtop().emit(PYSIGNAL("setName()"),(name,));
+    self.wtop().emit(SIGNAL("setName"),name,);
   
   def get_name (self):
     return self._pagename;
@@ -136,9 +139,9 @@ class Page (object):
   def updated (self):
     _dprint(3,'page updated');
     self._frag_tag = None;
-    if self._iconset_cou:
+    if self._icon_cou:
       self.clear_icon();
-    self.wtop().emit(PYSIGNAL("updated()"),());
+    self.wtop().emit(SIGNAL("updated"));
     
   def change_viewer (self,cell,dataitem,viewer):
     self.updated();
@@ -153,44 +156,40 @@ class Page (object):
       source_cell = None;
     our_content = cell.content_dataitem();
     # figure out if we need to swap source/destination cells
-    action = 0;
+    action = None;
     # dropping item from another cell: show menu for move/swap
     if source_cell:
       try: menu = self._cell_swap_menu;
       except AttributeError:
-        menu = self._cell_swap_menu = QPopupMenu(self.wtop());
-        self._menu_slab = QLabel('',menu);
-        self._menu_slab.setAlignment(Qt.AlignCenter);
-        self._menu_slab.setFrameShape(QFrame.ToolBarPanel);
-        self._menu_slab.setFrameShadow(QFrame.Sunken);
-        self._menu_slab.setFrameShadow(QFrame.Sunken);
-        self._menu_slab.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.Minimum);
-        menu.insertItem(self._menu_slab,100);
-        menu.insertItem(pixmaps.slick_redo.iconset(),"Move cell",1);
-        menu.insertItem(pixmaps.slick_editcopy.iconset(),"Duplicate cell",2);
-        menu.insertItem(pixmaps.slick_reload.iconset(),"Swap cells",3);
-        menu.insertItem(pixmaps.red_round_cross.iconset(),"Cancel drop",0);
-        menu.setAccel(Qt.Key_Escape,0);
+        menu = self._cell_swap_menu = QMenu(self.wtop());
+        self._menu_slab = Kittens.widgets.addMenuLabel(menu,"");
+        self._qa_move_cell   = menu.addAction(pixmaps.slick_redo.icon(),"Move cell");
+        self._qa_dup_cell    = menu.addAction(pixmaps.slick_editcopy.icon(),"Duplicate cell");
+        self._qa_swap_cells  = menu.addAction(pixmaps.slick_reload.icon(),"Swap cells");
+        self._qa_cancel_drop = menu.addAction(pixmaps.red_round_cross.icon(),"Cancel drop");
       self._menu_slab.setText("<nobr>dragging "+item.caption+"</nobr>");
-      menu.setItemVisible(3,our_content is not None); 
+      self._qa_swap_cells.setVisible(our_content is not None); 
       pos = cell.wtop().mapToGlobal(event.pos());
-      action = menu.exec_loop(pos);
+      action = menu.exec_(pos);
       # cancel selected or menu closed, do nothing
-      if action < 1:
+      if not action or action is self._qa_cancel_drop:
         return;
+    else:
+      # assign 1,2,3 to these if menu is not createed (for comparisons below)
+      self._qa_move_cell,self._qa_dup_cell,self._qa_swap_cells = 1,2,3;
     # clear our own cell
     if our_content:
       our_content.cleanup();
       cell.wipe();
     # if duplicate cell is selected, create a new data item
-    if action == 2:
+    if action is self._qa_dup_cell:
       item = Timba.Grid.DataItem(item);
     # move cell is selected, clear source cell completely
-    elif action == 1:
+    elif action is self._qa_move_cell:
       if source_cell:
         source_cell.close();
     # swap is selected, move our content to source cell
-    elif action == 3:
+    elif action is self._qa_swap_cells:
       item.cleanup();
       source_cell.wipe();
       source_pos = source_cell.grid_position();
@@ -242,7 +241,7 @@ class Page (object):
       row.hide();
     self.align_layout();
     # emit signal for change of layout
-    self.wtop().emit(PYSIGNAL("layoutChanged()"),(nlo,len(self._layouts),nrow,ncol));
+    self.wtop().emit(SIGNAL("layoutChanged"),nlo,len(self._layouts),nrow,ncol);
     return self._cur_layout;
     
   # increments current layout scheme by one (i.e. adds more windows)

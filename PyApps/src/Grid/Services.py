@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -38,8 +39,9 @@ import weakref
 import re
 import gc
 import types
-import sets
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 _reg_viewers = {};
 _reg_viewers_byname = {};
@@ -66,7 +68,7 @@ def registerViewer (tp,viewer,check_udi=lambda x:True,priority=0):
       # True is assumed. (Should be False for viewers creating their own
       # windows).
     viewer.icon(); 
-      # (optional static method) returns a QIconSet for this viewer
+      # (optional static method) returns a QIcon for this viewer
     vo = viewer(gw,cellspec,dataitem,**opts); 
       # construct a viewer object. The gw argument is its parent 
       # GriddedWorkspace object from which the viewer may allocate cells and 
@@ -168,13 +170,13 @@ class Floater (QMainWindow):
     fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
     fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
     QMainWindow.__init__(self,parent,"float",fl);
-    self.setIcon(pixmaps.float_window.pm());
+    self.setWindowIcon(pixmaps.float_window.icon());
 #  def hideEvent (self,ev):
 #    _dprint(0,'hideEvent',ev);
-#    self.emit(PYSIGNAL("hidden()"),());
+#    self.emit(SIGNAL("hidden"));
   def closeEvent (self,ev):
     _dprint(2,'closeEvent',ev);
-    self.emit(PYSIGNAL("closed()"),());
+    self.emit(SIGNAL("closed"));
     QMainWindow.closeEvent(self,ev);
     
 #    self.hide();
@@ -294,7 +296,7 @@ def removeDataItem (item):
   # remove from highlight list
   if item is _highlighted_item:
     _highlighted_item = None;
-    _current_gw.wtop().emit(PYSIGNAL("itemSelected()"),(None,));
+    _current_gw.wtop().emit(SIGNAL("itemSelected"),None,);
   # remove from item list
   for i in range(len(itemlist)):
     if itemlist[i] is item:
@@ -320,7 +322,7 @@ def highlightDataItem (item):
   _dprint(3,'highlighting',item.udi);
   _highlighted_item = item;  
   item.highlight(True);
-  _current_gw.wtop().emit(PYSIGNAL("itemSelected()"),(item,));
+  _current_gw.wtop().emit(SIGNAL("itemSelected"),item,);
   
 def getHighlightedItem ():
   return _highlighted_item;
@@ -329,6 +331,7 @@ def getHighlightedItem ():
 def updateDataItem (udi,data):
   global _dataitems;
   _dprint(3,udi);
+  _dprint(2,_dataitems);
   # scan current data items to see which need updating
   for (u,itemlist) in _dataitems.iteritems():
     if u == udi or u.startswith(udi+'/'):

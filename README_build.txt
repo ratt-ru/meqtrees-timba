@@ -7,6 +7,49 @@ out of source code builds.
 Full cmake documentation can be found at:
 www.cmake.org
 
+Convenience Configuration Script
+================================
+A script has been provided in the Tools/Build directory for convenience for the most common
+use cases. The function of the script is to create build product locations 
+and configure cmake appropriately.
+
+e.g. To create a debug build 
+> Tools/Build/bootstrap_cmake debug
+> cd build/debug
+> make
+
+e.g. To create an optimised build
+> Tools/Build/bootstrap_cmake release
+> cd build/release
+> make
+
+Run the script without arguments to get a synopsis of usage. You may supply various cmake arguments (see below) and they will be passed through.
+
+Setting up paths to run the build directly
+==========================================
+Developers usually prefer to run MeqTrees directly from the source/build tree. To do this, proceed as follows:
+
+1. Your build directory needs to be called Timba/build/BUILDNAME. The convenience scripts above use the standard BUILDNAMEs 'debug' and 'release'.
+
+2. There has to be a tree of symlinks called Timba/install/symlinked-BUILDNAME. These symlinks point to libraries, etc. in your build tree. If your BUILDNAME is one of the standard, i.e. 'debug' or 'release', the appropriate symlink tree is already provided.
+
+3. If using a nonstandard BUILDNAME, you can make your own symlink tree as follows:
+
+  $ cd Timba/install
+  $ ./make_symlink_tree.sh BUILDNAME
+
+4. Purr has to be available on your system. Either check out Purr into your home directory, or make sure that the outer Purr directory (the one containing Purr and Kittens) is in your PYTHONPATH. 
+
+5. Finally, add this to your .bashrc:
+
+  $ source ~/Timba/install/timba-init.sh
+  $ timba-setup release  # or 'debug', or whatever your BUILDNAME is
+
+  This will setup all paths to point to the named build. Note that you can reinvoke the timba-setup command manually in your shell, should you wish to switch to a different build.
+
+You should be able to start meqtrees by running 'meqbrowser.py'.
+   
+
 
 Simple Install
 ==============
@@ -79,17 +122,6 @@ Build options
 
 cmake specifc variables can be found here: http://www.cmake.org/Wiki/CMake_Useful_Variables
 
-Convenience Configuration Script
-================================
-A script has been provided in the Tools/Build directory for convenience for the most common
-use cases. The function of the script is to create build product locations 
-and configure cmake appropriately.
-
-e.g. To create a debug build 
-> Tools/Build/bootstrap_cmake debug
-
-e.g. To create an optimised build
-> Tools/Build/bootstrap_cmake release
 
 -------------------------------------- For Developers -----------------------------------------------------------------
 MEQTREES Specific MACROS

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -255,7 +256,11 @@ class record (dict):
   def _resolve_all_lazy_refs (self):
     lazies = filter(lambda pair:isinstance(pair[1],lazy_objref),dict.iteritems(self));
     for key,ref in lazies:
-      dict.__setitem__(self,key,ref.resolve());
+      try:
+	item = ref.resolve();
+      except:
+	item = sys.exc_info()[1];
+      dict.__setitem__(self,key,item);
 
   # helper function to resolve a lazy ref to a real value, and replace
   # this in the record

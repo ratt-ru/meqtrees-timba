@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$
 #
@@ -211,7 +212,7 @@ class _NodeDef (object):
       else:
         list.__init__(self,[(0,x)]);
       self._resolved = False;
-    def resolve (self,scope):
+    def resolve (self,scope,classname='unknown',nodename='unnamed'):
       """Returns a 'resolved' list based on this list. A resolved list
       contains only valid NodeStubs. The scope argument is used to look
       up and create nodes.""";
@@ -224,7 +225,7 @@ class _NodeDef (object):
           if isinstance(child,str):        # child referenced by name?
             try: child = scope.Repository()[child];
             except KeyError:
-              raise ChildError,"child node specified by name '%s' not found" % child;
+              raise ChildError,"child node (of node '%s' of class '%s') specified by name '%s' not found"%(nodename,classname,child);
           elif isinstance(child,(complex,float)):
             child = scope.MakeConstant(child);
           elif isinstance(child,(bool,int,long)):
@@ -233,7 +234,7 @@ class _NodeDef (object):
             # try to resolve child to a _NodeDef
             anonch = _NodeDef.resolve(child);
             if anonch is None:
-              raise ChildError,"child %s has illegal type '%s'" % (str(ich),type(child).__name__);
+              raise ChildError,"child %s (of node '%s' of class '%s') has illegal type '%s'" % (str(ich),nodename,classname,type(child).__name__);
             _dprint(4,'creating anon child',ich);
             child = anonch.autodefine(scope);
         reslist.append((ich,child));
@@ -340,7 +341,7 @@ class _NodeDef (object):
     if self.error:
       raise self.error;
     # for starters, we need to resolve all children to NodeStubs
-    self.children = self.children.resolve(scope);
+    self.children = self.children.resolve(scope,classname=self._class);
     classname = self._class.lower();
     # create name as Class(child1,child2,...):qualifiers
     if self.children:
@@ -553,9 +554,14 @@ class _NodeStub (object):
       # error NodeDef? reraise for processing by except clause below
       if nodedef.error:
         raise nodedef.error;
+      # get classname from initrec
+      try: 
+	classname = getattr(nodedef.initrec,'class');
+      except AttributeError:
+	raise NodeDefError,"init record of node '%s' missing class field, this is clearly impossible"%self.name;
       # resolve list of children in the nodedef to a list of node stubs
-      children = nodedef.children.resolve(self.scope);
-      stepchildren = nodedef.stepchildren.resolve(self.scope);
+      children = nodedef.children.resolve(self.scope,classname=classname,nodename=self.name);
+      stepchildren = nodedef.stepchildren.resolve(self.scope,classname=classname,nodename=self.name);
       # are we already initialized? If yes, check for exact match of initrec
       # and child list
       initrec = nodedef.initrec;
@@ -569,15 +575,13 @@ class _NodeStub (object):
             _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
           # report error
           err = self._make_redefinition_error(this_stack,self._bind_stack,
-                        "conflicting definition for node '%s'"%self.name);
+                        "conflicting definition for node '%s' of class %s"%(self.name,classname));
           self.scope.Repository().add_error(err);
           return self;
         else: # else node initialized the same way, that's ok
           return self;
       else:  # else node not initialized
-        try: self.classname = getattr(initrec,'class');
-        except AttributeError:
-          raise NodeDefError,"init record missing class field, this is clearly impossible";
+        self.classname = classname;
         _dprint(4,self.name,'children are',children);
         self.children = children;
         self.stepchildren = stepchildren;

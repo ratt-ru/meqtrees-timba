@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -24,7 +25,9 @@
 #
 
 import time
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 from Timba import dmi
 from Timba.utils import PersistentCurrier
@@ -35,21 +38,22 @@ def hms_str (tm):
   (tm,mins) = divmod(tm,60);
   return "%d:%02d:%02d"%(tm,mins,secs);
 
-class VisProgressMeter (QHBox):
+class VisProgressMeter (QWidget):
   """VisProgressMeter implements a one-line progress meter
   to track progress messages from a VisDataMux. It is normally meant
   to be part of a status bar
   """;
   def __init__ (self,parent):
-    QHBox.__init__(self,parent);
-    self.setSpacing(5);
+    QWidget.__init__(self,parent);
+    lo = QHBoxLayout(self);
+    lo.setSpacing(5);
     self._wtime = QLabel(self);
     self._wtime.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
     self._wtime.setAlignment(Qt.AlignLeft|Qt.AlignVCenter);
     self._wtime.setIndent(5);
     self._wtime.setTextFormat(Qt.RichText);
     self._wprog = QProgressBar(self);
-    self._wprog.setCenterIndicator(True);
+    self._wprog.setTextVisible(True);
     self._wprog.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
     self._wlabel = QLabel(self);
     self._wlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
@@ -57,6 +61,8 @@ class VisProgressMeter (QHBox):
     self._wlabel.setTextFormat(Qt.RichText);
     self._wlabel.setAlignment(Qt.AlignLeft|Qt.AlignVCenter);
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
+    for w in (self._wtime,self._wprog,self._wlabel):
+      lo.addWidget(w);
     self._app = None;
     self._vis_output = False;
     self._vis_inittime = None;
@@ -64,6 +70,7 @@ class VisProgressMeter (QHBox):
     self._currier = PersistentCurrier();
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
+    self._timer_id = None;
     self._reset_stats();
     
   class TSStats (object):
@@ -109,7 +116,7 @@ class VisProgressMeter (QHBox):
   
   def start (self,rec):
     """initializes and shows meter. Usually connected to a Vis.Channel.Open signal""";
-    self._app.statusbar.clear();
+    self._app.statusbar.clearMessage();
     self._wlabel.setText("<nobr>opening dataset</nobr>"); 
     self._wprog.reset();
     self._vis_output = rec.get("output");
@@ -117,8 +124,9 @@ class VisProgressMeter (QHBox):
     self._wtime.setText(" 0:00:00");
     self._wtime.show();
     self._show();
-    self.killTimers();
-    self.startTimer(1000);
+    if self._timer_id is not None:
+      self.killTimer(self._timer_id);
+    self._timer_id = self.startTimer(1000);
     self._reset_stats();
     
   def timerEvent (self,ev):
@@ -136,10 +144,10 @@ class VisProgressMeter (QHBox):
   
   def header (self,rec):
     """processes header record. Usually connected to a Vis.Header signal""";
-    self._app.statusbar.clear();
+    self._app.statusbar.clearMessage();
     times = rec.header.time_extent;
     nt = int(times[1] - times[0]);
-    self._wprog.setTotalSteps(nt);
+    self._wprog.setMaximum(nt);
     if nt:
       timestr = "received header, dataset length is " + hms_str(nt);
     else:
@@ -162,7 +170,8 @@ class VisProgressMeter (QHBox):
     nt0 = rec.time_extent[1]-rec.time_extent[0];
     time0 = int(rec.time[0]-tm0);
     time1 = int(rec.time[1]-tm0);
-    self._wprog.setProgress(time0,nt0);
+    self._wprog.setMaximum(nt0);
+    self._wprog.setValue(time0);
     # compute ETC
     self._etc_time = None;
     if self._hdr_time is not None:
@@ -209,7 +218,8 @@ class VisProgressMeter (QHBox):
     if self._pstats.rate is not None:
       msg = msg+"; last %.2f sec/ts" % self._pstats.rate;
     self._wlabel.setText("<nobr>"+msg+"</nobr>"); 
-    self._wprog.setProgress(99,100);
+    self._wprog.setMaximum(100);
+    self._wprog.setValue(99);
     self._show();
     
   def close (self,rec):
@@ -242,7 +252,9 @@ class VisProgressMeter (QHBox):
   def reset (self):
     """resets and hides meter."""
     self._reset_stats();
-    self.killTimers();
+    if self._timer_id is not None:
+      self.killTimer(self._timer_id);
+      self._timer_id = None;
     self._vis_inittime = None;
     self._wprog.reset();
     self._wprog.hide();

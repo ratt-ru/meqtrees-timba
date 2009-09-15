@@ -1,3 +1,6 @@
+IF(DBM_INCLUDE_DIR)
+    INCLUDE_DIRECTORIES(${DBM_INCLUDE_DIR})
+ENDIF(DBM_INCLUDE_DIR)
 MEQPACKAGE(MEQ OCTOPython OCTOPUSSY )
 set(meq_includes
             src/AID-Meq.h
@@ -67,6 +70,8 @@ set(meq_src
             src/VellsSlicerWithFlags.cc )
 
 add_library(meq ${meq_src})
-#target_link_libraries(meq ${MEQPACKAGE_LIBRARIES})
+if(DBM_LIBRARIES)
+target_link_libraries(meq ${MEQPACKAGE_LIBRARIES} ${DBM_LIBRARIES})
+endif(DBM_LIBRARIES)
 install(TARGETS meq DESTINATION ${LIBRARY_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(meq)

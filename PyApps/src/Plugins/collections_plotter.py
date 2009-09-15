@@ -36,13 +36,13 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
 
-from qt import *
-from Timba.Plugins.DataDisplayMainWindow import *
+from PyQt4 import Qt
+from Timba.Plugins.DataDisplayMainWindow_qt4 import *
 
 from VellsData import *
-from ResultsRange import *
-from BufferSizeDialog import *
-from plot_printer import *
+from ResultsRange_qt4 import *
+from BufferSizeDialog_qt4 import *
+from plot_printer_qt4 import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='collections_plotter');
@@ -94,28 +94,25 @@ class CollectionsPlotter(GriddedPlugin):
   def create_layout_stuff(self):
     """ create grid layouts into which plotter widgets are inserted """
     if self.layout_parent is None or not self.layout_created:
-      self.layout_parent = QWidget(self.wparent())
-      self.layout = QHBoxLayout(self.layout_parent)
+      self.layout_parent = Qt.QWidget(self.wparent())
+      self.layout = Qt.QHBoxLayout(self.layout_parent)
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
       self.layout_created = True
     self._wtop = self.layout_parent;       
     self.create_2D_plotter()
 
 
-
   def create_2D_plotter(self):
     if self._visu_plotter is None:
-      self._visu_plotter = DisplayMainWindow(parent=self.layout_parent,name=" ", num_curves=self._max_per_display, plot_label=self._plot_label)
-      self.layout.addWidget(self._visu_plotter, 0, 0)
-#     self._label_info = QLabel('      ', self.layout_parent)
-#     self.layout.addWidget(self._label_info, 0, 1)
+      self._visu_plotter = DisplayMainWindow(parent=None,name=" ", num_curves=self._max_per_display, plot_label=self._plot_label)
+      self.layout.addWidget(self._visu_plotter)
       self._results_range = ResultsRange(parent=self.layout_parent, name="", horizontal=False)
-      self.layout.addWidget(self._results_range, 0, 1)
+      self.layout.addWidget(self._results_range)
       self._visu_plotter.show()
       self._results_range.set_offset_index(0)
-      QObject.connect(self._visu_plotter, PYSIGNAL("auto_offset_value"), self.set_range_selector)
-      QObject.connect(self._results_range, PYSIGNAL("result_index"), self._visu_plotter.set_range_selector)
-      QObject.connect(self._results_range, PYSIGNAL("set_auto_scaling"), self._visu_plotter.set_auto_scaling)
+      Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL("auto_offset_value"), self.set_range_selector)
+      Qt.QObject.connect(self._results_range, Qt.SIGNAL("result_index"), self._visu_plotter.set_range_selector)
+      Qt.QObject.connect(self._results_range, Qt.SIGNAL("set_auto_scaling"), self._visu_plotter.set_auto_scaling)
   # create_2D_plotter
 
   
@@ -191,8 +188,8 @@ class CollectionsPlotter(GriddedPlugin):
 # in this node record" message (the user can then use the Display with
 # menu to switch to a different viewer)
         Message = "No cache result record was found for this node, so no plot can be made."
-        cache_message = QLabel(Message,self.wparent())
-        cache_message.setTextFormat(Qt.RichText)
+        cache_message = Qt.QLabel(Message,self.wparent())
+        cache_message.setTextFormat(Qt.Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
         self.set_init_parameters()

@@ -34,8 +34,8 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
 
-from Timba.Plugins.display_image import *
-from Timba.Plugins.plotting_functions import *
+from Timba.Plugins.display_image_qt4 import *
+from Timba.Plugins.plotting_functions_qt4 import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='array_plotter');
@@ -45,19 +45,20 @@ _dprintf = _dbg.dprintf;
 global has_vtk
 has_vtk = False
 try:
-  from Timba.Plugins.vtk_qt_3d_display import *
+  from Timba.Plugins.vtk_qt4_3d_display import *
   has_vtk = True
 except:
   pass
 
 import numpy
 
-from qt import *
-from Qwt5 import *
-from QwtPlotImage import *
-from QwtColorBar import *
-from ND_Controller import *
-from plot_printer import *
+from PyQt4 import Qt
+import PyQt4.Qwt5 as Qwt
+
+from Timba.Plugins.QwtPlotImage_qt4 import *
+from Timba.Plugins.QwtColorBar_qt4 import *
+from Timba.Plugins.ND_Controller_qt4 import *
+from Timba.Plugins.plot_printer_qt4 import *
 
 class ArrayPlotter(GriddedPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
@@ -86,26 +87,30 @@ class ArrayPlotter(GriddedPlugin):
 #    print "in destructor"
 
   def create_2D_plotter(self):
-    self.twoD_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent, self.ND_plotter)
-    QObject.connect(self.twoD_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar)
-    QObject.connect(self.twoD_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
-    QObject.connect(self.twoD_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
-    QObject.connect(self.twoD_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print)
-    QObject.connect(self.twoD_plotter, PYSIGNAL('save_display'), self.grab_display)
+    if not self.ND_plotter is None:
+      self.ND_plotter.close()
+      self.ND_plotter = None
+    self.twoD_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent)
+    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('colorbar_needed'), self.set_ColorBar)
+    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('show_3D_Display'), self.show_3D_Display)
+    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('do_print'), self.plotPrinter.do_print)
+    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('save_display'), self.grab_display)
     # create status label display
-    self.status_label = QLabel(self.layout_parent)
+    self.status_label = Qt.QLabel(self.layout_parent)
     sansFont = QFont( "Helvetica [Cronyx]", 8 )
     self.status_label.setFont(sansFont)
-    self.layout.addMultiCellWidget(self.status_label,1,1,0,2)
+#   self.layout.addMultiCellWidget(self.status_label,1,1,0,2)
+    self.layout.addWidget(self.status_label,1,0,1,2)
     self.status_label.setText("Move the mouse within the plot canvas"
                             " to show the cursor position.")
     self.status_label.show()
-    QObject.connect(self.twoD_plotter, PYSIGNAL('status_update'), self.update_status)
+    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('status_update'), self.update_status)
   # create_2D_plotter
 
   def update_status(self, status):
      if not status is None:
-       self.status_label.setText(status)
+       self.status_label.setText(str(status))
 
   def grab_display(self, title):
     self.png_number = self.png_number + 1
@@ -115,13 +120,13 @@ class ArrayPlotter(GriddedPlugin):
     else:
       save_file = title + png_str + '.png'
     save_file_no_space= save_file.replace(' ','_')
-    result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
+    result = Qt.QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
 
   def create_layout_stuff(self):
     """ create grid layouts into which plotter widgets are inserted """
     if self.layout_parent is None or not self.layout_created:
-      self.layout_parent = QWidget(self.wparent())
-      self.layout = QGridLayout(self.layout_parent)
+      self.layout_parent = Qt.QWidget(self.wparent())
+      self.layout = Qt.QGridLayout(self.layout_parent)
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
       self.layout_created = True
     self._wtop = self.layout_parent;
@@ -232,7 +237,7 @@ class ArrayPlotter(GriddedPlugin):
       self.array_selector = None
     else:
       if not self.ND_Controls is None:
-        self.ND_Controls.reparent(QWidget(), 0, QPoint())
+        self.ND_Controls.setParent(Qt.QWidget())
         self.ND_Controls = None
 # pass initial array to the plotter
     if self.array_rank > 2:
@@ -309,20 +314,20 @@ class ArrayPlotter(GriddedPlugin):
 
     self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 
-    QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
-    QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
+    Qt.QObject.connect(self.ND_Controls, Qt.SIGNAL('sliderValueChanged'), self.setArraySelector)
+    Qt.QObject.connect(self.ND_Controls, Qt.SIGNAL('defineSelectedAxes'), self.setSelectedAxes)
 
   def show_3D_Display(self, display_flag_3D):
     if not has_vtk:
       return
     self.twoD_plotter = delete_2D_Plotters(self.colorbar, self.twoD_plotter)
-    self.status_label.reparent(QWidget(), 0, QPoint())
+    self.status_label.setParent(Qt.QWidget())
     self.status_label = None
 
     if self.ND_plotter is None:
       self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
-      QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
-      QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+      Qt.QObject.connect(self.ND_plotter, Qt.SIGNAL('show_2D_Display'), self.show_2D_Display)
+      Qt.QObject.connect(self.ND_plotter, Qt.SIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
     else:
       self.ND_plotter.delete_vtk_renderer()
       self.ND_plotter.show_vtk_controls()

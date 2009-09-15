@@ -26,7 +26,9 @@
 
 from Timba.GUI import meqgui
 from Timba.GUI.pixmaps import pixmaps
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 
 class ConnectMeqKernel(QDialog):
@@ -182,7 +184,7 @@ class ConnectMeqKernel(QDialog):
 
 
     def languageChange(self):
-        self.setCaption(self.__tr("Connect to meqserver"))
+        self.setWindowTitle(self.__tr("Connect to meqserver"))
         self.title_icon.setText(QString.null)
         self.title_label.setText(self.__tr( \
           """<p>Not connected to a MeqTrees kernel.</p>
@@ -216,7 +218,7 @@ class ConnectMeqKernel(QDialog):
         # start kernel
         pathname = str(self.start_pathname.text());
         args = str(self.start_args.text());
-        self.emit(PYSIGNAL("startKernel()"),(pathname,args));
+        self.emit(SIGNAL("startKernel"),pathname,args);
       elif selected is self.btn_remote:
         # not implemented yet
         pass;
@@ -240,14 +242,13 @@ class ConnectMeqKernel(QDialog):
     def browse_kernel_dialog (self):
       try: dialog = self._browse_dialog;
       except AttributeError:
-        self._browse_dialog = dialog = QFileDialog(self,"kernel dialog",True);
+        self._browse_dialog = dialog = QFileDialog(self,"Select meqserver binary");
         dialog.resize(500,dialog.height());
         dialog.setMode(QFileDialog.ExistingFile);
-        # dialog.setFilters("Forests (*.forest *.meqforest);;All files (*.*)");
         dialog.setViewMode(QFileDialog.Detail);
-        dialog.setCaption("Select meqserver executable");
       else:
-        dialog.rereadDir();
-      if dialog.exec_loop() == QDialog.Accepted:
-        self.start_pathname.setText(str(dialog.selectedFile()));
+        # trying to have the same effect as rereadDir() in the Qt3 version...
+        dialog.setDirectory(dialog.directory());
+      if dialog.exec_() == QDialog.Accepted:
+        self.start_pathname.setText(str(dialog.selectedFiles()[0]));
         

@@ -35,8 +35,8 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
 
-from qt import *
-from plot_printer import *
+from PyQt4 import Qt
+from plot_printer_qt4 import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='quickref_plotter');
@@ -88,9 +88,9 @@ class QuickRefPlotter(GriddedPlugin):
   def create_layout_stuff(self):
     """ create grid layouts into which plotter widgets are inserted """
     if self.layout_parent is None or not self.layout_created:
-      self.layout_parent = QWidget(self.wparent())
-      self.layout = QGridLayout(self.layout_parent)
-      self.QTextEdit = QTextEdit(self.layout_parent)
+      self.layout_parent = Qt.QWidget(self.wparent())
+      self.layout = Qt.QGridLayout(self.layout_parent)
+      self.QTextEdit = Qt.QTextEdit(self.layout_parent)
       self.layout.addWidget(self.QTextEdit, 0, 1)
       self.QTextEdit.hide()
       self.QTextEdit.setReadOnly(True)

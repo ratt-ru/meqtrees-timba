@@ -41,28 +41,28 @@ from Timba.GUI import widgets
 from Timba.GUI.browsers import *
 from Timba import Grid
 
-from qt import *
-from Timba.Plugins.display_image import *
-from Timba.Plugins.realvsimag import *
-from Timba.Plugins.plotting_functions import *
+from PyQt4 import Qt
+from Timba.Plugins.display_image_qt4 import *
+from Timba.Plugins.realvsimag_qt4 import *
+from Timba.Plugins.plotting_functions_qt4 import *
 
 global has_vtk
 has_vtk = False
 try:
-  from Timba.Plugins.vtk_qt_3d_display import *
+  from Timba.Plugins.vtk_qt4_3d_display import *
   has_vtk = True
 except:
   pass
 
-from QwtPlotImage import *
-from QwtColorBar import *
+from QwtPlotImage_qt4 import *
+from QwtColorBar_qt4 import *
 from SpectrumData import *
 from VellsData import *
 from SolverData import *
-from ND_Controller import *
-from ResultsRange import *
-from BufferSizeDialog import *
-from plot_printer import *
+from ND_Controller_qt4 import *
+from ResultsRange_qt4 import *
+from BufferSizeDialog_qt4 import *
+from plot_printer_qt4 import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='result_plotter');
@@ -89,23 +89,23 @@ class ResultPlotter(GriddedPlugin):
 # below does the work.
   color_table = {
         'none': None,
-        'black': Qt.black,
-        'blue': Qt.blue,
-        'cyan': Qt.cyan,
-        'gray': Qt.gray,
-        'green': Qt.green,
-        'magenta': Qt.magenta,
-        'red': Qt.red,
-        'white': Qt.white,
-        'yellow': Qt.yellow,
-        'darkBlue' : Qt.darkBlue,
-        'darkCyan' : Qt.darkCyan,
-        'darkGray' : Qt.darkGray,
-        'darkGreen' : Qt.darkGreen,
-        'darkMagenta' : Qt.darkMagenta,
-        'darkRed' : Qt.darkRed,
-        'darkYellow' : Qt.darkYellow,
-        'lightGray' : Qt.lightGray,
+        'black': Qt.Qt.black,
+        'blue': Qt.Qt.blue,
+        'cyan': Qt.Qt.cyan,
+        'gray': Qt.Qt.gray,
+        'green': Qt.Qt.green,
+        'magenta': Qt.Qt.magenta,
+        'red': Qt.Qt.red,
+        'white': Qt.Qt.white,
+        'yellow': Qt.Qt.yellow,
+        'darkBlue' : Qt.Qt.darkBlue,
+        'darkCyan' : Qt.Qt.darkCyan,
+        'darkGray' : Qt.Qt.darkGray,
+        'darkGreen' : Qt.Qt.darkGreen,
+        'darkMagenta' : Qt.Qt.darkMagenta,
+        'darkRed' : Qt.Qt.darkRed,
+        'darkYellow' : Qt.Qt.darkYellow,
+        'lightGray' : Qt.Qt.lightGray,
         }
 
   symbol_table = {
@@ -125,16 +125,16 @@ class ResultPlotter(GriddedPlugin):
         'none': Qwt.QwtPlotCurve.NoCurve,
         'lines' : Qwt.QwtPlotCurve.Lines,
         'dots' : Qwt.QwtPlotCurve.Dots,
-        'SolidLine' : Qt.SolidLine,
-        'DashLine' : Qt.DashLine,
-        'DotLine' : Qt.DotLine,
-        'DashDotLine' : Qt.DashDotLine,
-        'DashDotDotLine' : Qt.DashDotDotLine,
-        'solidline' : Qt.SolidLine,
-        'dashline' : Qt.DashLine,
-        'dotline' : Qt.DotLine,
-        'dashdotline' : Qt.DashDotLine,
-        'dashdotdotline' : Qt.DashDotDotLine,
+        'SolidLine' : Qt.Qt.SolidLine,
+        'DashLine' : Qt.Qt.DashLine,
+        'DotLine' : Qt.Qt.DotLine,
+        'DashDotLine' : Qt.Qt.DashDotLine,
+        'DashDotDotLine' : Qt.Qt.DashDotDotLine,
+        'solidline' : Qt.Qt.SolidLine,
+        'dashline' : Qt.Qt.DashLine,
+        'dotline' : Qt.Qt.DotLine,
+        'dashdotline' : Qt.Qt.DashDotLine,
+        'dashdotdotline' : Qt.Qt.DashDotDotLine,
         }
   
   def __init__(self,gw,dataitem,cellspec={},**opts):
@@ -240,86 +240,44 @@ class ResultPlotter(GriddedPlugin):
          plot_color = plot_parms.get('color')
          if not self.color_table.has_key(plot_color):
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
+           mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
            plot_parms['color'] = "blue"
-           mb_color = QMessageBox("realvsimag.py",
-                      Message,
-                      QMessageBox.Warning,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-           mb_color.exec_loop()
        if plot_parms.has_key('mean_circle_color'):
          plot_color = plot_parms.get('mean_circle_color')
          if not self.color_table.has_key(plot_color):
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
+           mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
            plot_parms['mean_circle_color'] = "blue"
-           mb_color = QMessageBox("realvsimag.py",
-                      Message,
-                      QMessageBox.Warning,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-           mb_color.exec_loop()
        if plot_parms.has_key('stddev_circle_color'):
          plot_color = plot_parms.get('stddev_circle_color')
          if not self.color_table.has_key(plot_color):
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
+           mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
            plot_parms['stddev_circle_color'] = "blue"
-           mb_color = QMessageBox("realvsimag.py",
-                      Message,
-                      QMessageBox.Warning,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-           mb_color.exec_loop()
        if plot_parms.has_key('line_style'):
          plot_line_style = plot_parms.get('line_style')
          if not self.line_style_table.has_key(plot_line_style):
            Message = str(plot_line_style) + " is not a valid line style.\n Using dots by default"
+           mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
            plot_parms['line_style'] = "dots"
-           mb_style = QMessageBox("realvsimag.py",
-                      Message,
-                      QMessageBox.Warning,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-           mb_style.exec_loop()
        if plot_parms.has_key('mean_circle_style'):
          plot_line_style = plot_parms.get('mean_circle_style')
          if not self.line_style_table.has_key(plot_line_style):
            Message = str(plot_line_style) + " is not a valid line style for mean circles.\n Using lines by default"
+           mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
            plot_parms['mean_circle_style'] = "lines"
-           mb_style = QMessageBox("realvsimag.py",
-                      Message,
-                      QMessageBox.Warning,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-           mb_style.exec_loop()
        if plot_parms.has_key('stddev_circle_style'):
          plot_line_style = plot_parms.get('stddev_circle_style')
          if not self.line_style_table.has_key(plot_line_style):
            Message = str(plot_line_style) + " is not a valid line style for stddev circles.\n Using DotLine by default"
+           mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
            plot_parms['stddev_circle_style'] = "DotLine"
-           mb_style = QMessageBox("realvsimag.py",
-                      Message,
-                      QMessageBox.Warning,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-           mb_style.exec_loop()
        if plot_parms.has_key('symbol'):
          plot_symbol = plot_parms.get('symbol')
          if not self.symbol_table.has_key(plot_symbol):
            Message = str(plot_symbol) + " is not a valid symbol.\n Using circle by default"
+           mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
            plot_parms['symbol'] = "circle"
-           mb_symbol = QMessageBox("realvsimag.py",
-                      Message,
-                      QMessageBox.Warning,
-                      QMessageBox.Ok | QMessageBox.Default,
-                      QMessageBox.NoButton,
-                      QMessageBox.NoButton)
-           mb_symbol.exec_loop()
   # check_attributes
 
 #
@@ -378,7 +336,7 @@ class ResultPlotter(GriddedPlugin):
         _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
 
         self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.layout_parent)
-        QObject.connect(self._visu_plotter.plot, PYSIGNAL('save_display'), self.grab_display) 
+        Qt.QObject.connect(self._visu_plotter.plot, Qt.SIGNAL('save_display'), self.grab_display) 
         self.layout.addWidget(self._visu_plotter.plot, 0, 1)
         self._visu_plotter.plot.show()
         _dprint(3, 'issued show call to realvsimag self._visu_plotter')
@@ -415,16 +373,10 @@ class ResultPlotter(GriddedPlugin):
         Message = self._plot_type + " is not a valid plot type.\n Using realvsimag by dafault." 
       else:
         Message = "Failure to find a valid plot type.\n Using realvsimag by default."
-      mb = QMessageBox("result_plotter.py",
-                     Message,
-                     QMessageBox.Warning,
-                     QMessageBox.Ok | QMessageBox.Default,
-                     QMessageBox.NoButton,
-                     QMessageBox.NoButton)
-      mb.exec_loop()
+      mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
       self._plot_type = "realvsimag"
       self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.wparent())
-      QObject.connect(self._visu_plotter.plot, PYSIGNAL('save_display'), self.grab_display) 
+      Qt.QObject.connect(self._visu_plotter.plot, Qt.SIGNAL('save_display'), self.grab_display) 
       self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
       self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
@@ -517,13 +469,7 @@ class ResultPlotter(GriddedPlugin):
         except:
           _dprint(3, 'node label field expected, not found, so am exiting')
           Message = "Failure of result_plotter tree-traversal.\n Result_plotter does not yet work with MeqHistoryCollect nodes."
-          mb = QMessageBox("result_plotter.py",
-                     Message,
-                     QMessageBox.Warning,
-                     QMessageBox.Ok | QMessageBox.Default,
-                     QMessageBox.NoButton,
-                     QMessageBox.NoButton)
-          mb.exec_loop()
+          mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
           return
         if is_root and node.has_key('attrib') and len(node['attrib']) > 0:
           if not self._attributes_checked:
@@ -604,30 +550,36 @@ class ResultPlotter(GriddedPlugin):
     self._wtop = self.layout_parent;       
 
   def create_2D_plotter(self):
-    self._visu_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent, self.ND_plotter)
-    QObject.connect(self._visu_plotter, PYSIGNAL('handle_menu_id'), self.update_vells_display) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('handle_spectrum_menu_id'), self.update_spectrum_display) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('colorbar_needed'), self.set_ColorBar) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
-    QObject.connect(self._visu_plotter, PYSIGNAL('show_3D_Display'), self.show_3D_Display)
-    QObject.connect(self._visu_plotter, PYSIGNAL('do_print'), self.plotPrinter.do_print) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('save_display'), self.grab_display) 
-    QObject.connect(self._visu_plotter, PYSIGNAL('full_vells_image'), self.request_full_image) 
+    if not self.ND_plotter is None:
+      self.ND_plotter.close()
+# the following statement causes a crash
+#     self.ND_plotter.setParent(Qt.QWidget())
+      self.ND_plotter = None
+
+    self._visu_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent)
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('handle_menu_id'), self.update_vells_display) 
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('handle_spectrum_menu_id'), self.update_spectrum_display) 
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('colorbar_needed'), self.set_ColorBar) 
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_3D_Display'), self.show_3D_Display)
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('do_print'), self.plotPrinter.do_print) 
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('save_display'), self.grab_display) 
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('full_vells_image'), self.request_full_image) 
     # create status label display
-    self.status_label = QLabel(self.layout_parent)
+    self.status_label = Qt.QLabel(self.layout_parent)
     sansFont = QFont( "Helvetica [Cronyx]", 8 )
     self.status_label.setFont(sansFont)
-    self.layout.addMultiCellWidget(self.status_label,1,1,0,2)
+    self.layout.addWidget(self.status_label,1,0,1,2)
     self.status_label.setText("Move the mouse within the plot canvas"
                             " to show the cursor position.")
     self.status_label.show()
-    QObject.connect(self._visu_plotter, PYSIGNAL('status_update'), self.update_status)
+    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('status_update'), self.update_status)
 
   # create_2D_plotter
 
   def update_status(self, status):
      if not status is None:
-       self.status_label.setText(status)
+       self.status_label.setText(str(status))
 
 
   def grab_display(self, title):
@@ -638,7 +590,7 @@ class ResultPlotter(GriddedPlugin):
     else:
       save_file = self._node_name + title + png_str + '.png'
     save_file_no_space= save_file.replace(' ','_')
-    result = QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
+    result = Qt.QPixmap.grabWidget(self.layout_parent).save(save_file_no_space, "PNG")
 
     
   def set_data (self,dataitem,default_open=None,**opts):
@@ -697,7 +649,7 @@ class ResultPlotter(GriddedPlugin):
 # menu to switch to a different viewer)
         Message = "No cache result record was found for this node, so no plot can be made."
         cache_message = QLabel(Message,self.wparent())
-        cache_message.setTextFormat(Qt.RichText)
+        cache_message.setTextFormat(Qt.Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
         self.reset_plot_stuff()
@@ -742,7 +694,7 @@ class ResultPlotter(GriddedPlugin):
         if not process_result:
           Message = "The result record for this node had no valid data, so no plot can be made."
           cache_message = QLabel(Message,self.wparent())
-          cache_message.setTextFormat(Qt.RichText)
+          cache_message.setTextFormat(Qt.Qt.RichText)
           self._wtop = cache_message
           self.set_widgets(cache_message)
           self.reset_plot_stuff()
@@ -825,7 +777,7 @@ class ResultPlotter(GriddedPlugin):
 
       if self._visu_plotter is None:
         if not self.ND_Controls is None:
-          self.ND_Controls.reparent(QWidget(), 0, QPoint())
+          self.ND_Controls.setParent(Qt.QWidget())
           self.ND_Controls = None
         ranks = self._vells_data.getActiveDataRanks()
         self.create_2D_plotter()
@@ -958,13 +910,7 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.set_condition_numbers(self._solver_data.getConditionNumbers())
 #   else:
 #     Message = "Failure to calculate Covariance Matrix condition number!\nIs the numpy package installed?"
-#     mb = QMessageBox("result_plotter.py",
-#          Message,
-#          QMessageBox.Warning,
-#          QMessageBox.Ok | QMessageBox.Default,
-#          QMessageBox.NoButton,
-#          QMessageBox.NoButton)
-#     mb.exec_loop()
+#     mb_reporter = Qt.QMessageBox.warning(self, self.tr("ResultPlotter"), self.tr(Message))
 
     if self._solver_data.calculateCovarEigenVectors():
       self._visu_plotter.set_eigenvectors(self._solver_data.getEigenVectors())
@@ -1100,17 +1046,17 @@ class ResultPlotter(GriddedPlugin):
       self.results_selector = ResultsRange(self.layout_parent)
       self.results_selector.setMaxValue(self.max_list_length)
       self.results_selector.set_offset_index(0)
-      self.layout.addWidget(self.results_selector, 3,1,Qt.AlignHCenter)
+      self.layout.addWidget(self.results_selector, 3,1,Qt.Qt.AlignHCenter)
       self.results_selector.show()
-      QObject.connect(self.results_selector, PYSIGNAL('result_index'), self.replay_data)
-      QObject.connect(self.results_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
+      Qt.QObject.connect(self.results_selector, Qt.SIGNAL('result_index'), self.replay_data)
+      Qt.QObject.connect(self.results_selector, Qt.SIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
       if not self._visu_plotter is None:
         self._visu_plotter.setResultsSelector()
       if self._plot_type == 'realvsimag':
-        QObject.connect(self._visu_plotter.plot, PYSIGNAL('show_results_selector'), self.show_selector)
+        Qt.QObject.connect(self._visu_plotter.plot, Qt.SIGNAL('show_results_selector'), self.show_selector)
       else:
         if not self._visu_plotter is None:
-          QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_selector)
+          Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_results_selector'), self.show_selector)
     self.results_selector.set_emit(False)
     self.results_selector.setRange(self.data_list_length-1)
     self.results_selector.setLabel(self.label)
@@ -1128,11 +1074,11 @@ class ResultPlotter(GriddedPlugin):
     if self.spectrum_node_selector is None:
       self.spectrum_node_selector = ResultsRange(self.layout_parent)
       self.spectrum_node_selector.setStringInfo(' spectrum ')
-      self.layout.addWidget(self.spectrum_node_selector, 5, 1, Qt.AlignHCenter)
+      self.layout.addWidget(self.spectrum_node_selector, 5, 1, Qt.Qt.AlignHCenter)
       self.spectrum_node_selector.show()
-      QObject.connect(self.spectrum_node_selector, PYSIGNAL('result_index'), self.select_spectrum_node)
-#     QObject.connect(self.spectrum_node_selector, PYSIGNAL('adjust_results_buffer_size'), self.set_spectrum_node_buffer)
-      QObject.connect(self._visu_plotter, PYSIGNAL('show_results_selector'), self.show_spectrum_selector)
+      Qt.QObject.connect(self.spectrum_node_selector, Qt.SIGNAL('result_index'), self.select_spectrum_node)
+#     Qt.QObject.connect(self.spectrum_node_selector, Qt.SIGNAL('adjust_results_buffer_size'), self.set_spectrum_node_buffer)
+      Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_results_selector'), self.show_spectrum_selector)
     self.spectrum_node_selector.set_emit(False)
     self.spectrum_node_selector.setMaxValue(len(self.leaf_node_list),False)
     self.spectrum_node_selector.setRange(len(self.leaf_node_list), False)
@@ -1183,13 +1129,7 @@ class ResultPlotter(GriddedPlugin):
       return
     if self._vells_data is None:
       Message = '3D displays are not yet implemented for this data type'
-      mb_color = QMessageBox("result_plotter.py",
-                 Message,
-                 QMessageBox.Warning,
-                 QMessageBox.Ok | QMessageBox.Default,
-                 QMessageBox.NoButton,
-                 QMessageBox.NoButton)
-      mb_color.exec_loop()
+      mb_reporter = Qt.QMessageBox.information(self, self.tr("ResultPlotter"), self.tr(Message))
       return
     axis_increments = None
     if not display_flag_3D:
@@ -1200,7 +1140,7 @@ class ResultPlotter(GriddedPlugin):
 
     _dprint(3, 'got 3D plot request, deleting 2-D stuff')
     self._visu_plotter = delete_2D_Plotters(self.colorbar, self._visu_plotter)
-    self.status_label.reparent(QWidget(), 0, QPoint())
+    self.status_label.setParent(Qt.QWidget())
     self.status_label = None
 
     if self.ND_plotter is None:
@@ -1219,7 +1159,7 @@ class ResultPlotter(GriddedPlugin):
       self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape,reset=True)
     else:
       if not self.ND_Controls is None:
-        self.ND_Controls.reparent(QWidget(), 0, QPoint())
+        self.ND_Controls.setParent(Qt.QWidget())
         self.ND_Controls = None
     self.axis_parms = self._vells_data.getActiveAxisParms()
     plot_array = self._vells_data.getActiveData().copy()

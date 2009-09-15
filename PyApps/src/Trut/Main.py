@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -27,7 +28,6 @@ import sys
 import traceback
 import os
 import os.path
-import sets
 import time
 
 from Timba import dmi

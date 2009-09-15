@@ -25,6 +25,10 @@
 
 from sets import Set
 
+def SIGNAL (sig):
+  """Emulates SIGNAL() in the absense of PyQt""";
+  return sig;
+
 def PYSIGNAL (sig):
   """Emulates PYSIGNAL() in the absense of PyQt""";
   return sig;
@@ -32,7 +36,7 @@ def PYSIGNAL (sig):
 class QObject (object):
   """This is a qt.QObject replacememt for systems with no PyQt.
   It supports a simple connect/emit mechanism."""
-  def __init__ (name,*args):
+  def __init__ (self,name=None,*args):
     self._name = name;
     self._connections = {};
   def name (self):

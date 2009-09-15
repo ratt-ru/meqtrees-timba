@@ -1,7 +1,14 @@
 # Provides GUI services to TDL applications when running under the browser.
 # When running in batch mode, most of these map to no-ops
 
+from Timba import dmi
+
 meqbrowser = None;
+
+try:
+  from PyQt4 import Qt
+except:
+  Qt = None;
 
 # message categories
 Normal = 0;
@@ -11,7 +18,8 @@ Error  = 2;
 message_category_names=dict(Normal="normal",Event="event",Error="error");
 
 def log_message (message,category=Normal):
-  """Logs a message with the browser, or prints to console"""; 
+  """Logs a message with the browser, or prints to console.
+  Category should be set to Normal, Event or Error."""; 
   if meqbrowser:
     meqbrowser.log_message(message,category=category);
   else:
@@ -19,6 +27,54 @@ def log_message (message,category=Normal):
       print "TDL message: %s\n"%message;
     else:
       print "TDL %s message: %s"%(message_category_names.get(category,""),message);
+
+# message box types
+Critical = 'critical';
+Information = 'information';
+Question = 'question';
+Warning = 'warning';
+
+# copy button types from QMessageBox
+Button = dmi.record();
+_button_types = ( "Ok","Open","Save","Cancel","Close","Discard","Apply",
+                  "Reset","RestoreDefaults","Help","SaveAll","Yes","YesToAll",
+                  "No","NoToAll","Abort","Retry","Ignore");
+
+if Qt:
+  for button in _button_types:
+    setattr(Button,button,getattr(Qt.QMessageBox,button));
+else:
+  for i,button in enumerate(_button_types):
+    setattr(Button,button,1<<i);
+
+def message_box (caption,message,boxtype=Information,buttons=Button.Ok,default=None):
+  """Displays a message box.
+  'boxtype' is one of Information,Question,Warning or Critical.
+  'buttons' is an bitwise-OR of Button entries.
+  'default' is default Button.
+  """;
+  if not meqbrowser or not Qt:
+    return default or Button.Ok;
+  # print warning if unknown box type
+  method = getattr(Qt.QMessageBox,boxtype,None);
+  if not method:
+    print "WARNING: unknown type '%s' in call to message_box()"%boxtype;
+    return default or Button.Ok;
+  # call dialog
+  return method(meqbrowser,caption,message,buttons,default);
+
+def info_box (caption,message):
+  return message_box(caption,message,Information,Button.Ok,Button.Ok);
+
+def warning_box (caption,message):
+  return message_box(caption,message,Warning,Button.Ok,Button.Ok);
+
+def error_box (caption,message):
+  return message_box(caption,message,Critical,Button.Ok,Button.Ok);
+
+def question_box (caption,message,buttons=Button.Yes|Button.No,default=Button.Yes):
+  return message_box(caption,message,Question,buttons,default);
+
       
 def purr (dirname,watchdirs,show=True,pounce=True):
   """If browser is running, attaches Purr tool to the given directories."""

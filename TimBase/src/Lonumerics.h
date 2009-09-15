@@ -81,7 +81,7 @@ inline T numeric_zero (T* =0)
 
   template<typename T>
   inline T cimag (const std::complex<T> &arg)
-  { return arg.real(); }
+  { return arg.imag(); }
 #endif
     
     

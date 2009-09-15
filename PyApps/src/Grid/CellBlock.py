@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -35,11 +36,12 @@ from Timba.Grid.Services import *
 from Timba.Grid.Debug import *
 from Timba import *
 
-import sets
 import re
 import gc
 import types
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 class CellBlock (object):
   """A Grid.CellBlock represents a block of grid cells (1x1 by default) used

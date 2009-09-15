@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -27,7 +27,10 @@
 
 from Timba.dmi import *
 from Timba.utils import *
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
+
 from Timba import Grid
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import meqgui
@@ -43,9 +46,9 @@ class Bookmark (QObject):
     self.name = name;
     self.rec = record(name=name,udi=udi);
     # resolve viewer to actual viewer class (or None if none specified),
-    # and rec.viewer to viewer name; set iconset based on viewer
+    # and rec.viewer to viewer name; set icon based on viewer
     if viewer is None:
-      self.iconset = QIconSet;
+      self.icon = QIcon;
       self.enabled = True;
       self.viewer  = None;
     else:
@@ -58,16 +61,16 @@ class Bookmark (QObject):
       else:
         raise TypeError,"illegal viewer argument "+str(viewer);
       if self.viewer is not None:
-        self.iconset = getattr(self.viewer,'icon',QIconSet);
+        self.icon = getattr(self.viewer,'icon',QIcon);
         self.enabled = True;
       else:
-        self.iconset = QIconSet;
+        self.icon = QIcon;
         self.enabled = False;
   def show(self,**kws):
-    self.parent().emit(PYSIGNAL("showBookmark()"),(self.rec.udi,self.rec.viewer));
+    self.parent().emit(SIGNAL("showBookmark"),self.rec.udi,self.rec.viewer);
 
 class Pagemark (QObject):
-  iconset = pixmaps.bookmark_toolbar.iconset;
+  icon = pixmaps.bookmark_toolbar.icon;
   enabled = True;
   def __init__ (self,name,page,parent):
     QObject.__init__(self,parent);
@@ -76,18 +79,29 @@ class Pagemark (QObject):
     self.page = page;
     self.rec = record(name=name,page=page);
   def show (self,**kws):
-    self.parent().emit(PYSIGNAL("showPagemark()"),(self,));
+    self.parent().emit(SIGNAL("showPagemark"),self,);
 
 class BookmarkFolder (QObject):
-  iconset = pixmaps.bookmark_folder.iconset;
+  icon = pixmaps.bookmark_folder.icon;
   enabled = True;
   def __init__ (self,name,parent,menu=None,load=None,gui_parent=None):
+    """Creates a folder of bookmarks, and the associated menu.
+    If 'menu' is not None, bookmarks will be added to the supplied menu, else a new one will be created.
+    If load is set to a list (of bookmarks records), folder will be loaded.
+    'parent' is parent object. 'gui_parent' is parent object for menus (or else 'parent' will be used.)
+    """;
     QObject.__init__(self,parent);
     self.name = name;
     self._gui_parent = gui_parent;
     self._bklist = [];
-    self._menu = menu or QPopupMenu(gui_parent or parent);
-    self._initial_menu_size = self._menu.count();
+    self._qas = [];
+    if menu:
+      self._menu = menu;
+      self._have_initial_menu = True;
+    else:
+      self._menu = QMenu(name,gui_parent or parent);
+      self._menu.setIcon(self.icon());
+      self._have_initial_menu = False;
     if load is not None:
       self.load(load);
     QObject.connect(self,PYSIGNAL("showBookmark()"),self.parent(),PYSIGNAL("showBookmark()"));
@@ -96,11 +110,12 @@ class BookmarkFolder (QObject):
   def load (self,bklist):
     """loads bookmarks from list""";
     self._bklist = [];
-    if self._initial_menu_size:
-      while self._menu.count() > self._initial_menu_size:
-        self._menu.removeItemAt(self._initial_menu_size);
+    if self._have_initial_menu:
+      for qa in self._qas:
+        self._menu.removeAction(qa);
     else:
       self._menu.clear();
+    self._qas = [];
     for item in bklist:
       try: name = item.name;
       except AttributeError:
@@ -133,15 +148,14 @@ class BookmarkFolder (QObject):
     """adds an item to the list and menu.""";
     self._bklist.append(item);
     if isinstance(item,BookmarkFolder):
-      iid = self._menu.insertItem(item.iconset(),item.name,item.getMenu());
+      qa = self._menu.addMenu(item.getMenu());
     elif isinstance(item,Pagemark):
-      iid = self._menu.insertItem(item.iconset(),item.name,item.show);
-    else:
-      iid = self._menu.insertItem(item.iconset(),item.name,item.show);
+      qa = self._menu.addAction(item.icon(),item.name,item.show);
     if not item.enabled:
-      self._menu.setItemEnabled(iid,False);
+      qa.setEnabled(False);
+    self._qas.append(qa);
     if not quiet:
-      self.emit(PYSIGNAL("updated()"),());
+      self.emit(SIGNAL("updated"));
     return item;
     
   def add (self,name,udi,viewer=None):
@@ -165,6 +179,4 @@ class BookmarkFolder (QObject):
     # use list comprehension to count the number of pagemarks
     count = len([item for item in self._bklist if isinstance(item,Pagemark)]);
     return "Page " + str(count+1);
-    
-    
     

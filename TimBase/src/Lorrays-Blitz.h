@@ -28,6 +28,8 @@
 #define LORRAYS_USE_BLITZ 1
 #define LORRAYS_DEFINE_STRING 1
 
+#include <TimBase/LofarTypedefs.h>
+
 // 20/01/05: newer versions of blitz (e.g. 0.8) do not use this macro,
 // and do not provide any way to change the global default storage
 // Thus, we'll move to row-major ordering and add conversion for aips++

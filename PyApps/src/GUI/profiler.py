@@ -28,15 +28,16 @@ from Timba.utils import *
 from Timba import Grid 
 from Timba.GUI.pixmaps import pixmaps
 from Timba.GUI import app_proxy_gui
-from Timba.GUI.treebrowser import StickyListViewItem
+from Timba.GUI.treebrowser import StickyTreeWidgetItem
 from Timba.Meq import meqds
 
 import time
 import math
 import copy
 import Timba.array
-from qt import *
-from qtext import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 _dbg = verbosity(0,name='profiler');
 _dprint = _dbg.dprint;
@@ -45,70 +46,75 @@ _dprintf = _dbg.dprintf;
 class Profiler (PersistentCurrier):
   
   def __init__ (self,parent,name):
-    self._wtop = wtop = QVBox(parent,name);
+    self._wtop = wtop = QWidget(parent);
+    self._wtop_lo = wtop_lo = QVBoxLayout(self._wtop);
     self._appgui = app_proxy_gui.appgui(parent);
     
     # find main window to associate our toolbar with
-    self._toolbar = QToolBar("Profiler tools",self._appgui,wtop);
+    self._toolbar = QToolBar("Profiler tools",wtop);
+    wtop_lo.addWidget(self._toolbar);
     
     ## COLLECT button
     self._tb_collect = QToolButton(self._toolbar);
-    self._tb_collect.setIconSet(pixmaps.refresh.iconset());
-    self._tb_collect.setTextLabel("Collect");
-    self._tb_collect.setUsesTextLabel(True);
-    self._tb_collect.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(self._tb_collect,"Collect profiling stats from meqserver");
+    self._tb_collect.setIcon(pixmaps.refresh.icon());
+    self._tb_collect.setText("Collect");
+    self._tb_collect.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self._tb_collect.setToolTip("Collect profiling stats from meqserver");
     QObject.connect(self._tb_collect,SIGNAL("clicked()"),self.collect_stats);
    
     ## RESET button
     tb_reset = QToolButton(self._toolbar);
-    tb_reset.setIconSet(pixmaps.grey_round_cross.iconset());
-    tb_reset.setTextLabel("Reset");
-    tb_reset.setUsesTextLabel(True);
-    tb_reset.setTextPosition(QToolButton.BesideIcon);
-    QToolTip.add(tb_reset,"Reset meqserver's profiling stats");
+    tb_reset.setIcon(pixmaps.grey_round_cross.icon());
+    tb_reset.setText("Reset");
+    tb_reset.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    tb_reset.setToolTip("Reset meqserver's profiling stats");
     QObject.connect(tb_reset,SIGNAL("clicked()"),self.reset_stats);
     
     ## label     
     self._label = QLabel(self._toolbar);
-    self._toolbar.setStretchableWidget(self._label);
+    # self._toolbar.setStretchableWidget(self._label);
     self._label.setAlignment(Qt.AlignRight);
     self._label.setIndent(10);
     
     ## listview
-    self._listview = QListView(wtop);
-    self._listview.addColumn('');
-    self._listview.addColumn('');
+    self._tw = QTreeWidget(wtop);
+    wtop_lo.addWidget(self._tw);
+    self._tw.setHeaderLabels(['','',
     # profiling columns
-    self._listview.addColumn('Exec');
-    self._listview.addColumn('#');
-    self._listview.addColumn('avg');
-    self._listview.addColumn('Ch/x');
-    self._listview.addColumn('#');
-    self._listview.addColumn('avg');
-    self._listview.addColumn('Own');
-    self._listview.addColumn('#');
-    self._listview.addColumn('avg');
+         'Exec',
+         '#',
+         'avg',
+         'Ch/x',
+         '#',
+         'avg',
+         'Own',
+         '#',
+         'avg',
     # all cache columns
-    self._listview.addColumn('Rq all');
-    self._listview.addColumn('c/hit');
-    self._listview.addColumn('c/m');
-    self._listview.addColumn('c/-');
-    self._listview.addColumn('+C');
-    self._listview.addColumn('++C');
+         'Rq all',
+         'c/hit',
+         'c/m',
+         'c/-',
+         '+C',
+         '++C',
     # new cache columns
-    self._listview.addColumn('Rq new');
-    self._listview.addColumn('c/hit');
-    self._listview.addColumn('c/m');
-    self._listview.addColumn('c/-');
-    self._listview.addColumn('+C');
-    self._listview.addColumn('++C');
-    self._listview.setRootIsDecorated(True);
-    self._listview.setAllColumnsShowFocus(True);
-    self._listview.header().setMovingEnabled(False);
-    QObject.connect(self._listview,SIGNAL('expanded(QListViewItem*)'),self._expand_item);
-    for col in range(1,self._listview.columns()):
-      self._listview.setColumnAlignment(col,Qt.AlignRight);
+         'Rq new',
+         'c/hit',
+         'c/m',
+         'c/-',
+         '+C',
+         '++C'
+      ]);
+    self._tw.setRootIsDecorated(True);
+    try: # qt-4.2 or later
+      self._tw.setAllColumnsShowFocus(True);
+    except AttributeError:
+      pass;
+    self._tw.header().setMovable(False);
+    self._tw.header().setDefaultAlignment(Qt.AlignRight);
+    QObject.connect(self._tw,SIGNAL('itemExpanded(QTreeWidgetItem*)'),self._expand_item);
+#    for col in range(1,self._tw.columns()):
+#      self._tw.setColumnAlignment(col,Qt.AlignRight);
     
     ## subscribe to nodelist changes
     meqds.subscribe_nodelist(self._process_nodelist);
@@ -155,26 +161,28 @@ class Profiler (PersistentCurrier):
       self._label.setText("profiling stats collected at "+time.strftime("%H:%M:%S"));
       self._appgui.log_message("profiling stats collected");
       # create base items
-      treeview = StickyListViewItem(self._listview,"Tree View",key=10);
+      treeview = StickyTreeWidgetItem(self._tw,"Tree View",key=10);
       roots = [ (node.name,node.nodeindex) for node in meqds.nodelist.rootnodes() ];
       treeview._generate_items = self.curry(self._generate_node_items,roots);
-      treeview.setExpandable(True);
+      treeview.setFlags(Qt.ItemIsEnabled);
+      treeview.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator);
 
       # by-class views
       self._classes = meqds.nodelist.classes();
-      classview = StickyListViewItem(self._listview,"By Class",key=20);
+      classview = StickyListViewItem(self._tw,"By Class",key=20);
       classview._generate_items = self.curry(self._generate_summary_stats,lambda x:x.classname);
-      classview.setExpandable(True);
+      classview.setFlags(Qt.ItemIsEnabled);
+      classview.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator);
     else:
       self._label.setText("forest is empty");
       self._appgui.log_message("forest is empty, no profiling available");
     
     # generate signal
-    self.wtop().emit(PYSIGNAL("collected()"),());
+    self.wtop().emit(SIGNAL("collected"));
     
-  class StatItem (QListViewItem):
+  class StatItem (QTreeWidgetItem):
     def __init__(self,parent,name,name2,se):
-      QListViewItem.__init__(self,parent,name,name2);
+      QTreeWidgetItem.__init__(self,parent,[name,name2]);
       self._content = [name,name2];
       col = 2;
       for (tot,count) in se.ps:
@@ -243,7 +251,7 @@ class Profiler (PersistentCurrier):
           childlist.append(("(" + childnode.name +")",ni));
         # do we have a childlist now?
         if childlist:
-          item.setExpandable(True);
+          item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator);
           item._generate_items = self.curry(self._generate_node_items,childlist);
       else: # missing child
         item = self.StatItem(parent_item,label,'',self.StatEntry(''));
@@ -263,10 +271,10 @@ class Profiler (PersistentCurrier):
       
   def clear (self):      
     self._stats = self._classes = None;
-    self._listview.clear();
+    self._tw.clear();
 
   def collect_stats (self):
-    self.wtop().emit(PYSIGNAL("collecting()"),());
+    self.wtop().emit(SIGNAL("collecting"));
     self._appgui.log_message("collecting profiling stats, please wait");
     self.clear();
     self._tb_collect.setEnabled(False);

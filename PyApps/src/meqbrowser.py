@@ -1,4 +1,5 @@
 #!/usr/bin/python -O
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -32,6 +33,11 @@ import Timba.utils
 import os
 import sys
 
+def trace_lines (frame, event, arg):
+  if event == "line":
+    print "%s:%d"%(frame.f_code.co_filename,frame.f_lineno);
+  return trace_lines;
+
 if __name__ == "__main__":
   if not os.access('.',os.W_OK):
     print "You do not have write permissions to your current working directory,",os.getcwd();
@@ -54,12 +60,18 @@ if __name__ == "__main__":
                     help="(for debugging C++ code) sets debug level of the named C++ context. May be used multiple times.");
   parser.add_option("-v", "--verbose",dest="verbose",type="string",action="append",metavar="Context=Level",
                     help="(for debugging Python code) sets verbosity level of the named Python context. May be used multiple times.");
+  parser.add_option("-t", "--trace",dest="trace",action="store_true",
+                    help="(for debugging Python code) enables line tracing of Python statements");
   (options, rem_args) = parser.parse_args();
+  
+  if options.trace:
+    sys.settrace(trace_lines);
+  
   for optstr in (options.debug or []):
     opt = optstr.split("=") + ['1'];
     context,level = opt[:2];
     debuglevels[context] = int(level);
-  Timba.utils.verbosity.disable_argv(); # tell verbosity class to not parse its argv
+  
   for optstr in (options.verbose or []):
     opt = optstr.split("=") + ['1'];
     context,level = opt[:2];
@@ -68,7 +80,6 @@ if __name__ == "__main__":
   print "Welcome to the MeqTrees Browser!";
   print "Please wait a second while the GUI starts up.";
 
-import sys
 
 # first things first: setup app defaults from here and from
 # command line (this has to go first, as other modules being imported
@@ -81,13 +92,31 @@ from Timba import octopussy
 from Timba.Apps import meqserver
 
 import Timba.utils
-#from Timba.GUI import app_proxy_gui
-#from Timba.GUI.pixmaps import pixmaps
-#app_proxy_gui.set_splash_screen(pixmaps.trees_splash.pm,"Starting MeqTrees Brower");
+
+from Timba.GUI import app_proxy_gui
+app_proxy_gui.mainapp();
+
+# get version numbers
+try:
+  from Timba.version_info.release import release
+except:
+  release = '(developer build)';
+try:
+  from Timba.version_info.svn_revision import svn_revision
+  svn_revision = "<p align='right'>(svn revision %s)</p>"%svn_revision;
+except:
+  svn_revision = '';
+
+from Kittens import pixmaps;
+pixmaps.load_icons('treebrowser');
+app_proxy_gui.set_splash_screen(pixmaps.redhood_300.pm,
+	"Welcome to MeqTrees %s %s"%(release,svn_revision));
 
 # ugly, but for some reason Purr objects to being imported from within TDL
-try: import Purr
-except: pass;
+if False:
+  try: import Purr
+  except: pass;
+
 
 def importPlugin (name):
   name = 'Timba.Plugins.'+name;
@@ -98,15 +127,21 @@ def importPlugin (name):
     print '  This plugin will not be available.';
     
 ### import plug-ins
-#importPlugin('node_execute');
-importPlugin('array_browser');
-importPlugin('array_plotter');
-#importPlugin('histogram_plotter');
-importPlugin('result_plotter');
+### disabled for now since they haven't been ported to Qt4 yet
+
+if False:
+  importPlugin('array_browser');
+
 importPlugin('quickref_plotter');
-# importPlugin('svg_plotter');
-importPlugin('pylab_plotter');
 importPlugin('collections_plotter');
+importPlugin('array_plotter');
+importPlugin('result_plotter');
+
+### retired plugins
+# importPlugin('pylab_plotter');
+# importPlugin('node_execute');
+# importPlugin('histogram_plotter');
+# importPlugin('svg_plotter');
 # importPlugin('history_plotter');
 # importPlugin('parmfiddler');
 # importPlugin('TableInspector');

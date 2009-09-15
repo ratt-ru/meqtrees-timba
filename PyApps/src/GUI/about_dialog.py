@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #/usr/bin/python
 #
 #% $Id: connect_meqtimba_dialog.py 6778 2009-02-19 14:00:37Z oms $ 
@@ -27,12 +28,14 @@
 import Timba
 from Timba.GUI import meqgui
 from Timba.GUI.pixmaps import pixmaps
-from qt import *
+
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 try:
   from Timba.version_info.release import release
 except:
-  release = '';
+  release = '(developer build)';
 try:
   from Timba.version_info.svn_revision import svn_revision
   svn_revision = "<p align='right'>(svn revision %s)</p>"%svn_revision;
@@ -43,57 +46,58 @@ except:
 class AboutDialog (QDialog):
     def __init__(self,parent=None,name=None,modal=0,fl=None):
         if fl is None:
-          fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
-          fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
-        
-        QDialog.__init__(self,parent,name,modal,fl)
+          fl = Qt.Dialog|Qt.WindowTitleHint;
+        QDialog.__init__(self,parent,Qt.Dialog|Qt.WindowTitleHint);
+        self.setModal(modal);
         
         image0 = pixmaps.redhood_300.pm();
 
         # self.setSizeGripEnabled(0)
-        LayoutWidget = QWidget(self,"lo_top")
+        LayoutWidget = QWidget(self)
         LayoutWidget.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
         
-        lo_top = QVBoxLayout(LayoutWidget,11,6,"lo_top")
+        lo_top = QVBoxLayout(LayoutWidget)
 
-        lo_title = QHBoxLayout(None,0,6,"lo_title")
+        lo_title = QHBoxLayout(None)
 
-        self.title_icon = QLabel(LayoutWidget,"title_icon")
-        self.title_icon.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,self.title_icon.sizePolicy().hasHeightForWidth()))
+        self.title_icon = QLabel(LayoutWidget)
+        self.title_icon.setSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed);
         self.title_icon.setPixmap(image0)
-        self.title_icon.setAlignment(QLabel.AlignCenter)
+        self.title_icon.setAlignment(Qt.AlignCenter)
         lo_title.addWidget(self.title_icon)
 
-        self.title_label = QLabel(LayoutWidget,"title_label")
+        self.title_label = QLabel(LayoutWidget)
+        self.title_label.setWordWrap(True);
         lo_title.addWidget(self.title_label)
         lo_top.addLayout(lo_title)
         
         if Timba.packages():
-          lo_pkgs = QHBoxLayout(None,0,6,"lo_pkgs")
+          lo_pkgs = QHBoxLayout(None)
           lo_top.addLayout(lo_pkgs);
-          self.pkg_label = QLabel(LayoutWidget,"pkg_label")
+          self.pkg_label = QLabel(LayoutWidget)
           self.pkg_label.setFrameStyle(QFrame.Box|QFrame.Raised);
           lo_pkgs.addWidget(self.pkg_label);
           txt = """<P>Optional packages:</P><TABLE>""";
           for pkg,(path,version) in Timba.packages().iteritems():
-            txt += "<TR><TD>%s</TD><TD>%s</TD><TD>%s</TD></TR>"""%(pkg,path,version);
+            txt += """<TR><TD> %s </TD> <TD> at <tt>%s</tt> </TD> <TD> (%s) </TD></TR>"""%(pkg,path,version);
+	  txt += "</TABLE>";
           self.pkg_label.setText(txt);
         
-        lo_logos = QHBoxLayout(None,0,6,"lo_logos")
+        lo_logos = QHBoxLayout(None)
         lo_top.addLayout(lo_logos);
         for logo in "astron","oxford_physics","oerc","drao":
           icon = QLabel(LayoutWidget)
-          icon.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,self.title_icon.sizePolicy().hasHeightForWidth()))
+          icon.setSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed);
           icon.setPixmap(getattr(pixmaps,logo+"_logo").pm());
-          icon.setAlignment(QLabel.AlignCenter)
+          icon.setAlignment(Qt.AlignCenter)
           lo_logos.addWidget(icon)
 
-        lo_mainbtn = QHBoxLayout(None,0,6,"lo_mainbtn")
+        lo_mainbtn = QHBoxLayout(None)
         lo_mainbtn.addItem(QSpacerItem(20,20,QSizePolicy.Expanding,QSizePolicy.Minimum))
         lo_top.addLayout(lo_mainbtn);
 
-        self.btn_ok = QPushButton(LayoutWidget,"btn_ok")
-        self.btn_ok.setSizePolicy(QSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed,1,0,self.btn_ok.sizePolicy().hasHeightForWidth()))
+        self.btn_ok = QPushButton(LayoutWidget)
+        self.btn_ok.setSizePolicy(QSizePolicy.Fixed,QSizePolicy.Fixed);
         self.btn_ok.setMinimumSize(QSize(60,0))
         self.btn_ok.setAutoDefault(1)
         self.btn_ok.setDefault(1)
@@ -106,13 +110,12 @@ class AboutDialog (QDialog):
 
         #LayoutWidget.resize(QSize(489,330).expandedTo(LayoutWidget.minimumSizeHint()))
         #self.resize(QSize(489,330).expandedTo(self.minimumSizeHint()))
-        self.clearWState(Qt.WState_Polished)
+        # self.clearWState(Qt.WState_Polished)
         
         self.connect(self.btn_ok,SIGNAL("clicked()"),self.accept)
         
     def languageChange(self):
-        self.setCaption(self.__tr("About MeqTrees"))
-        self.title_icon.setText(QString.null)
+        self.setWindowTitle(self.__tr("About MeqTrees"))
         self.title_label.setText(self.__tr( \
           """<h1>MeqTrees %s</h1>
           %s<p>(C) 2002-2009 ASTRON<br>(Netherlands Institude for Radioastronomy)<br>
@@ -133,7 +136,6 @@ class AboutDialog (QDialog):
           ));
 
         self.btn_ok.setText(self.__tr("&OK"))
-        self.btn_ok.setAccel(QString.null)
 
 
     def __tr(self,s,c = None):

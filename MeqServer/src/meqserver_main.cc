@@ -57,6 +57,7 @@ namespace main_debug_context
 
 int main (int argc,const char *argv[])
 {
+  // cerr<<__GNUC__<<" "<<USE_STD_COMPLEX<<endl;
   int retcode = 0;
   Debug::initLevels(argc,argv);
   // begin by closing all open FDs -- this is necessary so that we don't inherit any

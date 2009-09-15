@@ -1,1 +1,0 @@
-../../../PyApps/src/trut.py

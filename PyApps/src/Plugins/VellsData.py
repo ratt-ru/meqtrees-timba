@@ -27,7 +27,7 @@
 import sys
 
 from Timba.utils import verbosity
-from Timba.Plugins.plotting_functions import *
+from Timba.Plugins.plotting_functions_qt4 import *
 
 _dbg = verbosity(0,name='VellsData');
 _dprint = _dbg.dprint;
@@ -324,14 +324,8 @@ class VellsData:
          except:
            _dprint(3, 'The perturbed values cannot be displayed.')
 # don't display message for the time being
-#              Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
-#              mb_msg = QMessageBox("display_image.py",
-#                               Message,
-#                               QMessageBox.Warning,
-#                               QMessageBox.Ok | QMessageBox.Default,
-#                               QMessageBox.NoButton,
-#                               QMessageBox.NoButton)
-#              mb_msg.exec_loop()
+#           Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
+#           mb_reporter = Qt.QMessageBox.warning(self, self.tr("QwtImageDisplay"), self.tr(Message))
        if vells_rec.vellsets[i].has_key("flags"):
          toggle_index = "flag data " + str(i)
          self._plot_flags_dict[toggle_index] = vells_rec.vellsets[i].flags

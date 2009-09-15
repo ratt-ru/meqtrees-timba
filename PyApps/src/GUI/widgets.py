@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -23,7 +24,9 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from qt import *
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
+
 from Timba.utils import verbosity
 
 _dbg = verbosity(0,name='widgets');
@@ -44,24 +47,36 @@ def DataDroppableWidget (parent_class):
       self._accept_drops_from_children = False;
     def setAcceptDropsFromChildren(self,value):
       self._accept_drops_from_children = value;
-    # Drag objects must be text drags originating from another widget (i.e., 
+      
+    @staticmethod 
+    def get_drag_key (event):
+      key = None;
+      data = event.mimeData();
+      if data.hasText():
+	key = data.text();
+	_dprint(3,"mimeData text is",key);
+      elif data.hasUrls():
+	key = " ".join([str(url.toString()) for url in data.urls()]);
+	_dprint(3,"mimeData URLs are",key);
+      return key;
+    # Drag objects must be text or URL drags originating from another widget (i.e., 
     # within the same app). The source widget must implement a 
     # get_drag_item(key) method and a get_drag_item_type(key) method,
     # where 'key' is a string containing the text of the drag.
     # The method can return any object, or None for none, it is up to the
     # subclass to deal with this.
     def dragEnterEvent (self,ev):
-      key = QString();
+      key = None;
       try: 
         wsrc = ev.source();
-        # refuse event if source widget does not define get_drag_item(),
-        # or drag is not a string
+	key = self.get_drag_key(ev);
+        # refuse event if source widget does not define get_drag_item(), or drag is not a string
         try: 
-          if not callable(wsrc.get_drag_item) or not QTextDrag.decode(ev,key):
+          if not callable(wsrc.get_drag_item) or not key:
             _dprint(3,'invalid drag or drag source');
             return;
         except AttributeError: return;
-        _dprint(3,'got drag key',str(key));
+        _dprint(3,'got drag key',key);
         # if source widget is a child of ours, we may refuse the drop
         if not self._accept_drops_from_children:
           ws = wsrc;
@@ -72,33 +87,35 @@ def DataDroppableWidget (parent_class):
             ws = ws.parent();
         # check if we accept this item
         if hasattr(self,'accept_drop_item'):
-          item = wsrc.get_drag_item(str(key));
+          item = wsrc.get_drag_item(key);
           _dprint(3,'drag item is',item);
           if item is not None and self.accept_drop_item(item):
             _dprint(3,'accepted');
-            ev.accept(True);
+            ev.accept();
         elif hasattr(self,'accept_drop_item_type'):
-          itemtype = wsrc.get_drag_item_type(str(key));
+          itemtype = wsrc.get_drag_item_type(key);
           _dprint(3,'drag item type is',itemtype);
           if itemtype is not None and self.accept_drop_item_type(itemtype):
             _dprint(3,'accepted');
-            ev.accept(True);
+            ev.accept();
         else:
           _dprint(3,'no accept_() methods defined, accepting by default');
-          ev.accept(True);
+          ev.accept();
       except AttributeError: 
         _dprint(3,'attribute error somewhere, rejecting drag');
+	ev.ignore();
         pass;
     # The text drag is decoded into a text key, an item is fetched from the 
     # source using get_drag_item(key), and process_drop_item is called
     def dropEvent (self,ev):
-      key = QString();
-      if QTextDrag.decode(ev,key):
+      key = self.get_drag_key(ev);
+      if key:
         try: dragfunc = ev.source().get_drag_item;
         except AttributeError: return;
         item = dragfunc(str(key));
         if item is not None:
           self.process_drop_item(item,ev);
+	  ev.accept();
         
 #     def accept_drop_item (self,item):
 #       """Provide this function to selectively accept drops based on item
@@ -116,22 +133,29 @@ def DataDroppableWidget (parent_class):
     def process_drop_item (self,item,event):
       """This function is called when a drop occurs.
       Default action is to emit an itemDropped() signal.""";
-      self.emit(PYSIGNAL("itemDropped()"),(item,event));
+      self.emit(SIGNAL("itemDropped"),item,event);
       
   return widgetclass;
 
 
-# ====== DataDraggableListView =================================================
+# ====== DataDraggableTreeWidget =================================================
 # A QListView implementing the dragObject() function as follows:
 #   if the selected item has a _udi attribute, returns a text drag containing 
 #   the udi.
-class DataDraggableListView (QListView):
-  def __init__ (self,*args):
-    QListView.__init__(self,*args);
-    self.setSelectionMode(QListView.Single);
-  def dragObject (self):
-    try: udi = self.selectedItem()._udi;
-    except AttributeError:
-      return None;
-    return udi and QTextDrag(udi,self);
-
+def DataDraggableTreeWidget (parent_class):
+  class widgetclass (parent_class):
+    def __init__ (self,*args):
+      parent_class.__init__(self,*args);
+      self.setDragEnabled(True);
+      
+    def mimeData (self,items):
+      urls = [];
+      for item in items:
+	udi = getattr(item,'_udi',None);
+	if udi:
+	  urls.append(QUrl(udi));
+      mimedata = QMimeData();
+      mimedata.setUrls(urls);
+      return mimedata;
+      
+  return widgetclass;

@@ -25,7 +25,8 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from qt import *
+from PyQt4.Qt import *
+from Kittens.widgets import PYSIGNAL
 
 class ProcStatusWidget (QLabel):
   
