@@ -1,4 +1,4 @@
-MEQPACKAGE(MeqServer AppUtils MEQ MeqNodes VisCube OCTOPUSSY OCTOPython DMI TimBase)
+MEQPACKAGE(MeqServer AppUtils MeqMPI MEQ MeqNodes VisCube OCTOPUSSY OCTOPython DMI TimBase)
 set(meqServer_includes
     src/AID-MeqServer.h
     src/MeqPython.h

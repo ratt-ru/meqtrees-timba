@@ -38,6 +38,17 @@ system cmake module directory (usually /usr/share/cmake/Modules)
 The list of external dependency packages are specified by the dependencies variable set
 in the top level CMakeList.txt file.
 
+Alternative Builds
+==================
+Various alternative builds are available. Activate them by setting the 
+appropriate Cmake variable:
+
+  Variable                   Description
+  ---------------------------------------------------
+  USE_MPI                  | Use the mpi parrallelisation library
+  USE_DBM                  | Use a database management system
+
+
 
 Setting CMake Variables
 =======================

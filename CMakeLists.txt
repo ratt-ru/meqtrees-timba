@@ -45,9 +45,19 @@ set(dependencies
                  CfitsIO
                  Threads
                  PythonNumpy
-                 MPI
 )
+# alternative builds
+if(USE_DBM)
+    list(APPEND dependencies DBM)
+endif(USE_DBM)
+if(USE_MPI)
+    list(APPEND dependencies MPI)
+endif(USE_MPI)
+
 PACKAGE_DEPENDENCIES( ${dependencies} )
+if(DBM_FLAGS)
+  add_definitions(${DBM_FLAGS})
+endif(DBM_FLAGS)
 
 if(CASACORE_FOUND)
     add_definitions(-DHAVE_AIPSPP)

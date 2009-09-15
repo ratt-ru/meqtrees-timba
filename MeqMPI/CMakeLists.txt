@@ -15,7 +15,7 @@ set(meqMpi_src
     src/AID-MeqMPI-Registry.cc
     src/MeqMPI.cc
     src/MeqMPI_commands.cc
-    #src/MPIProxy.cc
+    src/MPIProxy.cc
     )
 ELSE(MPI_FOUND)
 set(meqMpi_src
@@ -24,4 +24,4 @@ set(meqMpi_src
 ENDIF(MPI_FOUND)
 add_library(meqmpi ${meqMpi_src})
 install(TARGETS meqmpi DESTINATION ${LIBRARY_INSTALL_DIR})
-MEQPACKAGE_ADD_LIBRARIES(meqmpi)
+MEQPACKAGE_ADD_LIBRARIES(meqmpi ${MPI_LIBRARIES})
