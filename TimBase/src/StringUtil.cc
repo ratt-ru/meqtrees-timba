@@ -22,6 +22,7 @@
 //#  $Id$
 
 #include <TimBase/StringUtil.h>
+#include <stdio.h>
 #include <iostream>
 #include <stdarg.h>
 
