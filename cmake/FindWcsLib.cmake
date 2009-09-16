@@ -13,7 +13,7 @@ ENDIF (WCSLIB_INCLUDE_DIR)
 FIND_PATH(WCSLIB_INCLUDE_DIR wcslib)
 
 SET(WCSLIB_NAMES 
-    pgsbox
+    #    pgsbox
     wcs
     )
 FOREACH( lib ${WCSLIB_NAMES} )
