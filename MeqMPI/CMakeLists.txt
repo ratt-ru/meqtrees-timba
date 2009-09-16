@@ -18,6 +18,7 @@ set(meqMpi_src
     src/MPIProxy.cc
     )
 ELSE(MPI_FOUND)
+message("  -- MPI support disabled. Since it is currently highly experimental, this is probably OK.")
 set(meqMpi_src
     src/Dummy.cc
     )
