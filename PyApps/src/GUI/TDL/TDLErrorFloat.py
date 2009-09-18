@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from PyQt4.Qt import *
 from Kittens.widgets import PYSIGNAL
 
@@ -20,16 +21,18 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
   def __init__ (self,parent):
     QMainWindow.__init__(self,parent,Qt.Dialog|Qt.WindowTitleHint);
     self.hide();
-    self.setWindowIcon(pixmaps.red_round_cross.icon());
+    # self.setWindowIcon(pixmaps.red_round_cross.icon());
     self.setWindowTitle("TDL Errors");
     # make widgets
     self._werrlist_box = QWidget(self);
     lo = QVBoxLayout(self._werrlist_box);
+    lo.setContentsMargins(0,0,0,0);
     lo.setSpacing(0);
     self.setCentralWidget(self._werrlist_box);
     # error list header is a toolbar
     errlist_hdr = QToolBar("TDL errors",self._werrlist_box);
     errlist_hdr.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Fixed);
+    errlist_hdr.setIconSize(QSize(16,16));
     lo.addWidget(errlist_hdr);
     # prev/next error buttons
     self._qa_prev_err = errlist_hdr.addAction(pixmaps.red_leftarrow.icon(),"Show &previous error")
@@ -59,13 +62,14 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
       pass;
     header = self._werrlist.header();
     header.hide(); # setHeaderHidden(True);
-    header.setResizeMode(0,QHeaderView.Stretch);
-    header.setResizeMode(1,QHeaderView.ResizeToContents);
-    header.setResizeMode(2,QHeaderView.ResizeToContents);
+    header.setStretchLastSection(False);
+    for col in [0,2,3]:
+      header.setResizeMode(col,QHeaderView.ResizeToContents);
+    header.setResizeMode(1,QHeaderView.Stretch);
     self._werrlist.setSelectionMode(QAbstractItemView.SingleSelection);
     # size the widget
-    self.setMinimumSize(QSize(500,120));
-    self.setGeometry(0,0,800,120);
+    # self.setMinimumSize(QSize(500,120));
+    # self.setGeometry(0,0,800,120);
     # anchor and position relative to anchor
     self._anchor_widget = None;
     self._anchor_xy0 = None;
@@ -250,10 +254,16 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
         self.emit(PYSIGNAL("hasErrors"),nerr);
       if show_item:
         self._show_error_item(self._toplevel_error_items[0]);
-      # resize ourselves according to number of errors
+      # resize ourselves according to number of errors and width of treeview
       height = (len(self._error_items)+1)*self._werrlist.fontMetrics().lineSpacing();
       height = min(200,height);
-      self.setGeometry(self.x(),self.y(),self.width(),height);
+      # work out recommended width
+      width = 400;  # initial width for message section
+      # add width of other sections
+      for col in [0,2,3]:
+	width += self._werrlist.header().sectionSize(col);
+      _dprint(2,"hinted width is",width);
+      self.setGeometry(self.x(),self.y(),max(width,self.width()),height);
       self.updateGeometry();
       # self._highlight_error(0);
       # disable run control until something gets modified

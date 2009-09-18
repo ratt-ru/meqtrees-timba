@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from PyQt4.Qt import *
 from Kittens.widgets import PYSIGNAL
 
@@ -21,9 +22,11 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     self._tw.setSelectionMode(QAbstractItemView.NoSelection);
     
     self._tw.header().setResizeMode(0,QHeaderView.ResizeToContents);
-    self._tw.header().setResizeMode(1,QHeaderView.Interactive);
+    self._tw.header().setResizeMode(1,QHeaderView.ResizeToContents);
     self._tw.header().setResizeMode(2,QHeaderView.Stretch);
     self._tw.header().hide();
+    QObject.connect(self._tw.header(),SIGNAL("sectionResized(int,int,int)"),self._resize_dialog);
+    self._allow_resize_dialog = True;
     # self._tw.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding);
     # add signals
     QObject.connect(self._tw,SIGNAL("itemClicked(QTreeWidgetItem*,int)"),self._process_treewidget_click);
@@ -51,7 +54,16 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     lo_btn.addWidget(tb);
     lo_main.addLayout(lo_btn);
     self.resize(QSize(600,480).expandedTo(self.minimumSizeHint()))
-    
+
+  def _resize_dialog (self,section,*dum):
+    if self._allow_resize_dialog and section<2:
+      width = 128;  # initial size of help section
+      # add width of other sections
+      for col in [0,1]:
+	width += self._tw.header().sectionSize(col);
+      # print width;
+      self.resize(max(width,self.width()),self.height());
+      
   def accept (self):
     self.emit(PYSIGNAL("accepted()"));
     self.hide();
