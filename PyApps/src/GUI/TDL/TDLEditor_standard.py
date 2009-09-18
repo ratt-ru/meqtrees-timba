@@ -174,7 +174,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_opts.setToolTip("Access compile-time options for this TDL script");
     # self._tb_opts.hide();
 
-    opts = self._options_menu = TDLOptionsDialog(parent,ok_label="Compile",ok_icon=pixmaps.blue_round_reload);
+    opts = self._options_menu = TDLOptionsDialog(self,ok_label="Compile",ok_icon=pixmaps.blue_round_reload);
     opts.setWindowTitle("TDL Compile-time Options");
     opts.setWindowIcon(pixmaps.wrench.icon());
     QObject.connect(opts,PYSIGNAL("accepted()"),self._run_main_file);

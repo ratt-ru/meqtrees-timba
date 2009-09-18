@@ -334,7 +334,7 @@ class meqserver_gui (app_proxy_gui):
     show = Config.getbool('tdl-show-line-numbers',True);
     showlnum.setChecked(show);
     
-    loadruntdl = tdl_menu.addAction("&Load TDL script...",self._load_tdl_script,Qt.CTRL+Qt.Key_T);
+    loadruntdl = tdl_menu.addAction("&Load TDL script...",self._load_tdl_script_dialog,Qt.CTRL+Qt.Key_T);
     QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
     loadruntdl.setEnabled(False);
     self._qa_loadtdl_cwd = tdl_menu.addAction("Change to directory of TDL script when loading");
@@ -344,6 +344,15 @@ class meqserver_gui (app_proxy_gui):
     tdl_menu.addAction(self._qa_runtdl);
     # menu for tdl jobs is inserted when TDL script is run
     QObject.connect(self,PYSIGNAL("isConnected()"),self._clear_tdl_jobs);
+
+    # add menu actions for recent scripts
+    tdl_menu.addSeparator();
+    self._recent_scripts = filter(bool,Config.get('recent-tdl-scripts','').split(';;'));
+    self._qa_recent_scripts = [ 
+	tdl_menu.addAction("recent script %d"%i,self.curry(self._load_recent_script_number,i)) for i in range(5) ];
+    for qa in self._qa_recent_scripts:
+      qa.setVisible(False);
+    self._populate_recent_script_menu();
     
     # --- View menu
     for qa in self.qa_viewpanels.actions():
@@ -524,10 +533,11 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
           PID for it, so I can't attach a debugger.</p>""","Cancel");
         return;
     pathname = self._kernel_pathname or ( "/proc/%d/exe"%(pid,) );
-    cmd0 = Config.get("debugger-command","ddd %f %p");
+    cmd0 = Config.get("debugger-command","ddd meqserver %p");
     cmd0 = cmd0.replace('%p',str(pid)).replace('%f',pathname);
     prompt = "Debugger command:";
-    (cmd,ok) = QInputDialog.getText("Attaching debugger to meqserver",prompt,QLineEdit.Normal,cmd0);
+    (cmd,ok) = QInputDialog.getText(self,"Attaching debugger to meqserver",
+		  prompt,QLineEdit.Normal,cmd0);
     if ok:
       cmd = str(cmd);
       # see if command has changed, write to config if so
@@ -766,37 +776,66 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         self.setFilters(["TDL scripts (*.tdl *.py)","All files (*.*)"]);
       self.setViewMode(QFileDialog.Detail);
     
-  def _load_tdl_script (self):
+  def _load_tdl_script_dialog (self):
     try: dialog = self._run_tdl_dialog;
     except AttributeError:
       self._run_tdl_dialog = dialog = self.LoadTDLDialog(self);
       dialog.setModal(True);
       dialog.resize(800,500);
-    dialog.setWindowTitle("Load TDL Script");
+      dialog.setWindowTitle("Load TDL Script");
+      # add sidebar URL for Cattery and other packages
+      urls = list(dialog.sidebarUrls());
+      for pkg,(path,version) in Timba.packages().iteritems():
+	urls.append(QUrl.fromLocalFile(path));
+      dialog.setSidebarUrls(urls);
     if dialog.exec_() == QDialog.Accepted:
-      filename = str(dialog.selectedFiles()[0]);
-      # close all TDL tabs
-      for (path,tab) in list(self._tdl_tabs.items()):
-        index = self.maintab.indexOf(tab);
-        self.maintab.setCurrentIndex(index);
-        if tab.confirm_close():
-          tab.disable_editor();
-          del self._tdl_tabs[path];
-          self.maintab.removeTab(index);
-          tab.setParent(QWidget());
-      # change working directory
-      if self._qa_loadtdl_cwd.isChecked():
-        dirname = os.path.dirname(filename);
-        if os.access(dirname,os.W_OK):
-          self.change_working_directory(dirname,browser=True,kernel=True);
-        else:
-          QMessageBox.warning(self,"Cannot change directory","""
-            <P><NOBR>Cannot change working directory to </NOBR><tt>%s</tt>, as it is not writable.</P>
-            <P>Will keep using the current working directory, <tt>%s</tt>.</P>"""%(dirname,os.getcwd()),
-            "OK");
-      # show this file
-      self.show_tdl_file(filename,run=True);
-      
+      self._load_tdl_script(str(dialog.selectedFiles()[0]));
+
+  def _load_tdl_script (self,filename):
+    # close all TDL tabs
+    for (path,tab) in list(self._tdl_tabs.items()):
+      index = self.maintab.indexOf(tab);
+      self.maintab.setCurrentIndex(index);
+      if tab.confirm_close():
+	tab.disable_editor();
+	del self._tdl_tabs[path];
+	self.maintab.removeTab(index);
+	tab.setParent(QWidget());
+    # change working directory
+    if self._qa_loadtdl_cwd.isChecked():
+      dirname = os.path.dirname(filename);
+      if os.access(dirname,os.W_OK):
+	self.change_working_directory(dirname,browser=True,kernel=True);
+      else:
+	QMessageBox.warning(self,"Cannot change directory","""
+	  <P><NOBR>Cannot change working directory to </NOBR><tt>%s</tt>, as it is not writable.</P>
+	  <P>Will keep using the current working directory, <tt>%s</tt>.</P>"""%(dirname,os.getcwd()),
+	  "OK");
+    # show this file
+    self.show_tdl_file(filename,run=True);
+    self._add_recent_script(filename,save=True);
+
+  def _add_recent_script (self,filename,save=False):
+    # remove from list if found
+    try: self._recent_scripts.remove(filename);
+    except ValueError: pass;
+    # insert at start of list, and keep list to 5 items
+    self._recent_scripts.insert(0,filename);
+    del self._recent_scripts[5:];
+    if save:
+      Config.set("recent-tdl-scripts",';;'.join(self._recent_scripts));
+    self._populate_recent_script_menu();
+
+  def _populate_recent_script_menu (self):
+    for i,filename in enumerate(self._recent_scripts):
+      qa = self._qa_recent_scripts[i];
+      qa.setText(filename);
+      qa.setVisible(True);
+
+  def _load_recent_script_number (self,num):
+    filename = self._recent_scripts[num];
+    self._load_tdl_script(filename);
+
   def _show_tdl_line_numbers (self,show):
     Config.set('tdl-show-line-numbers',show);
     for tab in self._tdl_tabs.itervalues():
