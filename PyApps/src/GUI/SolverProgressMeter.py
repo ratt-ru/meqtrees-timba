@@ -44,6 +44,7 @@ class SolverProgressMeter (QWidget):
   def __init__ (self,parent):
     QWidget.__init__(self,parent);
     lo = QHBoxLayout(self);
+    lo.setContentsMargins(5,0,5,0);
     lo.setSpacing(5);
     self._wlabel = QLabel(self);
     self._wlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);

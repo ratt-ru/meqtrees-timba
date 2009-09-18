@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Provides GUI services to TDL applications when running under the browser.
 # When running in batch mode, most of these map to no-ops
 
@@ -9,6 +10,38 @@ try:
   from PyQt4 import Qt
 except:
   Qt = None;
+
+#
+# ===== PROGRESS DIALOGS =====
+#
+
+class ProgressDialog (object):
+  def __init__ (self,label,cancel=None,min_duration=0,min_value=0,max_value=100):
+    # these methods are directly mapped from QProgressDialog
+    methods = [ "setLabelText","setMaximum","setMinimum","setRange","setValue","wasCanceled","show","hide" ];
+    if meqbrowser and Qt:
+      self.dialog = Qt.QProgressDialog(label,cancel or Qt.QString(),min_value,max_value,meqbrowser);
+      self.dialog.setMinimumDuration(min_duration);
+      self.dialog.setLabelText(label);
+      self.dialog.setValue(min_value);
+      self.dialog.show();
+      for m in methods:
+	setattr(self,m,getattr(self.dialog,m));
+    else:
+      self.dialog = None;
+      def dummy_method (*arg,**kw):
+	return None;
+      for m in methods:
+	setattr(self,m,dummy_method);
+
+  def __del__ (self):
+    if Qt and self.dialog:
+      self.dialog.hide();
+      self.dialog.setParent(Qt.QObject());
+
+#
+# ===== MESSAGE LOGGING ===
+#
 
 # message categories
 Normal = 0;
@@ -28,7 +61,12 @@ def log_message (message,category=Normal):
     else:
       print "TDL %s message: %s"%(message_category_names.get(category,""),message);
 
+#
+# ===== MESSAGE BOXES ===
+#
+
 # message box types
+# when capitalized, these are QMessageBox icon types as well
 Critical = 'critical';
 Information = 'information';
 Question = 'question';
@@ -39,13 +77,54 @@ Button = dmi.record();
 _button_types = ( "Ok","Open","Save","Cancel","Close","Discard","Apply",
                   "Reset","RestoreDefaults","Help","SaveAll","Yes","YesToAll",
                   "No","NoToAll","Abort","Retry","Ignore");
+ButtonNames = dict();
 
 if Qt:
   for button in _button_types:
-    setattr(Button,button,getattr(Qt.QMessageBox,button));
+    num = getattr(Qt.QMessageBox,button);
+    setattr(Button,button,num);
 else:
   for i,button in enumerate(_button_types):
     setattr(Button,button,1<<i);
+
+for button in _button_types:
+  ButtonNames[getattr(Button,button)] = button;
+
+class MessageBox (object):
+  """Implements a persistent message box. Created just like a call to 
+   message_box(), and with the same arguments, but also implements
+  hide(), show() and setButtonText() methods."""
+  def __init__ (self,caption,message,boxtype=Information,buttons=Button.Ok,default=None):
+    methods = [ "show","hide","setText" ];
+    if meqbrowser and Qt:
+      icon = getattr(Qt.QMessageBox,boxtype.capitalize(),Qt.QMessageBox.NoIcon);
+      self.dialog = Qt.QMessageBox(icon,caption,message,buttons,meqbrowser);
+      if default:
+	self.dialog.setDefaultButton(default);
+      for m in methods:
+	setattr(self,m,getattr(self.dialog,m));
+    else:
+      self.dialog = None;
+      def dummy_method (*arg,**kw):
+	return None;
+      for m in methods:
+	setattr(self,m,dummy_method);
+
+  def setBoxType (self,boxtype):
+    if self.dialog:
+      self.dialog.setIcon(getattr(Qt.QMessageBox,boxtype.capitalize(),Qt.QMessageBox.NoIcon));
+
+  def setButtonText (self,button,text):
+    if self.dialog:
+      btn = self.dialog.button(button);
+      if not btn:
+	raise ValueError,"button '%s' not present in this MessageBox"%ButtonNames.get(button,button);
+      btn.setText(text);
+
+  def __del__ (self):
+    if Qt and self.dialog:
+      self.dialog.hide();
+      self.dialog.setParent(Qt.QObject());
 
 def message_box (caption,message,boxtype=Information,buttons=Button.Ok,default=None):
   """Displays a message box.
@@ -58,23 +137,31 @@ def message_box (caption,message,boxtype=Information,buttons=Button.Ok,default=N
   # print warning if unknown box type
   method = getattr(Qt.QMessageBox,boxtype,None);
   if not method:
-    print "WARNING: unknown type '%s' in call to message_box()"%boxtype;
+    print "WARNING: unknown boxtype '%s' in call to message_box()"%boxtype;
     return default or Button.Ok;
   # call dialog
-  return method(meqbrowser,caption,message,buttons,default);
+  Qt.QApplication.setOverrideCursor(Qt.QCursor());
+  try:
+    result = method(meqbrowser,caption,message,buttons,default);
+  finally:
+    Qt.QApplication.restoreOverrideCursor();
+  return result;
 
-def info_box (caption,message):
-  return message_box(caption,message,Information,Button.Ok,Button.Ok);
+def info_box (caption,message,buttons=Button.Ok,default=Button.Ok):
+  return message_box(caption,message,Information,buttons,default);
 
-def warning_box (caption,message):
-  return message_box(caption,message,Warning,Button.Ok,Button.Ok);
+def warning_box (caption,message,buttons=Button.Ok,default=Button.Ok):
+  return message_box(caption,message,Warning,buttons,default);
 
-def error_box (caption,message):
-  return message_box(caption,message,Critical,Button.Ok,Button.Ok);
+def error_box (caption,message,buttons=Button.Ok,default=Button.Ok):
+  return message_box(caption,message,Critical,buttons,default);
 
 def question_box (caption,message,buttons=Button.Yes|Button.No,default=Button.Yes):
   return message_box(caption,message,Question,buttons,default);
 
+#
+# ===== PURR INTERFACE ===
+#
       
 def purr (dirname,watchdirs,show=True,pounce=True):
   """If browser is running, attaches Purr tool to the given directories."""

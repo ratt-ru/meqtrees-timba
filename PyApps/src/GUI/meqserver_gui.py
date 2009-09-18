@@ -245,6 +245,8 @@ class meqserver_gui (app_proxy_gui):
     
     meterbar = QWidget(self.statusbar);
     meterbar_lo = QVBoxLayout(meterbar);
+    meterbar_lo.setContentsMargins(0,0,0,0);
+    meterbar_lo.setSpacing(5);
     self.statusbar.addWidget(meterbar); 
     # add a VisProgressMeter to status bar 
     self._visprogmeter = VisProgressMeter.VisProgressMeter(meterbar);
@@ -1238,7 +1240,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       # change TDL dialog path
       dialog = getattr(self,'_run_tdl_dialog',None);
       if dialog:
-        dialog.setDir(path);
+        dialog.setDirectory(path);
       # change browser path
       curpath = os.getcwd();
       os.chdir(path);
