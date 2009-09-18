@@ -160,6 +160,7 @@ class meqserver_gui (app_proxy_gui):
     # create main toolbar
     self.maintoolbar = QToolBar(self);
     self.maintoolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self.maintoolbar.setIconSize(QSize(16,16));
     self.qa_viewpanels = QActionGroup(self);
     self.qa_viewpanels.setExclusive(False);
     
@@ -194,7 +195,6 @@ class meqserver_gui (app_proxy_gui):
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_jobs.setDisabled);
     QObject.connect(self.treebrowser.wtop(),PYSIGNAL("isRunning()"),self._qa_runtdl.setDisabled);
     
-    # add what's this button at far right
     dum = QWidget(self.maintoolbar);
     dum.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     self.maintoolbar.addWidget(dum);
@@ -227,8 +227,9 @@ class meqserver_gui (app_proxy_gui):
     
     # self.maintoolbar.setStretchableWidget(dum);
     ### skip the what's this button
+    # add what's this button at far right
     self._whatsthisaction = QWhatsThis.createAction(self);
-    self.maintoolbar.addAction(self._whatsthisaction);
+    #self.maintoolbar.addAction(self._whatsthisaction);
     ###
     self.addToolBar(Qt.TopToolBarArea,self.maintoolbar);
     self.addToolBar(Qt.LeftToolBarArea,self.treebrowser.wtoolbar());

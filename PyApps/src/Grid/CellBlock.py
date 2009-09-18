@@ -188,7 +188,7 @@ class CellBlock (object):
     except AttributeError:
       self._float_window = float_window = Timba.Grid.Floater(self._gw.wtop());
       QObject.connect(float_window,PYSIGNAL("closed()"),self._unfloat);
-      float_window.setCaption(self._dataitem.name);
+      float_window.setWindowTitle(self._dataitem.name);
       # allocate single cell or grid
       if self._totsize == 1: 
         # notitle=True: do not create cell titlebar
@@ -225,7 +225,7 @@ class CellBlock (object):
       self._allocate_grid(newcell=True);
       # move content widgets back into the grid
       for (w,cell,pos,fcell) in zip(self._content,self._cells,self._content_pos,self._float_cells):
-        w.reparent(cell.wtop(),pos);
+        w.setParent(cell.wtop());
         fcell.release();
       # reinitialize grid cells
       self._init_cells(self._cells);
@@ -244,7 +244,8 @@ class CellBlock (object):
     _dprint(2,'float_cells',self._float_cells);
     for (w,cell,fcell) in zip(self._content,self._cells,self._float_cells):
       fcell.wtop().resize(cell.wtop().size());
-      w.reparent(fcell.wtop(),w.pos(),True);
+      # w.reparent(fcell.wtop(),w.pos(),True);
+      w.setParent(fcell.wtop());
       cell.release();
     # init float cells
     self._init_cells(self._float_cells);

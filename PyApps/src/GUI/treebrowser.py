@@ -507,6 +507,7 @@ class TreeBrowser (QObject):
     while mainwin and not isinstance(mainwin,QMainWindow):
       mainwin = mainwin.parent();
     self._toolbar = QToolBar(mainwin);
+    self._toolbar.setIconSize(QSize(16,16));
     self._toolbar_actions = [];
     tba = self.get_action_list("toolbar");
     tba.sort();

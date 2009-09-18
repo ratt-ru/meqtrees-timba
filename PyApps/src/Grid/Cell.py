@@ -175,6 +175,7 @@ class Cell (object):
     self.enable_viewers(not noviewer);
     # --- build toolbar
     self._toolbar = QToolBar("Panel tools",wtop);
+    self._toolbar.setIconSize(QSize(16,16));
     self._wtop_lo.addWidget(self._toolbar);
     # icon button and popup menu    
     self._icon_act = self._toolbar.addAction("Panel &menu",self.show_popup_menu);
@@ -189,9 +190,10 @@ class Cell (object):
     self._label.setAlignment(Qt.AlignLeft|Qt.AlignVCenter);
     self._label.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     self._toolbar.addSeparator();
-    qaw = QWidgetAction(wtop);
-    qaw.setDefaultWidget(self._label);
-    self._toolbar.addAction(qaw);
+#    qaw = QWidgetAction(wtop);
+#    qaw.setDefaultWidget(self._label);
+#    self._toolbar.addAction(qaw);
+    self._toolbar.addWidget(self._label);
     self._toolbar.addSeparator();
     # pin button
     pin_icon = pixmaps.pin_up.icon();
@@ -200,15 +202,13 @@ class Cell (object):
     pin.setToolTip("pin (i.e. protect) or unpin this panel");
     pin.setCheckable(True);
     # float button
-    self._float_act = flt = self._toolbar.addAction(pixmaps.float_window.icon(),"&Float panel");
+    self._float_act = flt = self._toolbar.addAction(pixmaps.float_window.icon(),"&Float panel",self._float);
     flt.setToolTip("float this cell in a separate window");
     # flt.setToggleAction(True);
-    QObject.connect(flt,SIGNAL("triggered(bool=0)"),self.wtop(),PYSIGNAL("float()"));
     # close button
     self._toolbar.addSeparator();
     self._close = close = self._toolbar.addAction(pixmaps.cancel.icon(),"&Close panel",self.close);
     close.setToolTip("close this panel");
-    QObject.connect(close,SIGNAL("triggered(bool=0)"),self.close);
     # finalize toolbar setup
     #self._toolbar.setHorizontallyStretchable(True);
     #self._toolbar.setStretchableWidget(self._label);
@@ -247,6 +247,9 @@ class Cell (object):
     # all we need to do for a full disconnect is clear the currier.
     cc = self._currier.curry(receiver,*args,**kws);
     QObject.connect(self._wtop,signal,cc);
+    
+  def _float (self):
+    self.wtop().emit(PYSIGNAL("float()"));
     
   def disconnect_all (self):
     self._currier.clear();
@@ -289,8 +292,8 @@ class Cell (object):
           if not self._highlight:
             w._default_background = w.backgroundRole();
             w._default_foreground = w.foregroundRole();
-          w.setBackgroundRole(QPalette.Highlight);
-          w.setForegroundRole(QPalette.HighlightedText);
+#          w.setBackgroundRole(QPalette.Dark);
+          w.setForegroundRole(QPalette.ButtonText);
       self._highlight = True;
     else:
       for w in wlist:
@@ -544,8 +547,6 @@ class Cell (object):
     """sets the caption of a cell."""
     self._label.setToolTip(caption);
     self._label.setText(caption);
-    # set negative margin, to keep rich text from bloating the label's height
-    self._label.setMargin(-20);
     # set menu title if menu is present
     try: self._menu_label.setText(caption);
     except AttributeError: pass;

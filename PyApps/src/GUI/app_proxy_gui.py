@@ -478,6 +478,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       QWidget.__init__(self,parent,*args);
       self._lo = QVBoxLayout(self);
       self._lo.setSpacing(0);
+      self._lo.setContentsMargins(2,0,2,0);
       self.name = name;
       self.shortname = shortname;
       self.icon = icon;
@@ -489,6 +490,10 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
       tblo = QHBoxLayout(titlebar);
       tblo.setMargin(2);
       self.populate_titlebar(titlebar,tblo);
+      # separator
+      sep = QFrame(self);
+      sep.setFrameStyle(QFrame.HLine+QFrame.Sunken);
+      self._lo.addWidget(sep);
     def populate_titlebar (self,titlebar,layout):
       icon = QLabel(titlebar);
       pm = self.icon.pixmap(128,128);
@@ -569,7 +574,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
   def populate (self,main_parent=None,*args,**kwargs):
     #------ main window contains a splitter
     splitter = self.splitter = QSplitter(Qt.Horizontal,main_parent or self);
-    splitter.setFrameStyle(QFrame.Box+QFrame.Plain);
+    # splitter.setFrameStyle(QFrame.Box+QFrame.Plain);
     splitter.setChildrenCollapsible(True);
     
     #------ create top-level tab bar
@@ -649,10 +654,6 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     
     #------ gridded workspace
     self.gw_panel = self.PanelizedWindow(splitter,"Gridded Viewers","Grid",pixmaps.view_split.icon());
-    ## separator
-    sep = QFrame(self.gw_panel);
-    sep.setFrameStyle(QFrame.HLine+QFrame.Sunken);
-    self.gw_panel.addWidget(sep);
     self.gw = gw = Grid.Workspace(self.gw_panel,max_nx=4,max_ny=4);
     self.gw_panel.addWidget(self.gw.wtop());
     splitter.setStretchFactor(splitter.indexOf(self.gw_panel),1);

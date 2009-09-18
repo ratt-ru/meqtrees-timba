@@ -167,9 +167,7 @@ def getViewerList (arg,udi=None):
 class Floater (QMainWindow):
   """implements a floating window""";
   def __init__ (self,parent):
-    fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
-    fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
-    QMainWindow.__init__(self,parent,"float",fl);
+    QMainWindow.__init__(self,parent,Qt.Dialog);
     self.setWindowIcon(pixmaps.float_window.icon());
 #  def hideEvent (self,ev):
 #    _dprint(0,'hideEvent',ev);
