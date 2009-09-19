@@ -149,6 +149,8 @@ class Logger(HierBrowser):
     """;
     self._vbox = QWidget(parent);
     self._vbox_lo = QVBoxLayout(self._vbox);
+    self._vbox_lo.setContentsMargins(0,0,0,0);
+    self._vbox_lo.setSpacing(0);
     # init the browser base class
     HierBrowser.__init__(self,self._vbox,name,udi_root=udi_root);
     self._vbox_lo.addWidget(self.treeWidget());
@@ -159,6 +161,7 @@ class Logger(HierBrowser):
     self._controlgrid_lo.setColumnStretch(0,1000);
     for icol in 1,3,5:
       self._controlgrid_lo.setColumnMinimumWidth(icol,8);
+    self._controlgrid_lo.setContentsMargins(0,0,0,0);
     self._controlgrid_lo.setSpacing(0);
     self.enabled = enable != False;
     # enable control

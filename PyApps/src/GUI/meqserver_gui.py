@@ -351,7 +351,9 @@ class meqserver_gui (app_proxy_gui):
     tdl_menu.addSeparator();
     self._recent_scripts = filter(bool,Config.get('recent-tdl-scripts','').split(';;'));
     self._qa_recent_scripts = [ 
-	tdl_menu.addAction("recent script %d"%i,self.curry(self._load_recent_script_number,i)) for i in range(5) ];
+      tdl_menu.addAction("recent script %d"%i,self.curry(self._load_recent_script_number,i),Qt.CTRL+key) 
+      for i,key in enumerate((Qt.Key_1,Qt.Key_2,Qt.Key_3,Qt.Key_4,Qt.Key_5))
+    ];
     for qa in self._qa_recent_scripts:
       qa.setVisible(False);
     self._populate_recent_script_menu();
@@ -794,6 +796,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       self._load_tdl_script(str(dialog.selectedFiles()[0]));
 
   def _load_tdl_script (self,filename):
+    self.log_message("loading TDL script "+filename);
+    QApplication.processEvents(QEventLoop.ExcludeUserInputEvents);
     # close all TDL tabs
     for (path,tab) in list(self._tdl_tabs.items()):
       index = self.maintab.indexOf(tab);

@@ -108,6 +108,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       
     self._toolbar = QToolBar(mainwin or self);
     lo.addWidget(self._toolbar);
+    self._toolbar.setIconSize(QSize(16,16));
 
     #### populate toolbar
 
@@ -117,7 +118,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_jobs.setIcon(pixmaps.gear.icon());
     self._tb_jobs.setText("Exec");
     self._tb_jobs.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
-    self._tb_jobs.setToolTip("Access run-time options & jobs defined by this TDL script");
+    self._tb_jobs.setToolTip("Accesses run-time options & jobs defined by this TDL script");
     self._tb_jobs.hide();
     
     jobs = self._jobmenu = TDLOptionsDialog(self);
@@ -144,20 +145,25 @@ class TDLEditor (QFrame,PersistentCurrier):
     qa_revert = self._qa_revert = savemenu.addAction("Revert to saved",self._revert_to_saved);
 
     # run menu and button
-    self._tb_run = QToolButton(self._toolbar);
-    self._toolbar.addWidget(self._tb_run);
-    self._tb_run.setIcon(pixmaps.blue_round_reload.icon());
+    
+    self._qa_run = self._toolbar.addAction(pixmaps.blue_round_reload.icon(),
+                              "&Save & compile",self._run_main_file);
+    self._qa_run.setShortcut(Qt.ALT+Qt.Key_R);
 
-    self._tb_runmenu = runmenu = QMenu(self);
-    self._tb_run.setMenu(self._tb_runmenu);
-    self._tb_save.setPopupMode(QToolButton.MenuButtonPopup);
-    self._qa_runmain = runmenu.addAction(pixmaps.blue_round_reload.icon(),
-                              "&Save & compile main script",self._run_main_file);
-    self._qa_runmain.setShortcut(Qt.ALT+Qt.Key_R);
-    QObject.connect(self._tb_run,SIGNAL("clicked()"),self._import_main_file);
-    qa_runthis_as = runmenu.addAction(pixmaps.blue_round_reload.icon(),
-                                    "Save & run this script as main script...",self._import_as_main_file);
-    qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
+    #self._tb_run = QToolButton(self._toolbar);
+    #self._toolbar.addWidget(self._tb_run);
+    #self._tb_run.setIcon(pixmaps.blue_round_reload.icon());
+    
+    #self._tb_runmenu = runmenu = QMenu(self);
+    #self._tb_run.setMenu(self._tb_runmenu);
+    #self._tb_run.setPopupMode(QToolButton.MenuButtonPopup);
+    #self._qa_runmain = runmenu.addAction(pixmaps.blue_round_reload.icon(),
+                              #"&Save & compile main script",self._run_main_file);
+    #self._qa_runmain.setShortcut(Qt.ALT+Qt.Key_R);
+    #QObject.connect(self._tb_run,SIGNAL("clicked()"),self._import_main_file);
+    #qa_runthis_as = runmenu.addAction(pixmaps.blue_round_reload.icon(),
+                                    #"Save & run this script as main script...",self._import_as_main_file);
+    #qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
 
     # Compile-time options and menu
     #self._tb_opts = QAction(pixmaps.wrench.icon(),
@@ -171,7 +177,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_opts.setIcon(pixmaps.wrench.icon());
     self._tb_opts.setText("Options");
     self._tb_opts.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
-    self._tb_opts.setToolTip("Access compile-time options for this TDL script");
+    self._tb_opts.setToolTip("Accesses compile-time options for this TDL script");
     # self._tb_opts.hide();
 
     opts = self._options_menu = TDLOptionsDialog(self,ok_label="Compile",ok_icon=pixmaps.blue_round_reload);
@@ -191,27 +197,31 @@ class TDLEditor (QFrame,PersistentCurrier):
     
     # cursor position indicator
     self._poslabel = QLabel(self._toolbar);
-    wa = QWidgetAction(self._toolbar);
-    wa.setDefaultWidget(self._poslabel);
-    self._toolbar.addAction(wa);
+    #wa = QWidgetAction(self._toolbar);
+    #wa.setDefaultWidget(self._poslabel);
+    #self._toolbar.addAction(wa);
     #self._toolbar.addWidget(self._poslabel);
+    self._toolbar.addWidget(self._poslabel);
     width = self._poslabel.fontMetrics().width("L:999 C:999");
     self._poslabel.setMinimumWidth(width);
+    self._poslabel.setText("L:0 C:0");
     
     # filename indicator
     self._pathlabel = QLabel(self._toolbar);
-    wa = QWidgetAction(self._toolbar);
-    wa.setDefaultWidget(self._pathlabel);
-    self._toolbar.addAction(wa);
-    #self._toolbar.addWidget(self._pathlabel);
-    self._pathlabel.setAlignment(Qt.AlignRight);
+    #wa = QWidgetAction(self._toolbar);
+    #wa.setDefaultWidget(self._pathlabel);
+    self._toolbar.addWidget(self._pathlabel);
+    #self._toolbar.addAction(wa);
+    self._pathlabel.show();
+    self._pathlabel.setAlignment(Qt.AlignRight|Qt.AlignVCenter);
     self._pathlabel.setIndent(10);
+    self._pathlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
     if close_button:
       if not isinstance(close_button,QIcon):
         close_button = pixmaps.remove.icon();
       self._qa_close = self._toolbar.addAction(close_button,"&Close file",self._file_closed);
       self._qa_close.setShortcut(Qt.ALT+Qt.Key_W);
-    self._pathlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
+    self._pathlabel.setText("(no file)");
 
     #### add editor window
 
@@ -222,8 +232,8 @@ class TDLEditor (QFrame,PersistentCurrier):
     editor.setLineWrapMode(QTextEdit.NoWrap);
     self._document = QTextDocument(self);
     editor.setDocument(self._document);
-    QObject.connect(self._document,SIGNAL("modificationChanged()"),self._text_modified);
-    QObject.connect(self._document,SIGNAL("cursorPositionChanged(const QTextCursor & cursor)"),self._display_cursor_position);
+    QObject.connect(self._document,SIGNAL("modificationChanged(bool)"),self._text_modified);
+    QObject.connect(self._editor,SIGNAL("cursorPositionChanged()"),self._display_cursor_position);
     # QObject.connect(self._editor,SIGNAL("textChanged()"),self._clear_transients);
     
     # add character formats for error display
@@ -241,8 +251,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._message_box.setFrameStyle(QFrame.Panel+QFrame.Sunken);
     self._message_box.setLineWidth(2);
     mblo = QVBoxLayout(self._message_box);
+    mblo.setContentsMargins(0,0,0,0);
     msgb1 = QHBoxLayout();
     mblo.addLayout(msgb1);
+    msgb1.setContentsMargins(0,0,0,0);
+    msgb1.setSpacing(0);
     self._message_icon = QToolButton(self._message_box);
     msgb1.addWidget(self._message_icon);
     self._message = QLabel(self._message_box);
@@ -338,12 +351,12 @@ Warning! You have modified the script since it was last compiled, so the tree ma
   def show_run_control (self,show=True):
     if self._closed:
       return;
-    self._tb_run.setShown(show);
+    self._qa_run.setVisible(show);
 
   def enable_controls (self,enable=True):
     if self._closed:
       return;
-    self._tb_run.setEnabled(enable);
+    self._qa_run.setEnabled(enable);
     self._tb_jobs.setEnabled(enable);
     if not enable:
       self.clear_message();
@@ -351,7 +364,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
   def disable_controls (self,disable=True):
     if self._closed:
       return;
-    self._tb_run.setDisabled(disable);
+    self._qa_run.setDisabled(disable);
     self._tb_jobs.setDisabled(disable);
     if disable:
       self.clear_message();
@@ -387,7 +400,8 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if self._message_transient:
       self.clear_message();
 
-  def _display_cursor_position (self,cursor):
+  def _display_cursor_position (self):
+    cursor = self._editor.textCursor();
     pos = cursor.position();
     col = cursor.columnNumber();
     line = self._document.findBlock(pos).blockNumber();
@@ -397,18 +411,18 @@ Warning! You have modified the script since it was last compiled, so the tree ma
   def _text_modified (self,mod=True):
     self._modified = mod;
     self.emit(PYSIGNAL("textModified()"),self,bool(mod));
-    if mod:
-      self._tb_save.setPaletteBackgroundColor(self._tb_save._modified_color);
-    else:
-      self._tb_save.unsetPalette();
+    self._tb_save.setAutoRaise(not mod);
+    self._qa_revert.setEnabled(mod);
+    #if mod:
+      #self._tb_save.setBackgroundRole(QPalette.ToolTipBase);
+    #else:
+      #self._tb_save.setBackgroundRole(QPalette.Button);
     if self._filename:
       label = '<b>' + self._basename + '</b>';
       self._pathlabel.setToolTip(self._filename);
     else:
       label = '';
       self._pathlabel.setToolTip('');
-    if self._mainfile:
-      label += ' (from <b>' + self._mainfile_base +'</b>)';
     if self._readonly:
       label = '[r/o] ' + label;
     if mod:
@@ -525,22 +539,21 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if not filetime or filetime == self._file_disktime:
       return True;  # in sync
     if not ask:
-      res = 1;
+      res = QMessageBox.Discard;
     else:
       res = QMessageBox.warning(self,"TDL file changed",
         """<p><tt>%s</tt> has been modified by another program.
-        Would you like to overwrite the disk version, revert to the disk
-        version, or cancel the operation?"""
-        % (filename,),
-        "Overwrite","Revert","Cancel",-1,2);
-    if res == 2:
+        Would you like to save your changes and overwrite the version on disk, 
+	discard your changes and revert to the version on disk, or cancel the operation?"""
+        % (filename,),QMessageBox.Save|QMessageBox.Discard|QMessageBox.Cancel);
+    if res == QMessageBox.Cancel:
       return None;
-    elif res == 1:
+    elif res == QMessageBox.Discard:
       if filename != self._filename:
-        self.load_file(filename);
+        self.load_file(filename,mainfile=self._mainfile);
       else:
         self.reload_file();
-      return True;  # in sync
+    return True;  # in sync
 
   def _save_file (self,filename=None,text=None,force=False,save_as=False):
     """Saves text. If force=False, checks modification times in case
@@ -594,11 +607,10 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if self._document.isModified():
       res = QMessageBox.warning(self,"TDL file modified",
         """Save modified file <p><tt>%s</tt>?</p>"""
-        % (self._filename or "",),
-        "Save","Don't Save","Cancel",0,2);
-      if res == 2:
+        % (self._filename or "",),QMessageBox.Save|QMessageBox.Discard|QMessageBox.Cancel);
+      if res == QMessageBox.Cancel:
         return False;
-      if res == 0:
+      if res == QMessageBox.Save:
         if not self._save_file():
           return False;
     self.close();
@@ -609,11 +621,10 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       return;
     if not force:
       if QMessageBox.question(self,"Revert to saved",
-        """Revert to saved version of <p><tt>%s</tt>?"""
-        % (self._filename,),
-        "Revert","Cancel","",0,1):
+	  """Revert to saved version of <p><tt>%s</tt>?"""%(self._filename,),
+	  QMessageBox.Ok|QMessageBox.Cancel) == QMessageBox.Cancel:
         return;
-    self.load_file(self._filename);
+    self.load_file(self._filename,mainfile=self._mainfile);
 
   def _add_menu_label (self,menu,label):
     tlab = QLabel("<b>"+label+"</b>",menu);
@@ -657,46 +668,50 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         return None;
     # if we already have an imported module and disk file hasn't changed, skip
     #the importing step
-    if force or self._tdlmod is None or self._tdlmod_filetime == self._file_disktime:
-      # reset data members
-      _dprint(2,self._filename,"emitting signal for 0 compile-time options");
-      self.emit(PYSIGNAL("hasCompileOptions()"),self,0);
-      self._options_menu.hide();
-      self._options_menu.clear();
-      self._tdlmod = None;
-      # get text from editor
-      tdltext = str(self._document.toPlainText());
-      try:
-        tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
-      # catch import errors
-      except TDL.CumulativeError,value:
-        _dprint(0,"caught cumulative error, length",len(value.args));
-        self._error_window.set_errors(value.args,message="TDL import failed");
-        return None;
-      except Exception,value:
-        _dprint(0,"caught other error, traceback follows");
-        traceback.print_exc();
-        self._error_window.set_errors([value],message="TDL import failed");
-        return None;
-      # remember module and nodescope
-      self._tdlmod = tdlmod;
-      self._tdltext = tdltext;
-      self._tdlmod_filetime = self._file_disktime;
-      # build options menu from compile-time options
-      opt_tw = self._options_menu.treeWidget();
-      opts = TDLOptions.get_compile_options();
-      if opts:
-        # add options
-        try:
-          TDLOptions.populate_option_treewidget(opt_tw,opts);
-        except Exception,value:
-          _dprint(0,"error setting up TDL options GUI");
-          traceback.print_exc();
-          self._error_window.set_errors([value],message="Error setting up TDL options GUI");
-          return None;
-        # self._tb_opts.show();
-        _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
-        self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
+    QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
+    try:
+      if force or self._tdlmod is None or self._tdlmod_filetime == self._file_disktime:
+	# reset data members
+	_dprint(2,self._filename,"emitting signal for 0 compile-time options");
+	self.emit(PYSIGNAL("hasCompileOptions()"),self,0);
+	self._options_menu.hide();
+	self._options_menu.clear();
+	self._tdlmod = None;
+	# get text from editor
+	tdltext = str(self._document.toPlainText());
+	try:
+	  tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
+	# catch import errors
+	except TDL.CumulativeError,value:
+	  _dprint(0,"caught cumulative error, length",len(value.args));
+	  self._error_window.set_errors(value.args,message="TDL import failed");
+	  return None;
+	except Exception,value:
+	  _dprint(0,"caught other error, traceback follows");
+	  traceback.print_exc();
+	  self._error_window.set_errors([value],message="TDL import failed");
+	  return None;
+	# remember module and nodescope
+	self._tdlmod = tdlmod;
+	self._tdltext = tdltext;
+	self._tdlmod_filetime = self._file_disktime;
+	# build options menu from compile-time options
+	opt_tw = self._options_menu.treeWidget();
+	opts = TDLOptions.get_compile_options();
+	if opts:
+	  # add options
+	  try:
+	    TDLOptions.populate_option_treewidget(opt_tw,opts);
+	  except Exception,value:
+	    _dprint(0,"error setting up TDL options GUI");
+	    traceback.print_exc();
+	    self._error_window.set_errors([value],message="Error setting up TDL options GUI");
+	    return None;
+	  # self._tb_opts.show();
+	  _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
+	  self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
+    finally:
+      QApplication.restoreOverrideCursor();
     # success, show options or compile
     if show_options and self.has_compile_options():
       self._options_menu.show();
@@ -842,13 +857,11 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     self._mainfile_base = mainfile and os.path.basename(mainfile);
     # if we have a mainfile, add extra options for the Run button
     if mainfile:
-      self._tb_run.setMenu(self._tb_runmenu);
-      self._tb_run.setToolTip("Saves this script and runs the main script "+self._mainfile_base+". Click on the down-arrow for other options.");
-      self._qa_runmain.setToolTip("Saves this script and runs the main script "+self._mainfile_base+".");
-      self._qa_runmain.setText("Run "+self._mainfile_base);
+      self._qa_run.setToolTip("Saves this file and compiles the main script "+self._mainfile_base);
+      self._qa_run.setText("Compile "+self._mainfile_base);
     else:
-      self._tb_run.setMenu(None);
-      self._tb_run.setToolTip("Saves and runs the script.");
+      self._qa_run.setToolTip("Saves and compiles this script.");
+      self._qa_run.setText("Compile");
       
   def reload_file (self):
     text = file(self._filename).read();
@@ -883,6 +896,8 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     self._document.setPlainText(text);
     self._document.setModified(False);
     self._editor.setReadOnly(not os.access(self._filename,os.W_OK));
+    self._text_modified(False);   # to reset labels
+    QApplication.processEvents(QEventLoop.ExcludeUserInputEvents);
     # emit signals
     self.emit(PYSIGNAL("fileLoaded()"),self,filename);
     # if module is a main-level file (i.e. not slaved to another mainfile),

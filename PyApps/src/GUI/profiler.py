@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -48,33 +49,44 @@ class Profiler (PersistentCurrier):
   def __init__ (self,parent,name):
     self._wtop = wtop = QWidget(parent);
     self._wtop_lo = wtop_lo = QVBoxLayout(self._wtop);
+    wtop_lo.setContentsMargins(0,0,0,0);
+    wtop_lo.setSpacing(0);
     self._appgui = app_proxy_gui.appgui(parent);
     
     # find main window to associate our toolbar with
     self._toolbar = QToolBar("Profiler tools",wtop);
     wtop_lo.addWidget(self._toolbar);
+    self._toolbar.setIconSize(QSize(16,16));
+    self._toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
     
     ## COLLECT button
-    self._tb_collect = QToolButton(self._toolbar);
-    self._tb_collect.setIcon(pixmaps.refresh.icon());
-    self._tb_collect.setText("Collect");
-    self._tb_collect.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
-    self._tb_collect.setToolTip("Collect profiling stats from meqserver");
-    QObject.connect(self._tb_collect,SIGNAL("clicked()"),self.collect_stats);
+    self._qa_collect = self._toolbar.addAction(pixmaps.refresh.icon(),"Collect",self.collect_stats);
+    self._qa_collect.setToolTip("Collect profiling stats from meqserver");
+
+    #self._tb_collect = QToolButton(self._toolbar);
+    #self._tb_collect.setIcon(pixmaps.refresh.icon());
+    #self._tb_collect.setText("Collect");
+    #self._tb_collect.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    #self._tb_collect.setToolTip("Collect profiling stats from meqserver");
+    #QObject.connect(self._tb_collect,SIGNAL("clicked()"),self.collect_stats);
    
     ## RESET button
-    tb_reset = QToolButton(self._toolbar);
-    tb_reset.setIcon(pixmaps.grey_round_cross.icon());
-    tb_reset.setText("Reset");
-    tb_reset.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
-    tb_reset.setToolTip("Reset meqserver's profiling stats");
-    QObject.connect(tb_reset,SIGNAL("clicked()"),self.reset_stats);
+    qa_reset = self._toolbar.addAction(pixmaps.grey_round_cross.icon(),"Reset",self.reset_stats);
+    qa_reset.setToolTip("Reset meqserver's profiling stats");
+
+    #tb_reset = QToolButton(self._toolbar);
+    #tb_reset.setIcon(pixmaps.grey_round_cross.icon());
+    #tb_reset.setText("Reset");
+    #tb_reset.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    #tb_reset.setToolTip("Reset meqserver's profiling stats");
+    #QObject.connect(tb_reset,SIGNAL("clicked()"),self.reset_stats);
     
     ## label     
     self._label = QLabel(self._toolbar);
+    self._toolbar.addWidget(self._label);
     # self._toolbar.setStretchableWidget(self._label);
-    self._label.setAlignment(Qt.AlignRight);
-    self._label.setIndent(10);
+    self._label.setAlignment(Qt.AlignRight|Qt.AlignVCenter);
+    self._label.setIndent(20);
     
     ## listview
     self._tw = QTreeWidget(wtop);
@@ -106,10 +118,9 @@ class Profiler (PersistentCurrier):
          '++C'
       ]);
     self._tw.setRootIsDecorated(True);
-    try: # qt-4.2 or later
-      self._tw.setAllColumnsShowFocus(True);
-    except AttributeError:
-      pass;
+    self._tw.setAllColumnsShowFocus(True);
+    self._tw.setSortingEnabled(True);
+    self._tw.header().setResizeMode(QHeaderView.ResizeToContents);
     self._tw.header().setMovable(False);
     self._tw.header().setDefaultAlignment(Qt.AlignRight);
     QObject.connect(self._tw,SIGNAL('itemExpanded(QTreeWidgetItem*)'),self._expand_item);
@@ -147,7 +158,7 @@ class Profiler (PersistentCurrier):
       self.classname = node.classname;
       
   def _process_nodelist (self,dum):
-    self._tb_collect.setEnabled(True);
+    self._qa_collect.setEnabled(True);
     if not meqds.nodelist.has_profiling():
       return;
     tmp = self._appgui.wait_cursor();
@@ -161,7 +172,7 @@ class Profiler (PersistentCurrier):
       self._label.setText("profiling stats collected at "+time.strftime("%H:%M:%S"));
       self._appgui.log_message("profiling stats collected");
       # create base items
-      treeview = StickyTreeWidgetItem(self._tw,"Tree View",key=10);
+      self.tw_item = treeview = StickyTreeWidgetItem(self._tw,"Tree View",key=10);
       roots = [ (node.name,node.nodeindex) for node in meqds.nodelist.rootnodes() ];
       treeview._generate_items = self.curry(self._generate_node_items,roots);
       treeview.setFlags(Qt.ItemIsEnabled);
@@ -169,7 +180,7 @@ class Profiler (PersistentCurrier):
 
       # by-class views
       self._classes = meqds.nodelist.classes();
-      classview = StickyListViewItem(self._tw,"By Class",key=20);
+      self.cw_item = classview = StickyTreeWidgetItem(self._tw,"By Class",key=20);
       classview._generate_items = self.curry(self._generate_summary_stats,lambda x:x.classname);
       classview.setFlags(Qt.ItemIsEnabled);
       classview.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator);
@@ -182,7 +193,8 @@ class Profiler (PersistentCurrier):
     
   class StatItem (QTreeWidgetItem):
     def __init__(self,parent,name,name2,se):
-      QTreeWidgetItem.__init__(self,parent,[name,name2]);
+      QTreeWidgetItem.__init__(self,parent,[str(name),str(name2)]);
+      # populate item content
       self._content = [name,name2];
       col = 2;
       for (tot,count) in se.ps:
@@ -195,15 +207,29 @@ class Profiler (PersistentCurrier):
           avg = 0;
         col += 1;
         self._content += [tot,int(count),avg ];
-      cs = list(se.cs.ravel);
+      cs = list(se.cs.ravel());
       for val in cs:
         self.setText(col,str(val)); 
         col += 1;
       self._content += cs;
+      # set alignment	
+      self.setTextAlignment(0,Qt.AlignLeft);
+      if isinstance(name2,str):
+	self.setTextAlignment(1,Qt.AlignLeft);
+      else:
+	self.setTextAlignment(1,Qt.AlignRight);
+      for col in range(2,self.columnCount()):
+	self.setTextAlignment(col,Qt.AlignRight);
+
+    def __lt__ (self,other):
+      icol = self.treeWidget().sortColumn();
+      try: return self._content[icol] < other._content[icol];
+      except:  # other item not keyed
+	return self._content[icol] < 0;
+
+    def __ge__ (self,other):
+      return other < self;
       
-    def compare (self,other,icol,ascending):
-      return cmp(self._content[icol],other._content[icol]);
-    
   def _summarize_stats (self,keyfunc,stats):
     sums = {};
     for se in stats.itervalues():
@@ -218,7 +244,7 @@ class Profiler (PersistentCurrier):
     # generate summary stats using the supplied key-function
     sums = self._summarize_stats(keyfunc,self._stats);
     for key,se in sums.iteritems():
-      self.StatItem(parent_item,str(key),str(se.count),se);
+      self.StatItem(parent_item,str(key),se.count,se);
         
   def _generate_node_items (self,nodelist,parent_item):
     for label,ni in nodelist:
@@ -257,7 +283,16 @@ class Profiler (PersistentCurrier):
         item = self.StatItem(parent_item,label,'',self.StatEntry(''));
       
   def _expand_item (self,item):
-    # populate item when first
+    # treeview and classview mutually exclusive; also adjust column names
+    if item is self.tw_item:
+      self.cw_item.setExpanded(False);
+      self._tw.headerItem().setText(0,"node");
+      self._tw.headerItem().setText(1,"class");
+    elif item is self.cw_item:
+      self.tw_item.setExpanded(False);
+      self._tw.headerItem().setText(0,"class");
+      self._tw.headerItem().setText(1,"# nodes");
+    # populate item when first opened
     try: genfunc = item._generate_items;
     except: pass;
     else:
@@ -277,11 +312,11 @@ class Profiler (PersistentCurrier):
     self.wtop().emit(SIGNAL("collecting"));
     self._appgui.log_message("collecting profiling stats, please wait");
     self.clear();
-    self._tb_collect.setEnabled(False);
+    self._qa_collect.setEnabled(False);
     self._label.setText("<i>(waiting for profiling stats from meqserver)</i>");
     meqds.request_nodelist(profiling_stats=True);
   
   def reset_stats (self):
-    self._tb_collect.setEnabled(True);
+    self._qa_collect.setEnabled(True);
     self._appgui.log_message("resetting profiling stats");
     meqds.mqs().meq('Reset.Profiling.Stats',record(),wait=False);

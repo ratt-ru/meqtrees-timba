@@ -225,6 +225,17 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
       nested = getattr(err,'nested_errors',None);
       if nested:
         self._populate_error_list(item,nested);
+    # resize ourselves according to number of errors and width of treeview
+    height = (len(errlist)+1)*self._werrlist.fontMetrics().lineSpacing();
+    height = min(200,height);
+    # work out recommended width
+    width = 400;  # initial width for message section
+    # add width of other sections
+    for col in [0,2,3]:
+      width += self._werrlist.header().sectionSize(col);
+    _dprint(2,"hinted width is",width);
+    self.setGeometry(self.x(),self.y(),max(width,self.width()),height);
+    self.updateGeometry();
 
   def set_errors (self,error_list,emit_signal=True,show_item=True,
                       message="TDL compile failed"):
@@ -249,22 +260,11 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
       nerr = len(self._toplevel_error_items);
       self._error_count_label.setText('%s: <b>%d</b> errors'%(message,nerr));
       self.setWindowTitle("TDL Errors: %d"%nerr);
-      self.show();
       if emit_signal:
         self.emit(PYSIGNAL("hasErrors"),nerr);
       if show_item:
         self._show_error_item(self._toplevel_error_items[0]);
-      # resize ourselves according to number of errors and width of treeview
-      height = (len(self._error_items)+1)*self._werrlist.fontMetrics().lineSpacing();
-      height = min(200,height);
-      # work out recommended width
-      width = 400;  # initial width for message section
-      # add width of other sections
-      for col in [0,2,3]:
-	width += self._werrlist.header().sectionSize(col);
-      _dprint(2,"hinted width is",width);
-      self.setGeometry(self.x(),self.y(),max(width,self.width()),height);
-      self.updateGeometry();
+      self.show();
       # self._highlight_error(0);
       # disable run control until something gets modified
       # self._qa_run.setVisible(False);
