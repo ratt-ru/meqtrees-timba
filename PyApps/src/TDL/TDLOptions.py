@@ -41,7 +41,9 @@ import glob
 try:
   from PyQt4.Qt import *
   from Kittens.widgets import PYSIGNAL
+  OptionObject = QObject();
 except:
+  OptionObject;
   pass;
 
 _dbg = verbosity(0,name='tdlopt');
@@ -103,12 +105,25 @@ def set_config (option,value):
 
 compile_options = [];
 runtime_options = [];
+unset_mandatory_options = set();
 
 def clear_options ():
   global compile_options;
   global runtime_options;
+  global unset_mandatory_options;
   compile_options = [];
   runtime_options = [];
+  unset_mandatory_options = set();
+
+def set_mandatory_option (name,value):
+  if value is None:
+    if not unset_mandatory_options and OptionObject:
+      OptionObject.emit(SIGNAL("mandatoryOptionsSet"),False);
+    unset_mandatory_options.add(name);
+  else:
+    unset_mandatory_options.discard(name);
+    if not unset_mandatory_options and OptionObject:
+      OptionObject.emit(SIGNAL("mandatoryOptionsSet"),True);
 
 def init_options (filename,save=True):
   """initializes option list for given script.
@@ -322,7 +337,7 @@ class _TDLJobItem (_TDLBaseOption):
     return self.set_treewidget_item(item);
 
 class _TDLOptionItem(_TDLBaseOption):
-  def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None):
+  def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None,mandatory=False):
     _TDLBaseOption.__init__(self,name or symbol,namespace=namespace,doc=doc);
     # config_name specifies the configuration file entry
     if config_name is None:
@@ -340,6 +355,7 @@ class _TDLOptionItem(_TDLBaseOption):
           raise TypeError,"'"+name+"' does not refer to a valid namespace";
     self.namespace = namespace;
     self.symbol = symbol;
+    self.mandatory = mandatory;
     self._set(value);
     self._when_changed_callbacks = [];
 
@@ -360,6 +376,9 @@ class _TDLOptionItem(_TDLBaseOption):
     """private method for changing the internal value of an option"""
     _dprint(2,"setting",self.name,"=",value);
     self.value = self.namespace[self.symbol] = value;
+    # add/remove to mandatory set
+    if self.mandatory:
+      set_mandatory_option(self.config_name,value);
     # be anal about whether the _when_changed_callbacks attribute is initialized,
     # as _set may have been called before the constructor
     if callback:
@@ -442,9 +461,9 @@ class TDLDirSelect (TDLFileSelect):
 
 class _TDLFileOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,filespec,
-                default=None,config_name=None,name=None,doc=None):
+                default=None,config_name=None,name=None,doc=None,mandatory=False):
     _TDLOptionItem.__init__(self,namespace,symbol,'',
-                            config_name=config_name,name=name,doc=doc);
+                            config_name=config_name,name=name,doc=doc,mandatory=mandatory);
     self._filespec = filespec;
     self._validator = lambda dum:True;
     self._file_dialog = None;
@@ -547,8 +566,8 @@ class _TDLFileOptionItem (_TDLOptionItem):
 
 class _TDLListOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,default=None,more=None,
-                     config_name=None,name=None,doc=None):
-    _TDLOptionItem.__init__(self,namespace,symbol,None,config_name=config_name,name=name,doc=doc);
+                     config_name=None,name=None,doc=None,mandatory=False):
+    _TDLOptionItem.__init__(self,namespace,symbol,None,config_name=config_name,name=name,doc=doc,mandatory=mandatory);
     if more not in (None,int,float,str):
       raise ValueError,"'more' argument to list options must be 'None', 'int', 'float' or 'str'"
     if not more and not value:
@@ -1100,7 +1119,7 @@ def _resolve_namespace (namespace,symbol,calldepth=2):
   return namespace,symbol;
 
 def _make_option_item (namespace,symbol,name,value,default=None,
-                       inline=False,doc=None,more=None,runtime=None,nonexclusive=False):
+                       inline=False,doc=None,mandatory=False,more=None,runtime=None,nonexclusive=False):
   # resolve namespace based on caller
   # depth is 2 (this frame, TDLxxxOption frame, caller frame)
   namespace,config_name = _resolve_namespace(namespace,symbol,calldepth=2);
@@ -1111,14 +1130,14 @@ def _make_option_item (namespace,symbol,name,value,default=None,
   # single number -- convert to list
   elif isinstance(value,(int,float)):
     item = _TDLListOptionItem(namespace,symbol,[value],
-                              default=default,more=more,config_name=config_name);
+                              default=default,more=more,config_name=config_name,mandatory=mandatory);
   # list of options
   elif isinstance(value,(list,tuple,dict)):
     item = _TDLListOptionItem(namespace,symbol,value,
-                              default=default,more=more,config_name=config_name);
+                              default=default,more=more,config_name=config_name,mandatory=mandatory);
     setattr(item,'inline',inline);
   elif isinstance(value,TDLFileSelect):
-    item = _TDLFileOptionItem(namespace,symbol,value,config_name=config_name);
+    item = _TDLFileOptionItem(namespace,symbol,value,config_name=config_name,mandatory=mandatory);
   else:
     raise TypeError,"Illegal type for TDL option '%s': %s"%(symbol,type(value).__name__);
   item.set_name(name);

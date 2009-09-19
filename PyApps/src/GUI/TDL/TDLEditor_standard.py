@@ -178,6 +178,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     opts.setWindowTitle("TDL Compile-time Options");
     opts.setWindowIcon(pixmaps.wrench.icon());
     QObject.connect(opts,PYSIGNAL("accepted()"),self._run_main_file);
+    QObject.connect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),opts.enableOkButton);
     opts.hide();
     QObject.connect(self._tb_opts,SIGNAL("clicked()"),opts.show);
     

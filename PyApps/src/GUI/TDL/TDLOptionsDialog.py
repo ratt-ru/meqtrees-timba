@@ -41,11 +41,13 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     lo_btn  = QHBoxLayout(None);
     if ok_label:
       if ok_icon:
-        tb = QPushButton(ok_icon.icon(),ok_label,self);
+        self.wok = QPushButton(ok_icon.icon(),ok_label,self);
       else:
-        tb = QPushButton(ok_label,self);
-      lo_btn.addWidget(tb);
-      QObject.connect(tb,SIGNAL("clicked()"),self.accept);
+        self.wok = QPushButton(ok_label,self);
+      lo_btn.addWidget(self.wok);
+      QObject.connect(self.wok,SIGNAL("clicked()"),self.accept);
+    else:
+      self.wok = None; 
     # add cancel button
     tb = QPushButton(pixmaps.red_round_cross.icon(),"Cancel",self);
     QObject.connect(tb,SIGNAL("clicked()"),self.hide);
@@ -54,6 +56,10 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     lo_btn.addWidget(tb);
     lo_main.addLayout(lo_btn);
     self.resize(QSize(600,480).expandedTo(self.minimumSizeHint()))
+
+  def enableOkButton (self,enable):
+    if self.wok:
+      self.wok.setEnabled(enable);
 
   def _resize_dialog (self,section,*dum):
     if self._allow_resize_dialog and section<2:
