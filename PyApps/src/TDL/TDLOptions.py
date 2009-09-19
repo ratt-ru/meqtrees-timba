@@ -1124,6 +1124,8 @@ def _make_option_item (namespace,symbol,name,value,default=None,
   # depth is 2 (this frame, TDLxxxOption frame, caller frame)
   namespace,config_name = _resolve_namespace(namespace,symbol,calldepth=2);
   _dprint(1,"option",symbol,", config name is",config_name);
+  if runtime and mandatory:
+    raise TypeError,"run-time options cannot be declared mandatory";
   # boolean option
   if isinstance(value,bool):
     item = _TDLBoolOptionItem(namespace,symbol,value,config_name=config_name,nonexclusive=nonexclusive);

@@ -178,7 +178,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     opts.setWindowTitle("TDL Compile-time Options");
     opts.setWindowIcon(pixmaps.wrench.icon());
     QObject.connect(opts,PYSIGNAL("accepted()"),self._run_main_file);
-    QObject.connect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),opts.enableOkButton);
+    QObject.connect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),self.mark_mandatory_options_set);
     opts.hide();
     QObject.connect(self._tb_opts,SIGNAL("clicked()"),opts.show);
     
@@ -290,9 +290,13 @@ class TDLEditor (QFrame,PersistentCurrier):
     """Called before disabling the editor, as on some versions of PyQt
     the object is not destroyed properly and keeps receving signals""";
     self._enabled = False;
+    QObject.disconnect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),self.mark_mandatory_options_set);
     
   def show_compile_options (self):
     self._options_menu.show();
+
+  def mark_mandatory_options_set (self,enabled):
+    self._options_menu.enableOkButton(enabled);
     
   def show_runtime_options (self):
     self._jobmenu.show();

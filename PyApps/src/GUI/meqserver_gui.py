@@ -341,7 +341,7 @@ class meqserver_gui (app_proxy_gui):
     loadruntdl.setEnabled(False);
     self._qa_loadtdl_cwd = tdl_menu.addAction("Change to directory of TDL script when loading");
     self._qa_loadtdl_cwd.setCheckable(True);
-    self._qa_loadtdl_cwd.setChecked(False);
+    self._qa_loadtdl_cwd.setChecked(Config.getbool('cwd-follows-tdlscript',False));
     
     tdl_menu.addAction(self._qa_runtdl);
     # menu for tdl jobs is inserted when TDL script is run
@@ -804,7 +804,9 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
 	self.maintab.removeTab(index);
 	tab.setParent(QWidget());
     # change working directory
-    if self._qa_loadtdl_cwd.isChecked():
+    cwd = self._qa_loadtdl_cwd.isChecked();
+    Config.set('cwd-follows-tdlscript',cwd);
+    if cwd:
       dirname = os.path.dirname(filename);
       if os.access(dirname,os.W_OK):
 	self.change_working_directory(dirname,browser=True,kernel=True);
