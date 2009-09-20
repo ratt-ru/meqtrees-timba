@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 # standard python interface module for meqserver
 
 #
@@ -45,6 +46,8 @@ sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 # inject it
 if not hasattr(sys,'argv'):
   setattr(sys,'argv',['meqkernel']);
+
+sys.path.insert(0,'');
 
 # now import the rest
 from Timba import dmi
@@ -245,6 +248,7 @@ def create_pynode (node_baton,node_name,class_name,module_name):
     class_name = components[-1];
     module_name = '.'.join(components[0:-1]);
   # now, import the module
+  print module_name,sys.path,os.getcwd();
   try:
     module = _import_script_or_module(module_name);
   except: # catch-all for any errors during import

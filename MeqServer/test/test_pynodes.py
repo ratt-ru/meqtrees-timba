@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # standard preamble
 #
 #% $Id$ 
@@ -31,6 +32,9 @@ from Timba import utils
 from Timba.Meq import meq
 
 import inspect
+
+# just to test importing of stuff within pynodes
+import test_pynodes_submodule
 
 Settings.forest_state.cache_policy = 100;
 
