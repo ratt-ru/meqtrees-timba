@@ -121,6 +121,8 @@ class HierBrowser (object):
   MaxExpSeq      = 1000;
   # max number of dictionary items to show in expanded view
   MaxExpDict     = 5000;
+  # maximum width of value field, in characters
+  MaxWidth       = 400;
   
   class Item (QTreeWidgetItem):
     def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,
@@ -134,12 +136,18 @@ class HierBrowser (object):
       else:
         QTreeWidgetItem.__init__(self,parent);
         parent._content_list = [self];
+      # get maxwidth
+      maxwidth = getattr(self.treeWidget(),'_maxwidth',HierBrowser.MaxWidth);
       # set flags
       self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled);
       # set text
       self.setText(0,str(key));
       self.setText(1,'');
-      self.setText(2,str(value));
+      strvalue = str(value);
+      self.setToolTip(2,"<P>"+strvalue+"</P>");
+      if len(strvalue) > maxwidth:
+	strvalue = strvalue[:maxwidth-2] + "...";
+      self.setText(2,strvalue);
       # set viewable and content attributes
       self._viewable  = False;
       self._content   = None;
@@ -397,15 +405,16 @@ class HierBrowser (object):
         self.treeWidget().emit(SIGNAL("displayDataItem"),dataitem,kwargs);
 
   # init for HierBrowser
-  def __init__(self,parent,name,name1='',udi_root=None,caption=None,prec=(None,'g')):
+  def __init__(self,parent,name,name1='',udi_root=None,caption=None,prec=(None,'g'),maxwidth=None):
     self._tw = DataDraggableTreeWidget(ClickableTreeWidget)(parent);
     self._tw.setHeaderLabels([name1,'',name]);
     self._tw.setRootIsDecorated(True);
     self._tw.setSortingEnabled(False);
     self._tw.header().setResizeMode(0,QHeaderView.ResizeToContents);
     self._tw.header().setResizeMode(1,QHeaderView.ResizeToContents);
-    self._tw.header().setResizeMode(2,QHeaderView.Stretch);
+    self._tw.header().setResizeMode(2,QHeaderView.ResizeToContents);
     self._tw.header().hide();
+    setattr(self._tw,'_maxwidth',maxwidth or HierBrowser.MaxWidth);
     # self._tw.header().setResizeMode(QHeaderView.Fixed);
 #    for col in (0,1,2):
 #      self._tw.setColumnWidthMode(col,QListView.Maximum);

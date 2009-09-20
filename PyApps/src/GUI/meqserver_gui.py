@@ -322,7 +322,7 @@ class meqserver_gui (app_proxy_gui):
     # self.treebrowser._qa_save.addTo(kernel_menu);
     
     # --- TDL menu
-    syncedit = tdl_menu.addAction("Sync to external editor");
+    syncedit = tdl_menu.addAction("Sync scripts to external editor");
     syncedit.setCheckable(True);
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),self.curry(Config.set,'tdl-sync-to-external-editor'));
     QObject.connect(syncedit,SIGNAL("toggled(bool)"),tdlgui.TDLEditor.set_external_sync);
@@ -336,12 +336,13 @@ class meqserver_gui (app_proxy_gui):
     show = Config.getbool('tdl-show-line-numbers',True);
     showlnum.setChecked(show);
     
-    loadruntdl = tdl_menu.addAction("&Load TDL script...",self._load_tdl_script_dialog,Qt.CTRL+Qt.Key_T);
-    QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
-    loadruntdl.setEnabled(False);
     self._qa_loadtdl_cwd = tdl_menu.addAction("Change to directory of TDL script when loading");
     self._qa_loadtdl_cwd.setCheckable(True);
     self._qa_loadtdl_cwd.setChecked(Config.getbool('cwd-follows-tdlscript',False));
+
+    loadruntdl = tdl_menu.addAction("&Load TDL script...",self._load_tdl_script_dialog,Qt.CTRL+Qt.Key_T);
+    QObject.connect(self,PYSIGNAL("isConnected()"),loadruntdl.setEnabled);
+    loadruntdl.setEnabled(False);
     
     tdl_menu.addAction(self._qa_runtdl);
     # menu for tdl jobs is inserted when TDL script is run
@@ -1473,6 +1474,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
   def show_purr_window (self):
     if not self._purr:
       self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
+      self._purr.attachDirectory(os.getcwd());
     self._purr.show();
     self._purr.raise_();
 
