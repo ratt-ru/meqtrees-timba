@@ -33,9 +33,6 @@ from Timba.Meq import meq
 
 import inspect
 
-# just to test importing of stuff within pynodes
-import test_pynodes_submodule
-
 Settings.forest_state.cache_policy = 100;
 
 _dbg = utils.verbosity(0,name='test_pynode');
@@ -192,8 +189,9 @@ def _define_forest (ns,**kwargs):
   ns.a << Meq.Time;
   ns.b << Meq.Freq;
   ns.c << Meq.Add(ns.a,ns.b,
-    ns.ran1 << Meq.PyNode(class_name="PyRandom",module_name=__file__,
-                          distribution_type='gauss',distribution_args=(6.,1.)) , \
+    # new elegant way to define pynodes: class.Node(arguments)
+    ns.ran1 << PyRandom.Node(distribution_type='gauss',distribution_args=(6.,1.)),
+    # old clumsy way
     ns.ran2 << Meq.PyNode(class_name="PyRandom",module_name=__file__,
                           distribution_type='lognormvariate',distribution_args=(6.,1.)) , \
     ns.ran3 << Meq.PyNode(class_name="PyRandom",module_name=__file__,

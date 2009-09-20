@@ -39,7 +39,7 @@ import Timba.TDL.Compile
 from Timba.TDL import TDLOptions
 
 from PyQt4.Qt import *
-from Kittens.widgets import PYSIGNAL
+from Kittens.widgets import PYSIGNAL,BusyIndicator
 
 import imp
 import sys
@@ -667,51 +667,48 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       if not self.sync_external_file(ask=False):
         return None;
     # if we already have an imported module and disk file hasn't changed, skip
-    #the importing step
-    QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
-    try:
-      if force or self._tdlmod is None or self._tdlmod_filetime == self._file_disktime:
-	# reset data members
-	_dprint(2,self._filename,"emitting signal for 0 compile-time options");
-	self.emit(PYSIGNAL("hasCompileOptions()"),self,0);
-	self._options_menu.hide();
-	self._options_menu.clear();
-	self._tdlmod = None;
-	# get text from editor
-	tdltext = str(self._document.toPlainText());
+    # the importing step
+    busy = BusyIndicator();
+    if force or self._tdlmod is None or self._tdlmod_filetime == self._file_disktime:
+      # reset data members
+      _dprint(2,self._filename,"emitting signal for 0 compile-time options");
+      self.emit(PYSIGNAL("hasCompileOptions()"),self,0);
+      self._options_menu.hide();
+      self._options_menu.clear();
+      self._tdlmod = None;
+      # get text from editor
+      tdltext = str(self._document.toPlainText());
+      try:
+	tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
+      # catch import errors
+      except TDL.CumulativeError,value:
+	_dprint(0,"caught cumulative error, length",len(value.args));
+	self._error_window.set_errors(value.args,message="TDL import failed");
+	return None;
+      except Exception,value:
+	_dprint(0,"caught other error, traceback follows");
+	traceback.print_exc();
+	self._error_window.set_errors([value],message="TDL import failed");
+	return None;
+      # remember module and nodescope
+      self._tdlmod = tdlmod;
+      self._tdltext = tdltext;
+      self._tdlmod_filetime = self._file_disktime;
+      # build options menu from compile-time options
+      opt_tw = self._options_menu.treeWidget();
+      opts = TDLOptions.get_compile_options();
+      if opts:
+	# add options
 	try:
-	  tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
-	# catch import errors
-	except TDL.CumulativeError,value:
-	  _dprint(0,"caught cumulative error, length",len(value.args));
-	  self._error_window.set_errors(value.args,message="TDL import failed");
-	  return None;
+	  TDLOptions.populate_option_treewidget(opt_tw,opts);
 	except Exception,value:
-	  _dprint(0,"caught other error, traceback follows");
+	  _dprint(0,"error setting up TDL options GUI");
 	  traceback.print_exc();
-	  self._error_window.set_errors([value],message="TDL import failed");
+	  self._error_window.set_errors([value],message="Error setting up TDL options GUI");
 	  return None;
-	# remember module and nodescope
-	self._tdlmod = tdlmod;
-	self._tdltext = tdltext;
-	self._tdlmod_filetime = self._file_disktime;
-	# build options menu from compile-time options
-	opt_tw = self._options_menu.treeWidget();
-	opts = TDLOptions.get_compile_options();
-	if opts:
-	  # add options
-	  try:
-	    TDLOptions.populate_option_treewidget(opt_tw,opts);
-	  except Exception,value:
-	    _dprint(0,"error setting up TDL options GUI");
-	    traceback.print_exc();
-	    self._error_window.set_errors([value],message="Error setting up TDL options GUI");
-	    return None;
-	  # self._tb_opts.show();
-	  _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
-	  self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
-    finally:
-      QApplication.restoreOverrideCursor();
+	# self._tb_opts.show();
+	_dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
+	self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
     # success, show options or compile
     if show_options and self.has_compile_options():
       self._options_menu.show();
@@ -728,15 +725,12 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     pub_nodes = [ node.name for node in meqds.nodelist.iternodes()
                   if node.is_publishing() ];
     # try the compilation
+    busy = BusyIndicator();
     try:
-      QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
-      try:
-        (_tdlmod,ns,msg) = \
-          TDL.Compile.run_forest_definition(
-              meqds.mqs(),self._filename,self._tdlmod,self._tdltext,
-              parent=self,wait=False);
-      finally:
-        QApplication.restoreOverrideCursor();
+      (_tdlmod,ns,msg) = \
+	TDL.Compile.run_forest_definition(
+	    meqds.mqs(),self._filename,self._tdlmod,self._tdltext,
+	    parent=self,wait=False);
     # catch compilation errors
     except TDL.CumulativeError,value:
       _dprint(0,"caught cumulative error, length",len(value.args));
@@ -819,11 +813,8 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     try:
       # log job 
       TDLOptions.dump_log("running TDL job '%s'"%name);
-      QApplication.setOverrideCursor(QCursor(Qt.WaitCursor));
-      try:
-        func(meqds.mqs(),self);
-      finally:
-        QApplication.restoreOverrideCursor();
+      busy = BusyIndicator();
+      func(meqds.mqs(),self);
       # no errors, so clear error list, if any
       self.clear_errors();
       self.show_message("TDL job '"+name+"' executed.",transient=True);

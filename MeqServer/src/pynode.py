@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 # PyNode: base class for nodes implemented in Python
 
 #
@@ -28,6 +29,8 @@
 
 from Timba import dmi
 from Timba import utils
+from Timba.TDL import Meq
+
 try:
   import meqserver_interface
 except:
@@ -49,7 +52,11 @@ class PyNode (object):
     self._baton = node_baton;
     if hasattr(self,'update_state'):
       self.set_state_impl = self._state_handler; 
-    
+
+  @classmethod  
+  def Node (self,**kw):
+    return Meq.PyNode(class_name=self.__name__,module_name=__import__(self.__module__).__file__,**kw);
+   
   class StateHelper (object):
     def __init__ (self,pynode,staterec,initializing):
       self.pynode,self.staterec,self.initializing = pynode,staterec,initializing;

@@ -29,6 +29,7 @@
 
 import sys
 import traceback
+import os.path
 
 # this ensures that C++ symbols (RTTI, DMI registries, etc.) are
 # shared across dynamically-loaded modules
@@ -46,8 +47,6 @@ sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 # inject it
 if not hasattr(sys,'argv'):
   setattr(sys,'argv',['meqkernel']);
-
-sys.path.insert(0,'');
 
 # now import the rest
 from Timba import dmi
@@ -151,27 +150,33 @@ def _import_script_or_module (script,modname=None,force_reload=False):
       if modname is None:
         modname = filename.replace("/","_").replace(".","_");
       _dprint(0,"importing ",modname," from script",filename);
-      # check if script is already imported  
-      module = None;
-      if force_reload:
-        _dprint(0,"force_reload=True,",modname,"will be reloaded");
-      elif filename in _imported_scripts:
-        module,count = _imported_scripts[filename];
-        if count == _import_counter:
-          _dprint(0,modname,"already imported, will not be reloaded");
-        else:
-          _dprint(0,modname,"already imported but is stale, will be reloaded");
-          module = None;
-      else:
-        _dprint(0,modname,"hasn't been imported yet");
-      if module is None:
-        try:
-          imp.acquire_lock();
-          module = imp.load_source(modname,filename,infile);
-          _imported_scripts[filename] = (module,_import_counter);
-        finally:
-          imp.release_lock();
-          infile.close();
+      # add directory of script to path, so that relative import statements within the script work
+      oldpath = list(sys.path);
+      sys.path.insert(0,os.path.dirname(filename));
+      try:
+	# check if script is already imported  
+	module = None;
+	if force_reload:
+	  _dprint(0,"force_reload=True,",modname,"will be reloaded");
+	elif filename in _imported_scripts:
+	  module,count = _imported_scripts[filename];
+	  if count == _import_counter:
+	    _dprint(0,modname,"already imported, will not be reloaded");
+	  else:
+	    _dprint(0,modname,"already imported but is stale, will be reloaded");
+	    module = None;
+	else:
+	  _dprint(0,modname,"hasn't been imported yet");
+	if module is None:
+	  try:
+	    imp.acquire_lock();
+	    module = imp.load_source(modname,filename,infile);
+	    _imported_scripts[filename] = (module,_import_counter);
+	  finally:
+	    imp.release_lock();
+	    infile.close();
+      finally:
+	sys.path = oldpath;
       break;
   # else (no known suffix found) treat as module name
   else:
@@ -248,7 +253,6 @@ def create_pynode (node_baton,node_name,class_name,module_name):
     class_name = components[-1];
     module_name = '.'.join(components[0:-1]);
   # now, import the module
-  print module_name,sys.path,os.getcwd();
   try:
     module = _import_script_or_module(module_name);
   except: # catch-all for any errors during import
