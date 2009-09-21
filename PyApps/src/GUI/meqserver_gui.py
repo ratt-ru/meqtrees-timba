@@ -1484,10 +1484,6 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     self._purr.attachDirectory(dirname,watchdirs);
     if show:
       self._purr.show();
-    if pounce is not None:
-      if isinstance(pounce,bool):
-        pounce = (pounce or self._purr.PounceIgnore) and self._purr.PounceShow;
-      self._purr.setPounceMode(pounce);
 
 # register reloadables
 reloadableModule(__name__);
