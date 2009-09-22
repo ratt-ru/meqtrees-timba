@@ -933,7 +933,7 @@ class TreeBrowser (QObject):
 
   def add_action (self,action,order=1000,where="toolbar",callback=None):
     if callback:
-      QObject.connect(action,SIGNAL("activated()"),callback);
+      QObject.connect(action,SIGNAL("triggered(bool=0)"),callback);
     self._actions.setdefault(where,[]).append((order,action));
     
   def add_separator (self,order=1000,where="toolbar"):
@@ -1125,15 +1125,15 @@ def define_treebrowser_actions (tb):
   dbgcont  = QAction(pixmaps.right_2triangles.icon(),"&Continue",ag_debug);
   dbgcont.setShortcut(Qt.Key_F6+Qt.SHIFT);
   tb.add_action(dbgcont,90);
-  QObject.connect(dbgcont,SIGNAL("triggered(bool=0)"),tb._debug_continue);
+  QObject.connect(dbgcont,SIGNAL("triggered()"),tb._debug_continue);
   dbgstep  = QAction(pixmaps.down_triangle.icon(),"&Step",ag_debug);      
   dbgstep.setShortcut(Qt.Key_F7);
   tb.add_action(dbgstep,91);
-  QObject.connect(dbgstep,SIGNAL("triggered(bool=0)"),tb._debug_single_step);
+  QObject.connect(dbgstep,SIGNAL("triggered()"),tb._debug_single_step);
   dbgnext  = QAction(pixmaps.down_2triangles.icon(),"Step to &next node",ag_debug);      
   dbgnext.setShortcut(Qt.Key_F8);
   tb.add_action(dbgnext,92);
-  QObject.connect(dbgnext,SIGNAL("triggered(bool=0)"),tb._debug_next_node);
+  QObject.connect(dbgnext,SIGNAL("triggered()"),tb._debug_next_node);
   ag_debug._is_visible = lambda tb=tb: tb.is_connected;
   ag_debug._is_enabled = lambda tb=tb: tb.is_loaded and tb.is_stopped;
   
@@ -1141,7 +1141,7 @@ def define_treebrowser_actions (tb):
   tb.add_stretch(1000);
   show_help = QAction(pixmaps.info_blue_round.icon(),"Show icon &reference...",parent);
   show_help.setShortcut(Qt.CTRL+Qt.Key_F1);
-  QObject.connect(show_help,SIGNAL("activated()"),tb.show_icon_reference);
+  QObject.connect(show_help,SIGNAL("triggered()"),tb.show_icon_reference);
   show_help._is_enabled = lambda tb=tb:True;
   tb.add_action(show_help,1010);
   tb.add_action(show_help,5,where="node");
