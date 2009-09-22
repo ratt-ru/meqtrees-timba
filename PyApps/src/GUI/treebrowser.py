@@ -140,9 +140,9 @@ class TreeBrowser (QObject):
       else:
         menu = self.context_menu();
       if menu is not None:
-        menu.exec_(point);
+        menu.exec_(self.treeWidget().mapToGlobal(point));
       
-    def _add_node_viewer (self,viewer=None,**kws):
+    def _add_node_viewer (self,viewer=None,*dum,**kws):
       Grid.addDataItem(meqgui.makeNodeDataItem(self.node,viewer),show_gw=True,**kws);
       
     def _update_state (self,node,state,event):
