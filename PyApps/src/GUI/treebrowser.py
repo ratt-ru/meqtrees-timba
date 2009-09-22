@@ -367,20 +367,16 @@ class TreeBrowser (QObject):
         for st in meqds.CS_ES_statelist:
           title = ''.join(('    ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
-          qa = menu.addAction(st[4].icon(),title);
+          qa = menu.addAction(st[4].icon(),title,self.curry(self._set_node_breakpoint,node.nodeindex,bpmask));
           qa.setCheckable(True);
           qa.setChecked((node.breakpoint&bpmask)!=0);
-          QObject.connect(qa,SIGNAL("triggered(bool=0)"),
-              self.curry(self._set_node_breakpoint,node.nodeindex,bpmask));
           self._debug_bp_actions.append((qa,bpmask));
-        qa = menu.addAction(pixmaps.red_round_cross.icon(),''.join(('    ',node.name,':FAIL')));
+        qa = menu.addAction(pixmaps.red_round_cross.icon(),''.join(('    ',node.name,':FAIL')), 
+                                                                    self.curry(self._set_node_breakpoint,node.nodeindex,meqds.BP_FAIL));
         qa.setCheckable(True);
         qa.setChecked((node.breakpoint&meqds.BP_FAIL)!=0);
-        QObject.connect(qa,SIGNAL("triggered(bool=0)"),
-            self.curry(self._set_node_breakpoint,node.nodeindex,meqds.BP_FAIL));
         self._debug_bp_actions.append((qa,bpmask));
-        menu.addAction(pixmaps.node_any.icon(),'    all of the above', \
-              self.curry(self._set_node_breakpoint,node.nodeindex,meqds.BP_ALL));
+        menu.addAction(pixmaps.node_any.icon(),'    all of the above', self.curry(self._set_node_breakpoint,node.nodeindex,meqds.BP_ALL));
         # menu.insertItem(pixmaps.breakpoint.icon(),"Set &breakpoint at",menu1);
         menu.addSeparator();
         menu.addAction(pixmaps.roadsign_nolimit.icon(),"Clear &all breakpoints at "+node.name,self.xcurry(\
@@ -684,17 +680,20 @@ class TreeBrowser (QObject):
       # call _is_visible() to setup visibility
       try:
         visible = act._is_visible();
-      except AttributeError: pass;
+      except AttributeError:  pass;
       except:
         _dprint(0,'exception while calling _is_visible on tb action:',sys.exc_info());
         traceback.print_exc();
       else:
-        _dprint(4,'action',act.text(),'visible:',enable);
+        _dprint(4,'action',act.text(),'visible:',visible);
         act.setVisible(visible);
       # call _is_enabled() to setup enabledness
       try:
         enable = act._is_enabled();
-      except AttributeError: pass;
+        _dprint(4, act.text(), "enable",enable);
+      except AttributeError: 
+        _dprint(4, act.text(), "no _is_enabled() method");
+        pass;
       except:
         _dprint(0,'exception while calling _is_enabled on tb action:',sys.exc_info());
         traceback.print_exc();
@@ -933,7 +932,7 @@ class TreeBrowser (QObject):
 
   def add_action (self,action,order=1000,where="toolbar",callback=None):
     if callback:
-      QObject.connect(action,SIGNAL("triggered(bool=0)"),callback);
+      QObject.connect(action,SIGNAL("triggered(bool)"),callback);
     self._actions.setdefault(where,[]).append((order,action));
     
   def add_separator (self,order=1000,where="toolbar"):
@@ -1091,18 +1090,11 @@ def define_treebrowser_actions (tb):
     qa = QAction(pm.icon(),text,dbg_verbosity);
     qa.setCheckable(True);
     qa._debug_level = level;
+    qa._is_visible = lambda tb=tb: tb.is_connected;
+    qa._is_enabled = lambda tb=tb: tb.is_connected;
     tb._qa_dbg_verbosities.append(qa);
     tb.add_action(qa,60);
-  dbg_verbosity._is_visible = lambda tb=tb: tb.is_connected;
-  dbg_verbosity._is_enabled = lambda tb=tb: tb.is_connected;
   tb.add_separator(61);
-  # dbg_enable.setToggleAction(True);
-  # qa_enable.setToolTip("""This enables verbose debugging mode. The forest will run slowly,
-# but you will see status updates for every single node.""");  
-#  QObject.connect(dbg_enable,SIGNAL("toggled(bool)"),tb._debug_enable_slot);
-#  QObject.connect(tb,PYSIGNAL("debug_enabled()"),dbg_enable.setChecked);
-#  dbg_enable._is_enabled = lambda tb=tb: tb.is_connected;
-#  tb.add_action(dbg_enable,60);
   # Breakpoint on fail
   bp_on_fail = tb._qa_bp_on_fail = QAction(pixmaps.breakpoint_on_fail.icon(),"Set global breakpoint on &fail",parent);
   bp_on_fail.setCheckable(True);
@@ -1134,8 +1126,9 @@ def define_treebrowser_actions (tb):
   dbgnext.setShortcut(Qt.Key_F8);
   tb.add_action(dbgnext,92);
   QObject.connect(dbgnext,SIGNAL("triggered()"),tb._debug_next_node);
-  ag_debug._is_visible = lambda tb=tb: tb.is_connected;
-  ag_debug._is_enabled = lambda tb=tb: tb.is_loaded and tb.is_stopped;
+  for qa in ag_debug.actions():
+    qa._is_visible = lambda tb=tb: tb.is_connected;
+    qa._is_enabled = lambda tb=tb: tb.is_loaded and tb.is_stopped;
   
   # show node icon reference
   tb.add_stretch(1000);

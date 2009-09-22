@@ -191,7 +191,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._qa_recompile = qa_recomp = QAction(pixmaps.blue_round_reload.icon(),"Re&compile script to apply new options",self);
     qa_recomp.setIconText("Recompile");
     qa_recomp.setToolTip("You must recompile this script for new options to take effect");
-    QObject.connect(qa_recomp,SIGNAL("triggered(bool=false)"),self._run_main_file);
+    QObject.connect(qa_recomp,SIGNAL("triggered()"),self._run_main_file);
 
     self._toolbar.addSeparator();
     
