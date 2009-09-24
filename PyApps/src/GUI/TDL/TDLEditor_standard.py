@@ -469,6 +469,15 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 
   def clear_errors (self):
     self._error_window.clear_errors(emit_signal=True);
+    
+  def _find_block_by_linenumber (self,line):
+    block = block0 = self._document.begin();
+    nblock = 1;
+    while block and nblock < line:
+      block0 = block;
+      block = block0.next();
+      nblock += 1; 
+    return block or block0;
 
   def _reset_errors (self,nerr):
     """helper method, resets error markers and such. Usually tied to a hasErrors() signal
@@ -485,7 +494,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         if filename == self._filename:
           nerr_local += 1;
           # make cursor corresponding to line containing the error
-          cursor = QTextCursor(self._document.findBlockByNumber(line-1));
+          cursor = QTextCursor(self._find_block_by_linenumber(line));
           cursor.select(QTextCursor.LineUnderCursor);
           # make selection object
           qsel = QTextEdit.ExtraSelection();
@@ -519,15 +528,15 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         cursor = self._editor.textCursor();
         # scroll to line-1 and line+1 to make sure line is fully visible
         if line > 1:
-          cursor.setPosition(self._document.findBlockByNumber(line-2).position() + column);
+          cursor.setPosition(self._find_block_by_linenumber(line-2).position() + column);
           self._editor.setTextCursor(cursor);
           self._editor.ensureCursorVisible();
         if line < self._document.blockCount():
-          cursor.setPosition(self._document.findBlockByNumber(line).position() + column);
+          cursor.setPosition(self._find_block_by_linenumber(line).position() + column);
           self._editor.setTextCursor(cursor);
           self._editor.ensureCursorVisible();
         # finally, scroll to line
-        cursor.setPosition(self._document.findBlockByNumber(line).position() + column);
+        cursor.setPosition(self._find_block_by_linenumber(line).position() + column);
         self._editor.setTextCursor(cursor);
         self._editor.ensureCursorVisible();
       
@@ -685,12 +694,14 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       except TDL.CumulativeError,value:
 	_dprint(0,"caught cumulative error, length",len(value.args));
 	self._error_window.set_errors(value.args,message="TDL import failed");
+        busy = None;
 	return None;
       except Exception,value:
 	_dprint(0,"caught other error, traceback follows");
 	traceback.print_exc();
 	self._error_window.set_errors([value],message="TDL import failed");
-	return None;
+	busy = None;
+        return None;
       # remember module and nodescope
       self._tdlmod = tdlmod;
       self._tdltext = tdltext;
@@ -706,6 +717,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 	  _dprint(0,"error setting up TDL options GUI");
 	  traceback.print_exc();
 	  self._error_window.set_errors([value],message="Error setting up TDL options GUI");
+          busy = None;
 	  return None;
 	# self._tb_opts.show();
 	_dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
@@ -713,6 +725,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     # success, show options or compile
     if show_options and self.has_compile_options():
       self._options_menu.show();
+    busy = None;
     return True;
       
   def compile_content (self):
@@ -736,11 +749,13 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     except TDL.CumulativeError,value:
       _dprint(0,"caught cumulative error, length",len(value.args));
       self._error_window.set_errors(value.args,message="TDL import failed");
+      busy = None;
       return None;
     except Exception,value:
       _dprint(0,"caught other error, traceback follows");
       traceback.print_exc();
       self._error_window.set_errors([value]);
+      busy = None;
       return None;
     # refresh the nodelist
     meqds.request_nodelist(sync=True);
@@ -789,6 +804,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
           self._error_window.set_errors([value],message="Error setting up TDL options GUI");
+          busy = None;
           return None;
       if joblist:
         for func in joblist:
@@ -806,6 +822,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       msg += " %d predefined function(s) available, please use the Exec menu to run them." % (len(joblist),);
 
     self.show_message(msg,transient=True);
+    busy = None;
     return True;
 
   def execute_tdl_job (self,_tdlmod,ns,func,name):
