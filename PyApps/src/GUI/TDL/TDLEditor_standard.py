@@ -836,6 +836,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       # no errors, so clear error list, if any
       self.clear_errors();
       self.show_message("TDL job '"+name+"' executed.",transient=True);
+      busy = None;
     except:
       (etype,exc,tb) = sys.exc_info();
       _dprint(0,'exception running TDL job',func.__name__);
@@ -853,6 +854,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       msg = "TDL job '"+name+"' failed";
       self._error_window.set_errors(ns.GetErrors(),message=msg);
       self.emit(PYSIGNAL("showEditor()"),self);
+      busy = None;
 
   def get_jobs_popup (self):
     return self._jobmenu;
