@@ -404,9 +404,10 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     cursor = self._editor.textCursor();
     pos = cursor.position();
     col = cursor.columnNumber();
-    line = self._document.findBlock(pos).blockNumber();
+    line = cursor.blockNumber();
     self._poslabel.setText("L:<b>%d</b> C:<b>%d</b>" % (line+1,col+1));
     self._poslabel.repaint();
+     
 
   def _text_modified (self,mod=True):
     self._modified = mod;
