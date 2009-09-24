@@ -22,8 +22,9 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     self._tw.setSelectionMode(QAbstractItemView.NoSelection);
     
     self._tw.header().setResizeMode(0,QHeaderView.ResizeToContents);
-    self._tw.header().setResizeMode(1,QHeaderView.ResizeToContents);
+    self._tw.header().setResizeMode(1,QHeaderView.Fixed);
     self._tw.header().setResizeMode(2,QHeaderView.Stretch);
+    self._tw.header().resizeSection(1,300);
     self._tw.header().hide();
     QObject.connect(self._tw.header(),SIGNAL("sectionResized(int,int,int)"),self._resize_dialog);
     self._allow_resize_dialog = True;
