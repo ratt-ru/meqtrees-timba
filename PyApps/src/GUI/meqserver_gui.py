@@ -246,8 +246,8 @@ class meqserver_gui (app_proxy_gui):
     meterbar = QWidget(self.statusbar);
     meterbar_lo = QVBoxLayout(meterbar);
     meterbar_lo.setContentsMargins(0,0,0,0);
-    meterbar_lo.setSpacing(5);
-    self.statusbar.addWidget(meterbar); 
+    meterbar_lo.setSpacing(0);
+    self.statusbar.addWidget(meterbar,1); 
     # add a VisProgressMeter to status bar 
     self._visprogmeter = VisProgressMeter.VisProgressMeter(meterbar);
     meterbar_lo.addWidget(self._visprogmeter);

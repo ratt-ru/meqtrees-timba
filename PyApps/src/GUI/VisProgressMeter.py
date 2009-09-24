@@ -55,6 +55,7 @@ class VisProgressMeter (QWidget):
     self._wtime.setTextFormat(Qt.RichText);
     self._wprog = QProgressBar(self);
     self._wprog.setTextVisible(True);
+    self._wprog.setMinimumWidth(128);
     self._wprog.setSizePolicy(QSizePolicy.Minimum,QSizePolicy.Minimum);
     self._wlabel = QLabel(self);
     self._wlabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
