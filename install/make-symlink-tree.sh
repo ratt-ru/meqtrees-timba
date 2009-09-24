@@ -53,6 +53,7 @@ makedir libexec
 cd bin
 ln-s ../../../TimBase/src/gprof-run
 ln-s ../../../PyApps/src/meqbrowser.py
+ln -s meqbrowser.py meqbrowser
 if [ -f ../../../build/$flavour/MeqServer/meqserver ]; then
   ln-s ../../../build/$flavour/MeqServer/meqserver
 else
