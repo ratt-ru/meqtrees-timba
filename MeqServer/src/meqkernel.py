@@ -127,8 +127,8 @@ def _import_script_or_module (script,modname=None,force_reload=False):
   global _imported_modules;
   global _imported_scripts;
   global _import_counter;
-  # replace ".pyo" with ".py"
-  if script.endswith(".pyo"):
+  # replace ".py[oc]" with ".py"
+  if script.endswith(".pyo") or script.endswith(".pyc"):
     script = script[0:-1];
   # if a filename with a known suffix is supplied, try to import as file
   for suffix,mode,filetype in imp.get_suffixes():
