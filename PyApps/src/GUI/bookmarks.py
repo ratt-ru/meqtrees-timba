@@ -149,7 +149,7 @@ class BookmarkFolder (QObject):
     self._bklist.append(item);
     if isinstance(item,BookmarkFolder):
       qa = self._menu.addMenu(item.getMenu());
-    elif isinstance(item,Pagemark):
+    elif isinstance(item,Pagemark) or isinstance(item,Bookmark):
       qa = self._menu.addAction(item.icon(),item.name,item.show);
     if not item.enabled:
       qa.setEnabled(False);
