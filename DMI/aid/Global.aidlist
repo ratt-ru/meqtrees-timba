@@ -333,6 +333,7 @@ meqCopy                          1380       ; from /home/oms/LOFAR/Timba/MeqGen/
 MeqDimage                        1647       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Dimage.h:32
 #MeqDivide                       1385       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Divide.h:30
 MeqDomain                        1294       ; from /home/oms/LOFAR/Timba/MEQ/src/Domain.h:30
+#MeqEMFPar                       1762       ; from /home/oms/Timba/MeqNodes/src/EMFPar.h:54
 #MeqExp                          1393       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Exp.h:30
 #MeqFabs                         1429       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Fabs.h:29
 #MeqFFTBrick                     1570       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/FFTBrick.h:34
