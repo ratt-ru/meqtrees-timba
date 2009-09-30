@@ -44,8 +44,8 @@ ParmTable* ParmTableUtils::openTable (const string& tablename,int type)
   int len = tablename.length();
 #ifdef HAVE_FASTPARMTABLE
   ParmTable *tab;
-  if( len>5 && !tablename.compare(len-4,4,".mep") || 
-      !tablename.compare(len-5,5,".mep/") )
+  if( len>5 && ( !tablename.compare(len-4,4,".mep") || 
+                 !tablename.compare(len-5,5,".mep/") ) )
     tab = new CasaParmTable(tablename);
   else
     tab = new FastParmTable(tablename);

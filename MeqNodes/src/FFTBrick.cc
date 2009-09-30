@@ -116,8 +116,15 @@ int FFTBrick::getResult (Result::Ref &resref,
   const LoVec_double mm = input_cells.center(_inaxis1);
 
   // Find the center points of the axis L and M... assuming uniform and increasing...
+  // this gives us the coordinate IN PIXELS of the l=0 point
   nl1 = (int)round(ll(0)*(nl-1)/(ll(0)-ll(nl-1))); // center point in LM plane
+  // if l=0 lies outside the domain, we need to take the pixel coordinate
+  // modulo the number of pixels in L to get the corresponding center point
+  // within our domain
+  nl1 %= nl;
+  // same for the m=0 point
   nm1 = (int)round(mm(0)*(nm-1)/(mm(0)-mm(nm-1)));
+  nm1 %= nm;
 
   // Now deal with u and v axis...
   // Find the center points of the axis U and V now...
