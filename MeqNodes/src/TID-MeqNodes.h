@@ -388,6 +388,25 @@ namespace Meq { class Divide; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqEMFPar
+#define _defined_id_TpMeqEMFPar 1
+const DMI::TypeId TpMeqEMFPar(-1762);             // from /home/oms/Timba/MeqNodes/src/EMFPar.h:54
+const int TpMeqEMFPar_int = -1762;
+namespace Meq { class EMFPar; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::EMFPar> : public TypeTraits<Meq::EMFPar>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqEMFPar_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::EMFPar & ContainerReturnType;
+                typedef const Meq::EMFPar & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqExp
 #define _defined_id_TpMeqExp 1
 const DMI::TypeId TpMeqExp(-1393);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Exp.h:30

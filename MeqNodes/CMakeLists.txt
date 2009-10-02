@@ -15,7 +15,6 @@ set(MeqNodes_includes
     src/BlitzRandom.h
     src/CasaParmTable.h
     src/Ceil.h
-    src/CompiledFunklet.h
     src/Composer.h
     src/Compounder.h
     src/Condeq.h
@@ -27,6 +26,7 @@ set(MeqNodes_includes
     src/DataCollect.h
     src/DataConcat.h
     src/Divide.h
+    src/EMFPar.h
     src/Exp.h
     src/Fabs.h
     src/FFTBrick.h
@@ -140,7 +140,6 @@ set(meqNodes_src
     src/BlitzRandom.cc
     src/CasaParmTable.cc
     src/Ceil.cc
-    #src/CompiledFunklet.cc
     src/Composer.cc
     src/Compounder.cc
     src/Condeq.cc
@@ -152,6 +151,7 @@ set(meqNodes_src
     src/DataCollect.cc
     src/DataConcat.cc
     src/Divide.cc
+    src/EMFPar.cc
     src/Exp.cc
     src/Fabs.cc
     src/FFTBrick.cc

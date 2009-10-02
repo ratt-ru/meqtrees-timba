@@ -131,6 +131,8 @@ def importPlugin (name):
 
 if False:
   importPlugin('array_browser');
+  
+import Timba.Contrib.AxM.pyvis.pynode_plotter  
 
 importPlugin('quickref_plotter');
 importPlugin('collections_plotter');

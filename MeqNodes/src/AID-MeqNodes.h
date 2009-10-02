@@ -33,6 +33,11 @@ const int AidAxes_int = -1346;
 const DMI::AtomicID AidAz(-1710);                 // from /home/sarod/Timba/MeqNodes/src/RADec.h:53
 const int AidAz_int = -1710;
 #endif
+#ifndef _defined_id_AidAzEl
+#define _defined_id_AidAzEl 1
+const DMI::AtomicID AidAzEl(-1711);               // from /home/sarod/Timba/MeqNodes/src/RADec.h:53
+const int AidAzEl_int = -1711;
+#endif
 #ifndef _defined_id_AidBF
 #define _defined_id_AidBF 1
 const DMI::AtomicID AidBF(-1749);                 // from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:33
@@ -243,6 +248,11 @@ const int AidGT_int = -1431;
 const DMI::AtomicID AidGet(-1467);                // from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:12
 const int AidGet_int = -1467;
 #endif
+#ifndef _defined_id_AidH
+#define _defined_id_AidH 1
+const DMI::AtomicID AidH(-1025);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+const int AidH_int = -1025;
+#endif
 #ifndef _defined_id_AidHistory
 #define _defined_id_AidHistory 1
 const DMI::AtomicID AidHistory(-1575);            // from /home/oms/LOFAR/Timba/MeqNodes/src/HistoryCollect.h:30
@@ -442,6 +452,11 @@ const int AidMeqDataConcat_int = -1448;
 #define _defined_id_AidMeqDivide 1
 const DMI::AtomicID AidMeqDivide(-1385);          // from /home/oms/LOFAR/Timba/MeqNodes/src/Divide.h:30
 const int AidMeqDivide_int = -1385;
+#endif
+#ifndef _defined_id_AidMeqEMFPar
+#define _defined_id_AidMeqEMFPar 1
+const DMI::AtomicID AidMeqEMFPar(-1762);          // from /home/oms/Timba/MeqNodes/src/EMFPar.h:54
+const int AidMeqEMFPar_int = -1762;
 #endif
 #ifndef _defined_id_AidMeqExp
 #define _defined_id_AidMeqExp 1
