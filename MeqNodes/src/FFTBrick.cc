@@ -122,9 +122,13 @@ int FFTBrick::getResult (Result::Ref &resref,
   // modulo the number of pixels in L to get the corresponding center point
   // within our domain
   nl1 %= nl;
+  if( nl1<0 )
+    nl1 += nl;
   // same for the m=0 point
   nm1 = (int)round(mm(0)*(nm-1)/(mm(0)-mm(nm-1)));
   nm1 %= nm;
+  if( nm1<0 )
+    nm1 += nm;
 
   // Now deal with u and v axis...
   // Find the center points of the axis U and V now...
