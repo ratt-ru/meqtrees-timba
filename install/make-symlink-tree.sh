@@ -111,11 +111,11 @@ ln-s ../../../../../MeqServer/src/meqkernel.py
 ln-s ../../../../../build/$flavour/PyApps/mequtils.dylib
 ln-s ../../../../../build/$flavour/PyApps/mequtils.so
 ln-s ../../../../../OCTOPython/src/octopussy.py
-ln-s ../../../../../build/$flavour/OCTOPython/liboctopython.dylib octopython.dylib
-ln-s ../../../../../build/$flavour/OCTOPython/liboctopython.so octopython.so
+ln-s ../../../../../build/$flavour/OCTOPython/octopython.dylib octopython.dylib
+ln-s ../../../../../build/$flavour/OCTOPython/octopython.so octopython.so
 ln-s ../../../../../PyParmDB/src/ParmDB.py
-ln-s ../../../../../build/$flavour/PyApps/libparmtables.dylib parmtables.dylib
-ln-s ../../../../../build/$flavour/PyApps/libparmtables.so parmtables.so
+ln-s ../../../../../build/$flavour/PyApps/parmtables.dylib parmtables.dylib
+ln-s ../../../../../build/$flavour/PyApps/parmtables.so parmtables.so
 ln-s ../../../../../PyApps/src/Plugins
 ln-s ../../../../../PyApps/src/pretty_print.py
 ln-s ../../../../../MeqServer/src/pynode.py

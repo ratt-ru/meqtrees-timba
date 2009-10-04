@@ -11,10 +11,12 @@ install(TARGETS mequtils DESTINATION ${PYTHON_INSTALL_DIR})
 set(parmtables_src
     src/parmtables.cc
     )
-add_library(parmtables ${parmtables_src})
-install(TARGETS parmtables DESTINATION ${LIBRARY_INSTALL_DIR})
+add_library(parmtables SHARED ${parmtables_src})
+set_target_properties(parmtables PROPERTIES PREFIX "")
+target_link_libraries(parmtables ${MEQPACKAGE_LIBRARIES} ${PYTHON_LIBRARIES} ${CPP_PLATFORM_LIBS})
+install(TARGETS parmtables DESTINATION ${PYTHON_INSTALL_DIR})
 
-MEQPACKAGE_ADD_LIBRARIES(mequtils)
+MEQPACKAGE_ADD_LIBRARIES(mequtils parmtables)
 
 # python installation targets
 install(PROGRAMS src/meqbrowser.py src/tdlrun.py src/trut.py src/trutify DESTINATION bin)

@@ -17,6 +17,7 @@ set(src
         src/ThreadCond.cc
 )
 add_library(octopython SHARED ${src})
+set_target_properties(octopython PROPERTIES PREFIX "")
 target_link_libraries(octopython ${MEQPACKAGE_LIBRARIES} ${PYTHON_LIBRARIES} ${CPP_PLATFORM_LIBS})
 install(TARGETS octopython DESTINATION ${LIBRARY_INSTALL_DIR})
 
