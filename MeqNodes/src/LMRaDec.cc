@@ -58,6 +58,7 @@ using Debug::ssprintf;
 LMRaDec::LMRaDec()
 : TensorFunction(num_children,child_labels)
 {
+  pos_ang_radians_ = 0.0;
 }
 
 //##ModelId=400E535502D2
@@ -67,11 +68,7 @@ LMRaDec::~LMRaDec()
 
 void LMRaDec::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
-  pos_ang_radians_ = 0.0;
-  // get/init  parameter
-  if( rec[FPosAng].get(pos_ang_radians_,initializing) )
-  {
-  }
+  rec[FPosAng].get(pos_ang_radians_,initializing);
 }
 
 LoShape LMRaDec::getResultDims (const vector<const LoShape *> &input_dims)
@@ -114,17 +111,47 @@ void LMRaDec::evaluateTensors (std::vector<Vells> & out,
   xform(1,0)= -sin(pos_ang_radians_);
   xform(1,1)= cos(pos_ang_radians_);
 
-  DirectionCoordinate *DirCoord = new DirectionCoordinate(MDirection::J2000,
+  // we iterate over l and m, so compute output shape
+  // and strides accordingly
+  Vells::Shape outshape;
+  Vells::Strides strides[2];
+  const Vells::Shape * inshapes[2] = { &(L.shape()),&(M.shape()) };  
+  Vells::computeStrides(outshape,strides,2,inshapes,"LMRaDec");
+
+  // setup input iterators
+  Vells::ConstStridedIterator<double> iter_l(L,strides[0]);
+  Vells::ConstStridedIterator<double> iter_m(M,strides[1]);
+
+  // setup output
+  vra = Vells(0,outshape,false);
+  vdec = Vells(0,outshape,false);
+  double * pra = vra.realStorage();
+  double * pdec = vdec.realStorage();
+
+  Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
+
+  DirectionCoordinate DirCoord(MDirection::J2000,
                           Projection(Projection::SIN),       
                           vra0.getScalar<double>(), vdec0.getScalar<double>(),
-                          1.0, 1.0, xform, 0.0, 0.0);                   
-  Vector<double> pixel(2);
-  pixel(0) = L.getScalar<double>();
-  pixel(1) = M.getScalar<double>();
-  Vector<double> world(2);
-  DirCoord->toWorld(world,pixel);
-  vra = world(0);
-  vdec = world(1);
+                          1.0, 1.0, xform, 0.0, 0.0);
+  Vector<double> pixel(2),world(2);
+
+  // now iterate
+  Vells::DimCounter counter(outshape);
+  while( true )
+  {
+    pixel(0) = *iter_l;
+    pixel(1) = *iter_m;
+    DirCoord.toWorld(world,pixel);
+    *pra++ = world(0);
+    *pdec++ = world(1);
+    // increment counter
+    int ndim = counter.incr();
+    if( !ndim )    // break out when counter is finished
+      break;
+    iter_l.incr(ndim);
+    iter_m.incr(ndim);
+  }
 }
 
 } // namespace Meq

@@ -90,6 +90,8 @@ protected:
 
 private:
   string obs_name_;
+
+  Vells time_vells_;
   
 };
 
