@@ -648,7 +648,10 @@ class _TDLListOptionItem (_TDLOptionItem):
     to preserve the current selection""";
     _dprint(5,self.symbol,"set_option_list",opts);
     if select is None and conserve_selection:
-      selection = self.get_option_str(self.selected);
+      try:
+        selection = self.get_option_str(self.selected); 
+      except:
+        selection = conserve_selection = None;
       _dprint(5,"trying to conserve previous selection",selection);
     if isinstance(opts,(list,tuple)):
       self.option_list = list(opts);
