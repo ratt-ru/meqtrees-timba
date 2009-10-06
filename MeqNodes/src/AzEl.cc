@@ -79,11 +79,7 @@ void AzEl::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &c
   if( childres[0]->hasCells() )
     ref.attach(childres[0]->cells());
   else
-    ref <<= new Cells;
-  // copy over time axis of request
-  const Cells &reqcells = request.cells();
-  if( reqcells.isDefined(Axis::TIME) )
-    ref().setCells(Axis::TIME,reqcells.center(Axis::TIME),reqcells.cellSize(Axis::TIME));
+    ref.attach(request.cells());
   // check that we now have a time axis
   FailWhen(!ref->isDefined(Axis::TIME),"Meq::AzEl: no time axis in child result or in request, can't compute AzEls");
   // create vells from time axis
