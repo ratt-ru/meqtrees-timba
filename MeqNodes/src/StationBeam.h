@@ -86,12 +86,14 @@ protected:
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
 private:
+  double phi0_;              // station layout orientation w.r.t. meridian
+
   string coordfile_name_; //file to store coordinates
   string couplingfile_name_; //file for mutual coupling
   blitz::Array<double,2> p_;//array of coordinates
   blitz::Array<dcomplex,2> c_;//mutual coupling matrix
   int coupling_defined_;
-
+  Vells vfreq_;
   // all the AIPS++ things are done here
   void precompute_azel(const blitz::Array<double,1> time, blitz::Array<double,1> azval0, blitz::Array<double,1> elval0, double ra, double dec, double x, double y, double z);
 };
