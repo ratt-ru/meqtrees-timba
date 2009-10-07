@@ -258,7 +258,8 @@ class _TDLBaseOption (object):
       # add body tags to convert documentation to rich text
       doc = "<body>"+self.doc+"</body>";
       # set as tooltip
-      item.setToolTip(2,doc);
+      for col in range(3):
+        item.setToolTip(col,doc);
       # set first line as column text
       textdoc = QTextDocument();
       textdoc.setHtml(doc);
