@@ -724,6 +724,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 	self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
     # success, show options or compile
     if show_options and self.has_compile_options():
+      self._options_menu.adjustSizes();
       self._options_menu.show();
     busy = None;
     return True;
@@ -794,7 +795,6 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     opts = TDLOptions.get_runtime_options();
     self._jobmenu.clear();
     if joblist or opts:
-      self._tb_jobs.show();
       if opts:
         self._job_executor = curry(self.execute_tdl_job,_tdlmod,ns);
         ## new style:
@@ -814,6 +814,8 @@ Warning! You have modified the script since it was last compiled, so the tree ma
               curry(self.execute_tdl_job,_tdlmod,ns,func,name),
               icon=pixmaps.gear);
       self.emit(PYSIGNAL("hasRuntimeOptions()"),self,True);
+      self._jobmenu.adjustSizes();
+      self._tb_jobs.show();
     else:
       self.emit(PYSIGNAL("hasRuntimeOptions()"),self,False);
       self._tb_jobs.hide();

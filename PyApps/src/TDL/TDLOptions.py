@@ -255,15 +255,17 @@ class _TDLBaseOption (object):
     """sets the option's QTreeWidgetItem. Makes it enabled or disabled as appropriate""";
     self._twitem = item;
     if self.doc:
+      # add icon to second column
+      item.setIcon(1,pixmaps.info_blue_round.icon());
       # add body tags to convert documentation to rich text
       doc = "<body>"+self.doc+"</body>";
       # set as tooltip
       for col in range(3):
         item.setToolTip(col,doc);
       # set first line as column text
-      textdoc = QTextDocument();
-      textdoc.setHtml(doc);
-      item.setText(2,textdoc.begin().text());
+      # textdoc = QTextDocument();
+      # textdoc.setHtml(doc);
+      # item.setText(2,textdoc.begin().text());
     item.setDisabled(not self.enabled);
     item.setHidden(not self.visible);
     return item;
@@ -537,9 +539,9 @@ class _TDLFileOptionItem (_TDLOptionItem):
     item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name+":");
     if self.value:
-      item.setText(1,os.path.basename(self.value.rstrip("/")));
+      item.setText(2,os.path.basename(self.value.rstrip("/")));
     else:
-      item.setText(1,"<none>");
+      item.setText(2,"<none>");
     # create file dialog
     self._file_dialog = file_dialog = \
         self.FileDialog(item.treeWidget(),self.name,".",self._filespec.filenames);
@@ -562,7 +564,7 @@ class _TDLFileOptionItem (_TDLOptionItem):
   def _select_file (self,name):
     name = str(name);
     if self._validator(name):
-      self._twitem.setText(1,os.path.basename(name.rstrip("/")));
+      self._twitem.setText(2,os.path.basename(name.rstrip("/")));
       self.set(name);
 
 class _TDLListOptionItem (_TDLOptionItem):
@@ -704,7 +706,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     _dprint(1,"set %s, #%d (%s), save=%s"%(self.name,value,self.get_option_desc(value),save));
     if self._twitem:
       _dprint(1,"setting twitem text");
-      self._twitem.setText(1,self.get_option_desc(value));
+      self._twitem.setText(2,self.get_option_desc(value));
     if self._submenu:
       self._submenu_qas[self.selected].setChecked(True);
     if save:
@@ -772,7 +774,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     _dprint(3,"making listview item for",self.name);
     item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name+":");
-    item.setText(1,self.get_option_desc(self.selected));
+    item.setText(2,self.get_option_desc(self.selected));
     # create QPopupMenu for available options
     self._rebuild_submenu(item.treeWidget());
     # make menu pop up when item is pressed
@@ -991,7 +993,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
   def set_summary (self,summary):
     self._summary = summary;
     if self._twitem:
-      self._twitem.setText(1,summary or '');
+      self._twitem.setText(2,summary or '');
 
   def make_treewidget_item (self,parent,after,executor=None):
     """makes a listview entry for the menu""";
@@ -1012,7 +1014,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     else:
       item.setExpanded(self._is_open or False);
     if self._summary:
-      item.setText(1,self._summary);
+      item.setText(2,self._summary);
     # loop over items
     previtem = None;
     for subitem in self._items:

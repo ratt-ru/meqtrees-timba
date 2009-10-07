@@ -22,9 +22,9 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     self._tw.setSelectionMode(QAbstractItemView.NoSelection);
     
     self._tw.header().setResizeMode(0,QHeaderView.ResizeToContents);
-    self._tw.header().setResizeMode(1,QHeaderView.Fixed);
+    self._tw.header().setResizeMode(1,QHeaderView.ResizeToContents);
     self._tw.header().setResizeMode(2,QHeaderView.Stretch);
-    self._tw.header().resizeSection(1,300);
+    self._tw.header().resizeSection(2,300);
     self._tw.header().hide();
     QObject.connect(self._tw.header(),SIGNAL("sectionResized(int,int,int)"),self._resize_dialog);
     self._allow_resize_dialog = True;
@@ -62,14 +62,17 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     if self.wok:
       self.wok.setEnabled(enable);
 
+  def adjustSizes (self):
+    width = 300;  # minimal size of content section
+    # add width of other sections
+    for col in [0,1]:
+      width += self._tw.header().sectionSize(col);
+    # print width;
+    self.resize(max(width,self.width()),self.height());
+
   def _resize_dialog (self,section,*dum):
     if self._allow_resize_dialog and section<2:
-      width = 128;  # initial size of help section
-      # add width of other sections
-      for col in [0,1]:
-	width += self._tw.header().sectionSize(col);
-      # print width;
-      self.resize(max(width,self.width()),self.height());
+      self.adjustSizes();
       
   def accept (self):
     self.emit(PYSIGNAL("accepted()"));
