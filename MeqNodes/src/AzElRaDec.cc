@@ -1,4 +1,4 @@
-//# AzEl.cc: Calculate AzEl from J2000 ra, dec
+//# AzElRaDec.cc: Calculate J2000 Ra, Dec from Az, El
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -19,9 +19,9 @@
 //# along with this program; if not, write to the Free Software
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
-//# $Id$
+//# $Id: AzElRaDec.cc 7255 2009-10-06 12:15:35Z oms $
 
-#include <MeqNodes/AzEl.h>
+#include <MeqNodes/AzElRaDec.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
@@ -42,38 +42,38 @@ namespace Meq {
   
 const HIID FObservatory = AidObservatory;
 
-const HIID child_labels[] = { AidRADec,AidXYZ };
+const HIID child_labels[] = { AidAzEl,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
 
 const HIID FDomain = AidDomain;
 
 //The node should assume that only the first child (RADec) is mandatory
-AzEl::AzEl()
+AzElRaDec::AzElRaDec()
 : TensorFunction(2,child_labels,1)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
 }
 
-AzEl::~AzEl()
+AzElRaDec::~AzElRaDec()
 {}
 
 // Obtain an observatory - if a name is supplied
-// use a 'global observatory position' to calculate AzEl.
-// Otherwise AzEl will be calculated for individual
+// use a 'global observatory position' to calculate AzElRaDec.
+// Otherwise AzElRaDec will be calculated for individual
 // station positions.
-void AzEl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+void AzElRaDec::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   TensorFunction::setStateImpl(rec,initializing);
 
   if(rec->hasField(FObservatory))
-      {
-        rec[FObservatory].get(obs_name_,initializing);
-      }
+  {
+    rec[FObservatory].get(obs_name_,initializing);
+  }
 }
 
 
-void AzEl::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
+void AzElRaDec::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
 {
   // copy cells of first child
   if( childres[0]->hasCells() )
@@ -81,7 +81,7 @@ void AzEl::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &c
   else
     ref.attach(request.cells());
   // check that we now have a time axis
-  FailWhen(!ref->isDefined(Axis::TIME),"Meq::AzEl: no time axis in child result or in request, can't compute AzEls");
+  FailWhen(!ref->isDefined(Axis::TIME),"Meq::AzElRaDec: no time axis in child result or in request, can't compute AzEls");
   // create vells from time axis
   Vells::Shape shape;
   Axis::degenerateShape(shape,ref->rank());
@@ -91,7 +91,7 @@ void AzEl::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &c
 }
 
 
-LoShape AzEl::getResultDims (const vector<const LoShape *> &input_dims)
+LoShape AzElRaDec::getResultDims (const vector<const LoShape *> &input_dims)
 {
   Assert(input_dims.size()>=1);
   // child 0 (RaDec0): expected 2-vector
@@ -107,7 +107,7 @@ LoShape AzEl::getResultDims (const vector<const LoShape *> &input_dims)
   return LoShape(2);
 }
 
-void AzEl::evaluateTensors (std::vector<Vells> & out,   
+void AzElRaDec::evaluateTensors (std::vector<Vells> & out,   
                             const std::vector<std::vector<const Vells *> > &args)
 {
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
@@ -116,9 +116,9 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
 
   // thanks to checks in getResultDims(), we can expect all 
   // vectors to have the right sizes
-  // Get RA and DEC, and station positions
-  const Vells& vra  = *(args[0][0]);
-  const Vells& vdec = *(args[0][1]);
+  // Get Az/El, and station positions
+  const Vells& vaz  = *(args[0][0]);
+  const Vells& vel = *(args[0][1]);
 
   if( obs_name_.empty() )
   {
@@ -145,26 +145,26 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
   // and strides accordingly
   Vells::Shape outshape;
   Vells::Strides strides[3];
-  const Vells::Shape * inshapes[3] = { &(time_vells_.shape()),&(vra.shape()),&(vdec.shape()) };  
+  const Vells::Shape * inshapes[3] = { &(time_vells_.shape()),&(vaz.shape()),&(vel.shape()) };  
   Vells::computeStrides(outshape,strides,3,inshapes,"LMRaDec");
 
   // setup input iterators
   Vells::ConstStridedIterator<double> iter_time(time_vells_,strides[0]);
-  Vells::ConstStridedIterator<double> iter_ra(vra,strides[1]);
-  Vells::ConstStridedIterator<double> iter_dec(vdec,strides[2]);
+  Vells::ConstStridedIterator<double> iter_az(vaz,strides[1]);
+  Vells::ConstStridedIterator<double> iter_el(vel,strides[2]);
 
   out[0] = Vells(0.0,outshape,false);
   out[1] = Vells(0.0,outshape,false);
-  double * paz = out[0].realStorage();
-  double * pel = out[1].realStorage();
+  double * pra = out[0].realStorage();
+  double * pdec = out[1].realStorage();
   double time0 = *iter_time-1;     
-
   Quantum<double> qepoch(0, "s");
   qepoch.setValue(time0);
   MEpoch mepoch(qepoch, MEpoch::UTC);
   Frame.set(mepoch);
-  MDirection::Convert azel_converter = MDirection::Convert(MDirection::Ref(MDirection::J2000),MDirection::Ref(MDirection::AZEL,Frame));
-  Vector<Double> radec(2);
+  MDirection::Convert radec_converter = 
+      MDirection::Convert(MDirection::Ref(MDirection::AZEL,Frame),MDirection::Ref(MDirection::J2000));
+  Vector<Double> azel(2);
 
   // now iterate
   Vells::DimCounter counter(outshape);
@@ -176,23 +176,23 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
       mepoch.set(qepoch);
       Frame.set(mepoch);       
     }
-    radec(0) = *iter_ra;
-    radec(1) = *iter_dec;
+    azel(0) = *iter_az;
+    azel(1) = *iter_el;
     // convert ra, dec to Az El at given time
-    MDirection az_el_out(azel_converter(radec));
+    MDirection radec_out(radec_converter(azel));
     //Gawd - what a mouthful - luckily some old ACSIS code provided the
     //right incantation for the following line!
-    Vector<Double> az_el = az_el_out.getValue().getAngle("rad").getValue();
-    *(paz++) = az_el(0);
-    *(pel++) = az_el(1);
+    Vector<Double> radec = radec_out.getValue().getAngle("rad").getValue();
+    *(pra++) = radec(0);
+    *(pdec++) = radec(1);
     
     // increment counter
     int ndim = counter.incr();
     if( !ndim )    // break out when counter is finished
       break;
     iter_time.incr(ndim);
-    iter_ra.incr(ndim);
-    iter_dec.incr(ndim);
+    iter_az.incr(ndim);
+    iter_el.incr(ndim);
   }
 }
 

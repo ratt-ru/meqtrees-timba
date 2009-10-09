@@ -11,6 +11,7 @@ set(MeqNodes_includes
     src/Asin.h
     src/Atan.h
     src/AzEl.h
+    src/AzElRaDec.h
     src/Bessel.h
     src/BlitzRandom.h
     src/CasaParmTable.h
@@ -136,6 +137,7 @@ set(meqNodes_src
     src/Asin.cc
     src/Atan.cc
     src/AzEl.cc
+    src/AzElRaDec.cc
     src/Bessel.cc
     src/BlitzRandom.cc
     src/CasaParmTable.cc

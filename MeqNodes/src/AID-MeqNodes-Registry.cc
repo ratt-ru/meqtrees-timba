@@ -18,6 +18,8 @@ DMI::BObj * __construct_MeqAsin (int n) { return n>0 ? new Meq::Asin [n] : new M
 DMI::BObj * __construct_MeqAtan (int n) { return n>0 ? new Meq::Atan [n] : new Meq::Atan; }
 #include "AzEl.h"
 DMI::BObj * __construct_MeqAzEl (int n) { return n>0 ? new Meq::AzEl [n] : new Meq::AzEl; }
+#include "AzElRaDec.h"
+DMI::BObj * __construct_MeqAzElRaDec (int n) { return n>0 ? new Meq::AzElRaDec [n] : new Meq::AzElRaDec; }
 #include "Bessel.h"
 DMI::BObj * __construct_MeqBessel (int n) { return n>0 ? new Meq::Bessel [n] : new Meq::Bessel; }
 #include "Ceil.h"
@@ -258,6 +260,9 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1435,"RA")+
         AtomicID::registerId(-1446,"Dec")+
         AtomicID::registerId(-1554,"Observatory")+
+        AtomicID::registerId(-1763,"MeqAzElRaDec")+
+        TypeInfoReg::addToRegistry(-1763,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1763,__construct_MeqAzElRaDec)+
         AtomicID::registerId(-1734,"MeqBessel")+
         TypeInfoReg::addToRegistry(-1734,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1734,__construct_MeqBessel)+

@@ -141,6 +141,25 @@ namespace Meq { class AzEl; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqAzElRaDec
+#define _defined_id_TpMeqAzElRaDec 1
+const DMI::TypeId TpMeqAzElRaDec(-1763);          // from AzElRaDec.h:54
+const int TpMeqAzElRaDec_int = -1763;
+namespace Meq { class AzElRaDec; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::AzElRaDec> : public TypeTraits<Meq::AzElRaDec>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqAzElRaDec_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::AzElRaDec & ContainerReturnType;
+                typedef const Meq::AzElRaDec & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqBessel
 #define _defined_id_TpMeqBessel 1
 const DMI::TypeId TpMeqBessel(-1734);             // from /home/sarod/Timba/MeqNodes/src/Bessel.h:32

@@ -25,6 +25,7 @@
         Do(Meq::Asin,arg) separator \
         Do(Meq::Atan,arg) separator \
         Do(Meq::AzEl,arg) separator \
+        Do(Meq::AzElRaDec,arg) separator \
         Do(Meq::Bessel,arg) separator \
         Do(Meq::Ceil,arg) separator \
         Do(Meq::Composer,arg) separator \
