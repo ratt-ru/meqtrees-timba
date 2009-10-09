@@ -113,19 +113,19 @@ class TDLEditor (QFrame,PersistentCurrier):
     #### populate toolbar
 
     # Exec button and menu
-    self._tb_jobs = QToolButton(self._toolbar);
-    self._toolbar.addWidget(self._tb_jobs);
-    self._tb_jobs.setIcon(pixmaps.gear.icon());
-    self._tb_jobs.setText("Exec");
-    self._tb_jobs.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
-    self._tb_jobs.setToolTip("Accesses run-time options & jobs defined by this TDL script");
-    self._tb_jobs.hide();
+    self._tb_tdlexec = QToolButton(self._toolbar);
+    self._toolbar.addWidget(self._tb_tdlexec);
+    self._tb_tdlexec.setIcon(pixmaps.gear.icon());
+    self._tb_tdlexec.setText("Exec");
+    self._tb_tdlexec.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self._tb_tdlexec.setToolTip("Accesses run-time options & jobs defined by this TDL script");
+    self._tb_tdlexec.hide();
     
-    jobs = self._jobmenu = TDLOptionsDialog(self);
+    jobs = self._tdlexec_menu = TDLOptionsDialog(self);
     jobs.setWindowTitle("TDL Jobs & Runtime Options");
     jobs.setWindowIcon(pixmaps.gear.icon());
     jobs.hide();
-    QObject.connect(self._tb_jobs,SIGNAL("clicked()"),jobs.exec_);
+    QObject.connect(self._tb_tdlexec,SIGNAL("clicked()"),jobs.exec_);
 
     # save menu and button
     self._tb_save = QToolButton(self._toolbar);
@@ -147,30 +147,9 @@ class TDLEditor (QFrame,PersistentCurrier):
     # run menu and button
     
     self._qa_run = self._toolbar.addAction(pixmaps.blue_round_reload.icon(),
-                              "&Save & compile",self._run_main_file);
+                              "&Save & reload",self._import_main_file);
     self._qa_run.setShortcut(Qt.ALT+Qt.Key_R);
 
-    #self._tb_run = QToolButton(self._toolbar);
-    #self._toolbar.addWidget(self._tb_run);
-    #self._tb_run.setIcon(pixmaps.blue_round_reload.icon());
-    
-    #self._tb_runmenu = runmenu = QMenu(self);
-    #self._tb_run.setMenu(self._tb_runmenu);
-    #self._tb_run.setPopupMode(QToolButton.MenuButtonPopup);
-    #self._qa_runmain = runmenu.addAction(pixmaps.blue_round_reload.icon(),
-                              #"&Save & compile main script",self._run_main_file);
-    #self._qa_runmain.setShortcut(Qt.ALT+Qt.Key_R);
-    #QObject.connect(self._tb_run,SIGNAL("clicked()"),self._import_main_file);
-    #qa_runthis_as = runmenu.addAction(pixmaps.blue_round_reload.icon(),
-                                    #"Save & run this script as main script...",self._import_as_main_file);
-    #qa_runthis_as.setToolTip("Saves and recompiles this script as a top-level TDL script");
-
-    # Compile-time options and menu
-    #self._tb_opts = QAction(pixmaps.wrench.icon(),
-                            #"Options",Qt.ALT+Qt.Key_O,self);
-    #self._tb_opts.setToggleAction(True);
-    #self._tb_opts.setToolTip("Access compile-time options for this TDL script");
-    #self._tb_opts.addTo(self._toolbar);
     # Compile-time options and menu
     self._tb_opts = QToolButton(self._toolbar);
     self._toolbar.addWidget(self._tb_opts);
@@ -183,16 +162,11 @@ class TDLEditor (QFrame,PersistentCurrier):
     opts = self._options_menu = TDLOptionsDialog(self,ok_label="Compile",ok_icon=pixmaps.blue_round_reload);
     opts.setWindowTitle("TDL Compile-time Options");
     opts.setWindowIcon(pixmaps.wrench.icon());
-    QObject.connect(opts,PYSIGNAL("accepted()"),self._run_main_file);
+    QObject.connect(opts,PYSIGNAL("accepted()"),self._compile_main_file);
     QObject.connect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),self.mark_mandatory_options_set);
     opts.hide();
     QObject.connect(self._tb_opts,SIGNAL("clicked()"),opts.show);
     
-    self._qa_recompile = qa_recomp = QAction(pixmaps.blue_round_reload.icon(),"Re&compile script to apply new options",self);
-    qa_recomp.setIconText("Recompile");
-    qa_recomp.setToolTip("You must recompile this script for new options to take effect");
-    QObject.connect(qa_recomp,SIGNAL("triggered()"),self._run_main_file);
-
     self._toolbar.addSeparator();
     
     # cursor position indicator
@@ -312,18 +286,18 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._options_menu.enableOkButton(enabled);
     
   def show_runtime_options (self):
-    self._jobmenu.show();
+    self._tdlexec_menu.show();
     
   def tree_is_in_sync (self,sync=True):
     """Tells the editor wheether the current tree is in sync with the content of the script.
     This is indicated by a visual cue on the toolbar.
     """;
     if sync:
-      self._tb_jobs.setIcon(pixmaps.gear.icon());
-      self._tb_jobs.setToolTip("Access run-time options & jobs defined by this TDL script");
+      self._tb_tdlexec.setIcon(pixmaps.gear.icon());
+      self._tb_tdlexec.setToolTip("Access run-time options & jobs defined by this TDL script");
     else:
-      self._tb_jobs.setIcon(pixmaps.exclaim_yellow_warning.icon());
-      self._tb_jobs.setToolTip("""Access run-time options & jobs defined by this TDL script.
+      self._tb_tdlexec.setIcon(pixmaps.exclaim_yellow_warning.icon());
+      self._tb_tdlexec.setToolTip("""Access run-time options & jobs defined by this TDL script.
 Warning! You have modified the script since it was last compiled, so the tree may be out of date.""");
   
   def _file_closed (self):
@@ -342,7 +316,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
   def hide_jobs_menu (self,dum=False):
     if self._closed:
       return;
-    self._tb_jobs.hide();
+    self._tb_tdlexec.hide();
     self.clear_message();
 
   def show_line_numbers (self,show):
@@ -357,7 +331,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if self._closed:
       return;
     self._qa_run.setEnabled(enable);
-    self._tb_jobs.setEnabled(enable);
+    self._tb_tdlexec.setEnabled(enable);
     if not enable:
       self.clear_message();
 
@@ -365,7 +339,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if self._closed:
       return;
     self._qa_run.setDisabled(disable);
-    self._tb_jobs.setDisabled(disable);
+    self._tb_tdlexec.setDisabled(disable);
     if disable:
       self.clear_message();
 
@@ -377,21 +351,14 @@ Warning! You have modified the script since it was last compiled, so the tree ma
   def _import_main_file (self):
     # self._tb_opts.setOn(False);
     self.clear_errors();
-    if self._mainfile and self._editor.isModified():
+    if self._document.isModified():
       self._save_file();
     self.emit(PYSIGNAL("importFile()"),self,self._mainfile or self._filename);
 
-  def _import_as_main_file (self):
-    self.clear_errors();
-    self._set_mainfile(None);
-    self._text_modified(self._document.isModified());   # to reset labels
-    self.emit(PYSIGNAL("fileChanged()"),self);
-    self.emit(PYSIGNAL("importFile()"),self,self._filename);
-    
-  def _run_main_file (self):
+  def _compile_main_file (self):
     # self._tb_opts.setOn(False);
     self.clear_errors();
-    if self._mainfile and self._document.isModified():
+    if self._document.isModified():
       self._save_file();
     self.emit(PYSIGNAL("compileFile()"),self,self._mainfile or self._filename);
 
@@ -647,7 +614,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     return self._options_menu.treeWidget().topLevelItemCount();
   
   def has_runtime_options (self):
-    return self._jobmenu.treeWidget().topLevelItemCount();
+    return self._tdlexec_menu.treeWidget().topLevelItemCount();
 
   def import_content (self,force=False,show_options=False):
     """imports TDL module but does not run _define_forest().
@@ -664,6 +631,9 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     _dprint(1,self._filename,"importing");
     self.clear_message();
     self.clear_errors();
+    self._options_menu.hide();
+    self._tb_tdlexec.hide();
+    self._tdlexec_menu.hide();
     # change the current directory to where the file is
     # os.chdir(os.path.dirname(self._filename));
     # The Python imp module expects text to reside in a disk file, which is
@@ -735,7 +705,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       return None;
     _dprint(1,self._filename,"compiling forest");
     # clear predefined functions
-    self._tb_jobs.hide();
+    self._tb_tdlexec.hide();
     # make list of publishing nodes
     pub_nodes = [ node.name for node in meqds.nodelist.iternodes()
                   if node.is_publishing() ];
@@ -793,13 +763,13 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 
     # create list of job actions
     opts = TDLOptions.get_runtime_options();
-    self._jobmenu.clear();
+    self._tdlexec_menu.clear();
     if joblist or opts:
       if opts:
         self._job_executor = curry(self.execute_tdl_job,_tdlmod,ns);
         ## new style:
         try:
-          TDLOptions.populate_option_treewidget(self._jobmenu.treeWidget(),opts,executor=self._job_executor);
+          TDLOptions.populate_option_treewidget(self._tdlexec_menu.treeWidget(),opts,executor=self._job_executor);
         except Exception,value:
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
@@ -810,15 +780,15 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         for func in joblist:
           name = re.sub("^_tdl_job_","",func.__name__);
           name = name.replace('_',' ');
-          self._jobmenu.addAction(name,
+          self._tdlexec_menu.addAction(name,
               curry(self.execute_tdl_job,_tdlmod,ns,func,name),
               icon=pixmaps.gear);
       self.emit(PYSIGNAL("hasRuntimeOptions()"),self,True);
-      self._jobmenu.adjustSizes();
-      self._tb_jobs.show();
+      self._tdlexec_menu.adjustSizes();
+      self._tb_tdlexec.show();
     else:
       self.emit(PYSIGNAL("hasRuntimeOptions()"),self,False);
-      self._tb_jobs.hide();
+      self._tb_tdlexec.hide();
 
     if joblist:
       msg += " %d predefined function(s) available, please use the Exec menu to run them." % (len(joblist),);
@@ -829,7 +799,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 
   def execute_tdl_job (self,_tdlmod,ns,func,name):
     """executes a predefined TDL job given by func""";
-    self._jobmenu.hide();
+    self._tdlexec_menu.hide();
     try:
       # log job 
       TDLOptions.dump_log("running TDL job '%s'"%name);
@@ -859,7 +829,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       busy = None;
 
   def get_jobs_popup (self):
-    return self._jobmenu;
+    return self._tdlexec_menu;
 
   def get_options_popup (self):
     return self._options_menu;

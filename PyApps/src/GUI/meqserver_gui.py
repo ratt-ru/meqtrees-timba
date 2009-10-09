@@ -177,12 +177,12 @@ class meqserver_gui (app_proxy_gui):
     
     # add TDL run button
     self._qa_runtdl = self.maintoolbar.addAction(pixmaps.blue_round_reload.icon(),
-                        "&Recompile current TDL script",self._run_current_tdl_script);
-    self._qa_runtdl.setIconText("Recompile");
+                        "&Reload current TDL script",self._run_current_tdl_script);
+    self._qa_runtdl.setIconText("Reload");
     self._qa_runtdl.setShortcut(Qt.CTRL+Qt.Key_R);
     QObject.connect(self,PYSIGNAL("isConnected()"),self._enable_run_current);
     self._enable_run_current(False);
-    self._qa_runtdl.setWhatsThis("""This button re-runs the current TDL script, if one is loaded.""");
+    self._qa_runtdl.setWhatsThis("""This button reloads the current TDL script.""");
     self._qa_runtdl.setVisible(False);
     self._qa_runtdl.setEnabled(False);
     self._main_tdlfile = None; # this is used by _run_current
