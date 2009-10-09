@@ -311,6 +311,7 @@ Meq                              1622       ; from /home/oms/LOFAR/Timba/MeqServ
 #MeqAtan                         1428       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
 MeqAxis                          1665       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Axis.h:30
 #MeqAzEl                         1551       ; from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31
+#MeqAzElRaDec                    1763       ; from AzElRaDec.h:54
 MeqBeam                          1594       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Beam.h:31
 #MeqBessel                       1734       ; from /home/sarod/Timba/MeqNodes/src/Bessel.h:32
 #MeqCeil                         1437       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
