@@ -12,6 +12,18 @@ except:
   Qt = None;
 
 #
+# ===== BUSY INDICATOR =====
+#
+
+class BusyIndicator (object):
+  """A BusyIndicator object is created to set the cursor to a hourglass.
+  When the object is destroyed (i.e. when local variable goes out of scope), the cursor is reset.""";
+  def __init__ (self):
+    Qt and Qt.QApplication.setOverrideCursor(Qt.QCursor(Qt.Qt.WaitCursor));
+  def __del__ (self):
+    Qt and Qt.QApplication.restoreOverrideCursor();
+
+#
 # ===== PROGRESS DIALOGS =====
 #
 
@@ -76,7 +88,7 @@ Warning = 'warning';
 Button = dmi.record();
 _button_types = ( "Ok","Open","Save","Cancel","Close","Discard","Apply",
                   "Reset","RestoreDefaults","Help","SaveAll","Yes","YesToAll",
-                  "No","NoToAll","Abort","Retry","Ignore");
+                  "No","NoToAll","Abort","Retry","Ignore","NoButton");
 ButtonNames = dict();
 
 if Qt:
@@ -124,7 +136,7 @@ class MessageBox (object):
   def __del__ (self):
     if Qt and self.dialog:
       self.dialog.hide();
-      self.dialog.setParent(Qt.QObject());
+      self.dialog.setParent(Qt.QWidget());
 
 def message_box (caption,message,boxtype=Information,buttons=Button.Ok,default=None):
   """Displays a message box.
