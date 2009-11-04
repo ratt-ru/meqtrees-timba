@@ -626,10 +626,16 @@ class ChartPlot(Qt.QWidget):
 
     self._popup_text.setText(message)
     self._popup_text.adjustSize()
-    yhb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
-    ylb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
-    xhb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
-    xlb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+    try:
+      yhb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
+      ylb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
+      xhb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
+      xlb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+    except:
+      yhb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound())
+      ylb = self._plotter.transform(Qwt.QwtPlot.yLeft, self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound())
+      xhb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound())
+      xlb = self._plotter.transform(Qwt.QwtPlot.xBottom, self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound())
     height = self._popup_text.height()
     if self.ypos + height > ylb:
       ymove = self.ypos - 1.5 * height
@@ -725,11 +731,19 @@ class ChartPlot(Qt.QWidget):
         self.yzoom_loc = [self.press_ypos]
         self.zoom_outline.attach(self._plotter)
         if self.zoomStack == []:
-          self.zoomState = (
+          try:
+            self.zoomState = (
               self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
               self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
               self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
               self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
+              )
+          except:
+            self.zoomState = (
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound(),
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound(),
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
+              self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
               )
       elif Qt.Qt.RightButton == e.button():
         e.accept()

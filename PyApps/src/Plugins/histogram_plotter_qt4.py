@@ -256,11 +256,16 @@ class QwtHistogramPlotter(Qwt.QwtPlot):
       self.source_marker = Qwt.QwtPlotMarker()
       self.source_marker.setLabelAlignment(Qt.Qt.AlignRight | Qt.Qt.AlignTop)
       self.source_marker.setLabel(text)
-
-      ylb = self.axisScale(Qwt.QwtPlot.yLeft).lBound()
-      xlb = self.axisScale(Qwt.QwtPlot.xBottom).lBound()
-      yhb = self.axisScale(Qwt.QwtPlot.yLeft).hBound()
-      xhb = self.axisScale(Qwt.QwtPlot.xBottom).hBound()
+      try:
+        ylb = self.axisScale(Qwt.QwtPlot.yLeft).lBound()
+        xlb = self.axisScale(Qwt.QwtPlot.xBottom).lBound()
+        yhb = self.axisScale(Qwt.QwtPlot.yLeft).hBound()
+        xhb = self.axisScale(Qwt.QwtPlot.xBottom).hBound()
+      except:
+        ylb = self.axisScale(Qwt.QwtPlot.yLeft).lowerBound()
+        xlb = self.axisScale(Qwt.QwtPlot.xBottom).lowerBound()
+        yhb = self.axisScale(Qwt.QwtPlot.yLeft).upperBound()
+        xhb = self.axisScale(Qwt.QwtPlot.xBottom).upperBound()
 
       self.source_marker.setValue( xlb+0.1, ylb+1.0)
       self.source_marker.attach(self)
@@ -301,11 +306,19 @@ class QwtHistogramPlotter(Qwt.QwtPlot):
             self.setOutlinePen(QPen(Qt.black))
             self.setOutlineStyle(Qwt.Rect)
             if self.zoomStack == []:
+              try:
                 self.zoomState = (
                     self.axisScale(QwtPlot.xBottom).lBound(),
                     self.axisScale(QwtPlot.xBottom).hBound(),
                     self.axisScale(QwtPlot.yLeft).lBound(),
                     self.axisScale(QwtPlot.yLeft).hBound(),
+                    )
+              except:
+                self.zoomState = (
+                    self.axisScale(QwtPlot.xBottom).lowerBound(),
+                    self.axisScale(QwtPlot.xBottom).upperBound(),
+                    self.axisScale(QwtPlot.yLeft).lowerBound(),
+                    self.axisScale(QwtPlot.yLeft).upperBound(),
                     )
         elif Qt.Qt.RightButton == e.button():
             e.accept()

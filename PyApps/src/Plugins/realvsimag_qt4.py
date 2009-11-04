@@ -632,12 +632,20 @@ class realvsimag_plotter(object):
 #       self.plot.setOutlinePen(Qt.QPen(Qt.Qt.black))
 #       self.plot.setOutlineStyle(Qwt.Rect)
         if self.zoomStack == []:
-          self.zoomState = (
-            self.plot.axisScale(QwtPlot.xBottom).lBound(),
-            self.plot.axisScale(QwtPlot.xBottom).hBound(),
-            self.plot.axisScale(QwtPlot.yLeft).lBound(),
-            self.plot.axisScale(QwtPlot.yLeft).hBound(),
-            )
+          try:
+            self.zoomState = (
+              self.plot.axisScale(QwtPlot.xBottom).lBound(),
+              self.plot.axisScale(QwtPlot.xBottom).hBound(),
+              self.plot.axisScale(QwtPlot.yLeft).lBound(),
+              self.plot.axisScale(QwtPlot.yLeft).hBound(),
+              )
+          except:
+            self.zoomState = (
+              self.plot.axisScale(QwtPlot.xBottom).lowerBound(),
+              self.plot.axisScale(QwtPlot.xBottom).upperBound(),
+              self.plot.axisScale(QwtPlot.yLeft).lowerBound(),
+              self.plot.axisScale(QwtPlot.yLeft).upperBound(),
+              )
 
         _dprint(2,'xPos yPos ', xPos, ' ', yPos);
 # We get information about the qwt plot curve that is
@@ -734,8 +742,12 @@ class realvsimag_plotter(object):
 
 # Now create text marker giving source of point that was clicked
         self.marker = self.plot.insertMarker()
-        ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
-        xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+        try:
+          ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
+          xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+        except:
+          ylb = self.plot.axisScale(QwtPlot.yLeft).lowerBound()
+          xlb = self.plot.axisScale(QwtPlot.xBottom).lowerBound()
         self.plot.setMarkerPos(self.marker, xlb, ylb)
         self.plot.setMarkerLabelAlign(self.marker, Qt.Qt.AlignRight | Qt.Qt.AlignTop)
         self.plot.setMarkerLabel( self.marker, message,
@@ -795,8 +807,12 @@ class realvsimag_plotter(object):
     self.removeMarkers()
     if not self._legend_plot is None:
       self.legend_marker = self.plot.insertMarker()
-      ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
-      xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+      try:
+        ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
+        xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+      except:
+        ylb = self.plot.axisScale(QwtPlot.yLeft).upperBound()
+        xlb = self.plot.axisScale(QwtPlot.xBottom).lowerBound()
       self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
       self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
       fn = self.plot.fontInfo().family()
@@ -1626,8 +1642,12 @@ class realvsimag_plotter(object):
 # with yellow background
       if not self._legend_plot is None:
          self.legend_marker = self.plot.insertMarker()
-         ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
-         xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+         try:
+           ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
+           xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+         except:
+           ylb = self.plot.axisScale(QwtPlot.yLeft).upperBound()
+           xlb = self.plot.axisScale(QwtPlot.xBottom).lowerBound()
          self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
          self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
          fn = self.plot.fontInfo().family()
