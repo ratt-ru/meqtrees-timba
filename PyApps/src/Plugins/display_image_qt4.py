@@ -521,11 +521,19 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.setTitle(self.plot_title)
 
         if self.zoomStack == []:
+          try:
                 self.zoomState = (
                     self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(), True
+                    )
+          except:
+                self.zoomState = (
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(), True
                     )
         self.zoomStack.append(self.zoomState)
         self._x_auto_scale = plot_parms['x_auto_scale']
@@ -1458,8 +1466,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
       # print ' image x ', xlb, xhb
       # print ' image y ', ylb, yhb
       else:
-        ylb = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound()
-        xlb = self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound()
+        try:
+          ylb = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound()
+          xlb = self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound()
+        except:
+          ylb = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound()
+          xlb = self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound()
       # print ' vector xlb ylb ', xlb, ylb
       self.source_marker.setValue( xlb+0.1, ylb+1.0)
       self.source_marker.attach(self)
@@ -1796,10 +1808,16 @@ class QwtImageDisplay(Qwt.QwtPlot):
       """
       self._popup_text.setText(message)
       self._popup_text.adjustSize()
-      yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
-      ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
-      xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
-      xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+      try:
+        yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
+        ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
+        xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
+        xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+      except:
+        yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound())
+        ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound())
+        xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound())
+        xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound())
       # muck around with position of pop-up to make sure it does not
       # disappear over edge of plot ...
       height = self._popup_text.height()
@@ -1822,10 +1840,16 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._popup_text.show()
 
     def getBounds(self):
+      try:
         self.yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
         self.ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
         self.xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
         self.xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+      except:
+        self.yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound())
+        self.ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound())
+        self.xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound())
+        self.xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound())
 
     def setPosition(self, e):
       """ callback to handle MouseMoved event """ 
@@ -1933,11 +1957,19 @@ class QwtImageDisplay(Qwt.QwtPlot):
               self.yzoom_loc = [self.press_ypos]
               self.zoom_outline.attach(self)
               if self.zoomStack == []:
-                self.zoomState = (
+                try:
+                  self.zoomState = (
                     self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
+                    )
+                except:
+                  self.zoomState = (
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
                     )
         elif Qt.Qt.RightButton == e.button():
             e.accept()

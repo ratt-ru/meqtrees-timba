@@ -212,10 +212,16 @@ class QwtColorBar(Qwt.QwtPlot):
               amp_phas = components[3]
               if self.colorbar_number == colorbar and not self._lock_bar:
                 self.zoomStack == []
-                self.zoomState = (
-                  self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
-                  self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
-                  )
+                try:
+                  self.zoomState = (
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
+                    )
+                except:
+                  self.zoomState = (
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
+                    )
                 self.zoomStack.append(self.zoomState)
                 self._unzoom_action.setVisible(True)
                 self.setRange(min, max, colorbar, amp_phas)
@@ -444,10 +450,16 @@ class QwtColorBar(Qwt.QwtPlot):
       if Qt.Qt.LeftButton == e.button():
         # get bounds of plot. Keep them around for later test if
         # we're initiating a drag operation
-        self.yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
-        self.ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
-        self.xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
-        self.xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+        try:
+          self.yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
+          self.ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
+          self.xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
+          self.xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+        except:
+          self.yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound())
+          self.ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound())
+          self.xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound())
+          self.xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound())
         # Python semantics: self.pos = e.pos() does not work; force a copy
         _dprint(3, 'e.pos() ', e.pos())
         self.press_xpos = self.xpos 
@@ -458,10 +470,16 @@ class QwtColorBar(Qwt.QwtPlot):
           self.yzoom_loc = [self.press_ypos]
           self.zoom_outline.attach(self)
           if self.zoomStack == []:
-            self.zoomState = (
-              self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
-              self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
-              )
+            try:
+              self.zoomState = (
+                self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
+                self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
+                )
+            except:
+              self.zoomState = (
+                self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
+                self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
+                )
           # fake a mouse move to show the cursor position
 #         self.onMouseMoved(e)
       elif Qt.Qt.RightButton == e.button():
