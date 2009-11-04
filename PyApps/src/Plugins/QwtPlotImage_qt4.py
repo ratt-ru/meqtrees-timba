@@ -75,12 +75,101 @@ def bytescale(data, limits, high=255, low=2):
     bytedata = ((internal_data*1.0-limits[0])*scale + 0.4999).astype(numpy.uint8) + numpy.asarray(low).astype(numpy.uint8)
     return bytedata
 
+def sinx_image(nx,ny,off=0):
+# creates a test image as just a scaled sin(x) / x. 
+# One could probably compute this more quickly.
+    num_ys = ny
+    num_xs = nx
+    image_numpy = numpy.ones((num_ys,num_xs),dtype=numpy.float32)
+    for k in range(num_ys):
+      k_dist = abs (k - num_ys/2 - off )
+      for i in range(num_xs):
+        i_dist = abs (i - num_xs/2 - off)
+        dist = math.sqrt(k_dist*k_dist + i_dist*i_dist)
+        if dist != 0:
+          image_numpy[k,i] =  math.sin(dist) / dist
+    print 'calculated array has shape ', image_numpy.shape
+    return image_numpy
+# sinx_image
+
 # called by the QwtImagePlot class
 def square(n, min, max):
     t = numpy.arange(min, max, float(max-min)/(n-1))
     #return outer(cos(t), sin(t))
     return numpy.cos(t)*numpy.sin(t)[:,numpy.newaxis]
 # square()
+
+def newToQImage(array):
+    """Converts a numpy array to a QImage 
+    A Python version of PyQt4.Qwt5.toQImage(array) in PyQwt >= 5.2.
+    Function written by Gerard Vermeulen
+    """
+    if array.ndim != 2:
+        raise RuntimeError('array must be 2-D')
+    height, width = array.shape
+    if array.dtype == numpy.uint8:
+        # image = QImage(array, width, height, QImage.Format_Indexed8)
+        # The next statement shows that QImage does not increase the
+        # reference count of the buffer object to keep the data valid.
+        image = Qt.QImage(
+            array.tostring(), width, height, Qt.QImage.Format_Indexed8)
+        image.setNumColors(256)
+        for i in range(256):
+            image.setColor(i, Qt.qRgb(i, i, i))
+        return image
+    elif array.dtype == numpy.uint32:
+        image = Qt.QImage(
+            array.tostring(), width, height, Qt.QImage.Format_ARGB32)
+        return image
+    else:
+        raise RuntimeError('array.dtype must be uint8 or uint32')
+# newToQImage()
+
+def oldToQImage(array):
+    """Converts a numpy array to a QImage 
+    A Python version of PyQt4.Qwt5.toQImage(array) in PyQwt < 5.2.
+    Function written by Gerard Vermeulen
+    """
+    if array.ndim != 2:
+        raise RuntimeError('array must be 2-D')
+    nx, ny = array.shape # width, height
+    xstride, ystride = array.strides
+    if array.dtype == numpy.uint8:
+        # image = QImage(width, height, QImage.Format_Indexed8)
+        image = Qt.QImage(nx, ny, Qt.QImage.Format_Indexed8)
+        array.shape = (nx*ny,)
+        for j in xrange(ny):
+            pointer = image.scanLine(j)
+            pointer.setsize(nx*array.itemsize)
+            memory = numpy.frombuffer(pointer, numpy.uint8)
+            memory[:] = array[j*ystride::xstride]
+        array.shape = (nx, ny)
+        image.setNumColors(256)
+        for i in range(256):
+            image.setColor(i, Qt.qRgb(i, i, i))
+        return image
+    elif array.dtype == numpy.uint32:
+        image = Qt.QImage(
+            array.tostring(), width, height, Qt.QImage.Format_ARGB32)
+        array.shape = (nx*ny,)
+        for j in xrange(ny):
+            pointer = image.scanLine(j)
+            pointer.setsize(nx*array.itemsize)
+            memory = numpy.frombuffer(pointer, numpy.uint32)
+            memory[:] = array[j*ystride::xstride]
+        array.shape = (nx, ny)
+        return image
+    else:
+        raise RuntimeError('array.dtype must be uint8 or uint32')
+# oldToQImage()
+
+def convertToQImage(array, use_old=False):
+    """Converts a numpy array to a QImage"""
+    if use_old:
+      image = oldToQImage(array)
+    else:
+      image = newToQImage(array)
+    return image
 
 class QwtPlotImage(Qwt.QwtPlotItem):
 
@@ -368,7 +457,8 @@ class QwtPlotImage(Qwt.QwtPlotItem):
         else:
           image_for_display = numpy.where(self._nan_flags_array,1,image_for_display)
       self._image_for_display = image_for_display
-      result = Qwt.toQImage(image_for_display).mirrored(0, 1)
+#     result = Qwt.toQImage(image_for_display).mirrored(0, 1)
+      result = convertToQImage(image_for_display,True).mirrored(0, 1)
       # always suppress NaNs
       if not self._nan_flags_array is None:
         result.setColor(1, Qt.qRgb(self.nan_colour, self.nan_colour, self.nan_colour))
@@ -443,7 +533,8 @@ class QwtPlotImage(Qwt.QwtPlotItem):
         else:
           image_for_display = numpy.where(self._nan_flags_array,1,image_for_display)
 
-      self.flags_Qimage = Qwt.toQImage(image_for_display).mirrored(0, 1)
+#     self.flags_Qimage = Qwt.toQImage(image_for_display).mirrored(0, 1)
+      self.flags_Qimage = convertToQImage(image_for_display,True).mirrored(0, 1)
 
 # set color scale a la HippoDraw Scale
       if self.display_type == "hippo":
@@ -696,16 +787,20 @@ class QwtImagePlot(Qwt.QwtPlot):
 
 
     def updateDisplay(self):
+      offset = 3
       # calculate 3 NumPy arrays
       x = numpy.arange(-1.0 * self.gain*math.pi, self.gain*math.pi, 0.01)
-      y = math.pi*numpy.sin(x)
-      z = self.gain * self.gain*math.pi*numpy.cos(x)*numpy.cos(x)*numpy.sin(x)
+      y = math.pi*numpy.sin(x) + offset
+      z = self.gain * self.gain*math.pi*numpy.cos(x)*numpy.cos(x)*numpy.sin(x) + offset
       # copy the data
       self.cSin.setData(x, y)
       self.cCos.setData(x, z)
       # image
-      self.plotImage.setData(
-            square(512,-1.0 * self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi))
+      test_image = sinx_image(8,16,offset)
+      self.plotImage.setData(test_image)
+
+#     self.plotImage.setData(
+#           square(512,-1.0 * self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi))
 
     def updateBarDisplay(self):
       self.min = 0.0
@@ -738,11 +833,19 @@ class QwtImagePlot(Qwt.QwtPlot):
             self.zoom_outline.attach(self)
             self.zooming = 1
             if self.zoomStack == []:
-                self.zoomState = (
+                try:
+                  self.zoomState = (
                     self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
+                    )
+                except:
+                  self.zoomState = (
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
+                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
                     )
         elif Qt.Qt.RightButton == e.button():
             self.zooming = 0
