@@ -111,6 +111,8 @@ class QwtColorBar(Qwt.QwtPlot):
         self.yzoom_loc = None
         self.prev_xpos = None
         self.prev_ypos = None
+        self.raw_image_min = None
+        self.raw_image_max = None
         # create zoom curve
         self.zoom_outline = Qwt.QwtPlotCurve()
 
@@ -226,7 +228,9 @@ class QwtColorBar(Qwt.QwtPlot):
                 self._unzoom_action.setVisible(True)
                 self.setRange(min, max, colorbar, amp_phas)
         else:
-          print 'QwtColorBar dropEvent decode failure'
+          message= 'QwtColorBar dropEvent decode failure'
+          mb_reporter = Qt.QMessageBox.information(self, self.tr("QwtColorBar"),
+                    self.tr(message))
         event.acceptProposedAction()
 
     def startDrag(self,event):
@@ -314,6 +318,11 @@ class QwtColorBar(Qwt.QwtPlot):
         self.setScales()
         min = limits[0]
         max = limits[1]
+        try:
+          self.raw_image_min = limits[2]
+          self.raw_image_max = limits[3]
+        except:
+          pass
         if min > max:
             temp = max
             max = min
@@ -375,6 +384,7 @@ class QwtColorBar(Qwt.QwtPlot):
     def emit_range(self):
       self.emit(Qt.SIGNAL("set_image_range"),self.min, self.max, self.colorbar_number,self._lock_bar)
 
+
     def setBarLock(self, set_lock=False):
       self._lock_bar = set_lock  
       if self._lock_bar:
@@ -397,6 +407,9 @@ class QwtColorBar(Qwt.QwtPlot):
 
         self._unzoom_action.setVisible(False)
 
+      if not self.raw_image_min is None:
+        self.image_min = self.raw_image_min
+        self.image_max = self.raw_image_max
       self.setAxisScale(Qwt.QwtPlot.yLeft, self.image_min, self.image_max)
       if self.image_min > self.image_max:
         temp = self.image_max

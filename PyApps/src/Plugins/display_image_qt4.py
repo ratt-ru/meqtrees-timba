@@ -446,19 +446,17 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def dropEvent(self, event):
         """ callback that handles a drop event from drag & drop """
-#     try:
+        if event.source() == self:
+          return
         if event.mimeData().hasText():
           command_str = str(event.mimeData().text())
           if command_str.find('copyPlotParms') > -1:
-            if event.source() != self:
-              parms = event.source().getPlotParms();
-              self.setPlotParms(parms,True)
-            else:
-              print 'QwtImageDisplay dropping into same widget'
+            parms = event.source().getPlotParms();
+            self.setPlotParms(parms,True)
         else:
-          print 'QwtImageDisplay decode failure'
-#     except:
-#       pass
+          message= 'QwtImageDisplay dropEvent decode failure'
+          mb_reporter = Qt.QMessageBox.information(self, self.tr("QwtImageDisplay"),
+                    self.tr(message))
 
     def startDrag(self):
       """ operations done when we start a drag event """
@@ -642,10 +640,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
       """ callback to handle most common basic context menu selections """
 # should not be any such menuid that we need to handle here
 # (print signal is handled by printplot function) so ignore
-      print 'in handle_basic'
       action = Qt.QObject.sender(self)
       result, flag = action.data().toInt()
-      print result, flag
 
     def toggleMetrics(self):
       """ callback to make Solver Metrics plots visible or invisible """
@@ -1070,10 +1066,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
           xmax = axis_parms[1]
           ymin = axis_parms[2]
           ymax = axis_parms[3]
+          self.zoomState = axis_parms
           try:
             do_replot = axis_parms[4]
           except:
             pass
+          if len(self.zoomStack) == 0:
+            self.zoomState = None
           if undo_last_zoom:
             break
         self.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
@@ -1105,6 +1104,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
         if not len (self.zoomStack):
           self._reset_zoomer.setVisible(False)
 	  self._undo_last_zoom.setVisible(False)
+      else:
+        self.zoomState = None
 
 # do a complete replot in the following situation
 # as both axes will have changed even if nothing to unzoom.
@@ -1411,12 +1412,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
       #print 'called replot in timerEvent_blink'
 
     def update_vells_display(self, menuid):
-#     if self.handle_basic_menu_id(menuid):
-#       return
-# are we toggling something with flags?
-#     if self.handle_flag_toggles(menuid):
-#       return
-# if we got here, emit signal up to result_plotter here
       self.emit(Qt.SIGNAL("handle_menu_id"),menuid)
 
     def setVellsPlot(self, do_vells_plot=True):
@@ -2543,6 +2538,15 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.plotImage.setData(self.raw_image, self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm])
       else:
         self.plotImage.setData(self.raw_image)
+
+# adjust image range because zoomState is set?
+      if not self.zoomState is None:
+        xmin = self.zoomState[0]
+        xmax = self.zoomState[1]
+        ymin = self.zoomState[2]
+        ymax = self.zoomState[3]
+        self.plotImage.update_xMap_draw(xmin,xmax)
+        self.plotImage.update_yMap_draw(ymin,ymax)
 
 # the following is used to make sure same image is kept on display if
 # colorbar intensity range is toggled or color/grayscale is toggled
@@ -3705,10 +3709,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
           else:
             self.xrCrossSection.setData(self.x_index, self.x_array)
 
-# do the replot
         self.replot()
-        #print 'called final replot in array_plot'
         _dprint(3, 'called replot in array_plot');
+        #print 'called final replot in array_plot'
+
     # array_plot()
 
 #   def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):
@@ -3888,7 +3892,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
 # first create sub-menu for cross-section displays
         self._xsection_menu = Qt.QMenu(self._mainwin);
-#       Qt.QObject.connect(self._xsection_menu,Qt.SIGNAL("triggered()"),self.modify_xsection_display)
 
         toggle_id = self.xsection_menu_table['Select both cross-sections']
         self._select_both_cross_sections = Qt.QAction('Select both cross-sections',self)
@@ -3896,7 +3899,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._xsection_menu.addAction(self._select_both_cross_sections)
         self._select_both_cross_sections.setVisible(False)
         self.connect(self._select_both_cross_sections,Qt.SIGNAL("triggered()"),self.handle_select_both_cross_sections);
-        self.connect(self._select_both_cross_sections,Qt.SIGNAL("triggered()"),self.handle_basic_menu_id);
 
         toggle_id = self.xsection_menu_table['Select real cross-section']
         self._select_real_cross_section = Qt.QAction('Select real cross-section',self)

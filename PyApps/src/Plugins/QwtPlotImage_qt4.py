@@ -188,6 +188,7 @@ class QwtPlotImage(Qwt.QwtPlotItem):
         self.r_cmin = None
         self.i_cmax = None
         self.i_cmin = None
+        self.raw_image = None
         self.dimap = None
         self.complex = False
         self.log_scale = False
@@ -254,15 +255,27 @@ class QwtPlotImage(Qwt.QwtPlotItem):
       self._nan_flags_array = None
     # removeFlags
 
-    
-
     def getRealImageRange(self):
-        return (self.r_cmin, self.r_cmax)
+      try:
+        if self.raw_image.dtype == numpy.complex64 or self.raw_image.dtype == numpy.complex128:
+          real_array =  self.raw_image.real
+        else:
+          real_array = self.raw_image
+        return (self.r_cmin, self.r_cmax, real_array.min(),real_array.max())
+      except:
+        return (self.r_cmin, self.r_cmax, None, None)
     # getRealImageRange
 
     def getImagImageRange(self):
-        return (self.i_cmin, self.i_cmax)
+      try:
+        if self.raw_image.dtype == numpy.complex64 or self.raw_image.dtype == numpy.complex128:
+          imag_array =  self.raw_image.imag
+        return (self.i_cmin, self.i_cmax,imag_array.min(), imag_array.max())
+      except:
+        return (self.i_cmin, self.i_cmax, None, None)
     # getRealImageRange
+
+
     
     def defineImageRange(self, limits, real=True):
        min = limits[0]
@@ -288,6 +301,7 @@ class QwtPlotImage(Qwt.QwtPlotItem):
            self.i_cmax = max
 
     def setImageRange(self, image):
+      self.raw_image = image
       if image.dtype == numpy.complex64 or image.dtype == numpy.complex128:
         self.complex = True
         imag_array =  image.imag
