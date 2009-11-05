@@ -1016,8 +1016,10 @@ class ResultPlotter(GriddedPlugin):
       axis_parms = self._vells_data.getActiveAxisParms()
       plot_array = self._vells_data.getActiveData().copy()
       if not self._visu_plotter is None:
+        self._visu_plotter.reset_zoom()
         self._visu_plotter.delete_cross_sections()
         self._visu_plotter.setAxisParms(axis_parms)
+        self._visu_plotter.reset_color_bar(True)
         self._visu_plotter.array_plot(plot_array)
       else:
         if not self.ND_plotter is None:
