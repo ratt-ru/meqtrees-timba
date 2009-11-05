@@ -277,7 +277,9 @@ class ArrayPlotter(GriddedPlugin):
     self.array_selector = create_array_selector(self.twoD_plotter, self.array_rank, self.array_shape, first_axis,second_axis,third_axis)
     self.array_tuple = tuple(self.array_selector)
     if not self.twoD_plotter is None:
-      # reset color bar request - just in case
+      # reset various parameters and fields
+      self.twoD_plotter.reset_zoom()
+      self.twoD_plotter.delete_cross_sections()
       self.twoD_plotter.reset_color_bar(True)
       self.twoD_plotter.array_plot(self.data[self.array_tuple],data_label='data')
     else:
