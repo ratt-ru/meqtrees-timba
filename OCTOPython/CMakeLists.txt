@@ -20,6 +20,7 @@ add_library(octopython SHARED ${src})
 set_target_properties(octopython PROPERTIES PREFIX "")
 target_link_libraries(octopython ${MEQPACKAGE_LIBRARIES} ${PYTHON_LIBRARIES} ${CPP_PLATFORM_LIBS})
 install(TARGETS octopython DESTINATION ${LIBRARY_INSTALL_DIR})
+install(TARGETS octopython DESTINATION ${PYTHON_INSTALL_DIR})
 
 install(FILES src/version_info/__init__.py DESTINATION ${PYTHON_INSTALL_DIR}/version_info)
 file(GLOB timbafiles "${CMAKE_CURRENT_SOURCE_DIR}/src/*.py")
