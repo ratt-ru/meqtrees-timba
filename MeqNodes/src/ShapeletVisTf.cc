@@ -594,13 +594,13 @@ ShapeletVisTf::calculate_uv_mode_vectors(double *u, int Nu, double *v, int Nv, d
 		if (signval==-1) {
 	  for (yci=0; yci<Nv; yci++) {
 	    for (xci=0; xci<Nu; xci++) {
-        (*Av)[start+Nv*yci+xci]=-shpvl[xindex[xci]][n1]*shpvl[yindex[yci]][n2];
+        (*Av)[start+Nu*yci+xci]=-shpvl[xindex[xci]][n1]*shpvl[yindex[yci]][n2];
 			}
 		}
 		} else {
 	  for (yci=0; yci<Nv; yci++) {
 	    for (xci=0; xci<Nu; xci++) {
-        (*Av)[start+Nv*yci+xci]=shpvl[xindex[xci]][n1]*shpvl[yindex[yci]][n2];
+        (*Av)[start+Nu*yci+xci]=shpvl[xindex[xci]][n1]*shpvl[yindex[yci]][n2];
 			}
 		}
 		}
