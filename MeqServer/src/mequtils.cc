@@ -26,6 +26,7 @@
 #include <OCTOPython/OctoPython.h>
 #include <MEQ/Axis.h>
 #include <DMI/BOIO.h>
+#include <ctype.h>
 
 namespace MeqUtils
 {
@@ -96,7 +97,10 @@ static PyObject * get_axis_id (PyObject *, PyObject *args)
   try
   {
     const HIID & id = Meq::Axis::axisId(axis_num);
-    return PyString_FromString(id.toString().c_str());
+    string str = id.toString('_');
+    for( int i=0; i<str.length(); i++ )
+      str[i] = tolower(str[i]);
+    return PyString_FromString(str.c_str());
   }
   catchStandardErrors(NULL);
   returnNone;

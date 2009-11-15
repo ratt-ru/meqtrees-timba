@@ -147,8 +147,9 @@ void Domain::validateContent (bool)
 
 bool Domain::supersetOfProj (const Domain &other) const
 {
-  Thread::Mutex::Lock lock(mutex());
-  Thread::Mutex::Lock lock2(other.mutex());
+// OMS 28/10/2009: commented out mutexes, not needed for const objects, surely
+//  Thread::Mutex::Lock lock(mutex());
+//  Thread::Mutex::Lock lock2(other.mutex());
   for( int i=0; i<Axis::MaxAxis; i++ )
     if( isDefined(i) &&
         ( !other.isDefined(i) || start(i) > other.start(i) || end(i) < other.end(i) ) )
@@ -158,8 +159,9 @@ bool Domain::supersetOfProj (const Domain &other) const
 
 Domain Domain::envelope (const Domain &a,const Domain &b)
 {
-  Thread::Mutex::Lock lock(a.mutex());
-  Thread::Mutex::Lock lock2(b.mutex());
+// OMS 28/10/2009: commented out mutexes, not needed for const objects, surely
+//  Thread::Mutex::Lock lock(a.mutex());
+//  Thread::Mutex::Lock lock2(b.mutex());
   Domain out;
   using std::min;
   using std::max;
@@ -177,6 +179,33 @@ Domain Domain::envelope (const Domain &a,const Domain &b)
   }
   return out;
 }
+
+void Domain::expandToEnvelope (const Domain &other)
+{
+  Thread::Mutex::Lock lock(mutex());
+  using std::min;
+  using std::max;
+  for( int i=0; i<Axis::MaxAxis; i++ )
+  {
+    // do nothing if axis not defined in other
+    if( other.isDefined(i) )
+    {
+       // if we do define it, check if it needs to be expanded
+      if( isDefined(i) )
+      {
+        double x1 = min(start(i),other.start(i));
+        double x2 = max(end(i),other.end(i));
+        if( x1 != start(i) || x2 != end(i) )
+          defineAxis(i,x1,x2);
+      } 
+      // we do not define it -- simply copy it over then
+      else 
+        defineAxis(i,other.start(i),other.end(i));
+    }
+  }
+}
+
+
 
 //##ModelId=400E53050125
 void Domain::show (std::ostream& os) const

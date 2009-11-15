@@ -46,6 +46,7 @@ from Timba import Grid
 from Timba import TDL
 import Timba.TDL.GUI
 import Purr.MainWindow
+import Purr.Startup
 
 import weakref
 import math
@@ -1077,7 +1078,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if self._verify_quit():
       event.accept();
       if self._purr:
-        self._purr.detachDirectory();
+        self._purr.detachPurrlog();
       mainapp().quit();
     else:
       event.ignore();
@@ -1231,11 +1232,13 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       # change browser path
       curpath = os.getcwd();
       os.chdir(path);
-      # notify purr, if running
-      if self._purr:
-        self._purr.attachDirectory(path);
       if not os.path.samefile(path,curpath):
         self.log_message("browser working directory is now "+path);
+        # notify purr, if running
+        if self._purr:
+          self._purr.detachPurrlog();
+          if self._purr.isVisible() and not Purr.Startup.startWizard([path],self._purr,parent=self):
+            self._purr.hide();
     if kernel and self.app.current_server:
       _dprint(1,'kernel cwd',path);
       self.app.change_wd(path);
@@ -1450,19 +1453,19 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     else:
       self.setWindowTitle("MeqBrowser - not connected to a meqserver");
       
-      
   def show_purr_window (self):
     if not self._purr:
       self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
-      self._purr.attachDirectory(os.getcwd());
+    if not self._purr.hasPurrlog():
+      if not Purr.Startup.startWizard([os.getcwd()],self._purr,parent=self):
+        return;
     self._purr.show();
     self._purr.raise_();
 
-  def attach_purr (self,dirname,watchdirs,show=False,pounce=None):
+  def attach_purr (self,dirname,watchdirs=[],show=True):
     if not self._purr:
       self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
-    self._purr.attachDirectory(dirname,watchdirs);
-    if show:
+    if Purr.Startup.startWizard([dirname]+list(watchdirs),self._purr,parent=self) and show:
       self._purr.show();
 
 # register reloadables

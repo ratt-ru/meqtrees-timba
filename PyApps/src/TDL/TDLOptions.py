@@ -386,7 +386,11 @@ class _TDLOptionItem(_TDLBaseOption):
     # as _set may have been called before the constructor
     if callback:
       for cb in getattr(self,'_when_changed_callbacks',[]):
-        cb(value);
+        try:
+          cb(value);
+        except:
+          print "Error calling when_changed callback (%s) for option '%s'"%(getattr(cb,'__name__',''),self.name);
+          traceback.print_exc();
 
   def set (self,value,**kw):
     """public method for changing the internal value of an option. Must be implemented
@@ -410,7 +414,11 @@ class _TDLOptionItem(_TDLBaseOption):
     """registers a callback which will be called whenever the item is changed.
     Immediately calls the callback as well""";
     self._when_changed_callbacks.append(callback);
-    callback(self.value);
+    try:
+      callback(self.value);
+    except:
+      print "Error calling when_changed callback (%s) for option '%s'"%(getattr(callback,'__name__',''),self.name);
+      traceback.print_exc();
 
 class _TDLBoolOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None,nonexclusive=False):

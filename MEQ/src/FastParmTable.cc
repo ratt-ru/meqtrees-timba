@@ -38,7 +38,7 @@
 namespace Meq 
 {
 
-FastParmTable::FastParmTable (const string& tablename,bool)
+FastParmTable::FastParmTable (const string& tablename,bool write,bool)
  : table_name_ (tablename),fdomains_(0),fdb_(0)
 {
   prev_key.dptr = 0;
@@ -53,7 +53,7 @@ FastParmTable::FastParmTable (const string& tablename,bool)
       throwErrno("can't create '%s'");
   }
   // create/open domain list file
-  fdomains_ = fopen((tablename+"/domains").c_str(),"a+b");
+  fdomains_ = fopen((tablename+"/domains").c_str(),write?"a+b":"rb");
   if( !fdomains_ )
     throwErrno("can't open '%s/domains'");
   // see how many domains we've got based on filesize
@@ -75,7 +75,7 @@ FastParmTable::FastParmTable (const string& tablename,bool)
   fseek(fdomains_,ndom*sizeof(DomainEntry),SEEK_SET);
   // create/open funklet database
   fdb_ = gdbm_open(const_cast<char*>((tablename+"/funklets").c_str()),
-                    1024,GDBM_WRCREAT,0666,0);
+                    1024,write?GDBM_WRCREAT:GDBM_READER,0666,0);
   // "bad magic number" indicates corruption from previous run, so flush it
   if( !fdb_ && gdbm_errno == GDBM_BAD_MAGIC_NUMBER )
   {

@@ -175,8 +175,8 @@ def question_box (caption,message,buttons=Button.Yes|Button.No,default=Button.Ye
 # ===== PURR INTERFACE ===
 #
       
-def purr (dirname,watchdirs,show=True,pounce=True):
+def purr (dirname,watchdirs=[]):
   """If browser is running, attaches Purr tool to the given directories."""
   if meqbrowser:
-    meqbrowser.attach_purr(dirname,watchdirs,pounce=pounce,show=show);
+    meqbrowser.attach_purr(dirname,watchdirs);
 

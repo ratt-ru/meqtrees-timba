@@ -30,6 +30,7 @@
 #include <OCTOPUSSY/GWServerWP.h>
 #include <OCTOPUSSY/ReflectorWP.h>
 #include "OctoPython.h"
+#include <ctype.h>
 
 InitDebugContext(OctoPython,"OctoPython");
 
@@ -92,8 +93,8 @@ static PyObject * hiid_to_string (PyObject *, PyObject *args)
     convertSeqToHIID(id,list);
   }
   catchStandardErrors(NULL);
-  
-  return PyString_FromString(id.toString(sep).c_str()); // return NEW REF
+  string str = id.toString(sep);
+  return PyString_FromString(str.c_str()); // return NEW REF
 }
 
 // -----------------------------------------------------------------------

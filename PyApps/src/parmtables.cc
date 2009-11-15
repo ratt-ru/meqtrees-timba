@@ -27,6 +27,8 @@
 #include <MEQ/FastParmTable.h>
 #include <MEQ/Domain.h>
 
+#include <set>
+
 namespace ParmTables
 {
 using namespace OctoPython;
@@ -76,11 +78,12 @@ static int
 PyFPT_init(PyFPT *self, PyObject *args, PyObject *)
 {
   char * tablename;
-  if( !PyArg_ParseTuple(args,"s",&tablename) )
+  int write = 1;
+  if( !PyArg_ParseTuple(args,"s|i",&tablename,&write) )
     return -1;
   try
   {
-    self->table = new FastParmTable(tablename);
+    self->table = new FastParmTable(tablename,write);
   }
   catchStandardErrors(-1);
   return 0;
@@ -111,6 +114,36 @@ static PyObject * PyFPT_domain_list (PyFPT * self)
     }
     // return new ref to domain list
     return self->domain_list.new_ref();
+  }
+  catchStandardErrors(NULL);
+  returnNone;
+}
+
+// -----------------------------------------------------------------------
+// name_list()
+// returns list (actually, set) of names of every funklet in the table
+// -----------------------------------------------------------------------
+static PyObject * PyFPT_name_list (PyFPT* self)
+{
+  Thread::Mutex::Lock lock(self->table->mutex());
+  try
+  {
+    std::set<string> nameset;
+    string name;
+    int domain_index;
+    // iterate over all funklets
+    bool have_funklet = self->table->firstFunklet(name,domain_index);
+    while( have_funklet )
+    {
+      nameset.insert(name);
+      have_funklet = self->table->nextFunklet(name,domain_index);
+    }
+    // make Python set
+    PyObjectRef namelist = PySet_New(0);
+    for( std::set<string>::const_iterator iter = nameset.begin(); iter != nameset.end(); iter++ )
+      PySet_Add(*namelist,PyString_FromString(iter->c_str()));
+    // return new ref to funklet list, stealing ours
+    return ~namelist;
   }
   catchStandardErrors(NULL);
   returnNone;
@@ -323,6 +356,8 @@ static PyObject * PyFPT_delete_funklet (PyFPT* self,PyObject *args)
 
 
 static PyMethodDef PyFPT_methods[] = {
+    {"name_list",(PyCFunction)PyFPT_name_list, METH_NOARGS,
+                  "return a list (or set) of unique funklet names in the table" },
     {"domain_list",(PyCFunction)PyFPT_domain_list, METH_NOARGS,
                   "return a list of domains in the table" },
     {"funklet_list",(PyCFunction)PyFPT_funklet_list, METH_NOARGS,

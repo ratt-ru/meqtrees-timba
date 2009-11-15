@@ -89,6 +89,7 @@ def import_tdl_module (filename,text=None):
   """;
   _dprint(1,"importing",filename);
   # initialize global nodescope (and repository)
+  meqds.clear_forest();
   try:
     reload(Timba.TDL.Settings);
     # reset TDL script options

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -64,13 +65,19 @@ def array_double (value,shape=None):
   return arr;
 
 def array_complex (value,shape=None):
-  return array(value,dtype=arr_dcomplex);
+  arr = array(value,dtype=arr_dcomplex);
+  if shape:
+    arr.shape = shape;
+  return arr;
+
+def array_int (value,shape=None):
+  arr = array(value,dtype=arr_int32);
   if shape:
     arr.shape = shape;
   return arr;
   
 def polc (coeff,shape=None,offset=None,scale=None,domain=None,
-          weight=None,dbid=None,pert=1e-6,subclass=_polc_type):
+          weight=None,dbid=None,axis_index=None,pert=1e-6,subclass=_polc_type):
   """creates a polc record""";
   rec = subclass();
   # process coeff argument -- if a list, then force into a 2D array
@@ -103,23 +110,32 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
       raise TypeError,'domain argument must be a MeqDomain object';
   # other optional arguments
   if offset is not None:
-    if isinstance(coeff,(tuple,list)):
-      if shape and len(shape)>1:
-        raise ValueError,'offset array must be one-dimensional';
-      rec.offset  = array_double(offset,shape=shape);
+    if isinstance(offset,(tuple,list,float)):
+      rec.offset  = array_double(offset);
     elif is_array(offset):
       if len(offset.shape) > 1:
         raise TypeError,'offset array must be one-dimensional';
       rec.offset = array_double(offset);
+    else:
+      raise TypeError,"invalid 'offset' argument of type %s"%type(offset);
   if scale is not None:
-    if isinstance(coeff,(tuple,list)):
-      if shape and len(shape)>1:
-        raise ValueError,'scale array must be one-dimensional';
-      rec.scale  = array_double(scale,shape=shape);
+    if isinstance(scale,(tuple,list,float)):
+      rec.scale  = array_double(scale);
     elif is_array(scale):
       if len(scale.shape) > 1:
         raise TypeError,'scale array must be one-dimensional';
       rec.scale = array_double(scale);
+    else:
+      raise TypeError,"invalid 'scale' argument of type %s"%type(scale);
+  if axis_index is not None:
+    if isinstance(axis_index,(tuple,list,int)):
+      rec.axis_index  = array_int(axis_index);
+    elif is_array(axis_index):
+      if len(scale.shape) > 1:
+        raise TypeError,'axis_index array must be one-dimensional';
+      rec.axis_index = array_int(axis_index);
+    else:
+      raise TypeError,"invalid 'axis_index' argument of type %s"%type(scale);
 
   if weight is not None:
     rec.weight = float(weight);
@@ -127,7 +143,7 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
     rec.dbid = int(dbid);
   if pert is not None:
     rec.pert = float(pert);
-  
+    
   return rec;
 
 
@@ -145,47 +161,6 @@ def composedpolc(coeff=0.,shape=None,offset=None,scale=None,domain=None,
              weight,dbid,pert,subclass=_composedpolc_type);
   rec.funklet_list=dmilist(funklet_list);
   return rec;
-
-##def polclog (coeff,shape=None,offset=None,scale=None,domain=None,
-##             weight=None,dbid=None,subclass=_polclog_type):
-##  """creates a polc record""";
-##  rec = subclass();
-##  # process coeff argument -- if a list, then force into a 2D array
-##  if isinstance(coeff,(tuple,list)):
-##    if shape and len(shape)>2:
-##      raise ValueError,'coeff array must be one- or two-dimensional';
-##    if filter(lambda x:isinstance(x,complex),coeff):
-##      coeff = array_complex(coeff,shape=shape);
-##    else:
-##      coeff = array_double(coeff,shape=shape);
-##  if is_scalar(coeff):
-##    if not isinstance(coeff,complex):  # force float or complex
-##      coeff = float(coeff);
-##    rec.coeff = array(coeff);
-##  elif is_array(coeff):
-##    if len(coeff.shape) > 2:
-##      raise TypeError,'coeff array must be one- or two-dimensional';
-##    if coeff.type() not in (arr_double,arr_dcomplex):
-##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
-##    rec.coeff = coeff;
-##  else:
-##    raise TypeError,'illegal coeff argument';
-##  # process domain argument
-##  if domain is not None:
-##    if isinstance(domain,_domain_type):
-##      rec.domain = domain;
-##    else:
-##      raise TypeError,'domain argument must be a MeqDomain object';
-##  # other optional arguments
-##  if offset is not None:
-##    rec.offset = offset;
-##  if scale is not None:
-##    rec.scale = scale;
-##  if weight is not None:
-##    rec.weight = weight;
-##  if dbid is not None:
-##    rec.dbid = dbid;
-##  return rec;
 
 def make_polc (p):
   if isinstance(p,_polc_type):
@@ -222,7 +197,7 @@ def gen_domain (**kw):
   for kw,value in kw.iteritems():
     if not isinstance(value,(list,tuple)) or len(value)!=2:
       raise TypeError,kw+": list or tuple of (min,max) expected";
-    dom[kw] = map(float,value);
+    dom[kw.lower()] = map(float,value);
   return dom;
 
 _make_domain = domain;
@@ -253,6 +228,8 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
         else: # else extend current segment
           cur_step = dx;
           segs.end_index[-1] = i;  # update end of current segment
+      segs.start_index = asarray(segs.start_index,arr_int32);
+      segs.end_index = asarray(segs.end_index,arr_int32);
   # (b) num is specified
   elif num is not None:
     if num <= 0:
@@ -341,7 +318,8 @@ def gen_cells (domain,**kw):
   cell_size = record();
   segments = record();
   for axis,dom in domain.iteritems():
-    nc = kw.get('num_'+str(axis),1);
+    axis = hiid(axis);
+    nc = kw.get('num_'+str(axis).lower(),1);
     grid[axis],cell_size[axis],segments[axis] = \
         _resolve_grid(axis,dom,nc,[],[]);
   return _cells_type(domain=domain,grid=grid,cell_size=cell_size,segments=segments);

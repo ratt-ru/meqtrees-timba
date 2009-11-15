@@ -118,8 +118,8 @@ if False:
   except: pass;
 
 
-def importPlugin (name):
-  name = 'Timba.Plugins.'+name;
+def importPlugin (name,location='Timba.Plugins'):
+  name = location + '.' +name;
   try:
     __import__(name,globals(),locals(),[]);
   except Exception,what:
@@ -136,6 +136,8 @@ importPlugin('quickref_plotter');
 importPlugin('collections_plotter');
 importPlugin('array_plotter');
 importPlugin('result_plotter');
+
+importPlugin('AxM.pyvis.pynode_plotter',location='Timba.Contrib')
 
 ### retired plugins
 # importPlugin('pylab_plotter');

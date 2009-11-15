@@ -71,7 +71,7 @@ public:
   typedef std::vector<Domain::Ref> DomainObjectList;
   
     //##ModelId=3F86886F02B7
-  explicit FastParmTable (const string& tableName,bool create_new=false);
+  explicit FastParmTable (const string& tableName,bool write=true,bool create_new=false);
 
     //##ModelId=3F86886F02BC
   virtual ~FastParmTable();

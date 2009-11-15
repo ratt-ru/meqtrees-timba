@@ -159,7 +159,7 @@ void ComposedPolc::validateContent (bool recursive)
 	          newdom.end(axisi)   != funklet.domain().end(axisi)) )
 	      axisHasShape_[axisi] |= 2;
 	}
-	newdom=newdom.envelope(funklet.domain());
+	newdom.expandToEnvelope(funklet.domain());
 
 	//add to DMI List to show up in tree
 

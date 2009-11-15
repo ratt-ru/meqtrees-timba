@@ -116,6 +116,9 @@ public:
   // returns the envelope of this and the other domain
   Domain envelope (const Domain &other) const
   { return envelope(*this,other); }
+
+  // expands this domain to envelop the other domain
+  void expandToEnvelope (const Domain &other);
   
   // print to stream
     //##ModelId=400E53050125
