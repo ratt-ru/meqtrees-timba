@@ -89,7 +89,6 @@ appropriate Cmake variable:
   Variable                   Description
   ---------------------------------------------------
   USE_MPI                  | Use the mpi parrallelisation library
-  NO_DBM                   | Build without a database management system
 
 
 
