@@ -272,12 +272,15 @@ class VellsData:
            plot_string = plot_string + " " + self.rq_label
          self._plot_labels[menu_label] = plot_string
        else:
-         # there's no actual data, so return
+         # there's no actual data - this can happen of one of the vellsets
+         # is an empty dictionary, e.g .if we select only diagonal terms
+         # of a MS, off-diagonals are supplied as empty dicts.
+         # Probably should just get rid of this 'else' - we'll see
          if len(self.rq_label) > 0:
            self.scalar_string = self.rq_label + ' has no data'
          else:
            self.scalar_string = 'has no data'
-         return
+#        return
        
        if vells_rec.vellsets[i].has_key("perturbed_value"):
          try:
