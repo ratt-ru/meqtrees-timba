@@ -306,8 +306,12 @@ class QwtPlotImage(Qwt.QwtPlotItem):
         self.complex = True
         imag_array =  image.imag
         real_array =  image.real
-        min = real_array.min()
-        max = real_array.max()
+        try:
+          min = real_array.min()
+          max = real_array.max()
+        except:
+          min = 0.0
+          max = 0.0
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
@@ -323,8 +327,12 @@ class QwtPlotImage(Qwt.QwtPlotItem):
           self.r_cmin = min
           self.r_cmax = max
 
-        min = imag_array.min()
-        max = imag_array.max()
+        try:
+          min = imag_array.min()
+          max = imag_array.max()
+        except:
+          min = 0.0
+          max = 0.0
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
@@ -341,8 +349,12 @@ class QwtPlotImage(Qwt.QwtPlotItem):
           self.i_cmax = max
       else:
         self.complex = False
-        min = image.min()
-        max = image.max()
+        try:
+          min = image.min()
+          max = image.max()
+        except:
+          min = 0.0
+          max = 0.0
         if abs(max - min) < 0.00005:
           if max == 0.0 or min == 0.0:
             min = -0.1
