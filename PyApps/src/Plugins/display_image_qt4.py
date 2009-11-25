@@ -778,46 +778,23 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def set_flag_toggles(self, flag_plane=None, flag_setting=False):
       """ creates context menus for selecting flagged Vells data """
-# add flag toggling for vells but make hidden by default
-      self._toggle_flag_label = "toggle flagged data for plane "
-      toggle_id = self.menu_table[self._toggle_flag_label]
       if flag_plane is None:
-        self._toggle_flagged_data_for_plane = Qt.QAction(self._toggle_flag_label,self)
-        self._menu.addAction(self._toggle_flagged_data_for_plane)
-        self._toggle_flagged_data_for_plane.setData(Qt.QVariant(str(toggle_id)))
-        self.connect(self._toggle_flagged_data_for_plane,Qt.SIGNAL("triggered()"),self.handle_toggle_flagged_data_for_plane);
+        self._toggle_flagged_data_for_plane.setText(self._toggle_flag_label)
+        self._toggle_blink_of_flagged_data.setText(self._toggle_blink_label)
+        self._set_display_range_to_unflagged_data.setText(self._toggle_range_label)
       else:
         self._toggle_flagged_data_for_plane.setText(self._toggle_flag_label+str(flag_plane))
+        self._toggle_blink_of_flagged_data.setText(self._toggle_blink_label+str(flag_plane))
+        self._set_display_range_to_unflagged_data.setText(self._toggle_range_label+str(flag_plane))
+
       self._toggle_flagged_data_for_plane.setEnabled(flag_setting)
       self._toggle_flagged_data_for_plane.setVisible(flag_setting)
-      self._toggle_flagged_data_for_plane.setCheckable(True)
 
-
-      self._toggle_blink_label = "toggle blink of flagged data for plane "
-      toggle_id = self.menu_table[self._toggle_blink_label]
-      if flag_plane is None:
-        self._toggle_blink_of_flagged_data = Qt.QAction(self._toggle_blink_label,self)
-        self._menu.addAction(self._toggle_blink_of_flagged_data)
-        self._toggle_blink_of_flagged_data.setData(Qt.QVariant(str(toggle_id)))
-        self.connect(self._toggle_blink_of_flagged_data,Qt.SIGNAL("triggered()"),self.handle_toggle_blink_of_flagged_data);
-      else:
-        self._toggle_blink_of_flagged_data.setText(self._toggle_blink_label+str(flag_plane))
       self._toggle_blink_of_flagged_data.setEnabled(flag_setting)
       self._toggle_blink_of_flagged_data.setVisible(flag_setting)
-      self._toggle_blink_of_flagged_data.setCheckable(True)
 
-      self._toggle_range_label = "Set display range to that of unflagged data for plane "
-      toggle_id = self.menu_table[self._toggle_range_label]
-      if flag_plane is None:
-        self._set_display_range_to_unflagged_data = Qt.QAction(self._toggle_range_label,self)
-        self._menu.addAction(self._set_display_range_to_unflagged_data)
-        self._set_display_range_to_unflagged_data.setData(Qt.QVariant(str(toggle_id)))
-        self.connect(self._set_display_range_to_unflagged_data,Qt.SIGNAL("triggered()"),self.handle_set_display_range_to_unflagged_data);
-      else:
-        self._set_display_range_to_unflagged_data.setText(self._toggle_range_label+str(flag_plane))
       self._set_display_range_to_unflagged_data.setEnabled(flag_setting)
       self._set_display_range_to_unflagged_data.setVisible(flag_setting)
-      self._set_display_range_to_unflagged_data.setCheckable(True)
       self._set_display_range_to_unflagged_data.setChecked(self.flag_range)
 
     def set_flag_toggles_active(self, flag_setting=False,image_display=True):
@@ -4091,6 +4068,38 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.handle_change_vells);
 
 # add potential menu for flagged data
+# add flag toggling for vells but make hidden by default
+        self._toggle_flag_label = "toggle flagged data for plane "
+        toggle_id = self.menu_table[self._toggle_flag_label]
+        self._toggle_flagged_data_for_plane = Qt.QAction(self._toggle_flag_label,self)
+        self._menu.addAction(self._toggle_flagged_data_for_plane)
+        self._toggle_flagged_data_for_plane.setData(Qt.QVariant(str(toggle_id)))
+        self.connect(self._toggle_flagged_data_for_plane,Qt.SIGNAL("triggered()"),self.handle_toggle_flagged_data_for_plane);
+        self._toggle_flagged_data_for_plane.setEnabled(False)
+        self._toggle_flagged_data_for_plane.setVisible(False)
+        self._toggle_flagged_data_for_plane.setCheckable(True)
+
+
+        self._toggle_blink_label = "toggle blink of flagged data for plane "
+        toggle_id = self.menu_table[self._toggle_blink_label]
+        self._toggle_blink_of_flagged_data = Qt.QAction(self._toggle_blink_label,self)
+        self._menu.addAction(self._toggle_blink_of_flagged_data)
+        self._toggle_blink_of_flagged_data.setData(Qt.QVariant(str(toggle_id)))
+        self.connect(self._toggle_blink_of_flagged_data,Qt.SIGNAL("triggered()"),self.handle_toggle_blink_of_flagged_data);
+        self._toggle_blink_of_flagged_data.setEnabled(False)
+        self._toggle_blink_of_flagged_data.setVisible(False)
+        self._toggle_blink_of_flagged_data.setCheckable(True)
+
+        self._toggle_range_label = "Set display range to that of unflagged data for plane "
+        toggle_id = self.menu_table[self._toggle_range_label]
+        self._set_display_range_to_unflagged_data = Qt.QAction(self._toggle_range_label,self)
+        self._menu.addAction(self._set_display_range_to_unflagged_data)
+        self._set_display_range_to_unflagged_data.setData(Qt.QVariant(str(toggle_id)))
+        self.connect(self._set_display_range_to_unflagged_data,Qt.SIGNAL("triggered()"),self.handle_set_display_range_to_unflagged_data);
+        self._set_display_range_to_unflagged_data.setEnabled(False)
+        self._set_display_range_to_unflagged_data.setVisible(False)
+        self._set_display_range_to_unflagged_data.setCheckable(True)
+
         self.set_flag_toggles()
 
 # add zoomer and printer stuff
