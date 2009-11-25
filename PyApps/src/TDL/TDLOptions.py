@@ -171,7 +171,8 @@ def init_options (section=None,save=True):
   config_save_enabled = save;
   # init stuff
   global config_section;
-  config_section = os.path.splitext(os.path.basename(section or current_scriptname))[0];
+  filename = section or current_scriptname;
+  config_section = os.path.splitext(os.path.basename(filename))[0];
   _dprint(1,"config section is now",config_section);
   # for the sake of backwards compatibility, check if there's no config section
   # corresponding to the base name, but there is one for the full filename, and

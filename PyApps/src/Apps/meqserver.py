@@ -35,7 +35,10 @@ from Timba.Meq import meqds
 # may depend on app_defaults settings)
 from Timba.Apps import app_defaults
 if app_defaults.include_gui:
-  from Timba.GUI.meqserver_gui import *
+  try:
+    from Timba.GUI.meqserver_gui import *
+  except:
+    pass;
 
 # #-------- update default debuglevels
 # app_defaults.debuglevels.update({
