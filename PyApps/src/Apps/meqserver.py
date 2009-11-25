@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -203,7 +204,7 @@ class meqserver (multiapp_proxy):
   def _result_handler (self,msg):
     try:
       value = msg.payload;
-      print '============= result for node: ',value.name;
+      dprint(0,'============= result for node: ',value.name);
       self._pprint.pprint(value);
     except:
       print 'exception in meqserver._result_handler: ',sys.exc_info();
@@ -251,9 +252,9 @@ def default_mqs (debug={},nokill=False,extra=None,**kwargs):
     if isinstance(extra,str):
       extra = args.extra + extra.split(' ');
     extra = (extra or []) + ["-gw",gwlocal];
-    print 'meqserver args:',args;
     spawn = args.get('spawn',None);
     mqs = meqserver(extra=extra,**args);
+    mqs.dprint(1,'default meqserver args:',args);
     meqds.set_meqserver(mqs);
     if not nokill:
       atexit.register(stop_default_mqs);
@@ -268,7 +269,7 @@ def default_mqs (debug={},nokill=False,extra=None,**kwargs):
 def stop_default_mqs ():
   global mqs;
   if mqs: 
-    mqs.dprint(0,"stopping default meqserver");
+    mqs.dprint(1,"stopping default meqserver");
     mqs.halt();
     mqs.disconnect();
     mqs = None;

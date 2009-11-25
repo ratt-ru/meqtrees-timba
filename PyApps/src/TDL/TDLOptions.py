@@ -36,6 +36,9 @@ import os.path
 import time
 import re
 import glob
+import pwd
+import socket
+
 
 # import Qt but ignore failures since we can also run stand-alone
 try:
@@ -56,6 +59,7 @@ config_section = "default";
 current_scriptname = None;
 # config file
 config_file = ".tdl.conf";
+
 # flag: write failed (so that we only report it once)
 _config_write_failed = False;
 # flag: save changes to config
@@ -65,24 +69,30 @@ class _OurConfigParser (ConfigParser.RawConfigParser):
   """extend the standard ConfigParser with a 'sticky' filename""";
   def __init__ (self,*args):
     ConfigParser.RawConfigParser.__init__(self,*args);
-    self._file = config_file;
+    self._readfile = self._writefile = config_file;
   def read (self,filename):
-    self._file = filename;
-    self.reread();
-  def reread (self):
-    _dprint(1,"reading config file",self._file);
-    ConfigParser.RawConfigParser.read(self,self._file);
-  def rewrite (self):
-    ConfigParser.RawConfigParser.write(self,file(self._file,"w"));
+    self._readfile = filename;
+    self.reread(filename);
+  def reread (self,filename=None):
+    filename = filename or self._readfile;
+    _dprint(1,"reading config file",filename);
+    ConfigParser.RawConfigParser.read(self,filename);
+  def rewrite (self,filename=None):
+    filename = filename or self._writefile;
+    _dprint(1,"writing config file",filename);
+    ConfigParser.RawConfigParser.write(self,file(filename,"w"));
 
 # create global config object
 config = _OurConfigParser();
 
 def enable_save_config (enable=True):
+  """Enables/disables auto-saving of config file every time an option is set.
+  TDL.Compile() (among others) calls this to accelerate recompilation."""
   global _config_save_enabled;
   _config_save_enabled = enable;
 
 def save_config ():
+  """Saves current option settings to config file."""
   global _config_save_enabled;
   if not _config_save_enabled:
     return;
@@ -96,38 +106,61 @@ def save_config ():
       _dprint(0,"WARNING: error writing to file",config_file);
       _dprint(0,"TDL options will not be saved");
 
-def set_config (option,value):
+def clear_options ():
+  """Clears and removes all options."""
+  # list of root-level compile-time options
+  global compile_options;
+  # list of root-level runtime options
+  global runtime_options;
+  # dict of all options (key is config_name)
+  global _all_options;
+  # list of all TDL Jobs
+  global _job_options;
+  # set of mandatory options that are not yet initialized
+  global _unset_mandatory_options;
+  compile_options = [];
+  runtime_options = [];
+  _all_options = {};
+  _job_options = [];
+  _unset_mandatory_options = set();
+
+clear_options();
+
+def _set_config (option,value,save=True):
+  """Sets option value in configuration file""";
   if not config.has_section(config_section):
     config.add_section(config_section);
   config.set(config_section,option,value);
   _dprint(1,"setting",option,"=",value,"in config",config_section);
-  save_config();
+  if save:
+    save_config();
 
-compile_options = [];
-runtime_options = [];
-unset_mandatory_options = set();
-
-def clear_options ():
-  global compile_options;
-  global runtime_options;
-  global unset_mandatory_options;
-  compile_options = [];
-  runtime_options = [];
-  unset_mandatory_options = set();
-
-def set_mandatory_option (name,value):
+def _set_mandatory_option (name,value):
+  """Callback function, called when a mandatory option has been set. Checks if all
+  mandatory options are set, and emits signals accordingly.""";
   if value is None:
-    if not unset_mandatory_options and OptionObject:
+    if not _unset_mandatory_options and OptionObject:
       OptionObject.emit(SIGNAL("mandatoryOptionsSet"),False);
-    unset_mandatory_options.add(name);
+    _unset_mandatory_options.add(name);
   else:
-    unset_mandatory_options.discard(name);
-    if not unset_mandatory_options and OptionObject:
+    _unset_mandatory_options.discard(name);
+    if not _unset_mandatory_options and OptionObject:
       OptionObject.emit(SIGNAL("mandatoryOptionsSet"),True);
 
-def init_options (filename,save=True):
-  """initializes option list for given script.
-  If save=False, updated opotions will never be saved.
+def init_script (filename):
+  """Initializes the option mechanism in preparation for compilation.
+  Clears current options, etc. Note that this funcrtion does NOT cause the config file
+  to be read, or a section to be assigned. The latter is done by the init_options() call below.
+  This allows batch-mode operation where a script is recompiled without rereading its
+  options."""
+  clear_options();
+  global current_scriptname;
+  current_scriptname = filename;
+
+def init_options (section=None,save=True):
+  """initializes option list for given script. Reloads the current config file, and attaches to the specified section.
+  If section is None, uses the basename of the current script filename as a section.
+  If save=False, updated options will never be saved.
   """
   # re-read config file
   global config;
@@ -137,11 +170,8 @@ def init_options (filename,save=True):
   global _config_save_enabled;
   config_save_enabled = save;
   # init stuff
-  clear_options();
-  global current_scriptname;
-  current_scriptname = filename;
   global config_section;
-  config_section = re.sub('\.py[co]?','',os.path.basename(filename));
+  config_section = os.path.splitext(os.path.basename(section or current_scriptname))[0];
   _dprint(1,"config section is now",config_section);
   # for the sake of backwards compatibility, check if there's no config section
   # corresponding to the base name, but there is one for the full filename, and
@@ -156,12 +186,23 @@ def init_options (filename,save=True):
     config.remove_section(filename);
     save_config();
 
-
-import time
-import pwd
-import socket
+def set_option (name,value,save=True,strict=False):
+  """Sets the named option (using its config_name) to the given value.
+  If option is not found (which may be the case if the script is not yet compiled), sets it in the current
+  config anyway if strict=False, else raises a NameError.""";
+  global _all_options;
+  item = _all_options.get(name);
+  if item:
+    item.set_value(value,save=save);
+    return;
+  else:
+    if strict:
+      raise NameError,"Option '%s' not found"%name;
+    # Perhaps the script hasn't been compiled yet, so pre-set it in config
+    _set_config(name,str(value),save=save);
 
 def dump_log (message=None,filename='meqtree.log',filemode='a'):
+  """Dumps a message to the indicated logfile, followed by all current option settings."""
   try:
     try:
       fileobj = file(filename,filemode);
@@ -179,10 +220,10 @@ def dump_log (message=None,filename='meqtree.log',filemode='a'):
     dump_options(fileobj);
   except IOError:
     _dprint(0,"Error writing to %s. No log will be written."%filename);
-    
+
 
 def dump_options (fileobj):
-  # dumps all current options into the file given by fileobj
+  """Dumps all current option settings into the file given by fileobj""";
   fileobj.write("[%s]\n"%config_section);
   fileobj.write('# compile-time options follow\n');
   lines = [];
@@ -204,10 +245,21 @@ def dump_options (fileobj):
     fileobj.write(line);
 
 def get_compile_options ():
+  """Returns list of all compile-time options."""
   return compile_options;
 
 def get_runtime_options ():
+  """Returns list of all runtime options."""
   return runtime_options;
+
+def get_job_func (name):
+  """Find the TDL job with the given name or ID. Raises a NameError if job is not found.""";
+  global _job_options;
+  for item in _job_options:
+    if item.name == name or item.job_id == name:
+      return item.func;
+  raise NameError,"Job '%s' not found"%name;
+
 
 class _TDLBaseOption (object):
   """abstract base class for all option entries""";
@@ -321,11 +373,14 @@ class _TDLOptionSeparator (_TDLBaseOption):
     return None;
 
 class _TDLJobItem (_TDLBaseOption):
-  def __init__ (self,func,name=None,namespace=None,doc=None):
+  def __init__ (self,func,name=None,namespace=None,doc=None,job_id=None):
     _TDLBaseOption.__init__(self,name or func.__name__.replace('_',' '),
                             namespace=namespace,doc=doc);
     self.func = func;
+    self.job_id = job_id;
     self.symbol = func.__name__;
+    global _job_options;
+    _job_options.append(self);
 
   def make_treewidget_item (self,parent,after,executor=None):
     item = QTreeWidgetItem(parent,after);
@@ -334,7 +389,7 @@ class _TDLJobItem (_TDLBaseOption):
     font = item.font(0);
     font.setBold(True);
     item.setFont(0,font);
-    item._on_click = curry(executor,self.func,self.name);
+    item._on_click = curry(executor,self.func,self.name,self.job_id);
     item._close_on_click = True;
     parent._ends_with_separator = False;
     return self.set_treewidget_item(item);
@@ -367,7 +422,9 @@ class _TDLOptionItem(_TDLBaseOption):
     run-time or compile-time menu.""";
     _TDLBaseOption.init(self,owner,runtime);
     if owner and self.config_name is not None:
-        self.config_name = '.'.join((owner,self.config_name));
+      self.config_name = '.'.join((owner,self.config_name));
+    global _all_options;
+    _all_options[self.config_name] = self;
 
   def collect_log (self,log):
     """called to collect a recursive log of all options. This version adds an entry
@@ -377,11 +434,11 @@ class _TDLOptionItem(_TDLBaseOption):
 
   def _set (self,value,callback=True):
     """private method for changing the internal value of an option"""
-    _dprint(2,"setting",self.name,"=",value);
+    _dprintf(2,"setting '%s' %s=%s in namespace %X\n"%(self.name,self.symbol,value,id(self.namespace)));
     self.value = self.namespace[self.symbol] = value;
     # add/remove to mandatory set
     if self.mandatory:
-      set_mandatory_option(self.config_name,value);
+      _set_mandatory_option(self.config_name,value);
     # be anal about whether the _when_changed_callbacks attribute is initialized,
     # as _set may have been called before the constructor
     if callback:
@@ -443,7 +500,7 @@ class _TDLBoolOptionItem (_TDLOptionItem):
   def set (self,value,save=True,callback=True,set_twitem=True):
     value = bool(value);
     if save and self.config_name:
-      set_config(self.config_name,int(value));
+      _set_config(self.config_name,int(value));
     if self._twitem and set_twitem:
       self._twitem.setCheckState(0,(value and Qt.Checked) or Qt.Unchecked);
     self._set(value,callback=callback);
@@ -524,7 +581,7 @@ class _TDLFileOptionItem (_TDLOptionItem):
     if value.startswith(cwd):
       value = value[len(cwd):];
     if save:
-      set_config(self.config_name,value);
+      _set_config(self.config_name,value);
     self._set(value,callback=callback);
 
   def enable (self,enabled=True):
@@ -612,6 +669,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     _TDLOptionItem.init(self,owner,runtime);
     select = None;
     try:
+      _dprint(2,"reading",self.config_name," from config section",config_section);
       value = config.get(config_section,self.config_name);
       _dprint(2,"read",self.config_name,"=",value,"from config");
       # look up value in list
@@ -660,7 +718,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     _dprint(5,self.symbol,"set_option_list",opts);
     if select is None and conserve_selection:
       try:
-        selection = self.get_option_str(self.selected); 
+        selection = self.get_option_str(self.selected);
       except:
         selection = conserve_selection = None;
       _dprint(5,"trying to conserve previous selection",selection);
@@ -718,7 +776,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     if self._submenu:
       self._submenu_qas[self.selected].setChecked(True);
     if save:
-      set_config(self.config_name,self.get_option_str(value));
+      _set_config(self.config_name,self.get_option_str(value));
     self._set(self.get_option(value),callback=callback);
 
   def set_custom_value (self,value,select=True,save=True,callback=True):
@@ -803,7 +861,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     selected = action._ival;
     # validate custom value
     if self._more is not None and selected == self.num_options()-1:
-      if not self._validator(self._custom_value[0]): 
+      if not self._validator(self._custom_value[0]):
         self._popup_menu();
         return;
       self.set(selected);
@@ -813,7 +871,7 @@ class _TDLListOptionItem (_TDLOptionItem):
         self._popup_menu();
     else:
       self.set(selected);
-      
+
 
   def _set_submenu_custom_value (self):
     # get value from editor
@@ -962,7 +1020,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
         if other is not item:
           other.set(False,save=False);
     if save:
-      set_config(self.excl_config_name,name or '');
+      _set_config(self.excl_config_name,name or '');
 
   def _exclusive_item_selected (self,item,value,save=True):
     _dprint(3,"selected exclusive menu item",item,item.symbol,value);
@@ -1031,7 +1089,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       previtem = subitem.make_treewidget_item(item,previtem,executor=executor) or previtem;
     parent._ends_with_separator = False;
     return self.set_treewidget_item(item);
-    
+
 def _steal_items (itemlist,predicate):
   """helper function: steals option items matching the given predicate, from the given
   list (which will usuaally be either the global runtime_options or compile_options
@@ -1049,7 +1107,7 @@ def _steal_items (itemlist,predicate):
   for i in steal_items:
     del itemlist[i];
   return items;
-    
+
 def TDLStealOptions (obj,is_runtime=False):
   """Steals options from the given object.
   If is_runtime is False, steals compile-time options, else steals runtime options.
@@ -1098,12 +1156,12 @@ def _resolve_owner (calldepth=2):
   # filename = frame.f_code.co_filename;
   ## this way is more portable, but incompatible with psyco:
   filename = inspect.getframeinfo(frame)[0];
-  filename = os.path.basename(filename).split('.')[0];
-  # if owner matches our config section, return None
-  if filename == config_section:
+  # if owner matches our current script name, return None
+  owner = os.path.splitext(os.path.basename(filename))[0];
+  if owner == (current_scriptname and os.path.splitext(os.path.basename(current_scriptname))[0]):
     return None;
   else:
-    return filename;
+    return owner;
 
 def _resolve_namespace (namespace,symbol,calldepth=2):
   # if namespace is not specified, set it to the globals() of the caller of our caller
@@ -1175,11 +1233,12 @@ def TDLOption (symbol,name,value,namespace=None,**kw):
   item = _make_option_item(namespace,symbol,name,value,**kw);
   return item;
 
-def TDLJob (function,name=None,doc=None):
+def TDLJob (function,name=None,doc=None,job_id=None):
   """this creates and returns a TDL job entry, without adding it to
   anu menu. Should be used inside a TDLRuntimeMenu.""";
   namespace = sys._getframe(1).f_globals;
-  return _TDLJobItem(function,name=name,namespace=namespace,doc=doc);
+  opt = _TDLJobItem(function,name=name,namespace=namespace,doc=doc,job_id=job_id);
+  return opt;
 
 def TDLCompileOption (symbol,name,value,namespace=None,**kw):
   """this creates an option object and adds it to the compile-time menu""";
@@ -1209,9 +1268,9 @@ def TDLRuntimeOptionSeparator ():
   runtime_options.append(opt);
   return opt;
 
-def TDLRuntimeJob (function,name=None,doc=None):
+def TDLRuntimeJob (function,name=None,doc=None,job_id=None):
   """this creates a TDL job entry, and adds it to the runtime menu.""";
-  job = _TDLJobItem(function,name=name,doc=doc);
+  job = _TDLJobItem(function,name=name,doc=doc,job_id=job_id);
   # owner is at depth 1 -- our caller
   job.init(_resolve_owner(calldepth=1),True);
   runtime_options.append(job);

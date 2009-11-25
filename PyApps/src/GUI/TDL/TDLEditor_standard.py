@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 #
-#% $Id: tdlgui.py 6822 2009-03-03 15:13:52Z oms $ 
+#% $Id: tdlgui.py 6822 2009-03-03 15:13:52Z oms $
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -22,7 +22,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -68,10 +68,10 @@ from TDLOptionsDialog import TDLOptionsDialog
 
 class TDLEditor (QFrame,PersistentCurrier):
   SupportsLineNumbers = False;
-  
+
   # a single editor always has the focus
   current_editor = None;
-  
+
   # flag: sync to external editor
   external_sync = True;
   def set_external_sync (value):
@@ -85,7 +85,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     toplo = QVBoxLayout(self);
     toplo.setContentsMargins(0,0,0,0);
     toplo.setSpacing(0);
-    
+
     self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding);
     splitter = QSplitter(Qt.Vertical,self);
     toplo.addWidget(splitter);
@@ -105,7 +105,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     mainwin = parent;
     while mainwin and not isinstance(mainwin,QMainWindow):
       mainwin = mainwin.parent();
-      
+
     self._toolbar = QToolBar(mainwin or self);
     lo.addWidget(self._toolbar);
     self._toolbar.setIconSize(QSize(16,16));
@@ -120,7 +120,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._tb_tdlexec.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
     self._tb_tdlexec.setToolTip("Accesses run-time options & jobs defined by this TDL script");
     self._tb_tdlexec.hide();
-    
+
     jobs = self._tdlexec_menu = TDLOptionsDialog(self);
     jobs.setWindowTitle("TDL Jobs & Runtime Options");
     jobs.setWindowIcon(pixmaps.gear.icon());
@@ -132,7 +132,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._toolbar.addWidget(self._tb_save);
     self._tb_save.setIcon(pixmaps.file_save.icon());
     self._tb_save.setToolTip("Saves script. Click on the down-arrow for other options.");
-    
+
     savemenu = QMenu(self);
     self._tb_save.setMenu(savemenu);
     self._tb_save.setPopupMode(QToolButton.MenuButtonPopup);
@@ -145,7 +145,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     qa_revert = self._qa_revert = savemenu.addAction("Revert to saved",self._revert_to_saved);
 
     # run menu and button
-    
+
     self._qa_run = self._toolbar.addAction(pixmaps.blue_round_reload.icon(),
                               "&Save & reload",self._import_main_file);
     self._qa_run.setShortcut(Qt.ALT+Qt.Key_R);
@@ -166,9 +166,9 @@ class TDLEditor (QFrame,PersistentCurrier):
     QObject.connect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),self.mark_mandatory_options_set);
     opts.hide();
     QObject.connect(self._tb_opts,SIGNAL("clicked()"),opts.show);
-    
+
     self._toolbar.addSeparator();
-    
+
     # cursor position indicator
     self._poslabel = QLabel(self._toolbar);
     #wa = QWidgetAction(self._toolbar);
@@ -179,7 +179,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     width = self._poslabel.fontMetrics().width("L:999 C:999");
     self._poslabel.setMinimumWidth(width);
     self._poslabel.setText("L:0 C:0");
-    
+
     # filename indicator
     self._pathlabel = QLabel(self._toolbar);
     #wa = QWidgetAction(self._toolbar);
@@ -209,7 +209,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     QObject.connect(self._document,SIGNAL("modificationChanged(bool)"),self._text_modified);
     QObject.connect(self._editor,SIGNAL("cursorPositionChanged()"),self._display_cursor_position);
     # QObject.connect(self._editor,SIGNAL("textChanged()"),self._clear_transients);
-    
+
     # add character formats for error display
     self._format_error = QTextCharFormat(self._editor.currentCharFormat());
     self._format_error.setBackground(QBrush(QColor("lightpink")));
@@ -272,22 +272,22 @@ class TDLEditor (QFrame,PersistentCurrier):
 
   def __del__ (self):
     self.has_focus(False);
-    
+
   def disable_editor (self):
     """Called before disabling the editor, as on some versions of PyQt
     the object is not destroyed properly and keeps receving signals""";
     self._enabled = False;
     QObject.disconnect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),self.mark_mandatory_options_set);
-    
+
   def show_compile_options (self):
     self._options_menu.show();
 
   def mark_mandatory_options_set (self,enabled):
     self._options_menu.enableOkButton(enabled);
-    
+
   def show_runtime_options (self):
     self._tdlexec_menu.show();
-    
+
   def tree_is_in_sync (self,sync=True):
     """Tells the editor wheether the current tree is in sync with the content of the script.
     This is indicated by a visual cue on the toolbar.
@@ -299,7 +299,7 @@ class TDLEditor (QFrame,PersistentCurrier):
       self._tb_tdlexec.setIcon(pixmaps.exclaim_yellow_warning.icon());
       self._tb_tdlexec.setToolTip("""Access run-time options & jobs defined by this TDL script.
 Warning! You have modified the script since it was last compiled, so the tree may be out of date.""");
-  
+
   def _file_closed (self):
     self.emit(PYSIGNAL("fileClosed()"),self);
 
@@ -321,7 +321,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 
   def show_line_numbers (self,show):
     pass;
-  
+
   def show_run_control (self,show=True):
     if self._closed:
       return;
@@ -374,7 +374,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     line = cursor.blockNumber();
     self._poslabel.setText("L:<b>%d</b> C:<b>%d</b>" % (line+1,col+1));
     self._poslabel.repaint();
-     
+
 
   def _text_modified (self,mod=True):
     self._modified = mod;
@@ -436,14 +436,14 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 
   def clear_errors (self):
     self._error_window.clear_errors(emit_signal=True);
-    
+
   def _find_block_by_linenumber (self,line):
     block = block0 = self._document.begin();
     nblock = 1;
     while block and nblock < line:
       block0 = block;
       block = block0.next();
-      nblock += 1; 
+      nblock += 1;
     return block or block0;
 
   def _reset_errors (self,nerr):
@@ -506,7 +506,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         cursor.setPosition(self._find_block_by_linenumber(line).position() + column);
         self._editor.setTextCursor(cursor);
         self._editor.ensureCursorVisible();
-      
+
 
   def sync_external_file (self,filename=None,ask=True):
     #
@@ -520,7 +520,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     else:
       res = QMessageBox.warning(self,"TDL file changed",
         """<p><tt>%s</tt> has been modified by another program.
-        Would you like to save your changes and overwrite the version on disk, 
+        Would you like to save your changes and overwrite the version on disk,
 	discard your changes and revert to the version on disk, or cancel the operation?"""
         % (filename,),QMessageBox.Save|QMessageBox.Discard|QMessageBox.Cancel);
     if res == QMessageBox.Cancel:
@@ -544,7 +544,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         if not self.sync_external_file(filename=filename,ask=True):
           return None;
     else: # no filename, ask for one
-      try: 
+      try:
         dialog = self._save_as_dialog;
         dialog.setDirectory(dialog.directory());  # hopefully this rescan the directory
       except AttributeError:
@@ -609,10 +609,10 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     tlab.setFrameShape(QFrame.ToolBarPanel);
     tlab.setFrameShadow(QFrame.Sunken);
     menu.insertItem(tlab);
-    
+
   def has_compile_options (self):
     return self._options_menu.treeWidget().topLevelItemCount();
-  
+
   def has_runtime_options (self):
     return self._tdlexec_menu.treeWidget().topLevelItemCount();
 
@@ -698,7 +698,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       self._options_menu.show();
     busy = None;
     return True;
-      
+
   def compile_content (self):
     # import content first, and return if failed
     if not self.import_content(force=True):
@@ -781,7 +781,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           name = re.sub("^_tdl_job_","",func.__name__);
           name = name.replace('_',' ');
           self._tdlexec_menu.addAction(name,
-              curry(self.execute_tdl_job,_tdlmod,ns,func,name),
+              curry(self.execute_tdl_job,_tdlmod,ns,func,name,func.__name__),
               icon=pixmaps.gear);
       self.emit(PYSIGNAL("hasRuntimeOptions()"),self,True);
       self._tdlexec_menu.adjustSizes();
@@ -797,12 +797,12 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     busy = None;
     return True;
 
-  def execute_tdl_job (self,_tdlmod,ns,func,name):
+  def execute_tdl_job (self,_tdlmod,ns,func,name,job_id):
     """executes a predefined TDL job given by func""";
     self._tdlexec_menu.hide();
     try:
-      # log job 
-      TDLOptions.dump_log("running TDL job '%s'"%name);
+      # log job
+      TDLOptions.dump_log("running TDL job '%s' (%s)"%(name,("job id '%s'"%job_id if job_id else "no job id")));
       busy = BusyIndicator();
       func(meqds.mqs(),self);
       # no errors, so clear error list, if any
@@ -845,7 +845,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     else:
       self._qa_run.setToolTip("Saves and compiles this script.");
       self._qa_run.setText("Compile");
-      
+
   def reload_file (self):
     text = file(self._filename).read();
     # set save icons, etc.

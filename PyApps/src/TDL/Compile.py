@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -20,7 +20,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -58,7 +58,7 @@ def _update_modlist ():
   modlist = list(_tdlmodlist);
   modlist.sort();
   _dprint(1,'TDL run imported',len(_tdlmodlist),"modules:",modlist);
-  _tdlmodlist = set([name for name in _tdlmodlist 
+  _tdlmodlist = set([name for name in _tdlmodlist
                           if not getattr(sys.modules[name],'_tdl_no_reimport',False)]);
   modlist = list(_tdlmodlist);
   modlist.sort();
@@ -72,16 +72,16 @@ class CompileError (RuntimeError):
   def __init__ (self,*errlist):
     self.errlist = errlist;
 
-def import_tdl_module (filename,text=None):
+def import_tdl_module (filename,text=None,config=0):
   """Imports a TDL module.
   Parameters:
     filename: script location
     text: text of module. If none, file will be re-read.
-          
+
   Return value:
-    a tuple of (module,text), where module is the newly-imported 
+    a tuple of (module,text), where module is the newly-imported
     TDL module, and text is the module text.
-    
+
   Exceptions thrown:
     Any import error results in an exception. This is always
     a TDL.CumulativeError exception containing an error list.
@@ -92,8 +92,10 @@ def import_tdl_module (filename,text=None):
   meqds.clear_forest();
   try:
     reload(Timba.TDL.Settings);
-    # reset TDL script options
-    TDLOptions.init_options(filename);
+    # reset TDL script options, unless config=None ('0' is used as default, causing the filename to be substituted)
+    TDLOptions.init_script(filename);
+    if config is not None:
+      TDLOptions.init_options(config or filename);
     # remove .pyo file as that can have cached paths and directories may have changed
     # (see bug 677)
     try:
@@ -105,7 +107,7 @@ def import_tdl_module (filename,text=None):
     if text is None:
       text = infile.read();
       infile.seek(0);
-    # infile is now an open input file object, and text is the script 
+    # infile is now an open input file object, and text is the script
 
     # flush all modules imported via previous TDL run
     global _tdlmodlist;
@@ -128,8 +130,8 @@ def import_tdl_module (filename,text=None):
       infile.close();
       _update_modlist();
     return (_tdlmod,text);
-    
-  # CumulativeError exceptions returned as is  
+
+  # CumulativeError exceptions returned as is
   except TDL.CumulativeError:
     _dprint(0,'cumulative error importing TDL file:',filename);
     traceback.print_exc();
@@ -149,7 +151,7 @@ def import_tdl_module (filename,text=None):
     ns.AddError(exc,traceback.extract_tb(tb),error_limit=None);
     # re-raise as a CumulativeError
     raise TDL.CumulativeError(*ns.GetErrors());
-    
+
 def run_forest_definition (mqs,filename,tdlmod,text,
                            parent=None,wait=True,
                            predef_args={},define_args={},postdef_args={}):
@@ -164,12 +166,12 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     predef_args: dict of extra arguments for _tdl_predefine()
     define_args: dict of extra arguments for _define_forest()
     postdef_args: dict of extra arguments for _tdl_postdefine()
-          
+
   Return value:
-    a tuple of (module,ns,message), where module is the newly-imported 
-    TDL module, ns is a NodeScope object, and message is an 
+    a tuple of (module,ns,message), where module is the newly-imported
+    TDL module, ns is a NodeScope object, and message is an
     informational message.
-    
+
   Exceptions thrown:
     Any compilation error results in an exception. This is always
     a TDL.CumulativeError exception containing an error list.
@@ -235,14 +237,14 @@ def run_forest_definition (mqs,filename,tdlmod,text,
             record(script_name=os.path.basename(filename),
             batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
 #        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
-        msg = """Script has run successfully. %d node definitions 
+        msg = """Script has run successfully. %d node definitions
   (of which %d are root nodes) sent to meqserver.""" \
           % (num_nodes,len(ns.RootNodes()));
-      else:  
-        msg = "Script has run successfully, but no nodes were defined.";    
+      else:
+        msg = "Script has run successfully, but no nodes were defined.";
     else:
-      msg = "Script has run successfully, %d nodes were defined."%num_nodes; 
-    
+      msg = "Script has run successfully, %d nodes were defined."%num_nodes;
+
     # call the post-define function
     postdefine_func = getattr(tdlmod,'_tdl_postdefine',None);
     if callable(postdefine_func):
@@ -254,7 +256,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     TDLOptions.enable_save_config(True);
     TDLOptions.save_config();
     return (tdlmod,ns,msg);
-  # CumulativeError exceptions returned as is  
+  # CumulativeError exceptions returned as is
   except TDL.CumulativeError:
     _update_modlist();
     TDLOptions.enable_save_config(True);
@@ -280,13 +282,13 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     # re-raise as a CumulativeError
     raise TDL.CumulativeError(*ns.GetErrors());
 
-    
-    
-def compile_file (mqs,filename,text=None,parent=None,wait=True,
+
+
+def compile_file (mqs,filename,text=None,parent=None,wait=True,config=0,
                   predef_args={},define_args={},postdef_args={}):
   """imports TDL module and runs forest definition.
   Basically a compound of the above two functions.""";
-  (tdlmod,text) = import_tdl_module(filename,text=text);
+  (tdlmod,text) = import_tdl_module(filename,text=text,config=config);
   return run_forest_definition(mqs,filename,tdlmod,text,wait=wait,
                   predef_args=predef_args,define_args=define_args,postdef_args=postdef_args);
 
