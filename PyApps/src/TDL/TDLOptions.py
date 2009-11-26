@@ -506,6 +506,11 @@ class _TDLBoolOptionItem (_TDLOptionItem):
       self._twitem.setCheckState(0,(value and Qt.Checked) or Qt.Unchecked);
     self._set(value,callback=callback);
 
+  def collect_log (self,log):
+    """Override standard implementation, since we use an int() representation in config files""";
+    if self.visible and self.enabled and self.config_name:
+      log.append("%s = %d"%(self.config_name,int(self.value)));
+
   def make_treewidget_item (self,parent,after,executor=None):
     item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name);
