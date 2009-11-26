@@ -1237,7 +1237,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         # notify purr, if running
         if self._purr:
           self._purr.detachPurrlog();
-          if self._purr.isVisible() and not Purr.Startup.startWizard([path],self._purr,parent=self):
+          if self._purr.isVisible() and not Purr.Startup.startWizard([path],self._purr):
             self._purr.hide();
     if kernel and self.app.current_server:
       _dprint(1,'kernel cwd',path);
@@ -1457,16 +1457,17 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if not self._purr:
       self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
     if not self._purr.hasPurrlog():
-      if not Purr.Startup.startWizard([os.getcwd()],self._purr,parent=self):
+      if not Purr.Startup.startWizard([os.getcwd()],self._purr):
         return;
     self._purr.show();
     self._purr.raise_();
 
-  def attach_purr (self,dirname,watchdirs=[],show=True):
+  def attach_purr (self,dirname,watchdirs=[],show=True,modal=True):
     if not self._purr:
       self._purr = Purr.MainWindow.MainWindow(self,hide_on_close=True); 
-    if Purr.Startup.startWizard([dirname]+list(watchdirs),self._purr,parent=self) and show:
+    if Purr.Startup.startWizard([dirname]+list(watchdirs),self._purr,modal=modal):
       self._purr.show();
+    
 
 # register reloadables
 reloadableModule(__name__);

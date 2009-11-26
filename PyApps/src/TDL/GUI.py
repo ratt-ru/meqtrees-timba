@@ -178,5 +178,5 @@ def question_box (caption,message,buttons=Button.Yes|Button.No,default=Button.Ye
 def purr (dirname,watchdirs=[]):
   """If browser is running, attaches Purr tool to the given directories."""
   if meqbrowser:
-    meqbrowser.attach_purr(dirname,watchdirs);
+    meqbrowser.attach_purr(dirname,watchdirs,modal=False);
 
