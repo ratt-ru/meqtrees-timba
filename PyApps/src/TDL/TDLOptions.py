@@ -308,17 +308,7 @@ class _TDLBaseOption (object):
     """sets the option's QTreeWidgetItem. Makes it enabled or disabled as appropriate""";
     self._twitem = item;
     if self.doc:
-      # add icon to second column
-      item.setIcon(1,pixmaps.info_blue_round.icon());
-      # add body tags to convert documentation to rich text
-      doc = "<body>"+self.doc+"</body>";
-      # set as tooltip
-      for col in range(3):
-        item.setToolTip(col,doc);
-      # set first line as column text
-      # textdoc = QTextDocument();
-      # textdoc.setHtml(doc);
-      # item.setText(2,textdoc.begin().text());
+      self.set_doc(self.doc);
     item.setDisabled(not self.enabled);
     item.setHidden(not self.visible);
     return item;
@@ -356,7 +346,16 @@ class _TDLBaseOption (object):
     """Changes option documentation string""";
     self.doc = doc;
     if self._twitem:
-      self._twitem.setText(2,doc);
+      if self.doc:
+        icon = pixmaps.info_blue_round.icon();
+        # add body tags to convert documentation to rich text
+        doc = "<body>"+self.doc+"</body>";
+      else:
+        icon,doc = QIcon(),"";
+      # set as tooltip
+      self._twitem.setIcon(1,icon);
+      for col in range(3):
+        self._twitem.setToolTip(col,doc);
 
 class _TDLOptionSeparator (_TDLBaseOption):
   """This option simply inserts a separator into a menu""";
