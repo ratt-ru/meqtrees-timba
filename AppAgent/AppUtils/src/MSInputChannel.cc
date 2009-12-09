@@ -253,7 +253,9 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
     tableiter_  = TableIterator(selms_, "TIME");
   }
   int nrows = selms_.nrow();
-  FailWhen(!nrows,"MS selection yield no rows");
+  FailWhen(!nrows,"MS selection yields no rows. This is usually due to the MS containing no data "
+    "matching your current Data Description and/or Field ID setting, or to a too-restrictive "
+    "TaQL selection string.");
   dprintf(1)("MS selection yields %d rows\n",selms_.nrow());
   
   // do we have a WEIGHT_SPECTRUM column at all?
