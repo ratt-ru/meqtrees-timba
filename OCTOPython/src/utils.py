@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -21,7 +21,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -32,6 +32,7 @@ import string
 import types
 import traceback
 
+from Kittens.utils import verbosity
 
 def type_maker(objtype,**kwargs):
   def maker(x):
@@ -39,7 +40,7 @@ def type_maker(objtype,**kwargs):
       return x;
     return objtype(x);
   return maker;
-  
+
 def extract_stack (f=None,limit=None):
   """equivalent to traceback.extract_stack(), but also works with psyco
   """
@@ -66,112 +67,113 @@ def nonportable_extract_stack (f=None,limit=None):
     tb.insert(0,(fr.f_code.co_filename,fr.f_lineno,fr.f_code.co_name,None));
     fr = fr.f_back;
   return tb;
-  
-  
-# 
-# === class verbosity ===
-# Verbosity includes methods for verbosity levels and conditional printing
-#
-class verbosity:
-  _verbosities = {};
-  _levels = {};
-  _parse_argv = True;
-  
-  def set_verbosity_level (context,level):
-    verbosity._levels[context] = level; 
-    vv = verbosity._verbosities.get(context,None);
-    if vv:
-      vv.set_verbose(level);
-  set_verbosity_level = staticmethod(set_verbosity_level);
-  
-  def disable_argv ():
-    verbosity._parse_argv = False;
-  disable_argv = staticmethod(disable_argv);
-  
-  def __init__(self,verbose=0,stream=None,name=None,tb=2):
-    if not __debug__:
-      verbose=0;
-    (self.verbose,self.stream,self._tb) = (verbose,stream,tb);
-    # setup name
-    if name:
-      self.verbosity_name = name;
-    else:
-      if self.__class__ is verbosity:
-        raise RuntimeError,"""When creating a verbosity object directly,
-          a name must be specified.""";
-      self.verbosity_name = name = self.__class__.__name__;
-    # look for argv to override debug levels (unless they were already set via set_verbosity_level above)
-    if verbosity._levels:
-      self.verbose = verbosity._levels.get(name,0);
-      print "Registered verbosity context:",name,"=",self.verbose;
-    elif verbosity._parse_argv:
-      # NB: sys.argv doesn't always exist -- e.g., when embedding Python
-      # it doesn't seem to be present.  Hence the check.
-      argv = getattr(sys,'argv',None);
-      have_debug = False;
-      if argv:
-        patt = re.compile('-d'+name+'=(.*)$');
-        for arg in argv[1:]:
-          if arg.startswith('-d'):
-            have_debug = True;
-          try: 
-            self.verbose = int(patt.match(arg).group(1));
-          except: pass;
-      if have_debug:
-        print "Registered verbosity context:",name,"=",self.verbose;
-    # add name to map
-    self._verbosities[name] = self;
-  def __del__ (self):
-    if self.verbosity_name in self._verbosities:
-      del self._verbosities[self.verbosity_name];
-  def dheader (self,tblevel=-2):
-    if self._tb:
-      tb = extract_stack();
-      try:
-        (filename,line,funcname,text) = tb[tblevel];
-      except:
-        return self.get_verbosity_name()+' (no traceback): ';
-      filename = filename.split('/')[-1];
-      if self._tb > 1:
-        return "%s(%s:%d:%s): "%(self.get_verbosity_name(),filename,line,funcname);
-      else:
-        return "%s(%s): "%(self.get_verbosity_name(),funcname);
-    else:
-      return self.get_verbosity_name()+': ';
-  def dprint(self,level,*args):
-    if level <= self.verbose:
-      stream = self.stream or sys.stderr;
-      stream.write(self.dheader(-3));
-      stream.write(string.join(map(str,args),' ')+'\n'); 
-  def dprintf(self,level,format,*args):
-    if level <= self.verbose:
-      stream = self.stream or sys.stderr;
-      try: s = format % args;
-      except: 
-        stream.write('dprintf format exception: ' + str(format) + '\n');
-      else:
-        stream.write(self.dheader(-3));
-        stream.write(s);
-  def get_verbose(self):
-    return self.verbose;
-  def set_verbose(self,verbose):
-    self.verbose = verbose;
-  def set_stream(self,stream):
-    self.stream = stream;
-  def set_verbosity_name(self,name):
-    self.verbosity_name = name;
-  def get_verbosity_name (self):
-    return self.verbosity_name;
-    
 
-def _print_curry_exception ():
-  (et,ev,etb) = sys.exc_info();
-  print "%s: %s" % (getattr(ev,'_classname',ev.__class__.__name__),getattr(ev,'__doc__',''));
-  if hasattr(ev,'args'):
-    print "  ",' '.join(map(str,ev.args));
-  print '======== exception traceback follows:';
-  traceback.print_tb(etb);
-  
+
+##
+## === class verbosity ===
+## Verbosity includes methods for verbosity levels and conditional printing
+##
+## now imported from Kittens.utils
+#class verbosity:
+#  _verbosities = {};
+#  _levels = {};
+#  _parse_argv = True;
+#
+#  def set_verbosity_level (context,level):
+#    verbosity._levels[context] = level;
+#    vv = verbosity._verbosities.get(context,None);
+#    if vv:
+#      vv.set_verbose(level);
+#  set_verbosity_level = staticmethod(set_verbosity_level);
+#
+#  def disable_argv ():
+#    verbosity._parse_argv = False;
+#  disable_argv = staticmethod(disable_argv);
+#
+#  def __init__(self,verbose=0,stream=None,name=None,tb=2):
+#    if not __debug__:
+#      verbose=0;
+#    (self.verbose,self.stream,self._tb) = (verbose,stream,tb);
+#    # setup name
+#    if name:
+#      self.verbosity_name = name;
+#    else:
+#      if self.__class__ is verbosity:
+#        raise RuntimeError,"""When creating a verbosity object directly,
+#          a name must be specified.""";
+#      self.verbosity_name = name = self.__class__.__name__;
+#    # look for argv to override debug levels (unless they were already set via set_verbosity_level above)
+#    if verbosity._levels:
+#      self.verbose = verbosity._levels.get(name,0);
+#      print "Registered verbosity context:",name,"=",self.verbose;
+#    elif verbosity._parse_argv:
+#      # NB: sys.argv doesn't always exist -- e.g., when embedding Python
+#      # it doesn't seem to be present.  Hence the check.
+#      argv = getattr(sys,'argv',None);
+#      have_debug = False;
+#      if argv:
+#        patt = re.compile('-d'+name+'=(.*)$');
+#        for arg in argv[1:]:
+#          if arg.startswith('-d'):
+#            have_debug = True;
+#          try:
+#            self.verbose = int(patt.match(arg).group(1));
+#          except: pass;
+#      if have_debug:
+#        print "Registered verbosity context:",name,"=",self.verbose;
+#    # add name to map
+#    self._verbosities[name] = self;
+#  def __del__ (self):
+#    if self.verbosity_name in self._verbosities:
+#      del self._verbosities[self.verbosity_name];
+#  def dheader (self,tblevel=-2):
+#    if self._tb:
+#      tb = extract_stack();
+#      try:
+#        (filename,line,funcname,text) = tb[tblevel];
+#      except:
+#        return self.get_verbosity_name()+' (no traceback): ';
+#      filename = filename.split('/')[-1];
+#      if self._tb > 1:
+#        return "%s(%s:%d:%s): "%(self.get_verbosity_name(),filename,line,funcname);
+#      else:
+#        return "%s(%s): "%(self.get_verbosity_name(),funcname);
+#    else:
+#      return self.get_verbosity_name()+': ';
+#  def dprint(self,level,*args):
+#    if level <= self.verbose:
+#      stream = self.stream or sys.stderr;
+#      stream.write(self.dheader(-3));
+#      stream.write(string.join(map(str,args),' ')+'\n');
+#  def dprintf(self,level,format,*args):
+#    if level <= self.verbose:
+#      stream = self.stream or sys.stderr;
+#      try: s = format % args;
+#      except:
+#        stream.write('dprintf format exception: ' + str(format) + '\n');
+#      else:
+#        stream.write(self.dheader(-3));
+#        stream.write(s);
+#  def get_verbose(self):
+#    return self.verbose;
+#  def set_verbose(self,verbose):
+#    self.verbose = verbose;
+#  def set_stream(self,stream):
+#    self.stream = stream;
+#  def set_verbosity_name(self,name):
+#    self.verbosity_name = name;
+#  def get_verbosity_name (self):
+#    return self.verbosity_name;
+#
+#
+#def _print_curry_exception ():
+#  (et,ev,etb) = sys.exc_info();
+#  print "%s: %s" % (getattr(ev,'_classname',ev.__class__.__name__),getattr(ev,'__doc__',''));
+#  if hasattr(ev,'args'):
+#    print "  ",' '.join(map(str,ev.args));
+#  print '======== exception traceback follows:';
+#  traceback.print_tb(etb);
+#
 # curry() composes callbacks and such
 # See The Python Cookbook recipe 15.7
 def curry (func,*args,**kwds):
@@ -189,7 +191,7 @@ def curry (func,*args,**kwds):
       _print_curry_exception();
       raise;
   return callit;
-  
+
 # Extended curry() version
 # The _argslice argument is applied to the *args of the
 # curry when it is subsequently called; this allows only a subset of the
@@ -212,12 +214,12 @@ def xcurry (func,_args=(),_argslice=slice(0),_kwds={},**kwds):
       _print_curry_exception();
       raise;
   return callit;
-  
+
 class PersistentCurrier (object):
-  """This class provides curry() and xcurry() instance methods that 
+  """This class provides curry() and xcurry() instance methods that
   internally store the curries in a list. This is handy for currying
-  callbacks to be passed to, e.g., PyQt slots: since PyQt holds the callbacks 
-  via weakrefs, using the normal curry() method to compose a callback 
+  callbacks to be passed to, e.g., PyQt slots: since PyQt holds the callbacks
+  via weakrefs, using the normal curry() method to compose a callback
   on-the-fly would cause it to disappear immediately.
   """
   def _add_curry (self,cr):
@@ -230,7 +232,7 @@ class PersistentCurrier (object):
     return self._add_curry(xcurry(func,*args,**kwds));
   def clear (self):
     self._curries = [];
-  
+
 
 class WeakInstanceMethod (object):
   # return value indicating call of a weakinstancemethod whose object
@@ -256,4 +258,4 @@ def weakref_proxy (obj):
   else:
     return weakref.proxy(obj);
 
-  
+
