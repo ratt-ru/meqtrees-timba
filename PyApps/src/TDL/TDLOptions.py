@@ -65,7 +65,7 @@ _config_write_failed = False;
 # flag: save changes to config
 _config_save_enabled = True;
 
-class _OurConfigParser (ConfigParser.RawConfigParser):
+class OptionConfigParser (ConfigParser.RawConfigParser):
   """extend the standard ConfigParser with a 'sticky' filename""";
   def __init__ (self,*args):
     ConfigParser.RawConfigParser.__init__(self,*args);
@@ -83,7 +83,7 @@ class _OurConfigParser (ConfigParser.RawConfigParser):
     ConfigParser.RawConfigParser.write(self,file(filename,"w"));
 
 # create global config object
-config = _OurConfigParser();
+config = OptionConfigParser();
 
 def enable_save_config (enable=True):
   """Enables/disables auto-saving of config file every time an option is set.
@@ -187,20 +187,35 @@ def init_options (section=None,save=True):
     config.remove_section(filename);
     save_config();
 
-def set_option (name,value,save=True,strict=False):
+def set_option (name,value,save=True,strict=False,from_str=False):
   """Sets the named option (using its config_name) to the given value.
   If option is not found (which may be the case if the script is not yet compiled), sets it in the current
-  config anyway if strict=False, else raises a NameError.""";
+  config anyway if strict=False, else raises a NameError.
+  If from_str=True, uses item.from_str() to convert value from string to a valid option setting. This
+  may result in a ValueError if string is not legal.""";
   global _all_options;
-  item = _all_options.get(name);
+  item = _all_options.get(name.lower());
   if item:
+    if from_str:
+      value = item.from_str(value);
+    _dprint(2,"setting",name,value);
     item.set_value(value,save=save);
     return;
   else:
+    _dprint(2,"setting config",name,value);
     if strict:
       raise NameError,"Option '%s' not found"%name;
     # Perhaps the script hasn't been compiled yet, so pre-set it in config
     _set_config(name,str(value),save=save);
+
+def save_to_config (conf,section):
+  """Saves all options to given ConfigParser object 'conf', section 'section''""";
+  """Dumps all current option settings into the file given by fileobj""";
+  values = [];
+  for item in compile_options + runtime_options:
+    item.collect_values(values);
+  for name,value in values:
+    conf.set(section,name,value);
 
 def dump_log (message=None,filename='meqtree.log',filemode='a'):
   """Dumps a message to the indicated logfile, followed by all current option settings."""
@@ -227,23 +242,18 @@ def dump_options (fileobj):
   """Dumps all current option settings into the file given by fileobj""";
   fileobj.write("[%s]\n"%config_section);
   fileobj.write('# compile-time options follow\n');
-  lines = [];
+  values = [];
   for item in compile_options:
-    item.collect_log(lines);
-#  lines.sort();
-  for line in lines:
-    if line[-1] != "\n":
-      line += "\n";
-    fileobj.write(line);
+    item.collect_values(values);
+  for name,value in values:
+    fileobj.write("%s = %s\n"%(name,value));
   fileobj.write('# runtime options follow\n');
-  lines = [];
+  values = [];
   for item in runtime_options:
-    item.collect_log(lines);
+    item.collect_values(values);
 #  lines.sort();
-  for line in lines:
-    if line[-1] != "\n":
-      line += "\n";
-    fileobj.write(line);
+  for name,value in values:
+    fileobj.write("%s = %s\n"%(name,value));
 
 def get_compile_options ():
   """Returns list of all compile-time options."""
@@ -280,6 +290,7 @@ class _TDLBaseOption (object):
     # most options have an associated widget or QAction. This is stored here.
     self._qa      = None;
     self._twitem  = None;
+    self.initialized = False;
 
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
@@ -289,9 +300,11 @@ class _TDLBaseOption (object):
     _dprint(2,"item '%s' owner '%s' runtime %d"%(self.name,owner,int(runtime)));
     self.owner = owner;
     self.is_runtime = runtime;
+    self.initialized = True;
 
-  def collect_log (self,log):
-    """called to collect a recursive log of all options. Default version logs nothing.""";
+  def collect_values (self,values):
+    """called to collect a list of (name,value) tuples. Should append (name,value) to end of values list.
+    Default version collects nothing.""";
     pass;
 
   def set_qaction (self,qa):
@@ -395,12 +408,13 @@ class _TDLJobItem (_TDLBaseOption):
     return self.set_treewidget_item(item);
 
 class _TDLOptionItem(_TDLBaseOption):
+  """Abstract base class for options with a value""";
   def __init__ (self,namespace,symbol,value,config_name=None,name=None,doc=None,mandatory=False):
     _TDLBaseOption.__init__(self,name or symbol,namespace=namespace,doc=doc);
     # config_name specifies the configuration file entry
     if config_name is None:
       config_name = symbol;
-    self.config_name = config_name;
+    self.config_name = config_name and config_name.lower();
     # symbol may have nested namespaces specified with '.'
     syms = symbol.split('.');
     symbol = syms[-1];
@@ -424,13 +438,16 @@ class _TDLOptionItem(_TDLBaseOption):
     if owner and self.config_name is not None:
       self.config_name = '.'.join((owner,self.config_name));
     global _all_options;
-    _all_options[self.config_name] = self;
+    if self.config_name:
+      self.config_name = self.config_name.lower();
+      _all_options[self.config_name] = self;
+    else:
+      _dprint(1,"no config name for ",self.name);
 
-  def collect_log (self,log):
-    """called to collect a recursive log of all options. This version adds an entry
-    for itself only if option is not disabled/hidden""";
+  def collect_values (self,values):
+    """called to collect a list of (name,value) tuples. Appends (name,value) to end of values list.""";
     if self.visible and self.enabled and self.config_name:
-      log.append("%s = %s"%(self.config_name,self.get_str()));
+      values.append((self.config_name,self.get_str()));
 
   def _set (self,value,callback=True):
     """private method for changing the internal value of an option"""
@@ -458,7 +475,12 @@ class _TDLOptionItem(_TDLBaseOption):
     """set_value() is by default an alias for set()"""
     self.set(value,**kw);
 
+  def from_str (self,value,**kw):
+    """Converts string to legal value of option. Raises ValueError if string is invalid.""";
+    raise TypeError,"from_str() not implemented in child class""";
+
   def get_str (self):
+    """Returns string representation of option""";
     return self.item_str(self.value);
 
   def item_str (item):
@@ -489,7 +511,7 @@ class _TDLBoolOptionItem (_TDLOptionItem):
     _TDLOptionItem.init(self,owner,runtime);
     if self.config_name:
       try:
-        value = bool(config.getint(config_section,self.config_name));
+        value = self.from_str(config.get(config_section,self.config_name));
         self._set(value);
         _dprint(2,"read",self.config_name,"=",value,"from config");
       except:
@@ -497,18 +519,25 @@ class _TDLBoolOptionItem (_TDLOptionItem):
         if _dbg.verbose > 2:
           traceback.print_exc();
 
+  def from_str (self,strval):
+    if strval == 'false' or strval == 'False':
+      return False;
+    elif strval == 'true' or strval == 'True':
+      return True;
+    else:
+      return bool(int(strval));
+
+  def get_str (self):
+    """Returns string representation of option""";
+    return str(int(self.value));
+
   def set (self,value,save=True,callback=True,set_twitem=True):
     value = bool(value);
-    if save and self.config_name:
-      _set_config(self.config_name,int(value));
+    if self.initialized and self.config_name:
+      _set_config(self.config_name,int(value),save=save);
     if self._twitem and set_twitem:
       self._twitem.setCheckState(0,(value and Qt.Checked) or Qt.Unchecked);
     self._set(value,callback=callback);
-
-  def collect_log (self,log):
-    """Override standard implementation, since we use an int() representation in config files""";
-    if self.visible and self.enabled and self.config_name:
-      log.append("%s = %d"%(self.config_name,int(self.value)));
 
   def make_treewidget_item (self,parent,after,executor=None):
     item = QTreeWidgetItem(parent,after);
@@ -574,6 +603,12 @@ class _TDLFileOptionItem (_TDLOptionItem):
                 self._set(filename);
                 return;
 
+  def from_str (self,value):
+    value = str(value);
+    if not self._validator(value):
+      raise ValueError,"value '%s' does not pass validation for %s"%(value,self.name);
+    return value;
+
   def set_validator (self,validator):
     self._validator = validator;
     if self.value and not self._validator(self.value):
@@ -585,8 +620,8 @@ class _TDLFileOptionItem (_TDLOptionItem):
     cwd = os.getcwd() + "/";
     if value.startswith(cwd):
       value = value[len(cwd):];
-    if save:
-      _set_config(self.config_name,value);
+    if self.initialized and self.config_name:
+      _set_config(self.config_name,value,save=save);
     self._set(value,callback=callback);
 
   def enable (self,enabled=True):
@@ -666,7 +701,8 @@ class _TDLListOptionItem (_TDLOptionItem):
         elif default < 0 or default >= len(self.option_list):
           raise ValueError,"'default': index out of range";
     # set the default value
-    self.set(default,save=False);
+    self.selected = default;
+    self._set(self.option_list[default]);
 
   def init (self,owner,runtime):
     """initializes the option. This is called when the option is placed into a
@@ -675,25 +711,13 @@ class _TDLListOptionItem (_TDLOptionItem):
     select = None;
     try:
       _dprint(2,"reading",self.config_name," from config section",config_section);
-      value = config.get(config_section,self.config_name);
+      value = self.from_str(config.get(config_section,self.config_name));
       _dprint(2,"read",self.config_name,"=",value,"from config");
-      # look up value in list
       try:
-        select = self.option_list_str.index(value);
-      except:
-        if self._more is None:
-          _dprint(2,value,"is not in the list of valid options for",self.name);
-        # add configured symbol to list of values
-        else:
-          try:
-            value = self._more(value);
-            if not self._validator(value):
-              raise ValueError;
-          except:
-            _dprint(2,value,"is an illegal value for",self.name);
-          else:
-            self.set_custom_value(value);
-            select = len(self.option_list)-1;
+        select = self.option_list.index(value);
+      except:  # value not in list, add as custom value (from_str() will have checked that this is allowed)
+        self.set_custom_value(value);
+        select = len(self.option_list)-1;
     except:
       _dprint(2,"error reading",self.config_name,"from config");
       if _dbg.verbose > 2:
@@ -701,6 +725,19 @@ class _TDLListOptionItem (_TDLOptionItem):
     # if select was set, we have a legal value
     if select is not None:
       self.set(select,save=False);
+
+  def from_str (self,value):
+    try:
+      select = self.option_list_str.index(value);
+      return self.option_list[select];
+    except:
+      if self._more is None:
+        raise ValueError,"value '%s' is not in the list of valid options for %s"%(value,self.name);
+      else:
+        value = self._more(value);
+        if not self._validator(value):
+          raise ValueError,"value '%s' does not pass validation for %s"%(value,self.name);
+        return value;
 
   def set_validator (self,validator):
     self._validator = validator;
@@ -780,8 +817,8 @@ class _TDLListOptionItem (_TDLOptionItem):
       self._twitem.setText(2,self.get_option_desc(value));
     if self._submenu:
       self._submenu_qas[self.selected].setChecked(True);
-    if save:
-      _set_config(self.config_name,self.get_option_str(value));
+    if self.initialized and self.config_name:
+      _set_config(self.config_name,self.get_option_str(value),save=save);
     self._set(self.get_option(value),callback=callback);
 
   def set_custom_value (self,value,select=True,save=True,callback=True):
@@ -1024,27 +1061,26 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       for other in self._exclusive_items.itervalues():
         if other is not item:
           other.set(False,save=False);
-    if save:
-      _set_config(self.excl_config_name,name or '');
+    if self.initialized and self.excl_config_name:
+      _set_config(self.excl_config_name,name or '',save=save);
 
   def _exclusive_item_selected (self,item,value,save=True):
     _dprint(3,"selected exclusive menu item",item,item.symbol,value);
     if value:
       self.set_exclusive(item,setitem=False,save=save);
 
-  def collect_log (self,log):
-    """called to collect a recursive log of all options. This version adds an entry
-    for itself only if option is not disabled/hidden""";
+  def collect_values (self,values):
+    """called to collect a list of (name,value) tuples. Appends (name,value) to end of values list.""";
     if self._toggle:
-      _TDLBoolOptionItem.collect_log(self,log);
+      _TDLBoolOptionItem.collect_values(self,values);
       if not self.value:
         return;
-    if self._exclusive:
-      log.append("%s = %s"%(self.excl_config_name,self._excl_selected));
     if self.visible and self.enabled:
+      if self._exclusive:
+        values.append((self.excl_config_name,self._excl_selected));
       for item in self._items:
         if isinstance(item,_TDLBaseOption):
-          item.collect_log(log);
+          item.collect_values(values);
 
   def expand (self,expand=True):
     self._is_open = expand;

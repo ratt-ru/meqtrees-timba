@@ -6,13 +6,28 @@ import Timba
 from Timba.dmi import *
 from Timba.utils import *
 from Timba.GUI.pixmaps import pixmaps
-  
+from Timba.TDL import TDLOptions
+
+import ConfigParser
+
+import os.path
+
+_dbg = verbosity(0,name='tdloptgui');
+dprint = _dbg.dprint;
+dprintf = _dbg.dprintf;
+
+PROFILE_FILE = "tdlconf.profiles";
+
+ColumnName = 0;
+ColumnToolTip =1;
+ColumnValue = 2;
+
 class TDLOptionsDialog (QDialog,PersistentCurrier):
   """implements a floating window for TDL options""";
   def __init__ (self,parent,ok_label=None,ok_icon=None):
     QDialog.__init__(self,parent);
     self.setSizeGripEnabled(True);
-    
+
     lo_main = QVBoxLayout(self);
     # add option treeWidget
     self._tw = QTreeWidget(self);
@@ -20,11 +35,11 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     self._tw.setRootIsDecorated(True);
     self._tw.setSortingEnabled(False);
     self._tw.setSelectionMode(QAbstractItemView.NoSelection);
-    
-    self._tw.header().setResizeMode(0,QHeaderView.ResizeToContents);
-    self._tw.header().setResizeMode(1,QHeaderView.ResizeToContents);
-    self._tw.header().setResizeMode(2,QHeaderView.Stretch);
-    self._tw.header().resizeSection(2,300);
+
+    self._tw.header().setResizeMode(ColumnName,QHeaderView.ResizeToContents);
+    self._tw.header().setResizeMode(ColumnToolTip,QHeaderView.ResizeToContents);
+    self._tw.header().setResizeMode(ColumnValue,QHeaderView.Stretch);
+    self._tw.header().resizeSection(ColumnValue,300);
     self._tw.header().hide();
     QObject.connect(self._tw.header(),SIGNAL("sectionResized(int,int,int)"),self._resize_dialog);
     self._allow_resize_dialog = True;
@@ -37,7 +52,7 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     # set geometry
     # self.setMinimumSize(QSize(200,100));
     # self.setGeometry(0,0,200,60);
-    
+
     # add buttons on bottom
     lo_btn  = QHBoxLayout(None);
     if ok_label:
@@ -48,7 +63,44 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
       lo_btn.addWidget(self.wok);
       QObject.connect(self.wok,SIGNAL("clicked()"),self.accept);
     else:
-      self.wok = None; 
+      self.wok = None;
+    # addspacer
+    spacer = QSpacerItem(40,20,QSizePolicy.Expanding,QSizePolicy.Minimum);
+    lo_btn.addItem(spacer)
+    # add load button
+    self.load_menu = QMenu(self);
+    self.wload = QToolButton(self);
+    self.wload.setText("Load");
+    self.wload.setIcon(pixmaps.fileopen.icon());
+    self.wload.setToolTip("""<P>Loads current option settings from a named <i>profile</I>.
+          Profiles are kept in a file called %s in your current directory.</P>"""%PROFILE_FILE);
+    self.wload.setPopupMode(QToolButton.InstantPopup);
+    self.wload.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self.wload.setMenu(self.load_menu);
+    lo_btn.addWidget(self.wload);
+    # add save button
+    self.save_menu = QMenu(self);
+    self.save_menu.addAction("New profile...",self._save_new_profile);
+    self.save_menu.addSeparator();
+    self.wsave = QToolButton(self);
+    self.wsave.setText("Save");
+    self.wsave.setIcon(pixmaps.filesave.icon());
+    self.wsave.setToolTip("""<P>Saves current option settings to a named <i>profile</I>.
+          Profiles are stored in a file called %s in your current directory.</P>"""%PROFILE_FILE);
+    self.wsave.setPopupMode(QToolButton.InstantPopup);
+    self.wsave.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self.wsave.setMenu(self.save_menu);
+    lo_btn.addWidget(self.wsave);
+    # open profile configuration
+    self.profiles = ConfigParser.RawConfigParser();
+    try:
+      self.profiles.readfp(file(PROFILE_FILE));
+    except:
+      pass;
+    self.wload.setEnabled(bool(self.profiles.sections()));
+    for name in sorted(self.profiles.sections()):
+      self.load_menu.addAction(name,self.curry(self._load_profile,name));
+      self.save_menu.addAction(name,self.curry(self._save_profile,name));
     # add cancel button
     tb = QPushButton(pixmaps.red_round_cross.icon(),"Cancel",self);
     QObject.connect(tb,SIGNAL("clicked()"),self.hide);
@@ -70,56 +122,109 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     # print width;
     self.resize(max(width,self.width()),self.height());
 
+  def _load_profile (self,name):
+    if not self.profiles.has_section(name):
+      QMessageBox.warning(self,"Error loading profile","""<P>Profile '%s' not found,
+              check your %s file.</P>"""%(name,PROFILE_FILE));
+      return;
+    for name,value in self.profiles.items(name):
+      try:
+        TDLOptions.set_option(name,value,save=False,from_str=True);
+      except ValueError:
+        dprintf(0,"can't set '%s' to %s, ignoring",name,value);
+    TDLOptions.save_config();
+
+  def _save_profile (self,name):
+    if self.profiles.has_section(name):
+      if QMessageBox.warning(self,"Overwriting profile","""<P>Do you really want to
+                          overwrite the existing profile '%s'?</P>"""%name,
+                          QMessageBox.Ok|QMessageBox.Cancel,QMessageBox.Ok) != QMessageBox.Ok:
+        return;
+      newprof = False;
+    else:
+      self.profiles.add_section(name);
+      newprof = True;
+    TDLOptions.save_to_config(self.profiles,name);
+    try:
+      self.profiles.write(file(PROFILE_FILE,"wt"));
+    except:
+      dprintf(0,"error writing %s"%PROFILE_FILE);
+      traceback.print_exc();
+      QMessageBox.warning(self,"Error saving profile","""<P>There was an error writing to the %s file,
+                           profile was not saved.</P>"""%PROFILE_FILE);
+    if newprof:
+      self.load_menu.addAction(name,self.curry(self._load_profile,name));
+      self.save_menu.addAction(name,self.curry(self._save_profile,name));
+      self.wload.setEnabled(True);
+
+  def _save_new_profile (self):
+    default_name = os.path.splitext(os.path.basename(TDLOptions.current_scriptname))[0] + ":";
+    name,ok = QInputDialog.getText(self,"Saving profile","Enter profile name",QLineEdit.Normal,default_name);
+    if ok:
+      self._save_profile(str(name));
+
   def _resize_dialog (self,section,*dum):
-    if self._allow_resize_dialog and section<2:
+    if self._allow_resize_dialog and section<ColumnValue:
       self.adjustSizes();
-      
+
   def accept (self):
     self.emit(PYSIGNAL("accepted()"));
     self.hide();
-    
+
   def show (self):
     #self._tw.adjustColumn(0);
     #self._tw.adjustColumn(1);
     return QDialog.show(self);
-  
+
   def exec_ (self):
     #self._tw.adjustColumn(0);
     #self._tw.adjustColumn(1);
     return QDialog.exec_(self);
-  
+
   def treeWidget (self):
     return self._tw;
-  
+
   def clear (self):
     self._tw.clear();
-    
+
   class ActionListViewItem (QTreeWidgetItem):
     def __init__ (self,*args):
       QTreeWidgetItem.__init__(self,*args);
       font = QFont(self.font(0));
       font.setBold(True);
       self.setFont(0,font);
-    
+
   def addAction (self,label,callback,icon=None):
     # find last item
     last = self._tw.topLevelItem(self._tw.topLevelItemCount()-1);
     item = self.ActionListViewItem(self._tw,last);
-    item.setText(0,label);
+    item.setText(ColumnName,label);
     if icon:
-      item.setIcon(0,icon.icon());
+      item.setIcon(ColumnName,icon.icon());
     item._on_click = callback;
     item._close_on_click = True;
-    
-  def _process_treewidget_click (self,item,*dum):
+
+  def _process_treewidget_click (self,item,col,*dum):
     """helper function to process a click on a treeWidget item. Meant to be connected
     to the clicked() signal of a QListView""";
-    getattr(item,'_on_click',lambda:None)();
-    if getattr(item,'_close_on_click',False):
-      self.hide();
-      
-  def _process_treewidget_press (self,item,*dum):
+    if col == ColumnToolTip:
+      tip = str(item.toolTip(ColumnToolTip));
+      if tip:
+        pos = self._tw.viewport().mapToGlobal(QPoint(self._tw.columnViewportPosition(ColumnToolTip),self._tw.visualItemRect(item).top()));
+        QToolTip.showText(pos,tip,self._tw);
+    else:
+      getattr(item,'_on_click',lambda:None)();
+      if getattr(item,'_close_on_click',False):
+        self.hide();
+
+  def _process_treewidget_press (self,item,col,*dum):
     """helper function to process a press on a treeWidget item. Meant to be connected
     to the pressed() signal of a QListView""";
-    getattr(item,'_on_press',lambda:None)();
+    if col == ColumnToolTip:
+      tip = str(item.toolTip(ColumnToolTip));
+      if tip:
+        pos = self._tw.viewport().mapToGlobal(QPoint(self._tw.columnViewportPosition(ColumnToolTip),self._tw.visualItemRect(item).top()));
+        QToolTip.showText(pos,tip,self._tw);
+    else:
+      getattr(item,'_on_press',lambda:None)();
 

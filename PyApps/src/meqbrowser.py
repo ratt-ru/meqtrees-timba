@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -22,7 +22,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -44,9 +44,9 @@ if __name__ == "__main__":
     print "MeqTrees must be run in from a directory you can write to, such as your home dir." ;
     print "Please cd to a writable directory and try again." ;
     sys.exit(1);
-  
+
   # tell verbosity class to not parse argv -- we do it ourselves here
-  Timba.utils.verbosity.disable_argv(); 
+  Timba.utils.verbosity.disable_argv();
   # parse options is the first thing we should do
   from optparse import OptionParser
   parser = OptionParser()
@@ -63,15 +63,15 @@ if __name__ == "__main__":
   parser.add_option("-t", "--trace",dest="trace",action="store_true",
                     help="(for debugging Python code) enables line tracing of Python statements");
   (options, rem_args) = parser.parse_args();
-  
+
   if options.trace:
     sys.settrace(trace_lines);
-  
+
   for optstr in (options.debug or []):
     opt = optstr.split("=") + ['1'];
     context,level = opt[:2];
     debuglevels[context] = int(level);
-  
+
   for optstr in (options.verbose or []):
     opt = optstr.split("=") + ['1'];
     context,level = opt[:2];
@@ -125,13 +125,13 @@ def importPlugin (name,location='Timba.Plugins'):
   except Exception,what:
     print "\n WARNING: couldn't import plugin '%s' (%s)"%(name,what);
     print '  This plugin will not be available.';
-    
+
 ### import plug-ins
 ### disabled for now since they haven't been ported to Qt4 yet
 
 if False:
   importPlugin('array_browser');
-  
+
 importPlugin('quickref_plotter');
 importPlugin('collections_plotter');
 importPlugin('array_plotter');
@@ -154,22 +154,22 @@ def meqbrowse (debug={},**kwargs):
   args['spawn'] = False;
   for d,l in debug.iteritems():
     debuglevels[d] = max(debuglevels.get(d,0),l);
-  
+
   # insert '' into sys.path, so that CWD is always in the search path
   sys.path.insert(1,'');
   if debuglevels:
     octopussy.set_debug(debuglevels);
-    
+
   # start octopussy if needed
   port = options.port;
   sock = options.socket;
   if sock == "None" or sock == "none":
     sock = "";
-    print "Not binding to a local socket."; 
+    print "Not binding to a local socket.";
   else:
     sock = "="+sock;
-    print "Binding to local socket %s"%sock; 
-  print "Binding to TCP port %d, remote meqservers may connect with gwpeer=<host>:%d"%(port,port); 
+    print "Binding to local socket %s"%sock;
+  print "Binding to TCP port %d, remote meqservers may connect with gwpeer=<host>:%d"%(port,port);
   if not octopussy.is_initialized():
     octopussy.init(gwclient=False,gwtcp=port,gwlocal=sock);
   if not octopussy.is_running():
@@ -188,14 +188,14 @@ def meqbrowse (debug={},**kwargs):
 #     print "****** You do not have the psyco package installed.";
 #     print "****** Proceeding anyway, things will run some what slower.";
 #     pass;
-  
-  mqs.run_gui();  
+
+  mqs.run_gui();
   mqs.disconnect();
   octopussy.stop();
-  
+
 if __name__ == '__main__':
   meqbrowse();
-  
+
 #  thread = qt_threading.QThreadWrapper(meqbrowse);
 #  print 'starting main thread:';
 #  thread.start();
