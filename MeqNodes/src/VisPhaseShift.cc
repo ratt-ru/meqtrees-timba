@@ -86,13 +86,14 @@ void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,
   // the rest.
   // Otherwise we fall back to the (potentially slower) full VellsMath
   
-  if( r1.extent(Axis::TIME) == r1.nelements()  &&
+  if( r1.extent(Axis::TIME) == r1.nelements() &&
+      cells.ncells(Axis::FREQ) > 1            &&
       cells.numSegments(Axis::FREQ) == 1        )  // fast eval possible
   {
     // Calculate 2pi/wavelength, where wavelength=c/freq.
     // Calculate it for the frequency step if needed.
     double f0 = cells.center(Axis::FREQ)(0);
-    double df = cells.cellSize(Axis::FREQ)(0);
+    double df = cells.center(Axis::FREQ)(1) - f0;
     double wavel0 = f0 * _2pi_over_c;
     double dwavel = df / f0;
 
