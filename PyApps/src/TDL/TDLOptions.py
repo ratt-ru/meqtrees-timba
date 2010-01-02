@@ -77,10 +77,25 @@ class OptionConfigParser (ConfigParser.RawConfigParser):
     filename = filename or self._readfile;
     _dprint(1,"reading config file",filename);
     ConfigParser.RawConfigParser.read(self,filename);
+  def set_save_filename (self,filename):
+    """Sets filename that config is to be saved to. If None, config will not be written out""";
+    self._writefile = filename;
   def rewrite (self,filename=None):
     filename = filename or self._writefile;
-    _dprint(1,"writing config file",filename);
-    ConfigParser.RawConfigParser.write(self,file(filename,"w"));
+    if filename:
+      _dprint(1,"writing config file",filename);
+      ## ConfigParser.RawConfigParser.write(self,file(filename,"w"));
+      # write the thing ourselves, as we like to keep things sorted
+      ff = file(filename,'wt');
+      for section in sorted(self.sections()):
+        ff.write("[%s]\n"%section);
+        for name,value in sorted(self.items(section)):
+          ff.write("%s = %s\n"%(name.lower(),value));
+        ff.write("\n");
+    else:
+      _dprint(1,"not writing config file, as saving is disabled");
+
+        
 
 # create global config object
 config = OptionConfigParser();
@@ -210,7 +225,6 @@ def set_option (name,value,save=True,strict=False,from_str=False):
 
 def save_to_config (conf,section):
   """Saves all options to given ConfigParser object 'conf', section 'section''""";
-  """Dumps all current option settings into the file given by fileobj""";
   values = [];
   for item in compile_options + runtime_options:
     item.collect_values(values);
@@ -252,7 +266,7 @@ def dump_options (fileobj):
   for item in runtime_options:
     item.collect_values(values);
 #  lines.sort();
-  for name,value in values:
+  for name,value in sorted(values):
     fileobj.write("%s = %s\n"%(name,value));
 
 def get_compile_options ():
@@ -271,6 +285,9 @@ def get_job_func (name):
       return item.func;
   raise NameError,"Job '%s' not found"%name;
 
+def get_all_jobs ():
+  global _job_options;
+  return [ (item.name,item.job_id) for item in _job_options ];
 
 class _TDLBaseOption (object):
   """abstract base class for all option entries""";
@@ -438,6 +455,7 @@ class _TDLOptionItem(_TDLBaseOption):
     if owner and self.config_name is not None:
       self.config_name = '.'.join((owner,self.config_name));
     global _all_options;
+    _dprintf(3,"initializing %s %s (namespace %X)\n",self.name,self.config_name,id(self.namespace));
     if self.config_name:
       self.config_name = self.config_name.lower();
       _all_options[self.config_name] = self;
@@ -1222,13 +1240,14 @@ def _resolve_namespace (namespace,symbol,calldepth=2):
     prefix = getattr(namespace,'tdloption_namespace',None) or \
              getattr(namespace,'__name__',None) or \
              type(namespace).__name__;
-    _dprint(1,"option",symbol,"namespace is",namespace,", prefix is",prefix);
+    _dprintf(1,"option %s, namespace is %s (%X), prefix is %s\n"%(symbol,namespace,id(namespace),prefix));
     namespace = getattr(namespace,'__dict__',None);
     if namespace is None:
       raise TypeError,"invalid namespace specified";
     # get name for config file, by prepending the namespace name
     if prefix:
       symbol = ".".join((prefix,symbol));
+  _dprintf(1,"option %s, namespace dict is %X\n"%(symbol,id(namespace)));
   return namespace,symbol;
 
 def _make_option_item (namespace,symbol,name,value,default=None,
@@ -1236,7 +1255,7 @@ def _make_option_item (namespace,symbol,name,value,default=None,
   # resolve namespace based on caller
   # depth is 2 (this frame, TDLxxxOption frame, caller frame)
   namespace,config_name = _resolve_namespace(namespace,symbol,calldepth=2);
-  _dprint(1,"option",symbol,", config name is",config_name);
+  _dprintf(1,"option %s, config name is %s, namespace %X\n"%(symbol,config_name,id(namespace)));
   if runtime and mandatory:
     raise TypeError,"run-time options cannot be declared mandatory";
   # boolean option

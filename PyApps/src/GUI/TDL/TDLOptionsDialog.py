@@ -146,7 +146,12 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
       newprof = True;
     TDLOptions.save_to_config(self.profiles,name);
     try:
-      self.profiles.write(file(PROFILE_FILE,"wt"));
+      ff = file(PROFILE_FILE,"wt");
+      for section in sorted(self.profiles.sections()):
+        ff.write("[%s]\n"%section);
+        for name,value in sorted(self.profiles.items(section)):
+          ff.write("%s = %s\n"%(name.lower(),value));
+        ff.write("\n");
     except:
       dprintf(0,"error writing %s"%PROFILE_FILE);
       traceback.print_exc();

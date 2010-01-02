@@ -275,6 +275,17 @@ def stop_default_mqs ():
     mqs.dprint(1,"stopping default meqserver");
     mqs.halt();
     mqs.disconnect();
+    # kill process if it is still running after 10 seconds
+    if mqs.serv_pid:
+      for i in range(10):
+        pid,stat = os.waitpid(mqs.serv_pid,os.WNOHANG);
+        if pid:
+          break;
+        time.sleep(1);
+      else:
+        mqs.dprint(0,"meqserver not exiting cleanly, killing it");
+        os.kill(mqs.serv_pid,9);
+        pid,stat = os.waitpid(mqs.serv_pid,os.WNOHANG);
     mqs = None;
   if octopussy.is_running():
     octopussy.stop();

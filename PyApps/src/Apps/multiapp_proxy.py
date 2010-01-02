@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -146,6 +147,7 @@ class multiapp_proxy (verbosity):
     self.resume_events = self._pwp.resume_events;
       
     # ------------------------------ run/connect to app process
+    self.serv_pid = None;
     if spawn: 
       if isinstance(spawn,str):
         spawn = spawn.split(" ");
