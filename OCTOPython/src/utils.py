@@ -174,6 +174,16 @@ def nonportable_extract_stack (f=None,limit=None):
 #  print '======== exception traceback follows:';
 #  traceback.print_tb(etb);
 #
+
+def _print_curry_exception ():
+  (et,ev,etb) = sys.exc_info();
+  print "%s: %s" % (getattr(ev,'_classname',ev.__class__.__name__),getattr(ev,'__doc__',''));
+  if hasattr(ev,'args'):
+    print "  ",' '.join(map(str,ev.args));
+  print '======== exception traceback follows:';
+  traceback.print_tb(etb);
+
+
 # curry() composes callbacks and such
 # See The Python Cookbook recipe 15.7
 def curry (func,*args,**kwds):
