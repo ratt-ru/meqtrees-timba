@@ -567,7 +567,7 @@ class TreeBrowser (QObject):
     #all_item._iter_nodes = nodelist.iternodes();
     #all_item.setFlags(Qt.ItemIsEnabled);
     # add 'Root Nodes' item
-    rootnodes = list(nodelist.rootnodes());
+    rootnodes = sorted(nodelist.rootnodes(),lambda a,b:cmp(a.name,b.name));
     rootnodes.sort();
     rootitem  = self._tw_rootitem = \
       StickyTreeWidgetItem(self._tw,name="Root nodes (%d)"%len(rootnodes),key=30);
@@ -581,13 +581,12 @@ class TreeBrowser (QObject):
     cls_item._no_auto_open = True;
     cls_item.setFlags(Qt.ItemIsEnabled);
     items = [];
-    for (cls,nodes) in classes.iteritems():
+    for (cls,nodes) in sorted(classes.iteritems(),lambda a,b:cmp(a[0],b[0])):
       item = QTreeWidgetItem();
       item.setText(0,"%s (%d)"%(cls,len(nodes)));
       item.setText(self.icolumn("class"),cls);
       item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator);
-      nodes = list(nodes);
-      nodes.sort();
+      nodes = sorted(nodes,lambda a,b:cmp(a.name,b.name));
       item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
       items.append(item);
@@ -603,8 +602,8 @@ class TreeBrowser (QObject):
         # list of all nodes on processor
         proclist = filter(lambda x:x.proc == proc,nodelist.iternodes()); 
         # list of root nodes of that processor
-        procrootlist = filter(lambda x:not filter(lambda y:nodelist[y].proc==proc,x.parents),
-                          proclist);
+        procrootlist = sorted(filter(lambda x:not filter(lambda y:nodelist[y].proc==proc,x.parents),
+                          proclist),lambda a,b:cmp(a.name,b.name));
         item = QTreeWidgetItem(procitem,item);
         item.setText(0,"P%d (%d)"%(proc,len(proclist)));
         item.setFirstColumnSpanned(True);
