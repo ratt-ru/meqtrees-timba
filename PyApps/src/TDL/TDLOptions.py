@@ -95,7 +95,7 @@ class OptionConfigParser (ConfigParser.RawConfigParser):
     else:
       _dprint(1,"not writing config file, as saving is disabled");
 
-        
+
 
 # create global config object
 config = OptionConfigParser();
@@ -389,18 +389,37 @@ class _TDLBaseOption (object):
 
 class _TDLOptionSeparator (_TDLBaseOption):
   """This option simply inserts a separator into a menu""";
-  def __init__ (self,namespace=None):
-    _TDLBaseOption.__init__(self,name=None,namespace=namespace,doc=None);
+  def __init__ (self,name=None,namespace=None,doc=None):
+    _TDLBaseOption.__init__(self,name=name or "",namespace=namespace,doc=doc);
 
   def make_treewidget_item (self,parent,after,executor=None):
-    if not getattr(parent,'_ends_with_separator',False):
-      item = QTreeWidgetItem(parent,after);
-      item.setText(0,"-");
-      item.setFlags(0);
-      item.setFirstColumnSpanned(True);
-      parent._ends_with_separator = True;
-      return item;
-    return None;
+    # do not insert an empty separator after another separator
+    if not self.name and after and getattr(after,'_is_separator',False):
+      return None;
+    item = QTreeWidgetItem(parent,after);
+    tw = item.treeWidget();
+    if self.name:
+      widget = QWidget(tw);
+      lo = QHBoxLayout(widget);
+      lo.setContentsMargins(0,0,0,0);
+      label = QLabel(widget);
+      label.setFrameStyle(QFrame.Sunken|QFrame.HLine)
+      label.setMinimumSize(QSize(64,0));
+      lo.addWidget(label,0);
+      label = QLabel(widget);
+      label.setText("<NOBR><B>%s</B></NOBR>"%self.name);
+      lo.addWidget(label,0);
+      label = QLabel(widget);
+      label.setFrameStyle(QFrame.Sunken|QFrame.HLine)
+      lo.addWidget(label,1);
+    else:
+      widget = QLabel(tw);
+      widget.setFrameStyle(QFrame.Sunken|QFrame.HLine)
+    tw.setItemWidget(item,0,widget);
+    item.setFlags(Qt.NoItemFlags);
+    item.setFirstColumnSpanned(True);
+    item._is_separator = True;
+    return self.set_treewidget_item(item);
 
 class _TDLJobItem (_TDLBaseOption):
   def __init__ (self,func,name=None,namespace=None,doc=None,job_id=None):
@@ -412,7 +431,7 @@ class _TDLJobItem (_TDLBaseOption):
     global _job_options;
     _job_options.append(self);
 
-  def make_treewidget_item (self,parent,after,executor=None):
+  def make_treewidget_item0 (self,parent,after,executor=None):
     item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name);
     item.setIcon(0,pixmaps.gear.icon());
@@ -421,6 +440,23 @@ class _TDLJobItem (_TDLBaseOption):
     item.setFont(0,font);
     item._on_click = curry(executor,self.func,self.name,self.job_id);
     item._close_on_click = True;
+    parent._ends_with_separator = False;
+    return self.set_treewidget_item(item);
+
+  def make_treewidget_item (self,parent,after,executor=None):
+    item = QTreeWidgetItem(parent,after);
+    tw = item.treeWidget();
+    button = QToolButton(tw);
+    button.setText(self.name);
+    button.setIcon(pixmaps.gear.icon());
+    button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    if self.doc:
+      button.setToolTip("<body>%s</body>"%self.doc);
+    # item.setFirstColumnSpanned(True);
+    tw.setItemWidget(item,0,button);
+    button._on_click = curry(executor,self.func,self.name,self.job_id);
+    QObject.connect(button,SIGNAL("clicked()"),button._on_click);
+    QObject.connect(button,SIGNAL("clicked()"),tw,PYSIGNAL("closeWindow()"));
     parent._ends_with_separator = False;
     return self.set_treewidget_item(item);
 
@@ -1203,6 +1239,8 @@ def populate_option_treewidget (tw,option_items,executor=None):
   # populate listview
   previtem = None;
   for item in option_items:
+    if item is None:
+      item = _TDLOptionSeparator();
     previtem = item.make_treewidget_item(tw,previtem,executor=executor);
   # add callbacks
   # add to menu
@@ -1293,6 +1331,8 @@ def TDLOption (symbol,name,value,namespace=None,**kw):
   item = _make_option_item(namespace,symbol,name,value,**kw);
   return item;
 
+TDLOptionSeparator = _TDLOptionSeparator;
+
 def TDLJob (function,name=None,doc=None,job_id=None):
   """this creates and returns a TDL job entry, without adding it to
   anu menu. Should be used inside a TDLRuntimeMenu.""";
@@ -1306,9 +1346,9 @@ def TDLCompileOption (symbol,name,value,namespace=None,**kw):
   compile_options.append(opt);
   return opt;
 
-def TDLCompileOptionSeparator ():
+def TDLCompileOptionSeparator (name=None,doc=None):
   namespace = sys._getframe(1).f_globals;
-  opt = _TDLOptionSeparator(namespace=namespace);
+  opt = _TDLOptionSeparator(name=name,doc=doc,namespace=namespace);
   # owner is at depth 1 -- our caller
   opt.init(_resolve_owner(calldepth=1),False);
   compile_options.append(opt);
@@ -1320,9 +1360,9 @@ def TDLRuntimeOption (symbol,name,value,namespace=None,**kw):
   runtime_options.append(opt);
   return opt;
 
-def TDLRuntimeOptionSeparator ():
+def TDLRuntimeOptionSeparator (name=None,doc=None):
   namespace = sys._getframe(1).f_globals;
-  opt = _TDLOptionSeparator(namespace=namespace);
+  opt = _TDLOptionSeparator(name=name,doc=doc,namespace=namespace);
   # owner is at depth 1 -- our caller
   opt.init(_resolve_owner(calldepth=1),True);
   runtime_options.append(opt);

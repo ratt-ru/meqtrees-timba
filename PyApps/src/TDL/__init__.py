@@ -1,9 +1,9 @@
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -29,7 +29,7 @@ from Timba.TDL import TDLimpl
 from Timba.TDL.TDLimpl import *
 from Timba.TDL.MeqClasses import Meq
 from Timba.TDL import Settings
-from Timba.TDL.TDLOptions import TDLOption,TDLMenu,TDLJob
+from Timba.TDL.TDLOptions import TDLOption,TDLMenu,TDLJob,TDLOptionSeparator
 from Timba.TDL.TDLOptions import TDLCompileOption,TDLRuntimeOption,TDLRuntimeJob
 from Timba.TDL.TDLOptions import TDLCompileOptionSeparator,TDLRuntimeOptionSeparator
 from Timba.TDL.TDLOptions import TDLCompileOptions,TDLRuntimeOptions
@@ -47,7 +47,7 @@ if __name__ == '__main__':
   STATIONS = range(1,15);
   # 3 sources
   SOURCES = ('a','b','c');
-  
+
   #--- these are generated automatically from the station list
   # list of ifrs as station pairs: each entry is two indices, (s1,s2)
   IFRS   = [ (s1,s2) for s1 in STATIONS for s2 in STATIONS if s1<s2 ];
@@ -55,28 +55,28 @@ if __name__ == '__main__':
   QIFRS  = [ '-'.join(map(str,ifr)) for ifr in IFRS ];
   # combined list: each entry is ("s1-s2",s1,s2)
   QQIFRS = [ ('-'.join(map(str,ifr)),) + ifr for ifr in IFRS ];
-  
+
   # global node scope & repository
-  ns = NodeScope();     
+  ns = NodeScope();
   # init some node groups
   SOLVERS = NodeGroup('solvers');
-  
+
   #------- create nodes for instrumental model
   # some handy aliases
   ZERO = ns.zero() << Meq.Constant(value=0);
   UNITY = ns.unity() << Meq.Constant(value=1);
-  
+
   PHASE_CENTER_RA  = ns.ra0() << Meq.Parm();
   PHASE_CENTER_DEC = ns.dec0() << Meq.Parm();
-  
+
   STATION_UWV = {};
   STATION_POS = {};
-  
+
   ARRAY_POS = ns.xyz0() << Meq.Composer(
     ns.x0() << Meq.Parm(0),
     ns.y0() << Meq.Parm(0),
     ns.z0() << Meq.Parm(0) );
-    
+
   # create station-related nodes and branches
   for s in STATIONS:
     STATION_POS[s] = ns.xyz(s) << Meq.Composer(
@@ -100,17 +100,17 @@ if __name__ == '__main__':
     #    ns.Gxx(s) << Meq.Polar(Meq.Parm(),Meq.Parm()), ZERO,
     #    ZERO, ns.Gyy(s) << Meq.Polar(Meq.Parm(),Meq.Parm()),
     #  dims=[2,2]);
-  
+
   # this function returns a per-station gain node, given a set of qualifiers
-  def STATION_GAIN (s=s,q=q,**qual):  
+  def STATION_GAIN (s=s,q=q,**qual):
     # **qual swallows any remaining qualifiers
     return ns.G(s,q=q);
     # note alternative for no direction dependence:
-    # def STATION_GAIN (s=s,**qual):  
+    # def STATION_GAIN (s=s,**qual):
     #   return ns.G(s);
-    
+
   #------- end of instrumental model
-      
+
   #------- create model for unpolarized point source
   # References instrumental model: STATION_GAIN(s,**qual), STATION_UWV[s].
   # Returns unqualified predict node, should be qualified with ifr string.
@@ -135,7 +135,7 @@ if __name__ == '__main__':
           ns.dft(q) << Meq.DFT(ns.sdft(s1),ns.sdft(s2)),
       );
     return ns.predict;
-    
+
   #------- create peeling unit
   # inputs: an unqualified input node, will be qualified with ifr string.
   # predicters: list of unqualified predict nodes, will be qualified with ifr string.
@@ -155,16 +155,16 @@ if __name__ == '__main__':
       ns.reqseq(q) << Meq.ReqSeq(ns.solver(),ns.subtract(q));
     # returns root nodes of unit
     return ns.reqseq;
-  
+
   # create source predictors, each in its own subscope
   predicter = {};
   for (q,src) in enumerate(SOURCES):
     predicter[q] = makeUnpolarizedPointSource(ns.Subscope('predict',src),q=q);
-  
+
   # create spigots
   for q in QIFRS:
     ns.spigot(q) << Meq.Spigot();
-    
+
   # chain peel units, by connecting outputs to inputs. First input
   # is spigot.
   inputs = ns.spigot;
@@ -172,15 +172,15 @@ if __name__ == '__main__':
     ns_pu = ns.Subscope('peelunit',q);
     inputs = peelUnit(inputs,predicter.values(),ns=ns_pu);
     SOLVERS << ns_pu.solver();
-    
+
   # create sinks, connect them to output of last peel unit
   for q in QIFRS:
     ns.ROOT << ns.sink(q) << Meq.Sink(inputs(q));
-    
+
   # create data collectors (this simply shows off the use of arbitrary node
   # groupings)
   ns.ROOT << ns.solver_collect() << Meq.DataCollect(*SOLVERS.values());
-    
+
   # deliberately create an orphan branch. This checks orphan collection.
   # this whole branch should go away, and so should the UNITY node, which
   # is not used anywhere
