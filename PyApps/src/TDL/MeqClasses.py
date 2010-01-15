@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -62,13 +63,14 @@ class _MeqGen (TDLimpl.ClassGen):
         #        kw['default_funklet'] = funklet;
         kw['init_funklet'] = funklet;
       else:
-        try:
-          #          kw['default_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
-          kw['init_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
-        except:
-          if _dbg.verbose>0:
-            traceback.print_exc();
-          return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
+        kw['default_value'] = funklet;
+        #try:
+          ##          kw['default_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
+          #kw['init_funklet'] = meq.polc(funklet,shape=kw.get('shape',None));
+        #except:
+          #if _dbg.verbose>0:
+            #traceback.print_exc();
+          #return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
     if not kw.has_key('node_groups'):
       kw['node_groups']='Parm';
     return _NodeDef('Meq','Parm',**kw);
