@@ -166,6 +166,10 @@ class TDLEditor (QFrame,PersistentCurrier):
     QObject.connect(TDLOptions.OptionObject,SIGNAL("mandatoryOptionsSet"),self.mark_mandatory_options_set);
     opts.hide();
     QObject.connect(self._tb_opts,SIGNAL("clicked()"),opts.show);
+    # cross-connect the rereshProfiles() signals, so that dialogs can update each other's
+    # profile menus
+    QObject.connect(self._options_menu,PYSIGNAL("refreshProfiles()"),self._tdlexec_menu.refresh_profiles);
+    QObject.connect(self._tdlexec_menu,PYSIGNAL("refreshProfiles()"),self._options_menu.refresh_profiles);
 
     self._toolbar.addSeparator();
 

@@ -47,6 +47,8 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     # add signals
     QObject.connect(self._tw,SIGNAL("itemClicked(QTreeWidgetItem*,int)"),self._process_treewidget_click);
     QObject.connect(self._tw,SIGNAL("itemActivated(QTreeWidgetItem*,int)"),self._process_treewidget_press);
+    # this is emitted when a job button is puhysed in the treewidget -- hide ourselves when this happens
+    QObject.connect(self._tw,PYSIGNAL("closeWindow()"),self.hide);
     # self._tw.setMinimumSize(QSize(200,100));
     lo_main.addWidget(self._tw);
     # set geometry
@@ -68,7 +70,6 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     spacer = QSpacerItem(40,20,QSizePolicy.Expanding,QSizePolicy.Minimum);
     lo_btn.addItem(spacer)
     # add load button
-    self.load_menu = QMenu(self);
     self.wload = QToolButton(self);
     self.wload.setText("Load");
     self.wload.setIcon(pixmaps.fileopen.icon());
@@ -76,12 +77,10 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
           Profiles are kept in a file called %s in your current directory.</P>"""%PROFILE_FILE);
     self.wload.setPopupMode(QToolButton.InstantPopup);
     self.wload.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self.load_menu = QMenu(self);
     self.wload.setMenu(self.load_menu);
     lo_btn.addWidget(self.wload);
     # add save button
-    self.save_menu = QMenu(self);
-    self.save_menu.addAction("New profile...",self._save_new_profile);
-    self.save_menu.addSeparator();
     self.wsave = QToolButton(self);
     self.wsave.setText("Save");
     self.wsave.setIcon(pixmaps.filesave.icon());
@@ -89,18 +88,15 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
           Profiles are stored in a file called %s in your current directory.</P>"""%PROFILE_FILE);
     self.wsave.setPopupMode(QToolButton.InstantPopup);
     self.wsave.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
+    self.save_menu = QMenu(self);
     self.wsave.setMenu(self.save_menu);
     lo_btn.addWidget(self.wsave);
-    # open profile configuration
-    self.profiles = ConfigParser.RawConfigParser();
-    try:
-      self.profiles.readfp(file(PROFILE_FILE));
-    except:
-      pass;
-    self.wload.setEnabled(bool(self.profiles.sections()));
-    for name in sorted(self.profiles.sections()):
-      self.load_menu.addAction(name,self.curry(self._load_profile,name));
-      self.save_menu.addAction(name,self.curry(self._save_profile,name));
+    # create the New profile action for the save menu
+    self._qa_newprof = QAction("New profile...",self);
+    QObject.connect(self._qa_newprof,SIGNAL("triggered()"),self._save_new_profile);
+    # load profile configuration
+    self.refresh_profiles();
+    QObject.connect(self,PYSIGNAL("refreshProfiles()"),self.refresh_profiles);
     # add cancel button
     tb = QPushButton(pixmaps.red_round_cross.icon(),"Cancel",self);
     QObject.connect(tb,SIGNAL("clicked()"),self.hide);
@@ -121,6 +117,22 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
       width += self._tw.header().sectionSize(col);
     # print width;
     self.resize(max(width,self.width()),self.height());
+
+  def refresh_profiles (self):
+    """Reloads the profiles file and repopulates load and save menus accordingly""";
+    self.load_menu.clear();
+    self.save_menu.clear();
+    self.save_menu.addAction(self._qa_newprof);
+    self.save_menu.addSeparator();
+    self.profiles = ConfigParser.RawConfigParser();
+    try:
+      self.profiles.read([PROFILE_FILE]);
+    except:
+      pass;
+    self.wload.setEnabled(bool(self.profiles.sections()));
+    for name in sorted(self.profiles.sections()):
+      self.load_menu.addAction(name,self.curry(self._load_profile,name));
+      self.save_menu.addAction(name,self.curry(self._save_profile,name));
 
   def _load_profile (self,name):
     if not self.profiles.has_section(name):
@@ -149,18 +161,17 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
       ff = file(PROFILE_FILE,"wt");
       for section in sorted(self.profiles.sections()):
         ff.write("[%s]\n"%section);
-        for name,value in sorted(self.profiles.items(section)):
-          ff.write("%s = %s\n"%(name.lower(),value));
+        for opt,value in sorted(self.profiles.items(section)):
+          ff.write("%s = %s\n"%(opt.lower(),value));
         ff.write("\n");
+      ff.close();
     except:
       dprintf(0,"error writing %s"%PROFILE_FILE);
       traceback.print_exc();
       QMessageBox.warning(self,"Error saving profile","""<P>There was an error writing to the %s file,
                            profile was not saved.</P>"""%PROFILE_FILE);
     if newprof:
-      self.load_menu.addAction(name,self.curry(self._load_profile,name));
-      self.save_menu.addAction(name,self.curry(self._save_profile,name));
-      self.wload.setEnabled(True);
+      self.emit(PYSIGNAL("refreshProfiles()"));
 
   def _save_new_profile (self):
     default_name = os.path.splitext(os.path.basename(TDLOptions.current_scriptname))[0] + ":";
@@ -176,15 +187,15 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     self.emit(PYSIGNAL("accepted()"));
     self.hide();
 
-  def show (self):
+#  def show (self):
     #self._tw.adjustColumn(0);
     #self._tw.adjustColumn(1);
-    return QDialog.show(self);
+#    return QDialog.show(self);
 
-  def exec_ (self):
-    #self._tw.adjustColumn(0);
-    #self._tw.adjustColumn(1);
-    return QDialog.exec_(self);
+#  def exec_ (self):
+#    #self._tw.adjustColumn(0);
+#    #self._tw.adjustColumn(1);
+#    return QDialog.exec_(self);
 
   def treeWidget (self):
     return self._tw;
@@ -192,22 +203,18 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
   def clear (self):
     self._tw.clear();
 
-  class ActionListViewItem (QTreeWidgetItem):
-    def __init__ (self,*args):
-      QTreeWidgetItem.__init__(self,*args);
-      font = QFont(self.font(0));
-      font.setBold(True);
-      self.setFont(0,font);
-
   def addAction (self,label,callback,icon=None):
     # find last item
     last = self._tw.topLevelItem(self._tw.topLevelItemCount()-1);
-    item = self.ActionListViewItem(self._tw,last);
-    item.setText(ColumnName,label);
+    item = QTreeWidgetItem(self._tw,last);
+    button = QPushButton(self._tw);
+    button.setText(label);
     if icon:
-      item.setIcon(ColumnName,icon.icon());
-    item._on_click = callback;
-    item._close_on_click = True;
+      button.setIcon(icon.icon());
+    self._tw.setItemWidget(item,0,button);
+    button._on_click = callback;
+    QObject.connect(button,SIGNAL("clicked()"),button._on_click);
+    QObject.connect(button,SIGNAL("clicked()"),self.hide);
 
   def _process_treewidget_click (self,item,col,*dum):
     """helper function to process a click on a treeWidget item. Meant to be connected
