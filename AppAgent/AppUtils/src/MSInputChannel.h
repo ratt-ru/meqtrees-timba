@@ -47,9 +47,10 @@ using namespace VisVocabulary;
 //## 
 //## rec[MSVisInputAgentParams]  (record)    contains all parameters below
 //##    +--[FMSName]             (string)    MS filename (must be present)
-//##    +--[FDataColumnName]     (string)    column to read visibilities from
-//##                                         (default is "DATA", but can use, 
-//##                                           e.g., "MODEL_DATA")
+//##    +--[FDataColumnName]     (string)    column to read tile DATA visibilities from
+//##                                         (default is "DATA", but can use, any column)
+//##    +--[FPredictColumnName]  (string)    column to read tile PREDICT visibilities from
+//##                                         (default is none)
 //##    +--[FTileSize]           (int)       tile size (default: 1 timeslot)
 //##    +--[FFlagMask]           (int)       apply flag mask to input bitflags (if available). 0 for no flags. 
 //##                                         Default is -1 (all flags).
@@ -129,6 +130,7 @@ class MSInputChannel : public FileChannel
       // name of data column used
     //##ModelId=3DF9FECD01B0
       string dataColName_;
+      string predictColName_;
       
       // MS tiling specification
       //  * if tilesegs_>1, then each tile will be composed of the specified
@@ -169,6 +171,7 @@ class MSInputChannel : public FileChannel
       int legacy_bitflag_;
       int tile_bitflag_;
       
+      // apply preprocessing to data column
       bool apply_hanning_;
       bool invert_phases_;
       

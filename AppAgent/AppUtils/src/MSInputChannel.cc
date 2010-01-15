@@ -400,6 +400,7 @@ int MSInputChannel::init (const DMI::Record &params)
     empty <<= pselection = new DMI::Record;
   // get name of data column (default is DATA)
   dataColName_ = params[FDataColumnName].as<string>("DATA");
+  predictColName_ = params[FPredictColumnName].as<string>("");
   // get # of timeslots or # of segments per tile 
   tilesize_ = params[FTileSize].as<int>(0);
   tilesegs_ = params[FTileSegments].as<int>(0);
@@ -422,6 +423,9 @@ int MSInputChannel::init (const DMI::Record &params)
   // init common tile format and place it into header
   tileformat_ <<= new VTile::Format;
   VTile::makeDefaultFormat(tileformat_,num_corrs_,num_channels_);
+  if( !predictColName_.empty() )
+    tileformat_().add(VTile::PREDICT,Tpfcomplex,LoShape(num_corrs_,num_channels_));
+
   header[FTileFormat] <<= tileformat_.copy(); 
 
   tiles_.clear();
@@ -538,11 +542,21 @@ int MSInputChannel::refillStream ()
         // get array columns as Lorrays
         Matrix<Double> uvwmat1 = ROArrayColumn<Double>(table, "UVW").getColumn();
         LoMat_double uvwmat = B2A::refAipsToBlitz<double,2>(uvwmat1);
-        Cube<Complex> datacube1 = ROArrayColumn<Complex>(table, dataColName_).getColumn();
+        Cube<Complex> datacube1 = ROArrayColumn<Complex>(table,dataColName_).getColumn();
         // invert phases if asked to
         if( invert_phases_ )
           datacube1 = conj(datacube1);
         LoCube_fcomplex datacube = B2A::refAipsToBlitzComplex<3>(datacube1);
+        Cube<Complex> predcube1;
+        LoCube_fcomplex predcube;
+        if( !predictColName_.empty() )
+        {
+          predcube1 = ROArrayColumn<Complex>(table,predictColName_).getColumn();
+          // NB: we only invert input phases
+          // if( invert_phases_ )
+          //  predcube1 = conj(predcube1);
+          predcube.reference(B2A::refAipsToBlitzComplex<3>(predcube1));
+        }
         // apply taper
 //        if( apply_hanning_ )
 //        {
@@ -633,6 +647,8 @@ int MSInputChannel::refillStream ()
         datacube.reference(datacube(ALL,CHANS,ALL));
         if( hasflags )
           bitflagcube.reference(bitflagcube(ALL,CHANS,ALL));
+        if( !predictColName_.empty() )
+          predcube.reference(predcube(ALL,CHANS,ALL));
         // check weightcube shape (WSRT gets it wrong), disable weights on first error
         if( has_weights_ && weightcube.shape() != datacube.shape() )
         {
@@ -648,6 +664,8 @@ int MSInputChannel::refillStream ()
             bitflagcube.reverseSelf(blitz::secondDim);
           if( has_weights_ )
             weightcube.reverseSelf(blitz::secondDim);
+          if( !predictColName_.empty() )
+            predcube.reverseSelf(blitz::secondDim);
         }
         // get vector of row numbers 
         Vector<uInt> rownums = table.rowNumbers(ms_);
@@ -676,6 +694,8 @@ int MSInputChannel::refillStream ()
           ptile->winterval()(ntimes) = intCol(i);
           ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
           ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,ALL,i);
+          if( !predictColName_.empty() )
+            ptile->wpredict()(ALL,ALL,ntimes) = predcube(ALL,ALL,i);
           if( has_weights_ )
           {
             cdebug(6)<<"weights for timeslot "<<ntimes<<" ifr "<<ant1<<"-"<<ant2<<":"<<weightcube(ALL,ALL,i)<<endl;

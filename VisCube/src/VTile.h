@@ -123,6 +123,7 @@ class VDSID : public HIID
 //## Optional columns are:
 //## 
 //##    PREDICT   (Ncorr x Nfreq fcomplex)
+//##    RESIDUALS (Ncorr x Nfreq fcomplex)
 //## 
 //## Accessor methods to column data in array format are provided, as well as
 //## iterators.

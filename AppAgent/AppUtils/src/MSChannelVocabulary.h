@@ -60,6 +60,7 @@ namespace MSChannel
        FChannelIncrement  = AidChannel|AidIncrement,
        FSelectionString   = AidSelection|Aidstring,
        FDataColumnName    = AidData|AidColumn|AidName,
+       FPredictColumnName = AidPredict|AidColumn|AidName,
        FTileSize          = AidTile|AidSize,
        FTileSegments      = AidTile|AidSegments,
        FTileFormat        = AidTile|AidFormat,
