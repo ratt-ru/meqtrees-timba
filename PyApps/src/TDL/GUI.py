@@ -3,6 +3,7 @@
 # When running in batch mode, most of these map to no-ops
 
 from Timba import dmi
+from Kittens.utils import curry
 
 meqbrowser = None;
 
@@ -10,6 +11,23 @@ try:
   from PyQt4 import Qt
 except:
   Qt = None;
+
+#
+# ===== flush =====
+#
+if Qt:
+  def flush_events ():
+    Qt.QCoreApplication.processEvents(Qt.QEventLoop.ExcludeUserInputEvents);
+  def _call_gui_func (func,*args):
+    ret = func(*args);
+    flush_events();
+    return ret;
+else:
+  def flush_events ():
+    pass;
+  def _call_gui_func (func,*args):
+    pass;
+    
 
 #
 # ===== BUSY INDICATOR =====
@@ -38,13 +56,14 @@ class ProgressDialog (object):
       self.dialog.setValue(min_value);
       self.dialog.show();
       for m in methods:
-	setattr(self,m,getattr(self.dialog,m));
+	setattr(self,m,curry(_call_gui_func,getattr(self.dialog,m)));
     else:
       self.dialog = None;
       def dummy_method (*arg,**kw):
 	return None;
       for m in methods:
 	setattr(self,m,dummy_method);
+  
 
   def __del__ (self):
     if Qt and self.dialog:
@@ -67,6 +86,7 @@ def log_message (message,category=Normal):
   Category should be set to Normal, Event or Error."""; 
   if meqbrowser:
     meqbrowser.log_message(message,category=category);
+    flush_events();
   else:
     if category == Normal:
       print "TDL message: %s\n"%message;
@@ -114,7 +134,7 @@ class MessageBox (object):
       if default:
 	self.dialog.setDefaultButton(default);
       for m in methods:
-	setattr(self,m,getattr(self.dialog,m));
+	setattr(self,m,curry(_call_gui_func,getattr(self.dialog,m)));
     else:
       self.dialog = None;
       def dummy_method (*arg,**kw):
