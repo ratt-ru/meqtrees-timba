@@ -28,6 +28,7 @@
 
 import sys
 import atexit
+import traceback
 from Timba.Meq import meqds
 
 # first things first: setup app defaults from here and from
@@ -38,6 +39,8 @@ if app_defaults.include_gui:
   try:
     from Timba.GUI.meqserver_gui import *
   except:
+    print "*** Error importing GUI modules:";
+    traceback.print_exc();
     pass;
 
 # #-------- update default debuglevels
