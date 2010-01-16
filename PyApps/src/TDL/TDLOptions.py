@@ -676,6 +676,8 @@ class _TDLFileOptionItem (_TDLOptionItem):
       value = value[len(cwd):];
     if self.initialized and self.config_name:
       _set_config(self.config_name,value,save=save);
+    if self._twitem:
+      self._twitem.setText(2,value);
     self._set(value,callback=callback);
 
   def enable (self,enabled=True):
