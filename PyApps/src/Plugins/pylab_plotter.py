@@ -129,8 +129,8 @@ if has_pylab:
    def make_plot(self, plot_defs):
      """Make a pylab plot from all items in plot_defs.
      """
-#     from Timba.Contrib.JEN.pylab import PyNodePlot
-#     PyNodePlot.make_pylab_figure(plot_defs, figob=self.fig)
+     from Timba.Contrib.JEN.pylab import PyNodePlot
+     PyNodePlot.make_pylab_figure(plot_defs, figob=self.fig)
      return None
 
 #========================================================================
@@ -183,7 +183,7 @@ class PylabPlotter(GriddedPlugin):
   def create_layout_stuff(self):
     """ create grid layouts into which plotter widgets are inserted """
     if self.layout_parent is None or not self.layout_created:
-      self.layout_parent = Qt.QWidget(self.wparent(),"layout parent")
+      self.layout_parent = Qt.QWidget(self.wparent())
       self.layout = Qt.QGridLayout(self.layout_parent)
       self.set_widgets(self.layout_parent,self.dataitem.caption,icon=self.icon())
       self.layout_created = True
@@ -201,7 +201,7 @@ class PylabPlotter(GriddedPlugin):
     if not has_pylab:
       Message = "Matplotlib does not appear to be installed so no plot can be made."
       cache_message = Qt.QLabel(Message,self.wparent())
-      cache_message.setTextFormat(Qt.RichText)
+#     cache_message.setTextFormat(Qt.RichText)
       self._wtop = cache_message
       self.set_widgets(cache_message)
       self.reset_plot_stuff()
@@ -242,7 +242,7 @@ class PylabPlotter(GriddedPlugin):
 # menu to switch to a different viewer)
         Message = "No cache result record was found for this node, so no plot can be made."
         cache_message = Qt.QLabel(Message,self.wparent())
-        cache_message.setTextFormat(Qt.RichText)
+#       cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
         self.reset_plot_stuff()
@@ -309,15 +309,15 @@ class PylabPlotter(GriddedPlugin):
 #     self._toolbar.reparent(Qt.QWidget(), 0, Qt.QPoint())
       self._toolbar.setParent(Qt.QWidget())
       self._toolbar = None
+    if self._pylab_plotter is None:
+      self._pylab_plotter = MyPylabPlotter(parent=self.layout_parent)
+      self.layout.addWidget(self._pylab_plotter,1,0)
+      self._pylab_plotter.show()
     if self._toolbar is None:
       self._toolbar = NavigationToolbar(self._pylab_plotter, self.layout_parent)
       self._toolbar.setSizePolicy(Qt.QSizePolicy.Expanding,Qt.QSizePolicy.Fixed)
       self.layout.addWidget(self._toolbar,0,0)
       self._toolbar.show()
-    if self._pylab_plotter is None:
-      self._pylab_plotter = MyPylabPlotter(parent=self.layout_parent)
-      self.layout.addWidget(self._pylab_plotter,1,0)
-      self._pylab_plotter.show()
     self._pylab_plotter.make_plot(pylab_record)
     
   # end show_pylab_plot()
