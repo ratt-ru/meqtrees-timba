@@ -158,8 +158,8 @@ class Logger(HierBrowser):
     self._controlgrid = QWidget(self._vbox);
     self._vbox_lo.addWidget(self._controlgrid);
     self._controlgrid_lo = QGridLayout(self._controlgrid); # ,3,6);
-    self._controlgrid_lo.setColumnStretch(0,1000);
-    for icol in 1,3,5:
+    self._controlgrid_lo.setColumnStretch(1,1000);
+    for icol in 3,5:
       self._controlgrid_lo.setColumnMinimumWidth(icol,8);
     self._controlgrid_lo.setContentsMargins(0,0,0,0);
     self._controlgrid_lo.setSpacing(0);
@@ -382,8 +382,12 @@ class MessageLogger (Logger):
   def __init__(self,*args,**kwargs):
     Logger.__init__(self,scroll=True,*args,**kwargs);
     self._num_err = 0;
-    self.wtop().connect(self._tw,SIGNAL('clicked(QTreeWidgetItem*)'),
-                        self._clear_error_count);
+    # self.wtop().connect(self._tw,SIGNAL('clicked(QTreeWidgetItem*)'),
+    #                    self._clear_error_count);
+    self._wclearerr = QPushButton(pixmaps.exclaim.icon(),"Clear errors",self._controlgrid);
+    self._controlgrid_lo.addWidget(self._wclearerr,1,0);
+    self._wclearerr.setVisible(False);
+    QObject.connect(self._wclearerr,SIGNAL("clicked()"),self._clear_error_count);
     
   def add (self,msg,category=Logger.Normal,*args,**kwargs):
     label = time.strftime("%H:%M:%S");
@@ -399,11 +403,13 @@ class MessageLogger (Logger):
       if self._num_err == 0:
         self._first_err = items[-1];
       self._num_err += 1;
+      self._wclearerr.setVisible(True);
       self.wtop().emit(SIGNAL("hasErrors"),self.wtop(),self._num_err);
       self._last_err = items[-1];
   def _clear_error_count (self):
     self._num_err = 0;
     self._first_err = self._last_err = None;
+    self._wclearerr.setVisible(False);
     self.wtop().emit(SIGNAL("hasErrors"),self.wtop(),0);
   def clear (self):
     Logger.clear(self);
