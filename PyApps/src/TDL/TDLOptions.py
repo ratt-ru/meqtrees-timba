@@ -732,8 +732,8 @@ class _TDLListOptionItem (_TDLOptionItem):
   def __init__ (self,namespace,symbol,value,default=None,more=None,
                      config_name=None,name=None,doc=None,mandatory=False):
     _TDLOptionItem.__init__(self,namespace,symbol,None,config_name=config_name,name=name,doc=doc,mandatory=mandatory);
-    if more not in (None,int,float,str):
-      raise ValueError,"'more' argument to list options must be 'None', 'int', 'float' or 'str'"
+    if more not in (None,int,float,str,complex):
+      raise ValueError,"'more' argument to list options must be 'None', 'int', 'float', 'complex' or 'str'"
     if not more and not value:
       raise ValueError,"empty option list, and 'more=' not specified";
     self._more = more;
@@ -821,9 +821,16 @@ class _TDLListOptionItem (_TDLOptionItem):
         selection = conserve_selection = None;
       _dprint(5,"trying to conserve previous selection",selection);
     if isinstance(opts,(list,tuple)):
-      self.option_list = list(opts);
-      self.option_list_str = map(lambda x:self.item_str(x),opts);
-      self.option_list_desc = list(self.option_list_str);
+      # check for list of ("key":value) pairs
+      if len([ opt for opt in opts if isinstance(opt,(list,tuple)) and len(opt) == 2 ]) == len(opts):
+        self.option_list = [ opt[0] for opt in opts ];
+        self.option_list_str = [ self.item_str(opt[0]) for opt in opts ];
+        self.option_list_desc = [ str(opt[1]) for opt in opts ];
+      # else treat as simple list of values
+      else:
+        self.option_list = list(opts);
+        self.option_list_str = map(lambda x:self.item_str(x),opts);
+        self.option_list_desc = list(self.option_list_str);
     elif isinstance(opts,dict):
       self.option_list = list(opts.iterkeys());
       self.option_list_str = map(lambda x:self.item_str(x),opts.iterkeys());
