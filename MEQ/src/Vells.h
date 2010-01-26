@@ -469,10 +469,11 @@ public:
     // init a flag vells with out_ne
     out = Vells(shape(),out_ne,true);
     const T * ptr = begin<T>();
-    VellsFlagType * pout = out.begin<T>();
+    VellsFlagType * pout = out.begin<VellsFlagType>();
     bool matched = false;
     bool mismatched = false;
-    for( ; ptr != end<T>(); ptr++,pout++ );
+    for( ; ptr != end<T>(); ptr++,pout++ )
+    {
       if( *ptr == value )
       {
         *pout = out_eq;
@@ -480,6 +481,7 @@ public:
       }
       else
         mismatched = true;
+    }
     if( matched && !mismatched )
       return 1;
     else if( mismatched && !matched )

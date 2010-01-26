@@ -174,8 +174,9 @@ void ReductionFunction::evaluateFlags (Vells::Ref &out,const Request &req,const 
         { 
           totflagmask |= flagmask_[i];
           Vells vs_flagged;
+          Vells masked_flags = pvs[i]->dataFlags()&flagmask_[i];
           // whereEq() will return 1 if all flags are ==0
-          if( (pvs[i]->dataFlags()&flagmask_[i]).whereEq(vs_flagged,VellsFlagType(0),0,1<<i) != 1 )
+          if( masked_flags.whereEq(vs_flagged,VellsFlagType(0),0,1<<i) != 1 )
             flagged |= vs_flagged;
         }
       }
