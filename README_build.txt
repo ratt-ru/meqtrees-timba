@@ -90,7 +90,7 @@ appropriate Cmake variable:
   ---------------------------------------------------
   USE_MPI                  | Use the mpi parrallelisation library
 
-
+e.g. -DUSE_MPI=TRUE
 
 Setting CMake Variables
 =======================
