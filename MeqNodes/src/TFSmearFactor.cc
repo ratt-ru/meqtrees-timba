@@ -26,21 +26,33 @@
 
 namespace Meq {    
 
+const HIID FModulo = AidModulo;
 
 //##ModelId=400E5355029C
 TFSmearFactor::TFSmearFactor()
- : Function(2) // two children expected
+ : Function(2,0,1),modulo_(0) // one or two children expected
 {}
 
 //##ModelId=400E5355029D
 TFSmearFactor::~TFSmearFactor()
 {}
 
+//##ModelId=400E53550233
+void TFSmearFactor::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  Node::setStateImpl(rec,initializing);
+  rec[FModulo].get(modulo_,initializing);
+  is_modulo_ = ( modulo_ != 0 );
+}
+
+
 using namespace blitz;
 using namespace VellsMath;
 
+// for teh normal stencils: used to have
+//    A = .5*central12(B,blitz::firstDim);
 BZ_DECLARE_STENCIL2(TimeDiff, A,B)
-    A = .5*central12(B,blitz::firstDim);
+    A = forward11(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(TimeDiff1,A,B)
     A = forward11(B,blitz::firstDim);
@@ -49,7 +61,7 @@ BZ_DECLARE_STENCIL2(TimeDiff2,A,B)
     A = backward11(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff, A,B)
-    A = .5*central12(B,blitz::secondDim);
+    A = forward11(B,blitz::secondDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff1,A,B)
     A = forward11(B,blitz::secondDim);
@@ -63,8 +75,11 @@ BZ_END_STENCIL
 Vells TFSmearFactor::evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values)
 {
-  Assert(values.size() == 2 );
-  Vells argvells = ((*values[0]) - (*values[1]))/2;
+  Vells argvells;
+  if( values.size() == 2 )
+    argvells = (*values[0]) - (*values[1]);
+  else
+    argvells = *values[0];
   // arg will refer to the incoming data as a rank-2 array
   blitz::Array<double,2> arg;
   int nt = argvells.extent(Axis::TIME);
@@ -100,6 +115,9 @@ Vells TFSmearFactor::evaluate (const Request&,const LoShape &,
     blitz::applyStencil(TimeDiff2(),dtime_2_row1,arg_row1);
     if( nt > 2 )
       blitz::applyStencil(TimeDiff(),dtime_2,arg);
+    if( is_modulo_ )
+      dtime = remainder(dtime,modulo_);
+    dtime /= 2;
     factor *= sin(dtime)/dtime;
   }
   // now apply stencil in freq
@@ -114,9 +132,13 @@ Vells TFSmearFactor::evaluate (const Request&,const LoShape &,
     blitz::applyStencil(FreqDiff2(),dfreq_2_col1,arg_col1);
     if( nf > 2 )
       blitz::applyStencil(FreqDiff(),dfreq_2,arg);
+    if( is_modulo_ )
+      dfreq = remainder(dfreq,modulo_);
+    dfreq /= 2;
     factor *= sin(dfreq)/dfreq;
   }
   // take sines and compute smearing factors
+  // return dtime;
   return factor;
 }
 

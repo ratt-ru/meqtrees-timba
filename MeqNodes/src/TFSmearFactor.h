@@ -26,6 +26,7 @@
     
 #include <MEQ/Function.h>
 
+#include <MeqNodes/AID-MeqNodes.h>
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::TFSmearFactor
@@ -51,6 +52,12 @@ public:
     //##ModelId=400E535502A1
   virtual Vells evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values);
+
+protected:
+  void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+
+  bool is_modulo_;
+  double modulo_;
 };
 
 
