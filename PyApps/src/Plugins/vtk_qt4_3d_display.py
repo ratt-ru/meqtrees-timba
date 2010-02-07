@@ -37,7 +37,12 @@ global has_vtk
 has_vtk = False
 try:
   import vtk
-  from QVTKRenderWindowInteractor_qt4 import *
+  try:
+    from vtk.qt4.QVTKRenderWindowInteractor import *
+  except:
+# depreciated!
+    print 'Importation of the local QVTKRenderWindowInteractor_qt4.py file is depreciated.' 
+    from QVTKRenderWindowInteractor_qt4 import *
   from Timba.Plugins.vtkImageImportFromNumpy import *
   has_vtk = True
 except:
