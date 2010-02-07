@@ -66,14 +66,16 @@ Since VTK uses the right mouse button to control the camera zoom in the 3-D disp
 Hardcopy printing is a bit primitive at present; essentially you get a screenshot of the display. So if you want a reasonably sized hardcopy you need to float the display widget from the MeqBrowser and resize it with your mouse to be larger.<br><br>
 '''
 if has_vtk:
+
   class MEQ_QVTKRenderWindowInteractor(QVTKRenderWindowInteractor):
     """ We override the default QVTKRenderWindowInteractor
         class in order to add an extra method
     """
-    def __init__(self, parent=None, name=None, *args, **kw):
+    def __init__(self, parent=None,wflags=QtCore.Qt.WindowFlags(),**kw):
+
       if not has_vtk:
         return None
-      QVTKRenderWindowInteractor.__init__(self,parent,name,*args,**kw)
+      QVTKRenderWindowInteractor.__init__(self,parent,wflags,**kw)
 
     def contextMenuEvent(self,ev):
       """ This function is necessary when a QVTKRenderWindowInteractor

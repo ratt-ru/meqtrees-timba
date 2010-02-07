@@ -142,8 +142,7 @@ class QVTKRenderWindowInteractor(QtGui.QWidget):
             rw = kw['rw']
 
         # create qt-level widget
-#       QtGui.QWidget.__init__(self, parent, wflags|QtCore.Qt.MSWindowsOwnDC)
-        QtGui.QWidget.__init__(self, parent)
+        QtGui.QWidget.__init__(self, parent, wflags|QtCore.Qt.MSWindowsOwnDC)
 
         if rw: # user-supplied render window
             self._RenderWindow = rw
