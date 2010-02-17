@@ -295,6 +295,8 @@ class record (dict):
     # if none found, go look for a dict key
     try:   key = self.make_key(name);
     except ValueError,info: raise AttributeError,info;
+    # try string key, if not found, convert to hiid and back to string (to take care of
+    # case sensitivity: after conversion, HIID-derived strings will have canonical capitalization).
     try:   value = dict.__getitem__(self,key);
     except KeyError: raise AttributeError,"no such field: "+str(key);
     return self._resolve_lazy_ref(key,value);
@@ -314,15 +316,19 @@ class record (dict):
     except ValueError,info: raise AttributeError,info;
     return dict.__delitem__(self,key);
   # get: string names implicitly converted to HIIDs, lazy refs resolved
-  def get (self,key,*args):
-    if isinstance(key,str):
-      try: key = self.make_key(key);
-      except ValueError,info: raise TypeError,info;
-    value = dict.get(self,key,*args);
+  def get (self,key,default=None):
+    try: key = self.make_key(key);
+    except ValueError,info: raise TypeError,info;
+    value = dict.get(self,key,KeyError);
+    if value is KeyError:
+      if default is not KeyError:
+        return default;
+      else:
+        raise KeyError,"no such key: %s"%key;
     return self._resolve_lazy_ref(key,value);
   # __getitem__: string names implicitly converted to HIIDs, lazy refs resolved
   def __getitem__(self,name):
-    return self.get(name);
+    return self.get(name,default=KeyError);
   # __setitem__: check types, string names implicitly converted to HIIDs
   def __setitem__ (self,name,value):
     value = self.make_value(value);
@@ -341,15 +347,15 @@ class record (dict):
     dictiter = self.iteritems();
     items = [];
     for (key,value) in dictiter:
-      items += ["%s: %s" % (key,str(value)) ];
+      items += ["%s=%s" % (key,str(value)) ];
     return "{ " + string.join(items,', ') + " }";
   # __repr__: official form
   def __repr__ (self):
     dictiter = self.iteritems();
     items = [];
     for (key,value) in dictiter:
-      items += ["'%s':%s" % (key,repr(value)) ];
-    return self.__class__.__name__+"({" + string.join(items,',') + "})";
+      items += [ "%s=%s" % (key,repr(value)) ];
+    return "%s(%s)"%(self.__class__.__name__,string.join(items,','));
   # pop: string names implicitly converted to HIIDs, lazy refs resolved
   def pop (self,key,*args):
     if isinstance(key,str):
