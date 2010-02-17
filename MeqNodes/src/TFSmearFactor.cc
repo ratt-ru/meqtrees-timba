@@ -27,10 +27,11 @@
 namespace Meq {    
 
 const HIID FModulo = AidModulo;
+const HIID FPhaseFactor = "Phase.Factor";
 
 //##ModelId=400E5355029C
 TFSmearFactor::TFSmearFactor()
- : Function(2,0,1),modulo_(0) // one or two children expected
+ : Function(2,0,1),modulo_(0),phase_factor_(1) // one or two children expected
 {}
 
 //##ModelId=400E5355029D
@@ -42,6 +43,7 @@ void TFSmearFactor::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FModulo].get(modulo_,initializing);
+  rec[FPhaseFactor].get(phase_factor_,initializing);
   is_modulo_ = ( modulo_ != 0 );
 }
 
@@ -117,7 +119,7 @@ Vells TFSmearFactor::evaluate (const Request&,const LoShape &,
       blitz::applyStencil(TimeDiff(),dtime_2,arg);
     if( is_modulo_ )
       dtime = remainder(dtime,modulo_);
-    dtime /= 2;
+    dtime /= 2/phase_factor_;
     factor *= sin(dtime)/dtime;
   }
   // now apply stencil in freq
@@ -134,7 +136,7 @@ Vells TFSmearFactor::evaluate (const Request&,const LoShape &,
       blitz::applyStencil(FreqDiff(),dfreq_2,arg);
     if( is_modulo_ )
       dfreq = remainder(dfreq,modulo_);
-    dfreq /= 2;
+    dfreq /= 2/phase_factor_;
     factor *= sin(dfreq)/dfreq;
   }
   // take sines and compute smearing factors

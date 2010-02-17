@@ -58,6 +58,7 @@ protected:
 
   bool is_modulo_;
   double modulo_;
+  double phase_factor_;
 };
 
 
