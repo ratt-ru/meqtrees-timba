@@ -43,14 +43,13 @@ namespace Meq {
 			  const Request &request,bool newreq)
   {
 
-    // Combine the four (real) planes of the child result into four new (complex) planes:
+    // Combine the four (real) planes of the child result into a 2x2 tensor of four complex planes:
     // plane 0 = (plane 0 + plane 1)/2
     // plane 1 = (plane 2 + I * plane 3)/2
     // plane 2 = (plane 2 - I * plane 3)/2
     // plane 3 = (plane 0 - plane 1)/2
     //
-    // To do: 1) what if certain planes do not exist
-    //        2) this is linear polarization, what for circular polarization?
+    // If QUV is 0, returns scalar I
 
     const Result &tempres = childres.at(0);
     const Cells& cells = childres.at(0)->cells();
@@ -78,6 +77,7 @@ namespace Meq {
       {
         const Vells &vellsQ = vsQ.getValue();
         resref <<= new Result(4);
+        resref().setDims(LoShape(2,2));
         resref().setNewVellSet(0).setValue((vellsI+vellsQ)/2);
         resref().setNewVellSet(1); // null XY
         resref().setNewVellSet(2); // null YX
@@ -100,6 +100,7 @@ namespace Meq {
       Vells vellsYY = (vellsI-vellsQ)/2;
   
       resref <<= new Result(4);
+      resref().setDims(LoShape(2,2));
   
       VellSet& vs0 = resref().setNewVellSet(0);
       VellSet& vs1 = resref().setNewVellSet(1);
@@ -110,8 +111,6 @@ namespace Meq {
       vs1.setValue(vellsXY);
       vs2.setValue(vellsYX);
       vs3.setValue(vellsYY);
-  
-      resref().setDims(LoShape(2,2));
     }
     resref().setCells(cells);
     

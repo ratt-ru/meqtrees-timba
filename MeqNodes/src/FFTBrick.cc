@@ -148,15 +148,15 @@ int FFTBrick::getResult (Result::Ref &resref,
   int ovs = 0;  // counter of output VellSets
   for( int ivs = 0; ivs<childres.numVellSets(); ivs++ ) {
     const VellSet &vs_input = childres.vellSet(ivs);
-    // create 4 new output VellSets
     VellSet * pvs_output[1];
     for( int i=0; i<1; i++,ovs++ )
       pvs_output[i] = &( result.setNewVellSet(ovs) );
     
     // if the input VellSet is a null, make null outputs and continue
-    if( vs_input.isNull() ) {
+    if( vs_input.isNull() ) 
+    {
       Vells::Ref null_vells(DMI::ANONWR);
-      for( int i=0; i<1; i++,ovs++ )
+      for( int i=0; i<1; i++ )
         pvs_output[i]->setValue(null_vells);
       continue;
     }
