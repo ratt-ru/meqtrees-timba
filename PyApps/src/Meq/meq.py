@@ -318,8 +318,8 @@ def gen_cells (domain,**kw):
   cell_size = record();
   segments = record();
   for axis,dom in domain.iteritems():
-    axis = hiid(axis);
-    nc = kw.get('num_'+str(axis).lower(),1);
+    axis = str(hiid(axis)).lower();
+    nc = kw.get('num_'+axis,1);
     grid[axis],cell_size[axis],segments[axis] = \
         _resolve_grid(axis,dom,nc,[],[]);
   return _cells_type(domain=domain,grid=grid,cell_size=cell_size,segments=segments);
