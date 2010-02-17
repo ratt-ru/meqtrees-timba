@@ -83,6 +83,8 @@ int ZeroFlagger::getResult (Result::Ref &resref,
   for( int iplane = 0; iplane < nvs; iplane++ )
   {
     VellSet &vs = result.vellSetWr(iplane);
+    if( !vs.hasValue() )
+      continue;
     // get main values 
     const Vells &value = vs.getValue();
     if( !value.isReal() )
