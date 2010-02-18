@@ -1398,9 +1398,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
       """ report a scalar value in case where a vells plot has
           already been initiated
       """
+
+      # delete any flag arrays
+      self.unsetFlagsData()
+
       self._vells_plot = False
       self.reset_zoom()
-      dummy_array = numpy.zeros(shape=(1,),dtype=numpy.float32)
+      dummy_array = numpy.zeros(shape=(2,2),dtype=numpy.float32)
       self.array_plot(dummy_array,data_label=data_label)
       self.removeCurves()
       self.removeMarkers()
@@ -1435,8 +1439,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if not self.is_vector:
         xlb, xhb = self.plotImage.get_xMap_draw_coords()
         ylb, yhb = self.plotImage.get_yMap_draw_coords()
-      # print ' image x ', xlb, xhb
-      # print ' image y ', ylb, yhb
       else:
         try:
           ylb = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound()
@@ -1444,7 +1446,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         except:
           ylb = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound()
           xlb = self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound()
-      # print ' vector xlb ylb ', xlb, ylb
       self.source_marker.setValue( xlb+0.1, ylb+1.0)
       self.source_marker.attach(self)
 
@@ -1456,9 +1457,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._toggle_warp_display.setVisible(False)
 
 # make sure any color bar from array plot of other Vells member is hidden
-      self.emit(Qt.SIGNAL("show_colorbar_display"),(0,0)) 
+      self.emit(Qt.SIGNAL("show_colorbar_display"),0,0) 
       if self.complex_type:
-        self.emit(Qt.SIGNAL("show_colorbar_display"),(0,1)) 
+        self.emit(Qt.SIGNAL("show_colorbar_display"),0,1) 
 # make sure options relating to color bar are not in context menu
       self._toggle_colorbar.setVisible(False)
       self._toggle_color_gray_display.setVisible(False)
@@ -1481,7 +1482,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
       """ make a hardcopy of current displayed plot """
       self.emit(Qt.SIGNAL("do_print"),self.is_vector,self.complex_type)
     # printplot()
-
 
     def drawCanvasItems(self, painter, rectangle, maps, filter):
         if not self.is_vector:
@@ -3363,9 +3363,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.enable_axes()
           self.removeMarkers()
 # make sure color bar is hidden
-        self.emit(Qt.SIGNAL("show_colorbar_display"),(0,0)) 
+        self.emit(Qt.SIGNAL("show_colorbar_display"),0,0) 
         if self.complex_type:
-          self.emit(Qt.SIGNAL("show_colorbar_display"),(0,1)) 
+          self.emit(Qt.SIGNAL("show_colorbar_display"),0,1) 
 
 # make sure options relating to 2-D stuff are not visible in context menu
         self._toggle_colorbar.setVisible(False)
