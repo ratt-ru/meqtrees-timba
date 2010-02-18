@@ -378,9 +378,13 @@ class QwtPlotImage(Qwt.QwtPlotItem):
     def setFlaggedImageRange(self):
       (nx,ny) = self.raw_image.shape
       num_elements = nx * ny
-      flags_array = self._flags_array.copy()
-      if not self._nan_flags_array is None:
-        flags_array = flags_array + self._nan_flags_array
+      if self._flags_array is None:
+        if not self._nan_flags_array is None:
+          flags_array = self._nan_flags_array.copy()
+      else:
+        flags_array = self._flags_array.copy()
+        if not self._nan_flags_array is None:
+          flags_array = flags_array + self._nan_flags_array
       flattened_flags = numpy.reshape(flags_array,(num_elements,))
       if self.raw_image.dtype == numpy.complex64 or self.raw_image.dtype == numpy.complex128:
         real_array =  self.raw_image.real
