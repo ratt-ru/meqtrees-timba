@@ -178,7 +178,7 @@ void AzElRaDec::evaluateTensors (std::vector<Vells> & out,
     }
     azel(0) = *iter_az;
     azel(1) = *iter_el;
-    // convert ra, dec to Az El at given time
+    // convert AzEl to Ra,Dec at given time
     MDirection radec_out(radec_converter(azel));
     //Gawd - what a mouthful - luckily some old ACSIS code provided the
     //right incantation for the following line!
