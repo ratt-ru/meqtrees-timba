@@ -146,7 +146,7 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
   Vells::Shape outshape;
   Vells::Strides strides[3];
   const Vells::Shape * inshapes[3] = { &(time_vells_.shape()),&(vra.shape()),&(vdec.shape()) };  
-  Vells::computeStrides(outshape,strides,3,inshapes,"LMRaDec");
+  Vells::computeStrides(outshape,strides,3,inshapes,"AzEl");
 
   // setup input iterators
   Vells::ConstStridedIterator<double> iter_time(time_vells_,strides[0]);
@@ -168,7 +168,7 @@ void AzEl::evaluateTensors (std::vector<Vells> & out,
 
   // now iterate
   Vells::DimCounter counter(outshape);
-  while( true)
+  while( true )
   {
     if( *iter_time != time0 )
     {

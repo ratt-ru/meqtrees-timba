@@ -84,6 +84,8 @@ protected:
   virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args );
   
+  Vells time_vells_;
+
 };
 
 

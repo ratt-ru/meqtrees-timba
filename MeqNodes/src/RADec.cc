@@ -58,14 +58,21 @@ RADec::RADec()
 RADec::~RADec()
 {}
 
-void RADec::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,const Request &request)
+void RADec::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
 {
-  // NB: for the time being we only support scalar child results, 
-  // and so we ignore the child cells, and only use the request cells
-  // (while checking that they have a time axis)
-  const Cells &cells = request.cells();
-  FailWhen(!cells.isDefined(Axis::TIME),"Meq::RADec: no time axis in request, can't compute RADecs");
-  ref.attach(cells);
+  // copy cells of first child
+  if( childres[0]->hasCells() )
+    ref.attach(childres[0]->cells());
+  else
+    ref.attach(request.cells());
+  // check that we now have a time axis
+  FailWhen(!ref->isDefined(Axis::TIME),"Meq::RADec: no time axis in child result or in request, can't compute RA/Dec");
+  // create vells from time axis
+  Vells::Shape shape;
+  Axis::degenerateShape(shape,ref->rank());
+  int nc = shape[Axis::TIME] = ref->ncells(Axis::TIME);
+  time_vells_ = Vells(0,shape,false);
+  memcpy(time_vells_.realStorage(),ref->center(Axis::TIME).data(),nc*sizeof(double));
 }
 
 
@@ -90,15 +97,14 @@ void RADec::evaluateTensors (std::vector<Vells> & out,
   // thanks to checks in getResultDims(), we can expect all 
   // vectors to have the right sizes
   // Get RA and DEC, and station positions
-  const Vells& vra  = *(args[0][0]);
-  const Vells& vdec = *(args[0][1]);
+  const Vells& vaz  = *(args[0][0]);
+  const Vells& vel = *(args[0][1]);
   const Vells& vx   = *(args[1][0]);
   const Vells& vy   = *(args[1][1]);
   const Vells& vz   = *(args[1][2]);
   
   // NB: for the time being we only support scalars
-  Assert( vra.isScalar() && vdec.isScalar() &&
-          vx.isScalar() && vy.isScalar() && vz.isScalar() );
+  Assert(vx.isScalar() && vy.isScalar() && vz.isScalar());
 
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
   // create a frame for an Observatory, or a telescope station
@@ -110,37 +116,58 @@ void RADec::evaluateTensors (std::vector<Vells> & out,
   MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
   Frame.set(stnpos); // tie this frame to station position
 
-  const Cells& cells = resultCells();
-  // Get Az and El of location to be transformed to RADec (default is J2000).
-  // assume input az and el are in radians
-  MVDirection sourceCoord0(vra.getScalar<double>(),vdec.getScalar<double>());
-  MDirection sourceCoord(sourceCoord0, MDirection::AZEL);
+  // we iterate over ra, dec, and time so compute output shape
+  // and strides accordingly
+  Vells::Shape outshape;
+  Vells::Strides strides[3];
+  const Vells::Shape * inshapes[3] = { &(time_vells_.shape()),&(vaz.shape()),&(vel.shape()) };  
+  Vells::computeStrides(outshape,strides,3,inshapes,"RADec");
 
-  FailWhen(!cells.isDefined(Axis::TIME),"Meq::RADec: no time axis in request, can't compute RADec");
-  int ntime = cells.ncells(Axis::TIME);
-  const LoVec_double & time = cells.center(Axis::TIME);
-  Axis::Shape shape = Axis::vectorShape(Axis::TIME,ntime);
-  out[0] = Vells(0.0,shape,false);
-  out[1] = Vells(0.0,shape,false);
-  double * ra0 = out[0].realStorage();
-  double * dec0 = out[1].realStorage();
+  // setup input iterators
+  Vells::ConstStridedIterator<double> iter_time(time_vells_,strides[0]);
+  Vells::ConstStridedIterator<double> iter_az(vaz,strides[1]);
+  Vells::ConstStridedIterator<double> iter_el(vel,strides[2]);
+
+  out[0] = Vells(0.0,outshape,false);
+  out[1] = Vells(0.0,outshape,false);
+  double * pra = out[0].realStorage();
+  double * pdec = out[1].realStorage();
+  double time0 = *iter_time-1;     
+
   Quantum<double> qepoch(0, "s");
-  qepoch.setValue(time(0));
+  qepoch.setValue(time0);
   MEpoch mepoch(qepoch, MEpoch::UTC);
-  Frame.set (mepoch);
-  MDirection::Convert azel_converter = MDirection::Convert(sourceCoord,MDirection::Ref(MDirection::J2000,Frame));
-  for( int i=0; i<ntime; i++) 
+  Frame.set(mepoch);
+  MDirection::Convert radec_converter = MDirection::Convert(MDirection::Ref(MDirection::AZEL,Frame),MDirection::Ref(MDirection::J2000));
+  Vector<Double> azel(2);
+
+  // now iterate
+  Vells::DimCounter counter(outshape);
+  while( true )
   {
-    qepoch.setValue (time(i));
-    mepoch.set (qepoch);
-    Frame.set (mepoch);
+    if( *iter_time != time0 )
+    {
+      qepoch.setValue(time0=*iter_time);
+      mepoch.set(qepoch);
+      Frame.set(mepoch);       
+    }
+    azel(0) = *iter_az;
+    azel(1) = *iter_el;
     // convert ra, dec to Az El at given time
-    MDirection az_el_out(azel_converter());
+    MDirection radec_out(radec_converter(azel));
     //Gawd - what a mouthful - luckily some old ACSIS code provided the
     //right incantation for the following line!
-    Vector<Double> ra_dec = az_el_out.getValue().getAngle("rad").getValue();
-    ra0[i] = ra_dec(0);
-    dec0[i] = ra_dec(1);
+    Vector<Double> radec = radec_out.getValue().getAngle("rad").getValue();
+    *(pra++) = radec(0);
+    *(pdec++) = radec(1);
+    
+    // increment counter
+    int ndim = counter.incr();
+    if( !ndim )    // break out when counter is finished
+      break;
+    iter_time.incr(ndim);
+    iter_az.incr(ndim);
+    iter_el.incr(ndim);
   }
 }
 
