@@ -33,6 +33,18 @@ import Timba.utils
 import os
 import sys
 
+# these don't like being re-imported in TDL, so try them here
+try:
+  import pyrap.tables
+except ImportError:
+  try: import pyrap_tables; 
+  except ImportError: pass;
+try:
+  import pyrap.measures
+except ImportError:
+  try: import pyrap_measures; 
+  except ImportError: pass;
+
 def trace_lines (frame, event, arg):
   if event == "line":
     print "%s:%d"%(frame.f_code.co_filename,frame.f_lineno);
