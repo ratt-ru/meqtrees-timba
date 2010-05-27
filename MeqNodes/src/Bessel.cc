@@ -53,8 +53,21 @@ void Bessel::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 Vells Bessel::evaluate (const Request&,const LoShape & inshape,
 		     const vector<const Vells*>& values)
 {
-  //return exp(*(values[0]));
   const Vells &invl=*(values[0]);
+ //check for scalar 
+  if (invl.isScalar()) {
+    double x=invl.getScalar<double>();
+    double y;
+    if (order_==0) {
+     y=j0(x);
+    } else{
+     y=j1(x);
+    }
+     Vells outvl(y);
+     return outvl;
+  } 
+
+  // default is non scalar
   blitz::Array<double,2> A(const_cast<double*>(invl.realStorage()),inshape);
   Vells outvl(0.0,inshape);
   
