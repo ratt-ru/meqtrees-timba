@@ -498,29 +498,29 @@ class realvsimag_plotter(object):
     self._plot_y_axis_label = plot_parms['y_title'] 
 
     self.plot.setTitle(self._plot_title)
-    self.plot.setAxisTitle(QwtPlot.xBottom, self._plot_x_axis_label)
-    self.plot.setAxisTitle(QwtPlot.yLeft, self._plot_y_axis_label)
+    self.plot.setAxisTitle(Qwt.QwtPlot.xBottom, self._plot_x_axis_label)
+    self.plot.setAxisTitle(Qwt.QwtPlot.yLeft, self._plot_y_axis_label)
 
     self._x_auto_scale = plot_parms['x_auto_scale']
     if self._x_auto_scale == '1':
       self._x_auto_scale = True
-      self.plot.setAxisAutoScale(QwtPlot.xBottom)
+      self.plot.setAxisAutoScale(Qwt.QwtPlot.xBottom)
     else:
       self._x_auto_scale = False
     self._y_auto_scale = plot_parms['y_auto_scale']
     if self._y_auto_scale == '1':
       self._y_auto_scale = True
-      self.plot.setAxisAutoScale(QwtPlot.yLeft)
+      self.plot.setAxisAutoScale(Qwt.QwtPlot.yLeft)
     else:
       self._y_auto_scale = False
     if not self._x_auto_scale: 
       self.axis_xmin = float(plot_parms['axis_xmin'])
       self.axis_xmax = float(plot_parms['axis_xmax'])
-      self.plot.setAxisScale(QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
+      self.plot.setAxisScale(Qwt.QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
     if not self._y_auto_scale: 
       self.axis_ymin = float(plot_parms['axis_ymin'])
       self.axis_ymax = float(plot_parms['axis_ymax'])
-      self.plot.setAxisScale(QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
+      self.plot.setAxisScale(Qwt.QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
     self.plot.replot()
 
   def update_display(self):
@@ -634,17 +634,17 @@ class realvsimag_plotter(object):
         if self.zoomStack == []:
           try:
             self.zoomState = (
-              self.plot.axisScale(QwtPlot.xBottom).lBound(),
-              self.plot.axisScale(QwtPlot.xBottom).hBound(),
-              self.plot.axisScale(QwtPlot.yLeft).lBound(),
-              self.plot.axisScale(QwtPlot.yLeft).hBound(),
+              self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound(),
+              self.plot.axisScale(Qwt.QwtPlot.xBottom).upperBound(),
+              self.plot.axisScale(Qwt.QwtPlot.yLeft).lowerBound(),
+              self.plot.axisScale(Qwt.QwtPlot.yLeft).upperBound(),
               )
           except:
             self.zoomState = (
-              self.plot.axisScale(QwtPlot.xBottom).lowerBound(),
-              self.plot.axisScale(QwtPlot.xBottom).upperBound(),
-              self.plot.axisScale(QwtPlot.yLeft).lowerBound(),
-              self.plot.axisScale(QwtPlot.yLeft).upperBound(),
+              self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound(),
+              self.plot.axisScale(Qwt.QwtPlot.xBottom).upperBound(),
+              self.plot.axisScale(Qwt.QwtPlot.yLeft).lowerBound(),
+              self.plot.axisScale(Qwt.QwtPlot.yLeft).upperBound(),
               )
 
         _dprint(2,'xPos yPos ', xPos, ' ', yPos);
@@ -743,11 +743,11 @@ class realvsimag_plotter(object):
 # Now create text marker giving source of point that was clicked
         self.marker = self.plot.insertMarker()
         try:
-          ylb = self.plot.axisScale(QwtPlot.yLeft).lBound()
-          xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+          ylb = self.plot.axisScale(Qwt.QwtPlot.yLeft).lowerBound()
+          xlb = self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound()
         except:
-          ylb = self.plot.axisScale(QwtPlot.yLeft).lowerBound()
-          xlb = self.plot.axisScale(QwtPlot.xBottom).lowerBound()
+          ylb = self.plot.axisScale(Qwt.QwtPlot.yLeft).lowerBound()
+          xlb = self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound()
         self.plot.setMarkerPos(self.marker, xlb, ylb)
         self.plot.setMarkerLabelAlign(self.marker, Qt.Qt.AlignRight | Qt.Qt.AlignTop)
         self.plot.setMarkerLabel( self.marker, message,
@@ -808,17 +808,17 @@ class realvsimag_plotter(object):
     if not self._legend_plot is None:
       self.legend_marker = self.plot.insertMarker()
       try:
-        ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
-        xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+        ylb = self.plot.axisScale(Qwt.QwtPlot.yLeft).upperBound()
+        xlb = self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound()
       except:
-        ylb = self.plot.axisScale(QwtPlot.yLeft).upperBound()
-        xlb = self.plot.axisScale(QwtPlot.xBottom).lowerBound()
+        ylb = self.plot.axisScale(Qwt.QwtPlot.yLeft).upperBound()
+        xlb = self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound()
       self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
       self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
       fn = self.plot.fontInfo().family()
       self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
-        QFont(fn, 7, QFont.Bold, False),
-        Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
+        Qt.QFont(fn, 7, Qt.QFont.Bold, False),
+        Qt.Qt.black, Qt.QPen(Qt.Qt.red, 2), Qt.QBrush(Qt.Qt.yellow))
     self.plot.replot()
   # timerEvent_marker()
 
@@ -1408,9 +1408,9 @@ class realvsimag_plotter(object):
 # associated curve numbers in the xy_plot_dict
       if self._xy_plot_dict.has_key(item_tag) == False: 
         if not self._plot_y_axis_label is None:
-          self.plot.setAxisTitle(QwtPlot.yLeft, self._plot_y_axis_label)
+          self.plot.setAxisTitle(Qwt.QwtPlot.yLeft, self._plot_y_axis_label)
         if not self._plot_x_axis_label is None:
-          self.plot.setAxisTitle(QwtPlot.xBottom, self._plot_x_axis_label)
+          self.plot.setAxisTitle(Qwt.QwtPlot.xBottom, self._plot_x_axis_label)
 
 # store the color for this particular plot in the 
 # xy_plot_color dict using item_tag as the key
@@ -1419,14 +1419,14 @@ class realvsimag_plotter(object):
 # if we have x, y data
         if self._x_y_data:
 # key_plot is an integer
-          curve = QwtPlotCurve(item_tag)
+          curve = Qwt.QwtPlotCurve(item_tag)
 # store this integer value in the xy_plot_dict using the
 # item_tag string as key
           self._xy_plot_dict[item_tag] = curve
 
 # using the integer 'key_plot' as index, set up various
 # plotting parameters for the curve - color, symbol, symbol size etc
-          curve.setPen(QPen(self._plot_color))
+          curve.setPen(Qt.QPen(self._plot_color))
           if not self.line_style_table.has_key(self.plot_line_style):
             Message = self.plot_line_style + " is not a valid line style.\n Using dots by default"
             mb_reporter = Qt.QMessageBox.warning(self, self.tr("RealVsImag"), self.tr(Message))
@@ -1441,8 +1441,8 @@ class realvsimag_plotter(object):
             self.plot_symbol = "circle"
           plot_symbol = self.symbol_table[self.plot_symbol]
           _dprint(3, 'self.plot_symbol_size ', self.plot_symbol_size)
-          plot_curve.setSymbol(QwtSymbol(plot_symbol, QBrush(self._plot_color),
-                     QPen(self._plot_color, 2), QSize(self.plot_symbol_size, self.plot_symbol_size)))
+          plot_curve.setSymbol(Qwt.QwtSymbol(plot_symbol, Qt.QBrush(self._plot_color),
+                     Qt.QPen(self._plot_color, 2), Qt.QSize(self.plot_symbol_size, self.plot_symbol_size)))
 
 # set up to plot circles if plot_mean_circles or plot_stddev_circles flags
 # were set and we have xy data
@@ -1643,18 +1643,18 @@ class realvsimag_plotter(object):
       if not self._legend_plot is None:
          self.legend_marker = self.plot.insertMarker()
          try:
-           ylb = self.plot.axisScale(QwtPlot.yLeft).hBound()
-           xlb = self.plot.axisScale(QwtPlot.xBottom).lBound()
+           ylb = self.plot.axisScale(Qwt.QwtPlot.yLeft).upperBound()
+           xlb = self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound()
          except:
-           ylb = self.plot.axisScale(QwtPlot.yLeft).upperBound()
-           xlb = self.plot.axisScale(QwtPlot.xBottom).lowerBound()
+           ylb = self.plot.axisScale(Qwt.QwtPlot.yLeft).upperBound()
+           xlb = self.plot.axisScale(Qwt.QwtPlot.xBottom).lowerBound()
          self.plot.setMarkerPos(self.legend_marker, xlb, ylb)
          self.plot.setMarkerLabelAlign(self.legend_marker, Qt.AlignRight | Qt.AlignBottom)
          fn = self.plot.fontInfo().family()
          self.plot.setMarkerLabel( self.legend_marker, self._legend_plot,
 #          QFont(fn, 9, QFont.Bold, False),
-           QFont(fn, 7, QFont.Bold, False),
-           Qt.black, QPen(Qt.red, 2), QBrush(Qt.yellow))
+           Qt.QFont(fn, 7, Qt.QFont.Bold, False),
+           Qt.Qt.black, Qt.QPen(Qt.Qt.red, 2), Qt.QBrush(Qt.Qt.yellow))
          self.plot.replot()
 
     # end of update_plot 
@@ -1679,8 +1679,8 @@ class realvsimag_plotter(object):
            curve.attach(self.plot)
            curve.setPen(key_flag_plot, QPen(Qt.black))
            curve.setStyle(key_flag_plot, QwtCurve.Dots)
-           curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.XCross, QBrush(Qt.black),
-                     QPen(Qt.black), QSize(15, 15)))
+           curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.XCross, Qt.QBrush(Qt.Qt.black),
+                     Qt.QPen(Qt.Qt.black), Qt.QSize(15, 15)))
          else:
            curve = self.flag_plot_dict[plot_flag_r_keys[i]]
            curve.setData(flag_data_r, flag_data_i)
@@ -1884,8 +1884,8 @@ class realvsimag_plotter(object):
         ymax = axis_parms[3]
         if undo_last_zoom:
           break
-      self.plot.setAxisScale(QwtPlot.xBottom, xmin, xmax)
-      self.plot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+      self.plot.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
+      self.plot.setAxisScale(Qwt.QwtPlot.yLeft, ymin, ymax)
       self._x_auto_scale = False
       self._y_auto_scale = False
       self.axis_xmin = xmin
@@ -1959,9 +1959,6 @@ def main(args):
 
 def make():
     demo = realvsimag_plotter('plot_key')
-# for real vs imaginary plot with circles
-    demo.set_compute_circles(True)
-    demo.set_compute_std_dev_circles(True)
     demo.start_timer(1000)
     demo.plot.show()
     return demo
