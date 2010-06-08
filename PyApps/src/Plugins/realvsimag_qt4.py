@@ -1420,6 +1420,7 @@ class realvsimag_plotter(object):
         if self._x_y_data:
 # key_plot is an integer
           curve = Qwt.QwtPlotCurve(item_tag)
+          curve.attach(self.plot)
 # store this integer value in the xy_plot_dict using the
 # item_tag string as key
           self._xy_plot_dict[item_tag] = curve
@@ -1433,7 +1434,7 @@ class realvsimag_plotter(object):
             self.plot_line_style = "dots"
           line_style = self.line_style_table[self.plot_line_style]
           curve.setStyle(line_style)
-          plot_curve = self.plot.curve(key_plot)
+#         plot_curve = self.plot.curve(key_plot)
           _dprint(3, 'self.plot_symbol ', self.plot_symbol)
           if not self.symbol_table.has_key(self.plot_symbol):
             Message = self.plot_symbol + " is not a valid symbol.\n Using circle by default"
@@ -1441,7 +1442,8 @@ class realvsimag_plotter(object):
             self.plot_symbol = "circle"
           plot_symbol = self.symbol_table[self.plot_symbol]
           _dprint(3, 'self.plot_symbol_size ', self.plot_symbol_size)
-          plot_curve.setSymbol(Qwt.QwtSymbol(plot_symbol, Qt.QBrush(self._plot_color),
+#         plot_curve.setSymbol(Qwt.QwtSymbol(plot_symbol, Qt.QBrush(self._plot_color),
+          curve.setSymbol(Qwt.QwtSymbol(plot_symbol, Qt.QBrush(self._plot_color),
                      Qt.QPen(self._plot_color, 2), Qt.QSize(self.plot_symbol_size, self.plot_symbol_size)))
 
 # set up to plot circles if plot_mean_circles or plot_stddev_circles flags
@@ -1561,13 +1563,14 @@ class realvsimag_plotter(object):
           _dprint(3, 'setting data values')
 # get the number of the curve corresponding to this current_item_tag
 # key
-          key_plot = self._xy_plot_dict[current_item_tag] 
+#         key_plot = self._xy_plot_dict[current_item_tag] 
           if data_i is None:
             data_i = []
             for i in range(len(data_r)):
               data_i.append(0.0)           
 # assign the real and imaginary data to this curve
-          self.plot.setCurveData(key_plot, data_r, data_i)
+          curve= self._xy_plot_dict[current_item_tag]
+          curve.setData(data_r, data_i)
           _dprint(3, 'set data values in plot')
 
 # if we are plotting errors, we also need to assign these 
@@ -1677,8 +1680,8 @@ class realvsimag_plotter(object):
            curve = Qwt.QwtPlotCurve(plot_flag_r_keys[i])
            self.flag_plot_dict[plot_flag_r_keys[i]] = curve
            curve.attach(self.plot)
-           curve.setPen(key_flag_plot, QPen(Qt.black))
-           curve.setStyle(key_flag_plot, QwtCurve.Dots)
+           curve.setPen(Qt.QPen(Qt.Qt.black))
+           curve.setStyle(Qwt.QwtPlotCurve.Dots)
            curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.XCross, Qt.QBrush(Qt.Qt.black),
                      Qt.QPen(Qt.Qt.black), Qt.QSize(15, 15)))
          else:
