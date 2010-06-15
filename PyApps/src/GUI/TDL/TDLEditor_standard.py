@@ -273,6 +273,7 @@ class TDLEditor (QFrame,PersistentCurrier):
     self._closed = False;
     self._error_at_line = {};
     self._is_tree_in_sync = True;
+    self._pub_nodes = None;
 
   def __del__ (self):
     self.has_focus(False);
@@ -632,6 +633,14 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       None if cancelled by user.
     Import errors are posted to the error dialog.
     """;
+    # save list of publishers (since forest will be cleared on import)
+    if self._pub_nodes is None:
+      if TDL.Compile.last_imported_file() == self._filename:
+        self._pub_nodes = [ node.name for node in meqds.nodelist.iternodes() if node.is_publishing() ];
+        _dprint(2,"last imported file matches, saving",len(self._pub_nodes),"publishers")
+      else:
+        self._pub_nodes = [];
+        _dprint(2,"last imported file doesn't match:",TDL.Compile.last_imported_file(),self._filename)
     _dprint(1,self._filename,"importing");
     self.clear_message();
     self.clear_errors();
@@ -710,9 +719,6 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     _dprint(1,self._filename,"compiling forest");
     # clear predefined functions
     self._tb_tdlexec.hide();
-    # make list of publishing nodes
-    pub_nodes = [ node.name for node in meqds.nodelist.iternodes()
-                  if node.is_publishing() ];
     # try the compilation
     busy = BusyIndicator();
     try:
@@ -735,9 +741,14 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     # refresh the nodelist
     meqds.request_nodelist(sync=True);
     # restore publishing nodes
-    for name in pub_nodes:
+    for name in (self._pub_nodes or []):
       if name in ns.AllNodes():
-        meqds.enable_node_publish_by_name(name,sync=True);
+        _dprint(2,"reenabling publishing of",name);
+        meqds.enable_node_publish_by_name(name,sync=True,get_state=True);
+      else:
+        _dprint(2,"not reenabling publishing of",name,", as it no longer exists?");
+    # clear publisher list so it's re-saved next time in import_content()
+    self._pub_nodes = None;
     ### NB: presume this all was successful for now
     # insert node scope into TDL module
     setattr(_tdlmod,'_tdl_nodescope',ns);

@@ -48,6 +48,9 @@ _dprintf = _dbg.dprintf;
 _tdlmodlist = [];
 # this hold the set of all modules imported before a script is compiled
 _prior_compile_modules = set();
+# this is the currently imported filename
+_current_filename = None;
+
 
 def _update_modlist ():
   """updates the list of modules imported since _prior_compile_modules
@@ -67,6 +70,11 @@ def _update_modlist ():
 # this is information about ourselves
 _MODULE_FILENAME = Timba.utils.extract_stack()[-1][0];
 _MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
+
+
+def last_imported_file ():
+  global _current_filename;
+  return _current_filename;
 
 class CompileError (RuntimeError):
   def __init__ (self,*errlist):
@@ -88,6 +96,8 @@ def import_tdl_module (filename,text=None,config=0):
     Other exceptions may indicate an internal failure.
   """;
   _dprint(1,"importing",filename);
+  global _current_filename;
+  _current_filename = filename;
   # initialize global nodescope (and repository)
   meqds.clear_forest();
   try:
