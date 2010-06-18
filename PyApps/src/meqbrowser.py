@@ -149,7 +149,7 @@ importPlugin('collections_plotter');
 importPlugin('array_plotter');
 importPlugin('result_plotter');
 
-importPlugin('AxM.pyvis.pynode_plotter',location='Timba.Contrib')
+# importPlugin('AxM.pyvis.pynode_plotter',location='Timba.Contrib')
 
 ### retired plugins
 # importPlugin('pylab_plotter');
