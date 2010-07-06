@@ -1093,8 +1093,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
             self._items.append(item);
           # if exclusive, register callback
           if self._exclusive:
-            if isinstance(item,_TDLBoolOptionItem) and not item.nonexclusive and not \
-               (isinstance(item,_TDLSubmenu) and not item._toggle):
+            if not (isinstance(item,_TDLSubmenu) and not item._toggle) and \
+               isinstance(item,_TDLBoolOptionItem) and not item.nonexclusive:
               self._exclusive_items[item.symbol] = item;
               if excl_value is None:
                 excl_value = item.symbol;
