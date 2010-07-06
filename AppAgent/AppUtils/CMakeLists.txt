@@ -26,3 +26,7 @@ add_executable(addbitflagcol src/addbitflagcol.cc)
 target_link_libraries(addbitflagcol ${MEQPACKAGE_LIBRARIES} ${CPP_PLATFORM_LIBS})
 INSTALL(TARGETS addbitflagcol RUNTIME DESTINATION bin)
 
+add_executable(wsrt_j2convert src/wsrt_j2convert.cc)
+target_link_libraries(wsrt_j2convert ${MEQPACKAGE_LIBRARIES} ${CPP_PLATFORM_LIBS})
+INSTALL(TARGETS wsrt_j2convert RUNTIME DESTINATION bin)
+
