@@ -66,6 +66,7 @@ ln-s ../../../PyApps/src/trut.py
 ln-s ../../../PyApps/src/Purr/purr.py
 ln-s ../../../TimBase/src/gprof-run
 ln-s ../../../build/$flavour/AppAgent/AppUtils/addbitflagcol
+ln-s ../../../build/$flavour/AppAgent/AppUtils/wsrt_j2convert
 
 
 if [ -f meqserver-mpi ]; then
