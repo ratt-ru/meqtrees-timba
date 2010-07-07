@@ -10,6 +10,7 @@ set(MeqNodes_includes
     src/Arg.h
     src/Asin.h
     src/Atan.h
+    src/Atan2.h
     src/AzEl.h
     src/AzElRaDec.h
     src/Bessel.h
@@ -136,6 +137,7 @@ set(meqNodes_src
     src/Arg.cc
     src/Asin.cc
     src/Atan.cc
+    src/Atan2.cc
     src/AzEl.cc
     src/AzElRaDec.cc
     src/Bessel.cc
