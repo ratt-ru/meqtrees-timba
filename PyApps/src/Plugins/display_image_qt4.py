@@ -2826,10 +2826,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
        shape = self.solver_offsets.shape 
        if shape[0] > 1:
          self.y_solver_offset = []
-         for i in range(shape[0] - 1):
-           self.y_solver_offset.append(self.insertLineMarker('', QwtPlot.xBottom))
-           self.setMarkerLinePen(self.y_solver_offset[i], Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine))
-           self.setMarkerXPos(self.y_solver_offset[i], self.solver_offsets[i])
+#        for i in range(shape[0] - 1):
+#          self.y_solver_offset.append(self.insertLineMarker('', QwtPlot.xBottom))
+#          self.setMarkerLinePen(self.y_solver_offset[i], Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine))
+#          self.setMarkerXPos(self.y_solver_offset[i], self.solver_offsets[i])
 
 # insert mean and standard deviation
       text_string = ''
