@@ -14,6 +14,8 @@ DMI::BObj * __construct_MeqAdd (int n) { return n>0 ? new Meq::Add [n] : new Meq
 DMI::BObj * __construct_MeqArg (int n) { return n>0 ? new Meq::Arg [n] : new Meq::Arg; }
 #include "Asin.h"
 DMI::BObj * __construct_MeqAsin (int n) { return n>0 ? new Meq::Asin [n] : new Meq::Asin; }
+#include "Atan2.h"
+DMI::BObj * __construct_MeqAtan2 (int n) { return n>0 ? new Meq::Atan2 [n] : new Meq::Atan2; }
 #include "Atan.h"
 DMI::BObj * __construct_MeqAtan (int n) { return n>0 ? new Meq::Atan [n] : new Meq::Atan; }
 #include "AzEl.h"
@@ -251,6 +253,9 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1399,"MeqAsin")+
         TypeInfoReg::addToRegistry(-1399,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1399,__construct_MeqAsin)+
+        AtomicID::registerId(-1764,"MeqAtan2")+
+        TypeInfoReg::addToRegistry(-1764,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1764,__construct_MeqAtan2)+
         AtomicID::registerId(-1428,"MeqAtan")+
         TypeInfoReg::addToRegistry(-1428,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1428,__construct_MeqAtan)+

@@ -383,6 +383,11 @@ const int AidMeqAsin_int = -1399;
 const DMI::AtomicID AidMeqAtan(-1428);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Atan.h:29
 const int AidMeqAtan_int = -1428;
 #endif
+#ifndef _defined_id_AidMeqAtan2
+#define _defined_id_AidMeqAtan2 1
+const DMI::AtomicID AidMeqAtan2(-1764);           // from src/Atan2.h:31
+const int AidMeqAtan2_int = -1764;
+#endif
 #ifndef _defined_id_AidMeqAzEl
 #define _defined_id_AidMeqAzEl 1
 const DMI::AtomicID AidMeqAzEl(-1551);            // from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31

@@ -122,6 +122,25 @@ namespace Meq { class Atan; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqAtan2
+#define _defined_id_TpMeqAtan2 1
+const DMI::TypeId TpMeqAtan2(-1764);              // from src/Atan2.h:31
+const int TpMeqAtan2_int = -1764;
+namespace Meq { class Atan2; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::Atan2> : public TypeTraits<Meq::Atan2>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqAtan2_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::Atan2 & ContainerReturnType;
+                typedef const Meq::Atan2 & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqAzEl
 #define _defined_id_TpMeqAzEl 1
 const DMI::TypeId TpMeqAzEl(-1551);               // from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:31

@@ -33,22 +33,17 @@
 namespace Meq {    
 
 
-//##ModelId=400E53030294
 class Atan2 : public Function2
 {
 public:
-    //##ModelId=400E530500D3
   Atan2();
 
-    //##ModelId=400E530500D4
   virtual ~Atan2();
 
-    //##ModelId=400E530500D6
-    virtual TypeId objectType() const
+  virtual TypeId objectType() const
     { return TpMeqAtan2; }
 
   // Evaluate the value for the given request.
-    //##ModelId=400E530500D8
   virtual Vells evaluate (const Request&,const LoShape &,
 			  const vector<const Vells*>& values);
 };

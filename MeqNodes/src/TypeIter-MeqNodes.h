@@ -23,6 +23,7 @@
         Do(Meq::Add,arg) separator \
         Do(Meq::Arg,arg) separator \
         Do(Meq::Asin,arg) separator \
+        Do(Meq::Atan2,arg) separator \
         Do(Meq::Atan,arg) separator \
         Do(Meq::AzEl,arg) separator \
         Do(Meq::AzElRaDec,arg) separator \

@@ -30,15 +30,12 @@ using namespace Meq::VellsMath;
 namespace Meq {    
 
 
-//##ModelId=400E530500D3
 Atan2::Atan2()
 {}
 
-//##ModelId=400E530500D4
 Atan2::~Atan2()
 {}
 
-//##ModelId=400E530500D8
 // according to Blitz++ docs, the following should return the inverse
 // tangent of y / x where x == values[0] and y == values[1]
 Vells Atan2::evaluate (const Request&,const LoShape &,
