@@ -580,8 +580,8 @@ template<>
 inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
       const dcomplex &diff,const std::vector<Vells::ConstStridedIterator<dcomplex> > &deriv_iter,double weight)
 {
-  double re_diff = creal(diff); 
-  double im_diff = cimag(diff); 
+  double re_diff = creal(diff);
+  double im_diff = cimag(diff);
   // valid flag checks for inf or nan in equations
   bool valid = isvalid(re_diff) && isvalid(im_diff);
   // fill vectors of derivatives for each unknown
@@ -843,9 +843,10 @@ int Solver::getResult (Result::Ref &resref,
   // it as we go along, so we're not allowed to keep a local pointer (else
   // COW will break).
   DMI::Record::Ref solveResult(DMI::ANONWR);
-  DMI::List::Ref metricsList(DMI::ANONWR);
-  DMI::List::Ref debugList;
-  if( debug_lvl_ >= 2 )
+  DMI::List::Ref metricsList,debugList;
+  if( debug_lvl_ >= 1 )
+    metricsList <<= new DMI::List;
+  if( debug_lvl_ >= 3 )
     debugList <<= new DMI::List;
   // get the request ID -- we're going to be incrementing the iteration index
   RequestId rqid = request.id();
@@ -936,7 +937,7 @@ int Solver::getResult (Result::Ref &resref,
   int uk0 = 0;
   settings_.max_iter = max_num_iter_; // this is the same for all solvers
   for( int i=0; i<numSubsolvers(); i++ )
-    subsolvers_[i].initSolution(uk0,incr_solutions,settings_,debugList.valid());
+    subsolvers_[i].initSolution(uk0,incr_solutions,settings_,metricsList.valid(),debugList.valid());
   cdebug(2)<<numSubsolvers()<<" sub-solvers initialized for "<<num_unknowns_<<" unknowns\n";
   // how many subsolvers need to converge
   need_conv_ = std::min(numSubsolvers(),int(ceil(numSubsolvers()*conv_quota_)));
@@ -960,7 +961,7 @@ int Solver::getResult (Result::Ref &resref,
       // check that we don't "spam" the channel by comparing timestamps,
       // and issuing no more than 3 events per second (unless debug level
       // is high enough that we send it anyway)
-      if( debug_lvl_ >= 1 || Timestamp::delta(last_post_event).seconds() > .3 )
+      if( debug_lvl_ >= 2 || Timestamp::delta(last_post_event).seconds() > .3 )
       {
         last_post_event = Timestamp::now();
         postEvent(FSolverIter,evrec);
@@ -1044,18 +1045,20 @@ int Solver::getResult (Result::Ref &resref,
     fillRider(reqref,do_save_funklets_&&(converged || interrupt_ || (cur_iter_ >= max_num_iter_-1)),converged);
     //fillRider(reqref,do_save_funklets_,converged);
     // fill in metrics and debug info
-    DMI::Vec * pmetvec;
-    metricsList().addBack(pmetvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
+    DMI::Vec * pmetvec = 0;
+    if( metricsList.valid() )
+      metricsList().addBack(pmetvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
     DMI::Vec * pdbgvec = 0;
     if( debugList.valid() )
       debugList().addBack(pdbgvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
-    for( int i=0; i<numSubsolvers(); i++ )
-    {
-      if( subsolvers_[i].metrics.valid() )
-        pmetvec->put(i,subsolvers_[i].metrics);
-      if( pdbgvec && subsolvers_[i].debugrec.valid() )
-        pdbgvec->put(i,subsolvers_[i].debugrec);
-    }
+    if( pmetvec )
+      for( int i=0; i<numSubsolvers(); i++ )
+      {
+        if( subsolvers_[i].metrics.valid() )
+          pmetvec->put(i,subsolvers_[i].metrics);
+        if( pdbgvec && subsolvers_[i].debugrec.valid() )
+          pdbgvec->put(i,subsolvers_[i].debugrec);
+      }
     // fill in a Solver.Iter event (will be posted at top of loop,
     // if we don't loop again, then Solver.End will be sent below instead)
     if( debug_lvl_ >= 0 )
@@ -1077,15 +1080,14 @@ int Solver::getResult (Result::Ref &resref,
       evrec[FFit] = sumfit/numSubsolvers();
       evrec[FChi0] = sumchi0/numSubsolvers();
       // attach more info with higher debug levels
-      if( debug_lvl_ >= 1 )
-      {
+      if( debug_lvl_ >= 2 && pmetvec )
         evrec[FMetrics] <<= pmetvec;
-        if( debug_lvl_ >= 3 && pdbgvec )
-          evrec[FDebug] <<= pdbgvec;
-      }
+      if( debug_lvl_ >= 4 && pdbgvec )
+        evrec[FDebug] <<= pdbgvec;
     }
     // stick metrics and debug records into solver result
-    solveResult()[FMetrics].replace() = metricsList;
+    if( metricsList.valid() )
+      solveResult()[FMetrics].replace() = metricsList;
     if( debugList.valid() )
       solveResult()[FDebug].replace() = debugList;
     // stick solver result into node state
@@ -1178,19 +1180,22 @@ int Solver::getResult (Result::Ref &resref,
   // finally, to make life easier for DataCollect and HistoryCollect nodes, reformat all
   // metrics and debug fields from lists into arrays, where the first axis is the number of
   // iterations
-  DMI::Vec &allmetrics = solveResult()[FMetricsArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
-  for( int i=0; i<numSubsolvers(); i++ )
+  if( metricsList.valid() )
   {
-    DMI::Record & metrics = allmetrics[i] <<= new DMI::Record;
-    metrics[FRank]   = flattenScalarList<int>(*metricsList,AtomicID(i)|AidSlash|FRank);
-    metrics[FFit]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FFit);
-    metrics[FChi]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi);
-    metrics[FChi0]   = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi0);
-    metrics[FCoVar]  = flattenArrayList<double,2>(*metricsList,AtomicID(i)|AidSlash|FCoVar);
-    metrics[FErrors] = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
-    metrics[FFlag]   = flattenScalarList<bool>(*metricsList,AtomicID(i)|AidSlash|FFlag);
-    metrics[FMu]     = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FMu);
-    metrics[FStdDev] = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FStdDev);
+    DMI::Vec &allmetrics = solveResult()[FMetricsArray] <<= new DMI::Vec(TpDMIRecord,numSubsolvers());
+    for( int i=0; i<numSubsolvers(); i++ )
+    {
+      DMI::Record & metrics = allmetrics[i] <<= new DMI::Record;
+      metrics[FRank]   = flattenScalarList<int>(*metricsList,AtomicID(i)|AidSlash|FRank);
+      metrics[FFit]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FFit);
+      metrics[FChi]    = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi);
+      metrics[FChi0]   = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FChi0);
+      metrics[FCoVar]  = flattenArrayList<double,2>(*metricsList,AtomicID(i)|AidSlash|FCoVar);
+      metrics[FErrors] = flattenArrayList<double,1>(*metricsList,AtomicID(i)|AidSlash|FErrors);
+      metrics[FFlag]   = flattenScalarList<bool>(*metricsList,AtomicID(i)|AidSlash|FFlag);
+      metrics[FMu]     = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FMu);
+      metrics[FStdDev] = flattenScalarList<double>(*metricsList,AtomicID(i)|AidSlash|FStdDev);
+    }
   }
   if( debugList.valid() )
   {
@@ -1246,7 +1251,7 @@ static DMI::NumArray::Ref triMatrix (T *tridata,int n)
 }
 
 void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
-                              const SolverSettings &set,bool usedebug)
+                              const SolverSettings &set,bool usemetrics,bool usedebug)
 {
   settings = set;
   Assert1(nuk);
@@ -1268,6 +1273,7 @@ void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
   uk0 += nuk;
   // init other members
   use_debug = usedebug;
+  use_metrics = usemetrics;
   converged = false;
   chi0 = chi = 0;
   neq = 0;
@@ -1280,20 +1286,21 @@ bool Solver::Subsolver::solve (int step)
   // if converged or no equations were generated, do nothing
   if( converged || !neq )
     return true;
+  // reset neq -- will be re-incremented when filling equations
   neq = 0;
-  // get debug info -- only valid before a solveLoop() call
-  uint nun=0,np=0,ncon=0,ner=0,rank_dbg=0;
-  double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
-  uint * piv;
-  solver.debugIt(nun,np,ncon,ner,rank_dbg,nEq,known,constr,er,piv, sEq,sol,prec,nonlin);
-  // compute input chi^2
-  chi0 = 0;
-  if( er )
-    chi0 = er[2]/std::max(int(er[0])+nuk,1);
-//    chi0 = er[LSQFit::SUMLL]/std::max(er[LSQFit::NC]+nuk,1);
-  // place debug info in record, if so asked
   if( use_debug )
   {
+    // get debug info -- only valid before a solveLoop() call
+    uint nun=0,np=0,ncon=0,ner=0,rank_dbg=0;
+    double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
+    uint * piv;
+    solver.debugIt(nun,np,ncon,ner,rank_dbg,nEq,known,constr,er,piv,sEq,sol,prec,nonlin);
+    // compute input chi^2
+    chi0 = 0;
+    if( er )
+      chi0 = er[2]/std::max(int(er[0])+nuk,1);
+  //    chi0 = er[LSQFit::SUMLL]/std::max(er[LSQFit::NC]+nuk,1);
+    // place debug info in record, if so asked
     DMI::Record &dbg = debugrec <<= new DMI::Record;
     if( nEq )
       dbg["$nEq"] = triMatrix(nEq,nun);
@@ -1312,48 +1319,48 @@ bool Solver::Subsolver::solve (int step)
     dbg["$prec"] = prec;
     dbg["$nonlin"] = nonlin;
   }
+  else
+    chi0 = chi;
 
   // do a solution loop
   solFlag = solver.solveLoop(fit,rank,solution,settings.use_svd);
 
-    // both of these calls produce SEGV in certain situations; commented out until
-    // Wim or Ger fixes it
-    //cdebug(1) << "result_covar = solver_.getCovariance (covar);" << endl;
-    //bool result_covar = solver_.getCovariance (covar);
-    //cdebug(1) << "result_errors = solver_.getErrors (errors);" << endl;
-
   cdebug1(4)<<"solution after: " << solution << ", rank " << rank << endl;
-
-  // Put the statistics in a record of the result.
-  DMI::Record & mrec = metrics <<= new DMI::Record;
-#ifndef USE_OLD_LSQFIT
-  mrec[FReady]  = solver.isReady();
-  mrec[FReadyString] = solver.readyText();
-// workaround for LSQFit::debugIt() bug: if solution ready immediately
-// after first step, rank is uninitialized
+  // workaround for LSQFit::debugIt() bug: if solution ready immediately
+  // after first step, rank is uninitialized
   if( solver.isReady() && !step )
     rank = 0;
-#endif
-  mrec[FRank]   = int(rank);
-  mrec[FFit]    = fit;
-//  mrec[FErrors] = errors;
-  mrec[FFlag]   = solFlag;
-  mrec[FMu]     = solver.getWeightedSD();
-  mrec[FStdDev] = solver.getSD();
-  mrec[FNumUnknowns] = nuk;
-  mrec[FChi   ] = chi = solver.getChi();
-  mrec[FChi0  ] = chi0;
+  chi = solver.getChi();
+
+  if( use_metrics )
+  {
+    // Put the statistics in a record of the result.
+    DMI::Record & mrec = metrics <<= new DMI::Record;
+  #ifndef USE_OLD_LSQFIT
+    mrec[FReady]  = solver.isReady();
+    mrec[FReadyString] = solver.readyText();
+  #endif
+    mrec[FRank]   = int(rank);
+    mrec[FFit]    = fit;
+  //  mrec[FErrors] = errors;
+    mrec[FFlag]   = solFlag;
+    mrec[FMu]     = solver.getWeightedSD();
+    mrec[FStdDev] = solver.getSD();
+    mrec[FNumUnknowns] = nuk;
+    mrec[FChi   ] = chi;
+    mrec[FChi0  ] = chi0;
+  }
 
 // getCovariance() and getErrors() seem to destroy the matrix.
 // so comment them out for now. The right way is to make a copy of the LSQFit
 // object, and get it from there. Since this is potentially expensive,
 // only do it under the use_debug clause.
 //   // fill errors and covariance matrices
-  if( use_debug )
+  if( use_debug && use_metrics )
   {
     LSQFit tmp(solver);
-    DMI::NumArray &errors = mrec[FErrors] <<= new DMI::NumArray(Tpdouble,LoShape(nuk),DMI::NOZERO);
-    DMI::NumArray &covar = mrec[FCoVar] <<= new DMI::NumArray(Tpdouble,LoShape(nuk,nuk),DMI::NOZERO);
+    DMI::NumArray &errors = metrics()[FErrors] <<= new DMI::NumArray(Tpdouble,LoShape(nuk),DMI::NOZERO);
+    DMI::NumArray &covar = metrics()[FCoVar] <<= new DMI::NumArray(Tpdouble,LoShape(nuk,nuk),DMI::NOZERO);
     tmp.getCovariance(static_cast<double*>(covar.getDataPtr()));
     tmp.getErrors(static_cast<double*>(errors.getDataPtr()));
   }
@@ -1522,20 +1529,16 @@ void * Solver::runWorkerThread (void *solv)
 void Solver::activateSubsolverWorkers ()
 {
   // init queue and clear error list
-  Thread::Mutex::Lock lock(worker_mutex_);
+  Thread::Mutex::Lock lock(worker_cond_);
   cdebug(3)<<"T"<<Thread::self()<<" activating workers"<<endl;
   wt_num_ss_ = 0;
   wt_exceptions_.clear();
-  lock.release();
-  // use worker_cond variable to wakeup threads
-  lock.relock(worker_cond_);
+  // wakeup threads
   wt_num_active_ = worker_threads_.size() + 1;  // +1 since main thread is also active
   worker_cond_.broadcast();
-  lock.release();
   // go into our own loop to start processing subsolvers
   // loop will exit only when no more threads are active
-  processSolversLoop();
-  lock.relock(worker_mutex_);
+  processSolversLoop(lock);
   cdebug(3)<<"T"<<Thread::self()<<" all workers finished"<<endl;
   // if any exceptions have accumulated, throw them
   if( !wt_exceptions_.empty() )
@@ -1543,7 +1546,7 @@ void Solver::activateSubsolverWorkers ()
 }
 
 // If a worker thread is available, wakes it up to flush parm tables
-// Otherwise flushes table directly in here. 
+// Otherwise flushes table directly in here.
 void Solver::flushTablesInWorkerThread ()
 {
 #ifndef HAVE_PARMDB
@@ -1551,63 +1554,61 @@ void Solver::flushTablesInWorkerThread ()
   if( worker_threads_.empty() )
   {
     ParmTableUtils::flushTables();
-  } 
+  }
   // else wake a worker
   else
   {
-    Thread::Mutex::Lock lock(worker_mutex_);
+    Thread::Mutex::Lock lock(worker_cond_);
     cdebug(3)<<"T"<<Thread::self()<<" activating a worker to flush tables"<<endl;
     wt_flush_tables_ = true;
     worker_cond_.signal();
-    lock.release();
   }
 #endif
 }
 
 
 // processes subsolvers in a loop, until all complete, or an exception
-// occurs.
-void Solver::processSolversLoop ()
+// occurs. On entry, lock is a lock on worker_cond_.
+void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
 {
   cdebug(3)<<"T"<<Thread::self()<<" subsolver loop started"<<endl;
-  Thread::Mutex::Lock lock(worker_mutex_);
-  while( true )
+  // loop until all subsolvers are processed
+  while( wt_num_ss_ < numSubsolvers() )
   {
-    // finish one all subsolvers have been assigned
-    if( wt_num_ss_ >= numSubsolvers() )
-      break;
-    // grab a subsolver
+    // at this point we hold a lock on worker_cond_. We only ever release
+    // it on the inside, when we go to process a subsolver
+    // grab a non-converged subsolver
     cdebug(3)<<"T"<<Thread::self()<<" grabbing subsolver "<<wt_num_ss_<<endl;
     Subsolver &ss = subsolvers_[wt_num_ss_++];
-    // shortcut -- if solver is already converged, do not release
-    // lock since we'll be going on to the next one anyway.
-    // But we need to call solve() anyway to clear its internals
-    if( !ss.converged )
-      lock.release();
+    // if solver is converged, grab the next one (but do clear its solution vector)
+    if( ss.converged )
+    {
+      ss.solution = 0;
+      num_conv_++;
+      continue;
+    }
+    // release lock to give the other threads a chance to grab their own
+    lock.release();
     // process the subsolver
     bool converged = false;
     try
     {
       converged = ss.solve(cur_iter_);
     }
+    // break out on error
     catch( std::exception &exc )
     {
-      if( !lock.locked() )
-        lock.lock(worker_mutex_);
+      lock.lock(worker_cond_);
       wt_exceptions_.add(exc);
       break;
     }
-    // relock and update
-    if( !lock.locked() )
-      lock.lock(worker_mutex_);
+    // relock worker_cond_
+    lock.lock(worker_cond_);
     if( converged )
       num_conv_++;
-    // go back to grab another
   }
+  // at this point we have a lock on worker_cond
   cdebug(3)<<"T"<<Thread::self()<<" subsolver loop finished"<<endl;
-  lock.release();
-  // no more solvers or error, so worker thread is finished
-  lock.relock(worker_cond_);
   // decrement active threads counter
   wt_num_active_--;
   DbgAssert(wt_num_active_>=0);
@@ -1642,11 +1643,8 @@ void * Solver::workerLoop ()
     }
     else
     {
-      // else subsolvers are active, release lock on completed_cond and
-      // go into work loop
-      lock.release();
-      processSolversLoop();
-      lock.relock(worker_cond_);
+      // else subsolvers are active, go into work loop
+      processSolversLoop(lock);
     }
   }
 }
