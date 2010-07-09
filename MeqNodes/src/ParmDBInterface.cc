@@ -38,7 +38,7 @@ ParmDomain toParmDomain(const Meq::Domain &domain){
 	  start.push_back(domain.start(axisi));
 	  end.push_back(domain.end(axisi));
 
-	 
+
 	}
       else
 	break;
@@ -60,7 +60,7 @@ Meq::Domain fromParmDomain(const ParmDomain &domain){
   for (int i =2 ; i < start.size();i++)
     {
       Mdomain.defineAxis (i,start[i],end[i]);
-	
+
     }
   return Mdomain;
 }
@@ -82,7 +82,7 @@ Meq::Funklet::Ref  ParmValue2Funklet(const ParmValue &pv){
     j+=i/nx;//collumn nr;
     data[j]=cf[i];
   }
-  const LoMat_double theCoeff(data,LoShape(nx,ny)); 
+  const LoMat_double theCoeff(data,LoShape(nx,ny));
 
   vector<double> offsets,scales,constants;
   offsets = pv.rep().itsOffset;
@@ -115,9 +115,9 @@ Meq::Funklet::Ref  ParmValue2Funklet(const ParmValue &pv){
     funkletref<<=new Meq::CompiledFunklet(theCoeff,Meq::defaultFunkletAxes,Meq::defaultFunkletOffset,Meq::defaultFunkletScale,
 					  pv.rep().itsPerturbation,pv.rep().itsWeight,
 					  pv.rep().itsDBRowRef,type);
-  
 
-  
+
+
   Meq::Domain domain = fromParmDomain(pv.rep().itsDomain);
   funkletref().setDomain(domain);
   return funkletref;
@@ -142,7 +142,7 @@ ParmValue Funklet2ParmValue(Meq::Funklet::Ref  funklet){
       }
   else
     data = static_cast<double*>(funklet->coeffWr().getDataPtr());
- 
+
 
 
   pval.setCoeff (data, funklet->getCoeffShape());
@@ -161,7 +161,7 @@ ParmValue Funklet2ParmValue(Meq::Funklet::Ref  funklet){
       offset[i]=funklet->getOffset(i);
       scale[i]=funklet->getScale(i);
     }
-  
+
   pval.itsOffset = offset;
   pval.itsScale = scale;
 
@@ -193,8 +193,8 @@ namespace Meq {
     Thread::Mutex::Lock lock(parmdbMutex());
     if( !parmtable_ )
       return;
-    
-    if( !its_funklet_.valid() ) 
+
+    if( !its_funklet_.valid() )
       return;
     ParmValue pv;
 
@@ -206,7 +206,7 @@ namespace Meq {
       for (int ifunk=0;ifunk<nr_funk;ifunk++)
 	{
 	  Funklet::Ref partfunk = funklist->get(ifunk);
-	  
+
 	  pv = Funklet2ParmValue(partfunk);
 	  parmtable_->putValue(name_,pv,ParmDBRep::UseNormal);
 	  partfunk().setDbId(pv.rep().itsDBRowRef);
@@ -222,10 +222,11 @@ namespace Meq {
       }
 
     //its_funklet might have changed, reset state
-    wstate()[FFunklet].replace() = its_funklet_().getState();
+    if( cache_funklet_ )
+      wstate()[FFunklet].replace() = its_funklet_->getState();
 
   }
-  
+
 
   void Parm::openTable(){
     Thread::Mutex::Lock lock(parmdbMutex());
@@ -235,15 +236,15 @@ namespace Meq {
       closeTable();
     parmtable_ =  new ParmDB(ParmDBMeta("aips",parmtable_name_));
   }
-  
+
   void Parm::closeTable(){
     Thread::Mutex::Lock lock(parmdbMutex());
     if (parmtable_)
       delete parmtable_;
   }
-  
 
-  
+
+
   Funklet * Parm::getFunkletFromDB(Funklet::Ref &funkletref,const Domain &domain){
     Thread::Mutex::Lock lock(parmdbMutex());
     if( !parmtable_ )
@@ -260,7 +261,7 @@ namespace Meq {
     for(std::vector<ParmValue>::iterator pvIt=pvV.begin();pvIt!=pvV.end();pvIt++)
       funklets[i++]=ParmValue2Funklet(*pvIt);
     int n=funklets.size();
-	
+
     cdebug(3)<<n<<" funklets found in MEP table"<<endl;
     if( n>1 )
       {
@@ -276,14 +277,14 @@ namespace Meq {
 	}
 	//	getBestFitting(funklets);//reorder list, such that best fitting is first,especially important if perfect fitis in the list, since we do not w
 	//ant another entry in DB then.
-	
+
       }
     if( n )
       {
 	//get the one with best fitting domain....
 	funkletref <<= funklets.front();
-	    
-	//reset dbid if funklet domain not matching 
+
+	//reset dbid if funklet domain not matching
 	if(funkletref->domain().start(0)!=domain.start(0) || funkletref->domain().start(1)!=domain.start(1) ||
 	   funkletref->domain().end(0)!=domain.end(0) || funkletref->domain().end(1)!=domain.end(1))
 	  {
@@ -306,7 +307,7 @@ namespace Meq {
 
   void Parm::getDefaultFromDB(Funklet::Ref &funkletref){
     Thread::Mutex::Lock lock(parmdbMutex());
-  
+
     int n=0;
     cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;
   }
@@ -326,22 +327,19 @@ namespace Meq {
     if( !parmtable_ )
       return;
 
-    if( !its_funklet_.valid() ) 
+    if( !its_funklet_.valid() )
       return;
     //parmtable_ = ParmTableUtils::openTable(parmtable_name_);
 
-    if(its_funklet_->objectType()==TpMeqComposedPolc){
-      DMI::List *funklist = its_funklet_()[FFunkletList].as_wpo<DMI::List>();
-      if(!funklist) return;
-      int nr_funk=funklist->size();
-      cdebug(2)<<"saving "<<nr_funk<<" funklets"<<endl;
-      for (int ifunk=0;ifunk<nr_funk;ifunk++)
-	{
-	  Funklet::Ref partfunk = funklist->get(ifunk);
-	  parmtable_->putCoeff1(name_,partfunk,false);
-	  cdebug(4)<<" put in database "<<partfunk->getDbId()<<endl;
- 	  funklist->replace(ifunk,partfunk);
-	}
+    if(its_funklet_->objectType()==TpMeqComposedPolc)
+    {
+      DMI::List & funklist = its_funklet_.as<ComposedPolc>().funkletList();
+      for( DMI::List::iterator iter = funklist.begin(); iter != funklist.end(); iter ++)
+      {
+        Funklet & partfunk = iter->as<Funklet>();
+        parmtable_->putCoeff1(name_,partfunk,false);
+        cdebug(4)<<" put in database "<<partfunk.getDbId()<<endl;
+      }
     }
     else
       parmtable_->putCoeff1(name_,its_funklet_,false);
@@ -367,7 +365,7 @@ namespace Meq {
     vector<Funklet::Ref> funklets;
     parmtable_ = ParmTableUtils::openTable(parmtable_name_);
     int n = parmtable_->getFunklets(funklets,name_,domain);
-	
+
     cdebug(3)<<n<<" funklets found in MEP table"<<endl;
     if( n>1 )
       {
@@ -386,11 +384,11 @@ namespace Meq {
       {
 	//get the one with best fitting domain....
 	funkletref <<= funklets.front();
-	    
-	//reset dbid if funklet domain not matching 
-	if( (fabs(funkletref->domain().start(0)-domain.start(0))>1e-16) 
-	    || (fabs(funkletref->domain().start(1)-domain.start(1))>1e-16) 
-	    ||(fabs(funkletref->domain().end(0)-domain.end(0))>1e-16) 
+
+	//reset dbid if funklet domain not matching
+	if( (fabs(funkletref->domain().start(0)-domain.start(0))>1e-16)
+	    || (fabs(funkletref->domain().start(1)-domain.start(1))>1e-16)
+	    ||(fabs(funkletref->domain().end(0)-domain.end(0))>1e-16)
 	    || (fabs(funkletref->domain().end(1)-domain.end(1))>1e-16))
 	  {
 	    cdebug(3)<<" resetting dbid" <<funkletref->domain().start(0)<<" == "<<domain.start(0)<<endl;
@@ -411,7 +409,7 @@ namespace Meq {
 
 
   void Parm::getDefaultFromDB(Funklet::Ref &funkletref){
-  
+
     parmtable_ = ParmTableUtils::openTable(parmtable_name_);
     int n = parmtable_->getInitCoeff(funkletref,name_);
     cdebug(3)<<"looking for funklets in defaults subtable: "<<n<<endl;

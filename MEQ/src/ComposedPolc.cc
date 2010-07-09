@@ -1,10 +1,10 @@
 //# Includes
 //
-//% $Id$ 
+//% $Id$
 //
 //
 // Copyright (C) 2002-2007
-// The MeqTree Foundation & 
+// The MeqTree Foundation &
 // ASTRON (Netherlands Foundation for Research in Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -20,7 +20,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
+// or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
@@ -151,8 +151,8 @@ void ComposedPolc::validateContent (bool recursive)
 	    if(axisHasShape_[axisi]) continue;
 
 	    if(fshape.size()>axisi && fshape[axisi]>1 )
-	      axisHasShape_[axisi] |= 1; 
-              
+	      axisHasShape_[axisi] |= 1;
+
 	    //cehck if domain changes around this axis
 	    if( newdom.isDefined(axisi) &&
                 ( newdom.start(axisi) != funklet.domain().start(axisi) ||
@@ -180,17 +180,9 @@ void ComposedPolc::validateContent (bool recursive)
 
 
     //get funklets from list
+    const DMI::List & funklist = funkletList();
 
 
-    const Field * fld = Record::findField(FFunkletList);
-    if(!fld ){
-      cdebug(2)<<"no funklet list found in record"<<endl;
-      return;
-    }
-    const DMI::List * funklistp =   fld->ref().ref_cast<DMI::List>() ;
-
-
-    int nr_funklets = funklistp->size();
     int nr_parms = getNumParms();
     int nr_spids = getNrSpids();
 
@@ -245,10 +237,9 @@ void ComposedPolc::validateContent (bool recursive)
     int starti[8]={-1,-1,-1,-1,-1,-1,-1,-1};
     int endi[8]={-1,-1,-1,-1,-1,-1,-1,-1};
 
-    for(int funknr=0;funknr<nr_funklets;funknr++){
-      cdebug(3)<<"evalauating funklet : "<<funknr<<endl;
-
-      const Funklet & partfunk = funklistp->as<Funklet>(funknr);
+    for(DMI::List::const_iterator iter = funklist.begin(); iter != funklist.end(); iter++ )
+    {
+      const Funklet & partfunk = iter->as<Funklet>();
 
       //get cells for this domain
       int isConstant=1;
@@ -361,7 +352,7 @@ void ComposedPolc::validateContent (bool recursive)
 	}
       else
 	{// not constant assume freq,time polc for now
-	
+
       int nx(0),ny(0);
 
 
@@ -392,17 +383,17 @@ void ComposedPolc::validateContent (bool recursive)
 		ny=0;
 		for(int valy = starti[1];valy<=endi[1];valy++){
 		  int idx = valx*res_shape[1]+valy;
-		  
+
 		  for(int ispid=0;ispid<nr_spids;ispid++)
 		    {
 		      pertValPtr[ipert][ispid][idx] = (perts[ipert][ispid])[ny+nx*maxny] ;
 		    }
-		  
+
 		  ny=std::min(ny+1,maxny-1);//put check on y shape b4
 		}
 		nx=std::min(nx+1,maxnx-1);//put check on x shape b4
 	      }
-	      
+
 
 
 	    }//loop over perturbations
@@ -412,7 +403,7 @@ void ComposedPolc::validateContent (bool recursive)
 
 
     }//end loop over funklets
- 
+
   }
 
 
@@ -435,15 +426,15 @@ void ComposedPolc::validateContent (bool recursive)
 	   for (val[axisi]= starti[axisi];val[axisi]<=endi[axisi];val[axisi]++){
 	     //recursive call
 	     fill_const_value(nr_axis,starti,endi,res_shape,val,axisi+1,value,constpart);
-	     
-	     
+
+
 	   }
-	   
+
 
 
 
 	 }
-	
+
   }
 
 
@@ -455,42 +446,28 @@ void ComposedPolc::validateContent (bool recursive)
   void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,bool force_positive)
   {
     Thread::Mutex::Lock lock(mutex());
-    const Field * fld = Record::findField(FFunkletList);
-    if(!fld ){
-      cdebug(2)<<"no funklet list found in record"<<endl;
-      return;
-    }
-    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+    DMI::List & funklist =  Record::as<DMI::List>(FFunkletList);
 
-    int nrfunk=funklist.size();
+    int nrfunk = funklist.size();
     int nr_spids = spidIndex.size();
     int ifunk=0;
-     for(int funknr=0 ; funknr<nrfunk ; funknr++)
+    DMI::List::iterator iter = funklist.begin();
+    for(int funknr=0 ; funknr<nrfunk ; funknr++,iter++ )
+    {
+      Funklet & partfunk = iter->as<Funklet>();
+      double* coeff = static_cast<double*>(partfunk.coeffWr().getDataPtr());
+      for( int i=0; i<nr_spids; i++ )
       {
-
-
-	Funklet::Ref partfunk = funklist.get(funknr);
-	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
-
-
-	for( int i=0; i<nr_spids; i++ )
-	  {
-	    if( spidIndex[i] >= 0 )
-	      {
-		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
-		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
-		if(force_positive && partfunk->isConstant())
-		  coeff[i]=std::fabs(coeff[i]);
-	      }
-	  }
-
-	funklist.replace(funknr,partfunk);
-	ifunk++;
-
-
-      }//loop over funklets
-
-
+        if( spidIndex[i] >= 0 )
+          {
+            cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+            coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
+            if(force_positive && partfunk.isConstant())
+              coeff[i] = std::fabs(coeff[i]);
+          }
+      }
+      ifunk++;
+    }//loop over funklets
   }
 
 
@@ -498,48 +475,37 @@ void ComposedPolc::validateContent (bool recursive)
   void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive)
   {
     Thread::Mutex::Lock lock(mutex());
-    const Field * fld = Record::findField(FFunkletList);
-    if(!fld ){
-      cdebug(2)<<"no funklet list found in record"<<endl;
-      return;
-    }
-    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+    DMI::List & funklist =  Record::as<DMI::List>(FFunkletList);
 
     int nrfunk=funklist.size();
     int nr_spids = spidIndex.size();
     int ifunk=0;
-     for(int funknr=0 ; funknr<nrfunk ; funknr++)
-      {
+    DMI::List::iterator iter = funklist.begin();
+    for(int funknr=0 ; funknr<nrfunk ; funknr++,iter++ )
+    {
+      Funklet & partfunk = iter->as<Funklet>();
+      double* coeff = static_cast<double*>(partfunk.coeffWr().getDataPtr());
 
+      for( int i=0; i<nr_spids; i++ )
+        {
+          if( spidIndex[i] >= 0 )
+            {
+              cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+              coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
 
-	Funklet::Ref partfunk = funklist.get(funknr);
-	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
+              //constrain constant funklets
+              if(partfunk.isConstant()){
+                coeff[i] = std::min(coeff[i],constraints[1]);
+                coeff[i] = std::max(coeff[i],constraints[0]);
 
+              }
+              if(force_positive && partfunk.isConstant())
+                coeff[i]=std::fabs(coeff[i]);
 
-	for( int i=0; i<nr_spids; i++ )
-	  {
-	    if( spidIndex[i] >= 0 )
-	      {
-		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
-		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
-
-		//constrain constant funklets
-		if(partfunk->isConstant()){
-		  coeff[i] = std::min(coeff[i],constraints[1]);
-		  coeff[i] = std::max(coeff[i],constraints[0]);
-
-		}
-		if(force_positive && partfunk->isConstant())
-		  coeff[i]=std::fabs(coeff[i]);
-
-	      }
-	  }
-
-	funklist.replace(funknr,partfunk);
-	ifunk++;
-
-
-      }//loop over funklets
+            }
+        }
+      ifunk++;
+    }//loop over funklets
 
 
   }
@@ -547,74 +513,48 @@ void ComposedPolc::validateContent (bool recursive)
   void ComposedPolc::do_update(const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive)
   {
     Thread::Mutex::Lock lock(mutex());
-    const Field * fld = Record::findField(FFunkletList);
-    if(!fld ){
-      cdebug(2)<<"no funklet list found in record"<<endl;
-      return;
-    }
-    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+    DMI::List & funklist =  Record::as<DMI::List>(FFunkletList);
 
     int nrfunk=funklist.size();
     int nr_spids = spidIndex.size();
     int ifunk=0;
-     for(int funknr=0 ; funknr<nrfunk ; funknr++)
-      {
+
+    DMI::List::iterator iter = funklist.begin();
+    for(int funknr=0 ; funknr<nrfunk ; funknr++,iter++ )
+    {
+      Funklet & partfunk = iter->as<Funklet>();
+      double* coeff = static_cast<double*>(partfunk.coeffWr().getDataPtr());
+
+      for( int i=0; i<nr_spids; i++ )
+        {
+          if( spidIndex[i] >= 0 )
+            {
+              cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
+              coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
 
 
-	Funklet::Ref partfunk = funklist.get(funknr);
-	double* coeff = static_cast<double*>((partfunk)().coeffWr().getDataPtr());
+              if(i<int(constraints_max.size()))
+                coeff[i] = std::min(coeff[i],constraints_max[i]);
+              if(i<int(constraints_min.size()))
+                coeff[i] = std::max(coeff[i],constraints_min[i]);
+              if(force_positive && partfunk.isConstant())
+                coeff[i]=std::fabs(coeff[i]);
 
-
-	for( int i=0; i<nr_spids; i++ )
-	  {
-	    if( spidIndex[i] >= 0 )
-	      {
-		cdebug(3)<<"updateing polc "<< coeff[i]<<" adding "<< values[spidIndex[i]]<<spidIndex[i]<<endl;
-		coeff[i] += values[spidIndex[i]*nrfunk+ifunk];
-
-
-		if(i<int(constraints_max.size()))
-		  coeff[i] = std::min(coeff[i],constraints_max[i]);
-		if(i<int(constraints_min.size()))
-		  coeff[i] = std::max(coeff[i],constraints_min[i]);
-		if(force_positive && partfunk->isConstant())
-		  coeff[i]=std::fabs(coeff[i]);
-
-	      }
-	  }
-
-	funklist.replace(funknr,partfunk);
-	ifunk++;
-
-
-      }//loop over funklets
+            }
+        }
+      ifunk++;
+    }//loop over funklets
 
 
   }
 
 
-  void ComposedPolc::changeSolveDomain(const Domain & solveDomain){
+  void ComposedPolc::changeSolveDomain(const Domain & solveDomain)
+  {
     Thread::Mutex::Lock lock(mutex());
-    //transform cooeff of every Polc
-    const Field * fld = Record::findField(FFunkletList);
-    if(!fld ){
-      cdebug(2)<<"no funklet list found in record"<<endl;
-      return;
-    }
-    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
-
-    int nrfunk=funklist.size();
-    for(int funknr=0 ; funknr<nrfunk ; funknr++)
-      {
-
-
-	Funklet::Ref partfunk = funklist.get(funknr);
-
-	partfunk().changeSolveDomain(solveDomain);
-
-	funklist.replace(funknr,partfunk);
-
-      }//loop over funklets
+    DMI::List & funklist = funkletList();
+    for( DMI::List::iterator iter = funklist.begin(); iter != funklist.end(); iter ++)
+      iter->as<Funklet>().changeSolveDomain(solveDomain);
   };
 
 
@@ -624,25 +564,10 @@ void ComposedPolc::validateContent (bool recursive)
     Thread::Mutex::Lock lock(mutex());
     //transform cooeff of every Polc
     if(solveDomain.size()<2) return; //incorrect format
-    const Field * fld = Record::findField(FFunkletList);
-    if(!fld ){
-      cdebug(2)<<"no funklet list found in record"<<endl;
-      return;
-    }
-    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
 
-    int nrfunk=funklist.size();
-    for(int funknr=0 ; funknr<nrfunk ; funknr++)
-      {
-
-
-	Funklet::Ref partfunk = funklist.get(funknr);
-
-	partfunk().changeSolveDomain(solveDomain);
-
-	funklist.replace(funknr,partfunk);
-
-      }//loop over funklets
+    DMI::List & funklist = funkletList();
+    for( DMI::List::iterator iter = funklist.begin(); iter != funklist.end(); iter ++)
+      iter->as<Funklet>().changeSolveDomain(solveDomain);
   };
 
 
@@ -650,28 +575,13 @@ void ComposedPolc::validateContent (bool recursive)
   void ComposedPolc::setCoeffShape(const LoShape & shape){
     Thread::Mutex::Lock lock(mutex());
     //transform cooeff of every Polc
-    const Field * fld = Record::findField(FFunkletList);
-    if(!fld ){
-      cdebug(2)<<"no funklet list found in record"<<endl;
-      return;
-    }
-    DMI::List & funklist =  (*this)[FFunkletList].as_wr<DMI::List>();
+    DMI::List & funklist = funkletList();
+    for( DMI::List::iterator iter = funklist.begin(); iter != funklist.end(); iter ++)
+      iter->as<Funklet>().setCoeffShape(shape);
 
-    int nrfunk=funklist.size();
-    for(int funknr=0 ; funknr<nrfunk ; funknr++)
-      {
-
-
-	Funklet::Ref partfunk = funklist.get(funknr);
-
-	partfunk().setCoeffShape(shape);
-
-	funklist.replace(funknr,partfunk);
-
-      }//loop over funklets
     //also set shape of own coeff, for spid recovery
-    Funklet::Ref partfunk = funklist.get(0);
-    setCoeff(partfunk->coeff());
+    const Funklet & partfunk = funklist.begin()->as<Funklet>();
+    setCoeff(partfunk.coeff());
     // and set axisHasShape_ flag
     for( uint i=0; i<shape.size(); i++ )
       if( shape[i] > 1 )

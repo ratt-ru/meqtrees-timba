@@ -38,8 +38,8 @@ using std::endl;
 #pragma aidgroup Meq
 #pragma type #Meq::Funklet
 
-namespace Meq { 
-  
+namespace Meq {
+
 class Request;
 class VellSet;
 
@@ -58,7 +58,7 @@ static double logfac(int n)
   double fac=0.;
   for(int i=n;i>0;i--)
     fac += log(i);
-  
+
   return fac;
 }
 
@@ -76,7 +76,7 @@ class Funklet : public DMI::Record
 public:
   typedef DMI::CountedRef<Funklet> Ref;
   typedef int DbId;
-  
+
   // maximum # of perturbation sets passed to evaluate() below
   static const int MaxNumPerts = 2;
 
@@ -85,11 +85,11 @@ public:
   explicit Funklet (double pert=defaultFunkletPerturbation,
                     double weight=defaultFunkletWeight,
                     DbId id=-1);
-  
+
   Funklet (int naxis,const int iaxis[]=defaultFunkletAxes,const double offset[]=defaultFunkletOffset,const double scale[]=defaultFunkletScale,
            double pert=defaultFunkletPerturbation,double weight=defaultFunkletWeight,
            DbId id=-1);
-  
+
   Funklet (const Funklet &other,int flags=0,int depth=0);
   // sets all of a funklet's attributes in one go
   void init (int naxis,const int iaxis[],const double offset[],const double scale[],
@@ -101,14 +101,14 @@ public:
   // Set the domain to which this funklet applies.
   // Note that changing the domain always resets the dbid
   void setDomain (const Domain* domain,int flags=0);
-  
+
   void setDomain (const Domain& domain,int flags=DMI::AUTOCLONE)
   { setDomain(&domain,flags); }
-  
+
   // true if domain is set
   bool hasDomain () const
   { return domain_.valid(); }
-  
+
   // Gets the domain.
   const Domain & domain() const
   { return domain_.valid() ? *domain_ : default_domain; }
@@ -118,13 +118,13 @@ public:
   // returns "rank" of funklet (normally, the number of variability axes)
   int rank () const
   { return axes_.size(); }
-  
+
   // sets up an axis of variability
   void setAxis (int i,int iaxis,double offset=0.,double scale=1.);
 
   // returns axis of variability
   int getAxis (int i) const {
-    return axes_[i]; 
+    return axes_[i];
   }
 
   const std::vector<int> getAxes() {
@@ -139,7 +139,7 @@ public:
       return 0;
     }
 
-    offsets_[i]= offset; 
+    offsets_[i]= offset;
     (*this)[FOffset]    = offsets_;
     return 1;
   }
@@ -151,29 +151,29 @@ public:
       return 0;
     }
 
-    scales_[i]= scale; 
+    scales_[i]= scale;
     (*this)[FScale]     = scales_;
     return 1;
   }
   // returns offset along axis of variability
   double getOffset (int i) const {
-    return offsets_[i]; 
+    return offsets_[i];
   }
   // returns scale along axis of variability
   double getScale (int i) const {
-    return scales_[i]; 
+    return scales_[i];
   }
 
   // get/set the base perturbation.
   double getPerturbation(int ipert=0) const
   { DbgAssert(ipert==0 || ipert==1); return ipert ? -pertValue_ : pertValue_ ; }
   void setPerturbation (double perturbation = defaultFunkletPerturbation);
-  
+
   // get/set database id
   Funklet::DbId getDbId () const
   { return id_; }
   void setDbId (DbId id);
-  
+
   // get/set weight
   double getWeight() const
   { return weight_; }
@@ -183,49 +183,49 @@ public:
   // returns the number of parameters describing this funklet
   virtual int getNumParms () const
   { return ncoeff();}//spids_.empty()?ncoeff():spids_.size(); }
-  
+
   // returns max rank for funklets of this type
   virtual int maxFunkletRank () const
   { return Axis::MaxAxis; }
-  
+
   // returns true if funklet has no dependence on domain (e.g.: a single {c00} polc)
-  virtual bool isConstant () const 
+  virtual bool isConstant () const
   { return false; }
-  
+
   //------------------ other Funklet methods ----------------------------------------------
   // evaluate method: evaluates funklet over a given cells. Sets up vellset and calls
   // the private virtual do_evaluate() below.
   void evaluate (VellSet &,const Cells &,int makePerturb=0) const;
    // shortcut to above taking a Request
   void evaluate (VellSet &,const Request &) const;
-  // evaluate funket on given cells, in case parm has children that (partially) define the grid 
+  // evaluate funket on given cells, in case parm has children that (partially) define the grid
   void evaluate (VellSet &,const Cells &, const std::vector<Result::Ref> & childres,int makePerturb=0) const;
-  // shortcut to evaluate funket on given cells, in case parm has children that (partially) define the grid 
+  // shortcut to evaluate funket on given cells, in case parm has children that (partially) define the grid
   void evaluate (VellSet &,const Request &, const std::vector<Result::Ref> & childres) const;
-  
+
   // Make the funklet non-solvable.
   void clearSolvable();
-  
+
   // Is this funklet currently solvable?
   bool isSolvable () const
   { return !spids_.empty(); }
 
   // Make the entire funklet solvable, thus perturbed values have to be calculated.
   // spidIndex0 is the index of the first spid of this funklet, the rest are assigned
-  // contiguously. 
+  // contiguously.
   // Returns the number of spids in this funklet (==getNumParms())
     //##ModelId=3F86886F03A6
   virtual int makeSolvable (int spidIndex);
   // Make the funklet solvable, but only w.r.t. a specific subset of its parameters.
-  // The mask vector (must be same size as returned by getNumParms()) tells which 
-  // parameters are solvable. 
+  // The mask vector (must be same size as returned by getNumParms()) tells which
+  // parameters are solvable.
   // Returns the number of spids in this funklet (==number of true values in mask)
   int makeSolvable (int spidIndex,const std::vector<bool> &mask);
 
-  // Updates solvable parms of funklet. Size of values must be equal to the number 
+  // Updates solvable parms of funklet. Size of values must be equal to the number
   // of solvable parms.
   void update (const double values[],bool force_positive=false);
-  // Updates solvable parms of funklet. Size of values must be equal to the number 
+  // Updates solvable parms of funklet. Size of values must be equal to the number
   // of solvable parms. constraints, only valid for constant funklets, should be vector of min,max
   void update (const double values[],const std::vector<double> &contraints,bool force_positive=false);
 
@@ -236,7 +236,7 @@ public:
   // There is one for each parameter; thus its size is getNumParms().
   const std::vector<double> & getParmPerts() const
   { return parm_perts_; }
-  
+
   // Get the spids -- solvable parameter IDs (set up by the makeSolvable() methods above)
   // If makeSolvable() was called w/o a mask, then there's one spid per each parm
   // (as returned by getNumParms())
@@ -247,23 +247,23 @@ public:
   //get number of solvable coeff
   const int getNrSpids() const
   { return spids_.size(); }
-  
+
   // Get vector of spid perturbations (set up by the makeSolvable() methods above)
   // There is one for each spid; thus its size is same as that of getSpids()
   const std::vector<double> & getSpidPerts() const
   { return spid_perts_; }
-  // get vector (size = rank )giving the index of the coefficient belong to a spididx. 
+  // get vector (size = rank )giving the index of the coefficient belong to a spididx.
   DMI::Vec * getCoeffIndex(int spidid) const;
 
   //------------------ standard DMI-related methods ---------------------------------------
   virtual DMI::TypeId objectType () const
   { return TpMeqFunklet; }
-  
+
   // implement standard clone method via copy constructor
   virtual DMI::CountedRefTarget* clone (int flags, int depth) const
   { return new Funklet(*this,flags,depth); }
-  
-  // validate record contents and setup shortcuts to them. This is called 
+
+  // validate record contents and setup shortcuts to them. This is called
   // automatically whenever a Funklet is made from a DMI::Record
   virtual void validateContent (bool recursive);
 
@@ -276,12 +276,12 @@ public:
   // Get c00 coefficient
   const double getCoeff0 () const
   { return *static_cast<const double*>(coeff().getConstDataPtr()); }
-  
-  // Get vector of coeffs 
+
+  // Get vector of coeffs
   const LoVec_double & getCoeff1 () const
   { return coeff().getConstArray<double,1>(); }
-  
-  // Get matrix of coeffs 
+
+  // Get matrix of coeffs
   const LoMat_double & getCoeff2 () const
   { return coeff().getConstArray<double,2>(); }
 
@@ -294,29 +294,29 @@ public:
     //##ModelId=3F86886F036F
   int ncoeff() const
   { return pcoeff_ ? pcoeff_->deref().size() : 0; }
-  
+
   // Get shape of coefficients
   const LoShape & getCoeffShape () const
   { return coeff().shape(); }
-  
+
 
   virtual void setCoeffShape(const LoShape & shape)
-  { 
+  {
     // to be reimplemented by polctype funklets
     cdebug(2)<<"set coeff shape only implemented for polctype funklets"<<endl;
   }
 
   virtual const DMI::NumArray & coeff () const
   { DbgAssert(pcoeff_); return pcoeff_->deref(); }
-  
+
   virtual DMI::NumArray & coeffWr () const
   {DbgAssert(pcoeff_); return pcoeff_->dewr(); }
-  
 
 
 
 
-  //changeSolveDomain: this function determines new offsets and scales and projects the Funklet 
+
+  //changeSolveDomain: this function determines new offsets and scales and projects the Funklet
   // to the solveDomain (to avoid large numbers that the solvver has difficulties to deal with.
   // Typically the solvedomain = [0,1][0,1] or [-1,1][-1,1]...
   virtual void changeSolveDomain(const Domain & solveDomain){};
@@ -324,7 +324,7 @@ public:
 
 
   //reimplement in  (CompiledFunklet) since browser doesnt know about aips++ contaminated classes
-  virtual Record::Ref getState(){
+  virtual Record::Ref getState() const {
     Record::Ref funkref;
     funkref<<=new Record(*this);
     return funkref;
@@ -346,25 +346,25 @@ public:
   }
 
 protected:
-  Record::protectField;  
-  Record::unprotectField;  
-  Record::begin;  
-  Record::end;  
+  Record::protectField;
+  Record::unprotectField;
+  Record::begin;
+  Record::end;
   Record::as;
   Record::clear;
-  
+
   //------------------ protected Funklet interface (to be implemented by subclasses) ---------
   // do_evaluate(): this is the real workhorse.
-  // Evaluates funklet over a given cells. This is called by public evaluate() above 
-  // after setting up the vellset properly (i.e. assigning spids and perturbations to it, 
+  // Evaluates funklet over a given cells. This is called by public evaluate() above
+  // after setting up the vellset properly (i.e. assigning spids and perturbations to it,
   // etc., so the implementation here need not worry).
-  // The perts argument is a vector of perturbations: _one per parameter_ (i.e. 
-  // getNumParms() in length). 
+  // The perts argument is a vector of perturbations: _one per parameter_ (i.e.
+  // getNumParms() in length).
   // The spidIndex argument is a vector of spid positions: _one per parameter_.
   // For each parm marked as solvable, it contains the index at which the corresponding
-  // perturbed value is to be placed into the VellSet. Non-solvable parms (which may 
+  // perturbed value is to be placed into the VellSet. Non-solvable parms (which may
   // exist if makeSolvable() with a mask was used) have an index of -1.
-  // makePerturbed argument is 0 for no perturbations, 1 for single, 2 for double. 
+  // makePerturbed argument is 0 for no perturbations, 1 for single, 2 for double.
   // For double-perts, a perturbation value of -perts should be used.
   //Two versions are available, if childres is specified, the grid is already defined by he parms children
 
@@ -374,7 +374,7 @@ protected:
                             const std::vector<int>    &spidIndex,
                             int makePerturbed) const;
 
- 
+
 
   //This one not implemented yet
   void do_evaluate (VellSet &vs,const Cells &cells,
@@ -382,20 +382,20 @@ protected:
                             const std::vector<int>    &spidIndex,
 			    const std::vector<Result::Ref> & childres,
                             int makePerturbed) const;
-                            
-  // Update the solvable parameters with the new values. Called by public update(). 
+
+  // Update the solvable parameters with the new values. Called by public update().
   // spidIndex has the same meaning as for do_evaluate(): for each solvable parm,
   // it gives the index of its updated in values[]; for each non-solvable parm,
   // a -1
   virtual void do_update (const double values[],const std::vector<int> &spidIndex,bool force_positive=false);
-  // Update the solvable parameters with the new values. Called by public update(). 
+  // Update the solvable parameters with the new values. Called by public update().
   // spidIndex has the same meaning as for do_evaluate(): for each solvable parm,
   // it gives the index of its updated in values[]; for each non-solvable parm,
   // a -1. Constrained (only for constant funklets)
   virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints,bool force_positive=false);
   //
   virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive=false);
-  
+
   // This method is called when a Funklet is marked as solvable (by makeSolvable() above).
   // This should fill the perts vector (which has been pre-sized to getNumParms()) with
   // perturbation values based on the "basis" perturbation pert0.
@@ -419,29 +419,29 @@ private:
   // offsets and scales
   std::vector<double> offsets_;
   std::vector<double> scales_;
-  
+
   // domain over which this funklet is valid
-  // Any missing axes in the domain imply that the funklet is valid for that 
+  // Any missing axes in the domain imply that the funklet is valid for that
   // entire dimension
   DMI::CountedRef<Domain>  domain_;
-  
+
   //##ModelId=400E53540331
   std::vector<int>  spids_;
   std::vector<int>  spidInx_;
-  
+
   std::vector<double> parm_perts_;
   std::vector<double> spid_perts_;
 
   // default perturbation value
   double       pertValue_;
   //##ModelId=3F86886F0341
-  
+
   // default weight
   double       weight_;
-  
+
   // default database ID
   int          id_;
-  
+
   // default domain (common to all funklet objects)
   static Domain default_domain;
 };

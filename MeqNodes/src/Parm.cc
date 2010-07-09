@@ -109,22 +109,14 @@ namespace Meq {
 	Funklet *pfunklet = getFunkletFromDB(funkletref,domain);
 	if(pfunklet && ignore_time_ && pfunklet->objectType()==TpMeqComposedPolc)
 	  {
-	    //set time domain of all funklets to 0,inf
-	    DMI::List & funklist =  (*pfunklet)[FFunkletList].as_wr<DMI::List>();
-
-	    int nr_funk = funklist.size();
-
-	    for(int funknr=0 ; funknr<nr_funk ; funknr++)
-	      {
-		Funklet::Ref partfunk = funklist.get(funknr);
-
-		Domain dom = Domain(partfunk->domain());
-		dom.defineAxis(0,0,INFINITY);
-		partfunk().setDomain(dom);
-
-		funklist.replace(funknr,partfunk);
-	      }
-	    (*pfunklet)[FFunkletList].replace()=funklist;
+            DMI::List & funklist = dynamic_cast<ComposedPolc*>(pfunklet)->funkletList();
+            for( DMI::List::iterator iter = funklist.begin(); iter != funklist.end(); iter ++)
+            {
+              Funklet & partfunk = iter->as<Funklet>();
+              Domain dom = Domain(partfunk.domain());
+              dom.defineAxis(0,0,INFINITY);
+              partfunk.setDomain(dom);
+            }
     	  }
 
 	if (pfunklet && !reset_funklet_)
@@ -268,44 +260,39 @@ namespace Meq {
   }
 
 
-  void Parm::GetTiledDomains(Domain::Ref & domain, const Cells & cells,vector<Domain::Ref> & domainV){
+  void Parm::GetTiledDomains(Domain::Ref & domain, const Cells & cells,vector<Domain::Ref> & domainV)
+  {
     //   vector<Domain> domainV; //create vector of domains..1 per funklettile
     domainV.clear();
     domainV.push_back(domain);
     //calculate domains..
-    for(int axis=0;axis<Axis::MaxAxis;axis++){
+    for(int axis=0;axis<Axis::MaxAxis;axis++)
+    {
       cdebug(4)<<"tiling axis "<<axis<<", nr_tiles:"<<tiling_[axis]<<endl;
+      if(tiling_[axis]<=0)
+        continue; //not tiled in this direction
 
-      if(tiling_[axis]<=0) continue; //not tiled in this direction
       int nr_cells=cells.ncells(axis);
       const LoVec_double & cellStart = cells.cellStart (axis);
       const LoVec_double & cellEnd = cells.cellEnd (axis);
-      if(nr_cells<=0) continue;
+      if(nr_cells<=0)
+        continue;
 
       int nr_tiles=(nr_cells+tiling_[axis]-1)/tiling_[axis]; //round to higher value
-      vector<Domain::Ref> helpV;
 
-      for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++)
-	  {
+      vector<Domain::Ref> helpV(nr_tiles*domainV.size());
+      vector<Domain::Ref>::iterator helpiter = helpV.begin();
 
-	    for(int i=0;i<nr_tiles;i++)
-	      {
-		(*domIt)().defineAxis(axis,cellStart(i*tiling_[axis]),cellEnd(std::min(nr_cells-1,(i+1)*tiling_[axis]-1)));
-		helpV.push_back(*domIt);
-	      }
-
-
-	  }
-      domainV.clear();
-
-      for(vector<Domain::Ref>::iterator domIt2=helpV.begin();domIt2<helpV.end();domIt2++)
-	{
-	  domainV.push_back(*domIt2);
-
-	}
-      helpV.clear();
+      for(vector<Domain::Ref>::const_iterator domIt=domainV.begin();domIt<domainV.end();domIt++ )
+      {
+        for(int i=0;i<nr_tiles;i++,helpiter++)
+        {
+          *helpiter = *domIt;
+          helpiter->dewr().defineAxis(axis,cellStart(i*tiling_[axis]),cellEnd(std::min(nr_cells-1,(i+1)*tiling_[axis]-1)));
+        }
+      }
+      domainV.swap(helpV);
       cdebug(2)<<" total nr domains : "<<domainV.size()<<endl;
-
     }
   }
 
@@ -317,31 +304,29 @@ namespace Meq {
     if (funkletref->objectType()==TpMeqComposedPolc)
 	{
 	  match=true;
-	  const DMI::List *funklist = funkletref[FFunkletList].as_po<DMI::List>();
-	  FailWhen(!funklist,"Composed Polc does not contain funklist");
-	  const Funklet::Ref & firstfunk = funklist->get(0);
+	  const DMI::List & funklist = funkletref.as<ComposedPolc>().funkletList();
+	  const Funklet::Ref & firstfunk = funklist.get(0);
 	  int ncoeff = firstfunk->ncoeff();
 
-	  if(!funklist  || (int(domainV.size())!=funklist->size())) match=false;
+	  if( (int(domainV.size())!=funklist.size()) )
+            match=false;
 	  else
 	    for(int axis=0;axis<Axis::MaxAxis;axis++){
 	      //if(!tiling_[axis]) continue;
-	      int funknr=0;
-	      for(vector<Domain::Ref>::iterator domIt=domainV.begin();domIt<domainV.end();domIt++){
-		const Funklet::Ref & partfunk = funklist->get(funknr++);
-
-		if( fabs((*domIt)->start(axis) - partfunk->domain().start(axis)) > 1e-16 ||
-		    fabs((*domIt)->end(axis) - partfunk->domain().end(axis)) > 1e-16 ||
-		   (partfunk->ncoeff()!=ncoeff))
+	      DMI::List::const_iterator iter = funklist.begin();
+	      for(vector<Domain::Ref>::const_iterator domIt=domainV.begin();domIt<domainV.end();domIt++,iter++)
+              {
+		const Funklet & partfunk = iter->as<Funklet>();
+		if( fabs((*domIt)->start(axis) - partfunk.domain().start(axis)) > 1e-16 ||
+		    fabs((*domIt)->end(axis) - partfunk.domain().end(axis)) > 1e-16 ||
+		   (partfunk.ncoeff()!=ncoeff))
 		  {
 		    //maybe even better; only keep those funklets that do match in case nr_funklets>nr_domains
 		    match=false;
 		    break;
 		  }
-
 	      }
 	      if(!match) break;
-
 	    }
 	  if(!match){
 	    funkletref = firstfunk;
@@ -444,7 +429,8 @@ namespace Meq {
 	      newfunklet = initTiledFunklet(funkref,domain,cells);
 	      funkref().setDomain(domain);
 	      its_funklet_<<=funkref;
-	      wstate()[FFunklet].replace() = its_funklet_().getState();
+              if( cache_funklet_ )
+                wstate()[FFunklet].replace() = its_funklet_->getState();
 	      res_id_=rq_res_id;
 	      return its_funklet_.dewr_p();
 	    }
@@ -513,7 +499,6 @@ namespace Meq {
         Funklet *newfunklet = initTiledFunklet(funkref,domain,cells);
         funkref().setDomain(domain);
 	its_funklet_<<=funkref;
-        wstate()[FFunklet].replace() = its_funklet_().getState();
         wstate()[FDomainId] = domain_id_ = rq_dom_id;
         wstate()[FDomain].replace() <<= &domain;
 	res_id_=rq_res_id;
@@ -521,7 +506,8 @@ namespace Meq {
         return its_funklet_.dewr_p();
       }
     its_funklet_<<=funkref;
-    wstate()[FFunklet].replace() = its_funklet_().getState();
+    if( cache_funklet_ )
+      wstate()[FFunklet].replace() = its_funklet_->getState();
     wstate()[FDomainId] = domain_id_ = rq_dom_id;
     wstate()[FDomain].replace() <<= &domain;
     res_id_=rq_res_id;
@@ -556,7 +542,8 @@ namespace Meq {
     if(force_shape_)
       pfunklet->setCoeffShape(shape_);
 
-    wstate()[FFunklet].replace() = pfunklet->getState();
+    if( cache_funklet_ )
+      wstate()[FFunklet].replace() = pfunklet->getState();
     its_funklet_<<=pfunklet;
 
     // get spids from funklet
@@ -608,7 +595,8 @@ namespace Meq {
       {
 	pfunklet->clearSolvable();
       }
-    wstate()[FFunklet].replace() = pfunklet->getState();
+    if( cache_funklet_ )
+      wstate()[FFunklet].replace() = pfunklet->getState();
     its_funklet_<<=pfunklet;
     // init depend mask
     // if we are solvable, then we always depend on solution progress
@@ -643,10 +631,12 @@ namespace Meq {
     // set cells in result as needed
     result.setCells(request.cells());
 
-    //remove funklet from cache unless cahce_funklet
-    if(!cache_funklet_ && !isSolvable()){
-      its_funklet_.detach();
+    //remove funklet from cache unless cache_funklet is in effect
+    if( !cache_funklet_  )
+    {
       wstate().remove(FFunklet);
+      if( !isSolvable() )
+        its_funklet_.detach();
     }
     return depend;
   }
@@ -899,7 +889,8 @@ namespace Meq {
 	    }
 	  else
 	    its_funklet_().update(values.data(),force_positive_);
-	  wstate()[FFunklet].replace()=its_funklet_().getState();
+          if( cache_funklet_ )
+	   wstate()[FFunklet].replace()=its_funklet_->getState();
 	  if( auto_save_ && parmtable_ )
 	  {
 	    save();
