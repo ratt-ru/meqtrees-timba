@@ -31,21 +31,21 @@ static DMI::Container::Register reg(TpMeqRequest,true);
 
 //##ModelId=3F8688700056
 Request::Request()
-: pcells_(0),has_rider_(false)
+: pcells_(0),prider_(0)
 {
 }
 
 //##ModelId=3F8688700061
 Request::Request (const DMI::Record &other,int flags,int depth)
 : Record(), 
-  pcells_(0),has_rider_(false)
+  pcells_(0),prider_(0)
 {
   Record::cloneOther(other,flags,depth,true);
 }
 
 //##ModelId=400E535403DD
 Request::Request (const Cells& cells,const HIID &id,int cellflags)
-: has_rider_(false)
+: prider_(0)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -53,7 +53,7 @@ Request::Request (const Cells& cells,const HIID &id,int cellflags)
 
 //##ModelId=400E53550016
 Request::Request (const Cells * cells,const HIID &id,int cellflags)
-: has_rider_(false)
+: prider_(0)
 {
   setCells(cells,cellflags);
   setId(id);
@@ -123,14 +123,27 @@ void Request::validateContent (bool)
 
 void Request::validateRider ()
 {
-  has_rider_ = Record::hasField(FRider);
+  // get cells field
+  Field * prf = findField(FRider);
+  if( prf )
+  {
+    prider_ = &( prf->ref().ref_cast<Record>() );
+    prf->protect(true);
+  }
+  else
+    prider_ = 0;
 }
 
 void Request::clearRider ()
 {
   Thread::Mutex::Lock lock(mutex());
-  Record::remove(FRider);
-  has_rider_ = false;
+  Field * prf = findField(FRider);
+  if( prf )
+  {
+    prf->protect(false);
+    Record::remove(FRider);
+  }
+  prider_ = 0;
 }
 
 void Request::copyRider (const Request &other)
@@ -139,8 +152,11 @@ void Request::copyRider (const Request &other)
   const Field * fld = other.findField(FRider);
   if( fld )
   {
+    Field * f0 = findField(FRider);
+    if( f0 )
+      f0->protect(false);
     Record::replace(FRider,fld->ref());
-    has_rider_ = true;
+    validateRider();
   }
   else
     clearRider();

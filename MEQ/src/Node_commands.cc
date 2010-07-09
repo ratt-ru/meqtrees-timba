@@ -114,7 +114,7 @@ int Node::processCommands (Result::Ref &resref,const DMI::Record &list,const Req
   {
     const HIID &command = iter.id();
     // skip fields called "name" and "nodeindex" since they are not commands
-    // but rather selection fields for the command_by_list rider 
+    // but rather selection fields for the command_by_list rider
     if( command == FName || command == FNodeIndex )
       continue;
     // assignment will throw an error if not referencing a DMI::Record
@@ -123,80 +123,74 @@ int Node::processCommands (Result::Ref &resref,const DMI::Record &list,const Req
   }
   return retcode;
 }
-    
-int Node::processRequestRider (Result::Ref &resref,const Request &req) 
+
+int Node::processRequestRider (Result::Ref &resref,const Request &req)
 {
   if( !req.hasRider() )
     return 0;
   int retcode = 0;
   cdebug(3)<<"  processing request rider"<<endl;
-  const DMI::Record &rider = req[FRider].as<DMI::Record>();
+  const DMI::Record &rider = req.rider();
   for( uint i=0; i<node_groups_.size(); i++ )
   {
-    DMI::Record::Hook hgroup(rider,node_groups_[i]);
-    if( hgroup.exists() )
+    if( !rider.hasField(node_groups_[i]) )
+      continue;
+    cdebug(3)<<"    found CSR for group "<<node_groups_[i]<<endl;
+    const DMI::Record &group = rider.as<DMI::Record>(node_groups_[i]);
+    // check for command_all entry
+    if( group.hasField(FCommandAll) )
     {
-      cdebug(3)<<"    found CSR for group "<<node_groups_[i]<<endl;
-      DMI::Record::Ref group = hgroup.ref();
-      // check for command_all entry
+      cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
+      retcode |= processCommands(resref,group.as<DMI::Record>(FCommandAll),req.id());
+    }
+    // process command_by_list (pattern matching list)
+    if( group.hasField(FCommandByList) )
+    {
+      // access list as a DMI::Container (this can be a DMI::Vec or
+      // a DMI::List, either should work fine)
+      const DMI::Container &list = group.as<DMI::Container>(FCommandByList);
+      cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
+      bool matched = false;
+      for( int i=0; i<list.size() && !matched; i++ )
       {
-        DMI::Record::Hook hlist(group,FCommandAll);
-        if( hlist.exists() )
+        const DMI::Record &entry = list[i].as<DMI::Record>();
+        std::vector<string> names;
+        std::vector<int> indices;
+        DMI::Record::Hook hnames(entry,FName),
+              hindices(entry,FNodeIndex);
+        if( hnames.exists() ) // get list of names, if any
+          names = hnames;
+        if( hindices.exists() ) // get list of node indices, if any
+          indices = hindices;
+        cdebug(4)<<"        "<<indices.size()<<" indices, "
+                  <<names.size()<<" names"<<endl;
+        // check for node name or node index match
+        matched = ( std::find(indices.begin(),indices.end(),nodeIndex())
+                      != indices.end() ||
+                    std::find(names.begin(),names.end(),name())
+                      != names.end() ||
+                    ( names.empty() && indices.empty() ) );
+        // call appropriate handlers if node was matched
+        if( matched )
         {
-          cdebug(4)<<"    found "<<FCommandAll<<", calling processCommands()"<<endl;
-          retcode |= processCommands(resref,hlist.as<DMI::Record>(),req.id());
+          cdebug(4)<<"        node matched, calling processCommands()"<<endl;
+          retcode |= processCommands(resref,entry,req.id());
         }
       }
-      // process command_by_list (pattern matching list)
+      if( !matched )
       {
-        DMI::Record::Hook hlist(group,FCommandByList);
-        if( hlist.exists() )
-        {
-          // access list as a DMI::Container (this can be a DMI::Vec or
-          // a DMI::List, either should work fine)
-          const DMI::Container &list = *(
-                hlist.ref().ref_cast<DMI::Container>());
-          cdebug(3)<<"      checking "<<list.size()<<" list entries"<<endl;
-          bool matched = false;
-          for( int i=0; i<list.size() && !matched; i++ )
-          {
-            const DMI::Record &entry = list[i].as<DMI::Record>();
-            std::vector<string> names;
-            std::vector<int> indices;
-            DMI::Record::Hook hnames(entry,FName),
-                 hindices(entry,FNodeIndex);
-            if( hnames.exists() ) // get list of names, if any
-              names = hnames;
-            if( hindices.exists() ) // get list of node indices, if any
-              indices = hindices;
-            cdebug(4)<<"        "<<indices.size()<<" indices, "
-                     <<names.size()<<" names"<<endl;
-            // check for node name or node index match
-            matched = ( std::find(indices.begin(),indices.end(),nodeIndex())
-                          != indices.end() ||
-                        std::find(names.begin(),names.end(),name())
-                          != names.end() ||
-                        ( names.empty() && indices.empty() ) );
-            // call appropriate handlers if node was matched
-            if( matched )
-            {
-              cdebug(4)<<"        node matched, calling processCommands()"<<endl;
-              retcode |= processCommands(resref,entry,req.id());
-            }
-          }
-          if( !matched ) {
-            cdebug(3)<<"      no matches in list"<<endl;
-          }
-        }
+        cdebug(3)<<"      no matches in list"<<endl;
       }
-      // process command_by_nodeindex list
+    }
+    if( group.hasField(FCommandByNodeIndex) )
+    // process command_by_nodeindex list
+    {
+      const DMI::Record &entry = group.as<DMI::Record>(FCommandByNodeIndex);
+      HIID ni(nodeIndex());
+      if( entry.hasField(ni) )
       {
-        DMI::Record::Hook hlist(group,FCommandByNodeIndex);
-        if( hlist.exists() && hlist[nodeIndex()].exists() )
-        {
-          cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<nodeIndex()<<"], calling processCommands()"<<endl;
-          retcode |= processCommands(resref,hlist.as<DMI::Record>(),req.id());
-        }
+        cdebug(4)<<"    found "<<FCommandByNodeIndex<<"["<<nodeIndex()<<"], calling processCommands()"<<endl;
+        retcode |= processCommands(resref,entry.as<DMI::Record>(ni),req.id());
       }
     }
   }

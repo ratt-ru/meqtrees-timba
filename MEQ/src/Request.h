@@ -188,7 +188,14 @@ public:
   //##Documentation
   //## does this request have a rider field?
   bool hasRider () const
-  { return has_rider_; }
+  { return prider_ != 0; }
+  
+  const DMI::Record & rider () const
+  { 
+    DbgFailWhen(!prider_,"no rider in Meq::Request");
+    return prider_->deref(); 
+  }
+  
   
   //## copies over rider from another request
   void copyRider (const Request &other);
@@ -209,11 +216,12 @@ private:
   Record::as;
   Record::clear;
   
-    //##ModelId=400E535403B3
   HIID   id_;
   HIID   next_id_;
-    //##ModelId=3F86BFF80269
+
   Cells::Ref * pcells_;
+  
+  Record::Ref * prider_;
   
   bool   has_rider_;
 };
