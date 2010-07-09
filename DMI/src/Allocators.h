@@ -50,7 +50,7 @@
 // mt allocator appears to have a threading-related bug (as of 3.4.3)
 // See bugzilla bug 300. Switching to std::allocator for now, may want
 // to look into other allocators later.
-#define DMI_USE_STD_ALLOC 1
+// #define DMI_USE_STD_ALLOC 1
         
 #if defined(DMI_USE_STD_ALLOC)
 

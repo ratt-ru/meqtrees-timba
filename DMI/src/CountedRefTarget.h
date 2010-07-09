@@ -79,12 +79,12 @@ class CountedRefTarget
       //## shared memory (i.e. refs from multiple processes), in which case
       //## they are only compelled to be accurate to 0, 1 or 2 ("more").
 #ifdef COUNTEDREF_LINKED_LIST
-      virtual int targetReferenceCount () const;
+      int targetReferenceCount () const;
       
       bool isTargetAttached () const
       { return owner_ref_ != 0; }
 #else
-      virtual int targetReferenceCount () const
+      int targetReferenceCount () const
       { return ref_count_; }
       
       bool isTargetAttached () const

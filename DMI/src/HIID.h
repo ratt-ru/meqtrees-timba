@@ -30,7 +30,7 @@
 #include <TimBase/lofar_iostream.h>
 
 #include <vector>
-    
+
 #pragma type =DMI::HIID
 
 namespace DMI
@@ -38,6 +38,7 @@ namespace DMI
 
 //##ModelId=3C55652D01B8
 typedef std::vector<AtomicID,DMI_Pool_Allocator<AtomicID> > HIID_Base;
+//typedef std::vector<AtomicID,DMI_Allocator<AtomicID> > HIID_Base;
 
 
 //##ModelId=3BE96FE601C5
@@ -46,11 +47,13 @@ class HIID : public HIID_Base
   public:
     //##ModelId=3BE9774C003C
       HIID ();
-  
+
       HIID (const HIID &other,int extra_size=0);
 
       //##ModelId=3C5E7527020F
-      HIID (AtomicID aid);
+      HIID (AtomicID aid,int extra_size=0);
+      HIID (AtomicID aid1,AtomicID aid2);
+
 
       //##ModelId=3C6141BA03B4
       //##Documentation
@@ -58,7 +61,7 @@ class HIID : public HIID_Base
       //## ("A.B.C.D", "a_b_c_d", etc.)
       HIID (const string &str);
       HIID (const char *str);
-      
+
       //## Constructs HIID from string form, using custom separator.
       //## ("A_B_C_D", etc.)
       //## If allow_literals is true, then if any AtomicID is not found,
@@ -66,7 +69,7 @@ class HIID : public HIID_Base
       //## (NB: still to be implemented!)
       HIID (const string &str,bool allow_literals,const string &sep_set);
 
-      
+
       //##ModelId=3DB934880197
       //##Documentation
       //## Creates a HIID from a block of raw bytes
@@ -77,7 +80,7 @@ class HIID : public HIID_Base
 
     //##ModelId=3DB9348901D5
       bool operator!=(const HIID &right) const;
-      
+
       HIID & operator = (const HIID &other);
 
       void resize (size_type sz)
@@ -146,7 +149,7 @@ class HIID : public HIID_Base
       //## Finds first "/" separator, splits off the sub-id. Removes up to and
       //## including the slash, but returns sub-id w/o the slash.
       HIID splitAtSlash ();
-      
+
       // removes N elements from front of vector
       void pop_front (uint n=1);
       // adds N elements to front of vector
@@ -178,43 +181,43 @@ class HIID : public HIID_Base
       HIID & operator |= (int aid);
     //##ModelId=3DB9348B0051
       HIID & operator |= (const char *str);
-      
+
       // a less-than operator
     //##ModelId=3DB9348B01E2
       bool operator < (const HIID &right) const;
-      
+
       // templated constructor (constructs from input iterator)
       template<class In> HIID( In first,In last );
-      
+
     //##ModelId=3DB9348B03E0
       static size_t HIIDSize (int n)  { return n*sizeof(int); }
-      
+
     // prints to stream
     //##ModelId=3E01AD45000B
       void print (std::ostream &str) const
       { str << toString(); }
-      
+
       // prints to cout, with endline. Not inlined, so that it can
       // be called from a debugger
     //##ModelId=3E01BA7A02AF
       void print () const;
 
       ImportDebugContext(DebugDMI);
-      
+
   private:
     // Additional Implementation Declarations
     //##ModelId=3DB9343C01F1
-      typedef HIID_Base::iterator VI;  
+      typedef HIID_Base::iterator VI;
     //##ModelId=3DB9343C025F
-      typedef HIID_Base::const_iterator CVI;  
-      
+      typedef HIID_Base::const_iterator CVI;
+
       // this function reserves initial space for the HIID vector
     //##ModelId=3DB9348C0215
       static size_type ALLOC_STEP () { return 16; }
-      
+
       void reserve (size_type sz = 0)
-      { 
-        HIID_Base::reserve((1+sz/ALLOC_STEP())*ALLOC_STEP()); 
+      {
+        HIID_Base::reserve((1+sz/ALLOC_STEP())*ALLOC_STEP());
       }
 
       // creates from string
@@ -226,7 +229,7 @@ class HIID : public HIID_Base
 
 // stream operator
 inline std::ostream & operator << (std::ostream &str,const HIID &id)
-{ 
+{
   id.print(str);
   return str;
 }
@@ -277,18 +280,18 @@ inline HIID operator | (AtomicID id1,const char *id2)
 { HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (AtomicID id1,AtomicID id2)
-{ HIID ret(id1,1); return ret|=id2; }
+{ return HIID(id1,id2); }
 
 inline HIID operator | (AtomicID id1,int id2)
-{ HIID ret(id1); return ret|=id2; }
+{ return HIID(id1,AtomicID(id2)); }
 
 inline HIID operator | (int id1,const HIID &id2)
 { HIID ret(id1); return ret|=id2; }
 
 inline HIID operator | (int id1,AtomicID id2)
-{ HIID ret(id1); return ret|=id2; }
+{ return HIID(AtomicID(id1),id2); }
 
-// Class HIID 
+// Class HIID
 
 //##ModelId=3BE9774C003C
 inline HIID::HIID ()
@@ -312,11 +315,18 @@ inline HIID & HIID::operator = (const HIID &other)
 }
 
 //##ModelId=3C5E7527020F
-inline HIID::HIID (AtomicID aid)
+inline HIID::HIID (AtomicID aid,int extra_size)
 {
-  reserve();
+  reserve(1+extra_size);
   HIID_Base::resize(1);
   front() = aid;
+}
+inline HIID::HIID (AtomicID aid1,AtomicID aid2)
+{
+  reserve(2);
+  HIID_Base::resize(2);
+  front() = aid1;
+  *(&(front())+1) = aid2;
 }
 
 //##ModelId=3C6141BA03B4
@@ -414,7 +424,7 @@ inline int HIID::popLeadSlashes ()
   while( n < size() && (*this)[n] == AidSlash )
     n++;
   pop_front(n);
-// when this was a deque, we did:   
+// when this was a deque, we did:
 //  {
 //    pop_front();
 //    n++;
