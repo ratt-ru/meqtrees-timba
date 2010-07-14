@@ -323,6 +323,7 @@ private:
   {
     public:
       int  nodeindex;                   // node associated with this spid
+      int solvegroup;                   // solve group # associated with this spid
       int  nuk;                         // how many unknowns/subtiles per this spid (1 if not tiled)
       Tiling *ptiling;                  // which tiling it uses
       std::vector<int> ssuki;           // subsolver index of unknown per tile number
@@ -333,10 +334,15 @@ private:
       DMI::Record::Ref asRecord () const;
   };
 
+  // map spids to SpidInfo objects
   typedef std::map<SpidType,SpidInfo> SpidMap;
   SpidMap spids_;
+  
+  // maps solvegrpoup names to solvegroup numbers
+  typedef std::map<string,int> SolveGroups;
+  SolveGroups solvegroups_;
 
-  // this is a subsolver structure for a solver tile
+  // this is a subsolver structure for a solver tile or subgroup
   // (corresponding to one block of a block-diagonal matrix)
   class Subsolver
   {
@@ -410,20 +416,40 @@ private:
 
   ParmUkMap parm_uks_;
 
-  // various temporary arrays used when filling equations, we keep them here
+  // temporary arrays used when filling equations, we keep them here
   // as members for convenience, and to minimize reallocations
-  std::vector<double> deriv_real_;
-  std::vector<double> deriv_imag_;
+  typedef struct
+  {
+    int nderiv;
+    std::vector<double> deriv_real;
+    std::vector<double> deriv_imag;
+    std::vector<int> uk_index;
+  }
+  SolveGroupData;
+  std::vector<SolveGroupData> sgd_;
+  
   Vells::Strides      *strides_;
 
-
+  int numSolveGroups () const
+  { return solvegroups_.size(); }
+  
   // helper function -- returns number of subsolvers
   int numSubsolvers () const
   { return subsolvers_.size(); }
+  
+  // helper function -- returns number of subtiles
+  int numSubtiles () const
+  { return psolver_tiling_->total_tiles; } 
+  
+  
+  // Returns subsolver associated with given tile and subgroup
+  // Caller can assume that subsolvers for subsequent tiles are adjacent.
+  Subsolver * psubsolver (int itile,int solvegroup)
+  { return &(subsolvers_[solvegroup*numSubtiles() + itile]); }
 
   // helper function for fillEquations() to fill a particular subsolver
   template<typename T>
-  inline void fillEqVectors (Subsolver &ss,int npert,int uk_index[],
+  inline void fillEqVectors (int itile,int npert,SpidInfo *pspi[],
         const T &diff,const std::vector<Vells::ConstStridedIterator<T> > &deriv_iter,
         double weight);
 

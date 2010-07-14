@@ -34,6 +34,7 @@
 #include <MEQ/Rider.h>
 #include <MeqNodes/Solver.h>
 #include <MeqNodes/Condeq.h>
+#include <MeqNodes/Parm.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/Arrays/Matrix.h>
 #include <casa/Arrays/Vector.h>
@@ -60,7 +61,6 @@ InitDebugContext(Solver,"MeqSolver");
 const HIID
     // Solver staterec fields
 
-    FSolvable        = AidSolvable,
     FParmGroup       = AidParm|AidGroup,
 
     // various solver parameters
@@ -101,8 +101,6 @@ const HIID
     FDebug           = AidDebug;
 
 // various state fields
-const HIID FTileSize = AidTile|AidSize;
-
 const HIID FSolverResult = AidSolver|AidResult;
 const HIID FIncrementalSolutions = AidIncremental|AidSolutions;
 
@@ -110,7 +108,6 @@ const HIID FIterationSymdeps = AidIteration|AidSymdeps;
 
 const HIID FDebugLevel = AidDebug|AidLevel;
 const HIID FIterations = AidIterations;
-const HIID FConverged  = AidConverged;
 
 const HIID FMetricsArray  = AidMetrics|AidArray;
 const HIID FDebugArray  = AidDebug|AidArray;
@@ -285,6 +282,7 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
   spids_.clear();
   tilings_.clear();
   subsolvers_.clear();
+  solvegroups_.clear();
   // we also work out the solver tile sizes. Each solver tile encompasses a
   // whole number of spid sub-tiles, so the solver tile size along each axis
   // is the least common multiple (LCM) of all the spid tile sizes. Start
@@ -309,6 +307,17 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
     // insert entry into spid table
     SpidInfo & spi = spids_[spid];
     spi.nodeindex = rec[FNodeIndex].as<int>();
+    // figure out solvegroup number
+    const string & sg = rec[FSolveGroup].as<string>("");
+    SolveGroups::const_iterator sgiter = solvegroups_.find(sg);
+    // insert new solvegroup if not found, else reuse number
+    if( sgiter == solvegroups_.end() )
+    {
+      spi.solvegroup = numSolveGroups();
+      solvegroups_[sg] = spi.solvegroup;
+    }
+    else
+      spi.solvegroup = sgiter->second;
     // OK, figure out the tiling
     DimVector tilesize(num_cells);
     int ntsz;
@@ -402,7 +411,7 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
     psolver_tiling_ = &( iter->second );
   }
   // allocate required number of subsolvers
-  subsolvers_.resize(psolver_tiling_->total_tiles);
+  subsolvers_.resize(numSubtiles() * numSolveGroups());
   // now for each spid tiling, figure out what solver tile a given spid
   // subtile belongs to
   for( TilingMap::iterator iter = tilings_.begin(); iter != tilings_.end(); iter++ )
@@ -467,13 +476,14 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
     SpidInfo &spi = iter->second;
     Tiling &tiling = *( spi.ptiling );
     spi.ssuki.resize(spi.nuk);
+    Subsolver * pss = psubsolver(0,spi.solvegroup);
     // Now work out how the spid tiles map to subsolver unknowns
     // Each spid tile receives a single unknown in the corresponding subsolver.
     // uk0[] and nuk[] keep track of which unknown index we started allocating
     // from, and how many we allocated
-    int uk0[numSubsolvers()];
-    int nuk[numSubsolvers()];
-    for( int i=0; i<numSubsolvers(); i++ )
+    int uk0[numSubtiles()];
+    int nuk[numSubtiles()];
+    for( int i=0; i<numSubtiles(); i++ )
     {
       uk0[i] = -1;
       nuk[i] = 0;
@@ -482,18 +492,18 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
     for( int i=0; i<spi.nuk; i++ )
     {
       int isolver = tiling.super_tile[i];
-      DbgAssert(isolver>=0 && isolver<numSubsolvers());
+      DbgAssert(isolver>=0 && isolver<numSubtiles());
       if( uk0[isolver] < 0 )
-        uk0[isolver] = subsolvers_[isolver].nuk;
-      spi.ssuki[i] = subsolvers_[isolver].nuk++;
+        uk0[isolver] = pss[isolver].nuk;
+      spi.ssuki[i] = pss[isolver].nuk++;
       nuk[isolver]++;
     }
     // update the parm-to-unknowns map
     LoMat_int &slice = parm_uks_[spi.nodeindex].spidset[spid];
-    slice.resize(numSubsolvers(),2);
-    for( int i=0; i<numSubsolvers(); i++ )
+    slice.resize(numSubtiles(),2);
+    for( int i=0; i<numSubtiles(); i++ )
     {
-      DbgAssert(uk0[i]>=0 && nuk[i]); // each subsolver MUST have unknowns for every spid
+      DbgAssert(uk0[i]>=0 && nuk[i]); // each tile's subsolver MUST have some unknowns 
       slice(i,0) = uk0[i];
       slice(i,1) = uk0[i]+nuk[i];
     }
@@ -536,59 +546,75 @@ inline bool isvalid (dcomplex num)
 // and the complex case. This allows us to have a single templated
 // definition of fillEquations() below which works for both cases.
 template<typename T>
-inline void Solver::fillEqVectors (Subsolver &,int,int [],
+inline void Solver::fillEqVectors (int itile,int npert,SpidInfo *pspi[],
       const T &,const std::vector<Vells::ConstStridedIterator<T> > &,double)
 {
   STATIC_CHECK(0,unsupported_template_type_for_fillEqVectors);
 }
 
 template<>
-inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
+inline void Solver::fillEqVectors (int itile,int npert,SpidInfo *pspi[],
       const double &diff,const std::vector<Vells::ConstStridedIterator<double> > &deriv_iter,double weight)
 {
   bool valid = isvalid(diff);
+  for( int i=0; i<numSolveGroups(); i++ )
+    sgd_[i].nderiv = 0;
   // fill vectors of derivatives for each unknown
   for( int i=0; i<npert && valid; i++ )
-    valid &= isvalid( deriv_real_[i] = *deriv_iter[i] );
+  {
+    SolveGroupData &sgd = sgd_[pspi[i]->solvegroup];
+    valid &= isvalid( sgd.deriv_real[sgd.nderiv] = *deriv_iter[i] );
+    sgd.uk_index[sgd.nderiv] = pspi[i]->ssuki[itile];
+    sgd.nderiv++;
+  }
   if( !valid )
   {
     if( Debug(3) )
     {
       cdebug(3)<<"equation for: ";
         for( int i=0; i<npert; i++ )
-          ::Debug::getDebugStream()<<uk_index[i]<<" ";
+          ::Debug::getDebugStream()<<pspi[i]->ssuki[itile]<<" ";
         ::Debug::getDebugStream()<<"contains NANs or INFs, omitting\n";
     }
     return;
   }
-  if( Debug(4) )
+  for( int sg=0; sg<numSolveGroups(); sg++ )
   {
-    cdebug(4)<<"equation: ";
-    for( int i=0; i<npert; i++ )
-      ::Debug::getDebugStream()<<uk_index[i]<<":"<<deriv_real_[i]<<" ";
-    ::Debug::getDebugStream()<<" -> "<<diff<<endl;
+    SolveGroupData &sgd = sgd_[sg];
+    if( sgd.nderiv )
+    {
+      Subsolver &ss = *psubsolver(itile,sg);
+      if( !ss.converged )
+      {
+        // add equation to solver
+        ss.solver.makeNorm(sgd.nderiv,&(sgd.uk_index[0]),&(sgd.deriv_real[0]),weight,diff);
+        ss.neq++;
+        num_equations_++;
+      }
+    }
   }
-  // add equation to solver
-  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],weight,diff);
-  ss.neq++;
-  num_equations_++;
 }
 
 
 // Specialization for complex case: each value produces two equations
 template<>
-inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
+inline void Solver::fillEqVectors (int itile,int npert,SpidInfo *pspi[],
       const dcomplex &diff,const std::vector<Vells::ConstStridedIterator<dcomplex> > &deriv_iter,double weight)
 {
   double re_diff = creal(diff);
   double im_diff = cimag(diff);
   // valid flag checks for inf or nan in equations
   bool valid = isvalid(re_diff) && isvalid(im_diff);
+  for( int i=0; i<numSolveGroups(); i++ )
+    sgd_[i].nderiv = 0;
   // fill vectors of derivatives for each unknown
   for( int i=0; i<npert && valid; i++ )
   {
-    valid &= isvalid( deriv_real_[i] = creal(*deriv_iter[i]) );
-    valid &= isvalid( deriv_imag_[i] = cimag(*deriv_iter[i]) );
+    SolveGroupData &sgd = sgd_[pspi[i]->solvegroup];
+    valid &= isvalid( sgd.deriv_real[sgd.nderiv] = creal(*deriv_iter[i]) );
+    valid &= isvalid( sgd.deriv_imag[sgd.nderiv] = cimag(*deriv_iter[i]) );
+    sgd.uk_index[sgd.nderiv] = pspi[i]->ssuki[itile];
+    sgd.nderiv++;
   }
   if( !valid )
   {
@@ -596,25 +622,27 @@ inline void Solver::fillEqVectors (Subsolver &ss,int npert,int uk_index[],
     {
       cdebug(3)<<"equation for: ";
       for( int i=0; i<npert; i++ )
-        ::Debug::getDebugStream()<<uk_index[i]<<" ";
+        ::Debug::getDebugStream()<<pspi[i]->ssuki[itile]<<" ";
       ::Debug::getDebugStream()<<"contains NANs or INFs, omitting\n";
     }
     return;
   }
-  if( Debug(4) )
+  // add equation to solvers
+  for( int sg=0; sg<numSolveGroups(); sg++ )
   {
-    cdebug(4)<<"equation: ";
-    for( int i=0; i<npert; i++ )
+    SolveGroupData &sgd = sgd_[sg];
+    if( sgd.nderiv )
     {
-      ::Debug::getDebugStream()<<uk_index[i]<<":"<<deriv_real_[i]<<","<<deriv_imag_[i]<<" ";
+      Subsolver &ss = *psubsolver(itile,sg);
+      if( !ss.converged )
+      {
+        ss.solver.makeNorm(sgd.nderiv,&(sgd.uk_index[0]),&(sgd.deriv_real[0]),weight,re_diff);
+        ss.solver.makeNorm(sgd.nderiv,&(sgd.uk_index[0]),&(sgd.deriv_imag[0]),weight,im_diff);
+        ss.neq += 2;
+        num_equations_ += 2;
+      }
     }
-    ::Debug::getDebugStream()<<" -> "<<ssprintf("(%g,%g)\n",creal(diff),cimag(diff));
   }
-  // add equation to solver
-  ss.solver.makeNorm(npert,uk_index,&deriv_real_[0],weight,re_diff);
-  ss.solver.makeNorm(npert,uk_index,&deriv_imag_[0],weight,im_diff);
-  ss.neq+=2;
-  num_equations_+=2;
 }
 
 template<typename T>
@@ -672,7 +700,7 @@ void Solver::fillEquations (const VellSet &vs)
   // go over derivatives, fill in shapes, get pointers to tilings and such
   Tiling *   ptiling[npert];    // shorthand pointers to SpidInfo...
   SpidInfo * pspi[npert];       //    ...and TilingInfo per derivative
-  int uk_index[npert];            // current unknown number per derivative
+  int uk_index[npert];          // current unknown number per derivative
   for( int i=0; i<npert; i++,j++ )
   {
     SpidType spid = vs.getSpid(i);
@@ -698,34 +726,13 @@ void Solver::fillEquations (const VellSet &vs)
     deriv_iter[i] = Vells::ConstStridedIterator<T>(vs.getPerturbedValue(i),strides_[j]);
   // create counter for output shape
   Vells::DimCounter counter(outshape);
-  // keep track of current subsolver -- always starts at 0
-  Subsolver * psolver = 0;
   // now start generating equations. repeat while counter is valid
   // (we break out below, when incrementing the counter)
-  bool new_tile = true;
   while( true )
   {
-    // if any tile has changed, update everything (also called at start)
-    if( new_tile )
-    {
-      // pointer to current subsolver
-      int isolver = psolver_tiling_->cur_tile;
-      DbgAssert(isolver>=0 && isolver<numSubsolvers());
-      psolver = &( subsolvers_[isolver] );
-      // update unknown indices for each pert
-      for( int ipert=0; ipert<npert; ipert++ )
-      {
-        int itile = ptiling[ipert]->cur_tile;
-        DbgAssert(itile>=0 && itile<ptiling[ipert]->total_tiles);
-        int uk = pspi[ipert]->ssuki[itile];
-        DbgAssert(uk>=0 && uk<psolver->nuk);
-        uk_index[ipert] = uk;
-      }
-    }
-    // fill equations only if unflagged and weighted, and solver is not
-    // converged
-    if( !psolver->converged && !(*flag_iter&flag_mask_) && *weight_iter > 0 )
-      fillEqVectors(*psolver,npert,uk_index,*diff_iter,deriv_iter,*weight_iter);
+    // fill equations only if unflagged and weighted
+    if( !(*flag_iter&flag_mask_) && *weight_iter > 0 )
+      fillEqVectors(psolver_tiling_->cur_tile,npert,pspi,*diff_iter,deriv_iter,*weight_iter);
     // increment counter and all iterators
     int ndim = counter.incr();
     if( !ndim )    // break out when counter is finished
@@ -736,7 +743,6 @@ void Solver::fillEquations (const VellSet &vs)
     for( int ipert=0; ipert<npert; ipert++ )
       deriv_iter[ipert].incr(ndim);
     // now for each tiling in use, advance its counters
-    new_tile = false;
     for( TilingMap::iterator iter = tilings_.begin(); iter != tilings_.end(); iter++ )
     {
       Tiling &ti = iter->second;
@@ -744,7 +750,7 @@ void Solver::fillEquations (const VellSet &vs)
       // output hypercube have been incremented. So the outer incremented
       // dimension is N-ndim, so this is what we pass to Tiling::advance()
       if( ti.active )
-        new_tile |= ti.advance(outshape.size()-ndim);
+        ti.advance(outshape.size()-ndim);
     }
   }
 }
@@ -943,8 +949,13 @@ int Solver::getResult (Result::Ref &resref,
   need_conv_ = std::min(numSubsolvers(),int(ceil(numSubsolvers()*conv_quota_)));
   num_conv_ = 0;
   // resize temporaries used in fillEquations()
-  deriv_real_.resize(num_unknowns_);
-  deriv_imag_.resize(num_unknowns_);
+  sgd_.resize(numSolveGroups());
+  for( int i=0; i<numSolveGroups(); i++ )
+  {
+    sgd_[i].uk_index.resize(num_unknowns_);
+    sgd_[i].deriv_real.resize(num_unknowns_);
+    sgd_[i].deriv_imag.resize(num_unknowns_);
+  }
   // ISO C++ won't allow a vector of Strides, hence this old-style kludge
   if( strides_ )
     delete [] strides_;
@@ -1403,12 +1414,12 @@ void Solver::fillRider (Request::Ref &reqref,bool save_funklets,bool converged)
     // vector via the spid set indices
     for( SpidSet::const_iterator ii = pui.spidset.begin(); ii != pui.spidset.end(); ii++ )
     {
+      Subsolver *pss = psubsolver(0,spids_[ii->first].solvegroup);
       const LoMat_int &slice = ii->second;
-      for( int isolver=0; isolver<numSubsolvers(); isolver++ )
+      for( int itile=0; itile<numSubtiles(); itile++ )
       {
-        Subsolver &ss = subsolvers_[isolver];
-        for( int i=slice(isolver,0); i<slice(isolver,1); i++ )
-          pupd[j++] = ss.solution(i);
+        for( int i=slice(itile,0); i<slice(itile,1); i++ )
+          pupd[j++] = pss[itile].solution(i);
       }
     }
     // add save command if requested

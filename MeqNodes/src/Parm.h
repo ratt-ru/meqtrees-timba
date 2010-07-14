@@ -91,6 +91,7 @@ namespace Meq {
     FDefaultValue  = AidDefault|AidValue,
     FSolveDomain = AidSolve|AidDomain,
     FUsePrevious = AidUse|AidPrevious,
+    FSolveGroup = AidSolve|AidGroup,
     FTileSize = AidTile|AidSize,
     FTiling = AidTiling,
     FSpline = AidSpline,
@@ -192,6 +193,7 @@ namespace Meq {
   private:
     bool solvable_;
     bool auto_save_;
+    std::string solve_group_;  // solve subgroup, empty by default
     bool tiled_;//true for tiled solvables
     int tiling_[Axis::MaxAxis]; //vector containing tilesizes per axis (<= 0 means no tiling)
     bool splined_;//true for spline funklet
@@ -204,7 +206,7 @@ namespace Meq {
     bool reset_funklet_;//reset funklet instead of using values from database
     bool ignore_time_;// if true time stamp is ignored when retrieving from ParmDB
     //##ModelId=3F86886F0213
-    string name_;
+    std::string name_;
     //##ModelId=400E535000A3
 #ifdef HAVE_PARMDB
     LOFAR::ParmDB::ParmDB * parmtable_;
