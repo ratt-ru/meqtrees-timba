@@ -816,9 +816,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
         if image_display:
           toggle_range_label = "Set display range to that of unflagged data for plane "
-          self._set_display_range_to_that_of_unflagged_data.setVisible(flag_setting)
-          self._set_display_range_to_that_of_unflagged_data.setEnabled(flag_setting)
-          self._set_display_range_to_that_of_unflagged_data.setChecked(self.flag_range)
+          self._set_display_range_to_unflagged_data.setEnabled(flag_setting)
+          self._set_display_range_to_unflagged_data.setVisible(flag_setting)
+          self._set_display_range_to_unflagged_data.setChecked(self.flag_range)
 
     def initVellsContextMenu (self):
       """ intitialize context menu for selection of Vells data """
