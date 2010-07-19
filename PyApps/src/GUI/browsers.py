@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 #
-#% $Id$
+#% $Id$ 
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation &
+# The MeqTree Foundation & 
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -22,7 +22,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc.,
+# or write to the Free Software Foundation, Inc., 
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -93,26 +93,26 @@ class PrecisionPopupMenu (QMenu):
       QObject.connect(qa,SIGNAL("toggled(bool)"),self._currier.curry(self.set_prec,p));
     # set initial precision
     self.set(prec);
-
+    
   def get (self):
-    return self._prec;
-
+    return self._prec;    
+    
   def set (self,prec):
     self._prec = prec;
     for qa in self._prec_qa[prec[0]],self._format_qa[prec[1]]:
-      if not qa.isChecked():
+      if not qa.isChecked(): 
         qa.setChecked(True);
     self.emit(SIGNAL("setPrecision"),*self._prec);
-
+    
   def set_prec (self,prec,set=True):
     if set:
       self.set((prec,self._prec[1]));
-
+    
   def set_format (self,format,set=True):
     if set:
       self.set((self._prec[0],format));
-
-
+      
+      
 
 class HierBrowser (object):
   # seqs/dicts with <= items than this are treated as "short"
@@ -123,7 +123,7 @@ class HierBrowser (object):
   MaxExpDict     = 5000;
   # maximum width of value field, in characters
   MaxWidth       = 400;
-
+  
   class Item (QTreeWidgetItem):
     def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,
                  prec=(None,'g'),name=None,caption=None,desc=''):
@@ -146,7 +146,7 @@ class HierBrowser (object):
       strvalue = str(value);
       self.setToolTip(2,"<P>"+strvalue+"</P>");
       if len(strvalue) > maxwidth:
-  strvalue = strvalue[:maxwidth-2] + "...";
+        strvalue = strvalue[:maxwidth-2] + "...";
       self.setText(2,strvalue);
       # set viewable and content attributes
       self._viewable  = False;
@@ -181,11 +181,11 @@ class HierBrowser (object):
       self._caption  = caption;
       # other state
       self._curries  = [];
-
+      
     def set_udi (self,udi):
       self.treeWidget()._content_map[udi] = self;
       self._udi = udi;
-
+      
     # caches content in an item: marks as expandable, ensures content is a dict
     # if viewable is None, decides if content is viewable based on its type
     # else, must be True or False to specify viewability explicitly
@@ -215,7 +215,7 @@ class HierBrowser (object):
       self.set_viewable(content,viewable,viewopts);
       # set the make_data property
       self._make_data = make_data;
-
+      
     def set_viewable (self,content,viewable=None,viewopts={}):
       # set the viewable property
       if not self._udi:
@@ -227,8 +227,8 @@ class HierBrowser (object):
         self._viewopts = viewopts;
         self.setIcon(1,pixmaps.viewmag_plus.icon());
         self.setFlags(self.flags()|Qt.ItemIsDragEnabled);
-
-    # helper static method to expand content into Items record
+        
+    # helper static method to expand content into Items record 
     # note that we make this a static method because 'item' may in fact be
     # a parent QListView, the expansion interface is the same
     def expand_content(item,content):
@@ -298,7 +298,7 @@ class HierBrowser (object):
       if callable(make_data):
         return make_data(viewer=None,viewopts={});
       # return item only if viewable, has udi and contents
-      if self._content is not None and self._udi and self._viewable:
+      if self._content is not None and self._udi and self._viewable: 
         vo = getattr(self,'_viewopts',{});
         vo.update(viewopts);
         name = self._name;
@@ -319,7 +319,7 @@ class HierBrowser (object):
 
     def get_precision (self):
       return self._prec;
-
+      
     # changes display precision of item
     def set_precision (self,prec,set_menu=True,recursive=True):
       self._prec = prec;
@@ -333,10 +333,10 @@ class HierBrowser (object):
       if recursive:
         for i in range(self.childCount()):
           self.child(i).set_precision(prec);
-
+    
     def _set_prec_frommenu (self,prec,format):
       self.set_precision((prec,format),set_menu=False);
-
+ 
     # curries and adds to local list
     # This is useful for creating on-the-fly callbacks
     # (since most Qt callbacks are held via weakref, they're deleted immediately
@@ -344,13 +344,13 @@ class HierBrowser (object):
     def curry (self,*args,**kw):
       c = curry(*args,**kw);
       self._curries.append(c);
-      return c;
-
+      return c;  
+      
     def xcurry (self,*args,**kw):
       c = xcurry(*args,**kw);
       self._curries.append(c);
-      return c;
-
+      return c;  
+      
     # dum argument needed to use as callback from popup menu
     def copy_to_clipboard (self,dum=None):
       # text = str(self.text(0))+": "+str(self.text(2));
@@ -379,7 +379,7 @@ class HierBrowser (object):
           qa.setIcon(pixmaps.precplus.icon());
           QWidget.connect(self._prec_menu,PYSIGNAL("setPrecision()"),self._set_prec_frommenu);
         # create "display with" entries
-        if viewer_list:
+        if viewer_list: 
           # create display submenus
           menu1 = self._display_menu1 = menu.addMenu(pixmaps.viewmag.icon(),"Display with");
           menu2 = self._display_menu2 = menu.addMenu(pixmaps.viewmag_plus.icon(),"New display with");
@@ -395,7 +395,7 @@ class HierBrowser (object):
               self.xcurry(self.emit_display_signal,viewer=v,newcell=True,_argslice=slice(0)));
       # set the precision submenu to the right setting
       return menu;
-
+      
     # if item is displayable, creates a dataitem from it and
     # emits a displayDataItem(dataitem,cellspec) signal
     def emit_display_signal (self,viewer=None,**kwargs):
@@ -437,7 +437,7 @@ class HierBrowser (object):
     self._tw._prec = prec;
     # for debugging purposes
     QObject.connect(self._tw,SIGNAL("itemClicked(QTreeWidgetItem*)"),self._print_item);
-
+    
   def get_precision (self):
     return self._tw._prec;
 
@@ -447,10 +447,10 @@ class HierBrowser (object):
     if recursive:
       for i in range(self._tw.topLevelItemCount()):
         self._tw.topLevelItem(i).set_precision(prec);
-
+    
   def set_refresh_func (self,refresh):
     self._tw._refresh_func = refresh;
-
+    
   def set_udi_root (self,udi_root):
     self._udi_root = udi_root;
     if udi_root is not None:
@@ -461,31 +461,31 @@ class HierBrowser (object):
       self._tw._content_map = weakref.WeakValueDictionary();
     else:
       self._tw._udi = None;
-
+    
   def _print_item (self,item,*dum):
     if item is not None:
       _dprint(4,'item:',item.text(0),item.text(2));
       for attr in ('_udi','_udi_key','_viewable','_name','_desc'):
         if hasattr(item,attr):
           _dprint(4,' ',attr+':',getattr(item,attr));
-      try:
+      try: 
         lencont = len(item.treeWidget()._content_map);
         _dprint(4,'  _content_map: ',lencont,' items');
       except AttributeError: pass;
-
+    
   def get_drag_item (self,key):
     item = self._tw._content_map.get(key,None);
     return item and item.make_data_item();
 
   def get_drag_item_type (self,key):
     return key in self._tw._content_map and Timba.Grid.DataItem;
-
+    
   def treeWidget (self):
     return self._tw;
-
+  
   def wtop (self):
     return self._tw;
-
+  
   def clear (self):
     self._tw.clear();
     for attr in ('_content','_content_list'):
@@ -495,9 +495,9 @@ class HierBrowser (object):
 
   def get_items (self):
     try: return self._tw._content_list;
-    except AttributeError:
+    except AttributeError: 
       return None;
-
+      
   # limits browser to last 'limit' items
   def apply_limit (self,limit):
     items = self.get_items();
@@ -507,7 +507,7 @@ class HierBrowser (object):
         dum.addTopLevelItem(self._tw.takeTopLevelItem(0));
       del items[:len(items)-limit];
 
-  # called when an item is expanded
+  # called when an item is expanded                    
   def _expand_item_content (self,item):
     item.expand_self();
 
@@ -518,7 +518,7 @@ class HierBrowser (object):
         item.emit_display_signal();
       elif button == Qt.MidButton:
         item.emit_display_signal(newcell=True);
-
+      
   # slot: called to show a context menu for an item
   def _show_context_menu (self,item,pos,col):
     menu = item and item.get_context_menu();
@@ -548,7 +548,7 @@ class HierBrowser (object):
         return (openitems,current_key);
       return None;
     return _get_open_items_impl(self._tw.invisibleRootItem(),self._tw.currentItem());
-
+    
   def set_open_items (self,openspec):
     """sets currently open and selected items according to tree returned
     by a previous get_open_items() call.""";
@@ -572,14 +572,14 @@ class HierBrowser (object):
     if select:
       self._tw.setCurrentItem(select);
       self._tw.scrollToItem(select);
-
+    
   def set_content (self,content):
     # expand first level of record
     self.clear();
     # call Item.expand_content() with our listview as the first argument,
     # since that method is universal for both Items an ListViews
     HierBrowser.Item.expand_content(self._tw,content);
-
+    
   def change_item_content (self,item,content,keepopen=True,**kwargs):
     """changes content of an item. If keepopen=True and item was open,
     attempts to preserve open structure and selected items""";
@@ -590,51 +590,51 @@ class HierBrowser (object):
     item.cache_content(content,**kwargs);
     if openitems:
       self.set_open_items(openitems);
-
-
-
-
-
+      
+      
+      
+      
+    
 class GriddedPlugin (Grid.CellBlock):
   def __init__ (self,*args,**kw):
     Grid.CellBlock.__init__(self,*args,**kw);
-
+  
   def icon (_class):
     """icon() should return a QIcon""";
     return _class._icon.icon();
   icon = classmethod(icon);
-
-  # redefine this
+  
+  # redefine this 
   viewer_name = "?";
   # and this
   _icon = pixmaps.viewmag;  # default icon
-
-
-
-
-
+  
+  
+  
+  
+  
 class TextBrowser(GriddedPlugin):
   _icon = pixmaps.text_left;
   viewer_name = "Text Browser";
-
+  
   def __init__(self,gw,dataitem,cellspec={},default_open=None,**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
     self._wtext = QTextBrowser(self.wparent());
     self.set_widgets(self.wtop(),dataitem.caption,icon=self.icon());
     if dataitem.data is not None:
       self.set_data(dataitem);
-
+      
   def wtop (self):
     return self._wtext;
-
+      
   def set_data (self,dataitem,default_open=None,**opts):
     _dprint(3,'set_data ',dataitem.udi);
     self._wtext.setText(dataitem.data);
-
-
-
-
-
+    
+    
+    
+    
+    
 class RecordBrowser(HierBrowser,GriddedPlugin):
   _icon = pixmaps.view_tree;
   viewer_name = "Record Browser";
@@ -648,7 +648,7 @@ class RecordBrowser(HierBrowser,GriddedPlugin):
         udi_root=dataitem.udi);
     # adjust columns when font changes
     QObject.connect(self.wtop(),PYSIGNAL("fontChanged()"),self._resize_sections);
-
+    
     self.set_widgets(self.wtop(),dataitem.caption,icon=self.icon());
     self._rec = None;
     self._default_open = default_open;
@@ -664,14 +664,14 @@ class RecordBrowser(HierBrowser,GriddedPlugin):
       qa.setIcon(pixmaps.precplus.icon());
       qa.setText('Number format');
       QWidget.connect(menu,PYSIGNAL("setPrecision()"),self._set_prec_from_menu);
-
+    
   def _resize_sections (self):
     for section in (0,1):
       self.wtop().header().setResizeMode(section,QHeaderView.ResizeToContents);
-
+  
   def _set_prec_from_menu (self,prec,format):
     self.set_precision((prec,format));
-
+  
   def set_data (self,dataitem,default_open=None,**opts):
     _dprint(3,'set_data ',dataitem.udi);
     # save currently open tree
