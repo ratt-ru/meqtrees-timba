@@ -1,4 +1,4 @@
-MEQPACKAGE(AppAgent MEQ VisCube OCTOPUSSY OCTOPython DMI TimBase)
+MEQPACKAGE(AppAgent VisCube OCTOPUSSY DMI TimBase)
 set(appAgent_includes
     src/AID-AppAgent.h
     src/BOIOChannel.h
