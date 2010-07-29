@@ -135,6 +135,7 @@ void Dispatcher::init ()
   sigemptyset(&allSignals);
   running = in_start = false;
   poll_depth = -1;
+  repoll = false;
   dprintf(1)("created\n");
 }
 

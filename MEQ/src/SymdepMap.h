@@ -76,7 +76,7 @@ class SymdepMap
     { return getMask(&dep,1); }
     
     int getMask (const std::vector<HIID> &deps) const
-    { return getMask(&deps.front(),deps.size()); }
+    { return deps.empty() ? 0 : getMask(&deps.front(),deps.size()); }
     
     //## sets the set of active dependencies, and recomputes mask
     int setActive (const HIID deps[],int ndeps);

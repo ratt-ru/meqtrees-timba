@@ -228,11 +228,11 @@ size_t HIID::pack (void *block, size_t &nleft) const
   size_t sz = size()*sizeof(AtomicID);
   FailWhen(nleft<sz,"block too small");
 // vector is contigous, so just use:
-  memcpy(block,&(front()),sz);
-//   int *data = static_cast<int*>(block);
-//   for( CVI iter = begin(); iter != end(); iter++ )
-//     *(data++) = *(iter);
-  nleft -= sz;
+  if( sz )
+  {
+    memcpy(block,&(front()),sz);
+    nleft -= sz;
+  }
   return sz;
 }
 
@@ -242,7 +242,10 @@ void HIID::unpack (const void* block, size_t sz)
   FailWhen(sz%sizeof(AtomicID),"bad block size");
   resize(sz/sizeof(AtomicID));
 // vector is contigous, so just use:
-  memcpy(&(front()),block,sz);
+  if( sz )
+  {
+    memcpy(&(front()),block,sz);
+  }
 //  const int *data = reinterpret_cast<const int*>(block);
 //  for( VI iter = begin(); iter != end(); iter++ )
 //    *iter = *(data++);

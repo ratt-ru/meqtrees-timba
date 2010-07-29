@@ -35,7 +35,10 @@
     
 #include <TimBase/lofar_iostream.h>
 // Uncomment this to enable verification calls during countedref operations
-// #define COUNTEDREF_VERIFY 1
+
+#ifndef NDEBUG
+#define COUNTEDREF_VERIFY 1
+#endif
 
 namespace DMI 
 {
