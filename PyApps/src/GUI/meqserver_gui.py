@@ -539,16 +539,16 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
           PID for it, so I can't attach a debugger.</p>""","Cancel");
         return;
     pathname = self._kernel_pathname or ( "/proc/%d/exe"%(pid,) );
-    cmd0 = Config.get("debugger-command","ddd meqserver %p");
-    cmd0 = cmd0.replace('%p',str(pid)).replace('%f',pathname);
-    prompt = "Debugger command:";
+    cmd0 = Config.get("debugger-command","ddd %path %pid");
+    prompt = "Debugger command (use '%path' to insert path to meqserver binary, '%pid' for process ID):";
     (cmd,ok) = QInputDialog.getText(self,"Attaching debugger to meqserver",
 		  prompt,QLineEdit.Normal,cmd0);
     if ok:
       cmd = str(cmd);
-      # see if command has changed, write to config if so
       if cmd != cmd0:
-        Config.set('debugger-command',cmd.replace(pathname,'%f').replace(str(pid),'%p'));
+        Config.set('debugger-command',cmd);
+      cmd = cmd.replace('%pid',str(pid)).replace('%path',pathname);
+      # see if command has changed, write to config if so
       args = cmd.split(' '); 
       self.log_message("running \""+cmd+"\"");
       os.spawnvp(os.P_NOWAIT,args[0],args);
