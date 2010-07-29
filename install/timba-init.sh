@@ -99,7 +99,11 @@ else
     fi
     export PATH=$TIMBA_PATH/install/$version/bin:$PRE_TIMBA_PATH
     export PYTHONPATH=$CATTERYPATH:~/Purr:$TIMBA_PATH/install/$version/libexec/python:.:$PRE_TIMBA_PYTHONPATH
-    export LD_LIBRARY_PATH=$TIMBA_PATH/install/$version/lib:$PRE_TIMBA_LD_LIBRARY_PATH
+    if [ "${version%debug}" != "$version" ]; then
+      export LD_LIBRARY_PATH=/usr/lib/debug:$TIMBA_PATH/install/$version/lib:$PRE_TIMBA_LD_LIBRARY_PATH
+    else
+      export LD_LIBRARY_PATH=$TIMBA_PATH/install/$version/lib:$PRE_TIMBA_LD_LIBRARY_PATH
+    fi
     echo "Using MeqTree version $TIMBA_PATH/install/$version"
     export TIMBA_CURRENT_VERSION="$version"
   }
