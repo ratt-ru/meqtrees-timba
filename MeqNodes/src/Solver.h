@@ -471,7 +471,8 @@ private:
   // occurs. Lock is a lock on worker_cond_, must be held when
   // calling this function (and will also be held when it returns).
   void processSolversLoop (Thread::Mutex::Lock &lock);
-
+  // void processSolversLoop ();
+  
   // Activates all worker threads to process subsolvers.
   // Process what we can in this thread, and returns when all jobs are
   // complete.
@@ -481,13 +482,15 @@ private:
 
 
   int wt_num_ss_;         // number of subsolvers taken by workers
-  int wt_num_active_;     // number of active workers. A worker is finished
-      // either with an exception, or when wt_num_ss_>=numSubsolvers(),
-      // then it decrements this value. see processSolversLoop().
-      // This value is also assigned to to wake up the worker threads.
-  bool wt_flush_tables_;  // flag: if true, worker was woken to call ParmTableUtils::flushTables();
-  // condition var to signal when a worker thread is completed
+       
+    // condition var to signal worker threads to wake up
   Thread::Condition worker_cond_;
+  bool wt_solve_loop_;    // flag: worker was woken to call processSolversLoop()
+  bool wt_flush_tables_;  // flag: worker was woken to call ParmTableUtils::flushTables();
+  
+  int wt_num_active_;     // number of active workers
+  // condition var to signal main thread that workers have finished (wt_num_active=0)
+  Thread::Condition worker_exit_cond_;
 
   // exceptions raised by workers are accumulated here
   DMI::ExceptionList wt_exceptions_;

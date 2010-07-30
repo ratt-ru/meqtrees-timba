@@ -850,7 +850,7 @@ int Solver::getResult (Result::Ref &resref,
   // COW will break).
   DMI::Record::Ref solveResult(DMI::ANONWR);
   DMI::List::Ref metricsList,debugList;
-  if( debug_lvl_ >= 1 )
+  if( debug_lvl_ >= 0 )
     metricsList <<= new DMI::List;
   if( debug_lvl_ >= 3 )
     debugList <<= new DMI::List;
@@ -1062,14 +1062,13 @@ int Solver::getResult (Result::Ref &resref,
     DMI::Vec * pdbgvec = 0;
     if( debugList.valid() )
       debugList().addBack(pdbgvec = new DMI::Vec(TpDMIRecord,numSubsolvers()));
-    if( pmetvec )
-      for( int i=0; i<numSubsolvers(); i++ )
-      {
-        if( subsolvers_[i].metrics.valid() )
-          pmetvec->put(i,subsolvers_[i].metrics);
-        if( pdbgvec && subsolvers_[i].debugrec.valid() )
-          pdbgvec->put(i,subsolvers_[i].debugrec);
-      }
+    for( int i=0; i<numSubsolvers(); i++ )
+    {
+      if( pmetvec && subsolvers_[i].metrics.valid() )
+        pmetvec->put(i,subsolvers_[i].metrics);
+      if( pdbgvec && subsolvers_[i].debugrec.valid() )
+        pdbgvec->put(i,subsolvers_[i].debugrec);
+    }
     // fill in a Solver.Iter event (will be posted at top of loop,
     // if we don't loop again, then Solver.End will be sent below instead)
     if( debug_lvl_ >= 0 )
@@ -1091,7 +1090,7 @@ int Solver::getResult (Result::Ref &resref,
       evrec[FFit] = sumfit/numSubsolvers();
       evrec[FChi0] = sumchi0/numSubsolvers();
       // attach more info with higher debug levels
-      if( debug_lvl_ >= 2 && pmetvec )
+      if( debug_lvl_ >= 1 && pmetvec )
         evrec[FMetrics] <<= pmetvec;
       if( debug_lvl_ >= 4 && pdbgvec )
         evrec[FDebug] <<= pdbgvec;
@@ -1299,19 +1298,19 @@ bool Solver::Subsolver::solve (int step)
     return true;
   // reset neq -- will be re-incremented when filling equations
   neq = 0;
+  // get debug info -- only valid before a solveLoop() call
+  uint nun=0,np=0,ncon=0,ner=0,rank_dbg=0;
+  double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
+  uint * piv;
+  solver.debugIt(nun,np,ncon,ner,rank_dbg,nEq,known,constr,er,piv,sEq,sol,prec,nonlin);
+  // compute input chi^2
+  chi0 = 0;
+  if( er )
+    chi0 = er[2]/std::max(int(er[0])+nuk,1);
+  //    chi0 = er[LSQFit::SUMLL]/std::max(er[LSQFit::NC]+nuk,1);
+  // place debug info in record, if so asked
   if( use_debug )
   {
-    // get debug info -- only valid before a solveLoop() call
-    uint nun=0,np=0,ncon=0,ner=0,rank_dbg=0;
-    double * nEq,*known,*constr,*er,*sEq,*sol,prec,nonlin;
-    uint * piv;
-    solver.debugIt(nun,np,ncon,ner,rank_dbg,nEq,known,constr,er,piv,sEq,sol,prec,nonlin);
-    // compute input chi^2
-    chi0 = 0;
-    if( er )
-      chi0 = er[2]/std::max(int(er[0])+nuk,1);
-  //    chi0 = er[LSQFit::SUMLL]/std::max(er[LSQFit::NC]+nuk,1);
-    // place debug info in record, if so asked
     DMI::Record &dbg = debugrec <<= new DMI::Record;
     if( nEq )
       dbg["$nEq"] = triMatrix(nEq,nun);
@@ -1330,8 +1329,6 @@ bool Solver::Subsolver::solve (int step)
     dbg["$prec"] = prec;
     dbg["$nonlin"] = nonlin;
   }
-  else
-    chi0 = chi;
 
   // do a solution loop
   solFlag = solver.solveLoop(fit,rank,solution,settings.use_svd);
@@ -1501,7 +1498,7 @@ void Solver::startWorkerThreads ()
   if( nt<2 )
     return;
   // start workers
-  wt_flush_tables_ = false;
+  wt_flush_tables_ = wt_solve_loop_ = false;
   wt_num_active_ = 0;
   cdebug(0)<<"starting "<<nt-1<<" worker threads\n";
   worker_threads_.resize(nt-1);
@@ -1541,15 +1538,20 @@ void Solver::activateSubsolverWorkers ()
 {
   // init queue and clear error list
   Thread::Mutex::Lock lock(worker_cond_);
+  Thread::Mutex::Lock lock1(worker_exit_cond_);
   cdebug(3)<<"T"<<Thread::self()<<" activating workers"<<endl;
   wt_num_ss_ = 0;
   wt_exceptions_.clear();
-  // wakeup threads
-  wt_num_active_ = worker_threads_.size() + 1;  // +1 since main thread is also active
+  // wakeup threads, we expect all to be active
+  wt_solve_loop_ = true;
+  wt_num_active_ = worker_threads_.size();
   worker_cond_.broadcast();
   // go into our own loop to start processing subsolvers
-  // loop will exit only when no more threads are active
   processSolversLoop(lock);
+  lock.release();
+  // wait for worker threads to become inactive
+  while( wt_num_active_ )
+    worker_exit_cond_.wait();
   cdebug(3)<<"T"<<Thread::self()<<" all workers finished"<<endl;
   // if any exceptions have accumulated, throw them
   if( !wt_exceptions_.empty() )
@@ -1619,18 +1621,8 @@ void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
       num_conv_++;
   }
   // at this point we have a lock on worker_cond
+  wt_solve_loop_ = false;
   cdebug(3)<<"T"<<Thread::self()<<" subsolver loop finished"<<endl;
-  // decrement active threads counter
-  wt_num_active_--;
-  DbgAssert(wt_num_active_>=0);
-  // wait for all threads to become inactive, then exit
-  if( wt_num_active_ )
-  {
-    while( wt_num_active_ )
-      worker_cond_.wait();
-  }
-  else // we were last active thread, so wake all waiters
-    worker_cond_.broadcast();
 }
 
 void * Solver::workerLoop ()
@@ -1640,11 +1632,12 @@ void * Solver::workerLoop ()
   {
     // wait on condition variable until awoken with active subsolvers,
     // or with worker threads being stopped
-    while( wt_num_active_ <= 0 && mt_solve_ && !wt_flush_tables_ )
+    while( mt_solve_ && !wt_flush_tables_ && !wt_solve_loop_ && !wt_num_active_ )
       worker_cond_.wait();
     // stop condition
     if( !mt_solve_ )
       return 0;
+    // flush parmtables
     if( wt_flush_tables_ )
     {
 #ifndef HAVE_PARMDB
@@ -1652,10 +1645,23 @@ void * Solver::workerLoop ()
 #endif
       wt_flush_tables_ = false;
     }
-    else
-    {
-      // else subsolvers are active, go into work loop
+    // do a solving loop
+    if( wt_solve_loop_ )
       processSolversLoop(lock);
+    if( wt_num_active_ )
+    {
+      // release lock, lock exit condition variable, mark ourselves as inactive
+      lock.release();
+      lock.lock(worker_exit_cond_);
+      if( wt_num_active_ > 0 )
+      {
+        wt_num_active_--;
+        if( wt_num_active_ <= 0 )
+          worker_exit_cond_.broadcast();
+      }
+      // reacquire lock on condition variable
+      lock.release();
+      lock.lock(worker_cond_);
     }
   }
 }
