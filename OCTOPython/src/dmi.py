@@ -325,7 +325,11 @@ class record (dict):
         return default;
       else:
         raise KeyError,"no such key: %s"%key;
-    return self._resolve_lazy_ref(key,value);
+    try:
+      return self._resolve_lazy_ref(key,value);
+    except:
+      print "Error resolving ref for key",key;
+      raise;
   # __getitem__: string names implicitly converted to HIIDs, lazy refs resolved
   def __getitem__(self,name):
     return self.get(name,default=KeyError);
