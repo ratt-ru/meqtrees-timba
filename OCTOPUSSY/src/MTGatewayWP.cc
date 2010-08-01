@@ -584,7 +584,10 @@ void MTGatewayWP::shutdown ()
   dprintf(1)("shutdown: interrupting reader threads\n");
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i].thr_id != Thread::self() && reader_threads[i].running )
+    {
+      reader_threads[i].thr_id.cancel();
       reader_threads[i].thr_id.kill(SIGPIPE);
+    }
   // release lock: we must allow the reader threads to exit
   lock.release();
   // now wait .5 sec for any stray reader threads, then send the signal again
@@ -594,7 +597,10 @@ void MTGatewayWP::shutdown ()
   dprintf(1)("shutdown: reinterrupting reader threads\n");
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i].thr_id != Thread::self() && reader_threads[i].running )
+    {
+      reader_threads[i].thr_id.cancel();
       reader_threads[i].thr_id.kill(SIGPIPE);
+    }
   // release lock so that reader threads can exit
   lock.release();
   // now rejoin them
