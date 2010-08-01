@@ -23,6 +23,7 @@
 
 #include <DMI/CountedRefBase.h>
 #include <DMI/CountedRefTarget.h>
+#include <DMI/Allocators.h>
 
 namespace DMI
 {
@@ -30,41 +31,74 @@ namespace DMI
 #define DebugContext (CountedRefBase::getDebugContext())
 
 #ifdef USE_THREADS
-  #define threadLock Thread::Mutex::Lock t##_lock(cref_mutex_)
+  #define threadLock Thread::Mutex::Lock t##_lock(crefMutex())
+  #define threadUnlock t##_lock.release();
+  
+typedef DMI_MT_Allocator<Thread::Mutex> MutexAllocator;
+      
+static MutexAllocator & mutexAllocator ()
+{
+  static MutexAllocator *pmutex_allocator_ = 0;
+  static Thread::Mutex mutex_allocator_mutex_;
+
+  if( !pmutex_allocator_ )
+  {
+    Thread::Mutex::Lock lock(mutex_allocator_mutex_);
+    if( !pmutex_allocator_ )
+      pmutex_allocator_ = new MutexAllocator;
+  }
+  return *pmutex_allocator_;
+}
+
+Thread::Mutex * CountedRefTarget::allocateMutex ()
+{
+  return new (mutexAllocator().allocate(1)) Thread::Mutex;
+}
+
+void CountedRefTarget::deleteMutex (Thread::Mutex *pmutex)
+{
+  pmutex->~Mutex();
+  mutexAllocator().deallocate(pmutex,1);
+}
+  
+  
 #else
   #define threadLock 
 #endif
 
+
+
 //##ModelId=3DB93466002B
 CountedRefTarget::CountedRefTarget()
-  : anon_(false)
+  : anon_(false),cref_mutex_(0)
 {
 #ifdef COUNTEDREF_LINKED_LIST
   owner_ref_ = 0;
 #else
   ref_count_ = 0;
 #endif
-
+  deleted_ = false;
 }
 
 //##ModelId=3DB934660053
 CountedRefTarget::CountedRefTarget(const CountedRefTarget &)
-  : anon_(false)
+  : anon_(false),cref_mutex_(0)
 {
 #ifdef COUNTEDREF_LINKED_LIST
   owner_ref_ = 0;
 #else
   ref_count_ = 0;
 #endif
+  deleted_ = false;
 }
 
 //##ModelId=3DB9346600F3
 CountedRefTarget::~CountedRefTarget()
 {
-  threadLock;
 #ifdef COUNTEDREF_LINKED_LIST
   if( owner_ref_ )
   {
+    threadLock;
     dprintf(2)("%s destructor:\n  %s\n",debug(),debug(-2,"  "));
     // anon object can only be deleted by releasing its refs
     FailWhen( anon_,"can't delete anon object: refs attached");
@@ -84,6 +118,8 @@ CountedRefTarget::~CountedRefTarget()
 #else
   FailWhen(anon_ && ref_count_,"can't delete anon object: refs attached");
 #endif
+  if( !anon_ && cref_mutex_ )
+    deleteMutex(cref_mutex_);
 }
 
 #ifdef COUNTEDREF_LINKED_LIST

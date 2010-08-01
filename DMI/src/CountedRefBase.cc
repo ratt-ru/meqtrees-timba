@@ -52,9 +52,10 @@ InitDebugContext(CountedRefBase,"CRef");
 //##ModelId=3DB9346500B5
 void CountedRefBase::cloneTarget (int flags,int depth) const
 {
-  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
   if( !valid() )
     return;
+  Thread::Mutex::Lock target_lock(target_->crefMutex());
+  Assert1(!target_->deleted_);
   VERIFY;
   dprintf1(2)("  %s: cloning target_\n",debug(0));
   // clone the target_
@@ -96,7 +97,8 @@ void CountedRefBase::verify (const CountedRefBase *start)
   const CountedRefTarget *target_ = start->target_;
   if( !target_ )
     return;
-  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
+  Thread::Mutex::Lock target_lock(target_->crefMutex());
+  Assert1(!target_->deleted_);
 #ifdef COUNTEDREF_LINKED_LIST
   // run through & verify ref chain
   const CountedRefBase *ref = target_->owner_ref_;
@@ -132,7 +134,8 @@ void CountedRefBase::copy (const CountedRefBase& other, int flags, int depth)
     empty();
   else
   {
-    Thread::Mutex::Lock other_target_lock(other.target_->cref_mutex_);
+    Thread::Mutex::Lock other_target_lock(other.target_->crefMutex());
+    Assert1(!other.target_->deleted_);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
@@ -183,7 +186,8 @@ void CountedRefBase::xfer (CountedRefBase& other,int flags,int depth)
     empty();
   else
   {
-    Thread::Mutex::Lock other_target_lock(other.target_->cref_mutex_);
+    Thread::Mutex::Lock other_target_lock(other.target_->crefMutex());
+    Assert1(!other.target_->deleted_);
 #if COUNTEDREF_VERIFY
     other.verify();
 #endif
@@ -233,7 +237,8 @@ bool CountedRefBase::privatize (int flags, int depth)
   const int mask_local_flags = DMI::LOCKED|DMI::UNLOCKED|DMI::SHARED|DMI::COW;
   FailWhen( !valid(),"can't privatize an invalid ref" );
   dprintf1(2)("%s: privatizing to depth %d\n",debug(),flags&DMI::DEEP?-1:depth);
-  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
+  Thread::Mutex::Lock target_lock(target_->crefMutex());
+  Assert1(!target_->deleted_);
   dprintf1(2)("  %s\n",target_->debug(2,"  "));
   // no cloning is done if the object is anon_ and writable_ and we are the only ref
   bool res = true;
@@ -282,6 +287,7 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   if( targ == target_ )
     return *this;
   // detach from old target_, if any
+  Assert1(!targ->deleted_);
   dprintf(3)("attaching to %s\n",targ->debug());
   if( valid() )
     detach();
@@ -290,7 +296,7 @@ CountedRefBase& CountedRefBase::attach (CountedRefTarget* targ, int flags)
   // If target_ is already referenced, check anon_/external for 
   // consistency with supplied flags.
   // Else, use flags to determine how to attach (anon_ by default).
-  Thread::Mutex::Lock targ_lock(targ->cref_mutex_);
+  Thread::Mutex::Lock targ_lock(targ->crefMutex());
   flags = targ->modifyAttachFlags(flags);
   // if target is unattached, determine ownership
   if( !targ->isTargetAttached() )
@@ -332,7 +338,8 @@ void CountedRefBase::detach ()
   // locked_ refs can't be detached (only destroyed)
   FailWhen( isLocked(),"can't detach a locked_ ref");
   // delete object if anon_, and we are last ref to it
-  Thread::Mutex::Lock target_lock(target_->cref_mutex_);
+  Thread::Mutex::Lock target_lock(target_->crefMutex());
+  Assert1(!target_->deleted_);
   VERIFY;
 #ifdef COUNTEDREF_LINKED_LIST
   if( !prev_ && !next_ ) 
@@ -376,11 +383,17 @@ void CountedRefBase::detach ()
   if( !(--target_->ref_count_) && isAnonTarget() )
   {
       CountedRefTarget *tmp = target_;
+  #ifdef USE_THREADS
+      Thread::Mutex *pmutex = &( target_->crefMutex() );
+  #endif      
+      tmp->deleted_ = true;
       empty();
+      delete tmp;
+  // explicitly delete the mutex
   #ifdef USE_THREADS
       target_lock.release();
+      CountedRefTarget::deleteMutex(pmutex);
   #endif      
-      delete tmp;
       return;
   }
 #endif

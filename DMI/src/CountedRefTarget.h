@@ -107,8 +107,20 @@ class CountedRefTarget
 #endif
       
     //##ModelId=3DB9346602A2
+      // allocate a mutex using the fast bitmap allocator when first called
       const Thread::Mutex & crefMutex() const
-      { return cref_mutex_; }
+      { 
+        if( !cref_mutex_ )
+          const_cast<CountedRefTarget*>(this)->cref_mutex_ = allocateMutex();
+        return *cref_mutex_;
+      }
+      
+      Thread::Mutex & crefMutex() 
+      { 
+        if( !cref_mutex_ )
+          cref_mutex_ = allocateMutex();
+        return *cref_mutex_;
+      }
       
     //##ModelId=3E01B0CE01E8
       virtual void print (std::ostream &str) const
@@ -168,8 +180,18 @@ class CountedRefTarget
     //##ModelId=3DB934650322
       bool anon_;
       
+      // set to true when object is being deleted -- for debugging purposes
+      mutable bool deleted_;
+      
     //##ModelId=3E9BD917024B
-      Thread::Mutex cref_mutex_;
+      // pointer to a mutex. 
+      Thread::Mutex *cref_mutex_;
+
+      #ifdef USE_THREADS      
+      static Thread::Mutex * allocateMutex ();
+      static void deleteMutex (Thread::Mutex *pmutex);
+      #endif
+      
 
     friend class CountedRefBase;
 };

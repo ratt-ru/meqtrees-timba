@@ -129,6 +129,7 @@ class CountedRefBase
       const CountedRefTarget* getTarget () const
       {
         FailWhen( !valid(),"dereferencing invalid ref");
+        Assert1(!target_->deleted_);
         return target_;
       }
 
@@ -139,6 +140,7 @@ class CountedRefBase
       CountedRefTarget* getTargetWr ()
       {
         FailWhen( !valid(),"dereferencing invalid ref");
+        Assert1(!target_->deleted_);
         if( !isDirectlyWritable() )
           privatize();  // do COW
         return target_;

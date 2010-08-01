@@ -32,10 +32,10 @@
 #endif
 
 #include <ext/pool_allocator.h>
-//#include <ext/bitmap_allocator.h>
+//#include <ext/bit/usr/include/c++/4.4/ext/bitmap_allocator.hmap_allocator.h>
 #include <ext/mt_allocator.h>
 #include <ext/malloc_allocator.h>
-
+#include <ext/bitmap_allocator.h>
 // define macro names for different allocators
 
 #define DMI_Std_Allocator std::allocator
@@ -44,6 +44,7 @@
 //#define DMI_Bitmap_Allocator __gnu_cxx::bitmap_allocator
 #define DMI_MT_Allocator __gnu_cxx::__mt_alloc
 #define DMI_Malloc_Allocator __gnu_cxx::malloc_allocator
+#define DMI_Bitmap_Allocator __gnu_cxx::bitmap_allocator
 
 // pick default allocator based on predefined macros
 
