@@ -734,11 +734,14 @@ private:
   {
     static bool done = false;
     static Thread::Mutex mutex;
-    Thread::Mutex::Lock lock(mutex);
     if( !done )
     {
-      done = true;
-      _init_static_impl();
+      Thread::Mutex::Lock lock(mutex);
+      if( !done )
+      {
+        done = true;
+        _init_static_impl();
+      }
     }
   }
   static void _init_static_impl ();

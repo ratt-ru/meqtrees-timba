@@ -46,8 +46,8 @@ const Vells * Vells::pUnity_ = 0;
 
 void Vells::_init_static_impl ()
 {
-  Vells::pNull_  = new Vells(double(0),false);
-  Vells::pUnity_ = new Vells(double(1),false);
+  Vells::pNull_  = new Vells(double(0));
+  Vells::pUnity_ = new Vells(double(1));
 }
 
 Vells::Strides Vells::null_strides;
