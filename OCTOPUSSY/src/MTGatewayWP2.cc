@@ -336,9 +336,11 @@ void * MTGatewayWP::readerThread ()
     lprintf(0,AidLogError,"Reader thread %ld terminated with exception %s",(long)Thread::self().id(),
         exceptionToString(exc).c_str());
   }
+  // pthread_cancel will cause an exception
   catch( ... )
   {
-    lprintf(0,AidLogError,"Reader thread %ld terminated with unknown exception",(long)Thread::self().id());
+    lprintf(1,AidLogError,"Reader thread %ld terminated with unknown exception",(long)Thread::self().id());
+    throw;
   }
   shutdownReaderThread();
   dprintf(3)("readerThread: exiting\n");

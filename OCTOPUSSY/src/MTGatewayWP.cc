@@ -47,7 +47,7 @@ const char * MTGatewayWP::PacketSignature = "oMs";
 // Class MTGatewayWP 
 
 MTGatewayWP::MTGatewayWP (Socket* sk)
-  : WorkProcess(AidGatewayWP),sock(sk)
+  : WorkProcess(AidGatewayWP),sock(sk),sigpipe_counter(0)
 {
 #ifndef USE_THREADS
   Throw("MTGatewayWP not compiled for thread support");
@@ -59,6 +59,7 @@ MTGatewayWP::MTGatewayWP (Socket* sk)
   reading_socket = first_message_read = false;
   shutdown_done = shutting_down = false;
   statmon.time_not_reading.reset();
+  sock->setSigpipeCounter(&sigpipe_counter);
 }
 
 
@@ -88,7 +89,7 @@ bool MTGatewayWP::start ()
   // handle & ignore SIGURG -- out-of-band data on socket. 
   // addInput() will catch an exception on the fd anyway
   addSignal(SIGURG,EV_IGNORE);
-  // ignore SIGPIPE
+  // handle SIGPIPE
   addSignal(SIGPIPE,EV_IGNORE);
   
   dprintf(5)("start: generating init message: getting WP iterator\n");
@@ -582,27 +583,28 @@ void MTGatewayWP::shutdown ()
   dprintf(4)("shutdown: WP detached\n");
   // send interruption signals and rejoin the reader threads
   dprintf(1)("shutdown: interrupting reader threads\n");
+  sigpipe_counter++;
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i].thr_id != Thread::self() && reader_threads[i].running )
     {
       reader_threads[i].thr_id.cancel();
-      reader_threads[i].thr_id.kill(SIGPIPE);
+//      reader_threads[i].thr_id.kill(SIGPIPE);
     }
   // release lock: we must allow the reader threads to exit
   lock.release();
-  // now wait .5 sec for any stray reader threads, then send the signal again
+/*  // now wait .5 sec for any stray reader threads, then send the signal again
   struct timeval timeout = {0,500000};
   select(0,0,0,0,&timeout);
   lock.relock(gwmutex);
+  sigpipe_counter++;
   dprintf(1)("shutdown: reinterrupting reader threads\n");
   for( int i=0; i < NumReaderThreads; i++ )
     if( reader_threads[i].thr_id != Thread::self() && reader_threads[i].running )
     {
-      reader_threads[i].thr_id.cancel();
-      reader_threads[i].thr_id.kill(SIGPIPE);
+//      reader_threads[i].thr_id.kill(SIGPIPE);
     }
   // release lock so that reader threads can exit
-  lock.release();
+  lock.release();*/
   // now rejoin them
   dprintf(1)("shutdown: rejoining reader threads\n");
   for( int i=0; i < NumReaderThreads; i++ )

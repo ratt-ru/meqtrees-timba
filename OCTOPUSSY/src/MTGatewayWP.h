@@ -279,6 +279,9 @@ class MTGatewayWP : public WorkProcess  //## Inherits: <unnamed>%3C90BF100390
     // Data Members for Associations
 
       Socket *sock;
+      
+      // used to register SIGPIPE signals
+      volatile LOFAR::TYPES::int32 sigpipe_counter;
     //##ModelId=3DB958F40337
 
       map<MsgAddress,Subscriptions> remote_subs;
