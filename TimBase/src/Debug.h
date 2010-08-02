@@ -133,7 +133,7 @@ To disable this warning use -Wno-deprecated.
 // Debug(level) is True if the debugging level of the current context
 // is >= the specified level.
 //
-#if !LOFAR_DEBUG
+#if NDEBUG
 #undef DISABLE_DEBUG_OUTPUT 
 #define DISABLE_DEBUG_OUTPUT 1
 #undef ENABLE_DBGASSERT
