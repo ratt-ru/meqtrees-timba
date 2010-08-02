@@ -1052,6 +1052,9 @@ int Solver::getResult (Result::Ref &resref,
     }
     cdebug(4)<<num_conv_<<" subsolvers have converged ("<<need_conv_<<" needed)\n";
     converged = num_conv_ >= need_conv_;
+    // collect incremental solutioms
+    for( int i=0; i<numSubsolvers(); i++ )
+      subsolvers_[i].copySolutions(incr_solutions,cur_iter_);
     // fill in updates in request object
     fillRider(reqref,do_save_funklets_&&(converged || interrupt_ || (cur_iter_ >= max_num_iter_-1)),converged);
     //fillRider(reqref,do_save_funklets_,converged);
@@ -1260,7 +1263,7 @@ static DMI::NumArray::Ref triMatrix (T *tridata,int n)
   return out;
 }
 
-void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
+void Solver::Subsolver::initSolution (int &uk0_,LoMat_double &incr_sol,
                               const SolverSettings &set,bool usemetrics,bool usedebug)
 {
   settings = set;
@@ -1279,8 +1282,10 @@ void Solver::Subsolver::initSolution (int &uk0,LoMat_double &incr_sol,
       <<settings.is_balanced<<endl;
 #endif
   solution.resize(nuk);
-  incr_solutions.reference(incr_sol(LoRange::all(),LoRange(uk0,uk0+nuk-1)));
-  uk0 += nuk;
+  uk0 = uk0_;
+//  incr_solutions.reference(incr_sol(LoRange::all(),LoRange(uk0,uk0+nuk-1)));
+  uk0_ += nuk;
+  sol_range = LoRange(uk0,uk0+nuk-1);
   // init other members
   use_debug = usedebug;
   use_metrics = usemetrics;
@@ -1380,8 +1385,8 @@ bool Solver::Subsolver::solve (int step)
   converged = solver.isReady();
 #endif
 
-  // copy solution to incr_solutions matrix
-  incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
+//  // copy solution to incr_solutions matrix
+//  incr_solutions(step,LoRange::all()) = B2A::refAipsToBlitz<double,1>(solution);
 
   return converged;
 }

@@ -350,6 +350,8 @@ private:
       casa::LSQaips   solver;
       int             nuk;     // number of unknowns in this solver
       int             neq;     // number of equations in this solver
+      int             uk0;     // first unknown (index into global incr_solutions() vector)
+      LoRange         sol_range; // range in global incr_solutions() vector corresponding to this subsolver
 
       SolverSettings  settings;
       bool            use_metrics;  // should the solver fill metrics info?
@@ -357,8 +359,8 @@ private:
 
       // this info is maintained during a solution
       casa::Vector<double>  solution; // current solution vector from solver
-      // matrix of incremental solutions, allocated sirectly in state record
-      LoMat_double    incr_solutions;
+//      // matrix of incremental solutions, allocated sirectly in state record
+//      LoMat_double    incr_solutions;
 
       // info for current solve step
       uint rank;
@@ -384,7 +386,11 @@ private:
       // uses a slice of it: [*,uk0:uk0+nuk-1]
       void initSolution (int &uk0,LoMat_double &incr_sol,
                          const SolverSettings &set,bool usemetrics=false,bool usedebug=false);
-
+                         
+      // copies solution vector
+      void copySolutions (LoMat_double &sol,int step)
+      { sol(step,sol_range) = B2A::refAipsToBlitz<double,1>(solution); }
+      
       // expecutes one solve step based on accumulated equations,
       // returns true if converged.
       // if already converged, does nothing and returns true immediately
