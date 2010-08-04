@@ -28,12 +28,12 @@
 #include <cmath>
 #include <complex>
 
-namespace DebugMeq 
+namespace DebugMeq
 {
   ::Debug::Context DebugContext("Meq");
 }
 
-namespace Meq 
+namespace Meq
 {
 
 static DMI::Container::Register reg(TpMeqVells,true);
@@ -43,12 +43,18 @@ Vells::Shape Vells::null_flag_shape_(1);
 
 const Vells * Vells::pNull_ = 0;
 const Vells * Vells::pUnity_ = 0;
+bool Vells::_static_init_done = false;
 
 void Vells::_init_static_impl ()
 {
-  Vells::pNull_  = new Vells(double(0));
-  Vells::pUnity_ = new Vells(double(1));
+  if( !_static_init_done )
+  {
+    Vells::pNull_  = new Vells(double(0));
+    Vells::pUnity_ = new Vells(double(1));
+    _static_init_done = true;
+  }
 }
+static int _init_static_force = Vells::_init_static_data();
 
 Vells::Strides Vells::null_strides;
 
@@ -65,7 +71,7 @@ void Vells::mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm)
     else
       flags0() |= (flags1 & fm);
   }
-  else 
+  else
   {
     flags0.attach(flags1);
     if( fm != VellsFullFlagMask )
@@ -86,20 +92,20 @@ Vells::Vells()
 //   is_temp_(temp)
 // {
 //   // casting away const is kinda faster here because we know we
-//   // don't need to make the array writable or worry about COW in constructor 
+//   // don't need to make the array writable or worry about COW in constructor
 //   *static_cast<double*>(const_cast<void*>(getConstDataPtr())) = value;
 // }
-// 
+//
 // //##ModelId=3F86887001DC
 // Vells::Vells (const dcomplex& value,bool temp)
 // : NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO),
 //   is_temp_      (temp)
 // {
 //   // casting away const is kinda faster here because we know we
-//   // don't need to make the array writable or worry about COW in constructor 
+//   // don't need to make the array writable or worry about COW in constructor
 //   *static_cast<dcomplex*>(const_cast<void*>(getConstDataPtr())) = value;
 // }
-// 
+//
 // //##ModelId=3F86887001E3
 // Vells::Vells (double value,const Vells::Shape &shape, bool init)
 // : NumArray(Tpdouble,shape,DMI::NOZERO),
@@ -113,7 +119,7 @@ Vells::Vells()
 //       *(begin++) = value;
 //   }
 // }
-// 
+//
 // Vells::Vells (const dcomplex &value,const Vells::Shape &shape, bool init)
 // : NumArray(Tpdcomplex,shape,DMI::NOZERO),
 //   is_temp_ (false)
@@ -142,7 +148,7 @@ Vells::Vells (const Vells &that,int flags,int depth)
 //##ModelId=3F868870023B
 Vells& Vells::operator= (const Vells& other)
 {
-  if( this != &other) 
+  if( this != &other)
   {
     NumArray::operator = (other);
     dataflags_ = other.dataflags_;
@@ -178,7 +184,7 @@ void Vells::copyData (const Vells &other)
     memcpy(getDataPtr(),other.getConstDataPtr(),nelements()*elementSize());
   }
 }
-  
+
 //##ModelId=400E5356011C
 void Vells::zeroData ()
 {
@@ -198,14 +204,14 @@ void Vells::zeroData ()
 //   }
 //   init();
 // }
-// 
+//
 // Vells::ConstHPIterator::ConstHPIterator (const Vells &vells,const std::vector<bool> &axes)
 //   : vells_(vells),hpaxes_(axes)
 // {
 //   FailWhen(hpaxes_.size()!=vells.size(),"axes array size mismatch");
 //   init();
 // }
-// 
+//
 // Vells::ConstHPIterator::ConstHPIterator (const Vells &vells,int axis)
 //   : vells_(vells),hpaxes_(vells.size(),false);
 // {
@@ -213,18 +219,18 @@ void Vells::zeroData ()
 //   hpaxes_[axis] = true;
 //   init();
 // }
-// 
+//
 // void Vells::ConstHPIterator::operator bool ()
 // {
 // }
-// 
+//
 // void Vells::ConstHPIterator::init ()
 // {
-//   
+//
 // }
-// 
-// 
-// 
+//
+//
+//
 
 //##ModelId=400E5356019D
 inline bool Vells::tryReference (const Vells &)
@@ -232,7 +238,7 @@ inline bool Vells::tryReference (const Vells &)
 // disable for now: figure out how this plays with COWs later
 //   // the 'other' array can be reused if it's a temp, it has the
 //   // same size and type, and it's writable
-//   if( other.isTemp() && 
+//   if( other.isTemp() &&
 //       other.array_.valid() &&
 //       elementType() == other.elementType() &&
 //       shape() == other.shape() )
@@ -271,7 +277,7 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
       opname + "() can only be used with a flags Meq::Vells");
   // determine shape
   if( !tryReference(other) )
-    NumArray::init( getResultType(flags,other.isComplex()), 
+    NumArray::init( getResultType(flags,other.isComplex()),
         flags&VF_SCALAR ? LoShape(1) : other.shape(),DMI::NOZERO);
 }
 
@@ -306,7 +312,7 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
 //     storage_ = parr->getDataPtr();
 //     // setup strides for reduction iterator. The output iterates over
 //     // every contiguous point. The input has to iterate over the starting point
-//     // of 
+//     // of
 //     int ired = 0;
 //     int tot = 1;
 //     bool degen = true;
@@ -314,20 +320,20 @@ Vells::Vells (const Vells &other,int flags,const std::string &opname)
 //     {
 //       // compute stride -- treat axis being reduced as a degenerate axis
 //       stride[i] = i!=axis && shape_[i]>1 ? normalAxis(tot,degen) : degenerateAxis(tot,degen);
-//       
+//
 //     }
 //   }
 // }
-// 
+//
 // Helper functions for setting up strides below
 // Marks axis i as normally strided
 inline int normalAxis (int total,bool &degenerate)
 {
-  // If previous dimensions were degenerate (this is also true when i=0, as the 
-  // flag is initialized to true), then the stride along this axis corresponds 
-  // to the size of a full sub-plane (i.e. hyperplane in all lower dimensions), 
+  // If previous dimensions were degenerate (this is also true when i=0, as the
+  // flag is initialized to true), then the stride along this axis corresponds
+  // to the size of a full sub-plane (i.e. hyperplane in all lower dimensions),
   // or 1 initially.
-  // If previous axes are normal, then stride must be 0 (since iterating over 
+  // If previous axes are normal, then stride must be 0 (since iterating over
   // a sub-plane automatically gets us to the next sub-plane).
   if( !degenerate )
     return 0;
@@ -337,9 +343,9 @@ inline int normalAxis (int total,bool &degenerate)
 // Marks axis i as degenerate
 inline int degenerateAxis (int total,bool &degenerate)
 {
-  // If previous dimensions were degenerate (this is also true when i=0, as the 
+  // If previous dimensions were degenerate (this is also true when i=0, as the
   // flag is initialized to true), then the stride along this axis is just 0.
-  // If previous axes were normal, then we must go back to the start of the 
+  // If previous axes were normal, then we must go back to the start of the
   // array, which corresponds to a stride of -total.
   if( degenerate )
     return 0;
@@ -386,7 +392,7 @@ void Vells::computeStrides (Vells::Shape &outshape,
   }
   // Loop over all axes to determine output shape and input strides for iterators.
   uint idim = rnk-1;
-  for( uint i=0; i<rnk; i++,idim-- ) 
+  for( uint i=0; i<rnk; i++,idim-- )
   {
     int sz0 = 1;
     // get size along each shape's axis #idim -- if past the last rank, use 1
@@ -408,11 +414,11 @@ void Vells::computeStrides (Vells::Shape &outshape,
       tot[j] *= sz;
     }
     // set output shape
-    outshape[idim] = sz0; 
+    outshape[idim] = sz0;
   }
 }
 
-// Constructor for a temp vells for the result of a binary expression. 
+// Constructor for a temp vells for the result of a binary expression.
 // The shape of the result is the maximum of the argument shapes;
 // the constructor will also compute strides for the arguments.
 //##ModelId=400E53560174
@@ -426,7 +432,7 @@ Vells::Vells (const Vells &a,const Vells &b,int flags,
       opname + "() can only be applied to two real Meq::Vells");
   FailWhen(flags&VF_CHECKCOMPLEX && (a.isReal() || b.isReal()),
       opname + "() can only be applied to two complex Meq::Vells");
-  // determine shape and strides 
+  // determine shape and strides
   LoShape shp;
   if( flags&VF_FLAG_STRIDES )
     computeStrides(shp,strides,a,b,opname);
@@ -453,7 +459,7 @@ bool Vells::canApplyInPlace (const Vells &other,Strides & strides,const std::str
   int  total=1;
   int  idim=rank()-1;
   bool deg=true;
-  for( int i=0; i<rank(); i++,idim-- ) 
+  for( int i=0; i<rank(); i++,idim-- )
   {
     // get size along each axis -- if past the last rank, use 1
     int sz_ours  = extent(idim);
@@ -490,7 +496,7 @@ using std::max;
 
 // -----------------------------------------------------------------------
 // Vells math
-// 
+//
 // -----------------------------------------------------------------------
 // define a traits-like structure for type promotions:
 //    Promote<T1,T2>::type returns bigger type of the two
@@ -518,14 +524,14 @@ definePromotion2(double,dcomplex,dcomplex);
   Do(dcomplex,x)
 #define RepeatForLUTs1(Do,x) \
   RepeatForRealLUTs1(Do,x), RepeatForComplexLUTs1(Do,x)
-  
+
 #define RepeatForRealLUTs2(Do,x,y) \
-  Do(double,x,y) 
+  Do(double,x,y)
 #define RepeatForComplexLUTs2(Do,x,y) \
   Do(dcomplex,x,y)
 #define RepeatForLUTs2(Do,x,y) \
   RepeatForRealLUTs2(Do,x,y), RepeatForComplexLUTs2(Do,x,y)
-  
+
 // defines a standard error function (for illegal unary ops)
 #define defineErrorFunc(errname,message) \
   static void errname (Meq::Vells &,const Meq::Vells &) \
@@ -542,7 +548,7 @@ definePromotion2(double,dcomplex,dcomplex);
 #define defineErrorFunc2WF(errname,message) \
   static void errname (Meq::Vells &,const Meq::Vells &,const Meq::Vells &,FT,FT,const Meq::Vells::Strides [4]) \
   { Throw(message); }
-  
+
 // defines a standard error function template (for illegal unary ops)
 #define defineErrorFuncTemplate(FUNCNAME,message) defineErrorFuncTemplate2(FUNCNAME,message)
 #define defineErrorFuncTemplate2(FUNCNAME,message) \
@@ -579,7 +585,7 @@ static void implement_zero (Meq::Vells &out,const Meq::Vells &)
 // expands to list of methods with fixed output type
 #define ExpandMethodList_FixOut(FUNC,TOUT) \
   ExpandMethodList2_FixOut(FUNC,FUNC,TOUT)
-  
+
 #define ExpandMethodList2_FixOut(FR,FC,TOUT) \
   { &implement_##FR<TOUT,double>, &implement_##FC<TOUT,dcomplex> }
 
@@ -588,10 +594,10 @@ typedef Meq::VellsFlagType FT; // to keep things compact
 template<class T> inline T sqr (T x) { return x*x; }
 template<class T> inline T pow2(T x) { return x*x; }
 template<class T> inline T pow3(T x) { return x*x*x; }
-template<class T> inline T pow4(T x) { T t1 = x*x; return t1*t1; }    
-template<class T> inline T pow5(T x) { T t1 = x*x; return t1*t1*x; }  
-template<class T> inline T pow6(T x) { T t1 = x*x*x; return t1*t1; }  
-template<class T> inline T pow7(T x) { T t1 = x*x; return t1*t1*t1*x; } 
+template<class T> inline T pow4(T x) { T t1 = x*x; return t1*t1; }
+template<class T> inline T pow5(T x) { T t1 = x*x; return t1*t1*x; }
+template<class T> inline T pow6(T x) { T t1 = x*x*x; return t1*t1; }
+template<class T> inline T pow7(T x) { T t1 = x*x; return t1*t1*t1*x; }
 template<class T> inline T pow8(T x) { T t1 = x*x, t2=t1*t1; return t2*t2; }
 
 #ifdef USE_STD_COMPLEX
@@ -600,7 +606,7 @@ template<typename T>
 inline T UNARY_MINUS_impl (T x)
 { return -x; }
 
-inline double arg (const double x) 
+inline double arg (const double x)
 {
     return std::arg(*reinterpret_cast<const std::complex<double>*>(&x));
 }
@@ -615,22 +621,22 @@ inline dcomplex UNARY_MINUS_impl (dcomplex x)
 
 // Define _Complex double versions for unary functions, group 1.
 // most of them map to gcc __builtin_c<func>() functions, with the exception
-// of the inlines already declared above. 
+// of the inlines already declared above.
 #define defineComplexFunc(FUNCNAME,x) \
   inline dcomplex FUNCNAME (dcomplex arg) \
   { return __builtin_c##FUNCNAME(arg); }
 // temporary hack since builtin_clog appears to be missing in gcc (as of 3.4.5)
 inline dcomplex __builtin_clog (dcomplex x)
-{ 
+{
   std::complex<double> y = log(*reinterpret_cast<std::complex<double>*>(&x));
   return *reinterpret_cast<dcomplex*>(&y);
 }
 
-defineComplexFunc(cos,x) defineComplexFunc(cosh,x) 
-defineComplexFunc(exp,x) defineComplexFunc(log,x) 
-defineComplexFunc(sin,x) defineComplexFunc(sinh,x) 
-defineComplexFunc(tan,x) defineComplexFunc(tanh,x) 
-defineComplexFunc(sqrt,x) 
+defineComplexFunc(cos,x) defineComplexFunc(cosh,x)
+defineComplexFunc(exp,x) defineComplexFunc(log,x)
+defineComplexFunc(sin,x) defineComplexFunc(sinh,x)
+defineComplexFunc(tan,x) defineComplexFunc(tanh,x)
+defineComplexFunc(sqrt,x)
 
 #define __builtin_cfabs(x) __builtin_cabs(x)
 #define __builtin_cnorm(x) __builtin_cabs(x)
@@ -646,17 +652,17 @@ DoForAllUnaryFuncs3(defineComplexFunc,);
 inline dcomplex conj (dcomplex x)
 { return ~x; }
 
-inline dcomplex pow (dcomplex x,dcomplex y) 
+inline dcomplex pow (dcomplex x,dcomplex y)
 { return __builtin_cpow(x,y); }
 
-inline dcomplex pow (dcomplex x,double y) 
+inline dcomplex pow (dcomplex x,double y)
 { return __builtin_cpow(x,y+0i); }
 
-inline dcomplex pow (double x,dcomplex y) 
+inline dcomplex pow (double x,dcomplex y)
 { return __builtin_cpow(x+0i,y); }
 
 // version of arg() for doubles
-inline double arg (const double x) 
+inline double arg (const double x)
 { return x>=0 ? 0 : -M_PI; }
 
 #endif
@@ -696,7 +702,7 @@ DoForAllUnaryOperators(implementUnaryOperator,);
        (*ptr) = OPER (*ptr); \
     return result; \
   }
-  
+
 DoForAllUnaryFlagOperators(implementUnaryFlagOperator,);
 
 
@@ -741,26 +747,26 @@ DoForAllUnaryFuncs3(defineUnaryFuncTemplate,);
   Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_fabs_lut[VELLS_LUT_SIZE] = \
     ExpandMethodList2_FixOut(fabs,abs,double);
 // abs():      same as fabs
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_abs_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_abs_lut[VELLS_LUT_SIZE] =
     ExpandMethodList2_FixOut(fabs,abs,double);
 
 // real()
 // Use standard template for complex numbers, and copy for doubles
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_real_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_real_lut[VELLS_LUT_SIZE] =
     ExpandMethodList2_FixOut(copy,real,double);
 
 // imag()
 // Use standard template for complex numbers, and zero for doubles
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_imag_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_imag_lut[VELLS_LUT_SIZE] =
     ExpandMethodList2_FixOut(zero,imag,double);
 
 // norm()
 // Use standard template for complex numbers, and sqr for doubles
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_norm_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_norm_lut[VELLS_LUT_SIZE] =
     ExpandMethodList2_FixOut(sqr,norm,double);
 
 // arg()
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_arg_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_arg_lut[VELLS_LUT_SIZE] =
     ExpandMethodList_FixOut(arg,double);
 
 
@@ -771,8 +777,8 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_arg_lut[VELLS_LUT_SIZE] =
 
 // conj()
 // Use standard template for complex numbers, and copy for doubles
-defineUnaryFuncTemplate(conj,x); 
-Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] = 
+defineUnaryFuncTemplate(conj,x);
+Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
     ExpandMethodList2(copy,conj);
 
 
@@ -780,7 +786,7 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
 // definitions for unary functions, Group 5
 // reduction to scalar, no shape required (min, max, mean etc.)
 // -----------------------------------------------------------------------
-// since "0" does not automatically convert to a complex, 
+// since "0" does not automatically convert to a complex,
 // provide explicit conversion via these functions.
 // the second pointer argument is a dummy used for type matching
 inline double mkconst (double x,double *)
@@ -790,7 +796,7 @@ inline dcomplex mkconst (double x,dcomplex *)
 inline dcomplex mkconst (int x,dcomplex *)
 { return double(x) + 0.i; }
 
-// Defines a templated implementation of an unary reduction function 
+// Defines a templated implementation of an unary reduction function
 // which computes: y=y0, then y=FUNC(y,x(i)) for all i, and returns y
 // This is a helper template for all reduction functions.
 #define defineReductionFuncImpl(FUNC,FUNCNAME,y_init) \
@@ -826,9 +832,9 @@ inline dcomplex mkconst (int x,dcomplex *)
     } \
     return y0; \
   }
-  
+
 // defines a templated implementation of an unary reduction function such
-// as min() or max(), which works by applying y=FUNC(y,x) to all 
+// as min() or max(), which works by applying y=FUNC(y,x) to all
 // (non-flagged) elements
 #define defineReductionFuncTemplate(FUNC,y_init) \
   defineReductionFuncImpl(Do_##FUNC,FUNC,y_init); \
@@ -846,9 +852,9 @@ defineErrorRedFuncTemplate(min,"min() can only be applied to a real Meq::Vells")
 defineReductionFuncTemplate(max,std::numeric_limits<TY>::min());
 defineErrorRedFuncTemplate(max,"max() can only be applied to a real Meq::Vells");
 
-Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_min_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_min_lut[VELLS_LUT_SIZE] =
   ExpandMethodList2(min,error_min);
-Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_max_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_max_lut[VELLS_LUT_SIZE] =
   ExpandMethodList2(max,error_max);
 
 // implement a DOSUM function which sums up a complete Vells. This
@@ -856,14 +862,14 @@ Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_max_lut[VELLS_LUT_SIZE] =
 #define DOSUM(y,x) ((y) += (x))
 defineReductionFuncImpl(DOSUM,sum,0);
 
-template<class TY,class TX> 
-static void implement_mean (Meq::Vells &y,const Meq::Vells &x,FT flagmask) 
-{ 
+template<class TY,class TX>
+static void implement_mean (Meq::Vells &y,const Meq::Vells &x,FT flagmask)
+{
   int nel;
   TY y0 = implement_sum_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
   y.as(Type2Type<TY>()) = nel ? y0/mkconst(nel,&y0) : mkconst(0,&y0);
 }
-Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] =
   ExpandMethodList(mean);
 
 
@@ -875,8 +881,8 @@ Meq::Vells::UnaryRdFuncPtr Meq::Vells::unifunc_mean_lut[VELLS_LUT_SIZE] =
 // fact that a Vells constant along axis #i will only contain one
 // actual value to represent Ni points.
 // The renormalization term is (N points in full shape)/(N actual points in Vells)
-template<class TY,class TX> 
-static void implement_sum (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask) 
+template<class TY,class TX>
+static void implement_sum (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask)
 {
   int nel;
   TY y0 = implement_sum_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
@@ -886,9 +892,9 @@ static void implement_sum (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::S
 
 #define DOPROD(y,x) ((y) *= (x))
 defineReductionFuncImpl(DOPROD,product,1);
-template<class TY,class TX> 
-static void implement_product (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask) 
-{ 
+template<class TY,class TX>
+static void implement_product (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask)
+{
   int nel;
   TY y0 = implement_product_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
   int renorm = shape.product()/x.nelements(); // renorm factor for collapsed dimensions
@@ -896,17 +902,17 @@ static void implement_product (Meq::Vells &y,const Meq::Vells &x,const Meq::Vell
 }
 
 // empty def because nel argument counts for us
-#define DOCOUNT(y,x) 
+#define DOCOUNT(y,x)
 defineReductionFuncImpl(DOCOUNT,nelements,0);
-template<class TY,class TX> 
-static void implement_nelements (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask) 
-{ 
+template<class TY,class TX>
+static void implement_nelements (Meq::Vells &y,const Meq::Vells &x,const Meq::Vells::Shape &shape,FT flagmask)
+{
   if( flagmask && x.hasDataFlags() )
   {
     int nel;
     implement_nelements_impl(nel,x,flagmask,Type2Type<TY>(),Type2Type<TX>());
     // now, nel counts the non-flagged elements, auto-expanding collapsed axes
-    // to the union of the data shape and the flag shape. If input shape is 
+    // to the union of the data shape and the flag shape. If input shape is
     // bigger still, we need to renormalize by the remaining collapsed dimensions.
     const Meq::Vells &df = x.dataFlags();
     for( uint i=0; i<shape.size(); i++ )
@@ -918,13 +924,13 @@ static void implement_nelements (Meq::Vells &y,const Meq::Vells &x,const Meq::Ve
     y.as<double>() = shape.product();
 }
 
-Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_sum_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_sum_lut[VELLS_LUT_SIZE] =
   ExpandMethodList(sum);
-Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_product_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_product_lut[VELLS_LUT_SIZE] =
   ExpandMethodList(product);
-Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] = 
+Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] =
   ExpandMethodList(nelements);
-  
+
 
 // -----------------------------------------------------------------------
 // definitions for binary operators
@@ -953,14 +959,14 @@ Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] =
         py++; ia.incr(ndim); ib.incr(ndim); \
       } \
     } \
-  } 
+  }
 
 // define "functions" for the four binary operators
 #define ADD(a,b) ((a)+(b))
 #define SUB(a,b) ((a)-(b))
 #define MUL(a,b) ((a)*(b))
 #define DIV(a,b) ((a)/(b))
-    
+
 // Expands to address of binary function template defined above,
 // with the result type being the type-promotion of its argument types
 #define AddrBinaryFunction(TRight,TLeft,FUNC) \
@@ -969,39 +975,39 @@ Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] =
 // with the result type always dcomplex
 #define AddrComplexBinaryFunction(TRight,TLeft,FUNC) \
   &implement_binary_##FUNC<dcomplex,TLeft,TRight>
-// Expands to address of an error function 
+// Expands to address of an error function
 #define AddrErrorFunction(TRight,TLeft,FUNC) \
   &error_binary_##FUNC
 
 // Expands to one row of binary LUT table. TLeft is constant, TRight
 // goes through all LUT indices
 #define BinaryLUTRow(TLeft,FUNC) \
-  { RepeatForLUTs2(AddrBinaryFunction,TLeft,FUNC) } 
-  
+  { RepeatForLUTs2(AddrBinaryFunction,TLeft,FUNC) }
+
 // Expands to one row of binary LUT table. TLeft is constant, TRight
 // goes through all LUT indices. For complex TRight arguments, maps
 // to error function.
 #define BinaryRealLUTRow(TLeft,FUNC) \
   { RepeatForRealLUTs2(AddrBinaryFunction,TLeft,FUNC), \
-    RepeatForComplexLUTs2(AddrErrorFunction,TLeft,FUNC) } 
+    RepeatForComplexLUTs2(AddrErrorFunction,TLeft,FUNC) }
 // Expands to one row of binary LUT table with dcomplex result.
 // TLeft is constant, TRight
 // goes through all LUT indices. For complex TRight arguments, maps
 // to error function.
 #define BinaryRealToComplexLUTRow(TLeft,FUNC) \
   { RepeatForRealLUTs2(AddrComplexBinaryFunction,TLeft,FUNC), \
-    RepeatForComplexLUTs2(AddrErrorFunction,TLeft,FUNC) } 
+    RepeatForComplexLUTs2(AddrErrorFunction,TLeft,FUNC) }
 // Expands to one row of binary LUT table, composed of references to the
 // error function.
 #define BinaryErrorLUTRow(TLeft,FUNC) \
   { RepeatForLUTs2(AddrErrorFunction,TLeft,FUNC) }
 
-// Expands to full binary LUT table. 
+// Expands to full binary LUT table.
 //    minor (second) index corresponds to LUT index of right argument
 //    major (first) index corresponds to LUT index of left argument
 #define ExpandBinaryLUTMatrix(FUNC) \
   { RepeatForLUTs1(BinaryLUTRow,FUNC) }
-// Expands to real-only binary LUT table 
+// Expands to real-only binary LUT table
 // (complex arguments mapped to error funcs)
 #define ExpandRealBinaryLUTMatrix(FUNC) \
   { RepeatForRealLUTs1(BinaryRealLUTRow,FUNC), \
@@ -1012,7 +1018,7 @@ Meq::Vells::UnaryRdFuncWSPtr Meq::Vells::unifunc_nelements_lut[VELLS_LUT_SIZE] =
   { RepeatForRealLUTs1(BinaryRealToComplexLUTRow,FUNC), \
     RepeatForComplexLUTs1(BinaryErrorLUTRow,FUNC) }
 
-// Implements all binary operators via the template above  
+// Implements all binary operators via the template above
 #define implementBinaryOperator(OPER,OPERNAME,dum) \
   defineBinaryFuncTemplate(OPERNAME,OPERNAME,dum) \
   Meq::Vells::BinaryOperPtr Meq::Vells::binary_##OPERNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
@@ -1088,8 +1094,8 @@ DoForAllBinaryFlagOperators(implementBinaryFlagOperator,);
         py++; ix.incr(ndim); \
       } \
     } \
-  } 
-  
+  }
+
 #define implementInPlaceOperator(OPER,OPERNAME,x) \
   defineInPlaceOperTemplate(OPER,OPERNAME,x); \
   Meq::Vells::InPlaceOperPtr Meq::Vells::inplace_##OPERNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
@@ -1130,7 +1136,7 @@ DoForAllInPlaceOperators(implementInPlaceOperator,);
        (*ptr) OPER##= right; \
     return *this; \
   }
-    
+
 DoForAllInPlaceFlagOperators(implementInPlaceFlagOperator,);
 
 // -----------------------------------------------------------------------
@@ -1164,16 +1170,16 @@ DoForAllInPlaceFlagOperators(implementInPlaceFlagOperator,);
         break; \
       py++; ia.incr(ndim); ib.incr(ndim); ifa.incr(ndim); ifb.incr(ndim); \
     } \
-  } 
+  }
 
 defineBinaryFuncWFTemplate(std::min,min,(*ia));
-defineErrorFunc2WF(error_binary_min,"min() cannot be applied to complex Meq::Vells"); 
-Meq::Vells::BinaryFuncWFPtr Meq::Vells::binfunc_min_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+defineErrorFunc2WF(error_binary_min,"min() cannot be applied to complex Meq::Vells");
+Meq::Vells::BinaryFuncWFPtr Meq::Vells::binfunc_min_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] =
     ExpandRealBinaryLUTMatrix(min);
 
 defineBinaryFuncWFTemplate(std::max,max,(*ia));
-defineErrorFunc2WF(error_binary_max,"max() cannot be applied to complex Meq::Vells"); 
-Meq::Vells::BinaryFuncWFPtr Meq::Vells::binfunc_max_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+defineErrorFunc2WF(error_binary_max,"max() cannot be applied to complex Meq::Vells");
+Meq::Vells::BinaryFuncWFPtr Meq::Vells::binfunc_max_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] =
     ExpandRealBinaryLUTMatrix(max);
 
 
@@ -1181,7 +1187,7 @@ Meq::Vells::BinaryFuncWFPtr Meq::Vells::binfunc_max_lut[VELLS_LUT_SIZE][VELLS_LU
 // definitions for binary functions
 // -----------------------------------------------------------------------
 
-// pow() maps directly to the pow call 
+// pow() maps directly to the pow call
 defineBinaryFuncTemplate(pow,pow,);
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_pow_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
     ExpandBinaryLUTMatrix(pow);
@@ -1190,8 +1196,8 @@ Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_pow_lut[VELLS_LUT_SIZE][VELLS_LUT_
 // define standard template (will only be invoked for real arguments)
 defineBinaryFuncTemplate(make_dcomplex,tocomplex,);
 // error function for complex arguments
-defineErrorFunc2(error_binary_tocomplex,"tocomplex() can only be applied to two real Meq::Vells"); 
-// LUT 
+defineErrorFunc2(error_binary_tocomplex,"tocomplex() can only be applied to two real Meq::Vells");
+// LUT
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_tocomplex_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
     ExpandRealToComplexBinaryLUTMatrix(tocomplex);
 
@@ -1202,12 +1208,12 @@ Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_tocomplex_lut[VELLS_LUT_SIZE][VELL
 // define standard template (will only be invoked for real arguments)
 defineBinaryFuncTemplate(polar,polar,);
 // error function for complex arguments
-defineErrorFunc2(error_binary_polar,"polar() can only be applied to two real Meq::Vells"); 
-// LUT 
+defineErrorFunc2(error_binary_polar,"polar() can only be applied to two real Meq::Vells");
+// LUT
 Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_polar_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = \
     ExpandRealToComplexBinaryLUTMatrix(polar);
 
-// posdiff() 
+// posdiff()
 // defined for two real arguments only
 static inline double posdiff (double x,double y)
 {
@@ -1215,31 +1221,31 @@ static inline double posdiff (double x,double y)
   return diff < -M_PI ? diff + M_2_PI : ( diff > M_PI ? diff - M_2_PI : diff );
 }
 defineBinaryFuncTemplate(posdiff,posdiff,);
-defineErrorFunc2(error_binary_posdiff,"posdiff() can only be applied to two real Meq::Vells"); 
-// LUT 
-Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_posdiff_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+defineErrorFunc2(error_binary_posdiff,"posdiff() can only be applied to two real Meq::Vells");
+// LUT
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_posdiff_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] =
     ExpandRealBinaryLUTMatrix(posdiff);
 
-// atan2() 
+// atan2()
 // defined for two real arguments only
 defineBinaryFuncTemplate(atan2,atan2,);
-defineErrorFunc2(error_binary_atan2,"atan2() can only be applied to two real Meq::Vells"); 
-// LUT 
-Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_atan2_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+defineErrorFunc2(error_binary_atan2,"atan2() can only be applied to two real Meq::Vells");
+// LUT
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_atan2_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] =
     ExpandRealBinaryLUTMatrix(atan2);
 
-// fmod() 
+// fmod()
 // defined for two real arguments only
 defineBinaryFuncTemplate(fmod,fmod,);
-defineErrorFunc2(error_binary_fmod,"fmod() can only be applied to two real Meq::Vells"); 
-// LUT 
-Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_fmod_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+defineErrorFunc2(error_binary_fmod,"fmod() can only be applied to two real Meq::Vells");
+// LUT
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_fmod_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] =
     ExpandRealBinaryLUTMatrix(fmod);
 
-// remainder() 
+// remainder()
 // defined for two real arguments only
 defineBinaryFuncTemplate(remainder,remainder,);
-defineErrorFunc2(error_binary_remainder,"remainder() can only be applied to two real Meq::Vells"); 
-// LUT 
-Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_remainder_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] = 
+defineErrorFunc2(error_binary_remainder,"remainder() can only be applied to two real Meq::Vells");
+// LUT
+Meq::Vells::BinaryOperPtr Meq::Vells::binfunc_remainder_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE] =
     ExpandRealBinaryLUTMatrix(remainder);

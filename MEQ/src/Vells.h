@@ -40,18 +40,18 @@
 
 // Binary operators
 #define DoForAllBinaryOperators(Do,x) \
-          Do(+,ADD,x) Do(-,SUB,x) Do(*,MUL,x) Do(/,DIV,x) 
+          Do(+,ADD,x) Do(-,SUB,x) Do(*,MUL,x) Do(/,DIV,x)
 
 // In-place operators
 #define DoForAllInPlaceOperators(Do,x) \
-          Do(+,ADD1,x) Do(-,SUB1,x) Do(*,MUL1,x) Do(/,DIV1,x) 
+          Do(+,ADD1,x) Do(-,SUB1,x) Do(*,MUL1,x) Do(/,DIV1,x)
 
 // Unary functions are split up several groups
 #define DoForAllUnaryFuncs(Do,x)  DoForAllUnaryFuncs1(Do,x)  \
                                   DoForAllUnaryFuncs2(Do,x)  \
                                   DoForAllUnaryFuncs3(Do,x)  \
-                                  DoForAllUnaryFuncs4(Do,x)  
-                                
+                                  DoForAllUnaryFuncs4(Do,x)
+
 // Unary group 1: defined for all Vells. Preserves real/complex
 #define DoForAllUnaryFuncs1(Do,x) \
   Do(cos,x) Do(cosh,x) Do(exp,x) Do(log,x) Do(sin,x) Do(sinh,x) \
@@ -62,22 +62,22 @@
 // Unary group 2: defined for real Vells only, returns real
 #define DoForAllUnaryFuncs2(Do,x) \
   Do(ceil,x) Do(floor,x) \
-  Do(acos,x) Do(asin,x) Do(atan,x) 
+  Do(acos,x) Do(asin,x) Do(atan,x)
 
 // Unary group 3: defined for all Vells, result is always real
 #define DoForAllUnaryFuncs3(Do,x) \
-  Do(abs,x) Do(fabs,x) Do(norm,x) Do(arg,x) Do(real,x) Do(imag,x) 
-  
+  Do(abs,x) Do(fabs,x) Do(norm,x) Do(arg,x) Do(real,x) Do(imag,x)
+
 // Unary group 4: others functions requiring special treatment
 #define DoForAllUnaryFuncs4(Do,x) \
-  Do(conj,x) 
-  
+  Do(conj,x)
+
 // Unary reduction functions not requiring a shape.
 // Called as func(vells[,flagmask]).
 // These return a constant Vells (i.e. reduction along all axes)
 // In the future, we'll support reduction along a designated axis
 #define DoForAllUnaryRdFuncs(Do,x) \
-  Do(min,x) Do(max,x) Do(mean,x) 
+  Do(min,x) Do(max,x) Do(mean,x)
 
 // Unary reduction functions requiring a shape.
 // Called as func(vells,shape[,flagmask]).
@@ -97,29 +97,29 @@
 // Binary functions using flags
 // Called as func(a,b,flagmask_a,flagmask_b)
 #define DoForAllBinaryFuncsWF(Do,x) \
-  Do(min,x) Do(max,x) 
+  Do(min,x) Do(max,x)
 
 // Finally, VellsFlagType Vells define bitwise logical operators:
 // unary  ~ (NOT)
 #define DoForAllUnaryFlagOperators(Do,x) \
-          Do(~,NOT,x) 
-// Binary and in-place | & and ^ (OR AND XOR). The second operand may be a 
+          Do(~,NOT,x)
+// Binary and in-place | & and ^ (OR AND XOR). The second operand may be a
 // Vells or a VellsFlagType scalar.
 #define DoForAllBinaryFlagOperators(Do,x) \
-          Do(|,OR,x) Do(&,AND,x) Do(^,XOR,x) 
+          Do(|,OR,x) Do(&,AND,x) Do(^,XOR,x)
 #define DoForAllInPlaceFlagOperators(Do,x) \
           Do(|,OR1,x) Do(&,AND1,x) Do(^,XOR1,x)
-          
 
 
-namespace Meq 
-{ 
+
+namespace Meq
+{
 using namespace DMI;
 using namespace DebugMeq;
 
 
 // dataflag type
-typedef int VellsFlagType;  
+typedef int VellsFlagType;
 const VellsFlagType VellsFullFlagMask = 0xFFFFFFFF;
 const TypeId VellsFlagTypeId = typeIdOf(VellsFlagType);
 
@@ -127,11 +127,11 @@ const TypeId VellsFlagTypeId = typeIdOf(VellsFlagType);
 // Conditionally include declarations for Vells math.
 // Skipping these functions saves time/memory when compiling code that
 // doesn't need them (such as the Meq service classes, and Vells itself).
-// Note that the functions go into their own separate namespace. This keeps 
+// Note that the functions go into their own separate namespace. This keeps
 // the compiler from tripping over abs() and such.
 #ifndef MEQVELLS_SKIP_FUNCTIONS
 class Vells;
-namespace VellsMath 
+namespace VellsMath
 {
   #define declareUnaryFunc(FUNCNAME,x) \
     Vells FUNCNAME (const Vells &);
@@ -154,7 +154,7 @@ namespace VellsMath
   #undef declareUnaryRdFuncWS
   #undef declareBinaryFunc
   #undef declareBinaryFuncWF
-  
+
   typedef Vells (*UnaryRdFunc)(const Vells &,VellsFlagType);
   typedef Vells (*UnaryRdFuncWS)(const Vells &,const LoShape &,VellsFlagType);
 };
@@ -195,7 +195,7 @@ namespace VellsTraits
 //##ModelId=3F86886E0229
 //##Documentation
 // The Vells class contains a sampling (or integration) of a function over
-// an arbitrary N-dimensional grid. 
+// an arbitrary N-dimensional grid.
 // It is essentially a specialization of DMI::NumArray.
 class Vells : public DMI::NumArray
 {
@@ -211,33 +211,33 @@ private:
     for( ; ptr != end; ptr++ )
      *ptr = value;
   }
-  
+
 public:
   //##ModelId=400E530400F0
   typedef CountedRef<Vells> Ref;
   typedef Axis::Shape       Shape;
   typedef int Strides[Axis::MaxAxis];
 
-  static Strides null_strides;  
-    
+  static Strides null_strides;
+
   // deine some constant Vells
-  static const Vells & Null  ()   { _init_static(); return *pNull_; }
-  static const Vells & Unity ()   { _init_static(); return *pUnity_; }
-  
+  static const Vells & Null  ()   { _init_static_data(); return *pNull_; }
+  static const Vells & Unity ()   { _init_static_data(); return *pUnity_; }
+
   //##ModelId=3F86887001D4
   //##Documentation
   // Default constructor creates a null Vells (double 0.0)
   Vells();
-    
+
   // Creates a scalar Vells
   inline Vells(double value)
   : NumArray(Tpdouble,LoShape(1),DMI::NOZERO,TpMeqVells)
   { init_scalar(value); }
-  
+
   inline Vells(const dcomplex &value)
   : NumArray(Tpdcomplex,LoShape(1),DMI::NOZERO,TpMeqVells)
   { init_scalar(value); }
-  
+
   // Create a Vells of given shape.
   // If the init flag is true, the Vells is initialized to the given value.
   // Otherwise value only determines type, and Vells is initialized with zeroes.
@@ -245,29 +245,29 @@ public:
   // and not just T, but stupid compiler won't recognize it for some reason...
   inline Vells(double value,const Shape &shape,bool init=true)
   : NumArray(Tpdouble,shape,DMI::NOZERO,TpMeqVells)
-  { 
+  {
     if( init )
       init_array(value);
   }
   inline Vells(const dcomplex &value,const Shape &shape,bool init=true)
   : NumArray(Tpdcomplex,shape,DMI::NOZERO,TpMeqVells)
-  { 
+  {
     if( init )
       init_array(value);
   }
-  
+
   // Create a flag Vells of the given shape
-  // Note that order of constructor arguments is reversed here to avoid 
-  // confusion with other constructors: otherwise it's too easy to 
-  // unintentionally create a flag vells when a normal one was intended 
+  // Note that order of constructor arguments is reversed here to avoid
+  // confusion with other constructors: otherwise it's too easy to
+  // unintentionally create a flag vells when a normal one was intended
   // simply by using Vells(0,shape).
   inline Vells(const Shape &shape,VellsFlagType value,bool init=true)
   : NumArray(VellsFlagTypeId,shape,DMI::NOZERO,TpMeqVells)
-  { 
+  {
     if( init )
       init_array(value);
   }
-  
+
   // create Vells of the same type as 'other', but with a different
   // shape. If init=true, fills with 0s
   inline Vells (const Vells &other,const Shape &shape,bool init=true)
@@ -276,11 +276,11 @@ public:
   }
 
   //##ModelId=3F868870022A
-  // Copy constructor (reference semantics, unless DMI::DEEP or depth>0 is 
+  // Copy constructor (reference semantics, unless DMI::DEEP or depth>0 is
   // specified). A Vells may be created from a NumArray of a compatible type
   Vells (const DMI::NumArray &other,int flags=0,int depth=0);
   Vells (const Vells &other,int flags=0,int depth=0);
-  
+
   // Construct from array
   template<class T,int N>
   Vells (const blitz::Array<T,N> &arr)
@@ -297,13 +297,13 @@ public:
       //##ModelId=400E530403C1
   virtual TypeId objectType () const
   { return TpMeqVells; }
-  
+
   // implement standard clone method via copy constructor
     //##ModelId=400E530403C5
   virtual CountedRefTarget* clone (int flags=0,int depth=0) const
   { return new Vells(*this,flags,depth); }
-  
-  // validate array contents and setup shortcuts to them. This is called 
+
+  // validate array contents and setup shortcuts to them. This is called
   // automatically whenever a Vells object is made from a DMI::NumArray
     //##ModelId=400E530403DB
   virtual void validateContent (bool recursive);
@@ -311,21 +311,21 @@ public:
     //##ModelId=3F8688700280
   // is it a null vells (representing 0)?
   bool isNull () const
-  { return !NumArray::valid() || ( isScalar() && 
+  { return !NumArray::valid() || ( isScalar() &&
     ( isReal() ? as<double>() == double(0) : as<dcomplex>() == make_dcomplex(0,0) ) ); }
-  
+
   bool isUnity () const
-  { return isScalar() && 
+  { return isScalar() &&
     ( isReal() ? as<double>() == double(1) : as<dcomplex>() == make_dcomplex(1,0) ); }
-  
+
   // does this Vells have flags attached?
   bool hasDataFlags () const
   { return dataflags_.valid(); }
-  
+
   // returns flags of this Vells
   const Vells & dataFlags () const
   { return *dataflags_; }
-  
+
   // sets the dataflags of a Vells
   void setDataFlags (const Vells::Ref &flags)
   { dataflags_ = flags; }
@@ -333,34 +333,34 @@ public:
   { dataflags_.attach(flags); }
   void setDataFlags (const Vells *flags)
   { dataflags_.attach(flags); }
-  
+
   void clearDataFlags ()
   { dataflags_.detach(); }
 
   static int extent (const Vells::Shape &shp,uint idim)
   { return idim < shp.size() ? shp[idim] : 1; }
-  
+
   int extent (uint idim) const
   { return extent(shape(),idim); }
-  
+
     //##ModelId=3F868870027E
   int nelements() const
   { return NumArray::size(); }
-  
+
   bool isScalar () const
   { return nelements() == 1; }
 
     //##ModelId=3F868870028A
   bool isReal() const
   { return elementType() == Tpdouble; }
-  
+
     //##ModelId=400E535600B5
   bool isComplex() const
   { return elementType() == Tpdcomplex; }
-  
+
   bool isFlags() const
   { return elementType() == VellsFlagTypeId; }
-  
+
   // Returns true if a sub-shape is compatible with the specified main shape.
   // A sub-shape is compatible if it does not have greater variability, i.e.:
   // 1. Its rank is not higher
@@ -379,7 +379,7 @@ public:
   // Returns true if Vells is compatible with the specified mainshape.
   bool isCompatible (const Axis::Shape &mainshape) const
   { return isCompatible(shape(),mainshape); }
-  
+
   // Two Vells shapes are congruent if the extents of each dimension are
   // congruent. Congruency of extents means both are equal, or either one is 1.
   // (An extent of 1 means that the value is constant along that axis).
@@ -407,25 +407,25 @@ public:
   //##ModelId=400E535600CE
   bool isCongruent (const Vells &other) const
   { return isCongruent(other.elementType(),other.shape()); }
-    
+
   // Define templated getStorage<T>() function
   // Default version will produce a compile-time error; specializations
   // are provided below for double & dcomplex
   template<class T>
   const T* getStorage ( Type2Type<T> = Type2Type<T>() ) const
-  { 
+  {
     const TypeId tid = typeIdOf(T);
     FailWhen(elementType()!=tid,"can't access "+elementType().toString()+" Vells as "+tid.toString());
     return static_cast<const T*>(NumArray::getConstDataPtr());
   }
   template<class T>
   T* getStorage ( Type2Type<T> = Type2Type<T>() )
-  { 
+  {
     const TypeId tid = typeIdOf(T);
     FailWhen(elementType()!=tid,"can't access "+elementType().toString()+" Vells as "+tid.toString());
     return static_cast<T*>(NumArray::getDataPtr());
   }
-  
+
   // begin<T> is same as getStorage()
   // end<T> is begin<T> + nelements()
   template<class T>
@@ -440,28 +440,28 @@ public:
   template<class T>
   T* end ( Type2Type<T> = Type2Type<T>() )
   { return getStorage(Type2Type<T>()) + nelements(); }
-  
+
   // begin_flags() and end_flags() return pointer to flags, or to nil flag
   // if there are none
   const VellsFlagType * beginFlags () const
   { return hasDataFlags() ? dataFlags().begin<VellsFlagType>() : &null_flag_; }
-  
+
   const VellsFlagType * endFlags () const
   { return hasDataFlags() ? dataFlags().end<VellsFlagType>() : &(null_flag_)+1; }
-  
+
   int nflags () const
   { return hasDataFlags() ? dataFlags().nelements() : 1; }
-  
+
   int flagRank () const
   { return hasDataFlags() ? dataFlags().rank() : 1; }
-  
+
   const Shape & flagShape () const
   { return hasDataFlags() ? dataFlags().shape() : null_flag_shape_; }
-  
-  // whereEq(value,out_eq,out_ne) 
+
+  // whereEq(value,out_eq,out_ne)
   // Compares all values in the Vells to value, creates (in out)
   // a flag Vells composed of out_eq where values match, and out_ne where
-  // they mismatch. 
+  // they mismatch.
   // Returns 1 if everything matched,  -1 if nothing matched, or 0 otherwise
   template<class T>
   int whereEq (Vells &out,T value,VellsFlagType out_eq=1,VellsFlagType out_ne=0)
@@ -489,7 +489,7 @@ public:
     else
       return 0;
   }
-  
+
 // NumArray already defines templated getArray<T>() and getConstArray<T>() functions
 //   template<class T,int N>
 //   const typename Traits<T,N>::Array & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>()) const
@@ -498,37 +498,37 @@ public:
 //   typename Traits<T,N> & getArray (Type2Type<T> =Type2Type<T>(),Int2Type<N> =Int2Type<N>())
 //   { return *static_cast<typename Traits<T,N>::Array*>(
 //                 NumArray::getArrayPtr(typeIdOf(T),N)); }
-  
+
   template<class T>
   T getScalar (Type2Type<T> =Type2Type<T>()) const
-  { 
-    FailWhen(!isScalar(),"can't access this Meq::Vells as scalar"); 
-    return *static_cast<const T *>(getStorage(Type2Type<T>())); 
+  {
+    FailWhen(!isScalar(),"can't access this Meq::Vells as scalar");
+    return *static_cast<const T *>(getStorage(Type2Type<T>()));
   }
   template<class T>
-  T & getScalar (Type2Type<T> =Type2Type<T>()) 
-  { 
-    FailWhen(!isScalar(),"can't access this Meq::Vells as scalar"); 
-    return *static_cast<T*>(getStorage(Type2Type<T>())); 
+  T & getScalar (Type2Type<T> =Type2Type<T>())
+  {
+    FailWhen(!isScalar(),"can't access this Meq::Vells as scalar");
+    return *static_cast<T*>(getStorage(Type2Type<T>()));
   }
- 
-  
+
+
   // Define templated as<T,N>() functions, returning arrays or scalars (N=0)
   // Default version maps to getArray
   template<class T,int N>
   typename VellsTraits::DataType<T,N>::ConstRetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>()) const
   { return getArray(Type2Type<T>(),Int2Type<N>()); }
-  
+
   template<class T,int N>
-  typename VellsTraits::DataType<T,N>::RetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>()) 
+  typename VellsTraits::DataType<T,N>::RetType as (Type2Type<T> =Type2Type<T>(),Int2Type<N> = Int2Type<N>())
   { return getArray(Type2Type<T>(),Int2Type<N>()); }
-  
+
   template<class T>
   T as (Type2Type<T> =Type2Type<T>()) const
   { return getScalar(Type2Type<T>()); }
-  
+
   template<class T>
-  T & as (Type2Type<T> =Type2Type<T>()) 
+  T & as (Type2Type<T> =Type2Type<T>())
   { return getScalar(Type2Type<T>()); }
 
   // Provides access to array storage
@@ -544,38 +544,38 @@ public:
     //##ModelId=3F868870029B
   dcomplex* complexStorage()
   { return getStorage<dcomplex>(); }
-  
+
   // copies data from other Vells. Checks for matching shape/type
     //##ModelId=400E53560110
   void copyData (const Vells &other);
-  
+
   // zeroes data
     //##ModelId=400E5356011C
   void zeroData ();
-  
+
   // dumps to output
     //##ModelId=3F8688700282
   void show (std::ostream& os) const;
 
     //##ModelId=400E5356011F
   string sdebug (int detail=1,const string &prefix="",const char *nm=0) const;
-  
-  // =========================== Iterator and stride support 
+
+  // =========================== Iterator and stride support
   // helper function to compute the stride along each axis, given a Vells shape
   // returns the total number of elements corresponding to shape
   static int computeStrides (Vells::Strides &strides,const Vells::Shape &shape);
-  
+
   // same function, but returns the stride for this Vells
   int computeStrides (Vells::Strides &strides)
   { return computeStrides(strides,shape()); }
-  
+
   // helper funtion to compute output shape and data strides, given two
   // input shapes. Used throughout Vells math
   static void computeStrides (Vells::Shape &outshape,
                               Strides strides[],
                               int nshapes,const Vells::Shape * shapes[],
                               const string &opname = "computeStrides");
-  
+
   // convenience version for two Vells arguments
   static void computeStrides (Vells::Shape &shape,
                               Strides strides[2],
@@ -585,7 +585,7 @@ public:
     const Vells::Shape * shapes[2] = { &a,&b };
     computeStrides(shape,strides,2,shapes,opname);
   }
-  
+
   // convenience version for two Vells arguments with optional flags
   // strides filled as follows: 0/1 Vells a/b, 2/3 flags a/b
   static void computeStrides (Vells::Shape &shape,
@@ -596,7 +596,7 @@ public:
     const Vells::Shape * shapes[4] = { &a.shape(),&b.shape(),&a.flagShape(),&b.flagShape() };
     computeStrides(shape,strides,4,shapes,opname);
   }
-  
+
   // === Iterator
   // Helper class implementing iteration over a strided vells
   template<class T>
@@ -605,11 +605,11 @@ public:
     protected:
       const T   *ptr;
       const int *strides;
-      
+
     public:
       ConstStridedIterator ()
       {}
-    
+
       ConstStridedIterator (const T * p,const Strides &str)
       { init(p,str); }
 
@@ -635,31 +635,31 @@ public:
       // advances to next element in the specified number of dimensions
       // (i.e. if ndim==3, then advances along dimensions 1,2 and 3)
       void incr (int ndim=1)
-      { 
+      {
         for( int i=0; i<ndim; i++ )
           ptr += strides[i];
       }
   };
-  
+
   // Helper class implementing iteration over a strided flag vells
   class ConstStridedFlagIterator : public ConstStridedIterator<VellsFlagType>
   {
     public:
       ConstStridedFlagIterator (const Vells &vells,const Strides &str)
-      { 
+      {
         if( vells.hasDataFlags() )
-          init(vells.dataFlags(),str); 
+          init(vells.dataFlags(),str);
         else
         {
           static VellsFlagType zero = 0;
           init(zero);
         }
       }
-    
+
   };
-  
+
   // Helper class implementing iteration over an N-dimensional shape
-  class DimCounter 
+  class DimCounter
   {
     protected:
       int   rank_;
@@ -669,20 +669,20 @@ public:
 
     public:
       void init (const Vells::Shape &shape0)
-      // note that dimensions in 'shape' are reversed for convenience, 
+      // note that dimensions in 'shape' are reversed for convenience,
       // since the it's the last dimension of the Vells array that iterates
-      // fastest. The strides returned by computeStrides() above are also 
+      // fastest. The strides returned by computeStrides() above are also
       // reversed in this manner. The shape() and counter() accessors
       // below reverse dimensions yet again.
       {
         valid_ = true;
         rank_ = shape0.size();
-        int j = rank_ - 1; 
+        int j = rank_ - 1;
         for( int i=0; i<rank_; i++,j-- )
           shape_[i] = shape0[j];
-        memset(counter_,0,sizeof(int)*rank_); 
+        memset(counter_,0,sizeof(int)*rank_);
       }
-      
+
       DimCounter ()
       : rank_(0),valid_(false)
       {}
@@ -722,49 +722,45 @@ public:
         return idim+1;
       }
   };
-  
+
   // Helper function to merge vells flags using copy-on-write
   // Executes flags0 |= flags1 & fm
   // If flags0 is invalid, attaches new flags.
   static void mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm);
-  
-private:
-// internal initialization functions (called only once)
-  static void _init_static ()
+
+// internal initialization of static Vells data
+// (to be done only once, preferrably on startup)
+  static int _init_static_data ()
   {
-    static bool done = false;
-    static Thread::Mutex mutex;
-    if( !done )
-    {
-      Thread::Mutex::Lock lock(mutex);
-      if( !done )
-      {
-        done = true;
-        _init_static_impl();
-      }
-    }
+    if( !_static_init_done )
+      _init_static_impl();
+    return 1;
   }
+
+private:
+  Vells::Ref  dataflags_;
+
+  static bool _static_init_done;
   static void _init_static_impl ();
+
   static const Vells *pNull_;
   static const Vells *pUnity_;
-  
-  Vells::Ref  dataflags_;
 
   static VellsFlagType null_flag_;
   static Shape null_flag_shape_;
 
   //##ModelId=400E5356002F
 //  void *  storage_;
-  
+
   // temp storage for scalar Vells -- big enough for biggest scalar type
 //  char scalar_storage_[sizeof(dcomplex)];
-  
+
   // OK, now it gets hairy. Implement math on Vells
   // The following flags may be supplied to the constructors below:
     //##ModelId=400E530400FC
-  typedef enum { 
-    VF_REAL         = 0x01, // result is forced real 
-    VF_COMPLEX      = 0x02, // result is forced complex 
+  typedef enum {
+    VF_REAL         = 0x01, // result is forced real
+    VF_COMPLEX      = 0x02, // result is forced complex
     VF_SCALAR       = 0x04, // result is forced scalar
     VF_CHECKREAL    = 0x08, // operand(s) must be real
     VF_CHECKCOMPLEX = 0x10, // operand(s) must be complex
@@ -773,7 +769,7 @@ private:
   } VellsFlags;
   // Special constructor for a result of a unary Vells operation.
   // If other is a temporary Vells, will re-use its storage if possible,
-  // otherwise, will create new storage. 
+  // otherwise, will create new storage.
   // By default, the Vells will have the same type/shape as 'other', but
   // flags may override it:
   //    flags&VF_REAL     forces a real Vells
@@ -786,7 +782,7 @@ private:
 
   // Special constructor for a result of a binary Vells operation.
   // If either a or b is a temporary Vells, will re-use its storage if possible.
-  // Otherwise, will create new storage. 
+  // Otherwise, will create new storage.
   // By default, the type/shape of the Vells will be chosen via type/shape
   // promotion, but flags may override it:
   //    flags&VF_REAL     forces a real Vells
@@ -808,7 +804,7 @@ private:
 
   //##ModelId=400E535601CB
   int getLutIndex () const
-  { 
+  {
     if( isComplex() )
       return 1;
     else if( isReal() )
@@ -816,29 +812,29 @@ private:
     else
       Throw("can't apply math operation to Vells of type "+elementType().toString());
   }
-  
-  
+
+
 public:
-// pointer to function implementing an unary operation 
+// pointer to function implementing an unary operation
     //##ModelId=400E53040108
   typedef void (*UnaryOperPtr)(Vells &,const Vells &);
   typedef void (*UnaryRdFuncPtr)(Vells &,const Vells &,VellsFlagType);
   typedef void (*UnaryRdFuncWSPtr)(Vells &,const Vells &,const Shape &,VellsFlagType);
-// pointer to function implementing a binary operation 
+// pointer to function implementing a binary operation
     //##ModelId=400E53040116
   typedef void (*BinaryOperPtr)(Vells &out,const Vells &,const Vells &,
                                 const Strides [2]);
   typedef void (*BinaryFuncWFPtr)(Vells &out,const Vells &,const Vells &,
                                   VellsFlagType,VellsFlagType,const Strides [4]);
-// pointer to function implementing an unary in-place operation 
+// pointer to function implementing an unary in-place operation
   typedef void (*InPlaceOperPtr)(Vells &out,const Vells &,const Strides &);
-  
+
 // Declares inline unary operator OPER (internally named OPERNAME),
 // plus lookup table for implementations
 // This: 1. Creates a result Vells (using the special constructor to
-//          decide whether to duplicate or reuse the storage), and 
+//          decide whether to duplicate or reuse the storage), and
 //       2. Calls the method in the OPERNAME_lut lookup table, using the
-//          LUT index of this Vells object. 
+//          LUT index of this Vells object.
 #define declareUnaryOperator(OPER,OPERNAME,x) \
   private: static UnaryOperPtr unary_##OPERNAME##_lut[VELLS_LUT_SIZE];  \
   public: Vells operator OPER () const \
@@ -849,12 +845,12 @@ public:
 // unary flag operators implemented explicitly (no LUT needed)
 #define declareUnaryFlagOperator(OPER,OPERNAME,x) \
   public: Vells operator OPER () const;
-          
+
 // Declares binary operator OPER (internally named OPERNAME)
 // plus lookup table for implementations
 // This: 1. Creates a result Vells (using the special constructor to
 //          decide whether to duplicate or reuse the storage, and to init
-//          strides) 
+//          strides)
 //       2. Calls the method in the OPERNAME_lut lookup table, using the
 //          LUT index generated from the two Vells operands
 #define declareBinaryOperator(OPER,OPERNAME,x) \
@@ -870,31 +866,31 @@ public:
 // makes sense to check for it explicitly
 
 // binary addition
-  private: static BinaryOperPtr binary_ADD_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
-  public: Vells operator + (const Vells &right) const 
-          { 
+  private: static BinaryOperPtr binary_ADD_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];
+  public: Vells operator + (const Vells &right) const
+          {
             if( isNull() )
               return right;
             if( right.isNull() )
               return *this;
-            Strides strides[2]; 
-            Vells result(*this,right,0,strides,"operator +"); 
-            (*binary_ADD_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  
-            return result; 
+            Strides strides[2];
+            Vells result(*this,right,0,strides,"operator +");
+            (*binary_ADD_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);
+            return result;
           }
-  private: static BinaryOperPtr binary_MUL_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
-  public: Vells operator * (const Vells &right) const 
-          { 
+  private: static BinaryOperPtr binary_MUL_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];
+  public: Vells operator * (const Vells &right) const
+          {
             if( isNull() || right.isNull() )
               return Vells();
             if( isUnity() )
               return right;
             if( right.isUnity() )
               return *this;
-            Strides strides[2]; 
-            Vells result(*this,right,0,strides,"operator *"); 
-            (*binary_MUL_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);  
-            return result; 
+            Strides strides[2];
+            Vells result(*this,right,0,strides,"operator *");
+            (*binary_MUL_lut[getLutIndex()][right.getLutIndex()])(result,*this,right,strides);
+            return result;
           }
   // subtraction/multiplication infrequent, no point optimizing
   declareBinaryOperator(-,SUB,);
@@ -919,35 +915,35 @@ public:
 // declare binary operators explicitly for efficiency
 // addition and multiplication by zero/unity shows up so often that it
 // makes sense to check for it explicitly
-  private: static InPlaceOperPtr inplace_ADD1_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE]; 
+  private: static InPlaceOperPtr inplace_ADD1_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];
   public: Vells & operator += (const Vells &right)
-          { 
+          {
             if( right.isNull() )
               return *this;
             if( isNull() )
               return (*this) = right;
-            Strides strides; 
-            if( canApplyInPlace(right,strides,"ADD1") ) 
-              (*inplace_ADD1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides); 
-            else 
+            Strides strides;
+            if( canApplyInPlace(right,strides,"ADD1") )
+              (*inplace_ADD1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides);
+            else
               (*this) = (*this) + right;
-            return *this; 
+            return *this;
           }
-  private: static InPlaceOperPtr inplace_MUL1_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE]; 
+  private: static InPlaceOperPtr inplace_MUL1_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];
   public: Vells & operator *= (const Vells &right)
-          { 
+          {
             if( isNull() || right.isNull() )
               return (*this) = Vells();
             if( isUnity() )
               return (*this) = right;
             if( right.isUnity() )
               return *this;
-            Strides strides; 
-            if( canApplyInPlace(right,strides,"ADD1") ) 
-              (*inplace_MUL1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides); 
-            else 
+            Strides strides;
+            if( canApplyInPlace(right,strides,"ADD1") )
+              (*inplace_MUL1_lut[getLutIndex()][right.getLutIndex()])(*this,right,strides);
+            else
               (*this) = (*this) * right;
-            return *this; 
+            return *this;
           }
   declareInPlaceOperator(-,SUB1,);
   declareInPlaceOperator(/,DIV1,);
@@ -955,7 +951,7 @@ public:
 // in-place flag operators implemented explicitly (no LUT needed)
 #define declareInPlaceFlagOperator(OPER,OPERNAME,x) \
   public: Vells & operator OPER##= (const Vells &right); \
-          Vells & operator OPER##= (VellsFlagType right); 
+          Vells & operator OPER##= (VellsFlagType right);
 
 // binary flag operators implemented explicitly (no LUT needed)
 #define declareBinaryFlagOperator(OPER,OPERNAME,x) \
@@ -964,22 +960,22 @@ public:
 
 // Defines lookup tables for implementations of unary math functions
 #define declareUnaryFuncLut(FUNCNAME,x) \
-  private: static UnaryOperPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
+  private: static UnaryOperPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];
 
 #define declareUnaryRdFuncLut(FUNCNAME,x) \
-  private: static UnaryRdFuncPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
+  private: static UnaryRdFuncPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];
 
 #define declareUnaryRdFuncWSLut(FUNCNAME,x) \
-  private: static UnaryRdFuncWSPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];  
-  
+  private: static UnaryRdFuncWSPtr unifunc_##FUNCNAME##_lut[VELLS_LUT_SIZE];
+
 // Declares binary function FUNCNAME
 // Defines lookup tables for implementations of binary math functions
 #define declareBinaryFuncLut(FUNCNAME,x) \
-  private: static BinaryOperPtr binfunc_##FUNCNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
+  private: static BinaryOperPtr binfunc_##FUNCNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];
 #define declareBinaryFuncWFLut(FUNCNAME,x) \
-  private: static BinaryFuncWFPtr binfunc_##FUNCNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];  
+  private: static BinaryFuncWFPtr binfunc_##FUNCNAME##_lut[VELLS_LUT_SIZE][VELLS_LUT_SIZE];
 
-// insert all declarations using the macros above  
+// insert all declarations using the macros above
     //##ModelId=400E535601D0
   DoForAllUnaryOperators(declareUnaryOperator,);
   DoForAllUnaryFlagOperators(declareUnaryFlagOperator,);
@@ -1004,7 +1000,7 @@ public:
 #undef declareUnaryFuncLut
 #undef declareBinaryFuncLut
 #undef declareBinaryFuncWFLut
-  
+
 // Conditionally include friend declarations for Vells math.
 // Skipping them saves time/memory when compiling code that
 // doesn't need them (such as the Meq service classes, and Vells itself).
@@ -1016,22 +1012,22 @@ public:
     //##ModelId=400E53560200
   DoForAllUnaryFuncs(declareUnaryFunc,);
   #define declareUnaryRdFunc(FUNCNAME,x) \
-    public: friend Vells VellsMath::FUNCNAME (const Vells &,VellsFlagType); 
+    public: friend Vells VellsMath::FUNCNAME (const Vells &,VellsFlagType);
   DoForAllUnaryRdFuncs(declareUnaryRdFunc,);
   #define declareUnaryRdFuncWS(FUNCNAME,x) \
-    public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells::Shape &,VellsFlagType); 
+    public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells::Shape &,VellsFlagType);
   DoForAllUnaryRdFuncsWS(declareUnaryRdFuncWS,);
-  
+
   #define declareBinaryFunc(FUNCNAME,x) \
     public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells &);
     //##ModelId=400E5356020A
   DoForAllBinaryFuncs(declareBinaryFunc,);
-  
+
   #define declareBinaryFuncWF(FUNCNAME,x) \
     public: friend Vells VellsMath::FUNCNAME (const Vells &,const Vells &,VellsFlagType,VellsFlagType);
     //##ModelId=400E5356020A
   DoForAllBinaryFuncsWF(declareBinaryFuncWF,);
-  
+
   #undef declareUnaryFunc
   #undef declareUnaryRdFunc
   #undef declareUnaryRdFuncWS
@@ -1047,7 +1043,7 @@ inline Vells FlagVells (const LoShape &shp)
 // Convenience function to create & initialize a flag Vells of given shape
 inline Vells FlagVells (VellsFlagType value,const LoShape &shp,bool init=true)
 { return Vells(shp,value,init); }
-    
+
 
 // Conditionally include inline definitions of Vells math functions
 #ifndef MEQVELLS_SKIP_FUNCTIONS
@@ -1117,7 +1113,7 @@ defineBinaryFuncWF(max,Vells::VF_REAL|Vells::VF_CHECKREAL);
   inline Vells operator OPER (double left,const Vells &right) \
   { return Vells(left) OPER right; } \
   inline Vells operator OPER (const dcomplex &left,const Vells &right) \
-  { return Vells(left) OPER right; } 
+  { return Vells(left) OPER right; }
 
 DoForAllBinaryOperators(defineBinaryOper,);
 
