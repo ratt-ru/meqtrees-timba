@@ -511,12 +511,11 @@ class ResultsRange(Qt.QWidget):
       self.spinbox.setMaximum(self.maxVal)
       self.emit(Qt.SIGNAL("adjust_results_buffer_size"),result_value)
 
-    def handleBufferSize(self, menuid):
+    def handleBufferSize(self):
       """ callback to handle 'Adjust buffer' request from the context menu """
-      if menuid == self.menu_table['Adjust results buffer size']:
-        results_dialog = BufferSizeDialog(self.maxVal, self)
-        QObject.connect(results_dialog,Qt.SIGNAL("return_value"),self.setResultsBuffer)
-        results_dialog.show()
+      results_dialog = BufferSizeDialog(self.maxVal, self)
+      Qt.QObject.connect(results_dialog,Qt.SIGNAL("return_value"),self.setResultsBuffer)
+      results_dialog.show()
 
     def requestSummary(self, menuid):
       """ callback to handle 'summary plot' request from the context menu """
