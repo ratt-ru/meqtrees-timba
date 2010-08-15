@@ -1858,6 +1858,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           if self.is_vector: 
             curve_number, xVal, yVal, self.array_index = self.closestCurve(Qt.QPoint(self.raw_xpos, self.raw_ypos))
             message = self.reportCoordinates(xVal, yVal)
+            message = message + ', data point: ' + str(self.array_index)
           else:
             message = self.formatCoordinates(xPos, yPos)
           if not self.display_solution_distances:
@@ -1907,6 +1908,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
                     temp_str = "nearest x=%-.3g" % xVal
                     temp_str1 = " y=%-.3g" % yVal
                     message = temp_str + temp_str1
+                    message = message + ', data point: ' + str(self.array_index)
               else:
             # Python semantics: self.pos = e.pos() does not work; force a copy
 # We get information about the qwt plot curve that is
@@ -1916,6 +1918,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 curve_number, xVal, yVal, self.array_index = self.closestCurve(Qt.QPoint(self.raw_xpos, self.raw_ypos))
                 _dprint(2,' curve_number, xVal, yVal ', curve_number, ' ', xVal, ' ', yVal );
                 message = self.reportCoordinates(xVal, yVal)
+                message = message + ', data point: ' + str(self.array_index)
             else:
               message = self.formatCoordinates(self.raw_xpos, self.raw_ypos)
             if not message is None:
