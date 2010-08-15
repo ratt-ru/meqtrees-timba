@@ -423,7 +423,7 @@ class ChartPlot(Qt.QWidget):
           x = found.x(point)
           y = found.y(point)
           #print 'closest curve is ', index, ' ', x, ' ', y
-          return (index, x, y)
+          return (index, x, y, point)
     # closestCurve
 
 
@@ -600,7 +600,7 @@ class ChartPlot(Qt.QWidget):
         Figures out where the cursor is, generates the appropriate text, 
         and puts it on the screen.
     """
-    closest_curve, xVal, yVal = self.closestCurve(self.position_raw)
+    closest_curve, xVal, yVal, data_point = self.closestCurve(self.position_raw)
 
     #get value of where the mouse was released
     p2x = self._plotter.invTransform(Qwt.QwtPlot.xBottom, self.xpos_raw)
@@ -623,6 +623,7 @@ class ChartPlot(Qt.QWidget):
     ref_value = yVal - temp_off
 
     message = self.reportCoordinates(ref_point, ref_value, closest_curve)
+    message = message +', data point: ' + str(data_point)
 
     self._popup_text.setText(message)
     self._popup_text.adjustSize()
@@ -775,7 +776,7 @@ class ChartPlot(Qt.QWidget):
           self.xzoom_loc = None
           self.yzoom_loc = None
       elif Qt.Qt.MidButton == e.button():
-        closest_curve, xVal, yVal = self.closestCurve(self.position_raw)
+        closest_curve, xVal, yVal, data_point = self.closestCurve(self.position_raw)
         # pop up a zoom curve
         self.zoomcrv(closest_curve)
 
