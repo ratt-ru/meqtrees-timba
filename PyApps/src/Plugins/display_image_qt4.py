@@ -1856,7 +1856,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           return
         else:
           if self.is_vector: 
-            curve_number, xVal, yVal, self.array_index = self.closestCurve(QPoint(self.raw_xpos, self.raw_ypos))
+            curve_number, xVal, yVal, self.array_index = self.closestCurve(Qt.QPoint(self.raw_xpos, self.raw_ypos))
             message = self.reportCoordinates(xVal, yVal)
           else:
             message = self.formatCoordinates(xPos, yPos)
