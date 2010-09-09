@@ -34,7 +34,8 @@ namespace Meq {
   static DMI::Container::Register reg(TpMeqComposedPolc,true);
 
 
-  ComposedPolc::ComposedPolc(vector<Funklet::Ref> & funklets,double pert,double weight,DbId id):Polc(*funklets.begin()),nr_funklets_(funklets.size())
+  ComposedPolc::ComposedPolc(vector<Funklet::Ref> & funklets,double default_value,double pert,double weight,DbId id)
+  : Polc(*funklets.begin()),default_value_(default_value),nr_funklets_(funklets.size())
   {
     //   cdebug(3)<<"creating composed polc"<<endl;
     (*this)[FClass]=objectType().toString();
@@ -44,7 +45,7 @@ namespace Meq {
 
 
   ComposedPolc::ComposedPolc (const ComposedPolc &other,int flags,int depth) :
-    Polc(other,flags,depth),nr_funklets_(other.nr_funklets_)
+    Polc(other,flags,depth),default_value_(0),nr_funklets_(other.nr_funklets_)
   {
     (*this)[FClass]=objectType().toString();
     for(int i=0;i<Axis::MaxAxis;i++)
@@ -52,14 +53,14 @@ namespace Meq {
   }
 
   ComposedPolc::ComposedPolc (const DMI::Record &other,int flags,int depth) :
-    Polc(other,flags,depth),nr_funklets_(0)
+    Polc(other,flags,depth),default_value_(0),nr_funklets_(0)
   {
     (*this)[FClass]=objectType().toString();
 
   }
 
   ComposedPolc::ComposedPolc (double pert,double weight,DbId id):
-    Polc(pert,weight,id),nr_funklets_(0)
+    Polc(pert,weight,id),default_value_(0),nr_funklets_(0)
    {
     (*this)[FClass]=objectType().toString();
 
@@ -215,7 +216,7 @@ void ComposedPolc::validateContent (bool recursive)
     	res_shape[iaxis]=1;
 
     cdebug(3)<<"evalauating cells with res_Shape : "<<res_shape<<endl;
-    double *value = vs.setValue(new Vells(double(0),res_shape,true)).realStorage();
+    double *value = vs.setValue(new Vells(double(default_value_),res_shape,true)).realStorage();
 
     double *pertValPtr[makePerturbed][nr_spids];
    // Create a vells for each perturbed value.
@@ -226,7 +227,7 @@ void ComposedPolc::validateContent (bool recursive)
 	  for(int ispid=0;ispid<nr_spids;ispid++)
 	      {
 		pertValPtr[ipert][ispid] =
-		vs.setPerturbedValue(ispid,new Vells(double(0),res_shape,true),ipert)
+		vs.setPerturbedValue(ispid,new Vells(double(default_value_),res_shape,true),ipert)
 		.realStorage();
 
 	      }

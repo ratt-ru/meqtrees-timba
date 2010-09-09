@@ -370,7 +370,7 @@ namespace Meq {
     }
     cdebug(2)<<"creating composed polc  "<<funklets.size()<<endl;
     //   funkletref.detach();
-    ComposedPolc * cpolc =new ComposedPolc(funklets);
+    ComposedPolc * cpolc =new ComposedPolc(funklets,default_);
     funkletref<<=cpolc;
     return funkletref.dewr_p();
 

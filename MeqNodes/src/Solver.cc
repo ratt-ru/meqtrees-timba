@@ -964,6 +964,7 @@ int Solver::getResult (Result::Ref &resref,
   // iteration to iteration, so we keep it attached to reqref and rely on COW
   reqref <<= new Request(request.cells());
   bool converged = false;
+  int no_eq_retry = 0;
   for( cur_iter_=0; cur_iter_ < max_num_iter_ && !converged && !interrupt_; cur_iter_++ )
   {
     // generate a Solver.Iter event after the 0th iteration
@@ -1027,8 +1028,16 @@ int Solver::getResult (Result::Ref &resref,
     if( forest().abortFlag() )
       return RES_ABORT;
     setExecState(CS_ES_EVALUATING);
+//    FailWhen(!num_equations_,"no equations were generated");
+    if( !num_equations_ )
+    {
+      FailWhen(++no_eq_retry>10,"No equations were generated, retries exhausted");
+      cerr<<"Oops, no equations. Will retry."<<no_eq_retry<<endl;
+      cur_iter_--;
+      continue;
+    }
+    no_eq_retry = 0;
     timers().getresult.start();
-    FailWhen(!num_equations_,"no equations were generated");
     cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
     // now for the subsolvers loop
     int nremain = numSubsolvers() - num_conv_; // how many have not converged yet

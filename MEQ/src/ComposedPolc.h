@@ -60,7 +60,7 @@ namespace Meq
 
   ComposedPolc (double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,DbId id=-1);
 
-  ComposedPolc (vector<Funklet::Ref> & funklets,double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,DbId id=-1);
+  ComposedPolc (vector<Funklet::Ref> & funklets,double default_value=0,double pert=defaultPolcPerturbation,double weight=defaultPolcWeight,DbId id=-1);
   ~ComposedPolc(){}
   virtual void validateContent (bool recursive);
 
@@ -116,6 +116,7 @@ namespace Meq
   virtual void do_update (const double values[],const std::vector<int> &spidIndex,const std::vector<double> &constraints_min,const std::vector<double> &constraints_max,bool force_positive=false);
 
   private:
+  double default_value_;
   int nr_funklets_;
   int axisHasShape_[Axis::MaxAxis];
   const void fill_const_value(const int nr_axis,const int starti[],const int endi[],const Vells::Shape res_shape,int val[],int axisi,double *value,const double constpart) const ;
