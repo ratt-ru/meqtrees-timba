@@ -327,9 +327,9 @@ def gen_cells (domain,**kw):
 def add_cells_axis (cells,axis,rng=None,num=None,grid=[],cell_size=[]):
   # Adds a named axis to the given cells object
   # The new axis may be specified in one of two ways (similar to meq.cells above):
-  # 1. add_cells_axis (cells,'axis',[x0,x1],n)
+  # 1. add_cells_axis (cells,axis_name,[x0,x1],n)
   #    to make a regularly-gridded axis of n points, from x0 to x1
-  # 2. add_cells_axis (cells,'axis',grid=[x0,x1,...][,cell_size=[dx0,dx1,...]])
+  # 2. add_cells_axis (cells,axis_name,grid=[x0,x1,...][,cell_size=[dx0,dx1,...]])
   #    to specify an explicit grid
   # Modifies the cells object in-place and returns it.
   if rng:
@@ -337,11 +337,10 @@ def add_cells_axis (cells,axis,rng=None,num=None,grid=[],cell_size=[]):
   grid = asarray(grid,arr_double);
   cell_size = asarray(cell_size,arr_double);
   # resolve grids
-  (grid,cell_size,segments) = _resolve_grid(
-        'axis',rng,num,grid,cell_size);
+  axis = str(hiid(axis)).lower();
+  (grid,cell_size,segments) = _resolve_grid(axis,rng,num,grid,cell_size);
   if rng is None:
     rng = grid[0]-cell_size[0]/2,grid[-1]+cell_size[-1]/2;
-  axis = hiid(axis);
   cells.domain[axis] = rng;
   cells.grid[axis] = grid;
   cells.cell_size[axis] = cell_size;
