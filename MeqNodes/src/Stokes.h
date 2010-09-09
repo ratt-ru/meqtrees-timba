@@ -35,8 +35,7 @@
 #pragma types #Meq::Stokes
 
 namespace Meq {
-
-
+  
 class Stokes: public Node
 	       //class Stokes: public ReductionFunction
 {
@@ -60,6 +59,7 @@ public:
 
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
    
+  double scale_;
 };
 
 

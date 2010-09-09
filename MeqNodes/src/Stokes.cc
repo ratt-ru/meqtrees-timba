@@ -22,6 +22,7 @@
 //# $Id$
 
 #include <MeqNodes/Stokes.h>
+#include <MEQ/MeqVocabulary.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
@@ -32,7 +33,9 @@ using namespace Meq::VellsMath;
 namespace Meq {
   
   Stokes::Stokes()
-  { };
+  {
+    scale_ = 1;
+  };
   
   Stokes::~Stokes()
   { };
@@ -70,7 +73,7 @@ namespace Meq {
       if( vsQ.isNull() )
       {
         resref <<= new Result(1);
-        resref().setNewVellSet(0).setValue(vellsI/2);
+        resref().setNewVellSet(0).setValue(vellsI*scale_);
       }
       // else diagonal matrix
       else
@@ -78,10 +81,10 @@ namespace Meq {
         const Vells &vellsQ = vsQ.getValue();
         resref <<= new Result(4);
         resref().setDims(LoShape(2,2));
-        resref().setNewVellSet(0).setValue((vellsI+vellsQ)/2);
+        resref().setNewVellSet(0).setValue((vellsI+vellsQ)*scale_);
         resref().setNewVellSet(1); // null XY
         resref().setNewVellSet(2); // null YX
-        resref().setNewVellSet(3).setValue((vellsI-vellsQ)/2);
+        resref().setNewVellSet(3).setValue((vellsI-vellsQ)*scale_);
       }
     }
     // full 2x2 matrix
@@ -94,10 +97,10 @@ namespace Meq {
       Vells vellsc0 = Vells(double(0.0),shape,true);
   
       // For now consider Linear Polarization
-      Vells vellsXX = (vellsI + vellsQ)/2;
-      Vells vellsXY = tocomplex(vellsU/2,vellsV/2);
-      Vells vellsYX = tocomplex(vellsU/2,-vellsV/2);
-      Vells vellsYY = (vellsI-vellsQ)/2;
+      Vells vellsXX = (vellsI + vellsQ)*scale_;
+      Vells vellsXY = tocomplex(vellsU,vellsV)*scale_;
+      Vells vellsYX = tocomplex(vellsU,-vellsV)*scale_;
+      Vells vellsYY = (vellsI-vellsQ)*scale_;
   
       resref <<= new Result(4);
       resref().setDims(LoShape(2,2));
@@ -121,6 +124,7 @@ namespace Meq {
   void Stokes::setStateImpl (DMI::Record::Ref& rec, bool initializing)
   {
     Node::setStateImpl(rec,initializing);
+    rec[FScale].get(scale_,initializing);
   }
 
   
