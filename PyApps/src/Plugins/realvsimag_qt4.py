@@ -265,14 +265,13 @@ class realvsimag_plotter(object):
         self.gain = 1.0
 
 # legends
-#       self.setlegend = 0
-#       self.plot.setAutoLegend(self.setlegend)
-#       self.plot.enableLegend(False)
-#       self.plot.setLegendPos(Qwt.Right)
+        # self.setlegend = 0
+        # self.plot.setAutoLegend(self.setlegend)
+        # self.plot.enableLegend(False)
+        # self.plot.setLegendPos(Qwt.Right)
 
 # set default background to  whatever QApplication sez it should be!
 #       self.plot.setCanvasBackground(QApplication.palette().active().base())
-
 
 # add on-line instructions
         self.plot.setWhatsThis(realvsimag_instructions)
@@ -599,7 +598,7 @@ class realvsimag_plotter(object):
     else:
       self.setlegend = 1
       self.plot.enableLegend(True)
-    self.plot.setAutoLegend(self.setlegend)
+    # self.plot.setAutoLegend(self.setlegend)
     self.plot.replot()
 
     # toggleLegend()
