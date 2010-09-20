@@ -910,7 +910,7 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.set_condition_numbers(self._solver_data.getConditionNumbers())
 #   else:
 #     Message = "Failure to calculate Covariance Matrix condition number!\nIs the numpy package installed?"
-      mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
+#     mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
 
     if self._solver_data.calculateCovarEigenVectors():
       self._visu_plotter.set_eigenvectors(self._solver_data.getEigenVectors())
