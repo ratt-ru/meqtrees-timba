@@ -240,43 +240,43 @@ class ResultPlotter(GriddedPlugin):
          plot_color = plot_parms.get('color')
          if not self.color_table.has_key(plot_color):
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
-           mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['color'] = "blue"
        if plot_parms.has_key('mean_circle_color'):
          plot_color = plot_parms.get('mean_circle_color')
          if not self.color_table.has_key(plot_color):
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
-           mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['mean_circle_color'] = "blue"
        if plot_parms.has_key('stddev_circle_color'):
          plot_color = plot_parms.get('stddev_circle_color')
          if not self.color_table.has_key(plot_color):
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
-           mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['stddev_circle_color'] = "blue"
        if plot_parms.has_key('line_style'):
          plot_line_style = plot_parms.get('line_style')
          if not self.line_style_table.has_key(plot_line_style):
            Message = str(plot_line_style) + " is not a valid line style.\n Using dots by default"
-           mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['line_style'] = "dots"
        if plot_parms.has_key('mean_circle_style'):
          plot_line_style = plot_parms.get('mean_circle_style')
          if not self.line_style_table.has_key(plot_line_style):
            Message = str(plot_line_style) + " is not a valid line style for mean circles.\n Using lines by default"
-           mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['mean_circle_style'] = "lines"
        if plot_parms.has_key('stddev_circle_style'):
          plot_line_style = plot_parms.get('stddev_circle_style')
          if not self.line_style_table.has_key(plot_line_style):
            Message = str(plot_line_style) + " is not a valid line style for stddev circles.\n Using DotLine by default"
-           mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['stddev_circle_style'] = "DotLine"
        if plot_parms.has_key('symbol'):
          plot_symbol = plot_parms.get('symbol')
          if not self.symbol_table.has_key(plot_symbol):
            Message = str(plot_symbol) + " is not a valid symbol.\n Using circle by default"
-           mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['symbol'] = "circle"
   # check_attributes
 
@@ -373,7 +373,7 @@ class ResultPlotter(GriddedPlugin):
         Message = self._plot_type + " is not a valid plot type.\n Using realvsimag by dafault." 
       else:
         Message = "Failure to find a valid plot type.\n Using realvsimag by default."
-      mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+      mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
       self._plot_type = "realvsimag"
       self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.wparent())
       Qt.QObject.connect(self._visu_plotter.plot, Qt.SIGNAL('save_display'), self.grab_display) 
@@ -469,7 +469,7 @@ class ResultPlotter(GriddedPlugin):
         except:
           _dprint(3, 'node label field expected, not found, so am exiting')
           Message = "Failure of result_plotter tree-traversal.\n Result_plotter does not yet work with MeqHistoryCollect nodes."
-          mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+          mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
           return
         if is_root and node.has_key('attrib') and len(node['attrib']) > 0:
           if not self._attributes_checked:
@@ -910,7 +910,7 @@ class ResultPlotter(GriddedPlugin):
       self._visu_plotter.set_condition_numbers(self._solver_data.getConditionNumbers())
 #   else:
 #     Message = "Failure to calculate Covariance Matrix condition number!\nIs the numpy package installed?"
-      mb_reporter = Qt.QMessageBox.warning(self, "ResultPlotter", Message)
+      mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
 
     if self._solver_data.calculateCovarEigenVectors():
       self._visu_plotter.set_eigenvectors(self._solver_data.getEigenVectors())
@@ -1131,7 +1131,7 @@ class ResultPlotter(GriddedPlugin):
       return
     if self._vells_data is None:
       Message = '3D displays are not yet implemented for this data type'
-      mb_reporter = Qt.QMessageBox.information(self, "ResultPlotter", Message)
+      mb_reporter = Qt.QMessageBox.information(None, "ResultPlotter", Message)
       return
     axis_increments = None
     if not display_flag_3D:

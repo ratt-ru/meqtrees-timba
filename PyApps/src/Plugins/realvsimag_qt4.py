@@ -1077,7 +1077,7 @@ class realvsimag_plotter(object):
                 self._plot_color = self.color_table[self._plot_color]
               else:
                 Message = self._plot_color + " is not a valid color.\n Using blue by default"
-                mb_reporter = Qt.QMessageBox.warning(self, "RealVsImag", Message)
+                mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._plot_color = "blue"
                 self._plot_color = self.color_table[self._plot_color]
             if self._mean_circle_color is None and self._plot_parms.has_key('mean_circle_color'):
@@ -1087,7 +1087,7 @@ class realvsimag_plotter(object):
                 self._mean_circle_color = self.color_table[self._mean_circle_color]
               else:
                 Message = self._plot_mean_circle_color + " is not a valid color.\n Using blue by default"
-                mb_reporter = Qt.QMessageBox.warning(self, "RealVsImag", Message)
+                mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._mean_circle_color = "blue"
                 self._mean_circle_color = self.color_table[self._mean_circle_color]
             if self._mean_circle_style is None and self._plot_parms.has_key('mean_circle_style'):
@@ -1095,7 +1095,7 @@ class realvsimag_plotter(object):
               _dprint(3, 'plot mean_circle_style set to ', self._mean_circle_style)
               if not self.line_style_table.has_key(self._mean_circle_style):
                 Message = self._mean_circle_style + " is not a valid line style.\n Using solid line by default."
-                mb_reporter = Qt.QMessageBox.warning(self, "RealVsImag", Message)
+                mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._mean_circle_style = "lines"
             if self._stddev_circle_color is None and self._plot_parms.has_key('stddev_circle_color'):
               self._stddev_circle_color = self._plot_parms.get('stddev_circle_color')
@@ -1104,7 +1104,7 @@ class realvsimag_plotter(object):
                 self._stddev_circle_color = self.color_table[self._stddev_circle_color]
               else:
                 Message = self._stddev_circle_color + " is not a valid color.\n Using blue by default"
-                mb_reporter = Qt.QMessageBox.warning(self, "RealVsImag", Message)
+                mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._stddev_circle_color = "blue"
                 self._stddev_circle_color = self.color_table[self._stddev_circle_color]
             if self._stddev_circle_style is None and self._plot_parms.has_key('stddev_circle_style'):
@@ -1112,7 +1112,7 @@ class realvsimag_plotter(object):
               _dprint(3, 'plot stddev_circle_style set to ', self._stddev_circle_style)
               if not self.line_style_table.has_key(self._stddev_circle_style):
                 Message = self._stddev_circle_style + " is not a valid line style.\n Using solid line by default."
-                mb_reporter = Qt.QMessageBox.warning(self, "RealVsImag", Message)
+                mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._stddev_circle_style = "lines"
             if self._plot_parms.has_key('legend'):
               legend = self._plot_parms.get('legend')
@@ -1429,7 +1429,7 @@ class realvsimag_plotter(object):
           curve.setPen(Qt.QPen(self._plot_color))
           if not self.line_style_table.has_key(self.plot_line_style):
             Message = self.plot_line_style + " is not a valid line style.\n Using dots by default"
-            mb_reporter = Qt.QMessageBox.warning(self, "RealVsImag", Message)
+            mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
             self.plot_line_style = "dots"
           line_style = self.line_style_table[self.plot_line_style]
           curve.setStyle(line_style)
@@ -1437,7 +1437,7 @@ class realvsimag_plotter(object):
           _dprint(3, 'self.plot_symbol ', self.plot_symbol)
           if not self.symbol_table.has_key(self.plot_symbol):
             Message = self.plot_symbol + " is not a valid symbol.\n Using circle by default"
-            mb_reporter = Qt.QMessageBox.warning(self, "RealVsImag", Message)
+            mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
             self.plot_symbol = "circle"
           plot_symbol = self.symbol_table[self.plot_symbol]
           _dprint(3, 'self.plot_symbol_size ', self.plot_symbol_size)
