@@ -455,8 +455,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.setPlotParms(parms,True)
         else:
           message= 'QwtImageDisplay dropEvent decode failure'
-          mb_reporter = Qt.QMessageBox.information(self, self.tr("QwtImageDisplay"),
-                    self.tr(message))
+          mb_reporter = Qt.QMessageBox.information(self, "QwtImageDisplay", message)
 
     def startDrag(self):
       """ operations done when we start a drag event """
@@ -1668,7 +1667,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           metrics_unknowns = "unknowns: " + str(self.metrics_unknowns[self.array_index,self.metrics_index])
           metrics_iteration = "iteration: " + str(self.array_index+1) + "\n"
 	  message = metrics_iteration + self.curve_info + str(x) +  "\nchi_0: " + str(y) +"\n" + metrics_rank + metrics_fit + metrics_chi + metrics_mu + metrics_flag + metrics_stddev + metrics_unknowns  
-#         mb_reporter = Qt.QMessageBox.information(self, self.tr("QwtImageDisplay"), self.tr(Message))
+#         mb_reporter = Qt.QMessageBox.information(self, "QwtImageDisplay", Message)
         else:
           if self._vells_plot:
             units = ""
@@ -3807,8 +3806,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     # setNanFlagsData()
 
     def message_reporter(self, message):
-      mb_reporter = Qt.QMessageBox.information(self, self.tr("QwtImageDisplay"),
-                    self.tr(message))
+      mb_reporter = Qt.QMessageBox.information(self, "QwtImageDisplay",message)
 
     def unsetFlagsData(self):
       self._flags_array = None

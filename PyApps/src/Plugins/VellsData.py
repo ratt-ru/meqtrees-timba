@@ -327,7 +327,7 @@ class VellsData:
            _dprint(3, 'The perturbed values cannot be displayed.')
 # don't display message for the time being
 #           Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
-#           mb_reporter = Qt.QMessageBox.warning(self, self.tr("QwtImageDisplay"), self.tr(Message))
+#           mb_reporter = Qt.QMessageBox.warning(self, "QwtImageDisplay", Message)
        if vells_rec.vellsets[i].has_key("flags"):
          toggle_index = "flag data " + str(i)
          self._plot_flags_dict[toggle_index] = vells_rec.vellsets[i].flags

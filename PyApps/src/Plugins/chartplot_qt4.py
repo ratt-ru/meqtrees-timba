@@ -806,7 +806,7 @@ class ChartPlot(Qt.QWidget):
       if not self._Zoom[crv] is None:
         self._Zoom[crv].show()
         Message = "A zoom of this curve is already opened"
-        zoom_message = Qt.QMessageBox.warning(self, self.tr("ChartPlot"), self.tr(Message))
+        zoom_message = Qt.QMessageBox.warning(self, "ChartPlot", Message)
 #       self._Zoom[crv].raise()
     else:
       #To know how many zoom windows opened (so +1)
@@ -909,11 +909,11 @@ class ChartPlot(Qt.QWidget):
       resizex(self._ArraySize)
     else:
       Message = "All zoom windows should be closed\nto perform action."
-      zoom_message = Qt.QMessageBox.warning(self, self.tr("ChartPlot"), self.tr(Message))
+      zoom_message = Qt.QMessageBox.warning(self, "ChartPlot", Message)
 
 # this is the equivalent of zoomwarn2.py - use this instead if and when ...
 #   Message = "Please put the offset at its maximum value\nbefore zooming by a click on the plot"
-#   mb_reporter = Qt.QMessageBox.information(self, self.tr("ChartPlot"), self.tr(Message))
+#   mb_reporter = Qt.QMessageBox.information(self, "ChartPlot", Message)
 
   def resizex(self, size):
     """ Get the size the arrays should have

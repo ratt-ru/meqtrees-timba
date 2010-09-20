@@ -229,8 +229,7 @@ class QwtColorBar(Qwt.QwtPlot):
                 self.setRange(min, max, colorbar, amp_phas)
         else:
           message= 'QwtColorBar dropEvent decode failure'
-          mb_reporter = Qt.QMessageBox.information(self, self.tr("QwtColorBar"),
-                    self.tr(message))
+          mb_reporter = Qt.QMessageBox.information(self, "QwtColorBar",message)
         event.acceptProposedAction()
 
     def startDrag(self,event):

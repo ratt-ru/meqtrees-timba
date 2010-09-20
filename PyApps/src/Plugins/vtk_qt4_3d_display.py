@@ -745,8 +745,8 @@ class vtk_qt_3d_display(qt.QWidget):
         incoming_array = inc_array[::incs[0],::incs[1]]
       else:
         incoming_array = inc_array[::incs[0],::incs[1],::incs[2]]
-#     Message = "Array has been resampled to fit the 3D VTK display"
-#     mb_reporter = Qt.QMessageBox.warning(self, self.tr("VtkDisplay"), self.tr(Message))
+      Message = "Array has been resampled to fit the 3D VTK display"
+      mb_reporter = Qt.QMessageBox.warning(self, "VtkDisplay", Message)
     else:
       incoming_array = inc_array
     
