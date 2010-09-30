@@ -221,8 +221,8 @@ public:
   static Strides null_strides;
 
   // deine some constant Vells
-  static const Vells & Null  ()   { _init_static_data(); return *pNull_; }
-  static const Vells & Unity ()   { _init_static_data(); return *pUnity_; }
+  static const Vells & Null  ()   { _init_static(); return *pNull_; }
+  static const Vells & Unity ()   { _init_static(); return *pUnity_; }
 
   //##ModelId=3F86887001D4
   //##Documentation
@@ -728,23 +728,28 @@ public:
   // If flags0 is invalid, attaches new flags.
   static void mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm);
 
-// internal initialization of static Vells data
-// (to be done only once, preferrably on startup)
-  static int _init_static_data ()
-  {
-    if( !_static_init_done )
-      _init_static_impl();
-    return 1;
-  }
-
 private:
-  Vells::Ref  dataflags_;
-
-  static bool _static_init_done;
+// internal initialization functions (called only once)
+  static void _init_static ()
+  {
+    static bool done = false;
+    if( done )
+      return;
+    static Thread::Mutex mutex;
+    Thread::Mutex::Lock lock(mutex);
+    if( !done )
+    {
+      done = true;
+      _init_static_impl();
+    }
+  }
   static void _init_static_impl ();
-
   static const Vells *pNull_;
   static const Vells *pUnity_;
+  
+  
+
+  Vells::Ref  dataflags_;
 
   static VellsFlagType null_flag_;
   static Shape null_flag_shape_;

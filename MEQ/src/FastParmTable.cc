@@ -438,7 +438,7 @@ bool FastParmTable::nextFunklet (string &name,int &domain_index)
 }
 
 FastParmTable::DomainEntry::DomainEntry ()
-{ memset(defined,sizeof(defined),0); }
+{ memset(defined,0,sizeof(defined)); }
 
 FastParmTable::DomainEntry::DomainEntry (const Domain &dom)
 {

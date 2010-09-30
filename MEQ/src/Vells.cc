@@ -43,18 +43,12 @@ Vells::Shape Vells::null_flag_shape_(1);
 
 const Vells * Vells::pNull_ = 0;
 const Vells * Vells::pUnity_ = 0;
-bool Vells::_static_init_done = false;
 
 void Vells::_init_static_impl ()
 {
-  if( !_static_init_done )
-  {
-    Vells::pNull_  = new Vells(double(0));
-    Vells::pUnity_ = new Vells(double(1));
-    _static_init_done = true;
-  }
+  Vells::pNull_  = new Vells(double(0),false);
+  Vells::pUnity_ = new Vells(double(1),false);
 }
-static int _init_static_force = Vells::_init_static_data();
 
 Vells::Strides Vells::null_strides;
 

@@ -264,23 +264,40 @@ void MeqServer::getForestState (DMI::Record::Ref &out,DMI::Record::Ref &)
   fillForestStatus(out(),2);
 }
 
+// safe POSIX-complicant method to change working directory
+std::string getCwd ()
+{
+  char *pbuf = 0;
+  std::vector<char> buf;
+  while( !pbuf )
+  {
+    buf.resize(buf.size()+1024);
+    pbuf = getcwd(&(buf[0]),buf.size());
+    if( !pbuf && errno != ERANGE )
+      return "";
+  }
+  return std::string(pbuf);
+}
+
 void MeqServer::setCurrentDir (DMI::Record::Ref &out,DMI::Record::Ref &in)
 {
   cdebug(3)<<"setCurrentDir()"<<endl;
   string dirname = in[AidCwd].as<string>("");
   if( !dirname.empty() )
   {
-    // get old WD
-    char buf[1024];
-    getcwd(buf,sizeof(buf)); buf[sizeof(buf)-1] = 0;
-    string old_wd(buf);
+    string old_wd = getCwd();
     // change WD
-    chdir(dirname.c_str());
-    // compare to cwd, to see if anything has changed (do it the roundabout way to handle symlinks, etc.)
-    getcwd(buf,sizeof(buf)); buf[sizeof(buf)-1] = 0;
-    string new_wd(buf);
-    if( new_wd.compare(old_wd) )
-      out()[AidMessage] = "kernel working directory is now "+new_wd;
+    if( chdir(dirname.c_str())<0 )
+    {
+      out()[AidError] = string("error changing directory to ")+dirname+": "+strerror(errno);
+    }
+    else
+    {
+      // compare to cwd, to see if anything has changed (do it the roundabout way to handle symlinks, etc.)
+      string new_wd = getCwd();
+      if( new_wd.compare(old_wd) )
+        out()[AidMessage] = "kernel working directory is now "+new_wd;
+    }
   }
   fillForestStatus(out(),in[FGetForestStatus].as<int>(2));
 }
