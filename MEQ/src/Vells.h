@@ -739,15 +739,15 @@ private:
     Thread::Mutex::Lock lock(mutex);
     if( !done )
     {
-      done = true;
       _init_static_impl();
+      done = true;
     }
   }
   static void _init_static_impl ();
   static const Vells *pNull_;
   static const Vells *pUnity_;
-  
-  
+
+
 
   Vells::Ref  dataflags_;
 
