@@ -340,6 +340,10 @@ void Brigade::stop ()
   for( uint i=0; i<workers_.size(); i++ )
     if( workers_[i].launched_by_us )
       workers_[i].thread_id.cancel();
+  // wait for them to rejoin
+  for( uint i=0; i<workers_.size(); i++ )
+    if( workers_[i].launched_by_us )
+      workers_[i].thread_id.join();
 }
 
 // this executes a node-execute work order.

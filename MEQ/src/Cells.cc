@@ -173,7 +173,7 @@ Cells::Cells (const Cells &other,const int ops[Axis::MaxAxis],const int args[Axi
         setNumSegments(iaxis,other.numSegments(iaxis));
         seg_start_[iaxis] = other.seg_start_[iaxis];
         seg_end_[iaxis]   = other.seg_end_[iaxis];
-      } 
+      }
       else if( op == INTEGRATE )
       {
         int np1 = np/arg;
@@ -208,7 +208,7 @@ Cells::Cells (const Cells &other,const int ops[Axis::MaxAxis],const int args[Axi
         recomputeSegments(iaxis);
       }
     } // endif( np )
-    else // else no cells along this axis 
+    else // else no cells along this axis
       setNumCells(iaxis,0);
   }
 }
@@ -264,7 +264,7 @@ void Cells::setCells (int iaxis,const LoVec_double &cen,const LoVec_double &size
   // recomputes the segments
   recomputeSegments(iaxis);
 }
-  
+
 void Cells::setCells (int iaxis,const LoVec_double &cen,double size)
 {
   Thread::Mutex::Lock lock(mutex());
@@ -336,7 +336,7 @@ void Cells::recomputeSegments (int iaxis)
     const LoVec_double &h = cell_size_[iaxis];
     // epsilon value used to compare for near-equality
     double epsilon = fabs(x(0) - x(num-1))*1e-10;
-    
+
     LoVec_int start(num),end(num);
     start(0)=0; end(0)=0;
     int iseg = 0;
@@ -412,7 +412,7 @@ void Cells::validateContent (bool)
       // now iterate over the grid record to determine which axes are
       // defined
       for( ConstIterator iter = rgrid.begin(); iter != rgrid.end(); iter++ )
-      { 
+      {
         const HIID &id = iter.id();
 // NB: not sure what I was thinking of here, why can't we have longer axis IDs?
 //        FailWhen(id.size()!=1,"illegal axis ID "+id.toString());
@@ -422,15 +422,18 @@ void Cells::validateContent (bool)
         // check that this axis is defined in the domain
         FailWhen(!domain_->isDefined(iaxis),"axis "+id.toString()+" not defined in domain");
         // set grid centers and axis shape
-        grid_[iaxis].reference(rgrid[id].as<LoVec_double>());
-        int np = grid_[iaxis].size();
+        int np;
+        const double * pgrid = rgrid[id].as_p<double>(np);
+        LoShape1 shape(np);
+        grid_[iaxis].reference(LoVec_double(const_cast<double*>(pgrid),shape,blitz::neverDeleteData));
         setAxisShape(iaxis,np);
         // now, the axis must be present in all other records, and shapes must match
-        cell_size_[iaxis].reference(rcs[id].as<LoVec_double>());
-        Assert(cell_size_[iaxis].size() == np);
-        seg_start_[iaxis].reference(rseg[id][FStartIndex].as<LoVec_int>());
-        seg_end_[iaxis].reference(rseg[id][FEndIndex].as<LoVec_int>());
-        Assert(seg_start_[iaxis].size()==seg_end_[iaxis].size());
+        cell_size_[iaxis].reference(LoVec_double(const_cast<double*>(rcs[id].as_p<double>(np)),shape,blitz::neverDeleteData));
+        Assert(np==shape[0]);
+        int np1,np2;
+        seg_start_[iaxis].reference(LoVec_int(const_cast<int*>(rseg[id][FStartIndex].as_p<int>(np1)),shape,blitz::neverDeleteData));
+        seg_end_[iaxis].reference(LoVec_int(const_cast<int*>(rseg[id][FEndIndex].as_p<int>(np2)),shape,blitz::neverDeleteData));
+        Assert(np1==np2);
       }
       protectField(FDomain);
       protectField(FGrid);
@@ -455,9 +458,9 @@ void Cells::validateContent (bool)
   catch( ... )
   {
     Throw("validate of Cells record failed with unknown exception");
-  }  
+  }
 }
- 
+
 void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) const
 {
   Thread::Mutex::Lock lock(mutex());
@@ -467,18 +470,18 @@ void Cells::getCellStartEnd (LoVec_double &start,LoVec_double &end,int iaxis) co
   end.resize(num);
   const LoVec_double &cen = center(iaxis);
   hw = cellSize(iaxis)/2;
-  start = cen - hw; 
+  start = cen - hw;
   end   = cen + hw;
 }
 
-void Cells::superset (Cells::Ref &ref,const Cells &a,const Cells &b) 
+void Cells::superset (Cells::Ref &ref,const Cells &a,const Cells &b)
 {
   if( !a.domain_.valid() )
   {
     ref.attach(b);
     return;
   }
-  if( !b.domain_.valid() ) 
+  if( !b.domain_.valid() )
   {
     ref.attach(a);
     return;
@@ -537,9 +540,9 @@ int Cells::compare (const Cells &that) const
   if( !domain_.valid() ) // are we empty?
     return !that.domain_.valid(); // equal if that is empty too, else not
   // check for equality of domains & shapes
-  if( !that.domain_.valid() || 
+  if( !that.domain_.valid() ||
       domain() != that.domain() )
-    return -1; 
+    return -1;
   if( shape() != that.shape() )
     return 1;
   // ***BUG***
