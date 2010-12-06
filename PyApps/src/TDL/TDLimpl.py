@@ -1250,7 +1250,7 @@ class _NodeRepository (dict):
         node.nodeindex = node._initrec.nodeindex = current_nodeindex;
         current_nodeindex += 1;
         node._initrec.node_description = ':'.join((name,node.classname,node._debuginfo));
-        node._initrec.name = node.name;\
+        node._initrec.name = node.name;
         _dprint(3,'checked node',node.name,'nodeindex',node.nodeindex);
         ch = None; # relinquish ref to node, otherwise orphan collection is confused
     node = None;  # relinquish ref to node, otherwise orphan collection is confused
@@ -1348,8 +1348,8 @@ class NodeScope (object):
     with ','. All else failing, uses plain str.
     """;
     name = getattr(value,'name',None);
-    if isinstance(name,str):
-      return name;
+    if name is not None:
+      return str(name)
     if isinstance(value,(list,tuple)):
       return ','.join(map(NodeScope._resolve_to_string,value));
     return str(value);
@@ -1365,9 +1365,11 @@ class NodeScope (object):
   def _apply_qualifiers (name,quals=[],kwquals={}):
     """Qualifies a name by appending qualifiers to it, in the form
     of name:a1:a2:k1=v1:k2=v2, etc."""
-    return ':'.join([str(name)]+
-                     map(NodeScope._resolve_to_string,quals)+
-                     NodeScope._flatten_keyword_quals(kwquals));
+    resolve_qual = NodeScope._resolve_to_string
+    parts = [str(name)]
+    parts.extend(resolve_qual(q) for q in quals)
+    parts.extend("%s=%s" % (str(k), resolve_qual(v)) for k,v in kwquals.iteritems())
+    return ':'.join(parts)
   _apply_qualifiers = staticmethod(_apply_qualifiers);
 
   def Subscope (self,name,*quals,**kwquals):

@@ -143,20 +143,20 @@ def make_hiid_list (x):
 def dmize_object (obj):
   "coerces object into a DMI-supported type as needed. Returns the "
   "object on success, or raises a TypeError on failure";
+  return obj;
   if obj is None:
     return obj;
+  
   # check if sequence of supported types
   if isinstance(obj,(list,tuple)):
-    seqtype = type(obj);
-    if not len(obj):    # empty sequences always allowed
-      return obj;   
-    outlist = [ dmize_object(item) for item in obj ]; 
+    for item in obj:
+      # test each item
+      dmize_object(item);
     # convert resulting list back into original sequence type
-    return seqtype(outlist);
+    return obj;
   # else expect object of supported type, returned as-is
-  for tp in _dmi_typename_map.keys():
-    if isinstance(obj,tp):
-      return obj;
+  if type(obj) in _dmi_typename_map:
+    return obj;
   raise TypeError,'dmi: type %s not supported'%type(obj);
 
 

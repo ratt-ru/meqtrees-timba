@@ -416,7 +416,7 @@ class _TDLOptionSeparator (_TDLBaseOption):
       widget = QLabel(tw);
       widget.setFrameStyle(QFrame.Sunken|QFrame.HLine)
     tw.setItemWidget(item,0,widget);
-    item.setFlags(Qt.NoItemFlags);
+    # item.setFlags(Qt.NoItemFlags);  # Qt.NoItemFlags only defined after 4.4
     item.setFirstColumnSpanned(True);
     item._is_separator = True;
     return self.set_treewidget_item(item);
