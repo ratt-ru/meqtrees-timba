@@ -3861,7 +3861,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.emit(Qt.SIGNAL("save_display"),self._window_title)
 
     def handle_modify_plot_parameters(self):
-      message = 'The option to modify plot parameters does not work at the mement'
+      message = 'The option to modify plot parameters does not work at present'
       self.message_reporter(message)
 #     self.updatePlotParameters()
 
