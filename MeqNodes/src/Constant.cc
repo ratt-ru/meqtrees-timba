@@ -126,20 +126,22 @@ void Constant::setStateImpl (DMI::Record::Ref& rec, bool initializing)
       {
         FailWhen(type!=Tpdcomplex && type!=Tpdouble,
             "field "+FValue.toString()+" is of illegal type "+type.toString());
+        Result &res = result_ <<= new Result(shp);
         if( type == Tpdcomplex )
         {
-          Result &res = result_ <<= new Result(shp);
           const dcomplex *data = static_cast<const dcomplex*>(parr->getConstDataPtr());
           for( int i=0; i<parr->size(); i++ )
             res.setNewVellSet(i).setValue(new Vells(data[i],false));
         }
         else if( type == Tpdouble )
         {
-          Result &res = result_ <<= new Result(shp);
           const double *data = static_cast<const double*>(parr->getConstDataPtr());
           for( int i=0; i<parr->size(); i++ )
             res.setNewVellSet(i).setValue(new Vells(data[i],false));
         }
+        LoShape dims;
+        if( rec[FDims].get_vector(dims) )
+          res.setDims(dims);
       }
     }
     else // scalar value: create scalar result

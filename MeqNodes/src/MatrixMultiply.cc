@@ -270,7 +270,7 @@ int MatrixMultiply::getResult (Result::Ref &resref,
       }
       // check for matching dims
       FailWhen(da[1] != db[0],
-               ssprintf("matrix dimensions of child %d incompatible with previous child",ich));
+               ssprintf("number of columns of child %d (%d) incompatible with number of rows from child %d (%d)",ich-1,da[1],ich,db[0]));
       // setup output result
       Result *pres;
       if( db[1] == 1 )

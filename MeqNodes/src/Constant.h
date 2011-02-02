@@ -42,6 +42,8 @@
 //field: value 0.0  
 //  value of constant - double or complex double scalar or array (if array
 //  is used, a tensor will be returned)
+//field: dims
+//  dimensions of tensor -- if a tensor result is supplied
 //field: vells F  
 //  variable constant (ugly hack) - expected double or complex double array.
 //  Subsequent request cells must have the same shape.
