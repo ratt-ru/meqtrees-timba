@@ -27,6 +27,7 @@ Az                               1710       ; from /home/sarod/Timba/MeqNodes/sr
 AzEl                             1711       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:53
 B                                1019       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Balanced                         1668       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
+Band                             1769       ; from TFSmearFactor.h:33
 Bandwidth                        1176       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:32
 Baseline                         1682       ; from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:35
 Batch                            1563       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:13
@@ -236,6 +237,7 @@ IFR                              1179       ; from /home/oms/LOFAR/Timba/VisCube
 Ignore                           1149       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:36
 IMTestWP                         1110       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 In                               1207       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
+Include                          1765       ; from UVW.h:32
 Incr                             1661       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:41
 Increment                        1598       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 Incremental                      1515       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:32
@@ -271,6 +273,7 @@ Legacy                           1745       ; from /home/oms/Timba/AppAgent/AppU
 Level                            1047       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
 LHS                              1687       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Condeq.h:33
 Lib                              1697       ; from /home/mevius/Timba/MEQ/src/MeqVocabulary.h:43
+Limit                            1770       ; from TFSmearFactor.h:33
 Line                             1358       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:37
 LineNo                           1577       ; from /home/oms/LOFAR/Timba/DMI/src/Exception.h:30
 Lines                            1194       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
@@ -443,6 +446,7 @@ MeqStatPointSourceDFT            1396       ; from /home/oms/LOFAR/Timba/MeqNode
 MeqTestClass                     1572       ; from /home/mevius/LOFAR/Timba/MEQ/src/TestClass.h:7
 MeqTFSmear                       1746       ; from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
 #MeqTFSmearFactor                1748       ; from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
+#MeqTFSmearFactorApprox          1766       ; from TFSmearFactorApprox.h:32
 #MeqTime                         1451       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
 #MeqToComplex                    1413       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
 #MeqTranspose                    1521       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
@@ -484,6 +488,7 @@ Multi                            1518       ; from /home/oms/LOFAR/Timba/MeqNode
 N                                1028       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 Name                             1122       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 Names                            1328       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:36
+Narrow                           1767       ; from TFSmearFactor.h:33
 ndim                             1309       ; from /home/oms/LOFAR/Timba/MEQ/src/Domain.h:33
 NE                               1381       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:33
 Negative                         1672       ; from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
@@ -645,6 +650,7 @@ Sink                             1470       ; from /home/oms/LOFAR/Timba/MeqServ
 Size                             1255       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 Sizes                            1560       ; from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
 Skeleton                         1389       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataConcat.h:31
+Smear                            1768       ; from TFSmearFactorApprox.h:33
 Snippet                          1621       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:33
 Solution                         1525       ; from /home/oms/LOFAR/Timba/MEQ/src/Forest.h:33
 Solutions                        1514       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:32
