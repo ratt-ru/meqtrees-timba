@@ -95,18 +95,18 @@ MSInputChannel::MSInputChannel ()
 {
 }
 
-    
+
 //##ModelId=3DF9FECD0285
 void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
 {
   // get relevant selection parameters
-  int ddid = select[FDDID].as<int>(0);        
-  int fieldid = select[FFieldIndex].as<int>(0);        
-  
+  int ddid = select[FDDID].as<int>(0);
+  int fieldid = select[FFieldIndex].as<int>(0);
+
   // place current selection into header
   // clone a readonly snapshot, since selection will not change
   hdr[FSelection] <<= new DMI::Record(select,DMI::DEEP|DMI::READONLY);
-  
+
   // get phase reference from FIELD subtable
   {
     MSField mssub(ms_.field());
@@ -132,16 +132,16 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
     Array<Double> ch_width = mssubc.chanWidth()(spw);
     num_channels_ = ch_freq.nelements();
     if( channels_[0]<0 )
-      channels_[0] = 0; 
+      channels_[0] = 0;
     if( channels_[1]<0 )
-      channels_[1] = num_channels_+channels_[1]; 
+      channels_[1] = num_channels_+channels_[1];
     if( channels_[0] > num_channels_ )
       channels_[0] = num_channels_-1;
     if( channels_[1] > num_channels_ )
       channels_[1] = num_channels_-1;
     if( channels_[1] < channels_[0] )
     {
-      int dum = channels_[1]; channels_[1] = channels_[0]; channels_[0] = dum; 
+      int dum = channels_[1]; channels_[1] = channels_[0]; channels_[0] = dum;
     }
     IPosition ip0(1,channels_[0]),ip1(1,channels_[1]),iinc(1,channel_incr_);
     Array<Double> ch_freq1 = ch_freq(ip0,ip1,iinc);
@@ -152,7 +152,7 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
       ch_width1 *= 1.25;
     // recompute # channels since an increment may have been applied
     num_channels_ = ch_freq1.nelements();
-    // if frequencies are in decreasing order, freq axis needs to be flippedApplyHanning
+    // if frequencies are in decreasing order, freq axis needs to be flipped
     if( ch_freq1(IPosition(1,0)) > ch_freq1(IPosition(1,num_channels_-1)) )
     {
       dprintf(2)("reversing frequency channel\n");
@@ -187,7 +187,7 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
     hdr[FAntennaPos] = mssubc.position().getColumn();
   }
 }
- 
+
 //##ModelId=3DF9FECD025E
 void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
 {
@@ -195,17 +195,17 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   // open MS
   ms_ = MeasurementSet(msname_,TableLock(TableLock::AutoNoReadLocking),Table::Old);
   dprintf(1)("opened MS %s, %d rows\n",msname_.c_str(),ms_.nrow());
-  
+
   dprintf(3)("selection record is %s\n",select.sdebug(4).c_str());
-  
+
   // get DDID and Field ID (default is 0)
-  int ddid = select[FDDID].as<int>(0);        
-  int fieldid = select[FFieldIndex].as<int>(0);        
+  int ddid = select[FDDID].as<int>(0);
+  int fieldid = select[FFieldIndex].as<int>(0);
   // Get range of channels (default values: all channles)
   channels_[0] = select[FChannelStartIndex].as<int>(0);
   channels_[1] = select[FChannelEndIndex].as<int>(-1);
   channel_incr_ = select[FChannelIncrement].as<int>(1);
-  
+
   // fill header from MS
   fillHeader(header,select);
   // put MS name into header
@@ -216,16 +216,16 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   getcwd(cwd_temp,cwdsize);
   header[FCwd] = cwd_temp;
   delete [] cwd_temp;
-  
+
   // figure out max ifr index
   num_ifrs_ = ifrNumber(num_antennas_-1,num_antennas_-1) + 1;
-  
+
   // We only handle the given field & data desc id
   TableExprNode expr = ( ms_.col("FIELD_ID") == fieldid && ms_.col("DATA_DESC_ID") == ddid );
   selms_ = ms_(expr);
   // sort by time
   selms_.sort("TIME");
-  
+
   vdsid_ = VDSID(obsid_++,0,0);
   header[FVDSID] = static_cast<HIID&>(vdsid_);
   header[FDDID] = ddid;
@@ -233,16 +233,17 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   header[FDataType] = HIID("MS.Non.Calibrated");
   header[FDataColumnName] = dataColName_;
   header[FDomainIndex] = -1; // negative domain index indicates full data
-  
+
   header[FChannelStartIndex] = channels_[0];
   header[FChannelEndIndex]   = channels_[1];
   header[FChannelIncrement]  = channel_incr_;
-  
+  header[FTimeIncrement] = time_incr_;
+
   // get and apply selection string
   String where = select[FSelectionString].as<string>("");
   dprintf(1)("select ddid=%d, field=%d, where=\"%s\", channels=[%d:%d]\n",
       ddid,fieldid,where.c_str(),channels_[0],channels_[1]);
-  if( where.empty() ) 
+  if( where.empty() )
   {
     tableiter_  = TableIterator(selms_, "TIME");
   }
@@ -257,13 +258,13 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
     "matching your current Data Description and/or Field ID setting, or to a too-restrictive "
     "TaQL selection string.");
   dprintf(1)("MS selection yields %d rows\n",selms_.nrow());
-  
+
   // do we have a WEIGHT_SPECTRUM column at all?
   const TableDesc & tabledesc = selms_.tableDesc();
   has_weights_ = tabledesc.isColumn("WEIGHT_SPECTRUM");
-  
+
   // do we have a BITFLAG column?
-  has_bitflags_ = tabledesc.isColumn("BITFLAG") && tabledesc.isColumn("BITFLAG_ROW"); 
+  has_bitflags_ = tabledesc.isColumn("BITFLAG") && tabledesc.isColumn("BITFLAG_ROW");
   dprintf(1)(has_bitflags_?"Found BITFLAG extension in this MS, will look for flags there":"No BITFLAG extension found, using standard FLAG column");
   if( !has_bitflags_ )
     flagmask_ = 0;
@@ -283,7 +284,7 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   ROScalarColumn<Double> expCol(selms_,"EXPOSURE");
   Vector<Double> exposures = expCol.getColumn();
 
-  // times are sorted. We go over them to discover timeslots, i.e. "chunks" 
+  // times are sorted. We go over them to discover timeslots, i.e. "chunks"
   // with the same timestamp. Every time we find a new timeslot, we check if
   //  (a) it's in a new tile (i.e. we've gone past the tilesize)
   //  (b) it's in a different segment (i.e. delta-t has changed)
@@ -295,11 +296,11 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   // current segment within this tile (when using multiple segments per tile)
   int num_subsegment = 0;
   // size of current segment
-  int segment_size = 0; 
+  int segment_size = 0;
   // delta-t of current segment
-  Double seg_delta = -1;         
+  Double seg_delta = -1;
   // timestamp of current timeslot
-  Double curtime = 0; 
+  Double curtime = 0;
   // number of timeslots per each tile
   tile_sizes_.resize(nrows);     // make big enough, will resize back later
   tile_sizes_[0] = 0;            // first timeslot in first tile
@@ -308,11 +309,17 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   // starting time of each tile
   std::vector<double> start_times(nrows);
   // now loop over all times
+  int cur_incr_ = 0;
   for( int i=0; i<nrows; i++ )
   {
     Double tm = times(i);
     if( i && tm == curtime ) // skip if in same timeslot
       continue;
+    // skip over specified number of timeslots
+    cur_incr_++;
+    if( cur_incr_ < time_incr_ )
+      continue;
+    cur_incr_ = 0;
     // at this point we have a new timeslot
     exposure_times_[current_ts] = exposures(i);
     current_ts++;
@@ -324,12 +331,12 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
       start_times[current_tile] = tm;
     // add timeslot to current subsegment
     segment_size++;
-    // if this is the second timeslot in a segment, set the segment's 
-    // delta-t value. 
+    // if this is the second timeslot in a segment, set the segment's
+    // delta-t value.
     if( segment_size == 2 )
       seg_delta = delta;
     // else if third+ timeslot, check if delta-t has changed and start
-    // a new segment if it has. 
+    // a new segment if it has.
     else if( segment_size>2 && fabs(delta - seg_delta) > .1 )
     {
       num_subsegment++;
@@ -356,7 +363,7 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
       segment_size = 0;
     }
   }
-  // ok, at this point we've found current_tile+1 tiles, although the last 
+  // ok, at this point we've found current_tile+1 tiles, although the last
   // one may be empty. Resize the size vector as appropriate
   if( tile_sizes_[current_tile] )
     current_tile++;
@@ -372,14 +379,14 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
       dprintf(2)("  %d: size %d time %.2f\n",i,tile_sizes_[i],start_times[i]);
     }
   }
-  
+
   // init global tile and timeslot counter
   current_tile_ = current_timeslot_ = 0;
-  
+
   // get the original shape of the data array
   LoShape datashape = ROArrayColumn<Complex>(selms_,dataColName_).shape(0);
   header[FOriginalDataShape] = datashape;
-  
+
   tableiter_.reset();
 }
 
@@ -390,7 +397,7 @@ int MSInputChannel::init (const DMI::Record &params)
     return state();
 
   DMI::Record &header = *new DMI::Record;
-  ObjRef href(header,DMI::ANONWR); 
+  ObjRef href(header,DMI::ANONWR);
 
   // get MS and selection
   msname_ = params[FMSName].as<string>();
@@ -401,9 +408,12 @@ int MSInputChannel::init (const DMI::Record &params)
   // get name of data column (default is DATA)
   dataColName_ = params[FDataColumnName].as<string>("DATA");
   predictColName_ = params[FPredictColumnName].as<string>("");
-  // get # of timeslots or # of segments per tile 
+  // get # of timeslots or # of segments per tile
   tilesize_ = params[FTileSize].as<int>(0);
   tilesegs_ = params[FTileSegments].as<int>(0);
+  time_incr_ = params[FTimeIncrement].as<int>(1);
+  if( time_incr_ < 1)
+    time_incr_ = 1;
 //// 15/01/2007: I no longer see the logic of this restriction, so I'm removing it
 //  FailWhen( tilesegs_>1 && tilesize_,"Can't specify a "+FTileSize.toString()+
 //        " with "+FTileSegments.toString()+">1");
@@ -418,7 +428,7 @@ int MSInputChannel::init (const DMI::Record &params)
   // phase inversion?
   invert_phases_ = params[FInvertPhases].as<bool>(false);
 
-  openMS(header,*pselection);  
+  openMS(header,*pselection);
 
   // init common tile format and place it into header
   tileformat_ <<= new VTile::Format;
@@ -426,10 +436,10 @@ int MSInputChannel::init (const DMI::Record &params)
   if( !predictColName_.empty() )
     tileformat_().add(VTile::PREDICT,Tpfcomplex,LoShape(num_corrs_,num_channels_));
 
-  header[FTileFormat] <<= tileformat_.copy(); 
+  header[FTileFormat] <<= tileformat_.copy();
 
   tiles_.clear();
-  
+
   setState(HEADER);
 
   // put header on output stream
@@ -480,7 +490,7 @@ int MSInputChannel::refillStream ()
       {
         setState(FOOTER);
         DMI::Record::Ref footer(DMI::ANONWR);
-        footer()[FVDSID] = vdsid_; 
+        footer()[FVDSID] = vdsid_;
         putOnStream(VisEventHIID(FOOTER,vdsid_),footer);
         selms_ = MeasurementSet();
         ms_ = MeasurementSet();
@@ -497,11 +507,11 @@ int MSInputChannel::refillStream ()
           "inconsistency in MS: TableIterator yields more timeslots than expected");
       int current_tilesize = tile_sizes_[current_tile_];
       // the tile_times vector will be assigned to the TIME column of each
-      // tile. 0 times are used to indicate rows that are missing in EVERY
+      // tile. time=0 is are used to indicate rows that are missing in EVERY
       // tile.
       LoVec_double tile_times(current_tilesize);
       tile_times(LoRange::all()) = 0;
-      for( int ntimes = 0; ntimes < current_tilesize && !tableiter_.pastEnd(); ntimes++,tableiter_++ )
+      for( int ntimes = 0; ntimes < current_tilesize && !tableiter_.pastEnd(); ntimes++ )
       {
         const Table &table = tableiter_.table();
         int nrows = table.nrow();
@@ -529,7 +539,7 @@ int MSInputChannel::refillStream ()
         if( has_weights_ )
         {
           try
-          { 
+          {
             weightcube1 = ROArrayColumn<Float>(table,"WEIGHT_SPECTRUM").getColumn();
             weightcube.reference(B2A::refAipsToBlitz<float,3>(weightcube1));
             weightcube.reference(weightcube(ALL,CHANS,ALL));
@@ -667,14 +677,14 @@ int MSInputChannel::refillStream ()
           if( !predictColName_.empty() )
             predcube.reverseSelf(blitz::secondDim);
         }
-        // get vector of row numbers 
+        // get vector of row numbers
         Vector<uInt> rownums = table.rowNumbers(ms_);
     // now process rows one by one
         for( int i=0; i<nrows; i++ )
         {
           int ant1 = ant1col(i), ant2 = ant2col(i);
           int ifr = ifrNumber(ant1,ant2);
-    // init tile if one is not ready 
+    // init tile if one is not ready
           VTile *ptile;
           if( tiles_[ifr].valid() )
             ptile = tiles_[ifr].dewr_p();
@@ -714,7 +724,10 @@ int MSInputChannel::refillStream ()
           }
           ptile->wseqnr()(ntimes) = rownums(i);
         }
+        // increment current timeslot number
         current_timeslot_++;
+        for( int k=0; k<time_incr_; k++ )
+          tableiter_++;
       }
       current_tile_++;
       // output all valid collected tiles onto stream, but do fill in

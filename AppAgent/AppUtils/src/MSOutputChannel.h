@@ -23,7 +23,7 @@
 
 #ifndef MSVISAGENT_SRC_MSOUTPUTCHANNEL_H_HEADER_INCLUDED_F5146265
 #define MSVISAGENT_SRC_MSOUTPUTCHANNEL_H_HEADER_INCLUDED_F5146265
-    
+
 #include <AppAgent/FileChannel.h>
 #include <AppUtils/MSChannelDebugContext.h>
 #include <AppUtils/MSChannelVocabulary.h>
@@ -39,7 +39,7 @@
 namespace AppAgent
 {
 using namespace DMI;
-  
+
 using namespace VisCube;
 using namespace VisVocabulary;
 
@@ -78,18 +78,18 @@ class MSOutputChannel : public FileChannel
     //## returns true. Apps can check this before posting "expensive" events.
     //## Default implementation always returns false.
     virtual bool isEventBound(const HIID &id,AtomicID cat=AidNormal);
-    
+
     //##ModelId=3E283172001B
     string sdebug(int detail = 1, const string &prefix = "", const char *name = 0) const;
-    
+
     //##ModelId=400E5B6C00EC
     ImportDebugContext(MSChannelDebugContext);
-    
+
   protected:
     //## closes and detaches from the MS
     void close_ms ();
-      
-      
+
+
     //##ModelId=3EC25F74033F
     //##Documentation
     //## called to put more objects on the stream. Returns SUCCESS if something
@@ -97,20 +97,20 @@ class MSOutputChannel : public FileChannel
     virtual int refillStream();
 
     //##ModelId=3E2ED3290292
-    typedef struct 
+    typedef struct
     {
       string name;
       casa::ArrayColumn<casa::Complex> col;
       bool   valid;
     }
     Column;
-    
+
     //##ModelId=3E2831C7011D
     MSOutputChannel(const MSOutputChannel& right);
 
     //##ModelId=3E2831C70155
     MSOutputChannel& operator=(const MSOutputChannel& right);
-    
+
     //##ModelId=3E2D73EB00CE
     bool setupDataColumn (Column &col);
 
@@ -130,74 +130,75 @@ class MSOutputChannel : public FileChannel
     //## suspended (i.e. from other end), returns WAIT (wait=false), or
     //## blocks until it is resumed (wait=true)
     //## Returns: SUCCESS   on success
-    //##          WAIT      stream has been suspended from other end    
+    //##          WAIT      stream has been suspended from other end
     //##          CLOSED    stream closed
     virtual void doPutTile (const VTile &tile);
-    
-    
+
+
     virtual void doPutFooter (const DMI::Record &footer);
 
     //##ModelId=3F5F436303AB
     void putColumn (Column &col,int irow,const LoMat_fcomplex &data);
-    
+
     //##ModelId=3E2D6130030C
     string msname_;
-        
+
     //##ModelId=3E2BC34C0076
     casa::MeasurementSet ms_;
-    
+
     //##ModelId=3E2D5FF503A1
     DMI::Record params_;
-    
+
     // true if we use the (nonstandard) BITFLAG/BITFLAG_ROW columns
     bool use_bitflag_col_;
-    
+
     // true if we're writing to BITFLAG/BITFLAG_ROW columns. (If False, then we're probably
     // just refilling the legacy FLAG columns based on BITFLAG.)
     bool write_bitflag_;
-    
+
     // If using bitflags, then output MS bitflag is
     //    input_ms_bitflag&ms_flagmask | where(tile_flags&tile_flagmask,tile_bitflag,0)
     int  ms_flagmask_;
     int  tile_flagmask_;
     int  tile_bitflag_;
-    
+
     // true if legacy FLAG/FLAG_ROW columns need to be filled
     bool write_legacy_flags_;
-    
+
     // If using bitflags, then legacy FLAG/FLAG_ROW columns will be filled with
     //   bitflag&legacy_flagmask
     // If not using bitflags, then legacy columns will be filled with
     //   tile_flag&tile_flagmask
     int  legacy_flagmask_;
-    
+
     //##ModelId=3E2D61D901E8
     int tilecount_;
+    int time_incr_;
     //##ModelId=3E2D61D9024A
     int rowcount_;
-    
+
     bool flip_freq_;
-    
+
     int channels_[2];
     int chan_incr_;
 
     //##ModelId=3E2D5FF60119
     casa::Slicer column_slicer_;
-    
+
     //##ModelId=3E42745300A8
     Column datacol_;
     //##ModelId=3E42745300C2
     Column predictcol_;
     //##ModelId=3E42745300DA
     Column rescol_;
-    
+
     //##ModelId=3E2ED50E0113
     casa::ScalarColumn<casa::Bool> rowFlagCol_;
     casa::ArrayColumn<casa::Bool> flagCol_;
-    
+
     casa::ArrayColumn<casa::Int> bitflagCol_;
     casa::ScalarColumn<casa::Int> rowBitflagCol_;
-    
+
     //##ModelId=3F5F43630379
     casa::Array<casa::Complex> null_cell_;
     casa::Array<casa::Int> null_bitflag_cell_;

@@ -117,6 +117,7 @@
         Do(Meq::Sum,arg) separator \
         Do(Meq::Tan,arg) separator \
         Do(Meq::Tanh,arg) separator \
+        Do(Meq::TFSmearFactorApprox,arg) separator \
         Do(Meq::TFSmearFactor,arg) separator \
         Do(Meq::Time,arg) separator \
         Do(Meq::ToComplex,arg) separator \

@@ -26,7 +26,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/BasicSL/Constants.h>
 
-namespace Meq {    
+namespace Meq {
 
 using namespace VellsMath;
 
@@ -36,9 +36,9 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 const HIID FDomain = AidDomain;
 
 VisPhaseShift::VisPhaseShift()
-: TensorFunction(num_children,child_labels)
+: TensorFunction(num_children,child_labels,1)
 {
-  // dependence on frequency 
+  // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
 }
@@ -46,46 +46,67 @@ VisPhaseShift::VisPhaseShift()
 VisPhaseShift::~VisPhaseShift()
 {}
 
+const LoShape shape_3vec(3),shape_2x3(2,3);
+
 LoShape VisPhaseShift::getResultDims (const vector<const LoShape *> &input_dims)
 {
-  Assert(input_dims.size()==2);
-  // inputs are 2-vectors
-  for( int i=0; i<2; i++ )
+  // in 2-argument mode, we expect 2 3-vectors, or possibly a 2x3 matrix on the UVW side
+  if( input_dims.size() == 2 )
   {
-    const LoShape &dim = *input_dims[i];
-    FailWhen(dim.size()!=1 || dim[0]!=3,"child '"+child_labels[i].toString()+"': 3-vector expected");
+    FailWhen((*input_dims[0]) != shape_3vec,
+        "child '"+child_labels[0].toString()+"': 3-vector expected");
+    FailWhen((*input_dims[1]) != shape_3vec && (*input_dims[1]) != shape_2x3,
+        "child '"+child_labels[1].toString()+"': 3-vector or 2x3 matrix expected");
+    // check cells
+    FailWhen(!hasResultCells(),"no cells found in either child results or request");
+    // result is a scalar
+    return LoShape();
   }
-  // check cells
-  FailWhen(!hasResultCells(),"no cells found in either child results or request");
-  // result is a scalar
-  return LoShape();
+  // in single-argument mode, we expect a scalar
+  else
+  {
+    int nelem = input_dims[0]->product();
+    FailWhen(nelem > 2,"child 0: scalar or 2-vector expected");
+    // check cells
+    FailWhen(!hasResultCells(),"no cells found in either child result or request");
+    // result is a scalar
+    return LoShape();
+  }
 }
 
 
-void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,   
+void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,
      const std::vector<std::vector<const Vells *> > &args )
 {
-  // lmn
-  const Vells & vl = *(args[0][0]);
-  const Vells & vm = *(args[0][1]);
-  const Vells & vn = *(args[0][2]);
-  // uvw 
-  const Vells & vu = *(args[1][0]);
-  const Vells & vv = *(args[1][1]);
-  const Vells & vw = *(args[1][2]);
   // cells
   const Cells & cells = resultCells();
-  
-  // compute phase term
-  Vells r1 = -(vu*vl + vv*vm + vw*vn);
-  const double _2pi_over_c = casa::C::_2pi / casa::C::c;
+  Vells r1;
+  if( args.size() == 2 )
+  {
+    // lmn
+    const Vells & vl = *(args[0][0]);
+    const Vells & vm = *(args[0][1]);
+    const Vells & vn = *(args[0][2]);
+    // uvw
+    const Vells & vu = *(args[1][0]);
+    const Vells & vv = *(args[1][1]);
+    const Vells & vw = *(args[1][2]);
+
+    // compute phase term
+    r1 = (vu*vl + vv*vm + vw*vn);
+  }
+  else
+  {
+    r1 = *(args[0][0]);
+  }
+  const double _2pi_over_c = -casa::C::_2pi / casa::C::c;
 
   // Now, if r1 is only variable in time, and we only have one
   // regularly-spaced frequency segment, we can use a quick algorithm
   // to compute only the exponent at freq0 and df, and then multiply
   // the rest.
   // Otherwise we fall back to the (potentially slower) full VellsMath
-  
+
   if( r1.extent(Axis::TIME) == r1.nelements() &&
       cells.ncells(Axis::FREQ) > 1            &&
       cells.numSegments(Axis::FREQ) == 1        )  // fast eval possible
@@ -101,7 +122,7 @@ void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,
 
     Vells vf0 = polar(1,r1);
     Vells vdf = polar(1,r1*dwavel);
-    
+
     int ntime = r1.extent(Axis::TIME);
     int nfreq = cells.ncells(Axis::FREQ);
     LoShape result_shape(ntime,nfreq);
@@ -128,7 +149,7 @@ void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,
   }
   else // slower but much simpler
   {
-    // create freq vells from grid 
+    // create freq vells from grid
     int nfreq = cells.ncells(Axis::FREQ);
     Vells freq(0,Axis::vectorShape(Axis::FREQ,nfreq),false);
     memcpy(freq.realStorage(),cells.center(Axis::FREQ).data(),nfreq*sizeof(double));

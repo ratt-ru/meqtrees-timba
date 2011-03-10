@@ -63,14 +63,14 @@ int MSOutputChannel::init (const DMI::Record &params)
 {
   if( FileChannel::init(params) < 0 )
     return state();
-  
+
   Mutex::Lock lock(aipspp_mutex);
   params_ = params;
   ms_ = MeasurementSet();
   msname_ = "(none)";
-  
+
   cdebug(1)<<"initialized with "<<params_.sdebug(3)<<endl;
-  
+
   return state();
 }
 
@@ -156,9 +156,9 @@ bool MSOutputChannel::setupDataColumn (Column &col)
   // if name is not set, then column is ignored
   if( !col.name.length() )
     return col.valid = false;
-  const TableDesc &td = ms_.tableDesc(); 
+  const TableDesc &td = ms_.tableDesc();
   // add column to MS, if it doesn't exist
-  if( !td.isColumn(col.name) ) 
+  if( !td.isColumn(col.name) )
   {
     ArrayColumnDesc<Complex> coldesc(col.name,
                           "added by MSOutputAgent",
@@ -194,7 +194,7 @@ bool MSOutputChannel::setupDataColumn (Column &col)
 }
 
 //##ModelId=3EC25F74033F
-int MSOutputChannel::refillStream() 
+int MSOutputChannel::refillStream()
 {
   return AppEvent::WAIT; // no input events
 }
@@ -207,6 +207,7 @@ void MSOutputChannel::doPutHeader (const DMI::Record &header)
   msname_ = header[FMSName].as<string>();
   ms_ = MeasurementSet(msname_,TableLock(TableLock::AutoNoReadLocking),Table::Update);
   // get range of channels from header and setup slicer
+  time_incr_ = header[FTimeIncrement].as<int>(1);
   channels_[0] = header[FChannelStartIndex].as<int>();
   channels_[1] = header[FChannelEndIndex].as<int>();
   chan_incr_ = header[FChannelIncrement].as<int>(1);
@@ -390,7 +391,7 @@ void MSOutputChannel::doPutTile (const VTile &tile)
           for( Matrix<Bool>::iterator iter = aflags.begin(); iter != aflags.end(); iter++,iter2++ )
             (*iter) = ((*iter2)&legacy_flagmask_) != 0;
           flagCol_.putSlice(irow,column_slicer_,aflags);
-        } 
+        }
       }
       else if ( write_legacy_flags_ )
       // write legacy FLAG/FLAG_ROW columns based on the tile_flagmask
@@ -420,7 +421,7 @@ string MSOutputChannel::sdebug (int detail,const string &prefix,const char *name
   using Debug::append;
   using Debug::appendf;
   using Debug::ssprintf;
-  
+
   string out;
   if( detail >= 0 ) // basic detail
   {

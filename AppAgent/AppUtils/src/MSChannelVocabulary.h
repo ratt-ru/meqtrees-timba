@@ -23,18 +23,18 @@
 
 #ifndef _MSVISAGENT_MSVISAGENTVOCABULARY_H
 #define _MSVISAGENT_MSVISAGENTVOCABULARY_H 1
-    
+
 #include <DMI/HIID.h>
 #include <VisCube/VisVocabulary.h>
 #include <AppUtils/AID-AppUtils.h>
-   
+
 #pragma aidgroup AppUtils
-#pragma aid MS 
+#pragma aid MS
 
 #pragma aid DDID VDSID Selection Tile Snippet String Column Size Format Increment
 #pragma aid Vis Input Output Params Start End Write Flags Flag Mask Segments
 #pragma aid Use Bitflag Column Legacy Invert Phases
-#pragma aid Time Data Predict Residuals Column Name Message Type 
+#pragma aid Time Data Predict Residuals Column Name Message Type
 #pragma aid Throw Error Domain start string Original Shape Flip Clear Extent
 #pragma aid Raw Non Calibrated Predict Residuals Iteration Cwd Apply Hanning
 
@@ -44,10 +44,10 @@ namespace AppAgent
 namespace MSChannel
 {
   using DMI::HIID;
-  
-  const HIID 
+
+  const HIID
        FDomainIndex       = AidDomain|AidIndex,
-      
+
        FDDID              = AidDDID|AidIndex,
        FSelection         = AidSelection,
        FPhaseRef          = AidPhase|AidRef,
@@ -58,6 +58,7 @@ namespace MSChannel
        FChannelStartIndex = AidChannel|Aidstart|AidIndex,
        FChannelEndIndex   = AidChannel|AidEnd|AidIndex,
        FChannelIncrement  = AidChannel|AidIncrement,
+       FTimeIncrement     = AidTime|AidIncrement,
        FSelectionString   = AidSelection|Aidstring,
        FDataColumnName    = AidData|AidColumn|AidName,
        FPredictColumnName = AidPredict|AidColumn|AidName,
@@ -70,7 +71,7 @@ namespace MSChannel
        FInvertPhases      = AidInvert|AidPhases,
 
        FOutputParams      = AidMS|AidOutput|AidParams,
-                          
+
        FFlagMask          = AidFlag|AidMask,
        FWriteBitflag      = AidWrite|AidBitflag,
        FWriteLegacyFlags  = AidWrite|AidLegacy|AidFlags,
@@ -84,11 +85,11 @@ namespace MSChannel
        FDataColumn        = AidData|AidColumn,
        FPredictColumn     = AidPredict|AidColumn,
        FResidualsColumn   = AidResiduals|AidColumn,
-                          
-                          
+
+
        __last_declaration;
-       
+
 };
 
-};     
+};
 #endif

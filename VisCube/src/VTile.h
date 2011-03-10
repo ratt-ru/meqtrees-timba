@@ -40,11 +40,11 @@
   #error Conflicting array support defined
 #endif
 
-namespace VisCube 
+namespace VisCube
 {
 using namespace DMI;
-    
-    
+
+
 class VCube;
 
 
@@ -62,6 +62,7 @@ class VCube;
   Do(int,0,seqnr,SEQNR); \
   Do(float,2,weight,WEIGHT); \
   Do(double,1,uvw,UVW); \
+  Do(double,1,duvw,DUVW); \
   Do(fcomplex,2,data,DATA); \
   Do(fcomplex,2,predict,PREDICT); \
   Do(fcomplex,2,residuals,RESIDUALS); \
@@ -77,20 +78,20 @@ class VCube;
 //## (as represented by a header record and a set of VTiles).
 //## Implementation-wise, it's just a HIID of a fixed length (3 for now).
 //## The three components of a VDSID are segment ID, beam ID, observation ID,
-//## though we could easily revise this in the future as required by 
+//## though we could easily revise this in the future as required by
 //## applications. When reading an AIPS++ MS, segment maps to DATA_DESC, beam
 //## maps to FIELD, and observation maps to different measurement sets.
 class VDSID : public HIID
 {
-  public: 
+  public:
     // default constructor
     //##ModelId=3DB964F40176
     VDSID (int segid=0,int beamid=0,int obsid=0);
-  
+
     // construct from HIID (checks for correct length)
     //##ModelId=3DB964F40177
     VDSID (const HIID &id);
-    
+
     // returns individual components
     //##ModelId=3DF9FDCD008A
     int segment     () const      { return (*this)[2]; }
@@ -98,7 +99,7 @@ class VDSID : public HIID
     int beam        () const      { return (*this)[1]; }
     //##ModelId=3DF9FDCD008E
     int observation () const      { return (*this)[0]; }
-    
+
     // length of a VDSID
     //##ModelId=3DF9FDCD0090
     static uint Length() { return 3; }
@@ -108,26 +109,27 @@ class VDSID : public HIID
 //##ModelId=3DB964F200EE
 //##Documentation
 //## VTile represents one tile (= a number of contiguous timeslots) of
-//## visibility data. 
+//## visibility data.
 //## VTile is essentially a ColumnarTableTile with a predefined format. This
 //## format defines at least the following columns:
-//## 
+//##
 //##    TIME      (double)
 //##    DATA      (Ncorr x Nfreq fcomplex)
 //##    FLAGS     (Ncorr x Nfreq int)
 //##    ROWFLAG   (int)
 //##    UVW       (3 doubles)
+//##    DUVW      (3 doubles)
 //##    WEIGHT    (float)
 //##    SEQNR     (int)
-//## 
+//##
 //## Optional columns are:
-//## 
+//##
 //##    PREDICT   (Ncorr x Nfreq fcomplex)
 //##    RESIDUALS (Ncorr x Nfreq fcomplex)
-//## 
+//##
 //## Accessor methods to column data in array format are provided, as well as
 //## iterators.
-//## 
+//##
 //## Note that each tile usually has an associated VTile::Format (=
 //## TableFormat) object. This object is not part of the tile itself (for
 //## example, in a VCube, all tiles share the same format object), and must
@@ -138,7 +140,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
   public:
     //##ModelId=400E51D40143
     typedef CountedRef<VTile> Ref;
-  
+
     //##ModelId=3DB964F200F4
     //##Documentation
     //## This enum lists all the possible columns in a visibility dataset.
@@ -149,22 +151,23 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
         FLAGS,
         ROWFLAG,
         UVW,
+        DUVW,
         WEIGHT,
         SEQNR,
         PREDICT,
         RESIDUALS,
         MAXCOL
       } Columns;
-        
+
     friend class VCube;
-    
+
     class ConstIterator;
     class Iterator;
     //##ModelId=3DF9FDC90222
     typedef ConstIterator const_iterator;
     //##ModelId=3DF9FDC9024D
     typedef Iterator iterator;
-    
+
     //##ModelId=400E51D40176
     typedef enum
     {
@@ -172,7 +175,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       // Missing rows are flagged by this value
       MissingData = 0xFFFFFFFF
     } OtherConstants;
-      
+
 
     //##ModelId=3DB964F900AF
     //##Documentation
@@ -186,7 +189,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       VTile (const VTile &right,
         //##Documentation
         //## flags are passed to CountedRef::copy() when copying the
-        //## data block; 
+        //## data block;
         int flags = 0,
         //##Documentation
         //## depth is ignored (copy is always deep), but is present here
@@ -218,13 +221,13 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##Documentation
     //## Assigns by ref
       VTile & operator=(const VTile &right);
-      
+
     //##ModelId=3DB964F90100
     //##Documentation
     //## Initializes a default tile format for NC correlations and NF frequency
     //## channels.
       static void makeDefaultFormat (Format &form, int nc, int nf);
-      
+
       // returns a static vector mapping column index to uppercase name
     //##ModelId=3F98DA6E006D
       typedef std::vector<string> IndexToNameMap;
@@ -235,10 +238,10 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       typedef std::map<string,int> NameToIndexMap;
     //##ModelId=3F98DA6F01B8
       static const NameToIndexMap & getNameToIndexMap ();
-      
+
     // ensures writability, re-inits arrays if COW was done
       bool makeWritable ()
-      { 
+      {
         if( ColumnarTableTile::makeWritable() && hasFormat() )
         {
           initArrays();
@@ -274,7 +277,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##Documentation
     //## Changes the tile format, usually re-formatting the data in memory
     //## accordingly. This may only be used to insert or remove columns, not to
-    //## change column shapes. 
+    //## change column shapes.
       void changeFormat (const Format::Ref &form);
 
     //##ModelId=3DB964F9014F
@@ -315,12 +318,12 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //## flags are non-0 (which is default), the iterator will be attached to
     //## the tile via a counted ref constructed with the specified flags.
     VTile::ConstIterator begin(int flags = DMI::ANON|DMI::READONLY) const;
-      
+
     //##ModelId=3DD25962035B
     //##Documentation
     //## Like const begin(), but returns a non-const iterator.
     VTile::Iterator begin(int flags = DMI::ANONWR);
-      
+
     //##ModelId=3DD2598802C0
     //##Documentation
     //## Returns an STL-style "end" iterator  (actually just an invalid
@@ -336,14 +339,14 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       int nfreq () const;
     //##ModelId=3DB964F9018D
       int ntime () const;
-      
+
     //##ModelId=3DF9FDD4016A
     //##Documentation
     //## Sets the ID of this tile, forming it from two antenna indices,
     //## a sequence number, plus the VDSID. See also ColumnarTableTile::tileId().
       void setTileId (int ant1,int ant2,int seq,const VDSID &vdsid)
-      { 
-        ColumnarTableTile::setTileId(vdsid|ant1|ant2|seq); 
+      {
+        ColumnarTableTile::setTileId(vdsid|ant1|ant2|seq);
       }
     //##ModelId=3DF9FDD4029A
     //##Documentation
@@ -359,7 +362,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       {
         return tileId().size()>VDSID::Length()+1 ? tileId()[VDSID::Length()+1].id() : -1;
       }
-      
+
       int seqNumber () const
       {
         return tileId().size()>VDSID::Length()+2 ? tileId()[VDSID::Length()+2].id() : -1;
@@ -381,7 +384,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       CountedRefTarget* clone (int flags = 0, int  = 0) const;
     //##ModelId=3DB964F901E4
       TypeId objectType () const { return TpVisCubeVTile; }
-      
+
     //##ModelId=3DD3C6CB02E9
     //##Documentation
     //## standard debug info method, depending on level includes:
@@ -397,7 +400,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //##Documentation
     //## Helper method: reinitializes internal arrays to point at column data.
       void initArrays ();
-      
+
     //##ModelId=3DB964F901F8
     //##Documentation
     //## helper method: checks that the given column is of the right type and
@@ -406,7 +409,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       {
         FailWhen( !cdata(icol),
           Debug::ssprintf("column %d not defined",icol));
-        FailWhen( format().type(icol) != type || 
+        FailWhen( format().type(icol) != type ||
                   format().ndims(icol) != ndim,
           Debug::ssprintf("type or shape mismatch in column %d\n",
             "expecting %dD %s, have %dD %s",icol,ndim+1,type.toString().c_str(),
@@ -414,8 +417,8 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
       }
 
 // The templates getElement/setElement methods are there for VCube to use.
-            
-// (the dummy T* parameter is to help template instantiation. g++-3.1 
+
+// (the dummy T* parameter is to help template instantiation. g++-3.1
 // seems to have trouble with the obj.member<T>() syntax (when T is a template
 // argument, i.e., when calling a templated member from another template)
 // so we add a T* parameter to specify type instead.
@@ -427,7 +430,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
 #endif
         return static_cast<const T*>(cdata(icol))[it];
       }
-      
+
       template<class T>
       T setElement (int icol,int it,T value)
       {
@@ -436,27 +439,27 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
 #endif
         return static_cast<T*>(cwdata(icol))[it] = value;
       }
-      
+
     //##ModelId=3DB964F90070
       int ncorr_;
     //##ModelId=3DB964F90077
       int nfreq_;
-      
+
     //##ModelId=3DF9FDD40016
     //## mutex for thread-safety, locked for the duration of most tile operations
-      Thread::Mutex mutex_; 
-      
+      Thread::Mutex mutex_;
+
   public:
     // Re-open the public section because we really want to define accessor
     // methods as inlines.
-      
+
     // We use macros to declare accessors. This helps insure consistency,
     // and makes adding new columns easier.
-     
-      
+
+
     //    define some handy macros for column accessors. CheckWR checks
-    //    the tile for writability, fails if not writable. 
-    //    "wreturn" invokes CheckWR, followed by a return statement. 
+    //    the tile for writability, fails if not writable.
+    //    "wreturn" invokes CheckWR, followed by a return statement.
     #define CheckWR makeWritable();
     #define wreturn CheckWR; return
     #define DefineColumn(type,dim,name,id) DefineColumn_##dim(type,name)
@@ -474,7 +477,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
                LoVec_##type & w##name () \
                { wreturn name##_array_; } \
                void set_##name (int it,type val) \
-               { CheckWR; name##_array_(it) = val; } 
+               { CheckWR; name##_array_(it) = val; }
     // This defines a vector column, plus
     // four inlined accessor methods: name() and wname() to access as a matrix,
     // and name(i) and wname(i) to access individual vectors.
@@ -487,7 +490,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
                const LoVec_##type name (int it) const \
                { return name##_array_(ALL,it); } \
                LoVec_##type w##name (int it) \
-               { wreturn name##_array_(ALL,it); } 
+               { wreturn name##_array_(ALL,it); }
     // This defines a 2D column, plus
     // four inlined accessor methods: name() and wname() to access as a cube,
     // and tf_name(i) and wtf_name(i,val) to access as TF-planes.
@@ -500,32 +503,32 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
                const LoMat_##type tf_##name (int icorr) const \
                { return name##_array_(icorr,ALL,ALL); } \
                LoMat_##type wtf_##name (int icorr) \
-               { wreturn name##_array_(icorr,ALL,ALL); } 
+               { wreturn name##_array_(icorr,ALL,ALL); }
 
     //##ModelId=3DF9FDD40042
     DoForAllVTileColumns(DefineColumn);
-          
+
     #undef DefineColumn
     #undef DefineColumn_0
     #undef DefineColumn_1
     #undef DefineColumn_2
     #undef wreturn
-      
+
     //##ModelId=3DB964F200F9
     //##Documentation
     //## ConstIterator implements iteration over the time axis in a VTile,
     //## and provides const accessor methods to the data cells for each
     //## timeslot. STL-like semantics are supported:
-    //## 
-    //## for( VTile::ConstIterator iter = mytile.begin();     
+    //##
+    //## for( VTile::ConstIterator iter = mytile.begin();
     //##     iter != mytile.end();
     //##     iter++ )
-    //## 
+    //##
     //## ...as well as alternative iteration methods (see next(), end(),
     //## reset()). An iterator can also hold a CountedRef to a tile, thus
     //## guaranteeing automatic clean-up if the caller releases the tile before
     //## destroying the iterator.
-    //## 
+    //##
     //## Note that for performance reasons, accessors to array columns (data,
     //## flags, uvw) will return sub-arrays that reference the original data.
     //## Theoretically, this can be abused to violate constness, but such
@@ -556,7 +559,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
         //## Assignment. Detaches from current tile( if any) and makes copy of
         //## r.h.s. iterator.
           ConstIterator & operator=(const ConstIterator &right);
-          
+
         //##ModelId=3DF9FDD2025D
           ~ConstIterator();
 
@@ -597,22 +600,22 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
                      { return ptile->name()(ALL,ALL,itime); }
 
           #define DefineAccessor(type,dim,name,id) accessor_##dim(type,name)
-                     
+
         //##ModelId=3DF9FDD201A5
           DoForAllVTileColumns(DefineAccessor);
-          
+
           #undef DefineAccessor
           #undef accessor_0
           #undef accessor_1
           #undef accessor_2
-          
-          
+
+
           // specialized accessors for slicing along the frequency axis
           // (to get a spectrum)
         //##ModelId=3DF9FDD202A3
           LoVec_fcomplex f_data    (int icorr = 0) const
           { return ptile->data()(icorr,ALL,itime); }
-          
+
         //##ModelId=3DF9FDD203B0
           LoVec_fcomplex f_predict (int icorr = 0) const
           { return ptile->predict()(icorr,ALL,itime); }
@@ -643,7 +646,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
         //## Detaches iterator from current tile, if any. If tile was attached
         //## via a ref, the ref is released at this point.
           void detach();
-          
+
         //##ModelId=3DD3CB0003D0
         //##Documentation
         //## standard debug info method, depending on level includes:
@@ -652,39 +655,39 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
         //## 2+: counted ref (if any) at level 1
           string sdebug ( int detail = 1,const string &prefix = "",
                           const char *name = 0 ) const;
-          
+
         //##ModelId=3DD3CB0201B1
           const char * debug ( int detail = 1,const string &prefix = "",
                                const char *name = 0 ) const
           { return Debug::staticBuffer(sdebug(detail,prefix,name)); }
-          
+
       protected:
         //##ModelId=3DB964F70134
           VTile *ptile;
-      
+
         //##ModelId=3DB964F70140
           VTile::Ref tileref;
-          
+
           // go with an inefficient implementation for now -- a simple index --
-          // since arrays suck anyway. Should be re-written when we have better 
+          // since arrays suck anyway. Should be re-written when we have better
           // arrays.
         //##ModelId=3DB964F70179
           int itime;
         //##ModelId=3DB964F701B0
           int ntime;
-          
+
         //##ModelId=3DF9FDD2023F
         //##Documentation
         //## keep a lock on the tile being iterated on
           Thread::Mutex::Lock tilelock;
-          
+
     };
 
     //##ModelId=3DB964F200FB
     //##Documentation
     //## A writable iterator. This is based on ConstIterator, but adds
     //## write-accessors. This Iterator may only be attached to a non-const,
-    //## writable tile. 
+    //## writable tile.
     class Iterator : virtual public ConstIterator  //## Inherits: <unnamed>%3D888C1F00C5
     {
 
@@ -710,25 +713,25 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
           #define accessor_0(type,name) \
              void set_##name (type x) const \
              { ptile->w##name()(itime) = x; }
-             
+
           #define DefineAccessor(type,ndim,name,id) accessor_##ndim(type,name)
-                     
+
         //##ModelId=3DF9FDD30323
           DoForAllVTileColumns(DefineAccessor);
-          
+
           #undef DefineAccessor
           #undef accessor_0
           #undef accessor_1
           #undef accessor_2
           #undef ALL
-          
+
         //##ModelId=3DD3CB0302B8
         //##Documentation
         //## standard debug info method, see ConstIterator above
           string sdebug ( int detail = 1,const string &prefix = "",
                           const char *name = 0 ) const
           { return ConstIterator::sdebug(detail,prefix,name?name:"I:VTile"); }
-          
+
         //##ModelId=3DD3CB04022A
           const char * debug ( int detail = 1,const string &prefix = "",
                                const char *name = 0 ) const
@@ -741,8 +744,8 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
           void attach (const VTile &,int);
 
     };
-    
-      
+
+
 };
 
 
@@ -793,9 +796,9 @@ inline void VTile::ConstIterator::reset ()
   itime = 0;
 }
 
-// Class VTile::Iterator 
+// Class VTile::Iterator
 
-          
+
 //##ModelId=3DB964F9016D
 inline void VTile::copy (const VTile &other, int other_it0, int nt)
 {
@@ -839,7 +842,7 @@ inline VTile::Iterator VTile::begin (int flags)
 inline const VTile::ConstIterator & VTile::end () const
 {
   // return an iterator that is invalid by default
-  static ConstIterator dum; 
+  static ConstIterator dum;
   return dum;
 }
 

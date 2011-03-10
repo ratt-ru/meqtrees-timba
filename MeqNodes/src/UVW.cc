@@ -21,6 +21,8 @@
 //#
 //# $Id$
 
+#include <DMI/AID-DMI.h>
+#include <MeqNodes/AID-MeqNodes.h>
 #include <MeqNodes/UVW.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
@@ -46,7 +48,7 @@ const HIID FDomain = AidDomain;
 
 //##ModelId=400E535502D1
 UVW::UVW()
-: TensorFunction(num_children,child_labels)
+: TensorFunction(num_children,child_labels),include_derivatives_(false)
 {
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -56,9 +58,14 @@ UVW::UVW()
 UVW::~UVW()
 {}
 
+void UVW::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  rec[AidInclude|AidDeriv].get(include_derivatives_,initializing);
+}
+
 void UVW::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &,const Request &request)
 {
-  // NB: for the time being we only support scalar child results, 
+  // NB: for the time being we only support scalar child results,
   // and so we ignore the child cells, and only use the request cells
   // (while checking that they have a time axis)
   const Cells &cells = request.cells();
@@ -80,15 +87,18 @@ LoShape UVW::getResultDims (const vector<const LoShape *> &input_dims)
     FailWhen(dim.size()!=1 || dim[0]!=3,"child '"+child_labels[i].toString()+"': 3-vector expected");
   }
   // result is a 3-vector
-  return LoShape(3);
+  if( include_derivatives_ )
+    return LoShape(2,3);
+  else
+    return LoShape(3);
 }
-    
-void UVW::evaluateTensors (std::vector<Vells> & out,   
+
+void UVW::evaluateTensors (std::vector<Vells> & out,
      const std::vector<std::vector<const Vells *> > &args )
 {
-  // thanks to checks in getResultDims(), we can expect all 
+  // thanks to checks in getResultDims(), we can expect all
   // vectors to have the right sizes
-  
+
   // Get RA and DEC of phase center, and station positions
   const Vells& vra  = *(args[0][0]);
   const Vells& vdec = *(args[0][1]);
@@ -98,12 +108,12 @@ void UVW::evaluateTensors (std::vector<Vells> & out,
   const Vells& vx0  = *(args[2][0]);
   const Vells& vy0  = *(args[2][1]);
   const Vells& vz0  = *(args[2][2]);
-  
+
   // NB: for the time being we only support scalars
   Assert( vra.isScalar() && vdec.isScalar() &&
-      	  vstx.isScalar() && vsty.isScalar() && vstz.isScalar() && 
+      	  vstx.isScalar() && vsty.isScalar() && vstz.isScalar() &&
       	  vx0.isScalar() && vy0.isScalar() && vz0.isScalar() );
-  
+
   Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
 
   // get the 0 position (array center, presumably)
@@ -111,21 +121,28 @@ void UVW::evaluateTensors (std::vector<Vells> & out,
   double y0 = vy0.getScalar<double>();
   double z0 = vz0.getScalar<double>();
   MPosition zeropos(MVPosition(x0,y0,z0),MPosition::ITRF);
-      
+
   // Get RA and DEC of phase center (as J2000).
   MVDirection phaseRef(vra.getScalar<double>(),vdec.getScalar<double>());
-  
+
   // Set output shape
   const Cells& cells = resultCells();
   int ntime = cells.ncells(Axis::TIME);
   const LoVec_double & time = cells.center(Axis::TIME);
   Axis::Shape shape = Axis::vectorShape(Axis::TIME,ntime);
-  out[0] = Vells(0.0,shape,false);
-  out[1] = Vells(0.0,shape,false);
-  out[2] = Vells(0.0,shape,false);
+  for( uint i=0; i<out.size(); i++ )
+    out[i] = Vells(0.0,shape,false);
   double * pU = out[0].realStorage();
   double * pV = out[1].realStorage();
   double * pW = out[2].realStorage();
+  double *pdU,*pdV,*pdW;
+  if( include_derivatives_ )
+  {
+    pdU = out[3].realStorage();
+    pdV = out[4].realStorage();
+    pdW = out[5].realStorage();
+  }
+
   // Calculate the UVW coordinates using the AIPS++ code.
   MVPosition mvpos(vstx.getScalar<double>()-x0,
                    vsty.getScalar<double>()-y0,
@@ -140,7 +157,7 @@ void UVW::evaluateTensors (std::vector<Vells> & out,
   frame.set (mepoch);
   mbl.getRefPtr()->set(frame);      // attach frame
   MBaseline::Convert mcvt(mbl, MBaseline::J2000);
-  for( int i=0; i<ntime; i++) 
+  for( int i=0; i<ntime; i++)
   {
     qepoch.setValue (time(i));
     mepoch.set (qepoch);
@@ -151,6 +168,18 @@ void UVW::evaluateTensors (std::vector<Vells> & out,
     pU[i] = xyz(0);
     pV[i] = xyz(1);
     pW[i] = xyz(2);
+    if( include_derivatives_ )
+    {
+      qepoch.setValue (time(i)+1);
+      mepoch.set (qepoch);
+      frame.set (mepoch);
+      const MVBaseline& bas2000 = mcvt().getValue();
+      MVuvw uvw2000 (bas2000, phaseRef);
+      const Vector<double>& xyz1 = uvw2000.getValue();
+      pdU[i] = xyz1(0) - xyz(0);
+      pdV[i] = xyz1(1) - xyz(1);
+      pdW[i] = xyz1(2) - xyz(2);
+    }
   }
 }
 

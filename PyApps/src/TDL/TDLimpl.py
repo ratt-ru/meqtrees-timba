@@ -572,7 +572,7 @@ class _NodeStub (object):
           _dprint(1,'old definition',self._initrec);
           _dprint(1,'new definition',initrec);
           for (f,val) in initrec.iteritems():
-            _dprint(2,f,val,self._initrec[f],val == self._initrec[f]);
+            _dprint(2,f,val,self._initrec.get(f,None),val == self._initrec.get(f,None));
           # report error
           err = self._make_redefinition_error(this_stack,self._bind_stack,
                         "conflicting definition for node '%s' of class %s"%(self.name,classname));

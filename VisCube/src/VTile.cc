@@ -1,9 +1,9 @@
 //
-//% $Id$ 
+//% $Id$
 //
 //
 // Copyright (C) 2002-2007
-// The MeqTree Foundation & 
+// The MeqTree Foundation &
 // ASTRON (Netherlands Foundation for Research in Astronomy)
 // P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 //
@@ -19,14 +19,14 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
-// or write to the Free Software Foundation, Inc., 
+// or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
 #include "VTile.h"
 #include "AID-VisCube.h"
-    
-namespace VisCube 
+
+namespace VisCube
 {
 
 // pull in registry
@@ -40,7 +40,7 @@ VDSID::VDSID (int segid,int beamid,int obsid)
   (*this)[1] = beamid;
   (*this)[0] = obsid;
 }
-  
+
 //##ModelId=3DB964F40177
 VDSID::VDSID (const HIID &id)
 {
@@ -49,9 +49,9 @@ VDSID::VDSID (const HIID &id)
   (*this)[1] = id[1];
   (*this)[2] = id[2];
 }
-    
-    
-// Class VTile::ConstIterator 
+
+
+// Class VTile::ConstIterator
 
 //##ModelId=3DB964F701E6
 VTile::ConstIterator::ConstIterator()
@@ -123,7 +123,7 @@ VTile::Iterator::Iterator()
 {
 }
 
-// Class VTile::Iterator 
+// Class VTile::Iterator
 
 VTile::Iterator::Iterator(const VTile::Iterator &right)
   : ConstIterator()
@@ -154,7 +154,7 @@ void VTile::Iterator::attach (VTile &tile,int flags)
 // Additional Declarations
 //##ModelId=3DB964F900AF
 
-// Class VTile 
+// Class VTile
 
 VTile::VTile()
   : ncorr_(0),nfreq_(0)
@@ -166,7 +166,7 @@ VTile::VTile (const VTile &right, int flags,int depth)
     : ColumnarTableTile(right,flags,depth),
       ncorr_(right.ncorr_),nfreq_(right.nfreq_)
 {
-  // init arrays 
+  // init arrays
   if( hasFormat() )
     initArrays();
 }
@@ -206,8 +206,8 @@ VTile & VTile::operator=(const VTile &right)
 {
   if( this != &right )
   {
-    Thread::Mutex::Lock lock(mutex());  
-    Thread::Mutex::Lock lock2(right.mutex());  
+    Thread::Mutex::Lock lock(mutex());
+    Thread::Mutex::Lock lock2(right.mutex());
     ColumnarTableTile::operator=(right);
     nfreq_ = right.nfreq_;
     ncorr_ = right.ncorr_;
@@ -228,6 +228,7 @@ void VTile::makeDefaultFormat (Format &form, int nc, int nf)
       .add(INTERVAL,Tpdouble)
       .add(WEIGHT,Tpfloat,shape)
       .add(UVW,Tpdouble,LoShape(3))
+      .add(DUVW,Tpdouble,LoShape(3))
       .add(FLAGS,Tpint,shape)
       .add(ROWFLAG,Tpint)
       .add(SEQNR,Tpint);
@@ -281,7 +282,7 @@ const VTile::NameToIndexMap & VTile::getNameToIndexMap ()
 //##ModelId=3DB964F90117
 void VTile::init (int nc, int nf, int nt)
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   Format::Ref ref(new Format,DMI::ANONWR);
   makeDefaultFormat(ref.dewr(),nc,nf);
   init(ref,nt);
@@ -290,7 +291,7 @@ void VTile::init (int nc, int nf, int nt)
 //##ModelId=3DB964F9012E
 void VTile::init (const Format::Ref &form, int nt)
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   LoShape shape = form->shape(DATA);
   FailWhen( shape.size() != 2 ,"Missing or misshapen DATA column in tile format");
   ColumnarTableTile::init(form,nt);
@@ -303,7 +304,7 @@ void VTile::init (const Format::Ref &form, int nt)
 //##ModelId=3DB964F9013E
 void VTile::reset ()
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   ColumnarTableTile::reset();
   ncorr_ = nfreq_ = 0;
 }
@@ -311,7 +312,7 @@ void VTile::reset ()
 //##ModelId=3DB964F9013F
 void VTile::applyFormat (const Format::Ref &form)
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   ColumnarTableTile::applyFormat(form);
   initArrays();
 }
@@ -319,7 +320,7 @@ void VTile::applyFormat (const Format::Ref &form)
 //##ModelId=3DB964F90147
 void VTile::changeFormat (const Format::Ref &form)
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   ColumnarTableTile::changeFormat(form);
   initArrays();
 }
@@ -327,7 +328,7 @@ void VTile::changeFormat (const Format::Ref &form)
 //##ModelId=3DB964F9014F
 void VTile::copy (int it0, const VTile &other, int other_it0, int nt)
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   // did we already have a format
   bool had_format = hasFormat();
   ColumnarTableTile::copy(it0,other,other_it0,nt);
@@ -347,7 +348,7 @@ void VTile::copy (int it0, const VTile &other, int other_it0, int nt)
 //##ModelId=3DB964F90184
 void VTile::addRows (int nr)
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   ColumnarTableTile::addRows(nr);
   // if this succeeded, then we have a format
   initArrays();
@@ -356,7 +357,7 @@ void VTile::addRows (int nr)
 //##ModelId=3DB964F901CD
 int VTile::fromBlock (BlockSet& set)
 {
-  Thread::Mutex::Lock lock(mutex());  
+  Thread::Mutex::Lock lock(mutex());
   int ret = ColumnarTableTile::fromBlock(set);
   if( hasFormat() )
   {
@@ -396,7 +397,7 @@ void VTile::initArrays ()
     else \
       name##_array_.free();
 
-  DoForAllVTileColumns(initRefArray);      
+  DoForAllVTileColumns(initRefArray);
 }
 
 //##ModelId=3DD3C6CB02E9
@@ -404,7 +405,7 @@ string VTile::sdebug ( int detail,const string &prefix,const char *name ) const
 {
   return ColumnarTableTile::sdebug(detail,prefix,name?name:"VTile");
 }
-    
+
 
 //##ModelId=3DD3CB0003D0
 string VTile::ConstIterator::sdebug ( int detail,const string &prefix,const char *name ) const
@@ -412,7 +413,7 @@ string VTile::ConstIterator::sdebug ( int detail,const string &prefix,const char
   using Debug::append;
   using Debug::appendf;
   using Debug::ssprintf;
-  
+
   string out;
   if( detail >= 0 ) // basic detail
   {

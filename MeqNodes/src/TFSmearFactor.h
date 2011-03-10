@@ -21,21 +21,22 @@
 //#
 //# $Id: TFSmearFactor.h 5418 2007-07-19 16:49:13Z oms $
 
-#ifndef MEQNODES_TFSMEAR_H
-#define MEQNODES_TFSMEAR_H
-    
-#include <MEQ/Function.h>
+#ifndef MEQNODES_TFSMEARFACTOR_H
+#define MEQNODES_TFSMEARFACTOR_H
+
+#include <MEQ/TensorFunction.h>
 
 #include <MeqNodes/AID-MeqNodes.h>
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::TFSmearFactor
+#pragma aid Narrow Band Limit
 
-namespace Meq {    
+namespace Meq {
 
 
 //##ModelId=400E530400A3
-class TFSmearFactor : public Function
+class TFSmearFactor : public TensorFunction
 {
 public:
     //##ModelId=400E5355029C
@@ -44,21 +45,37 @@ public:
     //##ModelId=400E5355029D
   virtual ~TFSmearFactor();
 
-    //##ModelId=400E5355029F
-    virtual TypeId objectType() const
-    { return TpMeqTFSmearFactor; }
-
-  // Evaluate the value for the given request.
-    //##ModelId=400E535502A1
-  virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
+  //##ModelId=400E5355029F
+  virtual TypeId objectType() const
+  { return TpMeqTFSmearFactor; }
 
 protected:
+  virtual void computeResultCells (Cells::Ref &ref,
+          const std::vector<Result::Ref> &childres,const Request &request);
+
+  // method required by TensorFunction
+  // Returns shape of result.
+  // Also check child results for consistency
+  virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+
+  // method required by TensorFunction
+  // Evaluates for a given set of children values
+  virtual void evaluateTensors (std::vector<Vells> & out,
+                                const std::vector<std::vector<const Vells *> > &args);
+
   void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
-  bool is_modulo_;
-  double modulo_;
-  double phase_factor_;
+
+  // fractional bandwidth over this limit will be considered "wide",
+  // and a per-frequency calculation will be done. Below this limit, one value
+  // of frequency will be used.
+  double narrow_band_limit_;
+
+  // flag: using narrow-band approximation
+  bool narrow_band_;
+
+  // cached delta-time/2, delta-freq/2 and freq vells, set up once in computeResultCells.
+  Vells dtime2_vells_,freq_vells_,dfreq2_vells_;
 };
 
 

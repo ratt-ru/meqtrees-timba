@@ -22,16 +22,16 @@
 //# $Id: TFSmearFactor.cc 5418 2007-07-19 16:49:13Z oms $
 
 #include <MeqNodes/TFSmearFactor.h>
-#include <blitz/array/stencilops.h>
+#include <casa/BasicSL/Constants.h>
 
-namespace Meq {    
+namespace Meq {
 
 const HIID FModulo = AidModulo;
 const HIID FPhaseFactor = "Phase.Factor";
 
 //##ModelId=400E5355029C
 TFSmearFactor::TFSmearFactor()
- : Function(2,0,1),modulo_(0),phase_factor_(1) // one or two children expected
+ : TensorFunction(2,0,1), narrow_band_limit_(0.05) // one or two children expected
 {}
 
 //##ModelId=400E5355029D
@@ -41,108 +41,95 @@ TFSmearFactor::~TFSmearFactor()
 //##ModelId=400E53550233
 void TFSmearFactor::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
-  Node::setStateImpl(rec,initializing);
-  rec[FModulo].get(modulo_,initializing);
-  rec[FPhaseFactor].get(phase_factor_,initializing);
-  is_modulo_ = ( modulo_ != 0 );
+  TensorFunction::setStateImpl(rec,initializing);
+  rec[AidNarrow|AidBand|AidLimit].get(narrow_band_limit_,initializing);
 }
 
+const LoShape shape_2vec(2);
 
-using namespace blitz;
+LoShape TFSmearFactor::getResultDims (const vector<const LoShape *> &input_dims)
+{
+  for( uint i=0; i<input_dims.size(); i++ )
+  {
+    FailWhen((*input_dims[i]) != shape_2vec,
+              ssprintf("child %d: 2-vector expected",i));
+  }
+  // result is a scalar
+  return LoShape();
+}
+
+void TFSmearFactor::computeResultCells (Cells::Ref &ref,
+        const std::vector<Result::Ref> &childres,const Request &request)
+{
+  TensorFunction::computeResultCells(ref,childres,request);
+  const Cells & cells = *ref;
+  if( cells.isDefined(Axis::FREQ) )
+  {
+    int nfreq = cells.ncells(Axis::FREQ);
+    // set up frequency vells
+    const Domain &dom = cells.domain();
+    double freq0 = dom.start(Axis::FREQ);
+    double freq1 = dom.end(Axis::FREQ);
+    double midfreq = (freq0+freq1)/2;
+    // narrow-band: use effectively a single frequency
+    if( abs(freq0-freq1)/midfreq < narrow_band_limit_ )
+    {
+      narrow_band_ = true;
+      freq_vells_ = midfreq;
+    }
+    else
+    {
+      freq_vells_ = Vells(0,Axis::freqVector(nfreq),false);
+      memcpy(freq_vells_.realStorage(),cells.center(Axis::FREQ).data(),nfreq*sizeof(double));
+    }
+    // set up delta-freq/2 vells
+    if( cells.numSegments(Axis::FREQ)<2 )
+      dfreq2_vells_ = cells.cellSize(Axis::FREQ)(0)/2;
+    else
+    {
+      dfreq2_vells_ = Vells(0,Axis::freqVector(nfreq),false);
+      memcpy(dfreq2_vells_.realStorage(),cells.cellSize(Axis::FREQ).data(),nfreq*sizeof(double));
+    }
+  }
+  else
+    freq_vells_ = dfreq2_vells_ = 0;
+  // set up delta-time/2 vells
+  if( cells.isDefined(Axis::TIME) )
+  {
+    int ntime = cells.ncells(Axis::TIME);
+    if( cells.numSegments(Axis::TIME)<2 )
+      dtime2_vells_ = cells.cellSize(Axis::TIME)(0)/2;
+    else
+    {
+      dtime2_vells_ = Vells(0,Axis::timeVector(ntime),false);
+      memcpy(dtime2_vells_.realStorage(),cells.cellSize(Axis::TIME).data(),ntime*sizeof(double));
+    }
+  }
+  else
+    dtime2_vells_ = 0;
+}
+
 using namespace VellsMath;
 
-// for teh normal stencils: used to have
-//    A = .5*central12(B,blitz::firstDim);
-BZ_DECLARE_STENCIL2(TimeDiff, A,B)
-    A = forward11(B,blitz::firstDim);
-BZ_END_STENCIL
-BZ_DECLARE_STENCIL2(TimeDiff1,A,B)
-    A = forward11(B,blitz::firstDim);
-BZ_END_STENCIL
-BZ_DECLARE_STENCIL2(TimeDiff2,A,B)
-    A = backward11(B,blitz::firstDim);
-BZ_END_STENCIL
-BZ_DECLARE_STENCIL2(FreqDiff, A,B)
-    A = forward11(B,blitz::secondDim);
-BZ_END_STENCIL
-BZ_DECLARE_STENCIL2(FreqDiff1,A,B)
-    A = forward11(B,blitz::secondDim);
-BZ_END_STENCIL
-BZ_DECLARE_STENCIL2(FreqDiff2,A,B)
-    A = backward11(B,blitz::secondDim);
-BZ_END_STENCIL
-
-
-//##ModelId=400E535502A1
-Vells TFSmearFactor::evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values)
+void TFSmearFactor::evaluateTensors (std::vector<Vells> & out,
+                                     const std::vector<std::vector<const Vells *> > &args )
 {
-  Vells argvells;
-  if( values.size() == 2 )
-    argvells = (*values[0]) - (*values[1]);
-  else
-    argvells = *values[0];
-  // arg will refer to the incoming data as a rank-2 array
-  blitz::Array<double,2> arg;
-  int nt = argvells.extent(Axis::TIME);
-  int nf = argvells.extent(Axis::FREQ);
-  // rank 0: constant, return factor of 1 
-  if( argvells.rank() == 0 )
-    return Vells(1.0);
-  // rank 1: time array only, reshape
-  else if( argvells.rank() == 1 )
+  Vells p = (*args[0][0]);
+  Vells dp = (*args[0][1]);
+  // with two arguments, subtract second
+  if( args.size() == 2 )
   {
-    blitz::Array<double,2> arg2(argvells.realStorage(),
-                                LoShape2(nt,1),blitz::neverDeleteData);
-    arg.reference(arg2);
+    p  -= (*args[1][0]);
+    dp -= (*args[1][1]);
   }
-  // rank 2: time-freq array
-  else if( argvells.rank() == 2 )
-  {
-    arg.reference(argvells.as<double,2>());
-  }
-  else
-    Throw("illegal rank of input array. I would expect my children to return a time-frequency result at most");
-  Vells factor(1.0);
-  Vells dfreq(0.,arg.shape()),dtime(0.,arg.shape());
-  // apply stencil in time, to get differences over the cells
-  if( nt > 1 )
-  {
-    blitz::Array<double,2> dtime_2 = dtime.as<double,2>();
-    blitz::Array<double,2> dtime_2_row0 = dtime_2(LoRange(0,1),LoRange::all());
-    blitz::Array<double,2> arg_row0 = arg(LoRange(0,1),LoRange::all());
-    blitz::applyStencil(TimeDiff1(),dtime_2_row0,arg_row0);
-    blitz::Array<double,2> dtime_2_row1 = dtime_2(LoRange(nt-2,nt-1),LoRange::all());
-    blitz::Array<double,2> arg_row1 = arg(LoRange(nt-2,nt-1),LoRange::all());
-    blitz::applyStencil(TimeDiff2(),dtime_2_row1,arg_row1);
-    if( nt > 2 )
-      blitz::applyStencil(TimeDiff(),dtime_2,arg);
-    if( is_modulo_ )
-      dtime = remainder(dtime,modulo_);
-    dtime /= 2/phase_factor_;
-    factor *= sin(dtime)/dtime;
-  }
-  // now apply stencil in freq
-  if( nf > 1 )
-  {
-    blitz::Array<double,2> dfreq_2 = dfreq.as<double,2>();
-    blitz::Array<double,2> dfreq_2_col0 = dfreq_2(LoRange::all(),LoRange(0,1));
-    blitz::Array<double,2> arg_col0 = arg(LoRange::all(),LoRange(0,1));
-    blitz::applyStencil(FreqDiff1(),dfreq_2_col0,arg_col0);
-    blitz::Array<double,2> dfreq_2_col1 = dfreq_2(LoRange::all(),LoRange(nf-2,nf-1));
-    blitz::Array<double,2> arg_col1 = arg(LoRange::all(),LoRange(nf-2,nf-1));
-    blitz::applyStencil(FreqDiff2(),dfreq_2_col1,arg_col1);
-    if( nf > 2 )
-      blitz::applyStencil(FreqDiff(),dfreq_2,arg);
-    if( is_modulo_ )
-      dfreq = remainder(dfreq,modulo_);
-    dfreq /= 2/phase_factor_;
-    factor *= sin(dfreq)/dfreq;
-  }
-  // take sines and compute smearing factors
-  // return dtime;
-  return factor;
+  const double _2pi_over_c = -casa::C::_2pi / casa::C::c;
+
+  Vells dphi = _2pi_over_c * freq_vells_ * dp * dtime2_vells_;
+  Vells dpsi = _2pi_over_c * p * dfreq2_vells_;
+
+  out[0] = sin(dphi)*sin(dpsi)/(dphi*dpsi);
 }
+
 
 
 } // namespace Meq

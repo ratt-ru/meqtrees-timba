@@ -111,6 +111,7 @@ set(MeqNodes_includes
     src/Tan.h
     src/Tanh.h
     src/TFSmearFactor.h
+    src/TFSmearFactorApprox.h
     src/TID-MeqNodes.h
     src/TimeNode.h
     src/ToComplex.h
@@ -238,6 +239,7 @@ set(meqNodes_src
     src/Tan.cc
     src/Tanh.cc
     src/TFSmearFactor.cc
+    src/TFSmearFactorApprox.cc
     src/TimeNode.cc
     src/ToComplex.cc
     src/Transpose.cc

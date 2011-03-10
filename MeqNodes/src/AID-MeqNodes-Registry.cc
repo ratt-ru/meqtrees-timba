@@ -202,6 +202,8 @@ DMI::BObj * __construct_MeqSum (int n) { return n>0 ? new Meq::Sum [n] : new Meq
 DMI::BObj * __construct_MeqTan (int n) { return n>0 ? new Meq::Tan [n] : new Meq::Tan; }
 #include "Tanh.h"
 DMI::BObj * __construct_MeqTanh (int n) { return n>0 ? new Meq::Tanh [n] : new Meq::Tanh; }
+#include "TFSmearFactorApprox.h"
+DMI::BObj * __construct_MeqTFSmearFactorApprox (int n) { return n>0 ? new Meq::TFSmearFactorApprox [n] : new Meq::TFSmearFactorApprox; }
 #include "TFSmearFactor.h"
 DMI::BObj * __construct_MeqTFSmearFactor (int n) { return n>0 ? new Meq::TFSmearFactor [n] : new Meq::TFSmearFactor; }
 #include "TimeNode.h"
@@ -651,9 +653,17 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1450,"MeqTanh")+
         TypeInfoReg::addToRegistry(-1450,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1450,__construct_MeqTanh)+
+        AtomicID::registerId(-1766,"MeqTFSmearFactorApprox")+
+        TypeInfoReg::addToRegistry(-1766,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1766,__construct_MeqTFSmearFactorApprox)+
+        AtomicID::registerId(-1768,"Smear")+
+        AtomicID::registerId(-1129,"Phase")+
         AtomicID::registerId(-1748,"MeqTFSmearFactor")+
         TypeInfoReg::addToRegistry(-1748,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1748,__construct_MeqTFSmearFactor)+
+        AtomicID::registerId(-1767,"Narrow")+
+        AtomicID::registerId(-1769,"Band")+
+        AtomicID::registerId(-1770,"Limit")+
         AtomicID::registerId(-1451,"MeqTime")+
         TypeInfoReg::addToRegistry(-1451,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1451,__construct_MeqTime)+
@@ -685,6 +695,7 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         TypeInfoReg::addToRegistry(-1421,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1421,__construct_MeqUVW)+
         AtomicID::registerId(-1566,"RADec")+
+        AtomicID::registerId(-1765,"Include")+
         AtomicID::registerId(-1747,"MeqVisPhaseShiftArg")+
         TypeInfoReg::addToRegistry(-1747,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1747,__construct_MeqVisPhaseShiftArg)+

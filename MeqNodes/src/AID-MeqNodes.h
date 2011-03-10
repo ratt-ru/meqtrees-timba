@@ -48,6 +48,11 @@ const int AidBF_int = -1749;
 const DMI::AtomicID AidBalanced(-1668);           // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:37
 const int AidBalanced_int = -1668;
 #endif
+#ifndef _defined_id_AidBand
+#define _defined_id_AidBand 1
+const DMI::AtomicID AidBand(-1769);               // from TFSmearFactor.h:33
+const int AidBand_int = -1769;
+#endif
 #ifndef _defined_id_AidBaseline
 #define _defined_id_AidBaseline 1
 const DMI::AtomicID AidBaseline(-1682);           // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/PatchComposer.h:35
@@ -263,6 +268,11 @@ const int AidHistory_int = -1575;
 const DMI::AtomicID AidIn(-1207);                 // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
 const int AidIn_int = -1207;
 #endif
+#ifndef _defined_id_AidInclude
+#define _defined_id_AidInclude 1
+const DMI::AtomicID AidInclude(-1765);            // from UVW.h:32
+const int AidInclude_int = -1765;
+#endif
 #ifndef _defined_id_AidIncremental
 #define _defined_id_AidIncremental 1
 const DMI::AtomicID AidIncremental(-1515);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:32
@@ -327,6 +337,11 @@ const int AidLT_int = -1455;
 #define _defined_id_AidLabel 1
 const DMI::AtomicID AidLabel(-1456);              // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 const int AidLabel_int = -1456;
+#endif
+#ifndef _defined_id_AidLimit
+#define _defined_id_AidLimit 1
+const DMI::AtomicID AidLimit(-1770);              // from TFSmearFactor.h:33
+const int AidLimit_int = -1770;
 #endif
 #ifndef _defined_id_AidList
 #define _defined_id_AidList 1
@@ -843,6 +858,11 @@ const int AidMeqSum_int = -1499;
 const DMI::AtomicID AidMeqTFSmearFactor(-1748);   // from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
 const int AidMeqTFSmearFactor_int = -1748;
 #endif
+#ifndef _defined_id_AidMeqTFSmearFactorApprox
+#define _defined_id_AidMeqTFSmearFactorApprox 1
+const DMI::AtomicID AidMeqTFSmearFactorApprox(-1766);// from TFSmearFactorApprox.h:32
+const int AidMeqTFSmearFactorApprox_int = -1766;
+#endif
 #ifndef _defined_id_AidMeqTan
 #define _defined_id_AidMeqTan 1
 const DMI::AtomicID AidMeqTan(-1417);             // from /home/oms/LOFAR/Timba/MeqNodes/src/Tan.h:29
@@ -958,6 +978,11 @@ const int AidNE_int = -1381;
 const DMI::AtomicID AidName(-1122);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
 const int AidName_int = -1122;
 #endif
+#ifndef _defined_id_AidNarrow
+#define _defined_id_AidNarrow 1
+const DMI::AtomicID AidNarrow(-1767);             // from TFSmearFactor.h:33
+const int AidNarrow_int = -1767;
+#endif
 #ifndef _defined_id_AidNum
 #define _defined_id_AidNum 1
 const DMI::AtomicID AidNum(-1163);                // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
@@ -1007,6 +1032,11 @@ const int AidPA_int = -1702;
 #define _defined_id_AidPadding 1
 const DMI::AtomicID AidPadding(-1761);            // from /home/oms/Timba/MeqNodes/src/FFTBrick.h:38
 const int AidPadding_int = -1761;
+#endif
+#ifndef _defined_id_AidPhase
+#define _defined_id_AidPhase 1
+const DMI::AtomicID AidPhase(-1129);              // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
+const int AidPhase_int = -1129;
 #endif
 #ifndef _defined_id_AidPhi
 #define _defined_id_AidPhi 1
@@ -1107,6 +1137,11 @@ const int AidSize_int = -1255;
 #define _defined_id_AidSkeleton 1
 const DMI::AtomicID AidSkeleton(-1389);           // from /home/oms/LOFAR/Timba/MeqNodes/src/DataConcat.h:31
 const int AidSkeleton_int = -1389;
+#endif
+#ifndef _defined_id_AidSmear
+#define _defined_id_AidSmear 1
+const DMI::AtomicID AidSmear(-1768);              // from TFSmearFactorApprox.h:33
+const int AidSmear_int = -1768;
 #endif
 #ifndef _defined_id_AidSolution
 #define _defined_id_AidSolution 1

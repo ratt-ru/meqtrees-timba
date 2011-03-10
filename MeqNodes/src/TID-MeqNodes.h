@@ -1870,6 +1870,25 @@ namespace Meq { class TFSmearFactor; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqTFSmearFactorApprox
+#define _defined_id_TpMeqTFSmearFactorApprox 1
+const DMI::TypeId TpMeqTFSmearFactorApprox(-1766);// from TFSmearFactorApprox.h:32
+const int TpMeqTFSmearFactorApprox_int = -1766;
+namespace Meq { class TFSmearFactorApprox; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::TFSmearFactorApprox> : public TypeTraits<Meq::TFSmearFactorApprox>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqTFSmearFactorApprox_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::TFSmearFactorApprox & ContainerReturnType;
+                typedef const Meq::TFSmearFactorApprox & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqTan
 #define _defined_id_TpMeqTan 1
 const DMI::TypeId TpMeqTan(-1417);                // from /home/oms/LOFAR/Timba/MeqNodes/src/Tan.h:29
