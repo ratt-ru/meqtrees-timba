@@ -27,7 +27,7 @@
 #include <casa/BasicSL/Constants.h>
 #include <cmath>
 
-namespace Meq {    
+namespace Meq {
 
 using namespace VellsMath;
 
@@ -37,10 +37,10 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 const HIID FDomain = AidDomain;
 
 WSRTCos3Beam::WSRTCos3Beam()
-: Function(num_children,child_labels),
-  clip_(100*(casa::C::pi/180))
+: TensorFunction(num_children,child_labels),
+  clip_(100*(casa::C::pi/180)),deriv_(false)
 {
-  // dependence on frequency 
+  // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
 }
@@ -51,6 +51,7 @@ WSRTCos3Beam::~WSRTCos3Beam()
 void WSRTCos3Beam::setStateImpl (DMI::Record::Ref& rec, bool initializing)
 {
   Node::setStateImpl(rec,initializing);
+  rec[AidDeriv].get(deriv_,initializing);
   rec[AidClip].get(clip_,initializing);
   // in first-model mode, compute argument clip
   if( clip_ > 0 )
@@ -59,27 +60,76 @@ void WSRTCos3Beam::setStateImpl (DMI::Record::Ref& rec, bool initializing)
     argclip_ = 0;
 }
 
-
-//##ModelId=400E535502C4
-Vells WSRTCos3Beam::evaluate (const Request &request,const LoShape &,
-		   	      const vector<const Vells*>& values)
+void WSRTCos3Beam::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request)
 {
+  // copy cells of first child
+  if( childres[0]->hasCells() )
+    ref.attach(childres[0]->cells());
+  else
+    ref.attach(request.cells());
+  // check that we now have a time axis
+  FailWhen(!ref->isDefined(Axis::FREQ),"Meq::WSRTCos3Beam: no freq axis in child result or in request, can't compute RA/Dec");
   // create frequency vells
   int nfreq = request.cells().ncells(Axis::FREQ);
-  Vells freq(0,Axis::vectorShape(Axis::FREQ,nfreq),false);
-  memcpy(freq.realStorage(),request.cells().center(Axis::FREQ).data(),nfreq*sizeof(double));
-  
-  const Vells & bf = *(values[0]);
-  const Vells & r = *(values[1]);
-  
-  // broken NEWSTAR-style clipping
-  if( clip_ < 0 )
-    return max(abs(pow3(cos((bf*r)*freq))),-clip_,-1,-1);
-  // proper argument clipping
-  else if( argclip_ > 0 )
-    return pow3(cos(min((bf*r)*freq,argclip_,-1,-1)));
+  freq_vells_ = Vells(0,Axis::vectorShape(Axis::FREQ,nfreq),false);
+  memcpy(freq_vells_.realStorage(),request.cells().center(Axis::FREQ).data(),nfreq*sizeof(double));
+}
+
+
+LoShape WSRTCos3Beam::getResultDims (const vector<const LoShape *> &input_dims)
+{
+  if( input_dims[0]->product() != 1)
+    Throw("child 0: single value (bf) expected");
+  if( deriv_ )
+  {
+    if( input_dims[1]->product() != 2)
+      Throw("child 1: 2-vector (l,m) expected");
+    return LoShape(2);
+  }
   else
-    return pow3(cos((bf*r)*freq));
+  {
+    if( input_dims[1]->product() > 2 )
+      Throw("child 1: single value (r) or 2-vector (l,m) expected");
+    return LoShape(1);
+  }
+}
+
+void WSRTCos3Beam::evaluateTensors (std::vector<Vells> & out,
+                                   const std::vector<std::vector<const Vells *> > &args )
+{
+  const Vells &bf = *(args[0][0]);
+  Vells r;
+  if( args[1].size() == 1 )
+    r = *args[1][0];
+  else if( args[1].size() == 2 )
+  {
+    const Vells &l = *args[1][0];
+    const Vells &m = *args[1][1];
+    r = sqrt(l*l+m*m);
+  }
+  Vells bfr = bf*r*freq_vells_;
+  // derivative mode
+  if( deriv_ )
+  {
+    const Vells &l = *args[1][0];
+    const Vells &m = *args[1][1];
+    Vells t = -3 * bf * pow2(cos(bfr)) * sin(bfr) / r;
+    out[0] = t * l * freq_vells_;
+    out[1] = t * m * freq_vells_;
+  }
+  // normal mode
+  else
+  {
+    r = r*bf*freq_vells_;
+    // broken NEWSTAR-style clipping
+    if( clip_ < 0 )
+      out[0] = max(abs(pow3(cos(bfr))),-clip_,-1,-1);
+    // proper argument clipping
+    else if( argclip_ > 0 )
+      out[0] = pow3(cos(min(bfr,argclip_,-1,-1)));
+    else
+      out[0] = pow3(cos(bfr));
+  }
 }
 
 } // namespace Meq
