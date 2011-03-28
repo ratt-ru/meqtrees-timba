@@ -570,6 +570,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       except AttributeError: 
         pass;
     _dprint(1,"connected is",connected);
+    if connected and self.app.is_auto_attached():
+      self.app.meq('Set.Forest.Breakpoint',record(breakpoint=meqds.BP_FAIL),wait=False);
     self._qa_stopkern.setEnabled(connected);
     # self._qa_connect.setDisabled(connected);
     self._qa_attach_gdb.setEnabled(connected);

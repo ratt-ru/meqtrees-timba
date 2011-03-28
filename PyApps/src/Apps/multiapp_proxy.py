@@ -109,6 +109,7 @@ class multiapp_proxy (verbosity):
     self.current_server = None;
     # we may be set up to auto-attach to a server with a particular pid or host
     self._auto_attach_pid = self._auto_attach_host = None;
+    self._auto_attached = False;
     # start a proxy wp. Select threaded or polled version, depending on
     # arguments
     if wp_verbose is None:
@@ -252,14 +253,14 @@ class multiapp_proxy (verbosity):
   server_attach_event = hiid("Attach.Server");
   server_detach_event = hiid("Detach.Server");
   
-  def attach_server (self,addr):
+  def attach_server (self,addr,auto_attached=False):
     """Attaches to a server specified by address""";
     server = self.servers.get(addr,None);
     if server and server is not self.current_server:
       self.detach_current_server();
       self.current_server = server;
       server.emit(SIGNAL("attached"));
-      self.client.emit(SIGNAL("serverAttached"),server,);
+      self.client.emit(SIGNAL("serverAttached"),server,auto_attached);
       self._gui_event_handler(self.server_attach_event,None,server);
       self._auto_attach_pid = self._auto_attach_host = None;
       
@@ -273,6 +274,9 @@ class multiapp_proxy (verbosity):
       
   def auto_attach (self,pid=None,host=None):
     self._auto_attach_pid,self._auto_attach_host = pid,host;
+    
+  def is_auto_attached (self):
+    return self._auto_attached;
   
   def _connect_server (self,addr):
     """common procedure used by message handlers to connect a new server""";
@@ -286,7 +290,10 @@ class multiapp_proxy (verbosity):
     # is an auto-attach request in place?
     if self._auto_attach_pid == addr[2] and addr[3] == self.client.addr[3]:
       self.dprint(2,"auto-attaching to this server");
-      self.attach_server(addr);
+      self.attach_server(addr,auto_attached=True);
+      self._auto_attached = True;
+    else:
+      self._auto_attached = False;
     return server;
     
   def _disconnect_server (self,addr,server):
