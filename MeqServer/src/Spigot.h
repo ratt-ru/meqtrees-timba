@@ -146,6 +146,9 @@ class Spigot : public VisHandlerNode
 
     Result::Dims     dims_;
     std::vector<int> corr_index_;
+    
+    // for UVW-column only: include DUVW
+    bool include_derivatives_;
 
 };
 

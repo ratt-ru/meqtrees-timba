@@ -176,9 +176,9 @@ void UVW::evaluateTensors (std::vector<Vells> & out,
       const MVBaseline& bas2000 = mcvt().getValue();
       MVuvw uvw2000 (bas2000, phaseRef);
       const Vector<double>& xyz1 = uvw2000.getValue();
-      pdU[i] = xyz1(0) - xyz(0);
-      pdV[i] = xyz1(1) - xyz(1);
-      pdW[i] = xyz1(2) - xyz(2);
+      pdU[i] = xyz1(0) - pU[i];
+      pdV[i] = xyz1(1) - pV[i];
+      pdW[i] = xyz1(2) - pW[i];
     }
   }
 }

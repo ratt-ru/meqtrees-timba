@@ -702,7 +702,8 @@ int MSInputChannel::refillStream ()
             ptile->winterval()(ALL) = exposure_times_[current_timeslot_];
           }
           ptile->winterval()(ntimes) = intCol(i);
-          ptile->wuvw()(ALL,ntimes)  = uvwmat(ALL,i);
+          LoVec_double uvw = uvwmat(ALL,i);
+          ptile->wuvw()(ALL,ntimes) = uvw;
           ptile->wdata()(ALL,ALL,ntimes) = datacube(ALL,ALL,i);
           if( !predictColName_.empty() )
             ptile->wpredict()(ALL,ALL,ntimes) = predcube(ALL,ALL,i);
@@ -732,7 +733,7 @@ int MSInputChannel::refillStream ()
       current_tile_++;
       // output all valid collected tiles onto stream, but do fill in
       // their TIME column so that it's the same for all tiles regardless
-      // of what rows are actually found
+      // of what rows are actually found. Also fill in DUVW at this time.
       for( uint i=0; i<tiles_.size(); i++ )
       {
         if( tiles_[i].valid() )
@@ -740,6 +741,32 @@ int MSInputChannel::refillStream ()
           VTile &tile = tiles_[i];
           tile.wtime() = tile_times;
           HIID id = VisEventHIID(DATA,tiles_[i]->tileId());
+          // setup DUVW column
+          PrevUVWMap::const_iterator iter = prev_uvw_.find(std::pair<int,int>(tile.antenna1(),tile.antenna2()));
+          bool have_prev_ = ( iter != prev_uvw_.end() );
+          if( tile.ntime() > 1 )
+          {
+            LoVec_double delta_t(tile.ntime()-1);
+            delta_t = tile.time()(LoRange(1,tile.ntime()-1)) - tile.time()(LoRange(0,tile.ntime()-2));
+            LoMat_double duvw = tile.wduvw()(ALL,LoRange(1,tile.ntime()-1));
+            duvw = tile.uvw()(ALL,LoRange(1,tile.ntime()-1)) - tile.uvw()(ALL,LoRange(0,tile.ntime()-2));
+            for( int j=0; j<3; j++ )
+              duvw(j,ALL) /= delta_t;
+          }
+          // work out DUVW row 0 
+          if( have_prev_ )
+            tile.wduvw()(ALL,0) = (tile.uvw()(ALL,0) - (iter->second)(LoRange(1,3)))/
+                                  (tile.time()(0) - (iter->second)(0));
+          else if( tile.ntime() > 1 )
+            tile.wduvw()(ALL,0) = tile.duvw()(ALL,1);
+          else
+            tile.wduvw()(ALL,0) = 0;
+          // save UVW of last row
+          LoVec_double & puvw = prev_uvw_[std::pair<int,int>(tile.antenna1(),tile.antenna2())];
+          puvw.resize(4);
+          puvw(0) = tile.time(tile.ntime()-1);
+          puvw(LoRange(1,3)) = tile.uvw()(ALL,tile.ntime()-1);
+          // place on stream
           putOnStream(id,tiles_[i]);
           tiles_[i].detach();
           nout++;  // increment pointer so that we break out of loop

@@ -199,7 +199,9 @@ class MSInputChannel : public FileChannel
 
       // range of times in current selection
       std::vector<double> time_range_;
-
+      
+      typedef std::map<std::pair<int,int>,LoVec_double> PrevUVWMap;
+      PrevUVWMap prev_uvw_;
 
       // iterator
     //##ModelId=3DF9FECD01EE

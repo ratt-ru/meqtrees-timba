@@ -47,7 +47,8 @@ Spigot::Spigot ()
       flag_mask_(-1),
       row_flag_mask_(-1),
       flag_bit_(1),
-      dims_(2,2)
+      dims_(2,2),
+      include_derivatives_(false)
 {
   // since we effectively hold our own cache, disable node's result caching
   // by default
@@ -64,6 +65,7 @@ Spigot::Spigot ()
 void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   VisHandlerNode::setStateImpl(rec,initializing);
+  rec[AidInclude|AidDeriv].get(include_derivatives_,initializing);
   // ensure column name is processed first time through
   if( rec[FInputColumn].get(colname_,initializing) )
   {
@@ -74,13 +76,23 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
       NodeThrow(FailWithoutCleanup,"unknown input column "+colname_);
     }
     icolumn_ = iter->second;
+    if( colname_ == "UVW" )
+    {
+      if( include_derivatives_ )
+      {
+        dims_ = LoShape(2,3);
+        // check for DUVW column
+        if( colmap.find("DUVW") == colmap.end() ) 
+        {
+          NodeThrow(FailWithoutCleanup,"unknown input column DUVW");
+        }
+      }
+      else
+        dims_ = LoShape(3);
+    }
   }
-  if( colname_ == "UVW" )
-  {
-    dims_.resize(1);
-    dims_[0] = 3;
-  }
-  else
+  // get other state, for non-UVW columns
+  if( colname_ != "UVW" )
   {
     // check output shapes and maps for consistency
     bool reshaped = rec[FDims].get_vector(dims_,initializing);
@@ -177,6 +189,16 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
         {
           VellSet &vs = result.setNewVellSet(i);
           vs.setReal(shape).getArray<double,1>() = mat(i,rowrange);
+        }
+        // add derivarives
+        if( include_derivatives_ )
+        {
+          const LoMat_double &duvw = tile.duvw();
+          for( int i=0; i<3; i++ )
+          {
+            VellSet &vs = result.setNewVellSet(i+3);
+            vs.setReal(shape).getArray<double,1>() = duvw(i,rowrange);
+          }
         }
       }
       // else treat it as a standard corr/freq/time column
