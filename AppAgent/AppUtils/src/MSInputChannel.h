@@ -69,6 +69,7 @@ using namespace VisVocabulary;
 //##       +--[FChannelStartIndex] (int)     starting channel (default: 0)
 //##       +--[FChannelEndIndex]   (int)     ending channel (default: last chan.)
 //##       +--[FChannelIncrement]  (int)     channel increment step (default: 1)
+//##       +--[FAutoCorr]          (bool)    selects auto-correlations if True (default is False)
 //##       +--[FSelectionString] (string)    additional TaQL selection applied
 //##                                           to MS
 class MSInputChannel : public FileChannel

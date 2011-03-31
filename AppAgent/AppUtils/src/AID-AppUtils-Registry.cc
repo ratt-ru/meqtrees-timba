@@ -32,6 +32,8 @@
         AtomicID::registerId(-1134,"Flag")+
         AtomicID::registerId(-1263,"Mask")+
         AtomicID::registerId(-1287,"Segments")+
+        AtomicID::registerId(-1213,"Auto")+
+        AtomicID::registerId(-1188,"Corr")+
         AtomicID::registerId(-1587,"Use")+
         AtomicID::registerId(-1743,"Bitflag")+
         AtomicID::registerId(-1745,"Legacy")+

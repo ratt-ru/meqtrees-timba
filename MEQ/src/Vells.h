@@ -464,7 +464,7 @@ public:
   // they mismatch.
   // Returns 1 if everything matched,  -1 if nothing matched, or 0 otherwise
   template<class T>
-  int whereEq (Vells &out,T value,VellsFlagType out_eq=1,VellsFlagType out_ne=0)
+  int whereEq (Vells &out,T value,VellsFlagType out_eq=1,VellsFlagType out_ne=0) const
   {
     // init a flag vells with out_ne
     out = Vells(shape(),out_ne,true);
@@ -489,6 +489,33 @@ public:
     else
       return 0;
   }
+  
+  // vesion of whereEq that returns the flag vells
+  template<class T>
+  Vells whereEq (T value,VellsFlagType out_eq=1,VellsFlagType out_ne=0) const
+  {
+    Vells out;
+    whereEq(out,value,out_eq,out_ne);
+    return out;
+  }
+  
+  // replaceFlaggedValues(flag,value[,mask])
+  // Replaces flagged values (where flag is a flag Vells of the same shape)
+  // with the given value.
+  template<class T>
+  void replaceFlaggedValues (const Vells &flag,T value,VellsFlagType mask=VellsFullFlagMask)
+  {
+    // init a flag vells with out_ne
+    FailWhen(shape()!=flag.shape(),"replaceFlaggedValues: shape of flags and vells does not match");
+    T * ptr = begin<T>();
+    const VellsFlagType * pfl = flag.begin<VellsFlagType>();
+    for( ; ptr != end<T>(); ptr++,pfl++ )
+    {
+      if( (*pfl)&mask )
+        *ptr = value;
+    }
+  }
+  
 
 // NumArray already defines templated getArray<T>() and getConstArray<T>() functions
 //   template<class T,int N>

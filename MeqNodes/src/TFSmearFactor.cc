@@ -126,8 +126,14 @@ void TFSmearFactor::evaluateTensors (std::vector<Vells> & out,
 
   Vells dphi = _2pi_over_c * freq_vells_ * dp * dtime2_vells_;
   Vells dpsi = _2pi_over_c * p * dfreq2_vells_;
-
-  out[0] = sin(dphi)*sin(dpsi)/(dphi*dpsi);
+  
+  Vells prod1 = sin(dphi)/dphi;
+  Vells prod2 = sin(dpsi)/dpsi;
+  
+  prod1.replaceFlaggedValues(dphi.whereEq(0.),1.);
+  prod2.replaceFlaggedValues(dpsi.whereEq(0.),1.);
+  
+  out[0] = prod1*prod2;
 }
 
 

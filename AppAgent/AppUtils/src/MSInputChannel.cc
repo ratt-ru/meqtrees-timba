@@ -201,6 +201,7 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   // get DDID and Field ID (default is 0)
   int ddid = select[FDDID].as<int>(0);
   int fieldid = select[FFieldIndex].as<int>(0);
+  bool autocorr = select[FAutoCorr].as<bool>(false);
   // Get range of channels (default values: all channles)
   channels_[0] = select[FChannelStartIndex].as<int>(0);
   channels_[1] = select[FChannelEndIndex].as<int>(-1);
@@ -222,6 +223,8 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
 
   // We only handle the given field & data desc id
   TableExprNode expr = ( ms_.col("FIELD_ID") == fieldid && ms_.col("DATA_DESC_ID") == ddid );
+  if( !autocorr )
+    expr = expr && ms_.col("ANTENNA1") != ms_.col("ANTENNA2");
   selms_ = ms_(expr);
   // sort by time
   selms_.sort("TIME");

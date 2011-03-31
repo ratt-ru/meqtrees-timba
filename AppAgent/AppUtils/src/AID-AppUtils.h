@@ -13,6 +13,11 @@
 const DMI::AtomicID AidApply(-1730);              // from /home/oms/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:38
 const int AidApply_int = -1730;
 #endif
+#ifndef _defined_id_AidAuto
+#define _defined_id_AidAuto 1
+const DMI::AtomicID AidAuto(-1213);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
+const int AidAuto_int = -1213;
+#endif
 #ifndef _defined_id_AidBitflag
 #define _defined_id_AidBitflag 1
 const DMI::AtomicID AidBitflag(-1743);            // from /home/oms/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:36
@@ -32,6 +37,11 @@ const int AidClear_int = -1353;
 #define _defined_id_AidColumn 1
 const DMI::AtomicID AidColumn(-1258);             // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 const int AidColumn_int = -1258;
+#endif
+#ifndef _defined_id_AidCorr
+#define _defined_id_AidCorr 1
+const DMI::AtomicID AidCorr(-1188);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:28
+const int AidCorr_int = -1188;
 #endif
 #ifndef _defined_id_AidCwd
 #define _defined_id_AidCwd 1
