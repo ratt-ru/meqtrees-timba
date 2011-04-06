@@ -79,7 +79,7 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
     import re
     re_load_config    = re.compile("^\[(.+)\]$");
     re_load_config1   = re.compile("^@(.+)$");
-    re_set_config     = re.compile("^(.+)=(.*)$");
+    re_set_config     = re.compile("^([^=]+)=(.*)$");
     re_compile_script = re.compile("^(.*\.py)(\[(.*)\])?$");
     re_compile_script1 = re.compile("^(.*\.py)(@(.*))?$");
     re_run_job        = re.compile("^=(.*)$");
