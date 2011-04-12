@@ -213,11 +213,11 @@ def set_option (name,value,save=True,strict=False,from_str=False):
   if item:
     if from_str:
       value = item.from_str(value);
-    _dprint(2,"setting",name,value);
+    _dprint(2,"setting existing item:",name,value);
     item.set_value(value,save=save);
     return;
   else:
-    _dprint(2,"setting config",name,value);
+    _dprint(2,"setting config item for later:",name,value);
     if strict:
       raise NameError,"Option '%s' not found"%name;
     # Perhaps the script hasn't been compiled yet, so pre-set it in config
@@ -1031,6 +1031,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       _dprint(2,"menu",title,"exclusive, symbol is",self._exclusive);
       self.excl_namespace,self.excl_config_name = \
           _resolve_namespace(namespace,self._exclusive,calldepth=2);
+      self.excl_config_name = self.excl_config_name and self.excl_config_name.lower();
       self._excl_selected = self.excl_namespace[self._exclusive] = None;
       _dprint(2,"menu",title,"exclusive, config name is",self.excl_config_name);
     # depth is 2 (this frame, TDLxxxMenu frame, caller frame)
@@ -1063,6 +1064,8 @@ class _TDLSubmenu (_TDLBoolOptionItem):
       except:
         excl_value = None;
       _dprint(2,"read",self.excl_config_name,"=",excl_value,"from config");
+      global _all_options;
+      _all_options[self.excl_config_name] = self;
     # if option not previously initialized, then we need to process the items list
     if self._items is None:
       _dprint(1,"menu",self._title,"runtime is",runtime);
@@ -1150,8 +1153,19 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     if self._twitem:
       self._twitem.setExpanded(expand);
 
+  def from_str (self,value):
+    if self._exclusive and isinstance(value,str) and value in self._exclusive_items:
+      return value;
+    elif self._toggle:
+      return _TDLBoolOptionItem.from_str(self,value);
+    else:
+      raise ValueError,"can't set %s to %s"%(self.name,value);
+
   def set (self,value,**kw):
-    if self._toggle:
+    _dprint(4,"setting menu item",self.name,value);
+    if self._exclusive and isinstance(value,str):
+      self.set_exclusive(value,save=False);
+    elif self._toggle:
       oldval = self.value;
       _TDLBoolOptionItem.set(self,value,**kw);
       # open/close menu when going from unset to set and vice versa

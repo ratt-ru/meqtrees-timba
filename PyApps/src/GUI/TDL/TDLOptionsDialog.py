@@ -192,7 +192,7 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     #self._tw.adjustColumn(1);
 #    return QDialog.show(self);
 
-#  def exec_ (self):
+#  def exec_ (self):_load_prof
 #    #self._tw.adjustColumn(0);
 #    #self._tw.adjustColumn(1);
 #    return QDialog.exec_(self);
