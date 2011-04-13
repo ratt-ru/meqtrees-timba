@@ -77,12 +77,12 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
     TDLOptions.config.set_save_filename(None);
 
     import re
-    re_load_config    = re.compile("^\[(.+)\]$");
-    re_load_config1   = re.compile("^@(.+)$");
-    re_set_config     = re.compile("^([^=]+)=(.*)$");
-    re_compile_script = re.compile("^(.*\.py)(\[(.*)\])?$");
-    re_compile_script1 = re.compile("^(.*\.py)(@(.*))?$");
-    re_run_job        = re.compile("^=(.*)$");
+    re_load_config    	= re.compile("^\[(.+)\]$");
+    re_load_config1   	= re.compile("^@(.+)$");
+    re_set_config     	= re.compile("^([^=]+)=(.*)$");
+    re_compile_script 	= re.compile("^(.*\.py)(\[(.*)\])?$");
+    re_compile_script1  = re.compile("^(.*\.py)(@(.*))?$");
+    re_run_job        	= re.compile("^=(.*)$");
 
     loaded_options = False;
     module = None;
@@ -140,19 +140,27 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
             for name,job_id in TDLOptions.get_all_jobs():
               print "### '%s' (id: %s)"%(name,job_id);
             raise NameError,"No such TDL job: '%s'"%job;
-        print func(mqs,None,wait=True);
+	try:
+	  res = func(mqs,None,wait=True);
+	  print "### Job result:",res;
+	except:
+	  print "### Job terminated with exception:"
+	  traceback.print_exc();
 
     print "### No more commands";
 
   ### Cleanup time
   finally:
-    print "Stopping meqserver";
+    if not mqs.current_server:
+      print "### The meqserver appears to have died on us :( Please check for core files and such.";
+    else:
+      print "### Stopping the meqserver";
     # this halts the meqserver
     try:
       meqserver.stop_default_mqs();
     except:
       traceback.print_exc();
-      print "There was an error stopping the meqserver cleanly. Exiting anyway.";
+      print "### There was an error stopping the meqserver cleanly. Exiting anyway.";
       sys.exit(1);
     # now we can exit
-    print "Bye!";
+    print "### Bye!";

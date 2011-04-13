@@ -275,9 +275,10 @@ def default_mqs (debug={},nokill=False,extra=None,**kwargs):
 def stop_default_mqs ():
   global mqs;
   if mqs: 
-    mqs.dprint(1,"stopping default meqserver");
-    mqs.halt();
-    mqs.disconnect();
+    if mqs.current_server:
+      mqs.dprint(1,"stopping default meqserver");
+      mqs.halt();
+      mqs.disconnect();
     # kill process if it is still running after 10 seconds
     if mqs.serv_pid:
       for i in range(10):
