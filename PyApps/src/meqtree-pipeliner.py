@@ -123,6 +123,7 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
             section = None;
             print "### (using previously set options)";
           module,ns,msg = Compile.compile_file(mqs,script,config=section);
+        print "### ",msg;
 
       elif job_match:
         if not module:

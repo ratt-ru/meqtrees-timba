@@ -233,7 +233,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     num_nodes = len(allnodes);
     # no nodes? return
     if not num_nodes:
-      return (tdlmod,ns,"Script has run successfully, but no nodes were defined.");
+      return (tdlmod,ns,"TDL script successfully compiled, but no nodes were defined.");
     # try to run stuff
     if mqs is not None:
       meqds.clear_forest();
@@ -247,13 +247,13 @@ def run_forest_definition (mqs,filename,tdlmod,text,
             record(script_name=os.path.basename(filename),
             batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
 #        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
-        msg = """Script has run successfully. %d node definitions
+        msg = """TDL script successfully compiled. %d node definitions
   (of which %d are root nodes) sent to meqserver.""" \
           % (num_nodes,len(ns.RootNodes()));
       else:
-        msg = "Script has run successfully, but no nodes were defined.";
+        msg = "TDL script successfully compiled, but no nodes were defined.";
     else:
-      msg = "Script has run successfully, %d nodes were defined."%num_nodes;
+      msg = "TDL script successfully compiled, %d nodes were defined."%num_nodes;
 
     # call the post-define function
     postdefine_func = getattr(tdlmod,'_tdl_postdefine',None);
@@ -271,7 +271,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
     _update_modlist();
     TDLOptions.enable_save_config(True);
     TDLOptions.save_config();
-    _dprint(0,'cumulative error defining forest from TDL file:',filename);
+    _dprint(0,'cumulative error compiling TDL script:',filename);
     traceback.print_exc();
     args = sys.exc_info()[1].args;
     _dprint(0,'number of errors in list:',len(args));
