@@ -593,8 +593,10 @@ DMI::Record & Cells::getSubrecord (const HIID &id)
 template<class T>
 void Cells::setRecVector( blitz::Array<T,1> &vec,const Hook &hook,int n)
 {
-  DMI::NumArray &arr = hook.replace() <<= new DMI::NumArray(typeIdOf(T),LoShape(n));
-  vec.reference(arr[HIID()].as(Type2Type<blitz::Array<T,1> >()));
+  LoShape shape(n);
+  DMI::NumArray &arr = hook.replace() <<= new DMI::NumArray(typeIdOf(T),shape);
+  void * ptr = arr.getDataPtr();
+  vec.reference(blitz::Array<T,1>(static_cast<T*>(ptr),shape,blitz::neverDeleteData));
 }
 
 } // namespace Meq

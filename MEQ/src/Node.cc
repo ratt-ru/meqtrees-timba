@@ -765,6 +765,7 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
     if( !chres.hasCells() )
       continue;
     const Cells &cc = childres[ich]->cells();
+    Thread::Mutex::Lock cclock(cc.mutex());
     if( !rescells.valid() ) // first cells? Init result cells with it
     {
       rescells <<= &cc;
