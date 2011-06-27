@@ -337,7 +337,7 @@ private:
   // map spids to SpidInfo objects
   typedef std::map<SpidType,SpidInfo> SpidMap;
   SpidMap spids_;
-  
+
   // maps solvegrpoup names to solvegroup numbers
   typedef std::map<string,int> SolveGroups;
   SolveGroups solvegroups_;
@@ -386,11 +386,11 @@ private:
       // uses a slice of it: [*,uk0:uk0+nuk-1]
       void initSolution (int &uk0,LoMat_double &incr_sol,
                          const SolverSettings &set,bool usemetrics=false,bool usedebug=false);
-                         
+
       // copies solution vector
       void copySolutions (LoMat_double &sol,int step)
       { sol(step,sol_range) = B2A::refAipsToBlitz<double,1>(solution); }
-      
+
       // expecutes one solve step based on accumulated equations,
       // returns true if converged.
       // if already converged, does nothing and returns true immediately
@@ -433,21 +433,21 @@ private:
   }
   SolveGroupData;
   std::vector<SolveGroupData> sgd_;
-  
+
   Vells::Strides      *strides_;
 
   int numSolveGroups () const
   { return solvegroups_.size(); }
-  
+
   // helper function -- returns number of subsolvers
   int numSubsolvers () const
   { return subsolvers_.size(); }
-  
+
   // helper function -- returns number of subtiles
   int numSubtiles () const
-  { return psolver_tiling_->total_tiles; } 
-  
-  
+  { return psolver_tiling_->total_tiles; }
+
+
   // Returns subsolver associated with given tile and subgroup
   // Caller can assume that subsolvers for subsequent tiles are adjacent.
   Subsolver * psubsolver (int itile,int solvegroup)
@@ -469,8 +469,8 @@ private:
   void stopWorkerThreads ();
 
   // run a worker thread loop
-  static void * runWorkerThread (void *solver);
-  void * workerLoop ();
+  static void * runWorkerThread (void *pinfo);
+  void * workerLoop (int wt_num);
 
 
   // Processes subsolvers in a loop, until all complete, or an exception
@@ -478,7 +478,7 @@ private:
   // calling this function (and will also be held when it returns).
   void processSolversLoop (Thread::Mutex::Lock &lock);
   // void processSolversLoop ();
-  
+
   // Activates all worker threads to process subsolvers.
   // Process what we can in this thread, and returns when all jobs are
   // complete.
@@ -488,13 +488,18 @@ private:
 
 
   int wt_num_ss_;         // number of subsolvers taken by workers
-       
+
     // condition var to signal worker threads to wake up
   Thread::Condition worker_cond_;
   bool wt_solve_loop_;    // flag: worker was woken to call processSolversLoop()
   bool wt_flush_tables_;  // flag: worker was woken to call ParmTableUtils::flushTables();
-  
+
+  // structure of per-worker-thread info, passed during Thread::create()
+  typedef struct { Solver *solver; int wt_num; } WorkerThreadInfo;
+  std::vector<WorkerThreadInfo> wt_info_;
+
   int wt_num_active_;     // number of active workers
+  std::vector<bool> wt_active_;  // flag: worker is active
   // condition var to signal main thread that workers have finished (wt_num_active=0)
   Thread::Condition worker_exit_cond_;
 
@@ -509,7 +514,9 @@ private:
   bool write_debug_;
 
 
-
+  // added these during debugging
+  int num_invalid;
+  int num_converged;
 };
 
 

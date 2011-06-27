@@ -503,7 +503,7 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
     slice.resize(numSubtiles(),2);
     for( int i=0; i<numSubtiles(); i++ )
     {
-      DbgAssert(uk0[i]>=0 && nuk[i]); // each tile's subsolver MUST have some unknowns 
+      DbgAssert(uk0[i]>=0 && nuk[i]); // each tile's subsolver MUST have some unknowns
       slice(i,0) = uk0[i];
       slice(i,1) = uk0[i]+nuk[i];
     }
@@ -625,6 +625,7 @@ inline void Solver::fillEqVectors (int itile,int npert,SpidInfo *pspi[],
         ::Debug::getDebugStream()<<pspi[i]->ssuki[itile]<<" ";
       ::Debug::getDebugStream()<<"contains NANs or INFs, omitting\n";
     }
+    num_invalid++;
     return;
   }
   // add equation to solvers
@@ -641,6 +642,8 @@ inline void Solver::fillEqVectors (int itile,int npert,SpidInfo *pspi[],
         ss.neq += 2;
         num_equations_ += 2;
       }
+      else
+        num_converged++;
     }
   }
 }
@@ -728,11 +731,17 @@ void Solver::fillEquations (const VellSet &vs)
   Vells::DimCounter counter(outshape);
   // now start generating equations. repeat while counter is valid
   // (we break out below, when incrementing the counter)
+  int nfill=0,niter=0;
+  num_invalid=num_converged=0;
   while( true )
   {
+    niter++;
     // fill equations only if unflagged and weighted
     if( !(*flag_iter&flag_mask_) && *weight_iter > 0 )
+    {
+      nfill++;
       fillEqVectors(psolver_tiling_->cur_tile,npert,pspi,*diff_iter,deriv_iter,*weight_iter);
+    }
     // increment counter and all iterators
     int ndim = counter.incr();
     if( !ndim )    // break out when counter is finished
@@ -753,6 +762,11 @@ void Solver::fillEquations (const VellSet &vs)
         ti.advance(outshape.size()-ndim);
     }
   }
+//  if( !num_equations_ )
+//  {
+//    cerr<<"No equations: "<<niter<<" points iterated, "<<nfill<<"fill calls\n";
+//    cerr<<"Invalid/converged fills:"<<num_invalid<<" "<<num_converged<<endl;
+//  }
 }
 
 
@@ -964,7 +978,7 @@ int Solver::getResult (Result::Ref &resref,
   // iteration to iteration, so we keep it attached to reqref and rely on COW
   reqref <<= new Request(request.cells());
   bool converged = false;
-  int no_eq_retry = 0;
+  bool no_equations = false;
   for( cur_iter_=0; cur_iter_ < max_num_iter_ && !converged && !interrupt_; cur_iter_++ )
   {
     // generate a Solver.Iter event after the 0th iteration
@@ -995,10 +1009,13 @@ int Solver::getResult (Result::Ref &resref,
       return RES_ABORT;
     int rescode;
     Result::Ref child_res;
+    int nch_returned=0;
+    int nvs_returned=0;
     // wait for child results until all have been polled (await will return -1 when this is the case)
     std::list<Result::Ref> child_fails;  // any fails accumulated here
     while( (cur_child_ = children().awaitChildResult(rescode,child_res,*reqref)) >= 0 )
     {
+      nch_returned++;
       if( forest().abortFlag() )
         return RES_ABORT;
       // tell child to hold cache if it doesn't depend on iteration
@@ -1016,6 +1033,7 @@ int Solver::getResult (Result::Ref &resref,
         // ignore failed or null vellsets
         if( vs.isFail() || vs.isNull() )
           continue;
+        nvs_returned++;
         timers().getresult.start();
         if( vs.getValue().isReal() )
           fillEquations<double>(vs);
@@ -1028,15 +1046,26 @@ int Solver::getResult (Result::Ref &resref,
     if( forest().abortFlag() )
       return RES_ABORT;
     setExecState(CS_ES_EVALUATING);
+    // **for debug purposes, count number of converged solvers
+//    int nc1=0;
+//    for( int i=0; i<numSubsolvers(); i++ )
+//      if( subsolvers_[i].converged )
+//        nc1++;
+//    cerr<<rqid.toString()<<" iter "<<cur_iter_<<" start: "<<nc1<<" subsolvers have converged\n";
+//    cerr<<"Main thread is "<<Thread::self()<<endl;
 //    FailWhen(!num_equations_,"no equations were generated");
     if( !num_equations_ )
     {
-      FailWhen(++no_eq_retry>10,"No equations were generated, retries exhausted");
-      cerr<<"Oops, no equations. Will retry."<<no_eq_retry<<endl;
-      cur_iter_--;
-      continue;
+      DMI::Record *prec;
+      ObjRef ref(prec=new DMI::Record);
+      (*prec)[FRequestId] = rqid;
+      (*prec)[AidIter] = cur_iter_;
+      postMessage(Debug::ssprintf("No solver equations were generated for request ID %s. Perhaps "
+          "all input data is flagged, or no parameters were set to solvable.",rqid.toString().c_str()),
+          ref);
+      no_equations = true;
+      break;
     }
-    no_eq_retry = 0;
     timers().getresult.start();
     cdebug(4)<<"accumulated "<<num_equations_<<" equations\n";
     // now for the subsolvers loop
@@ -1061,7 +1090,12 @@ int Solver::getResult (Result::Ref &resref,
     }
     cdebug(4)<<num_conv_<<" subsolvers have converged ("<<need_conv_<<" needed)\n";
     converged = num_conv_ >= need_conv_;
-    // collect incremental solutioms
+//    nc1=0;
+//    for( int i=0; i<numSubsolvers(); i++ )
+//      if( subsolvers_[i].converged )
+//        nc1++;
+//    cerr<<rqid.toString()<<" iter "<<cur_iter_<<" end: "<<nc1<<" "<<num_conv_<<" subsolvers have converged\n";
+    // collect incremental solutions
     for( int i=0; i<numSubsolvers(); i++ )
       subsolvers_[i].copySolutions(incr_solutions,cur_iter_);
     // fill in updates in request object
@@ -1516,8 +1550,15 @@ void Solver::startWorkerThreads ()
   wt_num_active_ = 0;
   cdebug(0)<<"starting "<<nt-1<<" worker threads\n";
   worker_threads_.resize(nt-1);
+  wt_info_.resize(nt-1);
+  wt_active_.resize(nt-1);
+  wt_active_.assign(nt-1,false);
   for( int i=0; i<nt-1; i++ )
-    worker_threads_[i] = Thread::create(runWorkerThread,this);
+  {
+    wt_info_[i].solver = this;
+    wt_info_[i].wt_num = i;
+    worker_threads_[i] = Thread::create(runWorkerThread,&(wt_info_[i]));
+  }
 }
 
 void Solver::stopWorkerThreads ()
@@ -1538,9 +1579,10 @@ void Solver::stopWorkerThreads ()
 }
 
 // static function starts up a worker thread
-void * Solver::runWorkerThread (void *solv)
+void * Solver::runWorkerThread (void *pinfo_void)
 {
-  return static_cast<Solver*>(solv)->workerLoop();
+  WorkerThreadInfo *pinfo = static_cast<WorkerThreadInfo*>(pinfo_void);
+  return pinfo->solver->workerLoop(pinfo->wt_num);
 }
 
 // Activates all worker threads to process subsolvers.
@@ -1559,13 +1601,25 @@ void Solver::activateSubsolverWorkers ()
   // wakeup threads, we expect all to be active
   wt_solve_loop_ = true;
   wt_num_active_ = worker_threads_.size();
+  wt_active_.assign(wt_active_.size(),true);
   worker_cond_.broadcast();
   // go into our own loop to start processing subsolvers
   processSolversLoop(lock);
   lock.release();
   // wait for worker threads to become inactive
-  while( wt_num_active_ )
+  bool active = true;
+  while( active )
+  {
     worker_exit_cond_.wait();
+    // if amny thread is still active, flag will be re-raised
+    active = false;
+    for( uint i=0; i<wt_active_.size(); i++ )
+      if( wt_active_[i] )
+      {
+        active = true;
+        break;
+      }
+  }
   cdebug(3)<<"T"<<Thread::self()<<" all workers finished"<<endl;
   // if any exceptions have accumulated, throw them
   if( !wt_exceptions_.empty() )
@@ -1612,6 +1666,7 @@ void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
     {
       ss.solution = 0;
       num_conv_++;
+//      cerr<<"processSolversLoop: thread "<<Thread::self()<<" already converged, num_conv "<<num_conv_<<endl;
       continue;
     }
     // release lock to give the other threads a chance to grab their own
@@ -1632,21 +1687,24 @@ void Solver::processSolversLoop (Thread::Mutex::Lock &lock)
     // relock worker_cond_
     lock.lock(worker_cond_);
     if( converged )
+    {
       num_conv_++;
+//      cerr<<"processSolversLoop: thread "<<Thread::self()<<" converged, num_conv "<<num_conv_<<endl;
+    }
   }
   // at this point we have a lock on worker_cond
   wt_solve_loop_ = false;
   cdebug(3)<<"T"<<Thread::self()<<" subsolver loop finished"<<endl;
 }
 
-void * Solver::workerLoop ()
+void * Solver::workerLoop (int wt_num)
 {
   Thread::Mutex::Lock lock(worker_cond_);
   while( true )
   {
     // wait on condition variable until awoken with active subsolvers,
     // or with worker threads being stopped
-    while( mt_solve_ && !wt_flush_tables_ && !wt_solve_loop_ && !wt_num_active_ )
+    while( mt_solve_ && !wt_active_[wt_num] && !wt_flush_tables_ )
       worker_cond_.wait();
     // stop condition
     if( !mt_solve_ )
@@ -1662,17 +1720,19 @@ void * Solver::workerLoop ()
     // do a solving loop
     if( wt_solve_loop_ )
       processSolversLoop(lock);
-    if( wt_num_active_ )
+    if( wt_active_[wt_num] )
     {
       // release lock, lock exit condition variable, mark ourselves as inactive
       lock.release();
       lock.lock(worker_exit_cond_);
-      if( wt_num_active_ > 0 )
-      {
-        wt_num_active_--;
-        if( wt_num_active_ <= 0 )
-          worker_exit_cond_.broadcast();
-      }
+      wt_active_[wt_num] = false;
+      int num_active = 0;
+      for( uint i=0; i<wt_active_.size(); i++ )
+        if( wt_active_[i] )
+          num_active++;
+//      cerr<<"Thread "<<Thread::self()<<" exiting: "<<num_active<<" threads still active"<<endl;
+      if( !num_active )
+        worker_exit_cond_.broadcast();
       // reacquire lock on condition variable
       lock.release();
       lock.lock(worker_cond_);
