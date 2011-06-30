@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 #
-#% $Id$ 
+#% $Id$
 #
 #
 # Copyright (C) 2002-2007
-# The MeqTree Foundation & 
+# The MeqTree Foundation &
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
 #
@@ -22,7 +22,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>,
-# or write to the Free Software Foundation, Inc., 
+# or write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
@@ -49,9 +49,9 @@ class Workspace (object):
   class DataDropButton(Timba.GUI.widgets.DataDroppableWidget(QToolButton)):
     def accept_drop_item_type (self,itemtype):
       return issubclass(itemtype,Timba.Grid.DataItem);
-        
+
   def __init__ (self,parent,max_nx=4,max_ny=4,use_hide=None):
-    # dictionary of UDIs -> list of GridDataItem objects 
+    # dictionary of UDIs -> list of GridDataItem objects
     self._dataitems = dict();
     # highlighted item
     self._highlight = None;
@@ -59,7 +59,7 @@ class Workspace (object):
     self._currier = PersistentCurrier();
     self.curry = self._currier.curry;
     self.xcurry = self._currier.xcurry;
-  
+
     self._maintab = QTabWidget(parent);
     self._maintab.setTabPosition(QTabWidget.North);
     QWidget.connect(self._maintab,SIGNAL("currentChanged(int)"),self._set_layout_button);
@@ -93,7 +93,10 @@ class Workspace (object):
         click=self.remove_current_page);
     # init first page
     self.add_page();
-  
+
+  def show_message (self,message,timeout=2000):
+    self.wtop().emit(PYSIGNAL("showMessage"),message,None,None,timeout);
+
   # adds a tool button to one of the corners of the workspace viewer
   def add_tool_button (self,corner,icon,tooltip=None,click=None,
                         leftside=False,class_=QToolButton):
@@ -118,21 +121,21 @@ class Workspace (object):
     if callable(click):
       QWidget.connect(button,SIGNAL("clicked()"),click);
     return button;
-    
+
   def wtop (self):
     return self._maintab;
-    
+
   def show (self,shown=True):
     self.wtop().setShown(shown);
     self.wtop().emit(SIGNAL("shown"),shown,);
-  
+
   def hide (self):
     self.wtop().hide();
     self.wtop().emit(SIGNAL("shown"),False,);
-    
+
   def isVisible (self):
     return self.wtop().isVisible();
-    
+
   def add_page (self,name=None,icon=None):
     page = Timba.Grid.Page(self,self._maintab,max_nx=self.max_nx,max_ny=self.max_ny);
     wpage = page.wtop();
@@ -157,7 +160,7 @@ class Workspace (object):
     wpage._rename = curry(self._maintab.setTabText,index);
     QWidget.connect(wpage,PYSIGNAL("setName()"),wpage._rename);
     return page;
-    
+
   def remove_current_page (self):
     ipage = self._maintab.currentIndex();
     page = self._maintab.currentWidget();
@@ -173,10 +176,10 @@ class Workspace (object):
       page = wpage._page;
       if page.is_auto_name():
         page.set_name('Page '+str(i+1),True);
-      
+
   def current_page (self):
     return self._maintab.currentWidget()._page;
-    
+
   def _align_grid (self):
     self.current_page().rearrange_cells();
     self.current_page().align_layout();
@@ -194,10 +197,10 @@ class Workspace (object):
       page = self._maintab.widget(self._maintab.count()-1);
       page._page.clear();
       self._maintab.removeTab(self._maintab.count()-1);
-      
+
   def set_current_page (self,page):
     self._maintab.setCurrentWidget(page.wtop());
-    
+
   def allocate_cells (self,nrow=1,ncol=1,position=None,avoid_pos=None,
                            newcell=False,newpage=False,udi=''):
     """allocates cell or block of cells""";
