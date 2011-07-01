@@ -47,6 +47,7 @@ namespace LOFAR
     int dummy_int;
     const Attributes _null_attributes;
     
+    Thread::Mutex thread_map_mutex_;
     std::map<ThrID,int> thread_map_;
     std::vector<ThrID> thread_list_;
     
@@ -60,18 +61,22 @@ namespace LOFAR
     //  creates a thread
     ThrID create (void * (*start)(void*),void *arg,const Attributes &attr)
     { 
+      Thread::Mutex::Lock lock(thread_map_mutex_);
       // if first time a new thread is created, then self() is the main thread,
       // so add it to the map
       if( thread_list_.empty() )
       {
         thread_list_.reserve(64);
-        mapThread(self());
+        thread_map_[self()] = 0;
+        thread_list_.push_back(self());
       }
       // create new thread
       pthread_t id = 0;
       pthread_create(&id,attr,start,arg);
       // add to map
-      return mapThread(id);
+      thread_map_[thread_list_.size()] = id;
+      thread_list_.push_back(id);
+      return id;
     }
     
     // exits current thread
