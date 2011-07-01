@@ -213,6 +213,10 @@ class Logger(HierBrowser):
     self._event_count = 0;
     # set log limit
     self.set_log_limit(limit);
+    self._disable_until = 0;
+    self._prev_event_clock = 0;
+    self._flood_clock = 0;
+    self._flood_count = 0;
     # compile regex to match our udi pattern
     self._patt_udi = re.compile("/"+self._udi_root+"/(.*)$");
     # define get_drag_item methods for the listview
@@ -256,6 +260,7 @@ class Logger(HierBrowser):
 
   def add (self,msg,label=None,content=None,
            category=Normal,force=False,
+           flood_protection=50,
            udi=None,udi_key=None,name=None,caption=None,desc=None,viewopts={}):
     """Adds item to logger. Arguments are:
       msg:     item message (for message column)
@@ -265,6 +270,9 @@ class Logger(HierBrowser):
       force:   if False and logging is disabled, add() call does nothing.
                if True, item is always added.
       udi_key: item UDI key, auto-generated if None
+      flood_protection: if !=0, logger will check the clock, and if more than 'flood_protection'
+          events have been received in the past second, will suspend logging for 10 seconds, or until
+          one eventless second has elapsed.
     If content is not None, then content will be available to viewers. In
     this case, the following parameters may define its properties:
       name:    item name for viewers; if None, then generated from udi
@@ -272,10 +280,35 @@ class Logger(HierBrowser):
       desc:    item description; if None, then label is used
       viewopts: dict of optional viewer settings for this item
     Return value: a QListViewItem
-    """;
+    """
     # disabled? return immediately
     if not force and not self.enabled:
-      return;
+      return None;
+    # check for event flood
+    if flood_protection:
+      clock = time.time();
+      # if >3 sec since last event, always reenable the logger and restart the flood counter
+      if clock - self._prev_event_clock >= 3:
+        self._disable_until = 0;
+        self._flood_clock = clock;
+        self._flood_count = 0;
+      self._prev_event_clock = clock;
+      # if logging is temporarily disabled, return
+      if clock < self._disable_until:
+        return None;
+      # count events for a one-second interval
+      flood = self._flood_count > flood_protection;
+      if clock - self._flood_clock < 1:
+        self._flood_count += 1;
+      else:
+        self._flood_clock = clock;
+        self._flood_count = 0;
+      if flood:
+        msg = "Event flood detected, disabling logging for 10 seconds";
+        content = udi = udi_key = None;
+        category = Logger.Error;
+        self._disable_until = clock+10;
+        self._flood_count = 0;
     # # is scrolling enabled?
     # preserve_top_item = self._scroll is not None and not self._scroll.isOn() and \
     #                    self.treeWidget().itemAt(QPoint(0,0));
@@ -289,7 +322,7 @@ class Logger(HierBrowser):
     if udi is None and udi_key is None:
       udi_key = str(self._event_count);
     # create listview item
-    item = self.Item(self.treeWidget(),label,msg,udi=udi,udi_key=udi_key, \
+    item = self.Item(None,label,msg,udi=udi,udi_key=udi_key, \
       name=name,caption=caption,desc=desc or label);
     item._category = category;
     # if content is specified, cache it inside the item
@@ -309,6 +342,9 @@ class Logger(HierBrowser):
     if self._limit is not None:
       self.apply_limit(self._limit);
     # if scroll is enabled, ensure item is visible
+    self.treeWidget().insertTopLevelItem(self.treeWidget().topLevelItemCount(),item)
+    if item._udi:
+      self.treeWidget()._content_map[item._udi] = item;
     if self._scroll is None or self._scroll.isChecked():
       self.treeWidget().scrollToItem(item);
     return item;
@@ -396,16 +432,16 @@ class MessageLogger (Logger):
     kw['name'] = "message @%s" % (label,);
     kw['caption'] = "message <small>%s</small>" % (label,);
     kw['desc'] = "message at %s" % (label,);
-    Logger.add(self,msg,category=category,*args,**kw);
+    item = Logger.add(self,msg,category=category,*args,**kw);
     # keep track of new errors
-    if category is Logger.Error:
-      items = self.get_items();
+    if item and category is Logger.Error:
       if self._num_err == 0:
-        self._first_err = items[-1];
+        self._first_err = item;
       self._num_err += 1;
       self._wclearerr.setVisible(True);
       self.wtop().emit(SIGNAL("hasErrors"),self.wtop(),self._num_err);
-      self._last_err = items[-1];
+      self._last_err = item;
+    return item;
   def _clear_error_count (self):
     self._num_err = 0;
     self._first_err = self._last_err = None;
@@ -609,7 +645,8 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.add_tab(self.msglog.wtop(),"Messages");
     self.msglog.wtop()._error_label = "%d errors";
     self.msglog.wtop()._error_icon = pixmaps.exclaim.icon();
-
+    self._last_log_message = time.clock();
+    
     #------ create an event log
     self.eventlog = EventLogger(self,"event log",limit=1000,evmask="*",
           udi_root='event');
@@ -619,6 +656,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     self.eventtab = QTabWidget(self.maintab);
     self.eventtab.setTabPosition(QTabWidget.South);
     self.add_tab(self.eventtab,"Events");
+    QObject.connect(self.eventtab._show_qaction,SIGNAL("toggled(bool)"),self.eventlog.enable);
 
     #------ event window tab bar
     self.eventtab.setTabShape(QTabWidget.Triangular);
@@ -925,12 +963,12 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     index = self.maintab.indexOf(tabwin);
     self.maintab.setTabIcon(index,icon or tabwin._default_icon);
     self.maintab.setTabText(index,label or tabwin._default_label);
-
-  def log_message(self,msg,content=None,category=Logger.Normal,timeout=2000):
-    if category is not None:
-      self.msglog.add(msg,content=content,category=category);
-    if self.maintab.currentWidget() is not self.msglog.wtop() or category is None:
-      self.statusbar.showMessage(msg,timeout);
+    
+  def log_message(self,msg,content=None,category=Logger.Normal):
+    if category is not None and \
+          self.msglog.add(msg,content=content,category=category,flood_protection=20) and \
+          self.maintab.currentWidget() is not self.msglog.wtop(): 
+      self.statusbar.showMessage(msg,2000);
 
   def await_gui_exit ():
     global MainApp,MainAppThread;

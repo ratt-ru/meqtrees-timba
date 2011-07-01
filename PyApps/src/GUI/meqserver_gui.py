@@ -570,8 +570,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       except AttributeError: 
         pass;
     _dprint(1,"connected is",connected);
-    if connected and self.app.is_auto_attached():
-      self.app.meq('Set.Forest.Breakpoint',record(breakpoint=meqds.BP_FAIL),wait=False);
+#    if connected and self.app.is_auto_attached():
+#      self.app.meq('Set.Forest.Breakpoint',record(breakpoint=meqds.BP_FAIL),wait=False);
     self._qa_stopkern.setEnabled(connected);
     # self._qa_connect.setDisabled(connected);
     self._qa_attach_gdb.setEnabled(connected);
@@ -1379,7 +1379,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         caption = caption + ( ' <small>(rqid: %s)</small>' % (rqid,) );
       udi = meqds.snapshot_udi(value,rqid=rqid,count=self.resultlog.event_count());
       self.resultlog.add(txt,content=value,category=Logger.Event,
-        udi=udi,name=name,desc=desc,caption=caption,viewopts=meqgui.defaultResultViewopts);
+        udi=udi,name=name,desc=desc,caption=caption,viewopts=meqgui.defaultResultViewopts,flood_protection=0);
       wtop = self.resultlog.wtop();
       if self.maintab.currentWidget() is not wtop and not wtop._newresults:
 	itab = self.maintab.indexOf(wtop);

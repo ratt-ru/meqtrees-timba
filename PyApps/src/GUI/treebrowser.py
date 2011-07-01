@@ -104,6 +104,7 @@ class TreeBrowser (QObject):
       self._visual_status = None;
       self._default_background = self.background(0);
       self._default_foreground = self.foreground(0);
+      self._column_icons = {};
       # add ourselves to the item list for this node
       if not hasattr(node,'_tb_items'):
         node._tb_items = [];
@@ -125,6 +126,13 @@ class TreeBrowser (QObject):
       
     def __del__ (self):
       self.cleanup();
+    
+    def setIcon (self,column,icon):
+      # sets icon in column; checks if the previous setting is the same
+      oldicon = self._column_icons.get(column);
+      if oldicon is not icon:
+        QTreeWidgetItem.setIcon(self,column,icon);
+        self._column_icons[column] = icon;
     
     def cleanup (self):
       self._callbacks = self._item_event_handler = None;

@@ -135,7 +135,8 @@ class HierBrowser (object):
         parent_content.append(self);
       else:
         QTreeWidgetItem.__init__(self,parent);
-        parent._content_list = [self];
+        if parent:
+          parent._content_list = [self];
       # get maxwidth
       maxwidth = getattr(self.treeWidget(),'_maxwidth',HierBrowser.MaxWidth);
       # set flags
@@ -168,12 +169,12 @@ class HierBrowser (object):
         self._udi_key = udi_key;
         # setup udi of self, if parent self has a udi of its own
         # add ourselves to content map and propagate the map
-        if parent._udi:
+        if parent and parent._udi:
           self._udi = '/'.join((parent._udi,udi_key));
         else:
           self._udi = None;
       # add to content map, if we have a UDI
-      if self._udi:
+      if self._udi and parent:
         self.treeWidget()._content_map[self._udi] = self;
       # set name and/or description
       self._name     = name;
@@ -428,9 +429,6 @@ class HierBrowser (object):
     # connect the get_drag_item method for drag-and-drop
     self._tw.get_drag_item = self.get_drag_item;
     self._tw.get_drag_item_type = self.get_drag_item_type;
-    # this serves as a list of active items.
-    # Populated in Item constructor, and also used by apply_limit, etc.
-    self._tw._content_list = [];
     # enable UDIs, if udi root is not none
     self.set_udi_root(udi_root);
     # initialize precision
@@ -488,24 +486,21 @@ class HierBrowser (object):
   
   def clear (self):
     self._tw.clear();
-    for attr in ('_content','_content_list'):
+    for attr in ('_content',):
       try: delattr(self._tw,attr);
       except: pass;
     self.wtop().emit(SIGNAL("cleared"));
-
-  def get_items (self):
-    try: return self._tw._content_list;
-    except AttributeError: 
-      return None;
       
   # limits browser to last 'limit' items
   def apply_limit (self,limit):
-    items = self.get_items();
-    if items and limit>0 and len(items) > limit:
+    num_items = self._tw.topLevelItemCount();
+    if num_items > limit:
+      # remove N items from the beginning of the QTreeWidget
+      items = [ self._tw.takeTopLevelItem(0) for i in range(num_items-limit) ];
+      # add them to a dummy widget, which will then be destroyed -- this ensures the items get destoryed as well
       dum = QTreeWidget();
-      for i in items[:len(items)-limit]:
-        dum.addTopLevelItem(self._tw.takeTopLevelItem(0));
-      del items[:len(items)-limit];
+      dum.insertTopLevelItems(0,items);
+      dum = None;
 
   # called when an item is expanded                    
   def _expand_item_content (self,item):
