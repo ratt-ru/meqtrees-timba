@@ -62,10 +62,12 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
     context,level = opt[:2];
     Timba.utils.verbosity.set_verbosity_level(context,int(level));
 
+
   # start meqserver
   from Timba.Apps import meqserver
   from Timba.TDL import Compile
   from Timba.TDL import TDLOptions
+  TDLOptions.enable_save_config(False);
   print "### Starting meqserver";
   mqs = meqserver.default_mqs(wait_init=10,extra=["-mt",str(options.mt)]);
 
