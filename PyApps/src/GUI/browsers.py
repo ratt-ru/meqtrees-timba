@@ -414,6 +414,9 @@ class HierBrowser (object):
     self._tw.header().setResizeMode(0,QHeaderView.ResizeToContents);
     self._tw.header().setResizeMode(1,QHeaderView.ResizeToContents);
     self._tw.header().setResizeMode(2,QHeaderView.ResizeToContents);
+    self._tw.header().setStretchLastSection(False);
+    self._tw.header().setResizeMode(QHeaderView.ResizeToContents);
+
     self._tw.header().hide();
     setattr(self._tw,'_maxwidth',maxwidth or HierBrowser.MaxWidth);
     # self._tw.header().setResizeMode(QHeaderView.Fixed);
