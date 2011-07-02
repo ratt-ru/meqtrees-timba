@@ -602,7 +602,7 @@ class TreeBrowser (QObject):
     # add 'By Processor' item
     if self._mpi_num_proc > 1:
       procitem = item = \
-        StickyTreeWidgetItem(self._tw,cls_item,"By processor (%d)"%self._mpi_num_proc,key=25);
+        StickyTreeWidgetItem(self._tw,"By processor (%d)"%self._mpi_num_proc,key=25);
       procitem._no_auto_open = True;
       # add node to per-processor list only if it is a root node of
       # that processor (i.e. none of its parents belong to that processor)

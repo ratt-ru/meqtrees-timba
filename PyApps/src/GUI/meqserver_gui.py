@@ -56,6 +56,7 @@ import os.path
 import signal
 import traceback
 
+import Timba.Apps
 import Timba.Apps.config
 Config = Timba.Apps.config.section("meqbrowser");
 
@@ -551,7 +552,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       # see if command has changed, write to config if so
       args = cmd.split(' '); 
       self.log_message("running \""+cmd+"\"");
-      os.spawnvp(os.P_NOWAIT,args[0],args);
+      Timba.Apps.spawnvp_nowait(args[0],args);
     
   def _check_connection_status (self,dum=None):
     """this method is called whenever we connect/disconnect to a kernel.
@@ -591,7 +592,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
         category=Logger.Error);
       return;
     self.log_message("starting meqserver process \"%s %s\" and waiting for connection"%(pathname,args));
-    self._kernel_pid = self._kernel_pid0 = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
+    self._kernel_pid = self._kernel_pid0 = Timba.Apps.spawnvp_nowait(pathname,[pathname]+args.split(' '));
     _dprint(0,"started meqserver process",self._kernel_pid);
     self._kernel_pathname = pathname;
     self._connect_timer.setSingleShot(True);

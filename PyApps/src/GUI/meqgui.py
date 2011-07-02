@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 #% $Id$ 
@@ -30,7 +31,9 @@ from Timba.Meq import meqds
 from Timba import Grid
 from Timba.GUI import browsers
 from Timba.GUI import app_proxy_gui
+
 import os
+import Timba.Apps
 
 _dbg = verbosity(0,name='meqgui');
 _dprint = _dbg.dprint;
@@ -128,4 +131,4 @@ def makeForestDataItem (data=None,viewer=None,viewopts={}):
 def start_kernel (pathname,args=''):
   _dprint(0,pathname,args);
   app_proxy_gui.gui.log_message(' '.join(('starting kernel process:',pathname,args)));
-  pid = os.spawnv(os.P_NOWAIT,pathname,[pathname]+args.split(' '));
+  pid = Timba.Apps.spawnvp_nowait(pathname,[pathname]+args.split(' '));

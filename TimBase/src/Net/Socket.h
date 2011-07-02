@@ -249,6 +249,7 @@ private:
 	bool				itsIsBlocking;		//# Blocking mode or not
 	struct sockaddr_in	itsTCPAddr;			//# Connected client address(TCP)
 	struct sockaddr_un	itsUnixAddr;		//# Connected client address(UNIX)
+	int itsUnixAddrLen;
 
 	//# ---------- Support for sigpipes ----------
 	const volatile int32*	sigpipeCounter;

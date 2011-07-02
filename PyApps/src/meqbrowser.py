@@ -32,6 +32,8 @@ options = {};
 import Timba.utils
 import os
 import sys
+import traceback
+import socket
 
 # these don't like being re-imported in TDL, so try them here
 try:
@@ -181,6 +183,16 @@ def meqbrowse (debug={},**kwargs):
   else:
     sock = "="+sock;
     print "Binding to local socket %s"%sock;
+    # check local socket
+    sk = socket.socket(socket.AF_UNIX);
+    try:
+      sk.bind("\0"+sock[1:]);
+    except:
+      print "Error binding to local socket %s"%sock;
+      print "This probably means that another meqbrowser is already running."
+      print "For advanced use, see the -s option (use -h to get help).";
+      sys.exit(1);
+    sk.close();
   print "Binding to TCP port %d, remote meqservers may connect with gwpeer=<host>:%d"%(port,port);
   if not octopussy.is_initialized():
     octopussy.init(gwclient=False,gwtcp=port,gwlocal=sock);

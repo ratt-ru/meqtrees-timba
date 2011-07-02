@@ -73,6 +73,9 @@ class ServersDialog (QDialog):
     lo.addWidget(self.server_list);
     # self.server_list.header().hide();
     self.server_list.setHeaderLabels(["server","stat","dir","script"]);
+    self.server_list.header().setResizeMode(0,QHeaderView.ResizeToContents);
+    self.server_list.header().setResizeMode(1,QHeaderView.ResizeToContents);
+    self.server_list.header().setStretchLastSection(False);
     try:
       self.server_list.setAllColumnsShowFocus(True);
     except AttributeError:

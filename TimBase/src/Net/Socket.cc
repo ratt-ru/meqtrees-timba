@@ -172,7 +172,7 @@ int32 Socket::initServer (const string& service, int32 protocol, int32 backlog)
 			return(itsErrno);
 		}
 		addrPtr = (struct sockaddr*) &itsUnixAddr;
-   		addrLen = sizeof(itsUnixAddr);
+    addrLen = itsUnixAddrLen;
 	} 
 	else  { 		// networked socket (type TCP or UDP)
     	itsHost		= "localhost";
@@ -286,12 +286,15 @@ int32 Socket::initUnixSocket(bool		asServer)
       path = "/tmp/"+path;
     path.copy(itsUnixAddr.sun_path,sizeof(itsUnixAddr.sun_path));
     itsUnixAddr.sun_len = path.length();
+    itsUnixAddrLen = sizeof(itsUnixAddr);
 #else
     if (path[0] == '=')  { // abstract socket name
 		path.substr(1).copy(itsUnixAddr.sun_path+1, sizeof(itsUnixAddr.sun_path)-1);
+    itsUnixAddrLen = 2 + path.length();
     }
     else  { // socket in filesystem
 		path.copy (itsUnixAddr.sun_path, sizeof(itsUnixAddr.sun_path));
+//    itsUnixAddr.sun_len = path.length();
 	}
 #endif
     // create socket
@@ -441,7 +444,7 @@ int32 Socket::connect (int32 waitMs)
 	socklen_t addrLen;
 	if (itsType == UNIX) {
 		addrPtr = (struct sockaddr*) &itsUnixAddr;
-		addrLen = sizeof(itsUnixAddr);
+		addrLen = itsUnixAddrLen;
 	}
 	else {
 		addrPtr = (struct sockaddr*) &itsTCPAddr;
