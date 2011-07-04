@@ -113,9 +113,11 @@ class QuickRefPlotter(GriddedPlugin):
     self._rec = dataitem.data;
     _dprint(3, 'set_data: initial self._rec ', self._rec)
     if not isinstance(self._rec,record):
-      print '\n** self.rec not a record, but:',type(self._rec)
+      # print '\n** self.rec not a record, but:',type(self._rec)
+      pass
     elif not self._rec.has_key("quickref_help"):
-      print '\n** self.rec does not have quickref_help field'
+      # print '\n** self.rec does not have quickref_help field'
+      pass
     else:
       qh = self._rec.quickref_help
       # print '\n** self.rec.quickref_help:',type(qh)
