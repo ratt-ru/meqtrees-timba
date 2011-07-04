@@ -212,6 +212,7 @@ void Meq::VisDataMux::checkChildren ()
     Spigot * pspigot = dynamic_cast<Spigot*>(&(stepchildren().getChild(ichild)));
     FailWhen(!pspigot,Debug::ssprintf("stepchild %d not of class MeqSpigot",ichild));
     int did = pspigot->dataId();
+    FailWhen(did<0 || did>0xFFFF,ssprintf("illegal data id %x from spigot %s",did,pspigot->name().c_str()));
     if( did >= int(handlers_.size()) )
       handlers_.resize(did+100);
     cdebug(2)<<"attaching spigot for did "<<did<<endl;

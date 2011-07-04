@@ -46,8 +46,9 @@ void VisHandlerNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   Node::setStateImpl(rec,initializing);
   if( initializing )
   {
-    int st1 = rec[FStation1Index];
-    int st2 = rec[FStation2Index];
+    int st1=0,st2=1;
+    rec[FStation1Index].get(st1,initializing);
+    rec[FStation2Index].get(st2,initializing);
     data_id = VisVocabulary::ifrNumber(st1,st2);
     ifr_id = AtomicID(st1)|AtomicID(st2);
   }
