@@ -767,6 +767,8 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
     if( !chres.hasCells() )
       continue;
     const Cells &cc = childres[ich]->cells();
+    for( int i=0; i<sizeof(cclock)/sizeof(cclock[0]); i++ )
+      cclock[i].release();
     cc.lockMutexes(cclock);
     if( !rescells.valid() ) // first cells? Init result cells with it
     {
@@ -789,6 +791,8 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
         int np = rescells->ncells(iaxis);
         if( !np )
         {
+          for( int i=0; i<sizeof(rclock)/sizeof(rclock[0]); i++ )
+            rclock[i].release();
           Cells &rc = rescells();
           rc.lockMutexes(rclock);
           rc.setCells(iaxis,cc.center(iaxis),cc.cellSize(iaxis));
@@ -804,6 +808,8 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
           // 1.1. non-degenerate axis in next result, merge cells
           if( iaxis < shape1.size() && shape1[iaxis] > 1 )
           {
+            for( int i=0; i<sizeof(rclock)/sizeof(rclock[0]); i++ )
+              rclock[i].release();
             Cells &rc = rescells();
             rc.lockMutexes(rclock);
             rc.setCells(iaxis,cc.center(iaxis),cc.cellSize(iaxis));

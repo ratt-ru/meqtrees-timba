@@ -573,9 +573,9 @@ void Cells::show (std::ostream& os) const
   os << "Meq::Cells [" << shape_ << "]\n";
 }
 
-void Cells::lockMutexes (Thread::Mutex::Lock locks[7]) const
+void Cells::lockMutexes (MutexSet &locks) const
 {
-  locks[0].relock(mutex());
+  locks[0].lock(mutex());
   int ilock = 1;
   const HIID subrecord[3] = { FGrid,FCellSize,FSegments };
   for( int i=0; i<3; i++ )
@@ -583,10 +583,16 @@ void Cells::lockMutexes (Thread::Mutex::Lock locks[7]) const
     const Field * fld = Record::findField(subrecord[i]);
     if( fld )
     {
-      locks[ilock++].relock(fld->ref().deref().crefMutex());
-      locks[ilock++].relock(fld->ref().ref_cast<Record>().deref().mutex());
+      locks[ilock++].lock(fld->ref().deref().crefMutex());
+      locks[ilock++].lock(fld->ref().ref_cast<Record>().deref().mutex());
     }
   }
+}
+
+void Cells::unlockMutexes (MutexSet &locks) 
+{
+  for( int i=0; i<sizeof(locks)/sizeof(locks[0]); i++ )
+    locks[i].release();
 }
 
 

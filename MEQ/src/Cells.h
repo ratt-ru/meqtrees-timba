@@ -171,7 +171,10 @@ public:
   }
   
   // locks a set of mutexes on the main record, and on the subrecords
-  void lockMutexes (Thread::Mutex::Lock locks[7]) const;
+  typedef Thread::Mutex::Lock MutexSet[7];
+  
+  void lockMutexes (MutexSet &locks) const;
+  static void unlockMutexes (MutexSet &locks);
   
   // sets the cells for an axis. This will implictly call
   // recomputeSegments()
