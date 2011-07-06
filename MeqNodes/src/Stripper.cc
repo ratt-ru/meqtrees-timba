@@ -28,7 +28,6 @@
 
 namespace Meq {    
 
-const HIID FDomain = AidDomain;
 
 Stripper::Stripper()
   : Node(1)  // must have precisely 1 child

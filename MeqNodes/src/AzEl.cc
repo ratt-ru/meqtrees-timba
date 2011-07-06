@@ -45,8 +45,6 @@ const HIID FObservatory = AidObservatory;
 const HIID child_labels[] = { AidRADec,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
 
-const HIID FDomain = AidDomain;
-
 //The node should assume that only the first child (RADec) is mandatory
 AzEl::AzEl()
 : TensorFunction(2,child_labels,1)

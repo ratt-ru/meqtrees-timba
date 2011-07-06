@@ -43,7 +43,6 @@ const HIID child_labels[] = { AidRADec,AidXYZ };
 
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const HIID FDomain = AidDomain;
 
 //The node should assume that only the first child (RADec) is mandatory
 ParAngle::ParAngle()

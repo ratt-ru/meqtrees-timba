@@ -46,7 +46,6 @@ const HIID child_labels[] = { FAzEl,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const HIID FDomain = AidDomain;
 
 RADec::RADec()
 : TensorFunction(2,child_labels)

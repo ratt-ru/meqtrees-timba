@@ -24,7 +24,6 @@
 
 //# Includes
 #include "Cells.h"
-#include "MeqVocabulary.h"
 #include <TimBase/Lorrays.h>
 #include <DMI/NumArray.h>
 
@@ -573,6 +572,23 @@ void Cells::show (std::ostream& os) const
   Thread::Mutex::Lock lock(mutex());
   os << "Meq::Cells [" << shape_ << "]\n";
 }
+
+void Cells::lockMutexes (Thread::Mutex::Lock locks[7]) const
+{
+  locks[0].relock(mutex());
+  int ilock = 1;
+  const HIID subrecord[3] = { FGrid,FCellSize,FSegments };
+  for( int i=0; i<3; i++ )
+  {
+    const Field * fld = Record::findField(subrecord[i]);
+    if( fld )
+    {
+      locks[ilock++].relock(fld->ref().deref().crefMutex());
+      locks[ilock++].relock(fld->ref().ref_cast<Record>().deref().mutex());
+    }
+  }
+}
+
 
 DMI::Record & Cells::getSubrecord (const HIID &id)
 {

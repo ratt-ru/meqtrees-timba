@@ -35,7 +35,6 @@ using namespace VellsMath;
 const HIID child_labels[] = { AidRADec|0,AidRADec, AidPA };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const HIID FDomain = AidDomain;
 
 using Debug::ssprintf;
 

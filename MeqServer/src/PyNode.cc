@@ -33,7 +33,7 @@ using namespace OctoPython;
 
 InitDebugContext(PyNodeImpl,"MeqPyNode");
 
-const HIID FClassName = AidClass|AidName;
+//const HIID FClassName = AidClass|AidName;
 const HIID FModuleName = AidModule|AidName;
 
 LOFAR::Exception getPyException ()

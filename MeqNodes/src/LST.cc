@@ -42,7 +42,6 @@ const HIID FObservatory = AidObservatory;
 
 const HIID child_labels[] = { AidXYZ };
 
-const HIID FDomain = AidDomain;
 
 //The node should assume that only the first child (XYZ) is needed
 //if the 'observatory' field is not supplied.

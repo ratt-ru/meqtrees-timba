@@ -42,8 +42,6 @@ const HIID FObservatory = AidObservatory;
 const HIID child_labels[] = { AidAzEl,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
 
-const HIID FDomain = AidDomain;
-
 // 2 children, only the first one is mandatory
 EMFPar::EMFPar()
 : TensorFunction(2,child_labels,1)

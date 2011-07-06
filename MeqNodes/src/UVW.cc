@@ -44,7 +44,6 @@ namespace Meq {
 const HIID child_labels[] = { AidRADec,AidXYZ,AidXYZ|0  };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const HIID FDomain = AidDomain;
 
 //##ModelId=400E535502D1
 UVW::UVW()

@@ -34,7 +34,6 @@ using namespace VellsMath;
 const HIID child_labels[] = { AidBF,AidR };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const HIID FDomain = AidDomain;
 
 WSRTCos3Beam::WSRTCos3Beam()
 : TensorFunction(num_children,child_labels),

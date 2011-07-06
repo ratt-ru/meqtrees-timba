@@ -29,7 +29,6 @@
 namespace Meq {
 
 const HIID FTopLabel = AidTop|AidLabel;
-const HIID FValue    = AidValue;
 const HIID FAttrib   = AidAttrib;
 const HIID FLabel    = AidLabel;
 

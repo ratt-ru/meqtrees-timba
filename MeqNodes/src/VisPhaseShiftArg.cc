@@ -33,7 +33,6 @@ using namespace VellsMath;
 const HIID child_labels[] = { AidLMN,AidUVW };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const HIID FDomain = AidDomain;
 
 VisPhaseShiftArg::VisPhaseShiftArg()
 : TensorFunction(num_children,child_labels)

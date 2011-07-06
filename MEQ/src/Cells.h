@@ -30,6 +30,7 @@
 #include <MEQ/AID-Meq.h>
 #include <DMI/Record.h>
 #include <TimBase/Lorrays.h>
+#include <MEQ/MeqVocabulary.h>
 #include <ostream>
 
 #pragma aidgroup Meq
@@ -168,6 +169,9 @@ public:
     DbgAssert(iaxis>=0 && iaxis<Axis::MaxAxis);
     return seg_end_[iaxis];
   }
+  
+  // locks a set of mutexes on the main record, and on the subrecords
+  void lockMutexes (Thread::Mutex::Lock locks[7]) const;
   
   // sets the cells for an axis. This will implictly call
   // recomputeSegments()

@@ -34,7 +34,6 @@ namespace Meq {
 using namespace VellsMath;
 
 
-const HIID FDomain = AidDomain;
 
 using Debug::ssprintf;
 

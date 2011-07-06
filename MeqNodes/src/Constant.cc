@@ -34,7 +34,6 @@ namespace Meq {
 
 const HIID dom_symdeps[] = { FDomain,FResolution };
 
-//const HIID FDomain = AidDomain;
 const HIID FVells = AidVells;
 
 Constant::Constant ()

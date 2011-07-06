@@ -42,7 +42,6 @@ const HIID FUseW = AidUse|AidW;
 const HIID child_labels[] = { AidXYZ };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const HIID FDomain = AidDomain;
 
 using Debug::ssprintf;
 
