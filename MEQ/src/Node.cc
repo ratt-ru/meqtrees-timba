@@ -755,8 +755,7 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
   // this will hold the "cumulative" shape of the children,
   // i.e., a superset of all their vellset shapes
   LoShape resshape;
-  Thread::Mutex::Lock cclock[7];
-  Thread::Mutex::Lock rclock[7];
+  Cells::MutexSet cclock;
   // now loop over all children to verify that their cells are mutually
   // consistent
   for( uint ich=0; ich<childres.size(); ich++ )
@@ -767,8 +766,6 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
     if( !chres.hasCells() )
       continue;
     const Cells &cc = childres[ich]->cells();
-    for( int i=0; i<sizeof(cclock)/sizeof(cclock[0]); i++ )
-      cclock[i].release();
     cc.lockMutexes(cclock);
     if( !rescells.valid() ) // first cells? Init result cells with it
     {
@@ -791,10 +788,7 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
         int np = rescells->ncells(iaxis);
         if( !np )
         {
-          for( int i=0; i<sizeof(rclock)/sizeof(rclock[0]); i++ )
-            rclock[i].release();
           Cells &rc = rescells();
-          rc.lockMutexes(rclock);
           rc.setCells(iaxis,cc.center(iaxis),cc.cellSize(iaxis));
           rc.recomputeDomain();
           continue;
@@ -808,10 +802,7 @@ void Node::checkChildCells (Cells::Ref &rescells,const std::vector<Result::Ref> 
           // 1.1. non-degenerate axis in next result, merge cells
           if( iaxis < shape1.size() && shape1[iaxis] > 1 )
           {
-            for( int i=0; i<sizeof(rclock)/sizeof(rclock[0]); i++ )
-              rclock[i].release();
             Cells &rc = rescells();
-            rc.lockMutexes(rclock);
             rc.setCells(iaxis,cc.center(iaxis),cc.cellSize(iaxis));
             rc.recomputeDomain();
           }

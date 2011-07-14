@@ -575,6 +575,7 @@ void Cells::show (std::ostream& os) const
 
 void Cells::lockMutexes (MutexSet &locks) const
 {
+  unlockMutexes(locks);
   locks[0].lock(mutex());
   int ilock = 1;
   const HIID subrecord[3] = { FGrid,FCellSize,FSegments };
