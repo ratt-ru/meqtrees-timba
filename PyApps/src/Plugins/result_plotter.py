@@ -165,6 +165,7 @@ class ResultPlotter(GriddedPlugin):
     self.ND_plotter = None
     self.ND_labels = None
     self.ND_parms = None 
+    self.status_label = None
     self.layout_created = False
 
     self.reset_plot_stuff()
@@ -565,22 +566,7 @@ class ResultPlotter(GriddedPlugin):
     Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('do_print'), self.plotPrinter.do_print) 
     Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('save_display'), self.grab_display) 
     Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('full_vells_image'), self.request_full_image) 
-    # create status label display
-    self.status_label = Qt.QLabel(self.layout_parent)
-    sansFont = QFont( "Helvetica [Cronyx]", 8 )
-    self.status_label.setFont(sansFont)
-    self.layout.addWidget(self.status_label,1,0,1,2)
-    self.status_label.setText("Move the mouse within the plot canvas"
-                            " to show the cursor position.")
-    self.status_label.show()
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('status_update'), self.update_status)
-
   # create_2D_plotter
-
-  def update_status(self, status):
-     if not status is None:
-       self.status_label.setText(str(status))
-
 
   def grab_display(self, title):
     self.png_number = self.png_number + 1
@@ -1142,9 +1128,9 @@ class ResultPlotter(GriddedPlugin):
 
     _dprint(3, 'got 3D plot request, deleting 2-D stuff')
     self._visu_plotter = delete_2D_Plotters(self.colorbar, self._visu_plotter)
-    self.status_label.setParent(Qt.QWidget())
-    self.status_label = None
-
+    if not self.status_label is None:
+      self.status_label.setParent(Qt.QWidget())
+      self.status_label = None
     if self.ND_plotter is None:
       self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
       QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)

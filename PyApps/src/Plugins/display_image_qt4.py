@@ -176,6 +176,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         'Select X-Section Display': 322,
         'Show Full Data Range': 323,
         'Toggle axis rotate': 324,
+        'Toggle coordinate tracking display': 325,
         }
 
     xsection_menu_table = {
@@ -268,6 +269,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.array_selector = None
         self.original_flag_array = None
         self.show_x_sections = False
+        self.show_coordinates = False
         self.flag_range = True
         self.axes_flip = False
         self.axes_rotate = False
@@ -1207,6 +1209,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._show_full_data_range.setChecked(self.full_data_range)
       self.emit(Qt.SIGNAL("full_vells_image"),self.full_data_range,)
 
+    def handle_toggle_coordinates(self):
+      if self.show_coordinates == False:
+        self.show_coordinates = True
+        self._toggle_coordinates.setText('Hide coordinate tracker')
+      else:
+        self.show_coordinates = False
+        self._toggle_coordinates.setText('Show coordinate tracker')
+
     def handle_toggle_axis_flip(self):
       """ sets flag to reverse orientation of image displays """
       if self.axes_flip:
@@ -1332,7 +1342,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_color_gray_display.setText('Show Color Display')
       self.plotImage.updateImage(self.raw_image)
       self.replot()
-
 
     def handle_toggle_plot_legend(self):
       """ sets legends display for cross section plots to visible/invisible """
@@ -1861,7 +1870,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
           else:
             message = self.formatCoordinates(xPos, yPos)
           if not self.display_solution_distances:
-            self.emit(Qt.SIGNAL("status_update"),(message,))
+            if self.show_coordinates:
+              # adding 40 and 45 pixels seems to give about the right offset
+              location = Qt.QPoint(self.xlb+40,self.ylb+45)
+              # QToolTip seems to need to be mapped to global coord system
+              location = self.mapToGlobal(location)
+              Qt.QToolTip.showText(location,message);
       except:
         return
 
@@ -3908,11 +3922,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
 
 # now insert items into main menu
-        toggle_id = self.menu_table['Modify Plot Parameters']
-        self._modify_plot_parameters = Qt.QAction('Modify Plot Parameters',self)
-        self._modify_plot_parameters.setData(Qt.QVariant(str(toggle_id)))
-        self._menu.addAction(self._modify_plot_parameters)
-        self.connect(self._modify_plot_parameters,Qt.SIGNAL("triggered()"),self.handle_modify_plot_parameters);
+
+#       The following option currently does not work
+#       toggle_id = self.menu_table['Modify Plot Parameters']
+#       self._modify_plot_parameters = Qt.QAction('Modify Plot Parameters',self)
+#       self._modify_plot_parameters.setData(Qt.QVariant(str(toggle_id)))
+#       self._menu.addAction(self._modify_plot_parameters)
+#       self.connect(self._modify_plot_parameters,Qt.SIGNAL("triggered()"),self.handle_modify_plot_parameters);
+        toggle_id = self.menu_table['Toggle coordinate tracking display']
+        self._toggle_coordinates = Qt.QAction('Toggle coordinate tracking display',self)
+        self._menu.addAction(self._toggle_coordinates)
+        self._toggle_coordinates.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_coordinates.setText('Show coordinate tracker')
+#       self._toggle_coordinates.setCheckable(True)
+        self.connect(self._toggle_coordinates,Qt.SIGNAL("triggered()"),self.handle_toggle_coordinates);
+
 
         toggle_id = self.menu_table['Toggle Plot Legend']
         self._toggle_plot_legend = Qt.QAction('Toggle Plot Lengend',self)
