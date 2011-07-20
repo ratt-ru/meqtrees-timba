@@ -152,15 +152,15 @@ class QwtImageDisplay(Qwt.QwtPlot):
         'Set display range to that of unflagged data for plane ': 202,
         'Modify Plot Parameters': 299,
         'Toggle Plot Legend': 300,
-        'Toggle ColorBar': 301,
-        'Toggle Color/GrayScale Display': 302,
-        'Toggle ND Controller': 303, 
+        'Hide ColorBar': 301,
+        'Show GrayScale Display': 302,
+        'Hide ND Controller': 303, 
         'Reset zoomer': 304,
         'Delete X-Section Display': 305,
         'Toggle real/imag or ampl/phase Display': 306,
         'Toggle axis flip': 307,
-        'Toggle logarithmic range for data': 308,
-        'Toggle results history': 309,
+        'Show logarithmic range for data': 308,
+        'Hide results history': 309,
         'Toggle Metrics Display': 310,
         'Toggle log axis for chi_0': 311,
         'Toggle log axis for solution vector': 312,
@@ -176,7 +176,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         'Select X-Section Display': 322,
         'Show Full Data Range': 323,
         'Toggle axis rotate': 324,
-        'Toggle coordinate tracking display': 325,
+        'Show coordinate tracking display': 325,
         }
 
     xsection_menu_table = {
@@ -636,6 +636,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def setResultsSelector(self):
       """ add option to toggle ResultsRange selector to context menu """
       self._toggle_results_history.setVisible(True)
+      self._toggle_results_history.setChecked(not self.setResults)
 
     def handle_basic_menu_id(self):
       """ callback to handle most common basic context menu selections """
@@ -1099,10 +1100,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def handle_toggle_nd_controller(self):
       if self.toggle_ND_Controller == 1:
         self.toggle_ND_Controller = 0
-        self._toggle_nd_controller.setText('Show ND Controller')
       else:
         self.toggle_ND_Controller = 1
-        self._toggle_nd_controller.setText('Hide ND Controller')
+      self._toggle_nd_controller.setChecked(not self.toggle_ND_Controller)
       self.emit(Qt.SIGNAL("show_ND_Controller"),self.toggle_ND_Controller)
 
     def handle_toggle_3d_display(self):
@@ -1114,10 +1114,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def handle_toggle_results_history(self):
       if self.setResults:
         self.setResults = False
-        self._toggle_results_history.setChecked(False)
       else:
         self.setResults = True
-        self._toggle_results_history.setChecked(True)
+      self._toggle_results_history.setChecked(not self.setResults)
       self.emit(Qt.SIGNAL("show_results_selector"),self.setResults)
 
     def handle_toggle_metrics_display(self):
@@ -1212,10 +1211,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def handle_toggle_coordinates(self):
       if self.show_coordinates == False:
         self.show_coordinates = True
-        self._toggle_coordinates.setText('Hide coordinate tracker')
       else:
         self.show_coordinates = False
-        self._toggle_coordinates.setText('Show coordinate tracker')
+      self._toggle_coordinates.setChecked(self.show_coordinates)
 
     def handle_toggle_axis_flip(self):
       """ sets flag to reverse orientation of image displays """
@@ -1256,14 +1254,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
       
     def handle_toggle_log_range_for_data(self):
       if self.toggle_log_display == False:
-        self._toggle_log_range_for_data.setText('Show Data with Linear scale')
         self.toggle_log_display = True
         self.plotImage.setLogScale()
       else:
         self.toggle_log_display = False
-        self._toggle_log_range_for_data.setText('Show Data with Logarithmic scale')
         self.plotImage.setLogScale(False)
         self.plotImage.setImageRange(self.raw_image)
+      self._toggle_log_range_for_data.setChecked(self.toggle_log_display)
       self.plotImage.updateImage(self.raw_image)
       image_limits = self.plotImage.getRealImageRange()
       self.emit(Qt.SIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display,self.ampl_phase))
@@ -1324,22 +1321,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def handle_toggle_colorbar(self):
       if self.toggle_color_bar == 1:
         self.toggle_color_bar = 0
-        self._toggle_colorbar.setText('Show ColorBar')
       else:
         self.toggle_color_bar = 1
-        self._toggle_colorbar.setText('Hide ColorBar')
       self.emit(Qt.SIGNAL("show_colorbar_display"),self.toggle_color_bar,0)
       if self.complex_type:
         self.emit(Qt.SIGNAL("show_colorbar_display"),self.toggle_color_bar,1)
+      self._toggle_colorbar.setChecked(not self.toggle_color_bar)
       return True
 
     def handle_toggle_color_gray_display(self):
       if self.toggle_gray_scale == 1:
         self.setDisplayType('hippo')
-        self._toggle_color_gray_display.setText('Show GrayScale Display')
+        self._toggle_color_gray_display.setChecked(False)
       else:
         self.setDisplayType('grayscale')
-        self._toggle_color_gray_display.setText('Show Color Display')
+        self._toggle_color_gray_display.setChecked(True)
       self.plotImage.updateImage(self.raw_image)
       self.replot()
 
@@ -3200,10 +3196,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_log_range_for_data.setVisible(False)
 
       if self.is_vector == False and not self.log_switch_set:
-        if self.toggle_log_display:
-          self._toggle_log_range_for_data.setText('Show Data with Linear scale')
-        else:
-          self._toggle_log_range_for_data.setText('Show Data with Logarithmic scale')
         self._toggle_log_range_for_data.setVisible(True)
         self.log_switch_set = True
 
@@ -3929,12 +3921,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
 #       self._modify_plot_parameters.setData(Qt.QVariant(str(toggle_id)))
 #       self._menu.addAction(self._modify_plot_parameters)
 #       self.connect(self._modify_plot_parameters,Qt.SIGNAL("triggered()"),self.handle_modify_plot_parameters);
-        toggle_id = self.menu_table['Toggle coordinate tracking display']
-        self._toggle_coordinates = Qt.QAction('Toggle coordinate tracking display',self)
+        toggle_id = self.menu_table['Show coordinate tracking display']
+        self._toggle_coordinates = Qt.QAction('Show coordinate tracking display',self)
         self._menu.addAction(self._toggle_coordinates)
         self._toggle_coordinates.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_coordinates.setText('Show coordinate tracker')
-#       self._toggle_coordinates.setCheckable(True)
+        self._toggle_coordinates.setCheckable(True)
         self.connect(self._toggle_coordinates,Qt.SIGNAL("triggered()"),self.handle_toggle_coordinates);
 
 
@@ -3946,18 +3938,20 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_plot_legend.setVisible(False)
         self.connect(self._toggle_plot_legend,Qt.SIGNAL("triggered()"),self.handle_toggle_plot_legend);
 
-        toggle_id = self.menu_table['Toggle ColorBar']
-        self._toggle_colorbar = Qt.QAction('Toggle ColorBar',self)
+        toggle_id = self.menu_table['Hide ColorBar']
+        self._toggle_colorbar = Qt.QAction('Hide ColorBar',self)
         self._menu.addAction(self._toggle_colorbar)
         self._toggle_colorbar.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_colorbar.setText('Hide ColorBar')
+        self._toggle_colorbar.setCheckable(True)
         self.connect(self._toggle_colorbar,Qt.SIGNAL("triggered()"),self.handle_toggle_colorbar);
 
-        toggle_id = self.menu_table['Toggle Color/GrayScale Display']
-        self._toggle_color_gray_display = Qt.QAction('Toggle Color/GrayScale Display',self)
+        toggle_id = self.menu_table['Show GrayScale Display']
+        self._toggle_color_gray_display = Qt.QAction('Show GrayScale Display',self)
         self._menu.addAction(self._toggle_color_gray_display)
         self._toggle_color_gray_display.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_color_gray_display.setText('Show GrayScale Display')
+        self._toggle_color_gray_display.setCheckable(True)
         self.connect(self._toggle_color_gray_display,Qt.SIGNAL("triggered()"),self.handle_toggle_color_gray_display);
 
         toggle_id = self.menu_table['Toggle 3D Display']
@@ -3968,25 +3962,18 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_3d_display.setVisible(False)
         self.connect(self._toggle_3d_display,Qt.SIGNAL("triggered()"),self.handle_toggle_3d_display);
 
-        toggle_id = self.menu_table['Toggle Warp Display']
-        self._toggle_warp_display = Qt.QAction('Toggle Warp Display',self)
-        self._menu.addAction(self._toggle_warp_display)
-        self._toggle_warp_display.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_warp_display.setText('Show Warped Surface Display')
-        self._toggle_warp_display.setVisible(False)
-        self.connect(self._toggle_warp_display,Qt.SIGNAL("triggered()"),self.handle_toggle_warp_display);
-
-        toggle_id = self.menu_table['Toggle ND Controller']
-        self._toggle_nd_controller = Qt.QAction('Toggle ND Controller',self)
+        toggle_id = self.menu_table['Hide ND Controller']
+        self._toggle_nd_controller = Qt.QAction('Hide ND Controller',self)
         self._menu.addAction(self._toggle_nd_controller)
         self._toggle_nd_controller.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_nd_controller.setText('Hide ND Controller')
         self._toggle_nd_controller.setVisible(False)
+        self._toggle_nd_controller.setCheckable(True)
         self.connect(self._toggle_nd_controller,Qt.SIGNAL("triggered()"),self.handle_toggle_nd_controller);
 
 
-        toggle_id = self.menu_table['Toggle results history']
-        self._toggle_results_history = Qt.QAction('Toggle results history',self)
+        toggle_id = self.menu_table['Hide results history']
+        self._toggle_results_history = Qt.QAction('Hide results history',self)
         self._menu.addAction(self._toggle_results_history)
         self._toggle_results_history.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_results_history.setVisible(False)
@@ -4070,11 +4057,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_ri_or_ap_display.setVisible(False)
         self.connect(self._toggle_ri_or_ap_display,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_or_ap_display);
 
-        toggle_id = self.menu_table['Toggle logarithmic range for data']
-        self._toggle_log_range_for_data = Qt.QAction('Toggle logarithmic range for data',self)
+        toggle_id = self.menu_table['Show logarithmic range for data']
+        self._toggle_log_range_for_data = Qt.QAction('Show logarithmic range for data',self)
         self._menu.addAction(self._toggle_log_range_for_data)
         self._toggle_log_range_for_data.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_log_range_for_data.setVisible(False)
+        self._toggle_log_range_for_data.setCheckable(True)
         self.log_switch_set = False
         self.connect(self._toggle_log_range_for_data,Qt.SIGNAL("triggered()"),self.handle_toggle_log_range_for_data);
 
@@ -4084,6 +4072,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._show_full_data_range.setData(Qt.QVariant(str(toggle_id)))
         self._show_full_data_range.setVisible(False)
         self.connect(self._show_full_data_range,Qt.SIGNAL("triggered()"),self.handle_show_full_data_range);
+
+        toggle_id = self.menu_table['Toggle Warp Display']
+        self._toggle_warp_display = Qt.QAction('Toggle Warp Display',self)
+        self._menu.addAction(self._toggle_warp_display)
+        self._toggle_warp_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_warp_display.setText('Show Warped Surface Display')
+        self._toggle_warp_display.setVisible(False)
+        self.connect(self._toggle_warp_display,Qt.SIGNAL("triggered()"),self.handle_toggle_warp_display);
 
         toggle_id = self.menu_table['Change Vells']
         self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Change Selected Vells',self)

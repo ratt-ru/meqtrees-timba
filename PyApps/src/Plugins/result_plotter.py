@@ -1170,6 +1170,10 @@ class ResultPlotter(GriddedPlugin):
     self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape, reset=True)
     self._visu_plotter.set_original_array_rank(3)
     self.plot_vells_data(store_rec=False)
+    if not self.results_selector is None:
+        Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_results_selector'), self.show_selector)
+        self._visu_plotter.setResultsSelector()
+        self.results_selector.show()
 
   def set_ColorBar (self):
     """ this function adds a colorbar for 2-D displays """
