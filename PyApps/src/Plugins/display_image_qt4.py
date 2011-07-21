@@ -3965,14 +3965,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_color_gray_display.setCheckable(True)
         self.connect(self._toggle_color_gray_display,Qt.SIGNAL("triggered()"),self.handle_toggle_color_gray_display);
 
-        toggle_id = self.menu_table['Toggle 3D Display']
-        self._toggle_3d_display = Qt.QAction('Toggle 3D Display',self)
-        self._menu.addAction(self._toggle_3d_display)
-        self._toggle_3d_display.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_3d_display.setText('Show 3D Display')
-        self._toggle_3d_display.setVisible(False)
-        self.connect(self._toggle_3d_display,Qt.SIGNAL("triggered()"),self.handle_toggle_3d_display);
-
         toggle_id = self.menu_table['Hide ND Controller']
         self._toggle_nd_controller = Qt.QAction('Hide ND Controller',self)
         self._menu.addAction(self._toggle_nd_controller)
@@ -4061,13 +4053,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_metrics_display.setText('Hide Solver Metrics')
         self.connect(self._toggle_metrics_display,Qt.SIGNAL("triggered()"),self.handle_toggle_metrics_display);
 
-        toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
-        self._toggle_ri_or_ap_display = Qt.QAction('Toggle real/imag or ampl/phase Display',self)
-        self._menu.addAction(self._toggle_ri_or_ap_display)
-        self._toggle_ri_or_ap_display.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_ri_or_ap_display.setVisible(False)
-        self.connect(self._toggle_ri_or_ap_display,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_or_ap_display);
-
         toggle_id = self.menu_table['Show logarithmic range for data']
         self._toggle_log_range_for_data = Qt.QAction('Show logarithmic range for data',self)
         self._menu.addAction(self._toggle_log_range_for_data)
@@ -4077,12 +4062,28 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.log_switch_set = False
         self.connect(self._toggle_log_range_for_data,Qt.SIGNAL("triggered()"),self.handle_toggle_log_range_for_data);
 
+        toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
+        self._toggle_ri_or_ap_display = Qt.QAction('Toggle real/imag or ampl/phase Display',self)
+        self._menu.addAction(self._toggle_ri_or_ap_display)
+        self._toggle_ri_or_ap_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_ri_or_ap_display.setVisible(False)
+        self.connect(self._toggle_ri_or_ap_display,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_or_ap_display);
+
+
         toggle_id = self.menu_table['Show Full Data Range']
         self._show_full_data_range = Qt.QAction('Show Full Data Range',self)
         self._menu.addAction(self._show_full_data_range)
         self._show_full_data_range.setData(Qt.QVariant(str(toggle_id)))
         self._show_full_data_range.setVisible(False)
         self.connect(self._show_full_data_range,Qt.SIGNAL("triggered()"),self.handle_show_full_data_range);
+
+        toggle_id = self.menu_table['Toggle 3D Display']
+        self._toggle_3d_display = Qt.QAction('Toggle 3D Display',self)
+        self._menu.addAction(self._toggle_3d_display)
+        self._toggle_3d_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_3d_display.setText('Show 3D Display')
+        self._toggle_3d_display.setVisible(False)
+        self.connect(self._toggle_3d_display,Qt.SIGNAL("triggered()"),self.handle_toggle_3d_display);
 
         toggle_id = self.menu_table['Toggle Warp Display']
         self._toggle_warp_display = Qt.QAction('Toggle Warp Display',self)
@@ -4091,13 +4092,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_warp_display.setText('Show Warped Surface Display')
         self._toggle_warp_display.setVisible(False)
         self.connect(self._toggle_warp_display,Qt.SIGNAL("triggered()"),self.handle_toggle_warp_display);
-
-        toggle_id = self.menu_table['Change Vells']
-        self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Change Selected Vells',self)
-        self._menu.addAction(self._change_vells)
-        self._change_vells.setData(Qt.QVariant(str(toggle_id)))
-        self._change_vells.setVisible(False)
-        self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.handle_change_vells);
 
 # add potential menu for flagged data
 # add flag toggling for vells but make hidden by default
@@ -4183,6 +4177,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self._toggle_comparison.setData(Qt.QVariant(str(toggle_id)))
           self._toggle_comparison.setVisible(False)
           self._toggle_comparison.setText('Do Comparison')
+
+        toggle_id = self.menu_table['Change Vells']
+        self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Change Selected Vells',self)
+        self._menu.addAction(self._change_vells)
+        self._change_vells.setData(Qt.QVariant(str(toggle_id)))
+        self._change_vells.setVisible(False)
+        self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.handle_change_vells);
 
     def set_original_array_rank(self, original_array_rank):
       self.original_data_rank = original_array_rank
