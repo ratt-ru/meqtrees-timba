@@ -1519,6 +1519,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
               xpos = int((self.vells_axis_parms[self.x_parm][1]- xpos) / self.first_axis_inc)
             else:
               xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
+            xpos_loc = xpos
+	    if not self.split_axis is None:
+	      xpos_offset = int(xpos - self.delta_vells / self.first_axis_inc)
+              if xpos_offset >= 0:
+                xpos_loc = xpos_offset
             vells_axis_grids = self.vells_axis_parms[self.x_parm][4]
             if not vells_axis_grids is None:
               xpos1 = int((xpos1 -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
@@ -1599,10 +1604,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
             ypos = self.plotImage.yMap.limTransform(ypos)
         else:
           xpos = int(xpos)
+          xpos_loc = xpos
 	  xpos1 = xpos
 	  if not self.split_axis is None:
 	    if xpos1 >=  self.split_axis:
 	      xpos1 = xpos1 % self.split_axis
+              xpos_loc = xpos1
           temp_str = "x =%+.2g" % xpos1
           result = temp_str
 	  ypos1 = ypos
@@ -1617,10 +1624,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
           temp_str = result + " y =%+.2g" % ypos2 + " "
           result = temp_str
 	message = None
+        array_location = None
         try:
           value = self.raw_array[xpos,ypos]
         except:
           return message
+        array_location = '\nx: ' + str(xpos_loc) + ' y: ' + str(ypos)
         if self.has_nans_infs and value == self.nan_inf_value:
           temp_str = "value: NaN or Inf"
         else:
@@ -1646,6 +1655,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
             message = result + temp_str + '\nsource: ' + source
           else:
             message = result + temp_str
+        if not message is None and not array_location is None:
+          message = message + array_location
 
         if self.solver_display:
           if not self.solver_labels is None:
