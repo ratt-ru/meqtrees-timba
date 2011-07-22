@@ -126,8 +126,8 @@ private:
   
   bool writing_;
   
-  string domains_file_;
-  string funklets_file_;
+  std::string domains_file_;
+  std::string funklets_file_;
   
   FILE *fdomains_;
   GDBM_FILE fdb_;
