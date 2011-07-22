@@ -45,6 +45,12 @@ namespace Meq {
 //!
 //! First child is BF, second child is either r, or a 2-vector of l,m, in which case r
 //! is computed as sqrt(l^2+m^2) (which is precise enough for WSRT fields)
+//! A third, optional, child 'Z' gives a vector of coefficients for Zernike polynomials
+//! which are used to distort the beam.
+//! For a Z of length N, the first N Zernike polynomials ZP_1...ZP_N are taken (following the Noll
+//! numbering scheme), and the beam pattern within the main lobe is multipled by
+//!             \sum_j{ ZP_j(l',m')*Z[j] }
+//! where l',m' is normalized to unity at the first null (= pi/(2*BF*freq))
 //!
 //! BF is the beam factor, in units of 1/Ghz. A good value for BF is 65*1e-9 (around 1.4 GHz at least)
 //!

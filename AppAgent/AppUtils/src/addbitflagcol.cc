@@ -49,7 +49,7 @@ int main (int argc,char *argv[])
         return 1;
       }
       const ColumnDesc &cd_data = td.columnDesc("DATA");
-      // determine storga emanager to use. If DATA column uses a TiledColumnStMan, use that,
+      // determine storage manager to use. If DATA column uses a TiledColumnStMan, use that,
       // else use default
       IPosition tileshape;
       bool tiled_stman = false;
@@ -114,4 +114,3 @@ int main (int argc,char *argv[])
     return 1;
   }
 }
-        

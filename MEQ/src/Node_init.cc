@@ -270,9 +270,9 @@ void Node::attachInitRecord (DMI::Record::Ref &initrec, Forest* frst)
   // now check for correct number of children
   int nchildren = child_indices_.size();
   if( nchildren < check_min_children_ )
-    Throw("too few children specified");
+    Throw(Debug::ssprintf("%d children specified, at least %d are required",nchildren,check_min_children_));
   if( check_max_children_ >=0 && nchildren > check_max_children_ )
-    Throw("too few children specified");
+    Throw(Debug::ssprintf("%d children specified, at most %d are allowed",nchildren,check_max_children_));
   // since child_indices_ may be sparsely populated (i.e. if filled from
   // a record above), also check that the first check_min_children are valid
   for( int i=0; i<check_min_children_; i++ )

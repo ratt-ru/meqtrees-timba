@@ -503,16 +503,27 @@ public:
   // Replaces flagged values (where flag is a flag Vells of the same shape)
   // with the given value.
   template<class T>
-  void replaceFlaggedValues (const Vells &flag,T value,VellsFlagType mask=VellsFullFlagMask)
+  void replaceFlaggedValues (const Vells &flag,T value,VellsFlagType flagmask=VellsFullFlagMask)
   {
-    // init a flag vells with out_ne
-    FailWhen(shape()!=flag.shape(),"replaceFlaggedValues: shape of flags and vells does not match");
-    T * ptr = begin<T>();
-    const VellsFlagType * pfl = flag.begin<VellsFlagType>();
-    for( ; ptr != end<T>(); ptr++,pfl++ )
-    {
-      if( (*pfl)&mask )
-        *ptr = value;
+    const Shape *shapes[2];
+    Strides strides[2];
+    Shape outshape;
+    shapes[0] = &(shape());
+    shapes[1] = &(flag.shape());
+    computeStrides(outshape,strides,2,shapes,"Vells::replaceFlaggedValues");
+    FailWhen(shape()!=outshape,"Vells::replaceFlaggedValues: flags have more axes than this Vells");
+    DimCounter counter(outshape);
+    T* iter = begin<T>();
+    ConstStridedIterator<VellsFlagType> flagiter(flag,strides[1]);
+    for(;;) 
+    { 
+      if( (*flagiter)&flagmask )
+        *iter = value; 
+      int ndim = counter.incr(); 
+      if( ndim <= 0 ) \
+        break;
+      iter++;
+      flagiter.incr(ndim);
     }
   }
   

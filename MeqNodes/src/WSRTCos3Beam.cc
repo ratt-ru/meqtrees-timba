@@ -24,6 +24,7 @@
 #include <MeqNodes/WSRTCos3Beam.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
+#include <DMI/List.h>
 #include <casa/BasicSL/Constants.h>
 #include <cmath>
 
@@ -31,12 +32,47 @@ namespace Meq {
 
 using namespace VellsMath;
 
-const HIID child_labels[] = { AidBF,AidR };
+const HIID child_labels[] = { AidBF,AidR,AidZ };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 
+// Constants defining Zernike polynomials
+// highest n (in Z^m_n) supported
+const int MAX_N = 5;
+
+// This determines the standard Noll numbering from a single integer j
+// to n,m,k giving the Zernike polynomial Z^m_n (see http://oeis.org/A176988)
+// with the radial polynomial R_k (see table below)
+// (The R_k numbering simply uses the R^m_n polynomials in order of increasing n,m)
+const int nmk_from_j[][3] =
+{
+     {0,0,0}, {1,1,1}, {1,-1,1}, {2,0,2}, {2,-2,3}, {2,2,3}, {3,-1,4}, {3,1,4}, {3,-3,5}, {3,3,5},
+     {4,0,6}, {4,2,7}, {4,-2,7}, {4,4,8}, {4,-4,8}, {5,1,9}, {5,-1,9}, {5,3,10}, {5,-3,10}, {5,5,11}
+};
+// this gives the coefficients of the first few radial polynomials per each k
+const int rk_coeff[][MAX_N+1] =
+{
+  {  1,  0,  0,  0,  0,  0},
+  {  0,  1,  0,  0,  0,  0},
+  { -1,  0,  2,  0,  0,  0},
+  {  0,  0,  1,  0,  0,  0},
+  {  0, -2,  0,  3,  0,  0},
+  {  0,  0,  0,  1,  0,  0},
+  {  1,  0, -6,  0,  6,  0},
+  {  0,  0, -3,  0,  4,  0},
+  {  0,  0,  0,  0,  1,  0},
+  {  0,  3,  0,-12,  0, 10},
+  {  0,  0,  0, -4,  0,  5},
+  {  0,  0,  0,  0,  0,  1},
+};
+// max number of Zernike polynomials supported
+const int MAX_NZ = sizeof(nmk_from_j)/(sizeof(int)*3);
+// highest K (in R_k) supported
+const int NUM_RK = sizeof(rk_coeff)/(sizeof(int)*(MAX_N+1));
+
+
 WSRTCos3Beam::WSRTCos3Beam()
-: TensorFunction(num_children,child_labels),
+: TensorFunction(num_children,child_labels,num_children-1),
   clip_(100*(casa::C::pi/180)),deriv_(false)
 {
   // dependence on frequency
@@ -91,22 +127,33 @@ LoShape WSRTCos3Beam::getResultDims (const vector<const LoShape *> &input_dims)
       Throw("child 1: single value (r) or 2-vector (l,m) expected");
     return LoShape(1);
   }
+  // check Z child
+  if( input_dims.size()>2 )
+  {
+    if( input_dims[2]->size() != 1 )
+      Throw("child 2: single vector of Zernike coefficients expected");
+    if( input_dims[2][0] > MAX_NZ )
+      Throw(Debug::ssprintf("child 2: too many values, at most %d allowed",MAX_NZ));
+    if( input_dims[1]->product() != 2 )
+      Throw(Debug::ssprintf("child 1: 2-vector (l,m) expected, if child 3 (Zernike coefficients) is given"));
+  }
 }
 
 void WSRTCos3Beam::evaluateTensors (std::vector<Vells> & out,
                                    const std::vector<std::vector<const Vells *> > &args )
 {
   const Vells &bf = *(args[0][0]);
-  Vells r;
+  Vells bf_by_freq = bf*freq_vells_;
+  Vells r,l,m;
   if( args[1].size() == 1 )
     r = *args[1][0];
   else if( args[1].size() == 2 )
   {
-    const Vells &l = *args[1][0];
-    const Vells &m = *args[1][1];
+    l = *args[1][0];
+    m = *args[1][1];
     r = sqrt(l*l+m*m);
   }
-  Vells bfr = bf*r*freq_vells_;
+  Vells bfr = r*bf_by_freq;
   // derivative mode
   if( deriv_ )
   {
@@ -119,15 +166,77 @@ void WSRTCos3Beam::evaluateTensors (std::vector<Vells> & out,
   // normal mode
   else
   {
-    r = r*bf*freq_vells_;
     // broken NEWSTAR-style clipping
     if( clip_ < 0 )
-      out[0] = max(abs(pow3(cos(bfr))),-clip_,-1,-1);
+      out[0] = max(abs(pow3(cos(bfr))),-clip_,-1,2);
     // proper argument clipping
     else if( argclip_ > 0 )
-      out[0] = pow3(cos(min(bfr,argclip_,-1,-1)));
+      out[0] = pow3(cos(min(bfr,argclip_,-1,2)));
     else
       out[0] = pow3(cos(bfr));
+  }
+  // compute Zernike polynomial, if a third child is given
+  if( args.size() > 2 )
+  {
+    const std::vector<const Vells *> &zcoeff = args[2];
+    // figure out radius of first null
+    Vells rmax = M_PI/(2*bf_by_freq);
+    // normalize l,m to rmax
+    Vells l1 = l/rmax;
+    Vells m1 = m/rmax;
+    Vells phi = atan2(m1,l1);
+    // r1 is normalized radius, r1clip is flag vells indicating where r1>=1
+    Vells r1 = r/rmax;
+    r1 = min(r1,1.0,VellsFullFlagMask,VellsFullFlagMask);
+    Vells r1clip = r1.whereEq(1.0);
+    // precompute powers of r1
+    int max_n = nmk_from_j[zcoeff.size()-1][0];
+    std::vector<Vells> r1_pow(max_n+1);
+    r1_pow[0] = 1;
+    for( int i=1; i<=max_n; i++ )
+      r1_pow[i] = r1_pow[i-1]*r1;
+    // Each radial polynomial R_k will be cached here
+    std::vector<Vells> Rk_cache(NUM_RK);
+    std::vector<bool> has_Rk(NUM_RK,false);
+    // now compute every Zernike polynomial, and add them into the sum 'zsum'
+    const std::vector<const Vells *> &zz = args[2];
+    Vells zsum(0.);
+    DMI::List::Ref zzrec(new DMI::List);
+    for( uint j=0; j<zz.size(); j++ )
+    {
+      // lookup Zernike polynomial numbers
+      int n = nmk_from_j[j][0];
+      int m = nmk_from_j[j][1];
+      int k = nmk_from_j[j][2];
+      Vells &Rk = Rk_cache[k];
+      // compute radial polynomial R_k, if not already computed
+      if( !has_Rk[k] )
+      {
+        Rk = 0.;
+        for( int i=0; i<=MAX_N; i++ )
+        {
+          int cc = rk_coeff[k][i];
+          if( cc )
+            Rk += r1_pow[i]*cc;
+        }
+        has_Rk[k] = true;
+      }
+      // compute Zernike polynomial itself, and add to sum
+      Vells zpol = Rk*( m>=0 ? cos(m*phi) : sin(-m*phi) );
+      zzrec().addBack(new Vells(zpol));
+      zsum += (*zcoeff[j])*zpol;
+    }
+    // clip on r1>=1
+    zsum.replaceFlaggedValues(r1clip,1.0);
+    wstate()["$ZZ"] = zzrec;
+    wstate()["$ZZsum"] = zsum;
+    wstate()["$Zr1"] = r1;
+    wstate()["$Zrmax"] = rmax;
+    wstate()["$Zfq"] = freq_vells_;
+    wstate()["$Zr1clip"] = r1clip;
+    wstate()["$Zphi"] = phi;
+    // done, multiply result
+    out[0] *= zsum;
   }
 }
 
