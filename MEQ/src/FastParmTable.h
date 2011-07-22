@@ -30,6 +30,7 @@
   #define HAVE_FASTPARMTABLE 1
   #include <hovel.h>
 #else
+  #error GDBM is no longer supported. Please install QDBM instead (package libqdbm-dev usually.)
   #ifdef HAVE_GDBM
     #define HAVE_FASTPARMTABLE 1
     #include <gdbm.h>
@@ -71,7 +72,7 @@ public:
   typedef std::vector<Domain::Ref> DomainObjectList;
   
     //##ModelId=3F86886F02B7
-  explicit FastParmTable (const string& tableName,bool write=true,bool create_new=false);
+  explicit FastParmTable (const string& tableName,bool write=false,bool create_new=false);
 
     //##ModelId=3F86886F02BC
   virtual ~FastParmTable();
@@ -123,6 +124,11 @@ private:
   std::string table_name_;
   Thread::Mutex mutex_;
   
+  bool writing_;
+  
+  string domains_file_;
+  string funklets_file_;
+  
   FILE *fdomains_;
   GDBM_FILE fdb_;
   
@@ -130,9 +136,13 @@ private:
   DomainList domain_list_;
   DomainObjectList domain_ref_list_;
   std::vector<bool>        domain_match_;
+  
 
   // this is used by first/nextFunklet
   datum prev_key;
+  
+  // reopens table for writing, if it's not open for writing yet
+  void openForWriting ();
   
   // internal function, gets funklet with given DB key
   int getFunklet (Funklet::Ref &ref,datum db_key,int domain_index);

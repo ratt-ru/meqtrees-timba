@@ -43,6 +43,7 @@ FastParmTable::FastParmTable (const string& tablename,bool write,bool)
 {
   prev_key.dptr = 0;
   struct stat stat_buf;
+  writing_ = write;
   // check if directory exists, if it doesn't, then try to create it
   if( stat(tablename.c_str(),&stat_buf) < 0)
   {
@@ -52,8 +53,10 @@ FastParmTable::FastParmTable (const string& tablename,bool write,bool)
     if( mkdir(tablename.c_str(),0777) < 0 )
       throwErrno("can't create '%s'");
   }
+  domains_file_ = tablename+"/domains";
+  funklets_file_ = tablename+"/funklets";
   // create/open domain list file
-  fdomains_ = fopen((tablename+"/domains").c_str(),write?"a+b":"rb");
+  fdomains_ = fopen(domains_file_.c_str(),write?"a+b":"rb");
   if( !fdomains_ )
     throwErrno("can't open '%s/domains'");
   // see how many domains we've got based on filesize
@@ -74,19 +77,20 @@ FastParmTable::FastParmTable (const string& tablename,bool write,bool)
   // just in case, seek to new domain position
   fseek(fdomains_,ndom*sizeof(DomainEntry),SEEK_SET);
   // create/open funklet database
-  fdb_ = gdbm_open(const_cast<char*>((tablename+"/funklets").c_str()),
+  fdb_ = gdbm_open(const_cast<char*>(funklets_file_.c_str()),
                     1024,write?GDBM_WRCREAT:GDBM_READER,0666,0);
   // "bad magic number" indicates corruption from previous run, so flush it
   if( !fdb_ && gdbm_errno == GDBM_BAD_MAGIC_NUMBER )
   {
-    cerr<<"Warning: "<<tablename<<" appears to be corrupt. This may be due to the system crashing or being killed during a previous run. Creating a new, empty table.\n";
-    fdb_ = gdbm_open(const_cast<char*>((tablename+"/funklets").c_str()),
+    cerr<<"Warning: "<<funklets_file_<<" appears to be corrupt. This may be due to the system crashing or being killed during a previous run. Creating a new, empty table.\n";
+    fdb_ = gdbm_open(const_cast<char*>(funklets_file_.c_str()),
                      1024,GDBM_NEWDB,0666,0);
   }
   // still an error? report as exception
   if( !fdb_ )
   {
     fclose(fdomains_);
+    fdomains_ = 0;
     throwGdbm("can't open '%s/funklets'");
   }
 }
@@ -101,9 +105,35 @@ FastParmTable::~FastParmTable()
     free(prev_key.dptr);
 }
 
+void FastParmTable::openForWriting ()
+{
+  if( writing_ )
+    return;
+  if( !fdomains_ || !fdb_ )
+    Throw("can't reopen '%s' for writing, it is not open");
+  fclose(fdomains_);
+  // reopen the domains file
+  fdomains_ = fopen(domains_file_.c_str(),"a+b");
+  if( !fdomains_ )
+    throwErrno("can't reopen '%s/domains' for writing");
+  fseek(fdomains_,domain_list_.size()*sizeof(DomainEntry),SEEK_SET);
+  // reopen the funklet database
+  gdbm_close(fdb_);
+  fdb_ = gdbm_open(const_cast<char*>(funklets_file_.c_str()),1024,GDBM_WRCREAT,0666,0);
+  // still an error? report as exception
+  if( !fdb_ )
+  {
+    fclose(fdomains_);
+    fdomains_ = 0;
+    throwGdbm("can't reopen '%s/funklets' for writing");
+  }
+  writing_ = true;
+}
+
 void FastParmTable::flush ()
 {
   Thread::Mutex::Lock lock(mutex_);
+  openForWriting();
   if( fdomains_ )
     fflush(fdomains_);
   if( fdb_ )
@@ -274,6 +304,7 @@ Funklet::DbId FastParmTable::putCoeff (const string& parmName, const Funklet& fu
                                        bool)
 {
   Thread::Mutex::Lock lock(mutex_);
+  openForWriting();
   // search for domain in domain list
   dprintf(2)("putCoeff() for %s, c00 is %lf, domain %lf,%lf %lf,%lf\n",
         parmName.c_str(),funklet.getCoeff0(),
@@ -366,6 +397,7 @@ Funklet::DbId FastParmTable::putCoeff (const string& parmName, const Funklet& fu
 void FastParmTable::deleteFunklet (const string &parmName,int domain_index)
 {
   Thread::Mutex::Lock lock(mutex_);
+  openForWriting();
   size_t keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,domain_index);
@@ -377,6 +409,7 @@ void FastParmTable::deleteFunklet (const string &parmName,int domain_index)
 void FastParmTable::deleteAllFunklets (const string &parmName)
 {
   Thread::Mutex::Lock lock(mutex_);
+  openForWriting();
   size_t keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,0);
