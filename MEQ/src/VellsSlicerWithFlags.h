@@ -114,21 +114,25 @@ class ConstVellsSlicerWithFlags0
       // inits reference Vells for current slice
       void initRefVells ();
       
-      char * pdata_;        // current data pointer
-      size_t data_size_;    // size of array element
-      const char * pflags_;       // current flag data pointer
+      char * pdata_,*pdata_end_;        // current data pointer, and end of data
+      size_t data_size_;                // size of array element
+      const char * pflags_,*pflags_end_;       // current flag data pointer, and end of data
       size_t flag_data_size_;    // size of flag array element
       Vells  vells_;        // current reference Vells
       Vells * pvells0_;     // original Vells being sliced
       const Vells * fvells0_;     // original flag Vells being sliced
       LoShape shape_;       // shape of slice
+      size_t sizeof_slice_;
       LoShape flag_shape_;  // shape of flag slice
+      size_t sizeof_flag_slice_;
       LoShape strides_;     // strides of slice
       LoShape flag_strides_;  // strides of flag slice
       LoShape ns_shape_;      // shape of non-sliced axes
       
-      bool sliced_[Axis::MaxAxis];    // flag: true if axis is in slice  
-      bool flag_sliced_[Axis::MaxAxis];    // flag: true if axis is in slice  
+      // flag: true if axis is not in the slice, and not collapsed, i.e. if an iteration
+      // over the given axis should cause the physical data pointer to be advanced
+      bool iterated_[Axis::MaxAxis];       
+      bool flag_iterated_[Axis::MaxAxis];
       
       Vells::DimCounter counter_;     // counter for non-sliced dims
       Vells::Strides vstrides_;       // strides of source data

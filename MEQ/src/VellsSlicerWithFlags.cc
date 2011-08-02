@@ -46,19 +46,22 @@ void ConstVellsSlicerWithFlags0::init (const Vells &vells,const int *axes,int n)
   // later on...
   const LoShape &fshape = fvells0_ ? fvells0_->shape() : LoShape();
   int vsz=1,fsz=1,vs,fs;
+  // fill in vstrides_, fstrides_: the stride of each axis in the vells/flag vells.
+  // iterated_ and flag_iterated_ will be true if axis is non-trivial, false if collapsed
+  // ns_shape_: this is the non-sliced shape, i.e. 1 for every axis that is
+  // sliced (or collapsed) in the input, and >1 for every non-sliced axis.
   ns_shape_.resize(rank);
   for( int i=rank-1; i>=0; i-- )
   {
     vstrides_[i] = vsz;
     vsz *= vs = ( i < int(vshape.size()) ? vshape[i] : 1 );
+    iterated_[i] = vs > 1;
     fstrides_[i] = fsz;
     fsz *= fs = ( i < int(fshape.size()) ? fshape[i] : 1 );
+    flag_iterated_[i] = fs > 1;
     // if axis is present in either flags or data, copy it to output shape 
     ns_shape_[i] = std::max(vs,fs);
   }
-  // reset the "sliced" flags
-  memset(sliced_,0,sizeof(sliced_));
-  memset(flag_sliced_,0,sizeof(flag_sliced_));
   // now fill our own shape and stride, and the shape and stride
   // of the non-sliced dimensions
   shape_.resize(n);
@@ -76,13 +79,15 @@ void ConstVellsSlicerWithFlags0::init (const Vells &vells,const int *axes,int n)
     int axis_sliced = false;
     if( iaxis<int(vshape.size()) && vshape[iaxis] > 1 )
     {
-      sliced_[iaxis] = axis_sliced = true;
+      axis_sliced = true;
+      iterated_[iaxis] = false;
       shape_[i] = vshape[iaxis];
       strides_[i] = vstrides_[iaxis];
     }
     if( iaxis<int(fshape.size()) && fshape[iaxis] > 1 )
     {
-      flag_sliced_[iaxis] = axis_sliced = true;
+      axis_sliced = true;
+      flag_iterated_[iaxis] = false;
       flag_shape_[i] = fshape[iaxis];
       flag_strides_[i] = fstrides_[iaxis];
     }
@@ -90,19 +95,30 @@ void ConstVellsSlicerWithFlags0::init (const Vells &vells,const int *axes,int n)
     if( axis_sliced )
       ns_shape_[iaxis] = 1;
   }
+  sizeof_slice_ = shape_.product()*data_size_;
+  sizeof_flag_slice_ = flag_shape_.product()*flag_data_size_;
   // now setup a DimCounter over the non-sliced axes
   counter_.init(ns_shape_);
   // setup initial data pointer
   pdata_  = static_cast<char*>(const_cast<void*>(vells.getConstDataPtr()));
-  pflags_ = fvells0_ ? static_cast<const char*>(fvells0_->getConstDataPtr()) : 0;
+  pdata_end_ = pdata_ + vells.size()*data_size_;
+  if( fvells0_ )
+  {
+    pflags_ = static_cast<const char*>(fvells0_->getConstDataPtr());
+    pflags_end_ = pflags_ + fvells0_->size()*flag_data_size_;
+  }
+  else
+    pflags_ = pflags_end_ = 0;
   initRefVells();
 }
 
 void ConstVellsSlicerWithFlags0::initRefVells ()
 {
+  FailWhen(pdata_+sizeof_slice_ > pdata_end_,"VellsSlicerWithFlags iterated past end of data. This should never happen: please file a bug report");
   vells_.reference(pdata_,shape_,strides_,*const_cast<const Vells*>(pvells0_));
   if( fvells0_ )
   {
+    FailWhen(pflags_+sizeof_flag_slice_ > pflags_end_,"VellsSlicerWithFlags iterated past end of flags. This should never happen: please file a bug report");
     Vells::Ref flags;
     flags <<= new Vells;
     flags().reference(pflags_,flag_shape_,flag_strides_,*fvells0_);
@@ -118,38 +134,32 @@ bool ConstVellsSlicerWithFlags0::incr ()
     return false;
   // else we have incremented ndim dimensions (starting from the last)
   // adjust data pointer accordingly
-  bool prev_sliced = true;
-  bool prev_flag_sliced = true;
-  for( int i=counter_.rank()-1; i>=counter_.rank()-ndim; i-- )
+  bool advanced = false;
+  bool flag_advanced = false;
+  // loop over every dimension that has been advanced, beginning from the last
+  // (the fastest-moving one).
+  // dim0 is the first (slowest) dimension to have advanced
+  int dim0 = counter_.rank()-ndim;
+  for( int i=counter_.rank()-1; i >= dim0; i-- )
   {
-    // non-sliced axis: increment by stride if prev axis was sliced
-    if( !sliced_[i] )
+    // if a dimension is properly iterated over, then advance the pointer
+    // by the given stride. If the dimension then "ticks over" (i>dim0, i.e. is not the last dimension
+    // to have been incremented), then reset the pointer back.
+    if( iterated_[i] )
     {
-      if( prev_sliced )
-        pdata_ += vstrides_[i]*data_size_;
-      prev_sliced = false;
+      pdata_ += vstrides_[i]*data_size_;
+      // if this dimension has "ticked over" (i.e. is not the leftmost to have been incremented),
+      // then reset the pointer back to the start of the slice
+      if( i>dim0 )
+        pdata_ -= vstrides_[i-1]*data_size_;
     }
-    else // sliced axis: decrement by stride to get back to start of previous axis
+    if( flag_iterated_[i] )
     {
-      if( !prev_sliced ) 
-        pdata_ -= vstrides_[i]*data_size_;
-      prev_sliced = true;
-    }
-    if( fvells0_ )
-    {
-      // non-sliced flag axis: increment by stride if prev axis was sliced
-      if( !flag_sliced_[i] )
-      {
-        if( prev_flag_sliced )
-          pflags_ += fstrides_[i]*flag_data_size_;
-        prev_flag_sliced = false;
-      }
-      else // sliced flag axis: decrement by stride to get back to start of previous axis
-      {
-        if( !prev_flag_sliced ) 
-          pflags_ -= fstrides_[i]*flag_data_size_;
-        prev_flag_sliced = true;
-      }
+      pflags_ += fstrides_[i]*flag_data_size_;
+      // if this dimension has "ticked over" (i.e. is not the leftmost to have been incremented),
+      // then reset the pointer back to the start of the slice
+      if( i>dim0 )
+        pflags_ -= fstrides_[i-1]*flag_data_size_;
     }
   }
   initRefVells();
