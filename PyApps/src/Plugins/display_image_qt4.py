@@ -1122,10 +1122,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def handle_toggle_metrics_display(self):
       if self.toggle_metrics == False:
         self.toggle_metrics = True
-        self._toggle_metrics_display.setText('Hide Solver Metrics')
       else:
         self.toggle_metrics = False
-        self._toggle_metrics_display.setText('Show Solver Metrics')
+      self._toggle_metrics_display.setChecked(not self.toggle_metrics)
       self.toggleMetrics()
       self.replot()
 
@@ -1161,6 +1160,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_metrics_display.setVisible(False)
         self._toggle_log_range_for_data.setVisible(False)
         self._toggle_plot_legend.setVisible(True)
+        self._toggle_coordinates.setVisible(False)
       else:
         self.display_solution_distances = False
         self.setWhatsThis(display_image_instructions)
@@ -1169,6 +1169,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_log_range_for_data.setVisible(False)
         self._toggle_log_range_for_data.setVisible(True)
         self._toggle_plot_legend.setVisible(True)
+        self._toggle_coordinates.setVisible(True)
         self.cleanup()
         self.enable_axes()
       self.reset_zoom()
@@ -4051,6 +4052,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_metrics_display.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_metrics_display.setVisible(False)
         self._toggle_metrics_display.setText('Hide Solver Metrics')
+        self._toggle_metrics_display.setCheckable(True)
         self.connect(self._toggle_metrics_display,Qt.SIGNAL("triggered()"),self.handle_toggle_metrics_display);
 
         toggle_id = self.menu_table['Show logarithmic range for data']
