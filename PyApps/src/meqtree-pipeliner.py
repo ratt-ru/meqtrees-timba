@@ -166,4 +166,4 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
       print "### There was an error stopping the meqserver cleanly. Exiting anyway.";
       sys.exit(1);
     # now we can exit
-    print "### Bye!";
+    print "### All your batch are belong to us. Bye!";

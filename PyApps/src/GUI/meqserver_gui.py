@@ -320,6 +320,9 @@ class meqserver_gui (app_proxy_gui):
     
     kernel_menu.addSeparator();
     kernel_menu.addAction(self.treebrowser._qa_refresh);
+    clearforest = kernel_menu.addAction("Clear current forest",meqds.clear_forest);
+    clearforest.setDisabled(True);
+    QObject.connect(self,PYSIGNAL("isConnected()"),clearforest.setEnabled);
     # self.treebrowser._qa_load.addTo(kernel_menu);
     # self.treebrowser._qa_save.addTo(kernel_menu);
     
@@ -634,7 +637,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
               "Enter a name for this meqserver session",QLineEdit.Normal,sname);
     if ok:
       self.app.meq('Set.Session.Name',record(session_name=str(sname)),wait=False);
-    
+      
   def _stop_kernel (self):
     # check if we have a PID for the kernel 
     pid = self._kernel_pid;
