@@ -3,6 +3,7 @@ project(meqtrees CXX C)
 
 # -- cmake setup info
 cmake_minimum_required(VERSION 2.6)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
