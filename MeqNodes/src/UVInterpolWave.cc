@@ -178,7 +178,7 @@ namespace Meq {
 
 	// Interpolate each perturbed value
 	for( int ipset=0; ipset<brick_input.numPertSets(); ipset++ )
-	  for( int ipert=0; ipset<brick_input.numSpids(); ipert++ )
+	  for( int ipert=0; ipert<brick_input.numSpids(); ipert++ )
 	    {
 	      Vells & output_vells =
 		output_vell_set.setPerturbedValue(ipert,

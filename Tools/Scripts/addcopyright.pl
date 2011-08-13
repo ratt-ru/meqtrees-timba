@@ -3,7 +3,7 @@
 # $Id$ 
 
 #
-# Copyright (C) 2002-2007
+# Copyright (C) 2002-2011
 # The MeqTree Foundation & 
 # ASTRON (Netherlands Foundation for Research in Astronomy)
 # P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
@@ -159,7 +159,7 @@ sub print_copyright {
   }
 
   print OUTFILE "$cmt
-$cmt Copyright (C) 2002-2007
+$cmt Copyright (C) 2002-2011
 $cmt The MeqTree Foundation & 
 $cmt ASTRON (Netherlands Foundation for Research in Astronomy)
 $cmt P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
