@@ -197,12 +197,6 @@ class ChartPlot(Qt.QWidget):
     self._print.setData(Qt.QVariant(str(toggle_id)))
     self.connect(self._print,Qt.SIGNAL("triggered()"),self.plotPrinter.do_print);
 
-    toggle_id = self.menu_table["Save Display in PNG Format"]
-    self._save_display = Qt.QAction('Save Display in PNG Format',self)
-    self._menu.addAction(self._save_display)
-    self._save_display.setData(Qt.QVariant(str(toggle_id)))
-    self.connect(self._save_display,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
-
     toggle_id = self.menu_table['Clear Plot']
     self._clear_plot = Qt.QAction('Clear Plot',self)
     self._menu.addAction(self._clear_plot)
@@ -221,6 +215,8 @@ class ChartPlot(Qt.QWidget):
     self._show_flagged_data = Qt.QAction('Show Flagged Data',self)
     self._menu.addAction(self._show_flagged_data)
     self._show_flagged_data.setData(Qt.QVariant(str(toggle_id)))
+    self._show_flagged_data.setCheckable(True)
+    self._show_flagged_data.setChecked(False)
     self.connect(self._show_flagged_data,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
     toggle_id = self.menu_table['Fixed Scale']
@@ -238,15 +234,19 @@ class ChartPlot(Qt.QWidget):
     self.connect(self._offset_value,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
     toggle_id = self.menu_table['Show Channels']
-    self._show_channels = Qt.QAction('Hide Channel Markers',self)
+    self._show_channels = Qt.QAction('Show Channel Markers',self)
     self._menu.addAction(self._show_channels)
     self._show_channels.setData(Qt.QVariant(str(toggle_id)))
+    self._show_channels.setCheckable(True)
+    self._show_channels.setChecked(True)
     self.connect(self._show_channels,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
     toggle_id = self.menu_table['Append']
-    self._append = Qt.QAction('Replace Vector Data',self)
+    self._append = Qt.QAction('Append Vector Data',self)
     self._menu.addAction(self._append)
     self._append.setData(Qt.QVariant(str(toggle_id)))
+    self._append.setCheckable(True)
+    self._append.setChecked(True)
     self.connect(self._append,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
 # create the submenu
@@ -289,6 +289,13 @@ class ChartPlot(Qt.QWidget):
     self._menu.addAction(self._complex_data_selection)
     self._complex_data_selection.setMenu(self._complex_submenu)
     self._complex_data_selection.setData(Qt.QVariant(str(toggle_id)))
+
+    toggle_id = self.menu_table["Save Display in PNG Format"]
+    self._save_display = Qt.QAction('Save Display in PNG Format',self)
+    self._menu.addAction(self._save_display)
+    self._save_display.setData(Qt.QVariant(str(toggle_id)))
+    self.connect(self._save_display,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
+
 
     self._vells_menu = None
     self._vells_menu_id = 0
@@ -388,14 +395,13 @@ class ChartPlot(Qt.QWidget):
     if menuid == self.menu_table['Append']:
       if self._append_data:
         self._append_data = False
-        self._append.setText('Append Vector Data')
       else:
         self._append_data = True
-        self._append.setText('Replace Vector Data')
+      self._append.setChecked(self._append_data)
       self.clear_plot()
       return True
     if menuid == self.menu_table['Show Flags']:
-      self.change_flag_parms(menuid)
+      self.change_flag_parms()
       return True
     if menuid == self.menu_table['Complex Data']:
       return True
@@ -427,13 +433,12 @@ class ChartPlot(Qt.QWidget):
     # closestCurve
 
 
-  def change_flag_parms(self, menuid):
+  def change_flag_parms(self):
     if self._ignore_flagged_data:
       self._ignore_flagged_data = False
-      self._show_flagged_data.setText('Hide Flagged Data')
     else:
       self._ignore_flagged_data = True
-      self._show_flagged_data.setText('Show Flagged Data')
+    self._show_flagged_data.setChecked(not self._ignore_flagged_data)
     self._do_fixed_scale = False
     self._auto_offset = True
     self._offset = 0
@@ -1173,10 +1178,9 @@ class ChartPlot(Qt.QWidget):
   def change_channel_display(self, toggle_id):
     if self.show_channel_labels:
       self.show_channel_labels = False
-      self._show_channels.setText('Show Channel Markers')
     else:
       self.show_channel_labels = True
-      self._show_channels.setText('Hide Channel Markers')
+    self._show_channels.setChecked(self.show_channel_labels)
     self._do_fixed_scale = False
     self._auto_offset = True
     self._offset = 0

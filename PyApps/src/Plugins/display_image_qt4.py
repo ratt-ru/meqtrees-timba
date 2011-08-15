@@ -140,6 +140,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
         sub-array on the screen.
     """
 
+    display_image_instructions = \
+'''This plot basically shows the contents of one or two-dimensional arrays. Most decision making takes place behind the scenes, so to speak, as the system uses the dimensionality of the data and the source of the data to decide how the data will be displayed. However, once a display appears, you can interact with it in certain standardized ways.<br><br>
+Button 1 (Left): If you click the <b>left</b> mouse button on a location inside a two-dimensional array plot, the x and y coordinates of this location, and its value, will appear at the lower left hand corner of the display. This information is shown until you release the mouse button. If you click the left mouse button down and then drag it, a rectangular square will be seen. Then when you release the left mouse button, the plot will 'zoom in' on the area defined inside the rectangle.<br><br>
+Button 2 (Middle): If you click the <b>middle</b> mouse button on a location inside a <b>two-dimensional</b> array plot, then X and Y cross-sections centred on this location are overlaid on the display. A continuous black line marks the location of the X cross-section and the black dotted line shows the cross section values, which are tied to the right hand scale. The white lines show corresponding information for the Y cross section, whose values are tied to the top scale of the plot. You can remove the X,Y cross sections from the display by selecting the appropriate option from the context menu (see Button 3 below). If the <b>Legends</b> display has been toggled to ON (see Button 3 below), then a sequence of push buttons will appear along the right hand edge of the display. Each of the push buttons is associated with one of the cross-section plots. Clicking on a push button will cause the corresponding plot to appear or disappear, depending on the current state.<br><br>
+Button 3 (Right):Click the <b>right</b> mouse button in a spectrum display window to get get a context menu with options for printing, resetting the zoom, selecting another image, or toggling a <b>Legends</b> display. If you click on the 'Reset zoomer' icon  in a window where you had zoomed in on a selected region, then the original entire array is re-displayed. Vellsets or <b>visu</b> data sets may contain multiple arrays. Only one of these arrays can be displayed at any one time. If additional images are available for viewing, they will be listed in the context menu. If you move the right mouse button to the desired image name in the menu and then release the button, the requested image will now appear in the display. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. If you make cross-section plots (see Button 2 above), by default a <b>Legends</b> display associating push buttons with these plots is not shown. You can toggle the display of these push buttons ON or OFF by selecting the Toggle Plot Legend option from the context menu. If you are working with two-dimensional arrays, then additional options to toggle the ON or OFF display of a colorbar showing the range of intensities and to switch between GrayScale and Color representations of the pixels will be shown.<br><br>
+By default, colorbars are turned ON while Legends are turned OFF when a plot is first produced. <br><br> 
+You can obtain more information about the behavior of the colorbar by using the QWhatsThis facility associated with the colorbar.'''
+
     display_table = {
         'hippo': 'hippo',
         'grayscale': 'grayscale',
@@ -152,18 +160,18 @@ class QwtImageDisplay(Qwt.QwtPlot):
         'Set display range to that of unflagged data for plane ': 202,
         'Modify Plot Parameters': 299,
         'Toggle Plot Legend': 300,
-        'Hide ColorBar': 301,
+        'Show ColorBar': 301,
         'Show GrayScale Display': 302,
         'Hide ND Controller': 303, 
         'Reset zoomer': 304,
         'Delete X-Section Display': 305,
         'Toggle real/imag or ampl/phase Display': 306,
-        'Toggle axis flip': 307,
+        'Interchange axes': 307,
         'Show logarithmic range for data': 308,
-        'Hide results history': 309,
+        'Show results history': 309,
         'Toggle Metrics Display': 310,
-        'Toggle log axis for chi_0': 311,
-        'Toggle log axis for solution vector': 312,
+        'Show logarithmic range for chi_0': 311,
+        'Show logarithmic range for solution vector': 312,
         'Toggle chi-square surfaces display': 313,
         'Change Vells': 314,
         'Toggle 3D Display': 315,
@@ -186,6 +194,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
         'Select phase cross-section': 203,
         'Select both cross-sections': 204,
         }
+
+    complex_menu_table = {
+        'Show Data as Amplitude and Phase': 400,
+        'Show Data as Real and Imaginary': 401,
+        }
+
 
     _start_spectrum_menu_id = 0
 
@@ -636,7 +650,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def setResultsSelector(self):
       """ add option to toggle ResultsRange selector to context menu """
       self._toggle_results_history.setVisible(True)
-      self._toggle_results_history.setChecked(not self.setResults)
+      self._toggle_results_history.setChecked(self.setResults)
 
     def handle_basic_menu_id(self):
       """ callback to handle most common basic context menu selections """
@@ -1116,7 +1130,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.setResults = False
       else:
         self.setResults = True
-      self._toggle_results_history.setChecked(not self.setResults)
+      self._toggle_results_history.setChecked(self.setResults)
       self.emit(Qt.SIGNAL("show_results_selector"),self.setResults)
 
     def handle_toggle_metrics_display(self):
@@ -1124,7 +1138,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.toggle_metrics = True
       else:
         self.toggle_metrics = False
-      self._toggle_metrics_display.setChecked(not self.toggle_metrics)
+      self._toggle_metrics_display.setChecked(self.toggle_metrics)
       self.toggleMetrics()
       self.replot()
 
@@ -1153,13 +1167,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.replot()
 
     def handle_toggle_chi_square_surfaces_display(self):
+      self._toggle_plot_legend.setVisible(True)
       if self.display_solution_distances is False:
         self.display_solution_distances = True
         self.setWhatsThis(chi_sq_instructions)
         self._toggle_chi_square_surfaces_display.setText('Show Solver Solutions')
         self._toggle_metrics_display.setVisible(False)
         self._toggle_log_range_for_data.setVisible(False)
-        self._toggle_plot_legend.setVisible(True)
         self._toggle_coordinates.setVisible(False)
       else:
         self.display_solution_distances = False
@@ -1168,7 +1182,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_metrics_display.setVisible(True)
         self._toggle_log_range_for_data.setVisible(False)
         self._toggle_log_range_for_data.setVisible(True)
-        self._toggle_plot_legend.setVisible(True)
         self._toggle_coordinates.setVisible(True)
         self.cleanup()
         self.enable_axes()
@@ -1181,21 +1194,19 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def handle_toggle_pause(self):
       if self._do_pause:
-          self._toggle_pause.setText('Pause')
           self._do_pause = False
       else:
-          self._toggle_pause.setText('Resume')
           self._do_pause = True
+      self._toggle_pause.setChecked(self._do_pause)
       self.emit(Qt.SIGNAL("winpaused"),self._do_pause)
 
     def handle_toggle_comparison(self):
       if self._compare_max:
         self._compare_max = False
-        self._toggle_comparison.setText('Do Comparison')
       else:
         self._compare_max = True
-        self._toggle_comparison.setText('Stop Comparison')
-      self.emit(Qt.SIGNAL("compare"),self._compare_max)
+      self._toggle_comparison.setChecked(self._compare_max)
+#     self.emit(Qt.SIGNAL("compare"),self._compare_max)
 
     def handle_change_vells(self):
       self._vells_menu.show()
@@ -1276,44 +1287,51 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.calculate_cross_sections()
       self.handleFlagRange()
 
-    def handle_toggle_ri_or_ap_display(self):
-      if self.ampl_phase:
-        self._toggle_ri_or_ap_display.setText('Show Data as Amplitude and Phase')
-        self.ampl_phase = False
-        if self._vells_plot and not self.is_vector:
-          title_addition = ': (real followed by imaginary)'
-          self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
-        else:
-          if self.is_vector:
-            self._x_title = 'Array/Channel Number '
-          else:
-            self._x_title = 'Array/Channel Number (real followed by imaginary)'
-        self.xBottom_title.setText(self._x_title)
-        self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
-      else:
-        self._toggle_ri_or_ap_display.setText('Show Data as Real and Imaginary')
-        self.ampl_phase = True
-        if self._vells_plot and not self.is_vector:
+    def handle_toggle_ap_display(self):
+      self.ampl_phase = True
+      self._select_real_imaginary.setChecked(False)
+      self._select_amplitude_phase.setChecked(self.ampl_phase)
+      if self._vells_plot and not self.is_vector:
           title_addition = ': (amplitude followed by phase)'
           self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
-        else:
+      else:
           if self.is_vector:
             self._x_title = 'Array/Channel Number '
           else:
             self._x_title = 'Array/Channel Number (amplitude followed by phase)'
-        self.xBottom_title.setText(self._x_title)
-        self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
+      self.xBottom_title.setText(self._x_title)
+      self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
 
       if self.is_vector:
         # make sure we unzoom as axes will probably change drastically
         self.reset_zoom(True)
       else:
         self.adjust_color_bar = True
-        if self.ampl_phase:
-          ampl_phase_image = self.convert_to_AP(self.complex_image)
-          self.display_image(ampl_phase_image)
+        ampl_phase_image = self.convert_to_AP(self.complex_image)
+        self.display_image(ampl_phase_image)
+        self.handleFlagRange()
+
+    def handle_toggle_ri_display(self):
+      self.ampl_phase = False
+      self._select_real_imaginary.setChecked(True)
+      self._select_amplitude_phase.setChecked(self.ampl_phase)
+      if self._vells_plot and not self.is_vector:
+        title_addition = ': (real followed by imaginary)'
+        self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
+      else:
+        if self.is_vector:
+          self._x_title = 'Array/Channel Number '
         else:
-          self.display_image(self.complex_image)
+          self._x_title = 'Array/Channel Number (real followed by imaginary)'
+      self.xBottom_title.setText(self._x_title)
+      self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
+
+      if self.is_vector:
+        # make sure we unzoom as axes will probably change drastically
+        self.reset_zoom(True)
+      else:
+        self.adjust_color_bar = True
+        self.display_image(self.complex_image)
         self.handleFlagRange()
 
     def handle_delete_x_section_display(self):
@@ -1327,7 +1345,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.emit(Qt.SIGNAL("show_colorbar_display"),self.toggle_color_bar,0)
       if self.complex_type:
         self.emit(Qt.SIGNAL("show_colorbar_display"),self.toggle_color_bar,1)
-      self._toggle_colorbar.setChecked(not self.toggle_color_bar)
+      self._toggle_colorbar.setChecked(self.toggle_color_bar)
       return True
 
     def handle_toggle_color_gray_display(self):
@@ -1349,13 +1367,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.legend.setParent(Qt.QWidget())
         self.legend = None
         self.updateLayout()
-        self._toggle_plot_legend.setText('Show Plot Legends')
+        self._toggle_plot_legend.setChecked(False)
       else:
         self.setlegend = 1
         self.legend = Qwt.QwtLegend()
         self.legend.setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Sunken)
         self.insertLegend(self.legend, Qwt.QwtPlot.RightLegend)
-        self._toggle_plot_legend.setText('Hide Plot Legends')
+        self._toggle_plot_legend.setChecked(True)
       self.replot()
       #print 'called replot in toggleLegend'
       _dprint(3, 'called replot in toggleLegend')
@@ -2573,6 +2591,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def add_solver_metrics(self):
 
       #solver metrics
+      self._toggle_plot_legend.setVisible(True)
       if not self.display_solution_distances:
         keys = self.metrics_plot.keys()
         if len(keys) > 0:
@@ -3134,7 +3153,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if plot_array.dtype == numpy.complex128:
         self.complex_type = True;
       if self.complex_type:
-        self._toggle_axis_rotate.setVisible(True)
+        self._toggle_axis_rotate.setVisible(False)
 
 # do an image rotation?
       if not self.complex_type and self.axes_rotate:
@@ -3192,16 +3211,15 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # add possibility to switch between real/imag and ampl/phase
       if self.complex_type:
         if self.ampl_phase is None:
-          self._toggle_ri_or_ap_display.setText('Show Data as Amplitude and Phase')
+#         self._toggle_ri_or_ap_display.setText('Show Data as Amplitude and Phase')
           self.ampl_phase = False
-        else:
-          if self.ampl_phase:
-            self._toggle_ri_or_ap_display.setText('Show Data as Real and Imaginary')
-          else:
-            self._toggle_ri_or_ap_display.setText('Show Data as Amplitude and Phase')
         self._toggle_ri_or_ap_display.setVisible(True)
+        self._select_real_imaginary.setVisible(True)
+        self._select_amplitude_phase.setVisible(True)
       else:
         self._toggle_ri_or_ap_display.setVisible(False)
+        self._select_real_imaginary.setVisible(False)
+        self._select_amplitude_phase.setVisible(False)
 
 # test if we have a 2-D array
       if self.is_vector:
@@ -3846,7 +3864,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def handle_select_real_cross_section(self):
       if self.show_x_sections:
-        self.xiCrossSection.detach()
+        try:
+          self.xiCrossSection.detach()
+        except:
+          pass
         self.xiCrossSection = None
         self.real_xsection_selected = True
         self.imag_xsection_selected = False
@@ -3856,7 +3877,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def handle_select_imaginary_cross_section(self):
       if self.show_x_sections:
-        self.xrCrossSection.detach()
+        try:
+          self.xrCrossSection.detach()
+        except:
+          pass
         self.xrCrossSection = None
         self.real_xsection_selected = False
         self.imag_xsection_selected = True
@@ -3925,7 +3949,35 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.connect(self._select_phase_cross_section,Qt.SIGNAL("triggered()"),self.handle_select_imaginary_cross_section);
 
 
+# create sub-menu for complex data selection
+        self._complex_data_menu = Qt.QMenu(self._mainwin);
+
+        toggle_id = self.complex_menu_table['Show Data as Amplitude and Phase']
+        self._select_amplitude_phase = Qt.QAction('Amplitude and Phase',self)
+        self._select_amplitude_phase.setData(Qt.QVariant(str(toggle_id)))
+        self._complex_data_menu.addAction(self._select_amplitude_phase)
+        self._select_amplitude_phase.setVisible(False)
+        self._select_amplitude_phase.setCheckable(True)
+        self._select_amplitude_phase.setChecked(False)
+        self.connect(self._select_amplitude_phase,Qt.SIGNAL("triggered()"),self.handle_toggle_ap_display);
+
+        toggle_id = self.complex_menu_table['Show Data as Real and Imaginary']
+        self._select_real_imaginary = Qt.QAction('Real and Imaginary',self)
+        self._select_real_imaginary.setData(Qt.QVariant(str(toggle_id)))
+        self._complex_data_menu.addAction(self._select_real_imaginary)
+        self._select_real_imaginary.setVisible(False)
+        self._select_real_imaginary.setCheckable(True)
+        self._select_real_imaginary.setChecked(True)
+        self.connect(self._select_real_imaginary,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_display);
+
 # now insert items into main menu
+
+#       self.helpMenu = Qt.QMenu("Help",self._mainwin)
+#       self.helpMenu.addAction(self.display_image_instructions)
+#       self._help_display = Qt.QAction('Help',self)
+#       self._help_display.setMenu(self.helpMenu)
+#       self._menu.addAction(self._help_display)
+
 
 #       The following option currently does not work
 #       toggle_id = self.menu_table['Modify Plot Parameters']
@@ -3933,6 +3985,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 #       self._modify_plot_parameters.setData(Qt.QVariant(str(toggle_id)))
 #       self._menu.addAction(self._modify_plot_parameters)
 #       self.connect(self._modify_plot_parameters,Qt.SIGNAL("triggered()"),self.handle_modify_plot_parameters);
+
         toggle_id = self.menu_table['Show coordinate tracking display']
         self._toggle_coordinates = Qt.QAction('Show coordinate tracking display',self)
         self._menu.addAction(self._toggle_coordinates)
@@ -3943,19 +3996,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
 
         toggle_id = self.menu_table['Toggle Plot Legend']
-        self._toggle_plot_legend = Qt.QAction('Toggle Plot Lengend',self)
+        self._toggle_plot_legend = Qt.QAction('Toggle Plot Legend',self)
         self._menu.addAction(self._toggle_plot_legend)
         self._toggle_plot_legend.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_plot_legend.setText('Show Plot Legends')
+        self._toggle_plot_legend.setCheckable(True)
         self._toggle_plot_legend.setVisible(False)
         self.connect(self._toggle_plot_legend,Qt.SIGNAL("triggered()"),self.handle_toggle_plot_legend);
 
-        toggle_id = self.menu_table['Hide ColorBar']
-        self._toggle_colorbar = Qt.QAction('Hide ColorBar',self)
+        toggle_id = self.menu_table['Show ColorBar']
+        self._toggle_colorbar = Qt.QAction('Show ColorBar',self)
         self._menu.addAction(self._toggle_colorbar)
         self._toggle_colorbar.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_colorbar.setText('Hide ColorBar')
+        self._toggle_colorbar.setText('Show ColorBar')
         self._toggle_colorbar.setCheckable(True)
+        self._toggle_colorbar.setChecked(True)
         self.connect(self._toggle_colorbar,Qt.SIGNAL("triggered()"),self.handle_toggle_colorbar);
 
         toggle_id = self.menu_table['Show GrayScale Display']
@@ -3976,8 +4031,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.connect(self._toggle_nd_controller,Qt.SIGNAL("triggered()"),self.handle_toggle_nd_controller);
 
 
-        toggle_id = self.menu_table['Hide results history']
-        self._toggle_results_history = Qt.QAction('Hide results history',self)
+        toggle_id = self.menu_table['Show results history']
+        self._toggle_results_history = Qt.QAction('Show results history',self)
         self._menu.addAction(self._toggle_results_history)
         self._toggle_results_history.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_results_history.setVisible(False)
@@ -4001,8 +4056,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.connect(self._delete_x_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
 
 
-        toggle_id = self.menu_table['Toggle axis flip']
-        self._toggle_axis_flip = Qt.QAction('Toggle axis flip',self)
+        toggle_id = self.menu_table['Interchange axes']
+        self._toggle_axis_flip = Qt.QAction('Interchange x/y axes',self)
         self._menu.addAction(self._toggle_axis_flip)
         self._toggle_axis_flip.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_axis_flip.setVisible(False)
@@ -4014,14 +4069,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_axis_rotate = Qt.QAction('Toggle axis rotate',self)
         self._menu.addAction(self._toggle_axis_rotate)
         self._toggle_axis_rotate.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_axis_rotate.setText('Toggle l,m axis rotate')
+        self._toggle_axis_rotate.setText('Rotate axes 90 deg counterclockwise')
         self._toggle_axis_rotate.setVisible(False)
         self._toggle_axis_rotate.setCheckable(True)
         self.connect(self._toggle_axis_rotate,Qt.SIGNAL("triggered()"),self.handle_toggle_axis_rotate);
 
 
-        toggle_id = self.menu_table['Toggle log axis for chi_0']
-        self._toggle_log_axis_for_chi_0 = Qt.QAction('Toggle log axis for chi_0',self)
+        toggle_id = self.menu_table['Show logarithmic range for chi_0']
+        self._toggle_log_axis_for_chi_0 = Qt.QAction('Show logarithmic range for chi_0',self)
         self._menu.addAction(self._toggle_log_axis_for_chi_0)
         self._toggle_log_axis_for_chi_0.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_log_axis_for_chi_0.setVisible(False)
@@ -4029,8 +4084,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.connect(self._toggle_log_axis_for_chi_0,Qt.SIGNAL("triggered()"),self.handle_toggle_log_axis_for_chi_0);
 
 
-        toggle_id = self.menu_table['Toggle log axis for solution vector']
-        self._toggle_log_axis_for_solution_vector = Qt.QAction('Toggle log axis for solution vector',self)
+        toggle_id = self.menu_table['Show logarithmic range for solution vector']
+        self._toggle_log_axis_for_solution_vector = Qt.QAction('Show logarithmic range for solution vector',self)
         self._menu.addAction(self._toggle_log_axis_for_solution_vector)
         self._toggle_log_axis_for_solution_vector.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_log_axis_for_solution_vector.setVisible(False)
@@ -4051,8 +4106,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._menu.addAction(self._toggle_metrics_display)
         self._toggle_metrics_display.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_metrics_display.setVisible(False)
-        self._toggle_metrics_display.setText('Hide Solver Metrics')
+        self._toggle_metrics_display.setText('Show Solver Metrics')
         self._toggle_metrics_display.setCheckable(True)
+        self._toggle_metrics_display.setChecked(True)
         self.connect(self._toggle_metrics_display,Qt.SIGNAL("triggered()"),self.handle_toggle_metrics_display);
 
         toggle_id = self.menu_table['Show logarithmic range for data']
@@ -4065,12 +4121,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.connect(self._toggle_log_range_for_data,Qt.SIGNAL("triggered()"),self.handle_toggle_log_range_for_data);
 
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
-        self._toggle_ri_or_ap_display = Qt.QAction('Toggle real/imag or ampl/phase Display',self)
+        self._toggle_ri_or_ap_display = Qt.QAction('Select Complex Data Display',self)
         self._menu.addAction(self._toggle_ri_or_ap_display)
-        self._toggle_ri_or_ap_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_ri_or_ap_display.setMenu(self._complex_data_menu)
         self._toggle_ri_or_ap_display.setVisible(False)
-        self.connect(self._toggle_ri_or_ap_display,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_or_ap_display);
-
 
         toggle_id = self.menu_table['Show Full Data Range']
         self._show_full_data_range = Qt.QAction('Show Full Data Range',self)
@@ -4161,7 +4215,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # do this here?
         if self.chi_zeros is None:
           self._toggle_axis_flip.setVisible(True)
-          self._toggle_axis_rotate.setVisible(True)
+          if not self.complex_type:
+            self._toggle_axis_rotate.setVisible(True)
         else:
           self._toggle_log_axis_for_chi_0.setVisible(True)
           self._toggle_log_axis_for_solution_vector.setVisible(True)
@@ -4169,16 +4224,22 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
         if self._zoom_display:
           toggle_id = self.menu_table['Toggle Pause']
-          self._toggle_pause = Qt.QAction('Toggle Pause',self)
+          self._toggle_pause = Qt.QAction('Pause Data Display',self)
           self._menu.addAction(self._toggle_pause)
           self._toggle_pause.setData(Qt.QVariant(str(toggle_id)))
+          self._toggle_pause.setCheckable(True)
+          self._toggle_pause.setChecked(self._do_pause)
+	  self.connect(self._toggle_pause,Qt.SIGNAL("triggered()"),self.handle_toggle_pause);
 
+          # following option does nothing useful at the moment
           toggle_id = self.menu_table['Toggle Comparison']
-          self._toggle_comparison = Qt.QAction('Toggle Comparison',self)
+          self._toggle_comparison = Qt.QAction('Do Comparison',self)
           self._menu.addAction(self._toggle_comparison)
           self._toggle_comparison.setData(Qt.QVariant(str(toggle_id)))
+          self._toggle_comparison.setCheckable(True)
+          self._toggle_comparison.setChecked(self._compare_max)
           self._toggle_comparison.setVisible(False)
-          self._toggle_comparison.setText('Do Comparison')
+	  self.connect(self._toggle_comparison,Qt.SIGNAL("triggered()"),self.handle_toggle_comparison);
 
         toggle_id = self.menu_table['Change Vells']
         self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Change Selected Vells',self)
