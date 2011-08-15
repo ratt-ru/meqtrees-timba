@@ -3952,6 +3952,15 @@ You can obtain more information about the behavior of the colorbar by using the 
 # create sub-menu for complex data selection
         self._complex_data_menu = Qt.QMenu(self._mainwin);
 
+        toggle_id = self.complex_menu_table['Show Data as Real and Imaginary']
+        self._select_real_imaginary = Qt.QAction('Real and Imaginary',self)
+        self._select_real_imaginary.setData(Qt.QVariant(str(toggle_id)))
+        self._complex_data_menu.addAction(self._select_real_imaginary)
+        self._select_real_imaginary.setVisible(False)
+        self._select_real_imaginary.setCheckable(True)
+        self._select_real_imaginary.setChecked(True)
+        self.connect(self._select_real_imaginary,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_display);
+
         toggle_id = self.complex_menu_table['Show Data as Amplitude and Phase']
         self._select_amplitude_phase = Qt.QAction('Amplitude and Phase',self)
         self._select_amplitude_phase.setData(Qt.QVariant(str(toggle_id)))
@@ -3961,14 +3970,6 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._select_amplitude_phase.setChecked(False)
         self.connect(self._select_amplitude_phase,Qt.SIGNAL("triggered()"),self.handle_toggle_ap_display);
 
-        toggle_id = self.complex_menu_table['Show Data as Real and Imaginary']
-        self._select_real_imaginary = Qt.QAction('Real and Imaginary',self)
-        self._select_real_imaginary.setData(Qt.QVariant(str(toggle_id)))
-        self._complex_data_menu.addAction(self._select_real_imaginary)
-        self._select_real_imaginary.setVisible(False)
-        self._select_real_imaginary.setCheckable(True)
-        self._select_real_imaginary.setChecked(True)
-        self.connect(self._select_real_imaginary,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_display);
 
 # now insert items into main menu
 
