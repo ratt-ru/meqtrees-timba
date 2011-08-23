@@ -333,6 +333,7 @@ MeqComposedPolc                  1582       ; from /home/oms/LOFAR/Timba/MEQ/src
 meqCopy                          1380       ; from /home/oms/LOFAR/Timba/MeqGen/src/meqCopy.h:17
 #MeqCos                          1398       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Cos.h:30
 #MeqCosh                         1415       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Cosh.h:29
+#MeqCUDAPointSourceVisibility    1771       ; from CUDAPointSourceVisibility.h:32
 #MeqDataCollect                  1388       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:29
 #MeqDataConcat                   1448       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataConcat.h:30
 MeqDimage                        1647       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Dimage.h:32
