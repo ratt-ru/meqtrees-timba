@@ -117,7 +117,8 @@ int Sink::getResult (Result::Ref &resref,
   const VisCube::VTile::Format *pformat = 0;
   void *coldata = 0; 
   TypeId coltype;
-  LoShape colshape; 
+  LoShape colshape;   // current output column shape, may be NCORRxNFREQxTIME or NFREQxNTIME
+  LoShape colshape2;  // 2D column shape: always NFREQxNTIME
   int ncorr = tileref->ncorr();
   // Check if we have a special case of 1 input VellSet (i.e. a scalar) 
   // This usually needs to be treated as a 2x2 matrix. (In the strange case
@@ -172,32 +173,67 @@ int Sink::getResult (Result::Ref &resref,
         coltype  = pformat->type(output_col);
         colshape = pformat->shape(output_col);
         colshape.push_back(ptile->nrow()); // add third dimension to column shape
+        FailWhen(colshape.size()!=3 && colshape.size()!=2,"output column must have 2 or 3 dimensions");
+        // set the basic 2D shape 
+        colshape2.resize(2);
+        colshape2[0] = colshape[colshape.size()-2];
+        colshape2[1] = colshape[colshape.size()-1];
       }
       const VellSet * pvs = res_vs[ivs];
       // process null vellset -- store zeroes to output column
       if( !pvs || pvs->isNull() )
       {
         if( coltype == Tpdouble )
-          zeroTileColumn(static_cast<double*>(coldata),colshape,cur_range,icorr);
+          fillTileColumnWithConstant(static_cast<double*>(coldata),numeric_zero<double>(),colshape,cur_range,icorr);
         else  // complex values
-          zeroTileColumn(static_cast<fcomplex*>(coldata),colshape,cur_range,icorr);
+          fillTileColumnWithConstant(static_cast<fcomplex*>(coldata),numeric_zero<fcomplex>(),colshape,cur_range,icorr);
       }
-      else // non-0 vellset
+      else
       {
-        // get the values out, and copy them to tile column
         const Vells &vells = pvs->getValue();
-        FailWhen(vells.rank()>2,"illegal Vells rank");
-        if( vells.isReal() ) // real values
+        if( vells.isScalar() ) // constant vells
         {
-          FailWhen(coltype!=Tpdouble,"type mismatch: double Vells, "+coltype.toString()+" column");
-          fillTileColumn(static_cast<double*>(coldata),colshape,cur_range,
-                          vells.getConstArray<double,2>(),icorr);
+          if( vells.isReal() ) // real values can go to real or complex column
+          {
+            if( coltype == Tpdouble )
+              fillTileColumnWithConstant(static_cast<double*>(coldata),vells.as<double>(),colshape,cur_range,icorr);
+            else if( coltype == Tpfcomplex )
+              fillTileColumnWithConstant(static_cast<fcomplex*>(coldata),make_fcomplex(vells.as<double>(),0),colshape,cur_range,icorr);
+            else
+            {
+              Throw("type mismatch: double child result, "+coltype.toString()+" column");
+            }
+          }
+          else  // complex values
+          {
+            FailWhen(coltype!=Tpfcomplex,"type mismatch: complex child result, "+coltype.toString()+" column");
+            fillTileColumnWithConstant(static_cast<fcomplex*>(coldata),static_cast<fcomplex>(vells.as<dcomplex>()),colshape,cur_range,icorr);
+          }
         }
-        else  // complex values
+        else // non-scalar vells
         {
-          FailWhen(coltype!=Tpfcomplex,"type mismatch: complex Vells, "+coltype.toString()+" column");
-          fillTileColumn(static_cast<fcomplex*>(coldata),colshape,cur_range,
-                        vells.getConstArray<dcomplex,2>(),icorr);
+          // get the values out, and copy them to tile column
+          const Vells &vells = pvs->getValue();
+          FailWhen(vells.rank() != 2,"child result must be scalar, or a rank-2 (time-freq) array");
+          if( vells.isReal() ) // real values can go to real or complex column
+          {
+            if( coltype == Tpdouble )
+              fillTileColumn(static_cast<double*>(coldata),colshape,cur_range,
+                              vells.getConstArray<double,2>(),icorr);
+            else if( coltype == Tpfcomplex )
+              fillTileColumn(static_cast<fcomplex*>(coldata),colshape,cur_range,
+                              vells.getConstArray<double,2>(),icorr);
+            else
+            {
+              Throw("type mismatch: double child result, "+coltype.toString()+" column");
+            }
+          }
+          else  // complex values
+          {
+            FailWhen(coltype!=Tpfcomplex,"type mismatch: complex child result, "+coltype.toString()+" column");
+            fillTileColumn(static_cast<fcomplex*>(coldata),colshape,cur_range,
+                          vells.getConstArray<dcomplex,2>(),icorr);
+          }
         }
         // write flags, if specified by flag mask
         if( flag_mask )
@@ -209,17 +245,17 @@ int Sink::getResult (Result::Ref &resref,
             Vells realflags;
             const Vells & dataflags = vells.dataFlags();
             // if same shape, then write directly
-            if( vells.shape() == dataflags.shape() )
+            if( dataflags.shape() == colshape2 )
               realflags = dataflags & flag_mask;
             // else flags may have a "collapsed" shape, then:
             // create a flag vells of the same shape as the data, and fill it
             // with the flag mask, then AND with flags and let Vells math do
             // the expansion
-            else if( dataflags.isCompatible(vells.shape()) )
-              realflags = Vells(vells.shape(),flag_mask,true) & dataflags;
+            else if( dataflags.isCompatible(colshape2) )
+              realflags = Vells(colshape2,flag_mask,true) & dataflags;
             else
             {
-              cdebug(2)<<"shape of dataflags not compatible with data, omitting flags"<<endl;
+              cdebug(2)<<"shape of dataflags not compatible with output flag column, omitting flags"<<endl;
             }
             Vells::Traits<VellsFlagType,2>::Array fl = 
                 realflags.getConstArray<VellsFlagType,2>();
@@ -267,19 +303,16 @@ void Sink::fillTileColumn (T *coldata,const LoShape &colshape,
     blitz::Array<T,3> colarr0(coldata,colshape,blitz::neverDeleteData);
     colarr.reference(colarr0(icorr,LoRange::all(),rowrange));
   }
-  else
-  {
-    Throw("output tile column must have 2 or 3 dimensions")
-  }
   // flip into freq-time order for assignment
   colarr.transposeSelf(blitz::secondDim,blitz::firstDim);
   FailWhen(colarr.shape()!=arr.shape(),"shape of child result does not match output column");
   colarr = blitz::cast<T>(arr);
 }
 
+
 template<class T>
-void Sink::zeroTileColumn (T *coldata,const LoShape &colshape,
-                           const LoRange &rowrange,int icorr)
+void Sink::fillTileColumnWithConstant (T *coldata,T value,const LoShape &colshape,
+                                       const LoRange &rowrange,int icorr)
 {
   blitz::Array<T,2> colarr;
   // option 1 is writing to a 2D column with same shape
@@ -294,12 +327,8 @@ void Sink::zeroTileColumn (T *coldata,const LoShape &colshape,
     blitz::Array<T,3> colarr0(coldata,colshape,blitz::neverDeleteData);
     colarr.reference(colarr0(icorr,LoRange::all(),rowrange));
   }
-  else
-  {
-    Throw("output tile column must have 2 or 3 dimensions")
-  }
   // assign zeroes
-  colarr = numeric_zero<T>();
+  colarr = value;
 }
 
 int Sink::deliverHeader (const DMI::Record&,const VisCube::VTile::Format &outformat)
