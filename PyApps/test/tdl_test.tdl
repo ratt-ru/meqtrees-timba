@@ -1,15 +1,6 @@
 # standard preamble
 from Timba.TDL import *
 
-# this is an important construct, we want our TDL script to still be
-# able to run in a GUI-less environment, so we can't fail if importing
-# the qt module fails.
-try:
-  from qt import QMessageBox,QApplication,Qt,QCursor
-  _gui = True;
-except ImportError:
-  _gui = False;
-
 TDLCompileMenu('menu',TDLCompileOption('dum','Dummy',True));
 
 menu1 = TDLCompileMenu('another menu',

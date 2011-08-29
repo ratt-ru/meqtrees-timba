@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #/usr/bin/env python
 
 #% $Id: display_image.py 6838 2009-03-08 06:21:51Z twillis $ 
@@ -52,12 +53,13 @@ _dprintf = _dbg.dprintf;
 # is vtk available?
 global has_vtk
 has_vtk = False
-try:
-  import vtk
-  has_vtk = True
-except:
-  print 'pyvtk not found, 3D visualization will not be available.'
-  print 'Do not worry: this is is an optional module.'
+## OMS: disabling this as of 29/08/2011. See bug 863.
+#try:
+  #import vtk
+  #has_vtk = True
+#except:
+  #print 'pyvtk not found, 3D visualization will not be available.'
+  #print 'Do not worry: this is is an optional module.'
 
 # compute standard deviation of a complex or real array
 # the std_dev given here was computed according to the

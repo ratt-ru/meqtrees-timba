@@ -229,7 +229,7 @@ class ServersDialog (QDialog):
     except AttributeError:
       self._browse_dialog = dialog = QFileDialog(self,"Select meqserver binary");
       dialog.resize(500,dialog.height());
-      dialog.setMode(QFileDialog.ExistingFile);
+      dialog.setFileMode(QFileDialog.ExistingFile);
       dialog.setViewMode(QFileDialog.Detail);
     if dialog.exec_() == QDialog.Accepted:
       self.start_pathname.setText(str(dialog.selectedFiles()[0]));

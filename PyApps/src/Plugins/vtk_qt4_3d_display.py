@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #% $Id: vtk_qt_3d_display.py 6836 2009-03-05 18:55:17Z twillis $ 
 
@@ -23,7 +24,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+
+raise RuntimeError,"MeqTrees VTK support temporarily disabled (29/08/2011). See bug 863."
+
 # modules that are imported
+
+
 
 import sys
 import random
