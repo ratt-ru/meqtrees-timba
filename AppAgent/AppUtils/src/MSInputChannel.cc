@@ -686,6 +686,16 @@ int MSInputChannel::refillStream ()
         for( int i=0; i<nrows; i++ )
         {
           int ant1 = ant1col(i), ant2 = ant2col(i);
+          if( ant1 < 0 || ant1 >= num_antennas_ )
+          {
+            cerr<<"WARNING: invalid ANTENNA1=="<<ant1<<" at MS main table row "<<rownums(i)<<", skipping.\n";
+            continue;
+          }
+          if( ant2 < 0 || ant2 >= num_antennas_ )
+          {
+            cerr<<"WARNING: invalid ANTENNA2=="<<ant2<<" at MS main table row "<<rownums(i)<<", skipping.\n";
+            continue;
+          }
           int ifr = ifrNumber(ant1,ant2);
     // init tile if one is not ready
           VTile *ptile;
