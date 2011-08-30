@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -23,6 +24,22 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+# these modules have caused trouble if imported later, so load them now if they are available
+try:
+  import pyrap.tables
+except ImportError:
+  pass;
+try:
+  import pyrap.measures
+except ImportError:
+  pass;
+try:
+  import scipy.special.specfun
+except ImportError:
+  pass;
+
+
+
 __all__ = [ "dmi","utils","octopussy","octopython","dmi_repr" ];
 
 
@@ -34,9 +51,6 @@ _PackageLocations = [ "~","~/Frameworks/",
   "/usr/local/MeqTrees","/usr/local/lib/MeqTrees","/usr/lib/MeqTrees","/usr/lib64/MeqTrees","/usr/lib32/MeqTrees"
   "/usr/local/meqtrees","/usr/local/lib/meqtrees","/usr/lib/meqtrees","/usr/lib64/meqtrees","/usr/lib32/meqtrees"
   ];
-
-
-
 
 # mapping of package: path. Filled in as we find packages
 _packages = {};
