@@ -76,7 +76,8 @@ CMake attempts to find all the external dependencies in the project automaticall
 If you have these pacakges installed in an unusual place you may have to specify the locations
 through cmake variables. The variable is dependent on the package - for the names, look in the 
 relevant Find<packageName>.cmake files found in the cmake directory of the src code and the
-system cmake module directory (usually /usr/share/cmake/Modules)
+system cmake module directory (usually /usr/share/cmake/Modules). 
+e.g. cmake -DBLITZ_LIB_DIR=/opt/mpp/blitz/0.9/lib PATH_TO_SRC
 
 The list of external dependency packages are specified by the dependencies variable set
 in the top level CMakeList.txt file.
