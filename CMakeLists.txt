@@ -1,4 +1,7 @@
 # Meqtrees CMake Build File
+# Optional Settings.
+# DEV_INSTALL : add include files and meqtrees archive libs to install target
+#
 project(meqtrees CXX C)
 
 # -- cmake setup info

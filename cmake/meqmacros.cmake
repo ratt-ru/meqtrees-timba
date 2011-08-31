@@ -19,7 +19,9 @@ MACRO(INCLUDE_SETUP dest)
           "#include \"${CMAKE_CURRENT_SOURCE_DIR}/${file}\"\n"
           )
       CONFIGURE_FILE(${in_file} ${out_file} COPYONLY)
+      IF(DEV_INSTALL)
       INSTALL(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${file} DESTINATION ${INCLUDE_INSTALL_DIR}/${dest} )
+      ENDIF(DEV_INSTALL)
   ENDFOREACH(file)
 ENDMACRO(INCLUDE_SETUP dest)
 #
