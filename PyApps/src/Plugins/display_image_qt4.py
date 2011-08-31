@@ -3955,7 +3955,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._complex_data_menu = Qt.QMenu(self._mainwin);
 
         toggle_id = self.complex_menu_table['Show Data as Real and Imaginary']
-        self._select_real_imaginary = Qt.QAction('Real and Imaginary',self)
+        self._select_real_imaginary = Qt.QAction('Real-imaginary',self)
         self._select_real_imaginary.setData(Qt.QVariant(str(toggle_id)))
         self._complex_data_menu.addAction(self._select_real_imaginary)
         self._select_real_imaginary.setVisible(False)
@@ -3964,7 +3964,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self.connect(self._select_real_imaginary,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_display);
 
         toggle_id = self.complex_menu_table['Show Data as Amplitude and Phase']
-        self._select_amplitude_phase = Qt.QAction('Amplitude and Phase',self)
+        self._select_amplitude_phase = Qt.QAction('Amplitude-phase',self)
         self._select_amplitude_phase.setData(Qt.QVariant(str(toggle_id)))
         self._complex_data_menu.addAction(self._select_amplitude_phase)
         self._select_amplitude_phase.setVisible(False)
@@ -4002,7 +4002,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._toggle_plot_legend = Qt.QAction('Toggle Plot Legend',self)
         self._menu.addAction(self._toggle_plot_legend)
         self._toggle_plot_legend.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_plot_legend.setText('Show Plot Legends')
+        self._toggle_plot_legend.setText('Show plot legends')
         self._toggle_plot_legend.setCheckable(True)
         self._toggle_plot_legend.setVisible(False)
         self.connect(self._toggle_plot_legend,Qt.SIGNAL("triggered()"),self.handle_toggle_plot_legend);
@@ -4011,7 +4011,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._toggle_colorbar = Qt.QAction('Show ColorBar',self)
         self._menu.addAction(self._toggle_colorbar)
         self._toggle_colorbar.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_colorbar.setText('Show ColorBar')
+        self._toggle_colorbar.setText('Show colour bar')
         self._toggle_colorbar.setCheckable(True)
         self._toggle_colorbar.setChecked(True)
         self.connect(self._toggle_colorbar,Qt.SIGNAL("triggered()"),self.handle_toggle_colorbar);
@@ -4020,15 +4020,15 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._toggle_color_gray_display = Qt.QAction('Show GrayScale Display',self)
         self._menu.addAction(self._toggle_color_gray_display)
         self._toggle_color_gray_display.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_color_gray_display.setText('Show GrayScale Display')
+        self._toggle_color_gray_display.setText('Use greyscale display')
         self._toggle_color_gray_display.setCheckable(True)
         self.connect(self._toggle_color_gray_display,Qt.SIGNAL("triggered()"),self.handle_toggle_color_gray_display);
 
         toggle_id = self.menu_table['Hide ND Controller']
-        self._toggle_nd_controller = Qt.QAction('Hide ND Controller',self)
+        self._toggle_nd_controller = Qt.QAction('Hide nD controller',self)
         self._menu.addAction(self._toggle_nd_controller)
         self._toggle_nd_controller.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_nd_controller.setText('Hide ND Controller')
+        self._toggle_nd_controller.setText('Hide nD controller')
         self._toggle_nd_controller.setVisible(False)
         self._toggle_nd_controller.setCheckable(True)
         self.connect(self._toggle_nd_controller,Qt.SIGNAL("triggered()"),self.handle_toggle_nd_controller);
@@ -4044,7 +4044,7 @@ You can obtain more information about the behavior of the colorbar by using the 
 
 
         toggle_id = self.menu_table['Select X-Section Display']
-        self._select_x_section_display = Qt.QAction('Select X-Section Display',self)
+        self._select_x_section_display = Qt.QAction('Select cross-section display',self)
         self._menu.addAction(self._select_x_section_display)
         self._select_x_section_display.setMenu(self._xsection_menu)
         self._select_x_section_display.setData(Qt.QVariant(str(toggle_id)))
@@ -4053,7 +4053,7 @@ You can obtain more information about the behavior of the colorbar by using the 
 
 
         toggle_id = self.menu_table['Delete X-Section Display']
-        self._delete_x_section_display = Qt.QAction('Delete X-Section Display',self)
+        self._delete_x_section_display = Qt.QAction('Remove cross-section display',self)
         self._menu.addAction(self._delete_x_section_display)
         self._delete_x_section_display.setVisible(False)
         self.connect(self._delete_x_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
@@ -4072,14 +4072,14 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._toggle_axis_rotate = Qt.QAction('Toggle axis rotate',self)
         self._menu.addAction(self._toggle_axis_rotate)
         self._toggle_axis_rotate.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_axis_rotate.setText('Rotate axes 90 deg counterclockwise')
+        self._toggle_axis_rotate.setText('Rotate axes 90deg counterclockwise')
         self._toggle_axis_rotate.setVisible(False)
         self._toggle_axis_rotate.setCheckable(True)
         self.connect(self._toggle_axis_rotate,Qt.SIGNAL("triggered()"),self.handle_toggle_axis_rotate);
 
 
         toggle_id = self.menu_table['Show logarithmic range for chi_0']
-        self._toggle_log_axis_for_chi_0 = Qt.QAction('Show logarithmic range for chi_0',self)
+        self._toggle_log_axis_for_chi_0 = Qt.QAction('Use logarithmic range for chi_0',self)
         self._menu.addAction(self._toggle_log_axis_for_chi_0)
         self._toggle_log_axis_for_chi_0.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_log_axis_for_chi_0.setVisible(False)
@@ -4088,7 +4088,7 @@ You can obtain more information about the behavior of the colorbar by using the 
 
 
         toggle_id = self.menu_table['Show logarithmic range for solution vector']
-        self._toggle_log_axis_for_solution_vector = Qt.QAction('Show logarithmic range for solution vector',self)
+        self._toggle_log_axis_for_solution_vector = Qt.QAction('Use logarithmic range for solution vector',self)
         self._menu.addAction(self._toggle_log_axis_for_solution_vector)
         self._toggle_log_axis_for_solution_vector.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_log_axis_for_solution_vector.setVisible(False)
@@ -4109,13 +4109,13 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._menu.addAction(self._toggle_metrics_display)
         self._toggle_metrics_display.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_metrics_display.setVisible(False)
-        self._toggle_metrics_display.setText('Show Solver Metrics')
+        self._toggle_metrics_display.setText('Show solver metrics')
         self._toggle_metrics_display.setCheckable(True)
         self._toggle_metrics_display.setChecked(True)
         self.connect(self._toggle_metrics_display,Qt.SIGNAL("triggered()"),self.handle_toggle_metrics_display);
 
         toggle_id = self.menu_table['Show logarithmic range for data']
-        self._toggle_log_range_for_data = Qt.QAction('Show logarithmic range for data',self)
+        self._toggle_log_range_for_data = Qt.QAction('Use logarithmic range for data',self)
         self._menu.addAction(self._toggle_log_range_for_data)
         self._toggle_log_range_for_data.setData(Qt.QVariant(str(toggle_id)))
         self._toggle_log_range_for_data.setVisible(False)
@@ -4124,23 +4124,23 @@ You can obtain more information about the behavior of the colorbar by using the 
         self.connect(self._toggle_log_range_for_data,Qt.SIGNAL("triggered()"),self.handle_toggle_log_range_for_data);
 
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
-        self._toggle_ri_or_ap_display = Qt.QAction('Select Complex Data Display',self)
+        self._toggle_ri_or_ap_display = Qt.QAction('Complex data selection',self)
         self._menu.addAction(self._toggle_ri_or_ap_display)
         self._toggle_ri_or_ap_display.setMenu(self._complex_data_menu)
         self._toggle_ri_or_ap_display.setVisible(False)
 
         toggle_id = self.menu_table['Show Full Data Range']
-        self._show_full_data_range = Qt.QAction('Show Full Data Range',self)
+        self._show_full_data_range = Qt.QAction('Show full data range',self)
         self._menu.addAction(self._show_full_data_range)
         self._show_full_data_range.setData(Qt.QVariant(str(toggle_id)))
         self._show_full_data_range.setVisible(False)
         self.connect(self._show_full_data_range,Qt.SIGNAL("triggered()"),self.handle_show_full_data_range);
 
         toggle_id = self.menu_table['Toggle 3D Display']
-        self._toggle_3d_display = Qt.QAction('Toggle 3D Display',self)
+        self._toggle_3d_display = Qt.QAction('Toggle 3D display',self)
         self._menu.addAction(self._toggle_3d_display)
         self._toggle_3d_display.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_3d_display.setText('Show 3D Display')
+        self._toggle_3d_display.setText('Show 3D display')
         self._toggle_3d_display.setVisible(False)
         self.connect(self._toggle_3d_display,Qt.SIGNAL("triggered()"),self.handle_toggle_3d_display);
 
@@ -4148,7 +4148,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._toggle_warp_display = Qt.QAction('Toggle Warp Display',self)
         self._menu.addAction(self._toggle_warp_display)
         self._toggle_warp_display.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_warp_display.setText('Show Warped Surface Display')
+        self._toggle_warp_display.setText('Show warped surface display')
         self._toggle_warp_display.setVisible(False)
         self.connect(self._toggle_warp_display,Qt.SIGNAL("triggered()"),self.handle_toggle_warp_display);
 
@@ -4196,11 +4196,18 @@ You can obtain more information about the behavior of the colorbar by using the 
 	self.connect(self._reset_zoomer,Qt.SIGNAL("triggered()"),self.handle_reset_zoomer);
 
         toggle_id = self.menu_table['Undo Last Zoom']
-        self._undo_last_zoom = Qt.QAction(pixmaps.viewmag.iconset(),'Undo Last Zoom',self)
+        self._undo_last_zoom = Qt.QAction(pixmaps.viewmag.iconset(),'Undo last zoom',self)
         self._menu.addAction(self._undo_last_zoom)
         self._undo_last_zoom.setData(Qt.QVariant(str(toggle_id)))
         self._undo_last_zoom.setVisible(False)
 	self.connect(self._undo_last_zoom,Qt.SIGNAL("triggered()"),self.handle_undo_last_zoom);
+
+        toggle_id = self.menu_table['Change Vells']
+        self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Vector/matrix element selection...',self)
+        self._menu.addAction(self._change_vells)
+        self._change_vells.setData(Qt.QVariant(str(toggle_id)))
+        self._change_vells.setVisible(False)
+        self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.handle_change_vells);
 
 # add the printer to the menu
 # this is commented out until postscript/pdf printing works properly with
@@ -4208,13 +4215,6 @@ You can obtain more information about the behavior of the colorbar by using the 
 #       self._menu.addAction(self.printer)
 
 # add option to save in PNG format
-        toggle_id = self.menu_table['Save Display in PNG Format']
-        self._save_display_in_png_format = Qt.QAction('Save Display in PNG Format',self)
-        self._menu.addAction(self._save_display_in_png_format)
-        self._save_display_in_png_format.setData(Qt.QVariant(str(toggle_id)))
-        self._save_display_in_png_format.setVisible(True)
-	self.connect(self._save_display_in_png_format,Qt.SIGNAL("triggered()"),self.handle_save_display_in_png_format);
-
 # do this here?
         if self.chi_zeros is None:
           self._toggle_axis_flip.setVisible(True)
@@ -4227,7 +4227,7 @@ You can obtain more information about the behavior of the colorbar by using the 
 
         if self._zoom_display:
           toggle_id = self.menu_table['Toggle Pause']
-          self._toggle_pause = Qt.QAction('Pause Data Display',self)
+          self._toggle_pause = Qt.QAction('Pause data display',self)
           self._menu.addAction(self._toggle_pause)
           self._toggle_pause.setData(Qt.QVariant(str(toggle_id)))
           self._toggle_pause.setCheckable(True)
@@ -4236,20 +4236,22 @@ You can obtain more information about the behavior of the colorbar by using the 
 
           # following option does nothing useful at the moment
           toggle_id = self.menu_table['Toggle Comparison']
-          self._toggle_comparison = Qt.QAction('Do Comparison',self)
+          self._toggle_comparison = Qt.QAction('Do comparison',self)
           self._menu.addAction(self._toggle_comparison)
           self._toggle_comparison.setData(Qt.QVariant(str(toggle_id)))
           self._toggle_comparison.setCheckable(True)
           self._toggle_comparison.setChecked(self._compare_max)
           self._toggle_comparison.setVisible(False)
 	  self.connect(self._toggle_comparison,Qt.SIGNAL("triggered()"),self.handle_toggle_comparison);
+        
+        toggle_id = self.menu_table['Save Display in PNG Format']
+        self._save_display_in_png_format = Qt.QAction('Save display in PNG format',self)
+        self._menu.addAction(self._save_display_in_png_format)
+        self._save_display_in_png_format.setData(Qt.QVariant(str(toggle_id)))
+        self._save_display_in_png_format.setVisible(True)
+        self.connect(self._save_display_in_png_format,Qt.SIGNAL("triggered()"),self.handle_save_display_in_png_format);
 
-        toggle_id = self.menu_table['Change Vells']
-        self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Change Selected Vells',self)
-        self._menu.addAction(self._change_vells)
-        self._change_vells.setData(Qt.QVariant(str(toggle_id)))
-        self._change_vells.setVisible(False)
-        self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.handle_change_vells);
+
 
     def set_original_array_rank(self, original_array_rank):
       self.original_data_rank = original_array_rank

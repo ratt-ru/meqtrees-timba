@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #
 # Copyright (C) 2002-2007
@@ -198,13 +199,13 @@ class ChartPlot(Qt.QWidget):
     self.connect(self._print,Qt.SIGNAL("triggered()"),self.plotPrinter.do_print);
 
     toggle_id = self.menu_table['Clear Plot']
-    self._clear_plot = Qt.QAction('Clear Plot',self)
+    self._clear_plot = Qt.QAction('Clear plot',self)
     self._menu.addAction(self._clear_plot)
     self._clear_plot.setData(Qt.QVariant(str(toggle_id)))
     self.connect(self._clear_plot,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
     toggle_id = self.menu_table['Close Popups']
-    self._close_popups = Qt.QAction('Close Popups',self)
+    self._close_popups = Qt.QAction('Close popups',self)
     self._menu.addAction(self._close_popups)
     self._close_popups.setData(Qt.QVariant(str(toggle_id)))
     self._close_popups.setVisible(False)
@@ -212,7 +213,7 @@ class ChartPlot(Qt.QWidget):
 
 
     toggle_id = self.menu_table['Show Flags']
-    self._show_flagged_data = Qt.QAction('Show Flagged Data',self)
+    self._show_flagged_data = Qt.QAction('Show flagged data',self)
     self._menu.addAction(self._show_flagged_data)
     self._show_flagged_data.setData(Qt.QVariant(str(toggle_id)))
     self._show_flagged_data.setCheckable(True)
@@ -220,7 +221,7 @@ class ChartPlot(Qt.QWidget):
     self.connect(self._show_flagged_data,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
     toggle_id = self.menu_table['Fixed Scale']
-    self._fixed_scale = Qt.QAction('Fixed Scale',self)
+    self._fixed_scale = Qt.QAction('Fixed scale',self)
     self._menu.addAction(self._fixed_scale)
     self._fixed_scale.setData(Qt.QVariant(str(toggle_id)))
     self._fixed_scale.setVisible(False)
@@ -234,7 +235,7 @@ class ChartPlot(Qt.QWidget):
     self.connect(self._offset_value,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
     toggle_id = self.menu_table['Show Channels']
-    self._show_channels = Qt.QAction('Show Channel Markers',self)
+    self._show_channels = Qt.QAction('Show labels',self)
     self._menu.addAction(self._show_channels)
     self._show_channels.setData(Qt.QVariant(str(toggle_id)))
     self._show_channels.setCheckable(True)
@@ -242,7 +243,7 @@ class ChartPlot(Qt.QWidget):
     self.connect(self._show_channels,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
     toggle_id = self.menu_table['Append']
-    self._append = Qt.QAction('Append Vector Data',self)
+    self._append = Qt.QAction('Accumulate data tracks',self)
     self._menu.addAction(self._append)
     self._append.setData(Qt.QVariant(str(toggle_id)))
     self._append.setCheckable(True)
@@ -285,13 +286,17 @@ class ChartPlot(Qt.QWidget):
     self.connect(self._imaginary_menu,Qt.SIGNAL("triggered()"),self.emit_complex_selector);
 
     toggle_id = self.menu_table['Complex Data']
-    self._complex_data_selection = Qt.QAction('Complex Data Selection', self)
+    self._complex_data_selection = Qt.QAction('Complex data selection', self)
     self._menu.addAction(self._complex_data_selection)
     self._complex_data_selection.setMenu(self._complex_submenu)
     self._complex_data_selection.setData(Qt.QVariant(str(toggle_id)))
 
+    self._change_vells = Qt.QAction(pixmaps.slick_redo.icon(),'Vector/matrix element selection',self)
+    self._menu.addAction(self._change_vells);
+    self._change_vells.setVisible(False);
+
     toggle_id = self.menu_table["Save Display in PNG Format"]
-    self._save_display = Qt.QAction('Save Display in PNG Format',self)
+    self._save_display = Qt.QAction('Save display in PNG format',self)
     self._menu.addAction(self._save_display)
     self._save_display.setData(Qt.QVariant(str(toggle_id)))
     self.connect(self._save_display,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
@@ -1001,9 +1006,7 @@ class ChartPlot(Qt.QWidget):
         if len(data_keys) > 1:
           if self._vells_menu is None:
             self._vells_menu = Qt.QMenu(self._menu)
-            self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Change Vells',self)
-#           self._change_vells = Qt.QAction('Change Vells',self)
-            self._menu.addAction(self._change_vells)
+            self._change_vells.setVisible(True);
             toggle_id = self.menu_table['Change Vells']
             self._change_vells.setData(Qt.QVariant(str(toggle_id)))
             self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.emit_vells_selector);
