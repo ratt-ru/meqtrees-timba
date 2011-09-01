@@ -70,7 +70,7 @@ class VellsView(Qt.QTreeWidget) :
     #               self.slotVellSelected )
 
     labels = Qt.QStringList()
-    labels << self.tr("VellsSelector")
+    labels << self.tr("DataSelector")
     self.setHeaderLabels(labels)
 
     # self.setSorting(-1)

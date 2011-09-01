@@ -878,7 +878,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         rect = Qt.QApplication.desktop().geometry();
         self._vells_menu.move(rect.center() - self._vells_menu.rect().center())
 
-        vells_root = VellsElement( self._vells_menu, "available vells" )
+        vells_root = VellsElement( self._vells_menu, "available data sets" )
         self.connect(self._vells_menu,Qt.SIGNAL("selected_vells_id"),self.update_vells_display);
         self._vells_menu.hide()
 #       self._vells_menu.show()
