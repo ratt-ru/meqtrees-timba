@@ -875,10 +875,9 @@ You can obtain more information about the behavior of the colorbar by using the 
 
       if self._vells_menu is None:
         self._vells_menu = VellsView()
-        vells_root = VellsElement( self._vells_menu, "available data sets" )
+        vells_root = VellsElement( self._vells_menu, "Available Elements")
         self.connect(self._vells_menu,Qt.SIGNAL("selected_vells_id"),self.update_vells_display);
         self._vells_menu.hide()
-#       self._vells_menu.show()
         self._change_vells.setVisible(True)
         self._show_full_data_range.setVisible(False)
       menu_labels = self._vells_menu_data[0]
@@ -4205,7 +4204,7 @@ You can obtain more information about the behavior of the colorbar by using the 
 	self.connect(self._undo_last_zoom,Qt.SIGNAL("triggered()"),self.handle_undo_last_zoom);
 
         toggle_id = self.menu_table['Change Vells']
-        self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Vector/matrix element selection...',self)
+        self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Show Element Selector',self)
         self._menu.addAction(self._change_vells)
         self._change_vells.setData(Qt.QVariant(str(toggle_id)))
         self._change_vells.setVisible(False)

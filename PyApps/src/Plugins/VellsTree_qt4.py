@@ -59,18 +59,14 @@ class VellsView(Qt.QTreeWidget) :
   inherits from QListView so that we can get keys from VellsElements
   """
   def __init__( self, parent=None, name=None):
-    # QTreeWidget.__init__( self, parent, name )
     Qt.QTreeWidget.__init__( self, parent)
     self.connect( self,
-                  # Qt.SIGNAL("clicked(QListViewItem *)"),
                   Qt.SIGNAL('itemClicked(QTreeWidgetItem*, int)'),
                   self.slotVellSelected )
-    # self.connect( self,
-    #               SIGNAL("returnPressed(QListViewItem *)"),
-    #               self.slotVellSelected )
 
+#   self.setWindowTitle("Element Selector")
     labels = Qt.QStringList()
-    labels << self.tr("DataSelector")
+    labels << self.tr("Element Selector")
     self.setHeaderLabels(labels)
 
     # self.setSorting(-1)
