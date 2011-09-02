@@ -127,6 +127,7 @@ class ResultsRange(Qt.QWidget):
         self.setValue()
       else:
         self.layout = Qt.QVBoxLayout(self)
+        self.layout.addWidget(self.label_info)
         self.layout.addWidget(self.slider)
         self.layout.addWidget(self.spinbox)
         spacer = Qt.QSpacerItem(9,22,Qt.QSizePolicy.Minimum,Qt.QSizePolicy.Expanding)
