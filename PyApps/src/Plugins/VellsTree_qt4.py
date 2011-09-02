@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 # Copyright (C) 2002-2007
@@ -66,8 +67,9 @@ class VellsView(Qt.QTreeWidget) :
 
 #   self.setWindowTitle("Element Selector")
     labels = Qt.QStringList()
-    labels << self.tr("Element Selector")
+    labels << self.tr("Element selector")
     self.setHeaderLabels(labels)
+    self.header().hide();
 
     # self.setSorting(-1)
     # self.setRootIsDecorated( True );

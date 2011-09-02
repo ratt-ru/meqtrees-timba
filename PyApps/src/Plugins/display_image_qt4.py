@@ -241,7 +241,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self.previous_shape = None
 	self._menu = None
         self.menu_labels_big = None
-        self._vells_menu = None
+        self._vells_menu = self._vells_menu_window = None
         self.num_possible_ND_axes = None
         self._plot_type = None
         self.colorbar_requested = False
@@ -868,17 +868,23 @@ You can obtain more information about the behavior of the colorbar by using the 
       """ add vells options to context menu """
       if self._vells_menu_data is None:
         return
-      if not self._vells_menu is None:
-        self._vells_menu.setParent(Qt.QWidget())
+      if not self._vells_menu_window is None:
+        self._vells_menu_window.setParent(Qt.QWidget())
         self._change_vells.setVisible(False)
-        self._vells_menu = None
+        self._vells_menu_window = None
 
-      if self._vells_menu is None:
-        self._vells_menu = VellsView()
-        vells_root = VellsElement( self._vells_menu, "Available Elements")
+      if self._vells_menu_window is None:
+        self._vells_menu_window = Qt.QDialog(self,Qt.Qt.Tool);
+        self._vells_menu_window.setWindowTitle("Element selector");
+        lo = Qt.QVBoxLayout(self._vells_menu_window);
+        lo.setContentsMargins(0,0,0,0);
+        self._vells_menu = VellsView(self._vells_menu_window);
+        lo.addWidget(self._vells_menu);
+        self._vells_menu.setRootIsDecorated(False);
+        vells_root = VellsElement(self._vells_menu, "Data elements:")
         vells_root.setExpanded(True)
         self.connect(self._vells_menu,Qt.SIGNAL("selected_vells_id"),self.update_vells_display);
-        self._vells_menu.hide()
+        self._vells_menu_window.hide()
         self._change_vells.setVisible(True)
         self._show_full_data_range.setVisible(False)
       menu_labels = self._vells_menu_data[0]
@@ -1208,12 +1214,22 @@ You can obtain more information about the behavior of the colorbar by using the 
 #     self.emit(Qt.SIGNAL("compare"),self._compare_max)
 
     def handle_change_vells(self):
+      # figure out a good size
+      width = 180;
+      # count the number of root and second-level items
+      nitems = self._vells_menu.topLevelItemCount();
+      for i in range(nitems):
+        nitems += self._vells_menu.topLevelItem(i).childCount();
+      # work out height of one item, and total height based on that
+      item_height = self._vells_menu.visualItemRect(self._vells_menu.topLevelItem(0)).height();
+      height = item_height*min(nitems,12)+32;
+      # set
+      self._vells_menu_window.resize(width,height);
+      # figure out position for popup
       globalPos = self.mapToGlobal(self.rect().topLeft())
-      x = 0.75 * self._vells_menu.rect().center().x()
-      y = 0.5 * self._vells_menu.rect().center().y()
       # seems to put this widget in a good position IMHO
-      self._vells_menu.move(globalPos - Qt.QPoint(x,y))
-      self._vells_menu.show()
+      self._vells_menu_window.move(globalPos - Qt.QPoint(0.9*width,0.9*height))
+      self._vells_menu_window.show()
 
     def handle_show_full_data_range(self):
       if self.full_data_range == False:
@@ -2482,11 +2498,16 @@ You can obtain more information about the behavior of the colorbar by using the 
             self._select_imaginary_cross_section.setVisible(False)
             self._select_amplitude_cross_section.setVisible(True)
             self._select_phase_cross_section.setVisible(True)
+            self._select_amplitude_cross_section.setChecked(self.real_xsection_selected);
+            self._select_phase_cross_section.setChecked(self.imag_xsection_selected);
           else:
             self._select_real_cross_section.setVisible(True)
             self._select_imaginary_cross_section.setVisible(True)
             self._select_amplitude_cross_section.setVisible(False)
             self._select_phase_cross_section.setVisible(False)
+            self._select_real_cross_section.setChecked(self.real_xsection_selected);
+            self._select_imaginary_cross_section.setChecked(self.imag_xsection_selected);
+          self._select_both_cross_sections.setChecked(self.real_xsection_selected and self.imag_xsection_selected);
         else:
           self._select_x_section_display.setVisible(False)
           self._select_both_cross_sections.setVisible(False)
@@ -3858,37 +3879,33 @@ You can obtain more information about the behavior of the colorbar by using the 
       self.plotImage.setDisplayFlag(False)
       self.flag_toggle = None
 
-    def handle_select_both_cross_sections(self):
+    def handle_select_cross_section (self,*dum):
+      """Called when a cross-section selection changes""";
       if self.show_x_sections:
-        self.real_xsection_selected = True
-        self.imag_xsection_selected = True
+        # set selected flag based on qaction checked states
+        self.real_xsection_selected = \
+            self._select_both_cross_sections.isChecked() or \
+            self._select_real_cross_section.isChecked() or \
+            self._select_amplitude_cross_section.isChecked();
+        self.imag_xsection_selected = \
+            self._select_both_cross_sections.isChecked() or \
+            self._select_imaginary_cross_section.isChecked() or \
+            self._select_phase_cross_section.isChecked();
+        # detach old cross-sections, if they're de-selected
+        if not self.real_xsection_selected:
+          try:
+            self.xrCrossSection.detach();
+          except:
+            pass;
+          self.xrCrossSection = None;
+        if not self.imag_xsection_selected:
+          try:
+            self.xiCrossSection.detach();
+          except:
+            pass;
+          self.xiCrossSection = None;
+        # calculate new cross-sections if needed, and replot
         if self.xrCrossSection is None or self.xiCrossSection is None:
-          self.calculate_cross_sections()
-        self.replot()
-
-    def handle_select_real_cross_section(self):
-      if self.show_x_sections:
-        try:
-          self.xiCrossSection.detach()
-        except:
-          pass
-        self.xiCrossSection = None
-        self.real_xsection_selected = True
-        self.imag_xsection_selected = False
-        if self.xrCrossSection is None:
-          self.calculate_cross_sections()
-        self.replot()
-
-    def handle_select_imaginary_cross_section(self):
-      if self.show_x_sections:
-        try:
-          self.xrCrossSection.detach()
-        except:
-          pass
-        self.xrCrossSection = None
-        self.real_xsection_selected = False
-        self.imag_xsection_selected = True
-        if self.xiCrossSection is None:
           self.calculate_cross_sections()
         self.replot()
 
@@ -3916,41 +3933,27 @@ You can obtain more information about the behavior of the colorbar by using the 
 
 # first create sub-menu for cross-section displays
         self._xsection_menu = Qt.QMenu(self._mainwin);
+        qag = Qt.QActionGroup(self._xsection_menu);
+        qag.setExclusive(True);
 
-        toggle_id = self.xsection_menu_table['Select both cross-sections']
-        self._select_both_cross_sections = Qt.QAction('Select both cross-sections',self)
-        self._select_both_cross_sections.setData(Qt.QVariant(str(toggle_id)))
-        self._xsection_menu.addAction(self._select_both_cross_sections)
-        self._select_both_cross_sections.setVisible(False)
-        self.connect(self._select_both_cross_sections,Qt.SIGNAL("triggered()"),self.handle_select_both_cross_sections);
+        self._select_both_cross_sections = qag.addAction('Both');
+        self._select_real_cross_section = qag.addAction('Real only');
+        self._select_imaginary_cross_section = qag.addAction('Imaginary only');
+        self._select_amplitude_cross_section = qag.addAction('Amplitude only');
+        self._select_phase_cross_section = qag.addAction('Phase only');
+        
+        for qa in ( self._select_both_cross_sections,
+                    self._select_real_cross_section,
+                    self._select_imaginary_cross_section, 
+                    self._select_amplitude_cross_section, 
+                    self._select_phase_cross_section ):
+          qa.setCheckable(True); 
+          qa.setVisible(False);
+          self._xsection_menu.addAction(qa);
+        self.connect(qag,Qt.SIGNAL("triggered(QAction*)"),self.handle_select_cross_section);
 
-        toggle_id = self.xsection_menu_table['Select real cross-section']
-        self._select_real_cross_section = Qt.QAction('Select real cross-section',self)
-        self._select_real_cross_section.setData(Qt.QVariant(str(toggle_id)))
-        self._xsection_menu.addAction(self._select_real_cross_section)
-        self._select_real_cross_section.setVisible(False)
-        self.connect(self._select_real_cross_section,Qt.SIGNAL("triggered()"),self.handle_select_real_cross_section);
-
-        toggle_id = self.xsection_menu_table['Select imaginary cross-section']
-        self._select_imaginary_cross_section = Qt.QAction('Select imaginary cross-section',self)
-        self._select_imaginary_cross_section.setData(Qt.QVariant(str(toggle_id)))
-        self._xsection_menu.addAction(self._select_imaginary_cross_section)
-        self._select_imaginary_cross_section.setVisible(False)
-        self.connect(self._select_imaginary_cross_section,Qt.SIGNAL("triggered()"),self.handle_select_imaginary_cross_section);
-
-        toggle_id = self.xsection_menu_table['Select amplitude cross-section']
-        self._select_amplitude_cross_section = Qt.QAction('Select amplitude cross-section',self)
-        self._select_amplitude_cross_section.setData(Qt.QVariant(str(toggle_id)))
-        self._xsection_menu.addAction(self._select_amplitude_cross_section)
-        self._select_amplitude_cross_section.setVisible(False)
-        self.connect(self._select_amplitude_cross_section,Qt.SIGNAL("triggered()"),self.handle_select_real_cross_section);
-
-        toggle_id = self.xsection_menu_table['Select phase cross-section']
-        self._select_phase_cross_section = Qt.QAction('Select phase cross-section',self)
-        self._select_phase_cross_section.setData(Qt.QVariant(str(toggle_id)))
-        self._xsection_menu.addAction(self._select_phase_cross_section)
-        self._select_phase_cross_section.setVisible(False)
-        self.connect(self._select_phase_cross_section,Qt.SIGNAL("triggered()"),self.handle_select_imaginary_cross_section);
+        self._delete_x_section_display = self._xsection_menu.addAction('None');
+        self.connect(self._delete_x_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
 
 
 # create sub-menu for complex data selection
@@ -4046,19 +4049,12 @@ You can obtain more information about the behavior of the colorbar by using the 
 
 
         toggle_id = self.menu_table['Select X-Section Display']
-        self._select_x_section_display = Qt.QAction('Select cross-section display',self)
+        self._select_x_section_display = Qt.QAction('Plot which cross-sections',self)
         self._menu.addAction(self._select_x_section_display)
         self._select_x_section_display.setMenu(self._xsection_menu)
         self._select_x_section_display.setData(Qt.QVariant(str(toggle_id)))
         self._select_x_section_display.setVisible(False)
 #       self.connect(self._select_x_section_display,Qt.SIGNAL("triggered()"),self.handle_select_x_section_display);
-
-
-        toggle_id = self.menu_table['Delete X-Section Display']
-        self._delete_x_section_display = Qt.QAction('Remove cross-section display',self)
-        self._menu.addAction(self._delete_x_section_display)
-        self._delete_x_section_display.setVisible(False)
-        self.connect(self._delete_x_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
 
 
         toggle_id = self.menu_table['Interchange axes']
@@ -4126,7 +4122,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self.connect(self._toggle_log_range_for_data,Qt.SIGNAL("triggered()"),self.handle_toggle_log_range_for_data);
 
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
-        self._toggle_ri_or_ap_display = Qt.QAction('Complex data selection',self)
+        self._toggle_ri_or_ap_display = Qt.QAction('Plot complex values as',self)
         self._menu.addAction(self._toggle_ri_or_ap_display)
         self._toggle_ri_or_ap_display.setMenu(self._complex_data_menu)
         self._toggle_ri_or_ap_display.setVisible(False)
@@ -4205,7 +4201,7 @@ You can obtain more information about the behavior of the colorbar by using the 
 	self.connect(self._undo_last_zoom,Qt.SIGNAL("triggered()"),self.handle_undo_last_zoom);
 
         toggle_id = self.menu_table['Change Vells']
-        self._change_vells = Qt.QAction(pixmaps.slick_redo.iconset(),'Show Element Selector',self)
+        self._change_vells = Qt.QAction('Data element selector...',self)
         self._menu.addAction(self._change_vells)
         self._change_vells.setData(Qt.QVariant(str(toggle_id)))
         self._change_vells.setVisible(False)

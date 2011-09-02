@@ -286,12 +286,12 @@ class ChartPlot(Qt.QWidget):
     self.connect(self._imaginary_menu,Qt.SIGNAL("triggered()"),self.emit_complex_selector);
 
     toggle_id = self.menu_table['Complex Data']
-    self._complex_data_selection = Qt.QAction('Complex data selection', self)
+    self._complex_data_selection = Qt.QAction('Plot complex values as', self)
     self._menu.addAction(self._complex_data_selection)
     self._complex_data_selection.setMenu(self._complex_submenu)
     self._complex_data_selection.setData(Qt.QVariant(str(toggle_id)))
 
-    self._change_vells = Qt.QAction(pixmaps.slick_redo.icon(),'Vector/matrix element selection',self)
+    self._change_vells = Qt.QAction('Plot which data element',self)
     self._menu.addAction(self._change_vells);
     self._change_vells.setVisible(False);
 
