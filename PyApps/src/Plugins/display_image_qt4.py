@@ -875,9 +875,6 @@ You can obtain more information about the behavior of the colorbar by using the 
 
       if self._vells_menu is None:
         self._vells_menu = VellsView()
-        rect = Qt.QApplication.desktop().geometry();
-        self._vells_menu.move(rect.center() - self._vells_menu.rect().center())
-
         vells_root = VellsElement( self._vells_menu, "available data sets" )
         self.connect(self._vells_menu,Qt.SIGNAL("selected_vells_id"),self.update_vells_display);
         self._vells_menu.hide()
@@ -1211,6 +1208,11 @@ You can obtain more information about the behavior of the colorbar by using the 
 #     self.emit(Qt.SIGNAL("compare"),self._compare_max)
 
     def handle_change_vells(self):
+      globalPos = self.mapToGlobal(self.rect().topLeft())
+      x = 0.75 * self._vells_menu.rect().center().x()
+      y = 0.5 * self._vells_menu.rect().center().y()
+      # seems to put this widget in a good position IMHO
+      self._vells_menu.move(globalPos - Qt.QPoint(x,y))
       self._vells_menu.show()
 
     def handle_show_full_data_range(self):
