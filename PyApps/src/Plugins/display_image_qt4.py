@@ -876,6 +876,7 @@ You can obtain more information about the behavior of the colorbar by using the 
       if self._vells_menu is None:
         self._vells_menu = VellsView()
         vells_root = VellsElement( self._vells_menu, "Available Elements")
+        vells_root.setExpanded(True)
         self.connect(self._vells_menu,Qt.SIGNAL("selected_vells_id"),self.update_vells_display);
         self._vells_menu.hide()
         self._change_vells.setVisible(True)
