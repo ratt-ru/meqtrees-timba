@@ -157,8 +157,8 @@ You can obtain more information about the behavior of the colorbar by using the 
         }
 
     menu_table = {
-        'toggle flagged data for plane ': 200,
-        'toggle blink of flagged data for plane ': 201,
+        'show flagged data for plane ': 200,
+        'blink flagged data for plane ': 201,
         'Set display range to that of unflagged data for plane ': 202,
         'Modify Plot Parameters': 299,
         'Toggle Plot Legend': 300,
@@ -818,7 +818,7 @@ You can obtain more information about the behavior of the colorbar by using the 
     def set_flag_toggles_active(self, flag_setting=False,image_display=True):
       """ sets menu options for flagging to visible """
 # add flag toggling for vells but make hidden by default
-      toggle_flag_label = "toggle flagged data for plane "
+      toggle_flag_label = "show flagged data for plane "
       if self.has_nans_infs and self.is_vector == False:
         info_label = "Flagged data has NaNs or Infs and cannot be shown explicitly"
         self._toggle_flagged_data_for_plane.setText(info_label)
@@ -4152,7 +4152,7 @@ You can obtain more information about the behavior of the colorbar by using the 
 
 # add potential menu for flagged data
 # add flag toggling for vells but make hidden by default
-        self._toggle_flag_label = "toggle flagged data for plane "
+        self._toggle_flag_label = "show flagged data for plane "
         toggle_id = self.menu_table[self._toggle_flag_label]
         self._toggle_flagged_data_for_plane = Qt.QAction(self._toggle_flag_label,self)
         self._menu.addAction(self._toggle_flagged_data_for_plane)
@@ -4163,7 +4163,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._toggle_flagged_data_for_plane.setCheckable(True)
 
 
-        self._toggle_blink_label = "toggle blink of flagged data for plane "
+        self._toggle_blink_label = "blink flagged data for plane "
         toggle_id = self.menu_table[self._toggle_blink_label]
         self._toggle_blink_of_flagged_data = Qt.QAction(self._toggle_blink_label,self)
         self._menu.addAction(self._toggle_blink_of_flagged_data)
