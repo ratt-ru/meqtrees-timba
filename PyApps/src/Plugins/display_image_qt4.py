@@ -142,14 +142,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         sub-array on the screen.
     """
 
-    display_image_instructions = \
-'''This plot basically shows the contents of one or two-dimensional arrays. Most decision making takes place behind the scenes, so to speak, as the system uses the dimensionality of the data and the source of the data to decide how the data will be displayed. However, once a display appears, you can interact with it in certain standardized ways.<br><br>
-Button 1 (Left): If you click the <b>left</b> mouse button on a location inside a two-dimensional array plot, the x and y coordinates of this location, and its value, will appear at the lower left hand corner of the display. This information is shown until you release the mouse button. If you click the left mouse button down and then drag it, a rectangular square will be seen. Then when you release the left mouse button, the plot will 'zoom in' on the area defined inside the rectangle.<br><br>
-Button 2 (Middle): If you click the <b>middle</b> mouse button on a location inside a <b>two-dimensional</b> array plot, then X and Y cross-sections centred on this location are overlaid on the display. A continuous black line marks the location of the X cross-section and the black dotted line shows the cross section values, which are tied to the right hand scale. The white lines show corresponding information for the Y cross section, whose values are tied to the top scale of the plot. You can remove the X,Y cross sections from the display by selecting the appropriate option from the context menu (see Button 3 below). If the <b>Legends</b> display has been toggled to ON (see Button 3 below), then a sequence of push buttons will appear along the right hand edge of the display. Each of the push buttons is associated with one of the cross-section plots. Clicking on a push button will cause the corresponding plot to appear or disappear, depending on the current state.<br><br>
-Button 3 (Right):Click the <b>right</b> mouse button in a spectrum display window to get get a context menu with options for printing, resetting the zoom, selecting another image, or toggling a <b>Legends</b> display. If you click on the 'Reset zoomer' icon  in a window where you had zoomed in on a selected region, then the original entire array is re-displayed. Vellsets or <b>visu</b> data sets may contain multiple arrays. Only one of these arrays can be displayed at any one time. If additional images are available for viewing, they will be listed in the context menu. If you move the right mouse button to the desired image name in the menu and then release the button, the requested image will now appear in the display. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. If you make cross-section plots (see Button 2 above), by default a <b>Legends</b> display associating push buttons with these plots is not shown. You can toggle the display of these push buttons ON or OFF by selecting the Toggle Plot Legend option from the context menu. If you are working with two-dimensional arrays, then additional options to toggle the ON or OFF display of a colorbar showing the range of intensities and to switch between GrayScale and Color representations of the pixels will be shown.<br><br>
-By default, colorbars are turned ON while Legends are turned OFF when a plot is first produced. <br><br> 
-You can obtain more information about the behavior of the colorbar by using the QWhatsThis facility associated with the colorbar.'''
-
     display_table = {
         'hippo': 'hippo',
         'grayscale': 'grayscale',
@@ -640,7 +632,17 @@ You can obtain more information about the behavior of the colorbar by using the 
         self.xsect_ypos = None
         self.show_x_sections = False
         self._delete_x_section_display.setVisible(False)
+        self._delete_cx_section_display.setVisible(False)
         self._select_x_section_display.setVisible(False)
+        if self.setlegend == 1:
+          self.setlegend = 0
+# delete legend (QWidget) object
+#       self.legend.reparent(Qt.QWidget(), 0, Qt.QPoint())
+          self.legend.setParent(Qt.QWidget())
+          self.legend = None
+          self.updateLayout()
+          self._toggle_plot_legend.setChecked(False)
+          self._toggle_plot_legend.setVisible(False)
 
 # add solver metrics info back in?
         if self.toggle_metrics and not self.metrics_rank is None:
@@ -2488,9 +2490,10 @@ You can obtain more information about the behavior of the colorbar by using the 
 
         self.refresh_marker_display()
         self.show_x_sections = True
-        self._delete_x_section_display.setVisible(True)
         self._toggle_plot_legend.setVisible(True)
         if self.complex_type:
+          self._delete_x_section_display.setVisible(False)
+          self._delete_cx_section_display.setVisible(True)
           self._select_x_section_display.setVisible(True)
           self._select_both_cross_sections.setVisible(True)
           if self.ampl_phase:
@@ -2509,6 +2512,8 @@ You can obtain more information about the behavior of the colorbar by using the 
             self._select_imaginary_cross_section.setChecked(self.imag_xsection_selected);
           self._select_both_cross_sections.setChecked(self.real_xsection_selected and self.imag_xsection_selected);
         else:
+          self._delete_x_section_display.setVisible(True)
+          self._delete_cx_section_display.setVisible(False)
           self._select_x_section_display.setVisible(False)
           self._select_both_cross_sections.setVisible(False)
           self._select_amplitude_cross_section.setVisible(False)
@@ -3952,8 +3957,8 @@ You can obtain more information about the behavior of the colorbar by using the 
           self._xsection_menu.addAction(qa);
         self.connect(qag,Qt.SIGNAL("triggered(QAction*)"),self.handle_select_cross_section);
 
-        self._delete_x_section_display = self._xsection_menu.addAction('None');
-        self.connect(self._delete_x_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
+        self._delete_cx_section_display = self._xsection_menu.addAction('None');
+        self.connect(self._delete_cx_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
 
 
 # create sub-menu for complex data selection
@@ -4066,6 +4071,7 @@ You can obtain more information about the behavior of the colorbar by using the 
         self.connect(self._toggle_axis_flip,Qt.SIGNAL("triggered()"),self.handle_toggle_axis_flip);
 
 
+
         toggle_id = self.menu_table['Toggle axis rotate']
         self._toggle_axis_rotate = Qt.QAction('Toggle axis rotate',self)
         self._menu.addAction(self._toggle_axis_rotate)
@@ -4120,6 +4126,12 @@ You can obtain more information about the behavior of the colorbar by using the 
         self._toggle_log_range_for_data.setCheckable(True)
         self.log_switch_set = False
         self.connect(self._toggle_log_range_for_data,Qt.SIGNAL("triggered()"),self.handle_toggle_log_range_for_data);
+
+        self._delete_x_section_display = Qt.QAction('Delete X-Section Display',self)
+        self._menu.addAction(self._delete_x_section_display)
+        self.connect(self._delete_x_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
+        self._delete_x_section_display.setVisible(False)
+
 
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
         self._toggle_ri_or_ap_display = Qt.QAction('Plot complex values as',self)
