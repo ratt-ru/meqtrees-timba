@@ -49,7 +49,7 @@ class DisplayMainWindow(Qt.QMainWindow):
 
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
-    self._click_on = " If you click on an individual stripchart with the middle mouse button, a popup window will appear that gives a more detailed view of the data from that particular object. Clicking with the left mouse button will give a small popup that gives the actual X and Y values, corrected for offset, of the data point nearest to the location of the mouse."
+    self._click_on = "If you click on an individual stripchart with the <b>middle</b> mouse button, a popup window will appear that gives a more detailed plot of the data from that particular object. <br><br> Clicking with the <b>left</b> mouse button will cause a small popup to appear. The popup gives the actual X and Y values, corrected for offset, of the data point nearest to the location of the mouse.<br><br> Clicking with the <b>right</b> mouse button will cause a context menu to appear. The <b>Accumulate data tracks</b> option means that data in each tile will be appended to the previous data. If this option is unchecked, data will be displayed for just each individual tile. The <b>Data element selector</b> option works similarly to that associated with the standard 2-D plot display. Clicking on it causes a small submenu to appear that allows you to select different data elements for display."
 
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
@@ -64,7 +64,8 @@ class DisplayMainWindow(Qt.QMainWindow):
       self._tabwidget.setCurrentWidget(self._ChartPlot[data_type])
       self._tabwidget.resize(self._tabwidget.minimumSizeHint())
       self.resize(self._tabwidget.minimumSizeHint())
-      dcm_sn_descriptor = "This window shows stripcharts of the " + data_type + " as a function of time."
+#     dcm_sn_descriptor = "This window shows stripcharts of " + data_type + " as a function of time."
+      dcm_sn_descriptor = "This window shows stripcharts of data as a function of time. The display is mostly used to show radio interferometer data where the frequency data have been averaged together. Each tab window can show up to 64 interferometer baselines. The antenna pair associated with each baseline is shown with a yellow background.<br><br>"
       dcm_sn_descriptor = dcm_sn_descriptor + self._click_on
       self._ChartPlot[data_type].setWhatsThis(dcm_sn_descriptor)
       self.connect(self._ChartPlot[data_type], Qt.SIGNAL("quit_event"), self.quit_event)
