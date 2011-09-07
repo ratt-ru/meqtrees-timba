@@ -13,7 +13,7 @@ IF (BLITZ_INCLUDE_DIR)
 ENDIF (BLITZ_INCLUDE_DIR)
 
 FIND_PATH(BLITZ_INCLUDE_DIR blitz/blitz.h PATHS /opt/mpp/blitz/0.9/inlcude )
-FIND_PATH(BLITZ_INCLUDE_DIR2 blitz/gnu/bzconfig.h PATHS ${BLITZ_INCLUDE_DIR} /usr/lib64/blitz/include)
+FIND_PATH(BLITZ_INCLUDE_DIR2 blitz/gnu/bzconfig.h PATHS ${BLITZ_INCLUDE_DIR} /usr/lib64/blitz/include /usr/lib/blitz/include DOC "some distros have moved platform specifc includes into a separate directory")
 IF(NOT ${BLITZ_INCLUDE_DIR2} MATCHES ${BLITZ_INCLUDE_DIR} )
 message("Found BLITZ include files insame dir")
       set(BLITZ_INCLUDE_DIR ${BLITZ_INCLUDE_DIR} ${BLITZ_INCLUDE_DIR2})
