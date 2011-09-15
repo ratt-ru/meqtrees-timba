@@ -240,6 +240,7 @@ int main (int argc,const char *argv[])
     cdebug(0)<<"=================== stopping worker threads ===================\n";
     MTPool::stop();
   }
-
-  return retcode;
+  // skip exiot handlers because casacore can be buggy
+  _exit(retcode);
+  // return retcode;
 }
