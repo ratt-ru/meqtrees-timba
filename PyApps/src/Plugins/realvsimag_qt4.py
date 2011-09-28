@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Browser plugin to show plots of real vs imaginary data
 # or 'error' displays
@@ -63,29 +64,6 @@ _dprintf = _dbg.dprintf;
 #the way of mine).
 
 
-# compute standard deviation of a complex array
-# the std_dev given here was computed according to the
-# formula given by Oleg 
-def standard_deviation(incoming_array):
-# first sanity check of array size
-  num_elements = 1
-  for i in range(len(incoming_array.shape)):
-    num_elements = num_elements * incoming_array.shape[i]
-# if we only have one element, return zero
-  if num_elements <= 1:
-    std_dev = 0.0
-  else:
-    incoming_mean = incoming_array.mean()
-    temp_array = incoming_array - incoming_mean
-    abs_array = abs(temp_array)
-# get the conjugate of temp_array ...
-    temp_array_conj = (abs_array * abs_array) / temp_array
-    temp_array = temp_array * temp_array_conj
-    mean = temp_array.mean()
-    std_dev = math.sqrt(mean)
-# eliminate any imaginary component caused by round-off error
-    std_dev = abs(std_dev)
-  return std_dev
 
 realvsimag_instructions = \
 '''The <b>visu</b> realvsimag and error plots plot real vs imaginary values for data points within a MeqTree. These plots are constructed from <b>visu</b>
@@ -1624,7 +1602,7 @@ class realvsimag_plotter(object):
           complex_data = numpy.zeros( (len(data_r),), dtype=numpy.complex128 )
           complex_data.real = real_array
           complex_data.imag = imag_array
-          radius = standard_deviation(complex_data)
+          radius = complex_data.std(dtype=numpy.float64)
 # plot the stddev circle
           self.compute_circles (current_item_tag + 'stddev', radius, mean_r, mean_i)
 
@@ -1752,7 +1730,7 @@ class realvsimag_plotter(object):
         complex_data = numpy.zeros( (len(x_pos),), dtype=numpy.complex128 )
         complex_data.real = x_pos
         complex_data.imag = y_pos
-        radius = standard_deviation(complex_data)
+        radius = complex_data.std(dtype=numpy.float64)
         self.setup_circle(item_tag + 'stddev')
         self.compute_circles (item_tag + 'stddev', radius, avg_r, avg_i)
       if counter == 0:

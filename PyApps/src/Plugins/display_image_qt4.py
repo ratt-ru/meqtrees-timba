@@ -61,36 +61,6 @@ has_vtk = False
   #print 'pyvtk not found, 3D visualization will not be available.'
   #print 'Do not worry: this is is an optional module.'
 
-# compute standard deviation of a complex or real array
-# the std_dev given here was computed according to the
-# formula given by Oleg (It should work for real or complex array)
-def standard_deviation(incoming_array,complex_type):
-# first sanity check of array size
-  num_elements = 1
-  for i in range(len(incoming_array.shape)):
-    num_elements = num_elements * incoming_array.shape[i]
-# if we only have one element, return zero
-  if num_elements <= 1:
-    return 0.0
-  else:
-    if complex_type:
-      incoming_mean = incoming_array.mean()
-      temp_array = incoming_array - incoming_mean
-      abs_array = numpy.abs(temp_array)
-# get the conjugate of temp_array ...
-# note: we need to add a test if temp_array has a value 0+0j somewhere,
-# so do the following:
-      temp1 = numpy.less_equal(abs_array,0.0)
-      temp_array = temp_array + temp1
-      temp_array_conj = (abs_array * abs_array) / temp_array
-      temp_array = temp_array * temp_array_conj
-      mean = temp_array.mean()
-      std_dev = math.sqrt(mean)
-      std_dev = abs(std_dev)
-      return std_dev
-    else:
-      return incoming_array.std()
-
 def linearX(nx, ny):
     return repeat(numpy.arange(nx, typecode = numpy.float32)[:, numpy.newaxis], ny, -1)
 
@@ -3298,7 +3268,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
             temp_str = "m: %-.3g+ %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
         else:
           temp_str = "m: %-.3g" % plot_array.mean()
-        temp_str1 = "sd: %-.3g" % standard_deviation(plot_array,self.complex_type )
+        temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.float64);
         self.array_parms = temp_str + " " + temp_str1
 
         self.setAxisTitle(Qwt.QwtPlot.yLeft, 'sequence')
