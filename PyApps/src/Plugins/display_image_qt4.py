@@ -1285,13 +1285,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._select_amplitude_phase.setChecked(self.ampl_phase)
       if self._vells_plot and not self.is_vector:
           title_addition = ': (amplitude followed by phase)'
-          self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
+          title = self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
       else:
           if self.is_vector:
-            self._x_title = 'Array/Channel Number '
+            title = self._x_title;
           else:
-            self._x_title = 'Array/Channel Number (amplitude followed by phase)'
-      self.xBottom_title.setText(self._x_title)
+            title = self._x_title + ' (amplitude followed by phase)'
+      self.xBottom_title.setText(title)
       self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
 
       if self.is_vector:
@@ -1309,13 +1309,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._select_amplitude_phase.setChecked(self.ampl_phase)
       if self._vells_plot and not self.is_vector:
         title_addition = ': (real followed by imaginary)'
-        self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
+        title = self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
       else:
         if self.is_vector:
-          self._x_title = 'Array/Channel Number '
+          title = self._x_title;
         else:
-          self._x_title = 'Array/Channel Number (real followed by imaginary)'
-      self.xBottom_title.setText(self._x_title)
+          title = self._x_title + ' (real followed by imaginary)'
+      self.xBottom_title.setText(title)
       self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
 
       if self.is_vector:
