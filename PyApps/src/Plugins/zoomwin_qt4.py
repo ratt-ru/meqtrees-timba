@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #
 # Copyright (C) 2002-2007
@@ -229,6 +230,7 @@ class ZoomPopup(Qt.QWidget):
     else:
       self._zoom_plot_label = self._data_label + ": " + self._array_label + " Sequence (oldest to most recent)"
     self._plotter.setAxisTitle(Qwt.QwtPlot.xBottom, self._zoom_plot_label)
+    self._plotter._x_title = self._zoom_plot_label;
     self.setWindowTitle(self._zoom_plot_label)
 
   def plotMouseMoved(self, e):

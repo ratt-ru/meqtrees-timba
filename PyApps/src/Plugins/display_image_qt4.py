@@ -1907,10 +1907,20 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.replot()
           #print 'called replot in onMouseMoved'
 
+    def mapMouseButtons (self,e):
+        """Maps a mouse event to one of three buttons.
+        To support victims of Jobs, Shift-LeftClick maps to MidClick, and Ctrl+LeftClick maps to RightClick""";
+        if e.button() == Qt.Qt.LeftButton:
+          if e.modifiers()&Qt.Qt.ShiftModifier:
+            return Qt.Qt.MidButton;
+          elif e.modifiers()&Qt.Qt.ControlModifier:
+            return Qt.Qt.RightButton;
+        return e.button();
+
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
-        if Qt.Qt.LeftButton == e.button():
-
+        button = self.mapMouseButtons(e);
+        if button == Qt.Qt.LeftButton:
             message = None
             self.mouse_pressed = True
             if self.is_vector: 
@@ -1977,13 +1987,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
                     self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
                     )
-        elif Qt.Qt.RightButton == e.button():
+        elif button == Qt.Qt.RightButton:
             e.accept()
             self._menu.popup(e.globalPos());
             if self.scalar_display:
               return
 
-        elif Qt.Qt.MidButton == e.button():
+        elif button == Qt.Qt.MidButton:
             if self.active_image:
               if self.scalar_display:
                 return
@@ -2020,7 +2030,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def onMouseReleased(self, e):
 #       print 'Release raw xpos ypos ',e.x(), ' ', e.y()
 #       self.enableOutline(0)
-        if Qt.Qt.LeftButton == e.button():
+
+# if mouse_pressed=True only if left button was pressed w/o modifiers, so check for this here
+        if Qt.Qt.LeftButton == e.button() and self.mouse_pressed:
             if not self.xzoom_loc is None:
               self.zoom_outline.detach()
               self.xzoom_loc = None

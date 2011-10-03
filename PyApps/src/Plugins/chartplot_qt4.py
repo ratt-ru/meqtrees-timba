@@ -730,10 +730,21 @@ class ChartPlot(Qt.QWidget):
       self.zoom_outline.setData(self.xzoom_loc,self.yzoom_loc)
       self._plotter.replot()
 
+  def mapMouseButtons (self,e):
+      """Maps a mouse event to one of three buttons.
+      To support victims of Jobs, Shift-LeftClick maps to MidClick, and Ctrl+LeftClick maps to RightClick""";
+      if e.button() == Qt.Qt.LeftButton:
+        if e.modifiers()&Qt.Qt.ShiftModifier:
+          return Qt.Qt.MidButton;
+        elif e.modifiers()&Qt.Qt.ControlModifier:
+          return Qt.Qt.RightButton;
+      return e.button();
+
   def plotMousePressed(self, e):
       """ callback to handle MousePressed event """
-      if Qt.Qt.LeftButton == e.button():
-        self.infoDisplay()
+      self._mouse_press = self.mapMouseButtons(e);
+      if self._mouse_press == Qt.Qt.LeftButton:
+        self.infoDisplay();
         self.press_xpos = self.xpos
         self.press_ypos = self.ypos
         self.press_xpos_raw = e.pos().x()
@@ -756,14 +767,21 @@ class ChartPlot(Qt.QWidget):
               self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
               self._plotter.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
               )
-      elif Qt.Qt.RightButton == e.button():
+      elif self._mouse_press == Qt.Qt.RightButton:
         e.accept()
         self._menu.popup(e.globalPos());
     # plotMousePressed()
 
   def plotMouseReleased(self, e):
       """ callback to handle MouseReleased event """
-      if Qt.Qt.LeftButton == e.button():
+      if self._mouse_press == Qt.Qt.MidButton:
+        closest_curve, xVal, yVal, data_point = self.closestCurve(self.position_raw)
+        self.zoomcrv(closest_curve)
+ #     elif self._mouse_press == Qt.Qt.RightButton:
+ #       print "accepting release event";
+ #       e.accept()
+ #       self._menu.popup(e.globalPos());
+      elif self._mouse_press == Qt.Qt.LeftButton:
         if self._popup_text.isVisible():
           self._popup_text.hide()
 # assume a change of <= 2 screen pixels is just due to clicking
@@ -785,10 +803,6 @@ class ChartPlot(Qt.QWidget):
           self.zoom_outline.detach()
           self.xzoom_loc = None
           self.yzoom_loc = None
-      elif Qt.Qt.MidButton == e.button():
-        closest_curve, xVal, yVal, data_point = self.closestCurve(self.position_raw)
-        # pop up a zoom curve
-        self.zoomcrv(closest_curve)
 
     # plotMouseReleased()
 
