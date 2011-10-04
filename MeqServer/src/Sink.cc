@@ -35,15 +35,15 @@ namespace Meq {
 
 InitDebugContext(Sink,"MeqSink");
 
+const HIID dom_symdeps[] = { FDomain,FResolution };
+
 Sink::Sink()
   : VisHandlerNode(1),        // 1 child node expected
     output_col(-1),
     flag_mask(-1),
     flag_bit(0)
 {
-//  const HIID gendeps[] = { FDomain,FResolution };
-//  const int  masks[]   = { RQIDM_DOMAIN,RQIDM_RESOLUTION }; 
-//  setGenSymDeps(gendeps,masks,2);
+  setActiveSymDeps(dom_symdeps,2);
 }
    
 //##ModelId=400E5B6D0048
