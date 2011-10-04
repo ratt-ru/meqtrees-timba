@@ -118,7 +118,7 @@ int Sink::getResult (Result::Ref &resref,
   void *coldata = 0; 
   TypeId coltype;
   LoShape colshape;   // current output column shape, may be NCORRxNFREQxTIME or NFREQxNTIME
-  LoShape colshape2;  // 2D column shape: always NFREQxNTIME
+  LoShape colshape2;  // 2D input column shape: always NTIMExNFREQ
   int ncorr = tileref->ncorr();
   // Check if we have a special case of 1 input VellSet (i.e. a scalar) 
   // This usually needs to be treated as a 2x2 matrix. (In the strange case
@@ -176,8 +176,8 @@ int Sink::getResult (Result::Ref &resref,
         FailWhen(colshape.size()!=3 && colshape.size()!=2,"output column must have 2 or 3 dimensions");
         // set the basic 2D shape 
         colshape2.resize(2);
-        colshape2[0] = colshape[colshape.size()-2];
-        colshape2[1] = colshape[colshape.size()-1];
+        colshape2[1] = colshape[colshape.size()-2];
+        colshape2[0] = colshape[colshape.size()-1];
       }
       const VellSet * pvs = res_vs[ivs];
       // process null vellset -- store zeroes to output column
@@ -257,15 +257,18 @@ int Sink::getResult (Result::Ref &resref,
             {
               cdebug(2)<<"shape of dataflags not compatible with output flag column, omitting flags"<<endl;
             }
-            Vells::Traits<VellsFlagType,2>::Array fl = 
-                realflags.getConstArray<VellsFlagType,2>();
-            // flip into freq-time order
-            fl.transposeSelf(blitz::secondDim,blitz::firstDim);
-            // if flag bit is set, use a where-expression, else simply copy
-            if( flag_bit )
-              tileflags = where(fl,flag_bit,0);
-            else
-              tileflags = fl;
+            if( realflags.isFlags() )
+	    {
+              Vells::Traits<VellsFlagType,2>::Array fl = 
+                  realflags.getConstArray<VellsFlagType,2>();
+              // flip into freq-time order
+              fl.transposeSelf(blitz::secondDim,blitz::firstDim);
+              // if flag bit is set, use a where-expression, else simply copy
+              if( flag_bit )
+                tileflags = where(fl,flag_bit,0);
+              else
+                tileflags = fl;
+	    }
           }
           // no flags on Vells -- simply clear the tile's flags
           else

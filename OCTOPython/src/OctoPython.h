@@ -345,7 +345,7 @@ namespace OctoPython
     catch ( std::exception &exc ) \
       { cdebug(2)<<"caught exception: "<<exceptionToString(exc); returnError(retval,OctoPython,exc); } \
     catch ( ... )  \
-      { cdebug(2)<<"caught unknown exception\n";  returnError(retval,OctoPython,"uknown exception"); }
+      { cdebug(2)<<"caught unknown exception\n";  returnError(retval,OctoPython,"unknown exception"); }
 
   // helper macro: returns a new ref to Py_None
   #define returnNone { Py_INCREF(Py_None); return Py_None; }
