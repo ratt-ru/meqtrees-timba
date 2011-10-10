@@ -697,6 +697,7 @@ Table                            1354       ; from /home/oms/LOFAR/Timba/MEQ/src
 Tables                           1735       ; from /home/oms/Timba/MeqNodes/src/Solver.h:39
 Target                           1116       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
 TDL                              1564       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:19
+Tensor                           1773       ; from Transpose.h:34
 Text                             1055       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Message.h:30
 Throw                            1205       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppAgent.h:10
 Ticks                            1533       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:42
