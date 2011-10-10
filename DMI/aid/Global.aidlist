@@ -410,6 +410,7 @@ MeqPrivate                       1691       ; from /home/mevius/LOFAR/Timba/MeqN
 #MeqPrivateFunction              1692       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivateFunction.h:30
 MeqPrivFunction                  1693       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/PrivFunction.h:31
 #MeqProduct                      1501       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Product.h:29
+#MeqPSVTensor                    1772       ; from PSVTensor.h:32
 MeqPyFunctionNode                1707       ; from /home/oms/Timba/MeqServer/src/PyFunctionNode.h:6
 MeqPyNode                        1705       ; from /home/oms/Timba/MeqServer/src/PyNode.h:10
 MeqPyTensorFuncNode              1721       ; from /home/oms/Timba/MeqServer/src/PyTensorFuncNode.h:7
