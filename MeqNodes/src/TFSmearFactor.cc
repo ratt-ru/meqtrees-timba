@@ -89,6 +89,7 @@ void TFSmearFactor::computeResultCells (Cells::Ref &ref,
     {
       dfreq2_vells_ = Vells(0,Axis::freqVector(nfreq),false);
       memcpy(dfreq2_vells_.realStorage(),cells.cellSize(Axis::FREQ).data(),nfreq*sizeof(double));
+      dfreq2_vells_ /= 2;
     }
   }
   else
@@ -103,6 +104,7 @@ void TFSmearFactor::computeResultCells (Cells::Ref &ref,
     {
       dtime2_vells_ = Vells(0,Axis::timeVector(ntime),false);
       memcpy(dtime2_vells_.realStorage(),cells.cellSize(Axis::TIME).data(),ntime*sizeof(double));
+      dtime2_vells_ /= 2;
     }
   }
   else

@@ -30,7 +30,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::WSRTCos3Beam
-#pragma aid BF R Clip
+#pragma aid BF R Clip 
 
 namespace Meq {
 
@@ -89,13 +89,20 @@ protected:
   // Evaluates RADec for a given set of children values
   virtual void evaluateTensors (std::vector<Vells> & out,
                                 const std::vector<std::vector<const Vells *> > &args );
+        
+  // helper functyion to compute cos^3 and apply clipping
+  Vells computeBeam (const Vells &bfr);
 
   double clip_;
   double argclip_;
 
   Vells freq_vells_;
 
-  bool deriv_;
+  // 0 if returning result for a single source
+  // 1+ if returning tensor for multiple sources
+  int num_sources_;
+  // flag: beam has ellipticty (so is 2x2 matrix)
+  bool is_elliptical_;
 };
 
 } // namespace Meq

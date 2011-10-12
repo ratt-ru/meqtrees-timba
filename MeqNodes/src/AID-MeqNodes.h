@@ -38,6 +38,11 @@ const int AidAz_int = -1710;
 const DMI::AtomicID AidAzEl(-1711);               // from /home/sarod/Timba/MeqNodes/src/RADec.h:53
 const int AidAzEl_int = -1711;
 #endif
+#ifndef _defined_id_AidB
+#define _defined_id_AidB 1
+const DMI::AtomicID AidB(-1019);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+const int AidB_int = -1019;
+#endif
 #ifndef _defined_id_AidBF
 #define _defined_id_AidBF 1
 const DMI::AtomicID AidBF(-1749);                 // from /home/oms/Timba/MeqNodes/src/WSRTCos3Beam.h:33
@@ -418,6 +423,11 @@ const int AidMeqAzElRaDec_int = -1763;
 const DMI::AtomicID AidMeqBessel(-1734);          // from /home/sarod/Timba/MeqNodes/src/Bessel.h:32
 const int AidMeqBessel_int = -1734;
 #endif
+#ifndef _defined_id_AidMeqCUDAPointSourceVisibility
+#define _defined_id_AidMeqCUDAPointSourceVisibility 1
+const DMI::AtomicID AidMeqCUDAPointSourceVisibility(-1771);// from CUDAPointSourceVisibility.h:32
+const int AidMeqCUDAPointSourceVisibility_int = -1771;
+#endif
 #ifndef _defined_id_AidMeqCeil
 #define _defined_id_AidMeqCeil 1
 const DMI::AtomicID AidMeqCeil(-1437);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
@@ -677,6 +687,11 @@ const int AidMeqNorm_int = -1459;
 #define _defined_id_AidMeqObjectRADec 1
 const DMI::AtomicID AidMeqObjectRADec(-1716);     // from /home/sarod/Timba/MeqNodes/src/ObjectRADec.h:30
 const int AidMeqObjectRADec_int = -1716;
+#endif
+#ifndef _defined_id_AidMeqPSVTensor
+#define _defined_id_AidMeqPSVTensor 1
+const DMI::AtomicID AidMeqPSVTensor(-1772);       // from PSVTensor.h:32
+const int AidMeqPSVTensor_int = -1772;
 #endif
 #ifndef _defined_id_AidMeqParAngle
 #define _defined_id_AidMeqParAngle 1
@@ -1192,6 +1207,11 @@ const int AidSuper_int = -1628;
 #define _defined_id_AidTables 1
 const DMI::AtomicID AidTables(-1735);             // from /home/oms/Timba/MeqNodes/src/Solver.h:39
 const int AidTables_int = -1735;
+#endif
+#ifndef _defined_id_AidTensor
+#define _defined_id_AidTensor 1
+const DMI::AtomicID AidTensor(-1773);             // from Transpose.h:34
+const int AidTensor_int = -1773;
 #endif
 #ifndef _defined_id_AidTile
 #define _defined_id_AidTile 1

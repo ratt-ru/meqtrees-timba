@@ -72,7 +72,6 @@ class Composer : public Node
                            const Request &req,bool newreq);
   
   private:
-  
     Result::Dims dims_; // tensor dimensions
 };
 

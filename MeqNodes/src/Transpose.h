@@ -31,17 +31,20 @@
 
 #pragma types #Meq::Transpose
 
-#pragma aid Conj
+#pragma aid Conj Tensor
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
 
 //defrec begin MeqTranspose
-//  A MeqTranspose tranposes a matrix. Only one child is expected. The child
-//  must return a tensor rank <=2 result. Matrices are transposed, vectors
-//  are turned into a 1xN tensor, and scalars pass through unchanged.
+//  A MeqTranspose tranposes a matrix. Only one child is expected. 
+//  Matrices are transposed, vectors are turned into a 1xN matrix, scalars pass through unchanged.
+//  rank>2 tensors of shape ...xNxM are turned into ...xMxN tensors (i.e. only the last two axes
+//  are transposed)
 //field: conj F
 //  If true, does a complex transpose-and-conjugate operation.
+//field: tensor F
+//  If true, then an Nx1 matrix is treated as an Nx1x1 tensor, and not transposed
 //defrec end
 
 namespace Meq {    
@@ -72,6 +75,7 @@ class Transpose : public Node
       
     //##ModelId=400E5355022A
     bool conj_;
+    bool tensor_;
 };
 
 

@@ -64,8 +64,8 @@ int Composer::getResult (Result::Ref &resref,
   int nres = 0, nfails = 0, nmissing = 0;
   for( uint i=0; i<childres.size(); i++ )
     nres += childres[i]->numVellSets();
-  // in tensor mode, check for matching dims
-  bool tensor_mode = false;
+  // tensor mode enabled when dims_=[0]
+  bool tensor_mode = ( dims_.size() == 1 && !dims_[0] );
   Result::Dims dims0;
   int nres0 = 0;
   // if any children are tensors, then they must have the same rank and dims (=dims0).
@@ -73,22 +73,22 @@ int Composer::getResult (Result::Ref &resref,
   for( int i=0; i<numChildren(); i++ )
   {
     const Result &chres = *childres[i];
-    bool tensor = chres.tensorRank()>1 || chres.numVellSets()>1;
-    if( tensor )
+    if( tensor_mode )
     {
       // tensor_mode=true if we've come upon at least one child with a tensor
       // result. Once that happens, start verifying dimensions
-      if( tensor_mode )
+      Result::Dims dims = chres.dims();
+      if( dims.empty() )
+        dims = LoShape(1);
+      if( i>0 )
       {
-        FailWhen(dims0 != chres.dims(),
-          Debug::ssprintf(
-            "tensor dimensions of child result %d does not match the others",i));
+        FailWhen(dims0 != dims,Debug::ssprintf(
+            "tensor dimensions of child result %d do not match those of previous children",i));
       }
       else
       {
-        dims0 = chres.dims();
+        dims0 = dims;
         nres0 = dims0.product();
-        tensor_mode = true;
       }
     }
   }

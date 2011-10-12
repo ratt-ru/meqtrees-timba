@@ -31,10 +31,11 @@
 namespace Meq {    
 
 const HIID FConj = AidConj;
+const HIID FTensor = AidTensor;
 
 //##ModelId=400E5355022C
 Transpose::Transpose()
-    : Node(1),conj_(false) // exactly 1 child expected
+    : Node(1),conj_(false),tensor_(false) // exactly 1 child expected
 {}
 
 //##ModelId=400E5355022D
@@ -46,6 +47,7 @@ void Transpose::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   rec[FConj].get(conj_,initializing);
+  rec[FTensor].get(tensor_,initializing);
 }
 
 void Transpose::conjugate (VellSet &vs)
@@ -71,19 +73,30 @@ int Transpose::getResult (Result::Ref &resref,
 {
   resref = childref[0];
   int rank = resref->tensorRank();
-  FailWhen(rank>2,"illegal tensor rank in transpose");
   int nvs = resref->numVellSets();
-  if( rank == 1 )
+  if( rank == 0 )
   {
-    LoShape dims(1,resref->numVellSets());
-    resref().setDims(dims);
+  // NOP for scalar (rank=0)
+  }
+  else if( rank == 1 )
+  {
+    // N vector simply reshaped to 1XN, unless tensor mode is in effect
+    if( !tensor_ )
+    {
+      LoShape dims(1,resref->numVellSets());
+      resref().setDims(dims);
+    }
   }
   else if( rank == 2 )
   {
     const Result &chres = *childref[0];
     int nx = chres.dims()[0], 
         ny = chres.dims()[1];
-    if( nx == 1 ) // a 1xN element -- just reshape
+    if( tensor_ && ny == 1 )
+    {
+      // tensor case -- do nothing, only conjugate perhaps. This keeps Nx1 results as Nx1
+    }
+    else if( nx == 1 ) // a 1xN element -- just reshape
       resref().setDims(LoShape(ny));
     else
     {
@@ -95,7 +108,37 @@ int Transpose::getResult (Result::Ref &resref,
           result.setVellSet(offs,chres.vellSet(j*ny+i));
     }
   }
-  // NOP for scalar (rank=0)
+  // rank>2: transpose last 2 dimensions
+  else
+  {
+    const Result &chres = *childref[0];
+    LoShape dims = chres.dims();
+    int nx = dims[rank-2], 
+        ny = dims[rank-1];
+    if( nx == 1 ) // a 1xN element -- just reshape
+    {
+      dims.resize(rank-1);
+      dims[rank-2] = ny;
+      resref().setDims(dims);
+    }
+    else
+    {
+      Result &result = resref();
+      dims[rank-2] = ny;
+      dims[rank-1] = nx;
+      result.setDims(dims);
+      int nel = nx*ny;
+      int nmat = chres.numVellSets()/nel;
+      int offs0 = 0;
+      for( int k=0; k<nmat; k++,offs0+=nel )
+      {
+        int offs = offs0;
+        for( int i=0; i<ny; i++ )
+          for( int j=0; j<nx; j++,offs++ )
+            result.setVellSet(offs,chres.vellSet(offs0+j*ny+i));
+      }
+    }
+  }
   
   // conjugate as needed
   if( conj_ )

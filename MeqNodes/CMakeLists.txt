@@ -25,6 +25,7 @@ set(MeqNodes_includes
     src/CoordTransform.h
     src/Cos.h
     src/Cosh.h
+    src/CUDAPointSourceVisibility.h 
     src/DataCollect.h
     src/DataConcat.h
     src/Divide.h
@@ -87,6 +88,7 @@ set(MeqNodes_includes
     src/Pow.h
     src/PrivateFunction.h
     src/Product.h
+    src/PSVTensor.h
     src/RADec.h
     src/RandomNoise.h
     src/Real.h
@@ -153,6 +155,7 @@ set(meqNodes_src
     src/CoordTransform.cc
     src/Cos.cc
     src/Cosh.cc
+    src/CUDAPointSourceVisibility.cc
     src/DataCollect.cc
     src/DataConcat.cc
     src/Divide.cc
@@ -215,6 +218,7 @@ set(meqNodes_src
     src/Pow.cc
     src/PrivateFunction.cc
     src/Product.cc
+    src/PSVTensor.cc
     src/RADec.cc
     src/RandomNoise.cc
     src/Real.cc

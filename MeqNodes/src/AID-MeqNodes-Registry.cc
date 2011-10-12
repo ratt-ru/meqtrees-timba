@@ -42,6 +42,8 @@ DMI::BObj * __construct_MeqCoordTransform (int n) { return n>0 ? new Meq::CoordT
 DMI::BObj * __construct_MeqCos (int n) { return n>0 ? new Meq::Cos [n] : new Meq::Cos; }
 #include "Cosh.h"
 DMI::BObj * __construct_MeqCosh (int n) { return n>0 ? new Meq::Cosh [n] : new Meq::Cosh; }
+#include "CUDAPointSourceVisibility.h"
+DMI::BObj * __construct_MeqCUDAPointSourceVisibility (int n) { return n>0 ? new Meq::CUDAPointSourceVisibility [n] : new Meq::CUDAPointSourceVisibility; }
 #include "DataCollect.h"
 DMI::BObj * __construct_MeqDataCollect (int n) { return n>0 ? new Meq::DataCollect [n] : new Meq::DataCollect; }
 #include "DataConcat.h"
@@ -158,6 +160,8 @@ DMI::BObj * __construct_MeqPow (int n) { return n>0 ? new Meq::Pow [n] : new Meq
 DMI::BObj * __construct_MeqPrivateFunction (int n) { return n>0 ? new Meq::PrivateFunction [n] : new Meq::PrivateFunction; }
 #include "Product.h"
 DMI::BObj * __construct_MeqProduct (int n) { return n>0 ? new Meq::Product [n] : new Meq::Product; }
+#include "PSVTensor.h"
+DMI::BObj * __construct_MeqPSVTensor (int n) { return n>0 ? new Meq::PSVTensor [n] : new Meq::PSVTensor; }
 #include "RADec.h"
 DMI::BObj * __construct_MeqRADec (int n) { return n>0 ? new Meq::RADec [n] : new Meq::RADec; }
 #include "RandomNoise.h"
@@ -310,6 +314,12 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1415,"MeqCosh")+
         TypeInfoReg::addToRegistry(-1415,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1415,__construct_MeqCosh)+
+        AtomicID::registerId(-1771,"MeqCUDAPointSourceVisibility")+
+        TypeInfoReg::addToRegistry(-1771,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1771,__construct_MeqCUDAPointSourceVisibility)+
+        AtomicID::registerId(-1402,"LMN")+
+        AtomicID::registerId(-1123,"UVW")+
+        AtomicID::registerId(-1019,"B")+
         AtomicID::registerId(-1388,"MeqDataCollect")+
         TypeInfoReg::addToRegistry(-1388,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1388,__construct_MeqDataCollect)+
@@ -532,6 +542,9 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1501,"MeqProduct")+
         TypeInfoReg::addToRegistry(-1501,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1501,__construct_MeqProduct)+
+        AtomicID::registerId(-1772,"MeqPSVTensor")+
+        TypeInfoReg::addToRegistry(-1772,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1772,__construct_MeqPSVTensor)+
         AtomicID::registerId(-1709,"MeqRADec")+
         TypeInfoReg::addToRegistry(-1709,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1709,__construct_MeqRADec)+
@@ -674,6 +687,7 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         TypeInfoReg::addToRegistry(-1521,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1521,__construct_MeqTranspose)+
         AtomicID::registerId(-1520,"Conj")+
+        AtomicID::registerId(-1773,"Tensor")+
         AtomicID::registerId(-1505,"MeqUVBrick")+
         TypeInfoReg::addToRegistry(-1505,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1505,__construct_MeqUVBrick)+
@@ -690,7 +704,6 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1754,"UVInterpolWave_method")+
         AtomicID::registerId(-1356,"Coeff")+
         AtomicID::registerId(-1685,"Brick")+
-        AtomicID::registerId(-1123,"UVW")+
         AtomicID::registerId(-1421,"MeqUVW")+
         TypeInfoReg::addToRegistry(-1421,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1421,__construct_MeqUVW)+
@@ -699,7 +712,6 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1747,"MeqVisPhaseShiftArg")+
         TypeInfoReg::addToRegistry(-1747,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1747,__construct_MeqVisPhaseShiftArg)+
-        AtomicID::registerId(-1402,"LMN")+
         AtomicID::registerId(-1517,"MeqVisPhaseShift")+
         TypeInfoReg::addToRegistry(-1517,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1517,__construct_MeqVisPhaseShift)+

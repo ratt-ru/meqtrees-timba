@@ -198,6 +198,25 @@ namespace Meq { class Bessel; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqCUDAPointSourceVisibility
+#define _defined_id_TpMeqCUDAPointSourceVisibility 1
+const DMI::TypeId TpMeqCUDAPointSourceVisibility(-1771);// from CUDAPointSourceVisibility.h:32
+const int TpMeqCUDAPointSourceVisibility_int = -1771;
+namespace Meq { class CUDAPointSourceVisibility; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::CUDAPointSourceVisibility> : public TypeTraits<Meq::CUDAPointSourceVisibility>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqCUDAPointSourceVisibility_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::CUDAPointSourceVisibility & ContainerReturnType;
+                typedef const Meq::CUDAPointSourceVisibility & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqCeil
 #define _defined_id_TpMeqCeil 1
 const DMI::TypeId TpMeqCeil(-1437);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Ceil.h:30
@@ -1183,6 +1202,25 @@ namespace Meq { class ObjectRADec; };
                 enum { ParamByRef = true, ReturnByRef = true };
                 typedef const Meq::ObjectRADec & ContainerReturnType;
                 typedef const Meq::ObjectRADec & ContainerParamType;
+              };
+            };
+#endif
+#ifndef _defined_id_TpMeqPSVTensor
+#define _defined_id_TpMeqPSVTensor 1
+const DMI::TypeId TpMeqPSVTensor(-1772);          // from PSVTensor.h:32
+const int TpMeqPSVTensor_int = -1772;
+namespace Meq { class PSVTensor; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::PSVTensor> : public TypeTraits<Meq::PSVTensor>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqPSVTensor_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::PSVTensor & ContainerReturnType;
+                typedef const Meq::PSVTensor & ContainerParamType;
               };
             };
 #endif

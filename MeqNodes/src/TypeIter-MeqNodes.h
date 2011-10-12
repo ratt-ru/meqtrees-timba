@@ -37,6 +37,7 @@
         Do(Meq::CoordTransform,arg) separator \
         Do(Meq::Cos,arg) separator \
         Do(Meq::Cosh,arg) separator \
+        Do(Meq::CUDAPointSourceVisibility,arg) separator \
         Do(Meq::DataCollect,arg) separator \
         Do(Meq::DataConcat,arg) separator \
         Do(Meq::Divide,arg) separator \
@@ -95,6 +96,7 @@
         Do(Meq::Pow,arg) separator \
         Do(Meq::PrivateFunction,arg) separator \
         Do(Meq::Product,arg) separator \
+        Do(Meq::PSVTensor,arg) separator \
         Do(Meq::RADec,arg) separator \
         Do(Meq::RandomNoise,arg) separator \
         Do(Meq::Real,arg) separator \
