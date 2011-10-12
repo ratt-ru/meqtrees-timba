@@ -473,6 +473,7 @@ Method                           1550       ; from /home/rnijboer/LOFAR/Timba/Me
 Metrics                          1363       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
 MHz                              1538       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:43
 Min                              1675       ; from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
+Minus                            1774       ; from PSVTensor.h:34
 Mismatch                         1257       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
 Missing                          1657       ; from /home/oms/LOFAR/Timba/MEQ/src/NodeNursery.h:32
 Mode                             1215       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
