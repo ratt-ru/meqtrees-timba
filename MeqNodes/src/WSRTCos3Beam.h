@@ -30,7 +30,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::WSRTCos3Beam
-#pragma aid BF R Clip 
+#pragma aid BF R Clip Ellipticity Pointing Offset
 
 namespace Meq {
 
@@ -43,22 +43,15 @@ namespace Meq {
 //! the cos^3 argument goes above the clipping level again. The second model makes no
 //! physical sense, but is currently implemented by NEWSTAR, and so is needed for compatibility.
 //!
-//! First child is BF, second child is either r, or a 2-vector of l,m, in which case r
-//! is computed as sqrt(l^2+m^2) (which is precise enough for WSRT fields)
-//! A third, optional, child 'Z' gives a vector of coefficients for Zernike polynomials
-//! which are used to distort the beam.
-//! For a Z of length N, the first N Zernike polynomials ZP_1...ZP_N are taken (following the Noll
-//! numbering scheme), and the beam pattern within the main lobe is multipled by
-//!             \sum_j{ ZP_j(l',m')*Z[j] }
-//! where l',m' is normalized to unity at the first null (= pi/(2*BF*freq))
+//! First child is BF, second child is a 2/3-vector of l,m[,n] or an Nx2/3 tensor.
+//! Third (optional) child is a 2-vector poitning offset delta_l,delta_m
+//! Fourth (optional) child is a 2-vector of ellipticities
 //!
 //! BF is the beam factor, in units of 1/Ghz. A good value for BF is 65*1e-9 (around 1.4 GHz at least)
 //!
 //! 'clip' is supplied in the state record.
 //! If state.clip>0, then the first model is used, with argclip=arccos(clip^(1/3))
 //! If state.clip<0, then the second (NEWSTAR-compatible) model is used (with clip=-state.clip)
-//! 'deriv'
-//!   If true, then result is a 2-vector of dE/dl,dE/dm. If False, result is just the beam gain E.
 
 class WSRTCos3Beam: public TensorFunction
 {
@@ -101,8 +94,12 @@ protected:
   // 0 if returning result for a single source
   // 1+ if returning tensor for multiple sources
   int num_sources_;
-  // flag: beam has ellipticty (so is 2x2 matrix)
+  // 2 if l,m supplied, else 3 if l,m,n supplied
+  int num_lmn_;
+  // flag: beam has ellipticty (so is a 2x2 matrix rather than a scalar)
   bool is_elliptical_;
+  // flag: beam has a pointing offset
+  bool has_pointing_;
 };
 
 } // namespace Meq

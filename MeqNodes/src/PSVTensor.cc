@@ -41,10 +41,13 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 const double _2pi_over_c = casa::C::_2pi / casa::C::c;
 
+const HIID FNMinus = AidN|AidMinus;
+const HIID FNarrowBandLimit = AidNarrow|AidBand|AidLimit;
+
 
 PSVTensor::PSVTensor()
 : TensorFunction(-4,child_labels,3), // first 3 children mandatory, rest are optional
-  narrow_band_limit_(.05) 
+  narrow_band_limit_(.05),n_minus_(1) 
 {
   // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };
@@ -58,7 +61,8 @@ PSVTensor::~PSVTensor()
 void PSVTensor::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   TensorFunction::setStateImpl(rec,initializing);
-  rec[AidNarrow|AidBand|AidLimit].get(narrow_band_limit_,initializing);
+  rec[FNarrowBandLimit].get(narrow_band_limit_,initializing);
+  rec[FNMinus].get(n_minus_,initializing);
 }
 
 const LoShape shape_3vec(3),shape_2x3(2,3);
@@ -225,7 +229,7 @@ void PSVTensor::evaluateTensors (std::vector<Vells> & out,
     // get the LMNs for this source
     const Vells & vl = *(args[0][isrc*3]);
     const Vells & vm = *(args[0][isrc*3+1]);
-    const Vells & vn = *(args[0][isrc*3+2]);
+    const Vells vn = *(args[0][isrc*3+2]) - n_minus_;
     // get the phase argument exp{ i*2*pi/c*(u*l+v*m+w*n) } -- this will be multiplied by frequency in computeExponent()
     Vells p = (vu*vl + vv*vm + vw*vn)*_2pi_over_c;
     Vells K = computeExponent(p,resultCells());

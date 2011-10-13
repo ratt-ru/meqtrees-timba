@@ -31,6 +31,8 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::PSVTensor
 
+#pragma aid LMN B UVW N Minus Narrow Band Limit
+
 namespace Meq {    
 
 
@@ -82,6 +84,9 @@ protected:
   Vells freq_vells_;
   // cached values used in smearing calculations
   Vells df_over_2_,f_dt_over_2_;  // delta_freq/2, and freq*delta_time/2
+  
+  // subtracted from n -- set to 1 to use fringe-stopped phases, i.e. w(n-1)
+  double n_minus_;
 
 };
 

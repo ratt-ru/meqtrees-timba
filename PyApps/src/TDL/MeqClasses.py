@@ -31,6 +31,7 @@ from TDLimpl import *
 from Timba.Meq import meq
 import sys
 import traceback
+import numpy
 from Timba.array import *
 
 def array_double (value,shape=None):
@@ -108,14 +109,16 @@ class _MeqGen (TDLimpl.ClassGen):
     return _NodeDef('Meq','WMean',*childlist,**kw);
   
   def Constant (self,value,**kw):
+    # convert value to array, if it's a list
     if isinstance(value,(list,tuple)):
-      if filter(lambda x:isinstance(x,complex),value):
-        value = dmi.array(map(complex,value));
-      else:
-        value = dmi.array(map(float,value));
-    elif isinstance(value,(int,long)):
-      value = float(value);
-    elif not isinstance(value,(float,complex,dmi.array_class)):
+      value = numpy.array(value);
+    # if array, check for type -- must be complex or float
+    if isinstance(value,numpy.ndarray):
+      if value.dtype not in (numpy.complex128,numpy.float64):
+        value = value.astype(complex) if numpy.iscomplexobj(value) else value.astype(float);
+    elif numpy.isscalar(value):
+      value = complex(value) if numpy.iscomplex(value) else float(value);
+    else:
       return _NodeDef(NodeDefError("can't create Meq.Constant from value of type "+type(value).__name__));
     kw['value'] = value;
     return _NodeDef('Meq','Constant',**kw);

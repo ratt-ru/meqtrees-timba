@@ -33,7 +33,7 @@ namespace Meq {
 
 using namespace VellsMath;
 
-const HIID child_labels[] = { AidBF,AidR,AidE };
+const HIID child_labels[] = { AidBF,AidL|AidM,AidPointing|AidOffset,AidEllipticity };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 
@@ -74,7 +74,7 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 
 WSRTCos3Beam::WSRTCos3Beam()
-: TensorFunction(num_children,child_labels,num_children-1),
+: TensorFunction(num_children,child_labels,2),
   clip_(100*(casa::C::pi/180))
 {
   // dependence on frequency
@@ -115,8 +115,12 @@ void WSRTCos3Beam::computeResultCells (Cells::Ref &ref,const std::vector<Result:
 LoShape WSRTCos3Beam::getResultDims (const vector<const LoShape *> &input_dims)
 {
   FailWhen( input_dims[0]->product()>1,"child '"+child_labels[0].toString()+"': single value expected");
-  is_elliptical_ = ( input_dims.size()>2 );
-  FailWhen( is_elliptical_ && input_dims[2]->product()!=2,"child '"+child_labels[2].toString()+"': 2-vector expected");
+  // check pointing offset child
+  has_pointing_ = ( input_dims.size()>2 );
+  FailWhen( input_dims.size()>2 && (*input_dims[2]) != LoShape(2),"child '"+child_labels[2].toString()+"': 2-vector expected");
+  // check ellipticity child
+  is_elliptical_ = ( input_dims.size()>3 );
+  FailWhen( is_elliptical_ && (*input_dims[3]) != LoShape(2),"child '"+child_labels[3].toString()+"': 2-vector expected");
 // commenting this out for now
   /*  // check Z child
   if( input_dims.size()>2 )
@@ -128,35 +132,22 @@ LoShape WSRTCos3Beam::getResultDims (const vector<const LoShape *> &input_dims)
 //    if( input_dims[1]->product() != 2 )
 //      Throw(Debug::ssprintf("child 1: 2-vector (l,m) expected, if child 3 (Zernike coefficients) is given"));
   }*/
-  // check r child 
-  const LoShape &rlm = *input_dims[1];
-  FailWhen( rlm.size()>0 && ( rlm.size() > 2 || rlm[rlm.size()-1]>2 ),
-           "child '"+child_labels[1].toString()+"': Nx2 or Nx1 or 2-vector (l,m) or single-value (r) expected");
-  if( rlm.size() < 2 )
+  // check lm child 
+  const LoShape &lm = *input_dims[1];
+  FailWhen( lm.size()<1 || lm.size()>2 || lm[lm.size()-1]<2 || lm[lm.size()-1]>3,
+           "child '"+child_labels[1].toString()+"': Nx{2,3} or {2,3}-vector l,m[,n] expected");
+  num_lmn_ = lm[lm.size()-1];
+  // scalar mode: lm is a 2/3-vector
+  if( lm.size() == 1 )
   {
-    num_sources_ = 0;
-    if( is_elliptical_ )
-    {
-      FailWhen( rlm.size() != 1 || rlm[0]!=2,
-              "child '"+child_labels[1].toString()+"': Nx2 or 2-vector (l,m) expected, since ellipticity (child '"
-              +child_labels[2].toString()+"') is supplied" );
-      return LoShape(2,2);
-    }
-    else
-      return LoShape(1);
+    num_sources_ = 1;
+    return is_elliptical_ ? LoShape(2,2) : LoShape(1);
   }
+  // tensor mode: lm is an Nx2/3-vector
   else 
   {
-    num_sources_ = rlm[0];
-    if( is_elliptical_ )
-    {
-      FailWhen( rlm[rlm.size()-1]!=2,
-              "child '"+child_labels[1].toString()+"': Nx2 or 2-vector (l,m) expected, since ellipticity (child '"
-              +child_labels[1].toString()+"') is supplied" );
-      return LoShape(num_sources_,2,2);
-    }
-    else
-      return LoShape(num_sources_);
+    num_sources_ = lm[0];
+    return is_elliptical_ ? LoShape(num_sources_,2,2) : LoShape(num_sources_);
   }
 }
 
@@ -176,68 +167,35 @@ inline Vells WSRTCos3Beam::computeBeam (const Vells &bfr)
 void WSRTCos3Beam::evaluateTensors (std::vector<Vells> & out,
                                     const std::vector<std::vector<const Vells *> > &args )
 {
-  const Vells &bf = *(args[0][0]);
-  Vells bf_by_freq = bf*freq_vells_;
+  Vells bf_by_freq = freq_vells_*(*args[0][0]);
   Vells exl,exm,eyl,eym;
+  Vells dl,dm;
+  if( has_pointing_ )
+  {
+    dl = *args[2][0];
+    dm = *args[2][1];
+  }
   if( is_elliptical_ )
   {
-    exl = 1/pow2(1+*args[2][0]);
-    exm = 1/pow2(1-*args[2][0]);
-    eyl = 1/pow2(1+*args[2][1]);
-    eym = 1/pow2(1-*args[2][1]);
+    exl = 1/pow2(1+*args[3][0]);
+    exm = 1/pow2(1-*args[3][0]);
+    eyl = 1/pow2(1+*args[3][1]);
+    eym = 1/pow2(1-*args[3][1]);
   }
-  // old scalar version
-  if( !num_sources_ )
+  // loop over sources
+  for( int isrc=0; isrc<num_sources_; isrc++ )
   {
+    Vells l2 = pow2(*args[1][isrc*num_lmn_  ]-dl);
+    Vells m2 = pow2(*args[1][isrc*num_lmn_+1]-dm);
+    // polarized elliptical beam
     if( is_elliptical_ )
     {
-      Vells l2 = pow2(*args[1][0]);
-      Vells m2 = pow2(*args[1][1]);
-      wstate()["$exl"] = exl;
-      wstate()["$eyl"] = eyl;
-      wstate()["$l2"] = l2;
-      wstate()["$m2"] = m2;
-      wstate()["$l2a"] = l2*exl;
-      wstate()["$l2b"] = l2*eyl;
-      out[0]   = computeBeam(sqrt(l2*exl+m2*exm)*bf_by_freq);
-      out[3]   = computeBeam(sqrt(l2*eyl+m2*eym)*bf_by_freq);
+      out[isrc*4]   = computeBeam(sqrt(l2*exl+m2*exm)*bf_by_freq);
+      out[isrc*4+3] = computeBeam(sqrt(l2*eyl+m2*eym)*bf_by_freq);
     }
+    // scalar beam
     else
-    {
-      if( args[1].size() == 1 )
-        out[0] = computeBeam(*args[1][0]*bf_by_freq);
-      else if( args[1].size() == 2 )
-        out[0] = computeBeam(sqrt(pow2(*args[1][0])+pow2(*args[1][1]))*bf_by_freq);
-    }
-  }
-  // else tensor version
-  else
-  {
-    for( int isrc=0; isrc<num_sources_; isrc++ )
-    {
-      // polarized elliptical beam
-      if( is_elliptical_ )
-      {
-        Vells l2 = pow2(*args[1][isrc*2]);
-        Vells m2 = pow2(*args[1][isrc*2+1]);
-        out[isrc*4]   = computeBeam(sqrt(l2*exl+m2*exm)*bf_by_freq);
-        out[isrc*4+3] = computeBeam(sqrt(l2*eyl+m2*eym)*bf_by_freq);
-      }
-      // unpolarized, circular beam
-      else
-      {
-        Vells r;
-        if( args[1].size() == num_sources_ )
-          r = *args[1][isrc];
-        else 
-        {
-          Vells l = *args[1][isrc*2];
-          Vells m = *args[1][isrc*2+1];
-          r = sqrt(l*l+m*m);
-        }
-        out[isrc] = computeBeam(r*bf_by_freq);
-      }
-    }
+      out[isrc] = computeBeam(sqrt(l2+m2)*bf_by_freq);
   }
 }
 

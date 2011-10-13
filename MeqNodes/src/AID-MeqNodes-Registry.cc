@@ -545,6 +545,11 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1772,"MeqPSVTensor")+
         TypeInfoReg::addToRegistry(-1772,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1772,__construct_MeqPSVTensor)+
+        AtomicID::registerId(-1028,"N")+
+        AtomicID::registerId(-1774,"Minus")+
+        AtomicID::registerId(-1767,"Narrow")+
+        AtomicID::registerId(-1769,"Band")+
+        AtomicID::registerId(-1770,"Limit")+
         AtomicID::registerId(-1709,"MeqRADec")+
         TypeInfoReg::addToRegistry(-1709,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1709,__construct_MeqRADec)+
@@ -674,9 +679,6 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1748,"MeqTFSmearFactor")+
         TypeInfoReg::addToRegistry(-1748,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1748,__construct_MeqTFSmearFactor)+
-        AtomicID::registerId(-1767,"Narrow")+
-        AtomicID::registerId(-1769,"Band")+
-        AtomicID::registerId(-1770,"Limit")+
         AtomicID::registerId(-1451,"MeqTime")+
         TypeInfoReg::addToRegistry(-1451,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1451,__construct_MeqTime)+
@@ -724,6 +726,9 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1749,"BF")+
         AtomicID::registerId(-1023,"R")+
         AtomicID::registerId(-1751,"Clip")+
+        AtomicID::registerId(-1775,"Ellipticity")+
+        AtomicID::registerId(-1171,"Pointing")+
+        AtomicID::registerId(-1195,"Offset")+
         AtomicID::registerId(-1502,"MeqWSum")+
         TypeInfoReg::addToRegistry(-1502,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1502,__construct_MeqWSum)+

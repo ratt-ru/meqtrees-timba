@@ -193,6 +193,11 @@ const int AidEQ_int = -1444;
 const DMI::AtomicID AidEl(-1708);                 // from /home/sarod/Timba/MeqNodes/src/RADec.h:53
 const int AidEl_int = -1708;
 #endif
+#ifndef _defined_id_AidEllipticity
+#define _defined_id_AidEllipticity 1
+const DMI::AtomicID AidEllipticity(-1775);        // from WSRTCos3Beam.h:33
+const int AidEllipticity_int = -1775;
+#endif
 #ifndef _defined_id_AidEnd
 #define _defined_id_AidEnd 1
 const DMI::AtomicID AidEnd(-1276);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
@@ -963,6 +968,11 @@ const int AidMeqZeroFlagger_int = -1434;
 const DMI::AtomicID AidMethod(-1550);             // from /home/rnijboer/LOFAR/Timba/MeqNodes/src/UVInterpol.h:34
 const int AidMethod_int = -1550;
 #endif
+#ifndef _defined_id_AidMinus
+#define _defined_id_AidMinus 1
+const DMI::AtomicID AidMinus(-1774);              // from PSVTensor.h:34
+const int AidMinus_int = -1774;
+#endif
 #ifndef _defined_id_AidMode
 #define _defined_id_AidMode 1
 const DMI::AtomicID AidMode(-1215);               // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
@@ -982,6 +992,11 @@ const int AidModulo_int = -1679;
 #define _defined_id_AidMulti 1
 const DMI::AtomicID AidMulti(-1518);              // from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:33
 const int AidMulti_int = -1518;
+#endif
+#ifndef _defined_id_AidN
+#define _defined_id_AidN 1
+const DMI::AtomicID AidN(-1028);                  // from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
+const int AidN_int = -1028;
 #endif
 #ifndef _defined_id_AidNE
 #define _defined_id_AidNE 1
@@ -1012,6 +1027,11 @@ const int AidObj_int = -1715;
 #define _defined_id_AidObservatory 1
 const DMI::AtomicID AidObservatory(-1554);        // from /home/twillis/LOFAR/Timba/MeqNodes/src/AzEl.h:33
 const int AidObservatory_int = -1554;
+#endif
+#ifndef _defined_id_AidOffset
+#define _defined_id_AidOffset 1
+const DMI::AtomicID AidOffset(-1195);             // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:30
+const int AidOffset_int = -1195;
 #endif
 #ifndef _defined_id_AidOnly
 #define _defined_id_AidOnly 1
@@ -1067,6 +1087,11 @@ const int AidPhi0_int = -1728;
 #define _defined_id_AidPlot 1
 const DMI::AtomicID AidPlot(-1432);               // from /home/oms/LOFAR/Timba/MeqNodes/src/DataCollect.h:30
 const int AidPlot_int = -1432;
+#endif
+#ifndef _defined_id_AidPointing
+#define _defined_id_AidPointing 1
+const DMI::AtomicID AidPointing(-1171);           // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:34
+const int AidPointing_int = -1171;
 #endif
 #ifndef _defined_id_AidPos
 #define _defined_id_AidPos 1
