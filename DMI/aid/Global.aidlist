@@ -156,6 +156,7 @@ e2                               1615       ; from /home/oms/LOFAR/Timba/MEQ/src
 EchoWP                           1101       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/test/EchoWP.h:10
 Effective                        1200       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:32
 El                               1708       ; from /home/sarod/Timba/MeqNodes/src/RADec.h:53
+Ellipticity                      1775       ; from WSRTCos3Beam.h:33
 Enable                           1465       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:15
 Enabled                          1537       ; from /home/oms/LOFAR/Timba/MEQ/src/Forest.h:34
 End                              1276       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
