@@ -1566,6 +1566,25 @@ namespace Meq { class Real; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqReplaceFlaggedValues
+#define _defined_id_TpMeqReplaceFlaggedValues 1
+const DMI::TypeId TpMeqReplaceFlaggedValues(-1776);// from ReplaceFlaggedValues.h:31
+const int TpMeqReplaceFlaggedValues_int = -1776;
+namespace Meq { class ReplaceFlaggedValues; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::ReplaceFlaggedValues> : public TypeTraits<Meq::ReplaceFlaggedValues>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqReplaceFlaggedValues_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::ReplaceFlaggedValues & ContainerReturnType;
+                typedef const Meq::ReplaceFlaggedValues & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqReqMux
 #define _defined_id_TpMeqReqMux 1
 const DMI::TypeId TpMeqReqMux(-1608);             // from /home/oms/LOFAR/Timba/MeqNodes/src/ReqMux.h:31

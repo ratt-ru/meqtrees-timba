@@ -93,6 +93,7 @@ set(MeqNodes_includes
     src/RandomNoise.h
     src/Real.h
     src/ReductionFunction.h
+    src/ReplaceFlaggedValues.h
     src/ReqMux.h
     src/ReqSeq.h
     src/Resampler.h
@@ -223,6 +224,7 @@ set(meqNodes_src
     src/RandomNoise.cc
     src/Real.cc
     src/ReductionFunction.cc
+    src/ReplaceFlaggedValues.cc
     src/ReqMux.cc
     src/ReqSeq.cc
     src/Resampler.cc

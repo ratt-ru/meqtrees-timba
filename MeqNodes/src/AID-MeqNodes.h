@@ -788,6 +788,11 @@ const int AidMeqRandomNoise_int = -1384;
 const DMI::AtomicID AidMeqReal(-1404);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Real.h:29
 const int AidMeqReal_int = -1404;
 #endif
+#ifndef _defined_id_AidMeqReplaceFlaggedValues
+#define _defined_id_AidMeqReplaceFlaggedValues 1
+const DMI::AtomicID AidMeqReplaceFlaggedValues(-1776);// from ReplaceFlaggedValues.h:31
+const int AidMeqReplaceFlaggedValues_int = -1776;
+#endif
 #ifndef _defined_id_AidMeqReqMux
 #define _defined_id_AidMeqReqMux 1
 const DMI::AtomicID AidMeqReqMux(-1608);          // from /home/oms/LOFAR/Timba/MeqNodes/src/ReqMux.h:31
@@ -1307,6 +1312,11 @@ const int AidUnknowns_int = -1629;
 #define _defined_id_AidUpsample 1
 const DMI::AtomicID AidUpsample(-1644);           // from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:33
 const int AidUpsample_int = -1644;
+#endif
+#ifndef _defined_id_AidValue
+#define _defined_id_AidValue 1
+const DMI::AtomicID AidValue(-1233);              // from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
+const int AidValue_int = -1233;
 #endif
 #ifndef _defined_id_AidVerbose
 #define _defined_id_AidVerbose 1

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # standard preamble
 from Timba.TDL import *
 
@@ -40,7 +41,16 @@ def _define_forest (ns,**kwargs):
         a=None
       ),
     );
-  ns.reqseq = Meq.ReqSeq(ns.solver,ns.solver2);
+  # make a test branch for other purposes
+  ns.t << Meq.Time();
+  ns.f << Meq.Freq();
+  ns.xy = ns.t + ns.f;
+  ns.flag1 << Meq.ZeroFlagger(ns.t-.5,oper="ge");
+  ns.flag2 << Meq.ZeroFlagger(ns.f-.5,oper="ge");
+  ns.test << Meq.Composer(
+    Meq.ReplaceFlaggedValues(ns.xy,ns.flag1,ns.flag2,value=1+1j),
+  );
+  ns.reqseq = Meq.ReqSeq(ns.solver,ns.solver2,ns.test);
     
 
 def _test_forest (mqs,parent,**kwargs):

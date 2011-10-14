@@ -168,6 +168,8 @@ DMI::BObj * __construct_MeqRADec (int n) { return n>0 ? new Meq::RADec [n] : new
 DMI::BObj * __construct_MeqRandomNoise (int n) { return n>0 ? new Meq::RandomNoise [n] : new Meq::RandomNoise; }
 #include "Real.h"
 DMI::BObj * __construct_MeqReal (int n) { return n>0 ? new Meq::Real [n] : new Meq::Real; }
+#include "ReplaceFlaggedValues.h"
+DMI::BObj * __construct_MeqReplaceFlaggedValues (int n) { return n>0 ? new Meq::ReplaceFlaggedValues [n] : new Meq::ReplaceFlaggedValues; }
 #include "ReqMux.h"
 DMI::BObj * __construct_MeqReqMux (int n) { return n>0 ? new Meq::ReqMux [n] : new Meq::ReqMux; }
 #include "ReqSeq.h"
@@ -562,6 +564,10 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         TypeInfoReg::addToRegistry(-1404,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1404,__construct_MeqReal)+
         AtomicID::registerId(-1680,"Reduction")+
+        AtomicID::registerId(-1776,"MeqReplaceFlaggedValues")+
+        TypeInfoReg::addToRegistry(-1776,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1776,__construct_MeqReplaceFlaggedValues)+
+        AtomicID::registerId(-1233,"Value")+
         AtomicID::registerId(-1608,"MeqReqMux")+
         TypeInfoReg::addToRegistry(-1608,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1608,__construct_MeqReqMux)+

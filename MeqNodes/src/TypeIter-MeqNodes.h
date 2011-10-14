@@ -100,6 +100,7 @@
         Do(Meq::RADec,arg) separator \
         Do(Meq::RandomNoise,arg) separator \
         Do(Meq::Real,arg) separator \
+        Do(Meq::ReplaceFlaggedValues,arg) separator \
         Do(Meq::ReqMux,arg) separator \
         Do(Meq::ReqSeq,arg) separator \
         Do(Meq::Resampler,arg) separator \
