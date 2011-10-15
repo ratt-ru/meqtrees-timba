@@ -194,7 +194,7 @@ inline void scalarProduct (
   Vells c[4],const Vells &a,IB ib)
 {
   for( int i=0; i<4; i++ )
-    c[i] = a*(**ib++);
+    c[i] = (**ib++)*a;
 }
 
 // This evaluates the result tensors
