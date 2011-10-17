@@ -164,7 +164,7 @@ class ControlMenu (Qt.QMenu):
     # make grid of selector buttons, if dims are not too big
     if len(dims) == 1:
       dims = (1,dims[0]);
-    if len(dims) <= 2 and min(*dims)<=2 and max(*dims)<=6:
+    if len(dims) == 2 and min(*dims)<=2 and max(*dims)<=6:
       # for dims=1, make it 1xN 
       # add vells selector 
       self._ds_lo.addSpacing(16);
@@ -204,7 +204,7 @@ class ControlMenu (Qt.QMenu):
         Qt.QObject.connect(tb,Qt.SIGNAL("clicked(bool)"),self._change_vells);
         Qt.QObject.connect(qa,Qt.SIGNAL("triggered(bool)"),tb.setChecked);
         # add to layout in correct place
-        col,row = divmod(ilabel,dims[-1]);
+        row,col = divmod(ilabel,dims[1]);
         if dims[1] > 3:
           col,row = row,col;
         lo1.addWidget(tb,row,col);
