@@ -168,14 +168,13 @@ class CollectionsPlotter(GriddedPlugin):
       pass
     _dprint(3, 'node name is ', self._node_name)
 
-    try:
-      self._plot_label = self._rec.plot_label
-    except:
-      pass
-    try:
-      self._tab_label = self._rec.tab_label
-    except:
-      pass
+    if hasattr(self._rec,'plot_label'):
+      self._plot_label = self._rec.plot_label;
+    if hasattr(self._rec,'tab_label'):
+      self._tab_label = self._rec.tab_label;
+    self._vells_label = getattr(self._rec,'vells_label',[]);
+    if not isinstance(self._vells_label,(list,tuple)):
+      self._vells_label = [];
     self.label = '';  # extra label, filled in if possible
 # there's a problem here somewhere ...
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
@@ -242,18 +241,22 @@ class CollectionsPlotter(GriddedPlugin):
           dims_start = 1
           for i in range(dims_start,len(self.dims)):
             self.dims_per_group = self.dims_per_group * self.dims[i]
-          # setup index array -- this makes a list such as [1,1],[1,2],[2,1],[2,2] (for e.g. a 2x2 array)
-          indices = numpy.ndindex(*self.dims[dims_start:]);
-          # sep = "," if any([dim>9 for dim in self.dims[dims_start:]]) else "";
-          index_labels = [ ",".join([str(x+1) for x in ind]) for ind in indices ];
+          if self.dims_per_group == len(self._vells_label):
+            index_labels = self._vells_label;
+          else:
+            # setup index array -- this makes a list such as [1,1],[1,2],[2,1],[2,2] (for e.g. a 2x2 array)
+            indices = numpy.ndindex(*self.dims[dims_start:]);
+            # sep = "," if any([dim>9 for dim in self.dims[dims_start:]]) else "";
+            index_labels = [ ",".join([str(x+1) for x in ind]) for ind in indices ];
         else:
-          index_labels = [0];
+          index_labels = self._vells_label[0:1] if self._vells_label else [0];
+      # replace index labels with vells labels
       if self._visu_plotter is None:
         self.create_layout_stuff()
       if new_plot: 
         self._visu_plotter.setNewPlot()
       data_dict = {}
-      self._visu_plotter.setDataElementLabels(index_labels,self.dims[1:] if self.dims is not None else (1,));
+      self._visu_plotter.setDataElementLabels(index_labels,list(self.dims[1:]) if self.dims is not None else (1,));
       for i in range(self._number_of_planes):
         channel = int(i / self.dims_per_group)
         if self._node_name is None:

@@ -110,6 +110,7 @@ class ControlMenu (Qt.QMenu):
     self._ds_lo = lotop = Qt.QVBoxLayout(top);
     lotop.setContentsMargins(0,0,0,0);
     self._ds_complex = Qt.QWidget(top);
+    self._ds_complex.setVisible(False);
     lotop.addWidget(self._ds_complex);
     lo = Qt.QVBoxLayout(self._ds_complex);
     lo.setContentsMargins(0,0,0,0);
@@ -136,6 +137,7 @@ class ControlMenu (Qt.QMenu):
       bgrp.addButton(tb);
       tb.setText(tbtext);
       tb.setToolButtonStyle(Qt.Qt.ToolButtonTextOnly);
+      tb.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.Minimum);
       tb.setCheckable(True);
       tb.setChecked(label is self.complex_component);
       tb.setMinimumWidth(32);
@@ -160,10 +162,10 @@ class ControlMenu (Qt.QMenu):
       self.vells_menu.addAction(va);
     self.vells_menu.menuAction().setVisible(True);
     # make grid of selector buttons, if dims are not too big
+    if len(dims) == 1:
+      dims = (1,dims[0]);
     if len(dims) <= 2 and min(*dims)<=2 and max(*dims)<=6:
       # for dims=1, make it 1xN 
-      if len(dims) == 1:
-        dims = (1,dims[0]);
       # add vells selector 
       self._ds_lo.addSpacing(16);
       self._ds_vells = Qt.QWidget(self._ds_top);
@@ -195,6 +197,7 @@ class ControlMenu (Qt.QMenu):
         tb.setToolButtonStyle(Qt.Qt.ToolButtonTextOnly);
         tb.setCheckable(True);
         tb.setChecked(label is self.vells_component);
+        tb.setSizePolicy(Qt.QSizePolicy.MinimumExpanding,Qt.QSizePolicy.Minimum);
   #      tb.setMinimumWidth(32);
         qa = self._qas_vells[label];
         Qt.QObject.connect(tb,Qt.SIGNAL("clicked(bool)"),qa.setChecked);
