@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 #
 # Copyright (C) 2002-2007
@@ -44,6 +45,8 @@ from ResultsRange_qt4 import *
 from BufferSizeDialog_qt4 import *
 from plot_printer_qt4 import *
 
+import itertools
+
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='collections_plotter');
 _dprint = _dbg.dprint;
@@ -84,7 +87,7 @@ class CollectionsPlotter(GriddedPlugin):
     self._node_name = None
     self._prev_rq_id = -1
     self._plot_label = None
-    self._tab_label = 'data'
+    self._tab_label = 'Page'
     self.prev_label = "===="
 
   def wtop (self):
@@ -105,9 +108,20 @@ class CollectionsPlotter(GriddedPlugin):
   def create_2D_plotter(self):
     if self._visu_plotter is None:
       self._visu_plotter = DisplayMainWindow(parent=None,name=" ", num_curves=self._max_per_display, plot_label=self._plot_label)
-      self.layout.addWidget(self._visu_plotter)
+      self.layout.addWidget(self._visu_plotter,100)
+      lo0 = QVBoxLayout();
+      lo0.setContentsMargins(0,0,0,0);
+      self.layout.addLayout(lo0,0);
+      lo1 = QHBoxLayout();
+      lo1.setContentsMargins(0,0,0,0);
+      lo0.addLayout(lo1);
+      lo1.addStretch(1);
       self._results_range = ResultsRange(parent=self.layout_parent, name="", horizontal=False)
-      self.layout.addWidget(self._results_range)
+      lo1.addStretch(1);
+      lo1.addWidget(self._results_range)
+      # add data selectors 
+      self._visu_plotter.createDataSelectorWidgets(self.layout_parent,lo0);
+      #
       self._visu_plotter.show()
       self._results_range.set_offset_index(0)
       Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL("auto_offset_value"), self.set_range_selector)
@@ -120,11 +134,11 @@ class CollectionsPlotter(GriddedPlugin):
     """ set or update maximum range for slider controller """
     self.max_range = max_range
     self._results_range.set_emit(False)
-    self._results_range.setMaxValue(max_range,False)
     self._results_range.setMinValue(0)
+    self._results_range.setMaxValue(max_range,False)
     self._results_range.setTickInterval( max_range / 10 )
     self._results_range.setRange(max_range, False)
-    self._results_range.setLabel('  offset  ')
+    self._results_range.setLabel('offset:',align=Qt.Qt.AlignHCenter)
     self._results_range.hideNDControllerOption()
     self._results_range.reset_scale_toggle()
     self._results_range.set_emit(True)
@@ -228,11 +242,18 @@ class CollectionsPlotter(GriddedPlugin):
           dims_start = 1
           for i in range(dims_start,len(self.dims)):
             self.dims_per_group = self.dims_per_group * self.dims[i]
+          # setup index array -- this makes a list such as [1,1],[1,2],[2,1],[2,2] (for e.g. a 2x2 array)
+          indices = numpy.ndindex(*self.dims[dims_start:]);
+          # sep = "," if any([dim>9 for dim in self.dims[dims_start:]]) else "";
+          index_labels = [ ",".join([str(x+1) for x in ind]) for ind in indices ];
+        else:
+          index_labels = [0];
       if self._visu_plotter is None:
         self.create_layout_stuff()
       if new_plot: 
         self._visu_plotter.setNewPlot()
       data_dict = {}
+      self._visu_plotter.setDataElementLabels(index_labels,self.dims[1:] if self.dims is not None else (1,));
       for i in range(self._number_of_planes):
         channel = int(i / self.dims_per_group)
         if self._node_name is None:
@@ -242,11 +263,12 @@ class CollectionsPlotter(GriddedPlugin):
         data_dict['channel'] = channel
         data_dict['sequence_number'] = self.counter
         screen_num = channel / self._max_per_display
-        data_dict['data_type'] = self._tab_label + ' ' + str(screen_num)
+        data_dict['data_type'] = self._tab_label + ' ' + str(screen_num+1)
         index = i - channel * self.dims_per_group
         if index == 0:
           data_dict['value'] = {}
           data_dict['flags'] = {}
+        datakey = index_labels[index];
 #       if channel == 100:
 #         data_dict['value'][index] = 100.0 * self._rec.vellsets[i].value
 #       else:
@@ -254,21 +276,21 @@ class CollectionsPlotter(GriddedPlugin):
 # hopefully handle cases with non-existent results
         try:
           if  self._rec.vellsets[i].has_key("value"):
-            data_dict['value'][index] = self._rec.vellsets[i].value
+            data_dict['value'][datakey] = self._rec.vellsets[i].value
           else:
-            data_dict['value'][index] = None
+            data_dict['value'][datakey] = None
         except:
-            data_dict['value'][index] = None
+            data_dict['value'][datakey] = None
 # for test purposes
 #       if index == 2:
-#           data_dict['value'][index] = None
+#           data_dict['value'][datakey] = None
         try:
           if  self._rec.vellsets[i].has_key("flags"):
-            data_dict['flags'][index] = self._rec.vellsets[i].flags
+            data_dict['flags'][datakey] = self._rec.vellsets[i].flags
           else:
-            data_dict['flags'][index] = None
+            data_dict['flags'][datakey] = None
         except:
-            data_dict['flags'][index] = None
+            data_dict['flags'][datakey] = None
         if index == self.dims_per_group-1:
           self._visu_plotter.updateEvent(data_dict)
           data_dict = {}

@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+##!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
@@ -38,29 +39,7 @@ import printfilter_qt4
 import random
 
 class ChartPlot(Qt.QWidget):
-
-  menu_table = {
-        'Reset zoomer': 200,
-        'Close': 201,
-        'Print': 202,
-        'Fixed Scale': 203,
-        'Offset Value': 204,
-        'Change Vells': 205,
-        'Show Channels': 206,
-        'Clear Plot': 207,
-        'Append': 208,
-        'Complex Data': 209,
-        'Amplitude': 210,
-        'Phase': 211,
-        'Real': 212,
-        'Imaginary': 213,
-        'Close Popups': 214,
-        'Show Flags': 215,
-        'Save Display in PNG Format': 216,
-        }
-
-
-  def __init__(self, num_curves=None,parent=None, name=None):
+  def __init__(self,control_menu,num_curves=None,parent=None,name=None):
     """ Collects information about timing from setup_parameters dict.
         Resizes and initialises all the variables.  
         creates bottom frame and the chart plot
@@ -78,16 +57,22 @@ class ChartPlot(Qt.QWidget):
     self._offset = 0
     self._source = None
     self._max_range = -10000
-    self._do_fixed_scale = False
     self._data_label = None
     self.info_marker = None
-    self.show_channel_labels = True
-    self._append_data = True
     self._plot_label = None
     self._complex_marker = None
-    self._ignore_flagged_data = True
     self._zoom_png_number = 0
     self.has_nans_infs = False
+    
+    # menu is a ControlMenu object from DataDisplayMainWindow
+    self._menu = control_menu;
+    
+    # constants for complex coponents
+    self.AMP = self._menu.AMP;
+    self.PHASE = self._menu.PHASE;
+    self.REAL = self._menu.REAL;
+    self.IMAG = self._menu.IMAG;
+    self._complex_component = self._menu.complex_component;
 
 # create plotter
     self._plotter = Qwt.QwtPlot(self)
@@ -132,9 +117,11 @@ class ChartPlot(Qt.QWidget):
     #Initialization of the size of the arrays to put the curve in
     self._ArraySize = 6
     self._x_displacement = self._ArraySize / 6 
-    self._data_index = 0
     self.set_x_axis_sizes()
 
+    # this is the label of the vells that is being displayed
+    self._data_index = None;
+    
     # Initialize all the arrays containing the curve data 
     # code for this?
 
@@ -165,146 +152,38 @@ class ChartPlot(Qt.QWidget):
     self._display_refresh = Qt.QTimer(self)
     self._display_refresh.start(self._display_interval_ms)
     self._refresh_flag = True
-    self._complex_type = "Amplitude"
-    self._amplitude = True
-    self._phase = False
-    self._real = False
-    self._imaginary = False
+    self._complex_component = self.AMP;
+    
 
-
-    # create context menu
-    self._vells_actions = []
     self._mainwin = parent and parent.topLevelWidget()
-    self._menu = Qt.QMenu(self._mainwin)
-    toggle_id = self.menu_table['Close']
-    self._close_window = Qt.QAction('Close Window',self)
-    self._menu.addAction(self._close_window)
-    self._close_window.setData(Qt.QVariant(str(toggle_id)))
-    self._close_window.setVisible(False)
-    self.connect(self._close_window,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
 
-    toggle_id = self.menu_table['Reset zoomer']
-    self._reset_zoomer = Qt.QAction(pixmaps.viewmag.iconset(),'Reset zoomer',self)
-    self._menu.addAction(self._reset_zoomer)
-    self._reset_zoomer.setData(Qt.QVariant(str(toggle_id)))
-    self._reset_zoomer.setVisible(False)
-    self.connect(self._reset_zoomer,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
+    # connect menu actions
+    
+    Qt.QObject.connect(self._menu.close_window,Qt.SIGNAL("triggered()"),self.quit);
+    
+    Qt.QObject.connect(self._menu.reset_zoomer,Qt.SIGNAL("triggered()"),self.reset_zoom);
 
-    toggle_id = self.menu_table['Print']
-    self._print = Qt.QAction(pixmaps.fileprint.iconset(),'Print',self)
 # the following is commented out until postscript/pdf printing works 
 # properly with Qt 4 widgets
-#    self._menu.addAction(self._print)
-    self._print.setData(Qt.QVariant(str(toggle_id)))
-    self.connect(self._print,Qt.SIGNAL("triggered()"),self.plotPrinter.do_print);
+#   self._print = menu.addAction("Print",self.plotPrinter.do_print)
 
-    toggle_id = self.menu_table['Clear Plot']
-    self._clear_plot = Qt.QAction('Clear plot',self)
-    self._menu.addAction(self._clear_plot)
-    self._clear_plot.setData(Qt.QVariant(str(toggle_id)))
-    self.connect(self._clear_plot,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
+    Qt.QObject.connect(self._menu.clear_plot,Qt.SIGNAL("triggered()"),self.clear_plot);
 
-    toggle_id = self.menu_table['Close Popups']
-    self._close_popups = Qt.QAction('Close popups',self)
-    self._menu.addAction(self._close_popups)
-    self._close_popups.setData(Qt.QVariant(str(toggle_id)))
-    self._close_popups.setVisible(False)
-    self.connect(self._close_popups,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
+    Qt.QObject.connect(self._menu.close_popups,Qt.SIGNAL("triggered()"),self.closezoomfun)
 
+    Qt.QObject.connect(self._menu.show_flagged_data,Qt.SIGNAL("triggered(bool)"),self.change_flag_parms)
 
-    toggle_id = self.menu_table['Show Flags']
-    self._show_flagged_data = Qt.QAction('Show flagged data',self)
-    self._menu.addAction(self._show_flagged_data)
-    self._show_flagged_data.setData(Qt.QVariant(str(toggle_id)))
-    self._show_flagged_data.setCheckable(True)
-    self._show_flagged_data.setChecked(False)
-    self.connect(self._show_flagged_data,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
+    #***** add Fixed scale vs Offset scale submenu
+    Qt.QObject.connect(self._menu.autoscale,Qt.SIGNAL("triggered(bool)"),self.change_scale_type);
 
-    toggle_id = self.menu_table['Fixed Scale']
-    self._fixed_scale = Qt.QAction('Fixed scale',self)
-    self._menu.addAction(self._fixed_scale)
-    self._fixed_scale.setData(Qt.QVariant(str(toggle_id)))
-    self._fixed_scale.setVisible(False)
-    self.connect(self._fixed_scale,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
+    Qt.QObject.connect(self._menu.offset_value,Qt.SIGNAL("triggered()"),self.change_offset_value);
+    
+    Qt.QObject.connect(self._menu.show_labels,Qt.SIGNAL("triggered(bool)"),self.enable_labels);
 
-    toggle_id = self.menu_table['Offset Value']
-    self._offset_value = Qt.QAction('Offset Value',self)
-    self._menu.addAction(self._offset_value)
-    self._offset_value.setData(Qt.QVariant(str(toggle_id)))
-    self._offset_value.setVisible(False)
-    self.connect(self._offset_value,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
-
-    toggle_id = self.menu_table['Show Channels']
-    self._show_channels = Qt.QAction('Show labels',self)
-    self._menu.addAction(self._show_channels)
-    self._show_channels.setData(Qt.QVariant(str(toggle_id)))
-    self._show_channels.setCheckable(True)
-    self._show_channels.setChecked(True)
-    self.connect(self._show_channels,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
-
-    toggle_id = self.menu_table['Append']
-    self._append = Qt.QAction('Accumulate data tracks',self)
-    self._menu.addAction(self._append)
-    self._append.setData(Qt.QVariant(str(toggle_id)))
-    self._append.setCheckable(True)
-    self._append.setChecked(True)
-    self.connect(self._append,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
-
-# create the submenu
-    self._complex_submenu = Qt.QMenu(self._menu)
-
-    toggle_id = self.menu_table['Amplitude']
-    self._amplitude_menu = Qt.QAction('Amplitude',self)
-    self._complex_submenu.addAction(self._amplitude_menu)
-    self._amplitude_menu.setData(Qt.QVariant(str(toggle_id)))
-    self._amplitude_menu.setCheckable(True)
-    self._amplitude_menu.setChecked(True)
-    self.connect(self._amplitude_menu,Qt.SIGNAL("triggered()"),self.emit_complex_selector);
-
-    toggle_id = self.menu_table['Phase']
-    self._phase_menu = Qt.QAction('Phase (radians)',self)
-    self._complex_submenu.addAction(self._phase_menu)
-    self._phase_menu.setData(Qt.QVariant(str(toggle_id)))
-    self._phase_menu.setCheckable(True)
-    self._phase_menu.setChecked(False)
-    self.connect(self._phase_menu,Qt.SIGNAL("triggered()"),self.emit_complex_selector);
-
-    toggle_id = self.menu_table['Real']
-    self._real_menu = Qt.QAction('Real',self)
-    self._complex_submenu.addAction(self._real_menu)
-    self._real_menu.setData(Qt.QVariant(str(toggle_id)))
-    self._real_menu.setCheckable(True)
-    self._real_menu.setChecked(False)
-    self.connect(self._real_menu,Qt.SIGNAL("triggered()"),self.emit_complex_selector);
-
-    toggle_id = self.menu_table['Imaginary']
-    self._imaginary_menu = Qt.QAction('Imaginary',self)
-    self._complex_submenu.addAction(self._imaginary_menu)
-    self._imaginary_menu.setData(Qt.QVariant(str(toggle_id)))
-    self._imaginary_menu.setCheckable(True)
-    self._imaginary_menu.setChecked(False)
-    self.connect(self._imaginary_menu,Qt.SIGNAL("triggered()"),self.emit_complex_selector);
-
-    toggle_id = self.menu_table['Complex Data']
-    self._complex_data_selection = Qt.QAction('Plot complex values as', self)
-    self._menu.addAction(self._complex_data_selection)
-    self._complex_data_selection.setMenu(self._complex_submenu)
-    self._complex_data_selection.setData(Qt.QVariant(str(toggle_id)))
-
-    self._change_vells = Qt.QAction('Data element selector...',self)
-    self._menu.addAction(self._change_vells);
-    self._change_vells.setVisible(False);
-
-    toggle_id = self.menu_table["Save Display in PNG Format"]
-    self._save_display = Qt.QAction('Save display in PNG format',self)
-    self._menu.addAction(self._save_display)
-    self._save_display.setData(Qt.QVariant(str(toggle_id)))
-    self.connect(self._save_display,Qt.SIGNAL("triggered()"),self.emit_menu_signal);
-
-
-    self._vells_menu = None
-    self._vells_menu_id = 0
-    self._vells_keys = {}
+    Qt.QObject.connect(self._menu,Qt.SIGNAL("changeComplexComponent"),self.update_complex_selector);
+    Qt.QObject.connect(self._menu,Qt.SIGNAL("changeVellsComponent"),self.update_vells_selector);
+    
+    Qt.QObject.connect(self._menu.save_display,Qt.SIGNAL("triggered()"),self.save_display)
 
 
     self.spy = Spy(self._plotter.canvas())
@@ -351,65 +230,8 @@ class ChartPlot(Qt.QWidget):
       self._x3[i] = 2 * (self._ArraySize + self._x_displacement) + i
       self._x4[i] = 3 * (self._ArraySize + self._x_displacement) + i
 
-  def emit_vells_selector(self):
-    action = Qt.QObject.sender(self)
-    menuid, flag = action.data().toInt()
-    self.emit(Qt.SIGNAL("vells_selector"),menuid)
-
-  def emit_menu_signal(self):
-    """ callback to handle events from the context menu """
-    # If we request a screen save, we only save the contents of
-    # the current tab (at least for the moment)
-    action = Qt.QObject.sender(self)
-    menuid, flag = action.data().toInt()
-
-    if menuid == self.menu_table['Save Display in PNG Format']:
-      self.emit(Qt.SIGNAL("save_display"),self._data_label)
-
-    # otherwise send a signal up to the parent widget, which then
-    # distributes the menuid to all chartplotters; they handle
-    # the menuid in the process_menu callback
-    else:
-      self.emit(Qt.SIGNAL("menu_command"),menuid)
-
-  def process_menu(self, menuid):
-    """ callback to handle events from the context menu """
-    if menuid < 0:
-      return
-    if menuid == self.menu_table['Reset zoomer']:
-      self.reset_zoom()
-      return True
-    if menuid == self.menu_table['Close']:
-      self.quit()
-      return True
-    if menuid == self.menu_table['Close Popups']:
-      self.closezoomfun()
-      return True
-    if menuid == self.menu_table['Fixed Scale']:
-      self.change_scale_type()
-      return True
-    if menuid == self.menu_table['Offset Value']:
-      self.change_offset_value()
-      return True
-    if menuid == self.menu_table['Show Channels']:
-      self.change_channel_display(menuid)
-      return True
-    if menuid == self.menu_table['Clear Plot']:
-      self.clear_plot()
-      return True
-    if menuid == self.menu_table['Append']:
-      if self._append_data:
-        self._append_data = False
-      else:
-        self._append_data = True
-      self._append.setChecked(self._append_data)
-      self.clear_plot()
-      return True
-    if menuid == self.menu_table['Show Flags']:
-      self.change_flag_parms()
-      return True
-    if menuid == self.menu_table['Complex Data']:
-      return True
+  def save_display (self):
+    self.emit(Qt.SIGNAL("save_display"),self._data_label)
 
   def closestCurve(self, pos):
         """ from Gerard Vermeulen's EventFilterDemo.py example """
@@ -437,91 +259,94 @@ class ChartPlot(Qt.QWidget):
           return (index, x, y, point)
     # closestCurve
 
-
-  def change_flag_parms(self):
-    if self._ignore_flagged_data:
-      self._ignore_flagged_data = False
-    else:
-      self._ignore_flagged_data = True
-    self._show_flagged_data.setChecked(not self._ignore_flagged_data)
-    self._do_fixed_scale = False
+  def refresh_plot (self):
+    """ causes entire plot to be redone -- called from methods that change the plotted data""";
     self._auto_offset = True
     self._offset = 0
     self._max_range = -10000
     for channel in range(self._nbcrv):
       self._updated_data[channel] = True
-      self._start_offset_test[channel][self._data_index] = 0
     self.reset_zoom()
     self._refresh_flag = True
     self.refresh_event()
 
-  def emit_complex_selector(self):
-    """ callback to handle events from the context menu """
-    action = Qt.QObject.sender(self)
-    menuid, flag = action.data().toInt()
-    self.emit(Qt.SIGNAL("complex_selector_command"),menuid)
 
-  def process_complex_selector(self, menuid):
+  def update_complex_selector (self,label):
     """ callback to handle events from the complex data selection
         sub-context menu 
     """
-    if menuid < 0:
-      return
-    self._amplitude = False
-    self._phase = False
-    self._real = False
-    self._imaginary = False
-
-    self._amplitude_menu.setChecked(False)
-    self._phase_menu.setChecked(False)
-    self._real_menu.setChecked(False)
-    self._imaginary_menu.setChecked(False)
-
-    if menuid == self.menu_table['Amplitude']:
-      self._amplitude = True
-      self._amplitude_menu.setChecked(True)
-      self._y_title.setText("Amplitude (Relative Scale)")
-      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
-      self._complex_type = "Amplitude"
-    if menuid == self.menu_table['Phase']:
-      self._phase = True
-      self._phase_menu.setChecked(True)
-      self._y_title.setText("Phase (Relative Scale)")
-      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
-      self._complex_type = "Phase"
-    if menuid == self.menu_table['Real']:
-      self._real = True
-      self._real_menu.setChecked(True)
-      self._y_title.setText("Real (Relative Scale)")
-      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
-      self._complex_type = "Real"
-    if menuid == self.menu_table['Imaginary']:
-      self._imaginary = True
-      self._imaginary_menu.setChecked(True)
-      self._y_title.setText("Imaginary (Relative Scale)")
-      self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
-      self._complex_type = "Imaginary"
-
-    self._do_fixed_scale = False
-    self._auto_offset = True
-    self._offset = 0
-    self._max_range = -10000
+    self._complex_component = label;
+    self._y_title.setText("%s (Relative Scale)"%label);
+    self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
     for channel in range(self._nbcrv):
-      self._updated_data[channel] = True
       self._start_offset_test[channel][self._data_index] = 0
-    self.reset_zoom()
-    self._refresh_flag = True
-    self.refresh_event()
+    self.refresh_plot();
     return True
 
+  def update_vells_selector (self,label):
+    self._data_index = label;
+    for channel in range(self._nbcrv):
+      self._crv_key[channel].detach()
+    self.refresh_plot();
+
+  def change_scale_type (self,autoscale):
+    # click means change to fixed scale
+    if autoscale:
+      self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
+    else: 
+      # find current data min and max
+      scale_max = self._spec_grid_offset.max()
+      scale_min = self._spec_grid_offset.min()
+
+      scale_diff = scale_max - scale_min
+      scale_max = scale_max + 0.2 * scale_diff
+      scale_min = scale_min - 0.2 * scale_diff 
+
+      AxisParms = ScaleSelector(scale_max, scale_min, self)
+      self.connect(AxisParms, Qt.SIGNAL("scale_values"), self.set_scale_values)
+      self.connect(AxisParms, Qt.SIGNAL("cancel"), self.cancel_scale_request)
+
+  def change_offset_value (self):
+    OffSetParam = OffsetSelector(self)
+    self.connect(OffSetParam, Qt.SIGNAL("offset_value"), self.set_offset_value)
+    self.connect(OffSetParam, Qt.SIGNAL("cancel_offset"), self.cancel_offset_request)
+
+  def enable_labels (self,enable):
+    for channel in range(self._nbcrv):
+      self._start_offset_test[channel][self._data_index] = 0
+    self.refresh_plot();
+
+  def set_scale_values(self, max_value, min_value):
+    if not self._menu.autoscale.isChecked():
+      self._plotter.setAxisScale(Qwt.QwtPlot.yLeft, min_value, max_value)
+      self._plotter.replot()
+
+  def cancel_scale_request(self):
+    self._menu.autoscale.setChecked(False);
+    self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
+
+  def set_offset_value(self, offset_value):
+    self._offset = offset_value
+    self._refresh_flag = True
+    if self._offset < 0.0:
+      self._auto_offset = True
+      self._offset = 0
+      self._max_range = -10000
+    else: 
+      self._auto_offset = False
+
+  def change_flag_parms (self,*dum):
+    self._menu.autoscale.setChecked(True);
+    for channel in range(self._nbcrv):
+      self._start_offset_test[channel][self._data_index] = 0
+    self.refresh_plot();
     
-  def reset_zoom(self):
+  def reset_zoom (self):
     """ resets data display so all data are visible """
     self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
     self._plotter.setAxisAutoScale(Qwt.QwtPlot.xBottom)
     self._plotter.replot()
-    self._reset_zoomer.setVisible(False)
-    return
+    self._menu.reset_zoomer.setVisible(False)
 
   def clear_plot(self):
     """ clear the plot of all displayed data """
@@ -543,8 +368,8 @@ class ChartPlot(Qt.QWidget):
 
   def setDataLabel(self, data_label):
     self._data_label = data_label
-    title = self._data_label + " " + self._x_title.text()
-    self._x_title.setText(title)
+#    title = self._data_label + " " + self._x_title.text()
+#    self._x_title.setText(title)
     self._plotter.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
 
   def setPlotLabel(self, plot_label):
@@ -626,7 +451,7 @@ class ChartPlot(Qt.QWidget):
     elif p2x >= 3*(self._ArraySize+self._x_displacement) and p2x < (4*self._ArraySize) + 3*self._x_displacement: 
       ref_point = int(p2x - (3*(self._ArraySize+self._x_displacement)))
 
-    if self._phase:
+    if self._complex_component is self.PHASE:
       temp_off = ((closest_curve) % (self._nbcrv/4) + 0.5 ) * self._offset
     else:
       temp_off = ((closest_curve) % (self._nbcrv/4)) * self._offset
@@ -712,7 +537,7 @@ class ChartPlot(Qt.QWidget):
           self._Zoom[curve_no]._plotter.replot()
 
     if self._closezoom:
-      self._close_popups.setVisible(False)
+      self._menu.close_popups.setVisible(False)
 
   def plotMouseMoved(self, e):
     position = e.pos()
@@ -797,7 +622,7 @@ class ChartPlot(Qt.QWidget):
           self.zoomState = (xmin, xmax, ymin, ymax)
           self._plotter.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
           self._plotter.setAxisScale(Qwt.QwtPlot.yLeft, ymin, ymax)
-          self._reset_zoomer.setVisible(True)
+          self._menu.reset_zoomer.setVisible(True)
           self._plotter.replot()
         if not self.xzoom_loc is None:
           self.zoom_outline.detach()
@@ -863,7 +688,7 @@ class ChartPlot(Qt.QWidget):
       self.connect(self._Zoom[crv], Qt.SIGNAL('save_zoom_display'), self.grab_zoom_display)
 
       # make sure option to close all Popup windows is seen
-      self._close_popups.setVisible(True)
+      self._menu.close_popups.setVisible(True)
 
 
   def grab_zoom_display(self, title, crvtemp):
@@ -1004,6 +829,11 @@ class ChartPlot(Qt.QWidget):
       has_keys = False
       data_keys = []
       data_keys.append(0)
+#    print "Data keys",data_keys;
+      
+    # set current index to first vells, if not initialized
+    if self._data_index is None:
+      self._data_index = data_keys[0];
 
     if channel_no >=  self._nbcrv:
       factor = int (channel_no / self._nbcrv)
@@ -1011,34 +841,14 @@ class ChartPlot(Qt.QWidget):
       channel = channel_no - self._ref_chan
     else:
       channel = channel_no
-    first_vells = True
+      
     for keys in data_keys: 
       if not self._chart_data[channel].has_key(keys):
         self._chart_data[channel][keys] = []
         self._flag_data[channel][keys] = []
         self._start_offset_test[channel][keys] = 0
-        if len(data_keys) > 1:
-          if self._vells_menu is None:
-            self._vells_menu = Qt.QMenu(self._menu)
-            self._change_vells.setVisible(True);
-            toggle_id = self.menu_table['Change Vells']
-            self._change_vells.setData(Qt.QVariant(str(toggle_id)))
-            self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.emit_vells_selector);
-            self._change_vells.setMenu(self._vells_menu)
-          menu_label = str(keys)
-          if not self._vells_keys.has_key(menu_label):
-# create the submenu
-            vells_action = Qt.QAction(menu_label,self)
-            vells_action.setData(Qt.QVariant(str(self._vells_menu_id)))
-            vells_action.setCheckable(True)
-            self.connect(vells_action,Qt.SIGNAL("triggered()"),self.emit_vells_selector);
-            self._vells_actions.append(vells_action)
-            self._vells_menu_id = self._vells_menu_id + 1
-            self._vells_keys[menu_label] = 1
-            if first_vells:
-              vells_action.setChecked(True)
-              first_vells = False
-            self._vells_menu.addAction(vells_action)
+#        if len(data_keys) > 1:
+#          self._menu.add_vells_key(keys);
 
       incoming_data = None
       incoming_flags = None
@@ -1121,7 +931,8 @@ class ChartPlot(Qt.QWidget):
           keep = ~nan_test & ~inf_test
           self.has_nans_infs = True
 
-        if self._append_data: 
+        append = self._menu.append.isChecked();
+        if append: 
           for i in range(len(flattened_array)):
             self._chart_data[channel][keys].append(flattened_array[i])
         else:
@@ -1134,7 +945,7 @@ class ChartPlot(Qt.QWidget):
           flattened_array = numpy.reshape(incoming_flags.copy(),(num_elements,))
         if self.has_nans_infs:
           flattened_array[delete] = 10
-        if self._append_data: 
+        if append: 
           for i in range(len(flattened_array)):
             self._flag_data[channel][keys].append(flattened_array[i])
         else:
@@ -1144,93 +955,6 @@ class ChartPlot(Qt.QWidget):
       if self._ArraySize < len(self._chart_data[channel][keys]):
         self._ArraySize = len(self._chart_data[channel][keys])
         self.set_x_axis_sizes()
-
-  def update_vells_selector(self, menuid):
-    for i in range(len(self._vells_actions)):
-      self._vells_actions[i].setChecked(False)
-    try:
-      self._vells_actions[int(menuid)].setChecked(True)
-    except:
-      pass
-    self._data_index = int(menuid)
-    self._do_fixed_scale = False
-    self._auto_offset = True
-    self._offset = 0
-    self._max_range = -10000
-    for channel in range(self._nbcrv):
-      self._crv_key[channel].detach()
-      self._updated_data[channel] = True
-    self.reset_zoom()
-    self._refresh_flag = True
-    self.refresh_event()
-
-  def change_scale_type(self):
-    # click means change to fixed scale
-    toggle_id = self.menu_table['Fixed Scale']
-    if self._do_fixed_scale:
-      self._do_fixed_scale = False
-      self._menu.changeItem(toggle_id,'Fixed Scale')
-      self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
-    else: 
-      self._do_fixed_scale = True
-      self._menu.changeItem(toggle_id, 'Auto Scale')
-
-      # find current data min and max
-      scale_max = self._spec_grid_offset.max()
-      scale_min = self._spec_grid_offset.min()
-
-      scale_diff = scale_max - scale_min
-      scale_max = scale_max + 0.2 * scale_diff
-      scale_min = scale_min - 0.2 * scale_diff 
-
-      AxisParms = ScaleSelector(scale_max, scale_min, self)
-      self.connect(AxisParms, Qt.SIGNAL("scale_values"), self.set_scale_values)
-      self.connect(AxisParms, Qt.SIGNAL("cancel"), self.cancel_scale_request)
-
-  def change_offset_value(self):
-    OffSetParam = OffsetSelector(self)
-    self.connect(OffSetParam, Qt.SIGNAL("offset_value"), self.set_offset_value)
-    self.connect(OffSetParam, Qt.SIGNAL("cancel_offset"), self.cancel_offset_request)
-
-  def change_channel_display(self, toggle_id):
-    if self.show_channel_labels:
-      self.show_channel_labels = False
-    else:
-      self.show_channel_labels = True
-    self._show_channels.setChecked(self.show_channel_labels)
-    self._do_fixed_scale = False
-    self._auto_offset = True
-    self._offset = 0
-    self._max_range = -10000
-    for channel in range(self._nbcrv):
-      self._updated_data[channel] = True
-      self._start_offset_test[channel][self._data_index] = 0
-    self._refresh_flag = True
-    self.refresh_event()
-
-
-  def set_scale_values(self, max_value, min_value):
-    if self._do_fixed_scale:
-      self._plotter.setAxisScale(Qwt.QwtPlot.yLeft, min_value, max_value)
-      self._plotter.replot()
-
-  def cancel_scale_request(self):
-    if self._do_fixed_scale: 
-      self._do_fixed_scale = False
-      toggle_id = self.menu_table['Fixed Scale']
-      self._menu.changeItem(toggle_id,'Fixed Scale')
-      self._plotter.setAxisAutoScale(Qwt.QwtPlot.yLeft)
-
-  def set_offset_value(self, offset_value):
-    self._offset = offset_value
-    self._refresh_flag = True
-    if self._offset < 0.0:
-      self._auto_offset = True
-      self._offset = 0
-      self._max_range = -10000
-    else: 
-      self._auto_offset = False
-
 
   def refresh_event(self):
     """ redisplay plot and zoom
@@ -1265,29 +989,22 @@ class ChartPlot(Qt.QWidget):
             test_chart = numpy.compress(flags==0,chart)
             if test_chart.shape[0] > 0:
               if chart.dtype == numpy.complex64 or chart.dtype == numpy.complex128:
-                toggle_id = self.menu_table['Complex Data']
-                self._complex_data_selection.setVisible(True)
+                self._menu.showComplexControls(True)
                 complex_chart = test_chart.copy()
-                if self._amplitude:
-                  self._y_title.setText("Amplitude (Relative Scale)")
-                  cplx_chart = abs(complex_chart)
-                elif self._real:
-                  self._y_title.setText("Real (Relative Scale)")
-                  cplx_chart = complex_chart.real
-                elif self._imaginary:
-                  self._y_title.setText("Imaginary (Relative Scale)")
-                  cplx_chart = complex_chart.imag
-                else:
-                  self._y_title.setText("Phase (Relative Scale)")
-                  real_chart = complex_chart.real
-                  imag_chart = complex_chart.imag
-                  cplx_chart = numpy.arctan2(imag_chart,real_chart)
+                self._y_title.setText("%s (Relative Scale)"%self._complex_component)
                 self._plotter.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
+                if self._complex_component is self.AMP:
+                  cplx_chart = abs(complex_chart)
+                elif self._complex_component is self.REAL:
+                  cplx_chart = complex_chart.real
+                elif self._complex_component is self.IMAG:
+                  cplx_chart = complex_chart.imag
+                elif self._complex_component is self.PHASE:
+                  cplx_chart = numpy.angle(complex_chart)
                 tmp_max = cplx_chart.max()
                 tmp_min = cplx_chart.min()
               else:
-                toggle_id = self.menu_table['Complex Data']
-                self._complex_data_selection.setVisible(False)
+                self._menu.showComplexControls(False)
                 tmp_max = test_chart.max()
                 tmp_min = test_chart.min()
               chart_range = abs(tmp_max - tmp_min)
@@ -1326,7 +1043,7 @@ class ChartPlot(Qt.QWidget):
         elif index >= (3*(self._nbcrv/4))+1 and index <= self._nbcrv:
           temp_x = self._x4
 
-        if self._phase:
+        if self._complex_component is self.PHASE:
           temp_off = (channel % (self._nbcrv/4) + 0.5 ) * self._offset
         else:
           temp_off = (channel % (self._nbcrv/4)) * self._offset
@@ -1335,22 +1052,20 @@ class ChartPlot(Qt.QWidget):
         flags = numpy.array(self._flag_data[channel][self._data_index])
         if chart.dtype == numpy.complex64 or chart.dtype == numpy.complex128:
           complex_chart = chart.copy()
-          if self._amplitude:
+          if self._complex_component is self.AMP:
             self._crv_key[channel].setPen(Qt.QPen(Qt.Qt.red))
             cplx_chart = abs(complex_chart)
-          elif self._real:
+          elif self._complex_component is self.REAL:
             self._crv_key[channel].setPen(Qt.QPen(Qt.Qt.blue))
             cplx_chart = complex_chart.real
-          elif self._imaginary:
+          elif self._complex_component is self.IMAG:
             self._crv_key[channel].setPen(Qt.QPen(Qt.Qt.gray))
             cplx_chart = complex_chart.imag
-          else:
+          elif self._complex_component is self.PHASE:
             self._crv_key[channel].setPen(Qt.QPen(Qt.Qt.green))
-            real_chart = complex_chart.real
-            imag_chart = complex_chart.imag
-            cplx_chart = numpy.arctan2(imag_chart,real_chart)
+            cplx_chart = numpy.angle(complex_chart)
           # don't display flagged data
-          if self._ignore_flagged_data:
+          if not self._menu.show_flagged_data.isChecked():
             x_plot_values = numpy.compress(flags==0,temp_x)
             y_plot_values = numpy.compress(flags==0,cplx_chart)
             if y_plot_values.shape[0] == 0:
@@ -1371,7 +1086,7 @@ class ChartPlot(Qt.QWidget):
         else:
           self._crv_key[channel].setPen(Qt.QPen(Qt.Qt.black))
           # don't display flagged data
-          if self._ignore_flagged_data:
+          if not self._menu.show_flagged_data.isChecked():
             x_plot_values = numpy.compress(flags==0,temp_x)
             y_plot_values = numpy.compress(flags==0,chart)
             if y_plot_values.shape[0] == 0:
@@ -1393,7 +1108,7 @@ class ChartPlot(Qt.QWidget):
         # update marker with info about the plot
         if not self._source_marker[channel] is None:
           self._source_marker[channel].detach()
-        if not y_plot_values is None and self.show_channel_labels:
+        if not y_plot_values is None and self._menu.show_labels.isChecked():
           if not self._plot_label is None:
             message = self._plot_label[channel + self._ref_chan]
           else:

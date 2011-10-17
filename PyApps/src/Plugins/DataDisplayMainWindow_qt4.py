@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #
 # Copyright (C) 2002-2007
@@ -30,6 +31,206 @@ import numpy
 
 import chartplot_qt4
 
+
+class ControlMenu (Qt.QMenu):
+  """TThis is the control menu common to all the ChartPlot widgets"""
+  AMP = "Amplitude";
+  PHASE = "Phase";
+  REAL = "Real";
+  IMAG = "Imaginary";
+  ComplexComponents = (AMP,PHASE,REAL,IMAG);
+  
+  def __init__ (self,parent):
+    Qt.QMenu.__init__(self,parent);
+    self.close_window = self.addAction('Close Window');
+    self.close_window.setVisible(False)
+
+    self.reset_zoomer = self.addAction('Reset zoomer');
+    self.reset_zoomer.setVisible(False)
+
+# the following is commented out until postscript/pdf printing works 
+# properly with Qt 4 widgets
+#   self._print = self.addAction("Print",self.plotPrinter.do_print)
+
+    self.clear_plot = self.addAction('Clear plot');
+
+    self.close_popups = self.addAction('Close popups')
+    self.close_popups.setVisible(False)
+
+    self.show_flagged_data = self.addAction('Show flagged data')
+    self.show_flagged_data.setCheckable(True)
+    self.show_flagged_data.setChecked(False)
+
+    self.autoscale = self.addAction('Automatic scaling');
+    self.autoscale.setCheckable(True)
+    self.autoscale.setChecked(False)
+    self.autoscale.setVisible(False) # not sure why, but this is never set to visible -- perhaps fixed scaling doesn't work at all
+
+    self.offset_value = self.addAction('Offset Value');
+    self.offset_value.setVisible(False); # not sure why, but this is never set to visible -- perhaps it no longer works at all
+    
+    self.show_labels = self.addAction('Show labels');
+    self.show_labels.setCheckable(True)
+    self.show_labels.setChecked(True)
+
+    self.append = self.addAction('Accumulate data tracks')
+    self.append.setCheckable(True)
+    self.append.setChecked(True)
+
+    # create submenu for complex data
+    self.complex_menu = self.addMenu("Plot complex values as...");
+    qag = Qt.QActionGroup(self.complex_menu);
+    self._qas_complex = dict();
+    self._tbs_complex = dict();
+    for label in self.ComplexComponents:
+      qa = self.complex_menu.addAction(label);
+      qa.setCheckable(True);
+      qag.addAction(qa);
+      self._qas_complex[label] = qa;
+    self._qas_complex[self.AMP].setChecked(True); 
+    Qt.QObject.connect(qag,Qt.SIGNAL("triggered(QAction*)"),self._change_complex);
+    # current complex component
+    self.complex_component = self.AMP;
+    
+    self.vells_menu = self.addMenu('Data element selector...')
+    self.vells_menu.setVisible(False);
+    # menu and action group will be filled when the first updateEvent occurs
+    self._qag_vells = Qt.QActionGroup(self.vells_menu);
+    self._qas_vells = dict();
+    self._tbs_vells = dict();
+    Qt.QObject.connect(self._qag_vells,Qt.SIGNAL("triggered(QAction*)"),self._change_vells);
+    self.vells_component = None;
+
+    self.save_display = self.addAction('Save display in PNG format');
+
+  def createDataSelectorWidgets (self,parent,parent_layout):
+    """Creates toolbuttons for complex values and Vells selection""";
+    self._ds_top = top = Qt.QWidget(parent);
+    parent_layout.addWidget(top);
+    self._ds_lo = lotop = Qt.QVBoxLayout(top);
+    lotop.setContentsMargins(0,0,0,0);
+    self._ds_complex = Qt.QWidget(top);
+    lotop.addWidget(self._ds_complex);
+    lo = Qt.QVBoxLayout(self._ds_complex);
+    lo.setContentsMargins(0,0,0,0);
+    lab = Qt.QLabel("complex:");
+    lab.setAlignment(Qt.Qt.AlignHCenter);
+    lo.addWidget(lab);
+    # add complex selector
+    lo0 = Qt.QHBoxLayout();
+    lo0.setContentsMargins(0,0,0,0);
+    lo.addLayout(lo0);
+    lo1 = Qt.QGridLayout()
+    lo1.setContentsMargins(0,0,0,0);
+    lo1.setHorizontalSpacing(0);
+    lo1.setVerticalSpacing(0);
+    lo0.addStretch(1);
+    lo0.addLayout(lo1);
+    lo0.addStretch(1);
+    bgrp = Qt.QButtonGroup(self._ds_complex);
+    tbdesc = { self.AMP:(u"\u007Ca\u007C",0,0),self.PHASE:(u"\u03D5",0,1),self.REAL:("Re",1,0),self.IMAG:("Im",1,1) };
+    for label,qa in self._qas_complex.iteritems():
+      tbtext,row,col = tbdesc[label];
+      tb = Qt.QToolButton(self._ds_complex);
+      lo1.addWidget(tb,row,col);
+      bgrp.addButton(tb);
+      tb.setText(tbtext);
+      tb.setToolButtonStyle(Qt.Qt.ToolButtonTextOnly);
+      tb.setCheckable(True);
+      tb.setChecked(label is self.complex_component);
+      tb.setMinimumWidth(32);
+      Qt.QObject.connect(tb,Qt.SIGNAL("clicked(bool)"),qa.setChecked);
+      Qt.QObject.connect(tb,Qt.SIGNAL("clicked(bool)"),self._change_complex);
+      Qt.QObject.connect(qa,Qt.SIGNAL("triggered(bool)"),tb.setChecked);
+      self._tbs_complex[label] = tb;
+
+  def setVellsElementLabels(self,labels,dims):
+    # do nothing when only one label, or when already set
+    if len(labels)<2 or self._qas_vells:
+      return;
+    # make menu items
+    for label in labels:
+      # make menu action
+      self._qas_vells[label] = va = self._qag_vells.addAction(str(label));
+      va.setCheckable(True);
+      # if first QAction, then check it
+      if len(self._qas_vells) == 1:
+        va.setChecked(True)
+        self.vells_component = label;
+      self.vells_menu.addAction(va);
+    self.vells_menu.menuAction().setVisible(True);
+    # make grid of selector buttons, if dims are not too big
+    if len(dims) <= 2 and min(*dims)<=2 and max(*dims)<=6:
+      # for dims=1, make it 1xN 
+      if len(dims) == 1:
+        dims = (1,dims[0]);
+      # add vells selector 
+      self._ds_lo.addSpacing(16);
+      self._ds_vells = Qt.QWidget(self._ds_top);
+      self._ds_lo.addWidget(self._ds_vells);
+      lo = Qt.QVBoxLayout(self._ds_vells);
+      lo.setContentsMargins(0,0,0,0);
+      lab = Qt.QLabel("element:");
+      lab.setAlignment(Qt.Qt.AlignHCenter);
+      lo.addWidget(lab);
+      # add complex selector
+      lo0 = Qt.QHBoxLayout();
+      lo0.setContentsMargins(0,0,0,0);
+      lo.addLayout(lo0);
+      lo1 = Qt.QGridLayout()
+      lo1.setContentsMargins(0,0,0,0);
+      lo1.setHorizontalSpacing(0);
+      lo1.setVerticalSpacing(0);
+      lo0.addStretch(1);
+      lo0.addLayout(lo1);
+      lo0.addStretch(1);
+      bgrp = Qt.QButtonGroup(self._ds_vells);
+      # make the labels
+      for ilabel,label in enumerate(labels):
+        # make toolbutton
+        tb = Qt.QToolButton(self._ds_vells);
+        bgrp.addButton(tb);
+        self._tbs_vells[label] = tb;
+        tb.setText(str(label));
+        tb.setToolButtonStyle(Qt.Qt.ToolButtonTextOnly);
+        tb.setCheckable(True);
+        tb.setChecked(label is self.vells_component);
+  #      tb.setMinimumWidth(32);
+        qa = self._qas_vells[label];
+        Qt.QObject.connect(tb,Qt.SIGNAL("clicked(bool)"),qa.setChecked);
+        Qt.QObject.connect(tb,Qt.SIGNAL("clicked(bool)"),self._change_vells);
+        Qt.QObject.connect(qa,Qt.SIGNAL("triggered(bool)"),tb.setChecked);
+        # add to layout in correct place
+        col,row = divmod(ilabel,dims[-1]);
+        if dims[1] > 3:
+          col,row = row,col;
+        lo1.addWidget(tb,row,col);
+      # show/hide controls
+      self._ds_vells.setVisible(len(labels) > 1);
+
+  def showComplexControls (self,show=True):
+    self.complex_menu.menuAction().setVisible(show);
+    self._ds_complex and self._ds_complex.setVisible(show);
+
+  def _change_complex (self,*dum):
+    for label,qa in self._qas_complex.iteritems():
+      if qa.isChecked():
+        self.complex_component = label;
+        break;
+    self.autoscale.setChecked(True);
+    self.emit(Qt.SIGNAL("changeComplexComponent"),self.complex_component);
+    
+  def _change_vells (self,*dum):
+    for label,qa in self._qas_vells.iteritems():
+      if qa.isChecked():
+        self.vells_component = label;
+        if label in self._tbs_vells:
+          self._tbs_vells[label].setChecked(True);
+        break;
+    self.autoscale.setChecked(True);
+    self.emit(Qt.SIGNAL("changeVellsComponent"),self.vells_component);
+
+
 class DisplayMainWindow(Qt.QMainWindow):
   """ This class enables the display of a collection
       of ChartPlot widgets contained within a tabwidget
@@ -47,9 +248,17 @@ class DisplayMainWindow(Qt.QMainWindow):
     self._png_number = 0
     self._grab_name = ''
 
+# create control menu
+    self._menu = ControlMenu(self);
 # create a dictionary of chart plot objects
     self._ChartPlot = {}
     self._click_on = "If you click on an individual stripchart with the <b>middle</b> mouse button, a popup window will appear that gives a more detailed plot of the data from that particular object. <br><br> Clicking with the <b>left</b> mouse button will cause a small popup to appear. The popup gives the actual X and Y values, corrected for offset, of the data point nearest to the location of the mouse.<br><br> Clicking with the <b>right</b> mouse button will cause a context menu to appear. The <b>Accumulate data tracks</b> option means that data in each tile will be appended to the previous data. If this option is unchecked, data will be displayed for just each individual tile. The <b>Data element selector</b> option works similarly to that associated with the standard 2-D plot display. Clicking on it causes a small submenu to appear that allows you to select different data elements for display."
+
+  def createDataSelectorWidgets (self,parent,layout):
+    self._menu.createDataSelectorWidgets(parent,layout);
+    
+  def setDataElementLabels (self,labels,dims):
+    self._menu.setVellsElementLabels(labels,dims);
 
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
@@ -58,7 +267,7 @@ class DisplayMainWindow(Qt.QMainWindow):
     except:
       self._grab_name = ''
     if not self._ChartPlot.has_key(data_type):
-      self._ChartPlot[data_type] = chartplot_qt4.ChartPlot(num_curves=self._num_curves, parent=self)
+      self._ChartPlot[data_type] = chartplot_qt4.ChartPlot(self._menu,num_curves=self._num_curves,parent=self)
       self._ChartPlot[data_type].setDataLabel(data_type)
       index = self._tabwidget.addTab(self._ChartPlot[data_type], data_type)
       self._tabwidget.setCurrentWidget(self._ChartPlot[data_type])
@@ -69,9 +278,6 @@ class DisplayMainWindow(Qt.QMainWindow):
       dcm_sn_descriptor = dcm_sn_descriptor + self._click_on
       self._ChartPlot[data_type].setWhatsThis(dcm_sn_descriptor)
       self.connect(self._ChartPlot[data_type], Qt.SIGNAL("quit_event"), self.quit_event)
-      self.connect(self._ChartPlot[data_type], Qt.SIGNAL("menu_command"), self.process_menu)
-      self.connect(self._ChartPlot[data_type], Qt.SIGNAL("complex_selector_command"), self.process_complex_selector)
-      self.connect(self._ChartPlot[data_type], Qt.SIGNAL("vells_selector"), self. update_vells_selector)
       self.connect(self._ChartPlot[data_type], Qt.SIGNAL("auto_offset_value"), self.report_auto_value)
       self.connect(self._ChartPlot[data_type], Qt.SIGNAL("save_display"), self.grab_display)
       if not self._plot_label is None:
@@ -85,59 +291,22 @@ class DisplayMainWindow(Qt.QMainWindow):
 
   def set_range_selector(self, new_range):
     """ set or update maximum range for slider controller """
-    try:
-      keys = self._ChartPlot.keys()
-      for i in range(len(keys)):
-        self._ChartPlot[keys[i]].set_offset_scale(new_range)
-    except:
-      pass
+    for plot in self._ChartPlot.itervalues():
+      plot.set_offset_scale(new_range)
 
   def set_auto_scaling(self):
     """ set or update maximum range for slider controller """
-    try:
-      keys = self._ChartPlot.keys()
-      for i in range(len(keys)):
-        self._ChartPlot[keys[i]].set_auto_scaling()
-    except:
-      pass
-
-  def process_menu(self,menuid):
-#   try:
-      keys = self._ChartPlot.keys()
-      for i in range(len(keys)):
-        self._ChartPlot[keys[i]].process_menu(menuid)
-#   except:
-#     pass
-
-  def process_complex_selector(self,menuid):
-#   try:
-      keys = self._ChartPlot.keys()
-      for i in range(len(keys)):
-        self._ChartPlot[keys[i]].process_complex_selector(menuid)
-#   except:
-#     pass
-
-  def  update_vells_selector(self,menuid):
-#   try:
-      keys = self._ChartPlot.keys()
-      for i in range(len(keys)):
-        self._ChartPlot[keys[i]].update_vells_selector(menuid)
-#   except:
-#     pass
+    for plot in self._ChartPlot.itervalues():
+      plot.set_auto_scaling()
 
   def resizeEvent(self, event):
-    keys = self._ChartPlot.keys()
-    for i in range(len(keys)):
-      self._ChartPlot[keys[i]].resize(event.size())
+    for plot in self._ChartPlot.itervalues():
+      plot.resize(event.size())
     self._tabwidget.resize(event.size())
 
   def setNewPlot(self):
-    try:
-      keys = self._ChartPlot.keys()
-      for i in range(len(keys)):
-        self._ChartPlot[keys[i]].clear_plot()
-    except:
-      pass
+    for plot in self._ChartPlot.itervalues():
+      plot.clear_plot()
 
   def grab_display(self, data_type):
     self._png_number = self._png_number + 1

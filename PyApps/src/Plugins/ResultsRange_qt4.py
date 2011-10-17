@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # a class to generate control buttons etc for use in controlling N-dimensional
 # displays
@@ -53,7 +54,7 @@ When you click in the area of the widget with the right mouse button a context m
 '''
 
 class ResultsRange(Qt.QWidget):
-    def __init__(self, parent=None, name="",horizontal=True):
+    def __init__(self, parent=None, name="",horizontal=True,draw_scale=True):
 #     Qt.QWidget.__init__(self, parent, name)
       Qt.QWidget.__init__(self, parent)
 
@@ -96,8 +97,9 @@ class ResultsRange(Qt.QWidget):
 
       if self.horizontal:
         self.slider = Qt.QSlider(Qt.Qt.Horizontal, self)
-        self.slider.setTickPosition(Qt.QSlider.TicksBelow)
-        self.slider.setTickInterval(self.minVal)
+        if draw_scale:
+          self.slider.setTickPosition(Qt.QSlider.TicksBelow)
+          self.slider.setTickInterval(self.minVal)
         self.slider.setRange(self.minVal, self.maxVal)
         self.connect(self.slider, Qt.SIGNAL("valueChanged(int)"), self.update_slider)
         self.connect(self.spinbox, Qt.SIGNAL("valueChanged(int)"), self.update_spinbox)
@@ -105,10 +107,10 @@ class ResultsRange(Qt.QWidget):
         # There seems to be occasional problems with some PyQwt versions not
         # handling the QwtSlider.BgSlot parameter
         try:
-          self.slider = Qwt.QwtSlider(self, Qt.Qt.Vertical, Qwt.QwtSlider.RightScale,
+          self.slider = Qwt.QwtSlider(self, Qt.Qt.Vertical,Qwt.QwtSlider.RightScale if draw_scale else Qwt.QwtSlider.NoScale,
                           Qwt.QwtSlider.BgSlot)
         except:
-          self.slider = Qwt.QwtSlider(self, Qt.Qt.Vertical, Qwt.QwtSlider.RightScale)
+          self.slider = Qwt.QwtSlider(self, Qt.Qt.Vertical,Qwt.QwtSlider.RightScale if draw_scale else Qwt.QwtSlider.NoScale)
         self.slider.setRange(self.minVal, self.maxVal)
         self.slider.setStep(self.minVal)
         self.connect(self.slider, Qt.SIGNAL("valueChanged(double)"), self.update_slider)
@@ -137,9 +139,11 @@ class ResultsRange(Qt.QWidget):
 # add on-line help
       self.setWhatsThis(results_range_help)
 
-    def setLabel(self, string_value= ''):
+    def setLabel(self, string_value= '', align=None):
       """ set current displayed label """
-      self.label_info.setText(string_value + self.string_info) 
+      self.label_info.setText(string_value + self.string_info);
+      if align is not None:
+        self.label_info.setAlignment(align);
 
     def setStringInfo(self, string_value= ''):
       """ assign a default leading string """
