@@ -34,7 +34,9 @@
 
 namespace Meq {
 
-InitDebugContext(Node,"MeqNode");
+#if !NDEBUG
+::Debug::Context NodeFace::uninit_DebugContext_("node:uninit");
+#endif
 
 using Debug::ssprintf;
 ObjRef Node::_dummy_objref;
@@ -220,15 +222,15 @@ bool Node::Cache::fromRecord (const Record &rec)
   }
   catch( std::exception &exc )
   {
-    cdebug1(3)<<"error parsing cache record: "<<exceptionToString(exc);
+//    cdebug1(3)<<"error parsing cache record: "<<exceptionToString(exc);
     clear();
     ThrowMore1(exc,"illegal cache record");
   }
   catch( ... )
   {
     clear();
-    cdebug1(3)<<"unknown exception parsing cache record"<<endl;
-    Throw1("illegal cache record");
+//    cdebug1(3)<<"unknown exception parsing cache record"<<endl;
+    throw LOFAR::Exception("illegal cache record",__HERE__);
   }
 }
 
@@ -322,6 +324,9 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   // now set the dependency mask if specified; this will override
   // possible modifications made above
   rec[FDependMask].get(depend_mask_,initializing);
+  
+  // get the domain symdep mask
+  domain_depend_mask_ = symdeps().getMask(FDomain);
 
   // set node groups, but always implicitly insert "All" at start
   std::vector<HIID> ngr;
@@ -511,7 +516,7 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   // Check that cached result is applicable:
   // (1) An empty reqid never matches, hence it can be used to
   //     always force a recalculation.
-  // (2) Ignore PARM_UPDATE requests if we have no dependency on
+  // (2) Ignore PARM_UPDATE and DISCOVER_SPIDS requests if we have no dependency on
   //     iteration
   // (3) Do a masked compare of rqids using the dependency mask.
   //   (3b) As a special case, reuse a cached result w/perts if no perts
@@ -526,11 +531,14 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   if( rqid.empty() || cache_.rqid.empty() )
     match = false;
   // (2) ignore PU requests if no dependency on iteration
-  else if( req.requestType() == RequestType::PARM_UPDATE &&
+  else if( ( req.requestType() == RequestType::PARM_UPDATE ||
+           req.requestType() == RequestType::DISCOVER_SPIDS ) &&
            !(cache_.rescode&symdeps().getMask(FIteration)) )
   {
+    cdebug(4)<<"PU or DS request and no dependence on iteration: returning empty result"<<endl;
+    cache_.ignore_parent_releases_ = true;
     ref <<= new Result;
-    match = true;
+    return true;
   }
   // (3) find the diffmask
   else
@@ -595,7 +603,9 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   if( logPolicy() >= LOG_RESULTS ||
       ( logPolicy() == LOG_DEFAULT && forest().logPolicy() >= LOG_RESULTS ) )
     forest().logNodeResult(*this,req,*ref);
-  has_state_dep_ = false;
+  has_state_dep_ = false;        
+  // this is an actual cache, so it should be released when the parents tell us to
+  cache_.ignore_parent_releases_ = false;
   // clear the parent stats
   int npar = pcparents_->nact ? pcparents_->nact : pcparents_->npar ;
   pcparents_->nhint = pcparents_->nhold = 0;
@@ -638,6 +648,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   }
   // if we don't hold our own cache, children should hold if they're not
   // invalidated by the diffmask
+  dprintf(4)("telling children to hold cache: %d, with mask %x\n",!longcache,diffmask);
   holdChildCaches(!longcache,diffmask);
   // finally, set up cache if asked to
   if( do_cache )
@@ -729,10 +740,12 @@ void Node::holdCache (bool hold) throw()
   pcparents_->nhint++;
   if( hold )
     pcparents_->nhold++;
-  cdebug(3)<<"parent cache hint: "<<
+  cdebug(3)<<"parent cache hint, hold="<<hold<<"; "<<
      pcparents_->npar<<" "<<pcparents_->nact<<" "<<pcparents_->nhint<<" "<<pcparents_->nhold<<endl;
   // have all parents checked in, and has noone asked for a hold (in smart mode)?
-  if( actual_cache_policy_ < CACHE_ALWAYS &&
+  if( !cache_.ignore_parent_releases_ &&
+      cache_.rescode&domain_depend_mask_ && // for now, always hold cache  if no dependency on domain
+      actual_cache_policy_ < CACHE_ALWAYS &&
       pcparents_->nhint >= ( pcparents_->nact ? pcparents_->nact : pcparents_->npar ) &&
       ( actual_cache_policy_ <= CACHE_MINIMAL || !pcparents_->nhold ) )
   {

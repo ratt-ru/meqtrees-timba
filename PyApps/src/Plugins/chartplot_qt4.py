@@ -832,6 +832,7 @@ class ChartPlot(Qt.QWidget):
 #    print "Data keys",data_keys;
       
     # set current index to first vells, if not initialized
+    self._data_index = self._menu.vells_component;
     if self._data_index is None:
       self._data_index = data_keys[0];
 

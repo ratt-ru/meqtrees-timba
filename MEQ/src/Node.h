@@ -233,7 +233,7 @@ class Node : public NodeFace
     {
       CACHE_NEVER      = -10,    //## nothing is cached at all
       CACHE_MINIMAL    = -1,     //## cache held until all parents get result
-      CACHE_DEFAULT    =  0,     //## use global (foresdefault) policy
+      CACHE_DEFAULT    =  0,     //## use global (forest default) policy
       //## note that a forest default of 0 actually corresponds to CACHE_SMART
       CACHE_SMART      =  1,     //## smart caching based on next-request hints,
                                  //## conservative (when in doubt, don't cache)
@@ -514,8 +514,6 @@ class Node : public NodeFace
 
     //## Standard debug info method
     virtual string sdebug(int detail = 0, const string &prefix = "", const char *name = 0) const;
-
-    LocalDebugContext;
 
   protected:
     //====== NodeFace method
@@ -887,6 +885,9 @@ class Node : public NodeFace
     //## Dependency mask indicating which parts of a RequestId the node's own
     //## value depends on (this is in addition to any child dependencies).
     int depend_mask_;
+    
+    //## Dependency mask indicating dependency on domain (a constant, essentially)
+    int domain_depend_mask_;
 
     //## A node's set of symdeps
     SymdepMap symdeps_;
@@ -960,6 +961,13 @@ class Node : public NodeFace
         RequestId   rqid;
         int         rescode;
         bool        is_valid;
+        
+        //## flag: ignore parent requests to release cache. This flag
+        // is normally cleared, but is raised when an empty result is returned in
+        // response to a DISCOVER_SPIDS or PARM_UPDATE request, thus protecting
+        // the actual cache. When parent request that the cache be cleared, and
+        // this flag is raised. the actual cache survives.
+        bool ignore_parent_releases_;
 
         //## cache mutex held during cache ops
         Thread::Mutex mutex;
@@ -1017,6 +1025,8 @@ class Node : public NodeFace
     static int checking_level_;
 
     static ObjRef _dummy_objref;
+    
+    
 };
 
 

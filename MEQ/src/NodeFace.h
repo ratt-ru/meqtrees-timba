@@ -80,7 +80,7 @@ class NodeFace : public DMI::BObj
     } ResultAttributes;
 
     NodeFace ()
-    : nodeindex_(-1)
+    : nodeindex_(-1),pDebugContext_(&uninit_DebugContext_)
     {}
 
 
@@ -101,6 +101,9 @@ class NodeFace : public DMI::BObj
       FailWhen(nodeindex_!=-1,"name and nodeindex can only be set once");
       name_ = name;
       nodeindex_ = ni;
+#if !NDEBUG
+      pDebugContext_ = new ::Debug::Context("node:"+name);
+#endif
     }
 
     //## Initializes node
@@ -231,11 +234,22 @@ class NodeFace : public DMI::BObj
     { DMI::Record::Ref ref; getSyncState(ref); return ref; }
 
 
+#if !NDEBUG
+    // per-node debug context
+    ::Debug::Context & getDebugContext() const
+    { return *const_cast<Debug::Context*>(pDebugContext_); }
+#endif
+
 
   private:
     //## we do have some private data: name and nodeindex
     std::string name_;
     int         nodeindex_;
+
+#if !NDEBUG
+    ::Debug::Context *pDebugContext_; 
+    static ::Debug::Context uninit_DebugContext_;
+#endif
 
 };
 
