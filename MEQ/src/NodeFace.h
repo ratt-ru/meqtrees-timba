@@ -80,7 +80,10 @@ class NodeFace : public DMI::BObj
     } ResultAttributes;
 
     NodeFace ()
-    : nodeindex_(-1),pDebugContext_(&uninit_DebugContext_)
+    : nodeindex_(-1)
+#if !NDEBUG
+  ,pDebugContext_(&uninit_DebugContext_)
+#endif
     {}
 
 
