@@ -328,7 +328,7 @@ class Logger(HierBrowser):
     # if content is specified, cache it inside the item
     if content is not None:
       # if content is just a single message, override viewable property to False,
-      # else let browser decide (=None)
+      # else let browser decide (viewable=None)
       viewable = None;
       if isinstance(content,dict) and \
          (len(content)==1 and content.keys()[0] in MessageCategories):
@@ -966,7 +966,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
     
   def log_message(self,msg,content=None,category=Logger.Normal):
     if category is not None and \
-          self.msglog.add(msg,content=content,category=category,flood_protection=20) and \
+          self.msglog.add(msg,content=content,category=category,flood_protection=20,udi="message") and \
           self.maintab.currentWidget() is not self.msglog.wtop(): 
       self.statusbar.showMessage(msg,2000);
 
