@@ -109,6 +109,7 @@ class CollectionsPlotter(GriddedPlugin):
     if self._visu_plotter is None:
       self._visu_plotter = DisplayMainWindow(parent=None,name=" ", num_curves=self._max_per_display, plot_label=self._plot_label)
       self.layout.addWidget(self._visu_plotter,100)
+      QObject.connect(self._visu_plotter,Qt.SIGNAL("showMessage"),self._gw.show_message);
       lo0 = QVBoxLayout();
       lo0.setContentsMargins(0,0,0,0);
       self.layout.addLayout(lo0,0);

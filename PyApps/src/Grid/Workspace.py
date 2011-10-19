@@ -94,8 +94,11 @@ class Workspace (object):
     # init first page
     self.add_page();
 
-  def show_message (self,message,timeout=2000):
-    self.wtop().emit(PYSIGNAL("showMessage"),message,None,None,timeout);
+  def show_message (self,message,error=False,timeout=2000):
+    print "Workshape show_message ",message;
+    from Timba.GUI import app_proxy_gui
+    category = app_proxy_gui.Logger.Error if error else app_proxy_gui.Logger.Normal;
+    self.wtop().emit(PYSIGNAL("showMessage"),message,None,category,timeout);
 
   # adds a tool button to one of the corners of the workspace viewer
   def add_tool_button (self,corner,icon,tooltip=None,click=None,

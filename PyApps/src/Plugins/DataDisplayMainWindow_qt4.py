@@ -39,6 +39,7 @@ class ControlMenu (Qt.QMenu):
   REAL = "Real";
   IMAG = "Imaginary";
   ComplexComponents = (AMP,PHASE,REAL,IMAG);
+  ComplexComponentLabels = {AMP:"ampl",PHASE:"ph",REAL:"re",IMAG:"im"};
   
   def __init__ (self,parent):
     Qt.QMenu.__init__(self,parent);
@@ -89,19 +90,21 @@ class ControlMenu (Qt.QMenu):
       self._qas_complex[label] = qa;
     self._qas_complex[self.AMP].setChecked(True); 
     Qt.QObject.connect(qag,Qt.SIGNAL("triggered(QAction*)"),self._change_complex);
+    self.complex_menu.menuAction().setVisible(False);
     # current complex component
     self.complex_component = self.AMP;
     
     self.vells_menu = self.addMenu('Data element selector...')
-    self.vells_menu.setVisible(False);
     # menu and action group will be filled when the first updateEvent occurs
     self._qag_vells = Qt.QActionGroup(self.vells_menu);
     self._qas_vells = dict();
     self._tbs_vells = dict();
     Qt.QObject.connect(self._qag_vells,Qt.SIGNAL("triggered(QAction*)"),self._change_vells);
+    self.vells_menu.menuAction().setVisible(False);
     self.vells_component = None;
 
-    self.save_display = self.addAction('Save display in PNG format');
+    self.save_this = self.addAction('Save this plot page in PNG format');
+    self.save_all = self.addAction('Save all pages in PNG format');
 
   def createDataSelectorWidgets (self,parent,parent_layout):
     """Creates toolbuttons for complex values and Vells selection""";
@@ -211,9 +214,17 @@ class ControlMenu (Qt.QMenu):
       # show/hide controls
       self._ds_vells.setVisible(len(labels) > 1);
 
+  def isComplexControlVisible (self):
+    return self.complex_menu.menuAction().isVisible();
+    
+  def isVellsControlVisible (self):
+    return self.vells_menu.menuAction().isVisible();
+
   def showComplexControls (self,show=True):
-    self.complex_menu.menuAction().setVisible(show);
-    self._ds_complex and self._ds_complex.setVisible(show);
+    """Enables complex controls. If called at least once, they become enabled and stay visible.""";
+    if show:
+      self.complex_menu.menuAction().setVisible(True);
+      self._ds_complex and self._ds_complex.setVisible(True);
 
   def _change_complex (self,*dum):
     for label,qa in self._qas_complex.iteritems():
@@ -257,6 +268,10 @@ class DisplayMainWindow(Qt.QMainWindow):
     self._ChartPlot = {}
     self._click_on = "If you click on an individual stripchart with the <b>middle</b> mouse button, a popup window will appear that gives a more detailed plot of the data from that particular object. <br><br> Clicking with the <b>left</b> mouse button will cause a small popup to appear. The popup gives the actual X and Y values, corrected for offset, of the data point nearest to the location of the mouse.<br><br> Clicking with the <b>right</b> mouse button will cause a context menu to appear. The <b>Accumulate data tracks</b> option means that data in each tile will be appended to the previous data. If this option is unchecked, data will be displayed for just each individual tile. The <b>Data element selector</b> option works similarly to that associated with the standard 2-D plot display. Clicking on it causes a small submenu to appear that allows you to select different data elements for display."
 
+    # connect menu signals
+    Qt.QObject.connect(self._menu.save_this,Qt.SIGNAL("triggered()"),self.save_current_display)
+    Qt.QObject.connect(self._menu.save_all,Qt.SIGNAL("triggered()"),self.save_all_displays)
+
   def createDataSelectorWidgets (self,parent,layout):
     self._menu.createDataSelectorWidgets(parent,layout);
     
@@ -266,7 +281,7 @@ class DisplayMainWindow(Qt.QMainWindow):
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
     try:
-      self._grab_name = data_dict['source'] + '_'
+      self._grab_name = data_dict['source']
     except:
       self._grab_name = ''
     if not self._ChartPlot.has_key(data_type):
@@ -282,10 +297,12 @@ class DisplayMainWindow(Qt.QMainWindow):
       self._ChartPlot[data_type].setWhatsThis(dcm_sn_descriptor)
       self.connect(self._ChartPlot[data_type], Qt.SIGNAL("quit_event"), self.quit_event)
       self.connect(self._ChartPlot[data_type], Qt.SIGNAL("auto_offset_value"), self.report_auto_value)
-      self.connect(self._ChartPlot[data_type], Qt.SIGNAL("save_display"), self.grab_display)
       if not self._plot_label is None:
         self._ChartPlot[data_type].setPlotLabel(self._plot_label)
       self._ChartPlot[data_type].show()
+      # make "Save all" visibile if multiple pages
+      self._menu.save_all.setVisible(len(self._ChartPlot) > 1);
+      
     self._ChartPlot[data_type].updateEvent(data_dict)
     self._ChartPlot[data_type].setSource(self._grab_name)
 
@@ -311,17 +328,46 @@ class DisplayMainWindow(Qt.QMainWindow):
     for plot in self._ChartPlot.itervalues():
       plot.clear_plot()
 
-  def grab_display(self, data_type):
-    self._png_number = self._png_number + 1
-    png_str = str(self._png_number)
-    save_file = self._grab_name + data_type + ' '+ png_str + '.png'
-    save_file_no_space= save_file.replace(' ','_')
+  def save_current_display (self):
+    filename,error = self._save_display(self._tabwidget.currentWidget());
+    if error:
+      self.emit(Qt.SIGNAL("showMessage"),"error writing file %s"%filename,True);
+    else:
+      self.emit(Qt.SIGNAL("showMessage"),"saved plot to %s"%filename);
+    
+  def save_all_displays (self):
+    good_files = [];
+    bad_files = [];
+    for key in sorted(self._ChartPlot.keys()):
+      filename,error = self._save_display(self._ChartPlot[key]);
+      (bad_files if error else good_files).append(filename);
+    if good_files:
+      self.emit(Qt.SIGNAL("showMessage"),"saved plots to %s"%(", ".join(good_files)));
+    if bad_files:
+      self.emit(Qt.SIGNAL("showMessage"),"error writing files %s"%(", ".join(bad_files)),True);
+    
+  def _save_display (self,chartplot):
+    self._png_number += 1;
+    # put together filename components
+    name_components = [];
+    if self._grab_name:
+      name_components.append(self._grab_name);
+    if self._menu.isVellsControlVisible():
+      name_components.append(str(self._menu.vells_component));
+    if self._menu.isComplexControlVisible():
+      name_components.append(str(self._menu.ComplexComponentLabels[self._menu.complex_component]));
+    if len(self._ChartPlot) > 1:
+      name_components.append(chartplot.dataLabel());
+    name_components.append(str(self._png_number));
+    save_file = "_".join(name_components).replace(' ','_')+".png";
     try:
-      pm = Qt.QPixmap.grabWidget(self._ChartPlot[data_type]);
-      pm.save(save_file_no_space, "PNG");
+      pm = Qt.QPixmap.grabWidget(chartplot);
+      pm.save(save_file, "PNG");
+      return save_file,None;
     except:
       traceback.print_exc();
       print 'failed to grab or save pixmap';
+      return save_file,True;
  
 
 

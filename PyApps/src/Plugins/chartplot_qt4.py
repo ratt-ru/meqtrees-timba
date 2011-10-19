@@ -183,9 +183,6 @@ class ChartPlot(Qt.QWidget):
     Qt.QObject.connect(self._menu,Qt.SIGNAL("changeComplexComponent"),self.update_complex_selector);
     Qt.QObject.connect(self._menu,Qt.SIGNAL("changeVellsComponent"),self.update_vells_selector);
     
-    Qt.QObject.connect(self._menu.save_display,Qt.SIGNAL("triggered()"),self.save_display)
-
-
     self.spy = Spy(self._plotter.canvas())
     self.prev_xpos = None
     self.prev_ypos = None
@@ -229,9 +226,6 @@ class ChartPlot(Qt.QWidget):
       self._x2[i] = self._ArraySize + self._x_displacement +i
       self._x3[i] = 2 * (self._ArraySize + self._x_displacement) + i
       self._x4[i] = 3 * (self._ArraySize + self._x_displacement) + i
-
-  def save_display (self):
-    self.emit(Qt.SIGNAL("save_display"),self._data_label)
 
   def closestCurve(self, pos):
         """ from Gerard Vermeulen's EventFilterDemo.py example """
@@ -366,6 +360,9 @@ class ChartPlot(Qt.QWidget):
     self.set_x_axis_sizes()
     self.createplot()
 
+  def dataLabel (self):
+    return self._data_label;
+  
   def setDataLabel(self, data_label):
     self._data_label = data_label
 #    title = self._data_label + " " + self._x_title.text()
