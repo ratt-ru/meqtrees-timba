@@ -47,7 +47,7 @@ const HIID FNarrowBandLimit = AidNarrow|AidBand|AidLimit;
 
 PSVTensor::PSVTensor()
 : TensorFunction(-4,child_labels,3), // first 3 children mandatory, rest are optional
-  narrow_band_limit_(.05),n_minus_(1) 
+  narrow_band_limit_(.05),n_minus_(1),first_jones_(3)
 {
   // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };
@@ -103,11 +103,12 @@ LoShape PSVTensor::getResultDims (const vector<const LoShape *> &input_dims)
   FailWhen(uvw!=shape_3vec && uvw!=shape_2x3,"child '"+child_labels[2].toString()+"': an 2x3 matrix or a 3-vector expected");
   // B must be a per-source tensor
   checkTensorDims(1,b,num_sources_);
-  // Additional children after the 3rd should come in pairs (Jones term, plus its conjugate), and be per-source tensors
-  FailWhen((input_dims.size()-3)%2!=0,"a pair of children must be provided per each Jones term");
-  for( uint i=3; i<input_dims.size(); i++ )
-    checkTensorDims(i,*input_dims[i],num_sources_);
   
+  // Additional children after the first_jones should come in pairs (Jones term, plus its conjugate), and be per-source tensors
+  FailWhen((input_dims.size()-first_jones_)%2!=0,"a pair of children must be provided per each Jones term");
+  for( uint i=first_jones_; i<input_dims.size(); i++ )
+    checkTensorDims(i,*input_dims[i],num_sources_);
+
   // our result is a 2x2 matrix 
   return LoShape(2,2);
 }
@@ -201,6 +202,11 @@ inline void scalarProduct (
 void PSVTensor::evaluateTensors (std::vector<Vells> & out,
      const std::vector<std::vector<const Vells *> > &args )
 {
+  // Normalized visibilities correspond to the basic source shape, without any flux or spectrum. 
+  // information. For a point source this is always unity. Child classes reimplement this method
+  // to do e.g. Gaussian sources.
+  std::vector<Vells> visnorm;
+  fillNormalizedVisibilities(visnorm,args);
   // uvw coordinates are the same for all sources, and each had better be a 'timeshape' vector
   const Vells & vu = *(args[2][0]);
   const Vells & vv = *(args[2][1]);
@@ -252,8 +258,8 @@ void PSVTensor::evaluateTensors (std::vector<Vells> & out,
       for( int i=0; i<4; i++ )
         X[i] = *args[1][isrc*4+i];
     // now loop over Jones terms, computing J*X*Jconj for each pair
-    int njones = (args.size()-3)/2;
-    int iarg = 3; // first Jones term is argument 3
+    int njones = (args.size()-first_jones_)/2;
+    int iarg = first_jones_; // first Jones term is argument 3
     for( int i=0; i<njones; i++ )
     {
       // first compute X = J*X
@@ -273,7 +279,13 @@ void PSVTensor::evaluateTensors (std::vector<Vells> & out,
     }
     // multiply by K and accumulate in sum
     for( int i=0; i<4; i++ )
-      out[i] += X[i]*K;
+    {
+      Vells x = X[i]*K;
+      // apply normalized visibilities if we have them
+      if( !visnorm.empty() )
+        x *= visnorm[isrc];
+      out[i] += x;
+    }
   }
 }
 
@@ -348,6 +360,11 @@ Vells PSVTensor::computeSmearingTerm (const Vells &p,const Vells &dp)
   
   return prod1*prod2;
 }
+
+// fill normalized visibilities -- do nothing, as they are then treated as unity
+void PSVTensor::fillNormalizedVisibilities (std::vector<Vells> &,
+                                           const std::vector<std::vector<const Vells *> > &)
+{}
 
 
 } // namespace Meq

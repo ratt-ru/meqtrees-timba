@@ -82,7 +82,7 @@ int Composer::getResult (Result::Ref &resref,
         dims = LoShape(1);
       if( i>0 )
       {
-        FailWhen(dims0 != dims,Debug::ssprintf(
+        FailWhen(chres.numVellSets()>1 && dims0 != dims,Debug::ssprintf(
             "tensor dimensions of child result %d do not match those of previous children",i));
       }
       else

@@ -64,15 +64,22 @@ protected:
   // Evaluates for a given set of children values
   virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args);
-
-  // helper functions     
+       
+  // helper functions to compute the K-Jones exponent and the smeraing term
   Vells computeExponent (const Vells &p,const Cells &cells);
   Vells computeSmearingTerm (const Vells &p,const Vells &dp);
 
-  // Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
+  // Helper function. Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
   // Also checks that N==nsrc.
   void checkTensorDims (int ichild,const LoShape &shape,int nsrc);
-       
+
+  // Virtual method reimplemented by subclasses. Fills a vector of per-source
+  // normalized visibilities.
+  // Normalized visibilities correspond to the basic source shape, without any flux or spectrum. 
+  // information. Child classes reimplement this method to do e.g. Gaussian sources.
+  virtual void fillNormalizedVisibilities (std::vector<Vells> &visnorm,
+                                           const std::vector<std::vector<const Vells *> > &args);
+  
   int num_sources_;
   
   // fractional bandwidth over this limit will be considered "wide",
@@ -88,6 +95,8 @@ protected:
   // subtracted from n -- set to 1 to use fringe-stopped phases, i.e. w(n-1)
   double n_minus_;
 
+  // number of the first Jones child. Set to 3 in this class, but subclasses may change this
+  int first_jones_;
 };
 
 } // namespace Meq
