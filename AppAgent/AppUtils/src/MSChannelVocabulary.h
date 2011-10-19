@@ -69,6 +69,7 @@ namespace MSChannel
        FOriginalDataShape = AidOriginal|AidData|AidShape,
        FFlipFreq          = AidFlip|AidFreq,
        FApplyHanning      = AidApply|AidHanning,
+       FChannelWidth      = AidChannel|AidWidth,
        FInvertPhases      = AidInvert|AidPhases,
 
        FOutputParams      = AidMS|AidOutput|AidParams,

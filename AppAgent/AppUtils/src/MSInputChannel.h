@@ -177,6 +177,7 @@ class MSInputChannel : public FileChannel
 
       // apply preprocessing to data column
       bool apply_hanning_;
+      double channel_width_factor_;
       bool invert_phases_;
 
       //## true is MS has a valid WEIGHT_SPECTRUM column

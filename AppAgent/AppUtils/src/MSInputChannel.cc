@@ -146,10 +146,7 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
     IPosition ip0(1,channels_[0]),ip1(1,channels_[1]),iinc(1,channel_incr_);
     Array<Double> ch_freq1 = ch_freq(ip0,ip1,iinc);
     Array<Double> ch_width1 = abs(ch_width(ip0,ip1,iinc));
-    // if hanning taper is in effect, channel width needs to be multiplied by 5/4
-    // (Ger's rule of thumb)
-    if( apply_hanning_ )
-      ch_width1 *= 1.25;
+    ch_width1 *= channel_width_factor_;
     // recompute # channels since an increment may have been applied
     num_channels_ = ch_freq1.nelements();
     // if frequencies are in decreasing order, freq axis needs to be flipped
@@ -428,6 +425,8 @@ int MSInputChannel::init (const DMI::Record &params)
   tile_bitflag_ = params[FTileBitflag].as<int>(2);
   // hanning tapering?
   apply_hanning_ = params[FApplyHanning].as<bool>(false);
+  // channel width correction (normally 1., or 1.25 if Hanning tapering is in effect)
+  channel_width_factor_ = params[FChannelWidth].as<double>(1.);
   // phase inversion?
   invert_phases_ = params[FInvertPhases].as<bool>(false);
 
