@@ -233,6 +233,8 @@ class CollectionsPlotter(GriddedPlugin):
     if self._rec.has_key("vellsets"):
       self._number_of_planes = len(self._rec["vellsets"])
       self.dims_per_group = 1
+      index_labels = None;
+      # make labels for multi-dim result
       if not self.dims is None:
         # in collections plotter, assume that first 'dims' 
         # corresponds to tracks that are displayed , so determine
@@ -248,8 +250,12 @@ class CollectionsPlotter(GriddedPlugin):
             indices = numpy.ndindex(*self.dims[dims_start:]);
             # sep = "," if any([dim>9 for dim in self.dims[dims_start:]]) else "";
             index_labels = [ ",".join([str(x+1) for x in ind]) for ind in indices ];
+      # index labels not set by the above? set them here
+      if index_labels is None:
+        if self._number_of_planes == len(self._vells_label):
+          index_labels = self._vells_label;
         else:
-          index_labels = self._vells_label[0:1] if self._vells_label else [0];
+          index_labels = range(self._number_of_planes);
       # replace index labels with vells labels
       if self._visu_plotter is None:
         self.create_layout_stuff()
