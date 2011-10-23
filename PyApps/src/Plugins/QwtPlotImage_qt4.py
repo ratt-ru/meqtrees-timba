@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #
 # The QwtPlotImage class is just a straightforward adaption of 
@@ -381,6 +382,8 @@ class QwtPlotImage(Qwt.QwtPlotItem):
       if self._flags_array is None:
         if not self._nan_flags_array is None:
           flags_array = self._nan_flags_array.copy()
+        else:
+          flags_array = numpy.zeros((nx,ny),int);
       else:
         flags_array = self._flags_array.copy()
         if not self._nan_flags_array is None:

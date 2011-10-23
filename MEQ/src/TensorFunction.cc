@@ -1,5 +1,5 @@
-//# TensorFunction.cc: Base class for a compound expression node (i.e. with multiple-planed result)
-//#
+//# TensorFunction.cc: Base class for a tensor-aware function (i.e. where operations are no just plane-by-plane)
+
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
 //# and The MeqTree Foundation

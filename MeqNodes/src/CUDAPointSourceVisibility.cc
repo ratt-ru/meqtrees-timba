@@ -22,23 +22,32 @@
 //# $Id: CUDAPointSourceVisibility.cc 8270 2011-07-06 12:17:23Z oms $
 
 #include <MeqNodes/CUDAPointSourceVisibility.h>
+#include <DMI/AID-DMI.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/BasicSL/Constants.h>
 
 namespace Meq {
 
-InitDebugContext(CUDAPointSourceVisibility,"CUDAPSV");
+InitDebugContext(CUDAPointSourceVisibility,"CUDAPointSourceVisibility");
   
   
 using namespace VellsMath;
 
-const HIID child_labels[] = { AidLMN,AidB,AidUVW };
+const HIID child_labels[] = { AidLMN,AidB,AidUVW,
+  AidE|1,AidE|1|AidConj,
+};
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
+
+const double _2pi_over_c = casa::C::_2pi / casa::C::c;
+
+const HIID FNMinus = AidN|AidMinus;
+const HIID FNarrowBandLimit = AidNarrow|AidBand|AidLimit;
 
 
 CUDAPointSourceVisibility::CUDAPointSourceVisibility()
-: TensorFunction(num_children,child_labels)
+: TensorFunction(-4,child_labels,3), // first 3 children mandatory, rest are optional
+  narrow_band_limit_(.05),n_minus_(1),first_jones_(3)
 {
   // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };
@@ -48,88 +57,314 @@ CUDAPointSourceVisibility::CUDAPointSourceVisibility()
 CUDAPointSourceVisibility::~CUDAPointSourceVisibility()
 {}
 
+//##ModelId=400E53550233
+void CUDAPointSourceVisibility::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  TensorFunction::setStateImpl(rec,initializing);
+  rec[FNarrowBandLimit].get(narrow_band_limit_,initializing);
+  rec[FNMinus].get(n_minus_,initializing);
+}
+
 const LoShape shape_3vec(3),shape_2x3(2,3);
 
+// Checks tensor dimensions of a child result to see that they are a per-source tensor
+// Valid dimensions are [] (i.e. [1]), [N], [Nx1], [Nx1x1], or [Nx2x2].
+void CUDAPointSourceVisibility::checkTensorDims (int ichild,const LoShape &shape,int nsrc)
+{
+  int n = 0;
+  FailWhen(shape.size()>3,"child '"+child_labels[ichild].toString()+"': illegal result rank (3 at most expected)");
+  if( shape.size() == 0 )
+    n = 1;
+  else
+  {
+    n = shape[0];
+    if( shape.size() == 2 )
+    {
+      FailWhen(shape[1]!=1,"child '"+child_labels[ichild].toString()+"': rank-2 result must be of shape Nx1");
+    }
+    else if( shape.size() == 3 )
+    {
+      FailWhen(!(shape[1]==1 && shape[2]==1) && !(shape[1]==2 && shape[2]==2),   // Nx1x1 or Nx2x2 result 
+          "child '"+child_labels[ichild].toString()+"': rank-3 result must be of shape Nx2x2 or Nx1x1");
+    }
+  }
+  FailWhen(n!=nsrc,"child '"+child_labels[1].toString()+"': first dimension does not match number of sources");
+}
+
+// Checks tensor dimensions of children, returns dimensions of our result (2x2)
 LoShape CUDAPointSourceVisibility::getResultDims (const vector<const LoShape *> &input_dims)
 {
-  // this gets called to check that the child results have the right shape
   const LoShape &lmn = *input_dims[0], &b = *input_dims[1], &uvw = *input_dims[2];
-  
-  // the first child (LMN) is expected to be of shape Nx3, the second (B) of Nx2x2, and the third (UVW) is a 3-vector
+  // the first child (LMN) is expected to be of shape Nx3, the second (B) of Nx2x2
   FailWhen(lmn.size()!=2 || lmn[1]!=3,"child '"+child_labels[0].toString()+"': an Nx3 result expected");
-  FailWhen(b.size()!=3 || b[1]!=2 || b[2]!=2,"child '"+child_labels[1].toString()+"': an Nx2x2 result expected");
-  FailWhen(lmn[0] != b[0],"shape mismatch between child '"+
-                           child_labels[0].toString()+"' and '"+child_labels[1].toString()+"'");
-  FailWhen(uvw.size() != 1 || uvw[0] != 3,"child '"+child_labels[2].toString()+"': a 3-vector expected");
-  
+  // N is num_sources_
   num_sources_ = lmn[0];
-  // result is a 2x2 matrix 
+  // UVW must be a 3-vector or a 2x3 matrix (in this case smearing is enabled, and the second row contains du,dv,dw).
+  FailWhen(uvw!=shape_3vec && uvw!=shape_2x3,"child '"+child_labels[2].toString()+"': an 2x3 matrix or a 3-vector expected");
+  // B must be a per-source tensor
+  checkTensorDims(1,b,num_sources_);
+  
+  // Additional children after the first_jones should come in pairs (Jones term, plus its conjugate), and be per-source tensors
+  FailWhen((input_dims.size()-first_jones_)%2!=0,"a pair of children must be provided per each Jones term");
+  for( uint i=first_jones_; i<input_dims.size(); i++ )
+    checkTensorDims(i,*input_dims[i],num_sources_);
+
+  // our result is a 2x2 matrix 
   return LoShape(2,2);
 }
 
+// This gets the time/frequency info from the cells, and puts these into Vells objects:
+// freq_vells_ for the frequency axis,
+// df_over_2_ and f_dt_over_2_ for delta-freq/2 and freq*delta-time/2 (used in smearing calculations)
+void CUDAPointSourceVisibility::computeResultCells (Cells::Ref &ref,
+        const std::vector<Result::Ref> &childres,const Request &request)
+{
+  TensorFunction::computeResultCells(ref,childres,request);
+  const Cells & cells = *ref;
+  Vells freq_approx;
+  if( cells.isDefined(Axis::FREQ) )
+  {
+    int nfreq = cells.ncells(Axis::FREQ);
+    // set up frequency vells
+    freq_vells_ = Vells(0,Axis::freqVector(nfreq),false);
+    memcpy(freq_vells_.realStorage(),cells.center(Axis::FREQ).data(),nfreq*sizeof(double));
+    // In the narrow-band case, use a single frequency for smearing calculations
+    // (to speed up things)
+    const Domain &dom = cells.domain();
+    double freq0 = dom.start(Axis::FREQ);
+    double freq1 = dom.end(Axis::FREQ);
+    double midfreq = (freq0+freq1)/2;
+    // narrow-band: use effectively a single frequency
+    if( ::abs(freq0-freq1)/midfreq < narrow_band_limit_ )
+      freq_approx = midfreq;
+    else
+      freq_approx = freq_vells_;
+    // set up delta-freq/2 vells
+    if( cells.numSegments(Axis::FREQ)<2 )
+      df_over_2_ = cells.cellSize(Axis::FREQ)(0)/2;
+    else
+    {
+      df_over_2_ = Vells(0,Axis::freqVector(nfreq),false);
+      memcpy(df_over_2_.realStorage(),cells.cellSize(Axis::FREQ).data(),nfreq*sizeof(double));
+      df_over_2_ /= 2;
+    }
+  }
+  else
+    freq_vells_ = freq_approx = df_over_2_ = 0;
+  // set up delta-time/2 vells
+  if( cells.isDefined(Axis::TIME) )
+  {
+    int ntime = cells.ncells(Axis::TIME);
+    if( cells.numSegments(Axis::TIME)<2 )
+      f_dt_over_2_ = cells.cellSize(Axis::TIME)(0)/2;
+    else
+    {
+      f_dt_over_2_ = Vells(0,Axis::timeVector(ntime),false);
+      memcpy(f_dt_over_2_.realStorage(),cells.cellSize(Axis::TIME).data(),ntime*sizeof(double));
+      f_dt_over_2_ /= 2;
+    }
+    f_dt_over_2_ *= freq_approx;
+  }
+  else
+    f_dt_over_2_ = 0;
+}
 
+// helper function: works out matrix product C=A*B
+// A and B are iterators yielding Vells pointers, will be incremented four times
+// Note that C may be the same as A or B, in which case the multiplication will overwrite the contents
+template<class IA,class IB>
+inline void matrixProduct (Vells c[4],IA ia,IB ib)
+{
+  Vells a0 = **ia++; 
+  Vells a1 = **ia++; 
+  Vells a2 = **ia++; 
+  Vells a3 = **ia++; 
+  Vells b0 = **ib++; 
+  Vells b1 = **ib++; 
+  Vells b2 = **ib++; 
+  Vells b3 = **ib++; 
+  c[0] = a0*b0 + a1*b2;
+  c[1] = a0*b1 + a1*b3;
+  c[2] = a2*b0 + a3*b2;
+  c[3] = a2*b1 + a3*b3;
+}
+// helper function: works out scalar product C=a*B
+// Note that C may be the same as A or B, the multiply is safe and will overwrite the contents
+template<class IB>
+inline void scalarProduct (
+  Vells c[4],const Vells &a,IB ib)
+{
+  for( int i=0; i<4; i++ )
+    c[i] = (**ib++)*a;
+}
+
+// This evaluates the result tensors
 void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
      const std::vector<std::vector<const Vells *> > &args )
 {
-  // cells
-  const Cells & cells = resultCells();
-  const double _2pi_over_c = -casa::C::_2pi / casa::C::c;
-  // the frequency axis
-  int nfreq = cells.ncells(Axis::FREQ);
-  const double * freq_data = cells.center(Axis::FREQ).data();
-  const double * freq_cell = cells.cellSize(Axis::FREQ).data();
-  // the time axis
-  int ntime = cells.ncells(Axis::TIME);
-  
-  LoShape timeshape = Axis::timeVector(ntime);
-  LoShape freqshape = Axis::freqVector(nfreq);
-  LoShape timefreqshape = Axis::freqTimeMatrix(nfreq,ntime);
-  
+  // Normalized visibilities correspond to the basic source shape, without any flux or spectrum. 
+  // information. For a point source this is always unity. Child classes reimplement this method
+  // to do e.g. Gaussian sources.
+  std::vector<Vells> visnorm;
+  fillNormalizedVisibilities(visnorm,args);
   // uvw coordinates are the same for all sources, and each had better be a 'timeshape' vector
   const Vells & vu = *(args[2][0]);
   const Vells & vv = *(args[2][1]);
   const Vells & vw = *(args[2][2]);
-  FailWhen(vu.shape() != timeshape || vv.shape() != timeshape || vw.shape() != timeshape,"expecting UVWs that are a vector in time");
-  
-  // these will be vectors of ntime points each
-  const double *pu = vu.realStorage();
-  const double *pv = vu.realStorage();
-  const double *pw = vu.realStorage();
-  
-  // allocate storage for results, and get pointers to storage
-  const int NUM_MATRIX_ELEMENTS = 4;
-  dcomplex * pout[NUM_MATRIX_ELEMENTS];
-  
-  for( int j=0; j<4; j++ )
+  // if we have delta-uvws, then enable smearing
+  const Vells *pdu=0,*pdv,*pdw;
+  if( args[2].size() == 6 )
   {
-    out[j] = Vells(numeric_zero<dcomplex>(),timefreqshape);
-    pout[j] = out[j].complexStorage();
-    // pout[j] points to an NTIME x NFREQ array
+    pdu = args[2][3];
+    pdv = args[2][4];
+    pdw = args[2][5];
   }
+  // X is an intermediate object used in calculations
+  Vells X[4];
+  const Vells * pX[4];
+  for( int i=0; i<4; i++ )
+    pX[i] = &X[i];
+  // initialize the output vells where the sum is accumulated
+  for( int i=0; i<4; i++ )
+    out[i] = Vells::Null();
   
-  // need to compute B*exp{ i*_2pi_over_c*freq*(u*l+v*m+w*n) } for every source, and sum over all sources
-  for( int isrc=0; isrc < num_sources_; isrc++ )
+  // compute K=exp{ i*_2pi_over_c*freq*(u*l+v*m+w*n) } for every source, multiply by smearing term,
+  // multiply by B matrix and all Jones matrices, then sum over all sources
+  for( int isrc=0; isrc<num_sources_; isrc++ )
   {
     // get the LMNs for this source
     const Vells & vl = *(args[0][isrc*3]);
     const Vells & vm = *(args[0][isrc*3+1]);
-    const Vells & vn = *(args[0][isrc*3+2]);
-    FailWhen(!vl.isScalar() || !vm.isScalar() || !vn.isScalar(),"expecting scalar LMNs");
-    double l = vl.as<double>();
-    double m = vm.as<double>();
-    double n = vn.as<double>();
-    // get the B matrix elements -- there should be four of them
-    for( int j=0; j<NUM_MATRIX_ELEMENTS; j++ )
+    const Vells vn = *(args[0][isrc*3+2]) - n_minus_;
+    // get the phase argument exp{ i*2*pi/c*(u*l+v*m+w*n) } -- this will be multiplied by frequency in computeExponent()
+    Vells p = (vu*vl + vv*vm + vw*vn)*_2pi_over_c;
+    Vells K = computeExponent(p,resultCells());
+    // if delta-uvw givem, multiply phase by the smearing term (sigma)
+    if( pdu )
     {
-      const Vells &b = *(args[1][isrc*NUM_MATRIX_ELEMENTS + j]);
-      FailWhen(!b.isScalar() && b.shape() != freqshape,"expecting B matrix elements that are either scalar, or a vector in frequency");
-      // for each element, either b.isScalar() is true and you can access it as b.as<double>, or
-      // b.realStorage() is a vector of nfreq doubles.
-      
-      //...do the actual work...
+      Vells dp = ( (*pdu)*vl + (*pdv)*vm + (*pdw)*vn )*_2pi_over_c;
+      K *= computeSmearingTerm(p,dp);
+    }
+    // Now multiply by each successive pair of Jones terms
+    // start with X=B
+    // if B is scalar -- expand to diagonal matrix
+    if( args[1].size() == num_sources_ )
+    {
+      X[0] = X[3] = *args[1][isrc];
+      X[1] = X[2] = Vells::Null();       // null
+    }
+    // else B is full matrix -- just copy
+    else
+      for( int i=0; i<4; i++ )
+        X[i] = *args[1][isrc*4+i];
+    // now loop over Jones terms, computing J*X*Jconj for each pair
+    int njones = (args.size()-first_jones_)/2;
+    int iarg = first_jones_; // first Jones term is argument 3
+    for( int i=0; i<njones; i++ )
+    {
+      // first compute X = J*X
+      // if each Jones term is a scalar (i.e. tensor is of size NSRC), then Jones[isrc] is the scalar we need to multiply by
+      if( args[iarg].size() == num_sources_ )
+        scalarProduct(X,(*args[iarg][isrc]),pX);
+      // else each Jones term is a 2x2 matrix (tensor is of size NSRCx2x2), so Jones[isrc*4] is the first matrix element
+      else
+        matrixProduct(X,args[iarg].begin()+isrc*4,pX);
+      iarg++;
+      // now X = X*Jconj
+      if( args[iarg].size() == num_sources_ )
+        scalarProduct(X,*(args[iarg][isrc]),pX);
+      else
+        matrixProduct(X,pX,args[iarg].begin()+isrc*4);
+      iarg++;
+    }
+    // multiply by K and accumulate in sum
+    for( int i=0; i<4; i++ )
+    {
+      Vells x = X[i]*K;
+      // apply normalized visibilities if we have them
+      if( !visnorm.empty() )
+        x *= visnorm[isrc];
+      out[i] += x;
     }
   }
 }
+
+// This computes the phase term, exp(-i*freq*p)
+// It is mostly identical to VisPhaseShift::evaluateTensors()
+// The p term is expected to be (ul+vm+wn)*2_pi/c, so need only be multiplied by frequency
+// to get the actual phase
+Vells CUDAPointSourceVisibility::computeExponent (const Vells &p,const Cells &cells)
+{
+  // Now, if r is only variable in time, and we only have one
+  // regularly-spaced frequency segment, we can use a quick algorithm
+  // to compute only the exponent at freq0 and df, and then multiply
+  // the rest.
+  // Otherwise we fall back to the (potentially slower) full VellsMath version
+  if( p.extent(Axis::TIME) == p.nelements() &&
+      cells.ncells(Axis::FREQ) > 1            &&
+      cells.numSegments(Axis::FREQ) == 1        )  // fast eval possible
+  {
+    // need to compute exp(-i*(freq0+n*dfreq)*p) for n=0...Nchan
+    // decompose this into exp(-i*freq0*p)*exp(-i*dfreq*p)**n
+    const double *fq = freq_vells_.realStorage();
+    Vells vf0 = polar(1,p*fq[0]);
+    Vells vdf = polar(1,p*(fq[1]-fq[0]));
+
+    int ntime = p.extent(Axis::TIME);
+    int nfreq = cells.ncells(Axis::FREQ);
+    LoShape result_shape(ntime,nfreq);
+
+    Vells out(numeric_zero<dcomplex>(),result_shape);
+    dcomplex* resdata   = out.complexStorage();
+    const dcomplex* pf0 = vf0.complexStorage();
+    const dcomplex* pdf = vdf.complexStorage();
+
+    int step = (ntime > 1 ? 1 : 0);
+    for(int i = 0; i < ntime; i++)
+    {
+      dcomplex val0 = *pf0;
+      *resdata++    = val0;
+      dcomplex dval = *pdf;
+      for(int j=1; j < nfreq; j++)
+      {
+        val0      *= dval;
+        *resdata++ = val0;
+      }// for j (freq)
+      pf0 += step;
+      pdf += step;
+    }// for i (time)
+    return out;
+  }
+  else // slower but much simpler
+  {
+    // create freq vells from grid
+    return polar(1,p*freq_vells_);
+  }
+}
+
+// This computes the time/freq smearing term, sinc(dt/2)*sinc(df/2), where
+// dp is the delta-phase in time, and df is the delta-phase in frequency.
+// Input argument is phase and delta-phase (which still needs to be multiplied by frequency),
+// i.e. p is expected to be (ul+vm+wn)*2_pi/c, and dp is the same for delta-uvw
+
+Vells CUDAPointSourceVisibility::computeSmearingTerm (const Vells &p,const Vells &dp)
+{
+  Vells dphi = f_dt_over_2_ * dp;
+  Vells dpsi = df_over_2_ * p;
+  
+  Vells prod1 = sin(dphi)/dphi;
+  Vells prod2 = sin(dpsi)/dpsi;
+  
+  prod1.replaceFlaggedValues(dphi.whereEq(0.),1.);
+  prod2.replaceFlaggedValues(dpsi.whereEq(0.),1.);
+  
+  return prod1*prod2;
+}
+
+// fill normalized visibilities -- do nothing, as they are then treated as unity
+void CUDAPointSourceVisibility::fillNormalizedVisibilities (std::vector<Vells> &,
+                                           const std::vector<std::vector<const Vells *> > &)
+{}
 
 
 } // namespace Meq

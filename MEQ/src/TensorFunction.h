@@ -1,4 +1,4 @@
-//# TensorFunction.h: Base class for an compound expression node (i.e. with multiple-planed result)
+//# TensorFunction.h: Base class for a tensor-aware function (i.e. where operations are no just plane-by-plane)
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -102,7 +102,7 @@ protected:
   //    into result.
   // Note that this function makes no assumptions about children 
   // or node state or whatever; so it may in fact be used with a 
-  // compleely different childres vector than that passed to getResult()
+  // completely different childres vector than that passed to getResult()
   void computeTensorResult (Result::Ref &resref, 
                             const std::vector<Result::Ref> &childres);
                             
@@ -138,17 +138,11 @@ protected:
   { 
     return *dims_vector_[ichild]; 
   }
-  
-private:
-  // hide these methods since they don't apply to tensor functions
-  Function::evaluate;
-  Function::evaluateFlags;
-  
-    
+
   // data members for informational stuff above
   Cells::Ref result_cells_;
   std::vector<const LoShape *> dims_vector_;
-    
+  
   // These are setup and used in computeTensorResult().
   // We keep most of them as data members (as opposed to local vars)
   // to minimize reallocations.
@@ -163,7 +157,13 @@ private:
   std::vector<Vells::Ref> flag_vector_;
   CVSPVector pvs_all_;
   
-  std::vector<std::vector<CVPVector> > pert_vectors_;
+  std::vector<std::vector<CVPVector> > pert_vectors_;    
+  
+private:
+  // hide these methods since they don't apply to tensor functions
+  Function::evaluate;
+  Function::evaluateFlags;
+  
 };
 
 } // namespace Meq

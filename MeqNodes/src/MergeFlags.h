@@ -30,7 +30,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::MergeFlags 
-#pragma aid Flag Mask
+#pragma aid Flag Mask Merge All
 
 // The comments below are used to automatically generate a default
 // init-record for the class 
@@ -61,6 +61,7 @@ public:
   { return TpMeqMergeFlags; }
 
 protected:
+  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
     
   virtual int getResult (Result::Ref &resref, 
                          const std::vector<Result::Ref> &childres,
@@ -69,6 +70,9 @@ protected:
 
   // helper function merges in flags on one child
   void mergeChildFlags (Result::Ref &resref,int ivs,const VellSet &vs,VellsFlagType fm);
+  
+  // flag: merge flags of all child elements
+  bool merge_all_;
 };
 
 

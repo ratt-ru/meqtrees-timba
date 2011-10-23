@@ -29,6 +29,7 @@ set(meq_includes
             src/Spline.h
             src/SymdepMap.h
             src/TensorFunction.h
+            src/TensorFunctionPert.h
             src/TID-Meq.h
             src/TypeIter-Meq.h
             src/VellSet.h
@@ -64,6 +65,7 @@ set(meq_src
             src/Spline.cc 
             src/SymdepMap.cc 
             src/TensorFunction.cc 
+            src/TensorFunctionPert.cc
             src/Vells.cc 
             src/VellSet.cc 
             src/VellsSlicer.cc 

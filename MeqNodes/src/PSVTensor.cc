@@ -46,7 +46,7 @@ const HIID FNarrowBandLimit = AidNarrow|AidBand|AidLimit;
 
 
 PSVTensor::PSVTensor()
-: TensorFunction(-4,child_labels,3), // first 3 children mandatory, rest are optional
+: TensorFunctionPert(-4,child_labels,3), // first 3 children mandatory, rest are optional
   narrow_band_limit_(.05),n_minus_(1),first_jones_(3)
 {
   // dependence on frequency
@@ -119,7 +119,13 @@ LoShape PSVTensor::getResultDims (const vector<const LoShape *> &input_dims)
 void PSVTensor::computeResultCells (Cells::Ref &ref,
         const std::vector<Result::Ref> &childres,const Request &request)
 {
-  TensorFunction::computeResultCells(ref,childres,request);
+  // use cells of request (since that's where our time/freq axis comes from) if available,
+  // else fall back to parent implementation which uses the child cells
+  if( request.hasCells() )
+    ref.attach(request.cells());
+  else
+    TensorFunction::computeResultCells(ref,childres,request);
+  
   const Cells & cells = *ref;
   Vells freq_approx;
   if( cells.isDefined(Axis::FREQ) )
@@ -169,124 +175,212 @@ void PSVTensor::computeResultCells (Cells::Ref &ref,
     f_dt_over_2_ = 0;
 }
 
-// helper function: works out matrix product C=A*B
-// A and B are iterators yielding Vells pointers, will be incremented four times
-// Note that C may be the same as A or B, in which case the multiplication will overwrite the contents
-template<class IA,class IB>
-inline void matrixProduct (Vells c[4],IA ia,IB ib)
+// helper class to implement 2x2 matrix products
+class IntermediateMatrix
 {
-  Vells a0 = **ia++; 
-  Vells a1 = **ia++; 
-  Vells a2 = **ia++; 
-  Vells a3 = **ia++; 
-  Vells b0 = **ib++; 
-  Vells b1 = **ib++; 
-  Vells b2 = **ib++; 
-  Vells b3 = **ib++; 
-  c[0] = a0*b0 + a1*b2;
-  c[1] = a0*b1 + a1*b3;
-  c[2] = a2*b0 + a3*b2;
-  c[3] = a2*b1 + a3*b3;
-}
-// helper function: works out scalar product C=a*B
-// Note that C may be the same as A or B, the multiply is safe and will overwrite the contents
-template<class IB>
-inline void scalarProduct (
-  Vells c[4],const Vells &a,IB ib)
-{
-  for( int i=0; i<4; i++ )
-    c[i] = (**ib++)*a;
-}
+  private:
+    Vells x_[4];
+    const Vells * px_[4];
+   
+    void initScalar (const Vells *value)
+    {
+      px_[0] = px_[3] = value;
+      px_[1] = px_[2] = &(Vells::Null());
+      scalar = true;
+    }
+    
+  public:
+    bool scalar;
+    
+    // accesses i-th element
+    const Vells & operator () (int i) const
+    { return *px_[i]; }
+    
+    // sets i-th element
+    void set (int i,const Vells &value)
+    { px_[i] = &( x_[i] = value ); }
+    
+    // Helper function: fills four pointers to Vells with four matrix elements corresponding to
+    // child ichild, perturbation ipert, source isrc.
+    // If shape of child is 1 and not 2x2, only fills the first pointer.
+    // Returns true if any pointer was a new value (see newval flag of TensorFunctionPert::getChildValue()),
+    // for ipert==0 this is always true
+    bool fillFromChild (PSVTensor &psvt,int ichild,int ipert,int isrc)
+    {
+      bool newval = false;
+      if( psvt.numChildElements(ichild) == psvt.num_sources_ ) // child supplies Nsrc values, hence Jones matrix is scalar
+        initScalar(psvt.getChildValue(newval,ichild,ipert,isrc));
+      // else assume Nsrcx2x2 matrix
+      else
+      {
+        for( int i=0; i<4; i++ )
+          px_[i] = psvt.getChildValue(newval,ichild,ipert,isrc*4+i);
+        scalar = false;
+      }
+      return newval;
+    }
+    
+    // fills matrix with product of matrices A and B
+    void fillProduct (const IntermediateMatrix &a,const IntermediateMatrix &b)
+    {
+      if( a.scalar &&  b.scalar )
+      {
+        set(0,a(0)*b(0));
+        initScalar(px_[0]);
+      }
+      else
+      {
+        if( a.scalar )
+          for( int i=0; i<4; i++ )
+            set(i,a(0)*b(i)); 
+        else if( b.scalar )
+          for( int i=0; i<4; i++ )
+            set(i,b(0)*a(i)); 
+        else
+        {
+          set(0, a(0)*b(0) + a(1)*b(2) );
+          set(1, a(0)*b(1) + a(1)*b(3) );
+          set(2, a(2)*b(0) + a(3)*b(2) );
+          set(3, a(2)*b(1) + a(3)*b(3) );
+        }
+        scalar = false;
+      }
+    }
+};
 
-// This evaluates the result tensors
-void PSVTensor::evaluateTensors (std::vector<Vells> & out,
-     const std::vector<std::vector<const Vells *> > &args )
+// fills tensors
+void PSVTensor::evaluateTensors (Result &result,int npert,int nchildren)
 {
-  // Normalized visibilities correspond to the basic source shape, without any flux or spectrum. 
-  // information. For a point source this is always unity. Child classes reimplement this method
-  // to do e.g. Gaussian sources.
-  std::vector<Vells> visnorm;
-  fillNormalizedVisibilities(visnorm,args);
-  // uvw coordinates are the same for all sources, and each had better be a 'timeshape' vector
-  const Vells & vu = *(args[2][0]);
-  const Vells & vv = *(args[2][1]);
-  const Vells & vw = *(args[2][2]);
-  // if we have delta-uvws, then enable smearing
-  const Vells *pdu=0,*pdv,*pdw;
-  if( args[2].size() == 6 )
+  // if we have delta-uvws (child 2, elements 4-6), then enable smearing.
+  // (Note below that the smearing term is only computed for the main values (ipert==0), as it is 
+  // a lot of work computationally, and does not change appreciably with perturbation.
+  const Vells *pduvw[3] = {0,0,0};
+  if( numChildElements(2) == 6 )
+    for( int i=0; i<3; i++ )
+      pduvw[i] = getChildValue(2,0,i+3);
+    
+  // for each perturbation, initialize the output vells where the sum is accumulated
+  std::vector<Vells*> out[4];
+  for( int i=0; i<4; i++ )
   {
-    pdu = args[2][3];
-    pdv = args[2][4];
-    pdw = args[2][5];
+    out[i].resize(npert+1);
+    for( int ipert=0; ipert<=npert; ipert++ )
+      out[i][ipert] = &( initResultValue(result,ipert,i) );
   }
-  // X is an intermediate object used in calculations
-  Vells X[4];
-  const Vells * pX[4];
-  for( int i=0; i<4; i++ )
-    pX[i] = &X[i];
-  // initialize the output vells where the sum is accumulated
-  for( int i=0; i<4; i++ )
-    out[i] = Vells::Null();
+  // number of Jones pairs supplied to us as children
+  int num_jones = (nchildren-first_jones_)/2;
+  
+  // For each source, for the main (non-perturbed) value, we store intermediate products for 
+  // each pair of Jones terms. X[0] is B; X[1] is thus J1p*B*J2q^H, X[2] is J2p*X[0]*J2q^H, etc.
+  // X[num_jones] is then the total source visibility, sans K term, sans smearing.
+  std::vector<IntermediateMatrix> X(num_jones+1);
+  std::vector<IntermediateMatrix> J(num_jones),Jt(num_jones);
+  // temp value used in calculations
+  IntermediateMatrix Y;
+  // store values for reuse
+  Vells K0sm,                         // K*smear
+        K0smsh,                       // K*smear*shape
+        shape0 = Vells::Unity(),      // smearing
+        smear0 = Vells::Unity();      // shape
+  std::vector<Vells> srcvis0(4);                   // total source visibility
+ 
+  // each intermediate product by two jones terms gets stored in 
   
   // compute K=exp{ i*_2pi_over_c*freq*(u*l+v*m+w*n) } for every source, multiply by smearing term,
   // multiply by B matrix and all Jones matrices, then sum over all sources
   for( int isrc=0; isrc<num_sources_; isrc++ )
   {
-    // get the LMNs for this source
-    const Vells & vl = *(args[0][isrc*3]);
-    const Vells & vm = *(args[0][isrc*3+1]);
-    const Vells vn = *(args[0][isrc*3+2]) - n_minus_;
-    // get the phase argument exp{ i*2*pi/c*(u*l+v*m+w*n) } -- this will be multiplied by frequency in computeExponent()
-    Vells p = (vu*vl + vv*vm + vw*vn)*_2pi_over_c;
-    Vells K = computeExponent(p,resultCells());
-    // if delta-uvw givem, multiply phase by the smearing term (sigma)
-    if( pdu )
+    // loop over perturbations
+    // Note that for each perturbation, typically only one component of the calculations changes, but it's a different
+    // one every time. Most of the logic below (all the recmopute_xxx variables and flags) is therefore concerned with 
+    // caching non-perturbed (aka "main") values (i.e. those for ipert==0), and reusing these as much as possible, so 
+    // that only the bare minimum is recomputed for each perturbed product.
+    for( int ipert=0; ipert<=npert; ipert++ )
     {
-      Vells dp = ( (*pdu)*vl + (*pdv)*vm + (*pdw)*vn )*_2pi_over_c;
-      K *= computeSmearingTerm(p,dp);
-    }
-    // Now multiply by each successive pair of Jones terms
-    // start with X=B
-    // if B is scalar -- expand to diagonal matrix
-    if( args[1].size() == num_sources_ )
-    {
-      X[0] = X[3] = *args[1][isrc];
-      X[1] = X[2] = Vells::Null();       // null
-    }
-    // else B is full matrix -- just copy
-    else
-      for( int i=0; i<4; i++ )
-        X[i] = *args[1][isrc*4+i];
-    // now loop over Jones terms, computing J*X*Jconj for each pair
-    int njones = (args.size()-first_jones_)/2;
-    int iarg = first_jones_; // first Jones term is argument 3
-    for( int i=0; i<njones; i++ )
-    {
-      // first compute X = J*X
-      // if each Jones term is a scalar (i.e. tensor is of size NSRC), then Jones[isrc] is the scalar we need to multiply by
-      if( args[iarg].size() == num_sources_ )
-        scalarProduct(X,(*args[iarg][isrc]),pX);
-      // else each Jones term is a 2x2 matrix (tensor is of size NSRCx2x2), so Jones[isrc*4] is the first matrix element
+      bool recompute_K = !ipert;
+      // collect uvw values for current perturbation
+      const Vells *puvw[3];
+      for( int i=0; i<3; i++ )
+        puvw[i] = getChildValue(recompute_K,2,ipert,i);
+      // collect lmn values for current perturbation
+      const Vells *plmn[3];
+      for( int i=0; i<3; i++ )
+        plmn[i] = getChildValue(recompute_K,0,ipert,isrc*3+i);
+      // intermediate values used in calculations
+      Vells K,n,phase,shape;
+      // pointer to which value to use
+      Vells *pK = &K;
+      bool recompute_shape = computeShapeTerm(shape,isrc,ipert,npert,nchildren) || !ipert;
+      // does K need to be recomputed
+      if( recompute_K )
+      {
+        // get the phase argument exp{ i*2*pi/c*(u*l+v*m+w*n) } -- this will be multiplied by frequency in computeExponent()
+        n = *plmn[2]-n_minus_;
+        phase = ((*puvw[0])*(*plmn[0]) + (*puvw[1])*(*plmn[1]) + (*puvw[2])*n)*_2pi_over_c;
+        K = computeExponent(phase,resultCells());
+      }
+      // if computing main values (ipert==0), then cache them for reuse later in the loop
+      if( !ipert )
+      {
+        // Compute the smear term. Note that in this way we only compute smearing for the main value and ignore 
+        // perturbations, but that's OK since small pertubations to position will not change the smearing appreciably
+        if( pduvw[0] )
+        {
+          Vells dphase = ((*pduvw[0])*(*plmn[0]) + (*pduvw[1])*(*plmn[1]) + (*pduvw[2])*n)*_2pi_over_c;
+          smear0 = computeSmearingTerm(phase,dphase);
+        }
+        shape0 = shape;
+        K0sm = K*smear0;
+        K0smsh = K0sm*shape0;
+        pK = &K0smsh;
+      }
+      // else see how much can be used from the cached main values
+      else if( recompute_K )
+        K *= smear0 * (recompute_shape ? shape : shape0);
+      else if( recompute_shape )
+        K = K0sm * shape;
       else
-        matrixProduct(X,args[iarg].begin()+isrc*4,pX);
-      iarg++;
-      // now X = X*Jconj
-      if( args[iarg].size() == num_sources_ )
-        scalarProduct(X,*(args[iarg][isrc]),pX);
+        pK = &K0smsh;
+      // OK, *pK is now the K*smear*shape term
+      
+      // Accumulate Jones products by multiplying by each successive pair of Jones terms.
+      // When ipert==0, we cache each intermediate product (i.e. B, J*B*J, J*J*B*Jt*Jt, etc.), so for perturbed
+      // values we only recompute as much as needed.
+      // First just collect pointers, so that we know many products to recompute.
+      // Get pointers to Jones terms first. recompute_product will be set to the number of the _first_ Jones pair
+      // that differs from the main value (so the product needs to be recomputed beginning from this stage)
+      int recompute_product = num_jones+1;
+      for( int i=num_jones-1; i>=0; i-- )
+        if( J[i].fillFromChild(*this,first_jones_+i*2,ipert,isrc) | Jt[i].fillFromChild(*this,first_jones_+i*2+1,ipert,isrc) )
+          recompute_product = i;
+      // Get pointer to B term
+      if( X[0].fillFromChild(*this,1,ipert,isrc) )
+        recompute_product = 0;
+      for( int j = recompute_product; j < num_jones; j++ )
+      {
+        Y.fillProduct(J[j],X[j]);
+        X[j+1].fillProduct(Y,Jt[j]);
+      }
+      // for main value, cache the visibility contribution
+      if( !ipert )
+      {
+        for( int i=0; i<4; i++ )
+          (*out[i][0]) += srcvis0[i] = (*pK)*X[num_jones](i);
+      }
+      // for perturbed value: recompute contribution, if any component was recomputed
+      else if( recompute_K || recompute_shape || recompute_product < num_jones )
+      {
+        for( int i=0; i<4; i++ )
+          (*out[i][ipert]) += (*pK)*X[num_jones](i);
+      }
+      // else reuse cached contribution
       else
-        matrixProduct(X,pX,args[iarg].begin()+isrc*4);
-      iarg++;
-    }
-    // multiply by K and accumulate in sum
-    for( int i=0; i<4; i++ )
-    {
-      Vells x = X[i]*K;
-      // apply normalized visibilities if we have them
-      if( !visnorm.empty() )
-        x *= visnorm[isrc];
-      out[i] += x;
-    }
-  }
+      {
+        for( int i=0; i<4; i++ )
+          (*out[i][ipert]) += srcvis0[i];
+      }
+    } // for ipert
+  } // for isrc
 }
 
 // This computes the phase term, exp(-i*freq*p)
@@ -362,9 +456,11 @@ Vells PSVTensor::computeSmearingTerm (const Vells &p,const Vells &dp)
 }
 
 // fill normalized visibilities -- do nothing, as they are then treated as unity
-void PSVTensor::fillNormalizedVisibilities (std::vector<Vells> &,
-                                           const std::vector<std::vector<const Vells *> > &)
-{}
+bool PSVTensor::computeShapeTerm (Vells &shape,int,int ipert,int,int)
+{ 
+  shape = Vells::Unity(); 
+  return !ipert;
+}
 
 
 } // namespace Meq

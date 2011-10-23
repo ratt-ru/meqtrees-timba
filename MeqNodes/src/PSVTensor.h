@@ -25,7 +25,7 @@
 #define MEQNODES_PSVTENSOR_H
 
 //# Includes
-#include <MEQ/TensorFunction.h>
+#include <MEQ/TensorFunctionPert.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
@@ -35,9 +35,9 @@
 
 namespace Meq {    
 
-
+class IntermediateMatrix;
     
-class PSVTensor: public TensorFunction
+class PSVTensor: public TensorFunctionPert
 {
 public:
   //! The default constructor.
@@ -50,6 +50,7 @@ public:
 
   // this is for the cdebug() mechanism
   LocalDebugContext;
+  
 
 protected:
   void setStateImpl (DMI::Record::Ref &rec,bool initializing);
@@ -60,25 +61,23 @@ protected:
   // Also check child results for consistency
   virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
   
-  // method required by TensorFunction
-  // Evaluates for a given set of children values
-  virtual void evaluateTensors (std::vector<Vells> & out,   
-       const std::vector<std::vector<const Vells *> > &args);
+  // method required by TensorFunctionPert
+  virtual void evaluateTensors (Result &out,int nchildren,int nperts);
        
   // helper functions to compute the K-Jones exponent and the smeraing term
   Vells computeExponent (const Vells &p,const Cells &cells);
   Vells computeSmearingTerm (const Vells &p,const Vells &dp);
+  
+  // virtual method to compute the shape function (as a visibility scaling term)
+  // Should return true if function was recomputed for this perturbation,
+  // or false if the main value (ipert==0) is to be reused. For ipert==0, should return true always.
+  virtual bool computeShapeTerm (Vells &shape,int isrc,int ipert,int npert,int nchildren);
 
   // Helper function. Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
   // Also checks that N==nsrc.
   void checkTensorDims (int ichild,const LoShape &shape,int nsrc);
 
-  // Virtual method reimplemented by subclasses. Fills a vector of per-source
-  // normalized visibilities.
-  // Normalized visibilities correspond to the basic source shape, without any flux or spectrum. 
-  // information. Child classes reimplement this method to do e.g. Gaussian sources.
-  virtual void fillNormalizedVisibilities (std::vector<Vells> &visnorm,
-                                           const std::vector<std::vector<const Vells *> > &args);
+  friend class IntermediateMatrix;                                          
   
   int num_sources_;
   
@@ -97,6 +96,7 @@ protected:
 
   // number of the first Jones child. Set to 3 in this class, but subclasses may change this
   int first_jones_;
+
 };
 
 } // namespace Meq

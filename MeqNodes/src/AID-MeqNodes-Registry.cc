@@ -320,8 +320,13 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         TypeInfoReg::addToRegistry(-1771,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1771,__construct_MeqCUDAPointSourceVisibility)+
         AtomicID::registerId(-1402,"LMN")+
-        AtomicID::registerId(-1123,"UVW")+
         AtomicID::registerId(-1019,"B")+
+        AtomicID::registerId(-1123,"UVW")+
+        AtomicID::registerId(-1028,"N")+
+        AtomicID::registerId(-1774,"Minus")+
+        AtomicID::registerId(-1767,"Narrow")+
+        AtomicID::registerId(-1769,"Band")+
+        AtomicID::registerId(-1770,"Limit")+
         AtomicID::registerId(-1388,"MeqDataCollect")+
         TypeInfoReg::addToRegistry(-1388,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1388,__construct_MeqDataCollect)+
@@ -466,6 +471,8 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         DynamicTypeManager::addToRegistry(-1441,__construct_MeqMergeFlags)+
         AtomicID::registerId(-1134,"Flag")+
         AtomicID::registerId(-1263,"Mask")+
+        AtomicID::registerId(-1778,"Merge")+
+        AtomicID::registerId(-1286,"All")+
         AtomicID::registerId(-1392,"MeqMin")+
         TypeInfoReg::addToRegistry(-1392,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1392,__construct_MeqMin)+
@@ -547,11 +554,6 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1772,"MeqPSVTensor")+
         TypeInfoReg::addToRegistry(-1772,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1772,__construct_MeqPSVTensor)+
-        AtomicID::registerId(-1028,"N")+
-        AtomicID::registerId(-1774,"Minus")+
-        AtomicID::registerId(-1767,"Narrow")+
-        AtomicID::registerId(-1769,"Band")+
-        AtomicID::registerId(-1770,"Limit")+
         AtomicID::registerId(-1709,"MeqRADec")+
         TypeInfoReg::addToRegistry(-1709,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1709,__construct_MeqRADec)+

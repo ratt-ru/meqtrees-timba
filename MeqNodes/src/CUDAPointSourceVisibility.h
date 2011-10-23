@@ -21,8 +21,8 @@
 //#
 //# $Id: CUDAPointSourceVisibility.h 5418 2007-07-19 16:49:13Z oms $
 
-#ifndef MEQNODES_CUDAPOINTSOURCEVISIBILITY_H
-#define MEQNODES_CUDAPOINTSOURCEVISIBILITY_H
+#ifndef MEQNODES_CUDAPSVTENSOR_H
+#define MEQNODES_CUDAPSVTENSOR_H
 
 //# Includes
 #include <MEQ/TensorFunction.h>
@@ -30,7 +30,8 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::CUDAPointSourceVisibility
-#pragma aid LMN UVW B
+
+#pragma aid LMN B UVW N Minus Narrow Band Limit
 
 namespace Meq {    
 
@@ -51,18 +52,51 @@ public:
   LocalDebugContext;
 
 protected:
+  void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  void computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request);
+  
   // method required by TensorFunction
   // Returns shape of result.
   // Also check child results for consistency
   virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
-    
+  
   // method required by TensorFunction
   // Evaluates for a given set of children values
   virtual void evaluateTensors (std::vector<Vells> & out,   
        const std::vector<std::vector<const Vells *> > &args);
        
+  // helper functions to compute the K-Jones exponent and the smeraing term
+  Vells computeExponent (const Vells &p,const Cells &cells);
+  Vells computeSmearingTerm (const Vells &p,const Vells &dp);
+
+  // Helper function. Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
+  // Also checks that N==nsrc.
+  void checkTensorDims (int ichild,const LoShape &shape,int nsrc);
+
+  // Virtual method reimplemented by subclasses. Fills a vector of per-source
+  // normalized visibilities.
+  // Normalized visibilities correspond to the basic source shape, without any flux or spectrum. 
+  // information. Child classes reimplement this method to do e.g. Gaussian sources.
+  virtual void fillNormalizedVisibilities (std::vector<Vells> &visnorm,
+                                           const std::vector<std::vector<const Vells *> > &args);
+  
   int num_sources_;
-       
+  
+  // fractional bandwidth over this limit will be considered "wide",
+  // and a per-frequency calculation will be done. Below this limit, one value
+  // of frequency will be used.
+  double narrow_band_limit_;
+
+  // frequency vells
+  Vells freq_vells_;
+  // cached values used in smearing calculations
+  Vells df_over_2_,f_dt_over_2_;  // delta_freq/2, and freq*delta_time/2
+  
+  // subtracted from n -- set to 1 to use fringe-stopped phases, i.e. w(n-1)
+  double n_minus_;
+
+  // number of the first Jones child. Set to 3 in this class, but subclasses may change this
+  int first_jones_;
 };
 
 } // namespace Meq

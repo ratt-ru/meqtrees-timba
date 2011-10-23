@@ -22,17 +22,26 @@
 //# $Id$
 
 #include <MeqNodes/MergeFlags.h>
+#include <MeqNodes/AID-MeqNodes.h>
 
 namespace Meq {
 
+const HIID FMergeAll = AidMerge|AidAll;
+  
 //##ModelId=400E5355029C
 MergeFlags::MergeFlags()
-  : Function(-2)
+  : Function(-2),merge_all_(false)
 {}
 
 //##ModelId=400E5355029D
 MergeFlags::~MergeFlags()
 {}
+ 
+void MergeFlags::setStateImpl (DMI::Record::Ref &rec,bool initializing)
+{
+  Function::setStateImpl(rec,initializing);
+  rec[FMergeAll].get(merge_all_,initializing);
+}
 
 void MergeFlags::mergeChildFlags (Result::Ref &resref,int ivs,const VellSet &vs,VellsFlagType fm)
 {
@@ -99,7 +108,17 @@ int MergeFlags::getResult (Result::Ref &resref,
     int nvs1 = chres.numVellSets();
     if( !nvs1 )
       continue;
-    if( resdims == chres.dims() )    // same tensor shape: merge element-by-element 
+    if( merge_all_ ) // merge all child flags: ignore shapes and everything, just merge
+    {
+      for( int i=0; i<nvs0; i++ )
+        for( int j=0; j<nvs1; j++ )
+        {
+          const VellSet &vs1 = chres.vellSet(j);
+          if( vs1.hasDataFlags() )
+            mergeChildFlags(resref,i,vs1,fm);
+        }
+    }
+    else if( resdims == chres.dims() )    // same tensor shape: merge element-by-element 
     {
       for( int i=0; i<nvs0; i++ )
       {

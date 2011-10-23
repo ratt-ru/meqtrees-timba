@@ -8,6 +8,11 @@
       // should be called somewhere in order to link in the registry
       int aidRegistry_MeqNodes ();
 
+#ifndef _defined_id_AidAll
+#define _defined_id_AidAll 1
+const DMI::AtomicID AidAll(-1286);                // from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
+const int AidAll_int = -1286;
+#endif
 #ifndef _defined_id_AidAng
 #define _defined_id_AidAng 1
 const DMI::AtomicID AidAng(-1701);                // from /home/twillis/Timba/MeqNodes/src/LMRaDec.h:30
@@ -967,6 +972,11 @@ const int AidMeqWSum_int = -1502;
 #define _defined_id_AidMeqZeroFlagger 1
 const DMI::AtomicID AidMeqZeroFlagger(-1434);     // from /home/oms/LOFAR/Timba/MeqNodes/src/ZeroFlagger.h:32
 const int AidMeqZeroFlagger_int = -1434;
+#endif
+#ifndef _defined_id_AidMerge
+#define _defined_id_AidMerge 1
+const DMI::AtomicID AidMerge(-1778);              // from MergeFlags.h:33
+const int AidMerge_int = -1778;
 #endif
 #ifndef _defined_id_AidMethod
 #define _defined_id_AidMethod 1

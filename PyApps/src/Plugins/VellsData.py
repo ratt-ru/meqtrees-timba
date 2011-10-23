@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #% $Id$ 
 
@@ -224,6 +225,7 @@ class VellsData:
          exterior_label = self._exterior_plot_label[i]
        except:
          exterior_label = None
+       valueshapes = [];  # accumulate list of main value + perturbed value shapes here
        if vells_rec.vellsets[i].has_key("value"):
          menu_label = "[" + str(i) + "]" 
          if self.dims is None:
@@ -238,6 +240,7 @@ class VellsData:
          self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].value
          # check if we may have to generate enlarged data set
          shape = self._plot_vells_dict[menu_label].shape
+         valueshapes.append(shape);
          self._menu_labels_big[id] = False
          for k in range(len(shape)):
            try: 
@@ -302,6 +305,7 @@ class VellsData:
              self._key_menu_labels[id] = menu_label
              self._plot_vells_dict[menu_label] = vells_rec.vellsets[i].perturbed_value[j]
              shape = self._plot_vells_dict[menu_label].shape
+             valueshapes.append(shape);
              self._menu_labels_big[id] = False
              for k in range(len(shape)):
               expected_size = self.vells_axis_parms[self.axis_labels[k]][6]
@@ -330,7 +334,41 @@ class VellsData:
 #           mb_reporter = Qt.QMessageBox.warning(self, "QwtImageDisplay", Message)
        if vells_rec.vellsets[i].has_key("flags"):
          toggle_index = "flag data " + str(i)
-         self._plot_flags_dict[toggle_index] = vells_rec.vellsets[i].flags
+         flags = vells_rec.vellsets[i].flags;
+         # OK, we need to promote the shape of the flags array to the union of all the value shapes
+         # (usually, all the value shapes are the same anyway, but the flags array can have collapsed axes)
+         if valueshapes:
+           # figure out the uniting shape
+           maxdim = max([len(sh) for sh in valueshapes]);
+           maxshape = [ max([(sh[i] if i<len(sh) else 1) for sh in valueshapes]) for i in range(maxdim) ];
+           # figure out how to reshape flags array to this. We do as follows for e.g. a maxshape of (L,M,N) and a flags shape of (L,1,N)
+           # * reshape flags to f0shape, which is a shape containing all non-trivial axes, thus (L,N)
+           # * make new flags array of shape L,M,N
+           # * assign new[:,:,:] = old[:,.numpy.newaxis,:]
+           f0shape = [];
+           # build up the indexing object for old (f0index) and new (f1index) arrays
+           f0index = [];
+           f1index = [numpy.s_[:]]*maxdim;   # this is just :,:,:,...
+           # loop over all dimensions
+           for idim,dimlen in enumerate(maxshape):
+             # if this dimension is missing in flags, add numpy.newaxis to its index
+             if idim >= len(flags.shape) or flags.shape[idim] == 1:
+               f0index.append(numpy.newaxis);
+             # if this dimension is present in flags, add : to its index, and its length to the f0shape
+             elif flags.shape[idim] == dimlen:
+               f0index.append(numpy.s_[:]);
+               f0shape.append(dimlen);
+             # else bomb out -- this shouldn't happen, and we won't display such flags
+             else:
+               flags = None;
+               break;
+           # now reshape and promote
+           if flags is not None:
+             flags0 = flags.reshape(f0shape);
+             flags = numpy.zeros(maxshape,int);
+             flags[f1index] = flags0[f0index];
+         if flags is not None:
+          self._plot_flags_dict[toggle_index] = flags;
 
 # update index used for strings on displays if self.dims exists
        if not self.dims is None:
