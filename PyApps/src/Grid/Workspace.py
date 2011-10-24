@@ -95,7 +95,6 @@ class Workspace (object):
     self.add_page();
 
   def show_message (self,message,error=False,timeout=2000):
-    print "Workshape show_message ",message;
     from Timba.GUI import app_proxy_gui
     category = app_proxy_gui.Logger.Error if error else app_proxy_gui.Logger.Normal;
     self.wtop().emit(PYSIGNAL("showMessage"),message,None,category,timeout);

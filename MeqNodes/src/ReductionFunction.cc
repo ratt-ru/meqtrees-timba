@@ -184,10 +184,13 @@ void ReductionFunction::evaluateFlags (Vells::Ref &out,const Request &req,const 
       if( totflagmask )
       {
         // now find the points that were flagged for ALL children,
-        // and assign totflags to them
-        Vells realflags;
-        if( flagged.whereEq(realflags,(1<<pvs.size())-1,totflagmask,0) >=0 )
-          Vells::mergeFlags(out,realflags,totflagmask);
+        // and assign totflags to them.
+        Vells::Ref realflags(new Vells);
+        if( flagged.whereEq(realflags(),(1<<pvs.size())-1,totflagmask,0) >=0 )
+        if( out.valid() )
+          Vells::mergeFlags(out,*realflags,VellsFullFlagMask);
+        else
+          out = realflags;
       }
     }
     // single child: reduce to a single scalar
@@ -200,9 +203,11 @@ void ReductionFunction::evaluateFlags (Vells::Ref &out,const Request &req,const 
       // if we have accumulated a flag, merge it in
       if( tot_flags )
       {
-        Vells::Ref flagref;
-        flagref <<= new Vells(makeLoShape(1),tot_flags,true);
-        Vells::mergeFlags(out,*flagref,tot_flags);
+        Vells::Ref flagref(new Vells(makeLoShape(1),tot_flags,true));
+        if( out.valid() )
+          Vells::mergeFlags(out,*flagref,tot_flags);
+        else
+          out = flagref;
       }
     }
   }
