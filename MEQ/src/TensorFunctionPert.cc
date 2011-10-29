@@ -146,8 +146,11 @@ void TensorFunctionPert::computeTensorResult (Result::Ref &resref,
   for( int i=0; i<nvs_result; i++ )
   {
     VellSet & vs = res.setNewVellSet(i,num_spids_);
-    vs.setSpids(all_spids);
-    vs.setPerturbations(perts);
+    if( num_spids_ )
+    {
+      vs.setSpids(all_spids);
+      vs.setPerturbations(perts);
+    }
   }
   // call subclass to compute the result
   evaluateTensors(res,num_spids_,nchild);

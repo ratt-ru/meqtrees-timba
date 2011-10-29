@@ -31,7 +31,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::PSVTensor
 
-#pragma aid LMN B UVW N Minus Narrow Band Limit
+#pragma aid LMN B UVW N Minus Narrow Band Limit Shape
 
 namespace Meq {    
 
@@ -64,14 +64,16 @@ protected:
   // method required by TensorFunctionPert
   virtual void evaluateTensors (Result &out,int nchildren,int nperts);
        
-  // helper functions to compute the K-Jones exponent and the smeraing term
+  // helper functions to compute the K-Jones exponent and the smearing term
   Vells computeExponent (const Vells &p,const Cells &cells);
   Vells computeSmearingTerm (const Vells &p,const Vells &dp);
   
   // virtual method to compute the shape function (as a visibility scaling term)
-  // Should return true if function was recomputed for this perturbation,
+  // Should return true if function was recomputed for this perturbation (also if recompute=True on
+  // the input, in which case it should recompute regardless),
   // or false if the main value (ipert==0) is to be reused. For ipert==0, should return true always.
-  virtual bool computeShapeTerm (Vells &shape,int isrc,int ipert,int npert,int nchildren);
+  virtual bool computeShapeTerm (Vells &shape,bool recompute,
+               const Vells &u,const Vells &v,int isrc,int ipert,int npert,int nchildren);
 
   // Helper function. Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
   // Also checks that N==nsrc.
@@ -94,8 +96,11 @@ protected:
   // subtracted from n -- set to 1 to use fringe-stopped phases, i.e. w(n-1)
   double n_minus_;
 
-  // number of the first Jones child. Set to 3 in this class, but subclasses may change this
+  // number of the first Jones child. Set to 4 in this class, but subclasses may change this
   int first_jones_;
+  
+  // flag: we have a valid shape child
+  bool have_shape_;
 
 };
 

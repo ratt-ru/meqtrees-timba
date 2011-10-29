@@ -26,6 +26,7 @@
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
 #include <casa/BasicSL/Constants.h>
+using namespace casa;
 
 namespace Meq {
 
@@ -34,12 +35,12 @@ InitDebugContext(PSVTensor,"PSVTensor");
   
 using namespace VellsMath;
 
-const HIID child_labels[] = { AidLMN,AidB,AidUVW,
+const HIID child_labels[] = { AidLMN,AidB,AidUVW,AidShape,
   AidE|1,AidE|1|AidConj,
 };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
-const double _2pi_over_c = casa::C::_2pi / casa::C::c;
+const double _2pi_over_c = C::_2pi / C::c;
 
 const HIID FNMinus = AidN|AidMinus;
 const HIID FNarrowBandLimit = AidNarrow|AidBand|AidLimit;
@@ -47,7 +48,7 @@ const HIID FNarrowBandLimit = AidNarrow|AidBand|AidLimit;
 
 PSVTensor::PSVTensor()
 : TensorFunctionPert(-4,child_labels,3), // first 3 children mandatory, rest are optional
-  narrow_band_limit_(.05),n_minus_(1),first_jones_(3)
+  narrow_band_limit_(.05),n_minus_(1),first_jones_(4)
 {
   // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };
@@ -103,6 +104,21 @@ LoShape PSVTensor::getResultDims (const vector<const LoShape *> &input_dims)
   FailWhen(uvw!=shape_3vec && uvw!=shape_2x3,"child '"+child_labels[2].toString()+"': an 2x3 matrix or a 3-vector expected");
   // B must be a per-source tensor
   checkTensorDims(1,b,num_sources_);
+  // shape must be either per-source, or else null for no shape
+  if( input_dims.size() > 3 )
+  {
+    const LoShape &shp = *input_dims[3];
+    if( shp.size() < 1 || shp.product() == 1 )
+      have_shape_ = false;
+    else
+    {
+      FailWhen(shp.size()!=2 || shp[1]!=3,"child '"+child_labels[3].toString()+"': an Nx3 matrix is expected");
+      FailWhen(shp[0]!=num_sources_,"child '"+child_labels[3].toString()+"': first dimension does not match number of sources");
+      have_shape_ = true;
+    }
+  }
+  else
+    have_shape_ = false;
   
   // Additional children after the first_jones should come in pairs (Jones term, plus its conjugate), and be per-source tensors
   FailWhen((input_dims.size()-first_jones_)%2!=0,"a pair of children must be provided per each Jones term");
@@ -297,24 +313,28 @@ void PSVTensor::evaluateTensors (Result &result,int npert,int nchildren)
     // that only the bare minimum is recomputed for each perturbed product.
     for( int ipert=0; ipert<=npert; ipert++ )
     {
+      bool recompute_uvw = !ipert;
       bool recompute_K = !ipert;
       // collect uvw values for current perturbation
       const Vells *puvw[3];
       for( int i=0; i<3; i++ )
-        puvw[i] = getChildValue(recompute_K,2,ipert,i);
+        puvw[i] = getChildValue(recompute_uvw,2,ipert,i);
       // collect lmn values for current perturbation
       const Vells *plmn[3];
       for( int i=0; i<3; i++ )
         plmn[i] = getChildValue(recompute_K,0,ipert,isrc*3+i);
       // intermediate values used in calculations
       Vells K,n,phase,shape;
-      // pointer to which value to use
+      // pointer to which K value to use
       Vells *pK = &K;
-      bool recompute_shape = computeShapeTerm(shape,isrc,ipert,npert,nchildren) || !ipert;
+      // flag: a shape has been computed
+      bool recompute_shape = computeShapeTerm(shape,recompute_uvw,*puvw[0],*puvw[1],
+                                              isrc,ipert,npert,nchildren);
       // does K need to be recomputed
       if( recompute_K )
       {
-        // get the phase argument exp{ i*2*pi/c*(u*l+v*m+w*n) } -- this will be multiplied by frequency in computeExponent()
+        // get the phase argument exp{ i*2*pi*c*(u*l+v*m+w*n) } -- this will be multiplied by freq
+        // in computeExponent()
         n = *plmn[2]-n_minus_;
         phase = ((*puvw[0])*(*plmn[0]) + (*puvw[1])*(*plmn[1]) + (*puvw[2])*n)*_2pi_over_c;
         K = computeExponent(phase,resultCells());
@@ -329,14 +349,17 @@ void PSVTensor::evaluateTensors (Result &result,int npert,int nchildren)
           Vells dphase = ((*pduvw[0])*(*plmn[0]) + (*pduvw[1])*(*plmn[1]) + (*pduvw[2])*n)*_2pi_over_c;
           smear0 = computeSmearingTerm(phase,dphase);
         }
-        shape0 = shape;
         K0sm = K*smear0;
+        if( recompute_shape )
+          shape0 = shape;
         K0smsh = K0sm*shape0;
         pK = &K0smsh;
       }
       // else see how much can be used from the cached main values
       else if( recompute_K )
+      {
         K *= smear0 * (recompute_shape ? shape : shape0);
+      }
       else if( recompute_shape )
         K = K0sm * shape;
       else
@@ -385,7 +408,7 @@ void PSVTensor::evaluateTensors (Result &result,int npert,int nchildren)
 
 // This computes the phase term, exp(-i*freq*p)
 // It is mostly identical to VisPhaseShift::evaluateTensors()
-// The p term is expected to be (ul+vm+wn)*2_pi/c, so need only be multiplied by frequency
+// The p term is expected to be (ul+vm+wn)*2pi/c, so need only be multiplied by freq
 // to get the actual phase
 Vells PSVTensor::computeExponent (const Vells &p,const Cells &cells)
 {
@@ -455,11 +478,116 @@ Vells PSVTensor::computeSmearingTerm (const Vells &p,const Vells &dp)
   return prod1*prod2;
 }
 
-// fill normalized visibilities -- do nothing, as they are then treated as unity
-bool PSVTensor::computeShapeTerm (Vells &shape,int,int ipert,int,int)
+#include <casa/BasicSL/Constants.h>
+using namespace casa;
+
+const double fwhm2int = 1.0/std::sqrt(std::log(16.0));
+
+
+// fill normalized visibilities 
+bool PSVTensor::computeShapeTerm (Vells &shape,bool recompute,
+                                  const Vells &u,const Vells &v,
+                                  int isrc,int ipert,int npert,int nchildren)
 { 
-  shape = Vells::Unity(); 
-  return !ipert;
+  if( !have_shape_ )
+    return false;
+  // ok, get the shape attributes
+  const Vells &el    = *getChildValue(recompute,3,ipert,isrc*3);
+  const Vells &em    = *getChildValue(recompute,3,ipert,isrc*3+1);
+  const Vells &ratio = *getChildValue(recompute,3,ipert,isrc*3+2);
+  if( recompute )
+  {
+    // null extents mean a point source -- return unity shape
+    if( em.isNull() && el.isNull() )
+    {
+      shape = 1;
+      return true;
+    }
+    // From casa/components/ComponentModels/GaussianShape.cc:
+    // this code converts Gaussian parameters in the image plane into those in the uv-plane
+    /*void GaussianShape::updateFT() {
+      const Double factor = 4.0*C::ln2/C::pi;
+      Vector<Double> width(2);
+      width(0) = factor/itsShape.minorAxis();
+      width(1) = factor/itsShape.majorAxis();
+      itsFT.setWidth(width);
+      itsFT.setPA(itsShape.PA() + C::pi_2);
+    }*/
+    // thus widths in the uv plane are 
+    //    uv_maj = 4*ln2/(pi*img_min)  
+    // and v.v.
+    
+    // 
+    // From casa/scimath/Functionals/Gaussian2DParam.cc:
+    // this code converts flux to a height parameter
+    // thus height_imageplane = flux/( abs(fwhm_maj*fwhm_min)*pi*fwhm2int*fwhm2int );
+    // 
+    /*template<class T>
+    void Gaussian2DParam<T>::setFlux(const T &flux) {
+      theXwidth = param_p[YWIDTH]*param_p[RATIO];
+      param_p[HEIGHT] = flux/abs(param_p[YWIDTH]*theXwidth*T(C::pi))/
+        fwhm2int/fwhm2int;
+    }*/
+    // From casa/scimath/Functionals/Gaussian2Dt.cc:
+    /*template<class T>
+    T Gaussian2D<T>::eval(typename Function<T>::FunctionArg x) const {
+      T xnorm = x[0] - param_p[XCENTER];
+      T ynorm = x[1] - param_p[YCENTER];
+      if (param_p[PANGLE] != thePA) {
+        thePA = param_p[PANGLE];
+        theCpa = cos(thePA);
+        theSpa = sin(thePA);
+      }
+      const T temp(xnorm);
+      xnorm =   theCpa*temp  + theSpa*ynorm;
+      ynorm = - theSpa*temp  + theCpa*ynorm;
+      xnorm /= param_p[YWIDTH]*param_p[RATIO]*fwhm2int;
+      ynorm /= param_p[YWIDTH]*fwhm2int;
+      return param_p[HEIGHT]*exp(-(xnorm*xnorm + ynorm*ynorm));
+    }*/
+    
+    // ok, so the projections of the major axis onto the l/m axes are el and em
+    // from this we can work out cos(PA) and sin(PA)
+    Vells fwhm = sqrt(pow2(el)+pow2(em));
+    Vells cos_pa = em/fwhm;
+    Vells sin_pa = el/fwhm;
+    wstate()["$fwhm"] = fwhm;
+    wstate()["$cos_pa"] = cos_pa;
+    wstate()["$sin_pa"] = sin_pa;
+    // rotate uv-coordinates through PA to put them into the coordinate frame
+    // of the gaussian
+    Vells u1 = cos_pa*u - sin_pa*v;
+    Vells v1 = sin_pa*u + cos_pa*v;
+    wstate()["$u"] = u;
+    wstate()["$v"] = v;
+    wstate()["$u1"] = u1;
+    wstate()["$v1"] = v1;
+    // scale uv-coordinates by the extents
+    // fwhm computed above is the extent along the m axis (extent along v is reciprocal)
+    // fwhm*ratio is the extent along the l axis (extent along u is reciprocal)
+    // we need to DIVIDE u1 and v1 by the uv-extents, thus we multiply by the lm-extents
+    // instead, and divide by the reciprocality constant
+    
+    // but first, we convert FWHM to uv-space 
+    // ok the extra 4pi is just a fudge here, 
+    // until I figure out WTF is the right scale, but this gives suspiciously correct results
+    Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*4*C::pi); 
+    wstate()["$scale_uv"] = scale_uv;
+    // convert to intrinsic scale, and to wavelengths
+    scale_uv *= freq_vells_/C::c; // (fwhm2int/C::c)*freq_vells_;
+    wstate()["$scale_uv1"] = scale_uv;
+    // apply extents to u1 and v1
+    u1 /= scale_uv/ratio;
+    v1 /= scale_uv;
+    wstate()["$u2"] = u1;
+    wstate()["$v2"] = v1;
+    // finally, the height
+    // total power is gaussian at u=v=0
+    // thus a normalized uv-gaussian needs no additional scaling factor
+    shape = exp(-(pow2(u1)+pow2(v1)));
+    wstate()["$shape"] = shape;
+  }
+  return recompute;
 }
 
 

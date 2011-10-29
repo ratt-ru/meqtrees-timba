@@ -763,7 +763,8 @@ public:
 
   // Helper function to merge vells flags using copy-on-write
   // Executes flags0 |= flags1 & fm
-  // If flags0 is invalid, attaches new flags.
+  // If flags0 is invalid, attaches flags1 to it and does &=fm. NB: flags1 MUST BE REFFABLE, do
+  // not pass an automatic Vells!
   static void mergeFlags (Vells::Ref &flags0,const Vells &flags1,VellsFlagType fm);
 
 private:
