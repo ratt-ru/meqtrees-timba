@@ -118,6 +118,7 @@ class CollectionsPlotter(GriddedPlugin):
       lo0.addLayout(lo1);
       lo1.addStretch(1);
       self._results_range = ResultsRange(parent=self.layout_parent, name="", horizontal=False)
+      self._results_range.setMaxValue(max_value= 0, allow_shrink=True)
       lo1.addStretch(1);
       lo1.addWidget(self._results_range)
       # add data selectors 
@@ -138,7 +139,7 @@ class CollectionsPlotter(GriddedPlugin):
     self._results_range.setMinValue(0)
     self._results_range.setMaxValue(max_range,False)
     self._results_range.setTickInterval( max_range / 10 )
-    self._results_range.setRange(max_range, False)
+    self._results_range.setValue(max_range)
     self._results_range.setLabel('offset:',align=Qt.Qt.AlignHCenter)
     self._results_range.hideNDControllerOption()
     self._results_range.reset_scale_toggle()
