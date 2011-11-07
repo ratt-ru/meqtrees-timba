@@ -73,6 +73,9 @@ void TensorFunctionPert::computeTensorResult (Result::Ref &resref,
   FailWhen(npertsets==2,"double-differencing not supported by this node");
   num_spids_  = all_spids.size();
 
+//  std::vector<Thread::Mutex::Lock> vslock(totplanes);
+//  std::vector<Thread::Mutex::Lock> vspslock(totplanes);
+
   // allocate pointer array for Vells: NCHILDxNVELLSETSx(1+NPERT)
   int nvp = nchild*maxplanes_*(1+num_spids_);
   // if old array is big enough, do not reallocate
@@ -84,7 +87,7 @@ void TensorFunctionPert::computeTensorResult (Result::Ref &resref,
   }
   // fill with zeroes
   memset(vp_,0,sizeof(Vells*)*nvp_);
-  
+
   // pert: the perturbation associated with each spid
   std::vector<double> perts(num_spids_);
   // these will indicate the child and vellset at which a spid was first found
@@ -93,6 +96,7 @@ void TensorFunctionPert::computeTensorResult (Result::Ref &resref,
     found_at_child[i] = -1;
   dims_vector_.resize(nchild);
   pvs_vector_.resize(nchild);
+  int totvs = 0;
   // loop over all children and vellsets to fill in pointers
   for( uint ichild = 0; ichild < nchild; ichild++ )
   {
@@ -101,9 +105,12 @@ void TensorFunctionPert::computeTensorResult (Result::Ref &resref,
     // fill in pointers to vellsets, and to main value of each
     CVSPVector &pvs = pvs_vector_[ichild];
     pvs.resize(chres.numVellSets());
-    for( int ivs = 0; ivs < chres.numVellSets(); ivs++ )
+    for( int ivs = 0; ivs < chres.numVellSets(); ivs++,totvs++ )
     {
       const VellSet &vs = chres.vellSet(ivs);
+//      vslock[totvs].lock(vs.mutex());
+//      if( vs.numPertSets() && vs.nperturbed() )
+//        vspslock[totvs].lock(vs.pertSetMutex(0));
       pvs[ivs] = &vs;
       // fill in pointer to main value (ispid=0)
       vp_[IPTR(ichild,0,ivs)] = &(vs.getValue());
