@@ -30,6 +30,13 @@
 #include <TimBase/Thread/Mutex.h>
 #include <exception>
 
+// this makes the OctoPythion return macros thread-aware
+#undef PyThreadBegin
+#undef PyThreadEnd
+#define PyThreadBegin   PyGILState_STATE gilstate = PyGILState_Ensure();
+#define PyThreadEnd     PyGILState_Release(gilstate);
+
+
 namespace Meq
 {
   class MeqServer;

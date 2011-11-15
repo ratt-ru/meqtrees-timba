@@ -58,10 +58,19 @@
     ThrowMore(exc,message); \
   }
 
+
+// surround your Python section with these two calls as follows:
+// PyThreadBeginTry
+//   some python-calling code, possibly throwing exceptions
+// PyThreadEndCatch
+//   no more python calls
+#define PyThreadBeginTry PyThreadBegin; try {
+#define PyThreadEndCatch } catch(...) { PyThreadEnd; throw; } PyThreadEnd;
+
 namespace Meq {
 
 LOFAR::Exception getPyException ();
-  
+
 class PyNodeImpl 
 {
   public:

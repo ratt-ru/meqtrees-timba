@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 #% $Id$ 
 #
@@ -139,7 +140,9 @@ class dmi_repr (object):
   # returns inline string representation of value, or None if one is not available
   def inline_str (self,value,prec=None):
     if isinstance(value,array_class):
-      return self._arrToInline(value,prec=prec);
+      if value.shape: # rank-0 array needs to be a scalar
+        return self._arrToInline(value,prec=prec);
+      value = list(value.flat)[0];
     s = TypeToInline.get(type(value),_nonefunc)(value,prec=prec);
     if s is not None and len(s)>self.maxlen:
       return (s[:self.maxlen-3] + '...',False);

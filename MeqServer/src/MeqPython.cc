@@ -65,8 +65,12 @@ static PyObject * mqexec (PyObject *, PyObject *args)
   char * command;
   PyObject *cmdrec = 0;
   int silent;
+  PyThreadBegin;
   if( !PyArg_ParseTuple(args, "s|Oi", &command,&cmdrec,&silent) )
+  {
+    PyThreadEnd;
     return NULL;
+  }
   if( !pmqs )
     returnError(NULL,OctoPython,"meqserver not initialized");
   // catch all exceptions below
@@ -85,7 +89,9 @@ static PyObject * mqexec (PyObject *, PyObject *args)
     // 1st false = post_reply = do not post reply but return it here
     // 2nd false = wait_for_async_queue = do not wait on queue, since
     //   being invoked from Python, we may be part of the queue anyway
-    return pyFromDMI(*retval);
+    PyObject *ret = pyFromDMI(*retval);
+    PyThreadEnd;
+    return ret;
   }
   catchStandardErrors(NULL);
   returnNone;
@@ -99,8 +105,12 @@ static PyObject * get_node_state_field (PyObject *, PyObject *args)
 {
   PyObject * node_baton;
   char * field_str;
+  PyThreadBegin;
   if( !PyArg_ParseTuple(args, "Os",&node_baton,&field_str) )
+  {
+    PyThreadEnd;
     return NULL;
+  }
   // catch all exceptions below
   try
   {
@@ -110,7 +120,9 @@ static PyObject * get_node_state_field (PyObject *, PyObject *args)
     HIID field(field_str);
     cdebug(3)<<"get_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
     ObjRef ref = pnode->syncState()[field].ref();
-    return pyFromDMI(*ref);
+    PyObject *ret = pyFromDMI(*ref);
+    PyThreadEnd;
+    return ret;
   }
   catchStandardErrors(NULL);
   returnNone;
@@ -124,8 +136,12 @@ PyObject * PyNodeAccessor::set_node_state_field (PyObject *, PyObject *args)
 {
   PyObject *node_baton, *value;
   char * field_str;
+  PyThreadBegin;
   if( !PyArg_ParseTuple(args, "OsO",&node_baton,&field_str,&value) )
+  {
+    PyThreadEnd;
     return NULL;
+  }
   // catch all exceptions below
   try
   {
@@ -151,8 +167,12 @@ PyObject * PyNodeAccessor::set_node_active_symdeps (PyObject *, PyObject *args)
 {
   PyObject *node_baton,*symdep_list;
   char * field_str;
+  PyThreadBegin;
   if( !PyArg_ParseTuple(args, "OO",&node_baton,&symdep_list) )
+  {
+    PyThreadEnd;
     return NULL;
+  }
   // catch all exceptions below
   try
   {
@@ -182,8 +202,12 @@ PyObject * PyNodeAccessor::set_node_active_symdeps (PyObject *, PyObject *args)
 static PyObject * get_forest_state_field (PyObject *, PyObject *args)
 {
   char * field_str;
+  PyThreadBegin;
   if( !PyArg_ParseTuple(args, "s",&field_str) )
+  {
+    PyThreadEnd;
     return NULL;
+  }
   if( !pmqs )
     returnError(NULL,OctoPython,"meqserver not initialized");
   // catch all exceptions below
@@ -192,7 +216,9 @@ static PyObject * get_forest_state_field (PyObject *, PyObject *args)
     HIID field(field_str);
     cdebug(3)<<"get_forest_state_field: field "<<field<<endl;
     ObjRef ref = pmqs->getForest().state()[field].ref();
-    return pyFromDMI(*ref);
+    PyObject *ret = pyFromDMI(*ref);
+    PyThreadEnd;
+    return ret;
   }
   catchStandardErrors(NULL);
   returnNone;
@@ -226,6 +252,7 @@ static PyMethodDef MeqMethods[] = {
 static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 {
   Thread::Mutex::Lock lock(python_mutex);
+  PyThreadBegin;
   PyObjectRef pyarg = pyFromDMI(arg);
   FailWhen(!pyarg,"failed to convert argument to python");
   PyErr_Clear();
@@ -234,6 +261,7 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
   PyObjectRef val = PyObject_CallObject(func,*allargs);
   if( !val && PyErr_Occurred() )
     PyErr_Print();
+  PyThreadEnd;
   return val;
 }
 
@@ -291,7 +319,9 @@ void processInitRecord (const DMI::Record &rec)
   if( process_init_record )
   {
     cdebug(1)<<"calling init_record handler"<<endl;
-    PyObjectRef res = callPyFunc(process_init_record,rec);
+    PyThreadBegin;
+    bool res = callPyFunc(process_init_record,rec);
+    PyThreadEnd;
     if( !res )
       Throw("Python meqserver: visheader handler failed");
   }
@@ -306,7 +336,9 @@ void processVisHeader (const DMI::Record &rec)
   if( process_vis_header )
   {
     cdebug(1)<<"calling vis_header handler"<<endl;
-    PyObjectRef res = callPyFunc(process_vis_header,rec);
+    PyThreadBegin;
+    bool res = callPyFunc(process_vis_header,rec);
+    PyThreadEnd;
     if( !res )
       Throw("Python meqserver: visheader handler failed");
   }
@@ -337,7 +369,9 @@ void processVisFooter (const DMI::Record &rec)
   if( process_vis_footer )
   {
     cdebug(1)<<"calling vis_header handler"<<endl;
-    PyObjectRef res = callPyFunc(process_vis_footer,rec);
+    PyThreadBegin;
+    bool res = callPyFunc(process_vis_footer,rec);
+    PyThreadEnd;
     if( !res )
       Throw("Python meqserver: visfooter handler failed");
   }
@@ -352,9 +386,11 @@ void forceModuleReload ()
 {
   Thread::Mutex::Lock lock(python_mutex);
   cdebug(1)<<"calling force_module_reload()"<<endl;
+  PyThreadBegin;
   PyObjectRef res = PyObject_CallObject(force_module_reload,NULL);
   if( PyErr_Occurred() )
     PyErr_Print();
+  PyThreadEnd;
 }
 
 
@@ -367,73 +403,87 @@ void initMeqPython (MeqServer *mq)
   if( meq_initialized )
     return;
   meq_initialized = true;
-  // init Python
+  // init Python threads -- this acquires the GIL
+  PyEval_InitThreads();
   Py_Initialize();
-
-  // import the octopython and mequtils modules -- we don't want Python to pull
-  // in the shared lib, but would rather use our (linked in) version. Doing
-  // anything else causes problems with C++ RTTI symbols.
-  OctoPython::initOctoPythonModule();
-  MeqUtils::initMeqUtilsModule();
-
-  // register ourselves as a module
-  PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
-            "interface to the MeqServer object");
-  if( !module )
+  PyThreadBegin;
+  // release GIL in exception handler
+  try
   {
-    PyErr_Print();
-    Throw("Python meqserver: meqserver_interface module init failed");
-  }
+    // import the octopython and mequtils modules -- we don't want Python to pull
+    // in the shared lib, but would rather use our (linked in) version. Doing
+    // anything else causes problems with C++ RTTI symbols.
+    OctoPython::initOctoPythonModule();
+    MeqUtils::initMeqUtilsModule();
 
-  // import the octopython module to init everything
-  PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
-  if( !kernelmod )
-  {
-    PyErr_Print();
-    Throw("Python meqserver: import of Timba.meqkernel module failed");
-  }
+    // register ourselves as a module
+    PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
+              "interface to the MeqServer object");
+    if( !module )
+    {
+      PyErr_Print();
+      Throw("Python meqserver: meqserver_interface module init failed");
+    }
 
-  create_pynode        = PyObject_GetAttrString(kernelmod,"create_pynode");
-  if( PyErr_Occurred() )
-    PyErr_Print();
-  if( !create_pynode )
-    Throw("Timba.meqkernel.create_pynode not found");
-  force_module_reload  = PyObject_GetAttrString(kernelmod,"force_module_reload");
-  if( PyErr_Occurred() )
-    PyErr_Print();
-  if( !force_module_reload )
-    Throw("Timba.meqkernel.force_module_reload not found");
+    // import the octopython module to init everything
+    PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
+    if( !kernelmod )
+    {
+      PyErr_Print();
+      Throw("Python meqserver: import of Timba.meqkernel module failed");
+    }
 
-  // get optional handlers
-  process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
-  PyErr_Clear();
-  cdebug(1)<<"init handler is "<<process_init_record<<endl;
-  process_vis_header = PyObject_GetAttrString(kernelmod,"process_vis_header");
-  PyErr_Clear();
-  process_vis_tile   = PyObject_GetAttrString(kernelmod,"process_vis_tile");
-  PyErr_Clear();
-  process_vis_footer = PyObject_GetAttrString(kernelmod,"process_vis_footer");
-  PyErr_Clear();
-  cdebug(1)<<"vis handlers are "<<process_vis_header<<" "
-      <<process_vis_tile<<" "<<process_vis_footer<<endl;
-
-  // set verbosity level
-  PyObject *setverbose = PyObject_GetAttrString(kernelmod,"set_verbose");
-  PyErr_Clear();
-  if( setverbose )
-  {
-    PyObjectRef val = PyObject_CallFunction(setverbose,"(i)",int(DebugLevel));
+    create_pynode        = PyObject_GetAttrString(kernelmod,"create_pynode");
     if( PyErr_Occurred() )
       PyErr_Print();
-  }
+    if( !create_pynode )
+      Throw("Timba.meqkernel.create_pynode not found");
+    force_module_reload  = PyObject_GetAttrString(kernelmod,"force_module_reload");
+    if( PyErr_Occurred() )
+      PyErr_Print();
+    if( !force_module_reload )
+      Throw("Timba.meqkernel.force_module_reload not found");
 
-  // drop out on error
-  if( PyErr_Occurred() )
-  {
-    cdebug(1)<<"python error, report follows"<<endl;
-    PyErr_Print();
-    Throw("Python meqserver: module init failed");
+    // get optional handlers
+    process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
+    PyErr_Clear();
+    cdebug(1)<<"init handler is "<<process_init_record<<endl;
+    process_vis_header = PyObject_GetAttrString(kernelmod,"process_vis_header");
+    PyErr_Clear();
+    process_vis_tile   = PyObject_GetAttrString(kernelmod,"process_vis_tile");
+    PyErr_Clear();
+    process_vis_footer = PyObject_GetAttrString(kernelmod,"process_vis_footer");
+    PyErr_Clear();
+    cdebug(1)<<"vis handlers are "<<process_vis_header<<" "
+        <<process_vis_tile<<" "<<process_vis_footer<<endl;
+
+    // set verbosity level
+    PyObject *setverbose = PyObject_GetAttrString(kernelmod,"set_verbose");
+    PyErr_Clear();
+    if( setverbose )
+    {
+      PyObjectRef val = PyObject_CallFunction(setverbose,"(i)",int(DebugLevel));
+      if( PyErr_Occurred() )
+        PyErr_Print();
+    }
+
+    // drop out on error
+    if( PyErr_Occurred() )
+    {
+      cdebug(1)<<"python error, report follows"<<endl;
+      PyErr_Print();
+      Throw("Python meqserver: module init failed");
+    }
   }
+  // save thread state and release the GIL before exiting (since we acquired it with PyEval_InitThreads() above)
+  catch( ... )
+  {
+    PyThreadEnd;
+    PyEval_SaveThread();
+    throw;
+  }
+  PyGILState_Release(gilstate);
+  PyEval_SaveThread();
 }
 
 // -----------------------------------------------------------------------

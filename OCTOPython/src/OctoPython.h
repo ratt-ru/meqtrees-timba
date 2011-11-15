@@ -302,7 +302,15 @@ namespace OctoPython
   // ThreadCond type structure
   extern PyTypeObject PyThreadCondType;
   
+
   
+  // these are used in the macros below to save/release thread state.
+  // redefine to
+  //   #define PyThreadBegin   PyGILState_STATE gilstate = PyGILState_Ensure();
+  //   #define PyThreadEnd     PyGILState_Release(gilstate);
+  // to support threaded Python in your code
+  #define PyThreadBegin
+  #define PyThreadEnd
 
   // throwError() macro
   // Raises Python exception PyExc_"err"Error with the given 
@@ -333,7 +341,7 @@ namespace OctoPython
   // Raises Python exception PyExc_"err"Error with the given 
   // message; issues a return statement with the specified value
   #define returnError(value,err,msg) \
-    { OctoPython::setError(PyExc_##err##Error,msg); return value; }
+    { OctoPython::setError(PyExc_##err##Error,msg);  PyThreadEnd; return value; }
   
   // catchStandardErrors() macro
   // Inserts standard catch-blocks. All exceptions are caught. A 
@@ -346,9 +354,15 @@ namespace OctoPython
       { cdebug(2)<<"caught exception: "<<exceptionToString(exc); returnError(retval,OctoPython,exc); } \
     catch ( ... )  \
       { cdebug(2)<<"caught unknown exception\n";  returnError(retval,OctoPython,"unknown exception"); }
+      
+  #define catchStandardErrors(retval) \
+    catch ( std::exception &exc ) \
+      { cdebug(2)<<"caught exception: "<<exceptionToString(exc); returnError(retval,OctoPython,exc); } \
+    catch ( ... )  \
+      { cdebug(2)<<"caught unknown exception\n";  returnError(retval,OctoPython,"unknown exception"); }
 
   // helper macro: returns a new ref to Py_None
-  #define returnNone { Py_INCREF(Py_None); return Py_None; }
+  #define returnNone { Py_INCREF(Py_None); PyThreadEnd; return Py_None; }
 
 
 };

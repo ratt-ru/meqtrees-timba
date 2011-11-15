@@ -68,6 +68,7 @@ string PyNodeImpl::sdebug (int detail,const string &prefix,const char *name) con
 void PyNodeImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Thread::Mutex::Lock lock(MeqPython::python_mutex);
+  PyThreadBeginTry;
   if( initializing )
   {
     string classname  = rec[FClassName].as<string>();
@@ -110,6 +111,7 @@ void PyNodeImpl::setStateImpl (DMI::Record::Ref &rec,bool initializing)
       rec().merge(newrec,true);
     }
   }
+  PyThreadEndCatch;
 }
 
 //##ModelId=3F9509770277
@@ -119,6 +121,8 @@ int PyNodeImpl::getResult (Result::Ref &resref,
 {
   FailWhen(!pynode_getresult_,"no Python-side get_result() method defined");
   Thread::Mutex::Lock lock(MeqPython::python_mutex);
+  int retcode = 0;
+  PyThreadBeginTry;
   // form up Python tuple of arguments
   PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
   // convert request
@@ -135,7 +139,6 @@ int PyNodeImpl::getResult (Result::Ref &resref,
   // else extract return value
   // by default we treat retval as a Result object
   PyObject * pyobj_result = *retval;
-  int retcode = 0;
   // ...but it can also be a tuple of (Result,retcode)...
   if( PySequence_Check(*retval) && !PyMapping_Check(*retval) )
   {
@@ -156,6 +159,7 @@ int PyNodeImpl::getResult (Result::Ref &resref,
         "Python-side get_result() did not return a valid Result object");
     resref = objref;
   }
+  PyThreadEndCatch;
   return retcode;
 }
 
@@ -166,6 +170,8 @@ int PyNodeImpl::discoverSpids (Result::Ref &resref,
 {
   FailWhen(!pynode_discoverspids_,"no Python-side discover_spids() method defined");
   Thread::Mutex::Lock lock(MeqPython::python_mutex);
+  int retcode = 0;
+  PyThreadBeginTry;
   // form up Python tuple of arguments
   PyObjectRef args_tuple = PyTuple_New(childres.size()+1);
   // convert request
@@ -182,7 +188,6 @@ int PyNodeImpl::discoverSpids (Result::Ref &resref,
   // else extract return value
   // by default we treat retval as a Result object
   PyObject * pyobj_result = *retval;
-  int retcode = 0;
   // ...but it can also be a tuple of (Result,retcode)...
   if( PySequence_Check(*retval) && !PyMapping_Check(*retval) )
   {
@@ -203,6 +208,7 @@ int PyNodeImpl::discoverSpids (Result::Ref &resref,
         "Python-side discover_spids() did not return a valid Result object");
     resref = objref;
   }
+  PyThreadEndCatch;
   return retcode;
 }
 
@@ -216,6 +222,8 @@ int PyNodeImpl::processCommand (Result::Ref &resref,
   if( !pynode_processcommand_ )
     return 0;
   Thread::Mutex::Lock lock(MeqPython::python_mutex);
+  int retcode = 0;
+  PyThreadBeginTry;
   // build argumnent tuple
   PyObjectRef args_tuple = Py_BuildValue("sNNi",
     command.toString().c_str(),
@@ -228,7 +236,6 @@ int PyNodeImpl::processCommand (Result::Ref &resref,
   // else extract return value -- may be a None, a single int, a single result,
   // or a tuple of (Result,int)
   PyObject * pyobj_result = *retval;
-  int retcode = 0;
   // None returned
   if( pyobj_result == Py_None )
   {
@@ -259,6 +266,7 @@ int PyNodeImpl::processCommand (Result::Ref &resref,
         "Python-side discover_spids() did not return a valid Result object");
     resref = objref;
   }
+  PyThreadEndCatch;
   return retcode;
 }
 
@@ -266,6 +274,7 @@ const Request & PyNodeImpl::modifyChildRequest (Request::Ref &newreq,const Reque
 {
   FailWhen(!pynode_modifychildreq_,"no Python-side modify_child_request() method defined");
   Thread::Mutex::Lock lock(MeqPython::python_mutex);
+  PyThreadBeginTry;
   // form up Python tuple of arguments
   PyObjectRef args_tuple = PyTuple_New(1);
   // convert request
@@ -284,6 +293,7 @@ const Request & PyNodeImpl::modifyChildRequest (Request::Ref &newreq,const Reque
   FailWhen(!objref || objref->objectType() != TpMeqRequest,
       "Python-side modify_child_request() did not return a valid Request object");
   newreq.xfer(objref);
+  PyThreadEndCatch;
   return *newreq;
 }
 
