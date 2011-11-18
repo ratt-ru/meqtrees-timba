@@ -186,6 +186,7 @@ Field                            1183       ; from /home/oms/LOFAR/Timba/VisCube
 File                             1224       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/BOIOSink.h:9
 Filename                         1576       ; from /home/oms/LOFAR/Timba/DMI/src/Exception.h:30
 Fit                              1281       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:40
+Fixed                            1780       ; from PSVTensor.h:34
 Flag                             1134       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 Flags                            1253       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 Flip                             1254       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:37
@@ -357,7 +358,7 @@ MeqFunction                      1283       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqFunctional                   1673       ; from /home/mevius/LOFAR/Timba/MeqNodes/src/Functional.h:33
 MeqFunklet                       1321       ; from /home/oms/LOFAR/Timba/MEQ/src/Funklet.h:31
 #MeqGaussNoise                   1449       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GaussNoise.h:31
-#MeqGauSVTensor                  1777       ; from GauSVTensor.h:32
+MeqGauSVTensor                   1777       ; from GauSVTensor.h:32
 #MeqGrid                         1681       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Grid.h:30
 MeqGridAligner                   1698       ; from /home/oms/Timba/MeqNodes/src/GridAligner.h:33
 #MeqGridPoints                   1666       ; from /home/oms/LOFAR/Timba/MeqNodes/src/GridPoints.h:30
@@ -658,6 +659,7 @@ Size                             1255       ; from /home/oms/LOFAR/Timba/AppAgen
 Sizes                            1560       ; from /home/mevius/LOFAR/Timba/MEQ/src/MeqVocabulary.h:43
 Skeleton                         1389       ; from /home/oms/LOFAR/Timba/MeqNodes/src/DataConcat.h:31
 Smear                            1768       ; from TFSmearFactorApprox.h:33
+Smearing                         1779       ; from PSVTensor.h:34
 Snippet                          1621       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSChannelVocabulary.h:33
 Solution                         1525       ; from /home/oms/LOFAR/Timba/MEQ/src/Forest.h:33
 Solutions                        1514       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:32
