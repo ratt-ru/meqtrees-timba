@@ -31,7 +31,7 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::PSVTensor
 
-#pragma aid LMN B UVW N Minus Narrow Band Limit Shape
+#pragma aid LMN B UVW N Minus Narrow Band Limit Shape Fixed Time Smearing Interval
 
 namespace Meq {    
 
@@ -87,6 +87,9 @@ protected:
   // and a per-frequency calculation will be done. Below this limit, one value
   // of frequency will be used.
   double narrow_band_limit_;
+  
+  double time_smear_interval_;
+  double freq_smear_interval_;
 
   // frequency vells
   Vells freq_vells_;

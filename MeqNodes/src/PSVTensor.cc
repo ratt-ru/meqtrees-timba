@@ -44,11 +44,13 @@ const double _2pi_over_c = C::_2pi / C::c;
 
 const HIID FNMinus = AidN|AidMinus;
 const HIID FNarrowBandLimit = AidNarrow|AidBand|AidLimit;
+const HIID FixedTimeSmearingInterval = AidFixed|AidTime|AidSmearing|AidInterval;
+const HIID FixedFreqSmearingInterval = AidFixed|AidFreq|AidSmearing|AidInterval;
 
 
 PSVTensor::PSVTensor()
 : TensorFunctionPert(-4,child_labels,3), // first 3 children mandatory, rest are optional
-  narrow_band_limit_(.05),n_minus_(1),first_jones_(4)
+  narrow_band_limit_(.05),time_smear_interval_(-1),freq_smear_interval_(-1),n_minus_(1),first_jones_(4)
 {
   // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };
@@ -64,6 +66,8 @@ void PSVTensor::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   TensorFunction::setStateImpl(rec,initializing);
   rec[FNarrowBandLimit].get(narrow_band_limit_,initializing);
   rec[FNMinus].get(n_minus_,initializing);
+  rec[FixedFreqSmearingInterval].get(freq_smear_interval_,initializing);
+  rec[FixedTimeSmearingInterval].get(time_smear_interval_,initializing);
 }
 
 const LoShape shape_3vec(3),shape_2x3(2,3);
@@ -162,7 +166,9 @@ void PSVTensor::computeResultCells (Cells::Ref &ref,
     else
       freq_approx = freq_vells_;
     // set up delta-freq/2 vells
-    if( cells.numSegments(Axis::FREQ)<2 )
+    if( freq_smear_interval_  >= 0 )
+      df_over_2_ = freq_smear_interval_/2;
+    else if( cells.numSegments(Axis::FREQ)<2 )
       df_over_2_ = cells.cellSize(Axis::FREQ)(0)/2;
     else
     {
@@ -177,7 +183,9 @@ void PSVTensor::computeResultCells (Cells::Ref &ref,
   if( cells.isDefined(Axis::TIME) )
   {
     int ntime = cells.ncells(Axis::TIME);
-    if( cells.numSegments(Axis::TIME)<2 )
+    if( time_smear_interval_  >= 0 )
+      f_dt_over_2_ = time_smear_interval_/2;
+    else if( cells.numSegments(Axis::TIME)<2 )
       f_dt_over_2_ = cells.cellSize(Axis::TIME)(0)/2;
     else
     {
@@ -459,9 +467,9 @@ Vells PSVTensor::computeExponent (const Vells &p,const Cells &cells)
   }
 }
 
-// This computes the time/freq smearing term, sinc(dt/2)*sinc(df/2), where
-// dp is the delta-phase in time, and df is the delta-phase in frequency.
-// Input argument is phase and delta-phase (which still needs to be multiplied by frequency),
+// This computes the time/freq smearing term, sinc(delta_t/2)*sinc(delta_f/2), where
+// delta_p is the delta-phase in time, and delta_f is the delta-phase in frequency.
+// Input argument is phase and the dp/dt derivative (which still needs to be multiplied by frequency to be scaled right),
 // i.e. p is expected to be (ul+vm+wn)*2_pi/c, and dp is the same for delta-uvw
 
 Vells PSVTensor::computeSmearingTerm (const Vells &p,const Vells &dp)
@@ -551,17 +559,17 @@ bool PSVTensor::computeShapeTerm (Vells &shape,bool recompute,
     Vells fwhm = sqrt(pow2(el)+pow2(em));
     Vells cos_pa = em/fwhm;
     Vells sin_pa = el/fwhm;
-    wstate()["$fwhm"] = fwhm;
-    wstate()["$cos_pa"] = cos_pa;
-    wstate()["$sin_pa"] = sin_pa;
+//    wstate()["$fwhm"] = fwhm;
+//    wstate()["$cos_pa"] = cos_pa;
+//    wstate()["$sin_pa"] = sin_pa;
     // rotate uv-coordinates through PA to put them into the coordinate frame
     // of the gaussian
     Vells u1 = cos_pa*u - sin_pa*v;
     Vells v1 = sin_pa*u + cos_pa*v;
-    wstate()["$u"] = u;
-    wstate()["$v"] = v;
-    wstate()["$u1"] = u1;
-    wstate()["$v1"] = v1;
+//    wstate()["$u"] = u;
+//    wstate()["$v"] = v;
+//    wstate()["$u1"] = u1;
+//    wstate()["$v1"] = v1;
     // scale uv-coordinates by the extents
     // fwhm computed above is the extent along the m axis (extent along v is reciprocal)
     // fwhm*ratio is the extent along the l axis (extent along u is reciprocal)
@@ -572,20 +580,20 @@ bool PSVTensor::computeShapeTerm (Vells &shape,bool recompute,
     // ok the extra 4pi is just a fudge here, 
     // until I figure out WTF is the right scale, but this gives suspiciously correct results
     Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*4*C::pi); 
-    wstate()["$scale_uv"] = scale_uv;
+//    wstate()["$scale_uv"] = scale_uv;
     // convert to intrinsic scale, and to wavelengths
     scale_uv *= freq_vells_/C::c; // (fwhm2int/C::c)*freq_vells_;
-    wstate()["$scale_uv1"] = scale_uv;
+//    wstate()["$scale_uv1"] = scale_uv;
     // apply extents to u1 and v1
     u1 /= scale_uv/ratio;
     v1 /= scale_uv;
-    wstate()["$u2"] = u1;
-    wstate()["$v2"] = v1;
+//    wstate()["$u2"] = u1;
+//    wstate()["$v2"] = v1;
     // finally, the height
     // total power is gaussian at u=v=0
     // thus a normalized uv-gaussian needs no additional scaling factor
     shape = exp(-(pow2(u1)+pow2(v1)));
-    wstate()["$shape"] = shape;
+//    wstate()["$shape"] = shape;
   }
   return recompute;
 }

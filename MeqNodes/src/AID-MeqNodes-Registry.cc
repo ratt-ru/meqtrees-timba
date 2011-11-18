@@ -554,6 +554,11 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1772,"MeqPSVTensor")+
         TypeInfoReg::addToRegistry(-1772,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1772,__construct_MeqPSVTensor)+
+        AtomicID::registerId(-1278,"Shape")+
+        AtomicID::registerId(-1780,"Fixed")+
+        AtomicID::registerId(-1126,"Time")+
+        AtomicID::registerId(-1779,"Smearing")+
+        AtomicID::registerId(-1187,"Interval")+
         AtomicID::registerId(-1709,"MeqRADec")+
         TypeInfoReg::addToRegistry(-1709,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1709,__construct_MeqRADec)+

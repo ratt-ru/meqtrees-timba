@@ -233,6 +233,11 @@ const int AidFile_int = -1224;
 const DMI::AtomicID AidFilename(-1576);           // from /home/oms/LOFAR/Timba/DMI/src/Exception.h:30
 const int AidFilename_int = -1576;
 #endif
+#ifndef _defined_id_AidFixed
+#define _defined_id_AidFixed 1
+const DMI::AtomicID AidFixed(-1780);              // from PSVTensor.h:34
+const int AidFixed_int = -1780;
+#endif
 #ifndef _defined_id_AidFlag
 #define _defined_id_AidFlag 1
 const DMI::AtomicID AidFlag(-1134);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
@@ -317,6 +322,11 @@ const int AidIntegrate_int = -1150;
 #define _defined_id_AidInterrupt 1
 const DMI::AtomicID AidInterrupt(-1273);          // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
 const int AidInterrupt_int = -1273;
+#endif
+#ifndef _defined_id_AidInterval
+#define _defined_id_AidInterval 1
+const DMI::AtomicID AidInterval(-1187);           // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
+const int AidInterval_int = -1187;
 #endif
 #ifndef _defined_id_AidIterations
 #define _defined_id_AidIterations 1
@@ -1183,6 +1193,11 @@ const int AidSeed_int = -1725;
 const DMI::AtomicID AidSet(-1272);                // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/VisRepeater.h:10
 const int AidSet_int = -1272;
 #endif
+#ifndef _defined_id_AidShape
+#define _defined_id_AidShape 1
+const DMI::AtomicID AidShape(-1278);              // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:37
+const int AidShape_int = -1278;
+#endif
 #ifndef _defined_id_AidSize
 #define _defined_id_AidSize 1
 const DMI::AtomicID AidSize(-1255);               // from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
@@ -1197,6 +1212,11 @@ const int AidSkeleton_int = -1389;
 #define _defined_id_AidSmear 1
 const DMI::AtomicID AidSmear(-1768);              // from TFSmearFactorApprox.h:33
 const int AidSmear_int = -1768;
+#endif
+#ifndef _defined_id_AidSmearing
+#define _defined_id_AidSmearing 1
+const DMI::AtomicID AidSmearing(-1779);           // from PSVTensor.h:34
+const int AidSmearing_int = -1779;
 #endif
 #ifndef _defined_id_AidSolution
 #define _defined_id_AidSolution 1
@@ -1272,6 +1292,11 @@ const int AidTiling_int = -1562;
 #define _defined_id_AidTilings 1
 const DMI::AtomicID AidTilings(-1632);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Solver.h:35
 const int AidTilings_int = -1632;
+#endif
+#ifndef _defined_id_AidTime
+#define _defined_id_AidTime 1
+const DMI::AtomicID AidTime(-1126);               // from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:26
+const int AidTime_int = -1126;
 #endif
 #ifndef _defined_id_AidTop
 #define _defined_id_AidTop 1
