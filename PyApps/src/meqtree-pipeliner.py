@@ -8,6 +8,7 @@ if __name__ == '__main__':
   import Timba
   import Timba.utils
   import sys
+  import os.path
 
   #
   # setup some standard command-line option parsing
@@ -73,6 +74,10 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
 
   # use a try...finally block to exit meqserver cleanly at the end
   try:
+    if not os.path.exists(options.config):
+      print "Config file %s doesn't exist"%options.config;
+      sys.exit(1);
+      
     print "### Attaching to configuration file",options.config;
     TDLOptions.config.read(options.config);
     # disable the writing-out of configuration
