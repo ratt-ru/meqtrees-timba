@@ -3278,9 +3278,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
             temp_str = "m: %-.3g %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
           else:
             temp_str = "m: %-.3g+ %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
+          temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.complex128);
         else:
           temp_str = "m: %-.3g" % plot_array.mean()
-        temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.float64);
+          temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.float64);
         self.array_parms = temp_str + " " + temp_str1
 
         self.setAxisTitle(Qwt.QwtPlot.yLeft, 'sequence')
