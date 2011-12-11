@@ -37,7 +37,8 @@
 namespace Meq {
   static const HIID child_labels[] = { AidBrick,AidUVW,AidCoeff };
   static const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
-
+  const Result * UVInterpolWave::reported_freq_warning_ = 0;
+  
   UVInterpolWave::UVInterpolWave():
     // OMS: the "2" below means that only the first two children (Brick and UVW)
     // are mandatory
@@ -107,12 +108,33 @@ namespace Meq {
     // Get the number of cells in the uv plane
     nn = rcells.ncells(_inaxis0);
     nt = rcells.ncells(_inaxis3);
+    nf = FFTbrickCells.ncells(_inaxis0);
     nu = FFTbrickCells.ncells(_inaxis1);
     nv = FFTbrickCells.ncells(_inaxis2);
     tmin = min(rcells.cellStart(Axis::TIME));
     tmax = max(rcells.cellEnd(Axis::TIME));
     fmin = min(rcells.cellStart(Axis::FREQ));
     fmax = max(rcells.cellEnd(Axis::FREQ));
+
+    //INI: A warning is printed for each MeqUVInterpolWave node created i.e., for each baseline
+    //Too many warning messages if too many baselines are present
+    //OMS: added a report_freq_warning_ static member.
+    // This is set to the address of the brick result. We only print the warning when we get
+    // a different brick, i.e. once per every brick.
+    if( reported_freq_warning_ != &FFTbrickUV )
+    {
+      if( rcells.center(_inaxis0)(nn-1) < FFTbrickCells.center(_inaxis0)(0) || rcells.center(_inaxis0)(0) > FFTbrickCells.center(_inaxis0)(nf-1) )
+      {
+        std::cerr<<"WARNING: The requested MS frequencies are out of range of the input frequencies"<<endl;
+        reported_freq_warning_ = &FFTbrickUV;
+      }
+      else if( rcells.center(_inaxis0)(0) < FFTbrickCells.center(_inaxis0)(0) || rcells.center(_inaxis0)(nf-1) > FFTbrickCells.center(_inaxis0)(nf-1) )
+      {
+        std::cerr<<"WARNING: Partial frequency mismatch between the input image and the requested MS frequencies"<<endl;
+        reported_freq_warning_ = &FFTbrickUV;
+      }
+    }
+    
 
     // Set Vells shape
     Vells::Shape tfshape;
@@ -250,6 +272,7 @@ namespace Meq {
 
     const LoVec_double &uu = brickcells.center(Axis::axis("U"));
     const LoVec_double &vv = brickcells.center(Axis::axis("V"));
+    const LoVec_double &ff = brickcells.center(Axis::FREQ);
     const LoVec_double &freq = rcells.center(Axis::FREQ);
     const double c0 = 299792458.;
 
@@ -258,8 +281,69 @@ namespace Meq {
     const double du = brickcells.cellSize(Axis::axis("U"))(0);
     const double dv = brickcells.cellSize(Axis::axis("V"))(0);
 
+    //INI: If only one frequency plane present in the brick...
+    if(nf == 1)
+    {
+	    extrapolate = true;
+	    lfreq = 0;
+	    ufreq = 0;
+    }
+    //INI: boolean value to det. whether the fftbrick freq. are in ascending order.
+    else
+    {
+	if( ff(0) < ff(nf-1) )
+		ffbrick_asc = true;
+	else
+		ffbrick_asc = false;
+    }
+
     for (int i=0;i<nt;i++){
       for (int j=0;j<nn;j++){
+
+	    freq_match = false;
+ 	    //INI: Determine whether to extrapolate or interpolate	    
+	    //for(int k=0; k<nf; k++)
+	    if(nf > 1) // Enter for loop only if more than one plane is present in brick
+	    {
+	    for(int k=1; k<nf; k++)
+	    {
+		    if(freq(j) == ff(0)){ //special check for brick plane 0, since the index starts from 1.
+			    lfreq = 0;
+			    ufreq = 0;
+			    extrapolate = true; // Not technically extrapolation, but only one freq. plane is used
+			    freq_match = true;
+			    break;
+		    }
+		    if(freq(j) == ff(k)){
+			    lfreq = k;
+			    ufreq = k;
+			    extrapolate = true; // Not technically extrapolation, but only one freq. plane is used
+			    freq_match = true;
+			    break;
+		    }
+		    else if( (freq(j)>ff(k-1) && (freq(j)<ff(k)) ) || ( freq(j)<ff(k-1) && (freq(j)>ff(k)) ) )
+		    {
+			    lfreq = k-1;
+			    ufreq = k;
+			    extrapolate = false;
+			    freq_match = true;
+			    break;
+		    }
+	    }
+	    //INI: check for extrapolation
+	    if(!freq_match){ //if the request frequency freq(j) was not found...
+		    extrapolate = true;
+		    if( (ffbrick_asc && freq(j) < ff(0)) || (!ffbrick_asc && freq(j) > ff(0)) ){
+			    lfreq = 0;
+			    ufreq = 0;
+		    }
+		    else{
+			    lfreq = nf-1;
+			    ufreq = nf-1;
+		    }
+	    }
+	    } //end of if(nf>1)
+
         // convert u/v from meters into wavelengths
 	double ulambda = -u_arr(i)*freq(j)/c0;
 	double vlambda = -v_arr(i)*freq(j)/c0;
@@ -295,15 +379,20 @@ namespace Meq {
           {
 	    double weight_u = weights_arr(int(round(fabs(ii-ucell)* griddivisions)));
             double weight = weight_v*weight_u;
-	    arr_value  += weight*garr(0,ii,jj);
+	    if(extrapolate) //INI: only one frequency plane used
+	    	arr_value  += weight*garr(lfreq,ii,jj);
+	    else //INI: interpolate between two frequency planes
+	    	arr_value  += weight*(garr(lfreq,ii,jj)+garr(ufreq,ii,jj));
 	    sum_weight += weight;
 	  }
 	}
         // just in case we didn't sum anything...
 	if( sum_weight == 0 )
           arrout(i,j) = make_dcomplex(0);
-        else
+        else if(extrapolate)
 	  arrout(i,j) = arr_value/sum_weight;
+	else //INI: two frequency planes used in each iteration - the factor of 2 accounts for that
+	  arrout(i,j) = arr_value/(2.0*sum_weight);
       }
     }
   }

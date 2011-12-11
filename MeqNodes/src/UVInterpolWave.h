@@ -76,10 +76,18 @@ class UVInterpolWave: public Node  {
     static Thread::Mutex weights_arr_mutex;
     static bool weights_arr_filled;
     
+    // flag: already reported frequency extrapolation warning for this result
+    static const Result * reported_freq_warning_;
+    
    // How many values in the u and v and t directions 
-    int nu, nv, nt, nn;
+   // INI: Added 'nf' to hold the no. of freq. planes in the brick
+   // lfreq, ufreq to hold the indices of the required freq. planes in the brick
+    int nu, nv, nt, nn, nf, lfreq, ufreq;
     double tmin, tmax, fmin, fmax;
 
+    //INI: Flags used to determine whether extrapolation or interpolation is to be done 
+    //and to select an appropriate freq. plane for extrapolation
+    bool extrapolate, ffbrick_asc, freq_match;
  
     // which axes are treated at input?
     std::vector<HIID> _in1_axis_id;
