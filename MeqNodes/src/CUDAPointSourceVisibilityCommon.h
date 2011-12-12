@@ -24,11 +24,11 @@
 #ifndef MEQNODES_CUDAPOINTSOURCEVISIBILITYCOMMON_H
 #define MEQNODES_CUDAPOINTSOURCEVISIBILITYCOMMON_H
 
-#ifdef STRIP_CUDA
+#ifndef STRIP_CUDA
 #include <cuda_runtime.h>
-#endif
 
 typedef double3 lmn_t;
+#endif
 
 #define MULTI_SRC_PER_THREAD
 #define SRC_PER_THREAD 512

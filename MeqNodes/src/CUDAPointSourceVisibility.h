@@ -114,6 +114,7 @@ protected:
     virtual void evaluateTensors (std::vector<Vells> & out,   
                                   const std::vector<std::vector<const Vells *> > &args);
        
+#ifndef STRIP_CUDA
     double*  d_uvw; // time
     //double*  d_v; // time
     //double*  d_w; // time
@@ -132,7 +133,7 @@ protected:
     double2* d_output_complex;
 
     virtual void doCUDACleanUp();
-
+#endif
 
     int num_sources_;
        
