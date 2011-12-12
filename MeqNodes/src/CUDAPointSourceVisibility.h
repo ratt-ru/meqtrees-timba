@@ -21,82 +21,119 @@
 //#
 //# $Id: CUDAPointSourceVisibility.h 5418 2007-07-19 16:49:13Z oms $
 
-#ifndef MEQNODES_CUDAPSVTENSOR_H
-#define MEQNODES_CUDAPSVTENSOR_H
+#ifndef MEQNODES_CUDAPOINTSOURCEVISIBILITY_H
+#define MEQNODES_CUDAPOINTSOURCEVISIBILITY_H
 
 //# Includes
 #include <MEQ/TensorFunction.h>
 
+
+
+
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::CUDAPointSourceVisibility
+#pragma aid LMN UVW B
 
-#pragma aid LMN B UVW N Minus Narrow Band Limit
+#include <cuda_runtime.h>
+
+#include <MeqNodes/CUDAPointSourceVisibilityCommon.h>
 
 namespace Meq {    
 
+// CUDA kernel and runner function
+void CUDAPointSourceVisibilityKernel();
 
-    
+#ifndef STRIP_CUDA
+std::string runCUDAPointSourceVisibilityKernel(lmn_t* d_lmn, 
+                                               double2* d_B_complex, 
+                                               int nsrcs, 
+                                               int nslots,
+                                               int nsrcs_per_slot, // nslot == number of threads in x direction (src direction)
+                                               int nslots_per_run,
+                                               double* d_uvw, 
+                                               double* d_duvw, 
+                                               double* d_time, 
+                                               int ntime, 
+                                               double* d_freq, 
+                                               int nfreq, 
+                                               double* d_df_over_2, 
+                                               double* d_f_dt_over_2,
+                                               double2* d_intermediate_output_complex,
+                                               double2* d_output_copmlex, 
+                                               int nOutputElements,
+                                               int NUM_MATRIX_ELEMENTS,
+                                               double _2pi_over_c, 
+                                               std::complex<double>** pout);
+#endif
+
+// int getMultiDimIndex(int a, int aT, int b, int bT, int c, int cT, int d, int dT, int e, int eT);
+// int getMultiDimIndex(int a, int aT, int b, int bT, int c, int cT, int d, int dT);
+// int getMultiDimIndex(int a, int aT, int b, int bT, int c, int cT);
+
+
+int get_B_index(int s, int nsrcs, 
+                int f, int nfreq, 
+                int j, int num_matrix_elements);
+
+
+int get_intermediate_output_index(int s, int nsrcs, 
+                                  int t, int ntime, 
+                                  int f, int nfreq, 
+                                  int j, int num_matrix_elements);
+
+int get_output_index(int t, int ntime, 
+                     int f, int nfreq, 
+                     int j, int num_matrix_elements);
+
+
 class CUDAPointSourceVisibility: public TensorFunction
 {
 public:
-  //! The default constructor.
-  CUDAPointSourceVisibility();
+    //! The default constructor.
+    CUDAPointSourceVisibility();
 
-  virtual ~CUDAPointSourceVisibility();
+    virtual ~CUDAPointSourceVisibility();
 
-  virtual TypeId objectType() const
-    { return TpMeqCUDAPointSourceVisibility; }
+    virtual TypeId objectType() const
+        { return TpMeqCUDAPointSourceVisibility; }
 
-  // this is for the cdebug() mechanism
-  LocalDebugContext;
+    // this is for the cdebug() mechanism
+    LocalDebugContext;
 
 protected:
-  void setStateImpl (DMI::Record::Ref &rec,bool initializing);
-  void computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request);
-  
-  // method required by TensorFunction
-  // Returns shape of result.
-  // Also check child results for consistency
-  virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
-  
-  // method required by TensorFunction
-  // Evaluates for a given set of children values
-  virtual void evaluateTensors (std::vector<Vells> & out,   
-       const std::vector<std::vector<const Vells *> > &args);
+    // method required by TensorFunction
+    // Returns shape of result.
+    // Also check child results for consistency
+    virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+    
+    // method required by TensorFunction
+    // Evaluates for a given set of children values
+    virtual void evaluateTensors (std::vector<Vells> & out,   
+                                  const std::vector<std::vector<const Vells *> > &args);
        
-  // helper functions to compute the K-Jones exponent and the smeraing term
-  Vells computeExponent (const Vells &p,const Cells &cells);
-  Vells computeSmearingTerm (const Vells &p,const Vells &dp);
+    double*  d_uvw; // time
+    //double*  d_v; // time
+    //double*  d_w; // time
+    double*  d_duvw; // time
+    //double*  d_dv; // time
+    //double*  d_dw; // time
+    double*  d_df_over_2; // time
+    double*  d_f_dt_over_2; // freq
+    lmn_t*   d_lmn; // src
+    double*  d_freqCellSize; // freq
+    double*  d_timeCellSize; // time
+    double2* d_B_complex; // src*4*freq
+    double*  d_freq; // freq
+    double*  d_time; // time
+    double2* d_intermediate_output_complex; // src_per_run*time*freq*4
+    double2* d_output_complex;
 
-  // Helper function. Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
-  // Also checks that N==nsrc.
-  void checkTensorDims (int ichild,const LoShape &shape,int nsrc);
+    virtual void doCUDACleanUp();
 
-  // Virtual method reimplemented by subclasses. Fills a vector of per-source
-  // normalized visibilities.
-  // Normalized visibilities correspond to the basic source shape, without any flux or spectrum. 
-  // information. Child classes reimplement this method to do e.g. Gaussian sources.
-  virtual void fillNormalizedVisibilities (std::vector<Vells> &visnorm,
-                                           const std::vector<std::vector<const Vells *> > &args);
-  
-  int num_sources_;
-  
-  // fractional bandwidth over this limit will be considered "wide",
-  // and a per-frequency calculation will be done. Below this limit, one value
-  // of frequency will be used.
-  double narrow_band_limit_;
 
-  // frequency vells
-  Vells freq_vells_;
-  // cached values used in smearing calculations
-  Vells df_over_2_,f_dt_over_2_;  // delta_freq/2, and freq*delta_time/2
-  
-  // subtracted from n -- set to 1 to use fringe-stopped phases, i.e. w(n-1)
-  double n_minus_;
-
-  // number of the first Jones child. Set to 3 in this class, but subclasses may change this
-  int first_jones_;
+    int num_sources_;
+       
 };
 
 } // namespace Meq

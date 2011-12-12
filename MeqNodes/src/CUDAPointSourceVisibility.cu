@@ -749,7 +749,7 @@ namespace Meq {
         int time_threads = 8;
         int freq_threads = 32;//64;
 #ifdef SHARED_MEMORY
-        freq_threads = 32; // HACK - on 1.x devices 64 threads means there won't be enough shared memory
+        freq_threads = 16; // HACK - on 1.x devices 64 threads means there won't be enough shared memory
 #endif
 
         int remaining_slots = nslots;
@@ -778,7 +778,7 @@ namespace Meq {
             printf("Number of calculation per grid: s) %i, t) %i, f) %i\n", calcsPerProblem[0], calcsPerProblem[1], calcsPerProblem[2]);
 
 #ifdef SHARED_MEMORY
-            cudaFuncSetCacheConfig(CUDAPointSourceVisibilityKernel, cudaFuncCachePreferShared);
+            //cudaFuncSetCacheConfig(CUDAPointSourceVisibilityKernel, cudaFuncCachePreferShared);
 
             size_t shared_memory = time_threads * freq_threads * NUM_MATRIX_ELEMENTS * sizeof(double2);
             printf("Requesting %i bytes of shared memory\n", shared_memory);

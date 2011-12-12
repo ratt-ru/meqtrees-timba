@@ -29,7 +29,7 @@
 typedef double3 lmn_t;
 
 #define MULTI_SRC_PER_THREAD
-#define SRC_PER_THREAD 64
+#define SRC_PER_THREAD 512
 #define SHARED_MEMORY
 
 #endif

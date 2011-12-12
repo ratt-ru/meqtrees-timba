@@ -273,12 +273,12 @@ set(meqNodes_cuda_src
 )
 
 
-if (CUDA_FOUND)
-  cuda_add_library(meqnodes ${meqNodes_src} ${meqNodes_cuda_src})
-  cuda_compile_ptx (ptxfiles ${meqNodes_cuda_src})
-else(CUDA_FOUND)
+# if (CUDA_FOUND)
+#   cuda_add_library(meqnodes ${meqNodes_src} ${meqNodes_cuda_src})
+#   cuda_compile_ptx (ptxfiles ${meqNodes_cuda_src})
+# else(CUDA_FOUND)
   add_library(meqnodes ${meqNodes_src})
-endif(CUDA_FOUND)
+# endif(CUDA_FOUND)
 
 install(TARGETS meqnodes DESTINATION ${LIBRARY_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(meqnodes ${WCSLIB_LIBRARIES} ${CFITSIO_LIBRARIES} ${FFTW3_LIBRARIES})
