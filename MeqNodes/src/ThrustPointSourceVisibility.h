@@ -32,10 +32,12 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ThrustPointSourceVisibility
 
+#ifndef STRIP_CUDA
 #include <cuda_runtime.h>
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+#endif
 
 
 

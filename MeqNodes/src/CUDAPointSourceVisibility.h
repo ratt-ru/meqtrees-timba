@@ -35,7 +35,9 @@
 #pragma types #Meq::CUDAPointSourceVisibility
 #pragma aid LMN UVW B
 
+#ifndef STRIP_CUDA
 #include <cuda_runtime.h>
+#endif
 
 #include <MeqNodes/CUDAPointSourceVisibilityCommon.h>
 
