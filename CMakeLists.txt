@@ -1,15 +1,28 @@
 # Meqtrees CMake Build File
-# Optional Settings.
-# DEV_INSTALL : add include files and meqtrees archive libs to install target
-#
 project(meqtrees CXX C)
 
 # -- cmake setup info
 cmake_minimum_required(VERSION 2.6)
+
+# CUDA
+find_package(CUDA 4.0)
+if (CUDA_FOUND)
+  message(" * CUDA ${CUDA_VERSION} was found")
+  add_library( cudart STATIC IMPORTED )
+  add_library( cutil64D STATIC IMPORTED )
+  set(CUDA_NVCC_FLAGS -arch=sm_13 --ptxas-options -v)
+else(CUDA_FOUND)
+  message(" * CUDA is not found")
+  add_definitions(-DSTRIP_CUDA)
+endif(CUDA_FOUND)
+
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
+
+# had to add this to get working on Ubuntu 11.10 g{cc/++}4.6 since the include directory structure seems to have changed
+#include_directories(/usr/include/i386-linux-gnu/)
 
 # options and defaults
 set( BUILD_SHARED_LIBS TRUE )

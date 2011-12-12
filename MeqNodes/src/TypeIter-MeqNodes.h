@@ -122,6 +122,7 @@
         Do(Meq::Tanh,arg) separator \
         Do(Meq::TFSmearFactorApprox,arg) separator \
         Do(Meq::TFSmearFactor,arg) separator \
+        Do(Meq::ThrustPointSourceVisibility,arg) separator \
         Do(Meq::Time,arg) separator \
         Do(Meq::ToComplex,arg) separator \
         Do(Meq::Transpose,arg) separator \

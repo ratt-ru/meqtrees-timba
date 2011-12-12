@@ -1,6 +1,7 @@
 INCLUDE_DIRECTORIES(${WCSLIB_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${FFTW3_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${CFITSIO_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${CUDA_TOOLKIT_INCLUDE})
 MEQPACKAGE(MeqNodes MEQ VisCube DMI TimBase)
 set(MeqNodes_includes
     src/Abs.h
@@ -25,7 +26,8 @@ set(MeqNodes_includes
     src/CoordTransform.h
     src/Cos.h
     src/Cosh.h
-    src/CUDAPointSourceVisibility.h 
+    src/CUDAPointSourceVisibility.h
+    src/CUDAPointSourceVisibilityCommon.h
     src/DataCollect.h
     src/DataConcat.h
     src/Divide.h
@@ -115,6 +117,7 @@ set(MeqNodes_includes
     src/Tanh.h
     src/TFSmearFactor.h
     src/TFSmearFactorApprox.h
+    src/ThrustPointSourceVisibility.h
     src/TID-MeqNodes.h
     src/TimeNode.h
     src/ToComplex.h
@@ -247,6 +250,7 @@ set(meqNodes_src
     src/TFSmearFactor.cc
     src/TFSmearFactorApprox.cc
     src/TimeNode.cc
+    src/ThrustPointSourceVisibility.cc
     src/ToComplex.cc
     src/Transpose.cc
     src/UVBrick.cc
@@ -261,6 +265,20 @@ set(meqNodes_src
     src/WSum.cc
     src/ZeroFlagger.cc
 )
-add_library(meqnodes ${meqNodes_src})
+
+
+set(meqNodes_cuda_src
+    src/CUDAPointSourceVisibility.cu
+    src/ThrustPointSourceVisibility.cu
+)
+
+
+if (CUDA_FOUND)
+  cuda_add_library(meqnodes ${meqNodes_src} ${meqNodes_cuda_src})
+  cuda_compile_ptx (ptxfiles ${meqNodes_cuda_src})
+else(CUDA_FOUND)
+  add_library(meqnodes ${meqNodes_src})
+endif(CUDA_FOUND)
+
 install(TARGETS meqnodes DESTINATION ${LIBRARY_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(meqnodes ${WCSLIB_LIBRARIES} ${CFITSIO_LIBRARIES} ${FFTW3_LIBRARIES})

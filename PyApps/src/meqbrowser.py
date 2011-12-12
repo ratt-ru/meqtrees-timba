@@ -26,6 +26,7 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+
 debuglevels = {};
 options = {};
 
@@ -39,25 +40,17 @@ import socket
 try:
   import pyrap.tables
 except ImportError:
-  pass;
+  try: import pyrap_tables; 
+  except ImportError: pass;
 try:
   import pyrap.measures
 except ImportError:
-  pass;
-try:
-  import scipy.special.specfun
-except ImportError:
-  pass;
+  try: import pyrap_measures; 
+  except ImportError: pass;
 
-
-trace_sync = None;
-
-def trace_lines (frame,event, arg):
-  global trace_file;
-  global trace_sync;
-  print "%s %s:%d"%(event,frame.f_code.co_filename,frame.f_lineno);
-  if trace_sync:
-    sys.stdout.flush();
+def trace_lines (frame, event, arg):
+  if event == "line":
+    print "%s:%d"%(frame.f_code.co_filename,frame.f_lineno);
   return trace_lines;
 
 if __name__ == "__main__":
@@ -84,12 +77,9 @@ if __name__ == "__main__":
                     help="(for debugging Python code) sets verbosity level of the named Python context. May be used multiple times.");
   parser.add_option("-t", "--trace",dest="trace",action="store_true",
                     help="(for debugging Python code) enables line tracing of Python statements");
-  parser.add_option("-T", "--trace-sync",action="store_true",
-                    help="(for debugging Python code) traces syncronously. Use this if a meqbrowser crash produces an incomplete trace");
   (options, rem_args) = parser.parse_args();
 
-  if options.trace or options.trace_sync:
-    trace_sync = options.trace_sync;
+  if options.trace:
     sys.settrace(trace_lines);
 
   for optstr in (options.debug or []):

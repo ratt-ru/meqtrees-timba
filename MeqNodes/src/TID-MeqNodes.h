@@ -1984,6 +1984,25 @@ namespace Meq { class Tanh; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqThrustPointSourceVisibility
+#define _defined_id_TpMeqThrustPointSourceVisibility 1
+const DMI::TypeId TpMeqThrustPointSourceVisibility(-1775);// from ThrustPointSourceVisibility.h:35
+const int TpMeqThrustPointSourceVisibility_int = -1775;
+namespace Meq { class ThrustPointSourceVisibility; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::ThrustPointSourceVisibility> : public TypeTraits<Meq::ThrustPointSourceVisibility>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqThrustPointSourceVisibility_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::ThrustPointSourceVisibility & ContainerReturnType;
+                typedef const Meq::ThrustPointSourceVisibility & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqTime
 #define _defined_id_TpMeqTime 1
 const DMI::TypeId TpMeqTime(-1451);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
