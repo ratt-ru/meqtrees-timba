@@ -473,12 +473,13 @@ namespace Meq {
                 double argument = d_freq[f]*_2pi_over_c*(d_u[t]*d_lmn[s].x+d_v[t]*d_lmn[s].y+d_w[t]*(d_lmn[s].z-1));
 
 
+
                 double smearFactor = 1.0;
 
                 if (d_duvw) {
 //#define DARGUMENT (_2pi_over_c*(D_DU(t)*d_lmn[s].x+D_DV(t)*d_lmn[s].y+D_DW(t)*d_lmn[s].z));
 
-                    double dargument = _2pi_over_c*(d_du[t]*d_lmn[s].x+d_dv[t]*d_lmn[s].y+d_dw[t]*d_lmn[s].z);
+                    double dargument = _2pi_over_c*(d_du[t]*d_lmn[s].x+d_dv[t]*d_lmn[s].y+d_dw[t]*(d_lmn[s].z-1));
                     double dphi = d_f_dt_over_2[t] * dargument;
                     if (dphi != 0.0) 
                         smearFactor = sin(dphi)/dphi;
