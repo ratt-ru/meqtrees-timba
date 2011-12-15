@@ -1,7 +1,12 @@
 INCLUDE_DIRECTORIES(${WCSLIB_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${FFTW3_INCLUDE_DIR})
 INCLUDE_DIRECTORIES(${CFITSIO_INCLUDE_DIR})
-INCLUDE_DIRECTORIES(${CUDA_TOOLKIT_INCLUDE})
+if (FOUND_CUDA)
+
+else (FOUND_CUDA)
+  INCLUDE_DIRECTORIES(${CUDA_TOOLKIT_INCLUDE})
+endif(FOUND_CUDA)
+
 MEQPACKAGE(MeqNodes MEQ VisCube DMI TimBase)
 set(MeqNodes_includes
     src/Abs.h
@@ -274,8 +279,8 @@ set(meqNodes_cuda_src
 
 
 if (CUDA_FOUND)
-   cuda_add_library(meqnodes ${meqNodes_src} ${meqNodes_cuda_src})
-   cuda_compile_ptx (ptxfiles ${meqNodes_cuda_src})
+  cuda_add_library(meqnodes ${meqNodes_src} ${meqNodes_cuda_src})
+  cuda_compile_ptx (ptxfiles ${meqNodes_cuda_src})
 else(CUDA_FOUND)
   add_library(meqnodes ${meqNodes_src})
 endif(CUDA_FOUND)

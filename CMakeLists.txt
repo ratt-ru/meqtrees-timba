@@ -14,6 +14,7 @@ if (CUDA_FOUND)
   set(CUDA_NVCC_FLAGS -arch=sm_13 --ptxas-options -v)
 else(CUDA_FOUND)
   message(" * CUDA is not found")
+  set (CUDA_TOOLKIT_INCLUDE "")
   add_definitions(-DSTRIP_CUDA)
 endif(CUDA_FOUND)
 
