@@ -33,7 +33,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::CUDAPointSourceVisibility
-#pragma aid LMN UVW B
+#pragma aid LMN UVW B N Minus Narrow Band Limit Shape Fixed Time Smearing Interval
 
 #ifndef STRIP_CUDA
 #include <cuda_runtime.h>
@@ -109,11 +109,18 @@ protected:
     // Also check child results for consistency
     virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
     
+    // method required by TensorFunctionPert
+    // virtual void evaluateTensors (Result &out,int nchildren,int nperts);
+
     // method required by TensorFunction
     // Evaluates for a given set of children values
     virtual void evaluateTensors (std::vector<Vells> & out,   
                                   const std::vector<std::vector<const Vells *> > &args);
        
+    // Helper function. Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
+    // Also checks that N==nsrc.
+    void checkTensorDims (int ichild,const LoShape &shape,int nsrc);
+
 #ifndef STRIP_CUDA
     double*  d_uvw; // time
     //double*  d_v; // time
@@ -136,7 +143,23 @@ protected:
 #endif
 
     int num_sources_;
-       
+
+    // fractional bandwidth over this limit will be considered "wide",
+    // and a per-frequency calculation will be done. Below this limit, one value
+    // of frequency will be used.
+    double narrow_band_limit_;
+  
+    double time_smear_interval_;
+    double freq_smear_interval_;
+
+    // subtracted from n -- set to 1 to use fringe-stopped phases, i.e. w(n-1)
+    double n_minus_;
+
+    // number of the first Jones child. Set to 4 in this class, but subclasses may change this
+    int first_jones_;
+    
+    // flag: we have a valid shape child
+    bool have_shape_;
 };
 
 } // namespace Meq

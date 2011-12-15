@@ -43,7 +43,8 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 
 CUDAPointSourceVisibility::CUDAPointSourceVisibility()
-    : TensorFunction(num_children,child_labels)
+: TensorFunction(-4,child_labels,3), // first 3 children mandatory, rest are optional
+  narrow_band_limit_(.05),time_smear_interval_(-1),freq_smear_interval_(-1),n_minus_(1),first_jones_(4)
 {
     // dependence on frequency
     const HIID symdeps[] = { AidDomain,AidResolution };
@@ -55,24 +56,82 @@ CUDAPointSourceVisibility::~CUDAPointSourceVisibility()
 
 const LoShape shape_3vec(3),shape_2x3(2,3);
 
+// Checks tensor dimensions of a child result to see that they are a per-source tensor
+// Valid dimensions are [] (i.e. [1]), [N], [Nx1], [Nx1x1], or [Nx2x2].
+void CUDAPointSourceVisibility::checkTensorDims (int ichild,const LoShape &shape,int nsrc)
+{
+  int n = 0;
+  FailWhen(shape.size()>3,"child '"+child_labels[ichild].toString()+"': illegal result rank (3 at most expected)");
+  if( shape.size() == 0 )
+    n = 1;
+  else
+  {
+    n = shape[0];
+    if( shape.size() == 2 )
+    {
+      FailWhen(shape[1]!=1,"child '"+child_labels[ichild].toString()+"': rank-2 result must be of shape Nx1");
+    }
+    else if( shape.size() == 3 )
+    {
+      FailWhen(!(shape[1]==1 && shape[2]==1) && !(shape[1]==2 && shape[2]==2),   // Nx1x1 or Nx2x2 result 
+          "child '"+child_labels[ichild].toString()+"': rank-3 result must be of shape Nx2x2 or Nx1x1");
+    }
+  }
+  FailWhen(n!=nsrc,"child '"+child_labels[1].toString()+"': first dimension does not match number of sources");
+}
+
 LoShape CUDAPointSourceVisibility::getResultDims (const vector<const LoShape *> &input_dims)
 {
-    // this gets called to check that the child results have the right shape
+
     const LoShape &lmn = *input_dims[0], &b = *input_dims[1], &uvw = *input_dims[2];
-  
-    // the first child (LMN) is expected to be of shape Nx3, the second (B) of Nx2x2, and the third (UVW) is a 3-vector or 2x3-vector (UVW + dUVW) if the smear factor is to be calculated
+    // the first child (LMN) is expected to be of shape Nx3, the second (B) of Nx2x2
     FailWhen(lmn.size()!=2 || lmn[1]!=3,"child '"+child_labels[0].toString()+"': an Nx3 result expected");
-    FailWhen(b.size()!=3 || b[1]!=2 || b[2]!=2,"child '"+child_labels[1].toString()+"': an Nx2x2 result expected");
-    FailWhen(lmn[0] != b[0],"shape mismatch between child '"+
-             child_labels[0].toString()+"' and '"+child_labels[1].toString()+"'");
-    //cdebug(0) << "uvw size " << uvw.size() << endl;
-
-    FailWhen(uvw != shape_2x3 && uvw == LoShape(3),"child '"+child_labels[2].toString()+"': a 2x3 or 1x3 result expected");
-
-
+    // N is num_sources_
     num_sources_ = lmn[0];
-    // result is a 2x2 matrix 
+    // UVW must be a 3-vector or a 2x3 matrix (in this case smearing is enabled, and the second row contains du,dv,dw).
+    FailWhen(uvw!=shape_3vec && uvw!=shape_2x3,"child '"+child_labels[2].toString()+"': an 2x3 matrix or a 3-vector expected");
+    // B must be a per-source tensor
+    checkTensorDims(1,b,num_sources_);
+    // shape must be either per-source, or else null for no shape
+    if( input_dims.size() > 3 )
+    {
+        const LoShape &shp = *input_dims[3];
+        if( shp.size() < 1 || shp.product() == 1 )
+            have_shape_ = false;
+        else
+        {
+            FailWhen(shp.size()!=2 || shp[1]!=3,"child '"+child_labels[3].toString()+"': an Nx3 matrix is expected");
+            FailWhen(shp[0]!=num_sources_,"child '"+child_labels[3].toString()+"': first dimension does not match number of sources");
+            have_shape_ = true;
+        }
+    }
+    else
+        have_shape_ = false;
+  
+    // Additional children after the first_jones should come in pairs (Jones term, plus its conjugate), and be per-source tensors
+    FailWhen((input_dims.size()-first_jones_)%2!=0,"a pair of children must be provided per each Jones term");
+    for( uint i=first_jones_; i<input_dims.size(); i++ )
+        checkTensorDims(i,*input_dims[i],num_sources_);
+
+    // our result is a 2x2 matrix 
     return LoShape(2,2);
+
+    // // this gets called to check that the child results have the right shape
+    // const LoShape &lmn = *input_dims[0], &b = *input_dims[1], &uvw = *input_dims[2];
+  
+    // // the first child (LMN) is expected to be of shape Nx3, the second (B) of Nx2x2, and the third (UVW) is a 3-vector or 2x3-vector (UVW + dUVW) if the smear factor is to be calculated
+    // FailWhen(lmn.size()!=2 || lmn[1]!=3,"child '"+child_labels[0].toString()+"': an Nx3 result expected");
+    // FailWhen(b.size()!=3 || b[1]!=2 || b[2]!=2,"child '"+child_labels[1].toString()+"': an Nx2x2 result expected");
+    // FailWhen(lmn[0] != b[0],"shape mismatch between child '"+
+    //          child_labels[0].toString()+"' and '"+child_labels[1].toString()+"'");
+    // //cdebug(0) << "uvw size " << uvw.size() << endl;
+
+    // FailWhen(uvw != shape_2x3 && uvw == LoShape(3),"child '"+child_labels[2].toString()+"': a 2x3 or 1x3 result expected");
+
+
+    // num_sources_ = lmn[0];
+    // // result is a 2x2 matrix 
+    // return LoShape(2,2);
 }
 
 

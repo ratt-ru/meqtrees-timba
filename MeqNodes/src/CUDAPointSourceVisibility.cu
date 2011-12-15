@@ -470,23 +470,22 @@ namespace Meq {
 
             {
 
-                double argument = _2pi_over_c*(d_u[t]*d_lmn[s].x+d_v[t]*d_lmn[s].y+d_w[t]*d_lmn[s].z);
+                double argument = d_freq[f]*_2pi_over_c*(d_u[t]*d_lmn[s].x+d_v[t]*d_lmn[s].y+d_w[t]*(d_lmn[s].z-1));
 
 
-                double E_jones = 1.0;
+                double smearFactor = 1.0;
 
                 if (d_duvw) {
 //#define DARGUMENT (_2pi_over_c*(D_DU(t)*d_lmn[s].x+D_DV(t)*d_lmn[s].y+D_DW(t)*d_lmn[s].z));
 
                     double dargument = _2pi_over_c*(d_du[t]*d_lmn[s].x+d_dv[t]*d_lmn[s].y+d_dw[t]*d_lmn[s].z);
                     double dphi = d_f_dt_over_2[t] * dargument;
-                    E_jones = 1;
                     if (dphi != 0.0) 
-                        E_jones = sin(dphi)/dphi;
+                        smearFactor = sin(dphi)/dphi;
 
                     double dpsi = d_df_over_2[f] * argument;
                     if (dpsi != 0.0)
-                       E_jones *= sin(dpsi)/dpsi;
+                       smearFactor *= sin(dpsi)/dpsi;
 
                 }
 
@@ -496,7 +495,7 @@ namespace Meq {
 
                 double realVal;
                 double imagVal;
-                sincos(d_freq[f]*argument, &realVal, &imagVal);
+                sincos(argument, &realVal, &imagVal);
 
                 for( int j=0; j<num_matrix_elements; ++j ){
 
@@ -505,13 +504,10 @@ namespace Meq {
                     // calcuating B*exp(...) = B*E = (B.r+jB.i)(E.r+jE.i) = (B.r*E.r - B.i*E.i) + j(B.r*E.i + B.i*E.r)
                     //                                                    = (B.i*E.r + B.r*E.i) - j(B.i*E.i + B.r*E.r)
 
-                    //TODO sigma term !!!!!!!!!!!!!!!!!!!
-                    //int b_index = (s*NUM_MATRIX_ELEMENTS+j)*nfreq+f;
                     int b_index = get_B_index(s, nsrcs, 
                                               f, nfreq,
                                               j, num_matrix_elements);
-                    //int threadIdx_minor = j;
-                    //int threadIdx_mm = threadIdx_major*NUM_MATRIX_ELEMENTS + threadIdx_minor;
+
 
 #ifndef SHARED_MEMORY
                     int the_index = get_intermediate_output_index(s_i, nslots, // must address this via the index
@@ -520,9 +516,9 @@ namespace Meq {
                                                                   j,   num_matrix_elements);
 
                     d_intermediate_output_complex[the_index].x += 
-                        (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*E_jones;
+                        (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor;
                     d_intermediate_output_complex[the_index].y += 
-                        (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*E_jones;
+                        (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor;
                         
 #endif
 
@@ -536,16 +532,16 @@ namespace Meq {
 
   #ifdef MULTI_SRC_PER_THREAD
                     shared_mem[share_index].x += 
-                        (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*E_jones;
+                        (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor;
                     shared_mem[share_index].y += 
-                        (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*E_jones;
+                        (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor;
   #endif
 
   #ifndef MULTI_SRC_PER_THREAD
                     shared_mem[share_index].x = 
-                          (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*E_jones;
+                          (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor;
                     shared_mem[share_index].y = 
-                          (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*E_jones;
+                          (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor;
   #endif
 #endif
 

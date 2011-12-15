@@ -40,11 +40,11 @@ MEQPACKAGE_ADD_LIBRARIES(meqserver-lib)
 
 
 # -- executables
-# if (CUDA_FOUND)
-# cuda_add_executable(meqserver src/meqserver_main.cc ${CUDA_SRC})
-# else(CUDA_FOUND)
-add_executable(meqserver src/meqserver_main.cc)
-# endif(CUDA_FOUND)
+if (CUDA_FOUND)
+  cuda_add_executable(meqserver src/meqserver_main.cc ${CUDA_SRC})
+else(CUDA_FOUND)
+  add_executable(meqserver src/meqserver_main.cc)
+endif(CUDA_FOUND)
 #message( libs=${MEQPACKAGE_LIBRARIES} )
 target_link_libraries(meqserver ${MEQPACKAGE_LIBRARIES} ${CPP_PLATFORM_LIBS})
 INSTALL(TARGETS meqserver RUNTIME DESTINATION bin)
