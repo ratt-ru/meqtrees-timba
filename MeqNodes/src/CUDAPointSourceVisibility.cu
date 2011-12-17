@@ -43,6 +43,10 @@ namespace Meq {
         return a*bT*cT + b*cT + c;
     }
 
+    __device__ __host__ __inline__ int getMultiDimIndex(int a, int aT, int b, int bT) {
+        return a*bT + b;
+    }
+
     /****************************************************************************
      **
      ** Author: Richard Baxter
@@ -60,6 +64,20 @@ namespace Meq {
                                  s, nsrcs,             
                                  f, nfreq);
     }
+
+    /****************************************************************************
+     **
+     ** Author: Richard Baxter
+     **
+     ****************************************************************************/
+    __device__ __host__ int get_sf_jones_index(int s, int nsrcs, 
+                                               int f, int nfreq){
+
+        return getMultiDimIndex(s, nsrcs, 
+                                f, nfreq);
+
+    }
+
 
     /****************************************************************************
      **
@@ -359,6 +377,8 @@ namespace Meq {
                                         int nfreq, 
                                         double* d_df_over_2, 
                                         double* d_f_dt_over_2, 
+                                        double* d_e_jones,
+                                        double* d_e_jones_h,
                                         int num_matrix_elements, 
                                         double2* d_intermediate_output_complex, 
                                         double _2pi_over_c
@@ -470,8 +490,7 @@ namespace Meq {
 
             {
 
-                double argument = d_freq[f]*_2pi_over_c*(d_u[t]*d_lmn[s].x+d_v[t]*d_lmn[s].y+d_w[t]*(d_lmn[s].z-1));
-
+                double argument = _2pi_over_c*(d_u[t]*d_lmn[s].x+d_v[t]*d_lmn[s].y+d_w[t]*(d_lmn[s].z-1));
 
 
                 double smearFactor = 1.0;
@@ -494,9 +513,20 @@ namespace Meq {
                 // double realVal = sin(argument);
                 // double imagVal = cos(argument);
 
-                double realVal;
+                double realVal; 
                 double imagVal;
                 sincos(argument, &realVal, &imagVal);
+
+                double e_jones_term = 1.0;
+                double e_jones_term_H = 1.0;
+
+                if (d_e_jones) {
+
+                    int e_j_index = get_sf_jones_index(s,   nsrcs,
+                                                       f,   nfreq);
+                    e_jones_term   = d_e_jones   [e_j_index];
+                    e_jones_term_H = d_e_jones_h [e_j_index];
+                }
 
                 for( int j=0; j<num_matrix_elements; ++j ){
 
@@ -509,6 +539,11 @@ namespace Meq {
                                               f, nfreq,
                                               j, num_matrix_elements);
 
+#define REAL_TERM e_jones_term*(+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor*e_jones_term_H
+#define IMAG_TERM e_jones_term*(+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor*e_jones_term_H
+// #define REAL_TERM (( + d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor)
+// #define IMAG_TERM (( + d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor)
+
 
 #ifndef SHARED_MEMORY
                     int the_index = get_intermediate_output_index(s_i, nslots, // must address this via the index
@@ -516,10 +551,15 @@ namespace Meq {
                                                                   f,   nfreq,
                                                                   j,   num_matrix_elements);
 
-                    d_intermediate_output_complex[the_index].x += 
-                        (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor;
-                    d_intermediate_output_complex[the_index].y += 
-                        (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor;
+  #ifdef MULTI_SRC_PER_THREAD
+                    d_intermediate_output_complex[the_index].x += REAL_TERM;
+                    d_intermediate_output_complex[the_index].y += IMAG_TERM;
+  #endif
+
+  #ifndef MULTI_SRC_PER_THREAD
+                    d_intermediate_output_complex[the_index].x = REAL_TERM;
+                    d_intermediate_output_complex[the_index].y = IMAG_TERM;
+  #endif
                         
 #endif
 
@@ -532,20 +572,18 @@ namespace Meq {
                     //printf("(%i, %i, %i) \tshare index: %i \t(t %i, f %i, j %i)\n", s_i, t, f, share_index, t_si, f_si, j);
 
   #ifdef MULTI_SRC_PER_THREAD
-                    shared_mem[share_index].x += 
-                        (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor;
-                    shared_mem[share_index].y += 
-                        (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor;
+                    shared_mem[share_index].x += REAL_TERM;
+                    shared_mem[share_index].y += IMAG_TERM;
   #endif
 
   #ifndef MULTI_SRC_PER_THREAD
-                    shared_mem[share_index].x = 
-                          (+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor;
-                    shared_mem[share_index].y = 
-                          (+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor;
+                    shared_mem[share_index].x = REAL_TERM;
+                    shared_mem[share_index].y = IMAG_TERM;
   #endif
 #endif
 
+#undef REAL_TERM
+#undef IMAG_TERM
 
 
                 }
@@ -692,7 +730,7 @@ namespace Meq {
 
                 //d_intermediate_output_complex[the_i_index].x = 3;
                 d_output_complex[the_index].x = d_intermediate_output_complex[the_i_index].x;
-                 d_output_complex[the_index].y = d_intermediate_output_complex[the_i_index].y;
+                d_output_complex[the_index].y = d_intermediate_output_complex[the_i_index].y;
 
                 //printf("(%i, %i, %i:%i) \tinput: %i \toutput:%i  \t threadIdx.y: %i  \t blockIdx.y %i \t actualBlockIdx.y %i\n", s_i,t,f,j, the_i_index, the_index, threadIdx.y, blockIdx.y, actualBlockIdx.y);
 
@@ -721,9 +759,10 @@ namespace Meq {
                                                    int nfreq, 
                                                    double* d_df_over_2, 
                                                    double* d_f_dt_over_2,
+                                                   double* d_e_jones,
+                                                   double* d_e_jones_h,
                                                    double2* d_intermediate_output_complex,
                                                    double2* d_output_complex, 
-                                                   int nOutputElements,
                                                    int NUM_MATRIX_ELEMENTS,
                                                    double _2pi_over_c,/*make this a constant variable rather than a parameter*/ 
                                                    std::complex<double> ** pout) {
@@ -835,6 +874,7 @@ namespace Meq {
                                                 d_time, ntime, 
                                                 d_freq, nfreq,
                                                 d_df_over_2, d_f_dt_over_2,
+                                                d_e_jones, d_e_jones_h,
                                                 NUM_MATRIX_ELEMENTS, 
                                                 d_intermediate_output_complex, 
                                                 _2pi_over_c

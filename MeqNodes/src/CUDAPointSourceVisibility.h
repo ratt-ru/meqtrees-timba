@@ -43,10 +43,47 @@
 
 namespace Meq {    
 
+#ifndef STRIP_CUDA
+struct CUDAMultiDimentionArray {
+  
+    int srcs_dims;
+    int matj_dims;
+    int time_dims;
+    int freq_dims;
+
+    int srcs_total;
+    int matj_total;
+    int time_total;
+    int freq_total;
+    
+    std::string name;
+    void* device_ptr;
+    size_t type_size;
+
+
+    CUDAMultiDimentionArray(
+        const std::string n = "",
+        int sd = 0, int md = 0, int td = 0, int fd = 0,
+        int st = 0, int mt = 0, int tt = 0, int ft = 0,
+        int ts = 0);
+
+    ~CUDAMultiDimentionArray();
+
+    std::string CUDAMemSet();
+    std::string CUDAMemAlloc();
+    std::string CUDAMemCopy(const void* host_ptr, int element_size = 0, int device_element_offset = 0);
+
+    int getNumElements();
+
+    int getMallocSize();
+
+    void printInfo();
+    
+};
+
 // CUDA kernel and runner function
 void CUDAPointSourceVisibilityKernel();
 
-#ifndef STRIP_CUDA
 std::string runCUDAPointSourceVisibilityKernel(lmn_t* d_lmn, 
                                                double2* d_B_complex, 
                                                int nsrcs, 
@@ -61,9 +98,10 @@ std::string runCUDAPointSourceVisibilityKernel(lmn_t* d_lmn,
                                                int nfreq, 
                                                double* d_df_over_2, 
                                                double* d_f_dt_over_2,
+                                               double* d_e_jones,
+                                               double* d_e_jones_h,
                                                double2* d_intermediate_output_complex,
                                                double2* d_output_copmlex, 
-                                               int nOutputElements,
                                                int NUM_MATRIX_ELEMENTS,
                                                double _2pi_over_c, 
                                                std::complex<double>** pout);
@@ -87,6 +125,11 @@ int get_intermediate_output_index(int s, int nsrcs,
 int get_output_index(int t, int ntime, 
                      int f, int nfreq, 
                      int j, int num_matrix_elements);
+
+
+int get_sf_jones_index(int s, int nsrcs, 
+                       int f, int nfreq);
+
 
 
 class CUDAPointSourceVisibility: public TensorFunction
@@ -120,27 +163,6 @@ protected:
     // Helper function. Checks that shape is scalar (N=1) or [N] or Nx1 or Nx1x1 or Nx2x2, throws exception otherwise
     // Also checks that N==nsrc.
     void checkTensorDims (int ichild,const LoShape &shape,int nsrc);
-
-#ifndef STRIP_CUDA
-    double*  d_uvw; // time
-    //double*  d_v; // time
-    //double*  d_w; // time
-    double*  d_duvw; // time
-    //double*  d_dv; // time
-    //double*  d_dw; // time
-    double*  d_df_over_2; // time
-    double*  d_f_dt_over_2; // freq
-    lmn_t*   d_lmn; // src
-    double*  d_freqCellSize; // freq
-    double*  d_timeCellSize; // time
-    double2* d_B_complex; // src*4*freq
-    double*  d_freq; // freq
-    double*  d_time; // time
-    double2* d_intermediate_output_complex; // src_per_run*time*freq*4
-    double2* d_output_complex;
-
-    virtual void doCUDACleanUp();
-#endif
 
     int num_sources_;
 

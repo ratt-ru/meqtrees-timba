@@ -29,6 +29,9 @@
 
 #include <string>
 
+// HACKHACKAHCAHCAKHCKAHCKACHKACHKACHAKCHAAAAA get rid of....
+#include <cstdio>
+
 
 namespace Meq {
 
@@ -40,7 +43,88 @@ using namespace VellsMath;
 const HIID child_labels[] = { AidLMN,AidB,AidUVW };
 const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
+#ifndef STRIP_CUDA
+CUDAMultiDimentionArray::CUDAMultiDimentionArray(
+    const std::string n,
+    int sd, int md, int td, int fd,
+    int st, int mt, int tt, int ft,
+    int ts) :
+    name(n), 
+    srcs_dims(sd), matj_dims(md), time_dims(td), freq_dims(fd),
+    srcs_total(st), matj_total(mt), time_total(tt), freq_total(ft),
+    type_size(ts), device_ptr(0){
+}
 
+CUDAMultiDimentionArray::~CUDAMultiDimentionArray(){
+    
+    printf("CLEANING %s\n", name.c_str());
+    if (device_ptr) {
+        cudaFree(device_ptr);
+        printf("CLEANED\n");
+    }
+    else {
+        printf("no device pointer\n");
+    }
+
+}
+    
+int CUDAMultiDimentionArray::getNumElements(){
+    if (srcs_dims==0 && matj_dims==0 && time_dims==0 && freq_dims==0)
+        return 0;
+    return 
+        (srcs_dims==0?1:srcs_dims*srcs_total)*
+        (matj_dims==0?1:matj_dims*matj_total)*
+        (time_dims==0?1:time_dims*time_total)*
+        (freq_dims==0?1:freq_dims*freq_total);
+}
+
+
+int CUDAMultiDimentionArray::getMallocSize(){
+    return getNumElements()*type_size; // TODO template for double/double2/double3
+}
+
+
+std::string CUDAMultiDimentionArray::CUDAMemSet(){
+
+    int malloc_size = getMallocSize();
+    if (malloc_size > 0 && cudaMemset(device_ptr, 0, malloc_size) != cudaSuccess) 
+        return "cudaMemset error for d_"+name+" : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
+    return "";
+
+}
+
+std::string CUDAMultiDimentionArray::CUDAMemAlloc(){
+
+    int malloc_size = getMallocSize();
+    printf("MALLOC %i\n", malloc_size);
+    if (malloc_size > 0 && cudaMalloc((void **) &device_ptr, malloc_size) != cudaSuccess) 
+        return "cudaMalloc error for d_"+name+" : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
+    return "";
+}
+
+std::string CUDAMultiDimentionArray::CUDAMemCopy(const void* host_ptr, int element_size, int device_element_offset){
+
+    if (element_size == 0)
+        element_size = getNumElements();
+    if (element_size > 0 && cudaMemcpy(device_ptr+(device_element_offset*type_size), host_ptr, element_size*type_size, cudaMemcpyHostToDevice) != cudaSuccess) 
+        return "cudaMemcpy error for d_"+name+" : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
+    return "";
+
+    // if (errorString == "" && cudaMemcpy(d_uvw, pu, sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
+    //     errorString = "Memcopy error copying data to d_u : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
+}
+
+void CUDAMultiDimentionArray::printInfo(){
+
+    printf("mem required for %-16s:\t%i\t%-2i * (%-6i\t= %i\t* %i\t* %i\t* %i)\n", 
+           name.c_str(), getMallocSize(), type_size, getNumElements(),
+           (srcs_dims*srcs_total),
+           (matj_dims*matj_total),
+           (time_dims*time_total),
+           (freq_dims*freq_total));
+}
+
+#endif
 
 CUDAPointSourceVisibility::CUDAPointSourceVisibility()
 : TensorFunction(-4,child_labels,3), // first 3 children mandatory, rest are optional
@@ -67,14 +151,20 @@ void CUDAPointSourceVisibility::checkTensorDims (int ichild,const LoShape &shape
   else
   {
     n = shape[0];
+    printf("child %i is dim %i\n", ichild, shape.size());
     if( shape.size() == 2 )
     {
+        printf("                 %i x %i\n", shape[0], shape[1]);
       FailWhen(shape[1]!=1,"child '"+child_labels[ichild].toString()+"': rank-2 result must be of shape Nx1");
     }
     else if( shape.size() == 3 )
     {
+        printf("                 %i x %i x %i\n", shape[0], shape[1], shape[2]);
       FailWhen(!(shape[1]==1 && shape[2]==1) && !(shape[1]==2 && shape[2]==2),   // Nx1x1 or Nx2x2 result 
           "child '"+child_labels[ichild].toString()+"': rank-3 result must be of shape Nx2x2 or Nx1x1");
+    }
+    else {
+        printf("                 %i\n", shape[0]);
     }
   }
   FailWhen(n!=nsrc,"child '"+child_labels[1].toString()+"': first dimension does not match number of sources");
@@ -115,23 +205,6 @@ LoShape CUDAPointSourceVisibility::getResultDims (const vector<const LoShape *> 
 
     // our result is a 2x2 matrix 
     return LoShape(2,2);
-
-    // // this gets called to check that the child results have the right shape
-    // const LoShape &lmn = *input_dims[0], &b = *input_dims[1], &uvw = *input_dims[2];
-  
-    // // the first child (LMN) is expected to be of shape Nx3, the second (B) of Nx2x2, and the third (UVW) is a 3-vector or 2x3-vector (UVW + dUVW) if the smear factor is to be calculated
-    // FailWhen(lmn.size()!=2 || lmn[1]!=3,"child '"+child_labels[0].toString()+"': an Nx3 result expected");
-    // FailWhen(b.size()!=3 || b[1]!=2 || b[2]!=2,"child '"+child_labels[1].toString()+"': an Nx2x2 result expected");
-    // FailWhen(lmn[0] != b[0],"shape mismatch between child '"+
-    //          child_labels[0].toString()+"' and '"+child_labels[1].toString()+"'");
-    // //cdebug(0) << "uvw size " << uvw.size() << endl;
-
-    // FailWhen(uvw != shape_2x3 && uvw == LoShape(3),"child '"+child_labels[2].toString()+"': a 2x3 or 1x3 result expected");
-
-
-    // num_sources_ = lmn[0];
-    // // result is a 2x2 matrix 
-    // return LoShape(2,2);
 }
 
 
@@ -170,9 +243,9 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
     const Vells & vw = *(args[2][2]);
     FailWhen(vu.shape() != timeshape || vv.shape() != timeshape || vw.shape() != timeshape,"expecting UVWs that are a vector in time");
 
-    bool computeError = false;
+    bool computeSmear = false;
     if( args[2].size() == 6 )
-        computeError = true;
+        computeSmear = true;
 
     cdebug(0) << "args[2].size() = " << args[2].size() << endl;
 
@@ -186,6 +259,26 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
     vector<double> vec_df_over_2_(nfreq);
     vector<double> vec_f_dt_over_2_(ntime);
 
+    //==================================================================================================
+
+  
+    // allocate storage for results, and get pointers to storage
+    const int NUM_MATRIX_ELEMENTS = 4;
+    dcomplex * pout[NUM_MATRIX_ELEMENTS];
+
+
+    for( int j=0; j<NUM_MATRIX_ELEMENTS; j++ )
+    {
+        out[j] = Vells(numeric_zero<dcomplex>(),timefreqshape);
+        pout[j] = out[j].complexStorage();
+        // pout[j] points to an NTIME x NFREQ array
+    }
+
+    //==================================================================================================
+
+    int nsrcs = num_sources_; // I just prefer this name to num_sources_
+    int nmatj = NUM_MATRIX_ELEMENTS; // I just prefer this name too
+
 
     // these will be vectors of ntime points each
     pu = vu.realStorage();
@@ -198,13 +291,11 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
     Vells freq_vells_;
     Vells freq_approx;
 
-    if (computeError) {
+    if (computeSmear) {
         const Vells & dvu = *(args[2][3]);
         const Vells & dvv = *(args[2][4]);
         const Vells & dvw = *(args[2][5]);
         FailWhen(dvu.shape() != timeshape || dvv.shape() != timeshape || dvw.shape() != timeshape,"expecting UVWs derivatives that are a vector in time");
-
-        //TODO implement smearing
 
 
 
@@ -287,256 +378,75 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
            
     }
 
-
     //==================================================================================================
 
-  
-    // allocate storage for results, and get pointers to storage
-    const int NUM_MATRIX_ELEMENTS = 4;
-    dcomplex * pout[NUM_MATRIX_ELEMENTS];
+    int compute_n_jones = -1;
+    int compute_z_jones = -1;
+    int compute_l_jones = -1;
+    int compute_e_jones = -1;
+
+    int num_jones_terms=(args.size()-first_jones_)/2;
+    //TODO error check/failwhen
+
+    printf("Number of Joneses %i\n", num_jones_terms);
+    for(int i = 0 ; i < num_jones_terms ; ++i) {
+        int jones_index   = first_jones_+(i*2);
+        int jones_h_index = first_jones_+(i*2)+1;
+
+        
+        printf("Jones %i - \ndim 0: %i\n", i, args[jones_index].size());
+        const Vells* jones_vell = args[jones_index][0];
+        //printf ("dims past s: %i\n", jones_vell->shape().size());
+
+        for(int d = 0 ; d < jones_vell->shape().size(); d++)
+            printf ("dim %i: %i\n", d+1, jones_vell->shape()[d]);
+
+        if (args[jones_index].size() == nsrcs) { // then it is a src*freq array (E/Z/N)
+            printf("e/z/n-jones\n");
+
+            if (jones_vell->isReal()) {
+                printf("Real\n");
+                printf("e-jones\n");
+
+                compute_e_jones = jones_index;
+                
+            }
+            else if (jones_vell->isComplex()){ // is a vector of complex values
+                printf("Complex\n");
+                printf("n/z-jones - NOT IMPLEMENTED\n");
+            }
+
+        }
+        else { // it is a srcx2x2 = src*matj array (L)
+            
+            printf("l-jones - NOT IMPLEMENTED\n");
+        }
 
 
-    for( int j=0; j<NUM_MATRIX_ELEMENTS; j++ )
-    {
-        out[j] = Vells(numeric_zero<dcomplex>(),timefreqshape);
-        pout[j] = out[j].complexStorage();
-        // pout[j] points to an NTIME x NFREQ array
+        
+        printf("\n");
     }
 
-    int nsrcs = num_sources_; // I just prefer this name to num_sources_
+    //-----------------------------------------------------------------------------------------------
 
+    // Storing into arrays: LMN, brightness, jones terms
 
-    //==================================================================================================
-    // CUDA bit
-
-
-    d_uvw = NULL;
-    d_duvw = NULL;
-    d_df_over_2 = NULL;
-    d_f_dt_over_2 = NULL;
-    d_lmn = NULL;
-    d_freqCellSize = NULL;
-    d_timeCellSize = NULL;
-    d_B_complex = NULL;
-    d_freq = NULL;
-    d_time = NULL;
-    d_intermediate_output_complex = NULL;
-    d_output_complex = NULL;
-
-    int nsrcs_per_slot = 1;
-#ifdef MULTI_SRC_PER_THREAD
-    nsrcs_per_slot = SRC_PER_THREAD;
-#endif
-
-    unsigned int nOutputElements = ntime * nfreq * NUM_MATRIX_ELEMENTS;
-
-
-    std::string errorString = "";
-
-    size_t avail;
-    size_t total;
-    cudaMemGetInfo( &avail, &total );
-    size_t used = total - avail;
-
-    
-    int extra_input = 0;
-    if (computeError) {
-        extra_input = sizeof(double)*((ntime*3) + (nfreq) + (ntime));
-    }
-
-    size_t will_use_input = (sizeof(lmn_t)*nsrcs)+(sizeof(double)*((ntime*3) + (nfreq*2) + (ntime*2))) + (sizeof(double2)*nsrcs*NUM_MATRIX_ELEMENTS*nfreq) + extra_input;
-
-    size_t will_use_output = sizeof(double2)*nOutputElements;
-
-    int memory_to_remain_free = 32*1024*1024;
-
-    int nslots_required = ((nsrcs-1)/nsrcs_per_slot)+1;
-
-    size_t remaining_for_intermediate = avail-will_use_input-will_use_output-memory_to_remain_free;
-    int nslots_per_run = ((remaining_for_intermediate-1)/will_use_output) + 1;
-    if (nslots_per_run > nslots_required)
-        nslots_per_run = nslots_required;
-
-    if (nslots_per_run == 0)
-        nslots_per_run = 1;
-
-    
-    unsigned int nIntermediateElements = nslots_per_run * ntime * nfreq * NUM_MATRIX_ELEMENTS; 
-    
-    size_t will_use_intermediate = sizeof(double2)*nIntermediateElements;
-    size_t will_use_total = will_use_input + will_use_intermediate + will_use_output;
-
-
-    if (computeError) {
-    cdebug(0) << "required for inputs (" << sizeof(lmn_t) << "*" << nsrcs << ") + (" << sizeof(double) << "*((" << ntime << "*" << 6 << ") + (" << nfreq << "*" << 2 << ") + (" << ntime << "*" << 2 << ") + (" << nfreq << ") + (" << ntime << "))) + (" << sizeof(double2) << "*"<< nsrcs << "*" << NUM_MATRIX_ELEMENTS << "*" << nfreq << ") = " <<  will_use_input << " bytes" << endl; 
-    }
-
-    if (computeError) {
-    cdebug(0) << "required for inputs (" << sizeof(lmn_t) << "*" << nsrcs << ") + (" << sizeof(double) << "*((" << ntime << "*" << 3 << ") + (" << nfreq << "*" << 2 << ") + (" << ntime << "*" << 2 << "))) + (" << sizeof(double2) << "*"<< nsrcs << "*" << NUM_MATRIX_ELEMENTS << "*" << nfreq << ") = " <<  will_use_input << " bytes" << endl; 
-    }
-
-
-    cdebug(0) << "required for output "<< sizeof(double2) <<"*(" <<ntime<<"*"<<nfreq<<"*"<<NUM_MATRIX_ELEMENTS << ") = "<< sizeof(double2) <<"*(" << nOutputElements << ") = " << will_use_output << endl;
-
-    cdebug(0) << "after input and output there is " << remaining_for_intermediate << " bytes, 1 src/slot = " << will_use_output << " bytes, meaning " << nslots_per_run << "/" << nslots_required << " slots can be calculated per run (" << will_use_intermediate << " bytes)" << endl;
-
-    cdebug(0) << "required for intermediate "<< sizeof(double2) <<"*(" << nslots_per_run <<"*"<<ntime<<"*"<<nfreq<<"*"<<NUM_MATRIX_ELEMENTS << ") = " << will_use_intermediate << endl;
-
-
-    cdebug(0) << "required for total "<< will_use_input << "+" << will_use_intermediate << "+" << will_use_output << " = " << will_use_total << endl;
-    
-    cdebug(0) << avail << " bytes available (available after = " << (avail-will_use_total)<<" bytes, " << memory_to_remain_free <<" bytes intentionally left free)" << endl;
-    char errorChar [256];
-    sprintf(errorChar, "Not enough memory on GPU device, requires %u bytes, only %u bytes available", will_use_total, avail);
-    FailWhen(avail < will_use_total, errorChar);
-
-    cdebug(0) << "alloc of d_uvw: size = "<< sizeof(double) <<"*" << ntime <<"*" <<3 << endl;
-    if (errorString == "" && cudaMalloc((void **) &d_uvw,      sizeof(double)   * ntime*3) != cudaSuccess)
-        errorString = "cudaMalloc error for d_uvw : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    // if (errorString == "" && cudaMalloc((void **) &d_v,      sizeof(double)   * ntime) != cudaSuccess)
-    //     errorString = "cudaMalloc error for d_v : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    // if (errorString == "" && cudaMalloc((void **) &d_w,      sizeof(double)   * ntime) != cudaSuccess)
-    //     errorString =  "cudaMalloc error for d_w : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-    // TODO, combine into 1 and use texture mem
-    if (computeError) {
-        cdebug(0) << "alloc of d_duvw: size = "<< sizeof(double) <<"*" << ntime <<"*" <<3 << endl;
-        if (errorString == "" && cudaMalloc((void **) &d_duvw,      sizeof(double)   * ntime*3) != cudaSuccess)
-            errorString = "cudaMalloc error for d_du : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-        // if (errorString == "" && cudaMalloc((void **) &d_dv,      sizeof(double)   * ntime) != cudaSuccess)
-        //     errorString = "cudaMalloc error for d_dv : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-        // if (errorString == "" && cudaMalloc((void **) &d_dw,      sizeof(double)   * ntime) != cudaSuccess)
-        //     errorString =  "cudaMalloc error for d_dw : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-        cdebug(0) << "alloc of d_df_over_2: size = "<< sizeof(double) <<"*" << nfreq << endl;
-        if (errorString == "" && cudaMalloc((void **) &d_df_over_2,      sizeof(double)   * nfreq) != cudaSuccess)
-            errorString =  "cudaMalloc error for d_df_over_2 : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-        cdebug(0) << "alloc of d_f_dt_over_2: size = "<< sizeof(double) <<"*" << ntime << endl;
-        if (errorString == "" && cudaMalloc((void **) &d_f_dt_over_2,      sizeof(double)   * ntime) != cudaSuccess)
-            errorString =  "cudaMalloc error for d_f_dt_over_2 : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-    }
-    
-    cdebug(0) << "alloc of d_lmn: size = "<< sizeof(lmn_t) <<"*" << nsrcs<< endl;
-    if (errorString == "" && cudaMalloc((void **) &d_lmn,    sizeof(lmn_t)   * nsrcs) != cudaSuccess) 
-        errorString =  "cudaMalloc error for d_lmn : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    if (errorString == "" && cudaMalloc((void **) &d_B_complex,      sizeof(double2) * nsrcs*NUM_MATRIX_ELEMENTS*nfreq) != cudaSuccess) 
-        errorString =  "cudaMalloc error for d_B : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-
-    cdebug(0) << "alloc of d_freq: size = "<< (sizeof(double) * nfreq ) << endl;
-    if (errorString == "" && cudaMalloc((void **) &d_freq,     sizeof(double)   * nfreq) != cudaSuccess)
-        errorString =  "cudaMalloc error for d_freq : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    cdebug(0) << "alloc of d_time: size = "<< (sizeof(double) * ntime ) << endl;
-    if (errorString == "" && cudaMalloc((void **) &d_time,     sizeof(double)   * ntime) != cudaSuccess) 
-        errorString =  "cudaMalloc error for d_time : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    if (errorString == "" && cudaMalloc((void **) &d_freqCellSize,    sizeof(double) * nfreq) != cudaSuccess) 
-        errorString =  "cudaMalloc error for d_freqCellSize : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    if (errorString == "" && cudaMalloc((void **) &d_timeCellSize,    sizeof(double) * ntime) != cudaSuccess) 
-        errorString =  "cudaMalloc error for d_timeCellSize : "+ std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-
-    cdebug(0) << "alloc of d_intermediate_output_complex: size = "<< sizeof(double2) <<"*(" << nslots_per_run <<"*"<<ntime<<"*"<<nfreq<<")*"<<NUM_MATRIX_ELEMENTS << " = " << (sizeof(double2) * nIntermediateElements ) << endl;
-    if (errorString == "" && cudaMalloc((void **) &d_intermediate_output_complex, sizeof(double2) * nIntermediateElements) != cudaSuccess)
-        errorString =  "cudaMalloc error for d_intermediate_output : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    cdebug(0) << "alloc of d_output_complex: size = "<< sizeof(double2) <<"*(" <<"*"<<ntime<<"*"<<nfreq<<")*"<<NUM_MATRIX_ELEMENTS << " = " << (sizeof(double2) * nOutputElements ) << endl;
-    if (errorString == "" && cudaMalloc((void **) &d_output_complex, sizeof(double2) * nOutputElements) != cudaSuccess)
-        errorString =  "cudaMalloc error for d_output : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    if (errorString != ""){
-        cdebug(0) << "error encountered: " << errorString << endl;
-        doCUDACleanUp();
-        cdebug(0) << "cleaned up" << endl;
-        cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
-        FailWhen(true, errorString);
-    }
-    cdebug(0) << "error string: " << errorString << endl;
-
-    cudaMemGetInfo( &avail, &total );
-    cdebug(0) << "d_uvw    " << d_uvw    << "  \t " << (void*)(sizeof(double) * ntime*3) << " (" << sizeof(double) * ntime *3 << ")" << endl;
-    // cdebug(0) << "d_v    " << d_v    << "  \t " << (void*)(sizeof(double) * ntime) << " (" << (sizeof(double) * ntime)<< ")" << endl;
-    // cdebug(0) << "d_w    " << d_w    << "  \t " << (void*)(sizeof(double) * ntime) << " (" << (sizeof(double) * ntime)<< ")" << endl;
-    cdebug(0) << "d_suvw    " << d_duvw    << "  \t " << (void*)(sizeof(double) * ntime*3) << " (" << sizeof(double) * ntime *3 << ")" << endl;
-   cdebug(0) << "d_lmn  " << d_lmn  << "  \t " << (void*)(sizeof(lmn_t) * nsrcs) << " (" << (sizeof(lmn_t) * nsrcs)<< ")" << endl;
-   cdebug(0) << "d_B    " << d_B_complex << "  \t " << (void*)(sizeof(double2) * nsrcs*NUM_MATRIX_ELEMENTS*nfreq) << " (" << (sizeof(double2) * nsrcs*NUM_MATRIX_ELEMENTS*nfreq)<< ")" << endl;
-   cdebug(0) << "d_freq " << d_freq << "  \t " << (void*)(sizeof(double) * nfreq)  << " (" << (sizeof(double) * nfreq)<< ")" << endl;
-    cdebug(0) << "d_time " << d_time << "  \t " << (void*)(sizeof(double) * ntime)  << " (" << (sizeof(double) * ntime)<< ")" << endl;
-    cdebug(0) << "d_f_cs " << d_freqCellSize << "  \t " << (void*)(sizeof(double) * nfreq)  << " (" << (sizeof(double) * nfreq)<< ")" << endl;
-    cdebug(0) << "d_t_cs " << d_timeCellSize << "  \t " << (void*)(sizeof(double) * ntime)  << " (" << (sizeof(double) * ntime)<< ")" << endl;
-    cdebug(0) << "d_i_o  " << d_intermediate_output_complex << "  \t " << (void*)(sizeof(double2) * nIntermediateElements)  << " (" <<(sizeof(double2) * nIntermediateElements) << ")" << endl;
-    cdebug(0) << "d_o    " << d_output_complex << "  \t " << (void*)(sizeof(double2) * nOutputElements)  << " (" << (sizeof(double2) * nOutputElements)<< ")" << endl;
-    cdebug(0) << "avail  " << avail  << "  \t " << (void*)(avail) << " (" << avail << ")" <<  endl;
-    cdebug(0) << "total  " << total  << "  \t " << (void*)(total) << " (" << total << ")" <<  endl;
-
-
-    //errorString = "force error";
-
-    cdebug(0) << "copying uwv data to gpu device" << endl;
-
-    cdebug(0) << "copying u data to gpu device" << endl;
-    if (errorString == "" && cudaMemcpy(d_uvw, pu, sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-        errorString = "Memcopy error copying data to d_u : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    cdebug(0) << "copying v data to gpu device" << endl;
-    if (errorString == "" && cudaMemcpy(&(d_uvw[ntime]), pv, sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-        errorString = "Memcopy error copying data to d_v : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-    cdebug(0) << "copying w data to gpu device" << endl;
-    if (errorString == "" && cudaMemcpy(&(d_uvw[ntime*2]), pw, sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-        errorString = "Memcopy error copying data to d_w : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-
-    if (computeError) {
-        cdebug(0) << "copying du data to gpu device" << endl;
-        if (errorString == "" && cudaMemcpy(d_duvw, pdu, sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-            errorString = "Memcopy error copying data to d_du : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-        cdebug(0) << "copying dv data to gpu device" << endl;
-        if (errorString == "" && cudaMemcpy(&(d_duvw[ntime]), pdv, sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-            errorString = "Memcopy error copying data to d_dv : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-
-        cdebug(0) << "copying dw data to gpu device" << endl;
-        if (errorString == "" && cudaMemcpy(&(d_duvw[ntime*2]), pdw, sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-            errorString = "Memcopy error copying data to d_dw : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    
-        cdebug(0) << "copying d_df_over_2 data to gpu device" << endl;
-        if (errorString == "" && cudaMemcpy(d_df_over_2, &(vec_df_over_2_[0]), sizeof(double)* nfreq, cudaMemcpyHostToDevice) != cudaSuccess) 
-            errorString = "Memcopy error copying data to d_df_over_2 : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    
-        cdebug(0) << "copying d_f_dt_over_2 data to gpu device" << endl;
-        if (errorString == "" && cudaMemcpy(d_f_dt_over_2, &(vec_f_dt_over_2_[0]), sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-            errorString = "Memcopy error copying data to d_f_dt_over_2 : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    }
-
-
-    if (errorString != ""){
-        doCUDACleanUp();
-        cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
-        FailWhen(true, errorString);
-    }
-
-
-    //cdebug(0) << "copying lmn and B data to arrays" << endl;
+    // store source*matrix sized data (B[s*j] / L-jones[s*j]) and source sized data (lmn[s])
     std::vector<lmn_t> lmn_data(nsrcs); 
     std::vector<double2> b_data_complex(nsrcs*nfreq*NUM_MATRIX_ELEMENTS); 
+    std::vector<double> e_jones_data[2] = {std::vector<double>(nsrcs*nfreq), std::vector<double>(nsrcs*nfreq)};
+    
     for( int isrc=0; isrc < nsrcs; isrc++ )
     {
         //cdebug(0) << "src number " << isrc<<"/"<<num_sources_ << endl;
 
+        //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        // LMN (3*s)
         // get the LMNs for this source
         const Vells & vl = *(args[0][isrc*3]);
         const Vells & vm = *(args[0][isrc*3+1]);
         const Vells & vn = *(args[0][isrc*3+2]);
         if(!vl.isScalar() || !vm.isScalar() || !vn.isScalar()) {
-            doCUDACleanUp();
             FailWhen(true, "expecting scalar LMNs");
         }
         double l = vl.as<double>();
@@ -549,11 +459,12 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
         lmn_data[isrc].z = n;
 
 
+        //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        // Brightness (complex s*j*f)
         for( int j=0; j<NUM_MATRIX_ELEMENTS; j++ )
         {
             const Vells &b = *(args[1][isrc*NUM_MATRIX_ELEMENTS + j]);
             if(!b.isScalar() && b.shape() != freqshape) {
-                doCUDACleanUp();
                 FailWhen(true, "expecting B matrix elements that are either scalar, or a vector in frequency");
             }
             // for each element, either b.isScalar() is true and you can access it as b.as<double>, or
@@ -605,167 +516,301 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
                     b_data_complex[b_i].y = b_complex_vec[f].imag();
                 }
             }
+        }
 
+
+        //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        // e-jones (real s*f jones)
+        
+        if(compute_e_jones){
+            int jones_index = compute_e_jones;
+            for (int h = 0 ; h < 2 ; h++) {
+                const Vells &e = *(args[jones_index+h][isrc]);
+        
+                if(!e.isScalar() && e.shape() != freqshape) {
+                    FailWhen(true, "expecting E-jones elements that are either scalar, or a vector in frequency");
+                }
+        
+                if( e.isNull())
+                {
+                    for (int f = 0 ; f < nfreq ; f++) {
+                    
+                        int sf_j_i = get_sf_jones_index(isrc,  nsrcs,
+                                                        f,     nfreq);
+
+                        e_jones_data[h][sf_j_i] = 0;
+
+                    }
+                }
+                else if (e.isScalar()) {
+
+                    double e_real;
+                    if (e.isReal()) {
+                        e_real = e.as<double>();
+                    }
+                    else {
+                        FailWhen(true, "expecting E-jones elements to be real");
+                    }   
+
+                    for (int f = 0 ; f < nfreq ; f++) {
+
+                        int sf_j_i = get_sf_jones_index(isrc,  nsrcs,
+                                                        f,     nfreq);
+
+                        e_jones_data[h][sf_j_i] = e_real;
+
+                    }
+                }
+                else { // is a vector of real values
+                    const double* e_real_vec = e.realStorage();
+                    for (int f = 0 ; f < nfreq ; f++) {
+
+                        int sf_j_i = get_sf_jones_index(isrc,  nsrcs,
+                                                        f,     nfreq);
+
+                        e_jones_data[h][sf_j_i] = e_real_vec[f];
+                    }
+                }
+            }
         }
     }
 
 
 
-    cdebug(0) << "zeroing output data on device" << endl; 
-    if (errorString == "" && cudaMemset(d_intermediate_output_complex, 0, nIntermediateElements * sizeof(double2)))
-        errorString = "Memset error zeroing data in d_intermediate_output_complex : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    if (errorString == "" && cudaMemset(d_output_complex, 0, nOutputElements * sizeof(double2)))
-        errorString = "Memset error zeroing data in d_output_complex : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
+    //==================================================================================================
+    // CUDA bit
 
-    cdebug(0) << "copying lmn data to gpu device" << endl;
-    //cudaMemcpy(d_lmn, &(lmn_data[0]), sizeof(double)* nsrc*3, cudaMemcpyHostToDevice);
-    if (errorString == "" && cudaMemcpy(d_lmn, &(lmn_data[0]), sizeof(lmn_t)* nsrcs, cudaMemcpyHostToDevice) != cudaSuccess) 
-        errorString = "Memcopy error copying data to d_lmn : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
 
-    cdebug(0) << "copying B data to gpu device" << endl;
-    //cudaMemcpy(d_B, &(b_data_complex[0]), sizeof(double)* nsrc*NUM_MATRIX_ELEMENTS*nfreq, cudaMemcpyHostToDevice);
-    if (errorString == "" && cudaMemcpy(d_B_complex, &(b_data_complex[0]), sizeof(double2)* nsrcs*NUM_MATRIX_ELEMENTS*nfreq, cudaMemcpyHostToDevice) != cudaSuccess) 
-        errorString =  "Memcopy error copying data to d_B : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    //cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
+    // specifying input and output multi-dimentional arrays/pointers
+    CUDAMultiDimentionArray uvw         ("uvw",
+                                         0,    0,      3,     0,
+                                         nsrcs, nmatj, ntime, nfreq,
+                                         sizeof(double));
+    CUDAMultiDimentionArray duvw        ("duvw",
+                                         0,    0,      computeSmear?3:0, 0,
+                                         nsrcs, nmatj, ntime,            nfreq,
+                                         sizeof(double));
+    CUDAMultiDimentionArray df_over_2   ("df_over_2",
+                                         0,    0,      0,     computeSmear?1:0,
+                                         nsrcs, nmatj, ntime, nfreq,
+                                         sizeof(double));
 
-    cdebug(0) << "copying freq data to gpu device" << endl;
-    if (errorString == "" && cudaMemcpy(d_freq, &(freq_data[0]), sizeof(double)* nfreq, cudaMemcpyHostToDevice) != cudaSuccess) 
-        errorString =  "Memcopy error copying data to d_freq : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    //cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
+    CUDAMultiDimentionArray f_dt_over_2 ("f_dt_over_2",
+                                         0,    0,      computeSmear?1:0, 0,
+                                         nsrcs, nmatj, ntime,            nfreq,
+                                         sizeof(double));
+    CUDAMultiDimentionArray lmn          ("lmn",
+                                          1,    0,      0,     0,
+                                          nsrcs, nmatj, ntime, nfreq,
+                                          sizeof(lmn_t));
+    CUDAMultiDimentionArray brightness   ("B",
+                                          1,    1,      0,     1,
+                                          nsrcs, nmatj, ntime, nfreq,
+                                          sizeof(double2));
+    CUDAMultiDimentionArray freq         ("freq",
+                                          0,    0,      0,     1,
+                                          nsrcs, nmatj, ntime, nfreq,
+                                         sizeof(double));
+    CUDAMultiDimentionArray time         ("time",
+                                          0,    0,      1,     0,
+                                          nsrcs, nmatj, ntime, nfreq,
+                                         sizeof(double));
 
-    // converting data to an array
-    cdebug(0) << "copying time data to gpu device" << endl;
-    if (errorString == "" && cudaMemcpy(d_time, &(time_data[0]), sizeof(double)* ntime, cudaMemcpyHostToDevice) != cudaSuccess) 
-        errorString =  "Memcopy error copying data to d_time : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
-    //cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
-     
+    CUDAMultiDimentionArray e_jones      ("e-jones",
+                                          compute_e_jones==-1?0:1, 0,     0,     compute_e_jones==-1?0:1,
+                                          nsrcs,                   nmatj, ntime, nfreq,
+                                          sizeof(double));
+    CUDAMultiDimentionArray e_jones_h    ("e-jones H",
+                                          compute_e_jones==-1?0:1, 0,     0,     compute_e_jones==-1?0:1,
+                                          nsrcs,                   nmatj, ntime, nfreq,
+                                          sizeof(double));
+
+    CUDAMultiDimentionArray output       ("output",
+                                          0,    1,      1,     1,
+                                          nsrcs, nmatj, ntime, nfreq,
+                                         sizeof(double2));
+
+
+
+    //std::vector<CUDAMultiDimentionArray> tf_joneses();
+
+    std::vector<CUDAMultiDimentionArray*> cmda_input;
+    cmda_input.push_back(&uvw);
+    cmda_input.push_back(&duvw);
+    cmda_input.push_back(&df_over_2);
+    cmda_input.push_back(&f_dt_over_2);
+    cmda_input.push_back(&lmn);
+    cmda_input.push_back(&brightness);
+    cmda_input.push_back(&freq);
+    cmda_input.push_back(&time);
+    cmda_input.push_back(&e_jones);
+    cmda_input.push_back(&e_jones_h);
+
+
+    // Calculating how much intermediate data can be stored
+    int total_input_bytes = 0;
+    for (int i = 0 ; i < cmda_input.size() ; i++) {
+        total_input_bytes += cmda_input[i]->getMallocSize();
+        cmda_input[i]->printInfo();
+    }
+    int total_output_bytes = output.getMallocSize();
+    output.printInfo();
+
+    printf("total input bytes                :\t%i\n", total_input_bytes);
+    printf("total output bytes               :\t%i\n", total_output_bytes);
+    printf("total input/output bytes         :\t%i\n", total_output_bytes+total_input_bytes);
+         
+    CUDAMultiDimentionArray _1_intermediate ("one_intermediate",
+                                             0,    1,      1,     1,
+                                             nsrcs, nmatj, ntime, nfreq,
+                                             sizeof(double2));
+
+    _1_intermediate.printInfo();
+
+    size_t avail;
+    size_t total;
+    cudaMemGetInfo( &avail, &total );
+    size_t used = total - avail;
     
-    
-    if (errorString != ""){
-        doCUDACleanUp();
-        cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
-        FailWhen(true, errorString);
+    int memory_to_remain_free = 32*1024*1024;
+
+    int nsrcs_per_slot = 1;
+#ifdef MULTI_SRC_PER_THREAD
+    nsrcs_per_slot = 64;
+#endif
+
+    int nslots_required = ((nsrcs-1)/nsrcs_per_slot)+1;
+
+    size_t remaining_for_intermediate = avail-total_input_bytes-total_output_bytes-memory_to_remain_free;
+    printf("total bytes remaining            :\t%i\n", remaining_for_intermediate);
+
+    int max_slots_per_run = ((remaining_for_intermediate-1)/_1_intermediate.getMallocSize()) + 1;
+    printf("nslots_required                  :\t\t\t\t= %i (%i src/slot)\n", nslots_required, nsrcs_per_slot);
+    printf("max_slots_per_run                :\t\t\t\t= %i\n", max_slots_per_run);
+    int nslots_per_run = nslots_required;
+    if (max_slots_per_run > nslots_required)
+        nslots_per_run = nslots_required;
+
+    if (nslots_per_run == 0)
+        nslots_per_run = 1;
+
+
+    CUDAMultiDimentionArray intermediate ("intermediate",
+                                          1,              1,     1,     1,
+                                          nslots_per_run, nmatj, ntime, nfreq,
+                                          sizeof(double2));
+    intermediate.printInfo();
+
+    // mallocing input, intermediate and output data
+    std::vector<CUDAMultiDimentionArray*> cmda = cmda_input;
+    cmda.push_back(&intermediate);
+    cmda.push_back(&output);
+    for (int i = 0 ; i < cmda.size() ; i++) {
+        
+        printf("CUDA malloc of %-15s - ", cmda[i]->name.c_str());
+        std::string errorString = cmda[i]->CUDAMemAlloc() ;
+        if (errorString == "")
+            printf("Success\n");
+        else {
+            printf("Failed - %s\n", errorString.c_str());
+            FailWhen(true, errorString);
+        }
     }
 
-    // for (int i = 0 ; i < ntime ; i++) {
-    //     cdebug(0) << i << " : " << time_data[i] << endl;
-    // } 
+
+
+
+    // Copying data to device
+    std::vector<CUDAMultiDimentionArray*> device_cmdas;
+    std::vector<const void*> host_ptrs;
+    std::vector<int> offsets;
+    std::vector<int> sizes;
+
+    device_cmdas.push_back(&uvw);  host_ptrs.push_back(pu);  sizes.push_back(ntime); offsets.push_back(0);
+    device_cmdas.push_back(&uvw);  host_ptrs.push_back(pv);  sizes.push_back(ntime); offsets.push_back(ntime);
+    device_cmdas.push_back(&uvw);  host_ptrs.push_back(pw);  sizes.push_back(ntime); offsets.push_back(ntime*2);
+    if (computeSmear) {
+        device_cmdas.push_back(&duvw);        host_ptrs.push_back(pdu); sizes.push_back(ntime); offsets.push_back(0);
+        device_cmdas.push_back(&duvw);        host_ptrs.push_back(pdv); sizes.push_back(ntime); offsets.push_back(ntime);
+        device_cmdas.push_back(&duvw);        host_ptrs.push_back(pdw); sizes.push_back(ntime); offsets.push_back(ntime*2);
+        device_cmdas.push_back(&df_over_2);   host_ptrs.push_back(&(vec_df_over_2_[0])); sizes.push_back(0); offsets.push_back(0);
+        device_cmdas.push_back(&f_dt_over_2); host_ptrs.push_back(&(vec_f_dt_over_2_[0])); sizes.push_back(0); offsets.push_back(0);
+    }
+    device_cmdas.push_back(&lmn);        host_ptrs.push_back(&(lmn_data[0]));       sizes.push_back(0); offsets.push_back(0);
+    device_cmdas.push_back(&brightness); host_ptrs.push_back(&(b_data_complex[0])); sizes.push_back(0); offsets.push_back(0);
+
+    device_cmdas.push_back(&freq);      host_ptrs.push_back(&(freq_data[0]));       sizes.push_back(0); offsets.push_back(0);
+    device_cmdas.push_back(&time);      host_ptrs.push_back(&(time_data[0]));       sizes.push_back(0); offsets.push_back(0);
+    device_cmdas.push_back(&e_jones);   host_ptrs.push_back(&(e_jones_data[0][0])); sizes.push_back(0); offsets.push_back(0);
+    device_cmdas.push_back(&e_jones_h); host_ptrs.push_back(&(e_jones_data[1][0])); sizes.push_back(0); offsets.push_back(0);
+
+
+    for (int i = 0 ; i < device_cmdas.size() ; i++) {
+        
+        printf("CUDA memcopy of %s (size %i, offset %i) - ", device_cmdas[i]->name.c_str(), sizes[i], offsets[i]);
+        std::string errorString = device_cmdas[i]->CUDAMemCopy(host_ptrs[i], sizes[i], offsets[i]) ;
+        if (errorString == "")
+            printf("Success\n");
+        else {
+            printf("Failed - %s\n", errorString.c_str());
+            FailWhen(true, errorString);
+        }
+    }
+
+
+    // Zeroing output data on device - TODO if not doing multiple_srcs_per_thread we can ignore this step
+    std::vector<CUDAMultiDimentionArray*> cmda_output;
+    cmda_output.push_back(&intermediate);
+    cmda_output.push_back(&output);
+    for (int i = 0 ; i < cmda_output.size() ; i++) {
+        
+        printf("CUDA memset of %s - ", cmda_output[i]->name.c_str());
+        std::string errorString = cmda_output[i]->CUDAMemSet() ;
+        if (errorString == "")
+            printf("Success\n");
+        else {
+            printf("Failed - %s\n", errorString.c_str());
+            FailWhen(true, errorString);
+        }
+    }
 
 
     cdebug(0) << "total problem size " << nsrcs << "x" << ntime << "x" << nfreq << ", starting kernel runs" << endl;
 
-    //std::string kernelErrorString;
-    errorString = runCUDAPointSourceVisibilityKernel(d_lmn, 
-                                                     d_B_complex, 
-                                                     nsrcs,
-                                                     nslots_required,
-                                                     nsrcs_per_slot,
-                                                     nslots_per_run,
-                                                     d_uvw, 
-                                                     d_duvw, 
-                                                     d_time, 
-                                                     ntime, 
-                                                     d_freq, 
-                                                     nfreq,
-                                                     d_df_over_2, d_f_dt_over_2,
-                                                     d_intermediate_output_complex,
-                                                     d_output_complex, 
-                                                     nOutputElements,
-                                                     NUM_MATRIX_ELEMENTS,
-                                                     _2pi_over_c,
-                                                     pout);
+    std::string kernelErrorString;
+    kernelErrorString = runCUDAPointSourceVisibilityKernel((lmn_t*)lmn.device_ptr, 
+                                                           (double2*)brightness.device_ptr, 
+                                                           nsrcs,
+                                                           nslots_required,
+                                                           nsrcs_per_slot,
+                                                           nslots_per_run,
+                                                           (double*)uvw.device_ptr, 
+                                                           (double*)duvw.device_ptr, 
+                                                           (double*)time.device_ptr,
+                                                           ntime, 
+                                                           (double*)freq.device_ptr, 
+                                                           nfreq,
+                                                           (double*)df_over_2.device_ptr, 
+                                                           (double*)f_dt_over_2.device_ptr,
+                                                           (double*)e_jones.device_ptr,
+                                                           (double*)e_jones_h.device_ptr,
+                                                           (double2*)intermediate.device_ptr,
+                                                           (double2*)output.device_ptr, 
+                                                           NUM_MATRIX_ELEMENTS,
+                                                           _2pi_over_c,
+                                                           pout);
 
 
-    if (errorString != ""){
-        doCUDACleanUp();
+    if (kernelErrorString != ""){
         cdebug(0) << std::string(cudaGetErrorString (cudaGetLastError  ())) << endl;
-        FailWhen(true, errorString);
+        FailWhen(true, kernelErrorString);
     }
 
-    doCUDACleanUp();
 
     cdebug(0) << "ALL DONE =========================" << endl;
 
-      
-
-    //==================================================================================================
-
-    // // CPU code
-    // if (false) {
-    //     // need to compute B*exp{ i*_2pi_over_c*freq*(u*l+v*m+w*n) } for every source, and sum over all sources
-    //     for( int isrc=0; isrc < num_sources_; isrc++ )
-    //     {
-    //         cdebug(0) << "src number " << isrc<<"/"<<num_sources_ << endl;
-    //         // get the LMNs for this source
-    //         const Vells & vl = *(args[0][isrc*3]);
-    //         const Vells & vm = *(args[0][isrc*3+1]);
-    //         const Vells & vn = *(args[0][isrc*3+2]);
-    //         FailWhen(!vl.isScalar() || !vm.isScalar() || !vn.isScalar(),"expecting scalar LMNs");
-    //         double l = vl.as<double>();
-    //         double m = vm.as<double>();
-    //         double n = vn.as<double>();
-    //         // get the B matrix elements -- there should be four of them
-    //         for( int j=0; j<NUM_MARIX_ELEMENTS; j++ )
-    //         {
-    //             const Vells &b = *(args[1][isrc*NUM_MATRIX_ELEMENTS + j]);
-    //             FailWhen(!b.isScalar() && b.shape() != freqshape,"expecting B matrix elements that are either scalar, or a vector in frequency");
-    //             // for each element, either b.isScalar() is true and you can access it as b.as<double>, or
-    //             // b.realStorage() is a vector of nfreq doubles.
-      
-    //             //...do the actual work...
-
-    
-    //             if (b.isScalar()) {
-
-    //                 dcomplex b_complex;
-    //                 if (b.isComplex()) {
-    //                     b_complex = b.as<dcomplex>();
-    //                 }
-    //                 else {
-    //                     b_complex = dcomplex(b.as<double>(), 0);
-    //                 }   
-
-    //                 cdebug(0) << "b is a scalar for src number " << isrc << " element " << j << " = (" << real(b_complex) << ", " << imag(b_complex) <<  "j )" << endl;
-          
-    //                 for (int f = 0 ; f < nfreq ; ++f) {
-    //                     for (int t = 0 ; t < ntime ; ++t) {
-    //                         out[j] += b*exp(_2pi_over_c*freq_data[f]*(pu[t]*l+pv[t]*m+pw[t]*n));
-    //                     }
-    //                 }
-    //             }
-    //             else { // is a vector of complex/double values
-
-    //             }
-
-    //         }
-    //     }
-    // }
 }
 
-
-void CUDAPointSourceVisibility::doCUDACleanUp(){
-
-    if (d_uvw) cudaFree(d_uvw);
-    //if (d_u) cudaFree(d_u);
-    //if (d_v) cudaFree(d_v);
-    //if (d_w) cudaFree(d_w);
-    if (d_duvw) cudaFree(d_duvw);
-    //if (d_du) cudaFree(d_du);
-    //if (d_dv) cudaFree(d_dv);
-    //if (d_dw) cudaFree(d_dw);
-    if (d_df_over_2) cudaFree(d_df_over_2);
-    if (d_f_dt_over_2) cudaFree(d_f_dt_over_2);
-    if (d_lmn) cudaFree(d_lmn);
-    if (d_freqCellSize) cudaFree(d_freqCellSize);
-    if (d_timeCellSize) cudaFree(d_timeCellSize);
-    if (d_B_complex) cudaFree(d_B_complex);
-    if (d_time) cudaFree(d_time);
-    if (d_freq) cudaFree(d_freq);
-    if (d_intermediate_output_complex) cudaFree(d_intermediate_output_complex);
-    if (d_output_complex) cudaFree(d_output_complex);
-
-}
 #endif
 
 } // namespace Meq
