@@ -522,7 +522,7 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
         //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         // e-jones (real s*f jones)
         
-        if(compute_e_jones){
+        if(compute_e_jones != -1){
             int jones_index = compute_e_jones;
             for (int h = 0 ; h < 2 ; h++) {
                 const Vells &e = *(args[jones_index+h][isrc]);
