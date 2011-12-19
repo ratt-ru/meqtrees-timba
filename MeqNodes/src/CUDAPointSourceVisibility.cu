@@ -515,7 +515,7 @@ namespace Meq {
 
                 double realVal; 
                 double imagVal;
-                sincos(argument, &realVal, &imagVal);
+                sincos(d_freq[f]*argument, &realVal, &imagVal);
 
                 double e_jones_term = 1.0;
                 double e_jones_term_H = 1.0;

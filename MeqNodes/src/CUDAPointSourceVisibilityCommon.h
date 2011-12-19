@@ -33,5 +33,4 @@ typedef double3 lmn_t;
 #define MULTI_SRC_PER_THREAD
 #define SHARED_MEMORY
 
-
 #endif

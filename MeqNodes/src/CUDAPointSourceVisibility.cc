@@ -431,7 +431,6 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
 
     // Storing into arrays: LMN, brightness, jones terms
 
-    printf("Storing into arrays: LMN, brightness, jones terms\n");
     // store source*matrix sized data (B[s*j] / L-jones[s*j]) and source sized data (lmn[s])
     std::vector<lmn_t> lmn_data(nsrcs); 
     std::vector<double2> b_data_complex(nsrcs*nfreq*NUM_MATRIX_ELEMENTS); 
@@ -523,8 +522,7 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
         //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         // e-jones (real s*f jones)
         
-        if(compute_e_jones != -1){
-            printf("Storing into arrays: e jones terms\n");
+        if(compute_e_jones){
             int jones_index = compute_e_jones;
             for (int h = 0 ; h < 2 ; h++) {
                 const Vells &e = *(args[jones_index+h][isrc]);
@@ -583,7 +581,6 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
     // CUDA bit
 
 
-    printf("Specifying memory\n");
     // specifying input and output multi-dimentional arrays/pointers
     CUDAMultiDimentionArray uvw         ("uvw",
                                          0,    0,      3,     0,

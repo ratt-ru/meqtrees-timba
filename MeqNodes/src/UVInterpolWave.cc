@@ -121,7 +121,7 @@ namespace Meq {
     //OMS: added a report_freq_warning_ static member.
     // This is set to the address of the brick result. We only print the warning when we get
     // a different brick, i.e. once per every brick.
-    if( !reported_freq_warning_ )
+    if( reported_freq_warning_ != &FFTbrickUV )
     {
       if( rcells.center(_inaxis0)(nn-1) < FFTbrickCells.center(_inaxis0)(0) || rcells.center(_inaxis0)(0) > FFTbrickCells.center(_inaxis0)(nf-1) )
       {
