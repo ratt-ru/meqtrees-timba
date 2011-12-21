@@ -579,7 +579,9 @@ bool PSVTensor::computeShapeTerm (Vells &shape,bool recompute,
     // but first, we convert FWHM to uv-space 
     // ok the extra 4pi is just a fudge here, 
     // until I figure out WTF is the right scale, but this gives suspiciously correct results
-    Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*4*C::pi); 
+    // Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*4*C::pi); 
+    // AGW added an extra ln(2)
+    Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*C::pi*4.0*std::log(2));
 //    wstate()["$scale_uv"] = scale_uv;
     // convert to intrinsic scale, and to wavelengths
     scale_uv *= freq_vells_/C::c; // (fwhm2int/C::c)*freq_vells_;
