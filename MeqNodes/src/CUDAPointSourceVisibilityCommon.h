@@ -28,6 +28,14 @@
 #include <cuda_runtime.h>
 
 typedef double3 lmn_t;
+
+//typedef double2 complex_type;
+//typedef double  real_type;
+
+
+//typedef float2 complex_type;
+//typedef float  real_type;
+
 #endif
 
 #define MULTI_SRC_PER_THREAD

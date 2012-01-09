@@ -227,6 +227,7 @@ void CUDAPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
     // the frequency and time axis
     int nfreq = cells.ncells(Axis::FREQ);
     int ntime = cells.ncells(Axis::TIME);
+    printf("ntime = %i\n", ntime);
     // TODO HACK HELP why does this fail when you request a timeslot size of > 8 !?!?!?!?!?!?1 
     const double * freq_data = cells.center(Axis::FREQ).data();
     const double * freq_cellSize = cells.cellSize(Axis::FREQ).data();

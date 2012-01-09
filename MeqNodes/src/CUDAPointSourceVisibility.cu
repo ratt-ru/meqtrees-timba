@@ -158,6 +158,7 @@ namespace Meq {
                                 f, nfreq,
                                 j, num_matrix_elements);
 
+
     }
 
 
@@ -432,14 +433,14 @@ namespace Meq {
 #ifndef MULTI_SRC_PER_THREAD
         int s = s_i+srcs_offset;
 #endif
-        int t = ((ADJ_Y*blockDim.y) + threadIdx.y); // t_i since calcs per thread = 1
-        int f = ((ADJ_Z*blockDim.z) + threadIdx.z); // f_i since calcs per thread = 1
+        int t = ((ADJ_Y*blockDim.y) + threadIdx.y); // = t_i since calcs per thread = 1
+        int f = ((ADJ_Z*blockDim.z) + threadIdx.z); // = f_i since calcs per thread = 1
         //int t_i = t;
         //int f_i = f;
-        #define NTIME_SHARED blockDim.y
-        #define NFREQ_SHARED blockDim.z
 
 #ifdef SHARED_MEMORY
+        #define NTIME_SHARED blockDim.y
+        #define NFREQ_SHARED blockDim.z
         int t_si = threadIdx.y; // si = shared (memory) output index
         int f_si = threadIdx.z;
 #endif
@@ -541,8 +542,11 @@ namespace Meq {
 
 #define REAL_TERM e_jones_term*(+ d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor*e_jones_term_H
 #define IMAG_TERM e_jones_term*(+ d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor*e_jones_term_H
+
 // #define REAL_TERM (( + d_B_complex[b_index].y*realVal + d_B_complex[b_index].x*imagVal)*smearFactor)
 // #define IMAG_TERM (( + d_B_complex[b_index].y*imagVal - d_B_complex[b_index].x*realVal)*smearFactor)
+// #define REAL_TERM -1
+// #define IMAG_TERM -1
 
 
 #ifndef SHARED_MEMORY
@@ -560,7 +564,7 @@ namespace Meq {
                     d_intermediate_output_complex[the_index].x = REAL_TERM;
                     d_intermediate_output_complex[the_index].y = IMAG_TERM;
   #endif
-                        
+                    
 #endif
 
 #ifdef SHARED_MEMORY
@@ -580,6 +584,8 @@ namespace Meq {
                     shared_mem[share_index].x = REAL_TERM;
                     shared_mem[share_index].y = IMAG_TERM;
   #endif
+                    //shared_mem[share_index].x = ADJ_Y;
+                    //shared_mem[share_index].y = ntime;  
 #endif
 
 #undef REAL_TERM
@@ -595,8 +601,8 @@ namespace Meq {
                                                               f,   nfreq,
                                                               j,   num_matrix_elements);
                 int share_index = get_shared_mem_index(t_si, NTIME_SHARED,
-                                                   f_si, NFREQ_SHARED,
-                                                   j,    num_matrix_elements);
+                                                       f_si, NFREQ_SHARED,
+                                                       j,    num_matrix_elements);
                 d_intermediate_output_complex[the_index] = shared_mem[share_index];
             }
 #endif
@@ -630,7 +636,7 @@ namespace Meq {
         //   y: time
         //   z: freq
 
-        dim3 actualBlockIdx = fromAdjustedToNormalDim(blockIdx, desiredGridDim.x);
+        dim3 actualBlockIdx = fromAdjustedToNormalDim(blockIdx, desiredGridDim);
 
 
         int xThreadIdx = ((actualBlockIdx.x*blockDim.x) + threadIdx.x);
@@ -677,6 +683,7 @@ namespace Meq {
         //}
         //}
 
+        
 
 
     }
@@ -700,7 +707,7 @@ namespace Meq {
         //   y: time
         //   z: freq
 
-        dim3 actualBlockIdx = fromAdjustedToNormalDim(blockIdx, desiredGridDim.x);
+        dim3 actualBlockIdx = fromAdjustedToNormalDim(blockIdx, desiredGridDim);
 
 
         int xThreadIdx = ((actualBlockIdx.x*blockDim.x) + threadIdx.x);
@@ -737,6 +744,8 @@ namespace Meq {
             }
         }
 
+        //d_output_complex[t].x = t;
+        //d_output_complex[t].y = -2;
     }
 
 
@@ -957,13 +966,14 @@ namespace Meq {
             } //while(reductors != 1) {
             
             //=======================================================================================
+            gridDim.x = 1;
+            adjGridDim = fromNormalToAdjustedDim(gridDim); 
+
             printf("Adding to output array on device\n");
             printf("adjgrid  %ix%ix%i\n", adjGridDim.x, adjGridDim.y, adjGridDim.z);
             printf("grid     %ix%ix%i\n", gridDim.x, gridDim.y, gridDim.z);
             printf("block    %ix%ix%i = %i threads\n", blockDim.x, blockDim.y, blockDim.z, blockDim.x* blockDim.y* blockDim.z);
 
-            gridDim.x = 1;
-            adjGridDim = fromNormalToAdjustedDim(gridDim); 
 
             CUDAAddToOutputKernel<<<adjGridDim, blockDim>>> (gridDim, nsrcs, nslots_this_run, ntime, nfreq, NUM_MATRIX_ELEMENTS, d_intermediate_output_complex, d_output_complex);
             cudaThreadSynchronize();
@@ -982,7 +992,7 @@ namespace Meq {
         if (cudaMemcpy(&(output_complex[0]), d_output_complex, sizeof(double2)*ntime*nfreq*NUM_MATRIX_ELEMENTS , cudaMemcpyDeviceToHost) != cudaSuccess) {
             return "Memcopy error copying data from device (d_output_complex -> output_complex) : " + std::string(cudaGetErrorString (cudaGetLastError  ()));
         }
-        printf("Copying to pout\n");
+        printf("Copying to pout %i\n", ntime);
         for (int t = 0 ; t < ntime ; ++t) {
             for (int f = 0 ; f < nfreq ; ++f) {
 
