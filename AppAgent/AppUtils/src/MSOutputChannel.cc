@@ -64,7 +64,7 @@ int MSOutputChannel::init (const DMI::Record &params)
   if( FileChannel::init(params) < 0 )
     return state();
 
-  Mutex::Lock lock(aipspp_mutex);
+  LOFAR::Thread::Mutex::Lock lock(aipspp_mutex);
   params_ = params;
   ms_ = MeasurementSet();
   msname_ = "(none)";
@@ -83,7 +83,7 @@ void MSOutputChannel::close (const string &msg)
 
 void MSOutputChannel::close_ms ()
 {
-  Mutex::Lock lock(aipspp_mutex);
+  LOFAR::Thread::Mutex::Lock lock(aipspp_mutex);
   rowFlagCol_.reference(casa::ScalarColumn<casa::Bool>());
   flagCol_.reference(casa::ArrayColumn<casa::Bool>());
   datacol_.col.reference(casa::ArrayColumn<casa::Complex>());
@@ -97,7 +97,7 @@ void MSOutputChannel::close_ms ()
 void MSOutputChannel::postEvent (const HIID &id, const ObjRef &data,AtomicID cat,const HIID &src)
 {
   recordOutputEvent(id,data,cat,src);
-  Mutex::Lock lock(aipspp_mutex);
+  LOFAR::Thread::Mutex::Lock lock(aipspp_mutex);
   try
   {
     int code = VisEventType(id);

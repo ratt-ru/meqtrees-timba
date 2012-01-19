@@ -188,7 +188,7 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
 //##ModelId=3DF9FECD025E
 void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
 {
-  Mutex::Lock lock(aipspp_mutex);
+  LOFAR::Thread::Mutex::Lock lock(aipspp_mutex);
   // open MS
   ms_ = MeasurementSet(msname_,TableLock(TableLock::AutoNoReadLocking),Table::Old);
   dprintf(1)("opened MS %s, %d rows\n",msname_.c_str(),ms_.nrow());
@@ -455,7 +455,7 @@ void MSInputChannel::close (const string &str)
 {
   FileChannel::close(str);
   // close & detach from everything
-  Mutex::Lock lock(aipspp_mutex);
+  LOFAR::Thread::Mutex::Lock lock(aipspp_mutex);
   selms_ = MeasurementSet();
   ms_ = MeasurementSet();
   tileformat_.detach();
@@ -474,7 +474,7 @@ BZ_END_STENCIL_WITH_SHAPE(blitz::shape(0,-1,0),blitz::shape(0,1,0))
 //##ModelId=3DF9FECD021B
 int MSInputChannel::refillStream ()
 {
-  Mutex::Lock lock(aipspp_mutex);
+  LOFAR::Thread::Mutex::Lock lock(aipspp_mutex);
   try
   {
     if( state() == HEADER )
