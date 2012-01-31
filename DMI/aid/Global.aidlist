@@ -79,6 +79,7 @@ Color                            1426       ; from /home/oms/LOFAR/Timba/MeqNode
 Column                           1258       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:34
 Command                          1204       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:21
 Common                           1663       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/Interpolate.h:33
+Complex                          1782       ; from GaussNoise.h:35
 Config                           1329       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Conj                             1520       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:33
 Connected                        1094       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/Gateways.h:25
@@ -306,6 +307,7 @@ Mask                             1263       ; from /home/oms/LOFAR/Timba/AppAgen
 Masks                            1344       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:38
 Matrix                           1345       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:38
 Max                              1070       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
+Mean                             1784       ; from GaussNoise.h:35
 Meas                             1184       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:35
 Meq                              1622       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:12
 #MeqAbs                          1460       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Abs.h:29
@@ -432,6 +434,7 @@ MeqResult                        1360       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqSelector                     1447       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 #MeqShapeletVisTf                1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
+#MeqSimpleParm                   1783       ; from SimpleParm.h:35
 #MeqSin                          1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 #MeqSinh                         1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
 MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
@@ -453,7 +456,7 @@ MeqTestClass                     1572       ; from /home/mevius/LOFAR/Timba/MEQ/
 MeqTFSmear                       1746       ; from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
 #MeqTFSmearFactor                1748       ; from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
 #MeqTFSmearFactorApprox          1766       ; from TFSmearFactorApprox.h:32
-#MeqThrustPointSourceVisibility  1775       ; from ThrustPointSourceVisibility.h:35
+#MeqThrustPointSourceVisibility  1781       ; from ThrustPointSourceVisibility.h:33
 #MeqTime                         1451       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
 #MeqToComplex                    1413       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
 #MeqTranspose                    1521       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
