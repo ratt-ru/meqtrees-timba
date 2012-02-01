@@ -29,28 +29,58 @@
 
 namespace Meq {    
 
+NoiseNode::NoiseNode (int nchildren,const HIID *labels,int nmandatory)
+: TensorFunction(nchildren,labels,nmandatory)
+{
+}
+  
+  
 void NoiseNode::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   Node::setStateImpl(rec,initializing);
   // get/init axes parameter
   rec[FAxesIndex].get_vector(axes_,initializing);
+  // get/init dims
+  rec[FDims].get_vector(dims_,initializing);
 }
 
-Vells::Shape NoiseNode::getShape (const Request &req )
+void NoiseNode::computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &res,const Request &request)
 {
-  const Vells::Shape &reqshape = req.cells().shape();
-  Vells::Shape shape = reqshape;
+  TensorFunction::computeResultCells(ref,res,request);
+  LoShape reqshape;
+  if( request.hasCells() )
+  {
+    shape_ = reqshape = request.cells().shape();
+  }
+  else
+  {
+    shape_.resize(1);
+    shape_[0] = 1;
+  }
   // if axes are supplied, reset all unspecified dimensions to 1, else use 
   // shape of input cells
   if( !axes_.empty() )
   {
-    for( uint i=0; i<shape.size(); i++ )
-      shape[i] = 1;
+    for( uint i=0; i<shape_.size(); i++ )
+      shape_[i] = 1;
     for( uint i=0; i<axes_.size(); i++ )
-      if( i<shape.size() )
-        shape[i] = reqshape[i];
+    {
+      uint iax = axes_[i];
+      if( iax<shape_.size() && iax<reqshape.size() )
+        shape_[iax] = reqshape[iax];
+    }
   }
-  return shape;
-}  
+}
+
+LoShape NoiseNode::getResultDims (const vector<const LoShape *> &)
+{
+  return dims_;
+}
+
+void NoiseNode::evaluateTensors (std::vector<Vells> & out,const std::vector<std::vector<const Vells *> > &children)
+{
+  for( uint i=0; i<out.size(); i++ )
+    out[i] = fillNoise(shape_,children);
+}
 
 };

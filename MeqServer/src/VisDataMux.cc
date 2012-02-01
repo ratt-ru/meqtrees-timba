@@ -274,6 +274,12 @@ int Meq::VisDataMux::deliverHeader (const DMI::Record &header)
   // forest().resetForNewDataSet();
   handlers_.resize(maxdid);
   child_indices_.resize(maxdid);
+  // get sizes and steppings
+  total_timeslots_ = header[FNumTimeslots].as<int>();
+  total_channels_ = header[FNumChannels].as<int>();
+  time_incr_ = header[MSChannel::FTimeIncrement].as<int>();
+  freq_incr_ = header[MSChannel::FChannelIncrement].as<int>();
+  freq_chan0_ = header[MSChannel::FChannelStartIndex].as<int>();
 
   // get time extent
   if( !header[VisVocabulary::FTimeExtent].get_vector(time_extent_) )
@@ -586,6 +592,7 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   // form a LoRange describing valid rows, extract time/interval for them
   range = makeLoRange(i0,i1);
   LoVec_double time1     = tile.time()(range).copy();
+  LoVec_int    timeslot1 = tile.timeslot()(range).copy();
   LoVec_double interval1 = tile.interval()(range).copy();
   // setup time limits
   tile_ts_[0] = num_ts_;
@@ -599,7 +606,12 @@ void Meq::VisDataMux::fillCells (Cells &cells,LoRange &range,const VisCube::VTil
   cells.setCells(Axis::TIME,time1,interval1);
   cells.recomputeSegments(Axis::FREQ);
   cells.recomputeSegments(Axis::TIME);
-  cells.recomputeDomain();
+  // figure out domain ID
+  int ts0 = timeslot1(0);
+  int ts1 = timeslot1(i1-i0) + time_incr_;
+  cells.recomputeDomain(ts0,ts1,time_incr_,total_timeslots_,
+                        freq_chan0_,freq_chan0_+freq_incr_*channel_freqs.size(),
+                        freq_incr_,total_channels_);
   if( force_regular_grid )
   {
     FailWhen(cells.numSegments(Axis::TIME)>1 || cells.numSegments(Axis::FREQ)>1,

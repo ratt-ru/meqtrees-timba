@@ -84,6 +84,36 @@ void Domain::defineAxis (int iaxis,double a1,double a2)
   }
 }
 
+void Domain::setDomainId (int t0,int t1,int dt,int nt,int f0,int f1,int df,int nf)
+{
+  domain_id_.resize(8);
+  domain_id_[0] = t0;
+  domain_id_[1] = t1;
+  domain_id_[2] = dt;
+  domain_id_[3] = nt;
+  domain_id_[4] = f0;
+  domain_id_[5] = f1;
+  domain_id_[6] = df;
+  domain_id_[7] = nf;
+  (*this)[FDomainId] = domain_id_;
+}
+
+bool Domain::getDomainId (int &t0,int &t1,int &dt,int &nt,int &f0,int &f1,int &df,int &nf)
+{
+  if( domain_id_.empty() )
+    return false;
+  t0 = domain_id_[0];
+  t1 = domain_id_[1];
+  dt = domain_id_[2];
+  nt = domain_id_[3];
+  f0 = domain_id_[4];
+  f1 = domain_id_[5];
+  df = domain_id_[6];
+  nf = domain_id_[7];
+  return true;
+}
+
+
 //##ModelId=400E5305010B
 void Domain::validateContent (bool)
 {
@@ -92,6 +122,12 @@ void Domain::validateContent (bool)
   memset(defined_,0,sizeof(defined_));
   try
   {
+    if( (*this)[FDomainId].get_vector<int>(domain_id_) )
+    {
+      FailWhen(!domain_id_.empty() && domain_id_.size() != 8,"domain ID must be a vector of 8 integers");
+    }
+    else
+      domain_id_.resize(0);
     Record::Field * paxismap = findField(FAxisMap);
     map_attached_ = (paxismap != 0);
     // change map using domain record, if needed
@@ -104,7 +140,7 @@ void Domain::validateContent (bool)
     for( Iterator iter = Record::begin(); iter != Record::end(); iter++ )
     { 
       const HIID &id = iter.id();
-      if( id == FAxisMap ) // skip this one
+      if( id == FAxisMap || id == FDomainId ) // skip this one
         continue;
 // NB: not sure what I was thinking of here, why can't we have longer axis IDs?
 //      FailWhen(id.size()!=1,"illegal axis ID "+id.toString());

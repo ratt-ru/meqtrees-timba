@@ -193,7 +193,8 @@ public:
   
   // refreshes envelope domain. Should be always be called after a series
   // of setCells(), otherwise the Cells object is left in an inconsistent state.
-  void recomputeDomain ();
+  // t0/t1/dt/f0/f1/df, if specified, will set the domain id
+  void recomputeDomain (int t0=-1,int t1=-1,int dt=-1,int nt=-1,int f0=-1,int f1=-1,int df=-1,int nf=-1);
 
   
   // Method used to merge cells with different sets of axes

@@ -130,7 +130,7 @@ void MSInputChannel::fillHeader (DMI::Record &hdr,const DMI::Record &select)
     // get freqs
     Array<Double> ch_freq  = mssubc.chanFreq()(spw);
     Array<Double> ch_width = mssubc.chanWidth()(spw);
-    num_channels_ = ch_freq.nelements();
+    num_channels_ = hdr[FNumChannels] = ch_freq.nelements();
     if( channels_[0]<0 )
       channels_[0] = 0;
     if( channels_[1]<0 )
@@ -238,7 +238,7 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   header[FChannelEndIndex]   = channels_[1];
   header[FChannelIncrement]  = channel_incr_;
   header[FTimeIncrement] = time_incr_;
-
+  
   // get and apply selection string
   String where = select[FSelectionString].as<string>("");
   dprintf(1)("select ddid=%d, field=%d, where=\"%s\", channels=[%d:%d]\n",
@@ -269,14 +269,23 @@ void MSInputChannel::openMS (DMI::Record &header,const DMI::Record &select)
   if( !has_bitflags_ )
     flagmask_ = 0;
 
-  // process the TIME column to figure out the tiling
+  // process the TIME column to figure out the tiling and the number of timeslots
   ROScalarColumn<Double> timeCol(selms_,"TIME");
   Vector<Double> times = timeCol.getColumn();
   // store time extent in table
   time_range_.resize(2);
-  time_range_[0] = times(0);
+  double t0 = time_range_[0] = times(0);
   time_range_[1] = times(nrows-1);
   header[FTimeExtent] = time_range_;
+  // count the number of unique timeslots
+  int num_times = 1;
+  for( int i=1; i<nrows; i++ )
+    if( times(i) != t0 )
+    {
+      t0 = times(i);
+      num_times++;
+    }
+  header[FNumTimeslots] = num_times;
   // And also read the EXPOSURE column, and associate default exposure times with each timeslot.
   // The reason for this is that missing rows (i.e. missing timeslots on some baselines) result
   // in null exposure times, which causes great confusion down the line, so we fill in a default value
@@ -713,6 +722,7 @@ int MSInputChannel::refillStream ()
             // below
             ptile->winterval()(ALL) = exposure_times_[current_timeslot_];
           }
+          ptile->wtimeslot()(ntimes) = current_timeslot_*time_incr_;
           ptile->winterval()(ntimes) = intCol(i);
           LoVec_double uvw = uvwmat(ALL,i);
           ptile->wuvw()(ALL,ntimes) = uvw;

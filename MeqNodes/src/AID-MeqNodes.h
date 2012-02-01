@@ -123,6 +123,11 @@ const int AidColor_int = -1426;
 const DMI::AtomicID AidCommon(-1663);             // from /home/sarod/LOFAR/Timba/MeqNodes/src/Interpolate.h:33
 const int AidCommon_int = -1663;
 #endif
+#ifndef _defined_id_AidComplex
+#define _defined_id_AidComplex 1
+const DMI::AtomicID AidComplex(-1782);            // from GaussNoise.h:35
+const int AidComplex_int = -1782;
+#endif
 #ifndef _defined_id_AidConj
 #define _defined_id_AidConj 1
 const DMI::AtomicID AidConj(-1520);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:33
@@ -392,6 +397,11 @@ const int AidMask_int = -1263;
 #define _defined_id_AidMax 1
 const DMI::AtomicID AidMax(-1070);                // from /home/oms/LOFAR/Timba/OCTOPUSSY/src/LoggerWP.h:9
 const int AidMax_int = -1070;
+#endif
+#ifndef _defined_id_AidMean
+#define _defined_id_AidMean 1
+const DMI::AtomicID AidMean(-1784);               // from GaussNoise.h:35
+const int AidMean_int = -1784;
 #endif
 #ifndef _defined_id_AidMeqAbs
 #define _defined_id_AidMeqAbs 1
@@ -915,8 +925,8 @@ const int AidMeqTanh_int = -1450;
 #endif
 #ifndef _defined_id_AidMeqThrustPointSourceVisibility
 #define _defined_id_AidMeqThrustPointSourceVisibility 1
-const DMI::AtomicID AidMeqThrustPointSourceVisibility(-1775);// from ThrustPointSourceVisibility.h:35
-const int AidMeqThrustPointSourceVisibility_int = -1775;
+const DMI::AtomicID AidMeqThrustPointSourceVisibility(-1781);// from ThrustPointSourceVisibility.h:33
+const int AidMeqThrustPointSourceVisibility_int = -1781;
 #endif
 #ifndef _defined_id_AidMeqTime
 #define _defined_id_AidMeqTime 1

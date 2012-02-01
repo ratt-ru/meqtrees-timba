@@ -322,13 +322,18 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         TypeInfoReg::addToRegistry(-1771,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1771,__construct_MeqCUDAPointSourceVisibility)+
         AtomicID::registerId(-1402,"LMN")+
-        AtomicID::registerId(-1019,"B")+
         AtomicID::registerId(-1123,"UVW")+
+        AtomicID::registerId(-1019,"B")+
         AtomicID::registerId(-1028,"N")+
         AtomicID::registerId(-1774,"Minus")+
         AtomicID::registerId(-1767,"Narrow")+
         AtomicID::registerId(-1769,"Band")+
         AtomicID::registerId(-1770,"Limit")+
+        AtomicID::registerId(-1278,"Shape")+
+        AtomicID::registerId(-1780,"Fixed")+
+        AtomicID::registerId(-1126,"Time")+
+        AtomicID::registerId(-1779,"Smearing")+
+        AtomicID::registerId(-1187,"Interval")+
         AtomicID::registerId(-1388,"MeqDataCollect")+
         TypeInfoReg::addToRegistry(-1388,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1388,__construct_MeqDataCollect)+
@@ -406,6 +411,8 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         DynamicTypeManager::addToRegistry(-1449,__construct_MeqGaussNoise)+
         AtomicID::registerId(-1350,"StdDev")+
         AtomicID::registerId(-1725,"Seed")+
+        AtomicID::registerId(-1784,"Mean")+
+        AtomicID::registerId(-1782,"Complex")+
         AtomicID::registerId(-1681,"MeqGrid")+
         TypeInfoReg::addToRegistry(-1681,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1681,__construct_MeqGrid)+
@@ -556,11 +563,6 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1772,"MeqPSVTensor")+
         TypeInfoReg::addToRegistry(-1772,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1772,__construct_MeqPSVTensor)+
-        AtomicID::registerId(-1278,"Shape")+
-        AtomicID::registerId(-1780,"Fixed")+
-        AtomicID::registerId(-1126,"Time")+
-        AtomicID::registerId(-1779,"Smearing")+
-        AtomicID::registerId(-1187,"Interval")+
         AtomicID::registerId(-1709,"MeqRADec")+
         TypeInfoReg::addToRegistry(-1709,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1709,__construct_MeqRADec)+
@@ -694,6 +696,9 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1748,"MeqTFSmearFactor")+
         TypeInfoReg::addToRegistry(-1748,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1748,__construct_MeqTFSmearFactor)+
+        AtomicID::registerId(-1781,"MeqThrustPointSourceVisibility")+
+        TypeInfoReg::addToRegistry(-1781,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1781,__construct_MeqThrustPointSourceVisibility)+
         AtomicID::registerId(-1451,"MeqTime")+
         TypeInfoReg::addToRegistry(-1451,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1451,__construct_MeqTime)+

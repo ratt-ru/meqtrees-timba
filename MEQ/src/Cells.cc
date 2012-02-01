@@ -370,7 +370,7 @@ void Cells::recomputeSegments (int iaxis)
 }
 
 // refreshes envelope domain. Should be always be called after setCells
-void Cells::recomputeDomain ()
+void Cells::recomputeDomain (int t0,int t1,int dt,int nt,int f0,int f1,int df,int nf)
 {
   Thread::Mutex::Lock lock(mutex());
   Domain *newdom = new Domain;
@@ -385,6 +385,8 @@ void Cells::recomputeDomain ()
       newdom->defineAxis(i,a0,a1);
     }
   }
+  if( t0 >= 0 )
+    newdom->setDomainId(t0,t1,dt,nt,f0,f1,df,nf);
   Record::addField(FDomain,domain_.deref_p(),DMI::REPLACE|Record::PROTECT);
 }
 

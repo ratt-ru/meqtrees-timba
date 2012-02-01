@@ -78,6 +78,7 @@ namespace Meq
     // Domain fields
     FFreq            = AidFreq,
     FTime            = AidTime,
+    FDomainId        = AidDomain|AidId,
     
     // Cells fields
     FDomain          = AidDomain,

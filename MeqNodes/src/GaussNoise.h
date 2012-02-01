@@ -32,8 +32,7 @@
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes
 #pragma types #Meq::GaussNoise
-#pragma aid StdDev
-#pragma aid Seed
+#pragma aid StdDev Seed Mean Complex
 
 namespace Meq {    
 
@@ -54,16 +53,17 @@ protected:
   // sets up state from state record
   virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
 
-  // evaluate result
-  virtual Vells evaluate (const Request&,const LoShape &,
-			  const vector<const Vells*>& values);
+  // Virtual method to be redefined by subclasses. Fills a Vells of the given shape with noise.
+  virtual Vells fillNoise (const Vells::Shape &shape,const std::vector<std::vector<const Vells *> > &children);
   
 
   // current standard deviation
+  dcomplex mean_;
   double stddev_;
   // random number generator
   RndGen::Normal<double> generator_;
-
+  
+  bool complex_;
 };
 
 } // namespace Meq

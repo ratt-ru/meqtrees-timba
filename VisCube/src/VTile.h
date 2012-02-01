@@ -57,6 +57,7 @@ class VCube;
 // column_id   must be one of the VTile::Columns enum values (see below)
 #define DoForAllVTileColumns(Do) \
   Do(double,0,time,TIME); \
+  Do(int,0,timeslot,TIMESLOT); \
   Do(double,0,interval,INTERVAL); \
   Do(int,0,rowflag,ROWFLAG); \
   Do(int,0,seqnr,SEQNR); \
@@ -114,6 +115,7 @@ class VDSID : public HIID
 //## format defines at least the following columns:
 //##
 //##    TIME      (double)
+//##    TIMESLOT  (int)
 //##    DATA      (Ncorr x Nfreq fcomplex)
 //##    FLAGS     (Ncorr x Nfreq int)
 //##    ROWFLAG   (int)
@@ -146,6 +148,7 @@ class VTile : public ColumnarTableTile  //## Inherits: <unnamed>%3D9978030166
     //## This enum lists all the possible columns in a visibility dataset.
       typedef enum {
         TIME = 0,
+        TIMESLOT,
         INTERVAL,
         DATA,
         FLAGS,

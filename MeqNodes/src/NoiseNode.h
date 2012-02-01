@@ -24,7 +24,7 @@
 #ifndef MEQNODES_NOISENODE_H
 #define MEQNODES_NOISENODE_H
 
-#include <MEQ/Function.h>
+#include <MEQ/TensorFunction.h>
 
 namespace Meq {    
 
@@ -34,17 +34,31 @@ const HIID FAxesIndex = AidAxes|AidIndex;
 //##ModelId=400E530400AB
 // Abstract base class for noise generators
 // Basically, this provides handling of output shapes
-class NoiseNode : public Function
+class NoiseNode : public TensorFunction
 {
-protected:
-  Vells::Shape getShape (const Request &req);
-    
-  // sets up axes from state record
-  virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+  public:
+    NoiseNode (int nchildren=-1,const HIID *labels = 0,int nmandatory=-1);
   
-  // active axes -- if empty, shape of input cells will be used
-  std::vector<int> axes_;
+  protected:
+    virtual void computeResultCells (Cells::Ref &ref,const std::vector<Result::Ref> &childres,const Request &request);
+    virtual LoShape getResultDims (const vector<const LoShape *> &input_dims);
+    virtual void evaluateTensors (std::vector<Vells> & out,   
+        const std::vector<std::vector<const Vells *> > &args );
+      
+    // Virtual method to be redefined by subclasses. Fills a Vells of the given shape with noise.
+    virtual Vells fillNoise (const Vells::Shape &shape,const std::vector<std::vector<const Vells *> > &children) =0;
+    
+    // sets up axes from state record
+    virtual void setStateImpl (DMI::Record::Ref &rec,bool initializing);
+    
+    // active axes -- if empty, shape of input cells will be used
+    std::vector<int> axes_;
+    
+    // dims of output
+    Result::Dims dims_;
 
+    // shape of output
+    Vells::Shape shape_;
 };
 
 } // namespace Meq

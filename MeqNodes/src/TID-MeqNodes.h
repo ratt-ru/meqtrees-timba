@@ -1986,8 +1986,8 @@ namespace Meq { class Tanh; };
 #endif
 #ifndef _defined_id_TpMeqThrustPointSourceVisibility
 #define _defined_id_TpMeqThrustPointSourceVisibility 1
-const DMI::TypeId TpMeqThrustPointSourceVisibility(-1775);// from ThrustPointSourceVisibility.h:35
-const int TpMeqThrustPointSourceVisibility_int = -1775;
+const DMI::TypeId TpMeqThrustPointSourceVisibility(-1781);// from ThrustPointSourceVisibility.h:33
+const int TpMeqThrustPointSourceVisibility_int = -1781;
 namespace Meq { class ThrustPointSourceVisibility; };
             namespace DMI {
               template<>

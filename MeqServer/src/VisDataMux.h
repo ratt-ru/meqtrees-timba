@@ -142,11 +142,19 @@ class VisDataMux : public Node
     
     int max_tiles_;  // max number of input tiles -- rest are ignored
 
+
+    // total MS size
+    int total_channels_,total_timeslots_;
+    // time/frequency stepping -- filled in from header
+    int time_incr_;
+    int freq_incr_;
+    int freq_chan0_;
+
     int num_chunks_;
     int num_tiles_;
-    int num_ts_;                    // number of timeslots seen
-    std::vector<int> tile_ts_;      // range of timeslot indices for current tile
-    std::vector<double> tile_time_; // range of times for current tile
+    int num_ts_;                      // number of timeslots seen
+    std::vector<int>    tile_ts_;     // range of timeslot indices for current tile
+    std::vector<double> tile_time_;   // range of times for current tile
     std::vector<double> time_extent_; // range of times for full stream (from header)
     AppAgent::EventChannel::Ref  input_channel_;    
     AppAgent::EventChannel::Ref  output_channel_;    

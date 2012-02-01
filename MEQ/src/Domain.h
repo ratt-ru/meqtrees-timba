@@ -87,6 +87,10 @@ public:
     DbgFailWhen(iaxis<0 || iaxis>=Axis::MaxAxis,"illegal axis argument");
     return defined_[iaxis];
   }
+  
+  bool getDomainId (int &t0,int &t1,int &dt,int &nt,int &f0,int &f1,int &df,int &nf);
+  
+  void setDomainId (int t0,int t1,int dt,int nt,int f0,int f1,int df,int nf);
 
     //##ModelId=400E5305010E
   bool operator == (const Domain& other) const
@@ -134,7 +138,8 @@ private:
     //##ModelId=3F86886E02F8
   double range_[Axis::MaxAxis][2];
   bool   defined_[Axis::MaxAxis];
-  
+ 
+  vector<int> domain_id_;
   bool map_attached_;
 };
 

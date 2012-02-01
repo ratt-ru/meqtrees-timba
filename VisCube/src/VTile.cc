@@ -225,6 +225,7 @@ void VTile::makeDefaultFormat (Format &form, int nc, int nf)
   form.init(MAXCOL);
   form.add(DATA,Tpfcomplex,shape)
       .add(TIME,Tpdouble)
+      .add(TIMESLOT,Tpint)
       .add(INTERVAL,Tpdouble)
       .add(WEIGHT,Tpfloat,shape)
       .add(UVW,Tpdouble,LoShape(3))

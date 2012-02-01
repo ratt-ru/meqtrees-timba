@@ -24,6 +24,7 @@
 #include <stdlib.h>
 
 #include <MeqNodes/AID-MeqNodes.h>
+#include <MEQ/AID-Meq.h>
 #include <MeqNodes/GaussNoise.h>
 #include <MEQ/Request.h>
 #include <MEQ/VellSet.h>
@@ -31,13 +32,17 @@
 
 namespace Meq {    
 
+const HIID FMean = AidMean;
 const HIID FStdDev = AidStdDev;
 const HIID FSeed = AidSeed;
+const HIID FComplex = AidComplex;
+const HIID child_labels[] = { AidMean,AidStdDev };
 
 
 //##ModelId=400E535502AC
 GaussNoise::GaussNoise()
-    : stddev_(1.0),generator_(0,stddev_)
+    : mean_(0),stddev_(1.0),generator_(0,stddev_),complex_(false),
+    NoiseNode(2,child_labels,0)
 { 
   const HIID symdeps[] = { AidDomain,AidResolution };
   setActiveSymDeps(symdeps,2);
@@ -53,37 +58,28 @@ void GaussNoise::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
   NoiseNode::setStateImpl(rec,initializing);
   // get/init stddev parameter
-  if( rec[FStdDev].get(stddev_,initializing) )
-  {
-    // if one was supplied, reinitialize generator
+  // if one was supplied, reinitialize generator
+  if(  rec[FStdDev].get(stddev_,initializing) )
     generator_ = RndGen::Normal<double>(0,stddev_);
-  }
   int seed;
+  // if seed was supplied, reseed generator
   if( rec[FSeed].get(seed,initializing) )
-  {
-    // if seed was supplied, reseed generator
     generator_.seed((unsigned int) seed);
-  }
+  rec[FMean].get(mean_,initializing);
+  rec[FComplex].get(complex_,initializing);
 }
 
-Vells GaussNoise::evaluate (const Request &req,const LoShape &,
-		                        const vector<const Vells*>& values)
+Vells GaussNoise::fillNoise (const Vells::Shape &shape,const std::vector<std::vector<const Vells *> > &children)
 {
-  if( !req.hasCells() )
-    return Vells(0.0);
-  
-  // create output Vells. False here means do not initialize -- saves some cycles
-  // NoiseNode::getShape() will figure out the right shape for us
-  Vells result(0.0,getShape(req),false);
-  
   // lock mutex to ensure generators are not broken by threads
   Thread::Mutex::Lock lock(RndGen::mutex);
+  
   // Get standard deviation from child 2 (mean is handled separately below)
   // Note that I've swapped the children around, as it is handier.
   // If child 2 is not present, reuse old generator initialized previously
-  if( values.size() > 1 )
+  if( children.size() > 1 )
   {
-    const Vells & sdv = *(values[1]);
+    const Vells & sdv = *(children[1][0]);
     FailWhen(!sdv.isScalar() || !sdv.isReal(),"standard deviation must be a real scalar");
     double sd = sdv.as<double>();
     // if standard deviation changes, create a new generator
@@ -91,20 +87,36 @@ Vells GaussNoise::evaluate (const Request &req,const LoShape &,
     if( sd != stddev_ )
       generator_ = RndGen::Normal<double>(0,stddev_=sd);
   }
-  
-  // now simply loop over all elements of the output vells -- 
-  // we don't really care about its shape, we just fill them all with 
-  // numbers from the generator
-  for( double *ptr = result.begin<double>(); ptr != result.end<double>(); ptr++ )
-    *ptr = generator_.random();
-  
-  // add the mean, if specified
-  // Note that this will automatically re-shape the result, if the mean
-  // vells has a "bigger" shape
-  if( values.size() > 0 )
-    result += *(values[0]);
-  
-  return result;
+  // Get standard deviation from child 2 (mean is handled separately below)
+  // Note that I've swapped the children around, as it is handier.
+  // If child 2 is not present, reuse old generator initialized previously
+  Vells meanvells;
+  if( children.size() > 0 )
+    meanvells = *(children[0][0]);
+   
+  if( complex_ )
+  {
+    Vells result(make_dcomplex(0),shape,false);
+    // now simply loop over all elements of the output vells -- 
+    // we don't really care about its shape, we just fill them all with 
+    // numbers from the generator
+    for( dcomplex *ptr = result.begin<dcomplex>(); ptr != result.end<dcomplex>(); ptr++ )
+      *ptr = mean_ + make_dcomplex(generator_.random(),generator_.random());
+    result += meanvells;
+    return result;
+  }
+  else
+  {
+    Vells result(0.0,shape,false);
+    double mean = creal(mean_);
+    // now simply loop over all elements of the output vells -- 
+    // we don't really care about its shape, we just fill them all with 
+    // numbers from the generator
+    for( double *ptr = result.begin<double>(); ptr != result.end<double>(); ptr++ )
+      *ptr = mean + generator_.random();
+    result += meanvells;
+    return result;
+  }
 }
 
 } // namespace Meq

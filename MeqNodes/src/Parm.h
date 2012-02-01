@@ -84,7 +84,6 @@ namespace Meq {
     FTableName       = AidTable|AidName,
     FParmName        = AidParm|AidName,
     FAutoSave        = AidAuto|AidSave,
-    FDomainId        = AidDomain|AidId,
     // FDomain      defined previously
     FFunklet         = AidFunklet,
     FDefaultFunklet  = AidDefault|AidFunklet,
