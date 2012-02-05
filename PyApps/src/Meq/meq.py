@@ -464,6 +464,10 @@ _meqdomain_id = 0;
 def requestid (domain_id=0,dataset_id=0,rqtype='ev'):
   return hiid(rqtype,0,0,0,domain_id,dataset_id);
 
+def split_request_id (rqid):
+  """Splits request ID into components. Returns domain and dataset IDs""";
+  return rqid[5],rqid[4];
+
 def request (cells=None,rqtype=None,dataset_id=0,domain_id=0,rqid=None,eval_mode=None,new_dataset=True,new_domain=False):
   # if cells is specified, default rqtype becomes 'ev'
   if rqtype is None:

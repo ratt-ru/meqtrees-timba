@@ -93,7 +93,7 @@ void PSVTensor::checkTensorDims (int ichild,const LoShape &shape,int nsrc)
           "child '"+child_labels[ichild].toString()+"': rank-3 result must be of shape Nx2x2 or Nx1x1");
     }
   }
-  FailWhen(n!=nsrc,"child '"+child_labels[1].toString()+"': first dimension does not match number of sources");
+  FailWhen(n!=nsrc,"child '"+child_labels[ichild].toString()+"': first dimension does not match number of sources");
 }
 
 // Checks tensor dimensions of children, returns dimensions of our result (2x2)
