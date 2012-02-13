@@ -4,8 +4,6 @@
 # a class to generate control buttons etc for use in controlling N-dimensional
 # displays
 
-# modules that are imported
-
 #% $Id: ResultsRange.py 6836 2009-03-05 18:55:17Z twillis $ 
 
 #
@@ -36,7 +34,6 @@ import PyQt4.Qwt5 as Qwt
 
 #from Timba.GUI.pixmaps import pixmaps
 from BufferSizeDialog_qt4 import *
-#from FloatSpinBox import *
 
 # The ResultsRange class is directly adapted from the Qt/PyQt 
 # tutorial code examples.
