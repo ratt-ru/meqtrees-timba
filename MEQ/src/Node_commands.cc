@@ -59,13 +59,13 @@ int Node::processCommand (Result::Ref &,
   else if( command == HIID("Clear.Cache") )
   {
     bool recursive = args.valid() && args[FRecursive].as<bool>(false);
-    clearCache(recursive);
+    clearCache(recursive,time(0));
     if( verbosity>0 )
       postMessage(recursive ? "cache cleared recursively" : "cache cleared");
   }
   else if( command == HIID("Clear.Cache.Recursive") )
   {
-    clearCache(true);
+    clearCache(true,time(0));
     if( verbosity>0 )
       postMessage("cache cleared recursively");
   }

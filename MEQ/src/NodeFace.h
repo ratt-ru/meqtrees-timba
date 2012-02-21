@@ -190,7 +190,7 @@ class NodeFace : public DMI::BObj
 
     //## Clears the node's result cache, optionally recursively.
     //## No exceptions may be thrown.
-    virtual void clearCache (bool recursive=false) throw() =0;
+    virtual void clearCache (bool recursive=false,long marker=0) throw() =0;
 
 
     //## This is used in the cache resolution mechanism. Called by parent
@@ -250,7 +250,7 @@ class NodeFace : public DMI::BObj
     int         nodeindex_;
 
 #if !NDEBUG
-    ::Debug::Context *pDebugContext_; 
+    ::Debug::Context *pDebugContext_;
     static ::Debug::Context uninit_DebugContext_;
 #endif
 

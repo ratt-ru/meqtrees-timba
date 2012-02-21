@@ -89,6 +89,7 @@ Node::Node (int nchildren,const HIID *labels,int nmandatory)
   log_policy_ = 0;
   cache_.is_valid = false;
   cache_.rescode = 0;
+  cache_.last_clear_cache_marker_ = 0;
   has_state_dep_ = false;
   // init cache stats
   {
@@ -324,7 +325,7 @@ void Node::setStateImpl (DMI::Record::Ref &rec,bool initializing)
   // now set the dependency mask if specified; this will override
   // possible modifications made above
   rec[FDependMask].get(depend_mask_,initializing);
-  
+
   // get the domain symdep mask
   domain_depend_mask_ = symdeps().getMask(FDomain);
 
@@ -478,9 +479,12 @@ void Node::propagateStateDependency ()
 }
 
 //##ModelId=400E531300C8
-void Node::clearCache (bool recursive) throw()
+void Node::clearCache (bool recursive,long marker) throw()
 {
   Thread::Mutex::Lock lock(execCond());
+  if( marker && marker == cache_.last_clear_cache_marker_ )
+    return;
+  cache_.last_clear_cache_marker_ = marker;
   cache_.clear();
   if( control_status_ & CS_CACHED )
     setControlStatus(control_status_&~CS_CACHED,recursive); // sync if recursive
@@ -491,9 +495,9 @@ void Node::clearCache (bool recursive) throw()
     memset(pcs_new_,0,sizeof(CacheStats));
     for( int i=0; i<children().numChildren(); i++ )
       if( children().isChildValid(i) )
-        children().getChild(i).clearCache(true);
+        children().getChild(i).clearCache(true,marker);
     for( int i=0; i<stepchildren().numChildren(); i++ )
-      stepchildren().getChild(i).clearCache(true);
+      stepchildren().getChild(i).clearCache(true,marker);
   }
 }
 
@@ -603,7 +607,7 @@ int Node::cacheResult (const Result::Ref &ref,const Request &req,int retcode)
   if( logPolicy() >= LOG_RESULTS ||
       ( logPolicy() == LOG_DEFAULT && forest().logPolicy() >= LOG_RESULTS ) )
     forest().logNodeResult(*this,req,*ref);
-  has_state_dep_ = false;        
+  has_state_dep_ = false;
   // this is an actual cache, so it should be released when the parents tell us to
   cache_.ignore_parent_releases_ = false;
   // clear the parent stats

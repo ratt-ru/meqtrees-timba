@@ -420,7 +420,8 @@ class Node : public NodeFace
     //====== NodeFace method
     //## Clears cache (optionally recursively)
     //## If quiet is false, updates control_status but does not advertise
-    virtual void clearCache (bool recursive=false) throw();
+    //## marker is used to avoid entering the same node again when clearing recursively
+    virtual void clearCache (bool recursive=false,long marker=0) throw();
 
     //## sets verbosity level for publishing of state snapshots
     //## level 0 means no publishing
@@ -885,7 +886,7 @@ class Node : public NodeFace
     //## Dependency mask indicating which parts of a RequestId the node's own
     //## value depends on (this is in addition to any child dependencies).
     int depend_mask_;
-    
+
     //## Dependency mask indicating dependency on domain (a constant, essentially)
     int domain_depend_mask_;
 
@@ -961,7 +962,9 @@ class Node : public NodeFace
         RequestId   rqid;
         int         rescode;
         bool        is_valid;
-        
+
+        long        last_clear_cache_marker_;
+
         //## flag: ignore parent requests to release cache. This flag
         // is normally cleared, but is raised when an empty result is returned in
         // response to a DISCOVER_SPIDS or PARM_UPDATE request, thus protecting
@@ -1025,8 +1028,8 @@ class Node : public NodeFace
     static int checking_level_;
 
     static ObjRef _dummy_objref;
-    
-    
+
+
 };
 
 
