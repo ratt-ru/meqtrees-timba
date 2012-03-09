@@ -1,4 +1,4 @@
-//# AzElRaDec.h: Calculate AzElRaDec of a source from J2000 Ra, Dec
+//# AzElRaDec.h: Calculate RaDec of a source from Azimuth and Elevation
 //#
 //# Copyright (C) 2002-2007
 //# ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -21,8 +21,8 @@
 //#
 //# $Id: AzElRaDec.h 7252 2009-10-06 08:41:38Z oms $
 
-// A MeqAzEl node transforms Right Ascension and Declination coordinates 
-// (first and second children) into observed Azimuth and Elevation. 
+// A MeqAzElRaDec node transforms Azimuth and Elevation 
+// (first and second children) into observed Ra and Declination. 
 // MDirection::AZEL := topocentric Azimuth and Elevation (N through E)
 // Since azimuth and elevation are dependent on the location on the Earth 
 // where a source is observed, you must provide this mode with a location. 
@@ -33,7 +33,7 @@
 // ITRF X,Y,Z cooordinates of the station location (with third, fourth 
 // and fifth children).
 
-// A MeqAzEl node can be set up by specifying the following field in its 
+// A MeqAzElRaDec node can be set up by specifying the following field in its 
 // init-record: 
 
 // field 	 description
