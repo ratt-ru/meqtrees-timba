@@ -67,7 +67,7 @@ public:
   virtual ~AzElRaDec();
 
   virtual TypeId objectType() const
-    { return TpMeqAzEl; }
+    { return TpMeqAzElRaDec; }
 
 protected:
   // method required by TensorFunction

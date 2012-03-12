@@ -46,7 +46,7 @@ const HIID child_labels[] = { AidAzEl,AidXYZ };
 //const HIID child_labels[] = { AidRA,AidDec};
 
 
-//The node should assume that only the first child (RADec) is mandatory
+//The node should assume that only the first child (AzEl) is mandatory
 AzElRaDec::AzElRaDec()
 : TensorFunction(2,child_labels,1)
 {
@@ -80,7 +80,7 @@ void AzElRaDec::computeResultCells (Cells::Ref &ref,const std::vector<Result::Re
   else
     ref.attach(request.cells());
   // check that we now have a time axis
-  FailWhen(!ref->isDefined(Axis::TIME),"Meq::AzElRaDec: no time axis in child result or in request, can't compute AzEls");
+  FailWhen(!ref->isDefined(Axis::TIME),"Meq::AzElRaDec: no time axis in child result or in request, can't compute RaDecs");
   // create vells from time axis
   Vells::Shape shape;
   Axis::degenerateShape(shape,ref->rank());
