@@ -77,6 +77,7 @@
         Do(Meq::MinLocation,arg) separator \
         Do(Meq::ModRes,arg) separator \
         Do(Meq::Multiply,arg) separator \
+        Do(Meq::NBrick,arg) separator \
         Do(Meq::Negate,arg) separator \
         Do(Meq::NElements,arg) separator \
         Do(Meq::Norm,arg) separator \

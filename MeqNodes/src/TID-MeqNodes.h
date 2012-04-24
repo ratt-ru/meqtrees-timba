@@ -1129,6 +1129,25 @@ namespace Meq { class Multiply; };
               };
             };
 #endif
+#ifndef _defined_id_TpMeqNBrick
+#define _defined_id_TpMeqNBrick 1
+const DMI::TypeId TpMeqNBrick(-1785);             // from NBrick.h:34
+const int TpMeqNBrick_int = -1785;
+namespace Meq { class NBrick; };
+            namespace DMI {
+              template<>
+              class DMIBaseTypeTraits<Meq::NBrick> : public TypeTraits<Meq::NBrick>
+              {
+                public:
+                enum { isContainable = true };
+                enum { typeId = TpMeqNBrick_int };
+                enum { TypeCategory = TypeCategories::DYNAMIC };
+                enum { ParamByRef = true, ReturnByRef = true };
+                typedef const Meq::NBrick & ContainerReturnType;
+                typedef const Meq::NBrick & ContainerParamType;
+              };
+            };
+#endif
 #ifndef _defined_id_TpMeqNElements
 #define _defined_id_TpMeqNElements 1
 const DMI::TypeId TpMeqNElements(-1500);          // from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29

@@ -698,6 +698,11 @@ const int AidMeqModRes_int = -1592;
 const DMI::AtomicID AidMeqMultiply(-1391);        // from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
 const int AidMeqMultiply_int = -1391;
 #endif
+#ifndef _defined_id_AidMeqNBrick
+#define _defined_id_AidMeqNBrick 1
+const DMI::AtomicID AidMeqNBrick(-1785);          // from NBrick.h:34
+const int AidMeqNBrick_int = -1785;
+#endif
 #ifndef _defined_id_AidMeqNElements
 #define _defined_id_AidMeqNElements 1
 const DMI::AtomicID AidMeqNElements(-1500);       // from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29

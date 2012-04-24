@@ -73,6 +73,7 @@ set(MeqNodes_includes
     src/MinLocation.h
     src/ModRes.h
     src/Multiply.h
+    src/NBrick.h
     src/Negate.h
     src/NElements.h
     src/NoiseNode.h
@@ -205,6 +206,7 @@ set(meqNodes_src
     src/MinLocation.cc
     src/ModRes.cc
     src/Multiply.cc
+    src/NBrick.cc
     src/Negate.cc
     src/NElements.cc
     src/NoiseNode.cc

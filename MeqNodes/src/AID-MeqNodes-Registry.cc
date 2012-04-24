@@ -122,6 +122,8 @@ DMI::BObj * __construct_MeqMinLocation (int n) { return n>0 ? new Meq::MinLocati
 DMI::BObj * __construct_MeqModRes (int n) { return n>0 ? new Meq::ModRes [n] : new Meq::ModRes; }
 #include "Multiply.h"
 DMI::BObj * __construct_MeqMultiply (int n) { return n>0 ? new Meq::Multiply [n] : new Meq::Multiply; }
+#include "NBrick.h"
+DMI::BObj * __construct_MeqNBrick (int n) { return n>0 ? new Meq::NBrick [n] : new Meq::NBrick; }
 #include "Negate.h"
 DMI::BObj * __construct_MeqNegate (int n) { return n>0 ? new Meq::Negate [n] : new Meq::Negate; }
 #include "NElements.h"
@@ -498,6 +500,9 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1391,"MeqMultiply")+
         TypeInfoReg::addToRegistry(-1391,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1391,__construct_MeqMultiply)+
+        AtomicID::registerId(-1785,"MeqNBrick")+
+        TypeInfoReg::addToRegistry(-1785,TypeInfo(TypeInfo::DYNAMIC,0))+
+        DynamicTypeManager::addToRegistry(-1785,__construct_MeqNBrick)+
         AtomicID::registerId(-1506,"MeqNegate")+
         TypeInfoReg::addToRegistry(-1506,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1506,__construct_MeqNegate)+
