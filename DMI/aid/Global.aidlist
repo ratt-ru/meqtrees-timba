@@ -388,6 +388,7 @@ MeqLogPolc                       1548       ; from /home/mevius/LOFAR/Timba/MEQ/
 #MeqModRes                       1592       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ModRes.h:32
 MeqMPIProxy                      1739       ; from /home/oms/Timba/MeqMPI/src/MPIProxy.h:8
 #MeqMultiply                     1391       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Multiply.h:30
+#MeqNBrick                       1785       ; from NBrick.h:34
 #MeqNegate                       1506       ; from /home/assendorp/LOFAR/Timba/MeqNodes/src/Negate.h:29
 #MeqNElements                    1500       ; from /home/oms/LOFAR/Timba/MeqNodes/src/NElements.h:29
 MeqNode                          1378       ; from /home/oms/LOFAR/Timba/MEQ/src/Node.h:37
@@ -434,7 +435,7 @@ MeqResult                        1360       ; from /home/oms/LOFAR/Timba/MEQ/src
 #MeqSelector                     1447       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Selector.h:30
 MeqServer                        1462       ; from /home/oms/LOFAR/Timba/MeqServer/src/MeqServer.h:11
 #MeqShapeletVisTf                1694       ; from /home/sarod/LOFAR/Timba/MeqNodes/src/ShapeletVisTf.h:32
-#MeqSimpleParm                   1783       ; from SimpleParm.h:35
+MeqSimpleParm                    1783       ; from SimpleParm.h:35
 #MeqSin                          1430       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sin.h:30
 #MeqSinh                         1407       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Sinh.h:29
 MeqSink                          1481       ; from /home/oms/LOFAR/Timba/MeqServer/src/Sink.h:9
