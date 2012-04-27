@@ -97,7 +97,14 @@ int main (int argc,char *argv[])
           ms.addColumn(cd_bitflag,stman);
         }
         else*/
-          ms.addColumn(cd_bitflag);
+        ms.addColumn(cd_bitflag);
+        cout<<"Initializing variable-shaped BITFLAG column\n";;
+        // damn you variable-shaped columns. Loop over MS to fill BITFLAG
+        ROTableColumn datacol(ms,"DATA");
+        ArrayColumn<Int> bitflagcol(ms,"BITFLAG");
+        for( int irow = 0; irow < ms.nrow(); irow ++ )
+          if( datacol.isDefined(irow) )
+            bitflagcol.put(irow,Array<Int>(datacol.shape(irow),0));
       }
     }
     ms.flush();
