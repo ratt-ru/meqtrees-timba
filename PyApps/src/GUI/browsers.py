@@ -125,18 +125,22 @@ class HierBrowser (object):
   MaxWidth       = 400;
   
   class Item (QTreeWidgetItem):
-    def __init__(self,parent,key,value,udi_key=None,udi=None,strfunc=None,
+    def __init__(self,parent,key,value,udi_key=None,udi=None,
+                 parent_udi=None,strfunc=None,
                  prec=(None,'g'),name=None,caption=None,desc=''):
       (key,value) = (str(key),str(value));
       # insert item at end of parent's content list (if any)
-      parent_content = getattr(parent,'_content_list',None);
-      if parent_content:
-        QTreeWidgetItem.__init__(self,parent,parent_content[-1]);
-        parent_content.append(self);
+      if parent:
+        parent_content = getattr(parent,'_content_list',None);
+        if parent_content:
+          QTreeWidgetItem.__init__(self,parent,parent_content[-1]);
+          parent_content.append(self);
+        else:
+          QTreeWidgetItem.__init__(self,parent);
+          if parent:
+            parent._content_list = [self];
       else:
-        QTreeWidgetItem.__init__(self,parent);
-        if parent:
-          parent._content_list = [self];
+        QTreeWidgetItem.__init__(self);
       # get maxwidth
       maxwidth = getattr(self.treeWidget(),'_maxwidth',HierBrowser.MaxWidth);
       # set flags
@@ -169,8 +173,9 @@ class HierBrowser (object):
         self._udi_key = udi_key;
         # setup udi of self, if parent self has a udi of its own
         # add ourselves to content map and propagate the map
-        if parent and parent._udi:
-          self._udi = '/'.join((parent._udi,udi_key));
+        parent_udi = parent_udi or ( parent and parent._udi );
+        if parent_udi:
+          self._udi = '/'.join((parent_udi,udi_key));
         else:
           self._udi = None;
       # add to content map, if we have a UDI
@@ -267,7 +272,7 @@ class HierBrowser (object):
         # use curry() to create a refresh-function
         (itemstr,inlined) = dmirepr.inline_str(value);
         if itemstr is not None:
-          i0 = HierBrowser.Item(item,key,itemstr,prec=item._prec,
+          i0 = HierBrowser.Item(None,key,itemstr,prec=item._prec,parent_udi=item._udi,
                   strfunc=curry(dmirepr.inline_str,value));
           i0._content = value;
           i0.set_viewable(value);
@@ -275,7 +280,8 @@ class HierBrowser (object):
           continue;
         # else get string representation, insert item with it
         (itemstr,inlined) = dmirepr.expanded_repr_str(value,False);
-        i0 = HierBrowser.Item(item,str(key),itemstr,prec=item._prec,
+        i0 = HierBrowser.Item(None,str(key),itemstr,prec=item._prec,
+                  parent_udi=item._udi,
                   strfunc=curry(dmirepr.expanded_repr_str,value,False));
         item._content_list.append(i0);
         # cache value for expansion, if not inlined
@@ -288,6 +294,10 @@ class HierBrowser (object):
         # dicts and messages always cached for expansion
         elif isinstance(value,(dict,message)):
           i0.cache_content(value);
+      if hasattr(item,'addChildren'):
+        item.addChildren(item._content_list);
+      else:
+        item.addTopLevelItems(item._content_list);
     expand_content = staticmethod(expand_content);
 
     # expands item content into subitems (wrapper around expand_content)
