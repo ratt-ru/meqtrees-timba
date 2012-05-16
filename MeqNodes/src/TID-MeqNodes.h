@@ -2003,6 +2003,7 @@ namespace Meq { class Tanh; };
               };
             };
 #endif
+/*
 #ifndef _defined_id_TpMeqThrustPointSourceVisibility
 #define _defined_id_TpMeqThrustPointSourceVisibility 1
 const DMI::TypeId TpMeqThrustPointSourceVisibility(-1781);// from ThrustPointSourceVisibility.h:33
@@ -2022,6 +2023,7 @@ namespace Meq { class ThrustPointSourceVisibility; };
               };
             };
 #endif
+*/
 #ifndef _defined_id_TpMeqTime
 #define _defined_id_TpMeqTime 1
 const DMI::TypeId TpMeqTime(-1451);               // from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30

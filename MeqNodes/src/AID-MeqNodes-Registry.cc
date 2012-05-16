@@ -214,8 +214,8 @@ DMI::BObj * __construct_MeqTanh (int n) { return n>0 ? new Meq::Tanh [n] : new M
 DMI::BObj * __construct_MeqTFSmearFactorApprox (int n) { return n>0 ? new Meq::TFSmearFactorApprox [n] : new Meq::TFSmearFactorApprox; }
 #include "TFSmearFactor.h"
 DMI::BObj * __construct_MeqTFSmearFactor (int n) { return n>0 ? new Meq::TFSmearFactor [n] : new Meq::TFSmearFactor; }
-#include "ThrustPointSourceVisibility.h"
-DMI::BObj * __construct_MeqThrustPointSourceVisibility (int n) { return n>0 ? new Meq::ThrustPointSourceVisibility [n] : new Meq::ThrustPointSourceVisibility; }
+/*#include "ThrustPointSourceVisibility.h"
+DMI::BObj * __construct_MeqThrustPointSourceVisibility (int n) { return n>0 ? new Meq::ThrustPointSourceVisibility [n] : new Meq::ThrustPointSourceVisibility; }*/
 #include "TimeNode.h"
 DMI::BObj * __construct_MeqTime (int n) { return n>0 ? new Meq::Time [n] : new Meq::Time; }
 #include "ToComplex.h"
@@ -701,9 +701,6 @@ DMI::BObj * __construct_MeqZeroFlagger (int n) { return n>0 ? new Meq::ZeroFlagg
         AtomicID::registerId(-1748,"MeqTFSmearFactor")+
         TypeInfoReg::addToRegistry(-1748,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1748,__construct_MeqTFSmearFactor)+
-        AtomicID::registerId(-1781,"MeqThrustPointSourceVisibility")+
-        TypeInfoReg::addToRegistry(-1781,TypeInfo(TypeInfo::DYNAMIC,0))+
-        DynamicTypeManager::addToRegistry(-1781,__construct_MeqThrustPointSourceVisibility)+
         AtomicID::registerId(-1451,"MeqTime")+
         TypeInfoReg::addToRegistry(-1451,TypeInfo(TypeInfo::DYNAMIC,0))+
         DynamicTypeManager::addToRegistry(-1451,__construct_MeqTime)+

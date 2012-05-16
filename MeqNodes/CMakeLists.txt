@@ -123,7 +123,7 @@ set(MeqNodes_includes
     src/Tanh.h
     src/TFSmearFactor.h
     src/TFSmearFactorApprox.h
-    src/ThrustPointSourceVisibility.h
+#    src/ThrustPointSourceVisibility.h
     src/TID-MeqNodes.h
     src/TimeNode.h
     src/ToComplex.h
@@ -257,7 +257,7 @@ set(meqNodes_src
     src/TFSmearFactor.cc
     src/TFSmearFactorApprox.cc
     src/TimeNode.cc
-    src/ThrustPointSourceVisibility.cc
+#    src/ThrustPointSourceVisibility.cc
     src/ToComplex.cc
     src/Transpose.cc
     src/UVBrick.cc
@@ -276,8 +276,12 @@ set(meqNodes_src
 
 set(meqNodes_cuda_src
     src/CUDAPointSourceVisibility.cu
-    src/ThrustPointSourceVisibility.cu
 )
+
+#set(meqNodes_cuda_src
+#    src/CUDAPointSourceVisibility.cu
+#    src/ThrustPointSourceVisibility.cu
+#)
 
 
 if (CUDA_FOUND)

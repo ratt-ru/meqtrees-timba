@@ -928,11 +928,13 @@ const int AidMeqTan_int = -1417;
 const DMI::AtomicID AidMeqTanh(-1450);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Tanh.h:29
 const int AidMeqTanh_int = -1450;
 #endif
+/*
 #ifndef _defined_id_AidMeqThrustPointSourceVisibility
 #define _defined_id_AidMeqThrustPointSourceVisibility 1
 const DMI::AtomicID AidMeqThrustPointSourceVisibility(-1781);// from ThrustPointSourceVisibility.h:33
 const int AidMeqThrustPointSourceVisibility_int = -1781;
 #endif
+*/
 #ifndef _defined_id_AidMeqTime
 #define _defined_id_AidMeqTime 1
 const DMI::AtomicID AidMeqTime(-1451);            // from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
