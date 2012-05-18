@@ -238,6 +238,7 @@ Idle                             1477       ; from /home/oms/LOFAR/Timba/MeqServ
 IF                               1114       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:33
 IFR                              1179       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:27
 Ignore                           1149       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:36
+Image                            1788       ; from FFTBrick.h:38
 IMTestWP                         1110       ; from /home/oms/LOFAR/Timba/OCTOGlish/src/GlishClientWP.h:21
 In                               1207       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:12
 Include                          1765       ; from UVW.h:32
@@ -512,6 +513,7 @@ Next                             1480       ; from /home/oms/LOFAR/Timba/MeqServ
 Node                             1288       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:30
 NodeIndex                        1338       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:35
 Non                              1274       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:39
+Norm                             1786       ; from FFTBrick.h:38
 Normal                           1223       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/OctoEventSink.h:14
 Normalized                       1334       ; from /home/oms/LOFAR/Timba/MEQ/src/MeqVocabulary.h:37
 Notify                           1210       ; from /home/oms/LOFAR/Timba/AppAgent/AppAgent/src/AppControlAgent.h:20
@@ -785,6 +787,7 @@ Weights                          1285       ; from /home/oms/LOFAR/Timba/MEQ/src
 When                             1249       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
 Width                            1161       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
 WP                               1084       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
+Wprojplanes                      1787       ; from FFTBrick.h:38
 Write                            1267       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 X                                1024       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 XX                               1115       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
