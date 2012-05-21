@@ -21,16 +21,18 @@
 //#
 //# $Id: ThrustPointSourceVisibility.h 5418 2007-07-19 16:49:13Z oms $
 
-#ifndef MEQNODES_THRUSTPOINTSOURCEVISIBILITY_H
-#define MEQNODES_THRUSTPOINTSOURCEVISIBILITY_H
+//The following lines are commented out so that this node is excluded when libmeqnodes is linked during a build.
+/*#ifndef MEQNODES_THRUSTPOINTSOURCEVISIBILITY_H
+#define MEQNODES_THRUSTPOINTSOURCEVISIBILITY_H*/
 
 //# Includes
 #include <MEQ/TensorFunction.h>
 
 
 #include <MeqNodes/TID-MeqNodes.h>
-#pragma aidgroup MeqNodes
-#pragma types #Meq::ThrustPointSourceVisibility
+//The following lines are commented out so that this node is excluded when libmeqnodes is linked during a build.
+/*#pragma aidgroup MeqNodes
+#pragma types #Meq::ThrustPointSourceVisibility*/
 
 #ifndef STRIP_CUDA
 #include <cuda_runtime.h>
