@@ -458,7 +458,6 @@ MeqTestClass                     1572       ; from /home/mevius/LOFAR/Timba/MEQ/
 MeqTFSmear                       1746       ; from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
 #MeqTFSmearFactor                1748       ; from /home/oms/Timba/MeqNodes/src/TFSmear.h:31
 #MeqTFSmearFactorApprox          1766       ; from TFSmearFactorApprox.h:32
-#MeqThrustPointSourceVisibility*/ 1789       ; from ThrustPointSourceVisibility.h:35
 #MeqTime                         1451       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Time.h:30
 #MeqToComplex                    1413       ; from /home/oms/LOFAR/Timba/MeqNodes/src/ToComplex.h:30
 #MeqTranspose                    1521       ; from /home/oms/LOFAR/Timba/MeqNodes/src/Transpose.h:31
