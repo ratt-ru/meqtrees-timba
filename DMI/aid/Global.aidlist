@@ -786,6 +786,7 @@ Weights                          1285       ; from /home/oms/LOFAR/Timba/MEQ/src
 When                             1249       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/ApplicationBase.h:20
 Width                            1161       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:31
 WP                               1084       ; from /home/oms/LOFAR/Timba/OCTOPUSSY/src/WPInterface.h:23
+Wprojplanes                      1789       ; from NBrick.h:36
 Write                            1267       ; from /home/oms/LOFAR/Timba/AppAgent/AppUtils/src/MSVisAgentVocabulary.h:35
 X                                1024       ; from /home/oms/LOFAR/Timba/DMI/src/AtomicID.h:33
 XX                               1115       ; from /home/oms/LOFAR/Timba/VisCube/src/VisVocabulary.h:29
