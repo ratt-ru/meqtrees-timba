@@ -535,8 +535,10 @@ bool Node::getCachedResult (int &retcode,Result::Ref &ref,const Request &req)
   if( rqid.empty() || cache_.rqid.empty() )
     match = false;
   // (2) ignore PU requests if no dependency on iteration
-  else if( ( req.requestType() == RequestType::PARM_UPDATE ||
-           req.requestType() == RequestType::DISCOVER_SPIDS ) &&
+  else if( req.requestType() == RequestType::PARM_UPDATE &&
+    // 20082012 OMS: removed this condition, as it caused breakage when a previous request
+    // was empty, and thus had no iteration dependence.
+    //           || req.requestType() == RequestType::DISCOVER_SPIDS ) &&
            !(cache_.rescode&symdeps().getMask(FIteration)) )
   {
     cdebug(4)<<"PU or DS request and no dependence on iteration: returning empty result"<<endl;

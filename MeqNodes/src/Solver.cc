@@ -366,6 +366,12 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
     parm_uks_[spi.nodeindex].nuk += spi.nuk;
   }
   FailWhen(!num_unknowns_,"spid discovery did not return any solvable parameters");
+/*  cerr<<"Discovered spids: ";
+  for( SpidMap::const_iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
+  {
+    cerr<<iter->first<<" ";
+  }
+  cerr<<"\n";*/
   // now work out the solver tile sizes. Each solver tile encompasses a
   // whole number of spid sub-tiles, so the solver tile size along each axis
   // is the least common multiple (LCM) of all the spid tile sizes.
@@ -708,6 +714,13 @@ void Solver::fillEquations (const VellSet &vs)
   {
     SpidType spid = vs.getSpid(i);
     SpidMap::iterator iter = spids_.find(spid);
+/*    if( iter == spids_.end() )
+    {
+      cerr<<"Spid "<<spid<<" not found. Currently discovered spids: ";
+      for( SpidMap::const_iterator iter = spids_.begin(); iter != spids_.end(); iter++ )
+        cerr<<iter->first<<" ";
+      cerr<<"\n";
+    }*/
     FailWhen(iter == spids_.end(),ssprintf("child %d returned spid %d that was "
              "not reported during spid discovery",cur_child_,spid));
     pspi[i]     = &( iter->second );
