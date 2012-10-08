@@ -299,49 +299,33 @@ namespace Meq {
 
     for (int i=0;i<nt;i++){
       for (int j=0;j<nn;j++){
-
-	    freq_match = false;
  	    //INI: Determine whether to extrapolate or interpolate	    
-	    //for(int k=0; k<nf; k++)
 	    if(nf > 1) // Enter for loop only if more than one plane is present in brick
 	    {
-	    for(int k=1; k<nf; k++)
-	    {
-		    if(freq(j) == ff(0)){ //special check for brick plane 0, since the index starts from 1.
-			    lfreq = 0;
-			    ufreq = 0;
-			    extrapolate = true; // Not technically extrapolation, but only one freq. plane is used
-			    freq_match = true;
-			    break;
-		    }
-		    if(freq(j) == ff(k)){
-			    lfreq = k;
-			    ufreq = k;
-			    extrapolate = true; // Not technically extrapolation, but only one freq. plane is used
-			    freq_match = true;
-			    break;
-		    }
-		    else if( (freq(j)>ff(k-1) && (freq(j)<ff(k)) ) || ( freq(j)<ff(k-1) && (freq(j)>ff(k)) ) )
+	    	freq_match = false;
+		    for(int k=1; k<nf; k++)
 		    {
-			    lfreq = k-1;
-			    ufreq = k;
-			    extrapolate = false;
-			    freq_match = true;
-			    break;
+			if( (freq(j)>=ff(k-1) && freq(j)<=ff(k)) || (freq(j)<=ff(k-1) && freq(j)>=ff(k)) )
+			{
+				lfreq = k-1;
+				ufreq = k;
+				extrapolate = false;
+				freq_match = true;
+				break;
+			}
 		    }
-	    }
-	    //INI: check for extrapolation
-	    if(!freq_match){ //if the request frequency freq(j) was not found...
-		    extrapolate = true;
-		    if( (ffbrick_asc && freq(j) < ff(0)) || (!ffbrick_asc && freq(j) > ff(0)) ){
-			    lfreq = 0;
-			    ufreq = 0;
+		    //INI: check for extrapolation
+		    if(!freq_match){ //if the request frequency freq(j) was not found...
+			    extrapolate = true;
+			    if( (ffbrick_asc && freq(j) < ff(0)) || (!ffbrick_asc && freq(j) > ff(0)) ){
+				    lfreq = 0;
+				    ufreq = 0;
+			    }
+			    else{
+				    lfreq = nf-1;
+				    ufreq = nf-1;
+			    }
 		    }
-		    else{
-			    lfreq = nf-1;
-			    ufreq = nf-1;
-		    }
-	    }
 	    } //end of if(nf>1)
 
         // convert u/v from meters into wavelengths
@@ -380,19 +364,24 @@ namespace Meq {
 	    double weight_u = weights_arr(int(round(fabs(ii-ucell)* griddivisions)));
             double weight = weight_v*weight_u;
 	    if(extrapolate) //INI: only one frequency plane used
-	    	arr_value  += weight*garr(lfreq,ii,jj);
+	    {
+	      arr_value  += weight*garr(lfreq,ii,jj); // lfreq=ufreq
+	    }
 	    else //INI: interpolate between two frequency planes
-	    	arr_value  += weight*(garr(lfreq,ii,jj)+garr(ufreq,ii,jj));
+	    {
+	      if(ffbrick_asc)
+	    	arr_value+=weight*(garr(lfreq,ii,jj)+(garr(ufreq,ii,jj)-garr(lfreq,ii,jj))*((freq(j)-freq(lfreq))/(freq(ufreq)-freq(lfreq))));
+	      else
+	    	arr_value+=weight*(garr(ufreq,ii,jj)+(garr(lfreq,ii,jj)-garr(ufreq,ii,jj))*((freq(j)-freq(ufreq))/(freq(lfreq)-freq(ufreq))));
+	    }
 	    sum_weight += weight;
 	  }
 	}
         // just in case we didn't sum anything...
 	if( sum_weight == 0 )
           arrout(i,j) = make_dcomplex(0);
-        else if(extrapolate)
+	else
 	  arrout(i,j) = arr_value/sum_weight;
-	else //INI: two frequency planes used in each iteration - the factor of 2 accounts for that
-	  arrout(i,j) = arr_value/(2.0*sum_weight);
       }
     }
   }
