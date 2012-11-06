@@ -166,7 +166,7 @@ namespace VisVocabulary
   
     typedef int FlagType;
     // flag value for missing data
-    const int FlagMissing = 0xFFFFFFFF;
+    const int FlagMissing = -1;
 
 
 // small function for converting antennas to flat IFR indices    

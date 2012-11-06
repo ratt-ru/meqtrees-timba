@@ -39,6 +39,7 @@ const HIID FQueue          = AidQueue;
 const HIID FQueueRequestId = AidQueue|AidRequest|AidId;
 
 InitDebugContext(Spigot,"MeqSpigot");
+typedef Vells::Traits<VellsFlagType,2>::Array FlagMatrix;
 
 Spigot::Spigot ()
     : VisHandlerNode(0),        // no children allowed
@@ -91,6 +92,10 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
         dims_ = LoShape(3);
     }
   }
+  // get flag-related stuff
+  rec[FFlagBit].get(flag_bit_,initializing);
+  rec[FFlagMask].get(flag_mask_,initializing);
+  rec[FRowFlagMask].get(row_flag_mask_,initializing);
   // get other state, for non-UVW columns
   if( colname_ != "UVW" )
   {
@@ -99,9 +104,6 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
     reshaped |= rec[FCorrIndex].get_vector(corr_index_,initializing);
     FailWhen(reshaped && dims_.product() != int(corr_index_.size()),
             "length of "+FCorrIndex.toString()+" vector does not match dimensions given by "+FDims.toString());
-    rec[FFlagBit].get(flag_bit_,initializing);
-    rec[FFlagMask].get(flag_mask_,initializing);
-    rec[FRowFlagMask].get(row_flag_mask_,initializing);
   }
 }
 
@@ -143,6 +145,19 @@ void Spigot::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 //   result.setNewVellSet(0).setReal(shape).getArray<VT,1>() = blitz::cast<VT>(vec1);
 // }
 //
+
+
+static void getRowFlags (Vells &flagvells,const LoVec_int &rowflags,int rowflagmask)
+{
+  VellsFlagType *pfl = flagvells.begin<VellsFlagType>();
+  const int *prf = rowflags.data();
+  for( int i=0; i<rowflags.size(); i++ )
+  {
+    pfl[i] = (prf[i]==VisVocabulary::FlagMissing) ? VisVocabulary::FlagMissing : prf[i]&rowflagmask;
+  }
+}
+
+
 //##ModelId=3F98DAE6023B
 int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const LoRange &rowrange)
 {
@@ -199,6 +214,25 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
             VellSet &vs = result.setNewVellSet(i+3);
             vs.setReal(shape).getArray<double,1>() = duvw(i,rowrange);
           }
+        }
+        // also apply row flags (according to mask, and unconditionally for missing data)
+        const LoVec_int  rowflag = tile.rowflag()(rowrange);
+        Vells::Ref flagref;
+        flagref <<= new Vells(Axis::freqTimeMatrix(1,nrows),VellsFlagType(),true);
+        FlagMatrix & pfl = flagref().getArray<VellsFlagType,2>();
+        //// fukcety fuck fuck fuck I don't get why this blitz::where() doesn't work!
+        //// godverdommemotherfucking blitz 
+//         pfl(0,LoRange::all()) = blitz::where(rowflag<0,VisVocabulary::FlagMissing,0);
+//         pfl(0,LoRange::all()) |= (rowflag&row_flag_mask_);
+        //// do it the ugly way instead
+        getRowFlags(flagref(),rowflag,row_flag_mask_);
+        // only attach data flags if they're non-0
+        if( blitz::any(pfl) )
+        {
+          if( flag_bit_ ) // override with flag bit if requested
+            pfl = blitz::where(pfl,flag_bit_,0);
+          for( int i=0; i<result.numVellSets(); i++ )
+            result.vellSetWr(i).setDataFlags(flagref);
         }
       }
       // else treat it as a standard corr/freq/time column
@@ -326,57 +360,51 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
     {
       Throw("invalid column type: "+coltype.toString());
     }
-    // get flags
-    if( flag_mask_ || row_flag_mask_ )
+    // get flags and rowflags
+    // flags only apply to 3D columns (such as visibility)
+    if( colshape.size() == 3 )
     {
-      // only applies to 3D columns (such as visibilty)
-      if( colshape.size() == 3 )
-      {
-        // get flag columns
-        LoCube_int flags   = tile.flags();
-        // transpose into time-freq-corr order
-        flags.transposeSelf(blitz::thirdDim,blitz::secondDim,blitz::firstDim);
+      // get flag columns
+      LoCube_int flags   = tile.flags();
+      // transpose into time-freq-corr order
+      flags.transposeSelf(blitz::thirdDim,blitz::secondDim,blitz::firstDim);
 //        cout<<"Tile flags: "<<flags<<endl;
-        const LoVec_int  rowflag = tile.rowflag()(rowrange);
-        typedef Vells::Traits<VellsFlagType,2>::Array FlagMatrix;
-        for( uint i=0; i<corr_index_.size(); i++ )
+      const LoVec_int  rowflag = tile.rowflag()(rowrange);
+      for( uint i=0; i<corr_index_.size(); i++ )
+      {
+        VellSet &vs = result.vellSetWr(i);
+        int icorr = corr_index_[i];
+        if( icorr >=0 )
         {
-          VellSet &vs = result.vellSetWr(i);
-          int icorr = corr_index_[i];
-          if( icorr >=0 )
+          Vells::Ref flagref;
+          FlagMatrix * pfl = 0;
+          // get flags, if a flag mask is set
+          if( flag_mask_ )
           {
-            Vells::Ref flagref;
-            FlagMatrix * pfl = 0;
-            // get flags
-            if( flag_mask_ )
-            {
-              flagref <<= new Vells(Axis::freqTimeMatrix(nfreq,nrows),VellsFlagType(),false);
-              pfl = &( flagref().getArray<VellsFlagType,2>() );
-              *pfl = flags(rowrange,LoRange::all(),icorr) & flag_mask_;
-              if( row_flag_mask_ )
-                for( int j=0; j<nrows; j++ )
-                  (*pfl)(j,LoRange::all()) |= rowflag(j) & row_flag_mask_;
-            }
-            else if( row_flag_mask_ ) // apply only row flags with a mask
-            {
+            flagref <<= new Vells(Axis::freqTimeMatrix(nfreq,nrows),VellsFlagType(),false);
+            pfl = &( flagref().getArray<VellsFlagType,2>() );
+            *pfl = flags(rowrange,LoRange::all(),icorr) & flag_mask_;
+            // apply row flags according to mask, and unconditionally for missing data
+            for( int j=0; j<nrows; j++ )
+              (*pfl)(j,LoRange::all()) |= (rowflag(j)&row_flag_mask_) |
+                                          (rowflag(j)==VisVocabulary::FlagMissing);
+          }
+          else // else apply row flags only (according to mask, and unconditionally for missing data)
+          {
             // shape of flag array is 1D (time only)
-              flagref <<= new Vells(Axis::freqTimeMatrix(1,nrows),VellsFlagType(),true);
-              pfl = &( flagref().getArray<VellsFlagType,2>() );
-              (*pfl)(0,LoRange::all()) |= rowflag & row_flag_mask_;
-            }
-            // only attach data flags if they're non-0
-            if( pfl && blitz::any(*pfl) )
-            {
-              if( flag_bit_ ) // override with flag bit if requested
-                *pfl = blitz::where(*pfl,flag_bit_,0);
-              result.vellSetWr(icorr).setDataFlags(flagref);
-            }
+            flagref <<= new Vells(Axis::freqTimeMatrix(1,nrows),VellsFlagType(),true);
+            pfl = &( flagref().getArray<VellsFlagType,2>() );
+            (*pfl)(0,LoRange::all()) |= (rowflag&row_flag_mask_) |
+                                        (rowflag == VisVocabulary::FlagMissing);
+          }
+          // only attach data flags if they're non-0
+          if( pfl && blitz::any(*pfl) )
+          {
+            if( flag_bit_ ) // override with flag bit if requested
+              *pfl = blitz::where(*pfl,flag_bit_,0);
+            result.vellSetWr(icorr).setDataFlags(flagref);
           }
         }
-      }
-      else
-      {
-        cdebug(2)<<"column "<<colname_<<" is not a cube, ignoring flags"<<endl;
       }
     }
     // copy cells to result

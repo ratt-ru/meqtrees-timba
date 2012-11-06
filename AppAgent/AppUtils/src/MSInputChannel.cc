@@ -753,6 +753,8 @@ int MSInputChannel::refillStream ()
           tableiter_++;
       }
       current_tile_++;
+      // use this to ensure that a bad-dUVW warning goes out only once
+      bool warned_duvw = false;
       // output all valid collected tiles onto stream, but do fill in
       // their TIME column so that it's the same for all tiles regardless
       // of what rows are actually found. Also fill in DUVW at this time.
@@ -764,30 +766,57 @@ int MSInputChannel::refillStream ()
           tile.wtime() = tile_times;
           HIID id = VisEventHIID(DATA,tiles_[i]->tileId());
           // setup DUVW column
+          LoMat_double uvw = tile.wuvw();
+          LoMat_double duvw = tile.wduvw();
+          const LoVec_int &rowflag = tile.rowflag();
+          // get UVW from last timeslot of previous tile, if we had one
           PrevUVWMap::const_iterator iter = prev_uvw_.find(std::pair<int,int>(tile.antenna1(),tile.antenna2()));
-          bool have_prev_ = ( iter != prev_uvw_.end() );
-          if( tile.ntime() > 1 )
+          LoVec_double prev_uvw(3);
+          double prev_time = -1e+99;
+          if( iter != prev_uvw_.end() )
           {
-            LoVec_double delta_t(tile.ntime()-1);
-            delta_t = tile.time()(LoRange(1,tile.ntime()-1)) - tile.time()(LoRange(0,tile.ntime()-2));
-            LoMat_double duvw = tile.wduvw()(ALL,LoRange(1,tile.ntime()-1));
-            duvw = tile.uvw()(ALL,LoRange(1,tile.ntime()-1)) - tile.uvw()(ALL,LoRange(0,tile.ntime()-2));
-            for( int j=0; j<3; j++ )
-              duvw(j,ALL) /= delta_t;
+            prev_time = (iter->second)(0);
+            prev_uvw  = (iter->second)(LoRange(1,3));
           }
-          // work out DUVW row 0 
-          if( have_prev_ )
-            tile.wduvw()(ALL,0) = (tile.uvw()(ALL,0) - (iter->second)(LoRange(1,3)))/
-                                  (tile.time()(0) - (iter->second)(0));
-          else if( tile.ntime() > 1 )
-            tile.wduvw()(ALL,0) = tile.duvw()(ALL,1);
-          else
-            tile.wduvw()(ALL,0) = 0;
+          // now loop over all (valid) timeslots of this tile
+          for( int k=0; k<tile.ntime(); k++ )
+            if( rowflag(k) != FlagMissing )
+            {
+              double t0 = tile_times(k);
+              double dt_back = t0 - prev_time;
+              double dt_forward = 1e+99;
+              int k1;
+              // find closest valid forward point
+              for( k1=k+1; k1<tile.ntime(); k1++ )
+                if( rowflag(k1) != FlagMissing )
+                {
+                  dt_forward = tile_times(k1) - t0;
+                  break;
+                }
+              // if neither forward not back point is found, emit a warning
+              if( dt_forward >= 1e+99 && dt_back >= 1e+99 )
+              {
+                if( !warned_duvw )
+                {
+                  cerr<<"WARNING: unable to determine delta-UVW in tile "<<id.toString()<<", setting to 0.\n";
+                  warned_duvw = true;
+                }
+              }
+              // else use forward difference, if that timeslot is closer
+              else if( dt_back > dt_forward )
+                duvw(ALL,k) = (uvw(ALL,k1) - uvw(ALL,k))/dt_forward;
+              // else use backward difference
+              else
+                duvw(ALL,k) = (uvw(ALL,k) - prev_uvw)/dt_back;
+              // and store the last uvw
+              prev_time = t0;
+              prev_uvw = uvw(ALL,k);
+            }
           // save UVW of last row
           LoVec_double & puvw = prev_uvw_[std::pair<int,int>(tile.antenna1(),tile.antenna2())];
           puvw.resize(4);
-          puvw(0) = tile.time(tile.ntime()-1);
-          puvw(LoRange(1,3)) = tile.uvw()(ALL,tile.ntime()-1);
+          puvw(0) = prev_time;
+          puvw(LoRange(1,3)) = prev_uvw;
           // place on stream
           putOnStream(id,tiles_[i]);
           tiles_[i].detach();
