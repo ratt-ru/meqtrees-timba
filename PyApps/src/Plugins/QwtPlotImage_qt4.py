@@ -136,15 +136,15 @@ def oldToQImage(array):
     nx, ny = array.shape # width, height
     xstride, ystride = array.strides
     if array.dtype == numpy.uint8:
-        # image = QImage(width, height, QImage.Format_Indexed8)
         image = Qt.QImage(nx, ny, Qt.QImage.Format_Indexed8)
-        array.shape = (nx*ny,)
+        f_array = numpy.reshape(array,(nx*ny,),order='F')
         for j in xrange(ny):
             pointer = image.scanLine(j)
             pointer.setsize(nx*array.itemsize)
             memory = numpy.frombuffer(pointer, numpy.uint8)
-            memory[:] = array[j*ystride::xstride]
-        array.shape = (nx, ny)
+            first_value = j*nx
+            last_value = (j+1)*nx 
+            memory[:] = f_array[first_value:last_value]
         image.setNumColors(256)
         for i in range(256):
             image.setColor(i, Qt.qRgb(i, i, i))
@@ -152,13 +152,14 @@ def oldToQImage(array):
     elif array.dtype == numpy.uint32:
         image = Qt.QImage(
             array.tostring(), width, height, Qt.QImage.Format_ARGB32)
-        array.shape = (nx*ny,)
+        f_array = numpy.reshape(array,(nx*ny,),order='F')
         for j in xrange(ny):
             pointer = image.scanLine(j)
             pointer.setsize(nx*array.itemsize)
             memory = numpy.frombuffer(pointer, numpy.uint32)
-            memory[:] = array[j*ystride::xstride]
-        array.shape = (nx, ny)
+            first_value = j*nx
+            last_value = (j+1)*nx 
+            memory[:] = f_array[first_value:last_value]
         return image
     else:
         raise RuntimeError('array.dtype must be uint8 or uint32')
