@@ -129,7 +129,7 @@ def newToQImage(array):
 def oldToQImage(array):
     """Converts a numpy array to a QImage 
     A Python version of PyQt4.Qwt5.toQImage(array) in PyQwt < 5.2.
-    Function written by Gerard Vermeulen - thanks Gerard!
+    Function written by Gerard Vermeulen 
     """
     if array.ndim != 2:
         raise RuntimeError('array must be 2-D')
