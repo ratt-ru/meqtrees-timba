@@ -49,7 +49,7 @@
 #  more details.			 Licence Publique Generale GNU
 #  					 pour plus de details.
 #
-#  You should have received a copy	 Vous devez avoir reçu une copie
+#  You should have received a copy	 Vous devez avoir recu une copie
 #  of the GNU General Public		 de la Licence Publique Generale
 #  License along with this		 GNU en meme temps que ce
 #  software; if not, contact the	 logiciel ; si ce n'est pas le
