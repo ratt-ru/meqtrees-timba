@@ -151,7 +151,7 @@ void CUDAPointSourceVisibility::checkTensorDims (int ichild,const LoShape &shape
   else
   {
     n = shape[0];
-    printf("child %i is dim %i\n", ichild, shape.size());
+    printf("child %i is dim %zu\n", ichild, shape.size());
     if( shape.size() == 2 )
     {
         printf("                 %i x %i\n", shape[0], shape[1]);
