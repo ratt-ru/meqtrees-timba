@@ -525,8 +525,8 @@ template <class Map, class KeyPacker, class ValuePacker>
 void MapPacker<Map,KeyPacker,ValuePacker>::unpack (Map &mp, const void *block, size_t sz)
 {
   FailWhen(sz<sizeof(size_t),"corrupt block");
-  const size_t 
-    *hdr = static_cast<size_t*>(block),
+  size_t 
+    *hdr = const_cast<size_t*>(static_cast<const size_t*>(block)),
     n   = *(hdr++),
     sz0 = (1+ (KeyPacker::binary()?0:n) + (ValuePacker::binary()?0:n))*sizeof(size_t);
   FailWhen(sz<sz0,"corrupt block");

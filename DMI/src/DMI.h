@@ -110,6 +110,7 @@ namespace DMI
   // compile-time error reporting. This is borrowed from Alexandrescu
   template<int> struct CompileTimeError;
   template<> struct CompileTimeError<true> {};
+  template<> struct CompileTimeError<false> {};
 
 };
 
