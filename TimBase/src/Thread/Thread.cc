@@ -74,7 +74,7 @@ namespace LOFAR
       pthread_t id = 0;
       pthread_create(&id,attr,start,arg);
       // add to map
-      thread_map_[thread_list_.size()] = id;
+      thread_map_[id] = thread_list_.size();
       thread_list_.push_back(id);
       return id;
     }
