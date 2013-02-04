@@ -164,7 +164,15 @@ void FastParmTable::throwErrno (const string &message)
 {
   int errno0 = errno;
   char errbuf[256];
+// This test was taken from Chromium's safe_strerror_posix.cc
+#if (defined(__GLIBC__) || defined(OS_NACL))
+  // Use the historical GNU-specific version of strerror_r found on e.g. Linux
   char *err = strerror_r(errno0,errbuf,sizeof(errbuf));
+#else
+  // Use the POSIX-compliant (XSI-compliant) version of strerror_r found on e.g. Darwin
+  int errno1 = strerror_r(errno0,errbuf,sizeof(errbuf));
+  char *err = errbuf;
+#endif
   Throw(Debug::ssprintf("%s: %s (errno=%d)",
         Debug::ssprintf(message.c_str(),table_name_.c_str()).c_str(),err,errno0));
 }
