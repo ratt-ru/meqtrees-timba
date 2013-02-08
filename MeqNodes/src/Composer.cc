@@ -75,8 +75,12 @@ int Composer::getResult (Result::Ref &resref,
     for( int i=0; i<numChildren(); i++ )
     {
       const Result &chres = *childres[i];
-      if( chres.numVellSets() < 2 )
+      if( chres.numVellSets() < 2 )   
+      {
+	if( dims0.empty() )
+	  nres0 = 1;
         continue;
+      }
       // first proper tensor result? set dims0 from it
       if( dims0.empty()  )
       {
