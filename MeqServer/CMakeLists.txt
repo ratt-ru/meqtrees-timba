@@ -46,5 +46,15 @@ else(CUDA_FOUND)
   add_executable(meqserver src/meqserver_main.cc)
 endif(CUDA_FOUND)
 #message( libs=${MEQPACKAGE_LIBRARIES} )
-target_link_libraries(meqserver ${MEQPACKAGE_LIBRARIES} ${CPP_PLATFORM_LIBS})
+IF(APPLE)
+    # Link the CoreFoundation framework so that it is initialised in the main thread of meqserver
+    # on loading up. Otherwise it may inadvertently be pulled in when constructing a meqnode
+    # (e.g. via a Qt import), which crashes meqserver with a SIGTRAP (signal 5) as CFInitialize
+    # wants to be run in the main thread only (since OS X 10.6).
+    include_directories(/System/Library/Frameworks)
+    find_library(CF_LIBRARY CoreFoundation)
+    target_link_libraries(meqserver ${MEQPACKAGE_LIBRARIES} ${CPP_PLATFORM_LIBS} ${CF_LIBRARY})
+ELSE(APPLE)
+    target_link_libraries(meqserver ${MEQPACKAGE_LIBRARIES} ${CPP_PLATFORM_LIBS})
+ENDIF(APPLE)
 INSTALL(TARGETS meqserver RUNTIME DESTINATION bin)
