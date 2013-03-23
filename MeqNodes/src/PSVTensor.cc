@@ -489,7 +489,8 @@ Vells PSVTensor::computeSmearingTerm (const Vells &p,const Vells &dp)
 #include <casa/BasicSL/Constants.h>
 using namespace casa;
 
-const double fwhm2int = 1.0/std::sqrt(std::log(16.0));
+// FWHM = 2*sqrt{2*log(2)} sigma 
+const double fwhm2int = 1.0/std::sqrt(std::log(256));
 
 
 // fill normalized visibilities 
