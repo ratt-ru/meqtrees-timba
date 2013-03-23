@@ -563,7 +563,7 @@ bool PSVTensor::computeShapeTerm (Vells &shape,bool recompute,
 //    wstate()["$cos_pa"] = cos_pa;
 //    wstate()["$sin_pa"] = sin_pa;
     // rotate uv-coordinates through PA to put them into the coordinate frame
-    // of the gaussian
+    // of the gaussian. 
     Vells u1 = cos_pa*u - sin_pa*v;
     Vells v1 = sin_pa*u + cos_pa*v;
 //    wstate()["$u"] = u;
@@ -576,19 +576,36 @@ bool PSVTensor::computeShapeTerm (Vells &shape,bool recompute,
     // we need to DIVIDE u1 and v1 by the uv-extents, thus we multiply by the lm-extents
     // instead, and divide by the reciprocality constant
     
-    // but first, we convert FWHM to uv-space 
-    // ok the extra 4pi is just a fudge here, 
-    // until I figure out WTF is the right scale, but this gives suspiciously correct results
-    // Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*4*C::pi); 
-    // AGW added an extra ln(2)
-    Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*C::pi*4.0*std::log(2));
-//    wstate()["$scale_uv"] = scale_uv;
-    // convert to intrinsic scale, and to wavelengths
-    scale_uv *= freq_vells_/C::c; // (fwhm2int/C::c)*freq_vells_;
+//     // but first, we convert FWHM to uv-space 
+//     // ok the extra 4pi is just a fudge here, 
+//     // until I figure out WTF is the right scale, but this gives suspiciously correct results
+//     // Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*4*C::pi); 
+//     // AGW added an extra ln(2)
+//     Vells scale_uv = 1/(fwhm*fwhm2int*C::pi*C::pi*4.0*std::log(2));
+// //     Vells scale_uv = 1/(fwhm*fwhm2int*std::sqrt(2)*C::pi);
+// //    wstate()["$scale_uv"] = scale_uv;
+//     // convert to intrinsic scale, and to wavelengths
+//     scale_uv *= freq_vells_/C::c; // (fwhm2int/C::c)*freq_vells_;
+// //    wstate()["$scale_uv1"] = scale_uv;
+//     // apply extents to u1 and v1
+//     u1 /= scale_uv/ratio;
+//     v1 /= scale_uv;
+    
+   // OMS 22/03/13: OK what a fucking mess all that up there is. Problem is probably with scale_uv *= freq/C,
+   // which caused u (in meters) to be divided by freq and multiplied by c.
+
+   // so, start again: from considering a 1D Gaussian, where exp(-ax^2) FTs into exp(-(pi^2/a)*u^2))
+   // we have
+   // uv must be multiplied by freq/c, and by sigma*sqrt(2)*pi, where sigma=fwhm*fwhm2int
+   // as simple as that?
+    Vells scale_uv = (fwhm*fwhm2int*std::sqrt(2)*C::pi)/C::c;
+    scale_uv *= freq_vells_;
 //    wstate()["$scale_uv1"] = scale_uv;
     // apply extents to u1 and v1
-    u1 /= scale_uv/ratio;
-    v1 /= scale_uv;
+    u1 *= ratio;  // u must be additionally rescaled by the major/minor ratio
+    u1 *= scale_uv;
+    v1 *= scale_uv;
+
 //    wstate()["$u2"] = u1;
 //    wstate()["$v2"] = v1;
     // finally, the height

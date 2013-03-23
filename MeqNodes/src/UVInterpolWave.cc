@@ -128,7 +128,8 @@ namespace Meq {
         std::cerr<<"WARNING: The requested MS frequencies are out of range of the input frequencies"<<endl;
         reported_freq_warning_ = &FFTbrickUV;
       }
-      else if( rcells.center(_inaxis0)(0) < FFTbrickCells.center(_inaxis0)(0) || rcells.center(_inaxis0)(nf-1) > FFTbrickCells.center(_inaxis0)(nf-1) )
+      else if( rcells.center(_inaxis0)(0) < FFTbrickCells.center(_inaxis0)(0)-FFTbrickCells.cellSize(_inaxis0)(0)/2 || 
+	       rcells.center(_inaxis0)(nn-1) > FFTbrickCells.center(_inaxis0)(nf-1)+FFTbrickCells.cellSize(_inaxis0)(nf-1)/2 )
       {
         std::cerr<<"WARNING: Partial frequency mismatch between the input image and the requested MS frequencies"<<endl;
         reported_freq_warning_ = &FFTbrickUV;
