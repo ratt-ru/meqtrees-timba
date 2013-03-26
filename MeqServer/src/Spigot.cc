@@ -402,7 +402,7 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
           {
             if( flag_bit_ ) // override with flag bit if requested
               *pfl = blitz::where(*pfl,flag_bit_,0);
-            result.vellSetWr(icorr).setDataFlags(flagref);
+            vs.setDataFlags(flagref);
           }
         }
       }
