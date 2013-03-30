@@ -409,14 +409,20 @@ def flags (shape):
   
 def vellset (mainval,**kw):
   """Creates a VellSet from the given main value""";
+  if type(mainval) is not _vells_type:
+    raise TypeError,"meq.vellset(): vells-type argument expected. Use meq.vells(), meq.complex_vells() or meq.sca_vells() to create a vells.";
   return _vellset_type(value=mainval,**kw);
   
 def result (vellset=None,cells=None):
   """Creates a Result from the given VellSet and Cells""";
   kw = record();
   if vellset is not None:
+    if type(vellset) is not _vellset_type:
+      raise TypeError,"meq.result() vellset-type argument expected. Use meq.vellset() to create a vellset.";
     kw.vellsets = [ vellset ];
   if cells is not None:
+    if type(cells) is not _cells_type:
+      raise TypeError,"meq.result() cells-type argument expected. Use meq.cells() to create a cells.";
     kw.cells = cells;
   return _result_type(**kw);
   

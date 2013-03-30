@@ -171,8 +171,8 @@ class PyRandom (pynode.PyNode):
     print "cells shape is",shape;
     value = meq.vells(shape);
     # fill in random numbers with the given distribution
-    flat = value.getflat();   # 'flat' reference to array data
-    for i in range(len(flat)):
+    flat = value.ravel();   # 'flat' reference to array data
+    for i in range(flat.size):
       flat[i] = self._generator(*self.distribution_args);
     return meq.result(meq.vellset(value),cells);
     
@@ -206,7 +206,7 @@ def _test_forest (mqs,parent,**kwargs):
   # run tests on the forest
   cells = meq.cells(meq.domain(0,1,0,1),num_freq=20,num_time=10);
   request = meq.request(cells,rqtype='ev');
-  mqs.execute('pynode',request);
+  mqs.execute('c',request);
 
 # this is the testing branch, executed when the script is run directly
 # via 'python script.py'

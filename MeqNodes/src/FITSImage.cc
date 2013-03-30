@@ -40,12 +40,12 @@ const HIID FMode= AidMode;
 
 //##ModelId=400E5355029C
 FITSImage::FITSImage()
-	: Node(0),cutoff_(1.0),has_prev_result_(false),mode_(1)
+  : Node(0),cutoff_(1.0),has_prev_result_(false),mode_(1)
 {
 
-	//create 2 new axes -- Freq is already present
-	Axis::addAxis("L"); //L
-	Axis::addAxis("M"); //M
+  //create 2 new axes -- Freq is already present
+  Axis::addAxis("L"); //L
+  Axis::addAxis("M"); //M
 }
 
 //##ModelId=400E5355029D
@@ -54,25 +54,25 @@ FITSImage::~FITSImage()
 
 void FITSImage::setStateImpl (DMI::Record::Ref &rec,bool initializing)
 {
-	Node::setStateImpl(rec,initializing);
+  Node::setStateImpl(rec,initializing);
 
-	rec[FFilename].get(filename_,initializing);
+  rec[FFilename].get(filename_,initializing);
 #ifdef DEBUG
   cout<<"File Name ="<<filename_<<endl;
 #endif
-	if(rec[FCutoff].get(cutoff_,initializing)) {
+  if(rec[FCutoff].get(cutoff_,initializing)) {
 #ifdef DEBUG
    cout<<"Cutoff ="<<cutoff_<<endl;
 #endif
-	}
+  }
 
-	if(rec[FMode].get(mode_,initializing)) {
+  if(rec[FMode].get(mode_,initializing)) {
 #ifdef DEBUG
    cout<<"Mode ="<<mode_<<endl;
 #endif
-	}
-	//always cache
-	setCachePolicy(Node::CACHE_ALWAYS);
+  }
+  //always cache
+  setCachePolicy(Node::CACHE_ALWAYS);
 }
 
 
@@ -149,9 +149,9 @@ int FITSImage::getResult (Result::Ref &resref,
  if (reverse_freq ) {
         blitz::Array<double,1> f1(f_space.size());
         f1 = blitz::abs(f_space);
-	cells.setCells(Axis::FREQ,f_center.reverse(0),f1.reverse(0));
+  cells.setCells(Axis::FREQ,f_center.reverse(0),f1.reverse(0));
  } else {
-	cells.setCells(Axis::FREQ,f_center,f_space);
+  cells.setCells(Axis::FREQ,f_center,f_space);
  }
  cells.setCells(Axis::axis("L"),l_center,l_space);
  cells.setCells(Axis::axis("M"),m_center,m_space);
@@ -166,7 +166,7 @@ int FITSImage::getResult (Result::Ref &resref,
 
  unsigned int maxrank=std::max(Axis::axis("L"),Axis::axis("M"));
  if (shape.size()<maxrank+1) {
-		shape.resize(maxrank+1,1);//resize, and make a all 1 vector
+    shape.resize(maxrank+1,1);//resize, and make a all 1 vector
  }
  //shape is time=1,freq,l,m and other axes (u,v)
  shape[Axis::TIME]=1;
