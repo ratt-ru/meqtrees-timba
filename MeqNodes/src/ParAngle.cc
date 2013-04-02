@@ -125,6 +125,7 @@ void ParAngle::evaluateTensors (std::vector<Vells> & out,
     double z = vz.getScalar<double>();
     MPosition stnpos(MVPosition(x,y,z),MPosition::ITRF);
     Frame.set(stnpos); // tie this frame to station position
+//    cerr<<"xyz:"<<x<<","<<y<<","<<z<<endl;
   }
   else
   {
@@ -140,9 +141,11 @@ void ParAngle::evaluateTensors (std::vector<Vells> & out,
   // Get RA and DEC of location where Parallactic Angle is to be 
   // calculated (default is J2000).
   // assume input ra and dec are in radians
+  double ra=vra.getScalar<double>(),dec=vdec.getScalar<double>();
   MVDirection sourceCoord(vra.getScalar<double>(),vdec.getScalar<double>());
   // create corresponding MDirection
   MDirection sourceDir(sourceCoord);
+//  cerr<<"radec:"<<x<<","<<y<<","<<z<<endl;
 
   FailWhen(!cells.isDefined(Axis::TIME),"Meq::ParAngle: no time axis in request, can't compute ParAngle");
   int ntime = cells.ncells(Axis::TIME);
@@ -158,13 +161,14 @@ void ParAngle::evaluateTensors (std::vector<Vells> & out,
   // create Parallactic Angle machine
   ParAngleMachine pam(sourceDir);
   pam.set(Frame);
-  pam.setInterval(0.04);
+//  pam.setInterval(0.04);
+  pam.setInterval(0);
   for( int i=0; i<ntime; i++) 
   {
     qepoch.setValue (time(i));
-    mepoch.set (qepoch);
-    Frame.set (mepoch);
-    ParAng[i] = pam(mepoch).get("rad").getValue();
+//    mepoch.set (qepoch);
+//    Frame.set (mepoch);
+    ParAng[i] = pam(qepoch).get("rad").getValue();
   }
 }
 
