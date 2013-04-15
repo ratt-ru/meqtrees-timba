@@ -118,8 +118,8 @@ class meqserver_gui (app_proxy_gui):
 
     _dprint(2,"meqserver-specific init");
     # size window if stored in config
-    width = Config.getint('browser-window-width',0);
-    height = Config.getint('browser-window-height',0);
+    width = max(100,min(Config.getint('browser-window-width',0),4000));
+    height = max(50,min(Config.getint('browser-window-height',0),2000));
     if width or height:
       self.resize(QSize(width,height));
 

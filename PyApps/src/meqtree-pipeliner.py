@@ -149,6 +149,8 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
               print "### '%s' (id: %s)"%(name,job_id);
             raise NameError,"No such TDL job: '%s'"%job;
 	try:
+	  sys.stdout.flush();
+	  sys.stderr.flush();
 	  res = func(mqs,None,wait=True);
 	  print "### Job result:",res;
 	except:
