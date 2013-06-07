@@ -347,15 +347,15 @@ int Solver::populateSpidMap (const DMI::Record &spidmap_rec,const Cells &cells)
       }
     }
     // now see if this tiling is already in the map, and insert if not
-    TilingMap::iterator iter = tilings_.find(tilesize);
+    TilingMap::iterator itertilingmap = tilings_.find(tilesize);
     Tiling * ptiling;
-    if( iter == tilings_.end() )
+    if( itertilingmap == tilings_.end() )
     {
       ptiling = &( tilings_[tilesize] );
       ptiling->init(tilesize,num_cells);
     }
     else
-      ptiling = &( iter->second );
+      ptiling = &( itertilingmap->second );
     // put pointer to tiling into SpidInfo, and figure out # of unknowns
     spi.ptiling = ptiling;
     spi.nuk = ptiling->total_tiles;
