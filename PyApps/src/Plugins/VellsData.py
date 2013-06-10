@@ -410,7 +410,7 @@ class VellsData:
            if flags is not None:
              flags0 = flags.reshape(f0shape);
              flags = numpy.zeros(maxshape,int);
-             flags[f1index] = flags0[f0index];
+             flags[f1index] = flags0[f0index] if not numpy.isscalar(flags0) else flags0;
          if flags is not None:
           self._plot_flags_dict[toggle_index] = flags;
 

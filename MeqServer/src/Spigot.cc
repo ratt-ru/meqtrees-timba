@@ -372,7 +372,6 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
       const LoVec_int  rowflag = tile.rowflag()(rowrange);
       for( uint i=0; i<corr_index_.size(); i++ )
       {
-        VellSet &vs = result.vellSetWr(i);
         int icorr = corr_index_[i];
         if( icorr >=0 )
         {
@@ -402,7 +401,8 @@ int Spigot::deliverTile (const Request &req,VisCube::VTile::Ref &tileref,const L
           {
             if( flag_bit_ ) // override with flag bit if requested
               *pfl = blitz::where(*pfl,flag_bit_,0);
-            vs.setDataFlags(flagref);
+            // attach these dataflags to the i-th vellset
+            result.vellSetWr(i).setDataFlags(flagref);
           }
         }
       }
