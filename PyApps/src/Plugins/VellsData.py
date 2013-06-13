@@ -385,32 +385,35 @@ class VellsData:
            # figure out the uniting shape
            maxdim = max([len(sh) for sh in valueshapes]);
            maxshape = [ max([(sh[i] if i<len(sh) else 1) for sh in valueshapes]) for i in range(maxdim) ];
-           # figure out how to reshape flags array to this. We do as follows for e.g. a maxshape of (L,M,N) and a flags shape of (L,1,N)
-           # * reshape flags to f0shape, which is a shape containing all non-trivial axes, thus (L,N)
-           # * make new flags array of shape L,M,N
-           # * assign new[:,:,:] = old[:,.numpy.newaxis,:]
-           f0shape = [];
-           # build up the indexing object for old (f0index) and new (f1index) arrays
-           f0index = [];
-           f1index = [numpy.s_[:]]*maxdim;   # this is just :,:,:,...
-           # loop over all dimensions
-           for idim,dimlen in enumerate(maxshape):
-             # if this dimension is missing in flags, add numpy.newaxis to its index
-             if idim >= len(flags.shape) or flags.shape[idim] == 1:
-               f0index.append(numpy.newaxis);
-             # if this dimension is present in flags, add : to its index, and its length to the f0shape
-             elif flags.shape[idim] == dimlen:
-               f0index.append(numpy.s_[:]);
-               f0shape.append(dimlen);
-             # else bomb out -- this shouldn't happen, and we won't display such flags
-             else:
-               flags = None;
-               break;
-           # now reshape and promote
-           if flags is not None:
-             flags0 = flags.reshape(f0shape);
-             flags = numpy.zeros(maxshape,int);
-             flags[f1index] = flags0[f0index] if not numpy.isscalar(flags0) else flags0;
+           # only do this if uniting shape is non-trivial
+           if len(maxshape) > 1 or maxshape[0] > 1:
+            # figure out how to reshape flags array to this. We do as follows for e.g. a maxshape of (L,M,N) and a flags shape of (L,1,N)
+            # * reshape flags to f0shape, which is a shape containing all non-trivial axes, thus (L,N)
+            # * make new flags array of shape L,M,N
+            # * assign new[:,:,:] = old[:,.numpy.newaxis,:]
+            f0shape = [];
+            # build up the indexing object for old (f0index) and new (f1index) arrays
+            f0index = [];
+            f1index = [numpy.s_[:]]*maxdim;   # this is just :,:,:,...
+            # loop over all dimensions
+            for idim,dimlen in enumerate(maxshape):
+              # if this dimension is missing in flags, add numpy.newaxis to its index
+              if idim >= len(flags.shape) or flags.shape[idim] == 1:
+                f0index.append(numpy.newaxis);
+              # if this dimension is present in flags, add : to its index, and its length to the f0shape
+              elif flags.shape[idim] == dimlen:
+                f0index.append(numpy.s_[:]);
+                f0shape.append(dimlen);
+              # else bomb out -- this shouldn't happen, and we won't display such flags
+              else:
+                flags = None;
+                break;
+            # now reshape and promote
+            if flags is not None:
+              flags0 = flags.reshape(f0shape);
+              flags = numpy.zeros(maxshape,int);
+              if not numpy.isscalar(flags):
+                flags[f1index] = flags0[f0index] if not numpy.isscalar(flags0) else flags0;
          if flags is not None:
           self._plot_flags_dict[toggle_index] = flags;
 
