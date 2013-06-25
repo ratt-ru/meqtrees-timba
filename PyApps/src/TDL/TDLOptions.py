@@ -737,7 +737,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     if not more and not value:
       raise ValueError,"empty option list, and 'more=' not specified";
     self._more = more;
-    self._custom_value = (None,'');
+    self._custom_value = ('','','');
     self._submenu = self._submenu_editor = None;
     self.set_option_list(value,conserve_selection=False);
     self.inline = False;
@@ -841,7 +841,7 @@ class _TDLListOptionItem (_TDLOptionItem):
     if self._more is not None:
       self.option_list.append(self._custom_value[0]);
       self.option_list_str.append(self._custom_value[1]);
-      self.option_list_desc.append(self._custom_value[1]);
+      self.option_list_desc.append(self._custom_value[2]);
     # rebuild menus, if already instantiated
     if self._submenu:
       self._rebuild_submenu(self._twitem.treeWidget());
@@ -887,12 +887,11 @@ class _TDLListOptionItem (_TDLOptionItem):
   def set_custom_value (self,value,select=True,save=True,callback=True):
     if self._more is None:
       raise TypeError,"can't set custom value for this option list, since it was not created with a 'more' argument";
-    self._custom_value = (value,str(value));
-    self.option_list[-1] = value;
-    self.option_list_str[-1] = self.option_list_desc[-1] = str(value);
+    self._custom_value = (value,str(value),str(value)); # or "(empty)");
+    self.option_list[-1],self.option_list_str[-1],self.option_list_desc[-1] = self._custom_value;
     # copy to editor widget
     if self._submenu_editor is not None:
-      self._submenu_editor.setText(str(value));
+      self._submenu_editor.setText(self._custom_value[1]);
     # select if needed
     if select:
       self.set(len(self.option_list)-1,save=save,callback=callback);
@@ -916,7 +915,7 @@ class _TDLListOptionItem (_TDLOptionItem):
         box_lo.setSpacing(0);
         #spacer.setBackgroundRole(QPalette.Button);
         #for color in self._submenu.paletteBackgroundColor(),spacer.paletteBackgroundColor():
-        self._submenu_editor = QLineEdit(self.get_option_desc(ival),box);
+        self._submenu_editor = QLineEdit(self.get_option_str(ival),box);
         box_lo.addWidget(self._submenu_editor);
         # self._submenu_editor.setBackgroundMode(Qt.PaletteMidlight);
         if self._more is int:
@@ -971,16 +970,19 @@ class _TDLListOptionItem (_TDLOptionItem):
         return;
       self.set(selected);
       # keep menu popped up if selected custom value, but editor is empty
-      if not self._custom_value[1]:
-        _dprint(5,"forcing popup");
-        self._popup_menu();
+#      if not self._custom_value[1]:
+#        _dprint(5,"forcing popup");
+#        self._popup_menu();
     else:
       self.set(selected);
-
 
   def _set_submenu_custom_value (self):
     # get value from editor
     value = str(self._submenu_editor.text());
+#    if value == "(empty)" and self._custom_value[0] == '':
+#      value = '';
+    if value == "None" and self._custom_value[0] is None:
+      value = None;
     if self._more is int:
       value = int(value);
     elif self._more is float:
@@ -992,7 +994,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       self._activate_submenu_action(self._submenu_qas[self.num_options()-1]);
       self._submenu.close();
     else:  # invalid value
-      self._submenu_editor.setText(self._custom_value[1]);
+      self._submenu_editor.setText(self._custom_value[1] or "(empty)");
       if self._custom_value[0] is None:
         self.set(0);
 
