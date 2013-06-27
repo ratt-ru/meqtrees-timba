@@ -1350,10 +1350,11 @@ def TDLMenu (title,*items,**kw):
   any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
   return _TDLSubmenu(title,*items,**kw);
 
-def TDLOption (symbol,name,value,namespace=None,**kw):
+def TDLOption (symbol,name,value,namespace=None,validator=None,**kw):
   """this creates and returns an option object, without adding it to
   any menu. Should be used inside a TDLCompileMenu/TDLRuntimeMenu.""";
   item = _make_option_item(namespace,symbol,name,value,**kw);
+  validator and item.set_validator(validator);
   return item;
 
 TDLOptionSeparator = _TDLOptionSeparator;
