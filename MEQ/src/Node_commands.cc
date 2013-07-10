@@ -43,6 +43,8 @@ int Node::processCommand (Result::Ref &,
                           int verbosity)
 {
   int retcode = RES_OK;
+  struct timeval tv;
+  struct timezone tz;
   if( command == FState )
   {
     setState(args);
@@ -59,13 +61,18 @@ int Node::processCommand (Result::Ref &,
   else if( command == HIID("Clear.Cache") )
   {
     bool recursive = args.valid() && args[FRecursive].as<bool>(false);
-    clearCache(recursive,time(0));
+    gettimeofday(&tv,&tz);
+    long marker = (tv.tv_sec<<20)|tv.tv_usec;
+    clearCache(recursive,marker);
     if( verbosity>0 )
       postMessage(recursive ? "cache cleared recursively" : "cache cleared");
   }
   else if( command == HIID("Clear.Cache.Recursive") )
   {
-    clearCache(true,time(0));
+    gettimeofday(&tv,&tz);
+    gettimeofday(&tv,&tz);
+    long marker = (tv.tv_sec<<20)|tv.tv_usec;
+    clearCache(true,marker);
     if( verbosity>0 )
       postMessage("cache cleared recursively");
   }
