@@ -191,7 +191,7 @@ void Meq::VisDataMux::checkChildren ()
     Sink * psink = dynamic_cast<Sink*>(&(children().getChild(ichild)));
     FailWhen(!psink,Debug::ssprintf("child %d not of class MeqSink",ichild));
     int did = psink->dataId();
-    FailWhen(did<0 || did>0xFFFF,ssprintf("illegal data id %x from sink %s",did,psink->name().c_str()));
+    FailWhen(did<0,ssprintf("illegal data id %x from sink %s",did,psink->name().c_str()));
     if( did >= int(handlers_.size()) )
       handlers_.resize(did+100);
     if( did >= int(child_indices_.size()) )
@@ -212,7 +212,7 @@ void Meq::VisDataMux::checkChildren ()
     Spigot * pspigot = dynamic_cast<Spigot*>(&(stepchildren().getChild(ichild)));
     FailWhen(!pspigot,Debug::ssprintf("stepchild %d not of class MeqSpigot",ichild));
     int did = pspigot->dataId();
-    FailWhen(did<0 || did>0xFFFF,ssprintf("illegal data id %x from spigot %s",did,pspigot->name().c_str()));
+    FailWhen(did<0,ssprintf("illegal data id %x from spigot %s",did,pspigot->name().c_str()));
     if( did >= int(handlers_.size()) )
       handlers_.resize(did+100);
     cdebug(2)<<"attaching spigot for did "<<did<<endl;
