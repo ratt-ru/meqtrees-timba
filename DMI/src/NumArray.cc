@@ -320,7 +320,7 @@ void DMI::NumArray::init (const LoShape & shape,int flags,TypeId realtype)
   itsWritableRef = false;    
   itsShape = shape;
   itsSize  = shape.product();
-  int sz = sizeof(NumArray::Header) + sizeof(uint)*shape.size();
+  size_t sz = sizeof(NumArray::Header) + sizeof(uint)*shape.size();
   // Align data on 8 bytes.
   itsDataOffset = (sz+7) / 8 * 8;
   sz = itsDataOffset + itsSize*itsElemSize;

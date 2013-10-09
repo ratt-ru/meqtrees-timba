@@ -502,11 +502,11 @@ private:
     //##ModelId=3DB949AE0379
   TypeId     itsScaType;        // scalar data type matching the array type
     //##ModelId=3DB949AE0383
-  int        itsElemSize;       // #bytes of an array element
+  size_t     itsElemSize;       // #bytes of an array element
     //##ModelId=3DB949AE0389
-  int        itsSize;           // total size of array (in elements)
+  size_t     itsSize;           // total size of array (in elements)
     //##ModelId=3E9BD91703CC
-  int        itsDataOffset;     // array data offset in SmartBlock
+  size_t     itsDataOffset;     // array data offset in SmartBlock
     //##ModelId=3DB949AE038E
   char*      itsArrayData;      // pointer to array data in SmartBlock
     //##ModelId=3DB949AE0394

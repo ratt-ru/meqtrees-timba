@@ -72,6 +72,7 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
   print "### Starting meqserver";
   mqs = meqserver.default_mqs(wait_init=10,extra=["-mt",str(options.mt)]);
 
+  retcode = 0;
   # use a try...finally block to exit meqserver cleanly at the end
   try:
     if not os.path.exists(options.config):
@@ -160,9 +161,13 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
     print "### No more commands";
 
   ### Cleanup time
+  except:
+    print "Exception caught";
+    retcode = 1;
   finally:
     if not mqs.current_server:
       print "### The meqserver appears to have died on us :( Please check for core files and such.";
+      retcode = 1;
     else:
       print "### Stopping the meqserver";
     # this halts the meqserver
@@ -173,4 +178,5 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
       print "### There was an error stopping the meqserver cleanly. Exiting anyway.";
       sys.exit(1);
     # now we can exit
-    print "### All your batch are belong to us. Bye!";
+    print "### All your batch are belong to us. Bye!" if not retcode else "### All your batch are not belong to us, returning with error code";
+    sys.exit(retcode);
