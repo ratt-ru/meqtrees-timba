@@ -82,7 +82,7 @@ void fillBaseLength (Bool fillpos,
 {
     MSAntenna msan(ms.antenna());
     MSAntennaColumns msanc(msan);
-    Int nr = 16;
+    Int nr = msan.nrow();
     baseLength.resize (nr);
     baseLength = 0;
     Double cosL = cos(wsrtLong);

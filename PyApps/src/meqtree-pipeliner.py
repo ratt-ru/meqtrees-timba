@@ -169,6 +169,12 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
       print "### The meqserver appears to have died on us :( Please check for core files and such.";
       retcode = 1;
     else:
+      # check for accumulated errors
+      if mqs.num_errors():
+        print "### meqserver reported %d error(s) during the run:"%mqs.num_errors();
+        for (i,err) in enumerate(mqs.get_error_log()):
+          print "###   %03d: %s"%(i,err[1]);   
+        retcode = 1
       print "### Stopping the meqserver";
     # this halts the meqserver
     try:
