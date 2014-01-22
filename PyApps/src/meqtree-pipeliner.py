@@ -162,7 +162,8 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
 
   ### Cleanup time
   except:
-    print "Exception caught";
+    print "Exception caught:";
+    traceback.print_exc();
     retcode = 1;
   finally:
     if not mqs.current_server:
