@@ -12,35 +12,20 @@ IF (DBM_INCLUDE_DIR)
     SET(DBM_FIND_QUIETLY TRUE)
 ENDIF (DBM_INCLUDE_DIR)
 
-SET(QDBM_NAMES 
-    qdbm
-    )
 SET(GDBM_NAMES 
     gdbm
     )
 
-# -- look for QDBM
-SET(DBM_TYPE QDBM)
-FIND_PATH(DBM_INCLUDE_DIR hovel.h PATHS /usr/include/qdbm /usr/local/include/qdbm)
-FOREACH( lib ${QDBM_NAMES} )
-    MARK_AS_ADVANCED(DBM_LIBRARY_${lib})
+# look for GDBM
+SET(DBM_TYPE GDBM)
+FIND_PATH(DBM_INCLUDE_DIR gdbm.h)
+FOREACH( lib ${GDBM_NAMES} )
     FIND_LIBRARY(DBM_LIBRARY_${lib} NAMES ${lib} )
     IF(DBM_LIBRARY_${lib})
         LIST(APPEND DBM_LIBRARIES ${DBM_LIBRARY_${lib}})
     ENDIF(DBM_LIBRARY_${lib})
 ENDFOREACH(lib)
 
-#IF(NOT DBM_INCLUDE_DIR OR NOT DBM_LIBRARIES)
-    # look for GDBM
-#    SET(DBM_TYPE GDBM)
-#    FIND_PATH(DBM_INCLUDE_DIR gdbm.h)
-#    FOREACH( lib ${GDBM_NAMES} )
-#        FIND_LIBRARY(DBM_LIBRARY_${lib} NAMES ${lib} )
-#        IF(DBM_LIBRARY_${lib})
-#            LIST(APPEND DBM_LIBRARIES ${DBM_LIBRARY_${lib}})
-#        ENDIF(DBM_LIBRARY_${lib})
-#    ENDFOREACH(lib)
-#ENDIF(NOT DBM_INCLUDE_DIR OR NOT DBM_LIBRARIES)
 
 # handle the QUIETLY and REQUIRED arguments and set DBM_FOUND to TRUE if.
 # all listed variables are TRUE
