@@ -10,6 +10,5 @@ install:
  - mkdir build && cd build
  - cmake ..
  - make
- - make install
 script: 
  - true
