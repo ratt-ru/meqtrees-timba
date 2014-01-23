@@ -30,7 +30,6 @@
   #define HAVE_FASTPARMTABLE 1
   #include <hovel.h>
 #else
-  #error GDBM is no longer supported. Please install QDBM instead (package libqdbm-dev usually.)
   #ifdef HAVE_GDBM
     #define HAVE_FASTPARMTABLE 1
     #include <gdbm.h>
