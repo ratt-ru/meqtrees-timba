@@ -316,15 +316,17 @@ void initOctoPythonModule ()
   PyModule_AddObject(module, "lazy_objref",(PyObject *)&PyLazyObjRefType); // steals ref
   
   PyObject * timbamod = PyImport_ImportModule("Timba");  // returns new ref
-  // since AddObject steals a ref, increment the counter
-  Py_INCREF(module);
-  PyModule_AddObject(timbamod,"octopython",module);
-  
   if( !timbamod )
   {
     PyErr_Print();
     Throw("octopython init error: import of Timba module failed");
   }
+  
+  // since AddObject steals a ref, increment the counter
+  Py_INCREF(module);
+  PyModule_AddObject(timbamod,"octopython",module);
+
+
   PyObject * dmimod = PyImport_ImportModule("Timba.dmi"); // returns new ref
   if( !dmimod )
   {
