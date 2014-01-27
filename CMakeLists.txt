@@ -23,6 +23,12 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
 
+# These are the versions of Python we support.
+set(Python_ADDITIONAL_VERSIONS 2.7)
+include (FindPythonInterp)
+include (FindPythonLibs)
+include(cmake/SetPythonPackagesDir.cmake)
+
 # had to add this to get working on Ubuntu 11.10 g{cc/++}4.6 since the include directory structure seems to have changed
 #include_directories(/usr/include/i386-linux-gnu/)
 
@@ -38,7 +44,7 @@ if(NOT MEQTREES_INSTALL_DIR )
 endif(NOT MEQTREES_INSTALL_DIR )
 
 if(NOT PYTHON_INSTALL_DIR )
-    set( PYTHON_INSTALL_DIR "${MEQTREES_INSTALL_DIR}/Timba" )
+    set( PYTHON_INSTALL_DIR "${PYTHON_PACKAGES_DIR}/Timba" )
 endif(NOT PYTHON_INSTALL_DIR )
 
 if(NOT INCLUDE_INSTALL_DIR )
