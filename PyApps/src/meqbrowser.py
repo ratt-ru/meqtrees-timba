@@ -127,7 +127,7 @@ except:
   svn_revision = '';
 
 from Kittens import pixmaps;
-pixmaps.load_icons('treebrowser');
+pixmaps.load_icons('treebrowser', "Timba");
 app_proxy_gui.set_splash_screen(pixmaps.redhood_300.pm,
 	"Welcome to MeqTrees %s %s"%(release,svn_revision));
 
