@@ -285,6 +285,13 @@ def get_job_func (name):
       return item.func;
   raise NameError,"Job '%s' not found"%name;
 
+def is_jobfunc_defined (func):
+  global _job_options;
+  for item in _job_options:
+    if item.func is func:
+      return True;
+  return False;
+
 def get_all_jobs ():
   global _job_options;
   return [ (item.name,item.job_id) for item in _job_options ];
@@ -1361,7 +1368,7 @@ TDLOptionSeparator = _TDLOptionSeparator;
 
 def TDLJob (function,name=None,doc=None,job_id=None):
   """this creates and returns a TDL job entry, without adding it to
-  anu menu. Should be used inside a TDLRuntimeMenu.""";
+  any menu. Should be used inside a TDLRuntimeMenu.""";
   namespace = sys._getframe(1).f_globals;
   opt = _TDLJobItem(function,name=name,namespace=namespace,doc=doc,job_id=job_id);
   return opt;

@@ -759,7 +759,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       joblist = [];
       # try to build it from implicit function names
       for (name,func) in _tdlmod.__dict__.iteritems():
-        if name.startswith("_tdl_job_") and callable(func):
+        if name.startswith("_tdl_job_") and callable(func) and not TDLOptions.is_jobfunc_defined(func):
           joblist.append(func);
     # does the script define a testing function?
     testfunc = getattr(_tdlmod,'_test_forest',None);
