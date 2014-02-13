@@ -93,7 +93,7 @@ def _setPackagePath (package):
       print "The %s package will not be available."%package;
     return;
   # else look in standard places
-  for path in _PackageLocations:
+  for path in list(_PackageLocations) + list(sys.path):
     path = os.path.expanduser(path);
     if _tryPackageDir(os.path.join(path,package),package):
       return;
