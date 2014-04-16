@@ -306,6 +306,7 @@ namespace Meq {
 	    	freq_match = false;
 		    for(int k=1; k<nf; k++)
 		    {
+			// INI: account for the possibility that brick frequencies could be decreasing from ff(0) to ff(nf-1).
 			if( (freq(j)>=ff(k-1) && freq(j)<=ff(k)) || (freq(j)<=ff(k-1) && freq(j)>=ff(k)) )
 			{
 				lfreq = k-1;
@@ -328,6 +329,9 @@ namespace Meq {
 			    }
 		    }
 	    } //end of if(nf>1)
+
+	//std::cout<<"j lfreq ufreq freq(j) ff(lfreq) ff(ufreq):"<<endl;
+	//std::cout<<j<<"\t"<<lfreq<<"\t"<<ufreq<<"\t"<<freq(j)<<"\t"<<ff(lfreq)<<"\t"<<ff(ufreq)<<endl;
 
         // convert u/v from meters into wavelengths
 	double ulambda = -u_arr(i)*freq(j)/c0;
@@ -354,6 +358,9 @@ namespace Meq {
         iv2 = std::min(iv2,nv-1);
         // sums of values and sum of weights
 	dcomplex arr_value = make_dcomplex(0.0);
+	double ampval = 0.0;
+	double argval = 0.0;
+	dcomplex imval = make_dcomplex(0.0,1.0);
 	double sum_weight = 0.;
 	//std::cout<<nu<<"\t"<<nv<<"\t"<<u_arr(0)*freq(0)/c0
 	// <<"\t"<<iv1<<"\t"<<iv2<<"\n"<<std::flush;
@@ -367,13 +374,20 @@ namespace Meq {
 	    if(extrapolate) //INI: only one frequency plane used
 	    {
 	      arr_value  += weight*garr(lfreq,ii,jj); // lfreq=ufreq
+	      /*std::cout<<"Extrapolating... lfreq = "<<lfreq<<endl;
+	      std::cout<<"weight = \t"<<weight<<"garr("<<lfreq<<","<<ii<<","<<jj<<") = "<<garr(lfreq,ii,jj)<<endl;
+	      std::cout<<"arr_value = "<<arr_value<<endl;*/
 	    }
 	    else //INI: interpolate between two frequency planes
 	    {
-	      if(ffbrick_asc)
-	    	arr_value+=weight*(garr(lfreq,ii,jj)+(garr(ufreq,ii,jj)-garr(lfreq,ii,jj))*((freq(j)-freq(lfreq))/(freq(ufreq)-freq(lfreq))));
+	      /*if(ffbrick_asc)
+	    	arr_value+=weight*(garr(lfreq,ii,jj)+(garr(ufreq,ii,jj)-garr(lfreq,ii,jj))*((freq(j)-ff(lfreq))/(ff(ufreq)-ff(lfreq))));
 	      else
-	    	arr_value+=weight*(garr(ufreq,ii,jj)+(garr(lfreq,ii,jj)-garr(ufreq,ii,jj))*((freq(j)-freq(ufreq))/(freq(lfreq)-freq(ufreq))));
+	    	arr_value+=weight*(garr(ufreq,ii,jj)+(garr(lfreq,ii,jj)-garr(ufreq,ii,jj))*((freq(j)-ff(ufreq))/(ff(lfreq)-ff(ufreq))));*/
+
+	      argval = std::arg(garr(lfreq,ii,jj)+(garr(ufreq,ii,jj)-garr(lfreq,ii,jj))*((freq(j)-ff(lfreq))/(ff(ufreq)-ff(lfreq))));
+	      ampval = std::abs(garr(lfreq,ii,jj))+(std::abs(garr(ufreq,ii,jj))-std::abs(garr(lfreq,ii,jj)))*((freq(j)-ff(lfreq))/(ff(ufreq)-ff(lfreq)));
+	      arr_value += weight * std::polar(ampval,argval);
 	    }
 	    sum_weight += weight;
 	  }
