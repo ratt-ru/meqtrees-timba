@@ -496,10 +496,10 @@ class TreeBrowser (QObject):
     # scan all modules for define_treebrowser_actions method, and call them all
     self._actions = {};
     funcs = set();
-    for (name,mod) in sys.modules.iteritems():
+    for (name,mod) in sys.modules.items():
       _dprint(4,'looking for treebrowser actions in',name);
       try: 
-        if callable(mod.define_treebrowser_actions):
+        if name.startswith("Timba") and callable(mod.define_treebrowser_actions):
           _dprint(3,'tb action found in',name,'adding to set');
           funcs.add(mod.define_treebrowser_actions);
       except AttributeError: pass;
