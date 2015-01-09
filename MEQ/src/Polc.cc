@@ -224,7 +224,7 @@ void Polc::do_evaluate (VellSet &vs,const Cells &cells,
       grid[i] = ( grid[i] - getOffset(i) )*one_over_scale;
 
       cdebug(4)<<"calculating polc on grid "<<i<<" : "<<grid[i]<<endl;
-      res_shape[iaxis] = std::max(grid[i].size(),1);
+      res_shape[iaxis] = std::max(int(grid[i].size()),1);
     }
   }
   // now evaluate
