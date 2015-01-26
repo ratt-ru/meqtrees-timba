@@ -37,8 +37,8 @@
 // to an array
 template<class T,int N>
 static void referenceDataWithStride (void *parr,void *data,const LoShape & shape,const LoShape &stride)
-{ 
-  blitz::Array<T,N> tmp(static_cast<T*>(data),shape,stride,blitz::neverDeleteData);
+{
+  blitz::Array<T,N> tmp(static_cast<T*>(data), shape, stride.operator blitz::TinyVector<int, N>(), blitz::neverDeleteData);
   static_cast<blitz::Array<T,N>*>(parr)->reference(tmp);
 }
 DMI::NumArrayFuncs::AssignWithStride DMI::NumArrayFuncs::assignerWithStride[NumArrayTypes][MaxLorrayRank] =

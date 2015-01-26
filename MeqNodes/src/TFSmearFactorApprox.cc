@@ -22,7 +22,7 @@
 //# $Id: TFSmearFactorApprox.cc 5418 2007-07-19 16:49:13Z oms $
 
 #include <MeqNodes/TFSmearFactorApprox.h>
-#include <blitz/array/stencilops.h>
+#include <blitz/array/stencils.h>
 
 namespace Meq {
 
@@ -54,22 +54,22 @@ using namespace VellsMath;
 // for teh normal stencils: used to have
 //    A = .5*central12(B,blitz::firstDim);
 BZ_DECLARE_STENCIL2(TimeDiff, A,B)
-    A = forward11(B,blitz::firstDim);
+    A = blitz::forward11_stencilop(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(TimeDiff1,A,B)
-    A = forward11(B,blitz::firstDim);
+    A = forward11_stencilop(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(TimeDiff2,A,B)
-    A = backward11(B,blitz::firstDim);
+    A = backward11_stencilop(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff, A,B)
-    A = forward11(B,blitz::secondDim);
+    A = forward11_stencilop(B,blitz::secondDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff1,A,B)
-    A = forward11(B,blitz::secondDim);
+    A = forward11_stencilop(B,blitz::secondDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff2,A,B)
-    A = backward11(B,blitz::secondDim);
+    A = backward11_stencilop(B,blitz::secondDim);
 BZ_END_STENCIL
 
 

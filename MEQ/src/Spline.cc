@@ -195,7 +195,7 @@ void Spline::do_evaluate (VellSet &vs,const Cells &cells,
             " is not defined in Cells");
       grid[i].resize(cells.ncells(iaxis));
       grid[i] = cells.center(iaxis);
-      res_shape[iaxis] = std::max(grid[i].size(),1);
+      res_shape[iaxis] = std::max(int(grid[i].size()),1);
       total*=res_shape[iaxis];
     }
   }
