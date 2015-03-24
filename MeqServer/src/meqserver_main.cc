@@ -29,6 +29,7 @@
 #include <OCTOPUSSY/GWClientWP.h>
 #include <AppAgent/OctoEventMux.h>
 #include <MeqServer/MeqServer.h>
+#include <MeqServer/MeqPython.h>
 #include <MeqServer/AID-MeqServer.h>
 #include <MEQ/MTPool.h>
 #include <unistd.h>
@@ -78,6 +79,9 @@ int main (int argc,const char *argv[])
   // "-ssr" option
   if( std::find(args.begin(),args.end(),string("-ssr")) != args.end() )
     Meq::NodeNursery::forceSequentialServiceRequests(true);
+  // "memory profiler" option
+  if( std::find(args.begin(),args.end(),string("-python_memprof")) != args.end() )
+    MeqPython::use_memprof = true;
   // "-mt" option
   StrVec::const_iterator iter =
       std::find(args.begin(),args.end(),string("-mt"));

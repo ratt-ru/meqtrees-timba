@@ -33,11 +33,13 @@
 #include <DMI/DynamicTypeManager.h>
 
 InitDebugContext(MeqPython,"MeqPy");
-
 namespace MeqPython
 {
 
 using namespace OctoPython;
+
+
+bool use_memprof = false;
 
 static bool meq_initialized = false;
 static MeqServer *pmqs = 0;
@@ -410,6 +412,13 @@ void initMeqPython (MeqServer *mq)
   // release GIL in exception handler
   try
   {
+    // import memory profiler, if asked to
+    if( use_memprof )
+    {
+      PyObject * mprofmod = PyImport_ImportModule("memory_profiler");
+      cerr<<"initialized memory_profiler"<<endl;
+    }
+
     // import the octopython and mequtils modules -- we don't want Python to pull
     // in the shared lib, but would rather use our (linked in) version. Doing
     // anything else causes problems with C++ RTTI symbols.

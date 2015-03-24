@@ -281,13 +281,14 @@ def stop_default_mqs ():
       mqs.disconnect();
     # kill process if it is still running after 10 seconds
     if mqs.serv_pid:
-      for i in range(10):
+      for i in range(20):
         pid,stat = os.waitpid(mqs.serv_pid,os.WNOHANG);
         if pid:
           break;
-        time.sleep(1);
+        mqs.dprint(0,"meqserver not exited yet, waiting another 10 seconds");
+        time.sleep(10);
       else:
-        mqs.dprint(0,"meqserver not exiting cleanly, killing it");
+        mqs.dprint(0,"meqserver not exiting cleanly after 200 seconds, killing it");
         os.kill(mqs.serv_pid,9);
         pid,stat = os.waitpid(mqs.serv_pid,os.WNOHANG);
     mqs = None;
