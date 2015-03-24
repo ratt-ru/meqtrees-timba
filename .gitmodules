@@ -1,0 +1,3 @@
+[submodule "debian"]
+	path = debian
+	url = http://github.com/ska-sa/meqtrees-timba-debian
