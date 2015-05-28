@@ -606,10 +606,10 @@ inline PyObject * PyComplex_FromDComplex (const dcomplex &x)
 // Returns NEW REF.
 // Default error policy is to return a conversion error object.
 // -----------------------------------------------------------------------
-inline PyObject * pyFromObjRef (const ObjRef &ref,int err_policy=EP_CONV_ERROR)
+inline PyObject * pyFromObjRef (const ObjRef &ref,int flags=EP_CONV_ERROR)
 {
   if( ref.valid() )
-    return pyFromDMI(*ref,err_policy); // new ref
+    return pyFromDMI(*ref,flags); // new ref
   else
     returnNone;  // increments ref count to None
 }
@@ -642,7 +642,7 @@ PyObject * createPyObject (PyObject *basetype,const BObj &dmiobj,PyObject *const
 // converts a DMI::Vec to a Python scalar or tuple
 // Returns NEW REF
 // -----------------------------------------------------------------------
-PyObject * pyFromVec (const DMI::Vec &dv)
+PyObject * pyFromVec (const DMI::Vec &dv,int flags)
 {
   Thread::Mutex::Lock lock(dv.mutex());
   cdebug(3)<<"pyFromVec: creating\n";
@@ -682,6 +682,14 @@ PyObject * pyFromVec (const DMI::Vec &dv)
       } else { \
         cdebug(4)<<"using scalar " #pyfunc "(vec." #hookfunc ")\n"; \
         return pyfunc(dv[HIID()].hookfunc); } }
+  #define extractFieldFl(pyfunc,hookfunc) \
+    { if( tuple ) { \
+        cdebug(4)<<"using "<<num<<" " #pyfunc "(vec[i]." #hookfunc ")\n"; \
+        for( int i=0; i<num; i++ ) \
+          PyTuple_SET_ITEM(*tuple,i,pyfunc(dv[i].hookfunc,flags)); \
+      } else { \
+        cdebug(4)<<"using scalar " #pyfunc "(vec." #hookfunc ")\n"; \
+        return pyfunc(dv[HIID()].hookfunc,flags); } }
   // now proceed depending on object type
   if( typeinfo.category == TypeCategories::NUMERIC )
   {
@@ -705,7 +713,7 @@ PyObject * pyFromVec (const DMI::Vec &dv)
   else if( type == TpDMIHIID )
     extractField(pyFromHIID,as<HIID>())
   else if( typeinfo.category == TypeCategories::DYNAMIC )
-    extractField(pyFromObjRef,ref(true))
+    extractFieldFl(pyFromObjRef,ref(true))
   else
     return pyConvError("dmi type "+type.toString()+" not supported under Python");
   // if we got here, we've formed a tuple
@@ -718,14 +726,14 @@ PyObject * pyFromVec (const DMI::Vec &dv)
 // pyFromList
 // converts a DMI::List to a Python list
 // -----------------------------------------------------------------------
-PyObject * pyFromList (const DMI::List &dl)
+PyObject * pyFromList (const DMI::List &dl,int flags)
 {
   Thread::Mutex::Lock lock(dl.mutex());
   cdebug(3)<<"pyFromList: creating\n";
   PyObjectRef pylist = createPyObject(*py_dmisyms.dmilist,dl); // new ref
   for( DMI::List::const_iterator iter = dl.begin(); iter != dl.end(); iter++ )
   {
-    PyObjectRef item = pyFromObjRef(*iter,EP_CONV_ERROR); // new ref
+    PyObjectRef item = pyFromObjRef(*iter,(flags&~EP_ALL)|EP_CONV_ERROR); // new ref
     PyList_Append(*pylist,*item); // list takes its own ref
   }
   cdebug(3)<<"pyFromList: converted "<<dl.size()<<" items\n";
@@ -736,7 +744,7 @@ PyObject * pyFromList (const DMI::List &dl)
 // pyFromRecord
 // converts a DMI::Record to a Python record instance
 // -----------------------------------------------------------------------
-PyObject * pyFromRecord (const DMI::Record &dr)
+PyObject * pyFromRecord (const DMI::Record &dr,int flags)
 {
   Thread::Mutex::Lock lock(dr.mutex());
   cdebug(3)<<"pyFromRecord: creating"<<endl;
@@ -752,8 +760,9 @@ PyObject * pyFromRecord (const DMI::Record &dr)
     // create a new field in there with placement-new
     new ( &(lazy_ref->field) ) DMI::Record::Field;
     PyObjectRef item = (PyObject*)lazy_ref;
-    // copy field to lazy ref
+    // copy field and flags to lazy ref
     lazy_ref->field = iter.field();
+    lazy_ref->flags = flags;
     // Dict takes its own ref
     PyDict_SetItemString(*pyrec,const_cast<char*>(idstr.c_str()),*item);
   }
@@ -765,7 +774,7 @@ PyObject * pyFromRecord (const DMI::Record &dr)
 // pyFromArray
 // converts a DMI::NumArray to a NumPy array
 // -----------------------------------------------------------------------
-PyObject * pyFromArray (const DMI::NumArray &da)
+PyObject * pyFromArray (const DMI::NumArray &da,int flags)
 {
   Thread::Mutex::Lock lock(da.mutex());
   // get rank & shape into terms that Numarray understands
@@ -814,19 +823,26 @@ PyObject * pyFromArray (const DMI::NumArray &da)
     for( int i=0; i<rank; i++ )
       dims[i] = da.shape()[i];
     PyObjectRef pyarr;
+    void *arraydata = reinterpret_cast<void*>(da.getConstDataPtr());
     // if creating a plain array, use SimpleNew
     if( objtype == TpDMINumArray )
-      pyarr = PyArray_SimpleNew(rank,dims,typecode);
+    {
+      if( flags&FL_SHAREDATA )
+        pyarr = PyArray_SimpleNewFromData(rank,dims,typecode,arraydata);
+      else:
+        pyarr = PyArray_SimpleNew(rank,dims,typecode);
+    }
     else
     {
       // creating subclass of ndarray. Old way was to use dmi_coerce to change class later,
       // but numpy doesn't allow this, so we use New instead
-      pyarr = PyArray_New(reinterpret_cast<PyTypeObject*>(*realclass),rank,dims,typecode,0,0,0,0,0);
+      pyarr = PyArray_New(reinterpret_cast<PyTypeObject*>(*realclass),rank,dims,typecode,0,flags&FL_SHAREDATA ? arraydata : 0,0,0,0);
       if( !pyarr )
         throwErrorOpt(Runtime,"failed to create numpy array for "+objtype.toString());
     }
     // copy data to python array
-    memcpy(PyArray_DATA(*pyarr),da.getConstDataPtr(),PyArray_NBYTES(*pyarr)); // new ref
+    if( !(flags&FL_SHAREDATA) )
+      memcpy(PyArray_DATA(*pyarr),arraydata,PyArray_NBYTES(*pyarr)); // new ref
     return ~pyarr; // steal our ref since we need to return a NEW REF
   }
 }
@@ -834,7 +850,7 @@ PyObject * pyFromArray (const DMI::NumArray &da)
 // -----------------------------------------------------------------------
 // pyFromMessage
 // -----------------------------------------------------------------------
-PyObject * pyFromMessage (const Message &msg)
+PyObject * pyFromMessage (const Message &msg,int flags)
 {
   // get payload
   PyObjectRef py_payload = pyFromObjRef(msg.payload(),EP_CONV_ERROR);
@@ -873,7 +889,7 @@ PyObject * pyFromMessage (const Message &msg)
 //     If seqpos=0, init the DMI::Vec with the object type and store at #0
 //     If seqpos>0, check for type consistency, and store at #seqpos.
 // -----------------------------------------------------------------------
-PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
+PyObject * pyFromDMI (const DMI::BObj &obj,int flags)
 {
   Thread::Mutex::Lock lock(obj.crefMutex());
   try
@@ -882,29 +898,29 @@ PyObject * pyFromDMI (const DMI::BObj &obj,int err_policy)
     // all of the below return new refs
     PyObjectRef pyobj;
     if( dynamic_cast<const DMI::Record *>(&obj) )
-      pyobj = pyFromRecord(dynamic_cast<const DMI::Record &>(obj));
+      pyobj = pyFromRecord(dynamic_cast<const DMI::Record &>(obj),flags);
     else if( dynamic_cast<const DMI::Vec *>(&obj) )
-      pyobj = pyFromVec(dynamic_cast<const DMI::Vec &>(obj));
+      pyobj = pyFromVec(dynamic_cast<const DMI::Vec &>(obj),flags);
     else if( dynamic_cast<const DMI::NumArray *>(&obj) )
-      pyobj = pyFromArray(dynamic_cast<const DMI::NumArray &>(obj));
+      pyobj = pyFromArray(dynamic_cast<const DMI::NumArray &>(obj),flags);
     else if( dynamic_cast<const DMI::List *>(&obj) )
-      pyobj = pyFromList(dynamic_cast<const DMI::List &>(obj));
+      pyobj = pyFromList(dynamic_cast<const DMI::List &>(obj),flags);
     else if( dynamic_cast<const Message *>(&obj) )
-      pyobj = pyFromMessage(dynamic_cast<const Message &>(obj));
+      pyobj = pyFromMessage(dynamic_cast<const Message &>(obj),flags);
     else
       pyobj = pyConvError("dmi type "+objtype.toString()+" not supported under Python");
     return ~pyobj;
   }
   catch( std::exception &exc )
   {
-    if( err_policy == EP_RETNULL )
+    if( flags&EP_RETNULL )
     {
       cdebug(2)<<"pyFromDMI: exception "<<exc.what()<<", returning NULL\n";
       if( !PyErr_Occurred() )
         returnError(NULL,DataConv,exc);
       return NULL;
     }
-    else if( err_policy == EP_CONV_ERROR )
+    else if( flags&EP_CONV_ERROR )
     {
       cdebug(2)<<"pyFromDMI: exception "<<exc.what()<<", returning conv_error\n";
       return pyConvError(exc.what());
