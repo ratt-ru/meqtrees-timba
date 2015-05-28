@@ -54,22 +54,22 @@ using namespace VellsMath;
 // for teh normal stencils: used to have
 //    A = .5*central12(B,blitz::firstDim);
 BZ_DECLARE_STENCIL2(TimeDiff, A,B)
-    A = blitz::forward11_stencilop(B,blitz::firstDim);
+    A = blitz::forward11(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(TimeDiff1,A,B)
-    A = forward11_stencilop(B,blitz::firstDim);
+    A = forward11(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(TimeDiff2,A,B)
-    A = backward11_stencilop(B,blitz::firstDim);
+    A = backward11(B,blitz::firstDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff, A,B)
-    A = forward11_stencilop(B,blitz::secondDim);
+    A = forward11(B,blitz::secondDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff1,A,B)
-    A = forward11_stencilop(B,blitz::secondDim);
+    A = forward11(B,blitz::secondDim);
 BZ_END_STENCIL
 BZ_DECLARE_STENCIL2(FreqDiff2,A,B)
-    A = backward11_stencilop(B,blitz::secondDim);
+    A = backward11(B,blitz::secondDim);
 BZ_END_STENCIL
 
 
