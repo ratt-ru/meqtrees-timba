@@ -95,7 +95,7 @@ namespace OctoPython
   PyObject * pyFromVec      (const DMI::Vec &,int flags=0);
   PyObject * pyFromArray    (const DMI::NumArray &,int flags=0);
   PyObject * pyFromMessage  (const Message &,int flags=0);
-  PyObject * pyFromHIID     (const HIID &,int flags=0);
+  PyObject * pyFromHIID     (const HIID &);
   // simple helper for std::strings, returns NEW REF
   inline PyObject * pyFromString (const std::string &str)
   { return PyString_FromString(str.c_str()); }

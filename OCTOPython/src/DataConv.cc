@@ -823,24 +823,25 @@ PyObject * pyFromArray (const DMI::NumArray &da,int flags)
     for( int i=0; i<rank; i++ )
       dims[i] = da.shape()[i];
     PyObjectRef pyarr;
-    void *arraydata = reinterpret_cast<void*>(da.getConstDataPtr());
+    void *arraydata = const_cast<void*>(da.getConstDataPtr());
     // if creating a plain array, use SimpleNew
     if( objtype == TpDMINumArray )
     {
       if( flags&FL_SHAREDATA )
         pyarr = PyArray_SimpleNewFromData(rank,dims,typecode,arraydata);
-      else:
+      else
         pyarr = PyArray_SimpleNew(rank,dims,typecode);
     }
     else
     {
       // creating subclass of ndarray. Old way was to use dmi_coerce to change class later,
       // but numpy doesn't allow this, so we use New instead
-      pyarr = PyArray_New(reinterpret_cast<PyTypeObject*>(*realclass),rank,dims,typecode,0,flags&FL_SHAREDATA ? arraydata : 0,0,0,0);
+      pyarr = PyArray_New(reinterpret_cast<PyTypeObject*>(*realclass),rank,dims,typecode,0,flags&FL_SHAREDATA ? arraydata : 0,
+                            0,0,0);
       if( !pyarr )
         throwErrorOpt(Runtime,"failed to create numpy array for "+objtype.toString());
     }
-    // copy data to python array
+    // copy data to python array, if new data is created
     if( !(flags&FL_SHAREDATA) )
       memcpy(PyArray_DATA(*pyarr),arraydata,PyArray_NBYTES(*pyarr)); // new ref
     return ~pyarr; // steal our ref since we need to return a NEW REF
