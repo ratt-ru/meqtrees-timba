@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 2.6)
 
 # CUDA
 find_package(CUDA 4.0)
-#set(CUDA_FOUND false)
+set(CUDA_FOUND false)
 if (CUDA_FOUND)
   message(" * CUDA ${CUDA_VERSION} was found")
   add_library( cudart STATIC IMPORTED )
