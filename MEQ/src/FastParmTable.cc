@@ -273,8 +273,7 @@ int FastParmTable::getFunklet (Funklet::Ref &ref,const string& parmName,int doma
   size_t keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,domain_index);
-  datum db_key = { key,keysize }; 
-  return getFunklet(ref,db_key,domain_index);
+  return getFunklet(ref,key,keysize,domain_index);
 }
 
 int FastParmTable::getFunklets (vector<Funklet::Ref> &funklets,const string& parmName,const Domain& domain)
@@ -313,7 +312,7 @@ int FastParmTable::getFunklets (vector<Funklet::Ref> &funklets,const string& par
     if( domain_match_[i] )
     {
       *key_dom = i;
-      getFunklet(funklets[ifunk],db_key,i);
+      getFunklet(funklets[ifunk],key,keysize,i);
       if( Debug(3) )
       {
         const Funklet &funk = *funklets[ifunk];
@@ -451,7 +450,7 @@ void FastParmTable::deleteAllFunklets (const string &parmName)
   }
 }
 
-static void decomposeKey (const datum &key,string &name,int &domain_index)
+static void decomposeKey (const FastParmTable::datum &key,string &name,int &domain_index)
 {
   // decomposes a key into a funklet name and a domain index
   int *pdom = reinterpret_cast<int*>(key.dptr);

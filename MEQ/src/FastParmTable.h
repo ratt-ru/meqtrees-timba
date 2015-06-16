@@ -64,6 +64,7 @@ public:
   };
   typedef std::vector<DomainEntry> DomainList;
   typedef std::vector<Domain::Ref> DomainObjectList;
+  typedef struct { char *dptr; int dsize; } datum;
   
     //##ModelId=3F86886F02B7
   explicit FastParmTable (const string& tableName,bool write=false,bool create_new=false);
@@ -115,7 +116,6 @@ public:
   { return mutex_; }
   
 private:
-  typedef struct { char *dptr; int dsize; } datum;
 
   std::string table_name_;
   Thread::Mutex mutex_;
