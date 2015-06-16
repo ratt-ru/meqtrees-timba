@@ -42,6 +42,7 @@ FastParmTable::FastParmTable (const string& tablename,bool write,bool)
  : table_name_(tablename),writing_(write),fdomains_(0),fdb_(0)
 {
   prev_key.dptr = 0;
+  dpiter_initialized_ = false;
   struct stat stat_buf;
   writing_ = write;
   // check if directory exists, if it doesn't, then try to create it
@@ -92,17 +93,16 @@ FastParmTable::FastParmTable (const string& tablename,bool write,bool)
     if( errno != ENOENT )
       throwErrno("can't access '%s/funklets'");
     // ok, if writing, create it, else defer
-    fdb_ = gdbm_open(const_cast<char*>(funklets_file_.c_str()),1024,GDBM_NEWDB,0666,0);
+    fdb_ = dpopen(const_cast<char*>(funklets_file_.c_str()),DP_OCREAT|DP_OWRITER,0);
   }
   else
   {
-    fdb_ = gdbm_open(const_cast<char*>(funklets_file_.c_str()),1024,write?GDBM_WRCREAT:GDBM_READER,0666,0);
-    // "bad magic number" indicates corruption from previous run, so flush it
-    if( !fdb_ && gdbm_errno == GDBM_BAD_MAGIC_NUMBER )
+    fdb_ = dpopen(const_cast<char*>(funklets_file_.c_str()),write?DP_OWRITER|DP_OCREAT:DP_OREADER,0);
+    // "EBROKEN" indicates corruption from previous run, so flush it
+    if( !fdb_ && dpecode == DP_EBROKEN )
     {
       cerr<<"Warning: "<<funklets_file_<<" appears to be corrupt. This may be due to the system crashing or being killed during a previous run. Creating a new, empty table.\n";
-      fdb_ = gdbm_open(const_cast<char*>(funklets_file_.c_str()),
-                      1024,GDBM_NEWDB,0666,0);
+      fdb_ = dpopen(const_cast<char*>(funklets_file_.c_str()),DP_OTRUNC|DP_OWRITER,0);
     }
   }
   // still an error? report as exception
@@ -110,7 +110,7 @@ FastParmTable::FastParmTable (const string& tablename,bool write,bool)
   {
     fclose(fdomains_);
     fdomains_ = 0;
-    throwGdbm("can't open '%s/funklets'");
+    throwDepot("can't open '%s/funklets'");
   }
 }
 
@@ -119,7 +119,7 @@ FastParmTable::~FastParmTable()
   if( fdomains_ )
     fclose(fdomains_);
   if( fdb_ )
-    gdbm_close(fdb_);
+    dpclose(fdb_);
   if( prev_key.dptr )
     free(prev_key.dptr);
 }
@@ -138,14 +138,14 @@ void FastParmTable::openForWriting ()
   fseek(fdomains_,domain_list_.size()*sizeof(DomainEntry),SEEK_SET);
   // reopen the funklet database
   if( fdb_ )
-    gdbm_close(fdb_);
-  fdb_ = gdbm_open(const_cast<char*>(funklets_file_.c_str()),1024,GDBM_WRCREAT,0666,0);
+    dpclose(fdb_);
+  fdb_ = dpopen(const_cast<char*>(funklets_file_.c_str()),DP_OWRITER|DP_OCREAT,0);
   // still an error? report as exception
   if( !fdb_ )
   {
     fclose(fdomains_);
     fdomains_ = 0;
-    throwGdbm("can't reopen '%s/funklets' for writing");
+    throwDepot("can't reopen '%s/funklets' for writing");
   }
   writing_ = true;
 }
@@ -157,7 +157,7 @@ void FastParmTable::flush ()
   if( fdomains_ )
     fflush(fdomains_);
   if( fdb_ )
-    gdbm_sync(fdb_);
+    dpsync(fdb_);
 }
 
 void FastParmTable::throwErrno (const string &message)
@@ -177,10 +177,10 @@ void FastParmTable::throwErrno (const string &message)
         Debug::ssprintf(message.c_str(),table_name_.c_str()).c_str(),err,errno0));
 }
 
-void FastParmTable::throwGdbm (const string &message)
+void FastParmTable::throwDepot (const string &message)
 {
-  Throw(Debug::ssprintf("%s: %s (gdbm_errno=%d)",
-        Debug::ssprintf(message.c_str(),table_name_.c_str()).c_str(),gdbm_strerror(gdbm_errno),gdbm_errno));
+  Throw(Debug::ssprintf("%s: %s (dpecode=%d)",
+        Debug::ssprintf(message.c_str(),table_name_.c_str()).c_str(),dperrmsg(dpecode),dpecode));
 }
 
 
@@ -192,14 +192,15 @@ void FastParmTable::makeKey (char *key,const string& name,int domain_index)
   key[keySize(name)-1] = 0;
 }
 
-int FastParmTable::getFunklet (Funklet::Ref &ref,datum db_key,int domain_index)
+int FastParmTable::getFunklet (Funklet::Ref &ref,const char *kbuf,int ksiz,int domain_index)
 {
-  datum db_data = gdbm_fetch(fdb_,db_key);
+  datum db_data;
+  db_data.dptr = dpget(fdb_,kbuf,ksiz,0,-1,&db_data.dsize);
   if( !db_data.dptr )
   {
     // check for real errors
-    if( gdbm_errno != GDBM_ITEM_NOT_FOUND )
-      throwGdbm("error reading '%s/funklets'");
+    if( dpecode != DP_ENOITEM )
+      throwDepot("error reading '%s/funklets'");
     // else just return 0 indicating no such funklet
     return 0;
   }
@@ -284,11 +285,10 @@ int FastParmTable::getFunklets (vector<Funklet::Ref> &funklets,const string& par
   if( domain_list_.empty() )
     return 0;
   // build up funklet database key
-  size_t keysize = keySize(parmName);
+  int keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,0);
   int *key_dom = reinterpret_cast<int*>(key);
-  datum db_key = { key,keysize }; 
   // find all overlapping domains in domain list, and set a flag
   // if a funklet exists for them
   domain_match_.resize(domain_list_.size());
@@ -297,7 +297,7 @@ int FastParmTable::getFunklets (vector<Funklet::Ref> &funklets,const string& par
     if( domain_list_[i].overlaps(domain) )
     {
       *key_dom = i;
-      domain_match_[i] = gdbm_exists(fdb_,db_key);
+      domain_match_[i] = dpvsiz(fdb_,key,keysize) >= 0;
       if( domain_match_[i] )
         nfunk++;
     }
@@ -376,19 +376,17 @@ Funklet::DbId FastParmTable::putCoeff (const string& parmName, const Funklet& fu
     dprintf(2)("created new domain %d\n",dom_id);
   }
   // build up funklet database key
-  size_t keysize = keySize(parmName);
+  int keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,dom_id);
-  datum db_key = { key,keysize }; 
   // now store the funklet
   const Polc *polc = dynamic_cast<const Polc*>(&funklet);
   // 0-degree polcs just have their c00 stored
   if( polc && polc->isConstant() )
   {
     double c00 = polc->getCoeff0();
-    datum db_data = { reinterpret_cast<char*>(&c00),sizeof(c00) };
-    if( gdbm_store(fdb_,db_key,db_data,GDBM_REPLACE)<0 )
-      throwGdbm("error writing to '%s/funklets'");
+    if( !dpput(fdb_,key,keysize,reinterpret_cast<const char*>(&c00),sizeof(c00),DP_DOVER) )
+      throwDepot("error writing to '%s/funklets'");
   }
   else
   {
@@ -416,8 +414,8 @@ Funklet::DbId FastParmTable::putCoeff (const string& parmName, const Funklet& fu
     // store block in database
     // NB: this is the place to check for domain_is_key, but I won't bother just now
     datum db_data = { bref().cdata(),bref().size() };
-    if( gdbm_store(fdb_,db_key,db_data,GDBM_REPLACE)<0 )
-      throwGdbm("error writing to '%s/funklets'");
+    if( !dpput(fdb_,key,keysize,bref().cdata(),bref().size(),DP_DOVER) )
+      throwDepot("error writing to '%s/funklets'");
   }
   return dom_id; 
 }
@@ -426,30 +424,29 @@ void FastParmTable::deleteFunklet (const string &parmName,int domain_index)
 {
   Thread::Mutex::Lock lock(mutex_);
   openForWriting();
-  size_t keysize = keySize(parmName);
+  int keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,domain_index);
   datum db_key = { key,keysize };
-  if( gdbm_delete(fdb_,db_key) < 0 )
-    throwGdbm("error deleting funklet '"+parmName+"'");
+  if( !dpout(fdb_,key,keysize) )
+    throwDepot("error deleting funklet '"+parmName+"'");
 }
 
 void FastParmTable::deleteAllFunklets (const string &parmName)
 {
   Thread::Mutex::Lock lock(mutex_);
   openForWriting();
-  size_t keysize = keySize(parmName);
+  int keysize = keySize(parmName);
   char key[keysize];
   makeKey(key,parmName,0);
-  datum db_key = { key,keysize };
   int *pdom = reinterpret_cast<int*>(key);
   for( int idom=0; idom<int(domain_list_.size()); idom++ )
   {
     *pdom = idom;
-    if( gdbm_delete(fdb_,db_key) < 0 )
+    if( !dpout(fdb_,key,keysize) )
     {
-      if( gdbm_errno != GDBM_ITEM_NOT_FOUND )
-        throwGdbm("error deleting funklet '"+parmName+"'");
+      if( dpecode != DP_ENOITEM )
+        throwDepot("error deleting funklet '"+parmName+"'");
     }
   }
 }
@@ -465,15 +462,11 @@ static void decomposeKey (const datum &key,string &name,int &domain_index)
 bool FastParmTable::firstFunklet (string &name,int &domain_index)
 {
   Thread::Mutex::Lock lock(mutex_);
-  if( prev_key.dptr )
-    free(prev_key.dptr);
   // get first DB key, return false if None
-  prev_key = gdbm_firstkey(fdb_);
-  if( !prev_key.dptr )
-    return false;
-  // decompose key
-  decomposeKey(prev_key,name,domain_index);
-  return true;
+  if( !dpiterinit(fdb_) )
+    throwDepot("error initializing key iterator");
+  dpiter_initialized_ = true;
+  return nextFunklet(name,domain_index);
 }
 
 // and call this to get the net funklet name and domain index.
@@ -482,17 +475,13 @@ bool FastParmTable::firstFunklet (string &name,int &domain_index)
 bool FastParmTable::nextFunklet (string &name,int &domain_index)
 {
   Thread::Mutex::Lock lock(mutex_);
-  FailWhen(!prev_key.dptr,"must initiate iteration with firstFunklet() before calling nextFunklet()");
-  // get next key and deallocate previous
-  datum key = gdbm_nextkey(fdb_,prev_key);
-  if( prev_key.dptr ) 
-  {
+  FailWhen(!dpiter_initialized_,"must initiate iteration with firstFunklet() before calling nextFunklet()");
+  if( prev_key.dptr )
     free(prev_key.dptr);
-    prev_key.dptr = 0;
-  }
-  if( !key.dptr )
+  // get next key and deallocate previous
+  prev_key.dptr = dpiternext(fdb_,&prev_key.dsize);
+  if( !prev_key.dptr )
     return false;
-  prev_key = key;
   // decompose key and return true
   decomposeKey(prev_key,name,domain_index);
   return true;
