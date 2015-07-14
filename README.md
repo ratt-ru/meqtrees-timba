@@ -52,7 +52,7 @@ installation commands:
 sudo apt-get install software-properties-common
 sudo add-apt-repository ppa:radio-astro/main
 sudo apt-get update
-sudo apt-get install python-meqtrees-timba
+sudo apt-get install meqtrees-timba
 ```
 
 
