@@ -15,7 +15,8 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// GNU General Public License for more details.ce describing the
+  //    conversion error, and clear any Python errors. 
 //
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>,
@@ -88,7 +89,7 @@ static PyObject * LazyObjRef_resolve (LazyObjRef* self)
     // return None for invalid field
     if( !self->field.valid() )
       returnNone;
-    PyObjectRef obj = pyFromDMI(self->field.ref().deref());
+    PyObjectRef obj = pyFromDMI(self->field.ref().deref(),self->flags);
     // returns NEW ref, stealing from ours
     return ~obj;
   }

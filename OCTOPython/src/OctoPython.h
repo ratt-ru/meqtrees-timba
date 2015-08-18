@@ -56,10 +56,12 @@ namespace OctoPython
   {
       PyObject_HEAD
       DMI::Record::Field field;
+      int flags;
   } LazyObjRef;
   
   // error policy for data conversion functions
-  typedef enum { EP_THROW,EP_RETNULL,EP_CONV_ERROR } ErrorPolicy;
+  typedef enum { EP_THROW=1,EP_RETNULL=2,EP_CONV_ERROR=4,EP_ALL=7,
+                 FL_SHAREDATA=8 } ErrorPolicyAndFlags;
   
   // initializes octopython module -- can also be called from elsewhere
   // when embedding the interpreter
@@ -84,15 +86,15 @@ namespace OctoPython
   //    conversion error, and clear any Python errors. 
   // Note that unrecoverable errors will be thrown as exceptions regardless
   // of policy (i.e., failure to allocate an object, etc.)
-  PyObject * pyFromDMI      (const DMI::BObj &,int err_policy=EP_THROW);
+  PyObject * pyFromDMI      (const DMI::BObj &,int flags=EP_THROW);
   
   // Build Python objects from specific DMI objects, return _NEW REFERENCE_.
   // These function follow a EP_THROW error policy.
-  PyObject * pyFromRecord   (const DMI::Record &);
-  PyObject * pyFromList     (const DMI::List &);
-  PyObject * pyFromVec      (const DMI::Vec &);
-  PyObject * pyFromArray    (const DMI::NumArray &);
-  PyObject * pyFromMessage  (const Message &);
+  PyObject * pyFromRecord   (const DMI::Record &,int flags=0);
+  PyObject * pyFromList     (const DMI::List &,int flags=0);
+  PyObject * pyFromVec      (const DMI::Vec &,int flags=0);
+  PyObject * pyFromArray    (const DMI::NumArray &,int flags=0);
+  PyObject * pyFromMessage  (const Message &,int flags=0);
   PyObject * pyFromHIID     (const HIID &);
   // simple helper for std::strings, returns NEW REF
   inline PyObject * pyFromString (const std::string &str)
