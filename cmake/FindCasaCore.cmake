@@ -40,6 +40,9 @@ SET(CASACORE_NAMES
     casa_scimath_f 
     casa_casa
     casa_images
+    casa_calibration
+    casa_msvis
+    casa_synthesis
 )
 FOREACH( lib ${CASACORE_NAMES} )
     FIND_LIBRARY(CASACORE_LIBRARY_${lib} NAMES ${lib} PATHS ENV CASACORE_LIBRARY_PATH )
