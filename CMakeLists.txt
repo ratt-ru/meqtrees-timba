@@ -57,8 +57,8 @@ endif(NOT ICON_INSTALL_DIR )
 
 # project version
 set( ${PROJECT_NAME}_MAJOR_VERSION 1 )
-set( ${PROJECT_NAME}_MINOR_VERSION 1 )
-set( ${PROJECT_NAME}_PATCH_LEVEL 0 )
+set( ${PROJECT_NAME}_MINOR_VERSION 4 )
+set( ${PROJECT_NAME}_PATCH_LEVEL 1 )
 
 # -- dependencies
 set(dependencies
