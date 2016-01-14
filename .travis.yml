@@ -1,10 +1,12 @@
 language: cpp
+dist: trusty
+sudo: true
 before_install: 
  - sudo apt-get update -qy
  - sudo apt-get install software-properties-common
  - sudo add-apt-repository -y ppa:radio-astro/main
  - sudo apt-get update -qy
- - sudo apt-get install -qy cmake libblitz0-dev python-dev libcasacore-dev libblas-dev liblapack-dev libgdbm-dev wcslib-dev libfftw3-dev python-numpy libcfitsio3-dev
+ - sudo apt-get install -qy cmake libblitz0-dev python-dev libcasacore2-dev libblas-dev liblapack-dev libgdbm-dev wcslib-dev libfftw3-dev python-numpy libcfitsio3-dev
 install: 
  - cd ${TRAVIS_BUILD_DIR}
  - mkdir build && cd build
