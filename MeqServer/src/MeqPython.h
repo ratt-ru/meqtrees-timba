@@ -102,6 +102,8 @@ namespace MeqPython
   // -----------------------------------------------------------------------
   // MeqServer exception
   extern PyObject *PyExc_MeqServerError;
+
+  extern bool use_memprof;
 };
 
 #endif

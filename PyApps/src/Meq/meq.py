@@ -110,7 +110,7 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
       raise TypeError,'domain argument must be a MeqDomain object';
   # other optional arguments
   if offset is not None:
-    if isinstance(offset,(tuple,list,float)):
+    if isinstance(offset,(tuple,list,int,float)):
       rec.offset  = array_double(offset);
     elif is_array(offset):
       if len(offset.shape) > 1:
@@ -119,7 +119,7 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
     else:
       raise TypeError,"invalid 'offset' argument of type %s"%type(offset);
   if scale is not None:
-    if isinstance(scale,(tuple,list,float)):
+    if isinstance(scale,(tuple,list,int,float)):
       rec.scale  = array_double(scale);
     elif is_array(scale):
       if len(scale.shape) > 1:

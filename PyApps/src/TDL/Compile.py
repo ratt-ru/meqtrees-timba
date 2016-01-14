@@ -62,7 +62,8 @@ def _update_modlist ():
   modlist.sort();
   _dprint(1,'TDL run imported',len(_tdlmodlist),"modules:",modlist);
   _tdlmodlist = set([name for name in _tdlmodlist
-                          if not getattr(sys.modules[name],'_tdl_no_reimport',False)]);
+                          if name != "six" and not name.startswith("six.") 
+                             and not getattr(sys.modules[name],'_tdl_no_reimport',False)]);
   modlist = list(_tdlmodlist);
   modlist.sort();
   _dprint(1,'of which',len(_tdlmodlist),"modules are re-importable:",modlist);

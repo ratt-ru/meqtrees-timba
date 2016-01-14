@@ -32,8 +32,12 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
 """);
   parser.add_option("-c","--config",dest="config",type="string",
                     help="configuration file to use (default batch.tdlconf)");
+  parser.add_option("-s","--save-config",type="string",metavar="FILE[:SECTION]",
+                    help="save final configuration (after all command-line arguments have been applied) to config file and section")
   parser.add_option("--mt",dest="mt",type="int",
                     help="number of threads to run in meqserver (default 1)");
+  parser.add_option("--memprof",action="store_true",
+                    help="enables memory profiling. Requires the Python memory_profiler package.");
   parser.add_option("-d", "--debug",dest="debug",type="string",action="append",metavar="Context=Level",
                     help="(for debugging C++ code) sets debug level of the named C++ context. May be used multiple times.");
   parser.add_option("-v", "--verbose",dest="verbose",type="string",action="append",metavar="Context=Level",
@@ -70,7 +74,7 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
   from Timba.TDL import TDLOptions
   TDLOptions.enable_save_config(False);
   print "### Starting meqserver";
-  mqs = meqserver.default_mqs(wait_init=10,extra=["-mt",str(options.mt)]);
+  mqs = meqserver.default_mqs(wait_init=10,extra=["-mt",str(options.mt)]+(["-python_memprof"] if options.memprof else []));
 
   retcode = 0;
   # use a try...finally block to exit meqserver cleanly at the end
@@ -83,6 +87,14 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
     TDLOptions.config.read(options.config);
     # disable the writing-out of configuration
     TDLOptions.config.set_save_filename(None);
+    # but save it manually
+    if options.save_config:
+      if ':' in options.save_config:
+        saveconffile, savesect = options.save_config.rsplit(':',1)
+      else:
+        saveconffile = options.save_config
+        savesect = None
+      saveconf = TDLOptions.OptionConfigParser()
 
     import re
     re_load_config    	= re.compile("^\[(.+)\]$");
@@ -94,6 +106,8 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
 
     loaded_options = False;
     module = None;
+
+    script = None
 
     # now parse commands
     for cmd in rem_args:
@@ -138,6 +152,13 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
           print "### Error: please specify a script before any TDL jobs";
           raise RuntimeError,"TDL job specified before script";
         job = job_match.group(1);
+        if options.save_config:
+          sect = savesect or ( script and os.path.splitext(os.path.basename(script))[0] ) or "default" 
+          print "### Saving options to %s [%s]" % (saveconffile, sect)
+          if sect.lower() != "default" and not saveconf.has_section(sect): 
+              saveconf.add_section(sect)
+          TDLOptions.save_to_config(saveconf,sect)
+          saveconf.rewrite(saveconffile)
         print "### Running TDL job \"%s\""%job;
         try:
           func = TDLOptions.get_job_func(job);

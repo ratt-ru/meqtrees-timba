@@ -130,7 +130,7 @@ int PyNodeImpl::getResult (Result::Ref &resref,
   // add child results
   for( uint i=0; i<childres.size(); i++ )
   {
-    PyObjectRef chres = OctoPython::pyFromDMI(*childres[i]);
+    PyObjectRef chres = OctoPython::pyFromDMI(*childres[i],OctoPython::FL_SHAREDATA);
     PyTuple_SET_ITEM(*args_tuple,i+1,chres.steal()); // SET_ITEM steals our ref
   }
   // call get_result() method
