@@ -30,12 +30,13 @@ import sys
 # this ensures that C++ symbols (RTTI, DMI registries, etc.) are
 # shared across dynamically-loaded modules
 
+# this ensures that C++ symbols (RTTI, DMI registries, etc.) are
+# shared across dynamically-loaded modules
 try:
   import dl
 except:
   import DLFCN
   dl = DLFCN
-
 sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
 
 import Timba
