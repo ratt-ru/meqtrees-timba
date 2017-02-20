@@ -158,18 +158,32 @@ void ParAngle::evaluateTensors (std::vector<Vells> & out,
   MEpoch mepoch(qepoch, MEpoch::UTC);
   Frame.set (mepoch);
 
-  // create Parallactic Angle machine
-  ParAngleMachine pam(sourceDir);
-  pam.set(Frame);
-//  pam.setInterval(0.04);
-  pam.setInterval(0);
+  MVDirection mvzenith(0,M_PI/2);
+
   for( int i=0; i<ntime; i++) 
   {
-    qepoch.setValue (time(i));
-//    mepoch.set (qepoch);
-//    Frame.set (mepoch);
-    ParAng[i] = pam(qepoch).get("rad").getValue();
+    qepoch.setValue(time(i));
+    mepoch.set(qepoch);
+    Frame.set(mepoch);
+    MDirection mzenith(mvzenith,MDirection::Ref(MDirection::AZEL,Frame));
+    MVDirection zenith_radec = MDirection::Convert(mzenith,MDirection::J2000)().getValue();
+    ParAng[i] = sourceCoord.positionAngle(zenith_radec);
   }
+
+
+
+//   // create Parallactic Angle machine
+//   ParAngleMachine pam(sourceDir);
+//   pam.set(Frame);
+// //  pam.setInterval(0.04);
+//   pam.setInterval(0);
+//   for( int i=0; i<ntime; i++) 
+//   {
+//     qepoch.setValue (time(i));
+// //    mepoch.set (qepoch);
+// //    Frame.set (mepoch);
+//     ParAng[i] = pam(qepoch).get("rad").getValue();
+//   }
 }
 
 } // namespace Meq

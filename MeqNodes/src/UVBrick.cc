@@ -30,10 +30,9 @@
 #include <casa/Arrays.h>
 #include <casa/Arrays/Vector.h>
 #include <casa/BasicSL/String.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/ImageFFT.h>
-#include <images/Images/TempImage.h>
+#include <casarest/synthesis/Images/ImageFFT.h>
+#include <casarest/synthesis/Images/ImageMetaData.h>
+#include <casarest/synthesis/Images/ImagePolarimetry.h>
 #include <coordinates/Coordinates/CoordinateUtil.h>
 #include <coordinates/Coordinates/CoordinateSystem.h>
 #include <lattices/Lattices/LatticeIterator.h>
