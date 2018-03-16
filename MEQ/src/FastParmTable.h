@@ -28,12 +28,7 @@
 
 #ifdef HAVE_QDBM
   #define HAVE_FASTPARMTABLE 1
-  #include <hovel.h>
-#else
-  #ifdef HAVE_GDBM
-    #define HAVE_FASTPARMTABLE 1
-    #include <gdbm.h>
-  #endif
+  #include <qdbm/depot.h>
 #endif
 
 #ifdef HAVE_FASTPARMTABLE 
@@ -69,6 +64,7 @@ public:
   };
   typedef std::vector<DomainEntry> DomainList;
   typedef std::vector<Domain::Ref> DomainObjectList;
+  typedef struct { char *dptr; int dsize; } datum;
   
     //##ModelId=3F86886F02B7
   explicit FastParmTable (const string& tableName,bool write=false,bool create_new=false);
@@ -120,6 +116,7 @@ public:
   { return mutex_; }
   
 private:
+
   std::string table_name_;
   Thread::Mutex mutex_;
   
@@ -129,7 +126,7 @@ private:
   std::string funklets_file_;
   
   FILE *fdomains_;
-  GDBM_FILE fdb_;
+  DEPOT *fdb_;
   
   // list of known domains
   DomainList domain_list_;
@@ -139,12 +136,13 @@ private:
 
   // this is used by first/nextFunklet
   datum prev_key;
+  bool dpiter_initialized_;
   
   // reopens table for writing, if it's not open for writing yet
   void openForWriting ();
   
   // internal function, gets funklet with given DB key
-  int getFunklet (Funklet::Ref &ref,datum db_key,int domain_index);
+  int getFunklet (Funklet::Ref &ref,const char *kbuf,int ksiz,int domain_index);
   
   // helper function, returns DB key size, given a parmname
   int keySize (const string &name)
@@ -153,9 +151,9 @@ private:
   // of at least keySize() length
   void makeKey (char *key,const string &name,int domain_index);
   
-  // helper functions to throw an error (from errno or gdbm)
+  // helper functions to throw an error (from errno or Depot)
   void throwErrno (const string &message);
-  void throwGdbm  (const string &message);
+  void throwDepot (const string &message);
   
 
 };
