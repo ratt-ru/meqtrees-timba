@@ -214,7 +214,7 @@ class ConstVellsSlicer : public ConstVellsSlicer0
       }
       
       const T * pdata () 
-      { return static_cast<const T*>(VellsSlicer0::pdata()); }
+      { return static_cast<const T*>(ConstVellsSlicer0::pdata()); }
 
       const blitz::Array<T,N> & array () const
       { return getArray<T,N>(); }
@@ -240,7 +240,6 @@ class VellsSlicer : public VellsSlicer0
       : VellsSlicer0(vells,axes,N)
       { 
         checkType(vells);
-        init(vells,axes,N); 
       }
   
       VellsSlicer (Vells &vells,const LoShape &axes)
