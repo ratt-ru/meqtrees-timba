@@ -27,6 +27,7 @@
 #include <TimBase/Thread/Mutex.h>
 extern LOFAR::Thread::Mutex cfitsio_mutex;
 
+#include <cmath>
 
     
 //#define DEBUG
