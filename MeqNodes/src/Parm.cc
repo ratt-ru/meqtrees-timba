@@ -36,6 +36,7 @@
 #include <MEQ/Forest.h>
 
 using namespace casa;
+using namespace std;
 
 namespace Meq {
 
