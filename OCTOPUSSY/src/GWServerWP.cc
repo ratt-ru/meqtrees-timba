@@ -248,7 +248,7 @@ void GWServerWP::tryOpen ()
           msg[AidHost] = hostname;
           msg[AidPort] = port;
           msg[AidType] = type;
-          msg[AidError] = sock->errstr();
+          msg[AidError] = err;
           publish(mref,0,Message::LOCAL);
           detachMyself();
         }
