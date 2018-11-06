@@ -20,7 +20,7 @@
 //# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //#
 //# $Id: TFSmearFactor.cc 5418 2007-07-19 16:49:13Z oms $
-
+#include <cmath>
 #include <MeqNodes/TFSmearFactor.h>
 #include <casa/BasicSL/Constants.h>
 

@@ -21,6 +21,7 @@
 //#
 //# $Id: PSVTensor.cc 8270 2011-07-06 12:17:23Z oms $
 
+#include <cmath>
 #include <MeqNodes/PSVTensor.h>
 #include <DMI/AID-DMI.h>
 #include <MEQ/AID-Meq.h>
