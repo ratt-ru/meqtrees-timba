@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # an adaption of the PyQwt-4.2 QwtImagePlotDemo.py example so that
 # we can draw color bars

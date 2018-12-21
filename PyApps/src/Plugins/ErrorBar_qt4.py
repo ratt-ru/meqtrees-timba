@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # This is Gerard Vermeulen's ErrorBarDemo.py script taken pretty well
 # line for line from the PyQwt 5 qt4examples directory.

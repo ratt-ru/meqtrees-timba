@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #% $Id: vtk_qt_3d_display.py 6836 2009-03-05 18:55:17Z twillis $ 
