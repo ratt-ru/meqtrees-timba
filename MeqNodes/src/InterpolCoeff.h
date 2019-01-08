@@ -26,7 +26,7 @@
 
 //# Includes
 #include <MEQ/Node.h>
-#include <images/Images/PagedImage.h>
+#include <casacore/images/Images/PagedImage.h>
 //#include <MeqNodes/ReductionFunction.h>
 
 

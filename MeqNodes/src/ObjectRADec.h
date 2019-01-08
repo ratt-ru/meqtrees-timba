@@ -30,11 +30,11 @@
 #pragma aidgroup MeqNodes
 #pragma types #Meq::ObjectRADec
 #pragma aid Obj Name
-#include <measures/Measures/MBaseline.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MeasTable.h>
+#include <casacore/measures/Measures/MBaseline.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MeasTable.h>
 
 
 namespace Meq {    
@@ -60,7 +60,7 @@ protected:
 
 private:
   string oname_;
-  casa::MDirection::Types type_;
+  casacore::MDirection::Types type_;
 };
 
 

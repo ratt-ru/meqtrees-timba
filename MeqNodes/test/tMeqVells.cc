@@ -27,18 +27,18 @@
 
 
 #include <MEQ/Vells.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/BasicSL/Complex.h>
-#include <casa/OS/Timer.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/iostream.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/BasicSL/Complex.h>
+#include <casacore/casa/OS/Timer.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/iostream.h>
 #include <sstream>
 
 using namespace LOFAR;
 using namespace Meq;
 using namespace Meq::VellsMath;
-using namespace casa;
+using namespace casacore;
 
 void showDouble (const Vells & v)
 {

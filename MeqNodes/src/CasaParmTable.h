@@ -27,9 +27,9 @@
 #define MEQNODES_CASAPARMTABLE_H
 
 //# Includes
-#include <tables/Tables/Table.h>
-#include <tables/Tables/ColumnsIndex.h>
-#include <casa/Containers/RecordField.h>
+#include <casacore/tables/Tables/Table.h>
+#include <casacore/tables/Tables/ColumnsIndex.h>
+#include <casacore/casa/Containers/RecordField.h>
 #include <MEQ/ParmTable.h>
 #include <TimBase/lofar_vector.h>
 #include <TimBase/Thread/Mutex.h>
@@ -88,20 +88,20 @@ private:
   // Find the table subset containing the parameter values for the
   // requested domain.
     //##ModelId=3F86886F02CE
-  casa::Table find (const string& parmName, const Domain& domain);
+  casacore::Table find (const string& parmName, const Domain& domain);
 
     //##ModelId=3F86886F0297
-  casa::Table                        itsTable;
+  casacore::Table                        itsTable;
     //##ModelId=3F86886F029C
-  casa::ColumnsIndex                 itsIndex;
+  casacore::ColumnsIndex                 itsIndex;
     //##ModelId=3F86886F02A1
-  casa::RecordFieldPtr<casa::String> itsIndexName;
+  casacore::RecordFieldPtr<casacore::String> itsIndexName;
     //##ModelId=3F86886F02A6
-  casa::Table                        itsInitTable;
+  casacore::Table                        itsInitTable;
     //##ModelId=3F86886F02AB
-  casa::ColumnsIndex*                itsInitIndex;
+  casacore::ColumnsIndex*                itsInitIndex;
     //##ModelId=3F86886F02B0
-  casa::RecordFieldPtr<casa::String> itsInitIndexName;
+  casacore::RecordFieldPtr<casacore::String> itsInitIndexName;
 
 
   static Thread::Mutex their_mutex_;

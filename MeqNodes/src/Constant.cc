@@ -28,7 +28,7 @@
 #include <MEQ/MeqVocabulary.h>
 #include <TimBase/Debug.h>
 #include <TimBase/Lorrays.h>
-// #include <casa/BasicMath/Math.h>
+// #include <casacore/casa/BasicMath/Math.h>
 
 namespace Meq {
 

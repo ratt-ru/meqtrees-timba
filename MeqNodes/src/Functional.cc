@@ -43,8 +43,8 @@ namespace Meq {
       vellsnr_(0)
   {
     Thread::Mutex::Lock lock(aipspp_mutex); // AIPS++ is not thread-safe, so lock mutex
-    itsComplexFunction = new casa::CompiledFunction<casa::DComplex>();
-    itsRealFunction = new casa::CompiledFunction<double>();
+    itsComplexFunction = new casacore::CompiledFunction<casacore::DComplex>();
+    itsRealFunction = new casacore::CompiledFunction<double>();
     //setFunction etc...
     for(int j=0;j<MaxNrDims;j++)
       for(int i=0;i<MaxNrDims;i++)

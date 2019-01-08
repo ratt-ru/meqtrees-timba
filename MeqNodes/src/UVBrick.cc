@@ -26,19 +26,19 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
-#include <casa/aips.h>
-#include <casa/Arrays.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/BasicSL/String.h>
+#include <casacore/casa/aips.h>
+#include <casacore/casa/Arrays.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/BasicSL/String.h>
 #include <casarest/synthesis/Images/ImageFFT.h>
 #include <casarest/synthesis/Images/ImageMetaData.h>
 #include <casarest/synthesis/Images/ImagePolarimetry.h>
-#include <coordinates/Coordinates/CoordinateUtil.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <lattices/Lattices/LatticeIterator.h>
-#include <lattices/Lattices/Lattice.h>
-#include <casa/BasicMath/Math.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/coordinates/Coordinates/CoordinateUtil.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/lattices/Lattices/LatticeIterator.h>
+#include <casacore/lattices/Lattices/Lattice.h>
+#include <casacore/casa/BasicMath/Math.h>
+#include <casacore/casa/BasicSL/Constants.h>
 
 namespace Meq {
   
@@ -104,17 +104,17 @@ namespace Meq {
 	//
 
 	// Make a Cells corresponding to the Image grid
-	casa::IPosition image_shape = _uvreal->shape();
+	casacore::IPosition image_shape = _uvreal->shape();
 	
-	casa::CoordinateSystem cs = _uvreal->coordinates();
-	casa::Vector<casa::String> units(4,"lambda");
+	casacore::CoordinateSystem cs = _uvreal->coordinates();
+	casacore::Vector<casacore::String> units(4,"lambda");
 	units(2) = "";
 	units(3) = "Hz";
 	cs.setWorldAxisUnits(units);
 	
-	casa::Vector<double> ref_pixel = cs.referencePixel();
-	casa::Vector<double> ref_value = cs.referenceValue();
-	casa::Vector<double> increment = cs.increment();
+	casacore::Vector<double> ref_pixel = cs.referencePixel();
+	casacore::Vector<double> ref_value = cs.referenceValue();
+	casacore::Vector<double> increment = cs.increment();
 
 	double umin;
 	double umax;
@@ -214,21 +214,21 @@ namespace Meq {
 
     // Get the minimal and maximal freq. values from the Image
 
-    casa::IPosition image_shape = _uvreal->shape();
+    casacore::IPosition image_shape = _uvreal->shape();
     const int nf = fcells.ncells(Axis::FREQ);
 
     if (nf==image_shape(3)){
       // The number of frequency planes of the request equals that of the image
       
-      casa::CoordinateSystem cs = _uvreal->coordinates();
-      casa::Vector<casa::String> units(4,"lambda");
+      casacore::CoordinateSystem cs = _uvreal->coordinates();
+      casacore::Vector<casacore::String> units(4,"lambda");
       units(2) = "";
       units(3) = "Hz";
       cs.setWorldAxisUnits(units);
     
-      casa::Vector<double> ref_pixel = cs.referencePixel();
-      casa::Vector<double> ref_value = cs.referenceValue();
-      casa::Vector<double> increment = cs.increment();
+      casacore::Vector<double> ref_pixel = cs.referencePixel();
+      casacore::Vector<double> ref_value = cs.referenceValue();
+      casacore::Vector<double> increment = cs.increment();
     
       double fmin;
       double fmax;
@@ -286,7 +286,7 @@ namespace Meq {
 
     _image_exists = false;
 
-    const double c0 = casa::C::c;  // Speed of light
+    const double c0 = casacore::C::c;  // Speed of light
 
     // nf = number of frequency channels, 
     //      i.e. number of frequency planes of the image
@@ -298,7 +298,7 @@ namespace Meq {
     const LoVec_double hifr = fcells.cellEnd(Axis::FREQ);
     const double f1 = max(lofr);
     const double f2 = max(hifr);
-    const double freq_max = casa::max(f1,f2);
+    const double freq_max = casacore::max(f1,f2);
 
     // At the moment there is no LSM and, hence, no Patch Image.
     // Therefore, a Patch Image is constructed. This image does match 
@@ -327,9 +327,9 @@ namespace Meq {
     // Rounding off to upper value and number of gridpoints is number of intervals + 1, hence +2
 
     // RA: nRa pixels, Dec: nDec pixels, Stokes: 1 pixels, Freq: nf pixels
-    casa::CoordinateSystem cs = casa::CoordinateUtil::defaultCoords4D();
-    casa::Vector<double> ref(4,0.0f);
-    casa::Vector<casa::String> units(4,"rad");
+    casacore::CoordinateSystem cs = casacore::CoordinateUtil::defaultCoords4D();
+    casacore::Vector<double> ref(4,0.0f);
+    casacore::Vector<casacore::String> units(4,"rad");
     // Note: vectors, pixels are zero based in AIPS++, but 1 based in GLISH
     ref(0) = int(nRA / 2.0 + 0.5)-1;
     ref(1) = int(nDec / 2.0 + 0.5)-1;
@@ -351,13 +351,13 @@ namespace Meq {
     cs.setIncrement(ref);
     // Note that AIPS++ Images have equidistant grid points.
 
-    _patch = new casa::PagedImage<float>(casa::IPosition(4,nRA,nDec,1,nf), cs, "temp.image");
+    _patch = new casacore::PagedImage<float>(casacore::IPosition(4,nRA,nDec,1,nf), cs, "temp.image");
     
     //
     // No LSM yet, so fill Patch_Image manually
     //
-    //_patch = new casa::PagedImage<float>("model3C343.image");
-    casa::IPosition image_shape = _patch->shape();
+    //_patch = new casacore::PagedImage<float>("model3C343.image");
+    casacore::IPosition image_shape = _patch->shape();
     //cs = _patch->coordinates();
     _patch->set(0.0f);
 
@@ -366,16 +366,16 @@ namespace Meq {
     ref(1) = 1.092209195; // rad
 	
     // Fill image per frequency plane
-    casa::IPosition position(image_shape.nelements());
-    casa::Vector<double> world(4,0.0); 
-    casa::Vector<double> pixel(4);
-    casa::Vector<bool> absio(4,true);
-    casa::Vector<casa::String> unitin(4, "pix");
+    casacore::IPosition position(image_shape.nelements());
+    casacore::Vector<double> world(4,0.0); 
+    casacore::Vector<double> pixel(4);
+    casacore::Vector<bool> absio(4,true);
+    casacore::Vector<casacore::String> unitin(4, "pix");
     unitin(0) = "rad";
     unitin(1) = "rad";
-    const casa::Vector<casa::String> unitout(4,"pix");
-    casa::MDoppler::Types doppler(casa::MDoppler::RADIO);
-    casa::Double offset = 0.0;
+    const casacore::Vector<casacore::String> unitout(4,"pix");
+    casacore::MDoppler::Types doppler(casacore::MDoppler::RADIO);
+    casacore::Double offset = 0.0;
 
     for (int i = 0; i < nf; i++){
       world(3) = i;
@@ -435,10 +435,10 @@ namespace Meq {
     //
     // FFT the Patch Image
     //
-    _uvreal = new casa::PagedImage<float>(image_shape, casa::CoordinateUtil::defaultCoords4D(), "fft_real.image");
-    _uvimag = new casa::PagedImage<float>(image_shape, casa::CoordinateUtil::defaultCoords4D(), "fft_imag.image");
+    _uvreal = new casacore::PagedImage<float>(image_shape, casacore::CoordinateUtil::defaultCoords4D(), "fft_real.image");
+    _uvimag = new casacore::PagedImage<float>(image_shape, casacore::CoordinateUtil::defaultCoords4D(), "fft_imag.image");
     
-    casa::ImageFFT fft;
+    casacore::ImageFFT fft;
     fft.fftsky(*_patch);
     
     fft.getReal(*_uvreal);
@@ -472,8 +472,8 @@ namespace Meq {
     arr4 = make_dcomplex(0.0);
 
     // For now fill Vells with image values.    
-    casa::IPosition image_shape = _uvreal->shape();
-    casa::IPosition position(image_shape.nelements());
+    casacore::IPosition image_shape = _uvreal->shape();
+    casacore::IPosition position(image_shape.nelements());
 
     position(2)=0;
     for (int k = 0; k < nf; k++){

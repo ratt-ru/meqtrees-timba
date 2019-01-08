@@ -22,7 +22,7 @@
 //# $Id: TFSmearFactor.cc 5418 2007-07-19 16:49:13Z oms $
 #include <cmath>
 #include <MeqNodes/TFSmearFactor.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/casa/BasicSL/Constants.h>
 
 namespace Meq {
 
@@ -124,7 +124,7 @@ void TFSmearFactor::evaluateTensors (std::vector<Vells> & out,
     p  -= (*args[1][0]);
     dp -= (*args[1][1]);
   }
-  const double _2pi_over_c = -casa::C::_2pi / casa::C::c;
+  const double _2pi_over_c = -casacore::C::_2pi / casacore::C::c;
 
   Vells dphi = _2pi_over_c * freq_vells_ * dp * dtime2_vells_;
   Vells dpsi = _2pi_over_c * p * dfreq2_vells_;

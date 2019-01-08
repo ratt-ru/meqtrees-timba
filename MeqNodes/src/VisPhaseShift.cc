@@ -24,7 +24,7 @@
 #include <MeqNodes/VisPhaseShift.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/casa/BasicSL/Constants.h>
 
 namespace Meq {
 
@@ -98,7 +98,7 @@ void VisPhaseShift::evaluateTensors (std::vector<Vells> & out,
   {
     r1 = *(args[0][0]);
   }
-  const double _2pi_over_c = -casa::C::_2pi / casa::C::c;
+  const double _2pi_over_c = -casacore::C::_2pi / casacore::C::c;
 
   // Now, if r1 is only variable in time, and we only have one
   // regularly-spaced frequency segment, we can use a quick algorithm

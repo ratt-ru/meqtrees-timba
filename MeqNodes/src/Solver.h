@@ -26,7 +26,7 @@
 
 #include <MEQ/Node.h>
 #include <MEQ/VellSet.h>
-#include <scimath/Fitting/LSQaips.h>
+#include <casacore/scimath/Fitting/LSQaips.h>
 
 #include <set>
 
@@ -347,7 +347,7 @@ private:
   class Subsolver
   {
     public:
-      casa::LSQaips   solver;
+      casacore::LSQaips   solver;
       int             nuk;     // number of unknowns in this solver
       int             neq;     // number of equations in this solver
       int             uk0;     // first unknown (index into global incr_solutions() vector)
@@ -358,7 +358,7 @@ private:
       bool            use_debug;    // should the solver fill debug info?
 
       // this info is maintained during a solution
-      casa::Vector<double>  solution; // current solution vector from solver
+      casacore::Vector<double>  solution; // current solution vector from solver
 //      // matrix of incremental solutions, allocated sirectly in state record
 //      LoMat_double    incr_solutions;
 

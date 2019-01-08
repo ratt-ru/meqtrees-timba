@@ -28,10 +28,10 @@
     
 #ifdef AIPSPP_HOOKS
     
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/BasicSL/String.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/BasicSL/String.h>
     
 #include <DMI/NumArray.h>
 #include <TimBase/BlitzToAips.h>
@@ -42,42 +42,42 @@ namespace AIPSPP_Hooks
   
   // templated helper method to create a 1D array using a copy of data
   template<class T>
-  inline casa::Array<T> copyVector (DMI::TypeId tid,int n,const void *data)
+  inline casacore::Array<T> copyVector (DMI::TypeId tid,int n,const void *data)
   { 
     if( tid != typeIdOf(T) )
     {
       ThrowExc(DMI::Container::ConvError,"can't convert "+tid.toString()+
                   " to AIPS++ Array<"+typeIdOf(T).toString()+">");
     }
-    return casa::Array<T>(casa::IPosition(1,n),static_cast<const T*>(data));
+    return casacore::Array<T>(casacore::IPosition(1,n),static_cast<const T*>(data));
   };
 
-  // specialization for casa::String, with conversion from std::string
+  // specialization for casacore::String, with conversion from std::string
   template<>
-  inline casa::Array<casa::String> copyVector (DMI::TypeId tid,int n,const void *data)
+  inline casacore::Array<casacore::String> copyVector (DMI::TypeId tid,int n,const void *data)
   { 
     if( tid != Tpstring )
     {
       ThrowExc(DMI::Container::ConvError,"can't convert "+tid.toString()+
-                  " to AIPS++ Array<casa::String>");
+                  " to AIPS++ Array<casacore::String>");
     }
-    casa::String *dest0 = new casa::String[n], *dest = dest0;
+    casacore::String *dest0 = new casacore::String[n], *dest = dest0;
     const string *src = static_cast<const string *>(data);
     for( int i=0; i<n; i++,dest++,src++ )
       *dest = *src;
-    return casa::Array<casa::String>(casa::IPosition(1,n),dest0,casa::TAKE_OVER);
+    return casacore::Array<casacore::String>(casacore::IPosition(1,n),dest0,casacore::TAKE_OVER);
   };
   
 };
 
 
-inline casa::String DMI::Container::Hook::as_String () const
+inline casacore::String DMI::Container::Hook::as_String () const
 {
-  return casa::String(as<string>());
+  return casacore::String(as<string>());
 }
 
 template<class T>
-casa::Array<T> DMI::Container::Hook::as_AipsArray (Type2Type<T>) const
+casacore::Array<T> DMI::Container::Hook::as_AipsArray (Type2Type<T>) const
 {
   const void *targ = resolveTarget(DMI::DEREFERENCE);
   // Have we resolved to a DMI::Array? 
@@ -86,7 +86,7 @@ casa::Array<T> DMI::Container::Hook::as_AipsArray (Type2Type<T>) const
   // have we resolved to a blitz array?
   else if( TypeInfo::isArray(target.obj_tid) )
   {
-    casa::Array<T> out;
+    casacore::Array<T> out;
     switch( TypeInfo::rankOfArray(target.obj_tid) )
     {
       case 1: B2A::copyArray(out,*static_cast<const blitz::Array<T,1>*>(target.ptr)); break;
@@ -110,29 +110,29 @@ casa::Array<T> DMI::Container::Hook::as_AipsArray (Type2Type<T>) const
 }
 
 template<class T>
-casa::Vector<T> DMI::Container::Hook::as_AipsVector (Type2Type<T>) const
+casacore::Vector<T> DMI::Container::Hook::as_AipsVector (Type2Type<T>) const
 {
-  casa::Array<T> arr = as_AipsArray(Type2Type<T>());
+  casacore::Array<T> arr = as_AipsArray(Type2Type<T>());
   FailWhen( arr.ndim() != 1,"can't access array as Vector" );
-  return casa::Vector<T>(arr);
+  return casacore::Vector<T>(arr);
 }
 
 template<class T>
-casa::Matrix<T> DMI::Container::Hook::as_AipsMatrix (Type2Type<T>) const
+casacore::Matrix<T> DMI::Container::Hook::as_AipsMatrix (Type2Type<T>) const
 {
-  casa::Array<T> arr = as_AipsArray(Type2Type<T>());
+  casacore::Array<T> arr = as_AipsArray(Type2Type<T>());
   FailWhen( arr.ndim() != 2,"can't access array as Matrix" );
-  return casa::Matrix<T>(arr);
+  return casacore::Matrix<T>(arr);
 }
 
 template<class T>
-void DMI::Container::Hook::operator = (const casa::Array<T> &other) const
+void DMI::Container::Hook::operator = (const casacore::Array<T> &other) const
 {
   (*this) <<= new DMI::NumArray(other);
 }
 
-// assigning a casa::String simply assigns a string
-inline string & DMI::Container::Hook::operator = (const casa::String &other) const
+// assigning a casacore::String simply assigns a string
+inline string & DMI::Container::Hook::operator = (const casacore::String &other) const
 {
   return operator = ( static_cast<const string &>(other) );
 }

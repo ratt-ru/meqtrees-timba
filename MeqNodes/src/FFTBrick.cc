@@ -29,20 +29,20 @@
 #include <MEQ/Axis.h>
 #include <MEQ/VellsSlicer.h>
 
-//#include <casa/aips.h>
-//#include <casa/Arrays.h>
-//#include <casa/Arrays/Vector.h>
-//#include <casa/BasicSL/String.h>
-//#include <images/Images/ImageInterface.h>
-//#include <images/Images/PagedImage.h>
-//#include <images/Images/ImageFFT.h>
-//#include <images/Images/TempImage.h>
-//#include <coordinates/Coordinates/CoordinateUtil.h>
-//#include <coordinates/Coordinates/CoordinateSystem.h>
-//#include <lattices/Lattices/LatticeIterator.h>
-//#include <lattices/Lattices/Lattice.h>
-//#include <casa/BasicMath/Math.h>
-//#include <casa/BasicSL/Constants.h>
+//#include <casacore/casa/aips.h>
+//#include <casacore/casa/Arrays.h>
+//#include <casacore/casa/Arrays/Vector.h>
+//#include <casacore/casa/BasicSL/String.h>
+//#include <casacore/images/Images/ImageInterface.h>
+//#include <casacore/images/Images/PagedImage.h>
+//#include <casacore/images/Images/ImageFFT.h>
+//#include <casacore/images/Images/TempImage.h>
+//#include <casacore/coordinates/Coordinates/CoordinateUtil.h>
+//#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+//#include <casacore/lattices/Lattices/LatticeIterator.h>
+//#include <casacore/lattices/Lattices/Lattice.h>
+//#include <casacore/casa/BasicMath/Math.h>
+//#include <casacore/casa/BasicSL/Constants.h>
 #include <fftw3.h>
 #include <blitz/array/stencilops.h>
 

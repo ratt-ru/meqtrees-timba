@@ -47,7 +47,7 @@
 #define MEQNODES_AZEL_H
     
 #include <MEQ/TensorFunction.h>
-#include <measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MPosition.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
 #pragma aidgroup MeqNodes

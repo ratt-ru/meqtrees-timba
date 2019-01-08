@@ -27,8 +27,8 @@
 #include <MEQ/Cells.h>
 #include <MEQ/Vells.h>
 #include <MEQ/VellsSlicer.h>
-#include <casa/BasicMath/Math.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/casa/BasicMath/Math.h>
+#include <casacore/casa/BasicSL/Constants.h>
 
 namespace Meq {
   
@@ -55,7 +55,7 @@ namespace Meq {
 			  const Request &request,bool newreq)
   {
     // Speed of light
-    const double c0 = casa::C::c;
+    const double c0 = casacore::C::c;
 
     // Get the Request Cells
     const Cells& rcells = request.cells();
@@ -114,12 +114,12 @@ namespace Meq {
 	  ra = RAvells(0);
 	  dec = Decvells(0);
 
-	  lc = casa::cos(dec) * casa::sin(ra-ra0);
-       	  mc = casa::cos(dec0) * casa::sin(dec) - 
-      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra-ra0);
+	  lc = casacore::cos(dec) * casacore::sin(ra-ra0);
+       	  mc = casacore::cos(dec0) * casacore::sin(dec) - 
+      	    casacore::sin(dec0) * casacore::cos(dec) * casacore::cos(ra-ra0);
 
-       	  lmax = casa::max(lmax,casa::abs(lc));
-       	  mmax = casa::max(mmax,casa::abs(mc));
+       	  lmax = casacore::max(lmax,casacore::abs(lc));
+       	  mmax = casacore::max(mmax,casacore::abs(mc));
 
 	};
 
@@ -239,9 +239,9 @@ namespace Meq {
 	  ra = RAvells(0);
 	  dec = Decvells(0);
 
-	  lc = casa::cos(dec) * casa::sin(ra-ra0);
-       	  mc = casa::cos(dec0) * casa::sin(dec) - 
-      	    casa::sin(dec0) * casa::cos(dec) * casa::cos(ra-ra0);
+	  lc = casacore::cos(dec) * casacore::sin(ra-ra0);
+       	  mc = casacore::cos(dec0) * casacore::sin(dec) - 
+      	    casacore::sin(dec0) * casacore::cos(dec) * casacore::cos(ra-ra0);
     
 	  // RJN: For now we neglect this. It has been fixed by making the grid somewhat larger
 	  // SBY: remember lower and upper bounds of arrays

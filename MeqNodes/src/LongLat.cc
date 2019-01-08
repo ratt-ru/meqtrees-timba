@@ -28,9 +28,9 @@
 #include <MEQ/Vells.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MCPosition.h>
-#include <measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MCPosition.h>
+#include <casacore/measures/Measures/MeasConvert.h>
 
 namespace Meq {
 
@@ -101,14 +101,14 @@ void LongLat::evaluateTensors (std::vector<Vells> & out,
   Vells & Long = out[0];
   Vells & Lat = out[1];
   Vells & Length = out[2];
-  const casa::MVPosition vpos(x,y,z);
-  const casa::MPosition pos(vpos,casa::MPosition::ITRF);
-  casa::Vector<casa::Double> ang;
-  casa::Double length;
+  const casacore::MVPosition vpos(x,y,z);
+  const casacore::MPosition pos(vpos,casacore::MPosition::ITRF);
+  casacore::Vector<casacore::Double> ang;
+  casacore::Double length;
   if(_use_WGS84)
     {  
-      casa::MPosition::Convert loc2(pos, casa::MPosition::WGS84);
-      casa::MPosition locwgs84(loc2());
+      casacore::MPosition::Convert loc2(pos, casacore::MPosition::WGS84);
+      casacore::MPosition locwgs84(loc2());
       ang= locwgs84.getAngle().getValue();
       length = locwgs84.getValue().getLength().getValue();
     }

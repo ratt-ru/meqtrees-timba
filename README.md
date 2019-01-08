@@ -19,7 +19,7 @@ To compile meqtrees-timba you need to meet the following requirements:
 * cmake
 * blitz++
 * python
-* casacore (2.0 or greater)
+* casacore (3.0 or greater)
 * casarest (1.3.1 or greater)
 * blas
 * lapack

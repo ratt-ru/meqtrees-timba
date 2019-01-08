@@ -74,10 +74,10 @@
 #ifndef HAVE_AIPSPP
   #error Must configure AIPS++ support for AIPSPP_HOOKS
 #endif
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/BasicSL/String.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/BasicSL/String.h>
 #endif
 
 #include <list>

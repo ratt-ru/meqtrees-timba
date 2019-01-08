@@ -315,7 +315,7 @@ void DMI::NumArray::init (const LoShape & shape,int flags,TypeId realtype)
 {
 #ifdef HAVE_AIPSPP
   // sanity check -- can we treat string as an AIPS++ String?
-  FailWhen( sizeof(string) != sizeof(casa::String),"AIPS++ String is not equivalent to std::string" );
+  FailWhen( sizeof(string) != sizeof(casacore::String),"AIPS++ String is not equivalent to std::string" );
 #endif
   itsWritableRef = false;    
   itsShape = shape;
@@ -353,7 +353,7 @@ void DMI::NumArray::make_reference (void * pdata,bool writable,
 {
 #ifdef HAVE_AIPSPP
   // sanity check -- can we treat string as an AIPS++ String?
-  FailWhen( sizeof(string) != sizeof(casa::String),"AIPS++ String is not equivalent to std::string" );
+  FailWhen( sizeof(string) != sizeof(casacore::String),"AIPS++ String is not equivalent to std::string" );
 #endif
   FailWhen(&other == this,"cannot make NumArray a reference to self");
   FailWhen(!other.itsArrayValid,"cannot make reference to an empty NumArray");

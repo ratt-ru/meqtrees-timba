@@ -35,7 +35,7 @@
 #endif
     
 #include <TimBase/Lorrays.h>
-#include <casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Array.h>
 
 #ifndef LORRAYS_USE_BLITZ
 #error Must use Blitz Lorrays
@@ -45,7 +45,7 @@ namespace B2A
 {
 
 template<int N>
-void convertShape (casa::IPosition &ipos,const blitz::TinyVector<int,N> &tv)
+void convertShape (casacore::IPosition &ipos,const blitz::TinyVector<int,N> &tv)
 {
   ipos.resize(N);
   for( int i=0; i<N; i++ )
@@ -53,25 +53,25 @@ void convertShape (casa::IPosition &ipos,const blitz::TinyVector<int,N> &tv)
 }
 
 template<int N>
-void convertShape( blitz::TinyVector<int,N> &tv,const casa::IPosition &ipos)
+void convertShape( blitz::TinyVector<int,N> &tv,const casacore::IPosition &ipos)
 {
   using namespace DebugDefault;
-  FailWhen(ipos.nelements() != N,"casa::IPosition size mismatch");
+  FailWhen(ipos.nelements() != N,"casacore::IPosition size mismatch");
   for( int i=0; i<N; i++ )
     tv[i] = ipos(i);
 }
 
 // Versions of the above that return result by value
 template<int N>
-casa::IPosition blitzToAips (const blitz::TinyVector<int,N> &tv)
+casacore::IPosition blitzToAips (const blitz::TinyVector<int,N> &tv)
 {
-  casa::IPosition ret;
+  casacore::IPosition ret;
   convertShape(ret,tv);
   return ret;
 }
 
 template<int N>
-blitz::TinyVector<int,N> aipsToBlitz (const casa::IPosition &ipos)
+blitz::TinyVector<int,N> aipsToBlitz (const casacore::IPosition &ipos)
 {
   blitz::TinyVector<int,N> ret;
   convertShape(ret,ipos);
@@ -82,7 +82,7 @@ blitz::TinyVector<int,N> aipsToBlitz (const casa::IPosition &ipos)
 // Makes the AIPS++ array "out" a copy of the blitz array "in".
 // The data is always copied.
 template<class T1,class T2,int N>
-void copyArray ( casa::Array<T1> &out,const blitz::Array<T2,N> &in )
+void copyArray ( casacore::Array<T1> &out,const blitz::Array<T2,N> &in )
 {
   T1 *data = new T1[in.size()];
   // create temp array representing the data in column (aips++) order
@@ -90,41 +90,41 @@ void copyArray ( casa::Array<T1> &out,const blitz::Array<T2,N> &in )
   // use blitz assignment to copy data: presumably, this is fast enough
   tmp = in;
   // give data to aips++ array
-  casa::IPosition shape;
+  casacore::IPosition shape;
   convertShape(shape,in.shape());
-  out.takeStorage(shape,data,casa::TAKE_OVER);
+  out.takeStorage(shape,data,casacore::TAKE_OVER);
 }
 
 #ifndef USE_STD_COMPLEX
 template<class T,int N>
-void copyArray (casa::Array<casa::Complex> &out,const blitz::Array<T,N> &in)
+void copyArray (casacore::Array<casacore::Complex> &out,const blitz::Array<T,N> &in)
 {
-  casa::Complex *data = new casa::Complex[in.size()];
+  casacore::Complex *data = new casacore::Complex[in.size()];
   // create temp array representing the data in column (aips++) order
   // use a hard pointer cast to make this appear to be an fcomplex array
   blitz::Array<fcomplex,N> tmp(reinterpret_cast<fcomplex*>(data),in.shape(),blitz::neverDeleteData,blitz::ColumnMajorArray<N>());
   // use blitz assignment to copy data: presumably, this is fast enough
   tmp = in;
   // give data to aips++ array
-  casa::IPosition shape;
+  casacore::IPosition shape;
   convertShape(shape,in.shape());
-  out.takeStorage(shape,data,casa::TAKE_OVER);
+  out.takeStorage(shape,data,casacore::TAKE_OVER);
 }
 #endif
 
 // Versions of the above that return result by value
 template<class T,int N>
-casa::Array<T> copyBlitzToAips ( const blitz::Array<T,N> &in )
+casacore::Array<T> copyBlitzToAips ( const blitz::Array<T,N> &in )
 {
-  casa::Array<T> out;
+  casacore::Array<T> out;
   copyArray(out,in);
   return out;
 }
 
 //   template<class T,int N>
-//   casa::Array<T> refBlitzToAips ( blitz::Array<T,N> &in )
+//   casacore::Array<T> refBlitzToAips ( blitz::Array<T,N> &in )
 //   {
-//     casa::Array<T> out;
+//     casacore::Array<T> out;
 //     refArray(out,in);
 //     return out;
 //   }
@@ -133,7 +133,7 @@ casa::Array<T> copyBlitzToAips ( const blitz::Array<T,N> &in )
 // Helper function for converting AIPS++ arrays to blitz (refArray() and 
 // copyArray() below use it)
 template<class T,int N>
-void aipsToBlitz ( blitz::Array<T,N> &out,casa::Array<T> &in,blitz::preexistingMemoryPolicy policy )
+void aipsToBlitz ( blitz::Array<T,N> &out,casacore::Array<T> &in,blitz::preexistingMemoryPolicy policy )
 {
   using namespace DebugDefault;
   FailWhen( in.ndim() != N,"array rank mismatch" );
@@ -151,11 +151,11 @@ void aipsToBlitz ( blitz::Array<T,N> &out,casa::Array<T> &in,blitz::preexistingM
 // Makes the blitz array "out" a copy of the AIPS++ array "in".
 // The data is always copied.
 template<class T,int N>
-void copyArray ( blitz::Array<T,N> &out,const casa::Array<T> &in )
+void copyArray ( blitz::Array<T,N> &out,const casacore::Array<T> &in )
 {
   using namespace DebugDefault;
   // cast away const but that's OK since data will be duplicated
-  aipsToBlitz(out,const_cast<casa::Array<T>&>(in),blitz::duplicateData);
+  aipsToBlitz(out,const_cast<casacore::Array<T>&>(in),blitz::duplicateData);
 }
 
 // Makes the Blitz array "out" a reference to the AIPS++ array "in".
@@ -163,7 +163,7 @@ void copyArray ( blitz::Array<T,N> &out,const casa::Array<T> &in )
 // caller to ensure that the "in" object outlives the out object.
 // The AIPS++ array must be contiguous for this (otherwise a copy is always made) 
 template<class T,int N>
-void refArray ( blitz::Array<T,N> &out,casa::Array<T> &in )
+void refArray ( blitz::Array<T,N> &out,casacore::Array<T> &in )
 {
   using namespace DebugDefault;
   aipsToBlitz(out,in,blitz::neverDeleteData);
@@ -175,7 +175,7 @@ void refArray ( blitz::Array<T,N> &out,casa::Array<T> &in )
 // NB! we assume that the C99 _Complex is binary-compatible to
 // AIPS++ complex
 template<class TA,class TB,int N>
-void _aipsToBlitz_cast ( blitz::Array<TB,N> &out,casa::Array<TA> &in,blitz::preexistingMemoryPolicy policy )
+void _aipsToBlitz_cast ( blitz::Array<TB,N> &out,casacore::Array<TA> &in,blitz::preexistingMemoryPolicy policy )
 {
   using namespace DebugDefault;
   FailWhen( in.ndim() != N,"array rank mismatch" );
@@ -192,11 +192,11 @@ void _aipsToBlitz_cast ( blitz::Array<TB,N> &out,casa::Array<TA> &in,blitz::pree
 // Makes the blitz array "out" a copy of the AIPS++ array "in".
 // The data is always copied.
 template<class TA,class TB,int N>
-void _copyArray_cast ( blitz::Array<TB,N> &out,const casa::Array<TA> &in )
+void _copyArray_cast ( blitz::Array<TB,N> &out,const casacore::Array<TA> &in )
 {
   using namespace DebugDefault;
   // cast away const but that's OK since data will be duplicated
-  _aipsToBlitz_cast(out,const_cast<casa::Array<TA>&>(in),blitz::duplicateData);
+  _aipsToBlitz_cast(out,const_cast<casacore::Array<TA>&>(in),blitz::duplicateData);
 }
 
 // Makes the Blitz array "out" a reference to the AIPS++ array "in".
@@ -204,7 +204,7 @@ void _copyArray_cast ( blitz::Array<TB,N> &out,const casa::Array<TA> &in )
 // caller to ensure that the "in" object outlives the out object.
 // The AIPS++ array must be contiguous for this (otherwise a copy is always made) 
 template<class TA,class TB,int N>
-void _refArray_cast ( blitz::Array<TB,N> &out,casa::Array<TA> &in )
+void _refArray_cast ( blitz::Array<TB,N> &out,casacore::Array<TA> &in )
 {
   using namespace DebugDefault;
   _aipsToBlitz_cast(out,in,blitz::neverDeleteData);
@@ -213,7 +213,7 @@ void _refArray_cast ( blitz::Array<TB,N> &out,casa::Array<TA> &in )
 
 // Versions of the above that return result by value
 template<class T,int N>
-blitz::Array<T,N> copyAipsToBlitz ( const casa::Array<T> &in )
+blitz::Array<T,N> copyAipsToBlitz ( const casacore::Array<T> &in )
 {
   blitz::Array<T,N> out;
   copyArray(out,in);
@@ -221,7 +221,7 @@ blitz::Array<T,N> copyAipsToBlitz ( const casa::Array<T> &in )
 }
 
 template<class T,int N>
-blitz::Array<T,N> refAipsToBlitz ( casa::Array<T> &in )
+blitz::Array<T,N> refAipsToBlitz ( casacore::Array<T> &in )
 {
   blitz::Array<T,N> out;
   refArray(out,in);
@@ -230,7 +230,7 @@ blitz::Array<T,N> refAipsToBlitz ( casa::Array<T> &in )
 
 //#ifndef USE_STD_COMPLEX
 template<int N>
-inline blitz::Array<fcomplex,N> copyAipsToBlitzComplex ( const casa::Array<casa::Complex> &in )
+inline blitz::Array<fcomplex,N> copyAipsToBlitzComplex ( const casacore::Array<casacore::Complex> &in )
 {
   blitz::Array<fcomplex,N> out;
   _copyArray_cast(out,in);
@@ -238,7 +238,7 @@ inline blitz::Array<fcomplex,N> copyAipsToBlitzComplex ( const casa::Array<casa:
 }
 
 template<int N>
-inline blitz::Array<fcomplex,N> refAipsToBlitzComplex ( casa::Array<casa::Complex> &in )
+inline blitz::Array<fcomplex,N> refAipsToBlitzComplex ( casacore::Array<casacore::Complex> &in )
 {
   blitz::Array<fcomplex,N> out;
   _refArray_cast(out,in);
@@ -246,7 +246,7 @@ inline blitz::Array<fcomplex,N> refAipsToBlitzComplex ( casa::Array<casa::Comple
 }
 
 template<int N>
-inline blitz::Array<dcomplex,N> copyAipsToBlitzComplex ( const casa::Array<casa::DComplex> &in )
+inline blitz::Array<dcomplex,N> copyAipsToBlitzComplex ( const casacore::Array<casacore::DComplex> &in )
 {
   blitz::Array<dcomplex,N> out;
   _copyArray_cast(out,in);
@@ -254,7 +254,7 @@ inline blitz::Array<dcomplex,N> copyAipsToBlitzComplex ( const casa::Array<casa:
 }
 
 template<int N>
-inline blitz::Array<dcomplex,N> refAipsToBlitzComplex ( casa::Array<casa::DComplex> &in )
+inline blitz::Array<dcomplex,N> refAipsToBlitzComplex ( casacore::Array<casacore::DComplex> &in )
 {
   blitz::Array<dcomplex,N> out;
   _refArray_cast(out,in);
@@ -265,7 +265,7 @@ inline blitz::Array<dcomplex,N> refAipsToBlitzComplex ( casa::Array<casa::DCompl
 
 // Copies data between arrays. Shapes must match to begin with
 template<class T,int N>
-void assignArray( casa::Array<T> &to,const blitz::Array<T,N> &from )
+void assignArray( casacore::Array<T> &to,const blitz::Array<T,N> &from )
 {
   using namespace DebugDefault;
   FailWhen( to.ndim() != N,"array rank mismatch" );
@@ -289,7 +289,7 @@ void assignArray( casa::Array<T> &to,const blitz::Array<T,N> &from )
 }
 
 template<class T,int N>
-void assignArray( blitz::Array<T,N> &to,const casa::Array<T> &from )
+void assignArray( blitz::Array<T,N> &to,const casacore::Array<T> &from )
 {
   using namespace DebugDefault;
   FailWhen( from.ndim() != N,"array rank mismatch" );

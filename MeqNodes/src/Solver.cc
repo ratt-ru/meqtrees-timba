@@ -36,8 +36,8 @@
 #include <MeqNodes/Condeq.h>
 #include <MeqNodes/Parm.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Vector.h>
 #include <DMI/List.h>
 #ifndef HAVE_PARMDB
 #include <MeqNodes/ParmTableUtils.h>
@@ -50,7 +50,7 @@
 
 using namespace std;
 
-using namespace casa;
+using namespace casacore;
 
 namespace Meq {
 
@@ -1758,7 +1758,7 @@ void * Solver::workerLoop (int wt_num)
 
 //# Instantiate the makeNorm template.
 #ifndef HAVE_CASACORE
-#include <scimath/Fitting/LSQFit2.cc>
-template void casa::LSQFit::makeNorm<double, double*, int*>(unsigned,
+#include <casacore/scimath/Fitting/LSQFit2.cc>
+template void casacore::LSQFit::makeNorm<double, double*, int*>(unsigned,
 int* const&, double* const&, double const&, double const&, bool, bool);
 #endif
