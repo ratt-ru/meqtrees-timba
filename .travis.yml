@@ -4,7 +4,6 @@ services:
   - docker
 matrix:
   include:
-    - env: DIST=xenial
     - env: DIST=bionic
 script:
     - docker build . -t ska-sa/meqtrees-timba:${DIST} -f Dockerfile.${DIST}
