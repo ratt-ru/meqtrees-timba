@@ -58,7 +58,6 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
   for optstr in (options.debug or []):
     opt = optstr.split("=") + ['1'];
     context,level = opt[:2];
-    debuglevels[context] = int(level);
 
   # tell verbosity class to not parse argv -- we do it ourselves here
   Timba.utils.verbosity.disable_argv();
