@@ -16,7 +16,8 @@ ADD . /code
 RUN mkdir /code/build
 WORKDIR /code/build
 RUN cmake ..
-RUN make -j4
+RUN make -j16
+RUN make install
 
 # get the test from pyxis
 WORKDIR /code
