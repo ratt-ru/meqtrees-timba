@@ -42,14 +42,14 @@ RUN pip3 install .
 # tigger-lsm
 WORKDIR /code
 RUN wget https://github.com/ska-sa/tigger-lsm/archive/1.5.0.tar.gz
-RUN tar -xvf v1.5.0.tar.gz
+RUN tar -xvf 1.5.0.tar.gz
 WORKDIR /code/tigger-lsm-1.5.0
 RUN pip3 install .
 
 # tigger
 WORKDIR /code
 RUN wget https://github.com/ska-sa/tigger/archive/1.4.0.tar.gz
-RUN tar -xvf v1.4.0.tar.gz
+RUN tar -xvf 1.4.0.tar.gz
 WORKDIR /code/tigger-1.4.0
 RUN pip3 install .
 
@@ -79,7 +79,7 @@ WORKDIR /code/pyxis-1.6.2
 RUN pip3 install -U .
 
 # run test when built
-RUN pip install nose
+RUN pip3 install nose
 WORKDIR /usr/local/lib/python3.6/dist-packages/Pyxis/recipies/meqtrees-batch-test
 RUN python3.6 -m "nose"
 
