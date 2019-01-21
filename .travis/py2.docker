@@ -1,0 +1,34 @@
+FROM kernsuite/base:5
+
+RUN docker-apt-install libblitz0-dev python-dev casacore-dev libblas-dev liblapack-dev libqdbm-dev wcslib-dev \
+ libfftw3-dev python-numpy libcfitsio-dev casarest libboost-thread-dev libboost-system-dev cmake g++
+
+# test dependencies
+RUN docker-apt-install \
+    wget \
+    owlcat \
+    python-astro-tigger \
+    python-casacore \
+    python-pip \
+    makems
+
+ADD . /code
+RUN mkdir /code/build
+WORKDIR /code/build
+RUN cmake ..
+RUN make -j4
+
+# get the test from pyxis
+WORKDIR /code
+RUN wget https://github.com/ska-sa/pyxis/archive/v1.6.2.tar.gz
+RUN tar -xvf v1.6.2.tar.gz
+WORKDIR /code/pyxis-1.6.2
+RUN pip install -U .
+
+# run test when built
+RUN pip install nose
+WORKDIR /usr/local/lib/python2.7/dist-packages/Pyxis/recipies/meqtrees-batch-test
+RUN python2.7 -m "nose"
+
+ENTRYPOINT ["meqtree-pipeliner.py"]
+CMD ["--help"]

@@ -4,6 +4,9 @@ services:
   - docker
 matrix:
   include:
-    - env: DIST=bionic
+  - env: TARGET=py2
+  - env: TARGET=py3
+  allow_failures:
+  - env: TARGET=py3
 script:
-    - docker build . -t ska-sa/meqtrees-timba:${DIST} -f Dockerfile.${DIST}
+    - travis_wait 30 docker build . -t ska-sa/meqtrees-timba:${TARGET} -f .travis/${TARGET}.docker
