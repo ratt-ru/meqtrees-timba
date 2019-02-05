@@ -24,7 +24,7 @@ include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
 
 # These are the versions of Python we support.
-set(Python_ADDITIONAL_VERSIONS 2.7)
+set(Python_ADDITIONAL_VERSIONS 2.7 3.0 3.5 3.6)
 include (FindPythonInterp)
 include (FindPythonLibs)
 include(cmake/SetPythonPackagesDir.cmake)

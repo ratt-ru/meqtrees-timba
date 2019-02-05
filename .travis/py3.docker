@@ -6,17 +6,20 @@ RUN docker-apt-install libblitz0-dev python3-dev casacore-dev libblas-dev liblap
 # test dependencies
 RUN docker-apt-install \
     wget \
-    owlcat \
     python-astro-tigger \
     python-casacore \
     python3-pip \
+    libboost-python-dev \
     makems
+
+RUN pip3 install meqtrees-cattery
+RUN pip3 install owlcat
 
 ADD . /code
 RUN mkdir /code/build
 WORKDIR /code/build
-RUN cmake ..
-RUN make -j4
+RUN cmake -DPYTHON_EXECUTABLE=$(which python3) ..
+RUN make -j16 && make install
 
 # get the test from pyxis
 WORKDIR /code
@@ -26,7 +29,7 @@ WORKDIR /code/pyxis-1.6.2
 RUN pip3 install -U .
 
 # run test when built
-RUN pip install nose
+RUN pip3 install nose
 WORKDIR /usr/local/lib/python3.6/dist-packages/Pyxis/recipies/meqtrees-batch-test
 RUN python3.6 -m "nose"
 
