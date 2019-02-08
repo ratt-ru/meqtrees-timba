@@ -22,7 +22,7 @@
 // or write to the Free Software Foundation, Inc., 
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-
+#include <MeqServer/py3compat.h>
 #include "MeqPython.h"
 #include <MeqServer/MeqServer.h>
 #include <MeqServer/MeqUtils.h>
@@ -116,8 +116,14 @@ static PyObject * get_node_state_field (PyObject *, PyObject *args)
   // catch all exceptions below
   try
   {
-    FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
-    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(node_baton),"get_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCapsule_GetPointer(node_baton, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #endif
+    
     FailWhen(!pnode,"get_node_state_field: first argument must be a valid node baton");
     HIID field(field_str);
     cdebug(3)<<"get_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
@@ -147,8 +153,13 @@ PyObject * PyNodeAccessor::set_node_state_field (PyObject *, PyObject *args)
   // catch all exceptions below
   try
   {
-    FailWhen(!PyCObject_Check(node_baton),"set_node_state_field: first argument must be a valid node baton");
-    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(node_baton),"set_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCapsule_GetPointer(node_baton, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(node_baton),"set_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #endif
     FailWhen(!pnode,"set_node_state_field: first argument must be a valid node baton");
     HIID field(field_str);
     cdebug(3)<<"set_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
@@ -178,8 +189,14 @@ PyObject * PyNodeAccessor::set_node_active_symdeps (PyObject *, PyObject *args)
   // catch all exceptions below
   try
   {
-    FailWhen(!PyCObject_Check(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
-    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCapsule_GetPointer(node_baton, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #endif
+    
     FailWhen(!pnode,"set_node_acrive_symdeps: first argument must be a valid node baton");
     FailWhen(!PySequence_Check(symdep_list),"set_node_active_symdeps: second argument must be a list of symdeps");
     int ndep = PySequence_Length(symdep_list);
@@ -274,7 +291,11 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 PyObjectRef createPyNode (Meq::Node &pynode,const string &classname,const string &modulename)
 {
   Thread::Mutex::Lock lock(python_mutex);
-  PyObjectRef pynode_baton = PyCObject_FromVoidPtr(&pynode,0);
+  #if PY_MAJOR_VERSION >= 3
+    PyObjectRef pynode_baton = PyCapsule_New(&pynode, nullptr, [](_object* x){if (x != 0) {delete x;}});
+  #else
+    PyObjectRef pynode_baton = PyCObject_FromVoidPtr(&pynode,0);
+  #endif
   PyObjectRef args = Py_BuildValue("(Osss)",*pynode_baton,pynode.name().c_str(),classname.c_str(),modulename.c_str());
   FailWhen(!args,"failed to build args tuple");
   PyObjectRef val = PyObject_CallObject(create_pynode,*args);
@@ -426,14 +447,25 @@ void initMeqPython (MeqServer *mq)
     MeqUtils::initMeqUtilsModule();
 
     // register ourselves as a module
-    PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
-              "interface to the MeqServer object");
+    #if PY_MAJOR_VERSION < 3
+      PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
+                "interface to the MeqServer object");
+    #else
+      static struct PyModuleDef meqserver_interface =
+        {
+          PyModuleDef_HEAD_INIT,
+          "meqserver_interface", /* name of module */
+          "interface to the MeqServer object\n", /* module documentation, may be NULL */
+          -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          MeqMethods
+        };
+      PyObject *module = PyModule_Create(&meqserver_interface);
+    #endif
     if( !module )
-    {
-      PyErr_Print();
-      Throw("Python meqserver: meqserver_interface module init failed");
-    }
-
+      {
+        PyErr_Print();
+        Throw("Python meqserver: meqserver_interface module init failed");
+      }
     // import the octopython module to init everything
     PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
     if( !kernelmod )

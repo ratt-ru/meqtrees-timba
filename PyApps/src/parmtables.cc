@@ -58,7 +58,11 @@ PyFPT_dealloc(PyFPT* self)
   if( self->table )
     delete self->table;
   self->domain_list.detach();
-  self->ob_type->tp_free((PyObject*)self);
+  #if PY_MAJOR_VERSION >= 3
+  //not defined
+  #else
+    self->ob_type->tp_free((PyObject*)self);
+  #endif
 }
 
 // -----------------------------------------------------------------------
@@ -385,8 +389,7 @@ static PyMethodDef PyFPT_methods[] = {
 };
 
 PyTypeObject PyFPTType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                          /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0) //This will work in both python 2.7 and >3
     "parmtables.FastParmTable",      /*tp_name*/
     sizeof(PyFPT),          /*tp_basicsize*/
     0,                          /*tp_itemsize*/
@@ -454,8 +457,20 @@ void initParmTablesModule ()
 #endif
     
   // init the module
-  PyObject *module = Py_InitModule3("parmtables",ParmTableMethods,
-        "support for manipulating ParmTables");
+  #if PY_MAJOR_VERSION < 3
+    PyObject *module = Py_InitModule3("parmtables",ParmTableMethods,
+          "support for manipulating ParmTables");
+  #else
+    static struct PyModuleDef parmtables =
+        {
+          PyModuleDef_HEAD_INIT,
+          "parmtables", /* name of module */
+          "support for manipulating ParmTables\n", /* module documentation, may be NULL */
+          -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          ParmTableMethods
+        };
+    PyObject *module = PyModule_Create(&parmtables);
+  #endif
   if( !module )
     Throw("Py_InitModule3(\"parmtables\") failed");
 

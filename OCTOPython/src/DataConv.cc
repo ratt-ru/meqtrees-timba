@@ -22,7 +22,7 @@
 // or write to the Free Software Foundation, Inc., 
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-
+#include <MeqServer/py3compat.h>
 #include "OctoPython.h"
 #include <OCTOPUSSY/Message.h>
 #include <DMI/Record.h>
@@ -971,7 +971,10 @@ void initDataConv ()
     Py_FatalError("C++ bool != numarray bool, conversion code must be implemented");
   }
   // import the numpy API
-  import_array();
+  //Kludge... typo in numpy header
+  #define import_array4() {if (_import_array() < 0) {PyErr_Print(); PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import"); return; } }
+  import_array4();
+  
   // PyObjectRef numpyref = PyImport_ImportModule("numpy");
 }
 

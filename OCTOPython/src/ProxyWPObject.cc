@@ -49,7 +49,11 @@ static void
 PyProxyWP_dealloc(PyProxyWP* self)
 {
   self->address.detach();
-  self->ob_type->tp_free((PyObject*)self);
+  #if PY_MAJOR_VERSION >= 3
+    // Not defined?
+  #else
+    self->ob_type->tp_free((PyObject*)self);
+  #endif
 }
 
 // -----------------------------------------------------------------------
@@ -396,8 +400,7 @@ static PyMethodDef PyProxyWP_methods[] = {
 };
 
 PyTypeObject PyProxyWPType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                          /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0) //This will work in both python 2.7 and >3
     "octopython.proxy_wp",      /*tp_name*/
     sizeof(PyProxyWP),          /*tp_basicsize*/
     0,                          /*tp_itemsize*/

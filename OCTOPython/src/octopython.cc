@@ -269,20 +269,26 @@ static PyMethodDef OctoMethods[] = {
 // initoctopython
 // standard entrypoint called by Python when loading the module from an .so
 // -----------------------------------------------------------------------
-PyMODINIT_FUNC initoctopython ()
-{
-  Debug::Context::initialize();
-  try
+#if PY_MAJOR_VERSION < 3
+  PyMODINIT_FUNC initoctopython ()
+#else
+  PyMODINIT_FUNC PyInit_octopython(void)
+#endif
   {
-    initOctoPythonModule();
+    Debug::Context::initialize();
+    try
+    {
+      #if PY_MAJOR_VERSION < 3
+        initOctoPythonModule();
+      #else
+        initOctoPythonModule();
+      #endif
+    }
+    catch (std::exception &exc)
+    {
+      Py_FatalError(exc.what());
+    }
   }
-  catch (std::exception &exc)
-  {
-    Py_FatalError(exc.what());
-  }
-}
-
-
 } // extern "C"
 
 
@@ -302,11 +308,22 @@ void initOctoPythonModule ()
     Throw("failed to register octopython datatypes");
   
   // init the module
-  PyObject *module = Py_InitModule3("octopython", OctoMethods,
-        "C++ support module for octopussy.py");
+  #if PY_MAJOR_VERSION < 3
+    PyObject *module = Py_InitModule3("octopython", OctoMethods,
+          "C++ support module for octopussy.py");
+  #else
+    static struct PyModuleDef octopython =
+      {
+        PyModuleDef_HEAD_INIT,
+        "octopython", /* name of module */
+        "C++ support module for octopussy.py\n", /* module documentation, may be NULL */
+        -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+        OctoMethods
+      };
+    PyObject *module = PyModule_Create(&octopython);
+  #endif
   if( !module )
-    Throw("Py_InitModule3(\"octopython\") failed");
-  
+      Throw("Py_InitModule3(\"octopython\") failed");
   // init the DataConversion layer
   initDataConv();
   

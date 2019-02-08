@@ -144,14 +144,20 @@ static PyObject * set_axis_list (PyObject *, PyObject *args)
 
   returnNone;
 }
-
-static void deleteBoioObject (void *ptr)
-{
-  BOIO *pboio = static_cast<BOIO*>(ptr);
-  if( pboio )
-    delete pboio;
-}
-
+#if PY_MAJOR_VERSION >= 3
+  static void deleteBoioObject (_object *ptr)
+  {
+    if( ptr )
+      delete ptr;
+  }
+#else
+  static void deleteBoioObject (void *ptr)
+  {
+    BOIO *pboio = static_cast<BOIO*>(ptr);
+    if( pboio )
+      delete pboio;
+  }
+#endif
 static PyObject * open_boio (PyObject *, PyObject *args)
 {
   char * filename;
@@ -163,7 +169,11 @@ static PyObject * open_boio (PyObject *, PyObject *args)
     // create BOIO object
     BOIO *pboio = new BOIO(filename);
     // return as a PyCObject
-    return PyCObject_FromVoidPtr(pboio,deleteBoioObject);
+    #if PY_MAJOR_VERSION >= 3
+      return PyCapsule_New(pboio, nullptr, deleteBoioObject);
+    #else
+      return PyCObject_FromVoidPtr(pboio, deleteBoioObject);
+    #endif
   }
   catchStandardErrors(NULL);
 
@@ -180,8 +190,13 @@ static PyObject * read_boio (PyObject *, PyObject *args)
   try
   {
     // extract pointer to BOIO object
-    FailWhen(!PyCObject_Check(pyboio),"argument is not a valid boio object");
-    BOIO *pboio = static_cast<BOIO*>(PyCObject_AsVoidPtr(pyboio));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(pyboio),"argument is not a valid boio object");
+      BOIO *pboio = static_cast<BOIO*>(PyCapsule_GetPointer(pyboio, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(pyboio),"argument is not a valid boio object");
+      BOIO *pboio = static_cast<BOIO*>(PyCObject_AsVoidPtr(pyboio));
+    #endif
     FailWhen(!pboio,"argument is not a valid boio object");
     // read next entry
     ObjRef entry;
@@ -220,8 +235,20 @@ void initMeqUtilsModule ()
   Debug::Context::initialize();
 
   // init the module
-  PyObject *module = Py_InitModule3("mequtils",MeqUtilMethods,
-        "various utilities for python-side meqkernel support");
+  #if PY_MAJOR_VERSION < 3
+    PyObject *module = Py_InitModule3("mequtils",MeqUtilMethods,
+          "various utilities for python-side meqkernel support");
+  #else
+    static struct PyModuleDef mequtils =
+        {
+          PyModuleDef_HEAD_INIT,
+          "mequtils", /* name of module */
+          "various utilities for python-side meqkernel support\n", /* module documentation, may be NULL */
+          -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          MeqUtilMethods
+        };
+    PyObject *module = PyModule_Create(&mequtils);
+  #endif
   if( !module )
     Throw("Py_InitModule3(\"mequtils\") failed");
 

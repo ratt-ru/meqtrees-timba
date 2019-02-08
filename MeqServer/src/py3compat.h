@@ -18,9 +18,9 @@
         #define string_t std::wstring //fantastically hacky kludge because python3 is all unicode
         #define PyString_FromString(p) PyUnicode_FromString(p)
         #define PyString_AS_STRING(p) \
-                (char*) PyUnicode_AsUTF8(PyUnicode_AsUnicode(p)).c_str()
+                (char*) PyUnicode_AsUTF8(p)
         #define PyString_AsString(p) \
-                (char*) PyUnicode_AsUTF8(PyUnicode_AsUnicode(p)).c_str()
+                (char*) PyUnicode_AsUTF8(p)
         #define PyUnicode_Check(op) \
                 PyType_FastSubclass(Py_TYPE(op), Py_TPFLAGS_UNICODE_SUBCLASS)
         #define PyString_Check PyUnicode_Check
@@ -28,8 +28,8 @@
         #define unicode2utf8(p) std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(p)
         #define utf82unicode(p) std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(p)
         #define PyDict_SetItemString(rec, name, item) \
-                PyDict_SetItemString(rec,unicode2utf8(name).c_str(), item)
-        #define PyErr_SetString(errobj, err) PyErr_SetString(errobj, unicode2utf8(err))
+                PyDict_SetItemString(rec,name, item)
+        //#define PyErr_SetString(errobj, err) PyErr_SetString(errobj, unicode2utf8(err))
 
         // Now typedef all ints to longs...
         #include <longobject.h>
@@ -37,20 +37,20 @@
         #ifdef Py_USING_UNICODE
         #define PyInt_FromUnicode PyLong_FromUnicode
         #endif
-        #define PyInt_FromLong PyLong_FromLong
-        #define PyInt_FromSize_t PyLong_FromSize_t
-        #define PyInt_FromSsize_t PyLong_FromSsize_t
-        #define PyInt_AsLong PyLong_AsLong
-        #define PyInt_AsSsize_t PyLong_AsSsize_t
-        #define _PyInt_AsInt PyLong_AsLong
-        #define PyInt_AsUnsignedLongMask PyLong_AsUnsignedLongMask
+        #define PyInt_FromLong(p) PyLong_FromLong(p)
+        #define PyInt_FromSize_t(p) PyLong_FromSize_t(p)
+        #define PyInt_FromSsize_t(p) PyLong_FromSsize_t(p)
+        #define PyInt_AsLong(p) PyLong_AsLong(p)
+        #define PyInt_AsSsize_t(p) PyLong_AsSsize_t(p)
+        #define _PyInt_AsInt(p) PyLong_AsLong(p)
+        #define PyInt_AsUnsignedLongMask(p) PyLong_AsUnsignedLongMask(p)
         #ifdef HAVE_LONG_LONG
-        #define PyInt_AsUnsignedLongLongMask PyLong_AsUnsignedLongLongMask
+        #define PyInt_AsUnsignedLongLongMask(p) PyLong_AsUnsignedLongLongMask(p)
         #endif
         #define PyLong_Check(op) \
                 PyType_FastSubclass(Py_TYPE(op), Py_TPFLAGS_LONG_SUBCLASS)
         #define PyInt_Check PyLong_Check
-        #define PyInt_AS_LONG = PyLong_AsLong;
+        #define PyInt_AS_LONG(p) PyLong_AsLong(p)
 
         /* Convert an integer to the given base.  Returns a string.
         If base is 2, 8 or 16, add the proper prefix '0b', '0o' or '0x'.
