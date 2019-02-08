@@ -77,7 +77,7 @@ from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 
 #from Timba.GUI.pixmaps import pixmaps
-from BufferSizeDialog_qt4 import *
+from .BufferSizeDialog_qt4 import *
 
 # The ResultsRange class is directly adapted from the Qt/PyQt 
 # tutorial code examples.
@@ -295,7 +295,7 @@ class ResultsRange(Qt.QWidget):
 
     def align_camera(self):
       """ emit signal to align camera to current axis """
-      print 'in align_camara'
+      print('in align_camara')
       if self.allow_emit:
         self.emit(Qt.SIGNAL("align_camera"),True)
 
@@ -369,7 +369,7 @@ class ResultsRange(Qt.QWidget):
 
     def handle_menu_request(self, menuid):
       """ handle requested menu option """
-      print ' handling menu request with id ', menuid
+      print(' handling menu request with id ', menuid)
       if menuid == self.menu_table['Reset Auto Scaling']:
         self.handleAutoScaling()
       elif menuid == self.menu_table['Display summary plot']:

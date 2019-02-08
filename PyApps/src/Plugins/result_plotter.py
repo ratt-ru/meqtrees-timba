@@ -98,15 +98,15 @@ try:
 except:
   pass
 
-from QwtPlotImage_qt4 import *
-from QwtColorBar_qt4 import *
-from SpectrumData import *
-from VellsData import *
-from SolverData import *
-from ND_Controller_qt4 import *
-from ResultsRange_qt4 import *
-from BufferSizeDialog_qt4 import *
-from plot_printer_qt4 import *
+from .QwtPlotImage_qt4 import *
+from .QwtColorBar_qt4 import *
+from .SpectrumData import *
+from .VellsData import *
+from .SolverData import *
+from .ND_Controller_qt4 import *
+from .ResultsRange_qt4 import *
+from .BufferSizeDialog_qt4 import *
+from .plot_printer_qt4 import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='result_plotter');
@@ -248,7 +248,7 @@ class ResultPlotter(GriddedPlugin):
     if self._spectrum_data is None:
       (self._data_labels, self._string_tag) = self._visu_plotter.getSpectrumTags()
       self._spectrum_data = SpectrumData(self._data_labels, self._string_tag)
-    if leaf_record.has_key('value'):
+    if 'value' in leaf_record:
       self._data_values = leaf_record['value']
 
 # store the data
@@ -276,50 +276,50 @@ class ResultPlotter(GriddedPlugin):
   def check_attributes(self, attributes):
      """ check parameters of plot attributes against allowable values """
      plot_parms = None
-     if attributes.has_key('plot'):
+     if 'plot' in attributes:
        plot_parms = attributes.get('plot')
-       if plot_parms.has_key('attrib'):
+       if 'attrib' in plot_parms:
          temp_parms = plot_parms.get('attrib')
          plot_parms = temp_parms
-       if plot_parms.has_key('color'):
+       if 'color' in plot_parms:
          plot_color = plot_parms.get('color')
-         if not self.color_table.has_key(plot_color):
+         if plot_color not in self.color_table:
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
            mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['color'] = "blue"
-       if plot_parms.has_key('mean_circle_color'):
+       if 'mean_circle_color' in plot_parms:
          plot_color = plot_parms.get('mean_circle_color')
-         if not self.color_table.has_key(plot_color):
+         if plot_color not in self.color_table:
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
            mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['mean_circle_color'] = "blue"
-       if plot_parms.has_key('stddev_circle_color'):
+       if 'stddev_circle_color' in plot_parms:
          plot_color = plot_parms.get('stddev_circle_color')
-         if not self.color_table.has_key(plot_color):
+         if plot_color not in self.color_table:
            Message = str(plot_color) + " is not a valid color.\n Using blue by default"
            mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['stddev_circle_color'] = "blue"
-       if plot_parms.has_key('line_style'):
+       if 'line_style' in plot_parms:
          plot_line_style = plot_parms.get('line_style')
-         if not self.line_style_table.has_key(plot_line_style):
+         if plot_line_style not in self.line_style_table:
            Message = str(plot_line_style) + " is not a valid line style.\n Using dots by default"
            mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['line_style'] = "dots"
-       if plot_parms.has_key('mean_circle_style'):
+       if 'mean_circle_style' in plot_parms:
          plot_line_style = plot_parms.get('mean_circle_style')
-         if not self.line_style_table.has_key(plot_line_style):
+         if plot_line_style not in self.line_style_table:
            Message = str(plot_line_style) + " is not a valid line style for mean circles.\n Using lines by default"
            mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['mean_circle_style'] = "lines"
-       if plot_parms.has_key('stddev_circle_style'):
+       if 'stddev_circle_style' in plot_parms:
          plot_line_style = plot_parms.get('stddev_circle_style')
-         if not self.line_style_table.has_key(plot_line_style):
+         if plot_line_style not in self.line_style_table:
            Message = str(plot_line_style) + " is not a valid line style for stddev circles.\n Using DotLine by default"
            mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['stddev_circle_style'] = "DotLine"
-       if plot_parms.has_key('symbol'):
+       if 'symbol' in plot_parms:
          plot_symbol = plot_parms.get('symbol')
-         if not self.symbol_table.has_key(plot_symbol):
+         if plot_symbol not in self.symbol_table:
            Message = str(plot_symbol) + " is not a valid symbol.\n Using circle by default"
            mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
            plot_parms['symbol'] = "circle"
@@ -336,16 +336,16 @@ class ResultPlotter(GriddedPlugin):
     _dprint(3, 'doing prework with attribute list ',attribute_list)
 # we check if a plotter has been constructed - 
     if isinstance(node, dict) and self._visu_plotter is None:
-      if len(attribute_list) == 0 and node.has_key('attrib'):
+      if len(attribute_list) == 0 and 'attrib' in node:
         _dprint(2,'length of attrib', len(node['attrib']));
         if len(node['attrib']) > 0:
           attrib_parms = node['attrib']
           plot_parms = attrib_parms.get('plot')
-          if plot_parms.has_key('plot_type'):
+          if 'plot_type' in plot_parms:
             self._plot_type = plot_parms.get('plot_type')
-          if plot_parms.has_key('type'):
+          if 'type' in plot_parms:
             self._plot_type = plot_parms.get('type')
-          if plot_parms.has_key('results_buffer'):
+          if 'results_buffer' in plot_parms:
             self.max_list_length = plot_parms.get('results_buffer')
       else:
 # first get plot_type at first possible point in list - nearest root
@@ -354,18 +354,18 @@ class ResultPlotter(GriddedPlugin):
           attrib_parms = attribute_list[i]
           _dprint(3, 'attrib_parms ',  attrib_parms, ' has length ', len( attrib_parms));
           _dprint(3, 'processing attribute list ',i, ' ', attrib_parms);
-          if attrib_parms.has_key('plot'):
+          if 'plot' in attrib_parms:
             plot_parms = attrib_parms.get('plot')
             _dprint(3, '*** plot_parms ',  plot_parms, ' has length ', len( plot_parms));
-            if plot_parms.has_key('attrib'):
+            if 'attrib' in plot_parms:
               temp_parms = plot_parms.get('attrib')
               plot_parms = temp_parms
-            if plot_parms.has_key('results_buffer'):
+            if 'results_buffer' in plot_parms:
               self.max_list_length = plot_parms.get('results_buffer')
-            if plot_parms.has_key('plot_type'):
+            if 'plot_type' in plot_parms:
               self._plot_type = plot_parms.get('plot_type')
               break
-            if plot_parms.has_key('type'):
+            if 'type' in plot_parms:
               self._plot_type = plot_parms.get('type')
               break
       _dprint(3, 'pre_work gives plot_type ', self._plot_type)
@@ -394,7 +394,7 @@ class ResultPlotter(GriddedPlugin):
 
   def is_leaf(self, node):
     """ tests if a node is actually a leaf node """
-    if node.has_key('value'):
+    if 'value' in node:
       candidate_leaf = node['value']
       if isinstance(candidate_leaf, list):
 # check if list contents are a dict
@@ -474,7 +474,7 @@ class ResultPlotter(GriddedPlugin):
         self.do_prework(node, attribute_list)
 # test if this node is a leaf
       if not self.is_leaf(node):
-        if node.has_key('label'):
+        if 'label' in node:
           _dprint(3, 'tree: dict node has label(s) ', node['label'])
           if not node['label'] == label:
             if isinstance(node['label'], tuple):
@@ -487,7 +487,7 @@ class ResultPlotter(GriddedPlugin):
             else:
               temp = label + '\n' + node['label']
               node['plot_label'] = temp
-        if node.has_key('attrib') and len(node['attrib']) > 0:
+        if 'attrib' in node and len(node['attrib']) > 0:
           _dprint(3, 'tree: dict node has attrib ', node['attrib'])
           if not self._attributes_checked:
             self.check_attributes(node['attrib'])
@@ -505,7 +505,7 @@ class ResultPlotter(GriddedPlugin):
             attribute_list.append(attrib)
 # if not a leaf, and we find a 'value' field, then call
 # recursive method 'tree_traversal'
-        if node.has_key('value'):
+        if 'value' in node:
           self.tree_traversal(node['value'], node['plot_label'], attribute_list)
       else:
         try:
@@ -516,7 +516,7 @@ class ResultPlotter(GriddedPlugin):
           Message = "Failure of result_plotter tree-traversal.\n Result_plotter does not yet work with MeqHistoryCollect nodes."
           mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
           return
-        if is_root and node.has_key('attrib') and len(node['attrib']) > 0:
+        if is_root and 'attrib' in node and len(node['attrib']) > 0:
           if not self._attributes_checked:
             self.check_attributes(node['attrib'])
           attribute_list.append(node['attrib'])
@@ -546,7 +546,7 @@ class ResultPlotter(GriddedPlugin):
           temp_label = label
           
         if isinstance(node[i], dict):
-          if node[i].has_key('label'):
+          if 'label' in node[i]:
             _dprint(3, 'tree: list node number has label(s) ', i, ' ',node[i]['label'])
             if isinstance(node[i]['label'], tuple):
               _dprint(3, 'tree: list node label(s) is tuple')
@@ -558,7 +558,7 @@ class ResultPlotter(GriddedPlugin):
             else:
               temp = label + '\n' + node[i]['label']
               node[i]['plot_label'] = temp
-          if node[i].has_key('attrib'):
+          if 'attrib' in node[i]:
             _dprint(3, 'list: dict node has attrib ', i, ' ', node[i]['attrib'])
             if len(node[i]['attrib']) > 0:
               if not self._attributes_checked:
@@ -660,12 +660,12 @@ class ResultPlotter(GriddedPlugin):
       rq_id_found = False
       data_failure = False
       try:
-        if self._rec.cache.has_key("request_id"):
+        if "request_id" in self._rec.cache:
           self.label = "rq " + str(self._rec.cache.request_id);
           rq_id_found = True
-        if self._rec.cache.has_key("result"):
+        if "result" in self._rec.cache:
           self._rec = self._rec.cache.result; # look for cache.result record
-          if not rq_id_found and self._rec.has_key("request_id"):
+          if not rq_id_found and "request_id" in self._rec:
             self.label = "rq " + str(self._rec.request_id);
         else:
           data_failure = True
@@ -714,12 +714,12 @@ class ResultPlotter(GriddedPlugin):
     """ process the actual record structure associated with a Cache result """
     process_result = False
 # are we dealing with Vellsets?
-    if self._rec.has_key("dims"):
+    if "dims" in self._rec:
       _dprint(3, '*** dims field exists ', self._rec.dims)
 
-    if self._rec.has_key("vellsets") or self._rec.has_key("solver_result"):
+    if "vellsets" in self._rec or "solver_result" in self._rec:
       self.create_layout_stuff()
-      if self._rec.has_key("vellsets"):
+      if "vellsets" in self._rec:
         process_result = self.plot_vells_data()
         if not process_result:
           Message = "The result record for this node had no valid data, so no plot can be made."
@@ -736,7 +736,7 @@ class ResultPlotter(GriddedPlugin):
 
 # otherwise we are dealing with a set of visualization data
     else:
-      if self._rec.has_key("visu"):
+      if "visu" in self._rec:
 # do plotting of visualization data
         self.display_visu_data()
         _dprint(3, 'passed display_visu_data')

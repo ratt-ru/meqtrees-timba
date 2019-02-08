@@ -79,12 +79,12 @@ if __name__ == '__main__':
   ass.run("_tdl_job_1_source_flux_fit_no_calibration",write=False);
   
   # print some stuff for easy reference
-  print '3C343 I flux:',ass.mqs.getnodestate("stokes:I:3C343").funklet.coeff.tolist();
-  print '3C343_1 I flux:',ass.mqs.getnodestate("stokes:I:3C343_1").funklet.coeff.tolist();
+  print('3C343 I flux:',ass.mqs.getnodestate("stokes:I:3C343").funklet.coeff.tolist());
+  print('3C343_1 I flux:',ass.mqs.getnodestate("stokes:I:3C343_1").funklet.coeff.tolist());
 
   stat = ass.finish_test();
   if stat:
-    print "ASSAY FAILED: ",stat;
+    print("ASSAY FAILED: ",stat);
     sys.exit(stat);
 
 # we watch all the solvables to verify that their final fitted values are 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     
   stat = ass.finish_test();
   if stat:
-    print "ASSAY FAILED: ",stat;
+    print("ASSAY FAILED: ",stat);
     sys.exit(stat);
     
     

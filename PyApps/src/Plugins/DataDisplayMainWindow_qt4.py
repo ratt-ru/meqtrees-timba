@@ -73,7 +73,7 @@ import random
 import traceback
 import numpy
 
-import chartplot_qt4
+from . import chartplot_qt4
 
 
 class ControlMenu (Qt.QMenu):
@@ -176,8 +176,8 @@ class ControlMenu (Qt.QMenu):
     lo0.addLayout(lo1);
     lo0.addStretch(1);
     bgrp = Qt.QButtonGroup(self._ds_complex);
-    tbdesc = { self.AMP:(u"\u007Ca\u007C",0,0),self.PHASE:(u"\u03D5",0,1),self.REAL:("Re",1,0),self.IMAG:("Im",1,1) };
-    for label,qa in self._qas_complex.iteritems():
+    tbdesc = { self.AMP:("\u007Ca\u007C",0,0),self.PHASE:("\u03D5",0,1),self.REAL:("Re",1,0),self.IMAG:("Im",1,1) };
+    for label,qa in self._qas_complex.items():
       tbtext,row,col = tbdesc[label];
       tb = Qt.QToolButton(self._ds_complex);
       lo1.addWidget(tb,row,col);
@@ -271,7 +271,7 @@ class ControlMenu (Qt.QMenu):
       self._ds_complex and self._ds_complex.setVisible(True);
 
   def _change_complex (self,*dum):
-    for label,qa in self._qas_complex.iteritems():
+    for label,qa in self._qas_complex.items():
       if qa.isChecked():
         self.complex_component = label;
         break;
@@ -279,7 +279,7 @@ class ControlMenu (Qt.QMenu):
     self.emit(Qt.SIGNAL("changeComplexComponent"),self.complex_component);
     
   def _change_vells (self,*dum):
-    for label,qa in self._qas_vells.iteritems():
+    for label,qa in self._qas_vells.items():
       if qa.isChecked():
         self.vells_component = label;
         if label in self._tbs_vells:
@@ -328,7 +328,7 @@ class DisplayMainWindow(Qt.QMainWindow):
       self._grab_name = data_dict['source']
     except:
       self._grab_name = ''
-    if not self._ChartPlot.has_key(data_type):
+    if data_type not in self._ChartPlot:
       self._ChartPlot[data_type] = chartplot_qt4.ChartPlot(self._menu,num_curves=self._num_curves,parent=self)
       self._ChartPlot[data_type].setDataLabel(data_type)
       index = self._tabwidget.addTab(self._ChartPlot[data_type], data_type)
@@ -355,21 +355,21 @@ class DisplayMainWindow(Qt.QMainWindow):
 
   def set_range_selector(self, new_range):
     """ set or update maximum range for slider controller """
-    for plot in self._ChartPlot.itervalues():
+    for plot in self._ChartPlot.values():
       plot.set_offset_scale(new_range)
 
   def set_auto_scaling(self):
     """ set or update maximum range for slider controller """
-    for plot in self._ChartPlot.itervalues():
+    for plot in self._ChartPlot.values():
       plot.set_auto_scaling()
 
   def resizeEvent(self, event):
-    for plot in self._ChartPlot.itervalues():
+    for plot in self._ChartPlot.values():
       plot.resize(event.size())
     self._tabwidget.resize(event.size())
 
   def setNewPlot(self):
-    for plot in self._ChartPlot.itervalues():
+    for plot in self._ChartPlot.values():
       plot.clear_plot()
 
   def save_current_display (self):
@@ -410,7 +410,7 @@ class DisplayMainWindow(Qt.QMainWindow):
       return save_file,None;
     except:
       traceback.print_exc();
-      print 'failed to grab or save pixmap';
+      print('failed to grab or save pixmap');
       return save_file,True;
  
 

@@ -78,11 +78,11 @@
 import sys
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
-from QwtSpy_qt4 import *
+from .QwtSpy_qt4 import *
 import numpy
 import random
 
-import printfilter_qt4
+from . import printfilter_qt4
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='histogramplot');

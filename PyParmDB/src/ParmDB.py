@@ -34,7 +34,7 @@ class Parmdb:
         
     def getParmNames(self,pattern="*"):
         if not self._db:
-            print "no db opened, try reopen"
+            print("no db opened, try reopen")
             return;
         names=getNames(self._db,pattern);
         #print "names",names;
@@ -42,7 +42,7 @@ class Parmdb:
 
     def getRange(self,pattern="*"):
         if not self._db:
-            print "no db opened, try reopen"
+            print("no db opened, try reopen")
             return;
         domain=getRange(self._db,pattern);
         #print "names",names;
@@ -50,7 +50,7 @@ class Parmdb:
 
     def getFunklets(self,name,domain="all",parentId=-1):
         if not self._db:
-            print "no db opened, try reopen"
+            print("no db opened, try reopen")
             return;
         if domain == "all" or not isinstance(domain,dmi_type('MeqDomain',record)):
             funklets = getAllValues(self._db,name,parentId);
@@ -65,7 +65,7 @@ class Parmdb:
             
             self._db=openParmDB(name,type,False);
         else:
-            print "path", name,"not existing. New parmdb will be created.";
+            print(("path", name,"not existing. New parmdb will be created."));
             self._db=openParmDB(name,type,True);
         if not self._db:
-            print "Opening db",name,"FAILED";
+            print(("Opening db",name,"FAILED"));

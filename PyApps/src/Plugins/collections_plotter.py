@@ -84,10 +84,10 @@ from Timba import Grid
 from PyQt4 import Qt
 from Timba.Plugins.DataDisplayMainWindow_qt4 import *
 
-from VellsData import *
-from ResultsRange_qt4 import *
-from BufferSizeDialog_qt4 import *
-from plot_printer_qt4 import *
+from .VellsData import *
+from .ResultsRange_qt4 import *
+from .BufferSizeDialog_qt4 import *
+from .plot_printer_qt4 import *
 
 import itertools
 
@@ -200,7 +200,7 @@ class CollectionsPlotter(GriddedPlugin):
     _dprint(3, '** in collections_plotter:set_data callback')
     self._rec = dataitem.data;
     _dprint(3, 'set_data: initial self._rec ', self._rec)
-    _dprint(3, 'incoming record has keys ', self._rec.keys())
+    _dprint(3, 'incoming record has keys ', list(self._rec.keys()))
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
     if self._rec is None:
@@ -228,12 +228,12 @@ class CollectionsPlotter(GriddedPlugin):
       rq_id_found = False
       data_failure = False
       try:
-        if self._rec.cache.has_key("request_id"):
+        if "request_id" in self._rec.cache:
           self.label = "rq " + str(self._rec.cache.request_id);
           rq_id_found = True
-        if self._rec.cache.has_key("result"):
+        if "result" in self._rec.cache:
           self._rec = self._rec.cache.result; # look for cache.result record
-          if not rq_id_found and self._rec.has_key("request_id"):
+          if not rq_id_found and "request_id" in self._rec:
             self.label = "rq " + str(self._rec.request_id);
             rq_id_found = True
         else:
@@ -271,12 +271,12 @@ class CollectionsPlotter(GriddedPlugin):
 # are we dealing with Vellsets?
     self.counter = self.counter + 1
     self._max_per_display = 64
-    if self._rec.has_key("dims"):
+    if "dims" in self._rec:
       _dprint(3, '*** dims field exists ', self._rec.dims)
       self.dims = list(self._rec.dims)
     else:
       self.dims = None
-    if self._rec.has_key("vellsets"):
+    if "vellsets" in self._rec:
       self._number_of_planes = len(self._rec["vellsets"])
       self.dims_per_group = 1
       index_labels = None;
@@ -301,7 +301,7 @@ class CollectionsPlotter(GriddedPlugin):
         if self._number_of_planes == len(self._vells_label):
           index_labels = self._vells_label;
         else:
-          index_labels = range(self._number_of_planes);
+          index_labels = list(range(self._number_of_planes));
       # replace index labels with vells labels
       if self._visu_plotter is None:
         self.create_layout_stuff()
@@ -330,7 +330,7 @@ class CollectionsPlotter(GriddedPlugin):
 
 # hopefully handle cases with non-existent results
         try:
-          if  self._rec.vellsets[i].has_key("value"):
+          if  "value" in self._rec.vellsets[i]:
             data_dict['value'][datakey] = self._rec.vellsets[i].value
           else:
             data_dict['value'][datakey] = None
@@ -340,7 +340,7 @@ class CollectionsPlotter(GriddedPlugin):
 #       if index == 2:
 #           data_dict['value'][datakey] = None
         try:
-          if  self._rec.vellsets[i].has_key("flags"):
+          if  "flags" in self._rec.vellsets[i]:
             data_dict['flags'][datakey] = self._rec.vellsets[i].flags
           else:
             data_dict['flags'][datakey] = None

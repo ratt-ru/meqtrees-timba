@@ -92,20 +92,20 @@ def parse_argv (argv):
       
     elif arg.startswith("-verbose="):     # -verbose=Level[,WPLevel]
       verb = arg.split('=',2)[1];
-      verb = map(int,verb.split(',',2));
+      verb = list(map(int,verb.split(',',2)));
       if len(verb) == 1:
         verb = [verb,0];
       (args['verbose'],args['wp_verbose']) = verb;
       
     elif arg.startswith("-debug="):       # -debug=MaxDebug
       maxlev = int(arg.split('=',2)[1]);
-      for k in debuglevels.keys():
+      for k in list(debuglevels.keys()):
         debuglevels[k] = min(debuglevels[k],maxlev);
     
     else:
       m = dbgre.match(arg);    
       if m:
-        print 'will set debug level ',m.group(1),' to ',m.group(2);
+        print('will set debug level ',m.group(1),' to ',m.group(2));
         debuglevels[m.group(1)] = int(m.group(2));
       else:
         remain.append(arg);

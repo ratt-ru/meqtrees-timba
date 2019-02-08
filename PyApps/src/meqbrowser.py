@@ -50,14 +50,14 @@ except ImportError:
 
 def trace_lines (frame, event, arg):
   if event == "line":
-    print "%s:%d"%(frame.f_code.co_filename,frame.f_lineno);
+    print(("%s:%d"%(frame.f_code.co_filename,frame.f_lineno)));
   return trace_lines;
 
 if __name__ == "__main__":
   if not os.access('.',os.W_OK):
-    print "You do not have write permissions to your current working directory,",os.getcwd();
-    print "MeqTrees must be run in from a directory you can write to, such as your home dir." ;
-    print "Please cd to a writable directory and try again." ;
+    print(("You do not have write permissions to your current working directory,",os.getcwd()));
+    print("MeqTrees must be run in from a directory you can write to, such as your home dir.") ;
+    print("Please cd to a writable directory and try again.") ;
     sys.exit(1);
 
   # tell verbosity class to not parse argv -- we do it ourselves here
@@ -92,11 +92,11 @@ if __name__ == "__main__":
     context,level = opt[:2];
     Timba.utils.verbosity.set_verbosity_level(context,int(level));
 
-  print "Welcome to the MeqTrees Browser!";
-  print "Please wait a second while the GUI starts up.";
+  print("Welcome to the MeqTrees Browser!");
+  print("Please wait a second while the GUI starts up.");
 
   if not sys.platform.startswith('linux'):
-    print "Removing left-over Unix socket files associated with MeqTrees"
+    print("Removing left-over Unix socket files associated with MeqTrees")
     os.system('rm -f /tmp/\=meqbrowser-%d:*' % (os.getuid(),))
     os.system('rm -f /tmp/\=meqserver-%d:*' % (os.getuid(),))
 
@@ -141,9 +141,9 @@ def importPlugin (name,location='Timba.Plugins'):
   name = location + '.' +name;
   try:
     __import__(name,globals(),locals(),[]);
-  except Exception,what:
-    print "\n WARNING: couldn't import plugin '%s' (%s)"%(name,what);
-    print '  This plugin will not be available.';
+  except Exception as what:
+    print(("\n WARNING: couldn't import plugin '%s' (%s)"%(name,what)));
+    print('  This plugin will not be available.');
 
 ### import plug-ins
 ### disabled for now since they haven't been ported to Qt4 yet
@@ -171,7 +171,7 @@ importPlugin('result_plotter');
 def meqbrowse (debug={},**kwargs):
   args = dict(app_defaults.args);
   args['spawn'] = False;
-  for d,l in debug.iteritems():
+  for d,l in list(debug.items()):
     debuglevels[d] = max(debuglevels.get(d,0),l);
 
   # insert '' into sys.path, so that CWD is always in the search path
@@ -184,26 +184,26 @@ def meqbrowse (debug={},**kwargs):
   sock = options.socket;
   if sock == "None" or sock == "none":
     sock = "";
-    print "Not binding to a local socket.";
+    print("Not binding to a local socket.");
   else:
     # Use abstract socket on Linux and corresponding file-based socket elsewhere
     sock = "="+sock;
     if not sys.platform.startswith('linux'):
       sock = "/tmp/"+sock;
-    print "Binding to local socket %s"%sock;
+    print(("Binding to local socket %s"%sock));
     # check local socket
     sk = socket.socket(socket.AF_UNIX);
     try:
       sk.bind( ("\0"+sock[1:]) if sock[0] == '=' else sock);
     except:
-      print "Error binding to local socket %s"%sock;
-      print "This probably means that another meqbrowser is already running."
-      print "For advanced use, see the -s option (use -h to get help).";
+      print(("Error binding to local socket %s"%sock));
+      print("This probably means that another meqbrowser is already running.")
+      print("For advanced use, see the -s option (use -h to get help).");
       sys.exit(1);
     sk.close();
     if sock[0] != '=' and os.path.exists(sock):
       os.remove(sock)
-  print "Binding to TCP port %d, remote meqservers may connect with gwpeer=<host>:%d"%(port,port);
+  print(("Binding to TCP port %d, remote meqservers may connect with gwpeer=<host>:%d"%(port,port)));
   if not octopussy.is_initialized():
     octopussy.init(gwclient=False,gwtcp=port,gwlocal=sock);
   if not octopussy.is_running():

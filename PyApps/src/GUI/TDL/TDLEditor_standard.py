@@ -63,8 +63,8 @@ def _file_mod_time (path):
 _MODULE_FILENAME = Timba.utils.extract_stack()[-1][0];
 _MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
-from TDLErrorFloat import TDLErrorFloat
-from TDLOptionsDialog import TDLOptionsDialog
+from .TDLErrorFloat import TDLErrorFloat
+from .TDLOptionsDialog import TDLOptionsDialog
 
 class TDLEditor (QFrame,PersistentCurrier):
   SupportsLineNumbers = False;
@@ -447,7 +447,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     nblock = 1;
     while block and nblock < line:
       block0 = block;
-      block = block0.next();
+      block = next(block0);
       nblock += 1;
     return block or block0;
 
@@ -674,12 +674,12 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       try:
 	tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
       # catch import errors
-      except TDL.CumulativeError,value:
+      except TDL.CumulativeError as value:
 	_dprint(0,"caught cumulative error, length",len(value.args));
 	self._error_window.set_errors(value.args,message="TDL import failed");
         busy = None;
 	return None;
-      except Exception,value:
+      except Exception as value:
 	_dprint(0,"caught other error, traceback follows");
 	traceback.print_exc();
 	self._error_window.set_errors([value],message="TDL import failed");
@@ -696,7 +696,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 	# add options
 	try:
 	  TDLOptions.populate_option_treewidget(opt_tw,opts);
-	except Exception,value:
+	except Exception as value:
 	  _dprint(0,"error setting up TDL options GUI");
 	  traceback.print_exc();
 	  self._error_window.set_errors([value],message="Error setting up TDL options GUI");
@@ -727,12 +727,12 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 	    meqds.mqs(),self._filename,self._tdlmod,self._tdltext,
 	    parent=self,wait=False);
     # catch compilation errors
-    except TDL.CumulativeError,value:
+    except TDL.CumulativeError as value:
       _dprint(0,"caught cumulative error, length",len(value.args));
       self._error_window.set_errors(value.args,message="TDL import failed");
       busy = None;
       return None;
-    except Exception,value:
+    except Exception as value:
       _dprint(0,"caught other error, traceback follows");
       traceback.print_exc();
       self._error_window.set_errors([value]);
@@ -758,7 +758,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if not joblist:
       joblist = [];
       # try to build it from implicit function names
-      for (name,func) in _tdlmod.__dict__.iteritems():
+      for (name,func) in _tdlmod.__dict__.items():
         if name.startswith("_tdl_job_") and callable(func) and not TDLOptions.is_jobfunc_defined(func):
           joblist.append(func);
     # does the script define a testing function?
@@ -785,7 +785,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         ## new style:
         try:
           TDLOptions.populate_option_treewidget(self._tdlexec_menu.treeWidget(),opts,executor=self._job_executor);
-        except Exception,value:
+        except Exception as value:
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
           self._error_window.set_errors([value],message="Error setting up TDL options GUI");

@@ -71,10 +71,10 @@ def reloadAllModules ():
     for name in _reloadables:
       try:
         info = imp.find_module(name);
-      except ImportError,what:
-        print 'skipping module',name,':',what;
+      except ImportError as what:
+        print('skipping module',name,':',what);
       else:
-        print 'reloading module:',info[1];
+        print('reloading module:',info[1]);
         imp.load_module(*((name,)+info));
   finally:
     imp.release_lock();
@@ -331,7 +331,7 @@ class Logger(HierBrowser):
       # else let browser decide (viewable=None)
       viewable = None;
       if isinstance(content,dict) and \
-         (len(content)==1 and content.keys()[0] in MessageCategories):
+         (len(content)==1 and list(content.keys())[0] in MessageCategories):
         viewable = False;
       item.cache_content(content,viewable=viewable,viewopts=viewopts);
     # add pixmap according to category
@@ -848,7 +848,7 @@ class app_proxy_gui(verbosity,QMainWindow,utils.PersistentCurrier):
         if len(value) > 1:
           content = value;
         # look for fields of specific form ('message', 'error', etc.)
-        for (field,cat) in MessageCategories.items():
+        for (field,cat) in list(MessageCategories.items()):
           msg = value.get(field,None);
           if msg is None:
             continue;
@@ -1037,7 +1037,7 @@ class MainAppClass (QApplication):
     self._waitcond.release();
 
   def __sigint_handler (self,sig,stackframe):
-    print 'signal',sig;
+    print('signal',sig);
     self.quit();
 
   def customEvent(self,ev):

@@ -71,13 +71,13 @@ import sys
 
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
-from QwtSpy_qt4 import *
+from .QwtSpy_qt4 import *
 import numpy
 
 
-import printfilter_qt4
-import plot_printer_qt4
-import display_image_qt4 
+from . import printfilter_qt4
+from . import plot_printer_qt4
+from . import display_image_qt4 
 
 #widget to show a zoomed chanel of the plot
 
@@ -146,7 +146,7 @@ class ZoomPopup(Qt.QWidget):
     self._compare_max = True
 
   def do_compare(self):
-    print 'in zoomwin do_compare'
+    print('in zoomwin do_compare')
     if self._compare_max:
       self.stop_compare_max()
       self._compare_max = False

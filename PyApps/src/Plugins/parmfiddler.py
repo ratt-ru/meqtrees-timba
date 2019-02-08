@@ -295,14 +295,14 @@ class ParmFiddler (browsers.GriddedPlugin):
         else:
           self.getnodelist(meqds.nodelist[self._name]);          
         #subscribe to solvers
-        for solverkey in self._solverdict.keys():
+        for solverkey in list(self._solverdict.keys()):
           solver = self._solverdict[solverkey]['node'];
           # subscribe
           solver.subscribe_state(self._callbacksolver);
           meqds.request_node_state(solver);
 
         # fill listbox with MeqParm names
-        self.parmtable.setNumCols(len(self._solverdict.keys())+solverstart);
+        self.parmtable.setNumCols(len(list(self._solverdict.keys()))+solverstart);
         self.parmtable.setNumRows(len(self._parmlist));
         self.parmtable.setReadOnly(True);
         self.parmtable.horizontalHeader () .setLabel(0,"name");
@@ -366,7 +366,7 @@ class ParmFiddler (browsers.GriddedPlugin):
                   
           
   def checknodenew(self,node):
-      if self._nodedict.has_key(node.name):
+      if node.name in self._nodedict:
           return False;
       
       self._nodedict[node.name] = 1; 
@@ -397,7 +397,7 @@ class ParmFiddler (browsers.GriddedPlugin):
 
   def updateTable(self): 
       #print "got updateTable ",self._parmdict;
-      solvernamelist = self._solverdict.keys();
+      solvernamelist = list(self._solverdict.keys());
       if solvernamelist:
           n=solverstart;
           for solvernm in solvernamelist:
@@ -475,26 +475,26 @@ class ParmFiddler (browsers.GriddedPlugin):
     else:
       self.parmtable.clearCell(row,4);
  
-    for solver in self._solverdict.keys():
+    for solver in list(self._solverdict.keys()):
       col = self._solverdict[solver]['col'];
       checkbutton = self.parmtable.item(row,col);
       if not checkbutton:
         return;
-      if solvers.has_key(solver):
+      if solver in solvers:
         if solvers[solver]:
           checkbutton.setChecked(True);
      
 
   def putcheckboxes(self):
-     for solver in self._solverdict.keys():
+     for solver in list(self._solverdict.keys()):
          col = self._solverdict[solver]['col'];
-         if self._solverdict[solver].has_key('parms'):
-             for parm in self._solverdict[solver]['parms'].keys():
+         if 'parms' in self._solverdict[solver]:
+             for parm in list(self._solverdict[solver]['parms'].keys()):
                  row =  self._parmdict[parm]['row'];
                  solvers = self._parmdict[parm]['solvers'];
                  checkbutton = QCheckTableItem(self.parmtable, "");
                  checkbutton.setChecked(False);
-                 if solvers.has_key(solver):
+                 if solver in solvers:
                      if solvers[solver]:
                          checkbutton.setChecked(True);
                  self.parmtable.setItem(row,col,checkbutton);
@@ -552,9 +552,9 @@ class ParmFiddler (browsers.GriddedPlugin):
 
   def _update_subscribedsolvers(self,node, nodegroups):
       solvers={};
-      for solver in self._solverdict.keys():
+      for solver in list(self._solverdict.keys()):
           solvers[solver]=0;
-          if self._solverdict[solver]['parms'].has_key(node.name): #if parm in list of solvable parms, 
+          if node.name in self._solverdict[solver]['parms']: #if parm in list of solvable parms, 
               for group in nodegroups:
                   if group==self._solverdict[solver]['group']:
                       solvers[solver]=1;
@@ -569,7 +569,7 @@ class ParmFiddler (browsers.GriddedPlugin):
 
       names={};
       for i in state.solvable['command_by_list']:
-          if i.has_key('state') and i['state']['solvable']  and i.has_key('name'):
+          if 'state' in i and i['state']['solvable']  and 'name' in i:
               nameslist=i['name'];
       if isinstance(nameslist,str):
           names[nameslist]=1;
@@ -585,7 +585,7 @@ class ParmFiddler (browsers.GriddedPlugin):
       else:
          self._solverdict[node.name]['group']=  nodegroups;
          self._solverdict[node.name]['parms']=  names;
-         for parm in self._parmdict.keys():
+         for parm in list(self._parmdict.keys()):
              parmnode=self._parmdict[parm]['node'];
              # update parmtable if needed
              meqds.request_node_state(parmnode);
@@ -748,7 +748,7 @@ class ParmFiddler (browsers.GriddedPlugin):
     
   def leftMouse(self,row,col):
     #check if solvable paramters are updated
-    if row<0 or row >len(self._parmlist) or col > len(self._solverdict.keys())+solverstart:
+    if row<0 or row >len(self._parmlist) or col > len(list(self._solverdict.keys()))+solverstart:
       #nothing
       return;
     if col <solverstart :
@@ -769,7 +769,7 @@ class ParmFiddler (browsers.GriddedPlugin):
       checkbutton.setChecked(True);
       
     updateneeded = False;
-    if solvers.has_key(solver):
+    if solver in solvers:
         if solvers[solver]  and not checkbutton.isChecked():
           solvers[solver]=0;
           self._parmdict[parmkey]['solvers']=solvers;
@@ -782,9 +782,9 @@ class ParmFiddler (browsers.GriddedPlugin):
           
     if updateneeded:
       nodegroups=[];
-      for solver in self._solverdict.keys():
+      for solver in list(self._solverdict.keys()):
         group = self._solverdict[solver]['group'];
-        if solvers.has_key(solver):
+        if solver in solvers:
           if solvers[solver]:
             nodegroups.append(group);
       dmigroups=make_hiid_list(nodegroups);
@@ -906,12 +906,12 @@ class ParmFiddler (browsers.GriddedPlugin):
 
 
   def unsubscribe_all(self):
-      for parmkey in self._parmdict.keys():
+      for parmkey in list(self._parmdict.keys()):
           parm =  self._parmdict[parmkey]['node'];
           #print "unsubscribe node ", parm.name;
           parm.unsubscribe_state(self._callbackparm);
       #print "unsubscribing solvers", self._solverdict;
-      for solverkey in self._solverdict.keys():
+      for solverkey in list(self._solverdict.keys()):
           solver = self._solverdict[solverkey]['node'];
           #print "unsubscribe solver ", solver.name;
           solver.unsubscribe_state(self._callbacksolver);

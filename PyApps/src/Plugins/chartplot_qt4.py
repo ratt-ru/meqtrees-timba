@@ -74,12 +74,12 @@ from Timba.GUI.pixmaps import pixmaps
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 
-from QwtSpy_qt4 import *
+from .QwtSpy_qt4 import *
 import numpy
 
-import zoomwin_qt4
-import plot_printer_qt4
-import printfilter_qt4
+from . import zoomwin_qt4
+from . import plot_printer_qt4
+from . import printfilter_qt4
 import random
 
 class ChartPlot(Qt.QWidget):
@@ -864,7 +864,7 @@ class ChartPlot(Qt.QWidget):
     has_keys = True
     add_vells_menu = False
     try:
-      data_keys = new_chart_val.keys()
+      data_keys = list(new_chart_val.keys())
       add_vells_menu = True
     except:
       has_keys = False
@@ -885,7 +885,7 @@ class ChartPlot(Qt.QWidget):
       channel = channel_no
       
     for keys in data_keys: 
-      if not self._chart_data[channel].has_key(keys):
+      if keys not in self._chart_data[channel]:
         self._chart_data[channel][keys] = []
         self._flag_data[channel][keys] = []
         self._start_offset_test[channel][keys] = 0
@@ -1012,7 +1012,7 @@ class ChartPlot(Qt.QWidget):
     # first determine offsets
     if self._auto_offset:
       for channel in range(self._nbcrv):
-        if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
+        if self._updated_data[channel] and self._data_index in self._chart_data[channel]:
           try:
             chart = numpy.array(self._chart_data[channel][self._data_index])
             #print 'shape chart ', chart.shape, ' ', chart
@@ -1073,7 +1073,7 @@ class ChartPlot(Qt.QWidget):
     # -----------
 
     for channel in range(self._nbcrv):
-      if self._updated_data[channel] and self._chart_data[channel].has_key(self._data_index):
+      if self._updated_data[channel] and self._data_index in self._chart_data[channel]:
         index = channel+1
         #Set the values and size with the curves
         if index >= 1 and index <= self._nbcrv/4:

@@ -80,7 +80,7 @@ from Timba.GUI.browsers import *
 from Timba import Grid
 
 from PyQt4 import Qt
-from plot_printer_qt4 import *
+from .plot_printer_qt4 import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='quickref_plotter');
@@ -159,7 +159,7 @@ class QuickRefPlotter(GriddedPlugin):
     if not isinstance(self._rec,record):
       # print '\n** self.rec not a record, but:',type(self._rec)
       pass
-    elif not self._rec.has_key("quickref_help"):
+    elif "quickref_help" not in self._rec:
       # print '\n** self.rec does not have quickref_help field'
       pass
     else:

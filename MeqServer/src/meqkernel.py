@@ -80,7 +80,7 @@ def set_state (node,**fields):
   elif isinstance(node,int):
     rec.nodeindex = node;
   else:
-    raise TypeError,'illegal node argumnent';
+    raise TypeError('illegal node argumnent');
   # pass command to kernel
   meqserver_interface.mqexec('Node.Set.State',rec,True); # True=silent
   
@@ -143,7 +143,7 @@ def _import_script_or_module (script,modname=None,force_reload=False):
           if os.path.isfile(filename):
             break;
         else:
-          raise ValueError,"script not found anywhere in path: "+script;
+          raise ValueError("script not found anywhere in path: "+script);
       # open the script file
       infile = file(filename,'r');
       # now import the script as a module
@@ -249,7 +249,7 @@ def create_pynode (node_baton,node_name,class_name,module_name):
   if not module_name:
     components = class_name.split('.');
     if len(components) < 2:
-      raise ValueError,"create_pynode: if module is not specified separately, class name must have form 'module.class'";
+      raise ValueError("create_pynode: if module is not specified separately, class name must have form 'module.class'");
     class_name = components[-1];
     module_name = '.'.join(components[0:-1]);
   # now, import the module
@@ -263,6 +263,6 @@ def create_pynode (node_baton,node_name,class_name,module_name):
   # get the class
   class_obj = getattr(module,class_name,None);
   if class_obj is None:
-    raise ValueError,"create_pynode: class "+class_name+" not found in "+module_name;
+    raise ValueError("create_pynode: class "+class_name+" not found in "+module_name);
   # create and return pynode object
   return class_obj(node_name,node_baton);

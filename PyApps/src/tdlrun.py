@@ -69,20 +69,20 @@ def main ():
   TDLOptions.config.read(options.config);
   TDLOptions.init_options(script);
   
-  print "************************ Compiling TDL script",script;
+  print(("************************ Compiling TDL script",script));
   # this compiles a script as a TDL module. Any errors will be thrown as
   # and exception, so this always returns successfully
   (mod,ns,msg) = Compile.compile_file(mqs,script);
   
   if options.compile_only:
-    print msg;
+    print(msg);
     sys.exit(0);
   
   # if a solve job is not specified, try to find one
   if tdljob:
     jobfunc = getattr(mod,tdljob,None);
     if not jobfunc:
-      print "Cannot find TDL job named",tdljob;
+      print(("Cannot find TDL job named",tdljob));
       sys.exit(1);
   else:
     # does the script define an explicit job list?
@@ -90,7 +90,7 @@ def main ():
     if not joblist:
       joblist = []; 
       # try to build it from implicit function names
-      for (name,func) in mod.__dict__.iteritems():
+      for (name,func) in list(mod.__dict__.items()):
         if name.startswith("_tdl_job_") and callable(func):
           joblist.append(func);
     # does the script define a testing function?
@@ -98,13 +98,13 @@ def main ():
     if testfunc:
       joblist.insert(0,testfunc);
     if not joblist:
-      print "No TDL jobs found in script",script;
+      print(("No TDL jobs found in script",script));
       sys.exit(1);
     jobfunc = joblist[0];
     tdljob = jobfunc.__name__;
   
   # this runs the appropriate job. wait=True is needed to wait
-  print "************************ Running TDL job",tdljob;
+  print(("************************ Running TDL job",tdljob));
   # check if job takes a "wait" argument
   (fargs,fvarargs,fvarkw,fdefaults) = inspect.getargspec(jobfunc);
   if 'wait' in fargs or fvarkw:

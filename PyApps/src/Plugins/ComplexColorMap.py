@@ -69,7 +69,7 @@
 #  Victoria BC V9E 2E7			 Victoria BC V9E 2E7
 #  CANADA					 CANADA
 #
-from UVPAxis import *
+from .UVPAxis import *
 import numpy
 import math
 from qt import *
@@ -102,7 +102,7 @@ class ComplexColorMap:
     self.initColormap(slope)
   
   def initColormap(self, slope):
-    print 'in initColormap'
+    print('in initColormap')
     min_color = 0;
     max_color = 255;
     numColors = len(self._itsRealIndex)
@@ -156,4 +156,4 @@ class ComplexColorMap:
 #
 if __name__ == '__main__':
   a = ComplexColorMap(256)
-  print a.getNumberOfColors()
+  print(a.getNumberOfColors())

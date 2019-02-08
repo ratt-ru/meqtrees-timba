@@ -161,7 +161,7 @@ class PictureDisplay(QWidget):
   # printplot()
 
   def loadPicture(self,filename):
-    print 'loading file ', filename
+    print('loading file ', filename)
     try:
       found = False
       if filename.find(".svg") > -1:
@@ -175,11 +175,11 @@ class PictureDisplay(QWidget):
           self.pict.load(filename, "png")
           found = True
       if found:
-        print '** pict.load(',filename,'): Success! \n'
+        print('** pict.load(',filename,'): Success! \n')
       else:
-        print '** pict.load(',filename,'): Not able to load the picture!\n'
+        print('** pict.load(',filename,'): Not able to load the picture!\n')
     except:
-      print '** pict.load(',filename,'): Not able to load the picture - f*%&ing pylab!\n'
+      print('** pict.load(',filename,'): Not able to load the picture - f*%&ing pylab!\n')
 
   def resizeEvent(self, ev):
     self.resize(ev.size())
@@ -300,12 +300,12 @@ class SvgPlotter(GriddedPlugin):
       rq_id_found = False
       data_failure = False
       try:
-        if self._rec.cache.has_key("request_id"):
+        if "request_id" in self._rec.cache:
           self.label = "rq " + str(self._rec.cache.request_id);
           rq_id_found = True
-        if self._rec.cache.has_key("result"):
+        if "result" in self._rec.cache:
           self._rec = self._rec.cache.result; # look for cache.result record
-          if not rq_id_found and self._rec.has_key("request_id"):
+          if not rq_id_found and "request_id" in self._rec:
             self.label = "rq " + str(self._rec.request_id);
         else:
           data_failure = True
@@ -348,7 +348,7 @@ class SvgPlotter(GriddedPlugin):
     process_result = False
 # are we dealing with an svg result?
 
-    if self._rec.has_key("svg_plot"):
+    if "svg_plot" in self._rec:
       self.create_layout_stuff()
       self.show_svg_plot()
       process_result = True
@@ -392,7 +392,7 @@ class SvgPlotter(GriddedPlugin):
       try:
         result = file.writelines(svg_plot[1])
       except:
-        print 'There is nothing to plot!'
+        print('There is nothing to plot!')
         return
     file.close()
 
@@ -455,7 +455,7 @@ Grid.Services.registerViewer(meqds.NodeClass(),SvgPlotter,priority=50)
 
 #############  test stuff from here on #########
 def usage( prog ):
-  print 'usage : %s <svg_plotter input file>' % prog
+  print('usage : %s <svg_plotter input file>' % prog)
   return 1
 
 def main( argv ):
@@ -463,7 +463,7 @@ def main( argv ):
   if len(argv) > 1:
     fileName = argv[1]
   if not QFile.exists(fileName):
-    print "unable to plot - file not found "
+    print("unable to plot - file not found ")
     return
   else:
     app = QApplication(argv)

@@ -199,7 +199,7 @@ class SpectrumData:
      return self.marker_labels
 
 def main(args):
-  print 'we are in main' 
+  print('we are in main') 
 
 # Admire
 if __name__ == '__main__':

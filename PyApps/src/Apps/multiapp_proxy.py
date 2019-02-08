@@ -36,8 +36,8 @@ try:
   from PyQt4.Qt import QObject,SIGNAL
   from Kittens.widgets import PYSIGNAL
 except:
-  print "Qt not available, substituting proxy types for QObject";
-  from QObject import QObject,PYSIGNAL
+  print("Qt not available, substituting proxy types for QObject");
+  from .QObject import QObject,PYSIGNAL
   
 
 from Timba.dmi import *
@@ -159,7 +159,7 @@ class multiapp_proxy (verbosity):
       if extra:
         if isinstance(extra,str):
           extra = extra.split(' ');
-        args += map(str,extra);
+        args += list(map(str,extra));
       if path[0] != '/': # not absolute path, so need to search $PATH
         for dirname in os.environ['PATH'].split(':'):
           filename = os.path.join(dirname,path);
@@ -167,7 +167,7 @@ class multiapp_proxy (verbosity):
             path = filename;
             break;
       if not os.path.isfile(path) or not os.access(path,os.X_OK):
-        raise RuntimeError,"can't spawn %s: not an executable file" % (path,);
+        raise RuntimeError("can't spawn %s: not an executable file" % (path,));
       self.dprint(1,"spawning",path,*args);
       self.serv_pid = os.spawnv(os.P_NOWAIT,path,[path]+args);
       self.auto_attach(pid=self.serv_pid);
@@ -183,7 +183,7 @@ class multiapp_proxy (verbosity):
     if gui:
       self.dprint(1,"starting a GUI");
       if not app_defaults.include_gui:
-        raise ValueError,'gui=True but app_defaults.include_gui=False';
+        raise ValueError('gui=True but app_defaults.include_gui=False');
       # gui argument can be a callable object (called to start the gui),
       # or simply True to use a standard GUI.
       if callable(gui):
@@ -327,7 +327,7 @@ class multiapp_proxy (verbosity):
   def _process_stat_handler (self,msg):
     self.dprint(5,"got process status: ",msg.msgid);
     fromaddr = getattr(msg,'from');
-    for addr,server in self.servers.iteritems():
+    for addr,server in self.servers.items():
       if fromaddr[2:3] == addr[2:3]:
         server.process_status = msg.msgid[2:];
         self.dprintf(5,"server %s, process status %s",addr,server.process_status);
@@ -339,7 +339,7 @@ class multiapp_proxy (verbosity):
     # check if remote gateway belongs to a server that went down, make
     # list of servers to disconnect
     disconnects = [];
-    for addr,server in self.servers.iteritems():
+    for addr,server in self.servers.items():
       if msg.msgid[3:] == addr[2:]:
         disconnects.append((addr,server));
         self.dprint(2,"matches server",addr,"removing");
@@ -435,7 +435,7 @@ class multiapp_proxy (verbosity):
         res = self._pwp.await('*',resume=True,timeout=5);  # await anything, but keep looping until status changes
         self.dprint(3,'await returns',res);
         if time.time() >= endtime:
-          raise RuntimeError,"timeout waiting for connection";
+          raise RuntimeError("timeout waiting for connection");
     finally:
       self._pwp.resume_events();
     
@@ -443,7 +443,7 @@ class multiapp_proxy (verbosity):
     """Sends an app control command to the app""";
     if not destination:
       if not self.current_server:
-        raise RuntimeError,"no current server set up, cannot send default-destination messages";
+        raise RuntimeError("no current server set up, cannot send default-destination messages");
       destination = self.current_server.addr;
     msgid = self._snd_prefix + msgid;
     msg = message(msgid,payload=payload,priority=priority);
@@ -521,7 +521,7 @@ class multiapp_proxy (verbosity):
     while True:
       # throw error on disconnect
       if not self.servers:
-        raise RuntimeError,"lost all connections while waiting for event "+str(what);
+        raise RuntimeError("lost all connections while waiting for event "+str(what));
       res = self._pwp.await(self._rcv_prefix + what,timeout=await_timeout,resume=resume);
       # return message if something is received
       if res is not None:
@@ -533,6 +533,6 @@ class multiapp_proxy (verbosity):
     
   def run_gui (self):
     if not app_defaults.include_gui:
-      raise RuntimeError,"Can't call run_gui without gui support";
+      raise RuntimeError("Can't call run_gui without gui support");
     self._gui.await_gui_exit();
     

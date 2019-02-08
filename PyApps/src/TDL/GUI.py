@@ -89,9 +89,9 @@ def log_message (message,category=Normal):
     flush_events();
   else:
     if category == Normal:
-      print "TDL message: %s\n"%message;
+      print("TDL message: %s\n"%message);
     else:
-      print "TDL %s message: %s"%(message_category_names.get(category,""),message);
+      print("TDL %s message: %s"%(message_category_names.get(category,""),message));
 
 #
 # ===== MESSAGE BOXES ===
@@ -150,7 +150,7 @@ class MessageBox (object):
     if self.dialog:
       btn = self.dialog.button(button);
       if not btn:
-	raise ValueError,"button '%s' not present in this MessageBox"%ButtonNames.get(button,button);
+	raise ValueError("button '%s' not present in this MessageBox"%ButtonNames.get(button,button));
       btn.setText(text);
 
   def __del__ (self):
@@ -169,7 +169,7 @@ def message_box (caption,message,boxtype=Information,buttons=Button.Ok,default=N
   # print warning if unknown box type
   method = getattr(Qt.QMessageBox,boxtype,None);
   if not method:
-    print "WARNING: unknown boxtype '%s' in call to message_box()"%boxtype;
+    print("WARNING: unknown boxtype '%s' in call to message_box()"%boxtype);
     return default or Button.Ok;
   # call dialog
   Qt.QApplication.setOverrideCursor(Qt.QCursor());

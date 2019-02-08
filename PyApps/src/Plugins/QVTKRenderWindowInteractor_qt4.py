@@ -132,13 +132,13 @@ class QVTKRenderWindowInteractor(QtGui.QWidget):
 
         stereo = 0
 
-        if kw.has_key('stereo'):
+        if 'stereo' in kw:
             if kw['stereo']:
                 stereo = 1
 
         rw = None
 
-        if kw.has_key('rw'):
+        if 'rw' in kw:
             rw = kw['rw']
 
         # create qt-level widget
@@ -180,8 +180,8 @@ class QVTKRenderWindowInteractor(QtGui.QWidget):
         elif hasattr(self._Iren, attr):
             return getattr(self._Iren, attr)
         else:
-            raise AttributeError, self.__class__.__name__ + \
-                  " has no attribute named " + attr
+            raise AttributeError(self.__class__.__name__ + \
+                  " has no attribute named " + attr)
 
     def CreateTimer(self, obj, evt):
         self._Timer.start(10)

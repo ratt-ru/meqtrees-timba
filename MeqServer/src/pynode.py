@@ -75,7 +75,7 @@ class PyNode (object):
           self.newstate[field] = getattr(self.pynode,field);
           return False;
         else:
-          raise ValueError,"state field '"+field+"' not initialized and no default value provided";
+          raise ValueError("state field '"+field+"' not initialized and no default value provided");
       else:          
         return False;
         
@@ -97,7 +97,7 @@ class PyNode (object):
     
   def set_symdeps (self,*symdeps):
     """Sets the given field of the node's state record."""
-    symdeps = map(str,symdeps);
+    symdeps = list(map(str,symdeps));
     return meqserver_interface.set_node_active_symdeps(self._baton,symdeps);
     
   def get_forest_state (field):

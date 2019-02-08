@@ -37,7 +37,7 @@ def process_vis_header (hdr):
     # antenna positions
     pos = hdr.antenna_pos;
     if pos.rank != 2 or pos.shape[0] != 3:
-        raise ValueError,'incorrectly shaped antenna_pos';
+        raise ValueError('incorrectly shaped antenna_pos');
     nant = pos.shape[1];
     coords = ('x','y','z');
     for iant in range(14):  # range(nant), temporary hack
@@ -46,10 +46,10 @@ def process_vis_header (hdr):
         # ignore errors
         try:
             for (j,label) in enumerate(coords):
-                print label+':'+sn, 'value = ',pos[j,iant]
+                print(label+':'+sn, 'value = ',pos[j,iant])
                 set_state(label+':'+sn,value=pos[j,iant]);
         except: pass;
     # array reference position
     #for (j,label) in enumerate(coords):
     #  set_state(label+'0',value=pos[j,0]);
-    print 'END OF READ_MSVIS_HEADER'
+    print('END OF READ_MSVIS_HEADER')

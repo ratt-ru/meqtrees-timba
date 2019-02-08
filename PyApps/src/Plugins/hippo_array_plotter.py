@@ -78,7 +78,7 @@ from Timba import Grid
 
 from qt import *
 import sihippo
-print "HippoDraw version " + sihippo.__version__
+print("HippoDraw version " + sihippo.__version__)
 from sihippo import *
 from Timba.array import *
 
@@ -150,9 +150,9 @@ class HippoArrayPlotter(GriddedPlugin):
     if is_vector == False:
 # first display an image 
       if self._image_ntuple == None:
-        print 'should bomb here'
+        print('should bomb here')
         self._image_ntuple = self._ntuple_controller.createNTuple()
-        print 'did not bomb'
+        print('did not bomb')
         self._image_ntuple.setTitle ("Array Data")
         self._add_x_y = True;
       image_size = n_rows * n_cols

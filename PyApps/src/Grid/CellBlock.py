@@ -74,10 +74,10 @@ class CellBlock (object):
     elif len(size) == 2:
       (self._ncol,self._nrow) = size;
     else:
-      raise TypeError,"illegal size argument";
+      raise TypeError("illegal size argument");
     self._totsize = self._ncol*self._nrow;
     if self._totsize < 1:
-      raise ValueError,"illegal size value";
+      raise ValueError("illegal size value");
     # init cell grid in floating window or workspace
     if floating:
       self._allocate_float();
@@ -105,9 +105,9 @@ class CellBlock (object):
       if len(offset) == 2:
         offset = offset[1]*self._nrow + offset[0];
       else:
-        raise TypeError,"illegal offset argument";
+        raise TypeError("illegal offset argument");
     if offset<0 or offset >= self._totsize:
-      raise ValueError,"illegal offset value";
+      raise ValueError("illegal offset value");
     # return parent
     return self._cells[offset].wtop();
     
@@ -122,13 +122,13 @@ class CellBlock (object):
     """;
     if isinstance(widgets,QWidget):
       if len(self._cells) != 1:
-        raise ValueError,"len of widgets argument does not match cell layout";
+        raise ValueError("len of widgets argument does not match cell layout");
       widgets = (widgets,);
     else:
       try: n = len(widgets);
-      except: raise TypeError,"widgets argument must be a QWidget or a list of QWidgets";
+      except: raise TypeError("widgets argument must be a QWidget or a list of QWidgets");
       if len(widgets) != len(self._cells):
-        raise ValueError,"len of widgets argument does not match cell layout";
+        raise ValueError("len of widgets argument does not match cell layout");
     self._content = widgets;
     self._icon = icon;
     if captions is None:
@@ -151,7 +151,7 @@ class CellBlock (object):
     self._cells = self._gw.allocate_cells(nrow=self._nrow,ncol=self._ncol,
                                           udi=self._dataitem.udi,**kwds);
     if not self._cells:
-      raise Timba.Grid.Error,"unable to allocate cells";
+      raise Timba.Grid.Error("unable to allocate cells");
     # save new position
     leadcell = self._cells[0];
     self._gridpos = leadcell.grid_position();
@@ -164,7 +164,7 @@ class CellBlock (object):
     
   def _init_cells (self,cells,enable_viewers=True):
     """initializes cells with captions and dataitem.""";
-    cw = zip(cells,self._content);
+    cw = list(zip(cells,self._content));
     # init leader cell
     cells[0].set_content(self._content[0],dataitem=self._dataitem,icon=self._icon,enable_viewers=enable_viewers);
     # init other cells as followers

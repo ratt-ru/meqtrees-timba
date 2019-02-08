@@ -53,7 +53,7 @@ class QObject (object):
     """Disconnects named signal of sender from receiver""";
     conns = sender._connections.get(signal,None);
     if conns:
-      sender._connections[signal] = filter(lambda x:x!=receiver,conns);
+      sender._connections[signal] = [x for x in conns if x!=receiver];
   disconnect = staticmethod(disconnect);
   
   def emit (signal,args):

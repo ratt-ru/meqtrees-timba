@@ -1,7 +1,8 @@
 FROM kernsuite/base:5
 
 RUN docker-apt-install libblitz0-dev python3-dev casacore-dev libblas-dev liblapack-dev libqdbm-dev wcslib-dev \
- libfftw3-dev python3-numpy libcfitsio-dev casarest libboost-thread-dev libboost-system-dev cmake g++
+ libfftw3-dev python3-numpy libcfitsio-dev casarest libboost-thread-dev libboost-system-dev cmake g++ python3-pyqt4 \
+ libpython3-all-dev
 
 # test dependencies
 RUN docker-apt-install \
@@ -18,7 +19,7 @@ RUN pip3 install owlcat
 ADD . /code
 RUN mkdir /code/build
 WORKDIR /code/build
-RUN cmake -DPYTHON_EXECUTABLE=$(which python3) ..
+RUN cmake -DPython_ADDITIONAL_VERSIONS=3.6 ..
 RUN make -j16 && make install
 
 # get the test from pyxis

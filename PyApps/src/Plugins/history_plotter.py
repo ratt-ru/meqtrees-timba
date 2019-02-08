@@ -223,12 +223,12 @@ class HistoryPlotter(GriddedPlugin):
     if dmi_typename(self._rec) != 'MeqResult': # data is not already a result?
 #   try to put request ID^S in label
       rq_id_found = False
-      if self._rec.cache.has_key("request_id"):
+      if "request_id" in self._rec.cache:
         self.label = "rq " + str(self._rec.cache.request_id);
         rq_id_found = True
-      if self._rec.cache.has_key("result"):
+      if "result" in self._rec.cache:
         self._rec = self._rec.cache.result; # look for cache.result record
-        if not rq_id_found and self._rec.has_key("request_id"):
+        if not rq_id_found and "request_id" in self._rec:
           self.label = "rq " + str(self._rec.request_id);
       else:
         Message = "No result record was found in the cache, so no plot can be made with the <b>history plotter</b>! You may wish to select another type of display."
@@ -239,7 +239,7 @@ class HistoryPlotter(GriddedPlugin):
         self.reset_plot_stuff()
         return
 
-    if self._rec.has_key("history"):
+    if "history" in self._rec:
 # do plotting of visualization data
       self.display_history_data()
     else:
@@ -262,7 +262,7 @@ class HistoryPlotter(GriddedPlugin):
       create a plotter object to plot the data 
     """
     _dprint(3, ' ')
-    if self._rec.history.has_key('value'):
+    if 'value' in self._rec.history:
       (self._plot_array, self._flag_plot_array) = self.create_plot_array(self._rec.history['value'])
       try:
         _dprint(3, 'plot_array rank and shape ', self._plot_array.ndim, ' ', self._plot_array.shape)

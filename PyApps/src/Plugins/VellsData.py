@@ -136,7 +136,7 @@ class VellsData:
             delta = None
             expected_num_grid_points = None
             title = current_label
-            if vells_rec.cells.grid.has_key(current_label):
+            if current_label in vells_rec.cells.grid:
               try:
                 grid_array = vells_rec.cells.grid.get(current_label)
                 delta = vells_rec.cells.cell_size.get(current_label)
@@ -245,7 +245,7 @@ class VellsData:
      try:
        self._number_of_planes = len(vells_rec["vellsets"])
      except:
-       print '*** failure to get number of planes'
+       print('*** failure to get number of planes')
        if len(self.rq_label) > 0:
          self.scalar_string = self.rq_label + ' has no data'
        else:
@@ -256,7 +256,7 @@ class VellsData:
      self.dims = None
      self.index = []
      self.start_index = None
-     if vells_rec.has_key("dims"):
+     if "dims" in vells_rec:
        dims = vells_rec.dims
        self.dims = list(dims)
        for i in range(len(self.dims)):
@@ -270,7 +270,7 @@ class VellsData:
        except:
          exterior_label = None
        valueshapes = [];  # accumulate list of main value + perturbed value shapes here
-       if vells_rec.vellsets[i].has_key("value"):
+       if "value" in vells_rec.vellsets[i]:
          menu_label = "[" + str(i) + "]" 
          if self.dims is None:
            text_display = menu_label
@@ -328,7 +328,7 @@ class VellsData:
            self.scalar_string = 'has no data'
 #        return
        
-       if vells_rec.vellsets[i].has_key("perturbed_value"):
+       if "perturbed_value" in vells_rec.vellsets[i]:
          try:
            number_of_perturbed_arrays = len(vells_rec.vellsets[i].perturbed_value)
            if not exterior_label is None:
@@ -376,7 +376,7 @@ class VellsData:
 # don't display message for the time being
 #           Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
 #           mb_reporter = Qt.QMessageBox.warning(self, "QwtImageDisplay", Message)
-       if vells_rec.vellsets[i].has_key("flags"):
+       if "flags" in vells_rec.vellsets[i]:
          toggle_index = "flag data " + str(i)
          flags = vells_rec.vellsets[i].flags;
          # OK, we need to promote the shape of the flags array to the union of all the value shapes
@@ -471,7 +471,7 @@ class VellsData:
    def activePlaneHasFlags(self):
      """ returns True if active plane has associated flags array """
      key = "flag data " + str(self._active_plane)
-     if self._plot_flags_dict.has_key(key):
+     if key in self._plot_flags_dict:
        return True
      else:
        return False
@@ -755,7 +755,7 @@ class VellsData:
 
    
 def main(args):
-  print 'we are in main' 
+  print('we are in main') 
 
 # Admire
 if __name__ == '__main__':

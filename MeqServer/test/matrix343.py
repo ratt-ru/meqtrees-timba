@@ -97,7 +97,7 @@ def set_MAB_node_state (mqs, node, fields_record):
     elif isinstance(node,int):
         rec.nodeindex = node;
     else:
-        raise TypeError,'illegal node argumnent';
+        raise TypeError('illegal node argumnent');
 # pass command to kernel
     mqs.meq('Node.Set.State',rec);
     pass
@@ -443,13 +443,13 @@ def forest_sum_of_phases(ns, station_list, patch_name, coeff):
 
 def get_WSRT_reduntant_baselines():
     redundant=[[[11,12], [13,14]]]
-    print redundant[0]
+    print(redundant[0])
     for sep in range(1,10):
         r=[]
         for s in range(1,11-sep):
             r.append([s,s+sep])
             pass
-        print r
+        print(r)
         redundant.append(r)
         pass
     return redundant
@@ -517,7 +517,7 @@ def forest_create_sink_sequence(ns, interferometer_list, output_column='PREDICT'
 def _define_forest(ns):
     mep_table_name      = '3C343.mep'
     source_mep_tablename= 'sourcemodel.mep'
-    station_list        = range(1, 14+1)
+    station_list        = list(range(1, 14+1))
     interferometer_list = [(ant1, ant2) for ant1 in station_list for ant2 in station_list if ant1 < ant2]
 
     source_model,extra_sources = create_initial_source_model(tablename=source_mep_tablename,extra_sources_filename='extra_sources.txt')
@@ -538,7 +538,7 @@ def _define_forest(ns):
         forest_station_jones(ns, station, mep_table_name)
         pass
         
-    for (name, list) in patch_source_lists.iteritems():
+    for (name, list) in patch_source_lists.items():
         forest_clean_patch_predict_trees(ns, name, list, station_list)
         for station in station_list:
             forest_station_patch_jones(ns, station, name, mep_table_name)
@@ -546,8 +546,8 @@ def _define_forest(ns):
         pass
 
     forest_baseline_predict_trees(ns, interferometer_list,
-                                  patch_source_lists.keys())
-    forest_solver(ns, interferometer_list, station_list, patch_source_lists.keys())
+                                  list(patch_source_lists.keys()))
+    forest_solver(ns, interferometer_list, station_list, list(patch_source_lists.keys()))
     forest_baseline_correct_trees(ns, interferometer_list, 'centre')
     forest_create_sink_sequence(ns, interferometer_list)
     pass
@@ -643,15 +643,15 @@ def _tdl_job_1_source_flux_fit_no_calibration(mqs,parent,write=True):
 
     source_list,extra_sources = create_initial_source_model(extra_sources_filename='extra_sources.txt')
 
-    print inputrec
-    print outputrec
+    print(inputrec)
+    print(outputrec)
 
     solvables = []
     for source in source_list+extra_sources:
         solvables.append('stokes:I:'+source.name)
         solvables.append('stokes:Q:'+source.name)
         pass
-    print solvables
+    print(solvables)
     for s in solvables:
         publish_node_state(mqs, s)
         pass
@@ -659,7 +659,7 @@ def _tdl_job_1_source_flux_fit_no_calibration(mqs,parent,write=True):
     publish_node_state(mqs, 'solver')
 
     solver_defaults = create_solver_defaults(solvable=solvables)
-    print solver_defaults
+    print(solver_defaults)
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     
     req = meq.request();
@@ -685,10 +685,10 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     inputrec        = create_inputrec(msname, tile_size=100)
     outputrec       = create_outputrec()
 
-    station_list = range(1,15)
+    station_list = list(range(1,15))
     patch_list   = ['centre', 'edge']
-    print inputrec
-    print outputrec
+    print(inputrec)
+    print(outputrec)
 
     solvables = []
     for station in station_list:
@@ -697,7 +697,7 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
             solvables.append('JP:'+str(station)+':'+patch+':22')
             pass
         pass    
-    print solvables
+    print(solvables)
     
     publish_node_state(mqs, 'JP:2:centre:11')
     publish_node_state(mqs, 'JP:2:edge:11')
@@ -705,7 +705,7 @@ def _tdl_job_2_phase_solution_with_given_fluxes_all(mqs,parent,write=True):
     publish_node_state(mqs, 'corrected:2:11')
     
     solver_defaults = create_solver_defaults(solvable=solvables)
-    print solver_defaults
+    print(solver_defaults)
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     
     req = meq.request();
@@ -727,10 +727,10 @@ def _tdl_job_3_gain_solution_with_given_fluxes(mqs, parent,write=True):
     outputrec       = create_outputrec()
 
     source_list  = create_initial_source_model()
-    station_list = range(1,15)
+    station_list = list(range(1,15))
     patch_list   = ['centre', 'edge']
-    print inputrec
-    print outputrec
+    print(inputrec)
+    print(outputrec)
 
     solvables = []
     for station in station_list:
@@ -739,7 +739,7 @@ def _tdl_job_3_gain_solution_with_given_fluxes(mqs, parent,write=True):
             solvables.append('JA:'+str(station)+':'+patch_name+':22')
             pass
         pass
-    print solvables
+    print(solvables)
     
     publish_node_state(mqs, 'JA:2:centre:11')
     publish_node_state(mqs, 'JA:2:edge:11')
@@ -747,7 +747,7 @@ def _tdl_job_3_gain_solution_with_given_fluxes(mqs, parent,write=True):
     publish_node_state(mqs, 'corrected:2:11')
     
     solver_defaults = create_solver_defaults(solvable=solvables)
-    print solver_defaults
+    print(solver_defaults)
     set_MAB_node_state(mqs, 'solver', solver_defaults)
     
     req = meq.request();

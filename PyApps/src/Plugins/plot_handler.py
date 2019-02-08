@@ -142,12 +142,12 @@ class plot_handler:
     if not self.colorbar is None:
       self.colorbar[0].hide()
       self.colorbar[1].hide()
-      print 'issued hide command to colorbars'
+      print('issued hide command to colorbars')
     if not self.twoD_plotter is None:
       self.twoD_plotter.hide()
     if not self.ND_Controls_2D is None:
       self.ND_Controls_2D.hide()
-      print 'issued hide command to twoD_plotter'
+      print('issued hide command to twoD_plotter')
 
   def show_2D_Plotters(self):
     """ show 2D plotter and associated colorbars """
@@ -160,10 +160,10 @@ class plot_handler:
     if not self.colorbar is None:
       self.colorbar[0].unHide()
       self.colorbar[1].unHide()
-      print 'issued show command to colorbars'
+      print('issued show command to colorbars')
     if not self.twoD_plotter is None:
       self.twoD_plotter.show()
-    print 'issued show command to twoD_plotter'
+    print('issued show command to twoD_plotter')
 
   def create_array_selector(self, rank, shape, first_axis,second_axis,third_axis=-1,selector_2D=True):
     """ create subarray selection to be extracted from ND array for display """
@@ -256,13 +256,13 @@ class plot_handler:
           self.ND_Controls_2D.showDisplay(1)
         else:
           self.ND_Controls_2D.showDisplay(0)
-        print 'created self.ND_Controls_2D ', self.ND_Controls_2D
+        print('created self.ND_Controls_2D ', self.ND_Controls_2D)
       return self.ND_Controls_2D
 
     if num_axes == 3: 
       if not self.ND_Controls_2D is None:
         self.ND_Controls_2D.hide()
-        print 'should have hidden self.ND_Controls_2D '
+        print('should have hidden self.ND_Controls_2D ')
       if self.ND_Controls_3D is None:
         self.ND_Controls_3D = ND_Controller(array_shape, labels, parms, num_axes,self.layout_parent)
         self.layout.addMultiCellWidget(self.ND_Controls_3D,3,3,0,2)

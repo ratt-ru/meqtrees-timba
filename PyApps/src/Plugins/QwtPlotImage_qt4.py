@@ -82,7 +82,7 @@ from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 
 #from qt import *
-from QwtSpy_qt4 import *
+from .QwtSpy_qt4 import *
 #import Qwt5 as Qwt
 
 import numpy
@@ -90,7 +90,7 @@ import math
 
 #from UVPAxis import *
 #from ComplexColorMap import *
-from ImageScaler import *
+from .ImageScaler import *
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='QwtPlotImage');
@@ -133,7 +133,7 @@ def sinx_image(nx,ny,off=0):
         dist = math.sqrt(k_dist*k_dist + i_dist*i_dist)
         if dist != 0:
           image_numpy[k,i] =  math.sin(dist) / dist
-    print 'calculated array has shape ', image_numpy.shape
+    print('calculated array has shape ', image_numpy.shape)
     return image_numpy
 # sinx_image
 
@@ -182,7 +182,7 @@ def oldToQImage(array):
     if array.dtype == numpy.uint8:
         image = Qt.QImage(nx, ny, Qt.QImage.Format_Indexed8)
         f_array = numpy.reshape(array,(nx*ny,),order='F')
-        for j in xrange(ny):
+        for j in range(ny):
             pointer = image.scanLine(j)
             pointer.setsize(nx*array.itemsize)
             memory = numpy.frombuffer(pointer, numpy.uint8)
@@ -197,7 +197,7 @@ def oldToQImage(array):
         image = Qt.QImage(
             array.tostring(), width, height, Qt.QImage.Format_ARGB32)
         f_array = numpy.reshape(array,(nx*ny,),order='F')
-        for j in xrange(ny):
+        for j in range(ny):
             pointer = image.scanLine(j)
             pointer.setsize(nx*array.itemsize)
             memory = numpy.frombuffer(pointer, numpy.uint32)

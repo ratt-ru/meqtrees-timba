@@ -24,7 +24,11 @@ include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
 
 # These are the versions of Python we support.
-set(Python_ADDITIONAL_VERSIONS 2.7 3.0 3.5 3.6)
+if(NOT DEFINED Python_ADDITIONAL_VERSIONS)
+    set(Python_ADDITIONAL_VERSIONS 2.7) # default to 2.7
+    message(WARNING "Defaulting to searching for python and its libraries for version ${Python_ADDITIONAL_VERSIONS}. "
+                    "If this is not what you intended override this behaviour with '-DPython_ADDITIONAL_VERSIONS'")
+endif()
 include (FindPythonInterp)
 include (FindPythonLibs)
 include(cmake/SetPythonPackagesDir.cmake)
@@ -90,7 +94,7 @@ endif(CASACORE_FOUND)
 add_definitions(-DUSE_STD_COMPLEX -DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_THREADS -fPIC)
 SET(CPP_PLATFORM_LIBS ${CMAKE_THREAD_LIBS_INIT})
 if(CMAKE_COMPILER_IS_GNUCC)
-    add_definitions(-Wno-deprecated -D_GNU_SOURCE -Wno-unknown-pragmas)
+    add_definitions(-Wno-deprecated -D_GNU_SOURCE -Wno-unknown-pragmas -std=c++17 -Wfatal-errors)
     list(APPEND CPP_PLATFORM_LIBS util dl)
 endif(CMAKE_COMPILER_IS_GNUCC)
 IF(APPLE)

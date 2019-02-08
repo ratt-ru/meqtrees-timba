@@ -68,7 +68,7 @@
 import sys
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
-from QwtSpy_qt4 import *
+from .QwtSpy_qt4 import *
 
 import numpy
 

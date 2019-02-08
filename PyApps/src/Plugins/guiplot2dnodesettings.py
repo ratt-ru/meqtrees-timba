@@ -28,7 +28,7 @@ import qt
 import re
 import sys
 import types
-from dialog_window_config import *
+from .dialog_window_config import *
 #from tabdialog import *
 
 

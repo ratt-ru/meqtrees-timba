@@ -52,7 +52,7 @@ _dprintf = _dbg.dprintf;
 
 # helper class implementing a 'Precision' menu
 class PrecisionPopupMenu (QMenu):
-  def_range = range(0,12);
+  def_range = list(range(0,12));
   num_formats = (('f','&Fixed-point'),('e','&Exponent'),('g','&Auto'));
   def __init__ (self,parent=None,precrange=None,prec=(None,'g')):
     self._currier = PersistentCurrier();
@@ -211,7 +211,7 @@ class HierBrowser (object):
         self._content = content;
       elif isinstance(content,message):
         self._content = {};
-        for k in filter(lambda x:not x.startswith('_'),dir(content)):
+        for k in [x for x in dir(content) if not x.startswith('_')]:
           attr = getattr(content,k);
           if not callable(attr):
             self._content[k] = attr;
@@ -251,11 +251,11 @@ class HierBrowser (object):
       if isinstance(content,dict):
         n = len(content) - HierBrowser.MaxExpDict;
         if n > 0:
-          keys = content.keys()[:HierBrowser.MaxExpDict];
-          content_iter = map(lambda k:(k,content[k]),keys);
+          keys = list(content.keys())[:HierBrowser.MaxExpDict];
+          content_iter = [(k,content[k]) for k in keys];
           content_iter.append(('...','...(%d items skipped)...'%n));
         else:
-          content_iter = content.iteritems();
+          content_iter = iter(content.items());
       elif isinstance(content,(list,tuple,array_class)):
         n = len(content) - HierBrowser.MaxExpSeq;
         if n > 0:

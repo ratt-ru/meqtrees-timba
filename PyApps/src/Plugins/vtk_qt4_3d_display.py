@@ -69,7 +69,7 @@
 #
 
 
-raise RuntimeError,"MeqTrees VTK support temporarily disabled (29/08/2011). See bug 863."
+raise RuntimeError("MeqTrees VTK support temporarily disabled (29/08/2011). See bug 863.")
 
 # modules that are imported
 
@@ -91,8 +91,8 @@ try:
     from vtk.qt4.QVTKRenderWindowInteractor import *
   except:
 # depreciated!
-    print 'Importation of the local QVTKRenderWindowInteractor_qt4.py file is depreciated.' 
-    from QVTKRenderWindowInteractor_qt4 import *
+    print('Importation of the local QVTKRenderWindowInteractor_qt4.py file is depreciated.') 
+    from .QVTKRenderWindowInteractor_qt4 import *
   from Timba.Plugins.vtkImageImportFromNumpy import *
   has_vtk = True
 except:
@@ -506,7 +506,7 @@ class vtk_qt_3d_display(qt.QWidget):
 # set the slider to reflect the widget's position,
 # call AlignCamera to set the camera facing the widget
   def AlignXaxis(self):
-    print 'in AlignXaxis'
+    print('in AlignXaxis')
     xMin, xMax, yMin, yMax, zMin, zMax =  self.extents
     slice_number = None
     po = self.planeWidgetX.GetPlaneOrientation()
@@ -826,11 +826,11 @@ class vtk_qt_3d_display(qt.QWidget):
         self.data_max = plot_array.max()
 # make sure that we're not trying to plot a flat surface
         if self.data_min == self.data_max:
-          print ' '
-          print ' **************************************** '
-          print ' sorry - cannot visualize a flat surface! '
-          print ' **************************************** '
-          print ' '
+          print(' ')
+          print(' **************************************** ')
+          print(' sorry - cannot visualize a flat surface! ')
+          print(' **************************************** ')
+          print(' ')
           return
     else:
       self.warped_surface = False
@@ -979,6 +979,6 @@ if __name__ == "__main__":
     display.testEvent()
     app.exec_()
   else:
-    print ' '
-    print '**** Sorry! It looks like VTK is not available! ****'
+    print(' ')
+    print('**** Sorry! It looks like VTK is not available! ****')
 

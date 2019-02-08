@@ -101,10 +101,10 @@ class UVPAxis:
 if __name__ == '__main__':
   a = UVPAxis()
   a.calcTransferFunction(1.0, 20.0, 1.0, 5.0)
-  print 'scale is ', a.getScale()
-  print 'offset is ', a.getOffset()
-  print 'expected max axis value should be 5 and is ', a.worldToAxis(20.0)
-  print 'expected min axis value should be 1 and is ', a.worldToAxis(1.0)
-  print 'expected max world value should be 20 and is ', a.axisToWorld(5.0)
-  print 'expected min world value should be 1 and is ', a.axisToWorld(1.0)
+  print('scale is ', a.getScale())
+  print('offset is ', a.getOffset())
+  print('expected max axis value should be 5 and is ', a.worldToAxis(20.0))
+  print('expected min axis value should be 1 and is ', a.worldToAxis(1.0))
+  print('expected max world value should be 20 and is ', a.axisToWorld(5.0))
+  print('expected min world value should be 1 and is ', a.axisToWorld(1.0))
 

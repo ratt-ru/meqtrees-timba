@@ -399,7 +399,7 @@ class Cell (object):
       ps = font.pointSize();
       if ps<0:
         ps = font.pixelSize();
-      rng = range(min(4,ps),15) + range(16,max(26,ps),2);
+      rng = list(range(min(4,ps),15)) + list(range(16,max(26,ps),2));
       for sz in rng:
 	self._font_qas[sz] = qa = ag.addAction(str(sz));
 	qa.setCheckable(True);
@@ -456,7 +456,7 @@ class Cell (object):
     that cell is always a leader cell."""
     # check that widget is our child
     if widget.parent() is not self.wtop():
-      raise ValueError,'content widget must be child of this Grid.Cell';
+      raise ValueError('content widget must be child of this Grid.Cell');
     _dprint(3,id(self),': setting content');
     # connect a click on the titlebar to highlight ourselves 
     self.connect(PYSIGNAL("clicked()"),self.exclusive_highlight);
@@ -476,7 +476,7 @@ class Cell (object):
     if dataitem is not None:
       self._udi = dataitem.udi;
       if leader is not None:
-        raise ValueError,"both dataitem and leader specified";
+        raise ValueError("both dataitem and leader specified");
       self._leader = None;
       _dprint(5,id(self),': dataitem is',dataitem);
       self.clear_menu();
@@ -517,7 +517,7 @@ class Cell (object):
       self.enable(dataitem.data is not None);
     else: # no dataitem, assume follower cell
       if leader is None:
-        raise ValueError,"leader must be specified if dataitem isn't";
+        raise ValueError("leader must be specified if dataitem isn't");
       _dprint(5,id(self),': leader is',leader);
       self._leader = leader;
       self._dataitem = leader._dataitem;

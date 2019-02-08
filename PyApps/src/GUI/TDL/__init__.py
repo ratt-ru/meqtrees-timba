@@ -6,12 +6,12 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba import Grid
 
 try:
-  from TDLEditor_qscintilla import TDLEditor
+  from .TDLEditor_qscintilla import TDLEditor
 except:
-  from TDLEditor_standard import TDLEditor
+  from .TDLEditor_standard import TDLEditor
   
-from TDLErrorFloat import TDLErrorFloat
-from TDLOptionsDialog import TDLOptionsDialog
+from .TDLErrorFloat import TDLErrorFloat
+from .TDLOptionsDialog import TDLOptionsDialog
 
 
 

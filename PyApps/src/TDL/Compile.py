@@ -57,7 +57,7 @@ def _update_modlist ():
   was set up. Stores this in _tdlmodlist""";
   global _tdlmodlist;
   global _prior_compile_modules;
-  _tdlmodlist = set(sys.modules.iterkeys()) - _prior_compile_modules;
+  _tdlmodlist = set(sys.modules.keys()) - _prior_compile_modules;
   modlist = list(_tdlmodlist);
   modlist.sort();
   _dprint(1,'TDL run imported',len(_tdlmodlist),"modules:",modlist);
@@ -128,7 +128,7 @@ def import_tdl_module (filename,text=None,config=0):
       except KeyError: pass;
     # remember which modules are imported
     global _prior_compile_modules;
-    _prior_compile_modules = set(sys.modules.iterkeys());
+    _prior_compile_modules = set(sys.modules.keys());
     modname = '__tdlruntime';
     try:
       TDLOptions.enable_save_config(False);
@@ -246,7 +246,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       if num_nodes:
         mqs.meq('Create.Node.Batch',
             record(script_name=os.path.basename(filename),
-            batch=map(lambda nr:nr.initrec(),allnodes.itervalues())));
+            batch=[nr.initrec() for nr in iter(allnodes.values())]));
 #        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
         msg = """TDL script successfully compiled. %d node definitions
   (of which %d are root nodes) sent to meqserver.""" \

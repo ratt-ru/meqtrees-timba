@@ -78,16 +78,16 @@ import sys
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 
-from QwtSpy_qt4 import *
+from .QwtSpy_qt4 import *
 
 import numpy
 #from Timba.GUI.pixmaps import pixmaps
 #from guiplot2dnodesettings import *
 
 # local python Error Bar class
-import ErrorBar_qt4
-import printfilter_qt4
-import plot_printer_qt4
+from . import ErrorBar_qt4
+from . import printfilter_qt4
+from . import plot_printer_qt4
                                                                                 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='realvsimag');
@@ -395,7 +395,7 @@ class realvsimag_plotter(object):
         elif index in (1, 2, 3):
             self.zoomer.initMousePattern(index)
         else:
-            raise ValueError, 'index must be in (0, 1, 2, 3)'
+            raise ValueError('index must be in (0, 1, 2, 3)')
   # setZoomerMousePattern()
 
   def __initContextMenu(self, Test=False):
@@ -552,7 +552,7 @@ class realvsimag_plotter(object):
     if not flag:
       return
 
-    print 'caught menuid ', menuid
+    print('caught menuid ', menuid)
     if menuid == 299:
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self.parent)
       return
@@ -684,7 +684,7 @@ class realvsimag_plotter(object):
         message = ''
         wanted_item_tag = None
 # first search _xy_plot_dict
-        plot_keys = self._xy_plot_dict.keys()
+        plot_keys = list(self._xy_plot_dict.keys())
         _dprint(2, 'plot_keys ', plot_keys)
         for i in range(0, len(plot_keys)):
           current_item_tag = plot_keys[i]
@@ -695,7 +695,7 @@ class realvsimag_plotter(object):
             break
 # if nothing found then search _x_errors_plot_dict
         if self.errors_plot and wanted_item_tag is None:
-          plot_keys = self._x_errors_plot_dict.keys()
+          plot_keys = list(self._x_errors_plot_dict.keys())
           _dprint(2, 'plot_keys ', plot_keys)
           for i in range(0, len(plot_keys)):
             current_item_tag = plot_keys[i]
@@ -711,7 +711,7 @@ class realvsimag_plotter(object):
 
 # if nothing found then search _y_errors_plot_dict
         if self.errors_plot and wanted_item_tag is None:
-          plot_keys = self._y_errors_plot_dict.keys()
+          plot_keys = list(self._y_errors_plot_dict.keys())
           _dprint(2, 'plot_keys ', plot_keys)
           for i in range(0, len(plot_keys)):
             current_item_tag = plot_keys[i]
@@ -850,7 +850,7 @@ class realvsimag_plotter(object):
 
 # if this is a new item_tag, add a new circle
       circle_key = item_tag + '_circle'
-      if self._circle_dict.has_key(circle_key) == False: 
+      if (circle_key in self._circle_dict) == False: 
         plot_color = None
         if item_tag.find('stddev') >= 0:
           plot_color = self._stddev_circle_color
@@ -861,7 +861,7 @@ class realvsimag_plotter(object):
         curve.attach(self.plot)
         line_thickness = 2
         circle_line_style = None
-        if self.line_style_table.has_key(line_style):
+        if line_style in self.line_style_table:
           circle_line_style = self.line_style_table[line_style]
         else:
           line_style = 'lines'
@@ -888,7 +888,7 @@ class realvsimag_plotter(object):
 
 # get the key for this circle
       circle_key = item_tag + '_circle'
-      if self._circle_dict.has_key(circle_key):
+      if circle_key in self._circle_dict:
         key_circle = self._circle_dict[circle_key] 
         key_circle.setData(x_pos, y_pos)
 
@@ -898,13 +898,13 @@ class realvsimag_plotter(object):
 
 # if this is a new item_tag, add a new arrow
       line_key = item_tag + '_arrow'
-      if self._line_dict.has_key(line_key) == False: 
+      if (line_key in self._line_dict) == False: 
         curve = Qwt.QwtPlotCurve(line_key)
         self._line_dict[line_key] = curve
         curve.attach(self.plot)
         line_thickness = 2
         arrow_line_style = None
-        if self.line_style_table.has_key(line_style):
+        if line_style in self.line_style_table:
           arrow_line_style = self.line_style_table[line_style]
         else:
           line_style = 'lines'
@@ -929,7 +929,7 @@ class realvsimag_plotter(object):
 
 # get the plot key for this arrow
       line_key = item_tag + '_arrow'
-      if self._line_dict.has_key(line_key):
+      if line_key in self._line_dict:
         curve = self._line_dict[line_key] 
         curve.setData(x1_pos, y1_pos)
 
@@ -966,21 +966,21 @@ class realvsimag_plotter(object):
       if not self.plot_key is None:
         self._plot_type = self.plot_key
       item_tag = ''
-      if attribute_list is None and visu_record.has_key('attrib'):
+      if attribute_list is None and 'attrib' in visu_record:
         self._attrib_parms = visu_record['attrib']
         _dprint(2,'self._attrib_parms ', self._attrib_parms);
         self._plot_parms = self._attrib_parms.get('plot')
-        if self._plot_parms.has_key('tag_attrib'):
+        if 'tag_attrib' in self._plot_parms:
           temp_parms = self._plot_parms.get('tag_attrib')
           tag = temp_parms.get('tag')
           self._tag_plot_attrib[tag] = temp_parms
-        if self._plot_parms.has_key('attrib'):
+        if 'attrib' in self._plot_parms:
           temp_parms = self._plot_parms.get('attrib')
           self._plot_parms = temp_parms
         if self._plot_type is None:
-          if self._plot_parms.has_key('plot_type'):
+          if 'plot_type' in self._plot_parms:
             self._plot_type = self._plot_parms.get('plot_type', 'realvsimag')
-          if self._plot_parms.has_key('type'):
+          if 'type' in self._plot_parms:
             self._plot_type = self._plot_parms.get('type', 'realvsimag')
         self.plot_mean_circles = self._plot_parms.get('mean_circle', False)
         self.plot_stddev_circles = self._plot_parms.get('stddev_circle', False)
@@ -989,23 +989,23 @@ class realvsimag_plotter(object):
         self.plot_symbol = self._plot_parms.get('symbol', 'circle')
         self.plot_line_style = self._plot_parms.get('line_style', 'dots')
         self._plot_color = self._plot_parms.get('color', 'blue')
-        if self.color_table.has_key(self._plot_color):
+        if self._plot_color in self.color_table:
           self._plot_color = self.color_table[self._plot_color]
         self._mean_circle_style = self._plot_parms.get('mean_circle_style', 'lines')
         self._mean_circle_color = self._plot_parms.get('mean_circle_color', 'blue')
-        if self.color_table.has_key(self._mean_circle_color):
+        if self._mean_circle_color in self.color_table:
           self._mean_circle_color = self.color_table[self._mean_circle_color]
         self._stddev_circle_style = self._plot_parms.get('stddev_circle_style', 'DotLine')
         self._stddev_circle_color = self._plot_parms.get('stddev_circle_color', 'blue')
-        if self.color_table.has_key(self._stddev_circle_color):
+        if self._stddev_circle_color in self.color_table:
           self._stddev_circle_color = self.color_table[self._stddev_circle_color]
         self.value_tag = self._plot_parms.get('value_tag', False)
         self.error_tag = self._plot_parms.get('error_tag', False)
-        if self._plot_parms.has_key('legend'):
+        if 'legend' in self._plot_parms:
           legend = self._plot_parms.get('legend')
-          if legend.has_key('plot'):
+          if 'plot' in legend:
             self._legend_plot = legend.get('plot')
-          if legend.has_key('popup'):
+          if 'popup' in legend:
             self._legend_popup = legend.get('popup')
         tag = self._attrib_parms.get('tag','') 
         if isinstance(tag, tuple):
@@ -1029,7 +1029,7 @@ class realvsimag_plotter(object):
         for i in range(list_length):
           self._attrib_parms = attribute_list[i]
           _dprint(2,'self._attrib_parms ', self._attrib_parms);
-          if self._attrib_parms.has_key('tag'):
+          if 'tag' in self._attrib_parms:
             tag = self._attrib_parms.get('tag')
             if self._string_tag is None:
               self._string_tag = ''
@@ -1051,102 +1051,102 @@ class realvsimag_plotter(object):
                 _dprint(2,'self._string_tag ', self._string_tag);
               item_tag = self._string_tag + '_plot'
 
-          if self._attrib_parms.has_key('plot'):
+          if 'plot' in self._attrib_parms:
             self._plot_parms = self._attrib_parms.get('plot')
-            if self._plot_parms.has_key('tag_attrib'):
+            if 'tag_attrib' in self._plot_parms:
               temp_parms = self._plot_parms.get('tag_attrib')
               tag = temp_parms.get('tag')
               self._tag_plot_attrib[tag] = temp_parms
-            if self._plot_parms.has_key('attrib'):
+            if 'attrib' in self._plot_parms:
               temp_parms = self._plot_parms.get('attrib')
               self._plot_parms = temp_parms
             _dprint(2,'self._plot_parms ', self._plot_parms);
-            if self._plot_type is None and self._plot_parms.has_key('plot_type'):
+            if self._plot_type is None and 'plot_type' in self._plot_parms:
               self._plot_type = self._plot_parms.get('plot_type')
-            if self._plot_type is None and self._plot_parms.has_key('type'):
+            if self._plot_type is None and 'type' in self._plot_parms:
               self._plot_type = self._plot_parms.get('type')
             _dprint(2,'self._plot_x_axis_label ', self._plot_x_axis_label);
             _dprint(2,'self._plot_parms ', self._plot_parms);
-            _dprint(2,'self._plot_parms.has_key(x_axis) ', self._plot_parms.has_key('x_axis'));
-            if self._plot_parms.has_key('x_axis'):
+            _dprint(2,'self._plot_parms.has_key(x_axis) ', 'x_axis' in self._plot_parms);
+            if 'x_axis' in self._plot_parms:
               self._plot_x_axis_label = self._plot_parms.get('x_axis')
-            if self._plot_parms.has_key('y_axis'):
+            if 'y_axis' in self._plot_parms:
               self._plot_y_axis_label = self._plot_parms.get('y_axis')
-            if self._plot_parms.has_key('title'):
+            if 'title' in self._plot_parms:
               self._plot_title = self.label + ' ' +self._plot_parms.get('title')
-            if self.value_tag is None and self._plot_parms.has_key('value_tag'):
+            if self.value_tag is None and 'value_tag' in self._plot_parms:
               self.value_tag = self._plot_parms.get('value_tag')
-            if self.error_tag is None and self._plot_parms.has_key('error_tag'):
+            if self.error_tag is None and 'error_tag' in self._plot_parms:
               self.error_tag = self._plot_parms.get('error_tag')
 
-            if not self.plot_mean_circles and self._plot_parms.has_key('mean_circle'):
+            if not self.plot_mean_circles and 'mean_circle' in self._plot_parms:
               self.plot_mean_circles = self._plot_parms.get('mean_circle')
-            if not self.plot_stddev_circles and self._plot_parms.has_key('stddev_circle'):
+            if not self.plot_stddev_circles and 'stddev_circle' in self._plot_parms:
               self.plot_stddev_circles = self._plot_parms.get('stddev_circle')
-            if not self.plot_mean_arrows and self._plot_parms.has_key('mean_arrow'):
+            if not self.plot_mean_arrows and 'mean_arrow' in self._plot_parms:
               self.plot_mean_arrows = self._plot_parms.get('mean_arrow')
-            if self.plot_symbol_size is None and self._plot_parms.has_key('symbol_size'):
+            if self.plot_symbol_size is None and 'symbol_size' in self._plot_parms:
               self.plot_symbol_size = int(self._plot_parms.get('symbol_size'))
               _dprint(3, 'plot sysmbol size set to ', self.plot_symbol_size)
-            if self.plot_symbol is None and self._plot_parms.has_key('symbol'):
+            if self.plot_symbol is None and 'symbol' in self._plot_parms:
               self.plot_symbol = self._plot_parms.get('symbol')
-            if self.plot_line_style is None and self._plot_parms.has_key('line_style'):
+            if self.plot_line_style is None and 'line_style' in self._plot_parms:
               self.plot_line_style = self._plot_parms.get('line_style')
-            if self._plot_color is None and self._plot_parms.has_key('color'):
+            if self._plot_color is None and 'color' in self._plot_parms:
               self._plot_color = self._plot_parms.get('color')
               _dprint(3, 'plot color set to ', self._plot_color)
-              if self.color_table.has_key(self._plot_color):
+              if self._plot_color in self.color_table:
                 self._plot_color = self.color_table[self._plot_color]
               else:
                 Message = self._plot_color + " is not a valid color.\n Using blue by default"
                 mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._plot_color = "blue"
                 self._plot_color = self.color_table[self._plot_color]
-            if self._mean_circle_color is None and self._plot_parms.has_key('mean_circle_color'):
+            if self._mean_circle_color is None and 'mean_circle_color' in self._plot_parms:
               self._mean_circle_color = self._plot_parms.get('mean_circle_color')
               _dprint(3, 'plot mean_circle_color set to ', self._mean_circle_color)
-              if self.color_table.has_key(self._mean_circle_color):
+              if self._mean_circle_color in self.color_table:
                 self._mean_circle_color = self.color_table[self._mean_circle_color]
               else:
                 Message = self._plot_mean_circle_color + " is not a valid color.\n Using blue by default"
                 mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._mean_circle_color = "blue"
                 self._mean_circle_color = self.color_table[self._mean_circle_color]
-            if self._mean_circle_style is None and self._plot_parms.has_key('mean_circle_style'):
+            if self._mean_circle_style is None and 'mean_circle_style' in self._plot_parms:
               self._mean_circle_style = self._plot_parms.get('mean_circle_style')
               _dprint(3, 'plot mean_circle_style set to ', self._mean_circle_style)
-              if not self.line_style_table.has_key(self._mean_circle_style):
+              if self._mean_circle_style not in self.line_style_table:
                 Message = self._mean_circle_style + " is not a valid line style.\n Using solid line by default."
                 mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._mean_circle_style = "lines"
-            if self._stddev_circle_color is None and self._plot_parms.has_key('stddev_circle_color'):
+            if self._stddev_circle_color is None and 'stddev_circle_color' in self._plot_parms:
               self._stddev_circle_color = self._plot_parms.get('stddev_circle_color')
               _dprint(3, 'plot stddev_circle_color set to ', self._stddev_circle_color)
-              if self.color_table.has_key(self._stddev_circle_color):
+              if self._stddev_circle_color in self.color_table:
                 self._stddev_circle_color = self.color_table[self._stddev_circle_color]
               else:
                 Message = self._stddev_circle_color + " is not a valid color.\n Using blue by default"
                 mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._stddev_circle_color = "blue"
                 self._stddev_circle_color = self.color_table[self._stddev_circle_color]
-            if self._stddev_circle_style is None and self._plot_parms.has_key('stddev_circle_style'):
+            if self._stddev_circle_style is None and 'stddev_circle_style' in self._plot_parms:
               self._stddev_circle_style = self._plot_parms.get('stddev_circle_style')
               _dprint(3, 'plot stddev_circle_style set to ', self._stddev_circle_style)
-              if not self.line_style_table.has_key(self._stddev_circle_style):
+              if self._stddev_circle_style not in self.line_style_table:
                 Message = self._stddev_circle_style + " is not a valid line style.\n Using solid line by default."
                 mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
                 self._stddev_circle_style = "lines"
-            if self._plot_parms.has_key('legend'):
+            if 'legend' in self._plot_parms:
               legend = self._plot_parms.get('legend')
               _dprint(3, 'legend found is ', legend)
-              if legend.has_key('plot'):
+              if 'plot' in legend:
                 if self._legend_plot is None:
                   self._legend_plot = ''
                 legend_str = legend.get('plot')
                 if self._legend_plot.find(legend_str) < 0:
                   temp_str = self._legend_plot + ' ' + legend_str
                   self._legend_plot = temp_str
-              if legend.has_key('popup'):
+              if 'popup' in legend:
                 if self._legend_popup is None:
                   self._legend_popup = ''
                 popup_str = legend.get('popup')
@@ -1155,7 +1155,7 @@ class realvsimag_plotter(object):
                   self._legend_popup = temp_str
 
       if len(self._tag_plot_attrib) > 0:
-        _dprint(3, 'self._tag_plot_attrib has keys ', self._tag_plot_attrib.keys())
+        _dprint(3, 'self._tag_plot_attrib has keys ', list(self._tag_plot_attrib.keys()))
 # if still undefined
       if self._string_tag is None:
             self._string_tag = 'data'
@@ -1211,9 +1211,9 @@ class realvsimag_plotter(object):
       self._label_i = item_tag + "_i"
       self._label_r = item_tag + "_r"
 
-      if visu_record.has_key('value'):
+      if 'value' in visu_record:
         self._data_values = visu_record['value']
-      if visu_record.has_key('flags'):
+      if 'flags' in visu_record:
         self._data_flags = visu_record['flags']
 
 # eventually indent the next lines?
@@ -1238,7 +1238,7 @@ class realvsimag_plotter(object):
 # this leaf node. When the user clicks on a data point
 # with the middle mouse buton this string is displayed
 # to show the path to the data point that was clicked on.
-      if visu_record.has_key('plot_label'):
+      if 'plot_label' in visu_record:
         self._data_labels = visu_record['plot_label']
         _dprint(2,'self._data_labels ', self._data_labels);
 
@@ -1341,7 +1341,7 @@ class realvsimag_plotter(object):
 # obviously if we didn't get any actual data for some reason
 # just return
       if len(data_r) == 0:
-        print 'nothing to update!'
+        print('nothing to update!')
         return
       _dprint(2, 'main key ', self._label_r)
 
@@ -1349,7 +1349,7 @@ class realvsimag_plotter(object):
 
 # have we previously collected data which had associated with it
 # this particular self._label_r string?
-      if self._plotter_dict.has_key(self._label_r) == False:
+      if (self._label_r in self._plotter_dict) == False:
 # add the new data to a 'dict' of visualization lists, where the index to
 # the data is given by the self._label_r string
         self._plotter_dict[self._label_r] = data_r
@@ -1401,7 +1401,7 @@ class realvsimag_plotter(object):
 
 # otherwise we are working with x,y data and need to store the imaginary data
       else:
-        if self._plotter_dict.has_key(self._label_i) == False:
+        if (self._label_i in self._plotter_dict) == False:
 #add the new data to a 'dict' of visualization lists
           self._plotter_dict[self._label_i] = data_i
 
@@ -1427,7 +1427,7 @@ class realvsimag_plotter(object):
 # qwt curves each have a number which can be associated
 # with an individual 'string' key. We store these keys and 
 # associated curve numbers in the xy_plot_dict
-      if self._xy_plot_dict.has_key(item_tag) == False: 
+      if (item_tag in self._xy_plot_dict) == False: 
         if not self._plot_y_axis_label is None:
           self.plot.setAxisTitle(Qwt.QwtPlot.yLeft, self._plot_y_axis_label)
         if not self._plot_x_axis_label is None:
@@ -1449,7 +1449,7 @@ class realvsimag_plotter(object):
 # using the integer 'key_plot' as index, set up various
 # plotting parameters for the curve - color, symbol, symbol size etc
           curve.setPen(Qt.QPen(self._plot_color))
-          if not self.line_style_table.has_key(self.plot_line_style):
+          if self.plot_line_style not in self.line_style_table:
             Message = self.plot_line_style + " is not a valid line style.\n Using dots by default"
             mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
             self.plot_line_style = "dots"
@@ -1457,7 +1457,7 @@ class realvsimag_plotter(object):
           curve.setStyle(line_style)
 #         plot_curve = self.plot.curve(key_plot)
           _dprint(3, 'self.plot_symbol ', self.plot_symbol)
-          if not self.symbol_table.has_key(self.plot_symbol):
+          if self.plot_symbol not in self.symbol_table:
             Message = self.plot_symbol + " is not a valid symbol.\n Using circle by default"
             mb_reporter = Qt.QMessageBox.warning(None, "RealVsImag", Message)
             self.plot_symbol = "circle"
@@ -1515,10 +1515,10 @@ class realvsimag_plotter(object):
       """ get plot data from various dicts and display it after all plot data 
           has been stored """
 # plot_keys is just a list of the item tags that have gone into the plot
-      plot_keys = self._xy_plot_dict.keys()
+      plot_keys = list(self._xy_plot_dict.keys())
       _dprint(3, 'in update_plot xy_plot_dict plot_keys ', plot_keys)
-      _dprint(3, 'in update_plot plotter_dict keys ', self._plotter_dict.keys())
-      _dprint(3, 'in update_plot x_errors_dict keys ', self._x_errors_dict.keys())
+      _dprint(3, 'in update_plot plotter_dict keys ', list(self._plotter_dict.keys()))
+      _dprint(3, 'in update_plot x_errors_dict keys ', list(self._x_errors_dict.keys()))
       for i in range(0, len(plot_keys)): 
         current_item_tag = plot_keys[i]
         _dprint(3, 'iter current plot key ', i, ' ',current_item_tag)
@@ -1528,7 +1528,7 @@ class realvsimag_plotter(object):
 # first get any imaginary data associated with this key
 # data_key_i just equates to self._label_i in the 'plot_data' method
         data_key_i = current_item_tag + '_i'
-        if self._plotter_dict.has_key(data_key_i):
+        if data_key_i in self._plotter_dict:
           data_i = self._plotter_dict[data_key_i]
 # Real data numbers can be 'error' data or the real numbers
 # corresponding to the imaginary numbers retrieved above.
@@ -1537,7 +1537,7 @@ class realvsimag_plotter(object):
 
         if self.errors_plot: 
           if data_key_r.find(self.error_tag) >= 0:
-            if self._plotter_dict.has_key(data_key_r):
+            if data_key_r in self._plotter_dict:
 # if the above 3 if statements are all satisfied, we have error data
               data_errors = self._plotter_dict[data_key_r]
               if not data_errors is None:
@@ -1547,7 +1547,7 @@ class realvsimag_plotter(object):
 # then even though this is an errors plot, this data_key_r
 # key points to the real numbers corresponding to the
 # imaginary numbers already retrieved above.
-            if self._plotter_dict.has_key(data_key_r):
+            if data_key_r in self._plotter_dict:
               data_r = self._plotter_dict[data_key_r]
               if not data_r is None:
                 _dprint(3, 'data_r assigned', data_r)
@@ -1555,7 +1555,7 @@ class realvsimag_plotter(object):
 # If this is not an errors plot then the data_key_r must
 # give real numbers corresponding to the imaginaries retrieved
 # above
-          if self._plotter_dict.has_key(data_key_r):
+          if data_key_r in self._plotter_dict:
             data_r = self._plotter_dict[data_key_r]
 
 # if we have found errors data, assign the errors data to the appropriate
@@ -1564,13 +1564,13 @@ class realvsimag_plotter(object):
 # python dicts using the current_item_tag string as the key
         if not data_errors is None:
           _dprint(3, 'data_errors current plot key ',current_item_tag)
-          _dprint(3, 'x_errors_dict keys ', self._x_errors_dict.keys())
-          if self._x_errors_dict.has_key(current_item_tag):
+          _dprint(3, 'x_errors_dict keys ', list(self._x_errors_dict.keys()))
+          if current_item_tag in self._x_errors_dict:
             self.x_errors = self._x_errors_dict[current_item_tag]
             _dprint(3, 'self.x_errors ', self.x_errors)
             self.x_errors.setErrors(data_errors)
             _dprint(3, 'x data errors set in plot')
-          if self._y_errors_dict.has_key(current_item_tag):
+          if current_item_tag in self._y_errors_dict:
             self.y_errors = self._y_errors_dict[current_item_tag]
             _dprint(3, 'self.y_errors ', self.y_errors)
             self.y_errors.setErrors(data_errors)
@@ -1607,11 +1607,11 @@ class realvsimag_plotter(object):
 # are obtained from the x_errors_dict and y_errors_dict 
 # python dicts using the 'error_key' string iwe just derived
 # as the key
-            if self._x_errors_dict.has_key(error_key):
+            if error_key in self._x_errors_dict:
               self.x_errors = self._x_errors_dict[error_key]
               self.x_errors.setData(data_r,data_i)
               _dprint(3, 'set data values for x errors')
-            if self._y_errors_dict.has_key(error_key):
+            if error_key in self._y_errors_dict:
               self.y_errors = self._y_errors_dict[error_key]
               self.y_errors.setData(data_r,data_i)
               _dprint(3, 'set data values for y errors')
@@ -1688,7 +1688,7 @@ class realvsimag_plotter(object):
 
 # set up and plot flags in their entirety
     if len(self._flags_r_dict) > 0:
-      plot_flag_r_keys = self._flags_r_dict.keys()
+      plot_flag_r_keys = list(self._flags_r_dict.keys())
       for i in range(0, len(plot_flag_r_keys)):
          key_flag_plot = -1
          flag_data_r = self._flags_r_dict[plot_flag_r_keys[i]]
@@ -1697,7 +1697,7 @@ class realvsimag_plotter(object):
          flag_data_i_string = plot_flag_r_keys[i][:end_location-2] + '_i'
          flag_data_i = self._flags_i_dict[flag_data_i_string]
 
-         if self.flag_plot_dict.has_key(plot_flag_r_keys[i]) == False:
+         if (plot_flag_r_keys[i] in self.flag_plot_dict) == False:
            curve = Qwt.QwtPlotCurve(plot_flag_r_keys[i])
            self.flag_plot_dict[plot_flag_r_keys[i]] = curve
            curve.attach(self.plot)
@@ -1713,7 +1713,7 @@ class realvsimag_plotter(object):
     """ routine to remove curves associated with flag data """
 
     if len(self.flag_plot_dict) > 0:
-      plot_flag_keys = self.flag_plot_dict.keys()
+      plot_flag_keys = list(self.flag_plot_dict.keys())
       for i in range(0, len(plot_flag_keys)):
          curve = self.flag_plot_dict[plot_flag_keys[i]]
          curve.detach()
@@ -1744,7 +1744,7 @@ class realvsimag_plotter(object):
       self._plot_color = self.color_table["red"]
       self._mean_circle_color = self.color_table["blue"]
       self._stddev_circle_color = self.color_table["green"]
-      if self._xy_plot_dict.has_key(plot_key) == False: 
+      if (plot_key in self._xy_plot_dict) == False: 
         curve =Qwt.QwtPlotCurve(plot_key)
         self._xy_plot_dict[plot_key] = curve
         curve.attach(self.plot)
@@ -1809,7 +1809,7 @@ class realvsimag_plotter(object):
       # otherwise, replace old one
       plot_key = item_tag + '_plot'
       self._plot_color = self.color_table["red"]
-      if self._xy_plot_dict.has_key(plot_key):
+      if plot_key in self._xy_plot_dict:
         self._xy_plot_dict[plot_key].detach()
         
       curve = ErrorBar_qt4.ErrorBarPlotCurve(
@@ -1849,7 +1849,7 @@ class realvsimag_plotter(object):
       # otherwise, replace old one
       plot_key = item_label + '_plot'
       self._plot_color = self.color_table["red"]
-      if self._xy_plot_dict.has_key(plot_key) == False: 
+      if (plot_key in self._xy_plot_dict) == False: 
         curve = Qwt.QwtPlotCurve(plot_key)
         self._xy_plot_dict[plot_key] = curve
         curve.attach(self.plot)

@@ -341,7 +341,7 @@ class TreeBrowser (QObject):
               self._menu_actions.append(na);
               separator = False;
         else:
-          raise TypeError,'unknown action type '+type(action).__name__;
+          raise TypeError('unknown action type '+type(action).__name__);
     
     def _set_node_breakpoint (self,node,mask,set=True):
       if self._set_breakpoints_quietly:
@@ -420,7 +420,7 @@ class TreeBrowser (QObject):
         # add debugging menu
         menu.addMenu(self.debug_menu());
       # refresh all node actions
-      map(lambda a:a.update(menu,self.node),self._menu_actions);
+      list(map(lambda a:a.update(menu,self.node),self._menu_actions));
       return menu;
       
     def paintCell (self,painter,cg,column,width,align):
@@ -489,14 +489,14 @@ class TreeBrowser (QObject):
     stopped_brushes = { 0:  None,
                         1:  QBrush(QColor("lightblue")), 
                         2:  QBrush(QColor("skyblue")) };
-    for status,qb1 in status_brushes.iteritems():
-      for stopped,qb2 in stopped_brushes.iteritems():
+    for status,qb1 in status_brushes.items():
+      for stopped,qb2 in stopped_brushes.items():
         self._qbrushes[status,stopped] = qb2,qb1; 
     # ---------------------- setup toolbars, QActions, menus, etc.
     # scan all modules for define_treebrowser_actions method, and call them all
     self._actions = {};
     funcs = set();
-    for (name,mod) in sys.modules.items():
+    for (name,mod) in list(sys.modules.items()):
       _dprint(4,'looking for treebrowser actions in',name);
       try: 
         if name.startswith("Timba") and callable(mod.define_treebrowser_actions):
@@ -589,7 +589,7 @@ class TreeBrowser (QObject):
     cls_item._no_auto_open = True;
     cls_item.setFlags(Qt.ItemIsEnabled);
     items = [];
-    for (cls,nodes) in sorted(classes.iteritems(),lambda a,b:cmp(a[0],b[0])):
+    for (cls,nodes) in sorted(iter(classes.items()),lambda a,b:cmp(a[0],b[0])):
       item = QTreeWidgetItem();
       item.setText(0,"%s (%d)"%(cls,len(nodes)));
       item.setText(self.icolumn("class"),cls);
@@ -608,10 +608,9 @@ class TreeBrowser (QObject):
       # that processor (i.e. none of its parents belong to that processor)
       for proc in range(self._mpi_num_proc):
         # list of all nodes on processor
-        proclist = filter(lambda x:x.proc == proc,nodelist.iternodes()); 
+        proclist = [x for x in nodelist.iternodes() if x.proc == proc]; 
         # list of root nodes of that processor
-        procrootlist = sorted(filter(lambda x:not filter(lambda y:nodelist[y].proc==proc,x.parents),
-                          proclist),lambda a,b:cmp(a.name,b.name));
+        procrootlist = sorted([x for x in proclist if not [y for y in x.parents if nodelist[y].proc==proc]],lambda a,b:cmp(a.name,b.name));
         item = QTreeWidgetItem(procitem,item);
         item.setText(0,"P%d (%d)"%(proc,len(proclist)));
         item.setFirstColumnSpanned(True);
@@ -665,7 +664,7 @@ class TreeBrowser (QObject):
   def show_column (self,colname,show=True):
     """shows or hides the column specified by name""";
     try: (icol,width) = self._column_map[colname];
-    except KeyError,AttributeError: return;
+    except KeyError as AttributeError: return;
     # make column visible or not
     if show: 
       self._tw.header().showSection(icol);
@@ -775,7 +774,7 @@ class TreeBrowser (QObject):
     _dprint(5,"was stopped",was_stopped,"is stopped",self.is_stopped);
     if not was_stopped and self.is_stopped:
       # figure out list of stopped nodes
-      self._stopped_nodes = filter(lambda node:node.is_stopped(),meqds.nodelist.iternodes());
+      self._stopped_nodes = [node for node in meqds.nodelist.iternodes() if node.is_stopped()];
       _dprint(5,len(self._stopped_nodes),"nodes stopped");
       self._breakpoint_nodes = [];
       for node in self._stopped_nodes:

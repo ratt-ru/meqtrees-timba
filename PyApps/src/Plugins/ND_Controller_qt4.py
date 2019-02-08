@@ -285,7 +285,7 @@ class ND_Controller(Qt.QWidget):
           if self.axis_parms is None:
             parms = None
           else:
-            if self.axis_parms.has_key(axis_label[i]):
+            if axis_label[i] in self.axis_parms:
               parms = self.axis_parms[axis_label[i]]
             else:
               parms = None
@@ -364,7 +364,7 @@ class ND_Controller(Qt.QWidget):
             second_axis = None
             third_axis = None
             for i in range(self.num_selectors):
-              if self.active_axes.has_key(i):
+              if i in self.active_axes:
                 if first_axis is None:
                   first_axis = self.button_number[i]
                 elif second_axis is None:
@@ -383,7 +383,7 @@ class ND_Controller(Qt.QWidget):
               self.axis_controllers[i].resetValue()
             self.emit(Qt.SIGNAL("defineSelectedAxes"), first_axis, second_axis,third_axis)
         else:
-          if self.active_axes.has_key(button_id):
+          if button_id in self.active_axes:
             del self.active_axes[button_id]
           self.axis_controllers[button_id].setSliderColor(self.red)
 #         self.axis_controllers[button_id].hide_display()
@@ -409,7 +409,7 @@ class ND_Controller(Qt.QWidget):
       """ emits a signal to the data selection program giving
           the new value of an active dimension index 
       """
-      if not self.active_axes.has_key(axis_number):
+      if axis_number not in self.active_axes:
         if not self.axis_controllers[axis_number].isOn():
           self.emit(Qt.SIGNAL("sliderValueChanged"), self.button_number[axis_number], slider_value, display_string)
         else:

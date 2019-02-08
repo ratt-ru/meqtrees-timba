@@ -96,7 +96,7 @@ class QwtPlotCurveSizes(Qwt.QwtPlotCurve):
 
     def drawSymbols(self, painter, symbol, xMap, yMap, start, to):
       if self.symbolList is None and self.symbolSizes is None:
-        print 'QwtPlotCurveSizes fail: you must specify a symbol list or an array of symbol sizes'
+        print('QwtPlotCurveSizes fail: you must specify a symbol list or an array of symbol sizes')
         return
       painter.setBrush(symbol.brush());
       painter.setPen(symbol.pen())

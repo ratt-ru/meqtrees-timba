@@ -78,7 +78,7 @@ class AboutDialog (QDialog):
           self.pkg_label.setFrameStyle(QFrame.Box|QFrame.Raised);
           lo_pkgs.addWidget(self.pkg_label);
           txt = """<P>Optional packages:</P><TABLE>""";
-          for pkg,(path,version) in Timba.packages().iteritems():
+          for pkg,(path,version) in Timba.packages().items():
             txt += """<TR><TD> %s </TD> <TD> at <tt>%s</tt> </TD> <TD> (%s) </TD></TR>"""%(pkg,path,version);
 	  txt += "</TABLE>";
           self.pkg_label.setText(txt);

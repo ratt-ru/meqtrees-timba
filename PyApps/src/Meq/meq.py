@@ -83,7 +83,7 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
   # process coeff argument -- if a list, then force into a 2D array
   if isinstance(coeff,(tuple,list)):
     if shape and len(shape)>2:
-      raise ValueError,'coeff array must be one- or two-dimensional';
+      raise ValueError('coeff array must be one- or two-dimensional');
     #    if filter(lambda x:isinstance(x,complex),coeff):
     #      coeff = array_complex(coeff,shape=shape);
     #    else:
@@ -94,48 +94,48 @@ def polc (coeff,shape=None,offset=None,scale=None,domain=None,
     rec.coeff = array(coeff);
   elif is_array(coeff):
     if len(coeff.shape) > 2:
-      raise TypeError,'coeff array must be one- or two-dimensional';
+      raise TypeError('coeff array must be one- or two-dimensional');
 ##    if coeff.type() not in (arr_double,arr_dcomplex):
 ##      raise TypeError,'coeff array must be float (Float64) or dcomplex (Complex64)';
 ##    if not coeff.type() == arr_double:
 ##      raise TypeError,'coeff array must be float (Float64)';
     rec.coeff = array_double(coeff);
   else:
-    raise TypeError,'illegal coeff argument';
+    raise TypeError('illegal coeff argument');
   # process domain argument
   if domain is not None:
     if isinstance(domain,_domain_type):
       rec.domain = domain;
     else:
-      raise TypeError,'domain argument must be a MeqDomain object';
+      raise TypeError('domain argument must be a MeqDomain object');
   # other optional arguments
   if offset is not None:
     if isinstance(offset,(tuple,list,int,float)):
       rec.offset  = array_double(offset);
     elif is_array(offset):
       if len(offset.shape) > 1:
-        raise TypeError,'offset array must be one-dimensional';
+        raise TypeError('offset array must be one-dimensional');
       rec.offset = array_double(offset);
     else:
-      raise TypeError,"invalid 'offset' argument of type %s"%type(offset);
+      raise TypeError("invalid 'offset' argument of type %s"%type(offset));
   if scale is not None:
     if isinstance(scale,(tuple,list,int,float)):
       rec.scale  = array_double(scale);
     elif is_array(scale):
       if len(scale.shape) > 1:
-        raise TypeError,'scale array must be one-dimensional';
+        raise TypeError('scale array must be one-dimensional');
       rec.scale = array_double(scale);
     else:
-      raise TypeError,"invalid 'scale' argument of type %s"%type(scale);
+      raise TypeError("invalid 'scale' argument of type %s"%type(scale));
   if axis_index is not None:
     if isinstance(axis_index,(tuple,list,int)):
       rec.axis_index  = array_int(axis_index);
     elif is_array(axis_index):
       if len(scale.shape) > 1:
-        raise TypeError,'axis_index array must be one-dimensional';
+        raise TypeError('axis_index array must be one-dimensional');
       rec.axis_index = array_int(axis_index);
     else:
-      raise TypeError,"invalid 'axis_index' argument of type %s"%type(scale);
+      raise TypeError("invalid 'axis_index' argument of type %s"%type(scale));
 
   if weight is not None:
     rec.weight = float(weight);
@@ -168,7 +168,7 @@ def make_polc (p):
   elif is_scalar(p) or is_array(p):
     return polc(p);
   else:
-    raise TypeError,'cannot convert %s to a meq.polc'%type(p);
+    raise TypeError('cannot convert %s to a meq.polc'%type(p));
 
 def parm (name,default=None,polcs=None,*args,**kwargs):
   rec = node('MeqParm',name,*args,**kwargs);
@@ -179,25 +179,25 @@ def parm (name,default=None,polcs=None,*args,**kwargs):
   # polcs must be a list of polcs, or a single polc
   if polcs is not None:
     if isinstance(polcs,(list,tuple)):
-      rec.polcs = map(make_polc,polcs);
+      rec.polcs = list(map(make_polc,polcs));
     else:
       rec.polcs = ( make_polc(polcs), );
   return rec;
 
 def domain (startfreq,endfreq,starttime,endtime):
   """Creates a time/frequency domain""";
-  return _domain_type(freq=map(float,(startfreq,endfreq)),
-                time=map(float,(starttime,endtime)));
+  return _domain_type(freq=list(map(float,(startfreq,endfreq))),
+                time=list(map(float,(starttime,endtime))));
 
 def gen_domain (**kw):
   """Creates a generalized domain. Axes should be specified as, e.g.,
   freq=(f0,f1),time=(t0,t1),l=(l0,l1), etc.
   """;
   dom = _domain_type();
-  for kw,value in kw.iteritems():
+  for kw,value in kw.items():
     if not isinstance(value,(list,tuple)) or len(value)!=2:
-      raise TypeError,kw+": list or tuple of (min,max) expected";
-    dom[kw.lower()] = map(float,value);
+      raise TypeError(kw+": list or tuple of (min,max) expected");
+    dom[kw.lower()] = list(map(float,value));
   return dom;
 
 _make_domain = domain;
@@ -209,9 +209,9 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
   # (a) grid specified explicitly
   if grid is not None and len(grid):
     if grid.ndim != 1:
-      raise TypeError,'%s_grid must be a vector'%axisname;
+      raise TypeError('%s_grid must be a vector'%axisname);
     if num is not None and num != len(grid):
-      raise ValueError,'both num_%s and %s_grid specified but do not match'%(axisname,axisname);
+      raise ValueError('both num_%s and %s_grid specified but do not match'%(axisname,axisname));
     num = len(grid);
     # figure out segments
     if num<3:  # <=2 points: always regular
@@ -233,9 +233,9 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
   # (b) num is specified
   elif num is not None:
     if num <= 0:
-      raise ValueError,'illegal num_%s value'%axisname;
+      raise ValueError('illegal num_%s value'%axisname);
     if dom is None:
-      raise ValueError,'domain must be specified to use num_%s'%axisname;
+      raise ValueError('domain must be specified to use num_%s'%axisname);
     step = (dom[1]-dom[0])/num;
     grid = dom[0] + (Timba.array.arange(num)+0.5)*step;
     # set cell size if not specified
@@ -243,7 +243,7 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
       cellsize = Timba.array.zeros([num],arr_double) + step;
     segs = record(start_index=0,end_index=num-1);
   else:
-    raise ValueError,'either num_%s or %s_grid must be specified'%(axisname,axisname);
+    raise ValueError('either num_%s or %s_grid must be specified'%(axisname,axisname));
   # resolve cell size if not specified
   # use distance to nearest grid point as the cell size
   if cellsize is None or not len(cellsize):
@@ -256,7 +256,7 @@ def _resolve_grid (axisname,dom,num,grid,cellsize):
   elif len(cellsize) == 1:
     cellsize = Timba.array.zeros([num],arr_double) + cellsize[0];
   elif len(cellsize) != num:
-    raise ValueError,'length of %s_cell_size does not conform to grid shape'%axisname;
+    raise ValueError('length of %s_cell_size does not conform to grid shape'%axisname);
   return (grid,cellsize,segs);
   
   
@@ -280,7 +280,7 @@ def cells(domain=None,num_freq=None,num_time=None,
   # decompose domain into axis ranges
   if domain is not None:
     if not isinstance(domain,_domain_type):
-      raise TypeError,'domain: must be a MeqDomain object';
+      raise TypeError('domain: must be a MeqDomain object');
     df = domain.freq;
     dt = domain.time;
   else:
@@ -313,11 +313,11 @@ def gen_cells (domain,**kw):
   keywords specifying the number of points along each axis (default 1).
   """;
   if not isinstance(domain,_domain_type):
-    raise TypeError,'domain: must be a MeqDomain object';
+    raise TypeError('domain: must be a MeqDomain object');
   grid = record();
   cell_size = record();
   segments = record();
-  for axis,dom in domain.iteritems():
+  for axis,dom in domain.items():
     axis = str(hiid(axis)).lower();
     nc = kw.get('num_'+axis,1);
     grid[axis],cell_size[axis],segments[axis] = \
@@ -357,17 +357,17 @@ def shape (arg0=None,*args,**kw):
     meq.shape(freq=nf,time=nt,...)   [nfreq,ntime,...] shape
   """;
   if isinstance(arg0,_cells_type):
-    return shape(**dict([(axis,int(isinstance(grid,float)) or len(grid)) for axis,grid in arg0.grid.iteritems()]));
+    return shape(**dict([(axis,int(isinstance(grid,float)) or len(grid)) for axis,grid in arg0.grid.items()]));
   elif isinstance(arg0,dmi.array_class):
     return arg0.shape;
   else:
     # form up shape from arguments
-    if isinstance(arg0,(int,long)):
+    if isinstance(arg0,int):
       shp = [arg0] + list(args);
     else:
       shp = list(args);
     # now go over keywords
-    for axis,extent in kw.iteritems():
+    for axis,extent in kw.items():
       iaxis = mequtils.get_axis_number(axis);
       if iaxis >= len(shp):
         shp += [1]*(iaxis-len(shp)+1);
@@ -410,7 +410,7 @@ def flags (shape):
 def vellset (mainval,**kw):
   """Creates a VellSet from the given main value""";
   if type(mainval) is not _vells_type:
-    raise TypeError,"meq.vellset(): vells-type argument expected. Use meq.vells(), meq.complex_vells() or meq.sca_vells() to create a vells.";
+    raise TypeError("meq.vellset(): vells-type argument expected. Use meq.vells(), meq.complex_vells() or meq.sca_vells() to create a vells.");
   return _vellset_type(value=mainval,**kw);
   
 def result (vellset=None,cells=None):
@@ -418,11 +418,11 @@ def result (vellset=None,cells=None):
   kw = record();
   if vellset is not None:
     if type(vellset) is not _vellset_type:
-      raise TypeError,"meq.result() vellset-type argument expected. Use meq.vellset() to create a vellset.";
+      raise TypeError("meq.result() vellset-type argument expected. Use meq.vellset() to create a vellset.");
     kw.vellsets = [ vellset ];
   if cells is not None:
     if type(cells) is not _cells_type:
-      raise TypeError,"meq.result() cells-type argument expected. Use meq.cells() to create a cells.";
+      raise TypeError("meq.result() cells-type argument expected. Use meq.cells() to create a cells.");
     kw.cells = cells;
   return _result_type(**kw);
   
@@ -483,9 +483,9 @@ def request (cells=None,rqtype=None,dataset_id=0,domain_id=0,rqid=None,eval_mode
       rqtype='0';
   # use eval_mode to override rqtype, if supplied
   if eval_mode is not None:
-    print "*** WARNING: the eval_mode argument to meq.request() is now deprecated.";
-    print "*** Please replace it with rqtype='ev', 'e1' or 'e2'";
-    print "*** for eval_mode 0, 1 or 2.";
+    print("*** WARNING: the eval_mode argument to meq.request() is now deprecated.");
+    print("*** Please replace it with rqtype='ev', 'e1' or 'e2'");
+    print("*** for eval_mode 0, 1 or 2.");
     if eval_mode == 0:    rqtype='ev';
     elif eval_mode == 1:  rqtype='e1';
     elif eval_mode == 2:  rqtype='e2';
@@ -507,7 +507,7 @@ def request (cells=None,rqtype=None,dataset_id=0,domain_id=0,rqid=None,eval_mode
   rec = _request_type(request_id=make_hiid(rqid));
   if cells is not None:
     if not isinstance(cells,_cells_type):
-      raise TypeError,'cells argument must me a MeqCells object';
+      raise TypeError('cells argument must me a MeqCells object');
     rec.cells = cells;
   return rec;
   

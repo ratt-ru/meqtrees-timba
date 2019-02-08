@@ -65,10 +65,10 @@ class hiid (tuple):
           mylist = mylist + (x,);
       elif isinstance(x,(tuple,list)): # other sequence? use as list
         mylist = mylist + tuple(x);
-      elif isinstance(x,(int,long)):   # int/long? add to list
+      elif isinstance(x,int):   # int/long? add to list
         mylist = mylist + (x,);
       else:
-        raise ValueError, "can't construct hiid from a %s"%type(x);
+        raise ValueError("can't construct hiid from a %s"%type(x));
     return tuple.__new__(self,mylist);
   # get(n) returns element N as integer
   def get (self,n):
@@ -107,7 +107,7 @@ class hiid (tuple):
   # as_int converts to int
   def as_int (self):
     if len(self) > 1:
-      raise TypeError,"can't convert multiple-element hiid to int";
+      raise TypeError("can't convert multiple-element hiid to int");
     return int(tuple.__getitem__(self,0));
   __int__ = as_int;
 
@@ -129,7 +129,7 @@ def make_hiid_list (x):
   elif isinstance(x,str):  # single string - to list
     return [hiid(x)];
   else: # treat everything else as a sequence of hiids or strings
-    return map(make_hiid,x); 
+    return list(map(make_hiid,x)); 
   
 #
 # === dmize_object() ===
@@ -155,7 +155,7 @@ def dmize_object (obj):
   # else expect object of supported type, returned as-is
   if type(obj) in _dmi_typename_map:
     return obj;
-  raise TypeError,'dmi: type %s not supported'%type(obj);
+  raise TypeError('dmi: type %s not supported'%type(obj));
 
 
 # === class conv_error ===
@@ -214,25 +214,25 @@ class record (dict):
   def __init__ (self,_initdict_=[],_verbose_=0,**kwargs):
     # initialize from init dictionary and from kwargs, checking for valid keys
     if isinstance(_initdict_,dict):
-      _initdict_ = _initdict_.iteritems();
-    for source in _initdict_,kwargs.iteritems():
+      _initdict_ = iter(list(_initdict_.items()));
+    for source in _initdict_,iter(list(kwargs.items())):
       for key,value in source:
         try:
           key = self.make_key(key);
-        except Exception,info:
-          if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
+        except Exception as info:
+          if _verbose_>0: print(("skipping %s=%s (%s)" % (key,value,info)));
           continue;
         try:
           value = self.make_value(value);
-        except Exception,info:
-          if _verbose_>0: print "skipping %s=%s (%s)" % (key,value,info);
+        except Exception as info:
+          if _verbose_>0: print(("skipping %s=%s (%s)" % (key,value,info)));
           continue;
         dict.__setitem__(self,key,value);
-        if _verbose_>1: print "adding %s=%s" % (key,value);
-    if _verbose_>0: print "initialized",dict.__len__(self),"fields";
+        if _verbose_>1: print(("adding %s=%s" % (key,value)));
+    if _verbose_>0: print(("initialized",dict.__len__(self),"fields"));
   def copy (self):
     rec = record();
-    for (k,v) in self.iteritems():
+    for (k,v) in list(self.items()):
       rec[k] = v;
     return rec;
   # make_key: coerces value to legal key, throws TypeError if illegal
@@ -252,7 +252,7 @@ class record (dict):
   # that all lazy refs are converted to real objects. This function
   # accomplishes that task.
   def _resolve_all_lazy_refs (self):
-    lazies = filter(lambda pair:isinstance(pair[1],lazy_objref),dict.iteritems(self));
+    lazies = [pair for pair in dict.iteritems(self) if isinstance(pair[1],lazy_objref)];
     for key,ref in lazies:
       try:
 	item = ref.resolve();
@@ -292,11 +292,11 @@ class record (dict):
     except AttributeError: pass;
     # if none found, go look for a dict key
     try:   key = self.make_key(name);
-    except ValueError,info: raise AttributeError,info;
+    except ValueError as info: raise AttributeError(info);
     # try string key, if not found, convert to hiid and back to string (to take care of
     # case sensitivity: after conversion, HIID-derived strings will have canonical capitalization).
     try:   value = dict.__getitem__(self,key);
-    except KeyError: raise AttributeError,"no such field: "+str(key);
+    except KeyError: raise AttributeError("no such field: "+str(key));
     return self._resolve_lazy_ref(key,value);
   # __setattr__: sets entry in dict
   def __setattr__(self,name,value):
@@ -304,29 +304,29 @@ class record (dict):
       return dict.__setattr__(self,name,value);
     value = self.make_value(value);
     try:   key = self.make_key(name);
-    except TypeError,info: raise AttributeError,info;
+    except TypeError as info: raise AttributeError(info);
     return dict.__setitem__(self,key,value);
   # __delattr__: deletes key
   def __delattr__(self,name):
     if name.startswith('__'):
       return dict.__delattr__(self,name,value);
     try:   key = self.make_key(name);
-    except ValueError,info: raise AttributeError,info;
+    except ValueError as info: raise AttributeError(info);
     return dict.__delitem__(self,key);
   # get: string names implicitly converted to HIIDs, lazy refs resolved
   def get (self,key,default=None):
     try: key = self.make_key(key);
-    except ValueError,info: raise TypeError,info;
+    except ValueError as info: raise TypeError(info);
     value = dict.get(self,key,KeyError);
     if value is KeyError:
       if default is not KeyError:
         return default;
       else:
-        raise KeyError,"no such key: %s"%key;
+        raise KeyError("no such key: %s"%key);
     try:
       return self._resolve_lazy_ref(key,value);
     except:
-      print "Error resolving ref for key",key;
+      print(("Error resolving ref for key",key));
       raise;
   # __getitem__: string names implicitly converted to HIIDs, lazy refs resolved
   def __getitem__(self,name):
@@ -335,7 +335,7 @@ class record (dict):
   def __setitem__ (self,name,value):
     value = self.make_value(value);
     try: name = self.make_key(name);
-    except TypeError,info: raise TypeError,info;
+    except TypeError as info: raise TypeError(info);
     return dict.__setitem__(self,name,value);
   # __contains__: string names implicitly converted to HIIDs
   def __contains__(self,name):
@@ -346,14 +346,14 @@ class record (dict):
     # return map(lambda x:x.as_str('_'),self.keys());
   # __str__: pretty-print
   def __str__ (self):
-    dictiter = self.iteritems();
+    dictiter = iter(list(self.items()));
     items = [];
     for (key,value) in dictiter:
       items += ["%s=%s" % (key,str(value)) ];
     return "{ " + string.join(items,', ') + " }";
   # __repr__: official form
   def __repr__ (self):
-    dictiter = self.iteritems();
+    dictiter = iter(list(self.items()));
     items = [];
     for (key,value) in dictiter:
       items += [ "%s=%s" % (key,repr(value)) ];
@@ -362,7 +362,7 @@ class record (dict):
   def pop (self,key,*args):
     if isinstance(key,str):
       try: key = self.make_key(key);
-      except ValueError,info: raise TypeError,info;
+      except ValueError as info: raise TypeError(info);
     value = dict.pop(self,key,*args);
     if isinstance(value,lazy_objref):
       value = value.resolve();
@@ -376,12 +376,12 @@ class record (dict):
   # field_names: list of dictionary keys  
   def field_names (self):
     "returns a list of field names, in underscore-separator format";
-    return self.keys();
+    return list(self.keys());
   def has_field (self,name):
     "returns a list of field names, in underscore-separator format";
     try: name = self.make_key(name);
-    except ValueError,info: raise TypeError,info;
-    return self.has_key(name);
+    except ValueError as info: raise TypeError(info);
+    return name in self;
   def __eq__ (self,other):
     # helper function compares items
     def item_eq (a,b):
@@ -419,7 +419,7 @@ class record (dict):
     if type(self) != type(other) or len(self) != len(other):
 ##      print 'type/len mismatch';
       return False;
-    for (key,a) in self.iteritems():
+    for (key,a) in list(self.items()):
       if key not in other:
 ##        print 'key',key,'not in other';
         return False;
@@ -475,16 +475,16 @@ def make_message(msg,payload=None,priority=0):
     msg = message(msg,payload=payload,priority=priority);
   elif isinstance(msg,message):
     if payload != None or priority != 0:
-      raise ValueError, "payload and priority specified along with full message object";
+      raise ValueError("payload and priority specified along with full message object");
   else:
-    raise TypeError, "expecting message, got " + str(msg);
+    raise TypeError("expecting message, got " + str(msg));
   return msg;
   
 def make_scope (scope):
   "converts scope string to valid lowercase specifier";
   scope = scope[0].lower();
   if not scope in "ghl":
-    raise ValueError,"scope argument must be one of: (g)lobal, (h)ost, (local)";
+    raise ValueError("scope argument must be one of: (g)lobal, (h)ost, (local)");
   return scope;
   
 # Other classes  
@@ -502,14 +502,14 @@ def is_array (x):
   return isinstance(x,array_class);
   
 def is_scalar (x):
-  return isinstance(x,(int,long,float,complex));
+  return isinstance(x,(int,float,complex));
 
 # this is a map of known DMI base classes and their corresponding DMI typenames
 # subtypes may be derived from these base classes
 _dmi_baseclasses = { dmilist:'DMIList',record:'DMIRecord',array_class:'DMINumArray' };
 
 # map of other python DMI types to DMI type names
-_dmi_typename_map = { bool:'bool', int:'int', long:'long', float:'double',
+_dmi_typename_map = { bool:'bool', int:'int', int:'long', float:'double',
                       complex:'dcomplex', str:'string', hiid:'DMIHIID',
                       tuple:'DMIVec',message:'OctopussyMessage' };
                       
@@ -518,7 +518,7 @@ _dmi_typename_map.update(_dmi_baseclasses);
 
 # generate reverse map: type names to python DMI types
 _dmi_nametype_map = {};
-for (t,n) in _dmi_typename_map.iteritems():
+for (t,n) in list(_dmi_typename_map.items()):
   _dmi_nametype_map[n.lower()] = t;
   
 def dmi_typename (x,strict=False):
@@ -527,7 +527,7 @@ def dmi_typename (x,strict=False):
   returns None."""
   nm = _dmi_typename_map.get(type(x),None);
   if strict and nm is None:
-    raise KeyError,str(type(x))+" is not a known DMI type";
+    raise KeyError(str(type(x))+" is not a known DMI type");
   return nm;
     
 def dmi_type (name,baseclass=None):
@@ -538,19 +538,19 @@ def dmi_type (name,baseclass=None):
   # if unknown type, we register a derived type using the baseclass as
   if tp is None:
     if not baseclass:
-      raise KeyError,name+" is not a known DMI type, and no base class supplied";
-    for bc in _dmi_baseclasses.iterkeys():
+      raise KeyError(name+" is not a known DMI type, and no base class supplied");
+    for bc in list(_dmi_baseclasses.keys()):
       if issubclass(baseclass,bc):
         globals()[name] = tp = new.classobj(name,(baseclass,),{});
         _dmi_typename_map[tp] = name;
         _dmi_nametype_map[name.lower()] = tp;
         return tp;
     # got to here, so no supported baseclass found
-    raise TypeError,str(baseclass)+" is not a supported DMI base class";
+    raise TypeError(str(baseclass)+" is not a supported DMI base class");
   else:
     # check base class if supplied
     if baseclass is not None and not issubclass(tp,baseclass):
-      raise TypeError,name + " registered with a different base class";
+      raise TypeError(name + " registered with a different base class");
   return tp;
 
 def dmi_coerce (obj,dmitype):
@@ -558,7 +558,7 @@ def dmi_coerce (obj,dmitype):
   of the object's type. Use with care. Note that this won't work for 
   internal types (i.e. lists, tuples and such), only for record and arrays."""
   if not issubclass(dmitype,type(obj)):
-    raise TypeError,str(dmitype)+' is not a subclass of '+str(type(obj));
+    raise TypeError(str(dmitype)+' is not a subclass of '+str(type(obj)));
   obj.__class__ = dmitype;
   return obj;
 
@@ -573,7 +573,7 @@ def refcount_report (obj,indent=0,name="?",bias=3):
     alert = "*******************";
   else:
     alert = "";
-  print " "*indent,"%s (%s): rc %d %s"%(name,type(obj).__name__,rc,alert);
+  print((" "*indent,"%s (%s): rc %d %s"%(name,type(obj).__name__,rc,alert)));
   # print contents
   if isinstance(obj,hiid):
     pass;    # hiid sequencing returns new items, so no point counting refs
@@ -581,7 +581,7 @@ def refcount_report (obj,indent=0,name="?",bias=3):
     for i,x in enumerate(obj):
       refcount_report(x,indent=indent+2,name="[%i]"%i,bias=5);
   elif isinstance(obj,dict):
-    for key,val in obj.iteritems():
+    for key,val in list(obj.items()):
       refcount_report(val,indent=indent+2,name=str(key),bias=5);
  
 
@@ -594,12 +594,12 @@ try:
     import Timba.octopython 
   lazy_objref = Timba.octopython.lazy_objref;
 except ImportError:
-  print '=========================================================================';
-  print '======= Error importing octopython module:';
+  print('=========================================================================');
+  print('======= Error importing octopython module:');
   traceback.print_exc();
-  print '======= Running Timba.dmi module stand-alone with limited functionality';
-  print '======= (some things may fail)';
-  print '=========================================================================';
+  print('======= Running Timba.dmi module stand-alone with limited functionality');
+  print('======= (some things may fail)');
+  print('=========================================================================');
   # provide dummy lazy_objref class
   class lazy_objref (object):
     def resolve (self):
@@ -611,61 +611,61 @@ except ImportError:
 #
 def __test_hiids():
   global abc,abc1,a1b1,abca1b1,x;
-  print "Checking HIID class";
+  print("Checking HIID class");
   abc1 = hiid('a_b_c_1',sep='_');
   abc = hiid('a.b.c');
   a1b1 = hiid('a',1,'b',1);
   abca1b1 = hiid(abc,a1b1);
-  print abc1,abc,a1b1,abca1b1;
-  print abc+a1b1;
+  print((abc1,abc,a1b1,abca1b1));
+  print((abc+a1b1));
   x = abc;
-  print x;
+  print(x);
   x += a1b1;
-  print x;
-  print abca1b1[2];
-  print abca1b1[2:6];
-  print 'type of x:',type(x);
-  print 'dmi_type of x:',dmi_typename(x);
-  print "exception expected now";
+  print(x);
+  print((abca1b1[2]));
+  print((abca1b1[2:6]));
+  print(('type of x:',type(x)));
+  print(('dmi_type of x:',dmi_typename(x)));
+  print("exception expected now");
   try:
-    print hiid('x_y_z');
+    print((hiid('x_y_z')));
   except: pass
-  print "Checking matches() method"
+  print("Checking matches() method")
   if not ( abc.matches('a.b.?') and abc.matches('a.*') and not abc.matches('b.*') ):
-    raise RuntimeError,'hiid.matches() failed';
-  print "Checking comparison"
+    raise RuntimeError('hiid.matches() failed');
+  print("Checking comparison")
   if hiid('a') == hiid('b'):
-    raise RuntimeError,'comparison error';
+    raise RuntimeError('comparison error');
   if hiid('a') == 'b':
-    raise RuntimeError,'comparison error';
+    raise RuntimeError('comparison error');
   if hiid('a') != 'a':
-    raise RuntimeError,'comparison error';
+    raise RuntimeError('comparison error');
   if hiid('a') != hiid('a'):
-    raise RuntimeError,'comparison error';
+    raise RuntimeError('comparison error');
 
 def __test_records():
   global rec1,rec2;
-  print '------------- building record (non-strict) -------------------------';
+  print('------------- building record (non-strict) -------------------------');
   rec1 = dmi_type('MeqPolc',record)();
   rec1.a_b = 0;
   rec1.b = "test";
   rec1.c = record();
   rec1.c.a = 0;
-  print 'rec1:',rec1;
-  print 'rec1 dmi type:',dmi_typename(rec1);
-  print "accessing unknown field, expecting exception";
+  print(('rec1:',rec1));
+  print(('rec1 dmi type:',dmi_typename(rec1)));
+  print("accessing unknown field, expecting exception");
   try: rec1.d
-  except Exception,info: print "got exception:",info;
-  else: raise RuntimeError,'exception should have been raised';
-  print "assigning illegal type, expecting exception";
+  except Exception as info: print(("got exception:",info));
+  else: raise RuntimeError('exception should have been raised');
+  print("assigning illegal type, expecting exception");
   try: rec1.d = {}; # plain dicts not supported
-  except Exception,info: print "got exception:",info;
-  else: raise RuntimeError,'exception should have been raised';
-  print 'rec1.field_names():',rec1.field_names();
-  print 'rec1.repr():',`rec1`;
-  print '------------- initializing non-strict record from dict -------------';
+  except Exception as info: print(("got exception:",info));
+  else: raise RuntimeError('exception should have been raised');
+  print(('rec1.field_names():',rec1.field_names()));
+  print(('rec1.repr():',repr(rec1)));
+  print('------------- initializing non-strict record from dict -------------');
   rec3 = record({'a':0,'b':1,'c_d':2,'e':[1,2,3],'f':('x','y'),'g':[1,'x'],'z':(hiid('a'),hiid('b')),'nonhiid':4},verbose=2);
-  print 'rec3:',rec3;
+  print(('rec3:',rec3));
   return rec1;
   
 def __test_messages():  
@@ -675,12 +675,12 @@ def __test_messages():
   msg2 = message('x.y.z',priority=10);
   msg1.extra = 1;
   msg2.extra2 = 2;
-  print msg1;
-  print msg2;
+  print(msg1);
+  print(msg2);
 
 if __name__ == "__main__":
   # print some aids
-  print "Number of known AIDs: ",len(Timba.octopython.aid_map),len(Timba.octopython.aid_rmap);
+  print(("Number of known AIDs: ",len(Timba.octopython.aid_map),len(Timba.octopython.aid_rmap)));
   __test_hiids();
   __test_records();
   __test_messages();

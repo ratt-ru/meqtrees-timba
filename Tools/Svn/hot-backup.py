@@ -60,7 +60,7 @@ status_file = ".last_backup";
 incremental = os.path.basename(sys.argv[0]).startswith("incr-");
 
 if len(sys.argv) != 3:
-  print "Usage: ", os.path.basename(sys.argv[0]), " <repos_path> <backup_path>"
+  print(("Usage: ", os.path.basename(sys.argv[0]), " <repos_path> <backup_path>"))
   sys.exit(1)
 
 # Path to repository
@@ -103,9 +103,9 @@ def comparator(a, b):
 # Main
 
 if incremental:
-  print "Beginning incremental backup of '"+ repo_dir + "'."
+  print(("Beginning incremental backup of '"+ repo_dir + "'."))
 else:
-  print "Beginning full backup of '"+ repo_dir + "'."
+  print(("Beginning full backup of '"+ repo_dir + "'."))
 
 
 ### Step 1: get the youngest revision.
@@ -118,7 +118,7 @@ infile.close()
 errfile.close()
 
 youngest = string.strip(stdout_lines[0])
-print "Youngest revision is", youngest
+print(("Youngest revision is", youngest))
 
 if not incremental:
   ###########################################
@@ -138,7 +138,7 @@ if not incremental:
 
   regexp = re.compile("^" + repo + "-" + youngest + "(-(?P<increment>[0-9]+))?$")
   directory_list = os.listdir(backup_dir)
-  young_list = filter(lambda x: regexp.search(x), directory_list)
+  young_list = [x for x in directory_list if regexp.search(x)]
   if young_list:
     young_list.sort(comparator)
     increment = regexp.search(young_list.pop()).groupdict()['increment']
@@ -151,33 +151,33 @@ if not incremental:
   ### Step 3: Ask subversion to make a hot copy of a repository.
   ###         copied last.
 
-  print "Backing up repository to " + backup_subdir;
+  print(("Backing up repository to " + backup_subdir));
   err_code = os.spawnl(os.P_WAIT, svnadmin, "svnadmin", "hotcopy", repo_dir, 
                        backup_subdir, "--clean-logs")
   if(err_code != 0):
-    print "Unable to backup the repository."
+    print("Unable to backup the repository.")
     sys.exit(err_code)
   else:
-    print "Done."
+    print("Done.")
 
   ### Step 4. Compress the backup into a tarball and send over to other places
-  print "Making tarball of backup";
+  print("Making tarball of backup");
   tarball = backup_subdir + ".tgz";
   err_code = os.system("cd "+backup_dir+"; tar zcf "+tarball+" "+os.path.basename(backup_subdir));
   if(err_code != 0):
-    print "Unable to create "+tarball;
+    print(("Unable to create "+tarball));
     sys.exit(err_code)
   else:
-    print "Done."
+    print("Done.")
 
   ### Step 5. Copy tarball to backup locations
   for dest in backup_locations:
     err_code = os.spawnl(os.P_WAIT,scp_exec,"scp",tarball,dest);
     if(err_code != 0):
-      print "Unable to copy "+tarball+" to "+dest;
+      print(("Unable to copy "+tarball+" to "+dest));
 
   ### Step 6. Remove tarball
-  print "Removing "+tarball;
+  print(("Removing "+tarball));
   os.remove(tarball);
 
   ### Step 7. Write out status file for incremental backups
@@ -189,12 +189,12 @@ if not incremental:
   if num_backups > 0:
     regexp = re.compile("^" + repo + "-[0-9]+(-[0-9]+)?$")
     directory_list = os.listdir(backup_dir)
-    old_list = filter(lambda x: regexp.search(x), directory_list)
+    old_list = [x for x in directory_list if regexp.search(x)]
     old_list.sort(comparator)
     del old_list[max(0,len(old_list)-num_backups):]
     for item in old_list:
       old_backup_subdir = os.path.join(backup_dir, item)
-      print "Removing old backup: " + old_backup_subdir
+      print(("Removing old backup: " + old_backup_subdir))
       shutil.rmtree(old_backup_subdir)
 else:
   ###########################################
@@ -207,25 +207,25 @@ else:
   rev0 = int(backup_rev);
   rev1 = int(youngest);
   if not os.path.isdir(backup_subdir):
-    print "Can't find full backup in "+backup_subdir;
+    print(("Can't find full backup in "+backup_subdir));
     sys.exit(1);
     
   ### Check if incremental backup is needed
   if rev0 == rev1:
-    print "Already backed up to revision "+str(rev1);
+    print(("Already backed up to revision "+str(rev1)));
     sys.exit(0);
   revs = "%d:%d"%(rev0+1,rev1);
   incr_backup_file = os.path.join(backup_subdir,"incr:"+revs+".gz");
   
   ### Do the backup
-  print "Writing incremental backup for revisions "+revs;
+  print(("Writing incremental backup for revisions "+revs));
   err_code = os.system(svnadmin+" dump "+repo_dir+" --revision "+
     revs+" --incremental |"+gzip+" >"+incr_backup_file);
   if(err_code != 0):
-    print "Incremental backup to "+incr_backup_file+" failed";
+    print(("Incremental backup to "+incr_backup_file+" failed"));
     sys.exit(err_code)
   else:
-    print "Done."
+    print("Done.")
     
   ### Write out status file for incremental backups
   file(status_file,'w').write(youngest+" "+backup_subdir);
@@ -234,4 +234,4 @@ else:
   for dest in backup_locations:
     err_code = os.spawnl(os.P_WAIT,scp_exec,"scp",incr_backup_file,dest);
     if(err_code != 0):
-      print "Unable to copy "+incr_backup_file+" to "+dest;
+      print(("Unable to copy "+incr_backup_file+" to "+dest));

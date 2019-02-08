@@ -59,7 +59,7 @@ class Bookmark (QObject):
         self.rec.viewer = getattr(viewer,'viewer_name',viewer.__name__);
         self.viewer = viewer;
       else:
-        raise TypeError,"illegal viewer argument "+str(viewer);
+        raise TypeError("illegal viewer argument "+str(viewer));
       if self.viewer is not None:
         self.icon = getattr(self.viewer,'icon',QIcon);
         self.enabled = True;

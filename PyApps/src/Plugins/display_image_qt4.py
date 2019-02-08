@@ -73,17 +73,17 @@ import sys
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 
-from QwtSpy_qt4 import *
+from .QwtSpy_qt4 import *
 
 import numpy
 import math
 
 #from UVPAxis import *
 #from ComplexColorMap import *
-from ComplexScaleDraw_qt4 import *
-from QwtPlotCurveSizes_qt4 import *
-from QwtPlotImage_qt4 import *
-from VellsTree_qt4 import *
+from .ComplexScaleDraw_qt4 import *
+from .QwtPlotCurveSizes_qt4 import *
+from .QwtPlotImage_qt4 import *
+from .VellsTree_qt4 import *
 from Timba.GUI.pixmaps import pixmaps
 #from guiplot2dnodesettings import *
 import random
@@ -795,7 +795,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def update_spectrum_display(self, menuid):
       """ callback to handle signal from SpectrumContextMenu """
-      print 'in update_spectrum_display with menuid ', menuid
+      print('in update_spectrum_display with menuid ', menuid)
       if self.handle_basic_menu_id(menuid):
         return
 
@@ -874,7 +874,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def setBigArrays(self, big_data_index):
       if not big_data_index is None:
         self.menu_labels_big = big_data_index
-        keys = self.menu_labels_big.keys()
+        keys = list(self.menu_labels_big.keys())
         if len(keys) > 0:
           for i in range(len(keys)):
             if self.menu_labels_big[keys[i]]:
@@ -932,10 +932,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
             node.setKey(id)
             previous = node
             perturbations_key = str(id) + ' perturbations'
-            if perturbations.has_key(perturbations_key):
+            if perturbations_key in perturbations:
               perturbations_index = perturbations[perturbations_key]
               self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index,node) 
-            if not self.menu_labels_big is None and self.menu_labels_big.has_key(id):
+            if not self.menu_labels_big is None and id in self.menu_labels_big:
               if self.menu_labels_big[id]:
                 self._show_full_data_range.setVisible(True)
               
@@ -974,10 +974,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
               sub_node.setKey(id)
               previous_node = sub_node
               perturbations_key = str(id) + ' perturbations'
-              if perturbations.has_key(perturbations_key):
+              if perturbations_key in perturbations:
                 perturbations_index = perturbations[perturbations_key]
                 submenu = self.createPerturbationsMenu(self._vells_menu,menu_labels,perturbations_index,sub_node) 
-              if not self.menu_labels_big is None and self.menu_labels_big.has_key(id):
+              if not self.menu_labels_big is None and id in self.menu_labels_big:
                 if self.menu_labels_big[id]:
                   self._show_full_data_range.setVisible(True)
               
@@ -2189,7 +2189,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def test_plot_array_sizes(self, width=None):
 
 # if we have a solver plot 
-      if len(self.chis_plot.keys()) > 0:
+      if len(list(self.chis_plot.keys())) > 0:
         zoom = False
         if len(self.zoomStack):
           zoom = True
@@ -2236,7 +2236,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.setAxisAutoScale(Qwt.QwtPlot.yRight)
         if self.axisEnabled(Qwt.QwtPlot.xTop) and not zoom:
           self.setAxisAutoScale(Qwt.QwtPlot.xTop)
-        keys = self.curves.keys()
+        keys = list(self.curves.keys())
         for j in range(len(keys)):
           plot_curve=self.curves[keys[j]]
           if keys[j] == 'imaginaries' or keys[j] == 'phase':
@@ -2286,7 +2286,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         """ calculate and display cross sections at specified location """
         _dprint(3, 'calculating cross-sections')
         # can't plot cross sections and chi display together
-        keys = self.chis_plot.keys()
+        keys = list(self.chis_plot.keys())
         if len(keys) > 0:
           for key in keys:
             self.chis_plot[key].detach()
@@ -2649,7 +2649,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       #solver metrics
       self._toggle_plot_legend.setVisible(True)
       if not self.display_solution_distances:
-        keys = self.metrics_plot.keys()
+        keys = list(self.metrics_plot.keys())
         if len(keys) > 0:
           for key in keys:
             self.metrics_plot[key].detach()
@@ -2681,7 +2681,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
       #chi_sq surfaces  - first remove any previous versions?
       #the following should work but seems to be causing problems
-      keys = self.chis_plot.keys()
+      keys = list(self.chis_plot.keys())
       if len(keys) > 0:
         for key in keys:
           self.chis_plot[key].detach()
@@ -2989,22 +2989,22 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._data_labels = None
       self._tag_plot_attrib={}
       if attribute_list is None: 
-        if visu_record.has_key('attrib'):
+        if 'attrib' in visu_record:
           self._attrib_parms = visu_record['attrib']
           _dprint(2,'self._attrib_parms ', self._attrib_parms);
           plot_parms = self._attrib_parms.get('plot')
-          if plot_parms.has_key('tag_attrib'):
+          if 'tag_attrib' in plot_parms:
             temp_parms = plot_parms.get('tag_attrib')
             tag = temp_parms.get('tag')
             self._tag_plot_attrib[tag] = temp_parms
-          if plot_parms.has_key('attrib'):
+          if 'attrib' in plot_parms:
             temp_parms = plot_parms.get('attrib')
             plot_parms = temp_parms
-          if self._plot_type is None and plot_parms.has_key('plot_type'):
+          if self._plot_type is None and 'plot_type' in plot_parms:
             self._plot_type = plot_parms.get('plot_type')
-          if self._display_type is None and plot_parms.has_key('spectrum_color'):
+          if self._display_type is None and 'spectrum_color' in plot_parms:
             self.setDisplayType(plot_parms.get('spectrum_color'))
-          if self._attrib_parms.has_key('tag'):
+          if 'tag' in self._attrib_parms:
             tag = self._attrib_parms.get('tag')
         else:
           self._plot_type = self.plot_key
@@ -3013,27 +3013,27 @@ class QwtImageDisplay(Qwt.QwtPlot):
         list_length = len(attribute_list)
         for i in range(list_length):
           self._attrib_parms = attribute_list[i]
-          if self._attrib_parms.has_key('plot'):
+          if 'plot' in self._attrib_parms:
             plot_parms = self._attrib_parms.get('plot')
-            if plot_parms.has_key('tag_attrib'):
+            if 'tag_attrib' in plot_parms:
               temp_parms = plot_parms.get('tag_attrib')
               tag = temp_parms.get('tag')
               self._tag_plot_attrib[tag] = temp_parms
-            if plot_parms.has_key('attrib'):
+            if 'attrib' in plot_parms:
               temp_parms = plot_parms.get('attrib')
               plot_parms = temp_parms
-            if self._plot_type is None and plot_parms.has_key('plot_type'):
+            if self._plot_type is None and 'plot_type' in plot_parms:
               self._plot_type = plot_parms.get('plot_type')
-            if self._window_title is None and plot_parms.has_key('title'):
+            if self._window_title is None and 'title' in plot_parms:
               self.plot_title.setText(self.label+ ' '+ plot_parms.get('title'))
               self.setTitle(self.plot_title)
-            if self._x_title is None and plot_parms.has_key('x_axis'):
+            if self._x_title is None and 'x_axis' in plot_parms:
               self._x_title = plot_parms.get('x_axis')
-            if self._y_title is None and plot_parms.has_key('y_axis'):
+            if self._y_title is None and 'y_axis' in plot_parms:
               self._y_title = plot_parms.get('y_axis')
-            if self._display_type is None and plot_parms.has_key('spectrum_color'):
+            if self._display_type is None and 'spectrum_color' in plot_parms:
               self.setDisplayType(plot_parms.get('spectrum_color'))
-          if self._attrib_parms.has_key('tag'):
+          if 'tag' in self._attrib_parms:
             tag = self._attrib_parms.get('tag')
             if self._string_tag is None:
               self._string_tag = ''
@@ -3052,7 +3052,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 temp_tag = self._string_tag + ' ' + tag
                 self._string_tag = temp_tag
 
-      if visu_record.has_key('plot_label'):
+      if 'plot_label' in visu_record:
         self._data_labels = visu_record['plot_label']
         _dprint(2,'insert_array_info: self._data_labels ', self._data_labels);
       else:
@@ -3066,11 +3066,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if self._plot_type is None:
         self._plot_type = 'spectra'
 
-      if visu_record.has_key('value'):
+      if 'value' in visu_record:
         self._data_values = visu_record['value']
 
       if len(self._tag_plot_attrib) > 0:
-        _dprint(3, 'self._tag_plot_attrib has keys ', self._tag_plot_attrib.keys())
+        _dprint(3, 'self._tag_plot_attrib has keys ', list(self._tag_plot_attrib.keys()))
 
 # extract and define labels for this data item
      # now generate  particular plot type

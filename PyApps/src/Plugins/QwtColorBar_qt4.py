@@ -72,7 +72,7 @@
 #
 
 #from Timba.GUI.pixmaps import pixmaps
-from QwtPlotImage_qt4 import *
+from .QwtPlotImage_qt4 import *
 from math import log
 from math import exp
 import numpy

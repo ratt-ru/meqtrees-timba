@@ -44,7 +44,7 @@ def currentThread ():
 
 def trace_lines (frame, event, arg):
   if event == "line":
-    print "%s %s:%d"%(id(Qt.QThread.currentThread()),frame.f_code.co_filename,frame.f_lineno);
+    print(("%s %s:%d"%(id(Qt.QThread.currentThread()),frame.f_code.co_filename,frame.f_lineno)));
   return trace_lines;
 
 
@@ -53,7 +53,7 @@ class Thread (Qt.QThread):
     Qt.QThread.__init__(self);
     self._name = name;
     if not callable(target):
-      raise TypeError,"Thread target argument must be a callable object";
+      raise TypeError("Thread target argument must be a callable object");
     self._target = target;
   def run (self):
 #    sys.settrace(trace_lines);
@@ -107,7 +107,7 @@ class Condition (Lock):
     self._cond = Qt.QWaitCondition();
   def wait (self,timeout=None):
     if timeout is None:
-      timeout = sys.maxint;
+      timeout = sys.maxsize;
     else:
       timeout = int(timeout*1000);
 ##    print id(self),'waiting in ',Qt.QThread.currentThread();
@@ -123,7 +123,7 @@ class Condition (Lock):
 class QThreadWrapper (Qt.QThread):
   def __init__(self,target,name=None,args=(),kwargs={}):
     if not callable(target):
-      raise TypeError,"target argument must be a callable object";
+      raise TypeError("target argument must be a callable object");
     Qt.QThread.__init__(self);
     self._target = target;
     self._args = args;
@@ -133,7 +133,7 @@ class QThreadWrapper (Qt.QThread):
     else:
       self._name = name;
   def run (self):
-    print "********** QThreadWrapper: running ",self._name;
+    print(("********** QThreadWrapper: running ",self._name));
     self._target(*self._args,**self._kwargs);
   def join (self):
     return self.wait();

@@ -63,8 +63,8 @@ def set_debug (context,level=0):
   if isinstance(context,str):
     octopython.set_debug(context,level);
   elif isinstance(context,dict):
-    for (c,lev) in context.iteritems():
-      print 'setdebug',c,lev;
+    for (c,lev) in list(context.items()):
+      print(('setdebug',c,lev));
       octopython.set_debug(c,lev);
   else:
     for c in context:
@@ -96,7 +96,7 @@ def start (wait=True):
   "Returns the thread id of the OCTOPUSSY thread.";
   global _octopussy_running,_octopussy_init;
   if not _octopussy_init:
-    raise OctoPythonError,"octopussy not initialized, call init() first"
+    raise OctoPythonError("octopussy not initialized, call init() first")
   res = octopython.start(wait);
   _octopussy_running = True;
   return res;
@@ -253,7 +253,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
       if welist and not self._clear_oneshots(welist):
         del self._we_ids[msg.msgid];
       # check the masks list
-      for mask,welist in self._we_masks.iteritems():
+      for mask,welist in list(self._we_masks.items()):
         if msg.msgid.matches(mask):
           _dprintf(3,"found %d mask whenevers for %s\n",len(welist),mask);
           pending_list += welist;
@@ -272,7 +272,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
       try:  
         _dprint(3,"going into receive_all()");
         msgs = self.receive_all();
-      except octopython.OctoPythonError,value:
+      except octopython.OctoPythonError as value:
         _dprint(1,"exiting on receive error:",value);
         return None;
       # dispatch all messages
@@ -310,7 +310,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
         else:
           to = max(0,endtime - time.time());
         msg = self.receive(to);
-      except octopython.OctoPythonError,value:
+      except octopython.OctoPythonError as value:
         _dprint(1,"exiting on receive error:",value);
         return None;
       # msg=None probably indicates timeout, go back up to check
@@ -421,7 +421,7 @@ class proxy_wp_thread(proxy_wp):
   def await (self,what,timeout=None,resume=False):
     cur_thread = self._api.currentThread();
     if cur_thread is self._thread:
-      raise AssertionError,"can't call await() from event handler thread";
+      raise AssertionError("can't call await() from event handler thread");
     thread_name = cur_thread.getName();
     _dprint(2,"await: thread",thread_name);
     _dprint(2,"await: waiting for",what,"timeout ",timeout);
@@ -446,7 +446,7 @@ class proxy_wp_thread(proxy_wp):
     return await_pair[1];
 
   def event_loop (self,*args,**kwargs):
-    raise RuntimeError,"can't call event_loop on " + self.__class__.__name__;
+    raise RuntimeError("can't call event_loop on " + self.__class__.__name__);
     
   # the run-loop: calls receive() in a continuous loop, processes events
   def run (self):
@@ -456,7 +456,7 @@ class proxy_wp_thread(proxy_wp):
       try:  
         _dprint(3,"going into receive()");
         msg = self.receive_threaded();
-      except octopython.OctoPythonError, value:
+      except octopython.OctoPythonError as value:
         _dprint(1,"exiting on receive error:",value);
         break;
       # msg=None probably indicates timeout, go back up to check
@@ -472,7 +472,7 @@ class proxy_wp_thread(proxy_wp):
       self._lock.acquire();
       self._await_cond.acquire();
       try:
-        for awp in self._awaiting.itervalues():
+        for awp in list(self._awaiting.values()):
           for msgid in awp[0]:
             if msg.msgid.matches(msgid):
               _dprintf(3,"matches await %s, notifying\n",msgid);
@@ -493,39 +493,39 @@ if __name__ == "__main__":
   import time
   import Timba.array
   if '-qt' in sys.argv:
-    import qt_threading
+    from . import qt_threading
     thread_api = qt_threading; 
-    print "================== Using Qt thread API ===================";
+    print("================== Using Qt thread API ===================");
   else:
     thread_api = threading; 
-    print "================== Using standard thread API ===================";
+    print("================== Using standard thread API ===================");
   
-  raw_input('Please press ENTER to continue');
+  eval(input('Please press ENTER to continue'));
   
   # do some basic checking
-  print "set_debug()";
+  print("set_debug()");
   set_debug("Octopussy",1);
   set_debug("OctoPython",5);
   set_debug({"Dsp":1,"loggerwp":0});
   set_debug(("reflectorwp","python"),1);
-  print "init()"
+  print("init()")
   init();
   addr_refl = start_reflector();
-  print "Reflector address is:",addr_refl;
+  print(("Reflector address is:",addr_refl));
 
-  print "=== (1) ===";
+  print("=== (1) ===");
   
   wp1 = proxy_wp("Python",verbose=2);
-  print "WP1 address is:",wp1.address();
+  print(("WP1 address is:",wp1.address()));
   wp2 = proxy_wp("Python",verbose=2);
-  print "WP2 address is:",wp2.address();
+  print(("WP2 address is:",wp2.address()));
   wp3 = proxy_wp("Python",verbose=3);
-  print "WP3 address is:",wp2.address();
+  print(("WP3 address is:",wp2.address()));
   wp3.subscribe("1.2.*");
   wp3.subscribe("Reflect.*");
   
   wp4 = proxy_wp_thread("Python",verbose=3,thread_api=thread_api);
-  print "WP4 address is:",wp2.address();
+  print(("WP4 address is:",wp2.address()));
   wp4.subscribe("1.2.*");
   wp4.subscribe("Reflect.*");
   
@@ -533,25 +533,25 @@ if __name__ == "__main__":
   we3 = wp3.whenever("*",lambda msg,header: sys.stderr.write(header+str(msg)+'\n'),(),{'header':'[3]======'});
   we4 = wp4.whenever("*",lambda msg,header: sys.stderr.write(header+str(msg)+'\n'),(),{'header':'[4]======'});
   
-  print "=== (2) ===";
+  print("=== (2) ===");
   
   wp1.subscribe("1.2.*","global");
   wp2.subscribe("b.c.*","local");
   wp1.unsubscribe("a");
   
   # start
-  print "start()";
+  print("start()");
   thread = start(wait=True);
-  print "OCTOPUSSY thread ID is:",thread;
+  print(("OCTOPUSSY thread ID is:",thread));
   
   # start threaded WP
   wp4.start();
   
-  print "wp1.receive(), no wait: ",wp1.receive(False);
-  print "wp2.receive(), no wait: ",wp2.receive(False);
+  print(("wp1.receive(), no wait: ",wp1.receive(False)));
+  print(("wp2.receive(), no wait: ",wp2.receive(False)));
   payload = record(a=[1,2,3],b=(1,2,3));
   msg1 = message('a.b.c',payload=payload);
-  print "message1",msg1,payload;
+  print(("message1",msg1,payload));
   wp1.send(msg1,wp2.address());
   
   arr = Timba.array.array([1,2,3,4,5,6]).reshape((3,2));
@@ -561,61 +561,61 @@ if __name__ == "__main__":
   
   msg2 = message('1.2.3',priority=10,payload=payload);
   
-  print "message2",msg2,msg2.payload;
+  print(("message2",msg2,msg2.payload));
 #  set_debug("OctoPython",5);
-  print "=== (2a) ===";
+  print("=== (2a) ===");
   wp2.publish(msg2);
 #  set_debug("OctoPython",2);
 
   wp4.pause_events();
 
   msg2.msgid = hiid('Reflect.1');
-  print "=== (2b) ===";
+  print("=== (2b) ===");
   wp2.publish(msg2);
-  print "=== (2c) ===";
+  print("=== (2c) ===");
   wp1.send(msg1,addr_refl);
-  print "=== (2d) ===";
+  print("=== (2d) ===");
 #  time.sleep(.5);
   
-  print "awaiting on wp4...";
+  print("awaiting on wp4...");
   res = wp4.await("reflect.*",resume=True);
-  print "await result: ",res;
+  print(("await result: ",res));
   
-  print "=== (3) ===";
+  print("=== (3) ===");
   
-  print 'wp1 queue: ',wp1.num_pending();
-  print 'wp2 queue: ',wp2.num_pending();
+  print(('wp1 queue: ',wp1.num_pending()));
+  print(('wp2 queue: ',wp2.num_pending()));
   
   while wp1.num_pending():
 #    set_debug("OctoPython",5);
     msg1a = wp1.receive();
 #    set_debug("OctoPython",2);
-    print "wp1.receive(): ",msg1a;
-    print "payload: ",msg1a.payload;
+    print(("wp1.receive(): ",msg1a));
+    print(("payload: ",msg1a.payload));
     
   while wp2.num_pending():
 #    set_debug("OctoPython",5);
     msg2a = wp2.receive();
 #    set_debug("OctoPython",2);
-    print "wp2.receive(): ",msg2a;
-    print "payload: ",msg2a.payload;
+    print(("wp2.receive(): ",msg2a));
+    print(("payload: ",msg2a.payload));
   
-  print "=== (4) ===";
+  print("=== (4) ===");
   wp1.send('x.y.z',wp3.address());
     
-  print 'wp1 queue: ',wp1.num_pending();
-  print 'wp2 queue: ',wp2.num_pending();
-  print 'wp3 queue: ',wp3.num_pending();
-  print 'going into wp3.event_loop()';
+  print(('wp1 queue: ',wp1.num_pending()));
+  print(('wp2 queue: ',wp2.num_pending()));
+  print(('wp3 queue: ',wp3.num_pending()));
+  print('going into wp3.event_loop()');
   wp3.event_loop(await='x.*');
 
   wp3.cancel_whenever(we3);
   wp4.cancel_whenever(we4);
   
-  print "=== (5) ===";
+  print("=== (5) ===");
   
   time.sleep(.5);
-  print "stop()";
+  print("stop()");
   stop();
 #  print "wp3.join()";
 #  wp3.join();

@@ -27,7 +27,7 @@
 from Timba.dmi import *
 from Timba.utils import *
 from Timba.GUI.pixmaps import pixmaps
-import ConfigParser
+import configparser
 
 import traceback
 import inspect
@@ -65,10 +65,10 @@ _config_write_failed = False;
 # flag: save changes to config
 _config_save_enabled = True;
 
-class OptionConfigParser (ConfigParser.RawConfigParser):
+class OptionConfigParser (configparser.RawConfigParser):
   """extend the standard ConfigParser with a 'sticky' filename""";
   def __init__ (self,*args):
-    ConfigParser.RawConfigParser.__init__(self,*args);
+    configparser.RawConfigParser.__init__(self,*args);
     self._readfile = self._writefile = config_file;
   def read (self,filename):
     self._readfile = filename;
@@ -76,7 +76,7 @@ class OptionConfigParser (ConfigParser.RawConfigParser):
   def reread (self,filename=None):
     filename = filename or self._readfile;
     _dprint(1,"reading config file",filename);
-    ConfigParser.RawConfigParser.read(self,filename);
+    configparser.RawConfigParser.read(self,filename);
   def set_save_filename (self,filename):
     """Sets filename that config is to be saved to. If None, config will not be written out""";
     self._writefile = filename;
@@ -219,7 +219,7 @@ def set_option (name,value,save=True,strict=False,from_str=False):
   else:
     _dprint(2,"setting config item for later:",name,value);
     if strict:
-      raise NameError,"Option '%s' not found"%name;
+      raise NameError("Option '%s' not found"%name);
     # Perhaps the script hasn't been compiled yet, so pre-set it in config
     _set_config(name,str(value),save=save);
 
@@ -283,7 +283,7 @@ def get_job_func (name):
   for item in _job_options:
     if item.name == name or item.job_id == name:
       return item.func;
-  raise NameError,"Job '%s' not found"%name;
+  raise NameError("Job '%s' not found"%name);
 
 def is_jobfunc_defined (func):
   global _job_options;
@@ -300,7 +300,7 @@ class _TDLBaseOption (object):
   """abstract base class for all option entries""";
   def __init__ (self,name,namespace=None,owner=None,doc=None):
     if not isinstance(name,str):
-      raise TypeError,"option name must be a string";
+      raise TypeError("option name must be a string");
     self.name    = name;
     self.doc     = doc;
     self.enabled = True;
@@ -484,7 +484,7 @@ class _TDLOptionItem(_TDLBaseOption):
       if not isinstance(namespace,dict):
         namespace = getattr(namespace,'__dict__',None);
         if namespace is None:
-          raise TypeError,"'"+name+"' does not refer to a valid namespace";
+          raise TypeError("'"+name+"' does not refer to a valid namespace");
     self.namespace = namespace;
     self.symbol = symbol;
     self.mandatory = mandatory;
@@ -524,13 +524,13 @@ class _TDLOptionItem(_TDLBaseOption):
         try:
           cb(value);
         except:
-          print "Error calling when_changed callback (%s) for option '%s'"%(getattr(cb,'__name__',''),self.name);
+          print("Error calling when_changed callback (%s) for option '%s'"%(getattr(cb,'__name__',''),self.name));
           traceback.print_exc();
 
   def set (self,value,**kw):
     """public method for changing the internal value of an option. Must be implemented
     in child classes""";
-    raise TypeError,"set() not implemented in child class""";
+    raise TypeError("set() not implemented in child class""");
 
   def set_value (self,value,**kw):
     """set_value() is by default an alias for set()"""
@@ -538,7 +538,7 @@ class _TDLOptionItem(_TDLBaseOption):
 
   def from_str (self,value,**kw):
     """Converts string to legal value of option. Raises ValueError if string is invalid.""";
-    raise TypeError,"from_str() not implemented in child class""";
+    raise TypeError("from_str() not implemented in child class""");
 
   def get_str (self):
     """Returns string representation of option""";
@@ -557,7 +557,7 @@ class _TDLOptionItem(_TDLBaseOption):
     try:
       callback(self.value);
     except:
-      print "Error calling when_changed callback (%s) for option '%s'"%(getattr(callback,'__name__',''),self.name);
+      print("Error calling when_changed callback (%s) for option '%s'"%(getattr(callback,'__name__',''),self.name));
       traceback.print_exc();
 
 class _TDLBoolOptionItem (_TDLOptionItem):
@@ -667,7 +667,7 @@ class _TDLFileOptionItem (_TDLOptionItem):
   def from_str (self,value):
     value = str(value);
     if not self._validator(value):
-      raise ValueError,"value '%s' does not pass validation for %s"%(value,self.name);
+      raise ValueError("value '%s' does not pass validation for %s"%(value,self.name));
     return value;
 
   def set_validator (self,validator):
@@ -740,9 +740,9 @@ class _TDLListOptionItem (_TDLOptionItem):
                      config_name=None,name=None,doc=None,mandatory=False):
     _TDLOptionItem.__init__(self,namespace,symbol,None,config_name=config_name,name=name,doc=doc,mandatory=mandatory);
     if more not in (None,int,float,str,complex):
-      raise ValueError,"'more' argument to list options must be 'None', 'int', 'float', 'complex' or 'str'"
+      raise ValueError("'more' argument to list options must be 'None', 'int', 'float', 'complex' or 'str'")
     if not more and not value:
-      raise ValueError,"empty option list, and 'more=' not specified";
+      raise ValueError("empty option list, and 'more=' not specified");
     self._more = more;
     self._custom_value = ('','','');
     self._submenu = self._submenu_editor = None;
@@ -760,9 +760,9 @@ class _TDLListOptionItem (_TDLOptionItem):
       except:
       # no, treat as an integer index into the list
         if not isinstance(default,int):
-          raise TypeError,"'default': list index expected";
+          raise TypeError("'default': list index expected");
         elif default < 0 or default >= len(self.option_list):
-          raise ValueError,"'default': index out of range";
+          raise ValueError("'default': index out of range");
     # set the default value
     self.selected = default;
     self._set(self.option_list[default]);
@@ -795,11 +795,11 @@ class _TDLListOptionItem (_TDLOptionItem):
       return self.option_list[select];
     except:
       if self._more is None:
-        raise ValueError,"value '%s' is not in the list of valid options for %s"%(value,self.name);
+        raise ValueError("value '%s' is not in the list of valid options for %s"%(value,self.name));
       else:
         value = self._more(value);
         if not self._validator(value):
-          raise ValueError,"value '%s' does not pass validation for %s"%(value,self.name);
+          raise ValueError("value '%s' does not pass validation for %s"%(value,self.name));
         return value;
 
   def set_validator (self,validator):
@@ -836,14 +836,14 @@ class _TDLListOptionItem (_TDLOptionItem):
       # else treat as simple list of values
       else:
         self.option_list = list(opts);
-        self.option_list_str = map(lambda x:self.item_str(x),opts);
+        self.option_list_str = [self.item_str(x) for x in opts];
         self.option_list_desc = list(self.option_list_str);
     elif isinstance(opts,dict):
-      self.option_list = list(opts.iterkeys());
-      self.option_list_str = map(lambda x:self.item_str(x),opts.iterkeys());
-      self.option_list_desc = map(lambda x:str(x),opts.itervalues());
+      self.option_list = list(opts.keys());
+      self.option_list_str = [self.item_str(x) for x in iter(opts.keys())];
+      self.option_list_desc = [str(x) for x in iter(opts.values())];
     else:
-      raise TypeError,"TDLListOptionItem: list or dict of options expected";
+      raise TypeError("TDLListOptionItem: list or dict of options expected");
     # add custom value
     if self._more is not None:
       self.option_list.append(self._custom_value[0]);
@@ -875,7 +875,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       self.set(index,save=save,callback=callback);
     except:
       if self._more is None:
-        raise ValueError,"%s is not a legal value for option '%s'"%(value,self.name);
+        raise ValueError("%s is not a legal value for option '%s'"%(value,self.name));
       self.set_custom_value(self._more(value),save=save,select=True,callback=callback);
 
   def set (self,ivalue,save=True,callback=True):
@@ -893,7 +893,7 @@ class _TDLListOptionItem (_TDLOptionItem):
 
   def set_custom_value (self,value,select=True,save=True,callback=True):
     if self._more is None:
-      raise TypeError,"can't set custom value for this option list, since it was not created with a 'more' argument";
+      raise TypeError("can't set custom value for this option list, since it was not created with a 'more' argument");
     self._custom_value = (value,str(value),str(value)); # or "(empty)");
     self.option_list[-1],self.option_list_str[-1],self.option_list_desc[-1] = self._custom_value;
     # copy to editor widget
@@ -1133,7 +1133,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     if item:
       if setitem:
         item.set(True,save=False);
-      for other in self._exclusive_items.itervalues():
+      for other in self._exclusive_items.values():
         if other is not item:
           other.set(False,save=False);
     if self.initialized and self.excl_config_name:
@@ -1168,7 +1168,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     elif self._toggle:
       return _TDLBoolOptionItem.from_str(self,value);
     else:
-      raise ValueError,"can't set %s to %s"%(self.name,value);
+      raise ValueError("can't set %s to %s"%(self.name,value));
 
   def set (self,value,**kw):
     _dprint(4,"setting menu item",self.name,value);
@@ -1191,7 +1191,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
   def make_treewidget_item (self,parent,after,executor=None):
     """makes a listview entry for the menu""";
     if self._items is None:
-      raise RuntimeError,"option menu '%s' not initialized, this should be impossible!"%self._title;
+      raise RuntimeError("option menu '%s' not initialized, this should be impossible!"%self._title);
     item = QTreeWidgetItem(parent,after);
     item.setText(0,self._title);
     item.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled);
@@ -1264,7 +1264,7 @@ def TDLStealOptions (obj,is_runtime=False):
     name = " '%s'"%name;
   else:
     name = "";
-  raise TypeError,"cannot steal options from object%s of type %s"%(name,type(obj));
+  raise TypeError("cannot steal options from object%s of type %s"%(name,type(obj)));
 
 def populate_option_treewidget (tw,option_items,executor=None):
   tw.clear();
@@ -1313,7 +1313,7 @@ def _resolve_namespace (namespace,symbol,calldepth=2):
     _dprintf(1,"option %s, namespace is %s (%X), prefix is %s\n"%(symbol,namespace,id(namespace),prefix));
     namespace = getattr(namespace,'__dict__',None);
     if namespace is None:
-      raise TypeError,"invalid namespace specified";
+      raise TypeError("invalid namespace specified");
     # get name for config file, by prepending the namespace name
     if prefix:
       symbol = ".".join((prefix,symbol));
@@ -1327,7 +1327,7 @@ def _make_option_item (namespace,symbol,name,value,default=None,
   namespace,config_name = _resolve_namespace(namespace,symbol,calldepth=2);
   _dprintf(1,"option %s, config name is %s, namespace %X\n"%(symbol,config_name,id(namespace)));
   if runtime and mandatory:
-    raise TypeError,"run-time options cannot be declared mandatory";
+    raise TypeError("run-time options cannot be declared mandatory");
   # boolean option
   if isinstance(value,bool):
     item = _TDLBoolOptionItem(namespace,symbol,value,config_name=config_name,nonexclusive=nonexclusive);
@@ -1343,7 +1343,7 @@ def _make_option_item (namespace,symbol,name,value,default=None,
   elif isinstance(value,TDLFileSelect):
     item = _TDLFileOptionItem(namespace,symbol,value,config_name=config_name,mandatory=mandatory);
   else:
-    raise TypeError,"Illegal type for TDL option '%s': %s"%(symbol,type(value).__name__);
+    raise TypeError("Illegal type for TDL option '%s': %s"%(symbol,type(value).__name__));
   item.set_name(name);
   item.set_doc(doc);
   if runtime is not None:

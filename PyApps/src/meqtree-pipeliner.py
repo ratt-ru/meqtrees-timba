@@ -72,17 +72,17 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
   from Timba.TDL import Compile
   from Timba.TDL import TDLOptions
   TDLOptions.enable_save_config(False);
-  print "### Starting meqserver";
+  print("### Starting meqserver");
   mqs = meqserver.default_mqs(wait_init=10,extra=["-mt",str(options.mt)]+(["-python_memprof"] if options.memprof else []));
 
   retcode = 0;
   # use a try...finally block to exit meqserver cleanly at the end
   try:
     if not os.path.exists(options.config):
-      print "Config file %s doesn't exist"%options.config;
+      print(("Config file %s doesn't exist"%options.config));
       sys.exit(1);
       
-    print "### Attaching to configuration file",options.config;
+    print(("### Attaching to configuration file",options.config));
     TDLOptions.config.read(options.config);
     # disable the writing-out of configuration
     TDLOptions.config.set_save_filename(None);
@@ -118,92 +118,92 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
 
       if load_match:
         section = load_match.group(1);
-        print "### Loading config section",section;
+        print(("### Loading config section",section));
         TDLOptions.init_options(section,save=False);
         loaded_options = True;
 
       elif set_match:
         if not loaded_options:
-          raise RuntimeError,"Config section not yet specified";
+          raise RuntimeError("Config section not yet specified");
         name,value = set_match.groups();
-        print "### Setting option %s=%s"%(name,value);
+        print(("### Setting option %s=%s"%(name,value)));
         TDLOptions.set_option(name,value,save=False,from_str=True);
 
       elif compile_match:
         script,dum,section = compile_match.groups(None);
-        print "### Compiling",script;
+        print(("### Compiling",script));
         if not loaded_options and not section:
           # this mode reloads default config section
-          print "### (using options from default section)";
+          print("### (using options from default section)");
           module,ns,msg = Compile.compile_file(mqs,script);
         else:
           # this mode uses explicit section, or None if section is not specified
           if section:
-            print """### (using options from config section "%s")"""%section;
+            print(("""### (using options from config section "%s")"""%section));
           else:
             section = None;
-            print "### (using previously set options)";
+            print("### (using previously set options)");
           module,ns,msg = Compile.compile_file(mqs,script,config=section);
-        print "### ",msg;
+        print(("### ",msg));
 
       elif job_match:
         if not module:
-          print "### Error: please specify a script before any TDL jobs";
-          raise RuntimeError,"TDL job specified before script";
+          print("### Error: please specify a script before any TDL jobs");
+          raise RuntimeError("TDL job specified before script");
         job = job_match.group(1);
         if options.save_config:
           sect = savesect or ( script and os.path.splitext(os.path.basename(script))[0] ) or "default" 
-          print "### Saving options to %s [%s]" % (saveconffile, sect)
+          print(("### Saving options to %s [%s]" % (saveconffile, sect)))
           if sect.lower() != "default" and not saveconf.has_section(sect): 
               saveconf.add_section(sect)
           TDLOptions.save_to_config(saveconf,sect)
           saveconf.rewrite(saveconffile)
-        print "### Running TDL job \"%s\""%job;
+        print(("### Running TDL job \"%s\""%job));
         try:
           func = TDLOptions.get_job_func(job);
         except NameError:
           func = getattr(module,job,None);
           if not func:
-            print "### Error: no job such job found. Perhaps it is not available with this option set?"
-            print "### Currently available jobs are:""";
+            print("### Error: no job such job found. Perhaps it is not available with this option set?")
+            print("### Currently available jobs are:""");
             for name,job_id in TDLOptions.get_all_jobs():
-              print "### '%s' (id: %s)"%(name,job_id);
-            raise NameError,"No such TDL job: '%s'"%job;
+              print(("### '%s' (id: %s)"%(name,job_id)));
+            raise NameError("No such TDL job: '%s'"%job);
 	try:
 	  sys.stdout.flush();
 	  sys.stderr.flush();
 	  res = func(mqs,None,wait=True);
-	  print "### Job result:",res;
+	  print(("### Job result:",res));
 	except:
-	  print "### Job terminated with exception:"
+	  print("### Job terminated with exception:")
 	  traceback.print_exc();
 
-    print "### No more commands";
+    print("### No more commands");
 
   ### Cleanup time
   except:
-    print "Exception caught:";
+    print("Exception caught:");
     traceback.print_exc();
     retcode = 1;
   finally:
     if not mqs.current_server:
-      print "### The meqserver appears to have died on us :( Please check for core files and such.";
+      print("### The meqserver appears to have died on us :( Please check for core files and such.");
       retcode = 1;
     else:
       # check for accumulated errors
       if mqs.num_errors():
-        print "### meqserver reported %d error(s) during the run:"%mqs.num_errors();
+        print(("### meqserver reported %d error(s) during the run:"%mqs.num_errors()));
         for (i,err) in enumerate(mqs.get_error_log()):
-          print "###   %03d: %s"%(i,err[1]);   
+          print(("###   %03d: %s"%(i,err[1])));   
         retcode = 1
-      print "### Stopping the meqserver";
+      print("### Stopping the meqserver");
     # this halts the meqserver
     try:
       meqserver.stop_default_mqs();
     except:
       traceback.print_exc();
-      print "### There was an error stopping the meqserver cleanly. Exiting anyway.";
+      print("### There was an error stopping the meqserver cleanly. Exiting anyway.");
       sys.exit(1);
     # now we can exit
-    print "### All your batch are belong to us. Bye!" if not retcode else "### All your batch are not belong to us, returning with error code";
+    print(("### All your batch are belong to us. Bye!" if not retcode else "### All your batch are not belong to us, returning with error code"));
     sys.exit(retcode);
