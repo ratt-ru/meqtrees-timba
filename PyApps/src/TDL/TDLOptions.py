@@ -86,7 +86,7 @@ class OptionConfigParser (configparser.RawConfigParser):
       _dprint(1,"writing config file",filename);
       ## ConfigParser.RawConfigParser.write(self,file(filename,"w"));
       # write the thing ourselves, as we like to keep things sorted
-      ff = file(filename,'wt');
+      ff = open(filename,'wt');
       for section in sorted(self.sections()):
         ff.write("[%s]\n"%section);
         for name,value in sorted(self.items(section)):
@@ -235,12 +235,12 @@ def dump_log (message=None,filename='meqtree.log',filemode='a'):
   """Dumps a message to the indicated logfile, followed by all current option settings."""
   try:
     try:
-      fileobj = file(filename,filemode);
+      fileobj = open(filename,filemode);
     except IOError:
       oldfile = filename;
       filename = os.path.expanduser("~/"+filename);
       _dprint(0,"Error opening %s, will try %s instead"%(oldfile,filename));
-      fileobj = file(filename,filemode);
+      fileobj = open(filename,filemode);
     fileobj.write("\n###  %s\n"%time.asctime());
     fileobj.write("### user %s on host %s\n"%(pwd.getpwuid(os.getuid())[0],socket.gethostname()));
     fileobj.write("### script: %s\n"%current_scriptname);

@@ -89,7 +89,7 @@ class TrutLogger (object):
     if logfile is not None:
       if isinstance(logfile,str):
         self.filename = logfile;
-        self.fileobj = file(logfile,'w');
+        self.fileobj = open(logfile,'w');
       elif isinstance(logfile,file):
         self.filename = None;
         self.fileobj = logfile;
@@ -186,7 +186,7 @@ def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1,cache=Tru
   usecache = cache;
   try:
     cache = {};
-    for line in file(testcache).readlines():
+    for line in open(testcache).readlines():
       filename,rtime = line.split(' ');
       cache[filename] = int(rtime);
   except:
@@ -233,7 +233,7 @@ def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1,cache=Tru
       break;
   # cache successful tests
   if cache:
-    file(testcache,'w').writelines(["%s %d\n"%cc for cc in cache.items()]);
+    open(testcache,'w').writelines(["%s %d\n"%cc for cc in cache.items()]);
   # this will print a fail/success message
   result = batchrun.success();
   if not result:

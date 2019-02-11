@@ -19,7 +19,7 @@ class TDLFileDataItem (Grid.DataItem):
   """represents a GridDataItem for a TDL script""";
   def __init__ (self,pathname):
     # read the file (exception propagated outwards on error)
-    ff = file(pathname);
+    ff = open(pathname);
     text = ff.read();
     ff.close();
     basename = os.path.basename(pathname);

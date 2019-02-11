@@ -114,7 +114,7 @@ def import_tdl_module (filename,text=None,config=0):
     except:
       pass;
     # open file
-    infile = file(filename,'r');
+    infile = open(filename,'r');
     if text is None:
       text = infile.read();
       infile.seek(0);

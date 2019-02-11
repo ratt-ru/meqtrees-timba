@@ -441,7 +441,7 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
   def _load_assay_data (self,fname):
     # catch file-open errors and return none
     try:
-      pfile = file(fname,"r");
+      pfile = open(fname,"r");
     except:
       return None;
     # load stuff
@@ -460,7 +460,7 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
   def _record_assay_data (self,fname):
     if not self.recording or not self.testname:
       return;
-    pfile = file(fname,"w");
+    pfile = open(fname,"w");
     pickler = pickle.Pickler(pfile);
     pickler.dump(self.testname);
     pickler.dump(self._recorded_time);

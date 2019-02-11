@@ -872,7 +872,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       _dprint(1,'No tab open, loading',pathname);
     # try to load file into new tab
       try:
-        ff = file(pathname);
+        ff = open(pathname);
         text = ff.read();
         ff.close();
       except:

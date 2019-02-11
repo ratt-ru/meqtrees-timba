@@ -153,7 +153,7 @@ def _import_script_or_module (script,modname=None,force_reload=False):
         else:
           raise ValueError("script not found anywhere in path: "+script);
       # open the script file
-      infile = file(filename,'r');
+      infile = open(filename,'r');
       # now import the script as a module
       if modname is None:
         modname = filename.replace("/","_").replace(".","_");

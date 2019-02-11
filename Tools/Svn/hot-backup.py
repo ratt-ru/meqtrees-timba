@@ -181,7 +181,7 @@ if not incremental:
   os.remove(tarball);
 
   ### Step 7. Write out status file for incremental backups
-  file(status_file,'w').write(youngest+" "+backup_subdir);
+  open(status_file,'w').write(youngest+" "+backup_subdir);
 
   ### Step 8. finally, remove all repository backups other than the last
   ###         NUM_BACKUPS.
@@ -203,7 +203,7 @@ else:
   
   ### Get previous backup info from status file
   backup_rev,backup_subdir = \
-    file(status_file).readline().split(" ");
+    open(status_file).readline().split(" ");
   rev0 = int(backup_rev);
   rev1 = int(youngest);
   if not os.path.isdir(backup_subdir):
@@ -228,7 +228,7 @@ else:
     print("Done.")
     
   ### Write out status file for incremental backups
-  file(status_file,'w').write(youngest+" "+backup_subdir);
+  open(status_file,'w').write(youngest+" "+backup_subdir);
   
   ### Copy to redundant places
   for dest in backup_locations:

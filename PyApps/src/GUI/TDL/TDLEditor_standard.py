@@ -565,7 +565,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if text is None:
       text = str(self._editor.document().toPlainText());
     try:
-      outfile = file(filename,"w").write(text);
+      outfile = open(filename,"w").write(text);
     except IOError:
       (exctype,excvalue,tb) = sys.exc_info();
       _dprint(0,'exception',sys.exc_info(),'saving TDL file',filename);
@@ -862,7 +862,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       self._qa_run.setText("Compile");
 
   def reload_file (self):
-    text = file(self._filename).read();
+    text = open(self._filename).read();
     # set save icons, etc.
     self._qa_revert.setEnabled(True);
     self._file_disktime = _file_mod_time(self._filename);
@@ -882,7 +882,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       readonly = True;
     # load text from file if not supplied
     if text is None:
-      text = file(filename).read();
+      text = open(filename).read();
     self._filename = filename;
     # sets as as the mainfile or as a submodule of a main file
     self._set_mainfile(mainfile);

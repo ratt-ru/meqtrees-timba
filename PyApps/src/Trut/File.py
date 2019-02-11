@@ -158,7 +158,7 @@ class File (Trut.Unit):
     _dprint(1,"running trut file",self.name);
     # parse file
     try:
-      for line in file(os.path.basename(self.name)):
+      for line in open(os.path.basename(self.name)):
         # check for fails
         if self.giveup():
           break;
