@@ -35,6 +35,9 @@ import os
 import sys
 import traceback
 import socket
+import PyQt4.QtCore as QtCore
+from PyQt4.QtCore import QCoreApplication as qca
+qca.setAttribute(QtCore.Qt.AA_X11InitThreads)
 
 # these don't like being re-imported in TDL, so try them here
 try:

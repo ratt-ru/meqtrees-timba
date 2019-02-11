@@ -449,9 +449,9 @@ class ChartPlot(Qt.QWidget):
           self._zoom_title[i] = "Data for Chart " + str(i)
           self._zoom_pen[i] = Qt.Qt.yellow
           self._main_pen[i] = Qt.Qt.black
-    	  self._crv_key[i] = Qwt.QwtPlotCurve("Chart " + str(i))
-    	  self._crv_key[i].setPen(Qt.QPen(self._main_pen[i]))
-    	  self._crv_key[i].attach(self._plotter)
+          self._crv_key[i] = Qwt.QwtPlotCurve("Chart " + str(i))
+          self._crv_key[i].setPen(Qt.QPen(self._main_pen[i]))
+          self._crv_key[i].attach(self._plotter)
           
           self._chart_data[i] = {}
           self._flag_data[i] = {}
@@ -464,9 +464,9 @@ class ChartPlot(Qt.QWidget):
           self._mrk[i] = 0
           self._position[i] = ""
           self._main_pen[i] = Qt.Qt.black
-    	  self._crv_key[i] = Qwt.QwtPlotCurve("Chart " + str(i))
-    	  self._crv_key[i].setPen(Qt.QPen(self._main_pen[i]))
-    	  self._crv_key[i].attach(self._plotter)
+          self._crv_key[i] = Qwt.QwtPlotCurve("Chart " + str(i))
+          self._crv_key[i].setPen(Qt.QPen(self._main_pen[i]))
+          self._crv_key[i].attach(self._plotter)
           self._chart_data[i] = {}
           self._flag_data[i] = {}
           self._start_offset_test[i] = {}

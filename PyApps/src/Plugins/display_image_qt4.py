@@ -24,48 +24,48 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #
-#  (c) 2013.				 (c) 2011.
-#  National Research Council		 Conseil national de recherches
-#  Ottawa, Canada, K1A 0R6 		 Ottawa, Canada, K1A 0R6
+#  (c) 2013.                                 (c) 2011.
+#  National Research Council                 Conseil national de recherches
+#  Ottawa, Canada, K1A 0R6                  Ottawa, Canada, K1A 0R6
 #
-#  This software is free software;	 Ce logiciel est libre, vous
-#  you can redistribute it and/or	 pouvez le redistribuer et/ou le
-#  modify it under the terms of	         modifier selon les termes de la
-#  the GNU General Public License	 Licence Publique Generale GNU
-#  as published by the Free		 publiee par la Free Software
-#  Software Foundation; either	 	 Foundation (version 3 ou bien
-#  version 2 of the License, or	 	 toute autre version ulterieure
-#  (at your option) any later	 	 choisie par vous).
+#  This software is free software;         Ce logiciel est libre, vous
+#  you can redistribute it and/or         pouvez le redistribuer et/ou le
+#  modify it under the terms of                 modifier selon les termes de la
+#  the GNU General Public License         Licence Publique Generale GNU
+#  as published by the Free                 publiee par la Free Software
+#  Software Foundation; either                  Foundation (version 3 ou bien
+#  version 2 of the License, or                  toute autre version ulterieure
+#  (at your option) any later                  choisie par vous).
 #  version.
 #
-#  This software is distributed in	 Ce logiciel est distribue car
-#  the hope that it will be		 potentiellement utile, mais
-#  useful, but WITHOUT ANY		 SANS AUCUNE GARANTIE, ni
-#  WARRANTY; without even the	 	 explicite ni implicite, y
-#  implied warranty of			 compris les garanties de
-#  MERCHANTABILITY or FITNESS FOR	 commercialisation ou
-#  A PARTICULAR PURPOSE.  See the	 d'adaptation dans un but
-#  GNU General Public License for	 specifique. Reportez-vous a la
-#  more details.			 Licence Publique Generale GNU
-#  					 pour plus de details.
+#  This software is distributed in         Ce logiciel est distribue car
+#  the hope that it will be                 potentiellement utile, mais
+#  useful, but WITHOUT ANY                 SANS AUCUNE GARANTIE, ni
+#  WARRANTY; without even the                  explicite ni implicite, y
+#  implied warranty of                         compris les garanties de
+#  MERCHANTABILITY or FITNESS FOR         commercialisation ou
+#  A PARTICULAR PURPOSE.  See the         d'adaptation dans un but
+#  GNU General Public License for         specifique. Reportez-vous a la
+#  more details.                         Licence Publique Generale GNU
+#                                           pour plus de details.
 #
-#  You should have received a copy	 Vous devez avoir recu une copie
-#  of the GNU General Public		 de la Licence Publique Generale
-#  License along with this		 GNU en meme temps que ce
-#  software; if not, contact the	 logiciel ; si ce n'est pas le
-#  Free Software Foundation, Inc.	 cas, communiquez avec la Free
-#  at http://www.fsf.org.		 Software Foundation, Inc. au
-#						 http://www.fsf.org.
+#  You should have received a copy         Vous devez avoir recu une copie
+#  of the GNU General Public                 de la Licence Publique Generale
+#  License along with this                 GNU en meme temps que ce
+#  software; if not, contact the         logiciel ; si ce n'est pas le
+#  Free Software Foundation, Inc.         cas, communiquez avec la Free
+#  at http://www.fsf.org.                 Software Foundation, Inc. au
+#                                                 http://www.fsf.org.
 #
-#  email:				 courriel:
-#  business@hia-iha.nrc-cnrc.gc.ca	 business@hia-iha.nrc-cnrc.gc.ca
+#  email:                                 courriel:
+#  business@hia-iha.nrc-cnrc.gc.ca         business@hia-iha.nrc-cnrc.gc.ca
 #
-#  National Research Council		 Conseil national de recherches
-#      Canada				    Canada
-#  Herzberg Institute of Astrophysics	 Institut Herzberg d'astrophysique
-#  5071 West Saanich Rd.		 5071 West Saanich Rd.
-#  Victoria BC V9E 2E7			 Victoria BC V9E 2E7
-#  CANADA					 CANADA
+#  National Research Council                 Conseil national de recherches
+#      Canada                                    Canada
+#  Herzberg Institute of Astrophysics         Institut Herzberg d'astrophysique
+#  5071 West Saanich Rd.                 5071 West Saanich Rd.
+#  Victoria BC V9E 2E7                         Victoria BC V9E 2E7
+#  CANADA                                         CANADA
 #
 
 import sys
@@ -73,17 +73,17 @@ import sys
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 
-from .QwtSpy_qt4 import *
+from QwtSpy_qt4 import *
 
 import numpy
 import math
 
 #from UVPAxis import *
 #from ComplexColorMap import *
-from .ComplexScaleDraw_qt4 import *
-from .QwtPlotCurveSizes_qt4 import *
-from .QwtPlotImage_qt4 import *
-from .VellsTree_qt4 import *
+from ComplexScaleDraw_qt4 import *
+from QwtPlotCurveSizes_qt4 import *
+from QwtPlotImage_qt4 import *
+from VellsTree_qt4 import *
 from Timba.GUI.pixmaps import pixmaps
 #from guiplot2dnodesettings import *
 import random
@@ -220,11 +220,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._display_type = None
 
         self._vells_plot = False
-	self._flags_array = None
-	self._nan_flags_array = None
-	self.flag_toggle = None
-	self.flag_blink = False
-	self.full_data_range = False
+        self._flags_array = None
+        self._nan_flags_array = None
+        self.flag_toggle = None
+        self.flag_blink = False
+        self.full_data_range = False
         self._zoom_display = False
         self._do_pause = False
         self._compare_max = False
@@ -235,9 +235,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.x_array = None
         self.y_array = None
         self.x_index = None
-	self._x_title = None
-	self._y_title = None
-	self._window_title = None
+        self._x_title = None
+        self._y_title = None
+        self._window_title = None
         self._x_auto_scale = True
         self._y_auto_scale = True
         self.axis_xmin = None
@@ -245,13 +245,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.axis_ymin = None
         self.axis_ymax = None
         self.previous_shape = None
-	self._menu = None
+        self._menu = None
         self.menu_labels_big = None
         self._vells_menu = self._vells_menu_window = None
         self.num_possible_ND_axes = None
         self._plot_type = None
         self.colorbar_requested = False
-	self.is_combined_image = False
+        self.is_combined_image = False
         self.active_image_index = None
         self.y_marker_step = None
         self.imag_flag_vector = None
@@ -663,7 +663,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.add_solver_metrics()
 
         if not self.scalar_display:
-	  self.refresh_marker_display()
+          self.refresh_marker_display()
 
     def setResultsSelector(self):
       """ add option to toggle ResultsRange selector to context menu """
@@ -683,7 +683,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if self.toggle_metrics and not self.metrics_rank is None:
         self.add_solver_metrics()
 
-# toggle flags display	
+# toggle flags display        
     def handle_toggle_flagged_data_for_plane(self):
       self.handleFlagToggle(self.flag_toggle)
       # this has really become convoluted
@@ -1117,7 +1117,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.refresh_marker_display()
         if not len (self.zoomStack):
           self._reset_zoomer.setVisible(False)
-	  self._undo_last_zoom.setVisible(False)
+          self._undo_last_zoom.setVisible(False)
       else:
         self.zoomState = None
 
@@ -1434,7 +1434,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       _dprint(3, 'called replot in setImageRange')
       #print 'called replot in setImageRange'
     # setImageRange
-	
+        
 
     def timerEvent_blink(self):
 # stop blinking     
@@ -1557,12 +1557,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
         result = ''
         xpos = self.invTransform(Qwt.QwtPlot.xBottom, x)
         ypos = self.invTransform(Qwt.QwtPlot.yLeft, y)
-	marker_index = None
+        marker_index = None
         if self._vells_plot:
-	  xpos1 = xpos
-	  if not self.split_axis is None:
-	    if xpos1 >  self.split_axis:
-	        xpos1 = xpos1 - self.delta_vells
+          xpos1 = xpos
+          if not self.split_axis is None:
+            if xpos1 >  self.split_axis:
+                xpos1 = xpos1 - self.delta_vells
           temp_str_x_rel = "x =%+.2g" % xpos1
           temp_str_y_rel = "y =%+.2g" % ypos 
           temp_str_y_rel1 = " =%+.2g" % ypos 
@@ -1575,8 +1575,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
             else:
               xpos = int((xpos -self.vells_axis_parms[self.x_parm][0]) / self.first_axis_inc)
             xpos_loc = xpos
-	    if not self.split_axis is None:
-	      xpos_offset = int(xpos - self.delta_vells / self.first_axis_inc)
+            if not self.split_axis is None:
+              xpos_offset = int(xpos - self.delta_vells / self.first_axis_inc)
               if xpos_offset >= 0:
                 xpos_loc = xpos_offset
             vells_axis_grids = self.vells_axis_parms[self.x_parm][4]
@@ -1660,25 +1660,25 @@ class QwtImageDisplay(Qwt.QwtPlot):
         else:
           xpos = int(xpos)
           xpos_loc = xpos
-	  xpos1 = xpos
-	  if not self.split_axis is None:
-	    if xpos1 >=  self.split_axis:
-	      xpos1 = xpos1 % self.split_axis
+          xpos1 = xpos
+          if not self.split_axis is None:
+            if xpos1 >=  self.split_axis:
+              xpos1 = xpos1 % self.split_axis
               xpos_loc = xpos1
           temp_str = "x =%+.2g" % xpos1
           result = temp_str
-	  ypos1 = ypos
+          ypos1 = ypos
           ypos = int(ypos1)
           ypos2 = ypos
-	  if not self.y_marker_step is None:
-	    if ypos1 >  self.y_marker_step:
-	      marker_index = int(ypos1 / self.y_marker_step)
-	      ypos2 = int(ypos1 % self.y_marker_step)
-	    else:
-	      marker_index = 0
+          if not self.y_marker_step is None:
+            if ypos1 >  self.y_marker_step:
+              marker_index = int(ypos1 / self.y_marker_step)
+              ypos2 = int(ypos1 % self.y_marker_step)
+            else:
+              marker_index = 0
           temp_str = result + " y =%+.2g" % ypos2 + " "
           result = temp_str
-	message = None
+        message = None
         array_location = None
         try:
           value = self.raw_array[xpos,ypos]
@@ -1689,7 +1689,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           temp_str = "value: NaN or Inf"
         else:
           temp_str = "value: %-.3g" % value
-	if not marker_index is None:  
+        if not marker_index is None:  
           if self.is_combined_image:
             length = len(self.marker_labels)
             marker_index = length -1 - marker_index
@@ -1702,7 +1702,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
               message = result + temp_str + '\nsource: ' + source
             else:
               message = result + temp_str
-	else:
+        else:
           title_pos = self._window_title.find('spectra:')
           if title_pos >= 0:
             source = self._window_title[title_pos+8:]
@@ -1737,7 +1737,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           metrics_stddev = "stddev: " + str(self.metrics_stddev[self.array_index,self.metrics_index]) + "\n"
           metrics_unknowns = "unknowns: " + str(self.metrics_unknowns[self.array_index,self.metrics_index])
           metrics_iteration = "iteration: " + str(self.array_index+1) + "\n"
-	  message = metrics_iteration + self.curve_info + str(x) +  "\nchi_0: " + str(y) +"\n" + metrics_rank + metrics_fit + metrics_chi + metrics_mu + metrics_flag + metrics_stddev + metrics_unknowns  
+          message = metrics_iteration + self.curve_info + str(x) +  "\nchi_0: " + str(y) +"\n" + metrics_rank + metrics_fit + metrics_chi + metrics_mu + metrics_flag + metrics_stddev + metrics_unknowns  
 #         mb_reporter = Qt.QMessageBox.information(self, "QwtImageDisplay", Message)
         else:
           if self._vells_plot:
@@ -1769,7 +1769,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           else:
             temp_str1 = " value: %-.3g" % y
 #         temp_str1 = " y=%-.3g" % y
-	  message = temp_str + temp_str1 
+          message = temp_str + temp_str1 
         return message
 
     # reportCoordinates()
@@ -3384,9 +3384,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.myXScale = ComplexScaleDraw(divisor=plot_array.shape[0])
             self.setAxisScaleDraw(Qwt.QwtPlot.xBottom, self.myXScale)
 
-	    self.split_axis = plot_array.shape[0]
+            self.split_axis = plot_array.shape[0]
             _dprint(3,'testing self.y_marker_step ', self.y_marker_step)
-	    if not self.y_marker_step is None:
+            if not self.y_marker_step is None:
               _dprint(3, 'creating split Y scale for Y axis')
               self.myYScale = ComplexScaleDraw(divisor=self.y_marker_step)
               self.setAxisScaleDraw(Qwt.QwtPlot.yLeft, self.myYScale)
@@ -3443,7 +3443,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
               else:
                 self._y_title = 'Array/Channel Number'
             self.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
-	    if not self.y_marker_step is None:
+            if not self.y_marker_step is None:
               _dprint(3, 'creating split Y scale for Y axis ', self.y_marker_step)
               self.myYScale = ComplexScaleDraw(divisor=self.y_marker_step)
               self.setAxisScaleDraw(Qwt.QwtPlot.yLeft, self.myYScale)
@@ -4230,14 +4230,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._menu.addAction(self._reset_zoomer)
         self._reset_zoomer.setData(Qt.QVariant(str(toggle_id)))
         self._reset_zoomer.setVisible(False)
-	self.connect(self._reset_zoomer,Qt.SIGNAL("triggered()"),self.handle_reset_zoomer);
+        self.connect(self._reset_zoomer,Qt.SIGNAL("triggered()"),self.handle_reset_zoomer);
 
         toggle_id = self.menu_table['Undo Last Zoom']
         self._undo_last_zoom = Qt.QAction(pixmaps.viewmag.iconset(),'Undo last zoom',self)
         self._menu.addAction(self._undo_last_zoom)
         self._undo_last_zoom.setData(Qt.QVariant(str(toggle_id)))
         self._undo_last_zoom.setVisible(False)
-	self.connect(self._undo_last_zoom,Qt.SIGNAL("triggered()"),self.handle_undo_last_zoom);
+        self.connect(self._undo_last_zoom,Qt.SIGNAL("triggered()"),self.handle_undo_last_zoom);
 
         toggle_id = self.menu_table['Change Vells']
         self._change_vells = Qt.QAction('Data element selector...',self)
@@ -4269,7 +4269,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self._toggle_pause.setData(Qt.QVariant(str(toggle_id)))
           self._toggle_pause.setCheckable(True)
           self._toggle_pause.setChecked(self._do_pause)
-	  self.connect(self._toggle_pause,Qt.SIGNAL("triggered()"),self.handle_toggle_pause);
+          self.connect(self._toggle_pause,Qt.SIGNAL("triggered()"),self.handle_toggle_pause);
 
           # following option does nothing useful at the moment
           toggle_id = self.menu_table['Toggle Comparison']
@@ -4279,7 +4279,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self._toggle_comparison.setCheckable(True)
           self._toggle_comparison.setChecked(self._compare_max)
           self._toggle_comparison.setVisible(False)
-	  self.connect(self._toggle_comparison,Qt.SIGNAL("triggered()"),self.handle_toggle_comparison);
+          self.connect(self._toggle_comparison,Qt.SIGNAL("triggered()"),self.handle_toggle_comparison);
         
         toggle_id = self.menu_table['Save Display in PNG Format']
         self._save_display_in_png_format = Qt.QAction('Save display in PNG format',self)
@@ -4403,4 +4403,3 @@ def main(args):
 # Admire
 if __name__ == '__main__':
     main(sys.argv)
-
