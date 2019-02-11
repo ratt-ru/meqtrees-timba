@@ -31,6 +31,31 @@
 
 namespace ParmTables
 {
+
+extern "C" {
+
+  struct module_state {
+      PyObject *error;
+  };
+
+  #if PY_MAJOR_VERSION >= 3
+    #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+    static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+      Py_VISIT(GETSTATE(m)->error);
+      return 0;
+    }
+
+    static int myextension_clear(PyObject *m) {
+      Py_CLEAR(GETSTATE(m)->error);
+      return 0;
+    }
+  #else
+    #define GETSTATE(m) (&_state)
+    static struct module_state _state;
+  #endif
+
+}
+
 using namespace OctoPython;
 using namespace Meq;
 
@@ -439,22 +464,25 @@ static PyMethodDef ParmTableMethods[] = {
     { NULL, NULL, 0, NULL} };       /* Sentinel */
 
 
-void initParmTablesModule ()
+PyObject* initParmTablesModule ()
 {
   Debug::Context::initialize();
-  
+  #define INITERROR return NULL;
   // import the octopython module to init everything
   PyObject * octomod = PyImport_ImportModule("Timba.octopython");
   if( !octomod )
   {
     PyErr_Print();
     Throw("import of Timba.octopython module failed");
+    INITERROR;
   }
 
-#ifdef HAVE_FASTPARMTABLE
-  if( PyType_Ready(&PyFPTType) < 0 )
-    Throw("failed to register FastParmTable datatype");
-#endif
+  #ifdef HAVE_FASTPARMTABLE
+    if( PyType_Ready(&PyFPTType) < 0 ) {
+      Throw("failed to register FastParmTable datatype");
+      INITERROR;
+    }
+  #endif
     
   // init the module
   #if PY_MAJOR_VERSION < 3
@@ -466,43 +494,66 @@ void initParmTablesModule ()
           PyModuleDef_HEAD_INIT,
           "parmtables", /* name of module */
           "support for manipulating ParmTables\n", /* module documentation, may be NULL */
-          -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
-          ParmTableMethods
+          sizeof(struct module_state),  /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          ParmTableMethods,
+          NULL,
+          myextension_traverse,
+          myextension_clear,
+          NULL
         };
     PyObject *module = PyModule_Create(&parmtables);
   #endif
-  if( !module )
+  if( !module ) {
     Throw("Py_InitModule3(\"parmtables\") failed");
-
+    INITERROR;
+  }
+  struct module_state *st = GETSTATE(module);
+  st->error = PyErr_NewException("parmtables.Error", NULL, NULL);
+  if (st->error == NULL) {
+      Py_DECREF(module);
+      INITERROR;
+  }
   PyObjectRef timbamod = PyImport_ImportModule("Timba");
   Py_INCREF(module); // AddObject will steal a ref, so increment it
   PyModule_AddObject(*timbamod,"parmtables",module);
 
-#ifdef HAVE_FASTPARMTABLE
-  PyModule_AddObject(module, "FastParmTable",(PyObject *)&PyFPTType); // steals ref
-#endif
+  #ifdef HAVE_FASTPARMTABLE
+    PyModule_AddObject(module, "FastParmTable",(PyObject *)&PyFPTType); // steals ref
+  #endif
   
   // drop out on error
-  if( PyErr_Occurred() )
+  if( PyErr_Occurred() ) {
     Throw("can't initialize module parmtables");
+    INITERROR;
+  }
+  return module;
 }
 
 
 extern "C"
 {
-
-PyMODINIT_FUNC initparmtables ()
-{
-  Debug::Context::initialize();
-
-  try
+  #if PY_MAJOR_VERSION >= 3
+    PyMODINIT_FUNC PyInit_parmtables ()
+  #else
+    PyMODINIT_FUNC initparmtables ()
+  #endif
   {
-    initParmTablesModule();
-  }
-  catch( std::exception &exc )
-  {
-    Py_FatalError(exc.what());
-  }
+    Debug::Context::initialize();
+
+    try
+    {
+      PyObject* res = initParmTablesModule();
+      #if PY_MAJOR_VERSION >= 3
+        return res;
+      #endif
+    }
+    catch( std::exception &exc )
+    {
+      Py_FatalError(exc.what());
+      #if PY_MAJOR_VERSION >= 3
+        return NULL;
+      #endif
+    }
 }
 
 

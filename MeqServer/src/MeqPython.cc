@@ -52,6 +52,30 @@ static PyObject
       *process_vis_footer,
       *force_module_reload;
 
+extern "C" {
+
+  struct module_state {
+      PyObject *error;
+  };
+
+  #if PY_MAJOR_VERSION >= 3
+    #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+    static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+      Py_VISIT(GETSTATE(m)->error);
+      return 0;
+    }
+
+    static int myextension_clear(PyObject *m) {
+      Py_CLEAR(GETSTATE(m)->error);
+      return 0;
+    }
+  #else
+    #define GETSTATE(m) (&_state)
+    static struct module_state _state;
+  #endif
+
+}
+
 extern "C"
 {
 
@@ -420,11 +444,18 @@ void forceModuleReload ()
 // -----------------------------------------------------------------------
 // initMeqPython
 // -----------------------------------------------------------------------
-void initMeqPython (MeqServer *mq)
+#if PY_MAJOR_VERSION >= 3
+    #define initMeqPython PyInit_MeqPython
+    PyMODINIT_FUNC PyInit_MeqPython(MeqServer *mq)
+#else
+    PyMODINIT_FUNC initMeqPython (MeqServer *mq)
+#endif
 {
+  #define INITERROR return NULL;
+  PyObject *module = nullptr;
   pmqs = mq;
   if( meq_initialized )
-    return;
+    INITERROR
   meq_initialized = true;
   // init Python threads -- this acquires the GIL
   PyEval_InitThreads();
@@ -448,7 +479,7 @@ void initMeqPython (MeqServer *mq)
 
     // register ourselves as a module
     #if PY_MAJOR_VERSION < 3
-      PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
+      module = Py_InitModule3("meqserver_interface", MeqMethods,
                 "interface to the MeqServer object");
     #else
       static struct PyModuleDef meqserver_interface =
@@ -456,27 +487,36 @@ void initMeqPython (MeqServer *mq)
           PyModuleDef_HEAD_INIT,
           "meqserver_interface", /* name of module */
           "interface to the MeqServer object\n", /* module documentation, may be NULL */
-          -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
-          MeqMethods
+          sizeof(struct module_state),  /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          MeqMethods,
+          NULL,
+          myextension_traverse,
+          myextension_clear,
+          NULL
         };
-      PyObject *module = PyModule_Create(&meqserver_interface);
+      module = PyModule_Create(&meqserver_interface);
     #endif
-    if( !module )
-      {
-        PyErr_Print();
-        Throw("Python meqserver: meqserver_interface module init failed");
-      }
-    // import the octopython module to init everything
+    if( !module ) {
+      Throw("Py_InitModule3(\"meqpython\") failed");
+      INITERROR;
+    }
+    struct module_state *st = GETSTATE(module);
+    st->error = PyErr_NewException("meqpython.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
     PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
     if( !kernelmod )
     {
       PyErr_Print();
       Throw("Python meqserver: import of Timba.meqkernel module failed");
     }
-
     create_pynode        = PyObject_GetAttrString(kernelmod,"create_pynode");
     if( PyErr_Occurred() )
       PyErr_Print();
+      Throw("create_pynode failed");
     if( !create_pynode )
       Throw("Timba.meqkernel.create_pynode not found");
     force_module_reload  = PyObject_GetAttrString(kernelmod,"force_module_reload");
@@ -517,14 +557,20 @@ void initMeqPython (MeqServer *mq)
     }
   }
   // save thread state and release the GIL before exiting (since we acquired it with PyEval_InitThreads() above)
-  catch( ... )
+  catch( std::exception &exc )
   {
     PyThreadEnd;
     PyEval_SaveThread();
-    throw;
+    Py_FatalError(exc.what());
+    #if PY_MAJOR_VERSION >= 3
+      return NULL;
+    #endif
   }
   PyGILState_Release(gilstate);
   PyEval_SaveThread();
+  #if PY_MAJOR_VERSION >= 3
+    return module;
+  #endif
 }
 
 // -----------------------------------------------------------------------

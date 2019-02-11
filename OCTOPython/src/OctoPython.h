@@ -65,7 +65,7 @@ namespace OctoPython
   
   // initializes octopython module -- can also be called from elsewhere
   // when embedding the interpreter
-  void initOctoPythonModule ();
+  PyObject * initOctoPythonModule ();
   // initializes conversion layer (needed for numarray mostly)
   void initDataConv ();
   

@@ -43,7 +43,27 @@ PyObjectRef PyExc_OctoPythonError;
 PyObjectRef PyExc_DataConvError;
 
 extern "C" {
-  
+
+struct module_state {
+    PyObject *error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+  #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+  static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+    Py_VISIT(GETSTATE(m)->error);
+    return 0;
+  }
+
+  static int myextension_clear(PyObject *m) {
+    Py_CLEAR(GETSTATE(m)->error);
+    return 0;
+  }
+#else
+  #define GETSTATE(m) (&_state)
+  static struct module_state _state;
+#endif
+
 // -----------------------------------------------------------------------
 // set_debug
 // -----------------------------------------------------------------------
@@ -260,8 +280,8 @@ static PyMethodDef OctoMethods[] = {
                     "tests if two hiids match" },
     { "start_reflector",start_reflector,METH_VARARGS,
                     "starts a RelectorWP (usually for testing)" },
-        
-    { NULL, NULL, 0, NULL}        /* Sentinel */
+    {NULL, NULL}    
+    //{ NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 
@@ -269,25 +289,28 @@ static PyMethodDef OctoMethods[] = {
 // initoctopython
 // standard entrypoint called by Python when loading the module from an .so
 // -----------------------------------------------------------------------
-#if PY_MAJOR_VERSION < 3
-  PyMODINIT_FUNC initoctopython ()
-#else
-  PyMODINIT_FUNC PyInit_octopython(void)
-#endif
+  #if PY_MAJOR_VERSION >= 3
+    PyMODINIT_FUNC PyInit_octopython ()
+  #else
+    void initoctopython ()
+  #endif
   {
-    Debug::Context::initialize();
     try
     {
-      #if PY_MAJOR_VERSION < 3
-        initOctoPythonModule();
-      #else
-        initOctoPythonModule();
-      #endif
+        Debug::Context::initialize();
+        PyObject* res = initOctoPythonModule();
+        #if PY_MAJOR_VERSION >= 3
+          return res;
+        #endif
     }
     catch (std::exception &exc)
     {
       Py_FatalError(exc.what());
-    }
+      #if PY_MAJOR_VERSION >= 3
+        return NULL;
+      #endif
+    }    
+    
   }
 } // extern "C"
 
@@ -299,7 +322,7 @@ static PyMethodDef OctoMethods[] = {
 // .so), or directly, when using an embedded interpreter.
 // Errors are thrown as exceptions
 // -----------------------------------------------------------------------
-void initOctoPythonModule ()
+PyObject * initOctoPythonModule ()
 {
   // init datatypes
   if( PyType_Ready(&PyProxyWPType) < 0 ||
@@ -308,22 +331,33 @@ void initOctoPythonModule ()
     Throw("failed to register octopython datatypes");
   
   // init the module
+  #define INITERROR return NULL;
   #if PY_MAJOR_VERSION < 3
     PyObject *module = Py_InitModule3("octopython", OctoMethods,
           "C++ support module for octopussy.py");
   #else
     static struct PyModuleDef octopython =
-      {
-        PyModuleDef_HEAD_INIT,
-        "octopython", /* name of module */
-        "C++ support module for octopussy.py\n", /* module documentation, may be NULL */
-        -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
-        OctoMethods
-      };
+    {
+      PyModuleDef_HEAD_INIT,
+      "octopython", /* name of module */
+      "C++ support module for octopussy.py",
+      sizeof(struct module_state),
+      OctoMethods,
+      NULL,
+      myextension_traverse,
+      myextension_clear,
+      NULL
+    };
     PyObject *module = PyModule_Create(&octopython);
   #endif
-  if( !module )
-      Throw("Py_InitModule3(\"octopython\") failed");
+  if (module == NULL)
+        INITERROR;
+  struct module_state *st = GETSTATE(module);
+  st->error = PyErr_NewException("octopython.Error", NULL, NULL);
+  if (st->error == NULL) {
+      Py_DECREF(module);
+      INITERROR;
+  }
   // init the DataConversion layer
   initDataConv();
   
@@ -358,8 +392,17 @@ void initOctoPythonModule ()
   
   // PyDict_GetItemString returns borrowed ref, so increment ref count
   #define GetSym(cls) \
-    if( ! ( py_dmisyms.cls << PyDict_GetItemString(dmidict,#cls) ) ) \
-      { Throw("octopython: symbol dmi." #cls " not found"); }
+    { \
+      PyObject* is = PyDict_GetItemString(dmidict,#cls); \
+      Py_INCREF(is); \
+      if (is != NULL) { \
+        py_dmisyms.cls << is; \
+      } \
+      else { \
+        PyErr_Print(); \
+        Throw("octopython: symbol dmi." #cls " not found"); \
+      } \
+    }
   
   GetSym(hiid);
   GetSym(message);
@@ -405,6 +448,7 @@ void initOctoPythonModule ()
     PyErr_Print();
     Throw("can't initialize module octopython");
   }
+  return module;
 }
 
 

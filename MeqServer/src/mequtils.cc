@@ -32,6 +32,30 @@ namespace MeqUtils
 {
 using namespace OctoPython;
 
+extern "C" {
+
+  struct module_state {
+      PyObject *error;
+  };
+
+  #if PY_MAJOR_VERSION >= 3
+    #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+    static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+      Py_VISIT(GETSTATE(m)->error);
+      return 0;
+    }
+
+    static int myextension_clear(PyObject *m) {
+      Py_CLEAR(GETSTATE(m)->error);
+      return 0;
+    }
+  #else
+    #define GETSTATE(m) (&_state)
+    static struct module_state _state;
+  #endif
+
+}
+
 LocalDebugContext_ns;
 inline std::string sdebug (int=0) { return "MeqUtils"; }
 
@@ -233,11 +257,12 @@ static PyMethodDef MeqUtilMethods[] = {
     { NULL, NULL, 0, NULL} };       /* Sentinel */
 
 
-void initMeqUtilsModule ()
+PyObject* initMeqUtilsModule ()
 {
   Debug::Context::initialize();
 
   // init the module
+  #define INITERROR return NULL;
   #if PY_MAJOR_VERSION < 3
     PyObject *module = Py_InitModule3("mequtils",MeqUtilMethods,
           "various utilities for python-side meqkernel support");
@@ -247,13 +272,25 @@ void initMeqUtilsModule ()
           PyModuleDef_HEAD_INIT,
           "mequtils", /* name of module */
           "various utilities for python-side meqkernel support\n", /* module documentation, may be NULL */
-          -1,   /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
-          MeqUtilMethods
+          sizeof(struct module_state),  /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          MeqUtilMethods,
+          NULL,
+          myextension_traverse,
+          myextension_clear,
+          NULL
         };
     PyObject *module = PyModule_Create(&mequtils);
   #endif
-  if( !module )
-      Throw("Py_InitModule3(\"mequtils\") failed");
+  if( !module ) {
+    Throw("Py_InitModule3(\"mequtils\") failed");
+    INITERROR;
+  }
+  struct module_state *st = GETSTATE(module);
+  st->error = PyErr_NewException("mequtils.Error", NULL, NULL);
+  if (st->error == NULL) {
+      Py_DECREF(module);
+      INITERROR;
+  }
   PyObjectRef timbamod = PyImport_ImportModule("Timba");
   Py_INCREF(module); // AddObject will steal a ref, so increment it
   PyModule_AddObject(*timbamod,"mequtils",module);
@@ -261,25 +298,36 @@ void initMeqUtilsModule ()
   PyModule_AddObject(module,"max_axis",PyInt_FromLong(Meq::Axis::MaxAxis));
 
   // drop out on error
-  if( PyErr_Occurred() )
+  if( PyErr_Occurred() ){
     Throw("can't initialize module mequtils");
+    INITERROR;
+  }
+  return module;
 }
 
 
 extern "C"
 {
-
-PyMODINIT_FUNC initmequtils ()
+#if PY_MAJOR_VERSION >= 3
+  PyMODINIT_FUNC PyInit_mequtils ()
+#else
+  PyMODINIT_FUNC initmequtils ()
+#endif
 {
   Debug::Context::initialize();
-
   try
   {
-    initMeqUtilsModule();
+    PyObject* res = initMeqUtilsModule();
+    #if PY_MAJOR_VERSION >= 3
+      return res;
+    #endif
   }
   catch( std::exception &exc )
   {
     Py_FatalError(exc.what());
+    #if PY_MAJOR_VERSION >= 3
+      return NULL;
+    #endif
   }
 }
 
