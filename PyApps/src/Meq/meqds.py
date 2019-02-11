@@ -34,7 +34,7 @@ from Timba import mequtils
 
 import weakref
 import types
-import new
+#import new # oldstyle classes are dropped as of python 3, use type() instead
 import re
 import time
 import copy
@@ -69,7 +69,7 @@ def NodeClass (nodeclass=None):
 #  nodeclass = nodeclass.lower();
 #  cls = _NodeClassDict.get(nodeclass,None);
 #  if cls is None:
-#    cls = _NodeClassDict[nodeclass] = new.classobj(nodeclass,(_meqnode_nodeclass,),{});
+#    cls = _NodeClassDict[nodeclass] = type(nodeclass,(_meqnode_nodeclass,),{});
 #  return cls;
 
 # this is copied verbatim from the ControlStates definition in MEQ/Node.h

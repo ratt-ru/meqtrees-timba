@@ -33,16 +33,24 @@ import sys
 try:
   import dl
 except:
-  import DLFCN
-  dl = DLFCN
-sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
+  try:
+    import DLFCN
+    dl = DLFCN
+  except:
+    try:
+      import ctypes
+      dl = ctypes
+    except:
+      raise ImportError("Failed to import dl module or one of its successors!")
+# not compatible with pyqt4 binaries
+#sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
 import string
 import Timba.array
 import types
 import weakref
 import re
-import new
+#import new #old style classes are removed in py3
 from Timba.array import array
 
 import Timba
@@ -255,9 +263,9 @@ class record (dict):
     lazies = [pair for pair in dict.iteritems(self) if isinstance(pair[1],lazy_objref)];
     for key,ref in lazies:
       try:
-	item = ref.resolve();
+	      item = ref.resolve();
       except:
-	item = sys.exc_info()[1];
+	      item = sys.exc_info()[1];
       dict.__setitem__(self,key,item);
 
   # helper function to resolve a lazy ref to a real value, and replace
@@ -541,7 +549,7 @@ def dmi_type (name,baseclass=None):
       raise KeyError(name+" is not a known DMI type, and no base class supplied");
     for bc in list(_dmi_baseclasses.keys()):
       if issubclass(baseclass,bc):
-        globals()[name] = tp = new.classobj(name,(baseclass,),{});
+        globals()[name] = tp = type(name,(baseclass,),{});
         _dmi_typename_map[tp] = name;
         _dmi_nametype_map[name.lower()] = tp;
         return tp;

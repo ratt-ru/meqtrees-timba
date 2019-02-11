@@ -1150,7 +1150,7 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
       # add housekeeping info
       item._toplevel_index = toplevel_index;
       if toplevel:
-	self._toplevel_error_items.append(item);
+        self._toplevel_error_items.append(item);
       toplevel_index = len(self._toplevel_error_items)-1;
       self._error_items.append(item);
       item.setOpen(False);

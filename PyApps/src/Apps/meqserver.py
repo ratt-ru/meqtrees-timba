@@ -37,6 +37,7 @@ from Timba.Meq import meqds
 from Timba.Apps import app_defaults
 if app_defaults.include_gui:
   try:
+    from Timba.GUI import meqserver_gui
     from Timba.GUI.meqserver_gui import *
   except:
     print("*** Error importing GUI modules:");

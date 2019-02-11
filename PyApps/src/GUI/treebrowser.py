@@ -280,7 +280,7 @@ class TreeBrowser (QObject):
           i1 = QTreeWidgetItem();
           i1.setText(0,name);
         setattr(i1,'_sort_label',key);
-	items.append(i1);
+        items.append(i1);
       for ni in self.node.step_children:
         node = meqds.nodelist[ni];
         name = "(" + node.name +")";
@@ -297,14 +297,14 @@ class TreeBrowser (QObject):
       try:  b = int(b);
       except ValueError: pass;
       if isinstance(a,int):
-	if isinstance(b,int):
-	  return cmp(a,b);
-	else:
-	  return 1;
+	      if isinstance(b,int):
+	        return cmp(a,b);
+	      else:
+	        return 1;
       elif isinstance(b,int):
-	return -1;
+	      return -1;
       else:
-	return cmp(a,b);
+	      return cmp(a,b);
 	
     def curry (self,*args,**kwargs):
       cb = curry(*args,**kwargs);
@@ -322,7 +322,7 @@ class TreeBrowser (QObject):
       acts = self.tb.get_action_list(which);
       acts.sort(); # sorts by priority
       for (pri,action) in acts:
-	_dprint(5,'action',action,'of type',type(action).__name__);
+        _dprint(5,'action',action,'of type',type(action).__name__);
         if action is None:                # add separator
           separator = True;
         elif isinstance(action,QAction):  # add regular action 
@@ -370,8 +370,8 @@ class TreeBrowser (QObject):
         #label2.setIndent(10);
         #label2.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
         #menu.insertItem(label);
-	menu.addAction(pixmaps.breakpoint.icon(),"Set breakpoint at:");
-	# Kittens.widgets.addMenuLabel(menu,"Set breakpoint at:");
+        menu.addAction(pixmaps.breakpoint.icon(),"Set breakpoint at:");
+	      # Kittens.widgets.addMenuLabel(menu,"Set breakpoint at:");
         for st in meqds.CS_ES_statelist:
           title = ''.join(('    ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
@@ -399,7 +399,7 @@ class TreeBrowser (QObject):
         node = self.node;
         menu = self._context_menu = QMenu(self.treeWidget());
         # insert title
-	Kittens.widgets.addMenuLabel(menu,"""<b>%s</b> 											<i><small>(%s)</small></i>"""%(node.name,node.classname));
+        Kittens.widgets.addMenuLabel(menu,"""<b>%s</b> 											<i><small>(%s)</small></i>"""%(node.name,node.classname));
         # menu.insertItem(pixmaps.info_blue_round.icon(),"Show icon reference...",self.tb.show_icon_reference);
         # insert viewer list submenus
         viewer_list = Grid.Services.getViewerList(meqds.NodeClass(node.classname));
@@ -514,7 +514,11 @@ class TreeBrowser (QObject):
     self._toolbar.setIconSize(QSize(16,16));
     self._toolbar_actions = [];
     tba = self.get_action_list("toolbar");
-    tba.sort();
+    import six
+    if six.PY3:
+      tba.sort(key=lambda x: x[0])
+    else:
+      tba.sort();
     prev_sep = True; # flag: previous entry is a separator, true at top
     for (pri,action) in tba:
       if action is None:
@@ -891,8 +895,8 @@ class TreeBrowser (QObject):
       # populate list when first opened, if an iterator is present as an attribute
       iter_nodes = getattr(item,'_iter_nodes',None);
       if iter_nodes:
-	busy = BusyIndicator();
-	item.addChildren([ self.NodeItem(self,node,node.name) for node in iter_nodes ]);
+        busy = BusyIndicator();
+        item.addChildren([ self.NodeItem(self,node,node.name) for node in iter_nodes ]);
         delattr(item,'_iter_nodes');
   # _expand_node = busyCursorMethod(_expand_node);
   

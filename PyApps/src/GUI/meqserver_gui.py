@@ -799,7 +799,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       # add sidebar URL for Cattery and other packages
       urls = list(dialog.sidebarUrls());
       for pkg,(path,version) in Timba.packages().items():
-	urls.append(QUrl.fromLocalFile(path));
+      	urls.append(QUrl.fromLocalFile(path));
       dialog.setSidebarUrls(urls);
     if dialog.exec_() == QDialog.Accepted:
       self._load_tdl_script(str(dialog.selectedFiles()[0]));
@@ -812,22 +812,22 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       index = self.maintab.indexOf(tab);
       self.maintab.setCurrentIndex(index);
       if tab.confirm_close():
-	tab.disable_editor();
-	del self._tdl_tabs[path];
-	self.maintab.removeTab(index);
-	tab.setParent(QWidget());
+        tab.disable_editor();
+        del self._tdl_tabs[path];
+        self.maintab.removeTab(index);
+        tab.setParent(QWidget());
     # change working directory
     cwd = self._qa_loadtdl_cwd.isChecked();
     Config.set('cwd-follows-tdlscript',cwd);
     if cwd:
       dirname = os.path.dirname(filename);
       if os.access(dirname,os.W_OK):
-	self.change_working_directory(dirname,browser=True,kernel=True);
+	      self.change_working_directory(dirname,browser=True,kernel=True);
       else:
-	QMessageBox.warning(self,"Cannot change directory","""
-	  <P><NOBR>Cannot change working directory to </NOBR><tt>%s</tt>, as it is not writable.</P>
-	  <P>Will keep using the current working directory, <tt>%s</tt>.</P>"""%(dirname,os.getcwd()),
-	  "OK");
+	      QMessageBox.warning(self,"Cannot change directory","""
+                                  <P><NOBR>Cannot change working directory to </NOBR><tt>%s</tt>, as it is not writable.</P>
+                                  <P>Will keep using the current working directory, <tt>%s</tt>.</P>"""%(dirname,os.getcwd()),
+                                  "OK");
     # show this file
     self.show_tdl_file(filename,run=True);
     self._add_recent_script(filename,save=True);
@@ -1390,7 +1390,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         udi=udi,name=name,desc=desc,caption=caption,viewopts=meqgui.defaultResultViewopts,flood_protection=0);
       wtop = self.resultlog.wtop();
       if self.maintab.currentWidget() is not wtop and not wtop._newresults:
-	itab = self.maintab.indexOf(wtop);
+        itab = self.maintab.indexOf(wtop);
         self.maintab.setTabText(itab,wtop._newres_label);
         self.maintab.setTabIcon(itab,wtop._newres_icon);
         wtop._newresults = True;

@@ -80,7 +80,7 @@ class AboutDialog (QDialog):
           txt = """<P>Optional packages:</P><TABLE>""";
           for pkg,(path,version) in Timba.packages().items():
             txt += """<TR><TD> %s </TD> <TD> at <tt>%s</tt> </TD> <TD> (%s) </TD></TR>"""%(pkg,path,version);
-	  txt += "</TABLE>";
+          txt += "</TABLE>";
           self.pkg_label.setText(txt);
         
         lo_logos = QHBoxLayout(None)

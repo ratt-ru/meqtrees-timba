@@ -38,9 +38,16 @@ import os.path
 try:
   import dl
 except:
-  import DLFCN
-  dl = DLFCN
-sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
+  try:
+    import DLFCN
+    dl = DLFCN
+  except:
+    try:
+      import ctypes as dl
+    except:
+      raise ImportError("Failed to import dl or one of its successors")
+# not compatible with pyqt4 binaries
+#sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
 # sys.argv is not present when embedding a Python interpreter, but some
 # packages (i.e. numarray) seem to fall over when it is not found. So we
@@ -154,49 +161,49 @@ def _import_script_or_module (script,modname=None,force_reload=False):
       oldpath = list(sys.path);
       sys.path.insert(0,os.path.dirname(filename));
       try:
-	# check if script is already imported  
-	module = None;
-	if force_reload:
-	  _dprint(0,"force_reload=True,",modname,"will be reloaded");
-	elif filename in _imported_scripts:
-	  module,count = _imported_scripts[filename];
-	  if count == _import_counter:
-	    _dprint(0,modname,"already imported, will not be reloaded");
-	  else:
-	    _dprint(0,modname,"already imported but is stale, will be reloaded");
-	    module = None;
-	else:
-	  _dprint(0,modname,"hasn't been imported yet");
-	if module is None:
-	  try:
-	    imp.acquire_lock();
-	    module = imp.load_source(modname,filename,infile);
-	    _imported_scripts[filename] = (module,_import_counter);
-	  finally:
-	    imp.release_lock();
-	    infile.close();
+        # check if script is already imported  
+        module = None;
+        if force_reload:
+          _dprint(0,"force_reload=True,",modname,"will be reloaded");
+        elif filename in _imported_scripts:
+          module,count = _imported_scripts[filename];
+          if count == _import_counter:
+            _dprint(0,modname,"already imported, will not be reloaded");
+          else:
+            _dprint(0,modname,"already imported but is stale, will be reloaded");
+            module = None;
+        else:
+          _dprint(0,modname,"hasn't been imported yet");
+        if module is None:
+          try:
+            imp.acquire_lock();
+            module = imp.load_source(modname,filename,infile);
+            _imported_scripts[filename] = (module,_import_counter);
+          finally:
+            imp.release_lock();
+            infile.close();
       finally:
-	sys.path = oldpath;
-      break;
-  # else (no known suffix found) treat as module name
-  else:
-    _dprint(0,"importing module",script);
-    module = __import__(script);
-    # since __import__ returns the top-level package, use this
-    # code from the Python docs to get to the ultimate module
-    components = script.split('.')
-    for comp in components[1:]:
-      module = getattr(module,comp);
-    # see if module needs to be reloaded (we don't have to do it when
-    # using load_source(), as that does an implicit reload).
-    if module in _imported_modules:
-      if not force_reload and _imported_modules[module] == _import_counter:
-        _dprint(0,"module already imported, reusing");
-      else:
-        _dprint(0,"module already imported but stale (or force_reload=True), reloading");
-        reload(module);
+        sys.path = oldpath;
+        break;
+        # else (no known suffix found) treat as module name
     else:
-      _dprint(0,"this is the first time it has been imported");
+      _dprint(0,"importing module",script);
+      module = __import__(script);
+      # since __import__ returns the top-level package, use this
+      # code from the Python docs to get to the ultimate module
+      components = script.split('.')
+      for comp in components[1:]:
+        module = getattr(module,comp);
+      # see if module needs to be reloaded (we don't have to do it when
+      # using load_source(), as that does an implicit reload).
+      if module in _imported_modules:
+        if not force_reload and _imported_modules[module] == _import_counter:
+          _dprint(0,"module already imported, reusing");
+        else:
+          _dprint(0,"module already imported but stale (or force_reload=True), reloading");
+          reload(module);
+      else:
+        _dprint(0,"this is the first time it has been imported");
   # add to dict of imported modules
   _imported_modules[module] = _import_counter;
   return module;

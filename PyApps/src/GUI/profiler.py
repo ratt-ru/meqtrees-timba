@@ -215,17 +215,17 @@ class Profiler (PersistentCurrier):
       # set alignment	
       self.setTextAlignment(0,Qt.AlignLeft);
       if isinstance(name2,str):
-	self.setTextAlignment(1,Qt.AlignLeft);
+        self.setTextAlignment(1,Qt.AlignLeft);
       else:
-	self.setTextAlignment(1,Qt.AlignRight);
+        self.setTextAlignment(1,Qt.AlignRight);
       for col in range(2,self.columnCount()):
-	self.setTextAlignment(col,Qt.AlignRight);
+        self.setTextAlignment(col,Qt.AlignRight);
 
     def __lt__ (self,other):
       icol = self.treeWidget().sortColumn();
       try: return self._content[icol] < other._content[icol];
       except:  # other item not keyed
-	return self._content[icol] < 0;
+        return self._content[icol] < 0;
 
     def __ge__ (self,other):
       return other < self;

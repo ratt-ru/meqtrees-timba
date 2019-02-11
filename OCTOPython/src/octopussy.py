@@ -35,14 +35,20 @@ import sys
 try:
   import dl
 except:
-  import DLFCN
-  dl = DLFCN
-sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
+  try:
+    import DLFCN
+    dl = DLFCN
+  except:
+    try:
+      import ctypes
+      dl = ctypes
+    except:
+      raise ImportError("Failed to import dl module or one of its successors!")
+# not compatible with pyqt4 binaries
+#sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
 import Timba
-if not hasattr(Timba,'octopython'):
-  import Timba.octopython
-octopython = Timba.octopython
+import Timba.octopython as octopython
 from Timba.dmi import *
 from Timba.utils import *
 
@@ -107,8 +113,6 @@ def stop ():
   res = octopython.stop();
   _octopussy_running = False;
   return res;
-
-from octopython import get_server_ports
   
 #
 # proxy_wp

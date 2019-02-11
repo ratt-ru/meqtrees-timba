@@ -56,13 +56,13 @@ class ProgressDialog (object):
       self.dialog.setValue(min_value);
       self.dialog.show();
       for m in methods:
-	setattr(self,m,curry(_call_gui_func,getattr(self.dialog,m)));
+	      setattr(self,m,curry(_call_gui_func,getattr(self.dialog,m)));
     else:
       self.dialog = None;
       def dummy_method (*arg,**kw):
-	return None;
+	      return None;
       for m in methods:
-	setattr(self,m,dummy_method);
+	      setattr(self,m,dummy_method);
   
 
   def __del__ (self):
@@ -132,15 +132,15 @@ class MessageBox (object):
       icon = getattr(Qt.QMessageBox,boxtype.capitalize(),Qt.QMessageBox.NoIcon);
       self.dialog = Qt.QMessageBox(icon,caption,message,buttons,meqbrowser);
       if default:
-	self.dialog.setDefaultButton(default);
+        self.dialog.setDefaultButton(default);
       for m in methods:
-	setattr(self,m,curry(_call_gui_func,getattr(self.dialog,m)));
+        setattr(self,m,curry(_call_gui_func,getattr(self.dialog,m)));
     else:
       self.dialog = None;
       def dummy_method (*arg,**kw):
-	return None;
+	      return None;
       for m in methods:
-	setattr(self,m,dummy_method);
+	      setattr(self,m,dummy_method);
 
   def setBoxType (self,boxtype):
     if self.dialog:
@@ -150,7 +150,7 @@ class MessageBox (object):
     if self.dialog:
       btn = self.dialog.button(button);
       if not btn:
-	raise ValueError("button '%s' not present in this MessageBox"%ButtonNames.get(button,button));
+	      raise ValueError("button '%s' not present in this MessageBox"%ButtonNames.get(button,button));
       btn.setText(text);
 
   def __del__ (self):

@@ -556,9 +556,9 @@ class _NodeStub (object):
         raise nodedef.error;
       # get classname from initrec
       try: 
-	classname = getattr(nodedef.initrec,'class');
+	      classname = getattr(nodedef.initrec,'class');
       except AttributeError:
-	raise NodeDefError("init record of node '%s' missing class field, this is clearly impossible"%self.name);
+        raise NodeDefError("init record of node '%s' missing class field, this is clearly impossible"%self.name);
       # resolve list of children in the nodedef to a list of node stubs
       children = nodedef.children.resolve(self.scope,classname=classname,nodename=self.name);
       stepchildren = nodedef.stepchildren.resolve(self.scope,classname=classname,nodename=self.name);

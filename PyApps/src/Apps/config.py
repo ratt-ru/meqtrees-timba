@@ -56,11 +56,25 @@ class DualConfigParser (object):
     section = section or self.defsection;
     # try user defaults
     try:
+      if option is None:
+        option = section
+        section = "Meqbrowser"
+      if section not in self.usercp.sections():
+        raise NoSectionError("Section {0:s} not found!".format(section))
+      if option not in self.usercp.options(section):
+        raise NoSectionError("Option {1:s} not found in section {0:s}!".format(option, section))
       return getattr(self.usercp,method)(section,option);
     except (NoSectionError,NoOptionError):
       error = sys.exc_info()[1]; 
     # try systemwide
     try:
+      if option is None:
+        option = section
+        section = "Meqbrowser"
+      if section not in self.usercp.sections():
+        raise NoSectionError("Section {0:s} not found!".format(section))
+      if option not in self.usercp.options(section):
+        raise NoSectionError("Option {1:s} not found in section {0:s}!".format(option, section))
       return getattr(self.syscp,method)(section,option);
     except (NoSectionError,NoOptionError):
       if default is not None:
@@ -83,7 +97,7 @@ class DualConfigParser (object):
     except DuplicateSectionError: pass;
     self.usercp.set(section,option,value);
     if save:
-      self.usercp.write(file(_user_file,"w"));
+      self.usercp.write(open(_user_file,"w"));
       
   def has_option (self,section,option):
     return self.syscp.has_option(section,option) or \

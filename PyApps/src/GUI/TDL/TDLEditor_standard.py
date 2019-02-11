@@ -672,18 +672,18 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       # get text from editor
       tdltext = str(self._document.toPlainText());
       try:
-	tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
+        tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
       # catch import errors
       except TDL.CumulativeError as value:
-	_dprint(0,"caught cumulative error, length",len(value.args));
-	self._error_window.set_errors(value.args,message="TDL import failed");
+        _dprint(0,"caught cumulative error, length",len(value.args));
+        self._error_window.set_errors(value.args,message="TDL import failed");
         busy = None;
-	return None;
+        return None;
       except Exception as value:
-	_dprint(0,"caught other error, traceback follows");
-	traceback.print_exc();
-	self._error_window.set_errors([value],message="TDL import failed");
-	busy = None;
+        _dprint(0,"caught other error, traceback follows");
+        traceback.print_exc();
+        self._error_window.set_errors([value],message="TDL import failed");
+        busy = None;
         return None;
       # remember module and nodescope
       self._tdlmod = tdlmod;
@@ -693,18 +693,18 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       opt_tw = self._options_menu.treeWidget();
       opts = TDLOptions.get_compile_options();
       if opts:
-	# add options
-	try:
-	  TDLOptions.populate_option_treewidget(opt_tw,opts);
-	except Exception as value:
-	  _dprint(0,"error setting up TDL options GUI");
-	  traceback.print_exc();
-	  self._error_window.set_errors([value],message="Error setting up TDL options GUI");
+        # add options
+        try:
+          TDLOptions.populate_option_treewidget(opt_tw,opts);
+        except Exception as value:
+          _dprint(0,"error setting up TDL options GUI");
+          traceback.print_exc();
+          self._error_window.set_errors([value],message="Error setting up TDL options GUI");
           busy = None;
-	  return None;
-	# self._tb_opts.show();
-	_dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
-	self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
+          return None;
+        # self._tb_opts.show();
+        _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
+        self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
     # success, show options or compile
     if show_options and self.has_compile_options():
       self._options_menu.adjustSizes();
