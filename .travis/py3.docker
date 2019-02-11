@@ -1,8 +1,7 @@
 FROM kernsuite/base:5
 
 RUN docker-apt-install libblitz0-dev python3-dev casacore-dev libblas-dev liblapack-dev libqdbm-dev wcslib-dev \
- libfftw3-dev python3-numpy libcfitsio-dev casarest libboost-thread-dev libboost-system-dev cmake g++ python3-pyqt4 \
- libpython3-all-dev
+ libfftw3-dev python3-numpy libcfitsio-dev casarest libboost-thread-dev libboost-system-dev cmake g++ libboost-python-dev
 
 # test dependencies
 RUN docker-apt-install \
@@ -13,14 +12,64 @@ RUN docker-apt-install \
     libboost-python-dev \
     makems
 
-RUN pip3 install meqtrees-cattery
-RUN pip3 install owlcat
+WORKDIR /code
 
-ADD . /code
-RUN mkdir /code/build
-WORKDIR /code/build
-RUN cmake -DPython_ADDITIONAL_VERSIONS=3.6 ..
-RUN make -j16 && make install
+####################################################################################
+# Some suite dependencies (this should be changed on the next update to KERN)
+####################################################################################
+
+# Owlcat
+WORKDIR /code
+RUN wget https://github.com/ska-sa/owlcat/archive/v1.5.1.tar.gz
+RUN tar -xvf v1.5.1.tar.gz
+WORKDIR /code/owlcat-1.5.1
+RUN pip3 install .
+
+# kittens
+WORKDIR /code
+RUN wget https://github.com/ska-sa/kittens/archive/v1.4.0.tar.gz
+RUN tar -xvf v1.4.0.tar.gz
+WORKDIR /code/kittens-1.4.0
+RUN pip3 install .
+
+# purr
+WORKDIR /code
+RUN wget https://github.com/ska-sa/purr/archive/v1.4.3.tar.gz
+RUN tar -xvf v1.4.3.tar.gz
+WORKDIR /code/purr-1.4.3
+RUN pip3 install .
+
+# tigger-lsm
+WORKDIR /code
+RUN wget https://github.com/ska-sa/tigger-lsm/archive/1.5.0.tar.gz
+RUN tar -xvf 1.5.0.tar.gz
+WORKDIR /code/tigger-lsm-1.5.0
+RUN pip3 install .
+
+# tigger
+WORKDIR /code
+RUN wget https://github.com/ska-sa/tigger/archive/1.4.0.tar.gz
+RUN tar -xvf 1.4.0.tar.gz
+WORKDIR /code/tigger-1.4.0
+RUN pip3 install .
+
+# Cattery
+WORKDIR /code
+RUN wget https://github.com/ska-sa/meqtrees-cattery/archive/v1.6.1.tar.gz
+RUN tar -xvf v1.6.1.tar.gz
+WORKDIR /code/meqtrees-cattery-1.6.1
+RUN pip3 install .
+
+####################################################################################
+# Now build timba from source and test using Pyxis
+####################################################################################
+
+ADD . /code/timba
+RUN mkdir /code/timba/build
+WORKDIR /code/timba/build
+RUN cmake ..
+RUN make -j16
+RUN make install
 
 # get the test from pyxis
 WORKDIR /code

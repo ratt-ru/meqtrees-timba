@@ -16,11 +16,8 @@ ADD . /code
 RUN mkdir /code/build
 WORKDIR /code/build
 RUN cmake ..
-RUN make -j16 && make install
-
-ENV LD_LIBRARY_PATH /usr/local/lib:$LD_LIBRARY_PATH
-ENV PATH /usr/local/bin:$PATH
-RUN ldconfig # update the linker config
+RUN make -j16
+RUN make install
 
 # get the test from pyxis
 WORKDIR /code
