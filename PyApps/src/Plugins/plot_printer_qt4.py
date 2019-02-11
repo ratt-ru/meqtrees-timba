@@ -69,7 +69,10 @@
 #
 
 from PyQt4 import Qt
-import PyQt4.Qwt5 as Qwt
+try:
+  import PyQt4.Qwt5 as Qwt
+except:
+  import qwt as Qwt
 from . import printfilter_qt4
 
 class plot_printer:

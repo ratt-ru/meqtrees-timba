@@ -58,7 +58,7 @@ if not hasattr(sys,'argv'):
 # now import the rest
 from Timba import dmi
 from Timba import utils
-import meqserver_interface
+
 import sys
 import imp
 import os.path
@@ -89,6 +89,7 @@ def set_state (node,**fields):
   else:
     raise TypeError('illegal node argumnent');
   # pass command to kernel
+  from Timba import meqserver_interface
   meqserver_interface.mqexec('Node.Set.State',rec,True); # True=silent
   
   

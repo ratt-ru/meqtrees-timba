@@ -97,7 +97,10 @@ except:
 import numpy
 
 from PyQt4 import Qt
-import PyQt4.Qwt5 as Qwt
+try:
+  import PyQt4.Qwt5 as Qwt
+except:
+  import qwt as Qwt
 
 from Timba.Plugins.QwtPlotImage_qt4 import *
 from Timba.Plugins.QwtColorBar_qt4 import *

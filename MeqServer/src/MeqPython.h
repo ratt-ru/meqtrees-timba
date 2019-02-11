@@ -64,10 +64,10 @@ namespace MeqPython
 
   // Inits Python if needed, attaches meqserver module to MeqServer object.
   #if PY_MAJOR_VERSION >= 3
-    #define initMeqPython PyInit_MeqPython
+    PyMODINIT_FUNC PyInit_MeqPython(MeqServer *mq);
+  #else
+    PyMODINIT_FUNC initMeqPython (MeqServer *pm);
   #endif
-  PyMODINIT_FUNC initMeqPython (MeqServer *pm);
-
   // Destroys Python interpreter if it was running
   void destroyMeqPython ();
 

@@ -457,9 +457,15 @@ void forceModuleReload ()
   if( meq_initialized )
     INITERROR
   meq_initialized = true;
-  // init Python threads -- this acquires the GIL
-  PyEval_InitThreads();
-  Py_Initialize();
+  #if PY_MAJOR_VERSION >= 3
+    Py_Initialize();
+    // init Python threads -- this acquires the GIL
+    PyEval_InitThreads();
+  #else
+    // init Python threads -- this acquires the GIL
+    PyEval_InitThreads();
+    Py_Initialize();
+  #endif
   PyThreadBegin;
   // release GIL in exception handler
   try
@@ -507,6 +513,17 @@ void forceModuleReload ()
         INITERROR;
     }
 
+    PyObject * timbamod = PyImport_ImportModule("Timba");  // returns new ref
+    if( !timbamod )
+    {
+      PyErr_Print();
+      Throw("octopython init error: import of Timba module failed");
+    }
+    
+    // since AddObject steals a ref, increment the counter
+    Py_INCREF(module);
+    PyModule_AddObject(timbamod,"meqserver_interface",module);
+
     PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
     if( !kernelmod )
     {
@@ -516,9 +533,6 @@ void forceModuleReload ()
     create_pynode        = PyObject_GetAttrString(kernelmod,"create_pynode");
     if( PyErr_Occurred() )
       PyErr_Print();
-      Throw("create_pynode failed");
-    if( !create_pynode )
-      Throw("Timba.meqkernel.create_pynode not found");
     force_module_reload  = PyObject_GetAttrString(kernelmod,"force_module_reload");
     if( PyErr_Occurred() )
       PyErr_Print();
@@ -527,19 +541,30 @@ void forceModuleReload ()
 
     // get optional handlers
     process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
     cdebug(1)<<"init handler is "<<process_init_record<<endl;
     process_vis_header = PyObject_GetAttrString(kernelmod,"process_vis_header");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
-    process_vis_tile   = PyObject_GetAttrString(kernelmod,"process_vis_tile");
+    //@o-smirnov not defined???
+    //process_vis_tile   = PyObject_GetAttrString(kernelmod,"process_vis_tile");
+    //if( PyErr_Occurred() )
+    //  PyErr_Print();
     PyErr_Clear();
     process_vis_footer = PyObject_GetAttrString(kernelmod,"process_vis_footer");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
     cdebug(1)<<"vis handlers are "<<process_vis_header<<" "
         <<process_vis_tile<<" "<<process_vis_footer<<endl;
 
     // set verbosity level
     PyObject *setverbose = PyObject_GetAttrString(kernelmod,"set_verbose");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
     if( setverbose )
     {
