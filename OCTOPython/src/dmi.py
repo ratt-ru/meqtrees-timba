@@ -42,8 +42,10 @@ except:
       dl = ctypes
     except:
       raise ImportError("Failed to import dl module or one of its successors!")
-# not compatible with pyqt4 binaries
-#sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
+# not compatible with python 3 + pyqt4 binaries
+import six
+if six.PY2:
+  sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
 import string
 import Timba.array

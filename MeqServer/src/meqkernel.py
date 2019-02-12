@@ -46,8 +46,10 @@ except:
       import ctypes as dl
     except:
       raise ImportError("Failed to import dl or one of its successors")
-# not compatible with pyqt4 binaries
-#sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
+# not compatible with python 3 + pyqt4 binaries
+import six
+if six.PY2:
+  sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
 # sys.argv is not present when embedding a Python interpreter, but some
 # packages (i.e. numarray) seem to fall over when it is not found. So we
