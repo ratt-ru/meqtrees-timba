@@ -25,21 +25,16 @@
 #
 
 import sys
-# is numpy available?
-global has_numpy
-has_numpy = False
-try:
-  import numpy
-  has_numpy = True
-except:
-  has_numpy = False
-
+import numpy
 import math
 
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='SolverData');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
+try:
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='SolverData');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+except:
+  pass
 
 class SolverData:
    """ a class to store solver data and supply the
@@ -73,13 +68,13 @@ class SolverData:
      """
      self.metrics_covar = None
      self._data_label = data_label
-     if incoming_data.solver_result.has_key("incremental_solutions"):
+     if "incremental_solutions" in incoming_data.solver_result:
        self._solver_array = incoming_data.solver_result.incremental_solutions
        self.chi_array = self._solver_array.copy()
        shape = self._solver_array.shape
        #shape[0] = number of interations == num_metrics (see below)
        #shape[1] = total number of solution elements
-       if incoming_data.solver_result.has_key("metrics"):
+       if "metrics" in incoming_data.solver_result:
          metrics = incoming_data.solver_result.metrics
 # find out how many records in each metric field
          num_metrics = len(metrics)
@@ -109,7 +104,7 @@ class SolverData:
            for j in range(num_metrics_rec):
              metrics_rec =  metrics[i][j]
              try:
-               if metrics_rec.has_key("covar"):
+               if "covar" in metrics_rec:
                  covar_list.append(metrics_rec.covar)
                self.metrics_chi_0[i,j] = metrics_rec.chi_0 
                self.metrics_fit[i,j] = metrics_rec.fit 
@@ -139,7 +134,7 @@ class SolverData:
            self.iteration_number[i] = i+1
          if len(covar_list) > 0:
            self.metrics_covar.append(covar_list)
-       if incoming_data.solver_result.has_key("debug_array"):
+       if "debug_array" in incoming_data.solver_result:
          debug_array = incoming_data.solver_result.debug_array
 # find out how many records in each metric field
          num_debug = len(debug_array)
@@ -152,9 +147,9 @@ class SolverData:
              self.nonlin[i,j] = debug_rec.nonlin[i]
 
 # get spid information
-       if incoming_data.solver_result.has_key("spid_map"):
+       if "spid_map" in incoming_data.solver_result:
          spid_map = incoming_data.solver_result.spid_map
-         spid_keys = spid_map.keys()
+         spid_keys = list(spid_map.keys())
          spid_int_keys = []
          for i in range(len(spid_keys)):
            spid_int_keys.append(int(spid_keys[i]))
@@ -165,10 +160,10 @@ class SolverData:
          for i in range(len(spid_keys)):
            spid_dict = spid_map[str(spid_int_keys[i])]
            name = ''
-           if spid_dict.has_key("name"):
+           if "name" in spid_dict:
              name = spid_dict["name"]
            coeff_index = ''
-           if spid_dict.has_key("coeff_index"):
+           if "coeff_index" in spid_dict:
              coeff_index = spid_dict["coeff_index"]
            label = name + ' ' + str(coeff_index) + ' '
            self.solver_labels.append(label)
@@ -177,33 +172,30 @@ class SolverData:
      """ get condition number information out of co-variance array """
 
 #    print 'self.metrics_covar ', self.metrics_covar
-     if has_numpy:
-       self.condition_numbers = []
-       self.cn_chi = []
-       if self.metrics_covar is None:
+     self.condition_numbers = []
+     self.cn_chi = []
+     if self.metrics_covar is None:
+       return False
+     else:
+       if len(self.metrics_covar)== 0:
          return False
        else:
-         if len(self.metrics_covar)== 0:
-           return False
-         else:
-           shape=self.metrics_chi.shape
-           num_iter = len(self.metrics_covar)
-           # just process the final record
-           covar_list = self.metrics_covar[num_iter-1]
-           num_covar_matrices = len(covar_list)
-           for i in range(num_covar_matrices):
-             covar = covar_list[i]
-             if covar.min() == 0.0 and covar.max() == 0.0:
-               self.condition_numbers.append(None)
-               self.cn_chi.append(None)
-             else:
-               # following equation provided by Sarod
-               cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
-               self.condition_numbers.append(cond_number)
-               self.cn_chi.append(cond_number * self.metrics_chi[shape[0]-1,i])
-           return True
-     else:
-       return False
+         shape=self.metrics_chi.shape
+         num_iter = len(self.metrics_covar)
+         # just process the final record
+         covar_list = self.metrics_covar[num_iter-1]
+         num_covar_matrices = len(covar_list)
+         for i in range(num_covar_matrices):
+           covar = covar_list[i]
+           if covar.min() == 0.0 and covar.max() == 0.0:
+             self.condition_numbers.append(None)
+             self.cn_chi.append(None)
+           else:
+             # following equation provided by Sarod
+             cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
+             self.condition_numbers.append(cond_number)
+             self.cn_chi.append(cond_number * self.metrics_chi[shape[0]-1,i])
+         return True
 
    def calculateCovarEigenVectors(self):
      """ calculate eigenvalues and eigenvectors of co-variance matrix """
@@ -260,7 +252,7 @@ class SolverData:
      return (self.metrics_rank, self.iteration_number, self.solver_offsets, self.vector_sum, self.metrics_chi_0, self.nonlin, self.sum_incr_soln_norm, self.incr_soln_norm, self.metrics_fit, self.metrics_chi, self.metrics_mu, self.metrics_flag, self.metrics_stddev,self.metrics_unknowns)
 
 def main(args):
-  print 'we are in main' 
+  print('we are in main') 
 
 # Admire
 if __name__ == '__main__':

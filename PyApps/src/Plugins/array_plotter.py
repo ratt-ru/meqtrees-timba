@@ -69,22 +69,37 @@
 #  CANADA					 CANADA
 #
 
-from Timba.dmi import *
-from Timba import utils
-from Timba.Meq import meqds
-from Timba.Meq.meqds import mqs
-from Timba.GUI.pixmaps import pixmaps
-from Timba.GUI import widgets
-from Timba.GUI.browsers import *
-from Timba import Grid
+import numpy
 
-from Timba.Plugins.display_image_qt4 import *
-from Timba.Plugins.plotting_functions_qt4 import *
+from qwt.qt.QtGui import QApplication, QGridLayout, QLabel, QWidget, QFont
+from qwt.qt.QtCore import Qt
 
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='array_plotter');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
+HAS_TIMBA = False
+try:
+  from Timba.dmi import *
+  from Timba import utils
+  from Timba.Meq import meqds
+  from Timba.Meq.meqds import mqs
+  from Timba.GUI.pixmaps import pixmaps
+  from Timba.GUI import widgets
+  from Timba.GUI.browsers import *
+  from Timba import Grid
+
+  from Timba.Plugins.display_image_qt5 import *
+  from Timba.Plugins.plotting_functions_qt5 import *
+  from Timba.Plugins.QwtPlotImage_qt5 import *
+  from Timba.Plugins.QwtColorBar_qt5 import *
+  from Timba.Plugins.ND_Controller_qt5 import *
+  #from Timba.Plugins.plot_printer_qt5 import *
+
+
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='array_plotter');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+  HAS_TIMBA = True
+except:
+  pass
 
 global has_vtk
 has_vtk = False
@@ -94,15 +109,6 @@ try:
 except:
   pass
 
-import numpy
-
-from PyQt4 import Qt
-import PyQt4.Qwt5 as Qwt
-
-from Timba.Plugins.QwtPlotImage_qt4 import *
-from Timba.Plugins.QwtColorBar_qt4 import *
-from Timba.Plugins.ND_Controller_qt4 import *
-from Timba.Plugins.plot_printer_qt4 import *
 
 class ArrayPlotter(GriddedPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
@@ -115,7 +121,7 @@ class ArrayPlotter(GriddedPlugin):
 
   def __init__(self,gw,dataitem,cellspec={},**opts):
     GriddedPlugin.__init__(self,gw,dataitem,cellspec=cellspec);
-    _dprint(3,'** array_plotter: starting init')
+    if HAS_TIMBA: _dprint(3,'** array_plotter: starting init')
     self.layout_parent = None
     self.layout_created = False
     self.twoD_plotter = None
@@ -135,11 +141,11 @@ class ArrayPlotter(GriddedPlugin):
       self.ND_plotter.close()
       self.ND_plotter = None
     self.twoD_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent)
-    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('colorbar_needed'), self.set_ColorBar)
-    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
-    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('show_3D_Display'), self.show_3D_Display)
-    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('do_print'), self.plotPrinter.do_print)
-    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('save_display'), self.grab_display)
+    self.twoD_plotter.colorbar_needed.connect(self.set_ColorBar)
+    self.twoD_plotter.show_ND_Controller.connect(self.ND_controller_showDisplay)
+    self.twoD_plotter.show_3D_Display.connect(self.show_3D_Display)
+    self.twoD_plotter.do_print.connect(self.plotPrinter.do_print)
+    self.twoD_plotter.save_display.connect(self.grab_display)
     # create status label display
     self.status_label = Qt.QLabel(self.layout_parent)
     sansFont = QFont( "Helvetica [Cronyx]", 8 )
@@ -149,7 +155,7 @@ class ArrayPlotter(GriddedPlugin):
     self.status_label.setText("Move the mouse within the plot canvas"
                             " to show the cursor position.")
     self.status_label.show()
-    Qt.QObject.connect(self.twoD_plotter, Qt.SIGNAL('status_update'), self.update_status)
+    self.twoD_plotter.status_update.connect(self.update_status)
   # create_2D_plotter
 
   def update_status(self, status):
@@ -198,7 +204,7 @@ class ArrayPlotter(GriddedPlugin):
     scalar_data = 0.0
     try:
       shape = data_array.shape
-      _dprint(3,'data_array shape is ', shape)
+      if HAS_TIMBA: _dprint(3,'data_array shape is ', shape)
     except:
       is_scalar = True
       scalar_data = data_array
@@ -360,8 +366,8 @@ class ArrayPlotter(GriddedPlugin):
 
     self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 
-    Qt.QObject.connect(self.ND_Controls, Qt.SIGNAL('sliderValueChanged'), self.setArraySelector)
-    Qt.QObject.connect(self.ND_Controls, Qt.SIGNAL('defineSelectedAxes'), self.setSelectedAxes)
+    self.ND_Controls.sliderValueChanged.connect(self.setArraySelector)
+    self.ND_Controls.defineSelectedAxes.connect(self.setSelectedAxes)
 
   def show_3D_Display(self, display_flag_3D):
     if not has_vtk:
@@ -372,8 +378,8 @@ class ArrayPlotter(GriddedPlugin):
 
     if self.ND_plotter is None:
       self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
-      Qt.QObject.connect(self.ND_plotter, Qt.SIGNAL('show_2D_Display'), self.show_2D_Display)
-      Qt.QObject.connect(self.ND_plotter, Qt.SIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+      self.ND_plotter.show_2D_Display.connect(self.show_2D_Display)
+      self.ND_plotter.show_ND_Controller.connect(self.ND_controller_showDisplay)
     else:
       self.ND_plotter.delete_vtk_renderer()
       self.ND_plotter.show_vtk_controls()
@@ -382,7 +388,7 @@ class ArrayPlotter(GriddedPlugin):
     self.plot_3D_array(display_flag_3D)
 
   def show_2D_Display(self, display_flag):
-    _dprint(3, 'in show_2D_Display ')
+    if HAS_TIMBA: _dprint(3, 'in show_2D_Display ')
     self.create_2D_plotter()
 # create 3-D Controller appropriate for 2-D screen displays
     self.plot_2D_array()
