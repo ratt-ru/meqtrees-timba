@@ -2768,7 +2768,7 @@ class QwtImageDisplay(QwtPlot):
         for j in range(shape[0]):
           plot_data[j] = self.chi_vectors[j,i]
           chi_data[j] = self.chi_zeros[j,i]
-        curve = QwtPlotCurveSizes()
+        curve = QwtPlotCurve()
         title_key = 'vector sum of incremental solutions '
         curve.setTitle(title_key)
         self.chis_plot[title_key+str(i)] = curve
@@ -2813,7 +2813,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data1[j] = self.sum_incr_soln_norm[j,i]
             chi_data1[j] = self.chi_zeros[j,i]
-          curve = QwtPlotCurveSizes()
+          curve = QwtPlotCurve()
           title_key = 'sum of the norms of incremental solutions '
           self.chis_plot[title_key+str(i)] = curve
           self.chis_plot[title_key+str(i)].attach(self)
@@ -2855,7 +2855,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data2[j] = self.incr_soln_norm[j,i]
             chi_data2[j] = self.chi_zeros[j,i]
-          curve = QwtPlotCurveSizes()
+          curve = QwtPlotCurve()
           title_key = 'norms of incremental solutions '
           self.chis_plot[title_key+str(i)] = curve
           self.chis_plot[title_key+str(i)].attach(self)
@@ -2910,7 +2910,7 @@ class QwtImageDisplay(QwtPlot):
             sorted_eigenvalues = numpy.array(eigenlist)
             shape = eigenvalues.shape
             x_data = numpy.arange(shape[0])
-            curve = QwtPlotCurveSizes()
+            curve = QwtPlotCurve()
             title_key = 'eigenvalues ' 
             curve.setTitle(title_key)
             self.chis_plot[title_key+str(i)] = curve
