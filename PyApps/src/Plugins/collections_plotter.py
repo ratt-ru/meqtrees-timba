@@ -70,6 +70,7 @@ from qwt.qt.QtGui import QApplication,QHBoxLayout, QLabel, QSizePolicy, QSpacerI
 from qwt.qt.QtGui import QWidget
 from qwt.qt.QtCore import Qt
 
+import numpy
 from math import sin
 from math import cos
 from math import pow
@@ -86,21 +87,19 @@ try:
   from Timba.GUI import widgets
   from Timba.GUI.browsers import *
   from Timba import Grid
+  from Timba.Plugins.VellsData import VellsData
+  from Timba.Plugins.ResultsRange_qt5 import ResultsRange
+  from Timba.Plugins.DataDisplayMainWindow_qt5 import DisplayMainWindow
+
   from Timba.utils import verbosity
   _dbg = verbosity(0,name='collections_plotter');
   _dprint = _dbg.dprint;
   _dprintf = _dbg.dprintf;
-  from Timba.Plugins.DataDisplayMainWindow_qt5 import *
   HAS_TIMBA = True
 except:
-  pass
+ pass
 
 
-from VellsData import *
-from ResultsRange_qt5 import *
-#from plot_printer_qt4 import *
-
-import itertools
 
 class CollectionsPlotter(GriddedPlugin):
   """ a class to visualize data, VellSets or visu data, that is 
@@ -198,7 +197,6 @@ class CollectionsPlotter(GriddedPlugin):
     self._results_range.setValue(max_range)
     self._results_range.setLabel('offset:',align= Qt.AlignHCenter)
     self._results_range.hideNDControllerOption()
-    self._results_range.reset_scale_toggle()
     self._results_range.set_emit(True)
     self._results_range.show()
 

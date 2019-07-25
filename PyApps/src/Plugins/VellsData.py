@@ -69,11 +69,11 @@
 #
 
 import sys
+import numpy
 HAS_TIMBA = False
-from plotting_functions_qt5 import *
 try:
+  import Timba.Plugins.plotting_functions_qt5 as plot_func
   from Timba.utils import verbosity
-  from Timba.Plugins.plotting_functions_qt5 import *
   _dbg = verbosity(0,name='VellsData');
   _dprint = _dbg.dprint;
   _dprintf = _dbg.dprintf;
@@ -701,7 +701,7 @@ class VellsData:
              _dprint(3, 'first axis becomes ', first_axis)
        if rank > 2:
          if not first_axis is None and not second_axis is None:
-           self.array_selector = create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
+           self.array_selector = plot_func.create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
            self.array_tuple = tuple(self.array_selector)
          _dprint(3, 'array selector tuple ', self.array_tuple)
      except:
@@ -723,7 +723,7 @@ class VellsData:
          return
        else:
          shape = self.getActiveData().shape
-         self.array_selector = create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
+         self.array_selector = plot_func.create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
          self.array_tuple = tuple(self.array_selector)
          for i in range(rank):
            if i == first_axis:

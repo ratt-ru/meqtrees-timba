@@ -78,7 +78,7 @@ from qwt.qt.QtGui import (QApplication, QMainWindow, QDialog, QGridLayout,QHBoxL
 from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction
 from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal
 
-from BufferSizeDialog_qt5 import *
+from Timba.Plugins.BufferSizeDialog_qt5 import BufferSizeDialog
 
 
 # The ResultsRange class is directly adapted from the Qt/PyQt 
@@ -112,7 +112,7 @@ class ResultsRange(QWidget):
     show_ND_Controller = pyqtSignal()
     update_scale = pyqtSignal()
     set_auto_scaling = pyqtSignal()
-    adjust_results_buffer_size = pyqtSignal()
+    adjust_results_buffer_size = pyqtSignal(int)
     display_summary_plot = pyqtSignal()
 
 
@@ -131,7 +131,6 @@ class ResultsRange(QWidget):
       'Toggle ND Controller': 308,
       'Print to Postscript file': 309,
       'Align Camera': 310,
-      'Toggle VTK Scale': 311,
       'Reset Auto Scaling': 312,
       'Save Display in PNG Format': 313,
       }
@@ -407,18 +406,6 @@ class ResultsRange(QWidget):
       if self.allow_emit:
         self.show_ND_Controller.emit(self.toggle_ND_Controller)
 
-    def toggle_scale(self):
-      """ emit signal to toggle VTK display of scales """
-      toggle_id = self.menu_table['Toggle VTK Scale']
-      if self.toggle_scale_display:
-        self.toggle_scale_display = False
-        self._toggle_vtk_scale.setText('Apply Scaling to VTK Display')
-      else:
-        self.toggle_scale_display = True
-        self._toggle_vtk_scale.setText('Remove Scaling from VTK Display')
-      if self.allow_emit:
-        self.update_scale.emit(self.toggle_scale_display)
-
     def set_summary(self, summary=True):
       """ override default value for allowing summary plot """
       self.allow_summary = summary
@@ -449,11 +436,6 @@ class ResultsRange(QWidget):
         self.handleAutoScaling()
       elif menuid == self.menu_table['Display summary plot']:
         self.requestSummary()
-
-    def reset_scale_toggle(self):
-      """ reset options for toggling VTK scales to defaults """
-      self.toggle_scale_display = False
-      self._toggle_vtk_scale.setText('Apply Scaling to VTK Display')
 
     def initContextmenu(self, reset_auto = False):
       """Initialize the result buffer context menu """
@@ -531,14 +513,6 @@ class ResultsRange(QWidget):
         self._toggle_nd_controller.setText('Hide ND Controller')
         self._toggle_nd_controller.triggered.connect(self.toggle_ND_controller)
 
-        toggle_id = self.menu_table['Toggle VTK Scale']
-        self._toggle_vtk_scale = QAction('Toggle VTK Scale',self)
-        self.menu.addAction(self._toggle_vtk_scale)
-        self._toggle_vtk_scale.setVisible(False)
-        self._toggle_vtk_scale.setData(toggle_id)
-        self._toggle_vtk_scale.setText('Apply Scaling to VTK Display')
-        self._toggle_vtk_scale.triggered.connect(self.toggle_scale)
-
         toggle_id = self.menu_table['Update']
         self._update = QAction('Update',self)
         self.menu.addAction(self._update)
@@ -595,8 +569,6 @@ class ResultsRange(QWidget):
       self._toggle_nd_controller.setVisible(True)
       self._print_to_postscript_file.setVisible(True)
       self._save_display_in_png_format.setVisible(True)
-      self._toggle_vtk_scale.setVisible(True)
-
       self._adjust_results_buffer_size.setVisible(False)
 
     def initWarpContextmenu(self):
@@ -665,11 +637,11 @@ class ResultsRange(QWidget):
 
 # the following tests the ResultsRange class
 def make():
-#   demo = ResultsRange(horizontal=False, hide_slider=True)
-    demo = ResultsRange(horizontal=True, use_int=True,hide_slider=True)
-#   demo.setRange(0.005)
+    demo = ResultsRange(horizontal=False, hide_slider=False)
+#   demo = ResultsRange(horizontal=True, use_int=True,hide_slider=False)
+    demo.setRange(0.005)
 #   demo = ResultsRange()
-    demo.setRange(20)
+#   demo.setRange(20)
     demo.show()
     demo.init3DContextmenu()
     return demo

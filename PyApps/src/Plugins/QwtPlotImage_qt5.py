@@ -78,24 +78,19 @@
 #
 
 import sys
-from qwt.qt.QtGui import QApplication, QPen, QWidget, QFrame, QImage, qRgb
-from qwt.qt.QtCore import Qt, QSize, QObject
-from qwt import (QwtPlot, QwtPlotMarker, QwtLegend, QwtPlotGrid, QwtPlotCurve,
-                 QwtPlotItem, QwtText, QwtLegendData, QwtLinearColorMap,
-                 QwtInterval, QwtScaleMap, toQImage)
-
-from QwtSpy_qt5 import *
-
 import numpy
 import math
 
-#from UVPAxis import *
-#from ComplexColorMap import *
-from ImageScaler import *
+from qwt.qt.QtGui import QApplication, QPen, QWidget, QFrame, QImage, qRgb
+from qwt.qt.QtCore import Qt, QSize, QObject
+from qwt import (QwtPlot, QwtPlotMarker, QwtLegend, QwtPlotGrid, QwtPlotCurve,
+                 QwtPlotItem, QwtText, QwtLegendData, QwtLinearColorMap)
 
 HAS_TIMBA = False
 
 try:
+  from Timba.Plugins.ImageScaler import ImageScaler
+  from Timba.Plugins.QwtSpy_qt5 import Spy
   from Timba.utils import verbosity
   dbg = verbosity(0,name='QwtPlotImage');
   dprint = _dbg.dprint;
@@ -264,9 +259,6 @@ class QwtPlotImage(QwtPlotItem):
       self.display_type = display_type
       if HAS_TIMBA:
         _dprint(2,'display type set to ', self.display_type);
-      if self.display_type == "brentjens" and self.ValueAxis == None:
-        self.ValueAxis =  UVPAxis()
-        self.ComplexColorMap = ComplexColorMap(256)
     # setDisplayType
 
     def setFlagColour(self, flag_colour):
@@ -701,10 +693,7 @@ class QwtPlotImage(QwtPlotItem):
             self.yMap = ImageScaler(0, shape[1], 0, shape[1])
             self.yMap_draw = ImageScaler(0, shape[1], 0, shape[1])
             self.plot.setAxisScale(QwtPlot.yLeft, 0, shape[1])
-        if self.display_type == "brentjens":
-          self.setBrentjensImage(data_array)
-        else:
-          self.setImage(data_array)
+        self.setImage(data_array)
         self.raw_image = data_array
     # setData()    
 

@@ -77,7 +77,7 @@ from qwt.qt.QtGui import (QApplication, QMainWindow, QDialog, QGridLayout,QHBoxL
 from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QButtonGroup
 from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal
 
-import chartplot_qt5
+from Timba.Plugins.chartplot_qt5 import ChartPlot
 
 class ControlMenu (QMenu):
   """This is the control menu common to all the ChartPlot widgets"""
@@ -237,6 +237,8 @@ class ControlMenu (QMenu):
         self.vells_component = label;
       self.vells_menu.addAction(va);
     self.vells_menu.menuAction().setVisible(True);
+
+# following does nothing at the moment
     for label in self.StokesComponents:
       self._qas_stokes[label] = vs = self._qag_stokes.addAction(label);
       vs.setCheckable(True);
@@ -422,14 +424,14 @@ class DisplayMainWindow(QMainWindow):
 
   def updateEvent(self, data_dict):
     data_type = data_dict['data_type']
-    print('Display updating with type', data_type)
+#   print('Display updating with type', data_type)
     try:
       self._grab_name = data_dict['source']
     except:
       self._grab_name = ''
-    print('Display updating with _grab_name', self._grab_name)
+#   print('Display updating with _grab_name', self._grab_name)
     if data_type not in self._ChartPlot:
-      self._ChartPlot[data_type] = chartplot_qt5.ChartPlot(self._menu,num_curves=self._num_curves,parent=self)
+      self._ChartPlot[data_type] = ChartPlot(self._menu,num_curves=self._num_curves,parent=self)
       self._ChartPlot[data_type].setDataLabel(data_type)
 #     self._ChartPlot[data_type].set_plotter_inactive()
 #     self._ChartPlot[data_type].set_plotter_active()

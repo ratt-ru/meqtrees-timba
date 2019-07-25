@@ -91,9 +91,8 @@ try:
   from Timba.GUI.browsers import *
   from Timba import Grid
   
-  from Timba.Plugins.display_image_qt5 import *
-  from Timba.Plugins.realvsimag_qt5 import *
-  from Timba.Plugins.plotting_functions_qt5 import *
+  from Timba.Plugins.display_image_qt5 import QwtImageDisplay
+  import Timba.Plugins.plotting_functions_qt5 as plot_func
   from Timba.utils import verbosity
   _dbg = verbosity(0,name='result_plotter');
   _dprint = _dbg.dprint;
@@ -105,20 +104,14 @@ print('HAS_TIMBA = ', HAS_TIMBA)
 
 global has_vtk
 has_vtk = False
-try:
-  from Timba.Plugins.vtk_qt4_3d_display import *
-  has_vtk = True
-except:
-  pass
 
-from QwtPlotImage_qt5 import *
-from QwtColorBar_qt5 import *
-from SpectrumData import *
-from VellsData import *
-from SolverData import *
-from ND_Controller_qt5 import *
-from ResultsRange_qt5 import *
-#from plot_printer_qt5 import *
+from QwtPlotImage_qt5 import QwtPlotImage
+from QwtColorBar_qt5 import QwtColorBar
+from SpectrumData import SpectrumData
+from VellsData import VellsData
+from SolverData import SolverData
+from ND_Controller_qt5 import ND_Controller
+from ResultsRange_qt5 import ResultsRange
 
 class ResultPlotter(GriddedPlugin):
   """ a class to visualize data, VellSets or visu data, that is 
@@ -166,10 +159,10 @@ class ResultPlotter(GriddedPlugin):
         'ellipse': QwtSymbol.Ellipse,
         'dot': QwtSymbol.Ellipse,
         'circle': QwtSymbol.Ellipse,
-	'xcross': QwtSymbol.XCross,
-	'cross': QwtSymbol.Cross,
-	'triangle': QwtSymbol.Triangle,
-	'diamond': QwtSymbol.Diamond,
+        'xcross': QwtSymbol.XCross,
+        'cross': QwtSymbol.Cross,
+        'triangle': QwtSymbol.Triangle,
+        'diamond': QwtSymbol.Diamond,
         }
 
   line_style_table = {
@@ -579,7 +572,7 @@ class ResultPlotter(GriddedPlugin):
 
     self.plotPrinter = None
 #   self._visu_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent)
-    self._visu_plotter = create_2D_Plotters(self.layout, self.layout_parent)
+    self._visu_plotter = plot_func.create_2D_Plotters(self.layout, self.layout_parent)
     self._visu_plotter.handle_menu_id.connect(self.update_vells_display)
     self._visu_plotter.handle_spectrum_menu_id.connect(self.update_spectrum_display)
     self._visu_plotter.colorbar_needed.connect(self.set_ColorBar)
@@ -1115,7 +1108,7 @@ class ResultPlotter(GriddedPlugin):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numpy array of dimension 3 or greater """
 
-    self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
+    self.ND_Controls = plot_func.create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 
     self.ND_Controls.sliderValueChanged.connect(self.setArraySelector)
     self.ND_Controls.defineSelectedAxes.connect(self.setSelectedAxes)
@@ -1134,12 +1127,12 @@ class ResultPlotter(GriddedPlugin):
         return
     axis_increments = self._visu_plotter.getActiveAxesInc()
 
-    self._visu_plotter = delete_2D_Plotters(self.colorbar, self._visu_plotter)
+    self._visu_plotter = plot_func.delete_2D_Plotters(self.colorbar, self._visu_plotter)
     if not self.status_label is None:
       self.status_label.setParent(Qt.QWidget())
       self.status_label = None
     if self.ND_plotter is None:
-      self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
+      self.ND_plotter = plot_func.create_ND_Plotter (self.layout, self.layout_parent)
       self.ND_plotter.show_2D_Display.connect(self.show_2D_Display)
       self.ND_plotter.show_ND_Controller.connect(self.ND_controller_showDisplay)
     else:
@@ -1182,7 +1175,7 @@ class ResultPlotter(GriddedPlugin):
   def set_ColorBar (self):
     """ this function adds a colorbar for 2-D displays """
     # create two color bars in case we are displaying complex arrays
-    self.colorbar = create_ColorBar(self.layout, self.layout_parent, self._visu_plotter, self.plotPrinter)
+    self.colorbar = plot_func.create_ColorBar(self.layout, self.layout_parent, self._visu_plotter, self.plotPrinter)
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 #Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)

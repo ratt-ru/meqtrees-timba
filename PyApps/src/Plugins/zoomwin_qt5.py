@@ -69,15 +69,13 @@
 
 import sys
 import numpy
+import numpy
 
 from qwt.qt.QtGui import QApplication, QHBoxLayout, QWidget
 from qwt.qt.QtCore import Qt, pyqtSignal
 from qwt import QwtPlot, QwtPlotCurve
-                 
-import numpy
 
-
-import display_image_qt5
+from Timba.Plugins.display_image_qt5 import QwtImageDisplay
 
 #widget to show a zoomed chanel of the plot
 
@@ -112,7 +110,7 @@ class ZoomPopup(QWidget):
     self._array_label = "Channel "
  
     #Create the plot for selected curve to zoom
-    self._plotter = display_image_qt5.QwtImageDisplay(parent=self)
+    self._plotter = QwtImageDisplay(parent=self)
     self._plotter.setZoomDisplay()
 
     self._zoom_plot_label = self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"

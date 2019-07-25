@@ -91,7 +91,6 @@ class BufferSizeDialog(QDialog):
     def runDone(self):
         self.return_value.emit(self.value)
         self.done(self.value)
-        print('emitted', self.value)
 
     def runCancel(self):
         self.value = -1

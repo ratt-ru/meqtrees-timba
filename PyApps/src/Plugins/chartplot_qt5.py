@@ -70,9 +70,9 @@
 
 import sys
 
-from qwt.qt.QtGui import QPen, QColor,QWidget, QFont, QFontInfo,QMessageBox
+from qwt.qt.QtGui import QPen, QBrush, QColor,QWidget, QFont, QFontInfo,QMessageBox
 from qwt.qt.QtGui import QApplication, QHBoxLayout, QFrame, QLabel
-from qwt.qt.QtCore import Qt, QObject, pyqtSignal, QTimer
+from qwt.qt.QtCore import Qt, QObject, pyqtSignal, QTimer, QPoint
 from qwt import QwtPlot, QwtPlotMarker, QwtPlotCurve, QwtText
 
 from QwtSpy_qt5 import *
@@ -80,7 +80,10 @@ import zoomwin_qt5
 
 import random
 import numpy
-from unidecode import unidecode
+try:
+  from unidecode import unidecode
+except:
+  pass
 
 HAS_TIMBA = False
 try:
@@ -98,7 +101,6 @@ class ChartPlot(QWidget):
         creates bottom frame and the chart plot
         Does all the connections
     """
-    print('initiating a chartplot')
     QWidget.__init__(self, parent)
 
     self.setMouseTracking(True)
@@ -163,7 +165,6 @@ class ChartPlot(QWidget):
 
     #Number of curves/beams
     if not num_curves is None:
-      print('total number of plot curves',num_curves)
       self._nbcrv = num_curves
       # make sure _nbcrv is a multiple of four
       nbcrv_bin = 4

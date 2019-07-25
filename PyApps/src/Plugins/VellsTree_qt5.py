@@ -67,9 +67,7 @@
 #
 
 import sys
-#from PyQt5.QtWidgets import *
 
-#from qwt.qt.QtGui import QApplication, QWidget
 from qwt.qt.QtGui import QTreeWidget, QTreeWidgetItem, QApplication, QWidget
 from qwt.qt.QtCore import Qt, QObject, pyqtSignal
 
@@ -113,10 +111,6 @@ class VellsView(QTreeWidget) :
     QTreeWidget.__init__( self, parent)
     self.itemClicked[QTreeWidgetItem, int].connect(self.slotVellSelected)
 
-#   self.setWindowTitle("Element Selector")
-#   labels = Qt.QStringList()
-#   labels << self.tr("Element selector")
-#    self.setHeaderLabels(labels)
     self.header().hide();
 
     # self.setSorting(-1)

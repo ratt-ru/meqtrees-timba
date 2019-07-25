@@ -76,7 +76,6 @@ from qwt.qt.QtCore import Qt
 
 HAS_TIMBA = False
 try:
-  from Timba.dmi import *
   from Timba import utils
   from Timba.Meq import meqds
   from Timba.Meq.meqds import mqs
@@ -85,11 +84,11 @@ try:
   from Timba.GUI.browsers import *
   from Timba import Grid
 
-  from Timba.Plugins.display_image_qt5 import *
-  from Timba.Plugins.plotting_functions_qt5 import *
-  from Timba.Plugins.QwtPlotImage_qt5 import *
-  from Timba.Plugins.QwtColorBar_qt5 import *
-  from Timba.Plugins.ND_Controller_qt5 import *
+  from Timba.Plugins.display_image_qt5 import QwtImageDisplay
+  from Timba.Plugins.QwtPlotImage_qt5 import QwtPlotImage
+  from Timba.Plugins.QwtColorBar_qt5 import QwtColorBar
+  from Timba.Plugins.ND_Controller_qt5 import ND_Controller
+  import Timba.Plugins.plotting_functions_qt5 as plot_func
   #from Timba.Plugins.plot_printer_qt5 import *
 
 
@@ -103,12 +102,6 @@ except:
 
 global has_vtk
 has_vtk = False
-try:
-  from Timba.Plugins.vtk_qt4_3d_display import *
-  has_vtk = True
-except:
-  pass
-
 
 class ArrayPlotter(GriddedPlugin):
   """ a class to plot raw arrays contained within a Meq tree """
@@ -140,7 +133,7 @@ class ArrayPlotter(GriddedPlugin):
     if not self.ND_plotter is None:
       self.ND_plotter.close()
       self.ND_plotter = None
-    self.twoD_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent)
+    self.twoD_plotter, self.plotPrinter = plot_func.create_2D_Plotters(self.layout, self.layout_parent)
     self.twoD_plotter.colorbar_needed.connect(self.set_ColorBar)
     self.twoD_plotter.show_ND_Controller.connect(self.ND_controller_showDisplay)
     self.twoD_plotter.show_3D_Display.connect(self.show_3D_Display)
@@ -267,7 +260,7 @@ class ArrayPlotter(GriddedPlugin):
               if first_axis is None:
                 first_axis = i
         if not second_axis is None:
-          self.array_selector = create_array_selector(None, self.array_rank, self.data.shape, first_axis,second_axis, -1)
+          self.array_selector = plot_func.create_array_selector(None, self.array_rank, self.data.shape, first_axis,second_axis, -1)
       self.array_tuple = tuple(self.array_selector)
       self.twoD_plotter.array_plot(self.data[self.array_tuple],data_label='data')
     else:
@@ -306,7 +299,7 @@ class ArrayPlotter(GriddedPlugin):
               if first_axis is None:
                 first_axis = i
         if not first_axis is None and not second_axis is None and not third_axis is None:
-          self.array_selector = create_array_selector(None, self.array_rank, self.data.shape, first_axis,second_axis,third_axis)
+          self.array_selector = plot_func.create_array_selector(None, self.array_rank, self.data.shape, first_axis,second_axis,third_axis)
       self.array_tuple = tuple(self.array_selector)
       plot_array =  self.data[self.array_tuple]
     else:
@@ -324,7 +317,7 @@ class ArrayPlotter(GriddedPlugin):
     """ update the selected axes of an N-dimensional array
         and display the selected sub-array.
     """
-    self.array_selector = create_array_selector(self.twoD_plotter, self.array_rank, self.array_shape, first_axis,second_axis,third_axis)
+    self.array_selector = plot_func.create_array_selector(self.twoD_plotter, self.array_rank, self.array_shape, first_axis,second_axis,third_axis)
     self.array_tuple = tuple(self.array_selector)
     if not self.twoD_plotter is None:
       # reset various parameters and fields
@@ -364,7 +357,7 @@ class ArrayPlotter(GriddedPlugin):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numpy array of dimension 3 or greater """
 
-    self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
+    self.ND_Controls = plot_func.create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 
     self.ND_Controls.sliderValueChanged.connect(self.setArraySelector)
     self.ND_Controls.defineSelectedAxes.connect(self.setSelectedAxes)
@@ -377,7 +370,7 @@ class ArrayPlotter(GriddedPlugin):
     self.status_label = None
 
     if self.ND_plotter is None:
-      self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
+      self.ND_plotter = plot_func.create_ND_Plotter (self.layout, self.layout_parent)
       self.ND_plotter.show_2D_Display.connect(self.show_2D_Display)
       self.ND_plotter.show_ND_Controller.connect(self.ND_controller_showDisplay)
     else:
@@ -396,6 +389,6 @@ class ArrayPlotter(GriddedPlugin):
   def set_ColorBar (self):
     """ this function adds a colorbar for 2-D displays """
     # create two color bars in case we are displaying complex arrays
-    self.colorbar = create_ColorBar(self.layout, self.layout_parent, self.twoD_plotter, self.plotPrinter)
+    self.colorbar = plot_func.create_ColorBar(self.layout, self.layout_parent, self.twoD_plotter, self.plotPrinter)
 
 Grid.Services.registerViewer(array_class,ArrayPlotter,priority=10)

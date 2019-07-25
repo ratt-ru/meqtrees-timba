@@ -63,16 +63,10 @@
 #  CANADA					 CANADA
 #
 
-# a small class used to get mouse events to work in PythonQwt Qwt6 in basically
-# the same way we had things working with Qwt4 and 5
+# a small class used to get and emit mouse events 
+# Adapted from an ancient PyQwt example - thanks Gerard!
 
-# Adapted from a PyQwt example - thanks Gerard!
-
-from qwt.qt.QtGui import (QApplication, QPen, QBrush, QColor, QWidget,
-                          QMainWindow, QPainter, QPixmap, QToolBar, QWhatsThis)
-from qwt.qt.QtCore import QSize, QEvent, Signal, QRect, QObject, Qt, QPoint
-
-
+from qwt.qt.QtCore import QEvent, Signal, QObject
 
 class Spy(QObject):
 

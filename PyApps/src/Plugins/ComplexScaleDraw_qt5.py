@@ -70,13 +70,13 @@
 #
 
 import sys
+import numpy
 
 from qwt.qt.QtGui import QApplication, QPen
 from qwt.qt.QtCore import Qt
 from qwt import (QwtPlot, QwtPlotMarker, QwtPlotGrid, QwtPlotCurve,
                  QwtScaleMap, QwtScaleDraw, QwtScaleDiv)
 
-import numpy
 
 class ComplexScaleDraw(QwtScaleDraw):
     """ override default behaviour of QwtScaleDraw class """

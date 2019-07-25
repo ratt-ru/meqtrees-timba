@@ -69,11 +69,17 @@
 #
 
 import sys
+import random
+import traceback
+import numpy
+import math
 
-from qwt.qt.QtGui import (QApplication, QDialog, QGridLayout,QHBoxLayout,QToolTip,QPrinter,QPrintDialog,
+
+
+from qwt.qt.QtGui import (QApplication, QDialog, QGridLayout,QHBoxLayout,QToolTip,QPrinter,QPrintDialog, QFrame,
          QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem)
-from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QMessageBox
-from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal, QTimer
+from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QMessageBox, QBrush
+from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal, QTimer, QPoint
 from qwt import (QwtPlot, QwtPlotMarker, QwtLegend, QwtPlotGrid, QwtPlotCurve,QwtPlotRenderer,
                  QwtPlotItem, QwtText, QwtLegendData, QwtLinearColorMap, QwtSymbol,
                  QwtInterval, QwtScaleMap, QwtScaleDraw, QwtScaleDiv, toQImage)
@@ -81,20 +87,13 @@ from qwt import  QwtLogScaleEngine, QwtLinearScaleEngine
 
 
 
-from QwtSpy_qt5 import *
-
-import numpy
-import math
-
-from ComplexScaleDraw_qt5 import *
-from QwtPlotImage_qt5 import *
-from VellsTree_qt5 import *
-import random
-import traceback
-
 HAS_TIMBA = False
 try:
   from Timba.GUI.pixmaps import pixmaps
+  from Timba.Plugins.QwtSpy_qt5 import Spy
+  from Timba.Plugins.ComplexScaleDraw_qt5 import ComplexScaleDraw
+  from Timba.Plugins.QwtPlotImage_qt5 import QwtPlotImage
+  from Timba.Plugins.VellsTree_qt5 import VellsView, VellsElement
   from Timba.utils import verbosity
   _dbg = verbosity(0,name='displayimage');
   _dprint = _dbg.dprint;
@@ -103,16 +102,8 @@ try:
 except:
   pass
  
-# is vtk available?
 global has_vtk
 has_vtk = False
-## OMS: disabling this as of 29/08/2011. See bug 863.
-#try:
-  #import vtk
-  #has_vtk = True
-#except:
-  #print 'pyvtk not found, 3D visualization will not be available.'
-  #print 'Do not worry: this is is an optional module.'
 
 def linearX(nx, ny):
     return repeat(numpy.arange(nx, typecode = numpy.float32)[:, numpy.newaxis], ny, -1)
@@ -177,6 +168,7 @@ class QwtImageDisplay(QwtPlot):
     show_3D_Display = pyqtSignal(int)
     show_results_selector = pyqtSignal(bool)
     full_vells_image = pyqtSignal(bool)
+    itemAttached =  pyqtSignal('PyQt_PyObject',bool)
 
     display_table = {
         'hippo': 'hippo',
@@ -296,7 +288,7 @@ class QwtImageDisplay(QwtPlot):
         self.iteration_number = None
         self.solver_labels = None
         self.scalar_display = False
-        self.ampl_phase = None
+        self.ampl_phase = False
         self.log_switch_set = False
         self._active_perturb = None
         self.first_axis_inc = None
@@ -2555,7 +2547,7 @@ class QwtImageDisplay(QwtPlot):
           self.log_offset = self.plotImage.getTransformOffset()
         if self.complex_type:
           axis_shape = self.x_index.shape
-          limit = int(axis_shape[0] / 2)
+          limit = axis_shape[0] // 2
           if not self.xrCrossSection is None:
             self.xrCrossSection.setData(self.x_index[:limit], self.x_array[:limit] + self.log_offset)
           if not self.xiCrossSection is None:
@@ -2768,6 +2760,7 @@ class QwtImageDisplay(QwtPlot):
         for j in range(shape[0]):
           plot_data[j] = self.chi_vectors[j,i]
           chi_data[j] = self.chi_zeros[j,i]
+# we really need a QwtPlotCurveSizes object here
         curve = QwtPlotCurve()
         title_key = 'vector sum of incremental solutions '
         curve.setTitle(title_key)
@@ -2802,7 +2795,8 @@ class QwtImageDisplay(QwtPlot):
               else:
                 symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                   QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
-        curve.setSymbolList(symbolList)
+#        following only works with QwtPlotCurveSizes
+#        curve.setSymbolList(symbolList)
 
       # add additional solution surfaces here
       if self.display_solution_distances:
@@ -2813,6 +2807,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data1[j] = self.sum_incr_soln_norm[j,i]
             chi_data1[j] = self.chi_zeros[j,i]
+# we really need a QwtPlotCurveSizes object here
           curve = QwtPlotCurve()
           title_key = 'sum of the norms of incremental solutions '
           self.chis_plot[title_key+str(i)] = curve
@@ -2847,7 +2842,8 @@ class QwtImageDisplay(QwtPlot):
                 else:
                   symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                     QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
-          curve.setSymbolList(symbolList)
+#        following only works with QwtPlotCurveSizes
+#         curve.setSymbolList(symbolList)
 
         for i in range(shape[1]):
           plot_data2= numpy.zeros(shape[0], numpy.float32)
@@ -2855,6 +2851,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data2[j] = self.incr_soln_norm[j,i]
             chi_data2[j] = self.chi_zeros[j,i]
+# we really need a QwtPlotCurveSizes object here
           curve = QwtPlotCurve()
           title_key = 'norms of incremental solutions '
           self.chis_plot[title_key+str(i)] = curve
@@ -2889,7 +2886,8 @@ class QwtImageDisplay(QwtPlot):
                 else:
                   symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                     QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
-          curve.setSymbolList(symbolList)
+# following only works for QwtPlotCurvesSizes
+#         curve.setSymbolList(symbolList)
 
         # plot eigenvalues of the covariance matrix?
         if self.eigenvectors is None:
@@ -2910,6 +2908,7 @@ class QwtImageDisplay(QwtPlot):
             sorted_eigenvalues = numpy.array(eigenlist)
             shape = eigenvalues.shape
             x_data = numpy.arange(shape[0])
+# we really need a QWtPlotCurveSizes object here
             curve = QwtPlotCurve()
             title_key = 'eigenvalues ' 
             curve.setTitle(title_key)
@@ -2936,7 +2935,8 @@ class QwtImageDisplay(QwtPlot):
               else:
                 symbolList.append(QwtSymbol(QwtSymbol.Diamond,
                    QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
-            curve.setSymbolList(symbolList)
+# we really need a QwtPlotCurveSizes object here
+#           curve.setSymbolList(symbolList)
 
     def insert_array_info(self):
       if self.is_vector:
@@ -3331,15 +3331,9 @@ class QwtImageDisplay(QwtPlot):
         self.log_switch_set = True
 
       if self.is_vector == False:
-        if has_vtk:
-          self._toggle_warp_display.setVisible(True)
-
         if self.original_data_rank > 2: 
           self.toggle_ND_Controller = 1
           self._toggle_nd_controller.setVisible(True)
-          if has_vtk:
-            self._toggle_3d_display.setVisible(True)
-
         if self.complex_type: 
           self.complex_divider = plot_array.shape[0]
 

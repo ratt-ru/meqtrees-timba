@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-# modules that are imported
-
 #% $Id: quickref_plotter.py 6250 2008-07-11 05:55:05Z twillis $ 
 
 #
@@ -69,14 +67,15 @@
 #  CANADA					 CANADA
 #
 
+# modules that are imported
 
 from qwt.qt.QtGui import QApplication, QGridLayout, QWidget
 from qwt.qt.QtCore import Qt, QObject, pyqtSignal
 
 # modules that are imported
+
 HAS_TIMBA = False
 try:
-  from Timba.dmi import *
   from Timba import utils
   from Timba.Meq import meqds
   from Timba.Meq.meqds import mqs
@@ -91,10 +90,8 @@ try:
   HAS_TIMBA = True
 except:
   pass
-print('HAS_TIMBA = ', HAS_TIMBA)
 
-#from PyQt5.QtWidgets import *
-#from PyQt5 import Qt
+#print('HAS_TIMBA = ', HAS_TIMBA)
 
 class QuickRefPlotter(GriddedPlugin):
   """ a class to display quickref_help contents of a node in the browser """ 

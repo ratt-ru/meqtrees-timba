@@ -71,6 +71,11 @@
 #  CANADA					 CANADA
 #
 
+from math import log
+from math import exp
+from math import pi
+import numpy
+
 from qwt.qt.QtGui import QApplication, QSizePolicy, QMessageBox
 from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, QFont, QFontInfo, QMenu, QActionGroup, QAction
 from qwt.qt.QtCore import Qt, pyqtSignal, QSize, QObject
@@ -78,16 +83,11 @@ from qwt import (QwtPlot, QwtPlotMarker, QwtPlotCurve,
                  QwtPlotItem, QwtLinearColorMap,
                  QwtLogScaleEngine, QwtLinearScaleEngine,
                  QwtScaleMap, QwtScaleDraw, QwtScaleDiv)
-import numpy
-
-
-from QwtPlotImage_qt5 import *
-from math import log
-from math import exp
-import numpy
 
 HAS_TIMBA = False
 try:
+  from Timba.Plugins.QwtPlotImage_qt5 import QwtPlotImage
+  from Timba.Plugins.QwtSpy_qt5 import Spy
   from Timba.utils import verbosity
   _dbg = verbosity(0,name='QwtColorBar');
   _dprint = _dbg.dprint;
@@ -595,7 +595,7 @@ class QwtColorBar(QwtPlot):
       self.gain = 1.0
       # image
       self.plotImage.setData(
-            square(512,-1.0 * self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi), (-1.0*self.gain*math.pi, self.gain*math.pi))
+            square(512,-1.0 * self.gain*pi, self.gain*pi), (-1.0*self.gain*pi, self.gain*pi), (-1.0*self.gain*pi, self.gain*pi))
 
 
 # class QwtColorBar

@@ -80,20 +80,17 @@ HAS_TIMBA = False
 try:
   from Timba import utils
   from Timba.GUI import widgets
-  from Timba.Plugins.display_image_qt5 import *
-  from Timba.Plugins.QwtColorBar_qt5 import *
-  from Timba.Plugins.ND_Controller_qt5 import *
-# from Timba.Plugins.plot_printer_qt5 import *
+  from Timba.Plugins.display_image_qt5 import QwtImageDisplay
+  from Timba.Plugins.QwtColorBar_qt5 import QwtColorBar
+  from Timba.Plugins.ND_Controller_qt5 import ND_Controller
+
   from Timba.utils import verbosity
   _dbg = verbosity(0,name='plotting_functions');
   _dprint = _dbg.dprint;
   _dprintf = _dbg.dprintf;
   HAS_TIMBA = True
 except:
-  from display_image_qt5 import *
-  from QwtColorBar_qt5 import *
-  from ND_Controller_qt5 import *
-#### from plot_printer_qt5 import *
+  pass
 
 def create_ColorBar (layout,layout_parent, plotter, plotPrinter):
   """ this function adds a colorbar for 2-D displays """
@@ -101,7 +98,6 @@ def create_ColorBar (layout,layout_parent, plotter, plotPrinter):
   # create two color bars in case we are displaying complex arrays
   colorbar = {}
   for i in range(2):
-    print('adding color bars')
     colorbar[i] =  QwtColorBar(colorbar_number= i, parent=layout_parent)
     colorbar[i].setMaxRange((-1, 1))
     plotter.max_image_range.connect(colorbar[i].handleRangeParms)
@@ -111,10 +107,8 @@ def create_ColorBar (layout,layout_parent, plotter, plotPrinter):
     if i == 0:
       layout.addWidget(colorbar[i], 0, i)
       colorbar[i].show()
-      print('added first color bar')
     else:
       layout.addWidget(colorbar[i], 0, 2)
-      print('added second color bar')
       colorbar[i].hide()
 # plotPrinter.add_colorbar(colorbar)
   return colorbar
@@ -164,7 +158,6 @@ def create_2D_Plotters(layout, layout_parent):
 def create_ND_Plotter (layout, layout_parent):
   """ create a new ND plotter """
   ND_plotter = vtk_qt_3d_display(layout_parent)
-# layout.addMultiCellWidget(ND_plotter,0,0,0,2)
   layout.addWidget(ND_plotter,0,0,1,2)
   ND_plotter.show()
   if HAS_TIMBA:
@@ -179,7 +172,6 @@ def create_ND_Controls (layout, layout_parent, array_shape, ND_Controls, ND_plot
     ND_Controls.setParent(QWidget())
     ND_Controls = None
   ND_Controls = ND_Controller(array_shape, labels, parms, num_axes,layout_parent)
-# layout.addMultiCellWidget(ND_Controls,2,2,0,2)
   layout.addWidget(ND_Controls,2,0,1,2)
   if ND_Controls.get_num_selectors() > num_axes:
     ND_Controls.showDisplay(1)

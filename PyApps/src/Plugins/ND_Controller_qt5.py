@@ -3,7 +3,6 @@
 # a class to generate control buttons etc for use in controlling N-dimensional
 # displays
 
-# modules that are imported
 
 #% $Id: ND_Controller.py 5418 2007-07-19 16:49:13Z oms $ 
 
@@ -72,10 +71,11 @@
 #  CANADA					 CANADA
 #
 
+# modules that are imported
 
 import sys
 
-from qwt.qt.QtGui import (QApplication, QDialog, QGridLayout,QHBoxLayout,
+from qwt.qt.QtGui import (QApplication, QGridLayout,QHBoxLayout,
          QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem)
 from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba
 from qwt.qt.QtCore import Qt, QObject, pyqtSignal
@@ -83,6 +83,7 @@ from qwt.qt.QtCore import Qt, QObject, pyqtSignal
 
 # the AxisRange class is directly adapted from the Qt/PyQt 
 # tutorial code examples
+
 class AxisRange(QWidget):
     """ a spinbox and a slider, either of which can be used to specify
         a value from within an allowed range
