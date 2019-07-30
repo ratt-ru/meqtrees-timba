@@ -92,6 +92,7 @@ try:
   from Timba.GUI.pixmaps import pixmaps
   from Timba.Plugins.QwtSpy_qt5 import Spy
   from Timba.Plugins.ComplexScaleDraw_qt5 import ComplexScaleDraw
+  from Timba.Plugins.QwtPlotCurveSizes_qt5 import QwtPlotCurveSizes
   from Timba.Plugins.QwtPlotImage_qt5 import QwtPlotImage
   from Timba.Plugins.VellsTree_qt5 import VellsView, VellsElement
   from Timba.utils import verbosity
@@ -2760,8 +2761,7 @@ class QwtImageDisplay(QwtPlot):
         for j in range(shape[0]):
           plot_data[j] = self.chi_vectors[j,i]
           chi_data[j] = self.chi_zeros[j,i]
-# we really need a QwtPlotCurveSizes object here
-        curve = QwtPlotCurve()
+        curve = QwtPlotCurveSizes()
         title_key = 'vector sum of incremental solutions '
         curve.setTitle(title_key)
         self.chis_plot[title_key+str(i)] = curve
@@ -2795,8 +2795,7 @@ class QwtImageDisplay(QwtPlot):
               else:
                 symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                   QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
-#        following only works with QwtPlotCurveSizes
-#        curve.setSymbolList(symbolList)
+        curve.setSymbolList(symbolList)
 
       # add additional solution surfaces here
       if self.display_solution_distances:
@@ -2807,8 +2806,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data1[j] = self.sum_incr_soln_norm[j,i]
             chi_data1[j] = self.chi_zeros[j,i]
-# we really need a QwtPlotCurveSizes object here
-          curve = QwtPlotCurve()
+          curve = QwtPlotCurveSizes()
           title_key = 'sum of the norms of incremental solutions '
           self.chis_plot[title_key+str(i)] = curve
           self.chis_plot[title_key+str(i)].attach(self)
@@ -2842,8 +2840,7 @@ class QwtImageDisplay(QwtPlot):
                 else:
                   symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                     QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
-#        following only works with QwtPlotCurveSizes
-#         curve.setSymbolList(symbolList)
+          curve.setSymbolList(symbolList)
 
         for i in range(shape[1]):
           plot_data2= numpy.zeros(shape[0], numpy.float32)
@@ -2851,8 +2848,7 @@ class QwtImageDisplay(QwtPlot):
           for j in range(shape[0]):
             plot_data2[j] = self.incr_soln_norm[j,i]
             chi_data2[j] = self.chi_zeros[j,i]
-# we really need a QwtPlotCurveSizes object here
-          curve = QwtPlotCurve()
+          curve = QwtPlotCurveSizes()
           title_key = 'norms of incremental solutions '
           self.chis_plot[title_key+str(i)] = curve
           self.chis_plot[title_key+str(i)].attach(self)
@@ -2887,7 +2883,7 @@ class QwtImageDisplay(QwtPlot):
                   symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
                     QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
 # following only works for QwtPlotCurvesSizes
-#         curve.setSymbolList(symbolList)
+          curve.setSymbolList(symbolList)
 
         # plot eigenvalues of the covariance matrix?
         if self.eigenvectors is None:
@@ -2935,8 +2931,7 @@ class QwtImageDisplay(QwtPlot):
               else:
                 symbolList.append(QwtSymbol(QwtSymbol.Diamond,
                    QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
-# we really need a QwtPlotCurveSizes object here
-#           curve.setSymbolList(symbolList)
+            curve.setSymbolList(symbolList)
 
     def insert_array_info(self):
       if self.is_vector:
