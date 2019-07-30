@@ -10,9 +10,9 @@ import sys
 import numpy
 
 from qwt.qt.QtGui import QApplication, QPen, QBrush
-from qwt.qt.QtCore import QSize, QPointF
+from qwt.qt.QtCore import QSize, QSizeF, QRect, QRectF, QPoint, QPointF
 from qwt.qt.QtCore import Qt
-from qwt import QwtPlot, QwtSymbol, QwtPlotCurve, QwtText
+from qwt import QwtPlot, QwtSymbol, QwtPlotGrid, QwtPlotCurve, QwtText
 
 class QwtPlotCurveSizes(QwtPlotCurve):
     def __init__(self, x=[], y=[], symbolSizes=None):
@@ -61,6 +61,7 @@ class QwtPlotCurveSizes(QwtPlotCurve):
         if not self.symbolList is None:
           self.symbolList[i].drawSymbol(painter, position);
         else:
+          symbol.setSize(QSize(self.symbolSizes[i],self.symbolSizes[i]))
           symbol.drawSymbol(painter, position);
     # drawSymbols()
 
@@ -69,7 +70,13 @@ class QwtPlotCurveSizes(QwtPlotCurve):
 def make():
     # create a plot with a white canvas
     demo = QwtPlot(QwtText("Curve Demonstation"))
+#   demo.setCanvasBackground(Qt.white)
+#   demo.plotLayout().setAlignCanvasToScales(True)
 
+#   grid = QwtPlotGrid()
+#   grid.attach(demo)
+#   grid.setPen(QPen(Qt.black, 0, Qt.DotLine))
+    
     # calculate data and errors for a curve with error bars
     x = numpy.zeros(20, numpy.float32)
     y = numpy.zeros(20, numpy.float32)
