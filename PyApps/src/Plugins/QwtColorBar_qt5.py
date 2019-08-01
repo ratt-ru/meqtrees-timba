@@ -412,15 +412,15 @@ class QwtColorBar(QwtPlot):
 
     def showDisplay(self, show_self, colorbar_number=0):
       """ callback to show or hide this colorbar """
-      print('in colorbar show display with self.colorbar_number', self.colorbar_number)
+#     print('in colorbar show display with self.colorbar_number', self.colorbar_number)
       if colorbar_number == self.colorbar_number:
         self.is_active = True
         if show_self > 0:
           self.show()
-          print('should show')
+#         print('should show')
         else:
           self.hide()
-          print('should hide')
+#         print('should hide')
         self.replot()
     # showDisplay
 

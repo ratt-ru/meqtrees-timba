@@ -78,7 +78,7 @@ import math
 
 from qwt.qt.QtGui import (QApplication, QDialog, QGridLayout,QHBoxLayout,QToolTip,QPrinter,QPrintDialog, QFrame,
          QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem)
-from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QMessageBox, QBrush
+from qwt.qt.QtGui import QBrush, QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QMessageBox, QBrush
 from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal, QTimer, QPoint
 from qwt import (QwtPlot, QwtPlotMarker, QwtLegend, QwtPlotGrid, QwtPlotCurve,QwtPlotRenderer,
                  QwtPlotItem, QwtText, QwtLegendData, QwtLinearColorMap, QwtSymbol,
@@ -494,7 +494,12 @@ class QwtImageDisplay(QwtPlot):
       event.accept()
     
     def clear_metrics(self):
-        self.clear()
+#       self.detachItems(QwtPlotItem.Rtti_PlotItem,True)
+#       self.detachItems(QwtPlotItem.Rtti_PlotMarker,True)
+        keys = list(self.metrics_plot.keys())
+        if len(keys) > 0:
+          for key in keys:
+            self.metrics_plot[key].detach()
         self.y_solver_offset = []
         self.metrics_plot = {}
         self.chis_plot = {}
@@ -1451,8 +1456,9 @@ class QwtImageDisplay(QwtPlot):
       else:
         self.setlegend = 1
         self.legend = QwtLegend()
-        self.legend.setFrameStyle(QFrame.Box | QFrame.Sunken)
-        self.insertLegend(self.legend, QwtPlot.RightLegend)
+#       self.legend.setFrameStyle(QFrame.Box | QFrame.Sunken)
+#       self.insertLegend(self.legend, QwtPlot.RightLegend)
+        self.insertLegend(QwtLegend(), QwtPlot.RightLegend)
         self._toggle_plot_legend.setChecked(True)
       self.replot()
       #print 'called replot in toggleLegend'
@@ -3394,7 +3400,7 @@ class QwtImageDisplay(QwtPlot):
             if self.axes_rotate:
               self.setAxisAutoScale(QwtPlot.xBottom)
               scale_engine = self.axisScaleEngine(QwtPlot.xBottom)
-              scale_engine.setAttributes(QwtScaleEngine.Inverted)
+              scale_engine.setAttributes(Qwt.QwtScaleEngine.Inverted)
             self.setAxisAutoScale(QwtPlot.xBottom)
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = self.vells_axis_parms[self.y_parm][2]
@@ -3460,7 +3466,7 @@ class QwtImageDisplay(QwtPlot):
             if self.axes_rotate:
               self.setAxisAutoScale(QwtPlot.xBottom)
               scale_engine = self.axisScaleEngine(QwtPlot.xBottom)
-              scale_engine.setAttributes(QwtScaleEngine.Inverted)
+              scale_engine.setAttributes(Qwt.QwtScaleEngine.Inverted)
           else:
             if self.solver_display is True:
               if not self.array_flip:
@@ -4055,12 +4061,14 @@ class QwtImageDisplay(QwtPlot):
 
         toggle_id = self.menu_table['Toggle Plot Legend']
         self._toggle_plot_legend = QAction('Toggle Plot Legend',self)
-        self._menu.addAction(self._toggle_plot_legend)
+# comment following out until figured out why qwt doesn't show legends
+#       self._menu.addAction(self._toggle_plot_legend)
         self._toggle_plot_legend.setData(str(toggle_id))
         self._toggle_plot_legend.setText('Show plot legends')
         self._toggle_plot_legend.setCheckable(True)
         self._toggle_plot_legend.setVisible(False)
-        self._toggle_plot_legend.triggered.connect(self.handle_toggle_plot_legend)
+# comment following out until figured out why qwt doesn't show legends
+#       self._toggle_plot_legend.triggered.connect(self.handle_toggle_plot_legend)
 
         toggle_id = self.menu_table['Show ColorBar']
         self._toggle_colorbar = QAction('Show ColorBar',self)

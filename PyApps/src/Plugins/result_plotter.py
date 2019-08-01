@@ -92,6 +92,13 @@ try:
   from Timba import Grid
   
   from Timba.Plugins.display_image_qt5 import QwtImageDisplay
+  from Timba.Plugins.QwtPlotImage_qt5 import QwtPlotImage
+  from Timba.Plugins.QwtColorBar_qt5 import QwtColorBar
+  from Timba.Plugins.SpectrumData import SpectrumData
+  from Timba.Plugins.VellsData import VellsData
+  from Timba.Plugins.SolverData import SolverData
+  from Timba.Plugins.ND_Controller_qt5 import ND_Controller
+  from Timba.Plugins.ResultsRange_qt5 import ResultsRange
   import Timba.Plugins.plotting_functions_qt5 as plot_func
   from Timba.utils import verbosity
   _dbg = verbosity(0,name='result_plotter');
@@ -100,18 +107,10 @@ try:
   HAS_TIMBA = True
 except:
   pass
-print('HAS_TIMBA = ', HAS_TIMBA)
 
 global has_vtk
 has_vtk = False
 
-from QwtPlotImage_qt5 import QwtPlotImage
-from QwtColorBar_qt5 import QwtColorBar
-from SpectrumData import SpectrumData
-from VellsData import VellsData
-from SolverData import SolverData
-from ND_Controller_qt5 import ND_Controller
-from ResultsRange_qt5 import ResultsRange
 
 class ResultPlotter(GriddedPlugin):
   """ a class to visualize data, VellSets or visu data, that is 
