@@ -83,8 +83,8 @@ import math
 
 from qwt.qt.QtGui import QApplication, QPen, QWidget, QFrame, QImage, qRgb
 from qwt.qt.QtCore import Qt, QSize, QObject
-from qwt import (QwtPlot, QwtPlotMarker, QwtLegend, QwtPlotGrid, QwtPlotCurve,
-                 QwtPlotItem, QwtText, QwtLegendData, QwtLinearColorMap)
+from qwt import (QwtPlot, QwtPlotMarker, QwtPlotGrid, QwtPlotCurve,
+                 QwtPlotItem, QwtText, QwtLinearColorMap)
 
 HAS_TIMBA = False
 
@@ -224,7 +224,6 @@ class QwtPlotImage(QwtPlotItem):
 
         QwtPlotItem.__init__(self)
         self.plot = parent
-        self.setItemAttribute(QwtPlotItem.Legend)
         self.display_type = "hippo"
         self.ValueAxis =  None
         self.ComplexColorMap = None
@@ -248,13 +247,8 @@ class QwtPlotImage(QwtPlotItem):
         self.lock_image_real = False
         self.lock_image_imag = False
         self.setTitle(title)
-        self.setItemAttribute(QwtPlotItem.Legend);
     # __init__()
     
-    def updateLegend(self, legend):
-        QwtPlotItem.updateLegend(self, legend)
-        legend.find(self).setText(self.title)
-
     def setDisplayType(self, display_type):
       self.display_type = display_type
       if HAS_TIMBA:
@@ -798,11 +792,9 @@ class QwtImagePlot(QwtPlot):
     def __init__(self, *args):
         QwtPlot.__init__(self, *args)
 	# make a QwtPlot widget
-#       self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
         self.plotLayout().setAlignCanvasToScales(1)
         self.setTitle('QwtImagePlot: (un)zoom & (un)hide')
-#       self.setAutoLegend(0)
 	# set axis titles
         self.setAxisTitle(QwtPlot.xBottom, 'time (s)')
         self.setAxisTitle(QwtPlot.yLeft, 'frequency (Hz)')

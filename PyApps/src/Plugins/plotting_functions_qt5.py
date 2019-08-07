@@ -149,10 +149,9 @@ def create_array_selector(plotter, rank, shape, first_axis,second_axis,third_axi
 
 def create_2D_Plotters(layout, layout_parent):
   """ create 2D plotter """
-  twoD_plotter = QwtImageDisplay('spectra',parent=layout_parent)
+  twoD_plotter = QwtImageDisplay(layout_parent)
   layout.addWidget(twoD_plotter, 0, 1)
   twoD_plotter.show()
-# plotPrinter = plot_printer(twoD_plotter)
   return twoD_plotter
 
 def create_ND_Plotter (layout, layout_parent):

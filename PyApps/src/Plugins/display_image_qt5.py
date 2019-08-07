@@ -80,8 +80,8 @@ from qwt.qt.QtGui import (QApplication, QDialog, QGridLayout,QHBoxLayout,QToolTi
          QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem)
 from qwt.qt.QtGui import QBrush, QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QMessageBox, QBrush
 from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal, QTimer, QPoint
-from qwt import (QwtPlot, QwtPlotMarker, QwtLegend, QwtPlotGrid, QwtPlotCurve,QwtPlotRenderer,
-                 QwtPlotItem, QwtText, QwtLegendData, QwtLinearColorMap, QwtSymbol,
+from qwt import (QwtPlot, QwtPlotMarker, QwtPlotGrid, QwtPlotCurve,QwtPlotRenderer,
+                 QwtPlotItem, QwtText, QwtLinearColorMap, QwtSymbol,
                  QwtInterval, QwtScaleMap, QwtScaleDraw, QwtScaleDiv, toQImage)
 from qwt import  QwtLogScaleEngine, QwtLinearScaleEngine
 
@@ -226,13 +226,14 @@ class QwtImageDisplay(QwtPlot):
 
     _start_spectrum_menu_id = 0
 
-    def __init__(self, plot_key="", parent=None):
+    def __init__(self, parent=None):
         QwtPlot.__init__(self, parent)
         self.parent = parent
-#       try:
         self._mainwin = parent and parent.topLevelWidget();
-#       except:
-#         self._mainwin = parent 
+
+# a relic from the past which we have to keep for the moment
+        self.plot_key = 'spectra'
+
 
 # set default display type to 'hippo'
         self._display_type = None
@@ -247,8 +248,6 @@ class QwtImageDisplay(QwtPlot):
         self._do_pause = False
         self._compare_max = False
 
-# save raw data
-        self.plot_key = plot_key
         self.solver_display = None
         self.x_array = None
         self.y_array = None
@@ -325,7 +324,6 @@ class QwtImageDisplay(QwtPlot):
         self.label = ''
         self.vells_menu_items = 0
         self.zooming = True
-        self.setlegend = 0
         self.log_offset = 0.0
         self.current_width = 0
 
@@ -361,7 +359,6 @@ class QwtImageDisplay(QwtPlot):
 
         self.enableAxis(QwtPlot.yRight, False)
         self.enableAxis(QwtPlot.xTop, False)
-#       self.legend = None
         self.xrCrossSection = None
         self.xrCrossSection_flag = None
         self.xiCrossSection = None
@@ -425,6 +422,7 @@ class QwtImageDisplay(QwtPlot):
         self.store_solver_array = False
         self.curve_info = ""
         self.curves = {}
+        self.markers = {}
         self.curve_data = {}
         self.metrics_index = 0
 
@@ -640,6 +638,7 @@ class QwtImageDisplay(QwtPlot):
       if self.show_x_sections:
 # delete any previous curves
         self.removeCurves()
+        self.removeMarkers()
         self.xrCrossSection = None
         self.xrCrossSection_flag = None
         self.xiCrossSection = None
@@ -655,15 +654,6 @@ class QwtImageDisplay(QwtPlot):
         self._delete_x_section_display.setVisible(False)
         self._delete_cx_section_display.setVisible(False)
         self._select_x_section_display.setVisible(False)
-        if self.setlegend == 1:
-          self.setlegend = 0
-# delete legend (QWidget) object
-#       self.legend.reparent(QWidget(), 0, QPoint())
-          self.legend.setParent(QWidget())
-          self.legend = None
-          self.updateLayout()
-          self._toggle_plot_legend.setChecked(False)
-          self._toggle_plot_legend.setVisible(False)
 
 # add solver metrics info back in?
         if self.toggle_metrics and not self.metrics_rank is None:
@@ -1233,7 +1223,6 @@ class QwtImageDisplay(QwtPlot):
       self.replot()
 
     def handle_toggle_chi_square_surfaces_display(self):
-      self._toggle_plot_legend.setVisible(True)
       if self.display_solution_distances is False:
         self.display_solution_distances = True
         self.setWhatsThis(chi_sq_instructions)
@@ -1421,12 +1410,10 @@ class QwtImageDisplay(QwtPlot):
         self.delete_cross_sections()
 
     def handle_toggle_colorbar(self):
-      print('in handle_toggle_colorbar')
       if self.toggle_color_bar == 1:
         self.toggle_color_bar = 0
       else:
         self.toggle_color_bar = 1
-      print('self.toggle_color_bar', self.toggle_color_bar)
       self.show_colorbar_display.emit(self.toggle_color_bar, 0)
       if self.complex_type:
         self.show_colorbar_display.emit(self.toggle_color_bar, 1)
@@ -1442,29 +1429,6 @@ class QwtImageDisplay(QwtPlot):
         self._toggle_color_gray_display.setChecked(True)
       self.plotImage.updateImage(self.raw_image)
       self.replot()
-
-    def handle_toggle_plot_legend(self):
-      """ sets legends display for cross section plots to visible/invisible """
-      if self.setlegend == 1:
-        self.setlegend = 0
-# delete legend (QWidget) object
-#       self.legend.reparent(QWidget(), 0, QPoint())
-        self.legend.setParent(QWidget())
-        self.legend = None
-        self.updateLayout()
-        self._toggle_plot_legend.setChecked(False)
-      else:
-        self.setlegend = 1
-        self.legend = QwtLegend()
-#       self.legend.setFrameStyle(QFrame.Box | QFrame.Sunken)
-#       self.insertLegend(self.legend, QwtPlot.RightLegend)
-        self.insertLegend(QwtLegend(), QwtPlot.RightLegend)
-        self._toggle_plot_legend.setChecked(True)
-      self.replot()
-      #print 'called replot in toggleLegend'
-      if HAS_TIMBA:_dprint(3, 'called replot in toggleLegend')
-    # toggleLegend()
-
 
     def updatePlotParameters(self):
       """ create a GUI for user to modify plot parameters """
@@ -1555,7 +1519,7 @@ class QwtImageDisplay(QwtPlot):
         except:
           ylb = self.axisScaleDiv(QwtPlot.yLeft).lowerBound()
           xlb = self.axisScaleDiv(QwtPlot.xBottom).upperBound()
-      self.source_marker.setValue( xlb+0.1, ylb+1.0)
+      self.source_marker.setValue(xlb+0.1, ylb+1.0)
       self.source_marker.attach(self)
 
 
@@ -1576,7 +1540,6 @@ class QwtImageDisplay(QwtPlot):
       self.log_switch_set = False
 
 # a scalar has no legends or cross-sections!
-      self._toggle_plot_legend.setVisible(False)
       self.delete_cross_sections()
 
 # can't flip axes with a scalar!
@@ -1853,27 +1816,24 @@ class QwtImageDisplay(QwtPlot):
         label = self.marker_labels[i]
 
     def removeCurves(self):
-      for i in self.itemList():
-        if isinstance(i, QwtPlotCurve):
-          i.detach()
-      # get rid of anything else? Seems necessary for PythonQwt- bug somewhare?
-      try:
-        self.xrCrossSection.detach();
-      except:
-        pass;
-      self.xrCrossSection = None;
-      try:
-        self.xiCrossSection.detach();
-      except:
-        pass;
-      self.xiCrossSection = None;
-
+      keys = list(self.curves.keys())
+      if len(keys) > 0:
+        for key in keys:
+          self.curves[key].detach()
+      self.curves = {}
+      self.xrCrossSection = None
+      self.xrCrossSection_flag = None
+      self.xiCrossSection = None
+      self.yCrossSection = None
       return
 
     def removeMarkers(self):
-      for i in self.itemList():
-        if isinstance(i, QwtPlotMarker):
-          i.detach()
+      keys = list(self.markers.keys())
+      if len(keys) > 0:
+        for key in keys:
+          self.markers[key].detach()
+      self.markers = {}
+      return
 
     def closestCurve(self, pos):
         """ from Gerard Vermeulen's EventFilterDemo.py example """
@@ -2567,7 +2527,6 @@ class QwtImageDisplay(QwtPlot):
 
         self.refresh_marker_display()
         self.show_x_sections = True
-        self._toggle_plot_legend.setVisible(True)
         if self.complex_type:
           self._delete_x_section_display.setVisible(False)
           self._delete_cx_section_display.setVisible(True)
@@ -2688,15 +2647,24 @@ class QwtImageDisplay(QwtPlot):
     # display_image()
 
     def add_solver_metrics(self):
-
       #solver metrics
-      self._toggle_plot_legend.setVisible(True)
       if not self.display_solution_distances:
-        keys = list(self.metrics_plot.keys())
-        if len(keys) > 0:
-          for key in keys:
-            self.metrics_plot[key].detach()
-          self.metrics_plot = {}
+        try:
+          keys = list(self.chis_plot.keys())
+          if len(keys) > 0:
+            for key in keys:
+              self.chis_plot[key].detach()
+            self.chis_plot = {}
+        except:
+          pass 
+        try:
+          keys = list(self.metrics_plot.keys())
+          if len(keys) > 0:
+            for key in keys:
+              self.metrics_plot[key].detach()
+            self.metrics_plot = {}
+        except:
+          pass
         shape = self.metrics_rank.shape
         for i in range(shape[1]):
           plot_data= numpy.zeros(shape[0], numpy.int32)
@@ -2724,11 +2692,6 @@ class QwtImageDisplay(QwtPlot):
 
       #chi_sq surfaces  - first remove any previous versions?
       #the following should work but seems to be causing problems
-      keys = list(self.chis_plot.keys())
-      if len(keys) > 0:
-        for key in keys:
-          self.chis_plot[key].detach()
-      self.chis_plot = {}
       shape = self.metrics_rank.shape
       self.enableAxis(QwtPlot.yRight, True)
       self.enableAxis(QwtPlot.xTop, True)
@@ -2749,8 +2712,6 @@ class QwtImageDisplay(QwtPlot):
            self.log_axis_chi_0 = True
         self.first_chi_test = False
 
-#     self.log_axis_solution_vector = False
-#     self.log_axis_chi_0 = False
       self.setAxisAutoScale(QwtPlot.yRight)
       self.setAxisAutoScale(QwtPlot.xTop)
       if self.log_axis_chi_0:
@@ -2939,6 +2900,13 @@ class QwtImageDisplay(QwtPlot):
                    QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
             curve.setSymbolList(symbolList)
 
+      if self.display_solution_distances:
+        keys = list(self.metrics_plot.keys())
+        if len(keys) > 0:
+          for key in keys:
+            self.metrics_plot[key].detach()
+          self.metrics_plot = {}
+
     def insert_array_info(self):
       if self.is_vector:
         return
@@ -2956,24 +2924,22 @@ class QwtImageDisplay(QwtPlot):
           self.x_sect_marker = QwtPlotMarker()
           self.x_sect_marker.setLineStyle(QwtPlotMarker.HLine)
           self.x_sect_marker.setValue(0.0,self.x_arrayloc)
-          self.x_sect_marker.attach(self)
+          self.markers['x_sect_marker'] = self.x_sect_marker
+          self.markers['x_sect_marker'].attach(self)
 
       if not self.y_arrayloc is None:
           self.y_sect_marker = QwtPlotMarker()
           self.y_sect_marker.setLineStyle(QwtPlotMarker.VLine)
           self.y_sect_marker.setLinePen(QPen(Qt.white, 3, Qt.SolidLine))
           self.y_sect_marker.setValue(self.y_arrayloc,0.0)
-          self.y_sect_marker.attach(self)
+          self.markers['y_sect_marker'] = self.y_sect_marker
+          self.markers['y_sect_marker'].attach(self)
 
 # insert markers for solver metrics?
       if self.toggle_metrics and not self.solver_offsets is None:
        shape = self.solver_offsets.shape 
        if shape[0] > 1:
          self.y_solver_offset = []
-#        for i in range(shape[0] - 1):
-#          self.y_solver_offset.append(self.insertLineMarker('', QwtPlot.xBottom))
-#          self.setMarkerLinePen(self.y_solver_offset[i], QPen(Qt.black, 1, Qt.SolidLine))
-#          self.setMarkerXPos(self.y_solver_offset[i], self.solver_offsets[i])
 
 # insert mean and standard deviation
       text_string = ''
@@ -3128,8 +3094,6 @@ class QwtImageDisplay(QwtPlot):
 
     def plot_vells_array (self, data_array, data_label=''):
       """ plot a Vells data array """
-# no legends by default
-      self._toggle_plot_legend.setVisible(False)
 
 #     if not self.source_marker is None:
 #       self.removeMarker(self.source_marker)
@@ -3161,6 +3125,7 @@ class QwtImageDisplay(QwtPlot):
 
     def cleanup(self):
       self.removeCurves()        # removes all curves and markers
+      self.removeMarkers()        # removes all curves and markers
       self.xrCrossSection = None
       self.xrCrossSection_flag = None
       self.xiCrossSection = None
@@ -3368,7 +3333,8 @@ class QwtImageDisplay(QwtPlot):
           temp_str = "m: %-.3g" % plot_array.mean()
         temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.float64);
         self.array_parms = temp_str + " " + temp_str1
-
+        if self.solver_display:
+          self.array_parms = 'red: vector sum of incr solns\nblack: metrics rank 0\nblue:sum of the norms of incr solns\nyellow: norms of incr solns'
         self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if self.complex_type and self._display_type != "brentjens":
           ampl_phase_image = None
@@ -3511,7 +3477,6 @@ class QwtImageDisplay(QwtPlot):
         self._toggle_warp_display.setVisible(False)
         self._toggle_axis_flip.setVisible(False)
         self._toggle_axis_rotate.setVisible(False)
-        self._toggle_plot_legend.setVisible(False)
 
 # make sure we are autoscaling in case an image was previous
 # this will automagically do an unzoom, but just in case first
@@ -3828,7 +3793,6 @@ class QwtImageDisplay(QwtPlot):
 
     # array_plot()
 
-#   def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):
     def set_solver_metrics(self,metrics_tuple):
       """ store Solver data for later plotting """
       self.metrics_rank = metrics_tuple[0]
@@ -4058,17 +4022,6 @@ class QwtImageDisplay(QwtPlot):
         self._toggle_coordinates.setCheckable(True)
         self._toggle_coordinates.triggered.connect(self.handle_toggle_coordinates)
 
-
-        toggle_id = self.menu_table['Toggle Plot Legend']
-        self._toggle_plot_legend = QAction('Toggle Plot Legend',self)
-# comment following out until figured out why qwt doesn't show legends
-#       self._menu.addAction(self._toggle_plot_legend)
-        self._toggle_plot_legend.setData(str(toggle_id))
-        self._toggle_plot_legend.setText('Show plot legends')
-        self._toggle_plot_legend.setCheckable(True)
-        self._toggle_plot_legend.setVisible(False)
-# comment following out until figured out why qwt doesn't show legends
-#       self._toggle_plot_legend.triggered.connect(self.handle_toggle_plot_legend)
 
         toggle_id = self.menu_table['Show ColorBar']
         self._toggle_colorbar = QAction('Show ColorBar',self)

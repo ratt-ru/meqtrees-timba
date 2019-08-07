@@ -110,7 +110,7 @@ class ZoomPopup(QWidget):
     self._array_label = "Channel "
  
     #Create the plot for selected curve to zoom
-    self._plotter = QwtImageDisplay(parent=self)
+    self._plotter = QwtImageDisplay(self)
     self._plotter.setZoomDisplay()
 
     self._zoom_plot_label = self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"

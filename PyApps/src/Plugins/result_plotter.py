@@ -570,7 +570,6 @@ class ResultPlotter(GriddedPlugin):
       self.ND_plotter = None
 
     self.plotPrinter = None
-#   self._visu_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent)
     self._visu_plotter = plot_func.create_2D_Plotters(self.layout, self.layout_parent)
     self._visu_plotter.handle_menu_id.connect(self.update_vells_display)
     self._visu_plotter.handle_spectrum_menu_id.connect(self.update_spectrum_display)
