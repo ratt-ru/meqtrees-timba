@@ -30,7 +30,8 @@ from Timba.Apps import app_defaults
 
 if app_defaults.include_gui:
   import Timba.GUI.app_proxy_gui;
-  import Timba.qt_threading;
+  if app_defaults.args.threads:
+    import Timba.qt_threading;
 
 try:
   from PyQt4.Qt import QObject,SIGNAL
@@ -43,8 +44,8 @@ except:
 from Timba.dmi import *
 from Timba import octopussy
 # from Timba import py_app_launcher
-
-import threading
+if app_defaults.args.threads:
+  import threading
 import sys
 import os
 import os.path

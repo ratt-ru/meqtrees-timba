@@ -84,6 +84,7 @@ def parse_argv (argv):
       args['opt'] = True;
       
     elif arg == "-nothreads":
+      print("Disabling threads as per user request")
       args['threads'] = False;
       
     elif arg == "-nogui":
