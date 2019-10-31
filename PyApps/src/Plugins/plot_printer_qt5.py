@@ -68,9 +68,7 @@
 #  CANADA					 CANADA
 #
 
-from PyQt4 import Qt
-import PyQt4.Qwt5 as Qwt
-import printfilter_qt4
+import printfilter_qt5
 
 class plot_printer:
   def __init__(self, plotter, colorbar=None):
@@ -114,7 +112,7 @@ class plot_printer:
         except:
           self.colorbar[0].printPlot(qpainter,
             Qt.QRect(0, 0, 0.12 * width, height), filter)
-          print 'colorbar plot excepted'
+          print('colorbar plot excepted')
         if is_complex:
           try:
             self.colorbar[1].print_(qpainter,
@@ -129,7 +127,7 @@ class plot_printer:
       except:
         self.plotter.printPlot(qpainter,
           Qt.QRect(0.16 * width, 0, 1.4 * width, height), filter)
-        print 'main plot excepted'
+        print('main plot excepted')
     else:
       width = paint_device.width()
       if width > paint_device.height():

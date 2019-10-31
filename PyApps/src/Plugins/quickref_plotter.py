@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-# modules that are imported
-
 #% $Id: quickref_plotter.py 6250 2008-07-11 05:55:05Z twillis $ 
 
 #
@@ -70,22 +68,30 @@
 #
 
 # modules that are imported
-from Timba.dmi import *
-from Timba import utils
-from Timba.Meq import meqds
-from Timba.Meq.meqds import mqs
-from Timba.GUI.pixmaps import pixmaps
-from Timba.GUI import widgets
-from Timba.GUI.browsers import *
-from Timba import Grid
 
-from PyQt4 import Qt
-from plot_printer_qt4 import *
+from qwt.qt.QtGui import QApplication, QGridLayout, QWidget
+from qwt.qt.QtCore import Qt, QObject, pyqtSignal
 
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='quickref_plotter');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
+# modules that are imported
+
+HAS_TIMBA = False
+try:
+  from Timba import utils
+  from Timba.Meq import meqds
+  from Timba.Meq.meqds import mqs
+  from Timba.GUI.pixmaps import pixmaps
+  from Timba.GUI import widgets
+  from Timba.GUI.browsers import *
+  from Timba import Grid
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='quickref_plotter');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+  HAS_TIMBA = True
+except:
+  pass
+
+#print('HAS_TIMBA = ', HAS_TIMBA)
 
 class QuickRefPlotter(GriddedPlugin):
   """ a class to display quickref_help contents of a node in the browser """ 
@@ -132,9 +138,9 @@ class QuickRefPlotter(GriddedPlugin):
   def create_layout_stuff(self):
     """ create grid layouts into which plotter widgets are inserted """
     if self.layout_parent is None or not self.layout_created:
-      self.layout_parent = Qt.QWidget(self.wparent())
-      self.layout = Qt.QGridLayout(self.layout_parent)
-      self.QTextEdit = Qt.QTextEdit(self.layout_parent)
+      self.layout_parent = QWidget(self.wparent())
+      self.layout = QGridLayout(self.layout_parent)
+      self.QTextEdit = QTextEdit(self.layout_parent)
       self.layout.addWidget(self.QTextEdit, 0, 1)
       self.QTextEdit.hide()
       self.QTextEdit.setReadOnly(True)
@@ -153,13 +159,13 @@ class QuickRefPlotter(GriddedPlugin):
     QTextEdit widget in the browser.
     """
 
-    _dprint(3, '** in quickref_plotter:set_data callback')
+    if HAS_TIMBA: _dprint(3, '** in quickref_plotter:set_data callback')
     self._rec = dataitem.data;
-    _dprint(3, 'set_data: initial self._rec ', self._rec)
+    if HAS_TIMBA: _dprint(3, 'set_data: initial self._rec ', self._rec)
     if not isinstance(self._rec,record):
       # print '\n** self.rec not a record, but:',type(self._rec)
       pass
-    elif not self._rec.has_key("quickref_help"):
+    elif "quickref_help" not in self._rec:
       # print '\n** self.rec does not have quickref_help field'
       pass
     else:

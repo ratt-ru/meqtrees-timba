@@ -48,6 +48,16 @@ except ImportError:
   try: import pyrap_measures; 
   except ImportError: pass;
 
+#ensure we use API 2 from pyqt regardless of python version with python qwt
+import sip
+sip.setapi('QString', 2)
+sip.setapi('QVariant', 2)
+sip.setapi('QDate', 2)
+sip.setapi('QDateTime', 2)
+sip.setapi('QTextStream', 2)
+sip.setapi('QTime', 2)
+sip.setapi('QUrl', 2)
+
 def trace_lines (frame, event, arg):
   if event == "line":
     print "%s:%d"%(frame.f_code.co_filename,frame.f_lineno);
