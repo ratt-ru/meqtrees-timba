@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #% $Id$ 
@@ -69,13 +69,17 @@
 #
 
 import sys
-
-from Timba.utils import verbosity
-from Timba.Plugins.plotting_functions_qt4 import *
-
-_dbg = verbosity(0,name='VellsData');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
+import numpy
+HAS_TIMBA = False
+try:
+  import Timba.Plugins.plotting_functions_qt5 as plot_func
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='VellsData');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+  HAS_TIMBA = True
+except:
+  pass
 
 class VellsData:
    """ A class for handling and extracting Vells data for display """
@@ -123,12 +127,14 @@ class VellsData:
       self.num_possible_ND_axes = 0
       try:
         axis_map = vells_rec.cells.domain.get('axis_map',['time','freq'])
-        _dprint(3, 'axis map is ', axis_map)
+        if HAS_TIMBA:
+          _dprint(3, 'axis map is ', axis_map)
         for i in range(len(axis_map)):
           # convert from Hiid to string
           current_label = str(axis_map[i]).lower()
-          _dprint(3,' ')
-          _dprint(3,'current label ', current_label)
+          if HAS_TIMBA:
+            _dprint(3,' ')
+            _dprint(3,'current label ', current_label)
           if current_label != '(null)':
             begin = 0
             end = 1
@@ -145,9 +151,11 @@ class VellsData:
                 except:
                   grid_step = 0.5 * delta
                 self.axis_shape[current_label] = grid_array.shape[0]
-                _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
+                if HAS_TIMBA:
+                  _dprint(3, 'in calc_vells_ranges: grid_array shape is ', grid_array.shape)
                 self.num_possible_ND_axes = self.num_possible_ND_axes + 1
-                _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', self.num_possible_ND_axes)
+                if HAS_TIMBA:
+                  _dprint(3, 'in calc_vells_ranges: incrementing ND axes to ', self.num_possible_ND_axes)
                 begin = grid_array[0] - grid_step
                 if self.axis_shape[current_label] > 1:
                   grid_step = 0.5 * delta[self.axis_shape[current_label] -1]
@@ -177,10 +185,11 @@ class VellsData:
                   title = 'Frequency(Hz)'
             else:
               self.axis_shape[current_label] = 1
-            _dprint(3,'assigning self.vells_axis_parms key ', current_label)
-            _dprint(3,'assigning begin ', begin)
-            _dprint(3,'assigning end ', end)
-            _dprint(3,'assigning title ', title)
+            if HAS_TIMBA:
+             _dprint(3,'assigning self.vells_axis_parms key ', current_label)
+             _dprint(3,'assigning begin ', begin)
+             _dprint(3,'assigning end ', end)
+             _dprint(3,'assigning title ', title)
             self.vells_axis_parms[current_label] = (begin, end, title, self.axis_shape[current_label], grid_array, delta, expected_num_grid_points)
             self.axis_labels.append(current_label)
       except:
@@ -203,18 +212,20 @@ class VellsData:
 
       # do we request a ND GUI?
       if len(self.vells_axis_parms) > 2 and self.num_possible_ND_axes > 2:
-        _dprint(3, '** in calc_vells_ranges:')
-        _dprint(3, 'I think I need a ND GUI as number of valid plot axes is ',self.num_possible_ND_axes)
-        _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
-      _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
-      _dprint(3, 'self.axis_labels is ', self.axis_labels)
+        if HAS_TIMBA:
+          _dprint(3, '** in calc_vells_ranges:')
+          _dprint(3, 'I think I need a ND GUI as number of valid plot axes is ',self.num_possible_ND_axes)
+          _dprint(3, 'length of self.vells_axis_parms is ', len(self.vells_axis_parms))
+          _dprint(3, 'self.vells_axis_parms is ', self.vells_axis_parms)
+          _dprint(3, 'self.axis_labels is ', self.axis_labels)
 
 
     # calc_vells_ranges
 
    def getVellsDataParms(self):
      """ returns vells parameters for use with the visualization display """
-     _dprint(3,'received method call')
+     if HAS_TIMBA:
+        _dprint(3,'received method call')
      return [self.vells_axis_parms, self.axis_labels, self.num_possible_ND_axes,self.shape]
 
    def set_exterior_plot_label(self, exterior_plot_label):
@@ -235,10 +246,12 @@ class VellsData:
      self.scalar_string = ""
      self.rq_label = rq_label
 
-     _dprint(3,' self.rq_label = ', self.rq_label)
+     if HAS_TIMBA:
+       _dprint(3,' self.rq_label = ', self.rq_label)
      self.calc_vells_ranges(vells_rec)
-     _dprint(3,'now after calc_vells_ranges')
-     _dprint(3,'self.scalar_data ', self.scalar_data)
+     if HAS_TIMBA:
+       _dprint(3,'now after calc_vells_ranges')
+       _dprint(3,'self.scalar_data ', self.scalar_data)
      if self.scalar_data and len(self.rq_label) > 0:
        self.scalar_string = self.rq_label + "\n"
 
@@ -277,7 +290,6 @@ class VellsData:
          else:
            text_display = str(self.index)
          id = id + 1
-#        _dprint(3, 'menu label ', menu_label)
          self._menu_labels[id] = text_display
          self._key_menu_labels[id] = menu_label
          self._planes_index.append(id)
@@ -297,7 +309,6 @@ class VellsData:
              else:
                self._menu_labels_big[id] = False
          
-#        _dprint(3, 'self._plot_vells_dict[menu_label] ', self._plot_vells_dict[menu_label])
          if not exterior_label is None:
            tag = "] " + exterior_label + " " + "main value "
          else:
@@ -372,10 +383,8 @@ class VellsData:
            self._perturbations_index[perturbations_key] = perturbations_list
 
          except:
-           _dprint(3, 'The perturbed values cannot be displayed.')
-# don't display message for the time being
-#           Message =  'It would appear that there is a problem with perturbed values.\nThey cannot be displayed.'
-#           mb_reporter = Qt.QMessageBox.warning(self, "QwtImageDisplay", Message)
+           if HAS_TIMBA:
+             _dprint(3, 'The perturbed values cannot be displayed.')
        if "flags" in vells_rec.vellsets[i]:
          toggle_index = "flag data " + str(i)
          flags = vells_rec.vellsets[i].flags;
@@ -436,12 +445,14 @@ class VellsData:
        rank = data.ndim
        shape = data.shape
        self.setInitialSelectedAxes(rank,shape)
-       _dprint(3, 'called setInitialSelectedAxes')
+       if HAS_TIMBA:
+         _dprint(3, 'called setInitialSelectedAxes')
    # end StoreVellsData
 
    def isVellsScalar(self):
      """ returns true if no cells structure so data must be scalar """
-     _dprint(3,'returning self.scalar_data value ', self.scalar_data)
+     if HAS_TIMBA:
+       _dprint(3,'returning self.scalar_data value ', self.scalar_data)
      return self.scalar_data
 
    def getScalarString(self):
@@ -523,9 +534,10 @@ class VellsData:
      if self.array_tuple is None:
        selected_array =  self._plot_vells_dict[key]
      else:
-       _dprint(3, 'self.array_tuple ',  self.array_tuple)
-       _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].ndim)
-       _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] min and max: ', self._plot_vells_dict[key][self.array_tuple].min(), ' ', self._plot_vells_dict[key][self.array_tuple].max())
+       if HAS_TIMBA:
+         _dprint(3, 'self.array_tuple ',  self.array_tuple)
+         _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] has rank ',  self._plot_vells_dict[key][self.array_tuple].ndim)
+         _dprint(3, 'self._plot_vells_dict[key][self.array_tuple] min and max: ', self._plot_vells_dict[key][self.array_tuple].min(), ' ', self._plot_vells_dict[key][self.array_tuple].max())
        selected_array =  self._plot_vells_dict[key][self.array_tuple]
      if self._request_full_image:
        self._request_full_image = False
@@ -596,7 +608,8 @@ class VellsData:
      return full_array
          
    def getActiveDataRanks(self):
-     _dprint(3, 'returning values self.actual_rank, self.rank, self.shape ', self.actual_rank, ' ', self.rank, ' ', self.shape)
+     if HAS_TIMBA:
+       _dprint(3, 'returning values self.actual_rank, self.rank, self.shape ', self.actual_rank, ' ', self.rank, ' ', self.shape)
      return (self.actual_rank, self.rank, self.shape)
 
    def setActivePlane(self, active_plane=0):
@@ -656,33 +669,39 @@ class VellsData:
          self.second_axis_parm = None
          self.third_axis_parm = None
          self.actual_rank = 0
-         _dprint(3, 'self.actual_rank set ', self.actual_rank)
+         if HAS_TIMBA:
+           _dprint(3, 'self.actual_rank set ', self.actual_rank)
          self.rank = rank
          self.shape = shape
          self.shape_change = True
-       _dprint(3, 'rank ', rank)
-       _dprint(3, 'shape ', shape)
-       _dprint(3, 'self.axis_labels ', self.axis_labels)
-       _dprint(3, 'self.shape_change ', self.shape_change)
+       if HAS_TIMBA:
+         _dprint(3, 'rank ', rank)
+         _dprint(3, 'shape ', shape)
+         _dprint(3, 'self.axis_labels ', self.axis_labels)
+         _dprint(3, 'self.shape_change ', self.shape_change)
        for i in range(rank-1,-1,-1):
-         _dprint(3, 'testing axes for shape[i] ', i, ' ', shape[i])
+         if HAS_TIMBA:
+           _dprint(3, 'testing axes for shape[i] ', i, ' ', shape[i])
          if shape[i] > 1:
            self.actual_rank = self.actual_rank + 1
-           _dprint(3, 'self.actual rank now ', self.actual_rank)
+           if HAS_TIMBA:
+             _dprint(3, 'self.actual rank now ', self.actual_rank)
          if shape[i] > 1 and self.display_3D and third_axis is None:
            third_axis = i
            self.third_axis_parm = self.axis_labels[i]
          elif shape[i] > 1 and second_axis is None:
            second_axis = i
            self.second_axis_parm = self.axis_labels[i]
-           _dprint(3, 'second axis becomes ', second_axis)
+           if HAS_TIMBA:
+             _dprint(3, 'second axis becomes ', second_axis)
          elif shape[i] > 1 and first_axis is None:
            first_axis = i
            self.first_axis_parm = self.axis_labels[i]
-           _dprint(3, 'first axis becomes ', first_axis)
+           if HAS_TIMBA:
+             _dprint(3, 'first axis becomes ', first_axis)
        if rank > 2:
          if not first_axis is None and not second_axis is None:
-           self.array_selector = create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
+           self.array_selector = plot_func.create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
            self.array_tuple = tuple(self.array_selector)
          _dprint(3, 'array selector tuple ', self.array_tuple)
      except:
@@ -690,9 +709,10 @@ class VellsData:
        self.array_selector = []
        self.array_tuple = None
      self.initialSelection = True
-     _dprint(3, 'self.first_axis_parm ', self.first_axis_parm)
-     _dprint(3, 'self.second_axis_parm ', self.second_axis_parm)
-     _dprint(3, 'self.third_axis_parm ', self.third_axis_parm)
+     if HAS_TIMBA:
+       _dprint(3, 'self.first_axis_parm ', self.first_axis_parm)
+       _dprint(3, 'self.second_axis_parm ', self.second_axis_parm)
+       _dprint(3, 'self.third_axis_parm ', self.third_axis_parm)
 
    def setSelectedAxes (self,first_axis, second_axis, third_axis=-1):
      self.array_selector = []
@@ -703,7 +723,7 @@ class VellsData:
          return
        else:
          shape = self.getActiveData().shape
-         self.array_selector = create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
+         self.array_selector = plot_func.create_array_selector(None, rank, shape, first_axis,second_axis,third_axis)
          self.array_tuple = tuple(self.array_selector)
          for i in range(rank):
            if i == first_axis:

@@ -73,45 +73,44 @@ from math import sin
 from math import cos
 from math import pow
 from math import sqrt
-import string
 
+from qwt.qt.QtGui import QApplication,QHBoxLayout, QLabel, QSizePolicy, QSpacerItem
+from qwt.qt.QtGui import QWidget
+from qwt.qt.QtCore import Qt
+from qwt import QwtSymbol, QwtPlotCurve
+
+HAS_TIMBA = False
 # modules that are imported
-from Timba.dmi import *
-from Timba import utils
-from Timba.Meq import meqds
-from Timba.Meq.meqds import mqs
-from Timba.GUI.pixmaps import pixmaps
-from Timba.GUI import widgets
-from Timba.GUI.browsers import *
-from Timba import Grid
-
-from PyQt4 import Qt
-from Timba.Plugins.display_image_qt4 import *
-from Timba.Plugins.realvsimag_qt4 import *
-from Timba.Plugins.plotting_functions_qt4 import *
-
-global has_vtk
-has_vtk = False
 try:
-  from Timba.Plugins.vtk_qt4_3d_display import *
-  has_vtk = True
+  from Timba.dmi import *
+  from Timba import utils
+  from Timba.Meq import meqds
+  from Timba.Meq.meqds import mqs
+  from Timba.GUI.pixmaps import pixmaps
+  from Timba.GUI import widgets
+  from Timba.GUI.browsers import *
+  from Timba import Grid
+  
+  from Timba.Plugins.display_image_qt5 import QwtImageDisplay
+  from Timba.Plugins.QwtPlotImage_qt5 import QwtPlotImage
+  from Timba.Plugins.QwtColorBar_qt5 import QwtColorBar
+  from Timba.Plugins.SpectrumData import SpectrumData
+  from Timba.Plugins.VellsData import VellsData
+  from Timba.Plugins.SolverData import SolverData
+  from Timba.Plugins.ND_Controller_qt5 import ND_Controller
+  from Timba.Plugins.ResultsRange_qt5 import ResultsRange
+  import Timba.Plugins.plotting_functions_qt5 as plot_func
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='result_plotter');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+  HAS_TIMBA = True
 except:
   pass
 
-from .QwtPlotImage_qt4 import *
-from .QwtColorBar_qt4 import *
-from .SpectrumData import *
-from .VellsData import *
-from .SolverData import *
-from .ND_Controller_qt4 import *
-from .ResultsRange_qt4 import *
-from .BufferSizeDialog_qt4 import *
-from .plot_printer_qt4 import *
+global has_vtk
+has_vtk = False
 
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='result_plotter');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
 
 class ResultPlotter(GriddedPlugin):
   """ a class to visualize data, VellSets or visu data, that is 
@@ -133,52 +132,52 @@ class ResultPlotter(GriddedPlugin):
 # below does the work.
   color_table = {
         'none': None,
-        'black': Qt.Qt.black,
-        'blue': Qt.Qt.blue,
-        'cyan': Qt.Qt.cyan,
-        'gray': Qt.Qt.gray,
-        'green': Qt.Qt.green,
-        'magenta': Qt.Qt.magenta,
-        'red': Qt.Qt.red,
-        'white': Qt.Qt.white,
-        'yellow': Qt.Qt.yellow,
-        'darkBlue' : Qt.Qt.darkBlue,
-        'darkCyan' : Qt.Qt.darkCyan,
-        'darkGray' : Qt.Qt.darkGray,
-        'darkGreen' : Qt.Qt.darkGreen,
-        'darkMagenta' : Qt.Qt.darkMagenta,
-        'darkRed' : Qt.Qt.darkRed,
-        'darkYellow' : Qt.Qt.darkYellow,
-        'lightGray' : Qt.Qt.lightGray,
+        'black': Qt.black,
+        'blue': Qt.blue,
+        'cyan': Qt.cyan,
+        'gray': Qt.gray,
+        'green': Qt.green,
+        'magenta': Qt.magenta,
+        'red': Qt.red,
+        'white': Qt.white,
+        'yellow': Qt.yellow,
+        'darkBlue' : Qt.darkBlue,
+        'darkCyan' : Qt.darkCyan,
+        'darkGray' : Qt.darkGray,
+        'darkGreen' : Qt.darkGreen,
+        'darkMagenta' : Qt.darkMagenta,
+        'darkRed' : Qt.darkRed,
+        'darkYellow' : Qt.darkYellow,
+        'lightGray' : Qt.lightGray,
         }
 
   symbol_table = {
-#       'none': Qwt.QwtSymbol.None,
-        'rectangle': Qwt.QwtSymbol.Rect,
-        'square': Qwt.QwtSymbol.Rect,
-        'ellipse': Qwt.QwtSymbol.Ellipse,
-        'dot': Qwt.QwtSymbol.Ellipse,
-        'circle': Qwt.QwtSymbol.Ellipse,
-	'xcross': Qwt.QwtSymbol.XCross,
-	'cross': Qwt.QwtSymbol.Cross,
-	'triangle': Qwt.QwtSymbol.Triangle,
-	'diamond': Qwt.QwtSymbol.Diamond,
+#       'none': QwtSymbol.None,
+        'rectangle': QwtSymbol.Rect,
+        'square': QwtSymbol.Rect,
+        'ellipse': QwtSymbol.Ellipse,
+        'dot': QwtSymbol.Ellipse,
+        'circle': QwtSymbol.Ellipse,
+        'xcross': QwtSymbol.XCross,
+        'cross': QwtSymbol.Cross,
+        'triangle': QwtSymbol.Triangle,
+        'diamond': QwtSymbol.Diamond,
         }
 
   line_style_table = {
-        'none': Qwt.QwtPlotCurve.NoCurve,
-        'lines' : Qwt.QwtPlotCurve.Lines,
-        'dots' : Qwt.QwtPlotCurve.Dots,
-        'SolidLine' : Qt.Qt.SolidLine,
-        'DashLine' : Qt.Qt.DashLine,
-        'DotLine' : Qt.Qt.DotLine,
-        'DashDotLine' : Qt.Qt.DashDotLine,
-        'DashDotDotLine' : Qt.Qt.DashDotDotLine,
-        'solidline' : Qt.Qt.SolidLine,
-        'dashline' : Qt.Qt.DashLine,
-        'dotline' : Qt.Qt.DotLine,
-        'dashdotline' : Qt.Qt.DashDotLine,
-        'dashdotdotline' : Qt.Qt.DashDotDotLine,
+        'none': QwtPlotCurve.NoCurve,
+        'lines' : QwtPlotCurve.Lines,
+        'dots' : QwtPlotCurve.Dots,
+        'SolidLine' : Qt.SolidLine,
+        'DashLine' : Qt.DashLine,
+        'DotLine' : Qt.DotLine,
+        'DashDotLine' : Qt.DashDotLine,
+        'DashDotDotLine' : Qt.DashDotDotLine,
+        'solidline' : Qt.SolidLine,
+        'dashline' : Qt.DashLine,
+        'dotline' : Qt.DotLine,
+        'dashdotline' : Qt.DashDotLine,
+        'dashdotdotline' : Qt.DashDotDotLine,
         }
   
   def __init__(self,gw,dataitem,cellspec={},**opts):
@@ -271,7 +270,6 @@ class ResultPlotter(GriddedPlugin):
     plot_data = self._spectrum_data.getActivePlotArray()
     self._visu_plotter.array_plot(plot_data, data_label=plot_label,flip_axes=False)
 
-    _dprint(2, 'exiting plotSpectra');
 
   def check_attributes(self, attributes):
      """ check parameters of plot attributes against allowable values """
@@ -333,11 +331,9 @@ class ResultPlotter(GriddedPlugin):
 
   def do_prework(self, node, attribute_list):
     """ do any processing before actual handling of data in a leaf node """
-    _dprint(3, 'doing prework with attribute list ',attribute_list)
 # we check if a plotter has been constructed - 
     if isinstance(node, dict) and self._visu_plotter is None:
       if len(attribute_list) == 0 and 'attrib' in node:
-        _dprint(2,'length of attrib', len(node['attrib']));
         if len(node['attrib']) > 0:
           attrib_parms = node['attrib']
           plot_parms = attrib_parms.get('plot')
@@ -352,11 +348,9 @@ class ResultPlotter(GriddedPlugin):
         list_length = len(attribute_list)
         for i in range(list_length):
           attrib_parms = attribute_list[i]
-          _dprint(3, 'attrib_parms ',  attrib_parms, ' has length ', len( attrib_parms));
-          _dprint(3, 'processing attribute list ',i, ' ', attrib_parms);
+ 
           if 'plot' in attrib_parms:
             plot_parms = attrib_parms.get('plot')
-            _dprint(3, '*** plot_parms ',  plot_parms, ' has length ', len( plot_parms));
             if 'attrib' in plot_parms:
               temp_parms = plot_parms.get('attrib')
               plot_parms = temp_parms
@@ -368,28 +362,23 @@ class ResultPlotter(GriddedPlugin):
             if 'type' in plot_parms:
               self._plot_type = plot_parms.get('type')
               break
-      _dprint(3, 'pre_work gives plot_type ', self._plot_type)
 
 # create grid layout for widgets
       self.create_layout_stuff()
 
       if self._plot_type == 'spectra':
-        _dprint(3, 'pre_work setting visu_plotter to QwtImageDisplay for spectra!')
         self.create_2D_plotter()
 
       if self._plot_type == 'realvsimag':
-        _dprint(3, 'pre_work setting visu_plotter to realvsimag_plotter!')
 
         self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.layout_parent)
-        Qt.QObject.connect(self._visu_plotter.plot, Qt.SIGNAL('save_display'), self.grab_display) 
+        self._visu_plotter.plot.save_display.connect(self.grab_display)
         self.layout.addWidget(self._visu_plotter.plot, 0, 1)
         self._visu_plotter.plot.show()
-        _dprint(3, 'issued show call to realvsimag self._visu_plotter')
 
 
   def do_postwork(self, node):
     """ do any processing needed after data in a leaf node has been handled """
-    _dprint(3,"in postwork: do nothing at present");
 
 
   def is_leaf(self, node):
@@ -408,7 +397,6 @@ class ResultPlotter(GriddedPlugin):
   def do_leafwork(self, leaf, attrib_list):
     """ method which does actual plotting at a leaf node """
 
-    _dprint(3,'at leaf attribute list is ', attrib_list)
 # If we arrive here without having gotten a plot type
 # it is because the user specified an invalid type somehow.
 # Post a message and select the default. 
@@ -421,7 +409,7 @@ class ResultPlotter(GriddedPlugin):
       mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
       self._plot_type = "realvsimag"
       self._visu_plotter = realvsimag_plotter(self._plot_type,parent=self.wparent())
-      Qt.QObject.connect(self._visu_plotter.plot, Qt.SIGNAL('save_display'), self.grab_display) 
+      self._visu_plotter.plot.save_display.connect(self.grab_display)
       self.set_widgets(self._visu_plotter,self.dataitem.caption,icon=self.icon())
       self._wtop = self._visu_plotter.plot;  # plot widget is our top widget
 
@@ -438,6 +426,7 @@ class ResultPlotter(GriddedPlugin):
         self.list_labels.append(self.label)
         self.first_leaf_node = False
       else:
+# I'm not sure when/how one ends up in the 'else' section
         self.leaf_node_list.append(leaf)
         self.list_attrib_lists.append(attrib_list)
         self.list_labels.append(self.label)
@@ -449,25 +438,15 @@ class ResultPlotter(GriddedPlugin):
 
   def tree_traversal (self, node, label=None, attribute_list=None):
     """ routine to do a recursive tree traversal of a Visu plot tree """
-    _dprint(3,' ');
-    _dprint(3,' ******* ');
-    _dprint(3,'in tree traversal with node having length ', len(node));
-    _dprint(3,' ******* ');
-    _dprint(3,'length of node ', len(node))
     is_root = False
     if label is None:
       label = 'root'
       is_root = True
       node['plot_label'] = ''
       
-    _dprint(3, 'node has incoming label ', label)
     if attribute_list is None:
       attribute_list = []
-    else:
-      _dprint(3, 'tree: has incoming attribute list ', attribute_list)
-    
     if isinstance(node, dict):
-      _dprint(3, 'node is a dict')
       if self._visu_plotter is None and not is_root:
 # call the do_prework method to do any actions needed before
 # an actual leaf node performs plotting operations
@@ -475,10 +454,8 @@ class ResultPlotter(GriddedPlugin):
 # test if this node is a leaf
       if not self.is_leaf(node):
         if 'label' in node:
-          _dprint(3, 'tree: dict node has label(s) ', node['label'])
           if not node['label'] == label:
             if isinstance(node['label'], tuple):
-              _dprint(3, 'tree: dict node label(s) is tuple')
               temp = list(node['label'])
               for j in range(0, len(temp)):
                 tmp = label + '\n' + temp[j] 
@@ -488,12 +465,10 @@ class ResultPlotter(GriddedPlugin):
               temp = label + '\n' + node['label']
               node['plot_label'] = temp
         if 'attrib' in node and len(node['attrib']) > 0:
-          _dprint(3, 'tree: dict node has attrib ', node['attrib'])
           if not self._attributes_checked:
             self.check_attributes(node['attrib'])
           attribute_list.append(node['attrib'])
         else:
-          _dprint(3, 'tree: dict node has no valid attrib ')
           if is_root:
             attrib = {}
             plot_spec = {}
@@ -509,13 +484,14 @@ class ResultPlotter(GriddedPlugin):
           self.tree_traversal(node['value'], node['plot_label'], attribute_list)
       else:
         try:
-          _dprint(3, 'tree: leaf node has label(s) ', node['plot_label'])
-          _dprint(3, 'tree: leaf node has incoming label ', label)
+          print('tree: leaf node has label(s) ', node['plot_label'])
+          print('tree: leaf node has incoming label ', label)
         except:
-          _dprint(3, 'node label field expected, not found, so am exiting')
+          print('node label field expected, not found, so am exiting')
           Message = "Failure of result_plotter tree-traversal.\n Result_plotter does not yet work with MeqHistoryCollect nodes."
-          mb_reporter = Qt.QMessageBox.warning(None, "ResultPlotter", Message)
+          mb_reporter = QMessageBox.warning(None, "ResultPlotter", Message)
           return
+
         if is_root and 'attrib' in node and len(node['attrib']) > 0:
           if not self._attributes_checked:
             self.check_attributes(node['attrib'])
@@ -535,11 +511,9 @@ class ResultPlotter(GriddedPlugin):
 # then we must preform a recursive tree traversal starting with
 # each element in the list
     if isinstance(node, list):
-      _dprint(3, 'node is a list')
       for i in range(len(node)):
         temp_label = None
         temp_list = attribute_list[:] 
-        _dprint(3, 'list iter starting with attribute list ', i, ' ', temp_list)
         if isinstance(label, tuple):
           temp_label = label[i]
         else:
@@ -547,9 +521,7 @@ class ResultPlotter(GriddedPlugin):
           
         if isinstance(node[i], dict):
           if 'label' in node[i]:
-            _dprint(3, 'tree: list node number has label(s) ', i, ' ',node[i]['label'])
             if isinstance(node[i]['label'], tuple):
-              _dprint(3, 'tree: list node label(s) is tuple')
               temp = list(node[i]['label'])
               for j in range(0, len(temp)):
                 tmp = temp_label + '\n' + temp[j]
@@ -559,7 +531,6 @@ class ResultPlotter(GriddedPlugin):
               temp = label + '\n' + node[i]['label']
               node[i]['plot_label'] = temp
           if 'attrib' in node[i]:
-            _dprint(3, 'list: dict node has attrib ', i, ' ', node[i]['attrib'])
             if len(node[i]['attrib']) > 0:
               if not self._attributes_checked:
                 self.check_attributes(node[i]['attrib'])
@@ -571,12 +542,9 @@ class ResultPlotter(GriddedPlugin):
         create a visu_plotter object to plot the data 
     """
 # traverse the plot record tree and retrieve data
-    _dprint(3, ' ')
-    _dprint(3, 'calling tree_traversal from display_visu_data')
     self.first_leaf_node = True
     self.tree_traversal( self._rec.visu)
 # now update the plot for 'realvsimag', 'errors' or 'standalone' plot
-    _dprint(3, 'testing for update with self._plot_type ', self._plot_type)
     if not self._visu_plotter is None and not self._plot_type == 'spectra':
       self._visu_plotter.update_plot()
       self._visu_plotter.reset_data_collectors()
@@ -601,15 +569,16 @@ class ResultPlotter(GriddedPlugin):
 #     self.ND_plotter.setParent(Qt.QWidget())
       self.ND_plotter = None
 
-    self._visu_plotter, self.plotPrinter = create_2D_Plotters(self.layout, self.layout_parent)
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('handle_menu_id'), self.update_vells_display) 
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('handle_spectrum_menu_id'), self.update_spectrum_display) 
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('colorbar_needed'), self.set_ColorBar) 
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_3D_Display'), self.show_3D_Display)
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('do_print'), self.plotPrinter.do_print) 
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('save_display'), self.grab_display) 
-    Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('full_vells_image'), self.request_full_image) 
+    self.plotPrinter = None
+    self._visu_plotter = plot_func.create_2D_Plotters(self.layout, self.layout_parent)
+    self._visu_plotter.handle_menu_id.connect(self.update_vells_display)
+    self._visu_plotter.handle_spectrum_menu_id.connect(self.update_spectrum_display)
+    self._visu_plotter.colorbar_needed.connect(self.set_ColorBar)
+    self._visu_plotter.show_ND_Controller.connect(self.ND_controller_showDisplay)
+    self._visu_plotter.show_3D_Display.connect(self.show_3D_Display)
+#   self._visu_plotter.do_print.connect(self.plotPrinter.do_print)
+    self._visu_plotter.save_display.connect(self.grab_display)
+    self._visu_plotter.full_vells_image.connect(self.request_full_image)
   # create_2D_plotter
 
   def grab_display(self, title):
@@ -630,9 +599,7 @@ class ResultPlotter(GriddedPlugin):
         necessary preprocssing forwards the data to one of
         the functions which does the actual plotting """
 
-    _dprint(3, '** in result_plotter:set_data callback')
     self._rec = dataitem.data;
-    _dprint(3, 'set_data: initial self._rec ', self._rec)
 # if we are single stepping through requests, Oleg may reset the
 # cache, so check for a non-data record situation
     if self._rec is None:
@@ -669,17 +636,15 @@ class ResultPlotter(GriddedPlugin):
             self.label = "rq " + str(self._rec.request_id);
         else:
           data_failure = True
-        _dprint(3, 'we have req id ', self.label)
       except:
         data_failure = True
       if data_failure:
-        _dprint(3, ' we have a data failure')
 # cached_result not found, display an empty viewer with a "no result
 # in this node record" message (the user can then use the Display with
 # menu to switch to a different viewer)
         Message = "No cache result record was found for this node, so no plot can be made."
         cache_message = QLabel(Message,self.wparent())
-        cache_message.setTextFormat(Qt.Qt.RichText)
+        cache_message.setTextFormat(Qt.RichText)
         self._wtop = cache_message
         self.set_widgets(cache_message)
         self.reset_plot_stuff()
@@ -707,7 +672,6 @@ class ResultPlotter(GriddedPlugin):
         if len(self.data_list) != self.data_list_length:
           self.data_list_length = len(self.data_list)
         if self.data_list_length > 1:
-          _dprint(3, 'calling adjust_selector')
           self.adjust_selector()
 
   def process_data (self):
@@ -715,8 +679,8 @@ class ResultPlotter(GriddedPlugin):
     process_result = False
 # are we dealing with Vellsets?
     if "dims" in self._rec:
-      _dprint(3, '*** dims field exists ', self._rec.dims)
-
+      pass
+#     print('*** dims field exists ', self._rec.dims)
     if "vellsets" in self._rec or "solver_result" in self._rec:
       self.create_layout_stuff()
       if "vellsets" in self._rec:
@@ -724,7 +688,7 @@ class ResultPlotter(GriddedPlugin):
         if not process_result:
           Message = "The result record for this node had no valid data, so no plot can be made."
           cache_message = QLabel(Message,self.wparent())
-          cache_message.setTextFormat(Qt.Qt.RichText)
+          cache_message.setTextFormat(Qt.RichText)
           self._wtop = cache_message
           self.set_widgets(cache_message)
           self.reset_plot_stuff()
@@ -739,13 +703,11 @@ class ResultPlotter(GriddedPlugin):
       if "visu" in self._rec:
 # do plotting of visualization data
         self.display_visu_data()
-        _dprint(3, 'passed display_visu_data')
         process_result = True
 
 # enable & highlight the cell
     self.enable();
     self.flash_refresh();
-    _dprint(3, 'exiting process_data')
     return process_result
 
   def replay_data (self, data_index):
@@ -778,7 +740,6 @@ class ResultPlotter(GriddedPlugin):
       if store_rec and isinstance(self._rec, bool):
         return
 
-      _dprint(3, 'handling vellsets')
 
 # store the data
       if self._vells_data is None:
@@ -886,7 +847,6 @@ class ResultPlotter(GriddedPlugin):
       vells_data_parms = self._vells_data.getVellsDataParms()
       vells_axis_parms = vells_data_parms[0]
       axis_labels = vells_data_parms[1]
-      _dprint(3, 'vells_axis_parms ', vells_axis_parms)
       self._visu_plotter.setVellsParms(vells_axis_parms, axis_labels)
       display_change = False
       if vells_data_parms[2] != self.num_possible_ND_axes:
@@ -898,24 +858,18 @@ class ResultPlotter(GriddedPlugin):
         display_change = True
 
       ranks = self._vells_data.getActiveDataRanks()
-      _dprint(3, 'received ranks ', ranks)
       actual_rank = ranks[0]
       self.array_rank = ranks[1]
       self.array_shape = ranks[2]
-      _dprint(3, 'actual plot array rank ', actual_rank)
-      _dprint(3, 'self.actual_rank ', self.actual_rank)
       if self.actual_rank != actual_rank:
         self.actual_rank = actual_rank
         display_change = True
       self._visu_plotter.set_original_array_rank(self.actual_rank)
-      _dprint(3, ' set_original_array_rank set to ', self.actual_rank)
       if self.actual_rank > 2 and self.ND_Controls is None:
          display_change = True
       if self.actual_rank <= 2 and not self.ND_Controls is None:
          self.ND_Controls.hide()
-      _dprint(3, 'display_change ', display_change)
       if display_change and self.actual_rank > 2:
-        _dprint(3, 'calling set_ND_controls')
         # store for later use
         self.ND_labels = axis_labels
         self.ND_parms = vells_axis_parms 
@@ -968,7 +922,6 @@ class ResultPlotter(GriddedPlugin):
     scalar_data = 0.0
     try:
       shape = data_array.shape
-      _dprint(3,'data_array shape is ', shape)
     except:
       is_scalar = True
       scalar_data = data_array
@@ -993,7 +946,6 @@ class ResultPlotter(GriddedPlugin):
   def update_vells_display (self, menuid):
     """ callback to handle a request from the lower level 
         display_image.py code for different Vells data """
-    _dprint(3, 'starting update_vells_display')
      
     self._vells_data.unravelMenuId(menuid)
     plot_label = self._vells_data.getPlotLabel()
@@ -1075,20 +1027,21 @@ class ResultPlotter(GriddedPlugin):
   def adjust_selector (self):
     """ instantiate and/or adjust contents of ResultsRange object """
     if self.results_selector is None:
-      self.results_selector = ResultsRange(self.layout_parent)
+      # used when showing spigot data
+      self.results_selector = ResultsRange(self.layout_parent,horizontal=True)
       self.results_selector.setMaxValue(self.max_list_length)
       self.results_selector.set_offset_index(0)
-      self.layout.addWidget(self.results_selector, 3,1,Qt.Qt.AlignHCenter)
+      self.layout.addWidget(self.results_selector, 3,1,Qt.AlignHCenter)
       self.results_selector.show()
-      Qt.QObject.connect(self.results_selector, Qt.SIGNAL('result_index'), self.replay_data)
-      Qt.QObject.connect(self.results_selector, Qt.SIGNAL('adjust_results_buffer_size'), self.set_results_buffer)
+      self.results_selector.result_index.connect(self.replay_data)
+      self.results_selector.adjust_results_buffer_size.connect(self.set_results_buffer)
       if not self._visu_plotter is None:
         self._visu_plotter.setResultsSelector()
       if self._plot_type == 'realvsimag':
-        Qt.QObject.connect(self._visu_plotter.plot, Qt.SIGNAL('show_results_selector'), self.show_selector)
+        self._visu_plotter.plot.show_results_selector.connect(self.show_selector)
       else:
         if not self._visu_plotter is None:
-          Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_results_selector'), self.show_selector)
+          self._visu_plotter.show_results_selector.connect(self.show_selector)
     self.results_selector.set_emit(False)
     self.results_selector.setRange(self.data_list_length-1)
     self.results_selector.setLabel(self.label)
@@ -1101,16 +1054,18 @@ class ResultPlotter(GriddedPlugin):
     else:
       self.results_selector.hide()
 
+# I'm not sure when/where this function gets called
   def adjust_spectrum_selector (self):
     """ instantiate and/or adjust contents of ResultsRange object """
     if self.spectrum_node_selector is None:
-      self.spectrum_node_selector = ResultsRange(self.layout_parent)
+#     self.spectrum_node_selector = ResultsRange(self.layout_parent)
+      self.spectrum_node_selector = ResultsRange(self.layout_parent,horizontal=True)
       self.spectrum_node_selector.setStringInfo(' spectrum ')
-      self.layout.addWidget(self.spectrum_node_selector, 5, 1, Qt.Qt.AlignHCenter)
+      self.layout.addWidget(self.spectrum_node_selector, 5, 1, Qt.AlignHCenter)
       self.spectrum_node_selector.show()
-      Qt.QObject.connect(self.spectrum_node_selector, Qt.SIGNAL('result_index'), self.select_spectrum_node)
+      self.spectrum_node_selector.result_index.connect(self.select_spectrum_node)
 #     Qt.QObject.connect(self.spectrum_node_selector, Qt.SIGNAL('adjust_results_buffer_size'), self.set_spectrum_node_buffer)
-      Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_results_selector'), self.show_spectrum_selector)
+      self._visu_plotter.show_results_selector.connect(self.show_spectrum_selector)
     self.spectrum_node_selector.set_emit(False)
     self.spectrum_node_selector.setMaxValue(len(self.leaf_node_list),False)
     self.spectrum_node_selector.setRange(len(self.leaf_node_list), False)
@@ -1151,10 +1106,10 @@ class ResultPlotter(GriddedPlugin):
     """ this function adds the extra GUI control buttons etc if we are
         displaying data for a numpy array of dimension 3 or greater """
 
-    self.ND_Controls = create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
+    self.ND_Controls = plot_func.create_ND_Controls(self.layout, self.layout_parent, self.array_shape, self.ND_Controls, self.ND_plotter, labels, parms, num_axes)
 
-    QObject.connect(self.ND_Controls, PYSIGNAL('sliderValueChanged'), self.setArraySelector)
-    QObject.connect(self.ND_Controls, PYSIGNAL('defineSelectedAxes'), self.setSelectedAxes)
+    self.ND_Controls.sliderValueChanged.connect(self.setArraySelector)
+    self.ND_Controls.defineSelectedAxes.connect(self.setSelectedAxes)
 
   def show_3D_Display(self, display_flag_3D):
     if not has_vtk:
@@ -1170,15 +1125,14 @@ class ResultPlotter(GriddedPlugin):
         return
     axis_increments = self._visu_plotter.getActiveAxesInc()
 
-    _dprint(3, 'got 3D plot request, deleting 2-D stuff')
-    self._visu_plotter = delete_2D_Plotters(self.colorbar, self._visu_plotter)
+    self._visu_plotter = plot_func.delete_2D_Plotters(self.colorbar, self._visu_plotter)
     if not self.status_label is None:
       self.status_label.setParent(Qt.QWidget())
       self.status_label = None
     if self.ND_plotter is None:
-      self.ND_plotter = create_ND_Plotter (self.layout, self.layout_parent)
-      QObject.connect(self.ND_plotter, PYSIGNAL('show_2D_Display'), self.show_2D_Display)
-      QObject.connect(self.ND_plotter, PYSIGNAL('show_ND_Controller'), self.ND_controller_showDisplay)
+      self.ND_plotter = plot_func.create_ND_Plotter (self.layout, self.layout_parent)
+      self.ND_plotter.show_2D_Display.connect(self.show_2D_Display)
+      self.ND_plotter.show_ND_Controller.connect(self.ND_controller_showDisplay)
     else:
       self.ND_plotter.delete_vtk_renderer()
       self.ND_plotter.show_vtk_controls()
@@ -1204,25 +1158,22 @@ class ResultPlotter(GriddedPlugin):
       self.ND_plotter.setAxisIncrements(axis_increments)
 
   def show_2D_Display(self, display_flag):
-    _dprint(3, 'in show_2D_Display ')
     self.create_2D_plotter()
 # create 3-D Controller appropriate for 2-D screen displays
-    _dprint(3, 'calling set_ND_controls with self.ND_labels, self.ND_parms ', self.ND_labels, ' ', self.ND_parms)
     self.set_ND_controls(self.ND_labels, self.ND_parms,num_axes=2)
     self._vells_data.set_3D_Display(False)
-    _dprint(3, 'calling setInitialSelectedAxes with reset=True, and self.array_rank,self.array_shape ', self.array_rank, ' ', self.array_shape)
     self._vells_data.setInitialSelectedAxes(self.array_rank,self.array_shape, reset=True)
     self._visu_plotter.set_original_array_rank(3)
     self.plot_vells_data(store_rec=False)
     if not self.results_selector is None:
-        Qt.QObject.connect(self._visu_plotter, Qt.SIGNAL('show_results_selector'), self.show_selector)
+        self._visu_plotter.show_results_selector.connect(self.show_selector)
         self._visu_plotter.setResultsSelector()
         self.results_selector.show()
 
   def set_ColorBar (self):
     """ this function adds a colorbar for 2-D displays """
     # create two color bars in case we are displaying complex arrays
-    self.colorbar = create_ColorBar(self.layout, self.layout_parent, self._visu_plotter, self.plotPrinter)
+    self.colorbar = plot_func.create_ColorBar(self.layout, self.layout_parent, self._visu_plotter, self.plotPrinter)
 
 Grid.Services.registerViewer(dmi_type('MeqResult',record),ResultPlotter,priority=10)
 #Grid.Services.registerViewer(meqds.NodeClass('MeqDataCollect'),ResultPlotter,priority=10)

@@ -68,12 +68,7 @@
 #  CANADA					 CANADA
 #
 
-from PyQt4 import Qt
-try:
-  import PyQt4.Qwt5 as Qwt
-except:
-  import qwt as Qwt
-from . import printfilter_qt4
+import printfilter_qt5
 
 class plot_printer:
   def __init__(self, plotter, colorbar=None):

@@ -68,22 +68,24 @@
 
 import sys
 
-from PyQt4 import Qt
+from qwt.qt.QtGui import QTreeWidget, QTreeWidgetItem, QApplication, QWidget
+from qwt.qt.QtCore import Qt, QObject, pyqtSignal
+
 
 # some simple classes to create a tree-like structure for viewing and 
 # selecting Vells data elements
 
 #===========================================================================
 
-class VellsElement( Qt.QTreeWidgetItem ) :
+class VellsElement( QTreeWidgetItem ) :
   """
   Inherits from QTreeWidgetItem so that we can store and return keys
   """
   def __init__( self, parent=None, after=None):
     if after is None:
-      Qt.QTreeWidgetItem.__init__( self, parent)
+      QTreeWidgetItem.__init__( self, parent)
     else:
-      Qt.QTreeWidgetItem.__init__( self, parent, [after] )    # ....?
+      QTreeWidgetItem.__init__( self, parent, [after] )    # ....?
     self.key = None
 
   def setKey(self, key):
@@ -99,20 +101,16 @@ class VellsElement( Qt.QTreeWidgetItem ) :
     return self.key
 
 
-class VellsView(Qt.QTreeWidget) :
+class VellsView(QTreeWidget) :
   """
   inherits from QListView so that we can get keys from VellsElements
   """
-  def __init__( self, parent=None, name=None):
-    Qt.QTreeWidget.__init__( self, parent)
-    self.connect( self,
-                  Qt.SIGNAL('itemClicked(QTreeWidgetItem*, int)'),
-                  self.slotVellSelected )
+  selected_vells_id = pyqtSignal()
 
-#   self.setWindowTitle("Element Selector")
-    labels = Qt.QStringList()
-    labels << self.tr("Element selector")
-    self.setHeaderLabels(labels)
+  def __init__( self, parent=None, name=None):
+    QTreeWidget.__init__( self, parent)
+    self.itemClicked[QTreeWidgetItem, int].connect(self.slotVellSelected)
+
     self.header().hide();
 
     # self.setSorting(-1)
@@ -123,12 +121,12 @@ class VellsView(Qt.QTreeWidget) :
     try:
       result = i.getKey()
       if not result is None:
-        self.emit(Qt.SIGNAL("selected_vells_id"),result)
+        self.selected_vells_id.emit(result)
     except:
       pass
 
 def main(args):
-  app = Qt.QApplication(args)
+  app = QApplication(args)
   m_treeView =  VellsView()
   root = VellsElement( m_treeView, "result" )
   a = VellsElement( root , 'root');
@@ -146,7 +144,7 @@ def main(args):
   d.setText(0,"item one")
   d.setKey("Donkey")
 
-  rect = Qt.QApplication.desktop().geometry();
+  rect = QApplication.desktop().geometry();
   m_treeView.move(rect.center() - m_treeView.rect().center())
   m_treeView.show()
   app.exec_()

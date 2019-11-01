@@ -25,21 +25,16 @@
 #
 
 import sys
-# is numpy available?
-global has_numpy
-has_numpy = False
-try:
-  import numpy
-  has_numpy = True
-except:
-  has_numpy = False
-
+import numpy
 import math
 
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='SolverData');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
+try:
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='SolverData');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+except:
+  pass
 
 class SolverData:
    """ a class to store solver data and supply the
@@ -177,33 +172,30 @@ class SolverData:
      """ get condition number information out of co-variance array """
 
 #    print 'self.metrics_covar ', self.metrics_covar
-     if has_numpy:
-       self.condition_numbers = []
-       self.cn_chi = []
-       if self.metrics_covar is None:
+     self.condition_numbers = []
+     self.cn_chi = []
+     if self.metrics_covar is None:
+       return False
+     else:
+       if len(self.metrics_covar)== 0:
          return False
        else:
-         if len(self.metrics_covar)== 0:
-           return False
-         else:
-           shape=self.metrics_chi.shape
-           num_iter = len(self.metrics_covar)
-           # just process the final record
-           covar_list = self.metrics_covar[num_iter-1]
-           num_covar_matrices = len(covar_list)
-           for i in range(num_covar_matrices):
-             covar = covar_list[i]
-             if covar.min() == 0.0 and covar.max() == 0.0:
-               self.condition_numbers.append(None)
-               self.cn_chi.append(None)
-             else:
-               # following equation provided by Sarod
-               cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
-               self.condition_numbers.append(cond_number)
-               self.cn_chi.append(cond_number * self.metrics_chi[shape[0]-1,i])
-           return True
-     else:
-       return False
+         shape=self.metrics_chi.shape
+         num_iter = len(self.metrics_covar)
+         # just process the final record
+         covar_list = self.metrics_covar[num_iter-1]
+         num_covar_matrices = len(covar_list)
+         for i in range(num_covar_matrices):
+           covar = covar_list[i]
+           if covar.min() == 0.0 and covar.max() == 0.0:
+             self.condition_numbers.append(None)
+             self.cn_chi.append(None)
+           else:
+             # following equation provided by Sarod
+             cond_number=numpy.linalg.norm(covar,2)/numpy.linalg.norm(covar,-2);
+             self.condition_numbers.append(cond_number)
+             self.cn_chi.append(cond_number * self.metrics_chi[shape[0]-1,i])
+         return True
 
    def calculateCovarEigenVectors(self):
      """ calculate eigenvalues and eigenvectors of co-variance matrix """

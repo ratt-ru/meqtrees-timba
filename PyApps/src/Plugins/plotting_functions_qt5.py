@@ -69,30 +69,28 @@
 # to plotting. I've tried to collect all such operations
 # into one file so that maintenance is easy.
 
+from qwt.qt.QtGui import QApplication,QWidget
+from qwt.qt.QtCore import Qt
+
+import numpy
 
 # modules that are imported
-from Timba import utils
-from Timba.GUI import widgets
 
-from PyQt4 import Qt
-
-global has_vtk
-has_vtk = False
+HAS_TIMBA = False
 try:
-  from Timba.Plugins.vtk_qt4_3d_display import *
-  has_vtk = True
+  from Timba import utils
+  from Timba.GUI import widgets
+  from Timba.Plugins.display_image_qt5 import QwtImageDisplay
+  from Timba.Plugins.QwtColorBar_qt5 import QwtColorBar
+  from Timba.Plugins.ND_Controller_qt5 import ND_Controller
+
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='plotting_functions');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+  HAS_TIMBA = True
 except:
   pass
-
-from Timba.Plugins.display_image_qt4 import *
-from Timba.Plugins.QwtColorBar_qt4 import *
-from Timba.Plugins.ND_Controller_qt4 import *
-from Timba.Plugins.plot_printer_qt4 import *
-
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='plotting_functions');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
 
 def create_ColorBar (layout,layout_parent, plotter, plotPrinter):
   """ this function adds a colorbar for 2-D displays """
@@ -102,26 +100,27 @@ def create_ColorBar (layout,layout_parent, plotter, plotPrinter):
   for i in range(2):
     colorbar[i] =  QwtColorBar(colorbar_number= i, parent=layout_parent)
     colorbar[i].setMaxRange((-1, 1))
-    Qt.QObject.connect(plotter, Qt.SIGNAL('max_image_range'), colorbar[i].handleRangeParms) 
-    Qt.QObject.connect(plotter, Qt.SIGNAL('display_type'), colorbar[i].setDisplayType) 
-    Qt.QObject.connect(plotter, Qt.SIGNAL('show_colorbar_display'), colorbar[i].showDisplay)
-    Qt.QObject.connect(colorbar[i], Qt.SIGNAL('set_image_range'), plotter.setImageRange) 
+    plotter.max_image_range.connect(colorbar[i].handleRangeParms)
+    plotter.display_type.connect(colorbar[i].setDisplayType)
+    plotter.show_colorbar_display.connect(colorbar[i].showDisplay)
+    colorbar[i].set_image_range.connect(plotter.setImageRange)
     if i == 0:
       layout.addWidget(colorbar[i], 0, i)
       colorbar[i].show()
     else:
       layout.addWidget(colorbar[i], 0, 2)
       colorbar[i].hide()
-  plotPrinter.add_colorbar(colorbar)
+# plotPrinter.add_colorbar(colorbar)
   return colorbar
 
 def delete_2D_Plotters(colorbar, visu_plotter):
   """ delete 2D plotter and associated colorbars """
-  _dprint(3, 'got 3d plot request, deleting 2-d stuff')
-  colorbar[0].setParent(Qt.QWidget())
-  colorbar[1].setParent(Qt.QWidget())
+  if HAS_TIMBA:
+    _dprint(3, 'got 3d plot request, deleting 2-d stuff')
+  colorbar[0].setParent(QWidget())
+  colorbar[1].setParent(QWidget())
   colorbar = {}
-  visu_plotter.setParent(Qt.QWidget())
+  visu_plotter.setParent(QWidget())
   visu_plotter = None
   return visu_plotter
 
@@ -150,19 +149,18 @@ def create_array_selector(plotter, rank, shape, first_axis,second_axis,third_axi
 
 def create_2D_Plotters(layout, layout_parent):
   """ create 2D plotter """
-  twoD_plotter = QwtImageDisplay('spectra',parent=layout_parent)
+  twoD_plotter = QwtImageDisplay(layout_parent)
   layout.addWidget(twoD_plotter, 0, 1)
   twoD_plotter.show()
-  plotPrinter = plot_printer(twoD_plotter)
-  return twoD_plotter, plotPrinter
+  return twoD_plotter
 
 def create_ND_Plotter (layout, layout_parent):
   """ create a new ND plotter """
   ND_plotter = vtk_qt_3d_display(layout_parent)
-# layout.addMultiCellWidget(ND_plotter,0,0,0,2)
   layout.addWidget(ND_plotter,0,0,1,2)
   ND_plotter.show()
-  _dprint(3, 'issued show call to ND_plotter')
+  if HAS_TIMBA:
+    _dprint(3, 'issued show call to ND_plotter')
   return ND_plotter
 
 def create_ND_Controls (layout, layout_parent, array_shape, ND_Controls, ND_plotter, labels=None, parms=None, num_axes=2):
@@ -170,10 +168,9 @@ def create_ND_Controls (layout, layout_parent, array_shape, ND_Controls, ND_plot
         displaying data for a Timba.array of dimension 3 or greater 
   """
   if not ND_Controls is None:
-    ND_Controls.setParent(Qt.QWidget())
+    ND_Controls.setParent(QWidget())
     ND_Controls = None
   ND_Controls = ND_Controller(array_shape, labels, parms, num_axes,layout_parent)
-# layout.addMultiCellWidget(ND_Controls,2,2,0,2)
   layout.addWidget(ND_Controls,2,0,1,2)
   if ND_Controls.get_num_selectors() > num_axes:
     ND_Controls.showDisplay(1)
@@ -181,7 +178,8 @@ def create_ND_Controls (layout, layout_parent, array_shape, ND_Controls, ND_plot
     ND_Controls.showDisplay(0)
     if not ND_plotter is None:
       ND_plotter.HideNDButton()
-  _dprint(3, 'ND_Controls object should appear ', ND_Controls)
+  if HAS_TIMBA:
+    _dprint(3, 'ND_Controls object should appear ', ND_Controls)
   return ND_Controls
 
 

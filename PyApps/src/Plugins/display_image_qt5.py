@@ -69,44 +69,42 @@
 #
 
 import sys
-
-from PyQt4 import Qt
-try:
-  import PyQt4.Qwt5 as Qwt
-except:
-  import qwt as Qwt
-
-from QwtSpy_qt4 import *
-
+import random
+import traceback
 import numpy
 import math
 
-#from UVPAxis import *
-#from ComplexColorMap import *
-from ComplexScaleDraw_qt4 import *
-from QwtPlotCurveSizes_qt4 import *
-from QwtPlotImage_qt4 import *
-from VellsTree_qt4 import *
-from Timba.GUI.pixmaps import pixmaps
-#from guiplot2dnodesettings import *
-import random
-import traceback
 
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='displayimage');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
 
-# is vtk available?
+from qwt.qt.QtGui import (QApplication, QDialog, QGridLayout,QHBoxLayout,QToolTip,QPrinter,QPrintDialog, QFrame,
+         QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem)
+from qwt.qt.QtGui import QBrush, QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QMessageBox, QBrush
+from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal, QTimer, QPoint
+from qwt import (QwtPlot, QwtPlotMarker, QwtPlotGrid, QwtPlotCurve,QwtPlotRenderer,
+                 QwtPlotItem, QwtText, QwtLinearColorMap, QwtSymbol,
+                 QwtInterval, QwtScaleMap, QwtScaleDraw, QwtScaleDiv, toQImage)
+from qwt import  QwtLogScaleEngine, QwtLinearScaleEngine
+
+
+
+HAS_TIMBA = False
+try:
+  from Timba.GUI.pixmaps import pixmaps
+  from Timba.Plugins.QwtSpy_qt5 import Spy
+  from Timba.Plugins.ComplexScaleDraw_qt5 import ComplexScaleDraw
+  from Timba.Plugins.QwtPlotCurveSizes_qt5 import QwtPlotCurveSizes
+  from Timba.Plugins.QwtPlotImage_qt5 import QwtPlotImage
+  from Timba.Plugins.VellsTree_qt5 import VellsView, VellsElement
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='displayimage');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+  HAS_TIMBA = True
+except:
+  pass
+ 
 global has_vtk
 has_vtk = False
-## OMS: disabling this as of 29/08/2011. See bug 863.
-#try:
-  #import vtk
-  #has_vtk = True
-#except:
-  #print 'pyvtk not found, 3D visualization will not be available.'
-  #print 'Do not worry: this is is an optional module.'
 
 def linearX(nx, ny):
     return repeat(numpy.arange(nx, typecode = numpy.float32)[:, numpy.newaxis], ny, -1)
@@ -152,12 +150,26 @@ chi_sq_instructions = \
 Button 1 (Left): If you click the <b>left</b> mouse button on a location inside the plot, and do not move the mouse, a pop-up window appears that gives all the solver metrics for the nearest point in the display. If you click the left mouse button down and then drag it, a rectangular square will be seen. Then when you release the left mouse button, the plot will 'zoom in' on the area defined inside the rectangle.<br><br>
 Button 3 (Right):Click the <b>right</b> mouse button in the window to get a context menu with options for printing, resetting the zoom, toggling a <b>Legends</b> display or returning to the incremental solutions display. If you select the 'Reset zoomer' option in a window where you had zoomed in on a selected region, then the original display reappears. If you select the Print option from the menu, the standard Qt printer widget will appear. That widget will enable you print out a copy of your plot, or save the plot in Postscript format to a file. By default a <b>Legends</b> display associated with the three curves is not displayed. You can toggle the <b>Legends</b> display ON or OFF by selecting the Toggle Plot Legend option from the context menu.''' 
 
-class QwtImageDisplay(Qwt.QwtPlot):
+class QwtImageDisplay(QwtPlot):
     """ A general purpose class to plot data arrays. The arrays can
         be of any dimension (>= 1). If the dimension is greater than
         two, selection is employed to display a 2-dimensional
         sub-array on the screen.
     """
+    max_image_range = pyqtSignal('PyQt_PyObject', int, bool,bool)
+    show_colorbar_display = pyqtSignal(int,int)
+    winpaused = pyqtSignal(bool)
+    compare = pyqtSignal(bool)
+    display_type = pyqtSignal(str)
+    colorbar_needed = pyqtSignal(int)
+    save_display = pyqtSignal(str)
+    handle_menu_id = pyqtSignal('PyQt_PyObject')
+    handle_spectrum_menu_id = pyqtSignal(int)
+    show_ND_Controller = pyqtSignal(int)
+    show_3D_Display = pyqtSignal(int)
+    show_results_selector = pyqtSignal(bool)
+    full_vells_image = pyqtSignal(bool)
+    itemAttached =  pyqtSignal('PyQt_PyObject',bool)
 
     display_table = {
         'hippo': 'hippo',
@@ -191,7 +203,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         'Toggle Comparison': 318,
         'Drag Amplitude Scale': 319,
         'Undo Last Zoom': 320,
-        'Save Display in PNG Format': 321,
+        'Save Display in pdf Format': 321,
         'Select X-Section Display': 322,
         'Show Full Data Range': 323,
         'Toggle axis rotate': 324,
@@ -214,10 +226,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     _start_spectrum_menu_id = 0
 
-    def __init__(self, plot_key="", parent=None):
-        Qwt.QwtPlot.__init__(self, parent)
+    def __init__(self, parent=None):
+        QwtPlot.__init__(self, parent)
         self.parent = parent
         self._mainwin = parent and parent.topLevelWidget();
+
+# a relic from the past which we have to keep for the moment
+        self.plot_key = 'spectra'
+
 
 # set default display type to 'hippo'
         self._display_type = None
@@ -232,8 +248,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._do_pause = False
         self._compare_max = False
 
-# save raw data
-        self.plot_key = plot_key
         self.solver_display = None
         self.x_array = None
         self.y_array = None
@@ -274,7 +288,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.iteration_number = None
         self.solver_labels = None
         self.scalar_display = False
-        self.ampl_phase = None
+        self.ampl_phase = False
         self.log_switch_set = False
         self._active_perturb = None
         self.first_axis_inc = None
@@ -303,7 +317,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.metrics_plot = {}
         self.chis_plot = {}
         # make a QwtPlot widget
-        self.plotLayout().setMargin(0)
         self.plotLayout().setCanvasMargin(0)
         self.plotLayout().setAlignCanvasToScales(1)
 #       self.setTitle('QwtImageDisplay')
@@ -311,48 +324,41 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.label = ''
         self.vells_menu_items = 0
         self.zooming = True
-        self.setlegend = 0
         self.log_offset = 0.0
         self.current_width = 0
 
         # set fonts for titles
         # first create copy of standard application font..
-        self.title_font = Qt.QFont(Qt.QApplication.font());
-        fi = Qt.QFontInfo(self.title_font);
+        self.title_font = QFont(QApplication.font())
+        fi = QFontInfo(self.title_font);
         # and scale it down to 70%
         self.title_font.setPointSize(fi.pointSize()*0.7);
-        self.xBottom_title = Qwt.QwtText('Array/Channel Number')
+        self.xBottom_title = QwtText('Array/Channel Number')
         self.xBottom_title.setFont(self.title_font)
-        self.yLeft_title = Qwt.QwtText('Array/Sequence Number')
+        self.yLeft_title = QwtText('Array/Sequence Number')
         self.yLeft_title.setFont(self.title_font)
-        self.xTop_title = Qwt.QwtText('Array/Channel Number')
+        self.xTop_title = QwtText('Array/Channel Number')
         self.xTop_title.setFont(self.title_font)
-        self.yRight_title = Qwt.QwtText(' ')
+        self.yRight_title = QwtText(' ')
         self.yRight_title.setFont(self.title_font)
-        self.plot_title = Qwt.QwtText('  ')
+        self.plot_title = QwtText('  ')
         self.plot_title.setFont(self.title_font)
 
-        self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
-        self.setAxisTitle(Qwt.QwtPlot.yLeft, self.yLeft_title)
+        self.setAxisTitle(QwtPlot.xBottom, self.xBottom_title)
+        self.setAxisTitle(QwtPlot.yLeft, self.yLeft_title)
 
 # set fonts for scales
-        self.x_bottom_scale = self.axisWidget(Qwt.QwtPlot.xBottom)
+        self.x_bottom_scale = self.axisWidget(QwtPlot.xBottom)
         self.x_bottom_scale.setFont(self.title_font)
-        self.x_top_scale = self.axisWidget(Qwt.QwtPlot.xTop)
+        self.x_top_scale = self.axisWidget(QwtPlot.xTop)
         self.x_top_scale.setFont(self.title_font)
-        self.y_left_scale = self.axisWidget(Qwt.QwtPlot.yLeft)
+        self.y_left_scale = self.axisWidget(QwtPlot.yLeft)
         self.y_left_scale.setFont(self.title_font)
-        self.y_right_scale = self.axisWidget(Qwt.QwtPlot.yRight)
+        self.y_right_scale = self.axisWidget(QwtPlot.yRight)
         self.y_right_scale.setFont(self.title_font)
 
-# set default background to  whatever QApplication sez it should be!
-#       self.setCanvasBackground(Qt.QApplication.palette().active().base())
-
-
-        
-        self.enableAxis(Qwt.QwtPlot.yRight, False)
-        self.enableAxis(Qwt.QwtPlot.xTop, False)
-        self.legend = None
+        self.enableAxis(QwtPlot.yRight, False)
+        self.enableAxis(QwtPlot.xTop, False)
         self.xrCrossSection = None
         self.xrCrossSection_flag = None
         self.xiCrossSection = None
@@ -374,26 +380,20 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.yzoom_loc = None
 
     # create a grid
-        self.grid = Qwt.QwtPlotGrid()
-        self.grid.setPen(Qt.QPen(Qt.Qt.black, 0, Qt.Qt.DotLine))
+        self.grid = QwtPlotGrid()
+        self.grid.setPen(QPen(Qt.black, 0, Qt.DotLine))
     
 
     # create Spy object to track mouse events 
         self.spy = Spy(self.canvas())
         self.prev_xpos = None
         self.prev_ypos = None
-        self.zoom_outline = Qwt.QwtPlotCurve()
+        self.zoom_outline = QwtPlotCurve()
 
 
-        self.connect(self.spy,
-                     Qt.SIGNAL("MouseMove"),
-                     self.setPosition)
-        self.connect(self.spy,
-                     Qt.SIGNAL("MousePress"),
-                     self.onMousePressed)
-        self.connect(self.spy,
-                     Qt.SIGNAL("MouseRelease"),
-                     self.onMouseReleased)
+        self.spy.MouseMove.connect(self.setPosition)
+        self.spy.MousePress.connect(self.onMousePressed)
+        self.spy.MouseRelease.connect(self.onMouseReleased)
 
         self.mouse_pressed = False
         self.index = 1
@@ -422,27 +422,24 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.store_solver_array = False
         self.curve_info = ""
         self.curves = {}
+        self.markers = {}
         self.curve_data = {}
         self.metrics_index = 0
-
-#add a printer
-        self.printer = Qt.QAction(pixmaps.fileprint.iconset(),"Print plot",self);
-        Qt.QObject.connect(self.printer,Qt.SIGNAL("triggered()"),self.printplot);
 
         self.setWhatsThis(display_image_instructions)
 
 # Finally, over-ride default QWT Plot size policy of MinimumExpanding
 # Otherwise minimum size of plots is too large when embedded in a
 # QGridlayout
-        self.setSizePolicy(Qt.QSizePolicy.Expanding,Qt.QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
 # set up pop up text
-        self.white = Qt.QColor(255,255,255)
-        font = Qt.QFont("Helvetica",10)
-        self._popup_text = Qt.QLabel(self)
+        self.white = QColor(255,255,255)
+        font = QFont("Helvetica",10)
+        self._popup_text = QLabel(self)
         self._popup_text.setFont(font)
         self._popup_text.setStyleSheet("QWidget { background-color: %s }" % self.white.name())
-        self._popup_text.setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Plain)
+        self._popup_text.setFrameStyle(QFrame.Box | QFrame.Plain)
         # start the text off hidden at 0,0
         self._popup_text.hide()
 
@@ -482,7 +479,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.setPlotParms(parms,True)
         else:
           message= 'QwtImageDisplay dropEvent decode failure'
-          mb_reporter = Qt.QMessageBox.information(self, "QwtImageDisplay", message)
+          mb_reporter = QMessageBox.information(self, "QwtImageDisplay", message)
 
     def startDrag(self):
       """ operations done when we start a drag event """
@@ -495,7 +492,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
       event.accept()
     
     def clear_metrics(self):
-        self.clear()
+#       self.detachItems(QwtPlotItem.Rtti_PlotItem,True)
+#       self.detachItems(QwtPlotItem.Rtti_PlotMarker,True)
+        keys = list(self.metrics_plot.keys())
+        if len(keys) > 0:
+          for key in keys:
+            self.metrics_plot[key].detach()
         self.y_solver_offset = []
         self.metrics_plot = {}
         self.chis_plot = {}
@@ -539,25 +541,25 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
           self.xBottom_title.setText(self._x_title)
           self.yLeft_title.setText(self._y_title)
-          self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
-          self.setAxisTitle(Qwt.QwtPlot.yLeft, self.yLeft_title)
+          self.setAxisTitle(QwtPlot.xBottom, self.xBottom_title)
+          self.setAxisTitle(QwtPlot.yLeft, self.yLeft_title)
           self.plot_title.setText(self._window_title)
           self.setTitle(self.plot_title)
 
         if self.zoomStack == []:
           try:
                 self.zoomState = (
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(), True
+                    self.axisScaleDiv(QwtPlot.xBottom).lBound(),
+                    self.axisScaleDiv(QwtPlot.xBottom).hBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).lBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).hBound(), True
                     )
           except:
                 self.zoomState = (
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(), True
+                    self.axisScaleDiv(QwtPlot.xBottom).lowerBound(),
+                    self.axisScaleDiv(QwtPlot.xBottom).upperBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).lowerBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).upperBound(), True
                     )
         self.zoomStack.append(self.zoomState)
         self._x_auto_scale = plot_parms['x_auto_scale']
@@ -579,11 +581,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
           else:
             self.axis_xmin =  self.zoomStack[0][0]
             self.axis_xmax =  self.zoomStack[0][1]
-          self.setAxisScale(Qwt.QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
+          self.setAxisScale(QwtPlot.xBottom, self.axis_xmin, self.axis_xmax)
           if not self.is_vector:
             self.plotImage.update_xMap_draw(self.axis_xmin,self.axis_xmax)
         else:
-          self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
+          self.setAxisAutoScale(QwtPlot.xBottom)
         if not self._y_auto_scale: 
           if float(plot_parms['axis_ymin']) > self.zoomStack[0][2] or float(plot_parms['axis_ymax']) < self.zoomStack[0][3]:
             self.axis_ymin = float(plot_parms['axis_ymin'])
@@ -592,11 +594,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
           else:
             self.axis_ymin =  self.zoomStack[0][2]
             self.axis_ymax =  self.zoomStack[0][3]
-          self.setAxisScale(Qwt.QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
+          self.setAxisScale(QwtPlot.yLeft, self.axis_ymin, self.axis_ymax)
           if not self.is_vector:
             self.plotImage.update_yMap_draw(self.axis_ymin,self.axis_ymax)
         else:
-          self.setAxisAutoScale(Qwt.QwtPlot.yLeft)
+          self.setAxisAutoScale(QwtPlot.yLeft)
         if display_zoom_menu:
           self.zoomState = (self.axis_xmin, self.axis_xmax, self.axis_ymin, self.axis_ymax, True)
           self._reset_zoomer.setVisible(True)
@@ -609,7 +611,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self._undo_last_zoom.setVisible(False)
         self.replot()
         #print'called replot in setPlotParms'
-        _dprint(3, 'called replot in setPlotParms')
+        if HAS_TIMBA:_dprint(3, 'called replot in setPlotParms')
 
     def initSpectrumContextMenu(self):
         """Initialize the spectrum context menu """
@@ -618,11 +620,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
           return;
 
         if self._menu is None:
-          self._menu = Qt.QMenu(self._mainwin);
+          self._menu = QMenu(self._mainwin);
           self.add_basic_menu_items()
 #         self.connect(self._menu,Qt.SIGNAL("activated(int)"),self.update_spectrum_display);
-#         self.connect(self._menu,Qt.SIGNAL("triggered(Qt.QAction)"),self.update_spectrum_display);
-          self.connect(self._menu,Qt.SIGNAL("triggered()"),self.update_spectrum_display);
+#         self.connect(self._menu,Qt.SIGNAL("triggered(QAction)"),self.update_spectrum_display);
+          self._menu.triggered.connect(self.update_spectrum_display)
           self.spectrum_menu_items = 0
 
         if self.spectrum_menu_items > 1:
@@ -636,6 +638,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if self.show_x_sections:
 # delete any previous curves
         self.removeCurves()
+        self.removeMarkers()
         self.xrCrossSection = None
         self.xrCrossSection_flag = None
         self.xiCrossSection = None
@@ -643,23 +646,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.x_index = None
         self.x_arrayloc = None
         self.y_arrayloc = None
-        self.enableAxis(Qwt.QwtPlot.yRight, False)
-        self.enableAxis(Qwt.QwtPlot.xTop, False)
+        self.enableAxis(QwtPlot.yRight, False)
+        self.enableAxis(QwtPlot.xTop, False)
         self.xsect_xpos = None
         self.xsect_ypos = None
         self.show_x_sections = False
         self._delete_x_section_display.setVisible(False)
         self._delete_cx_section_display.setVisible(False)
         self._select_x_section_display.setVisible(False)
-        if self.setlegend == 1:
-          self.setlegend = 0
-# delete legend (QWidget) object
-#       self.legend.reparent(Qt.QWidget(), 0, Qt.QPoint())
-          self.legend.setParent(Qt.QWidget())
-          self.legend = None
-          self.updateLayout()
-          self._toggle_plot_legend.setChecked(False)
-          self._toggle_plot_legend.setVisible(False)
 
 # add solver metrics info back in?
         if self.toggle_metrics and not self.metrics_rank is None:
@@ -673,12 +667,43 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._toggle_results_history.setVisible(True)
       self._toggle_results_history.setChecked(self.setResults)
 
+    # following function is taken directly from the PythonQwt BodeDemo.py example
+    def print_(self):
+       printer = QPrinter(QPrinter.HighResolution)
+
+       printer.setCreator('plotting example')
+       printer.setOrientation(QPrinter.Landscape)
+       printer.setColorMode(QPrinter.Color)
+
+       if self._window_title is None:
+          docName = 'plot_display'
+       else:
+          docName = self._window_title 
+
+       if not docName:
+           docName.replace('\n', ' -- ')
+
+       printer.setDocName(docName)
+       dialog = QPrintDialog(printer)
+       if dialog.exec_():
+           renderer = QwtPlotRenderer()
+           if (QPrinter.GrayScale == printer.colorMode()):
+               renderer.setDiscardFlag(QwtPlotRenderer.DiscardBackground)
+               renderer.setDiscardFlag(QwtPlotRenderer.DiscardCanvasBackground)
+               renderer.setDiscardFlag(QwtPlotRenderer.DiscardCanvasFrame)
+               renderer.setLayoutFlag(QwtPlotRenderer.FrameWithScales)
+           renderer.renderTo(self, printer)
+
     def handle_basic_menu_id(self):
       """ callback to handle most common basic context menu selections """
 # should not be any such menuid that we need to handle here
 # (print signal is handled by printplot function) so ignore
-      action = Qt.QObject.sender(self)
-      result, flag = action.data().toInt()
+#     print('in handle basic menu')
+      action = QObject.sender(self)
+      try:
+        result, flag = action.data().toInt()
+      except:
+        pass
 
     def toggleMetrics(self):
       """ callback to make Solver Metrics plots visible or invisible """
@@ -700,8 +725,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
       """ callback to handle or modify displays of flagged data """
       if self.flag_blink == False:
         self.flag_blink = True
-        self.timer = Qt.QTimer(self)
-        self.timer.connect(self.timer, Qt.SIGNAL('timeout()'), self.timerEvent_blink)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.timerEvent_blink)
         self.timer.start(2000)
       else:
         self.flag_blink = False
@@ -761,18 +786,18 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.plotImage.setFlaggedImageRange()
         self.plotImage.updateImage(self.raw_image)
         flag_image_limits = self.plotImage.getRealImageRange()
-        self.emit(Qt.SIGNAL("max_image_range"), (flag_image_limits, 0, self.toggle_log_display,self.ampl_phase))
+        self.max_image_range.emit(flag_image_limits, 0, self.toggle_log_display,self.ampl_phase)
         if self.complex_type:
           flag_image_limits = self.plotImage.getImagImageRange()
-          self.emit(Qt.SIGNAL("max_image_range"), (flag_image_limits, 1, self.toggle_log_display,self.ampl_phase))
+          self.max_image_range.emit(flag_image_limits, 1, self.toggle_log_display,self.ampl_phase)
       else:
         self.plotImage.setImageRange(self.raw_image)
         self.plotImage.updateImage(self.raw_image)
         image_limits = self.plotImage.getRealImageRange()
-        self.emit(Qt.SIGNAL("max_image_range"), (image_limits, 0, self.toggle_log_display,self.ampl_phase))
+        self.max_image_range.emit(image_limits, 0, self.toggle_log_display,self.ampl_phase)
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
-          self.emit(Qt.SIGNAL("max_image_range"), (image_limits, 1, self.toggle_log_display,self.ampl_phase))
+          self.max_image_range.emit(image_limits, 1, self.toggle_log_display,self.ampl_phase)
       # finally, replot
       self.replot()
       #print 'called second replot in handleFlagRange'
@@ -780,7 +805,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def setAxisParms(self, axis_parms):
       self.first_axis_parm = axis_parms[0]
       self.second_axis_parm = axis_parms[1]
-      _dprint(3, 'axis parms set to ', self.first_axis_parm, ' ', self.second_axis_parm)
+      if HAS_TIMBA:_dprint(3, 'axis parms set to ', self.first_axis_parm, ' ', self.second_axis_parm)
 
     def set_condition_numbers(self, numbers):
       """ set covariance matrix condition numbers """
@@ -798,8 +823,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def update_spectrum_display(self, menuid):
       """ callback to handle signal from SpectrumContextMenu """
-      print('in update_spectrum_display with menuid ', menuid)
-      if self.handle_basic_menu_id(menuid):
+      if self.handle_basic_menu_id():
         return
 
       if self.is_combined_image:
@@ -809,9 +833,17 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.source_marker = None
         self.is_combined_image = False
 
-# if we got here, emit signal up to result_plotter here
-      menuid = self.spectrum_menu_items - 1 - menuid
-      self.emit(Qt.SIGNAL("handle_spectrum_menu_id"),(menuid,))
+# if we got here, emit signal up to result_plotter 
+# NOTE: for python3/Qwt6 we see to get here in ways I do NOT understand
+# and I handle this with an exception. Maybe some day I'll figure this out :) 
+      try:
+# menuid is a python object in python3  so how can I be doing 
+# arithmetic on it? # how did this ever work in python2?
+        menuid = self.spectrum_menu_items - 1 - menuid
+        self.handle_spectrum_menu_id.emit(menuid)
+      except:
+        return 
+#       traceback.print_exc();
 
     def set_flag_toggles(self, flag_plane=None, flag_setting=False):
       """ creates context menus for selecting flagged Vells data """
@@ -864,9 +896,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
         return;
       self.log_switch_set = False
       if self._menu is None:
-        self._menu = Qt.QMenu(self._mainwin);
+        self._menu = QMenu(self._mainwin);
 #       self.connect(self._menu,Qt.SIGNAL("activated(int)"),self.update_vells_display);
-        self.connect(self._menu,Qt.SIGNAL("aboutToShow()"),self.addVellsMenu);
+        self._menu.aboutToShow.connect(self.addVellsMenu)
         self.add_basic_menu_items()
     # end initVellsContextMenu()
 
@@ -888,21 +920,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if self._vells_menu_data is None:
         return
       if not self._vells_menu_window is None:
-        self._vells_menu_window.setParent(Qt.QWidget())
+        self._vells_menu_window.setParent(QWidget())
         self._change_vells.setVisible(False)
         self._vells_menu_window = None
 
       if self._vells_menu_window is None:
-        self._vells_menu_window = Qt.QDialog(self,Qt.Qt.Tool);
+        self._vells_menu_window = QDialog(self,Qt.Tool);
         self._vells_menu_window.setWindowTitle("Element selector");
-        lo = Qt.QVBoxLayout(self._vells_menu_window);
+        lo = QVBoxLayout(self._vells_menu_window);
         lo.setContentsMargins(0,0,0,0);
         self._vells_menu = VellsView(self._vells_menu_window);
         lo.addWidget(self._vells_menu);
         self._vells_menu.setRootIsDecorated(False);
         vells_root = VellsElement(self._vells_menu, "Data elements:")
         vells_root.setExpanded(True)
-        self.connect(self._vells_menu,Qt.SIGNAL("selected_vells_id"),self.update_vells_display);
+        self._vells_menu.selected_vells_id.connect(self.update_vells_display)
         self._vells_menu_window.hide()
         self._change_vells.setVisible(True)
         self._show_full_data_range.setVisible(False)
@@ -1092,8 +1124,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.zoomState = None
           if undo_last_zoom:
             break
-        self.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
-        self.setAxisScale(Qwt.QwtPlot.yLeft, ymin, ymax)
+        self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+        self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
         if not self.is_vector:
           self.plotImage.update_xMap_draw(xmin,xmax)
           self.plotImage.update_yMap_draw(ymin,ymax)
@@ -1132,7 +1164,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     
       if replot:
         self.array_plot(self.complex_image,data_label=self._window_title, flip_axes=False)
-      _dprint(3, 'exiting reset_zoom')
+      if HAS_TIMBA:_dprint(3, 'exiting reset_zoom')
       return
 
     def handle_toggle_nd_controller(self):
@@ -1141,13 +1173,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
       else:
         self.toggle_ND_Controller = 1
       self._toggle_nd_controller.setChecked(not self.toggle_ND_Controller)
-      self.emit(Qt.SIGNAL("show_ND_Controller"),self.toggle_ND_Controller)
+      self.show_ND_Controller.emit(self.toggle_ND_Controller)
 
     def handle_toggle_3d_display(self):
-      self.emit(Qt.SIGNAL("show_3D_Display"),True)
+      self.show_3D_Display.emit(True)
 
     def handle_toggle_warp_display(self):
-      self.emit(Qt.SIGNAL("show_3D_Display"),False)
+      self.show_3D_Display.emit(False)
 
     def handle_toggle_results_history(self):
       if self.setResults:
@@ -1155,7 +1187,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       else:
         self.setResults = True
       self._toggle_results_history.setChecked(self.setResults)
-      self.emit(Qt.SIGNAL("show_results_selector"),self.setResults)
+      self.show_results_selector.emit(self.setResults)
 
     def handle_toggle_metrics_display(self):
       if self.toggle_metrics == False:
@@ -1191,7 +1223,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.replot()
 
     def handle_toggle_chi_square_surfaces_display(self):
-      self._toggle_plot_legend.setVisible(True)
       if self.display_solution_distances is False:
         self.display_solution_distances = True
         self.setWhatsThis(chi_sq_instructions)
@@ -1222,7 +1253,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       else:
           self._do_pause = True
       self._toggle_pause.setChecked(self._do_pause)
-      self.emit(Qt.SIGNAL("winpaused"),self._do_pause)
+      self.winpaused.emit(self._do_pause)
 
     def handle_toggle_comparison(self):
       if self._compare_max:
@@ -1230,7 +1261,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
       else:
         self._compare_max = True
       self._toggle_comparison.setChecked(self._compare_max)
-#     self.emit(Qt.SIGNAL("compare"),self._compare_max)
+      self.compare.emit(self._compare_max)
+
 
     def handle_change_vells(self):
       # figure out a good size
@@ -1247,7 +1279,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       # figure out position for popup
       globalPos = self.mapToGlobal(self.rect().topLeft())
       # seems to put this widget in a good position IMHO
-      self._vells_menu_window.move(globalPos - Qt.QPoint(0.9*width,0.9*height))
+      self._vells_menu_window.move(globalPos - QPoint(0.9*width,0.9*height))
       self._vells_menu_window.show()
 
     def handle_show_full_data_range(self):
@@ -1257,13 +1289,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.full_data_range = False
         self.plotImage.setFlagsArray(None)
       self._show_full_data_range.setChecked(self.full_data_range)
-      self.emit(Qt.SIGNAL("full_vells_image"),self.full_data_range,)
+      self.full_vells_image.emit(self.full_data_range, )
 
     def handle_toggle_coordinates(self):
       if self.show_coordinates == False:
         self.show_coordinates = True
       else:
         self.show_coordinates = False
+      
       self._toggle_coordinates.setChecked(self.show_coordinates)
 
     def handle_toggle_axis_flip(self):
@@ -1314,10 +1347,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._toggle_log_range_for_data.setChecked(self.toggle_log_display)
       self.plotImage.updateImage(self.raw_image)
       image_limits = self.plotImage.getRealImageRange()
-      self.emit(Qt.SIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display,self.ampl_phase))
+      self.max_image_range.emit(image_limits, 0, self.toggle_log_display,self.ampl_phase)
       if self.complex_type:
         image_limits = self.plotImage.getImagImageRange()
-        self.emit(Qt.SIGNAL("max_image_range"),(image_limits, 1,self.toggle_log_display,self.ampl_phase))
+        self.max_image_range.emit(image_limits, 1,self.toggle_log_display,self.ampl_phase)
       self.log_offset = 0.0
       if self.toggle_log_display:
         self.log_offset = self.plotImage.getTransformOffset()
@@ -1339,7 +1372,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           else:
             title = self._x_title + ' (amplitude followed by phase)'
       self.xBottom_title.setText(title)
-      self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
+      self.setAxisTitle(QwtPlot.xBottom, self.xBottom_title)
 
       if self.is_vector:
         # make sure we unzoom as axes will probably change drastically
@@ -1363,7 +1396,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         else:
           title = self._x_title + ' (real followed by imaginary)'
       self.xBottom_title.setText(title)
-      self.setAxisTitle(Qwt.QwtPlot.xBottom, self.xBottom_title)
+      self.setAxisTitle(QwtPlot.xBottom, self.xBottom_title)
 
       if self.is_vector:
         # make sure we unzoom as axes will probably change drastically
@@ -1381,9 +1414,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.toggle_color_bar = 0
       else:
         self.toggle_color_bar = 1
-      self.emit(Qt.SIGNAL("show_colorbar_display"),self.toggle_color_bar,0)
+      self.show_colorbar_display.emit(self.toggle_color_bar, 0)
       if self.complex_type:
-        self.emit(Qt.SIGNAL("show_colorbar_display"),self.toggle_color_bar,1)
+        self.show_colorbar_display.emit(self.toggle_color_bar, 1)
       self._toggle_colorbar.setChecked(self.toggle_color_bar)
       return True
 
@@ -1397,35 +1430,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.plotImage.updateImage(self.raw_image)
       self.replot()
 
-    def handle_toggle_plot_legend(self):
-      """ sets legends display for cross section plots to visible/invisible """
-      if self.setlegend == 1:
-        self.setlegend = 0
-# delete legend (QWidget) object
-#       self.legend.reparent(Qt.QWidget(), 0, Qt.QPoint())
-        self.legend.setParent(Qt.QWidget())
-        self.legend = None
-        self.updateLayout()
-        self._toggle_plot_legend.setChecked(False)
-      else:
-        self.setlegend = 1
-        self.legend = Qwt.QwtLegend()
-        self.legend.setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Sunken)
-        self.insertLegend(self.legend, Qwt.QwtPlot.RightLegend)
-        self._toggle_plot_legend.setChecked(True)
-      self.replot()
-      #print 'called replot in toggleLegend'
-      _dprint(3, 'called replot in toggleLegend')
-    # toggleLegend()
-
-
     def updatePlotParameters(self):
       """ create a GUI for user to modify plot parameters """
       parms_interface = WidgetSettingsDialog(actual_parent=self, gui_parent=self)
 
     def setImageRange(self, min, max, colorbar=0,image_lock=False):
       """ callback to set allowable range of array intensity display """
-      _dprint(3, 'received request for min and max of ', min, ' ', max)
+      if HAS_TIMBA:_dprint(3, 'received request for min and max of ', min, ' ', max)
       if colorbar == 0:
         self.plotImage.setLockImage(True, image_lock)
         self.plotImage.defineImageRange((min, max), True)
@@ -1434,7 +1445,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.plotImage.defineImageRange((min, max), False)
       self.plotImage.updateImage(self.raw_image)
       self.replot()
-      _dprint(3, 'called replot in setImageRange')
+      if HAS_TIMBA:_dprint(3, 'called replot in setImageRange')
       #print 'called replot in setImageRange'
     # setImageRange
         
@@ -1447,11 +1458,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
       else:
         self.handleFlagToggle(self.flag_toggle)
       self.replot()
-      _dprint(3, 'called replot in timerEvent_blink')
+      if HAS_TIMBA:_dprint(3, 'called replot in timerEvent_blink')
       #print 'called replot in timerEvent_blink'
 
     def update_vells_display(self, menuid):
-      self.emit(Qt.SIGNAL("handle_menu_id"),menuid)
+      self.handle_menu_id.emit(menuid)
 
     def setVellsPlot(self, do_vells_plot=True):
       self._vells_plot = do_vells_plot
@@ -1474,12 +1485,12 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.set_xaxis_title(' ')
       self.set_yaxis_title(' ')
       self.scalar_display = True
-      self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
-      self.setAxisAutoScale(Qwt.QwtPlot.xTop)
-      self.setAxisAutoScale(Qwt.QwtPlot.yLeft)
-      self.setAxisAutoScale(Qwt.QwtPlot.yRight)
-      self.enableAxis(Qwt.QwtPlot.yLeft, False)
-      self.enableAxis(Qwt.QwtPlot.xBottom, False)
+      self.setAxisAutoScale(QwtPlot.xBottom)
+      self.setAxisAutoScale(QwtPlot.xTop)
+      self.setAxisAutoScale(QwtPlot.yLeft)
+      self.setAxisAutoScale(QwtPlot.yRight)
+      self.enableAxis(QwtPlot.yLeft, False)
+      self.enableAxis(QwtPlot.xBottom, False)
       self.grid.detach()
 
       self._x_auto_scale = True
@@ -1488,27 +1499,27 @@ class QwtImageDisplay(Qwt.QwtPlot):
         Message = data_label
       else:
         Message = data_label + ' is a scalar\n with value: ' + str(scalar_data)
-      _dprint(3,' scalar message ', Message)
+      if HAS_TIMBA:_dprint(3,' scalar message ', Message)
       
-      text = Qwt.QwtText(Message)
-      text.setColor(Qt.Qt.blue)
-      text.setBackgroundBrush(Qt.QBrush(Qt.Qt.yellow))
+      text = QwtText(Message)
+      text.setColor(Qt.blue)
+      text.setBackgroundBrush(QBrush(Qt.yellow))
       fn = self.fontInfo().family()
-      text.setFont(Qt.QFont(fn, 8, Qt.QFont.Bold))
-      self.source_marker = Qwt.QwtPlotMarker()
-      self.source_marker.setLabelAlignment(Qt.Qt.AlignRight | Qt.Qt.AlignTop)
+      text.setFont(QFont(fn, 8, QFont.Bold))
+      self.source_marker = QwtPlotMarker()
+      self.source_marker.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
       self.source_marker.setLabel(text)
       if not self.is_vector:
         xlb, xhb = self.plotImage.get_xMap_draw_coords()
         ylb, yhb = self.plotImage.get_yMap_draw_coords()
       else:
         try:
-          ylb = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound()
-          xlb = self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound()
+          ylb = self.axisScaleDiv(QwtPlot.yLeft).lBound()
+          xlb = self.axisScaleDiv(QwtPlot.xBottom).lBound()
         except:
-          ylb = self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound()
-          xlb = self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound()
-      self.source_marker.setValue( xlb+0.1, ylb+1.0)
+          ylb = self.axisScaleDiv(QwtPlot.yLeft).lowerBound()
+          xlb = self.axisScaleDiv(QwtPlot.xBottom).upperBound()
+      self.source_marker.setValue(xlb+0.1, ylb+1.0)
       self.source_marker.attach(self)
 
 
@@ -1519,9 +1530,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._toggle_warp_display.setVisible(False)
 
 # make sure any color bar from array plot of other Vells member is hidden
-      self.emit(Qt.SIGNAL("show_colorbar_display"),0,0) 
+      self.show_colorbar_display.emit(0, 0)
       if self.complex_type:
-        self.emit(Qt.SIGNAL("show_colorbar_display"),0,1) 
+        self.show_colorbar_display.emit(0, 1)
 # make sure options relating to color bar are not in context menu
       self._toggle_colorbar.setVisible(False)
       self._toggle_color_gray_display.setVisible(False)
@@ -1529,7 +1540,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.log_switch_set = False
 
 # a scalar has no legends or cross-sections!
-      self._toggle_plot_legend.setVisible(False)
       self.delete_cross_sections()
 
 # can't flip axes with a scalar!
@@ -1537,19 +1547,19 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._toggle_axis_rotate.setVisible(False)
 
       self.replot()
-      _dprint(3,'called replot in report_scalar_value')
+      if HAS_TIMBA:_dprint(3,'called replot in report_scalar_value')
       self._vells_plot = True
 
     def printplot(self):
       """ make a hardcopy of current displayed plot """
-      self.emit(Qt.SIGNAL("do_print"),self.is_vector,self.complex_type)
+      self.do_print.emit(self.is_vector, self.complex_type)
     # printplot()
 
     def drawCanvasItems(self, painter, rectangle, maps, filter):
         if not self.is_vector:
           self.plotImage.drawImage(
-            painter, maps[Qwt.QwtPlot.xBottom], maps[Qwt.QwtPlot.yLeft])
-        Qwt.QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
+            painter, maps[QwtPlot.xBottom], maps[QwtPlot.yLeft])
+        QwtPlot.drawCanvasItems(self, painter, rectangle, maps, filter)
 
 
     def formatCoordinates(self, x, y):
@@ -1558,8 +1568,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
         if self.scalar_display:
           return
         result = ''
-        xpos = self.invTransform(Qwt.QwtPlot.xBottom, x)
-        ypos = self.invTransform(Qwt.QwtPlot.yLeft, y)
+        xpos = self.invTransform(QwtPlot.xBottom, x)
+        ypos = self.invTransform(QwtPlot.yLeft, y)
         marker_index = None
         if self._vells_plot:
           xpos1 = xpos
@@ -1741,7 +1751,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           metrics_unknowns = "unknowns: " + str(self.metrics_unknowns[self.array_index,self.metrics_index])
           metrics_iteration = "iteration: " + str(self.array_index+1) + "\n"
           message = metrics_iteration + self.curve_info + str(x) +  "\nchi_0: " + str(y) +"\n" + metrics_rank + metrics_fit + metrics_chi + metrics_mu + metrics_flag + metrics_stddev + metrics_unknowns  
-#         mb_reporter = Qt.QMessageBox.information(self, "QwtImageDisplay", Message)
+#         mb_reporter = QMessageBox.information(self, "QwtImageDisplay", Message)
         else:
           if self._vells_plot:
             units = ""
@@ -1793,31 +1803,37 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # draw dividing lines for complex array, cross_sections, solver_offsets, etc
       self.insert_array_info()
       self.replot()
-      _dprint(3, 'called replot in refresh_marker_display ')
+      if HAS_TIMBA:_dprint(3, 'called replot in refresh_marker_display ')
       #print 'called replot in refresh_marker_display '
     # refresh_marker_display()
 
     def insert_marker_lines(self):
-      _dprint(2, 'starting insert_marker_lines')
+      if HAS_TIMBA:_dprint(2, 'starting insert_marker_lines')
 # alias
       fn = self.fontInfo().family()
       y = 0
       for i in range(self.num_y_markers):
         label = self.marker_labels[i]
-#       mY = self.insertLineMarker('', Qwt.QwtPlot.yLeft)
-#       self.setMarkerLinePen(mY, QPen(Qt.white, 2, Qt.DashDotLine))
-#       y = y + self.y_marker_step
-#       self.setMarkerYPos(mY, y)
 
     def removeCurves(self):
-      for i in self.itemList():
-        if isinstance(i, Qwt.QwtPlotCurve):
-          i.detach()
+      keys = list(self.curves.keys())
+      if len(keys) > 0:
+        for key in keys:
+          self.curves[key].detach()
+      self.curves = {}
+      self.xrCrossSection = None
+      self.xrCrossSection_flag = None
+      self.xiCrossSection = None
+      self.yCrossSection = None
+      return
 
     def removeMarkers(self):
-      for i in self.itemList():
-        if isinstance(i, Qwt.QwtPlotMarker):
-          i.detach()
+      keys = list(self.markers.keys())
+      if len(keys) > 0:
+        for key in keys:
+          self.markers[key].detach()
+      self.markers = {}
+      return
 
     def closestCurve(self, pos):
         """ from Gerard Vermeulen's EventFilterDemo.py example """
@@ -1825,7 +1841,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         counter = -1
         for curve in self.itemList():
             try:
-              if isinstance(curve, Qwt.QwtPlotCurve):
+              if isinstance(curve, QwtPlotCurve):
                 counter = counter + 1
                 i, d = curve.closestPoint(pos)
                 if i >= 0 and d < distance:
@@ -1839,8 +1855,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
         if found is None:
           return (None, None, None)
         else:
-          x = found.x(point)
-          y = found.y(point)
+          s = found.sample(point)
+          x = s.x()
+          y = s.y()
           #print 'closest curve is ', index, ' ', x, ' ', y
           return (index, x, y, point)
     # closestCurve
@@ -1854,15 +1871,15 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self._popup_text.setText(message)
       self._popup_text.adjustSize()
       try:
-        yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
-        ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
-        xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
-        xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+        yhb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).hBound())
+        ylb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).lBound())
+        xhb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).hBound())
+        xlb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).lBound())
       except:
-        yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound())
-        ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound())
-        xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound())
-        xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound())
+        yhb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).upperBound())
+        ylb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).lowerBound())
+        xhb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).upperBound())
+        xlb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).lowerBound())
       # muck around with position of pop-up to make sure it does not
       # disappear over edge of plot ...
       height = self._popup_text.height()
@@ -1886,26 +1903,27 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def getBounds(self):
       try:
-        self.yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound())
-        self.ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound())
-        self.xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound())
-        self.xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound())
+        self.yhb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).hBound())
+        self.ylb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).lBound())
+        self.xhb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).hBound())
+        self.xlb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).lBound())
       except:
-        self.yhb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound())
-        self.ylb = self.transform(Qwt.QwtPlot.yLeft, self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound())
-        self.xhb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound())
-        self.xlb = self.transform(Qwt.QwtPlot.xBottom, self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound())
+        self.yhb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).upperBound())
+        self.ylb = self.transform(QwtPlot.yLeft, self.axisScaleDiv(QwtPlot.yLeft).lowerBound())
+        self.xhb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).upperBound())
+        self.xlb = self.transform(QwtPlot.xBottom, self.axisScaleDiv(QwtPlot.xBottom).lowerBound())
 
     def setPosition(self, e):
       """ callback to handle MouseMoved event """ 
       if self.scalar_display:
         return
       position = e.pos()
+#     print('move position ', position.x(), position.y())
       self.raw_xpos = xPos = position.x()
       self.raw_ypos = yPos = position.y()
 #     print 'display_image raw xpos ypos ',xPos, ' ', yPos
-      self.xpos = self.invTransform(Qwt.QwtPlot.xBottom, xPos)
-      self.ypos = self.invTransform(Qwt.QwtPlot.yLeft, yPos)
+      self.xpos = self.invTransform(QwtPlot.xBottom, xPos)
+      self.ypos = self.invTransform(QwtPlot.yLeft, yPos)
 #     print 'mouse move position ', self.xpos,self.ypos
       
 #     print 'display_image image xpos ypos ',self.xpos, ' ', self.ypos
@@ -1929,7 +1947,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           return
         else:
           if self.is_vector: 
-            curve_number, xVal, yVal, self.array_index = self.closestCurve(Qt.QPoint(self.raw_xpos, self.raw_ypos))
+            curve_number, xVal, yVal, self.array_index = self.closestCurve(QPoint(self.raw_xpos, self.raw_ypos))
             message = self.reportCoordinates(xVal, yVal)
             message = message + ', data point: ' + str(self.array_index)
           else:
@@ -1937,10 +1955,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
           if not self.display_solution_distances:
             if self.show_coordinates:
               # adding 40 and 45 pixels seems to give about the right offset
-              location = Qt.QPoint(self.xlb+40,self.ylb+45)
+              location = QPoint(self.xlb+40,self.ylb+45)
               # QToolTip seems to need to be mapped to global coord system
               location = self.mapToGlobal(location)
-              Qt.QToolTip.showText(location,message);
+              QToolTip.showText(location,message);
       except:
         return
 
@@ -1957,17 +1975,17 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def mapMouseButtons (self,e):
         """Maps a mouse event to one of three buttons.
         To support victims of Jobs, Shift-LeftClick maps to MidClick, and Ctrl+LeftClick maps to RightClick""";
-        if e.button() == Qt.Qt.LeftButton:
-          if e.modifiers()&Qt.Qt.ShiftModifier:
-            return Qt.Qt.MidButton;
-          elif e.modifiers()&Qt.Qt.ControlModifier:
-            return Qt.Qt.RightButton;
+        if e.button() == Qt.LeftButton:
+          if e.modifiers()&Qt.ShiftModifier:
+            return Qt.MidButton;
+          elif e.modifiers()&Qt.ControlModifier:
+            return Qt.RightButton;
         return e.button();
 
     def onMousePressed(self, e):
         """ callback to handle MousePressed event """ 
         button = self.mapMouseButtons(e);
-        if button == Qt.Qt.LeftButton:
+        if button == Qt.LeftButton:
             message = None
             self.mouse_pressed = True
             if self.is_vector: 
@@ -1977,8 +1995,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # closest to the location of this mouse pressed event.
 # We are interested in the nearest curve_number and the index, or
 # sequence number of the nearest point in that curve.
-                  array_curve_number, xVal, yVal, self.array_index = self.closestCurve(Qt.QPoint(self.raw_xpos, self.raw_ypos))
-                  _dprint(2,'array_curve_number, xVal, yVal ', array_curve_number, ' ',  xVal, ' ', yVal)
+                  array_curve_number, xVal, yVal, self.array_index = self.closestCurve(QPoint(self.raw_xpos, self.raw_ypos))
+                  if HAS_TIMBA:_dprint(2,'array_curve_number, xVal, yVal ', array_curve_number, ' ',  xVal, ' ', yVal)
                   shape = self.metrics_rank.shape
                   self.metrics_index = 0 
                   if shape[1] > 1:
@@ -2003,8 +2021,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # closest to the location of this mouse pressed event.
 # We are interested in the nearest curve_number and the index, or
 # sequence number of the nearest point in that curve.
-                curve_number, xVal, yVal, self.array_index = self.closestCurve(Qt.QPoint(self.raw_xpos, self.raw_ypos))
-                _dprint(2,' curve_number, xVal, yVal ', curve_number, ' ', xVal, ' ', yVal );
+                curve_number, xVal, yVal, self.array_index = self.closestCurve(QPoint(self.raw_xpos, self.raw_ypos))
+                if HAS_TIMBA:_dprint(2,' curve_number, xVal, yVal ', curve_number, ' ', xVal, ' ', yVal );
                 message = self.reportCoordinates(xVal, yVal)
                 message = message + ', data point: ' + str(self.array_index)
             else:
@@ -2022,25 +2040,25 @@ class QwtImageDisplay(Qwt.QwtPlot):
               if self.zoomStack == []:
                 try:
                   self.zoomState = (
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).hBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).hBound(),
+                    self.axisScaleDiv(QwtPlot.xBottom).lBound(),
+                    self.axisScaleDiv(QwtPlot.xBottom).hBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).lBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).hBound(),
                     )
                 except:
                   self.zoomState = (
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).lowerBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.xBottom).upperBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).lowerBound(),
-                    self.axisScaleDiv(Qwt.QwtPlot.yLeft).upperBound(),
+                    self.axisScaleDiv(QwtPlot.xBottom).lowerBound(),
+                    self.axisScaleDiv(QwtPlot.xBottom).upperBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).lowerBound(),
+                    self.axisScaleDiv(QwtPlot.yLeft).upperBound(),
                     )
-        elif button == Qt.Qt.RightButton:
+        elif button == Qt.RightButton:
             e.accept()
             self._menu.popup(e.globalPos());
             if self.scalar_display:
               return
 
-        elif button == Qt.Qt.MidButton:
+        elif button == Qt.MidButton:
             if self.active_image:
               if self.scalar_display:
                 return
@@ -2068,10 +2086,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
               self.show_x_sections = True
               self.calculate_cross_sections()
            
-# fake a mouse move to show the cursor position
-#       if not self.scalar_display:
-#         self.onMouseMoved(e)
-
     # onMousePressed()
 
     def onMouseReleased(self, e):
@@ -2079,7 +2093,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 #       self.enableOutline(0)
 
 # if mouse_pressed=True only if left button was pressed w/o modifiers, so check for this here
-        if Qt.Qt.LeftButton == e.button() and self.mouse_pressed:
+        if Qt.LeftButton == e.button() and self.mouse_pressed:
             if not self.xzoom_loc is None:
               self.zoom_outline.detach()
               self.xzoom_loc = None
@@ -2098,20 +2112,20 @@ class QwtImageDisplay(Qwt.QwtPlot):
               ymin = min(self.raw_ypos, self.raw_press_ypos)
               ymax = max(self.raw_ypos, self.raw_press_ypos)
 
-              if self.axisEnabled(Qwt.QwtPlot.xTop):
-                xmin_t = self.invTransform(Qwt.QwtPlot.xTop, xmin)
-                xmax_t = self.invTransform(Qwt.QwtPlot.xTop, xmax)
-              if self.axisEnabled(Qwt.QwtPlot.yRight):
-                ymin_r = self.invTransform(Qwt.QwtPlot.yRight, ymin)
-                ymax_r = self.invTransform(Qwt.QwtPlot.yRight, ymax)
+              if self.axisEnabled(QwtPlot.xTop):
+                xmin_t = self.invTransform(QwtPlot.xTop, xmin)
+                xmax_t = self.invTransform(QwtPlot.xTop, xmax)
+              if self.axisEnabled(QwtPlot.yRight):
+                ymin_r = self.invTransform(QwtPlot.yRight, ymin)
+                ymax_r = self.invTransform(QwtPlot.yRight, ymax)
                 if ymin_r > ymax_r:
                   temp = ymax_r
                   ymax_r = ymin_r
                   ymin_r = temp
-              xmin = self.invTransform(Qwt.QwtPlot.xBottom, xmin)
-              xmax = self.invTransform(Qwt.QwtPlot.xBottom, xmax)
-              ymin = self.invTransform(Qwt.QwtPlot.yLeft, ymin)
-              ymax = self.invTransform(Qwt.QwtPlot.yLeft, ymax)
+              xmin = self.invTransform(QwtPlot.xBottom, xmin)
+              xmax = self.invTransform(QwtPlot.xBottom, xmax)
+              ymin = self.invTransform(QwtPlot.yLeft, ymin)
+              ymax = self.invTransform(QwtPlot.yLeft, ymax)
               #print 'ymin ymax ', ymin, ymax
               #print 'xmin xmax ', xmin, xmax
               if not self.is_vector:
@@ -2150,16 +2164,16 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 self.zoomStack.append(self.zoomState)
               self.zoomState = (xmin, xmax, ymin, ymax)
         
-              self.setAxisScale(Qwt.QwtPlot.xBottom, xmin, xmax)
-              self.setAxisScale(Qwt.QwtPlot.yLeft, ymin, ymax)
+              self.setAxisScale(QwtPlot.xBottom, xmin, xmax)
+              self.setAxisScale(QwtPlot.yLeft, ymin, ymax)
               if not self.is_vector:
                 self.plotImage.update_xMap_draw(xmin,xmax)
                 self.plotImage.update_yMap_draw(ymin,ymax)
 
-              if self.axisEnabled(Qwt.QwtPlot.yRight):
-                self.setAxisScale(Qwt.QwtPlot.yRight, ymin_r, ymax_r)
-              if self.axisEnabled(Qwt.QwtPlot.xTop):
-                self.setAxisScale(Qwt.QwtPlot.xTop, xmin_t, xmax_t)
+              if self.axisEnabled(QwtPlot.yRight):
+                self.setAxisScale(QwtPlot.yRight, ymin_r, ymax_r)
+              if self.axisEnabled(QwtPlot.xTop):
+                self.setAxisScale(QwtPlot.xTop, xmin_t, xmax_t)
               self._x_auto_scale = False
               self._y_auto_scale = False
               self.xmin = xmin
@@ -2177,7 +2191,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 self._undo_last_zoom.setVisible(True)
               self.test_plot_array_sizes()
             self.replot()
-            _dprint(3, 'called replot in onMouseReleased');
+            if HAS_TIMBA:_dprint(3, 'called replot in onMouseReleased');
             #print 'called replot in onMouseReleased'
     # onMouseReleased()
 
@@ -2197,8 +2211,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
         if len(self.zoomStack):
           zoom = True
         if not zoom:
-          self.setAxisAutoScale(Qwt.QwtPlot.xTop)
-          self.setAxisAutoScale(Qwt.QwtPlot.yRight)
+          self.setAxisAutoScale(QwtPlot.xTop)
+          self.setAxisAutoScale(QwtPlot.yRight)
           if self.log_axis_chi_0:
             self._toggle_log_axis_for_chi_0.setChecked(True)
           else:
@@ -2235,29 +2249,29 @@ class QwtImageDisplay(Qwt.QwtPlot):
           q_symbol_size = 3
           q_flag_size = 10
           
-        if self.axisEnabled(Qwt.QwtPlot.yRight) and not zoom and not self.complex_type:
-          self.setAxisAutoScale(Qwt.QwtPlot.yRight)
-        if self.axisEnabled(Qwt.QwtPlot.xTop) and not zoom:
-          self.setAxisAutoScale(Qwt.QwtPlot.xTop)
+        if self.axisEnabled(QwtPlot.yRight) and not zoom and not self.complex_type:
+          self.setAxisAutoScale(QwtPlot.yRight)
+        if self.axisEnabled(QwtPlot.xTop) and not zoom:
+          self.setAxisAutoScale(QwtPlot.xTop)
         keys = list(self.curves.keys())
         for j in range(len(keys)):
           plot_curve=self.curves[keys[j]]
           if keys[j] == 'imaginaries' or keys[j] == 'phase':
-            plot_curve.setPen(Qt.QPen(Qt.Qt.blue, q_line_size))
-            plot_curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.green),
-                  Qt.QPen(Qt.Qt.green), Qt.QSize(q_symbol_size,q_symbol_size)))
+            plot_curve.setPen(QPen(Qt.blue, q_line_size))
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
+                  QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
           if keys[j] == 'reals' or keys[j] == 'amplitude':
-            plot_curve.setPen(Qt.QPen(Qt.Qt.black, q_line_size))
-            plot_curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.red),
-                  Qt.QPen(Qt.Qt.red), Qt.QSize(q_symbol_size,q_symbol_size)))
+            plot_curve.setPen(QPen(Qt.black, q_line_size))
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                  QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
           if keys[j] == 'xCrossSection' or keys[j] == 'xrCrossSection' or keys[j] == 'xiCrossSection':
-            plot_curve.setPen(Qt.QPen(Qt.Qt.black, q_line_size))
-            plot_curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.black),
-                  Qt.QPen(Qt.Qt.black), Qt.QSize(q_symbol_size,q_symbol_size)))
+            plot_curve.setPen(QPen(Qt.black, q_line_size))
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                  QPen(Qt.black), QSize(q_symbol_size,q_symbol_size)))
           if keys[j] == 'yCrossSection':
-            plot_curve.setPen(Qt.QPen(Qt.Qt.white, q_line_size))
-            plot_curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,Qt.QBrush(Qt.Qt.white), 
-                  Qt.QPen(Qt.Qt.white), Qt.QSize(q_symbol_size,q_symbol_size)))
+            plot_curve.setPen(QPen(Qt.white, q_line_size))
+            plot_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,QBrush(Qt.white), 
+                  QPen(Qt.white), QSize(q_symbol_size,q_symbol_size)))
 
     def modify_xsection_display(self, signal_id):
         """ select and display complex cross section display """
@@ -2287,7 +2301,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def calculate_cross_sections(self):
         """ calculate and display cross sections at specified location """
-        _dprint(3, 'calculating cross-sections')
+        if HAS_TIMBA:_dprint(3, 'calculating cross-sections')
         # can't plot cross sections and chi display together
         keys = list(self.chis_plot.keys())
         if len(keys) > 0:
@@ -2296,7 +2310,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.chis_plot = {}
 
         shape = self.raw_array.shape
-        _dprint(3, 'shape is ', shape)
+        if HAS_TIMBA:_dprint(3, 'shape is ', shape)
         no_flags = True
         if not self._flags_array is None:
           if self.flag_toggle:
@@ -2318,126 +2332,120 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.x_index = numpy.arange(shape[0])
         self.x_index = self.x_index + 0.5
 
-        _dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
-        try:
-          x_values = []
-          x_index = []
-          if self.complex_type:
-            for i in range(shape[0] / 2 ):
-              if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
-                if no_flags:
+        if HAS_TIMBA:_dprint(3, 'self.xsect_ypos is ', self.xsect_ypos)
+#       try:
+        x_values = []
+        x_index = []
+        if self.complex_type:
+          divider = int(shape[0] / 2)
+          for i in range(divider):
+            if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
+              if no_flags:
+                x_values.append(self.raw_array[i,self.xsect_ypos])
+                x_index.append(i+0.5)
+              else:
+                if self._flags_array[i,self.xsect_ypos] == 0:
                   x_values.append(self.raw_array[i,self.xsect_ypos])
                   x_index.append(i+0.5)
-                else:
-                  if self._flags_array[i,self.xsect_ypos] == 0:
-                    x_values.append(self.raw_array[i,self.xsect_ypos])
-                    x_index.append(i+0.5)
-            for i in range(shape[0] / 2, shape[0] ):
-              if self.raw_array[i - shape[0]/2 ,self.xsect_ypos] != self.nan_inf_value:
-                if no_flags:
+          for i in range(divider, shape[0] ):
+            if self.raw_array[i - divider,self.xsect_ypos] != self.nan_inf_value:
+              if no_flags:
+                x_values.append(self.raw_array[i,self.xsect_ypos])
+                x_index.append(i+0.5)
+              else:
+                if self._flags_array[i- divider,self.xsect_ypos] == 0:
                   x_values.append(self.raw_array[i,self.xsect_ypos])
                   x_index.append(i+0.5)
-                else:
-                  if self._flags_array[i- shape[0]/2,self.xsect_ypos] == 0:
-                    x_values.append(self.raw_array[i,self.xsect_ypos])
-                    x_index.append(i+0.5)
-          else:
-            for i in range(shape[0]):
-              if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
-                if no_flags:
+        else:
+          for i in range(shape[0]):
+            if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
+              if no_flags:
+                x_values.append(self.raw_array[i,self.xsect_ypos])
+                x_index.append(i+0.5)
+              else:
+                if self._flags_array[i,self.xsect_ypos] == 0:
                   x_values.append(self.raw_array[i,self.xsect_ypos])
                   x_index.append(i+0.5)
-                else:
-                  if self._flags_array[i,self.xsect_ypos] == 0:
-                    x_values.append(self.raw_array[i,self.xsect_ypos])
-                    x_index.append(i+0.5)
-        except:
-          self.delete_cross_sections()
-          return
         self.x_array = numpy.array(x_values)
         self.x_index = numpy.array(x_index)
-        self.setAxisAutoScale(Qwt.QwtPlot.yRight)
+        self.setAxisAutoScale(QwtPlot.yRight)
         if self.toggle_log_display:
-          self.setAxisAutoScale(Qwt.QwtPlot.yRight)
-          self.setAxisScaleEngine(Qwt.QwtPlot.yRight, Qwt.QwtLog10ScaleEngine())
+          self.setAxisAutoScale(QwtPlot.yRight)
+          self.setAxisScaleEngine(QwtPlot.yRight, QwtLogScaleEngine())
         else:
-          self.setAxisAutoScale(Qwt.QwtPlot.yRight)
-          self.setAxisScaleEngine(Qwt.QwtPlot.yRight, Qwt.QwtLinearScaleEngine())
+          self.setAxisAutoScale(QwtPlot.yRight)
+          self.setAxisScaleEngine(QwtPlot.yRight, QwtLinearScaleEngine())
 
 # create x_index defaults for array plots 
-        try:
-          _dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
-          y_values = []
-          y_index = []
-          for i in range(shape[1]):
-            if self.raw_array[self.xsect_xpos,i] != self.nan_inf_value:
-              if no_flags:
+        if HAS_TIMBA:_dprint(3, 'self.xsect_xpos is ', self.xsect_xpos)
+        y_values = []
+        y_index = []
+        for i in range(shape[1]):
+          if self.raw_array[self.xsect_xpos,i] != self.nan_inf_value:
+            if no_flags:
+              y_values.append(self.raw_array[self.xsect_xpos,i])
+              y_index.append(i+0.5)
+            else:
+              if self.complex_type:
+                flag_loc = self.xsect_xpos - shape[0]/2
+              else:
+                flag_loc =  self.xsect_xpos
+              if self._flags_array[flag_loc,i] == 0:
                 y_values.append(self.raw_array[self.xsect_xpos,i])
                 y_index.append(i+0.5)
-              else:
-                if self.complex_type:
-                 flag_loc = self.xsect_xpos - shape[0]/2
-                else:
-                  flag_loc =  self.xsect_xpos
-                if self._flags_array[flag_loc,i] == 0:
-                  y_values.append(self.raw_array[self.xsect_xpos,i])
-                  y_index.append(i+0.5)
-        except:
-          self.delete_cross_sections()
-          return
         self.y_array = numpy.array(y_values)
         self.y_index = numpy.array(y_index)
-        self.setAxisAutoScale(Qwt.QwtPlot.xTop)
+        self.setAxisAutoScale(QwtPlot.xTop)
         if self.toggle_log_display:
-          self.setAxisAutoScale(Qwt.QwtPlot.xTop)
-          self.setAxisScaleEngine(Qwt.QwtPlot.xTop, Qwt.QwtLog10ScaleEngine())
+          self.setAxisAutoScale(QwtPlot.xTop)
+          self.setAxisScaleEngine(QwtPlot.xTop, QwtLogScaleEngine())
         else:
-          self.setAxisAutoScale(Qwt.QwtPlot.xTop)
-          self.setAxisScaleEngine(Qwt.QwtPlot.xTop, Qwt.QwtLinearScaleEngine())
+          self.setAxisAutoScale(QwtPlot.xTop)
+          self.setAxisScaleEngine(QwtPlot.xTop, QwtLinearScaleEngine())
         if self.xrCrossSection is None and self.real_xsection_selected:
           if self.complex_type:
-            self.xrCrossSection = Qwt.QwtPlotCurve('xrCrossSection')
+            self.xrCrossSection = QwtPlotCurve('xrCrossSection')
             self.curves['xrCrossSection'] = self.xrCrossSection
           else:
-            self.xrCrossSection = Qwt.QwtPlotCurve('xCrossSection')
+            self.xrCrossSection = QwtPlotCurve('xCrossSection')
             self.curves['xCrossSection'] = self.xrCrossSection
           self.xrCrossSection.attach(self)
 
-          self.xrCrossSection.setPen(Qt.QPen(Qt.Qt.black,q_line_size))
-          self.xrCrossSection.setStyle(Qwt.QwtPlotCurve.Lines)
-          self.xrCrossSection.setYAxis(Qwt.QwtPlot.yLeft)
-          self.xrCrossSection.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.black),
-                  Qt.QPen(Qt.Qt.black), Qt.QSize(q_symbol_size,q_symbol_size)))
+          self.xrCrossSection.setPen(QPen(Qt.black,q_line_size))
+          self.xrCrossSection.setStyle(QwtPlotCurve.Lines)
+          self.xrCrossSection.setYAxis(QwtPlot.yLeft)
+          self.xrCrossSection.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                  QPen(Qt.black), QSize(q_symbol_size,q_symbol_size)))
 
-        self.enableAxis(Qwt.QwtPlot.yRight, True)
-        self.yRight_title = Qwt.QwtText('x cross-section value')
+        self.enableAxis(QwtPlot.yRight, True)
+        self.yRight_title = QwtText('x cross-section value')
         self.yRight_title.setFont(self.title_font)
-        self.setAxisTitle(Qwt.QwtPlot.yRight, self.yRight_title)
+        self.setAxisTitle(QwtPlot.yRight, self.yRight_title)
         if self.real_xsection_selected:
-          self.xrCrossSection.setYAxis(Qwt.QwtPlot.yRight)
+          self.xrCrossSection.setYAxis(QwtPlot.yRight)
         if self.complex_type:
           if self.xiCrossSection is None and self.imag_xsection_selected:
-            self.xiCrossSection = Qwt.QwtPlotCurve('xiCrossSection')
+            self.xiCrossSection = QwtPlotCurve('xiCrossSection')
             self.curves['xiCrossSection'] = self.xiCrossSection
             self.xiCrossSection.attach(self)
-            self.xiCrossSection.setPen(Qt.QPen(Qt.Qt.black, q_line_size))
-            self.xiCrossSection.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.black),
-                  Qt.QPen(Qt.Qt.black), Qt.QSize(q_symbol_size,q_symbol_size)))
-            self.xiCrossSection.setYAxis(Qwt.QwtPlot.yRight)
-            self.setAxisAutoScale(Qwt.QwtPlot.yRight)
+            self.xiCrossSection.setPen(QPen(Qt.black, q_line_size))
+            self.xiCrossSection.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                  QPen(Qt.black), QSize(q_symbol_size,q_symbol_size)))
+            self.xiCrossSection.setYAxis(QwtPlot.yRight)
+            self.setAxisAutoScale(QwtPlot.yRight)
         if self.yCrossSection is None:
-          self.yCrossSection = Qwt.QwtPlotCurve('yCrossSection')
+          self.yCrossSection = QwtPlotCurve('yCrossSection')
           self.curves['yCrossSection'] = self.yCrossSection
           self.yCrossSection.attach(self)
-          self.yCrossSection.setYAxis(Qwt.QwtPlot.yLeft)
-          self.yCrossSection.setXAxis(Qwt.QwtPlot.xTop)
-          self.yCrossSection.setPen(Qt.QPen(Qt.Qt.white, q_line_size))
-          self.yCrossSection.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.white),
-                  Qt.QPen(Qt.Qt.white), Qt.QSize(q_symbol_size,q_symbol_size)))
-        self.enableAxis(Qwt.QwtPlot.xTop, True)
-        self.xTop_title = Qwt.QwtText('y cross-section value')
+          self.yCrossSection.setYAxis(QwtPlot.yLeft)
+          self.yCrossSection.setXAxis(QwtPlot.xTop)
+          self.yCrossSection.setPen(QPen(Qt.white, q_line_size))
+          self.yCrossSection.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.white),
+                  QPen(Qt.white), QSize(q_symbol_size,q_symbol_size)))
+        self.enableAxis(QwtPlot.xTop, True)
+        self.xTop_title = QwtText('y cross-section value')
         self.xTop_title.setFont(self.title_font)
-        self.setAxisTitle(Qwt.QwtPlot.xTop, self.xTop_title)
+        self.setAxisTitle(QwtPlot.xTop, self.xTop_title)
         if self._vells_plot:
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           if self.complex_type:
@@ -2506,7 +2514,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.log_offset = self.plotImage.getTransformOffset()
         if self.complex_type:
           axis_shape = self.x_index.shape
-          limit = axis_shape[0] / 2
+          limit = axis_shape[0] // 2
           if not self.xrCrossSection is None:
             self.xrCrossSection.setData(self.x_index[:limit], self.x_array[:limit] + self.log_offset)
           if not self.xiCrossSection is None:
@@ -2519,7 +2527,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
         self.refresh_marker_display()
         self.show_x_sections = True
-        self._toggle_plot_legend.setVisible(True)
         if self.complex_type:
           self._delete_x_section_display.setVisible(False)
           self._delete_cx_section_display.setVisible(True)
@@ -2550,19 +2557,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self._select_real_cross_section.setVisible(False)
           self._select_imaginary_cross_section.setVisible(False)
 
-#   def toggleCurve(self, key):
-#     curve = self.curve(key)
-#     if curve:
-#       curve.setEnabled(not curve.enabled())
-#       self.replot()
-#       #print 'called replot in toggleCurve'
-#       _dprint(3, 'called replot in toggleCurve');
-#   # toggleCurve()
 
     def setDisplayType(self, display_type):
       self._display_type = display_type
       self.plotImage.setDisplayType(display_type)
-      self.emit(Qt.SIGNAL("display_type"),self._display_type)
+      self.display_type.emit(self._display_type)
       if display_type.find('grayscale') == -1:
         self.toggle_gray_scale = 0
       else:
@@ -2580,20 +2579,20 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.raw_array = image
       self.raw_image = image
 
-      _dprint(3, 'self.adjust_color_bar ', self.adjust_color_bar)
+      if HAS_TIMBA:_dprint(3, 'self.adjust_color_bar ', self.adjust_color_bar)
       if not self.colorbar_requested:
-        _dprint(3, 'emitting colorbar_needed signal')
-        self.emit(Qt.SIGNAL("colorbar_needed"), (1,))
+        if HAS_TIMBA:_dprint(3, 'emitting colorbar_needed signal')
+        self.colorbar_needed.emit((1,))
         self.colorbar_requested = True
       
       # emit range for the color bar
       if self.adjust_color_bar:
         self.plotImage.setImageRange(image)
         image_limits = self.plotImage.getRealImageRange()
-        self.emit(Qt.SIGNAL("max_image_range"),(image_limits, 0, self.toggle_log_display,self.ampl_phase))
+        self.max_image_range.emit(image_limits, 0, self.toggle_log_display,self.ampl_phase)
         if self.complex_type:
           image_limits = self.plotImage.getImagImageRange()
-          self.emit(Qt.SIGNAL("max_image_range"),(image_limits, 1, self.toggle_log_display,self.ampl_phase))
+          self.max_image_range.emit(image_limits, 1, self.toggle_log_display,self.ampl_phase)
         self.adjust_color_bar = False
 
       if self._vells_plot:
@@ -2604,7 +2603,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
           x_range = (begin, end)
           self.plotImage.setData(self.raw_image, x_range, self.vells_axis_parms[self.y_parm])
         else:
-          _dprint(3, 'calling self.plotImage.setData with self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm] ', self.vells_axis_parms[self.x_parm], ' ', self.vells_axis_parms[self.y_parm])
+          if HAS_TIMBA:_dprint(3, 'calling self.plotImage.setData with self.vells_axis_parms[self.x_parm], self.vells_axis_parms[self.y_parm] ', self.vells_axis_parms[self.x_parm], ' ', self.vells_axis_parms[self.y_parm])
 
           if self.axes_rotate:
             temp_x_axis_parms = self.vells_axis_parms[self.x_parm]
@@ -2629,8 +2628,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # the following is used to make sure same image is kept on display if
 # colorbar intensity range is toggled or color/grayscale is toggled
       if not self.xmin is None and not self.xmax is None and not self.ymin is None and not self.ymax is None:
-        self.setAxisScale(Qwt.QwtPlot.xBottom, self.xmin, self.xmax)
-        self.setAxisScale(Qwt.QwtPlot.yLeft, self.ymin, self.ymax)
+        self.setAxisScale(QwtPlot.xBottom, self.xmin, self.xmax)
+        self.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
         self._x_auto_scale = False
         self._y_auto_scale = False
         self.axis_xmin = self.xmin
@@ -2648,15 +2647,24 @@ class QwtImageDisplay(Qwt.QwtPlot):
     # display_image()
 
     def add_solver_metrics(self):
-
       #solver metrics
-      self._toggle_plot_legend.setVisible(True)
       if not self.display_solution_distances:
-        keys = list(self.metrics_plot.keys())
-        if len(keys) > 0:
-          for key in keys:
-            self.metrics_plot[key].detach()
-          self.metrics_plot = {}
+        try:
+          keys = list(self.chis_plot.keys())
+          if len(keys) > 0:
+            for key in keys:
+              self.chis_plot[key].detach()
+            self.chis_plot = {}
+        except:
+          pass 
+        try:
+          keys = list(self.metrics_plot.keys())
+          if len(keys) > 0:
+            for key in keys:
+              self.metrics_plot[key].detach()
+            self.metrics_plot = {}
+        except:
+          pass
         shape = self.metrics_rank.shape
         for i in range(shape[1]):
           plot_data= numpy.zeros(shape[0], numpy.int32)
@@ -2665,40 +2673,35 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # add solver metrics info?
           metrics_title = 'metrics rank ' + str(i)
 
-          metrics_curve = Qwt.QwtPlotCurve(metrics_title)
+          metrics_curve = QwtPlotCurve(metrics_title)
           self.metrics_plot[metrics_title] = metrics_curve
           self.metrics_plot[metrics_title].attach(self)
-          metrics_curve.setPen(Qt.QPen(Qt.Qt.black, 2))
-          metrics_curve.setStyle(Qwt.QwtPlotCurve.Lines)
-          metrics_curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.black),
-                 Qt.QPen(Qt.Qt.black), Qt.QSize(10,10)))
+          metrics_curve.setPen(QPen(Qt.black, 2))
+          metrics_curve.setStyle(QwtPlotCurve.Lines)
+          metrics_curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.black),
+                 QPen(Qt.black), QSize(10,10)))
         
           if self.array_flip:
-            metrics_curve.setYAxis(Qwt.QwtPlot.yLeft)
-            metrics_curve.setXAxis(Qwt.QwtPlot.xBottom)
+            metrics_curve.setYAxis(QwtPlot.yLeft)
+            metrics_curve.setXAxis(QwtPlot.xBottom)
             metrics_curve.setData(plot_data, self.iteration_number)
           else:
-            metrics_curve.setYAxis(Qwt.QwtPlot.xBottom)
-            metrics_curve.setXAxis(Qwt.QwtPlot.yLeft)
+            metrics_curve.setYAxis(QwtPlot.xBottom)
+            metrics_curve.setXAxis(QwtPlot.yLeft)
             metrics_curve.setData(self.iteration_number, plot_data)
 
       #chi_sq surfaces  - first remove any previous versions?
       #the following should work but seems to be causing problems
-      keys = list(self.chis_plot.keys())
-      if len(keys) > 0:
-        for key in keys:
-          self.chis_plot[key].detach()
-      self.chis_plot = {}
       shape = self.metrics_rank.shape
-      self.enableAxis(Qwt.QwtPlot.yRight, True)
-      self.enableAxis(Qwt.QwtPlot.xTop, True)
+      self.enableAxis(QwtPlot.yRight, True)
+      self.enableAxis(QwtPlot.xTop, True)
         
-      self.yRight_title = Qwt.QwtText('chi_0')
+      self.yRight_title = QwtText('chi_0')
       self.yRight_title.setFont(self.title_font)
-      self.xTop_title = Qwt.QwtText('amplitude of solution vector')
+      self.xTop_title = QwtText('amplitude of solution vector')
       self.xTop_title.setFont(self.title_font)
-      self.setAxisTitle(Qwt.QwtPlot.xTop, self.xTop_title)
-      self.setAxisTitle(Qwt.QwtPlot.yRight, self.yRight_title)
+      self.setAxisTitle(QwtPlot.xTop, self.xTop_title)
+      self.setAxisTitle(QwtPlot.yRight, self.yRight_title)
 
       if self.first_chi_test:
         self.log_axis_solution_vector = False
@@ -2709,18 +2712,16 @@ class QwtImageDisplay(Qwt.QwtPlot):
            self.log_axis_chi_0 = True
         self.first_chi_test = False
 
-#     self.log_axis_solution_vector = False
-#     self.log_axis_chi_0 = False
-      self.setAxisAutoScale(Qwt.QwtPlot.yRight)
-      self.setAxisAutoScale(Qwt.QwtPlot.xTop)
+      self.setAxisAutoScale(QwtPlot.yRight)
+      self.setAxisAutoScale(QwtPlot.xTop)
       if self.log_axis_chi_0:
-        self.setAxisScaleEngine(Qwt.QwtPlot.yRight, Qwt.QwtLog10ScaleEngine())
+        self.setAxisScaleEngine(QwtPlot.yRight, QwtLogScaleEngine())
       else:
-        self.setAxisScaleEngine(Qwt.QwtPlot.yRight, Qwt.QwtLinearScaleEngine())
+        self.setAxisScaleEngine(QwtPlot.yRight, QwtLinearScaleEngine())
       if self.log_axis_solution_vector:
-        self.setAxisScaleEngine(Qwt.QwtPlot.xTop, Qwt.QwtLog10ScaleEngine())
+        self.setAxisScaleEngine(QwtPlot.xTop, QwtLogScaleEngine())
       else:
-        self.setAxisScaleEngine(Qwt.QwtPlot.xTop, Qwt.QwtLinearScaleEngine())
+        self.setAxisScaleEngine(QwtPlot.xTop, QwtLinearScaleEngine())
       for i in range(shape[1]):
         plot_data= numpy.zeros(shape[0], numpy.float32)
         chi_data= numpy.zeros(shape[0], numpy.float32)
@@ -2732,35 +2733,35 @@ class QwtImageDisplay(Qwt.QwtPlot):
         curve.setTitle(title_key)
         self.chis_plot[title_key+str(i)] = curve
         self.chis_plot[title_key+str(i)].attach(self)
-        curve.setPen(Qt.QPen(Qt.Qt.red, 2))
-        curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
-             Qt.QBrush(Qt.Qt.red), Qt.QPen(Qt.Qt.red), Qt.QSize(10,10)))
-        curve.setStyle(Qwt.QwtPlotCurve.Lines)
+        curve.setPen(QPen(Qt.red, 2))
+        curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+             QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
+        curve.setStyle(QwtPlotCurve.Lines)
         if self.array_flip:
-          curve.setYAxis(Qwt.QwtPlot.yRight)
-          curve.setXAxis(Qwt.QwtPlot.xTop)
+          curve.setYAxis(QwtPlot.yRight)
+          curve.setXAxis(QwtPlot.xTop)
           curve.setData(plot_data,chi_data)
         else:
-          curve.setYAxis(Qwt.QwtPlot.xTop)
-          curve.setXAxis(Qwt.QwtPlot.yRight)
+          curve.setYAxis(QwtPlot.xTop)
+          curve.setXAxis(QwtPlot.yRight)
           curve.setData(chi_data,plot_data)
         symbolList=[]
         for j in range(len(chi_data)):
           if j == 0:
             # first symbol is rectangle
-            symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Rect, Qt.QBrush(Qt.Qt.red),
-                 Qt.QPen(Qt.Qt.red),Qt.QSize(10,10)))
+            symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.red),
+                 QPen(Qt.red),QSize(10,10)))
           else:
             if self.nonlin is None:
-              symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Diamond,
-                  Qt.QBrush(Qt.Qt.red), Qt.QPen(Qt.Qt.red), Qt.QSize(10,10)))
+              symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                  QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
             else:
               if self.nonlin[j,i] >= self.nonlin[j-1,i]:
-                symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.UTriangle,
-                  Qt.QBrush(Qt.Qt.red), Qt.QPen(Qt.Qt.red), Qt.QSize(10,10)))
+                symbolList.append(QwtSymbol(QwtSymbol.UTriangle,
+                  QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
               else:
-                symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.DTriangle,
-                  Qt.QBrush(Qt.Qt.red), Qt.QPen(Qt.Qt.red), Qt.QSize(10,10)))
+                symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
+                  QBrush(Qt.red), QPen(Qt.red), QSize(10,10)))
         curve.setSymbolList(symbolList)
 
       # add additional solution surfaces here
@@ -2777,35 +2778,35 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.chis_plot[title_key+str(i)] = curve
           self.chis_plot[title_key+str(i)].attach(self)
           curve.setTitle(title_key)
-          curve.setPen(Qt.QPen(Qt.Qt.blue, 2))
-          curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
-             Qt.QBrush(Qt.Qt.blue), Qt.QPen(Qt.Qt.blue), Qt.QSize(10,10)))
-          curve.setStyle(Qwt.QwtPlotCurve.Lines)
+          curve.setPen(QPen(Qt.blue, 2))
+          curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+             QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
+          curve.setStyle(QwtPlotCurve.Lines)
           if self.array_flip:
-            curve.setYAxis(Qwt.QwtPlot.yRight)
-            curve.setXAxis(Qwt.QwtPlot.xTop)
+            curve.setYAxis(QwtPlot.yRight)
+            curve.setXAxis(QwtPlot.xTop)
             curve.setData(plot_data1,chi_data1)
           else:
-            curve.setYAxis(Qwt.QwtPlot.xTop)
-            curve.setXAxis(Qwt.QwtPlot.yRight)
+            curve.setYAxis(QwtPlot.xTop)
+            curve.setXAxis(QwtPlot.yRight)
             curve.setData(chi_data1,plot_data1)
           symbolList=[]
           for j in range(len(chi_data1)):
             if j == 0:
               # first symbol is rectangle
-              symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Rect, Qt.QBrush(Qt.Qt.blue),
-                 Qt.QPen(Qt.Qt.blue),Qt.QSize(10,10)))
+              symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.blue),
+                 QPen(Qt.blue),QSize(10,10)))
             else:
               if self.nonlin is None:
-                symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Diamond,
-                  Qt.QBrush(Qt.Qt.blue), Qt.QPen(Qt.Qt.blue), Qt.QSize(10,10)))
+                symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                  QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
               else:
                 if self.nonlin[j,i] >= self.nonlin[j-1,i]:
-                  symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.UTriangle,
-                    Qt.QBrush(Qt.Qt.blue), Qt.QPen(Qt.Qt.blue), Qt.QSize(10,10)))
+                  symbolList.append(QwtSymbol(QwtSymbol.UTriangle,
+                    QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
                 else:
-                  symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.DTriangle,
-                    Qt.QBrush(Qt.Qt.blue), Qt.QPen(Qt.Qt.blue), Qt.QSize(10,10)))
+                  symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
+                    QBrush(Qt.blue), QPen(Qt.blue), QSize(10,10)))
           curve.setSymbolList(symbolList)
 
         for i in range(shape[1]):
@@ -2819,47 +2820,48 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.chis_plot[title_key+str(i)] = curve
           self.chis_plot[title_key+str(i)].attach(self)
           curve.setTitle(title_key)
-          curve.setPen(Qt.QPen(Qt.Qt.green, 2))
-          curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
-             Qt.QBrush(Qt.Qt.green), Qt.QPen(Qt.Qt.green), Qt.QSize(10,10)))
-          curve.setStyle(Qwt.QwtPlotCurve.Lines)
+          curve.setPen(QPen(Qt.green, 2))
+          curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+             QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
+          curve.setStyle(QwtPlotCurve.Lines)
           if self.array_flip:
-            curve.setYAxis(Qwt.QwtPlot.yRight)
-            curve.setXAxis(Qwt.QwtPlot.xTop)
+            curve.setYAxis(QwtPlot.yRight)
+            curve.setXAxis(QwtPlot.xTop)
             curve.setData(plot_data2,chi_data2)
           else:
-            curve.setYAxis(Qwt.QwtPlot.xTop)
-            curve.setXAxis(Qwt.QwtPlot.yRight)
+            curve.setYAxis(QwtPlot.xTop)
+            curve.setXAxis(QwtPlot.yRight)
             curve.setData(chi_data2,plot_data2)
           symbolList=[]
           for j in range(len(chi_data2)):
             if j == 0:
               # first symbol is rectangle
-              symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Rect, Qt.QBrush(Qt.Qt.green),
-                 Qt.QPen(Qt.Qt.green),Qt.QSize(10,10)))
+              symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.green),
+                 QPen(Qt.green),QSize(10,10)))
             else:
               if self.nonlin is None:
-                symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Diamond,
-                  Qt.QBrush(Qt.Qt.green), Qt.QPen(Qt.Qt.green), Qt.QSize(10,10)))
+                symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                  QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
               else:
                 if self.nonlin[j,i] >= self.nonlin[j-1,i]:
-                  symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.UTriangle,
-                    Qt.QBrush(Qt.Qt.green), Qt.QPen(Qt.Qt.green), Qt.QSize(10,10)))
+                  symbolList.append(QwtSymbol(QwtSymbol.UTriangle,
+                    QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
                 else:
-                  symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.DTriangle,
-                    Qt.QBrush(Qt.Qt.green), Qt.QPen(Qt.Qt.green), Qt.QSize(10,10)))
+                  symbolList.append(QwtSymbol(QwtSymbol.DTriangle,
+                    QBrush(Qt.green), QPen(Qt.green), QSize(10,10)))
+# following only works for QwtPlotCurvesSizes
           curve.setSymbolList(symbolList)
 
         # plot eigenvalues of the covariance matrix?
         if self.eigenvectors is None:
-          self.enableAxis(Qwt.QwtPlot.yLeft, False)
-          self.enableAxis(Qwt.QwtPlot.xBottom, False)
+          self.enableAxis(QwtPlot.yLeft, False)
+          self.enableAxis(QwtPlot.xBottom, False)
         else:
-          self.enableAxis(Qwt.QwtPlot.yLeft, True)
-          self.enableAxis(Qwt.QwtPlot.xBottom, True)
+          self.enableAxis(QwtPlot.yLeft, True)
+          self.enableAxis(QwtPlot.xBottom, True)
         
-          self.setAxisTitle(Qwt.QwtPlot.yLeft, 'Eigenvalue (black)')
-          self.setAxisTitle(Qwt.QwtPlot.xBottom, 'Eigenvalue number')
+          self.setAxisTitle(QwtPlot.yLeft, 'Eigenvalue (black)')
+          self.setAxisTitle(QwtPlot.xBottom, 'Eigenvalue number')
 
           for i in range (len(self.eigenvectors)):
             eigens = self.eigenvectors[i]
@@ -2869,33 +2871,41 @@ class QwtImageDisplay(Qwt.QwtPlot):
             sorted_eigenvalues = numpy.array(eigenlist)
             shape = eigenvalues.shape
             x_data = numpy.arange(shape[0])
-            curve = QwtPlotCurveSizes()
+# we really need a QWtPlotCurveSizes object here
+            curve = QwtPlotCurve()
             title_key = 'eigenvalues ' 
             curve.setTitle(title_key)
             self.chis_plot[title_key+str(i)] = curve
             self.chis_plot[title_key+str(i)].attach(self)
-            curve.setPen(Qt.QPen(Qt.Qt.black, 2))
-            curve.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse,
-               Qt.QBrush(Qt.Qt.black), Qt.QPen(Qt.Qt.black), Qt.QSize(10,10)))
-            curve.setStyle(Qwt.QwtPlotCurve.Lines)
+            curve.setPen(QPen(Qt.black, 2))
+            curve.setSymbol(QwtSymbol(QwtSymbol.Ellipse,
+               QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
+            curve.setStyle(QwtPlotCurve.Lines)
             if self.array_flip:
-              curve.setYAxis(Qwt.QwtPlot.yLeft)
-              curve.setXAxis(Qwt.QwtPlot.xBottom)
+              curve.setYAxis(QwtPlot.yLeft)
+              curve.setXAxis(QwtPlot.xBottom)
               curve.setData(x_data,sorted_eigenvalues)
             else:
-              curve.setYAxis(Qwt.QwtPlot.xBottom)
-              curve.setXAxis(Qwt.QwtPlot.yLeft)
+              curve.setYAxis(QwtPlot.xBottom)
+              curve.setXAxis(QwtPlot.yLeft)
               curve.setData(sorted_eigenvalues,x_data)
             symbolList=[]
             for j in range(shape[0]):
               if j == 0:
                 # first symbol is rectangle
-                symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Rect, Qt.QBrush(Qt.Qt.black),
-                   Qt.QPen(Qt.Qt.black),Qt.QSize(10,10)))
+                symbolList.append(QwtSymbol(QwtSymbol.Rect, QBrush(Qt.black),
+                   QPen(Qt.black),QSize(10,10)))
               else:
-                symbolList.append(Qwt.QwtSymbol(Qwt.QwtSymbol.Diamond,
-                   Qt.QBrush(Qt.Qt.black), Qt.QPen(Qt.Qt.black), Qt.QSize(10,10)))
+                symbolList.append(QwtSymbol(QwtSymbol.Diamond,
+                   QBrush(Qt.black), QPen(Qt.black), QSize(10,10)))
             curve.setSymbolList(symbolList)
+
+      if self.display_solution_distances:
+        keys = list(self.metrics_plot.keys())
+        if len(keys) > 0:
+          for key in keys:
+            self.metrics_plot[key].detach()
+          self.metrics_plot = {}
 
     def insert_array_info(self):
       if self.is_vector:
@@ -2903,35 +2913,33 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
 # draw dividing line for complex array
       if self.complex_type:  
-          self.complex_marker = cm = Qwt.QwtPlotMarker()
-          cm.setLinePen(Qt.QPen(Qt.Qt.black, 2, Qt.Qt.SolidLine))
+          self.complex_marker = cm = QwtPlotMarker()
+          cm.setLinePen(QPen(Qt.black, 2, Qt.SolidLine))
           cm.setValue(self.complex_divider,0.0)
-          cm.setLineStyle(Qwt.QwtPlotMarker.VLine)
+          cm.setLineStyle(QwtPlotMarker.VLine)
           cm.attach(self)
 
 # put in a line where cross sections are selected
       if not self.x_arrayloc is None:
-          self.x_sect_marker = Qwt.QwtPlotMarker()
-          self.x_sect_marker.setLineStyle(Qwt.QwtPlotMarker.HLine)
+          self.x_sect_marker = QwtPlotMarker()
+          self.x_sect_marker.setLineStyle(QwtPlotMarker.HLine)
           self.x_sect_marker.setValue(0.0,self.x_arrayloc)
-          self.x_sect_marker.attach(self)
+          self.markers['x_sect_marker'] = self.x_sect_marker
+          self.markers['x_sect_marker'].attach(self)
 
       if not self.y_arrayloc is None:
-          self.y_sect_marker = Qwt.QwtPlotMarker()
-          self.y_sect_marker.setLineStyle(Qwt.QwtPlotMarker.VLine)
-          self.y_sect_marker.setLinePen(Qt.QPen(Qt.Qt.white, 3, Qt.Qt.SolidLine))
+          self.y_sect_marker = QwtPlotMarker()
+          self.y_sect_marker.setLineStyle(QwtPlotMarker.VLine)
+          self.y_sect_marker.setLinePen(QPen(Qt.white, 3, Qt.SolidLine))
           self.y_sect_marker.setValue(self.y_arrayloc,0.0)
-          self.y_sect_marker.attach(self)
+          self.markers['y_sect_marker'] = self.y_sect_marker
+          self.markers['y_sect_marker'].attach(self)
 
 # insert markers for solver metrics?
       if self.toggle_metrics and not self.solver_offsets is None:
        shape = self.solver_offsets.shape 
        if shape[0] > 1:
          self.y_solver_offset = []
-#        for i in range(shape[0] - 1):
-#          self.y_solver_offset.append(self.insertLineMarker('', QwtPlot.xBottom))
-#          self.setMarkerLinePen(self.y_solver_offset[i], Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine))
-#          self.setMarkerXPos(self.y_solver_offset[i], self.solver_offsets[i])
 
 # insert mean and standard deviation
       text_string = ''
@@ -2945,13 +2953,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
         else:
           text_string = cn_string
       if len(text_string) > 0:
-        text = Qwt.QwtText(text_string)
-        text.setColor(Qt.Qt.red)
-        text.setBackgroundBrush(Qt.QBrush(Qt.Qt.white))
+        text = QwtText(text_string)
+        text.setColor(Qt.red)
+        text.setBackgroundBrush(QBrush(Qt.white))
         fn = self.fontInfo().family()
-        text.setFont(Qt.QFont(fn, 7, Qt.QFont.Bold))
-        self.info_marker = m = Qwt.QwtPlotMarker()
-        m.setLabelAlignment(Qt.Qt.AlignLeft | Qt.Qt.AlignBottom)
+        text.setFont(QFont(fn, 7, QFont.Bold))
+        self.info_marker = m = QwtPlotMarker()
+        m.setLabelAlignment(Qt.AlignLeft | Qt.AlignBottom)
         m.setLabel(text)
         if not self.is_vector:
           xlb, xhb = self.plotImage.get_xMap_draw_coords()
@@ -2961,16 +2969,16 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
       if self.log_offset > 0.0:
         temp_str = "Log offset: %-.3g" % self.log_offset
-        text = Qwt.QwtText(temp_str)
-        text.setColor(Qt.Qt.red)
-        text.setBackgroundBrush(Qt.QBrush(Qt.Qt.white))
-        text.setFont(Qt.QFont(fn, 7, Qt.QFont.Bold))
-        self.log_marker = l = Qwt.QwtPlotMarker()
+        text = QwtText(temp_str)
+        text.setColor(Qt.red)
+        text.setBackgroundBrush(QBrush(Qt.white))
+        text.setFont(QFont(fn, 7, QFont.Bold))
+        self.log_marker = l = QwtPlotMarker()
         if not self.is_vector:
           xlb, xhb = self.plotImage.get_xMap_draw_coords()
           ylb, yhb = self.plotImage.get_yMap_draw_coords()
         l.setValue(xhb,ylb)
-        l.setLabelAlignment(Qt.Qt.AlignLeft | Qt.Qt.AlignTop)
+        l.setLabelAlignment(Qt.AlignLeft | Qt.AlignTop)
         l.setLabel(text)
         l.attach(self)
 
@@ -2979,8 +2987,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
     def plot_data(self, visu_record, attribute_list=None, label=''):
       """ process incoming data and attributes into the
           appropriate type of plot """
-      _dprint(2, 'in plot data');
-#      _dprint(2, 'visu_record ', visu_record)
+      if HAS_TIMBA:_dprint(2, 'in plot data');
+#      if HAS_TIMBA:_dprint(2, 'visu_record ', visu_record)
 
 # first find out what kind of plot we are making
       self.label = label
@@ -2994,7 +3002,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if attribute_list is None: 
         if 'attrib' in visu_record:
           self._attrib_parms = visu_record['attrib']
-          _dprint(2,'self._attrib_parms ', self._attrib_parms);
+          if HAS_TIMBA:_dprint(2,'self._attrib_parms ', self._attrib_parms);
           plot_parms = self._attrib_parms.get('plot')
           if 'tag_attrib' in plot_parms:
             temp_parms = plot_parms.get('tag_attrib')
@@ -3041,14 +3049,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
             if self._string_tag is None:
               self._string_tag = ''
             if isinstance(tag, tuple):
-              _dprint(2,'tuple tag ', tag);
+              if HAS_TIMBA:_dprint(2,'tuple tag ', tag);
               for i in range(0, len(tag)):
                 if self._string_tag.find(tag[i]) < 0:
                   temp_tag = self._string_tag + ' ' + tag[i]
                   self._string_tag = temp_tag
-              _dprint(2,'self._string_tag ', self._string_tag);
+              if HAS_TIMBA:_dprint(2,'self._string_tag ', self._string_tag);
             else:
-              _dprint(2,'non tuple tag ', tag);
+              if HAS_TIMBA:_dprint(2,'non tuple tag ', tag);
               if self._string_tag is None:
                 self._string_tag = ''
               if self._string_tag.find(tag) < 0:
@@ -3057,7 +3065,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
       if 'plot_label' in visu_record:
         self._data_labels = visu_record['plot_label']
-        _dprint(2,'insert_array_info: self._data_labels ', self._data_labels);
+        if HAS_TIMBA:_dprint(2,'insert_array_info: self._data_labels ', self._data_labels);
       else:
         self._data_labels = ''
 
@@ -3073,7 +3081,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._data_values = visu_record['value']
 
       if len(self._tag_plot_attrib) > 0:
-        _dprint(3, 'self._tag_plot_attrib has keys ', list(self._tag_plot_attrib.keys()))
+        if HAS_TIMBA:_dprint(3, 'self._tag_plot_attrib has keys ', list(self._tag_plot_attrib.keys()))
 
 # extract and define labels for this data item
      # now generate  particular plot type
@@ -3086,8 +3094,6 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def plot_vells_array (self, data_array, data_label=''):
       """ plot a Vells data array """
-# no legends by default
-      self._toggle_plot_legend.setVisible(False)
 
 #     if not self.source_marker is None:
 #       self.removeMarker(self.source_marker)
@@ -3097,7 +3103,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def setVellsParms(self, vells_axis_parms, axis_labels):
       self.vells_axis_parms = vells_axis_parms
-      _dprint(3, 'self.vells_axis_parms = ', self.vells_axis_parms)
+      if HAS_TIMBA:_dprint(3, 'self.vells_axis_parms = ', self.vells_axis_parms)
       self.axis_labels = axis_labels
 
     def reset_color_bar(self, reset_value=True):
@@ -3105,20 +3111,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
     def set_xaxis_title(self, title=''):
       self._x_title = title
-      self.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
+      self.setAxisTitle(QwtPlot.xBottom, self._x_title)
 
     def set_yaxis_title(self, title=''):
       self._y_title = title
-      self.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
+      self.setAxisTitle(QwtPlot.yLeft, self._y_title)
 
     def enable_axes(self):
-      self.enableAxis(Qwt.QwtPlot.yLeft, True)
-      self.enableAxis(Qwt.QwtPlot.xBottom, True)
-      self.enableAxis(Qwt.QwtPlot.yRight, False)
-      self.enableAxis(Qwt.QwtPlot.xTop, False)
+      self.enableAxis(QwtPlot.yLeft, True)
+      self.enableAxis(QwtPlot.xBottom, True)
+      self.enableAxis(QwtPlot.yRight, False)
+      self.enableAxis(QwtPlot.xTop, False)
 
     def cleanup(self):
       self.removeCurves()        # removes all curves and markers
+      self.removeMarkers()        # removes all curves and markers
       self.xrCrossSection = None
       self.xrCrossSection_flag = None
       self.xiCrossSection = None
@@ -3147,11 +3154,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
          
 # pop up menu for printing
       if self._menu is None:
-        self._menu = Qt.QMenu(self._mainwin);
+        self._menu = QMenu(self._mainwin);
         self.add_basic_menu_items()
 #       self.connect(self._menu,Qt.SIGNAL("activated(int)"),self.update_spectrum_display);
-#       self.connect(self._menu,Qt.SIGNAL("triggered(Qt.QAction)"),self.update_spectrum_display);
-        self.connect(self._menu,Qt.SIGNAL("triggered()"),self.update_spectrum_display);
+#       self.connect(self._menu,Qt.SIGNAL("triggered(QAction)"),self.update_spectrum_display);
+        self._menu.triggered.connect(self.update_spectrum_display)
 
 
 # set title
@@ -3198,7 +3205,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       if self.array_flip:
         axes = numpy.arange(incoming_plot_array.ndim)[::-1]
         plot_array = numpy.transpose(incoming_plot_array, axes)
-#       _dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
+#       if HAS_TIMBA:_dprint(3, 'transposed plot array ', plot_array, ' has shape ', plot_array.shape)
 
 # figure out type and rank of incoming array
 # for vectors, this is a pain as e.g. (8,) and (8,1) have
@@ -3213,6 +3220,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.complex_type = True;
       if self.complex_type:
         self._toggle_axis_rotate.setVisible(False)
+#       self.show_colorbar_display.emit(1, 1)
 
 # do an image rotation?
       if not self.complex_type and self.axes_rotate:
@@ -3225,7 +3233,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         num_elements = num_elements * plot_array.shape[i]
         if plot_array.shape[i] > 1:
           actual_array_rank = actual_array_rank + 1
-      _dprint(3, 'actual array rank ', actual_array_rank)
+      if HAS_TIMBA:_dprint(3, 'actual array rank ', actual_array_rank)
       if actual_array_rank <= 1:
         self.is_vector = True;
         self.plotImage.detach()
@@ -3262,7 +3270,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
         if self.original_data_rank > 2: 
           self.toggle_ND_Controller = 0
           self._toggle_nd_controller.setVisible(False)
-          self.emit(Qt.SIGNAL("show_ND_Controller"),(self.toggle_ND_Controller,))
+          self.show_ND_Controller.emit((self.toggle_ND_Controller,))
 
       if self.complex_type: 
         self.complex_image = plot_array
@@ -3289,15 +3297,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self.log_switch_set = True
 
       if self.is_vector == False:
-        if has_vtk:
-          self._toggle_warp_display.setVisible(True)
-
         if self.original_data_rank > 2: 
           self.toggle_ND_Controller = 1
           self._toggle_nd_controller.setVisible(True)
-          if has_vtk:
-            self._toggle_3d_display.setVisible(True)
-
         if self.complex_type: 
           self.complex_divider = plot_array.shape[0]
 
@@ -3325,19 +3327,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
             temp_str = "m: %-.3g %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
           else:
             temp_str = "m: %-.3g+ %-.3gj" % (plot_array.mean().real,plot_array.mean().imag)
-          temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.complex128);
+          #temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.complex128);
+          temp_str1 = "sd: %-.3g" % plot_array.std();
         else:
           temp_str = "m: %-.3g" % plot_array.mean()
         temp_str1 = "sd: %-.3g" % plot_array.std(dtype=numpy.float64);
         self.array_parms = temp_str + " " + temp_str1
-
-        self.setAxisTitle(Qwt.QwtPlot.yLeft, 'sequence')
+        if self.solver_display:
+          self.array_parms = 'red: vector sum of incr solns\nblack: metrics rank 0\nblue:sum of the norms of incr solns\nyellow: norms of incr solns'
+        self.setAxisTitle(QwtPlot.yLeft, 'sequence')
         if self.complex_type and self._display_type != "brentjens":
           ampl_phase_image = None
           if self.ampl_phase:
             ampl_phase_image = self.convert_to_AP(self.complex_image)
           if self._vells_plot:
-            _dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
+            if HAS_TIMBA:_dprint(3, 'complex type: self._vells_plot ', self._vells_plot)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
             if self.array_flip:
@@ -3346,7 +3350,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.myXScale = ComplexScaleDraw(start_value=self.vells_axis_parms[self.x_parm][0], end_value=self.vells_axis_parms[self.x_parm][1])
             self.complex_divider = self.vells_axis_parms[self.x_parm][1]
 
-            self.setAxisScaleDraw(Qwt.QwtPlot.xBottom, self.myXScale)
+            self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
             self.split_axis = self.vells_axis_parms[self.x_parm][1] 
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
             self.delta_vells = delta_vells
@@ -3360,13 +3364,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self._x_title = self.vells_axis_parms[self.x_parm][2] + title_addition
             # reverse direction of x coordinates?
             if self.axes_rotate:
-              self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
-              scale_engine = self.axisScaleEngine(Qwt.QwtPlot.xBottom)
+              self.setAxisAutoScale(QwtPlot.xBottom)
+              scale_engine = self.axisScaleEngine(QwtPlot.xBottom)
               scale_engine.setAttributes(Qwt.QwtScaleEngine.Inverted)
-            self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
-            self.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
+            self.setAxisAutoScale(QwtPlot.xBottom)
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = self.vells_axis_parms[self.y_parm][2]
-            self.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
           else:
             if self.ampl_phase:
               if self.array_flip:
@@ -3378,21 +3382,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 self._x_title = 'Array/Channel Number (real followed by imaginary)'
               else:
                 self._x_title = 'Array/Sequence Number (real followed by imaginary)'
-            self.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             if self.array_flip:
               self._y_title = 'Array/Sequence Number'
             else:
               self._y_title = 'Array/Channel Number'
-            self.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
             self.myXScale = ComplexScaleDraw(divisor=plot_array.shape[0])
-            self.setAxisScaleDraw(Qwt.QwtPlot.xBottom, self.myXScale)
+            self.setAxisScaleDraw(QwtPlot.xBottom, self.myXScale)
 
             self.split_axis = plot_array.shape[0]
-            _dprint(3,'testing self.y_marker_step ', self.y_marker_step)
+            if HAS_TIMBA:_dprint(3,'testing self.y_marker_step ', self.y_marker_step)
             if not self.y_marker_step is None:
-              _dprint(3, 'creating split Y scale for Y axis')
+              if HAS_TIMBA:_dprint(3, 'creating split Y scale for Y axis')
               self.myYScale = ComplexScaleDraw(divisor=self.y_marker_step)
-              self.setAxisScaleDraw(Qwt.QwtPlot.yLeft, self.myYScale)
+              self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
 
           if self.ampl_phase:
             self.display_image(ampl_phase_image)
@@ -3401,8 +3405,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
         else:
           if self._vells_plot:
-            _dprint(3, 'not complex type: self._vells_plot ', self._vells_plot)
-            _dprint(3, 'self.vells_axis_parms ',self.vells_axis_parms)
+            if HAS_TIMBA:_dprint(3, 'not complex type: self._vells_plot ', self._vells_plot)
+            if HAS_TIMBA:_dprint(3, 'self.vells_axis_parms ',self.vells_axis_parms)
             self.x_parm = self.first_axis_parm
             self.y_parm = self.second_axis_parm
             if self.array_flip:
@@ -3412,22 +3416,22 @@ class QwtImageDisplay(Qwt.QwtPlot):
               temp = self.x_parm
               self.x_parm = self.y_parm
               self.y_parm = temp
-            _dprint(3, 'self.x_parm self.y_parm ', self.x_parm, ' ', self.y_parm)
+            if HAS_TIMBA:_dprint(3, 'self.x_parm self.y_parm ', self.x_parm, ' ', self.y_parm)
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
             self.delta_vells = delta_vells
             self.first_axis_inc = delta_vells / plot_array.shape[0] 
             delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
             self.second_axis_inc = delta_vells / plot_array.shape[1] 
             self._x_title = self.vells_axis_parms[self.x_parm][2]
-            self.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = self.vells_axis_parms[self.y_parm][2]
-            self.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
             # reverse direction of x coordinates?
-#           self.setAxisOptions(Qwt.QwtPlot.xBottom, QwtAutoScale.None)
-            self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
+#           self.setAxisOptions(QwtPlot.xBottom, QwtAutoScale.None)
+            self.setAxisAutoScale(QwtPlot.xBottom)
             if self.axes_rotate:
-              self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
-              scale_engine = self.axisScaleEngine(Qwt.QwtPlot.xBottom)
+              self.setAxisAutoScale(QwtPlot.xBottom)
+              scale_engine = self.axisScaleEngine(QwtPlot.xBottom)
               scale_engine.setAttributes(Qwt.QwtScaleEngine.Inverted)
           else:
             if self.solver_display is True:
@@ -3439,21 +3443,21 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 self._x_title = 'Array/Channel Number'
               else:
                 self._x_title = 'Array/Sequence Number'
-            self.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
+            self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             if self._y_title is None:
               if self.array_flip:
                 self._y_title = 'Array/Sequence Number'
               else:
                 self._y_title = 'Array/Channel Number'
-            self.setAxisTitle(Qwt.QwtPlot.yLeft, self._y_title)
+            self.setAxisTitle(QwtPlot.yLeft, self._y_title)
             if not self.y_marker_step is None:
-              _dprint(3, 'creating split Y scale for Y axis ', self.y_marker_step)
+              if HAS_TIMBA:_dprint(3, 'creating split Y scale for Y axis ', self.y_marker_step)
               self.myYScale = ComplexScaleDraw(divisor=self.y_marker_step)
-              self.setAxisScaleDraw(Qwt.QwtPlot.yLeft, self.myYScale)
+              self.setAxisScaleDraw(QwtPlot.yLeft, self.myYScale)
           self.display_image(plot_array)
 
       if self.is_vector == True:
-        _dprint(3, ' we are plotting a vector')
+        if HAS_TIMBA:_dprint(3, ' we are plotting a vector')
 
 # remove any markers and reset curves
         if not self.scalar_display:
@@ -3461,9 +3465,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
           self.enable_axes()
           self.removeMarkers()
 # make sure color bar is hidden
-        self.emit(Qt.SIGNAL("show_colorbar_display"),0,0) 
+        self.show_colorbar_display.emit(0, 0)
         if self.complex_type:
-          self.emit(Qt.SIGNAL("show_colorbar_display"),0,1) 
+          self.show_colorbar_display.emit(0, 1)
 
 # make sure options relating to 2-D stuff are not visible in context menu
         self._toggle_colorbar.setVisible(False)
@@ -3473,17 +3477,16 @@ class QwtImageDisplay(Qwt.QwtPlot):
         self._toggle_warp_display.setVisible(False)
         self._toggle_axis_flip.setVisible(False)
         self._toggle_axis_rotate.setVisible(False)
-        self._toggle_plot_legend.setVisible(False)
 
 # make sure we are autoscaling in case an image was previous
 # this will automagically do an unzoom, but just in case first
 # call reset_zoom ...
         self.reset_zoom()
 
-        self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
-        self.setAxisAutoScale(Qwt.QwtPlot.xTop)
-        self.setAxisAutoScale(Qwt.QwtPlot.yLeft)
-        self.setAxisAutoScale(Qwt.QwtPlot.yRight)
+        self.setAxisAutoScale(QwtPlot.xBottom)
+        self.setAxisAutoScale(QwtPlot.xTop)
+        self.setAxisAutoScale(QwtPlot.yLeft)
+        self.setAxisAutoScale(QwtPlot.yRight)
         self._x_auto_scale = True
         self._y_auto_scale = True
 
@@ -3532,11 +3535,11 @@ class QwtImageDisplay(Qwt.QwtPlot):
           for j in range(num_elements):
             self.x_index[j] = start_x + j * x_step
           self._x_title = self.vells_axis_parms[self.x_parm][2]
-          self.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
         else:
           if self._x_title is None:
             self._x_title = 'Array/Channel/Sequence Number'
-          self.setAxisTitle(Qwt.QwtPlot.xBottom, self._x_title)
+          self.setAxisTitle(QwtPlot.xBottom, self._x_title)
           self.x_index = numpy.arange(num_elements)
           self.x_index = self.x_index + 0.5
 # if we are plotting a single iteration solver solution
@@ -3545,48 +3548,47 @@ class QwtImageDisplay(Qwt.QwtPlot):
           if not self.metrics_rank is None:
             self.x_index = self.x_index + 0.5
         flattened_array = numpy.reshape(plot_array,(num_elements,))
-#       _dprint(3, 'plotting flattened array ', flattened_array)
 
 # we have a complex vector
         if self.complex_type:
-          self.enableAxis(Qwt.QwtPlot.yRight, True)
-          self.enableAxis(Qwt.QwtPlot.yLeft, True)
-          self.enableAxis(Qwt.QwtPlot.xBottom, True)
+          self.enableAxis(QwtPlot.yRight, True)
+          self.enableAxis(QwtPlot.yLeft, True)
+          self.enableAxis(QwtPlot.xBottom, True)
           if self.ampl_phase:
-            text =Qwt.QwtText('Value: Amplitude (black line / red dots)')
+            text =QwtText('Value: Amplitude (black line / red dots)')
             text.setFont(self.title_font)
-            self.setAxisTitle(Qwt.QwtPlot.yLeft, text)
+            self.setAxisTitle(QwtPlot.yLeft, text)
             text.setText('Value: Phase (blue line / green dots)')
-            self.setAxisTitle(Qwt.QwtPlot.yRight, text)
-            self.yCrossSection = Qwt.QwtPlotCurve('phase')
-            self.xrCrossSection = Qwt.QwtPlotCurve('amplitude')
+            self.setAxisTitle(QwtPlot.yRight, text)
+            self.yCrossSection = QwtPlotCurve('phase')
+            self.xrCrossSection = QwtPlotCurve('amplitude')
             self.curves['phase'] = self.yCrossSection 
             self.curves['amplitude'] = self.xrCrossSection 
           else:
-            text =Qwt.QwtText('Value: real (black line / red dots)')
+            text =QwtText('Value: real (black line / red dots)')
             text.setFont(self.title_font)
-            self.setAxisTitle(Qwt.QwtPlot.yLeft, text)
+            self.setAxisTitle(QwtPlot.yLeft, text)
             text.setText('Value: imaginary (blue line / green dots)')
-            self.setAxisTitle(Qwt.QwtPlot.yRight, text)
-            self.yCrossSection = Qwt.QwtPlotCurve('imaginaries')
-            self.xrCrossSection = Qwt.QwtPlotCurve('reals')
+            self.setAxisTitle(QwtPlot.yRight, text)
+            self.yCrossSection = QwtPlotCurve('imaginaries')
+            self.xrCrossSection = QwtPlotCurve('reals')
             self.curves['imaginaries'] = self.yCrossSection 
             self.curves['reals'] = self.xrCrossSection 
           self.yCrossSection.attach(self)
           self.xrCrossSection.attach(self)
-          self.xrCrossSection.setPen(Qt.QPen(Qt.Qt.black, q_line_size))
-          self.yCrossSection.setPen(Qt.QPen(Qt.Qt.blue, q_line_size))
-          self.yCrossSection.setYAxis(Qwt.QwtPlot.yRight)
-          self.yCrossSection.setXAxis(Qwt.QwtPlot.xBottom)
-          self.setAxisAutoScale(Qwt.QwtPlot.xTop)
-          self.setAxisAutoScale(Qwt.QwtPlot.yLeft)
-          self.xrCrossSection.setAxis(Qwt.QwtPlot.xBottom, Qwt.QwtPlot.yLeft)
-          self.xrCrossSection.setYAxis(Qwt.QwtPlot.yLeft)
-          self.xrCrossSection.setXAxis(Qwt.QwtPlot.xBottom)
-          self.xrCrossSection.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.red),
-                     Qt.QPen(Qt.Qt.red), Qt.QSize(q_symbol_size,q_symbol_size)))
-          self.yCrossSection.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.green),
-                     Qt.QPen(Qt.Qt.green), Qt.QSize(q_symbol_size,q_symbol_size)))
+          self.xrCrossSection.setPen(QPen(Qt.black, q_line_size))
+          self.yCrossSection.setPen(QPen(Qt.blue, q_line_size))
+          self.yCrossSection.setYAxis(QwtPlot.yRight)
+          self.yCrossSection.setXAxis(QwtPlot.xBottom)
+          self.setAxisAutoScale(QwtPlot.xTop)
+          self.setAxisAutoScale(QwtPlot.yLeft)
+          self.xrCrossSection.setAxes(QwtPlot.xBottom, QwtPlot.yLeft)
+          self.xrCrossSection.setYAxis(QwtPlot.yLeft)
+          self.xrCrossSection.setXAxis(QwtPlot.xBottom)
+          self.xrCrossSection.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                     QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
+          self.yCrossSection.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
+                     QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
           self.x_array =  flattened_array.real
           self.y_array =  flattened_array.imag
           # never show NaNs
@@ -3597,27 +3599,27 @@ class QwtImageDisplay(Qwt.QwtPlot):
               self._flags_array = self._nan_flags_array + self._flags_array
           if not self._flags_array is None:
             if self.ampl_phase:
-              self.yCrossSection_flag = Qwt.QwtPlotCurve('flag_phase')
-              self.xrCrossSection_flag = Qwt.QwtPlotCurve('flag_amplitude')
+              self.yCrossSection_flag = QwtPlotCurve('flag_phase')
+              self.xrCrossSection_flag = QwtPlotCurve('flag_amplitude')
               self.curves['flag_phase'] = self.yCrossSection 
               self.curves['flag_amplitude'] = self.xrCrossSection 
             else:
-              self.yCrossSection_flag = Qwt.QwtPlotCurve('flag_imaginaries')
-              self.xrCrossSection_flag = Qwt.QwtPlotCurve('flag_reals')
+              self.yCrossSection_flag = QwtPlotCurve('flag_imaginaries')
+              self.xrCrossSection_flag = QwtPlotCurve('flag_reals')
               self.curves['flag_imaginaries'] = self.yCrossSection 
               self.curves['flag_reals'] = self.xrCrossSection 
             self.yCrossSection_flag.attach(self)
             self.xrCrossSection_flag.attach(self)
-            self.xrCrossSection_flag.setPen(Qt.QPen(Qt.Qt.black, q_line_size))
-            self.yCrossSection_flag.setPen(Qt.QPen(Qt.Qt.blue, q_line_size))
-            self.xrCrossSection_flag.setAxis(Qwt.QwtPlot.xBottom, Qwt.QwtPlot.yLeft)
-#           self.yCrossSection_flag.setYAxis(Qwt.QwtPlot.yRight)
-#           self.yCrossSection_flag.setXAxis(Qwt.QwtPlot.xTop)
-            self.yCrossSection_flag.setAxis(Qwt.QwtPlot.xBottom, Qwt.QwtPlot.yRight)
-            self.xrCrossSection_flag.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.red),
-                     Qt.QPen(Qt.Qt.red), Qt.QSize(q_symbol_size,q_symbol_size)))
-            self.yCrossSection_flag.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.green),
-                     Qt.QPen(Qt.Qt.green), Qt.QSize(q_symbol_size,q_symbol_size)))
+            self.xrCrossSection_flag.setPen(QPen(Qt.black, q_line_size))
+            self.yCrossSection_flag.setPen(QPen(Qt.blue, q_line_size))
+            self.xrCrossSection_flag.setAxes(QwtPlot.xBottom, QwtPlot.yLeft)
+#           self.yCrossSection_flag.setYAxis(QwtPlot.yRight)
+#           self.yCrossSection_flag.setXAxis(QwtPlot.xTop)
+            self.yCrossSection_flag.setAxes(QwtPlot.xBottom, QwtPlot.yRight)
+            self.xrCrossSection_flag.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                     QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
+            self.yCrossSection_flag.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.green),
+                     QPen(Qt.green), QSize(q_symbol_size,q_symbol_size)))
           if self.ampl_phase:
             abs_array = abs(flattened_array)
             phase_array = numpy.arctan2(self.y_array,self.x_array)
@@ -3649,9 +3651,9 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 min_val = self.nan_inf_value - axis_subt
               if flags_y_array.max() < self.nan_inf_value: 
                 max_val = self.nan_inf_value + axis_diff
-            self.setAxisScale(Qwt.QwtPlot.yRight, min_val, max_val)
+            self.setAxisScale(QwtPlot.yRight, min_val, max_val)
           else:
-            self.setAxisScale(Qwt.QwtPlot.yRight, self.y_array.min() - axis_subt, self.y_array.max() + axis_diff)
+            self.setAxisScale(QwtPlot.yRight, self.y_array.min() - axis_subt, self.y_array.max() + axis_diff)
           if not self._flags_array is None:
             axis_diff = abs(flags_x_array.max() - flags_x_array.min())
           else:
@@ -3668,12 +3670,13 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 min_val = self.nan_inf_value - axis_diff
               if flags_x_array.max() < self.nan_inf_value: 
                 max_val = self.nan_inf_value + axis_add
-            self.setAxisScale(Qwt.QwtPlot.yLeft, min_val, max_val)
+            self.setAxisScale(QwtPlot.yLeft, min_val, max_val)
           else:
-            self.setAxisScale(Qwt.QwtPlot.yLeft, self.x_array.min() - axis_diff, self.x_array.max() + axis_add)
-          _dprint(3, 'plotting complex array with x values ', self.x_index)
-          _dprint(3, 'plotting complex array with real values ', self.x_array)
-          _dprint(3, 'plotting complex array with imag values ', self.y_array)
+            self.setAxisScale(QwtPlot.yLeft, self.x_array.min() - axis_diff, self.x_array.max() + axis_add)
+          if HAS_TIMBA:
+            _dprint(3, 'plotting complex array with x values ', self.x_index)
+            _dprint(3, 'plotting complex array with real values ', self.x_array)
+            _dprint(3, 'plotting complex array with imag values ', self.y_array)
 
 # stuff for flags
           if not self._flags_array is None:
@@ -3681,23 +3684,23 @@ class QwtImageDisplay(Qwt.QwtPlot):
             self.flags_r_values = numpy.compress(self._flags_array!=0,self.x_array)
             self.flags_i_values = numpy.compress(self._flags_array!=0,self.y_array)
 
-            self.real_flag_vector = Qwt.QwtPlotCurve('real_flags')
+            self.real_flag_vector = QwtPlotCurve('real_flags')
             self.curves['real_flags'] = self.real_flag_vector 
             self.real_flag_vector.attach(self)
-            self.real_flag_vector.setPen(Qt.QPen(Qt.Qt.black))
-            self.real_flag_vector.setStyle(Qwt.QwtPlotCurve.Dots)
-            self.real_flag_vector.setYAxis(Qwt.QwtPlot.yLeft)
-            self.real_flag_vector.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.XCross, Qt.QBrush(Qt.Qt.black),
-                     Qt.QPen(Qt.Qt.black), Qt.QSize(q_flag_size, q_flag_size)))
+            self.real_flag_vector.setPen(QPen(Qt.black))
+            self.real_flag_vector.setStyle(QwtPlotCurve.Dots)
+            self.real_flag_vector.setYAxis(QwtPlot.yLeft)
+            self.real_flag_vector.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.real_flag_vector.setData(self.flags_x_index, self.flags_r_values)
-            self.imag_flag_vector = Qwt.QwtPlotCurve('imag_flags')
+            self.imag_flag_vector = QwtPlotCurve('imag_flags')
             self.curves['imag_flags'] = self.imag_flag_vector 
             self.imag_flag_vector.attach(self)
-            self.imag_flag_vector.setPen(Qt.QPen(Qt.Qt.black))
-            self.imag_flag_vector.setStyle(Qwt.QwtPlotCurve.Dots)
-            self.imag_flag_vector.setYAxis(Qwt.QwtPlot.yRight)
-            self.imag_flag_vector.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.XCross, Qt.QBrush(Qt.Qt.black),
-                     Qt.QPen(Qt.Qt.black), Qt.QSize(q_flag_size, q_flag_size)))
+            self.imag_flag_vector.setPen(QPen(Qt.black))
+            self.imag_flag_vector.setStyle(QwtPlotCurve.Dots)
+            self.imag_flag_vector.setYAxis(QwtPlot.yRight)
+            self.imag_flag_vector.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.imag_flag_vector.setData(self.flags_x_index, self.flags_i_values)
             
             if self.flag_toggle:
@@ -3716,19 +3719,19 @@ class QwtImageDisplay(Qwt.QwtPlot):
               self.xrCrossSection.show()
 
         else:
-          self.enableAxis(Qwt.QwtPlot.yLeft, True)
-          self.enableAxis(Qwt.QwtPlot.xBottom, True)
-          self.enableAxis(Qwt.QwtPlot.yRight, False)
-          self.setAxisTitle(Qwt.QwtPlot.yLeft, 'Value')
+          self.enableAxis(QwtPlot.yLeft, True)
+          self.enableAxis(QwtPlot.xBottom, True)
+          self.enableAxis(QwtPlot.yRight, False)
+          self.setAxisTitle(QwtPlot.yLeft, 'Value')
           self.x_array =  flattened_array
-          self.xrCrossSection = Qwt.QwtPlotCurve('reals')
+          self.xrCrossSection = QwtPlotCurve('reals')
           self.curves['reals'] = self.xrCrossSection 
           self.xrCrossSection.attach(self)
-          self.xrCrossSection.setPen(Qt.QPen(Qt.Qt.black, q_line_size))
-          self.xrCrossSection.setStyle(Qwt.QwtPlotCurve.Lines)
-          self.xrCrossSection.setAxis(Qwt.QwtPlot.xBottom,Qwt.QwtPlot.yLeft)
-          self.xrCrossSection.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.red),
-                     Qt.QPen(Qt.Qt.red), Qt.QSize(q_symbol_size,q_symbol_size)))
+          self.xrCrossSection.setPen(QPen(Qt.black, q_line_size))
+          self.xrCrossSection.setStyle(QwtPlotCurve.Lines)
+          self.xrCrossSection.setAxes(QwtPlot.xBottom,QwtPlot.yLeft)
+          self.xrCrossSection.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                     QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
           # never show NaNs
           if not self._nan_flags_array is None:
             if  self._flags_array is None:
@@ -3736,14 +3739,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
             else:
               self._flags_array = self._nan_flags_array + self._flags_array
           if not self._flags_array is None:
-            self.xrCrossSection_flag = Qwt.QwtPlotCurve('flag_reals')
+            self.xrCrossSection_flag = QwtPlotCurve('flag_reals')
             self.curves['flag_reals'] = self.xrCrossSection 
             self.xrCrossSection_flag.attach(self)
-            self.xrCrossSection_flag.setPen(Qt.QPen(Qt.Qt.black, q_line_size))
-            self.xrCrossSection_flag.setStyle(Qwt.QwtPlotCurve.Lines)
-            self.xrCrossSection_flag.setAxis(Qwt.QwtPlot.xBottom,Qwt.QwtPlot.yLeft)
-            self.xrCrossSection_flag.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.Ellipse, Qt.QBrush(Qt.Qt.red),
-                     Qt.QPen(Qt.Qt.red), Qt.QSize(q_symbol_size,q_symbol_size)))
+            self.xrCrossSection_flag.setPen(QPen(Qt.black, q_line_size))
+            self.xrCrossSection_flag.setStyle(QwtPlotCurve.Lines)
+            self.xrCrossSection_flag.setAxes(QwtPlot.xBottom,QwtPlot.yLeft)
+            self.xrCrossSection_flag.setSymbol(QwtSymbol(QwtSymbol.Ellipse, QBrush(Qt.red),
+                     QPen(Qt.red), QSize(q_symbol_size,q_symbol_size)))
             flags_x_array = numpy.compress(self._flags_array==0,self.x_array)
             flags_x_index = numpy.compress(self._flags_array==0,self.x_index)
             axis_diff = abs(flags_x_array.max() - flags_x_array.min())
@@ -3753,14 +3756,14 @@ class QwtImageDisplay(Qwt.QwtPlot):
 # stuff for flags
             self.flags_x_index = numpy.compress(self._flags_array!= 0, self.x_index)
             self.flags_r_values = numpy.compress(self._flags_array!= 0, self.x_array)
-            self.real_flag_vector = Qwt.QwtPlotCurve('real_flags')
+            self.real_flag_vector = QwtPlotCurve('real_flags')
             self.curves['real_reals'] = self.xrCrossSection 
             self.real_flag_vector.attach(self)
-            self.real_flag_vector.setPen( Qt.QPen(Qt.Qt.black))
-            self.real_flag_vector.setStyle(Qwt.QwtPlotCurve.Dots)
-            self.real_flag_vector.setAxis(Qwt.QwtPlot.xBottom, Qwt.QwtPlot.yLeft)
-            self.real_flag_vector.setSymbol(Qwt.QwtSymbol(Qwt.QwtSymbol.XCross, Qt.QBrush(Qt.Qt.black),
-                     Qt.QPen(Qt.Qt.black), Qt.QSize(q_flag_size, q_flag_size)))
+            self.real_flag_vector.setPen( QPen(Qt.black))
+            self.real_flag_vector.setStyle(QwtPlotCurve.Dots)
+            self.real_flag_vector.setAxes(QwtPlot.xBottom, QwtPlot.yLeft)
+            self.real_flag_vector.setSymbol(QwtSymbol(QwtSymbol.XCross, QBrush(Qt.black),
+                     QPen(Qt.black), QSize(q_flag_size, q_flag_size)))
             self.real_flag_vector.setData(self.flags_x_index, self.flags_r_values)
             if self.flag_toggle:
               self.real_flag_vector.show()
@@ -3780,17 +3783,16 @@ class QwtImageDisplay(Qwt.QwtPlot):
                 min_val = self.nan_inf_value - axis_add
               if flags_x_array.max() < self.nan_inf_value: 
                 max_val = self.nan_inf_value + axis_add
-            self.setAxisScale(Qwt.QwtPlot.yLeft, min_val, max_val)
+            self.setAxisScale(QwtPlot.yLeft, min_val, max_val)
           else:
             self.xrCrossSection.setData(self.x_index, self.x_array)
 
         self.replot()
-        _dprint(3, 'called replot in array_plot');
+        if HAS_TIMBA:_dprint(3, 'called replot in array_plot');
         #print 'called final replot in array_plot'
 
     # array_plot()
 
-#   def set_solver_metrics(self,metrics_rank, iteration_number, solver_offsets):
     def set_solver_metrics(self,metrics_tuple):
       """ store Solver data for later plotting """
       self.metrics_rank = metrics_tuple[0]
@@ -3902,7 +3904,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
     # setNanFlagsData()
 
     def message_reporter(self, message):
-      mb_reporter = Qt.QMessageBox.information(self, "QwtImageDisplay",message)
+      mb_reporter = QMessageBox.information(self, "QwtImageDisplay",message)
 
     def unsetFlagsData(self):
       self._flags_array = None
@@ -3956,7 +3958,7 @@ class QwtImageDisplay(Qwt.QwtPlot):
       self.reset_zoom(replot, True)
 
     def handle_save_display_in_png_format(self):
-      self.emit(Qt.SIGNAL("save_display"),self._window_title)
+      self.save_display.emit(self._window_title)
 
     def handle_modify_plot_parameters(self):
       message = 'The option to modify plot parameters does not work at present'
@@ -3967,8 +3969,8 @@ class QwtImageDisplay(Qwt.QwtPlot):
         """ add standard options to context menu """
 
 # first create sub-menu for cross-section displays
-        self._xsection_menu = Qt.QMenu(self._mainwin);
-        qag = Qt.QActionGroup(self._xsection_menu);
+        self._xsection_menu = QMenu(self._mainwin);
+        qag = QActionGroup(self._xsection_menu);
         qag.setExclusive(True);
 
         self._select_both_cross_sections = qag.addAction('Both');
@@ -3985,221 +3987,195 @@ class QwtImageDisplay(Qwt.QwtPlot):
           qa.setCheckable(True); 
           qa.setVisible(False);
           self._xsection_menu.addAction(qa);
-        self.connect(qag,Qt.SIGNAL("triggered(QAction*)"),self.handle_select_cross_section);
+        qag.triggered[QAction].connect(self.handle_select_cross_section)
 
         self._delete_cx_section_display = self._xsection_menu.addAction('None');
-        self.connect(self._delete_cx_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
+        self._delete_cx_section_display.triggered.connect(self.handle_delete_x_section_display)
 
 
 # create sub-menu for complex data selection
-        self._complex_data_menu = Qt.QMenu(self._mainwin);
+        self._complex_data_menu = QMenu(self._mainwin);
 
         toggle_id = self.complex_menu_table['Show Data as Real and Imaginary']
-        self._select_real_imaginary = Qt.QAction('Real-imaginary',self)
-        self._select_real_imaginary.setData(Qt.QVariant(str(toggle_id)))
+        self._select_real_imaginary = QAction('Real-imaginary',self)
+        self._select_real_imaginary.setData(str(toggle_id))
         self._complex_data_menu.addAction(self._select_real_imaginary)
         self._select_real_imaginary.setVisible(False)
         self._select_real_imaginary.setCheckable(True)
         self._select_real_imaginary.setChecked(True)
-        self.connect(self._select_real_imaginary,Qt.SIGNAL("triggered()"),self.handle_toggle_ri_display);
+        self._select_real_imaginary.triggered.connect(self.handle_toggle_ri_display)
 
         toggle_id = self.complex_menu_table['Show Data as Amplitude and Phase']
-        self._select_amplitude_phase = Qt.QAction('Amplitude-phase',self)
-        self._select_amplitude_phase.setData(Qt.QVariant(str(toggle_id)))
+        self._select_amplitude_phase = QAction('Amplitude-phase',self)
+        self._select_amplitude_phase.setData(str(toggle_id))
         self._complex_data_menu.addAction(self._select_amplitude_phase)
         self._select_amplitude_phase.setVisible(False)
         self._select_amplitude_phase.setCheckable(True)
         self._select_amplitude_phase.setChecked(False)
-        self.connect(self._select_amplitude_phase,Qt.SIGNAL("triggered()"),self.handle_toggle_ap_display);
-
-
-# now insert items into main menu
-
-#       self.helpMenu = Qt.QMenu("Help",self._mainwin)
-#       self.helpMenu.addAction(self.display_image_instructions)
-#       self._help_display = Qt.QAction('Help',self)
-#       self._help_display.setMenu(self.helpMenu)
-#       self._menu.addAction(self._help_display)
-
-
-#       The following option currently does not work
-#       toggle_id = self.menu_table['Modify Plot Parameters']
-#       self._modify_plot_parameters = Qt.QAction('Modify Plot Parameters',self)
-#       self._modify_plot_parameters.setData(Qt.QVariant(str(toggle_id)))
-#       self._menu.addAction(self._modify_plot_parameters)
-#       self.connect(self._modify_plot_parameters,Qt.SIGNAL("triggered()"),self.handle_modify_plot_parameters);
+        self._select_amplitude_phase.triggered.connect(self.handle_toggle_ap_display)
 
         toggle_id = self.menu_table['Show coordinate tracking display']
-        self._toggle_coordinates = Qt.QAction('Show coordinate tracking display',self)
+        self._toggle_coordinates = QAction('Show coordinate tracking display',self)
         self._menu.addAction(self._toggle_coordinates)
-        self._toggle_coordinates.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_coordinates.setData(str(toggle_id))
         self._toggle_coordinates.setText('Show coordinate tracker')
         self._toggle_coordinates.setCheckable(True)
-        self.connect(self._toggle_coordinates,Qt.SIGNAL("triggered()"),self.handle_toggle_coordinates);
+        self._toggle_coordinates.triggered.connect(self.handle_toggle_coordinates)
 
-
-        toggle_id = self.menu_table['Toggle Plot Legend']
-        self._toggle_plot_legend = Qt.QAction('Toggle Plot Legend',self)
-        self._menu.addAction(self._toggle_plot_legend)
-        self._toggle_plot_legend.setData(Qt.QVariant(str(toggle_id)))
-        self._toggle_plot_legend.setText('Show plot legends')
-        self._toggle_plot_legend.setCheckable(True)
-        self._toggle_plot_legend.setVisible(False)
-        self.connect(self._toggle_plot_legend,Qt.SIGNAL("triggered()"),self.handle_toggle_plot_legend);
 
         toggle_id = self.menu_table['Show ColorBar']
-        self._toggle_colorbar = Qt.QAction('Show ColorBar',self)
+        self._toggle_colorbar = QAction('Show ColorBar',self)
         self._menu.addAction(self._toggle_colorbar)
-        self._toggle_colorbar.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_colorbar.setData(str(toggle_id))
         self._toggle_colorbar.setText('Show colour bar')
         self._toggle_colorbar.setCheckable(True)
         self._toggle_colorbar.setChecked(True)
-        self.connect(self._toggle_colorbar,Qt.SIGNAL("triggered()"),self.handle_toggle_colorbar);
+        self._toggle_colorbar.triggered.connect(self.handle_toggle_colorbar)
 
         toggle_id = self.menu_table['Show GrayScale Display']
-        self._toggle_color_gray_display = Qt.QAction('Show GrayScale Display',self)
+        self._toggle_color_gray_display = QAction('Show GrayScale Display',self)
         self._menu.addAction(self._toggle_color_gray_display)
-        self._toggle_color_gray_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_color_gray_display.setData(str(toggle_id))
         self._toggle_color_gray_display.setText('Use greyscale display')
         self._toggle_color_gray_display.setCheckable(True)
-        self.connect(self._toggle_color_gray_display,Qt.SIGNAL("triggered()"),self.handle_toggle_color_gray_display);
+        self._toggle_color_gray_display.triggered.connect(self.handle_toggle_color_gray_display)
 
         toggle_id = self.menu_table['Hide ND Controller']
-        self._toggle_nd_controller = Qt.QAction('Hide nD controller',self)
+        self._toggle_nd_controller = QAction('Hide nD controller',self)
         self._menu.addAction(self._toggle_nd_controller)
-        self._toggle_nd_controller.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_nd_controller.setData(str(toggle_id))
         self._toggle_nd_controller.setText('Hide nD controller')
         self._toggle_nd_controller.setVisible(False)
         self._toggle_nd_controller.setCheckable(True)
-        self.connect(self._toggle_nd_controller,Qt.SIGNAL("triggered()"),self.handle_toggle_nd_controller);
+        self._toggle_nd_controller.triggered.connect(self.handle_toggle_nd_controller)
 
 
         toggle_id = self.menu_table['Show results history']
-        self._toggle_results_history = Qt.QAction('Show results history',self)
+        self._toggle_results_history = QAction('Show results history',self)
         self._menu.addAction(self._toggle_results_history)
-        self._toggle_results_history.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_results_history.setData(str(toggle_id))
         self._toggle_results_history.setVisible(False)
         self._toggle_results_history.setCheckable(True)
-        self.connect(self._toggle_results_history,Qt.SIGNAL("triggered()"),self.handle_toggle_results_history);
+        self._toggle_results_history.triggered.connect(self.handle_toggle_results_history)
 
 
         toggle_id = self.menu_table['Select X-Section Display']
-        self._select_x_section_display = Qt.QAction('Plot which cross-sections',self)
+        self._select_x_section_display = QAction('Plot which cross-sections',self)
         self._menu.addAction(self._select_x_section_display)
         self._select_x_section_display.setMenu(self._xsection_menu)
-        self._select_x_section_display.setData(Qt.QVariant(str(toggle_id)))
+        self._select_x_section_display.setData(str(toggle_id))
         self._select_x_section_display.setVisible(False)
 #       self.connect(self._select_x_section_display,Qt.SIGNAL("triggered()"),self.handle_select_x_section_display);
 
 
         toggle_id = self.menu_table['Interchange axes']
-        self._toggle_axis_flip = Qt.QAction('Interchange x/y axes',self)
+        self._toggle_axis_flip = QAction('Interchange x/y axes',self)
         self._menu.addAction(self._toggle_axis_flip)
-        self._toggle_axis_flip.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_axis_flip.setData(str(toggle_id))
         self._toggle_axis_flip.setVisible(False)
         self._toggle_axis_flip.setCheckable(True)
-        self.connect(self._toggle_axis_flip,Qt.SIGNAL("triggered()"),self.handle_toggle_axis_flip);
+        self._toggle_axis_flip.triggered.connect(self.handle_toggle_axis_flip)
 
 
 
         toggle_id = self.menu_table['Toggle axis rotate']
-        self._toggle_axis_rotate = Qt.QAction('Toggle axis rotate',self)
+        self._toggle_axis_rotate = QAction('Toggle axis rotate',self)
         self._menu.addAction(self._toggle_axis_rotate)
-        self._toggle_axis_rotate.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_axis_rotate.setData(str(toggle_id))
         self._toggle_axis_rotate.setText('Rotate axes 90deg counterclockwise')
         self._toggle_axis_rotate.setVisible(False)
         self._toggle_axis_rotate.setCheckable(True)
-        self.connect(self._toggle_axis_rotate,Qt.SIGNAL("triggered()"),self.handle_toggle_axis_rotate);
+        self._toggle_axis_rotate.triggered.connect(self.handle_toggle_axis_rotate)
 
 
         toggle_id = self.menu_table['Show logarithmic range for chi_0']
-        self._toggle_log_axis_for_chi_0 = Qt.QAction('Use logarithmic range for chi_0',self)
+        self._toggle_log_axis_for_chi_0 = QAction('Use logarithmic range for chi_0',self)
         self._menu.addAction(self._toggle_log_axis_for_chi_0)
-        self._toggle_log_axis_for_chi_0.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_log_axis_for_chi_0.setData(str(toggle_id))
         self._toggle_log_axis_for_chi_0.setVisible(False)
         self._toggle_log_axis_for_chi_0.setCheckable(True)
-        self.connect(self._toggle_log_axis_for_chi_0,Qt.SIGNAL("triggered()"),self.handle_toggle_log_axis_for_chi_0);
+        self._toggle_log_axis_for_chi_0.triggered.connect(self.handle_toggle_log_axis_for_chi_0)
 
 
         toggle_id = self.menu_table['Show logarithmic range for solution vector']
-        self._toggle_log_axis_for_solution_vector = Qt.QAction('Use logarithmic range for solution vector',self)
+        self._toggle_log_axis_for_solution_vector = QAction('Use logarithmic range for solution vector',self)
         self._menu.addAction(self._toggle_log_axis_for_solution_vector)
-        self._toggle_log_axis_for_solution_vector.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_log_axis_for_solution_vector.setData(str(toggle_id))
         self._toggle_log_axis_for_solution_vector.setVisible(False)
         self._toggle_log_axis_for_solution_vector.setCheckable(True)
-        self.connect(self._toggle_log_axis_for_solution_vector,Qt.SIGNAL("triggered()"),self.handle_toggle_log_axis_for_solution_vector);
+        self._toggle_log_axis_for_solution_vector.triggered.connect(self.handle_toggle_log_axis_for_solution_vector)
 
 
         toggle_id = self.menu_table['Toggle chi-square surfaces display']
-        self._toggle_chi_square_surfaces_display = Qt.QAction('Toggle chi-square surfaces display',self)
+        self._toggle_chi_square_surfaces_display = QAction('Toggle chi-square surfaces display',self)
         self._menu.addAction(self._toggle_chi_square_surfaces_display)
-        self._toggle_chi_square_surfaces_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_chi_square_surfaces_display.setData(str(toggle_id))
         self._toggle_chi_square_surfaces_display.setVisible(False)
         self._toggle_chi_square_surfaces_display.setText('Show chi-square surfaces')
-        self.connect(self._toggle_chi_square_surfaces_display,Qt.SIGNAL("triggered()"),self.handle_toggle_chi_square_surfaces_display);
+        self._toggle_chi_square_surfaces_display.triggered.connect(self.handle_toggle_chi_square_surfaces_display)
 
         toggle_id = self.menu_table['Toggle Metrics Display']
-        self._toggle_metrics_display = Qt.QAction('Toggle Metrics Display',self)
+        self._toggle_metrics_display = QAction('Toggle Metrics Display',self)
         self._menu.addAction(self._toggle_metrics_display)
-        self._toggle_metrics_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_metrics_display.setData(str(toggle_id))
         self._toggle_metrics_display.setVisible(False)
         self._toggle_metrics_display.setText('Show solver metrics')
         self._toggle_metrics_display.setCheckable(True)
         self._toggle_metrics_display.setChecked(True)
-        self.connect(self._toggle_metrics_display,Qt.SIGNAL("triggered()"),self.handle_toggle_metrics_display);
+        self._toggle_metrics_display.triggered.connect(self.handle_toggle_metrics_display)
 
         toggle_id = self.menu_table['Show logarithmic range for data']
-        self._toggle_log_range_for_data = Qt.QAction('Use logarithmic range for data',self)
+        self._toggle_log_range_for_data = QAction('Use logarithmic range for data',self)
         self._menu.addAction(self._toggle_log_range_for_data)
-        self._toggle_log_range_for_data.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_log_range_for_data.setData(str(toggle_id))
         self._toggle_log_range_for_data.setVisible(False)
         self._toggle_log_range_for_data.setCheckable(True)
         self.log_switch_set = False
-        self.connect(self._toggle_log_range_for_data,Qt.SIGNAL("triggered()"),self.handle_toggle_log_range_for_data);
+        self._toggle_log_range_for_data.triggered.connect(self.handle_toggle_log_range_for_data)
 
-        self._delete_x_section_display = Qt.QAction('Delete X-Section Display',self)
+        self._delete_x_section_display = QAction('Delete X-Section Display',self)
         self._menu.addAction(self._delete_x_section_display)
-        self.connect(self._delete_x_section_display,Qt.SIGNAL("triggered()"),self.handle_delete_x_section_display);
+        self._delete_x_section_display.triggered.connect(self.handle_delete_x_section_display)
         self._delete_x_section_display.setVisible(False)
 
 
         toggle_id = self.menu_table['Toggle real/imag or ampl/phase Display']
-        self._toggle_ri_or_ap_display = Qt.QAction('Plot complex values as',self)
+        self._toggle_ri_or_ap_display = QAction('Plot complex values as',self)
         self._menu.addAction(self._toggle_ri_or_ap_display)
         self._toggle_ri_or_ap_display.setMenu(self._complex_data_menu)
         self._toggle_ri_or_ap_display.setVisible(False)
 
         toggle_id = self.menu_table['Show Full Data Range']
-        self._show_full_data_range = Qt.QAction('Show full data range',self)
+        self._show_full_data_range = QAction('Show full data range',self)
         self._menu.addAction(self._show_full_data_range)
-        self._show_full_data_range.setData(Qt.QVariant(str(toggle_id)))
+        self._show_full_data_range.setData(str(toggle_id))
         self._show_full_data_range.setVisible(False)
-        self.connect(self._show_full_data_range,Qt.SIGNAL("triggered()"),self.handle_show_full_data_range);
+        self._show_full_data_range.triggered.connect(self.handle_show_full_data_range)
 
         toggle_id = self.menu_table['Toggle 3D Display']
-        self._toggle_3d_display = Qt.QAction('Toggle 3D display',self)
+        self._toggle_3d_display = QAction('Toggle 3D display',self)
         self._menu.addAction(self._toggle_3d_display)
-        self._toggle_3d_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_3d_display.setData(str(toggle_id))
         self._toggle_3d_display.setText('Show 3D display')
         self._toggle_3d_display.setVisible(False)
-        self.connect(self._toggle_3d_display,Qt.SIGNAL("triggered()"),self.handle_toggle_3d_display);
+        self._toggle_3d_display.triggered.connect(self.handle_toggle_3d_display)
 
         toggle_id = self.menu_table['Toggle Warp Display']
-        self._toggle_warp_display = Qt.QAction('Toggle Warp Display',self)
+        self._toggle_warp_display = QAction('Toggle Warp Display',self)
         self._menu.addAction(self._toggle_warp_display)
-        self._toggle_warp_display.setData(Qt.QVariant(str(toggle_id)))
+        self._toggle_warp_display.setData(str(toggle_id))
         self._toggle_warp_display.setText('Show warped surface display')
         self._toggle_warp_display.setVisible(False)
-        self.connect(self._toggle_warp_display,Qt.SIGNAL("triggered()"),self.handle_toggle_warp_display);
+        self._toggle_warp_display.triggered.connect(self.handle_toggle_warp_display)
 
 # add potential menu for flagged data
 # add flag toggling for vells but make hidden by default
         self._toggle_flag_label = "show flagged data for plane "
         toggle_id = self.menu_table[self._toggle_flag_label]
-        self._toggle_flagged_data_for_plane = Qt.QAction(self._toggle_flag_label,self)
+        self._toggle_flagged_data_for_plane = QAction(self._toggle_flag_label,self)
         self._menu.addAction(self._toggle_flagged_data_for_plane)
-        self._toggle_flagged_data_for_plane.setData(Qt.QVariant(str(toggle_id)))
-        self.connect(self._toggle_flagged_data_for_plane,Qt.SIGNAL("triggered()"),self.handle_toggle_flagged_data_for_plane);
+        self._toggle_flagged_data_for_plane.setData(str(toggle_id))
+        self._toggle_flagged_data_for_plane.triggered.connect(self.handle_toggle_flagged_data_for_plane)
         self._toggle_flagged_data_for_plane.setEnabled(False)
         self._toggle_flagged_data_for_plane.setVisible(False)
         self._toggle_flagged_data_for_plane.setCheckable(True)
@@ -4207,20 +4183,20 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
         self._toggle_blink_label = "blink flagged data for plane "
         toggle_id = self.menu_table[self._toggle_blink_label]
-        self._toggle_blink_of_flagged_data = Qt.QAction(self._toggle_blink_label,self)
+        self._toggle_blink_of_flagged_data = QAction(self._toggle_blink_label,self)
         self._menu.addAction(self._toggle_blink_of_flagged_data)
-        self._toggle_blink_of_flagged_data.setData(Qt.QVariant(str(toggle_id)))
-        self.connect(self._toggle_blink_of_flagged_data,Qt.SIGNAL("triggered()"),self.handle_toggle_blink_of_flagged_data);
+        self._toggle_blink_of_flagged_data.setData(str(toggle_id))
+        self._toggle_blink_of_flagged_data.triggered.connect(self.handle_toggle_blink_of_flagged_data)
         self._toggle_blink_of_flagged_data.setEnabled(False)
         self._toggle_blink_of_flagged_data.setVisible(False)
         self._toggle_blink_of_flagged_data.setCheckable(True)
 
         self._toggle_range_label = "Set display range to that of unflagged data for plane "
         toggle_id = self.menu_table[self._toggle_range_label]
-        self._set_display_range_to_unflagged_data = Qt.QAction(self._toggle_range_label,self)
+        self._set_display_range_to_unflagged_data = QAction(self._toggle_range_label,self)
         self._menu.addAction(self._set_display_range_to_unflagged_data)
-        self._set_display_range_to_unflagged_data.setData(Qt.QVariant(str(toggle_id)))
-        self.connect(self._set_display_range_to_unflagged_data,Qt.SIGNAL("triggered()"),self.handle_set_display_range_to_unflagged_data);
+        self._set_display_range_to_unflagged_data.setData(str(toggle_id))
+        self._set_display_range_to_unflagged_data.triggered.connect(self.handle_set_display_range_to_unflagged_data)
         self._set_display_range_to_unflagged_data.setEnabled(False)
         self._set_display_range_to_unflagged_data.setVisible(False)
         self._set_display_range_to_unflagged_data.setCheckable(True)
@@ -4229,33 +4205,33 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
 # add zoomer and printer stuff
         toggle_id = self.menu_table['Reset zoomer']
-        self._reset_zoomer = Qt.QAction(pixmaps.viewmag.iconset(),'Reset zoomer',self)
+        if HAS_TIMBA:
+          self._reset_zoomer = QAction(pixmaps.viewmag.iconset(),'Reset zoomer',self)
+        else:
+          self._reset_zoomer = QAction('Reset zoomer',self)
         self._menu.addAction(self._reset_zoomer)
-        self._reset_zoomer.setData(Qt.QVariant(str(toggle_id)))
+        self._reset_zoomer.setData(str(toggle_id))
         self._reset_zoomer.setVisible(False)
-        self.connect(self._reset_zoomer,Qt.SIGNAL("triggered()"),self.handle_reset_zoomer);
+        self._reset_zoomer.triggered.connect(self.handle_reset_zoomer)
 
         toggle_id = self.menu_table['Undo Last Zoom']
-        self._undo_last_zoom = Qt.QAction(pixmaps.viewmag.iconset(),'Undo last zoom',self)
+        if HAS_TIMBA:
+          self._undo_last_zoom = QAction(pixmaps.viewmag.iconset(),'Undo last zoom',self)
+        else:
+          self._undo_last_zoom = QAction('Undo last zoom',self)
         self._menu.addAction(self._undo_last_zoom)
-        self._undo_last_zoom.setData(Qt.QVariant(str(toggle_id)))
+        self._undo_last_zoom.setData(str(toggle_id))
         self._undo_last_zoom.setVisible(False)
-        self.connect(self._undo_last_zoom,Qt.SIGNAL("triggered()"),self.handle_undo_last_zoom);
+        self._undo_last_zoom.triggered.connect(self.handle_undo_last_zoom)
 
         toggle_id = self.menu_table['Change Vells']
-        self._change_vells = Qt.QAction('Data element selector...',self)
+        self._change_vells = QAction('Data element selector...',self)
         self._menu.addAction(self._change_vells)
-        self._change_vells.setData(Qt.QVariant(str(toggle_id)))
+        self._change_vells.setData(str(toggle_id))
         self._change_vells.setVisible(False)
-        self.connect(self._change_vells,Qt.SIGNAL("triggered()"),self.handle_change_vells);
+        self._change_vells.triggered.connect(self.handle_change_vells)
 
-# add the printer to the menu
-# this is commented out until postscript/pdf printing works properly with
-# Qt 4 widgets
-#       self._menu.addAction(self.printer)
 
-# add option to save in PNG format
-# do this here?
         if self.chi_zeros is None:
           self._toggle_axis_flip.setVisible(True)
           if not self.complex_type:
@@ -4267,30 +4243,29 @@ class QwtImageDisplay(Qwt.QwtPlot):
 
         if self._zoom_display:
           toggle_id = self.menu_table['Toggle Pause']
-          self._toggle_pause = Qt.QAction('Pause data display',self)
+          self._toggle_pause = QAction('Pause data display',self)
           self._menu.addAction(self._toggle_pause)
-          self._toggle_pause.setData(Qt.QVariant(str(toggle_id)))
+          self._toggle_pause.setData(str(toggle_id))
           self._toggle_pause.setCheckable(True)
           self._toggle_pause.setChecked(self._do_pause)
-          self.connect(self._toggle_pause,Qt.SIGNAL("triggered()"),self.handle_toggle_pause);
+          self._toggle_pause.triggered.connect(self.handle_toggle_pause)
 
           # following option does nothing useful at the moment
           toggle_id = self.menu_table['Toggle Comparison']
-          self._toggle_comparison = Qt.QAction('Do comparison',self)
+          self._toggle_comparison = QAction('Do comparison',self)
           self._menu.addAction(self._toggle_comparison)
-          self._toggle_comparison.setData(Qt.QVariant(str(toggle_id)))
+          self._toggle_comparison.setData(str(toggle_id))
           self._toggle_comparison.setCheckable(True)
           self._toggle_comparison.setChecked(self._compare_max)
           self._toggle_comparison.setVisible(False)
-          self.connect(self._toggle_comparison,Qt.SIGNAL("triggered()"),self.handle_toggle_comparison);
+          self._toggle_comparison.triggered.connect(self.handle_toggle_comparison)
         
-        toggle_id = self.menu_table['Save Display in PNG Format']
-        self._save_display_in_png_format = Qt.QAction('Save display in PNG format',self)
-        self._menu.addAction(self._save_display_in_png_format)
-        self._save_display_in_png_format.setData(Qt.QVariant(str(toggle_id)))
-        self._save_display_in_png_format.setVisible(True)
-        self.connect(self._save_display_in_png_format,Qt.SIGNAL("triggered()"),self.handle_save_display_in_png_format);
-
+        toggle_id = self.menu_table['Save Display in pdf Format']
+        self._save_display_in_pdf_format = QAction('Save display in pdf format',self)
+        self._menu.addAction(self._save_display_in_pdf_format)
+        self._save_display_in_pdf_format.setData(str(toggle_id))
+        self._save_display_in_pdf_format.setVisible(True)
+        self._save_display_in_pdf_format.triggered.connect(self.print_)
 
 
     def set_original_array_rank(self, original_array_rank):
@@ -4338,10 +4313,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = a[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting complex vector with shape ',vector_array.shape);
+          if HAS_TIMBA:_dprint(2, 'plotting complex vector with shape ',vector_array.shape);
           self.array_plot(vector_array,data_label='test_vector_complex')
         else:
-          _dprint(2, 'plotting complex array with shape ',a.shape);
+          if HAS_TIMBA:_dprint(2, 'plotting complex array with shape ',a.shape);
           self.array_plot(a,data_label='test_image_complex')
           self.test_complex = False
       else:
@@ -4354,10 +4329,10 @@ class QwtImageDisplay(Qwt.QwtPlot):
         for i in range(shape[0]):
           vector_array[i,0] = m[i,0]
         if self.index % 2 == 0:
-          _dprint(2, 'plotting real array with shape ',m.shape);
+          if HAS_TIMBA:_dprint(2, 'plotting real array with shape ',m.shape);
           self.array_plot(m,data_label='test_image')
         else:
-          _dprint(2, 'plotting real vector with shape ', vector_array.shape);
+          if HAS_TIMBA:_dprint(2, 'plotting real vector with shape ', vector_array.shape);
           self.array_plot(vector_array,data_label='test_vector')
           self.test_complex = True
 
@@ -4369,7 +4344,7 @@ def make():
     demo.resize(500, 300)
     demo.show()
 # uncomment the following
-    demo.start_test_timer(10000, True, "hippo")
+    demo.start_test_timer(1000, True, "hippo")
 
 # or
 # uncomment the following lines 
@@ -4397,12 +4372,12 @@ def make():
     return demo
 
 def main(args):
-    app = Qt.QApplication(args)
+    app = QApplication(sys.argv)
     demo = make()
-#   app.setMainWidget(demo)
-    app.exec_()
+    sys.exit(app.exec_())
 
 
 # Admire
 if __name__ == '__main__':
     main(sys.argv)
+

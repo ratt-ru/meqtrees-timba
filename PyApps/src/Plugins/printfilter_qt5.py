@@ -26,10 +26,15 @@
 
 # this code is taken directly from the PyQwt BodeDemo.py example
 
-from PyQt4.Qt import *
-from PyQt4.Qwt5 import *
 
-class PrintFilter(QwtPlotPrintFilter):
+from qwt.qt.QtCore import Qt,  QSize
+from qwt.qt.QtGui import QColor,  QPixmap, QFont,  QIcon
+from qwt.qt.QtGui import QMainWindow,  QWidget,  QToolBar,  QToolButton,  QHBoxLayout,  QLabel,  QApplication
+from qwt.qt.QtGui import QPrintDialog, QPrinter
+
+
+
+class PrintFilter(Qwt.QwtPlotPrintFilter):
     def __init__(self):
         QwtPlotPrintFilter.__init__(self)
 

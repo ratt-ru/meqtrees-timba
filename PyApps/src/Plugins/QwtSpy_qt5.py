@@ -63,31 +63,31 @@
 #  CANADA					 CANADA
 #
 
-# a small class used to get mouse events to work in Qwt5 in basically
-# the same way we had things working with Qwt4
+# a small class used to get and emit mouse events 
+# Adapted from an ancient PyQwt example - thanks Gerard!
 
-# Adapted from a PyQwt example - thanks Gerard!
+from qwt.qt.QtCore import QEvent, Signal, QObject
 
-#from qt import *
-from PyQt4 import Qt
+class Spy(QObject):
 
-class Spy(Qt.QObject):
+    MouseMove = Signal('PyQt_PyObject')
+    MousePress = Signal('PyQt_PyObject')
+    MouseRelease = Signal('PyQt_PyObject')
 
     def __init__(self, parent):
-        Qt.QObject.__init__(self, parent)
+        QObject.__init__(self, parent)
         parent.setMouseTracking(True)
         parent.installEventFilter(self)
 
     # __init__()
 
     def eventFilter(self, _, event):
-        if event.type() == Qt.QEvent.MouseMove:
-#           self.emit(Qt.SIGNAL("MouseMove"), event.pos())
-            self.emit(Qt.SIGNAL("MouseMove"), event)
-        if event.type() == Qt.QEvent.MouseButtonPress:
-            self.emit(Qt.SIGNAL("MousePress"), event)
-        if event.type() == Qt.QEvent.MouseButtonRelease:
-            self.emit(Qt.SIGNAL("MouseRelease"), event)
+        if event.type() == QEvent.MouseMove:
+            self.MouseMove.emit(event)
+        if event.type() == QEvent.MouseButtonPress:
+            self.MousePress.emit(event)
+        if event.type() == QEvent.MouseButtonRelease:
+            self.MouseRelease.emit(event)
         return False
 
     # eventFilter()
