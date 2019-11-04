@@ -859,8 +859,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       tab.show_line_numbers(show);
 
   def show_tdl_file (self,pathname,run=False,mainfile=None,show=True):
-    if not isinstance(pathname,str):
-      raise TypeError("show_tdl_file: string argument expected");
+    if not isinstance(pathname,str) and not isinstance(pathname,unicode):
+      raise TypeError("show_tdl_file: string argument expected, but got {}".format(type(pathname)));
     if mainfile is None:
       self._main_tdlfile = pathname;
       self._enable_run_current();  # update GUI

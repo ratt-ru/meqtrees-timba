@@ -447,11 +447,12 @@ void forceModuleReload ()
 #if PY_MAJOR_VERSION >= 3
     #define initMeqPython PyInit_MeqPython
     PyMODINIT_FUNC PyInit_MeqPython(MeqServer *mq)
+    #define INITERROR return module;
 #else
-    PyMODINIT_FUNC initMeqPython (MeqServer *mq)
+    void initMeqPython (MeqServer *mq)
+    #define INITERROR return;
 #endif
 {
-  #define INITERROR return NULL;
   PyObject *module = nullptr;
   pmqs = mq;
   if( meq_initialized )

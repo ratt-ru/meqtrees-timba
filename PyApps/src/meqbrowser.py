@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
@@ -26,6 +26,15 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+#ensure we use API 2 from pyqt regardless of python version with python qwt
+import sip
+sip.setapi('QString', 2)
+sip.setapi('QVariant', 2)
+sip.setapi('QDate', 2)
+sip.setapi('QDateTime', 2)
+sip.setapi('QTextStream', 2)
+sip.setapi('QTime', 2)
+sip.setapi('QUrl', 2)
 
 debuglevels = {};
 options = {};
@@ -36,6 +45,7 @@ import sys
 import traceback
 import socket
 import PyQt4.QtCore as QtCore
+QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_X11InitThreads)
 from PyQt4.QtCore import QCoreApplication as qca
 qca.setAttribute(QtCore.Qt.AA_X11InitThreads)
 
@@ -50,16 +60,6 @@ try:
 except ImportError:
   try: import pyrap_measures; 
   except ImportError: pass;
-
-#ensure we use API 2 from pyqt regardless of python version with python qwt
-import sip
-sip.setapi('QString', 2)
-sip.setapi('QVariant', 2)
-sip.setapi('QDate', 2)
-sip.setapi('QDateTime', 2)
-sip.setapi('QTextStream', 2)
-sip.setapi('QTime', 2)
-sip.setapi('QUrl', 2)
 
 def trace_lines (frame, event, arg):
   if event == "line":

@@ -151,21 +151,23 @@ def make_hiid_list (x):
 def dmize_object (obj):
   "coerces object into a DMI-supported type as needed. Returns the "
   "object on success, or raises a TypeError on failure";
-  return obj;
   if obj is None:
-    return obj;
+    return obj
   
   # check if sequence of supported types
   if isinstance(obj,(list,tuple)):
     for item in obj:
       # test each item
-      dmize_object(item);
+      dmize_object(item)
     # convert resulting list back into original sequence type
-    return obj;
+    return obj
   # else expect object of supported type, returned as-is
+  if isinstance(obj, unicode):
+    obj = str(obj)
   if type(obj) in _dmi_typename_map:
-    return obj;
-  raise TypeError('dmi: type %s not supported'%type(obj));
+    return obj
+ 
+  raise TypeError('dmi: type %s not supported'%type(obj))
 
 
 # === class conv_error ===
@@ -519,9 +521,10 @@ def is_scalar (x):
 _dmi_baseclasses = { dmilist:'DMIList',record:'DMIRecord',array_class:'DMINumArray' };
 
 # map of other python DMI types to DMI type names
-_dmi_typename_map = { bool:'bool', int:'int', int:'long', float:'double',
+_dmi_typename_map = { bool:'bool', int:'int', long:'long', float:'double',
                       complex:'dcomplex', str:'string', hiid:'DMIHIID',
-                      tuple:'DMIVec',message:'OctopussyMessage' };
+                      tuple:'DMIVec',message:'OctopussyMessage',
+                      unicode: 'string'};
                       
 # extend this map with the base classes            
 _dmi_typename_map.update(_dmi_baseclasses);
@@ -535,6 +538,7 @@ def dmi_typename (x,strict=False):
   """returns the DMI type name of its argument.
   If argument is not of a known DMI type, raises KeyError if strict=True, or 
   returns None."""
+  x = str(x) if isinstance(x, unicode) else x
   nm = _dmi_typename_map.get(type(x),None);
   if strict and nm is None:
     raise KeyError(str(type(x))+" is not a known DMI type");

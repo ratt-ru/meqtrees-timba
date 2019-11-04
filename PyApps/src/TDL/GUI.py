@@ -105,7 +105,7 @@ Question = 'question';
 Warning = 'warning';
 
 # copy button types from QMessageBox
-Button = dmi.record();
+class Button(object): pass
 _button_types = ( "Ok","Open","Save","Cancel","Close","Discard","Apply",
                   "Reset","RestoreDefaults","Help","SaveAll","Yes","YesToAll",
                   "No","NoToAll","Abort","Retry","Ignore","NoButton");

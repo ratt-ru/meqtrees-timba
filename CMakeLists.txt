@@ -1,6 +1,21 @@
 # Meqtrees CMake Build File
 project(meqtrees CXX C)
 
+IF(DEFINED CMAKE_BUILD_TYPE)
+   IF((CMAKE_BUILD_TYPE STREQUAL "Debug") OR (CMAKE_BUILD_TYPE STREQUAL "Release") OR (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo") OR (CMAKE_BUILD_TYPE STREQUAL "MinSizeRel"))
+      MESSAGE("-- Build type is defined as '${CMAKE_BUILD_TYPE}'")
+   ELSE()
+      SET(CMAKE_BUILD_TYPE "Release")   
+      MESSAGE("-- Invalid option for BUILD TYPE, defaulted to '${CMAKE_BUILD_TYPE}' build")
+   ENDIF()
+ELSE()
+   SET(CMAKE_BUILD_TYPE "Release")
+   MESSAGE("-- Build type wasn't defined, defaulted to '${CMAKE_BUILD_TYPE}' build")
+ENDIF()
+IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  MESSAGE(WARNING "You are compiling the backend in debugging mode... things may be slower than usual. Overriding all optimizations to 'OFF'")
+ENDIF()
+
 # -- cmake setup info
 cmake_minimum_required(VERSION 2.6)
 
@@ -23,12 +38,22 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
 
-# These are the versions of Python we support.
-if(NOT DEFINED Python_ADDITIONAL_VERSIONS)
-    set(Python_ADDITIONAL_VERSIONS 2.7) # default to 2.7
-    message(WARNING "Defaulting to searching for python and its libraries for version ${Python_ADDITIONAL_VERSIONS}. "
-                    "If this is not what you intended override this behaviour with '-DPython_ADDITIONAL_VERSIONS'")
-endif()
+option(ENABLE_PYTHON_3 "Enables support for Python 3.x" OFF)
+if (NOT "${ENABLE_PYTHON_3}")
+    message("-- Compiling backend against Python 2.7")
+    message("-- If this is not the intended target specify the ENABLE_PYTHON_3 switch")
+    set(PYREQ_VER 2.7)
+    set(PYABI .cpython-27)
+    find_package(PythonInterp ${PYREQ_VER} EXACT REQUIRED)
+    find_package(PythonLibs ${PYREQ_VER} EXACT REQUIRED)
+else(NOT "${ENABLE_PYTHON_3}")
+    message("-- Compiling backend against Python 3.x")
+    set(PYREQ_VER 3.0)
+    set(PYABI .cpython-30)
+    find_package(PythonInterp ${PYREQ_VER} REQUIRED)    
+    find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
+endif(NOT "${ENABLE_PYTHON_3}")
+
 include (FindPythonInterp)
 include (FindPythonLibs)
 include(cmake/SetPythonPackagesDir.cmake)
