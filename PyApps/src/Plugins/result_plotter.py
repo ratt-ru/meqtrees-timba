@@ -68,6 +68,9 @@
 #  Victoria BC V9E 2E7			 Victoria BC V9E 2E7
 #  CANADA					 CANADA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 from math import sin
 from math import cos
@@ -106,7 +109,9 @@ try:
   _dprintf = _dbg.dprintf;
   HAS_TIMBA = True
 except:
-  pass
+  import traceback
+  traceback.print_exc()
+  print("Cannot import gui and plotting utilities. Plotting will not be available")
 
 global has_vtk
 has_vtk = False

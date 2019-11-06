@@ -116,7 +116,7 @@ class meqserver_gui (app_proxy_gui):
     # This is meant to update relevant GUI elements, etc.
     QObject.connect(self,PYSIGNAL("isConnected()"),self._check_connection_status);
 
-    _dprint(2,"meqserver-specific init");
+    _dprint(0,"meqserver-specific init");
     # size window if stored in config
     width = max(100,min(Config.getint('browser-window-width',0),4000));
     height = max(50,min(Config.getint('browser-window-height',0),2000));
@@ -598,12 +598,12 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self.log_message("starting meqserver process \"%s %s\" and waiting for connection"%(pathname,args));
     self._kernel_pid = self._kernel_pid0 = Timba.Apps.spawnvp_nowait(pathname,[pathname]+args.split(' '));
     _dprint(0,"started meqserver process",self._kernel_pid);
+    # tell the client to attach as soon as it sees this pid
+    self.app.auto_attach(pid=self._kernel_pid,host=None);
     self._kernel_pathname = pathname;
     self._connect_timer.setSingleShot(True);
     self._connect_timer.start(8000);  # start an 8-second timer
     self._check_connection_status();
-    # tell the client to attach as soon as it sees this pid
-    self.app.auto_attach(pid=self._kernel_pid,host=None);
 
   def _connection_timeout (self):
     """called by connection timer when it expires""";

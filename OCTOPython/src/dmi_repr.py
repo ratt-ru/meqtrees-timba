@@ -28,6 +28,7 @@
 from .dmi import *
 import re
 import Timba.array
+import numpy as np
 
 # this returns a string repr of a container
 def _contToRepr (value,prec=None):
@@ -67,7 +68,7 @@ def str_complex (x,prec=None):
 # Map of inline conversion methods. Only available for those types for which
 # a complete & brief string form is available.
 # No methods are defined for containers
-TypeToInline = dict.fromkeys((bool,int,int,Timba.array.int32,Timba.array.uint8),lambda x,prec=None:str(x));
+TypeToInline = dict.fromkeys((bool,Timba.array.int32,Timba.array.int32,Timba.array.int32,Timba.array.uint8),lambda x,prec=None:str(x));
 TypeToInline[float] = str_float;
 TypeToInline[Timba.array.float32] = str_float;
 TypeToInline[Timba.array.float64] = str_float;

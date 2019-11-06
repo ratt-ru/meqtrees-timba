@@ -161,7 +161,9 @@ def getViewerList (arg,udi=None):
             viewer_pri[v] = min(pri,viewer_pri.get(v,999999));
   # return list sorted by priority
   vlist = list(viewer_pri.keys());
-  vlist.sort(lambda a,b,dd=viewer_pri:cmp(dd[a],dd[b]));
+  from past.builtins import cmp
+  from functools import cmp_to_key
+  vlist.sort(key=cmp_to_key(lambda a,b,dd=viewer_pri:cmp(dd[a],dd[b])));
   return vlist;
 
 class Floater (QMainWindow):

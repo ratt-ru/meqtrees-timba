@@ -39,6 +39,9 @@ import traceback
 import os
 import os.path
 import inspect
+import six
+if six.PY3:
+  from importlib import reload
 
 _dbg = verbosity(0,name='tdlc');
 _dprint = _dbg.dprint;

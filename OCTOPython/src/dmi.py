@@ -52,6 +52,7 @@ import Timba.array
 import types
 import weakref
 import re
+import numpy as np
 #import new #old style classes are removed in py3
 from Timba.array import array
 
@@ -64,15 +65,14 @@ from Timba.utils import *
 class hiid (tuple):
   "Represents the DMI HIID class";
   def __new__ (self,*args,**kw):
-    sep = kw.get('sep','._');           # use '.' separator by default
+    sep = str(kw.get('sep','._'));           # use '.' separator by default
     mylist = ();
     for x in args:
-      if isinstance(x,str):            # a string? Use HIID mapping functions
-        try:
-          mylist = mylist + Timba.octopython.str_to_hiid(x,sep);
-        except:
-          # normally, this would never fail, but if it ever does, here's a fallback
-          mylist = mylist + (x,);
+      if six.PY2 and isinstance(x, unicode): x = x.encode("UTF-8")
+      if six.PY3 and isinstance(x, bytes): x = str(x, encoding="UTF-8")
+      if isinstance(x, str):            # a string? Use HIID mapping functions
+        v = Timba.octopython.str_to_hiid(x,sep)
+        mylist = mylist + v
       elif isinstance(x,(tuple,list)): # other sequence? use as list
         mylist = mylist + tuple(x);
       elif isinstance(x,int):   # int/long? add to list
@@ -110,10 +110,12 @@ class hiid (tuple):
     return hiid(other,self);
   # comparison with strings -- convert to hiid
   def __cmp__ (self,other):
+    from past.builtins import cmp
+    from functools import cmp_to_key
     return cmp(str(self).lower(),str(other).lower());
   # as_str converts to string
   def as_str (self,sep='.'):
-    return Timba.octopython.hiid_to_str(self,sep);
+    return Timba.octopython.hiid_to_str(self, sep);
   # as_int converts to int
   def as_int (self):
     if len(self) > 1:
@@ -162,8 +164,9 @@ def dmize_object (obj):
     # convert resulting list back into original sequence type
     return obj
   # else expect object of supported type, returned as-is
-  if isinstance(obj, unicode):
-    obj = str(obj)
+  
+  if six.PY2 and isinstance(obj, unicode): obj = obj.encode("UTF-8")
+  if six.PY3 and isinstance(obj, bytes): obj = str(obj, encoding="UTF-8")
   if type(obj) in _dmi_typename_map:
     return obj
  
@@ -264,7 +267,7 @@ class record (dict):
   # that all lazy refs are converted to real objects. This function
   # accomplishes that task.
   def _resolve_all_lazy_refs (self):
-    lazies = [pair for pair in dict.iteritems(self) if isinstance(pair[1],lazy_objref)];
+    lazies = [pair for pair in getattr(dict, "iteritems", dict.items)(self) if isinstance(pair[1],lazy_objref)];
     for key,ref in lazies:
       try:
 	      item = ref.resolve();
@@ -290,11 +293,11 @@ class record (dict):
   # itervalues(): we need to resolve all lazy refs first
   def itervalues (self):
     self._resolve_all_lazy_refs();
-    return dict.itervalues(self);
+    return getattr(dict, "itervalues", dict.items)(self);
   # iteritems(): we need to resolve all lazy refs first
   def iteritems (self):
     self._resolve_all_lazy_refs();
-    return dict.iteritems(self);
+    return getattr(dict, "iteritems", dict.items)(self);
   # __getattr__: dict contents are exposed as extra attributes, lazy refs resolved
   def __getattr__(self,name):
     if name.startswith('__'):
@@ -369,7 +372,7 @@ class record (dict):
     items = [];
     for (key,value) in dictiter:
       items += [ "%s=%s" % (key,repr(value)) ];
-    return "%s(%s)"%(self.__class__.__name__,string.join(items,','));
+    return "%s(%s)"%(self.__class__.__name__,",".join(items));
   # pop: string names implicitly converted to HIIDs, lazy refs resolved
   def pop (self,key,*args):
     if isinstance(key,str):
@@ -477,7 +480,7 @@ class message (object):
     s = "message(" + str(self.msgid);
     attrs = dir(self);
     stds = [ "%s=%s" % (x,getattr(self,x)) for x in message._stdattrs if hasattr(self,x) ];
-    return string.join([s]+stds,";") + ")";
+    return ";".join([s]+stds) + ")";
     
 def make_message(msg,payload=None,priority=0):
   "creates/resolves a message object";
@@ -521,10 +524,16 @@ def is_scalar (x):
 _dmi_baseclasses = { dmilist:'DMIList',record:'DMIRecord',array_class:'DMINumArray' };
 
 # map of other python DMI types to DMI type names
-_dmi_typename_map = { bool:'bool', int:'int', long:'long', float:'double',
-                      complex:'dcomplex', str:'string', hiid:'DMIHIID',
-                      tuple:'DMIVec',message:'OctopussyMessage',
-                      unicode: 'string'};
+if six.PY2:
+  _dmi_typename_map = { bool:'bool', int:'int', long:'long', float:'double',
+                        complex:'dcomplex', str:'string', hiid:'DMIHIID',
+                        numpy.float64: "double",
+                        tuple:'DMIVec',message:'OctopussyMessage'};
+else:
+  _dmi_typename_map = { bool:'bool', int:'int', float:'double',
+                        complex:'dcomplex', hiid:'DMIHIID',
+                        tuple:'DMIVec', message:'OctopussyMessage',
+                        str: 'string', np.float64: "double"};
                       
 # extend this map with the base classes            
 _dmi_typename_map.update(_dmi_baseclasses);
@@ -538,7 +547,9 @@ def dmi_typename (x,strict=False):
   """returns the DMI type name of its argument.
   If argument is not of a known DMI type, raises KeyError if strict=True, or 
   returns None."""
-  x = str(x) if isinstance(x, unicode) else x
+  if six.PY2 and isinstance(x, unicode): x = x.encode("UTF-8")
+  if six.PY3 and isinstance(x, bytes): x = str(x, encoding="UTF-8")
+  
   nm = _dmi_typename_map.get(type(x),None);
   if strict and nm is None:
     raise KeyError(str(type(x))+" is not a known DMI type");

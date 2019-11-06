@@ -268,11 +268,11 @@ class ServersDialog (QDialog):
         item = QTreeWidgetItem(self.server_list);
         setattr(item,'_addr',server.addr);
       # change fields
-      name = server.session_name or str(server.addr);
+      name = server.session_name or server.addr;
       if server.remote and server.host:
         name += ' @'+server.host;
-      item.setText(0,name);
-      item.setText(1,server.statestr.lower() or '');
+      item.setText(0,str(name));
+      item.setText(1,str(server.statestr).lower() or '');
       cwd = server.cwd;
       if cwd:
         home = os.path.expanduser('~');

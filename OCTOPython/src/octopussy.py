@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #
@@ -159,6 +159,16 @@ class proxy_wp(octopython.proxy_wp,verbosity):
 
   def send (self,msg,to,payload=None,priority=0):
     "sends message to recepient";
+    def _ensure_utf8(x):
+      import six
+      if six.PY2 and isinstance(x, unicode):
+        return x.encode("UTF-8")
+      elif six.PY3 and isinstance(x, str):
+        return bytes(x, encoding="UTF-8")   
+      else: 
+        return x
+    msg, payload, to = map(_ensure_utf8, [msg, payload, to])
+    make_hiid(to)
     msg = make_message(msg,payload,priority);
     _dprintf(3,"sending %s to %s\n",msg.msgid,to);
     return octopython.proxy_wp.send(self,

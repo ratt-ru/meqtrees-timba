@@ -139,8 +139,10 @@ if not incremental:
   regexp = re.compile("^" + repo + "-" + youngest + "(-(?P<increment>[0-9]+))?$")
   directory_list = os.listdir(backup_dir)
   young_list = [x for x in directory_list if regexp.search(x)]
+  from past.builtins import cmp
+  from functools import cmp_to_key
   if young_list:
-    young_list.sort(comparator)
+    young_list.sort(key=cmp_to_key(comparator))
     increment = regexp.search(young_list.pop()).groupdict()['increment']
     if increment:
       backup_subdir = os.path.join(backup_dir, repo + "-" + youngest + "-"

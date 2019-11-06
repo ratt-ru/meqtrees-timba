@@ -35,6 +35,8 @@ sip.setapi('QDateTime', 2)
 sip.setapi('QTextStream', 2)
 sip.setapi('QTime', 2)
 sip.setapi('QUrl', 2)
+import os
+os.environ['QT_API'] = 'pyqt' #qt4 not 5 as is installed on most sytems running python 3!
 
 debuglevels = {};
 options = {};

@@ -1249,7 +1249,7 @@ class _NodeRepository (dict):
         # finalize the init-record by adding node name and children
         node.nodeindex = node._initrec.nodeindex = current_nodeindex;
         current_nodeindex += 1;
-        node._initrec.node_description = ':'.join((name,node.classname,node._debuginfo));
+        node._initrec.node_description = ':'.join(map(str, [name, node.classname, node._debuginfo]));
         node._initrec.name = node.name;
         _dprint(3,'checked node',node.name,'nodeindex',node.nodeindex);
         ch = None; # relinquish ref to node, otherwise orphan collection is confused

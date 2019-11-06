@@ -24,6 +24,9 @@
 # or write to the Free Software Foundation, Inc., 
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import Timba
 from Timba.dmi import *
@@ -183,7 +186,7 @@ class editRequest(QDialog):
       while t <= t02:
         self.parent.t0 = t
         self.parent.t1 = self.parent.t0 + dt
-	self.parent.doNewRequest()
+        self.parent.doNewRequest()
         t = t + t01
 
 #    self.close()

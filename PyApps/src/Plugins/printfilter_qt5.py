@@ -25,7 +25,9 @@
 #
 
 # this code is taken directly from the PyQwt BodeDemo.py example
-
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 from qwt.qt.QtCore import Qt,  QSize
 from qwt.qt.QtGui import QColor,  QPixmap, QFont,  QIcon

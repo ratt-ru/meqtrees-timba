@@ -70,6 +70,10 @@
 # and embedding_in_qt4.py
 
 # modules that are imported
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 from Timba.dmi import *
 from Timba import utils
 from Timba.Meq import meqds

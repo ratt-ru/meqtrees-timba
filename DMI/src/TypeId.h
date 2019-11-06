@@ -140,6 +140,7 @@ namespace DMI_TL
 // TpArray(tpelem,ndim) returns the TypeId of array with element type tpelem,
 // and rank ndim,
 #define TpArray_int(tpelem,ndim) (-(32*(ndim) - (tpelem)))
+
 inline TypeId TpArray (TypeId tpelem,int ndim)
 { return TpArray_int(tpelem.id(),ndim); }
 // Alias for vector

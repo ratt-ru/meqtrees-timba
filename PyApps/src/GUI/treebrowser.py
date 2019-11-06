@@ -268,7 +268,8 @@ class TreeBrowser (QObject):
       items = [];
       # sort children into proper order
       children = list(self.node.children);
-      children.sort(self._compare_children);
+      from functools import cmp_to_key
+      children.sort(key=cmp_to_key(self._compare_children));
       # generate items for each child
       for (key,ni) in children:
         if ni > 0:
@@ -296,6 +297,7 @@ class TreeBrowser (QObject):
       except ValueError: pass;
       try:  b = int(b);
       except ValueError: pass;
+      from past.builtins import cmp
       if isinstance(a,int):
 	      if isinstance(b,int):
 	        return cmp(a,b);
@@ -579,8 +581,10 @@ class TreeBrowser (QObject):
     #all_item._iter_nodes = nodelist.iternodes();
     #all_item.setFlags(Qt.ItemIsEnabled);
     # add 'Root Nodes' item
-    rootnodes = sorted(nodelist.rootnodes(),lambda a,b:cmp(a.name,b.name));
-    rootnodes.sort();
+    from past.builtins import cmp
+    from functools import cmp_to_key
+    rootnodes = sorted(nodelist.rootnodes(),key=cmp_to_key(lambda a,b:cmp(a.name,b.name)));
+    rootnodes.sort(key=lambda x: x.objectName());
     rootitem  = self._tw_rootitem = \
       StickyTreeWidgetItem(self._tw,name="Root nodes (%d)"%len(rootnodes),key=30);
     rootitem._iter_nodes = iter(rootnodes);
@@ -593,12 +597,12 @@ class TreeBrowser (QObject):
     cls_item._no_auto_open = True;
     cls_item.setFlags(Qt.ItemIsEnabled);
     items = [];
-    for (cls,nodes) in sorted(iter(classes.items()),lambda a,b:cmp(a[0],b[0])):
+    for (cls,nodes) in sorted(iter(classes.items()),key=cmp_to_key(lambda a,b:cmp(a[0],b[0]))):
       item = QTreeWidgetItem();
       item.setText(0,"%s (%d)"%(cls,len(nodes)));
       item.setText(self.icolumn("class"),cls);
       item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator);
-      nodes = sorted(nodes,lambda a,b:cmp(a.name,b.name));
+      nodes = sorted(nodes,key=cmp_to_key(lambda a,b:cmp(a.name,b.name)));
       item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
       items.append(item);
@@ -614,7 +618,8 @@ class TreeBrowser (QObject):
         # list of all nodes on processor
         proclist = [x for x in nodelist.iternodes() if x.proc == proc]; 
         # list of root nodes of that processor
-        procrootlist = sorted([x for x in proclist if not [y for y in x.parents if nodelist[y].proc==proc]],lambda a,b:cmp(a.name,b.name));
+        procrootlist = sorted([x for x in proclist if not [y for y in x.parents if nodelist[y].proc==proc]],
+                              key=cmp_to_key(lambda a,b:cmp(a.name,b.name)));
         item = QTreeWidgetItem(procitem,item);
         item.setText(0,"P%d (%d)"%(proc,len(proclist)));
         item.setFirstColumnSpanned(True);

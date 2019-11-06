@@ -283,14 +283,14 @@ class multiapp_proxy (verbosity):
     """common procedure used by message handlers to connect a new server""";
     server = Server(addr,state=0,statestr='connected');
     self.servers[addr] = server;
-    self.dprint(2,"requesting state and status update");
+    self.dprint(2, "requesting state and status update");
     self.send_command("Request.State",destination=addr);
     self.client.emit(SIGNAL("serverConnected"),server,);
     self._gui_event_handler(self.hello_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     # is an auto-attach request in place?
-    if self._auto_attach_pid == addr[2] and addr[3] == self.client.addr[3]:
-      self.dprint(2,"auto-attaching to this server");
+    if str(self._auto_attach_pid) == str(addr[2]) and str(addr[3]) == str(self.client.addr[3]):
+      self.dprint(2, "auto-attaching to this server");
       self.attach_server(addr,auto_attached=True);
       self._auto_attached = True;
     else:

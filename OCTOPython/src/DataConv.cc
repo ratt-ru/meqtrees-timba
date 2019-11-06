@@ -451,10 +451,13 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
           break;
          }
     case Tpstring_int:
+         {
           if( !pvec0 )
             objref <<= pvec0 = new DMI::Vec(Tpstring);
-          (*pvec0)[pvec_pos] = PyString_AS_STRING(obj);
+          auto v = PyString_AS_STRING(obj);
+          (*pvec0)[pvec_pos] = v;
           break;
+         }
     case TpDMIHIID_int:
           { HIID id;
           pyToHIID(id,obj);

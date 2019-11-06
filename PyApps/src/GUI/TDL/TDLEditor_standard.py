@@ -774,7 +774,10 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           QMessageBox.Ok);
     if callable(testfunc):
       joblist.append(testfunc);
-    joblist.sort(lambda a,b:cmp(str(a),str(b)));
+    
+    from past.builtins import cmp
+    from functools import cmp_to_key
+    joblist.sort(key=cmp_to_key(lambda a, b: cmp(str(a), str(b))));
 
     # create list of job actions
     opts = TDLOptions.get_runtime_options();

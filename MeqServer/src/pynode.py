@@ -32,9 +32,9 @@ from Timba import utils
 from Timba.TDL import Meq
 
 try:
-  import meqserver_interface
+  from Timba import meqserver_interface
 except:
-  pass;
+  pass
 
 _dbg = utils.verbosity(0,name='pynode');
 _dprint = _dbg.dprint;
@@ -46,7 +46,7 @@ class PyNode (object):
   helpful methods.
   """;
   def __init__ (self,name,node_baton):
-    import meqserver_interface
+    from Timba import meqserver_interface
     _dprintf(2,"created PyNode '%s'");
     self.name = name;
     self._baton = node_baton;

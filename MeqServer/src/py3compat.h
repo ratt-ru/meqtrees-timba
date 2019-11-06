@@ -17,19 +17,19 @@
         #define char_t wchar_t
         #define string_t std::wstring //fantastically hacky kludge because python3 is all unicode
         #define PyString_FromString(p) PyUnicode_FromString(p)
+        #define unicode2utf8(p) std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(p).c_str()
+        #define utf82unicode(p) std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(p)
         #define PyString_AS_STRING(p) \
-                (char*) PyUnicode_AsUTF8(p)
+               (char*)(PyUnicode_AsUTF8(p))
         #define PyString_AsString(p) \
-                (char*) PyUnicode_AsUTF8(p)
+               (char*)(PyUnicode_AsUTF8(p))
         #define PyUnicode_Check(op) \
-                PyType_FastSubclass(Py_TYPE(op), Py_TPFLAGS_UNICODE_SUBCLASS)
+               PyType_FastSubclass(Py_TYPE(op), Py_TPFLAGS_UNICODE_SUBCLASS)
         #define PyString_Check PyUnicode_Check
         #define PyString PyUnicode
-        #define unicode2utf8(p) std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(p)
-        #define utf82unicode(p) std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(p)
+        
         #define PyDict_SetItemString(rec, name, item) \
-                PyDict_SetItemString(rec,name, item)
-        //#define PyErr_SetString(errobj, err) PyErr_SetString(errobj, unicode2utf8(err))
+               PyDict_SetItemString(rec,name, item)
 
         // Now typedef all ints to longs...
         #include <longobject.h>
@@ -40,7 +40,7 @@
         #define PyInt_FromLong(p) PyLong_FromLong(p)
         #define PyInt_FromSize_t(p) PyLong_FromSize_t(p)
         #define PyInt_FromSsize_t(p) PyLong_FromSsize_t(p)
-        #define PyInt_AsLong(p) PyLong_AsLong(p)
+        #define PyInt_AsLong(p) (int) PyLong_AsLong(p)
         #define PyInt_AsSsize_t(p) PyLong_AsSsize_t(p)
         #define _PyInt_AsInt(p) PyLong_AsLong(p)
         #define PyInt_AsUnsignedLongMask(p) PyLong_AsUnsignedLongMask(p)

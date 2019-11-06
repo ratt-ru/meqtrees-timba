@@ -51,6 +51,7 @@ import six
 if six.PY2:
   sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
+
 # sys.argv is not present when embedding a Python interpreter, but some
 # packages (i.e. numarray) seem to fall over when it is not found. So we
 # inject it
@@ -64,7 +65,8 @@ from Timba import utils
 import sys
 import imp
 import os.path
-
+if six.PY3:
+  from importlib import reload
 
 _dbg = utils.verbosity(0,name='meqkernel');
 _dprint = _dbg.dprint;
@@ -141,6 +143,7 @@ def _import_script_or_module (script,modname=None,force_reload=False):
   if script.endswith(".pyo") or script.endswith(".pyc"):
     script = script[0:-1];
   # if a filename with a known suffix is supplied, try to import as file
+  has_imported = False
   for suffix,mode,filetype in imp.get_suffixes():
     if script.endswith(suffix):
       # expand "~" and "$VAR" in filename
@@ -188,25 +191,26 @@ def _import_script_or_module (script,modname=None,force_reload=False):
       finally:
         sys.path = oldpath;
         break;
-        # else (no known suffix found) treat as module name
-    else:
-      _dprint(0,"importing module",script);
-      module = __import__(script);
-      # since __import__ returns the top-level package, use this
-      # code from the Python docs to get to the ultimate module
-      components = script.split('.')
-      for comp in components[1:]:
-        module = getattr(module,comp);
-      # see if module needs to be reloaded (we don't have to do it when
-      # using load_source(), as that does an implicit reload).
-      if module in _imported_modules:
-        if not force_reload and _imported_modules[module] == _import_counter:
-          _dprint(0,"module already imported, reusing");
-        else:
-          _dprint(0,"module already imported but stale (or force_reload=True), reloading");
-          reload(module);
+  # else (no known suffix found) treat as module name
+  else:
+    _dprint(0,"importing module",script);
+    print(script)
+    module = __import__(script);
+    # since __import__ returns the top-level package, use this
+    # code from the Python docs to get to the ultimate module
+    components = script.split('.')
+    for comp in components[1:]:
+      module = getattr(module,comp);
+    # see if module needs to be reloaded (we don't have to do it when
+    # using load_source(), as that does an implicit reload).
+    if module in _imported_modules:
+      if not force_reload and _imported_modules[module] == _import_counter:
+        _dprint(0,"module already imported, reusing");
       else:
-        _dprint(0,"this is the first time it has been imported");
+        _dprint(0,"module already imported but stale (or force_reload=True), reloading");
+        reload(module);
+    else:
+      _dprint(0,"this is the first time it has been imported");
   # add to dict of imported modules
   _imported_modules[module] = _import_counter;
   return module;

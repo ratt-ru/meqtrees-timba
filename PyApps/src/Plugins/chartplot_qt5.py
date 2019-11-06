@@ -67,6 +67,10 @@
 #  CANADA					 CANADA
 #
 # This is a python translation of the ACSIS chartplt.cc code
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 
 import sys
 
@@ -75,8 +79,8 @@ from qwt.qt.QtGui import QApplication, QHBoxLayout, QFrame, QLabel
 from qwt.qt.QtCore import Qt, QObject, pyqtSignal, QTimer, QPoint
 from qwt import QwtPlot, QwtPlotMarker, QwtPlotCurve, QwtText
 
-from QwtSpy_qt5 import *
-import zoomwin_qt5
+from .QwtSpy_qt5 import *
+from . import zoomwin_qt5
 
 import random
 import numpy
