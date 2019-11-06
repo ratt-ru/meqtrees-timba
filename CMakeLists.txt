@@ -1,3 +1,6 @@
+# -- cmake setup info
+cmake_minimum_required(VERSION 2.8)
+
 # Meqtrees CMake Build File
 project(meqtrees CXX C)
 
@@ -15,9 +18,6 @@ ENDIF()
 IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
   MESSAGE(WARNING "You are compiling the backend in debugging mode... things may be slower than usual. Overriding all optimizations to 'OFF'")
 ENDIF()
-
-# -- cmake setup info
-cmake_minimum_required(VERSION 2.6)
 
 # CUDA
 find_package(CUDA 4.0)
@@ -38,21 +38,21 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
 
-option(ENABLE_PYTHON_3 "Enables support for Python 3.x" OFF)
-if (NOT "${ENABLE_PYTHON_3}")
+option(ENABLE_PYTHON_3 "Enables support for Python 3.x" ON)
+if ("${ENABLE_PYTHON_3}")
+    message("-- Compiling backend against Python 3.x")
+    set(PYREQ_VER 3.0)
+    set(PYABI .cpython-30)
+    find_package(PythonInterp ${PYREQ_VER} REQUIRED)    
+    find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
+else("${ENABLE_PYTHON_3}")
     message("-- Compiling backend against Python 2.7")
     message("-- If this is not the intended target specify the ENABLE_PYTHON_3 switch")
     set(PYREQ_VER 2.7)
     set(PYABI .cpython-27)
     find_package(PythonInterp ${PYREQ_VER} EXACT REQUIRED)
     find_package(PythonLibs ${PYREQ_VER} EXACT REQUIRED)
-else(NOT "${ENABLE_PYTHON_3}")
-    message("-- Compiling backend against Python 3.x")
-    set(PYREQ_VER 3.0)
-    set(PYABI .cpython-30)
-    find_package(PythonInterp ${PYREQ_VER} REQUIRED)    
-    find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
-endif(NOT "${ENABLE_PYTHON_3}")
+endif("${ENABLE_PYTHON_3}")
 
 include (FindPythonInterp)
 include (FindPythonLibs)
