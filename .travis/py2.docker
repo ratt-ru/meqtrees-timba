@@ -59,27 +59,32 @@ RUN makems WSRT_makems.cfg
 ## BUILD CASArest from source
 #####################################################################
 WORKDIR /src
-RUN wget https://github.com/casacore/casarest/archive/1.5.0.tar.gz
-RUN tar xvf 1.5.0.tar.gz
-WORKDIR /src/casarest-1.5.0
+RUN docker-apt-install git
+RUN git clone https://github.com/casacore/casarest.git
+#RUN wget https://github.com/casacore/casarest/archive/1.5.0.tar.gz
+#RUN tar xvf 1.5.0.tar.gz
+#WORKDIR /src/casarest-1.5.0
+WORKDIR /src/casarest
 RUN mkdir -p build
-WORKDIR /src/casarest-1.5.0/build
+#WORKDIR /src/casarest-1.5.0/build
+WORKDIR /src/casarest/build
 RUN cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ../
 RUN make -j 4
 RUN make install
 RUN ldconfig
 
-# test dependencies
-RUN docker-apt-install \
-    python-astro-tigger \
 
+# add additional Timba dependencies
+RUN docker-apt-install python-qt4 python-pyqt5
+RUN pip install meqtrees-cattery astro-kittens purr astro-tigger-lsm owlcat PythonQwt
 
 ADD . /code
 RUN mkdir /code/build
 WORKDIR /code/build
-RUN cmake ..
+RUN cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ..
 RUN make -j4
 RUN make install
+RUN ldconfig
 
 # get the test from pyxis
 WORKDIR /code
@@ -87,6 +92,9 @@ RUN wget https://github.com/ska-sa/pyxis/archive/v1.6.2.tar.gz
 RUN tar -xvf v1.6.2.tar.gz
 WORKDIR /code/pyxis-1.6.2
 RUN pip install -U .
+RUN flag-ms.py --help
+RUN meqtree-pipeliner.py --help
+RUN pyxis --help
 
 # run test when built
 RUN pip install nose

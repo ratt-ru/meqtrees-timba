@@ -47,10 +47,10 @@
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ColumnDesc.h>
-#include <casacore/tables/Tables/ExprNode.h>
-#include <casacore/tables/Tables/ExprNodeSet.h>
+#include <casacore/tables/TaQL/ExprNode.h>
+#include <casacore/tables/TaQL/ExprNodeSet.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
-#include <casacore/tables/Tables/TableParse.h>
+#include <casacore/tables/TaQL/TableParse.h>
 #include <unistd.h>
 
 using namespace casacore;
