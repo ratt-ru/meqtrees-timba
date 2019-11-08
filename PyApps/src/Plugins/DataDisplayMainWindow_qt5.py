@@ -76,7 +76,7 @@ import traceback
 import numpy
 
 from qwt.qt.QtGui import (QApplication, QMainWindow, QDialog, QGridLayout,QHBoxLayout,QToolButton,
-         QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem, QTabWidget)
+         QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem, QTabWidget, QPixmap)
 from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QButtonGroup
 from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal
 
