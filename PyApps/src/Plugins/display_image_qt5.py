@@ -117,9 +117,9 @@ def linearY(nx, ny):
 
 def rectangle(nx, ny, scale):
     # swap axes in the fromfunction call
-    s = scale/(nx+ny)
-    x0 = nx/2
-    y0 = ny/2
+    s = scale//(nx+ny)
+    x0 = nx//2
+    y0 = ny//2
     
     def test(y, x):
         return cos(s*(x-x0))*sin(s*(y-y0))
@@ -2390,7 +2390,7 @@ class QwtImageDisplay(QwtPlot):
               y_index.append(i+0.5)
             else:
               if self.complex_type:
-                flag_loc = self.xsect_xpos - shape[0]/2
+                flag_loc = self.xsect_xpos - shape[0]//2
               else:
                 flag_loc =  self.xsect_xpos
               if self._flags_array[flag_loc,i] == 0:
@@ -2453,29 +2453,29 @@ class QwtImageDisplay(QwtPlot):
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
           if self.complex_type:
             delta_vells = 2.0 * delta_vells
-          x_step = delta_vells / shape[0] 
+          x_step = delta_vells // shape[0] 
           if self.axes_rotate:
             start_x = self.vells_axis_parms[self.x_parm][1] - 0.5 * x_step
           else:
             start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
           x_indices = []
           if self.complex_type:
-            for i in range(shape[0] / 2 ):
+            for i in range(shape[0] // 2 ):
               if self.raw_array[i,self.xsect_ypos] != self.nan_inf_value:
                 if no_flags:
                   x_indices.append(start_x + i * x_step)
                 else:
                   if self._flags_array[i,self.xsect_ypos] == 0:
                     x_indices.append(start_x + i * x_step)
-            for i in range(shape[0] / 2, shape[0] ):
-              if self.raw_array[i - shape[0]/2 ,self.xsect_ypos] != self.nan_inf_value:
+            for i in range(shape[0] // 2, shape[0] ):
+              if self.raw_array[i - shape[0]//2 ,self.xsect_ypos] != self.nan_inf_value:
                 if no_flags:
                   if self.axes_rotate:
                     x_indices.append(start_x - i * x_step)
                   else:
                     x_indices.append(start_x + i * x_step)
                 else:
-                  if self._flags_array[i- shape[0]/2,self.xsect_ypos] == 0:
+                  if self._flags_array[i- shape[0]//2,self.xsect_ypos] == 0:
                     if self.axes_rotate:
                       x_indices.append(start_x - i * x_step)
                     else:
@@ -2496,7 +2496,7 @@ class QwtImageDisplay(QwtPlot):
                       x_indices.append(start_x + i * x_step)
           self.x_index = numpy.array(x_indices)
           delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
-          y_step = delta_vells / shape[1] 
+          y_step = delta_vells // shape[1] 
           start_y = self.vells_axis_parms[self.y_parm][0] + 0.5 * y_step
           y_indices = []
           for i in range(shape[1]):
@@ -2505,7 +2505,7 @@ class QwtImageDisplay(QwtPlot):
                 y_indices.append(start_y + i * y_step)
               else:
                 if self.complex_type:
-                 flag_loc = self.xsect_xpos - shape[0]/2
+                 flag_loc = self.xsect_xpos - shape[0]//2
                 else:
                   flag_loc =  self.xsect_xpos
                 if self._flags_array[flag_loc,i] == 0:
@@ -3422,9 +3422,9 @@ class QwtImageDisplay(QwtPlot):
             if HAS_TIMBA:_dprint(3, 'self.x_parm self.y_parm ', self.x_parm, ' ', self.y_parm)
             delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
             self.delta_vells = delta_vells
-            self.first_axis_inc = delta_vells / plot_array.shape[0] 
+            self.first_axis_inc = delta_vells // plot_array.shape[0] 
             delta_vells = self.vells_axis_parms[self.y_parm][1] - self.vells_axis_parms[self.y_parm][0]
-            self.second_axis_inc = delta_vells / plot_array.shape[1] 
+            self.second_axis_inc = delta_vells // plot_array.shape[1] 
             self._x_title = self.vells_axis_parms[self.x_parm][2]
             self.setAxisTitle(QwtPlot.xBottom, self._x_title)
             self._y_title = self.vells_axis_parms[self.y_parm][2]
@@ -3532,7 +3532,7 @@ class QwtImageDisplay(QwtPlot):
           if  self.x_parm is None:
             self.x_parm = self.y_parm
           delta_vells = self.vells_axis_parms[self.x_parm][1] - self.vells_axis_parms[self.x_parm][0]
-          x_step = delta_vells / num_elements 
+          x_step = delta_vells // num_elements 
           start_x = self.vells_axis_parms[self.x_parm][0] + 0.5 * x_step
           self.x_index = numpy.zeros(num_elements, numpy.float32)
           for j in range(num_elements):

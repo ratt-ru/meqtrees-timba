@@ -527,7 +527,7 @@ _dmi_baseclasses = { dmilist:'DMIList',record:'DMIRecord',array_class:'DMINumArr
 if six.PY2:
   _dmi_typename_map = { bool:'bool', int:'int', long:'long', float:'double',
                         complex:'dcomplex', str:'string', hiid:'DMIHIID',
-                        numpy.float64: "double",
+                        np.float64: "double",
                         tuple:'DMIVec',message:'OctopussyMessage'};
 else:
   _dmi_typename_map = { bool:'bool', int:'int', float:'double',

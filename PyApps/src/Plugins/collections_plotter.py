@@ -198,7 +198,7 @@ class CollectionsPlotter(GriddedPlugin):
     self._results_range.set_emit(False)
     self._results_range.setMinValue(0)
     self._results_range.setMaxValue(max_range)
-    self._results_range.setTickInterval( max_range / 10 )
+    self._results_range.setTickInterval( max_range // 10 )
     self._results_range.setValue(max_range)
     self._results_range.setLabel('offset:',align= Qt.AlignHCenter)
     self._results_range.hideNDControllerOption()
@@ -349,7 +349,7 @@ class CollectionsPlotter(GriddedPlugin):
           data_dict['source'] = self._node_name
         data_dict['channel'] = channel
         data_dict['sequence_number'] = self.counter
-        screen_num = channel / self._max_per_display
+        screen_num = channel // self._max_per_display
 #       data_dict['data_type'] = self._tab_label + ' ' + str(screen_num+1)
         data_dict['data_type'] = self._tab_label + ' ' + str(screen_num)
         index = i - channel * self.dims_per_group

@@ -87,7 +87,7 @@ class plot_printer:
     qpainter = Qt.QPainter(qprinter)
     paint_device = qpainter.device()
     width = paint_device.width()
-    height = (width / hor_widgets) * vert_widgets
+    height = (width // hor_widgets) * vert_widgets
 #   qpainter.setClipRect(0, 0, width, height, qpainter.CoordPainter)
     qpainter.setClipRect(0, 0, width, height)
     return qpainter
@@ -101,11 +101,11 @@ class plot_printer:
     if hor_widgets > 1:
       if paint_device.width() > paint_device.height():
         # width of plots in x-direction is the largest (wrt. paintdevice)
-        width = paint_device.width() / hor_widgets
+        width = paint_device.width() // hor_widgets
         height = width # quadratically sized plots
       else:
         # height of plots in x-direction is the largest (wrt. paintdevice)
-        height = paint_device.height() / hor_widgets
+        height = paint_device.height() // hor_widgets
         width = height # quadratically sized plots
       if not self.colorbar is None:
         try:

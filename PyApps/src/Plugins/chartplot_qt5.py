@@ -172,7 +172,7 @@ class ChartPlot(QWidget):
       self._nbcrv = num_curves
       # make sure _nbcrv is a multiple of four
       nbcrv_bin = 4
-      divis = self._nbcrv / nbcrv_bin
+      divis = self._nbcrv // nbcrv_bin
       if divis * nbcrv_bin < self._nbcrv:
         divis = divis + 1
         self._nbcrv = divis * nbcrv_bin
@@ -181,7 +181,7 @@ class ChartPlot(QWidget):
 
     #Initialization of the size of the arrays to put the curve in
     self._ArraySize = 6
-    self._x_displacement = self._ArraySize / 6 
+    self._x_displacement = self._ArraySize // 6 
     self.set_x_axis_sizes()
 
     # this is the label of the vells that is being displayed
@@ -294,7 +294,7 @@ class ChartPlot(QWidget):
 
     # layout parameter for x_axis offsets 
     if self._ArraySize > 6 * self._x_displacement:
-      self._x_displacement = self._ArraySize / 6
+      self._x_displacement = self._ArraySize // 6
     for i in range(self._ArraySize):
       self._x1[i] = float(i)
       self._x2[i] = self._ArraySize + self._x_displacement +i
@@ -440,7 +440,7 @@ class ChartPlot(QWidget):
     # undo any zooming
     self.reset_zoom()
     self._ArraySize = 6
-    self._x_displacement = self._ArraySize / 6 
+    self._x_displacement = self._ArraySize // 6 
     self.set_x_axis_sizes()
     self.createplot()
 
@@ -533,9 +533,9 @@ class ChartPlot(QWidget):
       ref_point = int(p2x - (3*(self._ArraySize+self._x_displacement)))
 
     if self._complex_component == self.PHASE:
-      temp_off = ((closest_curve) % (self._nbcrv/4) + 0.5 ) * self._offset
+      temp_off = ((closest_curve) % (self._nbcrv//4) + 0.5 ) * self._offset
     else:
-      temp_off = ((closest_curve) % (self._nbcrv/4)) * self._offset
+      temp_off = ((closest_curve) % (self._nbcrv//4)) * self._offset
     ref_value = yVal - temp_off
 
     message = self.reportCoordinates(ref_point, ref_value, closest_curve)
@@ -1119,19 +1119,19 @@ class ChartPlot(QWidget):
       if self._updated_data[channel] and self._data_index in self._chart_data[channel]:
         index = channel+1
         #Set the values and size with the curves
-        if index >= 1 and index <= self._nbcrv/4:
+        if index >= 1 and index <= self._nbcrv//4:
           temp_x = self._x1
-        elif index >= (self._nbcrv/4)+1 and index <= self._nbcrv/2:
+        elif index >= (self._nbcrv//4)+1 and index <= self._nbcrv//2:
           temp_x = self._x2
-        elif index >= (self._nbcrv/2)+1 and index <= 3*(self._nbcrv/4):
+        elif index >= (self._nbcrv//2)+1 and index <= 3*(self._nbcrv//4):
           temp_x = self._x3
         elif index >= (3*(self._nbcrv/4))+1 and index <= self._nbcrv:
           temp_x = self._x4
 
         if self._complex_component == self.PHASE:
-          temp_off = (channel % (self._nbcrv/4) + 0.5 ) * self._offset
+          temp_off = (channel % (self._nbcrv//4) + 0.5 ) * self._offset
         else:
-          temp_off = (channel % (self._nbcrv/4)) * self._offset
+          temp_off = (channel % (self._nbcrv//4)) * self._offset
 
         chart = numpy.array(self._chart_data[channel][self._data_index])
         flags = numpy.array(self._flag_data[channel][self._data_index])

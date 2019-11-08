@@ -56,10 +56,11 @@ class AssaySetupError (AssayError):
   
 class DataMismatch (AssayError):
   pass;
-  
-class logger (file):
+
+import io
+class logger (io.FileIO):
   def __init__ (self,filename):
-    file.__init__(self,filename,'w');
+    super(logger, self).__init__(filename,'w');
     
   def prefix (self):
     return time.strftime("%d/%m/%y %H:%M:%S: ",time.localtime())

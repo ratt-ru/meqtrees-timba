@@ -595,15 +595,15 @@ class QwtPlotImage(QwtPlotItem):
       image_for_display = self._image_for_display.copy()
       if not self._flags_array is None:
         if self.complex:
-          image_for_display[:nx/2,:] = numpy.where(self._flags_array,0,self._image_for_display[:nx/2,:])
-          image_for_display[nx/2:,:] = numpy.where(self._flags_array,0,self._image_for_display[nx/2:,:])
+          image_for_display[:nx//2,:] = numpy.where(self._flags_array,0,self._image_for_display[:nx//2,:])
+          image_for_display[nx//2:,:] = numpy.where(self._flags_array,0,self._image_for_display[nx//2:,:])
         else:
           image_for_display = numpy.where(self._flags_array,0,self._image_for_display)
 
       if not self._nan_flags_array is None:
         if self.complex:
-          image_for_display[:nx/2,:] = numpy.where(self._nan_flags_array,1,image_for_display[:nx/2,:])
-          image_for_display[nx/2:,:] = numpy.where(self._nan_flags_array,1,image_for_display[nx/2:,:])
+          image_for_display[:nx//2,:] = numpy.where(self._nan_flags_array,1,image_for_display[:nx//2,:])
+          image_for_display[nx//2:,:] = numpy.where(self._nan_flags_array,1,image_for_display[nx//2:,:])
         else:
           image_for_display = numpy.where(self._nan_flags_array,1,image_for_display)
 
