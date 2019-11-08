@@ -71,7 +71,7 @@ def _tryPackageDir (path,package):
     sys.path.insert(0,path);
     # check for version info
     try:
-      version = ' '.join(file(os.path.join(path,'version_info')));
+      version = ' '.join(open(os.path.join(path,'version_info')));
     except:
       version = 'no version info';
     # insert into packages

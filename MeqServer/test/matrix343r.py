@@ -605,7 +605,7 @@ _reference_cells = None;
 
 import pickle
 try:
-  unpickler = pickle.Unpickler(file(_reference_domain_file,'r'));
+  unpickler = pickle.Unpickler(open(_reference_domain_file,'rb'));
   _reference_cells = unpickler.load();
   print("Loaded reference domain from "+_reference_domain_file);
   del unpickler;

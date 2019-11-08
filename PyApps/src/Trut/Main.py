@@ -101,9 +101,10 @@ class TrutLogger (object):
     _dprint(2,"merging in logfile",logfile);
     if logfile is None:
       return None;
+    import six, io
     if isinstance(logfile,str):
-      self.fileobj.writelines(file(logfile,'r'));
-    elif isinstance(logfile,file):
+      self.fileobj.writelines(open(logfile,'r'));
+    elif isinstance(logfile, file if six.PY2 else io.IOBase):
       # logfile.seek(0);
       # for line in logfile:
       #   _dprint(0,os.getpid(),"merging from",logfile,line);
