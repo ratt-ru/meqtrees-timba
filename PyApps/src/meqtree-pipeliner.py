@@ -169,16 +169,16 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
             for name,job_id in TDLOptions.get_all_jobs():
               print(("### '%s' (id: %s)"%(name,job_id)));
             raise NameError("No such TDL job: '%s'"%job);
-	try:
-	  sys.stdout.flush();
-	  sys.stderr.flush();
-	  res = func(mqs,None,wait=True);
-	  print(("### Job result:",res));
-	except:
-	  print("### Job terminated with exception:")
-	  traceback.print_exc();
+        try:
+          sys.stdout.flush();
+          sys.stderr.flush();
+          res = func(mqs,None,wait=True);
+          print(("### Job result:",res));
+        except:
+          print("### Job terminated with exception:")
+          traceback.print_exc();
 
-    print("### No more commands");
+          print("### No more commands");
 
   ### Cleanup time
   except:

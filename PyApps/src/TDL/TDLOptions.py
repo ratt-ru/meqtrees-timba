@@ -1413,11 +1413,11 @@ def TDLCompileOptions (*opts):
   """this adds a number of entries (created with TDLOption) to the
   compile-time menu""";
   # owner is at depth 1 -- our caller
-  owner = _resolve_owner(calldepth=1);
+  owner = _resolve_owner(calldepth=1)
   for opt in opts:
-    isinstance(opt,_TDLBaseOption) and opt.init(owner,False);
-  global compile_options;
-  compile_options += opts;
+    isinstance(opt,_TDLBaseOption) and opt.init(owner,False)
+  global compile_options
+  compile_options += opts
 
 def TDLRuntimeOptions (*opts):
   """this fadds a number of entries (created with TDLOption or TDLJob) to the
