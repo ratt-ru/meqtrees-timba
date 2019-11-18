@@ -1259,6 +1259,9 @@ void MeqServer::run ()
   forest.setDebuggingCallbacks(mqs_reportNodeStatus,mqs_processBreakpoint);
   forest.setEventCallback(mqs_postEvent);
   // init Python interface
+  #if PY_MAJOR_VERSION >= 3
+    #define initMeqPython PyInit_MeqPython
+  #endif
   MeqPython::initMeqPython(this);
   // start node exec thread
   exec_thread_ = Thread::create(startExecutionThread,this);

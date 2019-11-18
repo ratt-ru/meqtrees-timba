@@ -61,7 +61,7 @@ saferepr()
 
 import sys as _sys
 
-from cStringIO import StringIO as _StringIO
+from io import StringIO as _StringIO
 
 __all__ = ["pprint","pformat","isreadable","isrecursive","saferepr",
            "PrettyPrinter"]
@@ -163,7 +163,7 @@ class PrettyPrinter:
                 if length:
                     context[objid] = 1
                     indent = indent + self._indent_per_level
-                    items  = object.items()
+                    items  = list(object.items())
                     items.sort()
                     key, ent = items[0]
                     rep = self._repr(key, context, level)
@@ -234,7 +234,7 @@ def _safe_repr(object, context, maxlevels, level):
     typ = _type(object)
     if typ is str:
         if 'locale' not in _sys.modules:
-            return `object`, True, False
+            return repr(object), True, False
         if "'" in object and '"' not in object:
             closure = '"'
             quotes = {'"': '\\"'}
@@ -248,7 +248,7 @@ def _safe_repr(object, context, maxlevels, level):
             if char.isalpha():
                 write(char)
             else:
-                write(qget(char, `char`[1:-1]))
+                write(qget(char, repr(char)[1:-1]))
         return ("%s%s%s" % (closure, sio.getvalue(), closure)), True, False
 
     if isinstance(object,dict):
@@ -266,7 +266,7 @@ def _safe_repr(object, context, maxlevels, level):
         append = components.append
         level += 1
         saferepr = _safe_repr
-        for k, v in object.iteritems():
+        for k, v in list(object.items()):
             krepr, kreadable, krecur = saferepr(k, context, maxlevels, level)
             vrepr, vreadable, vrecur = saferepr(v, context, maxlevels, level)
             append("%s: %s" % (krepr, vrepr))
@@ -308,7 +308,7 @@ def _safe_repr(object, context, maxlevels, level):
         del context[objid]
         return format % _commajoin(components), readable, recursive
 
-    rep = `object`
+    rep = repr(object)
     return rep, (rep and not rep.startswith('<')), False
 
 
@@ -327,8 +327,8 @@ def _perfcheck(object=None):
     t2 = time.time()
     p.pformat(object)
     t3 = time.time()
-    print "_safe_repr:", t2 - t1
-    print "pformat:", t3 - t2
+    print(("_safe_repr:", t2 - t1))
+    print(("pformat:", t3 - t2))
 
 if __name__ == "__main__":
     _perfcheck()

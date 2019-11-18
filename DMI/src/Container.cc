@@ -25,7 +25,7 @@
 
 #define NC_SKIP_HOOKS 1
 #define NC_INCLUDE_VECTOR_HOOKS 1
-
+#include <csignal>
 #include "Container.h"
 #include "NumArray.h"
 #include "Vec.h"
@@ -472,15 +472,17 @@ bool DMI::Container::Hook::get_scalar( void *data,TypeId tid,bool must_exist ) c
     // this should work for all numerics and single-element arrays
     if( !target_nestable )
     {
-      if( !TypeInfo::convert(targ,target.tid,data,tid) )
+      if( !TypeInfo::convert(targ,target.tid,data,tid) ){
         ThrowConvError(target.tid,tid);
+      }
       return true;
     }
     // else try to treat it as a container
     if( !attempt )
     {
-      if( !nextContainer(HIID()) ) // not a container? throw conversion error
+      if( !nextContainer(HIID()) ){ // not a container? throw conversion error
         ThrowConvError(target.obj_tid,tid);
+      }
     }
   }
   // if we got to here, we have a conversion error
@@ -496,7 +498,7 @@ const void * DMI::Container::Hook::get_address (ContentInfo &info,
 {
   // we ask the container for an ObjRef or just an object
   int flags = (tid==TpDMIObjRef ? 0 : DMI::DEREFERENCE) |
-              (must_write    ? DMI::WRITE : 0);
+          (must_write    ? DMI::WRITE : 0);
   // We do two attempts a-la get_scalar() above
   for( int attempt=0; attempt<2; attempt++ )
   {
@@ -534,8 +536,9 @@ const void * DMI::Container::Hook::get_address (ContentInfo &info,
     // else try to treat the target as a container 
     if( !attempt )
     {
-      if( !nextContainer(HIID()) ) // not a container? throw conversion error
+      if( !nextContainer(HIID()) ){ // not a container? throw conversion error
         ThrowConvError1(target.obj_tid,tid,(pointer?"*":""));
+      }
     }
   }
   // if we got to here, we have a conversion error

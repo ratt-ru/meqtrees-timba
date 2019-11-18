@@ -786,9 +786,9 @@ Meq::Vells::UnaryOperPtr Meq::Vells::unifunc_conj_lut[VELLS_LUT_SIZE] =
 inline double mkconst (double x,double *)
 { return x; }
 inline dcomplex mkconst (double x,dcomplex *)
-{ return x + 0i; }
+{ return x + complex<double>(0, 0); }
 inline dcomplex mkconst (int x,dcomplex *)
-{ return double(x) + 0.i; }
+{ return double(x) + complex<double>(0, 0); }
 
 // Defines a templated implementation of an unary reduction function
 // which computes: y=y0, then y=FUNC(y,x(i)) for all i, and returns y

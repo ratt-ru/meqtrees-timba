@@ -59,7 +59,7 @@ class Bookmark (QObject):
         self.rec.viewer = getattr(viewer,'viewer_name',viewer.__name__);
         self.viewer = viewer;
       else:
-        raise TypeError,"illegal viewer argument "+str(viewer);
+        raise TypeError("illegal viewer argument "+str(viewer));
       if self.viewer is not None:
         self.icon = getattr(self.viewer,'icon',QIcon);
         self.enabled = True;
@@ -99,7 +99,7 @@ class BookmarkFolder (QObject):
       self._menu = menu;
       self._have_initial_menu = True;
     else:
-      self._menu = QMenu(name,gui_parent or parent);
+      self._menu = QMenu(str(name),gui_parent or parent);
       self._menu.setIcon(self.icon());
       self._have_initial_menu = False;
     if load is not None:
@@ -150,7 +150,7 @@ class BookmarkFolder (QObject):
     if isinstance(item,BookmarkFolder):
       qa = self._menu.addMenu(item.getMenu());
     elif isinstance(item,Pagemark) or isinstance(item,Bookmark):
-      qa = self._menu.addAction(item.icon(),item.name,item.show);
+      qa = self._menu.addAction(item.icon(),str(item.name),item.show);
     if not item.enabled:
       qa.setEnabled(False);
     self._qas.append(qa);

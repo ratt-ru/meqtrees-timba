@@ -34,7 +34,7 @@ from Timba import octopussy
 import sys
 import traceback
 import time
-import cPickle
+import pickle
 import os
 import Timba.array
 
@@ -56,10 +56,11 @@ class AssaySetupError (AssayError):
   
 class DataMismatch (AssayError):
   pass;
-  
-class logger (file):
+
+import io
+class logger (io.FileIO):
   def __init__ (self,filename):
-    file.__init__(self,filename,'w');
+    super(logger, self).__init__(filename,'w');
     
   def prefix (self):
     return time.strftime("%d/%m/%y %H:%M:%S: ",time.localtime())
@@ -212,7 +213,7 @@ class assayer (object):
       if tolerance is None:
         tolerance = self.default_tol;
       if self.testname is None:
-        raise AssaySetupError,"can't watch nodes: no test specified";
+        raise AssaySetupError("can't watch nodes: no test specified");
       self.watching.append((node,desc,functional,conditional,tolerance));
       self.logf("will watch node '%s' %s",node,desc);
     except:
@@ -274,12 +275,12 @@ class assayer (object):
       if self._ignore_test:
         return;
       if self.tdlmod is None:
-        raise AssaySetupError,"no TDL script compiled";
+        raise AssaySetupError("no TDL script compiled");
       self._assay_stat = 0;
       # check that procedure exists
       proc = getattr(self.tdlmod,procname,None);
       if not callable(proc):
-        raise AssaySetupError,"no "+procname+"() in compiled script";
+        raise AssaySetupError("no "+procname+"() in compiled script");
       # now, enable publishing for specified watch nodes
       if self.watching:
         for w in self.watching:
@@ -304,10 +305,10 @@ class assayer (object):
         else:
           try:
             compare_value(expected,retval,self.default_tol,field=procname+"()");
-          except Exception,exc:
+          except Exception as exc:
             self._assay_stat = MISMATCH;
             self.logf("ERROR: assay fails on %s() return value",procname);
-            self.log("  error is: ",exc.__class__.__name__,*map(str,exc.args));
+            self.log("  error is: ",exc.__class__.__name__,*list(map(str,exc.args)));
           else:
             self.logf("%s() return value ok",procname);
     except:
@@ -356,14 +357,14 @@ class assayer (object):
       self.mqs.disconnect();
       octopussy.stop();
       if self._assay_stat:
-        print """\n*** ERROR ***: Assay data recording failed, please review the log.\n""";
-      a = raw_input("""\n\n
+        print("""\n*** ERROR ***: Assay data recording failed, please review the log.\n""");
+      a = input("""\n\n
 Since you're running the assayer in recording mode, we have disconnected 
 from the meqserver without stopping it. You may wish to run the browser to
 ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
       if not a or a[0].lower() == 'y':
         os.system("meqbrowser.py");
-      print """\n\nReminder: you may need to kill the meqserver manually.""";
+      print("""\n\nReminder: you may need to kill the meqserver manually.""");
     else:
       meqserver.stop_default_mqs();
     self.mqs = None;
@@ -397,10 +398,10 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
           return;
         try:
           compare_value(expected,val,tolerance,field=node+'/'+'.'.join(field));
-        except Exception,exc:
+        except Exception as exc:
           self._assay_stat = MISMATCH;
           self.logf("ERROR: assay fails on node '%s' %s",node,'.'.join(field));
-          self.log("  error is: ",exc.__class__.__name__,*map(str,exc.args));
+          self.log("  error is: ",exc.__class__.__name__,*list(map(str,exc.args)));
           return False;
         else:
           self.logf("node '%s' %s ok",node,'.'.join(field));
@@ -441,27 +442,27 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
   def _load_assay_data (self,fname):
     # catch file-open errors and return none
     try:
-      pfile = file(fname,"r");
+      pfile = open(fname,"rb");
     except:
       return None;
     # load stuff
-    unpickler = cPickle.Unpickler(pfile);
+    unpickler = pickle.Unpickler(pfile);
     name = unpickler.load();
     if name != self.testname:
-      raise AssaySetupError,"test name in data file "+fname+" does not match";
+      raise AssaySetupError("test name in data file "+fname+" does not match");
     self._recorded_time = unpickler.load();
     self._sequences = unpickler.load();
     self._inspections = unpickler.load();
     self.logf("loaded assay data from file %s",fname);
-    for (host,t0) in self._recorded_time.iteritems():
+    for (host,t0) in self._recorded_time.items():
       self.logf("  host %s recorded runtime is %.2f seconds",host,t0);
     return True;
       
   def _record_assay_data (self,fname):
     if not self.recording or not self.testname:
       return;
-    pfile = file(fname,"w");
-    pickler = cPickle.Pickler(pfile);
+    pfile = open(fname,"wb");
+    pickler = pickle.Pickler(pfile);
     pickler.dump(self.testname);
     pickler.dump(self._recorded_time);
     pickler.dump(self._sequences);
@@ -519,10 +520,10 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
             expected = seq.pop(0);
             try:
               compare_value(expected,value,tolerance,field=node+'/'+desc);
-            except Exception,exc:
+            except Exception as exc:
               self._assay_stat = MISMATCH;
               self.logf("ERROR: assay fails on node '%s' %s %s",node,desc,rqid);
-              self.log("  error is: ",exc.__class__.__name__,*map(str,exc.args));
+              self.log("  error is: ",exc.__class__.__name__,*list(map(str,exc.args)));
             else:
               self.logf("node '%s' %s %s ok",node,desc,rqid);
     except:
@@ -545,7 +546,7 @@ def normalize_value (value):
   """helper function to convert a value from dmi types to standard python""";
   if isinstance(value,dmi.record):
     res = {};
-    for field,val1 in value.iteritems():
+    for field,val1 in value.items():
       res[field] = normalize_value(val1);
     return res;
   elif isinstance(value,(list,tuple)):
@@ -568,7 +569,7 @@ def extract_value (record,field):
     value = value[f];
   return value;
 
-_numtypes = (int,long,float,complex);
+_numtypes = (int,int,float,complex);
 _seqtypes = (list,tuple);
 
 def compare_value (a,b,tol=1e-6,field=None): 
@@ -584,7 +585,7 @@ def compare_value (a,b,tol=1e-6,field=None):
     elif isinstance(a,dict):
       if len(a) != len(b):
         raise DataMismatch(field,"lengths",len(a),len(b));
-      for (key,value) in a.iteritems():
+      for (key,value) in a.items():
         try:
           val2 = b[key];
         except KeyError:
@@ -597,7 +598,7 @@ def compare_value (a,b,tol=1e-6,field=None):
       iterb = iter(b);
       n = 0;
       for value in a:
-        compare_value(value,iterb.next(),tol,field="%s[%d]"%(field,n));
+        compare_value(value,next(iterb),tol,field="%s[%d]"%(field,n));
         n+=1;
       return True;
     elif isinstance(a,dmi.array_class):

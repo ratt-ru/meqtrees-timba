@@ -51,7 +51,7 @@ def stress_test (n=10000,verbose=0,**kwargs):
           
   for i in range(n):
     if verbose:
-      print 'Creating tree ',i;
+      print('Creating tree ',i);
     si = str(i);
     rec.name = 'root'+si;
     rec.children[0].name = 'a'+si;
@@ -65,12 +65,12 @@ def stress_test (n=10000,verbose=0,**kwargs):
     rec.children[3].children = cn;
     mqs.createnode(rec,silent=True);
     
-  print 'getting node list';
+  print('getting node list');
   t1 = time.time();
   nodelist = mqs.getnodelist();
   t1 = time.time() - t1;
-  print nodelist;
-  print 'got it in',t1,'seconds';
+  print(nodelist);
+  print('got it in',t1,'seconds');
  
 if __name__ == '__main__':
   stress_test(1000,verbose=1,spawn=True,launch=False,wp_verbose=0);

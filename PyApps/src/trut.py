@@ -39,7 +39,7 @@ if __name__ == '__main__':
   opts = dict(opts);
   
   if "-h" in opts or "--help" in opts or not files:
-    print """
+    print("""
     TRUT: Timba Reduction & Unit Testing
     
     Usage: trut [-jN] [-vN] [-lN] [-pN] [-c] [-dContext=level] [trutfiles...]
@@ -52,7 +52,7 @@ if __name__ == '__main__':
       -dContext=level: enable debug messages from given Python context
       
     If no trutfiles are specified, all TRUT files in the current directory tree will be found & used.
-   """;
+   """);
     sys.exit(1);
   
   verbose = int(opts.get('-v',21));

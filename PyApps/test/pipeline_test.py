@@ -25,8 +25,8 @@ def _define_forest (ns,**kw):
 # This evaluates the tree for t=t0,...,t1 (t0 and t1 are runtime options)
 #
 def _test_forest (mqs,parent,wait=False,**kw):
-  print "=== Evaluating %g*t%+g for t=[%g,%g]"%(a,b,t0,t1);
-  print "=== Dummy values: %g %g"%(pipeline_test_constants.c0,pipeline_test_constants.c1);
+  print("=== Evaluating %g*t%+g for t=[%g,%g]"%(a,b,t0,t1));
+  print("=== Dummy values: %g %g"%(pipeline_test_constants.c0,pipeline_test_constants.c1));
   from Timba.Meq import meq
   # run tests on the forest
   domain = meq.gen_domain(time=[t0,t1]);
@@ -34,7 +34,7 @@ def _test_forest (mqs,parent,wait=False,**kw):
   request = meq.request(cells,rqtype='ev',new_domain=True);
   res = mqs.execute('root',request,wait=wait);
   if wait:
-    print res.result.vellsets[0].value;
+    print(res.result.vellsets[0].value);
 
 # This defines some more TDL jobs. Both of these will in fact be equivalent to calling _test_forest, but
 # we give them different IDs to show off the job-finding codes in run_pipeline_test.py
@@ -45,4 +45,4 @@ TDLRuntimeMenu("Runtime menu",
 
 
 if __name__ == '__main__':
-  print """Please use "python run_pipeline_test.py" to run this script in pipeline mode""";
+  print("""Please use "python run_pipeline_test.py" to run this script in pipeline mode""");

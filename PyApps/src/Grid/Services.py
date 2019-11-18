@@ -123,7 +123,7 @@ def isViewable (arg,udi=None):
     datatype = arg;
   else:
     datatype = type(arg);
-  for (tp,vlist) in _reg_viewers.iteritems():
+  for (tp,vlist) in _reg_viewers.items():
     # registered type must be a superclass of the supplied type;
     # registered dmi type must be either None or match the argument dmi type
     if issubclass(datatype,tp):
@@ -148,7 +148,7 @@ def getViewerList (arg,udi=None):
   viewer_pri = {};
   # resolve data type (argument may be object or type)
   _dprint(3,udi,type(arg),'looking for viewers for',datatype);
-  for (tp,vlist) in _reg_viewers.iteritems():
+  for (tp,vlist) in _reg_viewers.items():
     # find viewers for this class
     _dprint(3,udi,datatype,'subclass of',tp,issubclass(datatype,tp));
     if issubclass(datatype,tp):
@@ -160,8 +160,10 @@ def getViewerList (arg,udi=None):
             _dprint(3,udi,type(arg),'viewer',v,'priority',pri);
             viewer_pri[v] = min(pri,viewer_pri.get(v,999999));
   # return list sorted by priority
-  vlist = viewer_pri.keys();
-  vlist.sort(lambda a,b,dd=viewer_pri:cmp(dd[a],dd[b]));
+  vlist = list(viewer_pri.keys());
+  from past.builtins import cmp
+  from functools import cmp_to_key
+  vlist.sort(key=cmp_to_key(lambda a,b,dd=viewer_pri:cmp(dd[a],dd[b])));
   return vlist;
 
 class Floater (QMainWindow):
@@ -225,12 +227,12 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
     if vc:
       viewer = vc;
     else:
-      raise TypeError,"unknown viewer type "+viewer;
+      raise TypeError("unknown viewer type "+viewer);
   else:  
     viewer = viewer or item.viewer;
   if not viewer:
     if not item.viewer_list:
-      raise TypeError,"no viewers registered and none explicitly specified";
+      raise TypeError("no viewers registered and none explicitly specified");
     viewer = self.viewer_list[0];
   # Are we already displaying this item? (if not, init with empty list)
   itemlist = _dataitems.setdefault(item.udi,[]);
@@ -257,7 +259,7 @@ def addDataItem (item,gw=None,show_gw=True,viewer=None,position=None,avoid_pos=N
   # ok, we got to here so we have to create a viewer
   vopts = {};
   vopts.update(item.viewopts.get(None,{}));
-  for (vclass,vo) in item.viewopts.iteritems():
+  for (vclass,vo) in item.viewopts.items():
     if vclass and issubclass(viewer,vclass):
       vopts.update(vo);
   cellspec = { 'position':position,'avoid_pos':avoid_pos,'newcell':newcell,'newpage':newpage };
@@ -331,7 +333,7 @@ def updateDataItem (udi,data):
   _dprint(3,udi);
   _dprint(2,_dataitems);
   # scan current data items to see which need updating
-  for (u,itemlist) in _dataitems.iteritems():
+  for (u,itemlist) in _dataitems.items():
     if u == udi or u.startswith(udi+'/'):
       _dprint(3,len(itemlist),'items for',u);
       update = True;

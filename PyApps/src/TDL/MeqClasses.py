@@ -27,7 +27,7 @@
 import Timba
 from Timba import dmi
 from Timba.TDL import TDLimpl
-from TDLimpl import *
+from .TDLimpl import *
 from Timba.Meq import meq
 import sys
 import traceback
@@ -72,14 +72,14 @@ class _MeqGen (TDLimpl.ClassGen):
           #if _dbg.verbose>0:
             #traceback.print_exc();
           #return _NodeDef(NodeDefError("illegal funklet argument in call to Meq.Parm"));
-    if not kw.has_key('node_groups'):
+    if 'node_groups' not in kw:
       kw['node_groups']='Parm';
     return _NodeDef('Meq','Parm',**kw);
 
 
   def WSum(self,*childlist,**kw):
     #make sure weights is vector of doubles
-    if not kw.has_key('weights'):
+    if 'weights' not in kw:
       wgt=[1.];
     else:
       wgt = kw['weights'];
@@ -94,7 +94,7 @@ class _MeqGen (TDLimpl.ClassGen):
 
   def WMean(self,*childlist,**kw):
     #make sure weights is vector of doubles
-    if not kw.has_key('weights'):
+    if 'weights' not in kw:
       wgt=[1.];
     else:
       wgt = kw['weights'];
@@ -158,17 +158,17 @@ class _MeqGen (TDLimpl.ClassGen):
       return _NodeDef(NodeDefError("Matrix22 takes exactly 4 arguments (%d given)"%(len(children),)));
     # are all children numeric constants?
     for ch in children:
-      if not isinstance(ch,(bool,int,long,float,complex)):
+      if not isinstance(ch,(bool,int,float,complex)):
         # no, so create a composer node
         kw['dims'] = [2,2];
         return self.Composer(*children,**kw);
     # yes, all constants. Do we have at least one complex?
     for ch in children:
       if isinstance(ch,complex):
-        children = map(complex,children);
+        children = list(map(complex,children));
         break;
     else:
-      children = map(float,children);
+      children = list(map(float,children));
     return Meq.Constant(value=Timba.array.array(children).reshape((2,2)));
     
   def ConjTranspose (self,arg,**kw):

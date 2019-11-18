@@ -22,6 +22,9 @@
 # or write to the Free Software Foundation, Inc., 
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import Timba
 from Timba.dmi import *
@@ -151,7 +154,7 @@ class TableInspector(browsers.GriddedPlugin):
         axis_map=forest_state.axis_map;
         self._axis_list=[];
         for i in axis_map:
-            if i.has_key('id'):
+            if 'id' in i:
                 if i.id:
                     self._axis_list.append(i.id);
 
@@ -200,9 +203,9 @@ class TableInspector(browsers.GriddedPlugin):
             row = self.parmtable.currentRow();
             parm = str(self.parmtable.item(row,0).text());
         self._get_range(parm);
-        if not self._funklist.has_key(parm):
+        if parm not in self._funklist:
             self._get_funklets(parm=parm);
-        if not self._Comp_funklet.has_key(parm):
+        if parm not in self._Comp_funklet:
             if(len(self._funklist[parm])>1):
                 self._Comp_funklet[parm]=ComposedFunklet(self._funklist[parm]);
             else:
@@ -221,7 +224,7 @@ class TableInspector(browsers.GriddedPlugin):
         
         for n in range(len(self._axes)):
             axis_name = str(self._axis_list[n]).lower(); 
-            if not  self._domain.has_key(axis_name):
+            if axis_name not in self._domain:
                 break;
             self.xfrom[n].setText(str(self._domain[axis_name][0]));
             self.xto[n].setText(str(self._domain[axis_name][1]));
@@ -280,7 +283,7 @@ class TableInspector(browsers.GriddedPlugin):
         parmnr=0;
         for parm in self._parmlist:
             self.parmtable.setText(parmnr,0,parm);
-            if self._funklist.has_key(parm):
+            if parm in self._funklist:
                 nr_funklets = len(self._funklist[parm]);
                 self.parmtable.setText(parmnr,1,str(nr_funklets));
             else:
@@ -320,7 +323,7 @@ class TableInspector(browsers.GriddedPlugin):
         #print "plotting",parm
         if parm is None:
             return;
-        if not self._funklist.has_key(parm):
+        if parm not in self._funklist:
             self._get_funklets(parm);
             #print "plotting",self._funklist[parm];
         
@@ -339,7 +342,7 @@ class TableInspector(browsers.GriddedPlugin):
       #print "domain",dom
       for dim in range(2,len(self._axis_list)):
           id = str(self._axis_list[dim]).lower();
-          if dom.has_key(id):
+          if id in dom:
               step_size=float(dom[id][1]-dom[id][0])/self._Naxis[dim];
               #print "steP", step_size,self._Naxis[dim],dom;
               startgrid=0.5*step_size+dom[id][0];

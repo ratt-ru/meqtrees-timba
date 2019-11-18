@@ -25,7 +25,7 @@
 
 #ifndef OCTOPYTHON_OCTOPYTHON_H
 #define OCTOPYTHON_OCTOPYTHON_H 1
-    
+#include <MeqServer/py3compat.h>    
 #include <Python.h>
 #include <OCTOPUSSY/Message.h>
 #include <DMI/Record.h>
@@ -65,7 +65,7 @@ namespace OctoPython
   
   // initializes octopython module -- can also be called from elsewhere
   // when embedding the interpreter
-  void initOctoPythonModule ();
+  PyObject * initOctoPythonModule ();
   // initializes conversion layer (needed for numarray mostly)
   void initDataConv ();
   

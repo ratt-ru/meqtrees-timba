@@ -38,9 +38,19 @@ import os.path
 try:
   import dl
 except:
-  import DLFCN
-  dl = DLFCN
-sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL);
+  try:
+    import DLFCN
+    dl = DLFCN
+  except:
+    try:
+      import ctypes as dl
+    except:
+      raise ImportError("Failed to import dl or one of its successors")
+# not compatible with python 3 + pyqt4 binaries
+import six
+if six.PY2:
+  sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
+
 
 # sys.argv is not present when embedding a Python interpreter, but some
 # packages (i.e. numarray) seem to fall over when it is not found. So we
@@ -51,11 +61,12 @@ if not hasattr(sys,'argv'):
 # now import the rest
 from Timba import dmi
 from Timba import utils
-import meqserver_interface
+
 import sys
 import imp
 import os.path
-
+if six.PY3:
+  from importlib import reload
 
 _dbg = utils.verbosity(0,name='meqkernel');
 _dprint = _dbg.dprint;
@@ -80,8 +91,9 @@ def set_state (node,**fields):
   elif isinstance(node,int):
     rec.nodeindex = node;
   else:
-    raise TypeError,'illegal node argumnent';
+    raise TypeError('illegal node argumnent');
   # pass command to kernel
+  from Timba import meqserver_interface
   meqserver_interface.mqexec('Node.Set.State',rec,True); # True=silent
   
   
@@ -131,6 +143,7 @@ def _import_script_or_module (script,modname=None,force_reload=False):
   if script.endswith(".pyo") or script.endswith(".pyc"):
     script = script[0:-1];
   # if a filename with a known suffix is supplied, try to import as file
+  has_imported = False
   for suffix,mode,filetype in imp.get_suffixes():
     if script.endswith(suffix):
       # expand "~" and "$VAR" in filename
@@ -143,9 +156,9 @@ def _import_script_or_module (script,modname=None,force_reload=False):
           if os.path.isfile(filename):
             break;
         else:
-          raise ValueError,"script not found anywhere in path: "+script;
+          raise ValueError("script not found anywhere in path: "+script);
       # open the script file
-      infile = file(filename,'r');
+      infile = open(filename,'r');
       # now import the script as a module
       if modname is None:
         modname = filename.replace("/","_").replace(".","_");
@@ -154,33 +167,34 @@ def _import_script_or_module (script,modname=None,force_reload=False):
       oldpath = list(sys.path);
       sys.path.insert(0,os.path.dirname(filename));
       try:
-	# check if script is already imported  
-	module = None;
-	if force_reload:
-	  _dprint(0,"force_reload=True,",modname,"will be reloaded");
-	elif filename in _imported_scripts:
-	  module,count = _imported_scripts[filename];
-	  if count == _import_counter:
-	    _dprint(0,modname,"already imported, will not be reloaded");
-	  else:
-	    _dprint(0,modname,"already imported but is stale, will be reloaded");
-	    module = None;
-	else:
-	  _dprint(0,modname,"hasn't been imported yet");
-	if module is None:
-	  try:
-	    imp.acquire_lock();
-	    module = imp.load_source(modname,filename,infile);
-	    _imported_scripts[filename] = (module,_import_counter);
-	  finally:
-	    imp.release_lock();
-	    infile.close();
+        # check if script is already imported  
+        module = None;
+        if force_reload:
+          _dprint(0,"force_reload=True,",modname,"will be reloaded");
+        elif filename in _imported_scripts:
+          module,count = _imported_scripts[filename];
+          if count == _import_counter:
+            _dprint(0,modname,"already imported, will not be reloaded");
+          else:
+            _dprint(0,modname,"already imported but is stale, will be reloaded");
+            module = None;
+        else:
+          _dprint(0,modname,"hasn't been imported yet");
+        if module is None:
+          try:
+            imp.acquire_lock();
+            module = imp.load_source(modname,filename,infile);
+            _imported_scripts[filename] = (module,_import_counter);
+          finally:
+            imp.release_lock();
+            infile.close();
       finally:
-	sys.path = oldpath;
-      break;
+        sys.path = oldpath;
+        break;
   # else (no known suffix found) treat as module name
   else:
     _dprint(0,"importing module",script);
+    print(script)
     module = __import__(script);
     # since __import__ returns the top-level package, use this
     # code from the Python docs to get to the ultimate module
@@ -249,7 +263,7 @@ def create_pynode (node_baton,node_name,class_name,module_name):
   if not module_name:
     components = class_name.split('.');
     if len(components) < 2:
-      raise ValueError,"create_pynode: if module is not specified separately, class name must have form 'module.class'";
+      raise ValueError("create_pynode: if module is not specified separately, class name must have form 'module.class'");
     class_name = components[-1];
     module_name = '.'.join(components[0:-1]);
   # now, import the module
@@ -263,6 +277,6 @@ def create_pynode (node_baton,node_name,class_name,module_name):
   # get the class
   class_obj = getattr(module,class_name,None);
   if class_obj is None:
-    raise ValueError,"create_pynode: class "+class_name+" not found in "+module_name;
+    raise ValueError("create_pynode: class "+class_name+" not found in "+module_name);
   # create and return pynode object
   return class_obj(node_name,node_baton);

@@ -52,8 +52,8 @@ if __name__ == '__main__':
   stat = ass.finish();
 
   if stat:
-    print "ASSAY FAILED: ",stat;
+    print("ASSAY FAILED: ",stat);
   else:
-    print "ASSAY SUCCEEDED";
+    print("ASSAY SUCCEEDED");
     
   

@@ -72,11 +72,11 @@ class File (Trut.Unit):
     while indent <= self.top_unit._indent:
       self.exec_top_unit();
       if self.top_unit == self.parent:
-        raise Trut.UnexpectedError,"oops, check_indent f*cked up""";
+        raise Trut.UnexpectedError("oops, check_indent f*cked up""");
     if self.top_unit._subindent is None:
       self.top_unit._subindent = indent;
     elif self.top_unit._subindent != indent:
-      raise Trut.ParseError,"indentation level does not match any previous indentation";
+      raise Trut.ParseError("indentation level does not match any previous indentation");
     
   def exec_top_unit (self):
     try:
@@ -104,7 +104,7 @@ class File (Trut.Unit):
     # find class by that name
     tu_class = self.top_unit.Directives.get(name,None);
     if not callable(tu_class):
-      raise Trut.ParseError,"unknown directive '%s'"%name;
+      raise Trut.ParseError("unknown directive '%s'"%name);
     # create test unit
     self.top_unit = tu = tu_class(value,parent=self.top_unit);
     self._new_topunit(tu,indent);
@@ -137,7 +137,7 @@ class File (Trut.Unit):
   def _reap_child_process (self,pid,status):
     _dprint(2,os.getpid(),"child",pid,"exited with status",status);
     if pid not in self._child_jobs:
-      raise RuntimeError,"unexpected child pid "+str(pid);
+      raise RuntimeError("unexpected child pid "+str(pid));
     loggers = self._child_jobs.pop(pid);
     self._merge_tmp_loggers(loggers);
     # fail if child did not return 0
@@ -158,7 +158,7 @@ class File (Trut.Unit):
     _dprint(1,"running trut file",self.name);
     # parse file
     try:
-      for line in file(os.path.basename(self.name)):
+      for line in open(os.path.basename(self.name)):
         # check for fails
         if self.giveup():
           break;
@@ -215,7 +215,7 @@ class File (Trut.Unit):
       tb = None;  # avoids garbage collection delay
       # kill children if interrupted
       if isinstance(err,KeyboardInterrupt):
-        for pid in self._child_jobs.iterkeys():
+        for pid in self._child_jobs.keys():
           os.kill(pid,signal.SIGINT);
       self.fail(err);
       if self._we_are_child:

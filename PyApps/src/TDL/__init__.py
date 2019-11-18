@@ -44,7 +44,7 @@ _dprintf = _dbg.dprintf;
 #
 if __name__ == '__main__':
   # stations list
-  STATIONS = range(1,15);
+  STATIONS = list(range(1,15));
   # 3 sources
   SOURCES = ('a','b','c');
 
@@ -170,7 +170,7 @@ if __name__ == '__main__':
   inputs = ns.spigot;
   for (q,src) in enumerate(SOURCES):
     ns_pu = ns.Subscope('peelunit',q);
-    inputs = peelUnit(inputs,predicter.values(),ns=ns_pu);
+    inputs = peelUnit(inputs,list(predicter.values()),ns=ns_pu);
     SOLVERS << ns_pu.solver();
 
   # create sinks, connect them to output of last peel unit
@@ -179,7 +179,7 @@ if __name__ == '__main__':
 
   # create data collectors (this simply shows off the use of arbitrary node
   # groupings)
-  ns.ROOT << ns.solver_collect() << Meq.DataCollect(*SOLVERS.values());
+  ns.ROOT << ns.solver_collect() << Meq.DataCollect(*list(SOLVERS.values()));
 
   # deliberately create an orphan branch. This checks orphan collection.
   # this whole branch should go away, and so should the UNITY node, which

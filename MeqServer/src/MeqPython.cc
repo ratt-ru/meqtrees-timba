@@ -22,7 +22,7 @@
 // or write to the Free Software Foundation, Inc., 
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-
+#include <MeqServer/py3compat.h>
 #include "MeqPython.h"
 #include <MeqServer/MeqServer.h>
 #include <MeqServer/MeqUtils.h>
@@ -51,6 +51,30 @@ static PyObject
       *process_vis_tile,
       *process_vis_footer,
       *force_module_reload;
+
+extern "C" {
+
+  struct module_state {
+      PyObject *error;
+  };
+
+  #if PY_MAJOR_VERSION >= 3
+    #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+    static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+      Py_VISIT(GETSTATE(m)->error);
+      return 0;
+    }
+
+    static int myextension_clear(PyObject *m) {
+      Py_CLEAR(GETSTATE(m)->error);
+      return 0;
+    }
+  #else
+    #define GETSTATE(m) (&_state)
+    static struct module_state _state;
+  #endif
+
+}
 
 extern "C"
 {
@@ -116,8 +140,14 @@ static PyObject * get_node_state_field (PyObject *, PyObject *args)
   // catch all exceptions below
   try
   {
-    FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
-    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(node_baton),"get_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCapsule_GetPointer(node_baton, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(node_baton),"get_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #endif
+    
     FailWhen(!pnode,"get_node_state_field: first argument must be a valid node baton");
     HIID field(field_str);
     cdebug(3)<<"get_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
@@ -147,8 +177,13 @@ PyObject * PyNodeAccessor::set_node_state_field (PyObject *, PyObject *args)
   // catch all exceptions below
   try
   {
-    FailWhen(!PyCObject_Check(node_baton),"set_node_state_field: first argument must be a valid node baton");
-    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(node_baton),"set_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCapsule_GetPointer(node_baton, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(node_baton),"set_node_state_field: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #endif
     FailWhen(!pnode,"set_node_state_field: first argument must be a valid node baton");
     HIID field(field_str);
     cdebug(3)<<"set_node_state_field: node '"<<pnode->name()<<" field "<<field<<endl;
@@ -178,8 +213,14 @@ PyObject * PyNodeAccessor::set_node_active_symdeps (PyObject *, PyObject *args)
   // catch all exceptions below
   try
   {
-    FailWhen(!PyCObject_Check(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
-    Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCapsule_GetPointer(node_baton, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(node_baton),"set_node_active_symdeps: first argument must be a valid node baton");
+      Node * pnode = static_cast<Node*>(PyCObject_AsVoidPtr(node_baton));
+    #endif
+    
     FailWhen(!pnode,"set_node_acrive_symdeps: first argument must be a valid node baton");
     FailWhen(!PySequence_Check(symdep_list),"set_node_active_symdeps: second argument must be a list of symdeps");
     int ndep = PySequence_Length(symdep_list);
@@ -274,7 +315,11 @@ static PyObjectRef callPyFunc (PyObject *func,const BObj &arg)
 PyObjectRef createPyNode (Meq::Node &pynode,const string &classname,const string &modulename)
 {
   Thread::Mutex::Lock lock(python_mutex);
-  PyObjectRef pynode_baton = PyCObject_FromVoidPtr(&pynode,0);
+  #if PY_MAJOR_VERSION >= 3
+    PyObjectRef pynode_baton = PyCapsule_New(&pynode, nullptr, [](_object* x){if (x != 0) {delete x;}});
+  #else
+    PyObjectRef pynode_baton = PyCObject_FromVoidPtr(&pynode,0);
+  #endif
   PyObjectRef args = Py_BuildValue("(Osss)",*pynode_baton,pynode.name().c_str(),classname.c_str(),modulename.c_str());
   FailWhen(!args,"failed to build args tuple");
   PyObjectRef val = PyObject_CallObject(create_pynode,*args);
@@ -399,15 +444,29 @@ void forceModuleReload ()
 // -----------------------------------------------------------------------
 // initMeqPython
 // -----------------------------------------------------------------------
-void initMeqPython (MeqServer *mq)
+#if PY_MAJOR_VERSION >= 3
+    #define initMeqPython PyInit_MeqPython
+    PyMODINIT_FUNC PyInit_MeqPython(MeqServer *mq)
+    #define INITERROR return module;
+#else
+    void initMeqPython (MeqServer *mq)
+    #define INITERROR return;
+#endif
 {
+  PyObject *module = nullptr;
   pmqs = mq;
   if( meq_initialized )
-    return;
+    INITERROR
   meq_initialized = true;
-  // init Python threads -- this acquires the GIL
-  PyEval_InitThreads();
-  Py_Initialize();
+  #if PY_MAJOR_VERSION >= 3
+    Py_Initialize();
+    // init Python threads -- this acquires the GIL
+    PyEval_InitThreads();
+  #else
+    // init Python threads -- this acquires the GIL
+    PyEval_InitThreads();
+    Py_Initialize();
+  #endif
   PyThreadBegin;
   // release GIL in exception handler
   try
@@ -426,27 +485,55 @@ void initMeqPython (MeqServer *mq)
     MeqUtils::initMeqUtilsModule();
 
     // register ourselves as a module
-    PyObject *module = Py_InitModule3("meqserver_interface", MeqMethods,
-              "interface to the MeqServer object");
-    if( !module )
-    {
-      PyErr_Print();
-      Throw("Python meqserver: meqserver_interface module init failed");
+    #if PY_MAJOR_VERSION < 3
+      module = Py_InitModule3("meqserver_interface", MeqMethods,
+                "interface to the MeqServer object");
+    #else
+      static struct PyModuleDef meqserver_interface =
+        {
+          PyModuleDef_HEAD_INIT,
+          "meqserver_interface", /* name of module */
+          "interface to the MeqServer object\n", /* module documentation, may be NULL */
+          sizeof(struct module_state),  /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          MeqMethods,
+          NULL,
+          myextension_traverse,
+          myextension_clear,
+          NULL
+        };
+      module = PyModule_Create(&meqserver_interface);
+    #endif
+    if( !module ) {
+      Throw("Py_InitModule3(\"meqpython\") failed");
+      INITERROR;
+    }
+    struct module_state *st = GETSTATE(module);
+    st->error = PyErr_NewException("meqpython.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
     }
 
-    // import the octopython module to init everything
+    PyObject * timbamod = PyImport_ImportModule("Timba");  // returns new ref
+    if( !timbamod )
+    {
+      PyErr_Print();
+      Throw("octopython init error: import of Timba module failed");
+    }
+    
+    // since AddObject steals a ref, increment the counter
+    Py_INCREF(module);
+    PyModule_AddObject(timbamod,"meqserver_interface",module);
+
     PyObject * kernelmod = PyImport_ImportModule("Timba.meqkernel");
     if( !kernelmod )
     {
       PyErr_Print();
       Throw("Python meqserver: import of Timba.meqkernel module failed");
     }
-
     create_pynode        = PyObject_GetAttrString(kernelmod,"create_pynode");
     if( PyErr_Occurred() )
       PyErr_Print();
-    if( !create_pynode )
-      Throw("Timba.meqkernel.create_pynode not found");
     force_module_reload  = PyObject_GetAttrString(kernelmod,"force_module_reload");
     if( PyErr_Occurred() )
       PyErr_Print();
@@ -455,19 +542,30 @@ void initMeqPython (MeqServer *mq)
 
     // get optional handlers
     process_init_record = PyObject_GetAttrString(kernelmod,"process_init");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
     cdebug(1)<<"init handler is "<<process_init_record<<endl;
     process_vis_header = PyObject_GetAttrString(kernelmod,"process_vis_header");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
-    process_vis_tile   = PyObject_GetAttrString(kernelmod,"process_vis_tile");
+    //@o-smirnov not defined???
+    //process_vis_tile   = PyObject_GetAttrString(kernelmod,"process_vis_tile");
+    //if( PyErr_Occurred() )
+    //  PyErr_Print();
     PyErr_Clear();
     process_vis_footer = PyObject_GetAttrString(kernelmod,"process_vis_footer");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
     cdebug(1)<<"vis handlers are "<<process_vis_header<<" "
         <<process_vis_tile<<" "<<process_vis_footer<<endl;
 
     // set verbosity level
     PyObject *setverbose = PyObject_GetAttrString(kernelmod,"set_verbose");
+    if( PyErr_Occurred() )
+      PyErr_Print();
     PyErr_Clear();
     if( setverbose )
     {
@@ -485,14 +583,20 @@ void initMeqPython (MeqServer *mq)
     }
   }
   // save thread state and release the GIL before exiting (since we acquired it with PyEval_InitThreads() above)
-  catch( ... )
+  catch( std::exception &exc )
   {
     PyThreadEnd;
     PyEval_SaveThread();
-    throw;
+    Py_FatalError(exc.what());
+    #if PY_MAJOR_VERSION >= 3
+      return NULL;
+    #endif
   }
   PyGILState_Release(gilstate);
   PyEval_SaveThread();
+  #if PY_MAJOR_VERSION >= 3
+    return module;
+  #endif
 }
 
 // -----------------------------------------------------------------------

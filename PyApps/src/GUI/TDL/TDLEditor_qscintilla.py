@@ -535,7 +535,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if text is None:
       text = str(self._editor.text());
     try:
-      outfile = file(filename,"w").write(text);
+      outfile = open(filename,"w").write(text);
     except IOError:
       (exctype,excvalue,tb) = sys.exc_info();
       _dprint(0,'exception',sys.exc_info(),'saving TDL file',filename);
@@ -635,11 +635,11 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       try:
         tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
       # catch import errors
-      except TDL.CumulativeError,value:
+      except TDL.CumulativeError as value:
         _dprint(0,"caught cumulative error, length",len(value.args));
         self._error_window.set_errors(value.args,message="TDL import failed");
         return None;
-      except Exception,value:
+      except Exception as value:
         _dprint(0,"caught other error, traceback follows");
         traceback.print_exc();
         self._error_window.set_errors([value],message="TDL import failed");
@@ -655,7 +655,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         # add options
         try:
           TDLOptions.populate_option_treewidget(opt_listview,opts);
-        except Exception,value:
+        except Exception as value:
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
           self._error_window.set_errors([value],message="Error setting up TDL options GUI");
@@ -689,11 +689,11 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       finally:
         QApplication.restoreOverrideCursor();
     # catch compilation errors
-    except TDL.CumulativeError,value:
+    except TDL.CumulativeError as value:
       _dprint(0,"caught cumulative error, length",len(value.args));
       self._error_window.set_errors(value.args,message="TDL import failed");
       return None;
-    except Exception,value:
+    except Exception as value:
       _dprint(0,"caught other error, traceback follows");
       traceback.print_exc();
       self._error_window.set_errors([value]);
@@ -713,7 +713,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if not joblist:
       joblist = [];
       # try to build it from implicit function names
-      for (name,func) in _tdlmod.__dict__.iteritems():
+      for (name,func) in _tdlmod.__dict__.items():
         if name.startswith("_tdl_job_") and callable(func):
           joblist.append(func);
     # does the script define a testing function?
@@ -729,7 +729,9 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           QMessageBox.Ok);
     if callable(testfunc):
       joblist.append(testfunc);
-    joblist.sort(lambda a,b:cmp(str(a),str(b)));
+    from past.builtins import cmp
+    from functools import cmp_to_key
+    joblist.sort(key=cmp_to_key(lambda a,b:cmp(str(a),str(b))));
 
     # create list of job actions
     opts = TDLOptions.get_runtime_options();
@@ -742,7 +744,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         ## new style:
         try:
           TDLOptions.populate_option_treewidget(self._jobmenu.listView(),opts,executor=self._job_executor);
-        except Exception,value:
+        except Exception as value:
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
           self._error_window.set_errors([value],message="Error setting up TDL options GUI");
@@ -818,7 +820,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       QToolTip.add(self._tb_run,"Saves and runs the script.");
       
   def reload_file (self):
-    text = file(self._filename).read();
+    text = open(self._filename).read();
     # set save icons, etc.
     self._qa_revert.setEnabled(True);
     self._file_disktime = _file_mod_time(self._filename);
@@ -839,7 +841,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       readonly = True;
     # load text from file if not supplied
     if text is None:
-      text = file(filename).read();
+      text = open(filename).read();
     self._filename = filename;
     # sets as as the mainfile or as a submodule of a main file
     self._set_mainfile(mainfile);
@@ -1150,7 +1152,7 @@ class TDLErrorFloat (QMainWindow,PersistentCurrier):
       # add housekeeping info
       item._toplevel_index = toplevel_index;
       if toplevel:
-	self._toplevel_error_items.append(item);
+        self._toplevel_error_items.append(item);
       toplevel_index = len(self._toplevel_error_items)-1;
       self._error_items.append(item);
       item.setOpen(False);
@@ -1317,7 +1319,7 @@ class TDLFileDataItem (Grid.DataItem):
   """represents a GridDataItem for a TDL script""";
   def __init__ (self,pathname):
     # read the file (exception propagated outwards on error)
-    ff = file(pathname);
+    ff = open(pathname);
     text = ff.read();
     ff.close();
     basename = os.path.basename(pathname);

@@ -43,7 +43,11 @@ static void
 LazyObjRef_dealloc (LazyObjRef* self)
 {
   self->field.clear();
-  self->ob_type->tp_free((PyObject*)self);
+  #if PY_MAJOR_VERSION >= 3
+    // Not defined ??
+  #else
+    self->ob_type->tp_free((PyObject*)self);
+  #endif
 }
 
 // -----------------------------------------------------------------------
@@ -109,8 +113,7 @@ static PyMethodDef LazyObjRef_methods[] = {
 };
 
 PyTypeObject PyLazyObjRefType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                          /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0) //This will work in both python 2.7 and >3
     "octopython.lazy_objref",      /*tp_name*/
     sizeof(LazyObjRef),          /*tp_basicsize*/
     0,                          /*tp_itemsize*/

@@ -8,7 +8,7 @@ from Timba.utils import *
 from Timba.GUI.pixmaps import pixmaps
 from Timba.TDL import TDLOptions
 
-import ConfigParser
+import configparser
 
 import os.path
 
@@ -124,7 +124,7 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
     self.save_menu.clear();
     self.save_menu.addAction(self._qa_newprof);
     self.save_menu.addSeparator();
-    self.profiles = ConfigParser.RawConfigParser();
+    self.profiles = configparser.RawConfigParser();
     try:
       self.profiles.read([PROFILE_FILE]);
     except:
@@ -158,7 +158,7 @@ class TDLOptionsDialog (QDialog,PersistentCurrier):
       newprof = True;
     TDLOptions.save_to_config(self.profiles,name);
     try:
-      ff = file(PROFILE_FILE,"wt");
+      ff = open(PROFILE_FILE,"wt");
       for section in sorted(self.profiles.sections()):
         ff.write("[%s]\n"%section);
         for opt,value in sorted(self.profiles.items(section)):

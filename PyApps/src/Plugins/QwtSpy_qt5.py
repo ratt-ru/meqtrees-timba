@@ -65,6 +65,9 @@
 
 # a small class used to get and emit mouse events 
 # Adapted from an ancient PyQwt example - thanks Gerard!
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 from qwt.qt.QtCore import QEvent, Signal, QObject
 

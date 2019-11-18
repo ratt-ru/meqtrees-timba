@@ -32,9 +32,9 @@
 #include <casacore/tables/Tables/ScaColDesc.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
-#include <casacore/tables/Tables/TiledStManAccessor.h>
-#include <casacore/tables/Tables/TiledColumnStMan.h>
-#include <casacore/tables/Tables/IncrementalStMan.h>
+#include <casacore/tables/DataMan/TiledStManAccessor.h>
+#include <casacore/tables/DataMan/TiledColumnStMan.h>
+#include <casacore/tables/DataMan/IncrementalStMan.h>
 #include <casacore/casa/Arrays/Matrix.h>
 
 using namespace casacore;

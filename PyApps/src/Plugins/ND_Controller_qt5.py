@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # a class to generate control buttons etc for use in controlling N-dimensional
 # displays
@@ -72,6 +72,9 @@
 #
 
 # modules that are imported
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import sys
 

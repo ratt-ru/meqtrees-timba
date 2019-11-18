@@ -33,8 +33,11 @@ from Timba.Meq import meqds
 from PyQt4.Qt import *
 from Kittens.widgets import PYSIGNAL
 
-
-chisqr = unichr(0x3c7)+'<sup>2</sup>';
+import six
+if six.PY2:
+  chr = unichr
+  
+chisqr = chr(0x3c7)+'<sup>2</sup>';
 
 class SolverProgressMeter (QWidget):
   """SolverProgressMeter implements a one-line progress meter

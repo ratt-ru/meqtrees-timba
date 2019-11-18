@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # an adaption of the PyQwt-4.2 QwtImagePlotDemo.py example so that
 # we can draw color bars
@@ -70,6 +70,9 @@
 #  Victoria BC V9E 2E7			 Victoria BC V9E 2E7
 #  CANADA					 CANADA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 from math import log
 from math import exp

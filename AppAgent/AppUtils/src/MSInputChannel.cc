@@ -47,10 +47,10 @@
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ColumnDesc.h>
-#include <casacore/tables/Tables/ExprNode.h>
-#include <casacore/tables/Tables/ExprNodeSet.h>
+#include <casacore/tables/TaQL/ExprNode.h>
+#include <casacore/tables/TaQL/ExprNodeSet.h>
 #include <casacore/tables/Tables/SetupNewTab.h>
-#include <casacore/tables/Tables/TableParse.h>
+#include <casacore/tables/TaQL/TableParse.h>
 #include <unistd.h>
 
 using namespace casacore;
@@ -651,9 +651,9 @@ int MSInputChannel::refillStream ()
               tapered_data(i,0,j) = datacube(i,0,j);
               tapered_data(i,shape[1]-1,j) = datacube(i,shape[1]-1,j);
               for( int k=1; k<shape[1]-1; k++ )
-                tapered_data(i,k,j) = (fcomplex(.50+0j)*datacube(i,k,j)+
-                                      fcomplex(.25+0j)*datacube(i,k-1,j)+
-                                      fcomplex(.25+0j)*datacube(i,k+1,j));
+                tapered_data(i,k,j) = (fcomplex(.50,+0)*datacube(i,k,j)+
+                                      fcomplex(.25,+0)*datacube(i,k-1,j)+
+                                      fcomplex(.25,+0)*datacube(i,k+1,j));
 //              if( hasflags )
 //                for( int k=1; k<shape[1]-1; k++ )
 //                  tapered_flags(i,k,j) = bitflagcube(i,k,j)|

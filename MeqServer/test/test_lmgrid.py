@@ -18,17 +18,17 @@ class LMInjector (pynode.PyNode):
     
   def modify_child_request (self,request):
     try:
-      print '***** original: ',request.cells;
+      print('***** original: ',request.cells);
       # these things modify the cells object in-place
       meq.add_cells_axis(request.cells,'l',self.domain_l,self.num_l);
       meq.add_cells_axis(request.cells,'m',self.domain_m,self.num_m);
-      print '***** modified: ',request.cells;
+      print('***** modified: ',request.cells);
       # return the modified request object
       return request;
     except:
-      print "Error forming up modified request:";
+      print("Error forming up modified request:");
       traceback.print_exc();
-      print "Using original request";
+      print("Using original request");
       return None;
   
   def get_result (self,request,*children):

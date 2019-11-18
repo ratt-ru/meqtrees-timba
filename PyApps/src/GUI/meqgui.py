@@ -72,7 +72,7 @@ def makeDataItem (udi,data=None,viewer=None,publish=False,viewopts={}):
   (cat,name,trailer) = meqds.parse_udi(udi);
   if cat == 'node':
     if not name:
-      raise ValueError,"invalid UDI: "+udi;
+      raise ValueError("invalid UDI: "+udi);
     # check name or node index
     nn = name.split('#',1);
     if not nn[0]:
@@ -103,7 +103,7 @@ def makeDataItem (udi,data=None,viewer=None,publish=False,viewopts={}):
          refresh=meqds.request_forest_state,
          viewer=viewer,viewopts=viewopts);
   else:
-    raise ValueError,"can't display "+udi;
+    raise ValueError("can't display "+udi);
 
 def makeNodeDataItem (node,viewer=None,viewopts={}):
   """creates a GridDataItem for a node""";

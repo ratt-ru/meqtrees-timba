@@ -44,11 +44,11 @@ def import_libs(ldir):
       # must be a directory
       for f in os.listdir(os.path.abspath(dir)):       
         module_name, ext = os.path.splitext(f) # Handles no-extension files, etc.
-        print module_name
-        print ext
+        print(module_name)
+        print(ext)
         if ext == '.pyc' or ext=='.py': # Important, ignore .pyc/other files.
             try:
-             print 'importing module: Timba.%s' % (module_name)
+             print('importing module: Timba.%s' % (module_name))
              sl=string.split(dir,'/')
              while sl[0]!='Timba':
               sl.pop(0)
@@ -59,10 +59,10 @@ def import_libs(ldir):
             except:
              pass
         elif ext=='' and module_name != 'CVS': 
-           print 'Directory %s' % module_name
+           print('Directory %s' % module_name)
            dir_list.append(dir+'/'+module_name)
            try:
-            print 'importing module: Timba.%s' % (module_name)
+            print('importing module: Timba.%s' % (module_name))
             sl=string.split(dir,'/')
             while sl[0]!='Timba':
               sl.pop(0)
@@ -107,7 +107,7 @@ def main():
     lib_list = import_libs(dir)
     
     # generate pydoc here
-    print lib_list
+    print(lib_list)
     for l in lib_list:
       try:
        module = __import__(l)

@@ -66,6 +66,9 @@
 #
 
 # This is a translation to python of the ACSIS IfDisplayMainWindow.cc code
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import sys
 import random
@@ -73,7 +76,7 @@ import traceback
 import numpy
 
 from qwt.qt.QtGui import (QApplication, QMainWindow, QDialog, QGridLayout,QHBoxLayout,QToolButton,
-         QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem, QTabWidget)
+         QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem, QTabWidget, QPixmap)
 from qwt.qt.QtGui import QPen, QColor,QWidget, QImage, qRgba, QFont, QFontInfo, QMenu, QActionGroup, QAction, QButtonGroup
 from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal
 
