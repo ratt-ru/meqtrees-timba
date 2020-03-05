@@ -125,12 +125,12 @@ def _test_forest (mqs, parent):
 # Test routine to check the tree for consistency in the absence of a server
 
 if __name__ == '__main__':
-   print '\n*******************\n** Local test of:',script_name,':\n'
+   print('\n*******************\n** Local test of:',script_name,':\n')
 
    ns = NodeScope()                # if used: from Timba.TDL import *
    _define_forest(ns)
 
-   print '\n** End of local test of:',script_name,'\n*******************\n'
+   print('\n** End of local test of:',script_name,'\n*******************\n')
        
 #********************************************************************************
 #********************************************************************************

@@ -63,8 +63,8 @@ def _file_mod_time (path):
 _MODULE_FILENAME = Timba.utils.extract_stack()[-1][0];
 _MODULE_DIRNAME = os.path.dirname(_MODULE_FILENAME);
 
-from TDLErrorFloat import TDLErrorFloat
-from TDLOptionsDialog import TDLOptionsDialog
+from .TDLErrorFloat import TDLErrorFloat
+from .TDLOptionsDialog import TDLOptionsDialog
 
 class TDLEditor (QFrame,PersistentCurrier):
   SupportsLineNumbers = False;
@@ -447,7 +447,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     nblock = 1;
     while block and nblock < line:
       block0 = block;
-      block = block0.next();
+      block = next(block0);
       nblock += 1;
     return block or block0;
 
@@ -565,7 +565,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if text is None:
       text = str(self._editor.document().toPlainText());
     try:
-      outfile = file(filename,"w").write(text);
+      outfile = open(filename,"w").write(text);
     except IOError:
       (exctype,excvalue,tb) = sys.exc_info();
       _dprint(0,'exception',sys.exc_info(),'saving TDL file',filename);
@@ -672,18 +672,18 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       # get text from editor
       tdltext = str(self._document.toPlainText());
       try:
-	tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
+        tdlmod,tdltext = TDL.Compile.import_tdl_module(self._filename,tdltext);
       # catch import errors
-      except TDL.CumulativeError,value:
-	_dprint(0,"caught cumulative error, length",len(value.args));
-	self._error_window.set_errors(value.args,message="TDL import failed");
+      except TDL.CumulativeError as value:
+        _dprint(0,"caught cumulative error, length",len(value.args));
+        self._error_window.set_errors(value.args,message="TDL import failed");
         busy = None;
-	return None;
-      except Exception,value:
-	_dprint(0,"caught other error, traceback follows");
-	traceback.print_exc();
-	self._error_window.set_errors([value],message="TDL import failed");
-	busy = None;
+        return None;
+      except Exception as value:
+        _dprint(0,"caught other error, traceback follows");
+        traceback.print_exc();
+        self._error_window.set_errors([value],message="TDL import failed");
+        busy = None;
         return None;
       # remember module and nodescope
       self._tdlmod = tdlmod;
@@ -693,18 +693,18 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       opt_tw = self._options_menu.treeWidget();
       opts = TDLOptions.get_compile_options();
       if opts:
-	# add options
-	try:
-	  TDLOptions.populate_option_treewidget(opt_tw,opts);
-	except Exception,value:
-	  _dprint(0,"error setting up TDL options GUI");
-	  traceback.print_exc();
-	  self._error_window.set_errors([value],message="Error setting up TDL options GUI");
+        # add options
+        try:
+          TDLOptions.populate_option_treewidget(opt_tw,opts);
+        except Exception as value:
+          _dprint(0,"error setting up TDL options GUI");
+          traceback.print_exc();
+          self._error_window.set_errors([value],message="Error setting up TDL options GUI");
           busy = None;
-	  return None;
-	# self._tb_opts.show();
-	_dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
-	self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
+          return None;
+        # self._tb_opts.show();
+        _dprint(2,self._filename,"emitting signal for",len(opts),"compile-time options");
+        self.emit(PYSIGNAL("hasCompileOptions()"),self,len(opts));
     # success, show options or compile
     if show_options and self.has_compile_options():
       self._options_menu.adjustSizes();
@@ -727,12 +727,12 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 	    meqds.mqs(),self._filename,self._tdlmod,self._tdltext,
 	    parent=self,wait=False);
     # catch compilation errors
-    except TDL.CumulativeError,value:
+    except TDL.CumulativeError as value:
       _dprint(0,"caught cumulative error, length",len(value.args));
       self._error_window.set_errors(value.args,message="TDL import failed");
       busy = None;
       return None;
-    except Exception,value:
+    except Exception as value:
       _dprint(0,"caught other error, traceback follows");
       traceback.print_exc();
       self._error_window.set_errors([value]);
@@ -758,7 +758,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
     if not joblist:
       joblist = [];
       # try to build it from implicit function names
-      for (name,func) in _tdlmod.__dict__.iteritems():
+      for (name,func) in _tdlmod.__dict__.items():
         if name.startswith("_tdl_job_") and callable(func) and not TDLOptions.is_jobfunc_defined(func):
           joblist.append(func);
     # does the script define a testing function?
@@ -774,7 +774,10 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           QMessageBox.Ok);
     if callable(testfunc):
       joblist.append(testfunc);
-    joblist.sort(lambda a,b:cmp(str(a),str(b)));
+    
+    from past.builtins import cmp
+    from functools import cmp_to_key
+    joblist.sort(key=cmp_to_key(lambda a, b: cmp(str(a), str(b))));
 
     # create list of job actions
     opts = TDLOptions.get_runtime_options();
@@ -785,7 +788,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         ## new style:
         try:
           TDLOptions.populate_option_treewidget(self._tdlexec_menu.treeWidget(),opts,executor=self._job_executor);
-        except Exception,value:
+        except Exception as value:
           _dprint(0,"error setting up TDL options GUI");
           traceback.print_exc();
           self._error_window.set_errors([value],message="Error setting up TDL options GUI");
@@ -862,7 +865,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       self._qa_run.setText("Compile");
 
   def reload_file (self):
-    text = file(self._filename).read();
+    text = open(self._filename).read();
     # set save icons, etc.
     self._qa_revert.setEnabled(True);
     self._file_disktime = _file_mod_time(self._filename);
@@ -882,7 +885,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       readonly = True;
     # load text from file if not supplied
     if text is None:
-      text = file(filename).read();
+      text = open(filename).read();
     self._filename = filename;
     # sets as as the mainfile or as a submodule of a main file
     self._set_mainfile(mainfile);

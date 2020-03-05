@@ -28,7 +28,7 @@
 #include <AppUtils/MSOutputSink.h>
 #include "../src/VisRepeater.h"
 
-using namespace casa;
+using namespace casacore;
 
 int main (int argc,const char *argv[])
 {

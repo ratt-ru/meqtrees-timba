@@ -64,13 +64,13 @@ lofar_EXTERNAL(gdbm,0,gdbm.h,,)
 dnl
 dnl Check for old LSQFit
 dnl
-AC_MSG_CHECKING([if old interface to casa::LSQFit should be used])
+AC_MSG_CHECKING([if old interface to casacore::LSQFit should be used])
 AC_LANG(C++)
 AC_COMPILE_IFELSE(    
   AC_LANG_PROGRAM(
     [[#include <scimath/Fitting/LSQaips.h>]],
     [[
-      casa::LSQaips solver;
+      casacore::LSQaips solver;
       solver.isReady();
     ]]),
   ac_old_lsqfit=no,
@@ -78,7 +78,7 @@ AC_COMPILE_IFELSE(
 )
 AC_MSG_RESULT($ac_old_lsqfit)
 if test $ac_old_lsqfit = yes; then
-  AC_DEFINE_UNQUOTED(USE_OLD_LSQFIT,${ac_old_lsqfit},[use the old interface to casa::LSQFit])
+  AC_DEFINE_UNQUOTED(USE_OLD_LSQFIT,${ac_old_lsqfit},[use the old interface to casacore::LSQFit])
 fi
 
 

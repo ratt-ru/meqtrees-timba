@@ -22,7 +22,7 @@
 // or write to the Free Software Foundation, Inc., 
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-
+#include <MeqServer/py3compat.h>
 #include "OctoPython.h"
 #include <OCTOPUSSY/Message.h>
 #include <DMI/Record.h>
@@ -451,10 +451,13 @@ int pyToDMI (ObjRef &objref,PyObject *obj,TypeId objtype,DMI::Vec *pvec0,int pve
           break;
          }
     case Tpstring_int:
+         {
           if( !pvec0 )
             objref <<= pvec0 = new DMI::Vec(Tpstring);
-          (*pvec0)[pvec_pos] = PyString_AS_STRING(obj);
+          auto v = PyString_AS_STRING(obj);
+          (*pvec0)[pvec_pos] = v;
           break;
+         }
     case TpDMIHIID_int:
           { HIID id;
           pyToHIID(id,obj);
@@ -971,7 +974,10 @@ void initDataConv ()
     Py_FatalError("C++ bool != numarray bool, conversion code must be implemented");
   }
   // import the numpy API
-  import_array();
+  //Kludge... typo in numpy header
+  #define import_array4() {if (_import_array() < 0) {PyErr_Print(); PyErr_SetString(PyExc_ImportError, "numpy.core.multiarray failed to import"); return; } }
+  import_array4();
+  
   // PyObjectRef numpyref = PyImport_ImportModule("numpy");
 }
 

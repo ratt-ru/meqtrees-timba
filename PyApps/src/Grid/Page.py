@@ -252,7 +252,7 @@ class Page (object):
       
   def align_layout (self):
     xsizes = [1000]*self.max_nx;
-    map(lambda row:row.setSizes(xsizes),self._rows);
+    list(map(lambda row:row.setSizes(xsizes),self._rows));
     self._topgrid.setSizes([1000]*self.max_ny);
     
   # returns top-level widget
@@ -265,7 +265,7 @@ class Page (object):
     self.set_layout(0);
     for row in self._rows:
       _dprint(2,'GriddedPage: clearing row',row);
-      map(lambda cell:cell.close(),row.cells());
+      list(map(lambda cell:cell.close(),row.cells()));
     self.clear_icon();
     self.clear_name();
     
@@ -354,5 +354,5 @@ class Page (object):
         self.set_layout(i);
         break;
     else:
-      raise Grid.Error,"failed to find a suitable layout";
+      raise Grid.Error("failed to find a suitable layout");
 

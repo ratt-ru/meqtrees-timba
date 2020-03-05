@@ -63,8 +63,11 @@ namespace MeqPython
   extern "C" Thread::Mutex python_mutex;
 
   // Inits Python if needed, attaches meqserver module to MeqServer object.
-  void initMeqPython (MeqServer *pm);
-
+  #if PY_MAJOR_VERSION >= 3
+    PyMODINIT_FUNC PyInit_MeqPython(MeqServer *mq);
+  #else
+    PyMODINIT_FUNC initMeqPython (MeqServer *pm);
+  #endif
   // Destroys Python interpreter if it was running
   void destroyMeqPython ();
 

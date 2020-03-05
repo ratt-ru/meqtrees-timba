@@ -43,7 +43,7 @@
 #undef restrict 
 
 #ifdef HAVE_AIPSPP
-# include <casa/Arrays/IPosition.h>
+# include <casacore/casa/Arrays/IPosition.h>
 #endif
 
 #include <TimBase/Lonumerics.h>
@@ -307,18 +307,18 @@ class VariVector : public std::vector<int>
       }
       
 #ifdef HAVE_AIPSPP      
-      // convert to/from AIPS++ casa::IPosition
-      VariVector(const casa::IPosition &ipos)
+      // convert to/from AIPS++ casacore::IPosition
+      VariVector(const casacore::IPosition &ipos)
           : std::vector<int>(ipos.storage(),ipos.storage()+ipos.nelements()) {};
-      casa::IPosition as_IPosition () const
+      casacore::IPosition as_IPosition () const
       {
-        casa::IPosition ipos(size());
+        casacore::IPosition ipos(size());
         const_iterator iter = begin();
         for( uint i=0; i<size(); i++ )
           ipos[i] = *iter++;
         return ipos;
       }
-      operator casa::IPosition () const
+      operator casacore::IPosition () const
       { return as_IPosition(); }
         
 #endif

@@ -25,8 +25,8 @@
 
 #include <TimBase/Stopwatch.h>
 #include <MEQ/Vells.h>
-//#include <casa/Arrays/Matrix.h>
-//#include <casa/Arrays/ArrayMath.h>
+//#include <casacore/casa/Arrays/Matrix.h>
+//#include <casacore/casa/Arrays/ArrayMath.h>
 #include <stdlib.h>
 #include <complex.h>
         

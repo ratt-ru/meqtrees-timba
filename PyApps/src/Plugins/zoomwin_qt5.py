@@ -66,31 +66,39 @@
 #
 
 # this is a python translation of the ACSIS c++ zoomwin.cc program
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import sys
-
-from PyQt4 import Qt
-import PyQt4.Qwt5 as Qwt
-from QwtSpy_qt4 import *
+import numpy
 import numpy
 
+from qwt.qt.QtGui import QApplication, QHBoxLayout, QWidget
+from qwt.qt.QtCore import Qt, pyqtSignal
+from qwt import QwtPlot, QwtPlotCurve
 
-import printfilter_qt4
-import plot_printer_qt4
-import display_image_qt4 
+from Timba.Plugins.display_image_qt5 import QwtImageDisplay
 
 #widget to show a zoomed chanel of the plot
 
-class ZoomPopup(Qt.QWidget):
+class ZoomPopup(QWidget):
+
+  winclosed = pyqtSignal(int)
+  winpaused = pyqtSignal(int)
+  save_zoom_display = pyqtSignal(str,int)
+  image_auto_scale = pyqtSignal(int)
+  image_scale_values = pyqtSignal(float, float)
+ 
 
   def __init__(self, CurveNumber, x_values, y_values , flags, pen, parent=None, name=None):
     """ Initialises all the variables.  
         creates the main zoom plot
         connects the qt signals
     """
-#   fl = Qt.WType_TopLevel|Qt.WStyle_Customize;
-#   fl |= Qt.WStyle_DialogBorder|Qt.WStyle_Title;
-    Qt.QWidget.__init__(self, parent)
+
+
+    QWidget.__init__(self, parent)
     self.setWindowTitle('Channel ' + str(CurveNumber))
     self._parent = parent
     self._d_zoomActive = self._d_zoom = False
@@ -105,7 +113,7 @@ class ZoomPopup(Qt.QWidget):
     self._array_label = "Channel "
  
     #Create the plot for selected curve to zoom
-    self._plotter = display_image_qt4.QwtImageDisplay(parent=self)
+    self._plotter = QwtImageDisplay(self)
     self._plotter.setZoomDisplay()
 
     self._zoom_plot_label = self._array_label + str(self._curve_number) + " Sequence (oldest to most recent)"
@@ -116,14 +124,15 @@ class ZoomPopup(Qt.QWidget):
   #####end of parameters set for the plot#######/
 
     # we seem to need a layout for PyQt
-    box1 = Qt.QHBoxLayout( self )
+    box1 = QHBoxLayout( self )
     box1.addWidget(self._plotter)
-    self.plotPrinter = plot_printer_qt4.plot_printer(self._plotter)
+#   self.plotPrinter = plot_printer_qt5.plot_printer(self._plotter)
 
-    self.connect(self._plotter,Qt.SIGNAL('winpaused'), self.Pausing)
-    self.connect(self._plotter,Qt.SIGNAL('compare'), self.do_compare)
-    self.connect(self._plotter,Qt.SIGNAL('do_print'), self.plotPrinter.do_print)
-    self.connect(self._plotter,Qt.SIGNAL('save_display'), self.handle_save_display)
+    self._plotter.winpaused.connect(self.Pausing)
+    self._plotter.compare.connect(self.do_compare)
+#   self._plotter.do_print.connnect(self.plotPrinter.do_print)
+    self._plotter.save_display.connect(self.handle_save_display)
+
 
     # insert flags ?   
     self._plotter.initVellsContextMenu()
@@ -131,31 +140,31 @@ class ZoomPopup(Qt.QWidget):
     self.show()
 
   def handle_save_display(self, title):
-    self.emit(Qt.SIGNAL("save_zoom_display"),self._zoom_plot_label, self._curve_number)
+    self.save_zoom_display.emit(self._zoom_plot_label, self._curve_number)
 
   def do_compare_max(self, x_values):
     ### instantiate the envelop that will show min/max deviations
     self._max_envelop = self._y_values
     self._min_envelop = self._y_values
-    self._max_crv = Qwt.QwtPlotCurve('Zoomed max curve')
+    self._max_crv = QwtPlotCurve('Zoomed max curve')
     self._max_crv.attach(self._plotter)
-    self._min_crv = Qwt.QwtPlotCurve('Zoomed min curve')
+    self._min_crv = QwtPlotCurve('Zoomed min curve')
     self._min_crv.attach(self._plotter)
     self._max_crv.setData(x_values,self._max_envelop)
     self._min_crv.setData(x_values,self._min_envelop)
     self._compare_max = True
 
   def do_compare(self):
-    print 'in zoomwin do_compare'
+    print('in zoomwin do_compare')
     if self._compare_max:
       self.stop_compare_max()
       self._compare_max = False
     else:
       self._max_envelop = self._y_values
       self._min_envelop = self._y_values
-      self._max_crv = Qwt.QwtPlotCurve('Zoomed max curve')
+      self._max_crv = QwtPlotCurve('Zoomed max curve')
       self._max_crv.attach(self._plotter)
-      self._min_crv = Qwt.QwtPlotCurve('Zoomed min curve')
+      self._min_crv = QwtPlotCurve('Zoomed min curve')
       self._min_crv.attach(self._plotter)
       self._max_crv.setData(x_values,self._max_envelop)
       self._min_crv.setData(x_values,self._min_envelop)
@@ -214,7 +223,7 @@ class ZoomPopup(Qt.QWidget):
     self.close()
 
   def Pausing(self):
-    self.emit(Qt.SIGNAL("winpaused"),self._curve_number)
+    self.winpaused.emit(self._curve_number)
 
   def change_scale_type(self):
 # click means change to fixed scale
@@ -223,20 +232,17 @@ class ZoomPopup(Qt.QWidget):
       self._do_fixed_scale = False
       self._menu.changeItem(toggle_id, 'Fixed Scale')
       self._plotter.setAxisAutoScale(QwtPlot.yLeft)
-      self.emit(Qt.SIGNAL("image_auto_scale"),0)
+      self.image_auto_scale.emit(0)
     else:
       self._do_fixed_scale = True
       self._menu.changeItem(toggle_id, 'Auto Scale')
 # find current data min and max
       scale_max = self._y_values.max()
       scale_min = self._y_values.min()
-#     AxisParms = ScaleSelector(scale_max, scale_min, self)
-#     self.connect(AxisParms, SIGNAL(scale_values(double,double)), this, SLOT(set_scale_values(double, double)))
-#     self.connect(AxisParms, SIGNAL(cancel()), this, SLOT(cancel_scale_request()))
 
   def set_scale_values(self,max_value,min_value):
     if self._do_fixed_scale:
-      self.emit(Qt.SIGNAL("image_scale_values"), max_value,min_value)
+      self.image_scale_values.emit(max_value,min_value)
       self._plotter.setAxisScale(QwtPlot.yLeft, min_value, max_value)
       self._plotter.replot()
 
@@ -273,7 +279,7 @@ class ZoomPopup(Qt.QWidget):
       self._zoom_plot_label = self._data_label + ": " + self._array_label  
     else:
       self._zoom_plot_label = self._data_label + ": " + self._array_label + " Sequence (oldest to most recent)"
-    self._plotter.setAxisTitle(Qwt.QwtPlot.xBottom, self._zoom_plot_label)
+    self._plotter.setAxisTitle(QwtPlot.xBottom, self._zoom_plot_label)
     self._plotter._x_title = self._zoom_plot_label;
     self.setWindowTitle(self._zoom_plot_label)
 
@@ -292,7 +298,7 @@ class ZoomPopup(Qt.QWidget):
 
   def closeEvent(self, ce):
     if self._do_close:
-      self.emit(Qt.SIGNAL("winclosed"),self._curve_number)
+      self.winclosed.emit(self._curve_number)
       ce.accept()
     else:
       ce.ignore()
@@ -302,11 +308,11 @@ class ZoomPopup(Qt.QWidget):
     #---------------------------------------------
 
 def main(args):
-    app = Qt.QApplication(args)
+    app = QApplication(args)
     x_values = numpy.array([1.0,2.0,3.0,4.0])
     y_values = numpy.array([15.0,25.0,35.0,45.0])
     flags = numpy.array([0.0,0.0,0.0,0.0])
-    demo = ZoomPopup(1, x_values, y_values,flags, Qt.Qt.yellow,None, None )
+    demo = ZoomPopup(1, x_values, y_values,flags, Qt.yellow,None, None )
     demo.show()
     app.exec_()
 

@@ -27,16 +27,16 @@
 #include <MEQ/VellSet.h>
 #include <MEQ/Vells.h>
 #include <MEQ/AID-Meq.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
-#include <coordinates/Coordinates/CoordinateUtil.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/Projection.h>
-#include <measures/Measures/MDirection.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/coordinates/Coordinates/CoordinateUtil.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/Projection.h>
+#include <casacore/measures/Measures/MDirection.h>
 #include <MeqNodes/AID-MeqNodes.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace Meq {
 

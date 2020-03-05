@@ -67,14 +67,21 @@
 #  Victoria BC V9E 2E7			 Victoria BC V9E 2E7
 #  CANADA					 CANADA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import sys
 import numpy
-
-from Timba.utils import verbosity
-_dbg = verbosity(0,name='SpectrumData');
-_dprint = _dbg.dprint;
-_dprintf = _dbg.dprintf;
+HAS_TIMBA = False
+try:
+  from Timba.utils import verbosity
+  _dbg = verbosity(0,name='SpectrumData');
+  _dprint = _dbg.dprint;
+  _dprintf = _dbg.dprintf;
+  HAS_TIMBA = True
+except:
+  pass
 
 class SpectrumData:
    """ a class to store spectral data and supply the
@@ -108,7 +115,8 @@ class SpectrumData:
      self.marker_labels = []
 
      num_plot_arrays = len(incoming_data)
-     _dprint(2,' number of arrays to plot ', num_plot_arrays)
+     if HAS_TIMBA:
+       _dprint(2,' number of arrays to plot ', num_plot_arrays)
      for i in range(num_plot_arrays):
        menu_label = ''
        plot_label = ''
@@ -135,27 +143,30 @@ class SpectrumData:
         
        else:
          plot_found = False
-         _dprint(2,' plot_labels ', self._plot_labels)
+         if HAS_TIMBA:
+           _dprint(2,' plot_labels ', self._plot_labels)
          for j in range(len(self._plot_labels)):
            if self._plot_labels[j] == plot_label:
-	     self._plot_dict[j] = plot_array
+             self._plot_dict[j] = plot_array
              plot_found = True
-	     break
+             break
          if not plot_found:
            index = len(self._plot_labels)
-	   self._plot_dict[index] = plot_array
+           self._plot_dict[index] = plot_array
            self._combined_label_dict[index] = combined_display_label
-	   self._plot_labels[index] = plot_label
-	   self._menu_labels[index] = menu_label
+           self._plot_labels[index] = plot_label
+           self._menu_labels[index] = menu_label
 
 # create combined image?
      if len(self._plot_dict) > 1:
        plot_dict_size = len(self._plot_dict)
-       _dprint(3,' creating combined array')
+       if HAS_TIMBA:
+         _dprint(3,' creating combined array')
        shape = self._plot_dict[0].shape
        self.y_marker_step = shape[1]
        self.num_y_markers = plot_dict_size
-       _dprint(3,' self.y_marker_step ', self.y_marker_step)
+       if HAS_TIMBA:
+         _dprint(3,' self.y_marker_step ', self.y_marker_step)
        temp_array = numpy.zeros((shape[0], plot_dict_size * shape[1]),dtype=self._plot_dict[0].dtype)
        for i in range(plot_dict_size):
          dummy_array =  self._plot_dict[i]
@@ -199,7 +210,7 @@ class SpectrumData:
      return self.marker_labels
 
 def main(args):
-  print 'we are in main' 
+  print('we are in main')
 
 # Admire
 if __name__ == '__main__':

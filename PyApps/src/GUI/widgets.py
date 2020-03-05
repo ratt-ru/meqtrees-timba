@@ -53,11 +53,11 @@ def DataDroppableWidget (parent_class):
       key = None;
       data = event.mimeData();
       if data.hasText():
-	key = data.text();
-	_dprint(3,"mimeData text is",key);
+        key = data.text();
+        _dprint(3,"mimeData text is",key);
       elif data.hasUrls():
-	key = " ".join([str(url.toString()) for url in data.urls()]);
-	_dprint(3,"mimeData URLs are",key);
+        key = " ".join([str(url.toString()) for url in data.urls()]);
+        _dprint(3,"mimeData URLs are",key);
       return key;
     # Drag objects must be text or URL drags originating from another widget (i.e., 
     # within the same app). The source widget must implement a 
@@ -69,7 +69,7 @@ def DataDroppableWidget (parent_class):
       key = None;
       try: 
         wsrc = ev.source();
-	key = self.get_drag_key(ev);
+        key = self.get_drag_key(ev);
         # refuse event if source widget does not define get_drag_item(), or drag is not a string
         try: 
           if not callable(wsrc.get_drag_item) or not key:
@@ -103,7 +103,7 @@ def DataDroppableWidget (parent_class):
           ev.accept();
       except AttributeError: 
         _dprint(3,'attribute error somewhere, rejecting drag');
-	ev.ignore();
+        ev.ignore();
         pass;
     # The text drag is decoded into a text key, an item is fetched from the 
     # source using get_drag_item(key), and process_drop_item is called
@@ -115,7 +115,7 @@ def DataDroppableWidget (parent_class):
         item = dragfunc(str(key));
         if item is not None:
           self.process_drop_item(item,ev);
-	  ev.accept();
+          ev.accept();
         
 #     def accept_drop_item (self,item):
 #       """Provide this function to selectively accept drops based on item
@@ -151,9 +151,9 @@ def DataDraggableTreeWidget (parent_class):
     def mimeData (self,items):
       urls = [];
       for item in items:
-	udi = getattr(item,'_udi',None);
-	if udi:
-	  urls.append(QUrl(udi));
+        udi = getattr(item,'_udi',None);
+        if udi:
+          urls.append(QUrl(udi));
       mimedata = QMimeData();
       mimedata.setUrls(urls);
       return mimedata;

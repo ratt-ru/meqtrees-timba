@@ -71,7 +71,7 @@ def _tryPackageDir (path,package):
     sys.path.insert(0,path);
     # check for version info
     try:
-      version = ' '.join(file(os.path.join(path,'version_info')));
+      version = ' '.join(open(os.path.join(path,'version_info')));
     except:
       version = 'no version info';
     # insert into packages
@@ -88,9 +88,9 @@ def _setPackagePath (package):
   path = os.environ.get(varname,None);
   if path:
     if not _tryPackageDir(path,package):
-      print "Warning: your %s environment variable is set to"%varname;
-      print "%s, but this is not a valid directory."%path;
-      print "The %s package will not be available."%package;
+      print(("Warning: your %s environment variable is set to"%varname));
+      print(("%s, but this is not a valid directory."%path));
+      print(("The %s package will not be available."%package));
     return;
   # else look in standard places
   for path in list(_PackageLocations) + list(sys.path):
@@ -98,9 +98,9 @@ def _setPackagePath (package):
     if _tryPackageDir(os.path.join(path,package),package):
       return;
   # none found
-  print "Warning: No %s package found."%package;
-  print "If you have %s in a non-standard location, please set the %s environment"%(package,varname);
-  print "variable to point to it."
+  print(("Warning: No %s package found."%package));
+  print(("If you have %s in a non-standard location, please set the %s environment"%(package,varname)));
+  print("variable to point to it.")
 
 for pkg in _Packages:
   _setPackagePath(pkg);

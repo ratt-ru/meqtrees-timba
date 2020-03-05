@@ -147,7 +147,7 @@ class PyRandom (pynode.PyNode):
       # a function in the standard random module.
       gen = getattr(random,self.distribution_type,None);
       if not callable(gen):
-        raise ValueError,"unknown distribution type '"+self.distribution_type+"'";
+        raise ValueError("unknown distribution type '"+self.distribution_type+"'");
       self._generator = gen;
       # now check distribution arguments
       # single argument converts to single-element tuple
@@ -159,16 +159,16 @@ class PyRandom (pynode.PyNode):
       if inspect.ismethod(self._generator):
         narg -= 1;
       if len(self.distribution_args) != narg:
-        raise TypeError,"random.%s: %d arguments expected, distribution_args contains %d"% \
-                          (self.distribution_type,narg,len(self.distribution_args));
+        raise TypeError("random.%s: %d arguments expected, distribution_args contains %d"% \
+                          (self.distribution_type,narg,len(self.distribution_args)));
                           
   def get_result (self,request,*children):
     if len(children):
-      raise TypeError,"this is a leaf node, no children expected!";
+      raise TypeError("this is a leaf node, no children expected!");
     # make value of same shape as cells
     cells = request.cells;
     shape = meq.shape(cells);
-    print "cells shape is",shape;
+    print("cells shape is",shape);
     value = meq.vells(shape);
     # fill in random numbers with the given distribution
     flat = value.ravel();   # 'flat' reference to array data

@@ -174,7 +174,7 @@ class NodeTags (object):
       elif isinstance(tag,(list,tuple)):
         self.add(*tag);
       else:
-        raise TypeError,"'tags' must be a string or a sequence of strings";
+        raise TypeError("'tags' must be a string or a sequence of strings");
       
   def __add__ (self,other):
     return NodeTags(self,other);
@@ -200,7 +200,7 @@ class _NodeDef (object):
       if x is None:
         list.__init__(self);
       elif self.is_dict:
-        list.__init__(self,x.iteritems());
+        list.__init__(self,iter(x.items()));
       elif isinstance(x,(list,tuple)):
         # check if it is a sequence if duplets
         # no -- assume sequence of children
@@ -225,16 +225,16 @@ class _NodeDef (object):
           if isinstance(child,str):        # child referenced by name?
             try: child = scope.Repository()[child];
             except KeyError:
-              raise ChildError,"child node (of node '%s' of class '%s') specified by name '%s' not found"%(nodename,classname,child);
+              raise ChildError("child node (of node '%s' of class '%s') specified by name '%s' not found"%(nodename,classname,child));
           elif isinstance(child,(complex,float)):
             child = scope.MakeConstant(child);
-          elif isinstance(child,(bool,int,long)):
+          elif isinstance(child,(bool,int)):
             child = scope.MakeConstant(float(child));
           else:
             # try to resolve child to a _NodeDef
             anonch = _NodeDef.resolve(child);
             if anonch is None:
-              raise ChildError,"child %s (of node '%s' of class '%s') has illegal type '%s'" % (str(ich),nodename,classname,type(child).__name__);
+              raise ChildError("child %s (of node '%s' of class '%s') has illegal type '%s'" % (str(ich),nodename,classname,type(child).__name__));
             _dprint(4,'creating anon child',ich);
             child = anonch.autodefine(scope);
         reslist.append((ich,child));
@@ -251,7 +251,7 @@ class _NodeDef (object):
       elif isinstance(arg0,dict):
         return self.__init_from_initrec__(arg0,*args,**kw);
       else:
-        raise NodeDefError,"illegal argument of type "+str(type(arg0));
+        raise NodeDefError("illegal argument of type "+str(type(arg0)));
     except:
       # catch exceptions and produce an "error" def, to be reported later on
       self.children = self.initrec = None;
@@ -287,20 +287,20 @@ class _NodeDef (object):
     try:
       children = kw.pop('children');
       if childlist:
-        raise ChildError,"children specified both by arguments and 'children' keyword";
+        raise ChildError("children specified both by arguments and 'children' keyword");
     except KeyError:  # no 'children' keyword, case (b) or (c)
       if childlist:
         children = childlist;
       else: # else see if some keyword arguments specify children-like objects
-        children = dict([(key,val) for (key,val) in kw.iteritems()
+        children = dict([(key,val) for (key,val) in kw.items()
                           if isinstance(val,(_NodeDef,_NodeStub)) ]);
-        map(kw.pop,children.iterkeys());
+        list(map(kw.pop,iter(children.keys())));
     _dprint(3,"NodeDef",classname,"children are",children);
     self.children = self.ChildList(children);
     # now check for step_children:
     stepchildren = kw.pop('stepchildren',None);
     if isinstance(stepchildren,dict):
-      raise ChildError,"'stepchildren' must be a list or a single node";
+      raise ChildError("'stepchildren' must be a list or a single node");
     self.stepchildren = self.ChildList(stepchildren);
     # use the NodeTags class to convert tags into a list of strings
     tags = kw.get('tags',None);
@@ -328,7 +328,7 @@ class _NodeDef (object):
       return arg;
     elif isinstance(arg,complex):
       return _Meq.Constant(value=arg);
-    elif isinstance(arg,(bool,int,long,float)):
+    elif isinstance(arg,(bool,int,float)):
       return _Meq.Constant(value=float(arg));
     elif callable(arg) and recurse>0:
       return _NodeDef.resolve(arg(),recurse=recurse-1);
@@ -359,7 +359,7 @@ class _NodeDef (object):
             child_quals.insert(0,child.scope._name);
         _mergeQualifiers(quals,kwquals,
            child_quals,child.kwquals,uniq=True);
-      basename = ','.join(map(lambda x:x[1].basename,self.children));
+      basename = ','.join([x[1].basename for x in self.children]);
       basename = "%s(%s)" % (classname,basename);
       _dprint(4,"creating auto-name",basename,quals,kwquals);
       return scope[basename](*quals,**kwquals) << self;
@@ -410,7 +410,7 @@ def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
   else:
     qual0.extend(qual);
   # always merge keyword qualifiers
-  for kw,val in kwqual.iteritems():
+  for kw,val in kwqual.items():
     val0 = kwqual0.get(kw,[]);
     if not isinstance(val0,list):
       kwqual0[kw] = val0 = [val0];
@@ -550,15 +550,15 @@ class _NodeStub (object):
       # can't resolve? error
       if nodedef is None:
         traceback.print_stack();
-        raise NodeDefError,"can't define node '%s' using an argument of type '%s'"%(self.name,type(arg).__name__);
+        raise NodeDefError("can't define node '%s' using an argument of type '%s'"%(self.name,type(arg).__name__));
       # error NodeDef? reraise for processing by except clause below
       if nodedef.error:
         raise nodedef.error;
       # get classname from initrec
       try: 
-	classname = getattr(nodedef.initrec,'class');
+	      classname = getattr(nodedef.initrec,'class');
       except AttributeError:
-	raise NodeDefError,"init record of node '%s' missing class field, this is clearly impossible"%self.name;
+        raise NodeDefError("init record of node '%s' missing class field, this is clearly impossible"%self.name);
       # resolve list of children in the nodedef to a list of node stubs
       children = nodedef.children.resolve(self.scope,classname=classname,nodename=self.name);
       stepchildren = nodedef.stepchildren.resolve(self.scope,classname=classname,nodename=self.name);
@@ -571,7 +571,7 @@ class _NodeStub (object):
               stepchildren != self.stepchildren:
           _dprint(1,'old definition',self._initrec);
           _dprint(1,'new definition',initrec);
-          for (f,val) in initrec.iteritems():
+          for (f,val) in initrec.items():
             _dprint(2,f,val,self._initrec.get(f,None),val == self._initrec.get(f,None));
           # report error
           err = self._make_redefinition_error(this_stack,self._bind_stack,
@@ -738,8 +738,8 @@ class _NodeStub (object):
     return len(self.parents);
   def set_options (self,**kw):
     if not self.initialized():
-      raise NodeDefError,"set_options() on an uninitialized node";
-    for name,value in kw.iteritems():
+      raise NodeDefError("set_options() on an uninitialized node");
+    for name,value in kw.items():
       self._initrec[name] = value;
   def _get_definition_chain (self):
     """helper method for error reporting. Returns a list of DefinedHere
@@ -796,7 +796,7 @@ class _NodeStub (object):
   def add_children (self,*args):
     """adds children to node. Node stub must have been already initialized."""
     if not self.initialized():
-      raise UninitializedNode,"node %s not initialized"%(self.name,);
+      raise UninitializedNode("node %s not initialized"%(self.name,));
     children = _NodeDef.ChildList(args).resolve(self.scope);
     for num,node in children:
       self.children.append((len(self.children),node));
@@ -809,7 +809,7 @@ class _NodeStub (object):
   def add_stepchildren (self,*args):
     """adds stepchildren to node. Node stub must have been already initialized."""
     if not self.initialized():
-      raise UninitializedNode,"node %s not initialized"%(self.name,);
+      raise UninitializedNode("node %s not initialized"%(self.name,));
     stepchildren = _NodeDef.ChildList(args).resolve(self.scope);
     # add to stepchildren list
     for num,node in stepchildren:
@@ -893,7 +893,7 @@ class NodeGroup (dict):
     self.name = name;
   def __lshift__ (self,node):
     if not isinstance(node,_NodeStub):
-      raise TypeError,"can't use NodeGroup operator << with argument of type "+type(node).__name__;
+      raise TypeError("can't use NodeGroup operator << with argument of type "+type(node).__name__);
 #       nodedef = _NodeDef.resolve(node);
 #       _dprint(4,self.name,'<<',nodedef);
 #       # can't resolve? error
@@ -975,7 +975,7 @@ class _NodeRepository (dict):
     _dprint(3,"deleting orphan node",name);
     # get list of children names (don't wanna hold refs to them because
     # it interferes with the orphaning)
-    children = map(lambda x:x[1] and x[1].name,node.children) + map(lambda x:x[1] and x[1].name,node.stepchildren);
+    children = [x[1] and x[1].name for x in node.children] + [x[1] and x[1].name for x in node.stepchildren];
     del self[name];
     node = None;
     if children:
@@ -988,7 +988,7 @@ class _NodeRepository (dict):
   def rootmap (self):
     try: return self._roots;
     except:
-      raise TDLError,"Repository must be resolve()d to determine root nodes";
+      raise TDLError("Repository must be resolve()d to determine root nodes");
 
   def add_error (self,err,tb=None,error_limit=100):
     """adds an error object to internal error list.
@@ -1073,7 +1073,7 @@ class _NodeRepository (dict):
     elif isinstance(arg,str):
       return re.compile(arg+'$').match;
     else:
-      raise TypeError,("%s argument must be a a string, or None"%argname);
+      raise TypeError("%s argument must be a a string, or None"%argname);
   _make_OR_conditional = staticmethod(_make_OR_conditional);
 
   def search (self,return_names=False,subtree=None,name=None,tags=None,class_name=None):
@@ -1095,7 +1095,7 @@ class _NodeRepository (dict):
         tags = tags.split(" ");
       for tag in tags:
         if not isinstance(tag,str):
-          raise TypeError,"find: 'tags' argument must be a string, or a list of strings, or None";
+          raise TypeError("find: 'tags' argument must be a string, or a list of strings, or None");
         tag_conds.append(re.compile(tag).match);
     # create search function
     def search_condition (node):
@@ -1123,17 +1123,17 @@ class _NodeRepository (dict):
     # if no subtree specified, search whole repository
     if subtree is None:
       if return_names:
-        return [ name for name,node in self.iteritems()
+        return [ name for name,node in self.items()
                  if name_conditional(name) and search_condition(node) ];
       else:
-        return [ node for name,node in self.iteritems()
+        return [ node for name,node in self.items()
                  if name_conditional(name) and search_condition(node) ];
     # else search subtree rooted at 'subtree'
     else:
       if is_node(subtree):
         subtree = [ subtree ];
       elif not isinstance(subtree,(list,tuple)):
-        raise TypeError,"find: 'subtree' argument must be a node or a list of nodes";
+        raise TypeError("find: 'subtree' argument must be a node or a list of nodes");
       self._search_cookie += 1;
       # Define function to recursively search node and its children.
       # A list of matching nodes is returned.
@@ -1164,7 +1164,7 @@ class _NodeRepository (dict):
     or "name_prefix:*" """;
     match = lambda name:name.startswith(name_prefix) and (
                           len(name) == len(name_prefix) or name[len(name_prefix)] == ':');
-    return [ node for name,node in self.iteritems() \
+    return [ node for name,node in self.items() \
                   if match(name) and node._initrec is not None ];
 
   def resolve (self,cleanup_orphans):
@@ -1184,9 +1184,9 @@ class _NodeRepository (dict):
       # now assign sinks and spigots to vdm, unless they already have a
       # vdm parent
       self._have_vdm.add_children(*[ node for node in self._sinks
-        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.itervalues() ] ]);
+        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.values() ] ]);
       self._have_vdm.add_stepchildren(*[ node for node in self._spigots
-        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.itervalues() ] ]);
+        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.values() ] ]);
     else: # no vdm needed. So release ref to it even if explicitly created,
       # to ensure it is orphaned or kept as needed elsewhere.
       self._have_vdm = None;
@@ -1218,13 +1218,13 @@ class _NodeRepository (dict):
               node.stepchildren[ich-len(node.children)] = label,child;
             recursive_proc_assign(child,proc);
       # call function above on all "root" processor assignments
-      for proc,nodelist in self._proc_assignment.iteritems():
+      for proc,nodelist in self._proc_assignment.items():
         for node in nodelist:
           recursive_proc_assign(node,proc);
     # now go through node list, weed out uninitialized nodes, finalize
     # parents and children, etc.
     current_nodeindex = 1;
-    for (name,node) in self.iteritems():
+    for (name,node) in self.items():
       if not node.initialized():
         uninit.append(name);
       else:
@@ -1249,7 +1249,7 @@ class _NodeRepository (dict):
         # finalize the init-record by adding node name and children
         node.nodeindex = node._initrec.nodeindex = current_nodeindex;
         current_nodeindex += 1;
-        node._initrec.node_description = ':'.join((name,node.classname,node._debuginfo));
+        node._initrec.node_description = ':'.join(map(str, [name, node.classname, node._debuginfo]));
         node._initrec.name = node.name;
         _dprint(3,'checked node',node.name,'nodeindex',node.nodeindex);
         ch = None; # relinquish ref to node, otherwise orphan collection is confused
@@ -1268,11 +1268,11 @@ class _NodeRepository (dict):
     # not really an orphan, so we move it to the roots group instead
     len0 = len(self);
     if cleanup_orphans:
-      map(self.deleteOrphan,orphans);
+      list(map(self.deleteOrphan,orphans));
     _dprint(1,len0 - len(self),"orphans were deleted,",len(self._roots),"roots remain");
     # now that all nodeindices have been assigned, do another loop to resolve
     # the children specifications and replace them with node indices
-    for node in self.itervalues():
+    for node in self.values():
       if node.children.is_dict:
         children = dmi.record([(label,getattr(child,'nodeindex',-1))
                                   for label,child in node.children]);
@@ -1285,16 +1285,16 @@ class _NodeRepository (dict):
         node._initrec.step_children = [ child.nodeindex for label,child in node.stepchildren ];
       # assign parent list
       if node.parents:
-        node._initrec.parents = [ parent.nodeindex for parent in node.parents.itervalues() ];
+        node._initrec.parents = [ parent.nodeindex for parent in node.parents.values() ];
       
     # print roots in debug mode
     if _dbg.verbose > 3:
-      for node in self._roots.itervalues():
+      for node in self._roots.values():
         _printNode(node);
-    _dprint(2,"root nodes:",self._roots.keys());
+    _dprint(2,"root nodes:",list(self._roots.keys()));
     _dprint(1,len(self),"total nodes in repository");
     if _dbg.verbose>4:
-      _dprint(5,"nodes remaining:",self.keys());
+      _dprint(5,"nodes remaining:",list(self.keys()));
 
 class NodeScope (object):
   def __init__ (self,name=None,parent=None,test=False,quals=[],kwquals={}):
@@ -1359,7 +1359,7 @@ class NodeScope (object):
     """converts a dict (presumably, of keyword qualifiers) into a list of
     "key=value" strings."""
     return [ "=".join((str(key),NodeScope._resolve_to_string(value)))
-             for key,value in kwquals.iteritems() ];
+             for key,value in kwquals.items() ];
   _flatten_keyword_quals = staticmethod(_flatten_keyword_quals);
 
   def _apply_qualifiers (name,quals=[],kwquals={}):
@@ -1368,7 +1368,7 @@ class NodeScope (object):
     resolve_qual = NodeScope._resolve_to_string
     parts = [str(name)]
     parts.extend(resolve_qual(q) for q in quals)
-    parts.extend("%s=%s" % (str(k), resolve_qual(v)) for k,v in kwquals.iteritems())
+    parts.extend("%s=%s" % (str(k), resolve_qual(v)) for k,v in kwquals.items())
     return ':'.join(parts)
   _apply_qualifiers = staticmethod(_apply_qualifiers);
 
@@ -1427,7 +1427,7 @@ class NodeScope (object):
     _dprint(4,self.name,'<<',nodedef);
     # can't resolve? error
     if nodedef is None:
-      raise TypeError,"can't use NodeScope operator << with argument of type "+type(arg).__name__;
+      raise TypeError("can't use NodeScope operator << with argument of type "+type(arg).__name__);
     # error NodeDef? raise it as a proper exception
     if nodedef.error:
       raise nodedef.error;
@@ -1475,7 +1475,7 @@ class NodeScope (object):
     elif is_node(node):
       name = node.name;
     else:
-      raise TypeError,"FindFamily: 'node' argument must be a node or a node name";
+      raise TypeError("FindFamily: 'node' argument must be a node or a node name");
     return self._repository.find_node_family(name);
 
   def Repository (self):
@@ -1553,9 +1553,9 @@ def _printNode (node,name='',offset=0):
     header += name+": ";
   header += str(node);
   if node is None:
-    print header;
+    print(header);
   else:
-    print "%s: %.*s" % (header,78-len(header),str(node._initrec));
+    print("%s: %.*s" % (header,78-len(header),str(node._initrec)));
     for (ich,child) in node.children:
       _printNode(child,str(ich),offset+2);
     for (ich,child) in node.stepchildren:

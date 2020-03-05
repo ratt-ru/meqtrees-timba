@@ -23,7 +23,7 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from sets import Set
+#from sets import Set
 
 def SIGNAL (sig):
   """Emulates SIGNAL() in the absense of PyQt""";
@@ -53,7 +53,7 @@ class QObject (object):
     """Disconnects named signal of sender from receiver""";
     conns = sender._connections.get(signal,None);
     if conns:
-      sender._connections[signal] = filter(lambda x:x!=receiver,conns);
+      sender._connections[signal] = [x for x in conns if x!=receiver];
   disconnect = staticmethod(disconnect);
   
   def emit (signal,args):

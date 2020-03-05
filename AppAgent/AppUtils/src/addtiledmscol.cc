@@ -1,15 +1,15 @@
-#include <ms/MeasurementSets/MeasurementSet.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/Tables/ScaColDesc.h>
-#include <tables/Tables/TiledStManAccessor.h>
-#include <tables/Tables/TiledColumnStMan.h>
-#include <tables/Tables/IncrementalStMan.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/ScaColDesc.h>
+#include <casacore/tables/DataMan/TiledStManAccessor.h>
+#include <casacore/tables/DataMan/TiledColumnStMan.h>
+#include <casacore/tables/DataMan/IncrementalStMan.h>
 
 #include <iostream>
 using namespace std;
-using namespace casa;
+using namespace casacore;
 
 int main (int argc,char *argv[])
 {

@@ -26,8 +26,8 @@
 #include "DMI/NumArray.h"
 #include "DMI/Record.h"
 #include "TimBase/Debug.h"
-//#include <casa/Arrays/ArrayMath.h>
-//#include <casa/Arrays/ArrayLogical.h>
+//#include <casacore/casa/Arrays/ArrayMath.h>
+//#include <casacore/casa/Arrays/ArrayLogical.h>
 
 using namespace DebugDefault;
 using namespace DMI;

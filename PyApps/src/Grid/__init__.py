@@ -27,7 +27,7 @@ __all__ = [ "Cell","CellBlock","Page","Workspace","Services" ];
 
 from Timba.Grid import Services
 
-from Services import Floater,addDataItem,removeDataItem,updateDataItem
+from .Services import Floater,addDataItem,removeDataItem,updateDataItem
 from Timba.Grid.Cell import Cell
 from Timba.Grid.CellBlock import CellBlock
 from Timba.Grid.Page import Page
@@ -79,7 +79,7 @@ class DataItem (object):
         setattr(self,attr,getattr(udi,attr));
     else: # else new item
       if refresh and not callable(refresh):
-        raise ValueError,'refresh argument must be a callable';
+        raise ValueError('refresh argument must be a callable');
       self.udi      = udi;
       self.name     = name or udi;
       self.caption  = caption or udi;
@@ -97,15 +97,15 @@ class DataItem (object):
         if vc:
           viewer = vc;
         else:
-          raise TypeError,"unknown viewer type "+viewer;
+          raise TypeError("unknown viewer type "+viewer);
       # if viewer not specified, try to select from list
       if viewer is None:
         if not self.viewer_list:
-          raise TypeError,"no viewers registered and none specified";
+          raise TypeError("no viewers registered and none specified");
         viewer = self.viewer_list[0];
       else:
         if not callable(viewer):
-          raise TypeError,'viewer argument must be a callable';
+          raise TypeError('viewer argument must be a callable');
         # prepend to list
         if viewer not in self.viewer_list:
           self.viewer_list.insert(0,viewer);

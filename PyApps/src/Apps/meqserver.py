@@ -37,9 +37,10 @@ from Timba.Meq import meqds
 from Timba.Apps import app_defaults
 if app_defaults.include_gui:
   try:
+    from Timba.GUI import meqserver_gui
     from Timba.GUI.meqserver_gui import *
   except:
-    print "*** Error importing GUI modules:";
+    print("*** Error importing GUI modules:");
     traceback.print_exc();
     pass;
 
@@ -140,7 +141,7 @@ class meqserver (multiapp_proxy):
     elif isinstance(node,int):
       return record(nodeindex=node);
     else:
-      raise TypeError,'node must be specified by name or index, have '+str(type(node));
+      raise TypeError('node must be specified by name or index, have '+str(type(node)));
 
   def createnode (self,initrec,wait=False,silent=False):
     initrec = make_record(initrec);
@@ -161,7 +162,7 @@ class meqserver (multiapp_proxy):
     retval = self.meq('Get.NodeIndex',self.makenodespec(name),wait=True);
     try: return retval.nodeindex;
     except:
-      raise ValueError,'MeqServer did not return a nodeindex field';
+      raise ValueError('MeqServer did not return a nodeindex field');
 
   def getnodelist (self,name=True,nodeindex=True,classname=True,children=False):
     rec = record({'name':name,'nodeindex':nodeindex,'class':classname,'children':children});
@@ -213,7 +214,7 @@ class meqserver (multiapp_proxy):
       dprint(0,'============= result for node: ',value.name);
       self._pprint.pprint(value);
     except:
-      print 'exception in meqserver._result_handler: ',sys.exc_info();
+      print('exception in meqserver._result_handler: ',sys.exc_info());
       traceback.print_exc();
       
   def _axis_list_handler (self,msg):
@@ -222,7 +223,7 @@ class meqserver (multiapp_proxy):
             and getattr(msg,'from') == self.current_server.addr: \
         mequtils.set_axis_list(msg.payload);
     except:
-      print 'exception in meqserver._axis_list_handler: ',sys.exc_info();
+      print('exception in meqserver._axis_list_handler: ',sys.exc_info());
       traceback.print_exc();
   
   def track_results (self,enable=True):
@@ -305,17 +306,17 @@ if __name__ == '__main__':
 
   default_mqs(verbose=2,wp_verbose=2);
   for i in range(1,10):
-    print 'createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=False);
+    print('createnode:',mqs.createnode(meq.node('MeqConstant','x'+str(i),value=0),wait=False));
 
   if gui:
     mqs.run_gui(); 
   else:
     time.sleep(2);
 
-  print '================= stopping mqs';
+  print('================= stopping mqs');
   mqs.halt();
   mqs.disconnect();
 
-  print "===== calling octopussy.stop() =====";
+  print("===== calling octopussy.stop() =====");
   octopussy.stop();
 

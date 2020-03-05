@@ -19,7 +19,7 @@ To compile meqtrees-timba you need to meet the following requirements:
 * cmake
 * blitz++
 * python
-* casacore (2.0 or greater)
+* casacore (3.0 or greater)
 * casarest (1.3.1 or greater)
 * blas
 * lapack
@@ -41,19 +41,11 @@ make install
 ```
 
 
-## Ubuntu 14.04 packages
+## Ubuntu packages
 
-If you run Ubuntu 14.04 you can use precompiled binary packages
+If you run Ubuntu we recommand the KERN packages:
 
-https://launchpad.net/~radio-astro/+archive/ubuntu/main
-
-installation commands:
-```
-sudo apt-get install software-properties-common
-sudo add-apt-repository ppa:radio-astro/main
-sudo apt-get update
-sudo apt-get install meqtrees-timba
-```
+http://kernsuite.info
 
 
 # Documentation

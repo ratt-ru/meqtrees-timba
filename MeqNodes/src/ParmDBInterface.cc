@@ -182,7 +182,7 @@ ParmValue Funklet2ParmValue(Meq::Funklet::Ref  funklet){
 
 
 #else
-using namespace casa;
+using namespace casacore;
 #endif
 
 namespace Meq {

@@ -117,7 +117,7 @@ class app_proxy (verbosity):
     # ------------------------------ run/connect to app process
     if spawn: 
       if launch:
-        raise ValueError,'specify either launch or spawn, not both';
+        raise ValueError('specify either launch or spawn, not both');
       if isinstance(spawn,str):
         spawn = spawn.split(" ");
       # first argument is app binary
@@ -132,14 +132,14 @@ class app_proxy (verbosity):
             path = filename;
             break;
       if not os.path.isfile(path) or not os.access(path,os.X_OK):
-        raise RuntimeError,"can't spawn %s: not an executable file" % (path,);
+        raise RuntimeError("can't spawn %s: not an executable file" % (path,));
       self.dprint(1,"spawning",path,args);
       self.serv_pid = os.spawnv(os.P_NOWAIT,path,[path]+args);
       self.dprint(1,"spawned external server, pid",self.serv_pid);
       self.dprint(2,"waiting for Hello message from app");
       self._req_state = False;
     elif launch: # use py_app_launcher to run a local app thread
-      raise RuntimeError,"launch option temporarily disabled";
+      raise RuntimeError("launch option temporarily disabled");
 ##       self.dprint(1,"launching",launch);
 ##       (appname,inagent,outagent) = launch;
 ##       if not appname in py_app_launcher.application_names:
@@ -156,7 +156,7 @@ class app_proxy (verbosity):
     if gui:
       self.dprint(1,"starting a GUI");
       if not app_defaults.include_gui:
-        raise ValueError,'gui=True but app_defaults.include_gui=False';
+        raise ValueError('gui=True but app_defaults.include_gui=False');
       # gui argument can be a callable object (called to start the gui),
       # or simply True to use a standard GUI.
       if callable(gui):
@@ -332,7 +332,7 @@ class app_proxy (verbosity):
         res = self._pwp.await('*',resume=True,timeout=5);  # await anything, but keep looping until status changes
         self.dprint(3,'await returns',res);
         if time.time() >= endtime:
-          raise RuntimeError,"timeout waiting for connection";
+          raise RuntimeError("timeout waiting for connection");
     finally:
       self._pwp.resume_events();
     
@@ -414,7 +414,7 @@ class app_proxy (verbosity):
     while True:
       # throw error on disconnect
       if self.app_addr is None:
-        raise RuntimeError,"lost connection while waiting for event "+str(what);
+        raise RuntimeError("lost connection while waiting for event "+str(what));
       res = self._pwp.await(self._rcv_prefix + what,timeout=await_timeout,resume=resume);
       # return message if something is received
       if res is not None:
@@ -426,6 +426,6 @@ class app_proxy (verbosity):
     
   def run_gui (self):
     if not app_defaults.include_gui:
-      raise RuntimeError,"Can't call run_gui without gui support";
+      raise RuntimeError("Can't call run_gui without gui support");
     self._gui.await_gui_exit();
     

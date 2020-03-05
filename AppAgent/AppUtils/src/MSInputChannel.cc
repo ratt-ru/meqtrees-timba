@@ -28,32 +28,32 @@
 #include <TimBase/BlitzToAips.h>
 #include <DMI/AIPSPP-Hooks.h>
 
-#include <ms/MeasurementSets/MSAntenna.h>
-#include <ms/MeasurementSets/MSAntennaColumns.h>
-#include <ms/MeasurementSets/MSDataDescription.h>
-#include <ms/MeasurementSets/MSDataDescColumns.h>
-#include <ms/MeasurementSets/MSField.h>
-#include <ms/MeasurementSets/MSFieldColumns.h>
-#include <ms/MeasurementSets/MSPolarization.h>
-#include <ms/MeasurementSets/MSPolColumns.h>
-#include <ms/MeasurementSets/MSSpectralWindow.h>
-#include <ms/MeasurementSets/MSSpWindowColumns.h>
-#include <ms/MeasurementSets/MSRange.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/Stokes.h>
-#include <casa/Quanta/MVPosition.h>
-#include <casa/Containers/Record.h>
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ColumnDesc.h>
-#include <tables/Tables/ExprNode.h>
-#include <tables/Tables/ExprNodeSet.h>
-#include <tables/Tables/SetupNewTab.h>
-#include <tables/Tables/TableParse.h>
+#include <casacore/ms/MeasurementSets/MSAntenna.h>
+#include <casacore/ms/MeasurementSets/MSAntennaColumns.h>
+#include <casacore/ms/MeasurementSets/MSDataDescription.h>
+#include <casacore/ms/MeasurementSets/MSDataDescColumns.h>
+#include <casacore/ms/MeasurementSets/MSField.h>
+#include <casacore/ms/MeasurementSets/MSFieldColumns.h>
+#include <casacore/ms/MeasurementSets/MSPolarization.h>
+#include <casacore/ms/MeasurementSets/MSPolColumns.h>
+#include <casacore/ms/MeasurementSets/MSSpectralWindow.h>
+#include <casacore/ms/MeasurementSets/MSSpWindowColumns.h>
+#include <casacore/ms/MeasurementSets/MSRange.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/Stokes.h>
+#include <casacore/casa/Quanta/MVPosition.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ColumnDesc.h>
+#include <casacore/tables/TaQL/ExprNode.h>
+#include <casacore/tables/TaQL/ExprNodeSet.h>
+#include <casacore/tables/Tables/SetupNewTab.h>
+#include <casacore/tables/TaQL/TableParse.h>
 #include <unistd.h>
 
-using namespace casa;
+using namespace casacore;
 
 // temp kludge for gcc 4.1, as TableParse.h does not have these declarations,
 // only friend statements
@@ -651,9 +651,9 @@ int MSInputChannel::refillStream ()
               tapered_data(i,0,j) = datacube(i,0,j);
               tapered_data(i,shape[1]-1,j) = datacube(i,shape[1]-1,j);
               for( int k=1; k<shape[1]-1; k++ )
-                tapered_data(i,k,j) = (fcomplex(.50+0j)*datacube(i,k,j)+
-                                      fcomplex(.25+0j)*datacube(i,k-1,j)+
-                                      fcomplex(.25+0j)*datacube(i,k+1,j));
+                tapered_data(i,k,j) = (fcomplex(.50,+0)*datacube(i,k,j)+
+                                      fcomplex(.25,+0)*datacube(i,k-1,j)+
+                                      fcomplex(.25,+0)*datacube(i,k+1,j));
 //              if( hasflags )
 //                for( int k=1; k<shape[1]-1; k++ )
 //                  tapered_flags(i,k,j) = bitflagcube(i,k,j)|

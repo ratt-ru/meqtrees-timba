@@ -25,9 +25,10 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from dmi import *
+from .dmi import *
 import re
 import Timba.array
+import numpy as np
 
 # this returns a string repr of a container
 def _contToRepr (value,prec=None):
@@ -67,7 +68,7 @@ def str_complex (x,prec=None):
 # Map of inline conversion methods. Only available for those types for which
 # a complete & brief string form is available.
 # No methods are defined for containers
-TypeToInline = dict.fromkeys((bool,int,long,Timba.array.int32,Timba.array.uint8),lambda x,prec=None:str(x));
+TypeToInline = dict.fromkeys((bool,Timba.array.int32,Timba.array.int32,Timba.array.int32,Timba.array.uint8),lambda x,prec=None:str(x));
 TypeToInline[float] = str_float;
 TypeToInline[Timba.array.float32] = str_float;
 TypeToInline[Timba.array.float64] = str_float;
@@ -108,12 +109,12 @@ class dmi_repr (object):
       if not arg:
         return '[]';
       if isinstance(arg[0],list):
-        res = map(lambda x:list_to_str(x,prec=prec),arg);
+        res = [list_to_str(x,prec=prec) for x in arg];
         if res and res[0] is None:
          return None;
       else:
         func = TypeToInline.get(type(arg[0]),None);
-        res = func and map(lambda x:func(x,prec=prec),arg);
+        res = func and [func(x,prec=prec) for x in arg];
       if res is None:
         return None;
       else:
@@ -200,7 +201,7 @@ class dmi_repr (object):
       conv = lambda x: ('',x);
     elif isinstance(value,dict):
       braces = '{}';
-      iterator = value.iteritems();
+      iterator = iter(list(value.items()));
       conv = lambda x: (str(x[0])+': ',x[1]);
     elif isinstance(value,conv_error):
       return (value.details(),True);

@@ -26,7 +26,7 @@
 #include <DMI/AID-DMI.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/casa/BasicSL/Constants.h>
 
 // #include <string>               
 
@@ -97,7 +97,7 @@ void ThrustPointSourceVisibility::evaluateTensors (std::vector<Vells> & out,
 {
   // cells
   const Cells & cells = resultCells();
-  const double _2pi_over_c = -casa::C::_2pi / casa::C::c;
+  const double _2pi_over_c = -casacore::C::_2pi / casacore::C::c;
   // the frequency and time axis
   int nfreq = cells.ncells(Axis::FREQ);
   int ntime = cells.ncells(Axis::TIME);

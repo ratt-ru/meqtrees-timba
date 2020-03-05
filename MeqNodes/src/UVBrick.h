@@ -26,7 +26,7 @@
 
 //# Includes
 #include <MEQ/Node.h>
-#include <images/Images/PagedImage.h>
+#include <casacore/images/Images/PagedImage.h>
 //#include <MeqNodes/ReductionFunction.h>
 
 
@@ -64,10 +64,10 @@ public:
   
   // It seems these images can only be global as pointers, since no default (or convenient) contructor is available for use in the UVBrick constructor.
   // Maybe use TempImage object instead of PagedImage object.
-  casa::PagedImage<float>* _uvreal;
-  casa::PagedImage<float>* _uvimag;
-  casa::PagedImage<float>* _uvabs;
-  casa::PagedImage<float>* _patch;
+  casacore::PagedImage<float>* _uvreal;
+  casacore::PagedImage<float>* _uvimag;
+  casacore::PagedImage<float>* _uvabs;
+  casacore::PagedImage<float>* _patch;
 
   double _umax;
   double _vmax;

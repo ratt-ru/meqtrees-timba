@@ -28,14 +28,14 @@
 #include <MEQ/Cells.h>
 #include <TimBase/Debug.h>
 #include <TimBase/Lorrays.h>
-#include <casa/BasicMath/Math.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
+#include <casacore/casa/BasicMath/Math.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Vector.h>
 #include <DMI/List.h>
 #include <DMI/Record.h>
 #include <MEQ/Forest.h>
 
-using namespace casa;
+using namespace casacore;
 using namespace std;
 
 namespace Meq {

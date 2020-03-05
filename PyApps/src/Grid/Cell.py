@@ -139,10 +139,10 @@ class Cell (object):
     def _start_drag (self):
       item = self._grid_cell.content_dataitem();
       if item is not None:
-	drag = QDrag(self);
-	mimedata = QMimeData();
-	mimedata.setUrls([QUrl(item.udi)]);
-	drag.setMimeData(mimedata);
+        drag = QDrag(self);
+        mimedata = QMimeData();
+        mimedata.setUrls([QUrl(item.udi)]);
+        drag.setMimeData(mimedata);
         drag.exec_();
         
   def __init__ (self,parent,gridpos,page=None,fixed_cell=False,notitle=False,noviewer=False):
@@ -399,12 +399,12 @@ class Cell (object):
       ps = font.pointSize();
       if ps<0:
         ps = font.pixelSize();
-      rng = range(min(4,ps),15) + range(16,max(26,ps),2);
+      rng = list(range(min(4,ps),15)) + list(range(16,max(26,ps),2));
       for sz in rng:
-	self._font_qas[sz] = qa = ag.addAction(str(sz));
-	qa.setCheckable(True);
-	fontmenu.addAction(qa);
-	QObject.connect(qa,SIGNAL("toggled(bool)"),self._menu_currier.curry(self.set_font_size,sz));
+        self._font_qas[sz] = qa = ag.addAction(str(sz));
+        qa.setCheckable(True);
+        fontmenu.addAction(qa);
+        QObject.connect(qa,SIGNAL("toggled(bool)"),self._menu_currier.curry(self.set_font_size,sz));
       self._reset_font_menu(ps);
     if self._enable_viewers and self._viewers_menu:
       menu.addMenu(self._viewers_menu);
@@ -456,7 +456,7 @@ class Cell (object):
     that cell is always a leader cell."""
     # check that widget is our child
     if widget.parent() is not self.wtop():
-      raise ValueError,'content widget must be child of this Grid.Cell';
+      raise ValueError('content widget must be child of this Grid.Cell');
     _dprint(3,id(self),': setting content');
     # connect a click on the titlebar to highlight ourselves 
     self.connect(PYSIGNAL("clicked()"),self.exclusive_highlight);
@@ -476,7 +476,7 @@ class Cell (object):
     if dataitem is not None:
       self._udi = dataitem.udi;
       if leader is not None:
-        raise ValueError,"both dataitem and leader specified";
+        raise ValueError("both dataitem and leader specified");
       self._leader = None;
       _dprint(5,id(self),': dataitem is',dataitem);
       self.clear_menu();
@@ -485,16 +485,16 @@ class Cell (object):
       # build a "Display with" submenu 
       if len(dataitem.viewer_list) > 1:
         vmenu = self._viewers_menu = QMenu(self.wtop());
-	vmenu.setTitle("Display using");
-	vmenu.setIcon(pixmaps.viewmag.icon());
+        vmenu.setTitle("Display using");
+        vmenu.setIcon(pixmaps.viewmag.icon());
         for v in dataitem.viewer_list:
           # create entry for viewer
           name = getattr(v,'viewer_name',v.__name__);
           try: icon = v.icon();
           except AttributeError: icon = QIcon();
           func = self._menu_currier.xcurry(self._change_viewer,_args=(dataitem,v));
-	  qa = vmenu.addAction(icon,name,func);
-	  qa.setCheckable(True);
+          qa = vmenu.addAction(icon,name,func);
+          qa.setCheckable(True);
           qa.setChecked(v is dataitem.viewer_obj.__class__);
       else:
         self._viewers_menu = None;
@@ -517,7 +517,7 @@ class Cell (object):
       self.enable(dataitem.data is not None);
     else: # no dataitem, assume follower cell
       if leader is None:
-        raise ValueError,"leader must be specified if dataitem isn't";
+        raise ValueError("leader must be specified if dataitem isn't");
       _dprint(5,id(self),': leader is',leader);
       self._leader = leader;
       self._dataitem = leader._dataitem;

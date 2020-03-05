@@ -70,6 +70,10 @@
 # and embedding_in_qt4.py
 
 # modules that are imported
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 from Timba.dmi import *
 from Timba import utils
 from Timba.Meq import meqds
@@ -81,8 +85,8 @@ from Timba import Grid
 
 from PyQt4 import Qt
 
-from ResultsRange_qt4 import *
-from BufferSizeDialog_qt4 import *
+from .ResultsRange_qt4 import *
+from .BufferSizeDialog_qt4 import *
 
 from numpy import arange, sin, cos, pi
 import os, sys
@@ -98,9 +102,9 @@ try:
   import pylab
   has_pylab = True
 except:
-  print ' '
-  print '*** matplotlib/pylab not imported! ***'
-  print 'The system will assume that matplotlib is not present.'
+  print(' ')
+  print('*** matplotlib/pylab not imported! ***')
+  print('The system will assume that matplotlib is not present.')
 
 from Timba.utils import verbosity
 _dbg = verbosity(0,name='pylab_plotter');
@@ -269,12 +273,12 @@ class PylabPlotter(GriddedPlugin):
       rq_id_found = False
       data_failure = False
       try:
-        if self._rec.cache.has_key("request_id"):
+        if "request_id" in self._rec.cache:
           self.label = "rq " + str(self._rec.cache.request_id);
           rq_id_found = True
-        if self._rec.cache.has_key("result"):
+        if "result" in self._rec.cache:
           self._rec = self._rec.cache.result; # look for cache.result record
-          if not rq_id_found and self._rec.has_key("request_id"):
+          if not rq_id_found and "request_id" in self._rec:
             self.label = "rq " + str(self._rec.request_id);
         else:
           data_failure = True
@@ -316,7 +320,7 @@ class PylabPlotter(GriddedPlugin):
     """ process the actual record structure associated with a Cache result """
     process_result = False
 # are we dealing with an pylab result?
-    if self._rec.has_key("plotdefs"):
+    if "plotdefs" in self._rec:
       self.create_layout_stuff()
       self.show_pylab_plot()
       process_result = True
@@ -453,7 +457,7 @@ if has_pylab:
         progname = os.path.basename(sys.argv[0])
         progversion = "0.1"
         QMessageBox.about(self, "About %s" % progname,
-u"""%(prog)s version %(version)s
+"""%(prog)s version %(version)s
 Copyright \N{COPYRIGHT SIGN} 2005 Florent Rougon
 
 This program is a simple example of a Qt application embedding matplotlib
@@ -472,8 +476,8 @@ def main( argv ):
     aw.show()
     sys.exit(app.exec_())
   else:
-    print ' '
-    print '**** Sorry! It looks like matplotlib/pylab is not available! ****'
+    print(' ')
+    print('**** Sorry! It looks like matplotlib/pylab is not available! ****')
 
 
 # Admire

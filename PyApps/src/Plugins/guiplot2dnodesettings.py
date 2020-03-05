@@ -20,6 +20,9 @@
 # to link this program with  Qt non-commercial edition, and distribute
 # the resulting executable, without including the source code for the
 # Qt non-commercial edition in the source distribution.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 from qt import SIGNAL, Qt, QColorDialog
 
@@ -28,7 +31,7 @@ import qt
 import re
 import sys
 import types
-from dialog_window_config import *
+from .dialog_window_config import *
 #from tabdialog import *
 
 

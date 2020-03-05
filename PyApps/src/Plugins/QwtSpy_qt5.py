@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 #
 # Copyright (C) 2002-2007
 # ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -66,92 +63,37 @@
 #  CANADA					 CANADA
 #
 
-import sys
+# a small class used to get and emit mouse events 
+# Adapted from an ancient PyQwt example - thanks Gerard!
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
-from PyQt4 import Qt
+from qwt.qt.QtCore import QEvent, Signal, QObject
 
-# some simple classes to create a tree-like structure for viewing and 
-# selecting Vells data elements
+class Spy(QObject):
 
-#===========================================================================
+    MouseMove = Signal('PyQt_PyObject')
+    MousePress = Signal('PyQt_PyObject')
+    MouseRelease = Signal('PyQt_PyObject')
 
-class VellsElement( Qt.QTreeWidgetItem ) :
-  """
-  Inherits from QTreeWidgetItem so that we can store and return keys
-  """
-  def __init__( self, parent=None, after=None):
-    if after is None:
-      Qt.QTreeWidgetItem.__init__( self, parent)
-    else:
-      Qt.QTreeWidgetItem.__init__( self, parent, [after] )    # ....?
-    self.key = None
+    def __init__(self, parent):
+        QObject.__init__(self, parent)
+        parent.setMouseTracking(True)
+        parent.installEventFilter(self)
 
-  def setKey(self, key):
-    """
-    define a key associated with the QTreeWidgetItem
-    """
-    self.key = key
+    # __init__()
 
-  def getKey(self):
-    """
-    return the key associated with the QTreeWidgetItem
-    """
-    return self.key
+    def eventFilter(self, _, event):
+        if event.type() == QEvent.MouseMove:
+            self.MouseMove.emit(event)
+        if event.type() == QEvent.MouseButtonPress:
+            self.MousePress.emit(event)
+        if event.type() == QEvent.MouseButtonRelease:
+            self.MouseRelease.emit(event)
+        return False
 
+    # eventFilter()
 
-class VellsView(Qt.QTreeWidget) :
-  """
-  inherits from QListView so that we can get keys from VellsElements
-  """
-  def __init__( self, parent=None, name=None):
-    Qt.QTreeWidget.__init__( self, parent)
-    self.connect( self,
-                  Qt.SIGNAL('itemClicked(QTreeWidgetItem*, int)'),
-                  self.slotVellSelected )
-
-#   self.setWindowTitle("Element Selector")
-    labels = Qt.QStringList()
-    labels << self.tr("Element selector")
-    self.setHeaderLabels(labels)
-    self.header().hide();
-
-    # self.setSorting(-1)
-    # self.setRootIsDecorated( True );
-
-  # get and return the key associated with the element we just clicked
-  def slotVellSelected(self,i):
-    try:
-      result = i.getKey()
-      if not result is None:
-        self.emit(Qt.SIGNAL("selected_vells_id"),result)
-    except:
-      pass
-
-def main(args):
-  app = Qt.QApplication(args)
-  m_treeView =  VellsView()
-  root = VellsElement( m_treeView, "result" )
-  a = VellsElement( root , 'root');
-  a.setText(0,"beginning")
-  b = VellsElement( root, 'beginning')
-  b.setText(0,"item 0")
-  b.setKey("Pig")
-  e = VellsElement(root, 'pig');
-  e.setText(0,"item 5")
-  e.setKey("Chicken")
-  c = VellsElement( root, 'chicken')
-  c.setText(0,"item 10")
-  c.setKey("Ape")
-  d = VellsElement(a, 'donkey');
-  d.setText(0,"item one")
-  d.setKey("Donkey")
-
-  rect = Qt.QApplication.desktop().geometry();
-  m_treeView.move(rect.center() - m_treeView.rect().center())
-  m_treeView.show()
-  app.exec_()
-
-# Admire
-if __name__ == '__main__':
-    main(sys.argv)
+# class Spy
 

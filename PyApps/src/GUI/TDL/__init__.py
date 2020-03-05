@@ -6,12 +6,12 @@ from Timba.GUI.pixmaps import pixmaps
 from Timba import Grid
 
 try:
-  from TDLEditor_qscintilla import TDLEditor
+  from .TDLEditor_qscintilla import TDLEditor
 except:
-  from TDLEditor_standard import TDLEditor
+  from .TDLEditor_standard import TDLEditor
   
-from TDLErrorFloat import TDLErrorFloat
-from TDLOptionsDialog import TDLOptionsDialog
+from .TDLErrorFloat import TDLErrorFloat
+from .TDLOptionsDialog import TDLOptionsDialog
 
 
 
@@ -19,7 +19,7 @@ class TDLFileDataItem (Grid.DataItem):
   """represents a GridDataItem for a TDL script""";
   def __init__ (self,pathname):
     # read the file (exception propagated outwards on error)
-    ff = file(pathname);
+    ff = open(pathname);
     text = ff.read();
     ff.close();
     basename = os.path.basename(pathname);

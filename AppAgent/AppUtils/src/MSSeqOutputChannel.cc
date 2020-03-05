@@ -28,12 +28,12 @@
 #include <AppAgent/VisDataVocabulary.h>
 #include <TimBase/AipsppMutex.h>
 
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <casa/Arrays/Matrix.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/casa/Arrays/Matrix.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace AppAgent
 {

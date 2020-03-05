@@ -165,7 +165,7 @@ class Profiler (PersistentCurrier):
     self.clear();
     # build internal list of by-class stats
     self._stats = {};
-    for ni,node in meqds.nodelist.iteritems():
+    for ni,node in meqds.nodelist.items():
       self._stats[ni] = self.NodeStatEntry(node);
     # populate profiler view
     if self._stats:
@@ -215,24 +215,24 @@ class Profiler (PersistentCurrier):
       # set alignment	
       self.setTextAlignment(0,Qt.AlignLeft);
       if isinstance(name2,str):
-	self.setTextAlignment(1,Qt.AlignLeft);
+        self.setTextAlignment(1,Qt.AlignLeft);
       else:
-	self.setTextAlignment(1,Qt.AlignRight);
+        self.setTextAlignment(1,Qt.AlignRight);
       for col in range(2,self.columnCount()):
-	self.setTextAlignment(col,Qt.AlignRight);
+        self.setTextAlignment(col,Qt.AlignRight);
 
     def __lt__ (self,other):
       icol = self.treeWidget().sortColumn();
       try: return self._content[icol] < other._content[icol];
       except:  # other item not keyed
-	return self._content[icol] < 0;
+        return self._content[icol] < 0;
 
     def __ge__ (self,other):
       return other < self;
       
   def _summarize_stats (self,keyfunc,stats):
     sums = {};
-    for se in stats.itervalues():
+    for se in stats.values():
       key = keyfunc(se);
       try: sums[key] += se;
       except KeyError:
@@ -243,7 +243,7 @@ class Profiler (PersistentCurrier):
   def _generate_summary_stats (self,keyfunc,parent_item):
     # generate summary stats using the supplied key-function
     sums = self._summarize_stats(keyfunc,self._stats);
-    for key,se in sums.iteritems():
+    for key,se in sums.items():
       self.StatItem(parent_item,str(key),se.count,se);
         
   def _generate_node_items (self,nodelist,parent_item):

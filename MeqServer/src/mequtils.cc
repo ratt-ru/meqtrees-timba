@@ -32,6 +32,30 @@ namespace MeqUtils
 {
 using namespace OctoPython;
 
+extern "C" {
+
+  struct module_state {
+      PyObject *error;
+  };
+
+  #if PY_MAJOR_VERSION >= 3
+    #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
+    static int myextension_traverse(PyObject *m, visitproc visit, void *arg) {
+      Py_VISIT(GETSTATE(m)->error);
+      return 0;
+    }
+
+    static int myextension_clear(PyObject *m) {
+      Py_CLEAR(GETSTATE(m)->error);
+      return 0;
+    }
+  #else
+    #define GETSTATE(m) (&_state)
+    static struct module_state _state;
+  #endif
+
+}
+
 LocalDebugContext_ns;
 inline std::string sdebug (int=0) { return "MeqUtils"; }
 
@@ -145,12 +169,20 @@ static PyObject * set_axis_list (PyObject *, PyObject *args)
   returnNone;
 }
 
-static void deleteBoioObject (void *ptr)
-{
-  BOIO *pboio = static_cast<BOIO*>(ptr);
-  if( pboio )
-    delete pboio;
-}
+#if PY_MAJOR_VERSION >= 3
+  static void deleteBoioObject (_object *ptr)
+  {
+    if( ptr )
+      delete ptr;
+  }
+#else
+  static void deleteBoioObject (void *ptr)
+  {
+    BOIO *pboio = static_cast<BOIO*>(ptr);
+    if( pboio )
+      delete pboio;
+  }
+#endif
 
 static PyObject * open_boio (PyObject *, PyObject *args)
 {
@@ -163,7 +195,11 @@ static PyObject * open_boio (PyObject *, PyObject *args)
     // create BOIO object
     BOIO *pboio = new BOIO(filename);
     // return as a PyCObject
-    return PyCObject_FromVoidPtr(pboio,deleteBoioObject);
+    #if PY_MAJOR_VERSION >= 3
+      return PyCapsule_New(pboio, nullptr, deleteBoioObject);
+    #else
+      return PyCObject_FromVoidPtr(pboio, deleteBoioObject);
+    #endif
   }
   catchStandardErrors(NULL);
 
@@ -180,8 +216,14 @@ static PyObject * read_boio (PyObject *, PyObject *args)
   try
   {
     // extract pointer to BOIO object
-    FailWhen(!PyCObject_Check(pyboio),"argument is not a valid boio object");
-    BOIO *pboio = static_cast<BOIO*>(PyCObject_AsVoidPtr(pyboio));
+    #if PY_MAJOR_VERSION >= 3
+      FailWhen(!PyCapsule_CheckExact(pyboio),"argument is not a valid boio object");
+      BOIO *pboio = static_cast<BOIO*>(PyCapsule_GetPointer(pyboio, nullptr));
+    #else
+      FailWhen(!PyCObject_Check(pyboio),"argument is not a valid boio object");
+      BOIO *pboio = static_cast<BOIO*>(PyCObject_AsVoidPtr(pyboio));
+    #endif
+    
     FailWhen(!pboio,"argument is not a valid boio object");
     // read next entry
     ObjRef entry;
@@ -215,16 +257,40 @@ static PyMethodDef MeqUtilMethods[] = {
     { NULL, NULL, 0, NULL} };       /* Sentinel */
 
 
-void initMeqUtilsModule ()
+PyObject* initMeqUtilsModule ()
 {
   Debug::Context::initialize();
 
   // init the module
-  PyObject *module = Py_InitModule3("mequtils",MeqUtilMethods,
-        "various utilities for python-side meqkernel support");
-  if( !module )
+  #define INITERROR return NULL;
+  #if PY_MAJOR_VERSION < 3
+    PyObject *module = Py_InitModule3("mequtils",MeqUtilMethods,
+          "various utilities for python-side meqkernel support");
+  #else
+    static struct PyModuleDef mequtils =
+        {
+          PyModuleDef_HEAD_INIT,
+          "mequtils", /* name of module */
+          "various utilities for python-side meqkernel support\n", /* module documentation, may be NULL */
+          sizeof(struct module_state),  /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+          MeqUtilMethods,
+          NULL,
+          myextension_traverse,
+          myextension_clear,
+          NULL
+        };
+    PyObject *module = PyModule_Create(&mequtils);
+  #endif
+  if( !module ) {
     Throw("Py_InitModule3(\"mequtils\") failed");
-
+    INITERROR;
+  }
+  struct module_state *st = GETSTATE(module);
+  st->error = PyErr_NewException("mequtils.Error", NULL, NULL);
+  if (st->error == NULL) {
+      Py_DECREF(module);
+      INITERROR;
+  }
   PyObjectRef timbamod = PyImport_ImportModule("Timba");
   Py_INCREF(module); // AddObject will steal a ref, so increment it
   PyModule_AddObject(*timbamod,"mequtils",module);
@@ -232,25 +298,36 @@ void initMeqUtilsModule ()
   PyModule_AddObject(module,"max_axis",PyInt_FromLong(Meq::Axis::MaxAxis));
 
   // drop out on error
-  if( PyErr_Occurred() )
+  if( PyErr_Occurred() ){
     Throw("can't initialize module mequtils");
+    INITERROR;
+  }
+  return module;
 }
 
 
 extern "C"
 {
-
-PyMODINIT_FUNC initmequtils ()
+#if PY_MAJOR_VERSION >= 3
+  PyMODINIT_FUNC PyInit_mequtils ()
+#else
+  PyMODINIT_FUNC initmequtils ()
+#endif
 {
   Debug::Context::initialize();
-
   try
   {
-    initMeqUtilsModule();
+    PyObject* res = initMeqUtilsModule();
+    #if PY_MAJOR_VERSION >= 3
+      return res;
+    #endif
   }
   catch( std::exception &exc )
   {
     Py_FatalError(exc.what());
+    #if PY_MAJOR_VERSION >= 3
+      return NULL;
+    #endif
   }
 }
 

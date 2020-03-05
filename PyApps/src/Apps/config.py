@@ -25,7 +25,7 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from ConfigParser import *
+from configparser import *
 import os
 import os.path
 import sys
@@ -56,11 +56,25 @@ class DualConfigParser (object):
     section = section or self.defsection;
     # try user defaults
     try:
+      if option is None:
+        option = section
+        section = "Meqbrowser"
+      if section not in self.usercp.sections():
+        raise NoSectionError("Section {0:s} not found!".format(section))
+      if option not in self.usercp.options(section):
+        raise NoSectionError("Option {1:s} not found in section {0:s}!".format(option, section))
       return getattr(self.usercp,method)(section,option);
     except (NoSectionError,NoOptionError):
       error = sys.exc_info()[1]; 
     # try systemwide
     try:
+      if option is None:
+        option = section
+        section = "Meqbrowser"
+      if section not in self.usercp.sections():
+        raise NoSectionError("Section {0:s} not found!".format(section))
+      if option not in self.usercp.options(section):
+        raise NoSectionError("Option {1:s} not found in section {0:s}!".format(option, section))
       return getattr(self.syscp,method)(section,option);
     except (NoSectionError,NoOptionError):
       if default is not None:
@@ -83,7 +97,7 @@ class DualConfigParser (object):
     except DuplicateSectionError: pass;
     self.usercp.set(section,option,value);
     if save:
-      self.usercp.write(file(_user_file,"w"));
+      self.usercp.write(open(_user_file,"w"));
       
   def has_option (self,section,option):
     return self.syscp.has_option(section,option) or \
@@ -123,20 +137,20 @@ def section (name):
 
 if __name__ == '__main__':
   conf = Config('test');
-  print 'test1:',conf.get('test1',1);
-  print 'test2:',conf.getint('test2',2);
-  print 'test3:',conf.getfloat('test3',3.0);
+  print('test1:',conf.get('test1',1));
+  print('test2:',conf.getint('test2',2));
+  print('test3:',conf.getfloat('test3',3.0));
   try:
-    print 'test4:',conf.get('test4');
+    print('test4:',conf.get('test4'));
   except:
-    print 'test4:',sys.exc_info();
+    print('test4:',sys.exc_info());
   try:
-    print 'test5:',conf.get('test5');
+    print('test5:',conf.get('test5'));
   except:
-    print 'test5:',sys.exc_info();
+    print('test5:',sys.exc_info());
   conf.set('test6','abc');
   conf.set('test7',1);
   conf.set('test8',1.0);
   conf.set('test9',True);
-  print 'has test1:',conf.has_option('test1');
-  print 'has test4:',conf.has_option('test4');
+  print('has test1:',conf.has_option('test1'));
+  print('has test4:',conf.has_option('test4'));

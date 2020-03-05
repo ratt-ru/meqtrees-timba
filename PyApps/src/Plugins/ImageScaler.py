@@ -67,6 +67,9 @@
 #  Victoria BC V9E 2E7			 Victoria BC V9E 2E7
 #  CANADA					 CANADA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import sys
 import numpy
@@ -247,18 +250,18 @@ class ImageScaler:
     return rv
 
 def main(args):
-  b = 1 + numpy.array(range(1000))
+  b = 1 + numpy.array(list(range(1000)))
   c = 1.0 * b
   a = ImageScaler(1, 256, c.min(), c.max(), True)
-  print a.logarithmic()
-  print a.d2()
-  print a.cnv()
+  print(a.logarithmic())
+  print(a.d2())
+  print(a.cnv())
   d = a.iTransform(c)
-  print 'd = ',  d
+  print('d = ',  d)
   d = a.xTransform(c)
-  print 'd = ',  d
+  print('d = ',  d)
   e = a.invTransform(d)
-  print 'e = ',  e
+  print('e = ',  e)
 
 if __name__ == '__main__':
     main(sys.argv)

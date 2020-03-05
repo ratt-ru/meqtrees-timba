@@ -36,14 +36,14 @@ import Trut
 
 from Trut import _dprint,_dprintf
 
-import TrutTDL
+from . import TrutTDL
 
 class TrutLogger (object):
   def __init__ (self,logfile,verbose=0,console=False):
     """Creates a logger. 'logfile' can be a filename or a file object. 'verbosity' specifies
     the verbosity level."""
     if logfile is None:
-      raise TypeError,"'logfile' should be a filename or a file object";
+      raise TypeError("'logfile' should be a filename or a file object");
     self.set_file(logfile);
     self.verbose = verbose;
     self._is_console = console;
@@ -89,28 +89,29 @@ class TrutLogger (object):
     if logfile is not None:
       if isinstance(logfile,str):
         self.filename = logfile;
-        self.fileobj = file(logfile,'w');
+        self.fileobj = open(logfile,'w');
       elif isinstance(logfile,file):
         self.filename = None;
         self.fileobj = logfile;
       else:
-        raise TypeError,"'logfile' should be a filename or a file object";
+        raise TypeError("'logfile' should be a filename or a file object");
       
   def merge_file (self,logfile):
     """merges the given file into our log.""";
     _dprint(2,"merging in logfile",logfile);
     if logfile is None:
       return None;
+    import six, io
     if isinstance(logfile,str):
-      self.fileobj.writelines(file(logfile,'r'));
-    elif isinstance(logfile,file):
+      self.fileobj.writelines(open(logfile,'r'));
+    elif isinstance(logfile, file if six.PY2 else io.IOBase):
       # logfile.seek(0);
       # for line in logfile:
       #   _dprint(0,os.getpid(),"merging from",logfile,line);
       logfile.seek(0);
       self.fileobj.writelines(logfile);
     else:
-      raise TypeError,"'logfile' should be a filename or a file object";
+      raise TypeError("'logfile' should be a filename or a file object");
 
 STDERR = sys.stderr;
 
@@ -147,7 +148,7 @@ class TrutBatchRun (Trut.Unit):
     argument should be the return value of _allocate_tmp_loggers(), above.""";
     if tmplogs:
       if len(tmplogs) != len(self.loggers):
-        raise ValueError,"length of tmplogs argument does not match number of loggers";
+        raise ValueError("length of tmplogs argument does not match number of loggers");
       for tmplog,logger in zip(tmplogs,self.loggers):
         logger.set_file(tmplog);
   
@@ -156,7 +157,7 @@ class TrutBatchRun (Trut.Unit):
     should be the return value of _allocate_tmp_loggers(), above.""";
     if tmplogs:
       if len(tmplogs) != len(self.loggers):
-        raise ValueError,"length of tmplogs argument does not match number of loggers";
+        raise ValueError("length of tmplogs argument does not match number of loggers");
       for tmplog,logger in zip(tmplogs,self.loggers):
         logger.merge_file(tmplog);
         
@@ -186,7 +187,7 @@ def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1,cache=Tru
   usecache = cache;
   try:
     cache = {};
-    for line in file(testcache).readlines():
+    for line in open(testcache).readlines():
       filename,rtime = line.split(' ');
       cache[filename] = int(rtime);
   except:
@@ -233,7 +234,7 @@ def run_files (files,verbosity=10,log_verbosity=40,persist=1,maxjobs=1,cache=Tru
       break;
   # cache successful tests
   if cache:
-    file(testcache,'w').writelines(["%s %d\n"%cc for cc in cache.iteritems()]);
+    open(testcache,'w').writelines(["%s %d\n"%cc for cc in cache.items()]);
   # this will print a fail/success message
   result = batchrun.success();
   if not result:

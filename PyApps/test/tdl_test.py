@@ -22,7 +22,7 @@ def _define_forest (ns,**kwargs):
   define the forest. The 'ns' argument is a NodeScope object in which
   the forest is to be defined, usually this is simply the global scope.
   """;
-  print "_define_solver() kwargs",kwargs;
+  print("_define_solver() kwargs",kwargs);
   ns['solver'] << Meq.Solver(
       num_iter=15,debug_level=10,solvable="x",epsilon=1e-5,last_update=True,save_funklets=True,
       children = Meq.Condeq(

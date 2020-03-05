@@ -13,6 +13,7 @@ set(meqServer_includes
     src/TypeIter-MeqServer.h
     src/VisDataMux.h
     src/VisHandlerNode.h
+    src/py3compat.h
 )
 INCLUDE_SETUP(MeqServer ${meqServer_includes})
 

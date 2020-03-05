@@ -1,4 +1,4 @@
-//  NumArray.h: casa::Array container (using Blitz Arrays)
+//  NumArray.h: casacore::Array container (using Blitz Arrays)
 //
 //  Copyright (C) 2002-2007
 //  ASTRON (Netherlands Foundation for Research in Astronomy)
@@ -236,7 +236,7 @@
 #include <DMI/NumArrayFuncs.h>
 
 #ifdef HAVE_AIPSPP
-#include <casa/Arrays.h>
+#include <casacore/casa/Arrays.h>
 #include <TimBase/BlitzToAips.h>
 #endif
 
@@ -299,11 +299,11 @@ public:
 #ifdef HAVE_AIPSPP
   // templated constructor makes a copy of the given AIPS++ array
   template<class T>
-  explicit NumArray (const casa::Array<T> & array,TypeId realtype=0);
+  explicit NumArray (const casacore::Array<T> & array,TypeId realtype=0);
   
   // templated method to init with a copy of the given AIPS++ array
   template<class T>
-  void init (const casa::Array<T> & array,TypeId realtype=0);
+  void init (const casacore::Array<T> & array,TypeId realtype=0);
 #endif
 
   // Copy (ref/cow semantics unless DMI::DEEP is specified).
@@ -368,7 +368,7 @@ public:
   // Returns contents as an AIPS++ array (by copy or reference)
   //  argument allows you to say "function_one((T*)0)" instead)
   template<class T>
-  casa::Array<T> copyAipsArray (const T*) const;
+  casacore::Array<T> copyAipsArray (const T*) const;
 #endif
   
     //##ModelId=400E4D68035F
@@ -482,12 +482,12 @@ private:
   void make_reference (void * pdata,bool writable,
             const LoShape &shape,const LoShape &strides,const NumArray &other);
 
-  // Create the actual casa::Array object.
+  // Create the actual casacore::Array object.
   // It is created from the array data part in the SmartBlock.
     //##ModelId=3DB949AF002B
   void makeArray();
 
-  // Clear the object (thus remove the casa::Array).
+  // Clear the object (thus remove the casacore::Array).
     //##ModelId=3DB949AF002C
   void clear();
 
@@ -562,9 +562,9 @@ private:
   // helper function to implement templates below without resorting to a
   // specialization (which seems to cause redefined symbol trouble)
   template<class T>
-  static bool isStringArray (const casa::Array<T> &);
+  static bool isStringArray (const casacore::Array<T> &);
   // helper function returns True if array contains the same data type
-  // (with AIPS++ casa::String matching Tpstring)
+  // (with AIPS++ casacore::String matching Tpstring)
   template<class T>
   bool verifyAipsType (const T*) const;
   // helper function copies strings from source array
@@ -637,11 +637,11 @@ NumArray::NumArray (const blitz::Array<T,N> &array,TypeId realtype)
 
 #ifdef HAVE_AIPSPP
 template<class T>
-inline bool NumArray::isStringArray (const casa::Array<T> &)
+inline bool NumArray::isStringArray (const casacore::Array<T> &)
 { return false; }
   
 template<>
-inline bool NumArray::isStringArray (const casa::Array<casa::String> &)
+inline bool NumArray::isStringArray (const casacore::Array<casacore::String> &)
 { return true; }
 
 template<class T> 
@@ -651,14 +651,14 @@ inline bool NumArray::verifyAipsType (const T*) const
 }
 
 template<> 
-inline bool NumArray::verifyAipsType (const casa::String*) const
+inline bool NumArray::verifyAipsType (const casacore::String*) const
 {
   return itsScaType == Tpstring;
 }
 
 // templated constructor from an AIPS++ array
 template<class T>
-NumArray::NumArray (const casa::Array<T> &array,TypeId realtype)
+NumArray::NumArray (const casacore::Array<T> &array,TypeId realtype)
 : Container(),
   itsArrayValid(false),
   itsWritableRef(false)    
@@ -668,9 +668,9 @@ NumArray::NumArray (const casa::Array<T> &array,TypeId realtype)
 }
 
 template<class T>
-void NumArray::init (const casa::Array<T> &array,TypeId realtype)
+void NumArray::init (const casacore::Array<T> &array,TypeId realtype)
 {
-  FailWhen( array.ndim() > 10,"NumArray(casa::Array<T>): illegal array rank" );
+  FailWhen( array.ndim() > 10,"NumArray(casacore::Array<T>): illegal array rank" );
   itsScaType  = isStringArray(array) ? Tpstring : typeIdOf(T);
   itsElemSize = isStringArray(array) ? sizeof(string) : sizeof(T);
   itsType     = TpArray(itsScaType,array.ndim());
@@ -695,13 +695,13 @@ void NumArray::init (const casa::Array<T> &array,TypeId realtype)
 
 
 template<class T>
-casa::Array<T> NumArray::copyAipsArray (const T* dum) const
+casacore::Array<T> NumArray::copyAipsArray (const T* dum) const
 {
   FailWhen( !valid(),"invalid NumArray" );
   FailWhen( !verifyAipsType(dum),"array type mismatch" );
   switch( rank() )
   {
-    case 0: return casa::Array<T>();
+    case 0: return casacore::Array<T>();
     case 1: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,1>::Array*>(itsArray));
     case 2: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,2>::Array*>(itsArray));
     case 3: return B2A::copyBlitzToAips(*reinterpret_cast<const typename Traits<T,3>::Array*>(itsArray));

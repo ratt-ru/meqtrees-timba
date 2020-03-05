@@ -26,7 +26,7 @@
 #include <MeqNodes/AID-MeqNodes.h>
 #include <DMI/AID-DMI.h>
 #include <DMI/List.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/casa/BasicSL/Constants.h>
 #include <cmath>
 
 namespace Meq {
@@ -75,7 +75,7 @@ const int num_children = sizeof(child_labels)/sizeof(child_labels[0]);
 
 WSRTCos3Beam::WSRTCos3Beam()
 : TensorFunction(num_children,child_labels,2),
-  clip_(100*(casa::C::pi/180))
+  clip_(100*(casacore::C::pi/180))
 {
   // dependence on frequency
   const HIID symdeps[] = { AidDomain,AidResolution };

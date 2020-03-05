@@ -8,7 +8,6 @@
 # WARNING! All changes made in this file will be lost!
 
 
-
 #% $Id: BufferSizeDialog.py 5418 2007-07-19 16:49:13Z oms $ 
 
 #
@@ -31,31 +30,35 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
-from PyQt4 import Qt
 import sys
 
+from qwt.qt.QtGui import (QApplication, QDialog, QHBoxLayout,
+         QLabel, QSizePolicy, QSlider, QPushButton, QVBoxLayout, QSpinBox, QSpacerItem)
+from qwt.qt.QtCore import Qt, QSize, QObject, pyqtSignal
+from qwt.qt.QtGui import QWidget, QFont, QFontInfo
 
-class BufferSizeDialog(Qt.QDialog):
+
+class BufferSizeDialog(QDialog):
+
+    return_value = pyqtSignal(int)
+
     def __init__(self, buffersize = 0, parent = None,name = None,modal = True,fl = 0):
-#       Qt.QDialog.__init__(self,parent,fl)
-        Qt.QDialog.__init__(self,parent)
+        QDialog.__init__(self,parent)
+
         self.setModal(modal)
 
-#       if not name:
-#           self.setName("BufferSizeDialog")
+        BufferSizeDialogLayout = QVBoxLayout(self)
 
+        layout1 = QHBoxLayout(None)
 
-#       BufferSizeDialogLayout = Qt.QVBoxLayout(self,11,6,"BufferSizeDialogLayout")
-        BufferSizeDialogLayout = Qt.QVBoxLayout(self)
-
-#       layout1 = Qt.QHBoxLayout(None,0,6,"layout1")
-        layout1 = Qt.QHBoxLayout(None)
-
-        self.label = Qt.QLabel(self)
+        self.label = QLabel(self)
         layout1.addWidget(self.label)
 
-        self.spinBox1 = Qt.QSpinBox(self)
+        self.spinBox1 = QSpinBox(self)
         self.spinBox1.setMinimum(0)
         self.spinBox1.setWrapping(True)
         self.spinBox1.setValue(buffersize)
@@ -64,57 +67,42 @@ class BufferSizeDialog(Qt.QDialog):
         layout1.addWidget(self.spinBox1)
         BufferSizeDialogLayout.addLayout(layout1)
 
-#       layout3 = Qt.QHBoxLayout(None,0,6,"layout3")
-        layout3 = Qt.QHBoxLayout(None)
-        spacer1 = Qt.QSpacerItem(71,31,Qt.QSizePolicy.Expanding,Qt.QSizePolicy.Minimum)
+        layout3 = QHBoxLayout(None)
+        spacer1 = QSpacerItem(71,31,QSizePolicy.Expanding,QSizePolicy.Minimum)
         layout3.addItem(spacer1)
 
-        self.okButton = Qt.QPushButton("okButton",self)
+        self.okButton = QPushButton("okButton",self)
         layout3.addWidget(self.okButton)
 
-        self.cancelButton = Qt.QPushButton("cancelButton",self)
+        self.cancelButton = QPushButton("cancelButton",self)
         layout3.addWidget(self.cancelButton)
         BufferSizeDialogLayout.addLayout(layout3)
 
-        self.languageChange()
+        self.resize(QSize(267,84).expandedTo(self.minimumSizeHint()))
 
-        self.resize(Qt.QSize(267,84).expandedTo(self.minimumSizeHint()))
-#       self.clearWState(Qt.Qt.WState_Polished)
-
-        self.connect(self.okButton,Qt.SIGNAL("clicked()"),self.runDone)
-        self.connect(self.cancelButton,Qt.SIGNAL("clicked()"),self.runCancel)
-        self.connect(self.spinBox1,Qt.SIGNAL("valueChanged(int)"),self.updateValue)
+        self.okButton.clicked.connect(self.runDone)
+        self.cancelButton.clicked.connect(self.runCancel)
+        self.spinBox1.valueChanged.connect(self.updateValue)
 
         self.label.setBuddy(self.spinBox1)
 
-
-#   def languageChange(self):
-#       self.setCaption(self.__tr("Specify Buffer Size"))
-#       self.label.setText(self.__tr("Buffer Size"))
-#       self.okButton.setText(self.__tr("OK"))
-#       self.cancelButton.setText(self.__tr("Cancel"))
 
 
     def updateValue(self,a0):
         self.value = a0
 
     def runDone(self):
-        self.emit(Qt.SIGNAL("return_value"),self.value)
+        self.return_value.emit(self.value)
         self.done(self.value)
 
     def runCancel(self):
         self.value = -1
         self.runDone()
 
-    def __tr(self,s,c = None):
-        return qApp.translate("BufferSizeDialog",s,c)
-
-
 def main(args):
-    app = Qt.QApplication(args)
+    app = QApplication(args)
     demo = BufferSizeDialog(10)
     demo.show()
-#   app.setMainWidget(demo)
     app.exec_()
 
 # main()

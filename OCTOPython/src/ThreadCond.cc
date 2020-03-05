@@ -48,7 +48,11 @@ typedef struct
 static void
 TC_dealloc(PyThreadCond* self)
 {
-  self->ob_type->tp_free((PyObject*)self);
+  #if PY_MAJOR_VERSION < 3
+    self->ob_type->tp_free((PyObject*)self);
+  #else
+    // Not defined??
+  #endif
 }
 
 // -----------------------------------------------------------------------
@@ -157,8 +161,7 @@ static PyMethodDef TC_methods[] = {
 };
 
 PyTypeObject PyThreadCondType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                          /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0) //This will work in both python 2.7 and >3
     "octopython.thread_condition", /*tp_name*/
     sizeof(PyThreadCond),          /*tp_basicsize*/
     0,                          /*tp_itemsize*/

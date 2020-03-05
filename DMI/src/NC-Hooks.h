@@ -201,9 +201,9 @@ string & operator = ( const char *cstr ) const
 // assigning an AIPS++ array will init a DMI::Array object. This
 // will also work for Vectors, Matrices and Cubes
 template<class T>
-void operator = (const casa::Array<T> &other) const;
+void operator = (const casacore::Array<T> &other) const;
 // assigning an AIPS++ string assigns an STL string 
-string & operator = (const casa::String &other) const;
+string & operator = (const casacore::String &other) const;
 #endif
 
 // assigning an array returns void

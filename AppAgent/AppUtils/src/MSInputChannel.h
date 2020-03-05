@@ -29,8 +29,8 @@
 #include <VisCube/VisVocabulary.h>
 #include <VisCube/VTile.h>
 
-#include <ms/MeasurementSets/MeasurementSet.h>
-#include <tables/Tables/TableIter.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/Tables/TableIter.h>
 #include <AppAgent/FileChannel.h>
 
 namespace AppAgent
@@ -118,9 +118,9 @@ class MSInputChannel : public FileChannel
     //##ModelId=3DFDFC06033A
       string msname_;
     //##ModelId=3DF9FECD0199
-      casa::MeasurementSet ms_;
+      casacore::MeasurementSet ms_;
     //##ModelId=3DF9FECD019A
-      casa::MeasurementSet selms_;
+      casacore::MeasurementSet selms_;
 
       // VDS id
     //##ModelId=3E00AA5101A0
@@ -207,7 +207,7 @@ class MSInputChannel : public FileChannel
 
       // iterator
     //##ModelId=3DF9FECD01EE
-      casa::TableIterator tableiter_;
+      casacore::TableIterator tableiter_;
 
       // tile format
     //##ModelId=3DF9FECD01F6

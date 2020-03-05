@@ -34,7 +34,7 @@ from Timba import mequtils
 
 import weakref
 import types
-import new
+#import new # oldstyle classes are dropped as of python 3, use type() instead
 import re
 import time
 import copy
@@ -45,7 +45,7 @@ try:
   from PyQt4.Qt import QObject,SIGNAL
   from Kittens.widgets import PYSIGNAL
 except:
-  print "Qt not available, substituting proxy types for QObject";
+  print("Qt not available, substituting proxy types for QObject");
   from Timba.Apps.QObject import QObject,PYSIGNAL
 
 _dbg = verbosity(0,name='meqds');
@@ -69,7 +69,7 @@ def NodeClass (nodeclass=None):
 #  nodeclass = nodeclass.lower();
 #  cls = _NodeClassDict.get(nodeclass,None);
 #  if cls is None:
-#    cls = _NodeClassDict[nodeclass] = new.classobj(nodeclass,(_meqnode_nodeclass,),{});
+#    cls = _NodeClassDict[nodeclass] = type(nodeclass,(_meqnode_nodeclass,),{});
 #  return cls;
 
 # this is copied verbatim from the ControlStates definition in MEQ/Node.h
@@ -160,7 +160,7 @@ class NodeList (QObject):
       # creates a format string for formatting child labels.
       except AttributeError:
         if self.children:
-          keylengths = map(lambda ch:len(str(ch[0])),self.children);
+          keylengths = [len(str(ch[0])) for ch in self.children];
           if len(keylengths) > 1:
             maxlen = max(*keylengths);
           else:
@@ -242,7 +242,7 @@ class NodeList (QObject):
   # initialize from a MEQ-produced nodelist
   def load (self,meqnl):
     if not self.is_valid_meqnodelist(meqnl):
-      raise ValueError,"not a valid meqnodelist";
+      raise ValueError("not a valid meqnodelist");
     self.serial = getattr(meqnl,'forest_serial',0);
     # make sure we have a proclist. If only one
     # list arrives, stuff it into proclist anyway
@@ -274,17 +274,17 @@ class NodeList (QObject):
         for ni in sublist.nodeindex:
           # insert node into list (or use old one: may have been inserted below)
           node = self._nimap.setdefault(ni,self.Node(ni,self));
-          node.name      = iter_name.next();
-          node.classname = iter_class.next();
+          node.name      = next(iter_name);
+          node.classname = next(iter_class);
           node.proc      = proc;
-          node.update_status(iter_cstate.next(),iter_rqid.next());
-          children  = iter_children.next();
-          step_children  = iter_step_children.next();
+          node.update_status(next(iter_cstate),next(iter_rqid));
+          children  = next(iter_children);
+          step_children  = next(iter_step_children);
           # set children
           if children is None:
             node.children = ();
           elif isinstance(children,dict):
-            node.children = tuple(children.iteritems());
+            node.children = tuple(children.items());
           else:
             node.children = tuple(enumerate(children));
           # set step_children
@@ -294,10 +294,10 @@ class NodeList (QObject):
             node.step_children = step_children;
           # set profiling stats, form them into 2D arrays for easier accounting
           if iter_prof is not None:
-            ps = iter_prof.next();
+            ps = next(iter_prof);
             try: node.profiling_stats = array([ps.total[0:2],ps.children[0:2],ps.get_result[0:2]]);
             except KeyError: node.profiling_stats = sys.exc_info();
-            cs = iter_cache.next();
+            cs = next(iter_cache);
             try: node.cache_stats = array([cs.all_requests,cs.new_requests]);
             except KeyError: node.cache_stats = sys.exc_info();
           # for all children, init node entry in list (if necessary), and
@@ -312,7 +312,7 @@ class NodeList (QObject):
           # add to class map
           self._classmap.setdefault(node.classname,[]).append(node);
     # compose list of root (i.e. parentless) nodes
-    self._rootnodes = [ node for node in self._nimap.itervalues() if not node.parents ];
+    self._rootnodes = [ node for node in self._nimap.values() if not node.parents ];
     # emit signal
     self.emit(SIGNAL("loaded"),meqnl,);
     
@@ -324,9 +324,9 @@ class NodeList (QObject):
   def classes (self):
     return self._classmap;
   def iteritems (self):
-    return self._nimap.iteritems();
+    return iter(self._nimap.items());
   def iternodes (self):
-    return self._nimap.itervalues();
+    return iter(self._nimap.values());
   def has_profiling (self):
     return self._has_profiling;
   # mapping methods
@@ -336,10 +336,10 @@ class NodeList (QObject):
   # helper method: selects name or nodeindex map depending on key type
   def _map_ (self,key):
     if not hasattr(self,'_namemap'):
-      raise KeyError,"nodelist is empty";
+      raise KeyError("nodelist is empty");
     if isinstance(key,str):      return self._namemap;
     elif isinstance(key,int):    return self._nimap;
-    else:                        raise TypeError,"invalid node key "+str(key);
+    else:                        raise TypeError("invalid node key "+str(key));
   def __getitem__ (self,key):
     return self._map_(key).__getitem__(key);
   def __contains__ (self,key):
@@ -348,7 +348,7 @@ class NodeList (QObject):
     if __debug__:
       if isinstance(key,string):  assert value.name == key;
       elif isinstance(key,int):   assert value.nodeindex == key;
-      else:                       raise TypeError,"invalid node key "+str(key);
+      else:                       raise TypeError("invalid node key "+str(key));
     self._nimap[node.nodeindex] = self._namemap[node.name] = node;
   def __iter__(self):
     return iter(self._nimap);
@@ -380,7 +380,7 @@ def _node_subudi (name,nodeindex):
 def node_udi (node,suffix=None):
   """creates a UDI from a node record or node index or node name""";
   try: (name,index) = (node.name,node.nodeindex);
-  except AttributeError,KeyError: 
+  except AttributeError as KeyError: 
     node = nodelist[node];
     (name,index) = (node.name,node.nodeindex);
   udi = "/node/" + _node_subudi(name,index);
@@ -391,7 +391,7 @@ def node_udi (node,suffix=None):
 def snapshot_udi (node,rqid='',count='',suffix=None):
   """creates a snapshot UDI from a node state record.""";
   try: (name,index) = (node.name,node.nodeindex);
-  except AttributeError,KeyError: 
+  except AttributeError as KeyError: 
     node = nodelist[node];
     (name,index) = (node.name,node.nodeindex);
   udi = "/snapshot/%s:%s/%s"%(rqid,count,_node_subudi(name,index));
@@ -423,7 +423,7 @@ def nodeobject (node):
 def mqs ():
   mqs1 = _mqs or (callable(_mqs) and _mqs());
   if mqs1 is None:
-    raise RuntimeError,"meqserver not initialized or not running";
+    raise RuntimeError("meqserver not initialized or not running");
   return mqs1;
 
 
@@ -450,7 +450,7 @@ def parse_udi (udi):
   # parse udi
   ff = udi.split('/',3);
   if ff[0] != '' or len(ff)<2:
-    raise ValueError,"invalid UDI: "+udi;
+    raise ValueError("invalid UDI: "+udi);
   cat = ff[1];
   if cat == 'forest':
     return (cat,'','/'.join(ff[2:]));
@@ -481,7 +481,7 @@ def make_parsed_udi_caption (cat,name,trailer):
   if cat == 'node':
     match = _patt_Udi_NodeName.match(name);
     if not match:
-      raise ValueError,"invalid udi "+'/'.join((cat,name,trailer));
+      raise ValueError("invalid udi "+'/'.join((cat,name,trailer)));
     # check name or node index
     (name,nodeindex) = match.groups();
     node = nodelist[name or nodeindex];

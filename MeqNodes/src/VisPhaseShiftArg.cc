@@ -24,7 +24,7 @@
 #include <MeqNodes/VisPhaseShiftArg.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/casa/BasicSL/Constants.h>
 
 namespace Meq {    
 
@@ -77,7 +77,7 @@ void VisPhaseShiftArg::evaluateTensors (std::vector<Vells> & out,
   
   // compute argument term
   Vells r1 = -(vu*vl + vv*vm + vw*vn);
-  const double _2pi_over_c = casa::C::_2pi / casa::C::c;
+  const double _2pi_over_c = casacore::C::_2pi / casacore::C::c;
 
   int nfreq = cells.ncells(Axis::FREQ);
   Vells freq(0,Axis::vectorShape(Axis::FREQ,nfreq),false);

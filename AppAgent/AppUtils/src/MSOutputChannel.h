@@ -30,11 +30,11 @@
 #include <VisCube/VisVocabulary.h>
 #include <VisCube/VTile.h>
 
-#include <ms/MeasurementSets/MeasurementSet.h>
-#include <casa/Arrays/Slicer.h>
-#include <casa/Arrays/Array.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ScalarColumn.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/casa/Arrays/Slicer.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
 
 namespace AppAgent
 {
@@ -100,7 +100,7 @@ class MSOutputChannel : public FileChannel
     typedef struct
     {
       string name;
-      casa::ArrayColumn<casa::Complex> col;
+      casacore::ArrayColumn<casacore::Complex> col;
       bool   valid;
     }
     Column;
@@ -144,7 +144,7 @@ class MSOutputChannel : public FileChannel
     string msname_;
 
     //##ModelId=3E2BC34C0076
-    casa::MeasurementSet ms_;
+    casacore::MeasurementSet ms_;
 
     //##ModelId=3E2D5FF503A1
     DMI::Record params_;
@@ -183,7 +183,7 @@ class MSOutputChannel : public FileChannel
     int chan_incr_;
 
     //##ModelId=3E2D5FF60119
-    casa::Slicer column_slicer_;
+    casacore::Slicer column_slicer_;
 
     //##ModelId=3E42745300A8
     Column datacol_;
@@ -193,15 +193,15 @@ class MSOutputChannel : public FileChannel
     Column rescol_;
 
     //##ModelId=3E2ED50E0113
-    casa::ScalarColumn<casa::Bool> rowFlagCol_;
-    casa::ArrayColumn<casa::Bool> flagCol_;
+    casacore::ScalarColumn<casacore::Bool> rowFlagCol_;
+    casacore::ArrayColumn<casacore::Bool> flagCol_;
 
-    casa::ArrayColumn<casa::Int> bitflagCol_;
-    casa::ScalarColumn<casa::Int> rowBitflagCol_;
+    casacore::ArrayColumn<casacore::Int> bitflagCol_;
+    casacore::ScalarColumn<casacore::Int> rowBitflagCol_;
 
     //##ModelId=3F5F43630379
-    casa::Array<casa::Complex> null_cell_;
-    casa::Array<casa::Int> null_bitflag_cell_;
+    casacore::Array<casacore::Complex> null_cell_;
+    casacore::Array<casacore::Int> null_bitflag_cell_;
 };
 
 

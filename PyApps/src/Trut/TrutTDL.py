@@ -33,7 +33,7 @@ class TDLScript (Trut.Unit):
   """The 'TDL' directive describes a TDL script that will be compiled and, optionally, run""";
   def __init__ (self,name,parent=None):
     if not isinstance(parent,Trut.File):
-      raise Trut.ParseError,"'TDL' directive must be at global level";
+      raise Trut.ParseError("'TDL' directive must be at global level");
     Trut.Unit.__init__(self,name,parent=parent);
     self._mqs = None;
     self._module = None;  # compiled module
@@ -100,7 +100,7 @@ class TDLJob (Trut.Unit):
   It should appear inside a TDLScript stanza""";
   def __init__ (self,name,parent=None):
     if not isinstance(parent,TDLScript):
-      raise Trut.ParseError,"misplaced 'Job' directive";
+      raise Trut.ParseError("misplaced 'Job' directive");
     Trut.Unit.__init__(self,name,parent=parent);
     
   def execute (self):

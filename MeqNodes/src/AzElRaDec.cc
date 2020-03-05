@@ -27,16 +27,16 @@
 #include <MEQ/Cells.h>
 #include <MEQ/AID-Meq.h>
 #include <MeqNodes/AID-MeqNodes.h>
-#include <measures/Measures/MCBaseline.h>
-#include <measures/Measures/MCDirection.h>
-#include <measures/Measures/MBaseline.h>
-#include <measures/Measures/MPosition.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/MeasTable.h>
-#include <casa/Quanta/MVuvw.h>
+#include <casacore/measures/Measures/MCBaseline.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/measures/Measures/MBaseline.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/MeasTable.h>
+#include <casacore/casa/Quanta/MVuvw.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace Meq {
   

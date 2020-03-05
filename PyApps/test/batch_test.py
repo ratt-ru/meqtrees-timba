@@ -39,7 +39,7 @@ if __name__ == '__main__':
   mqs = meqserver.default_mqs(wait_init=10);
   #  mqs = meqserver.default_mqs(wait_init=5,spawn=None); # if already running
 
-  print 'meqserver state:',mqs.current_server.state;
+  print('meqserver state:',mqs.current_server.state);
 
   (mod,ns,msg) = Compile.compile_file(mqs,'tdl_test.tdl');
 
@@ -52,6 +52,6 @@ if __name__ == '__main__':
 
   res = mqs.execute('x',req,wait=True);
 
-  print res;
+  print(res);
 
   meq.halt();

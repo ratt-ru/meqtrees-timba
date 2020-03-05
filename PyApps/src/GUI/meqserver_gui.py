@@ -116,7 +116,7 @@ class meqserver_gui (app_proxy_gui):
     # This is meant to update relevant GUI elements, etc.
     QObject.connect(self,PYSIGNAL("isConnected()"),self._check_connection_status);
 
-    _dprint(2,"meqserver-specific init");
+    _dprint(0,"meqserver-specific init");
     # size window if stored in config
     width = max(100,min(Config.getint('browser-window-width',0),4000));
     height = max(50,min(Config.getint('browser-window-height',0),2000));
@@ -355,7 +355,7 @@ class meqserver_gui (app_proxy_gui):
 
     # add menu actions for recent scripts
     tdl_menu.addSeparator();
-    self._recent_scripts = filter(bool,Config.get('recent-tdl-scripts','').split(';;'));
+    self._recent_scripts = list(filter(bool,Config.get('recent-tdl-scripts','').split(';;')));
     self._qa_recent_scripts = [
       tdl_menu.addAction("recent script %d"%i,self.curry(self._load_recent_script_number,i),Qt.CTRL+key)
       for i,key in enumerate((Qt.Key_1,Qt.Key_2,Qt.Key_3,Qt.Key_4,Qt.Key_5))
@@ -445,7 +445,7 @@ class meqserver_gui (app_proxy_gui):
     # scan all modules for define_mainmenu_actions methods, and call them all
     self._actions = {};
     funcs = set();
-    for (name,mod) in sys.modules.items():
+    for (name,mod) in list(sys.modules.items()):
       _dprint(4,'looking for mainmenu actions in',name);
       try:
         if name.startswith("Timba") and callable(mod.define_mainmenu_actions):
@@ -598,12 +598,12 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self.log_message("starting meqserver process \"%s %s\" and waiting for connection"%(pathname,args));
     self._kernel_pid = self._kernel_pid0 = Timba.Apps.spawnvp_nowait(pathname,[pathname]+args.split(' '));
     _dprint(0,"started meqserver process",self._kernel_pid);
+    # tell the client to attach as soon as it sees this pid
+    self.app.auto_attach(pid=self._kernel_pid,host=None);
     self._kernel_pathname = pathname;
     self._connect_timer.setSingleShot(True);
     self._connect_timer.start(8000);  # start an 8-second timer
     self._check_connection_status();
-    # tell the client to attach as soon as it sees this pid
-    self.app.auto_attach(pid=self._kernel_pid,host=None);
 
   def _connection_timeout (self):
     """called by connection timer when it expires""";
@@ -798,8 +798,8 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       dialog.setWindowTitle("Load TDL Script");
       # add sidebar URL for Cattery and other packages
       urls = list(dialog.sidebarUrls());
-      for pkg,(path,version) in Timba.packages().iteritems():
-	urls.append(QUrl.fromLocalFile(path));
+      for pkg,(path,version) in Timba.packages().items():
+      	urls.append(QUrl.fromLocalFile(path));
       dialog.setSidebarUrls(urls);
     if dialog.exec_() == QDialog.Accepted:
       self._load_tdl_script(str(dialog.selectedFiles()[0]));
@@ -812,22 +812,22 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       index = self.maintab.indexOf(tab);
       self.maintab.setCurrentIndex(index);
       if tab.confirm_close():
-	tab.disable_editor();
-	del self._tdl_tabs[path];
-	self.maintab.removeTab(index);
-	tab.setParent(QWidget());
+        tab.disable_editor();
+        del self._tdl_tabs[path];
+        self.maintab.removeTab(index);
+        tab.setParent(QWidget());
     # change working directory
     cwd = self._qa_loadtdl_cwd.isChecked();
     Config.set('cwd-follows-tdlscript',cwd);
     if cwd:
       dirname = os.path.dirname(filename);
       if os.access(dirname,os.W_OK):
-	self.change_working_directory(dirname,browser=True,kernel=True);
+	      self.change_working_directory(dirname,browser=True,kernel=True);
       else:
-	QMessageBox.warning(self,"Cannot change directory","""
-	  <P><NOBR>Cannot change working directory to </NOBR><tt>%s</tt>, as it is not writable.</P>
-	  <P>Will keep using the current working directory, <tt>%s</tt>.</P>"""%(dirname,os.getcwd()),
-	  "OK");
+	      QMessageBox.warning(self,"Cannot change directory","""
+                                  <P><NOBR>Cannot change working directory to </NOBR><tt>%s</tt>, as it is not writable.</P>
+                                  <P>Will keep using the current working directory, <tt>%s</tt>.</P>"""%(dirname,os.getcwd()),
+                                  "OK");
     # show this file
     self.show_tdl_file(filename,run=True);
     self._add_recent_script(filename,save=True);
@@ -855,12 +855,12 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
 
   def _show_tdl_line_numbers (self,show):
     Config.set('tdl-show-line-numbers',show);
-    for tab in self._tdl_tabs.itervalues():
+    for tab in self._tdl_tabs.values():
       tab.show_line_numbers(show);
 
   def show_tdl_file (self,pathname,run=False,mainfile=None,show=True):
-    if not isinstance(pathname,str):
-      raise TypeError,"show_tdl_file: string argument expected";
+    if not isinstance(pathname,str) and not isinstance(pathname,unicode):
+      raise TypeError("show_tdl_file: string argument expected, but got {}".format(type(pathname)));
     if mainfile is None:
       self._main_tdlfile = pathname;
       self._enable_run_current();  # update GUI
@@ -872,7 +872,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
       _dprint(1,'No tab open, loading',pathname);
     # try to load file into new tab
       try:
-        ff = file(pathname);
+        ff = open(pathname);
         text = ff.read();
         ff.close();
       except:
@@ -979,7 +979,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
 
   def _tdltab_compile_file (self,origin_tab,filename,show=True,import_only=False):
     # reset all tab icons
-    for tab in self._tdl_tabs.itervalues():
+    for tab in self._tdl_tabs.values():
       self.maintab.setTabIcon(self.maintab.indexOf(tab),QIcon());
     # load file as needed
     tab = self._tdl_tabs.get(filename,None);
@@ -1006,13 +1006,13 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
     self.maintab.setTabText(self.maintab.indexOf(tab),name);
 
   def _tdltab_change (self,tab,pathname):
-    for (path,tab1) in list(self._tdl_tabs.iteritems()):
+    for (path,tab1) in list(self._tdl_tabs.items()):
       if tab is tab1:
         del self._tdl_tabs[path];
         self._tdl_tabs[pathname] = tab;
         self._tdltab_reset_label(tab);
         return;
-    raise ValueError,"tab not found in map";
+    raise ValueError("tab not found in map");
 
   def _show_tdl_error (self,index,filename,line,column):
     """Shows error with the given index, in file filename, at the given location.
@@ -1054,7 +1054,7 @@ auto-publishing via the Bookmarks menu.""",QMessageBox.Ok);
 
   def tree_is_in_sync (self,sync):
     if sync != self._is_tree_in_sync:
-      for (path,tab) in list(self._tdl_tabs.iteritems()):
+      for (path,tab) in list(self._tdl_tabs.items()):
         tab.tree_is_in_sync(sync);
       if sync:
         self._qa_jobs.setIcon(pixmaps.gear.icon());
@@ -1066,7 +1066,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
       self._is_tree_in_sync = sync;
 
   def _tdltab_close (self,tab):
-    for (path,tab1) in list(self._tdl_tabs.iteritems()):
+    for (path,tab1) in list(self._tdl_tabs.items()):
       if tab is tab1:
         if path == self._main_tdlfile:
           self._main_tdlfile = None;
@@ -1079,7 +1079,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
           self.maintab.removeTab(self.maintab.indexOf(tab));
           tab.setParent(QWidget());
         return;
-    raise ValueError,"tab not found in map";
+    raise ValueError("tab not found in map");
 
   def closeEvent (self,event):
     if self._verify_quit():
@@ -1284,7 +1284,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
 
   def ce_ProcessStatus (self,ev,value):
     _dprint(5,'status:',ev,value);
-    self._wstat.setStatus(map(int,value));
+    self._wstat.setStatus(list(map(int,value)));
 
   def _checkStateUpdate (self,ev,value):
     try:
@@ -1371,8 +1371,8 @@ Warning! You have modified the script since it was last compiled, so the tree ma
   def ce_NodeResult (self,ev,value):
     self.update_node_state(value,ev);
     if self._qa_log_results.isChecked():
-      print "### received result for node",getattr(value,'name','');
-      print value;
+      print("### received result for node",getattr(value,'name',''));
+      print(value);
     if self.resultlog.enabled:
       txt = '';
       name = getattr(value,'name','') or "#" + str(value.nodeindex);
@@ -1390,7 +1390,7 @@ Warning! You have modified the script since it was last compiled, so the tree ma
         udi=udi,name=name,desc=desc,caption=caption,viewopts=meqgui.defaultResultViewopts,flood_protection=0);
       wtop = self.resultlog.wtop();
       if self.maintab.currentWidget() is not wtop and not wtop._newresults:
-	itab = self.maintab.indexOf(wtop);
+        itab = self.maintab.indexOf(wtop);
         self.maintab.setTabText(itab,wtop._newres_label);
         self.maintab.setTabIcon(itab,wtop._newres_icon);
         wtop._newresults = True;

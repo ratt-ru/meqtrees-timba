@@ -22,6 +22,9 @@
 # or write to the Free Software Foundation, Inc., 
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 from Timba.dmi import *
 from Timba import utils
@@ -54,7 +57,7 @@ class ArrayTable(QTable):
   # changes content
   def set_array (self,arr):
     if not 1<=arr.ndim<=2:
-      raise TypeError,"illegal array dimensionality";
+      raise TypeError("illegal array dimensionality");
     self._arr = arr;
     self._rank = arr.ndim;
     _dprint(3,"rank is", self._rank);
@@ -98,8 +101,8 @@ class ArrayTable(QTable):
     return self._prec;
 
   def repaint_cells (self):
-    cols = range(min(self.columnAt(0),0),max(self.columnAt(self.width())+1,self.numCols()));
-    rows = range(min(self.rowAt(0),0),max(self.rowAt(self.height())+1,self.numRows()));
+    cols = list(range(min(self.columnAt(0),0),max(self.columnAt(self.width())+1,self.numCols())));
+    rows = list(range(min(self.rowAt(0),0),max(self.rowAt(self.height())+1,self.numRows())));
     self._colsizes = None; # sets paint mode for paintCell
     for row in rows:
       for col in cols:

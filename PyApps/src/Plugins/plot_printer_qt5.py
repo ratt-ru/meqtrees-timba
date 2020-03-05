@@ -67,10 +67,11 @@
 #  Victoria BC V9E 2E7			 Victoria BC V9E 2E7
 #  CANADA					 CANADA
 #
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
-from PyQt4 import Qt
-import PyQt4.Qwt5 as Qwt
-import printfilter_qt4
+import printfilter_qt5
 
 class plot_printer:
   def __init__(self, plotter, colorbar=None):
@@ -86,7 +87,7 @@ class plot_printer:
     qpainter = Qt.QPainter(qprinter)
     paint_device = qpainter.device()
     width = paint_device.width()
-    height = (width / hor_widgets) * vert_widgets
+    height = (width // hor_widgets) * vert_widgets
 #   qpainter.setClipRect(0, 0, width, height, qpainter.CoordPainter)
     qpainter.setClipRect(0, 0, width, height)
     return qpainter
@@ -100,11 +101,11 @@ class plot_printer:
     if hor_widgets > 1:
       if paint_device.width() > paint_device.height():
         # width of plots in x-direction is the largest (wrt. paintdevice)
-        width = paint_device.width() / hor_widgets
+        width = paint_device.width() // hor_widgets
         height = width # quadratically sized plots
       else:
         # height of plots in x-direction is the largest (wrt. paintdevice)
-        height = paint_device.height() / hor_widgets
+        height = paint_device.height() // hor_widgets
         width = height # quadratically sized plots
       if not self.colorbar is None:
         try:
@@ -114,7 +115,7 @@ class plot_printer:
         except:
           self.colorbar[0].printPlot(qpainter,
             Qt.QRect(0, 0, 0.12 * width, height), filter)
-          print 'colorbar plot excepted'
+          print('colorbar plot excepted')
         if is_complex:
           try:
             self.colorbar[1].print_(qpainter,
@@ -129,7 +130,7 @@ class plot_printer:
       except:
         self.plotter.printPlot(qpainter,
           Qt.QRect(0.16 * width, 0, 1.4 * width, height), filter)
-        print 'main plot excepted'
+        print('main plot excepted')
     else:
       width = paint_device.width()
       if width > paint_device.height():

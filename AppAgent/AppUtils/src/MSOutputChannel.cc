@@ -28,16 +28,16 @@
 #include <AppAgent/VisDataVocabulary.h>
 #include <TimBase/AipsppMutex.h>
 
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/Tables/ScaColDesc.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/TiledStManAccessor.h>
-#include <tables/Tables/TiledColumnStMan.h>
-#include <tables/Tables/IncrementalStMan.h>
-#include <casa/Arrays/Matrix.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/ScaColDesc.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/DataMan/TiledStManAccessor.h>
+#include <casacore/tables/DataMan/TiledColumnStMan.h>
+#include <casacore/tables/DataMan/IncrementalStMan.h>
+#include <casacore/casa/Arrays/Matrix.h>
 
-using namespace casa;
+using namespace casacore;
 
 namespace AppAgent
 {
@@ -84,11 +84,11 @@ void MSOutputChannel::close (const string &msg)
 void MSOutputChannel::close_ms ()
 {
   LOFAR::Thread::Mutex::Lock lock(aipspp_mutex);
-  rowFlagCol_.reference(casa::ScalarColumn<casa::Bool>());
-  flagCol_.reference(casa::ArrayColumn<casa::Bool>());
-  datacol_.col.reference(casa::ArrayColumn<casa::Complex>());
-  predictcol_.col.reference(casa::ArrayColumn<casa::Complex>());
-  rescol_.col.reference(casa::ArrayColumn<casa::Complex>());
+  rowFlagCol_.reference(casacore::ScalarColumn<casacore::Bool>());
+  flagCol_.reference(casacore::ArrayColumn<casacore::Bool>());
+  datacol_.col.reference(casacore::ArrayColumn<casacore::Complex>());
+  predictcol_.col.reference(casacore::ArrayColumn<casacore::Complex>());
+  rescol_.col.reference(casacore::ArrayColumn<casacore::Complex>());
   ms_ = MeasurementSet();
   msname_ = "(none)";
 }

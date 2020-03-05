@@ -27,8 +27,8 @@
     
 #include <MEQ/TensorFunction.h>
 #include <MEQ/Vells.h>
-#include <scimath/Functionals/CompiledFunction.h>
-#include <scimath/Functionals.h>
+#include <casacore/scimath/Functionals/CompiledFunction.h>
+#include <casacore/scimath/Functionals.h>
 #include <MEQ/MeqVocabulary.h>
 
 #include <MeqNodes/TID-MeqNodes.h>
@@ -68,10 +68,10 @@ protected:
   void fill_double_xval(std::vector<Vells> & out,const std::vector<Vells::Ref>  &args,const Vells::Shape &outshape,const Vells::Strides * strides_);
   void map_parameters(int, int, const std::vector<int> & );
 
-  casa::CompiledFunction<casa::DComplex> * itsComplexFunction;
-  casa::CompiledFunction<double> * itsRealFunction;
-  //casa::CompiledFunction<casa::DComplex> itsComplexFunction;
-  //casa::CompiledFunction<casa::Double> itsRealFunction;
+  casacore::CompiledFunction<casacore::DComplex> * itsComplexFunction;
+  casacore::CompiledFunction<double> * itsRealFunction;
+  //casacore::CompiledFunction<casacore::DComplex> itsComplexFunction;
+  //casacore::CompiledFunction<casacore::Double> itsRealFunction;
   int Ndim_,Ninput_;
   string function_string_;
   std::vector<LoShape> shapes_;

@@ -268,7 +268,8 @@ class TreeBrowser (QObject):
       items = [];
       # sort children into proper order
       children = list(self.node.children);
-      children.sort(self._compare_children);
+      from functools import cmp_to_key
+      children.sort(key=cmp_to_key(self._compare_children));
       # generate items for each child
       for (key,ni) in children:
         if ni > 0:
@@ -280,7 +281,7 @@ class TreeBrowser (QObject):
           i1 = QTreeWidgetItem();
           i1.setText(0,name);
         setattr(i1,'_sort_label',key);
-	items.append(i1);
+        items.append(i1);
       for ni in self.node.step_children:
         node = meqds.nodelist[ni];
         name = "(" + node.name +")";
@@ -296,15 +297,16 @@ class TreeBrowser (QObject):
       except ValueError: pass;
       try:  b = int(b);
       except ValueError: pass;
+      from past.builtins import cmp
       if isinstance(a,int):
-	if isinstance(b,int):
-	  return cmp(a,b);
-	else:
-	  return 1;
+	      if isinstance(b,int):
+	        return cmp(a,b);
+	      else:
+	        return 1;
       elif isinstance(b,int):
-	return -1;
+	      return -1;
       else:
-	return cmp(a,b);
+	      return cmp(a,b);
 	
     def curry (self,*args,**kwargs):
       cb = curry(*args,**kwargs);
@@ -322,7 +324,7 @@ class TreeBrowser (QObject):
       acts = self.tb.get_action_list(which);
       acts.sort(); # sorts by priority
       for (pri,action) in acts:
-	_dprint(5,'action',action,'of type',type(action).__name__);
+        _dprint(5,'action',action,'of type',type(action).__name__);
         if action is None:                # add separator
           separator = True;
         elif isinstance(action,QAction):  # add regular action 
@@ -341,7 +343,7 @@ class TreeBrowser (QObject):
               self._menu_actions.append(na);
               separator = False;
         else:
-          raise TypeError,'unknown action type '+type(action).__name__;
+          raise TypeError('unknown action type '+type(action).__name__);
     
     def _set_node_breakpoint (self,node,mask,set=True):
       if self._set_breakpoints_quietly:
@@ -370,8 +372,8 @@ class TreeBrowser (QObject):
         #label2.setIndent(10);
         #label2.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Minimum);
         #menu.insertItem(label);
-	menu.addAction(pixmaps.breakpoint.icon(),"Set breakpoint at:");
-	# Kittens.widgets.addMenuLabel(menu,"Set breakpoint at:");
+        menu.addAction(pixmaps.breakpoint.icon(),"Set breakpoint at:");
+	      # Kittens.widgets.addMenuLabel(menu,"Set breakpoint at:");
         for st in meqds.CS_ES_statelist:
           title = ''.join(('    ',node.name,':',st[1]));
           bpmask = meqds.breakpoint_mask(st[0]);
@@ -399,7 +401,7 @@ class TreeBrowser (QObject):
         node = self.node;
         menu = self._context_menu = QMenu(self.treeWidget());
         # insert title
-	Kittens.widgets.addMenuLabel(menu,"""<b>%s</b> 											<i><small>(%s)</small></i>"""%(node.name,node.classname));
+        Kittens.widgets.addMenuLabel(menu,"""<b>%s</b> 											<i><small>(%s)</small></i>"""%(node.name,node.classname));
         # menu.insertItem(pixmaps.info_blue_round.icon(),"Show icon reference...",self.tb.show_icon_reference);
         # insert viewer list submenus
         viewer_list = Grid.Services.getViewerList(meqds.NodeClass(node.classname));
@@ -420,7 +422,7 @@ class TreeBrowser (QObject):
         # add debugging menu
         menu.addMenu(self.debug_menu());
       # refresh all node actions
-      map(lambda a:a.update(menu,self.node),self._menu_actions);
+      list(map(lambda a:a.update(menu,self.node),self._menu_actions));
       return menu;
       
     def paintCell (self,painter,cg,column,width,align):
@@ -489,14 +491,14 @@ class TreeBrowser (QObject):
     stopped_brushes = { 0:  None,
                         1:  QBrush(QColor("lightblue")), 
                         2:  QBrush(QColor("skyblue")) };
-    for status,qb1 in status_brushes.iteritems():
-      for stopped,qb2 in stopped_brushes.iteritems():
+    for status,qb1 in status_brushes.items():
+      for stopped,qb2 in stopped_brushes.items():
         self._qbrushes[status,stopped] = qb2,qb1; 
     # ---------------------- setup toolbars, QActions, menus, etc.
     # scan all modules for define_treebrowser_actions method, and call them all
     self._actions = {};
     funcs = set();
-    for (name,mod) in sys.modules.items():
+    for (name,mod) in list(sys.modules.items()):
       _dprint(4,'looking for treebrowser actions in',name);
       try: 
         if name.startswith("Timba") and callable(mod.define_treebrowser_actions):
@@ -514,7 +516,11 @@ class TreeBrowser (QObject):
     self._toolbar.setIconSize(QSize(16,16));
     self._toolbar_actions = [];
     tba = self.get_action_list("toolbar");
-    tba.sort();
+    import six
+    if six.PY3:
+      tba.sort(key=lambda x: x[0])
+    else:
+      tba.sort();
     prev_sep = True; # flag: previous entry is a separator, true at top
     for (pri,action) in tba:
       if action is None:
@@ -575,8 +581,10 @@ class TreeBrowser (QObject):
     #all_item._iter_nodes = nodelist.iternodes();
     #all_item.setFlags(Qt.ItemIsEnabled);
     # add 'Root Nodes' item
-    rootnodes = sorted(nodelist.rootnodes(),lambda a,b:cmp(a.name,b.name));
-    rootnodes.sort();
+    from past.builtins import cmp
+    from functools import cmp_to_key
+    rootnodes = sorted(nodelist.rootnodes(),key=cmp_to_key(lambda a,b:cmp(a.name,b.name)));
+    rootnodes.sort(key=lambda x: x.objectName());
     rootitem  = self._tw_rootitem = \
       StickyTreeWidgetItem(self._tw,name="Root nodes (%d)"%len(rootnodes),key=30);
     rootitem._iter_nodes = iter(rootnodes);
@@ -589,12 +597,12 @@ class TreeBrowser (QObject):
     cls_item._no_auto_open = True;
     cls_item.setFlags(Qt.ItemIsEnabled);
     items = [];
-    for (cls,nodes) in sorted(classes.iteritems(),lambda a,b:cmp(a[0],b[0])):
+    for (cls,nodes) in sorted(iter(classes.items()),key=cmp_to_key(lambda a,b:cmp(a[0],b[0]))):
       item = QTreeWidgetItem();
       item.setText(0,"%s (%d)"%(cls,len(nodes)));
       item.setText(self.icolumn("class"),cls);
       item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator);
-      nodes = sorted(nodes,lambda a,b:cmp(a.name,b.name));
+      nodes = sorted(nodes,key=cmp_to_key(lambda a,b:cmp(a.name,b.name)));
       item._iter_nodes = iter(nodes);
       item._no_auto_open = True;
       items.append(item);
@@ -608,10 +616,10 @@ class TreeBrowser (QObject):
       # that processor (i.e. none of its parents belong to that processor)
       for proc in range(self._mpi_num_proc):
         # list of all nodes on processor
-        proclist = filter(lambda x:x.proc == proc,nodelist.iternodes()); 
+        proclist = [x for x in nodelist.iternodes() if x.proc == proc]; 
         # list of root nodes of that processor
-        procrootlist = sorted(filter(lambda x:not filter(lambda y:nodelist[y].proc==proc,x.parents),
-                          proclist),lambda a,b:cmp(a.name,b.name));
+        procrootlist = sorted([x for x in proclist if not [y for y in x.parents if nodelist[y].proc==proc]],
+                              key=cmp_to_key(lambda a,b:cmp(a.name,b.name)));
         item = QTreeWidgetItem(procitem,item);
         item.setText(0,"P%d (%d)"%(proc,len(proclist)));
         item.setFirstColumnSpanned(True);
@@ -665,7 +673,7 @@ class TreeBrowser (QObject):
   def show_column (self,colname,show=True):
     """shows or hides the column specified by name""";
     try: (icol,width) = self._column_map[colname];
-    except KeyError,AttributeError: return;
+    except KeyError as AttributeError: return;
     # make column visible or not
     if show: 
       self._tw.header().showSection(icol);
@@ -775,7 +783,7 @@ class TreeBrowser (QObject):
     _dprint(5,"was stopped",was_stopped,"is stopped",self.is_stopped);
     if not was_stopped and self.is_stopped:
       # figure out list of stopped nodes
-      self._stopped_nodes = filter(lambda node:node.is_stopped(),meqds.nodelist.iternodes());
+      self._stopped_nodes = [node for node in meqds.nodelist.iternodes() if node.is_stopped()];
       _dprint(5,len(self._stopped_nodes),"nodes stopped");
       self._breakpoint_nodes = [];
       for node in self._stopped_nodes:
@@ -892,8 +900,8 @@ class TreeBrowser (QObject):
       # populate list when first opened, if an iterator is present as an attribute
       iter_nodes = getattr(item,'_iter_nodes',None);
       if iter_nodes:
-	busy = BusyIndicator();
-	item.addChildren([ self.NodeItem(self,node,node.name) for node in iter_nodes ]);
+        busy = BusyIndicator();
+        item.addChildren([ self.NodeItem(self,node,node.name) for node in iter_nodes ]);
         delattr(item,'_iter_nodes');
   # _expand_node = busyCursorMethod(_expand_node);
   
