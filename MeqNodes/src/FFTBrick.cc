@@ -244,7 +244,7 @@ inline void copyDoubleToComplex (
   blitz::Array<dcomplex,2>::iterator iter_out = out1.begin();
   blitz::Array<double,2>::iterator iter_in = in1.begin();
   for( ; iter_out != out1.end(); ++iter_out,++iter_in)
-    *iter_out = *iter_in + 0.i;
+    *iter_out = *iter_in + 0;
 }
 
 void FFTBrick::doFFT (Vells::Ref output_vells[1],const Vells &input_vells)
