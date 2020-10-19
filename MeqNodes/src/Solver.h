@@ -27,7 +27,7 @@
 #include <MEQ/Node.h>
 #include <MEQ/VellSet.h>
 #include <casacore/scimath/Fitting/LSQaips.h>
-#include <TimBase/BlitzToAips.h>
+
 #include <set>
 
 #pragma types #Meq::Solver
