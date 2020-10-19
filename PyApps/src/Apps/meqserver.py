@@ -124,7 +124,7 @@ class meqserver (multiapp_proxy):
       self.dprint(5,'arguments are ',args);
       self.pause_events();
       self.send_command('command'+command,payload);
-      msg = self.await_(replyname,resume=True,timeout=wait);
+      msg = self.await(replyname,resume=True,timeout=wait);
       return msg.payload;
     # else simply send command
     else: 
