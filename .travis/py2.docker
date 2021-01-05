@@ -87,9 +87,9 @@ RUN ldconfig
 
 # get the test from pyxis
 WORKDIR /code
-RUN wget https://github.com/ska-sa/pyxis/archive/v1.7.0.tar.gz
+RUN wget https://github.com/ska-sa/pyxis/archive/v1.7.1.tar.gz
 RUN tar -xvf v1.7.0.tar.gz
-WORKDIR /code/pyxis-1.7.0
+WORKDIR /code/pyxis-1.7.1
 RUN pip install -U .
 RUN flag-ms.py --help
 RUN meqtree-pipeliner.py --help
