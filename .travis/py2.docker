@@ -80,7 +80,7 @@ RUN pip install meqtrees-cattery astro-kittens purr astro-tigger-lsm owlcat Pyth
 ADD . /code
 RUN mkdir /code/build
 WORKDIR /code/build
-RUN cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ../
+RUN cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON_3=OFF ../
 RUN make -j4
 RUN make install
 RUN ldconfig

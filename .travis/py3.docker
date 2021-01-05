@@ -15,7 +15,6 @@ RUN wget https://github.com/casacore/casacore/archive/v3.3.0.tar.gz
 RUN tar xvf v3.3.0.tar.gz
 RUN mkdir casacore-3.3.0/build
 WORKDIR /src/casacore-3.3.0/build
-RUN echo hello
 RUN cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_DEPRECATED=ON -DBUILD_PYTHON3=ON -DBUILD_PYTHON=OFF ../
 RUN make -j 4
 RUN make install
