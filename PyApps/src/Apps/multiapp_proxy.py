@@ -437,7 +437,7 @@ class multiapp_proxy (verbosity):
       while not self.current_server:
         self.dprint(2,'no connection to servers, awaiting (wait=',wait,')');
         res = self._pwp.await_('*',resume=True,timeout=5);  # await anything, but keep looping until status changes
-        self.dprint(3,'await_ returns',res);
+        self.dprint(3,'await returns',res);
         if time.time() >= endtime:
           raise RuntimeError("timeout waiting for connection");
     finally:
@@ -515,8 +515,9 @@ class multiapp_proxy (verbosity):
       args = (self._rcv_prefix + args[0],) + args[1:];
     return self._pwp.whenever(*args,**kwargs);
     
-  def await_ (self,what,timeout=None,resume=False):
-    "interface to pwp's event loop, in the await_ form";
+
+  def await_(self,what,timeout=None,resume=False):
+    "interface to pwp's event loop, in the await form";
     if timeout is not None:
       await_timeout = min(1,timeout);
       timeout = time.time() + timeout;

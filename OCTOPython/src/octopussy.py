@@ -311,9 +311,11 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     limit, use None to loop indefinitely (or until the C++ WP has  exited). If
     timeout=0, processes all pending messages and returns. 
     """;
-    # convert await argument to list of hiids
+
+    # convert await_ argument to list of hiids
     await_ = make_hiid_list(await_);
-    _dprint(1,"running event loop, timeout",timeout,"await_",await_);
+    _dprint(1,"running event loop, timeout",timeout,"await",await_);
+
     if timeout is None: 
       endtime = 1e+40; # quite long enough...
     else:
@@ -342,9 +344,10 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     # end of while-loop, if we dropped out, it's a timeout, return None
     return None
 
-  def await_ (self,what,timeout=None,resume=False):
-    """alias for event_loop() with an await_ argument.
-    if resume is true, resumes the event loop before commencing await_. This
+
+  def await_(self,what,timeout=None,resume=False):
+    """alias for event_loop() with an await argument.
+    if resume is true, resumes the event loop before commencing await. This
     is meant for child classes only.
     """;
     return self.event_loop(await_=what,timeout=timeout);
@@ -412,7 +415,7 @@ class proxy_wp_thread(proxy_wp):
     
   # this is meant to pause and resume event processing -- no implementation
   # needed since threads don't actually work for now (i.e., events are
-  # not being deal with outside await/event_loop calls)
+  # not being deal with outside await_/event_loop calls)
   
   def pause_events (self):
     """pauses the event loop for this wp (if any); this will halt the"
@@ -434,7 +437,8 @@ class proxy_wp_thread(proxy_wp):
     
   # await_ blocks until the specified message has been received
   # (with optional timeout)
-  def await_ (self,what,timeout=None,resume=False):
+
+  def await_(self,what,timeout=None,resume=False):
     cur_thread = self._api.currentThread();
     if cur_thread is self._thread:
       raise AssertionError("can't call await_() from event handler thread");
@@ -595,8 +599,8 @@ if __name__ == "__main__":
   
   print("awaiting on wp4...");
   res = wp4.await_("reflect.*",resume=True);
-  print(("await_ result: ",res));
-  
+
+  print(("await result: ",res));
   print("=== (3) ===");
   
   print(('wp1 queue: ',wp1.num_pending()));
