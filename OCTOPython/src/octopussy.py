@@ -299,8 +299,8 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   # event_loop()
   # Calls receive() in a continuous loop, processes events by invoking
   # their whenever handlers.
-  # If await is supplied (is a hiid), returns when a message matching the
-  # await mask is received (returns message).
+  # If await_ is supplied (is a hiid), returns when a message matching the
+  # await_ mask is received (returns message).
   # If timeout (in seconds) is supplied, returns None after it has expired.
   # Otherwise loop indefinitely, or until the C++ ProxyWP has exited
   def event_loop (self,await_=[],timeout=None):
@@ -311,9 +311,11 @@ class proxy_wp(octopython.proxy_wp,verbosity):
     limit, use None to loop indefinitely (or until the C++ WP has  exited). If
     timeout=0, processes all pending messages and returns. 
     """;
+
     # convert await_ argument to list of hiids
     await_ = make_hiid_list(await_);
     _dprint(1,"running event loop, timeout",timeout,"await",await_);
+
     if timeout is None: 
       endtime = 1e+40; # quite long enough...
     else:
@@ -341,6 +343,7 @@ class proxy_wp(octopython.proxy_wp,verbosity):
           return msg;
     # end of while-loop, if we dropped out, it's a timeout, return None
     return None
+
 
   def await_(self,what,timeout=None,resume=False):
     """alias for event_loop() with an await argument.
@@ -432,15 +435,16 @@ class proxy_wp_thread(proxy_wp):
       self._paused = max(self._paused-1,0);
     _dprintf(3,"resuming event loop (count %d)\n",self._paused);
     
-  # await blocks until the specified message has been received
+  # await_ blocks until the specified message has been received
   # (with optional timeout)
+
   def await_(self,what,timeout=None,resume=False):
     cur_thread = self._api.currentThread();
     if cur_thread is self._thread:
       raise AssertionError("can't call await_() from event handler thread");
     thread_name = cur_thread.getName();
-    _dprint(2,"await: thread",thread_name);
-    _dprint(2,"await: waiting for",what,"timeout ",timeout);
+    _dprint(2,"await_: thread",thread_name);
+    _dprint(2,"await_: waiting for",what,"timeout ",timeout);
     what = make_hiid_list(what);
     await_pair = [make_hiid_list(what),None];  # result will be returned as second item
     # start by setting a lock on the wait condition
@@ -455,7 +459,7 @@ class proxy_wp_thread(proxy_wp):
         if endtime and time.time() >= endtime: # timeout
           return None;
         self._await_cond.wait(timeout);
-        _dprint(2,"await: wait returns ",await_pair[1]);
+        _dprint(2,"await_: wait returns ",await_pair[1]);
     finally:
       del self._awaiting[thread_name];
       self._await_cond.release();
@@ -595,8 +599,8 @@ if __name__ == "__main__":
   
   print("awaiting on wp4...");
   res = wp4.await_("reflect.*",resume=True);
+
   print(("await result: ",res));
-  
   print("=== (3) ===");
   
   print(('wp1 queue: ',wp1.num_pending()));

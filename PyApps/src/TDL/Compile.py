@@ -32,7 +32,7 @@ from Timba.Meq import meqds
 import Timba.TDL.Settings
 from Timba.TDL import TDLOptions
 
-import imp
+
 import sys
 import re
 import traceback
@@ -42,6 +42,9 @@ import inspect
 import six
 if six.PY3:
   from importlib import reload
+  import importlib.machinery
+#else:
+import imp
 
 _dbg = verbosity(0,name='tdlc');
 _dprint = _dbg.dprint;
@@ -66,6 +69,7 @@ def _update_modlist ():
   _dprint(1,'TDL run imported',len(_tdlmodlist),"modules:",modlist);
   _tdlmodlist = set([name for name in _tdlmodlist
                           if name != "six" and not name.startswith("six.") 
+                             and name != "astropy" and not name.startswith("astropy.")
                              and not getattr(sys.modules[name],'_tdl_no_reimport',False)]);
   modlist = list(_tdlmodlist);
   modlist.sort();
@@ -84,12 +88,11 @@ class CompileError (RuntimeError):
   def __init__ (self,*errlist):
     self.errlist = errlist;
 
-def import_tdl_module (filename,text=None,config=0):
+def import_tdl_module (filename, text=None, config=0):
   """Imports a TDL module.
   Parameters:
     filename: script location
-    text: text of module. If none, file will be re-read.
-
+    text: if None loads from specified filename
   Return value:
     a tuple of (module,text), where module is the newly-imported
     TDL module, and text is the module text.
@@ -117,10 +120,18 @@ def import_tdl_module (filename,text=None,config=0):
     except:
       pass;
     # open file
-    infile = open(filename,'r');
+    infile = open(filename,'r')
     if text is None:
       text = infile.read();
       infile.seek(0);
+      # infile = open(filename,'r')
+      # text = infile.read()
+      # infile.seek(0)
+    # else:
+    #   infile = open("./.currenttdl.py", mode='w+b')
+    #   infile.write(text.encode('utf-8'))
+    #   infile.seek(0)
+
     # infile is now an open input file object, and text is the script
 
     # flush all modules imported via previous TDL run
@@ -135,11 +146,19 @@ def import_tdl_module (filename,text=None,config=0):
     modname = '__tdlruntime';
     try:
       TDLOptions.enable_save_config(False);
-      imp.acquire_lock();
-      _tdlmod = imp.load_source(modname,filename,infile);
+      # if six.PY2: 
+      imp.acquire_lock()
+      _tdlmod = imp.load_source(modname, filename, infile)
+      # else:
+      #   import types
+      #   loader = importlib.machinery.SourceFileLoader(modname, filename if text is None else infile.name)
+      #   spec = importlib.util.spec_from_loader(loader.name, loader)
+      #   _tdlmod = importlib.util.module_from_spec(spec)
+      #   loader.exec_module(_tdlmod)
     finally:
       TDLOptions.enable_save_config(True);
       TDLOptions.save_config();
+      #if six.PY2: 
       imp.release_lock();
       infile.close();
       _update_modlist();

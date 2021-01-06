@@ -28,18 +28,21 @@
 
 from Timba.Apps import app_defaults
 
-if app_defaults.include_gui:
-  import Timba.GUI.app_proxy_gui;
-  if app_defaults.args.threads:
-    import Timba.qt_threading;
 
 try:
   from PyQt4.Qt import QObject,SIGNAL
   from Kittens.widgets import PYSIGNAL
-except:
+  QT_AVAILABLE = True
+except ImportError:
   print("Qt not available, substituting proxy types for QObject");
   from .QObject import QObject,PYSIGNAL
-  
+  SIGNAL = PYSIGNAL
+  QT_AVAILABLE = False
+
+if app_defaults.include_gui and QT_AVAILABLE:
+  import Timba.GUI.app_proxy_gui;
+  if app_defaults.args.threads:
+    import Timba.qt_threading;
 
 from Timba.dmi import *
 from Timba import octopussy
@@ -285,7 +288,7 @@ class multiapp_proxy (verbosity):
     self.servers[addr] = server;
     self.dprint(2, "requesting state and status update");
     self.send_command("Request.State",destination=addr);
-    self.client.emit(SIGNAL("serverConnected"),server,);
+    self.client.emit(SIGNAL("serverConnected"),server);
     self._gui_event_handler(self.hello_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     # is an auto-attach request in place?
@@ -512,6 +515,7 @@ class multiapp_proxy (verbosity):
       args = (self._rcv_prefix + args[0],) + args[1:];
     return self._pwp.whenever(*args,**kwargs);
     
+
   def await_(self,what,timeout=None,resume=False):
     "interface to pwp's event loop, in the await form";
     if timeout is not None:

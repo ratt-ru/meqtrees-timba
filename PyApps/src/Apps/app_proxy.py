@@ -331,6 +331,7 @@ class app_proxy (verbosity):
         self.dprint(2,'no connection to app, awaiting (wait=',wait,')');
         res = self._pwp.await_('*',resume=True,timeout=5);  # await anything, but keep looping until status changes
         self.dprint(3,'await returns',res);
+
         if time.time() >= endtime:
           raise RuntimeError("timeout waiting for connection");
     finally:
