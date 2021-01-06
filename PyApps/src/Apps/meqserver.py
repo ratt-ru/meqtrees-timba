@@ -39,9 +39,8 @@ if app_defaults.include_gui:
   try:
     from Timba.GUI import meqserver_gui
     from Timba.GUI.meqserver_gui import *
-  except:
+  except ImportError:
     print("*** Error importing GUI modules:");
-    traceback.print_exc();
     pass;
 
 # #-------- update default debuglevels

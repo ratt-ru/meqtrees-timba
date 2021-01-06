@@ -42,11 +42,12 @@ import math
 import traceback
 
 try:
-  from PyQt4.Qt import QObject,SIGNAL
+  from PyQt4.Qt import QObject, SIGNAL
   from Kittens.widgets import PYSIGNAL
 except:
   print("Qt not available, substituting proxy types for QObject");
-  from Timba.Apps.QObject import QObject,PYSIGNAL
+  from Timba.Apps.QObject import QObject, PYSIGNAL
+  SIGNAL = PYSIGNAL
 
 _dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;

@@ -38,7 +38,7 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
 include(cmake/meqmacros.cmake)
 include(cmake/mequtils.cmake)
 
-option(ENABLE_PYTHON_3 "Enables support for Python 3.x" OFF)
+option(ENABLE_PYTHON_3 "Enables support for Python 3.x" ON)
 if ("${ENABLE_PYTHON_3}")
     message("-- Compiling backend against Python 3.x")
     set(PYREQ_VER 3.0)

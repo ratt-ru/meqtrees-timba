@@ -26,7 +26,6 @@
 
 from Timba.dmi import *
 from Timba.utils import *
-from Timba.GUI.pixmaps import pixmaps
 import configparser
 
 import traceback
@@ -45,9 +44,11 @@ try:
   from PyQt4.Qt import *
   from Kittens.widgets import PYSIGNAL
   OptionObject = QObject();
-except:
-  OptionObject;
-  pass;
+except ImportError:
+  OptionObject = None
+  class QFileDialog:
+    pass
+  pass
 
 _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
@@ -384,6 +385,7 @@ class _TDLBaseOption (object):
     self.doc = doc;
     if self._twitem:
       if self.doc:
+        from Timba.GUI.pixmaps import pixmaps
         icon = pixmaps.info_blue_round.icon();
         # add body tags to convert documentation to rich text
         doc = "<body>"+self.doc+"</body>";
@@ -441,6 +443,7 @@ class _TDLJobItem (_TDLBaseOption):
   def make_treewidget_item0 (self,parent,after,executor=None):
     item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name);
+    from Timba.GUI.pixmaps import pixmaps
     item.setIcon(0,pixmaps.gear.icon());
     font = item.font(0);
     font.setBold(True);
@@ -455,6 +458,7 @@ class _TDLJobItem (_TDLBaseOption):
     tw = item.treeWidget();
     button = QToolButton(tw);
     button.setText(self.name);
+    from Timba.GUI.pixmaps import pixmaps
     button.setIcon(pixmaps.gear.icon());
     button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
     if self.doc:

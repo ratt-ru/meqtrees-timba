@@ -36,26 +36,26 @@ def PYSIGNAL (sig):
 class QObject (object):
   """This is a qt.QObject replacememt for systems with no PyQt.
   It supports a simple connect/emit mechanism."""
-  def __init__ (self,name=None,*args):
+  def __init__ (self, name=None, *args):
     self._name = name;
     self._connections = {};
   def name (self):
     return self._name;
   
-  def connect (sender,signal,receiver):
+  def connect (sender, signal, receiver):
     """Connects named signal of sender to receiver""";
     conns = sender._connections.setdefault(signal,[]);
     conns.append(receiver);
     return True;
   connect = staticmethod(connect);
   
-  def disconnect (sender,signal,receiver):
+  def disconnect (sender, signal, receiver):
     """Disconnects named signal of sender from receiver""";
     conns = sender._connections.get(signal,None);
     if conns:
       sender._connections[signal] = [x for x in conns if x!=receiver];
   disconnect = staticmethod(disconnect);
   
-  def emit (signal,args):
+  def emit (self, signal, *args):
     for receiver in self._connections.get(signal,[]):
       receiver(*args);
