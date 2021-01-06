@@ -193,11 +193,11 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   
   # this is meant to pause and resume event processing -- no implementation
   # needed since this class is synchronous (i.e., events are not being dealt 
-  # with outside await/event_loop calls), but thje threaded proxy class
+  # with outside await_/event_loop calls), but thje threaded proxy class
   # may override this
   def pause_events (self):
     """pauses the event loop for this wp (if any); this will halt the
-    processing of any whenevers. Note that a call to await() or event_loop()
+    processing of any whenevers. Note that a call to await_() or event_loop()
     or flush_events() will resume the event loop automatically.
     """;
     pass;
@@ -299,21 +299,23 @@ class proxy_wp(octopython.proxy_wp,verbosity):
   # event_loop()
   # Calls receive() in a continuous loop, processes events by invoking
   # their whenever handlers.
-  # If await is supplied (is a hiid), returns when a message matching the
-  # await mask is received (returns message).
+  # If await_ is supplied (is a hiid), returns when a message matching the
+  # await_ mask is received (returns message).
   # If timeout (in seconds) is supplied, returns None after it has expired.
   # Otherwise loop indefinitely, or until the C++ ProxyWP has exited
-  def event_loop (self,await=[],timeout=None):
+  def event_loop (self,await_=[],timeout=None):
     """runs event loop for this WP -- calls receive() to fetch messages,
-    dispatches whenevers, discards messages not matching a whenever. 'await'
+    dispatches whenevers, discards messages not matching a whenever. 'await_'
     may be set to one or more msgids, in this case the method will  exit when a
     matching message is received. 'timeout' may be used to specify a time
     limit, use None to loop indefinitely (or until the C++ WP has  exited). If
     timeout=0, processes all pending messages and returns. 
     """;
-    # convert await argument to list of hiids
-    await = make_hiid_list(await);
-    _dprint(1,"running event loop, timeout",timeout,"await",await);
+
+    # convert await_ argument to list of hiids
+    await_ = make_hiid_list(await_);
+    _dprint(1,"running event loop, timeout",timeout,"await",await_);
+
     if timeout is None: 
       endtime = 1e+40; # quite long enough...
     else:
@@ -335,19 +337,20 @@ class proxy_wp(octopython.proxy_wp,verbosity):
       # got message, process it
       self._dispatch_whenevers(msg);
       # check for a match in the await-list
-      for aw in await:
+      for aw in await_:
         if aw.matches(msg.msgid):
           _dprintf(3,"matches await %s, returning\n",aw);
           return msg;
     # end of while-loop, if we dropped out, it's a timeout, return None
     return None
 
-  def await (self,what,timeout=None,resume=False):
+
+  def await_(self,what,timeout=None,resume=False):
     """alias for event_loop() with an await argument.
     if resume is true, resumes the event loop before commencing await. This
     is meant for child classes only.
     """;
-    return self.event_loop(await=what,timeout=timeout);
+    return self.event_loop(await_=what,timeout=timeout);
   
   # flush_events(): dispatches all queued events
   #   this is actually an alias for event_loop with a 0 timeout
@@ -412,11 +415,11 @@ class proxy_wp_thread(proxy_wp):
     
   # this is meant to pause and resume event processing -- no implementation
   # needed since threads don't actually work for now (i.e., events are
-  # not being deal with outside await/event_loop calls)
+  # not being deal with outside await_/event_loop calls)
   
   def pause_events (self):
     """pauses the event loop for this wp (if any); this will halt the"
-    processing of any whenevers. Note that a call to await() or event_loop()"
+    processing of any whenevers. Note that a call to await_() or event_loop()"
     or flush_events() will resume the event loop automatically.
     """;
     self._lock.acquire();
@@ -432,15 +435,16 @@ class proxy_wp_thread(proxy_wp):
       self._paused = max(self._paused-1,0);
     _dprintf(3,"resuming event loop (count %d)\n",self._paused);
     
-  # await blocks until the specified message has been received
+  # await_ blocks until the specified message has been received
   # (with optional timeout)
-  def await (self,what,timeout=None,resume=False):
+
+  def await_(self,what,timeout=None,resume=False):
     cur_thread = self._api.currentThread();
     if cur_thread is self._thread:
-      raise AssertionError("can't call await() from event handler thread");
+      raise AssertionError("can't call await_() from event handler thread");
     thread_name = cur_thread.getName();
-    _dprint(2,"await: thread",thread_name);
-    _dprint(2,"await: waiting for",what,"timeout ",timeout);
+    _dprint(2,"await_: thread",thread_name);
+    _dprint(2,"await_: waiting for",what,"timeout ",timeout);
     what = make_hiid_list(what);
     await_pair = [make_hiid_list(what),None];  # result will be returned as second item
     # start by setting a lock on the wait condition
@@ -455,7 +459,7 @@ class proxy_wp_thread(proxy_wp):
         if endtime and time.time() >= endtime: # timeout
           return None;
         self._await_cond.wait(timeout);
-        _dprint(2,"await: wait returns ",await_pair[1]);
+        _dprint(2,"await_: wait returns ",await_pair[1]);
     finally:
       del self._awaiting[thread_name];
       self._await_cond.release();
@@ -594,9 +598,9 @@ if __name__ == "__main__":
 #  time.sleep(.5);
   
   print("awaiting on wp4...");
-  res = wp4.await("reflect.*",resume=True);
+  res = wp4.await_("reflect.*",resume=True);
+
   print(("await result: ",res));
-  
   print("=== (3) ===");
   
   print(('wp1 queue: ',wp1.num_pending()));
@@ -623,7 +627,7 @@ if __name__ == "__main__":
   print(('wp2 queue: ',wp2.num_pending()));
   print(('wp3 queue: ',wp3.num_pending()));
   print('going into wp3.event_loop()');
-  wp3.event_loop(await='x.*');
+  wp3.event_loop(await_='x.*');
 
   wp3.cancel_whenever(we3);
   wp4.cancel_whenever(we4);
