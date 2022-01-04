@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 
 #% $Id: plot_printer.py 6837 2009-03-05 19:00:25Z twillis $ 

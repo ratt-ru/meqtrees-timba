@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 
 #% $Id: printfilter.py 4329 2006-12-14 17:27:23Z twillis $ 
