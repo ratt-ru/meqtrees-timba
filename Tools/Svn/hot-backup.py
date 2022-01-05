@@ -1,4 +1,4 @@
-#!/usr/bin/python2.3
+#!/usr/bin/env python3
 #
 #  hot-backup.py: perform a "hot" backup of an Svn repository.
 #  Based on the standard script by the same name found in the Debian 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 #
 # Generate all available HTML documentation in Timba python module.
 # Sarod Yatawatta - with a little help from my friends

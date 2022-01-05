@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 #% $Id: quickref_plotter.py 6250 2008-07-11 05:55:05Z twillis $ 
 
