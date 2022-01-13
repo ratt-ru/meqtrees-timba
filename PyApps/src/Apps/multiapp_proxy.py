@@ -40,7 +40,7 @@ except ImportError:
   QT_AVAILABLE = False
 
 if app_defaults.include_gui and QT_AVAILABLE:
-  import Timba.GUI.app_proxy_gui;
+  import MeqGUI.GUI.app_proxy_gui;
   if app_defaults.args.threads:
     import MeqGUI.qt_threading;
 
@@ -193,11 +193,11 @@ class multiapp_proxy (verbosity):
       if callable(gui):
         self._gui = gui;
       else:
-        self._gui = Timba.GUI.app_proxy_gui.app_proxy_gui;
+        self._gui = MeqGUI.GUI.app_proxy_gui.app_proxy_gui;
       if threads: 
         self.dprint(1,"threading enabled, posting construct event");
         # threaded model: post a GUI construction event to the main app
-        mainapp = Timba.GUI.app_proxy_gui.mainapp();
+        mainapp = MeqGUI.GUI.app_proxy_gui.mainapp();
         mainapp.postCallable(self._construct_gui);
         # after GUI has been constructed, start WP event thread
         mainapp.postCallable(self._pwp.start);

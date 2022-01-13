@@ -29,7 +29,7 @@
 #
 
 from Timba.dmi import *
-from Timba.GUI.pixmaps import pixmaps
+from MeqGUI.GUI.pixmaps import pixmaps
 from Timba import mequtils
 
 import weakref
