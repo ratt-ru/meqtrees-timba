@@ -1,0 +1,4 @@
+#!/bin/bash
+source $HOME/Timba/install/timba-init.sh 
+timba-setup symlinked-debug
+meqserver $*
