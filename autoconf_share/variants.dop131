@@ -1,5 +1,0 @@
-gnu.compiler.conf:	CXX="$CCACHE /usr/bin/g++"
-
-lofar_root.var:		--with-lofar-default=weekly --with-doxygen-dot
-
-aipspp.var:		--with-cppflags="-DAIPS_64B" --with-ldflags="-lgfortran"

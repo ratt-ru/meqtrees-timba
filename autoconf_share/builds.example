@@ -1,9 +1,0 @@
-# This is an example host builds file.
-# It defines per compiler which variants have to be built as shown below.
-#
-# Its name should be
-#    builds.host
-# where host is the first part of the host name (e.g. lofar8).
-
-make.gnu.variants: debug,opt,mpich,corba,mpich-corba,insure,scampi,mpich-prof
-make.kcc.variants: debug, opt

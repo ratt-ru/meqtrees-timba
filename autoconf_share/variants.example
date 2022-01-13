@@ -1,7 +1,0 @@
-# This file specifies host specific variants information which
-# supersedes possible lines in the general variants file.
-#
-# An example is given below (which defines compiler paths).
-
-kcc.compiler.conf: CXX=/aips++/gvandiep/sim/import/kcc/KCC_BASE/bin/KCC
-icc.compiler.conf: CXX=/opt/intel/compiler50/ia32/bin/icc
