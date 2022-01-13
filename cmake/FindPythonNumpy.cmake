@@ -17,7 +17,7 @@ EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c "import numpy;print(numpy.get_in
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 IF ( ${NUMPY_FIND_RESULT} )
-  MESSAGE( "python -c 'import numpy' appears to fail. Is numpy installed?" )
+  MESSAGE( "${PYTHON_EXECUTABLE} -c 'import numpy' appears to fail. Is numpy installed?" )
   SET(PYTHON_NUMPY_INCLUDE_DIR) 
   FIND_PATH(PYTHON_NUMPY_INCLUDE_DIR numpy)
 ENDIF ( ${NUMPY_FIND_RESULT} )
