@@ -21,4 +21,4 @@ cd $PROJECTS_DIR/meqtrees-timba
 IMAGENAME="mttimbapr"
 
 # build and test
-docker build -f .travis/py3.docker -t "${IMAGENAME}36:$BUILD_NUMBER" --no-cache=true .
+docker build -f .ci/py3.docker -t "${IMAGENAME}36:$BUILD_NUMBER" --no-cache=true .
