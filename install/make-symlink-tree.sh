@@ -96,8 +96,8 @@ cd python
 #ln-s ../../../../FW/Siamese
 #ln-s ../../../../FW/Calico
 #ln-s ../../../../FW/Ionosphere
-ln-s ../../../../PyApps/src/Purr
-ln-s ../../../../PyApps/src/meqbrowser.py
+#ln-s ../../../../PyApps/src/Purr
+#ln-s ../../../../PyApps/src/meqbrowser.py
 makedir Timba
 cd Timba
 ln-s ../../../../../PyApps/src/Apps
