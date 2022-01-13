@@ -42,7 +42,7 @@ except ImportError:
 if app_defaults.include_gui and QT_AVAILABLE:
   import Timba.GUI.app_proxy_gui;
   if app_defaults.args.threads:
-    import Timba.qt_threading;
+    import MeqGUI.qt_threading;
 
 from Timba.dmi import *
 from Timba import octopussy
@@ -121,7 +121,7 @@ class multiapp_proxy (verbosity):
     if threads:
       self.dprint(1,"running in threaded mode");
       # select threading API
-      if gui: api = Timba.qt_threading;
+      if gui: api = MeqGUI.qt_threading;
       else:   api = threading;
       self._pwp = octopussy.proxy_wp_thread(str(client_id),verbose=wp_verbose,thread_api=api);
     else:

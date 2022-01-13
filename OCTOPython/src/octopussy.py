@@ -50,6 +50,7 @@ if six.PY2:
   sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
 import Timba
+from MeqGUI import GUI, Plugins, Grid
 import Timba.octopython as octopython
 from Timba.dmi import *
 from Timba.utils import *
@@ -512,8 +513,16 @@ class proxy_wp_thread(proxy_wp):
 if __name__ == "__main__":
   import time
   import Timba.array
+  try:
+    import PyQt4
+    QT_AVAILABLE = True
+  except ImportError:
+    QT_AVAILABLE = False
+
   if '-qt' in sys.argv:
-    from . import qt_threading
+    if not QT_AVAILABLE:
+      raise RuntimeError("User requested (-qt) to run with Qt threading but PyQt is not importable")
+    from MeqGUI import qt_threading
     thread_api = qt_threading; 
     print("================== Using Qt thread API ===================");
   else:

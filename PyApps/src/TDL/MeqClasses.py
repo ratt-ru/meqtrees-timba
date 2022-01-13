@@ -25,6 +25,7 @@
 #
 
 import Timba
+from MeqGUI import GUI, Plugins, Grid
 from Timba import dmi
 from Timba.TDL import TDLimpl
 from .TDLimpl import *

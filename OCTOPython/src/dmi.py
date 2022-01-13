@@ -57,6 +57,7 @@ import numpy as np
 from Timba.array import array
 
 import Timba
+from MeqGUI import GUI, Plugins, Grid
 from Timba.utils import *
 
 # 
