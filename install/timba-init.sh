@@ -1,7 +1,8 @@
+#!/bin/bash
 # timba-init.sh
 # source this file into your .bashrc to have all Timba paths set up at login
 
-
+echo "TIMBA PATH SET TO '$TIMBA_PATH'"
 if [ -z "$TIMBA_PATH" ]; then
   # under bash, we can figure out the name of our script, and extract the path
   if [ "$BASH_SOURCE" != "" ]; then
@@ -27,7 +28,8 @@ valid-timba-versions()
   else
     pattern="*$1*"
   fi
-  for f in $TIMBA_PATH/install/$pattern/bin; do
+  paths=$TIMBA_PATH/install/$pattern/bin
+  for f in $paths; do
     if [ -d $f ]; then
       f=${f%/bin}
       f=${f##*/}
