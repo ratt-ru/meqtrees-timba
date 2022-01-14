@@ -57,6 +57,7 @@ ln-s ../../../TimBase/src/gprof-run
 if [ -f ../../../build/$flavour/MeqServer/meqserver ]; then
   ln-s ../../../build/$flavour/MeqServer/meqserver
 else
+  ln-s ../../../build/$flavour/MeqServer/meqserver
   echo "WARNING: meqserver binary not found"
 fi
 ln-s ../../../PyApps/src/tdlrun.py
