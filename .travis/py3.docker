@@ -71,7 +71,7 @@ RUN wget https://github.com/ska-sa/makems/archive/v1.5.4.tar.gz && \
 WORKDIR /src
 
 # Get MeqTrees universe python packages
-RUN python3.8 -m pip install purr owlcat kittens meqtrees-cattery astro-tigger-lsm
+RUN python3.8 -m pip install purr owlcat kittens 'meqtrees-cattery>=1.7.6' astro-tigger-lsm
 
 ADD . /code
 RUN mkdir /code/build && \
@@ -90,7 +90,6 @@ RUN mkdir /code/build && \
 ## Run tests
 #####################################################################
 
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 2
 # basic install tests
 RUN flag-ms.py --help
 RUN meqtree-pipeliner.py --help
@@ -98,12 +97,14 @@ RUN pyxis --help
 
 # run test when built
 WORKDIR /src
-RUN pip3 install nose
-RUN wget https://github.com/ska-sa/pyxis/archive/v1.7.4.3.tar.gz
-RUN tar -xvf v1.7.4.3.tar.gz
-RUN python3.8 -m pip install /src/pyxis-1.7.4.3
-WORKDIR /src/pyxis-1.7.4.3/Pyxis/recipes/meqtrees-batch-test
-RUN python3 -m "nose"
+RUN pip3 install nose && \
+    wget https://github.com/ska-sa/pyxis/archive/v1.7.4.3.tar.gz && \
+    tar -xvf v1.7.4.3.tar.gz && \
+    rm v1.7.4.3.tar.gz && \
+    python3.8 -m pip install /src/pyxis-1.7.4.3 && \
+    cd /src/pyxis-1.7.4.3/Pyxis/recipes/meqtrees-batch-test && \
+    python3 -m "nose" && \
+    rm -r /src/pyxis-1.7.4.3
 
 ENTRYPOINT ["meqtree-pipeliner.py"]
 CMD ["--help"]
