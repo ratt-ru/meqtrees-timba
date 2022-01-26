@@ -689,9 +689,9 @@ int MSInputChannel::refillStream ()
             predcube.reverseSelf(blitz::secondDim);
         }
         // get vector of row numbers
-        Vector<uInt> rownums = table.rowNumbers(ms_);
+        auto rownums = table.rowNumbers(ms_);
     // now process rows one by one
-        for( int i=0; i<nrows; i++ )
+        for( size_t i=0; i<nrows; i++ )
         {
           int ant1 = ant1col(i), ant2 = ant2col(i);
           if( ant1 < 0 || ant1 >= num_antennas_ )
