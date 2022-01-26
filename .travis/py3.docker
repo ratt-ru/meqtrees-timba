@@ -42,9 +42,9 @@ RUN wget https://github.com/casacore/casacore/archive/v3.4.0.tar.gz && \
     tar xvf v3.4.0.tar.gz && \
     rm v3.4.0.tar.gz && \
     cd /src/python-casacore-3.4.0 && \
-    python -m pip install . && \
+    python3.8 -m pip install . && \
     cd / && \
-    python -c "from pyrap.tables import table as tbl"
+    python3.8 -c "from pyrap.tables import table as tbl"
 
 
 #####################################################################
