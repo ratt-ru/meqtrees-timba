@@ -1,0 +1,110 @@
+FROM kernsuite/base:7
+
+RUN docker-apt-install libblitz0-dev python3-dev libblas-dev liblapack-dev libqdbm-dev wcslib-dev \
+ libfftw3-dev python3-numpy libcfitsio-dev libboost-all-dev libboost-system-dev cmake g++ wget gfortran \
+ libncurses5-dev bison libbison-dev flex libreadline6-dev python3-pip rsync
+
+#####################################################################
+## Get CASACORE ephem data
+#####################################################################
+RUN mkdir -p /usr/share/casacore/data/
+WORKDIR /usr/share/casacore/data/
+RUN rsync -avz rsync://casa-rsync.nrao.edu/casa-data .
+
+#####################################################################
+## BUILD CASACORE AND CASAREST FROM SOURCE
+## -- Kern version is missing executables from casarest
+#####################################################################
+WORKDIR /src
+RUN wget https://github.com/casacore/casacore/archive/v3.4.0.tar.gz && \
+    tar xvf v3.4.0.tar.gz && \
+    rm v3.4.0.tar.gz && \
+    mkdir casacore-3.4.0/build && \
+    cd /src/casacore-3.4.0/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_DEPRECATED=ON -DBUILD_PYTHON=OFF -DBUILD_PYTHON3=ON ../ && \
+    make -j 4 && \
+    make install && \
+    rm -r /src/casacore-3.4.0 && \
+    cd /src && \
+    wget https://github.com/casacore/casarest/archive/v1.8.0.tar.gz && \
+    tar xvf v1.8.0.tar.gz && \
+    rm v1.8.0.tar.gz && \
+    cd /src/casarest-1.8.0 && \
+    mkdir -p build && \
+    cd /src/casarest-1.8.0/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ../ && \
+    make -j 4 && \
+    make install && \
+    rm -r /src/casarest-1.8.0 && \
+    ldconfig && \
+    cd /src && \
+    wget https://github.com/casacore/python-casacore/archive/v3.4.0.tar.gz && \
+    tar xvf v3.4.0.tar.gz && \
+    rm v3.4.0.tar.gz && \
+    cd /src/python-casacore-3.4.0 && \
+    python3.8 -m pip install . && \
+    cd / && \
+    python3.8 -c "from pyrap.tables import table as tbl"
+
+
+#####################################################################
+## BUILD MAKEMS FROM SOURCE AND TEST
+#####################################################################
+WORKDIR /src
+RUN wget https://github.com/ska-sa/makems/archive/v1.5.4.tar.gz && \
+    tar xvf v1.5.4.tar.gz && \
+    rm v1.5.4.tar.gz && \
+    mkdir -p /src/makems-1.5.4/LOFAR/build/gnu_opt && \
+    cd /src/makems-1.5.4/LOFAR/build/gnu_opt && \
+    cmake -DCMAKE_MODULE_PATH:PATH=/src/makems-1.5.4/LOFAR/CMake \
+          -DUSE_LOG4CPLUS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr ../.. && \
+    make -j 16 && \
+    make install && \
+    cd /src/makems-1.5.4/test && \
+    makems WSRT_makems.cfg && \
+    rm -r /src/makems-1.5.4
+
+#####################################################################
+## BUILD MeqTrees from source
+#####################################################################
+WORKDIR /src
+
+# Get MeqTrees universe python packages
+RUN python3.8 -m pip install purr owlcat kittens 'meqtrees-cattery>=1.7.6' astro-tigger-lsm
+
+ADD . /code
+RUN mkdir /code/build && \
+    cd /code/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_PYTHON_3=ON \
+          .. && \
+    make -j4 && \
+    make install && \
+    rm -r /code/build && \
+    ldconfig
+
+
+#####################################################################
+## Run tests
+#####################################################################
+
+# basic install tests
+RUN flag-ms.py --help
+RUN meqtree-pipeliner.py --help
+RUN pyxis --help
+
+# run test when built
+WORKDIR /src
+RUN pip3 install nose && \
+    wget https://github.com/ska-sa/pyxis/archive/v1.7.4.3.tar.gz && \
+    tar -xvf v1.7.4.3.tar.gz && \
+    rm v1.7.4.3.tar.gz && \
+    python3.8 -m pip install /src/pyxis-1.7.4.3 && \
+    cd /src/pyxis-1.7.4.3/Pyxis/recipes/meqtrees-batch-test && \
+    python3 -m "nose" && \
+    rm -r /src/pyxis-1.7.4.3
+
+ENTRYPOINT ["meqtree-pipeliner.py"]
+CMD ["--help"]
