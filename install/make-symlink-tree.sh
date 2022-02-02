@@ -134,4 +134,9 @@ cd ..
 makedir icons
 cd icons
 ln-s ../../../../../PyApps/src/icons/treebrowser
-ln-s ../../../../../PyApps/src/icons/purr
+cd ..
+cd Timba
+mkdir icons
+cd icons
+ln-s ../../../../../../PyApps/src/icons/treebrowser
+
