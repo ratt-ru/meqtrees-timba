@@ -50,7 +50,6 @@ if six.PY2:
   sys.setdlopenflags(dl.RTLD_NOW | dl.RTLD_GLOBAL if hasattr(dl, "RTLD_NOW") else dl.RTLD_GLOBAL);
 
 import Timba
-from MeqGUI import GUI, Plugins, Grid
 import Timba.octopython as octopython
 from Timba.dmi import *
 from Timba.utils import *

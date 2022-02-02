@@ -38,8 +38,6 @@ try:
 except ImportError:
   pass;
 
-
-
 __all__ = [ "dmi","utils","octopussy","octopython","dmi_repr" ];
 
 

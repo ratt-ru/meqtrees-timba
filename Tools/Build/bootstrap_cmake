@@ -137,7 +137,7 @@ sub configure {
             }
         }
     }
-    push @cmds, $self->{cmake}, "-DCMAKE_BUILD_TYPE=$type", @post, $self->{src};
+    push @cmds, $self->{cmake}, "-DCMAKE_BUILD_TYPE=$type", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON", @post, $self->{src};
     print "executing @cmds\n";
     system( @cmds ) == 0 or die("error running command '".$self->{cmake}."': $!\n");
 }
