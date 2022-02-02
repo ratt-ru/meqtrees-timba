@@ -26,6 +26,7 @@
 //# $Id: j2convert.cc,v 19.3 2004/11/30 17:50:39 ddebonis Exp $
 
 //# Includes
+#include <casacore/casa/version.h>
 #include <casacore/measures/Measures/Muvw.h>
 #include <casacore/measures/Measures/MCBaseline.h>
 #include <casacore/measures/Measures/MBaseline.h>
@@ -56,7 +57,15 @@
 #include <casacore/measures/TableMeasures/TableMeasRefDesc.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
-#include <casacore/casa/Arrays/ArrayIO.h>
+#if CASACORE_MAJOR_VERSION <= 3
+	#include <casacore/casa/Arrays/ArrayIO.h>
+#else
+	#if CASACORE_MINOR_VERSION >= 4
+		#include <casacore/casa/IO/ArrayIO.h>
+	#elif
+		#include <casacore/casa/Arrays/ArrayIO.h>
+	#endif
+#endif
 #include <casacore/casa/Arrays/MatrixMath.h>
 #include <casacore/casa/System/ProgressMeter.h>
 #include <casacore/casa/Inputs.h>

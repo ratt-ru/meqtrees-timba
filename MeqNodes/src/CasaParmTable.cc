@@ -208,7 +208,7 @@ int CasaParmTable::getFunklets (vector<Funklet::Ref> &funklets,
       if(itsTable.actualTableDesc().isColumn(ColFunkletType))
 	ftypeCol.attach(sel, ColFunkletType);    
       ROArrayColumn<double> lscaleCol;
-      Vector<uInt> rowNums = sel.rowNumbers(itsTable);
+      auto rowNums = sel.rowNumbers(itsTable);
       int axis[] = { Axis::TIME,Axis::FREQ };
       for( uint i=0; i<sel.nrow(); i++ )
 	{
@@ -272,7 +272,7 @@ int CasaParmTable::getInitCoeff (Funklet::Ref &funkletref,const string& parmName
     while( true ) 
     {
       *itsInitIndexName   = name;
-      Vector<uInt> rownrs = itsInitIndex->getRowNumbers();
+      auto rownrs = itsInitIndex->getRowNumbers();
       if (rownrs.nelements() > 0) 
       {
         Assert( rownrs.nelements() == 1 );
@@ -454,7 +454,7 @@ Table CasaParmTable::find (const string& parmName,
   // First see if the parameter name exists at all.
   Table result;
   *itsIndexName   = parmName;
-  Vector<uInt> rownrs = itsIndex.getRowNumbers();
+  auto rownrs = itsIndex.getRowNumbers();
   if (rownrs.nelements() > 0) {
     Table sel = itsTable(rownrs);
     // Find all rows overlapping the requested domain.
