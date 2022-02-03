@@ -19,7 +19,7 @@ install(TARGETS parmtables DESTINATION ${PYTHON_INSTALL_DIR})
 MEQPACKAGE_ADD_LIBRARIES(mequtils parmtables)
 
 # python installation targets
-install(PROGRAMS src/meqtree-pipeliner.py src/meqbrowser.py src/tdlrun.py src/trut.py src/trutify DESTINATION bin)
+install(PROGRAMS src/meqtree-pipeliner.py src/tdlrun.py src/trut.py src/trutify DESTINATION bin)
 install(FILES src/pretty_print.py DESTINATION ${PYTHON_INSTALL_DIR})
 install(DIRECTORY src/Apps DESTINATION ${PYTHON_INSTALL_DIR} FILES_MATCHING PATTERN "*.py" PATTERN ".svn" EXCLUDE )
 install(DIRECTORY src/Contrib DESTINATION ${PYTHON_INSTALL_DIR} FILES_MATCHING PATTERN "*.py" PATTERN ".svn" EXCLUDE )

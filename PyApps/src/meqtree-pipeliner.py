@@ -6,7 +6,6 @@ import traceback
 if __name__ == '__main__':
 
   import Timba
-from MeqGUI import GUI, Plugins, Grid
   import Timba.utils
   import sys
   import os.path

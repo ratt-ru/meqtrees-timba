@@ -57,7 +57,7 @@
 #include <casacore/measures/TableMeasures/TableMeasRefDesc.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
-#if CASACORE_MAJOR_VERSION <= 3
+#if CASACORE_MAJOR_VERSION < 3
 	#include <casacore/casa/Arrays/ArrayIO.h>
 #else
 	#if CASACORE_MINOR_VERSION >= 4

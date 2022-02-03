@@ -23,6 +23,7 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+from ast import Import
 from Timba.Apps import meqserver
 from Timba.Apps import app_defaults
 from Timba.TDL import Compile
@@ -363,7 +364,12 @@ Since you're running the assayer in recording mode, we have disconnected
 from the meqserver without stopping it. You may wish to run the browser to
 ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
       if not a or a[0].lower() == 'y':
-        os.system("meqbrowser.py");
+        try:
+          import MeqGUI
+        except ImportError:
+          print("meqtrees-frontend package is not currently installed. GUI cannot be started")
+          sys.exit(1)
+        os.system("meqbrowser.py")
       print("""\n\nReminder: you may need to kill the meqserver manually.""");
     else:
       meqserver.stop_default_mqs();
