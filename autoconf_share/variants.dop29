@@ -1,5 +1,0 @@
-gnu.compiler.conf: CXX=/local/gcc-3.1.1/bin/g++ --with-cppflags="-Wno-deprecated"
-kcc.compiler.conf: CXX=/aips++/gvandiep/sim/import/kcc/KCC_BASE/bin/KCC
-icc.compiler.conf: CXX=/opt/intel/compiler50/ia32/bin/icc
-
-aipspp.var: --with-aipspp=/aips++/weekly/dop29_gnu --with-lapack=/aips++/lapack/linux_gnu/lib

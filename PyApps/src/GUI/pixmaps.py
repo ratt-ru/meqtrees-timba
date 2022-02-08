@@ -1,1 +1,0 @@
-from Kittens.pixmaps import *

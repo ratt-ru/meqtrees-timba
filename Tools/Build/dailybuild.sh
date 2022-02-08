@@ -63,7 +63,7 @@ function Cleanup {
 function GenerateDocs {
     DOCSOUTPUT=$1 && \
     pushd $DOCSOUTPUT && \
-    python $GENERATEDOCSSCRIPT $DAILY_DIR/TIMBA/install/symlinked/libexec/python/Timba && \
+    python3 $GENERATEDOCSSCRIPT $DAILY_DIR/TIMBA/install/symlinked/libexec/python/Timba && \
     ln -s Timba.html index.html && \
     popd
 }
@@ -195,7 +195,7 @@ function InitializeTesting {
 function RunAssayScript {
    assayscript=$1
    logfile=$2
-   python $assayscript -assayrecord -opt -dassayer=2 -- -mt 2>&1 >> $logfile&
+   python3 $assayscript -assayrecord -opt -dassayer=2 -- -mt 2>&1 >> $logfile&
    pythonpid=$!
    meqserverpid=`ps --ppid $pythonpid | grep meqserver|awk '{print $1}'`
 }

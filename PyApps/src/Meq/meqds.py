@@ -29,7 +29,7 @@
 #
 
 from Timba.dmi import *
-from Timba.GUI.pixmaps import pixmaps
+from Kittens import pixmaps
 from Timba import mequtils
 
 import weakref
@@ -44,10 +44,12 @@ import traceback
 try:
   from PyQt4.Qt import QObject, SIGNAL
   from Kittens.widgets import PYSIGNAL
+  QT_AVAIL=True
 except:
   print("Qt not available, substituting proxy types for QObject");
   from Timba.Apps.QObject import QObject, PYSIGNAL
   SIGNAL = PYSIGNAL
+  QT_AVAIL=False
 
 _dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;

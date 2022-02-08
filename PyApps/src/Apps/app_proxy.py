@@ -25,10 +25,17 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
+from PyApps.src.Apps.multiapp_proxy import QT_AVAILABLE
 from Timba.Apps import app_defaults
-if app_defaults.include_gui:
-  import Timba.GUI.app_proxy_gui;
-  import Timba.qt_threading;
+try:
+  import PyQt4
+  QT_AVAILABLE = True
+except ImportError:
+  QT_AVAILABLE = False
+
+if app_defaults.include_gui and QT_AVAILABLE:
+  import MeqGUI.GUI.app_proxy_gui;
+  import MeqGUI.qt_threading;
 
 from Timba.dmi import *
 from Timba import octopussy
@@ -80,7 +87,7 @@ class app_proxy (verbosity):
     if threads:
       self.dprint(1,"running in threaded mode");
       # select threading API
-      if gui: api = Timba.qt_threading;
+      if gui: api = MeqGUI.qt_threading;
       else:   api = threading;
       self._pwp = octopussy.proxy_wp_thread(str(client_id),verbose=wp_verbose,thread_api=api);
     else:
@@ -162,11 +169,11 @@ class app_proxy (verbosity):
       if callable(gui):
         self._gui = gui;
       else:
-        self._gui = Timba.GUI.app_proxy_gui.app_proxy_gui;
+        self._gui = MeqGUI.GUI.app_proxy_gui.app_proxy_gui;
       if threads: 
         self.dprint(1,"threading enabled, posting construct event");
         # threaded model: post a GUI construction event to the main app
-        mainapp = Timba.GUI.app_proxy_gui.mainapp();
+        mainapp = MeqGUI.GUI.app_proxy_gui.mainapp();
         mainapp.postCallable(self._construct_gui);
         # after GUI has been constructed, start WP event thread
         mainapp.postCallable(self._pwp.start);

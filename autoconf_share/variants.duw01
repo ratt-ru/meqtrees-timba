@@ -1,9 +1,0 @@
-gnu3.compiler.conf: CXX=/local/gcc-3.2/bin/g++ --with-cppflags="-Wno-deprecated"
-gnu.compiler.conf: CXX=/local/gcc-3.2/bin/g++ --with-cppflags="-Wno-deprecated"
-
-mtsupport.var:    --with-threads=no
-
-aipspp.var: --with-aipspp=/aips++/weekly/sun4sol_egcsu --with-lapack=/aips++/lapack/sun4sol_gnu/lib 
-
-lofar_root.var: --with-ldflags=-lsocket
-

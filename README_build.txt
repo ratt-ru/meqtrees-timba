@@ -47,7 +47,8 @@ Developers usually prefer to run MeqTrees directly from the source/build tree. T
 
   This will setup all paths to point to the named build. Note that you can reinvoke the timba-setup command manually in your shell, should you wish to switch to a different build.
 
-You should be able to start meqtrees by running 'meqbrowser.py'.
+You should be able to start meqtrees by running 'meqbrowser.py' if meqbrowser-frontend package has been installed. Otherwise
+only the pipeliner may be available.
    
 
 

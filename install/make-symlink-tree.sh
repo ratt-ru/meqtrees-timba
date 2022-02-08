@@ -52,15 +52,16 @@ makedir libexec
 
 cd bin
 ln-s ../../../TimBase/src/gprof-run
-ln-s ../../../PyApps/src/meqbrowser.py
-ln -s meqbrowser.py meqbrowser
+#ln-s ../../../PyApps/src/meqbrowser.py
+#ln -s meqbrowser.py meqbrowser
 if [ -f ../../../build/$flavour/MeqServer/meqserver ]; then
   ln-s ../../../build/$flavour/MeqServer/meqserver
 else
+  ln-s ../../../build/$flavour/MeqServer/meqserver
   echo "WARNING: meqserver binary not found"
 fi
 ln-s ../../../PyApps/src/tdlrun.py
-ln-s ../../../PyApps/src/trut
+ln-s ../../../PyApps/src/Trut
 ln-s ../../../PyApps/src/trutify
 ln-s ../../../PyApps/src/trut.py
 ln-s ../../../PyApps/src/meqtree-pipeliner.py
@@ -96,8 +97,8 @@ cd python
 #ln-s ../../../../FW/Siamese
 #ln-s ../../../../FW/Calico
 #ln-s ../../../../FW/Ionosphere
-ln-s ../../../../PyApps/src/Purr
-ln-s ../../../../PyApps/src/meqbrowser.py
+#ln-s ../../../../PyApps/src/Purr
+#ln-s ../../../../PyApps/src/meqbrowser.py
 makedir Timba
 cd Timba
 ln-s ../../../../../PyApps/src/Apps
@@ -105,8 +106,8 @@ ln-s ../../../../../PyApps/src/Contrib
 ln-s ../../../../../OCTOPython/src/version_info
 ln-s ../../../../../OCTOPython/src/dmi.py
 ln-s ../../../../../OCTOPython/src/dmi_repr.py
-ln-s ../../../../../PyApps/src/Grid
-ln-s ../../../../../PyApps/src/GUI
+#ln-s ../../../../../PyApps/src/Grid
+#ln-s ../../../../../PyApps/src/GUI
 ln-s ../../../../../OCTOPython/src/__init__.py
 ln-s ../../../../../PyApps/src/Meq
 ln-s ../../../../../MeqServer/src/meqkernel.py
@@ -118,12 +119,12 @@ ln-s ../../../../../build/$flavour/OCTOPython/octopython.so octopython.so
 ln-s ../../../../../PyParmDB/src/ParmDB.py
 ln-s ../../../../../build/$flavour/PyApps/parmtables.dylib parmtables.dylib
 ln-s ../../../../../build/$flavour/PyApps/parmtables.so parmtables.so
-ln-s ../../../../../PyApps/src/Plugins
+#ln-s ../../../../../PyApps/src/Plugins
 ln-s ../../../../../PyApps/src/pretty_print.py
 ln-s ../../../../../MeqServer/src/pynode.py
 ln-s ../../../../../build/$flavour/PyParmDB/pyparmdb.dylib
 ln-s ../../../../../build/$flavour/PyParmDB/pyparmdb.so
-ln-s ../../../../../OCTOPython/src/qt_threading.py
+#ln-s ../../../../../OCTOPython/src/qt_threading.py
 ln-s ../../../../../PyApps/src/TDL
 ln-s ../../../../../PyApps/src/Trees
 ln-s ../../../../../PyApps/src/Trut
@@ -133,4 +134,9 @@ cd ..
 makedir icons
 cd icons
 ln-s ../../../../../PyApps/src/icons/treebrowser
-ln-s ../../../../../PyApps/src/icons/purr
+cd ..
+cd Timba
+mkdir icons
+cd icons
+ln-s ../../../../../../PyApps/src/icons/treebrowser
+

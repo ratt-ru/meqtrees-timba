@@ -615,7 +615,7 @@ def refcount_report (obj,indent=0,name="?",bias=3):
 try:
   # when running from inside the kernel, we may already have Timba.octopython
   # as a symbol, but for some reason it's not always in the modules dict
-  if not hasattr(Timba,'octopython'):
+  if not hasattr(Timba, 'octopython'):
     import Timba.octopython 
   lazy_objref = Timba.octopython.lazy_objref;
 except ImportError:
