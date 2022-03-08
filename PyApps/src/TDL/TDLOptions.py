@@ -44,10 +44,11 @@ import socket
 try:
   from qtpy.QtCore import Signal, QObject
   from qtpy.QtWidgets import QFileDialog
-  OptionObject = QObject();
+  OptionObject = QObject()
 except:
-  OptionObject;
-  pass;
+  OptionObject = None
+  class QFileDialog: pass
+  pass
 
 _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
