@@ -200,7 +200,7 @@ class _NodeDef (object):
       if x is None:
         list.__init__(self);
       elif self.is_dict:
-        list.__init__(self,iter(x.items()));
+        list.__init__(self,iter(list(x.items())));
       elif isinstance(x,(list,tuple)):
         # check if it is a sequence if duplets
         # no -- assume sequence of children
@@ -292,9 +292,9 @@ class _NodeDef (object):
       if childlist:
         children = childlist;
       else: # else see if some keyword arguments specify children-like objects
-        children = dict([(key,val) for (key,val) in kw.items()
+        children = dict([(key,val) for (key,val) in list(kw.items())
                           if isinstance(val,(_NodeDef,_NodeStub)) ]);
-        list(map(kw.pop,iter(children.keys())));
+        list(map(kw.pop,iter(list(children.keys()))));
     _dprint(3,"NodeDef",classname,"children are",children);
     self.children = self.ChildList(children);
     # now check for step_children:
@@ -410,7 +410,7 @@ def _mergeQualifiers (qual0,kwqual0,qual,kwqual,uniq=False):
   else:
     qual0.extend(qual);
   # always merge keyword qualifiers
-  for kw,val in kwqual.items():
+  for kw,val in list(kwqual.items()):
     val0 = kwqual0.get(kw,[]);
     if not isinstance(val0,list):
       kwqual0[kw] = val0 = [val0];
@@ -571,7 +571,7 @@ class _NodeStub (object):
               stepchildren != self.stepchildren:
           _dprint(1,'old definition',self._initrec);
           _dprint(1,'new definition',initrec);
-          for (f,val) in initrec.items():
+          for (f,val) in list(initrec.items()):
             _dprint(2,f,val,self._initrec.get(f,None),val == self._initrec.get(f,None));
           # report error
           err = self._make_redefinition_error(this_stack,self._bind_stack,
@@ -739,7 +739,7 @@ class _NodeStub (object):
   def set_options (self,**kw):
     if not self.initialized():
       raise NodeDefError("set_options() on an uninitialized node");
-    for name,value in kw.items():
+    for name,value in list(kw.items()):
       self._initrec[name] = value;
   def _get_definition_chain (self):
     """helper method for error reporting. Returns a list of DefinedHere
@@ -1123,10 +1123,10 @@ class _NodeRepository (dict):
     # if no subtree specified, search whole repository
     if subtree is None:
       if return_names:
-        return [ name for name,node in self.items()
+        return [ name for name,node in list(self.items())
                  if name_conditional(name) and search_condition(node) ];
       else:
-        return [ node for name,node in self.items()
+        return [ node for name,node in list(self.items())
                  if name_conditional(name) and search_condition(node) ];
     # else search subtree rooted at 'subtree'
     else:
@@ -1164,7 +1164,7 @@ class _NodeRepository (dict):
     or "name_prefix:*" """;
     match = lambda name:name.startswith(name_prefix) and (
                           len(name) == len(name_prefix) or name[len(name_prefix)] == ':');
-    return [ node for name,node in self.items() \
+    return [ node for name,node in list(self.items()) \
                   if match(name) and node._initrec is not None ];
 
   def resolve (self,cleanup_orphans):
@@ -1184,9 +1184,9 @@ class _NodeRepository (dict):
       # now assign sinks and spigots to vdm, unless they already have a
       # vdm parent
       self._have_vdm.add_children(*[ node for node in self._sinks
-        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.values() ] ]);
+        if 'MeqVisDataMux' not in [ p.classname for p in list(node.parents.values()) ] ]);
       self._have_vdm.add_stepchildren(*[ node for node in self._spigots
-        if 'MeqVisDataMux' not in [ p.classname for p in node.parents.values() ] ]);
+        if 'MeqVisDataMux' not in [ p.classname for p in list(node.parents.values()) ] ]);
     else: # no vdm needed. So release ref to it even if explicitly created,
       # to ensure it is orphaned or kept as needed elsewhere.
       self._have_vdm = None;
@@ -1218,13 +1218,13 @@ class _NodeRepository (dict):
               node.stepchildren[ich-len(node.children)] = label,child;
             recursive_proc_assign(child,proc);
       # call function above on all "root" processor assignments
-      for proc,nodelist in self._proc_assignment.items():
+      for proc,nodelist in list(self._proc_assignment.items()):
         for node in nodelist:
           recursive_proc_assign(node,proc);
     # now go through node list, weed out uninitialized nodes, finalize
     # parents and children, etc.
     current_nodeindex = 1;
-    for (name,node) in self.items():
+    for (name,node) in list(self.items()):
       if not node.initialized():
         uninit.append(name);
       else:
@@ -1272,7 +1272,7 @@ class _NodeRepository (dict):
     _dprint(1,len0 - len(self),"orphans were deleted,",len(self._roots),"roots remain");
     # now that all nodeindices have been assigned, do another loop to resolve
     # the children specifications and replace them with node indices
-    for node in self.values():
+    for node in list(self.values()):
       if node.children.is_dict:
         children = dmi.record([(label,getattr(child,'nodeindex',-1))
                                   for label,child in node.children]);
@@ -1285,11 +1285,11 @@ class _NodeRepository (dict):
         node._initrec.step_children = [ child.nodeindex for label,child in node.stepchildren ];
       # assign parent list
       if node.parents:
-        node._initrec.parents = [ parent.nodeindex for parent in node.parents.values() ];
+        node._initrec.parents = [ parent.nodeindex for parent in list(node.parents.values()) ];
       
     # print roots in debug mode
     if _dbg.verbose > 3:
-      for node in self._roots.values():
+      for node in list(self._roots.values()):
         _printNode(node);
     _dprint(2,"root nodes:",list(self._roots.keys()));
     _dprint(1,len(self),"total nodes in repository");
@@ -1359,7 +1359,7 @@ class NodeScope (object):
     """converts a dict (presumably, of keyword qualifiers) into a list of
     "key=value" strings."""
     return [ "=".join((str(key),NodeScope._resolve_to_string(value)))
-             for key,value in kwquals.items() ];
+             for key,value in list(kwquals.items()) ];
   _flatten_keyword_quals = staticmethod(_flatten_keyword_quals);
 
   def _apply_qualifiers (name,quals=[],kwquals={}):
@@ -1368,7 +1368,7 @@ class NodeScope (object):
     resolve_qual = NodeScope._resolve_to_string
     parts = [str(name)]
     parts.extend(resolve_qual(q) for q in quals)
-    parts.extend("%s=%s" % (str(k), resolve_qual(v)) for k,v in kwquals.items())
+    parts.extend("%s=%s" % (str(k), resolve_qual(v)) for k,v in list(kwquals.items()))
     return ':'.join(parts)
   _apply_qualifiers = staticmethod(_apply_qualifiers);
 

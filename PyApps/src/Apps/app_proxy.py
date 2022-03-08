@@ -25,17 +25,11 @@
 # 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from PyApps.src.Apps.multiapp_proxy import QT_AVAILABLE
+from Timba.Apps.multiapp_proxy import QT_AVAILABLE
 from Timba.Apps import app_defaults
-try:
-  import PyQt4
-  QT_AVAILABLE = True
-except ImportError:
-  QT_AVAILABLE = False
-
-if app_defaults.include_gui and QT_AVAILABLE:
-  import MeqGUI.GUI.app_proxy_gui;
-  import MeqGUI.qt_threading;
+if app_defaults.include_gui and QT_AVAILBLE:
+  import Timba.GUI.app_proxy_gui;
+  import Timba.qt_threading;
 
 from Timba.dmi import *
 from Timba import octopussy

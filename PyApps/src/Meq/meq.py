@@ -193,7 +193,7 @@ def gen_domain (**kw):
   freq=(f0,f1),time=(t0,t1),l=(l0,l1), etc.
   """;
   dom = _domain_type();
-  for kw,value in kw.items():
+  for kw,value in list(kw.items()):
     if not isinstance(value,(list,tuple)) or len(value)!=2:
       raise TypeError(kw+": list or tuple of (min,max) expected");
     dom[kw.lower()] = list(map(float,value));
@@ -316,7 +316,7 @@ def gen_cells (domain,**kw):
   grid = record();
   cell_size = record();
   segments = record();
-  for axis,dom in domain.items():
+  for axis,dom in list(domain.items()):
     axis = str(hiid(axis)).lower();
     nc = kw.get('num_'+axis,1);
     grid[axis],cell_size[axis],segments[axis] = \
@@ -356,7 +356,7 @@ def shape (arg0=None,*args,**kw):
     meq.shape(freq=nf,time=nt,...)   [nfreq,ntime,...] shape
   """;
   if isinstance(arg0,_cells_type):
-    return shape(**dict([(axis,int(isinstance(grid,float)) or len(grid)) for axis,grid in arg0.grid.items()]));
+    return shape(**dict([(axis,int(isinstance(grid,float)) or len(grid)) for axis,grid in list(arg0.grid.items())]));
   elif isinstance(arg0,dmi.array_class):
     return arg0.shape;
   else:
@@ -366,7 +366,7 @@ def shape (arg0=None,*args,**kw):
     else:
       shp = list(args);
     # now go over keywords
-    for axis,extent in kw.items():
+    for axis,extent in list(kw.items()):
       iaxis = mequtils.get_axis_number(axis);
       if iaxis >= len(shp):
         shp += [1]*(iaxis-len(shp)+1);

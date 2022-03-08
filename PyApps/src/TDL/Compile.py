@@ -40,6 +40,7 @@ import os
 import os.path
 import inspect
 import six
+import importlib
 if six.PY3:
   from importlib import reload
   import importlib.machinery
@@ -108,7 +109,7 @@ def import_tdl_module (filename, text=None, config=0):
   # initialize global nodescope (and repository)
   meqds.clear_forest();
   try:
-    reload(Timba.TDL.Settings);
+    importlib.reload(Timba.TDL.Settings);
     # reset TDL script options, unless config=None ('0' is used as default, causing the filename to be substituted)
     TDLOptions.init_script(filename);
     if config is not None:
@@ -268,7 +269,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       if num_nodes:
         mqs.meq('Create.Node.Batch',
             record(script_name=os.path.basename(filename),
-            batch=[nr.initrec() for nr in iter(allnodes.values())]));
+            batch=[nr.initrec() for nr in iter(list(allnodes.values()))]));
 #        mqs.meq('Init.Node.Batch',record(name=list(ns.RootNodes().iterkeys())),wait=wait);
         msg = """TDL script successfully compiled. %d node definitions
   (of which %d are root nodes) sent to meqserver.""" \
