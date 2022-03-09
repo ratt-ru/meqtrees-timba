@@ -108,7 +108,16 @@ endif(DBM_FLAGS)
 
 if(CASACORE_FOUND)
     add_definitions(-DHAVE_AIPSPP)
+    message("-- Casacore include directories found in ${CASACORE_INCLUDE_DIR}")
+    message("-- Casacore libraries found in ${CASACORE_LIBRARIES}")
 endif(CASACORE_FOUND)
+
+find_package(Casarest REQUIRED COMPONENTS synthesis)
+
+if(CASAREST_FOUND)
+    message("-- Casarest include directories found in ${CASAREST_INCLUDE_DIR}")
+    message("-- Casarest libraries found in ${CASAREST_LIBRARIES}")
+endif(CASAREST_FOUND)
 
 # -- compiler defaults
 add_definitions(-DUSE_STD_COMPLEX -DMAKE_LOFAR_SYMBOLS_GLOBAL -DUSE_THREADS -fPIC)
