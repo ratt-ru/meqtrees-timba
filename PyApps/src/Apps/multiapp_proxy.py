@@ -272,15 +272,15 @@ class multiapp_proxy (verbosity):
     if server and server is not self.current_server:
       self.detach_current_server();
       self.current_server = server;
-      self.attached.emit()
-      self.serverAttached.emit(server, auto_attached)
+      server.attached.emit()
+      self.client.serverAttached.emit(server, auto_attached)
       self._gui_event_handler(self.server_attach_event,None,server);
       self._auto_attach_pid = self._auto_attach_host = None;
       
   def detach_current_server (self):
     """Detaches from current server""";
     if self.current_server:
-      self.detached.emit()
+      self.current_server.detached.emit()
       self.serverDetached.emit(self.current_server, )
       self._gui_event_handler(self.server_detach_event,None,self.current_server);
       self.current_server = None;
@@ -422,7 +422,7 @@ class multiapp_proxy (verbosity):
       self.dprint(2,'   event:',event);
       self.dprint(3,'   value:',value);
     # emit signals
-    self.event.emit(event, value)
+    server.event.emit(event, value)
     # forward to gui
     self._gui_event_handler(event,value,server);
     
