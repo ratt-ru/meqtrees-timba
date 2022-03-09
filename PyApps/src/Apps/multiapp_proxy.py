@@ -34,6 +34,8 @@ try:
   QT_AVAILABLE = True
 except ImportError:
   print("Qt not available, substituting proxy types for QObject");
+  from Timba.Apps.QObject import QObject
+  Signal = QObject
   QT_AVAILABLE = False
 
 if app_defaults.include_gui and QT_AVAILABLE:

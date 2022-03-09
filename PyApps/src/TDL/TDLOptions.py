@@ -46,9 +46,11 @@ try:
   from qtpy.QtWidgets import QFileDialog
   OptionObject = QObject()
 except:
-  OptionObject = None
+  from Timba.Apps.QObject import QObject, SIGNAL
+  OptionObject = QObject()
+  Signal = QObject
   class QFileDialog: pass
-  pass
+  
 
 _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;

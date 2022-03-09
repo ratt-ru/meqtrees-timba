@@ -44,8 +44,10 @@ import traceback
 try:
   from qtpy.QtCore import QObject, Signal
 except:
-  print("Qt not available, substituting proxy types for QObject");
-
+  print("Qt not available, substituting proxy types for QObject")
+  from Timba.Apps.QObject import QObject
+  Signal = QObject
+  
 _dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
