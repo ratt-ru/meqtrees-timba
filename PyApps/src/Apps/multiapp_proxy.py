@@ -281,7 +281,7 @@ class multiapp_proxy (verbosity):
     """Detaches from current server""";
     if self.current_server:
       self.current_server.detached.emit()
-      self.client.serverDetached.emit(self.current_server, )
+      self.serverDetached.emit(self.current_server, )
       self._gui_event_handler(self.server_detach_event,None,self.current_server);
       self.current_server = None;
       
@@ -297,7 +297,7 @@ class multiapp_proxy (verbosity):
     self.servers[addr] = server;
     self.dprint(2, "requesting state and status update");
     self.send_command("Request.State",destination=addr);
-    self.client.serverConnected.emit(server)
+    self.serverConnected.emit(server)
     self._gui_event_handler(self.hello_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     # is an auto-attach request in place?
@@ -314,13 +314,13 @@ class multiapp_proxy (verbosity):
     to disconnect a server""";
     server.state = server.process_state = None;
     server.statestr = '';
-    server.newState.emit()
-    server.disconnected.emit()
+    self.newState.emit()
+    self.disconnected.emit()
     self._gui_event_handler(self.bye_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     if server is self.current_server:
       self.detach_current_server();
-    self.client.serverDisconnected.emit(server, )
+    self.serverDisconnected.emit(server, )
     del self.servers[addr];
   
   def _hello_handler (self,msg):
@@ -344,7 +344,7 @@ class multiapp_proxy (verbosity):
       if fromaddr[2:3] == addr[2:3]:
         server.process_status = msg.msgid[2:];
         self.dprintf(5,"server %s, process status %s",addr,server.process_status);
-        server.processStatus.emit(server.process_status, )
+        self.processStatus.emit(server.process_status, )
         self._gui_event_handler(self.process_status_event,server.process_status,server);
     
   def _remote_down_handler (self,msg):
