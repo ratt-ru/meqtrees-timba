@@ -42,15 +42,12 @@ import math
 import traceback
 
 try:
-  from PyQt4.Qt import QObject, SIGNAL
-  from Kittens.widgets import PYSIGNAL
-  QT_AVAIL=True
+  from qtpy.QtCore import QObject, Signal
 except:
-  print("Qt not available, substituting proxy types for QObject");
-  from Timba.Apps.QObject import QObject, PYSIGNAL
-  SIGNAL = PYSIGNAL
-  QT_AVAIL=False
-
+  print("Qt not available, substituting proxy types for QObject")
+  from Timba.Apps.QObject import QObject
+  Signal = QObject
+  
 _dbg = verbosity(0,name='meqds');
 _dprint = _dbg.dprint;
 _dprintf = _dbg.dprintf;
@@ -138,12 +135,19 @@ CS_RES_map = {  CS_RES_NONE:     ('-','valid result'),
  
 # this class defines and manages a node list
 class NodeList (QObject):
+  cleared = Signal()
+  loaded = Signal()
+  requested = Signal()
   NodeAttrs = ('name','class','children','step_children','control_status');
   RequestRecord = record(**dict.fromkeys(NodeAttrs,True));
   RequestRecord.nodeindex=True;
   RequestRecord.get_forest_status = 2;
+
   
   class Node (QObject):
+    state = Signal('PyQt_PyObject', 'PyQt_PyObject')
+
+
     def __init__ (self,ni,parent=None):
       QObject.__init__(self,parent);
       self.nodeindex = ni;
@@ -158,6 +162,7 @@ class NodeList (QObject):
       self.control_status = 0;
       self.control_status_string = '';
       self.profiling_stats = self.cache_stats = 0;
+
     def child_label_format (self):
       try: format = self._child_label_format;
       # creates a format string for formatting child labels.
@@ -173,20 +178,28 @@ class NodeList (QObject):
           format = '';
         self._child_label_format = format;
       return format;
+
     def is_active (self):
       return bool(self.control_status&CS_ACTIVE);
+
     def is_publishing (self):
       return bool(self.control_status&CS_PUBLISHING);
+
     def has_breakpoints (self):
       return bool(self.control_status&CS_BREAKPOINT);
+
     def is_stopped (self):
       return bool(self.control_status&CS_STOPPED);
+
     def exec_state (self):
       return self.control_status&CS_MASK_EXECSTATE;
+
     def exec_state_str (self):
       return CS_ES_state(self.control_status)[1];
+
     def is_idle (self):
       return self.exec_state() == CS_ES_IDLE;
+
     def update_status (self,status,rqid=False):
       old_status = self.control_status;
       self.control_status = status;
@@ -205,28 +218,33 @@ class NodeList (QObject):
         self.request_id = rqid;
       self.control_status_string = s;
       _dprint(6,"node",self.name,"update status %X"%(status,));
-      self.emit(SIGNAL("status"),self,old_status);
+      self.status.emit(self, old_status)
+
     def update_state (self,state,event=None):
       try: self.breakpoint = state.breakpoint;
       except AttributeError: pass;
       self.update_status(state.control_status,state.get('request_id',None));
       _dprint(5,"node",self.name,"update state (event ",event,")");
-      self.emit(SIGNAL("state"),self,state,event);
+      self.state.emit(self, state, event)
+
     # Adds a subscriber to node status changes
     def subscribe_status (self,callback):
       _dprint(4,"connecting status of node ",self.name," to ",callback);
-      QObject.connect(self,PYSIGNAL("status()"),callback);
+      self.status.connect(callback)
+
     # Adds a subscriber to node state changes
     def subscribe_state (self,callback):
       _dprint(4,"connecting state of node ",self.name," to ",callback);
-      QObject.connect(self,PYSIGNAL("state()"),callback);
+      self.state.connect(callback)
+
     def unsubscribe_status (self,callback):
       _dprint(4,"disconnecting status of node ",self.name," from ",callback);
-      QObject.disconnect(self,PYSIGNAL("status()"),callback);
+      self.status.disconnect(callback)
     # Adds a subscriber to node state changes
+
     def unsubscribe_state (self,callback):
       _dprint(4,"disconnecting state of node ",self.name," from ",callback);
-      QObject.disconnect(self,PYSIGNAL("state()"),callback);
+      self.state.disconnect(callback)
 
   # init node list
   def __init__ (self,meqnl=None,parent=None):
@@ -259,6 +277,7 @@ class NodeList (QObject):
       # form sequence of iterators
       iter_name     = iter(sublist.name);
       iter_class    = iter(sublist['class']);
+      loaded = Signal()
       iter_children = iter(sublist.children);
       iter_step_children = iter(sublist.step_children);
       iter_cstate   = iter(sublist.control_status);
@@ -315,9 +334,9 @@ class NodeList (QObject):
           # add to class map
           self._classmap.setdefault(node.classname,[]).append(node);
     # compose list of root (i.e. parentless) nodes
-    self._rootnodes = [ node for node in self._nimap.values() if not node.parents ];
+    self._rootnodes = [ node for node in list(self._nimap.values()) if not node.parents ];
     # emit signal
-    self.emit(SIGNAL("loaded"),meqnl,);
+    self.loaded.emit(meqnl, )
     
 #  __init__ = busyCursorMethod(__init__);
   # return list of root nodes
@@ -327,9 +346,9 @@ class NodeList (QObject):
   def classes (self):
     return self._classmap;
   def iteritems (self):
-    return iter(self._nimap.items());
+    return iter(list(self._nimap.items()));
   def iternodes (self):
-    return iter(self._nimap.values());
+    return iter(list(self._nimap.values()));
   def has_profiling (self):
     return self._has_profiling;
   # mapping methods
@@ -435,6 +454,9 @@ def mqs ():
 # ----------------------------------------------------------------------
 
 class UDI(str):
+  state = Signal()
+  cleared = Signal()
+  requested = Signal()
   pass;
 
 _patt_Udi_NodeState = re.compile("^/(node|snapshot/[^/]+)/([^/]+)(/.*)?$");
@@ -524,7 +546,7 @@ def subscribe_forest_state (callback):
   """Adds a subscriber to node state changes. Callback must take one 
   argument: the new forest state""";
   global _forest_state_obj;
-  QObject.connect(_forest_state_obj,PYSIGNAL("state()"),callback);
+  _forest_state_obj.state.connect(callback)
   
 def update_forest_state (fst,merge=False):
   """Updates forest state record and notifies subscribers.""";
@@ -538,7 +560,7 @@ def update_forest_state (fst,merge=False):
   axislist = fst.get('axis_list',None);
   if axislist:
     mequtils.set_axis_list(axislist);
-  _forest_state_obj.emit(SIGNAL("state"),_forest_state,);
+  _forest_state_obj.state.emit(_forest_state, )
   
 def set_forest_state (field,value):
   mqs().meq('Set.Forest.State',record(state=record(**{field:value})),wait=False);
@@ -550,7 +572,7 @@ def set_forest_state (field,value):
 def clear_forest ():
   mqs().meq('Clear.Forest',record(),wait=False);
   nodelist.clear();
-  nodelist.emit(SIGNAL("cleared"));
+  nodelist.cleared.emit()
 
 _req_nodelist_time = 0;
 
@@ -567,7 +589,7 @@ def request_nodelist (force=False,profiling_stats=False,sync=False):
   if profiling_stats:
     rec = copy.copy(rec);
     rec.profiling_stats = True;
-  nodelist.emit(SIGNAL("requested"));
+  nodelist.requested.emit()
   mqs().meq('Get.Node.List',rec,wait=False);
   global _req_nodelist_time;
   _req_nodelist_time = time.time();
@@ -580,10 +602,10 @@ def age_nodelist_request ():
   return time.time() - _req_nodelist_time;
   
 def subscribe_nodelist (callback):
-  QObject.connect(nodelist,PYSIGNAL("loaded()"),callback);
+  nodelist.loaded.connect(callback)
 
 def ubsubscribe_nodelist (callback):
-  QObject.disconnect(nodelist,PYSIGNAL("loaded()"),callback);
+  nodelist.loaded.disconnect(callback)
 
 def enable_node_publish (node,enable=True,get_state=True,sync=False):
   ni = nodeindex(node);

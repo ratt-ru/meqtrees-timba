@@ -26,6 +26,7 @@
 
 from Timba.dmi import *
 from Timba.utils import *
+from Kittens.pixmaps import pixmaps
 import configparser
 
 import traceback
@@ -41,14 +42,15 @@ import socket
 
 # import Qt but ignore failures since we can also run stand-alone
 try:
-  from PyQt4.Qt import *
-  from Kittens.widgets import PYSIGNAL
-  OptionObject = QObject();
-except ImportError:
-  OptionObject = None
-  class QFileDialog:
-    pass
-  pass
+  from qtpy.QtCore import Signal, QObject
+  from qtpy.QtWidgets import QFileDialog
+  OptionObject = QObject()
+except:
+  from Timba.Apps.QObject import QObject, SIGNAL
+  OptionObject = QObject()
+  Signal = QObject
+  class QFileDialog: pass
+  
 
 _dbg = verbosity(0,name='tdlopt');
 _dprint = _dbg.dprint;
@@ -68,6 +70,8 @@ _config_save_enabled = True;
 
 class OptionConfigParser (configparser.RawConfigParser):
   """extend the standard ConfigParser with a 'sticky' filename""";
+  mandatoryOptionsSet = Signal()
+
   def __init__ (self,*args):
     configparser.RawConfigParser.__init__(self,*args);
     self._readfile = self._writefile = config_file;
@@ -156,12 +160,12 @@ def _set_mandatory_option (name,value):
   mandatory options are set, and emits signals accordingly.""";
   if value is None:
     if not _unset_mandatory_options and OptionObject:
-      OptionObject.emit(SIGNAL("mandatoryOptionsSet"),False);
+      OptionObject.mandatoryOptionsSet.emit(False)
     _unset_mandatory_options.add(name);
   else:
     _unset_mandatory_options.discard(name);
     if not _unset_mandatory_options and OptionObject:
-      OptionObject.emit(SIGNAL("mandatoryOptionsSet"),True);
+      OptionObject.mandatoryOptionsSet.emit(True)
 
 def init_script (filename):
   """Initializes the option mechanism in preparation for compilation.
@@ -385,7 +389,6 @@ class _TDLBaseOption (object):
     self.doc = doc;
     if self._twitem:
       if self.doc:
-        from Kittens import pixmaps
         icon = pixmaps.info_blue_round.icon();
         # add body tags to convert documentation to rich text
         doc = "<body>"+self.doc+"</body>";
@@ -431,6 +434,8 @@ class _TDLOptionSeparator (_TDLBaseOption):
     return self.set_treewidget_item(item);
 
 class _TDLJobItem (_TDLBaseOption):
+  closeWindow = Signal()
+
   def __init__ (self,func,name=None,namespace=None,doc=None,job_id=None):
     _TDLBaseOption.__init__(self,name or func.__name__.replace('_',' '),
                             namespace=namespace,doc=doc);
@@ -443,7 +448,6 @@ class _TDLJobItem (_TDLBaseOption):
   def make_treewidget_item0 (self,parent,after,executor=None):
     item = QTreeWidgetItem(parent,after);
     item.setText(0,self.name);
-    from Kittens import pixmaps
     item.setIcon(0,pixmaps.gear.icon());
     font = item.font(0);
     font.setBold(True);
@@ -458,7 +462,6 @@ class _TDLJobItem (_TDLBaseOption):
     tw = item.treeWidget();
     button = QToolButton(tw);
     button.setText(self.name);
-    from Kittens import pixmaps
     button.setIcon(pixmaps.gear.icon());
     button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon);
     if self.doc:
@@ -466,8 +469,8 @@ class _TDLJobItem (_TDLBaseOption):
     # item.setFirstColumnSpanned(True);
     tw.setItemWidget(item,0,button);
     button._on_click = curry(executor,self.func,self.name,self.job_id);
-    QObject.connect(button,SIGNAL("clicked()"),button._on_click);
-    QObject.connect(button,SIGNAL("clicked()"),tw,PYSIGNAL("closeWindow()"));
+    button.clicked.connect(button._on_click)
+    button.clicked.connect(tw.closeWindow)
     parent._ends_with_separator = False;
     return self.set_treewidget_item(item);
 
@@ -702,9 +705,11 @@ class _TDLFileOptionItem (_TDLOptionItem):
       self._file_dialog.hide();
 
   class FileDialog (QFileDialog):
+    selectedFile = Signal()
+
     def done (self,result):
       if result:
-        self.emit(SIGNAL("selectedFile"),self.selectedFiles()[0]);
+        self.selectedFile.emit(self.selectedFiles()[0])
       QFileDialog.done(self,result);
 
   def make_treewidget_item (self,parent,after,executor=None):
@@ -723,7 +728,7 @@ class _TDLFileOptionItem (_TDLOptionItem):
       file_dialog.setFileMode(QFileDialog.ExistingFile);
     else:
       file_dialog.setFileMode(QFileDialog.AnyFile);
-    QObject.connect(file_dialog,PYSIGNAL("selectedFile()"),self._select_file);
+    file_dialog.selectedFile.connect(self._select_file)
     # make file selection dialog pop up when item is pressed
     item._on_click = item._on_press = self._show_dialog;
     parent._ends_with_separator = False;
@@ -844,8 +849,8 @@ class _TDLListOptionItem (_TDLOptionItem):
         self.option_list_desc = list(self.option_list_str);
     elif isinstance(opts,dict):
       self.option_list = list(opts.keys());
-      self.option_list_str = [self.item_str(x) for x in iter(opts.keys())];
-      self.option_list_desc = [str(x) for x in iter(opts.values())];
+      self.option_list_str = [self.item_str(x) for x in iter(list(opts.keys()))];
+      self.option_list_desc = [str(x) for x in iter(list(opts.values()))];
     else:
       raise TypeError("TDLListOptionItem: list or dict of options expected");
     # add custom value
@@ -934,8 +939,7 @@ class _TDLListOptionItem (_TDLOptionItem):
         elif self._more is float:
           self._submenu_editor.setValidator(QDoubleValidator(self._submenu_editor));
         # connect signal
-        QObject.connect(self._submenu_editor,SIGNAL("editingFinished()"),
-                        self._set_submenu_custom_value);
+        self._submenu_editor.editingFinished.connect(self._set_submenu_custom_value)
         qa = ag.addAction("Custom:");
         qa.setCheckable(True);
         self._submenu.addAction(qa);
@@ -948,7 +952,7 @@ class _TDLListOptionItem (_TDLOptionItem):
       self._submenu_qas.append(qa);
       if ival == self.selected:
         qa.setChecked(True);
-    QObject.connect(ag,SIGNAL("triggered(QAction*)"),self._activate_submenu_action);
+    ag.triggered[QAction].connect(self._activate_submenu_action)
 
   def make_treewidget_item (self,parent,after,executor=None):
     """makes a listview entry for the item""";
@@ -1137,7 +1141,7 @@ class _TDLSubmenu (_TDLBoolOptionItem):
     if item:
       if setitem:
         item.set(True,save=False);
-      for other in self._exclusive_items.values():
+      for other in list(self._exclusive_items.values()):
         if other is not item:
           other.set(False,save=False);
     if self.initialized and self.excl_config_name:

@@ -460,7 +460,7 @@ ensure that tree state is correct. Run the browser now (Y/n)? """).rstrip();
     self._sequences = unpickler.load();
     self._inspections = unpickler.load();
     self.logf("loaded assay data from file %s",fname);
-    for (host,t0) in self._recorded_time.items():
+    for (host,t0) in list(self._recorded_time.items()):
       self.logf("  host %s recorded runtime is %.2f seconds",host,t0);
     return True;
       
@@ -552,7 +552,7 @@ def normalize_value (value):
   """helper function to convert a value from dmi types to standard python""";
   if isinstance(value,dmi.record):
     res = {};
-    for field,val1 in value.items():
+    for field,val1 in list(value.items()):
       res[field] = normalize_value(val1);
     return res;
   elif isinstance(value,(list,tuple)):
@@ -591,7 +591,7 @@ def compare_value (a,b,tol=1e-6,field=None):
     elif isinstance(a,dict):
       if len(a) != len(b):
         raise DataMismatch(field,"lengths",len(a),len(b));
-      for (key,value) in a.items():
+      for (key,value) in list(a.items()):
         try:
           val2 = b[key];
         except KeyError:

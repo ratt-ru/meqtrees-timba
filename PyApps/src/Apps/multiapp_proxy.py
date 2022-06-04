@@ -30,13 +30,12 @@ from Timba.Apps import app_defaults
 
 
 try:
-  from PyQt4.Qt import QObject,SIGNAL
-  from Kittens.widgets import PYSIGNAL
+  from qtpy.QtCore import QObject, Signal
   QT_AVAILABLE = True
 except ImportError:
   print("Qt not available, substituting proxy types for QObject");
-  from .QObject import QObject,PYSIGNAL
-  SIGNAL = PYSIGNAL
+  from Timba.Apps.QObject import QObject
+  Signal = QObject
   QT_AVAILABLE = False
 
 if app_defaults.include_gui and QT_AVAILABLE:
@@ -84,6 +83,16 @@ class multiapp_proxy (verbosity):
   multiapp_proxy will attempt to discover all connected workprocesses
   """;
   
+  attached = Signal()
+  serverAttached = Signal()
+  detached = Signal()
+  serverDetached = Signal()
+  serverConnected = Signal()
+  newState = Signal()
+  disconnected = Signal()
+  serverDisconnected = Signal()
+  processStatus = Signal()
+  event = Signal()
   set_debug = staticmethod(octopussy.set_debug);
   setdebug = staticmethod(octopussy.set_debug);
   
@@ -263,16 +272,16 @@ class multiapp_proxy (verbosity):
     if server and server is not self.current_server:
       self.detach_current_server();
       self.current_server = server;
-      server.emit(SIGNAL("attached"));
-      self.client.emit(SIGNAL("serverAttached"),server,auto_attached);
+      server.attached.emit()
+      self.client.serverAttached.emit(server, auto_attached)
       self._gui_event_handler(self.server_attach_event,None,server);
       self._auto_attach_pid = self._auto_attach_host = None;
       
   def detach_current_server (self):
     """Detaches from current server""";
     if self.current_server:
-      self.current_server.emit(SIGNAL("detached"));
-      self.client.emit(SIGNAL("serverDetached"),self.current_server,);
+      self.current_server.detached.emit()
+      self.client.serverDetached.emit(self.current_server, )
       self._gui_event_handler(self.server_detach_event,None,self.current_server);
       self.current_server = None;
       
@@ -288,7 +297,7 @@ class multiapp_proxy (verbosity):
     self.servers[addr] = server;
     self.dprint(2, "requesting state and status update");
     self.send_command("Request.State",destination=addr);
-    self.client.emit(SIGNAL("serverConnected"),server);
+    self.client.serverConnected.emit(server)
     self._gui_event_handler(self.hello_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     # is an auto-attach request in place?
@@ -305,13 +314,13 @@ class multiapp_proxy (verbosity):
     to disconnect a server""";
     server.state = server.process_state = None;
     server.statestr = '';
-    server.emit(SIGNAL("newState"));
-    server.emit(SIGNAL("disconnected"));
+    server.newState.emit()
+    server.disconnected.emit()
     self._gui_event_handler(self.bye_event,addr,server);
     self._gui_event_handler(self.server_state_event,record(),server);
     if server is self.current_server:
       self.detach_current_server();
-    self.client.emit(SIGNAL("serverDisconnected"),server,);
+    self.client.serverDisconnected.emit(server, )
     del self.servers[addr];
   
   def _hello_handler (self,msg):
@@ -331,11 +340,11 @@ class multiapp_proxy (verbosity):
   def _process_stat_handler (self,msg):
     self.dprint(5,"got process status: ",msg.msgid);
     fromaddr = getattr(msg,'from');
-    for addr,server in self.servers.items():
+    for addr,server in list(self.servers.items()):
       if fromaddr[2:3] == addr[2:3]:
         server.process_status = msg.msgid[2:];
         self.dprintf(5,"server %s, process status %s",addr,server.process_status);
-        server.emit(SIGNAL("processStatus"),server.process_status,);
+        server.processStatus.emit(server.process_status, )
         self._gui_event_handler(self.process_status_event,server.process_status,server);
     
   def _remote_down_handler (self,msg):
@@ -343,7 +352,7 @@ class multiapp_proxy (verbosity):
     # check if remote gateway belongs to a server that went down, make
     # list of servers to disconnect
     disconnects = [];
-    for addr,server in self.servers.items():
+    for addr,server in list(self.servers.items()):
       if msg.msgid[3:] == addr[2:]:
         disconnects.append((addr,server));
         self.dprint(2,"matches server",addr,"removing");
@@ -413,7 +422,7 @@ class multiapp_proxy (verbosity):
       self.dprint(2,'   event:',event);
       self.dprint(3,'   value:',value);
     # emit signals
-    server.emit(SIGNAL("event"),event,value);
+    server.event.emit(event, value)
     # forward to gui
     self._gui_event_handler(event,value,server);
     

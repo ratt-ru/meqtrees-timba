@@ -5,10 +5,18 @@
 from Timba import dmi
 from Kittens.utils import curry
 
+try:
+    QString = str
+except NameError:
+    # Python 3
+    QString = str
+
 meqbrowser = None;
 
 try:
-  from PyQt4 import Qt
+  from qtpy.QtGui import QFont, QCursor
+  from qtpy.QtWidgets import QApplication, QWidget, QMessageBox
+  from qtpy.QtCore import Qt
 except:
   Qt = None;
 
@@ -37,9 +45,9 @@ class BusyIndicator (object):
   """A BusyIndicator object is created to set the cursor to a hourglass.
   When the object is destroyed (i.e. when local variable goes out of scope), the cursor is reset.""";
   def __init__ (self):
-    Qt and Qt.QApplication.setOverrideCursor(Qt.QCursor(Qt.Qt.WaitCursor));
+    Qt and QApplication.setOverrideCursor(QCursor(Qt.Qt.WaitCursor));
   def __del__ (self):
-    Qt and Qt.QApplication.restoreOverrideCursor();
+    Qt and QApplication.restoreOverrideCursor();
 
 #
 # ===== PROGRESS DIALOGS =====
@@ -50,7 +58,7 @@ class ProgressDialog (object):
     # these methods are directly mapped from QProgressDialog
     methods = [ "setLabelText","setMaximum","setMinimum","setRange","setValue","wasCanceled","show","hide" ];
     if meqbrowser and Qt:
-      self.dialog = Qt.QProgressDialog(label,cancel or Qt.QString(),min_value,max_value,meqbrowser);
+      self.dialog = Qt.QProgressDialog(label,cancel or QString(),min_value,max_value,meqbrowser);
       self.dialog.setMinimumDuration(min_duration);
       self.dialog.setLabelText(label);
       self.dialog.setValue(min_value);
@@ -113,7 +121,7 @@ ButtonNames = dict();
 
 if Qt:
   for button in _button_types:
-    num = getattr(Qt.QMessageBox,button);
+    num = getattr(QMessageBox,button);
     setattr(Button,button,num);
 else:
   for i,button in enumerate(_button_types):
@@ -129,8 +137,8 @@ class MessageBox (object):
   def __init__ (self,caption,message,boxtype=Information,buttons=Button.Ok,default=None):
     methods = [ "show","hide","setText" ];
     if meqbrowser and Qt:
-      icon = getattr(Qt.QMessageBox,boxtype.capitalize(),Qt.QMessageBox.NoIcon);
-      self.dialog = Qt.QMessageBox(icon,caption,message,buttons,meqbrowser);
+      icon = getattr(QMessageBox,boxtype.capitalize(),Qt.QMessageBox.NoIcon);
+      self.dialog = QMessageBox(icon,caption,message,buttons,meqbrowser);
       if default:
         self.dialog.setDefaultButton(default);
       for m in methods:
@@ -144,7 +152,7 @@ class MessageBox (object):
 
   def setBoxType (self,boxtype):
     if self.dialog:
-      self.dialog.setIcon(getattr(Qt.QMessageBox,boxtype.capitalize(),Qt.QMessageBox.NoIcon));
+      self.dialog.setIcon(getattr(QMessageBox,boxtype.capitalize(),QMessageBox.NoIcon));
 
   def setButtonText (self,button,text):
     if self.dialog:
@@ -156,7 +164,7 @@ class MessageBox (object):
   def __del__ (self):
     if Qt and self.dialog:
       self.dialog.hide();
-      self.dialog.setParent(Qt.QWidget());
+      self.dialog.setParent(QWidget());
 
 def message_box (caption,message,boxtype=Information,buttons=Button.Ok,default=None):
   """Displays a message box.
@@ -167,12 +175,12 @@ def message_box (caption,message,boxtype=Information,buttons=Button.Ok,default=N
   if not meqbrowser or not Qt:
     return default or Button.Ok;
   # print warning if unknown box type
-  method = getattr(Qt.QMessageBox,boxtype,None);
+  method = getattr(QMessageBox,boxtype,None);
   if not method:
     print("WARNING: unknown boxtype '%s' in call to message_box()"%boxtype);
     return default or Button.Ok;
   # call dialog
-  Qt.QApplication.setOverrideCursor(Qt.QCursor());
+  Qt.QApplication.setOverrideCursor(QCursor());
   try:
     result = method(meqbrowser,caption,message,buttons,default);
   finally:
