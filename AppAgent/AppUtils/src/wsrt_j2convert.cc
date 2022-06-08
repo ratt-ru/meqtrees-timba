@@ -62,7 +62,7 @@
 #else
 	#if CASACORE_MINOR_VERSION >= 4
 		#include <casacore/casa/IO/ArrayIO.h>
-	#elif
+	#else
 		#include <casacore/casa/Arrays/ArrayIO.h>
 	#endif
 #endif

@@ -20,7 +20,7 @@ set(appUtils_src
     )
 add_library(apputils ${appUtils_src})
 install(TARGETS apputils DESTINATION ${LIBRARY_INSTALL_DIR})
-target_link_libraries(apputils casa_ms)
+target_link_libraries(apputils ${CASACORE_LIBRARIES})
 MEQPACKAGE_ADD_LIBRARIES(apputils)
 
 add_executable(addbitflagcol src/addbitflagcol.cc)
