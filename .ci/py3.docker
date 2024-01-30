@@ -9,7 +9,7 @@ RUN docker-apt-install libblitz0-dev python3-dev libblas-dev liblapack-dev libqd
 ## BUILD MeqTrees from source
 #####################################################################
 WORKDIR /opt
-RUN virtualenv venv -p python3.8
+RUN virtualenv venv -p python3.8 --system-site-packages
 RUN . /opt/venv/bin/activate && pip install setuptools wheel pip -U
 # Get MeqTrees universe python packages
 RUN . /opt/venv/bin/activate && python3.8 -m pip install purr \
@@ -28,15 +28,11 @@ RUN mkdir /code/build && \
     cmake -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_BUILD_TYPE=Release \
           -DENABLE_PYTHON_3=ON \
-          -DCMAKE_INSTALL_PREFIX=/opt/venv/ \
-          -DPYTHON_INSTALL_DIR=/opt/venv/lib/python3.8/site-packages/Timba \
           .. && \
     make -j4 && \
     make install && \
     rm -r /code/build && \
     ldconfig
-
-ENV LD_LIBRARY_PATH=/opt/venv/lib/:${LD_LIBRARY_PATH}
 
 #####################################################################
 ## Run tests
