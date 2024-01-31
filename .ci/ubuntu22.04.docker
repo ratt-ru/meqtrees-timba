@@ -1,0 +1,81 @@
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_PRIORITY critical
+
+RUN apt update
+RUN apt install -y libblitz0-dev python3-dev libblas-dev liblapack-dev libqdbm-dev wcslib-dev \
+ libfftw3-dev python3-numpy libcfitsio-dev libboost-all-dev libboost-system-dev cmake g++ wget gfortran \
+ libncurses5-dev bison libbison-dev flex libreadline6-dev python3-pip rsync \
+ casacore-data python3-casacore casacore-dev python3-virtualenv
+
+#####################################################################
+## CASArest from source
+#####################################################################
+RUN cd /opt && \
+    wget https://github.com/casacore/casarest/archive/v1.8.1.tar.gz && \
+    tar xvf v1.8.1.tar.gz && \
+    rm v1.8.1.tar.gz && \
+    cd /opt/casarest-1.8.1 && \
+    mkdir -p build && \
+    cd /opt/casarest-1.8.1/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ../ && \
+    make -j 16 && \
+    make install && \
+    rm -r /opt/casarest-1.8.1 && \
+    ldconfig
+
+
+#####################################################################
+## BUILD MeqTrees from source
+#####################################################################
+WORKDIR /opt
+RUN virtualenv venv -p python3.10 --system-site-packages
+RUN . /opt/venv/bin/activate && pip install setuptools wheel pip -U
+# Get MeqTrees universe python packages
+RUN . /opt/venv/bin/activate && python3.10 -m pip install purr \
+                                                          owlcat \
+                                                          kittens \
+                                                          'meqtrees-cattery>=1.7.6' \
+                                                          astro-tigger-lsm \
+                                                          # possible ABI issues if this is not pinned
+                                                          python-casacore==3.4.0 \
+                                                          # possible ABI issues if this is not pinned
+                                                          numpy==1.21.5
+
+ADD . /code
+RUN mkdir /code/build && \
+    cd /code/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_PYTHON_3=ON \
+          .. && \
+    make -j8 && \
+    make install && \
+    rm -r /code/build && \
+    ldconfig
+
+#####################################################################
+## Run tests
+#####################################################################
+
+# basic install tests
+RUN . /opt/venv/bin/activate && flag-ms.py --help
+RUN . /opt/venv/bin/activate && meqtree-pipeliner.py --help
+RUN . /opt/venv/bin/activate && pyxis --help
+RUN . /opt/venv/bin/activate && python3 -c 'from Timba import mequtils'
+
+# run test when built
+WORKDIR /src
+RUN . /opt/venv/bin/activate && python3 -m pip install nose
+RUN wget https://github.com/ska-sa/pyxis/archive/v1.7.4.3.tar.gz && \
+    tar -xvf v1.7.4.3.tar.gz && \
+    rm v1.7.4.3.tar.gz && \
+    . /opt/venv/bin/activate && \
+    python3.8 -m pip install /src/pyxis-1.7.4.3 && \
+    cd /src/pyxis-1.7.4.3/Pyxis/recipes/meqtrees-batch-test && \
+    python3.8 -m "nose" && \
+    rm -r /src/pyxis-1.7.4.3
+
+WORKDIR /
+ENTRYPOINT ["meqtree-pipeliner.py"]
+CMD ["--help"]

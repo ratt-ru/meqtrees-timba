@@ -61,7 +61,11 @@ void Dispatcher::signalHandler (int signum,siginfo_t *,void *)
 #ifdef USE_THREADS
   if( DebugOctopussy::getDebugContext().check(2) )
   {
-    printf("thread %ld: received signal %d (%s)\n",(long)Thread::self().id(),signum,sys_siglist[signum]);
+    #if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 10)
+      printf("thread %ld: received signal %d (%s)\n",(long)Thread::self().id(),signum,strsignal(signum));
+    #else
+      printf("thread %ld: received signal %d (%s)\n",(long)Thread::self().id(),signum,sys_siglist[signum]);  
+    #endif
   }
 #endif
   sigaddset(&raisedSignals,signum);
