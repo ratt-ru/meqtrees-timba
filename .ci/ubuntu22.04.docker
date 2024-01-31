@@ -24,6 +24,23 @@ RUN cd /opt && \
     rm -r /opt/casarest-1.8.1 && \
     ldconfig
 
+#####################################################################
+## BUILD MAKEMS FROM SOURCE AND TEST
+#####################################################################
+WORKDIR /opt
+RUN wget https://github.com/ska-sa/makems/archive/v1.5.5.tar.gz && \
+    tar xvf v1.5.5.tar.gz && \
+    rm v1.5.5.tar.gz && \
+    mkdir -p /opt/makems-1.5.5/LOFAR/build/gnu_opt && \
+    cd /opt/makems-1.5.5/LOFAR/build/gnu_opt && \
+    cmake -DCMAKE_MODULE_PATH:PATH=/opt/makems-1.5.5/LOFAR/CMake \
+          -DUSE_LOG4CPLUS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr ../.. && \
+    make -j 16 && \
+    make install && \
+    cd /opt/makems-1.5.5/test && \
+    makems WSRT_makems.cfg && \
+    rm -r /opt/makems-1.5.5
 
 #####################################################################
 ## BUILD MeqTrees from source
@@ -66,14 +83,14 @@ RUN . /opt/venv/bin/activate && python3 -c 'from Timba import mequtils'
 
 # run test when built
 WORKDIR /src
-RUN . /opt/venv/bin/activate && python3 -m pip install nose
+RUN . /opt/venv/bin/activate && python3 -m pip install pynose
 RUN wget https://github.com/ska-sa/pyxis/archive/v1.7.4.3.tar.gz && \
     tar -xvf v1.7.4.3.tar.gz && \
     rm v1.7.4.3.tar.gz && \
     . /opt/venv/bin/activate && \
     python3.8 -m pip install /src/pyxis-1.7.4.3 && \
     cd /src/pyxis-1.7.4.3/Pyxis/recipes/meqtrees-batch-test && \
-    python3.8 -m "nose" && \
+    python3.8 -m "pynose" && \
     rm -r /src/pyxis-1.7.4.3
 
 WORKDIR /
