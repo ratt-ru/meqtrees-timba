@@ -37,6 +37,7 @@
 #include <list>
 #include <set>
 #include <queue>
+#include <string.h>
 
 namespace Octopussy
 {

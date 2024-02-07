@@ -41,6 +41,7 @@
 #include <OCTOPUSSY/WPInterface.h>
 #include <OCTOPUSSY/Message.h>
 #include <OCTOPUSSY/OctopussyDebugContext.h>
+#include <string.h>
 
 #pragma aid Argv
 

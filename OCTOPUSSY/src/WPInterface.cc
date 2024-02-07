@@ -1076,7 +1076,11 @@ int WPInterface::input (int fd, int flags)
 //##ModelId=3C7DFD240203
 int WPInterface::signal (int signum)
 {
-  dprintf(1)("unhandled signal(%s)\n",sys_siglist[signum]);
+  #if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 10)
+    dprintf(1)("unhandled signal(%s)\n",strsignal(signum));
+  #else
+    dprintf(1)("unhandled signal(%s)\n",sys_siglist[signum]);
+  #endif
   return Message::ACCEPT;
 }
 
