@@ -76,10 +76,12 @@ RUN . /opt/venv/bin/activate && python3.10 -m pip install purr \
                                                           kittens \
                                                           'meqtrees-cattery>=1.7.6' \
                                                           astro-tigger-lsm \
-                                                          # possible ABI issues if this is not pinned
-                                                          python-casacore==3.4.0 \
-                                                          # possible ABI issues if this is not pinned
-                                                          numpy==1.21.5
+                                                          # possible ABI issues if this is not pinned to system version \
+                                                          python-casacore==3.5.2 \
+                                                          # possible ABI issues if this is not pinned to system version \
+                                                          numpy==1.21.5 \
+                                                          --no-binary 'python-casacore'
+
 
 ADD . /code
 RUN mkdir /code/build && \
