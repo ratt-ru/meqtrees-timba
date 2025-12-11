@@ -310,7 +310,8 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
   DMI::NumArray &arr = arref <<= createSubclass<DMI::NumArray>(pyobj);
   // make array object with guaranteed C-array properties. This takes
   // care of strides, etc. NumPy will only copy data if the input array is not suitable.
-  PyArrayObject* pyarr_ref = (PyArrayObject*)PyArray_FromAny(pyobj,NULL,0,0,NPY_CARRAY_RO,NULL);
+  PyArrayObject* pyarr_ref = (PyArrayObject*)PyArray_FromAny(pyobj,NULL,0,0,
+    NPY_ARRAY_C_CONTIGUOUS,NULL);
   if( !pyarr_ref ) 
     throwErrorOpt(Type,"PyArray_FromAny fails, perhaps object is not an array");
   // figure out array shape
