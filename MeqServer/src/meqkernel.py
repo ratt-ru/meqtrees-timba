@@ -65,8 +65,10 @@ from Timba import utils
 import sys
 import imp
 import os.path
-if six.PY3:
-  from importlib import reload
+
+from importlib import reload
+import importlib.util
+import importlib.machinery
 
 _dbg = utils.verbosity(0,name='meqkernel');
 _dprint = _dbg.dprint;
@@ -182,11 +184,13 @@ def _import_script_or_module (script,modname=None,force_reload=False):
           _dprint(0,modname,"hasn't been imported yet");
         if module is None:
           try:
-            imp.acquire_lock();
-            module = imp.load_source(modname,filename,infile);
+            import types
+            loader = importlib.machinery.SourceFileLoader(modname, filename if text is None else infile.name)
+            spec = importlib.util.spec_from_loader(loader.name, loader)
+            _tdlmod = importlib.util.module_from_spec(spec)
+            loader.exec_module(_tdlmod)
             _imported_scripts[filename] = (module,_import_counter);
           finally:
-            imp.release_lock();
             infile.close();
       finally:
         sys.path = oldpath;

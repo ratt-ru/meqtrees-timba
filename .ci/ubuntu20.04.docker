@@ -59,5 +59,3 @@ RUN wget https://github.com/ska-sa/pyxis/archive/v1.7.4.3.tar.gz && \
     rm -r /src/pyxis-1.7.4.3
 
 WORKDIR /
-ENTRYPOINT ["meqtree-pipeliner.py"]
-CMD ["--help"]
