@@ -18,9 +18,9 @@ RUN virtualenv venv -p python3.10
 RUN . /opt/venv/bin/activate && pip install setuptools wheel pip -U
 # Get MeqTrees universe python packages
 RUN . /opt/venv/bin/activate && python3.10 -m pip install purr \
-                                                          owlcat \
+                                                          owlcat>=1.8.0.2 \
                                                           kittens \
-                                                          'meqtrees-cattery>=1.7.6' \
+                                                          meqtrees-cattery>=1.8.0rc1 \
                                                           astro-tigger-lsm \
                                                           # possible ABI issues if this is not pinned to system version \
                                                           python-casacore==3.5.2 \
