@@ -25,14 +25,14 @@
 #
 
 # these modules have caused trouble if imported later, so load them now if they are available
-try:
-  import pyrap.tables
-except ImportError:
-  pass;
-try:
-  import pyrap.measures
-except ImportError:
-  pass;
+# try:
+#   import pyrap.tables
+# except ImportError:
+#   pass;
+# try:
+#   import pyrap.measures
+# except ImportError:
+#   pass;
 try:
   import scipy.special.specfun
 except ImportError:

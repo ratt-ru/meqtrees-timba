@@ -63,7 +63,7 @@ from Timba import dmi
 from Timba import utils
 
 import sys
-import imp
+from importlib import machinery
 import os.path
 
 from importlib import reload
@@ -146,7 +146,7 @@ def _import_script_or_module (script,modname=None,force_reload=False):
     script = script[0:-1];
   # if a filename with a known suffix is supplied, try to import as file
   has_imported = False
-  for suffix,mode,filetype in imp.get_suffixes():
+  for suffix in machinery.all_suffixes():
     if script.endswith(suffix):
       # expand "~" and "$VAR" in filename
       script = filename = os.path.expandvars(os.path.expanduser(script));

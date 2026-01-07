@@ -96,12 +96,12 @@ Runs TDL scripts in batch mode. <commands> are interpreted as follows:
       saveconf = TDLOptions.OptionConfigParser()
 
     import re
-    re_load_config    	= re.compile("^\[(.+)\]$");
-    re_load_config1   	= re.compile("^@(.+)$");
-    re_set_config     	= re.compile("^([^=]+)=(.*)$");
-    re_compile_script 	= re.compile("^(.*\.py)(\[(.*)\])?$");
-    re_compile_script1  = re.compile("^(.*\.py)(@(.*))?$");
-    re_run_job        	= re.compile("^=(.*)$");
+    re_load_config    	= re.compile(r"^\[(.+)\]$");
+    re_load_config1   	= re.compile(r"^@(.+)$");
+    re_set_config     	= re.compile(r"^([^=]+)=(.*)$");
+    re_compile_script 	= re.compile(r"^(.*\.py)(\[(.*)\])?$");
+    re_compile_script1  = re.compile(r"^(.*\.py)(@(.*))?$");
+    re_run_job        	= re.compile(r"^=(.*)$");
 
     loaded_options = False;
     module = None;

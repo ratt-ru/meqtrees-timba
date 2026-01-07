@@ -232,7 +232,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       predef_result = None;
     # inspect the define function to support older scripts that only
     # defined a define_forest(ns), i.e., with a single argument
-    (fargs,fvarargs,fvarkw,fdefaults) = inspect.getargspec(define_func);
+    (fargs,fvarargs,fvarkw,fdefaults,kwonlyargs,kwonlydefaults,annotations) = inspect.getfullargspec(define_func);
     if not fargs:
       raise TDL.TDLError("invalid _define_forest() function: must have at least a single argument ('ns')",filename=filename,lineno=1);
     # function must have either a single argument, or allow keyword arguments
