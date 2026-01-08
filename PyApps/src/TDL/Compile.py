@@ -40,11 +40,20 @@ import os
 import os.path
 import inspect
 import six
-if six.PY3:
-  from importlib import reload
-  import importlib.machinery
-#else:
-import imp
+
+from importlib import reload
+import importlib.machinery
+from threading import Lock
+
+def load_source(modname, filename):
+    loader = importlib.machinery.SourceFileLoader(modname, filename)
+    spec = importlib.util.spec_from_file_location(modname, filename, loader=loader)
+    module = importlib.util.module_from_spec(spec)
+    # The module is always executed and not cached in sys.modules.
+    # Uncomment the following line to cache the module.
+    # sys.modules[module.__name__] = module
+    loader.exec_module(module)
+    return module
 
 _dbg = verbosity(0,name='tdlc');
 _dprint = _dbg.dprint;
@@ -141,28 +150,22 @@ def import_tdl_module (filename, text=None, config=0):
       try: del sys.modules[m];
       except KeyError: pass;
     # remember which modules are imported
-    global _prior_compile_modules;
-    _prior_compile_modules = set(sys.modules.keys());
+    global _prior_compile_modules
+    _prior_compile_modules = set(sys.modules.keys())
     modname = '__tdlruntime';
     try:
-      TDLOptions.enable_save_config(False);
-      # if six.PY2: 
-      imp.acquire_lock()
-      _tdlmod = imp.load_source(modname, filename, infile)
-      # else:
-      #   import types
-      #   loader = importlib.machinery.SourceFileLoader(modname, filename if text is None else infile.name)
-      #   spec = importlib.util.spec_from_loader(loader.name, loader)
-      #   _tdlmod = importlib.util.module_from_spec(spec)
-      #   loader.exec_module(_tdlmod)
+      TDLOptions.enable_save_config(False)
+      import types
+      loader = importlib.machinery.SourceFileLoader(modname, filename if text is None else infile.name)
+      spec = importlib.util.spec_from_loader(loader.name, loader)
+      _tdlmod = importlib.util.module_from_spec(spec)
+      loader.exec_module(_tdlmod)
     finally:
-      TDLOptions.enable_save_config(True);
-      TDLOptions.save_config();
-      #if six.PY2: 
-      imp.release_lock();
-      infile.close();
-      _update_modlist();
-    return (_tdlmod,text);
+      TDLOptions.enable_save_config(True)
+      TDLOptions.save_config()
+      infile.close()
+      _update_modlist()
+    return (_tdlmod,text)
 
   # CumulativeError exceptions returned as is
   except TDL.CumulativeError:
@@ -229,7 +232,7 @@ def run_forest_definition (mqs,filename,tdlmod,text,
       predef_result = None;
     # inspect the define function to support older scripts that only
     # defined a define_forest(ns), i.e., with a single argument
-    (fargs,fvarargs,fvarkw,fdefaults) = inspect.getargspec(define_func);
+    (fargs,fvarargs,fvarkw,fdefaults,kwonlyargs,kwonlydefaults,annotations) = inspect.getfullargspec(define_func);
     if not fargs:
       raise TDL.TDLError("invalid _define_forest() function: must have at least a single argument ('ns')",filename=filename,lineno=1);
     # function must have either a single argument, or allow keyword arguments

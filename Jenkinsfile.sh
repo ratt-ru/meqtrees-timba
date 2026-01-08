@@ -23,3 +23,4 @@ IMAGENAME="mttimbapr"
 # build and test
 docker build -f .ci/ubuntu20.04.docker -t "${IMAGENAME}38:$BUILD_NUMBER" --no-cache=true .
 docker build -f .ci/ubuntu22.04.docker -t "${IMAGENAME}310:$BUILD_NUMBER" --no-cache=true .
+docker build -f .ci/ubuntu24.04.docker -t "${IMAGENAME}310:$BUILD_NUMBER" --no-cache=true .

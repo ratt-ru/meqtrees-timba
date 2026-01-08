@@ -273,12 +273,12 @@ static TypeId numarrayToTypeId (int num)
   {
     case NPY_BOOL:            return Tpbool;   
     case NPY_UBYTE:           return Tpuchar;
-    case PyArray_INT16:       return Tpshort;
-    case PyArray_INT32:       return Tpint;
-    case PyArray_FLOAT32:     return Tpfloat;
-    case PyArray_FLOAT64:     return Tpdouble;
-    case PyArray_COMPLEX64:   return Tpfcomplex;
-    case PyArray_COMPLEX128:  return Tpdcomplex;
+    case NPY_INT16:       return Tpshort;
+    case NPY_INT32:       return Tpint;
+    case NPY_FLOAT32:     return Tpfloat;
+    case NPY_FLOAT64:     return Tpdouble;
+    case NPY_COMPLEX64:   return Tpfcomplex;
+    case NPY_COMPLEX128:  return Tpdcomplex;
     default:
       throwError(Type,ssprintf("NumPy type %d not supported by dmi",num));
   }
@@ -290,12 +290,12 @@ static int typeIdToNumarray (TypeId tid)
   {
     case Tpbool_int:      return NPY_BOOL;   
     case Tpuchar_int:     return NPY_UBYTE;
-    case Tpshort_int:     return PyArray_INT16;
-    case Tpint_int:       return PyArray_INT32;
-    case Tpfloat_int:     return PyArray_FLOAT32;
-    case Tpdouble_int:    return PyArray_FLOAT64;
-    case Tpfcomplex_int:  return PyArray_COMPLEX64;
-    case Tpdcomplex_int:  return PyArray_COMPLEX128;
+    case Tpshort_int:     return NPY_INT16;
+    case Tpint_int:       return NPY_INT32;
+    case Tpfloat_int:     return NPY_FLOAT32;
+    case Tpdouble_int:    return NPY_FLOAT64;
+    case Tpfcomplex_int:  return NPY_COMPLEX64;
+    case Tpdcomplex_int:  return NPY_COMPLEX128;
     default:
       throwError(Type,"dmi type "+tid.toString()+" not supported by NumPy");
   }
@@ -310,11 +310,12 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
   DMI::NumArray &arr = arref <<= createSubclass<DMI::NumArray>(pyobj);
   // make array object with guaranteed C-array properties. This takes
   // care of strides, etc. NumPy will only copy data if the input array is not suitable.
-  PyObjectRef pyarr_ref = PyArray_FromAny(pyobj,NULL,0,0,NPY_CARRAY_RO,NULL);
+  PyArrayObject* pyarr_ref = (PyArrayObject*)PyArray_FromAny(pyobj,NULL,0,0,
+    NPY_ARRAY_C_CONTIGUOUS,NULL);
   if( !pyarr_ref ) 
     throwErrorOpt(Type,"PyArray_FromAny fails, perhaps object is not an array");
   // figure out array shape
-  uint ndim = PyArray_NDIM(*pyarr_ref);
+  uint ndim = PyArray_NDIM(pyarr_ref);
   if( ndim>MaxLorrayRank )
     throwError(Type,ssprintf("array of rank %d, maximum supported is %d",ndim,MaxLorrayRank));
   // create shape of output array -- but do note that 0-dimensional 
@@ -322,16 +323,16 @@ int pyToArray (DMI::NumArray::Ref &arref,PyObject *pyobj)
   LoShape shape((ndim?ndim:1)|LoShape::SETRANK);
   if( ndim )
     for( uint i=0; i<ndim; i++ )
-      shape[i] = PyArray_DIM(*pyarr_ref,i);
+      shape[i] = PyArray_DIM(pyarr_ref,i);
   else
     shape[0] = 1;
-  TypeId tid = numarrayToTypeId(PyArray_TYPE(*pyarr_ref));
-  ulong nb = PyArray_NBYTES(*pyarr_ref);
+  TypeId tid = numarrayToTypeId(PyArray_TYPE(pyarr_ref));
+  ulong nb = PyArray_NBYTES(pyarr_ref);
   // init DMI::NumArray
   cdebug(3)<<"pyToArray("<<ObjStr(pyobj)<<": type "<<tid<<", shape "<<shape<<", "<<nb<<" bytes\n";
   arr.init(tid,shape,DMI::NOZERO);
   
-  memcpy(arr.getDataPtr(),PyArray_DATA(*pyarr_ref),nb);
+  memcpy(arr.getDataPtr(),PyArray_DATA(pyarr_ref),nb);
   arr.validateContent(true);
 
   // success
@@ -846,7 +847,7 @@ PyObject * pyFromArray (const DMI::NumArray &da,int flags)
     }
     // copy data to python array, if new data is created
     if( !(flags&FL_SHAREDATA) )
-      memcpy(PyArray_DATA(*pyarr),arraydata,PyArray_NBYTES(*pyarr)); // new ref
+      memcpy(PyArray_DATA((PyArrayObject*)*pyarr),arraydata,PyArray_NBYTES((PyArrayObject*)*pyarr)); // new ref
     return ~pyarr; // steal our ref since we need to return a NEW REF
   }
 }

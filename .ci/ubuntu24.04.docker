@@ -1,0 +1,116 @@
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_PRIORITY critical
+
+# TODO: needed for now until kern 9 release
+RUN apt update && apt install -y software-properties-common && apt-add-repository -s ppa:kernsuite/kern-dev
+
+RUN apt update && apt install -y libblitz0-dev python3-dev libblas-dev liblapack-dev libqdbm-dev wcslib-dev \
+ libfftw3-dev python3-numpy libcfitsio-dev libboost-all-dev libboost-system-dev cmake g++ wget gfortran \
+ libncurses5-dev bison libbison-dev flex libreadline6-dev python3-pip rsync \
+ python3-virtualenv libgsl-dev casacore-data casacore-dev
+
+#####################################################################
+## CASAcore from source
+#####################################################################
+RUN cd /opt && \
+    wget https://github.com/casacore/casacore/archive/v3.7.1.tar.gz && \
+    tar xvf v3.7.1.tar.gz && \
+    rm v3.7.1.tar.gz && \
+    mkdir casacore-3.7.1/build && \
+    cd /opt/casacore-3.7.1/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_DEPRECATED=OFF -DBUILD_PYTHON=OFF -DBUILD_PYTHON3=ON ../ && \
+    make -j 16 && \
+    make install && \
+    rm -r /opt/casacore-3.7.1 && \
+    ldconfig
+
+#####################################################################
+## CASArest from source
+#####################################################################
+RUN cd /opt && \
+    wget https://github.com/casacore/casarest/archive/v1.9.2.tar.gz && \
+    tar xvf v1.9.2.tar.gz && \
+    rm v1.9.2.tar.gz && \
+    cd /opt/casarest-1.9.2 && \
+    mkdir -p build && \
+    cd /opt/casarest-1.9.2/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release ../ && \
+    make -j 16 && \
+    make install && \
+    rm -r /opt/casarest-1.9.2 && \
+    ldconfig
+
+#####################################################################
+## BUILD MAKEMS FROM SOURCE AND TEST
+#####################################################################
+WORKDIR /opt
+RUN wget https://github.com/ska-sa/makems/archive/v1.5.6.tar.gz && \
+    tar xvf v1.5.6.tar.gz && \
+    rm v1.5.6.tar.gz && \
+    mkdir -p /opt/makems-1.5.6/LOFAR/build/gnu_opt && \
+    cd /opt/makems-1.5.6/LOFAR/build/gnu_opt && \
+    cmake -DCMAKE_MODULE_PATH:PATH=/opt/makems-1.5.6/LOFAR/CMake \
+          -DUSE_LOG4CPLUS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr ../.. && \
+    make -j 16 && \
+    make install && \
+    cd /opt/makems-1.5.6/test && \
+    makems WSRT_makems.cfg && \
+    rm -r /opt/makems-1.5.6
+
+#####################################################################
+## BUILD MeqTrees from source
+#####################################################################
+WORKDIR /opt
+RUN virtualenv venv -p python3.12
+RUN . /opt/venv/bin/activate && pip install setuptools wheel pip -U
+# Get MeqTrees universe python packages
+RUN . /opt/venv/bin/activate && python3.12 -m pip install purr \
+                                                          owlcat>=1.8.1rc1 \
+                                                          kittens \
+                                                          'meqtrees-cattery>=1.8.0rc3' \
+                                                          astro-tigger-lsm \
+                                                          python-casacore>=3.7.1 \
+                                                          'numpy>=2.0'
+
+
+ADD . /code
+RUN . /opt/venv/bin/activate && \
+    mkdir /code/build && \
+    cd /code/build && \
+    cmake -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_PYTHON_3=ON \
+          .. && \
+    make -j8 && \
+    make install && \
+    rm -r /code/build && \
+    ldconfig
+
+#####################################################################
+## Run tests
+#####################################################################
+
+# basic install tests
+RUN . /opt/venv/bin/activate && flag-ms.py --help
+RUN . /opt/venv/bin/activate && meqtree-pipeliner.py --help
+RUN . /opt/venv/bin/activate && python3.12 -c 'from Timba import mequtils'
+
+# run test when built
+WORKDIR /src
+RUN . /opt/venv/bin/activate && python3.12 -m pip install pynose
+RUN wget https://github.com/ska-sa/pyxis/archive/v1.7.7.tar.gz && \
+    tar -xvf v1.7.7.tar.gz && \
+    rm v1.7.7.tar.gz && \
+    . /opt/venv/bin/activate && \
+    python3.12 -m pip install /src/pyxis-1.7.7 && \
+    cd /src/pyxis-1.7.7/Pyxis/recipes/meqtrees-batch-test && \
+    pynose && \
+    rm -r /src/pyxis-1.7.7
+
+RUN . /opt/venv/bin/activate && pyxis --help
+
+WORKDIR /
+ENTRYPOINT ["meqtree-pipeliner.py"]
+CMD ["--help"]
